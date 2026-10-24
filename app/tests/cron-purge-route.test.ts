@@ -103,8 +103,22 @@ describe("tâche de suppression physique des fichiers purgés", () => {
     const f = faux([], { supprimes: [] });
     mocks.client.mockReturnValue(f.db);
     const bilan = await (await GET(appel())).json();
-    expect(mocks.suites).toHaveBeenCalledWith(f.db, expect.objectContaining({ avantEffet: expect.any(Function) }));
+    expect(mocks.suites).toHaveBeenCalledWith(f.db, expect.objectContaining({ avantEffet: expect.any(Function), avantEffetStripe: expect.any(Function) }));
     expect(bilan).toMatchObject({ courriels_fermeture: 1, echecs: 2 });
+  });
+
+  it("finitions du 24/10 (M1) : les gestes Stripe des suites s'arrêtent aussi avec l'arrêt « Abonnements »", async () => {
+    vi.stubEnv("CRON_SECRET", SECRET);
+    mocks.suites.mockResolvedValue({ ...SUITES_VIDES });
+    const missions: unknown[] = [];
+    const f = faux([], { supprimes: [] });
+    const db = { ...f.db, rpc: async (nom: string, args: { p_mission?: string }) => { expect(nom).toBe("verifier_arret_supervision"); missions.push(args?.p_mission); return { data: args?.p_mission !== "abonnements", error: null }; } };
+    mocks.client.mockReturnValue(db);
+    await GET(appel());
+    const options = mocks.suites.mock.calls.at(-1)?.[1] as { avantEffet: () => Promise<void>; avantEffetStripe: () => Promise<void> };
+    await expect(options.avantEffet()).resolves.toBeUndefined();
+    await expect(options.avantEffetStripe()).rejects.toThrow(/arrêt/i);
+    expect(missions).toContain("abonnements");
   });
 
   it("une file qui vieillit au-delà de 48 h passe la tâche en échec", async () => {
@@ -131,7 +145,7 @@ describe("tâche de suppression physique des fichiers purgés", () => {
     // Après la purge nocturne de pg_cron (03:00 UTC).
     expect(vercel.crons).toContainEqual({ path: "/api/cron/equipes?mission=purge", schedule: "40 3 * * *" });
     expect(MISSIONS.purge.equipe).toBe("conformite");
-    expect(TACHES_SUIVIES.purge.nom).toBe("Suppression des fichiers purgés");
+    expect(TACHES_SUIVIES.purge.nom).toBe("Suppression des fichiers purgés et suites des fermetures de comptes");
     expect(TACHES.find((t) => t.nom === "purge")).toMatchObject({ periodicite: "quotidienne", commandable: true });
     expect(TACHES.find((t) => t.nom === "sauvegarde")).toMatchObject({ periodicite: "quotidienne", commandable: false });
   });

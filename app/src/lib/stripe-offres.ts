@@ -844,7 +844,8 @@ export async function programmerPeriodicite(
  */
 export async function resilierAEcheance(
   stripe: Stripe,
-  params: { subscription: string; resilier: boolean }
+  // `metadata` (finitions du 24/10) : la marque de la fermeture d'un compte, posée ou retirée avec la résiliation.
+  params: { subscription: string; resilier: boolean; metadata?: Record<string, string> }
 ): Promise<Reussite<{ souscription: Stripe.Subscription; echeancierLibere: boolean }> | (Echec & { echeancierLibere: boolean })> {
   let echeancierLibere = false;
   try {
@@ -852,6 +853,7 @@ export async function resilierAEcheance(
     echeancierLibere = await libererEcheancier(stripe, s);
     const maj = await stripe.subscriptions.update(params.subscription, {
       cancel_at_period_end: params.resilier,
+      ...(params.metadata ? { metadata: params.metadata } : {}),
     });
     return { ok: true, souscription: maj, echeancierLibere };
   } catch (e) {

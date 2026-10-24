@@ -16,6 +16,11 @@ describe("Rapprochement Stripe sans écriture chez le prestataire", () => {
   it("une facture nulle ne déclenche pas une correction du premier paiement", async () => {
     expect(await comparerAbonnementStripe(stripe({ factures: [{ amount_paid: 0 }] }), { ...suivi, premiere_facture_payee: false })).toEqual([]);
   });
+  it("finitions du 24/10 (I1) : une date d'arrêt est une fin programmée, comme pour le webhook", async () => {
+    const arrete = { ...sub, cancel_at: 1794006000 };
+    expect(await comparerAbonnementStripe(stripe({ abonnement: arrete }), { ...suivi, annulation_demandee: true })).toEqual([]);
+    expect(await comparerAbonnementStripe(stripe({ abonnement: arrete }), suivi)).toEqual(["annulation"]);
+  });
   it("ne présente pas une page Stripe partielle comme un contrôle complet", async () => { expect(await comparerAbonnementStripe(stripe({ plus: true }), suivi)).toContain("lecture_incomplete"); });
   it("signale une souscription active inconnue du suivi", async () => { expect(await comparerAbonnementStripe(stripe(), { ...suivi, stripe_subscription_id: null })).toContain("souscription_non_suivie"); });
   it("borne un passage et annonce le reliquat", async () => {

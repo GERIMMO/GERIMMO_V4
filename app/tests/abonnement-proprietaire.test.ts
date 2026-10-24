@@ -133,6 +133,20 @@ describe("présentation de l’abonnement propriétaire", () => {
     expect(html).toContain("Résiliation au");
     expect(html).toContain("Annuler la résiliation");
   });
+  it("finitions du 24/10 (I1, I4) : une fermeture programmée remplace « Résilier » et « Annuler la résiliation » et dit la nuit d'effacement", async () => {
+    abonner({ annulation_demandee: true });
+    mocks.rpc.mockImplementation(async (nom: string) => ({
+      data: nom === "fermeture_programmee_de" ? [{ effacement_prevu_le: "2099-11-08", choix: "j14_prorata" }] : [nom === "etat_abonnement" ? etat : paiement],
+      error: null,
+    }));
+    const html = await rendre();
+    expect(html).toContain("Fermeture de votre compte programmée");
+    expect(html).toContain("nuit du 7 au 8 novembre 2099");
+    expect(html).toContain("La fermeture de votre compte est programmée");
+    expect(html).not.toContain("Annuler la résiliation");
+    expect(html).not.toContain("Résilier votre contrat");
+    expect(html).not.toContain("données conservées");
+  });
   it("annonce une erreur de lecture sans proposer une nouvelle souscription", async () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { message: "indisponible" } });
     const html = await rendre();

@@ -149,19 +149,30 @@ export async function annulerFermetureCompte(_etat: EtatRetour, formulaire: Form
   const { data, error } = await service.rpc("annuler_fermeture_compte", { p_fermeture: id, p_motif: motif });
   if (error || !data) return { erreur: error ? sansJargon(error.message) : "L'annulation n'est pas confirmée." };
   revalidatePath("/admin/donnees");
-  const r = data as { choix: ChoixFermeture | null; abonnement: AbonnementFermeture; stripe_avant?: EtatStripeAvant | null };
+  const r = data as { choix: ChoixFermeture | null; abonnement: AbonnementFermeture; stripe_avant?: EtatStripeAvant | null; resiliation_notifiee_depuis?: boolean };
   if (!r.abonnement?.vivante) return { succes: "Fermeture annulée : rien ne sera effacé." };
   const reglages = configurationStripe();
   const verrou = r.abonnement.organisation ? await prendreVerrouFacturation(service, r.abonnement.organisation, "resiliation") : null;
+  // Finitions du 24/10 (relecture transverse, I5) : la souscription est relue ; une résiliation notifiée depuis la
+  // programmation reste à l'échéance, un état changé depuis est gardé.
   const reprise = reglages.pret && verrou?.ok
-    ? await annulerStripeFermeture(verrou.proteger(clientStripe(reglages.config)), r.abonnement, r.choix, r.stripe_avant ?? null).finally(() => verrou.rendre())
+    ? await annulerStripeFermeture(verrou.proteger(clientStripe(reglages.config)), r.abonnement, r.choix, r.stripe_avant ?? null, {
+        resiliationNotifiee: r.resiliation_notifiee_depuis === true,
+      }).finally(() => verrou.rendre())
     : { ok: false as const, erreur: "paiement en ligne ou verrou indisponible" };
   if (!reprise.ok) {
     return { succes: "Fermeture annulée : rien ne sera effacé. L’état d’avant n’a pas pu être remis chez Stripe : remettez-le dans le tableau de bord Stripe (date d’arrêt retirée, ou résiliation demandée par le client gardée)." };
   }
+  if (reprise.etatGarde) {
+    return {
+      succes: r.resiliation_notifiee_depuis
+        ? "Fermeture annulée : rien ne sera effacé. Le titulaire a notifié sa résiliation depuis la programmation : elle reste, à l’échéance de la période payée."
+        : "Fermeture annulée : rien ne sera effacé. La souscription avait changé chez Stripe depuis la programmation (résiliation, autre date d’arrêt ou arrêt déjà levé) : cet état est gardé tel quel.",
+    };
+  }
   return {
     succes: `Fermeture annulée : rien ne sera effacé, et l’abonnement revient à son état d’avant la fermeture chez Stripe.${reprise.echeancierNonRetabli
-      ? " Le changement de formule programmé avant la fermeture a été levé et ne revient pas : le titulaire doit le reprogrammer depuis « Mon abonnement »."
+      ? " Le changement de formule programmé avant la fermeture sera reprogrammé par la tâche de nuit, pour l’échéance en cours."
       : ""}`,
   };
 }

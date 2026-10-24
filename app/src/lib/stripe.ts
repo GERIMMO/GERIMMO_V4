@@ -250,6 +250,24 @@ export function finDePeriode(s: Stripe.Subscription): string | null {
   return typeof secondes === "number" ? new Date(secondes * 1000).toISOString() : null;
 }
 
+/**
+ * Une fin est-elle programmée pour cette souscription ? Résiliation à l'échéance (`cancel_at_period_end`) ou date d'arrêt
+ * (`cancel_at`, posée par la fermeture d'un compte à quatorze jours ou au tableau de bord). Finitions du 24/10
+ * (relecture transverse, I1) : la base n'en voyait que la première ; avis de reconduction, courrier du premier
+ * prélèvement, non-reconduction et « Mon abonnement » croyaient alors l'abonnement reconduit.
+ */
+export function finProgrammee(s: Stripe.Subscription): boolean {
+  const brute = s as unknown as { cancel_at_period_end?: boolean | null; cancel_at?: number | null };
+  return brute.cancel_at_period_end === true || typeof brute.cancel_at === "number";
+}
+
+/**
+ * La métadonnée que la non-reconduction faute d'accord (lib/non-reconduction-conditions.ts) pose avec la résiliation à
+ * l'échéance (finitions du 24/10, relecture transverse 3, M1) : le webhook n'envoie pas d'accusé d'une résiliation que
+ * le client n'a pas notifiée. Retirée (valeur vide) par tout geste du client sur sa résiliation.
+ */
+export const MARQUE_NON_RECONDUCTION_STRIPE = "gerimmo_non_reconduction";
+
 /** La quantité réellement facturée chez Stripe pour cette souscription. */
 export function quantiteFacturee(s: Stripe.Subscription): number {
   return s.items?.data?.[0]?.quantity ?? 0;

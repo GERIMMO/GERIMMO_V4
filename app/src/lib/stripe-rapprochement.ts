@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
-import { finDePeriode, quantiteFacturee } from "./stripe";
+import { finDePeriode, finProgrammee, quantiteFacturee } from "./stripe";
 import { GRILLE, lireDetails } from "./stripe-offres";
 import { ArretSupervision } from "./controle-effets";
 export type SuiviControleStripe = {
@@ -26,7 +26,8 @@ export async function comparerAbonnementStripe(stripe: Stripe, a: SuiviControleS
     if (details.periodicite !== a.periodicite) ecarts.add("periodicite");
   }
   if ((finDePeriode(s) ? Date.parse(finDePeriode(s)!) : null) !== (a.periode_fin ? Date.parse(a.periode_fin) : null)) ecarts.add("periode");
-  if (Boolean(s.cancel_at_period_end) !== a.annulation_demandee) ecarts.add("annulation");
+  // Finitions du 24/10 (I1) : même lecture que le webhook — une date d'arrêt est une fin programmée.
+  if (finProgrammee(s) !== a.annulation_demandee) ecarts.add("annulation");
   const factures = await stripe.invoices.list({ customer: a.stripe_customer_id, subscription: a.stripe_subscription_id, status: "paid", limit: 100 });
   if (factures.has_more) ecarts.add("lecture_incomplete");
   if (factures.data.some(f => f.amount_paid > 0) && !a.premiere_facture_payee) ecarts.add("facture_non_reportee");

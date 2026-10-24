@@ -21,12 +21,21 @@ type Fermeture = {
   remboursement_prevu_cents: number | null;
   remboursement_cents: number | null;
   rembourse_le?: string | null;
+  /** Finitions du 24/10 : remboursement J+14 clos sans geste (rétractation, déjà remboursé, souscription poursuivie). */
+  remboursement_motif?: "retractation" | "deja_rembourse" | "souscription_poursuivie" | null;
   courriel_envoye_le: string | null;
   annulation_motif: string | null;
 };
 
 const ORIGINES = { titulaire: "Demande du titulaire", super_admin: "Demande traitée par la supervision", inactivite: "Compte inactif prévenu deux fois" } as const;
 const CHOIX = { fin_periode: "fin de la période payée", j14_prorata: "quatorze jours, remboursement au prorata" } as const;
+const MOTIFS_REMBOURSEMENT = {
+  retractation: "aucun remboursement de fermeture : la rétractation a déjà remboursé la période",
+  deja_rembourse: "paiement déjà entièrement remboursé chez Stripe",
+  souscription_poursuivie: "aucun remboursement : la souscription a continué au-delà de l’arrêt prévu",
+} as const;
+/** Une attente notée par l'exécution (finitions du 24/10) ou un bilan changé : dits tels quels, ce ne sont pas des échecs. */
+const estAttente = (m: string) => m.startsWith("Bilan changé") || m.startsWith("En attente") || m.startsWith("Refus");
 
 /** L'instant d'il y a trente jours (fenêtre des fermetures récentes). */
 function ilYaTrenteJours(): string {
@@ -54,7 +63,7 @@ export async function FermeturesComptes() {
   }
   const depuis = ilYaTrenteJours();
   const r = await db.from("fermetures_comptes")
-    .select("id,account_id,origine,choix,statut,programmee_le,effacement_prevu_le,gel_motif,tentatives,derniere_erreur,executee_le,mode_effacement,bilan_execution,remboursement_prevu_cents,remboursement_cents,rembourse_le,courriel_envoye_le,annulation_motif")
+    .select("id,account_id,origine,choix,statut,programmee_le,effacement_prevu_le,gel_motif,tentatives,derniere_erreur,executee_le,mode_effacement,bilan_execution,remboursement_prevu_cents,remboursement_cents,rembourse_le,remboursement_motif,courriel_envoye_le,annulation_motif")
     .or(`statut.eq.programmee,programmee_le.gte.${depuis}`)
     .order("effacement_prevu_le", { ascending: true }).limit(100);
   const liste = (r.data ?? []) as Fermeture[];
@@ -66,9 +75,9 @@ export async function FermeturesComptes() {
       : <ul className="divide-y">{liste.map((f) => <li key={f.id} className="space-y-2 py-3 text-sm">
         <p><strong>Compte {f.account_id.slice(0, 8).toUpperCase()}</strong> · {ORIGINES[f.origine]}{f.choix ? ` · ${CHOIX[f.choix]}` : ""}</p>
         {f.statut === "programmee" && <>
-          <p>Effacement prévu dans la {nuitDu(f.effacement_prevu_le)}{f.remboursement_prevu_cents ? ` · remboursement prévu ${euros(Number(f.remboursement_prevu_cents))}${f.rembourse_le ? ` (fait le ${formaterDateHeureParis(f.rembourse_le)})` : ""}` : ""}.</p>
+          <p>Effacement prévu dans la {nuitDu(f.effacement_prevu_le)}{f.remboursement_prevu_cents ? ` · remboursement prévu ${euros(Number(f.remboursement_prevu_cents))}${f.rembourse_le ? ` (${f.remboursement_motif ? MOTIFS_REMBOURSEMENT[f.remboursement_motif] : "fait"} le ${formaterDateHeureParis(f.rembourse_le)})` : ""}` : ""}.</p>
           {f.gel_motif && <p className="text-destructive">Gelée : {f.gel_motif}</p>}
-          {f.derniere_erreur && <p className="text-destructive">{f.derniere_erreur.startsWith("Bilan changé") ? f.derniere_erreur : `Dernière tentative en échec (${f.tentatives}) : ${f.derniere_erreur}`}</p>}
+          {f.derniere_erreur && <p className="text-destructive">{estAttente(f.derniere_erreur) ? f.derniere_erreur : `Dernière tentative en échec (${f.tentatives}) : ${f.derniere_erreur}`}</p>}
           <GestesFermeture id={f.id} gelee={f.gel_motif !== null} bilanChange={(f.derniere_erreur ?? "").startsWith("Bilan changé")} />
         </>}
         {f.statut === "executee" && <>

@@ -160,8 +160,11 @@ function fauxStripe(o: {
   factures?: FactureDoublure[];
   paiement?: Record<string, unknown>;
   souscription?: Record<string, unknown>;
-  remboursementsExistants?: { id: string; amount: number; metadata: Record<string, string> }[];
+  remboursementsExistants?: { id: string; amount: number; metadata: Record<string, string>; status?: string }[];
   clientAbsent?: boolean;
+  /** Montant payé que Stripe rend avec le paiement de la facture (`amount_paid`). */
+  montantPaye?: number;
+  dejaRembourseChezStripe?: boolean;
 } = {}) {
   const appels: { methode: string; args: unknown[] }[] = [];
   const note = (methode: string) => async (...args: unknown[]) => {
@@ -175,8 +178,9 @@ function fauxStripe(o: {
         lines: { has_more: false, data: f.lines.map((l) => ({ amount: l.amount, period: { start: secondes(l.debut), end: secondes(l.fin) } })) },
       })) };
     }
-    if (methode === "invoicePayments.list") return { data: [{ payment: o.paiement ?? { payment_intent: `pi_${(args[0] as { invoice: string }).invoice}` } }] };
+    if (methode === "invoicePayments.list") return { data: [{ ...(o.montantPaye !== undefined ? { amount_paid: o.montantPaye } : {}), payment: o.paiement ?? { payment_intent: `pi_${(args[0] as { invoice: string }).invoice}` } }] };
     if (methode === "refunds.list") return { data: o.remboursementsExistants ?? [] };
+    if (methode === "refunds.create" && o.dejaRembourseChezStripe) throw Object.assign(new Error("Charge ch_x has already been refunded."), { type: "StripeInvalidRequestError", code: "charge_already_refunded", statusCode: 400 });
     if (methode === "refunds.create") return { id: `re_${(args[0] as { metadata: { facture: string } }).metadata.facture}`, amount: (args[0] as { amount: number }).amount };
     if (methode === "customers.del") {
       if (o.clientAbsent) throw Object.assign(new Error("No such customer"), { type: "StripeInvalidRequestError", code: "resource_missing", statusCode: 404 });
@@ -199,19 +203,22 @@ describe("gestes Stripe de la fermeture (doublure)", () => {
   const abo = { stripe_subscription_id: "sub_essai1", vivante: true, payee_en_cours: true, periode_debut: "2026-10-20T00:00:00Z", periode_fin: "2026-11-20T00:00:00Z" };
   const AVANT_NEUTRE = { cancel_at_period_end: false, cancel_at: null, schedule: null };
 
-  it("fin de période : résiliation à l'échéance, aucun remboursement ; l'état d'avant est relevé", async () => {
+  const MARQUE = { gerimmo_fermeture: "programmee" };
+  const SANS_MARQUE = { gerimmo_fermeture: "" };
+
+  it("fin de période : résiliation à l'échéance, marquée « fermeture », aucun remboursement ; l'état d'avant est relevé", async () => {
     const f = fauxStripe();
-    expect(await preparerStripeFermeture(f.stripe, abo, "fin_periode")).toEqual({ ok: true, remboursement: null, arret: abo.periode_fin, avant: AVANT_NEUTRE });
-    expect(f.appels.find((a) => a.methode === "subscriptions.update")?.args).toEqual(["sub_essai1", { cancel_at_period_end: true }]);
+    expect(await preparerStripeFermeture(f.stripe, abo, "fin_periode")).toEqual({ ok: true, remboursement: null, arret: abo.periode_fin, avant: { ...AVANT_NEUTRE, pose: "fin_periode", arret_pose: null } });
+    expect(f.appels.find((a) => a.methode === "subscriptions.update")?.args).toEqual(["sub_essai1", { cancel_at_period_end: true, metadata: MARQUE }]);
   });
 
   it("J+14 : arrêt à minuit de Paris du quatorzième jour, sans avoir Stripe, remboursement de la part non utilisée de la facture", async () => {
     const f = fauxStripe();
     const r = await preparerStripeFermeture(f.stripe, abo, "j14_prorata", new Date("2026-10-24T10:00:00Z"));
     const arret = minuitParisEnSecondes("2026-11-07");
-    expect(f.appels.find((a) => a.methode === "subscriptions.update")?.args).toEqual(["sub_essai1", { cancel_at: arret, proration_behavior: "none" }]);
+    expect(f.appels.find((a) => a.methode === "subscriptions.update")?.args).toEqual(["sub_essai1", { cancel_at: arret, proration_behavior: "none", metadata: MARQUE }]);
     const attendu = remboursementProrata({ payeCents: 3000, debut: new Date(abo.periode_debut), fin: new Date(abo.periode_fin), arret: new Date(arret * 1000) });
-    expect(r).toEqual({ ok: true, arret: new Date(arret * 1000).toISOString(), avant: AVANT_NEUTRE,
+    expect(r).toEqual({ ok: true, arret: new Date(arret * 1000).toISOString(), avant: { ...AVANT_NEUTRE, pose: "cancel_at", arret_pose: arret },
       remboursement: { montant_cents: attendu, factures: [{ facture: "in_essai1", montant_cents: attendu }] } });
     expect(attendu).toBeGreaterThan(1000);
   });
@@ -255,6 +262,17 @@ describe("gestes Stripe de la fermeture (doublure)", () => {
     const f = fauxStripe();
     expect(await preparerStripeFermeture(f.stripe, { ...abo, payee_en_cours: false, stripe_statut: "trialing" }, null)).toMatchObject({ ok: true, remboursement: null });
     expect(f.appels.some((a) => a.methode === "invoices.list")).toBe(false);
+    // Finitions du 24/10 (M2) : un essai qui finit AVANT le quatorzième jour s'arrête à sa fin (aucune première facture).
+    const maintenant = new Date("2026-10-24T10:00:00Z");
+    const finEssai = Math.floor(Date.parse("2026-10-30T10:00:00Z") / 1000);
+    const e = fauxStripe({ souscription: { status: "trialing", trial_end: finEssai } });
+    expect(await preparerStripeFermeture(e.stripe, { ...abo, payee_en_cours: false, stripe_statut: "trialing" }, null, maintenant))
+      .toEqual({ ok: true, remboursement: null, arret: new Date(finEssai * 1000).toISOString(), avant: { ...AVANT_NEUTRE, pose: "fin_periode", arret_pose: null } });
+    expect(e.appels.filter((a) => a.methode === "subscriptions.update").map((a) => a.args[1])).toEqual([{ cancel_at_period_end: true, metadata: MARQUE }]);
+    // Un essai qui finit APRÈS le quatorzième jour garde l'arrêt au quatorzième jour.
+    const tard = fauxStripe({ souscription: { status: "trialing", trial_end: Math.floor(Date.parse("2026-11-20T10:00:00Z") / 1000) } });
+    await preparerStripeFermeture(tard.stripe, { ...abo, payee_en_cours: false, stripe_statut: "trialing" }, null, maintenant);
+    expect(tard.appels.filter((a) => a.methode === "subscriptions.update").map((a) => a.args[1])).toEqual([{ cancel_at: minuitParisEnSecondes("2026-11-07"), proration_behavior: "none", metadata: MARQUE }]);
     const g = fauxStripe();
     expect(await preparerStripeFermeture(g.stripe, { vivante: false }, null)).toEqual({ ok: true, remboursement: null, arret: null, avant: null });
     expect(g.appels).toEqual([]);
@@ -265,46 +283,87 @@ describe("gestes Stripe de la fermeture (doublure)", () => {
     expect(await preparerStripeFermeture(fauxStripe({ echoue: true }).stripe, abo, "j14_prorata")).toMatchObject({ ok: false });
   });
 
-  it("annulation : l'état d'avant revient — résiliation levée, ou date d'arrêt retirée", async () => {
-    const f = fauxStripe();
-    expect(await annulerStripeFermeture(f.stripe, abo, "fin_periode", AVANT_NEUTRE)).toEqual({ ok: true, echeancierNonRetabli: false });
-    expect(f.appels.find((a) => a.methode === "subscriptions.update")?.args).toEqual(["sub_essai1", { cancel_at_period_end: false }]);
-    const g = fauxStripe();
-    expect(await annulerStripeFermeture(g.stripe, abo, "j14_prorata", AVANT_NEUTRE)).toEqual({ ok: true, echeancierNonRetabli: false });
-    expect(g.appels.filter((a) => a.methode === "subscriptions.update").map((a) => a.args[1])).toEqual([{ cancel_at: "" }]);
+  const ARRET = 1794006000;
+  const POSE_FIN = { ...AVANT_NEUTRE, pose: "fin_periode" as const, arret_pose: null };
+  const POSE_J14 = { ...AVANT_NEUTRE, pose: "cancel_at" as const, arret_pose: ARRET };
+  const misesAJour = (f: ReturnType<typeof fauxStripe>) => f.appels.filter((a) => a.methode === "subscriptions.update").map((a) => a.args[1]);
+
+  it("annulation : l'état d'avant revient — résiliation levée, ou date d'arrêt retirée — et la marque de la fermeture part", async () => {
+    const f = fauxStripe({ souscription: { cancel_at_period_end: true } });
+    expect(await annulerStripeFermeture(f.stripe, abo, "fin_periode", POSE_FIN)).toEqual({ ok: true, echeancierNonRetabli: false });
+    expect(misesAJour(f)).toEqual([{ cancel_at_period_end: false, metadata: SANS_MARQUE }]);
+    const g = fauxStripe({ souscription: { cancel_at: ARRET } });
+    expect(await annulerStripeFermeture(g.stripe, abo, "j14_prorata", POSE_J14)).toEqual({ ok: true, echeancierNonRetabli: false });
+    expect(misesAJour(g)).toEqual([{ cancel_at: "", metadata: SANS_MARQUE }]);
   });
 
   it("annulation : une résiliation demandée par le client AVANT la fermeture reste ; une date d'arrêt antérieure revient (relecture du 24/10)", async () => {
-    const dejaResilie = { cancel_at_period_end: true, cancel_at: null, schedule: null };
-    const f = fauxStripe();
-    expect(await annulerStripeFermeture(f.stripe, abo, "fin_periode", dejaResilie)).toEqual({ ok: true, echeancierNonRetabli: false });
-    expect(f.appels.filter((a) => a.methode === "subscriptions.update")).toEqual([]);
-    const g = fauxStripe();
-    await annulerStripeFermeture(g.stripe, abo, "j14_prorata", dejaResilie);
-    expect(g.appels.filter((a) => a.methode === "subscriptions.update").map((a) => a.args[1])).toEqual([{ cancel_at: "" }, { cancel_at_period_end: true }]);
-    const h = fauxStripe();
-    await annulerStripeFermeture(h.stripe, abo, "j14_prorata", { cancel_at_period_end: false, cancel_at: 1798000000, schedule: null });
-    expect(h.appels.filter((a) => a.methode === "subscriptions.update").map((a) => a.args[1])).toEqual([{ cancel_at: 1798000000 }]);
-    // Un échéancier libéré à la programmation ne se recrée pas : l'appelant le sait.
-    const k = fauxStripe();
-    expect(await annulerStripeFermeture(k.stripe, abo, "j14_prorata", { cancel_at_period_end: false, cancel_at: null, schedule: "sub_sched_1" }))
+    const f = fauxStripe({ souscription: { cancel_at_period_end: true } });
+    expect(await annulerStripeFermeture(f.stripe, abo, "fin_periode", { ...POSE_FIN, cancel_at_period_end: true })).toEqual({ ok: true, echeancierNonRetabli: false });
+    expect(misesAJour(f)).toEqual([{ metadata: SANS_MARQUE }]);
+    const g = fauxStripe({ souscription: { cancel_at: ARRET } });
+    await annulerStripeFermeture(g.stripe, abo, "j14_prorata", { ...POSE_J14, cancel_at_period_end: true });
+    expect(misesAJour(g)).toEqual([{ cancel_at: "", metadata: SANS_MARQUE }, { cancel_at_period_end: true }]);
+    const h = fauxStripe({ souscription: { cancel_at: ARRET } });
+    await annulerStripeFermeture(h.stripe, abo, "j14_prorata", { ...POSE_J14, cancel_at: 1798000000 });
+    expect(misesAJour(h)).toEqual([{ cancel_at: 1798000000, metadata: SANS_MARQUE }]);
+    // Un échéancier libéré à la programmation ne se recrée pas : l'appelant le sait (la base remet l'échéance à préparer).
+    const k = fauxStripe({ souscription: { cancel_at: ARRET } });
+    expect(await annulerStripeFermeture(k.stripe, abo, "j14_prorata", { ...POSE_J14, schedule: "sub_sched_1" }))
       .toEqual({ ok: true, echeancierNonRetabli: true });
+  });
+
+  it("finitions du 24/10 (I5) : la souscription est relue ; une résiliation du client depuis la programmation reste", async () => {
+    // Essai s12 de la relecture transverse : le client a résilié après la programmation J+14 (cancel_at_period_end).
+    const resilie = fauxStripe({ souscription: { cancel_at_period_end: true, cancel_at: ARRET + 86_400 * 200 } });
+    expect(await annulerStripeFermeture(resilie.stripe, abo, "j14_prorata", POSE_J14)).toEqual({ ok: true, echeancierNonRetabli: false, etatGarde: true });
+    expect(misesAJour(resilie)).toEqual([{ metadata: SANS_MARQUE }]);
+    // Une autre date d'arrêt posée depuis (tableau de bord) : gardée.
+    const autre = fauxStripe({ souscription: { cancel_at: ARRET + 3600 } });
+    expect(await annulerStripeFermeture(autre.stripe, abo, "j14_prorata", POSE_J14)).toMatchObject({ ok: true, etatGarde: true });
+    expect(misesAJour(autre)).toEqual([{ metadata: SANS_MARQUE }]);
+    // La base dit qu'une résiliation a été notifiée ou accusée depuis la programmation : remise à l'échéance.
+    const notifiee = fauxStripe({ souscription: { cancel_at: ARRET } });
+    expect(await annulerStripeFermeture(notifiee.stripe, abo, "j14_prorata", POSE_J14, { resiliationNotifiee: true })).toMatchObject({ ok: true, etatGarde: true });
+    expect(misesAJour(notifiee)).toEqual([{ cancel_at: "", metadata: SANS_MARQUE }, { cancel_at_period_end: true, metadata: SANS_MARQUE }]);
+    // Fin de période déjà levée par quelqu'un : rien de plus que la marque.
+    const levee = fauxStripe({ souscription: { cancel_at_period_end: false } });
+    expect(await annulerStripeFermeture(levee.stripe, abo, "fin_periode", POSE_FIN)).toMatchObject({ ok: true, etatGarde: true });
+    expect(misesAJour(levee)).toEqual([{ metadata: SANS_MARQUE }]);
+    // Souscription déjà terminée : rien n'est écrit.
+    const finie = fauxStripe({ souscription: { status: "canceled" } });
+    expect(await annulerStripeFermeture(finie.stripe, abo, "j14_prorata", POSE_J14)).toMatchObject({ ok: true, etatGarde: true });
+    expect(misesAJour(finie)).toEqual([]);
   });
 
   it("remboursement : une fois par facture ; un remboursement déjà fait (clé d'idempotence expirée) est retrouvé, jamais refait", async () => {
     const parts = [{ facture: "in_a", montant_cents: 300 }, { facture: "in_b", montant_cents: 120 }];
     const f = fauxStripe();
-    expect(await rembourserFermeture(f.stripe, { fermetureId: "f1", parts })).toEqual({ ok: true, faits: [
+    expect(await rembourserFermeture(f.stripe, { fermetureId: "f1", parts })).toEqual({ ok: true, dejaRemboursees: [], faits: [
       { facture: "in_a", remboursement: "re_in_a", montant_cents: 300 }, { facture: "in_b", remboursement: "re_in_b", montant_cents: 120 }] });
     expect(f.appels.filter((a) => a.methode === "refunds.create").map((a) => a.args)).toEqual([
       [{ payment_intent: "pi_in_a", amount: 300, reason: "requested_by_customer", metadata: { fermeture: "f1", facture: "in_a" } }, { idempotencyKey: "fermeture-f1-remboursement-in_a" }],
       [{ payment_intent: "pi_in_b", amount: 120, reason: "requested_by_customer", metadata: { fermeture: "f1", facture: "in_b" } }, { idempotencyKey: "fermeture-f1-remboursement-in_b" }],
     ]);
     const g = fauxStripe({ remboursementsExistants: [{ id: "re_ancien", amount: 300, metadata: { fermeture: "f1", facture: "in_a" } }] });
-    expect(await rembourserFermeture(g.stripe, { fermetureId: "f1", parts: [parts[0]] })).toEqual({ ok: true, faits: [{ facture: "in_a", remboursement: "re_ancien", montant_cents: 300 }] });
+    expect(await rembourserFermeture(g.stripe, { fermetureId: "f1", parts: [parts[0]] })).toEqual({ ok: true, dejaRemboursees: [], faits: [{ facture: "in_a", remboursement: "re_ancien", montant_cents: 300 }] });
     expect(g.appels.some((a) => a.methode === "refunds.create")).toBe(false);
     expect(await rembourserFermeture(fauxStripe({ paiement: {} }).stripe, { fermetureId: "f1", parts: [parts[0]] })).toMatchObject({ ok: false });
     expect(await rembourserFermeture(f.stripe, { fermetureId: "f1", parts: [{ facture: "in_x", montant_cents: 0 }] })).toMatchObject({ ok: false });
+  });
+
+  it("finitions du 24/10 (I3) : un paiement déjà entièrement remboursé (rétractation) est un état final, jamais une erreur de chaque nuit", async () => {
+    const part = { facture: "in_annuel", montant_cents: 5800 };
+    // Essai s6 : la rétractation a remboursé les 348 € du paiement.
+    const entier = fauxStripe({ montantPaye: 34800, remboursementsExistants: [{ id: "re_retractation", amount: 34800, status: "succeeded", metadata: { gerimmo_retractation: "retractation-abonnement-sub_x" } }] });
+    expect(await rembourserFermeture(entier.stripe, { fermetureId: "f1", parts: [part] })).toEqual({ ok: true, faits: [], dejaRemboursees: ["in_annuel"] });
+    expect(entier.appels.some((a) => a.methode === "refunds.create")).toBe(false);
+    // Remboursé en partie par un autre geste : seul le reste part.
+    const partiel = fauxStripe({ montantPaye: 34800, remboursementsExistants: [{ id: "re_geste", amount: 30000, status: "succeeded", metadata: {} }] });
+    expect(await rembourserFermeture(partiel.stripe, { fermetureId: "f1", parts: [part] })).toEqual({ ok: true, dejaRemboursees: [], faits: [{ facture: "in_annuel", remboursement: "re_in_annuel", montant_cents: 4800 }] });
+    // Stripe répond « déjà remboursé » : même état final.
+    const refus = fauxStripe({ dejaRembourseChezStripe: true });
+    expect(await rembourserFermeture(refus.stripe, { fermetureId: "f1", parts: [part] })).toEqual({ ok: true, faits: [], dejaRemboursees: ["in_annuel"] });
   });
 });
 
@@ -345,7 +404,7 @@ describe("suites de nuit (doublures de la base, de Stripe et de l'envoi)", () =>
     const f = fauxStripe();
     const bilan = await traiterSuitesComptes(b.db, { stripe: f.stripe, envoyer, site: "https://site.example.com", versionMin: null, exports: false });
     expect(bilan).toMatchObject({ courriels_fermeture: 1, remboursements: 1, echecs: 0 });
-    expect(b.rpc.find((r) => r.nom === "fermeture_remboursement_fait")?.args).toEqual({ p_fermeture: "f1", p_faits: [{ facture: "in_essai1", remboursement: "re_in_essai1", montant_cents: 420 }] });
+    expect(b.rpc.find((r) => r.nom === "fermeture_remboursement_fait")?.args).toEqual({ p_fermeture: "f1", p_faits: [{ facture: "in_essai1", remboursement: "re_in_essai1", montant_cents: 420 }], p_motif: null });
     expect(b.retraits).toEqual([{ compartiment: "artisan-prive", chemins: ["a1/x.pdf"] }, { compartiment: "devis-preparations", chemins: ["a1/d.pdf"] }]);
     expect(b.rpc.filter((r) => r.nom === "fermeture_suites_faites").map((r) => r.args)).toEqual([
       { p_fermeture: "f1", p_remboursement_cents: null, p_stripe_remboursement_id: null, p_courriel_envoye: true },
@@ -354,6 +413,49 @@ describe("suites de nuit (doublures de la base, de Stripe et de l'envoi)", () =>
     const html = lisible((envoyer.mock.calls[0] as unknown as [{ html: string }])[0].html);
     expect(html).toContain("Nous vous avons remboursé 4,20 €");
     expect(html).toContain("https://site.example.com/confidentialite");
+  });
+
+  it("finitions du 24/10 (I2, I3) : rétractation exécutée, souscription poursuivie, déjà remboursée : clos sans échec ; souscription encore vivante : attente", async () => {
+    const arret = "2026-11-06T23:00:00Z";
+    const duJ14 = { ...du, stripe_subscription_id: "sub_essai1", arret_prevu_le: arret, retractation_executee: false };
+    // Rétractation déjà exécutée sur la souscription : clos « retractation », sans appel à Stripe.
+    const r1 = fausseBase({ dus: [{ ...duJ14, retractation_executee: true }] });
+    const f1 = fauxStripe();
+    expect(await traiterSuitesComptes(r1.db, { stripe: f1.stripe, envoyer: vi.fn(), site: null, versionMin: null, exports: false })).toMatchObject({ remboursements: 0, remboursements_clos: 1, echecs: 0 });
+    expect(r1.rpc.find((r) => r.nom === "fermeture_remboursement_fait")?.args).toEqual({ p_fermeture: "f1", p_faits: [], p_motif: "retractation" });
+    expect(f1.appels).toEqual([]);
+    // La souscription s'est terminée bien après l'arrêt prévu (arrêt levé puis fin de période) : rien n'est dû.
+    const r2 = fausseBase({ dus: [duJ14] });
+    const f2 = fauxStripe({ souscription: { status: "canceled", ended_at: Math.floor(Date.parse("2026-11-20T00:00:00Z") / 1000) } });
+    expect(await traiterSuitesComptes(r2.db, { stripe: f2.stripe, envoyer: vi.fn(), site: null, versionMin: null, exports: false })).toMatchObject({ remboursements_clos: 1, echecs: 0 });
+    expect(r2.rpc.find((r) => r.nom === "fermeture_remboursement_fait")?.args).toEqual({ p_fermeture: "f1", p_faits: [], p_motif: "souscription_poursuivie" });
+    expect(f2.appels.some((a) => a.methode === "refunds.create")).toBe(false);
+    // Encore vivante chez Stripe : la nuit suivante, sans échec ni geste.
+    const r3 = fausseBase({ dus: [duJ14] });
+    const f3 = fauxStripe({ souscription: { status: "active" } });
+    expect(await traiterSuitesComptes(r3.db, { stripe: f3.stripe, envoyer: vi.fn(), site: null, versionMin: null, exports: false })).toMatchObject({ remboursements: 0, remboursements_clos: 0, echecs: 0 });
+    expect(r3.rpc.some((r) => r.nom === "fermeture_remboursement_fait")).toBe(false);
+    // Arrêtée à la date prévue, mais paiement déjà entièrement remboursé : clos « deja_rembourse ».
+    const r4 = fausseBase({ dus: [duJ14] });
+    const f4 = fauxStripe({ souscription: { status: "canceled", ended_at: Math.floor(Date.parse(arret) / 1000) }, dejaRembourseChezStripe: true });
+    expect(await traiterSuitesComptes(r4.db, { stripe: f4.stripe, envoyer: vi.fn(), site: null, versionMin: null, exports: false })).toMatchObject({ remboursements_clos: 1, echecs: 0 });
+    expect(r4.rpc.find((r) => r.nom === "fermeture_remboursement_fait")?.args).toEqual({ p_fermeture: "f1", p_faits: [], p_motif: "deja_rembourse" });
+    // Arrêtée à la date prévue : remboursée.
+    const r5 = fausseBase({ dus: [duJ14] });
+    const f5 = fauxStripe({ souscription: { status: "canceled", ended_at: Math.floor(Date.parse(arret) / 1000) } });
+    expect(await traiterSuitesComptes(r5.db, { stripe: f5.stripe, envoyer: vi.fn(), site: null, versionMin: null, exports: false })).toMatchObject({ remboursements: 1, echecs: 0 });
+  });
+
+  it("finitions du 24/10 (I3) : le courriel de fin renvoie à la rétractation au lieu d'annoncer un remboursement en cours ; la déclaration gardée est dite", async () => {
+    const clos = { ...suite, remboursement_cents: 0, rembourse_le: "2026-11-08T02:40:00Z", remboursement_motif: "retractation", bilan_execution: { ...suite.bilan_execution, retractations_conservees: 1 } };
+    const b = fausseBase({ suites: [clos] });
+    const envoyer = vi.fn(async () => ({ id: "m1" }));
+    expect(await traiterSuitesComptes(b.db, { stripe: null, envoyer, site: null, versionMin: null, exports: false })).toMatchObject({ courriels_fermeture: 1, echecs: 0 });
+    const html = lisible((envoyer.mock.calls[0] as unknown as [{ html: string }])[0].html);
+    expect(html).toContain("remboursée en entier au titre de votre rétractation");
+    expect(html).not.toContain("est en cours");
+    expect(html).not.toContain("Nous vous avons remboursé");
+    expect(html).toContain("votre déclaration de rétractation");
   });
 
   it("fermeture pour inactivité : le courriel dit la dernière activité, pas une demande", async () => {

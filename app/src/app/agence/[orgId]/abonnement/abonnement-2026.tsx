@@ -18,6 +18,7 @@ import { motifIdentiteEditeur } from "@/lib/garde-souscription";
 import { lireGardeSouscription } from "@/lib/garde-souscription-serveur";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate } from "@/lib/ged";
+import { nuitDu } from "@/lib/comptes-fermeture";
 import { clientStripe, configurationStripe } from "@/lib/stripe";
 import { apercuChangement, datePremierPrelevement } from "@/lib/stripe-offres";
 import { joursJusquaParis } from "@/lib/heure-paris-calcul";
@@ -109,7 +110,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   const estAgence = organisation.type === "agence";
   const unite = estAgence ? "lot sous mandat" : "bien";
 
-  const [{ data: etatBrut, error: erreurEtat }, { data: paiementBrut, error: erreurPaiement }, garde, ligneRetractation] = await Promise.all([
+  const [{ data: etatBrut, error: erreurEtat }, { data: paiementBrut, error: erreurPaiement }, garde, ligneRetractation, { data: fermetureBrute }] = await Promise.all([
     supabase.rpc("etat_abonnement", { p_org: orgId }),
     supabase.rpc("mon_abonnement", { p_org: orgId }),
     // Lot B3 (19/10) : l'identité de l'éditeur (supervision_identite) et
@@ -117,7 +118,13 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
     lireGardeSouscription(supabase, user.id),
     // Plan du 23/10 (R01, R37) : le droit de rétractation, affiché même en lecture seule.
     ligneRetractationDuResponsable(supabase, orgId),
+    // Finitions du 24/10 (relectures transverses I1, I4) : la fermeture programmée de l'espace. Ni « Résilier » ni
+    // « Annuler la résiliation » (l'arrêt posé par la fermeture serait défait) ; la date d'effacement est dite.
+    supabase.rpc("fermeture_programmee_de", { p_org: orgId }),
   ]);
+  const fermeture = (Array.isArray(fermetureBrute) ? (fermetureBrute as { effacement_prevu_le?: unknown; choix?: string | null }[]) : [])
+    .find((f): f is { effacement_prevu_le: string; choix?: string | null } =>
+      typeof f?.effacement_prevu_le === "string" && /^\d{4}-\d{2}-\d{2}$/.test(f.effacement_prevu_le)) ?? null;
   // Relecture adverse du 24/10 (M4) : une souscription que la base n'a pas encore datée prend sa date chez Stripe.
   const conclusionStripe = await conclusionRelueChezStripe(supabase, orgId, ligneRetractation);
   const retractation = etatRetractation(ligneRetractation ?? null, new Date(), conclusionStripe ?? null);
@@ -476,7 +483,12 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         {souscrit && (
           <div className="mt-3 border-t border-border pt-3">
             <p className="libelle-champ mb-1">Changements programmés</p>
-            {paiement.annulation_demandee ? (
+            {fermeture ? (
+              <p className="text-sm">
+                Fermeture de votre compte programmée : l&apos;abonnement s&apos;arrête sans être renouvelé, puis l&apos;espace et
+                ses données sont effacés dans la {nuitDu(fermeture.effacement_prevu_le)}.
+              </p>
+            ) : paiement.annulation_demandee ? (
               <p className="text-sm">
                 Résiliation au {paiement.periode_fin ? formaterDate(paiement.periode_fin) : "terme de la période"} : l&apos;accès
                 payé reste entier d&apos;ici là, puis le compte passe en lecture seule, données conservées.
@@ -643,7 +655,12 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             </p>
             {/* Plan du 23/10 (R04) : un seul chemin de résiliation, la page « Résilier votre contrat » (récapitulatif,
                 date de fin, accusé de réception) ; le portail de paiement ne résilie plus. */}
-            {paiement.annulation_demandee ? (
+            {fermeture ? (
+              <p className="text-sm">
+                La fermeture de votre compte est programmée : l&apos;abonnement s&apos;arrête avec elle. Pour la modifier ou
+                l&apos;annuler, écrivez-nous depuis « Aide ».
+              </p>
+            ) : paiement.annulation_demandee ? (
               <BoutonResiliation orgId={orgId} resilier={false} libelle="Annuler la résiliation" />
             ) : (
               <Link href={`${base}/abonnement/resiliation`} className="btn-secondaire inline-flex">

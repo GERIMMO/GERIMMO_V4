@@ -303,3 +303,52 @@ describe("R07 — la résiliation pour impayé", () => {
     expect(m.envois).toHaveLength(0);
   });
 });
+
+// Finitions du 24/10 (relectures transverses 1 et 3 : I1, I4, M1) : une date d'arrêt (`cancel_at`) est une fin
+// programmée ; la fin posée par la fermeture d'un compte, ou par la non-reconduction faute d'accord, n'est ni une
+// résiliation notifiée par le client (pas d'accusé) ni une résiliation pour impayé (pas de courrier, facture laissée).
+describe("finitions du 24/10 : fermeture de compte et non-reconduction vues du webhook", () => {
+  it("I1 : une date d'arrêt (fermeture à quatorze jours) est inscrite comme une fin programmée", async () => {
+    const s = souscription({ cancel_at: Date.parse("2026-11-07T23:00:00Z") / 1000, metadata: { gerimmo_grille: "2026-09-28", gerimmo_formule: "solo", gerimmo_unites: "1", gerimmo_fermeture: "programmee" } } as Partial<Stripe.Subscription>);
+    const { supabase, appels } = banc(CONFIRMEE);
+    await traiterEvenementStripe(supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
+    expect(appels.find((a) => a.nom === "abonnement_appliquer")?.args).toMatchObject({ p_annulation: true });
+    expect(m.envois).toHaveLength(0);
+  });
+
+  it("I4 et M1 : une fin de période posée par la fermeture n'envoie pas d'accusé de résiliation", async () => {
+    const s = souscription({ cancel_at_period_end: true, metadata: { gerimmo_grille: "2026-09-28", gerimmo_formule: "solo", gerimmo_unites: "1", gerimmo_fermeture: "programmee" } } as Partial<Stripe.Subscription>);
+    const { supabase, appels } = banc(CONFIRMEE);
+    await traiterEvenementStripe(supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
+    expect(m.envois).toHaveLength(0);
+    expect(appels.some((a) => a.nom === "abonnement_resiliation_accusee")).toBe(false);
+    // Marque retirée (fermeture annulée) : une résiliation ensuite notifiée hors de la page est accusée comme avant.
+    const ensuite = souscription({ cancel_at_period_end: true, metadata: { gerimmo_grille: "2026-09-28", gerimmo_formule: "solo", gerimmo_unites: "1", gerimmo_fermeture: "" } } as Partial<Stripe.Subscription>);
+    await traiterEvenementStripe(banc(CONFIRMEE).supabase as never, stripeFictif(ensuite).stripe, evenement("customer.subscription.updated", ensuite));
+    expect(m.envois.map((e) => e.subject)).toEqual(["Votre résiliation Gerimmo est enregistrée"]);
+  });
+
+  it("M1 (relecture 3) : la non-reconduction faute d'accord n'envoie pas d'accusé d'une résiliation que le client n'a pas notifiée", async () => {
+    const s = souscription({ cancel_at_period_end: true, metadata: { gerimmo_grille: "2026-09-28", gerimmo_formule: "solo", gerimmo_unites: "1", gerimmo_non_reconduction: "2026-12-01" } } as Partial<Stripe.Subscription>);
+    await traiterEvenementStripe(banc(CONFIRMEE).supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.updated", s));
+    expect(m.envois).toHaveLength(0);
+  });
+
+  it("I1 : un compte en impayé fermé à quatorze jours ne reçoit pas « résilié faute de règlement », et sa facture n'est pas annulée", async () => {
+    // Essai s7 de la relecture transverse 1.
+    const arret = Date.parse("2026-11-07T23:00:00Z") / 1000;
+    const s = souscription({ status: "canceled", cancel_at: arret, ended_at: arret, metadata: { gerimmo_grille: "2026-09-28", gerimmo_formule: "solo", gerimmo_unites: "1", gerimmo_fermeture: "programmee" },
+      cancellation_details: { reason: "cancellation_requested", comment: null, feedback: null } } as unknown as Partial<Stripe.Subscription>);
+    const { stripe, annulees } = stripeFictif(s, ["in_impayee"]);
+    await traiterEvenementStripe(banc({ ...RIEN, paiement_en_defaut_depuis: "2026-10-04" }).supabase as never, stripe, evenement("customer.subscription.deleted", s));
+    expect(annulees).toEqual([]);
+    expect(m.envois).toHaveLength(0);
+  });
+
+  it("I1 : la levée efface la marque de l'accusé seulement si plus aucune fin n'est programmée (ni échéance, ni date d'arrêt)", async () => {
+    const arret = souscription({ cancel_at_period_end: false, cancel_at: Date.parse("2026-11-07T23:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
+    const { supabase, appels } = banc({ ...CONFIRMEE, annulation_demandee: true, resiliation_accusee_pour: "2026-11-26T09:00:00Z" });
+    await traiterEvenementStripe(supabase as never, stripeFictif(arret).stripe, evenement("customer.subscription.updated", arret));
+    expect(appels.some((a) => a.nom === "abonnement_resiliation_levee")).toBe(false);
+  });
+});

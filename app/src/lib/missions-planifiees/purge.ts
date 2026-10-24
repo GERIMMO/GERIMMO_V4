@@ -96,9 +96,12 @@ export async function traiterPurge(request: Request) {
   // compartiment `documents`, remboursement au prorata, courriel de fin), les avertissements d'inactivité et le ménage
   // des archives d'export. Après la suppression des fichiers mis en file par ces fermetures.
   const reglages = configurationStripe();
+  // Finitions du 24/10 (relecture transverse, M1) : les gestes chez Stripe (remboursements, suppression des clients)
+  // s'arrêtent aussi avec l'arrêt « Abonnements », comme toute écriture de facturation.
   const comptes = await traiterSuitesComptes(db, {
     stripe: reglages.pret ? clientStripe(reglages.config) : null,
     avantEffet: () => verifierAvantEffet(db, "purge"),
+    avantEffetStripe: () => verifierAvantEffet(db, "abonnements"),
   });
   const bilan = { ...transit, ...comptes, traites, echecs: echecs + (bloques ?? 0) + transit.echecs_transferts + (transit.transferts_bloques ?? 0) + comptes.echecs, bloques: bloques ?? 0, en_attente: lignes.length - traites };
   await consignerTache(db, "purge", bilan);

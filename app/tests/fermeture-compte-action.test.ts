@@ -160,9 +160,16 @@ describe("annuler la fermeture", () => {
     const avant = { cancel_at_period_end: true, cancel_at: null, schedule: null };
     m.annulation = { data: { choix: "fin_periode", abonnement: ABO_PAYE, stripe_avant: avant }, error: null };
     expect((await annulerFermetureCompte({}, formulaire({ fermeture_id: FERMETURE, motif: "Le titulaire renonce" }))).succes).toMatch(/revient à son état d’avant la fermeture/);
-    expect(m.annuler).toHaveBeenCalledWith({ doublure: true }, ABO_PAYE, "fin_periode", avant);
+    expect(m.annuler).toHaveBeenCalledWith({ doublure: true }, ABO_PAYE, "fin_periode", avant, { resiliationNotifiee: false });
     m.annuler.mockResolvedValue({ ok: true, echeancierNonRetabli: true });
-    expect((await annulerFermetureCompte({}, formulaire({ fermeture_id: FERMETURE, motif: "Le titulaire renonce" }))).succes).toMatch(/changement de formule programmé/);
+    expect((await annulerFermetureCompte({}, formulaire({ fermeture_id: FERMETURE, motif: "Le titulaire renonce" }))).succes).toMatch(/changement de formule programmé.*reprogrammé par la tâche de nuit/);
+    // Finitions du 24/10 (I5) : une résiliation notifiée depuis la programmation est transmise, et reste.
+    m.annulation = { data: { choix: "j14_prorata", abonnement: ABO_PAYE, stripe_avant: avant, resiliation_notifiee_depuis: true }, error: null };
+    m.annuler.mockResolvedValue({ ok: true, echeancierNonRetabli: false, etatGarde: true });
+    expect((await annulerFermetureCompte({}, formulaire({ fermeture_id: FERMETURE, motif: "Le titulaire renonce" }))).succes).toMatch(/notifié sa résiliation.*elle reste/);
+    expect(m.annuler).toHaveBeenLastCalledWith({ doublure: true }, ABO_PAYE, "j14_prorata", avant, { resiliationNotifiee: true });
+    m.annulation = { data: { choix: "fin_periode", abonnement: ABO_PAYE, stripe_avant: avant }, error: null };
+    expect((await annulerFermetureCompte({}, formulaire({ fermeture_id: FERMETURE, motif: "Le titulaire renonce" }))).succes).toMatch(/avait changé chez Stripe.*gardé tel quel/);
     m.annuler.mockResolvedValue({ ok: false, erreur: "panne" });
     expect((await annulerFermetureCompte({}, formulaire({ fermeture_id: FERMETURE, motif: "Le titulaire renonce" }))).succes).toMatch(/remettez-le dans le tableau de bord Stripe/);
     m.annulation = { data: { choix: null, abonnement: {} }, error: null };

@@ -1,9 +1,12 @@
 import {
   appliquerPiedDeFacture,
   finDePeriode,
+  finProgrammee,
   lireErreurStripe,
+  MARQUE_NON_RECONDUCTION_STRIPE,
   quantiteFacturee,
 } from "@/lib/stripe";
+import { MARQUE_FERMETURE_STRIPE } from "@/lib/comptes-fermeture";
 import { envoyerAvisFinEssai } from "@/lib/avis-abonnement";
 import {
   envoyerAccuseResiliation,
@@ -140,7 +143,8 @@ async function traiterSouscription(supabase: Service, stripe: Stripe, evenement:
     p_statut: statut,
     p_quantite: quantiteFacturee(s),
     p_periode_fin: finDePeriode(s),
-    p_annulation: s.cancel_at_period_end ?? false,
+    // Finitions du 24/10 (I1) : une date d'arrêt (`cancel_at`) est une fin programmée, comme une résiliation à l'échéance.
+    p_annulation: finProgrammee(s),
   });
   if (error) throw new Error(error.message);
 
@@ -183,7 +187,7 @@ async function traiterSouscription(supabase: Service, stripe: Stripe, evenement:
     evenement.type === "customer.subscription.updated" &&
     avant?.stripe_subscription_id === s.id &&
     avant.resiliation_accusee_pour &&
-    !s.cancel_at_period_end &&
+    !finProgrammee(s) &&
     !SOUSCRIPTION_TERMINEE.has(s.status)
   ) {
     const { error: erreurLevee } = await supabase.rpc("abonnement_resiliation_levee", { p_org: org, p_subscription: s.id });
@@ -307,9 +311,17 @@ async function courriersDuContrat(
   // quand le parc tombe à zéro bien (synchroniserQuantite), ce n'est pas une notification du client. Une résiliation
   // que la page vient de notifier est accusée par la page elle-même, à l'adresse que le client y a choisie.
   const fin = finDePeriode(s);
+  // Finitions du 24/10 (relectures transverses I1, I4, M1) : une fin posée par la fermeture d'un compte (marque
+  // MARQUE_FERMETURE_STRIPE) n'est ni une résiliation notifiée par le client (pas d'accusé : le compte sera effacé, rien
+  // n'est « annulable » depuis l'écran), ni une résiliation pour impayé (pas de courrier, facture laissée telle quelle).
+  const fermeture = Boolean(s.metadata?.[MARQUE_FERMETURE_STRIPE]);
+  // De même, la non-reconduction faute d'accord (R19) : le client n'a rien notifié (relecture transverse 3, M1).
+  const nonReconduction = Boolean(s.metadata?.[MARQUE_NON_RECONDUCTION_STRIPE]);
   if (
     evenement.type === "customer.subscription.updated" &&
     s.cancel_at_period_end &&
+    !fermeture &&
+    !nonReconduction &&
     !avant.annulation_demandee &&
     !avant.resiliation_par_la_page &&
     !SOUSCRIPTION_TERMINEE.has(s.status) &&
@@ -332,6 +344,7 @@ async function courriersDuContrat(
   if (
     evenement.type === "customer.subscription.deleted" &&
     avant.paiement_en_defaut_depuis &&
+    !fermeture &&
     !avant.annulation_demandee &&
     !avant.resiliation_impaye_notifiee_le &&
     !(s.cancellation_details?.comment ?? "").startsWith(COMMENTAIRE_RETRACTATION)

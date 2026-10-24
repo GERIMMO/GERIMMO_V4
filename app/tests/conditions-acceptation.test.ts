@@ -314,7 +314,8 @@ describe("la non-reconduction faute d'accord (R19)", () => {
     const b = banc();
     const bilan = await poserNonReconductionsConditions(b.supabase, b.stripe, { version: "2026-11-15", declaree: V1, aujourdhui: "2026-11-15" });
     expect(bilan).toEqual({ motif: null, examinees: 1, posees: 1, echecs: [] });
-    expect(b.update).toHaveBeenCalledWith("sub_1", { cancel_at_period_end: true });
+    // Finitions du 24/10 (M1) : marquée, pour que le webhook n'envoie pas d'accusé d'une résiliation non notifiée.
+    expect(b.update).toHaveBeenCalledWith("sub_1", { cancel_at_period_end: true, metadata: { gerimmo_non_reconduction: "2026-11-15" } });
     expect(b.appels.map(([fn]) => fn)).toEqual([
       "abonnements_sans_accord_conditions",
       "verrou_facturation_prendre",

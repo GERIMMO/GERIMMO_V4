@@ -9,6 +9,7 @@ import {
   clientStripe,
   configurationStripe,
   finDePeriode,
+  MARQUE_NON_RECONDUCTION_STRIPE,
   ouvrirPortailFacturation,
   verifierClientDeLOrganisation,
 } from "@/lib/stripe";
@@ -607,6 +608,13 @@ export async function resilierAbonnement(
   const { data: souscription, error } = await supabase.rpc("ma_souscription_stripe", { p_org: orgId });
   if (error) return { erreur: sansJargon(error.message) };
   if (!souscription) return { erreur: "Aucun abonnement en cours à résilier." };
+  // Finitions du 24/10 (relecture transverse, I4) : la fermeture programmée du compte a posé l'arrêt de la souscription ;
+  // ni résilier (accusé trompeur), ni « Annuler la résiliation » (souscription reconduite et facturée, effacement retenu).
+  const { data: fermeture, error: erreurFermeture } = await supabase.rpc("fermeture_programmee_de", { p_org: orgId });
+  if (erreurFermeture) return { erreur: "La fermeture éventuelle de votre compte n'a pas pu être vérifiée : rien n'a changé. Réessayez dans un instant." };
+  if (Array.isArray(fermeture) && fermeture.length > 0) {
+    return { erreur: "La fermeture de votre compte est programmée : l'abonnement s'arrête avec elle. Pour la modifier ou l'annuler, écrivez-nous depuis « Aide »." };
+  }
   if (!resilier) {
     const refus = await accordAvantReprise(supabase, formData);
     if (refus) return refus;
@@ -630,6 +638,8 @@ export async function resilierAbonnement(
     const r = await resilierAEcheance(verrou.proteger(clientStripe(reglages.config)), {
       subscription: souscription as string,
       resilier,
+      // Un geste du client : la marque d'une non-reconduction faute d'accord ne vaut plus (finitions du 24/10, M1).
+      metadata: { [MARQUE_NON_RECONDUCTION_STRIPE]: "" },
     });
     // Un échéancier libéré (audit 29/09, point 5) : si la résiliation est levée,
     // la tâche de nuit doit pouvoir reprogrammer l'échéance. Seconde relecture du

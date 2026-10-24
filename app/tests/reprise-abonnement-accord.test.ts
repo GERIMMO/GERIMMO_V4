@@ -143,9 +143,28 @@ describe("« Annuler la résiliation » (resilierAbonnement, resilier = non)", (
   it("aujourd'hui : la reprise part chez Stripe sans rien lire des acceptations", async () => {
     const r = await issue(resilierAbonnement(ORG, {}, envoi({ resilier: "non" })));
     expect(r).toEqual({ redirection: "/espace/org-1/abonnement?resiliation=annulee" });
-    expect(m.resilier).toHaveBeenCalledWith(expect.anything(), { subscription: "sub_1", resilier: false });
+    expect(m.resilier).toHaveBeenCalledWith(expect.anything(), { subscription: "sub_1", resilier: false, metadata: { gerimmo_non_reconduction: "" } });
     expect(lectures).not.toContain("acceptations_cgu");
     expect(accepterCgu()).toEqual([]);
+  });
+
+  it("finitions du 24/10 (I4) : une fermeture programmée du compte refuse la reprise comme la résiliation, sans geste chez Stripe", async () => {
+    m.rpc.mockImplementation(async (nom: string) =>
+      nom === "ma_souscription_stripe" ? { data: "sub_1", error: null }
+        : nom === "fermeture_programmee_de" ? { data: [{ effacement_prevu_le: "2026-11-08", choix: "fin_periode" }], error: null }
+          : { data: null, error: null });
+    for (const resilier of ["non", "oui"]) {
+      const r = await issue(resilierAbonnement(ORG, {}, envoi({ resilier })));
+      expect(r).toEqual({ erreur: expect.stringContaining("La fermeture de votre compte est programmée") });
+    }
+    expect(m.resilier).not.toHaveBeenCalled();
+    // Vérification impossible : rien ne part non plus.
+    m.rpc.mockImplementation(async (nom: string) =>
+      nom === "ma_souscription_stripe" ? { data: "sub_1", error: null }
+        : nom === "fermeture_programmee_de" ? { data: null, error: { message: "panne" } }
+          : { data: null, error: null });
+    expect(await issue(resilierAbonnement(ORG, {}, envoi({ resilier: "non" })))).toEqual({ erreur: expect.stringContaining("n'a pas pu être vérifiée") });
+    expect(m.resilier).not.toHaveBeenCalled();
   });
 
   it("après la date d'effet, sans accord : refus qui demande l'accord, rien chez Stripe, aucun verrou", async () => {

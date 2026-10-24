@@ -3,7 +3,10 @@ import { MISSIONS, estMission } from "@/lib/missions";
 /** Le nom, en français, de ce qu'un arrêt d'urgence suspend. */
 export function nomArret(cle: string): string {
   // D06 : la clé « purge » arrête aussi la rétention quotidienne de la base (suppressions de lignes), pas seulement les fichiers.
-  if (cle === "purge") return "Purge des données échues et suppression des fichiers";
+  // Finitions du 24/10 (M1) : elle arrête aussi les fermetures de comptes (pg_cron) et leurs suites (mission « purge »).
+  if (cle === "purge") return "Purge des données échues, suppression des fichiers et fermetures de comptes";
+  // Les remboursements et suppressions de clients Stripe des fermetures s'arrêtent aussi avec cette clé.
+  if (cle === "abonnements") return "Abonnements (y compris les gestes Stripe des fermetures de comptes)";
   if (estMission(cle)) return MISSIONS[cle].nom;
   return ({ global: "Tous les traitements contrôlés", consignes: "Lectures de consignes", orchestrateur: "Suivi des dossiers", sauvegarde: "Sauvegarde" } as Record<string, string>)[cle] ?? "Traitement contrôlé";
 }

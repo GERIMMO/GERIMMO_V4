@@ -65,9 +65,12 @@ describe("D06 : le périmètre des tâches SQL affiché est celui de la migratio
   });
 
   it("le périmètre « purge » dit qu'il retient aussi la purge des données, pas seulement celle des fichiers", () => {
-    expect(nomArret("purge")).toBe("Purge des données échues et suppression des fichiers");
+    // Finitions du 24/10 (relecture transverse, M1) : la clé « purge » arrête aussi les fermetures de comptes ; la clé
+    // « abonnements », les gestes Stripe de leurs suites (remboursements, clients supprimés).
+    expect(nomArret("purge")).toBe("Purge des données échues, suppression des fichiers et fermetures de comptes");
+    expect(nomArret("abonnements")).toBe("Abonnements (y compris les gestes Stripe des fermetures de comptes)");
     const liste = renderToStaticMarkup(createElement(FormulaireArret, {}));
-    expect(liste).toContain("Purge des données échues et suppression des fichiers");
+    expect(liste).toContain("Purge des données échues, suppression des fichiers et fermetures de comptes");
     expect(liste).not.toContain("Suppression des fichiers purgés");
     // Les autres périmètres gardent le nom de leur mission.
     expect(nomArret("quittances")).toBe("Quittances");

@@ -8,6 +8,7 @@ import { aujourdhuiParis } from "@/lib/ged";
 import { dateParis } from "@/lib/heure-paris-calcul";
 import { accordExpresRequis } from "@/lib/nouvelle-version-conditions";
 import { resilierAEcheance } from "@/lib/stripe-offres";
+import { MARQUE_NON_RECONDUCTION_STRIPE } from "@/lib/stripe";
 import { prendreVerrouFacturation } from "@/lib/verrou-facturation";
 
 // SANS ACCORD À LA DATE D'EFFET, PAS DE RECONDUCTION (plan de conformité du 23/10/2026, lot 1A, constat R19).
@@ -115,7 +116,12 @@ export async function poserNonReconductionsConditions(
       continue;
     }
     try {
-      const r = await resilierAEcheance(verrou.proteger(stripe), { subscription: l.stripe_subscription_id, resilier: true });
+      // Finitions du 24/10 (M1) : marquée, pour que le webhook n'en accuse pas réception comme d'une résiliation notifiée.
+      const r = await resilierAEcheance(verrou.proteger(stripe), {
+        subscription: l.stripe_subscription_id,
+        resilier: true,
+        metadata: { [MARQUE_NON_RECONDUCTION_STRIPE]: version },
+      });
       if (!r.ok) {
         // Un échéancier libéré avant l'échec reste retiré : l'échéance redevient « à préparer » (sinon la période
         // suivante s'ouvrirait sans lui), et la ligne repassera demain (rien n'est consigné comme posé).

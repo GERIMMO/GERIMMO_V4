@@ -29,6 +29,17 @@ export function versionInactiviteValide(v: string | null): v is string {
 }
 
 export type ChoixFermeture = "fin_periode" | "j14_prorata";
+
+/**
+ * La métadonnée que la fermeture pose sur la souscription Stripe quand elle l'arrête (finitions du 24/10, relectures
+ * transverses I1, I4 et M1) : le webhook n'y voit ni une résiliation notifiée par le client (pas d'accusé de résiliation)
+ * ni une résiliation pour impayé (pas de courrier « résilié faute de règlement », facture laissée telle quelle). Retirée
+ * (valeur vide) quand la fermeture est annulée.
+ */
+export const MARQUE_FERMETURE_STRIPE = "gerimmo_fermeture";
+
+/** Pourquoi un remboursement J+14 a été clos sans rien rembourser, ou en remboursant moins (finitions du 24/10, I2 et I3). */
+export type MotifRemboursementFermeture = "retractation" | "deja_rembourse" | "souscription_poursuivie";
 export type OrigineFermeture = "titulaire" | "super_admin" | "inactivite";
 
 /** Le jour de Paris (AAAA-MM-JJ) d'un instant. */
@@ -189,6 +200,8 @@ export type BilanFermeture = {
   dossiers_tiers_detaches?: number;
   artisan?: { id: string; fiche: "supprimee" | "detachee" | null } | null;
   demandes_zoho?: string[];
+  /** Déclarations de rétractation des espaces effacés, gardées détachées (preuve de dix ans ; consigne A du 24/10). */
+  retractations_conservees?: number;
 };
 
 export type FermetureExecutee = {
@@ -202,6 +215,8 @@ export type FermetureExecutee = {
   remboursementCents: number | null;
   /** Remboursement dû mais pas encore confirmé au moment du courriel (annoncé comme en cours). */
   remboursementEnCoursCents?: number | null;
+  /** Remboursement J+14 clos sans rien rembourser (rétractation, paiement déjà remboursé, souscription poursuivie). */
+  remboursementMotif?: MotifRemboursementFermeture | null;
 };
 
 export const SUJET_COMPTE_FERME = "Votre compte Gerimmo est fermé";
@@ -241,6 +256,10 @@ export function elementsConserves(f: Pick<FermetureExecutee, "archives" | "bilan
       );
     }
   }
+  // Consigne A du 24/10 : la déclaration de rétractation reste, détachée de l'espace effacé (contrat:retractation).
+  if ((f.bilan.retractations_conservees ?? 0) > 0) {
+    liste.push("votre déclaration de rétractation, la date de sa réception et la trace de son remboursement, pendant dix ans après la déclaration");
+  }
   const inactivite = f.origine === "inactivite";
   liste.push(inactivite
     ? "la trace de la fermeture de votre compte et des avertissements envoyés, pendant trois ans"
@@ -279,7 +298,18 @@ export function corpsCompteFerme(f: FermetureExecutee, lienConfidentialite: stri
   if ((f.bilan.demandes_zoho ?? []).length > 0) {
     paragraphes.push("Nous demandons à notre prestataire de signature électronique de supprimer les copies des documents signés qu'il conserve.");
   }
-  if (f.remboursementCents && f.remboursementCents > 0) {
+  if (f.remboursementMotif === "retractation") {
+    // Finitions du 24/10 (relecture transverse, I3) : la rétractation a déjà remboursé la période en entier.
+    paragraphes.push(
+      "Votre période payée vous a été remboursée en entier au titre de votre rétractation : aucun autre remboursement n'est dû pour la fermeture."
+    );
+  } else if (f.remboursementMotif === "deja_rembourse" && !(f.remboursementCents && f.remboursementCents > 0)) {
+    paragraphes.push("Le paiement de votre période avait déjà été remboursé en entier : aucun autre remboursement n'est dû pour la fermeture.");
+  } else if (f.remboursementMotif === "souscription_poursuivie") {
+    paragraphes.push(
+      "Votre abonnement s'est poursuivi au-delà de la date d'arrêt prévue, jusqu'au terme de la période payée : la part non utilisée annoncée n'est donc pas due."
+    );
+  } else if (f.remboursementCents && f.remboursementCents > 0) {
     paragraphes.push(
       `Nous vous avons remboursé ${euros(f.remboursementCents)}, pour la part non utilisée de votre période payée, sur le moyen de paiement utilisé.`
     );

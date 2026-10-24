@@ -152,6 +152,10 @@ describe.skipIf(!url)("vente au consommateur et impayé (avec base)", () => {
     await db.connect();
     await db.query("begin");
     await db.query(MIGRATION); // rejeu : sans effet
+    // Finitions du 24/10 (relecture transverse 2, point 4) : le retour refuse tant qu'une migration plus récente du plan
+    // de conformité est inscrite (la base de la CI les inscrit toutes). Retirées de l'historique, dans la transaction
+    // du fichier, annulée à la fin.
+    await db.query("delete from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024140000'", [VERSION]);
   });
   afterAll(async () => {
     await db?.query("rollback");
@@ -314,6 +318,23 @@ describe.skipIf(!url)("vente au consommateur et impayé (avec base)", () => {
     expect((await db.query("select * from public.ma_retractation($1)", [o.id])).rows).toHaveLength(0);
     expect(await echec("select * from public.retractations_abonnement")).toMatch(/permission denied/);
     await proprietaire();
+  });
+
+  it("finitions du 24/10 (consigne A) : la suppression de l'espace détache la déclaration, elle ne l'efface pas ; rien d'autre ne la détache", async () => {
+    const o = await organisation({ paye: true });
+    // Insérée directement (sans la ligne du journal d'audit, qui retiendrait l'espace : la fermeture la détache d'abord).
+    const d = (await db.query(
+      `insert into public.retractations_abonnement (organization_id, subscription_id, nature, cle, texte_declaration, adresse_accuse)
+       values ($1, $2, 'abonnement', $3, 'Je renonce à mon abonnement Gerimmo, formule Solo.', 'vente@example.invalid') returning id`,
+      [o.id, o.subscription, `retractation-abonnement-${o.subscription}`])).rows[0];
+    expect(await echec("update public.retractations_abonnement set organization_id = null where id = $1", [d.id])).toMatch(/ne se réécrit pas/);
+    await db.query("select public.tache_systeme()");
+    await db.query("delete from public.abonnements where organization_id = $1", [o.id]);
+    await db.query("delete from public.organizations where id = $1", [o.id]);
+    await db.query("select set_config('gerimmo.systeme', '', true)");
+    expect((await db.query("select organization_id, subscription_id, cle from public.retractations_abonnement where id = $1", [d.id])).rows)
+      .toEqual([{ organization_id: null, subscription_id: o.subscription, cle: `retractation-abonnement-${o.subscription}` }]);
+    expect(await echec("delete from public.retractations_abonnement where id = $1", [d.id])).toMatch(/ne se supprime pas/);
   });
 
   it("relecture adverse du 24/10 (point 5) : une exécution consignée ne s'écrase pas ; le second appel rend la première", async () => {

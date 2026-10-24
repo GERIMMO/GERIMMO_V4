@@ -16,6 +16,8 @@
 --    ajout seul hormis l'exécution (remboursements) et l'accusé. Écrite par la clé de service seulement, après la
 --    vérification des droits et du délai par l'action serveur. Lue par le responsable au travers de `ma_retractation`.
 --    Hors de la garde de lecture seule (`poser_gardes_abonnement`) : la rétractation reste ouverte à un compte gelé.
+--    Finitions du 24/10 (consigne A) : la suppression de l'espace (fermeture du compte) détache la déclaration (clé
+--    « on delete set null »), elle ne l'efface pas ; la preuve reste jusqu'au terme de contrat:retractation (dix ans).
 -- 3. `abonnement_appliquer` (R07) : « unpaid » garde le statut d'un client qui a déjà payé (la lecture seule vient de la
 --    date, à J+15, comme pour « past_due »). Insertion à compte exact.
 -- 4. `abonnements_a_relancer` (R23) : le premier prélèvement échoué (compte gelé dès l'échec) reçoit UN courrier, au
@@ -69,7 +71,9 @@ comment on column public.abonnements.resiliation_impaye_notifiee_le is
 -- ── 2. Les rétractations ────────────────────────────────────────────────────────────────────────────────────────────
 create table if not exists public.retractations_abonnement (
   id uuid primary key default gen_random_uuid(),
-  organization_id uuid not null references public.organizations(id) on delete cascade,
+  -- Finitions du 24/10 (consigne A) : la preuve d'une rétractation reste dix ans, même après la fermeture du compte.
+  -- La suppression de l'espace la DÉTACHE (organisation mise à vide), elle ne l'efface pas.
+  organization_id uuid references public.organizations(id) on delete set null,
   subscription_id text not null,
   nature text not null,
   cle text not null,
@@ -103,6 +107,28 @@ alter table public.retractations_abonnement add column if not exists passage_eff
 comment on column public.retractations_abonnement.passage_effectue is
   'Passage à l''annuel : déjà effectué (échéance annuelle prélevée, retour au mensuel et remboursement) ou encore programmé. Décidé une fois, à la première exécution (relecture adverse du 24/10).';
 
+-- Rejeu sur une table créée par une version antérieure de ce fichier (clé en cascade, organisation obligatoire) : la
+-- clé passe en « set null », l'organisation devient facultative. Aucune ligne n'est réécrite.
+do $detache$
+declare v_cle text;
+begin
+  select c.conname into v_cle from pg_constraint c
+   where c.conrelid = 'public.retractations_abonnement'::regclass and c.contype = 'f'
+     and c.confrelid = 'public.organizations'::regclass and c.confdeltype <> 'n';
+  if v_cle is not null then
+    execute format('alter table public.retractations_abonnement drop constraint %I', v_cle);
+  end if;
+  if not exists (select 1 from pg_constraint c
+                  where c.conrelid = 'public.retractations_abonnement'::regclass and c.contype = 'f'
+                    and c.confrelid = 'public.organizations'::regclass and c.confdeltype = 'n') then
+    alter table public.retractations_abonnement add constraint retractations_abonnement_organization_id_fkey
+      foreign key (organization_id) references public.organizations(id) on delete set null;
+  end if;
+  alter table public.retractations_abonnement alter column organization_id drop not null;
+end $detache$;
+comment on column public.retractations_abonnement.organization_id is
+  'L''espace de la déclaration ; vide une fois l''espace supprimé (fermeture du compte) : la preuve reste, détachée, jusqu''au terme de contrat:retractation (dix ans).';
+
 alter table public.retractations_abonnement enable row level security;
 create index if not exists retractations_abonnement_org on public.retractations_abonnement (organization_id, declaree_le desc);
 
@@ -113,7 +139,9 @@ create trigger diagnostic_artisan_lecture before insert or update or delete on p
 drop trigger if exists abonnement_retractations_abonnement on public.retractations_abonnement;
 
 -- La déclaration, sa date, son canal et sa référence ne se réécrivent pas ; seuls l'exécution (remboursements) et
--- l'accusé se complètent, une fois. Aucune suppression hors de la suppression de l'organisation.
+-- l'accusé se complètent, une fois. Aucune suppression (la purge au terme de la preuve vient avec la conservation,
+-- 20261024140000). Finitions du 24/10 (consigne A) : la suppression de l'espace détache la déclaration (clé « set
+-- null ») ; seul ce passage de l'organisation à vide est admis, une fois l'espace supprimé, et rien d'autre avec lui.
 create or replace function public.retractations_abonnement_ajout_seul()
 returns trigger
 language plpgsql
@@ -121,9 +149,15 @@ set search_path = ''
 as $$
 begin
   if tg_op = 'DELETE' then
-    -- Seule la suppression de l'organisation l'emporte (cascade : l'organisation n'existe déjà plus).
-    if not exists (select 1 from public.organizations o where o.id = old.organization_id) then return old; end if;
     raise exception 'Une déclaration de rétractation ne se supprime pas';
+  end if;
+  if new.organization_id is distinct from old.organization_id then
+    if new.organization_id is not null or old.organization_id is null
+       or exists (select 1 from public.organizations o where o.id = old.organization_id)
+       or (to_jsonb(new) - 'organization_id') is distinct from (to_jsonb(old) - 'organization_id') then
+      raise exception 'Une déclaration de rétractation ne se réécrit pas';
+    end if;
+    return new;
   end if;
   if (to_jsonb(new) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'passage_effectue', 'accuse_envoye_le'])
      is distinct from (to_jsonb(old) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'passage_effectue', 'accuse_envoye_le']) then
@@ -735,7 +769,7 @@ begin
                                'declaree_le', v.declaree_le, 'canal', v.canal));
   else
     select * into v from public.retractations_abonnement r where r.cle = p_cle;
-    if v.organization_id <> p_org then raise exception 'Déclaration de rétractation incohérente'; end if;
+    if v.organization_id is distinct from p_org then raise exception 'Déclaration de rétractation incohérente'; end if;
   end if;
   return query select v.id, v.organization_id, v.subscription_id, v.nature, v.cle, v.passage_demande_le,
                       v.texte_declaration, v.declaree_le, v.adresse_accuse, v.executee_le, v.montant_rembourse_cents,
@@ -937,6 +971,10 @@ begin
   if exists (select 1 from pg_trigger where tgrelid = 'public.retractations_abonnement'::regclass
               and tgname = 'abonnement_retractations_abonnement') then
     raise exception 'retractations_abonnement : la garde de lecture seule ne doit pas s''y poser';
+  end if;
+  if exists (select 1 from pg_constraint c where c.conrelid = 'public.retractations_abonnement'::regclass and c.contype = 'f'
+              and c.confrelid = 'public.organizations'::regclass and c.confdeltype <> 'n') then
+    raise exception 'retractations_abonnement : la suppression de l''espace doit détacher la déclaration, pas l''effacer';
   end if;
   foreach f in array array['public.abonnement_relance_consigner(uuid,integer,text,boolean)',
                            'public.abonnement_souscription_datee(text,text,timestamp with time zone)',

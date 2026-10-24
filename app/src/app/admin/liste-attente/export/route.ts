@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { journaliserSupervision } from "@/lib/journal-supervision";
 import { lireToutesLesPages } from "@/lib/lecture-complete";
+import { identifiantsOpposes } from "@/lib/liste-attente-agences";
 import {
   csvListeAttenteAgences,
   nomFichierExportListeAttente,
@@ -26,7 +27,7 @@ export async function GET(_request: Request) {
   // contrôle, pas de fichier.
   const opposees = await supabase.rpc("inscriptions_agences_opposees");
   if (opposees.error) return texte("Export impossible pour l’instant : le contrôle des oppositions est indisponible. Réessayez dans un instant.", 503);
-  const exclues = new Set(Array.isArray(opposees.data) ? (opposees.data as unknown[]).map(String) : []);
+  const exclues = identifiantsOpposes(opposees.data);
   // 23/10 (audit A04, même défaut que l'export comptable) : une seule lecture s'arrêtait au plafond de l'API, sans le
   // dire. Lecture page par page, ordre stable terminé par l'identifiant, nombre vérifié contre le compte annoncé.
   const lecture = await lireToutesLesPages<LigneListeAttente & { id: string }>(

@@ -13,10 +13,10 @@
 --    portant la production et toutes les migrations jusqu'à 20261024090000 ; droits inchangés ;
 --  · intégration du 24/10 : `archives_comptes_garde` retrouve le texte du socle final (factures comptées, date de purge
 --    posée par la base, six ans depuis l'émission) et `retractations_abonnement_ajout_seul` celui de 20261024110000
---    (aucune suppression hors de celle de l'organisation) ; `echeance_retractation_abonnement` est retirée ;
+--    (aucune suppression ; la suppression de l'espace détache la déclaration) ; `echeance_retractation_abonnement` est retirée ;
 --  · les fonctions ajoutées, le déclencheur `baux_gel_conservation_garde` et sa fonction ;
 --  · le catalogue : durées d'avant (60 mois, quittances 120 mois depuis l'émission, journal d'audit 36 mois…)
---    seulement là où la valeur est encore celle du plan ; les 22 règles ajoutées sont retirées ;
+--    seulement là où la valeur est encore celle du plan ; les 23 règles ajoutées sont retirées ;
 --  · la liste fermée des origines des prospects et le droit d'écrire `qualite` et `dernier_contact_prospect_le` ;
 --  · la table technique `conservation_reperes` ; la table `oppositions_prospection` SEULEMENT SI ELLE EST VIDE (une
 --    opposition enregistrée est une preuve : elle est conservée telle quelle et le script le dit).
@@ -131,21 +131,24 @@ $a$);
     end if;
     f := replace(f, $n$           public.echeance_conservation_document(d.id) as echeance$n$, $a$           public.debut_conservation_document(d.id) as debut$a$);
     if (length(f) - length(replace(f, $n$    -- CONSERVATION_20261024 : douze mois en général ; les actions de contrôle interne suivent
-    -- journal:audit_controle_interne (36 mois).
+    -- journal:audit_controle_interne (36 mois), les preuves du contrat journal:audit_preuve_contrat (dix ans).
     delete from public.audit_log
       where created_at < now() - make_interval(months => v_regle.duree_mois)
-        and not public.action_audit_controle_interne(action);$n$, ''))) / length($n$    -- CONSERVATION_20261024 : douze mois en général ; les actions de contrôle interne suivent
-    -- journal:audit_controle_interne (36 mois).
+        and not public.action_audit_controle_interne(action)
+        and not public.action_audit_preuve_contrat(action);$n$, ''))) / length($n$    -- CONSERVATION_20261024 : douze mois en général ; les actions de contrôle interne suivent
+    -- journal:audit_controle_interne (36 mois), les preuves du contrat journal:audit_preuve_contrat (dix ans).
     delete from public.audit_log
       where created_at < now() - make_interval(months => v_regle.duree_mois)
-        and not public.action_audit_controle_interne(action);$n$) <> 1 then
+        and not public.action_audit_controle_interne(action)
+        and not public.action_audit_preuve_contrat(action);$n$) <> 1 then
       raise exception 'Retour 20261024140000 refusé : appliquer_retention ne porte pas exactement une fois un remplacement attendu';
     end if;
     f := replace(f, $n$    -- CONSERVATION_20261024 : douze mois en général ; les actions de contrôle interne suivent
-    -- journal:audit_controle_interne (36 mois).
+    -- journal:audit_controle_interne (36 mois), les preuves du contrat journal:audit_preuve_contrat (dix ans).
     delete from public.audit_log
       where created_at < now() - make_interval(months => v_regle.duree_mois)
-        and not public.action_audit_controle_interne(action);$n$, $a$    delete from public.audit_log
+        and not public.action_audit_controle_interne(action)
+        and not public.action_audit_preuve_contrat(action);$n$, $a$    delete from public.audit_log
       where created_at < now() - make_interval(months => v_regle.duree_mois);$a$);
     if strpos(f, 'CONSERVATION_20261024') > 0 then
       raise exception 'Retour 20261024140000 refusé : appliquer_retention garde une marque CONSERVATION_20261024';
@@ -345,9 +348,15 @@ end $fonction$;
     as $fonction$
 begin
   if tg_op = 'DELETE' then
-    -- Seule la suppression de l'organisation l'emporte (cascade : l'organisation n'existe déjà plus).
-    if not exists (select 1 from public.organizations o where o.id = old.organization_id) then return old; end if;
     raise exception 'Une déclaration de rétractation ne se supprime pas';
+  end if;
+  if new.organization_id is distinct from old.organization_id then
+    if new.organization_id is not null or old.organization_id is null
+       or exists (select 1 from public.organizations o where o.id = old.organization_id)
+       or (to_jsonb(new) - 'organization_id') is distinct from (to_jsonb(old) - 'organization_id') then
+      raise exception 'Une déclaration de rétractation ne se réécrit pas';
+    end if;
+    return new;
   end if;
   if (to_jsonb(new) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'passage_effectue', 'accuse_envoye_le'])
      is distinct from (to_jsonb(old) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'passage_effectue', 'accuse_envoye_le']) then
@@ -398,6 +407,7 @@ $fonction$;
   drop function if exists public.fin_conservation_bail(uuid);
   drop function if exists public.empreinte_adresse_prospection(text);
   drop function if exists public.action_audit_controle_interne(text);
+  drop function if exists public.action_audit_preuve_contrat(text);
   drop function if exists public.duree_conservation_active(text);
   drop function if exists public.garder_gel_conservation_bail();
 
@@ -436,6 +446,7 @@ $fonction$;
     'prospect:opposition',
     'journal:abonnement_evenements',
     'journal:effacements_a_reappliquer',
+    'journal:audit_preuve_contrat',
     'journal:auth_audit');
 
   -- 5. Prospection : origine libre de nouveau ; colonnes conservées ; oppositions gardées si elles existent.

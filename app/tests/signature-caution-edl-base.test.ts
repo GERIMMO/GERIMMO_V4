@@ -128,6 +128,10 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
     await db.connect();
     await db.query("begin");
     await db.query(MIGRATION);
+    // Finitions du 24/10 (relecture transverse 2, point 4) : le retour refuse tant qu'une migration plus récente du plan
+    // de conformité est inscrite (la base de la CI les inscrit toutes). Retirées de l'historique, dans la transaction
+    // du fichier, annulée à la fin.
+    await db.query("delete from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024140000'", [VERSION]);
   });
   afterAll(async () => {
     await db?.query("rollback");
@@ -231,6 +235,28 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
       await serviceRole();
       expect(await echec("select * from public.consommer_confirmation_mobile_caution($1, $2)", [empreinte(j), MOBILE_CAUTION])).toMatch(/plus valable/);
       expect((await garant()).telephone).toBe(MOBILE_BAILLEUR);
+    });
+
+    it("finitions du 24/10 (I7) : la preuve de la confirmation ne part pas avec le compte du bailleur qui a envoyé le lien", async () => {
+      const j = jeton();
+      await serviceRole();
+      await demander(j);
+      await consommer(j);
+      await proprietaireBase();
+      expect(await db.query("select confdeltype from pg_constraint where conrelid = 'public.confirmations_mobile_caution'::regclass and contype = 'f' and confrelid = 'auth.users'::regclass").then((r) => r.rows))
+        .toEqual([{ confdeltype: "a" }]);
+      // Supprimer le compte du demandeur échoue (le ménage des fermetures le laisse alors neutralisé) ; la preuve reste.
+      // Le circuit est rattaché à un autre auteur : seule la confirmation retient le compte.
+      await db.query("alter table public.bail_signature_circuits disable trigger user");
+      await db.query("update public.bail_signature_circuits set created_by = $2 where id = $1", [circuit, autre]);
+      await db.query("alter table public.bail_signature_circuits enable trigger user");
+      expect(await echec("delete from auth.users where id = $1", [owner])).toMatch(/confirmations_mobile_caution/);
+      expect((await db.query("select count(*)::int n from public.confirmations_mobile_caution where circuit_id = $1 and utilise_le is not null", [circuit])).rows[0].n).toBe(1);
+      // Elle part avec son circuit (cascade), jamais avec le demandeur.
+      await db.query("alter table public.bail_signature_circuits disable trigger user");
+      await db.query("delete from public.bail_signature_circuits where id = $1", [circuit]);
+      await db.query("alter table public.bail_signature_circuits enable trigger user");
+      expect((await db.query("select count(*)::int n from public.confirmations_mobile_caution where circuit_id = $1", [circuit])).rows[0].n).toBe(0);
     });
 
     it("une ligne close ne change plus, et une ligne ouverte ne change pas d'échéance", async () => {

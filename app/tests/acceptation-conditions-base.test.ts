@@ -173,6 +173,10 @@ describe.skipIf(!url)("acceptation des conditions et classement des artisans (av
     await db.connect();
     await db.query("begin");
     await db.query(MIGRATION);
+    // Finitions du 24/10 (relecture transverse 2, point 4) : le retour refuse tant qu'une migration plus récente du plan
+    // de conformité est inscrite (la base de la CI les inscrit toutes). Retirées de l'historique, dans la transaction
+    // du fichier, annulée à la fin.
+    await db.query("delete from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024140000'", [VERSION]);
     // Un bailleur et son bien confirmé à Paris 11e ; trois artisans validés, publics, plombiers sur 75011.
     proprietaireBien = await compte("acc-bailleur");
     org = await id("insert into public.organizations(name,type,status) values('Classement réseau','proprietaire_direct','active') returning id");

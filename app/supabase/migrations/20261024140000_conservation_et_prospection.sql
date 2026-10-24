@@ -59,6 +59,15 @@
 --    d'une déclaration arrivée au terme de sa preuve (dix ans, jamais moins), que la purge de la nuit fait quand la
 --    règle est active ; le bilan la compte ;
 --  · journal:effacements_a_reappliquer : le registre des fermetures (comptes) part quatre mois après l'exécution ;
+--
+-- FINITIONS DU 24/10 (relectures transverses, migration toujours pas en production) :
+--  · journal:abonnement_evenements : un paiement de facture reste tant qu'un abonnement porte son client Stripe (les
+--    références des factures de l'archive et la date de début en viennent) ;
+--  · journal:audit_preuve_contrat : les preuves du contrat d'abonnement écrites dans le journal d'audit (commande,
+--    confirmation, résiliation notifiée et accusée, mise en demeure, résiliation pour impayé, non-reconduction,
+--    rétractation et son accusé, confirmation du mobile d'une caution ou d'un garant) suivent une durée de preuve
+--    (dix ans), et non les douze mois du journal général ;
+--  · contrat:retractation : une déclaration n'est plus effacée avec l'espace (clé « set null » de la vente) ;
 --  · compte:inactif reste une règle de catalogue, inactive : la fermeture pour inactivité du domaine comptes l'exécute
 --    (24 mois depuis la dernière connexion d'un membre ou la fin du dernier abonnement payé, deux avertissements),
 --    gardée par VERSION_MIN_INACTIVITE (src/lib/comptes-fermeture.ts) ; l'une et l'autre s'activent à la V1.
@@ -116,6 +125,10 @@ insert into public.retention_rules (data_type, libelle, finalite, declencheur, d
  ('prospect:opposition', 'Oppositions à la prospection (empreinte de l''adresse)', 'Respect de l''opposition', 'Opposition', 36, 'suppression', true),
  ('journal:abonnement_evenements', 'Événements Stripe traités', 'Diagnostic de la facturation', 'Traitement de l''événement', 6, 'suppression', true),
  ('journal:effacements_a_reappliquer', 'Effacements à réappliquer après une restauration', 'Réappliquer les effacements après une restauration', 'Exécution de la fermeture', 4, 'suppression', true),
+ -- Finitions du 24/10 (relecture transverse, I6) : les preuves du contrat écrites dans le journal d'audit. Dix ans
+ -- (code de la consommation, L. 213-1 : preuve d'un contrat conclu par voie électronique) ; à relire par le juriste
+ -- (source non ouverte le 23/10/2026).
+ ('journal:audit_preuve_contrat', 'Journal d''audit : preuves du contrat (commande, confirmation, résiliation, mise en demeure, rétractation, confirmations de signature)', 'Preuve d''un contrat conclu par voie électronique (code de la consommation, L. 213-1) et des actes signés', 'Action', 120, 'suppression', true),
  -- R64 : à relever en lecture seule en production ; si Supabase ne purge pas `auth.audit_log_entries`, activer.
  ('journal:auth_audit', 'Journal d''authentification (Supabase Auth)', 'Sécurité des connexions', 'Événement', 6, 'suppression', false)
 on conflict (data_type) do nothing;
@@ -322,6 +335,26 @@ as $$
                   or left(p_action, 13) = 'consultation_' or left(p_action, 10) = 'fermeture_'
                   or left(p_action, 12) = 'effacements_'
                   or p_action in ('purge_retention', 'compte_ferme', 'liste_attente_exportee'), false);
+$$;
+
+-- Finitions du 24/10 (relecture transverse, I6) : les preuves du contrat écrites dans le journal d'audit suivent
+-- journal:audit_preuve_contrat (dix ans), jamais les douze mois du journal général : commande confirmée, confirmation
+-- envoyée, résiliation notifiée, levée ou accusée, mise en demeure (relance), résiliation pour impayé, non-reconduction
+-- faute d'accord, rétractation et son accusé ; confirmation par la caution ou le garant de son propre mobile, reprise
+-- de ce numéro pour le bail, confirmation « sur place » d'un état des lieux. Liste fermée, comparée en entier.
+create or replace function public.action_audit_preuve_contrat(p_action text)
+returns boolean
+language sql
+immutable
+set search_path = ''
+as $$
+  select coalesce(p_action in ('abonnement_commande_confirmee', 'abonnement_confirmation_envoyee',
+                               'abonnement_resiliation_notifiee', 'abonnement_resiliation_levee',
+                               'abonnement_resiliation_accusee', 'relance_paiement_envoyee',
+                               'abonnement_resiliation_impaye_notifiee', 'abonnement_non_reconduit_conditions',
+                               'abonnement_retractation', 'abonnement_retractation_accusee',
+                               'signature_caution_mobile_confirme', 'signature_garant_bail_mobile_repris',
+                               'signature_edl_confirmation_sur_place'), false);
 $$;
 
 create or replace function public.empreinte_adresse_prospection(p_email text)
@@ -671,9 +704,15 @@ as $$
   select 'archive:preuve_contrat', 'archives_comptes', a.id::text from public.archives_comptes a
    where a.preuve_conservee_jusqu_au < (select j from jour)
   union all
+  -- Finitions du 24/10 (relecture transverse, B2) : un paiement de facture (`invoice.paid`) reste tant qu'un abonnement
+  -- porte encore ce client Stripe. C'est de lui que la fermeture tire les références des factures et la date de début
+  -- de l'archive (`archiver_preuve_compte`) ; purgé à six mois, l'archive perdait les factures plus anciennes (six ans,
+  -- archive:facture) et le client Stripe pouvait être supprimé trop tôt. Une fois l'espace effacé, l'archive les porte.
   select 'journal:abonnement_evenements', 'abonnement_evenements', e.stripe_event_id from public.abonnement_evenements e
    where e.traite_le is not null
      and e.traite_le < now() - make_interval(months => (select duree_mois from duree where data_type = 'journal:abonnement_evenements'))
+     and not (e.type = 'invoice.paid'
+              and exists (select 1 from public.abonnements a where a.stripe_customer_id = e.charge ->> 'client'))
   union all
   -- Déclarations de rétractation (vente) : dix ans après la déclaration, jamais moins (intégration du 24/10).
   select 'contrat:retractation', 'retractations_abonnement', r.id::text from public.retractations_abonnement r
@@ -874,9 +913,11 @@ begin
 end $$;
 revoke execute on function public.archives_comptes_garde() from public, anon, authenticated;
 
--- La garde d'ajout seul de la vente laisse passer, en plus de la suppression de l'organisation, la suppression d'une
--- déclaration arrivée à l'échéance de `echeance_retractation_abonnement`, et rien d'autre (intégration du 24/10 : la règle contrat:retractation était
--- active sans chemin de purge autorisé). Le reste de la garde est celui de la vente, à l'identique.
+-- La garde d'ajout seul de la vente laisse passer la suppression d'une déclaration arrivée à l'échéance de
+-- `echeance_retractation_abonnement`, et rien d'autre (intégration du 24/10 : la règle contrat:retractation était
+-- active sans chemin de purge autorisé). Finitions du 24/10 (consigne A) : la suppression de l'espace ne l'efface plus
+-- (clé « set null » de la vente) ; elle la détache, seul passage de l'organisation à vide admis. Le reste de la garde
+-- est celui de la vente, à l'identique.
 create or replace function public.retractations_abonnement_ajout_seul()
 returns trigger
 language plpgsql
@@ -884,8 +925,6 @@ set search_path = ''
 as $$
 begin
   if tg_op = 'DELETE' then
-    -- La suppression de l'organisation l'emporte (cascade : l'organisation n'existe déjà plus).
-    if not exists (select 1 from public.organizations o where o.id = old.organization_id) then return old; end if;
     -- La purge de conservation, au terme de la preuve (contrat:retractation, jamais moins de dix ans).
     if public.echeance_retractation_abonnement(old.declaree_le,
          (select r.duree_mois from public.retention_rules r where r.data_type = 'contrat:retractation'))
@@ -893,6 +932,14 @@ begin
       return old;
     end if;
     raise exception 'Une déclaration de rétractation ne se supprime pas avant le terme de sa conservation';
+  end if;
+  if new.organization_id is distinct from old.organization_id then
+    if new.organization_id is not null or old.organization_id is null
+       or exists (select 1 from public.organizations o where o.id = old.organization_id)
+       or (to_jsonb(new) - 'organization_id') is distinct from (to_jsonb(old) - 'organization_id') then
+      raise exception 'Une déclaration de rétractation ne se réécrit pas';
+    end if;
+    return new;
   end if;
   if (to_jsonb(new) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'passage_effectue', 'accuse_envoye_le'])
      is distinct from (to_jsonb(old) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'passage_effectue', 'accuse_envoye_le']) then
@@ -945,6 +992,14 @@ begin
      where public.action_audit_controle_interne(action) and created_at < now() - make_interval(months => v_mois);
     get diagnostics v_n = row_count;
     v_resultat := v_resultat || jsonb_build_object('audit_log_controle_interne', v_n);
+  end if;
+  -- a bis. Journal d'audit, preuves du contrat : dix ans (finitions du 24/10, relecture transverse I6).
+  v_mois := public.duree_conservation_active('journal:audit_preuve_contrat');
+  if v_mois is not null then
+    delete from public.audit_log
+     where public.action_audit_preuve_contrat(action) and created_at < now() - make_interval(months => v_mois);
+    get diagnostics v_n = row_count;
+    v_resultat := v_resultat || jsonb_build_object('audit_log_preuve_contrat', v_n);
   end if;
 
   -- b. Preuves de signature d'un bail échu : chaque pièce suit la règle de son type si elle vit plus longtemps, ou si
@@ -1193,6 +1248,10 @@ begin
                  and public.echeance_conservation_document(d.id) <= v_jour)
       when r.data_type = 'journal:audit_log'
         then (select count(*) from public.audit_log a where not public.action_audit_controle_interne(a.action)
+               and not public.action_audit_preuve_contrat(a.action)
+               and a.created_at < now()-make_interval(months=>r.duree_mois))
+      when r.data_type = 'journal:audit_preuve_contrat'
+        then (select count(*) from public.audit_log a where public.action_audit_preuve_contrat(a.action)
                and a.created_at < now()-make_interval(months=>r.duree_mois))
       when r.data_type = 'journal:audit_controle_interne'
         then (select count(*) from public.audit_log a where public.action_audit_controle_interne(a.action)
@@ -1217,7 +1276,7 @@ begin
       else null
      end echus
    from public.retention_rules r
-   where r.data_type not like 'journal:%' or r.data_type in ('journal:audit_log','journal:audit_controle_interne','journal:auth_audit','journal:abonnement_evenements','journal:effacements_a_reappliquer')
+   where r.data_type not like 'journal:%' or r.data_type in ('journal:audit_log','journal:audit_controle_interne','journal:audit_preuve_contrat','journal:auth_audit','journal:abonnement_evenements','journal:effacements_a_reappliquer')
    ) x),
    'preuves_protegees',(select count(*) from public.documents d where d.purged_at is null and public.document_preuve_signature(d.id)),
    'suppressions',0);
@@ -1334,8 +1393,11 @@ grant execute on function public.controler_envoi_prospection(uuid) to authentica
 -- Liste d'attente des agences : les inscriptions auxquelles rien ne doit être envoyé — retirées à leur demande, ou dont
 -- l'empreinte de l'adresse est une opposition (« Stop » d'un prospect, retrait antérieur). La console masque le lien
 -- d'écriture, refuse « contactée » et les écarte de l'export. Aucune empreinte ne sort de la base.
+-- Finitions du 24/10 (relecture transverse 3, B2) : une table à une colonne `id`, et non un ensemble de valeurs nues,
+-- que PostgREST et l'émulateur des parcours de la CI rendent de la même façon ([{"id": …}]).
+drop function if exists public.inscriptions_agences_opposees();
 create or replace function public.inscriptions_agences_opposees()
-returns setof uuid
+returns table (id uuid)
 language plpgsql
 stable
 security definer
@@ -1758,10 +1820,11 @@ begin
   ancien := $a$    delete from public.audit_log
       where created_at < now() - make_interval(months => v_regle.duree_mois);$a$;
   nouveau := $n$    -- CONSERVATION_20261024 : douze mois en général ; les actions de contrôle interne suivent
-    -- journal:audit_controle_interne (36 mois).
+    -- journal:audit_controle_interne (36 mois), les preuves du contrat journal:audit_preuve_contrat (dix ans).
     delete from public.audit_log
       where created_at < now() - make_interval(months => v_regle.duree_mois)
-        and not public.action_audit_controle_interne(action);$n$;
+        and not public.action_audit_controle_interne(action)
+        and not public.action_audit_preuve_contrat(action);$n$;
   if (length(f) - length(replace(f, ancien, ''))) / length(ancien) <> 1 then raise exception 'appliquer_retention : bloc du journal d''audit inattendu'; end if;
   f := replace(f, ancien, nouveau);
 
@@ -1838,6 +1901,8 @@ revoke all on function public.duree_conservation_active(text) from public, anon,
 grant execute on function public.duree_conservation_active(text) to service_role;
 revoke all on function public.action_audit_controle_interne(text) from public, anon, authenticated;
 grant execute on function public.action_audit_controle_interne(text) to service_role;
+revoke all on function public.action_audit_preuve_contrat(text) from public, anon, authenticated;
+grant execute on function public.action_audit_preuve_contrat(text) to service_role;
 revoke all on function public.empreinte_adresse_prospection(text) from public, anon, authenticated;
 grant execute on function public.empreinte_adresse_prospection(text) to service_role;
 revoke all on function public.fin_conservation_bail(uuid) from public, anon, authenticated;

@@ -209,14 +209,14 @@ describe("changerStatutAgence", () => {
     expect(mocks.revalidate).toHaveBeenCalledWith("/admin/liste-attente");
   });
   it("refuse « contactée » pour une adresse opposée, ou quand le contrôle des oppositions est indisponible", async () => {
-    const opposee = client({ lecture: { data: { id: ID, statut: "en_attente" } }, opposees: { data: [ID] } });
+    const opposee = client({ lecture: { data: { id: ID, statut: "en_attente" } }, opposees: { data: [{ id: ID }] } });
     expect((await changerStatutAgence(ID, "contactee")).erreur).toMatch(/opposée/);
     expect(opposee.miseAJour).not.toHaveBeenCalled();
     const panne = client({ lecture: { data: { id: ID, statut: "en_attente" } }, opposees: { error: { message: "panne" } } });
     expect((await changerStatutAgence(ID, "contactee")).erreur).toMatch(/contrôle des oppositions/);
     expect(panne.miseAJour).not.toHaveBeenCalled();
     // Les autres statuts restent libres (une retirée peut être remise en attente le jour même, par erreur de clic).
-    const autre = client({ lecture: { data: { id: ID, statut: "retiree" } }, opposees: { data: [ID] } });
+    const autre = client({ lecture: { data: { id: ID, statut: "retiree" } }, opposees: { data: [{ id: ID }] } });
     expect((await changerStatutAgence(ID, "en_attente")).succes).toBe("Statut noté : En attente.");
     expect(autre.miseAJour).toHaveBeenCalledTimes(1);
   });
@@ -296,7 +296,7 @@ describe("GET /admin/liste-attente/export", () => {
   // prospect (« Stop ») ne reçoit rien non plus. Plus d'option pour les exporter.
   it("écarte les adresses opposées et consigne leur nombre, jamais les adresses", async () => {
     const OPPOSEE = { ...LIGNE, id: "55555555-5555-4555-8555-555555555555", agence: "Agence opposée", email: "stop@agence-opposee.test" };
-    const c = client({ lignes: { data: [AVEC_ID, OPPOSEE] }, opposees: { data: [OPPOSEE.id, RETIREE.id] } });
+    const c = client({ lignes: { data: [AVEC_ID, OPPOSEE] }, opposees: { data: [{ id: OPPOSEE.id }, { id: RETIREE.id }] } });
     const csv = await (await exporter(new Request("https://gerimmo.test/admin/liste-attente/export"))).text();
     expect(csv).toContain("Agence du Canal");
     expect(csv).not.toContain("Agence opposée");
@@ -368,7 +368,7 @@ describe("la page /admin/liste-attente", () => {
     expect(html).not.toMatch(/\bdownload\b/);
   });
   it("une inscription opposée (retirée, ou « Stop » comme prospect) : ni lien d'écriture ni « contactée »", async () => {
-    client({ lignes: { data: [INSCRIPTION, { ...INSCRIPTION, id: ID_2, email: "stop@agence.test", agence: "Agence opposée" }] }, opposees: { data: [ID_2] } });
+    client({ lignes: { data: [INSCRIPTION, { ...INSCRIPTION, id: ID_2, email: "stop@agence.test", agence: "Agence opposée" }] }, opposees: { data: [{ id: ID_2 }] } });
     const html = await page();
     expect(html).toContain('href="mailto:contact@agence-canal.test"');
     expect(html).not.toContain("mailto:stop@agence.test");

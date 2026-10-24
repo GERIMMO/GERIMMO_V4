@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
-import { STATUTS_LISTE_ATTENTE, type StatutListeAttente } from "@/lib/liste-attente-agences";
+import { identifiantsOpposes, STATUTS_LISTE_ATTENTE, type StatutListeAttente } from "@/lib/liste-attente-agences";
 import { JOURNAL_A_VERIFIER, journaliserSupervision } from "@/lib/journal-supervision";
 
 export type EtatListeAttenteAdmin = { erreur?: string; succes?: string };
@@ -42,7 +42,7 @@ export async function changerStatutAgence(id: string, statut: string): Promise<E
   if (cible === "contactee") {
     const { data: opposees, error: controle } = await supabase.rpc("inscriptions_agences_opposees");
     if (controle) return { erreur: "Le contrôle des oppositions est indisponible : rien n’a été noté. Réessayez dans un instant." };
-    if (Array.isArray(opposees) && (opposees as unknown[]).map(String).includes(id)) {
+    if (identifiantsOpposes(opposees).has(id)) {
       return { erreur: "Cette agence s’est opposée à nos messages (retrait ou « Stop ») : elle ne peut pas être marquée comme contactée." };
     }
   }

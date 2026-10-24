@@ -222,6 +222,14 @@ describe.skipIf(!url)("fermeture des comptes, inactivité, export complet (avec 
     await proprietaire();
     return (await un<{ r: Record<string, number> }>("select public.fermetures_comptes_quotidiennes() as r")).r;
   }
+  /**
+   * Finitions du 24/10 (relecture transverse 2, point 4) : un retour refuse tant qu'une migration plus récente du plan de
+   * conformité est inscrite. La base de la CI les inscrit toutes : le cas les retire, dans sa transaction annulée.
+   */
+  async function sansVersionsPlusRecentes() {
+    await proprietaire();
+    await db.query("delete from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024140000'", [VERSION]);
+  }
   async function fermeture(id: string) {
     await proprietaire();
     return un<Record<string, any>>("select * from public.fermetures_comptes where id = $1", [id]); // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -1060,11 +1068,19 @@ describe.skipIf(!url)("fermeture des comptes, inactivité, export complet (avec 
     const dus = async () => { await serviceRole(); return (await db.query("select id, remboursement_prevu_cents from public.fermetures_remboursements_dus(20) where id = $1", [r.id])).rows; };
     // Avant l'arrêt chez Stripe (minuit du quatorzième jour) : rien n'est dû.
     expect(await dus()).toEqual([]);
-    // Gelée au-delà de la date d'arrêt : la souscription s'est arrêtée, le remboursement est dû sans attendre l'effacement.
+    // Date d'arrêt passée, gelée, mais la souscription vit encore en base (arrêt levé, ou reporté au terme) : rien n'est
+    // dû (finitions du 24/10, relecture transverse I2 : le client serait remboursé en gardant le service).
     await proprietaire();
     await db.query("update public.fermetures_comptes set effacement_prevu_le = (now() at time zone 'Europe/Paris')::date where id = $1", [r.id]);
     await db.query("select public.geler_fermeture_compte($1, 'Litige en cours sur une facture')", [r.id]);
+    expect(await dus()).toEqual([]);
+    // Arrêtée chez Stripe (statut relu par le webhook) : le remboursement est dû sans attendre l'effacement, même gelée.
+    await proprietaire();
+    await db.query("update public.abonnements set stripe_statut = 'canceled' where organization_id = $1", [org]);
     expect(await dus()).toEqual([{ id: r.id, remboursement_prevu_cents: "900" }]);
+    await serviceRole();
+    expect(await un("select stripe_subscription_id is not null as sub, arret_prevu_le is not null as arret, retractation_executee from public.fermetures_remboursements_dus(20) where id = $1", [r.id]))
+      .toEqual({ sub: true, arret: true, retractation_executee: false });
     // Annulée après l'arrêt : toujours dû.
     await proprietaire();
     await db.query("select public.annuler_fermeture_compte($1, 'Le titulaire garde ses données')", [r.id]);
@@ -1200,6 +1216,7 @@ describe.skipIf(!url)("fermeture des comptes, inactivité, export complet (avec 
     const org = await espace(a);
     await abonnement(org, "active", "-10 days", "40 days");
     const id = await programmer(a, "fin_periode");
+    await sansVersionsPlusRecentes();
     expect(await echec(RETOUR)).toMatch(/fermeture.*programmée.*Stripe/);
     await db.query("select public.annuler_fermeture_compte($1, 'Avant le retour de la migration')", [id]);
     expect(await echec(RETOUR)).toBe("");
@@ -1311,9 +1328,177 @@ describe.skipIf(!url)("fermeture des comptes, inactivité, export complet (avec 
     expect(await quotidienne()).toMatchObject({ programmees: 0 });
   });
 
+  // ── Finitions du 24/10 (relectures transverses) ───────────────────────────────────────────────────────────────
+
+  /** Une déclaration de rétractation de l'abonnement de l'espace, déclarée hier. */
+  async function retractation(org: string, account: string): Promise<{ id: string; sub: string }> {
+    await proprietaire();
+    const { s: sub } = await un<{ s: string }>("select stripe_subscription_id s from public.abonnements where organization_id = $1", [org]);
+    const { id } = await un<{ id: string }>(
+      `insert into public.retractations_abonnement (organization_id, subscription_id, nature, cle, texte_declaration, declaree_le, declaree_par, adresse_accuse)
+       values ($1, $2, 'abonnement', 'retractation-abonnement-' || $2, 'Je vous notifie par la présente ma rétractation du contrat.', now() - interval '1 day', $3, 'client@example.invalid')
+       returning id`, [org, sub, account]);
+    return { id, sub };
+  }
+
+  it("B1 et consigne A : une rétractation en chemin retient la fermeture ; terminée, la déclaration reste, détachée de l'espace", async () => {
+    const a = await compte("fc-retractation");
+    const org = await espace(a);
+    await payer(org);
+    const r = await retractation(org, a);
+    await sauvegardeDuJour();
+    const id = await programmer(a);
+    expect((await fermeture(id)).bilan_simulation.organisations_effacees[0]).toMatchObject({ retractations_conservees: 1, retractations_en_cours: 1 });
+    // Remboursement ou accusé pas encore fait : l'effacement attend, et la ligne le dit.
+    expect(await executer(id)).toEqual({ etat: "retractation_en_cours" });
+    expect(await fermeture(id)).toMatchObject({ statut: "programmee", tentatives: 0, derniere_erreur: expect.stringContaining("rétractation") });
+    expect((await fermeture(id)).derniere_tentative_le).not.toBeNull();
+    await serviceRole();
+    // La reprise de nuit des rétractations (4 h) la voit, et la termine.
+    expect((await db.query("select id from public.retractations_a_terminer(50) where id = $1", [r.id])).rows).toHaveLength(1);
+    await proprietaire();
+    // La reprise de nuit la termine (exécution consignée, puis accusé).
+    await db.query("update public.retractations_abonnement set executee_le = now(), montant_rembourse_cents = 1200 where id = $1", [r.id]);
+    expect(await executer(id)).toEqual({ etat: "retractation_en_cours" });
+    await db.query("update public.retractations_abonnement set accuse_envoye_le = now() where id = $1", [r.id]);
+    expect(await executer(id)).toMatchObject({ etat: "executee", bilan: { organisations_effacees: [org], retractations_conservees: 1 } });
+    // La preuve reste dix ans : détachée de l'espace effacé, exécution et accusé intacts.
+    expect(await un("select organization_id, subscription_id, montant_rembourse_cents::int m, executee_le is not null e, accuse_envoye_le is not null c from public.retractations_abonnement where id = $1", [r.id]))
+      .toEqual({ organization_id: null, subscription_id: r.sub, m: 1200, e: true, c: true });
+    // Ni suppression avant son terme, ni réécriture de la ligne détachée.
+    expect(await echec("delete from public.retractations_abonnement where id = $1", [r.id])).toMatch(/ne se supprime pas/);
+    expect(await echec("update public.retractations_abonnement set organization_id = $2 where id = $1", [r.id, org])).toMatch(/ne se réécrit pas/);
+  });
+
+  it("consigne A : l'organisation d'une déclaration ne passe à vide que par la suppression de l'espace", async () => {
+    const a = await compte("fc-retractation-garde");
+    const org = await espace(a);
+    await payer(org);
+    const r = await retractation(org, a);
+    expect(await echec("update public.retractations_abonnement set organization_id = null where id = $1", [r.id])).toMatch(/ne se réécrit pas/);
+    expect(await echec("update public.retractations_abonnement set organization_id = null, adresse_accuse = 'autre@example.invalid' where id = $1", [r.id])).toMatch(/ne se réécrit pas/);
+    expect(await un("select confdeltype from pg_constraint where conrelid = 'public.retractations_abonnement'::regclass and contype = 'f' and confrelid = 'public.organizations'::regclass")).toEqual({ confdeltype: "n" });
+    expect(await un("select attnotnull from pg_attribute where attrelid = 'public.retractations_abonnement'::regclass and attname = 'organization_id'")).toEqual({ attnotnull: false });
+  });
+
+  it("I2 et I4 : chaque attente, la date d'effet passée, est notée sur la ligne (motif et date), sans compter une tentative", async () => {
+    const a = await compte("fc-attente");
+    const org = await espace(a);
+    await abonnement(org, "active", "-10 days", "40 days");
+    await sauvegardeDuJour();
+    const id = await programmer(a, "fin_periode");
+    expect(await executer(id)).toEqual({ etat: "souscription_active" });
+    expect(await fermeture(id)).toMatchObject({ statut: "programmee", tentatives: 0, derniere_erreur: expect.stringContaining("souscription Stripe des espaces effacés vit encore") });
+    expect((await fermeture(id)).derniere_tentative_le).not.toBeNull();
+  });
+
+  it("B2 : sans facture lisible dans l'archive, le client Stripe reste six ans après la fin du dernier abonnement payé", async () => {
+    const a = await compte("fc-b2");
+    const org = await espace(a);
+    // Annuel payé il y a huit mois ; le paiement de la facture n'est plus au journal (essai s5 de la relecture).
+    await proprietaire();
+    await db.query(
+      `insert into public.abonnements (organization_id, stripe_customer_id, stripe_subscription_id, stripe_statut, premiere_facture_payee,
+         periode_debut, periode_fin, montant_periode_cents, periodicite)
+       values ($1, 'cus_fcb2annuel', 'sub_fcb2annuel', 'canceled', true, now() - interval '8 months', now() - interval '1 day', 34800, 'annuel')`, [org]);
+    await sauvegardeDuJour();
+    expect(await executer(await programmer(a))).toMatchObject({ etat: "executee" });
+    expect(await un("select jsonb_array_length(factures) n, factures_conservees_jusqu_au from public.archives_comptes where stripe_customer_id = 'cus_fcb2annuel'"))
+      .toEqual({ n: 0, factures_conservees_jusqu_au: null });
+    await serviceRole();
+    expect((await db.query("select stripe_customer_id from public.clients_stripe_au_terme(500)")).rows).not.toContainEqual({ stripe_customer_id: "cus_fcb2annuel" });
+    // Six ans et un jour après la fin du dernier abonnement payé : le client part.
+    await proprietaire();
+    await db.query("alter table public.archives_comptes disable trigger user");
+    await db.query("update public.archives_comptes set fin_dernier_abonnement_paye = current_date - interval '6 years 2 days', archive_le = now() - interval '6 years' where stripe_customer_id = 'cus_fcb2annuel'");
+    await db.query("alter table public.archives_comptes enable trigger user");
+    await serviceRole();
+    expect((await db.query("select stripe_customer_id from public.clients_stripe_au_terme(500)")).rows).toContainEqual({ stripe_customer_id: "cus_fcb2annuel" });
+  });
+
+  it("I3 : un remboursement J+14 se clôt avec un motif, sans rien rembourser ; la rétractation exécutée de la souscription est signalée", async () => {
+    const a = await compte("fc-i3");
+    const org = await espace(a);
+    await abonnement(org, "active", "-20 days", "40 days");
+    const { r } = await un<{ r: { id: string } }>(
+      "select public.programmer_fermeture_compte($1, 'super_admin', 'j14_prorata', null, null, $2::jsonb) as r",
+      [a, JSON.stringify({ montant_cents: 900, factures: [{ facture: "in_I3a", montant_cents: 900 }] })]);
+    await db.query("update public.fermetures_comptes set effacement_prevu_le = (now() at time zone 'Europe/Paris')::date - 1 where id = $1", [r.id]);
+    await db.query("update public.abonnements set stripe_statut = 'canceled' where organization_id = $1", [org]);
+    const rt = await retractation(org, a);
+    await db.query("update public.retractations_abonnement set executee_le = now(), montant_rembourse_cents = 1200 where id = $1", [rt.id]);
+    await serviceRole();
+    expect(await un("select retractation_executee from public.fermetures_remboursements_dus(20) where id = $1", [r.id])).toEqual({ retractation_executee: true });
+    expect(await echec("select public.fermeture_remboursement_fait($1, '[]'::jsonb)", [r.id])).toMatch(/^22023 Remboursements invalides/);
+    expect(await echec("select public.fermeture_remboursement_fait($1, '[]'::jsonb, 'autre')", [r.id])).toMatch(/^22023 Motif/);
+    await db.query("select public.fermeture_remboursement_fait($1, '[]'::jsonb, 'retractation')", [r.id]);
+    expect(await fermeture(r.id)).toMatchObject({ remboursement_cents: "0", remboursement_motif: "retractation" });
+    expect((await fermeture(r.id)).rembourse_le).not.toBeNull();
+    await serviceRole();
+    expect((await db.query("select id from public.fermetures_remboursements_dus(20) where id = $1", [r.id])).rows).toEqual([]);
+  });
+
+  it("I5 et M3 : l'annulation dit si une résiliation a été notifiée depuis la programmation, et remet l'échéance à préparer", async () => {
+    const a = await compte("fc-i5");
+    const org = await espace(a);
+    await abonnement(org, "active", "-10 days", "40 days");
+    const id = await programmer(a, "fin_periode");
+    await db.query("update public.fermetures_comptes set programmee_le = now() - interval '1 hour' where id = $1", [id]);
+    await db.query("update public.abonnements set changement_applique_pour = current_date + 40 where organization_id = $1", [org]);
+    await db.query("insert into public.audit_log (organization_id, action, details) values ($1, 'abonnement_resiliation_notifiee', '{}')", [org]);
+    const { r } = await un<{ r: Record<string, unknown> }>("select public.annuler_fermeture_compte($1, 'Le titulaire garde son compte') as r", [id]);
+    expect(r).toMatchObject({ resiliation_notifiee_depuis: true, choix: "fin_periode" });
+    expect(await un("select changement_applique_pour from public.abonnements where organization_id = $1", [org])).toEqual({ changement_applique_pour: null });
+    // Sans notification postérieure : faux.
+    const b = await compte("fc-i5-bis");
+    const orgB = await espace(b);
+    await abonnement(orgB, "active", "-10 days", "40 days");
+    const idB = await programmer(b, "fin_periode");
+    expect((await un<{ r: Record<string, unknown> }>("select public.annuler_fermeture_compte($1, 'Le titulaire garde son compte') as r", [idB])).r).toMatchObject({ resiliation_notifiee_depuis: false });
+  });
+
+  it("I1 et I4 : la fermeture programmée d'un espace se lit par son gérant (date d'effet, choix), jamais par un autre compte", async () => {
+    const a = await compte("fc-i4");
+    const org = await espace(a);
+    await abonnement(org, "active", "-10 days", "40 days");
+    const autre = await compte("fc-i4-autre");
+    await session(a);
+    expect((await db.query("select * from public.fermeture_programmee_de($1)", [org])).rows).toEqual([]);
+    const id = await programmer(a, "fin_periode");
+    await session(a);
+    expect((await db.query("select effacement_prevu_le::text e, choix from public.fermeture_programmee_de($1)", [org])).rows)
+      .toEqual([{ e: (await (async () => { await proprietaire(); return un<{ e: string }>("select effacement_prevu_le::text e from public.fermetures_comptes where id = $1", [id]); })()).e, choix: "fin_periode" }]);
+    await session(autre);
+    expect(await echec("select * from public.fermeture_programmee_de($1)", [org])).toMatch(/^42501/);
+    await anon();
+    expect(await echec("select * from public.fermeture_programmee_de($1)", [org])).toMatch(/^42501/);
+    await serviceRole();
+    expect((await db.query("select choix from public.fermeture_programmee_de($1)", [org])).rows).toEqual([{ choix: "fin_periode" }]);
+    await proprietaire();
+    await db.query("select public.annuler_fermeture_compte($1, 'Le titulaire garde son compte')", [id]);
+    await session(a);
+    expect((await db.query("select * from public.fermeture_programmee_de($1)", [org])).rows).toEqual([]);
+  });
+
+  it("point 7 : une ancienne contrainte qui exige encore une facture arrête la migration au lieu des fermetures", async () => {
+    await proprietaire();
+    await db.query("alter table public.artisan_reglements add constraint artisan_reglements_exige_facture check (num_nonnulls(facture_gerimmo_id, facture_externe_id) = 1) not valid");
+    expect(await echec(MIGRATION)).toMatch(/artisan_reglements : une contrainte exige encore une facture.*artisan_reglements_exige_facture/);
+  });
+
   // ── Retour arrière ────────────────────────────────────────────────────────────────────────────────────────────
 
+  it("finitions du 24/10 (point 4) : le retour refuse tant que le retour de 20261024140000 n'est pas joué", async () => {
+    await proprietaire();
+    await db.query("insert into supabase_migrations.schema_migrations (version, name) values ('20261024140000', 'conservation_et_prospection') on conflict do nothing");
+    expect(await echec(RETOUR)).toMatch(/^55000 Retour 20261024130000 refusé : migration\(s\) plus récente\(s\).*20261024140000/);
+    await sansVersionsPlusRecentes();
+    await db.query("insert into supabase_migrations.schema_migrations (version, name) values ('20261023184512', 'annonces_locataire_jour_paris') on conflict do nothing");
+    expect(await un("select count(*)::int n from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024140000'", [VERSION])).toEqual({ n: 0 });
+  });
+
   it("retour : objets retirés, tables vides supprimées, rejeu sans effet, puis marche avant", async () => {
+    await sansVersionsPlusRecentes();
     await proprietaire();
     await db.query("delete from public.effacements_a_reappliquer");
     await db.query("delete from public.fermetures_comptes");
@@ -1333,6 +1518,7 @@ describe.skipIf(!url)("fermeture des comptes, inactivité, export complet (avec 
     const titulaire = await compte("fc-retour");
     await espace(titulaire);
     await programmer(titulaire);
+    await sansVersionsPlusRecentes();
     await proprietaire();
     await db.query(RETOUR);
     expect(await un("select to_regclass('public.fermetures_comptes') f")).toEqual({ f: "fermetures_comptes" });

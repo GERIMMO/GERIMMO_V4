@@ -97,6 +97,17 @@ begin
       num_nonnulls(facture_gerimmo_id, facture_externe_id) = 1
       or (facture_gerimmo_id is null and facture_externe_id is null and facture_gerimmo_effacee is not null));
   end if;
+  -- Finitions du 24/10 (relecture transverse, point 7) : une ancienne contrainte qui exige encore une facture (texte
+  -- ou nom différent de celui attendu) ferait échouer les fermetures à l'exécution ; la migration s'arrête plutôt.
+  if exists (select 1 from pg_constraint where conrelid = 'public.artisan_reglements'::regclass and contype = 'c'
+              and conname <> 'artisan_reglements_facture_ou_trace'
+              and pg_get_constraintdef(oid) like '%num_nonnulls(facture_gerimmo_id, facture_externe_id)%') then
+    raise exception 'artisan_reglements : une contrainte exige encore une facture (%), elle refuserait le détachement d''un règlement ; à examiner avant d''appliquer',
+      (select string_agg(conname || ' ' || pg_get_constraintdef(oid), ' ; ') from pg_constraint
+        where conrelid = 'public.artisan_reglements'::regclass and contype = 'c'
+          and conname <> 'artisan_reglements_facture_ou_trace'
+          and pg_get_constraintdef(oid) like '%num_nonnulls(facture_gerimmo_id, facture_externe_id)%');
+  end if;
 end $reglements$;
 
 -- Parrainage (relecture du 24/10, I8) : quand l'un des deux espaces est effacé, le parrainage reste à l'autre client,
@@ -284,6 +295,10 @@ alter table public.fermetures_comptes add column if not exists remboursement_rep
   check (remboursement_repartition is null or jsonb_typeof(remboursement_repartition) = 'array');
 alter table public.fermetures_comptes add column if not exists remboursements_faits jsonb not null default '[]'::jsonb
   check (jsonb_typeof(remboursements_faits) = 'array');
+-- Finitions du 24/10 (relecture transverse, I3) : un remboursement J+14 qui n'a pas lieu d'être est clos à zéro, avec
+-- son motif (paiement déjà remboursé par une rétractation, ou en entier ; souscription poursuivie au-delà de l'arrêt).
+alter table public.fermetures_comptes add column if not exists remboursement_motif text
+  check (remboursement_motif is null or remboursement_motif in ('retractation', 'deja_rembourse', 'souscription_poursuivie'));
 create index if not exists fermetures_comptes_demande_idx on public.fermetures_comptes (demande_id);
 create unique index if not exists fermetures_comptes_une_programmee
   on public.fermetures_comptes (account_id) where statut = 'programmee';
@@ -761,7 +776,12 @@ begin
                                          join public.intervention_factures f on f.id = g.facture_gerimmo_id
                                         where f.organization_id = v_org),
       'parrainages_detaches', (select count(*) from public.parrainages p
-                                where p.parrain_organization_id = v_org or p.filleul_organization_id = v_org)));
+                                where p.parrain_organization_id = v_org or p.filleul_organization_id = v_org),
+      -- Finitions du 24/10 (consigne A, relecture transverse B1) : les déclarations de rétractation restent, détachées
+      -- de l'espace (preuve de dix ans) ; une rétractation pas encore terminée retient l'exécution.
+      'retractations_conservees', (select count(*) from public.retractations_abonnement r where r.organization_id = v_org),
+      'retractations_en_cours', (select count(*) from public.retractations_abonnement r
+                                  where r.organization_id = v_org and (r.executee_le is null or r.accuse_envoye_le is null))));
     if public.organisation_a_paye(v_org) then
       v_archive := v_archive || to_jsonb(v_org);
     end if;
@@ -979,14 +999,20 @@ grant execute on function public.programmer_fermeture_compte(uuid, text, text, u
 
 -- Annule une fermeture encore programmée. Rend l'abonnement figé à la programmation et l'état de la souscription chez
 -- Stripe d'avant la fermeture : l'application remet ce dernier à l'identique (une résiliation déjà demandée par le
--- client reste demandée, relecture du 24/10, R2-2).
+-- client reste demandée, relecture du 24/10, R2-2). Finitions du 24/10 (relecture transverse) : rend aussi la date
+-- d'effet et si une résiliation a été notifiée ou accusée depuis la programmation (I5 : l'application la remet au lieu
+-- de tout lever) ; l'échéance de l'espace est de nouveau « à préparer » (M3 : l'échéancier libéré par la fermeture est
+-- reprogrammé par la tâche de nuit).
 create or replace function public.annuler_fermeture_compte(p_fermeture uuid, p_motif text)
 returns jsonb
 language plpgsql
 security definer
 set search_path = ''
 as $$
-declare f public.fermetures_comptes;
+declare
+  f public.fermetures_comptes;
+  v_org uuid;
+  v_notifiee boolean := false;
 begin
   if (select auth.role()) is distinct from 'service_role' and (select auth.role()) is not null
      and not public.is_permanent_super_admin() then
@@ -1003,8 +1029,18 @@ begin
   insert into public.audit_log (account_id, organization_id, action, details)
   values (case when (select auth.role()) = 'service_role' then null else (select auth.uid()) end, null, 'fermeture_annulee',
           jsonb_build_object('fermeture_id', f.id, 'compte', f.account_id));
+  v_org := nullif(f.abonnement ->> 'organisation', '')::uuid;
+  if v_org is not null then
+    select exists (select 1 from public.audit_log l
+                    where l.organization_id = v_org and l.created_at > f.programmee_le
+                      and l.action in ('abonnement_resiliation_notifiee', 'abonnement_resiliation_accusee'))
+      into v_notifiee;
+    update public.abonnements set changement_applique_pour = null, updated_at = now()
+     where organization_id = v_org and changement_applique_pour is not null;
+  end if;
   return jsonb_build_object('id', f.id, 'choix', f.choix, 'abonnement', f.abonnement, 'stripe_avant', f.stripe_avant,
-                            'stripe_facture_id', f.stripe_facture_id);
+                            'stripe_facture_id', f.stripe_facture_id, 'effacement_prevu_le', f.effacement_prevu_le,
+                            'resiliation_notifiee_depuis', v_notifiee);
 end $$;
 revoke all on function public.annuler_fermeture_compte(uuid, text) from public, anon;
 grant execute on function public.annuler_fermeture_compte(uuid, text) to authenticated, service_role;
@@ -1541,6 +1577,9 @@ declare
   v_hors_bilan jsonb;
   v_artisan uuid;
   v_email text;
+  v_attente text;
+  v_motif text;
+  v_retractations integer;
 begin
   -- Les gardes suspendues le temps de l'effacement posent un verrou de table : ne jamais l'attendre longtemps.
   perform pg_catalog.set_config('lock_timeout', '10s', true);
@@ -1550,21 +1589,45 @@ begin
   if not public.tache_planifiee_autorisee('fermetures-comptes') then return jsonb_build_object('etat', 'arret_en_cours'); end if;
   if f.effacement_prevu_le > v_jour then return jsonb_build_object('etat', 'pas_encore'); end if;
   if f.gel_motif is not null then return jsonb_build_object('etat', 'gelee'); end if;
-  if f.bilan_simulation is null then return jsonb_build_object('etat', 'simulation_manquante'); end if;
-  if not public.sauvegarde_du_jour_reussie() then return jsonb_build_object('etat', 'sauvegarde_manquante'); end if;
-  if exists (select 1 from public.memberships where account_id = f.account_id and role = 'super_admin') then
-    return jsonb_build_object('etat', 'compte_de_supervision');
-  end if;
   v_inactif := f.origine = 'inactivite';
-  v_abo := public.abonnement_de_fermeture(f.account_id, v_inactif);
-  if coalesce((v_abo ->> 'vivante')::boolean, false) then return jsonb_build_object('etat', 'souscription_active'); end if;
-  if cardinality(public.souscriptions_laissees(f.account_id, v_inactif)) > 0 then
-    return jsonb_build_object('etat', 'souscription_laissee');
+  -- Finitions du 24/10 (relecture transverse, I2 et I4) : chaque attente, la date d'effet passée, est notée sur la
+  -- ligne (tentative et motif lisibles dans la console), au lieu d'une date d'effacement dépassée sans explication.
+  if f.bilan_simulation is null then
+    v_attente := 'simulation_manquante';
+    v_motif := 'En attente : aucun bilan de simulation enregistré (« Enregistrer le nouveau bilan »).';
+  elsif not public.sauvegarde_du_jour_reussie() then
+    v_attente := 'sauvegarde_manquante';
+    v_motif := 'En attente : aucune sauvegarde quotidienne réussie aujourd''hui ; la fermeture repassera la nuit suivante.';
+  elsif exists (select 1 from public.memberships where account_id = f.account_id and role = 'super_admin') then
+    v_attente := 'compte_de_supervision';
+    v_motif := 'Refus : un compte de supervision ne se ferme pas par cette procédure.';
+  else
+    v_abo := public.abonnement_de_fermeture(f.account_id, v_inactif);
+    if coalesce((v_abo ->> 'vivante')::boolean, false) then
+      v_attente := 'souscription_active';
+      v_motif := 'En attente : une souscription Stripe des espaces effacés vit encore (arrêt levé, résiliation reportée au terme, ou fin de période pas encore atteinte). L''effacement attend son arrêt ; vérifier la souscription chez Stripe.';
+    elsif cardinality(public.souscriptions_laissees(f.account_id, v_inactif)) > 0 then
+      v_attente := 'souscription_laissee';
+      v_motif := 'En attente : le compte laisserait une souscription en cours à des gestionnaires restants (transmettre la titularité ou résilier).';
+    elsif exists (select 1 from public.bail_signature_circuits c
+                   where c.organization_id in (select public.organisations_effacees_par(f.account_id, v_inactif))
+                     and c.etat in ('preparation', 'en_cours', 'a_verifier')) then
+      v_attente := 'signature_en_cours';
+      v_motif := 'En attente : une signature électronique est en cours dans un espace effacé.';
+    -- Finitions du 24/10 (relecture transverse, B1) : une rétractation d'un espace effacé dont le remboursement ou
+    -- l'accusé n'est pas fait retient l'effacement ; la reprise de nuit des rétractations la termine d'abord.
+    elsif exists (select 1 from public.retractations_abonnement r
+                   where r.organization_id in (select public.organisations_effacees_par(f.account_id, v_inactif))
+                     and (r.executee_le is null or r.accuse_envoye_le is null)) then
+      v_attente := 'retractation_en_cours';
+      v_motif := 'En attente : une rétractation d''un espace effacé n''est pas terminée (remboursement ou accusé de réception) ; la reprise de nuit la termine, la fermeture repassera ensuite.';
+    end if;
   end if;
-  if exists (select 1 from public.bail_signature_circuits c
-              where c.organization_id in (select public.organisations_effacees_par(f.account_id, v_inactif))
-                and c.etat in ('preparation', 'en_cours', 'a_verifier')) then
-    return jsonb_build_object('etat', 'signature_en_cours');
+  if v_attente is not null then
+    update public.fermetures_comptes
+       set derniere_erreur = left(v_motif, 2000), derniere_tentative_le = now()
+     where id = f.id;
+    return jsonb_build_object('etat', v_attente);
   end if;
   if v_inactif then
     select * into v_act from public.activite_compte(f.account_id);
@@ -1602,7 +1665,10 @@ begin
     update public.fermetures_comptes set adresse_courriel = v_email where id = f.id;
   end if;
   select id into v_artisan from public.artisans where account_id = f.account_id;
-  v_bilan := public.effacer_compte_ferme(f.account_id, f.id);
+  -- Les déclarations de rétractation des espaces effacés restent, détachées (consigne A) : le bilan les compte.
+  select count(*) into v_retractations from public.retractations_abonnement r
+   where r.organization_id in (select public.organisations_effacees_par(f.account_id, v_inactif));
+  v_bilan := public.effacer_compte_ferme(f.account_id, f.id) || jsonb_build_object('retractations_conservees', v_retractations);
   update public.fermetures_comptes
      set statut = 'executee', executee_le = now(), mode_effacement = v_bilan ->> 'mode', bilan_execution = v_bilan,
          tentatives = tentatives + 1, derniere_tentative_le = now(), derniere_erreur = null
@@ -2000,8 +2066,14 @@ revoke all on function public.reappliquer_effacements(jsonb) from public, anon, 
 -- Les remboursements dus (relecture du 24/10, I7) : choix J+14, montant prévu, pas encore remboursé, et souscription
 -- arrêtée chez Stripe (minuit, heure de Paris, de la date d'effet). Dus quel que soit le sort de la fermeture : exécutée,
 -- gelée au-delà de cette date, ou annulée APRÈS l'arrêt (annulée avant, l'arrêt a été levé : rien n'est dû).
+-- Finitions du 24/10 (relecture transverse, I2) : la date seule ne suffit plus. Il faut que la fermeture soit exécutée
+-- ou que la souscription soit réellement arrêtée en base (statut terminé relu par le webhook) : une souscription qui
+-- continue (arrêt levé ou reporté au terme) n'est pas remboursée. Rend la souscription, l'instant de l'arrêt prévu et
+-- la rétractation déjà exécutée sur cette souscription (I3), que l'application relit avant tout geste chez Stripe.
+drop function if exists public.fermetures_remboursements_dus(integer);
 create or replace function public.fermetures_remboursements_dus(p_limite integer default 20)
-returns table (id uuid, remboursement_prevu_cents bigint, remboursement_repartition jsonb, stripe_facture_id text)
+returns table (id uuid, remboursement_prevu_cents bigint, remboursement_repartition jsonb, stripe_facture_id text,
+               stripe_subscription_id text, arret_prevu_le timestamptz, retractation_executee boolean)
 language plpgsql
 stable
 security definer
@@ -2017,11 +2089,20 @@ begin
                     case when f.stripe_facture_id is not null
                          then jsonb_build_array(jsonb_build_object('facture', f.stripe_facture_id, 'montant_cents', f.remboursement_prevu_cents))
                     end),
-           f.stripe_facture_id
+           f.stripe_facture_id,
+           f.abonnement ->> 'stripe_subscription_id',
+           (f.effacement_prevu_le::timestamp at time zone 'Europe/Paris'),
+           exists (select 1 from public.retractations_abonnement r
+                    where r.subscription_id = f.abonnement ->> 'stripe_subscription_id' and r.nature = 'abonnement'
+                      and r.executee_le is not null)
       from public.fermetures_comptes f
      where f.choix = 'j14_prorata' and coalesce(f.remboursement_prevu_cents, 0) > 0 and f.rembourse_le is null
        and (f.effacement_prevu_le::timestamp at time zone 'Europe/Paris') <= now()
        and (f.statut <> 'annulee' or f.annulee_le >= (f.effacement_prevu_le::timestamp at time zone 'Europe/Paris'))
+       and (f.statut = 'executee'
+            or not exists (select 1 from public.abonnements a
+                            where a.stripe_subscription_id = f.abonnement ->> 'stripe_subscription_id'
+                              and coalesce(a.stripe_statut, '') not in ('canceled', 'incomplete_expired')))
      order by f.effacement_prevu_le
      limit greatest(1, least(coalesce(p_limite, 20), 100));
 end $$;
@@ -2029,8 +2110,12 @@ revoke all on function public.fermetures_remboursements_dus(integer) from public
 grant execute on function public.fermetures_remboursements_dus(integer) to service_role;
 
 -- Le remboursement fait, paiement par paiement ([{"facture", "remboursement", "montant_cents"}]) : inscrit une fois,
--- sur la fermeture et sur le registre à rejouer après une restauration.
-create or replace function public.fermeture_remboursement_fait(p_fermeture uuid, p_faits jsonb)
+-- sur la fermeture et sur le registre à rejouer après une restauration. Finitions du 24/10 (relecture transverse, I3 et
+-- I2) : avec un motif, le remboursement est clos même sans rien rembourser (retractation : la rétractation a déjà
+-- remboursé la période en entier ; deja_rembourse : le paiement était déjà entièrement remboursé ; souscription_poursuivie :
+-- la souscription a continué au-delà de l'arrêt prévu). Montant : la somme de ce qui a été fait, zéro sinon.
+drop function if exists public.fermeture_remboursement_fait(uuid, jsonb);
+create or replace function public.fermeture_remboursement_fait(p_fermeture uuid, p_faits jsonb, p_motif text default null)
 returns void
 language plpgsql
 security definer
@@ -2041,14 +2126,17 @@ begin
   if (select auth.role()) is distinct from 'service_role' then
     raise exception 'Accès réservé au traitement' using errcode = '42501';
   end if;
-  if p_faits is null or jsonb_typeof(p_faits) <> 'array' or jsonb_array_length(p_faits) = 0
+  if p_motif is not null and p_motif not in ('retractation', 'deja_rembourse', 'souscription_poursuivie') then
+    raise exception 'Motif de remboursement inconnu' using errcode = '22023';
+  end if;
+  if p_faits is null or jsonb_typeof(p_faits) <> 'array' or (jsonb_array_length(p_faits) = 0 and p_motif is null)
      or exists (select 1 from jsonb_array_elements(p_faits) e
                  where coalesce(e ->> 'remboursement', '') = '' or coalesce(e ->> 'montant_cents', '') !~ '^[0-9]{1,12}$') then
     raise exception 'Remboursements invalides' using errcode = '22023';
   end if;
-  select sum((e ->> 'montant_cents')::bigint) into v_total from jsonb_array_elements(p_faits) e;
+  select coalesce(sum((e ->> 'montant_cents')::bigint), 0) into v_total from jsonb_array_elements(p_faits) e;
   update public.fermetures_comptes
-     set remboursements_faits = p_faits, remboursement_cents = v_total,
+     set remboursements_faits = p_faits, remboursement_cents = v_total, remboursement_motif = p_motif,
          stripe_remboursement_id = left(p_faits -> 0 ->> 'remboursement', 255), rembourse_le = now()
    where id = p_fermeture and rembourse_le is null;
   if not found then raise exception 'Fermeture introuvable ou déjà remboursée' using errcode = 'P0002'; end if;
@@ -2056,8 +2144,8 @@ begin
      set remboursements_faits = p_faits, remboursement_cents = v_total, rembourse_le = now()
    where fermeture_id = p_fermeture;
 end $$;
-revoke all on function public.fermeture_remboursement_fait(uuid, jsonb) from public, anon, authenticated;
-grant execute on function public.fermeture_remboursement_fait(uuid, jsonb) to service_role;
+revoke all on function public.fermeture_remboursement_fait(uuid, jsonb, text) from public, anon, authenticated;
+grant execute on function public.fermeture_remboursement_fait(uuid, jsonb, text) to service_role;
 
 drop function if exists public.fermetures_suites_a_faire(integer);
 create or replace function public.fermetures_suites_a_faire(p_limite integer default 20)
@@ -2065,7 +2153,7 @@ returns table (id uuid, account_id uuid, origine text, choix text, adresse_courr
                derniere_activite_le timestamptz,
                executee_le timestamptz, mode_effacement text, bilan_execution jsonb, abonnement jsonb,
                remboursement_prevu_cents bigint, remboursement_cents bigint, rembourse_le timestamptz,
-               archives jsonb)
+               archives jsonb, remboursement_motif text)
 language plpgsql
 stable
 security definer
@@ -2081,7 +2169,8 @@ begin
            f.bilan_execution, f.abonnement, f.remboursement_prevu_cents, f.remboursement_cents, f.rembourse_le,
            coalesce((select jsonb_agg(jsonb_build_object('preuve_conservee_jusqu_au', a.preuve_conservee_jusqu_au,
                                                          'factures_conservees_jusqu_au', a.factures_conservees_jusqu_au))
-                       from public.archives_comptes a where a.account_id_origine = f.account_id), '[]'::jsonb)
+                       from public.archives_comptes a where a.account_id_origine = f.account_id), '[]'::jsonb),
+           f.remboursement_motif
       from public.fermetures_comptes f
      where f.statut = 'executee' and f.courriel_envoye_le is null
      order by f.executee_le
@@ -2129,6 +2218,9 @@ grant execute on function public.fermeture_suites_faites(uuid, bigint, text, boo
 
 -- Les clients Stripe dont toutes les factures archivées ont passé leurs six ans (relecture du 24/10, R2-5 : le courriel
 -- de fin le promet) et qu'aucun abonnement ne porte plus : l'application les supprime chez Stripe, puis les inscrit.
+-- Finitions du 24/10 (relecture transverse, B2) : jamais avant six ans après la fin du dernier abonnement payé, même
+-- quand l'archive ne liste aucune facture (journal Stripe purgé, référence perdue) : le repli sur la date d'archivage
+-- faisait supprimer le client, et ses factures chez Stripe, dès la nuit suivante.
 create or replace function public.clients_stripe_au_terme(p_limite integer default 50)
 returns table (stripe_customer_id text)
 language plpgsql
@@ -2148,7 +2240,8 @@ begin
        and not exists (select 1 from public.clients_stripe_supprimes s where s.stripe_customer_id = a.stripe_customer_id)
        and not exists (select 1 from public.abonnements b where b.stripe_customer_id = a.stripe_customer_id)
      group by a.stripe_customer_id
-    having max(coalesce(a.factures_conservees_jusqu_au, (a.archive_le at time zone 'Europe/Paris')::date)) < v_jour
+    having max(greatest(coalesce(a.factures_conservees_jusqu_au, (a.archive_le at time zone 'Europe/Paris')::date),
+                        (a.fin_dernier_abonnement_paye + interval '6 years')::date)) < v_jour
      order by 1
      limit greatest(1, least(coalesce(p_limite, 50), 500));
 end $$;
@@ -2523,6 +2616,34 @@ begin
 end $$;
 revoke all on function public.export_artisan_plateforme() from public, anon;
 grant execute on function public.export_artisan_plateforme() to authenticated;
+
+-- ── 11 bis. La fermeture programmée d'un espace (finitions du 24/10, relecture transverse I1 et I4) ─────────────────
+-- « Mon abonnement » et la page « Résilier votre contrat » la lisent : un espace dont l'effacement est programmé ne
+-- propose ni « Résilier » ni « Annuler la résiliation » (l'arrêt posé par la fermeture serait défait, la souscription
+-- reconduite et facturée), et dit la date d'effacement. Le gérant de l'espace (titulaire ou administrateur d'agence)
+-- ou la clé de service ; rien d'autre que la date d'effet et le choix.
+create or replace function public.fermeture_programmee_de(p_org uuid)
+returns table (effacement_prevu_le date, choix text)
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if (select auth.role()) is distinct from 'service_role'
+     and not (p_org in (select public.org_ids_avec_roles(array['admin_agence','proprietaire_direct']::public.membership_role[]))) then
+    raise exception 'Accès refusé' using errcode = '42501';
+  end if;
+  return query
+    select f.effacement_prevu_le, f.choix
+      from public.fermetures_comptes f
+     where f.statut = 'programmee'
+       and p_org in (select public.organisations_effacees_par(f.account_id, f.origine = 'inactivite'))
+     order by f.effacement_prevu_le
+     limit 1;
+end $$;
+revoke all on function public.fermeture_programmee_de(uuid) from public, anon;
+grant execute on function public.fermeture_programmee_de(uuid) to authenticated, service_role;
 
 -- ── 12. Planification ─────────────────────────────────────────────────────────────────────────────────────────────
 

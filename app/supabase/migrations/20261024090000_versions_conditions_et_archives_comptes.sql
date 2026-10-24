@@ -41,6 +41,11 @@
 -- Retour : supabase/retours-arriere/20261024090000_versions_conditions_et_archives_comptes.retour.sql (dans la
 -- chaîne « Ordre complet », dernier des retours du plan de conformité, bien que rien ici ne cite `aujourdhui_paris()`).
 
+-- Finitions du 24/10 (relecture transverse, point 6) : aucun verrou attendu plus de dix secondes. Le chantier envoie le
+-- lot dans une seule transaction : la limite posée ici couvre toutes les migrations qui suivent ; seule, elle couvre ce
+-- fichier. Un verrou refusé fait échouer la migration (rien n'est appliqué) au lieu de faire attendre les inscriptions.
+do $verrou$ begin perform set_config('lock_timeout', '10s', true); end $verrou$;
+
 -- ── 1. Versions archivées des conditions ────────────────────────────────────────────────────────────────────────
 
 create table if not exists public.versions_conditions (

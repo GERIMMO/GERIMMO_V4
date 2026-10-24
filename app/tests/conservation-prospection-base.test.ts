@@ -79,6 +79,8 @@ const REGLES: [string, number, string, boolean][] = [
   ["prospect:opposition", 36, "Opposition", true],
   ["journal:abonnement_evenements", 6, "Traitement de l'événement", true],
   ["journal:effacements_a_reappliquer", 4, "Exécution de la fermeture", true],
+  // Finitions du 24/10 (relecture transverse, I6) : les preuves du contrat écrites dans le journal d'audit.
+  ["journal:audit_preuve_contrat", 120, "Action", true],
   ["journal:auth_audit", 6, "Événement", false],
 ];
 
@@ -92,7 +94,7 @@ const RESERVEES = [
   "journal_auth_echus", "purger_comptes_jamais_utilises", "purger_archives_comptes", "appliquer_conservation_complementaire",
   "generer_alertes_conservation", "alertes_conservation_a_envoyer", "noter_courriel_alerte_conservation", "ecrire_gel_conservation_bail",
   "garder_gel_conservation_bail", "poser_alerte_conservation", "echeance_levee_gel_bail", "garder_dernier_contact_prospect",
-  "echeance_retractation_abonnement",
+  "echeance_retractation_abonnement", "action_audit_preuve_contrat",
 ];
 /** Fonctions de déclencheur : jamais appelées directement (leur droit d'exécution n'est pas vérifié ici). */
 const DECLENCHEURS = ["garder_gel_conservation_bail", "garder_dernier_contact_prospect"];
@@ -661,7 +663,10 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     const retiree = await agence("retiree@agence.example.invalid", "retiree");
     await db.query("insert into public.oppositions_prospection (empreinte, origine) values ($1, 'prospect')", [sha("opposee@agence.example.invalid")]);
     await session(superviseur);
-    const ids = (await db.query<{ id: string }>("select x as id from public.inscriptions_agences_opposees() x")).rows.map((r) => r.id);
+    // Finitions du 24/10 (relecture transverse 3, B2) : une table à une colonne `id` (PostgREST et l'émulateur la rendent
+    // de la même façon, [{"id": …}]).
+    const ids = (await db.query<{ id: string }>("select x.id from public.inscriptions_agences_opposees() x")).rows.map((r) => r.id);
+    expect(await un("select pg_get_function_result('public.inscriptions_agences_opposees()'::regprocedure) as r")).toEqual({ r: "TABLE(id uuid)" });
     expect(ids).toContain(opposee);
     expect(ids).toContain(retiree);
     expect(ids).not.toContain(libre);
@@ -801,6 +806,16 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
        returning id`, [org, cle, ilYa]);
     const ancienne = await declaration("121 months", "retractation-integration-ancienne");
     const recente = await declaration("119 months", "retractation-integration-recente");
+    // Finitions du 24/10 (consigne A) : une déclaration détachée d'un espace effacé suit la même échéance.
+    const detachee = await id(
+      `insert into public.retractations_abonnement (organization_id, subscription_id, nature, cle, texte_declaration, declaree_le, adresse_accuse)
+       values (null, 'sub_fictif_detache', 'abonnement', 'retractation-integration-detachee', 'Je renonce au contrat d''abonnement (déclaration fictive).',
+               now() - interval '121 months', 'retractation@example.invalid') returning id`);
+    const detacheeRecente = await id(
+      `insert into public.retractations_abonnement (organization_id, subscription_id, nature, cle, texte_declaration, declaree_le, adresse_accuse)
+       values (null, 'sub_fictif_detache', 'abonnement', 'retractation-integration-detachee-recente', 'Je renonce au contrat d''abonnement (déclaration fictive).',
+               now() - interval '3 months', 'retractation@example.invalid') returning id`);
+    expect(await echec("delete from public.retractations_abonnement where id = $1", [detacheeRecente])).toMatch(/ne se supprime pas/);
     expect(await echec("delete from public.retractations_abonnement where id = $1", [recente])).toMatch(/ne se supprime pas/);
     expect(await nombre("select count(*) from public.cibles_conservation_complementaire() x where x.categorie = 'contrat:retractation' and x.id = any($1)",
       [[ancienne, recente]])).toBe(1);
@@ -808,10 +823,69 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     expect(r.journaux.retractations_abonnement).toBeGreaterThanOrEqual(1);
     expect((await db.query("select id from public.retractations_abonnement where id = any($1)", [[ancienne, recente]])).rows.map((x) => x.id))
       .toEqual([recente]);
+    expect((await db.query("select id from public.retractations_abonnement where id = any($1)", [[detachee, detacheeRecente]])).rows.map((x) => x.id))
+      .toEqual([detacheeRecente]);
     // La règle reste la garde : réduite, elle ne fait jamais partir une déclaration de moins de dix ans.
     await db.query("update public.retention_rules set duree_mois = 12 where data_type = 'contrat:retractation'");
     expect(await echec("delete from public.retractations_abonnement where id = $1", [recente])).toMatch(/ne se supprime pas/);
     await db.query("update public.retention_rules set duree_mois = 120 where data_type = 'contrat:retractation'");
+  });
+
+  // ── Finitions du 24/10 (relectures transverses) ───────────────────────────────────────────────────────────────
+
+  it("B2 : un paiement de facture reste au journal tant qu'un abonnement porte son client ; l'archive de la fermeture garde ses factures", async () => {
+    await proprietaire();
+    const espace = await id("insert into public.organizations (name, status, type) values ('Espace des factures', 'active', 'proprietaire_direct') returning id");
+    const titulaire = await compte("factures-b2");
+    await db.query("insert into public.memberships (account_id, organization_id, role) values ($1, $2, 'proprietaire_direct')", [titulaire, espace]);
+    await db.query("insert into public.acceptations_cgu (account_id, version, source) values ($1, '2026-09-30', 'inscription') on conflict do nothing", [titulaire]);
+    await db.query(
+      `insert into public.abonnements (organization_id, stripe_customer_id, stripe_subscription_id, stripe_statut, premiere_facture_payee, periode_debut, periode_fin)
+       values ($1, 'cus_b2factures', 'sub_b2factures', 'active', true, now() - interval '1 month', now() + interval '1 month')`, [espace]);
+    const evt = (type: string, client: string, ilYa: string, objet: string) => db.query(
+      `insert into public.abonnement_evenements (stripe_event_id, type, charge, recu_le, traite_le)
+       values ('evt_' || md5(random()::text), $1, jsonb_build_object('objet', $4::text, 'client', $2::text), now() - $3::interval, now() - $3::interval)
+       returning stripe_event_id`, [type, client, ilYa, objet]).then((r) => String(r.rows[0].stripe_event_id));
+    const ancienne = await evt("invoice.paid", "cus_b2factures", "8 months", "in_b2_ancienne");
+    const recente = await evt("invoice.paid", "cus_b2factures", "1 month", "in_b2_recente");
+    const autreType = await evt("customer.subscription.updated", "cus_b2factures", "8 months", "sub_b2factures");
+    const orpheline = await evt("invoice.paid", "cus_b2_sans_abonnement", "8 months", "in_b2_orpheline");
+    await purge();
+    expect((await db.query("select stripe_event_id from public.abonnement_evenements where stripe_event_id = any($1) order by 1", [[ancienne, recente, autreType, orpheline]])).rows.map((r) => r.stripe_event_id))
+      .toEqual([ancienne, recente].sort());
+    // L'archive faite à la fermeture porte les deux factures et la vraie date de début (essai de la relecture 2).
+    await proprietaire();
+    expect(await un("select public.archiver_preuve_compte($1, $2) as fait", [titulaire, espace])).toEqual({ fait: true });
+    const archive = await un<{ factures: { stripe_facture: string }[]; debut: string }>(
+      "select factures, debut_abonnement::text as debut from public.archives_comptes where account_id_origine = $1 and organisation_id_origine = $2", [titulaire, espace]);
+    expect(archive.factures.map((f) => f.stripe_facture)).toEqual(["in_b2_ancienne", "in_b2_recente"]);
+    expect(archive.debut).toBe(await dateIlYa(8));
+    // L'espace effacé, l'archive porte les références : le journal reprend sa durée de six mois.
+    await db.query("delete from public.abonnements where organization_id = $1", [espace]);
+    await purge();
+    expect((await db.query("select stripe_event_id from public.abonnement_evenements where stripe_event_id = any($1)", [[ancienne, recente]])).rows.map((r) => r.stripe_event_id))
+      .toEqual([recente]);
+  });
+
+  it("I6 : les preuves du contrat écrites dans le journal d'audit gardent dix ans, pas douze mois", async () => {
+    const trace = (action: string, mois: number) => id("insert into public.audit_log (action, details, created_at) values ($1, '{}', now() - make_interval(months => $2::int)) returning id", [action, mois]);
+    const preuves = ["abonnement_commande_confirmee", "abonnement_confirmation_envoyee", "abonnement_resiliation_notifiee", "abonnement_resiliation_levee",
+      "abonnement_resiliation_accusee", "relance_paiement_envoyee", "abonnement_resiliation_impaye_notifiee", "abonnement_non_reconduit_conditions",
+      "abonnement_retractation", "abonnement_retractation_accusee", "signature_caution_mobile_confirme", "signature_garant_bail_mobile_repris",
+      "signature_edl_confirmation_sur_place"];
+    const gardees: string[] = [];
+    for (const action of preuves) gardees.push(await trace(action, 13));
+    const parties = [await trace("abonnement_commande_confirmee", 121), await trace("relance_paiement_envoyee", 121), await trace("document_depose", 13)];
+    await session(superviseur);
+    const bilan = (await un<{ r: { categories: { categorie: string; echus: number | null }[] } }>("select public.simuler_conservation_contacts() as r")).r;
+    expect(Number(bilan.categories.find((c) => c.categorie === "journal:audit_preuve_contrat")?.echus)).toBeGreaterThanOrEqual(2);
+    await proprietaire();
+    expect(await un("select public.action_audit_preuve_contrat('abonnement_retractation') as a, public.action_audit_preuve_contrat('abonnement_retractationx') as b, public.action_audit_preuve_contrat(null) as c"))
+      .toEqual({ a: true, b: false, c: false });
+    const r = await purge();
+    expect(r.journaux.audit_log_preuve_contrat).toBeGreaterThanOrEqual(2);
+    const restants = (await db.query("select id from public.audit_log where id = any($1)", [[...gardees, ...parties]])).rows.map((x) => x.id).sort();
+    expect(restants).toEqual([...gardees].sort());
   });
 
   it("registre des effacements à réappliquer (comptes) : purgé quatre mois après l'exécution de la fermeture", async () => {

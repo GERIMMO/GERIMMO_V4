@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { TitreEcran } from "@/components/titre-ecran";
 import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
-import { libelleTranche, STATUTS_LISTE_ATTENTE, type StatutListeAttente } from "@/lib/liste-attente-agences";
+import { identifiantsOpposes, libelleTranche, STATUTS_LISTE_ATTENTE, type StatutListeAttente } from "@/lib/liste-attente-agences";
 import { createClient } from "@/lib/supabase/server";
 import { BoutonsStatutAgence } from "./boutons-statut";
 
@@ -60,7 +60,7 @@ export default async function PageListeAttenteAgences() {
   // ou « Stop » comme prospect). Sans ce contrôle, aucun lien d'écriture ni « contactée ».
   const controle = await supabase.rpc("inscriptions_agences_opposees");
   const controleDisponible = !controle.error;
-  const opposees = new Set(Array.isArray(controle.data) ? (controle.data as unknown[]).map(String) : []);
+  const opposees = identifiantsOpposes(controle.data);
   // Même lecture que les gestes et la puce : un statut inconnu de l'écran compte comme une attente.
   const enAttente = inscriptions.filter((i) => statutConnu(i.statut) === "en_attente").length;
   const total = inscriptions.length;

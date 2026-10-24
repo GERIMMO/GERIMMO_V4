@@ -69,7 +69,10 @@ create table if not exists public.confirmations_mobile_caution (
   garant_id text not null check (btrim(garant_id) <> ''),
   acte text not null check (acte in ('cautionnement', 'bail')),
   jeton_empreinte text not null unique check (jeton_empreinte ~ '^[0-9a-f]{64}$'),
-  demande_par uuid not null references auth.users(id) on delete cascade,
+  -- Finitions du 24/10 (relectures transverses, I7 et point 8) : sans cascade, comme bail_signature_circuits.created_by.
+  -- La preuve qu'une caution ou un garant a confirmé son propre mobile ne part pas avec le compte du bailleur qui a
+  -- envoyé le lien : tant qu'elle existe, ce compte n'est que neutralisé (fermeture), et elle part avec le circuit.
+  demande_par uuid not null references auth.users(id),
   cree_le timestamptz not null default now(),
   expire_le timestamptz not null,
   utilise_le timestamptz,
@@ -79,6 +82,19 @@ create table if not exists public.confirmations_mobile_caution (
   constraint confirmations_mobile_caution_usage check ((utilise_le is null) = (telephone_confirme is null)),
   constraint confirmations_mobile_caution_issue check (utilise_le is null or annulee_le is null)
 );
+-- Rejeu sur une table créée par une version antérieure de ce fichier (clé du demandeur en cascade) : clé sans cascade.
+do $demandeur$
+declare v_cle text;
+begin
+  select c.conname into v_cle from pg_constraint c
+   where c.conrelid = 'public.confirmations_mobile_caution'::regclass and c.contype = 'f'
+     and c.confrelid = 'auth.users'::regclass and c.confdeltype = 'c';
+  if v_cle is not null then
+    execute format('alter table public.confirmations_mobile_caution drop constraint %I', v_cle);
+    alter table public.confirmations_mobile_caution add constraint confirmations_mobile_caution_demande_par_fkey
+      foreign key (demande_par) references auth.users(id);
+  end if;
+end $demandeur$;
 comment on table public.confirmations_mobile_caution is
   'Liens à usage unique envoyés à la caution pour qu''elle confirme elle-même son mobile avant la signature électronique d''un acte de cautionnement (décision du 23/10/2026), ou au garant qui signe aussi le bail (décision du 24/10/2026). Empreinte du jeton seulement, jamais le jeton.';
 

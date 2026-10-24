@@ -179,7 +179,7 @@ les appels payants à l'IA, l'arrêt avant les prochains effets.
 >   appliquée en production le 23/10 ; [[Ouverture du réseau d'artisans]].
 
 
-## Simplification de la console — préparée le 24 octobre 2026
+## Simplification de la console — publiée le 24 octobre 2026
 
 À la demande du dirigeant, huit rubriques et leurs fiches liées sont réorganisées : décisions, utilisateurs, vacances/relais, améliorations du produit, santé/connexions, sécurité/conformité, historique/sauvegardes et paramètres.
 

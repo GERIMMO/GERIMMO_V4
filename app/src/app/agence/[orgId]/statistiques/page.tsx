@@ -222,12 +222,11 @@ export default async function PageStatistiques(
           le laisser chercher un taux d'occupation qui n'est pas ici. */}
       {estProprietaire && (
         <p className="text-sm text-muted-foreground">
-          Le suivi chiffré de vos incidents : délais, qui paie, lots qui reviennent.
-          Vos loyers encaissés et attendus se lisent dans{" "}
+          Incidents et délais. Voir aussi :{" "}
           <Link href={`${base}/loyers`} className="lien-discret">
             Loyers &amp; charges
           </Link>
-          , votre bilan annuel dans{" "}
+          {" · "}
           <Link href={`${base}/comptabilite/fiscal`} className="lien-discret">
             Fiscalité
           </Link>
@@ -239,13 +238,11 @@ export default async function PageStatistiques(
           que les incidents. On le dit à l'agence aussi, avec le chemin. */}
       {!estProprietaire && (
         <p className="text-sm text-muted-foreground">
-          Le suivi chiffré des incidents : délais, qui paie, lots qui reviennent.
-          La répartition du parc et les encaissements des six derniers mois se
-          lisent sur le{" "}
+          Incidents et délais. Voir aussi :{" "}
           <Link href={`${base}`} className="lien-discret">
             tableau de bord
           </Link>
-          , les loyers du mois dans{" "}
+          {" · "}
           <Link href={`${base}/loyers`} className="lien-discret">
             Loyers &amp; charges
           </Link>

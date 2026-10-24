@@ -148,6 +148,8 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
 
   test("D04 : « 840,00 » tapé avec la virgule est enregistré et affiché 840,00 €", async ({ page }) => {
     await page.goto(`${espaceDe("proprietaire")}/baux/${d.bail}`);
+    await page.getByRole("tab", { name: "Suivi", exact: true }).click();
+    await page.locator("#loyers > summary").click();
     await expect(carteLoyers(page)).toContainText("Loyers & paiements");
     await expect(montantSaisi(page)).toHaveAttribute("type", "text");
     // Le champ doit être visible et sélectionné avant la frappe, puis le bouton actif avant l'envoi.
@@ -178,6 +180,8 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
 
   test("D05 : le même envoi rejoué après une réponse perdue n'encaisse qu'une fois", async ({ page }) => {
     await page.goto(`${espaceDe("proprietaire")}/baux/${d.bail}`);
+    await page.getByRole("tab", { name: "Suivi", exact: true }).click();
+    await page.locator("#loyers > summary").click();
     const cle = page.locator('input[name="cle_envoi"]');
     await expect(cle).toHaveValue(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     const cleEnvoi = await cle.inputValue();
@@ -253,6 +257,8 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
   test("D38 : une régularisation de l'exercice en cours est signalée et refusée sans confirmation explicite", async ({ page }) => {
     const documentsAvant = Number((await db.query("select count(*) as n from public.documents where organization_id = $1", [d.org])).rows[0].n);
     await page.goto(`${espaceDe("proprietaire")}/baux/${d.bail}`);
+    await page.getByRole("tab", { name: "Suivi", exact: true }).click();
+    await page.locator("#loyers > summary").click();
     const annee = page.locator("#reg-annee");
     await annee.fill(String(d.annee));
     await page.locator("#reg-reel").fill("640,00");

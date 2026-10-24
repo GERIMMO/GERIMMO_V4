@@ -1,3 +1,5 @@
+import { OngletsDossier } from "@/components/onglets-dossier";
+import { bilanDiagnostics } from "@/lib/presentation-diagnostics";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
 import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import styles from "./fiche-lot.module.css";
@@ -9,17 +11,16 @@ import { FormulaireBien } from "../../../formulaire-bien";
 import { FormulaireLot } from "./formulaire-lot";
 import { FormulaireEquipementCatalogue } from "../../../formulaire-equipement-catalogue";
 import { retourBailDuLot } from "@/lib/parcours-lot";
-import { House, Users, Wallet, FileText, MapPin, Pencil, Wrench, ArrowRight, ArrowUpRight, Building2, KeyRound, ChevronDown, Ruler, DoorOpen, Layers3, Sofa } from "lucide-react";
+import { House, Users, FileText, MapPin, Pencil, Wrench, ArrowRight, ArrowUpRight, Building2, ChevronDown, Ruler, DoorOpen, Layers3, Sofa } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
   ETATS_LOT,
   COULEURS_ETAT_LOT,
   alertesDecence,
-  alerteDiagnostics,
   formaterSurface,
 } from "@/lib/parc";
-import { diagnosticsExigibles, diagnosticsManquants } from "@/lib/diagnostics";
+import { diagnosticsExigibles } from "@/lib/diagnostics";
 import { formaterDate, eur } from "@/lib/ged";
 import { ETATS_BAIL, COULEURS_ETAT_BAIL, TYPES_BAIL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
@@ -188,9 +189,18 @@ export default async function PageLot(
   // (lib/diagnostics, audit 09/09). Les deux niveaux sont rendus ici : ceux du
   // lot, et ceux de l'immeuble (ils restent portés par le bien en base).
   const exigiblesLot = diagnosticsExigibles(bien, "lot");
-  const manquants = diagnosticsManquants(bien, diagnostics ?? [], "lot");
   const exigiblesBien = diagnosticsExigibles(bien, "bien");
-  const manquantsBien = diagnosticsManquants(bien, diagnosticsBien ?? [], "bien");
+  const bilanLot = bilanDiagnostics(exigiblesLot.map(e => e.type), diagnostics ?? []);
+  const bilanBien = bilanDiagnostics(exigiblesBien.map(e => e.type), diagnosticsBien ?? []);
+  const manquants = exigiblesLot.filter(e => bilanLot.lignes.some(l => l.type === e.type && ["a_ajouter", "a_joindre"].includes(l.etat)));
+  const manquantsBien = exigiblesBien.filter(e => bilanBien.lignes.some(l => l.type === e.type && ["a_ajouter", "a_joindre"].includes(l.etat)));
+  const bilan = {
+    aJour: bilanLot.aJour + bilanBien.aJour,
+    aVerifier: bilanLot.aVerifier + bilanBien.aVerifier,
+    aAjouter: bilanLot.aAjouter + bilanBien.aAjouter,
+    aRenouveler: bilanLot.aRenouveler + bilanBien.aRenouveler,
+    aConfirmer: bilanLot.aConfirmer + bilanBien.aConfirmer,
+  };
   const decence = ["appartement", "maison", "immeuble"].includes(bien.type) ? alertesDecence(lot) : [];
   // « L'immeuble » ne se dit que d'un immeuble (24/09) : sur un appartement,
   // les diagnostics communs (ERP, termites…) sont ceux « du bien ».
@@ -250,7 +260,7 @@ export default async function PageLot(
       ancre: "detention",
     });
   }
-  if (manquants.length > 0) {
+  if (!erreurDiagnostics && manquants.length > 0) {
     attention.push({
       cle: "diagnostics",
       // « du lot », comme la section où mène « Régler » (24/09)
@@ -260,7 +270,7 @@ export default async function PageLot(
       ancre: "diagnostics",
     });
   }
-  if (manquantsBien.length > 0) {
+  if (!erreurDiagnosticsBien && manquantsBien.length > 0) {
     attention.push({
       cle: "diagnostics-immeuble",
       texte: `Diagnostic${manquantsBien.length > 1 ? "s" : ""} ${duBien} à déposer : ${manquantsBien
@@ -376,7 +386,7 @@ export default async function PageLot(
             // Le titre dit déjà le niveau : la pastille ne le répète pas
             // entre parenthèses, et le résumé ne redit pas ce qui manque — le
             // bandeau du haut le dit, avec « Régler » (24/09).
-            alerte={alerteDiagnostics(manquants.map((m) => m.type), diagnostics ?? [])}
+            alerte={erreurDiagnostics ? "Lecture à réessayer" : bilanLot.aAjouter ? `${bilanLot.aAjouter} à ajouter` : undefined}
             resume={
               nbDiag === 0
                 ? "Aucun diagnostic déposé"
@@ -385,23 +395,22 @@ export default async function PageLot(
           >
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                DPE, électricité, gaz, plomb, amiante privatif… Ceux {duBien}{" "}
-                se déposent juste en dessous.
+                Documents propres à ce logement.
               </p>
-              <LignesDiagnostics
+              {erreurDiagnostics ? <p role="alert">Documents indisponibles. Réessayez pour connaître leur état.</p> : <LignesDiagnostics
                 orgId={orgId}
                 bienId={bienId}
                 lotId={lotId}
                 niveau="lot"
                 attendus={exigiblesLot.map((e) => e.type)}
                 diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
-              />
+              />}
             </div>
           </SectionLot>);
   const rubriqueDiagnosticsImmeuble = (<SectionLot ouvertParDefaut
             id="diagnostics-immeuble"
             titre={`Diagnostics ${duBien}`}
-            alerte={alerteDiagnostics(manquantsBien.map((m) => m.type), diagnosticsBien ?? [])}
+            alerte={erreurDiagnosticsBien ? "Lecture à réessayer" : bilanBien.aAjouter ? `${bilanBien.aAjouter} à ajouter` : undefined}
             resume={
               nbDiagBien === 0
                 ? "Aucun diagnostic déposé"
@@ -410,18 +419,16 @@ export default async function PageLot(
           >
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                ERP, termites, amiante des parties communes… Ils valent pour
-                tout le bien « {bien.nom} » : un dépôt fait ici sert à chacun de
-                ses lots, et se retrouve sur la fiche du bien.
+                Un seul dépôt pour tous les lots de « {bien.nom} ».
               </p>
-              <LignesDiagnostics
+              {erreurDiagnosticsBien ? <p role="alert">Documents indisponibles. Réessayez pour connaître leur état.</p> : <LignesDiagnostics
                 orgId={orgId}
                 bienId={bienId}
                 lotId={lotId}
                 niveau="bien"
                 attendus={exigiblesBien.map((e) => e.type)}
                 diagnostics={(diagnosticsBien ?? []) as DiagnosticDepose[]}
-              />
+              />}
             </div>
           </SectionLot>);
   const rubriqueEquipements = (<SectionLot ouvertParDefaut={parcours === "1"}
@@ -571,6 +578,26 @@ export default async function PageLot(
   const libelleBailPrincipal = bailEnCours ? "Ouvrir le bail" : bailAReprendre ? "Reprendre le bail" : "Préparer un bail";
   const valeurLogement = (valeur: string | number | null | undefined) => valeur == null || String(valeur).trim() === "" ? "Non renseigné" : valeur;
 
+  const logement = <>    <div className={styles.apercuGrille}>
+      <section className={styles.panneau} aria-label="Le logement">
+        <div id="caracteristiques" className="scroll-mt-24"><RecapLot key={modifier ?? "lecture"} orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} copropriete={bien.copropriete} typeBien={bien.type} modifierInitial={modifier === "1"} /></div>
+        <div className="mt-4">{rubriquePieces}{rubriqueEquipements}</div>
+      </section>
+      <div className={styles.colonneApercu}>
+        <section className={styles.panneau} aria-labelledby="titre-batiment-lot">
+          <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><Building2 size={18} aria-hidden="true" /></span><h2 id="titre-batiment-lot">Le bâtiment</h2></header>
+          <dl className={styles.infosApercu}>
+            <div><dt>Construction</dt><dd>{valeurLogement(bien.annee_construction)}</dd></div>
+            <div><dt>Copropriété</dt><dd>{bien.copropriete ? "Oui" : "Non"}</dd></div>
+            <div><dt>Parties communes</dt><dd>{valeurLogement(bien.parties_communes)}</dd></div>
+            <div><dt>Internet, téléphone, TV</dt><dd>{valeurLogement(bien.acces_tic)}</dd></div>
+          </dl>
+          <div className="mt-4"><SectionLot id="batiment" titre="Modifier l’adresse et le bâtiment" resume={[bien.address_line1, bien.city].filter(Boolean).join(" · ")}><FormulaireBien orgId={orgId} bien={bien} /></SectionLot></div>
+        </section>
+        <section className={styles.panneau}>{rubriqueDetention}</section>
+      </div>
+    </div>
+</>;
   const vueEnsemble = <div className={styles.apercu}>
     <section className={styles.locationResume} id="location-apercu" aria-labelledby="titre-location-lot">
       <span className={styles.iconeLocation}><FileText size={22} aria-hidden="true" /></span>
@@ -583,45 +610,33 @@ export default async function PageLot(
           bailPrincipal.date_debut ? `Entrée ${bailAReprendre && !bailEnCours ? "prévue " : ""}le ${formaterDate(bailPrincipal.date_debut)}` : "Date d’entrée à préciser",
           bauxBrouillons.length > 1 && !bailEnCours ? `Dernier des ${bauxBrouillons.length} brouillons` : null,
         ].filter(Boolean).join(" · ") : lot.etat === "archive" ? "Retrouvez les informations et l’historique de ce logement." : "Les informations du logement seront reprises dans le bail."}</p>
+        {loyerCc !== null && !erreurBaux && <p><strong>{eur(loyerCc)} / mois</strong> · charges comprises</p>}
       </div>
       {!erreurBaux && <div className={styles.locationActions}>
         <Link href={lot.etat === "archive" ? "#baux" : hrefBailPrincipal} className="btn-or">{lot.etat === "archive" ? "Consulter les baux" : libelleBailPrincipal}<ArrowRight size={15} aria-hidden="true" /></Link>
         {nbBaux > 1 && <a href="#baux">Voir les {nbBaux} baux</a>}
       </div>}
     </section>
-
-    <div className={styles.apercuGrille}>
-      <section className={styles.panneau} aria-label="Le logement">
-        <div id="caracteristiques" className="scroll-mt-24"><RecapLot key={modifier ?? "lecture"} orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} copropriete={bien.copropriete} typeBien={bien.type} modifierInitial={modifier === "1"} /></div>
-        <div className="mt-4">{rubriquePieces}{rubriqueEquipements}</div>
-      </section>
-      <div className={styles.colonneApercu}>
-        <section className={styles.panneau} aria-labelledby="titre-proprietaires-lot">
+    <div className={styles.apercuGrille}>        <section className={styles.panneau} aria-labelledby="titre-proprietaires-lot">
           <header className={styles.panneauEntete} data-ton="or"><span className={styles.panneauIcone}><Users size={18} aria-hidden="true" /></span><h2 id="titre-proprietaires-lot">Propriétaires</h2></header>
           {erreurDetentions ? <p className={styles.texteVide}>Lecture à réessayer.</p> : detentionsActives.length ? <ul className={styles.proprietaires}>{detentionsActives.map(d => {
             const personne = d.person as unknown as { nom: string; prenom: string | null } | null;
             const nom = nomPersonne(personne);
             return <li key={d.id}><span className={styles.avatar} aria-hidden="true">{personne ? [personne.prenom?.[0], personne.nom[0]].filter(Boolean).join("").toUpperCase() : "—"}</span><div><strong>{nom}</strong><small>Propriétaire du lot</small></div><span className={styles.quotePart}>{Number(d.quote_part)} %</span></li>;
           })}</ul> : <p className={styles.texteVide}>Aucun propriétaire rattaché.</p>}
-          <div className="mt-4">{rubriqueDetention}</div>
+          <a href="#detention" className="inline-flex min-h-11 items-center text-sm underline">Gérer les propriétaires</a>
         </section>
-        <section className={styles.panneau} aria-labelledby="titre-batiment-lot">
-          <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><Building2 size={18} aria-hidden="true" /></span><h2 id="titre-batiment-lot">Le bâtiment</h2></header>
-          <dl className={styles.infosApercu}>
-            <div><dt>Construction</dt><dd>{valeurLogement(bien.annee_construction)}</dd></div>
-            <div><dt>Copropriété</dt><dd>{bien.copropriete ? "Oui" : "Non"}</dd></div>
-            <div><dt>Parties communes</dt><dd>{valeurLogement(bien.parties_communes)}</dd></div>
-            <div><dt>Internet, téléphone, TV</dt><dd>{valeurLogement(bien.acces_tic)}</dd></div>
-          </dl>
-          <div className="mt-4"><SectionLot id="batiment" titre="Modifier l’adresse et le bâtiment" resume={[bien.address_line1, bien.city].filter(Boolean).join(" · ")}><FormulaireBien orgId={orgId} bien={bien} /></SectionLot></div>
-        </section>
-      </div>
-    </div>
-    <nav className={styles.actionsRapides} aria-label="Actions rapides du lot">
-      <a href="#diagnostics"><FileText size={19} aria-hidden="true" /><span><strong>Diagnostics</strong><small>Consulter les documents et leurs dates</small></span><ArrowUpRight size={15} aria-hidden="true" /></a>
-      <a href="#baux"><KeyRound size={19} aria-hidden="true" /><span><strong>Baux et états des lieux</strong><small>Retrouver les contrats du logement</small></span><ArrowUpRight size={15} aria-hidden="true" /></a>
-      <Link href={`${base}/reseau?bien=${bienId}`}><Wrench size={19} aria-hidden="true" /><span><strong>Artisans</strong><small>Consulter le réseau pour ce bien</small></span><ArrowUpRight size={15} aria-hidden="true" /></Link>
-    </nav>
+    <section className={styles.panneau} aria-labelledby="etat-documents">
+      <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><FileText size={18} aria-hidden="true" /></span><h2 id="etat-documents">Vos documents</h2></header>
+      {erreurDiagnostics || erreurDiagnosticsBien ? <p>Documents indisponibles. Réessayez pour connaître leur état.</p> : <dl className={styles.etatDocuments}>
+        <div data-ton="vert"><dt>À jour</dt><dd>{bilan.aJour}</dd></div>
+        <div data-ton="ambre"><dt>À ajouter</dt><dd>{bilan.aAjouter}</dd></div>
+        <div data-ton="ambre"><dt>À renouveler</dt><dd>{bilan.aRenouveler}</dd></div>
+        <div><dt>À vérifier</dt><dd>{bilan.aVerifier}</dd></div>
+      </dl>}
+      <a href="#documents-lot" className="inline-flex min-h-11 items-center gap-2 text-sm underline">Voir chaque document <ArrowRight size={14} aria-hidden="true" /></a>
+    </section></div>
+    <Link href={`${base}/reseau?bien=${bienId}`} className="inline-flex min-h-11 items-center gap-2 text-sm"><Wrench size={18} aria-hidden="true" />Trouver un artisan <ArrowUpRight size={14} aria-hidden="true" /></Link>
   </div>;
 
   const retourContrat = retourBailDuLot(orgId, retourBail, retourEtape, baux ?? [], racineEspace(estProprietaire));
@@ -683,21 +698,13 @@ export default async function PageLot(
           <div><dt><Sofa size={14} aria-hidden="true" />Mobilier</dt><dd>{lot.meuble ? "Meublé" : "Non meublé"}</dd></div>
         </dl>
       </header>
-      <div className={styles.indicateurs}>
-        <div><span className={styles.indicateurIcone}><Wallet size={20} aria-hidden="true" /></span><div><span>Loyer actif · charges comprises</span><strong>{erreurBaux ? "Lecture à réessayer" : loyerCc === null ? "Aucun bail actif" : `${eur(loyerCc)} / mois`}</strong><small>{bauxEnCours.length > 1 ? "Premier contrat · détail dans les baux" : loyerCc === null ? "Le loyer sera repris du bail activé" : "Montant mensuel du contrat en cours"}</small></div></div>
-        <div data-ton="or"><span className={styles.indicateurIcone}><Users size={20} aria-hidden="true" /></span><div><span>{bauxEnCours.length > 1 ? "Locations en cours" : "Locataire en place"}</span><strong>{erreurPersonnes || erreurBaux ? "Lecture à réessayer" : bauxEnCours.length > 1 ? `${bauxEnCours.length} contrats en cours` : recapLocataire ?? (bailEnCours ? "Locataire non renseigné" : "Aucun bail actif")}</strong><a href="#baux">Consulter les baux <ArrowRight size={12} aria-hidden="true" /></a></div></div>
-        <div data-ton="vert"><span className={styles.indicateurIcone}><FileText size={20} aria-hidden="true" /></span><div><span>Diagnostics déposés</span><strong>{erreurDiagnostics || erreurDiagnosticsBien ? "Lecture à réessayer" : `${nbDiag + nbDiagBien} document${nbDiag + nbDiagBien > 1 ? "s" : ""}`}</strong><a href="#diagnostics">Consulter et compléter <ArrowRight size={12} aria-hidden="true" /></a></div></div>
-      </div>
       <div className={styles.contenu}>
       <EchecLecture quoi={echecs} />
       {attention.length > 0 && <details className={styles.alertes}><summary>{attention.length} point{attention.length > 1 ? "s" : ""} à compléter dans votre dossier <ChevronDown size={16} aria-hidden="true" /></summary><AttentionFiche points={attention} /></details>}
 
-      {vueEnsemble}
-      <section className={styles.panneau} aria-label="Contrats de location">{rubriqueBaux}</section>
-      <section className={styles.panneau} aria-labelledby="titre-documents-lot">
-        <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><FileText size={18} aria-hidden="true" /></span><h2 id="titre-documents-lot">Documents du logement</h2><Link href={`${base}/documents`}>Tous les documents <ArrowUpRight size={14} aria-hidden="true" /></Link></header>
-        <div className={styles.diagnosticsGrille}>{rubriqueDiagnostics}{rubriqueDiagnosticsImmeuble}</div>
-      </section>
+      <OngletsDossier initiale={modifier === "1" ? "logement-lot" : "resume-lot"} rubriques={[
+        { id: "resume-lot", titre: "Résumé", contenu: vueEnsemble },
+        { id: "logement-lot", titre: "Logement", contenu: <>{logement}
       {(bien.copropriete || (colocationPertinente && !(bailEnCours && nbChambres === 0))) && <section className={styles.panneau} aria-label="Copropriété et colocation">
           {colocationPertinente && !(bailEnCours && nbChambres === 0) && (
             <SectionLot
@@ -746,7 +753,15 @@ export default async function PageLot(
     <details className={styles.gestionStatut}><summary>Gérer le statut du lot <ChevronDown size={16} aria-hidden="true" /></summary><div>
       {lot.etat === "brouillon" && !erreurBlocages && <BlocagesLocation motifs={(blocages ?? []) as string[]} ctx={{orgId,bienId,lotId,racine:racineEspace(estProprietaire)}} pageCourante={`${base}/parc/${bienId}/lots/${lotId}`} titre="Ce qui empêche la mise en location" />}
       <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} estBailleurDirect={role === "proprietaire_direct"} bailHref={bailEnCours ? `${base}/baux/${bailEnCours.id}` : undefined} />
-    </div></details>
+    </div></details></> },
+        { id: "documents-lot", titre: "Documents", contenu: <>
+      <section className={styles.panneau} aria-labelledby="titre-documents-lot">
+        <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><FileText size={18} aria-hidden="true" /></span><h2 id="titre-documents-lot">Documents du logement</h2><Link href={`${base}/documents`}>Tous les documents <ArrowUpRight size={14} aria-hidden="true" /></Link></header>
+        <div className={styles.diagnosticsGrille}>{rubriqueDiagnostics}{rubriqueDiagnosticsImmeuble}</div>
+      </section>
+</> },
+        { id: "contrats-lot", titre: "Contrats", contenu: <section className={styles.panneau} aria-label="Contrats de location">{rubriqueBaux}</section> },
+      ]} />
 
 
       </div>

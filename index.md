@@ -295,3 +295,5 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - **24 octobre 2026 — bureau de direction simplifié, en validation** : demandes regroupées en trois catégories, problèmes en premier, recherche et six demandes par page ; toutes les décisions restent explicites. Preuves dans `log.md`.
 
 - 24/10/2026 : périmètre logement/bâtiment et plafonds de propositions (5 veilles, 2 articles), anciens hors-sujets en réserve ; [[Guide de ton du journal]]. Suite de la PR #252, publication après CI.
+
+- **24 octobre 2026 — présentation mobile des espaces, en validation** : [[Présentation mobile des espaces — 24 octobre 2026]] — rubriques courtes, documents explicites et conservation des saisies.

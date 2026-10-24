@@ -1,3 +1,4 @@
+import { bilanDiagnostics } from "@/lib/presentation-diagnostics";
 import Link from "next/link";
 import { IconeTrait } from "@/components/icone-trait";
 import { notFound } from "next/navigation";
@@ -8,10 +9,9 @@ import {
   ETATS_LOT,
   COULEURS_ETAT_LOT,
   MODES_CLE,
-  alerteDiagnostics,
   formaterSurface,
 } from "@/lib/parc";
-import { diagnosticsExigibles, diagnosticsManquants } from "@/lib/diagnostics";
+import { diagnosticsExigibles } from "@/lib/diagnostics";
 import { aujourdhuiParis, formaterDate } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
 import {
@@ -168,16 +168,14 @@ export default async function PageBien(
   // Diagnostics exigibles au niveau bien uniquement — calcul centralisé
   // (lib/diagnostics, audit 09/09) ; ceux du lot sont sur sa fiche.
   const exigiblesBien = diagnosticsExigibles(bien, "bien");
-  const manquants = diagnosticsManquants(bien, diagnostics ?? [], "bien");
+  const bilan = bilanDiagnostics(exigiblesBien.map(e => e.type), diagnostics ?? []);
+  const manquants = exigiblesBien.filter(e => bilan.lignes.some(l => l.type === e.type && ["a_ajouter", "a_joindre"].includes(l.etat)));
   // « L'immeuble » ne se dit que d'un immeuble (24/09) : sur un appartement
   // (copropriété : non), « diagnostic de l'immeuble à déposer » désignait
   // pour le lecteur autre chose que son bien.
   const estImmeuble = bien.type === "immeuble";
   const niveauBien = estImmeuble ? "à l’immeuble" : "au bien";
-  const alerteDiagnosticsBien = alerteDiagnostics(
-    manquants.map((m) => m.type),
-    diagnostics ?? []
-  );
+  const alerteDiagnosticsBien = bilan.aAjouter ? `${bilan.aAjouter} à ajouter` : bilan.aRenouveler ? `${bilan.aRenouveler} à renouveler` : undefined;
   const infosRenseignees = !!infos && Object.values(infos).some((v) => v);
 
   // Ce que la base n'a pas rendu — un manque affiché n'est alors pas un manque.
@@ -231,7 +229,7 @@ export default async function PageBien(
       ancre: "retrait",
     });
   }
-  if (manquants.length > 0) {
+  if (!erreurDiagnostics && manquants.length > 0) {
     attention.push({
       cle: "diagnostics",
       texte: `Diagnostic${manquants.length > 1 ? "s" : ""} ${estImmeuble ? "de l’immeuble" : "du bien"} à déposer : ${manquants
@@ -429,7 +427,7 @@ export default async function PageBien(
           <SectionLot
             id="diagnostics"
             titre="Diagnostics du bien"
-            alerte={alerteDiagnosticsBien ? `${alerteDiagnosticsBien} (${niveauBien})` : undefined}
+            alerte={!erreurDiagnostics && alerteDiagnosticsBien ? `${alerteDiagnosticsBien} (${niveauBien})` : undefined}
             // Plus de « · manque … » : le bandeau du haut le dit déjà, avec
             // « Régler » ; la rangée garde sa pastille (24/09).
             resume={
@@ -443,14 +441,14 @@ export default async function PageBien(
                 ERP, amiante des parties communes, termites… Les diagnostics du
                 lot (DPE…) se déposent sur sa fiche.
               </p>
-              <LignesDiagnostics
+              {erreurDiagnostics ? <p role="alert">Documents indisponibles. Réessayez pour connaître leur état.</p> : <LignesDiagnostics
                 orgId={orgId}
                 bienId={bienId}
                 lotId={null}
                 niveau="bien"
                 attendus={exigiblesBien.map((e) => e.type)}
                 diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
-              />
+              />}
             </div>
           </SectionLot>
 

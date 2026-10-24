@@ -79,7 +79,7 @@ test('un fichier choisi sans focus est suivi et une saisie abandonnée demande c
 test('artisan : seule la confirmation réelle permet de quitter sans avertissement',async({browser})=>{
  test.skip(!/^http:\/\/(localhost|127\.0\.0\.1):/.test(process.env.NEXT_PUBLIC_SUPABASE_URL??''),'API fictive locale requise');
  const context=await browser.newContext({storageState:'e2e/.auth/artisan.json'});const page=await context.newPage();let original:string|undefined;
- const editer=async()=>{await page.goto('/artisan/entreprise');await page.getByRole('button',{name:'Modifier',exact:true}).click();await expect(page.locator('[name="codes_postaux"]')).toBeVisible();};
+ const editer=async()=>{await page.goto('/artisan/entreprise#entreprise-reseau');await page.getByRole('button',{name:'Modifier',exact:true}).click();await expect(page.locator('[name="codes_postaux"]')).toBeVisible();};
  try{await editer();const champ=page.locator('[name="codes_postaux"]');original=await champ.inputValue();await champ.fill(original.includes('75001')?'69001':'75001');
  const form=page.locator('form').filter({has:champ});await form.getByRole('button',{name:'Enregistrer',exact:true}).click();await expect(form.getByRole('status')).toBeVisible();
  await dialogueAbsent(page,()=>page.goto('/artisan/facturation',{timeout:1500}));await expect(page).toHaveURL('/artisan/facturation');
@@ -91,7 +91,7 @@ test('artisan : seule la confirmation réelle permet de quitter sans avertisseme
 
 test('artisan : réponse réseau perdue garde le formulaire et son texte',async({browser})=>{
  const context=await browser.newContext({storageState:'e2e/.auth/artisan.json'});const page=await context.newPage();
- try{await page.goto('/artisan/entreprise');await page.getByRole('button',{name:'Modifier',exact:true}).click();const champ=page.locator('[name="codes_postaux"]');await champ.fill('75001');
+ try{await page.goto('/artisan/entreprise#entreprise-reseau');await page.getByRole('button',{name:'Modifier',exact:true}).click();const champ=page.locator('[name="codes_postaux"]');await champ.fill('75001');
  await page.route('**/artisan/entreprise',route=>route.request().method()==='POST'?route.abort('failed'):route.continue());
  const f=page.locator('form').filter({has:champ});await f.getByRole('button',{name:'Enregistrer',exact:true}).click();await expect(f.getByRole('alert')).toContainText('confirmation n’a pas pu être reçue');await expect(champ).toHaveValue('75001');
  }finally{await context.close();}

@@ -111,9 +111,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
       <EnteteReglages titre={titre} mention={mention}>
-        Ces informations signent vos documents générés (bail, quittances, états
-        des lieux…) : en-tête, pied de page et «&nbsp;Fait à&nbsp;». Un champ
-        obligatoire vide empêche la génération de ces documents.
+        Vos coordonnées pour les baux, quittances et états des lieux.
       </EnteteReglages>
 
       {/* 24/09 : l'ordre « à compléter » ne s'adresse qu'à qui peut compléter.
@@ -122,7 +120,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
         (responsable ? (
           <div className="border-l-[3px] border-l-warning bg-warning-soft p-3">
             <p className="text-sm text-warning-soft-foreground">
-              À compléter pour des documents complets : {manquants.join("\u00a0· ")}.
+              Avant de générer vos documents : renseignez {manquants.join("\u00a0· ")}.
             </p>
           </div>
         ) : (

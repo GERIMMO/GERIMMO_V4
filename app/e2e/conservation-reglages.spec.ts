@@ -7,7 +7,14 @@ test("le dirigeant modifie une durée, retrouve sa trace et la rétablit", async
   await sansSyntheseAlertes(page);
   await page.goto("/admin/conservation");
   await expect(page.getByRole("heading", { name: "Durées de conservation", exact: true })).toBeVisible();
+  const categories = page.getByRole("list", { name: "Catégories de conservation" });
+  await expect(categories.locator("li")).toHaveCount(6);
+  const premiere = await categories.locator("li").first().innerText();
+  await page.getByRole("button", { name: "Suivante", exact: true }).click();
+  await expect(page.getByText("Page 2 sur", { exact: false })).toBeVisible();
+  await expect(categories.locator("li").first()).not.toHaveText(premiere);
   await page.getByRole("searchbox").fill("technique");
+  await expect(categories.locator("li")).toHaveCount(1);
   const ligne = page.locator("li").filter({ has: page.getByRole("button", { name: /^Modifier/ }) }).first();
   await ligne.getByRole("button").click();
   const formulaire = page.getByRole("form", { name: /^Modifier/ });

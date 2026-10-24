@@ -147,3 +147,16 @@
 .fiche .panneau { scroll-margin-top:100px; }
 .fiche :global(.rang-section) { min-height:48px; }
 @media(max-width:1100px) { .diagnosticsGrille { grid-template-columns:minmax(0,1fr); gap:12px; } }
+
+.etatDocuments { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.etatDocuments > div { padding:12px; border-radius:8px; background:#f1f4f8; }
+.etatDocuments > div[data-ton="vert"] { background:#edf5ef; }
+.etatDocuments > div[data-ton="ambre"] { background:#fcf4e8; }
+.etatDocuments dt { font-size:12px; color:var(--texte-secondaire); }
+.etatDocuments dd { font-size:23px; font-weight:600; margin-top:4px; }
+@media(max-width:639px) {
+ .fiche .entete h1 { font-family:var(--font-interface),sans-serif; font-size:22px; font-weight:600; }
+ .fiche .surtitre { text-transform:none; letter-spacing:0; font-size:12px; }
+ .fiche .entete { gap:12px; }
+ .identiteFaits { padding:10px 0; gap:8px; }
+}

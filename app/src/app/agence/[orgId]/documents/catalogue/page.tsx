@@ -23,7 +23,7 @@ export default async function PageCatalogue({params,searchParams}:{params:Promis
   const normaliser=(s:string)=>s.toLocaleLowerCase("fr").normalize("NFD").replace(/[\u0300-\u036f]/g,"");
   const situations=[...new Set(disponibles.map(m=>m.famille))];
   const situation=situations.find(f=>f===valeur("situation")) ?? "";
-  const montrerModeles=!estProprietaire || Boolean(recherche || situation);
+  const montrerModeles=Boolean(recherche || situation);
   const filtres=disponibles.filter(m=>!situation||m.famille===situation).filter(m=>!recherche||normaliser(`${m.nom} ${m.description}`).includes(normaliser(recherche)));
   const familles=[...new Set(disponibles.map(m=>m.famille))].filter(f=>filtres.some(m=>m.famille===f));
   // « Entrée et contrat » → « entree-et-contrat » : l'ancre de sa section
@@ -48,7 +48,7 @@ export default async function PageCatalogue({params,searchParams}:{params:Promis
     {/* Sous-page : le retour « ← Parent » AU-DESSUS de l'en-tête, comme la fiche
         du bien (25/09 — il était dans le bandeau, un troisième style de retour). */}
     <div><Link href={`${baseOrg}/documents`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline">← Documents</Link>
-    <header className="entete-page"><div><TitreEcran rubrique="documents">Préparer un document</TitreEcran><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Choisissez le document utile à votre situation. Gerimmo reprend les informations du dossier et conserve le PDF dans votre espace Documents.</p></div></header></div>
+    <header className="entete-page"><div><TitreEcran rubrique="documents">Préparer un document</TitreEcran><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Choisissez une situation ou recherchez un document.</p></div></header></div>
     {choisi?<><Link href={`${base}?${new URLSearchParams({... (situation?{situation}:{}),...(bail?{bail}:{})})}`} className="text-sm text-primary hover:underline">← Choisir un autre document</Link><section className="rounded-2xl border bg-card p-5 sm:p-7"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{choisi.famille}</p><h2 className="mt-2 text-2xl font-semibold">{choisi.nom}</h2><p className="mb-6 mt-2 text-sm text-muted-foreground">{choisi.description}</p>
       {!Object.hasOwn(MODELES,choisi.code)?<p role="status" className="rounded-lg border p-4 text-sm">Ce modèle est en préparation : Gerimmo ne présentera pas un document provisoire à la place de la pièce attendue.</p>:
       erreur?<p role="alert" className="text-destructive">{erreur}</p>:cibles.choix.length?<FormulaireCatalogue key={`${choisi.id}-${page}-${bail}`} orgId={orgId} modeleId={choisi.id} choix={cibles.choix} garants={garants} racine={racineEspace(estProprietaire)}/>:<p className="rounded-lg bg-muted p-4 text-sm">Aucun dossier compatible sur cette page. Vérifiez les informations et l’avancement du dossier concerné.{bail&&<> <Link href={lien(choisi.id).replace(`&bail=${bail}`,"")} className="underline">Afficher tous les dossiers</Link></>}</p>}
@@ -62,15 +62,15 @@ export default async function PageCatalogue({params,searchParams}:{params:Promis
           Champ et bouton à la même hauteur (h-10). */}
       <div className="space-y-4 rounded-xl border bg-card p-4">
         <form data-saisie-libre className="flex flex-wrap items-end gap-3">{bail&&<input type="hidden" name="bail" value={bail}/>}<label className="min-w-56 flex-1 text-sm font-medium">Filtrer les modèles<input name="q" defaultValue={recherche} placeholder="Bail, charges, intervention…" className="mt-2 h-10 w-full rounded-lg border bg-background px-3"/></label><button type="submit" className={buttonVariants({variant:"secondary",className:"h-10"})}>Filtrer</button>{recherche&&<Link href={base} className="text-sm underline">Effacer le filtre</Link>}</form>
-        {!estProprietaire&&familles.length>1&&<nav aria-label="Aller à une situation"><p className="mb-2 text-sm font-medium">Aller à une situation</p><div className="flex flex-wrap gap-2">{familles.map(f=><a key={f} href={`#${ancre(f)}`} className="filtre">{f}</a>)}</div></nav>}
+        {montrerModeles&&familles.length>1&&<nav aria-label="Aller à une situation"><p className="mb-2 text-sm font-medium">Aller à une situation</p><div className="flex flex-wrap gap-2">{familles.map(f=><a key={f} href={`#${ancre(f)}`} className="filtre">{f}</a>)}</div></nav>}
       </div>
-      {estProprietaire && !montrerModeles && <section>
+      {!montrerModeles && <section>
         <h2 className="mb-2 text-xl">De quoi avez-vous besoin ?</h2><p className="mb-5 text-sm text-muted-foreground">Choisissez une situation, puis le document et le dossier concerné.</p>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{situations.map((f,i)=><Link key={f} href={`${base}?${new URLSearchParams({situation:f,...(bail?{bail}:{})})}`} className="carte-rubrique rounded-2xl border bg-card p-5 hover:border-primary" data-ton={["bleu","or","vert"][i%3]}>
           <span className="eyebrow">{String(i+1).padStart(2,"0")}</span><h3 className="my-2 text-lg">{f}</h3><p className="text-sm text-muted-foreground">{disponibles.filter(m=>m.famille===f).length} documents</p><span className="mt-3 inline-block text-sm font-semibold">Choisir →</span>
         </Link>)}</div>
       </section>}
-      {estProprietaire && montrerModeles && <Link href={`${base}${bail?`?bail=${encodeURIComponent(bail)}`:""}`} className="text-sm underline">← Changer de situation</Link>}
+      {montrerModeles && <Link href={`${base}${bail?`?bail=${encodeURIComponent(bail)}`:""}`} className="text-sm underline">← Changer de situation</Link>}
       {montrerModeles && <>
       <p className="text-sm text-muted-foreground">{filtres.length} modèle{filtres.length>1?"s":""}{enPreparation>0?`, dont ${enPreparation} en préparation`:""}</p>
       {familles.map(f=><section key={f} id={ancre(f)} className="scroll-mt-[calc(var(--hauteur-haut)+1rem)]"><h2 className="mb-3 text-lg font-semibold">{f}</h2><div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">{filtres.filter(m=>m.famille===f).map(m=><Link key={m.id} href={lien(m.id)} className="group flex flex-col rounded-xl border bg-card p-5 transition-colors hover:border-primary hover:bg-accent/30 focus-visible:outline-2 focus-visible:outline-primary"><h3 className="font-semibold text-primary">{m.nom}</h3><p className="mb-4 mt-2 flex-1 text-sm text-muted-foreground">{m.description}</p><span className="text-xs font-medium">{Object.hasOwn(MODELES,m.code)?"Choisir un dossier →":"En préparation"}</span></Link>)}</div></section>)}

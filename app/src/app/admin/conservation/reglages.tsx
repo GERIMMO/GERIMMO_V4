@@ -44,6 +44,7 @@ function EditionDuree({ regle, fermer }: { regle: RegleConservation; fermer: () 
 
 export function ReglagesConservation({ regles }: { regles: RegleConservation[] }) {
   const [recherche, setRecherche] = useState("");
+  const [page, setPage] = useState(1);
   const [selection, setSelection] = useState<string | null>(null);
   const choisir = (categorie: string | null) => {
     if (saisiesModifiees().length && !window.confirm(MESSAGE_QUITTER)) return;
@@ -51,15 +52,24 @@ export function ReglagesConservation({ regles }: { regles: RegleConservation[] }
   };
   const filtre = recherche.toLocaleLowerCase("fr").normalize("NFD").replace(/\p{Diacritic}/gu, "");
   const visibles = regles.filter(r => `${r.libelle} ${r.declencheur}`.toLocaleLowerCase("fr").normalize("NFD").replace(/\p{Diacritic}/gu, "").includes(filtre));
+  const totalPages = Math.max(1, Math.ceil(visibles.length / 6));
+  const pageCourante = Math.min(page, totalPages);
+  const debut = (pageCourante - 1) * 6;
   const regle = regles.find(r => r.data_type === selection);
   return <div className="space-y-4">
     {regle && <EditionDuree key={regle.data_type} regle={regle} fermer={() => choisir(null)} />}
-    <label className="block space-y-1"><span>Rechercher une catégorie</span><input type="search" className="w-full rounded-md border p-3" value={recherche} onChange={e => setRecherche(e.target.value)} placeholder="Factures, bail, compte…"/></label>
-    <p className="text-sm text-muted-foreground">{visibles.length} catégorie(s) · Modifier une durée n’active pas une règle désactivée.</p>
-    <ul className="divide-y rounded-xl border bg-white">{visibles.map(r => <li key={r.data_type} className="flex flex-wrap items-center justify-between gap-3 p-4">
+    <label className="block space-y-1"><span>Rechercher une catégorie</span><input type="search" className="w-full rounded-md border p-3" value={recherche} onChange={e => { setRecherche(e.target.value); setPage(1); }} placeholder="Factures, bail, compte…"/></label>
+    <p className="text-sm text-muted-foreground" role="status">{visibles.length ? `${debut + 1}–${Math.min(debut + 6, visibles.length)} sur ${visibles.length} catégories` : "Aucune catégorie trouvée"}</p>
+    <ul aria-label="Catégories de conservation" className="divide-y rounded-xl border bg-white">{visibles.slice(debut, debut + 6).map(r => <li key={r.data_type} className="flex flex-wrap items-center justify-between gap-3 p-4">
       <div className="min-w-0 flex-1 basis-52"><h2 className="text-base font-medium">{r.libelle}</h2><p className="text-sm text-muted-foreground">{r.declencheur}</p><p className="mt-1 text-xs">{r.actif ? "Nettoyage actif" : "Nettoyage désactivé"}</p></div>
       <strong className="text-blue-800">{dureeConservation(r.duree_mois)}</strong><button className="btn-secondaire" onClick={() => choisir(r.data_type)} disabled={!!selection && selection !== r.data_type} aria-label={`Modifier ${r.libelle}`}>Modifier</button>
     </li>)}</ul>
+    {totalPages > 1 && <nav aria-label="Pages des catégories" className="flex flex-wrap items-center justify-between gap-3">
+      <button type="button" className="btn-secondaire" disabled={pageCourante === 1} onClick={() => setPage(pageCourante - 1)}>Précédente</button>
+      <span className="text-sm">Page {pageCourante} sur {totalPages}</span>
+      <button type="button" className="btn-secondaire" disabled={pageCourante === totalPages} onClick={() => setPage(pageCourante + 1)}>Suivante</button>
+    </nav>}
+    <p className="text-xs text-muted-foreground">Modifier une durée n’active pas une règle désactivée.</p>
     {!visibles.length && <p>Aucune catégorie ne correspond à la recherche.</p>}
   </div>;
 }

@@ -18,10 +18,14 @@ for (const largeur of [390, 1440]) {
     await page.goto(`/espace/${ORG}/parc`);
     await page.getByRole('button', { name: /Appartement T2/ }).first().click();
     await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).click();
-    await expect(page.getByRole('navigation', { name: 'Rubriques du logement' })).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: 'Caractéristiques du logement' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Résumé', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('heading', { name: 'Caractéristiques du logement' })).toBeHidden();
+    await page.getByRole('tab', { name: 'Contrats', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Contrats de location', exact: true })).toBeVisible();
+    await page.getByRole('tab', { name: 'Documents', exact: true }).click();
     await expect(page.getByRole('region', { name: 'Documents du logement', exact: true })).toBeVisible();
+    await page.getByRole('tab', { name: 'Logement', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Caractéristiques du logement' })).toBeVisible();
     const rubrique = page.locator('#pieces');
     const ouvrir = rubrique.getByRole('button', { name: /Pièces \(état des lieux\)/ });
     await ouvrir.click();
@@ -33,7 +37,7 @@ for (const largeur of [390, 1440]) {
     await expect(ouvrir).toHaveAttribute('aria-expanded', 'true');
     expect(await debordementHorizontal(page)).toBe(0);
     await page.goto(page.url().split('#')[0]);
-    await expect(page.getByRole('heading', { name: 'Caractéristiques du logement' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Résumé', exact: true })).toHaveAttribute('aria-selected', 'true');
     await page.screenshot({ path: `e2e/.results/dossier-${largeur}.png`, fullPage: true });
   });
 }

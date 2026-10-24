@@ -204,7 +204,7 @@ export default async function PageEdl(
               {signe ? "Signé — figé" : "En cours de saisie"}
             </span>
             {/* Documents-0 : le PDF (14/15) depuis la grille réelle */}
-            {(!estProprietaire || signe) && <BoutonGenererDocument
+            {signe && <BoutonGenererDocument
               orgId={orgId}
               code="edl"
               cibleId={edlId}
@@ -225,7 +225,7 @@ export default async function PageEdl(
 
       <EchecLecture quoi={echecs} />
 
-      <EtapesSaisie activer={estProprietaire && !signe} titre="État des lieux" etapes={[
+      <EtapesSaisie activer={!signe} titre="État des lieux" etapes={[
         {titre:"Informations", detail:"Identifiez les personnes présentes et les mentions du document."},
         {titre:"Les pièces", detail:"Examinez une pièce à la fois. Enregistrez la grille avant de poursuivre."},
         {titre:"Compteurs et clés", detail:"Renseignez les relevés et les clés remises, puis enregistrez."},
@@ -319,7 +319,7 @@ export default async function PageEdl(
             </div>
           )}
           <GrilleEdl
-            zoneSignatureId={estProprietaire && !signe ? "edl-validation" : undefined}
+            zoneSignatureId={!signe ? "edl-validation" : undefined}
             orgId={orgId}
             bailId={bailId}
             edlId={edlId}
@@ -373,7 +373,7 @@ export default async function PageEdl(
           />
         </CardContent>
       </Card>,
-      ...(estProprietaire && !signe ? [<div key="validation" className="space-y-4">
+      ...(!signe ? [<div key="validation" className="space-y-4">
         <div id="edl-validation" />
         <p className="text-sm text-muted-foreground">Les mentions, les relevés et les clés enregistrés seront repris dans le document. Vérifiez-les avant de le faire signer aux parties.</p>
         <BoutonGenererDocument orgId={orgId} code="edl" cibleId={edlId} cheminRetour={`${base}/baux/${bailId}/edl/${edlId}`} libelle="Générer le PDF" />

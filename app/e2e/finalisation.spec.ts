@@ -70,7 +70,7 @@ test.describe('Études, validation et visibilité par profil',()=>{
    await page.getByLabel('Publier automatiquement').check();await page.getByRole('button',{name:'Enregistrer les réglages'}).click();await expect(page.getByRole('status')).toContainText('mis à jour');
   }
   const artisan=await browser.newContext({storageState:'e2e/.auth/artisan.json'});const ecran=await artisan.newPage();await sansSyntheseAlertes(ecran);
-  try{await ecran.goto('/artisan/entreprise');await ecran.getByRole('link',{name:'Les règles à connaître pour mon activité'}).click();await expect(ecran).toHaveURL(/\/artisan\/regles/);}finally{await artisan.close();}
+  try{await ecran.goto('/artisan/entreprise#entreprise-reseau');await ecran.getByRole('link',{name:'Les règles à connaître pour mon activité'}).click();await expect(ecran).toHaveURL(/\/artisan\/regles/);}finally{await artisan.close();}
  });
 
 });

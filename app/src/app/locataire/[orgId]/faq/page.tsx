@@ -111,8 +111,10 @@ export default async function PageFaqLocataire(props: PageProps<"/locataire/[org
               key={question}
               className="border-b border-border py-3.5 first:pt-0 lg:[&:nth-child(2)]:pt-0"
             >
-              <p className="text-sm font-semibold text-[var(--encre)]">{question}</p>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{reponse}</p>
+              <details>
+                <summary className="min-h-11 cursor-pointer content-center text-sm font-semibold text-[var(--encre)]">{question}</summary>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{reponse}</p>
+              </details>
             </li>
           ))}
         </ul>

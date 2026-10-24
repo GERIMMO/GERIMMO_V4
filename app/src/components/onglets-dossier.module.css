@@ -1,0 +1,8 @@
+.dossier { min-width:0; }
+.onglets { display:flex; flex-wrap:wrap; gap:4px; padding:5px; margin-bottom:16px; border:1px solid var(--trait,#dce3eb); border-radius:12px; background:var(--surface,#fff); }
+.onglets button { flex:1; min-width:0; min-height:44px; border:0; border-radius:8px; padding:10px 12px; font:600 14px/1.35 var(--font-interface,system-ui); color:var(--texte-secondaire,#536576); cursor:pointer; }
+.onglets button[aria-selected="true"] { background:var(--marque,#17364e); color:var(--sur-marque,#fff); }
+.onglets button:focus-visible, .panneau:focus-visible { outline:2px solid var(--marque,#17364e); outline-offset:3px; }
+.panneau { display:grid; gap:18px; min-width:0; scroll-margin-top:100px; }
+.panneau[hidden] { display:none !important; }
+@media(max-width:420px) { .onglets button { font-size:13px; padding:10px 7px; } }

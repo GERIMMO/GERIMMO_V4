@@ -1,5 +1,6 @@
 "use client";
 
+import { LIMITE_ARTICLES, LIMITE_VEILLES, type MotifReserve } from "@/lib/cadre-editorial";
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCheck, ChevronDown, Newspaper, ShieldCheck, TriangleAlert } from "lucide-react";
@@ -20,9 +21,10 @@ function LienDossier({ entree }: { entree: EntreeDecision }) {
     : <OuvrirAlertes className={styles.priorityLink}>{contenu}</OuvrirAlertes>;
 }
 
-export function FileDecisions({ decisions, signaux, cartes, vue, categorie, indisponible = false }: {
+export function FileDecisions({ decisions, signaux, cartes, vue, categorie, reserve = [], indisponible = false }: {
   decisions: DecisionDeFile[]; signaux: Signal[]; cartes: DecisionAffichee[];
   vue: "bureau" | "decisions"; categorie?: string; indisponible?: boolean;
+  reserve?: { decision: DecisionDeFile; motif: MotifReserve }[];
 }) {
   const entrees = trierDecisions(decisions, signaux);
   const [filtre, setFiltre] = useState<FiltreDecision>(filtreDecision(categorie));
@@ -35,6 +37,17 @@ export function FileDecisions({ decisions, signaux, cartes, vue, categorie, indi
   const pages = Math.max(1, Math.ceil(retenues.length / PAR_PAGE));
   const courante = Math.min(page, pages);
   const changerPage = (p: number) => { setPage(p); resultat.current?.focus(); };
+
+  const secondaires = <div className={styles.editorialRules}>
+    <p>Logement et artisans du bâtiment · au plus {LIMITE_VEILLES} veilles et {LIMITE_ARTICLES} articles à examiner.</p>
+    {reserve.length > 0 && <details>
+      <summary>{reserve.length} propositions conservées à part</summary>
+      <p>Le hors-sujet ne compte plus parmi les demandes. Les autres propositions attendent une place ; aucun accord ni rejet n’a été enregistré.</p>
+      <ul className={styles.reserveList}>{reserve.map(({decision: d, motif}) => <li key={d.cle}>
+        <Link href={d.source === "veille" ? `/admin/veille?information=${encodeURIComponent(d.source_id)}` : d.lien}>{d.titre}<small>{motif === "hors_perimetre" ? "Hors périmètre" : "En réserve"}</small></Link>
+      </li>)}</ul>
+    </details>}
+  </div>;
 
   if (vue === "bureau") return <div className={styles.overview}>
     <nav aria-label="Demandes par catégorie" className={styles.groups}>
@@ -52,6 +65,7 @@ export function FileDecisions({ decisions, signaux, cartes, vue, categorie, indi
       <ul>{incidents.slice(0, 3).map(e => <li key={e.cle}><LienDossier entree={e} /></li>)}</ul>
       {incidents.length > 3 && <Link className={styles.more} href={lienFile("incidents")}>Voir les {incidents.length} problèmes <ArrowRight size={15} aria-hidden="true" /></Link>}
     </div> : !indisponible && <p className={styles.calm}><CheckCheck size={18} aria-hidden="true" />Aucun problème à examiner dans cette file.</p>}
+    {secondaires}
     <Link href={lienFile("tout")} className={styles.more}>Examiner toutes les demandes <ArrowRight size={15} aria-hidden="true" /></Link>
   </div>;
 
@@ -79,6 +93,7 @@ export function FileDecisions({ decisions, signaux, cartes, vue, categorie, indi
           </div></details></li>;
       })}
     </ul>
+    {secondaires}
     {pages > 1 && <nav aria-label="Pages des demandes" className={styles.pagination}>
       <button type="button" disabled={courante === 1} onClick={() => changerPage(courante - 1)}>Précédent</button>
       <span>Page {courante} sur {pages}</span>

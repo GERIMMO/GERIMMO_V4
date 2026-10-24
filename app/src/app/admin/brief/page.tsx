@@ -99,10 +99,10 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
           <span className={`puce ${decisions.total > 0 || lecturesEnEchec ? "puce-prep" : "puce-grise"}`}>{lecturesEnEchec ? "À vérifier" : decisions.total > 0 ? `${decisions.total} en attente` : "À jour"}</span>
         </div>
         <p className={styles.sectionDescription}>{vue === "bureau" ? "Ouvrez une catégorie pour traiter les demandes à votre rythme." : "Ouvrez une demande pour lire le détail et décider."}</p>
-        <FileDecisions key={`${vue}:${p.categorie ?? "tout"}`} decisions={decisions.decisions} signaux={decisions.signaux}
+        <FileDecisions key={`${vue}:${p.categorie ?? "tout"}`} decisions={decisions.decisions} signaux={decisions.signaux} reserve={decisions.reserve}
           cartes={[...duPoint.values()]} vue={vue} categorie={p.categorie} indisponible={lecturesEnEchec > 0} />
       </section>
-      {vue === "decisions" && <SuiviDecisions page={p.pageDecisions} etat={p.etatDecision}/>}
+      {vue === "decisions" && <details className={styles.section} open={Boolean(p.pageDecisions || p.etatDecision)}><summary className="cursor-pointer font-semibold">Historique des décisions</summary><div className="mt-4"><SuiviDecisions page={p.pageDecisions} etat={p.etatDecision}/></div></details>}
       {vue === "bureau" && <aside className={styles.directorTools} aria-label="Commandes du dirigeant">
         <div className={styles.commandPanel}>
           <p className={styles.commandEyebrow}>VOTRE POSTE DE COMMANDE</p>

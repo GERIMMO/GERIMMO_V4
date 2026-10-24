@@ -1,3 +1,4 @@
+import {selectionnerDemandes} from "../../../src/lib/cadre-editorial";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { FileDecisions } from "../../../src/app/admin/brief/file-decisions";
@@ -12,4 +13,5 @@ const decisions: DecisionDeFile[] = [
 ];
 const cartes: DecisionAffichee[] = decisions.map(d => ({ ...d, id: d.cle, options: [], recommandation: null, statut: "en_attente", motif: null, decide_le: null, validation: true, refus: d.source !== "retour", attestation: d.source === "artisan" ? "J’ai relu les justificatifs." : null }));
 const p = new URLSearchParams(location.search);
-createRoot(document.getElementById("racine")!).render(<StrictMode><main><h1>Bureau de direction</h1><section><h2>Demandes à examiner</h2><FileDecisions decisions={decisions} signaux={[]} cartes={cartes} vue={p.get("vue") === "decisions" ? "decisions" : "bureau"} categorie={p.get("categorie") ?? undefined} indisponible={p.has("indisponible")} /></section></main></StrictMode>);
+const file = selectionnerDemandes(decisions);
+createRoot(document.getElementById("racine")!).render(<StrictMode><main><h1>Bureau de direction</h1><section><h2>Demandes à examiner</h2><FileDecisions decisions={file.decisions} reserve={file.reserve} signaux={[]} cartes={cartes} vue={p.get("vue") === "decisions" ? "decisions" : "bureau"} categorie={p.get("categorie") ?? undefined} indisponible={p.has("indisponible")} /></section></main></StrictMode>);

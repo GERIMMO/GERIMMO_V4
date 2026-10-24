@@ -54,15 +54,16 @@ describe.skipIf(!chrome)("File de direction dans le navigateur", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
     expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThan(1100);
   });
-  it("ouvre la catégorie demandée et permet de retrouver le dernier article sans décision implicite", async () => {
+  it("limite la catégorie à six contenus et conserve les autres en réserve sans décision implicite", async () => {
     await ouvrir("?vue=decisions&categorie=contenus");
     const liste = page.getByRole("list", { name: "Demandes à examiner" });
     expect(await liste.locator(":scope > li").count()).toBe(6);
-    await page.getByRole("button", { name: "Suivant", exact: true }).click();
-    expect(await page.getByRole("status").textContent()).toContain("7–12 sur 31");
-    await page.getByLabel("Rechercher une demande").fill("actualite 30");
+    expect(await page.getByRole("status").textContent()).toContain("1–6 sur 6");
+    await page.getByText("25 propositions conservées à part", {exact:true}).click();
+    expect(await page.getByRole("link", {name:"Actualité 30 — Révision du loyer En réserve",exact:true}).isVisible()).toBe(true);
+    await page.getByLabel("Rechercher une demande").fill("actualite 1");
     expect(await page.getByRole("status").textContent()).toContain("1–1 sur 1");
-    await page.getByText("Actualité 30 — Révision du loyer", { exact: true }).click();
+    await page.getByText("Actualité 1 — Révision du loyer", { exact: true }).click();
     expect(await page.getByRole("button", { name: "Valider", exact: true }).isVisible()).toBe(true);
     expect(await page.evaluate(() => (window as unknown as { __decisions?: unknown[] }).__decisions ?? [])).toEqual([]);
   });

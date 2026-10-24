@@ -44,3 +44,11 @@
 .pagination button:disabled { opacity: .45; cursor: default; }
 .overview a:focus-visible, .inbox button:focus-visible, .inbox a:focus-visible, .inbox input:focus-visible, .row summary:focus-visible { outline: 3px solid #597da0; outline-offset: 3px; }
 @media(max-width:600px) { .group { padding: 13px 10px; gap: 9px; } .groupText strong { font-size: 13px; } .groupText small { font-size: 11px; } .group > svg { display: none; } .count { font-size: 13px; } .row summary { padding: 14px; } .filters button { padding: 8px 10px; font-size: 12px; } }
+
+.editorialRules { border-top: 1px solid var(--filet); padding-top: 14px; color: var(--texte-secondaire); font-size: .875rem; }
+.editorialRules p { margin: 0 0 10px; }
+.editorialRules summary { cursor: pointer; padding: 10px 0; min-height: 44px; color: var(--encre); font-weight: 600; }
+.editorialRules summary:focus-visible { outline: 2px solid var(--marque); outline-offset: 3px; }
+.reserveList { max-height: 320px; overflow-y: auto; padding: 0 6px; }
+.reserveList a { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; min-height: 44px; padding: 10px 0; border-bottom: 1px solid var(--filet); }
+.reserveList small { color: var(--texte-secondaire); }

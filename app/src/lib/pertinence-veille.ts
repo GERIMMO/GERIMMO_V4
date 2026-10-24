@@ -1,3 +1,4 @@
+import {sujetDansPerimetre} from "./cadre-editorial";
 // LA PERTINENCE D'UNE VEILLE POUR LE JOURNAL (constat du 06/10/2026).
 //
 // Le 29/09, le journal a relayé « Amorcer un plan de décarbonation : un guide
@@ -10,6 +11,8 @@
 //  - on lit le titre ET le résumé de l'étude ;
 //  - un mot exclu l'emporte sur tout ;
 //  - les publics de l'étude doivent viser un public du journal (ci-dessous).
+// 24/10 : le titre officiel doit d’abord entrer dans le périmètre strict logement/bâtiment.
+// Un résumé IA ou les mots réglables ne peuvent plus élargir ce périmètre.
 // Sans sujet pertinent, le créneau bascule sur la veine éditoriale.
 //
 // 14/10/2026 (décision D33, fiche EDI-01) : la ligne éditoriale vise le
@@ -64,6 +67,7 @@ export function evaluerPertinence(sujet: SujetVeilleCandidat, mots: MotsPertinen
   const exclus = motsTrouves(texte, mots.exclus);
   const inclus = motsTrouves(texte, mots.inclus);
   if (exclus.length) return { pertinent: false, motif: `mot exclu : ${exclus.join(", ")}`, inclus, exclus };
+  if (!sujetDansPerimetre(sujet.titre)) return { pertinent: false, motif: "titre hors périmètre logement et bâtiment", inclus, exclus };
   if (!inclus.length) return { pertinent: false, motif: "aucun mot du logement ou de la location", inclus, exclus };
   const publics = sujet.publics ?? [];
   if (publics.length && !publics.some((p) => (PUBLICS_JOURNAL as readonly string[]).includes(p))) {

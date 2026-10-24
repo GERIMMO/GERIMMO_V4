@@ -1,3 +1,5 @@
+import {LIMITE_VEILLES,sujetDansPerimetre} from "@/lib/cadre-editorial";
+import {lireFileVeille} from "@/lib/file-veille";
 import { ArretSupervision, verifierAvantEffet } from "@/lib/controle-effets";
 import {messageEtudeIA} from '@/lib/erreur-ia';
 import {lireSourceEtude,etudierVeille,type SourceEtude} from '@/lib/analyse-veille';
@@ -9,15 +11,34 @@ export async function traiterVeille(request:Request){
  if(!porteurDuSecret(request,process.env.CRON_SECRET))return Response.json({erreur:'Non autorisé.'},{status:401});
  const db=clientDeService();if(!db)return Response.json({erreur:'Connexion indisponible.'},{status:503});
  let preparees=0;const echecs:string[]=[];
- await Promise.all(FLUX_VEILLE.map(async flux=>{try{
-  const infos=lireFluxVeille(await chargerFluxVeille(flux.url),flux.nom);
-  // Ignore duplicates: a daily collection never overwrites an editorial decision.
-  if(infos.length){const {data,error}=await db.from('regulatory_watch').upsert(infos,{onConflict:'source_url',ignoreDuplicates:true}).select('id');if(error)throw new Error('Enregistrement indisponible.');preparees+=data?.length??0;}
- }catch{echecs.push(flux.nom);}}));
+ let file:Awaited<ReturnType<typeof lireFileVeille>>;
+ try { file=await lireFileVeille(db); }
+ catch { await consignerTache(db,'veille',{preparees:0,echecs:['Lecture des propositions en attente']});return Response.json({preparees:0,echecs:['Lecture des propositions en attente']},{status:503}); }
+ const pertinentes=file.filter(info=>sujetDansPerimetre(info.titre));
+ const places=Math.max(0,LIMITE_VEILLES-pertinentes.length);
+ // La mission est sérialisée par commencer_mission. Les deux flux partagent
+ // la même capacité ; aucune étude ni collecte supplémentaire quand elle est pleine.
+ const candidates=[];
+ if(places>0)for(const flux of FLUX_VEILLE){try{
+  candidates.push(...lireFluxVeille(await chargerFluxVeille(flux.url),flux.nom));
+ }catch{echecs.push(flux.nom);}}
+ const connus=new Set(file.map(i=>i.source_url));
+ const uniques=[...new Map(candidates.map(i=>[i.source_url,i])).values()].filter(i=>!connus.has(i.source_url));
+ // Une source déjà traitée n'occupe pas les places disponibles et n'est jamais rouverte.
+ let nouvelles:typeof candidates=[];
+ if(uniques.length){
+  const existantes=await db.from('regulatory_watch').select('source_url').in('source_url',uniques.map(i=>i.source_url));
+  if(existantes.error)echecs.push('Lecture des sources déjà traitées');
+  else {const dejaVues=new Set((existantes.data??[]).map(i=>i.source_url));
+   nouvelles=uniques.filter(i=>!dejaVues.has(i.source_url)).sort((a,b)=>(b.publie_source_le??'').localeCompare(a.publie_source_le??'')).slice(0,places);
+   if(nouvelles.length){const {data,error}=await db.from('regulatory_watch').upsert(nouvelles,{onConflict:'source_url',ignoreDuplicates:true}).select('id,titre,source_url,analyse_le,analyse_tentee_le');if(error)echecs.push('Enregistrement indisponible');else {preparees=data?.length??0;pertinentes.push(...(data??[]) as typeof pertinentes);}}
+  }
+ }
  let etudiees=0, rejetees=0;
- const {data:attente,error:lecture}=await db.from('regulatory_watch').select('id,titre,source_url').eq('statut','a_examiner').is('analyse_le',null).or(`analyse_tentee_le.is.null,analyse_tentee_le.lt.${new Date(Date.now()-86400000).toISOString()}`).order('publie_source_le',{ascending:false,nullsFirst:false}).order('reperage_le').order('id').limit(3);
- if(lecture)echecs.push('Lecture des études à préparer');
- else if(attente?.length){
+ // Les cinq premières places seulement : une ancienne file trop longue ne
+ // provoque pas d'appels IA pour les sujets en réserve ou hors périmètre.
+ const attente=pertinentes.slice(0,LIMITE_VEILLES).filter(i=>!i.analyse_le&&(!i.analyse_tentee_le||Date.parse(i.analyse_tentee_le)<Date.now()-86400000)).slice(0,3);
+ if(attente.length){
   const sources:SourceEtude[]=[];
   await Promise.all(attente.map(async info=>{try{sources.push({id:info.id,titre:info.titre,url:info.source_url,texte:await lireSourceEtude(info.source_url)});}catch{echecs.push('Lecture d’une source officielle');await db.from('regulatory_watch').update({analyse_erreur:'La source officielle doit être relue avant de préparer une étude.',analyse_tentee_le:new Date().toISOString()}).eq('id',info.id);}}));
   if(sources.length)try{await verifierAvantEffet(db,'veille');const {analyses,rejets}=await etudierVeille(sources,()=>reserverAppelIA(db,'veille'));
@@ -34,6 +55,6 @@ export async function traiterVeille(request:Request){
    await db.from('tech_log').insert({evenement:'veille_analyse_echec',details:{motif:e instanceof Error?e.message.slice(0,200):'inconnu',sources:sources.length}});
    for(const source of sources)await db.from('regulatory_watch').update({analyse_erreur:messageEtudeIA(e),analyse_tentee_le:new Date().toISOString()}).eq('id',source.id);}
  }
- await consignerTache(db,'veille',{preparees,etudiees,rejetees,echecs,sources:FLUX_VEILLE.length});
+ await consignerTache(db,'veille',{preparees,etudiees,rejetees,echecs,sources:FLUX_VEILLE.length,places, hors_perimetre:file.length-(file.filter(i=>sujetDansPerimetre(i.titre)).length)});
  return Response.json({preparees,etudiees,rejetees,echecs},{status:echecs.length?503:200});
 }

@@ -6899,3 +6899,14 @@ Corrections livrées après la relecture : modèle réglementaire de rétractati
 - Les sources, compteurs, autorisations et actions de décision sont conservés. Aucun accord, refus, publication d’article, envoi de message, ni changement de données métier réalisé. Le regroupement ne résout pas artificiellement les demandes. Aucune migration ni connexion externe requise.
 - Validation locale : 23 tests de tri et gardes existantes réussis ; quatre scénarios Chromium réussis (résumé 34 demandes, filtre/recherche/pagination, attestation artisan et erreur concurrente, état vide/lecture partielle). Types et lint ciblé réussis. Le premier contrôle des types nécessitait une génération des types de routes et davantage de mémoire ; le premier banc navigateur a été corrigé pour déclarer UTF-8.
 - Publication et recette : à consigner après CI verte sur la révision exacte.
+
+
+### 24 octobre 2026 — Limites des articles et de la veille (suite PR #252)
+
+- Demande du dirigeant : « mettre des limites sur les articles et veilles », trop de hors-sujet.
+- Cause confirmée : filtre RSS par sous-chaînes sur titre et description (`locat` dans « allocation »), puis résumé IA et mots réglables capables de requalifier une source générale.
+- Filtre partagé, mots entiers normalisés et titre officiel : logement/gestion locative/besoins bâtiment ; le résumé ne peut plus élargir le périmètre. Contrôle répété avant relais marketing et avant diffusion des articles déjà programmés issus d'une veille.
+- Bureau : cinq veilles, deux articles au maximum ; anciens hors-sujets et excédents consultables à part, sans mutation de leurs statuts. Compteur commun avec la navigation. Historique des décisions replié par défaut.
+- Collecte : lecture paginée de la file, capacité commune aux deux flux, sources déjà traitées conservées, aucune nouvelle collecte si cinq veilles pertinentes attendent. Marketing : lecture exacte des brouillons avant rédaction/image et arrêt à deux articles ; lecture inconnue = aucun ajout. Les verrous existants des missions restent en place.
+- Contrôles locaux : 138 tests métier puis 46 tests ciblés complémentaires (dont quatre parcours Chromium réels à 390 px), types et lint ciblé verts. Cas réels hors sujet, résumé IA trompeur, réserve sans disparition, compteur cohérent, doublons, file pleine, panne, pagination et article hors sujet programmé couverts. Aucun appel IA, courriel ou réseau social réel exécuté pour cette validation.
+- Aucun changement de base, aucun accord/rejet/suppression de contenu de production. Publication attend la nouvelle CI de la PR #252 et sa relecture.

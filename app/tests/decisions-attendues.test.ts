@@ -48,6 +48,13 @@ describe("chargerDecisionsAttendues", () => {
     expect(d.decisions.map((x) => x.cle).sort()).toEqual(["developpement:d1", "publication:p1", "retour:r1", "veille:v1"]);
     expect(d.total).toBe(d.decisions.length + d.signaux.length);
   });
+  it("le compteur commun exclut le hors-sujet et réserve les excédents sans perdre les sources",async()=>{
+    const db=client({regulatory_watch:[{id:"hors-sujet",titre:"AAH et ASS",source_nom:"SP",etude:null},...Array.from({length:7},(_,i)=>({id:`v${i}`,titre:`DPE des logements ${i}`,source_nom:"SP",etude:null}))]});
+    const d=await chargerDecisionsAttendues(db as never,env,0,new Date("2026-10-24T07:00:00Z"));
+    expect(d.decisions.filter(x=>x.source==="veille")).toHaveLength(5);
+    expect(d.reserve.map(x=>x.motif)).toEqual(["hors_perimetre","plafond","plafond"]);
+    expect(d.total).toBe(5+d.signaux.length);
+  });
   it("ajoute les rangs hors équipes listés (demandes commerciales, alertes critiques)", async () => {
     const db = client({ points_du_matin: [{ id: "pt" }] }, { demandes_devis: 2, alerts: 1 });
     const d = await chargerDecisionsAttendues(db as never, env, 0, new Date("2026-09-27T07:00:00Z"));

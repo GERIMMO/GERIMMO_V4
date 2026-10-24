@@ -1,3 +1,4 @@
+import {LIMITE_ARTICLES,sujetDansPerimetre} from "@/lib/cadre-editorial";
 import { verifierAvantEffet, ArretSupervision } from "@/lib/controle-effets";
 import {clientDeService} from '@/lib/supabase/service';
 import {consignerTache,porteurDuSecret} from '@/lib/tache';
@@ -64,6 +65,11 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   if(!article)continue;
   const a=article as Article;
   if(a.facebook_envoi_demarre_le){erreurs.push(`${a.id} : un envoi a déjà été engagé, à vérifier sur Facebook.`);continue;}
+  if(a.veille_source_id){
+   const source=await db.from('regulatory_watch').select('titre').eq('id',a.veille_source_id).maybeSingle();
+   if(source.error||!source.data){erreurs.push(`${a.id} : source de veille impossible à vérifier, diffusion suspendue.`);continue;}
+   if(!sujetDansPerimetre(source.data.titre)){attentes.push(a.id);continue;}
+  }
   // Parution sur le site : la base relit tout (accord, validation, texte complet, veille écartée).
   await verifierAvantEffet(db,'marketing');
   const parution=await db.rpc('publier_article_automatique',{p_id:a.id,p_manuel:options.manuel===true});
@@ -128,6 +134,11 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
  let article=existant.data as Article|null;const motifs:string[]=[];
  if(article&&!['brouillon','planifiee'].includes(article.statut))return {agi:false,raison:'Le créneau est déjà tenu.',article:article.id};
  if(!article){
+  // Avant toute rédaction ou image payante ; tous les brouillons comptent,
+  // même ceux hors périmètre, pour arrêter réellement l'accumulation.
+  const file=await db.from('publications').select('id',{count:'exact',head:true}).in('statut',['proposition','brouillon','planifiee','programmee']);
+  if(file.error||file.count==null)return {erreur:'Impossible de vérifier la file des articles. Aucun nouveau post préparé.'};
+  if(file.count>=LIMITE_ARTICLES)return {agi:false,raison:`La file atteint la limite de ${LIMITE_ARTICLES} articles. La préparation reprendra après leur traitement.`};
   const choix=await choisirSujet(db,r,cible);
   if('erreur'in choix)return {erreur:choix.erreur};
   motifs.push(...choix.motifs);

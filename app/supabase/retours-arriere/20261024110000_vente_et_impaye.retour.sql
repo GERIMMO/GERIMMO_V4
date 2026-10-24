@@ -14,8 +14,9 @@
 --   · repose la contrainte des natures de retours d'avant SEULEMENT si aucune réclamation n'est enregistrée ;
 --   · CONSERVE les cinq colonnes ajoutées à `abonnements` (dates de souscription, de confirmation, d'accusés) ;
 --   · supprime la version.
--- Cite le jour de Paris (abonnements_a_relancer) : premier de la chaîne « Ordre complet », avant 20261023184512 ; à jouer
--- avant le retour de 20261019120500 et celui de 20261018231827.
+-- Cite le jour de Paris (abonnements_a_relancer) : dans la chaîne « Ordre complet », après les retours de 20261024140000,
+-- 130000 et 120000, avant ceux de 20261024100000 et 090000, puis 20261023184512 ; donc avant le retour de
+-- 20261019120500 et celui de 20261018231827.
 do $retour_atomique$
 declare
   d text;

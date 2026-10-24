@@ -56,8 +56,8 @@
 -- Rejouable : IF NOT EXISTS, CREATE OR REPLACE, DROP TRIGGER IF EXISTS ; `search_path = ''` ; aucune donnée existante
 -- réécrite ; `fermer_fonctions_a_anon()` en fin. Ne cite pas `aujourdhui_paris()` (le jour de Paris se calcule dans
 -- l'expression).
--- Retour : supabase/retours-arriere/20261024120000_signature_caution_mobile_et_edl_sur_place.retour.sql (hors de la
--- chaîne « Ordre complet »).
+-- Retour : supabase/retours-arriere/20261024120000_signature_caution_mobile_et_edl_sur_place.retour.sql (dans la
+-- chaîne « Ordre complet », avec les retours du plan de conformité).
 
 -- ── 1. Confirmations du mobile par la caution ───────────────────────────────────────────────────────────────────
 

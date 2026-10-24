@@ -11,6 +11,9 @@
 --    `purger_signalements_support`, `support_interne.purger_gestes_support`, et (si la table du socle est encore là)
 --    `purger_archives_comptes` et `archives_comptes_echeances` retrouvent leur texte d'avant, relevé sur une base
 --    portant la production et toutes les migrations jusqu'à 20261024090000 ; droits inchangés ;
+--  · intégration du 24/10 : `archives_comptes_garde` retrouve le texte du socle final (factures comptées, date de purge
+--    posée par la base, six ans depuis l'émission) et `retractations_abonnement_ajout_seul` celui de 20261024110000
+--    (aucune suppression hors de celle de l'organisation) ; `echeance_retractation_abonnement` est retirée ;
 --  · les fonctions ajoutées, le déclencheur `baux_gel_conservation_garde` et sa fonction ;
 --  · le catalogue : durées d'avant (60 mois, quittances 120 mois depuis l'émission, journal d'audit 36 mois…)
 --    seulement là où la valeur est encore celle du plan ; les 22 règles ajoutées sont retirées ;
@@ -24,8 +27,9 @@
 -- pièces, fiches et lignes déjà purgées ne reviennent pas (sauvegarde).
 --
 -- Une seule instruction DO atomique : seule en autocommit, ou intégralement annulable dans une transaction externe,
--- qu'elle ne valide jamais. Rejouée, elle ne fait rien de plus. Hors de la chaîne « Ordre complet » du LISEZ-MOI (la
--- migration ne cite pas `aujourdhui_paris()`). À jouer AVANT le retour de 20261024090000 (socle). La marche avant se
+-- qu'elle ne valide jamais. Rejouée, elle ne fait rien de plus. Premier dans la chaîne « Ordre complet » du LISEZ-MOI, bien que la
+-- migration ne cite pas `aujourdhui_paris()` (retours du plan de conformité du 24/10, ordre inverse du manifeste : 140000,
+-- 130000, 120000, 110000, 100000, 090000). À jouer AVANT le retour de 20261024090000 (socle). La marche avant se
 -- rejoue ensuite.
 do $retour_atomique$
 declare
@@ -287,6 +291,82 @@ begin
 end $fonction$;
   end if;
 
+  -- Intégration du 24/10 : la garde des archives du socle (texte du socle final, relecture M4) et la garde d'ajout seul
+  -- des rétractations (texte de 20261024110000) retrouvent leur texte d'avant ; droits inchangés.
+  if to_regprocedure('public.archives_comptes_garde()') is not null then
+    create or replace function public.archives_comptes_garde()
+    returns trigger language plpgsql set search_path = ''
+    as $fonction$
+declare v_jour date := (now() at time zone 'Europe/Paris')::date;
+begin
+  if tg_op = 'TRUNCATE' then
+    raise exception 'Les archives de comptes ne se vident pas' using errcode = '42501';
+  end if;
+  if tg_op = 'DELETE' then
+    if old.preuve_conservee_jusqu_au >= v_jour or jsonb_array_length(old.factures) > 0 then
+      raise exception 'Une archive de compte ne se supprime qu''au terme de sa conservation (preuve jusqu''au %, % facture(s) encore conservée(s))',
+        old.preuve_conservee_jusqu_au, jsonb_array_length(old.factures) using errcode = '42501';
+    end if;
+    return old;
+  end if;
+  if (to_jsonb(new) - 'factures' - 'factures_purgees_le') is distinct from (to_jsonb(old) - 'factures' - 'factures_purgees_le') then
+    raise exception 'Une archive de compte ne se modifie pas' using errcode = '42501';
+  end if;
+  -- La date de purge est celle de la base, posée au retrait d'une facture et à lui seul (relecture adverse du 24/10,
+  -- M4 : elle prenait n'importe quelle valeur).
+  if new.factures is not distinct from old.factures then
+    if new.factures_purgees_le is distinct from old.factures_purgees_le then
+      raise exception 'Une archive de compte ne se modifie pas' using errcode = '42501';
+    end if;
+    return new;
+  end if;
+  new.factures_purgees_le := now();
+  -- Chaque facture gardée l'est à l'identique, sans copie de plus ; chaque facture retirée est arrivée au terme de ses
+  -- six ans. Les factures se comptent (M4) : deux copies identiques sont deux factures, aucune ne part avant son terme.
+  if exists (select 1
+               from (select n.e, count(*) as c from jsonb_array_elements(new.factures) n(e) group by n.e) nouvelles
+               left join (select o.e, count(*) as c from jsonb_array_elements(old.factures) o(e) group by o.e) anciennes
+                 on anciennes.e = nouvelles.e
+              where anciennes.c is null or nouvelles.c > anciennes.c)
+     or exists (select 1
+                  from (select o.e, count(*) as c from jsonb_array_elements(old.factures) o(e) group by o.e) anciennes
+                  left join (select n.e, count(*) as c from jsonb_array_elements(new.factures) n(e) group by n.e) nouvelles
+                    on nouvelles.e = anciennes.e
+                 where coalesce(nouvelles.c, 0) < anciennes.c
+                   and ((anciennes.e ->> 'emise_le')::date + interval '6 years')::date >= v_jour) then
+    raise exception 'Seules les factures arrivées au terme de leur conservation se retirent d''une archive' using errcode = '42501';
+  end if;
+  return new;
+end $fonction$;
+  end if;
+  if to_regprocedure('public.retractations_abonnement_ajout_seul()') is not null then
+    create or replace function public.retractations_abonnement_ajout_seul()
+    returns trigger language plpgsql set search_path = ''
+    as $fonction$
+begin
+  if tg_op = 'DELETE' then
+    -- Seule la suppression de l'organisation l'emporte (cascade : l'organisation n'existe déjà plus).
+    if not exists (select 1 from public.organizations o where o.id = old.organization_id) then return old; end if;
+    raise exception 'Une déclaration de rétractation ne se supprime pas';
+  end if;
+  if (to_jsonb(new) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'passage_effectue', 'accuse_envoye_le'])
+     is distinct from (to_jsonb(old) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'passage_effectue', 'accuse_envoye_le']) then
+    raise exception 'Une déclaration de rétractation ne se réécrit pas';
+  end if;
+  -- Relecture adverse du 24/10 (point 5) : l'exécution consignée (montant remboursé, références) ne s'écrase pas.
+  if old.executee_le is not null
+     and (new.executee_le, new.montant_rembourse_cents, new.refunds, new.passage_effectue)
+         is distinct from (old.executee_le, old.montant_rembourse_cents, old.refunds, old.passage_effectue) then
+    raise exception 'L''exécution de la rétractation est déjà consignée';
+  end if;
+  if old.accuse_envoye_le is not null and new.accuse_envoye_le is distinct from old.accuse_envoye_le then
+    raise exception 'L''accusé de réception est déjà enregistré';
+  end if;
+  return new;
+end;
+$fonction$;
+  end if;
+
   -- 3. Ce que la migration a ajouté : déclencheurs du gel et du dernier contact, puis fonctions (aucune n'est plus
   -- appelée).
   drop trigger if exists baux_gel_conservation_garde on public.baux;
@@ -309,6 +389,7 @@ end $fonction$;
   drop function if exists public.cibles_conservation_complementaire();
   drop function if exists public.purger_document_conservation(uuid, text, date);
   drop function if exists public.echeance_facture_archivee(jsonb, date, integer);
+  drop function if exists public.echeance_retractation_abonnement(timestamptz, integer);
   drop function if exists public.echeance_dossier_sans_bail(uuid, integer);
   drop function if exists public.document_dossier_sans_bail(uuid);
   drop function if exists public.personne_sans_bail(uuid);

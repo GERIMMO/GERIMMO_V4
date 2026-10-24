@@ -38,6 +38,7 @@ const MIGRATION = readFileSync(`supabase/migrations/${NOM}.sql`, "utf8");
 const RETOUR = readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8");
 const CONTACTS_2210 = readFileSync("supabase/migrations/20261022213731_conservation_preuves_et_invitations.sql", "utf8");
 const SOCLE = readFileSync("supabase/migrations/20261024090000_versions_conditions_et_archives_comptes.sql", "utf8");
+const VENTE = readFileSync("supabase/migrations/20261024110000_vente_et_impaye.sql", "utf8");
 
 /** Le tableau du lot 2 (plan du 23/10), règle par règle : durée, déclencheur exact, actif au déploiement. */
 const REGLES: [string, number, string, boolean][] = [
@@ -91,6 +92,7 @@ const RESERVEES = [
   "journal_auth_echus", "purger_comptes_jamais_utilises", "purger_archives_comptes", "appliquer_conservation_complementaire",
   "generer_alertes_conservation", "alertes_conservation_a_envoyer", "noter_courriel_alerte_conservation", "ecrire_gel_conservation_bail",
   "garder_gel_conservation_bail", "poser_alerte_conservation", "echeance_levee_gel_bail", "garder_dernier_contact_prospect",
+  "echeance_retractation_abonnement",
 ];
 /** Fonctions de déclencheur : jamais appelées directement (leur droit d'exécution n'est pas vérifié ici). */
 const DECLENCHEURS = ["garder_gel_conservation_bail", "garder_dernier_contact_prospect"];
@@ -772,6 +774,67 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
       .toEqual([enAttente, recent].sort());
   });
 
+  // ── Intégration du 24/10 (socle final, vente, comptes) ───────────────────────────────────────────────────────
+
+  it("archives : la garde du socle retire une facture à l'échéance même de la purge, pas six ans après son émission", async () => {
+    await proprietaire();
+    const a = await un<{ id: string; f: string }>(
+      `insert into public.archives_comptes (account_id_origine, fin_dernier_abonnement_paye, factures)
+       values (gen_random_uuid(), (current_date - interval '1 year')::date, $1::jsonb) returning id, factures_conservees_jusqu_au::text as f`,
+      [JSON.stringify([{ numero: "F-ANCIENNE", emise_le: "2019-01-31" }])]);
+    // Émise il y a plus de six ans, mais l'abonnement payé a pris fin il y a un an : gardée encore cinq ans, à l'écran
+    // comme par la garde (une seule échéance, celle d'echeance_facture_archivee).
+    expect(a.f).toBe(await dateIlYa(12, 72));
+    expect(await echec("update public.archives_comptes set factures = '[]' where id = $1", [a.id])).toMatch(/^42501 Seules les factures arrivées au terme/);
+    await activer("archive:facture");
+    await purge();
+    expect(await nombre("select jsonb_array_length(factures) from public.archives_comptes where id = $1", [a.id])).toBe(1);
+    expect(await nombre("select count(*) from public.archives_comptes where id = $1 and factures_purgees_le is null", [a.id])).toBe(1);
+  });
+
+  it("rétractations (vente) : dix ans après la déclaration, la purge passe la garde d'ajout seul ; avant ce terme, rien ne part", async () => {
+    await proprietaire();
+    const declaration = (ilYa: string, cle: string) => id(
+      `insert into public.retractations_abonnement (organization_id, subscription_id, nature, cle, texte_declaration, declaree_le, adresse_accuse)
+       values ($1, 'sub_fictif', 'abonnement', $2, 'Je renonce au contrat d''abonnement (déclaration fictive).', now() - $3::interval,
+               'retractation@example.invalid')
+       returning id`, [org, cle, ilYa]);
+    const ancienne = await declaration("121 months", "retractation-integration-ancienne");
+    const recente = await declaration("119 months", "retractation-integration-recente");
+    expect(await echec("delete from public.retractations_abonnement where id = $1", [recente])).toMatch(/ne se supprime pas/);
+    expect(await nombre("select count(*) from public.cibles_conservation_complementaire() x where x.categorie = 'contrat:retractation' and x.id = any($1)",
+      [[ancienne, recente]])).toBe(1);
+    const r = await purge();
+    expect(r.journaux.retractations_abonnement).toBeGreaterThanOrEqual(1);
+    expect((await db.query("select id from public.retractations_abonnement where id = any($1)", [[ancienne, recente]])).rows.map((x) => x.id))
+      .toEqual([recente]);
+    // La règle reste la garde : réduite, elle ne fait jamais partir une déclaration de moins de dix ans.
+    await db.query("update public.retention_rules set duree_mois = 12 where data_type = 'contrat:retractation'");
+    expect(await echec("delete from public.retractations_abonnement where id = $1", [recente])).toMatch(/ne se supprime pas/);
+    await db.query("update public.retention_rules set duree_mois = 120 where data_type = 'contrat:retractation'");
+  });
+
+  it("registre des effacements à réappliquer (comptes) : purgé quatre mois après l'exécution de la fermeture", async () => {
+    await proprietaire();
+    const fermeture = (ilYa: string) => brut(() => id(
+      `insert into public.fermetures_comptes (account_id, origine, statut, demandee_le, effacement_prevu_le, empreinte_adresse,
+         executee_le, mode_effacement, bilan_execution)
+       values (gen_random_uuid(), 'super_admin', 'executee', current_date - 200, current_date - 150, repeat('a', 64),
+               now() - $1::interval, 'suppression', '{}'::jsonb)
+       returning id`, [ilYa]));
+    const vieille = await fermeture("5 months");
+    const recente = await fermeture("3 months");
+    await brut(() => db.query(
+      `insert into public.effacements_a_reappliquer (fermeture_id, account_id_origine, executee_le)
+       select id, account_id, executee_le from public.fermetures_comptes where id = any($1)`, [[vieille, recente]]));
+    const r = await purge();
+    expect(r.journaux.effacements_a_reappliquer).toBeGreaterThanOrEqual(1);
+    expect((await db.query("select fermeture_id from public.effacements_a_reappliquer where fermeture_id = any($1)", [[vieille, recente]])).rows
+      .map((x) => x.fermeture_id)).toEqual([recente]);
+    // La trace de la fermeture, elle, suit le domaine comptes (trois ans).
+    expect(await nombre("select count(*) from public.fermetures_comptes where id = any($1)", [[vieille, recente]])).toBe(2);
+  });
+
   it("journal d'authentification (R64) : compté pour le bilan, purgé à six mois seulement si la règle est activée", async () => {
     await db.query("create table if not exists auth.audit_log_entries (instance_id uuid, id uuid primary key default gen_random_uuid(), payload json, created_at timestamptz, ip_address varchar(64) not null default '')");
     await db.query("insert into auth.audit_log_entries (created_at) values (now() - interval '7 months'), (now() - interval '1 month')");
@@ -991,8 +1054,12 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     for (const c of ["support:bug", "alerte:traitee", "contrat:intention_conge"]) {
       expect(r.categories.find((x) => x.categorie === c)?.echus, c).toBeGreaterThanOrEqual(1);
     }
-    // Ce que personne ne purge encore reste « non calculé ».
-    expect(r.categories.find((x) => x.categorie === "contrat:retractation")?.echus).toBeNull();
+    // Intégration du 24/10 : rétractations (vente) et registre des effacements (comptes) ont leur purge, donc leur
+    // nombre ; ce que personne ne purge encore reste « non calculé » (compte:inactif : fermeture du domaine comptes).
+    for (const c of ["contrat:retractation", "journal:effacements_a_reappliquer"]) {
+      expect(typeof r.categories.find((x) => x.categorie === c)?.echus, c).toBe("number");
+    }
+    expect(r.categories.find((x) => x.categorie === "compte:inactif")?.echus).toBeNull();
   });
 
   it("bilan sans suppression : super-administrateur avec second facteur, toutes les catégories, rien de supprimé", async () => {
@@ -1045,6 +1112,9 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     expect(await src("cibles_conservation_contacts")).toBe(corps(CONTACTS_2210, "cibles_conservation_contacts"));
     expect(await src("purger_contacts_echus")).toBe(corps(CONTACTS_2210, "purger_contacts_echus"));
     expect(await src("purger_archives_comptes")).toBe(corps(SOCLE, "purger_archives_comptes"));
+    // Intégration du 24/10 : les deux gardes retrouvent le texte du socle final et celui de la vente.
+    expect(await src("archives_comptes_garde")).toBe(corps(SOCLE, "archives_comptes_garde"));
+    expect(await src("retractations_abonnement_ajout_seul")).toBe(corps(VENTE, "retractations_abonnement_ajout_seul"));
     const def = (await un<{ d: string }>("select pg_get_functiondef('public.appliquer_retention()'::regprocedure) as d")).d;
     expect(def).not.toContain("CONSERVATION_20261024");
     expect(def).toContain("public.debut_conservation_document(d.id) as debut");

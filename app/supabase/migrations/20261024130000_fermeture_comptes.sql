@@ -65,7 +65,8 @@
 -- DROP … IF EXISTS, `on conflict do nothing` ; `search_path = ''` ; aucune donnée existante réécrite ;
 -- `fermer_fonctions_a_anon()` en fin. Aucune table nouvelle ne porte de colonne `organization_id` (la garde de lecture
 -- seule des abonnements s'y poserait et refuserait l'export ou l'archivage d'un compte gelé). Le jour de Paris se
--- calcule dans l'expression (`aujourdhui_paris()` n'est pas cité : hors de la chaîne « Ordre complet »).
+-- calcule dans l'expression (`aujourdhui_paris()` n'est pas cité ; le retour est pourtant dans la chaîne « Ordre complet », avec ceux du plan de
+-- conformité).
 -- Retour : supabase/retours-arriere/20261024130000_fermeture_comptes.retour.sql.
 
 do $verrou$ begin perform set_config('lock_timeout', '10s', true); end $verrou$;

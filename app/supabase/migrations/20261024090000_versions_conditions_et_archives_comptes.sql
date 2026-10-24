@@ -38,8 +38,8 @@
 -- Rejouable : IF NOT EXISTS, CREATE OR REPLACE, DROP … IF EXISTS ; `search_path = ''` ; aucune donnée existante
 -- réécrite ; `fermer_fonctions_a_anon()` en fin. `accepter_cgu(text, text)` n'est remplacée que si sa définition est
 -- celle de 20260927148000 (sinon arrêt, en nommant la fonction).
--- Retour : supabase/retours-arriere/20261024090000_versions_conditions_et_archives_comptes.retour.sql (hors de la
--- chaîne « Ordre complet » : rien ici ne cite `aujourdhui_paris()`, le jour de Paris se calcule dans l'expression).
+-- Retour : supabase/retours-arriere/20261024090000_versions_conditions_et_archives_comptes.retour.sql (dans la
+-- chaîne « Ordre complet », dernier des retours du plan de conformité, bien que rien ici ne cite `aujourdhui_paris()`).
 
 -- ── 1. Versions archivées des conditions ────────────────────────────────────────────────────────────────────────
 

@@ -51,6 +51,18 @@
 --    nées d'une demande rangée ; inscription d'agence retirée supprimée sans attendre l'activation d'une règle ;
 --  · bilan : signalements, alertes traitées et demandes de congé comptés ; gel et lecture refusés hors portefeuille.
 --
+-- INTÉGRATION DU 24/10 (sur le socle final, la vente 20261024110000 et les comptes 20261024130000) :
+--  · une seule échéance des factures archivées : la garde du socle (`archives_comptes_garde` : factures comptées, date
+--    de purge posée par la base) retire une facture à l'échéance de `echeance_facture_archivee`, comme la purge et la
+--    date affichée ; elle comptait six ans depuis l'émission, plus tôt que la règle archive:facture ;
+--  · contrat:retractation : la garde d'ajout seul de `retractations_abonnement` (vente) laisse passer la suppression
+--    d'une déclaration arrivée au terme de sa preuve (dix ans, jamais moins), que la purge de la nuit fait quand la
+--    règle est active ; le bilan la compte ;
+--  · journal:effacements_a_reappliquer : le registre des fermetures (comptes) part quatre mois après l'exécution ;
+--  · compte:inactif reste une règle de catalogue, inactive : la fermeture pour inactivité du domaine comptes l'exécute
+--    (24 mois depuis la dernière connexion d'un membre ou la fin du dernier abonnement payé, deux avertissements),
+--    gardée par VERSION_MIN_INACTIVITE (src/lib/comptes-fermeture.ts) ; l'une et l'autre s'activent à la V1.
+--
 -- Rejouable : IF NOT EXISTS, CREATE OR REPLACE, ON CONFLICT DO NOTHING, remplacements à compte exact qui acceptent la
 -- forme déjà convertie (marque CONSERVATION_20261024) et s'arrêtent en nommant la fonction sinon. `search_path = ''`,
 -- `fermer_fonctions_a_anon()` en fin. Aucune donnée existante réécrite, sauf les durées décidées par le plan.
@@ -501,6 +513,18 @@ as $$
           + make_interval(months => greatest(coalesce(p_mois, 72), 72)))::date;
 $$;
 
+-- Déclarations de rétractation (vente, 20261024110000) : preuve de la rétractation et de son remboursement, gardée dix
+-- ans depuis la déclaration (contrat:retractation ; jamais moins de 120 mois, même si la règle est réduite), puis
+-- supprimée par la purge de la nuit. À relire par le juriste (source non ouverte le 23/10/2026).
+create or replace function public.echeance_retractation_abonnement(p_declaree_le timestamptz, p_mois integer)
+returns date
+language sql
+stable
+set search_path = ''
+as $$
+  select ((p_declaree_le at time zone 'Europe/Paris')::date + make_interval(months => greatest(coalesce(p_mois, 120), 120)))::date;
+$$;
+
 -- Le sort d'un document échu, appliqué comme dans la boucle de `appliquer_retention` (fichier en file, fiche vidée ou
 -- réduite à sa contrepartie sans personne), avec la même trace dans audit_log.
 create or replace function public.purger_document_conservation(p_doc uuid, p_regle text, p_echeance date)
@@ -649,7 +673,17 @@ as $$
   union all
   select 'journal:abonnement_evenements', 'abonnement_evenements', e.stripe_event_id from public.abonnement_evenements e
    where e.traite_le is not null
-     and e.traite_le < now() - make_interval(months => (select duree_mois from duree where data_type = 'journal:abonnement_evenements'));
+     and e.traite_le < now() - make_interval(months => (select duree_mois from duree where data_type = 'journal:abonnement_evenements'))
+  union all
+  -- Déclarations de rétractation (vente) : dix ans après la déclaration, jamais moins (intégration du 24/10).
+  select 'contrat:retractation', 'retractations_abonnement', r.id::text from public.retractations_abonnement r
+   where public.echeance_retractation_abonnement(r.declaree_le, (select duree_mois from duree where data_type = 'contrat:retractation'))
+         < (select j from jour)
+  union all
+  -- Registre des effacements à réappliquer (comptes) : quatre mois après l'exécution de la fermeture, au-delà de la
+  -- durée des sauvegardes qu'une restauration pourrait remettre (intégration du 24/10).
+  select 'journal:effacements_a_reappliquer', 'effacements_a_reappliquer', e.fermeture_id::text from public.effacements_a_reappliquer e
+   where e.executee_le < now() - make_interval(months => (select duree_mois from duree where data_type = 'journal:effacements_a_reappliquer'));
 $$;
 
 -- Le journal d'authentification de Supabase (R64) : compté ou purgé seulement s'il existe et si la règle le demande.
@@ -783,6 +817,100 @@ begin
   return new;
 end $$;
 revoke execute on function public.archives_comptes_echeances() from public, anon, authenticated;
+
+-- La garde des archives (socle, relecture adverse M4 : factures comptées, date de purge posée par la base) retire une
+-- facture à l'échéance même de la purge : celle de `echeance_facture_archivee`, selon la règle archive:facture (jamais
+-- moins de six ans). Intégration du 24/10 : la garde du socle comptait six ans depuis l'émission, plus tôt que la purge
+-- ci-dessus et que la date affichée (`factures_conservees_jusqu_au`) ; une seule échéance vaut désormais pour la purge,
+-- pour la garde et pour l'affichage.
+create or replace function public.archives_comptes_garde()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+declare
+  v_jour date := (now() at time zone 'Europe/Paris')::date;
+  v_mois integer;
+begin
+  if tg_op = 'TRUNCATE' then
+    raise exception 'Les archives de comptes ne se vident pas' using errcode = '42501';
+  end if;
+  if tg_op = 'DELETE' then
+    if old.preuve_conservee_jusqu_au >= v_jour or jsonb_array_length(old.factures) > 0 then
+      raise exception 'Une archive de compte ne se supprime qu''au terme de sa conservation (preuve jusqu''au %, % facture(s) encore conservée(s))',
+        old.preuve_conservee_jusqu_au, jsonb_array_length(old.factures) using errcode = '42501';
+    end if;
+    return old;
+  end if;
+  if (to_jsonb(new) - 'factures' - 'factures_purgees_le') is distinct from (to_jsonb(old) - 'factures' - 'factures_purgees_le') then
+    raise exception 'Une archive de compte ne se modifie pas' using errcode = '42501';
+  end if;
+  -- La date de purge est celle de la base, posée au retrait d'une facture et à lui seul (relecture adverse M4).
+  if new.factures is not distinct from old.factures then
+    if new.factures_purgees_le is distinct from old.factures_purgees_le then
+      raise exception 'Une archive de compte ne se modifie pas' using errcode = '42501';
+    end if;
+    return new;
+  end if;
+  new.factures_purgees_le := now();
+  -- La durée du catalogue, active ou non (même lecture que archives_comptes_echeances) ; jamais moins de six ans.
+  select r.duree_mois into v_mois from public.retention_rules r where r.data_type = 'archive:facture';
+  -- Chaque facture gardée l'est à l'identique, sans copie de plus ; chaque facture retirée est arrivée à son échéance.
+  -- Les factures se comptent (M4) : deux copies identiques sont deux factures, aucune ne part avant son terme.
+  if exists (select 1
+               from (select n.e, count(*) as c from jsonb_array_elements(new.factures) n(e) group by n.e) nouvelles
+               left join (select o.e, count(*) as c from jsonb_array_elements(old.factures) o(e) group by o.e) anciennes
+                 on anciennes.e = nouvelles.e
+              where anciennes.c is null or nouvelles.c > anciennes.c)
+     or exists (select 1
+                  from (select o.e, count(*) as c from jsonb_array_elements(old.factures) o(e) group by o.e) anciennes
+                  left join (select n.e, count(*) as c from jsonb_array_elements(new.factures) n(e) group by n.e) nouvelles
+                    on nouvelles.e = anciennes.e
+                 where coalesce(nouvelles.c, 0) < anciennes.c
+                   and public.echeance_facture_archivee(anciennes.e, old.fin_dernier_abonnement_paye, v_mois) >= v_jour) then
+    raise exception 'Seules les factures arrivées au terme de leur conservation se retirent d''une archive' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+revoke execute on function public.archives_comptes_garde() from public, anon, authenticated;
+
+-- La garde d'ajout seul de la vente laisse passer, en plus de la suppression de l'organisation, la suppression d'une
+-- déclaration arrivée à l'échéance de `echeance_retractation_abonnement`, et rien d'autre (intégration du 24/10 : la règle contrat:retractation était
+-- active sans chemin de purge autorisé). Le reste de la garde est celui de la vente, à l'identique.
+create or replace function public.retractations_abonnement_ajout_seul()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if tg_op = 'DELETE' then
+    -- La suppression de l'organisation l'emporte (cascade : l'organisation n'existe déjà plus).
+    if not exists (select 1 from public.organizations o where o.id = old.organization_id) then return old; end if;
+    -- La purge de conservation, au terme de la preuve (contrat:retractation, jamais moins de dix ans).
+    if public.echeance_retractation_abonnement(old.declaree_le,
+         (select r.duree_mois from public.retention_rules r where r.data_type = 'contrat:retractation'))
+       < (now() at time zone 'Europe/Paris')::date then
+      return old;
+    end if;
+    raise exception 'Une déclaration de rétractation ne se supprime pas avant le terme de sa conservation';
+  end if;
+  if (to_jsonb(new) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'passage_effectue', 'accuse_envoye_le'])
+     is distinct from (to_jsonb(old) - array['executee_le', 'montant_rembourse_cents', 'refunds', 'passage_effectue', 'accuse_envoye_le']) then
+    raise exception 'Une déclaration de rétractation ne se réécrit pas';
+  end if;
+  -- Relecture adverse du 24/10 (point 5) : l'exécution consignée (montant remboursé, références) ne s'écrase pas.
+  if old.executee_le is not null
+     and (new.executee_le, new.montant_rembourse_cents, new.refunds, new.passage_effectue)
+         is distinct from (old.executee_le, old.montant_rembourse_cents, old.refunds, old.passage_effectue) then
+    raise exception 'L''exécution de la rétractation est déjà consignée';
+  end if;
+  if old.accuse_envoye_le is not null and new.accuse_envoye_le is distinct from old.accuse_envoye_le then
+    raise exception 'L''accusé de réception est déjà enregistré';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function public.retractations_abonnement_ajout_seul() from public, anon, authenticated;
 
 create or replace function public.appliquer_conservation_complementaire()
 returns jsonb
@@ -923,6 +1051,22 @@ begin
 
   -- h. Archives des comptes.
   v_resultat := v_resultat || public.purger_archives_comptes();
+
+  -- h bis. Déclarations de rétractation arrivées au terme de leur preuve : la garde d'ajout seul de la vente laisse passer
+  -- cette suppression, et elle seule. Registre des effacements à réappliquer, quatre mois après la fermeture.
+  if public.duree_conservation_active('contrat:retractation') is not null then
+    delete from public.retractations_abonnement
+     where id in (select x.id::uuid from public.cibles_conservation_complementaire() x where x.categorie = 'contrat:retractation');
+    get diagnostics v_n = row_count;
+    v_resultat := v_resultat || jsonb_build_object('retractations_abonnement', v_n);
+  end if;
+  if public.duree_conservation_active('journal:effacements_a_reappliquer') is not null then
+    delete from public.effacements_a_reappliquer
+     where fermeture_id in (select x.id::uuid from public.cibles_conservation_complementaire() x
+                             where x.categorie = 'journal:effacements_a_reappliquer');
+    get diagnostics v_n = row_count;
+    v_resultat := v_resultat || jsonb_build_object('effacements_a_reappliquer', v_n);
+  end if;
 
   -- i. Événements Stripe traités (jamais ceux qui restent à traiter).
   if public.duree_conservation_active('journal:abonnement_evenements') is not null then
@@ -1067,7 +1211,8 @@ begin
       when r.data_type in ('preuve:signature','dossier:sans_bail','support:demande_droits','support:question_idee',
                            'support:contestation','artisan:evaluation','contact:prospect','prospect:opposition',
                            'compte:invitation_jamais_utilisee','compte:inscription_non_confirmee','archive:facture',
-                           'archive:preuve_contrat','journal:abonnement_evenements')
+                           'archive:preuve_contrat','journal:abonnement_evenements','contrat:retractation',
+                           'journal:effacements_a_reappliquer')
         then (select count(*) from public.cibles_conservation_complementaire() c where c.categorie=r.data_type)
       else null
      end echus
@@ -1719,6 +1864,8 @@ revoke all on function public.purger_comptes_jamais_utilises() from public, anon
 grant execute on function public.purger_comptes_jamais_utilises() to service_role;
 revoke all on function public.purger_archives_comptes() from public, anon, authenticated;
 grant execute on function public.purger_archives_comptes() to service_role;
+revoke all on function public.echeance_retractation_abonnement(timestamptz, integer) from public, anon, authenticated;
+grant execute on function public.echeance_retractation_abonnement(timestamptz, integer) to service_role;
 revoke all on function public.appliquer_conservation_complementaire() from public, anon, authenticated;
 grant execute on function public.appliquer_conservation_complementaire() to service_role;
 revoke all on function public.generer_alertes_conservation() from public, anon, authenticated;

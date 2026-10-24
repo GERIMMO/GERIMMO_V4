@@ -30,8 +30,8 @@
 --
 -- Rejouable : remplacement par ancre qui accepte la forme convertie, CREATE OR REPLACE ; `search_path = ''` ; aucune
 -- donnée existante réécrite ; `fermer_fonctions_a_anon()` en fin.
--- Retour : supabase/retours-arriere/20261024100000_acceptation_conditions_et_classement_artisans.retour.sql (hors de
--- la chaîne « Ordre complet » : rien ici ne cite `aujourdhui_paris()`).
+-- Retour : supabase/retours-arriere/20261024100000_acceptation_conditions_et_classement_artisans.retour.sql (dans
+-- la chaîne « Ordre complet », avec les retours du plan de conformité, bien que rien ici ne cite `aujourdhui_paris()`).
 
 -- ── 1. Classement des artisans : la note à partir de trois évaluations, puis l'ordre alphabétique français ──────
 do $classement$

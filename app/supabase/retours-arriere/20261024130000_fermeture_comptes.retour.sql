@@ -26,8 +26,9 @@
 -- Storage, jamais par une suppression SQL), les archives de `archives_comptes` (lot 1A), les lignes d'audit déjà écrites.
 --
 -- Une seule instruction DO atomique : seule en autocommit, ou intégralement annulable dans une transaction externe,
--- qu'elle ne valide jamais. Rejouée, elle ne fait rien de plus. Hors de la chaîne « Ordre complet » du LISEZ-MOI (la
--- migration ne cite pas `aujourdhui_paris()`). La marche avant se rejoue ensuite sans rien perdre.
+-- qu'elle ne valide jamais. Rejouée, elle ne fait rien de plus. Joué dans la chaîne « Ordre complet » du LISEZ-MOI, bien que la
+-- migration ne cite pas `aujourdhui_paris()` (retours du plan de conformité du 24/10, ordre inverse du manifeste : 140000,
+-- 130000, 120000, 110000, 100000, 090000). La marche avant se rejoue ensuite sans rien perdre.
 do $retour_atomique$
 declare
   v_n bigint;

@@ -57,7 +57,11 @@ describe("vente au consommateur et impayé — fichiers (sans base)", () => {
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
     expect(lisezMoi).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
-    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\s*`20261024110000`/);
+    // Intégration du 24/10 : la chaîne s'ouvre sur les retours du plan de conformité, dans l'ordre inverse du manifeste
+    // (140000, 130000, 120000, puis celui-ci, puis 100000 et 090000), avant 20261023184512.
+    expect(lisezMoi).toMatch(
+      /Ordre complet si tout doit être défait :\s*`20261024140000`[^`]*`20261024130000`[^`]*`20261024120000`[^`]*`20261024110000`[^`]*`20261024100000`[^`]*`20261024090000`[^`]*`20261023184512`/
+    );
     expect(readFileSync("vitest.config.ts", "utf8")).toContain('"tests/vente-impaye-base.test.ts"');
   });
 });

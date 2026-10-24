@@ -464,7 +464,7 @@ $fonction$;
 
   -- 6. Version d'historique, filet commun.
   if to_regclass('supabase_migrations.schema_migrations') is not null then
-    delete from supabase_migrations.schema_migrations where version = '20261024140000';
+    delete from supabase_migrations.schema_migrations where left(version, 14) = '20261024140000';  -- les deux formes : production (14 chiffres) et CI (nom du fichier)
   end if;
   perform public.fermer_fonctions_a_anon();
 end $retour_atomique$;

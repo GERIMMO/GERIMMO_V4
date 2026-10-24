@@ -51,7 +51,7 @@ describe("confirmation du mobile de la caution et de l'état des lieux sur place
 
   it("le retour est une seule instruction DO atomique, qui retire sa version d'historique et garde la colonne", () => {
     expect(RETOUR.replace(/--.*$/gm, "").trim()).toMatch(/^do \$retour_atomique\$[\s\S]*\$retour_atomique\$;$/);
-    expect(RETOUR).toContain(`delete from supabase_migrations.schema_migrations where version = '${VERSION}'`);
+    expect(RETOUR).toContain(`delete from supabase_migrations.schema_migrations where left(version, 14) = '${VERSION}'`);
     expect(RETOUR.replace(/--.*$/gm, "")).not.toMatch(/drop column/i);
   });
 

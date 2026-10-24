@@ -91,7 +91,7 @@ end $fonction$;
   end if;
 
   if to_regclass('supabase_migrations.schema_migrations') is not null then
-    delete from supabase_migrations.schema_migrations where version = '20261024090000';
+    delete from supabase_migrations.schema_migrations where left(version, 14) = '20261024090000';  -- les deux formes : production (14 chiffres) et CI (nom du fichier)
   end if;
 end;
 $retour_atomique$;

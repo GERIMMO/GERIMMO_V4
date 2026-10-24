@@ -197,5 +197,5 @@ begin
     raise notice 'Conservé (porte des données, décision du dirigeant requise) : %', array_to_string(v_garde, ', ');
   end if;
 
-  delete from supabase_migrations.schema_migrations where version = '20261024130000';
+  delete from supabase_migrations.schema_migrations where left(version, 14) = '20261024130000';  -- les deux formes : production (14 chiffres) et CI (nom du fichier)
 end $retour_atomique$;

@@ -46,7 +46,7 @@ describe("vente au consommateur et impayé — fichiers (sans base)", () => {
   it("le retour est une seule instruction DO atomique, qui retire sa version d'historique", () => {
     expect(RETOUR.replace(/--.*$/gm, "").trim()).toMatch(/^do \$retour_atomique\$[\s\S]*\$retour_atomique\$;$/);
     expect(RETOUR).toMatch(/^-- RETOUR ARRIÈRE de /m);
-    expect(RETOUR).toContain(`delete from supabase_migrations.schema_migrations where version = '${VERSION}'`);
+    expect(RETOUR).toContain(`delete from supabase_migrations.schema_migrations where left(version, 14) = '${VERSION}'`);
   });
 
   it("manifeste, LISEZ-MOI (ligne et tête de la chaîne « Ordre complet ») et classement en série", () => {

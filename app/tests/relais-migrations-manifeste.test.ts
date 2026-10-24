@@ -83,12 +83,13 @@ const MISSION_OCTOBRE = [
   "20261023161500_charges_agregats_portefeuille.sql",
   // 23/10, défauts A01 et A02 de la facturation : une intention de souscription par organisation, trace des hausses.
   "20261023162446_souscription_unique_et_trace_hausse.sql",
-  // 23/10, PR #242 (Codex) : inventaire global des souscriptions Stripe, appliquée en production entre 162446 et 180000.
-  "20261023164629_stripe_inventaire_global.sql",
   // 23/10, décision du dirigeant : le réseau d'artisans suit la zone et les métiers choisis par l'artisan.
   "20261023180000_reseau_zone_choisie_par_artisan.sql",
   // Relecture adverse du 23/10 : le locataire lit ses annonces au jour de Paris, comme la fiche agence du bien.
   "20261023184512_annonces_locataire_jour_paris.sql",
+  // 23/10, PR #242 (Codex) : inventaire global des souscriptions Stripe, appliquée en production APRÈS 184512
+  // (chantier 40026422737, 21 h 23 UTC) : l'ordre du manifeste suit celui de la production, pas l'horodatage.
+  "20261023164629_stripe_inventaire_global.sql",
   // 24/10, plan de conformité (lot 1A, R12) : versions archivées des conditions, document des acceptations, archive des comptes.
   "20261024090000_versions_conditions_et_archives_comptes.sql",
   // 24/10, plan de conformité (lot 1A, R10 et R19) : artisans classés par note à partir de trois évaluations ;

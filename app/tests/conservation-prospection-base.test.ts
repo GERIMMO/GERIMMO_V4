@@ -123,7 +123,7 @@ describe("conservation et prospection — fichiers (sans base)", () => {
   it("le retour est une seule instruction DO atomique, qui retire sa version, sans adresse réelle", () => {
     expect(RETOUR.replace(/--.*$/gm, "").trim()).toMatch(/^do \$retour_atomique\$[\s\S]*\$retour_atomique\$;$/);
     expect(RETOUR).toMatch(/^-- RETOUR ARRIÈRE de /m);
-    expect(RETOUR).toContain(`delete from supabase_migrations.schema_migrations where version = '${VERSION}'`);
+    expect(RETOUR).toContain(`delete from supabase_migrations.schema_migrations where left(version, 14) = '${VERSION}'`);
     expect(transactionsInterdites(RETOUR)).toEqual([]);
     expect(RETOUR).not.toMatch(/[\w.+-]+@[\w-]+\.[a-z]{2,}/i);
   });

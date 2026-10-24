@@ -120,9 +120,10 @@ export default async function PageRetractation(props: PageProps<"/agence/[orgId]
           </p>
           <FormulaireRetractation orgId={orgId} nature={nature} nom={nom} adresse={adresse} saisieSuperviseur={saisieSuperviseur} />
           <p className="text-xs text-muted-foreground">
-            Vous pouvez aussi utiliser le formulaire de rétractation des{" "}
+            Vous pouvez aussi utiliser le formulaire de l&apos;article 8.10 des{" "}
             <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
               conditions générales
+              <span className="sr-only"> (nouvel onglet)</span>
             </Link>{" "}
             ou nous écrire.
           </p>

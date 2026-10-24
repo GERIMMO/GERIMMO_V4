@@ -35,6 +35,13 @@ describe("avis de reconduction tacite (art. L215-1 du code de la consommation)",
     expect(veilleDeLEcheance("2026-12-31T23:30:00Z")).toBe("2026-12-31");
     expect(veilleDeLEcheance("2027-03-01T10:00:00Z")).toBe("2027-02-28");
   });
+  it("relecture adverse du 24/10 (M2) : le premier du mois s'écrit « 1er »", () => {
+    const a = courrierReconduction({ organisation: "O", echeance: "2027-01-02T10:00:00Z", montantCents: 5990, formule: "solo", lien: null });
+    expect(a.html).toContain("Date limite de non-reconduction : 1er janvier 2027");
+    expect(a.html).not.toMatch(/\b1 janvier/);
+    const b = courrierReconduction({ organisation: "O", echeance: "2027-03-01T10:00:00Z", montantCents: 5990, formule: "solo", lien: null });
+    expect(b.sujet).toContain("1er mars 2027");
+  });
   it("plan du 23/10 (R55) : éditeur en franchise de TVA, pas de « TTC » à côté du montant", () => {
     expect(c.html).not.toContain("TTC");
   });

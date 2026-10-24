@@ -566,22 +566,43 @@ export const MARQUE_PORTAIL = "portail-2026-10-24";
  * clients, et une première ouverture depuis une préproduction y inscrivait
  * pour toujours des liens de préproduction. Une configuration existante dont
  * les liens diffèrent est mise à jour.
+ *
+ * Relecture adverse du 24/10 (point 9) : les configurations Gerimmo d'une marque ANCIENNE (« portail-2026-09-28 »,
+ * résiliation ouverte) sont désactivées au passage — une session ouverte ailleurs avec leur identifiant ne doit plus
+ * offrir de résiliation. Stripe refuse de désactiver la configuration PAR DÉFAUT (celle des liens « gérer
+ * l'abonnement » de ses propres courriels et du lien de connexion sans code) : elle reste un geste humain à vérifier dans
+ * le tableau de bord (Paramètres → Portail client : résiliation désactivée).
  */
 export async function assurerConfigurationPortail(stripe: Stripe, site: string): Promise<string> {
   const profil = {
     privacy_policy_url: `${site}/confidentialite`,
     terms_of_service_url: `${site}/conditions`,
   };
+  let actuelle: string | null = null;
   for await (const c of stripe.billingPortal.configurations.list({ active: true, limit: 100 })) {
-    if (c.metadata?.gerimmo !== MARQUE_PORTAIL) continue;
+    const marque = c.metadata?.gerimmo;
+    if (!marque) continue;
+    if (marque !== MARQUE_PORTAIL) {
+      if (!c.is_default) {
+        try {
+          await stripe.billingPortal.configurations.update(c.id, { active: false });
+        } catch (e) {
+          if (e instanceof ArretSupervision) throw e;
+          console.error("[stripe][portail] ancienne configuration non désactivée :", c.id, lireErreurStripe(e).slice(0, 200));
+        }
+      }
+      continue;
+    }
+    if (actuelle) continue;
     if (
       c.business_profile?.privacy_policy_url !== profil.privacy_policy_url ||
       c.business_profile?.terms_of_service_url !== profil.terms_of_service_url
     ) {
       await stripe.billingPortal.configurations.update(c.id, { business_profile: profil });
     }
-    return c.id;
+    actuelle = c.id;
   }
+  if (actuelle) return actuelle;
   const cree = await stripe.billingPortal.configurations.create({
     business_profile: profil,
     features: {

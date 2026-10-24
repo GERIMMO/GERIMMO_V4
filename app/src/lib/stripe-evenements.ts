@@ -300,7 +300,10 @@ async function courriersDuContrat(
   if (!avant || avant.stripe_subscription_id !== s.id) return resultat;
 
   // R04 : une résiliation notifiée hors de la page (tableau de bord Stripe, ancien portail encore ouvert) reçoit le
-  // même accusé, une fois. Seulement pour la grille du 28/09 : la grille historique pose d'elle-même une résiliation
+  // même accusé, une fois. Relecture adverse du 24/10 (point 10) : rien ne distingue ici une résiliation « à la fin de
+  // la période » posée par l'équipe pour impayé d'une résiliation demandée par le client (par courriel, saisie au
+  // tableau de bord) ; la procédure de l'impayé est donc l'annulation IMMÉDIATE (affichée dans Finances, à côté du lien
+  // vers Stripe), qui passe par la branche R07 ci-dessous. Seulement pour la grille du 28/09 : la grille historique pose d'elle-même une résiliation
   // quand le parc tombe à zéro bien (synchroniserQuantite), ce n'est pas une notification du client. Une résiliation
   // que la page vient de notifier est accusée par la page elle-même, à l'adresse que le client y a choisie.
   const fin = finDePeriode(s);

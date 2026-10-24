@@ -10,8 +10,9 @@
 // coordonnées figureront dans les mentions légales dès qu'elle sera effective. »
 //
 // Numéros d'articles : seuls ceux qui existent DÉJÀ avec ce sens dans la version en vigueur des conditions
-// (2026-09-30) seraient cités ; les numéros de la future version (8.10, 15.4) ne le sont pas : « les conditions
-// générales ». Le formulaire de rétractation reproduit est celui de la version en vigueur, acceptée par le client.
+// (2026-09-30) sont cités — l'article 8.10 (« Rétractation », avec son formulaire) et l'article 15 (« Suspension et
+// résiliation ») ; un sous-numéro qui n'existe pas encore (15.4) ne l'est pas (relecture adverse du 24/10, M3). Le
+// formulaire de rétractation reproduit est celui de la version en vigueur, acceptée par le client.
 //
 // Module pur (gabarits) : tests/courriers-contrat.test.ts. Les envois vivent dans lib/courriers-contrat-envoi.ts.
 
@@ -137,8 +138,9 @@ function mentionTaxes(regime: RegimeTva | null, estAgence: boolean): string {
 
 export function courrierConfirmationSouscription(c: Confirmation): Courrier {
   const sujet = "Confirmation de votre abonnement Gerimmo";
-  const unite = c.estAgence ? "lot sous mandat" : "bien";
-  const jusqua = c.biens ? `, jusqu'à ${c.biens} ${unite}${c.biens > 1 ? "s" : ""}` : "";
+  // Relecture adverse du 24/10 (M1) : le pluriel porte sur « lot », pas sur « mandat ».
+  const unite = (n: number) => (c.estAgence ? `lot${n > 1 ? "s" : ""} sous mandat` : `bien${n > 1 ? "s" : ""}`);
+  const jusqua = c.biens ? `, jusqu'à ${c.biens} ${unite(c.biens)}` : "";
   const duree =
     c.periodicite === "annuel"
       ? "douze mois, reconduits tacitement ; nous vous écrirons entre trois mois et un mois avant chaque échéance"

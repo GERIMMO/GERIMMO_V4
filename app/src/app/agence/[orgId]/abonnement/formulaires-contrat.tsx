@@ -56,11 +56,11 @@ export function FormulaireRetractation({
       />
       {saisieSuperviseur && (
         <Champ
-          libelle="Date et heure de réception du courriel de rétractation (heure de Paris)"
+          libelle="Date et heure de réception de la déclaration (courriel ou « Aide et retours »), heure de Paris"
           nom="recue_le"
           type="datetime-local"
           valeur=""
-          aide="Saisie par la supervision Gerimmo d'une rétractation reçue par courriel."
+          aide="Saisie par la supervision Gerimmo d'une rétractation reçue hors du bouton « Renoncer au contrat ici » (article 8.10 des conditions générales : courriel ou page « Aide et retours »)."
         />
       )}
       <BoutonEnvoi enCoursTexte="Enregistrement de votre rétractation…">Confirmer la rétractation</BoutonEnvoi>

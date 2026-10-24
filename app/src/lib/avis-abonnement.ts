@@ -25,17 +25,14 @@ import { baseEspace } from "@/lib/racine-espace";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 import { REGIME_TVA } from "@/lib/editeur";
 import { dateParis } from "@/lib/heure-paris-calcul";
+import { jourEnLettres } from "@/lib/delai-retractation";
 import { etiquetteTaxes, formuleParCode, offreFormule, type Periodicite } from "@/lib/tarifs";
 
 export type Courrier = { sujet: string; html: string };
 
+/** Le jour de Paris en toutes lettres, « 1er » compris (relecture adverse du 24/10, M2). */
 function jour(iso: string): string {
-  return new Date(iso).toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "Europe/Paris",
-  });
+  return jourEnLettres(dateParis(new Date(iso)));
 }
 
 function enveloppe(titre: string, corps: string, lien: string | null, geste: string, organisation: string): string {
@@ -255,10 +252,11 @@ export type BilanReconduction = { envoyes: number; sans_adresse: string[]; echec
 /**
  * Les avis de reconduction dus aujourd'hui. On envoie, PUIS on marque : un
  * échec réseau laisse l'avis « dû », il repartira demain (plan du 23/10, R54 :
- * la fenêtre court d'un mois à trois mois avant l'échéance, comptés en mois et
- * en dates de Paris, migration 20261024110000). La clé d'idempotence empêche
- * un doublon le même jour. Le montant annoncé est celui de la période suivante
- * (R17, `periodeSuivante`).
+ * la fenêtre court d'un mois à trois mois avant la DATE LIMITE de
+ * non-reconduction, veille de l'échéance — relecture adverse du 24/10, M8 —,
+ * comptés en mois et en dates de Paris, migration 20261024110000). La clé
+ * d'idempotence empêche un doublon le même jour. Le montant annoncé est celui
+ * de la période suivante (R17, `periodeSuivante`).
  */
 export async function envoyerAvisReconduction(supabase: SupabaseClient, avantEffet?: () => Promise<void>): Promise<BilanReconduction> {
   const bilan: BilanReconduction = { envoyes: 0, sans_adresse: [], echecs: [] };

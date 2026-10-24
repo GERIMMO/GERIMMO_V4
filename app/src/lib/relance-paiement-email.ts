@@ -20,7 +20,7 @@
 //  · R06 : le courrier du jour de l'échec vaut mise en demeure ; il dit la date à partir de laquelle l'abonnement peut
 //    être résilié (trente jours après l'échec), en renvoyant à l'article 15 des conditions générales en vigueur
 //    (« Suspension et résiliation », version du 30/09/2026 : résiliation par l'Éditeur après mise en demeure restée
-//    sans effet trente jours). Les numéros 15.4 et 8.10 du plan sont ceux de la future version : pas cités ici.
+//    sans effet trente jours). Le sous-numéro 15.4 du plan n'existe pas dans cette version : « l'article 15 ».
 //  · R23 : le PREMIER prélèvement échoué (aucune échéance réglée) a son propre courrier : le compte est gelé dès
 //    l'échec, comme à la fin d'un essai sans souscription.
 //  · R26 : en lecture seule, les envois automatiques aux locataires sont aussi interrompus ; ceux de la période ne sont
@@ -29,6 +29,7 @@
 
 import { echapperHtml } from "@/lib/quittance-email";
 import { euros, type Periodicite } from "@/lib/tarifs";
+import { jourEnLettres } from "@/lib/delai-retractation";
 
 export type Palier = 0 | 1 | 2 | 3;
 
@@ -53,13 +54,9 @@ export type RelancePaiement = {
   enDefautDepuis?: string | null;
 };
 
+/** « 1er décembre 2026 » pour « 2026-12-01 » (relecture adverse du 24/10, M2). */
 function jour(iso: string): string {
-  return new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+  return jourEnLettres(iso.slice(0, 10));
 }
 
 /** « par mois » ou « par an », en toutes lettres. */

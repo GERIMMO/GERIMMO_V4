@@ -209,6 +209,15 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     expect(html).toContain("Continuer vers le paiement sécurisé");
     expect(html).not.toContain("Acceptez d’abord");
   });
+  it("relecture adverse du 24/10 (M3, M9) : le récapitulatif renvoie au formulaire de l'article 8.10 ; les nouveaux onglets sont annoncés", async () => {
+    mocks.stripePret = true;
+    const html = await rendre();
+    expect(html).toContain("ou avec le formulaire de l&#x27;article 8.10 des <a");
+    expect(html).toMatch(/article 8\.10 des <a [^>]*href="\/conditions"[^>]*>conditions générales/);
+    const liensNouvelOnglet = html.match(/<a [^>]*target="_blank"[^>]*>[\s\S]*?<\/a>/g) ?? [];
+    expect(liensNouvelOnglet.length).toBeGreaterThan(0);
+    for (const lien of liensNouvelOnglet) expect(lien).toContain("(nouvel onglet)");
+  });
   it("sans clés Stripe, le motif Stripe passe avant celui de l’identité (banc local)", async () => {
     mocks.editeur = { editeur: EDITEUR_VIDE, indisponible: false };
     const html = await rendre();

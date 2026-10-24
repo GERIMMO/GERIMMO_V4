@@ -11,7 +11,7 @@ import { MARQUE_PORTAIL, assurerConfigurationPortail } from "@/lib/stripe";
 import { creerSessionOffre, messageBoutonPaiement } from "@/lib/stripe-offres";
 import { euros, offreParticulier } from "@/lib/tarifs";
 
-function fauxStripe() {
+function fauxStripe(configurations: Record<string, unknown>[] = []) {
   const stripe = {
     products: { retrieve: vi.fn(async (id: string) => ({ id, active: true })) },
     taxRates: { list: () => (async function* () {})() },
@@ -25,9 +25,12 @@ function fauxStripe() {
     },
     billingPortal: {
       configurations: {
-        list: () => (async function* () {})(),
+        list: () =>
+          (async function* () {
+            for (const c of configurations) yield c;
+          })(),
         create: vi.fn(async (_p: Record<string, unknown>) => ({ id: "bpc_neuf" })),
-        update: vi.fn(),
+        update: vi.fn(async (id: string, _p: Record<string, unknown>) => ({ id })),
       },
     },
   };
@@ -70,6 +73,16 @@ describe("R21 — le dernier bouton de la page de paiement", () => {
   });
 });
 
+describe("relecture adverse du 24/10 (M11, agences hors V1) : le montant agence dit « HT » quand la TVA s'ajoute", () => {
+  it("régime TVA : « HT, TVA en sus » ; franchise : le montant seul", async () => {
+    const { offreAgence } = await import("@/lib/tarifs");
+    const offre = offreAgence(12);
+    expect(messageBoutonPaiement(offre, null, { nature: "assujetti", tauxPourcent: 20 })).toContain(`${euros(offre.montantCents)} HT, TVA en sus, par mois`);
+    expect(messageBoutonPaiement(offre, null, { nature: "franchise" })).toContain(`${euros(offre.montantCents)} par mois`);
+    expect(messageBoutonPaiement(offreParticulier(1, "mensuel"), null, { nature: "assujetti", tauxPourcent: 20 })).not.toContain("HT");
+  });
+});
+
 describe("R04 — le portail client ne résilie plus", () => {
   it("la configuration créée désactive la résiliation, sous la nouvelle marque", async () => {
     expect(MARQUE_PORTAIL).toBe("portail-2026-10-24");
@@ -81,5 +94,24 @@ describe("R04 — le portail client ne résilie plus", () => {
     expect(params.features.payment_method_update.enabled).toBe(true);
     expect(params.features.invoice_history.enabled).toBe(true);
     expect(params.metadata).toEqual({ gerimmo: "portail-2026-10-24" });
+  });
+
+  it("relecture adverse du 24/10 (point 9) : les anciennes configurations Gerimmo (résiliation ouverte) sont désactivées", async () => {
+    const profil = { privacy_policy_url: "https://www.gerimmo.test/confidentialite", terms_of_service_url: "https://www.gerimmo.test/conditions" };
+    const stripe = fauxStripe([
+      { id: "bpc_ancienne", active: true, is_default: false, metadata: { gerimmo: "portail-2026-09-28" }, business_profile: profil },
+      { id: "bpc_tableau_de_bord", active: true, is_default: true, metadata: {}, business_profile: profil },
+      { id: "bpc_actuelle", active: true, is_default: false, metadata: { gerimmo: MARQUE_PORTAIL }, business_profile: profil },
+    ]);
+    expect(await assurerConfigurationPortail(stripe, "https://www.gerimmo.test")).toBe("bpc_actuelle");
+    expect(stripe.billingPortal.configurations.update).toHaveBeenCalledWith("bpc_ancienne", { active: false });
+    expect(stripe.billingPortal.configurations.update).toHaveBeenCalledTimes(1); // ni la configuration par défaut, ni l'actuelle
+    expect(stripe.billingPortal.configurations.create).not.toHaveBeenCalled();
+  });
+
+  it("point 9 : une ancienne configuration Gerimmo devenue celle par défaut n'est pas désactivable (Stripe le refuse) : elle reste, le reste suit", async () => {
+    const stripe = fauxStripe([{ id: "bpc_ancienne_defaut", active: true, is_default: true, metadata: { gerimmo: "portail-2026-09-28" } }]);
+    expect(await assurerConfigurationPortail(stripe, "https://www.gerimmo.test")).toBe("bpc_neuf");
+    expect(stripe.billingPortal.configurations.update).not.toHaveBeenCalled();
   });
 });

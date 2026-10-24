@@ -4,7 +4,10 @@
  *    rétractation, date limite, PDF joint ou adresse ;
  *  · R04 : accusé de résiliation ;
  *  · R01, R37 : les quatre variantes de l'accusé de rétractation d'un abonnement, et celles du passage à l'annuel ;
- *  · aucun numéro d'article de la future version (8.10, 15.4).
+ *  · un numéro d'article seulement s'il existe avec ce sens dans la version en vigueur (2026-09-30) : 8.10 oui
+ *    (rétractation et formulaire), 15.4 non (l'article 15 n'a pas de sous-numéro).
+ *
+ * Relecture adverse du 24/10 (M1) : « lots sous mandat » au pluriel.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -200,5 +203,18 @@ describe("R05 — la phrase du médiateur à la clôture d'une réclamation", ()
       "Si cette réponse ne vous satisfait pas, vous pouvez saisir gratuitement le médiateur de la consommation : Médiateur fictif, 2 rue Exemple, 75000 Paris, https://mediateur.example.invalid."
     );
     expect(phraseMediateurReclamation(EDITEUR)).toBe(PHRASE_MEDIATEUR_EN_COURS);
+  });
+});
+
+describe("relecture adverse du 24/10 (M1) : le pluriel de la capacité", () => {
+  const base: Confirmation = {
+    nom: null, organisation: "Agence fictive", estAgence: true, souscritLe: new Date("2026-10-26T09:00:00Z"), formule: null, biens: 12,
+    periodicite: "mensuel", montantCents: 4900, regime: { nature: "franchise" }, premierPrelevementLe: new Date("2026-10-26T09:00:00Z"),
+    editeur: EDITEUR, conditions: null, pdfJoint: false, lienConditions: null,
+  };
+  it("« jusqu'à 12 lots sous mandat », « jusqu'à 1 lot sous mandat », « jusqu'à 3 biens »", () => {
+    expect(texte(courrierConfirmationSouscription(base).html)).toContain("jusqu'à 12 lots sous mandat");
+    expect(texte(courrierConfirmationSouscription({ ...base, biens: 1 }).html)).toContain("jusqu'à 1 lot sous mandat");
+    expect(texte(courrierConfirmationSouscription({ ...base, estAgence: false, formule: "bailleur", biens: 3 }).html)).toContain("jusqu'à 3 biens");
   });
 });

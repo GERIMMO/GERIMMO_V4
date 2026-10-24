@@ -215,11 +215,14 @@ export function cleIdempotenceSouscription(intention: string): string {
  * l'abonnement Gerimmo {formule} avec obligation de paiement : {montant} {par mois / par an}{, premier prélèvement le
  * {date}}. » La date est celle de la fin d'essai transmise à Stripe (jour de Paris).
  */
-export function messageBoutonPaiement(offre: Offre, finEssaiSecondes: number | null): string {
+export function messageBoutonPaiement(offre: Offre, finEssaiSecondes: number | null, regime: RegimeTva | null = null): string {
   const formule = offre.public === "particulier" ? offre.formule.nom : "agence";
   const periode = offre.periodicite === "annuel" ? "par an" : "par mois";
   const premier = finEssaiSecondes ? `, premier prélèvement le ${jourEnLettres(dateParis(new Date(finEssaiSecondes * 1000)))}` : "";
-  return `En cliquant, vous commandez l'abonnement Gerimmo ${formule} avec obligation de paiement : ${euros(offre.montantCents)} ${periode}${premier}.`;
+  // Relecture adverse du 24/10 (M11, agences hors V1) : le montant d'une offre agence est hors taxes ; quand la TVA
+  // s'ajoute, il le dit. En franchise, le montant seul (aucune TVA facturée).
+  const taxes = offre.public === "agence" && regime?.nature === "assujetti" ? " HT, TVA en sus," : "";
+  return `En cliquant, vous commandez l'abonnement Gerimmo ${formule} avec obligation de paiement : ${euros(offre.montantCents)}${taxes} ${periode}${premier}.`;
 }
 
 /** La page de paiement hébergée par Stripe, pour une offre de la nouvelle grille. */
@@ -273,7 +276,7 @@ export async function creerSessionOffre(
       // chantier Stripe) ; si le bouton n'affichait pas « Payer », passer la page en mode « setup » (voir le plan).
       submit_type: "pay",
       locale: "fr",
-      custom_text: { submit: { message: messageBoutonPaiement(params.offre, trialEnd ?? null) } },
+      custom_text: { submit: { message: messageBoutonPaiement(params.offre, trialEnd ?? null, params.regime) } },
       // Le formulaire fait lire au client le montant exact avant validation ;
       // Stripe l'affiche encore, TTC, taxes détaillées, avant la carte.
       subscription_data: {

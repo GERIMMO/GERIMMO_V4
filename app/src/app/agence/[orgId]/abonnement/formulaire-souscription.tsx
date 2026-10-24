@@ -53,7 +53,8 @@ export function DetailMontants({ offre, regime }: { offre: Offre; regime: Regime
       {offre.public === "agence" ? (
         <>
           <div className="ligne-info">
-            <span>Total HT</span>
+            {/* Relecture adverse du 24/10 (M11, agences hors V1) : « HT » seulement si une TVA s'ajoute. */}
+            <span>Total{etiquetteTaxes("ht", regime) ? " HT" : ""}</span>
             <span className="montant">{euros(offre.montantCents)} {periode}</span>
           </div>
           {m.connu ? (
@@ -139,6 +140,7 @@ function AcceptationConditions({ estAgence, onAcceptee }: { estAgence: boolean; 
               dans le même onglet, lire les conditions coûtait la saisie en cours. */}
           <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
             version du {CONDITIONS_DATE} des conditions générales
+            <span className="sr-only"> (nouvel onglet)</span>
           </Link>
         </span>
       </label>
@@ -297,14 +299,17 @@ export function FormulaireSouscription({
               ? "Renouvelé chaque année à la même date pour douze mois, au tarif alors en vigueur. Résiliable à tout moment pour la prochaine échéance annuelle : l'accès payé reste ouvert jusqu'à son terme."
               : "Sans engagement : renouvelé chaque mois, résiliable à tout moment pour la prochaine échéance mensuelle. L'accès payé reste ouvert jusqu'au bout du mois en cours."}
           </li>
-          {/* Plan du 23/10 (R02) : le droit de rétractation et le moyen de paiement, rappelés avant de payer. Le numéro
-              d'article de la future version des conditions n'est pas cité : « les conditions générales ». */}
+          {/* Plan du 23/10 (R02), texte du plan : le droit de rétractation et le moyen de paiement, rappelés avant de payer.
+              Relecture adverse du 24/10 (M3) : l'article 8.10 (« Rétractation », avec son formulaire) existe avec ce sens
+              dans la version en vigueur ; il est donc cité. L'ancre #retractation n'est pas posée (page des conditions
+              hors de ce lot) : le lien mène aux conditions. */}
           <li>
             Droit de rétractation : vous pouvez renoncer à cet abonnement, sans motif, pendant 14 jours après la
             souscription (jusqu&apos;au {dateLimiteRetractation} inclus si vous validez aujourd&apos;hui), depuis « Mon
-            abonnement » (bouton « Renoncer au contrat ici ») ou avec le formulaire de rétractation des{" "}
+            abonnement » (bouton « Renoncer au contrat ici ») ou avec le formulaire de l&apos;article 8.10 des{" "}
             <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
               conditions générales
+              <span className="sr-only"> (nouvel onglet)</span>
             </Link>
             . Vous êtes alors remboursé intégralement, sous 14 jours, sur la carte utilisée.
           </li>
@@ -365,6 +370,7 @@ export function FormulaireSouscription({
       <p className="text-xs text-muted-foreground">
         <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
           Conditions générales d&apos;utilisation et de vente, version du {CONDITIONS_DATE}
+          <span className="sr-only"> (nouvel onglet)</span>
         </Link>
       </p>
       {etat.erreur && (

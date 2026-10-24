@@ -24,6 +24,7 @@ class Lecture implements PromiseLike<Resultat> {
   select() { return this; } eq() { return this; } lte() { return this; } order() { return this; }
   limit() { return this; } not() { return this; } is() { return this; } gte() { return this; } or() { return this; }
   update() { return this; } insert() { return this; }
+  range(de: number, a: number) { return new Lecture(this.rows.slice(de, a + 1)); }
   maybeSingle() { return Promise.resolve({ data: this.rows[0] ?? null, error: null }); }
   then<T = Resultat, E = never>(ok?: ((r: Resultat) => T | PromiseLike<T>) | null, ko?: ((e: unknown) => E | PromiseLike<E>) | null): PromiseLike<T | E> {
     return Promise.resolve({ data: this.rows, error: null }).then(ok, ko);
@@ -41,7 +42,7 @@ function client(arretAuControle: number) {
   const db = { rpc: m.rpc, from: (table: string) => new Lecture(table === "pieces_demandees"
     ? [{ id: "piece_test", organization_id: "org_test", person_id: "person_test", libelle: "Pièce TEST", demandee_le: "2026-01-01T00:00:00Z" }]
     : table === "persons" ? [{ email: "personne@example.invalid", prenom: "TEST" }]
-    : table === "regulatory_watch" ? [{ id: "source_test", titre: "TEST", source_url: "https://source.invalid" }] : []) };
+    : table === "regulatory_watch" ? [{ id: "source_test", titre: "Loyer : révision annuelle TEST", source_url: "https://source.invalid" }] : []) };
   m.db = db;
   return db as unknown as SupabaseClient;
 }

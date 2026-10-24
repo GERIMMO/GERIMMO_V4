@@ -4,6 +4,7 @@ import { initiales, LIBELLES_FAMILLE, LIBELLES_STATUT_ARTISAN, type FamilleClien
 import { LIBELLES_STATUT_ORGANISATION } from "@/lib/libelles";
 import { Pagination } from "../pagination";
 import { LectureIndisponible } from "../lecture-indisponible";
+import ui from "./utilisateurs.module.css";
 import styles from "../repertoires.module.css";
 
 export type ClientResume = { id: string; famille: FamilleClient; nom: string; detail: string; recherche: string; statut: string; ton: "vert" | "ambre" | "rouge" | "gris"; enAttente: boolean; href: string };
@@ -29,13 +30,13 @@ export function Annuaire({ clients, famille, recherche, statut, totaux, lectures
   };
   const famillesVisibles = famille === "tous" ? FAMILLES : famille === "attente" ? ["artisan"] as const : [famille as FamilleClient];
   return <>
-    <div className={styles.stats} aria-label="Totaux de l’annuaire et filtres">
-      {FAMILLES.map(f => { const Icone = ICONES[f]; return <Link key={f} href={adresse(famille === f ? "tous" : f)} className={styles.stat} data-tone={f === "artisan" ? "ambre" : f === "proprietaire" ? "vert" : "bleu"} aria-current={famille === f ? "true" : undefined}><span className={styles.statIcon}><Icone size={20} aria-hidden="true" /></span><strong>{totaux[f] ?? "—"}</strong><span>{LIBELLES_FAMILLE[f]}</span><small>{totaux[f] === null ? "Total indisponible" : "Total de la plateforme"}</small></Link>; })}
-      <Link href={adresse(famille === "attente" ? "tous" : "attente")} className={styles.stat} data-tone="ambre" aria-current={famille === "attente" ? "true" : undefined}><span className={styles.statIcon}><ClipboardCheck size={20} aria-hidden="true" /></span><strong>{totaux.attente ?? "—"}</strong><span>Inscriptions à valider</span><small>Artisans · total de la plateforme</small></Link>
+    <div className={`${styles.stats} ${ui.totaux}`} aria-label="Totaux de l’annuaire et filtres">
+      {FAMILLES.map(f => { const Icone = ICONES[f]; return <Link key={f} href={adresse(famille === f ? "tous" : f)} className={`${styles.stat} ${ui.tuile}`} data-tone={f === "artisan" ? "ambre" : f === "proprietaire" ? "vert" : "bleu"} aria-current={famille === f ? "true" : undefined}><span className={styles.statIcon}><Icone size={20} aria-hidden="true" /></span><strong>{totaux[f] ?? "—"}</strong><span>{LIBELLES_FAMILLE[f]}</span>{totaux[f] === null && <small>Total indisponible</small>}</Link>; })}
+      <Link href={adresse(famille === "attente" ? "tous" : "attente")} className={`${styles.stat} ${ui.tuile}`} data-tone="ambre" aria-current={famille === "attente" ? "true" : undefined}><span className={styles.statIcon}><ClipboardCheck size={20} aria-hidden="true" /></span><strong>{totaux.attente ?? "—"}</strong><span>Inscriptions à valider</span><small>Artisans</small></Link>
     </div>
     {(totaux.attente ?? 0) > 0 && <div className={styles.notice}><ClipboardCheck size={20} aria-hidden="true" /><p><strong>{totaux.attente} inscription{totaux.attente! > 1 ? "s" : ""} à examiner.</strong><span>Vérifiez le SIRET et les justificatifs avant de valider.</span></p><Link href="/admin/artisans">Examiner <ArrowUpRight size={16} aria-hidden="true" /></Link></div>}
     <section className={styles.directory} aria-labelledby="annuaire-titre">
-      <div className={styles.directoryHeading}><div><h2 id="annuaire-titre">Votre annuaire</h2><p>La recherche porte sur toutes les fiches. Jusqu’à 25 résultats par catégorie et par page.</p></div>{(famille !== "tous" || recherche || statut) && <Link href="/admin/clients?vue=espaces" className={styles.reset}>Effacer les filtres</Link>}</div>
+      <div className={`${styles.directoryHeading} ${ui.titreListe}`}><div><h2 id="annuaire-titre">Espaces et entreprises</h2></div>{(famille !== "tous" || recherche || statut) && <Link href="/admin/clients?vue=espaces" className={styles.reset}>Effacer les filtres</Link>}</div>
       <form method="get" action="/admin/clients" className={styles.searchBar}><input type="hidden" name="vue" value="espaces"/>
         <input type="hidden" name="famille" value={famille} />
         <label className={styles.search}><Search size={18} aria-hidden="true" /><span className="sr-only">Rechercher dans l’annuaire</span><input type="search" name="recherche" defaultValue={recherche} maxLength={160} placeholder="Nom, ville, e-mail ou SIRET…" /></label>

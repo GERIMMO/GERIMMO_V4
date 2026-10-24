@@ -83,7 +83,9 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
   // Le propriétaire direct n'a pas d'agence (24/09) : l'écran lui parle de
   // son parc, comme le reste de son espace.
   const bailleurDirect = role === "proprietaire_direct";
-  if (bailleurDirect) return <CarnetProprietaire orgId={orgId} />;
+  // Le carnet d’invitations est réservé au titulaire. La supervision consulte
+  // les relations existantes ci-dessous, sans appeler cette RPC propriétaire.
+  if (bailleurDirect && !traverseeLectureSeule) return <CarnetProprietaire orgId={orgId} />;
   const chezVous = bailleurDirect ? "votre parc" : "votre agence";
 
   const { data: relationsBrutes, error: erreurRelations } = await supabase
@@ -179,8 +181,9 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
-          Votre carnet : les entreprises rattachées à {chezVous}. On les
-          sollicite depuis la fiche d&apos;un incident, jamais d&apos;ici.
+          {traverseeLectureSeule
+            ? "Artisans rattachés au client. Le suivi des invitations et les actions restent dans son compte."
+            : <>Votre carnet : les entreprises rattachées à {chezVous}. On les sollicite depuis la fiche d&apos;un incident, jamais d&apos;ici.</>}
         </p>
       </div>
 

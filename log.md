@@ -7045,3 +7045,8 @@ Le lot est soumis à la recette isolée complète avant toute fusion. Les correc
 ## 24 octobre 2026, 22 h UTC — audit quatre personas, reprise des essais navigateur
 
 La CI 40135150450 (bb1febdf) passe les contrôles de code, SQL, PDF et compilation, mais quatre essais navigateur échouent : deux montages du bail fictif utilisent le même paramètre SQL comme UUID et texte, le test du carnet propriétaire attend à tort le formulaire des agences, et axe signale le lien d’aide flottant hors d’une région nommée. Corrections : typage explicite UUID du montage, contrôle du vrai parcours propriétaire « Inviter un artisan », région de navigation Assistance autour du lien existant. Aucun affaiblissement des assertions d’accessibilité ni des permissions. Lint ciblé et types locaux réussis. Publication toujours retenue jusqu’à CI verte ; aucune location activée, aucun message envoyé, aucune donnée de production modifiée.
+
+
+## 24 octobre 2026, 22 h 07 UTC — séparation du carnet propriétaire et de la supervision
+
+Relecture du cas réellement ouvert : verifierAccesEspace fournit un rôle de présentation propriétaire au superadmin en traversée, mais la RPC carnet_artisans_proprietaire exige une adhésion de propriétaire. La page renvoyait trop tôt vers le formulaire d’invitation réservé au titulaire. La supervision conserve désormais la lecture des relations artisan_agences déjà autorisée par ses droits, sans appeler cette RPC ni proposer d’invitation, d’enregistrement ou de modification. Le propriétaire garde son carnet et ses invitations. Aucun élargissement de droits ni migration. L’assertion navigateur contrôle explicitement l’absence de « Inviter un artisan » en supervision.

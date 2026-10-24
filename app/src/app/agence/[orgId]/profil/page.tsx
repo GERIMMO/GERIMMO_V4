@@ -29,11 +29,11 @@ export const metadata = { title: "Profil — Gerimmo" };
 export default async function PageProfil(props: PageProps<"/agence/[orgId]/profil">) {
   const { orgId } = await props.params;
   const { retour } = await props.searchParams;
-  const { supabase, role, estProprietaire, organisation } = await verifierAccesEspace(orgId);
+  const { supabase, role, estProprietaire, organisation, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
-  const responsable = ROLES_RESPONSABLES.includes(role);
-  const titre = estProprietaire ? "Mon profil" : "Profil de l'agence";
+  const responsable = !traverseeLectureSeule && ROLES_RESPONSABLES.includes(role);
+  const titre = estProprietaire ? (traverseeLectureSeule ? "Profil du propriétaire" : "Mon profil") : "Profil de l'agence";
   // 24/09 : côté agence, la barre latérale et la barre haute nomment déjà
   // l'organisation — la mention à droite du titre ne sert qu'au propriétaire.
   const mention = estProprietaire ? organisation.name : undefined;
@@ -132,7 +132,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
           </p>
         ))}
 
-      {retour === "nouveau-lot" && estProprietaire && <div className="rounded-xl border bg-card p-4 text-sm">
+      {retour === "nouveau-lot" && estProprietaire && responsable && <div className="rounded-xl border bg-card p-4 text-sm">
         <p>Complétez et enregistrez votre profil pour reprendre l’ajout de votre logement.</p>
         <Link href={`${base}/parc/nouveau`} className="mt-2 inline-flex min-h-11 items-center font-semibold underline">Reprendre la création du lot →</Link>
       </div>}

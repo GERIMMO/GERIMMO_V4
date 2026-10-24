@@ -42,13 +42,14 @@ for (const persona of ["proprietaire", "superadmin"]) {
           await db.query("insert into public.alerts(id,organization_id,type,titre,criticite,assigned_all) values($1,$3,'signature_retournee','Signature client — contrôle des rôles','normale',true),($2,$3,'manuelle','Alerte critique — contrôle des rôles','critique',true)", [alerteSignature, alerteCritique, ORG]);
           // Aucun contournement de la synthèse : tester la vraie première arrivée.
           await page.goto("/admin/brief");
+          await expect(page.getByRole("dialog")).toHaveCount(0);
           await page.getByRole("button", { name: /Alertes critiques des clients/ }).click();
           const synthese = page.getByRole("dialog");
           await expect(synthese).toContainText("Alerte critique — contrôle des rôles");
           await expect(synthese).not.toContainText("Signature client — contrôle des rôles");
           await expect(synthese).not.toContainText("Traiter");
           await expect(synthese).toContainText("Suivi en lecture seule");
-          await synthese.getByRole("button", { name: "Fermer", exact: true }).click();
+          await synthese.getByRole("button", { name: "Fermer", exact: true }).last().click();
           await page.goto("/admin/autonomie?vue=dossiers&equipe=bail");
           const dossier = page.locator('#dossiers a').filter({ hasText: "Bail signé · location non activée" });
           await expect(dossier.first()).toBeVisible();
@@ -93,6 +94,10 @@ for (const persona of ["proprietaire", "superadmin"]) {
           await page.goto(`/espace/${ORG}/reseau?bien=${source.bien_id}&metier=plomberie`);
           await expect(page.locator("main")).toContainText("Consultation superadmin");
           for (const name of ["Confirmer la commune", "Confirmer les communes évidentes", "Signaler mon intérêt"]) await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0);
+          await page.goto(`/espace/${ORG}/profil?retour=nouveau-lot`);
+          await expect(page.getByRole("heading", { name: "Profil du propriétaire", exact: true })).toBeVisible();
+          await expect(page.locator("main form")).toHaveCount(0);
+          await expect(page.getByRole("link", { name: /Reprendre la création du lot/ })).toHaveCount(0);
         }
         if (persona === "proprietaire") {
           await page.goto("/admin/clients");

@@ -40,7 +40,7 @@ type Avant = {
   resiliation_par_la_page?: boolean;
 };
 
-function banc(avant: Avant, options: { archivee?: boolean; resiliationsAccusees?: number } = {}) {
+function banc(avant: Avant, options: { archivee?: boolean; texteArchive?: string; resiliationsAccusees?: number } = {}) {
   const appels: { nom: string; args: Record<string, unknown> }[] = [];
   const traces: Record<string, unknown>[] = [];
   const contexte = {
@@ -69,7 +69,7 @@ function banc(avant: Avant, options: { archivee?: boolean; resiliationsAccusees?
     const q: Record<string, unknown> = {};
     const fin = async () =>
       table === "versions_conditions"
-        ? { data: options.archivee ? { document: "conditions_clients", version: "2026-09-30", texte_html: "<p>Texte</p>", publiee_le: "2026-10-24T10:00:00Z", empreinte_sha256: "a".repeat(64), date_effet: "2026-09-30", nature: "substantielle", resume_modifications: "x" } : null, error: null }
+        ? { data: options.archivee ? { document: "conditions_clients", version: "2026-09-30", texte_html: options.texteArchive ?? "<p>Texte</p>", publiee_le: "2026-10-24T10:00:00Z", empreinte_sha256: "a".repeat(64), date_effet: "2026-09-30", nature: "substantielle", resume_modifications: "x" } : null, error: null }
         : table === "organizations"
           ? { data: { type: "proprietaire_direct" }, error: null }
           : { data: { valeurs: {} }, error: null };
@@ -156,6 +156,16 @@ describe("R03 — la confirmation de la souscription", () => {
     expect(m.envois[0].html).toContain("sont jointes au format PDF");
     expect(appels.find((a) => a.nom === "abonnement_confirmation_envoyee")?.args).toMatchObject({ p_piece_jointe: true });
     expect(traces).toEqual([]);
+  });
+
+  it("intégration avec le socle (M1) : un texte rangé hors de la liste blanche du balisage n'est pas rendu en PDF", async () => {
+    const s = souscription({});
+    const { supabase, traces } = banc(RIEN, { archivee: true, texteArchive: '<p>Texte</p><img src="x" onerror="alert(1)">' });
+    await traiterEvenementStripe(supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.created", s));
+    expect(m.envois).toHaveLength(1);
+    expect(m.envois[0].piecesJointes).toBeUndefined();
+    expect(m.envois[0].html).toContain("https://gerimmo.example.invalid/conditions");
+    expect(traces).toContainEqual(expect.objectContaining({ evenement: "confirmation_sans_pdf" }));
   });
 
   it("une version non archivée : l'adresse des conditions et une trace au journal technique", async () => {

@@ -14,7 +14,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
 import { ArretSupervision } from "@/lib/controle-effets";
-import { lireVersionArchivee } from "@/lib/conditions-versions";
+import { balisageAdmis, lireVersionArchivee } from "@/lib/conditions-versions";
 import {
   courrierAccuseResiliation,
   courrierAccuseRetractation,
@@ -117,7 +117,7 @@ export async function alerterRelaisContrat(
 
 // ── R03 : la confirmation de la souscription ──────────────────────────────────────────────────────────────────
 
-/** Le PDF d'une version archivée des conditions, ou null (version non archivée, rendu impossible, délai dépassé). */
+/** Le PDF d'une version archivée des conditions, ou null (version non archivée, balisage hors liste blanche, rendu impossible, délai dépassé). */
 export type RenduPdf = (html: string, titre: string) => Promise<Uint8Array>;
 
 async function renduParDefaut(html: string, titre: string): Promise<Uint8Array> {
@@ -131,7 +131,9 @@ export async function pdfDesConditions(
   options: { rendu?: RenduPdf; delaiMs?: number } = {}
 ): Promise<{ nom: string; contenuBase64: string } | null> {
   const archivee = await lireVersionArchivee(service, "conditions_clients", version);
-  if (!archivee) return null;
+  // Socle, relecture adverse du 24/10 (M1) : le texte rangé n'est rendu que si son balisage est dans la liste blanche,
+  // comme sur la page publique de la version ; sinon, pas de PDF (la confirmation part avec l'adresse de la version).
+  if (!archivee || !balisageAdmis(archivee.texte_html)) return null;
   const titre = `Conditions générales d'utilisation et de vente — version du ${version}`;
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"/><title>${titre}</title>
 <style>body{font-family:Georgia,'Times New Roman',serif;font-size:10.5pt;line-height:1.5;color:#111;padding:36pt 48pt}

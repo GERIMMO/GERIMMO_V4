@@ -70,7 +70,9 @@ vi.mock("@/lib/supabase/server", () => ({
     },
   }),
 }));
-vi.mock("@/lib/supabase/service", () => ({ clientDeService: () => ({ rpc: vi.fn() }) }));
+// Intégration avec la vente (R04, I3) : l'action consigne la notification et efface la marque de l'accusé par la clé de
+// service ; comme un vrai client Supabase, l'appel rend toujours { data, error }.
+vi.mock("@/lib/supabase/service", () => ({ clientDeService: () => ({ rpc: vi.fn(async () => ({ data: null, error: null })) }) }));
 vi.mock("@/lib/stripe", async (importer) => ({
   ...(await importer<typeof import("@/lib/stripe")>()),
   configurationStripe: () => ({ pret: true, config: { cle: "sk_test_x", secretWebhook: "whsec_x", prix: {} } }),
@@ -201,7 +203,9 @@ describe("« Annuler la résiliation » (resilierAbonnement, resilier = non)", (
   it("résilier n'exige jamais l'accord, même après la date d'effet", async () => {
     m.version = "2026-11-15";
     const r = await issue(resilierAbonnement(ORG, {}, envoi({ resilier: "oui" })));
-    expect(r).toEqual({ redirection: "/espace/org-1/abonnement?resiliation=programmee" });
+    // Intégration avec la vente (R04, I3) : la résiliation part ; l'écran dit aussi que l'accusé n'a pas pu partir
+    // (« &accuse=echec »), le Stripe simulé ne rendant pas de fin de période.
+    expect(r).toEqual({ redirection: "/espace/org-1/abonnement?resiliation=programmee&accuse=echec" });
     expect(lectures).not.toContain("acceptations_cgu");
   });
 });

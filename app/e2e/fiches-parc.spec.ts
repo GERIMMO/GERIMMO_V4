@@ -25,20 +25,40 @@ test.use({ storageState: path.join(__dirname, ".auth", "agent.json") });
 // survit pas à la reconstruction de sa base ne teste pas le produit, il teste
 // une base. La matrice, elle, est régénérée après chaque seed
 // (npm run e2e:matrice) — même idiome que le brouillon d'EDL.
-function chemins(): { bien: string; lot: string } {
+function chemins(): { bien: string; lot: string; bail: string } {
   const matrice = JSON.parse(
     fs.readFileSync(path.join(__dirname, "matrice-ecrans.json"), "utf8"),
   ) as { path: string }[];
   const lot = matrice.find((e) => /\/parc\/[0-9a-f-]{36}\/lots\/[0-9a-f-]{36}$/.test(e.path));
   const bien = matrice.find((e) => /\/parc\/[0-9a-f-]{36}$/.test(e.path));
-  if (!lot || !bien)
+  const bail = matrice.find((e) => /\/baux\/[0-9a-f-]{36}$/.test(e.path));
+  if (!lot || !bien || !bail)
     throw new Error("Pas de fiche bien/lot dans la matrice — lancer seed-parcours puis e2e:matrice");
-  return { bien: bien.path, lot: lot.path };
+  return { bien: bien.path, lot: lot.path, bail: bail.path };
 }
-const { bien: CHEMIN_BIEN, lot: CHEMIN_LOT } = chemins();
+const { bien: CHEMIN_BIEN, lot: CHEMIN_LOT, bail: CHEMIN_BAIL } = chemins();
 
 test.beforeEach(async ({ page }) => {
   await sansSyntheseAlertes(page);
+});
+
+test("suivi du bail : choisir une action et retrouver les liens directs", async ({ page }) => {
+  await page.goto(CHEMIN_BAIL);
+  await page.getByRole("tab", { name: "Suivi", exact: true }).click();
+  await expect(page.locator("#enc-montant")).toBeHidden();
+  for (const id of ["loyers", "edl", "depot", "avenant"]) {
+    await expect(page.locator(`#${id} > summary`)).toBeVisible();
+  }
+  await page.locator("#loyers > summary").click();
+  await expect(page.locator("#enc-montant")).toBeVisible();
+  await page.getByRole("tab", { name: "Documents", exact: true }).click();
+  await expect(page.locator("#enc-montant")).toBeHidden();
+  await page.goto(`${CHEMIN_BAIL}#loyers`);
+  await expect(page.getByRole("tab", { name: "Suivi", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#enc-montant")).toBeVisible();
+  await page.goto(`${CHEMIN_BAIL}#depot`);
+  await expect(page.locator("#depot")).toHaveAttribute("open", "");
+  expect(await debordementHorizontal(page)).toBe(0);
 });
 
 /** L'ordonnée du haut d'un élément dans le document. */
@@ -121,7 +141,9 @@ test("fiche bien : les lots passent avant l'administratif", async ({ page }) => 
 
 test("fiche bien : une obligation à confirmer n'est pas annoncée comme manquante", async ({ page }) => {
   await page.goto(CHEMIN_BIEN);
-  await expect(page.locator("main")).not.toContainText("à déposer : Termites");
+  const fiche = page.locator("main.bien-visuel");
+  await expect(fiche.locator("#lots")).toBeVisible();
+  await expect(fiche).not.toContainText("à déposer : Termites");
   const rubrique = page.getByRole("button", { name: /Diagnostics du bien/ });
   await rubrique.click();
   await expect(rubrique).toHaveAttribute("aria-expanded", "true");

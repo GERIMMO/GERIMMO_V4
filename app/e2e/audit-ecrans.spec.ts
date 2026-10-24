@@ -99,7 +99,7 @@ for (const persona of PERSONAS) {
           };
         });
         const mesure = await mesurer();
-        await page.screenshot({ path: path.join(dossier, `${slug}.png`), fullPage: true });
+        await page.screenshot({ path: path.join(dossier, `${slug}.png`), fullPage: true, animations: "disabled" });
         rapport.push({
           ...ecran,
           statut: reponse?.status() ?? 0,
@@ -119,7 +119,7 @@ for (const persona of PERSONAS) {
           const panneau = await onglet.getAttribute("aria-controls");
           await page.locator(`[id="${panneau}"]`).waitFor({ state:"visible" });
           const sousMesure = await mesurer();
-          await page.screenshot({ path:path.join(dossier, `${slug}--rubrique-${index}.png`), fullPage:true });
+          await page.screenshot({ path:path.join(dossier, `${slug}--rubrique-${index}.png`), fullPage:true, animations:"disabled" });
           rapport.push({ ...ecran, path:`${ecran.path}#${panneau}`, label:`${ecran.label} — ${titre}`,
             statut:reponse?.status() ?? 0, ...sousMesure, erreursConsole:erreursConsole.slice(0,5), erreursPage:erreursPage.slice(0,5) });
         }

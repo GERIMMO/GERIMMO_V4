@@ -818,17 +818,11 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       {depotSigne}
       {piecesAdministratives}
       </RubriqueDossier>);
-  const rubriqueSuivi = (<RubriqueDossier id="suivi-bail" titre={bail.etat === "brouillon" ? "État des lieux d’entrée" : "Loyers et suivi de la location"} resume={loyersActif ? "Paiements, quittances, états des lieux et dépôt de garantie" : "Réaliser l’état des lieux lors de la remise des clés"} ouverte>
+  const rubriqueSuivi = (<section id="suivi-bail" className="space-y-4">
 
       {/* États des lieux */}
-      <Card id="edl" className="scroll-mt-20">
-        <CardHeader>
-          <CardTitle className="text-base">États des lieux</CardTitle>
-          <CardDescription>
-            Grille générée depuis le lot, saisie pièce par pièce, figée à la signature.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <RubriqueDossier id="edl" titre="États des lieux" resume="Retrouver une grille ou préparer la prochaine visite">
+        <div className="space-y-4">
           {(edls ?? []).length === 0 ? (
             // L’état des lieux sert de référence pour comparer l’entrée et la sortie.
             bail.etat === "brouillon" ? (
@@ -874,22 +868,13 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </ul>
           )}
           {!erreurEdls && <FormulaireCreerEdl orgId={orgId} bailId={bailId} bailEtat={bail.etat} typesExistants={(edls ?? []).map((e) => e.type)} />}
-        </CardContent>
-      </Card>
+        </div>
+      </RubriqueDossier>
 
       {/* Loyers & quittances */}
       {loyersActif && (
-        <Card id="loyers" className="scroll-mt-20">
-          <CardHeader>
-            {/* Le titre de la pastille qui y mène, et du résumé « Au
-                quotidien » : un seul nom pour la rubrique (24/09). */}
-            <CardTitle className="text-base">Loyers & paiements</CardTitle>
-            <CardDescription>
-              Échéancier, encaissements (imputés du plus ancien au plus récent) et
-              quittances (émises après paiement intégral ; un partiel reste un reçu).
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <RubriqueDossier id="loyers" titre="Loyers & paiements" resume="Consulter les échéances, encaisser et retrouver les quittances">
+          <div>
             <FormulaireLoyers
               orgId={orgId}
               bailId={bailId}
@@ -910,21 +895,14 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               aujourdhui={aujourdhuiParis()}
               decompteSortie={etatDecompteSortie(restitution, erreurRestitution)}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </RubriqueDossier>
       )}
 
       {/* Dépôt de garantie — encaissement */}
       {loyersActif && (
-        <Card id="depot" className="scroll-mt-20">
-          <CardHeader>
-            <CardTitle className="text-base">Dépôt de garantie</CardTitle>
-            <CardDescription>
-              Encaissement à l&apos;entrée : plafond légal contrôlé, versant tiers tracé,
-              encaissement partiel possible. Restitué en fin de bail.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <RubriqueDossier id="depot" titre="Dépôt de garantie" resume="Consulter les versements ou enregistrer un encaissement">
+          <div>
             <FormulaireDepot
               orgId={orgId}
               bailId={bailId}
@@ -936,32 +914,24 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               )}
               locataireNom={locataire ? nomComplet(locataire) : "Le locataire"}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </RubriqueDossier>
       )}
 
       {/* Avenant au bail : modification du contrat en cours, actée par les parties */}
       {(bail.etat === "actif" || bail.etat === "preavis") && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Avenant au bail</CardTitle>
-            <CardDescription>
-              Modifie le contrat en cours (charges, occupants, clauses…) sans le
-              refaire — toutes les autres clauses demeurent inchangées ; à faire
-              signer par les parties.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <RubriqueDossier id="avenant" titre="Avenant au bail" resume="Préparer une modification à faire signer aux parties">
+          <div>
             <GenererAvenant
               orgId={orgId}
               bailId={bailId}
               cheminRetour={`${base}/baux/${bailId}`}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </RubriqueDossier>
       )}
 
-      </RubriqueDossier>);
+      </section>);
   // Conservation des pièces (plan de conformité du 23/10) : lue seulement pour un bail en préavis ou terminé.
   const conservation = restitutionActif ? await supabase.rpc("lire_conservation_bail", { p_bail: bailId }) : null;
   const rubriqueSortie = (sectionSortie && <RubriqueDossier id="sortie-bail" titre="Départ du locataire" resume={bail.date_fin ? `Fin prévue le ${formaterDate(bail.date_fin)} · congé, comparaison des états des lieux et restitution` : "Enregistrer un congé et préparer la fin de location"} ouverte={restitutionActif || (intentions ?? []).length > 0}>

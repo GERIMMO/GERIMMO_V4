@@ -27,16 +27,26 @@
 -- pièces, fiches et lignes déjà purgées ne reviennent pas (sauvegarde).
 --
 -- Une seule instruction DO atomique : seule en autocommit, ou intégralement annulable dans une transaction externe,
--- qu'elle ne valide jamais. Rejouée, elle ne fait rien de plus. Premier dans la chaîne « Ordre complet » du LISEZ-MOI, bien que la
--- migration ne cite pas `aujourdhui_paris()` (retours du plan de conformité du 24/10, ordre inverse du manifeste : 140000,
--- 130000, 120000, 110000, 100000, 090000). À jouer AVANT le retour de 20261024090000 (socle). La marche avant se
--- rejoue ensuite.
+-- qu'elle ne valide jamais. Rejouée, elle ne fait rien de plus. Deuxième dans la chaîne « Ordre complet » du LISEZ-MOI, bien que la
+-- migration ne cite pas `aujourdhui_paris()` (retours du plan de conformité du 24/10, ordre inverse du manifeste : 150000,
+-- 140000, 130000, 120000, 110000, 100000, 090000). À jouer APRÈS le retour de 20261024150000 (refus tant qu'elle est
+-- inscrite) et AVANT le retour de 20261024090000 (socle). La marche avant se rejoue ensuite.
 do $retour_atomique$
 declare
   f text;
   v_n bigint;
 begin
   perform set_config('lock_timeout', '10s', true);
+
+  -- Intégration des textes du 24/10 : jamais hors de son ordre. Tant que 20261024150000 (activation de la règle
+  -- d'inactivité, qui la lit) est inscrite, son retour passe d'abord ; celui-ci retirerait la règle sous elle.
+  if to_regclass('supabase_migrations.schema_migrations') is not null
+     and exists (select 1 from supabase_migrations.schema_migrations
+                  where left(version, 14) > '20261024140000' and left(version, 14) <= '20261024150000') then
+    raise exception 'Retour 20261024140000 refusé : migration(s) plus récente(s) du plan de conformité encore inscrite(s) (%) ; jouer d''abord leur retour, dans l''ordre inverse (150000, 140000, 130000, 120000, 110000, 100000, 090000)',
+      (select string_agg(version, ', ' order by version) from supabase_migrations.schema_migrations
+        where left(version, 14) > '20261024140000' and left(version, 14) <= '20261024150000') using errcode = '55000';
+  end if;
 
   -- 1. appliquer_retention : remplacements inversés, dans l'ordre inverse.
   select pg_get_functiondef('public.appliquer_retention()'::regprocedure) into f;

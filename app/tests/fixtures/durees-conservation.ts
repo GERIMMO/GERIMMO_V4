@@ -34,7 +34,7 @@ export type DureeConservation = {
   /**
    * Lot 2, colonne « actif au déploiement » : « oui » ; « apres_bilan » (activée une à une après le bilan sans
    * suppression : « oui après le bilan », « oui après comptage », « non, puis oui après le bilan ») ; « plus_tard »
-   * (attend du code : lot 1E et V1 en production pour `compte:inactif` ; lot 5 pour les fiches, messages, loyers et
+   * (attend du code : lot 5 pour les fiches, messages, loyers et
    * incidents, dont le premier terme possible tombe en novembre 2028 : un incident clos ou un bail fini en novembre
    * 2026, plus 24 mois — le plan disait « avant 2029 », ce qui est trop tard). `null` hors `retention_rules`.
    */
@@ -47,13 +47,15 @@ const ligne = (d: DureeConservation) => d;
 
 export const DUREES_CONSERVATION: readonly DureeConservation[] = [
   // ── Comptes ──────────────────────────────────────────────────────────────────────────────────────────────────────
+  // `compte:inactif` : active avec la V1 (migration 20261024150000_activation_inactivite_v1, VERSION_MIN_INACTIVITE de
+  // lib/comptes-fermeture.ts), pour les seuls comptes qui ont accepté la V1 ou une version plus récente.
   ligne({
     donnees: "Compte et données de l’organisation cliente",
     data_type: "compte:inactif",
     duree_mois: 24,
     declencheur: "Dernière connexion d'un membre ou fin du dernier abonnement payé",
     duree_affichee: "vingt-quatre mois",
-    actif_au_deploiement: "plus_tard",
+    actif_au_deploiement: "oui",
   }),
   ligne({
     donnees: "Compte de connexion d’un locataire, d’une caution ou d’un artisan",
@@ -61,7 +63,7 @@ export const DUREES_CONSERVATION: readonly DureeConservation[] = [
     duree_mois: 24,
     declencheur: "Dernière connexion d'un membre ou fin du dernier abonnement payé",
     duree_affichee: "24 mois",
-    actif_au_deploiement: "plus_tard",
+    actif_au_deploiement: "oui",
   }),
   ligne({
     donnees: "Comptes créés pour une invitation et jamais activés",
@@ -389,13 +391,25 @@ export const DUREES_CONSERVATION: readonly DureeConservation[] = [
     duree_affichee: "1 an",
     actif_au_deploiement: "oui",
   }),
-  // « 3 ans pour les accès de la supervision et les preuves d'effacement » : voir ACTIONS_CONTROLE_INTERNE.
+  // « 3 ans pour les accès et effacements » : voir ACTIONS_CONTROLE_INTERNE.
   ligne({
     donnees: "Journal d’audit (actions sensibles)",
     data_type: "journal:audit_controle_interne",
     duree_mois: 36,
     declencheur: "Action",
     duree_affichee: "3 ans",
+    actif_au_deploiement: "oui",
+  }),
+  // « 10 ans pour les preuves du contrat » (finitions du 24/10, règle livrée par 20261024140000) : commande,
+  // confirmation, résiliation notifiée et accusée, mise en demeure, résiliation pour impayé, non-reconduction,
+  // rétractation et son accusé, confirmations du mobile d'une caution ou d'un garant et de l'état des lieux sur place
+  // (action_audit_preuve_contrat).
+  ligne({
+    donnees: "Journal d’audit (actions sensibles)",
+    data_type: "journal:audit_preuve_contrat",
+    duree_mois: 120,
+    declencheur: "Action",
+    duree_affichee: "10 ans",
     actif_au_deploiement: "oui",
   }),
 
@@ -481,7 +495,18 @@ export const DUREES_CONSERVATION: readonly DureeConservation[] = [
     declencheur: "Émission",
     duree_affichee: "6 ans",
     actif_au_deploiement: null,
-    tenue_par: "Stripe (prestataire de paiement) ; copie dans archives_comptes.factures, retirée six ans après l'émission",
+    tenue_par: "Stripe (prestataire de paiement), selon sa propre politique ; le client Stripe est supprimé au terme des factures de l'archive (clients_stripe_au_terme)",
+  }),
+  // Intégration des textes du 24/10 : la copie des factures jointe à l'archive d'un compte fermé suit la règle
+  // `archive:facture` livrée par 20261024140000 (échéance de echeance_facture_archivee : six ans après la plus tardive
+  // de l'émission et de la fin de l'exercice, à défaut de la fin du dernier abonnement payé).
+  ligne({
+    donnees: "Factures d’abonnement émises par Gerimmo",
+    data_type: "archive:facture",
+    duree_mois: 72,
+    declencheur: "Fin de l'exercice de la facture, à défaut fin du dernier abonnement payé",
+    duree_affichee: "6 ans",
+    actif_au_deploiement: "oui",
   }),
   ligne({
     donnees: "Coordonnées bancaires (IBAN) du bailleur imprimées sur ses baux",
@@ -510,14 +535,19 @@ export const DUREES_CONSERVATION: readonly DureeConservation[] = [
  * `consultation_organisation`, `consultation_piece_artisan` et `consultation_faits_direction` (log_sa_access, que
  * 20261014220000_traversee_trace_precise.sql traite déjà comme des traversées, RM-A1.11) : relecture du 23/10, le
  * motif `consultation\_%` est EXIGÉ du lot 2. Le test le vérifie sur la base dès que la règle existe.
+ * Intégration des textes du 24/10 : la liste suit `action_audit_controle_interne` telle que livrée (20261024140000) :
+ * fermetures, effacements rejoués et export de la liste d'attente y sont aussi gardés trois ans.
  */
 export const ACTIONS_CONTROLE_INTERNE = [
   "traversee%",
   "consultation\\_%",
   "support\\_%",
   "maintenance\\_%",
+  "fermeture\\_%",
+  "effacements\\_%",
   "purge_retention",
   "compte_ferme",
+  "liste_attente_exportee",
 ] as const;
 
 /** Les règles de `retention_rules` que la page annonce, une fois chacune : ce que l'intégration comparera à la base. */

@@ -174,6 +174,10 @@ export const FICHIERS_EN_SERIE = [
   // Plan de conformité du 24/10 (lot 2, lot 1F) : rejeu de 20261024140000 et de son retour (appliquer_retention réécrite,
   // colonnes de baux et des prospects, table des oppositions) dans la transaction du fichier.
   "tests/conservation-prospection-base.test.ts",
+  // Intégration des textes de la V1 (24/10) : rejeu de 20261024150000 et de son retour (create or replace de
+  // comptes_inactifs_a_prevenir et fermetures_comptes_programmer_inactifs, règle compte:inactif) dans la transaction du
+  // fichier.
+  "tests/activation-inactivite-v1-base.test.ts",
 ];
 
 export default defineConfig({

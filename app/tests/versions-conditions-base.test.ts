@@ -138,7 +138,7 @@ describe.skipIf(!url)("versions des conditions et archives des comptes (avec bas
     // Finitions du 24/10 (relecture transverse 2, point 4) : le retour refuse tant qu'une migration plus récente du plan
     // de conformité est inscrite (la base de la CI les inscrit toutes). Retirées de l'historique, dans la transaction
     // du fichier, annulée à la fin.
-    await db.query("delete from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024140000'", [VERSION]);
+    await db.query("delete from supabase_migrations.schema_migrations where left(version, 14) > $1 and left(version, 14) <= '20261024150000'", [VERSION]);
     client = await compte("cgu-client");
     autre = await compte("cgu-autre");
     superviseur = await compte("cgu-superviseur");

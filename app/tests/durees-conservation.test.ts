@@ -305,8 +305,10 @@ describe.skipIf(!urlBase)("la page et la base de test disent les mêmes durées 
 
   it("dès que la règle des trois ans existe, sa purge couvre les consultations de la supervision", async () => {
     if (!base.has("journal:audit_controle_interne")) return; // lot 2 pas encore appliqué
+    // Intégration des textes du 24/10 : la conservation livrée (20261024140000) range le motif dans
+    // `action_audit_controle_interne`, que la purge appelle ; ses définitions comptent avec celles de la purge.
     const { rows } = await db.query<{ def: string }>(
-      "select string_agg(pg_get_functiondef(p.oid), E'\\n') as def from pg_proc p where p.prokind = 'f' and p.prosrc like '%journal:audit_controle_interne%'"
+      "select string_agg(pg_get_functiondef(p.oid), E'\\n') as def from pg_proc p where p.prokind = 'f' and (p.prosrc like '%journal:audit_controle_interne%' or p.proname = 'action_audit_controle_interne')"
     );
     expect(rows[0]?.def ?? "", "aucune fonction ne lit journal:audit_controle_interne").not.toBe("");
     expect(rows[0].def, "le motif consultation\\_% manque à la purge des trois ans").toMatch(/consultation/);

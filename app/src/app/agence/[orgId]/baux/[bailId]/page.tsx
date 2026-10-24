@@ -1,3 +1,4 @@
+import { OngletsDossier } from "@/components/onglets-dossier";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
 import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import { SupprimerBailBrouillon } from "@/components/supprimer-bail-brouillon";
@@ -607,7 +608,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       </Card>
 
 </div>);
-  const rubriqueContrat = (<RubriqueDossier id="contrat" ouverte={bail.etat === "brouillon"} titre={bail.etat === "brouillon" ? "Dates et montants" : "Informations du contrat"} resume={bail.etat === "brouillon" ? "Type de contrat, dates, loyer et charges" : "Vérifier le locataire, les montants, les conditions et les garants"}>
+  const rubriqueContrat = (<RubriqueDossier id="contrat" ouverte titre={bail.etat === "brouillon" ? "Dates et montants" : "Informations du contrat"} resume={bail.etat === "brouillon" ? "Type de contrat, dates, loyer et charges" : "Vérifier le locataire, les montants, les conditions et les garants"}>
 
 
       {/* Audit gestion du 29/09 : une zone tendue inconnue ne vaut plus « non ».
@@ -772,7 +773,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
       {annexesContrat}
       </RubriqueDossier>);
-  const rubriqueSignature = (<RubriqueDossier id="signature" ouverte={bail.etat === "brouillon"} titre={bail.etat === "brouillon" ? "Créer et faire signer le bail" : "Bail signé et documents"} resume={bail.document_signe ? "Retrouver le contrat signé et ses annexes" : "Créer le PDF, le faire signer aux parties, puis déposer le document signé"}>
+  const rubriqueSignature = (<RubriqueDossier id="signature" ouverte titre={bail.etat === "brouillon" ? "Créer et faire signer le bail" : "Bail signé et documents"} resume={bail.document_signe ? "Retrouver le contrat signé et ses annexes" : "Créer le PDF, le faire signer aux parties, puis déposer le document signé"}>
       {/* Documents-0 : générer le contrat (nu 01 / meublé 02) depuis le
           brouillon — le PDF sert à imprimer et faire signer ; le dépôt du
           signé reste le seul déclencheur d'activation. */}
@@ -963,96 +964,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       </RubriqueDossier>);
   // Conservation des pièces (plan de conformité du 23/10) : lue seulement pour un bail en préavis ou terminé.
   const conservation = restitutionActif ? await supabase.rpc("lire_conservation_bail", { p_bail: bailId }) : null;
-  return (
-    <main className={`${styles.page} dossier-bail mx-auto w-full max-w-6xl space-y-[1.125rem] p-4 sm:p-7`}>
-      <Link href={lot ? `${base}/parc/${lot.bien_id}/lots/${lot.id}` : `${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {lot?.nom ?? "Mes lots"}</Link>
-      <header className={styles.entete}>
-        <span className={styles.icone}><FileText size={26} aria-hidden="true" /></span>
-        <div className="min-w-0 flex-1"><p className={styles.surtitre}>Contrat de location · {TYPES_BAIL[bail.type] ?? bail.type}</p><div className="flex flex-wrap items-center gap-3"><h1>{lot?.nom ?? "Fiche du bail"}</h1><span className={COULEURS_ETAT_BAIL[bail.etat] ?? "puce puce-grise"}>{ETATS_BAIL[bail.etat] ?? "État à vérifier"}</span></div><p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Users size={16} aria-hidden="true" />{erreurLocataire ? "Locataire indisponible" : locataire ? nomComplet(locataire) : "Locataire à renseigner"}{bail.chambre_id && ` · ${chambre?.nom ?? "Chambre"}`}</p></div>
-        {bail.etat === "brouillon" ? <a href="#corriger" className="btn-secondaire"><Pencil size={15} aria-hidden="true" /> Modifier le contrat</a> : lot && <Link className="btn-secondaire" href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}><House size={15} aria-hidden="true" /> Voir le logement</Link>}
-        {bail.etat === "brouillon" && !bail.document_signe && !bail.signe_envoye_le && <SupprimerBailBrouillon orgId={orgId} bailId={bailId} revenirAuLot libelle={[lot?.nom, TYPES_BAIL[bail.type] ?? bail.type, locataire ? nomComplet(locataire) : null, bail.date_debut ? `Entrée le ${formaterDate(bail.date_debut)}` : null].filter(Boolean).join(" · ")} />}
-        {bail.etat === "brouillon" && <dl className={styles.resumeBrouillon}>
-          <div><Wallet size={17} aria-hidden="true"/><div><dt>Loyer mensuel · charges comprises</dt><dd>{bail.loyer_hc != null && bail.charges != null ? eur(Number(bail.loyer_hc) + Number(bail.charges)) : "À compléter"}</dd></div></div>
-          <div><CalendarDays size={17} aria-hidden="true"/><div><dt>Date d’entrée</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "À renseigner"}</dd></div></div>
-        </dl>}
-      </header>
-      {bail.etat !== "brouillon" && <dl className={styles.chiffres}>
-        <div><dt><Wallet size={17} aria-hidden="true" /> Loyer mensuel</dt><dd>{bail.loyer_hc == null || bail.charges == null ? "À compléter" : eur(Number(bail.loyer_hc) + Number(bail.charges))}</dd><dd className={styles.precision}>{bail.loyer_hc == null ? "Loyer à définir" : `${eur(Number(bail.loyer_hc))} hors charges`}{bail.charges != null && ` + ${eur(Number(bail.charges))} de charges`}</dd></div>
-        <div><dt><CalendarDays size={17} aria-hidden="true" /> Dates du bail</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "Entrée à renseigner"}</dd><dd className={styles.precision}>{bail.date_fin ? `Fin le ${formaterDate(bail.date_fin)}` : "Fin non renseignée"}{bail.date_sortie_reelle ? ` · sortie réelle le ${formaterDate(bail.date_sortie_reelle)}` : ""}</dd></div>
-        <div><dt><ShieldCheck size={17} aria-hidden="true" /> Dépôt de garantie</dt><dd>{bail.depot_garantie == null ? "À renseigner" : eur(Number(bail.depot_garantie))}</dd><dd className={styles.precision}>Montant prévu au contrat</dd></div>
-        <div><dt><CalendarDays size={17} aria-hidden="true" /> Échéance du loyer</dt><dd>{bail.jour_echeance == null ? "À renseigner" : `Le ${bail.jour_echeance} du mois`}</dd><dd className={styles.precision}>{bail.charges_mode === "forfait" ? "Charges au forfait" : bail.charges_mode === "provision" ? "Provisions sur charges" : "Conditions du contrat"}</dd></div>
-      </dl>}
-      {bail.etat === "brouillon" ? <p className="text-sm text-muted-foreground">Préparez votre bail étape par étape. Vos informations déjà enregistrées sont reprises ci-dessous.</p> : <nav aria-label="Accès rapide au bail" className="dossier-nav"><a href="#contrat">Informations</a><a href="#signature">Documents signés</a>{loyersActif && <a href="#loyers">Loyers & paiements</a>}<a href="#edl">États des lieux</a>{sectionSortie && <a href="#sortie-bail">Départ du locataire</a>}</nav>}
-      <EchecLecture quoi={echecs} />
-
-      {/* La prochaine action évidente, dérivée de l'état du bail */}
-      {bail.etat !== "brouillon" && aFaire.length > 0 && (
-        <div className={styles.attention}>
-          <div className="entete-carte">
-            <p className="text-sm font-semibold">À faire maintenant</p>
-          </div>
-          <ol className="space-y-1.5">
-            {aFaire.slice(0, 3).map((a, i) => (
-              <li key={a.href + i} className="flex items-center gap-2 text-sm">
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
-                  {i + 1}
-                </span>
-                <a href={a.href} className="inline-flex min-h-11 min-w-0 flex-1 items-center underline-offset-2 hover:underline">
-                  {a.texte}
-                </a>
-              </li>
-            ))}
-          </ol>
-          {/* Le reste de la liste était un compteur MUET : sur un bail qui sort
-              avec un impayé, un dépôt partiel et un diagnostic expiré, les
-              blocages occupaient les trois places et « Démarrer la restitution
-              du dépôt de garantie » disparaissait derrière « 2 autres ensuite »
-              — retour au défilement (relevé du 11/09). Le compteur s'ouvre
-              maintenant sur ce qu'il compte, sans JavaScript. */}
-          {aFaire.length > 3 && (
-            <details className="mt-2">
-              <summary className="mono-discret cursor-pointer py-1 pointer-coarse:py-3.5">
-                {aFaire.length - 3} autre{aFaire.length - 3 > 1 ? "s" : ""} ensuite
-              </summary>
-              <ol className="mt-1.5 space-y-1.5">
-                {aFaire.slice(3).map((a, i) => (
-                  <li key={a.href + (i + 3)} className="flex items-center gap-2 text-sm">
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
-                      {i + 4}
-                    </span>
-                    <a href={a.href} className="inline-flex min-h-11 min-w-0 flex-1 items-center underline-offset-2 hover:underline">
-                      {a.texte}
-                    </a>
-                  </li>
-                ))}
-              </ol>
-            </details>
-          )}
-        </div>
-      )}
-
-      {bail.etat !== "brouillon" && <AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(bail, lot?.surface_m2)} />}
-      {bail.etat === "brouillon" ? <AssistantBail
-        formulaire={<FormulaireParcoursBail surfaceHabitable={lot?.surface_m2} orgId={orgId} bailId={bailId} defauts={bail} agence={agence} meuble={Boolean(lot?.meuble)} chambres={chambres ?? []} />}
-        orgId={orgId} bailId={bailId} controleInitial={await verifierDossierBail(orgId, bailId)}
-        contenus={[
-          lot ? <p key="chambres" className="text-sm text-muted-foreground">Pour louer une chambre avec son propre contrat, <Link className="underline" href={lienLotDepuisBail(orgId,lot.bien_id,bail.lot_id,bailId,"equipements",1,racineEspace(estProprietaire))}>préparez ses caractéristiques dans le lot</Link>.</p> : null,
-          <EtapePersonnesBail key="personnes" orgId={orgId} bailId={bailId} lotId={bail.lot_id} principalId={bail.locataire_principal} colocation={bail.type === "colocation" && !bail.chambre_id} />,
-          <CompleterSurPlace key="logement" orgId={orgId} bailId={bailId} lotId={bail.lot_id} individuel={Boolean(bail.chambre_id)} />,
-          bail.chambre_id && lot ? <div key="plafond" id="loyer-plafond-colocation"><ChambresLogement orgId={orgId} lotId={bail.lot_id} bienId={lot.bien_id} chambres={[]} plafond={lot.colocation_loyer_reference} mode="plafond" /></div> : null,
-          lot ? <DocumentsParcoursBail key="documents" orgId={orgId} bailId={bailId} lotId={bail.lot_id} bienId={lot.bien_id} copropriete={premier(lot.bien)?.copropriete ?? null} reglementId={bail.reglement_copropriete} annexes={annexesContrat} /> : <p key="documents">Le logement est indisponible.</p>,
-          null,
-          <div key="recapitulatif" className="space-y-4"><AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(bail, lot?.surface_m2)} /><RecapitulatifParcoursBail orgId={orgId} lotId={bail.lot_id} bail={bail}
-            personnes={[...(locataire ? [{nom:nomComplet(locataire),role:"Locataire principal"}]:[]),...lignesColoc.filter(p=>!p.date_depart).map(p=>({nom:p.person_nom,role:p.role === "garant"?"Garant":"Colocataire"}))]}
-            documents={<div className="bail-batiment-resume"><strong>Documents et annexes</strong><p>Vérifiez les diagnostics, la notice, le règlement et les pièces déposées avant la signature.</p><a className="lien-discret" href="#etape-bail-5">Revoir les documents →</a></div>}
-            signature={<FinaliserParcoursBail key={JSON.stringify([bail,lignesColoc,inventaire])} orgId={orgId} bailId={bailId}
-              code={bail.chambre_id?"bail_individuel":bail.type==="colocation"?"bail_colocation":bail.type==="meuble"?"bail_meuble":"bail_nu"}
-              signataires={[...(bail.locataire_principal ? [{id:bail.locataire_principal,nom:locataire?nomComplet(locataire):"Locataire principal"}]:[]),...lignesColoc.filter(p=>p.role==="colocataire"&&!p.date_depart).map(p=>({id:p.person_id,nom:p.person_nom}))]}
-              edlId={(edls??[]).find(e=>e.type==="entree")?.id??null}
-              preparationEdl={erreurEdls?<p role="alert">Les états des lieux n’ont pas pu être chargés.</p>:<FormulaireCreerEdl orgId={orgId} bailId={bailId} bailEtat={bail.etat} typesExistants={(edls??[]).map(e=>e.type)}/>}
-              signatureManuelle={depotSigne} proprietaireDirect={estProprietaire}/>} /></div>
-        ]} /> : <>{rubriqueContrat}{rubriqueSignature}{rubriqueSuivi}</>}
-      {sectionSortie && <RubriqueDossier id="sortie-bail" titre="Départ du locataire" resume={bail.date_fin ? `Fin prévue le ${formaterDate(bail.date_fin)} · congé, comparaison des états des lieux et restitution` : "Enregistrer un congé et préparer la fin de location"} ouverte={restitutionActif || (intentions ?? []).length > 0}>
+  const rubriqueSortie = (sectionSortie && <RubriqueDossier id="sortie-bail" titre="Départ du locataire" resume={bail.date_fin ? `Fin prévue le ${formaterDate(bail.date_fin)} · congé, comparaison des états des lieux et restitution` : "Enregistrer un congé et préparer la fin de location"} ouverte={restitutionActif || (intentions ?? []).length > 0}>
 
       {bail.etat === "actif" && (
         <Card className={(intentions ?? []).length > 0 ? "border-l-4 border-l-[var(--or)]" : undefined}>
@@ -1213,7 +1125,103 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       {/* Conservation des pièces et gel en cas de litige (plan de conformité du 23/10, lots 1E et 2) */}
       {conservation && <CarteConservationBail conservation={conservation.error ? null : conservation.data} erreur={conservation.error ? (conservation.error.code === "42501" ? "acces" : "lecture") : undefined} orgId={orgId} bailId={bailId} base={base} />}
 
-      </RubriqueDossier>}
+      </RubriqueDossier>);
+  return (
+    <main className={`${styles.page} dossier-bail mx-auto w-full max-w-6xl space-y-[1.125rem] p-4 sm:p-7`}>
+      <Link href={lot ? `${base}/parc/${lot.bien_id}/lots/${lot.id}` : `${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {lot?.nom ?? "Mes lots"}</Link>
+      <header className={styles.entete}>
+        <span className={styles.icone}><FileText size={26} aria-hidden="true" /></span>
+        <div className="min-w-0 flex-1"><p className={styles.surtitre}>Contrat de location · {TYPES_BAIL[bail.type] ?? bail.type}</p><div className="flex flex-wrap items-center gap-3"><h1>{lot?.nom ?? "Fiche du bail"}</h1><span className={COULEURS_ETAT_BAIL[bail.etat] ?? "puce puce-grise"}>{ETATS_BAIL[bail.etat] ?? "État à vérifier"}</span></div><p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Users size={16} aria-hidden="true" />{erreurLocataire ? "Locataire indisponible" : locataire ? nomComplet(locataire) : "Locataire à renseigner"}{bail.chambre_id && ` · ${chambre?.nom ?? "Chambre"}`}</p></div>
+        {bail.etat === "brouillon" ? <a href="#corriger" className="btn-secondaire"><Pencil size={15} aria-hidden="true" /> Modifier le contrat</a> : lot && <Link className="btn-secondaire" href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}><House size={15} aria-hidden="true" /> Voir le logement</Link>}
+        {bail.etat === "brouillon" && !bail.document_signe && !bail.signe_envoye_le && <SupprimerBailBrouillon orgId={orgId} bailId={bailId} revenirAuLot libelle={[lot?.nom, TYPES_BAIL[bail.type] ?? bail.type, locataire ? nomComplet(locataire) : null, bail.date_debut ? `Entrée le ${formaterDate(bail.date_debut)}` : null].filter(Boolean).join(" · ")} />}
+        {bail.etat === "brouillon" && <dl className={styles.resumeBrouillon}>
+          <div><Wallet size={17} aria-hidden="true"/><div><dt>Loyer mensuel · charges comprises</dt><dd>{bail.loyer_hc != null && bail.charges != null ? eur(Number(bail.loyer_hc) + Number(bail.charges)) : "À compléter"}</dd></div></div>
+          <div><CalendarDays size={17} aria-hidden="true"/><div><dt>Date d’entrée</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "À renseigner"}</dd></div></div>
+        </dl>}
+      </header>
+      {bail.etat !== "brouillon" && <dl className={styles.chiffres}>
+        <div><dt><Wallet size={17} aria-hidden="true" /> Loyer mensuel</dt><dd>{bail.loyer_hc == null || bail.charges == null ? "À compléter" : eur(Number(bail.loyer_hc) + Number(bail.charges))}</dd><dd className={styles.precision}>{bail.loyer_hc == null ? "Loyer à définir" : `${eur(Number(bail.loyer_hc))} hors charges`}{bail.charges != null && ` + ${eur(Number(bail.charges))} de charges`}</dd></div>
+        <div><dt><CalendarDays size={17} aria-hidden="true" /> Dates du bail</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "Entrée à renseigner"}</dd><dd className={styles.precision}>{bail.date_fin ? `Fin le ${formaterDate(bail.date_fin)}` : "Fin non renseignée"}{bail.date_sortie_reelle ? ` · sortie réelle le ${formaterDate(bail.date_sortie_reelle)}` : ""}</dd></div>
+        <div><dt><ShieldCheck size={17} aria-hidden="true" /> Dépôt de garantie</dt><dd>{bail.depot_garantie == null ? "À renseigner" : eur(Number(bail.depot_garantie))}</dd><dd className={styles.precision}>Montant prévu au contrat</dd></div>
+        <div><dt><CalendarDays size={17} aria-hidden="true" /> Échéance du loyer</dt><dd>{bail.jour_echeance == null ? "À renseigner" : `Le ${bail.jour_echeance} du mois`}</dd><dd className={styles.precision}>{bail.charges_mode === "forfait" ? "Charges au forfait" : bail.charges_mode === "provision" ? "Provisions sur charges" : "Conditions du contrat"}</dd></div>
+      </dl>}
+      {bail.etat === "brouillon" && <p className="text-sm text-muted-foreground">Vos informations enregistrées sont reprises dans les étapes du bail.</p>}
+      <EchecLecture quoi={echecs} />
+
+      {/* La prochaine action évidente, dérivée de l'état du bail */}
+      {bail.etat !== "brouillon" && aFaire.length > 0 && (
+        <div className={styles.attention}>
+          <div className="entete-carte">
+            <p className="text-sm font-semibold">À faire maintenant</p>
+          </div>
+          <ol className="space-y-1.5">
+            {aFaire.slice(0, 3).map((a, i) => (
+              <li key={a.href + i} className="flex items-center gap-2 text-sm">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
+                  {i + 1}
+                </span>
+                <a href={a.href} className="inline-flex min-h-11 min-w-0 flex-1 items-center underline-offset-2 hover:underline">
+                  {a.texte}
+                </a>
+              </li>
+            ))}
+          </ol>
+          {/* Le reste de la liste était un compteur MUET : sur un bail qui sort
+              avec un impayé, un dépôt partiel et un diagnostic expiré, les
+              blocages occupaient les trois places et « Démarrer la restitution
+              du dépôt de garantie » disparaissait derrière « 2 autres ensuite »
+              — retour au défilement (relevé du 11/09). Le compteur s'ouvre
+              maintenant sur ce qu'il compte, sans JavaScript. */}
+          {aFaire.length > 3 && (
+            <details className="mt-2">
+              <summary className="mono-discret cursor-pointer py-1 pointer-coarse:py-3.5">
+                {aFaire.length - 3} autre{aFaire.length - 3 > 1 ? "s" : ""} ensuite
+              </summary>
+              <ol className="mt-1.5 space-y-1.5">
+                {aFaire.slice(3).map((a, i) => (
+                  <li key={a.href + (i + 3)} className="flex items-center gap-2 text-sm">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                      {i + 4}
+                    </span>
+                    <a href={a.href} className="inline-flex min-h-11 min-w-0 flex-1 items-center underline-offset-2 hover:underline">
+                      {a.texte}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          )}
+        </div>
+      )}
+
+      {bail.etat !== "brouillon" && <AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(bail, lot?.surface_m2)} />}
+      {bail.etat === "brouillon" ? <AssistantBail
+        formulaire={<FormulaireParcoursBail surfaceHabitable={lot?.surface_m2} orgId={orgId} bailId={bailId} defauts={bail} agence={agence} meuble={Boolean(lot?.meuble)} chambres={chambres ?? []} />}
+        orgId={orgId} bailId={bailId} controleInitial={await verifierDossierBail(orgId, bailId)}
+        contenus={[
+          lot ? <p key="chambres" className="text-sm text-muted-foreground">Pour louer une chambre avec son propre contrat, <Link className="underline" href={lienLotDepuisBail(orgId,lot.bien_id,bail.lot_id,bailId,"equipements",1,racineEspace(estProprietaire))}>préparez ses caractéristiques dans le lot</Link>.</p> : null,
+          <EtapePersonnesBail key="personnes" orgId={orgId} bailId={bailId} lotId={bail.lot_id} principalId={bail.locataire_principal} colocation={bail.type === "colocation" && !bail.chambre_id} />,
+          <CompleterSurPlace key="logement" orgId={orgId} bailId={bailId} lotId={bail.lot_id} individuel={Boolean(bail.chambre_id)} />,
+          bail.chambre_id && lot ? <div key="plafond" id="loyer-plafond-colocation"><ChambresLogement orgId={orgId} lotId={bail.lot_id} bienId={lot.bien_id} chambres={[]} plafond={lot.colocation_loyer_reference} mode="plafond" /></div> : null,
+          lot ? <DocumentsParcoursBail key="documents" orgId={orgId} bailId={bailId} lotId={bail.lot_id} bienId={lot.bien_id} copropriete={premier(lot.bien)?.copropriete ?? null} reglementId={bail.reglement_copropriete} annexes={annexesContrat} /> : <p key="documents">Le logement est indisponible.</p>,
+          null,
+          <div key="recapitulatif" className="space-y-4"><AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(bail, lot?.surface_m2)} /><RecapitulatifParcoursBail orgId={orgId} lotId={bail.lot_id} bail={bail}
+            personnes={[...(locataire ? [{nom:nomComplet(locataire),role:"Locataire principal"}]:[]),...lignesColoc.filter(p=>!p.date_depart).map(p=>({nom:p.person_nom,role:p.role === "garant"?"Garant":"Colocataire"}))]}
+            documents={<div className="bail-batiment-resume"><strong>Documents et annexes</strong><p>Vérifiez les diagnostics, la notice, le règlement et les pièces déposées avant la signature.</p><a className="lien-discret" href="#etape-bail-5">Revoir les documents →</a></div>}
+            signature={<FinaliserParcoursBail key={JSON.stringify([bail,lignesColoc,inventaire])} orgId={orgId} bailId={bailId}
+              code={bail.chambre_id?"bail_individuel":bail.type==="colocation"?"bail_colocation":bail.type==="meuble"?"bail_meuble":"bail_nu"}
+              signataires={[...(bail.locataire_principal ? [{id:bail.locataire_principal,nom:locataire?nomComplet(locataire):"Locataire principal"}]:[]),...lignesColoc.filter(p=>p.role==="colocataire"&&!p.date_depart).map(p=>({id:p.person_id,nom:p.person_nom}))]}
+              edlId={(edls??[]).find(e=>e.type==="entree")?.id??null}
+              preparationEdl={erreurEdls?<p role="alert">Les états des lieux n’ont pas pu être chargés.</p>:<FormulaireCreerEdl orgId={orgId} bailId={bailId} bailEtat={bail.etat} typesExistants={(edls??[]).map(e=>e.type)}/>}
+              signatureManuelle={depotSigne} proprietaireDirect={estProprietaire}/>} /></div>
+        ]} /> : <OngletsDossier libelle="Rubriques du bail" rubriques={[
+          {id:"bail-informations",titre:"Contrat",contenu:rubriqueContrat},
+          {id:"bail-documents",titre:"Documents",contenu:rubriqueSignature},
+          {id:"bail-suivi",titre:"Suivi",contenu:rubriqueSuivi},
+          ...(sectionSortie ? [{id:"bail-depart",titre:"Départ",contenu:rubriqueSortie}] : []),
+        ]} />}
+      {bail.etat === "brouillon" && rubriqueSortie}
+
     </main>
   );
 }

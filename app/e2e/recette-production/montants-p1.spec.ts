@@ -148,6 +148,7 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
 
   test("D04 : « 840,00 » tapé avec la virgule est enregistré et affiché 840,00 €", async ({ page }) => {
     await page.goto(`${espaceDe("proprietaire")}/baux/${d.bail}`);
+    await page.getByRole("tab", { name: "Suivi", exact: true }).click();
     await expect(carteLoyers(page)).toContainText("Loyers & paiements");
     await expect(montantSaisi(page)).toHaveAttribute("type", "text");
     // Le champ doit être visible et sélectionné avant la frappe, puis le bouton actif avant l'envoi.

@@ -223,7 +223,7 @@ export default async function PageDocumentsLocataire(
           </p>
         ) : (
           adhesionActive ? (
-            <p className="text-sm text-destructive-soft-foreground">
+            <p className="text-sm text-muted-foreground">
               Ajoutez votre assurance habitation : un PDF ou une photo lisible suffit.
             </p>
           ) : (

@@ -9,6 +9,7 @@ Les couleurs accompagnent des libellés explicites : vert pour un rapport à jou
 ## Périmètre
 
 - Propriétaires et agences : fiche lot en quatre rubriques, caractéristiques uniques, bilan documentaire cohérent entre fiche bien et lot.
+- Baux en cours : contrat, documents, suivi et départ séparés ; liens directs vers les loyers, les états des lieux et la restitution conservés.
 - Agences : choix de document par situation et état des lieux guidé, une pièce à la fois.
 - Locataires : séparer les transmissions demandées des fichiers disponibles ; assurance déjà déposée sans formulaire ouvert en permanence.
 - Artisans : coordonnées, zone et métiers, personnalisation des devis dans trois rubriques.

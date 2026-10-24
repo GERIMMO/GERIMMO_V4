@@ -78,7 +78,8 @@ export function AssistantBail({ orgId, bailId, contenus, formulaire, controleIni
         {contenus.map((c,i)=><section key={i} hidden={i!==etape} aria-label={etapes[i].titre} className="assistant-panneau">{c}</section>)}
       </EtapeComplementsBail.Provider>
       </div>
-      <div className={`assistant-pied ${styles.pied}`}>{etape>0?<button type="button" className="btn-secondaire" onClick={()=>changer(etape-1)}><ArrowLeft size={16} aria-hidden="true"/>Précédent</button>:<span/>}{etape<etapes.length-1&&([0,3,4,5].includes(etape)?<button type="submit" form="form-parcours-bail" name="continuer" value="1" className="btn-or">Enregistrer et continuer<ArrowRight size={16} aria-hidden="true"/></button>:<button type="button" className="btn-or" onClick={()=>changer(etape+1)}>Suivant<ArrowRight size={16} aria-hidden="true"/></button>)}</div>
+      {/* React réutilise le bouton en passant à une étape de saisie : annuler son action native avant qu’il ne devienne submit. */}
+      <div className={`assistant-pied ${styles.pied}`}>{etape>0?<button type="button" className="btn-secondaire" onClick={()=>changer(etape-1)}><ArrowLeft size={16} aria-hidden="true"/>Précédent</button>:<span/>}{etape<etapes.length-1&&([0,3,4,5].includes(etape)?<button type="submit" form="form-parcours-bail" name="continuer" value="1" className="btn-or">Enregistrer et continuer<ArrowRight size={16} aria-hidden="true"/></button>:<button type="button" className="btn-or" onClick={event=>{event.preventDefault();changer(etape+1);}}>Suivant<ArrowRight size={16} aria-hidden="true"/></button>)}</div>
     </div></div>
   </div></RubriquesDirectes.Provider></CompletudeBail.Provider></SuiviEnregistrement.Provider>;
 }

@@ -11,8 +11,9 @@ import { fermetureModeleSignature } from "@/lib/signature-interrupteurs";
 import { clientDeService } from "@/lib/supabase/service";
 import { bailleurDesSignataires, lienConfidentialite, messageInvitationSignature } from "@/lib/message-invitation-signature";
 
-// L'ENVOI D'UN CIRCUIT DE SIGNATURE, commun au propriétaire (action `envoyerSignatureBail`) et à la caution qui vient de
-// confirmer son mobile (action publique `confirmerMobileCaution`, décision du dirigeant du 23/10).
+// L'ENVOI D'UN CIRCUIT DE SIGNATURE, commun au propriétaire (action `envoyerSignatureBail`) et au garant qui vient de
+// confirmer son mobile (action publique `confirmerMobileCaution` : caution, décision du dirigeant du 23/10 ; garant qui
+// signe aussi le bail, décision du 24/10).
 //
 // Deux temps :
 //  1. `controlerEnvoi` : tout ce qui se vérifie sans effet (réglages, environnement, dossier inchangé, PDF et annexes
@@ -26,12 +27,30 @@ export const REFUS_CONFIRMATION_EDL =
   "Confirmez que l’état des lieux a été établi contradictoirement, sur place, et indiquez la date de la visite avant l’envoi en signature.";
 export const REFUS_MOBILE_CAUTION_NON_CONFIRME =
   "La caution doit confirmer elle-même son numéro de mobile avant l’envoi en signature.";
+export const REFUS_MOBILE_GARANT_BAIL_NON_CONFIRME =
+  "Chaque garant doit confirmer lui-même son numéro de mobile avant l’envoi du bail en signature.";
+
+/** Un garant n'a confirmé son numéro que par l'horodatage posé en base, jamais par un numéro seul. */
+const mobileConfirme = (s: SignataireBail) => Boolean(s.telephoneConfirmeLe) && /^\+[1-9]\d{7,14}$/.test(s.telephone);
 
 /** Le garant d'un acte de cautionnement a-t-il confirmé lui-même son numéro (lien à usage unique) ? */
 export function telephoneGarantConfirme(signataires: SignataireBail[]): boolean {
   const garants = signataires.filter((s) => s.qualite === "Garant");
-  return garants.length === 1 && Boolean(garants[0].telephoneConfirmeLe) && /^\+[1-9]\d{7,14}$/.test(garants[0].telephone);
+  return garants.length === 1 && mobileConfirme(garants[0]);
 }
+
+/** Bail (décision du 24/10) : les garants qui n'ont pas encore confirmé eux-mêmes leur numéro. */
+export function garantsSansMobileConfirme(signataires: SignataireBail[]): SignataireBail[] {
+  return signataires.filter((s) => s.qualite === "Garant" && !mobileConfirme(s));
+}
+
+/** Bail : chaque garant a-t-il confirmé lui-même son numéro ? Vrai pour un bail sans garant. */
+export function telephonesGarantsConfirmes(signataires: SignataireBail[]): boolean {
+  return garantsSansMobileConfirme(signataires).length === 0;
+}
+
+/** Un circuit de bail (les anciens circuits sans `modele` en sont). */
+export const estCircuitDeBail = (circuit: Pick<CircuitBail, "modele">) => !circuit.modele || circuit.modele === "bail";
 
 export type ControleEnvoi = {
   config: NonNullable<ReturnType<typeof configurationSignatureBail>>;
@@ -40,8 +59,14 @@ export type ControleEnvoi = {
   annexes: { pdf: Uint8Array; nomFichier: string }[];
 };
 
-/** Vérifications sans effet, dans l'ordre historique de `envoyerSignatureBail`. Lève une erreur lisible. */
-export async function controlerEnvoi(p: { db: SupabaseClient; org: string; bail: string; circuit: CircuitBail }): Promise<ControleEnvoi> {
+/**
+ * Vérifications sans effet, dans l'ordre historique de `envoyerSignatureBail`. Lève une erreur lisible.
+ * `miseEnLocationDejaControlee` : envoi d'un bail déclenché par le garant qui vient de confirmer son mobile (lien
+ * public, sans session). `controler_mise_en_location` exige la session du propriétaire : il l'a passé quand il a demandé
+ * l'envoi (ce contrôle précède l'envoi des liens), l'empreinte prouve que le contrat n'a pas changé depuis, et
+ * l'activation du bail signé le refait (`activer_bail`).
+ */
+export async function controlerEnvoi(p: { db: SupabaseClient; org: string; bail: string; circuit: CircuitBail; miseEnLocationDejaControlee?: boolean }): Promise<ControleEnvoi> {
   const { db, org, bail, circuit } = p;
   // Fermeture ciblée d'un modèle : refus avant toute lecture du dossier, toute réservation et tout appel au prestataire.
   const fermeture = fermetureModeleSignature(circuit.modele);
@@ -58,7 +83,7 @@ export async function controlerEnvoi(p: { db: SupabaseClient; org: string; bail:
   if (!service) throw new Error("Le suivi sécurisé est indisponible.");
   const preparation = await assemblerSignatureDocument(db, org, selectionDuCircuit(circuit));
   if (preparation.manquants.length || preparation.empreinte !== circuit.empreinte) throw new Error("Le dossier a changé depuis la préparation. Préparez et relisez un nouveau PDF.");
-  if (!circuit.modele || circuit.modele === "bail") {
+  if (estCircuitDeBail(circuit) && !p.miseEnLocationDejaControlee) {
     const controle = await db.rpc("controler_mise_en_location", { p_bail: bail });
     if (controle.error) throw new Error(sansJargon(controle.error.message));
   }
@@ -117,6 +142,8 @@ export async function envoyerApresControle(p: { db: SupabaseClient; org: string;
     if (!service) throw new Error("Le suivi sécurisé est indisponible.");
     // Décision du 23/10 : le numéro saisi par le bailleur ne sert jamais à un acte de cautionnement (garde aussi en base).
     if (circuit.modele === "cautionnement" && !telephoneGarantConfirme(circuit.signataires)) throw new Error(REFUS_MOBILE_CAUTION_NON_CONFIRME);
+    // Décision du 24/10 : ni au garant qui signe aussi le bail (garde aussi en base).
+    if (estCircuitDeBail(circuit) && !telephonesGarantsConfirmes(circuit.signataires)) throw new Error(REFUS_MOBILE_GARANT_BAIL_NON_CONFIRME);
     if (circuit.modele === "edl") {
       if (!p.visiteLe || !/^\d{4}-\d{2}-\d{2}$/.test(p.visiteLe)) throw new Error(REFUS_CONFIRMATION_EDL);
       const confirmation = await service.rpc("confirmer_edl_sur_place", { p_circuit: id, p_actor: acteur, p_visite_le: p.visiteLe });

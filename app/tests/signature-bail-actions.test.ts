@@ -66,3 +66,23 @@ describe('Garde avant tout envoi du bail',()=>{
  it('un contrôle métier refusé empêche le chargement et l’envoi du PDF',async()=>{m.rpc.mockImplementation(async(name:string)=>name==='has_org_role'?{data:true,error:null}:{error:{message:'Dossier incomplet'}});expect((await envoyer()).erreur).toBeTruthy();expect(m.download).not.toHaveBeenCalled();aucunEnvoi();});
  it('une annulation ne touche jamais une autre référence de contrat',async()=>{m.circuit.etat='en_cours';m.lire.mockResolvedValue({id:'req',external_id:'autre',status:'ongoing'});expect((await annulerSignatureBail('org','11111111-1111-4111-8111-111111111111','circuit')).erreur).toContain('correspond pas');expect(m.annuler).not.toHaveBeenCalled();});
 });
+// Décision du 24/10 : le garant du bail ne signe plus avec le numéro de sa fiche, qui sort donc de l'empreinte. Un bail
+// préparé et signé avant ce changement (son garant sans numéro confirmé) reste activable avec l'ancien calcul ; un bail
+// préparé après n'a que le nouveau.
+describe('Activation d’un bail préparé avant la confirmation du mobile par le garant',()=>{
+ const garant=(confirme:boolean)=>({personId:'g',qualite:'Garant',prenom:'G',nom:'G',email:'g@example.invalid',telephone:'+33611223344',...(confirme?{telephoneConfirmeLe:'2026-10-24T08:00:00Z'}:{})});
+ beforeEach(()=>{
+  Object.assign(m.circuit,{modele:'bail',etat:'termine',empreinte:'ancienne'});
+  m.assembler.mockImplementation(async(_db:unknown,_org:string,_bail:string,options?:{telephoneGarantDuDossier?:boolean})=>({empreinte:options?.telephoneGarantDuDossier?'ancienne':'nouvelle',manquants:[]}));
+ });
+ it('l’ancien calcul (numéro de la fiche) vaut pour un garant qui n’a pas confirmé son numéro',async()=>{
+  m.circuit.signataires=[garant(false)];
+  expect((await activerBailApresSignature('org','11111111-1111-4111-8111-111111111111','circuit')).erreur).toBeUndefined();
+  expect(m.rpc).toHaveBeenCalledWith('activer_bail_signature_electronique',{p_circuit:'circuit'});
+ });
+ it('un bail dont le garant a confirmé son numéro n’accepte que le nouveau calcul',async()=>{
+  m.circuit.signataires=[garant(true)];
+  expect((await activerBailApresSignature('org','11111111-1111-4111-8111-111111111111','circuit')).erreur).toContain('ont changé');
+  expect(m.rpc.mock.calls.some(c=>c[0]==='activer_bail_signature_electronique')).toBe(false);
+ });
+});

@@ -1,8 +1,10 @@
 /**
  * Décision du 23/10/2026 : pour l'acte de cautionnement, le mobile saisi par le bailleur sur la fiche du garant n'est
  * jamais repris. L'assemblage le laisse vide (la caution le confirmera), ne le réclame pas comme manquant, et
- * l'empreinte du circuit ne dépend pas de lui : le changer ne périme pas la préparation. Le bail, lui, garde le
- * numéro de la fiche du garant.
+ * l'empreinte du circuit ne dépend pas de lui : le changer ne périme pas la préparation.
+ * Décision du 24/10 : il en va de même du garant qui signe aussi le BAIL (il confirme lui-même son mobile, ou son numéro
+ * confirmé pour l'acte de cautionnement est repris). Seul l'ancien calcul, pour activer un bail préparé avant ce
+ * changement, garde le numéro de la fiche.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -11,7 +13,7 @@ const m = vi.hoisted(() => ({ contexte: vi.fn(), modele: vi.fn() }));
 vi.mock("@/lib/documents/modeles/communs", async (original) => ({ ...(await original<object>()), chargerContexteBail: m.contexte }));
 vi.mock("@/lib/documents/modeles", () => ({ MODELES: { cautionnement: { assembler: m.modele }, avenant: { assembler: m.modele } } }));
 import { assemblerSignatureDocument } from "@/lib/signature-document";
-import { partiesSignatureBail } from "@/lib/signature-bail";
+import { empreinteSignatureBail, partiesSignatureBail } from "@/lib/signature-bail";
 
 const BAIL = "11111111-1111-4111-8111-111111111111";
 const GARANT = "22222222-2222-4222-8222-222222222222";
@@ -52,10 +54,30 @@ describe("cautionnement : le mobile du dossier n'est jamais repris", () => {
     expect(apres.empreinte).toBe(avant.empreinte);
   });
 
-  it("le bail garde le numéro de la fiche du garant, et le réclame s'il manque", () => {
-    const ctx = ctxAvecTelephone("06 00 00 00 09");
-    expect(partiesSignatureBail(ctx).signataires.find((s) => s.qualite === "Garant")!.telephone).toBe("+33600000009");
-    expect(partiesSignatureBail(ctxAvecTelephone(null)).manquants.join(" ")).toContain("téléphone pour recevoir le code SMS");
+});
+
+describe("bail : le garant qui le signe aussi ne reprend pas non plus le mobile de sa fiche (décision du 24/10)", () => {
+  it("le garant part sans numéro et sans manquant ; les autres signataires gardent le leur, exigé", () => {
+    const r = partiesSignatureBail(ctxAvecTelephone("06 00 00 00 09"));
+    expect(r.signataires.find((s) => s.qualite === "Garant")!.telephone).toBe("");
+    expect(JSON.stringify(r.signataires)).not.toContain("+33600000009");
+    expect(r.signataires.find((s) => s.qualite === "Locataire")!.telephone).toBe("+33600000001");
+    expect(r.manquants).toEqual([]);
+    const sansTelephone = ctxAvecTelephone(null);
+    sansTelephone.locataires = [{ ...sansTelephone.locataires[0], telephone: null }];
+    expect(partiesSignatureBail(sansTelephone).manquants.join(" ")).toContain("téléphone pour recevoir le code SMS");
+  });
+
+  it("l'empreinte du bail ne change pas quand le bailleur modifie le numéro de la fiche du garant", () => {
+    const html = "<body>Bail fictif</body>";
+    expect(empreinteSignatureBail(html, partiesSignatureBail(ctxAvecTelephone("06 00 00 00 09")).signataires))
+      .toBe(empreinteSignatureBail(html, partiesSignatureBail(ctxAvecTelephone(null)).signataires));
+  });
+
+  it("l'ancien calcul (bail préparé avant le 24/10, pour son activation) garde le numéro de la fiche et le réclame", () => {
+    const ancien = { telephoneGarantDuDossier: true };
+    expect(partiesSignatureBail(ctxAvecTelephone("06 00 00 00 09"), true, ancien).signataires.find((s) => s.qualite === "Garant")!.telephone).toBe("+33600000009");
+    expect(partiesSignatureBail(ctxAvecTelephone(null), true, ancien).manquants.join(" ")).toContain("téléphone pour recevoir le code SMS");
   });
 });
 

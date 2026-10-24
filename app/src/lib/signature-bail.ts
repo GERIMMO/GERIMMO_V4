@@ -16,8 +16,13 @@ export type SignataireBail = {
   nom: string; prenom: string; email: string; telephone: string;
   externalId?: string; statut?: string; preuveDocumentId?: string;
   mentionCaution?: string;
-  /** Acte de cautionnement : instant où la caution a confirmé elle-même ce numéro (lien à usage unique, décision du 23/10). */
+  /**
+   * Garant (acte de cautionnement, décision du 23/10 ; bail, décision du 24/10) : instant où il a confirmé lui-même ce
+   * numéro par un lien à usage unique, posé en base seulement.
+   */
   telephoneConfirmeLe?: string;
+  /** Le lien (ligne de `confirmations_mobile_caution`) par lequel le garant a confirmé ce numéro. */
+  confirmationMobile?: string;
 };
 export type CircuitBail = {
   created_by?: string; envoye_le?: string | null;
@@ -80,11 +85,13 @@ export function telephoneSignature(v: string | null | undefined): string {
 }
 
 /**
- * `telephoneGarantParCaution` (acte de cautionnement, décision du 23/10) : le mobile du garant n'est pas pris dans le
- * dossier, où le bailleur l'a saisi ; la caution le confirme elle-même avant l'envoi. Il reste vide ici, n'entre pas
- * dans l'empreinte et n'est pas réclamé comme manquant.
+ * Le mobile d'un garant n'est jamais pris dans le dossier, où le bailleur l'a saisi : le garant le confirme lui-même
+ * avant l'envoi (acte de cautionnement, décision du 23/10 ; bail qu'il signe aussi, décision du 24/10). Il reste vide
+ * ici, n'entre pas dans l'empreinte et n'est pas réclamé comme manquant.
+ * `telephoneGarantDuDossier` : l'ancien calcul, où le garant du bail signait avec le numéro de sa fiche. Il ne sert qu'à
+ * reconnaître l'empreinte d'un bail préparé avant le 24/10, pour l'activer après sa signature.
  */
-export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locataires"|"garants"> & {organisation:{type:string}}, inclureLocataires = true, options: { telephoneGarantParCaution?: boolean } = {}): { signataires: SignataireBail[]; manquants: string[] } {
+export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locataires"|"garants"> & {organisation:{type:string}}, inclureLocataires = true, options: { telephoneGarantDuDossier?: boolean } = {}): { signataires: SignataireBail[]; manquants: string[] } {
   const manquants: string[] = [];
   if (ctx.organisation.type !== "proprietaire_direct") manquants.push("La signature du mandataire d’agence reste à configurer.");
   if (inclureLocataires && !ctx.locataires.length) manquants.push("Ajoutez un locataire au bail.");
@@ -93,7 +100,7 @@ export function partiesSignatureBail(ctx: Pick<ContexteBail,"bailleurs"|"locatai
   function ajouter(p: PersonneDocument, qualite: SignataireBail["qualite"]) {
     if (ids.has(p.id)) { manquants.push(`${p.prenom ?? ""} ${p.nom} apparaît dans plusieurs rôles : vérifiez les parties au bail.`); return; }
     ids.add(p.id);
-    const parCaution = qualite === "Garant" && options.telephoneGarantParCaution === true;
+    const parCaution = qualite === "Garant" && options.telephoneGarantDuDossier !== true;
     const s: SignataireBail = { personId: p.id, qualite, nom: p.nom.trim(), prenom: p.prenom?.trim() ?? "", email: p.email?.trim() ?? "", telephone: parCaution ? "" : telephoneSignature(p.telephone) };
     const libelle = `${s.prenom} ${s.nom}`.trim() || qualite;
     if (!s.nom || !s.prenom) manquants.push(`${libelle} : nom et prénom du signataire à renseigner.`);
@@ -131,7 +138,7 @@ export function empreinteSignatureBail(html: string, signataires: SignataireBail
   return createHash("sha256").update(JSON.stringify({ html: stable, signataires })).digest("hex");
 }
 
-export async function assemblerSignatureBail(db: SupabaseClient, org: string, bail: string) {
+export async function assemblerSignatureBail(db: SupabaseClient, org: string, bail: string, options: { telephoneGarantDuDossier?: boolean } = {}) {
   const ctx = await chargerContexteBail(db, org, bail);
   if ("erreur" in ctx) throw new Error(ctx.erreur);
   if (ctx.bail.etat !== "brouillon") throw new Error("Seul un bail brouillon peut être envoyé pour signature.");
@@ -139,7 +146,15 @@ export async function assemblerSignatureBail(db: SupabaseClient, org: string, ba
   const { data: parties, error } = await db.from("bail_personnes").select("person_id,date_depart").eq("bail_id", bail).eq("organization_id", org);
   if (error) throw new Error("Les parties du bail ne peuvent pas être vérifiées.");
   if ((parties ?? []).some(p => p.date_depart)) throw new Error("Le bail contient une personne sortie : vérifiez ses parties avant de préparer la signature.");
-  const { signataires, manquants } = partiesSignatureBail(ctx);
+  const { signataires, manquants } = partiesSignatureBail(ctx, true, options);
+  // Décision du 24/10 : le lien de confirmation du mobile part à l'adresse de chaque garant ; celle d'une autre personne
+  // du bail la lui ferait recevoir (la base le refuse aussi).
+  const adresse = (e: string) => e.trim().toLowerCase();
+  for (const g of signataires) {
+    if (g.qualite === "Garant" && adresse(g.email) && signataires.some(s => s.personId !== g.personId && adresse(s.email) === adresse(g.email))) {
+      manquants.push(`${`${g.prenom} ${g.nom}`.trim() || "Garant"} : l’adresse e-mail du garant est celle d’une autre personne du bail. Renseignez l’adresse personnelle du garant : le lien de confirmation de son mobile lui est envoyé.`);
+    }
+  }
   const pieces = await annexesSignatureBail(db,org,bail,ctx);
   manquants.push(...pieces.manquants);
   const code = ctx.bail.chambre_id ? "bail_individuel" : ctx.bail.type === "colocation" ? "bail_colocation" : ctx.bail.type === "meuble" ? "bail_meuble" : "bail_nu";

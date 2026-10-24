@@ -1,17 +1,18 @@
 -- Retour de 20261024120000 (conformité V1, lot 1D tel que la décision du 23/10 le remplace : la caution confirme
--- elle-même son mobile ; l'état des lieux porte la confirmation « établi contradictoirement, sur place »).
--- Remettre d'abord le code précédent : l'envoi d'un acte de cautionnement, la page publique /signature/caution/… et la
--- confirmation de l'état des lieux appellent les fonctions retirées ici.
+-- elle-même son mobile ; l'état des lieux porte la confirmation « établi contradictoirement, sur place » ; décision du
+-- 24/10 : le garant qui signe aussi le bail confirme lui aussi son mobile).
+-- Remettre d'abord le code précédent : l'envoi d'un acte de cautionnement ou d'un bail qui a un garant, la page publique
+-- /signature/caution/… et la confirmation de l'état des lieux appellent les fonctions retirées ici.
 --
 -- Ce qui est défait :
 --  · le déclencheur `signature_garde_caution_edl` et sa fonction (un circuit repart sans confirmation : c'est le
---    comportement d'avant, où le numéro saisi par le bailleur servait au cautionnement) ;
+--    comportement d'avant, où le numéro saisi par le bailleur servait au cautionnement et au garant du bail) ;
 --  · le déclencheur `signature_liens_caution_clos` et sa fonction `fermer_liens_caution_hors_pret` ;
---  · `demander_confirmation_mobile_caution`, `consommer_confirmation_mobile_caution`, `confirmer_edl_sur_place`,
---    `coordonnees_autres_parties_caution` ;
+--  · `demander_confirmation_mobile_caution`, `consommer_confirmation_mobile_caution`, `reprendre_mobiles_garants_bail`,
+--    `confirmer_edl_sur_place`, `coordonnees_autres_parties_caution` ;
 --  · la table `confirmations_mobile_caution` (déclencheurs, fonction de garde), SEULEMENT SI ELLE EST VIDE. Une table
 --    qui porte des liens envoyés est CONSERVÉE telle quelle, sa garde comprise : c'est la preuve de la confirmation du
---    numéro par la caution ; son sort revient au dirigeant. Le script dit alors ce qu'il garde.
+--    numéro par la caution ou par le garant du bail ; son sort revient au dirigeant. Le script dit alors ce qu'il garde.
 -- Ce qui est conservé : la colonne `bail_signature_circuits.confirmation_sur_place` et sa contrainte (preuve des
 -- confirmations déjà données ; le code précédent l'ignore).
 --
@@ -31,10 +32,11 @@ begin
   drop function if exists public.fermer_liens_caution_hors_pret();
 
   -- 2. Fonctions.
-  drop function if exists public.demander_confirmation_mobile_caution(uuid, uuid, text);
+  drop function if exists public.demander_confirmation_mobile_caution(uuid, uuid, text, text);
   drop function if exists public.consommer_confirmation_mobile_caution(text, text);
+  drop function if exists public.reprendre_mobiles_garants_bail(uuid);
   drop function if exists public.confirmer_edl_sur_place(uuid, uuid, date);
-  drop function if exists public.coordonnees_autres_parties_caution(uuid, uuid, jsonb);
+  drop function if exists public.coordonnees_autres_parties_caution(uuid, uuid, jsonb, text);
 
   -- 3. La table des liens, si elle est vide.
   if to_regclass('public.confirmations_mobile_caution') is not null then
@@ -43,7 +45,7 @@ begin
       drop table public.confirmations_mobile_caution;
       drop function if exists public.confirmations_mobile_caution_garde();
     else
-      raise notice 'public.confirmations_mobile_caution conservée : % lien(s) envoyé(s) à une caution (preuves ; décision du dirigeant requise avant toute suppression).', v_liens;
+      raise notice 'public.confirmations_mobile_caution conservée : % lien(s) envoyé(s) à une caution ou à un garant du bail (preuves ; décision du dirigeant requise avant toute suppression).', v_liens;
     end if;
   end if;
 

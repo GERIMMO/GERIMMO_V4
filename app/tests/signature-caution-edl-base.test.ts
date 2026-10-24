@@ -13,6 +13,9 @@
  *    expiré, annulé, inconnu, ou acte qui n'est plus prêt : refusés ;
  *  · garde de l'envoi : un cautionnement ne part jamais avec le numéro saisi par le bailleur, un état des lieux jamais
  *    sans la confirmation « établi contradictoirement, sur place » de moins d'une heure ;
+ *  · garant qui signe aussi le bail (décision du 24/10) : jamais le numéro saisi par le bailleur ni une coordonnée d'une
+ *    autre partie ; numéro confirmé pour l'acte de cautionnement du même bail repris sans lien ; un lien par garant, le
+ *    bail part quand tous ont confirmé ; renvoi, limite par garant et par bail, expiration, clôture des liens ;
  *  · droits : ni anon ni authenticated ne lisent la table ni n'appellent les fonctions ; une ligne close ne change plus ;
  *  · retour arrière : table vide retirée, rejeu sans effet, table non vide conservée, colonne conservée, marche avant.
  * Rejoue la migration et son retour (DDL) : classé en série (vitest.config.ts).
@@ -214,7 +217,7 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
       const expire = jeton();
       await proprietaireBase();
       await db.query(
-        "insert into public.confirmations_mobile_caution(organization_id,circuit_id,jeton_empreinte,demande_par,cree_le,expire_le) values($1,$2,$3,$4,now()-interval '8 days',now()-interval '1 day')",
+        "insert into public.confirmations_mobile_caution(organization_id,circuit_id,garant_id,acte,jeton_empreinte,demande_par,cree_le,expire_le) values($1,$2,'garant','cautionnement',$3,$4,now()-interval '8 days',now()-interval '1 day')",
         [org, circuit, empreinte(expire), owner],
       );
       await serviceRole();
@@ -345,7 +348,7 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
     it("garde : le mobile d'un propriétaire posé sur le garant ne part pas, même avec un lien utilisé qui le porte", async () => {
       await proprietaireBase();
       await db.query(
-        "insert into public.confirmations_mobile_caution(organization_id,circuit_id,jeton_empreinte,demande_par,expire_le,utilise_le,telephone_confirme) values($1,$2,$3,$4,now()+interval '1 day',now(),$5)",
+        "insert into public.confirmations_mobile_caution(organization_id,circuit_id,garant_id,acte,jeton_empreinte,demande_par,expire_le,utilise_le,telephone_confirme) values($1,$2,'garant','cautionnement',$3,$4,now()+interval '1 day',now(),$5)",
         [org, circuit, empreinte(jeton()), owner, MOBILE_PROPRIETAIRE],
       );
       await garantAvec({ telephone: MOBILE_PROPRIETAIRE, telephoneConfirmeLe: new Date().toISOString() });
@@ -451,6 +454,219 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
     });
   });
 
+  // Décision du 24/10 (choix logique délégué à Claude) : le garant qui signe aussi le BAIL confirme lui-même son mobile,
+  // comme la caution (même table de liens, mêmes fonctions). Son numéro confirmé pour l'acte de cautionnement du même
+  // bail est repris sans nouvelle demande ; sinon un lien lui part et le circuit attend. Jamais le numéro saisi par le
+  // bailleur, jamais une coordonnée d'une autre partie.
+  describe("garant qui signe aussi le bail (décision du 24/10)", () => {
+    const MOBILE_GARANT_B = "+33622334455";
+    const MOBILE_PROPRIETAIRE = "+33600000002";
+    const MOBILE_LOCATAIRE = "+33600000001";
+    const signatairesBail = () => [
+      { personId: "locataire", qualite: "Locataire", prenom: "Alice", nom: "Test", email: "alice@example.invalid", telephone: MOBILE_LOCATAIRE },
+      { personId: "garant", qualite: "Garant", prenom: "Gaston", nom: "Garant", email: "gaston@example.invalid", telephone: "" },
+      { personId: "garant-b", qualite: "Garant", prenom: "Berthe", nom: "Garante", email: "berthe@example.invalid", telephone: "" },
+      { personId: "owner", qualite: "Propriétaire", prenom: "Paule", nom: "Proprio", email: "paule@example.invalid", telephone: MOBILE_PROPRIETAIRE },
+    ];
+    let circuitBail = "";
+    const demanderGarant = (j: string, garantId: string, c = circuitBail) =>
+      db.query<{ expire: Date }>("select public.demander_confirmation_mobile_caution($1, $2, $3, $4) as expire", [c, owner, empreinte(j), garantId]);
+    const demanderGarantSql = "select public.demander_confirmation_mobile_caution($1, $2, $3, $4)";
+    const consommerSql = "select * from public.consommer_confirmation_mobile_caution($1, $2)";
+    const reserverSql = "select (public.reserver_envoi_signature_bail($1, $2)).id";
+    const reprendre = async (c = circuitBail) =>
+      (await db.query<{ s: Record<string, string>[] }>("select public.reprendre_mobiles_garants_bail($1) as s", [c])).rows[0].s;
+    const signataire = async (personId: string, c = circuitBail) =>
+      (await db.query("select s from public.bail_signature_circuits, jsonb_array_elements(signataires) s where id = $1 and s->>'personId' = $2", [c, personId])).rows[0].s;
+    const liensBail = async (garantId: string, ouverts = false) =>
+      (await db.query(
+        `select count(*)::int n from public.confirmations_mobile_caution where circuit_id = $1 and garant_id = $2${ouverts ? " and utilise_le is null and annulee_le is null" : ""}`,
+        [circuitBail, garantId],
+      )).rows[0].n;
+    const etat = async (c = circuitBail) => (await db.query("select etat from public.bail_signature_circuits where id = $1", [c])).rows[0].etat;
+    async function poserSurSignataire(personId: string, champs: Record<string, string>, c = circuitBail) {
+      await db.query(
+        "update public.bail_signature_circuits set signataires = (select jsonb_agg(case when e.s->>'personId' = $2 then e.s || $3::jsonb else e.s end order by e.r) from jsonb_array_elements(signataires) with ordinality e(s, r)) where id = $1",
+        [c, personId, JSON.stringify(champs)],
+      );
+    }
+    /** La caution « garant » confirme MOBILE_CAUTION pour son acte de cautionnement (circuit du beforeEach général). */
+    async function cautionConfirmee(telephone = MOBILE_CAUTION) {
+      const j = jeton();
+      await serviceRole();
+      await demander(j);
+      await consommer(j, telephone);
+    }
+
+    beforeEach(async () => {
+      await proprietaireBase();
+      circuitBail = await id(
+        "insert into public.bail_signature_circuits(organization_id,bail_id,document_id,created_by,environnement,empreinte,pdf_hash,signataires,prestataire,modele,cible_id) values($1,$2,$3,$4,'production',repeat('e',64),repeat('a',64),$5,'zoho','bail',$2) returning id",
+        [org, bail, doc, owner, JSON.stringify(signatairesBail())],
+      );
+    });
+
+    it("jamais le numéro saisi par le bailleur : un garant du bail sans numéro confirmé par lui-même ne part pas", async () => {
+      await proprietaireBase();
+      // Le numéro de la fiche du garant (saisi par le bailleur) posé sur le circuit : refusé à l'envoi.
+      await poserSurSignataire("garant", { telephone: MOBILE_BAILLEUR });
+      await poserSurSignataire("garant-b", { telephone: MOBILE_GARANT_B, telephoneConfirmeLe: new Date().toISOString() });
+      await serviceRole();
+      expect(await echec(reserverSql, [circuitBail, owner])).toMatch(/Chaque garant doit confirmer lui-même son numéro/);
+      expect(await etat()).toBe("pret");
+    });
+
+    it("jamais une coordonnée d'une autre partie : ni par le lien, ni par un lien utilisé qui la porterait", async () => {
+      const j = jeton();
+      await serviceRole();
+      await demanderGarant(j, "garant");
+      // Le propriétaire signataire, le locataire du bail : refusés, le lien reste ouvert.
+      for (const t of [MOBILE_PROPRIETAIRE, MOBILE_LOCATAIRE]) {
+        expect(await echec(consommerSql, [empreinte(j), t])).toMatch(/autre personne de ce dossier/);
+      }
+      expect(await liensBail("garant", true)).toBe(1);
+      await consommer(j, MOBILE_CAUTION);
+      // L'autre garant ne confirme pas le numéro du premier.
+      const jb = jeton();
+      await demanderGarant(jb, "garant-b");
+      expect(await echec(consommerSql, [empreinte(jb), MOBILE_CAUTION])).toMatch(/autre personne de ce dossier/);
+      // Un lien « utilisé » fabriqué avec le numéro du propriétaire ne fait pas partir le bail.
+      await proprietaireBase();
+      await db.query(
+        "insert into public.confirmations_mobile_caution(organization_id,circuit_id,garant_id,acte,jeton_empreinte,demande_par,expire_le,utilise_le,telephone_confirme) values($1,$2,'garant-b','bail',$3,$4,now()+interval '1 day',now(),$5)",
+        [org, circuitBail, empreinte(jeton()), owner, MOBILE_PROPRIETAIRE],
+      );
+      await poserSurSignataire("garant-b", { telephone: MOBILE_PROPRIETAIRE, telephoneConfirmeLe: new Date().toISOString() });
+      await serviceRole();
+      expect(await echec(reserverSql, [circuitBail, owner])).toMatch(/Chaque garant doit confirmer lui-même son numéro/);
+    });
+
+    it("réutilisation : le numéro confirmé par la caution pour l'acte de cautionnement du même bail est repris, sans nouveau lien", async () => {
+      await cautionConfirmee();
+      const apres = await reprendre();
+      const g = apres.find((s) => s.personId === "garant")!;
+      expect(g.telephone).toBe(MOBILE_CAUTION);
+      expect(g.telephoneConfirmeLe).toBeTruthy();
+      expect(g.confirmationMobile).toMatch(/^[0-9a-f-]{36}$/);
+      expect((await signataire("garant")).telephone).toBe(MOBILE_CAUTION);
+      // L'autre garant n'a rien confirmé : il reste à confirmer.
+      expect((await signataire("garant-b")).telephone).toBe("");
+      expect(await liensBail("garant")).toBe(0);
+      await proprietaireBase();
+      expect((await db.query("select count(*)::int n from public.audit_log where action = 'signature_garant_bail_mobile_repris' and details->>'circuit_id' = $1 and details->>'garant_id' = 'garant'", [circuitBail])).rows[0].n).toBe(1);
+      await serviceRole();
+      // Plus de lien pour ce garant sur ce bail.
+      expect(await echec(demanderGarantSql, [circuitBail, owner, empreinte(jeton()), "garant"])).toMatch(/déjà confirmé son numéro/);
+    });
+
+    it("réutilisation refusée : un numéro devenu celui d'une autre partie, ou confirmé pour un autre bail, n'est pas repris", async () => {
+      await cautionConfirmee();
+      await proprietaireBase();
+      await poserSurSignataire("locataire", { telephone: MOBILE_CAUTION });
+      await serviceRole();
+      expect((await reprendre()).find((s) => s.personId === "garant")!.telephone).toBe("");
+      // Un autre bail du même garant : sa confirmation ne vaut pas pour celui-ci.
+      await proprietaireBase();
+      await poserSurSignataire("locataire", { telephone: MOBILE_LOCATAIRE });
+      const autreBail = await id("insert into public.baux(organization_id,lot_id,locataire_principal,etat,type,date_debut,loyer_hc,charges) select organization_id,lot_id,locataire_principal,'brouillon','nu',current_date,500,20 from public.baux where id = $1 returning id", [bail]);
+      await db.query("update public.bail_signature_circuits set bail_id = $2, cible_id = $2 where id = $1", [circuitBail, autreBail]);
+      await serviceRole();
+      expect((await reprendre()).find((s) => s.personId === "garant")!.telephone).toBe("");
+    });
+
+    it("attente puis envoi : un lien par garant, le bail part quand tous ont confirmé", async () => {
+      const ja = jeton(), jb = jeton();
+      await serviceRole();
+      const { rows: [{ expire }] } = await demanderGarant(ja, "garant");
+      expect(new Date(expire).getTime()).toBeGreaterThan(Date.now());
+      await demanderGarant(jb, "garant-b");
+      expect(await liensBail("garant", true)).toBe(1);
+      expect(await liensBail("garant-b", true)).toBe(1);
+      await proprietaireBase();
+      const ligne = (await db.query("select acte, garant_id from public.confirmations_mobile_caution where jeton_empreinte = $1", [empreinte(ja)])).rows[0];
+      expect(ligne).toEqual({ acte: "bail", garant_id: "garant" });
+      await serviceRole();
+      expect(await echec(reserverSql, [circuitBail, owner])).toMatch(/Chaque garant doit confirmer lui-même son numéro/);
+      await consommer(ja, MOBILE_CAUTION);
+      expect((await signataire("garant")).telephone).toBe(MOBILE_CAUTION);
+      expect((await signataire("garant-b")).telephone).toBe("");
+      expect(await echec(reserverSql, [circuitBail, owner])).toMatch(/Chaque garant doit confirmer lui-même son numéro/);
+      await consommer(jb, MOBILE_GARANT_B);
+      await db.query(reserverSql, [circuitBail, owner]);
+      expect(await etat()).toBe("preparation");
+      // Une fois parti, le numéro d'un garant du bail ne change plus.
+      expect(await echec(
+        "update public.bail_signature_circuits set signataires = (select jsonb_agg(case when e.s->>'personId' = 'garant-b' then e.s || jsonb_build_object('telephone', $2::text) else e.s end order by e.r) from jsonb_array_elements(signataires) with ordinality e(s, r)) where id = $1",
+        [circuitBail, MOBILE_BAILLEUR],
+      )).toMatch(/ne change plus/);
+    });
+
+    it("le numéro repris de la caution et celui confirmé par le lien du bail ouvrent ensemble l'envoi", async () => {
+      await cautionConfirmee();
+      await reprendre();
+      const jb = jeton();
+      await demanderGarant(jb, "garant-b");
+      await consommer(jb, MOBILE_GARANT_B);
+      await db.query(reserverSql, [circuitBail, owner]);
+      expect(await etat()).toBe("preparation");
+    });
+
+    it("renvoi : un nouveau lien annule le précédent du même garant, pas celui de l'autre ; garant étranger au bail refusé", async () => {
+      const premier = jeton(), second = jeton(), deB = jeton();
+      await serviceRole();
+      await demanderGarant(premier, "garant");
+      await demanderGarant(deB, "garant-b");
+      await demanderGarant(second, "garant");
+      expect(await echec(consommerSql, [empreinte(premier), MOBILE_CAUTION])).toMatch(/plus valable/);
+      expect(await liensBail("garant", true)).toBe(1);
+      expect(await liensBail("garant-b", true)).toBe(1);
+      await consommer(second, MOBILE_CAUTION);
+      expect(await echec(demanderGarantSql, [circuitBail, owner, empreinte(jeton()), "inconnu"])).toMatch(/ne signe pas ce bail/);
+      expect(await echec("select public.demander_confirmation_mobile_caution($1, $2, $3)", [circuitBail, owner, empreinte(jeton())])).toMatch(/ne signe pas ce bail/);
+      expect(await echec(demanderGarantSql, [circuitBail, autre, empreinte(jeton()), "garant-b"])).toMatch(/Accès refusé/);
+    });
+
+    it("renvoi borné : cinq liens par garant et par bail en vingt-quatre heures, acte de cautionnement et bail confondus", async () => {
+      await serviceRole();
+      for (let i = 0; i < 3; i++) await demander(jeton());
+      for (let i = 0; i < 2; i++) await demanderGarant(jeton(), "garant");
+      expect(await echec(demanderGarantSql, [circuitBail, owner, empreinte(jeton()), "garant"])).toMatch(/Cinq liens/);
+      // L'autre garant a son propre compteur.
+      await demanderGarant(jeton(), "garant-b");
+    });
+
+    it("expiration : un lien expiré est refusé ; le bail qui quitte l'état « prêt » clôt les liens ouverts", async () => {
+      const expire = jeton();
+      await proprietaireBase();
+      await db.query(
+        "insert into public.confirmations_mobile_caution(organization_id,circuit_id,garant_id,acte,jeton_empreinte,demande_par,cree_le,expire_le) values($1,$2,'garant','bail',$3,$4,now()-interval '8 days',now()-interval '1 day')",
+        [org, circuitBail, empreinte(expire), owner],
+      );
+      await serviceRole();
+      expect(await echec(consommerSql, [empreinte(expire), MOBILE_CAUTION])).toMatch(/expiré/);
+      const j = jeton();
+      await demanderGarant(j, "garant-b");
+      await proprietaireBase();
+      await db.query("update public.bail_signature_circuits set etat = 'annule' where id = $1", [circuitBail]);
+      expect(await liensBail("garant-b", true)).toBe(0);
+      await serviceRole();
+      expect(await echec(consommerSql, [empreinte(j), MOBILE_GARANT_B])).toMatch(/plus valable/);
+    });
+
+    it("un bail sans garant part comme avant ; un bail avec garant ne s'enregistre que prêt", async () => {
+      await proprietaireBase();
+      await db.query("update public.bail_signature_circuits set signataires = (select jsonb_agg(s) from jsonb_array_elements(signataires) s where s->>'qualite' <> 'Garant') where id = $1", [circuitBail]);
+      await serviceRole();
+      await db.query(reserverSql, [circuitBail, owner]);
+      expect(await etat()).toBe("preparation");
+      await proprietaireBase();
+      expect(await echec(
+        "insert into public.bail_signature_circuits(organization_id,bail_id,document_id,created_by,environnement,empreinte,pdf_hash,signataires,prestataire,modele,cible_id,etat) values($1,$2,$3,$4,'production',repeat('f',64),repeat('a',64),$5,'zoho','bail',$2,'en_cours')",
+        [org, bail, doc, owner, JSON.stringify(signatairesBail())],
+      )).toMatch(/ne s’enregistre que prêt/);
+    });
+  });
+
   it("droits : ni anon ni un compte connecté ne lisent la table ni n'appellent les fonctions", async () => {
     await serviceRole();
     await demander(jeton());
@@ -460,11 +676,12 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
       expect(await echec("select public.demander_confirmation_mobile_caution($1, $2, $3)", [circuit, owner, empreinte(jeton())])).toMatch(/permission denied/);
       expect(await echec("select * from public.consommer_confirmation_mobile_caution($1, $2)", [empreinte(jeton()), MOBILE_CAUTION])).toMatch(/permission denied/);
       expect(await echec("select public.confirmer_edl_sur_place($1, $2, '2026-10-01')", [circuit, owner])).toMatch(/permission denied/);
+      expect(await echec("select public.reprendre_mobiles_garants_bail($1)", [circuit])).toMatch(/permission denied/);
     }
     await proprietaireBase();
     const ouvertes = (await db.query(
       "select p.proname from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = any($1) and (has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE'))",
-      [["demander_confirmation_mobile_caution", "consommer_confirmation_mobile_caution", "confirmer_edl_sur_place", "garder_envoi_signature_caution_edl", "confirmations_mobile_caution_garde", "coordonnees_autres_parties_caution", "fermer_liens_caution_hors_pret"]],
+      [["demander_confirmation_mobile_caution", "consommer_confirmation_mobile_caution", "confirmer_edl_sur_place", "garder_envoi_signature_caution_edl", "confirmations_mobile_caution_garde", "coordonnees_autres_parties_caution", "fermer_liens_caution_hors_pret", "reprendre_mobiles_garants_bail"]],
     )).rows;
     expect(ouvertes).toEqual([]);
   });
@@ -474,7 +691,7 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
     await db.query("delete from public.confirmations_mobile_caution");
     await db.query(RETOUR);
     expect((await db.query("select to_regclass('public.confirmations_mobile_caution') t")).rows[0].t).toBeNull();
-    for (const f of ["public.demander_confirmation_mobile_caution(uuid,uuid,text)", "public.consommer_confirmation_mobile_caution(text,text)", "public.confirmer_edl_sur_place(uuid,uuid,date)", "public.garder_envoi_signature_caution_edl()", "public.fermer_liens_caution_hors_pret()", "public.coordonnees_autres_parties_caution(uuid,uuid,jsonb)"]) {
+    for (const f of ["public.demander_confirmation_mobile_caution(uuid,uuid,text,text)", "public.consommer_confirmation_mobile_caution(text,text)", "public.confirmer_edl_sur_place(uuid,uuid,date)", "public.garder_envoi_signature_caution_edl()", "public.fermer_liens_caution_hors_pret()", "public.coordonnees_autres_parties_caution(uuid,uuid,jsonb,text)", "public.reprendre_mobiles_garants_bail(uuid)"]) {
       expect((await db.query("select to_regprocedure($1) p", [f])).rows[0].p).toBeNull();
     }
     expect((await db.query("select count(*)::int n from pg_trigger where tgrelid = 'public.bail_signature_circuits'::regclass and tgname in ('signature_garde_caution_edl', 'signature_liens_caution_clos')")).rows[0].n).toBe(0);

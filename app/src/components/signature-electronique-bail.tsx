@@ -59,6 +59,16 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
   // Relecture du 24/10 : un acte de cautionnement envoyé avant la confirmation du mobile par la caution (circuits ouverts
   // au déploiement) garde le numéro de la fiche ; l'écran le dit au lieu d'affirmer le contraire.
   const cautionSansConfirmation = code==="cautionnement" && Boolean(actif) && !c?.signataires.some(p=>p.qualite==="Garant"&&p.telephoneConfirmeLe);
+  // Bail (décision du 24/10) : chaque garant confirme lui-même son mobile (ou son numéro confirmé pour l'acte de
+  // cautionnement est repris) ; le bail attend tant qu'un garant n'a pas confirmé.
+  const garantsBail = estBail ? (vue?.signataires ?? []).filter(p=>p.qualite==="Garant") : [];
+  const garantsEnAttente = c?.etat==="pret" ? garantsBail.filter(p=>!p.telephoneConfirmeLe) : [];
+  const liensGarants = new Map((vue?.attenteGarants ?? []).map(a=>[a.personId,a]));
+  const attenteGarant = garantsEnAttente.some(p=>liensGarants.get(p.personId)?.etat==="en_attente");
+  const liensGarantsEnvoyes = garantsEnAttente.some(p=>liensGarants.has(p.personId));
+  // Un bail envoyé avant le 24/10 : son garant signe avec le numéro de sa fiche ; l'écran le dit.
+  const garantSansConfirmation = estBail && Boolean(actif) && Boolean(c?.signataires.some(p=>p.qualite==="Garant"&&!p.telephoneConfirmeLe));
+  const quiConfirme = code==="cautionnement" ? "la caution" : "le garant";
   // Relecture du 24/10 : la visite confirmée est celle que porte l'état des lieux (« Établi le »), préremplie et
   // verrouillée ; la saisie libre ne reste que si cette date n'a pas pu être lue (la base la compare de toute façon).
   const visite = vue?.dateEdl ? vue.dateEdl.slice(0,10) : visiteLe;
@@ -78,7 +88,7 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
         <h4 id={titreId} className="font-semibold text-base">Signature · {DOCUMENTS_ZOHO[code]}</h4>
         <p className="text-sm text-muted-foreground">{code === "devis_artisan" ? "L’offre validée par l’artisan est jointe sans modification. Les propriétaires signent leur acceptation." : "Un document commun, les propriétaires signent en dernier."}</p>
       </div></div>
-      {c&&<span className={`rounded-full px-3 py-1 text-xs font-semibold ${c.etat==="termine"?"bg-success-soft text-foreground":"bg-primary/10 text-primary"}`}>{attente?.etat==="en_attente"&&!mobileCautionConfirme?"En attente de la caution":ETATS[c.etat]}</span>}
+      {c&&<span className={`rounded-full px-3 py-1 text-xs font-semibold ${c.etat==="termine"?"bg-success-soft text-foreground":"bg-primary/10 text-primary"}`}>{attente?.etat==="en_attente"&&!mobileCautionConfirme?"En attente de la caution":attenteGarant?"En attente du garant":ETATS[c.etat]}</span>}
     </header>
     {!vue&&<p role="status" className="text-sm text-muted-foreground">Chargement des signataires…</p>}
     {vue?.mode==="indisponible"&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm">{vue.fermeture ?? <><strong>Signature en ligne en préparation.</strong> Vous pouvez vérifier les personnes et préparer le PDF. L’envoi sera disponible après la connexion et les essais du prestataire. Aucun e-mail ne part pendant cette préparation.</>}</p>}
@@ -87,11 +97,13 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
     {!!parties.length&&parties.length<=25&&!vue?.fermeture&&<p className="text-xs text-muted-foreground">Estimation : {estimationSignature(parties.length).credits.toLocaleString("fr-FR")} crédits Zoho pour cet envoi et un premier SMS par signataire. Les renvois de SMS peuvent s’ajouter.</p>}
     {code==="cautionnement"&&!cautionSansConfirmation&&<p className="rounded-xl bg-primary/5 p-3 text-sm">Avant l’envoi, la caution confirme elle-même son numéro de mobile, par un lien reçu par e-mail : le numéro de sa fiche n’est pas utilisé. Elle renseigne ensuite elle-même la mention de caution dans Zoho ; le bailleur la vérifie avant de signer à son tour. Une copie du bail est jointe.</p>}
     {cautionSansConfirmation&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm">Cet acte a été envoyé avant que la caution confirme elle-même son numéro de mobile : son code de signature part au numéro saisi sur sa fiche. Annulez ce circuit, puis préparez et envoyez de nouveau l’acte : la caution recevra un lien pour confirmer son numéro.</p>}
+    {estBail&&garantsBail.length>0&&!garantSansConfirmation&&<p className="rounded-xl bg-primary/5 p-3 text-sm">Avant l’envoi, chaque garant confirme lui-même son numéro de mobile, par un lien reçu par e-mail : le numéro de sa fiche n’est pas utilisé. S’il l’a déjà confirmé pour son acte de cautionnement, ce numéro est repris sans nouveau lien. Le bail part en signature dès que tous les garants ont confirmé.</p>}
+    {garantSansConfirmation&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm">Ce bail a été envoyé avant que les garants confirment eux-mêmes leur numéro de mobile : leur code de signature part au numéro saisi sur leur fiche. Pour appliquer la confirmation, annulez ce circuit, puis préparez et envoyez de nouveau le bail : chaque garant recevra un lien, ou son numéro déjà confirmé pour l’acte de cautionnement sera repris.</p>}
     {!!parties.length&&<ol className="divide-y divide-border rounded-xl border border-border">
       {parties.map((p,i)=><li key={p.personId} className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-x-3 gap-y-1 p-3 md:flex md:flex-wrap md:gap-3">
         <span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${p.statut==="signed"?"bg-success-soft":"bg-muted"}`}>{p.statut==="signed"?<CheckCircle2 size={18}/>:i+1}</span>
         <div className="min-w-0 flex-1"><p className="font-medium text-sm break-words">{p.prenom} {p.nom} <span className="font-normal text-muted-foreground">· {p.qualite}</span></p>
-        <p className="text-xs text-muted-foreground break-all"><span>{p.email||"E-mail manquant"}</span><span className="block whitespace-nowrap md:inline"><span className="hidden md:inline"> · </span>{code==="cautionnement"&&p.qualite==="Garant"&&(!c||c.etat==="pret")?(p.telephoneConfirmeLe?`${p.telephone} · confirmé par la caution`:"Mobile à confirmer par la caution"):p.telephone||"Téléphone manquant"}</span></p></div>
+        <p className="text-xs text-muted-foreground break-all"><span>{p.email||"E-mail manquant"}</span><span className="block whitespace-nowrap md:inline"><span className="hidden md:inline"> · </span>{(code==="cautionnement"||estBail)&&p.qualite==="Garant"&&(!c||c.etat==="pret")?(p.telephoneConfirmeLe?`${p.telephone} · confirmé par ${quiConfirme}`:`Mobile à confirmer par ${quiConfirme}`):p.telephone||"Téléphone manquant"}</span></p></div>
         <span className="col-start-2 text-xs text-muted-foreground">{p.statut?PERSONNES[p.statut]??"À vérifier":"À vérifier avant l’envoi"}</span>
         {p.preuveDocumentId&&<a className="col-start-2 text-xs underline" href={`${base}/documents/${p.preuveDocumentId}/fichier`} target="_blank" rel="noreferrer">Preuve de signature<span className="sr-only"> de {p.prenom} {p.nom}</span></a>}
       </li>)}
@@ -115,7 +127,13 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
       {attente&&!mobileCautionConfirme&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm">{attente.etat==="expire"
         ?<>Le lien envoyé à la caution le {instant(attente.envoyeLe)} a expiré sans confirmation. Envoyez-lui un nouveau lien.</>
         :<><strong>En attente de la caution.</strong> Un lien lui a été envoyé le {instant(attente.envoyeLe)} ; il expire le {instant(attente.expireLe)}. Dès qu’elle aura confirmé son numéro de mobile, l’acte lui sera envoyé en signature.</>}</p>}
-      <Button disabled={occupe||!relu||!edlConfirme||vue?.versionDepassee||vue?.mode==="indisponible"} onClick={()=>agir(()=>envoyerSignatureBail(orgId,contratId,c.id,code==="edl"?{visiteLe:visite,surPlace}:undefined))}><Mail size={16}/>{occupe?"Traitement…":code==="cautionnement"&&!mobileCautionConfirme?(attente?"2. Renvoyer le lien à la caution":"2. Envoyer le lien de confirmation à la caution"):"2. Envoyer ce document pour signature"}</Button>
+      {garantsEnAttente.filter(p=>liensGarants.has(p.personId)).map(p=>{const lien=liensGarants.get(p.personId)!;return <div key={p.personId} role="status" className="space-y-2 rounded-xl bg-warning-soft p-3 text-sm">
+        <p>{lien.etat==="expire"
+          ?<>Le lien envoyé à {p.prenom} {p.nom} le {instant(lien.envoyeLe)} a expiré sans confirmation. Envoyez-lui un nouveau lien.</>
+          :<><strong>En attente du garant {p.prenom} {p.nom}.</strong> Un lien lui a été envoyé le {instant(lien.envoyeLe)} ; il expire le {instant(lien.expireLe)}. Dès que tous les garants auront confirmé leur numéro de mobile, le bail partira en signature.</>}</p>
+        <Button variant="outline" disabled={occupe||vue?.versionDepassee||vue?.mode==="indisponible"} onClick={()=>agir(()=>envoyerSignatureBail(orgId,contratId,c.id,{garant:p.personId}))}>{lien.etat==="expire"?"Envoyer un nouveau lien":"Renvoyer le lien"}<span className="sr-only"> à {p.prenom} {p.nom}</span></Button>
+      </div>;})}
+      <Button disabled={occupe||!relu||!edlConfirme||vue?.versionDepassee||vue?.mode==="indisponible"} onClick={()=>agir(()=>envoyerSignatureBail(orgId,contratId,c.id,code==="edl"?{visiteLe:visite,surPlace}:undefined))}><Mail size={16}/>{occupe?"Traitement…":code==="cautionnement"&&!mobileCautionConfirme?(attente?"2. Renvoyer le lien à la caution":"2. Envoyer le lien de confirmation à la caution"):garantsEnAttente.length&&liensGarantsEnvoyes?"2. Renvoyer le lien aux garants en attente":"2. Envoyer ce document pour signature"}</Button>
     </div>}
     {c?.etat==="termine"&&<div className="rounded-xl bg-success-soft p-3 space-y-3"><p className="flex items-center gap-2 font-medium text-sm"><ShieldCheck size={18}/>Document signé et preuves enregistrés dans Documents.</p>
       <a className="block underline text-sm" href={`${base}/documents/${c.document_signe}/fichier`} target="_blank" rel="noreferrer">Télécharger le document signé</a>

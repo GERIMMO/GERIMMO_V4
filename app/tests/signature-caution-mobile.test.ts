@@ -8,6 +8,8 @@
  *    serveur, confirmées en base avant la réservation ;
  *  · R53 : le message d'invitation dit la transmission des données à Zoho Sign ; l'état des lieux d'entrée y rappelle
  *    le droit de le compléter.
+ *  · décision du 24/10 : le garant qui signe aussi le bail confirme lui-même son mobile (numéro de l'acte de
+ *    cautionnement repris, sinon lien et attente ; relance par garant ; page du lien ; suivi du bailleur).
  * Prestataire, e-mail et base sont des doublures : aucun appel réel.
  */
 import { createHash } from "node:crypto";
@@ -17,6 +19,7 @@ import { contexte, personne } from "./fixtures/contexte-document";
 const m = vi.hoisted(() => ({
   acces: vi.fn(), assembler: vi.fn(), preparer: vi.fn(), activer: vi.fn(), email: vi.fn(), garde: vi.fn(), contexte: vi.fn(),
   rpc: vi.fn(), circuit: {} as Record<string, unknown>, mises: [] as [string, Record<string, unknown>][], liens: [] as Record<string, unknown>[],
+  lien: null as Record<string, unknown> | null,
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/ged-acces", () => ({ verifierGerant: m.acces }));
@@ -36,7 +39,7 @@ vi.mock("@/lib/signature-prestataire", async (original) => ({ ...(await original
 
 import { envoyerSignatureBail } from "@/app/actions/signature-bail";
 import { confirmerMobileCaution } from "@/app/actions/confirmation-caution";
-import { REFUS_CONFIRMATION_EDL, REFUS_MOBILE_CAUTION_NON_CONFIRME, envoyerApresControle, telephoneGarantConfirme } from "@/lib/signature-envoi";
+import { REFUS_CONFIRMATION_EDL, REFUS_MOBILE_CAUTION_NON_CONFIRME, REFUS_MOBILE_GARANT_BAIL_NON_CONFIRME, envoyerApresControle, telephoneGarantConfirme, telephonesGarantsConfirmes } from "@/lib/signature-envoi";
 import { MESSAGES_LIEN_CAUTION_CLOS, empreinteJetonCaution, lireLienCaution, mobileCautionDepuisSaisie, nouveauJetonCaution } from "@/lib/confirmation-mobile-caution";
 import { LONGUEUR_MAX_MESSAGE_INVITATION, bailleurDesSignataires, messageInvitationSignature, phraseTransmissionZoho } from "@/lib/message-invitation-signature";
 import { RAPPEL_COMPLEMENT_EDL_ENTREE } from "@/lib/textes-signature-actes";
@@ -66,6 +69,7 @@ function base() {
       if (table === "bail_signature_circuits") return { data: m.circuit, error: null };
       if (table === "documents") return { data: { storage_path: "org/acte.pdf", mime_type: "application/pdf" }, error: null };
       if (table === "etats_des_lieux") return { data: { type: "entree", date_edl: "2026-10-01" }, error: null };
+      if (table === "confirmations_mobile_caution") return { data: m.lien, error: null };
       return { data: null, error: null };
     };
     const q: Record<string, unknown> = {
@@ -83,7 +87,7 @@ const rpcAppelees = () => m.rpc.mock.calls.map((c) => c[0] as string);
 
 beforeEach(() => {
   vi.resetAllMocks();
-  m.mises = []; m.liens = [];
+  m.mises = []; m.liens = []; m.lien = null;
   vi.stubEnv("ZOHO_SIGN_DOCUMENTS_ACTIF", "true");
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://site.example");
   vi.stubEnv("ZOHO_SIGN_CAUTIONNEMENT_FERME", "");
@@ -340,7 +344,7 @@ describe("la page publique du lien ne dit rien d'un lien clos", () => {
     } };
     return { client: client as never, lectures };
   };
-  const ouvert = { organization_id: ORG, circuit_id: "circuit", expire_le: new Date(Date.now() + 86_400_000).toISOString(), utilise_le: null, annulee_le: null };
+  const ouvert = { organization_id: ORG, circuit_id: "circuit", garant_id: GARANT, acte: "cautionnement", expire_le: new Date(Date.now() + 86_400_000).toISOString(), utilise_le: null, annulee_le: null };
 
   it("un jeton mal formé ne lit rien en base", async () => {
     const s = service(ouvert);
@@ -436,12 +440,197 @@ describe("relectures adverses du 24/10", () => {
     expect(MESSAGES_LIEN_CAUTION_CLOS.utilise).toContain("dès que l’acte sera envoyé");
   });
 
-  it("le cautionnement suspendu par réglage s'annonce dès l'ouverture de la page, sans rien lire en base", async () => {
+  it("le cautionnement suspendu par réglage s'annonce dès l'ouverture de la page, sans rien lire du dossier", async () => {
     vi.stubEnv("ZOHO_SIGN_CAUTIONNEMENT_FERME", "true");
+    // Décision du 24/10 : le réglage ne suspend que l'acte de cautionnement ; la page lit donc le seul lien pour savoir
+    // de quel acte il s'agit (un garant qui signe le bail n'est pas concerné), et rien du dossier.
     const lectures: string[] = [];
-    const client = { from: (t: string) => { lectures.push(t); throw new Error("aucune lecture attendue"); } };
+    const client = { from: (t: string) => {
+      lectures.push(t);
+      if (t !== "confirmations_mobile_caution") throw new Error("aucune lecture du dossier attendue");
+      const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: { organization_id: ORG, circuit_id: "circuit", garant_id: GARANT, acte: "cautionnement", expire_le: new Date(Date.now() + 86_400_000).toISOString(), utilise_le: null, annulee_le: null }, error: null }) };
+      return q;
+    } };
     expect(await lireLienCaution(client as never, "A".repeat(43))).toEqual({ etat: "suspendu" });
-    expect(lectures).toEqual([]);
+    expect(lectures).toEqual(["confirmations_mobile_caution"]);
+    expect(m.contexte).not.toHaveBeenCalled();
     expect(MESSAGES_LIEN_CAUTION_CLOS.suspendu).toContain("suspendue");
+  });
+});
+
+// Décision du 24/10 (choix logique délégué à Claude, à consigner au journal) : le garant qui signe aussi le BAIL
+// confirme lui-même son mobile, comme la caution. Le numéro qu'il a confirmé pour l'acte de cautionnement du même bail
+// est repris (fonction en base) sans nouvelle demande ; sinon un lien lui part et le bail attend. Jamais le numéro de
+// sa fiche, saisi par le bailleur.
+describe("garant qui signe aussi le bail", () => {
+  const GARANT_B = "44444444-4444-4444-8444-444444444444";
+  const MOBILE_GARANT_B = "+33622334455";
+  const locataire = { personId: "loc", qualite: "Locataire", prenom: "Alice", nom: "Locataire", email: "alice@example.invalid", telephone: "+33600000001" };
+  const proprietaire = { personId: "prop", qualite: "Propriétaire", prenom: "Paule", nom: "Proprio", email: "paule@example.invalid", telephone: "+33600000002" };
+  const garantA = (telephone = "", confirme = false) => ({ personId: GARANT, qualite: "Garant", prenom: "Gaston", nom: "Garant", email: "gaston@example.invalid", telephone, ...(confirme ? { telephoneConfirmeLe: "2026-10-24T08:00:00Z" } : {}) });
+  const garantB = (telephone = "", confirme = false) => ({ personId: GARANT_B, qualite: "Garant", prenom: "Berthe", nom: "Garante", email: "berthe@example.invalid", telephone, ...(confirme ? { telephoneConfirmeLe: "2026-10-24T08:00:00Z" } : {}) });
+  const bail = (...garants: Record<string, unknown>[]) => [locataire, ...garants, proprietaire];
+  const formulaire = (mobile = "06 11 22 33 44") => {
+    const f = new FormData();
+    f.set("mobile", mobile); f.set("mobile_confirmation", mobile); f.set("personnel", "oui");
+    return f;
+  };
+  const jeton = "C".repeat(43);
+  /** La base : `reprendre_mobiles_garants_bail` pose `repris` (numéros déjà confirmés par les garants) et rend la liste. */
+  function base24(p: { repris?: Record<string, unknown>[]; apresConsommation?: Record<string, unknown>[] } = {}) {
+    m.rpc.mockImplementation(async (nom: string) => {
+      if (nom === "reprendre_mobiles_garants_bail") {
+        if (p.repris) m.circuit.signataires = p.repris;
+        return { data: m.circuit.signataires, error: null };
+      }
+      if (nom === "demander_confirmation_mobile_caution") return { data: new Date(Date.now() + 7 * 86_400_000).toISOString(), error: null };
+      if (nom === "consommer_confirmation_mobile_caution") {
+        if (p.apresConsommation) m.circuit.signataires = p.apresConsommation;
+        return { data: [{ circuit_id: "circuit", organization_id: ORG, demande_par: "owner" }], error: null };
+      }
+      if (nom === "reserver_envoi_signature_bail") return { data: { ...m.circuit, etat: "preparation" }, error: null };
+      return { data: true, error: null };
+    });
+  }
+  beforeEach(() => {
+    Object.assign(m.circuit, { modele: "bail", cible_id: BAIL, options: {}, signataires: bail(garantA()) });
+    m.preparer.mockResolvedValue({ demandeId: "100", documentId: "200", signataireIds: ["301", "302", "303", "304"] });
+    const ctx = contexte();
+    ctx.bailleurs = [{ ...personne({ id: "prop", nom: "Proprio", prenom: "Paule" }), quote_part: 100 }];
+    ctx.garants = [
+      { ...personne({ id: GARANT, nom: "Garant", prenom: "Gaston", telephone: "06 00 00 00 09" }), garant_de: null },
+      { ...personne({ id: GARANT_B, nom: "Garante", prenom: "Berthe", telephone: "06 00 00 00 08" }), garant_de: null },
+    ];
+    m.contexte.mockResolvedValue(ctx);
+  });
+
+  it("jamais le numéro saisi par le bailleur : sans numéro confirmé par le garant, ni réservation ni prestataire", async () => {
+    expect(telephonesGarantsConfirmes(bail(garantA(MOBILE_DOSSIER)) as CircuitBail["signataires"])).toBe(false);
+    expect(telephonesGarantsConfirmes(bail(garantA(MOBILE_CAUTION, true), garantB()) as CircuitBail["signataires"])).toBe(false);
+    expect(telephonesGarantsConfirmes(bail(garantA(MOBILE_CAUTION, true)) as CircuitBail["signataires"])).toBe(true);
+    expect(telephonesGarantsConfirmes([locataire, proprietaire] as CircuitBail["signataires"])).toBe(true);
+    m.circuit.signataires = bail(garantA(MOBILE_DOSSIER));
+    const r = await envoyerApresControle({ db: base() as never, org: ORG, circuit: m.circuit as CircuitBail, acteur: "owner",
+      controle: { config: {} as never, titre: "Bail", contenu: PDF, annexes: [] } });
+    expect(r).toEqual({ erreur: REFUS_MOBILE_GARANT_BAIL_NON_CONFIRME, etape: "avant_envoi" });
+    expect(rpcAppelees()).not.toContain("reserver_envoi_signature_bail");
+    expect(m.preparer).not.toHaveBeenCalled();
+  });
+
+  it("attente : sans numéro confirmé, un lien part au garant (texte du bail), le bail attend, rien chez le prestataire", async () => {
+    base24();
+    const vue = await envoyerSignatureBail(ORG, BAIL, "circuit");
+    expect(vue.erreur).toBeUndefined();
+    expect(vue.succes).toContain("Lien envoyé à Gaston Garant (gaston@example.invalid)");
+    expect(vue.succes).toContain("le bail part alors en signature");
+    expect(rpcAppelees().indexOf("reprendre_mobiles_garants_bail")).toBeLessThan(rpcAppelees().indexOf("demander_confirmation_mobile_caution"));
+    expect(m.rpc).toHaveBeenCalledWith("demander_confirmation_mobile_caution", expect.objectContaining({ p_circuit: "circuit", p_actor: "owner", p_garant: GARANT }));
+    expect(rpcAppelees()).not.toContain("reserver_envoi_signature_bail");
+    expect(m.preparer).not.toHaveBeenCalled();
+    const courriel = m.email.mock.calls[0][0] as { to: string; subject: string; html: string };
+    expect(courriel.to).toBe("gaston@example.invalid");
+    expect(courriel.subject).toBe("Bail : confirmez votre numéro de mobile");
+    expect(courriel.html).toContain("Paule Proprio vous demande de signer électroniquement le bail");
+    expect(courriel.html).toContain("en qualité de garant");
+    expect(courriel.html).toContain("12 rue des Lilas");
+    expect(courriel.html).not.toContain("06 00 00 00 09");
+    expect(courriel.html).toMatch(/\/signature\/caution\/[A-Za-z0-9_-]{43}/);
+  });
+
+  it("réutilisation : le numéro confirmé pour l'acte de cautionnement du même bail est repris, sans nouvelle demande", async () => {
+    base24({ repris: bail(garantA(MOBILE_CAUTION, true)) });
+    const vue = await envoyerSignatureBail(ORG, BAIL, "circuit");
+    expect(vue.erreur).toBeUndefined();
+    expect(m.email).not.toHaveBeenCalled();
+    expect(rpcAppelees()).not.toContain("demander_confirmation_mobile_caution");
+    const params = m.preparer.mock.calls[0][0] as { signataires: { telephone: string; qualite: string }[] };
+    expect(params.signataires.find((s) => s.qualite === "Garant")!.telephone).toBe(MOBILE_CAUTION);
+    expect(JSON.stringify(params.signataires)).not.toContain(MOBILE_DOSSIER);
+    expect(rpcAppelees().indexOf("reprendre_mobiles_garants_bail")).toBeLessThan(rpcAppelees().indexOf("reserver_envoi_signature_bail"));
+  });
+
+  it("deux garants : le numéro de l'un est repris, seul l'autre reçoit un lien", async () => {
+    m.circuit.signataires = bail(garantA(), garantB());
+    base24({ repris: bail(garantA(MOBILE_CAUTION, true), garantB()) });
+    const vue = await envoyerSignatureBail(ORG, BAIL, "circuit");
+    expect(vue.succes).toContain("Lien envoyé à Berthe Garante");
+    const demandes = m.rpc.mock.calls.filter((c) => c[0] === "demander_confirmation_mobile_caution").map((c) => (c[1] as Record<string, string>).p_garant);
+    expect(demandes).toEqual([GARANT_B]);
+    expect(m.email.mock.calls.map((c) => (c[0] as { to: string }).to)).toEqual(["berthe@example.invalid"]);
+    expect(m.preparer).not.toHaveBeenCalled();
+  });
+
+  it("renvoi : le bailleur relance un seul garant, dont le lien précédent est remplacé", async () => {
+    m.circuit.signataires = bail(garantA(), garantB());
+    base24();
+    const vue = await envoyerSignatureBail(ORG, BAIL, "circuit", { garant: GARANT_B });
+    expect(vue.erreur).toBeUndefined();
+    const demandes = m.rpc.mock.calls.filter((c) => c[0] === "demander_confirmation_mobile_caution").map((c) => (c[1] as Record<string, string>).p_garant);
+    expect(demandes).toEqual([GARANT_B]);
+    expect(m.email).toHaveBeenCalledTimes(1);
+    // Un garant qui a déjà confirmé n'est pas relancé.
+    base24({ repris: bail(garantA(), garantB(MOBILE_GARANT_B, true)) });
+    expect((await envoyerSignatureBail(ORG, BAIL, "circuit", { garant: GARANT_B })).erreur).toContain("déjà confirmé");
+  });
+
+  it("le garant confirme sur la page : quand tous ont confirmé, le bail part avec son numéro, au nom du bailleur", async () => {
+    m.lien = { acte: "bail" };
+    base24({ apresConsommation: bail(garantA(MOBILE_CAUTION, true)) });
+    const r = await confirmerMobileCaution(jeton, {}, formulaire());
+    expect(r.erreur).toBeUndefined();
+    expect(r.succes).toContain("Votre numéro +33 6 11 22 33 44 est confirmé.");
+    expect(r.succes).toContain("signer le bail");
+    expect(m.rpc).toHaveBeenCalledWith("reserver_envoi_signature_bail", { p_circuit: "circuit", p_actor: "owner" });
+    const params = m.preparer.mock.calls[0][0] as { signataires: { telephone: string; qualite: string }[] };
+    expect(params.signataires.find((s) => s.qualite === "Garant")!.telephone).toBe(MOBILE_CAUTION);
+    // Le contrôle de mise en location exige la session du propriétaire : il a été fait quand il a demandé l'envoi.
+    expect(rpcAppelees()).not.toContain("controler_mise_en_location");
+  });
+
+  it("attente : un autre garant n'a pas encore confirmé, le bail ne part pas et le message le dit", async () => {
+    m.circuit.signataires = bail(garantA(), garantB());
+    m.lien = { acte: "bail" };
+    base24({ apresConsommation: bail(garantA(MOBILE_CAUTION, true), garantB()) });
+    const r = await confirmerMobileCaution(jeton, {}, formulaire());
+    expect(r.erreur).toBeUndefined();
+    expect(r.succes).toContain("dès que l’autre garant aura confirmé le sien");
+    expect(rpcAppelees()).not.toContain("reserver_envoi_signature_bail");
+    expect(m.preparer).not.toHaveBeenCalled();
+  });
+
+  it("le réglage qui suspend le cautionnement ne touche pas le lien d'un garant du bail", async () => {
+    vi.stubEnv("ZOHO_SIGN_CAUTIONNEMENT_FERME", "true");
+    m.lien = { acte: "bail" };
+    base24({ apresConsommation: bail(garantA(MOBILE_CAUTION, true)) });
+    expect((await confirmerMobileCaution(jeton, {}, formulaire())).erreur).toBeUndefined();
+    expect(rpcAppelees()).toContain("consommer_confirmation_mobile_caution");
+  });
+
+  it("la page du lien d'un bail dit qui demande quoi, sans montant d'engagement", async () => {
+    vi.stubEnv("ZOHO_SIGN_CAUTIONNEMENT_FERME", "true");
+    const lien = { organization_id: ORG, circuit_id: "circuit", garant_id: GARANT, acte: "bail", expire_le: new Date(Date.now() + 86_400_000).toISOString(), utilise_le: null, annulee_le: null };
+    const client = { from: (table: string) => {
+      const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: table === "confirmations_mobile_caution" ? lien : m.circuit, error: null }) };
+      return q;
+    } };
+    const r = await lireLienCaution(client as never, "A".repeat(43));
+    expect(r).toMatchObject({ etat: "valide", acte: "bail", bailleur: "Paule Proprio", montant: null, garant: { prenom: "Gaston", nom: "Garant" } });
+    // Un lien de bail ne s'ouvre pas sur un acte de cautionnement.
+    m.circuit.modele = "cautionnement";
+    expect(await lireLienCaution(client as never, "A".repeat(43))).toEqual({ etat: "annule" });
+  });
+
+  it("le bailleur voit l'attente de chaque garant, puis l'expiration du lien", async () => {
+    const { lireSignatureBail } = await import("@/app/actions/signature-bail");
+    m.circuit.signataires = bail(garantA(), garantB(MOBILE_GARANT_B, true));
+    m.assembler.mockImplementation(async () => ({ bailId: BAIL, empreinte: m.circuit.empreinte, manquants: [], annexes: [], titreGed: "Bail", signataires: bail(garantA(), garantB()), document: {}, liens: [] }));
+    m.liens = [{ garant_id: GARANT, cree_le: "2026-10-24T08:00:00Z", expire_le: new Date(Date.now() + 86_400_000).toISOString(), utilise_le: null, annulee_le: null }];
+    const vue = await lireSignatureBail(ORG, BAIL, { code: "bail", cibleId: BAIL });
+    expect(vue.attenteGarants).toEqual([{ personId: GARANT, envoyeLe: "2026-10-24T08:00:00Z", expireLe: expect.any(String), etat: "en_attente" }]);
+    // Le numéro confirmé par le garant B s'affiche ; celui de la fiche, jamais.
+    expect(vue.signataires!.find((s) => s.personId === GARANT_B)!.telephone).toBe(MOBILE_GARANT_B);
+    expect(vue.signataires!.find((s) => s.personId === GARANT)!.telephone).toBe("");
+    m.liens = [{ garant_id: GARANT, cree_le: "2026-10-01T08:00:00Z", expire_le: "2026-10-08T08:00:00Z", utilise_le: null, annulee_le: null }];
+    expect((await lireSignatureBail(ORG, BAIL, { code: "bail", cibleId: BAIL })).attenteGarants?.[0].etat).toBe("expire");
   });
 });

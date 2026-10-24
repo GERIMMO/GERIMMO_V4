@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { verifierGerant } from "@/lib/ged-acces";
 import { clientDeService } from "@/lib/supabase/service";
-import { configurationSignatureBail, configurationSuiviSignatureBail, type AnnexeSignature, type CircuitBail, type SignataireBail } from "@/lib/signature-bail";
+import { assemblerSignatureBail, configurationSignatureBail, configurationSuiviSignatureBail, type AnnexeSignature, type CircuitBail, type SignataireBail } from "@/lib/signature-bail";
 import { rendrePdf } from "@/lib/documents/rendu";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { appliquerMarqueDocument } from "@/lib/documents/marque";
@@ -20,7 +20,7 @@ import { selectionSignatureValide, type SelectionSignature } from "@/lib/politiq
 import { signatureEnEssai } from "@/lib/signature-essai";
 import { fermetureModeleSignature } from "@/lib/signature-interrupteurs";
 import { ERREUR_MENTION_CAUTION } from "@/lib/mention-caution";
-import { REFUS_CONFIRMATION_EDL, controlerEnvoi, envoyerApresControle, telephoneGarantConfirme } from "@/lib/signature-envoi";
+import { REFUS_CONFIRMATION_EDL, controlerEnvoi, envoyerApresControle, estCircuitDeBail, garantsSansMobileConfirme, telephoneGarantConfirme } from "@/lib/signature-envoi";
 import { demanderConfirmationMobileCaution, echeanceLisible } from "@/lib/confirmation-mobile-caution";
 
 export type VueSignatureBail = {
@@ -33,21 +33,38 @@ export type VueSignatureBail = {
   fermeture?: string;
   /** Acte de cautionnement prêt : dernier lien envoyé à la caution pour qu'elle confirme son mobile (décision du 23/10). */
   attenteCaution?: { envoyeLe: string; expireLe: string; etat: "en_attente" | "expire" | "utilise" };
+  /** Bail prêt : dernier lien envoyé à chaque garant pour qu'il confirme son mobile (décision du 24/10). */
+  attenteGarants?: AttenteGarant[];
   /** État des lieux : date « Établi le » du relevé, rappelée près de la case de confirmation sur place. */
   dateEdl?: string | null;
 };
-/** Le dernier lien de confirmation du mobile, lu avec la clé de service (aucune politique ne l'ouvre aux sessions). */
-async function lireAttenteCaution(org: string, circuit: string): Promise<VueSignatureBail["attenteCaution"]> {
+export type AttenteGarant = { personId: string; envoyeLe: string; expireLe: string; etat: "en_attente" | "expire" | "utilise" };
+type LienLu = { garant_id?: string; cree_le: string; expire_le: string; utilise_le: string | null };
+const etatDuLien = (lien: LienLu): AttenteGarant["etat"] => lien.utilise_le ? "utilise" : new Date(lien.expire_le).getTime() <= Date.now() ? "expire" : "en_attente";
+/** Les derniers liens de confirmation du mobile d'un circuit, lus avec la clé de service (aucune politique ne les ouvre aux sessions). */
+async function lireLiensGarants(org: string, circuit: string, limite: number): Promise<LienLu[]> {
   try {
     const service = clientDeService();
-    if (!service) return undefined;
-    const { data, error } = await service.from("confirmations_mobile_caution").select("cree_le,expire_le,utilise_le,annulee_le")
-      .eq("organization_id", org).eq("circuit_id", circuit).is("annulee_le", null).order("cree_le", { ascending: false }).limit(1);
-    const lien = error ? null : data?.[0];
-    if (!lien) return undefined;
-    return { envoyeLe: lien.cree_le, expireLe: lien.expire_le, etat: lien.utilise_le ? "utilise" : new Date(lien.expire_le).getTime() <= Date.now() ? "expire" : "en_attente" };
-  } catch { return undefined; }
+    if (!service) return [];
+    const { data, error } = await service.from("confirmations_mobile_caution").select("garant_id,cree_le,expire_le,utilise_le,annulee_le")
+      .eq("organization_id", org).eq("circuit_id", circuit).is("annulee_le", null).order("cree_le", { ascending: false }).limit(limite);
+    return error ? [] : (data ?? []) as LienLu[];
+  } catch { return []; }
 }
+async function lireAttenteCaution(org: string, circuit: string): Promise<VueSignatureBail["attenteCaution"]> {
+  const lien = (await lireLiensGarants(org, circuit, 1))[0];
+  return lien ? { envoyeLe: lien.cree_le, expireLe: lien.expire_le, etat: etatDuLien(lien) } : undefined;
+}
+/** Bail (décision du 24/10) : le dernier lien de chaque garant. */
+async function lireAttenteGarants(org: string, circuit: string): Promise<AttenteGarant[]> {
+  const parGarant = new Map<string, AttenteGarant>();
+  for (const lien of await lireLiensGarants(org, circuit, 50)) {
+    if (lien.garant_id && !parGarant.has(lien.garant_id)) parGarant.set(lien.garant_id, { personId: lien.garant_id, envoyeLe: lien.cree_le, expireLe: lien.expire_le, etat: etatDuLien(lien) });
+  }
+  return [...parGarant.values()];
+}
+const nomDe = (s: Pick<SignataireBail, "prenom" | "nom">) => `${s.prenom} ${s.nom}`.trim() || "le garant";
+const enumeration = (noms: string[]) => (noms.length > 1 ? `${noms.slice(0, -1).join(", ")} et ${noms[noms.length - 1]}` : noms[0] ?? "");
 async function lireDateEdl(supabase: SupabaseClient, org: string, edl: string): Promise<string | null | undefined> {
   try {
     const { data, error } = await supabase.from("etats_des_lieux").select("date_edl").eq("id", edl).eq("organization_id", org).maybeSingle();
@@ -96,14 +113,18 @@ export async function lireSignatureBail(org: string, bail: string, choix?: Selec
     // Un dossier déjà envoyé reste consultable même si ses données courantes ont changé.
     if (circuit && circuit.etat !== "pret") return { bailId:circuit.bail_id, selection:selectionDuCircuit(circuit), circuit, signataires:circuit.signataires, annexes:circuit.annexes, mode, essai:signatureEnEssai(org) || circuit.essai, fermeture };
     const preparation = await assemblerSignatureDocument(supabase,org,selection);
-    // Cautionnement (décision du 23/10) : le mobile du garant n'est jamais celui du dossier ; seul celui qu'il a confirmé
-    // lui-même, posé sur le circuit prêt, s'affiche.
-    const garantCircuit = selection.code === "cautionnement" ? circuit?.signataires.find(s=>s.qualite==="Garant") : undefined;
-    const signataires = garantCircuit?.telephoneConfirmeLe ? preparation.signataires.map(s=>s.qualite==="Garant" ? {...s,telephone:garantCircuit.telephone,telephoneConfirmeLe:garantCircuit.telephoneConfirmeLe} : s) : preparation.signataires;
+    // Cautionnement (décision du 23/10) et bail (décision du 24/10) : le mobile d'un garant n'est jamais celui du
+    // dossier ; seul celui qu'il a confirmé lui-même, posé sur le circuit prêt, s'affiche.
+    const confirmes = new Map((circuit?.signataires ?? []).filter(s=>s.qualite==="Garant"&&s.telephoneConfirmeLe).map(s=>[s.personId,s]));
+    const signataires = preparation.signataires.map(s=>{
+      const c = s.qualite==="Garant" ? confirmes.get(s.personId) : undefined;
+      return c ? {...s,telephone:c.telephone,telephoneConfirmeLe:c.telephoneConfirmeLe} : s;
+    });
     return { bailId:preparation.bailId, selection, circuit, signataires, manquants: preparation.manquants, annexes: preparation.annexes,
       versionDepassee: Boolean(circuit && (circuit.empreinte!==preparation.empreinte || (circuit.etat==='pret' && new Date(circuit.expire_le).getTime()<=Date.now()+86_400_000))),
       mode, essai: signatureEnEssai(org), fermeture,
       ...(selection.code === "cautionnement" && circuit ? { attenteCaution: await lireAttenteCaution(org,circuit.id) } : {}),
+      ...(selection.code === "bail" && circuit && circuit.signataires.some(s=>s.qualite==="Garant") ? { attenteGarants: await lireAttenteGarants(org,circuit.id) } : {}),
       ...(selection.code === "edl" ? { dateEdl: await lireDateEdl(supabase,org,selection.cibleId) } : {}) };
   } catch(e) { return erreur(e); }
 }
@@ -156,10 +177,15 @@ function dateVisiteValide(v: string | undefined): v is string {
  *    lecture du dossier (et refus en base) ;
  *  · acte de cautionnement : tant que la caution n'a pas confirmé elle-même son mobile, l'envoi part vers ELLE (lien à
  *    usage unique) et non chez le prestataire ; une fois confirmé, la demande est créée avec son numéro.
+ * Décision du 24/10 : bail qui a un garant. Le numéro que chaque garant a déjà confirmé lui-même pour un acte du même
+ * bail (son acte de cautionnement) est repris en base ; les garants restants reçoivent un lien (ou le seul
+ * `confirmation.garant`, quand le bailleur relance l'un d'eux) et le bail attend ; il part quand tous ont confirmé.
  */
-export async function envoyerSignatureBail(org: string, bail: string, id: string, confirmation?: { visiteLe?: string; surPlace?: boolean }): Promise<VueSignatureBail> {
+export async function envoyerSignatureBail(org: string, bail: string, id: string, confirmation?: { visiteLe?: string; surPlace?: boolean; garant?: string }): Promise<VueSignatureBail> {
   try {
-    const { supabase, user, circuit } = await circuitAutorise(org,bail,id);
+    const autorise = await circuitAutorise(org,bail,id);
+    const { supabase, user } = autorise;
+    let circuit = autorise.circuit;
     if (circuit.modele === "edl" && (confirmation?.surPlace !== true || !dateVisiteValide(confirmation?.visiteLe))) throw new Error(REFUS_CONFIRMATION_EDL);
     // Contrôles sans effet : fermeture ciblée d'un modèle d'abord (avant toute lecture), puis réglages, dossier, PDF.
     const controle = await controlerEnvoi({ db: supabase, org, bail, circuit });
@@ -169,6 +195,33 @@ export async function envoyerSignatureBail(org: string, bail: string, id: string
       rafraichir(org,bail);
       return { ...await lireSignatureBail(org,bail,selectionDuCircuit(circuit)),
         succes:`Lien envoyé à la caution (${lien.email}). Elle confirme elle-même son numéro de mobile ; l’acte lui est alors envoyé en signature automatiquement. Vous signerez en dernier, après avoir vérifié sa mention. Le lien expire le ${echeanceLisible(lien.expireLe)}.` };
+    }
+    if (estCircuitDeBail(circuit) && circuit.signataires.some(s=>s.qualite==="Garant")) {
+      const service = clientDeService(); if (!service) throw new Error("Le suivi sécurisé est indisponible.");
+      const repris = await service.rpc("reprendre_mobiles_garants_bail", { p_circuit: circuit.id });
+      if (repris.error || !Array.isArray(repris.data) || repris.data.length !== circuit.signataires.length) throw new Error(sansJargon(repris.error?.message ?? "Les numéros des garants n’ont pas pu être relus. Actualisez le suivi."));
+      const avant = new Set(circuit.signataires.filter(s=>s.qualite==="Garant"&&s.telephoneConfirmeLe).map(s=>s.personId));
+      circuit = { ...circuit, signataires: repris.data as SignataireBail[] };
+      const reprisLe = circuit.signataires.filter(s=>s.qualite==="Garant"&&s.telephoneConfirmeLe&&!avant.has(s.personId));
+      const enAttente = garantsSansMobileConfirme(circuit.signataires);
+      if (enAttente.length) {
+        const cibles = confirmation?.garant ? enAttente.filter(g=>g.personId===confirmation.garant) : enAttente;
+        if (!cibles.length) throw new Error("Ce garant a déjà confirmé son numéro de mobile. Actualisez le suivi.");
+        const envoyes: { garant: SignataireBail; email: string; expireLe: string }[] = [];
+        const echecs: string[] = [];
+        for (const garant of cibles) {
+          try { envoyes.push({ garant, ...await demanderConfirmationMobileCaution({ service, org, circuit, acteur: user.id, garant: garant.personId }) }); }
+          catch (e) { echecs.push(`${nomDe(garant)} : ${e instanceof Error ? sansJargon(e.message) : "le lien n’a pas pu partir."}`); }
+        }
+        rafraichir(org,bail);
+        const vue = await lireSignatureBail(org,bail,selectionDuCircuit(circuit));
+        const repriseTexte = reprisLe.length ? ` Le numéro déjà confirmé par ${enumeration(reprisLe.map(nomDe))} est repris.` : "";
+        const plusieurs = enAttente.length > 1;
+        const succes = envoyes.length
+          ? `Lien envoyé à ${enumeration(envoyes.map(e=>`${nomDe(e.garant)} (${e.email})`))} : chaque garant confirme lui-même son numéro de mobile ; le bail part alors en signature automatiquement, dès que ${plusieurs ? "tous les garants auront" : "le garant aura"} confirmé, dans l’ordre indiqué. Vous signerez en dernier. ${envoyes.length === 1 ? `Le lien expire le ${echeanceLisible(envoyes[0].expireLe)}.` : "Chaque lien expire au bout de sept jours au plus."}${repriseTexte}`
+          : undefined;
+        return { ...vue, ...(succes ? { succes } : {}), ...(echecs.length ? { erreur: `${envoyes.length ? "Les autres liens sont partis. " : ""}Lien non envoyé — ${echecs.join(" ; ")}` } : {}) };
+      }
     }
     const envoi = await envoyerApresControle({ db: supabase, org, circuit, acteur: user.id, controle, visiteLe: confirmation?.visiteLe });
     if ("erreur" in envoi) return { erreur: envoi.erreur };
@@ -253,7 +306,13 @@ export async function activerBailApresSignature(org:string,bail:string,id:string
     const {supabase,circuit} = await circuitAutorise(org,bail,id);
     if (circuit.modele && circuit.modele !== "bail") throw new Error("Seul le bail signé permet la mise en location.");
     const actuel = await assemblerSignatureDocument(supabase,org,selectionDuCircuit(circuit));
-    if (actuel.empreinte !== circuit.empreinte) throw new Error("Les informations du dossier ont changé après la préparation du contrat. Vérifiez le PDF signé avant toute activation auprès de l’assistance.");
+    let empreinte = actuel.empreinte;
+    // Décision du 24/10 : un bail préparé avant elle, dont le garant a signé avec le numéro de sa fiche (aucun numéro
+    // confirmé par lui), garde l'ancien calcul de l'empreinte, qui comprenait ce numéro.
+    if (empreinte !== circuit.empreinte && circuit.signataires.some(s=>s.qualite==="Garant"&&!s.telephoneConfirmeLe)) {
+      empreinte = (await assemblerSignatureBail(supabase,org,circuit.bail_id ?? bail,{ telephoneGarantDuDossier: true })).empreinte;
+    }
+    if (empreinte !== circuit.empreinte) throw new Error("Les informations du dossier ont changé après la préparation du contrat. Vérifiez le PDF signé avant toute activation auprès de l’assistance.");
     const result = await supabase.rpc("activer_bail_signature_electronique",{p_circuit:id});
     if (result.error) throw new Error(sansJargon(result.error.message));
     rafraichir(org,bail);

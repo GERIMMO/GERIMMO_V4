@@ -63,3 +63,7 @@ Les pages Légifrance sont parfois rendues par l'index de recherche lorsque l'ou
 - Les résultats finaux, SHA, CI, sauvegarde, simulation, application, Vercel et recettes sont consignés successivement dans `log.md`. Cette note ne remplace pas ces preuves et ne vaut pas attestation de mise en ligne.
 - Santé de production : un abonnement Stripe orphelin préexistant signalé par l'inventaire. Aucun abonnement n'est modifié dans cette livraison. Le réglage de fin des relances Stripe reste à confirmer.
 - À la charge du dirigeant : médiateur, DPA des prestataires, RC professionnelle ; contrôle de la première tâche `fermetures-comptes` le 25/10. Pas d'annonce, pas de dépense et pas de rapport PDF.
+
+### Complément après les essais mobiles
+
+L’audit agent a détecté un écran sans H1 sur `/artisan/inscription` : les nouvelles conditions artisan remplaçaient toute la page, avec un titre de section H2 seulement. Le titre de cette garde devient un H1 ; la case, la version acceptée et l’enregistrement de la preuve restent identiques. Les 209 autres essais mobiles locaux ont réussi (un essai ignoré). La correction est vérifiée par l’audit existant puis la CI complète du nouveau candidat.

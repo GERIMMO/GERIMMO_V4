@@ -6775,3 +6775,7 @@ Les trois échecs locaux de dates venaient de PostgreSQL/Node en heure de Paris,
 ## 2026-10-24 — test — candidat conformité V1 relu
 
 Compilation finale réussie, types et lint sans erreur. Pages de référence relevées sur `next start`, avec identité fictive puis identité indisponible : 24 tests d'extraction et d'archivage réussis. La suite complète relancée avait encore lu l'ancienne référence avant son remplacement : cette différence de texte a été corrigée par ce relevé réel. Parcours mobiles sur les comptes fictifs lancés ; publication toujours suspendue à la CI du candidat exact, puis sauvegarde, simulation et application séquentielles. Synthèse de relecture : `wiki/syntheses/Relecture adverse et publication conformité V1 — 24 octobre 2026.md`.
+
+## [2026-10-24] test | PR 248 : essai mobile de l’acceptation artisan corrigé
+
+PR #248 ouverte sur `402424f`, après relecture et archivage préalable. Batterie locale mobile : 209 essais réussis, un ignoré et un échec de l’audit agent. Cause : la garde des nouvelles conditions artisan remplaçait la page entière par une section sans titre principal. Son titre est désormais un H1, visible et accessible ; aucune règle d’acceptation n’est retirée. Le contrôle existant des écrans couvre cette régression. Nouvelle révision soumise à la CI complète avant toute sauvegarde, simulation ou publication.

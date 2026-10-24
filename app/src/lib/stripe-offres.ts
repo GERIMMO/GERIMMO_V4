@@ -270,11 +270,11 @@ export async function creerSessionOffre(
       success_url: params.retourOk,
       cancel_url: params.retourAnnule,
       billing_address_collection: "required",
-      // Plan du 23/10 (R21) : la commande se conclut sur la page de Stripe ; son dernier bouton dit « Payer » (et non
-      // « S'abonner »), la page est en français, et le texte sous le bouton dit l'obligation de paiement, le montant
-      // et, avec un essai, la date du premier prélèvement. À vérifier en clés de test, avec et sans essai (recette du
-      // chantier Stripe) ; si le bouton n'affichait pas « Payer », passer la page en mode « setup » (voir le plan).
-      submit_type: "pay",
+      // Plan du 23/10 (R21) : la commande se conclut sur la page de Stripe, en français, et le texte sous le bouton dit
+      // l'obligation de paiement, le montant et, avec un essai, la date du premier prélèvement. Stripe refuse
+      // `submit_type: "pay"` en mode abonnement (constaté en clés de test le 24/10, chantier 40068914528) : le libellé
+      // du bouton reste celui de Stripe. Recours prévu par le plan si un juriste l'exige : page en mode « setup »,
+      // souscription créée côté serveur, bouton Gerimmo « Commander avec obligation de paiement ».
       locale: "fr",
       custom_text: { submit: { message: messageBoutonPaiement(params.offre, trialEnd ?? null, params.regime) } },
       // Le formulaire fait lire au client le montant exact avant validation ;

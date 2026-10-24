@@ -8,7 +8,7 @@
 .summary:focus-visible { outline:3px solid var(--accent); outline-offset:3px; border-radius:13px; }
 .icon { display:grid; place-items:center; width:40px; height:40px; flex-shrink:0; color:var(--accent); background:var(--tint); border-radius:11px; }
 .heading { min-width:0; flex:1; }
-.title { display:block; font-size:16px; font-weight:650; color:var(--encre); line-height:1.4; }
+.section > .summary .title { display:block; margin:0; font-family:var(--font-interface),system-ui,sans-serif; font-size:16px; font-weight:650; letter-spacing:normal; color:var(--encre); line-height:1.4; }
 .description { display:block; margin-top:3px; font-size:13px; line-height:1.5; color:var(--texte-secondaire); }
 .status { font-size:12px; line-height:1.4; color:var(--accent); background:var(--tint); padding:5px 9px; border-radius:7px; max-width:35%; }
 .chevron { flex-shrink:0; color:var(--texte-secondaire); }
@@ -20,10 +20,12 @@
 .body :global(.libelle-champ), .body :global(.mono-discret) { text-transform:none; letter-spacing:normal; }
 .body :global(input), .body :global(select), .body :global(textarea) { max-width:100%; }
 @media(max-width:600px) {
- .summary { padding:15px 12px; gap:10px; flex-wrap:wrap; }
- .title { font-size:15px; }
+ .summary { display:grid; grid-template-columns:34px minmax(0,1fr) 18px; padding:15px 12px; gap:8px 10px; }
+ .section > .summary .title { font-size:15px; }
+ .heading { grid-column:2; grid-row:1; }
  .description { font-size:12px; }
- .icon { width:34px; height:34px; }
- .status { order:3; max-width:100%; margin-left:44px; }
+ .icon { width:34px; height:34px; grid-column:1; grid-row:1; }
+ .chevron { grid-column:3; grid-row:1; }
+ .status { grid-column:2; grid-row:2; justify-self:start; max-width:100%; }
  .body { padding:16px 12px; }
 }

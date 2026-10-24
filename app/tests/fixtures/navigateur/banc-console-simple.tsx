@@ -17,7 +17,7 @@ function Banc() {
       history.pushState(null, "", `?page=${page + 1}#preuve`);
       setPage(page + 1);
     }}>Afficher la page suivante du journal</button>
-    <ConsoleSection titre="Historique" description="Retrouver les événements." icone="historique" ton="violet">
+    <ConsoleSection titre="Historique" description="Retrouver les événements." icone="historique" ton="violet" statut="Vérification des archives à terminer">
       <ConsoleSection titre="Sauvegardes" icone="documents" ton="vert"><p id="preuve">Archive fictive relue</p><p>Page du journal : {page}</p></ConsoleSection>
     </ConsoleSection>
     <form onSubmit={e => { e.preventDefault(); (window as unknown as { __envois: number }).__envois = 1; }}>

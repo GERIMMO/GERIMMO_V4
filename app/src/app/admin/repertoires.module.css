@@ -131,3 +131,9 @@ button.stat[aria-pressed="true"], a.stat[aria-current="true"] { border-color: va
  .empty { padding: 32px 18px; }
  .pagination { flex-wrap: wrap; padding-inline: 16px; }
 }
+
+/* Les filtres gardent une largeur de saisie utile, même avec des options longues. */
+.filterForm { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr)); align-items:end; gap:12px; }
+.filterForm > label { display:grid; gap:6px; min-width:0; }
+.filterForm :global(.champ) { min-width:0; width:100%; max-width:100%; }
+.filterForm > button { justify-self:start; }

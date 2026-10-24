@@ -12,9 +12,10 @@ describe.skipIf(!chrome)("Console simplifiée : saisies, liens et clavier", () =
   let browser: Browser, context: BrowserContext, page: Page, script: string;
   const erreurs: string[] = [];
   const css = readFileSync(resolve(root, "src/components/console-section.module.css"), "utf8").replaceAll(/:global\(([^)]+)\)/g, "$1");
+  const prestige = readFileSync(resolve(root, "src/app/prestige.css"), "utf8");
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Paramètres — aperçu fictif</title><style>
     *{box-sizing:border-box}body{margin:0;background:#f6f8fb;color:#1b3049;font:15px system-ui}main{max-width:1040px;margin:auto;padding:24px}h1{font:32px Georgia;margin:8px 0 26px}h2{margin:0}button,input,textarea{font:inherit}a{color:#174c8a}.champ{display:block;width:100%;padding:10px;border:1px solid #b5c4d4;border-radius:7px;background:white;color:#1b3049;margin-top:5px}label{display:block}.grid{display:grid}.gap-4{gap:16px}.btn-or,.btn-secondaire{display:inline-block;border:1px solid #244969;border-radius:8px;min-height:44px;padding:12px;background:#244969;color:white;cursor:pointer}.my-4{margin:16px 0}.mt-3{margin-top:12px}.text-muted-foreground{color:#536576}.titre-ecran{display:flex;gap:12px;align-items:baseline}.titre-ecran-icone{color:#645384}.err{color:#992e20}:root{--encre:#1b3049;--texte-secondaire:#536576;--filet:#dce3eb;--carte:#fff}@media(min-width:640px){.sm\\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}}${css}
-    </style></head><body><div id="racine"></div><script charset="utf-8" src="/banc.js"></script></body></html>`;
+    ${prestige}</style></head><body class="gerimmo-prestige"><div id="racine"></div><script charset="utf-8" src="/banc.js"></script></body></html>`;
   beforeAll(async () => {
     const bundle = await rolldown({input:resolve(root,"tests/fixtures/navigateur/banc-console-simple.tsx"),platform:"browser",
       plugins:[{name:"actions-isolees",resolveId(id){
@@ -70,5 +71,15 @@ describe.skipIf(!chrome)("Console simplifiée : saisies, liens et clavier", () =
       expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);
       if(process.env.GERIMMO_APERCU_CONSOLE)await page.screenshot({path:resolve(root,`tmp/console-preview/parametres-${width}.png`),fullPage:true});
     }
+  });
+  it("la charte réelle garde les titres compacts et place les statuts sous le texte sur mobile",async()=>{
+    await page.goto("http://localhost/");
+    const titre=page.getByRole("heading",{name:"Historique",exact:true});
+    expect(await titre.evaluate(e=>parseFloat(getComputedStyle(e).fontSize))).toBeLessThanOrEqual(18);
+    const description=await page.getByText("Retrouver les événements.",{exact:true}).boundingBox();
+    const statut=await page.getByText("Vérification des archives à terminer",{exact:true}).boundingBox();
+    expect(description).not.toBeNull();expect(statut).not.toBeNull();
+    expect(statut!.y).toBeGreaterThanOrEqual(description!.y+description!.height);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
   });
 });

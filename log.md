@@ -7040,3 +7040,8 @@ Le lot est soumis à la recette isolée complète avant toute fusion. Les correc
 
 - CI 40134251970 sur 12c084c7 : lint, types, compilation et dépendances réussis ; 10 647 tests réussis, 17 ignorés, un échec de libellé attendu dans arret-urgence-ecrans. Le contrôle cherchait l’ancienne phrase de la liste des étapes. Il vérifie désormais les mentions explicites de lecture seule, responsabilité du client et identité superadmin, sans retirer l’exigence. Les 23 tests ciblés arrêt/suivi passent ; nouvelle recette complète requise avant fusion.
 - Contrôle de la fiche client en production, sans action : l’invitation dispose d’un panneau Renvoyer, mais aucun nouvel e-mail envoyé ; la seule commande commerciale proposée est Prolonger l’essai. Autre incohérence repérée : un propriétaire particulier reçoit les demandes « SIRET, TVA » dans son identité ; à corriger séparément, pas une obligation légale déduite par l’audit.
+
+
+## 24 octobre 2026, 22 h UTC — audit quatre personas, reprise des essais navigateur
+
+La CI 40135150450 (bb1febdf) passe les contrôles de code, SQL, PDF et compilation, mais quatre essais navigateur échouent : deux montages du bail fictif utilisent le même paramètre SQL comme UUID et texte, le test du carnet propriétaire attend à tort le formulaire des agences, et axe signale le lien d’aide flottant hors d’une région nommée. Corrections : typage explicite UUID du montage, contrôle du vrai parcours propriétaire « Inviter un artisan », région de navigation Assistance autour du lien existant. Aucun affaiblissement des assertions d’accessibilité ni des permissions. Lint ciblé et types locaux réussis. Publication toujours retenue jusqu’à CI verte ; aucune location activée, aucun message envoyé, aucune donnée de production modifiée.

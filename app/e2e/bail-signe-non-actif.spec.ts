@@ -30,7 +30,7 @@ for (const persona of ["proprietaire", "superadmin"]) {
           [dpe, "Diagnostic expiré — essai", "diagnostic", "2020-01-01"],
           [sansDate, "Pièce à vérifier — essai", "autre", null],
         ]) {
-          await db.query("insert into public.documents(id,organization_id,type,titre,storage_path,mime_type,expire_le,taille_octets,empreinte) values($1,$2,$3,$4,$5,'application/pdf',$6,123,repeat(replace($1::text,'-',''),2))", [id, ORG, type, titre, `${ORG}/essai/${id}.pdf`, expiration]);
+          await db.query("insert into public.documents(id,organization_id,type,titre,storage_path,mime_type,expire_le,taille_octets,empreinte) values($1::uuid,$2,$3,$4,$5,'application/pdf',$6,123,repeat(replace($1::uuid::text,'-',''),2))", [id, ORG, type, titre, `${ORG}/essai/${id}.pdf`, expiration]);
           await db.query("insert into public.document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'bail',$3)", [ORG, id, bail]);
         }
         await db.query("insert into public.diagnostics(organization_id,lot_id,type,date_realisation,date_expiration,document_id,classe_dpe) values($1,$2,'dpe','2019-01-01','2020-01-01',$3,'B')", [ORG, lot, dpe]);

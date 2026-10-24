@@ -18,11 +18,15 @@ for (const persona of ["superadmin", "proprietaire"]) {
         await expect(page.getByRole("dialog")).toHaveCount(0);
       } else await expect(creation).toBeVisible();
       await page.goto(`/espace/${ORG}/artisans`);
-      const ajout = page.locator("#nouvel-artisan");
       if (supervision) {
-        await expect(ajout).toHaveCount(0);
+        await expect(page.locator("#nouvel-artisan")).toHaveCount(0);
         await expect(page.getByRole("link", { name: /Enregistrer un artisan/ })).toHaveCount(0);
-      } else await expect(ajout).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Inviter un artisan", exact: true })).toHaveCount(0);
+      } else {
+        await expect(page.getByRole("heading", { name: "Mon carnet d’artisans", exact: true })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Inviter un artisan", exact: true })).toBeVisible();
+        await expect(page.getByRole("link", { name: /Enregistrer un artisan/ })).toHaveCount(0);
+      }
       // Lecture uniquement : aucun envoi d’alerte, d’invitation ni changement du carnet.
     });
   });

@@ -34,6 +34,23 @@
 -- 7. Alertes J-30 (pièces d'un bail) et J-15 (pièces d'une personne sans bail) dans `alerts`, et file de leurs
 --    courriels pour la mission « rappels ».
 --
+--
+-- RELECTURES ADVERSES DU 24/10 (corrigées ici, la migration n'est pas encore en production) :
+--  · journal:audit_controle_interne couvre aussi les accès de la supervision (`consultation_…` de log_sa_access,
+--    export de la liste d'attente) et les preuves d'effacement (`fermeture_…`, `effacements_…` du domaine comptes) :
+--    la page confidentialité annonce trois ans pour eux ;
+--  · R41 : le lien « organisation » que la GED pose sur toute pièce ne rattache pas la pièce à autre chose ;
+--  · R38 : comptes d'invités créés confirmés ciblés sur l'absence de connexion, repère « invité » posé avant la purge
+--    des invitations, invitations échues supprimées avec le compte ; un compte bloqué n'est retenté qu'après sept jours ;
+--  · R46 : un circuit resté ouvert sur un bail échu part une fois expiré ;
+--  · pièce d'un type « fin du bail » sans aucun bail : durée des autres documents (document:autre, depuis le dépôt) ;
+--  · alertes : une par bail et par date (J-30), documents sans bail annoncés aussi, alertes fermées quand la date
+--    change (gel, rattachement), file revérifiée avant l'envoi, préavis de trente jours à la levée d'un gel ;
+--  · prospection : au « Stop », toutes les fiches de l'adresse partent aussitôt (registre compris), une fiche recréée
+--    pour une adresse opposée part au nettoyage, dernier contact jamais dans le futur, ancienne origine des fiches
+--    nées d'une demande rangée ; inscription d'agence retirée supprimée sans attendre l'activation d'une règle ;
+--  · bilan : signalements, alertes traitées et demandes de congé comptés ; gel et lecture refusés hors portefeuille.
+--
 -- Rejouable : IF NOT EXISTS, CREATE OR REPLACE, ON CONFLICT DO NOTHING, remplacements à compte exact qui acceptent la
 -- forme déjà convertie (marque CONSERVATION_20261024) et s'arrêtent en nommant la fonction sinon. `search_path = ''`,
 -- `fermer_fonctions_a_anon()` en fin. Aucune donnée existante réécrite, sauf les durées décidées par le plan.
@@ -67,7 +84,7 @@ update public.retention_rules set declencheur = 'Inscription'
 -- 1.b Règles nouvelles. Libellés de déclencheur exacts : le code compare ce texte.
 insert into public.retention_rules (data_type, libelle, finalite, declencheur, duree_mois, sort, actif) values
  ('preuve:signature', 'Preuves de signature électronique (circuits, PDF signés, certificats)', 'Preuve de la signature des actes du bail', 'Fin du bail', 36, 'suppression', true),
- ('journal:audit_controle_interne', 'Journal d''audit : traversées, support, maintenance, purges et fermetures', 'Contrôle interne des accès et des gestes de support', 'Action', 36, 'suppression', true),
+ ('journal:audit_controle_interne', 'Journal d''audit : accès et exports de la supervision, support, maintenance, purges, fermetures et effacements', 'Contrôle interne des accès et des gestes de support', 'Action', 36, 'suppression', true),
  ('compte:invitation_jamais_utilisee', 'Comptes d''invités jamais utilisés', 'Accès de la personne invitée', 'Expiration, refus ou annulation de la dernière invitation', 3, 'suppression', false),
  ('compte:inscription_non_confirmee', 'Inscriptions jamais confirmées', 'Création du compte', 'Création de l''inscription', 1, 'suppression', false),
  ('compte:inactif', 'Comptes inactifs (fermeture)', 'Accès au service', 'Dernière connexion d''un membre ou fin du dernier abonnement payé', 24, 'suppression', false),
@@ -90,6 +107,13 @@ insert into public.retention_rules (data_type, libelle, finalite, declencheur, d
  -- R64 : à relever en lecture seule en production ; si Supabase ne purge pas `auth.audit_log_entries`, activer.
  ('journal:auth_audit', 'Journal d''authentification (Supabase Auth)', 'Sécurité des connexions', 'Événement', 6, 'suppression', false)
 on conflict (data_type) do nothing;
+
+-- Libellé élargi le 24/10 (accès de la supervision, preuves d'effacement) : une base qui portait la version d'avant
+-- converge au rejeu.
+update public.retention_rules
+   set libelle = 'Journal d''audit : accès et exports de la supervision, support, maintenance, purges, fermetures et effacements'
+ where data_type = 'journal:audit_controle_interne'
+   and libelle = 'Journal d''audit : traversées, support, maintenance, purges et fermetures';
 
 -- Une durée réglée à la main avant la migration n'est pas écrasée : le dire.
 do $controle_catalogue$
@@ -196,6 +220,11 @@ alter table public.supervision_prospects add constraint supervision_prospects_qu
 alter table public.supervision_prospects drop constraint if exists supervision_prospects_origine_liste;
 alter table public.supervision_prospects add constraint supervision_prospects_origine_liste
   check (origine in ('formulaire', 'échange direct', 'recommandation')) not valid;
+-- Une fiche créée depuis une demande de contact portait « Formulaire de contact » (ancienne valeur posée par la
+-- console, sans choix de l'utilisateur) : même sens que « formulaire ». Mise à jour système (même révision, sans
+-- compte) : rien au registre (supervision_tracer_modification).
+update public.supervision_prospects set origine = 'formulaire'
+ where origine = 'Formulaire de contact' and demande_id is not null;
 do $origine$
 begin
   alter table public.supervision_prospects validate constraint supervision_prospects_origine_liste;
@@ -203,6 +232,28 @@ exception when check_violation then
   raise notice 'Prospects : des fiches anciennes ont une origine hors liste ; elle sera choisie à leur prochaine modification.';
 end $origine$;
 grant update (qualite, dernier_contact_prospect_le) on public.supervision_prospects to authenticated;
+-- Le dernier contact du prospect ne se date pas dans le futur : sa fiche serait gardée sans fin (36 mois après lui).
+create or replace function public.garder_dernier_contact_prospect()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.dernier_contact_prospect_le > now() + interval '5 minutes' then
+    raise exception 'Le dernier contact du prospect ne peut pas être daté dans le futur' using errcode = '22023';
+  end if;
+  return new;
+end $$;
+revoke execute on function public.garder_dernier_contact_prospect() from public, anon, authenticated;
+do $garde_contact$
+begin
+  if not exists (select 1 from pg_trigger where tgrelid = 'public.supervision_prospects'::regclass
+                  and tgname = 'supervision_prospects_dernier_contact_garde') then
+    create trigger supervision_prospects_dernier_contact_garde
+      before insert or update of dernier_contact_prospect_le on public.supervision_prospects
+      for each row execute function public.garder_dernier_contact_prospect();
+  end if;
+end $garde_contact$;
 comment on column public.supervision_prospects.oppose_le is
   'Opposition à la prospection (« Stop ») : aucun message ; la fiche est supprimée au nettoyage suivant (R45).';
 comment on column public.supervision_prospects.dernier_contact_prospect_le is
@@ -213,13 +264,18 @@ comment on column public.supervision_prospects.qualite is
 -- 2.c Repères de dates que les tables d'origine ne portent pas (ex. date de conversion d'une inscription d'agence) :
 -- posés au premier passage de la purge qui constate l'état, jamais saisis.
 create table if not exists public.conservation_reperes (
-  categorie text not null check (categorie in ('liste_attente_agences:convertie')),
+  categorie text not null,
   objet_id uuid not null,
   depuis timestamptz not null default now(),
   primary key (categorie, objet_id)
 );
+-- Catégories : inscription d'agence convertie (date de conversion) ; compte d'invité (fin de sa dernière invitation,
+-- posée avant que la purge des invitations ne l'efface).
+alter table public.conservation_reperes drop constraint if exists conservation_reperes_categorie_check;
+alter table public.conservation_reperes add constraint conservation_reperes_categorie_check
+  check (categorie in ('liste_attente_agences:convertie', 'compte:invite'));
 comment on table public.conservation_reperes is
-  'Date à partir de laquelle un état est constaté par la purge (inscription d''agence convertie : supprimée trois mois après). Clé de service seulement.';
+  'Date à partir de laquelle un état est constaté par la purge (inscription d''agence convertie : supprimée trois mois après ; compte d''invité : fin de sa dernière invitation). Clé de service seulement.';
 alter table public.conservation_reperes enable row level security;
 revoke all on public.conservation_reperes from public, anon, authenticated, service_role;
 grant select, insert, update, delete on public.conservation_reperes to service_role;
@@ -237,6 +293,13 @@ as $$
    where r.data_type = p_data_type and r.actif and r.sort in ('suppression', 'anonymisation');
 $$;
 
+-- Les actions gardées 36 mois (journal:audit_controle_interne) ; les autres suivent journal:audit_log (12 mois).
+-- Page confidentialité : « 1 an ; 3 ans pour les accès de la supervision et les preuves d'effacement ». Accès de la
+-- supervision : traversées, consultations écrites par log_sa_access (`consultation_organisation`,
+-- `consultation_piece_artisan`, `consultation_faits_direction`…), export des coordonnées de la liste d'attente.
+-- Preuves d'effacement : purges, fermetures de compte (`fermeture_…`, `compte_ferme`) et effacements réappliqués après
+-- une restauration (`effacements_…`). Les décisions de la supervision (retours, idées, inscriptions d'artisans) ne
+-- sont pas des accès : douze mois. Préfixes comparés par left(), jamais par un LIKE sans échappement.
 create or replace function public.action_audit_controle_interne(p_action text)
 returns boolean
 language sql
@@ -244,7 +307,9 @@ immutable
 set search_path = ''
 as $$
   select coalesce(left(p_action, 9) = 'traversee' or left(p_action, 8) = 'support_' or left(p_action, 12) = 'maintenance_'
-                  or p_action in ('purge_retention', 'compte_ferme'), false);
+                  or left(p_action, 13) = 'consultation_' or left(p_action, 10) = 'fermeture_'
+                  or left(p_action, 12) = 'effacements_'
+                  or p_action in ('purge_retention', 'compte_ferme', 'liste_attente_exportee'), false);
 $$;
 
 create or replace function public.empreinte_adresse_prospection(p_email text)
@@ -348,6 +413,12 @@ begin
     if cardinality(v_baux) = 0 then
       -- Quittance sans bail rattaché : 120 mois après l'émission (plan du 23/10, lot 2).
       if d.type = 'quittance' then return (d.ref + interval '120 months')::date; end if;
+      -- Pièce d'un type « fin du bail » rattachée à aucun bail (un courrier du lot, par exemple) : c'est un « autre
+      -- document non rattaché à un bail », qui suit document:autre depuis son dépôt (60 mois au plan ; page
+      -- confidentialité : « 5 ans »). Les pièces du dossier d'une personne (« fin du dernier bail ») gardent leur durée.
+      if d.declencheur = 'Fin du bail' then
+        return (d.ref + make_interval(months => coalesce(public.duree_conservation_active('document:autre'), d.duree_mois)))::date;
+      end if;
       return (d.ref + make_interval(months => d.duree_mois))::date;
     end if;
     select count(*) filter (where b.etat <> 'termine'), max(public.echeance_conservation_bail(b.id, v_duree))
@@ -381,7 +452,8 @@ as $$
 $$;
 
 -- Un document du dossier d'une personne sans bail : rattaché seulement à des personnes sans bail, ni acte signé, ni
--- preuve de signature, ni annexe d'un bail.
+-- preuve de signature, ni annexe d'un bail. Le lien « organisation », que le dépôt de la GED pose sur toute pièce
+-- (lib/ged-depot.ts), ne rattache la pièce à rien d'autre : il est ignoré.
 create or replace function public.document_dossier_sans_bail(p_doc uuid)
 returns boolean
 language sql
@@ -391,7 +463,7 @@ set search_path = ''
 as $$
   select exists (select 1 from public.documents d where d.id = p_doc and d.purged_at is null and d.type <> 'document_test')
      and exists (select 1 from public.document_liens l where l.document_id = p_doc and l.entite = 'personne')
-     and not exists (select 1 from public.document_liens l where l.document_id = p_doc
+     and not exists (select 1 from public.document_liens l where l.document_id = p_doc and l.entite <> 'organisation'
                       and (l.entite <> 'personne' or not public.personne_sans_bail(l.entite_id)))
      and not exists (select 1 from public.baux b where b.document_signe = p_doc or b.reglement_copropriete = p_doc)
      and not public.document_preuve_signature(p_doc);
@@ -491,22 +563,28 @@ as $$
       from public.retours_utilisateurs r
      where r.nature in ('question', 'idee', 'contestation')
   ),
+  -- Comptes jamais connectés, sans adhésion active, sans fiche d'artisan, sans invitation restante. Un compte d'invité
+  -- est créé CONFIRMÉ par l'invitation (preparer_invitation_locataire) : il est reconnu à ses invitations, ou au repère
+  -- « compte:invite » que la purge des contacts pose avant d'effacer les invitations échues.
   comptes as (
-    select u.id, u.created_at,
-           exists (select 1 from public.invitations_locataires i where i.account_id = u.id) as invite,
-           (select max(greatest(i.expire_le, coalesce(i.repondu_le, i.expire_le)))
-              from public.invitations_locataires i where i.account_id = u.id) as derniere_invitation
+    select u.id, u.created_at, u.email_confirmed_at,
+           exists (select 1 from public.invitations_locataires i where i.account_id = u.id)
+             or exists (select 1 from public.conservation_reperes r where r.categorie = 'compte:invite' and r.objet_id = u.id) as invite,
+           greatest((select max(greatest(i.expire_le, coalesce(i.repondu_le, i.expire_le)))
+                       from public.invitations_locataires i where i.account_id = u.id),
+                    (select r.depuis from public.conservation_reperes r where r.categorie = 'compte:invite' and r.objet_id = u.id)) as derniere_invitation
       from auth.users u
-     where u.last_sign_in_at is null and u.email_confirmed_at is null
+     where u.last_sign_in_at is null
        and not exists (select 1 from public.memberships m where m.account_id = u.id and m.status = 'active')
        and not exists (select 1 from public.artisans a where a.account_id = u.id)
        and not exists (select 1 from public.invitations_locataires i where i.account_id = u.id
                         and (i.etat = 'acceptee' or (i.etat = 'en_attente' and i.expire_le > now())))
   )
-  -- Preuves de signature d'un bail : circuits clos, quand toutes les pièces du bail arrivent à leur terme.
+  -- Preuves de signature d'un bail : circuits clos — ou restés ouverts mais expirés (l'annulation chez Zoho est au
+  -- lot 5) —, quand toutes les pièces du bail arrivent à leur terme.
   select 'preuve:signature', 'bail_signature_circuits', c.id::text
     from public.bail_signature_circuits c
-   where c.bail_id is not null and c.etat in ('pret', 'termine', 'annule', 'refuse', 'expire')
+   where c.bail_id is not null and (c.etat in ('pret', 'termine', 'annule', 'refuse', 'expire') or c.expire_le < now())
      and public.echeance_conservation_bail(c.bail_id, (select duree_mois from duree where data_type = 'preuve:signature')) <= (select j from jour)
   union all
   select 'preuve:signature', 'demandes_signature', ds.id::text
@@ -541,21 +619,24 @@ as $$
   select 'artisan:evaluation', 'artisan_evaluations', e.id::text from public.artisan_evaluations e
    where e.created_at < now() - make_interval(months => (select duree_mois from duree where data_type = 'artisan:evaluation'))
   union all
-  -- Prospects : opposition (« Stop ») ou 36 mois sans contact venu du prospect.
+  -- Prospects : opposition (« Stop », marquée sur la fiche ou empreinte de son adresse : une fiche recréée pour une
+  -- adresse opposée part aussi) ou 36 mois sans contact venu du prospect.
   select 'contact:prospect', 'supervision_prospects', p.id::text from public.supervision_prospects p
    where p.oppose_le is not null
+      or exists (select 1 from public.oppositions_prospection o where o.empreinte = public.empreinte_adresse_prospection(p.email))
       or p.dernier_contact_prospect_le < now() - make_interval(months => (select duree_mois from duree where data_type = 'contact:prospect'))
   union all
   select 'prospect:opposition', 'oppositions_prospection', o.empreinte from public.oppositions_prospection o
    where o.cree_le < now() - make_interval(months => (select duree_mois from duree where data_type = 'prospect:opposition'))
   union all
-  -- Comptes jamais utilisés : jamais connectés ni confirmés, sans adhésion active ni invitation restante.
+  -- Comptes jamais utilisés : invité jamais connecté (trois mois après sa dernière invitation) ; inscription jamais
+  -- confirmée (un mois après sa création).
   select 'compte:invitation_jamais_utilisee', 'auth.users', c.id::text from comptes c
    where c.invite
      and greatest(c.created_at, c.derniere_invitation) < now() - make_interval(months => (select duree_mois from duree where data_type = 'compte:invitation_jamais_utilisee'))
   union all
   select 'compte:inscription_non_confirmee', 'auth.users', c.id::text from comptes c
-   where not c.invite
+   where not c.invite and c.email_confirmed_at is null
      and c.created_at < now() - make_interval(months => (select duree_mois from duree where data_type = 'compte:inscription_non_confirmee'))
   union all
   select 'archive:facture', 'archives_comptes', a.id::text from public.archives_comptes a
@@ -601,8 +682,10 @@ end $$;
 
 -- ── 5. Purges ───────────────────────────────────────────────────────────────────────────────────────────────────────
 
--- Comptes jamais utilisés (R38) : persons.account_id mis à null, puis suppression du compte de connexion. Une clé qui
--- bloque : rien n'est supprimé pour ce compte, une trace va dans tech_log (sans adresse).
+-- Comptes jamais utilisés (R38) : persons.account_id mis à null, invitations échues du compte supprimées (leur clé
+-- account_id bloquait), puis suppression du compte de connexion. Une clé qui bloque encore : rien n'est supprimé pour
+-- ce compte, une trace va dans tech_log (sans adresse), et il n'est retenté qu'après sept jours (il ne monopolise pas
+-- les 200 places de la nuit).
 create or replace function public.purger_comptes_jamais_utilises()
 returns jsonb
 language plpgsql
@@ -619,12 +702,18 @@ begin
       from public.cibles_conservation_complementaire() x
       join public.retention_rules r on r.data_type = x.categorie and r.actif and r.sort = 'suppression'
      where x.categorie in ('compte:invitation_jamais_utilisee', 'compte:inscription_non_confirmee')
+       and not exists (select 1 from public.tech_log t
+                        where t.evenement = 'purge_compte_bloquee' and t.details ->> 'compte' = x.id
+                          and t.created_at > now() - interval '7 days')
      order by x.id
      limit 200
   loop
     begin
       update public.persons set account_id = null where account_id = c.id;
+      -- Seules restent des invitations échues, refusées ou annulées (la sélection écarte un compte qui en a une vivante).
+      delete from public.invitations_locataires where account_id = c.id;
       delete from auth.users where id = c.id;
+      delete from public.conservation_reperes where categorie = 'compte:invite' and objet_id = c.id;
       v_supprimes := v_supprimes + 1;
     exception when others then
       v_bloques := v_bloques + 1;
@@ -739,6 +828,10 @@ begin
        where x.categorie = 'preuve:signature' order by x.objet, x.id limit 200
     loop
       if c.objet = 'bail_signature_circuits' then
+        -- Un circuit resté ouvert (préparation, envoi, vérification) au-delà de sa date de validité passe « expiré » :
+        -- ses pièces ne sont plus en signature (proteger_document_en_signature_bail) et suivent la purge.
+        update public.bail_signature_circuits set etat = 'expire', updated_at = now()
+         where id = c.id and etat in ('preparation', 'en_cours', 'a_verifier') and expire_le < now();
         select array_remove(array[ci.document_id, ci.document_signe]
                  || coalesce((select array_agg((s ->> 'preuveDocumentId')::uuid) from jsonb_array_elements(ci.signataires) s
                                where coalesce(s ->> 'preuveDocumentId', '') ~ '^[0-9a-fA-F-]{36}$'), '{}'::uuid[])
@@ -896,6 +989,20 @@ begin
  select public.empreinte_adresse_prospection(d.email),'liste_attente_agences' from public.liste_attente_agences d
   where d.statut='retiree' and public.empreinte_adresse_prospection(d.email) is not null
  on conflict (empreinte) do nothing;
+ -- Une inscription retirée part dès que son empreinte est gardée, que la règle des 36 mois soit active ou non : c'est
+ -- l'exécution d'une demande de retrait (« dans le mois »), pas une durée de conservation.
+ delete from public.liste_attente_agences d where d.statut='retiree'
+   and exists(select 1 from public.oppositions_prospection o where o.empreinte=public.empreinte_adresse_prospection(d.email));
+ get diagnostics n=row_count; resultat:=resultat||jsonb_build_object('liste_attente_agences_retirees',n);
+ -- Comptes d'invités jamais connectés : la fin de leur dernière invitation est gardée AVANT que les invitations échues
+ -- ne partent (plus bas), pour que le compte suive compte:invitation_jamais_utilisee et non l'inscription non confirmée.
+ insert into public.conservation_reperes(categorie,objet_id,depuis)
+ select 'compte:invite', i.account_id, max(greatest(i.expire_le,coalesce(i.repondu_le,i.expire_le)))
+   from public.invitations_locataires i join auth.users u on u.id=i.account_id and u.last_sign_in_at is null
+  group by i.account_id
+ on conflict (categorie,objet_id) do update set depuis=greatest(public.conservation_reperes.depuis,excluded.depuis);
+ delete from public.conservation_reperes c where c.categorie='compte:invite'
+   and not exists(select 1 from auth.users u where u.id=c.objet_id and u.last_sign_in_at is null);
  -- Demandes de contact : la fiche prospect d'un particulier suit sa demande, registre compris.
  select coalesce(array_agg(c.id),'{}') into v_demandes from public.cibles_conservation_contacts() c
    join public.retention_rules r on r.data_type=c.categorie and r.actif where c.categorie='contact:devis';
@@ -922,8 +1029,9 @@ end $$;
 revoke all on function public.purger_contacts_echus() from public,anon,authenticated;
 grant execute on function public.purger_contacts_echus() to service_role;
 
--- Le bilan sans suppression couvre toutes les catégories du catalogue : celles que le code purge (nombre échu) et
--- celles dont la purge n'est pas encore écrite (`echus` vide).
+-- Le bilan sans suppression couvre toutes les catégories du catalogue : celles que le code purge (nombre échu, y
+-- compris les signalements, les alertes traitées et les demandes de congé, purgés avant ce plan) et celles dont la
+-- purge n'est pas encore écrite (`echus` vide).
 create or replace function public.simuler_conservation_contacts()
 returns jsonb language plpgsql stable security definer set search_path='' as $$
 declare v_jour date := (now() at time zone 'Europe/Paris')::date;
@@ -946,6 +1054,16 @@ begin
         then (select count(*) from public.audit_log a where public.action_audit_controle_interne(a.action)
                and a.created_at < now()-make_interval(months=>r.duree_mois))
       when r.data_type = 'journal:auth_audit' then public.journal_auth_echus(false)
+      -- Catégories déjà purgées chaque nuit par appliquer_retention et purger_signalements_support : mêmes conditions.
+      when r.data_type = 'support:bug'
+        then (select count(*) from public.retours_utilisateurs x where x.nature = 'bug'
+               and x.cree_le < now()-make_interval(months=>r.duree_mois))
+      when r.data_type = 'alerte:traitee'
+        then (select count(*) from public.alerts x where x.statut = 'fermee'
+               and x.closed_at < now()-make_interval(months=>r.duree_mois))
+      when r.data_type = 'contrat:intention_conge'
+        then (select count(*) from public.intentions_conge x where x.traitee_le is not null
+               and x.traitee_le < now()-make_interval(months=>r.duree_mois))
       when r.data_type in ('preuve:signature','dossier:sans_bail','support:demande_droits','support:question_idee',
                            'support:contestation','artisan:evaluation','contact:prospect','prospect:opposition',
                            'compte:invitation_jamais_utilisee','compte:inscription_non_confirmee','archive:facture',
@@ -1013,25 +1131,34 @@ revoke all on function support_interne.purger_gestes_support() from public,anon,
 
 -- ── 7. Prospection : opposition et premier message (R45) ───────────────────────────────────────────────────────────
 
+-- « Stop » : l'empreinte de l'adresse est gardée (36 mois, prospect:opposition), puis TOUTES les fiches de cette
+-- adresse partent aussitôt, registre compris — plus protecteur que « dans le mois », et sans écrire la fiche (une fiche
+-- ancienne à l'origine hors liste refusait toute mise à jour, donc l'opposition). Une ligne d'audit, sans adresse.
 create or replace function public.enregistrer_opposition_prospection(p_prospect uuid)
 returns void
 language plpgsql
 security definer
 set search_path = ''
 as $$
-declare v_email text; v_revision integer;
+declare v_email text; v_empreinte text; v_ids uuid[];
 begin
   if auth.uid() is null or not public.is_permanent_super_admin() then
     raise exception 'Compte de supervision permanent requis' using errcode = '42501';
   end if;
-  select p.email, p.revision into v_email, v_revision from public.supervision_prospects p where p.id = p_prospect for update;
+  select p.email into v_email from public.supervision_prospects p where p.id = p_prospect for update;
   if not found then raise exception 'Prospect introuvable' using errcode = 'P0002'; end if;
+  v_empreinte := public.empreinte_adresse_prospection(v_email);
   insert into public.oppositions_prospection (empreinte, origine)
-  values (public.empreinte_adresse_prospection(v_email), 'prospect')
+  values (v_empreinte, 'prospect')
   on conflict (empreinte) do update set cree_le = now(), origine = excluded.origine;
-  update public.supervision_prospects
-     set oppose_le = coalesce(oppose_le, now()), revision = v_revision + 1
-   where id = p_prospect;
+  select coalesce(array_agg(p.id), '{}'::uuid[]) into v_ids
+    from public.supervision_prospects p
+   where p.id = p_prospect or public.empreinte_adresse_prospection(p.email) = v_empreinte;
+  delete from public.supervision_registre
+   where objet = 'supervision_prospects' and objet_id = any (select i::text from unnest(v_ids) i);
+  delete from public.supervision_prospects where id = any (v_ids);
+  insert into public.audit_log (account_id, organization_id, action, details)
+  values (auth.uid(), null, 'prospect_opposition_enregistree', jsonb_build_object('fiches_supprimees', cardinality(v_ids)));
 end $$;
 revoke all on function public.enregistrer_opposition_prospection(uuid) from public, anon;
 grant execute on function public.enregistrer_opposition_prospection(uuid) to authenticated;
@@ -1059,10 +1186,34 @@ end $$;
 revoke all on function public.controler_envoi_prospection(uuid) from public, anon;
 grant execute on function public.controler_envoi_prospection(uuid) to authenticated;
 
+-- Liste d'attente des agences : les inscriptions auxquelles rien ne doit être envoyé — retirées à leur demande, ou dont
+-- l'empreinte de l'adresse est une opposition (« Stop » d'un prospect, retrait antérieur). La console masque le lien
+-- d'écriture, refuse « contactée » et les écarte de l'export. Aucune empreinte ne sort de la base.
+create or replace function public.inscriptions_agences_opposees()
+returns setof uuid
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null or not public.is_super_admin() then
+    raise exception 'Accès réservé à la supervision' using errcode = '42501';
+  end if;
+  return query
+    select d.id from public.liste_attente_agences d
+     where d.statut = 'retiree'
+        or exists (select 1 from public.oppositions_prospection o where o.empreinte = public.empreinte_adresse_prospection(d.email));
+end $$;
+revoke all on function public.inscriptions_agences_opposees() from public, anon;
+grant execute on function public.inscriptions_agences_opposees() to authenticated;
+
 -- ── 8. Gel en cas de litige ─────────────────────────────────────────────────────────────────────────────────────────
 
 -- L'écriture du gel, seule sous le passage « système » (un geste protecteur, permis aussi quand l'abonnement est en
 -- lecture seule) ; jamais ouverte à authenticated : geler_conservation_bail contrôle le droit, la date et le motif.
+-- Un gel ferme aussitôt les alertes J-30 du bail dont la date tombe sous lui (le courriel ne part plus) ; elles
+-- reviendront, à la nouvelle date, quand elle approchera.
 create or replace function public.ecrire_gel_conservation_bail(p_bail uuid, p_jusqu_au date, p_motif text)
 returns void
 language plpgsql
@@ -1076,10 +1227,37 @@ begin
      set conservation_gelee_jusqu_au = p_jusqu_au,
          conservation_gelee_motif = case when p_jusqu_au is null then null else p_motif end
    where id = p_bail;
+  if p_jusqu_au is not null then
+    update public.alerts
+       set statut = 'fermee', closed_at = now(), updated_at = now(),
+           closed_action = 'Fermée automatiquement : un gel suspend la suppression des pièces.',
+           details = details || jsonb_build_object('fermeture_auto', true)
+     where type = 'conservation_echeance' and statut = 'ouverte'
+       and details ->> 'bail_id' = p_bail::text and echeance <= p_jusqu_au;
+  end if;
   perform pg_catalog.set_config('gerimmo.systeme', v_systeme, true);
 end $$;
 revoke all on function public.ecrire_gel_conservation_bail(uuid, date, text) from public, anon, authenticated;
 grant execute on function public.ecrire_gel_conservation_bail(uuid, date, text) to service_role;
+
+-- Le jour où les pièces d'un bail terminé se supprimeraient si le gel était levé maintenant : la plus courte durée des
+-- pièces du bail comptée depuis sa fin, et jamais moins de trente jours après aujourd'hui (préavis : la levée ne
+-- supprime jamais sans l'alerte J-30). NULL tant que le bail n'est pas terminé ou si aucune règle n'est active.
+create or replace function public.echeance_levee_gel_bail(p_bail uuid)
+returns date
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select case when f.fin is null or m.mois is null then null
+              else greatest((f.fin + make_interval(months => m.mois))::date, (now() at time zone 'Europe/Paris')::date + 30) end
+    from (select public.fin_conservation_bail(p_bail) as fin) f,
+         (select min(r.duree_mois) as mois from public.retention_rules r
+           where r.actif and r.sort in ('suppression', 'anonymisation')
+             and ((r.data_type like 'document:%' and r.declencheur in ('Fin du bail', 'Fin du dernier bail'))
+                  or r.data_type = 'preuve:signature')) m;
+$$;
 
 create or replace function public.geler_conservation_bail(p_bail uuid, p_jusqu_au date, p_motif text)
 returns jsonb
@@ -1090,13 +1268,18 @@ as $$
 declare
   v_jour date := (now() at time zone 'Europe/Paris')::date;
   v_motif text := nullif(btrim(coalesce(p_motif, '')), '');
+  v_preavis_motif constant text := 'Préavis de trente jours après la levée du gel';
+  v_jusqu_au date := p_jusqu_au;
+  v_preavis boolean := false;
+  v_levee date;
   b record;
 begin
   if auth.uid() is null then raise exception 'Connexion requise' using errcode = '42501'; end if;
   select x.id, x.organization_id, x.conservation_gelee_jusqu_au, x.conservation_gelee_motif into b
     from public.baux x where x.id = p_bail for update;
   if not found or b.organization_id not in (select public.org_ids_avec_roles(
-       array['admin_agence', 'agent', 'proprietaire_direct']::public.membership_role[])) then
+       array['admin_agence', 'agent', 'proprietaire_direct']::public.membership_role[]))
+     or public.bail_hors_portefeuille(b.organization_id, p_bail) then
     raise exception 'Bail introuvable' using errcode = '42501';
   end if;
   if p_jusqu_au is not null then
@@ -1109,21 +1292,38 @@ begin
     if v_motif is null or length(v_motif) < 5 or length(v_motif) > 500 then
       raise exception 'Indiquez le litige en cours (5 à 500 caractères)' using errcode = '22023';
     end if;
+  elsif b.conservation_gelee_motif = v_preavis_motif and b.conservation_gelee_jusqu_au >= v_jour then
+    -- Le préavis d'une levée précédente court déjà : une nouvelle levée ne le repousse pas.
+    v_jusqu_au := b.conservation_gelee_jusqu_au;
+    v_motif := v_preavis_motif;
+    v_preavis := true;
+  else
+    -- Levée : si les pièces partiraient dans moins de trente jours, elles attendent trente jours (préavis), le temps
+    -- de l'alerte J-30 et du téléchargement.
+    -- (echeance_levee_gel_bail vaut alors aujourd'hui + 30 ; à trente jours pile, le préavis ne change pas la date.)
+    v_levee := public.echeance_levee_gel_bail(p_bail);
+    if v_levee is not null and v_levee <= v_jour + 30 then
+      v_jusqu_au := v_jour + 29;
+      v_motif := v_preavis_motif;
+      v_preavis := true;
+    end if;
   end if;
-  perform public.ecrire_gel_conservation_bail(p_bail, p_jusqu_au, v_motif);
+  perform public.ecrire_gel_conservation_bail(p_bail, v_jusqu_au, v_motif);
   insert into public.audit_log (account_id, organization_id, action, details)
   values (auth.uid(), b.organization_id,
           case when p_jusqu_au is null then 'conservation_gel_leve' else 'conservation_gel_pose' end,
           jsonb_build_object('bail_id', p_bail, 'jusqu_au', p_jusqu_au,
                              'motif', case when p_jusqu_au is null then null else v_motif end,
+                             'preavis_jusqu_au', case when v_preavis then v_jusqu_au end,
                              'avant_jusqu_au', b.conservation_gelee_jusqu_au));
-  return jsonb_build_object('bail_id', p_bail, 'jusqu_au', p_jusqu_au,
+  return jsonb_build_object('bail_id', p_bail, 'jusqu_au', p_jusqu_au, 'preavis', v_preavis,
                             'echeance', public.echeance_conservation_bail(p_bail, public.duree_conservation_active('document:bail')));
 end $$;
 revoke all on function public.geler_conservation_bail(uuid, date, text) from public, anon;
 grant execute on function public.geler_conservation_bail(uuid, date, text) to authenticated;
 
--- Ce que la fiche du bail affiche : l'échéance des pièces et le gel en cours.
+-- Ce que la fiche du bail affiche : l'échéance des pièces, le gel en cours (ou le préavis d'une levée) et le jour où
+-- les pièces partiraient si le gel était levé maintenant.
 create or replace function public.lire_conservation_bail(p_bail uuid)
 returns jsonb
 language plpgsql
@@ -1137,7 +1337,8 @@ begin
   select x.id, x.organization_id, x.etat, x.conservation_gelee_jusqu_au, x.conservation_gelee_motif into b
     from public.baux x where x.id = p_bail;
   if not found or b.organization_id not in (select public.org_ids_avec_roles(
-       array['admin_agence', 'agent', 'proprietaire_direct']::public.membership_role[])) then
+       array['admin_agence', 'agent', 'proprietaire_direct']::public.membership_role[]))
+     or public.bail_hors_portefeuille(b.organization_id, p_bail) then
     raise exception 'Bail introuvable' using errcode = '42501';
   end if;
   return jsonb_build_object(
@@ -1145,13 +1346,56 @@ begin
     'duree_mois', public.duree_conservation_active('document:bail'),
     'echeance', public.echeance_conservation_bail(p_bail, public.duree_conservation_active('document:bail')),
     'gelee_jusqu_au', b.conservation_gelee_jusqu_au,
-    'gel_motif', b.conservation_gelee_motif);
+    'gel_motif', b.conservation_gelee_motif,
+    'preavis', coalesce(b.conservation_gelee_motif = 'Préavis de trente jours après la levée du gel', false),
+    'echeance_si_levee', public.echeance_levee_gel_bail(p_bail));
 end $$;
 revoke all on function public.lire_conservation_bail(uuid) from public, anon;
 grant execute on function public.lire_conservation_bail(uuid) to authenticated;
 
 -- ── 9. Alertes avant suppression et leurs courriels ────────────────────────────────────────────────────────────────
 
+-- Poser (ou remettre à jour) une alerte de conservation, identifiée par sa clé (`cle_conservation` : un bail et une
+-- date, un espace et une date, ou une personne) et son seuil (date et ensemble des pièces). Une alerte ouverte dont
+-- le seuil change est réécrite et son courriel repart ; une alerte que l'utilisateur a fermée au même seuil ne revient
+-- pas ; une alerte fermée par la base (gel, date changée) peut revenir. Rend 1 pour une alerte nouvelle.
+create or replace function public.poser_alerte_conservation(p_org uuid, p_type text, p_cle uuid, p_seuil text,
+                                                            p_titre text, p_details jsonb, p_echeance date)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare v_ouverte uuid;
+begin
+  select a.id into v_ouverte from public.alerts a
+   where a.type = p_type and a.statut = 'ouverte' and a.details ->> 'cle_conservation' = p_cle::text
+   order by a.created_at desc limit 1;
+  if v_ouverte is not null then
+    update public.alerts
+       set titre = p_titre, echeance = p_echeance, updated_at = now(),
+           details = details || p_details || jsonb_build_object('seuil', p_seuil, 'cle_conservation', p_cle)
+     where id = v_ouverte and details ->> 'seuil' is distinct from p_seuil;
+    return 0;
+  end if;
+  if exists (select 1 from public.alerts a
+              where a.type = p_type and a.details ->> 'cle_conservation' = p_cle::text and a.details ->> 'seuil' = p_seuil
+                and not coalesce((a.details ->> 'fermeture_auto')::boolean, false)) then
+    return 0;
+  end if;
+  insert into public.alerts (organization_id, type, criticite, titre, details, echeance)
+  values (p_org, p_type, 'normale', p_titre,
+          p_details || jsonb_build_object('seuil', p_seuil, 'cle_conservation', p_cle), p_echeance);
+  return 1;
+end $$;
+
+-- Les alertes avant suppression, posées chaque nuit par la purge :
+--  · J-30, pièces d'un bail terminé : une alerte par bail ET par date (une pièce qui entre plus tard dans la fenêtre a
+--    la sienne, sans renvoyer la première) ;
+--  · J-30, documents rattachés à aucun bail (page confidentialité : « vous êtes prévenu 30 jours avant ») : une alerte
+--    par espace et par date ;
+--  · J-15, pièces d'une personne rattachée à aucun bail, quand dossier:sans_bail est active.
+-- Une alerte ouverte qui n'est plus due (gel, rattachement, pièce retirée, date passée) se ferme d'elle-même.
 create or replace function public.generer_alertes_conservation()
 returns integer
 language plpgsql
@@ -1165,6 +1409,7 @@ declare
   v_sans_bail integer := public.duree_conservation_active('dossier:sans_bail');
   v_crees integer := 0;
   v_liste text;
+  v_cles text[] := '{}'::text[];
   b record;
 begin
   if auth.uid() is not null and not public.is_super_admin() then
@@ -1172,7 +1417,7 @@ begin
   end if;
   perform pg_catalog.set_config('gerimmo.systeme', 'on', true);
 
-  -- J-30 : les pièces d'un bail terminé supprimées dans les trente jours (une alerte par bail).
+  -- J-30 : les pièces d'un bail terminé supprimées dans les trente jours (une alerte par bail et par date).
   for b in
     with pieces as (
       select x.bail_id, d.id, d.organization_id,
@@ -1194,13 +1439,15 @@ begin
         left join public.retention_rules r on r.data_type = 'document:' || d.type::text
        where x.preuve or not public.document_preuve_signature(d.id)
     ), dues as (
-      select p.bail_id, p.organization_id, min(p.echeance) as echeance, count(distinct p.id) as n,
-             array_agg(distinct p.titre order by p.titre) as titres
+      select p.bail_id, p.organization_id, p.echeance, count(distinct p.id) as n,
+             array_agg(distinct p.titre order by p.titre) as titres,
+             md5(string_agg(distinct p.id::text, ',' order by p.id::text)) as empreinte
         from pieces p
        where p.echeance between v_jour and v_jour + 30
-       group by p.bail_id, p.organization_id
+       group by p.bail_id, p.organization_id, p.echeance
     )
-    select du.*, coalesce(l.nom, 'logement') || coalesce(' · ' || nullif(btrim(coalesce(pe.prenom, '') || ' ' || pe.nom), ''), '') as libelle
+    select du.*, md5('bail:' || du.bail_id::text || ':' || du.echeance::text)::uuid as cle,
+           coalesce(l.nom, 'logement') || coalesce(' · ' || nullif(btrim(coalesce(pe.prenom, '') || ' ' || pe.nom), ''), '') as libelle
       from dues du
       join public.baux bx on bx.id = du.bail_id
       left join public.lots l on l.id = bx.lot_id
@@ -1208,13 +1455,48 @@ begin
   loop
     v_liste := array_to_string(b.titres[1:10], ', ')
                || case when cardinality(b.titres) > 10 then format(' et %s autre(s) pièce(s)', cardinality(b.titres) - 10) else '' end;
-    v_crees := v_crees + public.poser_alerte_seuil(
-      b.organization_id, 'conservation_echeance', 'bail_id', b.bail_id, 'J-30 ' || to_char(b.echeance, 'YYYY-MM-DD'),
-      'normale'::public.alerte_criticite,
+    v_cles := v_cles || b.cle::text;
+    v_crees := v_crees + public.poser_alerte_conservation(
+      b.organization_id, 'conservation_echeance', b.cle, 'J-30 ' || to_char(b.echeance, 'YYYY-MM-DD') || ' ' || left(b.empreinte, 12),
       format('Les pièces suivantes du bail %s seront supprimées le %s, au terme de leur durée de conservation (page confidentialité) : %s. Téléchargez celles que vous devez conserver. Si un litige est en cours, signalez-le depuis la fiche du bail pour suspendre la suppression.',
              b.libelle, to_char(b.echeance, 'DD/MM/YYYY'), v_liste),
       jsonb_build_object('bail_id', b.bail_id, 'echeance', b.echeance, 'pieces', b.n,
                          'courriel', null, 'courriel_tentatives', 0),
+      b.echeance);
+  end loop;
+
+  -- J-30 : les documents rattachés à aucun bail (ni lien, ni acte signé, ni annexe, ni preuve d'un circuit), par
+  -- espace et par date. Les pièces d'une personne sans bail suivent le J-15 quand dossier:sans_bail est active.
+  for b in
+    with docs as (
+      select d.id, d.organization_id, coalesce(nullif(btrim(d.titre), ''), r.libelle, 'Document') as titre,
+             public.echeance_conservation_document(d.id) as echeance
+        from public.documents d
+        join public.retention_rules r
+          on r.data_type = 'document:' || d.type::text and r.actif and r.sort in ('suppression', 'anonymisation')
+       where d.purged_at is null and d.type <> 'document_test'
+         -- préfiltre bon marché, comme la purge : l'échéance n'est jamais avant le dépôt + min(durée, 36 mois)
+         and d.retention_reference_date + make_interval(months => least(r.duree_mois, 36)) <= v_jour + 31
+         and not exists (select 1 from public.document_liens l where l.document_id = d.id and l.entite = 'bail')
+         and not exists (select 1 from public.baux bx where bx.document_signe = d.id or bx.reglement_copropriete = d.id)
+         and not public.document_preuve_signature(d.id)
+         and not (v_sans_bail is not null and public.document_dossier_sans_bail(d.id))
+    )
+    select x.organization_id, x.echeance, count(*) as n, array_agg(x.titre order by x.titre) as titres,
+           md5(string_agg(x.id::text, ',' order by x.id::text)) as empreinte,
+           md5('documents:' || x.organization_id::text || ':' || x.echeance::text)::uuid as cle
+      from docs x
+     where x.echeance between v_jour and v_jour + 30
+     group by x.organization_id, x.echeance
+  loop
+    v_liste := array_to_string(b.titres[1:10], ', ')
+               || case when cardinality(b.titres) > 10 then format(' et %s autre(s) document(s)', cardinality(b.titres) - 10) else '' end;
+    v_cles := v_cles || b.cle::text;
+    v_crees := v_crees + public.poser_alerte_conservation(
+      b.organization_id, 'conservation_documents', b.cle, 'J-30 ' || to_char(b.echeance, 'YYYY-MM-DD') || ' ' || left(b.empreinte, 12),
+      format('Les documents suivants, qui ne sont rattachés à aucun bail, seront supprimés le %s, au terme de leur durée de conservation (page confidentialité) : %s. Téléchargez ceux que vous devez conserver.',
+             to_char(b.echeance, 'DD/MM/YYYY'), v_liste),
+      jsonb_build_object('echeance', b.echeance, 'pieces', b.n, 'courriel', null, 'courriel_tentatives', 0),
       b.echeance);
   end loop;
 
@@ -1229,9 +1511,9 @@ begin
                       and public.document_dossier_sans_bail(l.document_id))
     loop
       continue when b.echeance is null or b.echeance not between v_jour and v_jour + 15;
-      v_crees := v_crees + public.poser_alerte_seuil(
-        b.organization_id, 'conservation_sans_bail', 'person_id', b.person_id, 'J-15 ' || to_char(b.echeance, 'YYYY-MM-DD'),
-        'normale'::public.alerte_criticite,
+      v_cles := v_cles || b.person_id::text;
+      v_crees := v_crees + public.poser_alerte_conservation(
+        b.organization_id, 'conservation_sans_bail', b.person_id, 'J-15 ' || to_char(b.echeance, 'YYYY-MM-DD'),
         format('Les pièces de %s, qui n''est rattachée à aucun bail, seront supprimées le %s. Si cette personne est locataire ou caution d''un bail, rattachez-la au bail avant cette date.',
                coalesce(b.nom, 'cette personne'), to_char(b.echeance, 'DD/MM/YYYY')),
         jsonb_build_object('person_id', b.person_id, 'echeance', b.echeance, 'courriel', null, 'courriel_tentatives', 0),
@@ -1239,11 +1521,23 @@ begin
     end loop;
   end if;
 
+  -- Une alerte ouverte qui n'est plus due se ferme d'elle-même ; elle pourra revenir à sa nouvelle date.
+  update public.alerts a
+     set statut = 'fermee', closed_at = now(), updated_at = now(),
+         closed_action = case when a.echeance < v_jour
+                              then 'Fermée automatiquement : la date de suppression est passée.'
+                              else 'Fermée automatiquement : la date de suppression a changé (gel, rattachement ou pièce retirée).' end,
+         details = a.details || jsonb_build_object('fermeture_auto', true)
+   where a.type in ('conservation_echeance', 'conservation_documents', 'conservation_sans_bail')
+     and a.statut = 'ouverte'
+     and not (coalesce(a.details ->> 'cle_conservation', '') = any (v_cles));
+
   perform pg_catalog.set_config('gerimmo.systeme', v_systeme, true);
   return v_crees;
 end $$;
 
--- La file des courriels des alertes de conservation, pour la mission « rappels » (clé de service).
+-- La file des courriels des alertes de conservation, pour la mission « rappels » (clé de service). Revérifiée au
+-- moment de l'envoi : date pas encore passée, pas de gel qui la couvre, échéance sans bail inchangée.
 create or replace function public.alertes_conservation_a_envoyer(p_limite integer default 50)
 returns table (alerte_id uuid, organization_id uuid, organisation text, proprietaire_direct boolean, type text,
                titre text, details jsonb, destinataires text[])
@@ -1258,9 +1552,16 @@ as $$
                   and m.role in ('admin_agence', 'proprietaire_direct') order by 1)
     from public.alerts a
     join public.organizations o on o.id = a.organization_id
-   where a.type in ('conservation_echeance', 'conservation_sans_bail') and a.statut = 'ouverte'
+   where a.type in ('conservation_echeance', 'conservation_documents', 'conservation_sans_bail') and a.statut = 'ouverte'
      and a.details ->> 'courriel' is null
      and coalesce((a.details ->> 'courriel_tentatives')::integer, 0) < 3
+     and a.echeance >= (now() at time zone 'Europe/Paris')::date
+     and (a.type <> 'conservation_echeance'
+          or not exists (select 1 from public.baux bx where bx.id::text = a.details ->> 'bail_id'
+                          and bx.conservation_gelee_jusqu_au >= a.echeance))
+     and (a.type <> 'conservation_sans_bail'
+          or public.echeance_dossier_sans_bail((a.details ->> 'person_id')::uuid,
+                                               public.duree_conservation_active('dossier:sans_bail')) = a.echeance)
    order by a.created_at, a.id
    limit greatest(1, least(coalesce(p_limite, 50), 200));
 $$;
@@ -1281,7 +1582,7 @@ begin
   perform pg_catalog.set_config('gerimmo.systeme', 'on', true);
   if p_etat = 'reserve' then
     update public.alerts set details = details || jsonb_build_object('courriel', 'reserve', 'courriel_le', now())
-     where id = p_alerte and type in ('conservation_echeance', 'conservation_sans_bail') and statut = 'ouverte'
+     where id = p_alerte and type in ('conservation_echeance', 'conservation_documents', 'conservation_sans_bail') and statut = 'ouverte'
        and details ->> 'courriel' is null;
   elsif p_etat = 'echec' then
     update public.alerts
@@ -1426,6 +1727,10 @@ revoke all on function public.alertes_conservation_a_envoyer(integer) from publi
 grant execute on function public.alertes_conservation_a_envoyer(integer) to service_role;
 revoke all on function public.noter_courriel_alerte_conservation(uuid, text) from public, anon, authenticated;
 grant execute on function public.noter_courriel_alerte_conservation(uuid, text) to service_role;
+revoke all on function public.poser_alerte_conservation(uuid, text, uuid, text, text, jsonb, date) from public, anon, authenticated;
+grant execute on function public.poser_alerte_conservation(uuid, text, uuid, text, text, jsonb, date) to service_role;
+revoke all on function public.echeance_levee_gel_bail(uuid) from public, anon, authenticated;
+grant execute on function public.echeance_levee_gel_bail(uuid) to service_role;
 
 -- Filet commun : aucune fonction de `public` ne reste ouverte à anon.
 select public.fermer_fonctions_a_anon();

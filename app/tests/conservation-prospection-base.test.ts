@@ -82,15 +82,18 @@ const REGLES: [string, number, string, boolean][] = [
 ];
 
 /** Les fonctions que le navigateur peut appeler ; toutes les autres ajoutées sont réservées à la clé de service. */
-const OUVERTES = ["controler_envoi_prospection", "enregistrer_opposition_prospection", "geler_conservation_bail", "lire_conservation_bail"];
+const OUVERTES = ["controler_envoi_prospection", "enregistrer_opposition_prospection", "geler_conservation_bail", "lire_conservation_bail",
+  "inscriptions_agences_opposees"];
 const RESERVEES = [
   "duree_conservation_active", "action_audit_controle_interne", "empreinte_adresse_prospection", "fin_conservation_bail",
   "echeance_conservation_bail", "echeance_conservation_document", "personne_sans_bail", "document_dossier_sans_bail",
   "echeance_dossier_sans_bail", "echeance_facture_archivee", "purger_document_conservation", "cibles_conservation_complementaire",
   "journal_auth_echus", "purger_comptes_jamais_utilises", "purger_archives_comptes", "appliquer_conservation_complementaire",
   "generer_alertes_conservation", "alertes_conservation_a_envoyer", "noter_courriel_alerte_conservation", "ecrire_gel_conservation_bail",
-  "garder_gel_conservation_bail",
+  "garder_gel_conservation_bail", "poser_alerte_conservation", "echeance_levee_gel_bail", "garder_dernier_contact_prospect",
 ];
+/** Fonctions de déclencheur : jamais appelées directement (leur droit d'exécution n'est pas vérifié ici). */
+const DECLENCHEURS = ["garder_gel_conservation_bail", "garder_dernier_contact_prospect"];
 
 const sha = (s: string) => createHash("sha256").update(s, "utf8").digest("hex");
 
@@ -390,6 +393,42 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     expect(await purgee(annexe)).toBe(false);
   });
 
+  it("purge : un circuit resté ouvert sur un bail échu part une fois expiré, avec ses pièces ; ouvert et pas encore expiré, il reste", async () => {
+    const circuit = async (etat: string, expire: string) => {
+      const b = await bail(40);
+      const avenant = await document("bail", 45);
+      await lier(avenant, "bail", b);
+      const c = await brut(() => id(
+        `insert into public.bail_signature_circuits (organization_id, bail_id, document_id, created_by, prestataire, environnement, empreinte, pdf_hash, signataires, etat, modele, cible_id, expire_le)
+         values ($1, $2, $3, $4, 'zoho', 'production', repeat('b', 64), repeat('b', 64), '[{"statut":"sent"},{"statut":"sent"}]', $5, 'avenant', $2, now() + $6::interval) returning id`,
+        [org, b, avenant, gerant, etat, expire]));
+      return { c, avenant };
+    };
+    const abandonne = await circuit("en_cours", "-39 months");
+    const aVerifier = await circuit("a_verifier", "-38 months");
+    const vivant = await circuit("en_cours", "10 days");
+    const r = await purge();
+    expect(r.journaux).toMatchObject({ preuves_signature: 2 });
+    expect(await nombre("select count(*) from public.bail_signature_circuits where id = any($1)", [[abandonne.c, aVerifier.c]])).toBe(0);
+    expect(await purgee(abandonne.avenant)).toBe(true);
+    expect(await nombre("select count(*) from public.bail_signature_circuits where id = $1", [vivant.c])).toBe(1);
+    expect(await purgee(vivant.avenant)).toBe(false);
+  });
+
+  it("échéance : une pièce d'un type « fin du bail » sans aucun bail suit les autres documents (5 ans depuis le dépôt) ; les pièces du dossier gardent la leur", async () => {
+    // Page confidentialité (lot 4) : « Autres documents non rattachés à un bail | 5 ans | Dépôt ».
+    const courrierDuLot = await document("courrier", 40);
+    await lier(courrierDuLot, "lot", lot);
+    await lier(courrierDuLot, "organisation", org);
+    expect(await echeance(courrierDuLot)).toBe(await dateIlYa(40, 60));
+    const identite = await document("piece_identite", 40);
+    await lier(identite, "organisation", org);
+    expect(await echeance(identite)).toBe(await dateIlYa(40, 36));
+    await purge();
+    expect(await purgee(courrierDuLot)).toBe(false);
+    expect(await purgee(identite)).toBe(true);
+  });
+
   it("purge : pièces d'une personne sans bail, trois mois après le dernier dépôt ; propriétaires, mandants et personnes du bail exclus", async () => {
     const seule = await personne();
     const ancienne = await document("piece_identite", 5);
@@ -411,6 +450,9 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     await lier(docGarant, "personne", garant);
     const b = await bail(null);
     await brut(() => db.query("insert into public.bail_personnes (organization_id, bail_id, person_id, role) values ($1, $2, $3, 'garant')", [org, b, garant]));
+    // Relecture du 24/10 (R41) : le dépôt de la GED rattache toujours la pièce à l'espace (lien « organisation »,
+    // lib/ged-depot.ts) ; ce lien ne fait pas d'une pièce du dossier une pièce « rattachée à autre chose ».
+    for (const d of [ancienne, vieille, neuve, docProprio, docMandant, docGarant]) await lier(d, "organisation", org);
     // Règle inactive : rien.
     await purge();
     expect(await purgee(ancienne)).toBe(false);
@@ -453,6 +495,33 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     expect((await un<{ f: string }>("select pg_get_functiondef('support_interne.purger_gestes_support()'::regprocedure) as f")).f).toContain("journal:audit_controle_interne");
   });
 
+  it("journal d'audit : les accès de la supervision (consultation_…, export de coordonnées) et les preuves d'effacement gardent 36 mois", async () => {
+    // Page confidentialité (lot 4) : « 1 an ; 3 ans pour les accès de la supervision et les preuves d'effacement ».
+    const trace = (action: string, mois: number) => id("insert into public.audit_log (action, details, created_at) values ($1, '{}', now() - make_interval(months => $2::int)) returning id", [action, mois]);
+    const bilan = async () => {
+      await session(superviseur);
+      const r = (await un<{ r: { categories: { categorie: string; echus: number | null }[] } }>("select public.simuler_conservation_contacts() as r")).r;
+      await proprietaire();
+      const echus = (c: string) => Number(r.categories.find((x) => x.categorie === c)?.echus);
+      return { general: echus("journal:audit_log"), interne: echus("journal:audit_controle_interne") };
+    };
+    const avant = await bilan();
+    const gardees: string[] = [];
+    for (const action of ["consultation_organisation", "consultation_piece_artisan", "consultation_faits_direction", "liste_attente_exportee",
+                          "fermeture_programmee", "fermeture_annulee", "fermeture_gelee", "fermeture_degelee", "effacements_reappliques", "compte_ferme"]) {
+      gardees.push(await trace(action, 13));
+    }
+    const parties = [await trace("consultation_organisation", 37), await trace("fermeture_programmee", 37),
+                     await trace("decision_retour", 13), await trace("conservation_gel_pose", 13)];
+    const apres = await bilan();
+    expect(apres.interne - avant.interne).toBe(2);
+    expect(apres.general - avant.general).toBe(2);
+    expect(await un("select public.action_audit_controle_interne('consultation_organisation') as a, public.action_audit_controle_interne('consultationx') as b")).toEqual({ a: true, b: false });
+    await purge();
+    const restants = (await db.query("select id from public.audit_log where id = any($1)", [[...gardees, ...parties]])).rows.map((r) => r.id).sort();
+    expect(restants).toEqual([...gardees].sort());
+  });
+
   it("prospection : origine en liste fermée et qualité contrôlée", async () => {
     await session(superviseur);
     const inserer = (origine: string, qualite = "professionnel") => echec(
@@ -469,38 +538,78 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     const p = await fiche("Agence.Fictive@example.invalid");
     expect(await echec("select public.controler_envoi_prospection($1)", [p])).toBe("");
     await db.query("select public.enregistrer_opposition_prospection($1)", [p]);
-    expect(await echec("select public.controler_envoi_prospection($1)", [p])).toMatch(/^42501 Opposition enregistrée/);
+    // Relecture du 24/10 : la fiche part aussitôt (il n'y a plus rien à contrôler) ; l'empreinte refuse toute fiche
+    // nouvelle de la même adresse.
+    expect(await echec("select public.controler_envoi_prospection($1)", [p])).toMatch(/^P0002/);
     const doublon = await fiche("  agence.fictive@EXAMPLE.invalid ");
     expect(await echec("select public.controler_envoi_prospection($1)", [doublon])).toMatch(/^42501 Opposition enregistrée/);
     await proprietaire();
     expect(await un("select origine from public.oppositions_prospection where empreinte = $1", [sha("agence.fictive@example.invalid")])).toEqual({ origine: "prospect" });
-    expect(await nombre("select count(*) from public.supervision_prospects where id = $1 and oppose_le is not null", [p])).toBe(1);
+    expect(await nombre("select count(*) from public.supervision_prospects where id = $1", [p])).toBe(0);
     // Réservé à la supervision permanente avec second facteur.
     await session(superviseur, "aal1");
-    expect(await echec("select public.controler_envoi_prospection($1)", [p])).toMatch(/^42501/);
+    expect(await echec("select public.controler_envoi_prospection($1)", [doublon])).toMatch(/^42501/);
     await session(gerant);
     expect(await echec("select public.enregistrer_opposition_prospection($1)", [p])).toMatch(/^42501/);
   });
 
-  it("prospection : la fiche opposée part au nettoyage, registre compris ; 36 mois sans contact du prospect aussi ; les récentes restent", async () => {
+  it("prospection : au « Stop », toutes les fiches de l'adresse partent aussitôt, registre compris ; une fiche recréée pour l'adresse part au nettoyage ; 36 mois sans contact aussi", async () => {
     await session(superviseur);
     const fiche = (email: string) => id(
       "insert into public.supervision_prospects (nom, email, origine, qualite, etape, prochaine_action, echeance) values ('Prospect fictif', $1, 'échange direct', 'professionnel', 'nouveau', 'Rappeler', current_date + 7) returning id", [email]);
     const opposee = await fiche("opposee@example.invalid");
+    const memeAdresse = await fiche(" Opposee@Example.invalid");
     const ancienne = await fiche("ancienne@example.invalid");
     const recente = await fiche("recente@example.invalid");
     await db.query("select public.enregistrer_opposition_prospection($1)", [opposee]);
     await proprietaire();
+    expect(await nombre("select count(*) from public.supervision_prospects where id = any($1)", [[opposee, memeAdresse]])).toBe(0);
+    expect(await nombre("select count(*) from public.supervision_registre where objet = 'supervision_prospects' and objet_id = any($1)", [[opposee, memeAdresse]])).toBe(0);
+    const geste = await un<{ details: Record<string, unknown> }>("select details from public.audit_log where action = 'prospect_opposition_enregistree' and account_id = $1 order by created_at desc limit 1", [superviseur]);
+    expect(geste.details).toEqual({ fiches_supprimees: 2 });
+    // Une fiche recréée ensuite pour l'adresse opposée : refusée à l'envoi, et supprimée au nettoyage (l'écran l'annonce).
+    await session(superviseur);
+    const recreee = await fiche("opposee@example.invalid");
+    await proprietaire();
     await db.query("update public.supervision_prospects set dernier_contact_prospect_le = now() - interval '37 months' where id = $1", [ancienne]);
     await purge();
-    const restants = (await db.query("select id from public.supervision_prospects where id = any($1)", [[opposee, ancienne, recente]])).rows.map((r) => r.id);
+    const restants = (await db.query("select id from public.supervision_prospects where id = any($1)", [[recreee, ancienne, recente]])).rows.map((r) => r.id);
     expect(restants).toEqual([recente]);
-    expect(await nombre("select count(*) from public.supervision_registre where objet = 'supervision_prospects' and objet_id = any($1)", [[opposee, ancienne]])).toBe(0);
+    expect(await nombre("select count(*) from public.supervision_registre where objet = 'supervision_prospects' and objet_id = any($1)", [[recreee, ancienne]])).toBe(0);
     // L'empreinte de l'opposition reste 36 mois.
     expect(await nombre("select count(*) from public.oppositions_prospection where empreinte = $1", [sha("opposee@example.invalid")])).toBe(1);
     await db.query("update public.oppositions_prospection set cree_le = now() - interval '37 months' where empreinte = $1", [sha("opposee@example.invalid")]);
     await purge();
     expect(await nombre("select count(*) from public.oppositions_prospection where empreinte = $1", [sha("opposee@example.invalid")])).toBe(0);
+  });
+
+  it("prospection : « Stop » possible sur une fiche ancienne à l'origine hors liste ; la migration range l'ancienne origine des fiches nées d'une demande", async () => {
+    // Fiches écrites avant la liste fermée (sans déclencheurs : le registre exige un compte connecté).
+    await db.query("alter table public.supervision_prospects drop constraint supervision_prospects_origine_liste");
+    const ancienne = await brut(() => id(
+      "insert into public.supervision_prospects (nom, email, origine, qualite, etape, prochaine_action, echeance, auteur) values ('Prospect ancien', 'ancien@example.invalid', 'Saisie manuelle', 'professionnel', 'nouveau', 'Rappeler', current_date + 7, $1) returning id", [superviseur]));
+    const demande = await id("insert into public.demandes_devis (nom, email) values ('Fictif', 'demande-ancienne@example.invalid') returning id");
+    const nee = await brut(() => id(
+      "insert into public.supervision_prospects (nom, email, origine, qualite, etape, prochaine_action, echeance, auteur, demande_id) values ('Prospect né d''une demande', 'nee@example.invalid', 'Formulaire de contact', 'professionnel', 'nouveau', 'Rappeler', current_date + 7, $1, $2) returning id", [superviseur, demande]));
+    await db.query("alter table public.supervision_prospects add constraint supervision_prospects_origine_liste check (origine in ('formulaire', 'échange direct', 'recommandation')) not valid");
+    await db.query(MIGRATION);
+    expect(await un("select origine from public.supervision_prospects where id = $1", [nee])).toEqual({ origine: "formulaire" });
+    expect(await un("select origine from public.supervision_prospects where id = $1", [ancienne])).toEqual({ origine: "Saisie manuelle" });
+    await session(superviseur);
+    expect(await echec("select public.enregistrer_opposition_prospection($1)", [ancienne])).toBe("");
+    await proprietaire();
+    expect(await nombre("select count(*) from public.supervision_prospects where id = $1", [ancienne])).toBe(0);
+    expect(await nombre("select count(*) from public.oppositions_prospection where empreinte = $1", [sha("ancien@example.invalid")])).toBe(1);
+  });
+
+  it("prospection : le dernier contact du prospect ne se date pas dans le futur (sa conservation deviendrait illimitée)", async () => {
+    await session(superviseur);
+    const p = await id(
+      "insert into public.supervision_prospects (nom, email, origine, qualite, etape, prochaine_action, echeance) values ('Prospect fictif', 'futur@example.invalid', 'formulaire', 'professionnel', 'nouveau', 'Rappeler', current_date + 7) returning id");
+    expect(await echec("update public.supervision_prospects set dernier_contact_prospect_le = now() + interval '2 years', revision = revision + 1 where id = $1", [p])).toMatch(/^22023/);
+    expect(await echec(
+      "insert into public.supervision_prospects (nom, email, origine, qualite, etape, prochaine_action, echeance, dernier_contact_prospect_le) values ('Prospect fictif', 'futur2@example.invalid', 'formulaire', 'professionnel', 'nouveau', 'Rappeler', current_date + 7, now() + interval '1 year')")).toMatch(/^22023/);
+    expect(await echec("update public.supervision_prospects set dernier_contact_prospect_le = now() - interval '1 year', revision = revision + 1 where id = $1", [p])).toBe("");
   });
 
   it("prospection : la fiche d'un particulier part avec sa demande de contact ; celle d'un professionnel reste, sans sa demande", async () => {
@@ -527,9 +636,11 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     const retiree = await agence("retiree");
     const email = (await un<{ email: string }>("select email from public.liste_attente_agences where id = $1", [retiree])).email;
     const convertie = await agence("convertie");
-    // Règle inactive : aucune suppression, mais l'opposition et la date de conversion sont constatées.
+    // Règle inactive : l'inscription retirée part quand même (c'est l'exécution d'une demande de retrait, pas une durée),
+    // son empreinte d'opposition reste ; la date de conversion est constatée ; rien d'autre ne part.
     await purge();
-    expect(await nombre("select count(*) from public.liste_attente_agences where id = any($1)", [[ancienne, retiree, convertie]])).toBe(3);
+    expect((await db.query("select id from public.liste_attente_agences where id = any($1) order by id", [[ancienne, retiree, convertie]])).rows.map((r) => r.id))
+      .toEqual([ancienne, convertie].sort());
     expect(await un("select origine from public.oppositions_prospection where empreinte = $1", [sha(email.toLowerCase())])).toEqual({ origine: "liste_attente_agences" });
     await activer("contact:attente_agences");
     await purge();
@@ -538,6 +649,22 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     await purge();
     expect(await nombre("select count(*) from public.liste_attente_agences where id = $1", [convertie])).toBe(0);
     expect(await nombre("select count(*) from public.conservation_reperes where objet_id = $1", [convertie])).toBe(0);
+  });
+
+  it("liste d'attente des agences : la console sait quelles inscriptions sont opposées (retirées, ou adresse opposée comme prospect), supervision seule", async () => {
+    const agence = (email: string, statut = "en_attente") => id(
+      "insert into public.liste_attente_agences (email, agence, contact, code_postal, nb_lots, statut) values ($1, 'Agence fictive', 'Contact fictif', '69001', 'moins_de_50', $2) returning id", [email, statut]);
+    const libre = await agence("libre@agence.example.invalid");
+    const opposee = await agence("Opposee@agence.example.invalid");
+    const retiree = await agence("retiree@agence.example.invalid", "retiree");
+    await db.query("insert into public.oppositions_prospection (empreinte, origine) values ($1, 'prospect')", [sha("opposee@agence.example.invalid")]);
+    await session(superviseur);
+    const ids = (await db.query<{ id: string }>("select x as id from public.inscriptions_agences_opposees() x")).rows.map((r) => r.id);
+    expect(ids).toContain(opposee);
+    expect(ids).toContain(retiree);
+    expect(ids).not.toContain(libre);
+    await session(gerant);
+    expect(await echec("select * from public.inscriptions_agences_opposees()")).toMatch(/^42501/);
   });
 
   it("comptes jamais utilisés : persons.account_id remis à nul puis compte supprimé ; adhésion active ou clé bloquante : rien ne part", async () => {
@@ -565,6 +692,45 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     const traceBloquee = await un<{ details: Record<string, unknown> }>("select details from public.tech_log where evenement = 'purge_compte_bloquee' and details ->> 'compte' = $1", [bloque]);
     expect(traceBloquee.details).toMatchObject({ regle: "compte:inscription_non_confirmee", erreur: "23503" });
     expect(JSON.stringify(traceBloquee.details)).not.toContain("@");
+    // Relecture du 24/10 : un compte bloqué n'est retenté qu'après sept jours ; il ne revient pas chaque nuit en tête
+    // des 200 candidats (ni une ligne de tech_log par nuit).
+    await purge();
+    expect(await nombre("select count(*) from public.tech_log where evenement = 'purge_compte_bloquee' and details ->> 'compte' = $1", [bloque])).toBe(1);
+  });
+
+  it("comptes d'invités jamais utilisés : créés confirmés par l'invitation, supprimés avec leurs invitations échues, même la nuit où les invitations partent", async () => {
+    // preparer_invitation_locataire crée le compte avec email_confirmed_at = now() (20261013101000:40-42).
+    const invite = async (moisDepuisExpiration: number) => {
+      const c = await compte("invite");
+      await db.query("update auth.users set last_sign_in_at = null, created_at = now() - interval '9 months' where id = $1", [c]);
+      const p = await personne();
+      await brut(() => db.query(
+        `insert into public.invitations_locataires (organization_id, person_id, account_id, email, etat, cree_par, cree_le, expire_le)
+         values ($1, $2, $3, 'invite@example.invalid', 'expiree', $4, now() - interval '9 months', now() - make_interval(months => $5::int))`,
+        [org, p, c, gerant, moisDepuisExpiration]));
+      return c;
+    };
+    const comptes = async (ids: string[]) => nombre("select count(*) from auth.users where id = any($1)", [ids]);
+    const vieux = await invite(4);
+    const recent = await invite(2);
+    // Règles inactives : rien ne part.
+    await purge();
+    expect(await comptes([vieux, recent])).toBe(2);
+    // Seule la règle des comptes : le compte part avec son invitation échue (clé invitations_locataires.account_id).
+    await activer("compte:invitation_jamais_utilisee");
+    let r = await purge();
+    expect(r.journaux).toMatchObject({ comptes_supprimes: 1, comptes_bloques: 0 });
+    expect(await comptes([vieux])).toBe(0);
+    expect(await comptes([recent])).toBe(1);
+    expect(await nombre("select count(*) from public.invitations_locataires where account_id = $1", [vieux])).toBe(0);
+    // Les invitations purgées la même nuit, juste avant : le compte reste « invité » (repère posé avant leur purge) et
+    // part au titre de sa règle, sans dépendre de compte:inscription_non_confirmee (inactive).
+    const autre = await invite(4);
+    await activer("invitation:locataire");
+    r = await purge();
+    expect(r.journaux).toMatchObject({ invitations_locataires: 1, comptes_supprimes: 1, comptes_bloques: 0 });
+    expect(await comptes([autre])).toBe(0);
+    expect(await comptes([recent])).toBe(1);
   });
 
   it("archives des comptes : chaque facture six ans après la fin de son exercice ou, à défaut, après la fin du dernier abonnement payé", async () => {
@@ -647,18 +813,102 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     await db.query("select public.noter_courriel_alerte_conservation($1, 'reserve')", [alerte.id]);
     await db.query("select public.noter_courriel_alerte_conservation($1, 'envoye')", [alerte.id]);
     expect(await nombre("select count(*) from public.alertes_conservation_a_envoyer(50) where alerte_id = $1", [alerte.id])).toBe(0);
-    // Le gel repousse l'échéance hors de la fenêtre : la même alerte, une nouvelle date, un nouveau courriel ensuite.
+    // Le gel repousse l'échéance : l'alerte de l'ancienne date se ferme d'elle-même ; une alerte à la nouvelle date part
+    // avec son propre courriel (relecture du 24/10 : une alerte par bail et par date).
     await proprietaire();
     await brut(() => db.query("update public.baux set conservation_gelee_jusqu_au = current_date + 25, conservation_gelee_motif = 'Litige fictif en cours' where id = $1", [b]));
-    expect(await nombre("select public.generer_alertes_conservation()")).toBe(0);
-    const reposee = await un<{ echeance: string; courriel: string | null }>("select echeance::text, details ->> 'courriel' as courriel from public.alerts where id = $1", [alerte.id]);
+    expect(await nombre("select public.generer_alertes_conservation()")).toBe(1);
+    expect(await un("select statut::text as statut, details ->> 'fermeture_auto' as auto from public.alerts where id = $1", [alerte.id])).toEqual({ statut: "fermee", auto: "true" });
+    const reposee = await un<{ echeance: string; courriel: string | null }>(
+      "select echeance::text, details ->> 'courriel' as courriel from public.alerts where type = 'conservation_echeance' and statut = 'ouverte' and details ->> 'bail_id' = $1", [b]);
     expect(reposee).toEqual({ echeance: await dateIlYa(0, 0, 26), courriel: null });
+  });
+
+  it("alertes J-30 : une pièce qui entre dans la fenêtre après la première alerte du bail a la sienne, à sa date, sans renvoyer la première", async () => {
+    const b = await bail(35);
+    await brut(() => db.query("update public.baux set date_fin = (current_date - interval '36 months' + interval '10 days')::date, updated_at = current_date - interval '36 months' + interval '10 days' where id = $1", [b]));
+    const courrier = await document("courrier", 61, org, "Courrier fictif");
+    await lier(courrier, "bail", b);
+    const quittance = await document("quittance", 30, org, "Quittance fictive");
+    await lier(quittance, "bail", b);
+    // Déposée tard : son échéance suit son dépôt (36 mois), hors de la fenêtre au premier passage.
+    await brut(() => db.query("update public.documents set retention_reference_date = (current_date - interval '36 months' + interval '40 days')::date where id = $1", [quittance]));
+    await proprietaire();
+    expect(await nombre("select public.generer_alertes_conservation()")).toBe(1);
+    const premiere = await id("select id from public.alerts where type = 'conservation_echeance' and statut = 'ouverte' and details ->> 'bail_id' = $1", [b]);
+    await db.query("set local role service_role");
+    await db.query("select public.noter_courriel_alerte_conservation($1, 'reserve')", [premiere]);
+    await db.query("select public.noter_courriel_alerte_conservation($1, 'envoye')", [premiere]);
+    // Le temps passe : l'échéance de la quittance entre dans les trente jours.
+    await proprietaire();
+    await brut(() => db.query("update public.documents set retention_reference_date = (current_date - interval '36 months' + interval '25 days')::date where id = $1", [quittance]));
+    expect(await nombre("select public.generer_alertes_conservation()")).toBe(1);
+    const alertes = (await db.query("select id, titre, details ->> 'courriel' as courriel from public.alerts where type = 'conservation_echeance' and statut = 'ouverte' and details ->> 'bail_id' = $1 order by echeance", [b])).rows;
+    expect(alertes).toHaveLength(2);
+    expect(alertes[0]).toMatchObject({ id: premiere, courriel: "envoye" });
+    expect(alertes[0].titre).toContain(" : Courrier fictif. ");
+    expect(alertes[1].titre).toContain(" : Quittance fictive. ");
+    expect(alertes[1].courriel).toBeNull();
+  });
+
+  it("alertes et gel : le gel ferme l'alerte du bail et la retire de la file ; la levée laisse trente jours de préavis, une seule fois", async () => {
+    const b = await bail(35);
+    await brut(() => db.query("update public.baux set date_fin = (current_date - interval '36 months' + interval '20 days')::date, updated_at = current_date - interval '36 months' + interval '20 days' where id = $1", [b]));
+    const doc = await document("bail", 61, org, "Bail signé fictif");
+    await lier(doc, "bail", b);
+    await proprietaire();
+    expect(await nombre("select public.generer_alertes_conservation()")).toBe(1);
+    const alerte = await id("select id from public.alerts where type = 'conservation_echeance' and statut = 'ouverte' and details ->> 'bail_id' = $1", [b]);
+    // Un gel posé avant l'envoi : l'alerte se ferme aussitôt et ne part pas.
+    await session(gerant);
+    await db.query("select public.geler_conservation_bail($1, current_date + 60, 'Contestation fictive en cours')", [b]);
+    await proprietaire();
+    expect(await un("select statut::text as statut from public.alerts where id = $1", [alerte])).toEqual({ statut: "fermee" });
+    await db.query("set local role service_role");
+    expect(await nombre("select count(*) from public.alertes_conservation_a_envoyer(50) where alerte_id = $1", [alerte])).toBe(0);
+    await proprietaire();
+    expect(await nombre("select public.generer_alertes_conservation()")).toBe(0);
+    // Levée : l'échéance d'origine (dans vingt jours) est trop proche ; la suppression attend trente jours, prévenue.
+    await session(gerant);
+    const dans30 = (await un<{ d: string }>("select ((now() at time zone 'Europe/Paris')::date + 30)::text as d")).d;
+    expect((await un<{ r: Record<string, unknown> }>("select public.geler_conservation_bail($1, null, null) as r", [b])).r).toMatchObject({ echeance: dans30, preavis: true });
+    expect(await un("select (public.lire_conservation_bail($1) ->> 'preavis')::boolean as p", [b])).toEqual({ p: true });
+    await proprietaire();
+    expect(await nombre("select public.generer_alertes_conservation()")).toBe(1);
+    // Une seconde levée ne repousse rien.
+    await session(gerant);
+    expect((await un<{ r: { echeance: string } }>("select public.geler_conservation_bail($1, null, null) as r", [b])).r.echeance).toBe(dans30);
+    // Une alerte ouverte que le gel couvre (gel écrit hors du geste) : écartée de la file, fermée à la passe suivante.
+    await proprietaire();
+    const ouverte = await id("select id from public.alerts where type = 'conservation_echeance' and statut = 'ouverte' and details ->> 'bail_id' = $1", [b]);
+    await brut(() => db.query("update public.baux set conservation_gelee_jusqu_au = current_date + 90, conservation_gelee_motif = 'Litige fictif en cours' where id = $1", [b]));
+    await db.query("set local role service_role");
+    expect(await nombre("select count(*) from public.alertes_conservation_a_envoyer(50) where alerte_id = $1", [ouverte])).toBe(0);
+    await proprietaire();
+    await db.query("select public.generer_alertes_conservation()");
+    expect(await un("select statut::text as statut from public.alerts where id = $1", [ouverte])).toEqual({ statut: "fermee" });
+  });
+
+  it("alertes J-30 : les documents rattachés à aucun bail sont annoncés aussi, par espace et par date", async () => {
+    const doc = await document("autre", 60, org, "Note fictive");
+    await lier(doc, "organisation", org);
+    // Déposé il y a soixante mois moins douze jours : supprimé dans douze jours.
+    await brut(() => db.query("update public.documents set retention_reference_date = (current_date - interval '60 months' + interval '12 days')::date where id = $1", [doc]));
+    await proprietaire();
+    expect(await nombre("select public.generer_alertes_conservation()")).toBe(1);
+    const a = await un<{ titre: string; details: Record<string, unknown> }>(
+      "select titre, details from public.alerts where type = 'conservation_documents' and organization_id = $1 and statut = 'ouverte'", [org]);
+    expect(a.titre).toMatch(/^Les documents suivants, qui ne sont rattachés à aucun bail, seront supprimés le \d{2}\/\d{2}\/\d{4}, au terme de leur durée de conservation \(page confidentialité\) : Note fictive\. Téléchargez ceux que vous devez conserver\.$/);
+    expect(a.details).toMatchObject({ pieces: 1 });
+    await db.query("set local role service_role");
+    expect(await nombre("select count(*) from public.alertes_conservation_a_envoyer(50) where type = 'conservation_documents' and organization_id = $1", [org])).toBe(1);
   });
 
   it("alertes J-15 : pièces d'une personne sans bail, seulement si la règle est active", async () => {
     const p = await personne(org, "Candidate");
     const doc = await document("piece_identite", 0);
     await lier(doc, "personne", p);
+    await lier(doc, "organisation", org);
     await brut(() => db.query("update public.documents set created_at = now() - interval '3 months' + interval '10 days' where id = $1", [doc]));
     await proprietaire();
     await db.query("select public.generer_alertes_conservation()");
@@ -701,6 +951,15 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     expect(await echec("select public.lire_conservation_bail($1)", [b])).toMatch(/^42501/);
   });
 
+  it("gel et lecture : un agent restreint ne voit ni ne gèle un bail hors de son portefeuille", async () => {
+    const b = await bail(30);
+    const agent = await compte("conservation-agent");
+    await brut(() => db.query("insert into public.memberships (account_id, organization_id, role) values ($1, $2, 'agent')", [agent, org]));
+    await session(agent);
+    expect(await echec("select public.lire_conservation_bail($1)", [b])).toMatch(/^42501/);
+    expect(await echec("select public.geler_conservation_bail($1, current_date + 30, 'Litige fictif en cours')", [b])).toMatch(/^42501/);
+  });
+
   it("gel : permis aussi quand l'abonnement est en lecture seule (geste protecteur)", async () => {
     const b = await bail(30, { organisation: orgFermee });
     await session(gerantFerme);
@@ -709,6 +968,24 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
   });
 
   // ── Bilan et droits ───────────────────────────────────────────────────────────────────────────────────────────
+
+  it("bilan sans suppression : les catégories déjà purgées chaque nuit (signalements, alertes traitées, demandes de congé) sont comptées", async () => {
+    const auteur = await compte("bilan");
+    await brut(() => db.query(
+      `insert into public.retours_utilisateurs (auteur_id, cle_envoi, nature, titre, description, etat, cree_le, modifie_le)
+       values ($1, gen_random_uuid(), 'bug', 'Retour fictif', 'Une description fictive assez longue.', 'nouveau', now() - interval '7 months', now() - interval '7 months')`, [auteur]));
+    await brut(() => db.query("insert into public.alerts (organization_id, type, titre, statut, closed_at) values ($1, 'manuelle', 'Alerte fictive', 'fermee', now() - interval '13 months')", [org]));
+    const b = await bail(30);
+    const p = await personne();
+    await brut(() => db.query("insert into public.intentions_conge (organization_id, bail_id, person_id, motif, created_at, traitee_le) values ($1, $2, $3, 'Motif fictif', now() - interval '26 months', now() - interval '25 months')", [org, b, p]));
+    await session(superviseur);
+    const r = (await un<{ r: { categories: { categorie: string; echus: number | null; actif: boolean }[] } }>("select public.simuler_conservation_contacts() as r")).r;
+    for (const c of ["support:bug", "alerte:traitee", "contrat:intention_conge"]) {
+      expect(r.categories.find((x) => x.categorie === c)?.echus, c).toBeGreaterThanOrEqual(1);
+    }
+    // Ce que personne ne purge encore reste « non calculé ».
+    expect(r.categories.find((x) => x.categorie === "contrat:retractation")?.echus).toBeNull();
+  });
 
   it("bilan sans suppression : super-administrateur avec second facteur, toutes les catégories, rien de supprimé", async () => {
     const b = await bail(37);
@@ -726,14 +1003,14 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     expect(await purgee(doc)).toBe(false);
   });
 
-  it("droits : quatre fonctions ouvertes au navigateur, les autres à la clé de service ; anon ne lit pas les oppositions", async () => {
+  it("droits : cinq fonctions ouvertes au navigateur, les autres à la clé de service ; anon ne lit pas les oppositions", async () => {
     const { rows } = await db.query<{ proname: string; a: boolean; s: boolean }>(
       `select p.proname, has_function_privilege('authenticated', p.oid, 'EXECUTE') as a, has_function_privilege('anon', p.oid, 'EXECUTE') as anon_ok,
               has_function_privilege('service_role', p.oid, 'EXECUTE') as s
          from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = any($1)`, [[...OUVERTES, ...RESERVEES]]);
     for (const r of rows) {
       expect((r as unknown as { anon_ok: boolean }).anon_ok, r.proname).toBe(false);
-      if (r.proname !== "garder_gel_conservation_bail") expect(r.a, r.proname).toBe(OUVERTES.includes(r.proname));
+      if (!DECLENCHEURS.includes(r.proname)) expect(r.a, r.proname).toBe(OUVERTES.includes(r.proname));
     }
     expect(rows).toHaveLength(OUVERTES.length + RESERVEES.length);
     await anon();
@@ -766,6 +1043,11 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     expect(await nombre("select duree_mois from public.retention_rules where data_type = 'document:bail'")).toBe(60);
     expect(await nombre("select count(*) from public.retention_rules where data_type = 'preuve:signature'")).toBe(0);
     expect(await nombre("select count(*) from pg_proc where proname = 'geler_conservation_bail'")).toBe(0);
+    // Toutes les fonctions et déclencheurs ajoutés partent, ceux des relectures du 24/10 compris (purger_archives_comptes,
+    // du socle, retrouve seulement son texte d'avant).
+    const ajoutees = [...OUVERTES, ...RESERVEES].filter((f) => f !== "purger_archives_comptes");
+    expect(await nombre("select count(*) from pg_proc where pronamespace = 'public'::regnamespace and proname = any($1)", [ajoutees])).toBe(0);
+    expect(await nombre("select count(*) from pg_trigger where tgname in ('baux_gel_conservation_garde', 'supervision_prospects_dernier_contact_garde')")).toBe(0);
     expect(await nombre("select count(*) from pg_constraint where conname = 'supervision_prospects_origine_liste'")).toBe(0);
     const revenu = await etat();
     await db.query(RETOUR);

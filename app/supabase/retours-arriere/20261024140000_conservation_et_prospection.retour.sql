@@ -18,8 +18,10 @@
 --  · la table technique `conservation_reperes` ; la table `oppositions_prospection` SEULEMENT SI ELLE EST VIDE (une
 --    opposition enregistrée est une preuve : elle est conservée telle quelle et le script le dit).
 -- Ce qui est conservé : les colonnes `baux.conservation_gelee_jusqu_au`, `baux.conservation_gelee_motif` (gels
--- posés), `supervision_prospects.oppose_le`, `dernier_contact_prospect_le`, `qualite` et leurs contraintes. Les pièces
--- et lignes déjà purgées ne reviennent pas (sauvegarde).
+-- posés, préavis de levée compris), `supervision_prospects.oppose_le`, `dernier_contact_prospect_le`, `qualite` et
+-- leurs contraintes ; l'origine « formulaire » donnée aux fiches nées d'une demande (ancienne valeur « Formulaire de
+-- contact », même sens) ; les alertes de conservation déjà posées (elles se lisent et se ferment à la main). Les
+-- pièces, fiches et lignes déjà purgées ne reviennent pas (sauvegarde).
 --
 -- Une seule instruction DO atomique : seule en autocommit, ou intégralement annulable dans une transaction externe,
 -- qu'elle ne valide jamais. Rejouée, elle ne fait rien de plus. Hors de la chaîne « Ordre complet » du LISEZ-MOI (la
@@ -285,8 +287,14 @@ begin
 end $fonction$;
   end if;
 
-  -- 3. Ce que la migration a ajouté : déclencheur du gel, puis fonctions (aucune n'est plus appelée).
+  -- 3. Ce que la migration a ajouté : déclencheurs du gel et du dernier contact, puis fonctions (aucune n'est plus
+  -- appelée).
   drop trigger if exists baux_gel_conservation_garde on public.baux;
+  drop trigger if exists supervision_prospects_dernier_contact_garde on public.supervision_prospects;
+  drop function if exists public.garder_dernier_contact_prospect();
+  drop function if exists public.inscriptions_agences_opposees();
+  drop function if exists public.poser_alerte_conservation(uuid, text, uuid, text, text, jsonb, date);
+  drop function if exists public.echeance_levee_gel_bail(uuid);
   drop function if exists public.lire_conservation_bail(uuid);
   drop function if exists public.geler_conservation_bail(uuid, date, text);
   drop function if exists public.ecrire_gel_conservation_bail(uuid, date, text);

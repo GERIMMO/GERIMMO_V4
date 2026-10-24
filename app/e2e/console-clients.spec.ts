@@ -100,7 +100,7 @@ test("« Utilisateurs » ouvre les personnes et conserve les trois familles d’
   await page.getByRole("navigation", { name: "Navigation de la supervision" }).getByRole("link", { name: /^Utilisateurs/ }).click();
   await page.waitForURL(/\/admin\/clients/);
 
-  await expect(page.getByRole("heading", { name: "Tous les utilisateurs", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Utilisateurs", level: 1 })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Rôle", exact: true })).toBeVisible();
   await expect(page.locator('a[href^="/admin/comptes/"]').first()).toBeVisible();
   await page.getByRole("link", { name: "Espaces clients et entreprises" }).click();
@@ -135,7 +135,7 @@ test("la fiche d'une agence est complète, et son bouton entre vraiment dans l'e
 
   // La fiche porte ce qu'on attend d'une fiche client, pas seulement deux
   // listes : identité, parc, parrainage, comptes.
-  for (const titre of ["Identité", "Son parc", "Parrainage", "Comptes rattachés"]) {
+  for (const titre of ["Identité de l’organisation", "Parc immobilier", "Parrainage", "Comptes rattachés"]) {
     await expect(page.getByRole("heading", { name: titre })).toBeVisible();
   }
   expect(await debordementHorizontal(page)).toBe(0);
@@ -157,6 +157,8 @@ test("le diagnostic artisan exige un motif, reste en lecture seule et se ferme",
   await page.waitForURL(/\/admin\/clients\/artisans\/[0-9a-f-]+/);
   const fiche = page.url();
   await expect(page.getByRole("heading", { name: "Justificatifs" })).toBeVisible();
+
+  await page.getByRole("heading", { name: "Consulter l’espace artisan", exact: true }).click();
 
   // Le motif part au journal d'audit avec l'ouverture.
   // « Motif » tout court viserait aussi celui du refus d'inscription.

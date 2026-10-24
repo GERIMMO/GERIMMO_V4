@@ -64,7 +64,7 @@ button.stat[aria-pressed="true"], a.stat[aria-current="true"] { border-color: va
 .empty a, .empty button { margin-top: 7px; display: inline-flex; align-items: center; gap: 8px; color: #466c90; text-decoration: underline; text-underline-offset: 3px; font-size: 13px; cursor: pointer; min-height: 36px; }
 .filters { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 23px 18px; }
 .filters a { padding: 7px 10px; border-radius: 7px; border: 1px solid #dfe5eb; font-size: 11px; color: var(--texte-secondaire); min-height: 34px; display: inline-flex; align-items: center; }
-.filters a[aria-current="true"] { background: #243b54; color: #fff; border-color: #243b54; }
+.filters a[aria-current="true"], .filters a[aria-current="page"] { background: #243b54; color: #fff; border-color: #243b54; }
 .caseList { padding-inline: 23px; }
 .case { display: block; padding: 19px 0; border-top: 1px solid var(--filet); }
 .case:hover h3 { color: #476e91; text-decoration: underline; text-underline-offset: 3px; }

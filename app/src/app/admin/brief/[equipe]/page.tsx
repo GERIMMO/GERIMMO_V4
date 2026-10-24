@@ -1,3 +1,4 @@
+import { ConsoleSection } from "@/components/console-section";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -44,31 +45,31 @@ export default async function PageDetailPoint({ params, searchParams }: { params
           <MarquerLu id={point.id} />
           <p className="mesure-lecture mb-6 text-sm text-muted-foreground">Point préparé à {heureParis(point.genere_le)}{point.lu_le ? `, lu à ${heureParis(point.lu_le)}` : ""}. {enAttente > 0 ? `${enAttente} décision${enAttente > 1 ? "s" : ""} en attente.` : "Aucune décision en attente."}</p>
 
-          <section className="section-ecran">
-            <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Décisions soumises</h2>
+          <ConsoleSection titre="Décisions soumises" description="Ouvrir une demande pour l’examiner." icone="documents" ouverte statut={`${enAttente} en attente`}>
+
             {point.decisions.length === 0
               ? <p className="text-sm text-muted-foreground">Cette équipe ne soumet aucune décision aujourd’hui.</p>
-              : <ul className="grid gap-4">{point.decisions.map((d) => <DecisionMatin key={d.id} decision={d} />)}</ul>}
-          </section>
+              : <ul className="grid gap-4">{point.decisions.map((d) => <DecisionMatin key={d.id} decision={d} compacte />)}</ul>}
+          </ConsoleSection>
 
-          <section className="section-ecran">
-            <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Informations et résultats</h2>
+          <ConsoleSection titre="Résultats" description="Travail terminé et passages manquants." icone="documents" ton="vert">
+
             {point.contenu.realisations.length === 0
               ? <p className="text-sm text-muted-foreground">{missionsDeLEquipe(equipe).length === 0 ? "Cette équipe n’a pas de passage planifié : elle prépare des décisions à partir des files existantes." : "Aucun passage terminé dans les dernières 24 heures."}</p>
               : <ul className="grid gap-2 text-sm">{point.contenu.realisations.map((r) => <li key={r} className="rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] px-4 py-3">{r}</li>)}</ul>}
             {point.contenu.sans_passage.length > 0 && <p className="mt-3 text-sm text-[var(--texte-secondaire)]">Sans passage dans la fenêtre : {point.contenu.sans_passage.join(", ")}.</p>}
-          </section>
+          </ConsoleSection>
 
-          <section className="section-ecran">
-            <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Incidents à examiner</h2>
+          <ConsoleSection titre="Incidents à examiner" icone="sante" ton="ambre" ouverte={point.contenu.echecs.length > 0} statut={`${point.contenu.echecs.length} incidents`}>
+
             {point.contenu.echecs.length === 0
               ? <p className="text-sm text-muted-foreground">Aucun échec relevé.</p>
               : <ul className="grid gap-2 text-sm">{point.contenu.echecs.map((e) => <li key={e} className="rounded-lg border border-[var(--destructive)] bg-[var(--destructive-soft)] px-4 py-3 text-[var(--destructive-soft-foreground)]">{e}</li>)}</ul>}
-          </section>
+          </ConsoleSection>
 
           {point.contenu.passages.length > 0 && (
-            <section className="section-ecran">
-              <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Passages</h2>
+            <ConsoleSection titre="Historique des passages" icone="historique">
+
               <div className="colonne-liste">
                 {point.contenu.passages.map((p) => (
                   <Link key={`${p.mission}-${p.debut}`} href={MISSIONS[p.mission].lien} className="rang w-full">
@@ -77,7 +78,7 @@ export default async function PageDetailPoint({ params, searchParams }: { params
                   </Link>
                 ))}
               </div>
-            </section>
+            </ConsoleSection>
           )}
           <div className="mt-6 flex flex-wrap gap-3"><Link href={EQUIPES[equipe].page} className="btn-secondaire">Ouvrir l’écran de l’équipe</Link><Link href="/admin/equipes" className="btn-secondaire">Commandes des équipes</Link></div>
         </>

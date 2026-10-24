@@ -1,3 +1,4 @@
+import { ConsoleSection } from "@/components/console-section";
 import { LectureIndisponible } from "../../../lecture-indisponible";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
@@ -171,9 +172,9 @@ export default async function PageFicheArtisan(
           </div>
         )}
 
-        <section className="loc-carte">
+        <ConsoleSection titre="Entreprise" description="Coordonnées, métiers et zones d’intervention." icone="personnes" ouverte>
           <div className="entete-carte">
-            <h3>Identité de l&apos;entreprise</h3>
+
           </div>
           <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
             <Info libelle="SIRET">
@@ -193,11 +194,11 @@ export default async function PageFicheArtisan(
           </dl>
           {/* Le motif de la dernière décision ne se répète plus ici (24/09) :
               l'historique porte déjà le motif et la date. */}
-        </section>
+        </ConsoleSection>
 
-        <section className="loc-carte mt-4">
+        <ConsoleSection titre="Justificatifs" description="Consulter les pièces avant de décider." icone="documents" ton="vert" ouverte>
           <div className="entete-carte">
-            <h3>Justificatifs</h3>
+
             <span className="mono-discret">
               {pieces.error ? "indisponibles" : `${listePieces.length}`}
             </span>
@@ -231,11 +232,11 @@ export default async function PageFicheArtisan(
               ))}
             </ul>
           )}
-        </section>
+        </ConsoleSection>
 
-        <section className="loc-carte mt-4">
+        <ConsoleSection titre="Agences clientes" description="Agences qui sollicitent cet artisan." icone="personnes">
           <div className="entete-carte">
-            <h3>Agences qui le sollicitent</h3>
+
             <span className="mono-discret">{agences.error ? "—" : listeAgences.length}</span>
           </div>
           {/* Tout le rang est le lien (24/09) : seul le nom réagissait au clic,
@@ -276,17 +277,13 @@ export default async function PageFicheArtisan(
               )}
             </div>
           )}
-        </section>
+        </ConsoleSection>
 
-        <section id="statut-inscription" className="loc-carte mt-4">
+        <ConsoleSection id="statut-inscription" titre="Inscription de l’artisan" description="Examiner les justificatifs puis prendre une décision." icone="securite" ton="ambre" ouverte>
           {/* « Décider » seulement quand une décision est possible (24/09) :
               pour un artisan validé, la carte ne propose aucun geste. */}
           <div className="entete-carte">
-            <h3>
-              {artisan.statut_plateforme === "en_attente" || artisan.statut_plateforme === "refuse"
-                ? "Décider"
-                : "Statut de l'inscription"}
-            </h3>
+
           </div>
           <p className="mesure-lecture mb-4 text-sm text-[var(--texte-secondaire)]">
             La validation appartient à Gerimmo. Elle ne modifie ni la visibilité
@@ -335,12 +332,12 @@ export default async function PageFicheArtisan(
               {formaterDate(decisions.purge_prevue_le)}.
             </p>
           )}
-        </section>
+        </ConsoleSection>
 
         {validations.data && validations.data.length > 0 && (
-          <section className="loc-carte mt-4">
+          <ConsoleSection titre="Historique des décisions" description="Validations, refus et leurs motifs." icone="historique">
             <div className="entete-carte">
-              <h3>Historique des décisions</h3>
+
             </div>
             <ul className="space-y-3">
               {validations.data.map((v) => (
@@ -357,30 +354,21 @@ export default async function PageFicheArtisan(
                 </li>
               ))}
             </ul>
-          </section>
+          </ConsoleSection>
         )}
 
-        <section className="loc-carte mt-4">
+        <ConsoleSection titre="Consulter l’espace artisan" description="Accès de supervision et traçabilité." icone="securite" ton="violet">
           <div className="entete-carte">
-            <h3>Entrer dans sa session</h3>
+
             <span className="puce puce-rouge">30 minutes</span>
           </div>
-          <p className="mesure-lecture mb-3 text-sm text-[var(--texte-secondaire)]">
-            Vous ouvrez son portail tel qu&apos;il le voit, et vous pouvez y{" "}
-            <b>agir comme lui</b> : accepter une sollicitation, déposer un
-            devis, rendre un compte d&apos;intervention. Ce sont des engagements
-            pris dans l&apos;espace d&apos;un tiers.
-          </p>
           <p className="mesure-lecture mb-4 text-sm text-[var(--texte-secondaire)]">
-            La traversée est <b>bornée à trente minutes</b>, affichée en rouge
-            en haut de chaque écran du portail, et inscrite au journal
-            d&apos;audit à l&apos;ouverture comme à la fermeture. Votre compte
-            reste l&apos;auteur de tout ce qui est écrit : aucune session
-            n&apos;est émise au nom de l&apos;artisan, rien n&apos;est
-            indiscernable de ses propres gestes.
+            Ouvrez son portail pour comprendre une difficulté, en lecture seule.
+            L’accès dure trente minutes ; son motif, son ouverture et sa fermeture
+            sont enregistrés avec votre identité.
           </p>
           <BoutonEntrerSession artisanId={artisan.id} nom={artisan.raison_sociale} />
-        </section>
+        </ConsoleSection>
       </main>
     </RetourDecisionsArtisan>
   );

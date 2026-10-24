@@ -14,7 +14,7 @@ test('supervision : pause et reprise des passages sans exécution du traitement'
  await expect(mission.getByText('Aucun passage enregistré dans l’historique disponible.')).toBeVisible();expect(await debordementHorizontal(page)).toBe(0);
 });
 test('supervision : le plan d’absence peut être enregistré sans créer de nouveaux accès',async({page})=>{
- await page.goto('/admin/relais');await page.getByText('Délai d’absence et consignes',{exact:true}).click();await page.getByLabel('Absence à signaler après combien de jours ?').fill('7');await page.getByLabel('Consignes en cas d’absence').fill('Continuer les traitements autorisés et conserver les décisions sensibles.');await page.getByRole('button',{name:'Enregistrer le plan'}).click();await expect(page.locator('#continuite').getByRole('status')).toContainText('plan de continuité est enregistré');
+ await page.goto('/admin/relais#continuite');await page.getByText('Délai d’absence et consignes',{exact:true}).click();await page.getByLabel('Absence à signaler après combien de jours ?').fill('7');await page.getByLabel('Consignes en cas d’absence').fill('Continuer les traitements autorisés et conserver les décisions sensibles.');await page.getByRole('button',{name:'Enregistrer le plan'}).click();await expect(page.locator('#continuite').getByRole('status')).toContainText('plan de continuité est enregistré');
 });
 test('supervision : la marque blanche donne des étapes lisibles',async({page})=>{
  await page.goto('/admin/marque-blanche');await expect(page.getByRole('heading',{name:'Personnalisation des agences'})).toBeVisible();await expect(page.getByRole('link',{name:'Fiche de l’organisation et entrée dans son espace →'}).first()).toBeVisible();expect(await debordementHorizontal(page)).toBe(0);

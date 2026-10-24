@@ -1,3 +1,4 @@
+import { ConsoleSection } from "@/components/console-section";
 import Link from "next/link";
 import { BoutonArchiverConditions } from "./bouton-archiver-conditions";
 import {
@@ -50,13 +51,7 @@ export function ArchiveConditions({
   const aJour = versions !== null && sansArchive !== null && sansArchive.length === 0 && enVigueur.every((d) => d.archivee);
   const libelle = (document: string) => (estDocumentConditions(document) ? LIBELLE_DOCUMENT[document] : document);
   return (
-    <section className="section-ecran" id="archive-conditions" aria-labelledby="titre-archive-conditions">
-      <div className="entete-carte mb-3">
-        <h2 id="titre-archive-conditions" className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
-          Archive des conditions générales
-        </h2>
-        <span className={`puce ${aJour ? "puce-loue" : "puce-prep"}`}>{aJour ? "à jour" : "à archiver"}</span>
-      </div>
+    <ConsoleSection id="archive-conditions" titre="Versions des conditions" description="Archives des conditions clients et artisans." icone="documents" ton="violet" statut={versions === null || sansArchive === null ? "Lecture indisponible" : aJour ? "À jour" : "À archiver"}>
       <div className="loc-carte space-y-3 text-sm">
         {versions === null ? (
           <p role="alert">Les versions archivées n’ont pas pu être lues : aucun état n’est confirmé.</p>
@@ -120,6 +115,6 @@ export function ArchiveConditions({
           </Link>
         </p>
       </div>
-    </section>
+    </ConsoleSection>
   );
 }

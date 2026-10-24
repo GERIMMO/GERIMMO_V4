@@ -1,3 +1,4 @@
+import { ConsoleSection } from "@/components/console-section";
 import { LectureIndisponible } from "../../lecture-indisponible";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
@@ -209,9 +210,9 @@ export default async function PageAdminOrganisation(
         {/* RM-A1.11 */} — y compris l&apos;ouverture de cette fiche.
       </p>
 
-      <section className="loc-carte">
+      <ConsoleSection titre="Identité de l’organisation" description="Coordonnées et informations principales." icone="personnes" ouverte>
         <div className="entete-carte">
-          <h3>Identité</h3>
+
           <Link href={`${base}/profil`} className="lien-discret text-[12.5px]">
             Ouvrir son profil →
           </Link>
@@ -270,13 +271,13 @@ export default async function PageAdminOrganisation(
             </>
           )}
         </dl>
-      </section>
+      </ConsoleSection>
 
       {(lots.error || baux.error || personnes.error || parrainages.error) && <LectureIndisponible sujet="Parc ou parrainage" retour={`/admin/organisations/${orgId}`} />}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <section className="loc-carte">
+        <ConsoleSection titre="Parc immobilier" description="Biens et lots de cette organisation." icone="documents" ton="vert" ouverte>
           <div className="entete-carte">
-            <h3>Son parc</h3>
+
           </div>
           <dl className="grid gap-3">
             <Info libelle="Lots gérés (base de facturation)">
@@ -287,11 +288,11 @@ export default async function PageAdminOrganisation(
               {personnes.error ? "Indisponible" : (personnes.count ?? 0)}
             </Info>
           </dl>
-        </section>
+        </ConsoleSection>
 
-        <section className="loc-carte">
+        <ConsoleSection titre="Parrainage" description="Recommandations et avantages associés." icone="personnes" ton="violet">
           <div className="entete-carte">
-            <h3>Parrainage</h3>
+
           </div>
           <dl className="grid gap-3">
             <Info libelle="Son code">
@@ -307,12 +308,12 @@ export default async function PageAdminOrganisation(
               {parrainages.error ? "Indisponible" : filleuls}
             </Info>
           </dl>
-        </section>
+        </ConsoleSection>
       </div>
 
-      <section className="loc-carte mt-4">
+      <ConsoleSection titre="Comptes rattachés" description="Membres et rôles dans cette organisation." icone="personnes" ouverte>
         <div className="entete-carte">
-          <h3>Comptes rattachés</h3>
+
           <span className="mono-discret">
             {adhesionsLues.error ? "indisponibles" : adhesions.length}
           </span>
@@ -346,12 +347,12 @@ export default async function PageAdminOrganisation(
             ))}
           </ul>
         )}
-      </section>
+      </ConsoleSection>
 
       {/* L'invitation du responsable (audit console 27/09, majeur 7) : le geste
           que le commentaire d'ouverture promettait. */}
-      <section id="invitation" className="loc-carte mt-4">
-        <div className="entete-carte"><h3>Invitation du responsable</h3></div>
+      <ConsoleSection id="invitation" titre="Inviter le responsable" description="Suivi de l’invitation et nouvel envoi." icone="personnes">
+        <div className="entete-carte"></div>
         {adhesionsLues.error ? <LectureIndisponible sujet="Responsables et invitations" retour={`/admin/organisations/${orgId}`} /> : responsables.length === 0 ? (
           <p className="text-sm text-[var(--texte-secondaire)]">Aucun responsable rattaché : rien à renvoyer.</p>
         ) : (
@@ -368,13 +369,13 @@ export default async function PageAdminOrganisation(
             ))}
           </div>
         )}
-      </section>
+      </ConsoleSection>
 
       {/* Les gestes de contrôle (audit console 27/09, majeur 8), conformes au
           « Cycle de vie de l'abonnement » et à « Archivage plutôt que
           suppression » : aucune suppression, chaque geste confirmé et journalisé. */}
-      <section className="loc-carte mt-4">
-        <div className="entete-carte"><h3>Accès à l’espace client</h3></div>
+      <ConsoleSection titre="Accès à l’espace client" description="Suspendre, réactiver ou archiver l’accès, avec confirmation." icone="securite" ton="ambre">
+        <div className="entete-carte"></div>
         <p className="mesure-lecture mb-3 text-sm text-[var(--texte-secondaire)]">
           Chaque geste est fait à votre nom et inscrit au journal d’audit de cette organisation. Une
           organisation suspendue ou archivée garde ses données ; elle se réactive d’ici. Ces actions modifient les accès Gerimmo. Elles ne résilient pas l’abonnement Stripe et n’arrêtent pas ses prélèvements.
@@ -397,7 +398,7 @@ export default async function PageAdminOrganisation(
               confirmation="J’archive cette organisation : elle n’est pas supprimée, ses données sont conservées selon la durée légale et elle peut être réactivée. Son abonnement Stripe et ses prélèvements restent inchangés." />
           )}
         </div>
-      </section>
+      </ConsoleSection>
     </main>
   );
 }

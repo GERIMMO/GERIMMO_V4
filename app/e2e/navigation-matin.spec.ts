@@ -29,14 +29,14 @@ test.describe('Tour du matin de la supervision',()=>{
   await expect(menu.getByRole('link')).toHaveCount(17);
  });
  test('la santé conduit directement au résultat des traitements',async({page})=>{
-  await page.goto('/admin/sante');
+  await page.goto('/admin/sante#taches');
   const contenu=page.getByRole('main').filter({has:page.getByRole('heading',{name:'Santé et connexions',exact:true})});
   await expect(contenu).toBeVisible();
   await expect(contenu).not.toContainText('lib/editeur.ts');
   await page.getByRole('link',{name:'Voir l’historique →'}).or(page.getByRole('link',{name:"Voir l'historique →"})).click();
   await expect(page).toHaveURL(/\/admin\/journaux#historique-service$/);
   await expect(page.locator('#historique-service')).toBeInViewport();
-  await expect(page.locator('#historique-service')).toContainText('Historique du service');
+  await expect(page.locator('#historique-service')).toContainText('Travail automatique et incidents');
  });
  test('filtre l’historique avec des choix compréhensibles et conserve les dates',async({page})=>{
   await page.goto('/admin/journaux?type=tache_&p_technique=2');

@@ -1,0 +1,29 @@
+.section { --accent:#365b88; --tint:#edf3fa; margin:16px 0; min-width:0; background:var(--carte,#fff); border:1px solid var(--filet,#dde4ed); border-radius:14px; scroll-margin-top:90px; }
+.section[data-tone="vert"] { --accent:#316953; --tint:#edf6ef; }
+.section[data-tone="ambre"] { --accent:#866021; --tint:#faf2e4; }
+.section[data-tone="violet"] { --accent:#695383; --tint:#f4eff9; }
+.summary { display:flex; align-items:center; gap:14px; padding:19px 21px; cursor:pointer; list-style:none; min-height:76px; }
+.summary::-webkit-details-marker { display:none; }
+.summary:hover { background:var(--tint); border-radius:13px; }
+.summary:focus-visible { outline:3px solid var(--accent); outline-offset:3px; border-radius:13px; }
+.icon { display:grid; place-items:center; width:40px; height:40px; flex-shrink:0; color:var(--accent); background:var(--tint); border-radius:11px; }
+.heading { min-width:0; flex:1; }
+.title { display:block; font-size:16px; font-weight:650; color:var(--encre); line-height:1.4; }
+.description { display:block; margin-top:3px; font-size:13px; line-height:1.5; color:var(--texte-secondaire); }
+.status { font-size:12px; line-height:1.4; color:var(--accent); background:var(--tint); padding:5px 9px; border-radius:7px; max-width:35%; }
+.chevron { flex-shrink:0; color:var(--texte-secondaire); }
+.section[open] > .summary { border-bottom:1px solid var(--filet,#dde4ed); }
+.section[open] > .summary .chevron { transform:rotate(180deg); }
+.body { padding:20px; min-width:0; overflow-wrap:anywhere; }
+.body > :global(.loc-carte), .body > :global(.section-ecran) { margin:0; box-shadow:none; border:0; padding:0; }
+.body > :global(.loc-carte) + :global(.loc-carte) { margin-top:20px; }
+.body :global(.libelle-champ), .body :global(.mono-discret) { text-transform:none; letter-spacing:normal; }
+.body :global(input), .body :global(select), .body :global(textarea) { max-width:100%; }
+@media(max-width:600px) {
+ .summary { padding:15px 12px; gap:10px; flex-wrap:wrap; }
+ .title { font-size:15px; }
+ .description { font-size:12px; }
+ .icon { width:34px; height:34px; }
+ .status { order:3; max-width:100%; margin-left:44px; }
+ .body { padding:16px 12px; }
+}

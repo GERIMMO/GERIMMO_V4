@@ -1,3 +1,4 @@
+import { ConsoleSection } from "@/components/console-section";
 import {PreuvesSupervision} from "./preuves";
 import { deElide } from "@/lib/elision";
 import { TitreEcran } from "@/components/titre-ecran";
@@ -5,13 +6,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { borneJourParis, formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
 import { BoutonPurge } from "./bouton-purge";
 import { codesConnusJournaux, detailsExpurges, libelleAccesDocument, libelleActionAudit, libelleEvenement } from "@/lib/libelles-journaux";
 import { resumerBilan } from "@/lib/sante-service";
@@ -214,8 +209,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
         <div className="min-w-0 flex-[1_1_20rem]">
           <TitreEcran rubrique="suivi">Historique et sauvegardes</TitreEcran>
           <p className="mt-2 text-sm text-muted-foreground">
-            Les actions sensibles, le travail automatique et les consultations de
-            pièces, puis les règles qui fixent combien de temps tout cela est gardé.
+            Retrouvez une action, un incident ou la preuve d’une sauvegarde.
           </p>
         </div>
         <div className="flex flex-wrap gap-3"><Link href="/admin/sante#sauvegarde" className="btn-secondaire">Vérifier la sauvegarde</Link><a href="#conservation" className="lien-discret text-sm">Règles de conservation ↓</a></div>
@@ -228,19 +222,10 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
         codes={codesConnusJournaux()}
       />
 
-      <div className="grid gap-7 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Journal d&apos;audit</CardTitle>
-            {/* La carte montre aussi les actions sensibles des agences
-                (réouverture d'un mois, d'une détention…), pas seulement
-                celles du super administrateur (24/09). */}
-            <CardDescription>
-              Actions sensibles journalisées (super administrateur et
-              agences), conservées 3 ans.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+      <div className="space-y-4">
+        <ConsoleSection id="audit" titre="Actions sur les comptes et dossiers" description="Actions sensibles réalisées par les superviseurs et les agences." icone="personnes" ouverte={Boolean(p.p_audit || filtres.org || filtres.type && !filtres.type.startsWith("tache_"))}>
+
+          <div className="space-y-4">
             {audit.length === 0 ? (
               <div className="vide">{filtreActif ? "Aucune action ne correspond à ces filtres." : "Aucune action sensible journalisée pour l'instant."}</div>
             ) : (
@@ -268,19 +253,12 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
               </ul>
             )}
             <PagesJournal cle="p_audit" page={pages.audit} suite={suite.audit} filtres={filtres} pages={pages} />
-          </CardContent>
-        </Card>
+          </div>
+        </ConsoleSection>
 
-        <Card id="historique-service" className="scroll-mt-6">
-          <CardHeader>
-            <CardTitle className="text-base">Historique du service</CardTitle>
-            <CardDescription>
-              Résultats du travail automatique, connexions et difficultés
-              rencontrées, conservés 6 mois. Les actions à reprendre restent
-              visibles même lorsqu’une partie du travail a réussi.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <ConsoleSection id="historique-service" titre="Travail automatique et incidents" description="Passages des tâches et difficultés rencontrées." icone="sante" ton="ambre" ouverte={Boolean(p.p_technique || filtres.type?.startsWith("tache_"))}>
+
+          <div className="space-y-4">
             {/* Un historique vide n'est pas un bon signe (24/09) : le travail
                 de nuit doit y laisser une trace. L'état vide dit où vérifier. */}
             {filtres.org && (
@@ -328,20 +306,12 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
               </ul>
             )}
             <PagesJournal cle="p_technique" page={pages.technique} suite={suite.technique} filtres={filtres} pages={pages} />
-          </CardContent>
-        </Card>
+          </div>
+        </ConsoleSection>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">
-              Journal d&apos;accès aux pièces
-            </CardTitle>
-            <CardDescription>
-              Toute consultation ou téléchargement d&apos;un document est
-              tracé, conservé 1 an.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <ConsoleSection id="acces-documents" titre="Consultations des documents" description="Qui a consulté ou téléchargé une pièce." icone="documents" ouverte={Boolean(p.p_acces)}>
+
+          <div className="space-y-4">
             {acces.length === 0 ? (
               <div className="vide">{filtreActif ? "Aucune consultation ne correspond à ces filtres." : "Aucune consultation de pièce tracée pour l'instant."}</div>
             ) : (
@@ -370,18 +340,11 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
               </ul>
             )}
             <PagesJournal cle="p_acces" page={pages.acces} suite={suite.acces} filtres={filtres} pages={pages} />
-          </CardContent>
-        </Card>
-        <Card id="conservation" className="scroll-mt-6 lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Conservation et nettoyage</CardTitle>
-            <CardDescription>
-              Gerimmo applique chaque nuit les règles ci-dessous. Le nettoyage
-              manuel les applique tout de suite et supprime les fichiers en attente
-              {enAttente ? ` (${enAttente} en attente)` : ""}.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          </div>
+        </ConsoleSection>
+        <ConsoleSection id="conservation" titre="Conservation et nettoyage" description="Règles en vigueur et nettoyage manuel avec confirmation." icone="reglages" ton="violet">
+
+          <div className="space-y-4">
             <Link href="/admin/conservation" className="lien-discret">Modifier les durées de conservation →</Link>
             <Link href="/admin/donnees" className="lien-discret">Demandes de fermeture, effacement et copies prestataires →</Link>
             <BoutonPurge fichiersEnAttente={enAttente ?? 0} />
@@ -442,8 +405,8 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
             </div>
               </div>
             </details>
-          </CardContent>
-        </Card>
+          </div>
+        </ConsoleSection>
       </div>
       <p className="mt-5 text-sm text-muted-foreground">{NOTE_FUSEAU}</p>
     </main>

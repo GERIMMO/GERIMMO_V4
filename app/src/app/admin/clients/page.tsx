@@ -1,3 +1,4 @@
+import { NavigationUtilisateurs } from "./navigation";
 import { AnnuairePersonnes } from "./personnes";
 import { lirePage, numeroPage, rechercheIlike } from "@/lib/pagination-supervision";
 import { Annuaire, type ClientResume } from "./annuaire";
@@ -102,7 +103,7 @@ export default async function PageClients({ searchParams }: { searchParams: Prom
   ];
   return <main className={styles.page}>
     <header className={styles.header}><div><p className={styles.eyebrow}>RELATION CLIENTS</p><TitreEcran rubrique="personnes">Utilisateurs</TitreEcran><p className={styles.subtitle}>Retrouvez les propriétaires bailleurs, les artisans et les agences de Gerimmo.</p></div><Link href="/admin/organisations/nouvelle" className="btn-or"><Plus size={16} aria-hidden="true" />Ouvrir une organisation</Link></header>
-    <Link href="/admin/clients" className="btn-secondaire mb-4">Tous les utilisateurs individuels →</Link>
+    <NavigationUtilisateurs vue="espaces"/>
     <Annuaire clients={clients} famille={famille} recherche={recherche} statut={statut}
       totaux={{ proprietaire: nbProprietaires.error ? null : nbProprietaires.count, agence: nbAgences.error ? null : nbAgences.count, artisan: nbArtisans.error ? null : nbArtisans.count, attente: nbAttente.error ? null : nbAttente.count }}
       lectures={{ proprietaire: { page: proprietaires.page, total: proprietaires.count, erreur: Boolean(proprietaires.error) }, agence: { page: agences.page, total: agences.count, erreur: Boolean(agences.error) }, artisan: { page: artisansBruts.page, total: artisansBruts.count, erreur: Boolean(artisansBruts.error) } }} />

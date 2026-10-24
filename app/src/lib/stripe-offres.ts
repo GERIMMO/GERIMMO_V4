@@ -293,6 +293,10 @@ export async function creerSessionOffre(
     return { ok: true, url: session.url, session: session.id, premierPrelevement: trialEnd ?? null };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
+    // Cause exacte d'un refus de Stripe (type, code, paramètre, message), sans donnée de carte ni secret : le message
+    // rendu au client est traduit et général.
+    const x = e as { type?: string; code?: string; param?: string; message?: string };
+    console.error("[stripe paiement]", JSON.stringify({ organisation: params.orgId, type: x?.type, code: x?.code, param: x?.param, message: x?.message }));
     return { ok: false, erreur: messageStripePourClient(e) };
   }
 }

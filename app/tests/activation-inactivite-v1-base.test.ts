@@ -94,7 +94,7 @@ describe("activation de l'inactivité — fichiers (sans base)", () => {
   it("manifeste, procédure de retour, chaîne « Ordre complet » et classement en série", () => {
     const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${NOM}.sql`)).toHaveLength(1);
-    expect(manifeste.at(-1)).toBe(`${NOM}.sql`);
+    expect(manifeste).toContain(`${NOM}.sql`);
     expect(manifeste.indexOf(`${NOM}.sql`)).toBeGreaterThan(manifeste.indexOf("20261024140000_conservation_et_prospection.sql"));
     expect(readFileSync("tests/relais-migrations-manifeste.test.ts", "utf8")).toContain(`"${NOM}.sql",`);
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);

@@ -192,3 +192,23 @@ des pièces dont la règle est active.
 ## Relecture avant publication du 24 octobre
 
 Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
+
+## Réglage par le dirigeant — préparation du 24 octobre 2026
+
+À sa demande, toutes les catégories deviennent consultables et modifiables dans
+`/admin/conservation` par le superadmin permanent, après second facteur. La durée
+s’exprime en mois ; chaque décision demande un motif et garde l’ancienne valeur,
+la nouvelle et son auteur. Deux sessions ne peuvent écraser silencieusement leurs
+changements. L’écran rappelle les exceptions et les catégories dont le nettoyage
+est désactivé. Il ne lance aucune suppression.
+
+Les factures archivées et preuves des contrats déjà constituées gardent leur
+échéance ; les nouveaux réglages de ces catégories concernent les futures archives.
+Les avertissements d’inactivité suivent le délai configuré sans avancer une date
+déjà annoncée. La politique publique affiche les durées modifiées ; les conditions
+archivées sont intactes. Ce pouvoir de réglage ne dispense pas de vérifier la
+cohérence d’une décision avec les engagements contractuels et la finalité des données.
+
+État : **en cours de validation locale, non publié**. Migration
+`20261024105901_reglages_conservation_superadmin.sql`, après `20261024150000` dans le
+manifeste. Preuves de contrôle et publication : `log.md`.

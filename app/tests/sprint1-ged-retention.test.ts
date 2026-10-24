@@ -344,10 +344,9 @@ describe.skipIf(!DB_URL)("Sprint 1 — GED, alertes, rétention", () => {
     );
     expect(Number(rows[0].n)).toBeGreaterThanOrEqual(17);
 
-    const modification = await db.query(
+    await expect(db.query(
       `update public.retention_rules set duree_mois = 1 where data_type = 'journal:audit_log' returning id`
-    );
-    expect(modification.rowCount).toBe(0); // la RLS ne matche aucune ligne
+    )).rejects.toMatchObject({ code: "42501" }); // les écritures passent exclusivement par le geste audité
   });
 
   it("log_tech écrit le journal technique, inaccessible en lecture aux non-SA", async () => {

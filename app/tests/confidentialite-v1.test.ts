@@ -18,6 +18,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CONDITIONS_DATE, PRESTATAIRES, cleCoordonnees } from "../src/lib/editeur";
 
 const lecture = vi.hoisted(() => ({ valeurs: {} as Record<string, string | null> }));
+vi.mock("@/lib/conservation-publique", () => ({ lireDureesPubliques: async () => ({ regles: [], indisponible: false }) }));
 vi.mock("@/lib/editeur-serveur", () => ({
   lireEditeur: async () => ({ editeur: lecture.valeurs, indisponible: false }),
 }));
@@ -228,6 +229,6 @@ describe("pages publiques (lot 4)", () => {
   it("liste d'attente des agences : opposition, trois ans après l'inscription, retrait dans le mois (R44)", () => {
     const t = source("app/agences/formulaire-liste-attente-agences.tsx").replace(/’/g, "'");
     expect(t).toContain("Vos coordonnées servent uniquement à vous prévenir de l'ouverture de l'offre aux agences et à donner suite à vos réponses.");
-    expect(t).toContain("Vous pouvez vous y opposer à tout moment, en répondant à l'un de nos messages ou en nous écrivant ; elles sont supprimées trois ans après votre inscription, ou dans le mois de votre demande de retrait");
+    expect(t).toContain("Vous pouvez vous y opposer à tout moment, en répondant à l'un de nos messages ou en nous écrivant ; elles sont supprimées au terme du délai indiqué dans notre politique, compté depuis votre inscription, ou dans le mois de votre demande de retrait");
   });
 });

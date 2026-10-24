@@ -47,6 +47,8 @@ export default async function PageParametres() {
 
       <BlocageSouscription actif={regle.blocageIdentiteActif} revision={regle.revision} manquants={[...manquants]} aCompleter={[...aCompleter]} />
 
+      <section className="loc-carte"><h2>Conservation des données</h2><p className="mt-2 text-sm text-muted-foreground">Durées par catégorie et historique de vos modifications.</p><Link className="lien-discret mt-3 inline-block" href="/admin/conservation">Régler les durées de conservation →</Link></section>
+
       <section className="loc-carte">
         <div className="entete-carte">
           <h2>Identité de l’éditeur</h2>

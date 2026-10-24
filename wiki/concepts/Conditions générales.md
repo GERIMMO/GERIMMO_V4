@@ -132,3 +132,9 @@ Le code livré le 24/10 suit déjà ces règles ; ce que le texte promet est dé
 > - **Risques signalés par la relecture des textes** : l'encadré 14 bis ne couvre pas l'essai
 >   gratuit ; l'article 9 du règlement P2B (2019/1150) n'est pas traité pour l'espace artisan
 >   — à confirmer sur Légifrance / EUR-Lex (source non ouverte le 23/10/2026).
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
+
+P2B : les conditions A9/A12 ont été complétées pour l’accès aux données, leur sort après fermeture, les préavis étendus et l’absence de modification rétroactive défavorable.

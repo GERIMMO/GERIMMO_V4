@@ -287,3 +287,5 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - **22 octobre 2026 — signatures et conservation, local** : états détaillés des actes, protection des preuves et bilan sans suppression ; adresse personnelle conservée, anciens réglages Youtrust supprimés le 23 octobre après confirmation. [Bilan et limites](app/docs/signatures-conservation-22-octobre.md). Aucun nouveau déploiement.
 
 - **23 octobre 2026 — réglages et accès Youtrust retirés** : trois variables Production supprimées sur Vercel, redéploiement de la version existante réussi, sonde du site et de la base au vert ; dernière clé Sandbox révoquée chez le fournisseur et ancien webhook Gerimmo supprimé après confirmation finale. Documents et abonnement fournisseur conservés. [État](app/docs/signatures-conservation-22-octobre.md).
+
+- [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] — corrections adverses, sources officielles et preuves de publication.

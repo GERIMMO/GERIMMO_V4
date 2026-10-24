@@ -106,7 +106,7 @@ describe("R03 — la confirmation de la souscription", () => {
     for (const ligne of formulaireRetractation(EDITEUR)) expect(t).toContain(texte(ligne));
     expect(t).toContain("À l'attention de Prénom Nom EI, 1 rue de l'Exemple, 75000 Paris, contact@example.com :");
     // Intégration des textes du 24/10 : le formulaire de la V1 (article 8.10), et non plus celui du 30/09.
-    expect(t).toContain("Commandé le :");
+    expect(t).toContain("Commandé le (*)/reçu le (*) :");
     expect(t).not.toContain("Souscrit le :");
     expect(t).toContain("Prénom Nom EI — 1 rue de l'Exemple, 75000 Paris — contact@example.com — 01 00 00 00 00");
   });

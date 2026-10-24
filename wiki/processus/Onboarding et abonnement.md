@@ -276,3 +276,7 @@ rectificatives.
 > mouvement courant (encaissement de loyer, versement au propriétaire,
 > honoraires, TVA) ne l'alimente. C'est le chantier suivant du module 16.
 
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

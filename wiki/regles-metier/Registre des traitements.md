@@ -181,3 +181,7 @@ DPA). Meta : P9, et plus tard WhatsApp ([[Canaux de communication]]).
   ([dossier](../../app/docs/signatures-conservation-22-octobre.md)).
 - 24/10 : réécriture complète (P1 à P16, identité lue en base, DPO non désigné, durées du
   lot 2 en production).
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

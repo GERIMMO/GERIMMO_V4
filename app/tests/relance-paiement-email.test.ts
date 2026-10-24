@@ -57,7 +57,7 @@ describe("Plan du 23/10 : mise en demeure, premier prélèvement, envois interro
   it("le courrier du jour de l'échec dit la date de résiliation possible et renvoie à l'article 15.4 des conditions générales (V1)", () => {
     const c = corpsRelance({ ...relance(0, 15), resiliableLe: "2026-10-12" });
     expect(c).toContain(
-      "Sans règlement au 12 octobre 2026, l'abonnement pourra être résilié en application de l'article 15.4\n        des conditions générales ; vos données resteront consultables et exportables."
+      "Sans règlement au 12 octobre 2026, et au plus tôt trente jours après l'envoi du présent courrier,\n        l'abonnement pourra être résilié en application de l'article 15.4\n        des conditions générales ; vos données resteront consultables et exportables."
     );
     // Intégration des textes du 24/10 : la V1 numérote « 15.4 » la résiliation par l'Éditeur ; jamais 8.10 ici.
     expect(c).toContain("article 15.4");
@@ -73,7 +73,7 @@ describe("Plan du 23/10 : mise en demeure, premier prélèvement, envois interro
     expect(c).toContain(`Le premier prélèvement de votre abonnement (<strong>${euros(1797)} par mois</strong>) n'a pas abouti.`);
     expect(c).toContain("la saisie de nouvelles données et les envois automatiques à vos locataires sont suspendus depuis le 12 septembre 2026");
     expect(c).toContain("Dès que le paiement aboutit, la saisie et les envois reprennent pour l'avenir.");
-    expect(c).toContain("Sans règlement au 12 octobre 2026, l'abonnement pourra être résilié en application de l'article 15.4\n        des conditions générales.");
+    expect(c).toContain("Sans règlement au 12 octobre 2026, et au plus tôt trente jours après l'envoi du présent courrier,\n        l'abonnement pourra être résilié en application de l'article 15.4\n        des conditions générales.");
     // Jamais « reste ouvert jusqu'au » : ce compte est gelé dès l'échec.
     expect(c).not.toContain("reste entièrement ouvert");
   });

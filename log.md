@@ -6751,3 +6751,27 @@ Gestes après la mise en ligne : archiver la version 2026-09-30 des conditions d
 #247 fusionnée (`31377f5`), Vercel `dpl_HUUUhNtvBg7qBphf5DZrd7JWSKpS` READY (06 h 31 UTC) ; « Vérifier les paiements Stripe sans argent réel » 40070544249 **réussie** sur `main` ; recette de production 40070545849 **réussie** ; nettoyage vérifié en lecture (1 compte, 0 organisation, 0 artisan, 0 rétractation, 0 fermeture).
 
 Textes de la conformité V1 (conditions clients et artisans, confidentialité, inactivité, wiki du lot 6) préparés sur `claude/compassionate-euler-qpqjp6` (`b3ef106`) mais **non publiés** : Claude s'arrête (fin de crédit) avant la relecture finale et la mise en ligne. Passation : [[Prompt de passation à Codex — conformité V1, 24 octobre 2026]].
+
+## [2026-10-24] decision | Reprise Codex de la publication des textes de conformité V1
+
+Instruction du dirigeant : « Reprends la publication de la conformité V1 de Gerimmo laissée par Claude le 24/10. Tout est sur la branche claude/compassionate-euler-qpqjp6 du dépôt GERIMMO/GERIMMO_V4. Lis d'abord wiki/syntheses/Prompt de passation à Codex — conformité V1, 24 octobre 2026.md et suis-le dans l'ordre : vérifier la branche, faire la relecture adverse décrite, ajuster la date si besoin, puis mettre en ligne avec le protocole habituel. Ce protocole est rappelé dans app/CLAUDE.md : CI verte, sauvegarde jamais en même temps qu'une simulation, simulation puis application de la migration 20261024150000, fusion, recette. Ne publie rien sans cette relecture, et note chaque étape dans log.md. » Compte rendu dans la conversation, aucun PDF, selon sa préférence.
+
+Reprise à 08 h 03 UTC : branche source `9e6e33bf731b1d55b9c49e6c68556dd22388de99` (le commit suivant `b3ef106` porte la passation et le journal), descendante de main `31377f5`. Copie de travail sur `codex/conformite-v1-20261024`, branche Claude conservée. Lecture de la passation, de `CLAUDE.md`, `app/AGENTS.md`, `app/CLAUDE.md` et du protocole du 16/10. Production en lecture seule : migrations jusqu'à `20261024140000`, règle `compte:inactif` inactive (24 mois), un compte, zéro organisation, zéro acceptation, archive `versions_conditions` vide. Connexion du superadmin permanent demandée pour archiver la version actuelle avant publication ; relecture et tests indépendants poursuivis. Aucune migration réelle, fusion ni publication à ce stade.
+
+### 24/10/2026 08:13 UTC — archive préalable réalisée
+
+Superadmin permanent reconnecté par le dirigeant. Depuis `/admin/sante`, archivage de la version clients 2026-09-30, avec mention de relevé tardif : succès affiché, empreinte `6160e62a4883d92b4e92203236330df388d382af6b3e69248858a25506fa6799`. Aucun texte remplacé. Écran de santé lu : 0 organisation, pas de réception Stripe en attente ; une souscription Stripe sans organisation apparaît dans l'inventaire global. Aucun abonnement modifié ; écart distinct à instruire, sans identifiant de client dans ce journal public.
+
+### 24/10/2026 08:18 UTC — relecture adverse, corrections avant publication
+
+Comparaison sur sources officielles Légifrance et EUR-Lex : formulaire annexé à R.221-1 repris à l'identique dans la page et le courriel ; annexe L.215 et garantie D.211-4 vérifiées ; article 3-2 de la loi du 6 juillet 1989 confirme les dix jours depuis l'établissement de l'état des lieux. Une phrase prétendait qu'un circuit de signature interrompu ne pouvait engager aucune partie : remplacée par le constat technique, sans préjuger des engagements déjà pris. Les garants confirment eux aussi leur mobile. Pour les artisans, les accès aux données avant/après fermeture et les préavis adaptables sont explicités (P2B, articles 3, 4, 8 et 9). Empreintes de la V1 encore non publiée recalculées ; l'archive 2026-09-30 est intacte.
+
+420 migrations appliquées sur une base locale entièrement fictive, dans l'ordre du manifeste. Contrôles de publication et lint réussis. Première compilation : code compilé, puis mémoire Node épuisée pendant le typage ; relance à 8 Gio réussie. Batterie complète en cours, rien n'est encore publié et aucune migration de production n'a été lancée.
+
+## 2026-10-24 — review — relecture adverse V1, compléments
+
+Les trois échecs locaux de dates venaient de PostgreSQL/Node en heure de Paris, alors que la production est UTC (SELECT vérifié). Après alignement du banc fictif uniquement : 82 tests ciblés verts. Correction supplémentaire impayés : preuve du premier courrier relue avant de citer la résiliation contractuelle ; courrier retardé, absent, illisible ou inaccessible couvert. 63 tests ciblés verts. Le wiki du lot 6 est relié à la synthèse de relecture et ses points déjà résolus sont précisés. Aucune migration de production ni fusion à cette étape.
+
+## 2026-10-24 — test — candidat conformité V1 relu
+
+Compilation finale réussie, types et lint sans erreur. Pages de référence relevées sur `next start`, avec identité fictive puis identité indisponible : 24 tests d'extraction et d'archivage réussis. La suite complète relancée avait encore lu l'ancienne référence avant son remplacement : cette différence de texte a été corrigée par ce relevé réel. Parcours mobiles sur les comptes fictifs lancés ; publication toujours suspendue à la CI du candidat exact, puis sauvegarde, simulation et application séquentielles. Synthèse de relecture : `wiki/syntheses/Relecture adverse et publication conformité V1 — 24 octobre 2026.md`.

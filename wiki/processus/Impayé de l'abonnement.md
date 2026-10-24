@@ -91,3 +91,9 @@ le courrier du premier prélèvement et l'avis de reconduction s'arrêtent. Voir
 >   (sinon : passer Stripe sur « laisser en retard »).
 > - **Écart de vocabulaire** : les courriers citent « l'article 15 » de la version du
 >   30/09 ; la V1 numérotera « 15.4 ». À aligner quand la V1 sera en ligne.
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
+
+Correction de la relecture : la preuve du premier courriel de cet épisode est relue ; trente jours de défaut ne suffisent pas si le courrier est parti plus tard. Sans preuve de trente jours révolus depuis cet envoi, le courrier de résiliation ne cite pas l’article 15.4 et le relais est alerté.

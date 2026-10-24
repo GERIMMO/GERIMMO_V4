@@ -80,3 +80,7 @@ professionnels et pour le respect de l'opposition ; consentement pour les partic
 >   réservée à la supervision permanente) ; un HMAC demanderait un secret dans le coffre.
 > - **Fiche créée depuis une demande** : le plan voulait la réserver aux demandes d'offre ou
 >   de démonstration ; aucune colonne n'enregistre le type de demande (contrôle non codé).
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

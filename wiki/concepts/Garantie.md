@@ -131,3 +131,7 @@ bailleur reçoit notification de la résiliation. »
 > - **24/10 — cautionnement signé par code SMS** : valeur probante et formule exacte de la mention (C. civ. 2297, « ou l'une des autres cautions » ?) — à confirmer sur Légifrance (source non ouverte le 23/10/2026) ; cautionnement demandé par un bailleur personne morale autre qu'une SCI familiale (loi 89-462 art. 22-1) non vérifié.
 > - **24/10 — remise de l'exemplaire signé à la caution** avec la copie du bail : recette Zoho réelle à faire.
 > - **Visale et dépôt de garantie (RM-2.3.3)** : « Visale peut se substituer au dépôt de garantie » est à nuancer d'après la même synthèse ; à confirmer sur la page officielle de Visale avant toute évolution de l'écran.
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

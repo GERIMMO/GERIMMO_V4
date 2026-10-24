@@ -181,3 +181,9 @@ sur gerimmo directement ! ») ; code livré par la PR #246 (migration
 > - Les états des lieux envoyés avant le 24/10 sans confirmation sur place sont à compter en
 >   lecture seule, puis à annuler et renvoyer, ou à consigner par une décision du dirigeant.
 
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
+
+Point vérifié sur l’article 3-2 : les dix jours courent depuis l’établissement, pas depuis une signature tardive. Une signature ultérieure ne suspend pas ce droit.

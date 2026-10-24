@@ -147,7 +147,7 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
           })}
         </div>}
         {points.length > 0 && <ListeEquipes rapports={points.map(pt => {
-          const attente = pt.decisions.filter(d => d.statut === "en_attente").length;
+          const attente = estAujourdhui && !lecturesEnEchec ? decisions.decisions.filter(d => d.equipe === pt.equipe).length : pt.decisions.filter(d => d.statut === "en_attente").length;
           const passage = dernierPassage(pt);
           return { id: pt.id, equipe: pt.equipe, nom: pt.nom, href: `/admin/brief/${pt.equipe}${estAujourdhui ? "" : `?jour=${jour}`}`, nonLu: pt.statut === "a_lire", attente, echecs: pt.contenu.echecs.length, resultats: pt.contenu.realisations.length,
             passage: passage ? `Dernier passage : ${formaterDateHeureParis(passage)}` : missionsDeLEquipe(pt.equipe).length === 0 ? "Décisions uniquement · aucun passage planifié" : "Aucun passage dans les dernières 24 h",

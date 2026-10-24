@@ -12,6 +12,7 @@ describe("périmètre demandé après la file hors sujet du 24 octobre",()=>{
   "Location de véhicules : assurance obligatoire", "La baillive et les allocations",
  ])("écarte le sujet réel ou ambigu : %s",titre=>expect(sujetDansPerimetre(titre)).toBe(false));
  it.each([
+  "Usage exclusif d’une partie commune : qui doit indemniser en cas de dégât ?",
   "Indice de référence des loyers : nouveau trimestre", "IRL du trimestre",
   "DPE : quels logements peuvent être loués ?", "Copropriété : réparation des parties communes",
   "Trêve hivernale : droits du locataire", "APL : montant des aides au logement",

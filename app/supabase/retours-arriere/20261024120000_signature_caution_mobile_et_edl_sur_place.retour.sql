@@ -6,7 +6,9 @@
 -- Ce qui est défait :
 --  · le déclencheur `signature_garde_caution_edl` et sa fonction (un circuit repart sans confirmation : c'est le
 --    comportement d'avant, où le numéro saisi par le bailleur servait au cautionnement) ;
---  · `demander_confirmation_mobile_caution`, `consommer_confirmation_mobile_caution`, `confirmer_edl_sur_place` ;
+--  · le déclencheur `signature_liens_caution_clos` et sa fonction `fermer_liens_caution_hors_pret` ;
+--  · `demander_confirmation_mobile_caution`, `consommer_confirmation_mobile_caution`, `confirmer_edl_sur_place`,
+--    `coordonnees_autres_parties_caution` ;
 --  · la table `confirmations_mobile_caution` (déclencheurs, fonction de garde), SEULEMENT SI ELLE EST VIDE. Une table
 --    qui porte des liens envoyés est CONSERVÉE telle quelle, sa garde comprise : c'est la preuve de la confirmation du
 --    numéro par la caution ; son sort revient au dirigeant. Le script dit alors ce qu'il garde.
@@ -22,14 +24,17 @@ declare
 begin
   perform set_config('lock_timeout', '10s', true);
 
-  -- 1. Garde de l'envoi.
+  -- 1. Garde de l'envoi et clôture des liens.
   drop trigger if exists signature_garde_caution_edl on public.bail_signature_circuits;
   drop function if exists public.garder_envoi_signature_caution_edl();
+  drop trigger if exists signature_liens_caution_clos on public.bail_signature_circuits;
+  drop function if exists public.fermer_liens_caution_hors_pret();
 
   -- 2. Fonctions.
   drop function if exists public.demander_confirmation_mobile_caution(uuid, uuid, text);
   drop function if exists public.consommer_confirmation_mobile_caution(text, text);
   drop function if exists public.confirmer_edl_sur_place(uuid, uuid, date);
+  drop function if exists public.coordonnees_autres_parties_caution(uuid, uuid, jsonb);
 
   -- 3. La table des liens, si elle est vide.
   if to_regclass('public.confirmations_mobile_caution') is not null then

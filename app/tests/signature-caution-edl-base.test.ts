@@ -65,7 +65,7 @@ describe("confirmation du mobile de la caution et de l'état des lieux sur place
 
 describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des lieux sur place (avec base)", () => {
   let db: Client;
-  let org = "", owner = "", autre = "", bail = "", doc = "", circuit = "";
+  let org = "", owner = "", autre = "", bail = "", doc = "", circuit = "", lot = "";
   const MOBILE_BAILLEUR = "+33600000009";
   const MOBILE_CAUTION = "+33611223344";
   const parties = (telephoneGarant: string) => [
@@ -107,6 +107,18 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
   const reserver = (c = circuit) => db.query("select (public.reserver_envoi_signature_bail($1, $2)).id", [c, owner]);
   const garant = async (c = circuit) =>
     (await db.query("select s from public.bail_signature_circuits, jsonb_array_elements(signataires) s where id = $1 and s->>'qualite' = 'Garant'", [c])).rows[0].s;
+  async function circuitEdl() {
+    await proprietaireBase();
+    // « Établi le 01/10/2026 » : la date de la visite confirmée doit être celle-là (relecture du 24/10).
+    const edl = await id("insert into public.etats_des_lieux(organization_id,bail_id,type,date_edl) values($1,$2,'entree','2026-10-01') returning id", [org, bail]);
+    await db.query("insert into public.edl_lignes(organization_id,edl_id,libelle,etat) values($1,$2,'Porte','bon')", [org, edl]);
+    await db.query("update public.documents set type='etat_des_lieux' where id=$1", [doc]);
+    await db.query(
+      "update public.bail_signature_circuits set modele='edl', cible_id=$2, options='{}'::jsonb, signataires=$3 where id=$1",
+      [circuit, edl, JSON.stringify([{ ...parties("+33600000001")[0], qualite: "Locataire" }, parties("")[1]])],
+    );
+    return edl;
+  }
 
   beforeAll(async () => {
     db = new Client({ connectionString: url });
@@ -127,7 +139,7 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
     autre = await id("insert into auth.users(id,email) values(gen_random_uuid(), gen_random_uuid()||'@example.invalid') returning id");
     await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct')", [owner, org]);
     const bien = await id("insert into public.biens(organization_id,nom,type,address_line1,postal_code,city,zone_tendue) values($1,'Bien fictif','appartement','1 rue Test','69001','Lyon',false) returning id", [org]);
-    const lot = await id("insert into public.lots(organization_id,bien_id,nom,etat) values($1,$2,'Lot fictif','brouillon') returning id", [org, bien]);
+    lot = await id("insert into public.lots(organization_id,bien_id,nom,etat) values($1,$2,'Lot fictif','brouillon') returning id", [org, bien]);
     const locataire = await id("insert into public.persons(organization_id,nom,prenom,email) values($1,'Test','Alice','alice@example.invalid') returning id", [org]);
     bail = await id("insert into public.baux(organization_id,lot_id,locataire_principal,etat,type,date_debut,loyer_hc,charges) values($1,$2,$3,'brouillon','nu',current_date,500,20) returning id", [org, lot, locataire]);
     doc = await id("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'bail','Acte fictif',$1::uuid::text||'/acte.pdf','application/pdf',100,repeat('a',64)) returning id", [org]);
@@ -251,18 +263,6 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
       expect(await echec("select (public.reserver_envoi_signature_bail($1, $2)).id", [circuit, owner])).toMatch(/confirmer elle-même son numéro/);
     });
 
-    async function circuitEdl() {
-      await proprietaireBase();
-      const edl = await id("insert into public.etats_des_lieux(organization_id,bail_id,type,date_edl) values($1,$2,'entree',current_date) returning id", [org, bail]);
-      await db.query("insert into public.edl_lignes(organization_id,edl_id,libelle,etat) values($1,$2,'Porte','bon')", [org, edl]);
-      await db.query("update public.documents set type='etat_des_lieux' where id=$1", [doc]);
-      await db.query(
-        "update public.bail_signature_circuits set modele='edl', cible_id=$2, options='{}'::jsonb, signataires=$3 where id=$1",
-        [circuit, edl, JSON.stringify([{ ...parties("+33600000001")[0], qualite: "Locataire" }, parties("")[1]])],
-      );
-      return edl;
-    }
-
     it("un état des lieux ne part pas sans la confirmation sur place, ni avec une date future, ni avec une confirmation périmée", async () => {
       const edl = await circuitEdl();
       await serviceRole();
@@ -294,6 +294,163 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
     });
   });
 
+  describe("relectures adverses du 24/10", () => {
+    const MOBILE_PROPRIETAIRE = "+33600000002";
+    const demanderSql = "select public.demander_confirmation_mobile_caution($1, $2, $3)";
+    const consommerSql = "select * from public.consommer_confirmation_mobile_caution($1, $2)";
+    const reserverSql = "select (public.reserver_envoi_signature_bail($1, $2)).id";
+    async function garantAvec(champs: Record<string, string>, c = circuit) {
+      await db.query(
+        "update public.bail_signature_circuits set signataires = (select jsonb_agg(case when e.s->>'qualite'='Garant' then e.s || $2::jsonb else e.s end order by e.r) from jsonb_array_elements(signataires) with ordinality e(s, r)) where id = $1",
+        [c, JSON.stringify(champs)],
+      );
+    }
+    const liensOuverts = async (c = circuit) =>
+      (await db.query("select count(*)::int n from public.confirmations_mobile_caution where circuit_id = $1 and utilise_le is null and annulee_le is null", [c])).rows[0].n;
+
+    it("le lien ne part ni à l'adresse d'un propriétaire signataire ni à celle d'un compte gestionnaire de l'espace (casse ignorée)", async () => {
+      await proprietaireBase();
+      await garantAvec({ email: "Paule@Example.invalid" });
+      await serviceRole();
+      expect(await echec(demanderSql, [circuit, owner, empreinte(jeton())])).toMatch(/adresse e-mail de la caution/);
+      await proprietaireBase();
+      const compte = (await db.query("select email from auth.users where id = $1", [owner])).rows[0].email as string;
+      await garantAvec({ email: ` ${compte.toUpperCase()} ` });
+      await serviceRole();
+      expect(await echec(demanderSql, [circuit, owner, empreinte(jeton())])).toMatch(/adresse e-mail de la caution/);
+      await proprietaireBase();
+      expect((await db.query("select count(*)::int n from public.confirmations_mobile_caution where circuit_id = $1", [circuit])).rows[0].n).toBe(0);
+      await garantAvec({ email: "gaston@example.invalid" });
+      await serviceRole();
+      await demander(jeton());
+    });
+
+    it("la caution ne confirme ni le mobile d'un propriétaire signataire, ni celui d'un détenteur du lot, d'un compte gestionnaire ou de l'organisation ; le lien reste utilisable", async () => {
+      await proprietaireBase();
+      const detenteur = await id("insert into public.persons(organization_id,nom,prenom,email,telephone) values($1,'Proprio','Paul','paul@example.invalid','06 00 00 00 07') returning id", [org]);
+      await db.query("insert into public.detentions(organization_id,lot_id,person_id,quote_part) values($1,$2,$3,100)", [org, lot, detenteur]);
+      await db.query("update auth.users set phone = '33600000005' where id = $1", [owner]);
+      await db.query("update public.organizations set telephone = '06.00.00.00.06' where id = $1", [org]);
+      const j = jeton();
+      await serviceRole();
+      await demander(j);
+      for (const t of [MOBILE_PROPRIETAIRE, "+33600000007", "+33600000005", "+33600000006"]) {
+        expect(await echec(consommerSql, [empreinte(j), t])).toMatch(/autre personne de ce dossier/);
+      }
+      expect(await liensOuverts()).toBe(1);
+      await consommer(j);
+      expect((await garant()).telephone).toBe(MOBILE_CAUTION);
+    });
+
+    it("garde : le mobile d'un propriétaire posé sur le garant ne part pas, même avec un lien utilisé qui le porte", async () => {
+      await proprietaireBase();
+      await db.query(
+        "insert into public.confirmations_mobile_caution(organization_id,circuit_id,jeton_empreinte,demande_par,expire_le,utilise_le,telephone_confirme) values($1,$2,$3,$4,now()+interval '1 day',now(),$5)",
+        [org, circuit, empreinte(jeton()), owner, MOBILE_PROPRIETAIRE],
+      );
+      await garantAvec({ telephone: MOBILE_PROPRIETAIRE, telephoneConfirmeLe: new Date().toISOString() });
+      await serviceRole();
+      expect(await echec(reserverSql, [circuit, owner])).toMatch(/confirmer elle-même son numéro/);
+    });
+
+    it("après la confirmation de la caution, aucun nouveau lien ne lui est envoyé", async () => {
+      const j = jeton();
+      await serviceRole();
+      await demander(j);
+      await consommer(j);
+      expect(await echec(demanderSql, [circuit, owner, empreinte(jeton())])).toMatch(/déjà confirmé son numéro/);
+      expect(await liensOuverts()).toBe(0);
+    });
+
+    it("cinq liens par caution et par bail en vingt-quatre heures, même à travers une nouvelle préparation", async () => {
+      await serviceRole();
+      for (let i = 0; i < 3; i++) await demander(jeton());
+      await proprietaireBase();
+      await db.query("update public.bail_signature_circuits set etat = 'annule' where id = $1", [circuit]);
+      const second = await id(
+        "insert into public.bail_signature_circuits(organization_id,bail_id,document_id,created_by,environnement,empreinte,pdf_hash,signataires,prestataire,modele,options) values($1,$2,$3,$4,'production',repeat('c',64),repeat('a',64),$5,'zoho','cautionnement',jsonb_build_object('garant','garant')) returning id",
+        [org, bail, doc, owner, JSON.stringify(parties(""))],
+      );
+      await serviceRole();
+      for (let i = 0; i < 2; i++) await demander(jeton(), owner, second);
+      expect(await echec(demanderSql, [second, owner, empreinte(jeton())])).toMatch(/Cinq liens/);
+    });
+
+    it("un circuit qui quitte l'état « prêt » clôt le lien encore ouvert", async () => {
+      await serviceRole();
+      await demander(jeton());
+      await proprietaireBase();
+      expect(await liensOuverts()).toBe(1);
+      await db.query("update public.bail_signature_circuits set etat = 'annule' where id = $1", [circuit]);
+      expect(await liensOuverts()).toBe(0);
+      expect((await db.query("select count(*)::int n from public.confirmations_mobile_caution where circuit_id = $1 and annulee_le is not null", [circuit])).rows[0].n).toBe(1);
+    });
+
+    it("abonnement suspendu : l'annulation d'un acte prêt par le serveur passe toujours ; le lien, refusé à l'écriture, reste inutilisable", async () => {
+      const j = jeton();
+      await serviceRole();
+      await demander(j);
+      await proprietaireBase();
+      await db.query("select public.tache_systeme()");
+      await db.query("update public.organizations set status = 'suspendue' where id = $1", [org]);
+      await db.query("select set_config('gerimmo.systeme', '', true)");
+      await serviceRole();
+      await db.query("update public.bail_signature_circuits set etat = 'annule', updated_at = now() where id = $1 and etat = 'pret'", [circuit]);
+      expect((await db.query("select etat from public.bail_signature_circuits where id = $1", [circuit])).rows[0].etat).toBe("annule");
+      expect(await echec(consommerSql, [empreinte(j), MOBILE_CAUTION])).not.toBe("");
+    });
+
+    it("garde : le téléphone du garant ne change plus une fois l'acte réservé ; les autres mises à jour passent", async () => {
+      const j = jeton();
+      await serviceRole();
+      await demander(j);
+      await consommer(j);
+      await reserver();
+      expect(await echec(
+        "update public.bail_signature_circuits set signataires = (select jsonb_agg(case when e.s->>'qualite'='Garant' then e.s || jsonb_build_object('telephone', $2::text) else e.s end order by e.r) from jsonb_array_elements(signataires) with ordinality e(s, r)) where id = $1",
+        [circuit, MOBILE_BAILLEUR],
+      )).toMatch(/ne change plus/);
+      await db.query(
+        "update public.bail_signature_circuits set signataires = (select jsonb_agg(e.s || jsonb_build_object('statut', 'initiated') order by e.r) from jsonb_array_elements(signataires) with ordinality e(s, r)) where id = $1",
+        [circuit],
+      );
+      expect((await garant()).telephone).toBe(MOBILE_CAUTION);
+    });
+
+    it("garde : un acte de cautionnement ou un état des lieux ne s'enregistre que « prêt »", async () => {
+      await proprietaireBase();
+      const inserer = (modele: string, garant: string) => echec(
+        "insert into public.bail_signature_circuits(organization_id,bail_id,document_id,created_by,environnement,empreinte,pdf_hash,signataires,prestataire,modele,options,etat,cible_id) values($1,$2,$3,$4,'production',repeat('d',64),repeat('a',64),$5,'zoho',$6,jsonb_build_object('garant',$7::text),'en_cours',gen_random_uuid())",
+        [org, bail, doc, owner, JSON.stringify(parties(MOBILE_BAILLEUR)), modele, garant],
+      );
+      expect(await inserer("cautionnement", "autre")).toMatch(/ne s’enregistre que prêt/);
+      expect(await inserer("edl", "")).toMatch(/ne s’enregistre que prêt/);
+    });
+
+    it("état des lieux : la date de la visite est celle portée par l'état des lieux, en base comme à la garde", async () => {
+      await circuitEdl();
+      await serviceRole();
+      expect(await echec("select public.confirmer_edl_sur_place($1, $2, '1990-01-01')", [circuit, owner])).toMatch(/celle portée par l’état des lieux \(01\/10\/2026\)/);
+      await db.query("select public.confirmer_edl_sur_place($1, $2, '2026-10-01')", [circuit, owner]);
+      await proprietaireBase();
+      await db.query("savepoint autre_date");
+      await db.query("update public.bail_signature_circuits set confirmation_sur_place = confirmation_sur_place || jsonb_build_object('visite_le', '1990-01-01') where id = $1", [circuit]);
+      await serviceRole();
+      expect(await echec(reserverSql, [circuit, owner])).toMatch(/sur place/);
+      await db.query("rollback to savepoint autre_date");
+      await serviceRole();
+      await reserver();
+    });
+
+    it("garde : une confirmation sur place sans instant est refusée", async () => {
+      await circuitEdl();
+      await proprietaireBase();
+      await db.query("update public.bail_signature_circuits set confirmation_sur_place = jsonb_build_object('confirme_par', $2::text, 'visite_le', '2026-10-01') where id = $1", [circuit, owner]);
+      await serviceRole();
+      expect(await echec(reserverSql, [circuit, owner])).toMatch(/sur place/);
+    });
+  });
+
   it("droits : ni anon ni un compte connecté ne lisent la table ni n'appellent les fonctions", async () => {
     await serviceRole();
     await demander(jeton());
@@ -307,7 +464,7 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
     await proprietaireBase();
     const ouvertes = (await db.query(
       "select p.proname from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = any($1) and (has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE'))",
-      [["demander_confirmation_mobile_caution", "consommer_confirmation_mobile_caution", "confirmer_edl_sur_place", "garder_envoi_signature_caution_edl", "confirmations_mobile_caution_garde"]],
+      [["demander_confirmation_mobile_caution", "consommer_confirmation_mobile_caution", "confirmer_edl_sur_place", "garder_envoi_signature_caution_edl", "confirmations_mobile_caution_garde", "coordonnees_autres_parties_caution", "fermer_liens_caution_hors_pret"]],
     )).rows;
     expect(ouvertes).toEqual([]);
   });
@@ -317,9 +474,10 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
     await db.query("delete from public.confirmations_mobile_caution");
     await db.query(RETOUR);
     expect((await db.query("select to_regclass('public.confirmations_mobile_caution') t")).rows[0].t).toBeNull();
-    for (const f of ["public.demander_confirmation_mobile_caution(uuid,uuid,text)", "public.consommer_confirmation_mobile_caution(text,text)", "public.confirmer_edl_sur_place(uuid,uuid,date)", "public.garder_envoi_signature_caution_edl()"]) {
+    for (const f of ["public.demander_confirmation_mobile_caution(uuid,uuid,text)", "public.consommer_confirmation_mobile_caution(text,text)", "public.confirmer_edl_sur_place(uuid,uuid,date)", "public.garder_envoi_signature_caution_edl()", "public.fermer_liens_caution_hors_pret()", "public.coordonnees_autres_parties_caution(uuid,uuid,jsonb)"]) {
       expect((await db.query("select to_regprocedure($1) p", [f])).rows[0].p).toBeNull();
     }
+    expect((await db.query("select count(*)::int n from pg_trigger where tgrelid = 'public.bail_signature_circuits'::regclass and tgname in ('signature_garde_caution_edl', 'signature_liens_caution_clos')")).rows[0].n).toBe(0);
     expect((await db.query("select count(*)::int n from information_schema.columns where table_name='bail_signature_circuits' and column_name='confirmation_sur_place'")).rows[0].n).toBe(1);
     // Sans la garde, le comportement d'avant revient (le numéro du bailleur passe) : c'est ce que dit le LISEZ-MOI.
     await serviceRole();

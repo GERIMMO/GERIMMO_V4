@@ -9,27 +9,35 @@
 --    La demande Zoho est créée ensuite, avec ce numéro. Une ligne par lien envoyé :
 --    · le jeton n'est JAMAIS gardé en clair : seule son empreinte SHA-256 (`jeton_empreinte`) est en base ;
 --    · `demander_confirmation_mobile_caution` (clé de service, propriétaire actif de l'organisation) : acte de
---      cautionnement prêt, un seul garant, au plus cinq liens par acte sur vingt-quatre heures ; annule le lien
---      précédent encore ouvert ; l'échéance est la plus proche de sept jours et de la veille de l'expiration de la
---      préparation (l'envoi exige ensuite un jour de marge) ;
+--      cautionnement prêt, un seul garant, dont l'adresse n'est ni celle d'un autre signataire, ni celle d'un détenteur
+--      du lot, d'un compte gestionnaire de l'espace ou de l'organisation (sinon le bailleur recevrait le lien) ; refus
+--      quand la caution a déjà confirmé son numéro ; au plus cinq liens par caution et par bail sur vingt-quatre heures,
+--      toutes préparations confondues ; annule le lien précédent encore ouvert ; l'échéance est la plus proche de sept
+--      jours et de la veille de l'expiration de la préparation (l'envoi exige ensuite un jour de marge) ;
 --    · `consommer_confirmation_mobile_caution` (clé de service) : lien inconnu, annulé, expiré ou déjà utilisé refusé ;
---      acte qui n'est plus prêt refusé ; sinon, en une transaction et sous verrou, le lien est marqué utilisé et le
---      numéro posé sur le garant du circuit (`telephone`, `telephoneConfirmeLe`) ;
---    · une ligne utilisée ou annulée ne change plus (preuve) ; seules les deux transitions depuis « ouverte » passent.
+--      acte qui n'est plus prêt refusé ; numéro d'une autre personne du dossier (mêmes personnes que ci-dessus) refusé,
+--      sans consommer le lien ; sinon, en une transaction et sous verrou, le lien est marqué utilisé et le numéro posé
+--      sur le garant du circuit (`telephone`, `telephoneConfirmeLe`) ;
+--    · `coordonnees_autres_parties_caution` : ces adresses et numéros (format international), lus sans session ;
+--    · une ligne utilisée ou annulée ne change plus (preuve) ; seules les deux transitions depuis « ouverte » passent ;
+--      un acte de cautionnement qui quitte l'état « prêt » clôt son lien encore ouvert (`fermer_liens_caution_hors_pret`).
 --    Aucune politique : ni anon ni authenticated ne lisent la table ; le serveur la lit avec la clé de service, après
 --    le contrôle d'accès de l'action.
 --
 -- 2. `bail_signature_circuits.confirmation_sur_place` — l'état des lieux a été établi ensemble, sur place.
 --    `confirmer_edl_sur_place` (clé de service, propriétaire actif) pose, juste avant l'envoi, le texte exact de la
---    case cochée par le bailleur, la date de la visite qu'il a saisie (jamais postérieure au jour de Paris), l'instant
---    et l'auteur ; une ligne `audit_log` en garde la trace. Ces informations restent sur le circuit, avec le document
---    signé et le certificat de réalisation.
+--    case cochée par le bailleur, la date de la visite (celle que porte l'état des lieux, jamais postérieure au jour de
+--    Paris), l'instant et l'auteur ; une ligne `audit_log` en garde la trace. Ces informations restent sur le circuit,
+--    affichées dans son suivi.
 --
--- 3. Garde de l'envoi (`garder_envoi_signature_caution_edl`, déclencheur sur `bail_signature_circuits`) : un circuit ne
---    quitte l'état « prêt » vers l'envoi que si
---    · état des lieux : la confirmation sur place a moins d'une heure ;
---    · cautionnement : le téléphone du garant est celui qu'il a lui-même confirmé par un lien utilisé de ce circuit.
---    Le numéro saisi par le bailleur ne peut donc jamais servir à un acte de cautionnement, même par un appel direct.
+-- 3. Garde de l'envoi (`garder_envoi_signature_caution_edl`, déclencheur sur `bail_signature_circuits`) :
+--    · un acte de cautionnement ou un état des lieux ne s'enregistre que « prêt » ;
+--    · un circuit ne quitte l'état « prêt » vers l'envoi que si
+--      - état des lieux : la confirmation sur place, complète, a moins d'une heure et porte la date de l'état des lieux ;
+--      - cautionnement : le téléphone du garant est celui qu'il a lui-même confirmé par un lien utilisé de ce circuit,
+--        et ni ce numéro ni son adresse ne sont ceux d'une autre personne du dossier ;
+--    · une fois l'acte de cautionnement parti, le téléphone du garant ne change plus.
+--    Seule la clé de service écrit dans cette table : ces règles tiennent pour tout appel qui la porte, y compris direct.
 --
 -- Rejouable : IF NOT EXISTS, CREATE OR REPLACE, DROP TRIGGER IF EXISTS ; `search_path = ''` ; aucune donnée existante
 -- réécrite ; `fermer_fonctions_a_anon()` en fin. Ne cite pas `aujourdhui_paris()` (le jour de Paris se calcule dans
@@ -101,6 +109,51 @@ drop trigger if exists confirmations_mobile_caution_garde on public.confirmation
 create trigger confirmations_mobile_caution_garde before update on public.confirmations_mobile_caution
   for each row execute function public.confirmations_mobile_caution_garde();
 
+-- Les adresses (en minuscules) et numéros (format international) des personnes qui ne sont pas la caution : autres
+-- signataires de l'acte, détenteurs en cours du lot du bail, comptes gestionnaires actifs de l'organisation, et
+-- l'organisation elle-même. Ni le lien de la caution ni son numéro ne peuvent être les leurs (décision du 23/10 :
+-- « jamais le numéro du bailleur »). Les numéros libres des fiches sont normalisés comme `telephoneSignature`.
+create or replace function public.coordonnees_autres_parties_caution(p_organization uuid, p_bail uuid, p_signataires jsonb)
+returns table (email text, telephone text)
+language sql
+stable
+set search_path = ''
+as $$
+  with brut(email, telephone) as (
+    select s ->> 'email', s ->> 'telephone'
+      from jsonb_array_elements(coalesce(p_signataires, '[]'::jsonb)) s
+     where coalesce(s ->> 'qualite', '') <> 'Garant'
+    union all
+    select p.email, p.telephone
+      from public.baux b
+      join public.detentions d on d.lot_id = b.lot_id and d.organization_id = b.organization_id and d.date_fin is null
+      join public.persons p on p.id = d.person_id
+     where b.id = p_bail and b.organization_id = p_organization
+    union all
+    select u.email, case when u.phone ~ '^[1-9][0-9]{7,14}$' then '+' || u.phone else u.phone end
+      from public.memberships m
+      join auth.users u on u.id = m.account_id
+     where m.organization_id = p_organization and m.status = 'active'
+       and m.role in ('admin_agence', 'agent', 'proprietaire_direct', 'proprietaire_mandant')
+    union all
+    select o.email_contact, o.telephone from public.organizations o where o.id = p_organization
+    union all
+    select o.email_expediteur, null from public.organizations o where o.id = p_organization
+  ), net as (
+    select nullif(lower(btrim(email)), '') as email, regexp_replace(coalesce(telephone, ''), '[[:space:]().-]', '', 'g') as n
+      from brut
+  )
+  select email,
+         case
+           when n ~ '^0[0-9]{9}$' then '+33' || substr(n, 2)
+           when n ~ '^00[1-9][0-9]{7,14}$' then '+' || substr(n, 3)
+           when n ~ '^\+[1-9][0-9]{7,14}$' then n
+         end
+    from net;
+$$;
+revoke all on function public.coordonnees_autres_parties_caution(uuid, uuid, jsonb) from public, anon, authenticated;
+grant execute on function public.coordonnees_autres_parties_caution(uuid, uuid, jsonb) to service_role;
+
 create or replace function public.demander_confirmation_mobile_caution(p_circuit uuid, p_actor uuid, p_jeton_empreinte text)
 returns timestamptz
 language plpgsql
@@ -127,9 +180,24 @@ begin
   if (select count(*) from jsonb_array_elements(v.signataires) s where s ->> 'qualite' = 'Garant') <> 1 then
     raise exception 'Un acte de caution doit concerner exactement un garant.' using errcode = '22023';
   end if;
+  -- Relecture du 24/10 : le lien ne part jamais chez le bailleur, qui y confirmerait son propre numéro.
+  if exists (select 1 from public.coordonnees_autres_parties_caution(v.organization_id, v.bail_id, v.signataires) x
+              where x.email = (select nullif(lower(btrim(s ->> 'email')), '') from jsonb_array_elements(v.signataires) s
+                                where s ->> 'qualite' = 'Garant')) then
+    raise exception 'L’adresse e-mail de la caution est celle d’un bailleur ou d’un compte de votre espace : le lien lui permettrait de confirmer un autre numéro que le sien. Renseignez sur sa fiche l’adresse personnelle de la caution, puis préparez un nouveau PDF.'
+      using errcode = '22023';
+  end if;
+  if exists (select 1 from public.confirmations_mobile_caution c where c.circuit_id = p_circuit and c.utilise_le is not null) then
+    raise exception 'La caution a déjà confirmé son numéro : actualisez puis envoyez l’acte.' using errcode = '22023';
+  end if;
+  -- Cinq liens par caution et par bail, toutes préparations de cet acte confondues (une nouvelle préparation ne remet
+  -- pas le compteur à zéro).
   if (select count(*) from public.confirmations_mobile_caution c
-       where c.circuit_id = p_circuit and c.cree_le > now() - interval '24 hours') >= 5 then
-    raise exception 'Cinq liens ont déjà été envoyés à la caution pour cet acte en vingt-quatre heures. Réessayez demain.' using errcode = '54000';
+        join public.bail_signature_circuits b on b.id = c.circuit_id
+       where b.organization_id = v.organization_id and b.bail_id is not distinct from v.bail_id
+         and b.modele = 'cautionnement' and coalesce(b.options ->> 'garant', '') = coalesce(v.options ->> 'garant', '')
+         and c.cree_le > now() - interval '24 hours') >= 5 then
+    raise exception 'Cinq liens ont déjà été envoyés à cette caution pour ce bail en vingt-quatre heures. Réessayez demain.' using errcode = '54000';
   end if;
   v_expire := least(now() + interval '7 days', v.expire_le - interval '1 day');
   if v_expire < now() + interval '1 hour' then
@@ -184,6 +252,13 @@ begin
   if not found or v.modele <> 'cautionnement' or v.etat <> 'pret' then
     raise exception 'Ce lien n’est plus valable. Demandez au bailleur de vous en envoyer un nouveau.' using errcode = '22023';
   end if;
+  -- Relecture du 24/10 : jamais le numéro du bailleur, d'un autre signataire ou d'un compte de l'espace. Le lien reste
+  -- ouvert (l'exception annule tout) : la caution saisit alors son propre numéro.
+  if exists (select 1 from public.coordonnees_autres_parties_caution(v.organization_id, v.bail_id, v.signataires) x
+              where x.telephone = p_telephone) then
+    raise exception 'Ce numéro est déjà enregistré pour une autre personne de ce dossier. Saisissez votre propre numéro de mobile.'
+      using errcode = '22023';
+  end if;
   select jsonb_agg(case when e.s ->> 'qualite' = 'Garant'
                         then e.s || jsonb_build_object('telephone', p_telephone, 'telephoneConfirmeLe', now())
                         else e.s end order by e.rang)
@@ -227,6 +302,7 @@ as $$
 declare
   v public.bail_signature_circuits;
   v_confirmation jsonb;
+  v_date_edl date;
 begin
   select * into v from public.bail_signature_circuits where id = p_circuit for update;
   if not found or not exists (select 1 from public.memberships m where m.account_id = p_actor
@@ -244,6 +320,17 @@ begin
   end if;
   if p_visite_le > (now() at time zone 'Europe/Paris')::date then
     raise exception 'La date de la visite ne peut pas être postérieure à aujourd’hui.' using errcode = '22023';
+  end if;
+  -- Relecture du 24/10 : la visite confirmée est celle que porte l'état des lieux (« Établi le », imprimé dans le PDF
+  -- signé) ; deux dates différentes rendraient les preuves contradictoires et le délai de dix jours ambigu.
+  select e.date_edl into v_date_edl from public.etats_des_lieux e
+   where e.id = v.cible_id and e.organization_id = v.organization_id;
+  if not found then
+    raise exception 'État des lieux inaccessible.' using errcode = '22023';
+  end if;
+  if p_visite_le is distinct from v_date_edl then
+    raise exception 'La date de la visite doit être celle portée par l’état des lieux (%). Si elle est inexacte, corrigez l’état des lieux puis préparez un nouveau PDF.',
+      to_char(v_date_edl, 'DD/MM/YYYY') using errcode = '22023';
   end if;
   v_confirmation := jsonb_build_object(
     'texte', 'Je confirme que cet état des lieux a été établi contradictoirement, sur place, le '
@@ -269,12 +356,31 @@ language plpgsql
 set search_path = ''
 as $$
 begin
+  -- Relecture du 24/10 : ces deux actes naissent « prêts » ; leur envoi passe toujours par les contrôles ci-dessous.
+  if tg_op = 'INSERT' then
+    if new.modele in ('cautionnement', 'edl') and new.etat <> 'pret' then
+      raise exception 'Un acte de cautionnement ou un état des lieux ne s’enregistre que prêt à relire : son envoi passe par les confirmations prévues.'
+        using errcode = '23514';
+    end if;
+    return new;
+  end if;
+  -- Une fois l'acte de cautionnement parti, le numéro de la caution (celui de l'invitation et du code SMS) est figé.
+  if new.modele = 'cautionnement' and old.etat <> 'pret' and new.etat <> 'pret'
+     and (select s ->> 'telephone' from jsonb_array_elements(old.signataires) s where s ->> 'qualite' = 'Garant' limit 1)
+         is distinct from
+         (select s ->> 'telephone' from jsonb_array_elements(new.signataires) s where s ->> 'qualite' = 'Garant' limit 1) then
+    raise exception 'Le numéro de la caution ne change plus une fois l’acte envoyé : annulez le circuit puis préparez un nouvel acte.'
+      using errcode = '23514';
+  end if;
   if old.etat = 'pret' and new.etat not in ('pret', 'annule') then
     if new.modele = 'edl' and (
          new.confirmation_sur_place is null
          or new.confirmation_sur_place ->> 'confirme_par' is null
          or new.confirmation_sur_place ->> 'visite_le' is null
-         or (new.confirmation_sur_place ->> 'confirme_le')::timestamptz < now() - interval '1 hour') then
+         -- Sans instant, la confirmation est tenue pour périmée (une valeur nulle ne doit pas laisser passer).
+         or coalesce((new.confirmation_sur_place ->> 'confirme_le')::timestamptz, '-infinity'::timestamptz) < now() - interval '1 hour'
+         or (new.confirmation_sur_place ->> 'visite_le')::date is distinct from
+            (select e.date_edl from public.etats_des_lieux e where e.id = new.cible_id and e.organization_id = new.organization_id)) then
       raise exception 'Confirmez que l’état des lieux a été établi contradictoirement, sur place, et indiquez la date de la visite avant l’envoi en signature.'
         using errcode = '23514';
     end if;
@@ -284,7 +390,11 @@ begin
                      where s ->> 'qualite' = 'Garant'
                        and not exists (select 1 from public.confirmations_mobile_caution c
                                         where c.circuit_id = new.id and c.utilise_le is not null
-                                          and c.telephone_confirme = s ->> 'telephone'))) then
+                                          and c.telephone_confirme = s ->> 'telephone'))
+         or exists (select 1 from jsonb_array_elements(new.signataires) s
+                      join public.coordonnees_autres_parties_caution(new.organization_id, new.bail_id, new.signataires) x
+                        on x.telephone = s ->> 'telephone' or x.email = nullif(lower(btrim(s ->> 'email')), '')
+                     where s ->> 'qualite' = 'Garant')) then
       raise exception 'La caution doit confirmer elle-même son numéro de mobile avant l’envoi en signature.'
         using errcode = '23514';
     end if;
@@ -293,8 +403,32 @@ begin
 end $$;
 revoke all on function public.garder_envoi_signature_caution_edl() from public, anon, authenticated;
 drop trigger if exists signature_garde_caution_edl on public.bail_signature_circuits;
-create trigger signature_garde_caution_edl before update of etat on public.bail_signature_circuits
+create trigger signature_garde_caution_edl before insert or update of etat, signataires on public.bail_signature_circuits
   for each row execute function public.garder_envoi_signature_caution_edl();
+
+-- Relecture du 24/10 : un acte de cautionnement qui quitte l'état « prêt » (envoi ou annulation) clôt son lien encore
+-- ouvert, pour que la preuve dise « annulé » et non « ouvert ». C'est une trace : le lien ne servait déjà plus
+-- (`consommer_confirmation_mobile_caution` exige un acte prêt). Une écriture refusée sur la table des liens (abonnement
+-- suspendu, traversée du support) ne bloque donc jamais le changement d'état du circuit.
+create or replace function public.fermer_liens_caution_hors_pret()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  begin
+    update public.confirmations_mobile_caution set annulee_le = now()
+     where circuit_id = new.id and utilise_le is null and annulee_le is null;
+  exception when check_violation or insufficient_privilege then
+    raise notice 'Lien de confirmation du circuit % laissé ouvert : %', new.id, sqlerrm;
+  end;
+  return null;
+end $$;
+revoke all on function public.fermer_liens_caution_hors_pret() from public, anon, authenticated;
+drop trigger if exists signature_liens_caution_clos on public.bail_signature_circuits;
+create trigger signature_liens_caution_clos after update of etat on public.bail_signature_circuits
+  for each row when (old.etat = 'pret' and new.etat <> 'pret' and new.modele = 'cautionnement')
+  execute function public.fermer_liens_caution_hors_pret();
 
 -- Filet commun : aucune fonction de `public` ne reste ouverte à anon.
 select public.fermer_fonctions_a_anon();

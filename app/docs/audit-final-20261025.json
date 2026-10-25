@@ -1,0 +1,213 @@
+{
+  "date": "2026-10-25",
+  "nature": "Contre-vérification du document transmis par le dirigeant ; registre évolutif, sans certification exhaustive",
+  "source": "Audit ChatGPT transmis le 25 octobre 2026",
+  "production_verifiee": "ab52b77b9dea6c3a902b382710a7345493941600",
+  "candidat": "Lot PR255 après réparation de CI906 ; SHA à vérifier dans GitHub avant fusion",
+  "pr": 255,
+  "publication": "En attente des contrôles du candidat",
+  "contraintes": [
+    "Aucun PDF demandé",
+    "Bail fictif laissé inactif",
+    "Aucune écriture métier en production pour cette contre-vérification",
+    "Aucun paiement ni envoi réel"
+  ],
+  "preuves": [
+    {
+      "id": "SANTE",
+      "type": "lecture exécutée",
+      "source": "https://www.gerimmo.app/api/sante",
+      "resultat": "ok=true, base=true, révision ab52b77b9dea6c3a902b382710a7345493941600"
+    },
+    {
+      "id": "CI906",
+      "type": "exécuté, échecs corrigés à revalider",
+      "source": "https://github.com/GERIMMO/GERIMMO_V4/actions/runs/40200349309",
+      "resultat": "10 648 tests de logique réussis, 17 ignorés. Chromium : 215 réussis, 1 ignoré, 3 échecs (deux scénarios bail : sélection du main et nettoyage de trace ; utilisateurs : deux noms accessibles incohérents). Réparations ciblées, nouvelle CI requise ; WebKit non exécuté."
+    },
+    {
+      "id": "RECETTE2",
+      "type": "exécuté, incomplet",
+      "source": "https://github.com/GERIMMO/GERIMMO_V4/actions/runs/40109686169",
+      "resultat": "Deuxième tentative : 63 réussis, 1 échec, 1 ignoré, 3 non exécutés. Nettoyage réussi. Ancien scénario 119bce0 exécuté contre une interface plus récente : D04 n'ouvre pas Suivi avant de rechercher Encaisser. Ne prouve pas une erreur de montant. Navigation corrigée dans le candidat ; scénario à revalider."
+    },
+    {
+      "id": "EXPORT",
+      "type": "défaut reproduit puis correction testée localement",
+      "source": "tests/export-artisan-complet.test.ts",
+      "resultat": "6 tests réussis : réponse complète, activité vide/modules désactivés, panne ou absence de chacune des deux sources, refus de droits. Les pannes refusent le téléchargement avec 503 ; refus de droits 403. Publication en attente."
+    },
+    {
+      "id": "BASE",
+      "type": "SELECT de production",
+      "resultat": "Trois organisations en essai, toutes avec essai_fin. Un artisan SIRET fictif validé et vérifié, visibilité privée. Un devis brouillon sans adresse alors que le profil documentaire la possède. Bail d'essai toujours brouillon et lot disponible."
+    },
+    {
+      "id": "CRON",
+      "type": "lecture exécutée",
+      "resultat": "fermetures-comptes : succeeded le 25/10/2026 à 03:20 UTC. Aucune exécution manuelle déclenchée."
+    },
+    {
+      "id": "ADVISORS",
+      "type": "lecture exécutée",
+      "resultat": "379 avertissements SECURITY DEFINER accessibles à authenticated, 21 tables RLS sans policy (information), 1 search_path, 1 extension publique. Les 379 fonctions n'ont pas été individuellement certifiées dans cette passe."
+    },
+    {
+      "id": "VERCEL",
+      "type": "réglage lu dans la console",
+      "source": "https://vercel.com/gerimmo/gerimmo-v4/settings/environments/production",
+      "resultat": "Branche main suivie ; Auto-assign Custom Production Domains activé. Le workflow Publication contrôlée ne constitue donc pas à lui seul un passage obligatoire."
+    }
+  ],
+  "points_du_document": [
+    {
+      "id": 1,
+      "priorite": "P2",
+      "etat": "Non reproduit dans les textes actuels inspectés",
+      "constat": "Accueil, tarifs et inscription utilisent dureeEssai ; les conditions annoncent deux mois jusqu'au 31/12/2026 puis un mois. Les mentions 14 jours trouvées concernent la rétractation/fermeture ou un commentaire ancien.",
+      "suite": "Identifier la page ou campagne exacte annonçant un essai de 14 jours avant de modifier l'offre.",
+      "fichiers": [
+        "src/lib/tarifs.ts",
+        "src/app/page.tsx",
+        "src/app/tarifs/page.tsx",
+        "src/app/inscription/page.tsx",
+        "src/app/conditions/page.tsx"
+      ]
+    },
+    {
+      "id": 2,
+      "priorite": "P1",
+      "etat": "Écart de données confirmé ; blocage cohérent avec le code",
+      "constat": "Un brouillon conserve entreprise.adresse vide malgré le profil complété. La validation utilise l'instantané du devis. Une nouvelle version peut actualiser cet instantané ; le message actuel ne l'explique pas.",
+      "suite": "Permettre une actualisation explicite des coordonnées pour un brouillon, avec contrôle de version et aperçu avant validation ; conserver les versions déjà validées.",
+      "validation": "Créer un devis sans adresse, compléter le profil, reprendre le brouillon, produire le PDF et vérifier adresse et immutabilité d'une version validée."
+    },
+    {
+      "id": 3,
+      "priorite": "P1",
+      "etat": "État de production confirmé",
+      "constat": "Un artisan SIRET 00000000000000 est vérifié et validé, mais privé. Aucune affectation réelle démontrée.",
+      "suite": "Identifier sa provenance et les relations autorisées ; isoler les fixtures de recette. Ne pas supprimer ni dévalider un dossier de production sans instruction appropriée."
+    },
+    {
+      "id": 4,
+      "priorite": "P1",
+      "etat": "Risque identifié dans le code et la fonction déployée",
+      "constat": "artisan_affectable vérifie statut, SIRET, relation, zone, métier et décennale selon les travaux, mais pas la RC Pro. La totalité des appelants n'est pas certifiée ici.",
+      "suite": "Vérifier tous les chemins d'affectation puis centraliser le contrôle de RC Pro actuelle dans la règle métier autorisée.",
+      "validation": "Attestation valide, expirée, révoquée et expirant entre proposition et attribution ; tests isolés et concurrence."
+    },
+    {
+      "id": 5,
+      "priorite": "P1",
+      "etat": "Corrigé dans le candidat, non publié",
+      "constat": "L'export artisan renvoie HTTP 200 avec des données manquantes lorsqu'une source échoue.",
+      "suite": "Valider dans la CI complète puis publier ; aucune migration.",
+      "validation": "Deux sources réussies, échec de chacune, accès refusé, module privé fermé sans données ; aucune réponse 200 tronquée.",
+      "fichiers": [
+        "src/app/api/artisan-prive/export/route.ts",
+        "src/lib/artisan-prive.ts"
+      ]
+    },
+    {
+      "id": 6,
+      "priorite": "P2",
+      "etat": "Risque identifié dans le code",
+      "constat": "L'export est limité à l'artisan authentifié ; aucune confirmation récente d'identité explicite dans la route ni la RPC inspectée.",
+      "suite": "Aligner la confirmation d'identité sur les exports sensibles déjà utilisés, sans confondre absence de revalidation et accès intercompte démontré."
+    },
+    {
+      "id": 7,
+      "priorite": "P1",
+      "etat": "Comportement confirmé par lecture du code",
+      "constat": "tracerTraversee retourne false sur erreur mais verifierAccesEspace poursuit certaines consultations superadmin. Aucune panne de production provoquée.",
+      "suite": "Décider et appliquer une stratégie explicite pour consultation sans trace : refus ou secours durable vérifié. Tester une panne du journal.",
+      "fichiers": [
+        "src/lib/traversee.ts",
+        "src/lib/espace.ts"
+      ]
+    },
+    {
+      "id": 8,
+      "priorite": "P2",
+      "etat": "Risque identifié dans le code",
+      "constat": "Le bandeau présente decisions.total comme un nombre et emploie aucun sujet à traiter pour zéro. La propagation des lectures manquantes doit être testée.",
+      "suite": "Afficher Indisponible ou un total partiel explicite si une source ne répond pas ; tester l'injection de panne.",
+      "fichiers": [
+        "src/app/admin/layout.tsx",
+        "src/lib/decisions-attendues.ts"
+      ]
+    },
+    {
+      "id": 9,
+      "priorite": "P2",
+      "etat": "Risque identifié dans le code",
+      "constat": "La pièce PDF est déposée et classée avant artisan_externe_ecrire. Une erreur finale ne déclenche pas de retrait dans cette action. Une pièce orpheline réelle n'a pas été démontrée ici.",
+      "suite": "Prévoir un état temporaire et un nettoyage sûr/idempotent ; ne jamais supprimer une pièce déjà liée par une validation concurrente.",
+      "fichiers": [
+        "src/app/artisan/clients/actions.ts"
+      ]
+    },
+    {
+      "id": 10,
+      "priorite": "P1",
+      "etat": "Avertissements confirmés, audit individuel incomplet",
+      "constat": "379 avertissements de fonctions privilégiées exécutables par authenticated ; ce nombre n'est pas un nombre de failles.",
+      "suite": "Inventorier garde auth, rôle, périmètre organisation, paramètres, search_path et secrets ; prouver les refus entre comptes sur chaque famille sensible."
+    },
+    {
+      "id": 11,
+      "priorite": "P2",
+      "etat": "Avertissement confirmé, privilèges et contrainte technique vérifiés",
+      "constat": "Procédure SECURITY INVOKER, exécution refusée à anon, authenticated et service_role ; schéma public non créable par anon/authenticated ; objets qualifiés ; commits intermédiaires. Ajouter simplement SET search_path rendrait ces commits interdits.",
+      "suite": "Conserver une exception documentée ou restructurer avec tests transactionnels ; ne pas corriger mécaniquement l'avertissement.",
+      "reference": "https://www.postgresql.org/docs/17/sql-createprocedure.html"
+    },
+    {
+      "id": 12,
+      "priorite": "P2",
+      "etat": "Aucun cas en production lors du SELECT",
+      "constat": "Les trois organisations en essai ont une date de fin.",
+      "suite": "Tester la réaction à une date absente dans une fixture isolée, sans fabriquer ce cas en production."
+    },
+    {
+      "id": 13,
+      "priorite": "P1",
+      "etat": "Réglage confirmé dans Vercel",
+      "constat": "Attribution automatique des domaines après déploiement de main activée ; une publication peut suivre la fusion sans passer par le workflow Publication contrôlée.",
+      "suite": "Distinguer le protocole réellement suivi du mécanisme facultatif. Pour rendre la porte obligatoire, préparer un changement coordonné des protections GitHub et de la promotion Vercel avec solution de reprise, sans interrompre une publication en cours."
+    },
+    {
+      "id": 14,
+      "priorite": "P2",
+      "etat": "Statut vérifié",
+      "constat": "PR255 ouverte, réparation du candidat après CI906. PR245 Node24 ouverte à 5d1d15950bf1fa3dc074108bee1ea875055d7c16 ; indépendante, non fusionnée dans ce lot.",
+      "suite": "Publier 255 seulement après réussite exacte ; relire et actualiser 245 séparément."
+    }
+  ],
+  "limites": [
+    "Les captures de routes ne certifient pas tous les gestes métier, états d'erreur et combinaisons de droits.",
+    "Le parcours réel Stripe/Zoho n'est pas rejoué ; aucune nouvelle dépense.",
+    "Abonnement offert non implémenté : une prolongation d'essai ne vaut pas abonnement offert.",
+    "Certaines actions affichées dans des consultations superadmin restent à masquer, même si les écritures sont refusées côté serveur.",
+    "Les pages artisan bilan/facture ont redirigé vers la mission dans les captures précédentes : leurs états propres restent à vérifier.",
+    "Médiateur manquant et antivirus non raccordé : non résolus par cette présentation.",
+    "Aucune affirmation GO global : les défauts et points non testés ci-dessus restent ouverts."
+  ],
+  "ordre_recommande": [
+    5,
+    2,
+    9,
+    4,
+    3,
+    7,
+    8,
+    6,
+    10,
+    13,
+    12,
+    1,
+    11,
+    14
+  ]
+}

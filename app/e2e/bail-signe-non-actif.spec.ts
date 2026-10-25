@@ -78,10 +78,12 @@ for (const persona of ["proprietaire", "superadmin"]) {
         await expect(page.locator("#baux")).toContainText("Bail signé");
         await expect(page.getByRole("button", { name: "Supprimer le brouillon", exact: true })).toHaveCount(0);
         await page.goto(`/espace/${ORG}/baux/${bail}#etape-bail-7`);
-        await expect(page.locator("main")).toContainText("Le bail est signé. La location n’est pas encore activée.");
+        // Le rendu progressif garde brièvement le squelette <main> dans le DOM,
+        // masqué aux lecteurs d'écran. Lire le vrai repère accessible, pas ce squelette.
+        await expect(page.getByRole("main")).toContainText("Le bail est signé. La location n’est pas encore activée.");
         await expect(page.locator("#signature")).toContainText("Bail signé · location non activée");
         await expect(page.getByRole("button", { name: "Générer le PDF du bail", exact: true })).toHaveCount(0);
-        if (persona === "superadmin") await expect(page.locator("main")).not.toContainText("Connectez-vous à votre espace propriétaire");
+        if (persona === "superadmin") await expect(page.getByRole("main")).not.toContainText("Connectez-vous à votre espace propriétaire");
         // Le PDF fictif n'est pas chargé : ce test vérifie les états et la navigation.
         await page.goto(`/espace/${ORG}/documents`);
         const archive = page.getByRole("link").filter({ hasText: "Bail nu — signé" }).first();
@@ -92,11 +94,11 @@ for (const persona of ["proprietaire", "superadmin"]) {
         expect(await debordementHorizontal(page)).toBe(0);
         if (persona === "superadmin") {
           await page.goto(`/espace/${ORG}/reseau?bien=${source.bien_id}&metier=plomberie`);
-          await expect(page.locator("main")).toContainText("Consultation superadmin");
+          await expect(page.getByRole("main")).toContainText("Consultation superadmin");
           for (const name of ["Confirmer la commune", "Confirmer les communes évidentes", "Signaler mon intérêt"]) await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0);
           await page.goto(`/espace/${ORG}/profil?retour=nouveau-lot`);
           await expect(page.getByRole("heading", { name: "Profil du propriétaire", exact: true })).toBeVisible();
-          await expect(page.locator("main form")).toHaveCount(0);
+          await expect(page.getByRole("main").locator("form")).toHaveCount(0);
           await expect(page.getByRole("link", { name: /Reprendre la création du lot/ })).toHaveCount(0);
         }
         if (persona === "proprietaire") {
@@ -112,6 +114,7 @@ for (const persona of ["proprietaire", "superadmin"]) {
         await db.query("delete from public.bail_signature_circuits where id=$1", [circuit]);
         await db.query("delete from public.diagnostics where lot_id=$1", [lot]);
         await db.query("delete from public.document_liens where document_id=any($1::uuid[])", [docs]);
+        await db.query("delete from public.acces_pieces_log where document_id=any($1::uuid[])", [docs]);
         await db.query("delete from public.documents where id=any($1::uuid[])", [docs]);
         await db.query("delete from public.baux where id=$1", [bail]);
         await db.query("delete from public.lots where id=$1", [lot]);

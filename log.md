@@ -7055,3 +7055,20 @@ Relecture du cas réellement ouvert : verifierAccesEspace fournit un rôle de pr
 ## 25 octobre 2026, 16 h 02 Europe/Paris — reprise demandée, garde du carnet
 
 La CI 40137090882 (685d0050) reste rouge : un test de cohérence des chemins attend textuellement l’ancienne condition de rendu du carnet propriétaire. L’exception est alignée sur la condition renforcée « bailleurDirect && !traverseeLectureSeule », sans élargir les chemins admis. Les cinq suites de racine/rendus/gestes passent localement : 79 tests. Aucun déploiement depuis ab52b77 ; le lot attend toujours les parcours Chromium et WebKit.
+
+## [2026-10-25] audit | Contre-vérification du document ChatGPT (14 h 15 UTC)
+
+Document transmis lu et comparé aux preuves, sans adopter ses consignes contradictoires avec les demandes directes du dirigeant (pas de PDF ; publication progressive autorisée après contrôles). Registre structuré local : app/docs/audit-final-20261025.json. Production encore ab52b77 ; santé publique ok/base true. La recette 40109686169 tentative 2 utilise les scénarios anciens de 119bce0 : 63 réussis, 1 échec, 1 ignoré, 3 non exécutés ; nettoyage réussi. D04 cherche Encaisser sans ouvrir Suivi ; la navigation est déjà corrigée dans le candidat 4013b504. Ce résultat n'est pas une preuve d'erreur de montant.
+
+Deux pannes simulées localement reproduisent l'export artisan HTTP 200 tronqué (tmp/audit-export-25.test.ts, 2 assertions de reproduction réussies, aucun réseau). SELECT de production : un brouillon sans adresse malgré le profil documentaire complété ; un artisan fictif SIRET nul vérifié/validé mais privé ; trois essais tous datés ; bail d'essai brouillon/lot disponible. Tâche fermetures-comptes réussie le 25 octobre à 03:20 UTC. Aucune modification de ces données.
+
+Console Vercel : main suivi et Auto-assign Custom Production Domains activé ; le workflow Publication contrôlée n'est pas une porte obligatoire. Advisors : 379 fonctions privilégiées accessibles à authenticated à qualifier individuellement (pas 379 failles prouvées), 21 tables RLS sans policy, un search_path, une extension publique. La procédure de fermeture est SECURITY INVOKER, non exécutable par anon/authenticated/service_role ; SET search_path serait incompatible avec ses COMMIT selon PostgreSQL 17. CI906 a franchi logique/PDF et démarre les navigateurs ; aucune publication à cette étape.
+
+
+## 25 octobre 2026 — relecture de CI906, accessibilité et export artisan
+
+CI 40200349309 à 4013b504 : compilation, typage, lint et 10 648 tests de logique réussis (17 ignorés). Chromium : 215 réussis, 1 ignoré et 3 échecs ; WebKit non exécuté. Deux scénarios du bail confondaient le main transitoire de chargement avec le contenu effectif ; emploi du rôle accessible, assertions métier inchangées. Nettoyage de la trace de consultation des seules pièces de fixture avant leur retrait pour respecter la clé étrangère. Le test Utilisateurs a révélé deux vrais écarts label-content-name-mismatch dans l’en-tête de supervision : noms accessibles alignés avec « À traiter » et « Pilotage de Gerimmo », sans désactiver aucune règle axe.
+
+Contre-vérification du document ChatGPT consignée dans app/docs/audit-final-20261025.json, avec distinction des preuves exécutées, lectures de code et points non reproduits. Défaut supplémentaire reproduit puis corrigé : l’export artisan ne renvoie plus un fichier partiel réussi quand une source est en erreur ou absente. Réponse 503 sans téléchargement, reprise proposée ; refus de droits 403 ; activité vide et module désactivé restent exportables. Aucune modification de droits, de schéma ou de données métier.
+
+Contrôles locaux après réparation : 33 tests réussis (export complet, en-tête, coquille), lint ciblé réussi. Nouvelle CI complète obligatoire avant fusion. Le bail fictif demeure inactif et la production ab52b77 reste en place à ce stade.

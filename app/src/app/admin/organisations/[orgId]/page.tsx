@@ -137,9 +137,9 @@ export default async function PageAdminOrganisation(
     ["Adresse", [organisation.address_line1, [organisation.postal_code, organisation.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") || null],
     ["Email de contact", organisation.email_contact],
     ["Téléphone", organisation.telephone],
-    ["SIRET", organisation.siret],
+    ...((famille === "agence" || organisation.siret) ? [["SIRET", organisation.siret]] as [string, string | null][] : []),
     ...(famille === "agence" ? ([["Carte professionnelle", organisation.carte_pro], ["Garantie financière", organisation.garantie_financiere]] as [string, string | null][]) : []),
-    ["TVA", organisation.tva_franchise ? "Franchise en base" : organisation.tva_intracom],
+    ...((famille === "agence" || organisation.tva_franchise || organisation.tva_intracom) ? [["TVA", organisation.tva_franchise ? "Franchise en base" : organisation.tva_intracom]] as [string, string | null][] : []),
   ];
   const renseignes = champs.filter(([, v]) => v);
   const manquants = champs.filter(([, v]) => !v).map(([l]) => l.toLowerCase());

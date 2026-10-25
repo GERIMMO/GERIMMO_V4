@@ -35,6 +35,7 @@ export function LignesDiagnostics({
   niveau,
   attendus,
   diagnostics,
+  lectureSeule = false,
 }: {
   orgId: string;
   bienId: string;
@@ -42,6 +43,7 @@ export function LignesDiagnostics({
   niveau: NiveauDiagnostic;
   attendus: string[];
   diagnostics: DiagnosticDepose[];
+  lectureSeule?: boolean;
 }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
@@ -79,26 +81,26 @@ export function LignesDiagnostics({
         <div className={styles.identite}><strong>{nom}</strong><BadgeStatut ton={presentation.ton}>{presentation.libelle}</BadgeStatut></div>
         <p className={styles.date}>{d?.date_expiration
           ? `${presentation.etat === "expire" ? "Échu" : "Échéance"} le ${formaterDate(d.date_expiration)}`
-          : d ? "Aucune échéance renseignée" : diagnosticConditionnel(type) ? aide : "Ajoutez le fichier pour le retrouver ici."}
+          : d ? "Aucune échéance renseignée" : diagnosticConditionnel(type) ? aide : lectureSeule ? "Aucun fichier déposé." : "Ajoutez le fichier pour le retrouver ici."}
           {type === "dpe" && d?.classe_dpe && <> · Classe {d.classe_dpe}</>}
         </p>
         <div className={styles.actions}>
           {d?.document_id && <a href={`${base}/documents/${d.document_id}/fichier`} target="_blank" rel="noreferrer"
             aria-label={`Voir le document : ${nom}`} className={buttonVariants({ variant: "outline", size: "sm" })}>Voir le document</a>}
-          {(!d?.document_id || renouveler || ouvert === type) && <Button type="button" size="sm" variant="outline" aria-expanded={ouvert === type}
+          {!lectureSeule && (!d?.document_id || renouveler || ouvert === type) && <Button type="button" size="sm" variant="outline" aria-expanded={ouvert === type}
             onClick={() => basculerDepot(type)}>{ouvert === type ? "Fermer le dépôt" : renouveler ? "Renouveler" : "Ajouter le fichier"}</Button>}
         </div>
         {d && <details className={styles.details}>
-          <summary>Détails et modifications</summary>
+          <summary>{lectureSeule ? "Détails du diagnostic" : "Détails et modifications"}</summary>
           <p>Réalisé le {formaterDate(d.date_realisation)}{d.diagnostiqueur ? ` · ${d.diagnostiqueur}` : ""}</p>
           <div className={styles.actions}>
-            {d.document_id && !renouveler && <Button type="button" size="sm" variant="outline" onClick={() => basculerDepot(type)}>{ouvert === type ? "Fermer le dépôt" : "Remplacer le fichier"}</Button>}
-            {type === "dpe" && lotId && niveau === "lot" && <Button type="button" size="sm" variant="outline" aria-expanded={classeOuverte} onClick={() => setClasseOuverte(v => !v)}>{d.classe_dpe ? "Modifier la classe DPE" : "Compléter la classe DPE"}</Button>}
+            {!lectureSeule && d.document_id && !renouveler && <Button type="button" size="sm" variant="outline" onClick={() => basculerDepot(type)}>{ouvert === type ? "Fermer le dépôt" : "Remplacer le fichier"}</Button>}
+            {!lectureSeule && type === "dpe" && lotId && niveau === "lot" && <Button type="button" size="sm" variant="outline" aria-expanded={classeOuverte} onClick={() => setClasseOuverte(v => !v)}>{d.classe_dpe ? "Modifier la classe DPE" : "Compléter la classe DPE"}</Button>}
           </div>
-          {type === "dpe" && lotId && niveau === "lot" && <div hidden={!classeOuverte}><FormulaireClasseDpeLot orgId={orgId} lotId={lotId} diagnosticId={d.id} classe={d.classe_dpe ?? null} /></div>}
+          {!lectureSeule && type === "dpe" && lotId && niveau === "lot" && <div hidden={!classeOuverte}><FormulaireClasseDpeLot orgId={orgId} lotId={lotId} diagnosticId={d.id} classe={d.classe_dpe ?? null} /></div>}
         </details>}
         {/* Ne pas démonter un dépôt commencé en refermant sa rubrique. */}
-        {commences.has(type) && <div hidden={ouvert !== type} className={styles.depot}><FormulaireDiagnostic orgId={orgId} bienId={bienId} lotId={lotId} niveau={niveau} typeInitial={type} /></div>}
+        {!lectureSeule && commences.has(type) && <div hidden={ouvert !== type} className={styles.depot}><FormulaireDiagnostic orgId={orgId} bienId={bienId} lotId={lotId} niveau={niveau} typeInitial={type} /></div>}
       </li>;
     })}
   </ul>;

@@ -191,6 +191,27 @@ describe("fiche du bail : la page et son formulaire des loyers", () => {
   }
 });
 
+describe("bail en consultation superadmin", () => {
+  for (const etat of ["brouillon", "actif", "preavis", "termine"]) it(`${etat} : données consultables sans aucune commande de gestion`, async () => {
+    banc.donnees = {
+      is_super_admin: true,
+      organizations: {id:ORG, type:"proprietaire_direct",status:"active",name:"Parc témoin"},
+      baux: {...Object.fromEntries(COLONNES_BAIL.map(c=>[c,null])), id:BAIL, type:"nu", etat, lot_id:LOT, loyer_hc:800, charges:50, date_debut:"2026-01-01", charges_mode:"provision"},
+      lots: {id:LOT, nom:"Lot témoin",bien_id:BIEN,meuble:false,bien:{copropriete:false}},
+      etats_des_lieux: [{id:"edl-1",type:"entree",etat:"brouillon"}],
+      inventaire_lignes: [{id:"i",piece:"Chambre",designation:"Armoire témoin",quantite:1,etat:"bon"}],
+      revisions_loyer:[{id:"r",date_effet:"2026-09-01",ancien_loyer:790,nouveau_loyer:800,irl_reference:100,irl_nouveau:101}],
+      conges:[{par:"locataire",date_effet:"2026-12-01",preavis_mois:1,motif:"Départ témoin"}],
+    };
+    const html=await rendre(await PageBail({params:Promise.resolve({orgId:ORG,bailId:BAIL})} as never));
+    expect(html).not.toMatch(/<(form|input|textarea|select)\b/);
+    for(const texte of ["Enregistrer", "Modifier le bail", "Générer le PDF"])expect(html).not.toContain(texte);
+    for(const texte of ["Lot témoin","Armoire témoin","Départ témoin"])expect(html).toContain(texte);
+    expect(html).toContain(`/espace/${ORG}/baux/${BAIL}/edl/edl-1`);
+    if(etat!=="brouillon")expect(html).toContain("Révision au");
+  });
+});
+
 describe("loyers & charges", () => {
   it("agence (admin) : l'écran du mois, chaque lien sous /agence/<id>", async () => {
     const p = PROFILS[0];

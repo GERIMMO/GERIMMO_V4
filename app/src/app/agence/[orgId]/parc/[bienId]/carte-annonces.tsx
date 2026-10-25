@@ -48,10 +48,12 @@ export function CarteAnnonces({
   orgId,
   bienId,
   annonces,
+  lectureSeule = false,
 }: {
   orgId: string;
   bienId: string;
   annonces: Annonce[];
+  lectureSeule?: boolean;
 }) {
   const [etat, action] = useActionState<EtatAnnonce, FormData>(
     creerAnnonce.bind(null, orgId, bienId),
@@ -71,12 +73,12 @@ export function CarteAnnonces({
                   affichée jusqu&apos;au {formaterDate(a.visible_jusquau)}
                 </small>
               </span>
-              <BoutonRetirerAnnonce orgId={orgId} bienId={bienId} annonceId={a.id} />
+              {!lectureSeule && <BoutonRetirerAnnonce orgId={orgId} bienId={bienId} annonceId={a.id} />}
             </li>
           ))}
         </ul>
       )}
-      <form data-saisie-confirmee action={action} className="space-y-2">
+      {!lectureSeule && <form data-saisie-confirmee action={action} className="space-y-2">
         {/* Le placeholder n'est qu'un exemple et s'efface à la 1re frappe :
             le champ porte son propre libellé, dans le style de « Visible
             jusqu'au » juste dessous. */}
@@ -108,7 +110,7 @@ export function CarteAnnonces({
         </div>
         {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
         {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-      </form>
+      </form>}
     </div>
   );
 }

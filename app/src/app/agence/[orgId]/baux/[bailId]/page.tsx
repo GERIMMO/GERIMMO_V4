@@ -1,3 +1,4 @@
+import { SuiviBailLecture, HistoriqueBailLecture } from "./suivi-bail-lecture";
 import { OngletsDossier } from "@/components/onglets-dossier";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
 import { AvertissementsLoyer } from "@/components/avertissements-loyer";
@@ -1125,7 +1126,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       <EchecLecture quoi={echecs} />
 
       {/* La prochaine action évidente, dérivée de l'état du bail */}
-      {bail.etat !== "brouillon" && aFaire.length > 0 && (
+      {!traverseeLectureSeule && bail.etat !== "brouillon" && aFaire.length > 0 && (
         <div className={styles.attention}>
           <div className="entete-carte">
             <p className="text-sm font-semibold">À faire maintenant</p>
@@ -1171,7 +1172,50 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       )}
 
       {bail.etat !== "brouillon" && <AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(bail, lot?.surface_m2)} />}
-      {bail.etat === "brouillon" ? <AssistantBail
+      {traverseeLectureSeule ? <OngletsDossier libelle="Consultation du bail" initiale={signeNonActif ? "signature" : undefined} rubriques={[
+        { id: "bail-informations", titre: "Contrat", contenu: <RecapitulatifParcoursBail
+          lectureSeule orgId={orgId} lotId={bail.lot_id} bail={bail}
+          personnes={[...(locataire ? [{nom:nomComplet(locataire),role:"Locataire principal"}]:[]),...lignesColoc.filter(p=>!p.date_depart).map(p=>({nom:p.person_nom,role:p.role === "garant"?"Garant":"Colocataire"}))]}
+          documents={null} signature={null} /> },
+        { id: "signature", titre: "Documents", contenu: <section className="rounded-xl border bg-card p-4 space-y-3">
+          <span id="etape-bail-7" /><h2 className="text-base font-semibold">{signeNonActif ? "Bail signé · location non activée" : documentSigne ? "Bail signé" : "Documents du contrat"}</h2>
+          {documentSigne && <Link className="inline-flex min-h-11 items-center underline" href={`${base}/documents/${documentSigne}/fichier`}>Consulter le bail signé</Link>}
+          {bail.reglement_copropriete && <p><Link className="inline-flex min-h-11 items-center underline" href={`${base}/documents/${bail.reglement_copropriete}/fichier`}>Règlement de copropriété</Link></p>}
+          <p><Link className="inline-flex min-h-11 items-center underline" href={`${base}/documents`}>Consulter les documents du client</Link></p>
+          <p className="text-sm text-muted-foreground">La génération, la signature et l’activation restent réservées au propriétaire ou à son gestionnaire.</p>
+        </section> },
+        { id: "bail-suivi", titre: "Suivi", contenu: <SuiviBailLecture base={base} bailId={bailId}
+          echeances={(echeancier ?? []) as LigneEcheance[]} encaissements={(encaissements ?? []) as Encaissement[]} edls={edls ?? []}
+          indisponibles={{loyers: Boolean(erreurEcheancier), encaissements: Boolean(erreurEncaissements), edls: Boolean(erreurEdls)}}
+          historique={<>
+            <HistoriqueBailLecture titre="Quittances et reçus" erreur={Boolean(erreurQuittances)}>
+              {!quittances?.length && <p>Aucun document établi.</p>}
+              {quittances?.map(q => <p key={q.id}><Link className="underline" href={`/quittance/${q.id}`}>{q.est_quittance ? "Quittance" : "Reçu"} du {formaterDate(q.date_emission)} · {eur(q.montant)}</Link>{q.email_envoye_at ? ` · envoyé le ${formaterDate(q.email_envoye_at)}` : " · non envoyé"}</p>)}
+            </HistoriqueBailLecture>
+            <HistoriqueBailLecture titre="Révisions et régularisations" erreur={Boolean(erreurRevisions || erreurRegul)}>
+              {!revisions?.length && <p>Aucune révision enregistrée.</p>}
+              {revisions?.map(r => <p key={r.id}>Révision au {formaterDate(r.date_effet)} : {eur(r.ancien_loyer)} → {eur(r.nouveau_loyer)} · IRL {r.irl_reference} → {r.irl_nouveau}</p>)}
+              {!regularisations?.length && <p>Aucune régularisation enregistrée.</p>}
+              {regularisations?.map(r => <p key={r.id}>Exercice {r.annee} · provisions {eur(r.provisions)} · charges réelles {eur(r.charges_reelles)} · écart {eur(r.ecart)}</p>)}
+            </HistoriqueBailLecture>
+            <HistoriqueBailLecture titre="Relances" erreur={Boolean(erreurRelances)}>
+              {!relances?.length && <p>Aucune relance enregistrée.</p>}
+              {relances?.map(r => <p key={r.id}>{({relance_1:"Première relance", relance_2:"Deuxième relance", mise_en_demeure:"Mise en demeure"} as Record<string,string>)[r.niveau] ?? "Relance"} · {formaterDate(r.date_envoi)}{r.numero_recommande && ` · recommandé ${r.numero_recommande}`}{r.date_premiere_presentation && ` · présenté le ${formaterDate(r.date_premiere_presentation)}`}</p>)}
+            </HistoriqueBailLecture>
+            <HistoriqueBailLecture titre="Mobilier" erreur={Boolean(erreurInventaire)}>
+              {!inventaire?.length && <p>Aucun mobilier inventorié.</p>}
+              {inventaire?.map(l => <p key={l.id}>{l.piece && `${l.piece} · `}{l.quantite} × {l.designation} · {l.etat ? ETATS_ELEMENT[l.etat] ?? l.etat : "État non renseigné"}{l.observation && ` · ${l.observation}`}</p>)}
+            </HistoriqueBailLecture>
+            <HistoriqueBailLecture titre="Dépôt de garantie et départ" erreur={Boolean(erreurDepot || erreurConges || erreurIntentions || erreurRestitution)}>
+              {!depotEncaissements?.length && <p>Aucun dépôt encaissé.</p>}
+              {depotEncaissements?.map(d => <p key={d.id}>Dépôt encaissé le {formaterDate(d.date_encaissement)} · {eur(d.montant)}{d.versant_libelle && ` · ${d.versant_libelle}`}</p>)}
+              {intentions?.map((i,n) => <p key={`intention-${n}`}>Intention de départ le {formaterDate(i.created_at)} · {i.motif || "Motif non renseigné"}</p>)}
+              {!conges?.length && <p>Aucun congé enregistré.</p>}
+              {conges?.map((c,n) => <p key={`conge-${n}`}>Congé du {c.par === "locataire" ? "locataire" : "bailleur"} · effet le {formaterDate(c.date_effet)} · {c.preavis_mois} mois de préavis{c.motif && ` · ${c.motif}`}{c.annule_le && ` · annulé le ${formaterDate(c.annule_le)} (${c.annulation_motif ?? "motif non renseigné"})`}</p>)}
+              {restitution ? <div><p>Restitution {restitution.statut === "finalise" ? "finalisée" : "en cours"} · remise des clés le {formaterDate(restitution.date_remise_cles)}</p><p>Dépôt : {eur(restitution.depot)} · impayés : {eur(restitution.impayes)} · solde : {restitution.solde == null ? "Non arrêté" : eur(restitution.solde)}</p>{retenues.map(r => <p key={r.id}>{r.libelle} · retenue {eur(r.montant_retenu)}{r.sans_justificatif ? " · sans justificatif" : ""}</p>)}</div> : <p>Aucune restitution enregistrée.</p>}
+            </HistoriqueBailLecture>
+          </>} /> },
+      ]} /> : bail.etat === "brouillon" ? <AssistantBail
         formulaire={<FormulaireParcoursBail surfaceHabitable={lot?.surface_m2} orgId={orgId} bailId={bailId} defauts={bail} agence={agence} meuble={Boolean(lot?.meuble)} chambres={chambres ?? []} />}
         orgId={orgId} bailId={bailId} controleInitial={await verifierDossierBail(orgId, bailId)}
         contenus={[
@@ -1196,7 +1240,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           {id:"bail-suivi",titre:"Suivi",contenu:rubriqueSuivi},
           ...(sectionSortie ? [{id:"bail-depart",titre:"Départ",contenu:rubriqueSortie}] : []),
         ]} />}
-      {bail.etat === "brouillon" && rubriqueSortie}
+      {!traverseeLectureSeule && bail.etat === "brouillon" && rubriqueSortie}
 
     </main>
   );

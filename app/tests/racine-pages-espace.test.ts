@@ -126,8 +126,8 @@ const ECARTS_DU_CHOIX: Exception[] = [
   },
   {
     fichier: "src/app/agence/[orgId]/artisans/carnet-proprietaire.tsx", fonction: "CarnetProprietaire", forme: "const base = baseEspace(orgId, true)", nombre: 1,
-    raison: "carnet rendu à la place de l'écran Artisans pour le seul propriétaire direct",
-    preuve: ["src/app/agence/[orgId]/artisans/page.tsx", 'const bailleurDirect = role === "proprietaire_direct";\n  if (bailleurDirect) return <CarnetProprietaire orgId={orgId} />;'],
+    raison: "carnet d’invitations rendu au seul propriétaire titulaire, hors consultation superadmin",
+    preuve: ["src/app/agence/[orgId]/artisans/page.tsx", 'if (bailleurDirect && !traverseeLectureSeule) return <CarnetProprietaire orgId={orgId} />;'],
   },
   {
     fichier: "src/components/page-finances.tsx", fonction: "PageFinances", forme: "const base = baseEspace(orgId, true)", nombre: 1,

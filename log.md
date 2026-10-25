@@ -7050,3 +7050,8 @@ La CI 40135150450 (bb1febdf) passe les contrôles de code, SQL, PDF et compilati
 ## 24 octobre 2026, 22 h 07 UTC — séparation du carnet propriétaire et de la supervision
 
 Relecture du cas réellement ouvert : verifierAccesEspace fournit un rôle de présentation propriétaire au superadmin en traversée, mais la RPC carnet_artisans_proprietaire exige une adhésion de propriétaire. La page renvoyait trop tôt vers le formulaire d’invitation réservé au titulaire. La supervision conserve désormais la lecture des relations artisan_agences déjà autorisée par ses droits, sans appeler cette RPC ni proposer d’invitation, d’enregistrement ou de modification. Le propriétaire garde son carnet et ses invitations. Aucun élargissement de droits ni migration. L’assertion navigateur contrôle explicitement l’absence de « Inviter un artisan » en supervision.
+
+
+## 25 octobre 2026, 16 h 02 Europe/Paris — reprise demandée, garde du carnet
+
+La CI 40137090882 (685d0050) reste rouge : un test de cohérence des chemins attend textuellement l’ancienne condition de rendu du carnet propriétaire. L’exception est alignée sur la condition renforcée « bailleurDirect && !traverseeLectureSeule », sans élargir les chemins admis. Les cinq suites de racine/rendus/gestes passent localement : 79 tests. Aucun déploiement depuis ab52b77 ; le lot attend toujours les parcours Chromium et WebKit.

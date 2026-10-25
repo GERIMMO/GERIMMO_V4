@@ -18,7 +18,7 @@ create table if not exists public.mois_offerts (
  applique_le timestamptz,
  constraint mois_offerts_coherence check (
   (nature='acces' and fin is not null and montant_cents is null and client_stripe is null and applique_le is not null)
-  or (nature='credit' and fin is null and montant_cents > 0 and client_stripe is not null and abonnement_stripe is not null
+  or (nature='credit' and fin is null and montant_cents is not null and montant_cents > 0 and client_stripe is not null and abonnement_stripe is not null
       and ((applique_le is null) = (reference_stripe is null))))
 );
 alter table public.mois_offerts enable row level security;
@@ -52,7 +52,7 @@ begin
   raise exception 'Choisissez un espace dont cet utilisateur est responsable.';
  end if;
  select * into o from public.organizations where id=p_org for update;
- if not found or o.status not in ('essai','active') then raise exception 'Cet espace doit être réactivé avant de recevoir des mois offerts.'; end if;
+ if not found or o.status not in ('essai','active','suspendue') then raise exception 'Cet espace est archivé : restaurez-le avant de lui offrir des mois.'; end if;
  if exists(select 1 from public.fermetures_comptes f where f.account_id=p_compte and f.statut='programmee') then
   raise exception 'Une fermeture de compte est programmée. Annulez-la avant d’offrir des mois.';
  end if;
@@ -67,7 +67,7 @@ begin
   v_montant := round(coalesce(a.montant_periode_cents,a.montant_mensuel_cents)::numeric * p_mois /
     case when a.periodicite='annuel' then 12 else 1 end);
   if coalesce(v_montant,0)<=0 then raise exception 'Le tarif de cet abonnement est indisponible.'; end if;
-  v_apercu := jsonb_build_object('nature','credit','montant_cents',v_montant,'abonnement',a.stripe_subscription_id);
+  v_apercu := jsonb_build_object('nature','credit','montant_cents',v_montant,'abonnement',a.stripe_subscription_id,'precedent',(select c.id from public.mois_offerts c where c.organization_id=p_org order by c.cree_le desc,c.id desc limit 1));
   if not coalesce(p_confirmer,false) then return v_apercu; end if;
   if p_attendu is distinct from v_apercu then raise exception 'Le tarif a changé. Vérifiez à nouveau le cadeau avant de confirmer.'; end if;
   insert into public.mois_offerts(id,organization_id,compte,auteur,mois,motif,nature,montant_cents,client_stripe,abonnement_stripe)
@@ -75,7 +75,7 @@ begin
  else
   -- Conserve tout le temps déjà offert ou restant, en mois calendaires (y compris les fins de mois).
   v_fin := (greatest(coalesce(o.essai_fin,public.aujourdhui_paris()),public.aujourdhui_paris()) + make_interval(months=>p_mois))::date;
-  v_apercu := jsonb_build_object('nature','acces','fin',v_fin);
+  v_apercu := jsonb_build_object('nature','acces','fin',v_fin,'reactivation',o.status='suspendue');
   if not coalesce(p_confirmer,false) then return v_apercu; end if;
   if p_attendu is distinct from v_apercu then raise exception 'La période a changé. Vérifiez à nouveau le cadeau avant de confirmer.'; end if;
   insert into support_interne.controles_organisation values(txid_current(),auth.uid(),p_org);

@@ -552,6 +552,7 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
      * qui cite encore la fonction du jour de Paris est retirée (dans la transaction du test, annulée à la fin).
      */
     async function retirerLesLotsPosterieurs() {
+      await db.query(readFileSync("supabase/retours-arriere/20261025192344_mois_offerts_superadmin.retour.sql", "utf8"));
       const { rows } = await db.query<{ signature: string }>(
         `select p.oid::regprocedure::text as signature
            from pg_proc p

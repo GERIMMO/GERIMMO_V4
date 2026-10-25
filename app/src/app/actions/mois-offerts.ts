@@ -8,7 +8,7 @@ import { prendreVerrouFacturation } from "@/lib/verrou-facturation";
 import { lireDecimal } from "@/lib/saisie-montant";
 import { sansJargon } from "@/lib/erreurs";
 
-export type EtatMoisOfferts = { erreur?: string; succes?: string; apercu?: { nature: string; fin?: string; montant_cents?: number; abonnement?: string } };
+export type EtatMoisOfferts = { erreur?: string; succes?: string; apercu?: { nature: string; reactivation?: boolean; fin?: string; montant_cents?: number; abonnement?: string } };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function offrirMois(accountId: string, _etat: EtatMoisOfferts, form: FormData): Promise<EtatMoisOfferts> {
  const org = String(form.get("organisation") ?? ""), id = String(form.get("cadeau") ?? "");

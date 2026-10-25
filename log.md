@@ -7147,3 +7147,13 @@ Lecteur de l’archive de bail : titre « Bail signé » seulement lorsque le ci
 ## [2026-10-25] audit | Réparation de la fixture de fin de mission
 
 CI915 40216651499 sur e0ffbf49 : logique/PDF, lint, build et typage verts ; le parcours navigateur de reprise du devis, complétion du profil et génération du PDF validé passe en Chromium. La fin de mission échoue avant le premier écran : la fixture SQL omet imputation_justification, exigée par incidents_qualifie_impute pour un incident déjà affecté. Correction de la fixture, sans relâcher la contrainte ; sélection explicite du lot de l’Agence Alpha du gestionnaire de recette. La chaîne métier reste intégralement à vérifier dans une nouvelle CI. Aucun code applicatif supplémentaire modifié, aucune publication à ce stade.
+
+
+## [2026-10-25] audit | Fiabilisation des vérifications navigateur
+
+La capture CI915 du devis repris est restée sur le chargement après relecture de la page, malgré les assertions métier réussies avant rechargement. Attente explicite du titre de version validée ajoutée avant capture. Relecture du nouveau scénario de mission : les trois expressions d’URL ont été revérifiées et correspondent bien aux redirections attendues ; leur comparaison est désormais explicite sur le chemin et le paramètre. Ces ajustements portent uniquement sur les preuves de recette, sans modifier le produit. Une nouvelle CI complète sera requise pour la capture corrigée ; CI916 reste utile pour vérifier le déroulement du premier scénario avant cette relance.
+
+
+## [2026-10-25] audit | Diagnostic des deux scénarios CI916
+
+CI916 40218038980 : 10 687 tests logique/PDF et 218 parcours Chromium réussis ; deux nouveaux scénarios échouent, WebKit non exécuté. La trace de mission ne contient aucun POST après le dépôt : le champ HTML est modifié avant l’hydratation du gestionnaire onChange, sans aperçu ni message d’envoi. Attente du chargement des ressources avant sélection, image fictive réellement décodable et assertion explicite Photo envoyée ajoutées. La trace du devis montre Enregistrement en cours et la requête de génération toujours pendante lors de l’expiration de l’attente de 15 s ; délai ciblé de 60 s, également pour le chargement du profil. Aucun message métier n’est contourné. La capture finale attend le titre rendu après rechargement. La CI s’est terminée avant l’arrêt envisagé ; elle n’a pas été annulée. Aucun changement applicatif supplémentaire, aucune publication.

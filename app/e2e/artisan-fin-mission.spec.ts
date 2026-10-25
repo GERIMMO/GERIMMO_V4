@@ -22,18 +22,26 @@ test('intervention acceptée : démarrage, photo, bilan, facture et réception g
   await db.query("insert into incident_interventions(id,organization_id,incident_id,artisan_id,nature_travaux,statut,acceptee_le) values($1,$2,$3,$4,'entretien_courant','acceptee',now())",[mission,lot.organization_id,incident,a.id]);
   await sansSyntheseAlertes(page);
   await page.goto(`/artisan/missions/${mission}/compte-rendu/bilan`);
-  await expect(page).toHaveURL(new RegExp(`/missions/${mission}\\?raison=demarrer`));
+  await expect(page).toHaveURL(url => url.pathname === `/artisan/missions/${mission}` && url.searchParams.get('raison') === 'demarrer');
   await page.getByRole('button',{name:"Je démarre l'intervention",exact:true}).click();
   await expect.poll(async()=>(await db.query('select statut from incident_interventions where id=$1',[mission])).rows[0].statut).toBe('en_cours');
   await page.goto(`/artisan/missions/${mission}/compte-rendu/bilan`);
-  await expect(page).toHaveURL(new RegExp(`/compte-rendu\\?raison=photo`));
-  const photo=Buffer.concat([Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jBe0AAAAASUVORK5CYII=','base64'),Buffer.from(mission)]);
+  await expect(page).toHaveURL(url => url.pathname === `/artisan/missions/${mission}/compte-rendu` && url.searchParams.get('raison') === 'photo');
+  // Vraie image décodable, propre à cette mission (pas un PNG tronqué ou altéré).
+  await page.waitForLoadState('networkidle'); // Les champs SSR précèdent leur gestionnaire onChange.
+  const photo=Buffer.from(await page.evaluate(id=>{
+   const canvas=document.createElement('canvas');canvas.width=320;canvas.height=180;
+   const ctx=canvas.getContext('2d')!;ctx.fillStyle='#e3edf0';ctx.fillRect(0,0,320,180);
+   ctx.fillStyle='#17324f';ctx.font='16px sans-serif';ctx.fillText('ESSAI — travail réalisé',16,50);ctx.font='10px sans-serif';ctx.fillText(id,16,90);
+   return canvas.toDataURL('image/png').split(',')[1];
+  },mission),'base64');
   await page.locator('form').filter({has:page.locator('[name="moment"][value="apres"]')}).locator('input[type=file]').setInputFiles({name:'travail-fictif.png',mimeType:'image/png',buffer:photo});
+  await expect(page.getByText('Photo envoyée.',{exact:true})).toBeVisible({timeout:20000});
   await page.getByRole('link',{name:'Continuer — le bilan',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Le bilan',exact:true})).toBeVisible();
   await page.getByLabel('Ce que vous avez fait',{exact:true}).fill(bilan);
   await page.getByRole('button',{name:"Terminer l'intervention",exact:true}).click();
-  await expect(page).toHaveURL(new RegExp(`/missions/${mission}\\?termine=1`));
+  await expect(page).toHaveURL(url => url.pathname === `/artisan/missions/${mission}` && url.searchParams.get('termine') === '1');
   await page.getByRole('link',{name:'Déposer ma facture',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Déposer ma facture',exact:true})).toBeVisible();
   await page.getByLabel('Numéro de la facture',{exact:true}).fill(numero);
@@ -86,7 +94,7 @@ test('devis privé : compléter son identité puis reprendre sans ressaisir ni a
   const {rows:[ancien]}=await db.query('select * from artisan_devis_externes where chantier_id=$1',[chantier]);
   await page.reload();await expect(page.getByText('Adresse absente de cette version',{exact:true})).toBeVisible();
   await page.getByRole('link',{name:'Compléter mes coordonnées',exact:true}).click();
-  const adresse=page.getByLabel('Adresse complète de l’entreprise',{exact:true});await expect(adresse).toBeVisible();
+  const adresse=page.getByLabel('Adresse complète de l’entreprise',{exact:true});await expect(adresse).toBeVisible({timeout:60000});
   await adresse.fill('25 rue de l’Essai, 75012 Paris');
   await page.getByRole('button',{name:'Enregistrer mes informations de devis',exact:true}).click();
   await expect(page.getByText(/Informations enregistrées pour vos nouveaux devis/)).toBeVisible();
@@ -97,12 +105,13 @@ test('devis privé : compléter son identité puis reprendre sans ressaisir ni a
   const {rows:[nouveau]}=await db.query('select * from artisan_devis_externes where chantier_id=$1 and version=2',[chantier]);
   expect(nouveau.lignes).toEqual(ancien.lignes);expect(nouveau.montant_ttc_cents).toBe(ancien.montant_ttc_cents);expect(nouveau.description).toBe(ancien.description);expect(nouveau.valide_jusqu_au).toEqual(ancien.valide_jusqu_au);
   await page.getByRole('button',{name:'Valider cette version et générer le PDF',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Devis — version 2 · Validé',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Devis — version 2 · Validé',exact:true})).toBeVisible({timeout:60000});
   await expect(page.getByRole('button',{name:'Reprendre avec mes coordonnées à jour',exact:true})).toHaveCount(0);
   const {rows:[valide]}=await db.query('select entreprise,pdf_id from artisan_devis_externes where id=$1',[nouveau.id]);
   expect(valide.entreprise.adresse).toBe('25 rue de l’Essai, 75012 Paris');expect(valide.pdf_id).toBeTruthy();
   const reponse=await page.request.get((await page.getByRole('link',{name:'Télécharger le PDF validé',exact:true}).getAttribute('href'))!);expect(reponse.status()).toBe(200);
   await page.reload();
+  await expect(page.getByRole('heading',{name:'Devis — version 2 · Validé',exact:true})).toBeVisible({timeout:60000});
   expect((await db.query('select entreprise,pdf_id from artisan_devis_externes where id=$1',[nouveau.id])).rows[0]).toEqual(valide);
   expect((await db.query('select entreprise from artisan_devis_externes where id=$1',[ancien.id])).rows[0].entreprise.adresse).toBe('');
   expect(await debordementHorizontal(page)).toBe(0);await page.screenshot({path:info.outputPath('devis-repris-valide.png'),fullPage:true});

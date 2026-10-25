@@ -61,10 +61,11 @@ export default async function PageAdminOrganisation(
   if (!estSuperAdmin) redirect("/espaces");
 
   // RM-A1.11 : la traversée super admin est journalisée (audit_log, 3 ans)
-  await supabase.rpc("log_sa_access", {
+  const { error: erreurTrace } = await supabase.rpc("log_sa_access", {
     org: orgId,
     sa_action: "consultation_organisation",
   });
+  if (erreurTrace) return <main className="p-4 sm:p-7"><LectureIndisponible sujet="Journal des consultations" retour={`/admin/organisations/${orgId}`} /></main>;
 
   const { data: organisation, error: erreurOrganisation } = await supabase
     .from("organizations")

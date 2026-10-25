@@ -33,7 +33,7 @@ export function ColonneSupervision({ children }: { children: ReactNode }) {
   return <aside id="menu-supervision" className={`admin-late min-[901px]:col-start-1 min-[901px]:row-start-1 min-[901px]:row-span-2 max-[900px]:row-start-2${ouvert ? "" : " max-[900px]:hidden!"}`}>{children}</aside>;
 }
 
-function Groupes({ artisansEnAttente, decisions, auClic }: { artisansEnAttente: number; decisions: number; auClic?: () => void }) {
+function Groupes({ artisansEnAttente, decisions, auClic }: { artisansEnAttente: number | null; decisions: number | null; auClic?: () => void }) {
   const chemin = usePathname();
   const recherche = useSearchParams().toString();
   const active = rubriqueActive(chemin, recherche);
@@ -54,14 +54,15 @@ function Groupes({ artisansEnAttente, decisions, auClic }: { artisansEnAttente: 
       const Icone = ICONES[r.cle as keyof typeof ICONES] ?? LayoutDashboard;
       return <Link key={r.cle} href={r.href} prefetch={false} className="admin-nav-lien" aria-current={active?.cle === r.cle ? "page" : undefined}>
         <Icone size={18} strokeWidth={1.7} aria-hidden="true" /><span>{r.libelle}</span>
-        {n > 0 && <span className="coquille-badge ml-auto" aria-label={r.badge === "artisans" ? `${n} artisan${n > 1 ? "s" : ""} à valider` : `${n} sujet${n > 1 ? "s" : ""} à traiter`}>{n}</span>}
+        {n === null && <span className="coquille-badge ml-auto">À vérifier</span>}
+        {n !== null && n > 0 && <span className="coquille-badge ml-auto" aria-label={r.badge === "artisans" ? `${n} artisan${n > 1 ? "s" : ""} à valider` : `${n} sujet${n > 1 ? "s" : ""} à traiter`}>{n}</span>}
       </Link>;
     })}
   </div>;
 }
 
 /** La navigation de la colonne latérale (ordinateur). */
-export function NavAdmin({ artisansEnAttente = 0, decisions = 0 }: { artisansEnAttente?: number; decisions?: number }) {
+export function NavAdmin({ artisansEnAttente = 0, decisions = 0 }: { artisansEnAttente?: number | null; decisions?: number | null }) {
   const { fermer } = useContext(MenuSupervision);
   return <div className="admin-menu-conteneur">
     {/* Au téléphone, la recherche vit dans le menu (audit C26) ; la fenêtre est celle de la barre haute. */}
@@ -76,7 +77,7 @@ export function NavAdmin({ artisansEnAttente = 0, decisions = 0 }: { artisansEnA
  * Sur une fiche (organisation, compte), la rubrique reste lisible sans
  * qu'aucun onglet ne soit allumé : on sait où l'on est, et comment remonter.
  */
-export function OngletsSupervision({ artisansEnAttente = 0, decisions = 0 }: { artisansEnAttente?: number; decisions?: number }) {
+export function OngletsSupervision({ artisansEnAttente = 0, decisions = 0 }: { artisansEnAttente?: number | null; decisions?: number | null }) {
   const chemin = usePathname();
   const recherche = useSearchParams().toString();
   const rangee = useRef<HTMLDivElement>(null);
@@ -101,7 +102,8 @@ export function OngletsSupervision({ artisansEnAttente = 0, decisions = 0 }: { a
         const n = o.badge ? compte[o.badge] : 0;
         return <Link key={o.href} href={o.href} className="admin-onglet" aria-current={actif?.href === o.href ? "page" : undefined}>
           {o.libelle}
-          {n > 0 && <span className="coquille-badge ml-2" aria-hidden>{n}</span>}
+          {n === null && <span className="coquille-badge ml-2">À vérifier</span>}
+          {n !== null && n > 0 && <span className="coquille-badge ml-2" aria-hidden>{n}</span>}
         </Link>;
       })}
     </div>

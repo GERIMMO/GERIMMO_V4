@@ -182,6 +182,13 @@ describe("SyntheseAlertes (fenêtre des alertes à la connexion) : la racine sui
 });
 
 describe("console : la fiche d'un client (« Entrer dans son espace », profil à compléter)", () => {
+  it("ne charge pas l’identité du client quand le journal de consultation échoue", async () => {
+    const db=client(()=>[]), from=vi.fn(db.from);
+    m.client={...db,from,rpc:async (nom:string)=>({data:nom==="is_super_admin",error:nom==="log_sa_access"?{message:"journal indisponible"}:null})};
+    const html=renderToStaticMarkup(await PageAdminOrganisation({params:Promise.resolve({orgId:ORG}),searchParams:Promise.resolve({})} as never));
+    expect(html).toContain("Journal des consultations"); expect(from).not.toHaveBeenCalled();
+  });
+
   for (const p of PROFILS) {
     it(`${p.nom} → ${p.attendu}`, async () => {
       m.client = client((nom) => {

@@ -82,7 +82,12 @@ type Lecteur = ClientQuiLitLeJournal & {
   rpc: (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
 };
 
-const nombre = (r: Resultat) => (r.error ? null : r.count ?? 0);
+const nombre = (r: Resultat) => (r.error || typeof r.count !== "number" || !Number.isFinite(r.count) ? null : r.count);
+
+/** Un total partiel ne doit pas se présenter comme le nombre réel de décisions. */
+export function compteurDecisions(d: Pick<DecisionsAttendues, "total" | "indisponibles">): number | null {
+  return d.indisponibles.length ? null : d.total;
+}
 
 export async function chargerDecisionsAttendues(
   db: Lecteur,
@@ -114,6 +119,9 @@ export async function chargerDecisionsAttendues(
   const {decisions, reserve} = selectionnerDemandes(toutes);
   const nbArtisans = files.indisponibles.includes("artisans") ? null : files.attentes.artisans.length;
   if (sante.tachesIllisibles) indisponibles.push("l’historique des tâches");
+  for (const [nom, resultat] of [["les problèmes bloquants",bugsN1], ["les demandes commerciales",devis], ["les contestations",contestations], ["les alertes critiques",alertesCritiques]] as const) {
+    if (nombre(resultat) === null) indisponibles.push(nom);
+  }
   const signaux = signauxHorsEquipes(
     { bugsN1: nombre(bugsN1), devis: nombre(devis), contestations: nombre(contestations), alertesCritiques: nombre(alertesCritiques) },
     sante

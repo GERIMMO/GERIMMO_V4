@@ -1,3 +1,4 @@
+import { EdlConsultation } from "./edl-consultation";
 import { EtapesSaisie } from "@/components/etapes-saisie";
 import Link from "next/link";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
@@ -24,7 +25,7 @@ export default async function PageEdl(
 ) {
   const { orgId, bailId, edlId } = await props.params;
   exigerUuids(bailId, edlId);
-  const { supabase, estProprietaire, user } = await verifierAccesEspace(orgId);
+  const { supabase, estProprietaire, user, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
 
@@ -204,7 +205,7 @@ export default async function PageEdl(
               {signe ? "Signé — figé" : "En cours de saisie"}
             </span>
             {/* Documents-0 : le PDF (14/15) depuis la grille réelle */}
-            {signe && <BoutonGenererDocument
+            {signe && !traverseeLectureSeule && <BoutonGenererDocument
               orgId={orgId}
               code="edl"
               cibleId={edlId}
@@ -213,7 +214,7 @@ export default async function PageEdl(
             />}
           </span>
         </div>
-        {suiteRestitution && (
+        {suiteRestitution && !traverseeLectureSeule && (
           <Link
             href={`${base}/baux/${bailId}#restitution`}
             className="mt-2 inline-block text-sm underline underline-offset-2"
@@ -225,7 +226,7 @@ export default async function PageEdl(
 
       <EchecLecture quoi={echecs} />
 
-      <EtapesSaisie activer={!signe} titre="État des lieux" etapes={[
+      {traverseeLectureSeule ? <EdlConsultation indisponibles={{lignes:Boolean(erreurLignes),compteurs:Boolean(erreurCompteurs),cles:Boolean(erreurCles)}} mentions={edl} lignes={lignes ?? []} compteurs={(compteurs ?? []) as Compteur[]} cles={(cles ?? []) as Cle[]} /> : <EtapesSaisie activer={!signe} titre="État des lieux" etapes={[
         {titre:"Informations", detail:"Identifiez les personnes présentes et les mentions du document."},
         {titre:"Les pièces", detail:"Examinez une pièce à la fois. Enregistrez la grille avant de poursuivre."},
         {titre:"Compteurs et clés", detail:"Renseignez les relevés et les clés remises, puis enregistrez."},
@@ -378,7 +379,7 @@ export default async function PageEdl(
         <p className="text-sm text-muted-foreground">Les mentions, les relevés et les clés enregistrés seront repris dans le document. Vérifiez-les avant de le faire signer aux parties.</p>
         <BoutonGenererDocument orgId={orgId} code="edl" cibleId={edlId} cheminRetour={`${base}/baux/${bailId}/edl/${edlId}`} libelle="Générer le PDF" />
       </div>] : []),
-      ]} />
+      ]} />}
     </main>
   );
 }

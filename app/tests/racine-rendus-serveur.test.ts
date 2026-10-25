@@ -182,12 +182,19 @@ describe("SyntheseAlertes (fenêtre des alertes à la connexion) : la racine sui
 });
 
 describe("console : la fiche d'un client (« Entrer dans son espace », profil à compléter)", () => {
+  it("ne charge pas l’identité du client quand le journal de consultation échoue", async () => {
+    const db=client(()=>[]), from=vi.fn(db.from);
+    m.client={...db,from,rpc:async (nom:string)=>({data:nom==="is_super_admin",error:nom==="log_sa_access"?{message:"journal indisponible"}:null})};
+    const html=renderToStaticMarkup(await PageAdminOrganisation({params:Promise.resolve({orgId:ORG}),searchParams:Promise.resolve({})} as never));
+    expect(html).toContain("Journal des consultations"); expect(from).not.toHaveBeenCalled();
+  });
+
   for (const p of PROFILS) {
     it(`${p.nom} → ${p.attendu}`, async () => {
       m.client = client((nom) => {
         if (nom === "is_super_admin") return true;
         if (nom === "organizations") {
-          return [{ id: ORG, name: "Organisation TEST", status: "active", type: p.type, essai_fin: null, created_at: "2026-01-05T10:00:00Z" }];
+          return [{ id: ORG, name: "Organisation TEST", status: "active", type: p.type, address_line1: "1 rue témoin", essai_fin: null, created_at: "2026-01-05T10:00:00Z" }];
         }
         return [];
       });
@@ -198,8 +205,15 @@ describe("console : la fiche d'un client (« Entrer dans son espace », profil �
       expect(liens).toEqual(expect.arrayContaining([p.attendu, `${p.attendu}/profil`]));
       for (const l of liens) expect(l.startsWith(p.attendu), l).toBe(true);
       expect(html).not.toContain(p.interdit);
+      if (p.proprietaire) { expect(html.toLowerCase()).not.toContain("siret"); expect(html.toLowerCase()).not.toContain("tva"); }
+      else { expect(html.toLowerCase()).toContain("siret"); expect(html.toLowerCase()).toContain("tva"); }
     });
   }
+  it("conserve les renseignements professionnels réellement fournis par un propriétaire", async () => {
+    m.client = client(nom => nom === "is_super_admin" ? true : nom === "organizations" ? [{id:ORG,name:"Propriétaire TEST",type:"proprietaire_direct",status:"active",siret:"12345678900012",tva_intracom:"FR00123456789",created_at:"2026-01-01"}] : []);
+    const html = renderToStaticMarkup(await PageAdminOrganisation({params:Promise.resolve({orgId:ORG}),searchParams:Promise.resolve({})} as never));
+    expect(html).toContain("12345678900012"); expect(html).toContain("FR00123456789");
+  });
 });
 
 describe("console : la fiche d'un compte (« Entrer dans son espace » depuis chaque rôle)", () => {

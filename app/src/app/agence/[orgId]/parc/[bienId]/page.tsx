@@ -52,7 +52,7 @@ export default async function PageBien(
 ) {
   const { orgId, bienId } = await props.params;
   exigerUuids(bienId);
-  const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, role, estProprietaire, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
   // Le lien retour porte le nom de l'entrée du menu (24/09) : « ← Parc »
@@ -393,7 +393,7 @@ export default async function PageBien(
                     </details>
                   )}
 
-                  <BoutonsEtatLot
+                  {!traverseeLectureSeule && <BoutonsEtatLot
                     orgId={orgId}
                     bienId={bienId}
                     lotId={lot.id}
@@ -401,7 +401,7 @@ export default async function PageBien(
                     bloque={blocages.length > 0}
                     compact
                     estBailleurDirect={estProprietaire}
-                  />
+                  />}
                 </li>
               );
             })}
@@ -419,7 +419,7 @@ export default async function PageBien(
       {/* Le bien : condensé + sections repliables (consulter d'abord, éditer sur clic) */}
       <Card id="informations" className="scroll-mt-20">
         <CardHeader><CardTitle className="bien-visuel-titre"><IconeTrait nom="maison" />Informations du bien</CardTitle></CardHeader>
-        <CardContent><RecapBien orgId={orgId} bien={bien as BienFormulaire} /></CardContent>
+        <CardContent><RecapBien lectureSeule={traverseeLectureSeule} orgId={orgId} bien={bien as BienFormulaire} /></CardContent>
       </Card>
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1"><h2 className="text-lg font-semibold">Le dossier du bien</h2><Link href={`${base}/reseau?bien=${bienId}`} className="lien-discret inline-flex min-h-11 items-center gap-2 text-sm"><IconeTrait nom="outil" className="size-4" />Trouver un artisan →</Link></div>
       <div className="bien-visuel-dossier">
@@ -441,7 +441,7 @@ export default async function PageBien(
                 ERP, amiante des parties communes, termites… Les diagnostics du
                 lot (DPE…) se déposent sur sa fiche.
               </p>
-              {erreurDiagnostics ? <p role="alert">Documents indisponibles. Réessayez pour connaître leur état.</p> : <LignesDiagnostics
+              {erreurDiagnostics ? <p role="alert">Documents indisponibles. Réessayez pour connaître leur état.</p> : <LignesDiagnostics lectureSeule={traverseeLectureSeule}
                 orgId={orgId}
                 bienId={bienId}
                 lotId={null}
@@ -485,7 +485,7 @@ export default async function PageBien(
 
           {/* Découpage en lots — seulement là où il s'applique : sur un bien
               non découpable, la rangée ne s'ouvrait que pour le dire (24/09). */}
-          {!(TYPES_NON_DECOUPABLES as readonly string[]).includes(bien.type) && (
+          {!traverseeLectureSeule && !(TYPES_NON_DECOUPABLES as readonly string[]).includes(bien.type) && (
             <SectionLot
               titre="Découpage en lots"
               resume={`${lotsActifs.length} lot${lotsActifs.length > 1 ? "s" : ""}`}
@@ -536,7 +536,7 @@ export default async function PageBien(
                     tant qu&apos;elle n&apos;est pas validée.
                   </p>
                 )}
-                <FormulaireCle
+                {!traverseeLectureSeule && <FormulaireCle
                   // Remonté à neuf quand la structure des lots change (découpage)
                   key={lotsActifs.map((l) => l.id).join("-")}
                   orgId={orgId}
@@ -547,7 +547,7 @@ export default async function PageBien(
                     surface_m2: l.surface_m2,
                     tantieme: l.tantieme,
                   }))}
-                />
+                />}
               </div>
             </SectionLot>
           )}
@@ -560,7 +560,7 @@ export default async function PageBien(
             // manque (24/09).
             resume={infosRenseignees ? "Renseignées" : "Non renseignées"}
           >
-            <FormulaireInfosPratiques
+            <FormulaireInfosPratiques lectureSeule={traverseeLectureSeule}
               orgId={orgId}
               bienId={bienId}
               infos={(infos ?? null) as InfosPratiques | null}
@@ -586,7 +586,7 @@ export default async function PageBien(
                 s&apos;affiche sur l&apos;accueil des locataires du bien jusqu&apos;à la
                 date choisie, puis disparaît seule.
               </p>
-              <CarteAnnonces
+              <CarteAnnonces lectureSeule={traverseeLectureSeule}
                 orgId={orgId}
                 bienId={bienId}
                 annonces={(annonces ?? []) as AnnonceBien[]}
@@ -598,7 +598,7 @@ export default async function PageBien(
       {/* Retirer le bien du parc (audit du 27/09) : l'abonnement promettait
           « un bien retiré n'est plus compté » sans qu'aucun geste existe.
           Réservé au responsable, comme la réactivation d'un lot archivé. */}
-      {ROLES_RESPONSABLES.includes(role) && (
+      {!traverseeLectureSeule && ROLES_RESPONSABLES.includes(role) && (
         <CarteRetraitBien
           orgId={orgId}
           bienId={bienId}

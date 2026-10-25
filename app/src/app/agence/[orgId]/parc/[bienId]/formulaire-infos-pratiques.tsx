@@ -35,14 +35,17 @@ export function FormulaireInfosPratiques({
   orgId,
   bienId,
   infos,
+  lectureSeule = false,
 }: {
   orgId: string;
   bienId: string;
   infos: InfosPratiques | null;
+  lectureSeule?: boolean;
 }) {
   const action = enregistrerInfosPratiques.bind(null, orgId, bienId);
   const [etat, formAction] = useActionState<EtatParc, FormData>(action, {});
 
+  if (lectureSeule) return <dl className="space-y-3 text-sm">{CHAMPS.map(c => <div key={c.nom}><dt className="text-muted-foreground">{c.label}</dt><dd>{infos?.[c.nom] || "Non renseigné"}</dd></div>)}</dl>;
   return (
     <div className="space-y-4">
       {/* Numéros d'urgence — toujours affichés, non éditables */}

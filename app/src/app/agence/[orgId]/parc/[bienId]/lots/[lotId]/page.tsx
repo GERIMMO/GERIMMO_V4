@@ -343,7 +343,7 @@ export default async function PageLot(
                         {formaterDate(d.date_debut)}
                         {d.date_fin ? ` → ${formaterDate(d.date_fin)}` : ""}
                       </span>
-                      {!d.date_fin && (
+                      {!traverseeLectureSeule && !d.date_fin && (
                         <BoutonCloreDetention
                           orgId={orgId}
                           bienId={bienId}
@@ -351,7 +351,7 @@ export default async function PageLot(
                           detentionId={d.id}
                         />
                       )}
-                      {!d.date_fin && (baux ?? []).length === 0 && (
+                      {!traverseeLectureSeule && !d.date_fin && (baux ?? []).length === 0 && (
                         /* Ce bouton SUPPRIME : au doigt, on l'écarte de
                            « Fermer » pour éviter le tap voisin. */
                         <span className="pointer-coarse:ml-2">
@@ -365,7 +365,7 @@ export default async function PageLot(
                           />
                         </span>
                       )}
-                      {d.date_fin && (
+                      {!traverseeLectureSeule && d.date_fin && (
                         <BoutonRouvrirDetention
                           orgId={orgId}
                           bienId={bienId}
@@ -377,14 +377,14 @@ export default async function PageLot(
                   ))}
                 </ul>
               )}
-              <FormulaireDetention
+              {!traverseeLectureSeule && <FormulaireDetention
                 orgId={orgId}
                 bienId={bienId}
                 lotId={lotId}
                 personnes={personnes ?? []}
                 proprietairesIds={[...new Set((proprietaires ?? []).map((d) => d.person_id))]}
                 premierProprietaire={detentionsActives.length === 0}
-              />
+              />}
             </div>
           </SectionLot>);
   const rubriqueDiagnostics = (<SectionLot ouvertParDefaut
@@ -408,6 +408,7 @@ export default async function PageLot(
                 orgId={orgId}
                 bienId={bienId}
                 lotId={lotId}
+                lectureSeule={traverseeLectureSeule}
                 niveau="lot"
                 attendus={exigiblesLot.map((e) => e.type)}
                 diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
@@ -432,6 +433,7 @@ export default async function PageLot(
                 orgId={orgId}
                 bienId={bienId}
                 lotId={lotId}
+                lectureSeule={traverseeLectureSeule}
                 niveau="bien"
                 attendus={exigiblesBien.map((e) => e.type)}
                 diagnostics={(diagnosticsBien ?? []) as DiagnosticDepose[]}
@@ -448,13 +450,13 @@ export default async function PageLot(
                 : `${nbEquip} équipement${nbEquip > 1 ? "s" : ""} renseigné${nbEquip > 1 ? "s" : ""}`
             }
           >
-            <FormulaireEquipementsLot
+            {traverseeLectureSeule ? <ul className="space-y-2 text-sm">{(catalogue ?? []).filter(e => (equipesLot ?? []).some(s => s.equipement_id === e.id)).map(e => <li key={e.id}>{e.nom}</li>)}{nbEquip === 0 && <li>Aucun équipement renseigné.</li>}</ul> : <FormulaireEquipementsLot
               orgId={orgId}
               bienId={bienId}
               lotId={lotId}
               catalogue={catalogue ?? []}
               selection={(equipesLot ?? []).map((e) => e.equipement_id)}
-            />
+            />}
           </SectionLot>);
   const rubriquePieces = (<SectionLot ouvertParDefaut={parcours === "1"}
             id="pieces"
@@ -466,12 +468,12 @@ export default async function PageLot(
                 : (piecesLot as PieceLot[]).map((p) => p.nom).join(", ")
             }
           >
-            <FormulairePiecesLot
+            {traverseeLectureSeule ? <ul className="space-y-2 text-sm">{(piecesLot ?? []).map(p => <li key={p.id}>{p.nom}</li>)}{!piecesLot?.length && <li>Aucune pièce renseignée.</li>}</ul> : <FormulairePiecesLot
               orgId={orgId}
               bienId={bienId}
               lotId={lotId}
               pieces={(piecesLot ?? []) as PieceLot[]}
-            />
+            />}
           </SectionLot>);
   const rubriqueBaux = (<SectionLot
             id="baux"
@@ -619,7 +621,7 @@ export default async function PageLot(
           bailPrincipal.date_debut ? `Entrée ${bailAReprendre && !bailEnCours ? "prévue " : ""}le ${formaterDate(bailPrincipal.date_debut)}` : "Date d’entrée à préciser",
           bauxBrouillons.length > 1 && !bailEnCours ? `Dernier des ${bauxBrouillons.length} contrats à préparer ou activer` : null,
         ].filter(Boolean).join(" · ") : lot.etat === "archive" ? "Retrouvez les informations et l’historique de ce logement." : "Les informations du logement seront reprises dans le bail."}</p>
-        {signeAActiver && <p>Le contrat signé est archivé. La location attend votre activation.</p>}
+        {signeAActiver && <p>Le contrat signé est archivé. {traverseeLectureSeule ? "Le propriétaire doit encore activer la location." : "La location attend votre activation."}</p>}
         {loyerCc !== null && !erreurBaux && <p><strong>{eur(loyerCc)} / mois</strong> · charges comprises</p>}
       </div>
       {!erreurBaux && <div className={styles.locationActions}>
@@ -726,7 +728,7 @@ export default async function PageLot(
                   : `${nbChambres} chambre${nbChambres > 1 ? "s" : ""} préparée${nbChambres > 1 ? "s" : ""}`
               }
             >
-              {erreurChambres ? <p role="alert" className="err">Les chambres n’ont pas pu être chargées. Rechargez la page.</p> : <ChambresLogement orgId={orgId} lotId={lotId} bienId={bienId} chambres={chambres ?? []} plafond={lot.colocation_loyer_reference} />}
+              {erreurChambres ? <p role="alert" className="err">Les chambres n’ont pas pu être chargées. Rechargez la page.</p> : <ChambresLogement lectureSeule={traverseeLectureSeule} orgId={orgId} lotId={lotId} bienId={bienId} chambres={chambres ?? []} plafond={lot.colocation_loyer_reference} />}
             </SectionLot>
           )}
 
@@ -751,6 +753,7 @@ export default async function PageLot(
                 la régularisation, bloquée tant qu&apos;aucun appel n&apos;est ventilé.
               </p>
               <AppelsCharges
+                lectureSeule={traverseeLectureSeule}
                 orgId={orgId}
                 bienId={bienId}
                 lotId={lotId}
@@ -760,10 +763,10 @@ export default async function PageLot(
             </SectionLot>
           )}
       </section>}
-    <details className={styles.gestionStatut}><summary>Gérer le statut du lot <ChevronDown size={16} aria-hidden="true" /></summary><div>
+    {!traverseeLectureSeule && <details className={styles.gestionStatut}><summary>Gérer le statut du lot <ChevronDown size={16} aria-hidden="true" /></summary><div>
       {lot.etat === "brouillon" && !erreurBlocages && <BlocagesLocation motifs={(blocages ?? []) as string[]} ctx={{orgId,bienId,lotId,racine:racineEspace(estProprietaire)}} pageCourante={`${base}/parc/${bienId}/lots/${lotId}`} titre="Ce qui empêche la mise en location" />}
       <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} estBailleurDirect={role === "proprietaire_direct"} bailHref={bailEnCours ? `${base}/baux/${bailEnCours.id}` : undefined} />
-    </div></details></> },
+    </div></details>}</> },
         { id: "documents-lot", titre: "Documents", contenu: <>
       <section className={styles.panneau} aria-labelledby="titre-documents-lot">
         <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><FileText size={18} aria-hidden="true" /></span><h2 id="titre-documents-lot">Documents du logement</h2><Link href={`${base}/documents`}>Tous les documents <ArrowUpRight size={14} aria-hidden="true" /></Link></header>

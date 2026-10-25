@@ -70,6 +70,16 @@ Preuves : 15 tests dédiés (SQL et actions/rendu), 1 045 tests locaux au total 
 profil visité en supervision : message explicite et aucune action de signature.
 La [[Signature électronique|signature électronique]] Yousign reste un développement distinct.
 
+## Consultation superadmin et disponibilité du journal
+
+Une consultation d’un espace client, d’un fichier ou de la fiche d’une organisation
+par la supervision doit être journalisée avant de livrer les données. En cas d’échec
+du journal, la consultation reste indisponible et peut être reprise après rétablissement.
+Le propriétaire et le gestionnaire effectivement membres gardent leur accès ordinaire ;
+la panne du journal de traversée ne leur attribue ni ne leur retire de rôle métier.
+Preuves de non-régression : `traversee.test.ts` et `racine-rendus-serveur.test.ts`
+(panne, reprise et absence de chargement de la fiche client sans trace).
+
 ## Mots de passe et sessions
 
 - **12 caractères minimum**, **vérification contre les fuites connues** (RM-A4.3,

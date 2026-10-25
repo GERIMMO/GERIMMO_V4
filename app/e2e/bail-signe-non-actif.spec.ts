@@ -17,6 +17,7 @@ for (const persona of ["proprietaire", "superadmin"]) {
       const db = new Client({ connectionString: cible }); await db.connect();
       const lot = randomUUID(), bail = randomUUID(), original = randomUUID(), signe = randomUUID(), circuit = randomUUID(), dpe = randomUUID(), sansDate = randomUUID();
       const docs = [original, signe, dpe, sansDate];
+      const edl = randomUUID();
       const suivi = randomUUID(), alerteSignature = randomUUID(), alerteCritique = randomUUID();
       try {
         const source = (await db.query("select id,bien_id from public.lots where organization_id=$1 and nom='Appartement T2 — 12 rue des Lilas'", [ORG])).rows[0];
@@ -24,6 +25,8 @@ for (const persona of ["proprietaire", "superadmin"]) {
         await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots,to_jsonb(l)||jsonb_build_object('id',$1::text,'nom','Bail signé — essai local','etat','disponible'))).* from public.lots l where id=$2`, [lot, source.id]);
         const owner = (await db.query("select account_id from public.memberships where organization_id=$1 and role='proprietaire_direct' and status='active' limit 1", [ORG])).rows[0].account_id;
         await db.query("insert into public.baux(id,organization_id,lot_id,etat,type,date_debut,loyer_hc,charges) values($1,$2,$3,'brouillon','nu',current_date+7,750,50)", [bail, ORG, lot]);
+        await db.query("insert into public.etats_des_lieux(id,organization_id,bail_id,type,personnes_presentes) values($1,$2,$3,'entree','Présents — essai consultation')", [edl, ORG, bail]);
+        await db.query("insert into public.edl_lignes(organization_id,edl_id,piece,libelle,etat,commentaire) values($1,$2,'Cuisine','Mur','usage','Rayure témoin')", [ORG, edl]);
         for (const [id, titre, type, expiration] of [
           [original, "Bail nu (généré, à faire signer) — à signer en ligne", "bail", null],
           [signe, "Bail nu (généré, à faire signer) — à signer en ligne — signé", "bail", null],
@@ -70,10 +73,16 @@ for (const persona of ["proprietaire", "superadmin"]) {
         if (persona === "superadmin") {
           await expect(page.getByRole("link", { name: "Modifier le lot", exact: true })).toHaveCount(0);
           await expect(page.locator("#caracteristiques").getByRole("button", { name: "Modifier", exact: true })).toHaveCount(0);
+          await expect(page.getByRole("main").locator("form")).toHaveCount(0);
+          await expect(page.getByText("Gérer le statut du lot", {exact:true})).toHaveCount(0);
         } else await expect(page.locator("#caracteristiques").getByRole("button", { name: "Modifier", exact: true })).toBeVisible();
         await page.screenshot({ path: info.outputPath(`logement-${persona}.png`), fullPage: true });
         await page.getByRole("tab", { name: "Documents", exact: true }).click();
         await expect(page.getByText("Expiré · à renouveler", { exact: true })).toBeVisible();
+        if (persona === "superadmin") {
+          await expect(page.getByRole("button", {name:"Renouveler",exact:true})).toHaveCount(0);
+          await expect(page.getByText("Détails et modifications", {exact:true})).toHaveCount(0);
+        } else await expect(page.getByRole("button", {name:"Renouveler",exact:true}).first()).toBeVisible();
         await page.getByRole("tab", { name: "Contrats", exact: true }).click();
         await expect(page.locator("#baux")).toContainText("Bail signé");
         await expect(page.getByRole("button", { name: "Supprimer le brouillon", exact: true })).toHaveCount(0);
@@ -83,7 +92,26 @@ for (const persona of ["proprietaire", "superadmin"]) {
         await expect(page.getByRole("main")).toContainText("Le bail est signé. La location n’est pas encore activée.");
         await expect(page.locator("#signature")).toContainText("Bail signé · location non activée");
         await expect(page.getByRole("button", { name: "Générer le PDF du bail", exact: true })).toHaveCount(0);
-        if (persona === "superadmin") await expect(page.getByRole("main")).not.toContainText("Connectez-vous à votre espace propriétaire");
+        if (persona === "superadmin") {
+          await expect(page.getByRole("main")).not.toContainText("Connectez-vous à votre espace propriétaire");
+          await expect(page.getByRole("main").locator("form")).toHaveCount(0);
+          for (const nom of ["Contrat", "Documents", "Suivi"]) {
+            await page.getByRole("tab", {name:nom,exact:true}).click();
+            await expect(page.getByRole("main").locator("input,textarea,select")).toHaveCount(0);
+          }
+          expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);
+          await page.screenshot({path:info.outputPath("bail-superadmin-consultation.png"),fullPage:true});
+        }
+        if (persona === "superadmin") {
+          await page.goto(`/espace/${ORG}/baux/${bail}/edl/${edl}`);
+          await expect(page.getByRole("main")).toContainText("En cours de saisie");
+          await expect(page.getByRole("main")).toContainText("Présents — essai consultation");
+          await expect(page.getByRole("main")).toContainText("Rayure témoin");
+          await expect(page.getByRole("main").locator("form,input,textarea,select")).toHaveCount(0);
+          await expect(page.getByRole("button", {name:"Générer le PDF",exact:true})).toHaveCount(0);
+          expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);
+          expect(await debordementHorizontal(page)).toBe(0);
+        }
         // Le PDF fictif n'est pas chargé : ce test vérifie les états et la navigation.
         await page.goto(`/espace/${ORG}/documents`);
         const archive = page.getByRole("link").filter({ hasText: "Bail nu — signé" }).first();
@@ -93,6 +121,9 @@ for (const persona of ["proprietaire", "superadmin"]) {
         await expect(page.getByRole("link").filter({ hasText: "Pièce à vérifier — essai" }).first()).toContainText("À vérifier");
         expect(await debordementHorizontal(page)).toBe(0);
         if (persona === "superadmin") {
+          await page.goto(`/espace/${ORG}/parc/${source.bien_id}`);
+          await expect(page.getByRole("main").locator("form")).toHaveCount(0);
+          await expect(page.getByRole("button", {name:"Modifier le bien",exact:true})).toHaveCount(0);
           await page.goto(`/espace/${ORG}/reseau?bien=${source.bien_id}&metier=plomberie`);
           await expect(page.getByRole("main")).toContainText("Consultation superadmin");
           for (const name of ["Confirmer la commune", "Confirmer les communes évidentes", "Signaler mon intérêt"]) await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0);

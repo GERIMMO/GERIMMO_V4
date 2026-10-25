@@ -25,9 +25,14 @@ function FormulaireChambre({ cible, chambre }: { cible: Cible; chambre?: Chambre
   </form>;
 }
 
-export function ChambresLogement({ orgId, lotId, bienId, chambres, plafond, mode = "tout" }: Cible & { chambres: Chambre[]; plafond: number | null; mode?: "tout" | "chambres" | "plafond" }) {
+export function ChambresLogement({ orgId, lotId, bienId, chambres, plafond, mode = "tout", lectureSeule = false }: Cible & { chambres: Chambre[]; plafond: number | null; lectureSeule?: boolean; mode?: "tout" | "chambres" | "plafond" }) {
   const { etat, soumettre, enCours } = useActionFormulaire<EtatChambre>(enregistrerPlafondColocation.bind(null, orgId, lotId, bienId));
   const cible = { orgId, lotId, bienId };
+  if (lectureSeule) return <div className="space-y-3 text-sm">
+    <p>Loyer de référence du logement : {plafond == null ? "Non renseigné" : `${plafond} € / mois hors charges`}</p>
+    {chambres.map(c => <details key={c.id} className="rounded-lg border p-3"><summary>{c.nom} · {c.surface_m2} m² · {c.volume_m3} m³</summary><dl className="mt-3 space-y-2"><div><dt>Description</dt><dd>{c.description}</dd></div><div><dt>Équipements privatifs</dt><dd>{c.equipements || "Non renseignés"}</dd></div><div><dt>Espaces partagés</dt><dd>{c.espaces_partages}</dd></div></dl></details>)}
+    {!chambres.length && <p>Aucune chambre préparée.</p>}
+  </div>;
   return <div className="space-y-5">
     <p className="text-sm text-muted-foreground">Préparez une chambre par contrat. Le logement, ses propriétaires et ses diagnostics restent communs. Chaque locataire conserve son propre échéancier, son dépôt et son congé.</p>
     {mode !== "chambres" && <form data-saisie-confirmee onSubmit={soumettre} className="space-y-2">

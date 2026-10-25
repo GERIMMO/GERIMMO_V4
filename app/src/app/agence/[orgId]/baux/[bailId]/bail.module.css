@@ -30,9 +30,9 @@
 
 /* Le résumé du brouillon est rassemblé dans l’en-tête du contrat. */
 .resumeBrouillon { display:flex; flex-wrap:wrap; flex-basis:100%; gap:10px 28px; margin-top:0; padding-top:10px; border-top:1px solid var(--filet-leger); }
-.resumeBrouillon > div { display:flex; align-items:center; gap:10px; }
+.resumeBrouillon > div { display:flex; flex-wrap:wrap; align-items:baseline; gap:3px 10px; }
 .resumeBrouillon svg { color:var(--prestige-champagne-texte); flex-shrink:0; }
-.resumeBrouillon dt { color:var(--texte-secondaire); font-size:11px; line-height:1.5; }
+.resumeBrouillon dt { display:flex; align-items:center; gap:10px; color:var(--texte-secondaire); font-size:11px; line-height:1.5; }
 .resumeBrouillon dd { margin:0; color:var(--encre); font-size:15px; font-weight:600; }
 @media(max-width:500px) { .resumeBrouillon { gap:8px; } .resumeBrouillon > div { flex-basis:100%; } }
 
@@ -42,9 +42,8 @@
 .entete:has(.resumeBrouillon) h1 { font-size:26px; }
 .entete:has(.resumeBrouillon) .surtitre { margin-bottom:3px; }
 .entete:has(.resumeBrouillon) > div > p:last-child { margin-top:4px; }
-.resumeBrouillon > div > div { display:flex; flex-wrap:wrap; align-items:baseline; gap:3px 10px; }
 @media(max-width:500px) {
   .entete:has(.resumeBrouillon) { padding:12px 14px; gap:10px; }
   .entete:has(.resumeBrouillon) h1 { font-size:22px; }
-  .resumeBrouillon > div > div { column-gap:8px; }
+  .resumeBrouillon > div { column-gap:8px; }
 }

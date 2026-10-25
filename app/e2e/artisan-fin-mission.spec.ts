@@ -17,8 +17,8 @@ test('intervention acceptée : démarrage, photo, bilan, facture et réception g
  const gestion=await browser.newContext({storageState:'e2e/.auth/admin.json'});
  try {
   const {rows:[a]}=await db.query("select a.id from artisans a join auth.users u on u.id=a.account_id where u.email='artisan.alpha@example.com'");
-  const {rows:[lot]}=await db.query('select organization_id,lot_id from incidents where id in (select incident_id from incident_interventions where artisan_id=$1) limit 1',[a.id]);
-  await db.query("insert into incidents(id,organization_id,lot_id,numero,canal,categorie,description,etat,imputation) values($1,$2,$3,$4,'agence','plomberie_canalisation','ESSAI fin de mission fictive','affecte','proprietaire')",[incident,lot.organization_id,lot.lot_id,numero]);
+  const {rows:[lot]}=await db.query("select i.organization_id,i.lot_id from incidents i join organizations o on o.id=i.organization_id where o.name='Agence Alpha' and i.id in (select incident_id from incident_interventions where artisan_id=$1) order by i.id limit 1",[a.id]);
+  await db.query("insert into incidents(id,organization_id,lot_id,numero,canal,categorie,description,etat,imputation,imputation_justification) values($1,$2,$3,$4,'agence','plomberie_canalisation','ESSAI fin de mission fictive','affecte','proprietaire','ESSAI : réparation fictive à la charge du propriétaire')",[incident,lot.organization_id,lot.lot_id,numero]);
   await db.query("insert into incident_interventions(id,organization_id,incident_id,artisan_id,nature_travaux,statut,acceptee_le) values($1,$2,$3,$4,'entretien_courant','acceptee',now())",[mission,lot.organization_id,incident,a.id]);
   await sansSyntheseAlertes(page);
   await page.goto(`/artisan/missions/${mission}/compte-rendu/bilan`);

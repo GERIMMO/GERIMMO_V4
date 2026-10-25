@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { OffrirMoisAbonnement } from "@/components/offrir-mois-abonnement";
 import { ConsoleSection } from "@/components/console-section";
 import { LectureIndisponible } from "../../lecture-indisponible";
@@ -155,9 +156,9 @@ export default async function PageCompte({ params }: { params: Promise<{ account
           {cadeaux.some(c => c.data === null) ? <LectureIndisponible sujet="Mois offerts" retour={retour}/> : espacesCadeau.length > 0 ? <>
             {cadeaux.flatMap(c => (c.data ?? []).filter(g => !g.applique_le)).length ? cadeaux.flatMap(c => (c.data ?? []).filter(g => !g.applique_le).map(g => (
               <div key={g.id}><p className="mb-3 text-sm">Un cadeau attend sa transmission pour {c.espace.nom}. Reprenez-le pour éviter un doublon.</p>
-                <OffrirMoisAbonnement compte={g.compte} espaces={[c.espace]} reprise={{ id:g.id, mois:g.mois, motif:g.motif, montant_cents:g.montant_cents, organisation:c.espace.id }}/>
+                <OffrirMoisAbonnement confirmationId={g.id} compte={g.compte} espaces={[c.espace]} reprise={{ id:g.id, mois:g.mois, motif:g.motif, montant_cents:g.montant_cents, organisation:c.espace.id }}/>
               </div>
-            ))) : <OffrirMoisAbonnement compte={accountId} espaces={espacesCadeau}/>}
+            ))) : <OffrirMoisAbonnement confirmationId={randomUUID()} compte={accountId} espaces={espacesCadeau}/>}
             <ul className="mt-4 space-y-2 text-sm">{cadeaux.flatMap(c => (c.data ?? []).filter(g => g.applique_le).slice(0,10).map(g => <li key={g.id}>
               {c.espace.nom} · {g.mois} mois offerts · {g.nature === "acces" ? `Accès jusqu’au ${g.fin?.split("-").reverse().join("/")}` : `${(g.montant_cents/100).toFixed(2)} € crédités sur les prochaines factures`}
             </li>))}</ul>

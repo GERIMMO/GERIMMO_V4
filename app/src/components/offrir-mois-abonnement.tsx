@@ -4,8 +4,8 @@ import { useActionStateProtegee as useActionState } from "@/lib/use-action-state
 import { offrirMois, type EtatMoisOfferts } from "@/app/actions/mois-offerts";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
-export function OffrirMoisAbonnement({ compte, espaces, reprise }: { compte: string; espaces: { id: string; nom: string }[]; reprise?: { id: string; mois: number; motif: string; montant_cents: number; organisation: string } }) {
- const [id] = useState(() => reprise?.id ?? crypto.randomUUID());
+export function OffrirMoisAbonnement({ compte, espaces, reprise, confirmationId }: { compte: string; confirmationId: string; espaces: { id: string; nom: string }[]; reprise?: { id: string; mois: number; motif: string; montant_cents: number; organisation: string } }) {
+ const [id] = useState(() => reprise?.id ?? confirmationId);
  const [etat, envoyer] = useActionState<EtatMoisOfferts, FormData>(offrirMois.bind(null, compte), {});
  const [modifie, setModifie] = useState(false);
  const [organisation, setOrganisation] = useState(reprise?.organisation ?? espaces[0]?.id ?? "");

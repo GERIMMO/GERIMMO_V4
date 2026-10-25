@@ -18,6 +18,8 @@ export async function servirFichierSigne(db: SupabaseClient, options: {
   mode?: "consultation" | "telechargement"; retour: string; apercuImage?: boolean;
   compartiment?: "documents" | "devis-preparations" | "artisan-prive";
   sha256?: string;
+  /** Titre de lecture issu de l’état métier ; le nom de fichier archivé est conservé. */
+  libelle?: string;
 }): Promise<Response> {
   const compartiment = options.compartiment ?? "documents";
   if (!["documents", "devis-preparations", "artisan-prive"].includes(compartiment) ||
@@ -28,6 +30,7 @@ export async function servirFichierSigne(db: SupabaseClient, options: {
   const ext = mime ? EXTENSIONS[mime] : "bin";
   const titre = (options.titre || "document").replace(/[\u0000-\u001f\u007f/\\]/g," ").slice(0,180);
   const nom = titre.endsWith(`.${ext}`) ? titre : `${titre}.${ext}`;
+  const libelle = options.libelle || nom;
   const telechargement = options.mode === "telechargement" || !mime;
   const { data, error } = await db.storage.from(compartiment).createSignedUrl(options.path, DUREE_LIEN,
     telechargement ? { download: nom } : undefined).catch(() => ({data:null,error:true}));
@@ -45,9 +48,9 @@ export async function servirFichierSigne(db: SupabaseClient, options: {
   if (!options.sha256 && (telechargement || (options.apercuImage && (mime === "image/png" || mime === "image/jpeg")))) return new Response(null,{status:303,headers:{...entetes,Location:url.toString()}});
   const nonce = randomBytes(18).toString("base64");
   const parametres = JSON.stringify({url:url.toString(),mime:mime ?? "application/octet-stream",nom,sha256:options.sha256}).replaceAll("<","\\u003c");
-  const contenu = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>${echapper(nom)} — Gerimmo</title>
-<style nonce="${nonce}">*{box-sizing:border-box}body{margin:0;height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr);background:#f5f6fa;color:#17324f;font:16px/1.5 system-ui}header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 18px;background:white;border-bottom:1px solid #dce3eb}header strong{flex:1;overflow-wrap:anywhere}button,a{font:inherit;border:1px solid #c9d5e4;border-radius:8px;padding:9px 13px;color:#17324f;background:white;text-decoration:none;cursor:pointer}#apercu{height:100%}main{min-height:0}#etat{padding:24px;text-align:center}iframe{border:0;width:100%;height:100%}img{display:block;max-width:100%;height:auto;margin:auto}[hidden]{display:none!important}#aide-pdf{padding:16px;text-align:center}html.incorpore #aide-pdf{display:none!important}@media(max-width:767px){html:not(.incorpore) iframe{display:none}}</style></head>
-<body><header><strong>${echapper(nom)}</strong><button id="reprendre" type="button">Actualiser</button><a id="ouvrir" target="_blank" rel="noopener noreferrer" hidden>Ouvrir le PDF en plein écran</a><a id="telecharger" hidden>Télécharger</a></header><main><p id="etat" role="status">Ouverture de votre document…</p><p id="aide-pdf" hidden>Sur téléphone, utilisez « Ouvrir le PDF en plein écran » pour parcourir toutes les pages.</p><div id="apercu"></div></main><noscript>Activez JavaScript pour consulter ce document, ou utilisez le téléchargement depuis votre dossier.</noscript>
+  const contenu = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>${echapper(libelle)} — Gerimmo</title>
+<style nonce="${nonce}">*{box-sizing:border-box}body{margin:0;height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr);background:#f5f6fa;color:#17324f;font:16px/1.5 system-ui}header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 18px;background:white;border-bottom:1px solid #dce3eb}header strong{flex:1 1 100%;min-width:0;overflow-wrap:anywhere}header a,header button{flex:0 1 auto;min-height:44px;max-width:100%}@media(min-width:768px){header strong{flex:1 1 20rem}}button,a{font:inherit;border:1px solid #c9d5e4;border-radius:8px;padding:9px 13px;color:#17324f;background:white;text-decoration:none;cursor:pointer}#apercu{height:100%}main{min-height:0}#etat{padding:24px;text-align:center}iframe{border:0;width:100%;height:100%}img{display:block;max-width:100%;height:auto;margin:auto}[hidden]{display:none!important}#aide-pdf{padding:16px;text-align:center}html.incorpore #aide-pdf{display:none!important}@media(max-width:767px){html:not(.incorpore) iframe{display:none}}</style></head>
+<body><header><strong>${echapper(libelle)}</strong><button id="reprendre" type="button">Actualiser</button><a id="ouvrir" target="_blank" rel="noopener noreferrer" hidden>Ouvrir le PDF en plein écran</a><a id="telecharger" hidden>Télécharger</a></header><main><p id="etat" role="status">Ouverture de votre document…</p><p id="aide-pdf" hidden>Sur téléphone, utilisez « Ouvrir le PDF en plein écran » pour parcourir toutes les pages.</p><div id="apercu"></div></main><noscript>Activez JavaScript pour consulter ce document, ou utilisez le téléchargement depuis votre dossier.</noscript>
 <script nonce="${nonce}">const documentSigne=${parametres};
 if(window.top!==window)document.documentElement.classList.add('incorpore');
 const etat=document.getElementById('etat');const bouton=document.getElementById('reprendre');

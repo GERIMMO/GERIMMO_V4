@@ -27,7 +27,7 @@ async function piecePrivee(supabase:SupabaseClient,artisan:string,fichier:File,c
 }
 export async function enregistrerActivitePrivee(form:FormData):Promise<ResultatPrive> {
   try {
-    const action=String(form.get("action")??"");const reglement=["reglement","annuler_reglement"].includes(action);
+    let action=String(form.get("action")??"");const reglement=["reglement","annuler_reglement"].includes(action);
     if(!activationModuleArtisan(reglement?"reglements":"clients"))throw Error("La saisie de ce module est désactivée. Les dossiers conservés restent consultables.");
     const {supabase,fiche,erreur}=await verifierArtisanMutation();if(!fiche)throw Error(erreur??"Connectez-vous avec votre propre compte artisan.");
     // D25-B (ARC-08) : refusé ou sur liste noire, l'artisan n'écrit plus (client, chantier, devis, facture). On le dit AVANT de produire un
@@ -37,8 +37,21 @@ export async function enregistrerActivitePrivee(form:FormData):Promise<ResultatP
     if(!/^[a-f\d-]{36}$/i.test(cle))throw Error("Rechargez le formulaire avant de continuer.");
     const donnees:Record<string,unknown>={};
     for(const key of ["nom","type","email","telephone","adresse","titre","description","valide_jusqu_au","devis_id","decision","motif","conflit_motif","bilan","numero","justification","date","moyen","reference","reglement_id","facture_id"]){const v=form.get(key);if(typeof v==="string")donnees[key]=v.trim();}
+    if(action==="actualiser_devis") {
+      // Reprendre seulement le dernier brouillon : le serveur relit les lignes,
+      // la validité et la révision. Les versions validées et leurs PDF restent intacts.
+      const {data}=await chargerActivitePrivee();
+      const h=data?.chantiers.find(x=>x.id===id);
+      const d=data?.devis.filter(x=>x.chantier_id===id).sort((a,b)=>b.version-a.version)[0];
+      if(!h||h.statut!=="brouillon"||h.revision!==revision||!d||d.id!==donnees.devis_id||d.statut!=="brouillon")
+        throw Error("Le devis a changé. Rechargez et relisez sa dernière version.");
+      // La fonction existante capture l’identité actuelle sous son verrou métier.
+      // Aucun champ transmis par le navigateur ne remplace ces données relues.
+      for(const key of Object.keys(donnees))delete donnees[key];
+      Object.assign(donnees,{description:d.description,valide_jusqu_au:d.valide_jusqu_au,lignes:d.lignes});
+      action="devis";
+    } else if(action==="devis")donnees.lignes=calculerDevis(JSON.parse(String(form.get("lignes")??"[]"))).lignes;
     if(action==="archiver_client")donnees.archive=form.get("archive")==="true";
-    if(action==="devis")donnees.lignes=calculerDevis(JSON.parse(String(form.get("lignes")??"[]"))).lignes;
     if(action==="planning")for(const k of ["debut","fin"]){const d=new Date(String(form.get(k)));if(!Number.isFinite(d.getTime()))throw Error("Vérifiez les dates du rendez-vous.");donnees[k]=d.toISOString();}
     if(action==="facture"||action==="reglement") {const cents=montantEnCentimes(String(form.get("montant")??""));if(cents===null||cents<=0)throw Error("Indiquez un montant positif, au centime.");donnees[action==="facture"?"montant_ttc_cents":"montant_cents"]=cents;}
     if(action==="valider_devis") {
@@ -47,10 +60,10 @@ export async function enregistrerActivitePrivee(form:FormData):Promise<ResultatP
       if(!d||!h||h.revision!==revision||d.statut!=="brouillon")throw Error("Le devis a changé. Rechargez et relisez sa dernière version.");
       const document=assemblerDevisArtisan({id:d.id,description:d.description,lignes:d.lignes,montant_ht_cents:Number(d.montant_ht_cents),montant_tva_cents:Number(d.montant_tva_cents),montant_ttc_cents:Number(d.montant_ttc_cents),diagnostic:null,delai_intervention:null,duree_estimee:null,contraintes:null,observations:null,statut:"valide",depose_le:d.created_at,valide_jusqu_au:d.valide_jusqu_au,artisan_nom:d.entreprise.nom,artisan_siret:d.entreprise.siret,artisan_telephone:d.entreprise.telephone,artisan_email:d.entreprise.email,artisan_adresse:d.entreprise.adresse??"",artisan_mentions:d.entreprise.mentions??"",agence_nom:d.client.nom,incident_numero:`Client externe · ${h.titre} · version ${d.version}`,commune:h.adresse,code_postal:null});
       // Un devis incomplet est un refus métier (on dit ce qui manque) ; un moteur PDF en panne est technique : référence au support, jamais le texte brut (ARC-01).
-      const refus=refusDocumentIncomplet(document);if(refus)throw Error(`Le PDF ne peut pas être généré : information manquante (${refus.manquants.join(" ; ")}). Complétez-la, puis relancez.`);
+      const refus=refusDocumentIncomplet(document);if(refus)throw Error(`Le PDF ne peut pas être généré : information manquante (${refus.manquants.join(" ; ")}). Complétez les informations, puis reprenez le devis avec vos coordonnées à jour avant de valider la nouvelle version.`);
       let pdf:Uint8Array;try{pdf=await rendrePdf(document);}catch(e){throw Error(messageRenduPdfEchoue(e));}
       donnees.piece_id=await piecePrivee(supabase,fiche.artisan_id,new File([new Uint8Array(pdf)],`DEV-${d.id.slice(0,8).toUpperCase()}-v${d.version}.pdf`,{type:"application/pdf"}),cle);
-    } else {
+    } else if(form.get("action")!=="actualiser_devis") {
       const refus=await resoudreDepotsFormulaire(supabase,form);if(refus)return {erreur:refus};
       const fichier=form.get("fichier");
       if(fichier instanceof File&&fichier.size)donnees.piece_id=await piecePrivee(supabase,fiche.artisan_id,fichier,cle);

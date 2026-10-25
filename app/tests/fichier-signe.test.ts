@@ -22,3 +22,9 @@ describe("Lecture directe de pièces privées",()=>{
  it.each(['javascript:alert(1)','https://autre.example.invalid/fichier','http://stockage.example.invalid/fichier','https://compte:secret'+'@'+'stockage.example.invalid/fichier'])('refuse une destination non prévue : %s',async(url)=>{const {db}=client(url);expect((await servirFichierSigne(db,options)).status).toBe(502);});
  it("un stockage indisponible donne une réponse compréhensible sans révéler son erreur",async()=>{const {db,createSignedUrl}=client();createSignedUrl.mockRejectedValue(Error('diagnostic confidentiel'));const r=await servirFichierSigne(db,options);expect(r.status).toBe(502);expect(await r.text()).not.toContain('confidentiel');});
 });
+
+it("sépare le titre lisible du nom de téléchargement, sans en déduire une signature",async()=>{
+ const {db}=client();const r=await servirFichierSigne(db,{...options,titre:'Ancien titre à faire signer',libelle:'Bail signé'});const h=await r.text();
+ expect(h).toContain('<strong>Bail signé</strong>');expect(h).toContain('"nom":"Ancien titre à faire signer.pdf"');
+ const autre=await servirFichierSigne(db,{...options,libelle:'<img src=x onerror=alert(1)>'});expect(await autre.text()).toContain('&lt;img src=x onerror=alert(1)&gt;');
+});

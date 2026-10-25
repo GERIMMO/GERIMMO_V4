@@ -7113,3 +7113,54 @@ CI 40211115894 sur 2bddeec : 10 674 tests de logique réussis, 17 ignorés ; Chr
 Correction : icônes intégrées aux termes dt, couples dt/dd au même niveau dans chaque groupe et ajustement des espacements. Reproduction locale avec le JSX réel extrait avant/après, Chromium et axe : les deux erreurs sont présentes avant à 320/390/1440 px, absentes après aux trois tailles ; aucun débordement. 25 tests de rendu réussis et lint ciblé réussi. La prochaine CI complète reste obligatoire.
 
 Lecture des retours utilisateurs connectés : « envoi au responsable » et « Compte rendu » restent en examen ; ce sont des demandes de visibilité de l’invitation et de traitement des devis, pas des signalements de nouvelle panne observée dans ce contrôle. Aucune décision ni réponse envoyée. Les deux redirections de l’audit artisan CI908 correspondent à une fixture de mission seulement acceptée, avant démarrage/photo/bilan ; le code refuse alors normalement bilan/facture. Cela ne constitue toujours pas une preuve navigateur du parcours de fin de mission.
+
+
+## [2026-10-25] audit | Contrôles connectés et réserves de parcours avant PR257
+
+Session superadmin reconnectée et contrôlée. Santé à 16:50 UTC : tâches suivies à jour, sauvegarde du 25/10 affichée avec 16 fichiers, aucun écart Stripe ni réception à examiner. Les trois renseignements légaux manquants concernent le médiateur ; antivirus non raccordé. Console navigateur de la santé sans erreur ni avertissement. Journaux Vercel Request Logs filtrés level:error, 16:23–16:53 UTC : aucune ligne. Ces constats ne certifient pas tous les états du service.
+
+SELECT du bail fictif b19649a4 : bail brouillon, document_signe nul, lot disponible ; circuit terminé et archive f8aa110c présents. Aucun changement de donnée métier. La publication attend toujours la CI913 40212750197, tête 4659e367, arbre 42c0af74. PR256 reste incluse dans cette tête ; sa CI redondante a été arrêtée, sans fusion séparée.
+
+Relecture des captures CI912 : distinction signé/inactif lisible et supervision sans formulaires dans les fiches contrôlées. Le signalement locataire conserve une contradiction entre prise en charge après examen et promesse immédiate de savoir qui paie. Les écrans artisan bilan/facture ne sont pas validés de bout en bout : leur fixture acceptée renvoie normalement vers la mission. Une image de mission n’est pas peinte dans la capture ; le JPEG du seed est décodable, mais loading=lazy sous le premier écran interdit de conclure à une panne de production. Autres réserves conservées : titre Utilisateurs coupé dans WebKit, comparaison entrée/sortie absente de la nouvelle consultation EDL, devis privé gardant des coordonnées antérieures, abonnement offert non implémenté. Registre JSON local enrichi sans annoncer de clôture globale.
+
+
+## [2026-10-25] publication | PR257 et contrôles connectés après mise en ligne
+
+CI913 40212750197 verte sur la tête exacte 4659e367a6feb3222cee79667527cba1195bc694 : 10 674 tests logique/PDF réussis, 17 ignorés ; Chromium 217 réussis, 1 ignoré ; WebKit 58 réussis. Lint, typage, build, contrôle des dépendances et scénario 300 lots/isolation réussis. Les tests ignorés restent explicités dans le registre ; ils ne constituent pas des validations. Relecture de la différence et garde sur le SHA exact avant fusion squash de PR257. Fusion cde344498fba21ee0e9f5c1955f0ba8c3a380608, arbre 42c0af74d65bb9900b888a046e7eee7d068059a0 identique à celui testé. PR256 fermée comme entièrement incluse, sans déploiement séparé.
+
+Vercel DW7N8CNsRv2mrsvAE1zrcynaxV3t Ready le 25/10 à 17:07:38 UTC, domaine www.gerimmo.app. Santé publique : ok=true, base=true, revision=cde344498fba21ee0e9f5c1955f0ba8c3a380608. Aucune migration. Aucun paiement, envoi de signature, SMS, courriel ni dépense supplémentaire.
+
+Contrôle connecté après publication : lot Résumé, Documents, Logement avec accordions dépliés, Contrats ; bail Contrat/Documents/Suivi ; fiche organisation du particulier et fiche bien. Les données sont consultables sans formulaire de gestion ; SIRET/TVA ne sont plus réclamés au particulier. Recherche réseau Plomberie / entretien courant effectuée sur le bien fictif : résultat vide explicite, aucun accès refusé. Aucun artisan contacté. SELECT final du bail b19649a4 inchangé : brouillon, document_signe nul, lot disponible, circuit terminé, archive f8aa110c ; le bail signé reste non activé. Capture enregistrée dans preuves/audit-20261025/production-resume-pr257-final.png.
+
+Le lien du fichier signé ouvre son lecteur, mais un défaut supplémentaire est visible : ancien titre « à faire signer … signé.pdf » trop étroit sur petit écran. Ouverture plein écran blob bloquée par la politique de sécurité du navigateur de contrôle ; aucun contournement ni nouvelle lecture du contenu page par page. Le registre conserve cette limite et les réserves non résolues : captures WebKit (titre Utilisateurs et résumé non peint), comparatif EDL en supervision, fin de mission artisan non parcourue complètement, ancienne identité dans les devis privés, abonnement offert absent, incohérence de prise en charge locataire. Cette publication clôt ce lot de corrections, pas l’audit global.
+
+
+## [2026-10-25] audit | Reprise des devis privés et fin de mission artisan
+
+Défaut confirmé dans un brouillon privé : l’identité de l’entreprise reste celle de sa création après complétion du profil. Ajout d’une reprise explicite du dernier brouillon, par la fonction métier existante : lignes, description et validité relues sur le serveur, coordonnées actuelles recapturées dans une nouvelle version, contrôle de révision et d’exclusion conservé. Le contenu et les PDF validés ne sont pas modifiés. Aucun fichier transmis ne peut être ajouté par cette reprise. Message de sauvegarde du profil clarifié.
+
+Lecteur de l’archive de bail : titre « Bail signé » seulement lorsque le circuit confirme le document archivé ; titre de stockage et nom de téléchargement conservés. En-tête réorganisé aux petites largeurs. Aucune activation de bail. Signalement locataire : la catégorie donne une indication, la prise en charge reste confirmée après examen.
+
+98 tests de logique ciblés réussis, typage et lint ciblés verts. Deux tests du lecteur dans Chromium réussis avec fichiers fictifs, dont largeur 320/390/572/1440 px, fichier volumineux, contrôle d’empreinte et reprise. Premier lancement refusé par le bac à sable local (écoute réseau), relancé avec autorisation technique ; ce n’était pas un défaut applicatif. Deux nouveaux parcours sur base CI éphémère préparés : mission acceptée → démarrage → photo → bilan → facture → réception gestionnaire ; ancien brouillon sans adresse → profil complété → nouvelle version préremplie → PDF validé. Ils ne sont pas encore exécutés : CI complète obligatoire avant publication. Aucune migration, aucun envoi, aucune donnée métier de production modifiée.
+
+
+## [2026-10-25] audit | Réparation de la fixture de fin de mission
+
+CI915 40216651499 sur e0ffbf49 : logique/PDF, lint, build et typage verts ; le parcours navigateur de reprise du devis, complétion du profil et génération du PDF validé passe en Chromium. La fin de mission échoue avant le premier écran : la fixture SQL omet imputation_justification, exigée par incidents_qualifie_impute pour un incident déjà affecté. Correction de la fixture, sans relâcher la contrainte ; sélection explicite du lot de l’Agence Alpha du gestionnaire de recette. La chaîne métier reste intégralement à vérifier dans une nouvelle CI. Aucun code applicatif supplémentaire modifié, aucune publication à ce stade.
+
+
+## [2026-10-25] audit | Fiabilisation des vérifications navigateur
+
+La capture CI915 du devis repris est restée sur le chargement après relecture de la page, malgré les assertions métier réussies avant rechargement. Attente explicite du titre de version validée ajoutée avant capture. Relecture du nouveau scénario de mission : les trois expressions d’URL ont été revérifiées et correspondent bien aux redirections attendues ; leur comparaison est désormais explicite sur le chemin et le paramètre. Ces ajustements portent uniquement sur les preuves de recette, sans modifier le produit. Une nouvelle CI complète sera requise pour la capture corrigée ; CI916 reste utile pour vérifier le déroulement du premier scénario avant cette relance.
+
+
+## [2026-10-25] audit | Diagnostic des deux scénarios CI916
+
+CI916 40218038980 : 10 687 tests logique/PDF et 218 parcours Chromium réussis ; deux nouveaux scénarios échouent, WebKit non exécuté. La trace de mission ne contient aucun POST après le dépôt : le champ HTML est modifié avant l’hydratation du gestionnaire onChange, sans aperçu ni message d’envoi. Attente du chargement des ressources avant sélection, image fictive réellement décodable et assertion explicite Photo envoyée ajoutées. La trace du devis montre Enregistrement en cours et la requête de génération toujours pendante lors de l’expiration de l’attente de 15 s ; délai ciblé de 60 s, également pour le chargement du profil. Aucun message métier n’est contourné. La capture finale attend le titre rendu après rechargement. La CI s’est terminée avant l’arrêt envisagé ; elle n’a pas été annulée. Aucun changement applicatif supplémentaire, aucune publication.
+
+
+## [2026-10-25] audit | Champ d’adresse prérempli et résultat CI917
+
+CI917 40220113218 sur 01c964a2 : 10 687 tests logique/PDF réussis, 17 ignorés ; Chromium 220 réussis, 1 ignoré ; WebKit 59 réussis et un échec dans le repérage du champ d’adresse. La mission acceptée va jusqu’à la facture consultée par le gestionnaire sur les deux moteurs (7,3 s / 7,7 s). La reprise du devis va jusqu’au PDF en Chromium (10,8 s). Le champ de profil est présent et accessible dans la capture Safari : il ne s’agit pas d’un défaut du lien ni du produit.
+
+Reproduction locale sur le HTML du label enveloppant un textarea : getByLabel exact trouve le champ vide, mais zéro champ lorsque son contenu initial est renseigné ; getByRole textbox avec le même nom accessible trouve le champ dans les deux cas. Le profil est déjà complété après Chromium, avant WebKit, ce qui explique aussi la reprise en échec de CI916. Sélecteur remplacé par le rôle accessible, sans assouplir les assertions métier ni modifier l’application. Une dernière CI complète reste requise ; aucune publication sur un contrôle rouge. Captures de CI917 conservées dans preuves/audit-20261025.

@@ -2,10 +2,10 @@
   "date": "2026-10-25",
   "nature": "Contre-vérification du document transmis par le dirigeant ; registre évolutif, sans certification exhaustive",
   "source": "Audit ChatGPT transmis le 25 octobre 2026",
-  "production_verifiee": "ab52b77b9dea6c3a902b382710a7345493941600",
-  "candidat": "232bb6650e70b0d3b9d29274fb4742af6e82ee48",
-  "pr": 255,
-  "publication": "Nouvelle vérification complète requise après le dernier défaut de nom accessible dans CI907",
+  "production_verifiee": "cde344498fba21ee0e9f5c1955f0ba8c3a380608",
+  "candidat": "4659e367a6feb3222cee79667527cba1195bc694",
+  "pr": 257,
+  "publication": "Publié le 25/10/2026 à 17:07:38 UTC ; Vercel Ready, domaine www.gerimmo.app et révision complète API santé vérifiés. Contrôles connectés effectués après publication, sans activation du bail fictif. Audit global encore ouvert.",
   "contraintes": [
     "Aucun PDF demandé",
     "Bail fictif laissé inactif",
@@ -81,6 +81,33 @@
       "type": "exécuté, correction ciblée à revalider",
       "source": "https://github.com/GERIMMO/GERIMMO_V4/actions/runs/40202559639",
       "resultat": "Sur 232bb665 : 10 654 tests de logique réussis, 17 ignorés ; 217 Chromium réussis, 1 ignoré, 1 échec de nom accessible dans le compteur À traiter. Les deux scénarios de bail signé réussissent. WebKit non exécuté. Le compteur est repris sans aria-label indépendant du texte visible."
+    },
+    {
+      "id": "COMPTEUR",
+      "type": "défaut reproduit localement",
+      "source": "tmp/audit-compteur-25.test.ts",
+      "resultat": "Panne de lecture des publications : état indisponible conservé mais total zéro. Test avec réponses de base simulées, aucune donnée réelle modifiée. Le test prouve le défaut, pas sa correction."
+    },
+    {
+      "id": "CI908",
+      "type": "tests exécutés et réussis",
+      "source": "https://github.com/GERIMMO/GERIMMO_V4/actions/runs/40204044007",
+      "revision": "1f0c29e8c5df922386055e896e669d832e0ec076",
+      "resultat": "10 654 tests de logique réussis, 17 ignorés ; 218 parcours Chromium réussis et 1 démonstration ignorée ; 58 WebKit réussis. Aucun échec ni reprise. Arbre identique après fusion squash."
+    },
+    {
+      "id": "PUBLICATION255",
+      "type": "verification production en lecture seule",
+      "heure_utc": "2026-10-25T15:19:55Z",
+      "revision": "baf0e70277bb5a0c8938c2a04a5ec5f8a0d3e80c",
+      "source": "https://www.gerimmo.app/api/sante",
+      "resultat": "ok=true, base=true. Vercel Ready et domaine rattache. SELECT bail essai : signature terminee, fichier signe archive, location brouillon et lot disponible. Aucune activation."
+    },
+    {
+      "id": "LOGS_APRES_PUBLICATION",
+      "type": "console Vercel lue",
+      "source": "https://vercel.com/gerimmo/gerimmo-v4/8LPogTVvVndGuN1rXJmU8Emjbtgi/logs",
+      "resultat": "Au controle de 15:21 UTC : Warning 0, Error 0, Fatal 0. Requetes visibles HTTP 200, dont /api/sante et /api/cron/relais. Fenetre de quelques minutes seulement, pas une garantie sur tous les usages."
     }
   ],
   "points_du_document": [
@@ -124,9 +151,9 @@
     {
       "id": 5,
       "priorite": "P1",
-      "etat": "Corrigé dans le candidat, non publié",
+      "etat": "Corrige, teste et publie dans PR255",
       "constat": "L'export artisan renvoie HTTP 200 avec des données manquantes lorsqu'une source échoue.",
-      "suite": "Valider dans la CI complète puis publier ; aucune migration.",
+      "suite": "Correction livree ; ne pas confondre avec la confirmation recente identite encore ouverte au point 6.",
       "validation": "Deux sources réussies, échec de chacune, accès refusé, module privé fermé sans données ; aucune réponse 200 tronquée.",
       "fichiers": [
         "src/app/api/artisan-prive/export/route.ts",
@@ -143,25 +170,26 @@
     {
       "id": 7,
       "priorite": "P1",
-      "etat": "Risque reproduit localement, non corrigé",
+      "etat": "Corrigé, testé et publié par PR257",
       "constat": "tracerTraversee retourne false sur erreur mais verifierAccesEspace poursuit certaines consultations superadmin. Aucune panne de production provoquée.",
-      "suite": "Décider et appliquer une stratégie explicite pour consultation sans trace : refus ou secours durable vérifié. Tester une panne du journal.",
+      "suite": "CI913 complète verte ; consultation normale contrôlée après déploiement. Les pannes restent simulées en tests, jamais provoquées en production.",
       "fichiers": [
         "src/lib/traversee.ts",
         "src/lib/espace.ts"
       ],
-      "validation": "Deux tests locaux sur verifierAccesEspace et tracerTraversee réels avec réponses Supabase simulées : accès superadmin maintenu malgré panne du journal ; non-superadmin toujours refusé. Aucune panne provoquée en production."
+      "validation": "Tests locaux sur panne et reprise du journal : refus de consultation espace/fichier/fiche organisation ; accès ordinaire du propriétaire inchangé."
     },
     {
       "id": 8,
       "priorite": "P2",
-      "etat": "Risque identifié dans le code",
-      "constat": "Le bandeau présente decisions.total comme un nombre et emploie aucun sujet à traiter pour zéro. La propagation des lectures manquantes doit être testée.",
-      "suite": "Afficher Indisponible ou un total partiel explicite si une source ne répond pas ; tester l'injection de panne.",
+      "etat": "Corrigé, testé et publié par PR257",
+      "constat": "Une panne de lecture des publications laisse un total zéro malgré la liste des sources indisponibles. Le bandeau continue de présenter ce nombre ; la réparation d’accessibilité ne corrige pas cette disponibilité.",
+      "suite": "CI913 complète verte ; consultation normale contrôlée après déploiement. Les pannes restent simulées en tests, jamais provoquées en production.",
       "fichiers": [
         "src/app/admin/layout.tsx",
         "src/lib/decisions-attendues.ts"
-      ]
+      ],
+      "validation": "Sources de compte nulles/en erreur/non numériques : À vérifier dans les en-têtes et menus ; vrai zéro conservé. Pannes uniquement simulées."
     },
     {
       "id": 9,
@@ -206,7 +234,7 @@
       "id": 14,
       "priorite": "P2",
       "etat": "Statut vérifié",
-      "constat": "PR255 ouverte, correction de libellé après CI907. PR245 Node24 en brouillon, neuf fichiers distincts ; ancienne CI verte mais un scénario WebKit de dépôt avait nécessité une reprise. Ne pas intégrer sans réactualisation et nouvelle vérification.",
+      "constat": "PR255 fusionnée après CI908 verte sur 1f0c29e8, arbre identique au squash baf0e702. PR245 Node24 reste en brouillon et doit être actualisée puis retestée.",
       "suite": "Publier 255 seulement après réussite exacte ; relire et actualiser 245 séparément."
     }
   ],
@@ -214,7 +242,7 @@
     "Les captures de routes ne certifient pas tous les gestes métier, états d'erreur et combinaisons de droits.",
     "Le parcours réel Stripe/Zoho n'est pas rejoué ; aucune nouvelle dépense.",
     "Abonnement offert non implémenté : une prolongation d'essai ne vaut pas abonnement offert.",
-    "Certaines actions affichées dans des consultations superadmin restent à masquer, même si les écritures sont refusées côté serveur.",
+    "Les commandes de gestion ont été retirées des consultations superadmin de bien, lot, bail et état des lieux couvertes par PR257 ; cela ne certifie pas toutes les pages de tous les personas.",
     "Les pages artisan bilan/facture ont redirigé vers la mission dans les captures précédentes : leurs états propres restent à vérifier.",
     "Médiateur manquant et antivirus non raccordé : non résolus par cette présentation.",
     "Aucune affirmation GO global : les défauts et points non testés ci-dessus restent ouverts."
@@ -278,5 +306,4391 @@
         "redirections": []
       }
     ]
+  },
+  "fusion": "cde344498fba21ee0e9f5c1955f0ba8c3a380608",
+  "arbre_verifie": "42c0af74d65bb9900b888a046e7eee7d068059a0",
+  "parcours_ci908": {
+    "revision": "1f0c29e8c5df922386055e896e669d832e0ec076",
+    "source": "journaux du job 121201068307",
+    "portee": "Scénarios exécutés dans les bases et prestataires simulés de la CI ; aucun paiement ni signature réelle. Un scénario peut comporter plusieurs gestes. Les captures seules ne prouvent pas tous les gestes.",
+    "resultats": [
+      {
+        "etat": "réussi",
+        "n": 1,
+        "moteur": "setup",
+        "source": "e2e/auth.setup.ts:54:6",
+        "scenario": "sessions des personas (30.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 2,
+        "moteur": "mobile",
+        "source": "e2e/abonnement.spec.ts:39:7",
+        "scenario": "Côté propriétaire bailleur › les deux lots de démonstration recommandent Bailleur avec le montant affiché (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 4,
+        "moteur": "mobile",
+        "source": "e2e/abonnement.spec.ts:51:7",
+        "scenario": "Côté propriétaire bailleur › en annuel, le montant prélevé en une fois est affiché (1.9s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 5,
+        "moteur": "mobile",
+        "source": "e2e/abonnement.spec.ts:58:7",
+        "scenario": "Côté propriétaire bailleur › sans paiement en ligne ouvert, le refus est une phrase, pas une erreur d'API (970ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 6,
+        "moteur": "mobile",
+        "source": "e2e/abonnement.spec.ts:70:7",
+        "scenario": "Côté propriétaire bailleur › aucun identifiant Stripe ne descend jusqu'au navigateur (984ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 7,
+        "moteur": "mobile",
+        "source": "e2e/abonnement.spec.ts:82:7",
+        "scenario": "Côté propriétaire bailleur › l'écran tient dans 390 px (948ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 8,
+        "moteur": "mobile",
+        "source": "e2e/abonnement.spec.ts:105:7",
+        "scenario": "Côté agence › l'écran compte des LOTS SOUS MANDAT, pas des biens (804ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 9,
+        "moteur": "mobile",
+        "source": "e2e/abonnement.spec.ts:116:7",
+        "scenario": "Côté agence › le barème est montré tranche par tranche avant paiement, sans HT ni TTC en franchise (917ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 10,
+        "moteur": "mobile",
+        "source": "e2e/abonnement.spec.ts:132:7",
+        "scenario": "Côté agence › aucun identifiant Stripe ne descend jusqu'au navigateur (771ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 11,
+        "moteur": "mobile",
+        "source": "e2e/abonnement.spec.ts:140:7",
+        "scenario": "Côté agence › l'écran tient dans 390 px (924ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 12,
+        "moteur": "mobile",
+        "source": "e2e/abonnement.spec.ts:151:7",
+        "scenario": "Un agent ne voit pas la facture de son agence › l'écran est introuvable pour un agent (690ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 13,
+        "moteur": "mobile",
+        "source": "e2e/agences.spec.ts:26:7",
+        "scenario": "agences : de l'accueil à la liste d'attente, à 390px (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 14,
+        "moteur": "mobile",
+        "source": "e2e/agences.spec.ts:26:7",
+        "scenario": "agences : de l'accueil à la liste d'attente, à 1440px (2.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 15,
+        "moteur": "mobile",
+        "source": "e2e/agent-ajoute-un-bien.spec.ts:22:5",
+        "scenario": "l'agent voit « Ajouter un bien » sur son portefeuille (1.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 16,
+        "moteur": "mobile",
+        "source": "e2e/agent-ajoute-un-bien.spec.ts:31:5",
+        "scenario": "le formulaire lui répond — et le bien qu'il crée reste visible (2.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 17,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:50:7",
+        "scenario": "Propriétaire direct : l'alias /espace › un ancien lien /agence est redirigé à vie (308) vers /espace, chemin et requête conservés (467ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 18,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:61:7",
+        "scenario": "Propriétaire direct : l'alias /espace › le lien ancien ouvre le même écran à l'adresse /espace, sans boucle (le fragment survit) (656ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 19,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:72:7",
+        "scenario": "Propriétaire direct : l'alias /espace › l'alias est servi tel quel (200) : l'adresse affichée reste /espace et le menu s'allume (992ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 20,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:82:7",
+        "scenario": "Propriétaire direct : l'alias /espace › il navigue dans tout son espace sous /espace : chaque écran s'ouvre, et aucun lien émis ne pointe vers /agence (13.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 21,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:98:7",
+        "scenario": "Propriétaire direct : l'alias /espace › le menu se parcourt au clic (navigation côté client) sans jamais quitter /espace (5.9s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 22,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:114:7",
+        "scenario": "Propriétaire direct : l'alias /espace › les fiches de lot, bail, personne et document restent sous /espace, ancien lien compris (3.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 23,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:194:7",
+        "scenario": "Propriétaire direct : l'alias /espace › une action serveur postée sous /espace aboutit et ramène sous /espace (déclarer un incident) (1.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 24,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:213:7",
+        "scenario": "Propriétaire direct : l'alias /espace › l'URL d'un autre profil n'est pas atteignable par l'alias (2.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 25,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:234:7",
+        "scenario": "Propriétaire direct : l'alias /espace › l'espace d'un AUTRE propriétaire direct n'est pas atteignable par /espace/<son id> (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 26,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:261:7",
+        "scenario": "Propriétaire direct : l'alias /espace › la porte de /admin reste fermée au propriétaire direct (inchangée) (174ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 27,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:272:9",
+        "scenario": "Autres profils : aucun accès par l'alias, aucune garde affaiblie › admin : /espace/<propriétaire> et /espace/<agence> sont introuvables (135ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 28,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:272:9",
+        "scenario": "Autres profils : aucun accès par l'alias, aucune garde affaiblie › agent : /espace/<propriétaire> et /espace/<agence> sont introuvables (153ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 29,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:272:9",
+        "scenario": "Autres profils : aucun accès par l'alias, aucune garde affaiblie › locataire : /espace/<propriétaire> et /espace/<agence> sont introuvables (177ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 30,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:280:7",
+        "scenario": "Autres profils : aucun accès par l'alias, aucune garde affaiblie › admin : son agence reste servie sous /agence, sans redirection, et ses liens restent sous /agence (4.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 31,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:311:7",
+        "scenario": "Autres profils : aucun accès par l'alias, aucune garde affaiblie › admin : l'ancienne adresse du propriétaire n'est pas redirigée vers /espace (rien n'y est révélé) (111ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 32,
+        "moteur": "mobile",
+        "source": "e2e/alias-espace.spec.ts:317:7",
+        "scenario": "Autres profils : aucun accès par l'alias, aucune garde affaiblie › hors connexion : /espace mène à la connexion, avec la suite à reprendre (30ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 33,
+        "moteur": "mobile",
+        "source": "e2e/arrivee-alertes.spec.ts:30:5",
+        "scenario": "la synthèse d'alertes qui s'ouvre à l'arrivée tient dans l'écran et se ferme au doigt (1.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 34,
+        "moteur": "mobile",
+        "source": "e2e/arrivee-alertes.spec.ts:78:5",
+        "scenario": "une fois écartée, la synthèse ne revient pas à chaque écran (2.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 35,
+        "moteur": "mobile",
+        "source": "e2e/attestations-refus.spec.ts:5:5",
+        "scenario": "attestation : date future refusée et fichier conservé après un rejet (2.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 36,
+        "moteur": "mobile",
+        "source": "e2e/audit-ecrans.spec.ts:23:7",
+        "scenario": "audit public (23 écrans) (33.9s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 37,
+        "moteur": "mobile",
+        "source": "e2e/audit-ecrans.spec.ts:23:7",
+        "scenario": "audit agent (31 écrans) (47.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 3,
+        "moteur": "mobile",
+        "source": "e2e/a11y.spec.ts:214:7",
+        "scenario": "accessibilité › le parcours a bien vu des pages (sinon les assertions ne prouvent rien) (7ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 39,
+        "moteur": "mobile",
+        "source": "e2e/a11y.spec.ts:218:7",
+        "scenario": "accessibilité › aucun contrôle sans nom accessible, ni nommé par son seul placeholder (2ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 40,
+        "moteur": "mobile",
+        "source": "e2e/a11y.spec.ts:222:7",
+        "scenario": "accessibilité › axe-core : aucune violation sérieuse ou critique (WCAG 2.0/2.1 A et AA) (1ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 41,
+        "moteur": "mobile",
+        "source": "e2e/bail-signe-non-actif.spec.ts:11:9",
+        "scenario": "proprietaire › bail signé et documents lisibles sans activation (6.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 42,
+        "moteur": "mobile",
+        "source": "e2e/bail-signe-non-actif.spec.ts:11:9",
+        "scenario": "superadmin › bail signé et documents lisibles sans activation (8.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 43,
+        "moteur": "mobile",
+        "source": "e2e/blocage-souscription.spec.ts:10:5",
+        "scenario": "le superadmin lève puis réactive le blocage, avec persistance et historique (6.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 38,
+        "moteur": "mobile",
+        "source": "e2e/audit-ecrans.spec.ts:23:7",
+        "scenario": "audit admin (29 écrans) (47.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 44,
+        "moteur": "mobile",
+        "source": "e2e/bouton-envoi-hydratation.spec.ts:38:7",
+        "scenario": "BoutonEnvoi commun : inerte jusqu'à l'hydratation, actif ensuite › script jamais chargé (HTML du serveur seul) : désactivé, avec l'infobulle qui dit pourquoi (3.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 46,
+        "moteur": "mobile",
+        "source": "e2e/bouton-envoi-hydratation.spec.ts:52:7",
+        "scenario": "BoutonEnvoi commun : inerte jusqu'à l'hydratation, actif ensuite › script chargé : le même bouton est actif, sans infobulle d'attente (1.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 47,
+        "moteur": "mobile",
+        "source": "e2e/bouton-envoi-hydratation.spec.ts:61:7",
+        "scenario": "BoutonEnvoi commun : inerte jusqu'à l'hydratation, actif ensuite › script retardé : inerte pendant le chargement, actif dès que la page est prête (7.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 48,
+        "moteur": "mobile",
+        "source": "e2e/bouton-envoi-hydratation.spec.ts:82:7",
+        "scenario": "un formulaire que le navigateur envoie seul n'attend pas la page › « Envoyer le lien » (mot de passe oublié) est actif dès le HTML du serveur, sans script (272ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 49,
+        "moteur": "mobile",
+        "source": "e2e/chemins-proposes.spec.ts:23:7",
+        "scenario": "Côté agent › « Reprendre un parc » ne lui est pas proposé — la page le refuserait (929ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 50,
+        "moteur": "mobile",
+        "source": "e2e/chemins-proposes.spec.ts:30:7",
+        "scenario": "Côté agent › et la page d'import reste fermée s'il y va à la main (825ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 45,
+        "moteur": "mobile",
+        "source": "e2e/audit-ecrans.spec.ts:23:7",
+        "scenario": "audit locataire (13 écrans) (13.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 51,
+        "moteur": "mobile",
+        "source": "e2e/chemins-proposes.spec.ts:41:7",
+        "scenario": "Côté admin d'agence › le responsable, lui, garde le lien ET la page (2.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 53,
+        "moteur": "mobile",
+        "source": "e2e/comptabilite-vues.spec.ts:7:5",
+        "scenario": "comptabilité mobile : journal, saisie, clôture, rapports et retour (3.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 54,
+        "moteur": "mobile",
+        "source": "e2e/compte-securite.spec.ts:42:5",
+        "scenario": "on change son mot de passe depuis son compte, et l'ancien ne vaut plus rien (3.9s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 55,
+        "moteur": "mobile",
+        "source": "e2e/compte-securite.spec.ts:79:5",
+        "scenario": "on active puis on retire son second facteur sans l'aide de personne (3.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 56,
+        "moteur": "mobile",
+        "source": "e2e/compte-supervision.spec.ts:21:5",
+        "scenario": "depuis une organisation, la fiche d'un compte dit son état, ses rôles et ses journaux (3.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 57,
+        "moteur": "mobile",
+        "source": "e2e/compte-supervision.spec.ts:75:5",
+        "scenario": "la recherche de la console trouve un compte par son adresse (2.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 58,
+        "moteur": "mobile",
+        "source": "e2e/compte-supervision.spec.ts:93:5",
+        "scenario": "la recherche de la console retrouve un incident par son numéro et ouvre la fiche de son organisation (2.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 59,
+        "moteur": "mobile",
+        "source": "e2e/conditions-flux.spec.ts:12:5",
+        "scenario": "conditions : le texte extrait de la page servie est celui que le navigateur affiche, sans trou (1.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 60,
+        "moteur": "mobile",
+        "source": "e2e/conservation-reglages.spec.ts:5:5",
+        "scenario": "le dirigeant modifie une durée, retrouve sa trace et la rétablit (5.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 61,
+        "moteur": "mobile",
+        "source": "e2e/conservation-signatures.spec.ts:10:5",
+        "scenario": "le superadmin consulte les limites et simule la conservation sans supprimer (3.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 62,
+        "moteur": "mobile",
+        "source": "e2e/console-clients.spec.ts:24:5",
+        "scenario": "la supervision arrive sur sa console, pas sur un sélecteur d'espaces (1.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 63,
+        "moteur": "mobile",
+        "source": "e2e/console-clients.spec.ts:30:5",
+        "scenario": "les faits de direction se préparent manuellement avec cinq sources datées (3.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 64,
+        "moteur": "mobile",
+        "source": "e2e/console-clients.spec.ts:96:5",
+        "scenario": "« Utilisateurs » ouvre les personnes et conserve les trois familles d’espaces (2.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 52,
+        "moteur": "mobile",
+        "source": "e2e/audit-ecrans.spec.ts:23:7",
+        "scenario": "audit proprietaire (27 écrans) (40.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 65,
+        "moteur": "mobile",
+        "source": "e2e/console-clients.spec.ts:122:5",
+        "scenario": "la fiche d'une agence est complète, et son bouton entre vraiment dans l'espace (2.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 67,
+        "moteur": "mobile",
+        "source": "e2e/console-clients.spec.ts:148:5",
+        "scenario": "le diagnostic artisan exige un motif, reste en lecture seule et se ferme (3.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 68,
+        "moteur": "mobile",
+        "source": "e2e/console-liste-attente.spec.ts:21:5",
+        "scenario": "la console liste l'agence inscrite, la marque contactée et exporte le CSV ; sans session, rien ne sort (4.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 69,
+        "moteur": "mobile",
+        "source": "e2e/creation-bien-reprise.spec.ts:7:40",
+        "scenario": "creation bien : panne, reponse perdue et reprise a 390px (9.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 70,
+        "moteur": "mobile",
+        "source": "e2e/creation-bien-reprise.spec.ts:7:40",
+        "scenario": "creation bien : panne, reponse perdue et reprise a 1440px (13.5s)"
+      },
+      {
+        "etat": "ignoré",
+        "n": 71,
+        "moteur": "mobile",
+        "source": "e2e/demonstration.spec.ts:7:5",
+        "scenario": "démonstration des trois espaces avec données fictives"
+      },
+      {
+        "etat": "réussi",
+        "n": 72,
+        "moteur": "mobile",
+        "source": "e2e/depot-direct.spec.ts:7:37",
+        "scenario": "document de 6 Mo : transfert privé puis enregistrement à 390px (4.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 73,
+        "moteur": "mobile",
+        "source": "e2e/depot-direct.spec.ts:7:37",
+        "scenario": "document de 6 Mo : transfert privé puis enregistrement à 1440px (5.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 74,
+        "moteur": "mobile",
+        "source": "e2e/devis-reprise.spec.ts:13:40",
+        "scenario": "devis : reprise, sauvegarde lente et conflit à 390px (7.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 66,
+        "moteur": "mobile",
+        "source": "e2e/audit-ecrans.spec.ts:23:7",
+        "scenario": "audit superadmin (38 écrans) (56.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 75,
+        "moteur": "mobile",
+        "source": "e2e/devis-reprise.spec.ts:13:40",
+        "scenario": "devis : reprise, sauvegarde lente et conflit à 1440px (9.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 77,
+        "moteur": "mobile",
+        "source": "e2e/dossier-proprietaire.spec.ts:16:7",
+        "scenario": "propriétaire : repères et rubriques accessibles à 390px (5.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 78,
+        "moteur": "mobile",
+        "source": "e2e/dossier-proprietaire.spec.ts:16:7",
+        "scenario": "propriétaire : repères et rubriques accessibles à 1440px (5.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 79,
+        "moteur": "mobile",
+        "source": "e2e/dossier-proprietaire.spec.ts:45:5",
+        "scenario": "propriétaire : un refus d’enregistrement reste visible sans perdre la saisie (3.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 80,
+        "moteur": "mobile",
+        "source": "e2e/dossier-proprietaire.spec.ts:69:7",
+        "scenario": "propriétaire : parcours guidé et saisies conservées à 390px (3.9s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 76,
+        "moteur": "mobile",
+        "source": "e2e/audit-ecrans.spec.ts:23:7",
+        "scenario": "audit artisan (18 écrans) (24.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 81,
+        "moteur": "mobile",
+        "source": "e2e/dossier-proprietaire.spec.ts:69:7",
+        "scenario": "propriétaire : parcours guidé et saisies conservées à 1440px (5.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 82,
+        "moteur": "mobile",
+        "source": "e2e/edl-brouillon.spec.ts:40:5",
+        "scenario": "saisie → brouillon local → rechargement → la saisie est toujours là (4.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 84,
+        "moteur": "mobile",
+        "source": "e2e/edl-brouillon.spec.ts:72:5",
+        "scenario": "hors ligne : l'indicateur l'annonce ; au retour du réseau la grille se synchronise seule (4.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 83,
+        "moteur": "mobile",
+        "source": "e2e/dossier-proprietaire.spec.ts:94:5",
+        "scenario": "propriétaire : le bail reprend le lot et permet de créer puis retrouver le locataire (8.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 86,
+        "moteur": "mobile",
+        "source": "e2e/equipes.spec.ts:6:5",
+        "scenario": "supervision : pause et reprise des passages sans exécution du traitement (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 87,
+        "moteur": "mobile",
+        "source": "e2e/equipes.spec.ts:16:5",
+        "scenario": "supervision : le plan d’absence peut être enregistré sans créer de nouveaux accès (2.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 85,
+        "moteur": "mobile",
+        "source": "e2e/encaissement-reste.spec.ts:8:5",
+        "scenario": "PAY01 : Encaisser le reste transmet sa commande et solde une seule fois le loyer (5.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 88,
+        "moteur": "mobile",
+        "source": "e2e/equipes.spec.ts:19:5",
+        "scenario": "supervision : la marque blanche donne des étapes lisibles (1.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 89,
+        "moteur": "mobile",
+        "source": "e2e/fenetre-lot.spec.ts:36:7",
+        "scenario": "Côté agence › cliquer un lot ouvre la fenêtre — sans quitter le Parc (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 90,
+        "moteur": "mobile",
+        "source": "e2e/fiches-parc.spec.ts:45:5",
+        "scenario": "suivi du bail : choisir une action et retrouver les liens directs (1.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 91,
+        "moteur": "mobile",
+        "source": "e2e/fenetre-lot.spec.ts:54:7",
+        "scenario": "Côté agence › l'impayé et ses gestes arrivent AVANT le reste (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 92,
+        "moteur": "mobile",
+        "source": "e2e/fiches-parc.spec.ts:72:5",
+        "scenario": "fiche lot : la location passe avant les caractéristiques (1.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 94,
+        "moteur": "mobile",
+        "source": "e2e/fiches-parc.spec.ts:89:5",
+        "scenario": "fiche lot : l'état n'est dit qu'une fois de trop, pas quatre (1.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 93,
+        "moteur": "mobile",
+        "source": "e2e/fenetre-lot.spec.ts:72:7",
+        "scenario": "Côté agence › l'échelle de relance montre les TROIS niveaux du produit (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 96,
+        "moteur": "mobile",
+        "source": "e2e/fenetre-lot.spec.ts:85:7",
+        "scenario": "Côté agence › les onglets ne chargent qu'à l'ouverture (1.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 95,
+        "moteur": "mobile",
+        "source": "e2e/fiches-parc.spec.ts:102:5",
+        "scenario": "fiche lot : les caractéristiques se consultent avant de modifier (2.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 97,
+        "moteur": "mobile",
+        "source": "e2e/fenetre-lot.spec.ts:100:7",
+        "scenario": "Côté agence › l'historique est reconstitué depuis les faits (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 98,
+        "moteur": "mobile",
+        "source": "e2e/fiches-parc.spec.ts:112:5",
+        "scenario": "fiche lot : une section se déplie en touchant sa rangée, pas un bouton lointain (2.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 100,
+        "moteur": "mobile",
+        "source": "e2e/fiches-parc.spec.ts:131:5",
+        "scenario": "fiche bien : les lots passent avant l'administratif (1.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 99,
+        "moteur": "mobile",
+        "source": "e2e/fenetre-lot.spec.ts:112:7",
+        "scenario": "Côté agence › le rapport annonce ce qu'il couvre AVANT le clic (1.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 101,
+        "moteur": "mobile",
+        "source": "e2e/fiches-parc.spec.ts:142:5",
+        "scenario": "fiche bien : une obligation à confirmer n'est pas annoncée comme manquante (1.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 102,
+        "moteur": "mobile",
+        "source": "e2e/fenetre-lot.spec.ts:124:7",
+        "scenario": "Côté agence › la fenêtre tient dans un téléphone (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 103,
+        "moteur": "mobile",
+        "source": "e2e/fiches-parc.spec.ts:153:5",
+        "scenario": "fiche bien : l'annonce aux locataires ne déploie plus son formulaire (1.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 104,
+        "moteur": "mobile",
+        "source": "e2e/fenetre-lot.spec.ts:137:7",
+        "scenario": "Côté agence › la comptabilité reste hors du menu de l'agent, les loyers y entrent (1.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 106,
+        "moteur": "mobile",
+        "source": "e2e/fenetre-lot.spec.ts:154:7",
+        "scenario": "Côté admin d'agence › l'admin garde ses deux index — sa question porte sur l'ensemble (1.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 105,
+        "moteur": "mobile",
+        "source": "e2e/fiches-parc.spec.ts:160:5",
+        "scenario": "les deux fiches tiennent dans 390 px (2.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 107,
+        "moteur": "mobile",
+        "source": "e2e/fenetre-lot.spec.ts:162:7",
+        "scenario": "Côté admin d'agence › il ouvre la MÊME fenêtre que l'agent (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 109,
+        "moteur": "mobile",
+        "source": "e2e/fenetre-lot.spec.ts:172:7",
+        "scenario": "Côté locataire › son logement s'ouvre dans la même fenêtre, à sa portée (1.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 110,
+        "moteur": "mobile",
+        "source": "e2e/fenetre-lot.spec.ts:202:7",
+        "scenario": "Côté locataire › « Mes loyers » remplace la comptabilité de l'agence (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 108,
+        "moteur": "mobile",
+        "source": "e2e/finalisation.spec.ts:23:6",
+        "scenario": "Études, validation et visibilité par profil › Gerimmo prépare l’étude ; le superviseur valide puis retire la diffusion (6.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 112,
+        "moteur": "mobile",
+        "source": "e2e/finalisation.spec.ts:50:6",
+        "scenario": "Études, validation et visibilité par profil › une étude territoriale conserve un résultat sourcé sans lancer de campagne (1.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 113,
+        "moteur": "mobile",
+        "source": "e2e/finalisation.spec.ts:61:6",
+        "scenario": "Études, validation et visibilité par profil › la supervision contrôle le mode automatique, et l’artisan trouve la veille (2.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 111,
+        "moteur": "mobile",
+        "source": "e2e/fiscalite-qualifiee.spec.ts:7:5",
+        "scenario": "fiscalité : qualifier copro, terrain et 230, puis retrouver le même export (7.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 114,
+        "moteur": "mobile",
+        "source": "e2e/incidents-reprise.spec.ts:28:5",
+        "scenario": "LOC003 : réponse perdue après création puis reprise sans double incident ni photo (3.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 116,
+        "moteur": "mobile",
+        "source": "e2e/incidents-reprise.spec.ts:68:5",
+        "scenario": "LOC002 : photo refusée nettoyée puis reprise sur le même incident (3.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 117,
+        "moteur": "mobile",
+        "source": "e2e/invitations-cycle.spec.ts:7:5",
+        "scenario": "invitation : envoi non configuré honnête, refus, expiration, acceptation et historique (10.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 118,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:46:9",
+        "scenario": "Côté agent › l'avatar ouvre le menu, et y met ce que ce rôle peut atteindre (1.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 119,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:67:9",
+        "scenario": "Côté agent › la cible de l'avatar fait au moins 44 px, et le volet reste dans l'écran (1.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 120,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:85:9",
+        "scenario": "Côté agent › Échap referme le menu et rend le clavier à l'avatar (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 121,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:97:9",
+        "scenario": "Côté agent › se déconnecter depuis le menu sort vraiment de la session (2.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 122,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:114:9",
+        "scenario": "Côté agent › hors ligne, se déconnecter le dit sans quitter la page ni la session (1.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 123,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:46:9",
+        "scenario": "Côté admin › l'avatar ouvre le menu, et y met ce que ce rôle peut atteindre (1.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 115,
+        "moteur": "mobile",
+        "source": "e2e/invitation-artisan.spec.ts:43:5",
+        "scenario": "invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, solliciter par le carnet (resté privé, hors réseau) (27.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 124,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:67:9",
+        "scenario": "Côté admin › la cible de l'avatar fait au moins 44 px, et le volet reste dans l'écran (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 125,
+        "moteur": "mobile",
+        "source": "e2e/navigation-matin.spec.ts:7:6",
+        "scenario": "Tour du matin de la supervision › arrive sur le bureau de direction et retrouve les destinations dans le menu mobile (2.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 126,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:85:9",
+        "scenario": "Côté admin › Échap referme le menu et rend le clavier à l'avatar (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 127,
+        "moteur": "mobile",
+        "source": "e2e/navigation-matin.spec.ts:22:6",
+        "scenario": "Tour du matin de la supervision › le menu complet est accessible sur ordinateur sans ouvrir le bouton mobile (2.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 128,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:97:9",
+        "scenario": "Côté admin › se déconnecter depuis le menu sort vraiment de la session (2.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 130,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:114:9",
+        "scenario": "Côté admin › hors ligne, se déconnecter le dit sans quitter la page ni la session (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 129,
+        "moteur": "mobile",
+        "source": "e2e/navigation-matin.spec.ts:31:6",
+        "scenario": "Tour du matin de la supervision › la santé conduit directement au résultat des traitements (2.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 131,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:46:9",
+        "scenario": "Côté propriétaire › l'avatar ouvre le menu, et y met ce que ce rôle peut atteindre (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 133,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:67:9",
+        "scenario": "Côté propriétaire › la cible de l'avatar fait au moins 44 px, et le volet reste dans l'écran (1.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 132,
+        "moteur": "mobile",
+        "source": "e2e/navigation-matin.spec.ts:41:6",
+        "scenario": "Tour du matin de la supervision › filtre l’historique avec des choix compréhensibles et conserve les dates (3.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 134,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:85:9",
+        "scenario": "Côté propriétaire › Échap referme le menu et rend le clavier à l'avatar (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 135,
+        "moteur": "mobile",
+        "source": "e2e/navigation-matin.spec.ts:60:6",
+        "scenario": "Tour du matin de la supervision › préserve un ancien filtre partagé sans afficher son code interne (1.9s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 137,
+        "moteur": "mobile",
+        "source": "e2e/navigation-matin.spec.ts:75:6",
+        "scenario": "Actualisation marketing depuis un autre fuseau horaire › affiche l’heure serveur sans erreur et actualise réellement les informations (1.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 136,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:97:9",
+        "scenario": "Côté propriétaire › se déconnecter depuis le menu sort vraiment de la session (2.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 138,
+        "moteur": "mobile",
+        "source": "e2e/navigation-matin.spec.ts:94:7",
+        "scenario": "Retour de veille — admin › revient directement à son espace et garde le retour après un filtre (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 139,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:114:9",
+        "scenario": "Côté propriétaire › hors ligne, se déconnecter le dit sans quitter la page ni la session (2.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 140,
+        "moteur": "mobile",
+        "source": "e2e/navigation-matin.spec.ts:94:7",
+        "scenario": "Retour de veille — agent › revient directement à son espace et garde le retour après un filtre (1.9s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 141,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:46:9",
+        "scenario": "Côté locataire › l'avatar ouvre le menu, et y met ce que ce rôle peut atteindre (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 142,
+        "moteur": "mobile",
+        "source": "e2e/navigation-matin.spec.ts:94:7",
+        "scenario": "Retour de veille — proprietaire › revient directement à son espace et garde le retour après un filtre (1.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 143,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:67:9",
+        "scenario": "Côté locataire › la cible de l'avatar fait au moins 44 px, et le volet reste dans l'écran (1.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 144,
+        "moteur": "mobile",
+        "source": "e2e/navigation-matin.spec.ts:94:7",
+        "scenario": "Retour de veille — locataire › revient directement à son espace et garde le retour après un filtre (1.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 145,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:85:9",
+        "scenario": "Côté locataire › Échap referme le menu et rend le clavier à l'avatar (1.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 146,
+        "moteur": "mobile",
+        "source": "e2e/onboarding.spec.ts:12:7",
+        "scenario": "côté console › « Ouvrir une organisation » s'atteint depuis la supervision (2.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 147,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:97:9",
+        "scenario": "Côté locataire › se déconnecter depuis le menu sort vraiment de la session (1.9s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 148,
+        "moteur": "mobile",
+        "source": "e2e/onboarding.spec.ts:22:7",
+        "scenario": "côté console › le formulaire porte ce qu'il faut, et tient dans 390 px (1.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 149,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:114:9",
+        "scenario": "Côté locataire › hors ligne, se déconnecter le dit sans quitter la page ni la session (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 151,
+        "moteur": "mobile",
+        "source": "e2e/menu-compte.spec.ts:138:7",
+        "scenario": "Ce que le menu remplace › le pied de barre latérale et la sortie de secours mobile ont disparu (1.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 150,
+        "moteur": "mobile",
+        "source": "e2e/onboarding.spec.ts:49:7",
+        "scenario": "côté client › le chemin du démarrage disparaît lorsque les cinq étapes sont terminées (2.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 152,
+        "moteur": "mobile",
+        "source": "e2e/outils.spec.ts:41:5",
+        "scenario": "index /outils : les cinq outils, sans débordement (548ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 153,
+        "moteur": "mobile",
+        "source": "e2e/onboarding.spec.ts:69:7",
+        "scenario": "reprendre un parc › le gabarit se télécharge et se relit (81ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 154,
+        "moteur": "mobile",
+        "source": "e2e/outils.spec.ts:57:5",
+        "scenario": "calcul IRL : 850 € × 148,37 ÷ 146,68 = 859,79 €, alerte au-delà d'un an, DPE F bloque (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 155,
+        "moteur": "mobile",
+        "source": "e2e/onboarding.spec.ts:80:7",
+        "scenario": "reprendre un parc › le contrôle lit le fichier déposé et rend le verdict ligne par ligne (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 157,
+        "moteur": "mobile",
+        "source": "e2e/parcours-agence.spec.ts:14:5",
+        "scenario": "le tableau de bord s'ouvre sans débordement et la navigation porte ses libellés (1.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 156,
+        "moteur": "mobile",
+        "source": "e2e/outils.spec.ts:103:5",
+        "scenario": "quittance : 850 + 120, reçu 500 → reçu de paiement partiel, reste dû 470,00 € (1.9s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 159,
+        "moteur": "mobile",
+        "source": "e2e/outils.spec.ts:138:5",
+        "scenario": "comparateur : GLI 314,28 € brut, 165,94 € net ; 30 ans et plus « Autre » → Visale exclue (883ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 160,
+        "moteur": "mobile",
+        "source": "e2e/outils.spec.ts:151:5",
+        "scenario": "LMNP : réel 0,00 €, micro 2 265,60 €, amortissement reporté 554,29 € (784ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 161,
+        "moteur": "mobile",
+        "source": "e2e/outils.spec.ts:162:5",
+        "scenario": "rentabilité : brute 5,29 %, nette 4,08 %, cash-flow −350,44 € (775ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 158,
+        "moteur": "mobile",
+        "source": "e2e/parcours-agence.spec.ts:24:5",
+        "scenario": "créer un bien depuis le téléphone : formulaire → fiche du parc (3.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 162,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:25:5",
+        "scenario": "le portail s'ouvre sans organisation dans l'adresse (1.9s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 164,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan s'affiche, tient dans 390 px et ne tombe pas (1.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 163,
+        "moteur": "mobile",
+        "source": "e2e/parcours-agence.spec.ts:51:5",
+        "scenario": "créer, ouvrir, fermer puis traiter une alerte au doigt (4.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 165,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/agenda s'affiche, tient dans 390 px et ne tombe pas (1.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 166,
+        "moteur": "mobile",
+        "source": "e2e/parcours-agence.spec.ts:79:5",
+        "scenario": "le quittancement du mois s'affiche à 390px avec le bail E2E (1.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 167,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/devis s'affiche, tient dans 390 px et ne tombe pas (1.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 168,
+        "moteur": "mobile",
+        "source": "e2e/parcours-agence.spec.ts:86:5",
+        "scenario": "le plan du jour : replié devant un mur, ouvert quand il tient à l'écran (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 169,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/attestations s'affiche, tient dans 390 px et ne tombe pas (1.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 170,
+        "moteur": "mobile",
+        "source": "e2e/parcours-locataire.spec.ts:19:5",
+        "scenario": "l'accueil locataire montre le statut de l'incident déclaré (744ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 171,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/entreprise s'affiche, tient dans 390 px et ne tombe pas (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 172,
+        "moteur": "mobile",
+        "source": "e2e/parcours-locataire.spec.ts:27:5",
+        "scenario": "déclarer un incident : la photo est le premier champ, l'envoi aboutit (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 174,
+        "moteur": "mobile",
+        "source": "e2e/parcours-locataire.spec.ts:100:5",
+        "scenario": "mes loyers : échéancier lisible à 390px, quittance/reçu accessible (1.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 173,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/note s'affiche, tient dans 390 px et ne tombe pas (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 175,
+        "moteur": "mobile",
+        "source": "e2e/parcours-locataire.spec.ts:107:5",
+        "scenario": "une photo refusée conserve la catégorie, la pièce, le texte et le fichier sélectionné (1.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 176,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/facturation s'affiche, tient dans 390 px et ne tombe pas (1.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 178,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/clients s'affiche, tient dans 390 px et ne tombe pas (1.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 179,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:64:5",
+        "scenario": "l'agenda montre la mission acceptée, avec l'adresse du chantier (1.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 180,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:73:5",
+        "scenario": "chaque cible tactile de l'accueil fait au moins 44 px (1.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 177,
+        "moteur": "mobile",
+        "source": "e2e/personne-reprise.spec.ts:13:37",
+        "scenario": "fiche personne et justificatif : fermeture et création à 390px (6.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 181,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:92:5",
+        "scenario": "le registre privé se télécharge seulement au clic, depuis la facturation et les clients (2.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 183,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:135:5",
+        "scenario": "un client externe et son devis brouillon restent enregistrés après rechargement (5.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 184,
+        "moteur": "mobile",
+        "source": "e2e/parcours-artisan.spec.ts:169:7",
+        "scenario": "visiteur sans compte › « Inscrire mon entreprise » ouvre la création de compte, sans détour par /connexion (1.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 182,
+        "moteur": "mobile",
+        "source": "e2e/personne-reprise.spec.ts:13:37",
+        "scenario": "fiche personne et justificatif : fermeture et création à 1440px (9.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 185,
+        "moteur": "mobile",
+        "source": "e2e/protection-saisie.spec.ts:14:37",
+        "scenario": "profil : avertissement avant sortie, annulation et retour à la valeur initiale à 390px (3.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 187,
+        "moteur": "mobile",
+        "source": "e2e/protection-saisie.spec.ts:14:37",
+        "scenario": "profil : avertissement avant sortie, annulation et retour à la valeur initiale à 1440px (4.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 186,
+        "moteur": "mobile",
+        "source": "e2e/personne-reprise.spec.ts:46:5",
+        "scenario": "fiche personne : une autre fenêtre ne remplace pas la copie et le stockage refusé est expliqué (7.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 188,
+        "moteur": "mobile",
+        "source": "e2e/protection-saisie.spec.ts:27:5",
+        "scenario": "artisan : erreur de dépôt garde le fichier et empêche une sortie accidentelle (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 190,
+        "moteur": "mobile",
+        "source": "e2e/protection-saisie.spec.ts:38:5",
+        "scenario": "superadmin : texte préparé protégé sans programmer de publication (1.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 191,
+        "moteur": "mobile",
+        "source": "e2e/protection-saisie.spec.ts:54:5",
+        "scenario": "confirmation partielle, deuxième formulaire et modifications pendant la réponse (380ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 192,
+        "moteur": "mobile",
+        "source": "e2e/protection-saisie.spec.ts:62:5",
+        "scenario": "un reset automatique après erreur conserve texte et vrais octets du fichier (369ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 193,
+        "moteur": "mobile",
+        "source": "e2e/protection-saisie.spec.ts:69:5",
+        "scenario": "recherche et champs techniques ne déclenchent pas de faux avertissement (360ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 194,
+        "moteur": "mobile",
+        "source": "e2e/protection-saisie.spec.ts:73:5",
+        "scenario": "un fichier choisi sans focus est suivi et une saisie abandonnée demande confirmation (368ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 189,
+        "moteur": "mobile",
+        "source": "e2e/personne-reprise.spec.ts:56:5",
+        "scenario": "fiche personne : réponse de création perdue puis reprise sans nouvelle création (4.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 195,
+        "moteur": "mobile",
+        "source": "e2e/protection-saisie.spec.ts:79:5",
+        "scenario": "artisan : seule la confirmation réelle permet de quitter sans avertissement (3.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 196,
+        "moteur": "mobile",
+        "source": "e2e/personne-reprise.spec.ts:77:5",
+        "scenario": "fiche personne : copie refusée, un lien interne demande confirmation avant d’abandonner la saisie (2.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 198,
+        "moteur": "mobile",
+        "source": "e2e/repli-hors-ligne.spec.ts:61:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › on reste sur la page, la carte « Connexion perdue » s'ouvre et le focus va sur « Réessayer » (754ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 199,
+        "moteur": "mobile",
+        "source": "e2e/repli-hors-ligne.spec.ts:81:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › « Réessayer » sans réseau le dit et laisse la carte ouverte (566ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 197,
+        "moteur": "mobile",
+        "source": "e2e/protection-saisie.spec.ts:92:5",
+        "scenario": "artisan : réponse réseau perdue garde le formulaire et son texte (2.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 200,
+        "moteur": "mobile",
+        "source": "e2e/repli-hors-ligne.spec.ts:95:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › « Échap » ferme la carte sans naviguer, et un nouveau clic la rouvre (620ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 202,
+        "moteur": "mobile",
+        "source": "e2e/repli-hors-ligne.spec.ts:112:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › « Fermer » ferme la carte sans naviguer (831ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 203,
+        "moteur": "mobile",
+        "source": "e2e/repli-hors-ligne.spec.ts:124:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › quand le réseau revient, la carte l'annonce ; « Réessayer » ouvre alors la page demandée, dans l'application (642ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 204,
+        "moteur": "mobile",
+        "source": "e2e/repli-hors-ligne.spec.ts:142:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › la perte du réseau, carte ouverte, est suivie : le message revient à « plus connecté » (581ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 205,
+        "moteur": "mobile",
+        "source": "e2e/repli-hors-ligne.spec.ts:154:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › un lien vers un autre site est retenu aussi ; « Réessayer » le charge en entier une fois le réseau revenu (599ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 201,
+        "moteur": "mobile",
+        "source": "e2e/protection-saisie.spec.ts:101:5",
+        "scenario": "pièce trop volumineuse : refus avant envoi, saisie et fichier conservés (3.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 206,
+        "moteur": "mobile",
+        "source": "e2e/repli-hors-ligne.spec.ts:183:7",
+        "scenario": "tant que le réseau est là, ou quand le clic ne quitte pas la page, rien n'est retenu › en ligne, le lien s'ouvre comme avant, sans carte (664ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 208,
+        "moteur": "mobile",
+        "source": "e2e/repli-hors-ligne.spec.ts:193:7",
+        "scenario": "tant que le réseau est là, ou quand le clic ne quitte pas la page, rien n'est retenu › hors ligne, un lien d'ancre sur la même page n'est pas retenu (792ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 209,
+        "moteur": "mobile",
+        "source": "e2e/supervision-consignes.spec.ts:9:5",
+        "scenario": "une consigne exige une version activée, conserve sa preuve et reste suspendable (5.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 207,
+        "moteur": "mobile",
+        "source": "e2e/reseau-couverture.spec.ts:8:7",
+        "scenario": "Couverture du réseau depuis le bien › un bien à Lyon reste gérable, puis intérêt sans intervention ni doublon (6.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 211,
+        "moteur": "mobile",
+        "source": "e2e/reseau-couverture.spec.ts:56:7",
+        "scenario": "Couverture du réseau, côté supervision › la couverture se lit commune par commune, sans aucune décision d’ouverture ni de rattachement (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 212,
+        "moteur": "mobile",
+        "source": "e2e/supervision-consultation.spec.ts:9:9",
+        "scenario": "consultation superadmin › les commandes proposées correspondent au rôle connecté (1.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 210,
+        "moteur": "mobile",
+        "source": "e2e/supervision-consignes.spec.ts:64:7",
+        "scenario": "présentation mobile › consignes et relais restent lisibles sans débordement (3.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 213,
+        "moteur": "mobile",
+        "source": "e2e/supervision-consultation.spec.ts:9:9",
+        "scenario": "consultation proprietaire › les commandes proposées correspondent au rôle connecté (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 214,
+        "moteur": "mobile",
+        "source": "e2e/supervision-consignes.spec.ts:64:7",
+        "scenario": "présentation ordinateur › consignes et relais restent lisibles sans débordement (5.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 216,
+        "moteur": "mobile",
+        "source": "e2e/vitrine.spec.ts:8:7",
+        "scenario": "vitrine / : les tarifs changent sans ambiguïté entre mois et année (1.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 217,
+        "moteur": "mobile",
+        "source": "e2e/vitrine.spec.ts:8:7",
+        "scenario": "vitrine /tarifs : les tarifs changent sans ambiguïté entre mois et année (763ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 218,
+        "moteur": "mobile",
+        "source": "e2e/vitrine.spec.ts:24:5",
+        "scenario": "vitrine mobile : navigation, fermeture du menu et questions fréquentes (2.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 215,
+        "moteur": "mobile",
+        "source": "e2e/utilisateurs.spec.ts:7:5",
+        "scenario": "annuaire lisible, filtres cumulés et ouverture du bon compte (10.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 219,
+        "moteur": "mobile",
+        "source": "e2e/utilisateurs.spec.ts:40:5",
+        "scenario": "les abonnements et la trésorerie restent deux lectures distinctes (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 1,
+        "moteur": "setup-webkit",
+        "source": "e2e/auth.setup.ts:54:6",
+        "scenario": "sessions des personas (38.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 2,
+        "moteur": "mobile-webkit",
+        "source": "e2e/bail-signe-non-actif.spec.ts:11:9",
+        "scenario": "proprietaire › bail signé et documents lisibles sans activation (5.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 3,
+        "moteur": "mobile-webkit",
+        "source": "e2e/bail-signe-non-actif.spec.ts:11:9",
+        "scenario": "superadmin › bail signé et documents lisibles sans activation (7.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 4,
+        "moteur": "mobile-webkit",
+        "source": "e2e/bouton-envoi-hydratation.spec.ts:38:7",
+        "scenario": "BoutonEnvoi commun : inerte jusqu'à l'hydratation, actif ensuite › script jamais chargé (HTML du serveur seul) : désactivé, avec l'infobulle qui dit pourquoi (4.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 5,
+        "moteur": "mobile-webkit",
+        "source": "e2e/bouton-envoi-hydratation.spec.ts:52:7",
+        "scenario": "BoutonEnvoi commun : inerte jusqu'à l'hydratation, actif ensuite › script chargé : le même bouton est actif, sans infobulle d'attente (1.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 6,
+        "moteur": "mobile-webkit",
+        "source": "e2e/bouton-envoi-hydratation.spec.ts:61:7",
+        "scenario": "BoutonEnvoi commun : inerte jusqu'à l'hydratation, actif ensuite › script retardé : inerte pendant le chargement, actif dès que la page est prête (7.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 7,
+        "moteur": "mobile-webkit",
+        "source": "e2e/bouton-envoi-hydratation.spec.ts:82:7",
+        "scenario": "un formulaire que le navigateur envoie seul n'attend pas la page › « Envoyer le lien » (mot de passe oublié) est actif dès le HTML du serveur, sans script (796ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 8,
+        "moteur": "mobile-webkit",
+        "source": "e2e/depot-direct.spec.ts:7:37",
+        "scenario": "document de 6 Mo : transfert privé puis enregistrement à 390px (3.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 9,
+        "moteur": "mobile-webkit",
+        "source": "e2e/depot-direct.spec.ts:7:37",
+        "scenario": "document de 6 Mo : transfert privé puis enregistrement à 1440px (5.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 10,
+        "moteur": "mobile-webkit",
+        "source": "e2e/dossier-proprietaire.spec.ts:16:7",
+        "scenario": "propriétaire : repères et rubriques accessibles à 390px (5.9s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 11,
+        "moteur": "mobile-webkit",
+        "source": "e2e/dossier-proprietaire.spec.ts:16:7",
+        "scenario": "propriétaire : repères et rubriques accessibles à 1440px (7.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 12,
+        "moteur": "mobile-webkit",
+        "source": "e2e/dossier-proprietaire.spec.ts:45:5",
+        "scenario": "propriétaire : un refus d’enregistrement reste visible sans perdre la saisie (4.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 13,
+        "moteur": "mobile-webkit",
+        "source": "e2e/dossier-proprietaire.spec.ts:69:7",
+        "scenario": "propriétaire : parcours guidé et saisies conservées à 390px (6.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 14,
+        "moteur": "mobile-webkit",
+        "source": "e2e/dossier-proprietaire.spec.ts:69:7",
+        "scenario": "propriétaire : parcours guidé et saisies conservées à 1440px (9.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 15,
+        "moteur": "mobile-webkit",
+        "source": "e2e/dossier-proprietaire.spec.ts:94:5",
+        "scenario": "propriétaire : le bail reprend le lot et permet de créer puis retrouver le locataire (9.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 16,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:25:5",
+        "scenario": "le portail s'ouvre sans organisation dans l'adresse (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 17,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan s'affiche, tient dans 390 px et ne tombe pas (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 18,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/agenda s'affiche, tient dans 390 px et ne tombe pas (1.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 19,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/devis s'affiche, tient dans 390 px et ne tombe pas (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 20,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/attestations s'affiche, tient dans 390 px et ne tombe pas (2.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 21,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/entreprise s'affiche, tient dans 390 px et ne tombe pas (1.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 22,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/note s'affiche, tient dans 390 px et ne tombe pas (1.8s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 23,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/facturation s'affiche, tient dans 390 px et ne tombe pas (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 24,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:41:7",
+        "scenario": "/artisan/clients s'affiche, tient dans 390 px et ne tombe pas (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 25,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:64:5",
+        "scenario": "l'agenda montre la mission acceptée, avec l'adresse du chantier (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 26,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:73:5",
+        "scenario": "chaque cible tactile de l'accueil fait au moins 44 px (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 27,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:92:5",
+        "scenario": "le registre privé se télécharge seulement au clic, depuis la facturation et les clients (3.5s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 28,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:135:5",
+        "scenario": "un client externe et son devis brouillon restent enregistrés après rechargement (5.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 29,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-artisan.spec.ts:169:7",
+        "scenario": "visiteur sans compte › « Inscrire mon entreprise » ouvre la création de compte, sans détour par /connexion (1.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 30,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-locataire.spec.ts:19:5",
+        "scenario": "l'accueil locataire montre le statut de l'incident déclaré (1.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 31,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-locataire.spec.ts:27:5",
+        "scenario": "déclarer un incident : la photo est le premier champ, l'envoi aboutit (2.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 32,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-locataire.spec.ts:100:5",
+        "scenario": "mes loyers : échéancier lisible à 390px, quittance/reçu accessible (1.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 33,
+        "moteur": "mobile-webkit",
+        "source": "e2e/parcours-locataire.spec.ts:107:5",
+        "scenario": "une photo refusée conserve la catégorie, la pièce, le texte et le fichier sélectionné (1.9s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 34,
+        "moteur": "mobile-webkit",
+        "source": "e2e/protection-saisie.spec.ts:14:37",
+        "scenario": "profil : avertissement avant sortie, annulation et retour à la valeur initiale à 390px (2.2s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 35,
+        "moteur": "mobile-webkit",
+        "source": "e2e/protection-saisie.spec.ts:14:37",
+        "scenario": "profil : avertissement avant sortie, annulation et retour à la valeur initiale à 1440px (3.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 36,
+        "moteur": "mobile-webkit",
+        "source": "e2e/protection-saisie.spec.ts:27:5",
+        "scenario": "artisan : erreur de dépôt garde le fichier et empêche une sortie accidentelle (3.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 37,
+        "moteur": "mobile-webkit",
+        "source": "e2e/protection-saisie.spec.ts:38:5",
+        "scenario": "superadmin : texte préparé protégé sans programmer de publication (3.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 38,
+        "moteur": "mobile-webkit",
+        "source": "e2e/protection-saisie.spec.ts:54:5",
+        "scenario": "confirmation partielle, deuxième formulaire et modifications pendant la réponse (544ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 39,
+        "moteur": "mobile-webkit",
+        "source": "e2e/protection-saisie.spec.ts:62:5",
+        "scenario": "un reset automatique après erreur conserve texte et vrais octets du fichier (466ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 40,
+        "moteur": "mobile-webkit",
+        "source": "e2e/protection-saisie.spec.ts:69:5",
+        "scenario": "recherche et champs techniques ne déclenchent pas de faux avertissement (491ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 41,
+        "moteur": "mobile-webkit",
+        "source": "e2e/protection-saisie.spec.ts:73:5",
+        "scenario": "un fichier choisi sans focus est suivi et une saisie abandonnée demande confirmation (477ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 42,
+        "moteur": "mobile-webkit",
+        "source": "e2e/protection-saisie.spec.ts:79:5",
+        "scenario": "artisan : seule la confirmation réelle permet de quitter sans avertissement (4.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 43,
+        "moteur": "mobile-webkit",
+        "source": "e2e/protection-saisie.spec.ts:92:5",
+        "scenario": "artisan : réponse réseau perdue garde le formulaire et son texte (2.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 44,
+        "moteur": "mobile-webkit",
+        "source": "e2e/protection-saisie.spec.ts:101:5",
+        "scenario": "pièce trop volumineuse : refus avant envoi, saisie et fichier conservés (3.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 45,
+        "moteur": "mobile-webkit",
+        "source": "e2e/repli-hors-ligne.spec.ts:61:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › on reste sur la page, la carte « Connexion perdue » s'ouvre et le focus va sur « Réessayer » (1.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 46,
+        "moteur": "mobile-webkit",
+        "source": "e2e/repli-hors-ligne.spec.ts:81:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › « Réessayer » sans réseau le dit et laisse la carte ouverte (1.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 47,
+        "moteur": "mobile-webkit",
+        "source": "e2e/repli-hors-ligne.spec.ts:95:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › « Échap » ferme la carte sans naviguer, et un nouveau clic la rouvre (1.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 48,
+        "moteur": "mobile-webkit",
+        "source": "e2e/repli-hors-ligne.spec.ts:112:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › « Fermer » ferme la carte sans naviguer (1.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 49,
+        "moteur": "mobile-webkit",
+        "source": "e2e/repli-hors-ligne.spec.ts:124:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › quand le réseau revient, la carte l'annonce ; « Réessayer » ouvre alors la page demandée, dans l'application (1.1s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 50,
+        "moteur": "mobile-webkit",
+        "source": "e2e/repli-hors-ligne.spec.ts:142:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › la perte du réseau, carte ouverte, est suivie : le message revient à « plus connecté » (984ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 51,
+        "moteur": "mobile-webkit",
+        "source": "e2e/repli-hors-ligne.spec.ts:154:7",
+        "scenario": "hors ligne, le clic sur un lien est retenu › un lien vers un autre site est retenu aussi ; « Réessayer » le charge en entier une fois le réseau revenu (1.3s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 52,
+        "moteur": "mobile-webkit",
+        "source": "e2e/repli-hors-ligne.spec.ts:183:7",
+        "scenario": "tant que le réseau est là, ou quand le clic ne quitte pas la page, rien n'est retenu › en ligne, le lien s'ouvre comme avant, sans carte (1.0s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 53,
+        "moteur": "mobile-webkit",
+        "source": "e2e/repli-hors-ligne.spec.ts:193:7",
+        "scenario": "tant que le réseau est là, ou quand le clic ne quitte pas la page, rien n'est retenu › hors ligne, un lien d'ancre sur la même page n'est pas retenu (975ms)"
+      },
+      {
+        "etat": "réussi",
+        "n": 54,
+        "moteur": "mobile-webkit",
+        "source": "e2e/utilisateurs.spec.ts:7:5",
+        "scenario": "annuaire lisible, filtres cumulés et ouverture du bon compte (9.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 55,
+        "moteur": "mobile-webkit",
+        "source": "e2e/utilisateurs.spec.ts:40:5",
+        "scenario": "les abonnements et la trésorerie restent deux lectures distinctes (1.7s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 56,
+        "moteur": "mobile-webkit",
+        "source": "e2e/vitrine.spec.ts:8:7",
+        "scenario": "vitrine / : les tarifs changent sans ambiguïté entre mois et année (1.6s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 57,
+        "moteur": "mobile-webkit",
+        "source": "e2e/vitrine.spec.ts:8:7",
+        "scenario": "vitrine /tarifs : les tarifs changent sans ambiguïté entre mois et année (1.4s)"
+      },
+      {
+        "etat": "réussi",
+        "n": 58,
+        "moteur": "mobile-webkit",
+        "source": "e2e/vitrine.spec.ts:24:5",
+        "scenario": "vitrine mobile : navigation, fermeture du menu et questions fréquentes (2.7s)"
+      }
+    ]
+  },
+  "reserves_visuelles_ci908": [
+    {
+      "etat": "défaut de rendu observé",
+      "source": "e2e/.results-webkit/utilisateurs-annuaire-lisi-23b3e--et-ouverture-du-bon-compte-mobile-webkit/utilisateurs-1440.png",
+      "constat": "Titre Utilisateurs coupé sur deux lignes à 1440 px dans la capture WebKit ; Chromium correct. À reproduire hors redimensionnement puis corriger."
+    },
+    {
+      "etat": "preuve visuelle non exploitable",
+      "source": "e2e/.results-webkit/bail-signe-non-actif-super-2d01f-ts-lisibles-sans-activation-mobile-webkit/resume-superadmin.png",
+      "constat": "Le contenu principal n’est pas peint sur cette capture malgré les assertions de visibilité réussies ; le rendu Logement suivant est présent. Animation d’apparition existante, cause exacte non confirmée. Refaire une capture après stabilisation avant de déclarer ce visuel vérifié."
+    }
+  ],
+  "captures_ci908": {
+    "proprietaire": {
+      "nombre_vues": 30,
+      "debordements": 0,
+      "erreurs_page": 0,
+      "redirections": [],
+      "scenarios": [
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/abonnement",
+          "persona": "proprietaire",
+          "label": "Abonnement (propriétaire direct)",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/abonnement",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 3412,
+          "photos": 1,
+          "boutonsVisibles": 5,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mon abonnement — Gerimmo",
+          "h1": "Mon abonnement",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/abonnement/retractation",
+          "persona": "proprietaire",
+          "label": "Renoncer au contrat (rétractation)",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/abonnement/retractation",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Renoncer au contrat — Gerimmo",
+          "h1": "Renoncer au contrat",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/abonnement/resiliation",
+          "persona": "proprietaire",
+          "label": "Résilier votre contrat",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/abonnement/resiliation",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Résilier votre contrat — Gerimmo",
+          "h1": "Résilier votre contrat",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/comptabilite/fiscal",
+          "persona": "proprietaire",
+          "label": "Aide fiscale (revenus fonciers)",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/comptabilite/fiscal",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1893,
+          "photos": 1,
+          "boutonsVisibles": 10,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Récapitulatif fiscal — Gerimmo",
+          "h1": "Récapitulatif fiscal 2026",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/faq",
+          "persona": "proprietaire",
+          "label": "FAQ du propriétaire direct",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/faq",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 3155,
+          "photos": 1,
+          "boutonsVisibles": 17,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Aide — Gerimmo",
+          "h1": "Aide",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/veille?public=bailleur",
+          "persona": "proprietaire",
+          "label": "Règles pour les bailleurs",
+          "statut": 200,
+          "cheminFinal": "/veille",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 0,
+          "boutonsVisibles": 0,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Les règles à connaître — Gerimmo",
+          "h1": "Les règles à connaître",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1",
+          "persona": "proprietaire",
+          "label": "Accueil du bailleur",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1875,
+          "photos": 1,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Tableau de bord — Gerimmo",
+          "h1": "Bonjour Claire",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc",
+          "persona": "proprietaire",
+          "label": "Mes lots",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1455,
+          "photos": 1,
+          "boutonsVisibles": 7,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Parc — Gerimmo",
+          "h1": "Mes lots",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/nouveau",
+          "persona": "proprietaire",
+          "label": "Ajouter un bien",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/nouveau",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Créer un lot — Gerimmo",
+          "h1": "Créer un lot",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/personnes",
+          "persona": "proprietaire",
+          "label": "Locataires et garants",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/personnes",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1013,
+          "photos": 1,
+          "boutonsVisibles": 8,
+          "boutonsSansNom": 0,
+          "larges": [
+            "button (128px)",
+            "span.O-x4Fa_point (6px)",
+            "span.O-x4Fa_compteur (20px)",
+            "button (153px)",
+            "span.O-x4Fa_point (6px)"
+          ],
+          "titre": "Locataires & garants — Gerimmo",
+          "h1": "Locataires & garants",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/loyers",
+          "persona": "proprietaire",
+          "label": "Loyers du bailleur",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/loyers",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1583,
+          "photos": 1,
+          "boutonsVisibles": 7,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Finances — Gerimmo",
+          "h1": "Finances",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/comptabilite",
+          "persona": "proprietaire",
+          "label": "Livre recettes-dépenses",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/comptabilite",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1291,
+          "photos": 1,
+          "boutonsVisibles": 5,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Livre recettes-dépenses — Gerimmo",
+          "h1": "Livre recettes-dépenses",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/incidents",
+          "persona": "proprietaire",
+          "label": "Incidents du bailleur",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/incidents",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Incidents — Gerimmo",
+          "h1": "Incidents",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/incidents/nouveau",
+          "persona": "proprietaire",
+          "label": "Déclarer un incident",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/incidents/nouveau",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1498,
+          "photos": 1,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Déclarer un incident — Gerimmo",
+          "h1": "Déclarer un incident",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/alertes",
+          "persona": "proprietaire",
+          "label": "Alertes du bailleur",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/alertes",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1238,
+          "photos": 1,
+          "boutonsVisibles": 10,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Alertes — Gerimmo",
+          "h1": "Alertes",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/agenda",
+          "persona": "proprietaire",
+          "label": "Agenda du bailleur",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/agenda",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1477,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Agenda — Gerimmo",
+          "h1": "Agenda",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/statistiques",
+          "persona": "proprietaire",
+          "label": "Statistiques du bailleur",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/statistiques",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1117,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Statistiques — Gerimmo",
+          "h1": "Statistiques",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/messages",
+          "persona": "proprietaire",
+          "label": "Messages du bailleur",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/messages",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 902,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Messages — Gerimmo",
+          "h1": "Messages",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/profil",
+          "persona": "proprietaire",
+          "label": "Paramètres du bailleur",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/profil",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1659,
+          "photos": 1,
+          "boutonsVisibles": 11,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Profil — Gerimmo",
+          "h1": "Mon profil",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/documents",
+          "persona": "proprietaire",
+          "label": "Documents du bailleur",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/documents",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Documents — Gerimmo",
+          "h1": "Documents",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/documents/catalogue",
+          "persona": "proprietaire",
+          "label": "Catalogue du bailleur",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/documents/catalogue",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1818,
+          "photos": 1,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Préparer un document — Gerimmo",
+          "h1": "Préparer un document",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/artisans",
+          "persona": "proprietaire",
+          "label": "Carnet d’artisans du bailleur",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/artisans",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1411,
+          "photos": 1,
+          "boutonsVisibles": 5,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Carnet d'artisans — Gerimmo",
+          "h1": "Mon carnet d’artisans",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/journal",
+          "persona": "proprietaire",
+          "label": "Journal dans l’espace connecté",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/journal",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 877,
+          "photos": 2,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Le journal — Gerimmo",
+          "h1": "Le journal Gerimmo",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/journal/e2e-gerer-une-location",
+          "persona": "proprietaire",
+          "label": "Article dans l’espace connecté",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/journal/e2e-gerer-une-location",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1042,
+          "photos": 2,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Article du journal — Gerimmo",
+          "h1": "Gérer une location, étape par étape",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/compte/donnees",
+          "persona": "proprietaire",
+          "label": "Données personnelles et demandes privées — proprietaire",
+          "statut": 200,
+          "cheminFinal": "/compte/donnees",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1779,
+          "photos": 0,
+          "boutonsVisibles": 2,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mes données personnelles — Gerimmo",
+          "h1": "Mes données personnelles",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/e0f4810b-d7f7-4c27-a9df-c9ae7a8ee95c/lots/a0b84383-98b4-4caa-8f29-d48bacc9e2c5",
+          "persona": "proprietaire",
+          "label": "Fiche du logement propriétaire",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/e0f4810b-d7f7-4c27-a9df-c9ae7a8ee95c/lots/a0b84383-98b4-4caa-8f29-d48bacc9e2c5",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1518,
+          "photos": 1,
+          "boutonsVisibles": 8,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Fiche lot — Gerimmo",
+          "h1": "Studio du Rhône",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/e0f4810b-d7f7-4c27-a9df-c9ae7a8ee95c/lots/a0b84383-98b4-4caa-8f29-d48bacc9e2c5#logement-lot",
+          "persona": "proprietaire",
+          "label": "Fiche du logement propriétaire — Logement",
+          "statut": 200,
+          "overflowPx": 0,
+          "hauteurPx": 1754,
+          "photos": 1,
+          "boutonsVisibles": 18,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Fiche lot — Gerimmo",
+          "h1": "Studio du Rhône",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/e0f4810b-d7f7-4c27-a9df-c9ae7a8ee95c/lots/a0b84383-98b4-4caa-8f29-d48bacc9e2c5#documents-lot",
+          "persona": "proprietaire",
+          "label": "Fiche du logement propriétaire — Documents",
+          "statut": 200,
+          "overflowPx": 0,
+          "hauteurPx": 1894,
+          "photos": 1,
+          "boutonsVisibles": 15,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Fiche lot — Gerimmo",
+          "h1": "Studio du Rhône",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/e0f4810b-d7f7-4c27-a9df-c9ae7a8ee95c/lots/a0b84383-98b4-4caa-8f29-d48bacc9e2c5#contrats-lot",
+          "persona": "proprietaire",
+          "label": "Fiche du logement propriétaire — Contrats",
+          "statut": 200,
+          "overflowPx": 0,
+          "hauteurPx": 963,
+          "photos": 1,
+          "boutonsVisibles": 9,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Fiche lot — Gerimmo",
+          "h1": "Studio du Rhône",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/e0f4810b-d7f7-4c27-a9df-c9ae7a8ee95c",
+          "persona": "proprietaire",
+          "label": "Fiche du bien propriétaire",
+          "statut": 200,
+          "cheminFinal": "/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/e0f4810b-d7f7-4c27-a9df-c9ae7a8ee95c",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2233,
+          "photos": 1,
+          "boutonsVisibles": 11,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Fiche bien — Gerimmo",
+          "h1": "Studio du Rhône",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        }
+      ]
+    },
+    "locataire": {
+      "nombre_vues": 14,
+      "debordements": 0,
+      "erreurs_page": 0,
+      "redirections": [],
+      "scenarios": [
+        {
+          "path": "/attestation-loyer/c14c3187-1258-4e58-8822-368c6007e3fa",
+          "persona": "locataire",
+          "label": "Attestation de bon paiement",
+          "statut": 200,
+          "cheminFinal": "/attestation-loyer/c14c3187-1258-4e58-8822-368c6007e3fa",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 0,
+          "boutonsVisibles": 0,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Attestation de bon paiement — Agence Alpha",
+          "h1": "Attestation de bon paiement",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/compte",
+          "persona": "locataire",
+          "label": "Sécurité du compte (locataire)",
+          "statut": 200,
+          "cheminFinal": "/compte",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2028,
+          "photos": 0,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Sécurité du compte — Agence Alpha",
+          "h1": "Sécurité du compte",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa",
+          "persona": "locataire",
+          "label": "Tableau de bord locataire",
+          "statut": 200,
+          "cheminFinal": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2311,
+          "photos": 0,
+          "boutonsVisibles": 2,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mon espace — Agence Alpha",
+          "h1": "Bonjour E2E,",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/contact",
+          "persona": "locataire",
+          "label": "Contacter la gérance",
+          "statut": 200,
+          "cheminFinal": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/contact",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1416,
+          "photos": 0,
+          "boutonsVisibles": 6,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mon gestionnaire — Agence Alpha",
+          "h1": "Mon gestionnaire",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/demandes",
+          "persona": "locataire",
+          "label": "Mes demandes",
+          "statut": 200,
+          "cheminFinal": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/demandes",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1908,
+          "photos": 0,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mes demandes — Agence Alpha",
+          "h1": "Mes demandes",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/documents",
+          "persona": "locataire",
+          "label": "Mes documents",
+          "statut": 200,
+          "cheminFinal": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/documents",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 0,
+          "boutonsVisibles": 6,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mes documents — Agence Alpha",
+          "h1": "Mes documents",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/documents#documents-disponibles",
+          "persona": "locataire",
+          "label": "Mes documents — Mes fichiers",
+          "statut": 200,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 0,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mes documents — Agence Alpha",
+          "h1": "Mes documents",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/faq",
+          "persona": "locataire",
+          "label": "FAQ locataire",
+          "statut": 200,
+          "cheminFinal": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/faq",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 0,
+          "boutonsVisibles": 8,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Questions fréquentes — Agence Alpha",
+          "h1": "Questions fréquentes",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/incident",
+          "persona": "locataire",
+          "label": "Signaler un incident",
+          "statut": 200,
+          "cheminFinal": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/incident",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1443,
+          "photos": 0,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Signaler un problème — Agence Alpha",
+          "h1": "Signaler un problème",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/logement",
+          "persona": "locataire",
+          "label": "Mon logement",
+          "statut": 200,
+          "cheminFinal": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/logement",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1339,
+          "photos": 0,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mon logement — Agence Alpha",
+          "h1": "Mon logement",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/loyers",
+          "persona": "locataire",
+          "label": "Mes loyers & quittances",
+          "statut": 200,
+          "cheminFinal": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/loyers",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1239,
+          "photos": 0,
+          "boutonsVisibles": 2,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mes paiements — Agence Alpha",
+          "h1": "Mes paiements",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/quittance/daa5e15e-0f6d-409d-afec-544ceeb10128",
+          "persona": "locataire",
+          "label": "Quittance / reçu imprimable (aussi vue côté agence)",
+          "statut": 200,
+          "cheminFinal": "/quittance/daa5e15e-0f6d-409d-afec-544ceeb10128",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1458,
+          "photos": 0,
+          "boutonsVisibles": 2,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Reçu — Agence Alpha",
+          "h1": "Reçu de paiement partiel — septembre 2026",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/veille?public=locataire",
+          "persona": "locataire",
+          "label": "Règles pour les locataires",
+          "statut": 200,
+          "cheminFinal": "/veille",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 0,
+          "boutonsVisibles": 0,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Les règles à connaître — Gerimmo",
+          "h1": "Les règles à connaître",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/compte/donnees",
+          "persona": "locataire",
+          "label": "Données personnelles et demandes privées — locataire",
+          "statut": 200,
+          "cheminFinal": "/compte/donnees",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1363,
+          "photos": 0,
+          "boutonsVisibles": 1,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mes données personnelles — Gerimmo",
+          "h1": "Mes données personnelles",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        }
+      ]
+    },
+    "artisan": {
+      "nombre_vues": 20,
+      "debordements": 0,
+      "erreurs_page": 0,
+      "redirections": [
+        {
+          "ecran": "Bilan de mission",
+          "cible": "/artisan/missions/1ae04894-629e-4aa4-9886-ab23e4566042"
+        },
+        {
+          "ecran": "Déposer ma facture",
+          "cible": "/artisan/missions/1ae04894-629e-4aa4-9886-ab23e4566042"
+        }
+      ],
+      "scenarios": [
+        {
+          "path": "/artisan",
+          "persona": "artisan",
+          "label": "Accueil artisan",
+          "statut": 200,
+          "cheminFinal": "/artisan",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1394,
+          "photos": 1,
+          "boutonsVisibles": 2,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Aujourd'hui — Gerimmo",
+          "h1": "Aujourd'hui",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/agenda",
+          "persona": "artisan",
+          "label": "Agenda artisan",
+          "statut": 200,
+          "cheminFinal": "/artisan/agenda",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1189,
+          "photos": 1,
+          "boutonsVisibles": 1,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mon agenda — Gerimmo",
+          "h1": "Mon agenda",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/attestations",
+          "persona": "artisan",
+          "label": "Attestations artisan",
+          "statut": 200,
+          "cheminFinal": "/artisan/attestations",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2001,
+          "photos": 1,
+          "boutonsVisibles": 1,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mes attestations — Gerimmo",
+          "h1": "Mes attestations",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/devis",
+          "persona": "artisan",
+          "label": "Demandes de devis",
+          "statut": 200,
+          "cheminFinal": "/artisan/devis",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 901,
+          "photos": 1,
+          "boutonsVisibles": 1,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Demandes de devis — Gerimmo",
+          "h1": "Demandes de devis",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/devis/14dd92a2-3780-40cf-bbf8-16113299a9b2",
+          "persona": "artisan",
+          "label": "Répondre à une demande",
+          "statut": 200,
+          "cheminFinal": "/artisan/devis/14dd92a2-3780-40cf-bbf8-16113299a9b2",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2101,
+          "photos": 1,
+          "boutonsVisibles": 10,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Répondre à une demande — Gerimmo",
+          "h1": "Fuite / robinetterie",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/entreprise",
+          "persona": "artisan",
+          "label": "Mon entreprise",
+          "statut": 200,
+          "cheminFinal": "/artisan/entreprise",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1348,
+          "photos": 1,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mon entreprise — Gerimmo",
+          "h1": "Mon entreprise",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/entreprise#entreprise-reseau",
+          "persona": "artisan",
+          "label": "Mon entreprise — Zone et métiers",
+          "statut": 200,
+          "overflowPx": 0,
+          "hauteurPx": 2409,
+          "photos": 1,
+          "boutonsVisibles": 6,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mon entreprise — Gerimmo",
+          "h1": "Mon entreprise",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/entreprise#entreprise-devis",
+          "persona": "artisan",
+          "label": "Mon entreprise — Mes devis",
+          "statut": 200,
+          "overflowPx": 0,
+          "hauteurPx": 1749,
+          "photos": 1,
+          "boutonsVisibles": 5,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mon entreprise — Gerimmo",
+          "h1": "Mon entreprise",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/facturation",
+          "persona": "artisan",
+          "label": "Facturation artisan",
+          "statut": 200,
+          "cheminFinal": "/artisan/facturation",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2314,
+          "photos": 1,
+          "boutonsVisibles": 1,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Ma facturation — Gerimmo",
+          "h1": "Ma facturation",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/missions/1ae04894-629e-4aa4-9886-ab23e4566042",
+          "persona": "artisan",
+          "label": "Fiche mission",
+          "statut": 200,
+          "cheminFinal": "/artisan/missions/1ae04894-629e-4aa4-9886-ab23e4566042",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1810,
+          "photos": 1,
+          "boutonsVisibles": 2,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Ma mission — Gerimmo",
+          "h1": "Fuite / robinetterie",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/missions/1ae04894-629e-4aa4-9886-ab23e4566042/compte-rendu",
+          "persona": "artisan",
+          "label": "Compte rendu de mission",
+          "statut": 200,
+          "cheminFinal": "/artisan/missions/1ae04894-629e-4aa4-9886-ab23e4566042/compte-rendu",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 2,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Photo du travail — Gerimmo",
+          "h1": "La photo du travail réalisé",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/missions/1ae04894-629e-4aa4-9886-ab23e4566042/compte-rendu/bilan",
+          "persona": "artisan",
+          "label": "Bilan de mission",
+          "statut": 200,
+          "cheminFinal": "/artisan/missions/1ae04894-629e-4aa4-9886-ab23e4566042",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": true,
+          "overflowPx": 0,
+          "hauteurPx": 1902,
+          "photos": 1,
+          "boutonsVisibles": 2,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Ma mission — Gerimmo",
+          "h1": "Fuite / robinetterie",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/missions/1ae04894-629e-4aa4-9886-ab23e4566042/creneaux",
+          "persona": "artisan",
+          "label": "Proposer des créneaux",
+          "statut": 200,
+          "cheminFinal": "/artisan/missions/1ae04894-629e-4aa4-9886-ab23e4566042/creneaux",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2045,
+          "photos": 1,
+          "boutonsVisibles": 10,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Proposer d'autres créneaux — Gerimmo",
+          "h1": "Proposer d'autres créneaux",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/missions/1ae04894-629e-4aa4-9886-ab23e4566042/facture",
+          "persona": "artisan",
+          "label": "Déposer ma facture",
+          "statut": 200,
+          "cheminFinal": "/artisan/missions/1ae04894-629e-4aa4-9886-ab23e4566042",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": true,
+          "overflowPx": 0,
+          "hauteurPx": 1810,
+          "photos": 1,
+          "boutonsVisibles": 2,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Ma mission — Gerimmo",
+          "h1": "Fuite / robinetterie",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/note",
+          "persona": "artisan",
+          "label": "Ma note artisan",
+          "statut": 200,
+          "cheminFinal": "/artisan/note",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2179,
+          "photos": 1,
+          "boutonsVisibles": 1,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mes évaluations — Gerimmo",
+          "h1": "Mes évaluations",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/panne",
+          "persona": "artisan",
+          "label": "Aide en cas de panne",
+          "statut": 200,
+          "cheminFinal": "/artisan/panne",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 1,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Lecture impossible — Gerimmo",
+          "h1": "Lecture momentanément impossible",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/regles",
+          "persona": "artisan",
+          "label": "Règles pour les artisans",
+          "statut": 200,
+          "cheminFinal": "/artisan/regles",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 1,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Les règles à connaître — Gerimmo",
+          "h1": "Les règles à connaître",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/clients",
+          "persona": "artisan",
+          "label": "Clients externes",
+          "statut": 200,
+          "cheminFinal": "/artisan/clients",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1328,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Clients externes — Gerimmo",
+          "h1": "Mes clients externes",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/artisan/devis/nouveau",
+          "persona": "artisan",
+          "label": "Nouveau chantier et devis",
+          "statut": 200,
+          "cheminFinal": "/artisan/devis/nouveau",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 1,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Nouveau chantier et devis — Gerimmo",
+          "h1": "Nouveau chantier et devis",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/compte/donnees",
+          "persona": "artisan",
+          "label": "Données personnelles et demandes privées — artisan",
+          "statut": 200,
+          "cheminFinal": "/compte/donnees",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1363,
+          "photos": 0,
+          "boutonsVisibles": 1,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Mes données personnelles — Gerimmo",
+          "h1": "Mes données personnelles",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        }
+      ]
+    },
+    "superadmin": {
+      "nombre_vues": 39,
+      "debordements": 0,
+      "erreurs_page": 0,
+      "redirections": [],
+      "scenarios": [
+        {
+          "path": "/admin",
+          "persona": "superadmin",
+          "label": "Vue d’ensemble de la supervision",
+          "statut": 200,
+          "cheminFinal": "/admin",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 4151,
+          "photos": 1,
+          "boutonsVisibles": 24,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Abonnements et finances — Gerimmo",
+          "h1": "Abonnements et finances",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin#tresorerie-admin",
+          "persona": "superadmin",
+          "label": "Vue d’ensemble de la supervision — Encaissements et coûts",
+          "statut": 200,
+          "overflowPx": 0,
+          "hauteurPx": 1754,
+          "photos": 1,
+          "boutonsVisibles": 8,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Abonnements et finances — Gerimmo",
+          "h1": "Abonnements et finances",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/artisans",
+          "persona": "superadmin",
+          "label": "Artisans à valider",
+          "statut": 200,
+          "cheminFinal": "/admin/artisans",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2149,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Réseau d’artisans — Gerimmo",
+          "h1": "Réseau d’artisans",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/brief",
+          "persona": "superadmin",
+          "label": "Aujourd’hui — le point du matin",
+          "statut": 200,
+          "cheminFinal": "/admin/brief",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 4208,
+          "photos": 1,
+          "boutonsVisibles": 11,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Bureau de direction — Gerimmo",
+          "h1": "Bureau de direction",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/brief/exploitation",
+          "persona": "superadmin",
+          "label": "Le point du matin — détail d’une équipe",
+          "statut": 200,
+          "cheminFinal": "/admin/brief/exploitation",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 992,
+          "photos": 1,
+          "boutonsVisibles": 6,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Point du matin d’une équipe — Gerimmo",
+          "h1": "Équipe Exploitation locative",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/clients",
+          "persona": "superadmin",
+          "label": "Clients (agences, propriétaires, artisans)",
+          "statut": 200,
+          "cheminFinal": "/admin/clients",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 3151,
+          "photos": 1,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Utilisateurs — Gerimmo",
+          "h1": "Utilisateurs",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/comptes/04c7d9bb-015f-440c-bb7f-6bff2561de23",
+          "persona": "superadmin",
+          "label": "Fiche de débogage d’un compte (état, rôles, journaux)",
+          "statut": 200,
+          "cheminFinal": "/admin/comptes/04c7d9bb-015f-440c-bb7f-6bff2561de23",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1442,
+          "photos": 1,
+          "boutonsVisibles": 10,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Fiche d’un compte — Gerimmo",
+          "h1": "admin.alpha@example.com",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/clients/artisans/8bd54e59-5033-41c1-994f-624f1ada5feb",
+          "persona": "superadmin",
+          "label": "Fiche artisan",
+          "statut": 200,
+          "cheminFinal": "/admin/clients/artisans/8bd54e59-5033-41c1-994f-624f1ada5feb",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2110,
+          "photos": 1,
+          "boutonsVisibles": 12,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Artisan — Gerimmo",
+          "h1": "E2E Plomberie Dubois",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/devis",
+          "persona": "superadmin",
+          "label": "Demandes de devis du site vitrine",
+          "statut": 200,
+          "cheminFinal": "/admin/devis",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [
+            "a.admin-onglet (189px)"
+          ],
+          "titre": "Demandes de contact — Gerimmo",
+          "h1": "Demandes de contact",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/journaux",
+          "persona": "superadmin",
+          "label": "Historique et conservation",
+          "statut": 200,
+          "cheminFinal": "/admin/journaux",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1558,
+          "photos": 1,
+          "boutonsVisibles": 14,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Historique et sauvegardes — Gerimmo",
+          "h1": "Historique et sauvegardes",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/liste-attente",
+          "persona": "superadmin",
+          "label": "Liste d’attente des agences (inscriptions depuis /agences)",
+          "statut": 200,
+          "cheminFinal": "/admin/liste-attente",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 854,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Liste d’attente des agences — Gerimmo",
+          "h1": "Liste d’attente des agences",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/organisations/c14c3187-1258-4e58-8822-368c6007e3fa",
+          "persona": "superadmin",
+          "label": "Détail d'une organisation",
+          "statut": 200,
+          "cheminFinal": "/admin/organisations/c14c3187-1258-4e58-8822-368c6007e3fa",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2427,
+          "photos": 1,
+          "boutonsVisibles": 15,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Client — Gerimmo",
+          "h1": "Agence Alpha",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/organisations/c14c3187-1258-4e58-8822-368c6007e3fa/support",
+          "persona": "superadmin",
+          "label": "Assistance encadrée sur un encaissement",
+          "statut": 200,
+          "cheminFinal": "/admin/organisations/c14c3187-1258-4e58-8822-368c6007e3fa/support",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 5,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Geste de support — Gerimmo",
+          "h1": "Support — Agence Alpha",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/organisations/nouvelle",
+          "persona": "superadmin",
+          "label": "Ouvrir une organisation",
+          "statut": 200,
+          "cheminFinal": "/admin/organisations/nouvelle",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1356,
+          "photos": 1,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Ouvrir une organisation — Gerimmo",
+          "h1": "Ouvrir une organisation",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/publications",
+          "persona": "superadmin",
+          "label": "Journal éditorial",
+          "statut": 200,
+          "cheminFinal": "/admin/publications",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 876,
+          "photos": 1,
+          "boutonsVisibles": 5,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Articles du site — Gerimmo",
+          "h1": "Articles du site",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/publications/92f027af-daf6-4eee-90c7-47264dfee7b9",
+          "persona": "superadmin",
+          "label": "Éditer un article",
+          "statut": 200,
+          "cheminFinal": "/admin/publications/92f027af-daf6-4eee-90c7-47264dfee7b9",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2004,
+          "photos": 1,
+          "boutonsVisibles": 7,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Modifier l’article — Gerimmo",
+          "h1": "Modifier l’article",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/publications/nouvelle",
+          "persona": "superadmin",
+          "label": "Créer un article",
+          "statut": 200,
+          "cheminFinal": "/admin/publications/nouvelle",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1202,
+          "photos": 1,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Nouvel article — Gerimmo",
+          "h1": "Créer un article",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/retours",
+          "persona": "superadmin",
+          "label": "Retours des utilisateurs",
+          "statut": 200,
+          "cheminFinal": "/admin/retours",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1686,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Assistance clients — Gerimmo",
+          "h1": "Assistance clients",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/sante",
+          "persona": "superadmin",
+          "label": "Santé et connexions",
+          "statut": 200,
+          "cheminFinal": "/admin/sante",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1638,
+          "photos": 1,
+          "boutonsVisibles": 14,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Santé et connexions — Gerimmo",
+          "h1": "Santé et connexions",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/territoire",
+          "persona": "superadmin",
+          "label": "Développement territorial",
+          "statut": 200,
+          "cheminFinal": "/admin/territoire",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 6398,
+          "photos": 1,
+          "boutonsVisibles": 8,
+          "boutonsSansNom": 0,
+          "larges": [
+            "a.admin-onglet (189px)"
+          ],
+          "titre": "Développement commercial — Gerimmo",
+          "h1": "Développement commercial",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/securite",
+          "persona": "superadmin",
+          "label": "Sécurité des données",
+          "statut": 200,
+          "cheminFinal": "/securite",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 2,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Sécurité du compte — Gerimmo",
+          "h1": "Sécurité du compte",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/veille",
+          "persona": "superadmin",
+          "label": "Veille à superviser",
+          "statut": 200,
+          "cheminFinal": "/admin/veille",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Veille réglementaire — Gerimmo",
+          "h1": "Veille réglementaire",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/autonomie",
+          "persona": "superadmin",
+          "label": "Développement du site",
+          "statut": 200,
+          "cheminFinal": "/admin/autonomie",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1645,
+          "photos": 1,
+          "boutonsVisibles": 5,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Activité et dossiers — Gerimmo",
+          "h1": "Activité et dossiers",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/equipes",
+          "persona": "superadmin",
+          "label": "Travail des équipes",
+          "statut": 200,
+          "cheminFinal": "/admin/equipes",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 6370,
+          "photos": 1,
+          "boutonsVisibles": 22,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Automatismes et consignes — Gerimmo",
+          "h1": "Automatismes et consignes",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/marketing",
+          "persona": "superadmin",
+          "label": "Agent marketing",
+          "statut": 200,
+          "cheminFinal": "/admin/marketing",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 3384,
+          "photos": 1,
+          "boutonsVisibles": 8,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Marketing et contenus — Gerimmo",
+          "h1": "Marketing et contenus",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/marque-blanche",
+          "persona": "superadmin",
+          "label": "Personnalisation des agences",
+          "statut": 200,
+          "cheminFinal": "/admin/marque-blanche",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1129,
+          "photos": 1,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Personnalisation des agences — Gerimmo",
+          "h1": "Personnalisation des agences",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/relais",
+          "persona": "superadmin",
+          "label": "Relais de supervision",
+          "statut": 200,
+          "cheminFinal": "/relais",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 0,
+          "boutonsVisibles": 0,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Relais de supervision — Gerimmo",
+          "h1": "Relais de supervision",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/relais",
+          "persona": "superadmin",
+          "label": "Relais en mon absence",
+          "statut": 200,
+          "cheminFinal": "/admin/relais",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1148,
+          "photos": 1,
+          "boutonsVisibles": 26,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Vacances et relais — Gerimmo",
+          "h1": "Vacances et relais",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/parametres",
+          "persona": "superadmin",
+          "label": "Paramètres",
+          "statut": 200,
+          "cheminFinal": "/admin/parametres",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 2559,
+          "photos": 1,
+          "boutonsVisibles": 9,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Paramètres généraux — Gerimmo",
+          "h1": "Paramètres généraux",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/couverture",
+          "persona": "superadmin",
+          "label": "Réseau d’artisans : couverture par commune et métier",
+          "statut": 200,
+          "cheminFinal": "/admin/couverture",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 3053,
+          "photos": 1,
+          "boutonsVisibles": 5,
+          "boutonsSansNom": 0,
+          "larges": [
+            "table.tableau.w-full.min-w-[42rem] (699px)",
+            "thead (699px)",
+            "tr (699px)",
+            "th (224px)",
+            "th (127px)"
+          ],
+          "titre": "Réseau d’artisans — Gerimmo",
+          "h1": "Réseau d’artisans",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/consignes",
+          "persona": "superadmin",
+          "label": "Consignes versionnées",
+          "statut": 200,
+          "cheminFinal": "/admin/consignes",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1017,
+          "photos": 1,
+          "boutonsVisibles": 6,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Consignes — Gerimmo",
+          "h1": "Consignes du dirigeant",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/securite",
+          "persona": "superadmin",
+          "label": "Sécurité et accès",
+          "statut": 200,
+          "cheminFinal": "/admin/securite",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1271,
+          "photos": 1,
+          "boutonsVisibles": 7,
+          "boutonsSansNom": 0,
+          "larges": [
+            "a.admin-onglet (167px)",
+            "a.admin-onglet (144px)"
+          ],
+          "titre": "Sécurité et conformité — Gerimmo",
+          "h1": "Sécurité et conformité",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/clients/personnes/063d9980-901b-49cb-8990-009102fdbab4",
+          "persona": "superadmin",
+          "label": "Fiche individuelle d’une personne",
+          "statut": 200,
+          "cheminFinal": "/admin/clients/personnes/063d9980-901b-49cb-8990-009102fdbab4",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 844,
+          "photos": 1,
+          "boutonsVisibles": 3,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Fiche utilisateur — Gerimmo",
+          "h1": "E2E Locataire",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/territoire/prospects/nouveau",
+          "persona": "superadmin",
+          "label": "Fiche prospect",
+          "statut": 200,
+          "cheminFinal": "/admin/territoire/prospects/nouveau",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1573,
+          "photos": 1,
+          "boutonsVisibles": 5,
+          "boutonsSansNom": 0,
+          "larges": [
+            "a.admin-onglet (189px)"
+          ],
+          "titre": "Suivi du prospect — Gerimmo",
+          "h1": "Ajouter un prospect",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/brief?vue=decisions",
+          "persona": "superadmin",
+          "label": "Décisions et exécution",
+          "statut": 200,
+          "cheminFinal": "/admin/brief",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1221,
+          "photos": 1,
+          "boutonsVisibles": 9,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Décisions à prendre — Gerimmo",
+          "h1": "Décisions à prendre",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/autonomie?vue=ameliorations",
+          "persona": "superadmin",
+          "label": "Améliorations du produit",
+          "statut": 200,
+          "cheminFinal": "/admin/autonomie",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 865,
+          "photos": 1,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Améliorations du produit — Gerimmo",
+          "h1": "Améliorations du produit",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/clients?vue=espaces",
+          "persona": "superadmin",
+          "label": "Annuaire des espaces",
+          "statut": 200,
+          "cheminFinal": "/admin/clients",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1835,
+          "photos": 1,
+          "boutonsVisibles": 4,
+          "boutonsSansNom": 0,
+          "larges": [],
+          "titre": "Utilisateurs — Gerimmo",
+          "h1": "Utilisateurs",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/donnees",
+          "persona": "superadmin",
+          "label": "Demandes privées de données et procédure de fermeture",
+          "statut": 200,
+          "cheminFinal": "/admin/donnees",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1239,
+          "photos": 1,
+          "boutonsVisibles": 9,
+          "boutonsSansNom": 0,
+          "larges": [
+            "a.admin-onglet (167px)",
+            "a.admin-onglet (144px)"
+          ],
+          "titre": "Données personnelles et fermeture des comptes — Gerimmo",
+          "h1": "Demandes sur les données",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        },
+        {
+          "path": "/admin/conservation",
+          "persona": "superadmin",
+          "label": "Durées de conservation",
+          "statut": 200,
+          "cheminFinal": "/admin/conservation",
+          "sessionPerdue": false,
+          "autreEspace": false,
+          "redirection": false,
+          "overflowPx": 0,
+          "hauteurPx": 1933,
+          "photos": 1,
+          "boutonsVisibles": 12,
+          "boutonsSansNom": 0,
+          "larges": [
+            "a.admin-onglet (144px)"
+          ],
+          "titre": "Durées de conservation — Gerimmo",
+          "h1": "Durées de conservation",
+          "soft404": false,
+          "erreursConsole": [],
+          "erreursPage": []
+        }
+      ]
+    }
+  },
+  "deploiement": "DW7N8CNsRv2mrsvAE1zrcynaxV3t",
+  "verification_connectee_20261025": {
+    "date_utc": "2026-10-25T15:40:44Z",
+    "profil": "Superadmin avec second facteur, consultation en lecture seule",
+    "succes": [
+      "Console : bouton Alertes critiques des clients ; ouverture manuelle avec Aucune alerte critique ouverte chez les clients. Aucune alerte ordinaire de bail dans cette modale.",
+      "Fiche lot Résumé et Contrats : Bail signé, Location non activée. Modification du lot et suppression du bail absentes de ces vues.",
+      "Bail : contrat signé archivé et lien de consultation présents ; location toujours non activée.",
+      "Diagnostics : DPE et ERP Valide ; Termites Obligation à confirmer. Résumé : 2 valides, 0 manquant, 0 expiré, 1 à vérifier.",
+      "Réseau artisan : recherche Plomberie / Entretien courant sur le logement fictif aboutie sans Accès refusé ; aucun artisan disponible dans cette zone affiché.",
+      "Utilisateurs : liste lisible dans la fenêtre disponible ; recherche ESSAI SIGNATURE retourne trois personnes liées aux espaces correspondants."
+    ],
+    "defauts_confirmes_non_corriges": [
+      "Dans le bail consulté en supervision, le formulaire de préparation affiche encore des champs modifiables et Enregistrer cette étape / Enregistrer et continuer malgré le bandeau lecture seule. Aucune soumission tentée.",
+      "Dans Documents du lot, Détails et modifications et Ajouter le fichier restent proposés au superadmin. Aucune ouverture de dépôt ni écriture tentée.",
+      "Le résumé dit La location attend votre activation au superadmin, au lieu de désigner le propriétaire.",
+      "La fiche administrative du propriétaire particulier affiche encore À compléter : siret, tva."
+    ],
+    "limites": [
+      "Cette vérification ne rejoue pas les signatures, paiements, mutations ni notifications réelles.",
+      "Les captures dans la fenêtre actuelle ne lèvent pas les deux réserves spécifiques WebKit à 1440 px.",
+      "Le bail fictif reste inactif. Aucun enregistrement métier, achat, message ou activation effectué."
+    ],
+    "captures": [
+      "preuves/audit-20261025/production-resume-connecte.png",
+      "preuves/audit-20261025/production-utilisateurs-connecte.png"
+    ]
+  },
+  "suite_audit_257": {
+    "pr": 257,
+    "candidat": "4659e367a6feb3222cee79667527cba1195bc694",
+    "arbre": "42c0af74d65bb9900b888a046e7eee7d068059a0",
+    "ci": 40212750197,
+    "etat": "Publié et contrôlé en production",
+    "perimetre": [
+      "Consultation superadmin de bien, lot, bail et état des lieux sans commandes de gestion",
+      "Refus de lecture si le journal de consultation ne répond pas",
+      "Compteur inconnu distinct de zéro",
+      "SIRET/TVA non réclamés à un propriétaire particulier",
+      "Structure accessible du récapitulatif de bail"
+    ],
+    "fusion": "cde344498fba21ee0e9f5c1955f0ba8c3a380608",
+    "deploiement": "DW7N8CNsRv2mrsvAE1zrcynaxV3t",
+    "pr256": "Fermée comme entièrement incluse dans PR257, sans fusion ni publication séparée"
+  },
+  "preuves_suite_912": {
+    "ci": 40211115894,
+    "revision": "2bddeec36a9e83994e9b545fc53a521f64663dcf",
+    "logique": {
+      "reussis": 10674,
+      "ignores": 17
+    },
+    "chromium": {
+      "reussis": 217,
+      "echecs": 1,
+      "ignores": 1
+    },
+    "webkit": "Non exécuté",
+    "echec": "definition-list et dlitem dans le récapitulatif de bail",
+    "reparation": "Structure dt/dd corrigée ; reproduction locale avant/après avec le JSX réel aux largeurs 320/390/1440 : erreurs présentes avant, absentes après ; aucun débordement. Nouvelle CI913 obligatoire."
+  },
+  "reserves_visuelles_et_parcours_912": [
+    {
+      "id": "LOC-INC-COPIE",
+      "priorite": "P2",
+      "etat": "Incohérence visuelle et textuelle confirmée, non corrigée",
+      "constat": "Le signalement locataire annonce une décision de prise en charge après examen, mais le formulaire promet de dire immédiatement qui paie.",
+      "fichiers": [
+        "src/app/locataire/[orgId]/incident/page.tsx:51",
+        "src/app/locataire/[orgId]/incident/formulaire-incident-locataire.tsx:308"
+      ],
+      "preuve": "e2e/.audit/locataire/locataire-c14c3187-1258-4e58-8822-368c6007e3fa-incident.png",
+      "suite": "Unifier le texte autour de la prise en charge indicative puis confirmée ; alléger les informations placées avant le signalement."
+    },
+    {
+      "id": "ART-FIN-MISSION",
+      "priorite": "P1",
+      "etat": "Parcours navigateur incomplet",
+      "constat": "Les routes bilan et facture reviennent à la mission car la fixture est seulement acceptée, avec créneaux proposés. Le code exige démarrage/photo puis clôture. Cette redirection attendue ne valide pas la réalisation complète.",
+      "suite": "Exécuter en base isolée démarrage, photo après, bilan, facture et retour côté gestionnaire ; aucune transmission réelle."
+    },
+    {
+      "id": "ART-PHOTO-FIXTURE",
+      "priorite": "P2",
+      "etat": "Image non chargée observée dans la capture ; cause non qualifiée",
+      "constat": "La photo jointe au signalement est remplacée par son texte alternatif dans la mission artisan. Il faut distinguer le fichier absent de la fixture d’un défaut d’accès au fichier.",
+      "preuve": "e2e/.audit/artisan/artisan-missions-4930beac-c37e-4d97-8b18-60e58933247a.png",
+      "suite": "Vérifier le fichier de test et son accès avec une fixture valide avant d’attribuer le défaut à la production.",
+      "precision": "Le JPEG du seed est bien déposé par la séquence métier ; décodage local sharp réussi (160 octets, 1×1 RGB). L’image utilise loading=lazy et se trouve sous le premier écran : une capture pleine page seule ne prouve ni panne réseau ni défaut de droits. Les journaux du scénario ne signalent pas d’erreur console."
+    },
+    {
+      "id": "EDL-COMPARAISON-SA",
+      "priorite": "P2",
+      "etat": "Limite de présentation identifiée",
+      "constat": "La consultation superadmin de l’état des lieux affiche observations/compteurs/clés, mais pas encore le comparatif entrée-sortie disponible au parent.",
+      "suite": "Ajouter la comparaison en lecture seule et vérifier son rendu sur un état des lieux de sortie."
+    },
+    {
+      "id": "ART-ATTESTATIONS-LONGUEUR",
+      "priorite": "P3",
+      "etat": "Réserve d’ergonomie",
+      "constat": "La page attestations répète dépôt, compteurs, liste, prochaine action et explications ; l’état obligatoire selon les travaux doit rester distingué des simples documents absents.",
+      "preuve": "e2e/.audit/artisan/artisan-attestations.png",
+      "suite": "Réduire les répétitions et afficher d’abord les documents nécessaires à la situation réelle."
+    },
+    {
+      "id": "PDF-LECTEUR-TITRE",
+      "priorite": "P2",
+      "etat": "Défaut confirmé en production après PR257, non corrigé",
+      "constat": "Le lecteur du bail signé conserve le nom historique « Bail nu (généré, à faire signer) — à signer en ligne — signé.pdf » et le répartit dans une colonne trop étroite à la largeur de contrôle 572 px.",
+      "suite": "Présenter un titre lisible et cohérent avec le statut signé sans altérer le PDF signé ni les preuves. Vérifier le rendu du lecteur sur téléphone."
+    }
+  ],
+  "controle_bail_essai_avant_257": {
+    "date": "2026-10-25",
+    "mode": "SELECT uniquement",
+    "bail_id": "b19649a4-0448-4304-bd4a-229080a42c8c",
+    "etat": "brouillon",
+    "document_signe": null,
+    "lot_etat": "disponible",
+    "signature_etat": "termine",
+    "archive_signee": "f8aa110c-c92a-4e6e-804d-0c12967f4330"
+  },
+  "sante_connectee_avant_257": {
+    "date": "2026-10-25",
+    "page": "/admin/sante",
+    "mode": "Lecture seule authentifiée",
+    "taches_suivies": "à jour",
+    "sauvegarde": "25/10/2026 07:19 Europe/Paris ; 16 fichiers, 11 tâches planifiées, 4 571 037 octets de base",
+    "stripe": {
+      "ecarts": 0,
+      "receptions_a_examiner": 0
+    },
+    "conditions": "Archives à jour",
+    "points_externes": [
+      "Médiateur : nom, adresse, site manquants",
+      "Analyse antivirus non raccordée"
+    ],
+    "limite": "Indicateurs affichés par la console, pas de nouveau paiement ni de restauration rejouée."
+  },
+  "journaux_avant_257": {
+    "date": "2026-10-25",
+    "source": "Console Vercel Request Logs, projet gerimmo-v4",
+    "fenetre": "16:23–16:53 UTC",
+    "filtre": "level:error",
+    "resultat": "Aucune ligne correspondant au filtre",
+    "console_navigateur_sante": "Aucun avertissement/erreur capturé",
+    "limite": "Fenêtre limitée ; ne vaut pas absence universelle de défaut."
+  },
+  "publication_255": {
+    "production_verifiee": "baf0e70277bb5a0c8938c2a04a5ec5f8a0d3e80c",
+    "candidat": "1f0c29e8c5df922386055e896e669d832e0ec076",
+    "pr": 255,
+    "publication": "Publié le 25/10/2026 ; Vercel Ready, domaine et révision API santé vérifiés à 15:19 UTC. Vérification manuelle authentifiée effectuée à 15:40 UTC, avec défauts de présentation restants explicités ci-dessous.",
+    "fusion": "baf0e70277bb5a0c8938c2a04a5ec5f8a0d3e80c",
+    "arbre_verifie": "df04dbd5a16fb60f07b186be681966a6773ede40",
+    "deploiement": "8LPogTVvVndGuN1rXJmU8Emjbtgi"
+  },
+  "preuves_suite_913": {
+    "ci": 40212750197,
+    "job": 121227321651,
+    "revision": "4659e367a6feb3222cee79667527cba1195bc694",
+    "conclusion": "success",
+    "logique_pdf": {
+      "reussis": 10674,
+      "ignores": 17
+    },
+    "chromium": {
+      "reussis": 217,
+      "ignores": 1
+    },
+    "webkit": {
+      "reussis": 58
+    },
+    "autres_controles": [
+      "Lint",
+      "Typage",
+      "Build",
+      "Vulnérabilités des dépendances",
+      "300 lots fictifs et isolation"
+    ],
+    "ignores_logique": "14 tests Stripe sandbox, 1 test réel de récupération Auth, 2 tests de maintenance artisan prévus",
+    "artifact": 12607037663,
+    "artifact_sha256": "dee2f46ffa24f907c600badfbed65b5ee83790de7ce2e38284e10d4e36eca21f",
+    "comparaison_arbre": "Arbre de la fusion identique à celui du candidat testé",
+    "limite": "Les tests réussis ne ferment pas les réserves de parcours ni de rendu recensées."
+  },
+  "verification_connectee_apres_257": {
+    "date": "2026-10-25",
+    "mode": "Lecture seule, session superadmin avec second facteur",
+    "sante_publique": {
+      "ok": true,
+      "base": true,
+      "revision": "cde344498fba21ee0e9f5c1955f0ba8c3a380608"
+    },
+    "lot_resume": "Bail signé / Location non activée ; activation explicitement réservée au propriétaire.",
+    "documents": "DPE et ERP valides ; termites : obligation à confirmer. Aucun dépôt/remplacement proposé au superadmin.",
+    "logement": "Pièces, équipements et détentions dépliés ; aucun formulaire ni champ de gestion.",
+    "contrats": "Bail signé et location non activée ; pas de suppression du brouillon proposée.",
+    "bail": "Contrat, Documents et Suivi consultables ; aucun formulaire/champ de modification, génération, signature ou activation.",
+    "organisation_particulier": "Identité consultable sans demande de SIRET/TVA manquants.",
+    "bien": "Informations, diagnostics et annonces consultables ; aucun formulaire/champ de modification.",
+    "reseau": "Recherche Plomberie / entretien courant sur le bien fictif effectuée : aucun artisan disponible dans la zone, sans accès refusé. Aucun contact ni demande envoyé.",
+    "fichier_signe": "La route sécurisée fournit le lecteur et le lien du fichier signé. Ouverture plein écran blob refusée par la politique de sécurité du navigateur de contrôle, sans contournement : contenu page par page non revérifié.",
+    "preuve_capture": "preuves/audit-20261025/production-resume-pr257-final.png"
+  },
+  "controle_bail_essai_apres_257": {
+    "date": "2026-10-25",
+    "mode": "SELECT uniquement",
+    "bail_id": "b19649a4-0448-4304-bd4a-229080a42c8c",
+    "etat": "brouillon",
+    "document_signe": null,
+    "lot_etat": "disponible",
+    "signature_etat": "termine",
+    "archive_signee": "f8aa110c-c92a-4e6e-804d-0c12967f4330",
+    "conclusion": "Valeurs identiques avant/après publication et contrôle connecté ; aucune activation ni modification métier."
+  },
+  "reserves_visuelles_ci913": {
+    "utilisateurs_webkit": "Titre Utilisateurs encore coupé à 1440 px dans la capture WebKit ; Chromium correct.",
+    "resume_webkit": "Capture du contenu principal toujours non peinte malgré les assertions de visibilité ; le contrôle connecté IAB montre bien le résumé. La preuve WebKit reste insuffisante.",
+    "bail_suivi_webkit": "Consultation sans formulaire visible dans la capture de Suivi."
   }
 }

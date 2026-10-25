@@ -305,7 +305,7 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
             </select>
             {!categorieIncident(categorie) && (
               <p className="text-xs text-muted-foreground min-[861px]:hidden">
-                Selon la catégorie, nous vous disons tout de suite qui paie.
+                La catégorie donne une première indication ; votre interlocuteur confirme la prise en charge après examen.
               </p>
             )}
           </div>

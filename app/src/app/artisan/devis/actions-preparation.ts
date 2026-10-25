@@ -81,7 +81,7 @@ export async function enregistrerProfilDocuments(_etat: { erreur?: string; succe
     }, {onConflict:"artisan_id"});
     if (error) throw new Error("Les informations n’ont pas pu être enregistrées.");
     revalidatePath("/artisan/entreprise");
-    return { succes:"Informations enregistrées. Elles figureront sur vos prochains devis validés." };
+    return { succes:"Informations enregistrées pour vos nouveaux devis. Pour un brouillon déjà créé, ouvrez le chantier et choisissez « Reprendre avec mes coordonnées à jour »." };
   } catch (e) { return { erreur:e instanceof Error ? e.message : "Enregistrement impossible." }; }
 }
 

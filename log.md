@@ -7164,3 +7164,11 @@ CI916 40218038980 : 10 687 tests logique/PDF et 218 parcours Chromium réussis ;
 CI917 40220113218 sur 01c964a2 : 10 687 tests logique/PDF réussis, 17 ignorés ; Chromium 220 réussis, 1 ignoré ; WebKit 59 réussis et un échec dans le repérage du champ d’adresse. La mission acceptée va jusqu’à la facture consultée par le gestionnaire sur les deux moteurs (7,3 s / 7,7 s). La reprise du devis va jusqu’au PDF en Chromium (10,8 s). Le champ de profil est présent et accessible dans la capture Safari : il ne s’agit pas d’un défaut du lien ni du produit.
 
 Reproduction locale sur le HTML du label enveloppant un textarea : getByLabel exact trouve le champ vide, mais zéro champ lorsque son contenu initial est renseigné ; getByRole textbox avec le même nom accessible trouve le champ dans les deux cas. Le profil est déjà complété après Chromium, avant WebKit, ce qui explique aussi la reprise en échec de CI916. Sélecteur remplacé par le rôle accessible, sans assouplir les assertions métier ni modifier l’application. Une dernière CI complète reste requise ; aucune publication sur un contrôle rouge. Captures de CI917 conservées dans preuves/audit-20261025.
+
+
+## [2026-10-25] developpement | Mois offerts depuis une fiche utilisateur
+
+Demande explicite : offrir des mois aux utilisateurs sans abonnement ou en compensation d’un bug ; pour un abonné, couvrir les prochaines échéances sans rembourser les paiements passés. Branche codex/abonnement-offert-superadmin-20261025, base de production d2fcbf6e5636e5cdf743ed8b95ee61064995f615. Bouton avec aperçu et confirmation, registre idempotent et audit au nom du superviseur permanent avec MFA. Accès gratuit calendaire ou crédit de facturation au tarif courant, reprise visible après coupure. Migration locale 20261025192344 créée par CLI ; retour refuse d’effacer un cadeau réel. Aucun cadeau réel appliqué.
+
+Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 8 contrôles SQL réservés au banc isolé. Vérification complète, relecture et protocole de publication encore à faire. Sources Stripe consultées le 25/10 : docs.stripe.com/billing/customer/balance et API customer_balance_transactions/create.
+

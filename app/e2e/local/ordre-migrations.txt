@@ -419,3 +419,4 @@
 20261024140000_conservation_et_prospection.sql
 20261024150000_activation_inactivite_v1.sql
 20261024105901_reglages_conservation_superadmin.sql
+20261025192344_mois_offerts_superadmin.sql

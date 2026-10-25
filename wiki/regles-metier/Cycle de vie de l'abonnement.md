@@ -121,3 +121,15 @@ l'essai et transitions réservées.
 ## Relecture avant publication du 24 octobre
 
 Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
+
+
+## Mois offerts depuis le superadmin — décision du 25 octobre 2026
+
+Le dirigeant peut offrir de 1 à 12 mois à un responsable d’espace, notamment en compensation d’un bug. Le cadeau concerne l’espace choisi ; il bénéficie à ses utilisateurs. Les espaces locataires et artisans ne portent pas d’abonnement payant. Sans espace, le responsable doit d’abord en ouvrir un.
+
+- Sans souscription vivante : ajouter des mois calendaires au temps restant, ou à la date du jour si le délai est passé. Aucune carte ni prélèvement automatique à l’expiration. L’accès devient consultable et exportable après la période offerte.
+- Avec souscription : crédit correspondant aux mois au tarif courant (annuel divisé par douze), déduit des prochaines factures, sans remboursement des paiements passés ni annulation des factures déjà émises. Le montant exact est présenté avant confirmation. [Fonctionnement du solde de facturation Stripe](https://docs.stripe.com/billing/customer/balance).
+- Le second facteur du superviseur permanent, le choix de l’espace, un motif interne et une confirmation sont nécessaires. Un même cadeau rejoué ne s’applique pas deux fois. Un crédit non transmis reste visible et se reprend depuis la fiche. Après vingt heures sans preuve, aucune nouvelle écriture Stripe n’est tentée : rapprochement nécessaire pour éviter un doublon.
+- Une suspension, une fermeture programmée ou une page de paiement en cours demandent d’abord leur résolution explicite. Offrir des mois ne contourne pas ces décisions.
+
+État : implémentation en validation, aucune attribution réelle ni publication confirmée à ce stade.

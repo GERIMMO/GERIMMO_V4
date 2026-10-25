@@ -27,7 +27,7 @@ export const DUREE_VERROU_FACTURATION_SECONDES = 360;
 /** Après ce délai (compté depuis la demande du verrou), plus aucune écriture chez Stripe n'est lancée sous ce verrou. */
 export const DELAI_ECRITURES_SOUS_VERROU_SECONDES = 150;
 
-export type OperationFacturation = "hausse" | "periodicite" | "resiliation" | "echeance";
+export type OperationFacturation = "hausse" | "periodicite" | "resiliation" | "echeance" | "cadeau";
 
 export const MODIFICATION_EN_COURS =
   "Une autre modification de votre abonnement est en cours (autre onglet ?) : rien n'a été modifié. Réessayez dans quelques secondes.";

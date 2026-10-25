@@ -94,7 +94,7 @@ test('devis privé : compléter son identité puis reprendre sans ressaisir ni a
   const {rows:[ancien]}=await db.query('select * from artisan_devis_externes where chantier_id=$1',[chantier]);
   await page.reload();await expect(page.getByText('Adresse absente de cette version',{exact:true})).toBeVisible();
   await page.getByRole('link',{name:'Compléter mes coordonnées',exact:true}).click();
-  const adresse=page.getByLabel('Adresse complète de l’entreprise',{exact:true});await expect(adresse).toBeVisible({timeout:60000});
+  const adresse=page.getByRole('textbox',{name:'Adresse complète de l’entreprise',exact:true});await expect(adresse).toBeVisible();
   await adresse.fill('25 rue de l’Essai, 75012 Paris');
   await page.getByRole('button',{name:'Enregistrer mes informations de devis',exact:true}).click();
   await expect(page.getByText(/Informations enregistrées pour vos nouveaux devis/)).toBeVisible();

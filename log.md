@@ -7157,3 +7157,10 @@ La capture CI915 du devis repris est restée sur le chargement après relecture 
 ## [2026-10-25] audit | Diagnostic des deux scénarios CI916
 
 CI916 40218038980 : 10 687 tests logique/PDF et 218 parcours Chromium réussis ; deux nouveaux scénarios échouent, WebKit non exécuté. La trace de mission ne contient aucun POST après le dépôt : le champ HTML est modifié avant l’hydratation du gestionnaire onChange, sans aperçu ni message d’envoi. Attente du chargement des ressources avant sélection, image fictive réellement décodable et assertion explicite Photo envoyée ajoutées. La trace du devis montre Enregistrement en cours et la requête de génération toujours pendante lors de l’expiration de l’attente de 15 s ; délai ciblé de 60 s, également pour le chargement du profil. Aucun message métier n’est contourné. La capture finale attend le titre rendu après rechargement. La CI s’est terminée avant l’arrêt envisagé ; elle n’a pas été annulée. Aucun changement applicatif supplémentaire, aucune publication.
+
+
+## [2026-10-25] audit | Champ d’adresse prérempli et résultat CI917
+
+CI917 40220113218 sur 01c964a2 : 10 687 tests logique/PDF réussis, 17 ignorés ; Chromium 220 réussis, 1 ignoré ; WebKit 59 réussis et un échec dans le repérage du champ d’adresse. La mission acceptée va jusqu’à la facture consultée par le gestionnaire sur les deux moteurs (7,3 s / 7,7 s). La reprise du devis va jusqu’au PDF en Chromium (10,8 s). Le champ de profil est présent et accessible dans la capture Safari : il ne s’agit pas d’un défaut du lien ni du produit.
+
+Reproduction locale sur le HTML du label enveloppant un textarea : getByLabel exact trouve le champ vide, mais zéro champ lorsque son contenu initial est renseigné ; getByRole textbox avec le même nom accessible trouve le champ dans les deux cas. Le profil est déjà complété après Chromium, avant WebKit, ce qui explique aussi la reprise en échec de CI916. Sélecteur remplacé par le rôle accessible, sans assouplir les assertions métier ni modifier l’application. Une dernière CI complète reste requise ; aucune publication sur un contrôle rouge. Captures de CI917 conservées dans preuves/audit-20261025.

@@ -62,6 +62,8 @@
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées
 // au seul `service_role`, et chacune ne rend que ce dont la tâche a besoin.
 
+// Mois offerts : après is_permanent_super_admin() et confirmation atomique,
+// verrou de facturation et enregistrement de la preuve Stripe du seul cadeau confirmé.
 import "server-only";
 import { createClient as creerClientSupabase } from "@supabase/supabase-js";
 

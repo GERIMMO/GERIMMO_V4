@@ -542,6 +542,7 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
   describe("retours arrière", () => {
     /** Les retours des lots postérieurs qui citent la fonction du jour : à jouer avant ceux du lot. */
     async function defaireLotsPosterieurs() {
+      await db.query(readFileSync("supabase/retours-arriere/20261025192344_mois_offerts_superadmin.retour.sql", "utf8"));
       for (const lot of LOTS_POSTERIEURS) await db.query(sansEnveloppe(retour(lot.version, lot.fichier)));
     }
 

@@ -146,6 +146,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   const enGestion = etat.unites_a_couvrir ?? 0;
   const ferme = !etat.ecriture_ouverte;
   const enEssai = etat.statut === "essai";
+  const cadeauxLus = await supabase.rpc("lire_mois_offerts", { p_org: orgId });
+  const cadeaux = (cadeauxLus.data ?? []) as { id: string; nature: string; fin: string | null; montant_cents: number; applique_le: string | null }[];
+  const accesOffert = enEssai && !ferme && cadeaux.some(c => c.nature === "acces" && c.fin === etat.essai_fin);
   const souscrit = paiement.souscrit;
   // Relecture adverse du 24/10 (I2) : un défaut de paiement encore inscrit sur une souscription terminée. Résiliée pour
   // impayé (ni résiliation demandée, ni rétractation), la facture est annulée : « tout rouvre au paiement » serait faux.
@@ -240,6 +243,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           : "Votre formule, vos biens et votre facturation, en un coup d’œil."}
       </EnteteReglages>
 
+      {accesOffert && <div className="loc-carte" role="status"><h2 className="font-semibold">Votre abonnement est offert</h2><p>Accès jusqu’au {formaterDate(etat.essai_fin!)}. Aucun prélèvement automatique à la fin. Vous pourrez alors choisir de souscrire.</p></div>}
+      {cadeaux.filter(c => c.nature === "credit").slice(0,3).map(c => <p key={c.id} className="loc-carte text-sm">Geste commercial : {euros(c.montant_cents)} {c.applique_le ? "crédités pour vos prochaines factures" : "en cours de transmission"}. Vos factures passées restent inchangées.</p>)}
       {retour("paiement") === "ok" && <ConfirmationPaiement confirme={paiement.paye && !ferme} />}
       {retour("paiement") === "annule" && (
         <div role="status" className="loc-carte">
@@ -342,7 +347,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         </div>
       )}
 
-      {estAgence && !ferme && enEssai && !souscrit && etat.essai_fin && (
+      {estAgence && !ferme && enEssai && !souscrit && !accesOffert && etat.essai_fin && (
         <div className="loc-carte border-l-4 border-l-[var(--or)]">
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
@@ -401,7 +406,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
                 <span className={styles.iconeSynthese}><ShieldCheck size={22} aria-hidden="true" /></span>
                 <div>
                   <p className={styles.surtitre}>Votre situation actuelle</p>
-                  <h2>{souscrit && actuelle ? libelleOffre(actuelle) : enEssai && !ferme ? "Votre essai Gerimmo" : "Votre espace propriétaire"}</h2>
+                  <h2>{souscrit && actuelle ? libelleOffre(actuelle) : accesOffert ? "Vos mois offerts" : enEssai && !ferme ? "Votre essai Gerimmo" : "Votre espace propriétaire"}</h2>
                 </div>
               </div>
               <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
@@ -413,9 +418,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
                 <Link href={`${base}/parc`}>Voir mes lots <ArrowRight size={13} aria-hidden="true" /></Link>
               </div>
               <div>
-                <span><CalendarDays size={16} aria-hidden="true" /> {souscrit ? paiement.annulation_demandee ? "Fin de l’abonnement" : "Prochaine échéance" : enEssai ? "Fin de l’essai" : "Abonnement"}</span>
+                <span><CalendarDays size={16} aria-hidden="true" /> {souscrit ? paiement.annulation_demandee ? "Fin de l’abonnement" : "Prochaine échéance" : accesOffert ? "Fin des mois offerts" : enEssai ? "Fin de l’essai" : "Abonnement"}</span>
                 <strong>{souscrit ? paiement.periode_fin ? formaterDate(paiement.periode_fin) : "À confirmer" : enEssai && etat.essai_fin ? formaterDate(etat.essai_fin) : "À souscrire"}</strong>
-                <small>{!souscrit && enEssai && !ferme && joursEssaiRestants !== null
+                <small>{!souscrit && enEssai && !ferme && !accesOffert && joursEssaiRestants !== null
                   ? joursEssaiRestants === 0 ? "Dernier jour de votre essai" : `${joursEssaiRestants} jour${joursEssaiRestants > 1 ? "s" : ""} restant${joursEssaiRestants > 1 ? "s" : ""}`
                   : souscrit ? paiement.periodicite === "annuel" ? "Facturation annuelle" : "Facturation mensuelle" : "Vos données restent conservées"}</small>
               </div>
@@ -425,7 +430,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
                 <small>{souscrit ? (TTC ? `${TTC} ${parPeriode(paiement.periodicite)}` : parPeriode(paiement.periodicite)) : "Sans souscription, aucun prélèvement"}</small>
               </div>
             </div>
-            {!ferme && enEssai && !souscrit && (
+            {!ferme && enEssai && !souscrit && !accesOffert && (
               <div className={styles.noteEssai}>
                 <Check size={17} aria-hidden="true" />
                 <p><strong>Profitez de tous vos jours d’essai.</strong> Souscrire maintenant ne raccourcit pas l’essai. Aucune carte n’est demandée pendant l’essai, aucun paiement sans votre accord.</p>
@@ -510,7 +515,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
       </div>
 
       {/* SOUSCRIRE : récapitulatif avant paiement. */}
-      {!souscrit && (
+      {!souscrit && !accesOffert && (
         <section className={estAgence ? "loc-carte" : styles.choix} aria-labelledby="choisir-abonnement">
           <div className={estAgence ? "entete-carte" : styles.titreSection}>
             <h2 id="choisir-abonnement">{ferme ? "Reprendre avec un abonnement" : "Choisir ma formule"}</h2>

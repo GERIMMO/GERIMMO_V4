@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { OffrirMoisAbonnement } from "@/components/offrir-mois-abonnement";
 import { ConsoleSection } from "@/components/console-section";
 import { LectureIndisponible } from "../../lecture-indisponible";
 import { TitreEcran } from "@/components/titre-ecran";
@@ -12,6 +14,7 @@ import { GesteControle } from "@/components/geste-controle";
 import { controlerCompte } from "@/app/actions/controle-supervision";
 import { baseEspace } from "@/lib/racine-espace";
 
+export const maxDuration = 180;
 export const metadata = { title: "Fiche d’un compte" };
 
 /**
@@ -106,6 +109,14 @@ export default async function PageCompte({ params }: { params: Promise<{ account
   const gestesSurLeCompte = (gestesLus.data ?? []) as unknown as LigneAudit[];
   const tech = (techLu.data ?? []) as unknown as LigneTech[];
 
+  const espacesCadeau = Array.from(new Map(adhesions
+    .filter(a => a.status === "active" && ["proprietaire_direct", "admin_agence"].includes(a.role))
+    .flatMap(a => { const o = un(a.organisation); return o ? [[o.id, { id: o.id, nom: o.name }] as const] : []; })).values());
+  const cadeaux = (await Promise.all(espacesCadeau.map(async o => {
+    const { data, error } = await supabase.rpc("lire_mois_offerts", { p_org: o.id });
+    return { espace: o, data: error ? null : data as { id: string; compte: string; mois: number; motif: string; nature: string; fin: string | null; montant_cents: number; applique_le: string | null }[] };
+  })));
+
   const bloque = dossier.bloque_jusqu_au && new Date(dossier.bloque_jusqu_au) > new Date();
   const etat: [string, string][] = [
     ["Compte créé le", formaterDateHeureParis(dossier.cree_le)],
@@ -139,6 +150,22 @@ export default async function PageCompte({ params }: { params: Promise<{ account
           ))}
         </dl>
       </ConsoleSection>
+
+      {!dossier.est_super_admin && !adhesionsLues.error && (
+        <ConsoleSection titre="Offrir des mois d’abonnement" description="Un cadeau ou un geste commercial après un problème." icone="personnes" ouverte>
+          {cadeaux.some(c => c.data === null) ? <LectureIndisponible sujet="Mois offerts" retour={retour}/> : espacesCadeau.length > 0 ? <>
+            {cadeaux.flatMap(c => (c.data ?? []).filter(g => !g.applique_le)).length ? cadeaux.flatMap(c => (c.data ?? []).filter(g => !g.applique_le).map(g => (
+              <div key={g.id}><p className="mb-3 text-sm">Un cadeau attend sa transmission pour {c.espace.nom}. Reprenez-le pour éviter un doublon.</p>
+                <OffrirMoisAbonnement confirmationId={g.id} compte={g.compte} espaces={[c.espace]} reprise={{ id:g.id, mois:g.mois, motif:g.motif, montant_cents:g.montant_cents, organisation:c.espace.id }}/>
+              </div>
+            ))) : <OffrirMoisAbonnement confirmationId={randomUUID()} compte={accountId} espaces={espacesCadeau}/>}
+            <ul className="mt-4 space-y-2 text-sm">{cadeaux.flatMap(c => (c.data ?? []).filter(g => g.applique_le).slice(0,10).map(g => <li key={g.id}>
+              {c.espace.nom} · {g.mois} mois offerts · {g.nature === "acces" ? `Accès jusqu’au ${g.fin?.split("-").reverse().join("/")}` : `${(g.montant_cents/100).toFixed(2)} € crédités sur les prochaines factures`}
+            </li>))}</ul>
+          </> : <p className="text-sm text-[var(--texte-secondaire)]">Cet utilisateur n’a pas encore d’espace propriétaire ou agence. Ouvrez son espace avant de lui offrir des mois ; les espaces locataires et artisans sont gratuits.</p>}
+
+        </ConsoleSection>
+      )}
 
       {/* Les gestes de contrôle (audit console 27/09, majeur 8) : faits au nom
           du superviseur par l'API d'administration, jamais en se connectant

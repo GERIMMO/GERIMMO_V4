@@ -284,6 +284,8 @@ describe.skipIf(!url)("intentions de souscription : une seule en cours, droits r
   });
 
   it("rejouable ; le retour retire les fonctions et l'exclusion, garde l'historique ; la réapplication rétablit tout", async () => {
+    // Le lot cadeau étend ce verrou : son retour précède celui du socle.
+    await db.query(readFileSync("supabase/retours-arriere/20261025192344_mois_offerts_superadmin.retour.sql", "utf8"));
     const empreinte = async () => (await db.query(`select
         (select string_agg(p.proname||':'||md5(pg_get_functiondef(p.oid))||':'||coalesce(p.proacl::text,''),',' order by p.proname)
            from pg_proc p join pg_namespace n on n.oid=p.pronamespace

@@ -297,3 +297,5 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - 24/10/2026 : périmètre logement/bâtiment et plafonds de propositions (5 veilles, 2 articles), anciens hors-sujets en réserve ; [[Guide de ton du journal]]. Suite de la PR #252, publication après CI.
 
 - **24 octobre 2026 — présentation mobile des espaces, en validation** : [[Présentation mobile des espaces — 24 octobre 2026]] — rubriques courtes, documents explicites et conservation des saisies.
+
+- **25 octobre 2026 — mois offerts, en validation** : [[Cycle de vie de l'abonnement#Mois offerts depuis le superadmin — décision du 25 octobre 2026]].

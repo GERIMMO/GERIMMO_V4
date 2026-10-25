@@ -57,6 +57,8 @@ const ACTIONS: Record<string, string> = {
   facture_validee: "Facture d’artisan contrôlée et validée",
   reglement_facture_enregistre: "Règlement d’une facture d’artisan déclaré (écriture de dépense liée)",
   reglement_facture_retire: "Règlement d’une facture d’artisan retiré (contre-écriture passée)",
+  mois_abonnement_offerts: "Mois d’abonnement offerts",
+  mois_offerts_credit_applique: "Crédit de mois offerts appliqué",
   mois_reouvert: "Mois comptable rouvert",
   inscription_proprietaire: "Inscription d’un propriétaire bailleur",
   organisation_ouverte: "Ouverture d’une organisation",

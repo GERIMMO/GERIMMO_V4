@@ -41,8 +41,8 @@ export default async function PageAlertes(
   // pop-up de traitement de cette alerte s'ouvre à l'arrivée sur la page.
   const { traiter, source_introuvable } = await props.searchParams;
   const traiterId = typeof traiter === "string" ? traiter : undefined;
-  const { supabase, user, role, organisation, estProprietaire } = await verifierAccesEspace(orgId);
-  const estResponsable = ROLES_RESPONSABLES.includes(role);
+  const { supabase, user, role, organisation, estProprietaire, traverseeLectureSeule } = await verifierAccesEspace(orgId);
+  const estResponsable = !traverseeLectureSeule && ROLES_RESPONSABLES.includes(role);
   // « Mon portefeuille » (RM-18.1.3) : le plan du jour se lit à travers lui,
   // comme sur l'accueil — null : je vois tout.
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
@@ -95,7 +95,7 @@ export default async function PageAlertes(
   );
   // Les alertes confiées à d'autres restent lisibles en bas de la table,
   // grisées — mais elles n'attendent rien de moi : hors du compte.
-  const nbAutres = rangs.filter((a) => !estConfieeAMoi(a, user.id)).length;
+  const nbAutres = traverseeLectureSeule ? 0 : rangs.filter((a) => !estConfieeAMoi(a, user.id)).length;
   const compteIllisible = Boolean(erreurOuvertes) || erreurs.alertes;
 
   // Les rangs que seul l'accueil montrait, rendus par le même composant : les
@@ -105,13 +105,13 @@ export default async function PageAlertes(
     ...a,
     action: (
       <LienGeste href={a.href} critique={a.criticite === "critique"}>
-        Résoudre
+        {traverseeLectureSeule ? "Consulter" : "Résoudre"}
       </LienGeste>
     ),
   }));
   const rapports: RangDuJour[] = [...plan.enRetard, ...plan.aVenir]
     .filter((a): a is Extract<ActionDuJour, { source: "rapport" }> => a.source === "rapport")
-    .map((a) => ({ ...a, action: <LienGeste href={a.href}>Valider</LienGeste> }));
+    .map((a) => ({ ...a, action: <LienGeste href={a.href}>{traverseeLectureSeule ? "Consulter" : "Valider"}</LienGeste> }));
   const actionsAuDessus = surLesBaux.length + rapports.length;
   // Audit 27/09 : « 1 critique — à faire en premier » au-dessus d'une
   // pastille « Critiques 0 » — le critique était un blocage de bail, que les
@@ -152,7 +152,7 @@ export default async function PageAlertes(
       <div className="mb-6">
         {/* L'écart sous le filet est celui de .entete-page (24/09). */}
         <div className="entete-page">
-          <TitreEcran rubrique="alertes">Alertes</TitreEcran>
+          <TitreEcran rubrique="alertes">{traverseeLectureSeule ? "Alertes du client" : "Alertes"}</TitreEcran>
           <div className="flex flex-wrap items-center gap-4">
             {/* Le chiffre de la tuile « À faire » et de la pastille : ce que
                 cette page liste, et rien d'autre. */}
@@ -169,11 +169,11 @@ export default async function PageAlertes(
                 liste : ce raccourci y mène directement. Même seuil que
                 « Personnes » (24/09) : entre 768 et 1 023 px, la carte était
                 à côté de la liste sur l'une et dessous sur l'autre. */}
-            <span className="md:hidden">
+            {!traverseeLectureSeule && <span className="md:hidden">
               <a href="#creer-alerte" className="btn-or">
                 + Créer une alerte
               </a>
-            </span>
+            </span>}
           </div>
         </div>
         {/* Sans rien à traiter, la phrase se tait (24/09) : « rien à
@@ -197,7 +197,7 @@ export default async function PageAlertes(
           390. Le navigateur ne débordait pas : il DÉZOOMAIT, et tout l'écran
           se lisait 17 % plus petit que partout ailleurs. Le parc et le tableau
           de bord, eux, tenaient dans leurs 390 px. */}
-      <div className="grid gap-4 md:grid-cols-[1fr_20rem]">
+      <div className={`grid gap-4 ${traverseeLectureSeule ? "" : "md:grid-cols-[1fr_20rem]"}`}>
         <div className="min-w-0 space-y-4">
           {/* CE QUE LA PASTILLE COMPTE SE TROUVE ICI (24/09). « Alertes · 2 »
               dans la barre, un seul rang sur cette page : le compte
@@ -246,6 +246,7 @@ export default async function PageAlertes(
               estProprietaire={organisation.type === "proprietaire_direct"}
               monCompte={user.id}
               estResponsable={estResponsable}
+              lectureSeule={traverseeLectureSeule}
               ouvrirAlerteId={traiterId}
               actionsAuDessus={actionsAuDessus}
             />
@@ -297,7 +298,7 @@ export default async function PageAlertes(
           </details>
         </div>
 
-        <Card id="creer-alerte" data-ton="or" className="carte-rubrique h-fit min-w-0 scroll-mt-20">
+        {!traverseeLectureSeule && <Card id="creer-alerte" data-ton="or" className="carte-rubrique h-fit min-w-0 scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">Créer une alerte</CardTitle>
             <CardDescription>
@@ -319,7 +320,7 @@ export default async function PageAlertes(
               estResponsable={estResponsable}
             />
           </CardContent>
-        </Card>
+        </Card>}
       </div>
     </main>
   );

@@ -11,6 +11,8 @@ import { formaterDateHeureParis, formaterDateParis } from '@/lib/heure-paris';
 import { ETATS_DEVELOPPEMENT, ETATS_DOSSIER, TYPES_DOSSIER, lienDossier } from '@/lib/pilotage';
 import { ActualiserDossiers, DecisionAmelioration } from './formulaire-delegation';
 import { cheminPourProfil } from '@/lib/racine-espace';
+import { lirePresentationSignatures } from '@/lib/lecture-presentation-signatures';
+import { presentationSuiviBail } from '@/lib/presentation-suivi-bail';
 export async function generateMetadata({searchParams}:{searchParams:Promise<{vue?:string}>}){const p=await searchParams;return {title:p.vue==='ameliorations'?'Améliorations du produit':'Activité et dossiers'};}
 // La carte commune de la console (nuit du 25/09).
 const carte='loc-carte';
@@ -41,6 +43,17 @@ export default async function PageAutonomie({searchParams}:{searchParams:Promise
  // 25/09, C28) : sept puces et « 0 dossiers · page 1 » sur une liste vide.
  const total=dossiers.count??0;const vide=!dossiers.error&&total===0;const filtreActif=equipe!=='tous';
  const affiches=dossiers.data??[];const urgents=affiches.filter(d=>d.priorite==='urgente').length;const bloques=affiches.filter(d=>d.etat==='bloque').length;
+ const suivisBaux = new Map<string, ReturnType<typeof presentationSuiviBail>>();
+ await Promise.all(idsOrganisations.map(async orgId => {
+   const contrats = affiches.filter(d => d.organization_id === orgId && d.dossier_type === 'bail');
+   if (!contrats.length) return;
+   const idsBaux = contrats.map(d => d.dossier_id);
+   const [baux, signatures] = await Promise.all([
+     db.from('baux').select('id,etat,document_signe').eq('organization_id',orgId).in('id',idsBaux),
+     lirePresentationSignatures(orgId, { baux: idsBaux }),
+   ]);
+   for (const contrat of contrats) suivisBaux.set(contrat.id, presentationSuiviBail(baux.error ? undefined : baux.data?.find(b => b.id === contrat.dossier_id), signatures));
+ }));
  const icones:Record<string,typeof FolderOpen>={bail:Building2,loyer:Wallet,incident:AlertTriangle,intervention:Wrench,document:FileText,rapport:FileText};
  return <main className={styles.page}>
   <header className={styles.header}><div><p className={styles.eyebrow}>{vue==='ameliorations'?'ÉVOLUTION DE GERIMMO':'SUIVI OPÉRATIONNEL'}</p><TitreEcran rubrique="suivi">{vue==='ameliorations'?'Améliorations du produit':'Activité et dossiers'}</TitreEcran><p className={styles.subtitle}>{vue==='ameliorations'?'Les corrections proposées, leurs contrôles et les versions qui attendent votre accord.':'Identifiez les dossiers prioritaires et retrouvez la prochaine action à réaliser.'}</p></div>{vue!=='ameliorations'&&<ActualiserDossiers />}</header>
@@ -52,18 +65,18 @@ export default async function PageAutonomie({searchParams}:{searchParams:Promise
   </div>
   {orgs.error&&<p role="alert" className="err mb-4">Les noms des organisations sont momentanément indisponibles.</p>}
   <section id="dossiers" className={styles.directory} aria-labelledby="dossiers-titre">
-    <div className={styles.directoryHeading}><div><h2 id="dossiers-titre">Les prochaines actions</h2><p>{dossiers.error?'Lecture du suivi indisponible.':'Cette liste indique la prochaine action ; elle ne la lance pas, l’étape se fait dans le dossier concerné. Les dossiers urgents apparaissent en premier.'}</p></div><span className={styles.badge} data-tone="bleu">{dossiers.error?'À vérifier':`${affiches.length} affiché${affiches.length>1?'s':''}`}</span></div>
+    <div className={styles.directoryHeading}><div><h2 id="dossiers-titre">Les prochaines actions</h2><p>{dossiers.error?'Lecture du suivi indisponible.':'Consultez les dossiers des clients en lecture seule. Les actions de gestion leur appartiennent.'}</p></div><span className={styles.badge} data-tone="bleu">{dossiers.error?'À vérifier':`${affiches.length} affiché${affiches.length>1?'s':''}`}</span></div>
     {(!vide||filtreActif)&&<nav aria-label="Filtrer les dossiers par catégorie" className={styles.filters}>{Object.entries(filtres).map(([k,v])=><Link key={k} href={adresseDossiers(k)} scroll={false} aria-current={equipe===k?'true':undefined}>{v}</Link>)}</nav>}
     {dossiers.error?<p role="alert" className="err px-6 pb-6">Le suivi des dossiers est indisponible. Actualisez avant de prendre une décision.</p>:affiches.length===0?<div className={styles.empty}><CheckCheck size={28} aria-hidden="true" /><h3>{page>1?'Aucun dossier sur cette page':filtreActif?'Aucun dossier dans cette catégorie':'Aucune prochaine action enregistrée'}</h3><p>{page>1?'La liste a peut-être changé depuis votre dernière visite.':filtreActif?'Les autres catégories restent accessibles dans les filtres.':'Les locations, incidents et documents apparaissent ici lorsqu’une étape est attendue. Actualisez pour vérifier les dossiers existants.'}</p>{(filtreActif||page>1)&&<Link href={adresseDossiers(page>1?equipe:'tous')}>Revenir à {page>1?'la première page':'tous les dossiers'} <ArrowUpRight size={15} aria-hidden="true" /></Link>}</div>:<div className={styles.caseList}>
       {affiches.map(d=>{const Icone=icones[d.dossier_type]??FolderOpen;return <Link key={d.id} href={cheminPourProfil(lienDossier(d),proprietairesDirects.has(d.organization_id))} className={styles.case} data-urgent={d.priorite==='urgente'}>
-        <div className={styles.caseHead}><span className={styles.avatar}><Icone size={20} aria-hidden="true" /></span><div className={styles.caseIdentity}><p>{noms.get(d.organization_id)??'Organisation'} · {TYPES_DOSSIER[d.dossier_type]??'Dossier'}</p><h3>{d.prochaine_action}</h3></div><div className={styles.caseStates}>{d.priorite==='urgente'&&<span className={styles.badge} data-tone="ambre">Urgent</span>}<span className={styles.badge} data-tone={d.etat==='bloque'?'rouge':d.etat==='en_cours'?'bleu':'gris'}>{ETATS_DOSSIER[d.etat]??'À vérifier'}</span></div></div>
+        <div className={styles.caseHead}><span className={styles.avatar}><Icone size={20} aria-hidden="true" /></span><div className={styles.caseIdentity}><p>{noms.get(d.organization_id)??'Organisation'} · {TYPES_DOSSIER[d.dossier_type]??'Dossier'}</p><h3>{suivisBaux.get(d.id)?.action ?? d.prochaine_action}</h3></div><div className={styles.caseStates}>{d.priorite==='urgente'&&<span className={styles.badge} data-tone="ambre">Urgent</span>}<span className={styles.badge} data-tone={d.etat==='bloque'?'rouge':d.etat==='en_cours'?'bleu':'gris'}>{suivisBaux.get(d.id)?.statut ?? ETATS_DOSSIER[d.etat] ?? 'À vérifier'}</span></div></div>
         {d.exception_message&&<p className={styles.exception}>{d.exception_message}</p>}
         <div className={styles.caseFooter}>{d.agir_apres&&<span><CalendarClock size={13} aria-hidden="true" />Échéance : {formaterDateParis(d.agir_apres)}</span>}<span>Ouvrir le dossier <ArrowUpRight size={15} aria-hidden="true" /></span></div>
       </Link>;})}
     </div>}
     {(total>25||page>1)&&<nav aria-label="Pages de dossiers" className={styles.pagination}>{page>1?<Link href={adresseDossiers(equipe,page-1)}>← Précédente</Link>:<span/>}<span>{total} dossiers · page {page}</span>{page*25<total?<Link href={adresseDossiers(equipe,page+1)}>Suivante →</Link>:<span/>}</nav>}
   </section>
-  <p className={styles.context}><Info size={15} aria-hidden="true" /><span>Ce suivi n’exécute pas les actions à votre place. Ouvrez le dossier pour agir ; les tâches automatiques autorisées continuent selon les réglages de chaque organisation.</span></p>
+  <p className={styles.context}><Info size={15} aria-hidden="true" /><span>Vous restez connecté en superadmin pendant la consultation. Les propriétaires et gestionnaires réalisent les actions dans leur espace.</span></p>
   {!vide&&!dossiers.error&&<details className={styles.history}><summary><History size={17} aria-hidden="true" />Dernières étapes des dossiers affichés<ChevronDown size={16} aria-hidden="true" /></summary>{historique.error?<p role="alert" className="err px-6 pb-5">L’historique est momentanément indisponible.</p>:<ol className={styles.timeline}>{historique.data?.slice(0,30).map(h=><li key={h.id}><time dateTime={h.created_at}>{formaterDateHeureParis(h.created_at)}</time><p>{h.action}</p></li>)}{!historique.data?.length&&<li>Aucun changement enregistré depuis la mise en place de cet historique.</li>}</ol>}</details>}
   </>}
   {vue!=='dossiers'&&<section id="ameliorations" className={carte}><h2 className="text-xl font-semibold">Corrections et idées</h2><p className="mt-2 text-sm text-muted-foreground">Ouvrez une proposition pour voir ses contrôles et décider.</p>

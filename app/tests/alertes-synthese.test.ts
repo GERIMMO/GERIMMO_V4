@@ -31,10 +31,11 @@ describe("visibilité de la synthèse des alertes", () => {
     expect(requete.eq).toHaveBeenCalledWith("organization_id", "agence-test");
   });
 
-  it("montre à la supervision toutes les alertes ouvertes, quelle que soit l'affectation", async () => {
+  it("réserve la supervision aux alertes critiques, sans les signatures et tâches courantes", async () => {
     const { client, requete } = clientFactice();
-    await chargerSyntheseAlertes(client, { toutes: true });
+    await chargerSyntheseAlertes(client, { supervision: true });
     expect(requete.eq).toHaveBeenCalledWith("statut", "ouverte");
+    expect(requete.eq).toHaveBeenCalledWith("criticite", "critique");
     expect(requete.or).not.toHaveBeenCalled();
   });
 });

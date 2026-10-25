@@ -148,6 +148,7 @@ export function BoutonAssistance() {
     ? ""
     : "max-sm:translate-y-40 max-sm:opacity-0 max-sm:pointer-events-none";
   return (
+    <nav aria-label="Assistance">
     <LienAssistance
       className={`fixed z-30 size-11 items-center justify-center gap-2 rounded-full border border-[var(--filet)] bg-[var(--ivoire)] text-sm font-medium text-[var(--encre)] shadow-sm transition-[transform,opacity] duration-[var(--duree)] hover:border-[var(--or)] motion-reduce:transition-none ${position} ${visibilite}`}
       title={auBas ? undefined : "Aide et retours"}
@@ -157,5 +158,6 @@ export function BoutonAssistance() {
       <MessageSquarePlus className="size-4" aria-hidden />
       <span className={libelle}>Aide et retours</span>
     </LienAssistance>
+    </nav>
   );
 }

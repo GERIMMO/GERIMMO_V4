@@ -52,6 +52,12 @@
 // (déjà publique) et appelle `archiver_version_conditions`, qui n'insère qu'une version manquante et ne réécrit jamais
 // une version archivée (table en ajout seul). Le texte archivé vient de la page publiée, jamais du navigateur.
 //
+// Et l'affichage du suivi dans une traversée de supervision (lecture-presentation-signatures.ts) :
+// APRÈS verifierAccesEspace (session, organisation, trace) ET is_super_admin() (MFA).
+// SELECT borné à l'organisation et aux baux/documents affichés, six colonnes d'état et
+// de références uniquement. Aucun signataire, secret, lien prestataire ni écriture.
+// Les membres ordinaires conservent leur client de session et leur RLS.
+//
 // Ce que le client peut faire est en outre borné côté base : les fonctions que
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées
 // au seul `service_role`, et chacune ne rend que ce dont la tâche a besoin.

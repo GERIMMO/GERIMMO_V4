@@ -11,7 +11,7 @@ describe("Un état documentaire compréhensible", () => {
     expect(presentationDiagnostic("dpe", undefined).etat).toBe("a_ajouter");
   });
   it("une absence d'échéance ne vaut pas une validité illimitée", () => {
-    expect(presentationDiagnostic("plomb", { ...document, type:"plomb", date_expiration: null })).toMatchObject({ etat:"disponible", libelle:"Fichier disponible", ton:"neutre" });
+    expect(presentationDiagnostic("plomb", { ...document, type:"plomb", date_expiration: null })).toMatchObject({ etat:"disponible", libelle:"Validité à vérifier", ton:"neutre" });
   });
   it("distingue document expiré, échéance proche et rapport à jour", () => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-24T12:00:00Z"));

@@ -20,9 +20,11 @@ import { aujourdhuiParis } from "@/lib/ged";
 export function FormulaireAttestation({
   orgId,
   renouvellement,
+  sansTitre = false,
 }: {
   orgId: string;
   renouvellement: boolean;
+  sansTitre?: boolean;
 }) {
   const action = deposerMonAttestation.bind(null, orgId);
   const [etat, formAction] = useActionState<EtatAttestation, FormData>(action, {});
@@ -34,9 +36,9 @@ export function FormulaireAttestation({
 
   return (
     <form data-saisie-confirmee ref={formulaire} action={formAction} className="formulaire-reperes space-y-3 border-t border-border pt-4">
-      <p className="text-sm font-medium">
+      {!sansTitre && <p className="text-sm font-medium">
         {renouvellement ? "Déposer une nouvelle attestation" : "Déposer mon attestation"}
-      </p>
+      </p>}
       <LegendeChamps />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">

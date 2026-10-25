@@ -64,6 +64,7 @@ export function ListeAlertes({
   monCompte,
   estResponsable,
   estProprietaire = false,
+  lectureSeule = false,
   ouvrirAlerteId,
   aujourdhui,
   actionsAuDessus = 0,
@@ -76,6 +77,7 @@ export function ListeAlertes({
   monCompte: string;
   estResponsable: boolean;
   estProprietaire?: boolean;
+  lectureSeule?: boolean;
   // « Traiter » une alerte générique depuis un lien : la pop-up s'ouvre
   // d'emblée sur cette alerte.
   ouvrirAlerteId?: string;
@@ -102,6 +104,7 @@ export function ListeAlertes({
   /* eslint-disable react-hooks/set-state-in-effect */
   const consomme = useRef<string | null>(null);
   useEffect(() => {
+    if (lectureSeule) return;
     if (!ouvrirAlerteId) {
       consomme.current = null;
       return;
@@ -122,7 +125,7 @@ export function ListeAlertes({
     if (estConfieeAMoi(cible, monCompte) || estResponsable) {
       setOuverte(cible);
     }
-  }, [ouvrirAlerteId, alertes, monCompte, estResponsable, orgId, racine, router]);
+  }, [ouvrirAlerteId, alertes, monCompte, estResponsable, orgId, racine, router, lectureSeule]);
   // Le geste abouti solde l'alerte en base et la revalidation arrive dans le
   // MÊME commit React que le succès : la règle sûre est qu'une alerte qui a
   // quitté la liste ferme sa modale (recette 23/08, constaté en production).
@@ -133,8 +136,8 @@ export function ListeAlertes({
 
   const filtrees =
     filtre === "toutes" ? alertes : alertes.filter((a) => a.criticite === filtre);
-  const miennes = filtrees.filter((a) => estConfieeAMoi(a, monCompte));
-  const autres = filtrees.filter((a) => !estConfieeAMoi(a, monCompte));
+  const miennes = lectureSeule ? filtrees : filtrees.filter((a) => estConfieeAMoi(a, monCompte));
+  const autres = lectureSeule ? [] : filtrees.filter((a) => !estConfieeAMoi(a, monCompte));
 
   // Le compte vit sur la pastille : on n'ouvre pas un filtre pour découvrir
   // qu'il ne contient rien.
@@ -219,7 +222,9 @@ export function ListeAlertes({
         {/* Une alerte grisée est intouchable — seul le responsable peut la
             rouvrir pour la confier à un autre ou la traiter à la place d'un absent.
             Une alerte incident emmène au dossier, dans l'onglet Incidents. */}
-        {(!grisee || estResponsable) &&
+        {lectureSeule ? (fiche ? (
+          <Link href={fiche} className="lien-discret" aria-label={`Consulter le dossier : ${a.titre}`}>Consulter le dossier →</Link>
+        ) : <span className="text-xs text-muted-foreground">Suivi par le gestionnaire</span>) : (!grisee || estResponsable) &&
           (fiche && !grisee ? (
             <span className="flex shrink-0 items-center gap-2.5">
               <Link
@@ -303,7 +308,7 @@ export function ListeAlertes({
               ? "Aucune alerte à ce niveau"
               : actionsAuDessus > 0
                 ? "Aucune alerte ouverte"
-                : "Votre journée est dégagée"}
+                : lectureSeule ? "Aucune alerte ouverte" : "Votre journée est dégagée"}
           </p>
           <p className="explication">
             {filtre !== "toutes"
@@ -355,7 +360,7 @@ export function ListeAlertes({
         jamais.
       </p>}
 
-      {ouverte && (
+      {!lectureSeule && ouverte && (
         <ModaleAlerte
           orgId={orgId}
           alerte={ouverte}

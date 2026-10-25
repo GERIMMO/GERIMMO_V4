@@ -3,6 +3,7 @@ import { AnnuairePersonnes } from "./personnes";
 import { lirePage, numeroPage, rechercheIlike } from "@/lib/pagination-supervision";
 import { Annuaire, type ClientResume } from "./annuaire";
 import { Plus } from "lucide-react";
+import ui from "./utilisateurs.module.css";
 import styles from "../repertoires.module.css";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
@@ -101,8 +102,8 @@ export default async function PageClients({ searchParams }: { searchParams: Prom
       recherche: [a.siret,a.email].filter(Boolean).join(" "), statut: LIBELLES_STATUT_ARTISAN[a.statut_plateforme] ?? a.statut_plateforme,
       ton: (a.statut_plateforme === "valide" ? "vert" : a.statut_plateforme === "en_attente" ? "ambre" : "rouge") as ClientResume["ton"], enAttente: a.statut_plateforme === "en_attente", href: `/admin/clients/artisans/${a.id}` })),
   ];
-  return <main className={styles.page}>
-    <header className={styles.header}><div><p className={styles.eyebrow}>RELATION CLIENTS</p><TitreEcran rubrique="personnes">Utilisateurs</TitreEcran><p className={styles.subtitle}>Retrouvez les propriétaires bailleurs, les artisans et les agences de Gerimmo.</p></div><Link href="/admin/organisations/nouvelle" className="btn-or"><Plus size={16} aria-hidden="true" />Ouvrir une organisation</Link></header>
+  return <main className={`${styles.page} ${ui.page}`}>
+    <header className={`${styles.header} ${ui.entete}`}><TitreEcran rubrique="personnes">Utilisateurs</TitreEcran><Link href="/admin/organisations/nouvelle" className="btn-or"><Plus size={16} aria-hidden="true" />Ouvrir une organisation</Link></header>
     <NavigationUtilisateurs vue="espaces"/>
     <Annuaire clients={clients} famille={famille} recherche={recherche} statut={statut}
       totaux={{ proprietaire: nbProprietaires.error ? null : nbProprietaires.count, agence: nbAgences.error ? null : nbAgences.count, artisan: nbArtisans.error ? null : nbArtisans.count, attente: nbAttente.error ? null : nbAttente.count }}

@@ -1,9 +1,11 @@
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
+import { lirePresentationSignatures } from "@/lib/lecture-presentation-signatures";
+import { etatSignatureDocument } from "@/lib/presentation-signatures";
+import { presentationDocument } from "@/lib/presentation-document";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
   TYPES_DOCUMENT,
-  estARenouveler,
   formaterDate,
   limiteRenouvellement,
   motifLitteral,
@@ -22,7 +24,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { FormulaireDepot } from "./formulaire-depot";
 import { EchecLecture } from "./echec-lecture";
-import { PaneDocument, puceConservation } from "./pane-document";
+import { PaneDocument } from "./pane-document";
 import { titreAffiche } from "./titre-document";
 import { baseEspace } from "@/lib/racine-espace";
 
@@ -43,6 +45,7 @@ type DocRang = {
   mime_type: string | null;
   taille_octets: number | null;
   expire_le: string | null;
+  verifie_le: string | null;
   purged_at: string | null;
   created_at: string;
   liens: LienRang[];
@@ -96,7 +99,7 @@ export default async function PageDocuments(
   let requete = supabase
     .rpc("documents_courants", { p_org: orgId, p_lots: lotsPerimetre }, { count: "exact" })
     .select(
-      "id, type, titre, mime_type, taille_octets, expire_le, purged_at, created_at, liens:document_liens(entite, entite_id)"
+      "id, type, titre, mime_type, taille_octets, expire_le, verifie_le, purged_at, created_at, liens:document_liens(entite, entite_id)"
     )
     .order("created_at", { ascending: false })
     .limit(PLAFOND_LISTE);
@@ -120,7 +123,6 @@ export default async function PageDocuments(
     { data: aRenouvelerBrut, error: erreurRenouveler },
     { count: totalCourants, error: erreurTotal },
     { data: personnes, error: erreurPersonnes },
-    { data: regles, error: erreurRegles },
   ] = await Promise.all([
     requete,
     // La vue d'ensemble se calcule sur TOUTES les pièces courantes, agrégées
@@ -150,19 +152,13 @@ export default async function PageDocuments(
       .eq("organization_id", orgId)
       .is("archived_at", null)
       .order("nom"),
-    supabase
-      .from("retention_rules")
-      .select("data_type, duree_mois")
-      .like("data_type", "document:%"),
   ]);
 
   // Le typage de .rpc().select() hésite entre ligne et tableau : la fonction
   // renvoie toujours un setof, on fixe le tableau
   const docs = ((documents ?? []) as unknown as DocRang[]);
   const nomsPersonnes = new Map((personnes ?? []).map((p) => [p.id, nomComplet(p)]));
-  const dureesParType = new Map(
-    (regles ?? []).map((r) => [r.data_type.replace("document:", ""), r.duree_mois])
-  );
+  const suiviSignatures = await lirePresentationSignatures(orgId, { documents: docs.filter(d => !d.purged_at).map(d => d.id) });
 
   const aRenouveler = (aRenouvelerBrut ?? []) as ARenouveler[];
   const entreesTypes = ((statsTypes ?? []) as { type: string; total: number }[]).map(
@@ -178,7 +174,7 @@ export default async function PageDocuments(
     erreurRenouveler && "les documents à renouveler",
     erreurTotal && "le nombre total de documents",
     erreurPersonnes && "les personnes rattachées",
-    erreurRegles && "les durées de conservation",
+    suiviSignatures.erreur && "le suivi des signatures",
   ].filter((q): q is string => Boolean(q));
 
   // Ce que le compteur d'en-tête a le droit d'affirmer. Avec un filtre actif,
@@ -435,7 +431,7 @@ export default async function PageDocuments(
                       <Link
                         key={d.id}
                         href={lien(d.id)}
-                        className={`rang${actif ? " actif" : ""}`}
+                        className={`rang flex-wrap gap-y-2${actif ? " actif" : ""}`}
                         aria-current={actif ? "true" : undefined}
                       >
                         <small className="min-w-0 flex-1 italic">
@@ -450,12 +446,12 @@ export default async function PageDocuments(
                     .filter((l) => l.entite === "personne")
                     .map((l) => nomsPersonnes.get(l.entite_id) ?? "Personne")
                     .join(", ");
-                  const renouveler = estARenouveler(d.expire_le);
+                  const presentation = presentationDocument(d, etatSignatureDocument(suiviSignatures.circuits, d.id));
                   return (
                     <Link
                       key={d.id}
                       href={lien(d.id)}
-                      className={`rang${actif ? " actif" : ""}`}
+                      className={`rang flex-wrap gap-y-2${actif ? " actif" : ""}`}
                       aria-current={actif ? "true" : undefined}
                     >
                       <span className="min-w-0 flex-1">
@@ -474,13 +470,12 @@ export default async function PageDocuments(
                         {/* Ouvrir une fiche ne recharge pas la liste : l'anneau
                             sur la ligne cliquée confirme le geste */}
                         <IndicateurLien />
-                        {/* La puce garde la durée, en rouge quand l'échéance
-                            approche (maquette : d.cons, p-rouge si alerte) */}
+                        {/* La conservation reste dans le détail ; ici on lit l’état du fichier. */}
                         <span
-                          className={`puce ${renouveler ? "puce-rouge" : "puce-grise"}`}
-                          title="Durée de conservation du document"
+                          className={`puce ${presentation.classe}`}
+                          title={presentation.detail}
                         >
-                          {puceConservation(dureesParType.get(d.type))}
+                          {presentation.libelle}
                         </span>
                         {/* Le rang se clique en entier ; la flèche le dit
                             (25/09 : sans elle, la puce passait pour le seul

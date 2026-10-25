@@ -83,6 +83,7 @@ ids.VERSION = (await un("select version from versions_conditions where document 
 const inventaire = JSON.parse(fs.readFileSync(path.join(ICI, "..", "routes-inventaire.json"), "utf8"));
 const matrice = [];
 const ecartees = [];
+const exclusions = [];
 for (const route of inventaire) {
   let chemin = route.path;
   // L'espace « propriétaire » réutilise les écrans de l'agence avec l'organisation PD, sous /espace/<id> (décision D27 :
@@ -95,12 +96,23 @@ for (const route of inventaire) {
   });
   if (manquant) {
     ecartees.push(`${route.path} (pas de ${manquant})`);
+    exclusions.push({ ...route, raison: `Donnée de recette absente : ${manquant}` });
     continue;
   }
   const persona = route.persona === "admin-agence" ? "admin" : route.persona;
   matrice.push({ path: chemin, persona, label: route.label });
 }
 fs.writeFileSync(path.join(ICI, "..", "matrice-ecrans.json"), JSON.stringify(matrice, null, 1));
+const audit = path.join(ICI, "..", ".audit");
+fs.mkdirSync(audit, { recursive: true });
+fs.writeFileSync(path.join(audit, "couverture-prevue.json"), JSON.stringify({
+  nature: "Périmètre prévu, pas un résultat de validation. Les parcours d’actions et les prestataires se vérifient séparément.",
+  parProfil: Object.fromEntries([...new Set(inventaire.map(r => r.persona))].map(persona => [persona, {
+    inventoriees: inventaire.filter(r => r.persona === persona).length,
+    retenues: matrice.filter(r => r.persona === (persona === "admin-agence" ? "admin" : persona)).length,
+    exclues: exclusions.filter(r => r.persona === persona),
+  }])),
+}, null, 2));
 console.log(`${matrice.length} écrans dans la matrice ; ${ecartees.length} écartés :`);
 for (const e of ecartees) console.log("  -", e);
 await pool.end();

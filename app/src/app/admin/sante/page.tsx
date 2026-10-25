@@ -157,14 +157,14 @@ export default async function PageSante() {
           {nbPoints === null
             ? `${nbManque} connexion${nbManque > 1 ? "s" : ""} manque${nbManque > 1 ? "nt" : ""} · travail automatique à vérifier${aVerifier}`
             : nbPoints === 0
-              ? `Connexions et tâches suivies à jour${aVerifier}`
+              ? `Réglages présents · tâches suivies à jour${aVerifier}`
               : `${nbPoints} point${nbPoints > 1 ? "s" : ""} à traiter : ${detailPoints}${aVerifier}`}
         </span>
       </div>
 
       <nav aria-label="Accès aux contrôles" className="mb-5 flex flex-wrap gap-3"><a className="btn-secondaire" href="#connexions">Connexions</a><a className="btn-secondaire" href="#taches">Tâches et sauvegarde</a><a className="btn-secondaire" href="#budget-signatures">Signatures</a></nav>
       {/* ── Configuration ─────────────────────────────────────────────── */}
-      <ConsoleSection id="connexions" titre="Connexions des services" description="Voir les services reliés et ceux à configurer." icone="sante" statut={nbManque+nbAttention ? `${nbManque+nbAttention} à vérifier` : "Configurées"}>
+      <ConsoleSection id="connexions" titre="Connexions des services" description="Présence des réglages nécessaires aux services." icone="sante" statut={nbManque+nbAttention ? `${nbManque+nbAttention} à vérifier` : "Réglages présents"}>
         <div className="entete-carte mb-3">
 
           <span className="mono-discret">{configuration.filter((v) => v.estConnexion !== false).length}</span>
@@ -195,9 +195,9 @@ export default async function PageSante() {
           ))}
         </ul>
         <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
-          Gerimmo vérifie chaque connexion sans afficher de clé ni de donnée
-          confidentielle. Aucun écran de Gerimmo ne pose une variable : elle se
-          pose chez Vercel, puis le service est redéployé.
+          Ce contrôle confirme la présence des réglages, sans afficher les clés.
+          Il ne teste pas un paiement, un e-mail ou une signature chez le prestataire.
+          Les réglages serveur se modifient chez Vercel, puis le service est redéployé.
         </p>
       </ConsoleSection>
 

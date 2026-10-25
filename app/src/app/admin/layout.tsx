@@ -38,7 +38,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
 
   const identite=await lireEditeur();
   const [alertes, decisions, { data: utilisateur }, arrets, relais] = await Promise.all([
-    chargerSyntheseAlertes(supabase, { toutes: true }),
+    chargerSyntheseAlertes(supabase, { supervision: true }),
     chargerDecisionsAttendues(supabase, process.env, faitsManquants(identite.indisponible?{}:identite.editeur).length),
     supabase.auth.getUser(),
     // Audit du 13/10 (SA-04) : un arrêt d'urgence ou un relais en cours se voit sur toute la console. Lecture en échec : pas de bandeau.
@@ -71,8 +71,8 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
               </Link>
               <BoutonMenuSupervision />
               <RechercheSupervision masquerSousMobile />
-              <Link href="/admin/brief?vue=decisions" className="lien-bandeau ml-auto" aria-label={decisions.total > 0 ? `${decisions.total} sujet${decisions.total > 1 ? "s" : ""} à traiter aujourd’hui` : "Aujourd’hui : aucun sujet à traiter"}>
-                <span className="max-[640px]:hidden">À traiter</span>
+              <Link href="/admin/brief?vue=decisions" className="lien-bandeau ml-auto">
+                <span className="max-[640px]:sr-only">À traiter</span>{" "}
                 <span className={`puce ml-1.5 max-[640px]:ml-0 ${decisions.total > 0 ? "puce-prep" : "puce-grise"}`}>{decisions.total}</span>
               </Link>
               <SyntheseAlertes alertes={alertes} modeAdmin rappel aujourdhui={aujourdhuiParis()} />
@@ -86,9 +86,10 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           </div>
         </header>
         <ColonneSupervision>
-          <Link href="/admin/brief" className="admin-marque max-[900px]:hidden!" aria-label="Accueil de la supervision">
+          <Link href="/admin/brief" className="admin-marque max-[900px]:hidden!">
             <MarqueGerimmo surEncre />
             <span className={styles.signature}>Pilotage de Gerimmo</span>
+            <span className="sr-only"> — accueil de la supervision</span>
           </Link>
           <nav className="admin-nav" aria-label="Navigation de la supervision">
             <Suspense fallback={null}><NavAdmin artisansEnAttente={artisansEnAttente} decisions={decisions.total} /></Suspense>

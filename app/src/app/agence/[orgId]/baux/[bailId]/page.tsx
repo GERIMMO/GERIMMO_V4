@@ -5,6 +5,8 @@ import { SupprimerBailBrouillon } from "@/components/supprimer-bail-brouillon";
 import { FormulaireParcoursBail } from "./formulaire-parcours-bail";
 import { DocumentsParcoursBail } from "./documents-parcours-bail";
 import { RecapitulatifParcoursBail } from "./recapitulatif-parcours-bail";
+import { lirePresentationSignatures } from "@/lib/lecture-presentation-signatures";
+import { archiveSignee, signatureDuBail } from "@/lib/presentation-signatures";
 import { FinaliserParcoursBail } from "./finaliser-parcours-bail";
 import { EtapePersonnesBail } from "./etape-personnes-bail";
 import { AssistantBail } from "./assistant-bail";
@@ -78,7 +80,7 @@ export const metadata = { title: "Bail — Gerimmo" };
 export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[bailId]">) {
   const { orgId, bailId } = await props.params;
   exigerUuids(bailId);
-  const { supabase, organisation, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, organisation, estProprietaire, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
   const agence = organisation.type === "agence";
@@ -108,6 +110,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       />
     );
   if (!bail) notFound();
+  const suiviSignature = await lirePresentationSignatures(orgId, { baux: [bailId] });
+  const documentSigne = bail.document_signe ?? archiveSignee(signatureDuBail(suiviSignature.circuits, bailId));
+  const signeNonActif = bail.etat === "brouillon" && Boolean(documentSigne);
 
   const { data: chambres, error: erreurChambres } = await supabase.from("lot_chambres").select("id, nom, surface_m2, volume_m3, description, espaces_partages").eq("lot_id", bail.lot_id).eq("organization_id", orgId).order("nom");
   const chambre = chambres?.find(c => c.id === bail.chambre_id);
@@ -1101,9 +1106,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       <Link href={lot ? `${base}/parc/${lot.bien_id}/lots/${lot.id}` : `${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {lot?.nom ?? "Mes lots"}</Link>
       <header className={styles.entete}>
         <span className={styles.icone}><FileText size={26} aria-hidden="true" /></span>
-        <div className="min-w-0 flex-1"><p className={styles.surtitre}>Contrat de location · {TYPES_BAIL[bail.type] ?? bail.type}</p><div className="flex flex-wrap items-center gap-3"><h1>{lot?.nom ?? "Fiche du bail"}</h1><span className={COULEURS_ETAT_BAIL[bail.etat] ?? "puce puce-grise"}>{ETATS_BAIL[bail.etat] ?? "État à vérifier"}</span></div><p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Users size={16} aria-hidden="true" />{erreurLocataire ? "Locataire indisponible" : locataire ? nomComplet(locataire) : "Locataire à renseigner"}{bail.chambre_id && ` · ${chambre?.nom ?? "Chambre"}`}</p></div>
-        {bail.etat === "brouillon" ? <a href="#corriger" className="btn-secondaire"><Pencil size={15} aria-hidden="true" /> Modifier le contrat</a> : lot && <Link className="btn-secondaire" href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}><House size={15} aria-hidden="true" /> Voir le logement</Link>}
-        {bail.etat === "brouillon" && !bail.document_signe && !bail.signe_envoye_le && <SupprimerBailBrouillon orgId={orgId} bailId={bailId} revenirAuLot libelle={[lot?.nom, TYPES_BAIL[bail.type] ?? bail.type, locataire ? nomComplet(locataire) : null, bail.date_debut ? `Entrée le ${formaterDate(bail.date_debut)}` : null].filter(Boolean).join(" · ")} />}
+        <div className="min-w-0 flex-1"><p className={styles.surtitre}>Contrat de location · {TYPES_BAIL[bail.type] ?? bail.type}</p><div className="flex flex-wrap items-center gap-3"><h1>{lot?.nom ?? "Fiche du bail"}</h1><span className={signeNonActif ? "puce puce-loue" : COULEURS_ETAT_BAIL[bail.etat] ?? "puce puce-grise"}>{signeNonActif ? "Bail signé" : suiviSignature.erreur && bail.etat === "brouillon" ? "Signature à vérifier" : ETATS_BAIL[bail.etat] ?? "État à vérifier"}</span>{signeNonActif && <span className="puce puce-prep">Location non activée</span>}</div><p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Users size={16} aria-hidden="true" />{erreurLocataire ? "Locataire indisponible" : locataire ? nomComplet(locataire) : "Locataire à renseigner"}{bail.chambre_id && ` · ${chambre?.nom ?? "Chambre"}`}</p></div>
+        {bail.etat === "brouillon" && !traverseeLectureSeule ? <a href="#corriger" className="btn-secondaire"><Pencil size={15} aria-hidden="true" /> Modifier le contrat</a> : lot && <Link className="btn-secondaire" href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}><House size={15} aria-hidden="true" /> Voir le logement</Link>}
+        {!traverseeLectureSeule && bail.etat === "brouillon" && !documentSigne && !suiviSignature.erreur && !bail.signe_envoye_le && <SupprimerBailBrouillon orgId={orgId} bailId={bailId} revenirAuLot libelle={[lot?.nom, TYPES_BAIL[bail.type] ?? bail.type, locataire ? nomComplet(locataire) : null, bail.date_debut ? `Entrée le ${formaterDate(bail.date_debut)}` : null].filter(Boolean).join(" · ")} />}
         {bail.etat === "brouillon" && <dl className={styles.resumeBrouillon}>
           <div><Wallet size={17} aria-hidden="true"/><div><dt>Loyer mensuel · charges comprises</dt><dd>{bail.loyer_hc != null && bail.charges != null ? eur(Number(bail.loyer_hc) + Number(bail.charges)) : "À compléter"}</dd></div></div>
           <div><CalendarDays size={17} aria-hidden="true"/><div><dt>Date d’entrée</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "À renseigner"}</dd></div></div>
@@ -1115,7 +1120,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         <div><dt><ShieldCheck size={17} aria-hidden="true" /> Dépôt de garantie</dt><dd>{bail.depot_garantie == null ? "À renseigner" : eur(Number(bail.depot_garantie))}</dd><dd className={styles.precision}>Montant prévu au contrat</dd></div>
         <div><dt><CalendarDays size={17} aria-hidden="true" /> Échéance du loyer</dt><dd>{bail.jour_echeance == null ? "À renseigner" : `Le ${bail.jour_echeance} du mois`}</dd><dd className={styles.precision}>{bail.charges_mode === "forfait" ? "Charges au forfait" : bail.charges_mode === "provision" ? "Provisions sur charges" : "Conditions du contrat"}</dd></div>
       </dl>}
-      {bail.etat === "brouillon" && <p className="text-sm text-muted-foreground">Vos informations enregistrées sont reprises dans les étapes du bail.</p>}
+      {signeNonActif ? <div className="rounded-xl border border-success/20 bg-success-soft p-4 text-sm"><strong>Le bail est signé. La location n’est pas encore activée.</strong><p className="mt-1">Le contrat signé est archivé ; l’activation reste une action séparée.</p><Link className="inline-flex min-h-11 items-center underline" href={`${base}/documents/${documentSigne}/fichier`}>Consulter le bail signé →</Link></div> : bail.etat === "brouillon" && <p className="text-sm text-muted-foreground">Vos informations enregistrées sont reprises dans les étapes du bail.</p>}
+      {suiviSignature.erreur && <p role="status" className="text-sm">Le suivi des signatures est indisponible. Réessayez pour connaître l’état du contrat.</p>}
       <EchecLecture quoi={echecs} />
 
       {/* La prochaine action évidente, dérivée de l'état du bail */}
@@ -1183,7 +1189,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               signataires={[...(bail.locataire_principal ? [{id:bail.locataire_principal,nom:locataire?nomComplet(locataire):"Locataire principal"}]:[]),...lignesColoc.filter(p=>p.role==="colocataire"&&!p.date_depart).map(p=>({id:p.person_id,nom:p.person_nom}))]}
               edlId={(edls??[]).find(e=>e.type==="entree")?.id??null}
               preparationEdl={erreurEdls?<p role="alert">Les états des lieux n’ont pas pu être chargés.</p>:<FormulaireCreerEdl orgId={orgId} bailId={bailId} bailEtat={bail.etat} typesExistants={(edls??[]).map(e=>e.type)}/>}
-              signatureManuelle={depotSigne} proprietaireDirect={estProprietaire}/>} /></div>
+              signatureManuelle={depotSigne} proprietaireDirect={estProprietaire} documentSigne={documentSigne} lectureSeule={traverseeLectureSeule}/>} /></div>
         ]} /> : <OngletsDossier libelle="Rubriques du bail" rubriques={[
           {id:"bail-informations",titre:"Contrat",contenu:rubriqueContrat},
           {id:"bail-documents",titre:"Documents",contenu:rubriqueSignature},

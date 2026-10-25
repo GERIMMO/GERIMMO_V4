@@ -1,3 +1,4 @@
+import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { OngletsDossier } from "@/components/onglets-dossier";
 import { RubriqueDossier } from "@/components/rubrique-dossier";
 import { deElide } from "@/lib/elision";
@@ -105,9 +106,10 @@ export default async function PageDocumentsLocataire(
     .filter((p) => p.type === "attestation_assurance")
     .sort((a, b) => b.depose_le.localeCompare(a.depose_le));
   const assurance = attestations[0];
-  const statut = assurance ? statutAssurance(assurance.expire_le, Boolean(assurance.verifie_le)) : null;
+  const etatAssurance = etatAssuranceLocataire(assurance);
+  const statut = assurance && etatAssurance.dateConnue ? statutAssurance(assurance.expire_le, Boolean(assurance.verifie_le)) : null;
   const deuxAttestations =
-    attestations.some((p) => p.verifie_le && !estExpiree(p.expire_le)) &&
+    attestations.some((p) => etatAssuranceLocataire(p).validee) &&
     attestations.some((p) => !p.verifie_le);
 
   const moisLong = (d: string) =>
@@ -147,7 +149,7 @@ export default async function PageDocumentsLocataire(
       </p>}
 
       <OngletsDossier libelle="Rubriques de mes documents"
-        initiale={aSigner.length || demandes.length || (adhesionActive && (!assurance || estExpiree(assurance.expire_le))) ? "documents-a-transmettre" : "documents-disponibles"}
+        initiale={aSigner.length || demandes.length || (adhesionActive && (!etatAssurance.nonExpiree)) ? "documents-a-transmettre" : "documents-disponibles"}
         rubriques={[
           { id: "documents-a-transmettre", titre: "À transmettre", contenu: <>
       {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
@@ -191,7 +193,7 @@ export default async function PageDocumentsLocataire(
           scroll-mt : l'en-tête .loc-haut est collant (globals.css:627). */}
       <div
         id="assurance"
-        className={`loc-carte scroll-mt-24 ${lecturePiecesKO || (assurance && assurance.verifie_le && !estExpiree(assurance.expire_le)) ? "" : "border-l-4 border-l-[var(--or)]"}`}
+        className={`loc-carte scroll-mt-24 ${lecturePiecesKO || etatAssurance.validee ? "" : "border-l-4 border-l-[var(--or)]"}`}
       >
         <div className="entete-carte !mb-1">
           <h2 className="titre-carte text-base font-medium">Votre assurance habitation</h2>
@@ -200,33 +202,23 @@ export default async function PageDocumentsLocataire(
           {!lecturePiecesKO && !assurance && adhesionActive && (
             <span className="loc-tag ambre">à déposer</span>
           )}
-          {!lecturePiecesKO &&
-            assurance &&
-            (assurance.verifie_le ? (
-              estExpiree(assurance.expire_le) ? (
-                <span className="loc-tag rouge">Expirée</span>
-              ) : (
-                <span className="loc-tag vert">Validée</span>
-              )
-            ) : (
-              <span className="loc-tag ambre">En cours de vérification</span>
-            ))}
+          {!lecturePiecesKO && assurance && (
+            <span className={`loc-tag ${etatAssurance.validee ? "vert" : etatAssurance.dateConnue && !etatAssurance.nonExpiree ? "rouge" : "ambre"}`}>
+              {etatAssurance.libelle}
+            </span>
+          )}
         </div>
         {lecturePiecesKO ? (
           <LectureImpossible quoi="l'état de votre assurance" />
         ) : assurance ? (
           <p className="text-sm text-muted-foreground">
             {assurance.titre || "Attestation déposée"} —{" "}
-            <span className={statut?.classe}>{statut?.texte}</span>.
+            <span className={statut?.classe}>{statut?.texte ?? "date d’expiration à vérifier avec votre gestionnaire"}</span>.
             {deuxAttestations &&
               " Votre attestation validée reste en vigueur pendant la vérification de la nouvelle."}
           </p>
         ) : (
-          adhesionActive ? (
-            <p className="text-sm text-muted-foreground">
-              Ajoutez votre assurance habitation : un PDF ou une photo lisible suffit.
-            </p>
-          ) : (
+          adhesionActive ? null : (
             <p className="text-sm text-muted-foreground">
               Bail terminé — plus d&apos;attestation à fournir.
             </p>
@@ -234,7 +226,7 @@ export default async function PageDocumentsLocataire(
         )}
         {adhesionActive && (
           <RubriqueDossier id="depot-assurance" titre={assurance ? "Déposer une nouvelle attestation" : "Ajouter mon attestation"} resume="PDF ou photo lisible" ouverte={!assurance}>
-            <FormulaireAttestation orgId={orgId} renouvellement={Boolean(assurance)} />
+            <FormulaireAttestation orgId={orgId} renouvellement={Boolean(assurance)} sansTitre />
           </RubriqueDossier>
         )}
       </div>

@@ -35,7 +35,7 @@ import { premier } from "@/lib/postgrest";
 import { actionsAttendues } from "@/lib/actions-attendues";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { ETATS_ELEMENT, COULEURS_ETAT_ELEMENT } from "./edl/[edlId]/grille-edl";
+import { ETATS_ELEMENT, COULEURS_ETAT_ELEMENT } from "@/lib/etats-elements-edl";
 import { REGLE_ECART_EDL } from "@/lib/regle-ecart-edl";
 import {
   FormulaireBailSigne,

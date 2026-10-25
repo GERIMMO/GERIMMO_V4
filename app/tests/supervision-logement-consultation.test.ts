@@ -8,7 +8,6 @@ vi.mock("@/app/actions/chambres", () => ({ enregistrerChambre: vi.fn(), enregist
 vi.mock("@/app/actions/appels-charges", () => ({ creerAppelCharges: vi.fn(), ajouterPosteCharge: vi.fn(), modifierPosteCharge: vi.fn(), supprimerPosteCharge: vi.fn(), validerVentilation: vi.fn(), supprimerAppelCharges: vi.fn() }));
 vi.mock("@/app/agence/[orgId]/parc/[bienId]/formulaire-classe-dpe-lot", () => ({ FormulaireClasseDpeLot: () => createElement("form", { "aria-label": "Modifier DPE" }) }));
 vi.mock("@/app/agence/[orgId]/parc/[bienId]/formulaire-diagnostic", () => ({ FormulaireDiagnostic: () => createElement("form", { "aria-label": "Déposer diagnostic" }) }));
-vi.mock("@/app/agence/[orgId]/baux/[bailId]/edl/[edlId]/grille-edl", () => ({ ETATS_ELEMENT: { bon: "Bon", usage: "Usagé" } }));
 import { LignesDiagnostics } from "@/app/agence/[orgId]/parc/[bienId]/lignes-diagnostics";
 import { ChambresLogement } from "@/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/chambres-logement";
 import { AppelsCharges } from "@/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-appels-charges";

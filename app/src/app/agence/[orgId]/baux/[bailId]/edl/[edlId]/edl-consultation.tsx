@@ -1,4 +1,4 @@
-import { ETATS_ELEMENT } from "./grille-edl";
+import { ETATS_ELEMENT } from "@/lib/etats-elements-edl";
 import type { Compteur, Cle } from "./edl-annexes";
 
 type Mentions = { personnes_presentes: string | null; detecteur_fumee_present: boolean | null; detecteur_fumee_etat: string | null; attestation_assurance_fournie: boolean | null; adresse_restitution_depot: string | null; observations: string | null };

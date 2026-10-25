@@ -23,22 +23,8 @@ import { Modale } from "@/components/ui/modale";
 import {MAX_DEPOT_DIRECT,MARQUEUR_DEPOT} from "@/lib/depot-direct-commun";
 import {preparerDepotsDirects,ErreurDepotDirect} from "@/lib/depot-direct-client";
 
-export const ETATS_ELEMENT: Record<string, string> = {
-  neuf: "Neuf",
-  bon: "Bon",
-  usage: "Usagé",
-  mauvais: "Mauvais",
-  absent: "Absent",
-};
-
-// Puces charte v2 : neuf/bon acquis, usagé neutre, mauvais/absent alertent
-export const COULEURS_ETAT_ELEMENT: Record<string, string> = {
-  neuf: "puce puce-loue",
-  bon: "puce puce-loue",
-  usage: "puce puce-grise",
-  mauvais: "puce puce-rouge",
-  absent: "puce puce-rouge",
-};
+import { ETATS_ELEMENT, COULEURS_ETAT_ELEMENT } from "@/lib/etats-elements-edl";
+export { ETATS_ELEMENT, COULEURS_ETAT_ELEMENT } from "@/lib/etats-elements-edl";
 
 // Du meilleur au pire : un état de sortie plus haut dans ce rang que l'état
 // d'entrée signale un élément dégradé pendant le bail.

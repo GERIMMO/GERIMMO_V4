@@ -1111,8 +1111,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         {bail.etat === "brouillon" && !traverseeLectureSeule ? <a href="#corriger" className="btn-secondaire"><Pencil size={15} aria-hidden="true" /> Modifier le contrat</a> : lot && <Link className="btn-secondaire" href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}><House size={15} aria-hidden="true" /> Voir le logement</Link>}
         {!traverseeLectureSeule && bail.etat === "brouillon" && !documentSigne && !suiviSignature.erreur && !bail.signe_envoye_le && <SupprimerBailBrouillon orgId={orgId} bailId={bailId} revenirAuLot libelle={[lot?.nom, TYPES_BAIL[bail.type] ?? bail.type, locataire ? nomComplet(locataire) : null, bail.date_debut ? `Entrée le ${formaterDate(bail.date_debut)}` : null].filter(Boolean).join(" · ")} />}
         {bail.etat === "brouillon" && <dl className={styles.resumeBrouillon}>
-          <div><Wallet size={17} aria-hidden="true"/><div><dt>Loyer mensuel · charges comprises</dt><dd>{bail.loyer_hc != null && bail.charges != null ? eur(Number(bail.loyer_hc) + Number(bail.charges)) : "À compléter"}</dd></div></div>
-          <div><CalendarDays size={17} aria-hidden="true"/><div><dt>Date d’entrée</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "À renseigner"}</dd></div></div>
+          <div><dt><Wallet size={17} aria-hidden="true"/>Loyer mensuel · charges comprises</dt><dd>{bail.loyer_hc != null && bail.charges != null ? eur(Number(bail.loyer_hc) + Number(bail.charges)) : "À compléter"}</dd></div>
+          <div><dt><CalendarDays size={17} aria-hidden="true"/>Date d’entrée</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "À renseigner"}</dd></div>
         </dl>}
       </header>
       {bail.etat !== "brouillon" && <dl className={styles.chiffres}>

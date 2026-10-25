@@ -7093,3 +7093,23 @@ Contrôles locaux : typage réussi ; 40 tests de rendu ciblés réussis, dont le
 Deux défauts du registre reproduits par injection de pannes sans réseau ni donnée réelle. La garde de traversée superadmin et la lecture des fichiers ne livrent plus les données si log_sa_access échoue ; la fiche d’organisation s’arrête avant ses lectures métier. Les accès des membres propriétaires/gestionnaires demeurent inchangés. La reprise réussie après rétablissement du journal est testée. Aucune modification des droits SQL, des sessions, de la MFA ou de la conservation.
 
 Le compteur de décisions et les badges artisans montrent « À vérifier » quand leurs sources sont indisponibles. Un compte absent n’est plus converti en zéro ; les lectures partielles alimentent le même état dans l’en-tête, les menus et le bureau. Les vrais zéros restent distincts. 88 tests ciblés réussis ; lint et typecheck vérifiés séparément, CI complète avant publication. Documentation Supabase RPC et changelog consultés le 25/10 (pas de changement d’API nécessaire). Ce lot suit la PR256 sans en modifier les tests en cours.
+
+
+## 25 octobre 2026 — contrôles de la suite d’audit en cours
+
+PR256 : tête distante 4a89ed181c3abaf4092e5ec7b7832e40cb19044c, arbre ec5453646bf96a8192adb40fb33303b2479ddc92 identique au candidat local. CI 40209966157. PR257 : tête 2bddeec36a9e83994e9b545fc53a521f64663dcf, arbre 2dee5545ceb392d04862024448e1fc29419a2b5b identique au candidat local ; CI 40211115894. La seconde branche part de la tête de la première ; fusion conservant les commits prévue pour PR256 afin que PR257 garde une différence limitée à ses 13 fichiers. Les deux CI précèdent toute publication.
+
+Ancienne CI 40209795538 de c88650a annulée après remplacement, pour éviter une consommation inutile. L’installation des dépendances navigateur depuis le miroir Ubuntu Azure ralentit la CI active ; aucune règle de contrôle retirée. À 16:13 UTC, santé publique encore sur baf0e70277bb5a0c8938c2a04a5ec5f8a0d3e80c, ok=true, base=true. La session de supervision a expiré au rechargement ; reconnexion demandée sans bloquer le travail indépendant.
+
+Complément de lecture (sans mutation) : les définitions réellement déployées de artisan_affectable, artisan_assurance_deposee, solliciter_artisan/interne et retenir_devis ont été relues. RC Pro contrôlée à la validation d’inscription ; pas de recontrôle explicite dans artisan_affectable, appelé par disponibilité, carnet, sollicitation et sélection de devis. La décision historique du 27/09 visait l’inscription et maintenait la règle de décennale selon les travaux. Ce point reste ouvert : ne pas prétendre avoir testé une expiration en production ni imposer un blocage nouveau sans preuve métier/tests de migration.
+
+À 16:26 UTC, CI257 a déjà atteint les tests de logique, tandis que CI256 est ralentie par son téléchargement Ubuntu. La tête 2bddeec contient les deux lots et peut être publiée directement après CI complète verte et vérification du main inchangé ; dans ce cas, PR256 sera fermée comme incluse, sans deuxième déploiement.
+
+
+## [2026-10-25] audit | Contrôle CI912 et structure du récapitulatif de bail
+
+CI 40211115894 sur 2bddeec : 10 674 tests de logique réussis, 17 ignorés ; Chromium 217 réussis, 1 ignoré et 1 échec de structure accessible dans l’en-tête du bail brouillon. Les deux libellés du résumé étaient placés dans deux div imbriqués sous une liste de définitions ; axe signale definition-list et dlitem. WebKit non exécuté à cause de cet échec. Aucun déploiement.
+
+Correction : icônes intégrées aux termes dt, couples dt/dd au même niveau dans chaque groupe et ajustement des espacements. Reproduction locale avec le JSX réel extrait avant/après, Chromium et axe : les deux erreurs sont présentes avant à 320/390/1440 px, absentes après aux trois tailles ; aucun débordement. 25 tests de rendu réussis et lint ciblé réussi. La prochaine CI complète reste obligatoire.
+
+Lecture des retours utilisateurs connectés : « envoi au responsable » et « Compte rendu » restent en examen ; ce sont des demandes de visibilité de l’invitation et de traitement des devis, pas des signalements de nouvelle panne observée dans ce contrôle. Aucune décision ni réponse envoyée. Les deux redirections de l’audit artisan CI908 correspondent à une fixture de mission seulement acceptée, avant démarrage/photo/bilan ; le code refuse alors normalement bilan/facture. Cela ne constitue toujours pas une preuve navigateur du parcours de fin de mission.

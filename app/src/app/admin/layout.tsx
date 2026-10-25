@@ -71,8 +71,8 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
               </Link>
               <BoutonMenuSupervision />
               <RechercheSupervision masquerSousMobile />
-              <Link href="/admin/brief?vue=decisions" className="lien-bandeau ml-auto" aria-label={decisions.total > 0 ? `À traiter ${decisions.total} — sujet${decisions.total > 1 ? "s" : ""} du jour` : "À traiter 0 — aucun sujet aujourd’hui"}>
-                <span className="max-[640px]:hidden">À traiter</span>
+              <Link href="/admin/brief?vue=decisions" className="lien-bandeau ml-auto">
+                <span className="max-[640px]:sr-only">À traiter</span>{" "}
                 <span className={`puce ml-1.5 max-[640px]:ml-0 ${decisions.total > 0 ? "puce-prep" : "puce-grise"}`}>{decisions.total}</span>
               </Link>
               <SyntheseAlertes alertes={alertes} modeAdmin rappel aujourdhui={aujourdhuiParis()} />

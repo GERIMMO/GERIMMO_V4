@@ -7072,3 +7072,12 @@ CI 40200349309 à 4013b504 : compilation, typage, lint et 10 648 tests de logiqu
 Contre-vérification du document ChatGPT consignée dans app/docs/audit-final-20261025.json, avec distinction des preuves exécutées, lectures de code et points non reproduits. Défaut supplémentaire reproduit puis corrigé : l’export artisan ne renvoie plus un fichier partiel réussi quand une source est en erreur ou absente. Réponse 503 sans téléchargement, reprise proposée ; refus de droits 403 ; activité vide et module désactivé restent exportables. Aucune modification de droits, de schéma ou de données métier.
 
 Contrôles locaux après réparation : 33 tests réussis (export complet, en-tête, coquille), lint ciblé réussi. Nouvelle CI complète obligatoire avant fusion. Le bail fictif demeure inactif et la production ab52b77 reste en place à ce stade.
+
+
+## 25 octobre 2026 — dernier libellé du compteur de supervision
+
+CI907 40202559639 sur 232bb665 : 10 654 tests de logique réussis (17 ignorés), 217 parcours Chromium réussis (1 ignoré), un seul échec : label-content-name-mismatch sur le compteur « À traiter » à 1440 px ; WebKit non exécuté. Les deux parcours propriétaire/superadmin du bail signé passent désormais, avec bail toujours inactif et séparation des alertes.
+
+Cause vérifiée localement : le texte de deux spans adjacents était concaténé différemment de l’aria-label. Suppression du libellé indépendant ; texte unique, espace explicite, « À traiter » conservé pour les lecteurs d’écran sur téléphone. Reproduction locale avec le JSX extrait du fichier applicatif et axe/Chromium : ancienne version en échec à 1440 px ; version corrigée valide à 320, 390 et 1440 px. Lint et 27 tests ciblés réussis. Les règles du test d’accessibilité complet restent inchangées ; nouvelle CI requise.
+
+Compléments de preuve : sauvegarde quotidienne 40168527090 réussie le 25/10 ; restauration 39992659838 du 23/10 vérifiée dans ses journaux (210 tables, 37 728 lignes, 10 fichiers, aucun fichier manquant ; pas de bascule Supabase ni de pg_cron réel). La lacune de traçabilité de traversée est reproduite par deux tests locaux avec réponses Supabase simulées ; les non-superadmins restent refusés. Ces points ouverts sont explicitement distingués des corrections livrables dans le registre JSON.

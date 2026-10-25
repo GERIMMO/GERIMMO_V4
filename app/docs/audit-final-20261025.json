@@ -3,9 +3,9 @@
   "nature": "Contre-vérification du document transmis par le dirigeant ; registre évolutif, sans certification exhaustive",
   "source": "Audit ChatGPT transmis le 25 octobre 2026",
   "production_verifiee": "ab52b77b9dea6c3a902b382710a7345493941600",
-  "candidat": "Lot PR255 après réparation de CI906 ; SHA à vérifier dans GitHub avant fusion",
+  "candidat": "232bb6650e70b0d3b9d29274fb4742af6e82ee48",
   "pr": 255,
-  "publication": "En attente des contrôles du candidat",
+  "publication": "Nouvelle vérification complète requise après le dernier défaut de nom accessible dans CI907",
   "contraintes": [
     "Aucun PDF demandé",
     "Bail fictif laissé inactif",
@@ -57,6 +57,30 @@
       "type": "réglage lu dans la console",
       "source": "https://vercel.com/gerimmo/gerimmo-v4/settings/environments/production",
       "resultat": "Branche main suivie ; Auto-assign Custom Production Domains activé. Le workflow Publication contrôlée ne constitue donc pas à lui seul un passage obligatoire."
+    },
+    {
+      "id": "TRACE",
+      "type": "risque reproduit par injection de panne locale",
+      "source": "tmp/audit-trace-25.test.ts",
+      "resultat": "Le vrai verifierAccesEspace renvoie une traversée en lecture seule malgré le refus simulé de log_sa_access. Le même contrôle refuse un compte non superadmin. Deux tests locaux sans réseau ; défaut non corrigé dans PR255."
+    },
+    {
+      "id": "SAUVEGARDE",
+      "type": "exécution GitHub vérifiée",
+      "source": "https://github.com/GERIMMO/GERIMMO_V4/actions/runs/40168527090",
+      "resultat": "Sauvegarde quotidienne réussie le 25/10/2026 à partir de 06:16 UTC, révision ab52b77."
+    },
+    {
+      "id": "RESTAURATION",
+      "type": "journaux GitHub vérifiés",
+      "source": "https://github.com/GERIMMO/GERIMMO_V4/actions/runs/39992659838",
+      "resultat": "23/10/2026 17:10 UTC : 210 tables, 37 728 lignes, 10 fichiers restaurés, aucun fichier manquant, protections validées. Restauration isolée de PostgreSQL et des fichiers ; aucune bascule des services Supabase. pg_cron et pg_net non activés dans ce banc."
+    },
+    {
+      "id": "CI907",
+      "type": "exécuté, correction ciblée à revalider",
+      "source": "https://github.com/GERIMMO/GERIMMO_V4/actions/runs/40202559639",
+      "resultat": "Sur 232bb665 : 10 654 tests de logique réussis, 17 ignorés ; 217 Chromium réussis, 1 ignoré, 1 échec de nom accessible dans le compteur À traiter. Les deux scénarios de bail signé réussissent. WebKit non exécuté. Le compteur est repris sans aria-label indépendant du texte visible."
     }
   ],
   "points_du_document": [
@@ -119,13 +143,14 @@
     {
       "id": 7,
       "priorite": "P1",
-      "etat": "Comportement confirmé par lecture du code",
+      "etat": "Risque reproduit localement, non corrigé",
       "constat": "tracerTraversee retourne false sur erreur mais verifierAccesEspace poursuit certaines consultations superadmin. Aucune panne de production provoquée.",
       "suite": "Décider et appliquer une stratégie explicite pour consultation sans trace : refus ou secours durable vérifié. Tester une panne du journal.",
       "fichiers": [
         "src/lib/traversee.ts",
         "src/lib/espace.ts"
-      ]
+      ],
+      "validation": "Deux tests locaux sur verifierAccesEspace et tracerTraversee réels avec réponses Supabase simulées : accès superadmin maintenu malgré panne du journal ; non-superadmin toujours refusé. Aucune panne provoquée en production."
     },
     {
       "id": 8,
@@ -181,7 +206,7 @@
       "id": 14,
       "priorite": "P2",
       "etat": "Statut vérifié",
-      "constat": "PR255 ouverte, réparation du candidat après CI906. PR245 Node24 ouverte à 5d1d15950bf1fa3dc074108bee1ea875055d7c16 ; indépendante, non fusionnée dans ce lot.",
+      "constat": "PR255 ouverte, correction de libellé après CI907. PR245 Node24 en brouillon, neuf fichiers distincts ; ancienne CI verte mais un scénario WebKit de dépôt avait nécessité une reprise. Ne pas intégrer sans réactualisation et nouvelle vérification.",
       "suite": "Publier 255 seulement après réussite exacte ; relire et actualiser 245 séparément."
     }
   ],
@@ -209,5 +234,49 @@
     1,
     11,
     14
-  ]
+  ],
+  "annexe_captures_precedentes": {
+    "revision": "4013b5047d0b447f41c20fd1597928860768d6e2",
+    "run": 40200349309,
+    "portee": "Capture d’écrans et de rubriques à 390 px ; ne prouve pas chaque action métier. Ce passage global était rouge pour trois autres scénarios. Les captures du candidat final doivent être vérifiées séparément.",
+    "rapports": [
+      {
+        "persona": "proprietaire",
+        "nombre_vues": 30,
+        "debordements": 0,
+        "erreurs_page": 0,
+        "redirections": []
+      },
+      {
+        "persona": "locataire",
+        "nombre_vues": 14,
+        "debordements": 0,
+        "erreurs_page": 0,
+        "redirections": []
+      },
+      {
+        "persona": "artisan",
+        "nombre_vues": 20,
+        "debordements": 0,
+        "erreurs_page": 0,
+        "redirections": [
+          {
+            "ecran": "Bilan de mission",
+            "cible": "/artisan/missions/cee6bc56-756d-41f1-ac43-c0a08c640bc1"
+          },
+          {
+            "ecran": "Déposer ma facture",
+            "cible": "/artisan/missions/cee6bc56-756d-41f1-ac43-c0a08c640bc1"
+          }
+        ]
+      },
+      {
+        "persona": "superadmin",
+        "nombre_vues": 39,
+        "debordements": 0,
+        "erreurs_page": 0,
+        "redirections": []
+      }
+    ]
+  }
 }

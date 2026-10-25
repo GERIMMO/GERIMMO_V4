@@ -542,6 +542,7 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
   describe("retours arrière", () => {
     /** Les retours des lots postérieurs qui citent la fonction du jour : à jouer avant ceux du lot. */
     async function defaireLotsPosterieurs() {
+      await db.query(readFileSync("supabase/retours-arriere/20261025192344_mois_offerts_superadmin.retour.sql", "utf8"));
       for (const lot of LOTS_POSTERIEURS) await db.query(sansEnveloppe(retour(lot.version, lot.fichier)));
     }
 
@@ -552,7 +553,6 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
      * qui cite encore la fonction du jour de Paris est retirée (dans la transaction du test, annulée à la fin).
      */
     async function retirerLesLotsPosterieurs() {
-      await db.query(readFileSync("supabase/retours-arriere/20261025192344_mois_offerts_superadmin.retour.sql", "utf8"));
       const { rows } = await db.query<{ signature: string }>(
         `select p.oid::regprocedure::text as signature
            from pg_proc p

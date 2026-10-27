@@ -8,6 +8,7 @@
 // mobilier (décret n° 2015-981).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { LIBELLE_ETAT_INVENTAIRE } from "@/lib/inventaire-meuble";
 import {
   Fusion,
   assemblerPage,
@@ -48,12 +49,8 @@ export type LigneInventaire = {
   observation: string | null;
 };
 
-const LIBELLE_ETAT: Record<string, string> = {
-  neuf: "Neuf",
-  bon: "Bon",
-  usage: "Usagé",
-  mauvais: "Mauvais",
-};
+// Libellés d'état partagés avec le formulaire d'inventaire (lib/inventaire-meuble).
+const LIBELLE_ETAT = LIBELLE_ETAT_INVENTAIRE;
 
 
 

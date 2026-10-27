@@ -15,6 +15,7 @@ import { cibleBlocage } from "@/lib/parc";
 import { aujourdhuiParis, motifLitteral, eur } from "@/lib/ged";
 import { verifierCodePostalPersonne, verifierDateNaissance } from "@/lib/validation-fiches";
 import { TYPES_BAIL, mentionsObligatoiresManquantes } from "@/lib/baux";
+import { ETATS_INVENTAIRE, MOBILIER_DECRET_2015_981, mobilierDecretManquant } from "@/lib/inventaire-meuble";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { CODE_CONFIRMATION_CLOTURE, lireDateSortie } from "@/lib/cloture-bail";
 import { envoyerEmail } from "@/lib/email";
@@ -795,6 +796,77 @@ export async function supprimerInventaireLigne(
   if (!data?.length) return { erreur: "Ce meuble n'a pas pu être retiré de ce bail. Rechargez l'inventaire avant de réessayer." };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Meuble retiré de l'inventaire." };
+}
+
+// Décision du 27/10 (CB-14) : les onze éléments du décret 2015-981 en un geste.
+// Chaque ligne naît en un exemplaire, sans état ni pièce — à compléter ensuite.
+// Idempotent : les désignations déjà présentes (casse et accents ignorés) sont
+// sautées et comptées dans le message ; `ordre` suit celui du décret, après les
+// meubles saisis à la main (ordre 0).
+export async function ajouterMobilierDecret(
+  orgId: string,
+  bailId: string,
+  _etat: EtatBail,
+  _formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { data: existantes, error: erreurLecture } = await supabase
+    .from("inventaire_lignes")
+    .select("designation")
+    .eq("bail_id", bailId)
+    .eq("organization_id", orgId);
+  if (erreurLecture) return { erreur: sansJargon(erreurLecture.message) };
+
+  const manquants = mobilierDecretManquant((existantes ?? []).map((l) => l.designation));
+  const dejaPresents = MOBILIER_DECRET_2015_981.length - manquants.length;
+  const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
+  const rappelPresents = dejaPresents ? ` ${pluriel(dejaPresents, "élément")} déjà présent${dejaPresents > 1 ? "s" : ""}.` : "";
+  if (!manquants.length) return { succes: `Aucun élément ajouté :${rappelPresents}` };
+
+  const { error } = await supabase.from("inventaire_lignes").insert(
+    manquants.map((designation) => ({
+      bail_id: bailId,
+      organization_id: orgId,
+      designation,
+      quantite: 1,
+      ordre: MOBILIER_DECRET_2015_981.indexOf(designation as (typeof MOBILIER_DECRET_2015_981)[number]) + 1,
+    }))
+  );
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: `${pluriel(manquants.length, "élément")} ajouté${manquants.length > 1 ? "s" : ""} à l'inventaire : précisez l'état et la quantité de chacun.${rappelPresents}` };
+}
+
+// Compléter une ligne (quantité, état) sans la retirer puis la ressaisir.
+export async function modifierInventaireLigne(
+  orgId: string,
+  bailId: string,
+  ligneId: string,
+  _etat: EtatBail,
+  formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const valeurs = valeursDuFormulaire(formData);
+  const quantite = Math.floor(Number(formData.get("quantite") ?? 1));
+  if (!Number.isFinite(quantite) || quantite < 1) return { erreur: "La quantité doit être au moins 1.", valeurs };
+  const etat = String(formData.get("etat") ?? "").trim();
+  if (etat && !(ETATS_INVENTAIRE as readonly string[]).includes(etat)) return { erreur: "Cet état n'est pas reconnu.", valeurs };
+
+  const { data, error } = await supabase
+    .from("inventaire_lignes")
+    .update({ quantite, etat: etat || null })
+    .eq("id", ligneId)
+    .eq("bail_id", bailId)
+    .eq("organization_id", orgId)
+    .select("id");
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+  if (!data?.length) return { erreur: "Ce meuble n'a pas pu être modifié dans ce bail. Rechargez l'inventaire avant de réessayer.", valeurs };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: "Meuble mis à jour." };
 }
 
 // Colocation (bail unique) : ajouter un colocataire (quote-part) ou un garant

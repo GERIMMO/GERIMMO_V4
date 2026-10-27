@@ -13,7 +13,7 @@ import { qualificationsDiagnosticsIdentiques, type QualificationDiagnostic } fro
 import { QualificationDuDiagnostic } from "./qualification-diagnostic";
 import styles from "./lignes-diagnostics.module.css";
 import { formaterDate } from "@/lib/ged";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { BadgeStatut } from "@/components/badge-statut";
 import { FormulaireClasseDpeLot } from "./formulaire-classe-dpe-lot";
 import { FormulaireDiagnostic } from "./formulaire-diagnostic";
@@ -44,6 +44,7 @@ export function LignesDiagnostics({
   qualifications = [],
   qualificationIndisponible = false,
   compact = false,
+  anneeConstruction = null,
 }: {
   orgId: string;
   bienId: string;
@@ -55,6 +56,8 @@ export function LignesDiagnostics({
   qualifications?: QualificationDiagnostic[];
   qualificationIndisponible?: boolean;
   compact?: boolean;
+  // DOC-12 : l'année de construction connue, proposée comme année d'installation d'un bâtiment récent.
+  anneeConstruction?: number | null;
 }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
@@ -130,7 +133,7 @@ export function LignesDiagnostics({
           {type === "dpe" && d?.classe_dpe && <> · Classe {d.classe_dpe}</>}
         </p>}
         {question && <QualificationDuDiagnostic orgId={orgId} bienId={bienId} lotId={lotId!}
-          type={type as "gaz" | "electricite"} qualification={qualification} lectureSeule={lectureSeule || qualificationIndisponible}
+          type={type as "gaz" | "electricite"} qualification={qualification} anneeConstruction={anneeConstruction} lectureSeule={lectureSeule || qualificationIndisponible}
           onEnregistreAction={reponse => {
             const titre = titres.current[type];
             const rendreFocus = document.activeElement === document.body || titre?.closest("li")?.contains(document.activeElement);
@@ -149,8 +152,8 @@ export function LignesDiagnostics({
           }} />}
         {confirmations[type] && <p className={styles.confirmation} role="status">{confirmations[type]}</p>}
         <div className={styles.actions}>
-          {d?.document_id && (compact ? <Button type="button" variant="outline" size="sm" aria-label={`Voir le document : ${nom}`} onClick={() => setApercu({ id: d.document_id!, nom })}>Voir</Button> : <a href={`${base}/documents/${d.document_id}/fichier`} target="_blank" rel="noreferrer"
-            aria-label={`Voir le document : ${nom}`} className={buttonVariants({ variant: "outline", size: "sm" })}>Voir le document</a>)}
+          {/* DOC-09 : même aperçu intégré sur la fiche bien que sur la fiche lot, au lieu d'un nouvel onglet. */}
+          {d?.document_id && <Button type="button" variant="outline" size="sm" aria-label={`Voir le document : ${nom}`} onClick={() => setApercu({ id: d.document_id!, nom })}>{compact ? "Voir" : "Voir le document"}</Button>}
           {!lectureSeule && presentation.etat !== "non_concerne" && (!d?.document_id || renouveler || ouvert === type) && <Button type="button" size="sm" variant={question && presentation.etat === "a_confirmer" && ouvert !== type ? "ghost" : "outline"} aria-expanded={ouvert === type}
             onClick={() => basculerDepot(type)}>{ouvert === type ? "Fermer le dépôt" : renouveler ? "Renouveler" : question && presentation.etat === "a_confirmer" ? "J’ai déjà le rapport" : "Ajouter le fichier"}</Button>}
         </div>

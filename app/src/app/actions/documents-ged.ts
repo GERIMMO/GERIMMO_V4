@@ -53,6 +53,19 @@ export async function remplacerDocument(
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
+  // DOC-03 : la RPC ne déplace pas diagnostics.document_id — la fiche du lot et le bail auraient gardé l'ancien
+  // fichier, masqué de la bibliothèque. Un rapport en service se renouvelle sur sa fiche (nouvelles dates).
+  const { data: diagnosticEnService, error: erreurDiagnostic } = await supabase
+    .from("diagnostics")
+    .select("id")
+    .eq("organization_id", orgId)
+    .eq("document_id", documentId)
+    .is("archived_at", null)
+    .limit(1);
+  if (erreurDiagnostic) return { erreur: sansJargon(erreurDiagnostic.message), valeurs };
+  if (diagnosticEnService?.length) {
+    return { erreur: "Ce rapport sert à un diagnostic : renouvelez-le depuis la fiche du lot ou du bien, avec ses nouvelles dates.", valeurs };
+  }
   const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
   if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   const fichier = formData.get("fichier");

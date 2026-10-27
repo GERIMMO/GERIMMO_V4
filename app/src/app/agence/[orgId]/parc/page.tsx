@@ -32,6 +32,7 @@ import styles from "./liste-lots.module.css";
 import { baseEspace } from "@/lib/racine-espace";
 import { chargerBauxActifsDuParc, chargerChambresDuParc, chargerPatrimoineDuParc, verifierLectureDuParc, totalLoyersDuParc } from "@/lib/locations-parc";
 import { occupationLot } from "@/lib/occupation-lot";
+import { avecEcheanceReglementaire } from "@/lib/documents-bail";
 import { VueParcProprietaire } from "./vue-parc-proprietaire";
 
 export const metadata = { title: "Parc — Gerimmo" };
@@ -103,7 +104,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     // Motifs de blocage de tous les lots en préparation, en un aller-retour (perf 30/08)
     supabase.rpc("lots_blocages_location", { p_org: orgId }),
     verifierLectureDuParc(supabase.from("detentions").select("lot_id, quote_part", { count: "exact" }).eq("organization_id", orgId).is("date_fin", null), estProprietaire),
-    verifierLectureDuParc(supabase.from("diagnostics").select("lot_id, bien_id, type, date_expiration, classe_dpe", { count: "exact" }).eq("organization_id", orgId).is("archived_at", null), estProprietaire),
+    verifierLectureDuParc(supabase.from("diagnostics").select("lot_id, bien_id, type, date_realisation, date_expiration, classe_dpe", { count: "exact" }).eq("organization_id", orgId).is("archived_at", null), estProprietaire),
     verifierLectureDuParc(supabase.from("lot_pieces").select("lot_id", { count: "exact" }).eq("organization_id", orgId), estProprietaire),
     chargerChambresDuParc(supabase, orgId),
   ]);
@@ -152,12 +153,14 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
 
   const totalBlocages = (blocagesParc ?? []).filter((l: { lot_id: string }) => lotsConnus.has(l.lot_id))
     .reduce((n: number, l: { blocages: string[] | null }) => n + new Set((l.blocages ?? []).map(message => etiqueterNiveau(resumerBlocage(message), message))).size, 0);
+  // DOC-01 : échéance des DPE d'avant le 01/07/2021 plafonnée (décret n° 2020-1610), comme sur la fiche lot.
+  const diagnosticsPlafonnes = avecEcheanceReglementaire(diagnostics ?? []);
   const progressions = new Map(biensVisibles.flatMap(bien => bien.lotsVisibles.map(lot => [lot.id, avancementLot({
     lot, bien,
     quoteParts: erreurDetentions ? null : (detentions ?? []).filter(d => d.lot_id === lot.id).reduce((n, d) => n + Number(d.quote_part), 0),
     pieces: erreurPieces || erreurChambres ? null : [...(pieces ?? []), ...(chambres ?? [])].filter(p => p.lot_id === lot.id).length,
-    diagnosticsLot: erreurDiagnostics ? null : (diagnostics ?? []).filter(d => d.lot_id === lot.id),
-    diagnosticsBien: erreurDiagnostics ? null : (diagnostics ?? []).filter(d => d.bien_id === bien.id),
+    diagnosticsLot: erreurDiagnostics ? null : diagnosticsPlafonnes.filter(d => d.lot_id === lot.id),
+    diagnosticsBien: erreurDiagnostics ? null : diagnosticsPlafonnes.filter(d => d.bien_id === bien.id),
   })] as const)));
 
   // Un parc illisible ressemble trait pour trait à un parc vide : sans ce

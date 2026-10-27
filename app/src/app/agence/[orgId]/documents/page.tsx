@@ -28,6 +28,7 @@ import { EchecLecture } from "./echec-lecture";
 import { PaneDocument } from "./pane-document";
 import { FiltresProprietaire } from "./filtres-proprietaire";
 import { titreAffiche } from "./titre-document";
+import { CHAMPS_USAGE_RAPPORT, presentationRapport, syntheseRapport, usagesParDocument, type UsageRapport } from "@/lib/rapports-diagnostic";
 import { baseEspace } from "@/lib/racine-espace";
 import styles from "./documents-proprietaire.module.css";
 
@@ -54,7 +55,7 @@ type DocRang = {
   liens: LienRang[];
 };
 
-type ARenouveler = { id: string; titre: string | null; expire_le: string };
+type ARenouveler = { id: string; titre: string | null; expire_le: string; rattachement?: string | null };
 
 // Couleurs de la barre « Par type » (maquette apercuDocs) — tokens charte
 const COULEURS_TYPES = [
@@ -124,6 +125,7 @@ export default async function PageDocuments(
     { data: documents, error: erreurDocuments, count: totalFiltre },
     { data: statsTypes, error: erreurStats },
     { data: aRenouvelerBrut, error: erreurRenouveler },
+    { data: diagnosticsARenouveler, error: erreurDiagnosticsARenouveler },
     { count: totalCourants, error: erreurTotal },
     { data: personnes, error: erreurPersonnes },
   ] = await Promise.all([
@@ -134,6 +136,12 @@ export default async function PageDocuments(
       ? Promise.resolve({ data: [], error: null })
       : supabase.rpc("documents_stats_par_type", { p_org: orgId, p_lots: lotsPerimetre }),
     supabase.rpc("documents_a_renouveler", {
+      p_org: orgId,
+      p_limite: limiteRenouvellement(),
+      p_lots: lotsPerimetre,
+    }),
+    // DOC-04 : l'échéance d'un rapport de diagnostic vit dans `diagnostics` (plafond du DPE compris).
+    supabase.rpc("diagnostics_a_renouveler", {
       p_org: orgId,
       p_limite: limiteRenouvellement(),
       p_lots: lotsPerimetre,
@@ -162,10 +170,19 @@ export default async function PageDocuments(
   // Le typage de .rpc().select() hésite entre ligne et tableau : la fonction
   // renvoie toujours un setof, on fixe le tableau
   const docs = ((documents ?? []) as unknown as DocRang[]);
+  // DOC-04 et DOC-N1 : les rapports de diagnostic de la liste disent leur échéance et le bien ou le lot qu'ils servent.
+  const idsVivants = docs.filter(d => !d.purged_at).map(d => d.id);
+  const { data: usagesBruts, error: erreurUsages } = idsVivants.length
+    ? await supabase.from("diagnostics").select(CHAMPS_USAGE_RAPPORT).eq("organization_id", orgId).in("document_id", idsVivants)
+    : { data: [], error: null };
+  const usages = usagesParDocument((usagesBruts ?? []) as unknown as UsageRapport[]);
   const nomsPersonnes = new Map((personnes ?? []).map((p) => [p.id, nomComplet(p)]));
   const suiviSignatures = await lirePresentationSignatures(orgId, { documents: docs.filter(d => !d.purged_at).map(d => d.id) });
 
-  const aRenouveler = (aRenouvelerBrut ?? []) as ARenouveler[];
+  const aRenouveler = [
+    ...((aRenouvelerBrut ?? []) as ARenouveler[]),
+    ...((diagnosticsARenouveler ?? []) as ARenouveler[]),
+  ].filter((d, i, liste) => liste.findIndex(x => x.id === d.id) === i).sort((a, b) => a.expire_le.localeCompare(b.expire_le));
   const entreesTypes = ((statsTypes ?? []) as { type: string; total: number }[]).map(
     (s) => [s.type, Number(s.total)] as [string, number]
   );
@@ -176,7 +193,8 @@ export default async function PageDocuments(
   // un rattachement manquant pour une pièce sans personne.
   const lecturesManquees = [
     erreurStats && "la répartition par type",
-    erreurRenouveler && "les documents à renouveler",
+    (erreurRenouveler || erreurDiagnosticsARenouveler) && "les documents à renouveler",
+    erreurUsages && "l’échéance et le rattachement des rapports de diagnostic",
     erreurTotal && "le nombre total de documents",
     erreurPersonnes && "les personnes rattachées",
     suiviSignatures.erreur && "le suivi des signatures",
@@ -397,7 +415,7 @@ export default async function PageDocuments(
               <ul>
                 {aRenouveler.map((d) => <li key={d.id}>
                   <Link href={lien(d.id)}>
-                    <span>{titreAffiche(d.titre) ?? "Sans titre"}<small>Échéance : {formaterDate(d.expire_le)}</small></span>
+                    <span>{titreAffiche(d.titre) ?? "Sans titre"}<small>{d.rattachement ? `${d.rattachement} · ` : ""}Échéance : {formaterDate(d.expire_le)}</small></span>
                     <ChevronRight size={16} aria-hidden="true" />
                   </Link>
                 </li>)}
@@ -501,7 +519,9 @@ export default async function PageDocuments(
                     .filter((l) => l.entite === "personne")
                     .map((l) => nomsPersonnes.get(l.entite_id) ?? "Personne")
                     .join(", ");
-                  const presentation = presentationDocument(d, etatSignatureDocument(suiviSignatures.circuits, d.id));
+                  const rapport = syntheseRapport(usages.get(d.id) ?? []);
+                  const presentation = presentationRapport(d, rapport, doc => presentationDocument(doc, etatSignatureDocument(suiviSignatures.circuits, d.id)));
+                  const lieA = rapport?.rattachements.map(r => r.libelle).join(", ");
                   if (estProprietaire) {
                     const Icone = d.mime_type?.startsWith("image/") ? FileImage : FileText;
                     return <Link
@@ -513,7 +533,7 @@ export default async function PageDocuments(
                       <span className={styles.iconeFichier} aria-hidden="true"><Icone size={19} strokeWidth={1.6} /></span>
                       <span className={styles.identiteDocument}>
                         <span className={styles.titreLigne}>{titreAffiche(d.titre) ?? "Sans titre"}</span>
-                        <span className={styles.metaDocument}>{TYPES_DOCUMENT[d.type] ?? d.type}{rattachements && ` · ${rattachements}`}</span>
+                        <span className={styles.metaDocument}>{TYPES_DOCUMENT[d.type] ?? d.type}{lieA && ` · ${lieA}`}{rattachements && ` · ${rattachements}`}</span>
                       </span>
                       <time className={styles.dateDocument} dateTime={d.created_at} title="Date de dépôt">{formaterDate(d.created_at)}</time>
                       <span className={`${styles.statutDocument} puce ${presentation.classe}`} title={presentation.detail}>{presentation.libelle}</span>
@@ -536,6 +556,7 @@ export default async function PageDocuments(
                           {" · "}
                           {formaterDate(d.created_at)}
                           {!estProprietaire && d.taille_octets ? ` · ${formaterTaille(d.taille_octets)}` : ""}
+                          {lieA && ` · ${lieA}`}
                           {rattachements && ` · ${rattachements}`}
                         </small>
                       </span>
@@ -618,7 +639,7 @@ export default async function PageDocuments(
                               <span className="min-w-0 flex-1 truncate">
                                 {titreAffiche(d.titre) ?? "Sans titre"}
                                 <small className="ml-2 text-muted-foreground">
-                                  expire le {formaterDate(d.expire_le)}
+                                  {d.rattachement ? `${d.rattachement} · ` : ""}expire le {formaterDate(d.expire_le)}
                                 </small>
                               </span>
                               <span className="flex shrink-0 items-center gap-1.5">

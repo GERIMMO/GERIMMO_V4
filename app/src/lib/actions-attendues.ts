@@ -3,6 +3,7 @@ import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { aujourdhuiParis, estExpiree, eur, formaterDate } from "@/lib/ged";
 import { diagnosticsExigibles, obligatoireEnDefaut } from "@/lib/diagnostics";
 import { statutDiagnostic } from "@/lib/parc";
+import { avecEcheanceReglementaire } from "@/lib/documents-bail";
 import { RACINE_AGENCE } from "@/lib/racine-espace";
 import { lireToutesLesPages, type PageLue } from "@/lib/lecture-complete";
 
@@ -143,9 +144,9 @@ export async function lireActionsAttendues(
           .eq("organization_id", orgId)
           .in("bail_id", ids).order("id").range(debut, fin)),
     bailIds.length
-      ? lectureCompleteSecurisee<{ id: string; type: string; lot_id: string | null; bien_id: string | null; date_expiration: string | null }>((debut, fin) => supabase
+      ? lectureCompleteSecurisee<{ id: string; type: string; lot_id: string | null; bien_id: string | null; date_realisation: string | null; date_expiration: string | null }>((debut, fin) => supabase
           .from("diagnostics")
-          .select("id,type,lot_id,bien_id,date_expiration", { count: "exact" })
+          .select("id,type,lot_id,bien_id,date_realisation,date_expiration", { count: "exact" })
           .eq("organization_id", orgId)
           .in("type", ["dpe", "erp"])
           .is("archived_at", null).order("id").range(debut, fin))
@@ -191,13 +192,15 @@ export async function lireActionsAttendues(
     else liste.push({ ...a, montant_du: montant });
     appelsParBail.set(a.bail_id, liste);
   }
-  const lignesDiagnostics = (diagnostics ?? []) as {
+  // DOC-01 : l'échéance d'un DPE d'avant le 01/07/2021 est plafonnée (décret n° 2020-1610), comme en base.
+  const lignesDiagnostics = avecEcheanceReglementaire((diagnostics ?? []) as {
     id: string;
     type: string;
     lot_id: string | null;
     bien_id: string | null;
+    date_realisation: string | null;
     date_expiration: string | null;
-  }[];
+  }[]);
   // Les diagnostics d'un type déjà expirés parmi ceux déposés : ce sont eux
   // que la tâche de nuit a signalés par une alerte.
   const expires = (type: string, deposes: typeof lignesDiagnostics) =>

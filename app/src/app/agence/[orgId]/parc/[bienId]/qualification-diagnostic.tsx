@@ -11,16 +11,21 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import styles from "./lignes-diagnostics.module.css";
 
-export function QualificationDuDiagnostic({ orgId, bienId, lotId, type, qualification, lectureSeule, onEnregistreAction }: {
+export function QualificationDuDiagnostic({ orgId, bienId, lotId, type, qualification, anneeConstruction = null, lectureSeule, onEnregistreAction }: {
   orgId: string; bienId: string; lotId: string;
   type: "electricite" | "gaz";
   qualification?: QualificationDiagnostic;
+  anneeConstruction?: number | null;
   lectureSeule: boolean;
   onEnregistreAction: (qualification: QualificationDiagnostic) => void;
 }) {
+  // DOC-12 : une installation n'est pas plus ancienne que le bâtiment qui l'abrite. Bâtiment de moins de quinze ans :
+  // son année de construction est proposée, à confirmer d'un geste (« Enregistrer ») ; rien n'est enregistré sans lui.
+  const anneeProposee = !qualification && anneeConstruction && Number(jourAParis().slice(0, 4)) - anneeConstruction < 15
+    ? String(anneeConstruction) : "";
   const [modifier, setModifier] = useState(false);
   const [datePrecise, setDatePrecise] = useState(qualification?.situation === "date_connue");
-  const [anneeSaisie, setAnneeSaisie] = useState(String(qualification?.annee_installation ?? qualification?.date_installation?.slice(0, 4) ?? ""));
+  const [anneeSaisie, setAnneeSaisie] = useState(String(qualification?.annee_installation ?? qualification?.date_installation?.slice(0, 4) ?? anneeProposee));
   const [sansGaz, setSansGaz] = useState(qualification?.situation === "absente");
   const [dateSaisie, setDateSaisie] = useState(qualification?.date_installation ?? "");
   const envoyee = useRef<QualificationDiagnostic | null>(null);
@@ -71,7 +76,9 @@ export function QualificationDuDiagnostic({ orgId, bienId, lotId, type, qualific
           {modifier && <Button type="button" size="sm" variant="ghost" onClick={() => setModifier(false)}>Annuler</Button>}
         </div>
         <div className={styles.precisionInstallation}>
-          <span id={`installation-aide-${type}`}>Laissez vide si vous ne savez pas.</span>
+          <span id={`installation-aide-${type}`}>{anneeProposee && !datePrecise && anneeSaisie === anneeProposee
+            ? `Proposée d’après la construction du bâtiment (${anneeProposee}). Enregistrez pour confirmer.`
+            : "Laissez vide si vous ne savez pas."}</span>
           <button type="button" onClick={() => setDatePrecise(v => !v)}>{datePrecise ? "Indiquer seulement l’année" : "Préciser une date exacte"}</button>
         </div>
       </>}

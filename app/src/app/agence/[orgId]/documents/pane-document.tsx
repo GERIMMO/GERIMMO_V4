@@ -23,6 +23,7 @@ import { FormulaireRemplacer } from "./formulaire-remplacer";
 import { FormulaireRattacher, type FichesRattachables } from "./formulaire-rattacher";
 import { ActionsFicheDocument } from "./actions-fiche-document";
 import { titreAffiche } from "./titre-document";
+import { CHAMPS_USAGE_RAPPORT, presentationRapport, syntheseRapport, type UsageRapport } from "@/lib/rapports-diagnostic";
 import { baseEspace } from "@/lib/racine-espace";
 import { verifierAccesEspace } from "@/lib/espace";
 import styles from "./documents-proprietaire.module.css";
@@ -130,6 +131,7 @@ export async function PaneDocument({
     { data: lots, error: erreurLots },
     { data: bauxBruts, error: erreurBaux },
     { data: demandesBrutes, error: erreurDemandes },
+    { data: usagesBruts, error: erreurUsages },
   ] = await Promise.all([
       supabase
         .from("documents")
@@ -160,6 +162,8 @@ export async function PaneDocument({
         .order("created_at", { ascending: false })
         .limit(PLAFOND_BAUX),
       supabase.rpc("demandes_signature_document", { p_org: orgId, p_doc: doc.id }),
+      // DOC-03, DOC-04, DOC-N1 : le diagnostic qui cite la pièce porte son échéance et son bien ou son lot.
+      supabase.from("diagnostics").select(CHAMPS_USAGE_RAPPORT).eq("organization_id", orgId).eq("document_id", doc.id),
     ]);
 
   // Versions antérieures : remonter la chaîne remplace_id (bornée — une pièce
@@ -251,7 +255,15 @@ export async function PaneDocument({
     erreurBaux && "les baux de l'agence",
     erreurDemandes && "les demandes de signature",
     erreurIncidents && "les incidents rattachés",
+    erreurUsages && "le diagnostic qui utilise ce rapport",
   ].filter((q): q is string => Boolean(q));
+  const rapport = syntheseRapport((usagesBruts ?? []) as unknown as UsageRapport[]);
+  // DOC-03 : un rapport en service se renouvelle sur sa fiche (nouvelles dates, ancien diagnostic archivé). Une
+  // « nouvelle version » ici changeait le fichier sans que le lot ni le bail le voient.
+  const ficheRapport = rapport && !rapport.remplace ? rapport.rattachements[0] : undefined;
+  const renouvelerSurFiche = ficheRapport
+    ? { href: `${base}${ficheRapport.chemin}`, libelle: ficheRapport.niveau === "lot" ? "Renouveler sur la fiche du lot" : "Renouveler sur la fiche du bien" }
+    : undefined;
 
   const libelleLien = (l: Lien): string => {
     switch (l.entite) {
@@ -308,7 +320,8 @@ export async function PaneDocument({
   const fichier = `${base}/documents/${doc.id}/fichier`;
   const suiviSignature = await lirePresentationSignatures(orgId, { documents: [doc.id] });
   if (suiviSignature.erreur) lecturesManquees.push("le suivi des signatures");
-  const presentation = presentationDocument(doc, etatSignatureDocument(suiviSignature.circuits, doc.id), Boolean(remplaceePar));
+  const presentation = presentationRapport(doc, rapport, d => presentationDocument(d, etatSignatureDocument(suiviSignature.circuits, doc.id), Boolean(remplaceePar)));
+  const echeance = rapport?.expireLe ?? doc.expire_le;
 
   return (
     <div className={estProprietaire ? styles.dossier : "space-y-3.5"}>
@@ -351,9 +364,17 @@ export async function PaneDocument({
 
       {!estProprietaire && <p className="text-sm text-muted-foreground">{presentation.detail}</p>}
 
+      {rapport && rapport.rattachements.length > 0 && <p className="text-sm">
+        Rapport de diagnostic de{" "}
+        {rapport.rattachements.map((r, i) => <span key={r.chemin}>
+          {i > 0 && ", "}
+          <Link href={`${base}${r.chemin}`} className="lien-discret">{r.libelle}</Link>
+        </span>)}
+      </p>}
+
       {estProprietaire && <ActionsFicheDocument key={`actions-${doc.id}`}
         orgId={orgId} documentId={doc.id} type={doc.type} expireLe={doc.expire_le}
-        remplace={Boolean(remplaceePar)} fiches={fiches} bauxTronques={bauxTronques}
+        remplace={Boolean(remplaceePar)} renouvelerSurFiche={renouvelerSurFiche} fiches={fiches} bauxTronques={bauxTronques}
         liens={doc.liens.filter(l => l.entite !== "organisation").map(l => ({ cle: `${l.entite}-${l.entite_id}`, libelle: libelleLien(l) }))}
         partageLe={doc.partage_le}
         signataires={doc.liens.filter(l => l.entite === "personne").map(l => ({ id: l.entite_id, nom: nomsPersonnes.get(l.entite_id) ?? "Personne" }))}
@@ -465,10 +486,10 @@ export async function PaneDocument({
                 <span>{formaterTaille(doc.taille_octets)}</span>
               </div>
             )}
-            {doc.expire_le && (
+            {echeance && (
               <div className="ligne-info">
                 <span>Expire le</span>
-                <span>{formaterDate(doc.expire_le)}</span>
+                <span>{formaterDate(echeance)}</span>
               </div>
             )}
             {doc.verifie_le && (
@@ -479,12 +500,18 @@ export async function PaneDocument({
             )}
             {!estProprietaire && <div className="mt-4 flex flex-wrap items-start gap-2">
               {!estProprietaire && <ActionsDocument orgId={orgId} documentId={doc.id} titre={titreAffiche(doc.titre)} />}
-              {!remplaceePar && (
+              {!remplaceePar && !renouvelerSurFiche && (
                 <FormulaireRemplacer
                   orgId={orgId}
                   documentId={doc.id}
                   expireLe={doc.expire_le}
                 />
+              )}
+              {renouvelerSurFiche && (
+                <Link href={renouvelerSurFiche.href} className="lien-discret inline-flex min-h-9 items-center gap-1.5">
+                  {renouvelerSurFiche.libelle}
+                  <IndicateurLien />
+                </Link>
               )}
             </div>}
           </CardContent>

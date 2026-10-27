@@ -430,3 +430,4 @@
 20261027100200_diagnostics_validite_dpe_et_rapports.sql
 20261027100300_bail_assurance_activation_et_libelle_colocation.sql
 20261027100500_parcours_demarrage_pluriel_baux.sql
+20261028100500_index_redondants.sql

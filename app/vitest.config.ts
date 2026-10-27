@@ -26,6 +26,8 @@ export const FICHIERS_EN_SERIE = [
   "tests/retours-26-octobre-base.test.ts",
   // Audit final (COD-02) : chaque migration depuis le 28/10 rejouée deux fois dans une transaction annulée (DDL).
   "tests/migrations-rejouables-base.test.ts",
+  // Audit final (COD-06) : retour puis rejeu de 20261028100500 (index supprimés et recréés) dans la transaction de l'essai.
+  "tests/index-redondants-base.test.ts",
   // A01/A02 (23/10) : rejeu et retour de 20261023162446, pose complète des gardes, fixture validée (deux sessions).
   "tests/intention-souscription-base.test.ts",
   // Réseau d'artisans choisi par l'artisan (23/10) : rejeu de 20261023180000 et de son retour (index sur artisan_zones,

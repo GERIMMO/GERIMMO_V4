@@ -1021,3 +1021,9 @@ Remettre le code précédent avant `20261027100100_incident_gerant_bail_explicit
 | Retour | Migration | Condition |
 | --- | --- | --- |
 | `20261027100500_parcours_demarrage_pluriel_baux.retour.sql` | `20261027100500_parcours_demarrage_pluriel_baux.sql` | Non exécuté en production. Remet la définition précédente de `public.parcours_demarrage` (texte « N bailx en cours ») ; aucune donnée touchée. Remettre le code précédent n’est pas nécessaire : la signature est inchangée. |
+
+### Index redondants (28 octobre, audit final COD-06)
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261028100500_index_redondants.retour.sql` | `20261028100500_index_redondants.sql` (retire `appels_loyer_bail_idx` et `fk_marketing_campagnes_65790471cc`, chacun doublon exact d’un index unique) | Non exécuté en production. Instruction atomique ; recrée les deux index (`create index if not exists`) et retire la version. Aucune donnée touchée, aucun code à remettre. Hors de la chaîne « Ordre complet » (indépendant). Preuve : `tests/index-redondants-base.test.ts`. |

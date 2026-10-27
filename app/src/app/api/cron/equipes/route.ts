@@ -23,6 +23,8 @@ import {clientDeService} from '@/lib/supabase/service';
 import {estMission} from '@/lib/missions';
 import {executerMission} from '@/lib/execution-mission';
 export const dynamic='force-dynamic';export const maxDuration=180;
+// Audit final (COD-16) : le résultat d'une passe ne se met pas en cache (`force-dynamic` ne pose aucun en-tête).
+const SANS_CACHE={'Cache-Control':'no-store'};
 const traitements={veille,appels,quittances,relances,rappels,abonnements,signatures,marketing,territoire,purge};
 export async function GET(request:Request){
  const cle=new URL(request.url).searchParams.get('mission')??'';
@@ -30,10 +32,12 @@ export async function GET(request:Request){
  // 06/10 : la mission marketing est aussi déclenchée à la minute par pg_cron,
  // avec un jeton généré en base (jamais saisi) ; les autres gardent CRON_SECRET.
  const autorise=porteurDuSecret(request,process.env.CRON_SECRET)||(cle==='marketing'&&db!==null&&await appelMarketingAutorise(request,db));
- if(!autorise)return Response.json({erreur:'Non autorisé.'},{status:401});
- if(!estMission(cle))return Response.json({erreur:'Mission inconnue.'},{status:400});
- if(!db)return Response.json({erreur:'Connexion du traitement indisponible.'},{status:503});
+ if(!autorise)return Response.json({erreur:'Non autorisé.'},{status:401,headers:SANS_CACHE});
+ if(!estMission(cle))return Response.json({erreur:'Mission inconnue.'},{status:400,headers:SANS_CACHE});
+ if(!db)return Response.json({erreur:'Connexion du traitement indisponible.'},{status:503,headers:SANS_CACHE});
  const {error:continuite}=await db.rpc('surveiller_continuite');
  if(continuite)console.error('[equipes] Le suivi de continuité est indisponible.');
- return executerMission(db,cle,()=>traitements[cle](request));
+ const reponse=await executerMission(db,cle,()=>traitements[cle](request));
+ reponse.headers.set('Cache-Control','no-store');
+ return reponse;
 }

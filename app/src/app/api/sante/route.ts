@@ -18,6 +18,10 @@ import { dernieresTaches, porteurDuSecret, type PasseConsignee } from "@/lib/tac
 
 export const dynamic = "force-dynamic";
 
+// Audit final du 27/10 (COD-16) : un état de santé ne se met pas en cache. `force-dynamic` ne pose aucun en-tête sur un
+// Route Handler ; sans celui-ci, un relais ou un moniteur peut resservir un « ok » périmé.
+const SANS_CACHE = { "Cache-Control": "no-store" };
+
 export async function GET(request: Request) {
   // Une variable présente mais vide n'est pas un commit : `""` dirait « quelque
   // chose », alors qu'on ne sait rien.
@@ -29,7 +33,7 @@ export async function GET(request: Request) {
   if (!supabase) {
     return Response.json(
       { ok: false, base: false, commit, revision, motif: "SUPABASE_SERVICE_ROLE_KEY absente." },
-      { status: 503 }
+      { status: 503, headers: SANS_CACHE }
     );
   }
 
@@ -45,12 +49,12 @@ export async function GET(request: Request) {
   if (erreurBase) {
     return Response.json(
       { ok: false, base: false, commit, revision, motif: "La base ne répond pas." },
-      { status: 503 }
+      { status: 503, headers: SANS_CACHE }
     );
   }
 
   if (!porteurDuSecret(request, process.env.CRON_SECRET)) {
-    return Response.json({ ok: true, base: true, commit, revision });
+    return Response.json({ ok: true, base: true, commit, revision }, { headers: SANS_CACHE });
   }
 
   const depuis = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
@@ -78,5 +82,5 @@ export async function GET(request: Request) {
     taches: dernieresTaches((passes.data ?? []) as PasseConsignee[]),
     erreurs_ecran_24h: erreurs.error ? null : (erreurs.count ?? 0),
     lectures_en_echec: [passes.error, erreurs.error].filter(Boolean).length,
-  });
+  }, { headers: SANS_CACHE });
 }

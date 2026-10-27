@@ -26,38 +26,40 @@ import { accesPassageUrgences, passerUrgencesRelais } from "@/lib/relais-urgence
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+// Audit final (COD-16) : le résultat d'un passage ne se met pas en cache (`force-dynamic` ne pose aucun en-tête).
+const SANS_CACHE = { "Cache-Control": "no-store" };
 
 export async function GET(request: Request) {
   const echeance = Date.now() + maxDuration * 1000 - 5_000;
   if (new URL(request.url).searchParams.get("mode") === "urgences") return passageDesUrgences(request, echeance);
   if (!porteurDuSecret(request, process.env.CRON_SECRET)) {
-    return Response.json({ erreur: "Non autorisé." }, { status: 401 });
+    return Response.json({ erreur: "Non autorisé." }, { status: 401, headers: SANS_CACHE });
   }
   const db = clientDeService();
-  if (!db) return Response.json({ erreur: "Connexion du traitement indisponible." }, { status: 503 });
+  if (!db) return Response.json({ erreur: "Connexion du traitement indisponible." }, { status: 503, headers: SANS_CACHE });
   // La durée de la route est donnée au passage : il borne ses appels au service d'e-mail pour consigner son résultat
   // avant la coupure (sinon la ligne du jour resterait « en cours » et l'alerte du jour serait perdue).
   const resultat = await passerAlerteRelais({ db, dureeMaxMs: maxDuration * 1000, echeance });
   // Rien d'autre que des nombres et des états : ni adresse, ni contenu de l'e-mail.
-  return Response.json(resultat, { status: "erreur" in resultat ? resultat.status : 200 });
+  return Response.json(resultat, { status: "erreur" in resultat ? resultat.status : 200, headers: SANS_CACHE });
 }
 
 /** Le passage fréquent des urgences : jeton propre, constat, envoi. Rien d'autre. */
 async function passageDesUrgences(request: Request, echeance: number): Promise<Response> {
   // Sans jeton, refus immédiat : la base n'est même pas lue.
   if (!(request.headers.get("authorization") ?? "").startsWith("Bearer ")) {
-    return Response.json({ erreur: "Non autorisé." }, { status: 401 });
+    return Response.json({ erreur: "Non autorisé." }, { status: 401, headers: SANS_CACHE });
   }
   const db = clientDeService();
-  if (!db) return Response.json({ erreur: "Connexion du traitement indisponible." }, { status: 503 });
+  if (!db) return Response.json({ erreur: "Connexion du traitement indisponible." }, { status: 503, headers: SANS_CACHE });
   let acces: Awaited<ReturnType<typeof accesPassageUrgences>>;
   try { acces = await attendreRelais(() => accesPassageUrgences(request, db), echeance); }
-  catch { return Response.json({ erreur: "Le contrôle du passage est momentanément indisponible." }, { status: 503 }); }
+  catch { return Response.json({ erreur: "Le contrôle du passage est momentanément indisponible." }, { status: 503, headers: SANS_CACHE }); }
   if (acces === "non_configure") {
-    return Response.json({ erreur: "Le passage des urgences n’est pas configuré.", non_configure: true }, { status: 503 });
+    return Response.json({ erreur: "Le passage des urgences n’est pas configuré.", non_configure: true }, { status: 503, headers: SANS_CACHE });
   }
-  if (acces !== "autorise") return Response.json({ erreur: "Non autorisé." }, { status: 401 });
+  if (acces !== "autorise") return Response.json({ erreur: "Non autorisé." }, { status: 401, headers: SANS_CACHE });
   const resultat = await passerUrgencesRelais({ db, echeance });
   // Des états et des nombres seulement : ni adresse, ni jeton. Constat impossible : 503 (la sentinelle le verra aussi).
-  return Response.json(resultat, { status: resultat.constat === "fait" ? 200 : 503 });
+  return Response.json(resultat, { status: resultat.constat === "fait" ? 200 : 503, headers: SANS_CACHE });
 }

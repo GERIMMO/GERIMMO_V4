@@ -4,9 +4,11 @@
  * Sept variables lues par le code n'y figuraient pas (clé OpenAI sous deux
  * noms, Yousign, sauvegarde) : une variable non écrite quelque part est une
  * variable qu'on redécouvre en lisant le code, la nuit où elle manque. Le test
- * relève chaque `process.env.X` / `env.X` de src/, scripts/ et e2e/ et exige
- * qu'il soit nommé dans le fichier — comme variable à remplir, ou dans un
- * commentaire pour celles que la plateforme pose elle-même.
+ * relève chaque `process.env.X` / `env.X` de src/, scripts/, e2e/ et tests/ et
+ * exige qu'il soit nommé dans le fichier — comme variable à remplir, ou dans un
+ * commentaire pour celles que la plateforme pose elle-même. Les interrupteurs
+ * des tests (audit final du 27/10, COD-09) en font partie : la CI les pose, un
+ * poste qui veut la reproduire doit pouvoir les trouver sans lire les tests.
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
@@ -27,7 +29,7 @@ function fichiers(dossier: string, acc: string[] = []): string[] {
 
 function variablesLues(): Set<string> {
   const noms = new Set<string>();
-  for (const f of ["src", "scripts", "e2e"].flatMap((d) => fichiers(path.join(RACINE, d)))) {
+  for (const f of ["src", "scripts", "e2e", "tests"].flatMap((d) => fichiers(path.join(RACINE, d)))) {
     const texte = fs.readFileSync(f, "utf8");
     for (const m of texte.matchAll(/(?:process\.env|\benv)\.([A-Z][A-Z0-9_]{2,})\b/g)) {
       // PATH est celui du système, transmis tel quel à pg_dump.
@@ -65,6 +67,14 @@ describe(".env.example", () => {
       const m = l.match(/^[A-Z][A-Z0-9_]+=(.*)$/);
       if (!m) continue;
       expect(m[1].trim().split("#")[0].trim()).not.toMatch(/^(sk_|whsec_|eyJ|re_|price_|EAA)/);
+    }
+  });
+
+  it("nomme les interrupteurs que la CI pose pour les tests (COD-09)", () => {
+    const ci = fs.readFileSync(path.join(RACINE, "..", ".github", "workflows", "ci.yml"), "utf8");
+    for (const v of ["PLANNING_CONFLITS_CONCURRENCE", "GERIMMO_TEST_PDF", "GERIMMO_CATALOGUE_PDF_DIR"]) {
+      expect(ci, `${v} n'est plus posée par la CI`).toContain(v);
+      expect(EXEMPLE).toMatch(new RegExp(`^${v}=`, "m"));
     }
   });
 

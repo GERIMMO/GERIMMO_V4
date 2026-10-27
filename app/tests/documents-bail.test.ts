@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classerPiecesBail, erreurDiagnosticBail, expirationDiagnostic, statutPieceDiagnostic, type DiagnosticBail, type PieceBail } from '@/lib/documents-bail';
+import { avecEcheanceReglementaire, classerPiecesBail, echeanceReglementaire, erreurDiagnosticBail, erreurEcheanceDpe, expirationCrepPositif, expirationDiagnostic, plafondDpe, statutPieceDiagnostic, type DiagnosticBail, type PieceBail } from '@/lib/documents-bail';
 
 const aujourd = '2026-10-09';
 function form(valeurs: Record<string,string> = {}) {
@@ -48,5 +48,51 @@ describe('État des pièces',()=>{
     const resultat=classerPiecesBail(pieces,['diag','diag-legacy'],'copro');
     expect(resultat.notices.map(p=>p.id)).toEqual(['n']);
     expect(resultat.autres.map(p=>p.id)).toEqual(['assurance']);
+  });
+});
+
+// DOC-01 (audit #264) : décret n° 2020-1610, art. 1 — DPE réalisés du 01/01/2013 au 31/12/2017 valables jusqu'au
+// 31/12/2022, du 01/01/2018 au 30/06/2021 jusqu'au 31/12/2024, ensuite dix ans.
+describe('Validité réglementaire du DPE',()=>{
+  it('plafonne l’échéance pré-remplie des DPE réalisés avant le 1er juillet 2021',()=>{
+    expect(expirationDiagnostic('dpe','2019-05-10')).toBe('2024-12-31');
+    expect(expirationDiagnostic('dpe','2018-01-01')).toBe('2024-12-31');
+    expect(expirationDiagnostic('dpe','2021-06-30')).toBe('2024-12-31');
+    expect(expirationDiagnostic('dpe','2015-01-01')).toBe('2022-12-31');
+    expect(expirationDiagnostic('dpe','2013-01-01')).toBe('2022-12-31');
+    expect(expirationDiagnostic('dpe','2017-12-31')).toBe('2022-12-31');
+    expect(expirationDiagnostic('dpe','2021-07-01')).toBe('2031-07-01');
+    expect(expirationDiagnostic('dpe','2012-12-31')).toBe('2022-12-31');
+    expect(plafondDpe('2012-06-01')).toBeNull();
+    expect(plafondDpe('2021-07-01')).toBeNull();
+    // Le plafond ne concerne que le DPE.
+    expect(expirationDiagnostic('erp','2019-05-10')).toBe('2019-11-10');
+  });
+  it('plafonne à la lecture une échéance enregistrée sans réécrire les autres',()=>{
+    expect(echeanceReglementaire('dpe','2019-05-10','2029-05-10')).toBe('2024-12-31');
+    expect(echeanceReglementaire('dpe','2019-05-10','2023-01-01')).toBe('2023-01-01');
+    expect(echeanceReglementaire('dpe','2014-03-10',null)).toBe('2022-12-31');
+    expect(echeanceReglementaire('dpe','2022-03-15','2032-03-15')).toBe('2032-03-15');
+    expect(echeanceReglementaire('electricite','2019-05-10','2025-05-10')).toBe('2025-05-10');
+    const lignes=[{id:'a',type:'dpe',date_realisation:'2019-05-10',date_expiration:'2029-05-10'},{id:'b',type:'erp',date_realisation:'2026-10-01',date_expiration:'2027-04-01'}];
+    expect(avecEcheanceReglementaire(lignes).map(l=>l.date_expiration)).toEqual(['2024-12-31','2027-04-01']);
+    expect(avecEcheanceReglementaire(lignes)[1]).toBe(lignes[1]);
+    expect(lignes[0].date_expiration).toBe('2029-05-10');
+  });
+  it('refuse une échéance saisie au-delà du plafond, avec la règle et sa source',()=>{
+    expect(erreurEcheanceDpe('dpe','2019-05-10','2029-05-10')).toMatch(/1er janvier 2018 et le 30 juin 2021.*31\/12\/2024.*2020-1610/);
+    expect(erreurEcheanceDpe('dpe','2015-01-01','2025-01-01')).toMatch(/1er janvier 2013 et le 31 décembre 2017.*31\/12\/2022/);
+    expect(erreurEcheanceDpe('dpe','2019-05-10','2024-12-31')).toBeUndefined();
+    expect(erreurEcheanceDpe('dpe','2021-07-01','2031-07-01')).toBeUndefined();
+    expect(erreurEcheanceDpe('erp','2019-05-10','2029-05-10')).toBeUndefined();
+  });
+});
+
+// DOC-07 (audit #264) : CREP positif, six ans pour la location (art. R. 1334-11 du code de la santé publique).
+describe('Constat de risque d’exposition au plomb',()=>{
+  it('pré-remplit six ans après la réalisation quand le constat relève du plomb',()=>{
+    expect(expirationCrepPositif('2015-06-01')).toBe('2021-06-01');
+    expect(expirationCrepPositif('2024-02-29')).toBe('2030-02-28');
+    expect(expirationCrepPositif('')).toBe('');
   });
 });

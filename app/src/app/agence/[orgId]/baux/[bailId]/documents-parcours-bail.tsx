@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { premier } from "@/lib/postgrest";
 import { aujourdhuiParis } from "@/lib/ged";
-import { classerPiecesBail, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
+import { classerPiecesBail, echeanceReglementaire, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
 import { FileCheck2, BookOpen, Building2, Paperclip, ShieldCheck, KeyRound } from "lucide-react";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { FormulaireReglementCopropriete } from "./formulaires-bail";
@@ -42,7 +42,8 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
   ]);
   const diagnostics: DiagnosticBail[] = [...(lot.data ?? []).map(d => ({ ...d, niveau: "lot" as const })), ...(bien.data ?? []).map(d => ({ ...d, niveau: "bien" as const }))].map(d => {
     const document = premier(d.document);
-    return { ...d, document_id: document && !document.purged_at ? d.document_id : null };
+    // DOC-01 : l'échéance d'un DPE d'avant le 01/07/2021 est plafonnée (décret n° 2020-1610).
+    return { ...d, document_id: document && !document.purged_at ? d.document_id : null, date_expiration: echeanceReglementaire(d.type, d.date_realisation, d.date_expiration) };
   });
   // Une affectation explicite fait foi : le titre ne prouve pas qui est assuré.
   const identifiees = (pieces.data ?? []).filter(p => p.nature === "assurance_proprietaire" ? p.bail_id === null : p.bail_id === bailId);

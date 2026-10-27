@@ -7,6 +7,7 @@ import { refusDocumentIncomplet } from "@/lib/documents/completude";
 import { configurationZohoSign } from "@/lib/zoho-sign";
 import { prestataireSignature, type ConfigurationSignature, type PrestataireSignature } from "@/lib/signature-prestataire";
 import { aujourdhuiParis } from "@/lib/ged";
+import { echeanceReglementaire } from "@/lib/documents-bail";
 import { marquerDocumentEssai, signatureEnEssai } from "@/lib/signature-essai";
 import type { ModeleSignature } from "./politique-signature";
 import { MENTION_PAGE_SIGNATURE_GARANT, mentionCadreCautionBail } from "./textes-signature-actes";
@@ -64,7 +65,8 @@ export async function annexesSignatureBail(db:SupabaseClient,org:string,bail:str
     if(types.has(cle))continue; types.add(cle);
     if(d.document_id)ids.add(d.document_id);
     else manquants.push(`${d.type.toUpperCase()} : joignez le rapport PDF à l’étape Documents.`);
-    if(d.date_expiration && d.date_expiration<aujourd)manquants.push(`${d.type.toUpperCase()} : le diagnostic est expiré, remplacez-le à l’étape Documents.`);
+    const echeance=echeanceReglementaire(d.type,d.date_realisation,d.date_expiration); // DOC-01 : plafond des DPE d'avant juillet 2021
+    if(echeance && echeance<aujourd)manquants.push(`${d.type.toUpperCase()} : le diagnostic est expiré, remplacez-le à l’étape Documents.`);
   }
   if (!ids.size)return {annexes:[] as AnnexeSignature[],manquants};
   const fichiers=await db.from("documents").select(champs).eq("organization_id",org).in("id",[...ids]).is("purged_at",null);

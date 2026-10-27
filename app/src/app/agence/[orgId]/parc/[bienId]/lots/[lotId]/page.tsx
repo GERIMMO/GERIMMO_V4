@@ -6,6 +6,7 @@ import { archiveSignee, signatureDuBail } from "@/lib/presentation-signatures";
 import { occupationLot } from "@/lib/occupation-lot";
 import { type QualificationDiagnostic } from "@/lib/qualification-diagnostics";
 import { bilanDiagnostics } from "@/lib/presentation-diagnostics";
+import { avecEcheanceReglementaire } from "@/lib/documents-bail";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
 import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import styles from "./fiche-lot.module.css";
@@ -74,7 +75,7 @@ export default async function PageLot(
     { data: lot, error: erreurLot },
     { data: bien, error: erreurBien },
     { data: detentions, error: erreurDetentions },
-    { data: diagnostics, error: erreurDiagnostics },
+    { data: diagnosticsLus, error: erreurDiagnostics },
     { data: diagnosticsBien, error: erreurDiagnosticsBien },
     { data: qualifications, error: erreurQualifications },
     { data: catalogue, error: erreurCatalogue },
@@ -202,6 +203,8 @@ export default async function PageLot(
   // Diagnostics exigibles, par niveau de rattachement — calcul centralisé
   // (lib/diagnostics, audit 09/09). Les deux niveaux sont rendus ici : ceux du
   // lot, et ceux de l'immeuble (ils restent portés par le bien en base).
+  // DOC-01 : l'échéance d'un DPE réalisé avant le 01/07/2021 est ramenée au plafond du décret n° 2020-1610.
+  const diagnostics = diagnosticsLus && avecEcheanceReglementaire(diagnosticsLus);
   const exigiblesLot = diagnosticsExigibles(bien, "lot");
   const exigiblesBien = diagnosticsExigibles(bien, "bien");
   const bilanLot = bilanDiagnostics(exigiblesLot.map(e => e.type), diagnostics ?? [], (qualifications ?? []) as QualificationDiagnostic[]);
@@ -421,6 +424,7 @@ export default async function PageLot(
                 compact={estProprietaire && parcours !== "1"}
                 qualifications={(qualifications ?? []) as QualificationDiagnostic[]}
                 qualificationIndisponible={Boolean(erreurQualifications)}
+                anneeConstruction={bien.annee_construction}
                 attendus={exigiblesLot.map((e) => e.type)}
                 diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
               />}

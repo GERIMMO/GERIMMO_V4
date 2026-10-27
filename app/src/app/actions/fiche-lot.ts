@@ -1,6 +1,7 @@
 "use server";
 
 import { aujourdhuiParis } from "@/lib/ged";
+import { echeanceReglementaire } from "@/lib/documents-bail";
 import { personnesDuResume, type BailResume, type IdentiteResume, type LienPersonneResume, type PersonneResume } from "@/lib/resume-location";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
@@ -77,6 +78,11 @@ export type RapportDuLot = {
 
 export type Chargement<T> = { donnees?: T; erreur?: string };
 
+// DOC-01 : la validité affichée d'un DPE d'avant le 01/07/2021 est plafonnée (décret n° 2020-1610).
+function dpeAvecEcheanceReglementaire<T extends { date_realisation: string; date_expiration: string | null }>(dpe: T | undefined): T | null {
+  return dpe ? { ...dpe, date_expiration: echeanceReglementaire("dpe", dpe.date_realisation, dpe.date_expiration) } : null;
+}
+
 export async function chargerFicheLot(lotId: string): Promise<Chargement<FicheLot>> {
   const supabase = await createClient();
   // Deux lectures EN PARALLÈLE plutôt qu'une colonne de plus : `fiche_lot` est
@@ -114,7 +120,7 @@ export async function chargerFicheLot(lotId: string): Promise<Chargement<FicheLo
     if (bauxDetail.error || liens.error || dpe.error || identites.error || baux.length !== ids.length) {
       erreur_resume = "Les informations détaillées n’ont pas pu être chargées. Fermez puis rouvrez le résumé pour réessayer.";
     } else {
-      details_resume = { aujourdHui: aujourdhuiParis(), ...personnesDuResume(baux, liaisons, (identites.data ?? []) as IdentiteResume[]), baux, dpe: dpe.data?.[0] ?? null };
+      details_resume = { aujourdHui: aujourdhuiParis(), ...personnesDuResume(baux, liaisons, (identites.data ?? []) as IdentiteResume[]), baux, dpe: dpeAvecEcheanceReglementaire(dpe.data?.[0]) };
     }
   }
 

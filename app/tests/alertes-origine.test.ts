@@ -426,11 +426,13 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
   it("crons diagnostics : une seule alerte par diagnostic, mise à jour au fil des seuils, un seuil fermé n'est pas recréé", async () => {
     const lotId = await lot();
     await db.query("reset role");
+    // Réalisé il y a 1 000 jours, pas 3 000 : un DPE de 2018 ne vaut plus depuis le 31/12/2024 (décret n° 2020-1610,
+    // migration 20261027100200) — l'alerte serait « expiré » dès J+0, hors du sujet de ce test (les seuils).
     const {
       rows: [{ id: diag }],
     } = await db.query(
       `insert into public.diagnostics (organization_id, lot_id, type, date_realisation, date_expiration)
-       values ($1,$2,'dpe',current_date-3000,current_date+60) returning id`,
+       values ($1,$2,'dpe',current_date-1000,current_date+60) returning id`,
       [org, lotId]
     );
     await db.query(`select set_config('request.jwt.claims', '', true)`);

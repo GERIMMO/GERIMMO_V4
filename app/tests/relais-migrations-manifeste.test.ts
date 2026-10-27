@@ -116,6 +116,8 @@ const MISSION_OCTOBRE = [
   "20261027100000_alerte_impaye_suit_encaissements.sql",
   // Audit de la PR #264, FL-01 (27/10) : l'incident ouvert par le gérant ne se rattache qu'au bail choisi ou au seul bail en cours.
   "20261027100100_incident_gerant_bail_explicite.sql",
+  // 27/10, audit de la refonte #264 (diagnostics) : validité réglementaire du DPE, rapport déjà rangé, rapports à renouveler.
+  "20261027100200_diagnostics_validite_dpe_et_rapports.sql",
   // 27/10, audit #264 (création du bail) : l'assurance du locataire suit l'activation ; libellé de l'étape « Le bail ».
   "20261027100300_bail_assurance_activation_et_libelle_colocation.sql",
 

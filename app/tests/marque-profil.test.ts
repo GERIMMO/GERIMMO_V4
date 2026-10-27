@@ -12,7 +12,22 @@ function formulaire() {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.update.mockReturnValue({ eq: () => ({ select: async () => ({ data: [{ id: "org" }], error: null }) }) });
-  mocks.verifier.mockResolvedValue({ user: { id: "admin" }, role: "admin_agence", supabase: { from: () => ({ update: mocks.update }) } });
+  // L'action lit d'abord l'état de l'abonnement (audit final du 27/10, DRT-V01) : ici l'écriture est ouverte.
+  mocks.verifier.mockResolvedValue({ user: { id: "admin" }, role: "admin_agence", supabase: { from: () => ({ update: mocks.update }), rpc: async () => ({ data: [{ ecriture_ouverte: true }], error: null }) } });
+});
+describe("la fiche en lecture seule (audit final du 27/10, DRT-V01)", () => {
+  it("refuse l'enregistrement, sans écrire, quand l'écriture de l'organisation est fermée", async () => {
+    mocks.verifier.mockResolvedValue({ user: { id: "admin" }, role: "admin_agence", supabase: { from: () => ({ update: mocks.update }), rpc: async () => ({ data: [{ ecriture_ouverte: false }], error: null }) } });
+    const r = await modifierProfilOrganisation("org", {}, formulaire());
+    expect(r.erreur).toMatch(/lecture seule/);
+    expect(r.valeurs?.name).toBe("Agence Alpha");
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+  it("laisse écrire quand l'état ne peut pas être lu : la base garde la porte", async () => {
+    mocks.verifier.mockResolvedValue({ user: { id: "admin" }, role: "admin_agence", supabase: { from: () => ({ update: mocks.update }), rpc: async () => ({ data: null, error: { message: "panne" } }) } });
+    expect((await modifierProfilOrganisation("org", {}, formulaire())).erreur).toBeUndefined();
+    expect(mocks.update).toHaveBeenCalled();
+  });
 });
 describe("enregistrer la marque", () => {
   it("refuse un agent même si le formulaire est complet", async () => {
@@ -44,7 +59,7 @@ describe("enregistrer la marque", () => {
     expect(mocks.update).not.toHaveBeenCalled();
   });
   it("la marque agence ne modifie pas le profil propriétaire", async () => {
-    mocks.verifier.mockResolvedValue({ user: { id: "proprietaire" }, role: "proprietaire_direct", supabase: { from: () => ({ update: mocks.update }) } });
+    mocks.verifier.mockResolvedValue({ user: { id: "proprietaire" }, role: "proprietaire_direct", supabase: { from: () => ({ update: mocks.update }), rpc: async () => ({ data: [{ ecriture_ouverte: true }], error: null }) } });
     expect((await modifierProfilOrganisation("org", {}, formulaire())).succes).toBeTruthy();
     expect(mocks.update.mock.calls[0][0]).not.toHaveProperty("couleur_primaire");
   });

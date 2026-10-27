@@ -1,0 +1,168 @@
+/**
+ * Audit final du 27/10/2026 (DRT-V01) — la fiche de l'organisation suit la lecture seule.
+ *
+ * `refuser_ecriture_si_fermee` garde les tables qui portent `organization_id`, pas `organizations` : pendant la
+ * suspension, l'administrateur modifiait encore IBAN, adresse d'expédition et envois automatiques par l'API.
+ * Migration 20261028100000_organizations_lecture_seule.sql : un déclencheur propre à la table refuse la mise à jour
+ * d'un gestionnaire quand l'écriture est fermée ; le service (gerimmo.systeme) et la supervision passent.
+ *
+ * Transaction annulée à la fin. Nécessite SUPABASE_DB_URL (sinon ignoré).
+ */
+import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { verifierBaseDeTest } from "./garde-base";
+import { config } from "dotenv";
+import { Client } from "pg";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+
+config({ path: ".env.local" });
+const DB_URL = process.env.SUPABASE_DB_URL;
+verifierBaseDeTest(DB_URL);
+
+const MIGRATION = "20261028100000_organizations_lecture_seule";
+
+describe("fiche de l'organisation en lecture seule (fichiers)", () => {
+  it("la migration est rejouable, ferme ses fonctions, figure une fois au manifeste et a son retour", () => {
+    const sql = readFileSync(`supabase/migrations/${MIGRATION}.sql`, "utf8");
+    expect(sql).toContain("create or replace function public.organizations_refuser_ecriture_si_fermee()");
+    expect(sql).toContain("set search_path = ''");
+    expect(sql).toContain("drop trigger if exists abonnement_organizations on public.organizations;");
+    expect(sql).toContain("revoke all on function public.organizations_refuser_ecriture_si_fermee() from public, anon, authenticated;");
+    expect(sql.trim().endsWith("select public.fermer_fonctions_a_anon();")).toBe(true);
+    const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
+    expect(manifeste.filter((l) => l === `${MIGRATION}.sql`)).toHaveLength(1);
+    const retour = readFileSync(`supabase/retours-arriere/${MIGRATION}.retour.sql`, "utf8");
+    expect(retour).toContain("drop trigger if exists abonnement_organizations on public.organizations;");
+    expect(retour).toContain("drop function if exists public.organizations_refuser_ecriture_si_fermee();");
+    const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
+    expect(lisezMoi).toContain(`${MIGRATION}.retour.sql`);
+    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\n`20261028100000`/);
+  });
+});
+
+describe.skipIf(!DB_URL)("fiche de l'organisation en lecture seule (base)", () => {
+  let db: Client;
+  let org = "", gestionnaire = "", superviseur = "";
+
+  const agir = async (compte: string, aal = "aal1") => {
+    await db.query("reset role");
+    await db.query(
+      `select set_config('request.jwt.claims', json_build_object('sub', $1::text, 'role', 'authenticated', 'aal', $2::text)::text, true)`,
+      [compte, aal],
+    );
+    await db.query("set local role authenticated");
+  };
+  const service = async () => {
+    await db.query("reset role");
+    await db.query("select set_config('request.jwt.claims', '{}', true)");
+    await db.query("select set_config('gerimmo.systeme', 'on', true)");
+  };
+  const essai = async (sql: string, params: unknown[] = []) => {
+    await db.query("savepoint essai");
+    try {
+      const r = await db.query(sql, params);
+      await db.query("release savepoint essai");
+      return r;
+    } catch (e) {
+      await db.query("rollback to savepoint essai");
+      throw e;
+    }
+  };
+  const iban = async () => (await db.query("select iban from public.organizations where id = $1", [org])).rows[0].iban as string | null;
+
+  beforeAll(async () => {
+    db = new Client({ connectionString: DB_URL });
+    await db.connect();
+  });
+  beforeEach(async () => {
+    await db.query("reset role; begin; select set_config('request.jwt.claims', '{}', true)");
+    gestionnaire = randomUUID();
+    superviseur = randomUUID();
+    for (const id of [gestionnaire, superviseur]) {
+      await db.query(
+        `insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data)
+         values ($1, 'authenticated', 'authenticated', $2, 'x', now(), '{}', '{}')`,
+        [id, `${id}@test.local`],
+      );
+    }
+    org = (
+      await db.query(
+        `insert into public.organizations (name, type, status, address_line1, postal_code, city, email_contact)
+         values ('TEST DRT-V01', 'agence', 'active', '1 rue Test', '75001', 'Paris', 'drtv01@test.local') returning id`,
+      )
+    ).rows[0].id;
+    await db.query("insert into public.memberships (account_id, organization_id, role) values ($1, $2, 'admin_agence')", [gestionnaire, org]);
+    await db.query("insert into public.memberships (account_id, role) values ($1, 'super_admin')", [superviseur]);
+  });
+  afterEach(async () => {
+    await db.query("rollback; reset role");
+  });
+  afterAll(async () => {
+    await db?.end();
+  });
+
+  it("le déclencheur est posé sur organizations et sa fonction fermée à anon et authenticated", async () => {
+    const { rows } = await db.query(
+      `select tgname from pg_trigger where tgrelid = 'public.organizations'::regclass and tgname = 'abonnement_organizations'`,
+    );
+    expect(rows).toHaveLength(1);
+    const droits = await db.query(
+      `select has_function_privilege('anon', 'public.organizations_refuser_ecriture_si_fermee()', 'execute') as anonyme,
+              has_function_privilege('authenticated', 'public.organizations_refuser_ecriture_si_fermee()', 'execute') as compte`,
+    );
+    expect(droits.rows[0]).toEqual({ anonyme: false, compte: false });
+  });
+
+  it("écriture ouverte : l'administrateur modifie sa fiche ; suspendue par la supervision : refus 23514, rien n'est réécrit", async () => {
+    await agir(gestionnaire);
+    await essai("update public.organizations set iban = 'FR7630006000011234567890189' where id = $1", [org]);
+    expect(await iban()).toBe("FR7630006000011234567890189");
+
+    // La supervision suspend (son geste, par la fonction prévue), ce qui ferme l'écriture.
+    await agir(superviseur, "aal2");
+    expect((await essai("select public.controler_organisation($1, 'suspendre', null, 'TEST DRT-V01') r", [org])).rows[0].r).toBe("suspendue");
+    await db.query("reset role");
+    expect((await db.query("select public.org_ecriture_ouverte($1) o", [org])).rows[0].o).toBe(false);
+
+    await agir(gestionnaire);
+    await expect(
+      essai("update public.organizations set iban = 'FR7630006000011234567890190', quittances_envoi_auto = true where id = $1", [org]),
+    ).rejects.toMatchObject({ code: "23514", message: expect.stringMatching(/lecture seule/) });
+    await expect(essai("update public.organizations set email_expediteur = 'af@example.com' where id = $1", [org])).rejects.toMatchObject({ code: "23514" });
+    expect(await iban()).toBe("FR7630006000011234567890189");
+  });
+
+  it("pendant la suspension, le service et la supervision passent, et la réactivation rouvre la fiche", async () => {
+    await agir(superviseur, "aal2");
+    await essai("select public.controler_organisation($1, 'suspendre', null, 'TEST DRT-V01') r", [org]);
+
+    // Le service (tâches, Stripe) : réglage local de sa transaction.
+    await service();
+    await essai("update public.organizations set code_parrainage = 'DRTV0100' where id = $1", [org]);
+    expect((await db.query("select code_parrainage from public.organizations where id = $1", [org])).rows[0].code_parrainage).toBe("DRTV0100");
+
+    // La supervision réactive : son geste passe la garde, et l'administrateur écrit de nouveau.
+    await agir(superviseur, "aal2");
+    expect((await essai("select public.controler_organisation($1, 'reactiver', null, 'TEST DRT-V01 fin') r", [org])).rows[0].r).toBe("active");
+    await agir(gestionnaire);
+    await essai("update public.organizations set iban = 'FR7630006000011234567890189' where id = $1", [org]);
+    expect(await iban()).toBe("FR7630006000011234567890189");
+  });
+
+  it("la migration se rejoue sans erreur et son retour retire le déclencheur et la fonction", async () => {
+    await db.query("reset role");
+    await db.query(readFileSync(`supabase/migrations/${MIGRATION}.sql`, "utf8"));
+    expect((await db.query("select count(*)::int n from pg_trigger where tgname = 'abonnement_organizations'")).rows[0].n).toBe(1);
+    // Le retour, sans son enveloppe de transaction (la transaction du test en tient lieu).
+    const retour = readFileSync(`supabase/retours-arriere/${MIGRATION}.retour.sql`, "utf8")
+      .split("\n")
+      .filter((l) => !/^(begin|commit);$/.test(l.trim()) && !/^set local lock_timeout/.test(l.trim()))
+      .join("\n");
+    await db.query(retour);
+    expect((await db.query("select count(*)::int n from pg_trigger where tgname = 'abonnement_organizations'")).rows[0].n).toBe(0);
+    expect((await db.query("select count(*)::int n from pg_proc where proname = 'organizations_refuser_ecriture_si_fermee'")).rows[0].n).toBe(0);
+    // Et la marche avant se rejoue à l'identique.
+    await db.query(readFileSync(`supabase/migrations/${MIGRATION}.sql`, "utf8"));
+    expect((await db.query("select count(*)::int n from pg_trigger where tgname = 'abonnement_organizations'")).rows[0].n).toBe(1);
+  });
+});

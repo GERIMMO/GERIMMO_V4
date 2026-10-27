@@ -1,0 +1,1116 @@
+{
+ "LAT-01": {
+  "domaine": "loyers-accueil",
+  "titre": "Après une réception complète déclarée depuis le tableau de bord, l'alerte « Loyer impayé » reste ouverte et devient l'« action prioritaire » de l'accueil. Pendant ce temps, un bail réellement impayé de deux mois est masqué.",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "loyers",
+  "fichiers": [
+   "app/supabase/migrations/20261026110449_reception_loyer_idempotence_durable.sql",
+   "app/supabase/migrations/20260911200000_cycle_mensuel_automatique.sql",
+   "app/src/lib/verifications-proprietaire.ts",
+   "app/src/app/agence/[orgId]/alertes/page.tsx",
+   "app/src/lib/actions-attendues.ts",
+   "app/src/app/actions/reception-loyer.ts"
+  ],
+  "correction_proposee": "Appeler public.suivre_impayes_bail(b.id) à la fin de declarer_reception_loyer. Mieux : un déclencheur AFTER INSERT OR DELETE sur encaissements, qui couvre aussi l'encaissement depuis le bail et son retrait. En défense côté écran, n'afficher une alerte loyer_impaye que si le bail garde un reste échu (action impaye-<bail> présente ou rappel dû).",
+  "preuve": "Fichiers dans /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-loyers-accueil/. (1) v-reception.txt : deux messages « 850,10 € reçus et enregistrés. Cette échéance est soldée. », deux encaissements de 850,1, et l'alerte toujours « critique … 1700,20 € … ouverte ». (2) v-apres-solde.txt, identique à 390 et à 1440 px : « 1 action prioritaire | Loyer impayé — Martin VLA-Alice (VLA Appartement) : 1700,20 € dus depuis le 05/09/2026 ». Captures v-apres-solde-tel-accueil.png et v-apres-solde-ordi-accueil.png ; v01-tel-accueil.png montre la carte rouge animée « respirationAlerte ». (3) v01-alerte.txt et v-traiter.txt : « Traiter » mène à baux/…d1#loyers, où l'on lit « Reste dû 0,00 € à jour ». Le geste ne sert à rien. (4) v-reception-t3.txt : après le solde du T3 au téléphone, « Loyer impayé — Blanc VLA-Emma (VLA T3) : 700,00 € dus » apparaît dans « Mes tâches » (v-taches-apres-t3-tel.png). (5) v-synthese.txt : la synthèse de connexion affiche « CRITIQUE Loyer impayé — Martin … 1700,20 € — Dépassée de 52 j ». v-synthese2.txt : sur le même écran, l'accueil et « À faire » annoncent « 1 action prioritaire », et c'est le bail SOLDÉ. Le Studio impayé de deux mois (alerte critique de 1 040 €) n'y figure qu'en « 520,00 € à recevoir ». (6) v01-sql.out : après deux declarer_reception_loyer « recu », rappels_restants = 0 mais l'alerte reste « critique | … 1700,00 € … | ouverte ». (7) v-fermeture-nocturne.out, en transaction annulée : suivre_impayes_bail ferme bien les deux alertes soldées (« Impayé soldé ») et garde celle du Studio. Le défaut ne dure donc que jusqu'à la tâche de 5 h 30 UTC. (8) verif-unitaires.out : preparerVerificationsProprietaire donne AVANT 0 critique, APRÈS 1 critique (« Loyer impayé … 1700,20 € »).",
+  "reproduction": "Rejoué dans ma propre organisation fictive « VLA Parc Verif » (b2b20000-…-bb02, compte vla.proprio@example.com, données de fixtures-vla.sql). Le bail « VLA Appartement » doit septembre et octobre (2 × 850,10 €). L'alerte est posée par suivre_impayes_bail, comme le fait la tâche de nuit. Gestes : à 1440 px, deux fois de suite « J'ai reçu le loyer » puis « Confirmer la réception » (v-reception.mjs). Ensuite on recharge l'accueil à 390 et à 1440 px (v-etat.mjs apres-solde) et on suit « Traiter » (v-traiter.mjs). Même chose au téléphone sur « VLA T3 » (v-reception-t3.mjs). Enfin, session neuve sans neutraliser la synthèse de connexion (v-synthese.mjs, v-synthese2.mjs). Contrôle SQL rejoué dans une transaction annulée sur gerimmo_ci_sql (v01-sql.sql).",
+  "cause": "declarer_reception_loyer (20261026110449, l.80-87) insère l'encaissement sans recalculer l'alerte. suivre_impayes_bail n'est appelé que par generer_alertes_impayes, planifiée en pg_cron « 30 5 * * * » (20260911200000:336). L'encaissement depuis le bail (actions/loyers.ts) ne ferme pas l'alerte non plus : ce retard de fermeture existait avant la PR. La PR le transforme en alerte fausse et en inversion. preparerVerificationsProprietaire (verifications-proprietaire.ts l.19-26) et le filtre de alertes/page.tsx l.106 masquent l'alerte tant qu'un rappel existe, donc tant que la dette est réelle. Une fois tout payé, ni le rappel ni l'action impaye-<bail> n'existent plus (sansAlertesDoublonnees, actions-attendues.ts l.326-345). L'alerte périmée réapparaît alors comme critique, jusqu'au lendemain."
+ },
+ "NEW-01": {
+  "domaine": "loyers-accueil",
+  "titre": "La relance par e-mail envoyée depuis le tableau de bord tait l'arriéré : elle ne cite que le mois le plus ancien, alors que la règle documentée veut la dette totale",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "loyers",
+  "fichiers": [
+   "app/src/app/actions/reception-loyer.ts",
+   "app/src/lib/relance-loyer-email.ts",
+   "app/src/components/rappels-loyers-interactifs.tsx",
+   "app/src/lib/missions-planifiees/relances.ts"
+  ],
+  "correction_proposee": "Dans envoyerRelanceReception, calculer la dette échue totale du bail : somme des restes de ses lignes rappels_loyers_proprietaire échues, ou etat_loyers_bail_brut. La passer en totalDu à corpsRelanceLoyer et à cleRelanceLoyer, et l'afficher dans le texte de confirmation (« 520,00 € pour septembre, 1 040,00 € au total »).",
+  "preuve": "v-relance-form.txt, identique aux deux gabarits : « Envoyer au locataire une relance amiable pour le loyer de septembre 2026 : 520,00 € restant à recevoir », alors que 1 040 € sont dus. Le bouton « Envoyer la relance par e-mail » est présent (captures v-relance-form-tel.png et v-relance-form-ordi.png). relance-total.verif.out : le corps est « Sauf erreur de notre part, le loyer de septembre 2026 (échéance du 05/09/2026) pour LAT Appartement échoir reste dû à hauteur de 850,10 € », sans aucune phrase « Au total ». La clé d'idempotence se termine par « /85010/aucun/… » (totalDu absent). L'action ne lit que etat_abonnement et rappels_loyers_proprietaire filtré sur l'appel visé. La trace écrite au bail est « Relance par e-mail depuis le tableau de bord · échéance 2026-09-01 · 1 destinataire ».",
+  "reproduction": "Organisation fictive VLA : bail « VLA Studio deux mois », 520 € par mois, septembre et octobre impayés, soit 1 040 € échus, sans relance. On ouvre la fenêtre, puis la ligne du Studio, puis « Gérer la relance et le recommandé », à 390 et à 1440 px (v-relance-form.mjs). Le contenu réel du courriel est reconstruit par l'action serveur elle-même, avec un test hors dépôt (relance-total.verif.test.ts, configuration vitest.verif.config.mts). Il reprend les doubles de tests/relance-reception-loyer.test.ts et intercepte envoyerEmail : aucun courriel n'est envoyé.",
+  "cause": "reception-loyer.ts l.109 construit le message sans totalDu, et l.70 ne lit que la ligne de l'échéance relancée. corpsRelanceLoyer n'ajoute « Au total, X € restent dus … tous termes échus confondus » que si totalDu est fourni (relance-loyer-email.ts l.84-86). Les relances automatiques le passent (missions-planifiees/relances.ts l.139). La règle est écrite dans le code : relance-loyer-email.ts l.82-83 (« Audit du 27/09 : la relance dit la dette entière »), et le commentaire de cleRelanceLoyer dit « Le courrier dit le reste dû du terme et la dette totale du bail ». Le wiki (Quittancement des loyers, § 18/09) dit : « taire une dette en cours laisserait croire au locataire qu'il sera à jour en payant le mois ». Conséquence : cette relance compte ensuite comme première relance du mois suivant (voir LAT-02), alors que le locataire n'a jamais été informé de ce mois."
+ },
+ "LAT-03": {
+  "domaine": "loyers-accueil",
+  "titre": "L'accueil et « À faire » ne montrent qu'un mois et son montant par bail : l'arriéré total et la gravité d'un impayé de plusieurs mois sont masqués",
+  "gravite": "majeure",
+  "confiance": "moyenne",
+  "chantier": "loyers",
+  "fichiers": [
+   "app/src/lib/verifications-proprietaire.ts",
+   "app/src/app/agence/[orgId]/alertes/page.tsx",
+   "app/src/lib/rappels-loyers.ts",
+   "app/src/components/rappels-loyers-interactifs.tsx",
+   "app/src/components/carte-verifications.tsx"
+  ],
+  "correction_proposee": "Sur la ligne du bail, afficher le nombre d'échéances impayées et le reste échu total, par exemple « + 1 autre mois dû · 1 040,00 € au total », avec un lien vers les loyers du bail. Garder la marque « prioritaire » quand l'alerte masquée est critique. Compter les échéances, ou écrire « N baux », dans la carte.",
+  "preuve": "v-initial.txt : « 4 loyers à confirmer » pour 5 échéances dues. La ligne de l'appartement indique « VLA-Alice Martin · septembre 2026 … 850,10 € à recevoir ». Seul indice : la phrase générique « Plusieurs mois restent à vérifier sur certains baux… ». v03-masquage.txt, aux deux gabarits : le montant de 1 040 € n'apparaît ni dans le contenu de l'accueil, ni dans la fenêtre (ligne « septembre 2026 … 520,00 € à recevoir »), ni dans « À faire », ni dans Finances. Finances (v-fin.txt) ne présente que les échéances d'octobre (« Reste dû 2 410,10 € »), sans arriéré cumulé. Correction du constat initial : le total apparaît une fois par session, dans la synthèse de connexion (v-synthese.txt : « 5 alertes à traiter, dont 2 critiques … 1040,00 € dus »). Le banc de l'auditeur la neutralisait (sessionStorage gerimmo-synthese-alertes-vue). Mais le lien « Toutes les alertes → » de cette synthèse mène à « À faire », qui affiche « 1 action prioritaire » (le bail soldé de LAT-01) et ne montre le Studio qu'en « 520,00 € à recevoir » (v-synthese2.txt, v-synthese2-tel-alertes.png).",
+  "reproduction": "Organisation VLA, état initial : appartement (septembre et octobre dus, 1 700,20 €), deux chambres en colocation (octobre), T3 (octobre). Cinq échéances dues, plus tard le Studio de deux mois (alerte critique de 1 040 € posée par suivre_impayes_bail). Scripts v-etat.mjs initial et v03-masquage.mjs, à 390 et 1440 px, puis session neuve avec la synthèse de connexion (v-synthese2.mjs).",
+  "cause": "preparerVerificationsProprietaire (verifications-proprietaire.ts l.19-26) retire l'action impaye-<bail> et l'alerte loyer_impaye dès qu'un rappel existe. alertes/page.tsx l.106 fait de même. Or ce sont elles qui portent le total échu et la criticité (2 termes ou plus = critique). organiserRappelsLoyers (rappels-loyers.ts l.35-44) ne garde qu'une échéance par bail, et la note de rappels-loyers-interactifs.tsx l.28 reste générique. Avant la PR, l'accueil listait « Loyer impayé — lot : X € échus non couverts » (git show 555c5282^). Le choix d'« un seul geste par bail » est voulu et commenté. La perte du total et de la gravité ne l'est pas."
+ },
+ "LAT-02": {
+  "domaine": "loyers-accueil",
+  "titre": "Une relance antérieure du bail est présentée sur l'échéance suivante (« Une première relance a été enregistrée ») et masque l'envoi pour ce mois",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "loyers",
+  "fichiers": [
+   "app/src/lib/rappels-loyers.ts",
+   "app/src/app/actions/reception-loyer.ts",
+   "app/src/components/rappels-loyers-interactifs.tsx"
+  ],
+  "correction_proposee": "Soit tracer l'échéance relancée (appel_id ou periode sur relances) et ne masquer l'envoi que pour elle. Soit, au minimum, corriger NEW-01 et écrire « Une relance du bail a été enregistrée le … » plutôt que de la rattacher à l'échéance.",
+  "preuve": "v02-relance.txt : sur la ligne d'octobre, « Une première relance a été enregistrée le 08/10/2026. Consultez le suivi du bail pour décider de la suite. ». 0 bouton « Envoyer la relance ». L'avertissement « Aucune relance préalable… » du recommandé est absent (v02-tel-t3.png, v02-ordi-t3.png). Gravité abaissée pour trois raisons. (a) La règle est voulue et testée : commentaire rappels-loyers.ts l.18 (« Même repère que les relances du bail »), test du dépôt tests/relance-reception-loyer.test.ts l.41-46 qui exige le filtre gte(date_envoi, date_echeance), règle identique dans la tâche de relances automatiques (20260929130000_audit_gestion.sql l.663-672). (b) La phrase affichée est exacte pour le bail. (c) Le message serveur faux (« Une relance de cette échéance a déjà été enregistrée », reception-loyer.ts l.83) n'est atteignable qu'avec un formulaire périmé. Le défaut réel est que cette règle suppose une relance qui annonce toute la dette. C'est vrai pour la relance automatique (total_du), faux pour la relance du tableau de bord (NEW-01). Note de banc : le fixtures.sql de l'auditeur insère la note « LAT relance de septembre ». La note du tableau de bord a été posée ensuite en base. Ma fixture l'insère directement.",
+  "reproduction": "Organisation VLA, bail « VLA T3 » à 700 € : relance tracée le 08/10 avec la note exacte du tableau de bord (« … échéance 2026-09-01 … »), septembre encaissé le 12/10, octobre dû. Même rejeu sur LAT T3 relance (v02-relance.mjs, 390 et 1440 px).",
+  "cause": "lireDerniereRelanceReception (rappels-loyers.ts l.19-32) retient toute relance du bail datée d'après l'échéance affichée. La table relances ne garde pas l'échéance visée (seule la note texte la cite)."
+ },
+ "LAT-04": {
+  "domaine": "loyers-accueil",
+  "titre": "Colocation : les tâches de chaque chambre sont strictement identiques et les rappels ne nomment pas la chambre",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "loyers",
+  "fichiers": [
+   "app/src/lib/actions-attendues.ts",
+   "app/supabase/migrations/20261026090335_rappels_loyers_proprietaire.sql",
+   "app/src/lib/taches-accueil-proprietaire.ts"
+  ],
+  "correction_proposee": "Ajouter la chambre, ou à défaut le locataire, au titre ou au contexte des actions par bail et à la ligne de rappel (« VLA Colocation · Chambre Jardin »).",
+  "preuve": "v-initial.txt, aux deux gabarits : deux lignes identiques « État des lieux d'entrée à signer — VLA Colocation | Décrire l'état du logement… | Voir l'état des lieux », vers …d3#edl et …d4#edl. Dans la fenêtre, deux rappels titrés « VLA Colocation », qui ne se distinguent que par le locataire. Même doublon sur le compte principal (v05-principal.txt, lignes T7 et T8 « FICHE-LOT Colocation meublée »). Les alertes d'impayé portent aussi « (VLA Colocation) » sans la chambre (sortie de fixtures-vla.sql).",
+  "reproduction": "Organisation VLA : lot « VLA Colocation », deux baux individuels (Chambre Jardin, Chambre Rue), sans état des lieux. Toutes les tâches dépliées (v-etat.mjs). Contrôle sur le compte principal en lecture seule (v05-principal.mjs).",
+  "cause": "Titres construits avec le seul nom du lot : surLeLot dans actions-attendues.ts l.221/244 (déjà présent avant la PR, git show 555c5282^ l.200), l.nom dans rappels_loyers_proprietaire (nouveau, 20261026090335 l.22), lot_nom dans suivre_impayes_bail. baux.chambre_id → lot_chambres.nom n'est pas repris."
+ },
+ "LAT-05": {
+  "domaine": "loyers-accueil",
+  "titre": "Le chiffre de la carte « À vérifier N demandes » ne correspond pas au compteur de « Mes tâches » vers lequel elle mène",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "loyers",
+  "fichiers": [
+   "app/src/app/agence/[orgId]/accueil-proprietaire.tsx",
+   "app/src/components/carte-taches-proprietaire.tsx",
+   "app/src/lib/taches-accueil-proprietaire.ts"
+  ],
+  "correction_proposee": "Utiliser le même chiffre des deux côtés (taches.length), ou libeller distinctement les deux ensembles.",
+  "preuve": "v05-principal.txt : « À vérifier | 11 demandes | Voir mes tâches » (lien #taches-proprietaire), en-tête « Mes tâches | 12 ». L'écart vient de la tâche « Préparer la location — Appartement T2 » (lot sans bail). L'auditeur relevait 11 contre 15 avant que d'autres domaines ne modifient ces données. Captures v05-tel-carte.png et v05-ordi-taches.png.",
+  "reproduction": "Compte proprietaire@example.com en lecture seule, sans loyer à confirmer ni priorité (v05-principal.mjs, 390 et 1440 px).",
+  "cause": "accueil-proprietaire.tsx l.70-71 et l.86 : total = demandesCourantes, c'est-à-dire les seules tâches issues d'actions non critiques. CarteTachesProprietaire affiche taches.length, qui inclut les DPE F/G à surveiller et les lots sans bail (construireTachesAccueil l.52-69)."
+ },
+ "LAT-06": {
+  "domaine": "loyers-accueil",
+  "titre": "La tuile « Encaissé en octobre » mène à Finances, où ce montant n'apparaît dans aucun indicateur du mois",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "loyers",
+  "fichiers": [
+   "app/src/lib/pilotage-proprietaire.ts",
+   "app/src/components/page-finances.tsx",
+   "app/src/app/agence/[orgId]/accueil-proprietaire.tsx"
+  ],
+  "correction_proposee": "Afficher sur Finances le même « Encaissé en <mois> », renommer la tuile, ou la faire pointer vers la liste des encaissements du mois.",
+  "preuve": "v-fin.txt : tuile « Encaissé en octobre 700,00 € » (loyer de septembre du T3 encaissé le 12/10), alors que Finances indique « Échéances d'octobre … Réglé sur ces échéances 0,00 € ». v-fin-apres.txt : tuile « 2 400,20 € » contre « Réglé sur ces échéances 850,10 € ». Seules les recettes annuelles coïncident, parce que tout est encaissé en octobre.",
+  "reproduction": "Organisation VLA : clic sur la tuile, avant puis après les réceptions (v-finances.mjs).",
+  "cause": "pilotage-proprietaire.ts l.63 additionne les encaissements par date de paiement du mois. page-finances.tsx l.39-41 et l.53 affiche la couverture des échéances de la période."
+ },
+ "LAT-07": {
+  "domaine": "loyers-accueil",
+  "titre": "Le rappel de loyer n'a pas d'accès direct à la fiche du bail, et la carte annonce « les actions » alors que la fenêtre ne contient que des loyers",
+  "gravite": "mineure",
+  "confiance": "moyenne",
+  "chantier": "loyers",
+  "fichiers": [
+   "app/src/components/rappels-loyers-interactifs.tsx",
+   "app/src/components/carte-verifications.tsx"
+  ],
+  "correction_proposee": "Faire du nom du lot un lien vers /baux/<id>#loyers. Dire « Voir les loyers » quand la fenêtre ne contient pas d'autre demande.",
+  "preuve": "v-initial.txt : la carte dit « Voir les loyers et les actions ». LIENS FENETRE : seulement quatre « Suivre les relances et l'envoi » (dans le repli de relance), « Voir mes finances » et « Voir toutes les demandes ». Le nom du lot n'est pas un lien. Les huit tâches EDL/DPE ne sont pas dans la fenêtre. Nuance : « actions » peut désigner les boutons de réception, d'où la confiance moyenne sur la partie libellé.",
+  "reproduction": "Organisation VLA, état initial, sans priorité (v-etat.mjs, 390 et 1440 px).",
+  "cause": "carte-verifications.tsx l.92 (libellé par défaut quand il n'y a pas d'autre demande). rappels-loyers-interactifs.tsx l.52 : lot_nom en simple <b>, lien vers le bail uniquement dans le <details> (l.82)."
+ },
+ "LAT-08": {
+  "domaine": "loyers-accueil",
+  "titre": "Le layout recalcule à chaque page propriétaire les vérifications (actions et rappels de loyers) pour une pastille « Alertes » que le menu propriétaire n'affiche pas",
+  "gravite": "mineure",
+  "confiance": "moyenne",
+  "chantier": "loyers",
+  "fichiers": [
+   "app/src/app/agence/[orgId]/layout.tsx",
+   "app/src/lib/navigation-espace.ts",
+   "app/src/lib/lecture-verifications-proprietaire.ts"
+  ],
+  "correction_proposee": "Ne pas charger les vérifications dans le layout pour le propriétaire (pas de pastille), ou les limiter aux pages qui les affichent.",
+  "preuve": "verif-unitaires.out : entrées « / /parc /personnes /loyers /messages /documents /incidents /agenda /profil /artisans /abonnement /faq … », 0 entrée /alertes. v08-layout.txt : +2, +3 et +2 parcours de la table pendant les chargements de /parc, contre +0, +1 et +0 dans les fenêtres témoins. La page /parc n'appelle pas ce RPC (grep : seuls layout, accueil, alertes et l'action). Le retrait de « À faire » du menu propriétaire est voulu (tests/navigation-espace.test.ts l.115). Il ne reste donc que le calcul inutile.",
+  "reproduction": "Test unitaire hors dépôt navigation.verif.test.ts (navigationEspace avec badges.alertes = 7). Mesure des lectures de receptions_loyers_signalees, table lue seulement par rappels_loyers_proprietaire et declarer_reception_loyer, pendant trois chargements de /espace/VLA/parc, comparée à des fenêtres témoins de 6 s sans chargement (v08-layout.mjs).",
+  "cause": "layout.tsx l.109-111 appelle chargerVerificationsProprietaire (chargerActionsDuJour et lireRappelsLoyers) pour remplir badges.alertes et alertesCritiques (l.167-171). La branche proprietaire_direct de navigation-espace.ts (l.102-128) n'a pas d'entrée qui les affiche. Avant la PR, la pastille était visible et l'appel plus léger (compterActionsDuJour)."
+ },
+ "FL-01": {
+  "domaine": "lot-personnes-incidents",
+  "titre": "Colocation à baux individuels : l'incident déclaré par le propriétaire (ou l'agence) est rattaché au bail le plus récent du lot. Ce colocataire le voit comme le sien, peut contester la décision, alors que l'occupant concerné ne voit rien",
+  "gravite": "critique",
+  "confiance": "haute",
+  "chantier": "incidents",
+  "fichiers": [
+   "supabase/migrations/20260913150000_incidents_portefeuille_agent.sql",
+   "src/app/actions/incidents.ts",
+   "src/app/agence/[orgId]/incidents/nouveau/formulaire-incident.tsx",
+   "src/app/locataire/[orgId]/incidents-locataire.tsx",
+   "src/app/locataire/[orgId]/page.tsx"
+  ],
+  "correction_proposee": "Quand le lot a plusieurs baux vivants, demander dans le formulaire la chambre ou le bail concerné, avec l'option « parties communes / tout le logement ». Ajouter p_bail à la fonction, et ne rattacher un bail que s'il est choisi explicitement ou s'il est le seul bail vivant. Ne jamais renseigner declarant_person_id pour un incident ouvert par le gérant. Proposer les chambres et pièces du lot (lot_chambres, lot_pieces) à la place de la liste générique.",
+  "preuve": "fl01-complet.out : incident rattaché à « Chambre 2 », déclarant « Benoit ». Vu par Benoît : 1 ligne « porte de la Chambre 1 ne ferme plus », est_declarant = t. Vu par Alice : 0 ligne. fl01-imputation.out : Benoît voit imputation = degradation_fautive et la justification « …à la charge de sa locataire ». contester_imputation passe en son nom (imputation_contestation = « Ce n'est pas ma chambre »), alors qu'Alice ne voit toujours rien. Quand les deux baux ont le même created_at, le rattachement devient aléatoire : premier essai rattaché par hasard à la Chambre 1. Formulaire ouvert depuis la fiche (fl01-formulaire-m.png) : champs lot, catégorie, pièce (liste générique Cuisine / Salle d'eau / Chambre…), urgence, description, ancienneté, photos. Aucun choix de chambre ou de bail, et le texte annonce « Le locataire pourra le suivre depuis son espace si son bail est actif ».",
+  "reproduction": "Jeu de données recréé AVEC les déclencheurs actifs (les données de l'auditeur avaient été insérées sans déclencheurs, session_replication_role=replica) : lot « VERIF-LPI Coloc » avec loyer de référence de 1000 €, Chambre 1 (Alice, bail créé le 01/12/2025) et Chambre 2 (Benoît, bail créé le 15/02/2026), les deux baux activés normalement. Dans une transaction annulée (ROLLBACK) : ouvrir_incident_agence en tant que proprietaire@example.com, description « porte de la Chambre 1 », puis qualifier_incident en « degradation_fautive ». Ensuite mes_incidents_locataire et contester_imputation avec le compte locataire.pd relié tour à tour à Benoît puis à Alice. Scripts : verif-lot-personnes-incidents/fl01-complet.sql, fl01-imputation.sql et fl01-form.mjs.",
+  "cause": "La fonction public.ouvrir_incident_agence (définition en base, migration supabase/migrations/20260913150000_incidents_portefeuille_agent.sql) fait `select b.id, b.locataire_principal … where lot_id = p_lot and etat in ('actif','preavis') order by b.created_at desc limit 1`, puis appelle incident_creer(..., v_bail.id, v_bail.locataire_principal, ...). Le gérant devient ainsi « déclarant » au nom de ce locataire. ouvrirIncident (src/app/actions/incidents.ts:379-410) ne transmet ni bail ni chambre. mes_incidents_locataire montre l'incident au titulaire de ce bail, et les écrans locataire réservent Contester et Rouvrir au déclarant (src/app/locataire/[orgId]/incidents-locataire.tsx:125-131, src/app/locataire/[orgId]/page.tsx:168-173). Ce rattachement n'est documenté nulle part dans le wiki (concepts/Incident.md, processus/Cycle de vie d'un incident.md), et aucun test ne couvre un lot à plusieurs baux vivants (tests/sprint7-incidents.test.ts, incident-declaration.test.ts : 32 tests verts)."
+ },
+ "FL-02": {
+  "domaine": "lot-personnes-incidents",
+  "titre": "« Commencer un bail » dans l'en-tête crée un nouveau brouillon vide (type meublé, sans chambre) à chaque passage, même si un « Bail à finaliser » existe et que le lot est loué",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "fiche_lot",
+  "fichiers": [
+   "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx",
+   "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-bail-lot.tsx",
+   "src/app/actions/etapes-bail.ts"
+  ],
+  "correction_proposee": "Quand un brouillon existe, faire de l'action principale de l'en-tête « Reprendre le bail » (lien vers ce brouillon) et réserver la création à un geste secondaire explicite. Sur un lot en colocation, proposer la chambre libre et le type colocation. Côté serveur, rendre commencerBail idempotent face à un brouillon vierge déjà présent sur le lot.",
+  "preuve": "Avant chaque clic, l'en-tête affiche « Modifier le lot · Commencer un bail », alors que la carte du bail propose déjà « Reprendre le bail ». Chaque clic redirige vers un nouveau /baux/<id>#etape-bail-1 (eeddaf4e…, puis 534d427a…). En base : deux nouvelles lignes `meuble | brouillon | chambre_id vide | locataire vide` sur un lot en colocation. La fiche affiche alors « Bails à finaliser » avec deux cartes « Locataire à préciser », et « Locataires & garants » ajoute « Location 4 / Location 5 · Locataire à désigner ». J'ai supprimé ensuite mes deux brouillons de test.",
+  "reproduction": "Lot « VERIF-LPI Coloc » : Loué, 2 baux actifs, 1 brouillon Chambre 3 affiché en « Bail à finaliser » avec « Reprendre le bail ». Script fl02.mjs : un clic sur « Commencer un bail » au gabarit ordinateur, retour sur la fiche, puis un clic au gabarit téléphone.",
+  "cause": "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx:844 affiche FormulaireBailLot compact dès que le lot n'est pas archivé et a un propriétaire, sans regarder les brouillons ni les baux en cours. commencerBail (src/app/actions/etapes-bail.ts:50-61) insère toujours un bail `type: lot.meuble ? 'meuble' : 'nu'`, sans chambre et sans reprendre un brouillon existant. La vue agence replie au contraire ce formulaire derrière « Préparer un autre contrat — facultatif » quand un brouillon existe (page.tsx:563). tests/etapes-bail-actions.test.ts ne teste pas le cas d'un brouillon déjà présent."
+ },
+ "FL-03": {
+  "domaine": "lot-personnes-incidents",
+  "titre": "La dépense saisie depuis « Journal & dépenses » du lot ne demande pas de date (écriture datée du jour et non modifiable) et ne permet pas de séparer la TEOM d'une taxe foncière",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "fiche_lot",
+  "fichiers": [
+   "src/components/fenetre-lot.tsx",
+   "src/app/actions/compta.ts",
+   "src/app/agence/[orgId]/comptabilite/formulaire-compta.tsx",
+   "src/lib/fiscal.ts"
+  ],
+  "correction_proposee": "Réutiliser le formulaire de la comptabilité pré-rempli avec le lot (date de pièce, date d'imputation, part de TEOM quand la catégorie est « taxe foncière »). À défaut, ajouter au moins la date de pièce et la TEOM, et nommer le premier champ « Catégorie » pour que le message d'erreur corresponde.",
+  "preuve": "Champs proposés sur les deux gabarits : categorie « Dépense sur ce lot », montant, libellé. Ni date ni TEOM. Premier envoi : « Catégorie obligatoire. », alors qu'aucun champ ne porte ce nom. En base : `taxe foncière | depense | 123.45 | date_piece 2026-10-27 | date_imputation 2026-10-27`. Journal : « 27/10/2026 … -123,45 € ». La table ecritures n'a pas de politique UPDATE ni DELETE pour les utilisateurs (seulement SELECT et INSERT) : une date fausse ne se corrige que par contre-écriture. Écriture de test supprimée ensuite, sans référence orpheline. Nuance par rapport à l'auditeur : la dépense n'entre pas d'office dans la 2044, elle reste « à qualifier ». Mais la qualification (src/components/formulaires-fiscaux.tsx) ne permet ni de changer la date ni de scinder le montant. La TEOM ne peut donc être écartée qu'en écartant toute la taxe ; si l'utilisateur retient la rubrique 227 suggérée, elle y entre en entier.",
+  "reproduction": "Script fl03.mjs sur « VERIF-LPI Coloc », au téléphone et sur ordinateur. Ouvrir « Journal & dépenses ». Saisir Montant 123,45 et Libellé « avis de taxe foncière 2025 (dont TEOM 20 €) », puis Enregistrer. Remplir ensuite « Dépense sur ce lot » avec « taxe foncière » et Enregistrer.",
+  "cause": "FormulaireDepense (src/components/fenetre-lot.tsx:1299-1360) n'envoie ni date_piece, ni date_imputation, ni teom. ajouterEcriture (src/app/actions/compta.ts:150-158) passe alors undefined, donc le défaut aujourdhui_paris() de la base, et ventilerTeom reçoit 0. recapitulatifFiscal filtre sur date_piece (src/lib/fiscal.ts:64) : une facture de décembre 2025 saisie en 2026 tombe dans l'exercice 2026. Le formulaire de la comptabilité propose pourtant ces champs (comptabilite/formulaire-compta.tsx:316-325)."
+ },
+ "FL-04": {
+  "domaine": "lot-personnes-incidents",
+  "titre": "Un propriétaire créé sans prénom dans « Nouveau propriétaire » est enregistré comme « Personne morale », sans choix possible : une SCI familiale ou un indivisaire mal saisi fait passer le bail nu à 6 ans au lieu de 3, sans que le parcours du bail le signale",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "fiche_lot",
+  "fichiers": [
+   "src/app/actions/parc.ts",
+   "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-detention.tsx",
+   "src/lib/qualite-bailleur.ts",
+   "src/app/agence/[orgId]/baux/[bailId]/personnes-bail.tsx"
+  ],
+  "correction_proposee": "Ajouter à la modale un choix explicite de qualité (QUALITES_BAILLEUR avec l'aide AIDE_QUALITE), ne plus déduire la qualité de l'absence de prénom, et exiger le prénom pour une personne physique. Afficher la qualité du bailleur et la durée qui en découle dans le parcours du bail (étape 2) et sur la fiche du lot quand elle porte la durée à 6 ans.",
+  "preuve": "Texte de la modale (téléphone et ordinateur) : « Nom ou raison sociale * · Adresse * · Code postal * · Ville * · Prénom · Adresse email * ». Aucune liste de qualité (0 select). En base : `VERIF-LPI SCI familiale Roux | prénom vide | Personne morale`, duree_bail_nu_annees = 6. terme_bail_calcule pour une entrée au 01/11/2026 : 2032-10-31, contre 2029-10-31 une fois la qualité corrigée en « SCI familiale ». Aucune étape du parcours n'affiche la qualité ou la durée : seul le nom du bailleur apparaît aux étapes 2 et 7. La qualité ne se corrige qu'en ouvrant « Modifier » sur la fiche du bailleur, et rien n'invite à le faire. Le PDF du bail nu écrit « six ans » (src/lib/documents/modeles/bail-nu.ts:179).",
+  "reproduction": "Lot « VERIF-LPI Lot sans propriétaire » (script fl04.mjs). « Commencer un bail » renvoie vers #detention. Choisir « + Nouvelle personne… », saisir « VERIF-LPI SCI familiale Roux » dans « Nom ou raison sociale * », l'adresse et l'email, laisser le prénom vide, Valider, puis « Enregistrer la détention ». Commencer ensuite un bail et parcourir les étapes 1 à 7 (fl04c.mjs). Enfin, calcul du terme dans une transaction annulée.",
+  "cause": "src/app/actions/parc.ts:439 : `qualite: prenom ? \"Personne physique\" : \"Personne morale\"`. La modale (formulaire-detention.tsx:244-300) présente le prénom comme facultatif et n'offre aucune des qualités de QUALITES_BAILLEUR. Le défaut est une incohérence interne : la règle de l'application elle-même (src/lib/qualite-bailleur.ts, art. 10 et 13 de la loi n° 89-462, 3 ans pour une SCI familiale ou une indivision de personnes physiques) ne peut pas s'exprimer depuis cette fenêtre. Texte légal non revérifié en ligne : legifrance.gouv.fr et service-public.fr sont injoignables depuis le banc."
+ },
+ "FL-05": {
+  "domaine": "lot-personnes-incidents",
+  "titre": "« Compléter : caractéristiques » (liste des biens) mène à une carte qui ne dit pas ce qui manque et n'a aucun bouton, et l'encart « À compléter » de la fiche ne mentionne pas ce manque",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "fiche_lot",
+  "fichiers": [
+   "src/app/agence/[orgId]/parc/vue-parc-proprietaire.tsx",
+   "src/lib/avancement-lot.ts",
+   "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx",
+   "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/recap-lot.tsx"
+  ],
+  "correction_proposee": "Calculer l'encart « À compléter » de la fiche avec avancementLot. Faire pointer le lien du parc vers ?modifier=1#caracteristiques. Dans « Le logement », afficher les mentions manquantes (« Chauffage : à renseigner »…) avec un bouton « Compléter ».",
+  "preuve": "Le lien pointe vers …/lots/<id>#caracteristiques, sans ?modifier=1. Carte atteinte : « Le logement · Surface 90 m² · Pièces 4 · Étage Non renseigné · Mobilier Meublé ». Boutons visibles dans la carte : aucun. Chauffage, Eau chaude, Identifiant fiscal, Locaux privatifs et Autres parties n'apparaissent pas, même pour dire qu'ils manquent (alors que « Étage » affiche bien « Non renseigné »). L'encart « À compléter » de la même fiche dit seulement « 2 diagnostics du lot · 2 diagnostics du bien ». Captures fl05-d.png et fl05-m.png. Seul « Modifier le lot », dans l'en-tête et hors écran après le défilement, ouvre le formulaire.",
+  "reproduction": "Biens & locations : 13 liens « Compléter : caractéristiques » dans le banc. Suivre celui de « VERIF-LPI Coloc » (script fl05.mjs, sur téléphone et sur ordinateur).",
+  "cause": "avancementLot (src/lib/avancement-lot.ts) exige identifiant_fiscal, chauffage, eau_chaude, locaux_privatifs et description pour un logement. Le tableau attention de page.tsx:271-304 ne contrôle aucun de ces champs. RecapLot (recap-lot.tsx:68-69) retire les détails vides et n'affiche son bouton que si boutonModifier, or page.tsx:611 passe boutonModifier={!estProprietaire}. Le lien du parc (vue-parc-proprietaire.tsx:72) n'ajoute pas ?modifier=1, contrairement à « Modifier le lot » (page.tsx:843)."
+ },
+ "FL-06": {
+  "domaine": "lot-personnes-incidents",
+  "titre": "Résumé de la fiche du lot (agence) : « 2 contrats en cours » s'affiche au-dessus du loyer et de la date d'entrée d'un seul contrat",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "fiche_lot",
+  "fichiers": [
+   "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx"
+  ],
+  "correction_proposee": "Avec plusieurs baux en cours, afficher la somme libellée « au total pour N contrats », retirer la date d'entrée d'un seul contrat, et faire de « Voir les N baux » le bouton principal.",
+  "preuve": "#location-apercu : « LOCATION EN COURS · 2 contrats en cours · Bail colocation · Entrée le 01/03/2026 · 470,00 € / mois · charges comprises · Ouvrir le bail · Voir les 2 baux ». Le lien principal mène à …/baux/7e1d…01d2, le seul bail le plus récent. Le total réel est de 970 €, montant qu'affiche la vue propriétaire (« 2 contrats · 970,00 € / mois CC »).",
+  "reproduction": "Lot « VERIF-LPI Agence Coloc » d'Agence Alpha, avec deux baux de colocation actifs (450+50 € créé le 01/12/2025, 420+50 € créé le 15/02/2026), créés avec les déclencheurs actifs. Fiche ouverte en admin.alpha, onglet Résumé (script fl06.mjs, ordinateur et téléphone).",
+  "cause": "page.tsx:236 bailEnCours = bauxEnCours[0], requête triée par created_at décroissant (page.tsx:149). page.tsx:306-309 calcule loyerCc à partir de ce seul bail, et page.tsx:641-650 l'affiche sous le titre « N contrats en cours ». La vue propriétaire utilise totalLoyers (page.tsx:684)."
+ },
+ "FL-07": {
+  "domaine": "lot-personnes-incidents",
+  "titre": "« Créer le contrat individuel d'un locataire → » (Colocation) ne crée rien : il fait défiler vers la liste des contrats",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "fiche_lot",
+  "fichiers": [
+   "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/chambres-logement.tsx",
+   "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx"
+  ],
+  "correction_proposee": "Dans la vue propriétaire, viser #nouvelle-location, ou mieux, lancer la création d'un bail de colocation sur la chambre choisie.",
+  "preuve": "L'URL devient …#baux. Boutons et liens à l'écran : « Gérer le bail », « Gérer le bail », « Gérer les personnes du bail », « Signaler un incident »… aucun geste de création. Le bouton « Commencer un bail » est à top = -1398 px sur ordinateur et -1505 px sur téléphone, donc hors écran. Gravité maintenue à mineure : c'est un lien au libellé trompeur, et la création reste accessible depuis l'en-tête.",
+  "reproduction": "Fiche « VERIF-LPI Coloc » : ouvrir « Colocation · contrats individuels », puis cliquer « Créer le contrat individuel d'un locataire → » (script fl07.mjs, ordinateur et téléphone).",
+  "cause": "chambres-logement.tsx:48 `<a href=\"#baux\">`. Dans la vue propriétaire, #baux désigne travailLocations (page.tsx:711), une liste sans création. Le bloc de création #baux (rubriqueBaux, page.tsx:490) n'existe que dans la vue agence."
+ },
+ "FL-08": {
+  "domaine": "lot-personnes-incidents",
+  "titre": "Messagerie : « Nouveau message » renvoie vers l'annuaire, dont les fiches de locataires sans espace ne permettent pas d'écrire et n'expliquent pas pourquoi",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "incidents",
+  "fichiers": [
+   "src/app/agence/[orgId]/messages/messagerie-proprietaire.tsx",
+   "src/app/agence/[orgId]/personnes/[personId]/page.tsx"
+  ],
+  "correction_proposee": "Dans « Nouveau message », proposer directement les locataires qui ont un espace. Sur la fiche d'un locataire sans espace, afficher une carte Messages qui explique qu'il faut l'inviter, avec le bouton « Inviter ».",
+  "preuve": "Messages : « Aucun échange pour l'instant · Choisissez un locataire pour lui écrire depuis sa fiche. · Nouveau message ». Le lien pointe vers /espace/<org>/personnes. Fiche d'Alice : navigation « Biens et baux · Justificatifs · Accès locataire », 0 zone de rédaction, 0 lien #messages. La carte d'accès dit « Si cette personne est un futur locataire… » à une locataire en cours. Le geste « Inviter comme locataire » existe, mais rien ne le relie à la messagerie.",
+  "reproduction": "Messages (aucune conversation dans le banc) > « Nouveau message » > fiche de « VerifLPI Alice », locataire en cours sans compte (script fl08.mjs).",
+  "cause": "personnes/[personId]/page.tsx:409 : `afficherMessages = !estSaFiche && (messages.length > 0 || Boolean(personne.account_id))`. messagerie-proprietaire.tsx:34/66/82 renvoie vers l'annuaire sans tenir compte de cette condition."
+ },
+ "FL-09": {
+  "domaine": "lot-personnes-incidents",
+  "titre": "Fiches personnes : chambre et nom du locataire garanti absents, aucun historique des baux terminés, statut différent entre liste et fiche, repères redondants",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "fiche_lot",
+  "fichiers": [
+   "src/app/agence/[orgId]/personnes/[personId]/page.tsx",
+   "src/app/agence/[orgId]/personnes/page.tsx"
+  ],
+  "correction_proposee": "Ajouter la chambre et « garant de <nom> » aux lignes de bail, afficher les anciens baux repliés, aligner la liste sur la fiche (« Bail en préparation »), adapter le texte d'accès au profil et alléger « Repères du dossier ».",
+  "preuve": "Alice : « Location en cours · VERIF-LPI Maison · VERIF-LPI Coloc · Locataire · 500,00 € », sans la chambre. Paul : « Garant de · VERIF-LPI Maison · VERIF-LPI Coloc · Garant · 500,00 € », sans le nom d'Alice (que la fiche du lot affiche pourtant : « Garant de VerifLPI Alice »). Ancien locataire : « Sans bail en cours », aucune trace du bail terminé, et la carte « Si cette personne est un futur locataire… Inviter comme locataire ». Chloé : la liste dit « Sans bail en cours », la fiche « Baux en préparation · Brouillon ». « Repères du dossier » répète les cartes voisines (Baux en cours, Justificatifs, Accès locataire).",
+  "reproduction": "Scripts fl08.mjs, fl09.mjs et fl09b.mjs : fiches d'Alice (colocataire de la Chambre 1), de Paul (garant d'Alice), de l'ancien locataire au bail terminé et de Chloé (brouillon), puis la liste « Locataires & garants ».",
+  "cause": "personnes/[personId]/page.tsx:91, 188-191 et 268-271 : COLONNES_BAIL_VIVANT et le filtre `.in(\"etat\", [\"brouillon\",\"actif\",\"preavis\"])` excluent les baux terminés et ne lisent ni la chambre ni garant_de. personnes/page.tsx calcule les rôles sans les brouillons."
+ },
+ "FL-10": {
+  "domaine": "lot-personnes-incidents",
+  "titre": "Choix du propriétaire dans la fiche du lot : locataires et garants proposés comme propriétaires, vocabulaire d'agence, espace avant le point",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "fiche_lot",
+  "fichiers": [
+   "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-detention.tsx"
+  ],
+  "correction_proposee": "Dans l'espace propriétaire, limiter la liste aux propriétaires existants et à « Nouvelle personne », adapter les textes et retirer l'espace avant le point.",
+  "preuve": "Groupe « [Autres personnes] » : Bernard Lucas (locataire avec espace), Durand FicheLot-Alice, VerifLPI Alice, VerifLPI Paul garant, Martin FicheLot-Benoit… Modale : « LA FICHE COMPLÈTE SE RETROUVE DANS PERSONNES » (le menu du propriétaire dit « Locataires & garants ») et « Une adresse ne peut appartenir qu'à une seule fiche de l'agence ». Texte rendu : « La somme active ne peut pas dépasser 100 % . ».",
+  "reproduction": "Lot « VERIF-LPI Lot sans propriétaire » > liste « Propriétaire », puis « + Nouvelle personne… » (scripts fl04.mjs et fl10.mjs).",
+  "cause": "formulaire-detention.tsx:84-90 (autres = toutes les fiches qui ne sont pas déjà propriétaires), textes communs à l'agence et au propriétaire (lignes 231 et 289-290), saut de ligne JSX avant le point (lignes 211-212)."
+ },
+ "FL-11": {
+  "domaine": "lot-personnes-incidents",
+  "titre": "Fiche du lot : « Bails à finaliser », « Le 1 du mois », chambre en préparation répétée, brouillons vides listés comme personnes, résumé d'« Historique » sans chevron",
+  "gravite": "cosmetique",
+  "confiance": "haute",
+  "chantier": "fiche_lot",
+  "fichiers": [
+   "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx",
+   "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/personnes-incidents-lot.tsx",
+   "src/components/fenetre-lot.tsx"
+  ],
+  "correction_proposee": "Écrire « Baux à finaliser » et « 1er du mois ». Ne pas lister les brouillons sans personne dans « Locataires & garants ». Fusionner les chambres en préparation avec le bloc des brouillons. Harmoniser le résumé de l'historique.",
+  "preuve": "Texte : « Bails à finaliser » ; « Le 1 du mois » ×5 ; « Chambres sans location en cours · Chambre 3 · 10 m² · Bail en préparation » juste sous la carte de ce même brouillon ; « Locataires & garants » : « Location 4 · En préparation · Locataire à désigner. · Aucun garant rattaché » (et Location 5). Styles calculés des résumés : « Journal & dépenses » et « Documents » sans puce, avec chevron ; « Historique du lot » en list-item / disclosure-closed, sans chevron.",
+  "reproduction": "Fiche « VERIF-LPI Coloc » avec deux brouillons, dont celui de la Chambre 3 (script fl11.mjs, pendant que les brouillons de FL-02 existaient).",
+  "cause": "page.tsx:719 `Bail{…? \"s\" : \"\"}`, page.tsx:698 `Le ${b.jour_echeance} du mois`, page.tsx:722-725 (chambresSansBail n'exclut pas les chambres en préparation), personnes-incidents-lot.tsx:105-112, résumé de « Historique du lot » sans style (fenetre-lot.tsx)."
+ },
+ "FL-12": {
+  "domaine": "lot-personnes-incidents",
+  "titre": "Aide propriétaire : 7 réponses seulement, rien sur les incidents, la colocation à baux individuels, les diagnostics ni la reprise d'un bail",
+  "gravite": "mineure",
+  "confiance": "moyenne",
+  "chantier": "incidents",
+  "fichiers": [
+   "src/app/agence/[orgId]/faq/questions.ts"
+  ],
+  "correction_proposee": "Ajouter des réponses courtes, avec lien, sur : déclarer et décider d'un incident, préparer une colocation à baux individuels, les diagnostics exigés, reprendre un bail en préparation, inviter un locataire pour échanger.",
+  "preuve": "QUESTIONS contient 7 entrées, dans 4 thèmes (Prise en main, Locataires, Finances, Abonnement). Aucune ne traite de la décision sur un incident (qui paie, artisan), de la colocation à baux individuels, des diagnostics à déposer ni d'un bail en préparation. Pas d'autre source d'aide dans la page, en dehors du contact. La réponse « Chaque locataire a son espace… » ne précise pas qu'il faut d'abord l'inviter (voir FL-08).",
+  "reproduction": "Lecture de src/app/agence/[orgId]/faq/questions.ts et du composant aide-proprietaire.tsx (recherche, thèmes, « écrivez-nous »).",
+  "cause": "Contenu de questions.ts limité à 7 entrées."
+ },
+ "DOC-01": {
+  "domaine": "documents-diagnostics",
+  "titre": "Un DPE réalisé entre 2018 et juin 2021 s'affiche « Valide » jusqu'en 2028-2031 et lève le blocage de mise en location",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "diagnostics",
+  "fichiers": [
+   "app/src/lib/parc.ts",
+   "app/src/lib/documents-bail.ts",
+   "app/src/app/agence/[orgId]/parc/[bienId]/formulaire-diagnostic.tsx",
+   "app/src/app/actions/parc.ts",
+   "app/src/lib/exigences-diagnostics-bail.ts"
+  ],
+  "correction_proposee": "Plafonner l'échéance du DPE selon la date de réalisation : 31/12/2022 pour 2013-2017, 31/12/2024 du 01/01/2018 au 30/06/2021, 10 ans ensuite. Appliquer ce plafond dans expirationDiagnostic, dans deposerDiagnostic et dans erreurDiagnosticBail (refus côté serveur d'une échéance supérieure), et dans lot_blocages_location (borne SQL sur date_realisation). Prévoir une requête de rattrapage des DPE déjà enregistrés, avec une alerte « DPE à refaire ». Mettre le wiki à jour.",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v01-dpe.mjs (téléphone 390 px). Sortie : « Blocages avant : [DPE absent ou expiré…, ERP absent ou expiré…] », « Expire le pré-rempli : 2029-05-10 », « Aide : Calculée à partir de la réalisation… », « Ligne DPE après : DPE | Valide | Échéance le 10/05/2029 · Classe D », « Blocages après : [ERP absent ou expiré…] » : le blocage DPE a disparu. Ordinateur 1440 px : v01-vue.mjs donne la même ligne, capture v01-dpe-vue-ordinateur.png. Le script preuve-validites.ts de l'auditeur, rejoué avec tsx, donne « Valide » et obligatoireEnDefaut=false pour le 10/05/2019, le 30/06/2021 et le 01/07/2021. Le 10/03/2014 ressort bien « Expiré ». Règle : décret n° 2020-1610 du 17/12/2020, art. 1 (legifrance JORFARTI000042695192) et page DPE d'ecologie.gouv.fr. Les DPE réalisés du 01/01/2013 au 31/12/2017 valent jusqu'au 31/12/2022, ceux du 01/01/2018 au 30/06/2021 jusqu'au 31/12/2024. Accès direct à Légifrance impossible (DNS bloqué) : texte lu dans les extraits de recherche restreints à legifrance.gouv.fr et ecologie.gouv.fr. Point qui aggrave le constat : un rapport de 2019 porte lui-même l'échéance 2029 (règle de l'époque). Seule l'application peut corriger, or elle pré-remplit la même date obsolète. Le wiki (concepts/Diagnostic.md) ne mentionne que « 10 ans » : c'est une lacune du wiki, pas une décision documentée.",
+  "reproduction": "Compte isolé vdd.proprio@example.com (org d4d40000-…dd02), lot « VDD Gambetta » (construction 1940). Documents > DPE > Ajouter le fichier, Réalisé le 10/05/2019, classe D, Déposer.",
+  "cause": "src/lib/parc.ts:55 : validite_mois 120 pour le DPE, sans régime transitoire. src/lib/documents-bail.ts:3 (expirationDiagnostic) : réalisation + 120 mois. deposerDiagnostic (src/app/actions/parc.ts:576) ne contrôle pas l'échéance. lot_blocages_location (définition en base) ne teste que date_expiration >= current_date."
+ },
+ "DOC-02": {
+  "domaine": "documents-diagnostics",
+  "titre": "Impasse : un rapport déjà rangé dans « Documents » (type Autre) ne peut plus être déclaré comme diagnostic",
+  "gravite": "critique",
+  "confiance": "haute",
+  "chantier": "diagnostics",
+  "fichiers": [
+   "app/src/app/actions/parc.ts",
+   "app/src/lib/ged.ts",
+   "app/src/lib/ged-depot.ts",
+   "app/src/app/actions/annexe-bail.ts",
+   "app/src/app/agence/[orgId]/documents/actions-fiche-document.tsx",
+   "app/tests/diagnostic-piece-existante-action.test.ts"
+  ],
+  "correction_proposee": "Pour un doublon de type autre ou courrier de la même organisation, proposer « Utiliser ce fichier comme rapport » : une RPC transactionnelle crée le diagnostic sur cette pièce, en la reclassant ou en la versionnant en type diagnostic. Remplacer « dans la GED » par « dans vos documents » et ajouter un lien vers la pièce.",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v02-impasse.mjs (téléphone). Sortie : « Types proposés : Choisir un type, Pièce d'identité, Justificatif, Attestation d'assurance, Courrier, Autre ». Puis « Un fichier au contenu strictement identique existe déjà dans la GED, sous le nom « VDD-DPE-2019-v2 ». Rattachez cette pièce existante plutôt que de la déposer en double. », « Bouton « Utiliser cette pièce » : 0 », « Blocages : [DPE absent ou expiré…, ERP…] ». Capture v02-impasse-telephone.png. Le volet du document ne propose que « Lier à une fiche » et « Nouvelle version » (v03), et aucune action de suppression n'existe (seules remplacerDocument et rattacherDocument dans actions/documents-ged.ts). Le chemin indiqué par le message est donc impraticable. Retélécharger le même PDF chez le diagnostiqueur donne les mêmes octets et le même refus. Seul un fichier aux octets différents (nouveau scan, réimpression PDF) débloque, et l'application ne le suggère jamais. Effet cumulé : chaque nouvel essai consomme le quota horaire (voir DOC-13, essais 1 à 8 tous refusés pour cette raison). Second chemin d'entrée, lu dans le code et non rejoué au navigateur : deposerAnnexeBail (actions/annexe-bail.ts:23) range toujours les annexes du bail en type « autre ». Le test tests/diagnostic-piece-existante-action.test.ts:130 vise les pièces sensibles (identité) ; aucune décision documentée n'exclut « autre » ou « courrier ».",
+  "reproduction": "vdd.proprio@example.com. 1) Documents > + Déposer : un PDF rangé en « Autre » (« Diagnostic » n'est pas proposé). 2) Lot « VDD Belleville » (maison 2005) > DPE > Ajouter le fichier : même PDF, Réalisé le 15/03/2022, classe C, Déposer.",
+  "cause": "src/app/actions/parc.ts:655 : l'offre « Utiliser cette pièce » passe par lirePieceDiagnostic, qui filtre .eq('type','diagnostic') (l.710). src/lib/ged.ts:25 : TYPES_DEPOSABLES exclut « diagnostic ». La fiche document est immuable et sans suppression. Le message de lib/ged-depot.ts:107 invite à « rattacher » sans moyen de le faire."
+ },
+ "DOC-03": {
+  "domaine": "documents-diagnostics",
+  "titre": "« Nouvelle version » d'un rapport de diagnostic dans Documents n'a aucun effet sur le lot, qui continue d'ouvrir l'ancien fichier",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "diagnostics",
+  "fichiers": [
+   "app/src/app/agence/[orgId]/documents/actions-fiche-document.tsx",
+   "app/src/app/agence/[orgId]/documents/pane-document.tsx",
+   "app/src/app/actions/documents-ged.ts",
+   "app/supabase/migrations/20260826180000_revue2_ged.sql"
+  ],
+  "correction_proposee": "Pour type='diagnostic', remplacer « Nouvelle version » par « Renouveler sur la fiche du lot », qui passe par deposerDiagnostic avec de nouvelles dates et l'archivage de l'ancien. Sinon, faire suivre diagnostics.document_id dans la RPC.",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v03-version-diag.mjs (ordinateur). Sortie : « Boutons du volet : Lier à une fiche | Nouvelle version », « Nouvelle version sélectionnée : …sel=19d0ca47… », « Ligne DPE (lot) : DPE | Valide | Échéance le 10/05/2029 · Classe D », « Aperçu « Voir » : … VDD DPE realise le 10/05/2019 », soit l'ancien fichier (capture v03-voir-lot-apres-version-ordinateur.png). SQL sur gerimmo_ci_sql_api : 60b785d9 a nb_diag=1, et 19d0ca47 (remplace_id=60b785d9) a nb_diag=0 avec le seul lien « organisation ». La bibliothèque masque l'ancienne version (documents_courants exclut les pièces remplacées), alors que le lot et le bail continuent d'utiliser cette version masquée.",
+  "reproduction": "vdd.proprio : Documents > « DPE — 10/05/2019 » (60b785d9…) > Nouvelle version, nouveau PDF, Ajouter une nouvelle version. Puis lot VDD Gambetta > DPE > Voir.",
+  "cause": "La RPC remplacer_document_ged (définition en base) copie document_liens et déplace baux.document_signe, mais pas diagnostics.document_id. actions-fiche-document.tsx propose « Nouvelle version » quel que soit le type."
+ },
+ "DOC-04": {
+  "domaine": "documents-diagnostics",
+  "titre": "La bibliothèque Documents affiche « À vérifier, sans échéance renseignée » pour des diagnostics datés, et son compteur « à renouveler » ignore un DPE expiré",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "diagnostics",
+  "fichiers": [
+   "app/src/app/actions/parc.ts",
+   "app/src/lib/presentation-document.ts",
+   "app/src/app/agence/[orgId]/documents/page.tsx",
+   "app/src/app/agence/[orgId]/documents/pane-document.tsx"
+  ],
+  "correction_proposee": "Joindre le diagnostic actif lié à la pièce dans la liste, le volet et documents_a_renouveler, pour afficher Valide, Expire bientôt ou Expiré. Réserver « À vérifier » aux pièces réellement sans échéance.",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v04-bibliotheque.mjs (ordinateur). Sortie : « Lot : DPE | Expiré · à renouveler | Échu le 10/03/2024 ». Dans Documents : « Bandeau renouveler : 1 document à renouveler » et « Lignes DPE : DPE — 10/03/2014 | Diagnostic | … | À vérifier ». Volet : « État | Fichier disponible, sans vérification ni échéance renseignée. ». Captures v04-documents-ordinateur.png et v04-volet-ordinateur.png. q-renouveler.mjs (RPC documents_a_renouveler) ne renvoie que l'attestation d'assurance de DOC-08, pas le DPE expiré : le compteur « 1 document à renouveler » omet donc ce DPE. Nuance : l'accueil signale bien les DPE et ERP expirés (actions-attendues.ts:253-279, non rejoué), et l'alerte n'est donc pas absente partout. Le défaut se limite à la bibliothèque, qui se contredit avec la fiche lot.",
+  "reproduction": "vdd.proprio : lot VDD Belleville > DPE réalisé le 10/03/2014, classe E, Déposer. Puis Documents.",
+  "cause": "actions/parc.ts:644 appelle deposerFichierGed sans expireLe : documents.expire_le reste nul. presentationDocument (lib/presentation-document.ts) et documents_a_renouveler ne lisent que documents.expire_le, jamais diagnostics.date_expiration."
+ },
+ "DOC-05": {
+  "domaine": "documents-diagnostics",
+  "titre": "« Déposer un document » depuis la fiche d'un lot perd le lot : le document n'apparaît jamais sur ce lot",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "depot_documents",
+  "fichiers": [
+   "app/src/components/fenetre-lot.tsx",
+   "app/src/app/agence/[orgId]/documents/formulaire-depot.tsx",
+   "app/src/app/actions/ged.ts"
+  ],
+  "correction_proposee": "Passer ?lot=<id> (et le bail en cours) au dépôt, l'afficher et le rendre modifiable, créer le document_liens correspondant après contrôle d'appartenance, puis proposer « Retour au lot ».",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v05-depot-lot.mjs (téléphone). Sortie : « Avant : Autres documents | Aucun autre document pour ce lot. », « Page de dépôt : /espace/…/documents?sel=depot » (sans lot), « Libellés du formulaire : Votre document / Choisir un fichier / Type de document », « Liens proposés : ← Retour aux documents / Consulter le document / Déposer un autre document », « Après : Autres documents | Aucun autre document pour ce lot. ». SQL : VDD-depot-lot n'a que le lien « organisation ». Capture v05-succes-telephone.png. Le seul rattrapage possible, « Lier à une fiche », souffre de DOC-06.",
+  "reproduction": "vdd.proprio : lot VDD Résidence 2021 > Documents > Autres documents > Déposer un document. PDF en type Autre, Déposer, puis retour sur le lot.",
+  "cause": "src/components/fenetre-lot.tsx:1099 : href `${base}/documents?sel=depot` sans le lot. deposerDocument (actions/ged.ts) ne crée que les liens organisation et personne."
+ },
+ "DOC-06": {
+  "domaine": "documents-diagnostics",
+  "titre": "« Lier à une fiche » liste les lots sans nom de bien : avec les noms par défaut, « Lot unique » apparaît trois fois",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "depot_documents",
+  "fichiers": [
+   "app/src/app/agence/[orgId]/documents/pane-document.tsx",
+   "app/src/app/agence/[orgId]/documents/formulaire-rattacher.tsx"
+  ],
+  "correction_proposee": "Libellé « <bien> · <lot> », ou le nom du bien seul pour un lot unique, comme sur la page Parc. Options groupées par bien. Même libellé dans « Déjà lié à » et pour les baux.",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v06-lier.mjs (téléphone). Sortie : « Types de fiche : Personne, Lot, Bail », « Lots proposés (3) : — Choisir — ; Lot unique ; Lot unique ; Lot unique ». Après choix de la 2e option : « Déjà lié à : Lot Lot unique ». La base indique que ce lot appartient à VDD Belleville, ce que rien n'indiquait à l'écran. Capture v06-lier-telephone.png. Correction de la preuve de l'auditeur : le nom par défaut n'est pas « Appartement » (simple placeholder du formulaire) mais « Lot unique » (creer_bien_avec_lot), et le défaut se voit donc sans aucun renommage. La page Parc remplace déjà « Lot unique » par le nom du bien (parc/page.tsx:331), mais pas ce sélecteur.",
+  "reproduction": "vdd.proprio : trois biens créés par creer_bien_avec_lot (nom de lot par défaut « Lot unique », AUCUN renommage). Documents > VDD-depot-lot > Lier à une fiche > Lot.",
+  "cause": "pane-document.tsx:153 lit lots.select('id, nom') sans le bien. l.277 : libelle: l.nom. l.263 : « Lot ${nom} ». Les baux sont libellés « Bail ${lot.nom} ». Les lots archivés ne sont pas filtrés."
+ },
+ "DOC-07": {
+  "domaine": "documents-diagnostics",
+  "titre": "Plomb (CREP) : résultat jamais demandé ni règle des 6 ans montrée, le statut « Validité à vérifier » ne peut jamais être levé",
+  "gravite": "mineure",
+  "confiance": "moyenne",
+  "chantier": "diagnostics",
+  "fichiers": [
+   "app/src/lib/parc.ts",
+   "app/src/app/agence/[orgId]/parc/[bienId]/formulaire-diagnostic.tsx",
+   "app/src/lib/presentation-diagnostics.ts",
+   "app/src/lib/exigences-diagnostics-bail.ts"
+  ],
+  "correction_proposee": "Demander le résultat du CREP. En cas de présence au-dessus du seuil : échéance réalisation + 6 ans, obligatoire. En cas d'absence : « Valide sans limite (constat négatif) ». Afficher l'aide réglementaire même quand le type vient de la ligne.",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v07-crep.mjs (ordinateur). Sortie : « Formulaire : Rapport du diagnostiqueur | … | Réalisé le | … | Expire le | À renseigner seulement si le rapport indique une échéance. » : ni question sur le résultat, ni aide « 6 ans si positif ». « Expire le : \"\" requis : false ». « Après : Plomb (CREP) | Validité à vérifier | Aucune échéance renseignée ». « Blocages : [ERP…] » : le CREP n'entre jamais dans le blocage. Capture v07-crep-apres-ordinateur.png. Règle : CREP de moins de 6 ans à la signature du bail, sans limite en l'absence de plomb ou sous le seuil (extrait de l'art. R1334-11 du Code de la santé publique et miroir de la fiche service-public F1142 obtenus par recherche, Légifrance inaccessible depuis le banc : non vérifié à la source). Gravité ramenée de majeure à mineure : l'application ne présente jamais ce CREP comme valide. Le lot affiche « Validité à vérifier » et le bail aussi, avec l'action « Vérifier le rapport » (exigences-diagnostics-bail.ts:41 et l.97). Le « bail : Disponible » de preuve-validites.ts vient de statutPieceDiagnostic, que l'écran du bail n'affiche pas tel quel. Reste un manque de guidage et un statut gris qu'aucune réponse ne permet de lever, même pour un constat négatif.",
+  "reproduction": "vdd.proprio : lot VDD Gambetta (1940) > Plomb (CREP) > Ajouter le fichier, Réalisé le 01/06/2015, sans échéance, Déposer.",
+  "cause": "lib/parc.ts : plomb validite_mois null, sans champ de résultat. formulaire-diagnostic.tsx n'affiche l'aide du type que dans la branche « sélecteur », jamais quand typeInitial est fourni. presentation-diagnostics.ts:21 : sans échéance, « Validité à vérifier »."
+ },
+ "DOC-08": {
+  "domaine": "documents-diagnostics",
+  "titre": "Nouvelle version d'une pièce datée : l'ancienne échéance dépassée est pré-remplie, la nouvelle version naît « Expiré » et la date ne peut plus être corrigée",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "depot_documents",
+  "fichiers": [
+   "app/src/app/agence/[orgId]/documents/formulaire-remplacer.tsx",
+   "app/src/app/actions/documents-ged.ts"
+  ],
+  "correction_proposee": "Champ vide, avec l'ancienne échéance en aide. Champ requis si la pièce avait une échéance. Refus côté serveur d'une échéance passée ou inférieure ou égale à l'ancienne. Permettre de corriger l'échéance de la dernière version sans redéposer de fichier.",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v08-version-date.mjs (téléphone). Sortie : « Avant : Expiré », « Date pré-remplie : 2026-06-30 », « Nouvelle version 83d433cf… : Expiré » (capture v08-apres-telephone.png : en-tête « Expiré » avec « Versions antérieures »). Aggravation non relevée par l'auditeur : « Correction de la date : Un fichier au contenu strictement identique existe déjà dans la GED… La nouvelle version doit différer de l'existante. » (capture v08-correction-refusee-telephone.png). La fiche est immuable (aucune modification de expire_le) et l'anti-doublon refuse le même fichier : la fausse échéance devient incorrigible sans un autre fichier. Le commentaire du composant (« proposée en pré-remplissage ») montre que le pré-remplissage est voulu, mais rien ne protège contre une échéance passée.",
+  "reproduction": "vdd.proprio : attestation d'assurance expirée le 30/06/2026, créée via l'API comme le fait deposerFichierGed avec expireLe (prep-assurance.mjs). Documents > cette pièce > Nouvelle version, nouveau PDF, valider sans toucher la date. Puis nouvelle tentative avec le même PDF et la bonne date.",
+  "cause": "formulaire-remplacer.tsx:78 : defaultValue={etat.valeurs?.expire_le ?? expireLe}. remplacerDocument (actions/documents-ged.ts:46) transmet p_expire sans contrôle et refuse tout fichier identique."
+ },
+ "DOC-09": {
+  "domaine": "documents-diagnostics",
+  "titre": "Fiche bien : « Voir le document » ouvre un nouvel onglet, alors que la fiche lot ouvre l'aperçu intégré",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "diagnostics",
+  "fichiers": [
+   "app/src/app/agence/[orgId]/parc/[bienId]/page.tsx",
+   "app/src/app/agence/[orgId]/parc/[bienId]/lignes-diagnostics.tsx"
+  ],
+  "correction_proposee": "Utiliser la modale LecteurDocument pour « Voir » quel que soit le gabarit.",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v09-12.mjs (ordinateur). Sur le lot : « Voir (lot) : 1 bouton(s) » (modale). Sur la fiche bien : « Liens _blank : [\"Voir le document -> /espace/…/documents/19d5ff14…/fichier\"] ». Capture v09-fiche-bien-ordinateur.png.",
+  "reproduction": "vdd.proprio : ERP déposé depuis le lot VDD Gambetta, puis fiche bien /espace/…/parc/f9372aca….",
+  "cause": "parc/[bienId]/page.tsx:444 rend LignesDiagnostics sans compact. lignes-diagnostics.tsx:152 : en mode non compact, lien target=_blank. Sur la fiche lot, compact vaut estProprietaire && parcours !== '1'."
+ },
+ "DOC-10": {
+  "domaine": "documents-diagnostics",
+  "titre": "Un PDF corrompu (en-tête et %%EOF valides) est accepté au dépôt, et son aperçu échoue ensuite",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "depot_documents",
+  "fichiers": [
+   "app/src/lib/file-type.ts",
+   "app/src/lib/depot-direct-client.ts"
+  ],
+  "correction_proposee": "Avant le transfert, ouvrir le PDF avec pdf.js (getDocument, nombre de pages) ou décoder l'image (createImageBitmap), et refuser avec un message clair en cas d'échec.",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v10-11.mjs (ordinateur). Sortie : « VDD-corrompu.pdf -> Document déposé. », puis « Aperçu : L’aperçu n’a pas pu être affiché. Réessayez ou téléchargez le document. | Réessayer ». Capture v10-apercu-corrompu-ordinateur.png. Cas rare en pratique (fichier artificiel), d'où la gravité mineure.",
+  "reproduction": "Documents > + Déposer VDD-corrompu.pdf (%PDF-1.7, 20 000 octets aléatoires, %%EOF), type Autre, puis Consulter le document.",
+  "cause": "lib/file-type.ts : detecterMimeReel ne lit que la signature, pdfComplet que %%EOF. Aucun décodage n'a lieu, ni dans depot-direct-client.ts ni côté serveur."
+ },
+ "DOC-11": {
+  "domaine": "documents-diagnostics",
+  "titre": "Fichier vide : message « Choisissez un fichier. » alors que le nom du fichier choisi est affiché",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "depot_documents",
+  "fichiers": [
+   "app/src/app/actions/ged.ts",
+   "app/src/lib/depot-direct-client.ts"
+  ],
+  "correction_proposee": "Message dédié (« Ce fichier est vide : choisissez le document complet. »), affiché dès la sélection.",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v10-11.mjs (ordinateur). Sortie : « VDD-vide.pdf -> Choisissez un fichier. | nom affiché : 1 ». Capture v10-11-VDD_vide_pdf-ordinateur.png.",
+  "reproduction": "Documents > + Déposer VDD-vide.pdf (0 octet), type Autre.",
+  "cause": "actions/ged.ts:37 : même message pour « aucun fichier » et « taille 0 ». depot-direct-client.ts écarte silencieusement les fichiers de taille 0."
+ },
+ "DOC-12": {
+  "domaine": "documents-diagnostics",
+  "titre": "Électricité et gaz « À préciser » sur un bâtiment construit en 2021 : l'année de construction connue n'est pas réutilisée",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "diagnostics",
+  "fichiers": [
+   "app/src/lib/qualification-diagnostics.ts",
+   "app/src/app/agence/[orgId]/parc/[bienId]/qualification-diagnostic.tsx"
+  ],
+  "correction_proposee": "Bâtiment de moins de 15 ans : pré-remplir l'année d'installation avec l'année de construction, ou proposer « Installation d'origine (AAAA) : non concerné » à confirmer d'un geste.",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v09-12.mjs (ordinateur). Sortie : « Construction | 2021 », « Électricité | À préciser | Année d’installation | Enregistrer | Laissez vide si vous ne savez pas. », « Gaz | À préciser | … ». Champ non pré-rempli. Capture v12-neuf-ordinateur.png. Le commentaire « Une qualification porte sur l’installation, jamais sur l’âge du bâtiment » (qualification-diagnostics.ts) relève d'un choix de conception, mais une installation ne peut pas être antérieure à un bâtiment de 2021 : proposer cette année avec confirmation reste compatible avec ce choix.",
+  "reproduction": "vdd.proprio : lot VDD Résidence 2021 > Documents.",
+  "cause": "evaluerQualificationDiagnostic ignore annee_construction et le formulaire de qualification ne pré-remplit rien."
+ },
+ "DOC-13": {
+  "domaine": "documents-diagnostics",
+  "titre": "Quota de 20 dépôts par heure et par compte, essais refusés compris : les doublons refusés bloquent aussi les dépôts suivants",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "depot_documents",
+  "fichiers": [
+   "app/supabase/migrations/20261020084651_depots_directs_temporaires.sql",
+   "app/src/lib/depot-direct.ts",
+   "app/src/lib/depot-direct-client.ts"
+  ],
+  "correction_proposee": "Ne compter que les dépôts aboutis, ou libérer la réservation d'un essai refusé. Contrôler le doublon par empreinte avant de réserver. Afficher l'heure de reprise. Revoir le seuil pour l'installation d'un parc.",
+  "preuve": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/v13-quota.mjs (ordinateur). Essais 1 à 8 : « Un fichier au contenu strictement identique… » (réservations dans l'heure : 13 → 20). Essai 9 : « Le dépôt ne peut pas être préparé. Vérifiez votre accès ou réessayez dans une heure si vous avez envoyé beaucoup de fichiers. » Capture v13-quota-ordinateur.png. Avant le test : 12 réservations pour 11 documents créés. Les réservations ne sont jamais supprimées à la consommation, et un essai refusé compte autant qu'un dépôt réussi. Reproduit sans partage de compte : ce n'est pas un effet de banc. La limite de 20 est voulue et testée (tests/depot-direct-base.test.ts:19), d'où la gravité mineure. Le défaut tient au décompte des refus et au message, qui ne donne ni l'heure de reprise ni la cause.",
+  "reproduction": "Compte isolé vdd.proprio, utilisé par ce seul vérificateur. 11 dépôts réussis dans l'heure, puis nouvel essai répété du même rapport (doublon refusé) sur le DPE du lot VDD Belleville.",
+  "cause": "support_interne.borner_depots_temporaires (migration 20261020084651) compte toutes les lignes de depots_temporaires de l'heure glissante (n>=20). La réservation (lib/depot-direct.ts:12) précède le contrôle anti-doublon fait par l'action métier."
+ },
+ "DOC-N1": {
+  "domaine": "documents-diagnostics",
+  "titre": "Bibliothèque Documents : les rapports de diagnostic ne disent pas à quel bien ou lot ils appartiennent, et deux ERP de biens différents sont indiscernables",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "diagnostics",
+  "fichiers": [
+   "app/src/app/actions/parc.ts",
+   "app/src/app/agence/[orgId]/documents/page.tsx",
+   "app/src/app/agence/[orgId]/documents/pane-document.tsx",
+   "app/src/app/agence/[orgId]/documents/filtres-proprietaire.tsx"
+  ],
+  "correction_proposee": "Afficher dans la liste et le volet le bien et le lot du diagnostic qui porte la pièce (jointure diagnostics), avec un lien « Ouvrir la fiche du lot ». Inclure le nom du bien dans le titre généré. Ajouter un filtre par bien dans la bibliothèque propriétaire.",
+  "preuve": "Scripts /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-documents-diagnostics/vn1-erp-homonymes.mjs et vn1b.mjs (téléphone). Sortie : « Diagnostics dans Documents : [\"ERP — état des risques — 01/10/2026 | Diagnostic | 27/10/2026 | À vérifier\", \"ERP — état des risques — 01/10/2026 | Diagnostic | 27/10/2026 | À vérifier\", …] ». Volets f8f1c136… et 19d5ff14… : « mentions de bien : aucune », en-têtes identiques à la taille près (612 o / 622 o), et aucun « Déjà lié à ». Capture vn1-documents-erp-homonymes-telephone.png. Seul le contenu du PDF permet de savoir quel ERP concerne quel bien. Dans ces conditions, une « Nouvelle version » (DOC-03) ou un « Lier à une fiche » (DOC-06) peut porter sur le mauvais bien. Les DPE ont le même défaut (« DPE — 10/05/2019 », « DPE — 10/03/2014 »), et le filtre de la bibliothèque propriétaire n'a ni bien ni lot (filtres-proprietaire.tsx).",
+  "reproduction": "vdd.proprio : ERP réalisé le 01/10/2026 déposé sur VDD Gambetta, puis un autre ERP réalisé le même jour sur VDD Belleville (cas courant : ERP générés le même jour pour tout le parc). Documents ?type=diagnostic, puis ouvrir chaque ERP.",
+  "cause": "actions/parc.ts:650 : titre `${referentiel.libelle} — ${formaterDate(realisation)}` sans bien ni lot. deposerFichierGed ne crée que le lien « organisation ». La liste (documents_courants) et pane-document.tsx ne joignent pas diagnostics pour afficher le rattachement."
+ },
+ "CB-01": {
+  "domaine": "bail",
+  "titre": "Deux onglets (ou deux collaborateurs) sur le même brouillon : l'onglet resté ouvert écrase sans prévenir un loyer déjà enregistré",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/app/actions/etapes-bail.ts",
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/baux/[bailId]/formulaire-parcours-bail.tsx",
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/baux/[bailId]/assistant-bail.tsx",
+   "/home/user/GERIMMO_V4/app/tests/etapes-bail-actions.test.ts"
+  ],
+  "correction_proposee": "Faire circuler une révision du brouillon : compteur incrémenté par déclencheur, ou updated_at tenu par déclencheur. Le formulaire l'envoie en champ caché, comme le fait déjà src/app/admin/sante/budget-signatures.tsx avec name=\"revision\", et la mise à jour exige .eq('revision', attendue). En cas d'écart, renvoyer « Ce bail a été modifié dans un autre onglet » en conservant la saisie.",
+  "preuve": "Bail 0964d57f (1440×900) : « base préparée : 800.00 / 50.00 / 800.00 » → « B enregistre loyer 900 → base : 900.00 / 50.00 / 800.00 » → « A au premier plan, loyer affiché : 800.00 » → « A enregistre charges 55 → base : 800.00 / 55.00 / 800.00 », puis A passe à l'étape Documents sans aucun message. Même résultat au téléphone (390×844) sur le bail 290a1adb. En base, baux n'a aucun déclencheur sur updated_at (pg_trigger) : la colonne ne bouge pas. Le test existant tests/etapes-bail-actions.test.ts l. 19 vérifie justement eq('loyer_hc', 500), c'est-à-dire la valeur relue dans la même requête : il valide la garde inefficace. Gravité ramenée de critique à majeure : il faut deux sessions simultanées, et la valeur finale (800) est celle que le récapitulatif affiche avant la génération du PDF. La perte reste toutefois silencieuse.",
+  "reproduction": "Données /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/donnees.sql (lot VERIF-BAIL T2 nu). Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/v2-onglets.mjs <bail> [mobile] : il prépare loyer 800, charges 50 et dépôt 800, ouvre l'étape Loyer dans les onglets A et B, enregistre loyer 900 dans B, remet A au premier plan (événements focus et visibilitychange), puis enregistre seulement charges 55 dans A.",
+  "cause": "modifierEtapeBail (etapes-bail.ts l. 28-43) relit le bail, puis met à jour avec .eq() sur type, loyer_hc, depot_garantie et charges_mode tels qu'il vient de les relire. La garde « Le bail a changé pendant l'enregistrement » ne couvre donc que les quelques millisecondes entre lecture et écriture. FormulaireParcoursBail initialise ses valeurs une seule fois (useState, l. 100). La revérification au retour sur l'onglet (assistant-bail.tsx l. 38-53) ne rafraîchit que les manquants. L'étape renvoie tous ses champs, y compris ceux que l'utilisateur n'a pas modifiés."
+ },
+ "CB-02": {
+  "domaine": "bail",
+  "titre": "Le bouton d'en-tête « Commencer un bail » crée un nouveau brouillon alors qu'un brouillon existe ; « Reprendre le bail » ouvre ensuite le brouillon vide le plus récent",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "fiche_lot",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx",
+   "/home/user/GERIMMO_V4/app/src/app/actions/etapes-bail.ts",
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-bail-lot.tsx"
+  ],
+  "correction_proposee": "Dans l'en-tête, afficher l'action principale déjà calculée (libelleBailPrincipal et hrefBailPrincipal) dès qu'un brouillon ou un bail vivant existe. Garder la création d'un autre contrat dans le repli facultatif. Côté serveur, faire renvoyer par commencerBail le brouillon existant du lot (hors contrat individuel de colocation) au lieu d'en créer un. Choisir comme brouillon à reprendre le plus avancé ou le plus ancien, pas le plus récent.",
+  "preuve": "1440 px : « brouillons au départ : 1 », « Reprendre le bail -> 0964d57f », « en-tête « Commencer un bail » visible : true » (bouton principal plein, 190×44), « après clic en-tête : brouillons 1 → 2 ». 390 px : même chose, « brouillons 2 → 3 ». Sur la capture v1-lot-brouillon-390.png, « Commencer un bail » est le seul bouton principal visible sans défiler. Aggravation non relevée par l'auditeur, vue avec v1c : sur 3 brouillons (0964d57f et 290a1adb remplis, 08f0b803 vide), le premier « Reprendre le bail » mène à 08f0b803, le brouillon vide. Sur des lots loués (VERIF-LPI Coloc, FICHE-LOT T3 relocation), le bouton d'en-tête reste visible : cela peut se justifier pendant un préavis, mais rien ne le distingue.",
+  "reproduction": "/tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/v1-doublon.mjs (1440×900 puis 390×844), v1b-loue.mjs (lots loués), v1c-reprendre.mjs (lien choisi par « Reprendre le bail »).",
+  "cause": "page.tsx l. 844 affiche le FormulaireBailLot compact dès qu'une détention existe et que le lot n'est pas archivé, sans condition sur brouillon ni bail vivant. La section des baux (l. 562-579), elle, range ce formulaire dans « Préparer un autre contrat — facultatif » dès qu'un brouillon existe. commencerBail (etapes-bail.ts l. 50-61) insère sans rien vérifier. Les baux sont triés created_at desc (l. 149) et bailAReprendre = bauxBrouillons[0] (l. 598) : le dernier doublon devient le bail « à reprendre »."
+ },
+ "CB-03": {
+  "domaine": "bail",
+  "titre": "Un bail en préparation disparaît des tâches du tableau de bord et n'apparaît nulle part dans le parc, même avec le filtre « En préparation »",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "fiche_lot",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/lib/pilotage-proprietaire.ts",
+   "/home/user/GERIMMO_V4/app/src/lib/taches-accueil-proprietaire.ts",
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/parc/vue-parc-proprietaire.tsx",
+   "/home/user/GERIMMO_V4/app/src/lib/locations-parc.ts"
+  ],
+  "correction_proposee": "Ajouter aux tâches de l'accueil « Reprendre le bail · <lot> » vers /baux/<id>, à partir des brouillons déjà lus par chargerPilotageProprietaire. Dans le parc, afficher « Bail en préparation » avec un lien direct, et faire porter le filtre aussi sur les brouillons de bail, ou le renommer.",
+  "preuve": "Accueil (aux deux gabarits) : tâches « Préparer la location » pour Studio meublé, T3 relocation et Maison SCI, mais aucune pour le T2 qui a 3 brouillons. Aucun lien de l'accueil ne mène à un brouillon : les seuls liens /baux/ sont des états des lieux d'autres baux. Parc : la carte du T2 affiche « VERIF-BAIL T2 nu Disponible 48 m² · Non meublé Sans location en cours Ouvrir le dossier Compléter : pièces de l'état des lieux », et la page compte 0 lien /baux/. Filtre « En préparation » : il montre 4 lots au statut de lot « brouillon » mais pas le T2 (« T2 nu (3 brouillons) présent : 0 »). Captures v3-accueil-1440.png, v3-accueil-390.png, v8-filtre-en-preparation-390.png.",
+  "reproduction": "/tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/v3-accueil-parc.mjs (1440 et 390) et v8-filtre.mjs (390), avec VERIF-BAIL T2 nu (3 brouillons) et les trois autres lots VERIF-BAIL (sans brouillon à ce moment).",
+  "cause": "resumerPilotage (pilotage-proprietaire.ts l. 23 et 28) retire de lotsSansBail tout lot qui a un bail brouillon, actif ou en préavis. construireTachesAccueil ne produit aucune tâche pour les brouillons. locations-parc.ts (l. 15) ne charge que les baux actifs ou en préavis, et le filtre « En préparation » (vue-parc-proprietaire.tsx l. 30) porte sur lot.etat === 'brouillon', pas sur le bail."
+ },
+ "CB-04": {
+  "domaine": "bail",
+  "titre": "Profil de l'organisation incomplet (en-tête du PDF) : les manques sont imputés aux parties (« Adresse du propriétaire », « Adresse e-mail des parties »)",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/lib/documents/gabarit.ts",
+   "/home/user/GERIMMO_V4/app/src/lib/reperes-bail.ts",
+   "/home/user/GERIMMO_V4/app/src/lib/documents/champs-bail-parcours.ts",
+   "/home/user/GERIMMO_V4/app/src/lib/presentation-recapitulatif-bail.ts",
+   "/home/user/GERIMMO_V4/app/src/components/pastille-bail.tsx"
+  ],
+  "correction_proposee": "Donner à l'en-tête des libellés distincts (« adresse de l'émetteur », « e-mail de l'émetteur ») associés à 'profil'. La correction devient alors « Adresse et e-mail de votre profil » et pointe vers /profil.",
+  "preuve": "Unitaire, profil vide : manquants = [\"domicile ou siège social\",\"adresse électronique\",\"commune\"], corrections = [\"Adresse du propriétaire -> #titre-proprietaires-bail\",\"Adresse e-mail des parties -> #completer-personnes\",\"commune -> /espace/org/profil\"]. Profil complet : manquants = [] et corrections = []. Navigateur : « LES PERSONNES Adresse du propriétaire Adresse e-mail des parties … » ; le clic mène à « étape Personnes | focus H3#titre-proprietaires-bail », où la carte affiche « VERIF-BAIL SCI Les Lilas 100 % verif.bail.sci@example.com 9 rue des Lilas, 69300 Caluire-et-Cuire ». Gravité ramenée de majeure à mineure. Pour un propriétaire direct, /parc/nouveau impose un profil complet avant le premier bien (D29-B, lib/profil-bailleur.ts). Le cas n'apparaît que pour un parc importé (la page /parc/import n'a pas cette porte), pour une agence, ou dans un banc semé sans profil. De plus, le lien « commune » de la même liste et le lien « Compléter les informations du profil pour le bail » de l'étape Personnes (2 liens /profil visibles) mènent au bon endroit. Le parcours de démarrage annonce aussi « Votre identité — à faire ».",
+  "reproduction": "Unitaire : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/unitaire/recap.mjs, section CB-04 (SCI complète, profil vide puis complet). Navigateur : v4-recap.mjs, brouillon feee9b64 sur VERIF-BAIL Maison SCI (SCI avec adresse et e-mail). L'organisation « Parc de Claire Moreau » du banc n'a ni adresse, ni ville, ni e-mail.",
+  "cause": "enTete (gabarit.ts l. 168-170) libelle l'adresse et l'e-mail de l'organisation émettrice exactement comme ceux des parties. reperes-bail.ts l. 65 et 69 les associe à proprietaire.* et locataire.*, et correctionsRecapBail (l. 74) les traduit en « Adresse du propriétaire » et « Adresse e-mail des parties »."
+ },
+ "CB-05": {
+  "domaine": "bail",
+  "titre": "Changer d'étape par le fil d'étapes sans enregistrer : la saisie reste affichée mais n'est pas enregistrée, et rien ne le signale dans l'assistant ; le récapitulatif et le PDF reprennent l'ancienne valeur",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/baux/[bailId]/assistant-bail.tsx",
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/baux/[bailId]/formulaire-parcours-bail.tsx",
+   "/home/user/GERIMMO_V4/app/src/lib/protection-saisie.ts"
+  ],
+  "correction_proposee": "Au changement d'étape, enregistrer l'étape quittée si elle a changé, ou proposer « Enregistrer / Abandonner ». Au minimum, marquer l'étape « modifications non enregistrées » dans le fil et l'afficher dans le récapitulatif avant la génération (saisiesModifiees() existe déjà).",
+  "preuve": "« dialogue natif : null | dialogues visibles : 0 | titre : Clauses » ; « Clauses enregistrée → titre : Récapitulatif | base : 800.00 / 55.00 / 800.00 » ; « récap loyer : Loyer hors charges 800,00 € | mention « non enregistr » dans la page : false » ; « retour Loyer, champ : 1000 | base : 800.00 ». Même chose à 390 px. Correction de la preuve de l'auditeur : quitter la page par un lien déclenche bien la confirmation (« confirm:Des modifications ne sont pas encore enregistrées. Quitter cette page et les abandonner ? »). Seule la navigation interne à l'assistant reste silencieuse. Les « 2 fenêtres » comptées par le script de l'auditeur sont des dialogues masqués : 0 visible. Captures v2-recap-1440.png, v2-recap-390.png.",
+  "reproduction": "/tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/v2-onglets.mjs, section « fil d'étapes » (1440 et 390) : à l'étape Loyer, taper 1000 à la place de 800, cliquer « Clauses » dans le fil, « Enregistrer et continuer » jusqu'au récapitulatif, revenir à Loyer, puis cliquer un lien du menu.",
+  "cause": "Le fil appelle changer(i) (assistant-bail.tsx l. 110 et 120), qui bascule de panneau sans rien enregistrer. Les fieldsets de l'étape quittée deviennent disabled et ne sont pas soumis (formulaire-parcours-bail.tsx l. 159). protection-saisie.ts garde volontairement la saisie de l'étape masquée (l. 96) mais n'avertit qu'au départ de la page. L'état modifie, remis à false après l'enregistrement de Clauses (l. 137), n'alimente ni le fil ni le récapitulatif."
+ },
+ "CB-06": {
+  "domaine": "bail",
+  "titre": "Fausse alerte sur l'étape Loyer : « loyer + charges, montant au prorata » vise le loyer déjà rempli alors qu'il manque la date d'entrée",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/lib/documents/modeles/bail-nu.ts",
+   "/home/user/GERIMMO_V4/app/src/lib/documents/modeles/bail-meuble.ts",
+   "/home/user/GERIMMO_V4/app/src/lib/reperes-bail.ts",
+   "/home/user/GERIMMO_V4/app/src/lib/presentation-recapitulatif-bail.ts"
+  ],
+  "correction_proposee": "Associer cette mention à bail.date_debut quand loyer et charges sont renseignés, ou l'ignorer quand la date manque déjà, avec un libellé lisible.",
+  "preuve": "Unitaire : manquants [\"Date d’entrée du bail\",\"loyer + charges, montant au prorata\"], corrections [\"Date d’entrée [bail] -> #parcours-date_debut\",\"loyer + charges, montant au prorata [loyer] -> #parcours-loyer_hc\"]. Navigateur : « pastille Loyer : Étape 04 Loyer 5 à compléter », sans aucun champ requis vide à l'étape. Le récapitulatif liste « LOYER ET PAIEMENT … loyer + charges, montant au prorata », lien #parcours-loyer_hc. Le cas suppose que l'étape Loyer soit enregistrée avant l'étape 1 (accessible par le fil).",
+  "reproduction": "Unitaire : /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/unitaire/recap.mjs, section CB-06. Navigateur : v4-recap.mjs, studio meublé e7a4f13f (500 / 30 / 1000 / jour 1 enregistrés avant l'étape 1).",
+  "cause": "premiereEcheance (bail-nu.ts l. 47-49) et montantPremiereEcheance (bail-meuble.ts l. 72-75) déclarent le montant manquant quand date_debut est vide. reperes-bail.ts l. 13 (/^loyer \\+ charges/) l'associe à bail.loyer_hc et bail.charges."
+ },
+ "CB-07": {
+  "domaine": "bail",
+  "titre": "Complément de loyer facultatif signalé « Compléter / 1 information à vérifier » au récapitulatif alors que l'étape Clauses est « Renseigné » et que le PDF imprime « néant »",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/lib/presentation-recapitulatif-bail.ts",
+   "/home/user/GERIMMO_V4/app/src/lib/documents/modeles/mentions-location.ts"
+  ],
+  "correction_proposee": "Marquer complement_loyer facultatif, ou afficher « Néant », dans rubriquesRecapBail.",
+  "preuve": "Base : « true ref=15.20 compl=null ». Rubrique : « Conditions du bail Modifier 1 information à vérifier … Complément de loyer Compléter ». Corrections « Conditions » : aucune. Fil : « Étape 06 Clauses Renseigné ». Unitaire : le générateur ne signale rien (manquants []), le PDF contient « Complément de loyer : néant », et la ligne du récapitulatif porte {\"facultatif\":false}. Capture v5-complement-1440.png.",
+  "reproduction": "/tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/v5-divers.mjs sur 0964d57f (encadrement Oui, 15,20 et 18,24, servitude Non, complément vide), et unitaire/recap.mjs, section CB-07.",
+  "cause": "presentation-recapitulatif-bail.ts l. 33 crée la ligne complement_loyer sans facultatif=true dès que encadrement_loyer est vrai, alors que mentions-location.ts l. 72 le traite comme facultatif (« néant »)."
+ },
+ "CB-08": {
+  "domaine": "bail",
+  "titre": "Relocation : le bail précédent du lot (loyer, charges, échéance, IRL, date de sortie) n'est pas repris",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/app/actions/etapes-bail.ts",
+   "/home/user/GERIMMO_V4/app/src/lib/initialiser-parcours-bail.ts"
+  ],
+  "correction_proposee": "À la création, proposer precedente_location (selon date_sortie_reelle et le seuil de 18 mois), dernier_loyer, la dernière révision, ainsi que charges, jour d'échéance et trimestre IRL, comme valeurs modifiables signalées « repris du bail précédent ».",
+  "preuve": "« loyer (vide) | charges (vide) | jour 1 | précédente (vide) | IRL trimestre (vide) », et aucune mention du bail précédent à l'étape (« mention du bail précédent dans l'étape : false »).",
+  "reproduction": "/tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/v4-recap.mjs, section CB-08 : lot VERIF-BAIL T3 relocation, avec un bail terminé le 31/08/2026 (930 / 65, jour 5, IRL T2 140,59). Brouillon 0099230d créé par l'en-tête.",
+  "cause": "commencerBail (etapes-bail.ts l. 55) n'insère que organization_id, lot_id, type et etat. Le dernier bail terminé du lot n'est jamais lu."
+ },
+ "CB-09": {
+  "domaine": "bail",
+  "titre": "Corrections du récapitulatif : libellés bruts, plusieurs lignes pour un même locataire absent, ciblage au niveau de la section et lien profil sans retour",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/lib/presentation-recapitulatif-bail.ts",
+   "/home/user/GERIMMO_V4/app/src/lib/documents/champs-bail-parcours.ts",
+   "/home/user/GERIMMO_V4/app/src/lib/documents/modeles/bail-meuble.ts",
+   "/home/user/GERIMMO_V4/app/src/components/pastille-bail.tsx"
+  ],
+  "correction_proposee": "Une seule correction « Choisir le locataire » quand le locataire principal manque. Compléter le dictionnaire. Viser la carte de la personne concernée. Passer un paramètre de retour vers le bail sur /profil.",
+  "preuve": "Studio : « personne physique, SCI, indivision… · Identité du locataire · Date de naissance du locataire · Commune de naissance du locataire · Adresse du locataire · commune · nom et prénom(s) du ou des locataires ». Libellés bruts relevés en unitaire : « inventaire du mobilier — au moins les 11 éléments du décret », « classe DPE du logement », « commune », « nom et prénom(s) du ou des locataires », et dans le navigateur « équipements du logement », « loyer + charges, montant au prorata ». Clics : « Adresse du propriétaire », « Adresse e-mail des parties » et « Qualité du propriétaire » mettent tous le focus sur « H3#titre-proprietaires-bail ». ProfilBailACompleter pointe vers ${base}/profil sans paramètre retour, et la page profil ne gère que retour=nouveau-lot.",
+  "reproduction": "unitaire/recap.mjs, section CB-09 (meublé sans locataire). v4-recap.mjs (corrections du studio e7a4f13f) et v5-divers.mjs (clics sur les liens « Les personnes » de 0964d57f), dans /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/.",
+  "cause": "correctionsRecapBail ne traduit que les mentions de son dictionnaire (l. 74), et le modèle meublé emploie un autre libellé de qualité (bail-meuble.ts l. 144). Le dédoublonnage porte sur la paire (href, libellé), pas sur la cause. cibleChampBail renvoie des ancres de section."
+ },
+ "CB-10": {
+  "domaine": "bail",
+  "titre": "Le récapitulatif n'indique ni la durée du contrat ni sa date de fin",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/lib/presentation-recapitulatif-bail.ts",
+   "/home/user/GERIMMO_V4/app/src/lib/documents/modeles/bail-nu.ts"
+  ],
+  "correction_proposee": "Ajouter « Durée » et « Fin du contrat (calculée) » dans la rubrique « Le contrat », à partir de dureeBailNuAnnees, du type et de meuble_etudiant.",
+  "preuve": "Navigateur : « récap SCI mentionne durée/fin : false ». Unitaire : la rubrique « Le contrat » ne contient que [\"Type de bail\",\"Date d’entrée\",\"Conclusion prévue\"] (plus « Bail étudiant 9 mois » en meublé étudiant). La durée n'existe que dans le PDF (bail-nu.ts l. 179, dureeBailNuAnnees). Règle légale (loi n° 89-462, art. 10 : 3 ou 6 ans ; art. 25-7 : 1 an en meublé, 9 mois pour un étudiant) non vérifiée en ligne : service-public.fr et legifrance.gouv.fr sont injoignables depuis le banc (ENOTFOUND).",
+  "reproduction": "v4-recap.mjs (récapitulatif du brouillon SCI feee9b64) et unitaire/recap.mjs, section CB-10, dans /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/.",
+  "cause": "rubriquesRecapBail (l. 42-46) ne présente que les dates d'entrée et de conclusion."
+ },
+ "CB-11": {
+  "domaine": "bail",
+  "titre": "Le bouton Retour du navigateur quitte l'assistant au lieu de revenir à l'étape précédente",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/baux/[bailId]/assistant-bail.tsx"
+  ],
+  "correction_proposee": "Utiliser pushState pour Suivant, Précédent et le fil d'étapes. Le gestionnaire popstate existant (l. 79) rouvre déjà l'étape.",
+  "preuve": "« après Suivant : …#etape-bail-3 | Le logement » puis « après Retour : /espace/<org>/parc | (assistant absent) ». Le comportement replaceState de changer() existait avant la PR (ancienne ligne retirée dans git show 555c5282). La PR a ajouté pushState pour les liens internes (l. 75) : Retour se comporte donc différemment selon qu'on a suivi un lien ou un bouton.",
+  "reproduction": "/tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/v5-divers.mjs, section CB-11 : ouvrir le parc, puis /baux/<id>#etape-bail-2, cliquer « Suivant », puis Retour.",
+  "cause": "changer() (l. 110) remplace l'entrée d'historique avec history.replaceState, alors que les liens internes l'empilent avec pushState."
+ },
+ "CB-12": {
+  "domaine": "bail",
+  "titre": "Lien « Règlement de copropriété » des pièces du récapitulatif : le focus clavier est perdu (BODY)",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/baux/[bailId]/assistant-bail.tsx"
+  ],
+  "correction_proposee": "Exclure les éléments sous details:not([open]), ou vérifier document.activeElement après focus() et se replier sur le titre de la carte.",
+  "preuve": "« après clic : étape Documents | focus BODY … | cible visible true ». Seul champ de la carte : [{\"t\":\"file\",\"n\":\"fichier\",\"rects\":1,\"dansDetailsFerme\":true,\"hidden\":false}]. Capture v5-reglement-1440.png.",
+  "reproduction": "/tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/v5-divers.mjs, section CB-12 : récapitulatif de 0964d57f, puis lien #reglement-copro dans « Pièces du dossier ».",
+  "cause": "visible() (l. 97) repose sur getClientRects().length > 0. Le champ fichier d'un <details> fermé, descendant de la cible, passe ce test mais n'est pas focalisable. La boucle de la l. 96 n'ouvre que les <details> parents de la cible, et le titre n'est jamais essayé."
+ },
+ "CB-13": {
+  "domaine": "bail",
+  "titre": "Rubrique « Propriétaires, locataires et garants » : « 1 information enregistrée », sans état d'attention, alors qu'aucun locataire n'est choisi",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/lib/presentation-recapitulatif-bail.ts",
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/baux/[bailId]/bilan-bail.tsx"
+  ],
+  "correction_proposee": "Ajouter une ligne non facultative « Locataire principal » (valeur null, lien #titre-locataires-bail) quand le locataire manque.",
+  "preuve": "« rubrique Personnes : … 1 information enregistrée Propriétaire Moreau Claire · 100.00 % | data-attention : 0 ». Unitaire : lignes [[\"Propriétaire\",\"Moreau Claire · 100 %\",false]]. Le bloc « À compléter dans le contrat », juste au-dessus, liste bien les éléments du locataire : le manque est donc signalé ailleurs, et cette rubrique ne fait que se contredire.",
+  "reproduction": "v5-divers.mjs (0964d57f, sans locataire) et unitaire/recap.mjs, section CB-13, dans /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/.",
+  "cause": "La rubrique ne liste que les personnes présentes (l. 47). bilan-bail.tsx n'y compte aucune ligne vide, donc aucun data-attention."
+ },
+ "CB-14": {
+  "domaine": "bail",
+  "titre": "Inventaire du meublé saisi meuble par meuble : les 11 éléments du décret ne sont qu'un texte, sans ajout groupé",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/baux/[bailId]/formulaire-inventaire.tsx"
+  ],
+  "correction_proposee": "Proposer « Ajouter les 11 éléments obligatoires » (lignes pré-remplies, état à préciser) et la reprise de l'inventaire du bail précédent du lot.",
+  "preuve": "« Mobilier minimum obligatoire (décret 2015-981) Literie … Matériel d'entretien ménager … Aucun meuble inventorié … Ajouter un meuble Désignation Pièce Quantité État … ». Seul bouton : [\"Ajouter au mobilier\"]. Capture v5-inventaire-1440.png.",
+  "reproduction": "/tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/v5-divers.mjs, section CB-14 : studio meublé e7a4f13f, #inventaire.",
+  "cause": "FormulaireInventaire n'offre que l'ajout ligne par ligne. La liste du décret n'est qu'un rappel."
+ },
+ "CB-15": {
+  "domaine": "bail",
+  "titre": "Message d'erreur obsolète : « choisissez la colocation à l'étape Dates et montants » (l'étape s'appelle « Le bail »)",
+  "gravite": "cosmetique",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/supabase/migrations/20261009150000_personnes_bail_simplifie.sql"
+  ],
+  "correction_proposee": "Remplacer par « … à l'étape Le bail » dans une nouvelle migration.",
+  "preuve": "« RPC colocataire sur bail nu : Pour plusieurs locataires sur ce contrat, choisissez la colocation à l’étape Dates et montants. » Le texte est présent dans pg_proc (position('Dates et montants') > 0), et 20261009150000 est la seule migration qui le porte.",
+  "reproduction": "/tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/v6-rpc.mjs 0964d57f… : RPC choisir_personne_bail avec le rôle colocataire sur un bail nu, en tant que proprietaire@example.com. Dans l'interface, on n'y arrive que depuis un onglet resté ouvert, puisque « Ajouter un colocataire » n'est proposé qu'en colocation (personnes-bail.tsx l. 231).",
+  "cause": "Le texte de l'exception (l. 33) n'a pas suivi le renommage des étapes."
+ },
+ "CB-16": {
+  "domaine": "bail",
+  "titre": "Petits défauts de texte : « 7 bailx en cours », « Bails à finaliser », message de plafond sans montant, quote-part au format non français",
+  "gravite": "cosmetique",
+  "confiance": "haute",
+  "chantier": "fiche_lot",
+  "fichiers": [
+   "/home/user/GERIMMO_V4/app/supabase/migrations/20260927163000_parcours_demarrage_premier_loyer.sql",
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx",
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/parc/vue-parc-proprietaire.tsx",
+   "/home/user/GERIMMO_V4/app/src/app/agence/[orgId]/baux/[bailId]/recapitulatif-parcours-bail.tsx",
+   "/home/user/GERIMMO_V4/app/src/lib/champs-etape-bail.ts"
+  ],
+  "correction_proposee": "Écrire « bail » ou « baux ». Formater la quote-part avec Number(...).toLocaleString('fr-FR'). Indiquer le plafond calculé dans le message.",
+  "preuve": "Tableau de bord : « Le bail | — fait | 7 bailx en cours » (format('%s bail%s en cours', …, 'x'), version en base confirmée par pg_proc). Ajout du vérificateur : la fiche du lot affiche « Bails à finaliser » (page.tsx l. 719), et vue-parc-proprietaire.tsx l. 66 produit « N bails en cours » (code seulement). Dépôt : « Le dépôt de garantie dépasse le plafond du type de bail choisi. Corrigez-le à l’étape Loyer. », affiché sur l'étape Loyer elle-même, sans le plafond de 1 000 €. Quote-part : « 100.00 % » vient du banc. L'émulateur local (e2e/local/serveur-supabase-local.mjs) ne déclare pas de parseur pour numeric (1700) et renvoie donc du texte, alors que PostgREST renvoie un nombre JSON (affichage « 100 % »). Le défaut réel se limite aux quotes-parts décimales : l. 28 interpole la valeur brute, d'où « 33.33 % » au lieu de « 33,33 % ».",
+  "reproduction": "v7-textes.mjs (tableau de bord, puis dépôt de 1000,01 sur le studio meublé à 500 €) et v1c-reprendre.mjs (fiche du T2 avec 3 brouillons), dans /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-bail/.",
+  "cause": "Pluriels construits en ajoutant « s » ou « x » à « bail ». Quote-part interpolée sans toLocaleString. Message générique à champs-etape-bail.ts l. 64."
+ },
+ "ED-01": {
+  "domaine": "espaces-droits",
+  "titre": "L'assurance du locataire classée pendant la préparation du bail n'est plus reprise après l'activation : le locataire se la voit réclamer, aucune alerte d'échéance ne la suit, et le propriétaire ne la voit plus sur le bail actif",
+  "gravite": "majeure",
+  "confiance": "haute",
+  "chantier": "bail",
+  "fichiers": [
+   "app/supabase/migrations/20261026232941_pieces_attendues_bail.sql",
+   "app/src/app/actions/pieces-attendues-bail.ts",
+   "app/src/app/agence/[orgId]/baux/[bailId]/documents-parcours-bail.tsx",
+   "app/supabase/migrations/20260909100000_correctifs_audit_documentaire.sql",
+   "app/supabase/migrations/20260906100000_correctifs_audit.sql",
+   "app/src/app/locataire/[orgId]/layout.tsx",
+   "app/src/app/locataire/[orgId]/page.tsx",
+   "app/src/app/locataire/[orgId]/documents/page.tsx"
+  ],
+  "correction_proposee": "Au classement 'assurance_locataire', ou au plus tard dans activer_bail, rattacher aussi le document aux fiches des locataires engagés : document_liens entite 'personne' pour le locataire principal et les colocataires. Ne pas renseigner verifie_le : la couverture reste à vérifier. À défaut, faire lire pieces_attendues_bail des baux actifs ou en préavis par mes_pieces_locataire, generer_alertes_assurance et la fiche du bail actif.",
+  "preuve": "Sortie SQL rejouée, identique à celle de l'auditeur : « affecter_piece_attendue_bail => OK ; liens du document => ['bail'] ; mes_pieces_locataire (locataire) => [] ; mon_document_locataire(doc) => 0 ligne ; generer_alertes_assurance => 0 créée ». Témoin : avec un lien 'personne', la pièce apparaît et l'alerte « Assurance habitation — SONDE Locataire : expire le 06/11/2026 (relance à faire) » est créée. Navigateur, à 390 px comme à 1440 px, l'accueil du locataire affiche « 1 à faire | Votre attestation d'assurance manque | … | Assurance à déposer ». La navigation porte « Mes documents 1 — 1 élément à traiter », et la page Documents affiche « Votre assurance habitation | Ajouter mon attestation » (captures verif-espaces-droits/captures/ed01-accueil-telephone.png, ed01-accueil-ordinateur.png, ed01-documents-*.png). Côté propriétaire, la fiche du bail actif et la fiche de la personne ne mentionnent ni l'attestation ni l'assurance (texte filtré sur /attestation|assuran/ : seul le nom du lot ressort). Le parcours « Les assurances » n'existe qu'en brouillon (page.tsx : assistantBailAffiche = etat 'brouillon'). En base, seule affecter_piece_attendue_bail lit ou écrit pieces_attendues_bail : la requête sur pg_proc.prosrc ne renvoie qu'elle. activer_bail et les 17 déclencheurs de baux ne touchent ni document_liens ni cette table. Les tests existants (pieces-attendues-bail-base, recapitulatif-pieces-bail, pieces-attendues-bail-actions : 50/50 verts) ne testent jamais l'après-activation. Le wiki (concepts/Dossier locataire.md, « L'attestation d'assurance — cycle annuel critique ») exige les seuils J-30, J-15, J+0 et J+15 pour toute attestation : une attestation classée ici, échéance connue, y échappe.",
+  "reproduction": "1) SQL, base gerimmo_ci_sql, transaction annulée : node /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/espaces-droits/sonde-assurance-locataire.mjs, rejoué tel quel. Le script classe l'attestation (échéance J+10) avec affecter_piece_attendue_bail, sous le JWT du propriétaire, sur un bail brouillon. Il active ensuite le bail, lit mes_pieces_locataire sous le JWT du locataire et lance generer_alertes_assurance(). 2) Navigateur sur le banc gerimmo_ci_sql_api, données de l'auditeur : bail e2e0543d-d2f6-46f4-9693-34e3f132f40d, actif, avec la pièce classée (lien 'bail' seulement, échéance 2027-05-15). Scripts /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-espaces-droits/ed01-vue.mjs (locataire espaces-droits.locataire@example.com, à 390×844 et 1440×900) et ed01-proprio.mjs (proprietaire@example.com : fiche du bail actif, fiche de la personne, accueil).",
+  "cause": "supabase/migrations/20261026232941_pieces_attendues_bail.sql : affecter_piece_attendue_bail rattache le document au seul bail (document_liens entite 'bail' et pieces_attendues_bail.bail_id). Or mes_pieces_locataire (CTE dossier et attestation_validee), generer_alertes_assurance et l'état d'assurance de l'espace locataire ne lisent que les liens entite 'personne'. Cet état est calculé dans layout.tsx l.73-84 ainsi que dans page.tsx et documents/page.tsx, tous via mes_pieces_locataire. pieces_bail_locataire ne renvoie que document_signe et reglement_copropriete. Côté propriétaire, documents-parcours-bail.tsx, seul écran qui affiche la pièce, n'est rendu que pour un bail en brouillon."
+ },
+ "ED-02": {
+  "domaine": "espaces-droits",
+  "titre": "Supervision au téléphone et sur tablette (≤ 900 px) : 16 liens sur 17 du menu passent en gris sur le fond bleu nuit photographié (contraste 2,0 à 2,9:1)",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "transversal",
+  "fichiers": [
+   "app/src/app/experience-unifiee.css",
+   "app/src/app/globals.css",
+   "app/src/app/ambiances.css",
+   "app/src/app/admin/layout.tsx",
+   "app/src/app/admin/nav-admin.tsx"
+  ],
+  "correction_proposee": "Limiter le fond sombre de .admin-late à @media (min-width:901px) dans experience-unifiee.css, comme ambiances.css. Sinon, donner aux .admin-nav-lien non courants une couleur claire (#e1e9f3) sous 901 px.",
+  "preuve": "ed02-menu.mjs : à 390, 700 et 900 px, avec la PR, 16 liens sur 17 sont sous 4,5:1. Leur couleur rgb(94,108,125) se pose sur le fond rgb(20,38,61) de .admin-late, soit 2,85:1 sur le fond plein ; la photo éclaircit encore le fond. Sans la classe, rgb(75,88,112) sur rgb(247,248,250) donne 6,75:1, et aucun lien n'est sous le seuil. À 1440 px, les liens sont rgb(225,233,243), à 12,5:1. ed02-pixels.mjs à 390 px : 16 liens sur 17 sous 4,5:1 avec la PR, minimum moyen 2,05 (« Décisions à prendre » 2,8) ; sans la classe, minimum 6,59. Capture : verif-espaces-droits/captures/ed02-menu-390-apres.png, texte gris sur photo d'immeuble bleu nuit, nettement peu lisible.",
+  "reproduction": "Session superadmin@example.com ouverte par /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-espaces-droits/session-sa.mjs (code TOTP du facteur existant, sans remise à zéro des facteurs). Ouvrir /admin/brief à 390, 700, 900 et 1440 px, toucher « Menu supervision ». Mesures : ed02-menu.mjs (couleur du texte contre la couleur de fond pleine de l'ancêtre) et ed02-pixels.mjs (échantillonnage des pixels, même méthode que l'auditeur), avec puis sans la classe experience-unifiee.",
+  "cause": "src/app/experience-unifiee.css l.8-12 applique à toutes les largeurs le fond #14263d avec la photo quartier-gerimmo-2026.jpg, via `.experience-unifiee :is(.loc-late,.admin-late,[data-espace-menu])`. Sous 901 px, .admin-nav-lien garde `color: var(--texte-secondaire)` (globals.css l.2652), prévu pour un panneau clair. experience-unifiee.css redéfinit en plus --texte-secondaire en #5e6c7d. La couleur claire des liens n'existe qu'au-delà de 900 px. ambiances.css limite déjà ce décor de .admin-late à min-width:901px ; la classe experience-unifiee a été ajoutée à .admin-coquille par la PR (admin/layout.tsx l.59)."
+ },
+ "ED-03": {
+  "domaine": "espaces-droits",
+  "titre": "Marque blanche : dans l'espace locataire d'une agence à charte, le bouton d'action principal (.btn-or) prend l'or de Gerimmo au lieu de la couleur de l'agence",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "transversal",
+  "fichiers": [
+   "app/src/app/experience-unifiee.css",
+   "app/src/app/prestige.css",
+   "app/src/app/layout.tsx",
+   "app/src/lib/marque-organisation.ts",
+   "app/src/app/ambiances.css"
+  ],
+  "correction_proposee": "Dans experience-unifiee.css, écrire .btn-or avec var(--marque) et var(--sur-marque), en gardant #d6bb83 comme valeur par défaut de --marque hors charte. Ne pas afficher le décor saisonnier lorsqu'une charte d'agence est active.",
+  "preuve": "Le style en ligne produit par styleMarque est bien présent (« --marque:#0a6e46;--marque-sombre:#085a39;… »). Pourtant, aux deux gabarits, « Signaler un problème » s'affiche en fond rgb(214,187,131) et texte rgb(23,40,62). Sans la classe : fond rgb(10,110,70), texte blanc. Les autres éléments de la charte s'appliquent : titres « Mes demandes » en rgb(59,31,92), lien « signalez-le ici » vert. Le bouton doré détonne donc au milieu d'une page verte et violette (capture verif-espaces-droits/captures/ed03-ordinateur-demandes-avec.png). Avant la PR, prestige.css contenait déjà `.gerimmo-prestige .btn-or { background: var(--marque) }` (vérifié dans 98223ad2) : c'est bien une régression. Le wiki (concepts/Marque blanche.md) prévoit que l'habillage de l'agence s'applique aux espaces locataire. La même capture montre aussi la citrouille d'Halloween dans l'en-tête et la photo saisonnière dans la barre latérale du portail de l'agence (ambiances.css, nouveau). En revanche, le fond bleu nuit de la barre latérale existait avant la PR (var(--prestige-nuit)) et n'est pas en cause.",
+  "reproduction": "Reproduction réelle, sans injection de variables. Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-espaces-droits/ed03-prep.mjs, sur gerimmo_ci_sql_api : agence fictive « VED Agence Marque Verte » (couleur_primaire #0a6e46, secondaire #3b1f5c, portail « VED Portail Vert »), locataire verif-espaces-droits.locataire@example.com, bail actif. Ensuite ed03-marque.mjs : connexion du locataire, /locataire/a540c5e1-2e06-42cb-b68f-fea517487462/demandes à 390×844 et 1440×900, mesure du fond de .btn-or avec la classe experience-unifiee, puis après son retrait du DOM.",
+  "cause": "src/app/experience-unifiee.css l.19 : `.experience-unifiee .btn-or { background:#d6bb83; color:#17283e }`. Cette règle a la même spécificité que prestige.css l.231 `.gerimmo-prestige .btn-or { background: var(--marque) }`, et src/app/layout.tsx l'importe après prestige.css : elle l'emporte. tests/marque-organisation.test.ts ne vérifie que les valeurs de styleMarque, pas la cascade CSS."
+ },
+ "ED-04": {
+  "domaine": "espaces-droits",
+  "titre": "Mes documents (locataire) : deux gestes de consultation différents dans la même liste ; le titre d'une pièce n'est plus cliquable alors que celui d'une quittance l'est",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "transversal",
+  "fichiers": [
+   "app/src/app/locataire/[orgId]/documents/page.tsx",
+   "app/src/app/locataire/[orgId]/page.tsx",
+   "app/src/app/locataire/[orgId]/logement/page.tsx",
+   "app/src/components/apercu-document-espace.tsx"
+  ],
+  "correction_proposee": "Choisir un seul geste de consultation pour l'espace locataire, et que le titre du rang le déclenche. Soit la modale partout (le bail de l'accueil et de « Mon logement » passe aussi par ApercuDocumentEspace), soit le nouvel onglet partout. Mettre à jour le commentaire.",
+  "preuve": "Aux deux gabarits, le rang « Bail signé » a un titre non cliquable et les commandes BUTTON « Aperçu » (modale) et A « Télécharger » (nouvel onglet). Le rang « Reçu de paiement partiel — septembre 2026 » a un titre cliquable (nouvel onglet) et les commandes « Ouvrir » et « Enregistrer en PDF », toutes deux en nouvel onglet. Le même bail signé s'ouvre dans une modale depuis Documents (Fermer, zoom, Agrandir, Télécharger), mais dans un nouvel onglet depuis l'accueil et « Mon logement » (« Consulter mon bail signé », target=_blank, /bail/fichier). Avant la PR, le titre de la pièce était un lien (98223ad2) ; le commentaire « Chaque rang se clique sur son titre (24/09) » est resté dans le code alors que le titre est devenu un <div>.",
+  "reproduction": "locataire.alpha@example.com, /locataire/c14c3187-1258-4e58-8822-368c6007e3fa/documents, onglet « Mes fichiers », à 390×844 et 1440×900. Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-espaces-droits/ed04-fichiers.mjs, qui ouvre aussi l'aperçu puis relève les liens du bail sur l'accueil et sur « Mon logement ».",
+  "cause": "La PR remplace, dans src/app/locataire/[orgId]/documents/page.tsx l.262-285, le lien du titre par un <div> et « Ouvrir » par ApercuDocumentEspace (modale). Les quittances (l.296-330), page.tsx l.363-371 et logement/page.tsx l.205-213 gardent l'ouverture en nouvel onglet."
+ },
+ "ED-05": {
+  "domaine": "espaces-droits",
+  "titre": "En-tête du locataire au téléphone : la barre devient bleu nuit et révèle la tuile blanche du nom de l'agence, sans marge intérieure (texte collé aux bords)",
+  "gravite": "cosmetique",
+  "confiance": "haute",
+  "chantier": "transversal",
+  "fichiers": [
+   "app/src/app/experience-unifiee.css",
+   "app/src/app/prestige.css",
+   "app/src/app/locataire/[orgId]/layout.tsx"
+  ],
+  "correction_proposee": "Soit garder la barre blanche sous 641 px, en limitant la règle d'experience-unifiee aux grandes largeurs, soit redonner un padding (10px 12px) à la tuile du logo lorsqu'elle repose sur le fond sombre.",
+  "preuve": "Avec la PR : fond de .loc-late rgb(20,38,61) avec photo ; lien du logo à fond blanc et padding 0px ; tuile x 12→122,8 px pour un contenu x 11→122,8 px, soit 1 px de débordement à gauche et 0 px à droite. Même mesure pour l'agence à charte (12→139,3 contre 11→139,3). Sans la classe, la barre est rgb(255,255,255) et la tuile se fond dans la barre. Captures verif-espaces-droits/captures/ed05-locataire.alpha-avec.png (texte « Agence Alpha » collé aux bords de la tuile blanche) et ed05-locataire.alpha-sans.png. La barre d'onglets du bas reste sur fond blanc : pas d'autre effet.",
+  "reproduction": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-espaces-droits/ed05-entete.mjs, à 390×844 (deviceScaleFactor 3), avec puis sans la classe experience-unifiee. Comptes locataire.alpha@example.com (Agence Alpha) et verif-espaces-droits.locataire@example.com (agence à charte).",
+  "cause": "experience-unifiee.css l.8 (fond sombre à toutes largeurs) l'emporte sur prestige.css l.316 (@media max-width:640px `.gerimmo-prestige .loc-late { background:#fff }`). Dans le même bloc, prestige.css l.320 met `padding: 0` sur `.loc-logo > a`, dont le fond blanc vient de prestige.css l.143-147. Ce padding nul supposait une barre blanche."
+ },
+ "TRV-01": {
+  "domaine": "transversal-design",
+  "titre": "Une sélection de texte glissée jusqu'au voile ferme la fenêtre ; si ni le nom ni l'e-mail ne sont remplis, la saisie est effacée (même par un simple clic sur le voile)",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "transversal",
+  "fichiers": [
+   "src/components/ui/modale.tsx:97",
+   "src/components/recherche-espace.tsx:62",
+   "src/components/recherche-supervision.tsx:91",
+   "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-detention.tsx:74-82",
+   "src/components/champs-bail.tsx:84-92"
+  ],
+  "correction_proposee": "Ne fermer sur le voile que si l'appui a commencé sur le voile : mémoriser e.target === e.currentTarget au pointerdown et l'exiger au click. À faire dans Modale et dans les deux dialogues de recherche, et dans Tiroir par cohérence. Dans fermerModale (détention et champs-bail), considérer comme saisie tout champ non vide de la fiche.",
+  "preuve": "A : le click est reçu par le voile (« fixed inset-0 z-50… »), la fenêtre est fermée (0) et le choix est remis à vide. B : fenêtre fermée et adresse rouverte = \"\" : la perte vient aussi de la règle de fermerModale, pas seulement du glisser. C : fenêtre fermée, mais le résumé « Nouveau propriétaire : VERIF-TRV Dupont — modifier » s'affiche et l'adresse cachée est conservée : pas de perte. D : la fenêtre reste ouverte (1). E : la recherche est fermée (0). Le script de l'auditeur (glisser-hors-modale.cjs), rejoué, donne le même résultat.",
+  "reproduction": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-transversal-design/trv01.cjs, compte proprietaire@example.com à 1440 px, fiche « Lot E2E invitation », « Gérer la propriété » puis « + Nouvelle personne… ». Cas A : adresse seule, glisser du champ jusqu'au voile. Cas B : adresse seule, simple clic sur le voile. Cas C : nom et adresse, puis glisser. Cas D (témoin) : glisser jusqu'au bord intérieur de la fenêtre. Cas E : recherche, saisie puis glisser hors de la fenêtre.",
+  "cause": "Le voile ferme sur onClick (modale.tsx:97, dialog natif de la recherche avec e.target === dialog). Quand mousedown a lieu dans le champ et mouseup sur le voile, le click part vers leur ancêtre commun, donc vers le voile ou le <dialog>. fermerModale ne tient pour saisie que le nom ou l'e-mail. Une fiche où seuls l'adresse, le CP, la ville ou le prénom sont remplis est donc traitée comme vide, et annulerNouveau() la remet à FICHE_VIDE. Cela contredit le commentaire du code : « on referme sans perdre une saisie déjà commencée ». Le comportement du voile date d'avant la PR ; la PR n'a ajouté que le prop ouverte."
+ },
+ "TRV-V01": {
+  "domaine": "transversal-design",
+  "titre": "Raccourci « ⌘ / Ctrl K » affiché mais sans effet : sur les baux en brouillon et après la fermeture de la carte « Loyers à confirmer / À vérifier »",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "transversal",
+  "fichiers": [
+   "src/components/recherche-espace.tsx:14",
+   "src/components/ui/modale.tsx:84-85",
+   "src/components/carte-verifications.tsx:100",
+   "src/app/agence/[orgId]/baux/[bailId]/piece-attendue-bail.tsx:41"
+  ],
+  "correction_proposee": "Dans RechercheEspace et RechercheSupervision, ne compter que les fenêtres visibles : filtrer avec !el.closest('[hidden]') && el.getClientRects().length, ou réutiliser la logique premierPlan() de use-fenetre-modale.",
+  "preuve": "(1) Tableau de bord témoin : 0 role=dialog, Ctrl+K ouvre la recherche (1). Baux 7e1d…d3, f1c0…d3, f1c0…d6 et 96e52fd1 (brouillons) : 2 role=dialog masqués, « Assurance du propriétaire (masqué) » et « Assurance du locataire (masqué) », et Ctrl+K donne 0. Baux actifs : 1. (2) Indication affichée {\"texte\":\"⌘ / Ctrl K\",\"visible\":true}. Avant ouverture de la carte : Ctrl+K = 1. Après fermeture : 1 dialogue masqué, Ctrl+K = 0. Le bouton « Rechercher » ouvre toujours (1).",
+  "reproduction": "Scripts /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-transversal-design/ctrlk.cjs et ctrlk2.cjs. (1) proprietaire@example.com à 1440 px : ouvrir chaque bail de l'organisation et appuyer sur Ctrl+K. (2) transversal.charge@example.com (organisation fictive de 300 lots, avec loyers à confirmer) : tableau de bord, Ctrl+K, puis ouvrir la carte rouge, Échap, et de nouveau Ctrl+K.",
+  "cause": "La PR ajoute à Modale un prop ouverte : la fenêtre reste montée avec hidden et display:none, et garde son div role=\"dialog\". ChoisirPieceAttendueBail la monte dès l'affichage de la page, et CarteVerifications après la première ouverture (visitee). Le garde du raccourci, !document.querySelector('[role=\"dialog\"], dialog[open]'), ne vérifie pas la visibilité. Une fenêtre masquée suffit donc à le désactiver sans bruit. useFenetreModale, lui, filtre bien les fenêtres visibles (premierPlan)."
+ },
+ "TRV-02": {
+  "domaine": "transversal-design",
+  "titre": "Fenêtre de recherche : la page derrière défile et le focus est perdu à la fermeture",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "transversal",
+  "fichiers": [
+   "src/components/recherche-espace.tsx:44-49",
+   "src/components/recherche-espace.tsx:31",
+   "src/components/recherche-supervision.tsx:74-79"
+  ],
+  "correction_proposee": "fermer() appelle dialog.close(), et l'état React est remis à zéro sur l'événement « close ». À défaut, mémoriser le déclencheur et lui rendre le focus. Poser un verrou de défilement (celui de useFenetreModale, ou html:has(dialog:modal){overflow:hidden}).",
+  "preuve": "1440 : defilementFond 411, soit toute la hauteur défilable ; overflow body/html \"visible\" ; focus après Échap sur BODY (estBouton false) ; après le bouton Fermer, BODY. 390 : defilementFond 800, focus sur BODY dans les deux cas. Appels à close() interceptés : [{\"connecte\":false,\"ouvert\":true}, …] : close() est appelé sur un dialogue déjà retiré du DOM.",
+  "reproduction": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-transversal-design/trv02.cjs, à 1440 px puis à 390 px (tactile) : focus sur « Rechercher », Entrée, molette de 800 px sur le voile, Échap. Puis réouverture et fermeture par « Fermer la recherche ».",
+  "cause": "La fermeture passe par le démontage React ({ouverte && <FenetreRecherche/>}). Le nettoyage de l'effet appelle element.close() sur un <dialog> déjà déconnecté, et le navigateur ne rend alors pas le focus. Le composant n'utilise pas useFenetreModale, donc aucun verrou de défilement. Défaut antérieur à la PR, qui n'a modifié que le libellé du bouton."
+ },
+ "TRV-03": {
+  "domaine": "transversal-design",
+  "titre": "Fond du menu latéral : deux photos plein format (≈ 547 Ko) téléchargées au premier chargement pour un décor sous un voile d'au moins 78 à 84 %",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "transversal",
+  "fichiers": [
+   "src/app/proprietaire.css:18-27",
+   "src/app/ambiances.css:172-179",
+   "src/app/ambiances.css:194-199",
+   "src/components/ambiance-site.tsx:9-39",
+   "src/app/layout.tsx:63"
+  ],
+  "correction_proposee": "Poser l'ambiance dès le rendu serveur (le layout agence connaît déjà aujourdhuiParis()) et ne garder côté client que la bascule de minuit. Retirer l'URL « quartier » des règles de base, ou la conditionner à l'absence d'ambiance. Fournir une variante réduite pour les fonds voilés.",
+  "preuve": "En 4G lente : propriétaire 1440 « quartier-gerimmo-2026.jpg 293 Ko ; halloween.webp 255 Ko » ; tablette 768, artisan 1440 et agence 1440 : 547 Ko chacun ; locataire : 255 Ko ; téléphone : 0 Ko plein format. Sans limitation, propriétaire 1440 : les deux images (292 + 253 Ko) ; à 768 et pour l'artisan, une seule. Le double chargement dépend donc de la course entre le CSS et l'hydratation. HTML serveur : <html lang=\"fr\" class=\"…\"> sans data-ambiance-site. Cache des fichiers public : max-age=3600, stale-while-revalidate=86400, ce qui limite le coût aux premiers chargements.",
+  "reproduction": "Script de l'auditor double-fond-4g.cjs rejoué (4G lente émulée, cache vide), puis mon script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-transversal-design/trv03.cjs (réseau non limité, avec lecture du HTML serveur).",
+  "cause": "Le rendu serveur ne pose ni data-ambiance-site ni --ambiance-image : AmbianceSite les écrit dans un useEffect. La règle de base de proprietaire.css (photo « quartier ») s'applique d'abord, puis ambiances.css bascule sur l'image d'événement brute (1400 px, sans next/image) pour une colonne de 248 px. Ces deux feuilles sont ajoutées par la PR."
+ },
+ "TRV-04": {
+  "domaine": "transversal-design",
+  "titre": "L'icône du site est le logo source : PNG de 2016×1594 et 285 Ko, non carré",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "transversal",
+  "fichiers": [
+   "src/app/layout.tsx:46-50",
+   "src/lib/charte-gerimmo.ts:13"
+  ],
+  "correction_proposee": "Utiliser app/icon.png (32 ou 48 px) et app/apple-icon.png (180×180) selon la convention de Next, ou un favicon.ico léger.",
+  "preuve": "Liens rendus : « shortcut icon /logo/gerimmo-officiel.png », « icon … 2016x1594 », « apple-touch-icon … ». Requête « /logo/gerimmo-officiel.png [Other/other] 287Ko » dans les deux gabarits : c'est le favicon, aucune <img> de la page. Au téléphone, les autres images ne pèsent que 18 Ko. En-tête PNG : (2016, 1594), 292196 octets. Pas de src/app/icon*, ni de favicon*. Défaut présent depuis bdaf7553 (16/10), donc antérieur à la PR.",
+  "reproduction": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-transversal-design/trv04.cjs (CDP, tableau de bord à 390 et à 1440 px), puis lecture de l'en-tête PNG.",
+  "cause": "metadata.icons pointe vers le logo de charte en pleine résolution."
+ },
+ "TRV-06": {
+  "domaine": "transversal-design",
+  "titre": "Carte « À vérifier » : le nom accessible ne reprend pas le libellé visible (axe label-content-name-mismatch), et le tableau de bord propriétaire n'est couvert par aucun contrôle axe incluant wcag21a",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "loyers",
+  "fichiers": [
+   "src/components/carte-verifications.tsx:41-47",
+   "e2e/a11y.spec.ts:28-36",
+   "e2e/contre-audit-proprietaire.spec.ts:60",
+   "e2e/contre-audit-proprietaire.spec.ts:146"
+  ],
+  "correction_proposee": "Retirer l'aria-label, ou le faire commencer par le libellé visible (« À vérifier : 20 demandes — voir mes tâches »). Ajouter la persona proprietaire à ESPACES, ou wcag21a aux contrôles propriétaire.",
+  "preuve": "Dans les deux gabarits, avec toutes les étiquettes : label-content-name-mismatch (serious) ×1. aria-label « 20 demandes à vérifier — voir mes tâches », texte visible « À vérifier 20 demandes Voir mes tâches ». Avec les étiquettes de contre-audit-proprietaire.spec.ts : [] (la règle porte l'étiquette wcag21a, absente de ces tests). Dans axe 4.14, la règle est active, non expérimentale. ESPACES dans a11y.spec.ts ne contient pas proprietaire. Nuance : l'espace propriétaire a bien des contrôles axe partiels (section de la fiche lot, incident), mais ni le tableau de bord ni wcag21a.",
+  "reproduction": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-transversal-design/trv06.cjs : axe-core 4.14 sur le tableau de bord à 1440 et à 390 px. Une passe avec wcag2a/2aa/21a/21aa, une autre avec les seules étiquettes des tests propriétaire existants (sans wcag21a).",
+  "cause": "L'aria-label réordonne le libellé visible. Les contrôles axe propriétaire omettent wcag21a et ne visitent pas le tableau de bord. Impact pratique limité : « à vérifier » figure bien dans le nom, mais pas en tête."
+ },
+ "TRV-08": {
+  "domaine": "transversal-design",
+  "titre": "Zoom à 400 % : l'en-tête collant et la barre basse fixe occupent 54 à 61 % de la hauteur visible",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "transversal",
+  "fichiers": [
+   "src/app/globals.css:2095-2098",
+   "src/app/globals.css:2241-2244"
+  ],
+  "correction_proposee": "@media (max-height: 500px) : en-tête non collant, barre basse réduite ou masquée au défilement.",
+  "preuve": "320×256 : HEADER.coquille-haut 80 px et NAV.coquille-basse 57 px, soit 54 % ; il reste 119 px de contenu (capture captures/trv08-320x256.png). 360×225 : 61 %, 88 px de contenu. Témoins : 390×844 à 16 % ; 844×390 à 19 % (en-tête seul).",
+  "reproduction": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-transversal-design/trv08.cjs : fiche de bail défilée de 600 px, à 320×256 (référence WCAG 1280×1024 à 400 %), 360×225 (1440×900 à 400 %), 390×844 et 844×390.",
+  "cause": "L'en-tête est sticky et la barre basse fixed, sans règle pour les faibles hauteurs (aucun @media max-height dans les feuilles de la coquille)."
+ },
+ "TRV-09": {
+  "domaine": "transversal-design",
+  "titre": "Grand parc : une tâche par lot et par obligation, sans regroupement (630 tâches et 10 755 nœuds sur le tableau de bord, 19 370 nœuds sur /alertes avec 300 lots)",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "loyers",
+  "fichiers": [
+   "src/lib/taches-accueil-proprietaire.ts:36-50",
+   "src/components/carte-taches-proprietaire.tsx:29-34",
+   "src/app/agence/[orgId]/alertes/page.tsx"
+  ],
+  "correction_proposee": "Regrouper par nature (« DPE absent ou expiré : N lots », avec un lien filtré), ne rendre côté serveur que les N premières tâches, et paginer /alertes.",
+  "preuve": "Tableau de bord : HTML de 1628 Ko, 10 755 nœuds, « Mes tâches 630 », 630 <li> rendus, résumé « Voir les 625 autres tâches ». Titres : « DPE absent ou expiré — TRANSVERSAL Lot 10-1 », « …Lot 21-7 », « …Lot 4-7 »… /alertes : HTML de 4067 Ko et 19 370 nœuds. Aucune alerte en table : ces tâches sont calculées à la volée.",
+  "reproduction": "Données fictives de l'auditeur (organisation « TRANSVERSAL Charge 300 lots », id 05cca4b9…, 300 lots en base). Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-transversal-design/trv09.cjs, compte transversal.charge@example.com à 390 px.",
+  "cause": "construireTachesAccueil reprend chaque action calculée (une par lot et par obligation) sans regroupement par nature. CarteTachesProprietaire rend tout le reste dans un <details>, et /alertes rend la liste entière. Remarque : 300 lots dépasse la cible ; la répétition ligne par ligne se voit pourtant dès quelques lots sans DPE."
+ },
+ "TRV-10": {
+  "domaine": "transversal-design",
+  "titre": "La carte rouge « Avez-vous reçu vos loyers ? » clignote sans fin, sans moyen de l'arrêter en dehors du survol et du focus",
+  "gravite": "mineure",
+  "confiance": "moyenne",
+  "chantier": "loyers",
+  "fichiers": [
+   "src/components/carte-verifications.module.css:18-26"
+  ],
+  "correction_proposee": "Limiter à 2 ou 3 cycles (animation-iteration-count), puis garder l'état stable.",
+  "preuve": "no-preference : bouton « 300 loyers à confirmer Avez-vous reçu vos loyers ? … », animations [{nom: respirationAlerte, iterations: Infinity, temps: 6433 ms}], aucun bouton de pause. reduce : animations []. Le commentaire du code la qualifie lui-même de « clignotement lent ». Aucune décision du wiki ne la justifie (grep « clignot » sans résultat pertinent).",
+  "reproduction": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-transversal-design/trv10.cjs : compte transversal.charge@example.com à 1440 px, attente de 5,5 s, avec reducedMotion à no-preference puis à reduce.",
+  "cause": "animation: respirationAlerte 3s ease-in-out infinite. Elle ne s'arrête qu'au survol, au focus, avec aria-expanded ou avec la préférence système. Le critère WCAG 2.2.2 (niveau A, w3.org) et le critère RGAA 13.8 demandent un moyen de contrôle au-delà de 5 s. Leur application à cette pulsation de couleur est une interprétation, non vérifiée en ligne pendant cette vérification."
+ },
+ "TRV-11": {
+  "domaine": "transversal-design",
+  "titre": "Liste du parc sur ordinateur : la grille à deux colonnes alignées laisse 24 % de surface vide, avec des trous jusqu'à 712 px",
+  "gravite": "mineure",
+  "confiance": "haute",
+  "chantier": "transversal",
+  "fichiers": [
+   "src/app/agence/[orgId]/parc/liste-lots.module.css:106"
+  ],
+  "correction_proposee": "Deux piles indépendantes (CSS columns, ou répartition équilibrée), ou des lignes compactes sur une seule colonne.",
+  "preuve": "Rangées « 1011 | 309 », « 1021 | 309 », « 309 | 760 » ; 24 % de vide, plus grand trou de 712 px, grille de 4412 px. Détail : « BAIL-AUDIT Immeuble Foch » (4 lots, 1011 px) à côté de « BAIL-AUDIT Maison SCI » (1 lot, 309 px) ; « FICHE-LOT Maison partagée » (4 lots, 1021 px) à côté de « Résidence des Lilas » (1 lot). Capture : captures/trv11-parc-1440.png. Le cas est réaliste dès qu'un immeuble côtoie une maison.",
+  "reproduction": "Scripts /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-transversal-design/trv11.cjs (celui de l'auditeur, rejoué) et trv11b.cjs (détail par bien), à 1440 et à 1920 px.",
+  "cause": ".groupesParc { grid-template-columns: repeat(2, minmax(0,1fr)); align-items: start } : chaque rangée prend la hauteur de la carte la plus haute, et une carte grandit d'environ 250 px par lot."
+ },
+ "TRV-05": {
+  "domaine": "transversal-design",
+  "titre": "14 images d'ambiance (≈ 2,4 Mo) et le composant BandeauAccueil ajoutés par la PR sans aucune utilisation",
+  "gravite": "cosmetique",
+  "confiance": "haute",
+  "chantier": "transversal",
+  "fichiers": [
+   "public/illustrations/accueil/*.webp",
+   "public/illustrations/accueil-salon/*.webp",
+   "src/components/bandeau-accueil.tsx",
+   "src/components/bandeau-accueil.module.css"
+  ],
+  "correction_proposee": "Supprimer les deux dossiers ainsi que bandeau-accueil.tsx et son module CSS.",
+  "preuve": "Aucune référence hors du composant lui-même. Les seuls chemins dynamiques visent accueil-evenements (ambiance-accueil.ts:128, photo-ambiance.tsx:33). du -sh : accueil 1,5 Mo (7 fichiers), accueil-salon 960 Ko (7 fichiers). git show --stat 555c5282 : 14 fichiers ajoutés par la PR.",
+  "reproduction": "grep -rn \"accueil-salon\\|illustrations/accueil/\\|BandeauAccueil\\|bandeau-accueil\" src tests e2e scripts public, puis recherche des chemins construits dynamiquement (`/illustrations/${…}`).",
+  "cause": "Séries d'images intermédiaires et première version du bandeau, abandonnées dans le commit. Gravité ramenée à cosmétique : les fichiers de public/ ne sont servis qu'à la demande, sans coût à l'exécution."
+ },
+ "TRV-12": {
+  "domaine": "transversal-design",
+  "titre": "Le repère saisonnier occupe la zone d'actions de l'en-tête sans fonction, et n'est pas retiré à ≤ 420 px comme dans les autres en-têtes",
+  "gravite": "cosmetique",
+  "confiance": "moyenne",
+  "chantier": "transversal",
+  "fichiers": [
+   "src/app/agence/[orgId]/layout.tsx:239",
+   "src/app/ambiances.css:236-241"
+  ],
+  "correction_proposee": "Ajouter .coquille-haut .ambiance-repere à la règle @media (max-width: 420px), ou placer le repère près de la marque.",
+  "preuve": "Propriétaire à 320 px : enfants « coquille-marque-mobile@14+88, recherche-ouvrir@112+112, ambiance-repere@232+22, menu-compte@262+44 » ; repère display:block, pointer-events:none ; pas de débordement. Témoin locataire à 320 px : repère display:none. La règle d'ambiances.css (« Les actions priment sur le motif lorsque la largeur devient limitée ») vise .admin-bandeau, .loc-haut et .public-logo, mais pas .coquille-haut. Capture : captures/trv12-entete-320.png.",
+  "reproduction": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-transversal-design/trv12.cjs, à 320, 390 et 1440 px, avec un témoin locataire à 320 px.",
+  "cause": "Choix décoratif de la PR : la règle ≤ 420 px n'est pas appliquée à .coquille-haut. Aucun débordement mesuré : impact purement visuel."
+ },
+ "TRV-13": {
+  "domaine": "transversal-design",
+  "titre": "Onglet resté ouvert à minuit : la photo et le menu changent d'ambiance, la date affichée reste celle du rendu serveur",
+  "gravite": "cosmetique",
+  "confiance": "moyenne",
+  "chantier": "transversal",
+  "fichiers": [
+   "src/components/accueil-bienvenue.tsx:14-21",
+   "src/components/photo-ambiance.tsx:7-28",
+   "src/components/ambiance-site.tsx:16-33"
+  ],
+  "correction_proposee": "router.refresh() à la bascule de minuit, ou une date d'accueil qui suit la même horloge.",
+  "preuve": "Avant : {attr:\"halloween\", photo:\"halloween\", fond:\"halloween\", dateAffichee:\"mardi 27 octobre\", serveur:\"halloween\"}. Après : {attr:\"automne\", photo:\"automne\", fond:\"automne\", dateAffichee:\"mardi 27 octobre\", serveur:\"halloween\"}. En usage réel, l'écart serait d'un jour (31 octobre affiché, décor du 1er novembre).",
+  "reproduction": "Script /tmp/claude-0/-home-user-GERIMMO-V4/1f8c431f-1a0a-5bfc-8fed-07ef6fe971d8/scratchpad/audit-264/verif-transversal-design/trv13.cjs (celui de l'auditeur, rejoué avec ma session) : horloge à 23:58:30 heure de Paris le 31/10, puis avance de 120 s.",
+  "cause": "AmbianceSite et PhotoAmbiance suivent l'horloge du client, alors que la date de l'accueil (et le reste du tableau de bord) est un texte rendu par le serveur."
+ }
+}

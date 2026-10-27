@@ -10,7 +10,7 @@ for (const persona of ["superadmin", "proprietaire"]) {
       if (persona === "proprietaire") await sansSyntheseAlertes(page);
       const supervision = persona === "superadmin";
       await page.goto(`/espace/${ORG}/alertes?traiter=00000000-0000-4000-8000-000000000000`);
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText(supervision ? "Alertes du client" : "Alertes");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(supervision ? "Alertes du client" : "À faire");
       const creation = page.locator("#creer-alerte");
       if (supervision) {
         await expect(creation).toHaveCount(0);

@@ -16,14 +16,18 @@ test("clavier : accès direct au contenu sans traverser le menu", async ({ page 
   await expect(page.locator(".coquille-corps main")).toBeFocused();
 });
 
-test("l’aide conserve l’adresse propriétaire dès le chargement", async ({ page }) => {
+test("une seule aide dans le menu conserve l’adresse propriétaire", async ({ page }) => {
   const erreurs: string[] = [];
   page.on("console", message => { if (message.type() === "error") erreurs.push(message.text()); });
   await page.goto(base, { waitUntil: "networkidle" });
-  const href = await page.locator(".coquille-haut [data-assistance]").getAttribute("href");
-  const lien = new URL(href!, page.url());
-  expect(lien.searchParams.get("retour")).toBe(base);
-  expect(lien.searchParams.get("ecran")).toBe("/espace/[dossier]");
+  const menuMobile = page.locator(".coquille-basse button[data-assistance]");
+  if (await menuMobile.isVisible()) await menuMobile.click();
+  const aide = page.getByRole("link", { name: "Aide", exact: true });
+  await expect(aide).toHaveCount(1);
+  await expect(aide).toHaveAttribute("href", `${base}/faq`);
+  await expect(page.locator(".coquille-haut [data-assistance]")).toHaveCount(0);
+  await aide.click();
+  await expect(page).toHaveURL(`${base}/faq`);
   expect(erreurs).toEqual([]);
 });
 
@@ -38,17 +42,20 @@ for (const largeur of [390, 768, 1440]) {
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(href!);
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    const onglets = page.getByRole("tablist", { name: "Rubriques du dossier" });
-    await expect(onglets.getByRole("tab")).toHaveText(["Locations", "Logement", "Documents", "Propriété"]);
-    const locations = onglets.getByRole("tab", { name: "Locations", exact: true });
-    await expect(locations).toHaveAttribute("aria-selected", "true");
-    await locations.focus();
-    await page.keyboard.press("ArrowRight");
-    await expect(onglets.getByRole("tab", { name: "Logement", exact: true })).toBeFocused();
-    await page.keyboard.press("End");
-    await expect(onglets.getByRole("tab", { name: "Propriété", exact: true })).toBeFocused();
-    await page.keyboard.press("Home");
-    await expect(locations).toBeFocused();
+    await expect(page.getByRole("tablist")).toHaveCount(0);
+    for (const nom of ["Le logement", "Le bâtiment", "Locataires & garants", "Le bail", "Incidents"]) {
+      await expect(page.getByRole("heading", { name: nom, exact: true })).toBeVisible();
+    }
+    const documents = page.locator("details#documents-lot");
+    await expect(documents).not.toHaveAttribute("open", "");
+    const ouvrirDocuments = documents.locator(":scope > summary");
+    await ouvrirDocuments.focus();
+    await expect(ouvrirDocuments).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(documents).toHaveAttribute("open", "");
+    await expect(documents.getByRole("link", { name: "Ouvrir la bibliothèque", exact: true })).toBeVisible();
+    await page.keyboard.press("Space");
+    await expect(documents).not.toHaveAttribute("open", "");
     expect(await debordementHorizontal(page)).toBe(0);
     expect((await new AxeBuilder({ page }).include(".dossier-location").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
     await page.screenshot({ path: info.outputPath(`fiche-lot-${largeur}.png`), fullPage: true });
@@ -98,11 +105,11 @@ test("la fiche conserve les dépenses, les documents et l’historique sans moda
   await journal.locator("summary").click();
   await journal.locator("summary").click();
   await expect(libelle).toHaveValue("Saisie locale non enregistrée");
-  await page.getByRole("tab", { name: "Documents", exact: true }).click();
-  const documents = page.locator("details").filter({ has: page.locator("summary", { hasText: "Documents déposés" }) });
-  await documents.locator("summary").click();
+  const documents = page.locator("details#documents-lot");
+  await expect(documents).not.toHaveAttribute("open", "");
+  await documents.locator(":scope > summary").click();
   await expect(documents.getByRole("link", { name: "Déposer un document", exact: true })).toBeVisible();
-  await page.getByRole("tab", { name: "Locations", exact: true }).click();
+  await documents.locator(":scope > summary").click();
   await expect(libelle).toHaveValue("Saisie locale non enregistrée");
   const historique = page.locator("details").filter({ has: page.locator("summary", { hasText: "Historique du lot" }) });
   await historique.locator("summary").click();

@@ -39,6 +39,7 @@ for(const largeur of [390,1440])test(`document de 6 Mo : transfert privé puis e
   await page.screenshot({path:info.outputPath(`depot-confirme-${largeur}.png`),fullPage:true});
   if(largeur===1440){
    await page.getByRole('link').filter({hasText:titre}).click();
+   await expect(page).toHaveURL(url=>/^[0-9a-f-]{36}$/.test(url.searchParams.get('sel')??''));
    const documentId=new URL(page.url()).searchParams.get('sel');expect(documentId).toBeTruthy();
    const reponse=await contexte.request.get(`/espace/${org}/documents/${documentId}/fichier`);
    expect(reponse.headers()['x-frame-options']).toBe('SAMEORIGIN');

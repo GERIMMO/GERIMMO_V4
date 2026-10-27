@@ -78,7 +78,9 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
     <AccueilBienvenue jourParis={aujourdHui} prenom={prenom} base={base} lectureSeule={lectureSeule} />
 
     <section className={styles.indicateurs} aria-label="Votre patrimoine en bref">
-      <Link href={`${base}/loyers`} className={styles.indicateur}><span><Banknote size={18} aria-hidden="true" />Encaissé en {nomMois}</span><strong>{encaisse === null ? "—" : eur(encaisse)}</strong><small>{encaisse === null ? "Montant indisponible" : "Règlements déclarés"}</small><ArrowUpRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
+      {/* Total des règlements datés du mois, quelle que soit l'échéance réglée : il mène aux recettes datées de Finances,
+          pas à la couverture des échéances du mois (audit du 27/10, LAT-06). */}
+      <Link href={`${base}/loyers#operations`} className={styles.indicateur}><span><Banknote size={18} aria-hidden="true" />Encaissé en {nomMois}</span><strong>{encaisse === null ? "—" : eur(encaisse)}</strong><small>{encaisse === null ? "Montant indisponible" : "Reçus ce mois, toutes échéances"}</small><ArrowUpRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
       <CarteVerifications base={base} patrimoine={patrimoine ? { biens: patrimoine.biens, lots: patrimoine.lots.length } : null}
         loyersAConfirmer={rappels.totalEcheancesDues}
         total={totalPrioritaire || (incertain ? 0 : taches.length)} critiques={verifications.critiques} apercu={verifications.premiere?.titre ?? null}

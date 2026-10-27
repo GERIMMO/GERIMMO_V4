@@ -203,7 +203,8 @@ describe("l'accueil du propriétaire direct (servi au seul propriétaire direct)
     const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((x) => x[1]).filter((h) => h.startsWith("/agence") || h.startsWith("/espace"));
     // Encaissé, lots, récapitulatif fiscal, alertes, rang « Traiter », lots sans bail et réglages.
     expect(hrefs).toEqual(expect.arrayContaining([
-      `/espace/${ORG}/loyers`, `/espace/${ORG}/parc`, `/espace/${ORG}/comptabilite/fiscal`, `/espace/${ORG}/alertes`,
+      // L'encaissé du mois mène aux recettes datées de Finances (audit du 27/10, LAT-06).
+      `/espace/${ORG}/loyers#operations`, `/espace/${ORG}/parc`, `/espace/${ORG}/comptabilite/fiscal`, `/espace/${ORG}/alertes`,
       `/espace/${ORG}/alertes?traiter=al-1`, `/espace/${ORG}/parc/bien-1/lots/lot-1#baux`, `/espace/${ORG}/profil#envois`,
     ]));
     for (const h of hrefs) expect(h.startsWith(`/espace/${ORG}`), h).toBe(true);

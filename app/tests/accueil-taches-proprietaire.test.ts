@@ -72,6 +72,12 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     expect(html).toContain('aria-label="3 tâches"');
   });
 
+  it("l'encaissé du mois dit sa définition et mène aux recettes datées de Finances (audit du 27/10, LAT-06)", async () => {
+    const html = await rendre();
+    expect(html).toContain('href="/espace/org/loyers#operations"');
+    expect(html).toContain("Reçus ce mois, toutes échéances");
+  });
+
   it("garde les tâches fiables sans annoncer un repos quand une source échoue", async () => {
     m.verifications.mockResolvedValue(lecture([action("Demande connue")], false, true));
     const html = await rendre();

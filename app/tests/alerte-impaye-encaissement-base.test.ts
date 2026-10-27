@@ -162,6 +162,19 @@ describe.skipIf(!url)("alerte d'impayé et encaissements (avec base)", () => {
     expect(await alertes()).toMatchObject([{ statut: "fermee", closed_action: "Arrangement amiable" }]);
   });
 
+  it("un encaissement saisi ou retiré sur un bail sans alerte n'en pose aucune : la nuit reste seule à les poser", async () => {
+    await db.query("reset role");
+    await db.query("delete from public.alerts where organization_id=$1", [org]);
+    await agir(compte);
+    await reception(ancien, "partiel", 100, 800);
+    expect(await alertes()).toEqual([]);
+    const reglement = (await db.query("select id from public.encaissements where bail_id=$1", [bail])).rows[0].id;
+    await db.query("select public.supprimer_encaissement($1,$2)", [reglement, "TEST annulation d’un règlement fictif"]);
+    expect(await alertes()).toEqual([]);
+    await nuit();
+    expect(await alertes()).toMatchObject([{ statut: "ouverte", criticite: "critique", seuil: "2" }]);
+  });
+
   it("la migration se rejoue sans erreur et sans second déclencheur", async () => {
     await db.query("reset role");
     const sql = readFileSync(`supabase/migrations/${NOM}.sql`, "utf8");

@@ -9,7 +9,9 @@
 -- Maintenant :
 --  1. un déclencheur AFTER INSERT / UPDATE (bail, montant) / DELETE sur `encaissements` rappelle `suivre_impayes_bail`
 --     pour le bail touché : tous les chemins d'écriture sont couverts, aucune lecture ne ferme une alerte. Mêmes baux
---     que la tâche de nuit (actif, préavis, terminé ; organisation dont l'écriture est ouverte) ;
+--     que la tâche de nuit (actif, préavis, terminé ; organisation dont l'écriture est ouverte), et seulement si le bail
+--     a déjà une alerte ouverte ou fermée « Impayé soldé » : la nuit reste seule à poser une alerte nouvelle, un
+--     encaissement saisi ou retiré (reprise, nettoyage) n'en crée jamais ;
 --  2. `suivre_impayes_bail` rouvre la dernière alerte du bail si elle a été fermée « Impayé soldé » (fermeture
 --     automatique, jamais un traitement) et qu'aucune n'est ouverte, puis la met au seuil du jour. Une alerte fermée à
 --     la main reste fermée : la règle de `poser_alerte_seuil` s'applique comme avant. Aucun doublon : on ne rouvre qu'en
@@ -123,6 +125,14 @@ begin
                     case when tg_op <> 'INSERT' then old.bail_id end)
        and b.etat in ('actif', 'preavis', 'termine')
        and public.org_ecriture_ouverte(b.organization_id)
+       -- La tâche de nuit reste seule à poser une alerte nouvelle : on n'actualise que l'alerte du bail encore ouverte,
+       -- ou fermée d'elle-même (« Impayé soldé »). Une alerte fermée à la main n'est pas reprise.
+       and exists (select 1 from public.alerts a
+                    where a.id = (select x.id from public.alerts x
+                                   where x.organization_id = b.organization_id and x.type = 'loyer_impaye'
+                                     and x.origine_type = 'bail' and x.origine_id = b.id
+                                   order by (x.statut = 'ouverte') desc, x.created_at desc, x.id desc limit 1)
+                      and (a.statut = 'ouverte' or a.closed_action = 'Impayé soldé'))
   loop
     perform public.suivre_impayes_bail(v_bail);
   end loop;

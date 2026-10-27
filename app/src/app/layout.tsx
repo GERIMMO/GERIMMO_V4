@@ -44,9 +44,9 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   openGraph: { ...OPEN_GRAPH_PAR_DEFAUT, title: "Gerimmo", description: DESCRIPTION },
   icons: {
-    icon: { url: CHARTE_GERIMMO.logo, type: "image/png", sizes: "2016x1594" },
-    shortcut: CHARTE_GERIMMO.logo,
-    apple: { url: CHARTE_GERIMMO.logo, type: "image/png" },
+    icon: { url: CHARTE_GERIMMO.icone, type: "image/png", sizes: CHARTE_GERIMMO.iconeTaille },
+    shortcut: CHARTE_GERIMMO.icone,
+    apple: { url: CHARTE_GERIMMO.iconeEcran, type: "image/png", sizes: CHARTE_GERIMMO.iconeEcranTaille },
   },
 };
 

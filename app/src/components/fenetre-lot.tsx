@@ -35,6 +35,8 @@ import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CleEnvoi } from "@/components/cle-envoi";
+import { InputDateJour } from "@/components/input-date-jour";
+import { estTaxeFonciere } from "@/lib/ventilation-teom";
 import { ConfirmationEncaissement } from "@/components/confirmation-encaissement";
 import { Spinner } from "@/components/ui/spinner";
 import { buttonVariants } from "@/components/ui/button";
@@ -1227,7 +1229,7 @@ function OngletComptabilite({
             )}
           </div>
 
-          {!lectureSeule && <FormulaireDepense orgId={orgId} lotId={fiche.lot_id} relire={relire} />}
+          {!lectureSeule && <FormulaireDepense orgId={orgId} lotId={fiche.lot_id} relire={relire} estProprietaire={estProprietaire} />}
           {/* Le rapport de gestion va au mandant : un propriétaire en direct
               n'a personne à qui l'adresser. */}
           {!estProprietaire && <BlocRapport lotId={fiche.lot_id} rapport={donnees.rapport} />}
@@ -1296,20 +1298,26 @@ function LigneTerme({
   );
 }
 
-/** Saisir une dépense sur ce lot — ce que la page « Loyers & charges » portait. */
+/** Saisir une dépense sur ce lot — ce que la page « Loyers & charges » portait.
+ * Mêmes champs utiles que l'écriture de la comptabilité : la date de la pièce fixe
+ * l'exercice fiscal, et la part de TEOM se sépare d'une taxe foncière (audit #264, FL-03). */
 function FormulaireDepense({
   orgId,
   lotId,
   relire,
+  estProprietaire = false,
 }: {
   orgId: string;
   lotId: string;
   relire: () => void;
+  estProprietaire?: boolean;
 }) {
+  const [categorie, setCategorie] = useState("");
   const [etat, action] = useActionState<EtatCompta, FormData>(async (e, formData) => {
     const r = await ajouterEcriture(orgId, e, formData);
     if (r.succes) {
       afficherToast(r.succes);
+      setCategorie("");
       relire();
     }
     return r;
@@ -1320,15 +1328,17 @@ function FormulaireDepense({
       <CleEnvoi etat={etat} />
       <input type="hidden" name="lot_id" value={lotId} />
       <input type="hidden" name="sens" value="depense" />
+      <p className="w-full text-sm font-medium">Ajouter une dépense sur ce lot</p>
       <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor={`dep-cat-${lotId}`} className="text-xs">
-          Dépense sur ce lot
+          Catégorie
         </Label>
         <Input
           id={`dep-cat-${lotId}`}
           name="categorie"
-          placeholder="travaux, charges…"
+          placeholder="travaux, taxe foncière…"
           defaultValue={etat.valeurs?.categorie}
+          onChange={(e) => setCategorie(e.target.value)}
           className="h-9 w-full sm:w-40"
         />
       </div>
@@ -1345,6 +1355,29 @@ function FormulaireDepense({
           className="h-9 w-full sm:w-28"
         />
       </div>
+      <div className="w-full space-y-1 sm:w-auto">
+        <Label htmlFor={`dep-piece-${lotId}`} className="text-xs">
+          Date de la pièce
+        </Label>
+        <InputDateJour id={`dep-piece-${lotId}`} name="date_piece" valeurSoumise={etat.valeurs?.date_piece} className="h-9 w-full sm:w-auto" />
+      </div>
+      {estProprietaire && estTaxeFonciere(categorie) && <div className="w-full space-y-1">
+        <Label htmlFor={`dep-teom-${lotId}`} className="text-xs">
+          Taxe foncière : dont enlèvement des ordures ménagères (€)
+        </Label>
+        <Input
+          id={`dep-teom-${lotId}`}
+          name="teom"
+          type="text"
+          inputMode="decimal"
+          defaultValue={etat.valeurs?.teom ?? "0"}
+          aria-describedby={`dep-teom-aide-${lotId}`}
+          className="h-9 w-full sm:max-w-48"
+        />
+        <p id={`dep-teom-aide-${lotId}`} className="text-xs text-muted-foreground">
+          Saisissez le total de l’avis dans « Montant », puis la part de TEOM ici : les deux parts seront enregistrées séparément.
+        </p>
+      </div>}
       <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor={`dep-libelle-${lotId}`} className="text-xs">
           Libellé (facultatif)

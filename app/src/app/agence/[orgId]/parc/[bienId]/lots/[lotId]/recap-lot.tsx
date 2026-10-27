@@ -17,7 +17,7 @@ export function LienModifierLot({ href, lotId }: { href: string; lotId: string }
   }}><Pencil size={15} aria-hidden="true" />Modifier le lot</Link>;
 }
 
-export function RecapLot({ orgId, bienId, lot, verrouille, copropriete, typeBien, modifierInitial = false, lectureSeule = false, titre = "Caractéristiques du logement", faits, boutonModifier = true }: {
+export function RecapLot({ orgId, bienId, lot, verrouille, copropriete, typeBien, modifierInitial = false, lectureSeule = false, titre = "Caractéristiques du logement", faits, boutonModifier = true, manquants = [] }: {
   orgId: string;
   bienId: string;
   lot: LotFormulaire;
@@ -29,6 +29,8 @@ export function RecapLot({ orgId, bienId, lot, verrouille, copropriete, typeBien
   titre?: string;
   boutonModifier?: boolean;
   faits?: ReactNode;
+  /** Libellés des caractéristiques attendues mais vides : affichées « À renseigner », avec « Compléter » (audit #264, FL-05). */
+  manquants?: string[];
 }) {
   const [modifier, setModifier] = useState(modifierInitial);
   const formulaireId = useId();
@@ -65,14 +67,16 @@ export function RecapLot({ orgId, bienId, lot, verrouille, copropriete, typeBien
     },
   ].map(groupe => ({
     ...groupe,
-    details: groupe.details.filter(detail => detail.valeur?.trim()),
+    details: groupe.details.flatMap(detail => detail.valeur?.trim() ? [detail]
+      : manquants.includes(detail.libelle) ? [{ ...detail, valeur: "À renseigner" }] : []),
   })).filter(groupe => groupe.details.length > 0);
+  const aCompleter = manquants.length > 0;
 
   return <div className={styles.recap}>
     <div className={styles.recapEntete}>
       <h2>{faits && <span className={styles.panneauIcone}><House size={18} aria-hidden="true" /></span>}{titre}</h2>
-      {!lectureSeule && (boutonModifier || edition) && <Button type="button" variant="outline" size="sm" aria-expanded={edition} aria-controls={formulaireId} onClick={() => setModifier(v => !v)}>
-        <Pencil size={14} aria-hidden="true" />{edition ? "Revenir au résumé" : groupes.length > 0 ? "Modifier" : "Compléter"}
+      {!lectureSeule && (boutonModifier || edition || aCompleter) && <Button type="button" variant="outline" size="sm" aria-expanded={edition} aria-controls={formulaireId} onClick={() => setModifier(v => !v)}>
+        <Pencil size={14} aria-hidden="true" />{edition ? "Revenir au résumé" : groupes.length > 0 && !aCompleter ? "Modifier" : "Compléter"}
       </Button>}
     </div>
     <div hidden={edition}>

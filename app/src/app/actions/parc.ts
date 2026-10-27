@@ -21,6 +21,7 @@ import {
   ETATS_LOT,
 } from "@/lib/parc";
 import { baseEspace } from "@/lib/racine-espace";
+import { QUALITES_BAILLEUR, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 
 export type EtatParc = {
   erreur?: string;
@@ -417,6 +418,14 @@ export async function ajouterDetention(
     const adresse = String(formData.get("nouveau_adresse") ?? "").trim();
     const codePostal = String(formData.get("nouveau_code_postal") ?? "").trim();
     const ville = String(formData.get("nouveau_ville") ?? "").trim();
+    // La qualité se choisit dans la liste fermée : la déduire d'un prénom vide faisait
+    // d'une SCI familiale une « Personne morale », donc un bail nu de 6 ans au lieu de 3
+    // (lib/qualite-bailleur.ts). Sans choix, seule une fiche avec prénom reste une
+    // personne physique, comme le veut estPersonnePhysique (audit #264, FL-04).
+    const qualiteLue = normaliserQualiteBailleur(String(formData.get("nouveau_qualite") ?? "")) ?? (prenom ? "Personne physique" : null);
+    if (!qualiteLue) return { erreur: "Choisissez la qualité du nouveau propriétaire (personne physique, SCI familiale, indivision, société…).", valeurs };
+    if (!estQualiteBailleur(qualiteLue)) return { erreur: `Qualité inconnue : choisissez parmi ${QUALITES_BAILLEUR.join(", ")}.`, valeurs };
+    if (qualiteLue === "Personne physique" && !prenom) return { erreur: "Le prénom du propriétaire est obligatoire pour une personne physique.", valeurs };
     if (!nom) return { erreur: "Le nom du nouveau propriétaire est obligatoire.", valeurs };
     if (!email) return { erreur: "L'adresse email du propriétaire est obligatoire.", valeurs };
     if (!adresse || !codePostal || !ville) return { erreur: "L'adresse complète du propriétaire est obligatoire.", valeurs };
@@ -436,7 +445,7 @@ export async function ajouterDetention(
     }
     const { data: personne, error: erreurPersonne } = await supabase
       .from("persons")
-      .insert({ organization_id: orgId, nom, prenom: prenom || null, email, date_naissance: dateNaissance || null, commune_naissance: communeNaissance || null, address_line1: adresse, postal_code: codePostal, city: ville, qualite: prenom ? "Personne physique" : "Personne morale" })
+      .insert({ organization_id: orgId, nom, prenom: prenom || null, email, date_naissance: dateNaissance || null, commune_naissance: communeNaissance || null, address_line1: adresse, postal_code: codePostal, city: ville, qualite: qualiteLue })
       .select("id, nom, prenom")
       .single();
     if (erreurPersonne) return { erreur: sansJargon(erreurPersonne.message), valeurs };

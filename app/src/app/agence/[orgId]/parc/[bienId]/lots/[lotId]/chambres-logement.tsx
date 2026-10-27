@@ -25,7 +25,7 @@ function FormulaireChambre({ cible, chambre }: { cible: Cible; chambre?: Chambre
   </form>;
 }
 
-export function ChambresLogement({ orgId, lotId, bienId, chambres, plafond, mode = "tout", lectureSeule = false }: Cible & { chambres: Chambre[]; plafond: number | null; lectureSeule?: boolean; mode?: "tout" | "chambres" | "plafond" }) {
+export function ChambresLogement({ orgId, lotId, bienId, chambres, plafond, mode = "tout", lectureSeule = false, lienContrat = "#baux" }: Cible & { chambres: Chambre[]; plafond: number | null; lectureSeule?: boolean; mode?: "tout" | "chambres" | "plafond"; /** Ancre du geste qui crée un contrat sur cette fiche (audit #264, FL-07). */ lienContrat?: string }) {
   const { etat, soumettre, enCours } = useActionFormulaire<EtatChambre>(enregistrerPlafondColocation.bind(null, orgId, lotId, bienId));
   const cible = { orgId, lotId, bienId };
   if (lectureSeule) return <div className="space-y-3 text-sm">
@@ -45,6 +45,6 @@ export function ChambresLogement({ orgId, lotId, bienId, chambres, plafond, mode
     {mode !== "plafond" && <>{chambres.map(c => <details key={c.id} className="rounded-lg border p-3"><summary className="cursor-pointer text-sm font-medium">{c.nom} · {c.surface_m2} m² · {c.volume_m3} m³</summary><div className="mt-3"><FormulaireChambre cible={cible} chambre={c} /></div></details>)}
     <details className="rounded-lg border p-3"><summary className="cursor-pointer text-sm font-medium">Ajouter une chambre</summary><div className="mt-3"><FormulaireChambre cible={cible} /></div></details>
     </>}
-    {mode === "tout" && <a href="#baux" className="text-sm underline">Créer le contrat individuel d’un locataire →</a>}
+    {mode === "tout" && <a href={lienContrat} className="text-sm underline">Créer le contrat individuel d’un locataire →</a>}
   </div>;
 }

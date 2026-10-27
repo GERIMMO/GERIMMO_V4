@@ -112,6 +112,8 @@ const MISSION_OCTOBRE = [
   "20261026213652_qualifications_diagnostics_lot.sql",
   "20261026214857_qualification_diagnostic_annee_installation.sql",
   "20261026232941_pieces_attendues_bail.sql",
+  // 27/10, audit #264 (CB-16) : « N baux en cours » dans le parcours de démarrage.
+  "20261027100500_parcours_demarrage_pluriel_baux.sql",
 
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */

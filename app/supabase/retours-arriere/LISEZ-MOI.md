@@ -990,3 +990,9 @@ Les retours du 20 octobre sont des instructions atomiques : ils peuvent être an
 ### Réceptions de loyers du propriétaire (26 octobre)
 
 Remettre le code précédent avant les retours `20261026110449_reception_loyer_idempotence_durable.retour.sql`, puis `20261026090335_rappels_loyers_proprietaire.retour.sql`, dans une transaction contrôlée. Les scripts refusent de supprimer des déclarations ou de perdre l’idempotence de commandes existantes. Aucun retour n’a été exécuté en production.
+
+### Parcours de démarrage : pluriel de « bail » (27 octobre, audit #264)
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261027100500_parcours_demarrage_pluriel_baux.retour.sql` | `20261027100500_parcours_demarrage_pluriel_baux.sql` | Non exécuté en production. Remet la définition précédente de `public.parcours_demarrage` (texte « N bailx en cours ») ; aucune donnée touchée. Remettre le code précédent n’est pas nécessaire : la signature est inchangée. |

@@ -50,12 +50,16 @@ it("n’actualise aucune page si la saisie est refusée",async()=>{
  expect(m.revalidate).not.toHaveBeenCalled();
 });
 
-function contexteCreation({role="proprietaire_direct",user=true,absent=false,erreurLecture=false,erreurInsertion=false,sansIdentifiant=false,meuble=false}={}) {
+function contexteCreation({role="proprietaire_direct",user=true,absent=false,erreurLecture=false,erreurInsertion=false,sansIdentifiant=false,meuble=false,vierges=[] as {id:string}[],liens=[] as {bail_id:string}[],erreurBrouillons=false}={}) {
  const q={select:vi.fn(),eq:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data:absent?null:{id:"lot",meuble},error:erreurLecture?{message:"Lecture refusée"}:null})};
  q.select.mockReturnValue(q);q.eq.mockReturnValue(q);
  const insert=vi.fn().mockReturnValue({select:()=>({single:async()=>({data:erreurInsertion||sansIdentifiant?null:{id:"nouveau"},error:erreurInsertion?{message:"Écriture refusée"}:null})})});
- m.acces.mockResolvedValue({user:user?{id:"moi"}:null,role,supabase:{from:(table:string)=>table==="lots"?q:{insert}}});
- return {q,insert};
+ // Audit #264 (FL-02) : l'action relit d'abord les brouillons vierges du lot, puis leurs personnes rattachées.
+ const brouillons={select:vi.fn(),eq:vi.fn(),is:vi.fn(),order:vi.fn(),then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data:erreurBrouillons?null:vierges,error:erreurBrouillons?{message:"Lecture refusée"}:null}).then(resolve)};
+ brouillons.select.mockReturnValue(brouillons);brouillons.eq.mockReturnValue(brouillons);brouillons.is.mockReturnValue(brouillons);brouillons.order.mockReturnValue(brouillons);
+ const personnes={select:()=>({in:async()=>({data:liens,error:null})})};
+ m.acces.mockResolvedValue({user:user?{id:"moi"}:null,role,supabase:{from:(table:string)=>table==="lots"?q:table==="bail_personnes"?personnes:{insert,select:brouillons.select}}});
+ return {q,insert,brouillons};
 }
 
 it.each([
@@ -95,6 +99,31 @@ it.each([
  expect(retour.erreur).toBeTruthy();
  expect(retour.succes).toBeUndefined();
  expect(insert).toHaveBeenCalledTimes(1);
+ expect(m.redirect).not.toHaveBeenCalled();
+ expect(m.revalidate).not.toHaveBeenCalled();
+});
+
+it("FL-02 : reprend le brouillon vierge du lot au lieu d’en créer un second",async()=>{
+ const {insert,brouillons}=contexteCreation({vierges:[{id:"vierge-ancien"},{id:"vierge-recent"}]});
+ await expect(commencerBail("org","lot","bien")).rejects.toBe(m.redirection);
+ expect(insert).not.toHaveBeenCalled();
+ expect(m.redirect).toHaveBeenCalledExactlyOnceWith("/espace/org/baux/vierge-ancien#etape-bail-1");
+ for(const filtre of [["organization_id","org"],["lot_id","lot"],["etat","brouillon"]])expect(brouillons.eq).toHaveBeenCalledWith(...filtre);
+ for(const colonne of ["chambre_id","locataire_principal","date_debut","loyer_hc","document_signe","signe_envoye_le"])expect(brouillons.is).toHaveBeenCalledWith(colonne,null);
+ expect(brouillons.order).toHaveBeenCalledWith("created_at");
+});
+
+it("FL-02 : un brouillon sans saisie mais avec une personne rattachée n’est pas repris",async()=>{
+ const {insert}=contexteCreation({vierges:[{id:"avec-personne"}],liens:[{bail_id:"avec-personne"}]});
+ await expect(commencerBail("org","lot","bien")).rejects.toBe(m.redirection);
+ expect(insert).toHaveBeenCalledTimes(1);
+ expect(m.redirect).toHaveBeenCalledExactlyOnceWith("/espace/org/baux/nouveau#etape-bail-1");
+});
+
+it("FL-02 : ne crée rien si les brouillons existants ne peuvent pas être vérifiés",async()=>{
+ const {insert}=contexteCreation({erreurBrouillons:true});
+ expect((await commencerBail("org","lot","bien")).erreur).toBeTruthy();
+ expect(insert).not.toHaveBeenCalled();
  expect(m.redirect).not.toHaveBeenCalled();
  expect(m.revalidate).not.toHaveBeenCalled();
 });

@@ -22,6 +22,24 @@ const preparer = (patch: Partial<Parameters<typeof construireTachesAccueil>[0]> 
   base, actions: [], lots: [lot], lotsSansBail: [], diagnostics: [], preparation: [], ...patch,
 });
 
+describe("CB-03 : un bail en préparation reste une tâche de l’accueil", () => {
+  it("un brouillon s’ouvre directement, plusieurs renvoient à la fiche du lot", () => {
+    const taches = preparer({ lotsEnPreparation: [{ ...lot, brouillons: ["brouillon-1"] }, { ...lot, id: "coloc", nom: "Coloc", brouillons: ["b2", "b3"] }] });
+    expect(taches.map(t => [t.titre, t.contexte, t.detail, t.href, t.geste])).toEqual([
+      ["Finaliser le bail", lot.nom, "Bail en préparation", `${base}/baux/brouillon-1`, "Reprendre le bail"],
+      ["Finaliser le bail", "Coloc", "2 baux en préparation", `${base}/parc/bien/lots/coloc#baux`, "Voir les baux"],
+    ]);
+  });
+
+  it("passe avant la préparation d’un autre lot et ne double pas une demande qui vise déjà ce bail", () => {
+    const taches = preparer({ lotsSansBail: [{ ...lot, id: "libre" }], preparation: [], lotsEnPreparation: [{ ...lot, brouillons: ["b1"] }],
+      actions: [demande({ cle: "signature", href: `${base}/baux/b1` })] });
+    expect(taches.map(t => t.cle)).toEqual(["signature", "location-libre"]);
+    expect(preparer({ lotsSansBail: [{ ...lot, id: "libre" }], lotsEnPreparation: [{ ...lot, brouillons: ["b1"] }] }).map(t => t.cle))
+      .toEqual(["bail-preparation-lot", "location-libre"]);
+  });
+});
+
 describe("tâches utiles sur l’accueil", () => {
   it("retire les priorités et toute répétition du même incident important", () => {
     expect(preparer({ actions: [incident("normale"), incident("prioritaire", true), demande()] }).map(t => t.cle)).toEqual(["edl"]);

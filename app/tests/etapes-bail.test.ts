@@ -29,6 +29,10 @@ describe("saisie progressive du bail",()=>{
  });
  it("refuse une date inexistante",()=>expect(lireEtapeBail("bail",form({...dates,date_debut:"2026-02-30"}),actuel,logement).erreur).toBeTruthy());
  it("refuse un dépôt trop élevé",()=>expect(lireEtapeBail("loyer",form({...montants,depot_garantie:"501"}),actuel,logement).erreur).toMatch(/plafond/));
+ it("CB-16 : le refus du dépôt donne le plafond calculé, sans renvoyer à l’étape où l’on se trouve",()=>{
+  expect(lireEtapeBail("loyer",form({...montants,depot_garantie:"1000,01"}),{...actuel,type:"meuble"},{...logement,meuble:true}).erreur).toBe("Le dépôt de garantie dépasse le plafond de 1 000,00 € pour ce type de bail.");
+  expect(lireEtapeBail("bail",form(dates),{...actuel,type:"meuble",depot_garantie:800},logement).erreur).toBe("Le dépôt de garantie dépasse le plafond de 500,00 € pour ce type de bail. Corrigez-le à l’étape Loyer.");
+ });
  it("vérifie le plafond du meublé en colocation",()=>expect(lireEtapeBail("loyer",form({...montants,depot_garantie:"800"}),{...actuel,type:"colocation"},{...logement,meuble:true}).erreur).toBeUndefined());
  it("interdit le forfait pour le nu",()=>expect(lireEtapeBail("loyer",form({...montants,charges_mode:"forfait"}),actuel,logement).erreur).toMatch(/provisions/));
  it("le passage du meublé au nu revérifie le dépôt",()=>expect(lireEtapeBail("bail",form(dates),{...actuel,type:"meuble",depot_garantie:800},logement).erreur).toMatch(/plafond/));

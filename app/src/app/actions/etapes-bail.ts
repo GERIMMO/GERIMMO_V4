@@ -1,5 +1,6 @@
 "use server";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
@@ -45,17 +46,38 @@ export async function modifierEtapeBail(orgId: string, bailId: string, etape: Et
   return {succes:"Étape enregistrée.",avertissements:avertissementsCoherenceLoyer({...bail,...resultat.patch},lot.surface_m2)};
 }
 
+/** Brouillon du lot encore vierge : ni chambre, ni locataire, ni date, ni loyer, ni personne rattachée.
+ * Le plus ancien est repris plutôt que d’en créer un second (audit #264, FL-02 / CB-02). */
+async function brouillonVierge(supabase: SupabaseClient, orgId: string, lotId: string): Promise<{ id: string | null } | { erreur: string }> {
+  const {data:vierges,error}=await supabase.from("baux").select("id").eq("organization_id",orgId).eq("lot_id",lotId).eq("etat","brouillon")
+    .is("chambre_id",null).is("locataire_principal",null).is("date_debut",null).is("loyer_hc",null).is("document_signe",null).is("signe_envoye_le",null)
+    .order("created_at").order("id");
+  if(error)return {erreur:"Les contrats déjà en préparation n’ont pas pu être vérifiés. Rechargez la fiche."};
+  if(!vierges?.length)return {id:null};
+  const {data:liens,error:lectureLiens}=await supabase.from("bail_personnes").select("bail_id").in("bail_id",vierges.map(b=>b.id));
+  if(lectureLiens)return {erreur:"Les contrats déjà en préparation n’ont pas pu être vérifiés. Rechargez la fiche."};
+  return {id:vierges.find(b=>!(liens??[]).some(l=>l.bail_id===b.id))?.id ?? null};
+}
+
 /** Créer le dossier de préparation et ouvrir son parcours dans la même réponse.
+ * Un brouillon vierge du lot est repris : un second clic ne crée pas de contrat vide en double.
+ * Un contrat individuel de colocation devient distinct dès que sa chambre est choisie à l’étape 1.
  * Les mentions restent exigées avant le PDF et l’activation. */
 export async function commencerBail(orgId:string,lotId:string,bienId:string):Promise<EtatBail>{
   const {supabase,user,role}=await verifierGerant(orgId);
   if(!user)return {erreur:"Accès refusé."};
   const {data:lot,error:lecture}=await supabase.from("lots").select("id,meuble").eq("id",lotId).eq("bien_id",bienId).eq("organization_id",orgId).maybeSingle();
   if(lecture||!lot)return {erreur:"Ce logement n’est pas accessible. Rechargez sa fiche."};
-  const {data,error}=await supabase.from("baux").insert({organization_id:orgId,lot_id:lotId,type:lot.meuble?"meuble":"nu",etat:"brouillon"}).select("id").single();
-  if(error||!data)return {erreur:sansJargon(error?.message??"Le brouillon n’a pas pu être créé.")};
-  revaliderBailEtLot(orgId, data.id, lotId, bienId, role === "proprietaire_direct");
+  const existant=await brouillonVierge(supabase,orgId,lotId);
+  if("erreur" in existant)return {erreur:existant.erreur};
+  let bailId=existant.id;
+  if(!bailId){
+    const {data,error}=await supabase.from("baux").insert({organization_id:orgId,lot_id:lotId,type:lot.meuble?"meuble":"nu",etat:"brouillon"}).select("id").single();
+    if(error||!data)return {erreur:sansJargon(error?.message??"Le brouillon n’a pas pu être créé.")};
+    bailId=String(data.id);
+  }
+  revaliderBailEtLot(orgId, bailId, lotId, bienId, role === "proprietaire_direct");
   // La navigation fait partie de l'action : aucun router.push client ne peut
   // être supplanté par la revalidation de la fiche du lot.
-  redirect(`${baseEspace(orgId, role === "proprietaire_direct")}/baux/${data.id}#etape-bail-1`);
+  redirect(`${baseEspace(orgId, role === "proprietaire_direct")}/baux/${bailId}#etape-bail-1`);
 }

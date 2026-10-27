@@ -66,7 +66,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
       return { lot, blocages: error || !Array.isArray(data) ? null : data as string[] };
     } catch { return { lot, blocages: null }; }
   }));
-  const taches = construireTachesAccueil({ base, actions, lots: patrimoine?.lots ?? [], lotsSansBail: patrimoine?.lotsSansBail ?? [], preparation, diagnostics: diagnostics ?? [] });
+  const taches = construireTachesAccueil({ base, actions, lots: patrimoine?.lots ?? [], lotsSansBail: patrimoine?.lotsSansBail ?? [], lotsEnPreparation: patrimoine?.lotsEnPreparation ?? [], preparation, diagnostics: diagnostics ?? [] });
   const clesDemandesCourantes = new Set(autres.map(a => a.cle));
   const demandesCourantes = taches.filter(tache => clesDemandesCourantes.has(tache.cle)).length;
   const totalPrioritaire = critiques.length + rappels.dus.length;

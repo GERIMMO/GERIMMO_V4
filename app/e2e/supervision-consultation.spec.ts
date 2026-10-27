@@ -16,7 +16,11 @@ for (const persona of ["superadmin", "proprietaire"]) {
         await expect(creation).toHaveCount(0);
         await expect(page.getByRole("button", { name: /^(Traiter|Confier|Créer l’alerte)/ })).toHaveCount(0);
         await expect(page.getByRole("dialog")).toHaveCount(0);
-      } else await expect(creation).toBeVisible();
+      } else {
+        await expect(creation).toBeHidden();
+        await page.getByText("Créer un rappel", { exact: true }).click();
+        await expect(creation).toBeVisible();
+      }
       await page.goto(`/espace/${ORG}/artisans`);
       if (supervision) {
         await expect(page.locator("#nouvel-artisan")).toHaveCount(0);

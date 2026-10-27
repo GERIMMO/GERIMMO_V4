@@ -6,7 +6,7 @@ import AxeBuilder from "@axe-core/playwright";
 
 const ORG="3c1d1e95-3570-400b-8012-44530be145b1";
 const demandes = (page: Page) => page.getByRole("region", { name: "Votre patrimoine en bref" })
-  .getByRole("button", { name: / — ouvrir (?:le détail|les loyers)$/ });
+  .getByRole("button", { name: /^(?:\d+ actions? prioritaires?|\d+ loyers? à confirmer|À vérifier) / });
 const fenetreDemandes = (page: Page) => page.getByRole("dialog", { name: /^(?:À traiter en priorité|Loyers à confirmer|À vérifier)$/ });
 async function ouvrirDemandes(page: Page, facultatif = false) {
   // L'absence d'un rappel doit être contrôlée dans la fenêtre si d'autres demandes

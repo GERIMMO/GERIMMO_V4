@@ -6,10 +6,12 @@ import { sansSyntheseAlertes, debordementHorizontal } from "./aides";
 
 // Audit de la PR #264 (27/10) : un impayé de deux mois se lit sur sa ligne (LAT-03), la confirmation des deux
 // réceptions ferme l'alerte d'impayé sans attendre la nuit (LAT-01), et la carte « À vérifier » passe axe avec
-// wcag21a (TRV-06).
+// wcag21a (TRV-06), en lien (demandes courantes) comme en bouton (loyers à confirmer).
 const ORG = "3c1d1e95-3570-400b-8012-44530be145b1";
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 const region = (page: Page) => page.getByRole("region", { name: "Votre patrimoine en bref" });
+// Le bouton de la carte est nommé par son texte visible : actions prioritaires, loyers à confirmer ou « À vérifier ».
+const carte = (page: Page) => region(page).getByRole("button", { name: /^(?:\d+ actions? prioritaires?|\d+ loyers? à confirmer|À vérifier) / });
 
 for (const largeur of [390, 1440]) test(`impayé de deux mois à ${largeur}px : total sur la ligne, alerte fermée à la réception complète`, async ({ page }, info) => {
   test.setTimeout(180000);
@@ -43,7 +45,11 @@ for (const largeur of [390, 1440]) test(`impayé de deux mois à ${largeur}px : 
     expect(await alertes()).toMatchObject([{ statut: "ouverte", criticite: "critique" }]);
 
     await page.reload();
-    await region(page).getByRole("button", { name: / — ouvrir (?:le détail|les loyers)$/ }).click();
+    // TRV-06 : la même carte, devenue bouton « loyers à confirmer », garde son texte visible pour nom accessible.
+    await expect(carte(page)).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(carte(page)).toHaveAccessibleName((await carte(page).innerText()).replace(/\s+/g, " ").trim());
+    expect((await new AxeBuilder({ page }).include('[aria-label="Votre patrimoine en bref"]').withTags(TAGS).analyze()).violations).toEqual([]);
+    await carte(page).click();
     const fenetre = page.getByRole("dialog"); await expect(fenetre).toBeVisible();
     const ligne = fenetre.locator("li").filter({ hasText: nom });
     await expect(ligne).toContainText("Prioritaire");

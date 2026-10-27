@@ -6,7 +6,8 @@
  * enregistrait son locataire comme déclarant : le colocataire de la chambre B voyait comme le sien l'incident de la
  * chambre A et pouvait en contester l'imputation ; l'occupante de la chambre A ne voyait rien. Désormais : le bail choisi,
  * ou le seul bail vivant du lot, sinon aucun ; jamais de déclarant pour le canal « agence » ; le locataire du bail
- * rattaché garde l'information, la contestation et la réouverture (RM-7.2.4, RM-7.2.5).
+ * rattaché garde l'information, la contestation et la réouverture (RM-7.2.4, RM-7.2.5), et la fenêtre de son lot
+ * (signalements en cours, historique) compte l'incident comme sa liste (relecture du 27/10).
  *
  * Une seule transaction pour tout le fichier, annulée à la fin ; la migration (et son retour) y sont joués, d'où le
  * classement en série (vitest.config.ts). Nécessite SUPABASE_DB_URL.
@@ -83,6 +84,15 @@ describe.skipIf(!url)("incident ouvert par le gérant : bail choisi ou seul bail
     await session(compteId);
     return (await db.query<{ id: string; est_declarant: boolean }>(
       "select id, est_declarant from public.mes_incidents_locataire($1) where id = $2", [org, incident])).rows;
+  }
+  /** La fenêtre du lot vue par un locataire : signalements en cours, et lignes d'incident de l'historique. */
+  async function fenetre(compteId: string, lot: string) {
+    await session(compteId);
+    const { rows: [fiche] } = await db.query<{ incidents_ouverts: number }>(
+      "select incidents_ouverts from public.fiche_lot($1)", [lot]);
+    const { rows: historique } = await db.query<{ titre: string }>(
+      "select titre from public.historique_du_lot($1, 200) where nature = 'incident' order by titre", [lot]);
+    return { ouverts: fiche.incidents_ouverts, historique: historique.map((h) => h.titre) };
   }
 
   beforeAll(async () => {
@@ -203,6 +213,23 @@ describe.skipIf(!url)("incident ouvert par le gérant : bail choisi ou seul bail
     expect((await db.query("select etat from public.incidents where id = $1", [incident])).rows[0].etat).toBe("rouvert");
   });
 
+  it("fenêtre du lot : l'incident du gérant compte pour le titulaire (compteur et historique), jamais pour une autre chambre", async () => {
+    // Lot à bail unique, saisie après un appel : le cas courant, hors colocation.
+    const entier = await ouvrir(lotEntier);
+    expect(await vu(compteSeul, entier)).toEqual([{ id: entier, est_declarant: true }]);
+    expect(await fenetre(compteSeul, lotEntier)).toEqual({ ouverts: 1, historique: ["Incident déclaré"] });
+    await session(gerant);
+    await db.query("select public.qualifier_incident($1, $2, 'proprietaire', 'Vétusté')", [org, entier]);
+    await db.query("select public.cloturer_incident($1, $2, 'resolu', 'Réparé')", [org, entier]);
+    expect(await fenetre(compteSeul, lotEntier)).toEqual({ ouverts: 0, historique: ["Incident clos", "Incident déclaré"] });
+
+    // Colocation : la chambre A choisie compte chez A seule ; les parties communes, chez personne.
+    await ouvrir(lotColoc, bailA);
+    await ouvrir(lotColoc);
+    expect(await fenetre(compteA, lotColoc)).toEqual({ ouverts: 1, historique: ["Incident déclaré"] });
+    expect(await fenetre(compteB, lotColoc)).toEqual({ ouverts: 0, historique: [] });
+  });
+
   it("lot sans bail en cours : ni bail ni déclarant, comme avant", async () => {
     expect(await rattachement(await ouvrir(lotVide))).toEqual({ bail_id: null, declarant_person_id: null, canal: "agence" });
   });
@@ -248,9 +275,13 @@ describe.skipIf(!url)("incident ouvert par le gérant : bail choisi ou seul bail
     expect(liste.map((r) => r.incident_id)).not.toContain(choisi);
   });
 
-  it("avant / après : le retour rétablit le défaut (bail le plus récent, colocataire B déclarant), la migration rejouée deux fois le referme", async () => {
+  it("avant / après : le retour rétablit le défaut (bail le plus récent, colocataire B déclarant ; fenêtre par le déclarant), la migration rejouée deux fois le referme", async () => {
+    const entier = await ouvrir(lotEntier);
     await postgres();
     await db.query(retour);
+    // Revenue au filtre par le déclarant, la fenêtre du lot ne compte plus l'incident ouvert sans déclarant.
+    expect((await vu(compteSeul, entier)).map((r) => r.id)).toEqual([entier]);
+    expect(await fenetre(compteSeul, lotEntier)).toEqual({ ouverts: 0, historique: [] });
     // Le défaut FL-01, rejoué : l'incident de la chambre A part chez B, qui le voit et peut le contester.
     const avant = await ouvrir(lotColoc);
     expect(await rattachement(avant)).toEqual({ bail_id: bailB, declarant_person_id: personneB, canal: "agence" });
@@ -262,5 +293,6 @@ describe.skipIf(!url)("incident ouvert par le gérant : bail choisi ou seul bail
     const apres = await ouvrir(lotColoc);
     expect(await rattachement(apres)).toEqual({ bail_id: null, declarant_person_id: null, canal: "agence" });
     expect(await vu(compteB, apres)).toEqual([]);
+    expect(await fenetre(compteSeul, lotEntier)).toEqual({ ouverts: 1, historique: ["Incident déclaré"] });
   });
 });

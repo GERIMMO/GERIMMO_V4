@@ -2,12 +2,31 @@
 -- Remettre le code précédent avant ce retour : l'écran « Déclarer un incident » transmet `p_bail`, que la signature
 -- d'avant ne connaît pas. Aucune donnée n'est modifiée. Les incidents ouverts par le gérant entre-temps gardent un
 -- déclarant vide : leur locataire les voit toujours par son bail en cours, mais, revenu à la règle d'avant (déclarant
--- seul), il ne peut plus en contester l'imputation ni les rouvrir depuis son espace. Le retour rétablit aussi le
--- rattachement au bail vivant le plus récent du lot, c'est-à-dire le défaut FL-01.
--- Les quatre fonctions reprennent leur définition installée avant la migration (texte de 20260821141744 et
--- 20260906140000, garde de portefeuille de 20260913150000). Une seule instruction DO atomique : seule en autocommit, ou
--- intégralement annulable dans une transaction externe, qu'elle ne valide jamais.
+-- seul), il ne peut plus en contester l'imputation ni les rouvrir depuis son espace, et la fenêtre de son lot ne les
+-- compte plus (signalements en cours, historique). Le retour rétablit aussi le rattachement au bail vivant le plus
+-- récent du lot, c'est-à-dire le défaut FL-01.
+-- Les quatre fonctions refaites en entier reprennent leur définition installée avant la migration (texte de
+-- 20260821141744 et 20260906140000, garde de portefeuille de 20260913150000) ; `fiche_lot` et `historique_du_lot`
+-- retrouvent leur filtre par le déclarant par relecture de la définition en vigueur, comme 20261014502000 et son retour.
+-- Une seule instruction DO atomique : seule en autocommit, ou intégralement annulable dans une transaction externe,
+-- qu'elle ne valide jamais.
 do $retour_atomique$
+declare
+  -- Fenêtre du lot : signature, filtre FL-01, filtre d'avant, nombre exact d'occurrences.
+  v_cibles constant text[][] := array[
+    ['public.fiche_lot(uuid)',
+     'public.titulaire_incident(i.declarant_person_id, i.canal, i.bail_id) = public.ma_personne_locataire(l.organization_id)',
+     'i.declarant_person_id = public.ma_personne_locataire(l.organization_id)',
+     '1'],
+    ['public.historique_du_lot(uuid,integer)',
+     'public.titulaire_incident(i.declarant_person_id, i.canal, i.bail_id) = public.ma_personne_locataire(r.org)',
+     'i.declarant_person_id = public.ma_personne_locataire(r.org)',
+     '2']
+  ];
+  v_i integer;
+  v_oid regprocedure;
+  v_def text;
+  v_nb integer;
 begin
   perform set_config('lock_timeout', '10s', true);
 
@@ -212,6 +231,27 @@ begin
   end;
   $fonction$;
   revoke execute on function public.rouvrir_incident(uuid, uuid, text) from public, anon;
+
+  -- Fenêtre et historique du lot : le filtre par le déclarant d'avant, par relecture de la définition en vigueur
+  -- (chemin inverse du point 6 de la migration), avant de retirer `titulaire_incident`, qu'ils appellent. Filtre
+  -- d'avant déjà là : rien à faire ; un autre nombre d'occurrences : arrêt, rien n'est modifié.
+  for v_i in 1 .. array_length(v_cibles, 1) loop
+    v_oid := to_regprocedure(v_cibles[v_i][1]);
+    if v_oid is null then
+      raise exception 'Retour FL-01 : la fonction % est absente de cette base ; rien n''est modifié.', v_cibles[v_i][1];
+    end if;
+    v_def := pg_get_functiondef(v_oid);
+    v_nb := (length(v_def) - length(replace(v_def, v_cibles[v_i][2], ''))) / length(v_cibles[v_i][2]);
+    if v_nb = 0 and position('titulaire_incident' in v_def) = 0 then continue; end if;
+    if v_nb <> v_cibles[v_i][4]::integer then
+      raise exception 'Retour FL-01 : % contient % filtre(s) par le titulaire au lieu de % : définition réécrite depuis, rien n''est modifié.',
+        v_cibles[v_i][1], v_nb, v_cibles[v_i][4];
+    end if;
+    v_def := replace(v_def, v_cibles[v_i][2], v_cibles[v_i][3]);
+    v_def := replace(v_def, 'ni ceux que l''agence a ouverts hors de son bail en cours (FL-01 : titulaire).',
+      'ni ceux que l''agence a ouverts de son côté.');
+    execute v_def;
+  end loop;
 
   drop function if exists public.titulaire_incident(uuid, public.incident_canal, uuid);
   perform public.fermer_fonctions_a_anon();

@@ -16,10 +16,16 @@
 --     l'imputation (RM-7.2.5) et rouvre le dossier clos. `titulaire_incident` désigne cette personne — le déclarant,
 --     ou, pour un incident ouvert par le gérant sans déclarant, le locataire principal du bail vivant rattaché — et
 --     sert à `mes_incidents_locataire` (`est_declarant`), `contester_imputation` et `rouvrir_incident`. Ce qu'un
---     locataire voit ne change pas : ses déclarations et les incidents de son bail en cours.
+--     locataire voit dans sa liste ne change pas : ses déclarations et les incidents de son bail en cours.
+--  4. La fenêtre du lot suit le même titulaire (relecture du 27/10) : `fiche_lot` (signalements en cours) et
+--     `historique_du_lot` (incident déclaré, incident clos) filtraient sur le déclarant. L'incident saisi par le gérant
+--     y figurait parce que son locataire en était enregistré déclarant ; sans ce point, il en sortait alors que la liste
+--     le présente comme le sien.
 --
--- Les trois fonctions refaites repartent de leur définition installée (texte de 20260821141744 et 20260906140000, plus
--- la garde de portefeuille posée par 20260913150000) ; seules les lignes commentées « FL-01 » changent.
+-- Les trois fonctions refaites en entier repartent de leur définition installée (texte de 20260821141744 et
+-- 20260906140000, plus la garde de portefeuille posée par 20260913150000) ; seules les lignes commentées « FL-01 »
+-- changent. `fiche_lot` et `historique_du_lot` ne changent que de filtre, par la méthode de 20261014502000 qui les a
+-- refaites en dernier (voir le point 6).
 -- Rejouable : la signature à sept arguments est retirée si elle existe (un appel à sept arguments trouve la nouvelle,
 -- dont `p_bail` vaut null par défaut), le reste en `create or replace`. Aucune donnée existante n'est modifiée : les
 -- incidents déjà rattachés à un colocataire se relèvent par supabase/retours-arriere/releve-incidents-gerant-colocation.sql
@@ -266,6 +272,52 @@ begin
 end;
 $$;
 revoke execute on function public.rouvrir_incident(uuid, uuid, text) from public, anon;
+
+-- 6. Fenêtre du lot, côté locataire : « signalements en cours » (`fiche_lot`), « Incident déclaré » et « Incident clos »
+-- (`historique_du_lot`) comptent les incidents dont il est titulaire, comme sa liste, et non plus ceux dont il est
+-- déclarant. Méthode de 20261014502000, qui a refait ces deux fonctions en dernier : relecture de la définition EN
+-- VIGUEUR (pg_get_functiondef), remplacement du seul filtre locataire, nombre d'occurrences exigé à l'unité près, aucune
+-- ancre de plusieurs lignes. Un autre nombre : la migration s'arrête sans rien modifier. Rejeu : filtre déjà au
+-- titulaire, laissé tel quel. Le commentaire du compteur de `fiche_lot` suit s'il est là. Droits inchangés
+-- (`create or replace` conserve ceux en vigueur) ; aucune signature ni colonne ne change.
+do $fenetre_du_lot$
+declare
+  -- signature, filtre d'avant (expression rationnelle), filtre FL-01, nombre exact d'occurrences.
+  v_cibles constant text[][] := array[
+    ['public.fiche_lot(uuid)',
+     'i\.declarant_person_id\s*=\s*public\.ma_personne_locataire\(\s*l\.organization_id\s*\)',
+     'public.titulaire_incident(i.declarant_person_id, i.canal, i.bail_id) = public.ma_personne_locataire(l.organization_id)',
+     '1'],
+    ['public.historique_du_lot(uuid,integer)',
+     'i\.declarant_person_id\s*=\s*public\.ma_personne_locataire\(\s*r\.org\s*\)',
+     'public.titulaire_incident(i.declarant_person_id, i.canal, i.bail_id) = public.ma_personne_locataire(r.org)',
+     '2']
+  ];
+  v_i integer;
+  v_oid regprocedure;
+  v_def text;
+  v_avant integer;
+  v_apres integer;
+begin
+  for v_i in 1 .. array_length(v_cibles, 1) loop
+    v_oid := to_regprocedure(v_cibles[v_i][1]);
+    if v_oid is null then
+      raise exception 'FL-01 : la fonction % est absente de cette base ; rien n''est modifié.', v_cibles[v_i][1];
+    end if;
+    v_def := pg_get_functiondef(v_oid);
+    select count(*) into v_avant from regexp_matches(v_def, v_cibles[v_i][2], 'g');
+    v_apres := (length(v_def) - length(replace(v_def, v_cibles[v_i][3], ''))) / length(v_cibles[v_i][3]);
+    if v_avant = 0 and v_apres = v_cibles[v_i][4]::integer then continue; end if;
+    if v_avant <> v_cibles[v_i][4]::integer or v_apres <> 0 then
+      raise exception 'FL-01 : % contient % filtre(s) par le déclarant et % par le titulaire au lieu de % à remplacer : définition inattendue, rien n''est modifié.',
+        v_cibles[v_i][1], v_avant, v_apres, v_cibles[v_i][4];
+    end if;
+    v_def := regexp_replace(v_def, v_cibles[v_i][2], v_cibles[v_i][3], 'g');
+    v_def := replace(v_def, 'ni ceux que l''agence a ouverts de son côté.',
+      'ni ceux que l''agence a ouverts hors de son bail en cours (FL-01 : titulaire).');
+    execute v_def;
+  end loop;
+end $fenetre_du_lot$;
 
 notify pgrst, 'reload schema';
 select public.fermer_fonctions_a_anon();

@@ -14,7 +14,11 @@ jobs:
     runs-on: ubuntu-24.04
     services:
       postgres:
-        image: postgres:18
+        # Même version majeure que le serveur de production (17 : voir sauvegarde.yml, pg_dump « même version que le
+        # serveur »), que restauration-sauvegarde.yml et que stripe-bac-a-sable.yml (audit final du 27/10, COD-11) : une
+        # fonction ou un comportement du planificateur présent en 18 et absent en 17 passerait la CI et casserait en
+        # production. tests/postgres-versions-chantiers.test.ts garde l'alignement.
+        image: postgres:17
         env:
           POSTGRES_PASSWORD: gerimmo-ci-local
           POSTGRES_DB: gerimmo_ci_sql
@@ -54,20 +58,20 @@ jobs:
       - name: Vérifier les vulnérabilités connues des dépendances livrées
         run: npm audit --audit-level=high --omit=dev
       # L'exercice de restauration (tests/exercice-restauration.test.ts) lance
-      # un vrai pg_dump : le client doit être de la version du serveur (18).
-      - name: Client PostgreSQL 18 (même version que le serveur)
+      # un vrai pg_dump : le client doit être de la version du serveur (17).
+      - name: Client PostgreSQL 17 (même version que le serveur)
         run: |
           set -euo pipefail
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
           sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-18
-          # pg_wrapper choisit sa version commande par commande (pg_dump 18,
-          # pg_restore 16) : les binaires 18 passent en tête du PATH.
-          echo /usr/lib/postgresql/18/bin >> "$GITHUB_PATH"
-          /usr/lib/postgresql/18/bin/pg_dump --version
-          /usr/lib/postgresql/18/bin/pg_restore --version
+          sudo apt-get install -y -qq postgresql-client-17
+          # pg_wrapper choisit sa version commande par commande (pg_dump 17,
+          # pg_restore 16) : les binaires 17 passent en tête du PATH.
+          echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+          /usr/lib/postgresql/17/bin/pg_dump --version
+          /usr/lib/postgresql/17/bin/pg_restore --version
       - name: Préparer les bases de test isolées
         run: node e2e/local/preparer-ci.mjs
       - name: Vérifier les jointures et l'isolation avec 300 lots fictifs

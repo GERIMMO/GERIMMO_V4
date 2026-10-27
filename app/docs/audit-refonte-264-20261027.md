@@ -24,7 +24,8 @@ production. Les réserves sont listées en § 7 (décisions) et § 10 (déploiem
 
 ## 2. Méthode
 
-1. **Banc local identique à la CI** (`.github/workflows/ci.yml`) : Postgres 16, 427 migrations rejouées par
+1. **Banc local calqué sur la CI** (`.github/workflows/ci.yml`), à la version de PostgreSQL près (16 sur le banc, 18 alors en CI,
+   17 en production ; CI et bac à sable Stripe alignés sur 17 le 28/10, audit final COD-11) : 427 migrations rejouées par
    `e2e/local/preparer-ci.mjs`, émulateur Supabase local, données de parcours fictives (`seed-parcours.mjs`),
    application construite (`next build` puis `next start`). Défaut de banc corrigé en route : la carte des écrans
    (`npm run e2e:matrice`) manquait, d'où 18 faux échecs au premier passage ; un premier passage a aussi été pollué par

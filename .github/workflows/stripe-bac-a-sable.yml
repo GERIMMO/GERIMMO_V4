@@ -21,7 +21,8 @@ jobs:
     timeout-minutes: 20
     services:
       postgres:
-        image: postgres:18
+        # Même version majeure que la production et la CI (audit final du 27/10, COD-11).
+        image: postgres:17
         env:
           POSTGRES_PASSWORD: gerimmo-ci-local
           POSTGRES_DB: gerimmo_ci_stripe

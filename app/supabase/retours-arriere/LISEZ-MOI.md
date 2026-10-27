@@ -990,3 +990,7 @@ Les retours du 20 octobre sont des instructions atomiques : ils peuvent être an
 ### Réceptions de loyers du propriétaire (26 octobre)
 
 Remettre le code précédent avant les retours `20261026110449_reception_loyer_idempotence_durable.retour.sql`, puis `20261026090335_rappels_loyers_proprietaire.retour.sql`, dans une transaction contrôlée. Les scripts refusent de supprimer des déclarations ou de perdre l’idempotence de commandes existantes. Aucun retour n’a été exécuté en production.
+
+### Assurance du locataire à l’activation du bail (27 octobre, audit #264)
+
+`20261027100300_bail_assurance_activation_et_libelle_colocation.retour.sql` retire le déclencheur qui rattache l’assurance du locataire, classée pendant la préparation, aux locataires engagés à l’activation du bail, et rétablit l’ancien message de `choisir_personne_bail`. Remettre le code précédent avant ce retour. Les liens « personne » déjà posés (par le déclencheur ou par la reprise de la migration) sont conservés : ils désignent la pièce fournie par le locataire. Aucun retour n’a été exécuté en production.

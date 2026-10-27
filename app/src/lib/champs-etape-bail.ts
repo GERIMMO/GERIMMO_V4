@@ -85,6 +85,35 @@ export function lireEtapeBail(etape: EtapeSaisieBail, form: FormData, actuel: Va
   return { patch, erreur: undefined };
 }
 
+/** Valeurs de l’étape telles que le formulaire les a lues, envoyées avec la saisie (champ caché `valeurs_lues`). */
+export function lireValeursLues(brut: FormDataEntryValue | null): Record<string, string> | null {
+  if (typeof brut !== "string" || !brut) return null;
+  try {
+    const lues: unknown = JSON.parse(brut);
+    if (!lues || typeof lues !== "object" || Array.isArray(lues)) return null;
+    return Object.fromEntries(Object.entries(lues).filter(([, valeur]) => typeof valeur === "string"));
+  } catch { return null; }
+}
+
+/** Deux écritures d’un même champ désignent-elles la même valeur ? Les montants se comparent par valeur :
+ * « 800 » et « 800.00 » désignent le même loyer. Un texte sur plusieurs lignes est soumis en CRLF (FormData)
+ * et enregistré tel quel, mais se relit en LF dans le champ (textarea.value) : c’est le même texte. */
+export function memeValeurEtapeBail(nom: string, a: string | undefined, b: string | undefined) {
+  const valeur = (brut: string | undefined) => {
+    const texte = (brut ?? "").replace(/\r\n?/g, "\n").trim();
+    if (!nombres.has(nom)) return texte;
+    const lu = lireMontantFacultatif(texte);
+    return "montant" in lu ? String(lu.montant) : texte;
+  };
+  return valeur(a) === valeur(b);
+}
+
+/** Champs de l’étape (connus de `reference`) dont la valeur diffère entre deux états : saisie enregistrée
+ * ailleurs depuis sa lecture (serveur), ou saisie pas encore enregistrée (formulaire). */
+export function champsDifferents(etape: EtapeSaisieBail, reference: Record<string, string>, comparees: Record<string, string>): string[] {
+  return CHAMPS_ETAPE_BAIL[etape].filter(nom => Object.hasOwn(reference, nom) && !memeValeurEtapeBail(nom, reference[nom], comparees[nom]));
+}
+
 export function indexEtapeBail(hash: string) {
   try { hash = decodeURIComponent(hash); } catch { return -1; }
   const directe = /^#etape-bail-(\d+)$/.exec(hash);

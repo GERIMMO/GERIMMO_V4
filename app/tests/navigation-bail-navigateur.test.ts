@@ -122,4 +122,22 @@ describe.skipIf(!chrome)("Navigation du bail : entrer dans une étape sans l’e
     await page.waitForFunction(()=>document.activeElement?.id==="titre-proprietaires-bail");
     expect(await page.getByRole("heading",{name:"Propriétaire d’essai"}).isVisible()).toBe(true);
   });
+  it("CB-12 : une carte dont le seul champ est replié reçoit le focus sur son titre",async()=>{
+    await page.getByRole("button",{name:/Étape 07 Récapitulatif/}).click();
+    await page.getByRole("link",{name:"Corriger le règlement",exact:true}).click();
+    await page.waitForFunction(()=>document.activeElement?.textContent==="Règlement d’essai");
+    expect(await page.getByRole("heading",{name:"Règlement d’essai"}).isVisible()).toBe(true);
+  });
+  it("CB-11 : le bouton Retour revient à l’étape précédente sans quitter l’assistant",async()=>{
+    await page.getByRole("button",{name:/Étape 02 Personnes/}).click();
+    await page.getByRole("heading",{name:"Personnes",exact:true}).waitFor();
+    await page.getByRole("button",{name:/Étape 07 Récapitulatif/}).click();
+    await page.getByRole("heading",{name:"Récapitulatif",exact:true}).waitFor();
+    await page.goBack();
+    await page.getByRole("heading",{name:"Personnes",exact:true}).waitFor();
+    expect(new URL(page.url()).hash).toBe("#etape-bail-2");
+    await page.goBack();
+    await page.getByRole("heading",{name:"Le logement",exact:true}).waitFor();
+    expect(new URL(page.url()).hash).toBe("#etape-bail-3");
+  });
 });

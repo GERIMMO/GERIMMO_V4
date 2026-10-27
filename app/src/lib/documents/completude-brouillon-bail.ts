@@ -2,9 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion } from "./gabarit";
 import { construireBailMeuble, type LigneInventaire } from "./modeles/bail-meuble";
 import { construireBailNu } from "./modeles/bail-nu";
-import { chargerContexteBail } from "./modeles/communs";
+import { adresseOrganisation, adressePersonne, chargerContexteBail } from "./modeles/communs";
 
 export type CompletudeBrouillonBail = { erreur?: string; manquants: string[] };
+/** Mentions du profil de l’organisation (en-tête du contrat), à compléter depuis le profil. */
+export const MANQUE_ADRESSE_PROFIL = "adresse de l’organisation (profil)";
+export const MANQUE_EMAIL_PROFIL = "adresse électronique de l’organisation (profil)";
 
 /** Le brouillon se contrôle avant de connaître tous ses signataires.
  * Les constructeurs partagés recensent les mentions absentes ; les assembleurs
@@ -53,6 +56,20 @@ export async function verifierCompletudeBrouillonBail(
   const options = { dpeClasse: dpe?.classe_dpe ?? null, inventaire, f: new Fusion() };
   const document = meuble ? construireBailMeuble(ctx, options) : construireBailNu(ctx, options);
   const manquants = new Set(document.manquants);
+  // La première échéance se calcule avec la date d’entrée, déjà signalée :
+  // le montant au prorata ne vise pas un loyer déjà saisi (CB-06).
+  if (!bail.date_debut && bail.loyer_hc != null && bail.charges != null) manquants.delete("loyer + charges, montant au prorata");
+  // L’en-tête reprend le profil de l’organisation sous les libellés des parties :
+  // un manque du seul profil n’est imputé ni au propriétaire ni au locataire (CB-04).
+  const bailleur = ctx.bailleurs[0] ?? null;
+  if (!adresseOrganisation(ctx.organisation)) {
+    if (adressePersonne(bailleur)) manquants.delete("domicile ou siège social");
+    manquants.add(MANQUE_ADRESSE_PROFIL);
+  }
+  if (!ctx.organisation.email_contact) {
+    if (bailleur?.email && ctx.locataires.every((p) => p.email)) manquants.delete("adresse électronique");
+    manquants.add(MANQUE_EMAIL_PROFIL);
+  }
   if (!bail.locataire_principal) manquants.add("nom et prénom(s)");
   if (bail.type === "colocation" && !bail.chambre_id && new Set(ctx.locataires.map((p) => p.id)).size < 2) {
     manquants.add("nom du colocataire 2");

@@ -184,6 +184,13 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     bail.etat === "actif"
       ? await supabase.rpc("terme_bail", { p_bail: bailId })
       : { data: null };
+  // ED-01 : l’assurance du locataire classée pendant la préparation reste
+  // visible sur le bail conclu ; l’assistant ne l’affiche qu’en brouillon.
+  const { data: assuranceLocataire, error: erreurAssuranceLocataire } = bail.etat !== "brouillon"
+    ? await supabase.from("pieces_attendues_bail").select("document:documents(id,titre,expire_le,purged_at)")
+      .eq("organization_id", orgId).eq("bail_id", bailId).eq("nature", "assurance_locataire").maybeSingle()
+    : { data: null, error: null };
+  const attestationLocataire = premier(assuranceLocataire?.document ?? null);
 
   // Résolution des noms pour la colocation (colocataires + garants nominatifs)
   const nomsPersonnes = new Map(
@@ -587,6 +594,21 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           />
         </CardContent>
       </Card>
+
+      {(erreurAssuranceLocataire || attestationLocataire) && (
+        <Card id="assurance-locataire-bail">
+          <CardHeader>
+            <CardTitle className="text-base">Assurance du locataire</CardTitle>
+            <CardDescription>Attestation classée pendant la préparation du bail. Elle figure aussi sur la fiche du locataire, qui suit son échéance.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {erreurAssuranceLocataire ? <p role="alert" className="text-sm text-destructive">L’assurance du locataire n’a pas pu être chargée. Actualisez la page.</p>
+              : attestationLocataire?.purged_at ? <p className="text-sm text-muted-foreground">{attestationLocataire.titre} : fichier purgé.</p>
+              : attestationLocataire && <p className="text-sm">{attestationLocataire.titre}{attestationLocataire.expire_le ? ` · échéance le ${formaterDate(attestationLocataire.expire_le)}` : " · échéance non renseignée"}.{" "}
+                <a href={`${base}/documents/${attestationLocataire.id}/fichier`} target="_blank" rel="noreferrer" className="text-[var(--bleu)] underline-offset-2 hover:underline">La consulter</a></p>}
+          </CardContent>
+        </Card>
+      )}
 
       <Card id="reglement-copro" className="scroll-mt-20">
         <CardHeader>

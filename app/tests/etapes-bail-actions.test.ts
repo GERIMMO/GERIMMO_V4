@@ -106,3 +106,23 @@ it("X08 : la sauvegarde des clauses reste permise et renvoie le contrôle de coh
  expect(m.update).toHaveBeenCalledWith(expect.objectContaining({loyer_reference:1,loyer_reference_majore:1.2}));
  expect(m.update.mock.calls[0][0]).not.toHaveProperty("loyer_hc");
 });
+
+it("CB-01 : refuse d’écraser une étape enregistrée entre-temps dans un autre onglet et renvoie la valeur enregistrée",async()=>{
+ // L’onglet resté ouvert avait lu un loyer de 800 ; la base porte 500 depuis.
+ const form=new FormData();for(const [k,v] of Object.entries({loyer_hc:"800",charges:"55",depot_garantie:"400",jour_echeance:"1",valeurs_lues:JSON.stringify({loyer_hc:"800.00",charges:"40",depot_garantie:"400"})}))form.set(k,v);
+ const r=await modifierEtapeBail("org","bail","loyer",{},form);
+ expect(r.erreur).toMatch(/autre onglet/);
+ expect(r.modifieesAilleurs).toEqual({loyer_hc:"500"});
+ expect(r.valeurs?.charges).toBe("55");
+ expect(m.update).not.toHaveBeenCalled();
+ expect(m.revalidate).not.toHaveBeenCalled();
+});
+
+it("CB-01 : un montant relu sous une autre écriture (« 500.00 ») n’est pas un conflit, et l’étape enregistrée devient la nouvelle référence",async()=>{
+ const form=f();form.set("valeurs_lues",JSON.stringify({type:"nu",date_debut:"",chambre_id:""}));
+ const r=await modifierEtapeBail("org","bail","bail",{},form);
+ expect(r.succes).toBeTruthy();
+ expect(r.valeursEnregistrees).toMatchObject({type:"nu",date_debut:"2026-10-09",chambre_id:""});
+ const loyer=new FormData();for(const [k,v] of Object.entries({loyer_hc:"500",charges:"40",depot_garantie:"400",jour_echeance:"1",valeurs_lues:JSON.stringify({loyer_hc:"500.00",charges:"40.00",depot_garantie:"400"})}))loyer.set(k,v);
+ expect((await modifierEtapeBail("org","bail","loyer",{},loyer)).succes).toBeTruthy();
+});

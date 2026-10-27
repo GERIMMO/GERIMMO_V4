@@ -38,6 +38,7 @@ import {
 } from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
 import { CarteMessages } from "./carte-messages";
+import { buttonVariants } from "@/components/ui/button";
 import { ConversationProprietaire } from "../../messages/conversation-proprietaire";
 import { GestionJustificatifsPersonne } from "./gestion-justificatifs";
 import { CartePiecesDemandees } from "./carte-pieces-demandees";
@@ -407,6 +408,10 @@ export default async function PagePersonne(
 
   const afficherAcces = !estSaFiche && (estLocataire || locataireEnPreparation || (roles.length === 0 && (detentions ?? []).length === 0));
   const afficherMessages = !estSaFiche && (messages.length > 0 || Boolean(personne.account_id));
+  // FL-08 (audit PR #264) : un locataire sans espace ne peut pas recevoir de
+  // message. « Nouveau message » menait à sa fiche, où rien ne disait pourquoi
+  // on ne pouvait pas lui écrire : la carte le dit et mène à l'invitation.
+  const messagesSansEspace = !afficherMessages && afficherAcces && !erreurMessages;
   const afficherMandats = !estProprietaire && ((mandats ?? []).length > 0 || (detentions ?? []).length > 0 || roles.length === 0);
   const relationsIndisponibles = Boolean(erreurDetentions || erreurMandats || erreurLiensBail || erreurBauxPrincipal || erreurBauxLies);
   const piecesExpirees = (pieces ?? []).filter((p: { expire_le: string | null }) => p.expire_le && p.expire_le < aujourdhui).length;
@@ -443,7 +448,7 @@ export default async function PagePersonne(
         {(locations.length > 0 || (detentions ?? []).length > 0) && <a href="#rattachements">Biens et baux</a>}
         <a href="#pieces">Justificatifs{!erreurPieces && (pieces ?? []).length > 0 ? ` · ${(pieces ?? []).length}` : ""}</a>
         {afficherAcces && <a href="#acces-locataire">Accès locataire</a>}
-        {afficherMessages && <a href="#messages">Messages</a>}
+        {(afficherMessages || messagesSansEspace) && <a href="#messages">Messages</a>}
         {afficherMandats && <a href="#mandats">Mandats</a>}
       </nav>
 
@@ -723,6 +728,23 @@ export default async function PagePersonne(
           </CardContent>
         </Card>
       )}
+      {messagesSansEspace && (
+        <Card id="messages" className={styles.carte}>
+          <CardHeader>
+            <CardTitle className="text-base">Messages</CardTitle>
+            <CardDescription>
+              {statutDerniereInvitation === "en_attente"
+                ? "Invitation envoyée : vous pourrez échanger ici dès que cette personne aura ouvert son espace locataire."
+                : "Pour échanger ici, invitez d'abord cette personne dans son espace locataire : vos messages y arrivent, ses réponses dans cette fiche."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <a href="#acces-locataire" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              {statutDerniereInvitation === "en_attente" ? "Voir l'invitation" : "Inviter"}
+            </a>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Mandats de gestion — un propriétaire direct n'en signe pas (S9a).
           24/09 : ni sur la fiche d'un locataire ou d'un garant qui ne détient
@@ -913,8 +935,10 @@ export default async function PagePersonne(
               à donner un accès déjà donné brouillait l'état. */}
           {!personne.account_id && (
             <CardDescription>
-              Si cette personne est un futur locataire, donnez-lui l&apos;accès à son espace (dépôt d&apos;attestation,
-              suivi) via une invitation par email.
+              {/* FL-08 : la carte s'adresse aussi au locataire en cours, pas
+                  seulement au futur locataire ; l'espace porte les messages. */}
+              Donnez-lui l&apos;accès à son espace locataire (messages, dépôt d&apos;attestation, suivi) via une
+              invitation par email.
             </CardDescription>
           )}
         </CardHeader>

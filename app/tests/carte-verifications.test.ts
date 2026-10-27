@@ -19,8 +19,9 @@ describe("carte de l'accueil : patrimoine au repos, vérifications à la demande
   it("rejoint les tâches courantes déjà visibles sans ouvrir une fenêtre intermédiaire", () => {
     const html = rendre({ total: 2, hrefTaches: "#taches-proprietaire" });
     expect(html).toContain('href="#taches-proprietaire"');
-    // Le nom accessible commence par le libellé visible (audit du 27/10, TRV-06 : label-content-name-mismatch).
-    expect(html).toContain('aria-label="À vérifier : 2 demandes — voir mes tâches"');
+    // Le nom accessible est le libellé visible, dans son ordre (audit du 27/10, TRV-06 : label-content-name-mismatch).
+    expect(html).not.toContain("aria-label");
+    expect(html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()).toBe("À vérifier 2 demandes Voir mes tâches");
     expect(html).not.toContain("<button");
     expect(html).not.toContain("aria-haspopup");
     expect(html).not.toContain("Détail de la demande TEST");

@@ -38,8 +38,8 @@ export function CarteVerifications(props: Props) {
     avant.current = demandeEnFenetre;
   }, [demandeEnFenetre]);
 
-  if (lienTaches) return <Link ref={lienPatrimoine} href={lienTaches} className={`${props.className} ${styles.carte} ${styles.lienTaches}`}
-    aria-label={`À vérifier : ${props.total} demande${props.total > 1 ? "s" : ""} — voir mes tâches`}>
+  // Le nom accessible est le texte visible lui-même (audit du 27/10, TRV-06 : un aria-label réordonné le contredisait).
+  if (lienTaches) return <Link ref={lienPatrimoine} href={lienTaches} className={`${props.className} ${styles.carte} ${styles.lienTaches}`}>
     <span><ListChecks size={18} aria-hidden="true" />À vérifier</span>
     <strong>{props.total} <em>demande{props.total > 1 ? "s" : ""}</em></strong>
     <small className={styles.apercu}>Voir mes tâches</small>

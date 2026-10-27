@@ -22,7 +22,9 @@ test("dépôt privé de 6 Mio et consultation complète sur téléphone", async 
   await cliquer(form.getByRole("button", { name: "Déposer le document", exact: true }));
   await expect(page.getByRole("status").filter({ hasText: "Document déposé." })).toBeVisible({ timeout: 60_000 });
   await cliquer(page.getByRole("link", { name: "Consulter le document", exact: true }));
-  await expect(page).toHaveURL(new RegExp("/documents\\?sel="));
+  // L'adresse du dépôt porte déjà « ?sel=depot » : attendre l'identifiant du document, sinon le rechargement
+  // part avant la fin de la navigation et relit le dépôt (échec du passage 40530818809, 27/10).
+  await expect(page).toHaveURL(new RegExp("/documents\\?sel=(?!depot)[0-9a-f-]+"));
   await page.reload();
   expect(await debordementHorizontal(page)).toBe(0);
   const documentId = new URL(page.url()).searchParams.get("sel");

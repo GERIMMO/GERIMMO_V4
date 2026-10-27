@@ -215,4 +215,11 @@ describe("carte rouge : une pulsation brève, jamais sans fin (audit du 27/10, T
     expect(debut).toBeGreaterThanOrEqual(0);
     expect(position > debut && position < fin).toBe(true);
   });
+
+  it("part du rouge fixe de la carte et y revient : aucun saut de teinte au début ni à la fin", () => {
+    const fixe = css.match(/button\.carte\[data-importante='true'\] \{ background: (#[0-9a-f]{6}); border-color: (#[0-9a-f]{6});/);
+    const extremes = css.match(/0%, 100% \{ background-color: (#[0-9a-f]{6}); border-color: (#[0-9a-f]{6});/);
+    expect(fixe).not.toBeNull();
+    expect(extremes?.slice(1, 3)).toEqual(fixe?.slice(1, 3));
+  });
 });

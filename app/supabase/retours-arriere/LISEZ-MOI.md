@@ -998,11 +998,6 @@ Remettre le code précédent avant les retours `20261026110449_reception_loyer_i
 | --- | --- | --- |
 | `20261027100000_alerte_impaye_suit_encaissements.retour.sql` | `20261027100000_alerte_impaye_suit_encaissements.sql` (audit de la PR #264, LAT-01 : l’alerte d’impayé se ferme, se rouvre et suit le montant dû à chaque encaissement) | **Préparé et vérifié localement le 27/10, non exécuté en production.** Retire le déclencheur `encaissement_impaye` et sa fonction, puis rend à `suivre_impayes_bail` sa définition précédente (même empreinte que `20260911200000` modifiée par `20261014501000`, une seule occurrence de `aujourdhui_paris()`). Aucune alerte n’est modifiée ; la tâche de nuit reprend seule la fermeture. À jouer avant le retour de `20261014501000`. |
 
-### Parcours de démarrage : pluriel de « bail » (27 octobre, audit #264)
-
-| Retour | Migration | Condition |
-| --- | --- | --- |
-| `20261027100500_parcours_demarrage_pluriel_baux.retour.sql` | `20261027100500_parcours_demarrage_pluriel_baux.sql` | Non exécuté en production. Remet la définition précédente de `public.parcours_demarrage` (texte « N bailx en cours ») ; aucune donnée touchée. Remettre le code précédent n’est pas nécessaire : la signature est inchangée. |
 ### Incident ouvert par le gérant en colocation (27 octobre, audit de la PR #264, FL-01)
 
 Remettre le code précédent avant `20261027100100_incident_gerant_bail_explicite.retour.sql` : l’écran « Déclarer un incident » transmet `p_bail`, que la signature à sept arguments ne connaît pas. Le retour rétablit `ouvrir_incident_agence` à sept arguments (rattachement au bail vivant le plus récent du lot, locataire principal enregistré comme déclarant : le défaut FL-01), `mes_incidents_locataire`, `contester_imputation` et `rouvrir_incident` dans leur définition précédente, remet à `fiche_lot` et `historique_du_lot` leur filtre par le déclarant (relecture de la définition en vigueur, nombre d’occurrences exact, sinon arrêt sans rien modifier), et supprime `titulaire_incident`. Aucune donnée n’est défaite ; les incidents ouverts entre-temps par le gérant restent sans déclarant : leur locataire les voit toujours par son bail en cours, mais ne peut plus en contester l’imputation ni les rouvrir, et la fenêtre de son lot ne les compte plus. `releve-incidents-gerant-colocation.sql` (lecture seule) liste les incidents rattachés par l’ancienne règle alors que le lot comptait plusieurs baux en cours ; la migration ne les corrige pas. Instruction atomique (`do $retour_atomique$`), verrou borné à 10 s. Hors de la chaîne « Ordre complet » (indépendant du jour de Paris : le filtre de `fiche_lot` et `historique_du_lot` change sans toucher à leur `aujourdhui_paris()`, que le retour de `20261014502000` sait défaire avant comme après). Preuve : `tests/incident-gerant-colocation-base.test.ts` (retour, défaut rejoué, fenêtre du lot, migration rejouée deux fois). Aucun retour n’a été exécuté en production.
@@ -1010,3 +1005,9 @@ Remettre le code précédent avant `20261027100100_incident_gerant_bail_explicit
 ### Assurance du locataire à l’activation du bail (27 octobre, audit #264)
 
 `20261027100300_bail_assurance_activation_et_libelle_colocation.retour.sql` retire le déclencheur qui rattache l’assurance du locataire, classée pendant la préparation, aux locataires engagés à l’activation du bail, et rétablit l’ancien message de `choisir_personne_bail`. Remettre le code précédent avant ce retour. Les liens « personne » déjà posés (par le déclencheur ou par la reprise de la migration) sont conservés : ils désignent la pièce fournie par le locataire. Aucun retour n’a été exécuté en production.
+
+### Parcours de démarrage : pluriel de « bail » (27 octobre, audit #264)
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261027100500_parcours_demarrage_pluriel_baux.retour.sql` | `20261027100500_parcours_demarrage_pluriel_baux.sql` | Non exécuté en production. Remet la définition précédente de `public.parcours_demarrage` (texte « N bailx en cours ») ; aucune donnée touchée. Remettre le code précédent n’est pas nécessaire : la signature est inchangée. |

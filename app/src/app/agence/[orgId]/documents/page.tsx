@@ -31,9 +31,14 @@ import { EchecLecture } from "./echec-lecture";
 import { PaneDocument } from "./pane-document";
 import { FiltresProprietaire } from "./filtres-proprietaire";
 import { titreAffiche } from "./titre-document";
-import { CHAMPS_USAGE_RAPPORT, presentationRapport, syntheseRapport, usagesParDocument, type UsageRapport } from "@/lib/rapports-diagnostic";
+import { presentationRapport, syntheseRapport, usagesParDocument, type UsageRapport } from "@/lib/rapports-diagnostic";
 import { baseEspace } from "@/lib/racine-espace";
 import styles from "./documents-proprietaire.module.css";
+
+// Les diagnostics qui citent la pièce, archivés compris. Littéral local : le contrôle des embeds ambigus
+// (tests/embeds-ambigus.test.ts) ne lit que les constantes du fichier.
+const CHAMPS_USAGE_RAPPORT =
+  "document_id, type, date_realisation, date_expiration, archived_at, lot_id, bien_id, lot:lots!diagnostics_lot_id_fkey(nom, bien_id, bien:biens!lots_bien_id_fkey(nom)), bien:biens!diagnostics_bien_id_fkey(nom)";
 
 export const metadata = { title: "Documents — Gerimmo" };
 

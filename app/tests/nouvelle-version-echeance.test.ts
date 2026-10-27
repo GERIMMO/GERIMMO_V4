@@ -31,7 +31,8 @@ function saisie(expire: string) {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  const doublon = { select: () => doublon, eq: () => doublon, is: () => doublon, maybeSingle: async () => ({ data: null, error: null }) };
+  // Aucun doublon, et aucun diagnostic en service sur la pièce (garde DOC-03 de remplacerDocument).
+  const doublon = { select: () => doublon, eq: () => doublon, is: () => doublon, maybeSingle: async () => ({ data: null, error: null }), limit: async () => ({ data: [], error: null }) };
   m.from.mockReturnValue(doublon);
   m.upload.mockResolvedValue({ error: null });
   m.rpc.mockResolvedValue({ data: "version-2", error: null });

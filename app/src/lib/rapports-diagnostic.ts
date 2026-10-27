@@ -5,10 +5,6 @@
 import { echeanceReglementaire } from "@/lib/documents-bail";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 
-// Les diagnostics qui citent la pièce, archivés compris (un rapport remplacé par un plus récent l'est).
-export const CHAMPS_USAGE_RAPPORT =
-  "document_id, type, date_realisation, date_expiration, archived_at, lot_id, bien_id, lot:lots!diagnostics_lot_id_fkey(nom, bien_id, bien:biens!lots_bien_id_fkey(nom)), bien:biens!diagnostics_bien_id_fkey(nom)";
-
 export type UsageRapport = {
   document_id: string;
   type: string;

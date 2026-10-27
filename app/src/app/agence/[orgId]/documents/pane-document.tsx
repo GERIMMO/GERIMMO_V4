@@ -24,10 +24,15 @@ import { FormulaireRemplacer } from "./formulaire-remplacer";
 import { FormulaireRattacher, type FichesRattachables } from "./formulaire-rattacher";
 import { ActionsFicheDocument } from "./actions-fiche-document";
 import { titreAffiche } from "./titre-document";
-import { CHAMPS_USAGE_RAPPORT, presentationRapport, syntheseRapport, type UsageRapport } from "@/lib/rapports-diagnostic";
+import { presentationRapport, syntheseRapport, type UsageRapport } from "@/lib/rapports-diagnostic";
 import { baseEspace } from "@/lib/racine-espace";
 import { verifierAccesEspace } from "@/lib/espace";
 import styles from "./documents-proprietaire.module.css";
+
+// Les diagnostics qui citent la pièce, archivés compris. Littéral local : le contrôle des embeds ambigus
+// (tests/embeds-ambigus.test.ts) ne lit que les constantes du fichier.
+const CHAMPS_USAGE_RAPPORT =
+  "document_id, type, date_realisation, date_expiration, archived_at, lot_id, bien_id, lot:lots!diagnostics_lot_id_fkey(nom, bien_id, bien:biens!lots_bien_id_fkey(nom)), bien:biens!diagnostics_bien_id_fkey(nom)";
 
 function DetailsDocument({ proprietaire, titre, ouvert = false, children }: { proprietaire: boolean; titre: string; ouvert?: boolean; children: ReactNode }) {
   return proprietaire

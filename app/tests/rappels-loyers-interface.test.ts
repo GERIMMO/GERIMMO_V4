@@ -48,6 +48,14 @@ describe("rappels de loyers : étapes de la relance",()=>{
     expect(html).toContain(`600,00\u00a0€ restant à recevoir, 1\u202f400,00\u00a0€ échus au total sur le bail`);
     expect(rendre({dette_bail:{echeances:1,reste:600,termesEchus:1,resteEchu:600}})).not.toContain("au total sur le bail");
   });
+  it("montre l'arriéré du bail sur sa ligne et le marque prioritaire à deux termes échus (audit du 27/10, LAT-03)",()=>{
+    const html=rendre({dette_bail:{echeances:2,reste:1400,termesEchus:2,resteEchu:1400}});
+    expect(html).toContain("1 autre mois à recevoir sur ce bail");expect(html).toContain("1\u202f400,00\u00a0€ au total");expect(html).toContain(">Prioritaire<");
+    const veille=rendre({dette_bail:{echeances:2,reste:1400,termesEchus:1,resteEchu:600}});
+    expect(veille).toContain("1 autre mois à recevoir");expect(veille).not.toContain(">Prioritaire<");
+    const seul=rendre({dette_bail:{echeances:1,reste:600,termesEchus:1,resteEchu:600}});
+    expect(seul).not.toContain("autre mois");expect(seul).not.toContain("au total");expect(seul).not.toContain(">Prioritaire<");
+  });
   it("ne rend aucun geste d'écriture dans une traversée en lecture seule",()=>{
     const html=rendre({},true);expect(html).not.toContain("<button");expect(html).not.toContain("Gérer la relance");
   });

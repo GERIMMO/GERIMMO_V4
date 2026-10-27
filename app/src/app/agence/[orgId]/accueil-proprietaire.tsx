@@ -69,7 +69,8 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   const taches = construireTachesAccueil({ base, actions, lots: patrimoine?.lots ?? [], lotsSansBail: patrimoine?.lotsSansBail ?? [], preparation, diagnostics: diagnostics ?? [] });
   const clesDemandesCourantes = new Set(autres.map(a => a.cle));
   const demandesCourantes = taches.filter(tache => clesDemandesCourantes.has(tache.cle)).length;
-  const totalPrioritaire = critiques.length + rappels.dus.length;
+  // Chaque échéance due compte, même quand la fenêtre ne présente que la plus ancienne de son bail (audit du 27/10, LAT-03).
+  const totalPrioritaire = critiques.length + rappels.totalEcheancesDues;
   const automatisations = [
     { nom: "Avis d’échéance", active: reglages?.appels_envoi_auto },
     { nom: "Envoi des quittances", active: reglages?.quittances_envoi_auto },
@@ -82,7 +83,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
     <section className={styles.indicateurs} aria-label="Votre patrimoine en bref">
       <Link href={`${base}/loyers`} className={styles.indicateur}><span><Banknote size={18} aria-hidden="true" />Encaissé en {nomMois}</span><strong>{encaisse === null ? "—" : eur(encaisse)}</strong><small>{encaisse === null ? "Montant indisponible" : "Règlements déclarés"}</small><ArrowUpRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
       <CarteVerifications base={base} patrimoine={patrimoine ? { biens: patrimoine.biens, lots: patrimoine.lots.length } : null}
-        loyersAConfirmer={rappels.dus.length}
+        loyersAConfirmer={rappels.totalEcheancesDues}
         total={totalPrioritaire || (incertain ? 0 : demandesCourantes)} critiques={verifications.critiques} apercu={verifications.premiere?.titre ?? null}
         hrefTaches="#taches-proprietaire"
         indisponible={incertain} className={styles.indicateur}>

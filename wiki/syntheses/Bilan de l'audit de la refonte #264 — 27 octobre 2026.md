@@ -77,18 +77,29 @@ contrastes du menu supervision, zoom 400 %, focus des fenêtres), performance (i
   banc, pas un défaut de l'application.
 - 101 cas de test ajoutés (22 fichiers), dont 6 parcours navigateur et 5 tests SQL des migrations.
 
-## Décisions qui vous reviennent (rien n'a été inventé à votre place)
+## Les cinq décisions du 27 octobre : tranchées et réalisées (non publié)
 
-1. **Relocation** : reprendre le bail précédent du lot (loyer, charges, échéance, IRL) dans le nouveau brouillon ? (CB-08)
-2. **Inventaire du meublé** : proposer l'ajout groupé des 11 éléments du décret, ou garder la saisie meuble par meuble ? (CB-14)
-3. **Grand parc** (300 lots) : regrouper les tâches par obligation plutôt qu'une par lot ? Rendu lourd mais exact aujourd'hui. (TRV-09)
-4. **Espace locataire, « Mes documents »** : un seul geste de consultation (aperçu ou téléchargement) pour toutes les pièces ? (ED-04)
-5. **14 images d'ambiance et le composant BandeauAccueil** (2,4 Mo) ajoutés par la refonte et jamais utilisés : les
-   supprimer ? Rien n'a été retiré. (TRV-05)
+Le 27/10 en fin de journée, vous avez tranché les cinq décisions ; les cinq chantiers sont faits, relus par relecture
+adverse et intégrés sur la branche `claude/compassionate-euler-qpqjp6`, **non fusionnée** : votre accord est attendu
+avant publication. Aucune migration : seulement du code.
 
-Et douze corrections partielles dont le reste est un choix de produit ou de droits (détail au § 7 du rapport), par exemple :
-l'assurance du locataire rattachée à tous les colocataires présents ou au seul principal (ED-01) ; conserver le résultat du
-CREP (DOC-07) ; seuil du quota de dépôts (DOC-13) ; décor saisonnier sous une charte d'agence (ED-03).
+| Décision | Ce que fait l'application maintenant | Relecture |
+|---|---|---|
+| **CB-08 Relocation** | Sur un lot dont le bail est terminé ou en préavis, le nouveau brouillon reprend type, loyer, charges, mode de charges, jour et terme de paiement, révision IRL du bail précédent ; l'étape Loyer le dit (« Repris du bail précédent (du … au …), à vérifier ») avec « Effacer ces valeurs ». Jamais repris : locataire, garants, dates, dépôt. | 1 bloquant repris (un second « Préparer un autre contrat » créait un doublon), puis ok |
+| **CB-14 Inventaire du meublé** | « Ajouter les 11 éléments obligatoires » crée les lignes du décret 2015-981 en un geste (sans doublon, éléments déjà saisis sautés) ; chaque ligne sans état se complète sur place. | ok |
+| **TRV-09 Grand parc** | Au-delà de 24 tâches, une ligne dépliable par obligation (« 300 lots : DPE absent ou expiré », « 320 baux : État des lieux à signer ») ; 80 % de nœuds en moins sur 300 lots ; un petit parc ne change pas. | 1 bloquant repris (le titre comptait les baux en les appelant lots), puis ok |
+| **ED-04 Documents du locataire** | Un seul geste : le titre de chaque pièce, bail ou quittance ouvre l'aperçu en fenêtre, téléchargement ou impression depuis la fenêtre, plus aucun nouvel onglet. | ok |
+| **TRV-05 Images inutilisées** | 14 photos et le composant BandeauAccueil supprimés (−2,4 Mo) ; un test empêche qu'une illustration non référencée revienne. | ok |
+
+Vérification : {{INTEG5_BILAN}}
+
+Restent à votre choix, signalés par les relectures : marquer aussi « repris du bail précédent » sur la fiche du lot ;
+rendre l'inventaire du meublé « à vérifier » tant qu'un état manque (migration) ; appliquer le geste unique aux liens vers
+une quittance hors de « Mes documents » ; paginer la page Alertes sur un grand parc (hors périmètre).
+
+Et douze corrections partielles de l'audit dont le reste est un choix de produit ou de droits (détail au § 7 du rapport), par
+exemple : l'assurance du locataire rattachée à tous les colocataires présents ou au seul principal (ED-01) ; conserver le
+résultat du CREP (DOC-07) ; seuil du quota de dépôts (DOC-13) ; décor saisonnier sous une charte d'agence (ED-03).
 
 ## Limites de l'audit
 
@@ -98,7 +109,12 @@ CREP (DOC-07) ; seuil du quota de dépôts (DOC-13) ; décor saisonnier sous une
   revérification en ligne (le DPE, lui, est sourcé).
 - Les espaces artisan et supervision ont été parcourus avec moins de profondeur que l'espace propriétaire.
 
-## Pour publier (après votre accord)
+## Pour publier les cinq décisions (après votre accord)
+
+Sans migration : PR de la branche vers `main`, CI verte sur la révision exacte, fusion squash, déploiement Vercel,
+« Recette de production avec nettoyage », journal. Le protocole complet ci-dessous reste celui de la première publication.
+
+## Pour publier (rappel de la première publication, faite)
 
 1. Ouvrir la PR de la branche vers `main` ; CI verte sur la révision exacte.
 2. « Migrations Supabase » en simulation, puis sauvegarde, puis application des cinq fichiers dans l'ordre

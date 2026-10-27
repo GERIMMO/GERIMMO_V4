@@ -146,3 +146,29 @@ it.each([
   expect(await assembler(c.supabase, "org", "b1")).toHaveProperty("erreur");
   expect(c.from).not.toHaveBeenCalled();
 });
+
+it("CB-04 : un profil d’organisation incomplet est signalé au profil, sans être imputé aux parties complètes", async () => {
+  const ctx = contexte();
+  Object.assign(ctx.organisation, { address_line1: null, postal_code: null, city: null, email_contact: null });
+  mocks.charger.mockResolvedValue(ctx);
+  const { manquants } = await verifierCompletudeBrouillonBail(client().supabase, "org", "b1");
+  expect(manquants).toEqual(expect.arrayContaining(["adresse de l’organisation (profil)", "adresse électronique de l’organisation (profil)"]));
+  expect(manquants).not.toContain("domicile ou siège social");
+  expect(manquants).not.toContain("adresse électronique");
+  expect(cibleChampBail("adresse de l’organisation (profil)", "org", "/espace")).toEqual({ href: "/espace/org/profil", etape: "personnes" });
+  // Un propriétaire sans adresse reste signalé, en plus du profil.
+  ctx.bailleurs[0].address_line1 = null;
+  expect((await verifierCompletudeBrouillonBail(client().supabase, "org", "b1")).manquants).toContain("domicile ou siège social");
+});
+
+it("CB-06 : sans date d’entrée, le prorata de la première échéance ne vise pas le loyer déjà saisi", async () => {
+  const ctx = contexte();
+  ctx.bail.date_debut = null;
+  mocks.charger.mockResolvedValue(ctx);
+  const { manquants } = await verifierCompletudeBrouillonBail(client().supabase, "org", "b1");
+  expect(manquants).not.toContain("loyer + charges, montant au prorata");
+  expect(manquants.some(m => cibleChampBail(m, "org").etape === "bail")).toBe(true);
+  expect(manquants.filter(m => cibleChampBail(m, "org").etape === "loyer")).toEqual([]);
+  ctx.bail.loyer_hc = null;
+  expect((await verifierCompletudeBrouillonBail(client().supabase, "org", "b1")).manquants).toContain("loyer + charges, montant au prorata");
+});

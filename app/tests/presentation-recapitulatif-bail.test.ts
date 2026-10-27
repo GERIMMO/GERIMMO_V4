@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { correctionsRecapBail, montantRecapBail, rubriquesRecapBail } from "@/lib/presentation-recapitulatif-bail";
+import { correctionsRecapBail, dureeContratRecapBail, montantRecapBail, rubriquesRecapBail } from "@/lib/presentation-recapitulatif-bail";
 import { BilanBail } from "@/app/agence/[orgId]/baux/[bailId]/bilan-bail";
 import { CompletudeBail } from "@/lib/suivi-enregistrement";
 import { FournisseurRacineEspace } from "@/components/racine-espace-contexte";
@@ -65,5 +65,46 @@ describe("récapitulatif du contrat", () => {
     expect(html).not.toContain("Modifier");
     expect(html).not.toContain("Avant la signature");
     expect(html).toContain("Informations enregistrées");
+  });
+});
+
+describe("récapitulatif du contrat — audit #264", () => {
+  const personnes = (bail: Record<string, string | null>, liste: { nom: string; role: string }[]) =>
+    rubriquesRecapBail({ bail, lot: {}, bien: {}, personnes: liste, liens: { lot: "#lot", bien: "#bien" } }).find(r => r.id === "personnes")!;
+  it("CB-13 : sans locataire choisi, la rubrique des personnes le signale", () => {
+    const sans = personnes({ locataire_principal: null }, [{ nom: "Moreau Claire · 100 %", role: "Propriétaire" }]);
+    expect(sans.lignes.map(l => [l.libelle, l.valeur, l.facultatif ?? false])).toEqual([["Propriétaire", "Moreau Claire · 100 %", false], ["Locataire principal", null, false]]);
+    expect(sans.lignes[1].href).toBe("#titre-locataires-bail");
+    const avec = personnes({ locataire_principal: "p1" }, [{ nom: "Moreau Claire · 100 %", role: "Propriétaire" }, { nom: "Durand Léa", role: "Locataire principal" }]);
+    expect(avec.lignes.filter(l => l.valeur === null)).toEqual([]);
+  });
+  it("CB-07 : un complément de loyer vide est « néant », comme au contrat, sans rien à vérifier", () => {
+    const clauses = construire({ encadrement_loyer: true, loyer_reference: 15.2, loyer_reference_majore: 18.24, complement_loyer: null }).find(r => r.id === "clauses")!;
+    expect(clauses.lignes.find(l => l.champ === "bail.complement_loyer")).toMatchObject({ valeur: "Néant", facultatif: true });
+    const avec = construire({ encadrement_loyer: true, complement_loyer: 40 }).find(r => r.id === "clauses")!;
+    expect(avec.lignes.find(l => l.champ === "bail.complement_loyer")?.valeur).toMatch(/^40,00/);
+  });
+  it("CB-09 : un locataire absent donne une seule correction, et les mentions brutes ont un libellé lisible", () => {
+    const rubriques = rubriquesRecapBail({ bail: { locataire_principal: null }, lot: {}, bien: {}, personnes: [], liens: { lot: "#lot", bien: "#bien" } });
+    const mentions = ["nom et prénom(s)", "commune de naissance", "adresse actuelle", "nom et prénom(s) du ou des locataires", "jj/mm/aaaa", "inventaire du mobilier — au moins les 11 éléments du décret", "classe DPE du logement", "commune", "personne physique, SCI, indivision…"];
+    const c = correctionsRecapBail(mentions, rubriques, "org", "/espace");
+    expect(c.filter(x => x.href === "#titre-locataires-bail").map(x => x.libelle)).toEqual(["Choisir le locataire principal"]);
+    expect(c.filter(x => x.libelle === x.mention)).toEqual([]);
+  });
+  it("CB-04 : un profil sans adresse ni e-mail renvoie au profil, pas aux parties", () => {
+    const c = correctionsRecapBail(["adresse de l’organisation (profil)", "adresse électronique de l’organisation (profil)"], construire(), "org", "/espace");
+    expect(c.map(x => [x.libelle, x.href])).toEqual([
+      ["Adresse de votre profil (en-tête du contrat)", "/espace/org/profil"],
+      ["E-mail de votre profil (en-tête du contrat)", "/espace/org/profil"],
+    ]);
+  });
+  it("CB-10 : la rubrique du contrat donne la durée du contrat et la fin de sa première période", () => {
+    expect(dureeContratRecapBail({ type: "nu" }, false, ["SCI"])).toBe("6 ans, avec reconduction tacite");
+    expect(dureeContratRecapBail({ type: "nu" }, false, ["Personne physique"])).toBe("3 ans, avec reconduction tacite");
+    expect(dureeContratRecapBail({ type: "meuble" }, true, [])).toBe("1 an, avec reconduction tacite");
+    expect(dureeContratRecapBail({ type: "colocation" }, true, [])).toBe("1 an, avec reconduction tacite");
+    expect(dureeContratRecapBail({ type: "meuble", meuble_etudiant: true }, true, [])).toBe("9 mois, sans reconduction tacite (bail étudiant)");
+    const contrat = rubriquesRecapBail({ bail: { type: "nu", date_debut: "2026-12-01" }, lot: {}, bien: {}, personnes: [], liens: { lot: "#lot", bien: "#bien" }, duree: { texte: "6 ans, avec reconduction tacite", finPremierePeriode: "2032-11-30" } }).find(r => r.id === "bail")!;
+    expect(contrat.lignes.map(l => [l.libelle, l.valeur])).toEqual(expect.arrayContaining([["Durée du contrat", "6 ans, avec reconduction tacite"], ["Fin de la première période", "30/11/2032"]]));
   });
 });

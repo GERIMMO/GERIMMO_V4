@@ -109,7 +109,8 @@ export function AssistantBail({ orgId, bailId, contenus, formulaire, controleIni
       // Le toggle natif synchronise aussi les détails contrôlés du formulaire.
       let parent:HTMLElement|null=cible;
       while(parent&&parent!==racine){if(parent instanceof HTMLDetailsElement)parent.open=true;parent=parent.parentElement;}
-      const visible=(element:HTMLElement)=>!element.closest("[hidden], [inert]")&&!element.matches(":disabled")&&element.getClientRects().length>0;
+      // Un champ d’un volet replié de la carte n’est pas focalisable : le titre de la carte le remplace (CB-12).
+      const visible=(element:HTMLElement)=>!element.closest("[hidden], [inert], details:not([open])")&&!element.matches(":disabled")&&element.getClientRects().length>0;
       const champs='input:not([type="hidden"]), select, textarea';
       const scope=cible.matches(champs)?cible.closest("fieldset")??cible:cible;
       const champ=cible.matches(champs)&&visible(cible)?cible:Array.from(scope.querySelectorAll<HTMLElement>(champs)).find(visible);

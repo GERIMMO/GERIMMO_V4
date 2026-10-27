@@ -17,10 +17,13 @@ export function CarteTachesProprietaire({ taches, base, indisponible, prioritesP
     if ("taches" in tache) return <li key={tache.cle}><details className={styles.groupe}>
       <summary className={styles.tache}>
         <span className={styles.icone}><Icone size={18} aria-hidden="true" /></span>
-        <span className={styles.contenu}><b>{tache.titre}</b>{tache.detail && <small>{tache.detail}</small>}</span>
+        <span className={styles.contenu}><b>{tache.titre}</b>{tache.detail && <small>{tache.detail}</small>}
+          {tache.echeance && <small>Prochaine échéance : <time dateTime={tache.echeance}>{formaterDate(tache.echeance)}</time></small>}
+        </span>
         <span className={styles.geste}>Voir les {tache.unite}<ChevronDown size={16} aria-hidden="true" /></span>
       </summary>
-      <ul className={styles.lots}>{tache.taches.map(t => <li key={t.cle}><Link href={t.href}>{lieuTache(t)}
+      {/* Sans préchargement : déplier 300 lots ne doit pas lancer des dizaines de rendus de fiches (relecture TRV-09). */}
+      <ul className={styles.lots}>{tache.taches.map(t => <li key={t.cle}><Link href={t.href} prefetch={false}>{lieuTache(t)}
         {!tache.detail && t.detail && <small>{t.detail}</small>}
         {t.echeance && <small>Échéance : <time dateTime={t.echeance}>{formaterDate(t.echeance)}</time></small>}
       </Link></li>)}</ul>

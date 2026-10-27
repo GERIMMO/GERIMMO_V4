@@ -104,7 +104,7 @@ function EnvoiRelance({ orgId, ligne }: { orgId: string; ligne: RappelLoyer }) {
     <input type="hidden" name="reste_attendu" value={reste.toFixed(2)} />
     <p>Envoyer au locataire une relance amiable pour le loyer {deElide(moisEnFrancais(ligne.periode.slice(0,7)))} : {eur(reste)} restant à recevoir{total !== null && <>, {eur(total)} échus au total sur le bail</>}. Vérifiez votre compte bancaire avant l’envoi.</p>
     <label className={styles.confirmationEnvoi}><input type="checkbox" name="confirmer" value="oui" required />Je confirme que ce règlement n’a pas été reçu et souhaite relancer le locataire et les colocataires concernés par e-mail.</label>
-    <div className={styles.choix}><BoutonEnvoi className="btn-secondaire" type="submit" disabled={enCours}>{enCours ? "Envoi…" : "Envoyer la relance par e-mail"}</BoutonEnvoi></div>
+    <div className={styles.choix}><BoutonEnvoi variant="outline" className="btn-secondaire" type="submit" disabled={enCours}>{enCours ? "Envoi…" : "Envoyer la relance par e-mail"}</BoutonEnvoi></div>
     {etat.erreur && <p className="err mt-3" role="alert">{etat.erreur}</p>}
   </form>;
 }

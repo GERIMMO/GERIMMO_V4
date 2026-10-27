@@ -4,7 +4,8 @@
  * Avant 20261027100000, un bail soldé depuis le tableau de bord gardait son alerte ouverte jusqu'au lendemain, et l'accueil
  * la présentait comme l'action prioritaire. Ici : fermeture dès la réception complète (tableau de bord ET bail), réouverture
  * quand le règlement est annulé, montant à jour après un règlement partiel, aucune fermeture par une simple lecture, aucun
- * doublon quand le geste se répète, et une alerte fermée à la main reste fermée.
+ * doublon quand le geste se répète, et une alerte fermée à la main reste fermée, même écrite « Impayé soldé » (relecture du
+ * 27/10 : seule une fermeture sans auteur, « Fermée automatiquement » à l'historique, se rouvre).
  *
  * Le dernier bloc rejoue la migration dans la transaction du test (déclencheur recréé sur `encaissements`) : le fichier
  * tourne en série (FICHIERS_EN_SERIE de vitest.config.ts).
@@ -57,8 +58,8 @@ describe.skipIf(!url)("alerte d'impayé et encaissements (avec base)", () => {
   }
   async function alertes() {
     await db.query("reset role");
-    const { rows } = await db.query<{ statut: string; criticite: string; seuil: string; titre: string; closed_action: string | null }>(
-      `select statut::text, criticite::text, details->>'seuil' seuil, titre, closed_action from public.alerts
+    const { rows } = await db.query<{ statut: string; criticite: string; seuil: string; titre: string; closed_action: string | null; closed_by: string | null }>(
+      `select statut::text, criticite::text, details->>'seuil' seuil, titre, closed_action, closed_by from public.alerts
         where organization_id=$1 and type='loyer_impaye' order by created_at`, [org]);
     await agir(compte);
     return rows;
@@ -101,7 +102,9 @@ describe.skipIf(!url)("alerte d'impayé et encaissements (avec base)", () => {
     expect(apresUn).toMatchObject({ statut: "ouverte", criticite: "normale", seuil: "1" });
     expect(apresUn.titre).toContain("800,00 €");
     expect((await reception(recent, "recu", 800, 800)).statut).toBe("enregistre");
-    expect(await alertes()).toMatchObject([{ statut: "fermee", closed_action: "Impayé soldé" }]);
+    // Fermée par la base, sans auteur, bien que la réception vienne de la session du propriétaire : l'historique
+    // l'affiche « Fermée automatiquement » (alertes/page.tsx), comme une fermeture de la tâche de nuit.
+    expect(await alertes()).toMatchObject([{ statut: "fermee", closed_action: "Impayé soldé", closed_by: null }]);
     // Geste répété avec un ancien formulaire, puis passage de nuit : rien ne se rouvre, rien ne se double.
     expect((await reception(recent, "recu", 800, 800)).statut).toBe("deja_solde");
     await nuit();
@@ -160,6 +163,27 @@ describe.skipIf(!url)("alerte d'impayé et encaissements (avec base)", () => {
     await reception(ancien, "partiel", 100, 800);
     await nuit();
     expect(await alertes()).toMatchObject([{ statut: "fermee", closed_action: "Arrangement amiable" }]);
+  });
+
+  it("une fermeture à la main écrite « Impayé soldé » garde son auteur et reste fermée tant que la dette demeure", async () => {
+    // Comme l'écran (actions/alertes.ts) : le compte qui ferme est inscrit, le texte est libre.
+    await db.query(`update public.alerts set statut='fermee', closed_at=now(), closed_by=$2, closed_action='Impayé soldé'
+      where organization_id=$1`, [org, compte]);
+    await reception(ancien, "partiel", 100, 800);
+    await nuit();
+    const reglement = (await db.query("select id from public.encaissements where bail_id=$1", [bail])).rows[0].id;
+    await db.query("select public.supprimer_encaissement($1,$2)", [reglement, "TEST annulation d’un règlement fictif"]);
+    await nuit();
+    expect(await alertes()).toMatchObject([{ statut: "fermee", closed_action: "Impayé soldé", closed_by: compte }]);
+  });
+
+  it("une fermeture de la tâche de nuit, sans auteur, se rouvre quand la dette revient", async () => {
+    // Les alertes fermées avant le déclencheur l'ont été par la nuit : closed_by nul, elles suivent la même règle.
+    await db.query("reset role");
+    await db.query("update public.alerts set statut='fermee', closed_at=now(), closed_by=null, closed_action='Impayé soldé' where organization_id=$1", [org]);
+    await agir(compte);
+    await reception(ancien, "partiel", 100, 800);
+    expect(await alertes()).toMatchObject([{ statut: "ouverte", closed_action: null, closed_by: null }]);
   });
 
   it("un encaissement saisi ou retiré sur un bail sans alerte n'en pose aucune : la nuit reste seule à les poser", async () => {

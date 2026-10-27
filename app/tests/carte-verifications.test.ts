@@ -1,5 +1,6 @@
 import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CarteVerifications } from "@/components/carte-verifications";
 import { SelecteurPatrimoine } from "@/components/selecteur-patrimoine";
@@ -18,7 +19,8 @@ describe("carte de l'accueil : patrimoine au repos, vérifications à la demande
   it("rejoint les tâches courantes déjà visibles sans ouvrir une fenêtre intermédiaire", () => {
     const html = rendre({ total: 2, hrefTaches: "#taches-proprietaire" });
     expect(html).toContain('href="#taches-proprietaire"');
-    expect(html).toContain("2 demandes à vérifier — voir mes tâches");
+    // Le nom accessible commence par le libellé visible (audit du 27/10, TRV-06 : label-content-name-mismatch).
+    expect(html).toContain('aria-label="À vérifier : 2 demandes — voir mes tâches"');
     expect(html).not.toContain("<button");
     expect(html).not.toContain("aria-haspopup");
     expect(html).not.toContain("Détail de la demande TEST");
@@ -194,5 +196,22 @@ describe("contexte du patrimoine", () => {
     }));
     expect(html).toContain("Autres patrimoines indisponibles · Réessayer");
     expect(html).toContain('href="/espaces"');
+  });
+});
+
+describe("carte rouge : une pulsation brève, jamais sans fin (audit du 27/10, TRV-10)", () => {
+  const css = readFileSync("src/components/carte-verifications.module.css", "utf8");
+  it("s'arrête avant cinq secondes (WCAG 2.2.2) et ne joue qu'en l'absence de « réduire les animations »", () => {
+    const declarations = [...css.matchAll(/animation:\s*respirationAlerte\s+([\d.]+)s\s+[\w-]+\s+([^;]+);/g)];
+    expect(declarations).toHaveLength(1);
+    const [, duree, repetitions] = declarations[0];
+    expect(repetitions.trim()).toMatch(/^\d+$/);
+    expect(Number(duree) * Number(repetitions)).toBeLessThanOrEqual(5);
+    expect(css).not.toMatch(/infinite/);
+    const debut = css.indexOf("@media screen and (prefers-reduced-motion: no-preference)");
+    const fin = css.indexOf("@media", debut + 1);
+    const position = css.indexOf("animation: respirationAlerte");
+    expect(debut).toBeGreaterThanOrEqual(0);
+    expect(position > debut && position < fin).toBe(true);
   });
 });

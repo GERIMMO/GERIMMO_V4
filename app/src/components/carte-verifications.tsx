@@ -39,7 +39,7 @@ export function CarteVerifications(props: Props) {
   }, [demandeEnFenetre]);
 
   if (lienTaches) return <Link ref={lienPatrimoine} href={lienTaches} className={`${props.className} ${styles.carte} ${styles.lienTaches}`}
-    aria-label={`${props.total} demande${props.total > 1 ? "s" : ""} à vérifier — voir mes tâches`}>
+    aria-label={`À vérifier : ${props.total} demande${props.total > 1 ? "s" : ""} — voir mes tâches`}>
     <span><ListChecks size={18} aria-hidden="true" />À vérifier</span>
     <strong>{props.total} <em>demande{props.total > 1 ? "s" : ""}</em></strong>
     <small className={styles.apercu}>Voir mes tâches</small>

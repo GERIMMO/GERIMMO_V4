@@ -38,6 +38,7 @@ type BailEnCours = {
   id: string;
   etat: string;
   lot_id: string;
+  chambre_id?: string | null;
   lot: UnOuPlusieurs<{
     id: string;
     nom: string;
@@ -105,7 +106,7 @@ export async function lireActionsAttendues(
 
   const { data: bauxBruts, error: erreurBaux } = await lectureCompleteSecurisee<BailEnCours>((debut, fin) => {
     let requeteBaux = supabase.from("baux").select(
-      "id, etat, lot_id, lot:lots(id, nom, bien_id, bien:biens!lots_bien_id_fkey(id, nom, type, annee_construction))", { count: "exact" },
+      "id, etat, lot_id, chambre_id, lot:lots(id, nom, bien_id, bien:biens!lots_bien_id_fkey(id, nom, type, annee_construction))", { count: "exact" },
     ).eq("organization_id", orgId).in("etat", ["actif", "preavis"]);
     if (bailId) requeteBaux = requeteBaux.eq("id", bailId);
     return requeteBaux.order("id").range(debut, fin);
@@ -116,6 +117,7 @@ export async function lireActionsAttendues(
     (b) => !portefeuille || portefeuille.has(b.lot_id)
   );
   const bailIds = baux.map((b) => b.id);
+  const chambreIds = [...new Set(baux.flatMap((b) => b.chambre_id ? [b.chambre_id] : []))];
 
   const vide = { data: [] as never[], error: false };
   const [
@@ -124,6 +126,7 @@ export async function lireActionsAttendues(
     { data: encaissements, error: erreurEncaissements },
     { data: diagnostics, error: erreurDiagnostics },
     { data: piecesARenouveler, error: erreurPieces },
+    { data: chambres },
   ] = await Promise.all([
     lirePourLesBaux<{ id: string; bail_id: string }>(bailIds, (ids, debut, fin) => supabase
           .from("etats_des_lieux")
@@ -159,6 +162,12 @@ export async function lireActionsAttendues(
           p_limite: aujourdhui,
           p_lots: portefeuille ? [...portefeuille] : null,
         }, { count: "exact" }).order("id").range(debut, fin)),
+    // Colocation : la chambre distingue les baux d'un même lot (audit du 27/10, LAT-04). Sans elle, le lot suffit.
+    lirePourLesBaux<{ id: string; nom: string }>(chambreIds, (ids, debut, fin) => supabase
+          .from("lot_chambres")
+          .select("id,nom", { count: "exact" })
+          .eq("organization_id", orgId)
+          .in("id", ids).order("id").range(debut, fin)),
   ]);
 
   const erreurs: LectureActionsAttendues["erreurs"] = {
@@ -170,6 +179,7 @@ export async function lireActionsAttendues(
     pieces: Boolean(erreurPieces) || !Array.isArray(piecesARenouveler),
   };
 
+  const nomsChambres = new Map(((chambres ?? []) as { id: string; nom: string }[]).map((c) => [c.id, c.nom]));
   const bailsAvecEdl = new Set(
     ((edlsSignes ?? []) as { bail_id: string }[]).map((e) => e.bail_id)
   );
@@ -219,6 +229,8 @@ export async function lireActionsAttendues(
     // téléphone) sans rien apprendre (24/09). L'accueil, qui mêle tous les
     // baux, garde le nom du lot.
     const surLeLot = bailId ? "" : ` — ${nomLot}`;
+    const chambre = bail.chambre_id ? nomsChambres.get(bail.chambre_id) : null;
+    const surLeBail = bailId ? "" : ` — ${nomLot}${chambre ? ` · ${chambre}` : ""}`;
 
     // Impayés : les appels échus, couverts du plus ancien au plus récent par
     // le total encaissé — même imputation qu'etat_loyers_bail (SQL).
@@ -230,7 +242,7 @@ export async function lireActionsAttendues(
     if (!erreurs.appels && !erreurs.encaissements && reste > 0) {
       impayes.push({
         cle: `impaye-${bail.id}`,
-        titre: `Loyer impayé${surLeLot}`,
+        titre: `Loyer impayé${surLeBail}`,
         detail: `${eur(reste)} échus non couverts`,
         href: `${base}/baux/${bail.id}#loyers`,
         critique: true,
@@ -241,7 +253,7 @@ export async function lireActionsAttendues(
     if (!erreurs.edls && !bailsAvecEdl.has(bail.id)) {
       edls.push({
         cle: `edl-${bail.id}`,
-        titre: `État des lieux d'entrée à signer${surLeLot}`,
+        titre: `État des lieux d'entrée à signer${surLeBail}`,
         detail: "Décrire l’état du logement avec le locataire à la remise des clés",
         href: `${base}/baux/${bail.id}#edl`,
         critique: false,

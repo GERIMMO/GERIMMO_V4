@@ -140,6 +140,28 @@ describe("Actions attendues : pagination et périmètre", () => {
     for (const lecture of lectures) expect(lecture.filtres).toContainEqual(["eq", "organization_id", "org"]);
   });
 
+  it("colocation : deux baux de chambres d'un même lot ont des titres distincts (audit du 27/10, LAT-04)", async () => {
+    const tables = base(); tables.etats_des_lieux = [];
+    tables.baux = [
+      { ...tables.baux[0], id: "jardin", chambre_id: "c-jardin" },
+      { ...tables.baux[0], id: "rue", chambre_id: "c-rue" },
+      { ...tables.baux[0], id: "entier", chambre_id: null },
+    ];
+    tables.lot_chambres = [ligne({ id: "c-jardin", nom: "Chambre Jardin" }), ligne({ id: "c-rue", nom: "Chambre Rue" })];
+    const { db, lectures } = client(tables);
+    const titres = (await lireActionsAttendues(db, "org")).actions.filter(a => a.cle.startsWith("edl-")).map(a => a.titre);
+    expect(titres).toEqual([
+      "État des lieux d'entrée à signer — Logement",
+      "État des lieux d'entrée à signer — Logement · Chambre Jardin",
+      "État des lieux d'entrée à signer — Logement · Chambre Rue",
+    ]);
+    expect(lectures.find(l => l.table === "lot_chambres")?.filtres).toContainEqual(["eq", "organization_id", "org"]);
+    // Chambres illisibles : le lot reste le repère, sans incertitude sur les actions.
+    const repli = await lireActionsAttendues(client(tables, { lot_chambres: "erreur" }).db, "org");
+    expect(repli.actions.filter(a => a.cle.startsWith("edl-")).map(a => a.titre)).toEqual(Array(3).fill("État des lieux d'entrée à signer — Logement"));
+    expect(Object.values(repli.erreurs).some(Boolean)).toBe(false);
+  });
+
   it("écarte les baux extérieurs au portefeuille sans leur fabriquer de blocages", async () => {
     const { db, lectures } = client(base());
     expect((await lireActionsAttendues(db, "org", { portefeuille: new Set(["autre-lot"]) })).actions).toEqual([]);

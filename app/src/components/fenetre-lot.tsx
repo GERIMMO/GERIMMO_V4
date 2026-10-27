@@ -1096,7 +1096,7 @@ function OngletDocuments({ orgId, fiche, fermer, estProprietaire = false, lectur
         </ul>
       )}
       {!lectureSeule && <Link
-        href={locataire ? `/locataire/${orgId}/documents` : `${base}/documents?sel=depot`}
+        href={locataire ? `/locataire/${orgId}/documents` : `${base}/documents?sel=depot&lot=${encodeURIComponent(fiche.lot_id)}`}
         onNavigate={fermer}
         className={buttonVariants({ variant: "outline", size: "sm" })}
       >

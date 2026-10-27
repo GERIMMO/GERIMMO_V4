@@ -14,6 +14,9 @@ import {
 import { formaterTaille } from "@/lib/file-type";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { nomComplet } from "@/lib/roles-personnes";
+import { estUuid } from "@/lib/identifiants";
+import { libelleLot } from "@/lib/parc";
+import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import {
   Card,
   CardContent,
@@ -82,9 +85,30 @@ export default async function PageDocuments(
     au: uneValeur(brut.au),
   };
   const sel = uneValeur(brut.sel) ?? null;
+  const lotDemande = uneValeur(brut.lot);
   const { supabase, role, user, estProprietaire } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
+  // Dépôt ouvert depuis la fiche d'un lot (audit #264, DOC-05) : le lot est
+  // relu dans cet espace, sous la RLS (un agent ne lit que son portefeuille),
+  // avant d'être proposé au rattachement ; l'action le revérifie. Un lot
+  // inconnu n'est simplement pas proposé ; une lecture refusée est dite.
+  const { data: lotLu, error: erreurLot } = sel === "depot" && estUuid(lotDemande)
+    ? await supabase
+        .from("lots")
+        .select("id, nom, bien_id, bien:biens!lots_bien_id_fkey(nom)")
+        .eq("id", lotDemande)
+        .eq("organization_id", orgId)
+        .neq("etat", "archive")
+        .maybeSingle()
+    : { data: null, error: null };
+  const lotDepot = lotLu ? {
+    id: lotLu.id as string,
+    libelle: libelleLot(lotLu.nom, premier(lotLu.bien as UnOuPlusieurs<{ nom: string }>)?.nom),
+    // La fiche du lot du propriétaire montre ses « Autres documents » : le
+    // dépôt y revient. Celle de l'agence ne les liste pas : pas de retour forcé.
+    retour: estProprietaire ? `${base}/parc/${lotLu.bien_id}/lots/${lotLu.id}#documents-lot` : undefined,
+  } : undefined;
   // Périmètre portefeuille (RM-18.1.3, audit 09/09) : l'agent ne voit que les
   // pièces rattachées à ses lots, baux, incidents et locataires — les pièces
   // d'organisation (sans rattachement) restent visibles de tous. Le filtre
@@ -179,6 +203,7 @@ export default async function PageDocuments(
     erreurRenouveler && "les documents à renouveler",
     erreurTotal && "le nombre total de documents",
     erreurPersonnes && "les personnes rattachées",
+    erreurLot && "le lot d’où le dépôt a été ouvert",
     suiviSignatures.erreur && "le suivi des signatures",
   ].filter((q): q is string => Boolean(q));
 
@@ -229,8 +254,8 @@ export default async function PageDocuments(
   if (estProprietaire && sel === "depot") {
     return (
       <main className={`mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7 ${styles.page}`}>
-        <Link href={lien(null)} className="lien-discret mb-2 inline-flex min-h-11 items-center">
-          ← Retour aux documents
+        <Link href={lotDepot?.retour ?? lien(null)} className="lien-discret mb-2 inline-flex min-h-11 items-center">
+          {lotDepot?.retour ? "← Retour au lot" : "← Retour aux documents"}
         </Link>
         <div className={styles.entetePage}>
           <div className="entete-page">
@@ -238,10 +263,10 @@ export default async function PageDocuments(
           </div>
         </div>
         <div className="max-w-2xl">
-          <EchecLecture quoi={erreurPersonnes ? ["les personnes rattachées"] : []} />
+          <EchecLecture quoi={[erreurPersonnes && "les personnes rattachées", erreurLot && "le lot d’où le dépôt a été ouvert"].filter((q): q is string => Boolean(q))} />
           <Card>
             <CardContent>
-              <FormulaireDepot orgId={orgId} personnes={personnes ?? []} lienAnnuler={lien(null)} typeInitial={recherche.type} />
+              <FormulaireDepot orgId={orgId} personnes={personnes ?? []} lienAnnuler={lotDepot?.retour ?? lien(null)} typeInitial={recherche.type} lot={lotDepot} />
             </CardContent>
           </Card>
         </div>
@@ -591,7 +616,7 @@ export default async function PageDocuments(
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <FormulaireDepot orgId={orgId} personnes={personnes ?? []} />
+                      <FormulaireDepot orgId={orgId} personnes={personnes ?? []} lot={lotDepot} />
                     </CardContent>
                   </Card>
                 ) : (

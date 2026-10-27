@@ -17,6 +17,9 @@
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
 .actions > * { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
 .resumeLien { font-size: 13px; overflow-wrap: anywhere; color: var(--texte-secondaire, #6b7280); }
+.lienLot { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; font-size: 14px; color: var(--encre, #20334d); cursor: pointer; overflow-wrap: anywhere; }
+.lienLot input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--encre, #20334d); }
+.lienLot small { display: block; margin-top: 3px; font-size: 12px; color: var(--texte-secondaire, #6b7280); }
 .succes { display: grid; justify-items: start; gap: 20px; padding: 8px 0; }
 .succes > p[role="status"] { font-size: 18px; font-weight: 600; }
 .iconeSucces { padding: 12px; border-radius: 50%; background: var(--success-soft, #eff6f1); color: var(--success, #327750); }

@@ -2,6 +2,7 @@
 
 import { useId, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Check, ChevronDown, FileUp } from "lucide-react";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { deposerDocument, type EtatDepot } from "@/app/actions/ged";
@@ -12,19 +13,35 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChampFichier } from "@/components/champ-fichier";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
+import { afficherToast } from "@/components/ui/toast";
 import styles from "./formulaire-depot.module.css";
 
 type Personne = { id: string; nom: string; prenom: string | null };
+// Le lot d'où le dépôt a été ouvert, relu par la page dans cet espace.
+// `retour` : sa fiche, quand elle affiche les documents rattachés.
+type LotDepot = { id: string; libelle: string; retour?: string };
 type Props = {
   orgId: string;
   personnes: Personne[];
   lienAnnuler?: string;
   typeInitial?: string;
+  lot?: LotDepot;
 };
 
 export function FormulaireDepot(props: Props) {
   const base = useBaseEspace(props.orgId);
-  const { etat, soumettre, enCours, version } = useActionFormulaire<EtatDepot>(deposerDocument.bind(null, props.orgId), true);
+  const router = useRouter();
+  const { etat, soumettre, enCours, version } = useActionFormulaire<EtatDepot>(async (precedent, donnees) => {
+    const resultat = await deposerDocument(props.orgId, precedent, donnees);
+    // Déposé depuis la fiche d'un lot (audit #264, DOC-05) : le dépôt se
+    // referme et l'on retrouve le lot, où le document apparaît désormais.
+    // Toast à la résolution de l'action (convention 24/08), jamais dans un effet.
+    if (resultat.lotLie && !resultat.avertissement && props.lot?.retour) {
+      afficherToast(`Document déposé et rattaché à « ${props.lot.libelle} ».`);
+      router.push(props.lot.retour);
+    }
+    return resultat;
+  }, true);
   const [resultatMasque, setResultatMasque] = useState<EtatDepot | null>(null);
   const [versionEnvoyee, setVersionEnvoyee] = useState(0);
   const succesAffiche = Boolean(etat.succes) && resultatMasque !== etat;
@@ -37,8 +54,10 @@ export function FormulaireDepot(props: Props) {
       <span className={styles.iconeSucces}><Check size={22} aria-hidden="true" /></span>
       <p role="status">{etat.succes}</p>
       {etat.avertissement && <p className={styles.avertissement} role="alert">{etat.avertissement}</p>}
+      {etat.lotLie && props.lot && <p className={styles.resumeLien}>Rattaché à « {props.lot.libelle} ».</p>}
       <div className={styles.actions}>
-        {lienDocument && <Link href={lienDocument} className="btn-or">Consulter le document</Link>}
+        {props.lot?.retour && <Link href={props.lot.retour} className="btn-or">Retour au lot</Link>}
+        {lienDocument && <Link href={lienDocument} className={props.lot?.retour ? "btn-secondaire" : "btn-or"}>Consulter le document</Link>}
         <button type="button" className="btn-secondaire" onClick={() => setResultatMasque(etat)}>Déposer un autre document</button>
       </div>
     </div>
@@ -53,7 +72,7 @@ export function FormulaireDepot(props: Props) {
   </>;
 }
 
-function ChampsDepot({ personnes, lienAnnuler, typeInitial, etat, soumettre, enCours }: Props & {
+function ChampsDepot({ personnes, lienAnnuler, typeInitial, lot, etat, soumettre, enCours }: Props & {
   etat: EtatDepot;
   soumettre: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   enCours: boolean;
@@ -66,6 +85,7 @@ function ChampsDepot({ personnes, lienAnnuler, typeInitial, etat, soumettre, enC
   const [titreModifie, setTitreModifie] = useState(false);
   const [nomFichier, setNomFichier] = useState("");
   const [personne, setPersonne] = useState("");
+  const [lierLot, setLierLot] = useState(true);
   const suggestion = nomFichier ? typeSuggereParNom(nomFichier) : "";
 
   return (
@@ -99,6 +119,11 @@ function ChampsDepot({ personnes, lienAnnuler, typeInitial, etat, soumettre, enC
           {!typeModifie && typeConnu ? "Repris du filtre de vos documents." : !typeModifie && suggestion ? "Suggéré d’après le nom du fichier. À vérifier." : "Le type détermine le classement et les accès au document."}
         </p>
       </div>
+
+      {lot && <label className={styles.lienLot}>
+        <input type="checkbox" name="lot" value={lot.id} checked={lierLot} onChange={(event) => setLierLot(event.target.checked)} />
+        <span>Rattacher au lot « {lot.libelle} »<small>Le document apparaîtra dans les documents de ce lot.</small></span>
+      </label>}
 
       <details className={styles.options}>
         <summary><span>{personnes.length ? "Renommer ou lier à une personne" : "Renommer le document"} <small>Facultatif</small></span><ChevronDown size={16} aria-hidden="true" /></summary>

@@ -7180,3 +7180,36 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
 - Intégration relue (2 interactions corrigées) ; batterie finale : lint 0, types 0, 250 parcours, 11 674 tests (1 échec de banc antérieur à la refonte).
 - Production (lecture seule) : aucune donnée touchée par les défauts. Rien publié : branche `claude/compassionate-euler-qpqjp6` poussée (`05369286`), fusion et migrations en attente d'accord.
 - Rapport : `app/docs/audit-refonte-264-20261027.md` ; bilan : [[Bilan de l'audit de la refonte #264 — 27 octobre 2026]] ; preuves : `app/docs/preuves-audit-264/`.
+
+## [2026-10-27] deploy | Corrections de l'audit de la refonte #264 (PR #267)
+
+- Feu vert écrit du dirigeant le 27/10 (« Tu as le feu vert »). PR [#267](https://github.com/GERIMMO/GERIMMO_V4/pull/267), tête `42cc254e`.
+- Simulation « Migrations Supabase » (5 fichiers `20261027100000` → `100500`, ref de la branche) : run 40518220377, réussie 14:11Z, tout annulé.
+- « Sauvegarde quotidienne » à la demande : run 40520623873, réussie 14:26Z.
+- CI « Lint, types, tests, build » sur `42cc254e` : run 40518225925, verte 15:01Z (WebKit mobile compris).
+- Application réelle des 5 migrations : run 40526954680, réussie 15:02Z. Vérification en lecture seule : 5 versions dans
+  `schema_migrations`, déclencheurs `encaissement_impaye` (encaissements) et `baux_assurance_locataire_activation` (baux),
+  6 fonctions nouvelles, `ouvrir_incident_agence` à une seule signature, 0 fonction ouverte à `anon`, 11 tâches pg_cron.
+- Fusion squash avec le SHA exact → `main` = `79a7aadd` (15:12Z). Déploiement Vercel `dpl_4jYuA3ToD7V8KC2fbUqEH2tNr39a`
+  READY ; pages `/`, `/connexion`, `/inscription`, `/tarifs`, `/mentions-legales`, `/conditions`, `/confidentialite` en 200
+  avec les nouvelles icônes ; aucune erreur d'exécution.
+- « Recette de production avec nettoyage » run 40530818809 : 65 réussis, 2 échecs, tous deux imputables aux tests :
+  (a) `proprietaire.spec` attendait « Mettre votre premier lot en location », titre devenu « Terminer votre première
+  location » pour le propriétaire depuis #264 (test périmé) ; (b) `depot-document.spec` rechargeait la page avant la fin
+  de la navigation (« ?sel=depot » satisfaisait déjà l'attente « ?sel= »), d'où une lecture de fichier avec
+  l'identifiant « depot » (503) ; le parcours rejoué en local aboutit (`?sel=<id>`, fichier 200). Les deux specs sont
+  corrigées sur la branche (voir entrée suivante). Purge des comptes de recette vérifiée (0 reste).
+
+## [2026-10-27] audit | Contrôle après la mise en ligne des corrections de l'audit #264
+
+- Second passage de la recette (run 40537855410, 16:19Z) : mêmes 65 réussis et mêmes 2 échecs, reproductibles, tous deux
+  dans les tests et non dans l'application (voir l'entrée `deploy`). Correctifs : `e2e/recette-production/proprietaire.spec.ts`
+  accepte le titre « Terminer votre première location » ; `depot-document.spec.ts` attend `?sel=<identifiant>` (et non
+  `?sel=depot`) avant de recharger. Livrés par la PR qui suit (specs de recette + journal), à rejouer sur `main`.
+- Vercel : aucune erreur d'exécution entre la mise en ligne (15:12Z) et 15:48Z ; pages publiques en 200.
+- Base (lecture seule, 15:11Z) : 5 versions `20261027*` enregistrées, déclencheurs et fonctions attendus présents,
+  0 fonction ouverte à `anon`, 11 tâches pg_cron actives.
+- Relevé `releve-incidents-gerant-colocation.sql` : 0 incident sur un lot à plusieurs baux vivants au 27/10 (vérifié avant
+  publication) ; aucune reprise à décider.
+- Restent au dirigeant : les 5 décisions produit du bilan (CB-08, CB-14, TRV-09, ED-04, TRV-05) ; wiki à mettre à jour
+  (Incident, Cycle de vie d'un incident, Diagnostic, alertes d'impayé).

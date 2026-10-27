@@ -40,8 +40,9 @@ test.describe("propriétaire direct", () => {
     await page.goto("/espaces");
     await page.waitForURL(new RegExp(`${espaceDe("proprietaire")}(/|\\?|$)`), { timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 1, name: /Bonjour/ })).toBeVisible();
-    // Le chemin du démarrage : présent tant qu'aucun bail n'est actif.
-    await expect(page.getByRole("region", { name: /Mettre votre premier (lot|bien) en location/ })).toBeVisible();
+    // Le chemin du démarrage : présent tant qu'aucun bail n'est actif. Depuis la refonte #264, le propriétaire
+    // lit « Terminer votre première location » ; l'agence garde « Mettre votre premier lot en location ».
+    await expect(page.getByRole("region", { name: /Terminer votre première location|Mettre votre premier (lot|bien) en location/ })).toBeVisible();
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(0);
     await retenirSession("proprietaire", context);
   });

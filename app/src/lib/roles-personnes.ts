@@ -60,6 +60,14 @@ export function rolesDePersonne(
   return roles;
 }
 
+// Un bail encore en préparation se lit dans la liste (« Locataire · bail en
+// préparation ») sans faire un rôle en cours : une fiche qui n'a que ces
+// rôles-là, ou aucun, reste « sans bail en cours » pour les filtres et la
+// recherche (audit #264, FL-09).
+export function sansRoleEnCours(roles: readonly Pick<RolePersonne, "libelle">[]): boolean {
+  return roles.every((role) => role.libelle.endsWith(" · bail en préparation"));
+}
+
 // « Dupont Alice » — dix-sept endroits concaténaient nom et prénom à la main
 export function nomComplet(p: { nom: string; prenom?: string | null }): string {
   return `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}`;

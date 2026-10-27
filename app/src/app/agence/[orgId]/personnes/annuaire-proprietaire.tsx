@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import { ArrowRight, Info, Mail, MessageCircle, Phone, Search, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { correspond, initiales, nomComplet } from "@/lib/roles-personnes";
+import { correspond, initiales, nomComplet, sansRoleEnCours } from "@/lib/roles-personnes";
 import { EchecLecture } from "../documents/echec-lecture";
 import type { PersonneListe } from "./liste-personnes";
 import styles from "./annuaire-personnes.module.css";
@@ -22,7 +22,7 @@ type Filtre = (typeof FILTRES)[number]["id"];
 
 function dansFiltre(personne: PersonneListe, filtre: Filtre) {
   return filtre === "toutes" || (filtre === "sans-bail"
-    ? personne.roles.length === 0
+    ? sansRoleEnCours(personne.roles)
     : personne.roles.some((role) => role.libelle === filtre));
 }
 
@@ -42,7 +42,7 @@ export function AnnuaireProprietaire({ orgId, personnes, listeIllisible }: {
   const idListe = useId();
   const visibles = personnes.filter((personne) => dansFiltre(personne, filtre) && correspond(
     recherche, personne.nom, personne.prenom, personne.email, personne.telephone,
-    ...(personne.roles.length ? personne.roles.map((role) => role.libelle) : ["Sans bail en cours"]),
+    ...personne.roles.map((role) => role.libelle), ...(sansRoleEnCours(personne.roles) ? ["Sans bail en cours"] : []),
   ));
   const filtreActif = recherche.trim() !== "" || filtre !== "toutes";
   function reinitialiser() { setRecherche(""); setFiltre("toutes"); }

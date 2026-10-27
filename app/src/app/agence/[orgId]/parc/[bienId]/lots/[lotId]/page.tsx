@@ -679,7 +679,7 @@ export default async function PageLot(
         {plusieursEnCours && !erreurBaux ? <p><strong>{eur(totalLoyers)} / mois</strong> · charges comprises, au total pour {bauxEnCours.length} contrats</p> : loyerCc !== null && !erreurBaux && <p><strong>{eur(loyerCc)} / mois</strong> · charges comprises</p>}
       </div>
       {!erreurBaux && <div className={styles.locationActions}>
-        {plusieursEnCours ? <a href="#baux" className="btn-or">Voir les {nbBaux} baux<ArrowRight size={15} aria-hidden="true" /></a> : <Link href={lot.etat === "archive" ? "#baux" : signeAActiver ? `${hrefBailPrincipal}#etape-bail-7` : hrefBailPrincipal} className="btn-or">{lot.etat === "archive" ? "Consulter les baux" : libelleBailPrincipal}<ArrowRight size={15} aria-hidden="true" /></Link>}
+        {plusieursEnCours ? <a href="#baux" className="btn-or">Voir les {bauxEnCours.length} baux<ArrowRight size={15} aria-hidden="true" /></a> : <Link href={lot.etat === "archive" ? "#baux" : signeAActiver ? `${hrefBailPrincipal}#etape-bail-7` : hrefBailPrincipal} className="btn-or">{lot.etat === "archive" ? "Consulter les baux" : libelleBailPrincipal}<ArrowRight size={15} aria-hidden="true" /></Link>}
         {nbBaux > 1 && !plusieursEnCours && <a href="#baux">Voir les {nbBaux} baux</a>}
       </div>}
     </section>

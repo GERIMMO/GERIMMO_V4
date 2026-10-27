@@ -217,6 +217,14 @@ test('propriétaire : fiches et liste des personnes d’un bail de chambre en pr
     await expect(ligne(`Coloc${suffixe}`)).toContainText('Locataire · bail en préparation');
     await expect(ligne(`Garant${suffixe}`)).toContainText('Garant · bail en préparation');
     await expect(ligne(`Coloc${suffixe}`)).not.toContainText('Sans bail en cours');
+    // Un bail seulement en préparation n'est pas un bail en cours : les deux fiches restent dans ce filtre,
+    // pas sous « Locataires » ni « Garants » (relecture de l’audit #264, FL-09).
+    const filtre = (nom: string) => page.getByRole('group', { name: 'Filtrer par rôle' }).getByRole('button').filter({ hasText: nom });
+    await filtre('Sans bail en cours').click();
+    await expect(ligne(`Coloc${suffixe}`)).toBeVisible();
+    await expect(ligne(`Garant${suffixe}`)).toBeVisible();
+    await filtre('Locataires').click();
+    await expect(page.locator('li').filter({ hasText: `Coloc${suffixe}` })).toHaveCount(0);
     expect(await debordementHorizontal(page)).toBe(0);
   } finally {
     await db.query('delete from public.bail_personnes where bail_id=$1 and organization_id=$2', [bailId, ORG]);

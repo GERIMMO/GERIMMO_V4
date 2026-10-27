@@ -7199,3 +7199,17 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   de la navigation (« ?sel=depot » satisfaisait déjà l'attente « ?sel= »), d'où une lecture de fichier avec
   l'identifiant « depot » (503) ; le parcours rejoué en local aboutit (`?sel=<id>`, fichier 200). Les deux specs sont
   corrigées sur la branche (voir entrée suivante). Purge des comptes de recette vérifiée (0 reste).
+
+## [2026-10-27] audit | Contrôle après la mise en ligne des corrections de l'audit #264
+
+- Second passage de la recette (run 40537855410, 16:19Z) : mêmes 65 réussis et mêmes 2 échecs, reproductibles, tous deux
+  dans les tests et non dans l'application (voir l'entrée `deploy`). Correctifs : `e2e/recette-production/proprietaire.spec.ts`
+  accepte le titre « Terminer votre première location » ; `depot-document.spec.ts` attend `?sel=<identifiant>` (et non
+  `?sel=depot`) avant de recharger. Livrés par la PR qui suit (specs de recette + journal), à rejouer sur `main`.
+- Vercel : aucune erreur d'exécution entre la mise en ligne (15:12Z) et 15:48Z ; pages publiques en 200.
+- Base (lecture seule, 15:11Z) : 5 versions `20261027*` enregistrées, déclencheurs et fonctions attendus présents,
+  0 fonction ouverte à `anon`, 11 tâches pg_cron actives.
+- Relevé `releve-incidents-gerant-colocation.sql` : 0 incident sur un lot à plusieurs baux vivants au 27/10 (vérifié avant
+  publication) ; aucune reprise à décider.
+- Restent au dirigeant : les 5 décisions produit du bilan (CB-08, CB-14, TRV-09, ED-04, TRV-05) ; wiki à mettre à jour
+  (Incident, Cycle de vie d'un incident, Diagnostic, alertes d'impayé).

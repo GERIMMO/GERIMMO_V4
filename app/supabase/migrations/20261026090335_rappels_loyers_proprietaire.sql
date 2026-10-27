@@ -102,3 +102,5 @@ end $$;
 revoke all on function public.declarer_reception_loyer(uuid,uuid,text,numeric,date,text,uuid,numeric) from public,anon;
 grant execute on function public.declarer_reception_loyer(uuid,uuid,text,numeric,date,text,uuid,numeric) to authenticated;
 notify pgrst,'reload schema';
+
+select public.poser_gardes_abonnement();

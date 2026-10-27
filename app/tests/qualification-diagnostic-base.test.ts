@@ -92,7 +92,7 @@ describe.skipIf(!url)("qualifications de diagnostics — intégrité et droits e
     await db.query("update memberships set status='inactive' where account_id=$1 and organization_id=$2", [proprietaire, org]);
     await agir(proprietaire);
     expect((await db.query("select * from qualifications_diagnostics_lot where lot_id=$1", [lot])).rowCount).toBe(0);
-    expect(await refus(() => deposer("plus_15_ans", "electricite"))).toContain("row-level security");
+    expect(await refus(() => deposer("plus_15_ans", "electricite"))).toMatch(/Traversée en lecture seule|row-level security/);
   });
   it("refuse un lot d'une autre organisation même au gérant", async () => {
     expect(await refus(() => deposer("absente", "gaz", null, autreLot))).toContain("qualifications_diagnostics_lot_meme_org_fk");
@@ -107,7 +107,7 @@ describe.skipIf(!url)("qualifications de diagnostics — intégrité et droits e
   it("la traversée superadmin reste en lecture seule", async () => {
     await deposer(); await agir(superadmin);
     expect((await db.query("select * from qualifications_diagnostics_lot where lot_id=$1", [lot])).rowCount).toBe(1);
-    expect(await refus(() => deposer("plus_15_ans", "electricite"))).toContain("row-level security");
+    expect(await refus(() => deposer("plus_15_ans", "electricite"))).toMatch(/Traversée en lecture seule|row-level security/);
     expect((await db.query("update qualifications_diagnostics_lot set situation='inconnue' where lot_id=$1 returning type", [lot])).rowCount).toBe(0);
   });
   it("les droits anonymes et la suppression directe sont fermés", async () => {

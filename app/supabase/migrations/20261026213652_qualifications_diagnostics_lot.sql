@@ -22,7 +22,7 @@ create table public.qualifications_diagnostics_lot (
   )
 );
 
-create index qualifications_diagnostics_lot_idx on public.qualifications_diagnostics_lot(lot_id);
+create index qualifications_diagnostics_lot_idx on public.qualifications_diagnostics_lot(lot_id, organization_id);
 create index qualifications_diagnostics_auteur_idx on public.qualifications_diagnostics_lot(updated_by);
 
 -- Le client ne choisit ni l'auteur ni la date de sa déclaration.
@@ -34,8 +34,8 @@ begin
   return new;
 end;
 $$;
-revoke all on function public.tracer_qualification_diagnostic() from public, anon;
-grant execute on function public.tracer_qualification_diagnostic() to authenticated;
+-- Le déclencheur fonctionne sans accorder son exécution directe aux clients.
+revoke all on function public.tracer_qualification_diagnostic() from public, anon, authenticated;
 create trigger qualifications_diagnostics_trace before insert or update
   on public.qualifications_diagnostics_lot for each row
   execute function public.tracer_qualification_diagnostic();
@@ -77,3 +77,6 @@ create policy qualifications_diagnostics_modification on public.qualifications_d
         and m.role in ('admin_agence', 'agent', 'proprietaire_direct'))
     and not public.lot_hors_portefeuille(organization_id, lot_id)
   );
+
+-- Toute nouvelle table métier reprend le verrou commun d’abonnement.
+select public.poser_gardes_abonnement();

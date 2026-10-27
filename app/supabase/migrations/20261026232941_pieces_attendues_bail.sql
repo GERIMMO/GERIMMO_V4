@@ -23,7 +23,7 @@ create table public.pieces_attendues_bail (
     foreign key (document_id, organization_id) references public.documents(id, organization_id),
   constraint pieces_attendues_bail_cible_unique unique nulls not distinct (organization_id, lot_id, nature, bail_id)
 );
-create index pieces_attendues_bail_lot_idx on public.pieces_attendues_bail(lot_id);
+create index pieces_attendues_bail_lot_idx on public.pieces_attendues_bail(lot_id, organization_id);
 create index pieces_attendues_bail_bail_idx on public.pieces_attendues_bail(bail_id, lot_id, organization_id);
 create index pieces_attendues_bail_document_idx on public.pieces_attendues_bail(document_id, organization_id);
 create index pieces_attendues_bail_auteur_idx on public.pieces_attendues_bail(updated_by);
@@ -53,8 +53,8 @@ begin
   return new;
 end;
 $$;
-revoke all on function public.controler_piece_attendue_bail() from public, anon;
-grant execute on function public.controler_piece_attendue_bail() to authenticated;
+-- Le déclencheur fonctionne sans accorder son exécution directe aux clients.
+revoke all on function public.controler_piece_attendue_bail() from public, anon, authenticated;
 create trigger pieces_attendues_bail_controle before insert or update
   on public.pieces_attendues_bail for each row execute function public.controler_piece_attendue_bail();
 
@@ -149,3 +149,6 @@ create policy pieces_attendues_bail_modification on public.pieces_attendues_bail
         and m.role in ('admin_agence', 'agent', 'proprietaire_direct'))
     and not public.lot_hors_portefeuille(organization_id, lot_id)
   );
+
+-- Toute nouvelle table métier reprend le verrou commun d’abonnement.
+select public.poser_gardes_abonnement();

@@ -94,9 +94,10 @@ export function useFenetreModale(racine: RefObject<HTMLDivElement | null>, ouver
  * Une sélection de texte commencée dans un champ et relâchée sur le voile envoie son « click » à leur
  * ancêtre commun : le voile. La fenêtre se refermait alors au milieu d'une saisie. Elle ne se ferme plus que
  * sur un geste commencé ET fini sur le voile. Et jamais en abandonnant sans le dire un formulaire suivi
- * (lib/protection-saisie) modifié dans la fenêtre : on le demande d'abord, comme pour quitter la page.
+ * (lib/protection-saisie) modifié dans la fenêtre : on le demande d'abord, comme pour quitter la page — sauf
+ * si la fenêtre garde son contenu une fois refermée (`saisieConservee`).
  */
-export function useFermetureParLeVoile(racine: RefObject<HTMLElement | null>, fermer: () => void) {
+export function useFermetureParLeVoile(racine: RefObject<HTMLElement | null>, fermer: () => void, saisieConservee = false) {
   const appuiSurLeVoile = useRef(false);
   return {
     onPointerDown: (event: PointerEvent<HTMLElement>) => { appuiSurLeVoile.current = event.target === event.currentTarget; },
@@ -106,7 +107,8 @@ export function useFermetureParLeVoile(racine: RefObject<HTMLElement | null>, fe
       appuiSurLeVoile.current = false;
       if (!surLeVoile) return;
       const fenetre = racine.current;
-      if (fenetre && saisiesModifiees().some(formulaire => fenetre.contains(formulaire)) && !window.confirm(MESSAGE_FERMER_FENETRE)) return;
+      if (!saisieConservee && fenetre && saisiesModifiees().some(formulaire => fenetre.contains(formulaire))
+        && !window.confirm(MESSAGE_FERMER_FENETRE)) return;
       fermer();
     },
   };

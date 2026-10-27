@@ -27,7 +27,7 @@ export function Modale({
   large = false,
   tresLarge = false,
   haut = false,
-  ouverte = true,
+  ouverte: ouverteDemandee,
   pied,
   fermer,
   children,
@@ -74,8 +74,10 @@ export function Modale({
   // n'aurait réparé que ce bandeau-ci, jusqu'au prochain ancêtre animé.
   const monte = useSyncExternalStore(RIEN_A_ECOUTER, AU_NAVIGATEUR, AU_SERVEUR);
   const dialogue = useRef<HTMLDivElement>(null);
+  const ouverte = ouverteDemandee ?? true;
   useFenetreModale(dialogue, monte && ouverte, fermer);
-  const voile = useFermetureParLeVoile(dialogue, fermer);
+  // Une fenêtre pilotée par `ouverte` reste montée une fois refermée : sa saisie n'est pas abandonnée.
+  const voile = useFermetureParLeVoile(dialogue, fermer, ouverteDemandee !== undefined);
 
   // Rien avant le montage : le portail exige `document`, et une modale ne
   // s'ouvre jamais au premier rendu du serveur.

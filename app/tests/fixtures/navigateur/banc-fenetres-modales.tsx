@@ -8,6 +8,7 @@ import { installerProtectionSaisie } from "../../../src/lib/protection-saisie";
 function Banc() {
   const [ouverte, ouvrir] = useState<"modale" | "tiroir" | null>(null);
   const [confirmation, confirmer] = useState(false);
+  const [gardee, garder] = useState(false);
   const native = useRef<HTMLDialogElement>(null);
   // Comme le layout racine (components/protection-saisie.tsx) : les formulaires suivis le sont aussi dans une fenêtre.
   useEffect(() => installerProtectionSaisie(), []);
@@ -27,9 +28,12 @@ function Banc() {
     <button type="button" onClick={() => ouvrir("modale")}>Ouvrir la fenêtre</button>
     <button type="button" onClick={() => ouvrir("tiroir")}>Ouvrir le menu</button>
     <button type="button" id="arriere-plan">Contrôle derrière la fenêtre</button>
+    <button type="button" onClick={() => garder(true)}>Ouvrir la fenêtre gardée</button>
     <RechercheEspace orgId="org-fictive" racine="/espace" />
-    {/* Une fenêtre gardée montée mais refermée (prop `ouverte`, comme la carte « À vérifier »). */}
-    <Modale titre="Fenêtre gardée" ouverte={false} fermer={() => {}}><p>Saisie conservée</p></Modale>
+    {/* Une fenêtre gardée montée une fois refermée (prop `ouverte`, comme la carte « À vérifier »). */}
+    <Modale titre="Fenêtre gardée" ouverte={gardee} fermer={() => garder(false)}>
+      <form data-saisie-confirmee onSubmit={e => e.preventDefault()}><label>Note gardée<textarea name="note" /></label></form>
+    </Modale>
     {ouverte === "modale" && <Modale titre="Dossier" fermer={() => ouvrir(null)}>{contenu}</Modale>}
     {ouverte === "tiroir" && <Tiroir titre="Menu du dossier" fermer={() => ouvrir(null)}>{contenu}</Tiroir>}
     {confirmation && <Modale titre="Confirmation" fermer={() => confirmer(false)}><button type="button" onClick={() => confirmer(false)}>Retour au dossier</button></Modale>}

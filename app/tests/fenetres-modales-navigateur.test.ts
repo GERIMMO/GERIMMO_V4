@@ -111,6 +111,20 @@ describe.skipIf(!chrome)("Fenêtres : un seul propriétaire du clavier et du ver
     });
   }
 
+  it("une fenêtre qui garde sa saisie une fois refermée se ferme au voile sans confirmation et la retrouve", async () => {
+    await page.goto("http://localhost/agence/banc");
+    await page.getByRole("button", { name: "Ouvrir la fenêtre gardée", exact: true }).click();
+    const dialogue = page.getByRole("dialog", { name: "Fenêtre gardée", exact: true });
+    await dialogue.getByRole("textbox", { name: "Note gardée", exact: true }).fill("Relevé du compteur");
+    const messages: string[] = [];
+    page.on("dialog", boite => { messages.push(boite.message()); void boite.dismiss(); });
+    await page.mouse.click(5, 5);
+    await expect.poll(() => dialogue.isVisible()).toBe(false);
+    expect(messages).toEqual([]);
+    await page.getByRole("button", { name: "Ouvrir la fenêtre gardée", exact: true }).click();
+    expect(await dialogue.getByRole("textbox", { name: "Note gardée", exact: true }).inputValue()).toBe("Relevé du compteur");
+  });
+
   it("recherche : ⌘/Ctrl K ouvre malgré une fenêtre gardée montée et refermée (TRV-V01)", async () => {
     expect(await page.locator('[role="dialog"]').count()).toBe(1);
     const recherche = page.getByRole("dialog", { name: "Retrouvez le bon dossier", exact: true });

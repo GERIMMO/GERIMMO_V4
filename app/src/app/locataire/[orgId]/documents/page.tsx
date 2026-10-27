@@ -27,7 +27,8 @@ export const metadata = { title: "Mes documents" };
 // il se lit comme ce qu'il est, un geste.
 const TITRE_RANG =
   "-mx-2 min-w-0 flex-1 rounded-md px-2 py-1 text-left transition-colors hover:bg-[var(--survol)] pointer-coarse:min-h-11";
-const NOM_RANG = "line-clamp-2 font-medium text-[var(--bleu)]";
+// Souligné comme les autres liens-actions de l’espace locataire (loyers, FAQ) : le geste se voit aussi au téléphone, sans survol.
+const NOM_RANG = "line-clamp-2 font-medium text-[var(--bleu)] underline underline-offset-2";
 
 type Piece = {
   document_id: string;
@@ -145,7 +146,7 @@ export default async function PageDocumentsLocataire(
       )}
 
       {enPreparation > 0 && <p className="rounded-xl border border-[var(--filet)] bg-[var(--warning-soft)] p-4 text-sm" role="status">
-        {enPreparation} justificatif{enPreparation > 1 ? "s" : ""} de loyer en préparation ou à vérifier. Les boutons de téléchargement apparaîtront dès que les informations nécessaires seront complètes. <Link href={`/locataire/${orgId}/contact`} className="underline">Contacter mon gestionnaire</Link>
+        {enPreparation} justificatif{enPreparation > 1 ? "s" : ""} de loyer en préparation ou à vérifier. Ces justificatifs deviendront consultables dès que les informations nécessaires seront complètes. <Link href={`/locataire/${orgId}/contact`} className="underline">Contacter mon gestionnaire</Link>
       </p>}
 
       <OngletsDossier libelle="Rubriques de mes documents"

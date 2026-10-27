@@ -70,13 +70,25 @@ describe("vérifications du propriétaire", () => {
   });
 
   it("retire les deux sources doublonnant un loyer affiché, sans masquer les autres baux", () => {
-    const resultat = preparer({ lignesLoyers: [ligne()], actions: [
+    // L'autre bail reste présent par son propre rappel, qui porte sa dette (audit du 27/10, LAT-01).
+    const resultat = preparer({ lignesLoyers: [ligne(), ligne({ bail_id: "autre", appel_id: "autre" })], actions: [
       action({ cle: "impaye-bail", criticite: "critique" }), alerte("meme-bail", "bail"),
       alerte("autre-bail", "autre"), alerte("sans-bail"), action(),
     ] });
-    expect(resultat.actions.map(a => a.cle)).toEqual(["a-autre-bail", "a-sans-bail", "edl-bail"]);
+    expect(resultat.actions.map(a => a.cle)).toEqual(["a-sans-bail", "edl-bail"]);
+    expect(resultat.rappels.dus.map(l => l.bail_id).sort()).toEqual(["autre", "bail"]);
     expect(resultat.total).toBe(4);
-    expect(resultat.critiques).toBe(2);
+    expect(resultat.critiques).toBe(1);
+  });
+
+  it("une alerte d'impayé d'un bail soldé n'est ni prioritaire ni comptée (audit du 27/10, LAT-01)", () => {
+    const resultat = preparer({ lignesLoyers: [ligne({ bail_id: "solde", montant_couvert: 800 })], actions: [alerte("solde", "solde"), action()] });
+    expect(resultat.actions.map(a => a.cle)).toEqual(["edl-bail"]);
+    expect(resultat.critiques).toBe(0);
+    expect(resultat.premiere).toEqual({ titre: "État des lieux à vérifier", source: "action" });
+    expect(resultat.alerteImpayeVisible("solde")).toBe(false);
+    // Lecture des loyers indisponible : rien ne permet de dire que l'alerte est périmée.
+    expect(preparer({ actions: [alerte("solde", "solde")], loyersIndisponibles: true }).critiques).toBe(1);
   });
 
   it("garde une urgence en premier même si un loyer doit être confirmé", () => {

@@ -103,7 +103,7 @@ export default async function PageAlertes(
   const rangs = sansAlertesDoublonnees(
     (ouvertes ?? []) as (AlerteRang & { type: string })[],
     attendues
-  ).filter(alerte => alerte.type !== "loyer_impaye" || typeof alerte.details?.bail_id !== "string" || !bauxAvecLoyer.has(alerte.details.bail_id));
+  ).filter(alerte => alerte.type !== "loyer_impaye" || typeof alerte.details?.bail_id !== "string" || !verifications || verifications.alerteImpayeVisible(alerte.details.bail_id));
   // Les alertes confiées à d'autres restent lisibles en bas de la table,
   // grisées — mais elles n'attendent rien de moi : hors du compte.
   const nbAutres = traverseeLectureSeule ? 0 : rangs.filter((a) => !estConfieeAMoi(a, user.id)).length;

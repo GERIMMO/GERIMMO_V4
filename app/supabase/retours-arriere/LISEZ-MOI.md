@@ -990,3 +990,9 @@ Les retours du 20 octobre sont des instructions atomiques : ils peuvent être an
 ### Réceptions de loyers du propriétaire (26 octobre)
 
 Remettre le code précédent avant les retours `20261026110449_reception_loyer_idempotence_durable.retour.sql`, puis `20261026090335_rappels_loyers_proprietaire.retour.sql`, dans une transaction contrôlée. Les scripts refusent de supprimer des déclarations ou de perdre l’idempotence de commandes existantes. Aucun retour n’a été exécuté en production.
+
+### Alerte d’impayé et encaissements (27 octobre)
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261027100000_alerte_impaye_suit_encaissements.retour.sql` | `20261027100000_alerte_impaye_suit_encaissements.sql` (audit de la PR #264, LAT-01 : l’alerte d’impayé se ferme, se rouvre et suit le montant dû à chaque encaissement) | **Préparé et vérifié localement le 27/10, non exécuté en production.** Retire le déclencheur `encaissement_impaye` et sa fonction, puis rend à `suivre_impayes_bail` sa définition précédente (même empreinte que `20260911200000` modifiée par `20261014501000`, une seule occurrence de `aujourdhui_paris()`). Aucune alerte n’est modifiée ; la tâche de nuit reprend seule la fermeture. À jouer avant le retour de `20261014501000`. |

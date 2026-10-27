@@ -112,6 +112,8 @@ const MISSION_OCTOBRE = [
   "20261026213652_qualifications_diagnostics_lot.sql",
   "20261026214857_qualification_diagnostic_annee_installation.sql",
   "20261026232941_pieces_attendues_bail.sql",
+  // 27/10, audit de la refonte #264 (diagnostics) : validité réglementaire du DPE, rapport déjà rangé, rapports à renouveler.
+  "20261027100200_diagnostics_validite_dpe_et_rapports.sql",
 
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */

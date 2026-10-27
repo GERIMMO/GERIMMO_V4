@@ -1706,6 +1706,8 @@ p a {
 .recherche-ouvrir kbd { margin-left:12px; font-size:10px; white-space:nowrap; }
 .recherche-dialog { padding:0; border:1px solid var(--filet); width:min(640px,calc(100vw - 24px)); max-width:none; max-height:calc(100dvh - 32px); margin:8vh auto auto; color:var(--encre); background:var(--ivoire); box-shadow:0 24px 90px color-mix(in srgb,var(--encre) 20%,transparent); border-radius:12px; overflow:hidden; }
 .recherche-dialog::backdrop { background:color-mix(in srgb,var(--encre) 50%,transparent); backdrop-filter:blur(3px); }
+/* La page derrière la recherche ne défile plus (audit #264, TRV-02) : même verrou que les fenêtres de la charte. */
+body:has(.recherche-dialog[open]) { overflow:hidden; }
 .recherche-corps { display:flex; flex-direction:column; max-height:calc(84dvh - 32px); }
 .recherche-entete { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:22px 24px; background:var(--ivoire); color:var(--encre); border-bottom:1px solid var(--filet); }
 .recherche-entete h2 { color:inherit; font-size:27px; }

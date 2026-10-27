@@ -2,7 +2,7 @@
 
 import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useFenetreModale } from "@/lib/use-fenetre-modale";
+import { useFenetreModale, useFermetureParLeVoile } from "@/lib/use-fenetre-modale";
 
 const RIEN_A_ECOUTER = () => () => {};
 const AU_NAVIGATEUR = () => true;
@@ -36,11 +36,12 @@ export function Tiroir({
   const monte = useSyncExternalStore(RIEN_A_ECOUTER, AU_NAVIGATEUR, AU_SERVEUR);
   const dialogue = useRef<HTMLDivElement>(null);
   useFenetreModale(dialogue, monte, fermer);
+  const voile = useFermetureParLeVoile(dialogue, fermer);
 
   if (!monte) return null;
 
   return createPortal(
-    <div className="tiroir-voile" onClick={fermer}>
+    <div className="tiroir-voile" {...voile}>
       <div
         ref={dialogue}
         role="dialog"

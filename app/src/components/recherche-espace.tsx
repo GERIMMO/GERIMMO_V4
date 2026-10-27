@@ -5,13 +5,14 @@ import Link from "next/link";
 import { Search, ArrowUpRight, Building2, Users, FileText, X, LoaderCircle } from "lucide-react";
 import { rechercherDansEspace } from "@/app/actions/recherche-espace";
 import { normaliserRecherche, type ReponseRecherche } from "@/lib/recherche-espace";
+import { premierPlan, useFermetureParLeVoile } from "@/lib/use-fenetre-modale";
 
 // `racine` : « /espace » pour le propriétaire direct, « /agence » sinon (décision D27, lib/racine-espace.ts).
 export function RechercheEspace({ orgId, racine }: { orgId: string; racine: string }) {
   const [ouverte, ouvrir] = useState(false);
   useEffect(() => {
     const raccourci = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k" && !document.querySelector('[role="dialog"], dialog[open]')) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k" && !premierPlan()) {
         event.preventDefault();
         ouvrir(true);
       }
@@ -35,6 +36,8 @@ export function RechercheEspace({ orgId, racine }: { orgId: string; racine: stri
 function FenetreRecherche({ orgId, racine, fermer }: { orgId: string; racine: string; fermer: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const champ = useRef<HTMLInputElement>(null);
+  // Le fond du dialogue natif (::backdrop) a pour cible le <dialog> lui-même : même règle que le voile des fenêtres.
+  const voile = useFermetureParLeVoile(dialog, fermer);
   const [saisie, saisir] = useState("");
   const [tentative, recommencer] = useState(0);
   const [reponse, afficher] = useState<{ texte: string; tentative: number; contenu: ReponseRecherche } | null>(null);
@@ -43,9 +46,15 @@ function FenetreRecherche({ orgId, racine, fermer }: { orgId: string; racine: st
   const chargement = texte.length >= 2 && !resultat;
   useEffect(() => {
     const element = dialog.current!;
+    // Audit #264, TRV-02 : la fenêtre se ferme en se démontant, et `close()` sur un dialogue déjà retiré du
+    // document ne rend le focus à personne. On le rend nous-mêmes au bouton (ou au raccourci) qui l'a ouverte.
+    const declencheur = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     element.showModal();
     champ.current?.focus();
-    return () => element.close();
+    return () => {
+      element.close();
+      if (declencheur?.isConnected) declencheur.focus({ preventScroll: true });
+    };
   }, []);
   useEffect(() => {
     if (texte.length < 2) return;
@@ -59,7 +68,7 @@ function FenetreRecherche({ orgId, racine, fermer }: { orgId: string; racine: st
   }, [orgId, texte, tentative]);
 
   const base = `${racine}/${orgId}`;
-  return <dialog ref={dialog} className="recherche-dialog" aria-labelledby="recherche-titre" onCancel={(e) => { e.preventDefault(); fermer(); }} onClick={(e) => { if (e.target === dialog.current) fermer(); }}>
+  return <dialog ref={dialog} className="recherche-dialog" aria-labelledby="recherche-titre" onCancel={(e) => { e.preventDefault(); fermer(); }} {...voile}>
     <div className="recherche-corps">
       <header className="recherche-entete">
         <div><p className="eyebrow">Votre espace de gestion</p><h2 id="recherche-titre">Retrouvez le bon dossier</h2></div>

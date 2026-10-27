@@ -72,9 +72,11 @@ export function FormulaireDetention({
   };
 
   // Clic sur le fond : on referme sans perdre une saisie déjà commencée —
-  // seule une pop-up vide vaut annulation (revue 13/08).
+  // seule une pop-up vide vaut annulation (revue 13/08). « Vide » : aucun champ
+  // rempli, pas seulement le nom et l'email (audit #264, TRV-01 : une adresse
+  // seule était effacée sans prévenir).
   const fermerModale = () => {
-    if (!nouveau.nom && !nouveau.email) {
+    if (Object.values(nouveau).every((valeur) => !valeur)) {
       annulerNouveau();
       return;
     }
@@ -192,7 +194,7 @@ export function FormulaireDetention({
             <input type="hidden" name="nouveau_ville" value={nouveau.ville} />
             {!modaleOuverte && (
               <p className="text-xs text-muted-foreground sm:col-span-2">
-                Nouveau <b>propriétaire</b> : {nomComplet(nouveau)} — {nouveau.email}{" "}
+                Nouveau <b>propriétaire</b> : {nomComplet(nouveau) || "nom à compléter"} — {nouveau.email || "adresse email à compléter"}{" "}
                 <button
                   type="button"
                   onClick={() => setModaleOuverte(true)}

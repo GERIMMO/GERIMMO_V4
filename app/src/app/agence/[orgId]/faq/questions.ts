@@ -44,7 +44,7 @@ export const QUESTIONS: QuestionAide[] = [
   },
   {
     "question": "Je loue chambre par chambre : comment faire ?",
-    "reponse": "Le logement reste un seul lot. Sur sa fiche, « Configurer une colocation » : indiquez le loyer de référence du logement entier, hors charges, après vérification de l'encadrement local, puis préparez une chambre par contrat (au moins 9 m² et 20 m³ privatifs). Chaque chambre reçoit son propre bail : son locataire, son loyer, son dépôt, son état des lieux et son congé. La somme des loyers ne peut pas dépasser le loyer de référence. Pour un incident, indiquez la chambre concernée : seul son locataire le suit.",
+    "reponse": "Le logement reste un seul lot. Sur sa fiche, « Configurer une colocation » : indiquez le loyer de référence du logement entier, hors charges, après vérification de l'encadrement local, puis préparez une chambre par contrat (au moins 9 m² et 20 m³ privatifs). Chaque chambre reçoit son propre bail : son locataire, son loyer, son dépôt, son état des lieux et son congé. La somme des loyers ne peut pas dépasser le loyer de référence. Pour un incident, dès que plusieurs chambres sont louées, indiquez la chambre concernée : seul son locataire le suit.",
     "theme": "Biens",
     "lien": "parc"
   },

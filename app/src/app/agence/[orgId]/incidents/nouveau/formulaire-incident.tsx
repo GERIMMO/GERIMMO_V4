@@ -46,7 +46,7 @@ export type LotIncident = {
   libelle: string;
   /** Baux en cours du lot : chambre et locataire. */
   baux: { id: string; libelle: string }[];
-  /** Chambres et pièces enregistrées du lot. */
+  /** Pièces proposées : chambres et pièces enregistrées du lot, ou liste générique (`piecesIncidentDuLot`). */
   pieces: string[];
 };
 
@@ -72,9 +72,7 @@ export function FormulaireIncident({
   // quelle chambre est concernée. Sans ce choix, l'incident était rattaché au
   // bail le plus récent et montré à ce seul colocataire (FL-01).
   const plusieursBaux = (lot?.baux.length ?? 0) > 1;
-  const pieces = lot?.pieces.length
-    ? [...new Set([...lot.pieces, "Parties communes"])]
-    : [...PIECES_INCIDENT];
+  const pieces = lot?.pieces ?? [...PIECES_INCIDENT];
 
   return (
     <form data-saisie-confirmee action={action} className="formulaire-reperes space-y-4">
@@ -123,11 +121,13 @@ export function FormulaireIncident({
                 {b.libelle}
               </option>
             ))}
-            <option value="aucun">Parties communes ou tout le logement</option>
+            {/* « Parties communes » désigne celles de l'immeuble, transmises au
+                syndic (RM-7.1.4) : ici, les espaces partagés de la colocation. */}
+            <option value="aucun">Espaces partagés ou tout le logement</option>
           </select>
           <p id="bail-aide" className="text-xs text-muted-foreground">
-            Seul le locataire de la chambre choisie suivra l&apos;incident depuis son espace. Parties communes : aucun
-            colocataire ne le verra.
+            Seul le locataire de la chambre choisie suivra l&apos;incident depuis son espace. Espaces partagés ou tout
+            le logement : aucun colocataire ne le verra.
           </p>
         </div>
       )}

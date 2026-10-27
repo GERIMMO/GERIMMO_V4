@@ -10,10 +10,12 @@ import {
   IMPUTATIONS_INCIDENT,
   MOTIFS_CLOTURE,
   MOTIFS_CLOTURE_PAR_ETAT,
+  PIECES_INCIDENT,
   TRANSITIONS_INCIDENT,
   type EtatIncident,
   categorieIncident,
   libelleEtatLocataire,
+  piecesIncidentDuLot,
   titreIncident,
   transitionIncidentPossible,
 } from "../src/lib/incidents";
@@ -117,5 +119,25 @@ describe("libellés locataire (traduction maquette)", () => {
     expect(libelleEtatLocataire("qualifie", "degradation_fautive")).toBe("À votre charge");
     // Qualifié sans imputation : jamais « à votre charge » par défaut (audit 06/09)
     expect(libelleEtatLocataire("qualifie", null)).toBe("En cours d'examen");
+  });
+});
+
+// Audit de la PR #264, FL-01, relecture du 27/10 : une colocation préparée chambre par chambre n'a souvent que ses
+// chambres enregistrées ; le formulaire du gérant ne proposait plus alors que ses chambres et « Parties communes ».
+describe("pièces proposées pour un incident sur un lot (FL-01)", () => {
+  it("colocation sans pièce enregistrée : cuisine, salle d'eau et séjour restent, les chambres nommées remplacent « Chambre »", () => {
+    expect(piecesIncidentDuLot(["Chambre A", "Chambre B"], [])).toEqual([
+      "Cuisine", "Salle d'eau", "Séjour", "Chambre A", "Chambre B", "Entrée ou couloir", "Parties communes",
+    ]);
+  });
+
+  it("lot sans chambre ni pièce enregistrée : la liste générique, inchangée", () => {
+    expect(piecesIncidentDuLot([], [])).toEqual([...PIECES_INCIDENT]);
+  });
+
+  it("pièces enregistrées : celles du lot, avec ses chambres et les parties communes, sans doublon", () => {
+    expect(piecesIncidentDuLot(["Chambre 1"], ["Cuisine", "Salle d'eau", "Chambre 1"])).toEqual([
+      "Chambre 1", "Cuisine", "Salle d'eau", "Parties communes",
+    ]);
   });
 });

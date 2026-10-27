@@ -3,6 +3,7 @@ import { TitreEcran } from "@/components/titre-ecran";
 import { verifierAccesEspace } from "@/lib/espace";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { nomComplet } from "@/lib/roles-personnes";
+import { piecesIncidentDuLot } from "@/lib/incidents";
 import {
   Card,
   CardContent,
@@ -38,7 +39,7 @@ export default async function PageNouvelIncident(
   // FL-01 (audit PR #264) : ce que l'on sait déjà du lot sert au formulaire.
   // Les baux en cours disent QUI suivra l'incident — en colocation à baux
   // individuels, le gérant choisit la chambre, sinon aucun colocataire ne le
-  // voit ; les chambres et pièces du lot remplacent la liste générique.
+  // voit ; les chambres et pièces du lot complètent la liste générique.
   const [
     { data: bauxBruts, error: erreurBaux },
     { data: chambresBrutes, error: erreurChambres },
@@ -78,12 +79,10 @@ export default async function PageNouvelIncident(
         };
       })
       .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr")),
-    pieces: [
-      ...new Set([
-        ...((chambresBrutes ?? []) as { lot_id: string; nom: string }[]).filter((c) => c.lot_id === l.id).map((c) => c.nom),
-        ...((piecesBrutes ?? []) as { lot_id: string; nom: string }[]).filter((p) => p.lot_id === l.id).map((p) => p.nom),
-      ]),
-    ],
+    pieces: piecesIncidentDuLot(
+      ((chambresBrutes ?? []) as { lot_id: string; nom: string }[]).filter((c) => c.lot_id === l.id).map((c) => c.nom),
+      ((piecesBrutes ?? []) as { lot_id: string; nom: string }[]).filter((p) => p.lot_id === l.id).map((p) => p.nom),
+    ),
   }));
 
   return (

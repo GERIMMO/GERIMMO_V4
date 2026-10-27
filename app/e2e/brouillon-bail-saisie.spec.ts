@@ -6,6 +6,8 @@ import { sansSyntheseAlertes, debordementHorizontal } from './aides';
 // Audit #264 : une saisie du brouillon de bail n'est jamais perdue en silence.
 // CB-01 : deux onglets sur la même étape ; CB-05 : changer d'étape sans
 // enregistrer ; CB-11 : le bouton Retour du navigateur revient à l'étape précédente.
+// Relecture : une clause sur plusieurs lignes, une fois enregistrée, n'est plus vue
+// « non enregistrée » (fins de ligne CRLF du formulaire, LF du champ).
 const ORG = '3c1d1e95-3570-400b-8012-44530be145b1';
 
 async function connecter(page: Page) {
@@ -71,10 +73,11 @@ for (const largeur of [390, 1440]) {
       // CB-05 : quitter l'étape modifiée propose d'enregistrer ou d'abandonner.
       await navigation.getByRole('button', { name: /Étape 04 Loyer/ }).click();
       await page.locator('#parcours-loyer_hc').fill('1000');
-      await expect(navigation.getByRole('button', { name: /Étape 04 Loyer Modifications non enregistrées/ })).toBeVisible();
+      await expect(navigation.getByRole('button', { name: /Étape 04 Loyer Saisie non enregistrée/ })).toBeVisible();
       await navigation.getByRole('button', { name: /Étape 06 Clauses/ }).click();
       const fenetre = page.getByRole('dialog', { name: 'Modifications non enregistrées' });
       await expect(fenetre).toContainText('Loyer hors charges');
+      await expect(fenetre.getByRole('button', { name: 'Enregistrer et continuer', exact: true })).toBeFocused();
       expect(await debordementHorizontal(page)).toBe(0);
       await fenetre.getByRole('button', { name: 'Abandonner les modifications', exact: true }).click();
       await expect(page).toHaveURL(/#etape-bail-6$/);
@@ -95,6 +98,29 @@ for (const largeur of [390, 1440]) {
       await page.goBack();
       await expect(page).toHaveURL(/#etape-bail-4$/);
       await expect(page.locator('#parcours-loyer_hc')).toBeVisible();
+
+      // Relecture : une clause sur deux lignes enregistrée ne reste pas signalée.
+      await navigation.getByRole('button', { name: /Étape 06 Clauses/ }).click();
+      await page.locator('details[data-groupe="Travaux et accords particuliers"] summary').click();
+      await page.locator('#parcours-clauses_particulieres').fill('Animaux acceptés.\nJardin entretenu par le locataire.');
+      await pied(page).getByRole('button', { name: 'Enregistrer et continuer', exact: true }).click();
+      await expect(page.locator('#assistant-bail-titre')).toHaveText('Récapitulatif');
+      expect((await db.query('select clauses_particulieres from public.baux where lot_id=$1', [lotId])).rows[0].clauses_particulieres).toMatch(/^Animaux acceptés\.\r?\nJardin/);
+      await expect(page.getByText('Des modifications ne sont pas enregistrées')).toHaveCount(0);
+      await expect(navigation.getByRole('button', { name: /Saisie non enregistrée/ })).toHaveCount(0);
+      await navigation.getByRole('button', { name: /Étape 06 Clauses/ }).click();
+      await navigation.getByRole('button', { name: /Étape 01 Le bail/ }).click();
+      await expect(page.locator('#assistant-bail-titre')).toHaveText('Le bail');
+      await expect(fenetre).toHaveCount(0);
+
+      // La fenêtre ouverte se referme quand le bouton Retour change l'étape.
+      await page.locator('#parcours-date_debut').fill('2026-12-02');
+      await navigation.getByRole('button', { name: /Étape 06 Clauses/ }).click();
+      await expect(fenetre).toBeVisible();
+      await page.goBack();
+      await expect(page.locator('#assistant-bail-titre')).toHaveText('Clauses');
+      await expect(fenetre).toHaveCount(0);
+      await expect(navigation.getByRole('button', { name: /Étape 01 Le bail Saisie non enregistrée/ })).toBeVisible();
     } finally {
       await db.query('delete from public.baux where lot_id=$1 and organization_id=$2', [lotId, ORG]);
       await db.query('delete from public.detentions where lot_id=$1 and organization_id=$2', [lotId, ORG]);

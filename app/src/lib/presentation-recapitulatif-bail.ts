@@ -19,7 +19,7 @@ const ouiNon = (v: unknown) => v === true ? "Oui" : v === false ? "Non" : null;
 export function dureeContratRecapBail(bail: ValeursParcoursBail, meubleLot: boolean, qualites: (string | null | undefined)[]): string | null {
   if (absent(bail.type)) return null;
   if (bail.type === "meuble" || (bail.type === "colocation" && meubleLot)) {
-    return bail.meuble_etudiant === true ? "9 mois, sans reconduction tacite (bail étudiant)" : "1 an, avec reconduction tacite";
+    return bail.meuble_etudiant === true ? "9 mois, sans reconduction tacite" : "1 an, avec reconduction tacite";
   }
   return `${dureeBailNuAnnees(qualites)} ans, avec reconduction tacite`;
 }
@@ -56,7 +56,8 @@ export function rubriquesRecapBail({ bail, lot, bien, personnes, liens, erreurLo
     { id: "bail", titre: "Le contrat", href: "#etape-bail-1", lignes: [
       ligne("type", "Type de bail", bail.chambre_id ? "Colocation · contrat individuel" : TYPES_BAIL[String(bail.type)] ?? texteRecapBail(bail.type)),
       ligne("date_debut", "Date d’entrée", date(bail.date_debut)), ligne("date_conclusion_prevue", "Conclusion prévue", date(bail.date_conclusion_prevue)),
-      ...(bail.meuble_etudiant === true ? [ligne("meuble_etudiant", "Bail étudiant", "9 mois")] : []),
+      // La durée du contrat dit déjà « 9 mois » : la ligne du bail étudiant ne la répète pas.
+      ...(bail.meuble_etudiant === true ? [ligne("meuble_etudiant", "Bail étudiant", duree?.texte ? "Oui" : "9 mois")] : []),
       ...(duree?.texte ? [{ ...ligne("type", "Durée du contrat", duree.texte, true), champ: "duree_calculee" }] : []),
       ...(duree?.finPremierePeriode ? [{ ...ligne("date_debut", "Fin de la première période", formaterDate(duree.finPremierePeriode), true), champ: "fin_calculee" }] : []),
     ] },

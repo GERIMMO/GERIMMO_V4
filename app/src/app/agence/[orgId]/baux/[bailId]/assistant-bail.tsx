@@ -131,7 +131,7 @@ export function AssistantBail({ orgId, bailId, contenus, formulaire, controleIni
   return <SuiviEnregistrement.Provider value={verifier}><CompletudeBail.Provider value={controle}><RubriquesDirectes.Provider value={true}><div className={`assistant-location assistant-bail ${styles.presentation} ${styles.parcoursBail}`} id="assistant-bail-navigation" style={{scrollMarginTop:"calc(var(--hauteur-haut, 76px) + 20px)"}}>
     <NavigationBail etapes={etapes.map((e,i) => {
       const restant = controle.manquants.filter(m => positionChamp(m) === i).length;
-      if (nonEnregistrees.includes(e.id)) return { ...e, statut: "incomplet" as const, statutLibelle: "Modifications non enregistrées" };
+      if (nonEnregistrees.includes(e.id)) return { ...e, statut: "incomplet" as const, statutLibelle: "Saisie non enregistrée" };
       // Le contrôle du texte du contrat ne certifie pas les pièces ni leurs échéances.
       if (i === 4) return { ...e, statutLibelle: restant ? `${restant} champs · pièces à vérifier` : "Pièces à vérifier" };
       return { ...e, ...(i < etapes.length-1 && !controle.erreur ? { statut: restant ? "incomplet" as const : "complet" as const, restant } : {}) };

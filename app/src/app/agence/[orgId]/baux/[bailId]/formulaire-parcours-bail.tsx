@@ -15,7 +15,7 @@ import { EtapeComplementsBail } from "@/lib/etape-complements-bail";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { modifierEtapeBail } from "@/app/actions/etapes-bail";
 import type { EtatBail } from "@/app/actions/baux";
-import { CHAMPS_ETAPE_BAIL, ETAPES_BAIL, champsDifferents, type EtapeSaisieBail, type ValeursParcoursBail } from "@/lib/champs-etape-bail";
+import { CHAMPS_ETAPE_BAIL, ETAPES_BAIL, champsDifferents, memeValeurEtapeBail, type EtapeSaisieBail, type ValeursParcoursBail } from "@/lib/champs-etape-bail";
 import { Input } from "@/components/ui/input";
 import { LabelBail as Label } from "@/components/pastille-bail";
 import { lireMontantFacultatif } from "@/lib/saisie-montant";
@@ -109,6 +109,11 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
  const destinationDemandee=useRef<string|null>(null);
  const destinationEnvoi=useRef<string|null>(null);
  const [demande,setDemande]=useState<string|null>(null);
+ // Le bouton Retour du navigateur change l’étape sous la fenêtre : elle se referme
+ // au lieu d’agir sur l’étape nouvellement affichée.
+ const [etapeDemande,setEtapeDemande]=useState(etape);
+ if(etapeDemande!==etape){setEtapeDemande(etape);setDemande(null);}
+ const boutonEnregistrer=useRef<HTMLButtonElement>(null);
  const [ouverts,setOuverts]=useState<Record<string,boolean>>({});
  useEffect(()=>{
    const ouvrirCible=(hash:string)=>{
@@ -144,7 +149,7 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
    if(res.modifieesAilleurs) {
      const recentes=res.modifieesAilleurs;
      // Un champ resté tel que lu reprend la valeur enregistrée ailleurs ; une saisie différente est conservée.
-     setValeurs(v=>({...v,...Object.fromEntries(Object.entries(recentes).filter(([nom])=>(v[nom]??"")===(lues[nom]??"")))}));
+     setValeurs(v=>({...v,...Object.fromEntries(Object.entries(recentes).filter(([nom])=>memeValeurEtapeBail(nom,v[nom],lues[nom])))}));
      setLues(l=>({...l,...recentes}));
    }
    if(res.erreur) {
@@ -175,6 +180,8 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
    definirGarde(etapeNonEnregistree?ancre=>{setDemande(ancre);return true;}:null);
    return()=>definirGarde(null);
  },[definirGarde,etapeNonEnregistree]);
+ // La fenêtre place d’abord le focus sur sa croix de fermeture : il revient à l’action proposée.
+ useEffect(()=>{if(demande)boutonEnregistrer.current?.focus({preventScroll:true});},[demande]);
  const enregistrerPuisAller=()=>{
    const ancre=demande;setDemande(null);
    // Après la fermeture de la fenêtre : un champ invalide doit pouvoir recevoir le focus.
@@ -242,7 +249,7 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
   {["loyer","clauses"].includes(etape)&&<AvertissementsLoyer avertissements={!modifie&&retourEtape===etape&&etat.avertissements?etat.avertissements:avertissementsCoherenceLoyer({...valeurs,encadrement_loyer:valeurs.encadrement_loyer==="true",chambre_id:valeurs.type==="colocation_individuelle"?valeurs.chambre_id:null},surfaceHabitable)} enregistre={!modifie&&retourEtape===etape&&Boolean(etat.succes)} />}
   {retourEtape===etape&&etat.erreur&&<div role="alert" tabIndex={-1} className="text-sm text-destructive"><p>{etat.erreur}</p>
    {etat.modifieesAilleurs&&<ul className="mt-1 list-disc space-y-0.5 pl-5">{Object.entries(etat.modifieesAilleurs).map(([nom,enregistree])=><li key={nom}>
-    {libelleChamp(nom)} — valeur enregistrée : {afficherValeur(nom,enregistree)}{(valeurs[nom]??"")===enregistree?", reprise ici.":` ; votre saisie (${afficherValeur(nom,valeurs[nom]??"")}) est conservée.`}
+    {libelleChamp(nom)} — valeur enregistrée : {afficherValeur(nom,enregistree)}{memeValeurEtapeBail(nom,valeurs[nom],enregistree)?", reprise ici.":` ; votre saisie (${afficherValeur(nom,valeurs[nom]??"")}) est conservée.`}
    </li>)}</ul>}
   </div>}
   {retourEtape===etape&&etat.succes&&!modifie&&<p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}
@@ -251,7 +258,7 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
   pied={<div className="flex flex-wrap justify-end gap-2">
    <Button type="button" variant="outline" onClick={()=>setDemande(null)}>Rester sur l’étape</Button>
    <Button type="button" variant="outline" onClick={abandonner}>Abandonner les modifications</Button>
-   <Button type="button" onClick={enregistrerPuisAller} autoFocus>Enregistrer et continuer</Button>
+   <Button ref={boutonEnregistrer} type="button" onClick={enregistrerPuisAller}>Enregistrer et continuer</Button>
   </div>}>
   <p className="text-sm">Les modifications de l’étape « {titreEtape} » ne sont pas encore enregistrées : {ETAPES_SAISIE.includes(etape as EtapeSaisieBail)?nonEnregistres(etape as EtapeSaisieBail).map(libelleChamp).join(", "):""}.</p>
   <p className="text-sm text-muted-foreground">Tant qu’elles ne le sont pas, le récapitulatif et le contrat reprennent les valeurs enregistrées.</p>

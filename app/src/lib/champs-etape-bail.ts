@@ -95,17 +95,23 @@ export function lireValeursLues(brut: FormDataEntryValue | null): Record<string,
   } catch { return null; }
 }
 
-/** Champs de l’étape (connus de `reference`) dont la valeur diffère entre deux états : saisie enregistrée
- * ailleurs depuis sa lecture (serveur), ou saisie pas encore enregistrée (formulaire).
- * Les montants se comparent par valeur : « 800 » et « 800.00 » désignent le même loyer. */
-export function champsDifferents(etape: EtapeSaisieBail, reference: Record<string, string>, comparees: Record<string, string>): string[] {
-  const valeur = (nom: string, brut: string | undefined) => {
-    const texte = (brut ?? "").trim();
+/** Deux écritures d’un même champ désignent-elles la même valeur ? Les montants se comparent par valeur :
+ * « 800 » et « 800.00 » désignent le même loyer. Un texte sur plusieurs lignes est soumis en CRLF (FormData)
+ * et enregistré tel quel, mais se relit en LF dans le champ (textarea.value) : c’est le même texte. */
+export function memeValeurEtapeBail(nom: string, a: string | undefined, b: string | undefined) {
+  const valeur = (brut: string | undefined) => {
+    const texte = (brut ?? "").replace(/\r\n?/g, "\n").trim();
     if (!nombres.has(nom)) return texte;
     const lu = lireMontantFacultatif(texte);
     return "montant" in lu ? String(lu.montant) : texte;
   };
-  return CHAMPS_ETAPE_BAIL[etape].filter(nom => Object.hasOwn(reference, nom) && valeur(nom, reference[nom]) !== valeur(nom, comparees[nom]));
+  return valeur(a) === valeur(b);
+}
+
+/** Champs de l’étape (connus de `reference`) dont la valeur diffère entre deux états : saisie enregistrée
+ * ailleurs depuis sa lecture (serveur), ou saisie pas encore enregistrée (formulaire). */
+export function champsDifferents(etape: EtapeSaisieBail, reference: Record<string, string>, comparees: Record<string, string>): string[] {
+  return CHAMPS_ETAPE_BAIL[etape].filter(nom => Object.hasOwn(reference, nom) && !memeValeurEtapeBail(nom, reference[nom], comparees[nom]));
 }
 
 export function indexEtapeBail(hash: string) {

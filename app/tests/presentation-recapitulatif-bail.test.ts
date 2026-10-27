@@ -103,8 +103,12 @@ describe("récapitulatif du contrat — audit #264", () => {
     expect(dureeContratRecapBail({ type: "nu" }, false, ["Personne physique"])).toBe("3 ans, avec reconduction tacite");
     expect(dureeContratRecapBail({ type: "meuble" }, true, [])).toBe("1 an, avec reconduction tacite");
     expect(dureeContratRecapBail({ type: "colocation" }, true, [])).toBe("1 an, avec reconduction tacite");
-    expect(dureeContratRecapBail({ type: "meuble", meuble_etudiant: true }, true, [])).toBe("9 mois, sans reconduction tacite (bail étudiant)");
+    expect(dureeContratRecapBail({ type: "meuble", meuble_etudiant: true }, true, [])).toBe("9 mois, sans reconduction tacite");
     const contrat = rubriquesRecapBail({ bail: { type: "nu", date_debut: "2026-12-01" }, lot: {}, bien: {}, personnes: [], liens: { lot: "#lot", bien: "#bien" }, duree: { texte: "6 ans, avec reconduction tacite", finPremierePeriode: "2032-11-30" } }).find(r => r.id === "bail")!;
     expect(contrat.lignes.map(l => [l.libelle, l.valeur])).toEqual(expect.arrayContaining([["Durée du contrat", "6 ans, avec reconduction tacite"], ["Fin de la première période", "30/11/2032"]]));
+    // Bail étudiant : la durée n’est dite qu’une fois.
+    const etudiant = (duree?: { texte: string | null; finPremierePeriode: string | null }) => rubriquesRecapBail({ bail: { type: "meuble", meuble_etudiant: true, date_debut: "2026-12-01" }, lot: {}, bien: {}, personnes: [], liens: { lot: "#lot", bien: "#bien" }, duree }).find(r => r.id === "bail")!.lignes.filter(l => /étudiant|Durée/.test(l.libelle)).map(l => [l.libelle, l.valeur]);
+    expect(etudiant({ texte: "9 mois, sans reconduction tacite", finPremierePeriode: "2027-08-31" })).toEqual([["Bail étudiant", "Oui"], ["Durée du contrat", "9 mois, sans reconduction tacite"]]);
+    expect(etudiant()).toEqual([["Bail étudiant", "9 mois"]]);
   });
 });

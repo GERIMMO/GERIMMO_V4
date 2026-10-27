@@ -89,7 +89,7 @@ function Demandes({ total, loyersAConfirmer = 0, critiques, apercu, indisponible
       </> : loyers ? <>
         <span><BellRing size={18} aria-hidden="true" />{compteurLoyers}</span>
         <strong className={styles.question}>Avez-vous reçu vos loyers ?</strong>
-        <small className={styles.apercu}>{indisponible ? "Liste incomplète · Voir les loyers" : autresDemandes ?? "Voir les loyers et les actions"}</small>
+        <small className={styles.apercu}>{indisponible ? "Liste incomplète · Voir les loyers" : autresDemandes ?? "Voir les loyers"}</small>
       </> : <>
         <span><ListChecks size={18} aria-hidden="true" />À vérifier</span>
         <strong>{total ? <>{total} <em>demande{total > 1 ? "s" : ""}</em></> : <em>Indisponible</em>}</strong>

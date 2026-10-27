@@ -56,6 +56,9 @@ describe("rappels de loyers : étapes de la relance",()=>{
     const seul=rendre({dette_bail:{echeances:1,reste:600,termesEchus:1,resteEchu:600}});
     expect(seul).not.toContain("autre mois");expect(seul).not.toContain("au total");expect(seul).not.toContain(">Prioritaire<");
   });
+  it("mène à la fiche du bail depuis le nom du lot, hors du repli de relance (audit du 27/10, LAT-07)",()=>{
+    for(const lectureSeule of [false,true]){const html=rendre({},lectureSeule);expect(html).toContain('<b><a href="/espace/org/baux/bail#loyers">Appartement</a></b>');}
+  });
   it("ne rend aucun geste d'écriture dans une traversée en lecture seule",()=>{
     const html=rendre({},true);expect(html).not.toContain("<button");expect(html).not.toContain("Gérer la relance");
   });

@@ -3,6 +3,11 @@ import type { DiagnosticPilotage, LotPilotage } from "@/lib/pilotage-proprietair
 
 export type TacheAccueil = {
   cle: string;
+  /**
+   * L'obligation, indépendante du lot : « dpe », « edl », « erp », « location »… C'est elle qui réunit
+   * les tâches d'un grand parc en une ligne « N lots : <obligation> » (décision du 27/10, TRV-09).
+   */
+  type: string;
   titre: string;
   detail: string | null;
   contexte: string | null;
@@ -47,7 +52,9 @@ export function construireTachesAccueil({ base, actions, lots, lotsSansBail, lot
     const geste = nature === "incident" ? "Voir l’incident" : href.startsWith(`${base}/documents`) ? "Voir le document"
       : href.endsWith("#diagnostics") ? "Voir les diagnostics" : href.endsWith("#edl") ? "Voir l’état des lieux"
       : href.startsWith(`${base}/baux/`) ? "Ouvrir le bail" : "Traiter";
-    taches.push({ cle: action.cle, titre: action.titre, detail: action.detail, echeance: action.echeance,
+    // Une action calculée se nomme « <obligation>-<identifiant> » (lib/actions-attendues.ts) ; une alerte porte son type.
+    const type = action.source === "alerte" ? action.type : action.source === "rapport" ? "rapport" : action.cle.replace(/-.*$/, "");
+    taches.push({ cle: action.cle, type, titre: action.titre, detail: action.detail, echeance: action.echeance,
       contexte: lot && !action.titre.includes(lot) ? lot : null, href, geste, nature });
   }
 
@@ -56,7 +63,7 @@ export function construireTachesAccueil({ base, actions, lots, lotsSansBail, lot
     const href = `${base}/parc/${diagnostic.lot.bien_id}/lots/${diagnostic.lot.id}#diagnostics`;
     if (ciblesExistantes.has(href)) continue;
     ciblesExistantes.add(href);
-    taches.push({ cle: `surveillance-${diagnostic.id}`, titre: "Vérifier les conditions de location", contexte: diagnostic.lot.nom,
+    taches.push({ cle: `surveillance-${diagnostic.id}`, type: "surveillance", titre: "Vérifier les conditions de location", contexte: diagnostic.lot.nom,
       detail: `DPE ${diagnostic.classe_dpe}`, echeance: null, href, geste: "Voir le DPE", nature: "document" });
   }
 
@@ -66,7 +73,7 @@ export function construireTachesAccueil({ base, actions, lots, lotsSansBail, lot
     const href = lot.brouillons.length === 1 ? `${base}/baux/${lot.brouillons[0]}` : `${base}/parc/${lot.bien_id}/lots/${lot.id}#baux`;
     if (ciblesExistantes.has(href)) continue;
     ciblesExistantes.add(href);
-    taches.push({ cle: `bail-preparation-${lot.id}`, titre: "Finaliser le bail", contexte: lot.nom,
+    taches.push({ cle: `bail-preparation-${lot.id}`, type: "bail-preparation", titre: "Finaliser le bail", contexte: lot.nom,
       detail: lot.brouillons.length > 1 ? `${lot.brouillons.length} baux en préparation` : "Bail en préparation",
       echeance: null, href, geste: lot.brouillons.length > 1 ? "Voir les baux" : "Reprendre le bail", nature: "location" });
   }
@@ -75,10 +82,67 @@ export function construireTachesAccueil({ base, actions, lots, lotsSansBail, lot
   for (const lot of lotsSansBail) {
     const blocages = preparations.get(lot.id);
     const pret = blocages?.length === 0;
-    taches.push({ cle: `location-${lot.id}`, titre: pret ? "Créer le bail" : "Préparer la location", contexte: lot.nom,
+    taches.push({ cle: `location-${lot.id}`, type: pret ? "location-prete" : "location", titre: pret ? "Créer le bail" : "Préparer la location", contexte: lot.nom,
       detail: pret ? "Le logement est prêt pour son bail" : blocages === null ? "Préparation à vérifier" : null,
       echeance: null, href: `${base}/parc/${lot.bien_id}/lots/${lot.id}${pret ? "#baux" : ""}`,
       geste: pret ? "Créer le bail" : "Continuer", nature: "location" });
   }
   return taches;
+}
+
+/**
+ * Au-delà de ce nombre de tâches, celles d'une même obligation se présentent en une ligne « N lots : <obligation> »
+ * qui se déplie sur la liste des lots ; en dessous, une ligne par lot, comme toujours. Un parc de 300 lots donnait
+ * 630 lignes et plus de 10 000 nœuds sur le tableau de bord (audit #264, TRV-09 ; décision du 27/10).
+ */
+export const SEUIL_REGROUPEMENT_TACHES = 24;
+
+export type GroupeTaches = {
+  cle: string;
+  /** « 300 lots : DPE absent ou expiré ». */
+  titre: string;
+  /** Ce qui se compte : « lots », « biens », « documents »… */
+  unite: string;
+  /** Le détail quand toutes les tâches du groupe disent le même, sinon null : il se lit alors lot par lot. */
+  detail: string | null;
+  nature: TacheAccueil["nature"];
+  taches: TacheAccueil[];
+};
+
+/** L'obligation sans le lot : « DPE absent ou expiré — Lot 3 » → « DPE absent ou expiré ». */
+const obligation = (tache: TacheAccueil) => tache.titre.split(" — ")[0];
+
+/** Ce qu'une ligne du dépliage nomme : le lot (ou le bien, la pièce), sinon le titre entier. */
+export const lieuTache = (tache: TacheAccueil) => tache.contexte
+  ?? (tache.titre.includes(" — ") ? tache.titre.slice(tache.titre.indexOf(" — ") + 3) : tache.titre);
+
+// Une tâche vaut un lot, sauf l'ERP (au bien), les pièces de la GED, les rapports de gestion et les incidents.
+const UNITES: Record<string, string> = { erp: "biens", piece: "documents", rapport: "rapports", incident: "incidents" };
+
+/**
+ * Les lignes de la carte : les tâches elles-mêmes jusqu'au seuil, puis une ligne par obligation partagée par au moins
+ * deux tâches (ordre de première apparition conservé) ; une obligation isolée garde sa ligne.
+ */
+export function regrouperTachesAccueil(taches: TacheAccueil[]): (TacheAccueil | GroupeTaches)[] {
+  if (taches.length <= SEUIL_REGROUPEMENT_TACHES) return taches;
+  const cleGroupe = (tache: TacheAccueil) => `${tache.type}|${obligation(tache)}`;
+  const membres = new Map<string, TacheAccueil[]>();
+  for (const tache of taches) {
+    const cle = cleGroupe(tache);
+    if (!membres.has(cle)) membres.set(cle, []);
+    membres.get(cle)!.push(tache);
+  }
+  const entrees: (TacheAccueil | GroupeTaches)[] = [];
+  const vues = new Set<string>();
+  for (const tache of taches) {
+    const cle = cleGroupe(tache);
+    if (vues.has(cle)) continue;
+    vues.add(cle);
+    const groupe = membres.get(cle)!;
+    if (groupe.length < 2) { entrees.push(tache); continue; }
+    const unite = UNITES[tache.type] ?? "lots";
+    entrees.push({ cle: `groupe-${cle}`, titre: `${groupe.length} ${unite} : ${obligation(tache)}`, unite,
+      detail: groupe.every(t => t.detail === groupe[0].detail) ? groupe[0].detail : null, nature: tache.nature, taches: groupe });
+  }
+  return entrees;
 }

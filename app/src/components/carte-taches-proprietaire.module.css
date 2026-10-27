@@ -15,6 +15,13 @@
 .tache:hover b { text-decoration: underline; text-underline-offset: 3px; }
 .geste { display: flex; align-items: center; justify-content: flex-end; gap: 8px; max-width: 30%; color: #294d72; font-size: 12px; font-weight: 600; text-align: right; }
 .geste svg { flex-shrink: 0; }
+.groupe > summary { cursor: pointer; list-style: none; }
+.groupe > summary::-webkit-details-marker { display: none; }
+.groupe[open] > summary .geste svg { transform: rotate(180deg); }
+.lots { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0 16px; margin: 0 0 12px 46px; padding: 0; list-style: none; }
+.lots a { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-height: 36px; padding-block: 6px; color: #294d72; font-size: 13px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.lots a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.lots small { color: #5e6c7d; font-size: 12px; font-weight: 400; }
 .suite { border-top: 1px solid #e8edf2; }
 .suite > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 8px 0; cursor: pointer; list-style: none; color: #294d72; font-size: 13px; font-weight: 600; }
 .suite > summary::-webkit-details-marker { display: none; }
@@ -23,9 +30,10 @@
 .calme svg { flex-shrink: 0; color: #436d5c; }
 .incomplet { margin-block: 8px; color: #815516; font-size: 13px; line-height: 1.6; }
 .colocations { border-top: 1px solid #e8edf2; width: 100%; padding-block: 10px; line-height: 1.5; }
-.tache:focus-visible, .entete a:focus-visible, .suite > summary:focus-visible, .colocations:focus-visible, .carte:focus-visible { outline: 2px solid #476c92; outline-offset: 4px; }
+.tache:focus-visible, .entete a:focus-visible, .suite > summary:focus-visible, .lots a:focus-visible, .colocations:focus-visible, .carte:focus-visible { outline: 2px solid #476c92; outline-offset: 4px; }
 @media (max-width: 700px) {
   .carte { padding: 18px; }
+  .lots { margin-left: 0; }
   .entete h2 { font-size: 20px; }
   .tache { flex-wrap: wrap; gap: 4px 10px; padding-block: 14px; align-items: flex-start; }
   .icone { width: 30px; height: 30px; }

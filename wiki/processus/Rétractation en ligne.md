@@ -112,3 +112,7 @@ ne sert plus à se rétracter.
 > - **Non testé contre Stripe réel** : prélèvement immédiat de la mensualité au retour au
 >   mensuel ; ordre des événements « incomplete » puis « active » (recette en mode test à
 >   faire).
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

@@ -23,10 +23,10 @@ export function RechercheEspace({ orgId, racine }: { orgId: string; racine: stri
   // « Lots en préparation », « Mes lots » ; la barre de recherche était seule à
   // parler de logements.
   return <>
-    <button type="button" className="recherche-ouvrir" onClick={() => ouvrir(true)} aria-haspopup="dialog" aria-label="Rechercher un lot, une personne, un document, un incident, un artisan ou un paiement">
+    <button type="button" className="recherche-ouvrir" onClick={() => ouvrir(true)} aria-haspopup="dialog">
       <Search className="size-4 shrink-0" aria-hidden="true" />
-      <span>Rechercher<span className="hidden lg:inline"> un lot, une personne…</span></span>
-      <kbd className="hidden sm:inline">⌘ / Ctrl K</kbd>
+      <span>Rechercher<span className="hidden lg:inline"> un dossier</span></span>
+      <kbd aria-hidden="true" className="hidden sm:inline">⌘ / Ctrl K</kbd>
     </button>
     {ouverte && <FenetreRecherche key={orgId} orgId={orgId} racine={racine} fermer={() => ouvrir(false)} />}
   </>;

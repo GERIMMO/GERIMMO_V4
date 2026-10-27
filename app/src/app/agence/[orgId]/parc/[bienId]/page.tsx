@@ -1,3 +1,4 @@
+import { bilanDiagnostics } from "@/lib/presentation-diagnostics";
 import Link from "next/link";
 import { IconeTrait } from "@/components/icone-trait";
 import { notFound } from "next/navigation";
@@ -8,10 +9,9 @@ import {
   ETATS_LOT,
   COULEURS_ETAT_LOT,
   MODES_CLE,
-  alerteDiagnostics,
   formaterSurface,
 } from "@/lib/parc";
-import { diagnosticsExigibles, diagnosticsManquants } from "@/lib/diagnostics";
+import { diagnosticsExigibles } from "@/lib/diagnostics";
 import { aujourdhuiParis, formaterDate } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
 import {
@@ -52,13 +52,13 @@ export default async function PageBien(
 ) {
   const { orgId, bienId } = await props.params;
   exigerUuids(bienId);
-  const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, role, estProprietaire, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
   // Le lien retour porte le nom de l'entrée du menu (24/09) : « ← Parc »
   // ne se lisait nulle part ailleurs.
   const libelleParc = estProprietaire
-    ? "Mes lots"
+    ? "Biens & locations"
     : role === "agent"
       ? "Mon portefeuille"
       : "Parc de l'agence";
@@ -168,16 +168,14 @@ export default async function PageBien(
   // Diagnostics exigibles au niveau bien uniquement — calcul centralisé
   // (lib/diagnostics, audit 09/09) ; ceux du lot sont sur sa fiche.
   const exigiblesBien = diagnosticsExigibles(bien, "bien");
-  const manquants = diagnosticsManquants(bien, diagnostics ?? [], "bien");
+  const bilan = bilanDiagnostics(exigiblesBien.map(e => e.type), diagnostics ?? []);
+  const manquants = exigiblesBien.filter(e => bilan.lignes.some(l => l.type === e.type && ["a_ajouter", "a_joindre"].includes(l.etat)));
   // « L'immeuble » ne se dit que d'un immeuble (24/09) : sur un appartement
   // (copropriété : non), « diagnostic de l'immeuble à déposer » désignait
   // pour le lecteur autre chose que son bien.
   const estImmeuble = bien.type === "immeuble";
   const niveauBien = estImmeuble ? "à l’immeuble" : "au bien";
-  const alerteDiagnosticsBien = alerteDiagnostics(
-    manquants.map((m) => m.type),
-    diagnostics ?? []
-  );
+  const alerteDiagnosticsBien = bilan.aAjouter ? `${bilan.aAjouter} à ajouter` : bilan.aRenouveler ? `${bilan.aRenouveler} à renouveler` : undefined;
   const infosRenseignees = !!infos && Object.values(infos).some((v) => v);
 
   // Ce que la base n'a pas rendu — un manque affiché n'est alors pas un manque.
@@ -231,7 +229,7 @@ export default async function PageBien(
       ancre: "retrait",
     });
   }
-  if (manquants.length > 0) {
+  if (!erreurDiagnostics && manquants.length > 0) {
     attention.push({
       cle: "diagnostics",
       texte: `Diagnostic${manquants.length > 1 ? "s" : ""} ${estImmeuble ? "de l’immeuble" : "du bien"} à déposer : ${manquants
@@ -395,7 +393,7 @@ export default async function PageBien(
                     </details>
                   )}
 
-                  <BoutonsEtatLot
+                  {!traverseeLectureSeule && <BoutonsEtatLot
                     orgId={orgId}
                     bienId={bienId}
                     lotId={lot.id}
@@ -403,7 +401,7 @@ export default async function PageBien(
                     bloque={blocages.length > 0}
                     compact
                     estBailleurDirect={estProprietaire}
-                  />
+                  />}
                 </li>
               );
             })}
@@ -421,7 +419,7 @@ export default async function PageBien(
       {/* Le bien : condensé + sections repliables (consulter d'abord, éditer sur clic) */}
       <Card id="informations" className="scroll-mt-20">
         <CardHeader><CardTitle className="bien-visuel-titre"><IconeTrait nom="maison" />Informations du bien</CardTitle></CardHeader>
-        <CardContent><RecapBien orgId={orgId} bien={bien as BienFormulaire} /></CardContent>
+        <CardContent><RecapBien lectureSeule={traverseeLectureSeule} orgId={orgId} bien={bien as BienFormulaire} /></CardContent>
       </Card>
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1"><h2 className="text-lg font-semibold">Le dossier du bien</h2><Link href={`${base}/reseau?bien=${bienId}`} className="lien-discret inline-flex min-h-11 items-center gap-2 text-sm"><IconeTrait nom="outil" className="size-4" />Trouver un artisan →</Link></div>
       <div className="bien-visuel-dossier">
@@ -429,7 +427,7 @@ export default async function PageBien(
           <SectionLot
             id="diagnostics"
             titre="Diagnostics du bien"
-            alerte={alerteDiagnosticsBien ? `${alerteDiagnosticsBien} (${niveauBien})` : undefined}
+            alerte={!erreurDiagnostics && alerteDiagnosticsBien ? `${alerteDiagnosticsBien} (${niveauBien})` : undefined}
             // Plus de « · manque … » : le bandeau du haut le dit déjà, avec
             // « Régler » ; la rangée garde sa pastille (24/09).
             resume={
@@ -443,14 +441,14 @@ export default async function PageBien(
                 ERP, amiante des parties communes, termites… Les diagnostics du
                 lot (DPE…) se déposent sur sa fiche.
               </p>
-              <LignesDiagnostics
+              {erreurDiagnostics ? <p role="alert">Documents indisponibles. Réessayez pour connaître leur état.</p> : <LignesDiagnostics lectureSeule={traverseeLectureSeule}
                 orgId={orgId}
                 bienId={bienId}
                 lotId={null}
                 niveau="bien"
                 attendus={exigiblesBien.map((e) => e.type)}
                 diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
-              />
+              />}
             </div>
           </SectionLot>
 
@@ -487,7 +485,7 @@ export default async function PageBien(
 
           {/* Découpage en lots — seulement là où il s'applique : sur un bien
               non découpable, la rangée ne s'ouvrait que pour le dire (24/09). */}
-          {!(TYPES_NON_DECOUPABLES as readonly string[]).includes(bien.type) && (
+          {!traverseeLectureSeule && !(TYPES_NON_DECOUPABLES as readonly string[]).includes(bien.type) && (
             <SectionLot
               titre="Découpage en lots"
               resume={`${lotsActifs.length} lot${lotsActifs.length > 1 ? "s" : ""}`}
@@ -538,7 +536,7 @@ export default async function PageBien(
                     tant qu&apos;elle n&apos;est pas validée.
                   </p>
                 )}
-                <FormulaireCle
+                {!traverseeLectureSeule && <FormulaireCle
                   // Remonté à neuf quand la structure des lots change (découpage)
                   key={lotsActifs.map((l) => l.id).join("-")}
                   orgId={orgId}
@@ -549,7 +547,7 @@ export default async function PageBien(
                     surface_m2: l.surface_m2,
                     tantieme: l.tantieme,
                   }))}
-                />
+                />}
               </div>
             </SectionLot>
           )}
@@ -562,7 +560,7 @@ export default async function PageBien(
             // manque (24/09).
             resume={infosRenseignees ? "Renseignées" : "Non renseignées"}
           >
-            <FormulaireInfosPratiques
+            <FormulaireInfosPratiques lectureSeule={traverseeLectureSeule}
               orgId={orgId}
               bienId={bienId}
               infos={(infos ?? null) as InfosPratiques | null}
@@ -588,7 +586,7 @@ export default async function PageBien(
                 s&apos;affiche sur l&apos;accueil des locataires du bien jusqu&apos;à la
                 date choisie, puis disparaît seule.
               </p>
-              <CarteAnnonces
+              <CarteAnnonces lectureSeule={traverseeLectureSeule}
                 orgId={orgId}
                 bienId={bienId}
                 annonces={(annonces ?? []) as AnnonceBien[]}
@@ -600,7 +598,7 @@ export default async function PageBien(
       {/* Retirer le bien du parc (audit du 27/09) : l'abonnement promettait
           « un bien retiré n'est plus compté » sans qu'aucun geste existe.
           Réservé au responsable, comme la réactivation d'un lot archivé. */}
-      {ROLES_RESPONSABLES.includes(role) && (
+      {!traverseeLectureSeule && ROLES_RESPONSABLES.includes(role) && (
         <CarteRetraitBien
           orgId={orgId}
           bienId={bienId}

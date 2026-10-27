@@ -66,3 +66,9 @@ liste noire n'en sortent).
 >   à relire au regard de l'archive complète.
 > - **Droit d'accès et portabilité** (RGPD art. 15, 20, 28.3 g) : à confirmer sur Légifrance
 >   (source non ouverte le 23/10/2026).
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
+
+Point résolu : l’article 9 de la V1 décrit bien l’archive complète et les documents signés. La copie sur demande reste complémentaire pour les données hors export.

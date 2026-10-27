@@ -4,6 +4,8 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { CRITICITES, formaterDateHeure, ROLES_RESPONSABLES } from "@/lib/ged";
 import { estConfieeAMoi } from "@/lib/alertes";
 import { chargerActionsDuJour, type ActionDuJour } from "@/lib/actions-du-jour";
+import { chargerVerificationsProprietaire } from "@/lib/lecture-verifications-proprietaire";
+import { RappelsLoyers } from "@/components/rappels-loyers";
 import { sansAlertesDoublonnees } from "@/lib/actions-attendues";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import {
@@ -17,8 +19,13 @@ import { FormulaireAlerte } from "./formulaire-alerte";
 import { GroupeActions, LienGeste, type RangDuJour } from "./groupe-actions";
 import { ListeAlertes, type AlerteRang } from "./liste-alertes";
 import { racineEspace } from "@/lib/racine-espace";
+import styles from "./alertes-proprietaire.module.css";
 
-export const metadata = { title: "Alertes — Gerimmo" };
+export async function generateMetadata({ params }: PageProps<"/agence/[orgId]/alertes">) {
+  const { orgId } = await params;
+  const { estProprietaire } = await verifierAccesEspace(orgId);
+  return { title: estProprietaire ? "À faire — Gerimmo" : "Alertes — Gerimmo" };
+}
 
 // L'historique n'est pas paginé : on en montre les plus récentes, et la carte
 // le dit plutôt que de laisser croire qu'il n'y a que celles-là.
@@ -41,8 +48,8 @@ export default async function PageAlertes(
   // pop-up de traitement de cette alerte s'ouvre à l'arrivée sur la page.
   const { traiter, source_introuvable } = await props.searchParams;
   const traiterId = typeof traiter === "string" ? traiter : undefined;
-  const { supabase, user, role, organisation, estProprietaire } = await verifierAccesEspace(orgId);
-  const estResponsable = ROLES_RESPONSABLES.includes(role);
+  const { supabase, user, role, organisation, estProprietaire, traverseeLectureSeule } = await verifierAccesEspace(orgId);
+  const estResponsable = !traverseeLectureSeule && ROLES_RESPONSABLES.includes(role);
   // « Mon portefeuille » (RM-18.1.3) : le plan du jour se lit à travers lui,
   // comme sur l'accueil — null : je vois tout.
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
@@ -59,7 +66,7 @@ export default async function PageAlertes(
     // bloqués, mes alertes et les rapports à valider. Un seul chiffre, et ce
     // qu'il compte se trouve sur cette page. Mémorisé par requête : le layout
     // l'a déjà demandé pour la pastille.
-    { plan, attendues, erreurs },
+    { plan, attendues, erreurs, verifications, lectureLoyers },
   ] = await Promise.all([
       supabase
         .from("alerts")
@@ -78,7 +85,10 @@ export default async function PageAlertes(
         .order("closed_at", { ascending: false })
         .limit(FERMEES_AFFICHEES),
       supabase.rpc("org_membres_gerants", { org: orgId }),
-      chargerActionsDuJour(supabase, orgId, { userId: user.id, portefeuille, racine: racineEspace(estProprietaire) }),
+      estProprietaire && !traverseeLectureSeule
+        ? chargerVerificationsProprietaire(supabase, orgId, { userId: user.id, portefeuille })
+        : chargerActionsDuJour(supabase, orgId, { userId: user.id, portefeuille, racine: racineEspace(estProprietaire) })
+          .then(lecture => ({ ...lecture, verifications: null, lectureLoyers: null })),
     ]);
   const membres = (donneesMembres ?? []) as {
     account_id: string;
@@ -89,29 +99,36 @@ export default async function PageAlertes(
   // Une alerte qui répète un item calculé (l'EDL d'entrée posée à l'activation
   // du bail) ne s'affiche pas deux fois : le rang « Sur un bail » fait foi,
   // comme sur l'accueil — sinon la page montrait un rang de plus que le compte.
+  const bauxAvecLoyer = new Set(verifications?.rappels.dus.map(loyer => loyer.bail_id) ?? []);
   const rangs = sansAlertesDoublonnees(
     (ouvertes ?? []) as (AlerteRang & { type: string })[],
     attendues
-  );
+  ).filter(alerte => alerte.type !== "loyer_impaye" || typeof alerte.details?.bail_id !== "string" || !bauxAvecLoyer.has(alerte.details.bail_id));
   // Les alertes confiées à d'autres restent lisibles en bas de la table,
   // grisées — mais elles n'attendent rien de moi : hors du compte.
-  const nbAutres = rangs.filter((a) => !estConfieeAMoi(a, user.id)).length;
-  const compteIllisible = Boolean(erreurOuvertes) || erreurs.alertes;
+  const nbAutres = traverseeLectureSeule ? 0 : rangs.filter((a) => !estConfieeAMoi(a, user.id)).length;
+  const listeIncomplete = erreurs.alertes || erreurs.rapports || erreurs.baux || Boolean(lectureLoyers?.error);
+  const compteIllisible = Boolean(erreurOuvertes) || listeIncomplete;
+  const totalDemandes = verifications?.total ?? plan.total;
+  const totalCritiques = verifications?.critiques ?? plan.critiques;
 
   // Les rangs que seul l'accueil montrait, rendus par le même composant : les
   // baux à débloquer, et les rapports de gestion à valider (dus sous quinze
   // jours ou en retard). Le geste est un lien — l'écran qui résout.
-  const surLesBaux: RangDuJour[] = plan.surLesBaux.map((a) => ({
+  const actionsBaux = verifications
+    ? verifications.actions.filter((a): a is Extract<ActionDuJour, { source: "bail" }> => a.source === "bail")
+    : plan.surLesBaux;
+  const surLesBaux: RangDuJour[] = actionsBaux.map((a) => ({
     ...a,
     action: (
       <LienGeste href={a.href} critique={a.criticite === "critique"}>
-        Résoudre
+        {traverseeLectureSeule ? "Consulter" : "Résoudre"}
       </LienGeste>
     ),
   }));
-  const rapports: RangDuJour[] = [...plan.enRetard, ...plan.aVenir]
+  const rapports: RangDuJour[] = (verifications?.actions ?? [...plan.enRetard, ...plan.aVenir])
     .filter((a): a is Extract<ActionDuJour, { source: "rapport" }> => a.source === "rapport")
-    .map((a) => ({ ...a, action: <LienGeste href={a.href}>Valider</LienGeste> }));
+    .map((a) => ({ ...a, action: <LienGeste href={a.href}>{traverseeLectureSeule ? "Consulter" : "Valider"}</LienGeste> }));
   const actionsAuDessus = surLesBaux.length + rapports.length;
   // Audit 27/09 : « 1 critique — à faire en premier » au-dessus d'une
   // pastille « Critiques 0 » — le critique était un blocage de bail, que les
@@ -119,26 +136,37 @@ export default async function PageAlertes(
   const critiquesAuDessus = [...surLesBaux, ...rapports].filter(
     (a) => a.criticite === "critique"
   ).length;
-  const critiquesDansLaTable = Math.max(0, plan.critiques - critiquesAuDessus);
+  const critiquesDansLaTable = Math.max(0, totalCritiques - critiquesAuDessus);
   const ouSontLesCritiques =
     critiquesAuDessus > 0 && critiquesDansLaTable > 0
       ? ` : ${critiquesAuDessus} sur les baux, ${critiquesDansLaTable} dans les alertes`
       : critiquesAuDessus > 0
         ? " : sur les baux, en haut de la liste"
         : "";
-  const alertesATraiter = Math.max(0, plan.total - actionsAuDessus);
+  const alertesATraiter = Math.max(0, totalDemandes - actionsAuDessus - bauxAvecLoyer.size);
 
   // PAR QUOI COMMENCER — la phrase du bandeau (gabarit du 12/09). L'écran
   // ouvrait sur le mot « Alertes » et un compteur en mono de 11 px : il disait
   // COMBIEN, jamais par quoi s'y prendre.
   const parQuoi = compteIllisible
     ? "La liste n’a pas pu être lue — ce n’est pas une journée sans alerte."
-    : plan.critiques > 0
-        ? `${plan.critiques} critique${plan.critiques > 1 ? "s" : ""} — à faire en premier${ouSontLesCritiques}.`
+    : totalCritiques > 0
+        ? `${totalCritiques} critique${totalCritiques > 1 ? "s" : ""} — à faire en premier${ouSontLesCritiques}.`
         : "Rien de critique : il ne reste que du courant.";
 
+  const creation = !traverseeLectureSeule && <Card id="creer-alerte" data-ton="or" className="carte-rubrique h-fit min-w-0 scroll-mt-20">
+    {!estProprietaire && <CardHeader>
+      <CardTitle className="text-base">Créer une alerte</CardTitle>
+      <CardDescription>Ajoutez un rappel personnel. Gerimmo crée déjà les alertes liées à vos dossiers.</CardDescription>
+    </CardHeader>}
+    <CardContent>
+      {erreurMembres && <p className="err" role="alert">Impossible de lire les membres de votre espace. La création est momentanément indisponible.</p>}
+      <FormulaireAlerte orgId={orgId} membres={membres} estResponsable={estResponsable} estProprietaire={estProprietaire} />
+    </CardContent>
+  </Card>;
+
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
+    <main className={`mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7 ${estProprietaire ? styles.page : ""}`}>
       {source_introuvable === "diagnostic" && (
         <p role="status" className="mb-4 rounded-xl border border-[var(--warning)] bg-[var(--warning-soft)] px-4 py-3 text-sm text-[var(--warning-soft-foreground)]">
           Le diagnostic lié à cette alerte n’est plus disponible dans ce portefeuille.
@@ -152,35 +180,35 @@ export default async function PageAlertes(
       <div className="mb-6">
         {/* L'écart sous le filet est celui de .entete-page (24/09). */}
         <div className="entete-page">
-          <TitreEcran rubrique="alertes">Alertes</TitreEcran>
+          <TitreEcran rubrique="alertes">{traverseeLectureSeule ? "Alertes du client" : estProprietaire ? "À faire" : "Alertes"}</TitreEcran>
           <div className="flex flex-wrap items-center gap-4">
             {/* Le chiffre de la tuile « À faire » et de la pastille : ce que
                 cette page liste, et rien d'autre. */}
             <span className="mono-discret">
               {compteIllisible
                 ? "liste indisponible"
-                : plan.total === 0
+                : totalDemandes === 0
                   ? "rien à traiter"
-                  : actionsAuDessus > 0 && alertesATraiter > 0
-                    ? `${plan.total} à traiter · ${actionsAuDessus} sur les baux et rapports, ${alertesATraiter} alerte${alertesATraiter > 1 ? "s" : ""}`
-                    : `${plan.total} à traiter`}
+                  : !estProprietaire && actionsAuDessus > 0 && alertesATraiter > 0
+                    ? `${totalDemandes} à traiter · ${actionsAuDessus} sur les baux et rapports, ${alertesATraiter} alerte${alertesATraiter > 1 ? "s" : ""}`
+                    : `${totalDemandes} à traiter`}
             </span>
             {/* Sous md, la carte de création est empilée après toute la
                 liste : ce raccourci y mène directement. Même seuil que
                 « Personnes » (24/09) : entre 768 et 1 023 px, la carte était
                 à côté de la liste sur l'une et dessous sur l'autre. */}
-            <span className="md:hidden">
+            {!traverseeLectureSeule && !estProprietaire && <span className="md:hidden">
               <a href="#creer-alerte" className="btn-or">
                 + Créer une alerte
               </a>
-            </span>
+            </span>}
           </div>
         </div>
         {/* Sans rien à traiter, la phrase se tait (24/09) : « rien à
             traiter » est déjà la mention, et la carte vide dit le reste. */}
-        {(compteIllisible || plan.total > 0 || nbAutres > 0) && (
+        {(compteIllisible || (estProprietaire ? totalCritiques > 0 : totalDemandes > 0) || nbAutres > 0) && (
           <p className="text-sm text-muted-foreground">
-            {parQuoi}
+            {estProprietaire && !compteIllisible ? totalCritiques > 0 ? `${totalCritiques} action${totalCritiques > 1 ? "s" : ""} prioritaire${totalCritiques > 1 ? "s" : ""}.` : "" : parQuoi}
             {/* Les alertes des collègues ne se disent que s'il y en a :
                 « 0 confiée à d'autres » n'apprend rien. */}
             {!compteIllisible && nbAutres > 0 &&
@@ -188,6 +216,11 @@ export default async function PageAlertes(
           </p>
         )}
       </div>
+
+      {estProprietaire && creation && <details className={styles.creation}>
+        <summary>Créer un rappel</summary>
+        {creation}
+      </details>}
 
       {/* `min-w-0` SUR LES DEUX COLONNES, et ce n'est pas décoratif (mesure au
           navigateur, 12/09). Un élément de grille vaut `min-width: auto` par
@@ -197,8 +230,9 @@ export default async function PageAlertes(
           390. Le navigateur ne débordait pas : il DÉZOOMAIT, et tout l'écran
           se lisait 17 % plus petit que partout ailleurs. Le parc et le tableau
           de bord, eux, tenaient dans leurs 390 px. */}
-      <div className="grid gap-4 md:grid-cols-[1fr_20rem]">
+      <div className={`grid gap-4 ${traverseeLectureSeule || estProprietaire ? "" : "md:grid-cols-[1fr_20rem]"}`}>
         <div className="min-w-0 space-y-4">
+          {estProprietaire && !traverseeLectureSeule && verifications && <RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={traverseeLectureSeule} dansFenetre={false} />}
           {/* CE QUE LA PASTILLE COMPTE SE TROUVE ICI (24/09). « Alertes · 2 »
               dans la barre, un seul rang sur cette page : le compte
               additionnait les baux bloqués et les rapports à valider, que
@@ -207,7 +241,7 @@ export default async function PageAlertes(
           {actionsAuDessus > 0 && (
             <div className="colonne-liste">
               <GroupeActions
-                titre="À débloquer sur les baux"
+                titre={estProprietaire ? "Locations" : "À débloquer sur les baux"}
                 actions={surLesBaux}
                 total={surLesBaux.length}
                 ouvert
@@ -221,11 +255,14 @@ export default async function PageAlertes(
             </div>
           )}
           {/* Une lecture en échec ne se déguise pas en « rien à valider ». */}
+          {erreurs.baux && (
+            <p className="err" role="alert">
+              Certaines actions sur les locations n’ont pas pu être vérifiées. La liste peut être incomplète.
+            </p>
+          )}
           {erreurs.rapports && (
             <p className="err" role="alert">
-              Impossible de lire les rapports de gestion à valider — ce
-              n&apos;est pas une liste vide, c&apos;est une lecture qui a
-              échoué. Rechargez dans un instant.
+              Impossible de lire les rapports à valider. Rechargez la page.
             </p>
           )}
 
@@ -233,9 +270,7 @@ export default async function PageAlertes(
               l'écran vide et l'écran illisible ne disent pas la même chose. */}
           {erreurOuvertes ? (
             <p className="err" role="alert">
-              Impossible de lire les alertes ouvertes — ce n&apos;est pas une
-              liste vide, c&apos;est une lecture qui a échoué. Rechargez dans un
-              instant.
+              Impossible de lire les alertes ouvertes. Rechargez la page.
             </p>
           ) : (
             <ListeAlertes
@@ -246,8 +281,10 @@ export default async function PageAlertes(
               estProprietaire={organisation.type === "proprietaire_direct"}
               monCompte={user.id}
               estResponsable={estResponsable}
+              lectureSeule={traverseeLectureSeule}
               ouvrirAlerteId={traiterId}
-              actionsAuDessus={actionsAuDessus}
+              actionsAuDessus={actionsAuDessus + bauxAvecLoyer.size}
+              listeIncomplete={listeIncomplete}
             />
           )}
 
@@ -297,29 +334,7 @@ export default async function PageAlertes(
           </details>
         </div>
 
-        <Card id="creer-alerte" data-ton="or" className="carte-rubrique h-fit min-w-0 scroll-mt-20">
-          <CardHeader>
-            <CardTitle className="text-base">Créer une alerte</CardTitle>
-            <CardDescription>
-              Ajoutez un rappel personnel. Gerimmo crée déjà les alertes liées à vos dossiers.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Sans la liste des gérants, « Confier à » serait vide et le
-                formulaire refuserait l'envoi sans jamais dire pourquoi. */}
-            {erreurMembres && (
-              <p className="err" role="alert">
-                Impossible de lire la liste des gérants — la création d&apos;une
-                alerte est indisponible le temps que la lecture repasse.
-              </p>
-            )}
-            <FormulaireAlerte
-              orgId={orgId}
-              membres={membres}
-              estResponsable={estResponsable}
-            />
-          </CardContent>
-        </Card>
+        {!estProprietaire && creation}
       </div>
     </main>
   );

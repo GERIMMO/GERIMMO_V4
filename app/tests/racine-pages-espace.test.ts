@@ -121,13 +121,18 @@ const ECARTS_DU_CHOIX: Exception[] = [
   },
   {
     fichier: "src/app/agence/[orgId]/articles-accueil.tsx", fonction: "ArticlesAccueil", forme: "const base = baseEspace(orgId, true)", nombre: 1,
-    raison: "encart de l'accueil du propriétaire direct, seul à le rendre",
-    preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<ArticlesAccueil supabase={supabase} orgId={orgId} />"],
+    raison: "ancien encart propriétaire désormais sans appelant ; le test dédié ci-dessous interdit sa réintroduction implicite dans un écran partagé",
+    preuve: ["src/app/agence/[orgId]/articles-accueil.tsx", "cet encart n'existe que dans l'accueil du propriétaire direct"],
+  },
+  {
+    fichier: "src/components/bouton-assistance.tsx", fonction: "LienAssistance", forme: 'const chemin = cheminPourProfil(cheminInterne, racine === "/espace")', nombre: 1,
+    raison: "l'aide lit le contexte fourni par le layout pour conserver la même adresse avant et après hydratation ; le profil n'est pas imposé",
+    preuve: ["src/components/bouton-assistance.tsx", "const racine = useRacineEspace();"],
   },
   {
     fichier: "src/app/agence/[orgId]/artisans/carnet-proprietaire.tsx", fonction: "CarnetProprietaire", forme: "const base = baseEspace(orgId, true)", nombre: 1,
-    raison: "carnet rendu à la place de l'écran Artisans pour le seul propriétaire direct",
-    preuve: ["src/app/agence/[orgId]/artisans/page.tsx", 'const bailleurDirect = role === "proprietaire_direct";\n  if (bailleurDirect) return <CarnetProprietaire orgId={orgId} />;'],
+    raison: "carnet d’invitations rendu au seul propriétaire titulaire, hors consultation superadmin",
+    preuve: ["src/app/agence/[orgId]/artisans/page.tsx", 'if (bailleurDirect && !traverseeLectureSeule) return <CarnetProprietaire orgId={orgId} />;'],
   },
   {
     fichier: "src/components/page-finances.tsx", fonction: "PageFinances", forme: "const base = baseEspace(orgId, true)", nombre: 1,
@@ -186,6 +191,13 @@ describe("écrans : le choix de la racine se lit de la garde", () => {
     exceptionsEncoreVraies(appelsDeChoix.filter((a) => !estLeDrapeau(a.argument)), ECARTS_DU_CHOIX);
   });
 
+  it("l'ancien encart propriétaire ArticlesAccueil n'a plus d'appelant ni d'import", () => {
+    const references = toutSrc.filter(f => f !== "src/app/agence/[orgId]/articles-accueil.tsx")
+      .flatMap(f => noeuds(arbre(f)).filter(n => (ts.isIdentifier(n) && n.text === "ArticlesAccueil")
+        || (ts.isStringLiteral(n) && n.text.includes("articles-accueil"))).map(n => `${f}:${ligne(n)}`));
+    expect(references).toEqual([]);
+  });
+
   it("l'identifiant `estProprietaire` reçu désigne la garde, le rôle qu'elle rend, ou une propriété à défaut « agence »", () => {
     const sansSource = appelsDeChoix
       .filter((a) => estLeDrapeau(a.argument) && !sourceDuDrapeau(a.argument))
@@ -211,11 +223,6 @@ const CONSTANTES_ADMISES: Exception[] = [
     raison: "valeur du contexte HORS de l'espace (aucun fournisseur) : un lien y reste redirigé, jamais cassé",
     preuve: ["src/app/agence/[orgId]/layout.tsx", "<FournisseurRacineEspace racine={racine}>"],
   },
-  {
-    fichier: "src/app/agence/[orgId]/accueil-proprietaire.tsx", fonction: "AccueilProprietaire", forme: "propriété racine: RACINE_PROPRIETAIRE", nombre: 1,
-    raison: "plan du jour de l'accueil servi au seul propriétaire direct",
-    preuve: ["src/app/agence/[orgId]/page.tsx", "if (estProprietaire) {\n    return (\n      <AccueilProprietaire"],
-  },
 ];
 
 /** Le défaut « agence » d'une propriété `racine` de composant : `{ racine = RACINE_AGENCE }`. */
@@ -225,7 +232,7 @@ function defautAgenceDeRacine(id: ts.Identifier): boolean {
 }
 
 describe("écrans : aucune racine imposée par une constante, une conversion ou une base sans racine", () => {
-  it("RACINE_AGENCE / RACINE_PROPRIETAIRE n'y servent que de défaut « agence » d'une propriété `racine` (ou aux deux emplacements nommés)", () => {
+  it("RACINE_AGENCE / RACINE_PROPRIETAIRE n'y servent que de défaut « agence » d'une propriété `racine` (ou à l'emplacement nommé)", () => {
     const occurrences = tousLesEcrans.flatMap((fichier) =>
       identifiants(fichier, /^RACINE_(AGENCE|PROPRIETAIRE)$/)
         .filter((id) => !defautAgenceDeRacine(id))
@@ -327,6 +334,11 @@ const rendus = toutSrc
  */
 const OMISSIONS_ADMISES: Exception[] = [
   {
+    fichier: "src/components/fenetre-lot.tsx", fonction: "FenetreLot", forme: "<OngletDocuments> sans estProprietaire", nombre: 1,
+    raison: "la fenêtre historique n'est plus rendue chez le propriétaire ; celui-ci utilise SuiviLotProprietaire qui transmet explicitement vrai",
+    preuve: ["src/components/fenetre-lot.tsx", "{ouvert && !estProprietaire && ("],
+  },
+  {
     fichier: "src/app/agence/[orgId]/alertes/liste-alertes.tsx", fonction: "ListeAlertes", forme: "<ModaleAlerte> sans racine", nombre: 1,
     raison: "`racine` n'y est imposée que HORS de l'espace (synthèse de connexion) ; dans l'espace, la fenêtre lit le contexte posé par le layout",
     preuve: ["src/app/agence/[orgId]/alertes/modale-alerte.tsx", "const racine = racineImposee ?? racineEspaceCourant;"],
@@ -394,6 +406,24 @@ function transmissionAdmise(nom: string, e: ts.Expression | null): boolean {
 
 /** Les transmissions admises hors de cette règle (forme exacte de l'attribut). */
 const TRANSMISSIONS_ADMISES: Exception[] = [
+  { fichier: "src/app/agence/[orgId]/baux/[bailId]/finaliser-parcours-bail.tsx", fonction: "FinaliserParcoursBail", forme: "<PointsManquantsFinalisation> racine={racine}", nombre: 1,
+    raison: "la racine vient du contexte de l’espace authentifié via useRacineEspace, sans transformation",
+    preuve: ["src/app/agence/[orgId]/baux/[bailId]/finaliser-parcours-bail.tsx", "racine = useRacineEspace()"] },
+  {
+    fichier: "src/components/actions-rapides-incident.tsx", fonction: "ActionsRapidesIncident", forme: "<FormulaireQualification> estProprietaire", nombre: 1,
+    raison: "actions rapides réservées au tableau de bord du propriétaire direct ; l'agence conserve sa fiche incident",
+    preuve: ["src/app/agence/[orgId]/page.tsx", "if (estProprietaire) {\n    return (\n      <AccueilProprietaire"],
+  },
+  {
+    fichier: "src/components/fenetre-lot.tsx", fonction: "SuiviLotProprietaire", forme: "<OngletDocuments> estProprietaire", nombre: 1,
+    raison: "outil de documents rendu uniquement dans la branche propriétaire de la fiche du lot",
+    preuve: ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx", 'estProprietaire ? <FicheContinue'],
+  },
+  {
+    fichier: "src/components/fenetre-lot.tsx", fonction: "SuiviLotProprietaire", forme: "<OngletComptabilite> estProprietaire", nombre: 1,
+    raison: "journal du lot placé dans suiviLot, contenu de la fiche continue réservé au propriétaire ; l'agence conserve sa rubrique Résumé",
+    preuve: ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx", 'estProprietaire ? <FicheContinue'],
+  },
   {
     fichier: "src/app/agence/[orgId]/accueil-proprietaire.tsx", fonction: "AccueilProprietaire", forme: "<ParcoursDemarrage> estProprietaire", nombre: 1,
     raison: "accueil servi au seul propriétaire direct : vrai en dur",
@@ -407,6 +437,26 @@ const TRANSMISSIONS_ADMISES: Exception[] = [
 ];
 
 describe("chaque parent transmet le drapeau ou la racine, tels que la garde les a lus", () => {
+  it("les composants réservés au propriétaire gardent exactement leurs appelants dédiés", () => {
+    const attendus = [
+      ["ActionsRapidesIncident", "src/app/agence/[orgId]/accueil-proprietaire.tsx", "listeDemandes", 1],
+      ["RappelsLoyersInteractifs", "src/components/rappels-loyers.tsx", "RappelsLoyers", 1],
+      ["SelecteurPatrimoine", "src/app/agence/[orgId]/layout.tsx", "LayoutAgence", 1],
+      ["SuiviLotProprietaire", "src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx", "PageLot", 3],
+      ["FenetreLot", "src/components/fenetre-lot.tsx", "FenetreLotProvider", 1],
+    ] as const;
+    for (const [balise, fichier, fonction, nombre] of attendus) {
+      const parents = rendus.filter(r => r.balise === balise).map(r => `${r.fichier} › ${fonctionEnglobante(r.el)}`);
+      expect(parents, balise).toEqual(Array.from({ length: nombre }, () => `${fichier} › ${fonction}`));
+    }
+    expect(rendus.filter(r => r.balise === "RappelsLoyers").map(r => `${r.fichier} › ${fonctionEnglobante(r.el)}`).sort()).toEqual([
+      "src/app/agence/[orgId]/accueil-proprietaire.tsx › AccueilProprietaire",
+      "src/app/agence/[orgId]/alertes/page.tsx › PageAlertes",
+    ]);
+    expect(lire("src/app/agence/[orgId]/alertes/page.tsx")).toContain("estProprietaire && !traverseeLectureSeule && verifications && <RappelsLoyers");
+    expect(lire("src/app/agence/[orgId]/layout.tsx")).toContain('.eq("role", "proprietaire_direct")');
+  });
+
   it("le balayage voit les composants concernés (garde-fou du test lui-même)", () => {
     const vus = [...composantsDuProfil.values()].flatMap((m) => [...m.keys()]);
     for (const nom of ["VoletArtisan", "ListeAlertes", "FenetreLotProvider", "FormulaireLoyers", "FormulaireCatalogue", "ConsultationOuverte", "FacturesIncident", "BarreBasse"]) {
@@ -492,6 +542,30 @@ describe("écrans : aucune adresse de gestion écrite en dur", () => {
     const admises: Exception[] = [{
       fichier: "src/app/agence/[orgId]/faq/page.tsx", fonction: "PageFaqProprietaire", forme: 'params.ecran ??= "/espace/[dossier]/faq"', nombre: 1,
       raison: "libellé d'écran de la FAQ, réservée au propriétaire direct", preuve: ["src/app/agence/[orgId]/faq/page.tsx", "if (!estProprietaire) notFound();"],
+    }, {
+      fichier: "src/components/bouton-assistance.tsx", fonction: "LienAssistance", forme: 'racine === "/espace"', nombre: 1,
+      raison: "comparaison avec la racine du contexte pour l'hydratation, et non adresse de destination imposée",
+      preuve: ["src/components/bouton-assistance.tsx", "const racine = useRacineEspace();"],
+    }, {
+      fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "RappelsLoyersInteractifs", forme: '`/espace/${orgId}/loyers`', nombre: 1,
+      raison: "rappel de réception réservé à l'accueil propriétaire, lien vers ses finances",
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+    }, {
+      fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "ReceptionLoyer", forme: '`/espace/${orgId}`', nombre: 1,
+      raison: "retour de préparation d'une relance dans le rappel de réception du seul accueil propriétaire",
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+    }, {
+      fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "ReceptionLoyer", forme: '`/espace/${orgId}/baux/${ligne.bail_id}#relances`', nombre: 1,
+      raison: "suivi de la relance du loyer présenté au seul propriétaire depuis son accueil",
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+    }, {
+      fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "PreparationRecommande", forme: '`/espace/${orgId}`', nombre: 1,
+      raison: "retour du PDF de recommandé vers le seul accueil propriétaire qui présente ce formulaire",
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+    }, {
+      fichier: "src/components/selecteur-patrimoine.tsx", fonction: "SelecteurPatrimoine", forme: '`/espace/${o.id}`', nombre: 1,
+      raison: "sélecteur propre au propriétaire ; le layout ne fournit que ses adhésions actives de propriétaire_direct",
+      preuve: ["src/app/agence/[orgId]/layout.tsx", "{estProprietaire && <SelecteurPatrimoine"],
     }];
     expect(confronter(occurrences, admises)).toEqual([]);
     exceptionsEncoreVraies(occurrences, admises);

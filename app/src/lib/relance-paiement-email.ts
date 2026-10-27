@@ -83,7 +83,8 @@ export function sujetRelance(r: Pick<RelancePaiement, "palier" | "joursRestants"
 /** R06 : la phrase de la mise en demeure, quand la base donne la date. */
 function miseEnDemeure(r: RelancePaiement, suite: string): string {
   return r.resiliableLe
-    ? `<p>Sans règlement au ${jour(r.resiliableLe)}, l'abonnement pourra être résilié en application de l'article 15.4
+    ? `<p>Sans règlement au ${jour(r.resiliableLe)}, et au plus tôt trente jours après l'envoi du présent courrier,
+        l'abonnement pourra être résilié en application de l'article 15.4
         des conditions générales${suite}</p>`
     : "";
 }

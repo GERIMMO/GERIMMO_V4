@@ -1,3 +1,4 @@
+import {selectionnerDemandes, type MotifReserve} from "./cadre-editorial";
 // Ce qui attend une décision du superviseur — UN calcul, lu par la barre haute,
 // le menu, l'accueil et le point du matin (audit 25/09, C6 : quatre compteurs,
 // trois valeurs).
@@ -27,6 +28,8 @@ export type DecisionsAttendues = {
   pointPrepare: boolean;
   /** Ce que les files d'origine attendent, une ligne par décision. */
   decisions: DecisionDeFile[];
+  /** Propositions conservées hors file principale, sans décision automatique. */
+  reserve: { decision: DecisionDeFile; motif: MotifReserve }[];
   /** Les rangs « hors équipes », chacun avec sa commande. */
   signaux: Signal[];
   /** Inscriptions d'artisans à valider ; null si la lecture a échoué. */
@@ -79,7 +82,12 @@ type Lecteur = ClientQuiLitLeJournal & {
   rpc: (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>;
 };
 
-const nombre = (r: Resultat) => (r.error ? null : r.count ?? 0);
+const nombre = (r: Resultat) => (r.error || typeof r.count !== "number" || !Number.isFinite(r.count) ? null : r.count);
+
+/** Un total partiel ne doit pas se présenter comme le nombre réel de décisions. */
+export function compteurDecisions(d: Pick<DecisionsAttendues, "total" | "indisponibles">): number | null {
+  return d.indisponibles.length ? null : d.total;
+}
 
 export async function chargerDecisionsAttendues(
   db: Lecteur,
@@ -106,16 +114,20 @@ export async function chargerDecisionsAttendues(
   const pointPrepare = !points.error && Array.isArray(points.data) && points.data.length > 0;
   // Les décisions, point préparé ou non : l'assemblage pur du point du matin,
   // sur les files d'origine lues à l'instant.
-  const decisions: DecisionDeFile[] = assemblerPoints({ passages: [], journaux: [], attentes: files.attentes, maintenant })
+  const toutes: DecisionDeFile[] = assemblerPoints({ passages: [], journaux: [], attentes: files.attentes, maintenant })
     .flatMap((p) => p.decisions.map((d) => ({ cle: d.cle, titre: d.titre, pourquoi: d.pourquoi, lien: d.lien, source: d.source as SourceDecision, source_id: d.source_id, equipe: p.equipe })));
+  const {decisions, reserve} = selectionnerDemandes(toutes);
   const nbArtisans = files.indisponibles.includes("artisans") ? null : files.attentes.artisans.length;
   if (sante.tachesIllisibles) indisponibles.push("l’historique des tâches");
+  for (const [nom, resultat] of [["les problèmes bloquants",bugsN1], ["les demandes commerciales",devis], ["les contestations",contestations], ["les alertes critiques",alertesCritiques]] as const) {
+    if (nombre(resultat) === null) indisponibles.push(nom);
+  }
   const signaux = signauxHorsEquipes(
     { bugsN1: nombre(bugsN1), devis: nombre(devis), contestations: nombre(contestations), alertesCritiques: nombre(alertesCritiques) },
     sante
   );
   return {
-    jour, pointPrepare, decisions, signaux, artisans: nbArtisans,
+    jour, pointPrepare, decisions, reserve, signaux, artisans: nbArtisans,
     santeBloquants: sante.bloquants, tachesIllisibles: sante.tachesIllisibles,
     total: totalDecisions({ decisions, signaux }), indisponibles,
   };

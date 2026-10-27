@@ -103,7 +103,7 @@ describe("le formulaire, tel que le serveur le rend", () => {
     expect(bouton?.[1]).toMatch(apostrophe("Rejoindre la liste d'attente"));
     // Plan de conformité du 23/10 (lot 4, constat R44) : réponses, opposition, trois ans après l'inscription, retrait dans le mois.
     expect(html).toMatch(apostrophe("Vos coordonnées servent uniquement à vous prévenir de l'ouverture de l'offre aux agences et à donner suite à vos réponses."));
-    expect(html).toMatch(apostrophe("Vous pouvez vous y opposer à tout moment, en répondant à l'un de nos messages ou en nous écrivant ; elles sont supprimées trois ans après votre inscription, ou dans le mois de votre demande de retrait"));
+    expect(html).toMatch(apostrophe("Vous pouvez vous y opposer à tout moment, en répondant à l'un de nos messages ou en nous écrivant ; elles sont supprimées au terme du délai indiqué dans notre politique, compté depuis votre inscription, ou dans le mois de votre demande de retrait"));
     expect(html).toMatch(/<a[^>]*href="\/confidentialite"[^>]*>politique de confidentialité<\/a>/);
     expect(html.indexOf("<button")).toBeLessThan(html.indexOf('href="/confidentialite"'));
   });

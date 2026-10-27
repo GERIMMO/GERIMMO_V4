@@ -119,8 +119,8 @@ export function detailsTraversee(demande: DemandeTrace, contexte: ContexteRequet
 }
 
 /**
- * Écrit la ligne d'audit d'une traversée. Un échec d'écriture ne bloque pas la page (comme avant),
- * mais il se lit dans le journal du serveur. Rend `false` si la ligne n'a pas pu être écrite.
+ * Écrit la ligne d’audit d’une traversée. Un échec se lit dans le journal serveur
+ * et rend `false` : les gardes de consultation doivent alors refuser de livrer les données.
  */
 export async function tracerTraversee(db: ClientQuiTrace, demande: DemandeTrace): Promise<boolean> {
   const contexte = await lireContexteRequete();

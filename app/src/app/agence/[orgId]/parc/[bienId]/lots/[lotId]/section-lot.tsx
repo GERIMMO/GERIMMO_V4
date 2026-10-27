@@ -1,7 +1,8 @@
 "use client";
 
-import { useContext, useEffect, useId, useState, type ReactNode } from "react";
+import { useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 
+import { flushSync } from "react-dom";
 import { RubriquesDirectes } from "@/components/rubrique-dossier";
 
 // Section pliable de la fiche : un résumé (replié) + le détail éditable.
@@ -42,11 +43,14 @@ export function SectionLot({
   const direct = useContext(RubriquesDirectes);
   const [ouvert, setOuvert] = useState(ouvertParDefaut);
   const idContenu = useId();
+  const section = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!id) return;
     const ouvrirSiCible = () => {
-      if (window.location.hash !== `#${id}`) return;
+      let cible: HTMLElement | null;
+      try { cible = document.getElementById(decodeURIComponent(window.location.hash.slice(1))); } catch { return; }
+      if (!cible || !section.current?.contains(cible)) return;
       setOuvert(true);
       const el = document.getElementById(id);
       el?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -55,13 +59,20 @@ export function SectionLot({
     window.addEventListener("hashchange", ouvrirSiCible);
     // Revenir à la même rubrique après l'avoir repliée ne change pas le hash.
     const ouvrirDepuisLien = (event: MouseEvent) => {
-      const cible = event.target instanceof Element ? event.target.closest("a") : null;
-      if (cible?.getAttribute("href") === `#${id}`) setOuvert(true);
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const lien = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!(lien instanceof HTMLAnchorElement)) return;
+      const url = new URL(lien.href);
+      if (url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search) return;
+      let cible: HTMLElement | null;
+      try { cible = document.getElementById(decodeURIComponent(url.hash.slice(1))); } catch { return; }
+      if (cible && section.current?.contains(cible)) setOuvert(true);
     };
-    document.addEventListener("click", ouvrirDepuisLien);
+    // Ouvrir avant que le routeur intercepte le lien sans émettre hashchange.
+    document.addEventListener("click", ouvrirDepuisLien, true);
     return () => {
       window.removeEventListener("hashchange", ouvrirSiCible);
-      document.removeEventListener("click", ouvrirDepuisLien);
+      document.removeEventListener("click", ouvrirDepuisLien, true);
     };
   }, [id]);
 
@@ -71,7 +82,7 @@ export function SectionLot({
   </section>;
 
   return (
-    <div id={id} className="scroll-mt-20 border-t border-border">
+    <div ref={section} id={id} className="scroll-mt-20 border-t border-border" onInvalidCapture={() => flushSync(() => setOuvert(true))}>
       <button
         type="button"
         onClick={() => setOuvert((o) => !o)}
@@ -112,11 +123,9 @@ export function SectionLot({
           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      {ouvert && (
-        <div id={idContenu} className="pb-4">
+      <div id={idContenu} hidden={!ouvert} className="pb-4">
           {children}
         </div>
-      )}
     </div>
   );
 }

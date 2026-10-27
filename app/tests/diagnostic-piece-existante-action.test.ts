@@ -166,6 +166,13 @@ describe("X07 : utiliser la pièce existante pour ce lot", () => {
     const r = await deposerDiagnostic(ORG, BIEN, null, {}, formulaire({ type: "erp", date_expiration: "2026-07-10", piece_existante: PIECE }));
     expect(r.erreur).toBeUndefined();
     expect(insertionsDiagnostic()[0].ligne).toMatchObject({ bien_id: BIEN, lot_id: null, type: "erp", document_id: PIECE });
+    for (const racine of ["agence", "espace"]) {
+      expect(banc.revalider).toHaveBeenCalledWith(`/${racine}/${ORG}/parc/${BIEN}`);
+      expect(banc.revalider).toHaveBeenCalledWith(`/${racine}/${ORG}/parc`);
+      expect(banc.revalider).toHaveBeenCalledWith(`/${racine}/${ORG}/documents`);
+      expect(banc.revalider).toHaveBeenCalledWith(`/${racine}/${ORG}/baux`, "layout");
+    }
+    expect(banc.revalider.mock.calls.some(([chemin]) => chemin.includes("/lots/"))).toBe(false);
   });
 
   it("filtre la pièce par organisation, type et pièce vivante", async () => {
@@ -276,5 +283,12 @@ describe("X07 : le dépôt d'un nouveau fichier reste inchangé", () => {
     expect(r.erreur).toBeUndefined();
     expect(banc.depot).toHaveBeenCalledTimes(1);
     expect(insertionsDiagnostic()[0].ligne).toMatchObject({ document_id: "00000000-0000-4000-8000-00000000d0c9", lot_id: LOT_B });
+    for (const racine of ["agence", "espace"]) {
+      expect(banc.revalider).toHaveBeenCalledWith(`/${racine}/${ORG}/parc/${BIEN}/lots/${LOT_B}`);
+      expect(banc.revalider).toHaveBeenCalledWith(`/${racine}/${ORG}/parc/${BIEN}`);
+      expect(banc.revalider).toHaveBeenCalledWith(`/${racine}/${ORG}/parc`);
+      expect(banc.revalider).toHaveBeenCalledWith(`/${racine}/${ORG}/documents`);
+      expect(banc.revalider).toHaveBeenCalledWith(`/${racine}/${ORG}/baux`, "layout");
+    }
   });
 });

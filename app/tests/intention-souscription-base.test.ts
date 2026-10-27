@@ -284,6 +284,8 @@ describe.skipIf(!url)("intentions de souscription : une seule en cours, droits r
   });
 
   it("rejouable ; le retour retire les fonctions et l'exclusion, garde l'historique ; la réapplication rétablit tout", async () => {
+    // Le lot cadeau étend ce verrou : son retour précède celui du socle.
+    await db.query(readFileSync("supabase/retours-arriere/20261025192344_mois_offerts_superadmin.retour.sql", "utf8"));
     const empreinte = async () => (await db.query(`select
         (select string_agg(p.proname||':'||md5(pg_get_functiondef(p.oid))||':'||coalesce(p.proacl::text,''),',' order by p.proname)
            from pg_proc p join pg_namespace n on n.oid=p.pronamespace
@@ -302,6 +304,9 @@ describe.skipIf(!url)("intentions de souscription : une seule en cours, droits r
     const avant = await empreinte();
     await db.query(migration);
     await db.query(migration);
+    // Les migrations ultérieures reposent la garde de traversée sur la table recréée.
+    // Le retour du socle supprime cette table : restaurer aussi cette protection actuelle.
+    await db.query("select public.poser_gardes_traversee()");
     expect(await empreinte()).toEqual(avant);
 
     await db.query(retour);
@@ -316,6 +321,9 @@ describe.skipIf(!url)("intentions de souscription : une seule en cours, droits r
     expect(await gardeOrigine()).toBe(origine);
 
     await db.query(migration);
+    // Les migrations ultérieures reposent la garde de traversée sur la table recréée.
+    // Le retour du socle supprime cette table : restaurer aussi cette protection actuelle.
+    await db.query("select public.poser_gardes_traversee()");
     expect(await empreinte()).toEqual(avant);
     await service();
     expect((await reserver()).reprise).toBe(false);

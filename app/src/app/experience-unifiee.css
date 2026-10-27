@@ -1,0 +1,40 @@
+/* Les espaces métier partagent le langage visuel propriétaire, jamais ses droits. */
+.experience-unifiee {
+  --filet: #dfe5eb; --trait: #dfe5eb; --texte-secondaire: #5e6c7d;
+  --muted-foreground: #5e6c7d; --ombre-portee: 0 3px 16px #172b4605;
+  background: #f4f6f8;
+}
+.experience-unifiee :is(.loc-corps,.admin-corps,.artisan-corps) { background: #f4f6f8; min-width: 0; }
+.experience-unifiee :is(.loc-late,.admin-late,[data-espace-menu]) {
+  background-color: #14263d;
+  background-image: linear-gradient(180deg,#14263d 0%,#14263df5 22%,#14263dc7 48%,#14263dd1 82%,#14263df5 100%),url('/illustrations/quartier-gerimmo-2026.jpg');
+  background-size: cover; background-position: center,68% center;
+}
+.experience-unifiee :is(.loc-haut,.admin-bandeau,[data-espace-entete]) { min-height: 72px; border-color: #dfe5eb; }
+.experience-unifiee h1 { font-size: clamp(26px,2.4vw,36px); line-height: 1.2; letter-spacing: -.03em; }
+.experience-unifiee :is(.entete-page,.entete-fiche) { margin-bottom: 18px; padding-bottom: 16px; gap: 14px; }
+.experience-unifiee :is(.loc-carte,[data-slot="card"],.dossier-panneau,.colonne-liste,.colonne-liste-split,.historique-carte) { background: #fff; border-color: #dfe5eb; border-radius: 14px; box-shadow: var(--ombre-portee); }
+.experience-unifiee :is(.barre-filtres,.recherche-personnes) { background: #fff; border-color: #dfe5eb; border-radius: 12px; }
+.experience-unifiee :is(.btn-or,.btn-secondaire,.bouton-gerimmo,[data-slot="button"]) { min-height: 44px; border-radius: 9px; font-weight: 600; }
+.experience-unifiee .btn-or { background: #d6bb83; color: #17283e; border-color: #c9ab6d; }
+.experience-unifiee .btn-or:hover { background: #e2c995; }
+.experience-unifiee :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]) { border-radius: 9px; }
+.experience-unifiee :is(.loc-carte,.dossier-panneau) { padding: 22px; }
+.experience-unifiee .rang { gap: 14px; padding: 14px 16px; }
+.experience-unifiee a.rang:hover { background: #f5f8fb; }
+.experience-unifiee .tete-liste { background: #f6f8fa; }
+.experience-unifiee details[open]>:not(summary) { animation: none; }
+.experience-unifiee :is(a,button,input,select,textarea,summary):focus-visible { outline: 3px solid #937036; outline-offset: 3px; }
+.experience-unifiee :is(.loc-late,.admin-late,[data-espace-menu]) :is(a,button):focus-visible { outline-color: #e4c995; }
+body:has(.experience-unifiee) :is([data-ui="modale"],.recherche-dialog) { --filet: #dfe5eb; --trait: #dfe5eb; --texte-secondaire: #4b5870; background: #fff; border-color: #dfe5eb; border-radius: 16px; }
+body:has(.experience-unifiee) [data-ui="modale-entete"] { padding: 20px 24px; background: #f8fafb; }
+body:has(.experience-unifiee) [data-ui="modale-corps"] { padding: 24px; }
+@media(min-width:1000px) { .experience-unifiee [data-aide-mobile] { display: none; } }
+@media(max-width:640px) {
+  .experience-unifiee :is(.loc-haut,.admin-bandeau,[data-espace-entete]) { min-height: 64px; }
+  .experience-unifiee h1 { font-size: 26px; }
+  .experience-unifiee :is(.loc-carte,.dossier-panneau) { padding: 16px; }
+  .experience-unifiee :is(.entete-page,.entete-fiche) { flex-wrap: wrap; gap: 12px; }
+  body:has(.experience-unifiee) :is([data-ui="modale-entete"],[data-ui="modale-corps"]) { padding: 16px; }
+}
+@media(prefers-reduced-motion:reduce) { .experience-unifiee *,.experience-unifiee *::before,.experience-unifiee *::after { animation: none!important; transition: none!important; scroll-behavior: auto!important; } }

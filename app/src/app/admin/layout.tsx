@@ -10,7 +10,7 @@ import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { RechercheSupervision } from "@/components/recherche-supervision";
-import { chargerDecisionsAttendues } from "@/lib/decisions-attendues";
+import { chargerDecisionsAttendues, compteurDecisions } from "@/lib/decisions-attendues";
 import { faitsManquants } from "@/lib/editeur";
 import { BandeauArretSupervision } from "@/components/bandeau-arret-supervision";
 import { ShieldCheck } from "lucide-react";
@@ -38,7 +38,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
 
   const identite=await lireEditeur();
   const [alertes, decisions, { data: utilisateur }, arrets, relais] = await Promise.all([
-    chargerSyntheseAlertes(supabase, { toutes: true }),
+    chargerSyntheseAlertes(supabase, { supervision: true }),
     chargerDecisionsAttendues(supabase, process.env, faitsManquants(identite.indisponible?{}:identite.editeur).length),
     supabase.auth.getUser(),
     // Audit du 13/10 (SA-04) : un arrêt d'urgence ou un relais en cours se voit sur toute la console. Lecture en échec : pas de bandeau.
@@ -46,8 +46,9 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
     supabase.from("supervision_vacances").select("fin").eq("etat", "actif"),
   ]);
   const courriel = utilisateur.user?.email ?? "";
-  // Lecture en échec : pas de pastille plutôt qu'un zéro affirmé.
-  const artisansEnAttente = decisions.artisans ?? 0;
+  // Une lecture indisponible reste visible comme « À vérifier », jamais comme zéro.
+  const artisansEnAttente = decisions.artisans;
+  const totalAffiche = compteurDecisions(decisions);
 
   return (
     <MenuSupervisionProvider>
@@ -55,7 +56,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           contenu et le corps prend le reste (24/09). */}
       {/* Ordinateur : colonne + corps. Téléphone : barre haute, puis le menu
           (seulement ouvert), puis le corps — un seul menu dans la page. */}
-      <div className={`admin-coquille ${styles.shell} min-[901px]:grid-rows-[auto_minmax(0,1fr)] max-[900px]:grid-rows-[auto_auto_minmax(0,1fr)]`}>
+      <div className={`admin-coquille experience-unifiee ${styles.shell} min-[901px]:grid-rows-[auto_minmax(0,1fr)] max-[900px]:grid-rows-[auto_auto_minmax(0,1fr)]`}>
         <PresenceSupervision />
         <header className="bandeau-appli admin-bandeau min-[901px]:col-start-2 min-[901px]:row-start-1 max-[900px]:row-start-1">
           <div className="admin-bandeau-interieur">
@@ -71,9 +72,10 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
               </Link>
               <BoutonMenuSupervision />
               <RechercheSupervision masquerSousMobile />
-              <Link href="/admin/brief?vue=decisions" className="lien-bandeau ml-auto" aria-label={decisions.total > 0 ? `${decisions.total} sujet${decisions.total > 1 ? "s" : ""} à traiter aujourd’hui` : "Aujourd’hui : aucun sujet à traiter"}>
-                <span className="max-[640px]:hidden">À traiter</span>
-                <span className={`puce ml-1.5 max-[640px]:ml-0 ${decisions.total > 0 ? "puce-prep" : "puce-grise"}`}>{decisions.total}</span>
+              <span className="ambiance-repere" aria-hidden="true" />
+              <Link href="/admin/brief?vue=decisions" className="lien-bandeau ml-auto">
+                <span className="max-[640px]:sr-only">À traiter</span>{" "}
+                <span className={`puce ml-1.5 max-[640px]:ml-0 ${totalAffiche === null || totalAffiche > 0 ? "puce-prep" : "puce-grise"}`}>{totalAffiche ?? "À vérifier"}</span>
               </Link>
               <SyntheseAlertes alertes={alertes} modeAdmin rappel aujourdhui={aujourdhuiParis()} />
               <MenuCompte
@@ -86,16 +88,17 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           </div>
         </header>
         <ColonneSupervision>
-          <Link href="/admin/brief" className="admin-marque max-[900px]:hidden!" aria-label="Accueil de la supervision">
+          <Link href="/admin/brief" className="admin-marque max-[900px]:hidden!">
             <MarqueGerimmo surEncre />
             <span className={styles.signature}>Pilotage de Gerimmo</span>
+            <span className="sr-only"> — accueil de la supervision</span>
           </Link>
           <nav className="admin-nav" aria-label="Navigation de la supervision">
-            <Suspense fallback={null}><NavAdmin artisansEnAttente={artisansEnAttente} decisions={decisions.total} /></Suspense>
+            <Suspense fallback={null}><NavAdmin artisansEnAttente={artisansEnAttente} decisions={totalAffiche} /></Suspense>
           </nav>
         </ColonneSupervision>
         <div className="admin-corps min-[901px]:col-start-2 min-[901px]:row-start-2 max-[900px]:row-start-3">
-          <Suspense fallback={null}><OngletsSupervision artisansEnAttente={artisansEnAttente} decisions={decisions.total} /></Suspense>
+          <Suspense fallback={null}><OngletsSupervision artisansEnAttente={artisansEnAttente} decisions={totalAffiche} /></Suspense>
           {/* Le bas de page passe au-dessus du bouton flottant « Aide et
               retours » (24/09) : sans cette réserve, la dernière ligne restait
               dessous. */}

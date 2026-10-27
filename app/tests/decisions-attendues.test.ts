@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { chargerDecisionsAttendues, signauxHorsEquipes, sourceAttendEncore, totalDecisions } from "../src/lib/decisions-attendues";
+import { chargerDecisionsAttendues, compteurDecisions, signauxHorsEquipes, sourceAttendEncore, totalDecisions } from "../src/lib/decisions-attendues";
 
 describe("ce qui attend une décision, en un chiffre", () => {
   it("compte chaque rang listé sous « À décider » : décisions des files et rangs hors équipes", () => {
@@ -20,14 +20,14 @@ describe("ce qui attend une décision, en un chiffre", () => {
 });
 
 // Un faux client : chaque table rend ses lignes, chaque compte son nombre.
-function client(tables: Record<string, unknown[]>, comptes: Record<string, number> = {}) {
+function client(tables: Record<string, unknown[]>, comptes: Record<string, number | null> = {}, indisponibles: string[] = []) {
   const chaine = (table: string) => {
     let compte = false;
     const c: Record<string, unknown> = {};
     for (const m of ["eq", "neq", "in", "is", "or", "not", "order", "limit", "like", "gte"]) c[m] = () => c;
     c.select = (_c: string, o?: { count?: string }) => { compte = Boolean(o?.count); return c; };
     c.maybeSingle = async () => ({ data: (tables[table] ?? [])[0] ?? null, error: null });
-    c.then = (ok: (r: unknown) => unknown) => Promise.resolve(compte ? { data: null, error: null, count: comptes[table] ?? 0 } : { data: tables[table] ?? [], error: null }).then(ok);
+    c.then = (ok: (r: unknown) => unknown) => Promise.resolve(indisponibles.includes(table) ? {data:null,error:{message:"source indisponible"}} : compte ? { data: null, error: null, count: Object.hasOwn(comptes,table) ? comptes[table] : 0 } : { data: tables[table] ?? [], error: null }).then(ok);
     return c;
   };
   return { from: vi.fn(chaine), rpc: vi.fn(async () => ({ data: [], error: null })) };
@@ -35,6 +35,20 @@ function client(tables: Record<string, unknown[]>, comptes: Record<string, numbe
 
 describe("chargerDecisionsAttendues", () => {
   const env = { CRON_SECRET: "x" };
+  it("une file éditoriale indisponible rend le compteur inconnu, même si les autres sont vides", async () => {
+    const d=await chargerDecisionsAttendues(client({}, {}, ["publications"]) as never,env,0);
+    expect(d.indisponibles).toContain('la file « publications »');
+    expect(compteurDecisions(d)).toBeNull();
+  });
+  it("un compte absent ou une panne de lecture ne vaut jamais zéro", async () => {
+    for(const db of [client({}, {alerts:null}),client({}, {}, ["alerts"])]) {
+      const d=await chargerDecisionsAttendues(db as never,env,0);
+      expect(d.indisponibles).toContain("les alertes critiques"); expect(compteurDecisions(d)).toBeNull();
+    }
+    expect(compteurDecisions({total:0,indisponibles:[]})).toBe(0);
+    expect(compteurDecisions({total:7,indisponibles:[]})).toBe(7);
+  });
+
   it("compte veille, articles, évolutions et idées SANS point préparé (audit console 27/09)", async () => {
     const db = client({
       points_du_matin: [],
@@ -47,6 +61,13 @@ describe("chargerDecisionsAttendues", () => {
     expect(d.pointPrepare).toBe(false);
     expect(d.decisions.map((x) => x.cle).sort()).toEqual(["developpement:d1", "publication:p1", "retour:r1", "veille:v1"]);
     expect(d.total).toBe(d.decisions.length + d.signaux.length);
+  });
+  it("le compteur commun exclut le hors-sujet et réserve les excédents sans perdre les sources",async()=>{
+    const db=client({regulatory_watch:[{id:"hors-sujet",titre:"AAH et ASS",source_nom:"SP",etude:null},...Array.from({length:7},(_,i)=>({id:`v${i}`,titre:`DPE des logements ${i}`,source_nom:"SP",etude:null}))]});
+    const d=await chargerDecisionsAttendues(db as never,env,0,new Date("2026-10-24T07:00:00Z"));
+    expect(d.decisions.filter(x=>x.source==="veille")).toHaveLength(5);
+    expect(d.reserve.map(x=>x.motif)).toEqual(["hors_perimetre","plafond","plafond"]);
+    expect(d.total).toBe(5+d.signaux.length);
   });
   it("ajoute les rangs hors équipes listés (demandes commerciales, alertes critiques)", async () => {
     const db = client({ points_du_matin: [{ id: "pt" }] }, { demandes_devis: 2, alerts: 1 });

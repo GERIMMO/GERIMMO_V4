@@ -1,3 +1,4 @@
+import {sujetDansPerimetre} from "./cadre-editorial";
 export const PUBLICS_VEILLE={artisan:'Artisans',bailleur:'Propriétaires bailleurs',agence:'Agences et agents immobiliers',locataire:'Locataires'} as const;
 // LES ONGLETS DE /veille SUIVENT LA V1 PUBLIQUE (décision D33, 14/10/2026).
 // « agence » reste une audience valide (étude, écran de validation, base) :
@@ -34,7 +35,7 @@ export function lireFluxVeille(xml:string,source:string){
  for(const bloc of xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/g)){
   const champ=(tag:string)=>texte(bloc[1].match(new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`))?.[1]??'');
   const titre=champ('title'),url=sourceVeille(champ('link')),date=champ('dc:date')||champ('pubDate');
-  if(!url||titre.length<5||titre.length>300||!/(logement|locat|bail|loyer|immobili|artisan|bâtiment|batiment|dpe|décennal|decennal|rénovat|renovat|factur|devis|tva|cotisation|micro.entrepr|copropri|rge\b)/i.test(titre+' '+champ('description')))continue;
+  if(!url||titre.length<5||titre.length>300||!sujetDansPerimetre(titre))continue;
   trouves.push({source_url:url,titre,source_nom:nomDeSource(url,source),publie_source_le:Number.isFinite(Date.parse(date))?new Date(date).toISOString():null});
  }
  return [...new Map(trouves.map(x=>[x.source_url,x])).values()];

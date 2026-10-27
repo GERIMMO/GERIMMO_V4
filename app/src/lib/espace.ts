@@ -37,12 +37,14 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
         .maybeSingle();
       if (org) {
         // RM-A1.11 : la traversée est autorisée mais tracée (journal d'audit).
-        // Un échec du log ne bloque pas la page. D08 (audit du 13/10, SA-01) :
+        // La consultation reste fermée si sa trace ne peut être enregistrée. D08 :
         // la ligne dit la page et l'objet ouverts et la décision d'accès ; une
         // même page rendue plusieurs fois dans la minute n'en écrit qu'une
         // (la base écarte la répétition). Une page chargée à l'avance par le
         // navigateur s'écrit comme une page ouverte (voir lib/traversee.ts).
-        await tracerTraversee(supabase, { orgId, nature: "espace", resultat: "autorise" });
+        if (!await tracerTraversee(supabase, { orgId, nature: "espace", resultat: "autorise" })) {
+          throw new Error("Consultation indisponible : le journal d’accès ne répond pas. Réessayez plus tard.");
+        }
         return {
           supabase,
           user,

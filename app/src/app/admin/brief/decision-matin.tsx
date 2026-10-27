@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { ChevronDown } from "lucide-react";
+import styles from "./file-decisions.module.css";
 import { deciderDecisionDuMatin, type EtatDecision } from "./actions";
 
 export type DecisionAffichee = {
@@ -13,7 +15,7 @@ const LIBELLES_STATUT: Record<string, string> = { en_attente: "En attente", vali
 
 // 25/09 : Valider agit en un clic ; Refuser demande un second clic avec un
 // motif (le refus est conservé et souvent communiqué à l'auteur).
-export function DecisionMatin({ decision }: { decision: DecisionAffichee }) {
+export function DecisionMatin({ decision, compacte = false }: { decision: DecisionAffichee; compacte?: boolean }) {
   const [etat, setEtat] = useState<EtatDecision>({});
   const [refusOuvert, setRefusOuvert] = useState(false);
   const [motif, setMotif] = useState("");
@@ -22,13 +24,12 @@ export function DecisionMatin({ decision }: { decision: DecisionAffichee }) {
   const tranchee = decision.statut !== "en_attente" || Boolean(etat.succes);
   const decider = (validee: boolean) => demarrer(async () => setEtat(await deciderDecisionDuMatin(decision.id, validee, motif, atteste)));
 
-  return (
-    <li className="loc-carte">
-      <div className="flex flex-wrap items-start justify-between gap-2">
+  const contenu = <>
+      {!compacte && <div className="flex flex-wrap items-start justify-between gap-2">
         <span className={`puce ${decision.lien?.includes("nature=bug")?"puce-rouge":"puce-prep"}`}>{decision.lien?.includes("nature=bug")?"Panne à examiner":"Demande d’accord"}</span>
         <h4 className="font-semibold text-[var(--encre)]">{decision.titre}</h4>
         <span className={`puce ${decision.statut === "validee" || etat.succes ? "puce-loue" : decision.statut === "refusee" ? "puce-rouge" : decision.statut === "sans_objet" ? "puce-grise" : "puce-prep"}`}>{etat.succes && decision.statut === "en_attente" ? "Décidée" : LIBELLES_STATUT[decision.statut] ?? decision.statut}</span>
-      </div>
+      </div>}
       <p className="mt-2 text-sm text-[var(--texte-secondaire)]">{decision.pourquoi}</p>
       {decision.options.length > 0 && <p className="mt-2 text-sm"><b>Options :</b> {decision.options.join(" · ")}</p>}
       {decision.recommandation && <p className="mt-1 text-sm"><b>Recommandation :</b> {decision.recommandation}</p>}
@@ -56,6 +57,9 @@ export function DecisionMatin({ decision }: { decision: DecisionAffichee }) {
       )}
       {etat.erreur && <p role="alert" className="err mt-2">{etat.erreur}</p>}
       {etat.succes && <p role="status" className="mt-2 text-sm text-[var(--success)]">{etat.succes}</p>}
-    </li>
-  );
+  </>;
+  return compacte ? <li><details className={styles.row}>
+    <summary><span>{decision.titre}</span><ChevronDown size={18} aria-hidden="true" /></summary>
+    <div className={styles.detail}>{contenu}</div>
+  </details></li> : <li className="loc-carte">{contenu}</li>;
 }

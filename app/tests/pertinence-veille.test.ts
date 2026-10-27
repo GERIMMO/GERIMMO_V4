@@ -41,8 +41,8 @@ describe("evaluerPertinence", () => {
     expect(evaluerPertinence({ titre: "Financement du CPF : évolution du montant de la participation", publics: ["artisan"] }, MOTS).pertinent).toBe(false);
     expect(evaluerPertinence({ titre: "Artisans : aide au carburant pour les entreprises du bâtiment", publics: ["artisan"] }, MOTS).pertinent).toBe(false);
   });
-  it("lit le résumé, pas seulement le titre, et ignore accents et pluriels", () => {
-    expect(evaluerPertinence({ titre: "Ce qui change au 1er octobre", resume: "Les LOYERS des logements sociaux…", publics: [] }, MOTS).pertinent).toBe(true);
+  it("ne laisse plus un résumé IA requalifier un titre générique, et ignore accents et pluriels", () => {
+    expect(evaluerPertinence({ titre: "Ce qui change au 1er octobre", resume: "Les LOYERS des logements sociaux…", publics: [] }, MOTS).pertinent).toBe(false);
     expect(motsTrouves("Credit immobilier : les plafonds du taux d’usure", MOTS.inclus)).toEqual(["crédit immobilier", "taux d'usure"]);
     expect(normaliserTexte("  Trêve  HIVERNALE ")).toBe("treve hivernale");
   });

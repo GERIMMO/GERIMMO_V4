@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { pageErreurFichier } from "@/lib/page-erreur-fichier";
 import { verifierGerant } from "@/lib/ged-acces";
+import { lirePresentationSignatures } from "@/lib/lecture-presentation-signatures";
+import { etatSignatureDocument } from "@/lib/presentation-signatures";
 import { servirFichierSigne } from "@/lib/fichier-signe";
 
 // Droits et trace vérifiés avant la création du lien de lecture temporaire.
@@ -26,7 +28,7 @@ export async function GET(
 
   const { data: doc, error: erreurDoc } = await supabase
     .from("documents")
-    .select("storage_path, titre, mime_type, purged_at")
+    .select("storage_path, titre, mime_type, purged_at, type")
     .eq("id", documentId)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -64,6 +66,12 @@ export async function GET(
     );
   }
 
+  let libelle: string | undefined;
+  if (doc.type === "bail") {
+    const suivi = await lirePresentationSignatures(orgId, { documents: [documentId] });
+    if (!suivi.erreur && etatSignatureDocument(suivi.circuits, documentId) === "signe") libelle = "Bail signé";
+  }
   return servirFichierSigne(supabase, { path: doc.storage_path, mime: doc.mime_type,
-    titre: doc.titre, mode, apercuImage: request.nextUrl.searchParams.get("apercu") === "image", retour: "depuis votre dossier Documents" });
+    titre: doc.titre, libelle, mode, apercuImage: request.nextUrl.searchParams.get("apercu") === "image",
+    apercuIntegre: request.nextUrl.searchParams.get("apercu") === "integre", retour: "depuis votre dossier Documents" });
 }

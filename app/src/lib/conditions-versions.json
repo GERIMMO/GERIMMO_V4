@@ -5,15 +5,17 @@
       "nature": "substantielle",
       "resume_modifications": "Essai gratuit porté de 14 jours à 2 mois pour toute inscription jusqu’au 31/12/2026 (offre de lancement), 1 mois ensuite (article 8.2).",
       "empreinte_reference": "019ebf78116284cd3c919d4711dd909657d9aa548c2937137bbdb0e90d79e253",
-      "empreintes_precedentes": ["1c777ae4671f6b7896dbf40edb61a0d66a2298d5a9fdea030e7272bca67e6ad5"],
+      "empreintes_precedentes": [
+        "1c777ae4671f6b7896dbf40edb61a0d66a2298d5a9fdea030e7272bca67e6ad5"
+      ],
       "note": "24/10/2026, relecture adverse du socle (I3) : la garde rend désormais la page sous cinq identités fictives (médiateur désigné ou non, coordonnées du médiateur manquantes, adresse de contact seule, identité vide) au lieu d’une seule. Le texte n’a pas changé : le rendu sans médiateur garde l’empreinte précédente (1c777ae4…), seule la couverture de la garde s’étend."
     },
     "2026-10-24": {
       "date_effet": "2026-10-24",
       "nature": "substantielle",
       "resume_modifications": "Offre réservée aux propriétaires qui gèrent leurs propres biens ; les artisans ont leurs propres conditions. Rétractation de 14 jours ouverte à toutes les formules, en ligne avec le bouton « Renoncer au contrat ici », remboursement intégral (article 8.10). Résiliation en ligne avec accusé de réception (article 8.6). Impayé : courrier le jour de l’échec, qui vaut mise en demeure, lecture seule à J+15 (dès l’échec pour le premier prélèvement), résiliation possible au plus tôt à J+30, rien n’est supprimé du fait de l’impayé (article 15). Garanties légales de conformité et des vices cachés (article 14 bis). Signature électronique décrite, cautionnement et état des lieux compris (article 4.7). Archive complète de l’espace pour son titulaire ; compte supprimé après 24 mois sans connexion ni abonnement, après deux avertissements ; factures gardées au moins six ans, preuve du contrat dix ans (article 9). Hausse de prix ou changement essentiel soumis à votre accord exprès (articles 8.9 et 16). Aucun plafond de responsabilité opposé au consommateur (article 14). Réclamation depuis « Aide et retours » ; médiateur de la consommation (article 17). Annexe sur les données complétée ; articles L. 215-1 à L. 215-3 et L. 241-3 du code de la consommation reproduits (annexe 2).",
-      "empreinte_reference": "f16c4a946d09f8e2d39efaebcefaa598d3b170c53010dedfd709bac7d7de31c9",
-      "note": "Publiée le 24/10/2026 avec le code qui la rend vraie (PR #246). Empreinte de garde (cinq identités fictives et liste figée des sous-traitants de l’annexe 1) relevée à l’intégration des textes du 24/10, après l’alignement sur le code livré (archive complète à l’article 9, « Faire une réclamation » à l’article 17, formule de l’état des lieux). Les empreintes relevées sur les branches de rédaction n’ont jamais été publiées ni archivées."
+      "empreinte_reference": "1ab6c3361f1e8e3e30afdfdd280210eb26f985c6771c93b5b0a1f652d4805fed",
+      "note": "Publiée le 24/10/2026 avec le code qui la rend vraie (PR #246). Empreinte de garde (cinq identités fictives et liste figée des sous-traitants de l’annexe 1) relevée à l’intégration des textes du 24/10, après l’alignement sur le code livré (archive complète à l’article 9, « Faire une réclamation » à l’article 17, formule de l’état des lieux). Les empreintes relevées sur les branches de rédaction n’ont jamais été publiées ni archivées. Relecture Codex du 24/10 avant première publication : modèle officiel de rétractation reproduit, arrêt technique du circuit distingué de sa portée juridique, accès aux données et préavis artisans explicités ; sources officielles consignées au wiki. Nouvelle empreinte de travail, aucune version publiée ou archivée remplacée."
     }
   },
   "conditions_artisans": {
@@ -21,8 +23,8 @@
       "date_effet": "2026-10-24",
       "nature": "substantielle",
       "resume_modifications": "Première version des conditions de l’espace artisan, distinctes des conditions des propriétaires : espace gratuit et sans commission, inscription et validation, visibilité, paramètres de classement (note prise en compte à partir de trois évaluations), évaluations et contestation, restriction et exclusion motivées, annexe sur les données des clients externes.",
-      "empreinte_reference": "af87c602842c6fd34730967840fd6c8624469d1e56394e9ed15d5edd1065a09b",
-      "note": "Publiée le 24/10/2026, le même jour que la V1 des conditions clients. Empreinte de garde (cinq identités fictives, comme les conditions clients) relevée à l’intégration des textes du 24/10 ; « Faire une réclamation » à l’article A14. Les empreintes relevées sur la branche de rédaction n’ont jamais été publiées ni archivées."
+      "empreinte_reference": "bc389b628b58a81be76f1991899b8a89b686c6711a00230e07b888dd425644cd",
+      "note": "Publiée le 24/10/2026, le même jour que la V1 des conditions clients. Empreinte de garde (cinq identités fictives, comme les conditions clients) relevée à l’intégration des textes du 24/10 ; « Faire une réclamation » à l’article A14. Les empreintes relevées sur la branche de rédaction n’ont jamais été publiées ni archivées. Relecture Codex du 24/10 avant première publication : modèle officiel de rétractation reproduit, arrêt technique du circuit distingué de sa portée juridique, accès aux données et préavis artisans explicités ; sources officielles consignées au wiki. Nouvelle empreinte de travail, aucune version publiée ou archivée remplacée."
     }
   }
 }

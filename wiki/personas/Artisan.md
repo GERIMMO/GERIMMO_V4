@@ -297,3 +297,9 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
 > - **Brouillons de devis** : ils partent avec la sollicitation effacée d'un propriétaire qui
 >   ferme (choix délégué n° 4 du 24/10) ; une copie chez l'artisan reste une option.
 
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
+
+P2B : les conditions A9/A12 ont été complétées pour l’accès aux données, leur sort après fermeture, les préavis étendus et l’absence de modification rétroactive défavorable.

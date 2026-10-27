@@ -1,3 +1,6 @@
+import { randomUUID } from "node:crypto";
+import { OffrirMoisAbonnement } from "@/components/offrir-mois-abonnement";
+import { ConsoleSection } from "@/components/console-section";
 import { LectureIndisponible } from "../../lecture-indisponible";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
@@ -11,6 +14,7 @@ import { GesteControle } from "@/components/geste-controle";
 import { controlerCompte } from "@/app/actions/controle-supervision";
 import { baseEspace } from "@/lib/racine-espace";
 
+export const maxDuration = 180;
 export const metadata = { title: "Fiche d’un compte" };
 
 /**
@@ -105,6 +109,14 @@ export default async function PageCompte({ params }: { params: Promise<{ account
   const gestesSurLeCompte = (gestesLus.data ?? []) as unknown as LigneAudit[];
   const tech = (techLu.data ?? []) as unknown as LigneTech[];
 
+  const espacesCadeau = Array.from(new Map(adhesions
+    .filter(a => a.status === "active" && ["proprietaire_direct", "admin_agence"].includes(a.role))
+    .flatMap(a => { const o = un(a.organisation); return o ? [[o.id, { id: o.id, nom: o.name }] as const] : []; })).values());
+  const cadeaux = (await Promise.all(espacesCadeau.map(async o => {
+    const { data, error } = await supabase.rpc("lire_mois_offerts", { p_org: o.id });
+    return { espace: o, data: error ? null : data as { id: string; compte: string; mois: number; motif: string; nature: string; fin: string | null; montant_cents: number; applique_le: string | null }[] };
+  })));
+
   const bloque = dossier.bloque_jusqu_au && new Date(dossier.bloque_jusqu_au) > new Date();
   const etat: [string, string][] = [
     ["Compte créé le", formaterDateHeureParis(dossier.cree_le)],
@@ -116,7 +128,7 @@ export default async function PageCompte({ params }: { params: Promise<{ account
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-      <Link href="/admin/clients" className="lien-discret text-sm">← Agences, bailleurs et artisans</Link>
+      <Link href="/admin/clients" className="lien-discret text-sm">← Utilisateurs</Link>
 
       <div className="entete-page mt-2 mb-6">
         <div className="min-w-0">
@@ -128,25 +140,37 @@ export default async function PageCompte({ params }: { params: Promise<{ account
       </div>
 
       <p className="mesure-lecture mb-6 text-sm text-[var(--texte-secondaire)]">
-        Vous lisez ce que la base sait de ce compte, avec vos propres droits. Entrer dans un de ses
-        espaces se fait aussi avec votre identité : la traversée et chaque geste sont inscrits au
-        journal d’audit à votre nom.
+        Les consultations et actions réalisées dans les espaces restent enregistrées à votre nom.
       </p>
 
-      <section className="loc-carte">
-        <div className="entete-carte"><h2>État du compte</h2></div>
+      <ConsoleSection titre="État du compte" description="Connexion, identité et protection du compte." icone="personnes" ouverte>
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
           {etat.map(([l, v]) => (
             <div key={l}><dt className="libelle-champ">{l}</dt><dd className="text-sm">{v}</dd></div>
           ))}
         </dl>
-      </section>
+      </ConsoleSection>
+
+      {!dossier.est_super_admin && !adhesionsLues.error && (
+        <ConsoleSection titre="Offrir des mois d’abonnement" description="Un cadeau ou un geste commercial après un problème." icone="personnes" ouverte>
+          {cadeaux.some(c => c.data === null) ? <LectureIndisponible sujet="Mois offerts" retour={retour}/> : espacesCadeau.length > 0 ? <>
+            {cadeaux.flatMap(c => (c.data ?? []).filter(g => !g.applique_le)).length ? cadeaux.flatMap(c => (c.data ?? []).filter(g => !g.applique_le).map(g => (
+              <div key={g.id}><p className="mb-3 text-sm">Un cadeau attend sa transmission pour {c.espace.nom}. Reprenez-le pour éviter un doublon.</p>
+                <OffrirMoisAbonnement confirmationId={g.id} compte={g.compte} espaces={[c.espace]} reprise={{ id:g.id, mois:g.mois, motif:g.motif, montant_cents:g.montant_cents, organisation:c.espace.id }}/>
+              </div>
+            ))) : <OffrirMoisAbonnement confirmationId={randomUUID()} compte={accountId} espaces={espacesCadeau}/>}
+            <ul className="mt-4 space-y-2 text-sm">{cadeaux.flatMap(c => (c.data ?? []).filter(g => g.applique_le).slice(0,10).map(g => <li key={g.id}>
+              {c.espace.nom} · {g.mois} mois offerts · {g.nature === "acces" ? `Accès jusqu’au ${g.fin?.split("-").reverse().join("/")}` : `${(g.montant_cents/100).toFixed(2)} € crédités sur les prochaines factures`}
+            </li>))}</ul>
+          </> : <p className="text-sm text-[var(--texte-secondaire)]">Cet utilisateur n’a pas encore d’espace propriétaire ou agence. Ouvrez son espace avant de lui offrir des mois ; les espaces locataires et artisans sont gratuits.</p>}
+
+        </ConsoleSection>
+      )}
 
       {/* Les gestes de contrôle (audit console 27/09, majeur 8) : faits au nom
           du superviseur par l'API d'administration, jamais en se connectant
           comme ce compte ; chacun est confirmé et journalisé. */}
-      <section className="loc-carte mt-4">
-        <div className="entete-carte"><h2>Contrôle du compte</h2></div>
+      <ConsoleSection titre="Contrôler l’accès" description="Blocage et second facteur, avec confirmation." icone="securite" ton="ambre" ouverte={Boolean(bloque)}>
         {dossier.est_super_admin ? (
           <p className="text-sm text-[var(--texte-secondaire)]">Un compte de supervision ne se bloque pas depuis la console : le relais en votre absence règle ce cas.</p>
         ) : (
@@ -172,10 +196,10 @@ export default async function PageCompte({ params }: { params: Promise<{ account
             ))}
           </ol>
         )}
-      </section>
+      </ConsoleSection>
 
-      <section className="loc-carte mt-4">
-        <div className="entete-carte"><h2>Rôles et espaces</h2><span className="puce puce-grise">{adhesionsLues.error ? "—" : adhesions.length}</span></div>
+      <ConsoleSection titre="Rôles et espaces" description="Retrouver les dossiers et les accès rattachés." icone="personnes" ton="vert" ouverte statut={adhesionsLues.error || personnesLues.error ? "Lecture indisponible" : `${adhesions.length} rôles`}>
+        <div className="entete-carte"><span className="puce puce-grise">{adhesionsLues.error ? "—" : adhesions.length}</span></div>
         {adhesionsLues.error || personnesLues.error ? <LectureIndisponible sujet="Rôles et dossiers rattachés" retour={retour} /> : adhesions.length === 0 && !dossier.artisan_id ? (
           <p className="text-sm text-[var(--texte-secondaire)]">Aucun rôle : ce compte n’a accès à aucun espace.</p>
         ) : (
@@ -212,10 +236,10 @@ export default async function PageCompte({ params }: { params: Promise<{ account
             )}
           </ul>
         )}
-      </section>
+      </ConsoleSection>
 
-      <section className="loc-carte mt-4">
-        <div className="entete-carte"><h2>Journal d’audit de ce compte</h2><span className="puce puce-grise">{auditLu.error ? "—" : `${audit.length}${audit.length === 60 ? " derniers" : ""}`}</span></div>
+      <ConsoleSection titre="Actions sur ce compte" description="Journal des actions sensibles." icone="historique" statut={auditLu.error ? "Lecture indisponible" : undefined}>
+        <div className="entete-carte"><span className="puce puce-grise">{auditLu.error ? "—" : `${audit.length}${audit.length === 60 ? " derniers" : ""}`}</span></div>
         {auditLu.error ? (
           <LectureIndisponible sujet="Journal d’audit" retour={retour} />
         ) : audit.length === 0 ? (
@@ -236,10 +260,10 @@ export default async function PageCompte({ params }: { params: Promise<{ account
           </ol>
         )}
         <p className="mt-3 text-sm"><Link href="/admin/journaux" className="lien-discret">Tous les journaux, avec filtres →</Link></p>
-      </section>
+      </ConsoleSection>
 
-      <section className="loc-carte mt-4">
-        <div className="entete-carte"><h2>Journal technique</h2><span className="puce puce-grise">{techLu.error ? "—" : `${tech.length}${tech.length === 40 ? " derniers" : ""}`}</span></div>
+      <ConsoleSection titre="Événements techniques" description="Éléments utiles pour rechercher un problème." icone="sante" statut={techLu.error ? "Lecture indisponible" : undefined}>
+        <div className="entete-carte"><span className="puce puce-grise">{techLu.error ? "—" : `${tech.length}${tech.length === 40 ? " derniers" : ""}`}</span></div>
         {techLu.error ? <LectureIndisponible sujet="Journal technique" retour={retour} /> : tech.length === 0 ? (
           <p className="text-sm text-[var(--texte-secondaire)]">Aucun événement technique rattaché à ce compte.</p>
         ) : (
@@ -255,7 +279,7 @@ export default async function PageCompte({ params }: { params: Promise<{ account
             })}
           </ol>
         )}
-      </section>
+      </ConsoleSection>
     </main>
   );
 }

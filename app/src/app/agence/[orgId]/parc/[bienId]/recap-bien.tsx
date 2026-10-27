@@ -10,13 +10,15 @@ import { FormulaireBien, type BienFormulaire } from "../formulaire-bien";
 export function RecapBien({
   orgId,
   bien,
+  lectureSeule = false,
 }: {
   orgId: string;
   bien: BienFormulaire;
+  lectureSeule?: boolean;
 }) {
   const [modifier, setModifier] = useState(false);
 
-  if (modifier) {
+  if (modifier && !lectureSeule) {
     return (
       <div className="space-y-3">
         <FormulaireBien orgId={orgId} bien={bien} />
@@ -49,9 +51,9 @@ export function RecapBien({
   return (
     <div className="space-y-3">
       <dl className="grid gap-3 sm:grid-cols-3">{faits.map(f => <div key={f.libelle} className="rounded-lg bg-muted/50 px-3 py-2.5"><dt className="text-xs text-muted-foreground">{f.libelle}</dt><dd className="mt-1 text-sm font-semibold">{f.valeur ?? "Non renseignée"}</dd></div>)}</dl>
-      <Button variant="outline" size="sm" onClick={() => setModifier(true)}>
+      {!lectureSeule && <Button variant="outline" size="sm" onClick={() => setModifier(true)}>
         Modifier le bien
-      </Button>
+      </Button>}
     </div>
   );
 }

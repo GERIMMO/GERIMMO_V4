@@ -343,7 +343,9 @@ export default async function PageConditions() {
           expire au plus tard trente jours après la préparation du document ou,
           pour un devis, à la fin de sa validité ; la date d&apos;expiration est
           affichée avant l&apos;envoi. Un circuit refusé, expiré ou annulé
-          n&apos;engage aucun signataire.
+          n&apos;est pas présenté par Gerimmo comme un document signé par toutes
+          les parties. Son arrêt ne tranche pas la portée juridique des
+          engagements éventuellement déjà pris entre elles.
         </p>
         <p>
           Il s&apos;agit d&apos;une{" "}
@@ -360,7 +362,7 @@ export default async function PageConditions() {
         <p>
           Avant chaque envoi, le Client relit le document et vérifie
           l&apos;identité de chaque signataire, l&apos;ordre de signature, ainsi
-          que l&apos;adresse électronique et, sauf pour la caution, le numéro de
+          que l&apos;adresse électronique et, sauf pour la caution ou le garant, le numéro de
           téléphone saisis, qui doivent être personnels au signataire. Le Client
           ne signe jamais à la place d&apos;un tiers et ne saisit jamais ses
           propres coordonnées, ni celles d&apos;une autre personne, pour un
@@ -665,9 +667,8 @@ export default async function PageConditions() {
           la première échéance annuelle. La période d&apos;essai gratuite ne
           réduit pas le délai.
         </p>
-        {/* Modèle de formulaire annexé à l'article R. 221-1 du code de la consommation (peut-être modifié par le décret
-            n° 2026-3), adapté au service : à recomparer mot pour mot sur Légifrance avant publication (source non ouverte
-            le 23/10/2026). */}
+        {/* Annexe à R. 221-1, comparée sur Légifrance le 24/10/2026 (LEGIARTI000045418600).
+            Conserver le modèle officiel, y compris les choix à rayer ; même texte dans courriers-contrat.ts. */}
         <div className="rounded-lg border border-[var(--filet)] p-4 text-[13px]">
           <p className="font-semibold">Formulaire de rétractation</p>
           <p className="mt-2">
@@ -681,15 +682,16 @@ export default async function PageConditions() {
             <Fait valeur={EDITEUR.email} quoi="adresse de contact" /> :
           </p>
           <p className="mt-2">
-            Je vous notifie par la présente ma rétractation du contrat portant
-            sur la prestation de services ci-dessous : abonnement Gerimmo
-            (formule et organisation concernées).
+            Je/nous (*) vous notifie/notifions (*) par la présente ma/notre (*)
+            rétractation du contrat portant sur la vente du bien (*)/pour la
+            prestation de services (*) ci-dessous :
           </p>
-          <p className="mt-2">Commandé le :</p>
-          <p>Nom du consommateur :</p>
-          <p>Adresse du consommateur :</p>
-          <p>Signature du consommateur (uniquement en cas de notification sur papier) :</p>
+          <p className="mt-2">Commandé le (*)/reçu le (*) :</p>
+          <p>Nom du (des) consommateur(s) :</p>
+          <p>Adresse du (des) consommateur(s) :</p>
+          <p>Signature du (des) consommateur(s) (uniquement en cas de notification du présent formulaire sur papier) :</p>
           <p>Date :</p>
+          <p>(*) Rayez la mention inutile.</p>
         </div>
         <p>
           <b className="font-semibold">8.11 — Parrainage.</b> Chaque
@@ -1213,11 +1215,8 @@ export default async function PageConditions() {
         </ul>
       </Article>
 
-      {/* V1 (plan du 23/10, R18 : art. L. 215-4 du code de la consommation). Texte d'une copie non officielle de la base
-          LEGI datée du 25/02/2026 : à recomparer mot pour mot sur Légifrance avant publication (source non ouverte le
-          23/10/2026). La date du titre (« version en vigueur au 25 février 2026 ») est celle de cette copie : la
-          reposer à la date de la recomparaison. */}
-      <Article titre="Annexe 2 — Articles L. 215-1 à L. 215-3 et L. 241-3 du code de la consommation (version en vigueur au 25 février 2026)">
+      {/* V1, R18 : reproduction comparée sur Légifrance le 24/10/2026 ; sources consignées dans la relecture. */}
+      <Article titre="Annexe 2 — Articles L. 215-1 à L. 215-3 et L. 241-3 du code de la consommation (version vérifiée le 24 octobre 2026)">
         <p>
           <b className="font-semibold">Article L. 215-1.</b> Pour les contrats
           de prestations de services conclus pour une durée déterminée avec une

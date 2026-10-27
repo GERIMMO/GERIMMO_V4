@@ -27,7 +27,7 @@ import type { PieceArtisan } from "@/app/artisan/acces";
  * missions.
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   ctx: RouteContext<"/artisan/attestations/[pieceId]/fichier">
 ) {
   const { pieceId } = await ctx.params;
@@ -72,6 +72,11 @@ export async function GET(
   const mime = (Object.entries(EXTENSIONS) as [MimeAccepte, string][]).find(
     ([, ext]) => ext === extension
   )?.[0];
-  return servirFichierSigne(supabase, {path:piece.storage_path,mime,titre:piece.type,
-    retour:"depuis Mes attestations"});
+  const parametres = new URL(request.url).searchParams;
+  return servirFichierSigne(supabase, {
+    path: piece.storage_path, mime, titre: piece.type,
+    mode: parametres.get("mode") === "telechargement" ? "telechargement" : "consultation",
+    apercuIntegre: parametres.get("apercu") === "integre",
+    retour: "depuis Mes attestations",
+  });
 }

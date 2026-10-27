@@ -9,7 +9,7 @@
  * charger ce que le produit utilise réellement (Supabase, PDF en cadre, images).
  */
 import { describe, expect, it } from "vitest";
-import { ENTETES_SECURITE, politiqueDeSecurite } from "../next.config";
+import configuration, { ENTETES_SECURITE, politiqueDeSecurite } from "../next.config";
 
 function directives(csp: string): Record<string, string[]> {
   return Object.fromEntries(
@@ -63,6 +63,19 @@ describe("politique de sécurité du contenu", () => {
     process.env.VERCEL = "1";
     expect(politiqueDeSecurite()).toContain("upgrade-insecure-requests");
     if (vercel === undefined) delete process.env.VERCEL; else process.env.VERCEL = vercel;
+  });
+
+  it("réserve WebAssembly au worker PDF local, sans élargir les scripts des pages", async () => {
+    expect(csp["script-src"]).not.toContain("'wasm-unsafe-eval'");
+    const regles = await configuration.headers!();
+    const regle = regles.find(r => r.source === "/pdfjs/:version/pdf.worker.min.mjs");
+    const valeur = regle?.headers.find(h => h.key === "Content-Security-Policy")?.value;
+    expect(valeur).toBeTruthy();
+    const worker = directives(valeur!);
+    expect(worker["script-src"]).toEqual(["'self'", "'wasm-unsafe-eval'"]);
+    expect(worker["connect-src"]).toEqual(["'self'"]);
+    expect(worker["worker-src"]).toEqual(["'none'"]);
+    expect(worker["script-src"]).not.toContain("'unsafe-eval'");
   });
 });
 

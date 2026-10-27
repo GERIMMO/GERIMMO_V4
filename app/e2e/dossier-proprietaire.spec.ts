@@ -16,32 +16,38 @@ for (const largeur of [390, 1440]) {
   test(`propriétaire : repères et rubriques accessibles à ${largeur}px`, async ({ page }) => {
     await page.setViewportSize({ width: largeur, height: 1000 });
     await page.goto(`/espace/${ORG}/parc`);
-    await page.getByRole('button', { name: /Appartement T2/ }).first().click();
-    await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).click();
-    await expect(page.getByRole('navigation', { name: 'Rubriques du logement' })).toHaveCount(0);
-    await expect(page.getByRole('heading', { name: 'Caractéristiques du logement' })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Contrats de location', exact: true })).toBeVisible();
-    await expect(page.getByRole('region', { name: 'Documents du logement', exact: true })).toBeVisible();
-    const rubrique = page.locator('#pieces');
-    const ouvrir = rubrique.getByRole('button', { name: /Pièces \(état des lieux\)/ });
+    await page.locator('a[data-lot-id]').filter({ hasText: 'Appartement T2' }).first().click();
+    await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByRole('tablist')).toHaveCount(0);
+    for (const nom of ['Le logement', 'Le bâtiment', 'Locataires & garants', 'Le bail', 'Incidents', 'Propriétaires']) {
+      await expect(page.getByRole('heading', { name: nom, exact: true })).toBeVisible();
+    }
+    const documents = page.locator('details#documents-lot');
+    await expect(documents).not.toHaveAttribute('open', '');
+    await documents.locator(':scope > summary').click();
+    await expect(documents.getByRole('link', { name: 'Ouvrir la bibliothèque', exact: true })).toBeVisible();
+    const rubrique = page.locator('details#pieces');
+    const ouvrir = rubrique.locator(':scope > summary');
     await ouvrir.click();
-    await expect(ouvrir).toHaveAttribute('aria-expanded', 'true');
+    await expect(rubrique).toHaveAttribute('open', '');
     await ouvrir.click();
-    await expect(ouvrir).toHaveAttribute('aria-expanded', 'false');
-    // Un lien direct ouvre encore la bonne rubrique, sans onglet intermédiaire.
+    await expect(rubrique).not.toHaveAttribute('open', '');
+    // Le lien direct ouvre l'éditeur des pièces dans la fiche continue.
     await page.goto(page.url().split('#')[0] + '#pieces');
-    await expect(ouvrir).toHaveAttribute('aria-expanded', 'true');
+    await expect(rubrique).toHaveAttribute('open', '');
     expect(await debordementHorizontal(page)).toBe(0);
     await page.goto(page.url().split('#')[0]);
-    await expect(page.getByRole('heading', { name: 'Caractéristiques du logement' })).toBeVisible();
+    await page.reload();
+    await expect(documents).not.toHaveAttribute('open', '');
+    await expect(page.getByRole('heading', { name: 'Le logement', exact: true })).toBeVisible();
     await page.screenshot({ path: `e2e/.results/dossier-${largeur}.png`, fullPage: true });
   });
 }
 
 test('propriétaire : un refus d’enregistrement reste visible sans perdre la saisie', async ({ page }) => {
   await page.goto(`/espace/${ORG}/parc`);
-  await page.getByRole('button', { name: /Appartement T2/ }).first().click();
-  const href = await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).getAttribute('href');
+  const href = await page.locator('a[data-lot-id]').filter({ hasText: 'Appartement T2' }).first().getAttribute('href');
   await page.goto(href! + '?parcours=1&etape=bien');
   const formulaire = page.locator('form.saisie-bien');
   await formulaire.locator('[name="nom"]').fill('   ');
@@ -65,24 +71,23 @@ for (const largeur of [390, 1440]) {
   test(`propriétaire : parcours guidé et saisies conservées à ${largeur}px`, async ({ page }) => {
     await page.setViewportSize({ width: largeur, height: 1000 });
     await page.goto(`/espace/${ORG}/parc`);
-    await page.getByRole('button', { name: /Appartement T2/ }).first().click();
-    const href = await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).getAttribute('href');
+    const href = await page.locator('a[data-lot-id]').filter({ hasText: 'Appartement T2' }).first().getAttribute('href');
     await page.goto(href! + '?parcours=1&etape=bien');
     const navigation = page.getByRole('navigation', { name: 'Étapes de la création du lot' });
     await expect(navigation.getByRole('button')).toHaveCount(6);
     const bien = page.getByRole('region', { name: 'Étape Bâtiment', exact: true });
     await bien.locator('[name="nom"]').fill('Saisie non enregistrée');
-    await navigation.getByRole('button', { name: /Étape 04 : Équipements/ }).click();
+    await navigation.getByRole('button', { name: /Étape 04 Équipements/ }).click();
     await expect(bien).not.toBeVisible();
     await expect(page.getByRole('region', { name: 'Étape Équipements', exact: true })).toBeVisible();
-    await navigation.getByRole('button', { name: /Étape 01 : Bâtiment/ }).click();
+    await navigation.getByRole('button', { name: /Étape 01 Bâtiment/ }).click();
     await expect(bien.locator('[name="nom"]')).toHaveValue('Saisie non enregistrée');
-    for (const nom of [/Étape 02 : Le lot/, /Étape 03 : Propriétaires/, /Étape 04 : Équipements/, /Étape 05 : Diagnostics/, /Étape 06 : Récapitulatif/]) {
+    for (const nom of [/Étape 02 Le lot/, /Étape 03 Propriétaires/, /Étape 04 Équipements/, /Étape 05 Diagnostics/, /Étape 06 Récapitulatif/]) {
       await navigation.getByRole('button', { name: nom }).click();
       await expect(page.locator('.assistant-panneau:visible')).toHaveCount(1);
       expect(await debordementHorizontal(page)).toBe(0);
     }
-    await navigation.getByRole('button', { name: /Étape 04 : Équipements/ }).click();
+    await navigation.getByRole('button', { name: /Étape 04 Équipements/ }).click();
     await page.screenshot({ path: `e2e/.results/parcours-${largeur}.png`, fullPage: true });
   });
 }
@@ -113,20 +118,18 @@ test('propriétaire : le bail reprend le lot et permet de créer puis retrouver 
       select gen_random_uuid(),$1,organization_id,person_id,quote_part,date_debut,date_fin from public.detentions
       where lot_id=$3 and organization_id=$2`, [lotId, ORG, sourceId]);
   await page.goto(`/espace/${ORG}/parc`);
-  await page.getByRole('button', { name: new RegExp(nomLot) }).first().click();
-  const href = await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).getAttribute('href');
-  // L’ancien lien de création de locataire rejoint désormais les baux du lot.
+  const href = await page.locator(`a[data-lot-id="${lotId}"]`).getAttribute('href');
+  // L’ancien lien de création rejoint directement l'action de préparation du bail.
   await page.goto(href! + '?parcours=1&etape=locataires');
-  await expect(page).toHaveURL(/#baux$/);
-  await page.getByRole('button', { name: 'Commencer le bail', exact: true }).click();
+  await expect(page).toHaveURL(/#nouvelle-location$/);
+  await page.getByRole('button', { name: 'Commencer un bail', exact: true }).click();
   await expect(page).toHaveURL(/\/baux\/[0-9a-f-]+#etape-bail-1$/);
   const navigation = page.getByRole('navigation', { name: 'Étapes du bail' });
   await expect(navigation.getByRole('button')).toHaveCount(7);
   const contrat = page.locator('#form-parcours-bail');
   await contrat.locator('[name="date_debut"]').fill('2026-12-01');
-  await contrat.getByRole('button', { name: 'Enregistrer cette étape', exact: true }).click();
-  await expect(contrat.getByRole('status')).toBeVisible();
-  await navigation.getByRole('button', { name: /Étape 02 : Personnes/ }).click();
+  await page.getByRole('button', { name: 'Enregistrer et continuer', exact: true }).click();
+  await expect(page).toHaveURL(/#etape-bail-2$/);
   const personnes = page.getByRole('region', { name: 'Personnes', exact: true });
   await expect(personnes.locator('.bail-personnes-proprietaires')).toContainText('Moreau');
   await personnes.getByRole('button', { name: /Choisir un locataire|Changer de locataire/ }).click();
@@ -140,19 +143,36 @@ test('propriétaire : le bail reprend le lot et permet de créer puis retrouver 
   await formulaire.getByRole('button', { name:'Créer cette personne', exact:true }).click();
   await personnes.getByRole('button', { name:'Utiliser ce locataire', exact:true }).click();
   await expect(personnes.locator('.bail-personnes-locataires')).toContainText(nom);
-  await navigation.getByRole('button', { name: /Étape 04 : Loyer/ }).click();
+  await navigation.getByRole('button', { name: /Étape 03 Le logement/ }).click();
+  await expect(page.locator('#completer-lot')).toContainText(nomLot);
+  await expect(page.locator('#completer-bien')).toContainText('12 rue des Lilas');
+  await expect(page.locator('#completer-bien').getByRole('link')).toHaveAttribute('href', /[?&]etape=bien(?:&|$)/);
+  await navigation.getByRole('button', { name: /Étape 04 Loyer/ }).click();
   const loyer = page.locator('#form-parcours-bail');
   for (const [champ, valeur] of Object.entries({ loyer_hc:'700', charges:'50', depot_garantie:'700', jour_echeance:'5' })) {
     await loyer.locator(`[name="${champ}"]`).fill(valeur);
   }
-  await loyer.getByRole('button', { name:'Enregistrer cette étape', exact:true }).click();
-  await expect(loyer.getByRole('status')).toBeVisible();
+  await page.getByRole('button', { name:'Enregistrer et continuer', exact:true }).click();
+  await expect(page).toHaveURL(/#etape-bail-5$/);
+  await expect(page.getByRole('heading', { name: 'Assurance du propriétaire', exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.locator('#form-parcours-bail [name="loyer_hc"]')).toHaveValue(/^700(?:[.,]0+)?$/);
-  await navigation.getByRole('button', { name: /Étape 02 : Personnes/ }).click();
+  await navigation.getByRole('button', { name: /Étape 04 Loyer/ }).click();
+  for (const [champ, valeur] of Object.entries({ loyer_hc:'700', charges:'50', depot_garantie:'700', jour_echeance:'5' })) {
+    await expect(page.locator(`#form-parcours-bail [name="${champ}"]`)).toHaveValue(new RegExp(`^${valeur}(?:[.,]0+)?$`));
+  }
+  await navigation.getByRole('button', { name: /Étape 02 Personnes/ }).click();
   await expect(page.locator('.bail-personnes-locataires')).toContainText(nom);
-  await navigation.getByRole('button', { name: /Étape 01 : Le bail/ }).click();
+  await navigation.getByRole('button', { name: /Étape 01 Le bail/ }).click();
   await expect(page.locator('[name="date_debut"]:visible')).toHaveValue('2026-12-01');
+  await navigation.getByRole('button', { name: /Étape 06 Clauses/ }).click();
+  await expect(page.locator('#form-parcours-bail [name="encadrement_loyer"]')).toBeVisible();
+  await navigation.getByRole('button', { name: /Étape 07 Récapitulatif/ }).click();
+  await expect(page.getByRole('heading', { name: 'Avant la signature', exact: true })).toBeVisible();
+  await expect(page.locator('#informations-bail')).toContainText(nomLot);
+  await expect(page.locator('#informations-bail')).toContainText(nom);
+  await page.getByRole('link', { name: 'Modifier : Loyer et paiement', exact: true }).click();
+  await expect(page).toHaveURL(/#etape-bail-4$/);
+  await expect(page.locator('#form-parcours-bail [name="loyer_hc"]')).toHaveValue(/^700(?:[.,]0+)?$/);
   expect(await debordementHorizontal(page)).toBe(0);
   } finally {
     // Périmètre exclusivement créé par CETTE tentative, jamais le lot du seed.

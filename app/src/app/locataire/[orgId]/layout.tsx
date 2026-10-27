@@ -7,7 +7,7 @@ import { styleMarque } from "@/lib/marque-organisation";
 import { SidebarLocataire } from "@/components/nav-locataire";
 import { MenuCompte } from "@/components/menu-compte";
 import { nomComplet } from "@/lib/roles-personnes";
-import { estARenouveler } from "@/lib/ged";
+import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { aEchoue } from "./panne-lecture";
 
 // L'apparence de l'organisation, lue une fois par requête : la marque de la
@@ -80,7 +80,8 @@ export default async function LayoutLocataire({
   // RM-0b.5.1 rend dû AU LOCATAIRE, et celui que l'accueil et la page
   // Documents affichent désormais (revue 11/09 — le menu restait muet
   // pendant que « Ce qui vous attend » réclamait le renouvellement).
-  const assuranceOk = !bailActif || Boolean(derniere && !estARenouveler(derniere.expire_le));
+  const etatAssurance = etatAssuranceLocataire(derniere);
+  const assuranceOk = !bailActif || (etatAssurance.nonExpiree && !etatAssurance.aRenouveler);
   const demandesEnCours = ((incidents ?? []) as { etat: string }[]).filter(
     (i) => i.etat !== "clos"
   ).length;
@@ -97,7 +98,7 @@ export default async function LayoutLocataire({
   );
 
   return (
-    <div className="loc-app gerimmo-prestige" style={styleMarque(apparence)}>
+    <div className="loc-app gerimmo-prestige experience-unifiee" style={styleMarque(apparence)}>
       <aside className="loc-late">
         <div className="loc-logo min-w-0">
           <Link href={`/locataire/${orgId}`} className="block min-w-0 max-w-full overflow-hidden">
@@ -120,6 +121,7 @@ export default async function LayoutLocataire({
       </aside>
       <div className="min-w-0">
         <header className="loc-haut">
+          <span className="ambiance-repere" aria-hidden="true" />
           <MenuCompte
             initiales={
               personne

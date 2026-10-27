@@ -109,6 +109,29 @@ beforeEach(() => {
 });
 
 describe("ListeAlertes (écran Alertes) : « Traiter » et les liens de la liste", () => {
+  it("ne conclut pas à une liste vide si les actions des baux sont illisibles", () => {
+    for (const estProprietaire of [true, false]) {
+      const html = renderToStaticMarkup(createElement(ListeAlertes, {
+        orgId: ORG, membres: [], monCompte: "compte", estResponsable: true,
+        estProprietaire, listeIncomplete: true, alertes: [],
+      }));
+      expect(html).not.toContain("Aucune action en attente");
+      expect(html).not.toContain("Votre journée est dégagée");
+    }
+  });
+  it("la supervision consulte les dossiers sans se voir confier ni proposer de clore les alertes", () => {
+    const html = renderToStaticMarkup(createElement(ListeAlertes, {
+      orgId: ORG, membres: [], monCompte: "superadmin", estResponsable: true,
+      estProprietaire: true, lectureSeule: true, ouvrirAlerteId: "al-2",
+      alertes: [alerte("al-1", "loyer_impaye", { bail_id: "bail-1" }), alerte("al-2", "manuelle", null)] as never,
+    }));
+    expect(html).toContain("Consulter le dossier");
+    expect(adressesDeGestion(html)).toEqual([`/espace/${ORG}/baux/bail-1#loyers`]);
+    expect(html).toContain("Suivi par le gestionnaire");
+    expect(html).not.toContain("Confier / clore");
+    expect(html).not.toContain(">Traiter<");
+    expect(html).not.toContain("Confiées à d");
+  });
   for (const p of PROFILS) {
     it(`${p.nom} : chaque fiche à traiter sous ${p.attendu}, jamais ${p.interdit}`, () => {
       const html = renderToStaticMarkup(createElement(ListeAlertes, {
@@ -169,12 +192,19 @@ describe("SyntheseAlertes (fenêtre des alertes à la connexion) : la racine sui
 });
 
 describe("console : la fiche d'un client (« Entrer dans son espace », profil à compléter)", () => {
+  it("ne charge pas l’identité du client quand le journal de consultation échoue", async () => {
+    const db=client(()=>[]), from=vi.fn(db.from);
+    m.client={...db,from,rpc:async (nom:string)=>({data:nom==="is_super_admin",error:nom==="log_sa_access"?{message:"journal indisponible"}:null})};
+    const html=renderToStaticMarkup(await PageAdminOrganisation({params:Promise.resolve({orgId:ORG}),searchParams:Promise.resolve({})} as never));
+    expect(html).toContain("Journal des consultations"); expect(from).not.toHaveBeenCalled();
+  });
+
   for (const p of PROFILS) {
     it(`${p.nom} → ${p.attendu}`, async () => {
       m.client = client((nom) => {
         if (nom === "is_super_admin") return true;
         if (nom === "organizations") {
-          return [{ id: ORG, name: "Organisation TEST", status: "active", type: p.type, essai_fin: null, created_at: "2026-01-05T10:00:00Z" }];
+          return [{ id: ORG, name: "Organisation TEST", status: "active", type: p.type, address_line1: "1 rue témoin", essai_fin: null, created_at: "2026-01-05T10:00:00Z" }];
         }
         return [];
       });
@@ -185,8 +215,15 @@ describe("console : la fiche d'un client (« Entrer dans son espace », profil �
       expect(liens).toEqual(expect.arrayContaining([p.attendu, `${p.attendu}/profil`]));
       for (const l of liens) expect(l.startsWith(p.attendu), l).toBe(true);
       expect(html).not.toContain(p.interdit);
+      if (p.proprietaire) { expect(html.toLowerCase()).not.toContain("siret"); expect(html.toLowerCase()).not.toContain("tva"); }
+      else { expect(html.toLowerCase()).toContain("siret"); expect(html.toLowerCase()).toContain("tva"); }
     });
   }
+  it("conserve les renseignements professionnels réellement fournis par un propriétaire", async () => {
+    m.client = client(nom => nom === "is_super_admin" ? true : nom === "organizations" ? [{id:ORG,name:"Propriétaire TEST",type:"proprietaire_direct",status:"active",siret:"12345678900012",tva_intracom:"FR00123456789",created_at:"2026-01-01"}] : []);
+    const html = renderToStaticMarkup(await PageAdminOrganisation({params:Promise.resolve({orgId:ORG}),searchParams:Promise.resolve({})} as never));
+    expect(html).toContain("12345678900012"); expect(html).toContain("FR00123456789");
+  });
 });
 
 describe("console : la fiche d'un compte (« Entrer dans son espace » depuis chaque rôle)", () => {

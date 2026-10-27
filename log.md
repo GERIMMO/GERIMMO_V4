@@ -6751,3 +6751,423 @@ Gestes après la mise en ligne : archiver la version 2026-09-30 des conditions d
 #247 fusionnée (`31377f5`), Vercel `dpl_HUUUhNtvBg7qBphf5DZrd7JWSKpS` READY (06 h 31 UTC) ; « Vérifier les paiements Stripe sans argent réel » 40070544249 **réussie** sur `main` ; recette de production 40070545849 **réussie** ; nettoyage vérifié en lecture (1 compte, 0 organisation, 0 artisan, 0 rétractation, 0 fermeture).
 
 Textes de la conformité V1 (conditions clients et artisans, confidentialité, inactivité, wiki du lot 6) préparés sur `claude/compassionate-euler-qpqjp6` (`b3ef106`) mais **non publiés** : Claude s'arrête (fin de crédit) avant la relecture finale et la mise en ligne. Passation : [[Prompt de passation à Codex — conformité V1, 24 octobre 2026]].
+
+## [2026-10-24] decision | Reprise Codex de la publication des textes de conformité V1
+
+Instruction du dirigeant : « Reprends la publication de la conformité V1 de Gerimmo laissée par Claude le 24/10. Tout est sur la branche claude/compassionate-euler-qpqjp6 du dépôt GERIMMO/GERIMMO_V4. Lis d'abord wiki/syntheses/Prompt de passation à Codex — conformité V1, 24 octobre 2026.md et suis-le dans l'ordre : vérifier la branche, faire la relecture adverse décrite, ajuster la date si besoin, puis mettre en ligne avec le protocole habituel. Ce protocole est rappelé dans app/CLAUDE.md : CI verte, sauvegarde jamais en même temps qu'une simulation, simulation puis application de la migration 20261024150000, fusion, recette. Ne publie rien sans cette relecture, et note chaque étape dans log.md. » Compte rendu dans la conversation, aucun PDF, selon sa préférence.
+
+Reprise à 08 h 03 UTC : branche source `9e6e33bf731b1d55b9c49e6c68556dd22388de99` (le commit suivant `b3ef106` porte la passation et le journal), descendante de main `31377f5`. Copie de travail sur `codex/conformite-v1-20261024`, branche Claude conservée. Lecture de la passation, de `CLAUDE.md`, `app/AGENTS.md`, `app/CLAUDE.md` et du protocole du 16/10. Production en lecture seule : migrations jusqu'à `20261024140000`, règle `compte:inactif` inactive (24 mois), un compte, zéro organisation, zéro acceptation, archive `versions_conditions` vide. Connexion du superadmin permanent demandée pour archiver la version actuelle avant publication ; relecture et tests indépendants poursuivis. Aucune migration réelle, fusion ni publication à ce stade.
+
+### 24/10/2026 08:13 UTC — archive préalable réalisée
+
+Superadmin permanent reconnecté par le dirigeant. Depuis `/admin/sante`, archivage de la version clients 2026-09-30, avec mention de relevé tardif : succès affiché, empreinte `6160e62a4883d92b4e92203236330df388d382af6b3e69248858a25506fa6799`. Aucun texte remplacé. Écran de santé lu : 0 organisation, pas de réception Stripe en attente ; une souscription Stripe sans organisation apparaît dans l'inventaire global. Aucun abonnement modifié ; écart distinct à instruire, sans identifiant de client dans ce journal public.
+
+### 24/10/2026 08:18 UTC — relecture adverse, corrections avant publication
+
+Comparaison sur sources officielles Légifrance et EUR-Lex : formulaire annexé à R.221-1 repris à l'identique dans la page et le courriel ; annexe L.215 et garantie D.211-4 vérifiées ; article 3-2 de la loi du 6 juillet 1989 confirme les dix jours depuis l'établissement de l'état des lieux. Une phrase prétendait qu'un circuit de signature interrompu ne pouvait engager aucune partie : remplacée par le constat technique, sans préjuger des engagements déjà pris. Les garants confirment eux aussi leur mobile. Pour les artisans, les accès aux données avant/après fermeture et les préavis adaptables sont explicités (P2B, articles 3, 4, 8 et 9). Empreintes de la V1 encore non publiée recalculées ; l'archive 2026-09-30 est intacte.
+
+420 migrations appliquées sur une base locale entièrement fictive, dans l'ordre du manifeste. Contrôles de publication et lint réussis. Première compilation : code compilé, puis mémoire Node épuisée pendant le typage ; relance à 8 Gio réussie. Batterie complète en cours, rien n'est encore publié et aucune migration de production n'a été lancée.
+
+## 2026-10-24 — review — relecture adverse V1, compléments
+
+Les trois échecs locaux de dates venaient de PostgreSQL/Node en heure de Paris, alors que la production est UTC (SELECT vérifié). Après alignement du banc fictif uniquement : 82 tests ciblés verts. Correction supplémentaire impayés : preuve du premier courrier relue avant de citer la résiliation contractuelle ; courrier retardé, absent, illisible ou inaccessible couvert. 63 tests ciblés verts. Le wiki du lot 6 est relié à la synthèse de relecture et ses points déjà résolus sont précisés. Aucune migration de production ni fusion à cette étape.
+
+## 2026-10-24 — test — candidat conformité V1 relu
+
+Compilation finale réussie, types et lint sans erreur. Pages de référence relevées sur `next start`, avec identité fictive puis identité indisponible : 24 tests d'extraction et d'archivage réussis. La suite complète relancée avait encore lu l'ancienne référence avant son remplacement : cette différence de texte a été corrigée par ce relevé réel. Parcours mobiles sur les comptes fictifs lancés ; publication toujours suspendue à la CI du candidat exact, puis sauvegarde, simulation et application séquentielles. Synthèse de relecture : `wiki/syntheses/Relecture adverse et publication conformité V1 — 24 octobre 2026.md`.
+
+## [2026-10-24] test | PR 248 : essai mobile de l’acceptation artisan corrigé
+
+PR #248 ouverte sur `402424f`, après relecture et archivage préalable. Batterie locale mobile : 209 essais réussis, un ignoré et un échec de l’audit agent. Cause : la garde des nouvelles conditions artisan remplaçait la page entière par une section sans titre principal. Son titre est désormais un H1, visible et accessible ; aucune règle d’acceptation n’est retirée. Le contrôle existant des écrans couvre cette régression. Nouvelle révision soumise à la CI complète avant toute sauvegarde, simulation ou publication.
+
+### 24/10/2026 08:43 UTC — candidat corrigé et relevé préalable
+
+Candidat exact `3d22aa299ffe68eb4b2699ca55f89152a4b250d4`, arbre `78bf602dfe6f9ac140d84fde736fd08934111ecb`, PR #248 ; CI 40078952523 en cours. Build corrigé réussi ; audit agent rejoué : 31 écrans, 229 commandes nommées, aucun débordement, aucun écran en erreur. Dates client/artisan/inactivité et préparation de recette alignées sur le 24/10.
+
+Relevé en production avant simulation (SELECT uniquement) : empreinte MD5 de `comptes_inactifs_a_prevenir` = `25cf318e95e7bc2ffc8fc4fc71092354` ; `fermetures_comptes_programmer_inactifs` = `18469c6b8dfbbd7b949b1045ded6537c`. Les deux fonctions sont SECURITY DEFINER, search_path vide, sans exécution pour anon ni authenticated ; garde V1 absente avant migration, comme attendu. Aucune simulation ni sauvegarde simultanées ; la sauvegarde à la demande attend la CI verte.
+
+### 24/10/2026 08:49 UTC — batterie locale finale et contrôle de sécurité
+
+Vitest complet du candidat final : 715 fichiers réussis, 4 ignorés ; 10 519 tests réussis, 26 ignorés, zéro échec. Audit à 768 px réussi pour les sept profils. La première passe supervision avait été renvoyée à la connexion par les tests MFA simultanés du banc ; elle n’a pas été comptée comme preuve : reprise après ces tests, 37 écrans réels, zéro redirection, 269 commandes nommées, réussite. Audit 1440 px lancé ensuite, sans tests d’authentification simultanés.
+
+Conseiller sécurité Supabase consulté avant migration : 21 tables à RLS sans politique (accès direct fermé), 378 fonctions SECURITY DEFINER exécutables pour authenticated (architecture RPC avec contrôles internes), avertissement pg_net dans public, un avertissement de search_path sur `fermetures_comptes_nuit`. Ce dernier est une procédure invoker, avec COMMIT intermédiaires, noms qualifiés et EXECUTE révoqué à anon, authenticated et service_role (SELECT vérifié) : ce n’est pas une fonction privilégiée ouverte. Aucun changement de droits supplémentaire dans cette livraison. Références des avis : https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable et https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable .
+
+### 24/10/2026 08:55 UTC — audits des affichages terminés
+
+176 écrans examinés à 768 px et les mêmes 176 à 1440 px : zéro débordement horizontal, zéro commande sans nom. L’écran d’acceptation artisan corrigé est aussi relu sur sa capture. Les redirections de la matrice sont distinguées des écrans réels ; la supervision a bien ouvert ses 37 pages après renouvellement du second facteur de test. Aucun changement visuel supplémentaire introduit. Le contrôle Vercel de la branche est « success » mais correspond à une prévisualisation volontairement ignorée par la configuration : ce n’est pas une preuve READY de production. Le READY du déploiement main reste obligatoire après fusion.
+
+### 24/10/2026 09:00 UTC — contrôles GitHub
+
+Premier passage 40078528226 sur `402424f` : logique verte (10 528 tests, 17 ignorés) ; seul échec navigateur, le H1 de l’acceptation artisan, reproduit puis corrigé dans `3d22aa2`. Aucun autre échec dans ses journaux. Le passage final 40078952523 sur `3d22aa2` a terminé avec succès la logique, la compilation, les types et les parcours mobiles ; WebKit reste en cours. Pas de sauvegarde ni migration lancées avant la fin complète.
+
+### 24/10/2026 09:03 UTC — CI finale verte, sauvegarde demandée
+
+CI 40078952523 (« Lint, types, tests, build », job 120828279446) entièrement réussie sur `3d22aa299ffe68eb4b2699ca55f89152a4b250d4`, y compris Chromium et WebKit. Sauvegarde quotidienne demandée ensuite sur main depuis GitHub ; aucune simulation lancée pendant son exécution.
+
+Sauvegarde lancée : 40080464183, main `31377f5`, 24/10 09:03 UTC. Bilan exact de la CI finale : 10 528 tests réussis (17 ignorés, dont les tests Stripe réservés à leur chantier), 210 parcours Chromium réussis (1 ignoré), 54 parcours WebKit réussis. Aucune reprise automatique d’échec (« flaky ») dans ce bilan final.
+
+### 24/10/2026 09:07 UTC — sauvegarde terminée avant simulation
+
+Sauvegarde 40080464183 réussie (job 120832753080), durée totale 2 min 54 s. Export de base, fichiers chiffrés, dépôt Scaleway et consignation dans Gerimmo réussis. Aucune simulation pendant ce passage. La simulation du seul fichier `20261024150000_activation_inactivite_v1.sql` est préparée sur `codex/conformite-v1-20261024`, tête vérifiée `3d22aa2`.
+
+Simulation lancée seule : 40080794933, job 120833749504, tête `3d22aa2`, uniquement `20261024150000_activation_inactivite_v1.sql`, option simulation cochée. Preuve de sauvegarde relue en base : `2026-10-24 09:06:38.758651+00`, zéro échec.
+
+### 24/10/2026 09:09 UTC — simulation réussie
+
+Simulation 40080794933 réussie sur `3d22aa2`, fichier unique 150000 ; journal lu : `ROLLBACK` à 09:09:08 UTC. Préconditions et contrôles de migration réussis. Application réelle du même fichier et du même candidat préparée seulement après ce résultat.
+
+### 24/10/2026 09:16 UTC — application de la migration réussie
+
+Application réelle 40081174066, job 120834879954, sur `3d22aa299ffe68eb4b2699ca55f89152a4b250d4`, seul fichier `20261024150000_activation_inactivite_v1.sql`. Contrôles CI exacte et sauvegarde de huit minutes réussis ; COMMIT à 09:14:59 UTC. Aucun chevauchement sauvegarde/simulation/application. PR 248 relue avant fusion : tête inchangée, base main `31377f5`, fusion possible.
+
+Contrôle SELECT après application : version 150000 présente, règle active à 24 mois, marqueur V1 dans les deux fonctions, search_path vide et EXECUTE fermé à anon/authenticated. Traitement nocturne `fermetures-comptes` actif à 03:20 UTC. Toujours un utilisateur, aucune organisation ni fermeture. La première requête de comptage utilisait le nom français inexistant `organisations` ; corrigée en `organizations`, aucune écriture issue de ce contrôle.
+
+### 24/10/2026 09:17 UTC — fusion réalisée
+
+PR 248 fusionnée par squash avec garde sur la tête exacte `3d22aa2`. Révision main publiée à construire : `a519f3a8cc3f9ae7c322133fe6383b57037b3c67`. La mise en ligne n’est pas encore déclarée terminée : attente du READY Vercel, archivage V1 et recettes.
+
+### 24/10/2026 09:18 UTC — READY confirmé sur le domaine de production
+
+Vercel `CX4a5SWoj2iNp9TvwSsoKSXrLw37` : Ready, Production, domaine www.gerimmo.app, main `a519f3a` (construction 1 min 22 s). `/api/sante` rechargé : ok/base true, révision complète `a519f3a8cc3f9ae7c322133fe6383b57037b3c67`. Recette avec nettoyage lancée ensuite : 40081401588 sur main.
+
+La session permanente de supervision, utilisée à 08:13 pour l'archive du 30 septembre, expire au rechargement après déploiement (`raison=session-expiree`). Reconnexion avec second facteur demandée pour archiver les deux versions V1 ; pas de contournement par SQL/service. Les autres recettes continuent.
+
+Stripe en clés de test lancé après READY : 40081459350, job 120835724014, main `a519f3a`. La recette refuse toute clé réelle ; elle confronte l'API Stripe de test et les règles SQL d'une base jetable, avec webhook signé simulé, sans parcourir l'interface Checkout. Pages publiques `/conditions` et `/conditions/artisans` relues dans le navigateur : version du 24 octobre effectivement servie, corrections de la relecture présentes.
+
+### 24/10/2026 09:21 UTC — recette Stripe réussie
+
+Passage 40081459350, job 120835724014, terminé avec succès sur main `a519f3a` : 14 tests réussis, zéro échec, zéro ignoré. API Stripe de test et application SQL locale ; webhook signé simulé, interface de paiement non parcourue. Aucun argent réel. Les essais de production 40081401588 poursuivent les parcours des cinq espaces.
+
+Contrôle des tâches après migration : onze tâches permanentes actives (la fermeture des comptes s'ajoute aux dix historiques) ; `fermetures-comptes` à 03:20 UTC, `retention-quotidienne` à 03:00 UTC. Les tâches temporaires de recette sont exclues de ce décompte. Aucun réglage de leur horaire dans cette livraison.
+
+### 24/10/2026 09:24 UTC — archives V1 enregistrées après reconnexion
+
+Le dirigeant a reconnecté le superadmin permanent avec son second facteur. Action « Archiver la version en vigueur des conditions » exécutée depuis `/admin/sante` ; les deux textes sont archivés et l'écran confirme que toutes les acceptations renvoient à une version archivée. SELECT de confirmation :
+- conditions clients 2026-09-30 : archive antérieure inchangée, 08:13:43 UTC, empreinte `6160e62a4883d92b4e92203236330df388d382af6b3e69248858a25506fa6799` ;
+- conditions clients 2026-10-24 : 09:23:25.198669 UTC, empreinte `099d51937f5be5a531a8bb3ca3075f4a56e472140f04d4ae08ce59804fd1c545` ;
+- conditions artisans 2026-10-24 : 09:23:25.399417 UTC, empreinte `fff0df573633e12faf3b7347a83d089cc93c3d0409c31ea495bc4ebfd4f18aac`.
+Ces empreintes d'archive incluent l'identité publiée de l'éditeur ; elles se distinguent volontairement des empreintes de référence de code.
+
+## [2026-10-24] deploy | Conformité V1 publiée après relecture adverse — PR #248
+
+Publication du 24 octobre conservée. Source Claude `9e6e33b` relue, corrections regroupées sur `codex/conformite-v1-20261024`, tête finale `3d22aa299ffe68eb4b2699ca55f89152a4b250d4`. CI 40078952523 entièrement verte : 10 528 tests réussis (17 ignorés), 210 Chromium (1 ignoré), 54 WebKit. Local : 10 519 tests réussis (26 ignorés), build/lint/types verts, 176 écrans à 768 et 1440 px, zéro débordement ni commande sans nom. La différence local/CI provient des contrôles d'intégration activés dans la CI.
+
+Ordre respecté : archive clients du 30 septembre à 08:13 UTC ; sauvegarde 40080464183 terminée à 09:06:38 ; simulation 40080794933 et ROLLBACK à 09:09:08 ; application 40081174066 et COMMIT à 09:14:59 du seul fichier `20261024150000_activation_inactivite_v1.sql` ; fusion squash de #248 à 09:15:56, main `a519f3a8cc3f9ae7c322133fe6383b57037b3c67` ; Vercel READY `CX4a5SWoj2iNp9TvwSsoKSXrLw37`, domaine www.gerimmo.app et santé vérifiés ; archives clients/artisans V1 enregistrées à 09:23:25. Aucun chevauchement sauvegarde/simulation. Aucune date contractuelle décalée.
+
+Corrections livrées après la relecture : modèle réglementaire de rétractation exact (page/courriel), formulation sur la portée d'un circuit de signature interrompu, données et préavis artisans, délai de trente jours depuis l'envoi réel de la mise en demeure avant d'invoquer la résiliation contractuelle, titre H1 de l'acceptation artisan. Les textes et le catalogue de conservation sont alignés sur le code ; les anciens engagements et l'offre d'essai sont préservés. Sources et limites : [[Relecture adverse et publication conformité V1 — 24 octobre 2026]].
+
+## [2026-10-24] audit | Recettes et contrôle de production après publication V1
+
+- Recette 40081401588, job 120835554497, main `a519f3a` : 67 essais réussis, 1 ignoré, aucun échec ni reprise d'échec. Nettoyage réussi à 09:27:03 UTC : comptes, organisations, artisans, accès temporaires de supervision et fichiers du passage retirés.
+- Stripe 40081459350, job 120835724014 : 14 réussis, zéro échec/ignoré. Clés de test uniquement ; API Stripe et règles SQL locales, webhook signé simulé, interface Checkout non parcourue. Aucun paiement réel.
+- SELECT après nettoyage : 1 utilisateur permanent, 0 organisation, 0 artisan, 0 fermeture, 0 tâche temporaire de recette, 3 archives contractuelles. Aucun événement `erreur`/`echec` dans tech_log depuis le READY à 09:17 UTC jusqu'au relevé de 09:28 UTC ; cette fenêtre ne vaut pas encore une heure complète de surveillance.
+- `/conditions`, `/conditions/artisans`, `/conditions/versions` et leurs deux exemplaires V1 ouverts dans le navigateur ; version 24 octobre et empreintes conformes. Ancienne archive inchangée. `/api/sante` donne ok/base true et la révision publiée.
+- Non validés par ces essais : signature réelle Zoho et remise finale à chaque signataire ; réglage Stripe de fin de relance (« impayé », sans annulation anticipée) ; médiateur, DPA et RC professionnelle. Un abonnement Stripe orphelin préexistant demeure à traiter séparément, sans changement financier dans cette livraison. Première passe nocturne `fermetures-comptes` à vérifier le 25/10 à 03:20 UTC ; aucune fermeture provoquée aujourd'hui. Aucun PDF de compte rendu produit.
+
+## [2026-10-24] develop | Réglage des durées demandé par le dirigeant
+
+- Demande : rendre toutes les catégories modifiables depuis le superadmin, en conservant les durées validées ; vérifier aussi la signature d’un bail de bout en bout.
+- Copie isolée `codex/conservation-reglages-20261024`, base `dd84e7c1a4cf64520a78bc02ec2962cd27a426e5`. Aucun changement de durée ni de donnée métier de production à ce stade.
+- Écran `/admin/conservation` : recherche, durée en mois, motif, confirmation de l’effet, historique avant/après. Le geste exige le superadmin permanent avec second facteur, une révision encore actuelle et une trace écrite atomiquement. Une modification n’active aucune catégorie désactivée.
+- Migration `20261024105901_reglages_conservation_superadmin.sql` : ordre explicite APRÈS `20261024150000`, malgré l’heure fournie par le CLI. Les nouvelles durées d’archives ne changent pas celles des archives existantes ; le délai d’inactivité est raccordé aux avertissements et à l’exécution, sans avancer une échéance annoncée. Retour dédié refusant de perdre une décision ou une durée d’archive différente.
+- Relecture : la comparaison par date ne suffisait pas dans une transaction (déclencheur `now()`) ; remplacement par une révision entière. Le bilan des archives utilisait le catalogue actuel : il suit désormais la durée enregistrée avec l’archive, comme la purge. La lecture des durées publiques est anonyme même pour un visiteur connecté, sans identité ni motif d’administrateur.
+- Premiers tests locaux : 79 réussis, dont accès, atomicité du journal, conflit de révision, bornes, inactivité, archives et retour Zoho simulé. La première suite complète a trouvé le serveur API local arrêté ; le second passage est en cours après sa remise en route. La compilation a manqué de mémoire pendant la vérification des types ; relancée avec une limite explicite héritée par les processus enfants. Ces incidents de banc ne sont pas présentés comme des succès.
+- Session superadmin de production reconnectée par le dirigeant. Le bail d’essai réel n’a pas encore été envoyé ; adresse du signataire demandée. Aucune signature réelle, dépense ou publication confirmée à cette étape.
+
+### 24/10/2026 — validation locale du réglage
+
+- Compilation de production réussie (Next 16.4.2, Node 24.19.0) après allocation mémoire aux processus enfants.
+- Suite complète : 10 527 succès ; deux assertions de conventions/textes corrigées puis repassées au vert (bouton commun protégé avant hydratation et mention du délai configurable). Les tests API passent après redémarrage du banc ; 26 ignorés pour leurs prérequis externes.
+- Tests ciblés supplémentaires : 45 succès ; le contrôle distinct simulation/purge des archives porte ensuite la suite métier du réglage à 10 succès. Six tests de rendu et d’action serveur couvrent aussi les durées publiques et le refus des accès ou révisions non autorisés.
+- Test navigateur mobile réussi : connexion avec second facteur, modification de 6 à 9 mois du journal technique, historique visible, politique publique mise à jour, retour à 6 mois et relecture après rechargement. Données fictives locales seulement. Il a décelé une révision bigint sérialisée en texte ; conversion explicite à l’entrée de l’écran, contrôle entier conservé côté action. Aucun débordement horizontal.
+- Relecture visuelle du formulaire : titre dégagé du bandeau fixe et indication « Durée actuelle » après succès. Publication encore conditionnée aux contrôles GitHub, sauvegarde et simulation de migration.
+
+## [2026-10-24] query | Création complète du bail d’essai et simplification du parcours
+
+- Demande : reprendre la création jusqu’à la signature avec la boîte officielle, en réduisant les efforts de saisie. Parcours réel effectué dans l’organisation fictive « ESSAI SIGNATURE GERIMMO — SANS ENGAGEMENT », avec le compte propriétaire d’essai confirmé par le dirigeant. Aucun compte réel de client ni paiement de loyer modifié.
+- Le logement, les personnes fictives, les montants, les données énergétiques et les clauses sont enregistrés. Les diagnostics déposés sont des spécimens explicitement sans valeur réglementaire. La notice a été générée, puis le PDF de signature (7 pages) et son circuit ont été préparés ; les trois annexes sont répertoriées. Lecture du texte et contrôle visuel des sept pages : mention d’essai sans engagement, coordonnées prévues, absence de chevauchement. Aucun envoi Zoho ni crédit consommé à ce stade ; l’écran annonce 6 crédits pour deux signataires et leur premier SMS.
+- Blocage reproduit : sélectionner « Personne physique » sur une fiche initialement considérée comme société ne fait pas apparaître le prénom ; il fallait enregistrer puis rouvrir. Correction : la qualité est présentée avant l’identité et adapte immédiatement les champs. La qualité et le type d’identité envoyés restent cohérents.
+- Simplification : si aucune personne n’est disponible pour le rôle choisi, ouvrir directement la création. Annuler ferme sans créer de fiche ; la sélection existante reste accessible lorsqu’il y a des personnes.
+- Vérifications locales : 11 tests d’actions réussis, 4 tests dans Chromium réussis (particulier, indivision, retour à SCI familiale avant envoi, création vide/annulation), types après génération Next et contrôle de style réussis. Les premiers essais locaux ont nécessité d’augmenter la mémoire du vérificateur TypeScript, de générer les types Next et de préciser UTF-8 dans le banc navigateur ; aucun service de production appelé par ces tests.
+- Frictions conservées pour correction ciblée : formulaire diagnostic restant ouvert après succès ; vérification des étapes indisponible tant que le locataire n’est pas choisi ; alerte de sortie malgré les saisies présentes dans le PDF ; diagnostic termites à applicabilité inconnue compté comme manquant. La publication des corrections ci-dessus et le résultat de la signature seront ajoutés après vérification.
+- Complément de relecture : le passage « Le logement → Loyer » déclenchait la validation native de la nouvelle étape dès le clic sur « Suivant », au clic comme au clavier. Reproduit dans Chromium avant correction (deux échecs montrant une validation prématurée). Le clic de navigation annule maintenant son action native avant le changement de bouton. Les deux tests passent ; le vrai bouton d’enregistrement conserve le refus des champs requis vides et l’envoi après saisie.
+
+## [2026-10-24] query | Alléger les validations du bureau de direction
+
+- Demande du dirigeant depuis `/admin/brief` : trop de validations en attente. Lecture en production : 34 sujets, dont 30 propositions de veille, deux propositions marketing et deux signalements de problèmes. Les longues cartes de veille précédaient les signalements.
+- Branche isolée `codex/bureau-decisions-simple-20261024`, base publiée `119bce061ce1aed2ba28fb8acc34ff5d99c56d7f`. Accueil regroupé en trois catégories (problèmes, accords, articles/veille) avec trois problèmes au maximum en accès direct. Vue des demandes filtrable, recherche sans accents, six lignes par page et détails repliés.
+- Les sources, compteurs, autorisations et actions de décision sont conservés. Aucun accord, refus, publication d’article, envoi de message, ni changement de données métier réalisé. Le regroupement ne résout pas artificiellement les demandes. Aucune migration ni connexion externe requise.
+- Validation locale : 23 tests de tri et gardes existantes réussis ; quatre scénarios Chromium réussis (résumé 34 demandes, filtre/recherche/pagination, attestation artisan et erreur concurrente, état vide/lecture partielle). Types et lint ciblé réussis. Le premier contrôle des types nécessitait une génération des types de routes et davantage de mémoire ; le premier banc navigateur a été corrigé pour déclarer UTF-8.
+- Publication et recette : à consigner après CI verte sur la révision exacte.
+
+
+### 24 octobre 2026 — Limites des articles et de la veille (suite PR #252)
+
+- Demande du dirigeant : « mettre des limites sur les articles et veilles », trop de hors-sujet.
+- Cause confirmée : filtre RSS par sous-chaînes sur titre et description (`locat` dans « allocation »), puis résumé IA et mots réglables capables de requalifier une source générale.
+- Filtre partagé, mots entiers normalisés et titre officiel : logement/gestion locative/besoins bâtiment ; le résumé ne peut plus élargir le périmètre. Contrôle répété avant relais marketing et avant diffusion des articles déjà programmés issus d'une veille.
+- Bureau : cinq veilles, deux articles au maximum ; anciens hors-sujets et excédents consultables à part, sans mutation de leurs statuts. Compteur commun avec la navigation. Historique des décisions replié par défaut.
+- Collecte : lecture paginée de la file, capacité commune aux deux flux, sources déjà traitées conservées, aucune nouvelle collecte si cinq veilles pertinentes attendent. Marketing : lecture exacte des brouillons avant rédaction/image et arrêt à deux articles ; lecture inconnue = aucun ajout. Les verrous existants des missions restent en place.
+- Contrôles locaux : 138 tests métier puis 46 tests ciblés complémentaires (dont quatre parcours Chromium réels à 390 px), types et lint ciblé verts. Cas réels hors sujet, résumé IA trompeur, réserve sans disparition, compteur cohérent, doublons, file pleine, panne, pagination et article hors sujet programmé couverts. Aucun appel IA, courriel ou réseau social réel exécuté pour cette validation.
+- Aucun changement de base, aucun accord/rejet/suppression de contenu de production. Publication attend la nouvelle CI de la PR #252 et sa relecture.
+
+
+## [2026-10-24] query | Simplifier les huit rubriques de supervision et leurs suites
+
+- Demande du dirigeant : décisions, utilisateurs, vacances/relais, améliorations, santé, sécurité/conformité, historique/sauvegardes et paramètres plus compréhensibles, plus courts et plus agréables, y compris les fiches liées. Branche `codex/console-simple-20261024`, suite de la PR #252.
+- Rubriques avec titres explicites, icônes et quatre teintes douces. Détails secondaires dépliables, états inconnus signalés ; liens profonds et validation native ouvrent automatiquement la rubrique concernée. Les enfants restent montés : aucune saisie ne disparaît au repli.
+- Utilisateurs : navigation personnes/espaces, fiches compte/organisation/artisan regroupées ; le diagnostic artisan est décrit correctement en lecture seule. Vacances : périodes courantes séparées des anciennes, alertes ouvertes séparées des prises en compte, préparation et consignes sur demande.
+- Santé : accès directs aux connexions, tâches/sauvegarde et signatures ; états résumés avant les détails. Sécurité : comptes sensibles en premier. Données : demandes avant les procédures ; fermetures en difficulté ouvertes. Historique : filtres conservés, preuves et journaux dépliables, lien direct vers les durées. Paramètres : contact, médiateur et prestataires séparés ; règle des abonnements accessible directement.
+- Formulaires, actions serveur, contrôles de droits, confirmations, valeurs et règles métier conservés. Aucun nouvel accès, aucune migration ni mutation de données métier de production.
+- Contrôles locaux : types et lint ciblé verts ; 89 tests ciblés verts ; quatre scénarios Chromium réels verts (liens profonds, champ obligatoire replié, valeurs et révision préservées après refus, clavier/390 et 1440 px/zéro violation axe sur le formulaire d’identité). Parcours E2E adaptés aux rubriques à ouvrir, sans retirer les assertions métier. Relecture complémentaire : textes du diagnostic artisan et fermetures à vérifier.
+- Publication : en préparation, après CI verte sur la révision exacte. Aucun écran de production n’est annoncé modifié avant vérification du déploiement.
+
+### Contrôle complet avant publication
+
+- Première CI de la PR #252 (`40113272855`) : 10 593 tests réussis, trois échecs dans le banc de propagation de l’arrêt. Son client simulé n’implémentait pas la lecture paginée et sa source « TEST » ne relevait plus du périmètre éditorial. Le banc simule désormais la pagination et un titre de veille sur le loyer ; toutes les assertions d’arrêt, de budget et de journalisation sont conservées.
+- Après correction : 35 tests ciblés réussis, puis 100 réussis et dix ignorés sur neuf fichiers de veille/marketing/arrêt. Aucune modification des protections applicatives pour obtenir ces résultats.
+- Relecture de l’interface : filtres des journaux ouvrant leurs résultats, pagination conservant la bonne rubrique, fermetures en difficulté visibles et diagnostic artisan décrit en lecture seule. Mesure initiale en production à 1280 px : décisions 14 195 px, améliorations 9 218 px, historique 9 034 px ; comparaison après publication prévue au même format.
+
+- Dernière relecture : une navigation interne par `pushState` conservant les composants pouvait laisser le journal ciblé replié. Échec reproduit dans Chromium, puis correction par réévaluation de la cible après chaque rendu. Les cinq scénarios navigateur passent, ainsi que les types et le lint ciblé.
+- La suite locale générale sans base a été interrompue : certains anciens bancs tentent une connexion même lorsque leurs cas sont ignorés. La validation intégrale reste celle de la CI isolée avec ses bases fictives ; aucun accès de production n’a été utilisé pour ces essais.
+
+- Recette complète CI 40116444277 : 10 600 tests unitaires réussis ; 210 parcours Chromium réussis, un ignoré, un échec limité à l'ancien sélecteur de l'historique des durées. Adaptation de cette recette : ouvrir explicitement la nouvelle rubrique, vérifier que le motif est visible après modification puis après rétablissement. Les contrôles de consentement, de publication de la durée et de restauration restent intacts. Aucun réglage de production modifié.
+
+- Publication du périmètre éditorial : CI 40116254982 verte sur 95a2c311 (10 596 tests unitaires, 211 parcours Chromium et 54 WebKit). PR #252 fusionnée par squash avec garde SHA, résultat 33a71514a0ef080d25950b28d0012dc877ba5024 ; Vercel READY en 59 s. Contrôle en lecture seule : 9 demandes utiles affichées (2 problèmes, 7 contenus), 25 propositions conservées à part ; aucun accord/refus effectué.
+- Contrôle des captures mobiles de la vraie application : la charte générale agrandissait les titres des rubriques et les badges comprimaient leur texte. Défaut reproduit avec la feuille de style réelle (titre 22 px), puis corrigé : titres compacts et badge sur une ligne distincte sur mobile. Six scénarios Chromium réussis, dont géométrie du statut, clavier, champs conservés et accessibilité. Les filtres utilisateurs/améliorations occupent désormais une largeur utile sur téléphone.
+
+### Publication et contrôle final de la console — 24 octobre 2026
+
+- PR #253 : différence finale de 44 fichiers relue et identique à la version contrôlée ; tête `06925bea18b25d256561acb7f2774b5f7783d09c`, arbre `23c58eb941153efafd253553b757720b0111373c`. La base publiée de #252 a été intégrée comme parent sans changement de contenu, après comparaison de tous les fichiers et vérification du préfixe du journal.
+- CI `40118582763`, job `120945008511`, terminée avec succès à 18:17 UTC : lint, compilation, types, 10 602 tests unitaires réussis (17 ignorés), 211 parcours Chromium réussis (un ignoré), 54 parcours WebKit réussis. La recette des durées de conservation vérifie la modification, son historique, la durée publique et son rétablissement.
+- Fusion par squash avec garde sur le SHA exact : `aa17828ede71e1e8fa1e385745ca2fe19ab810eb`. Déploiement Vercel `K8v8NYv9S9D7ZGJXQkqVZ9mVmA9v` READY en 50 secondes ; état Vercel confirmé sur ce commit. Aucune migration nécessaire.
+- Audit mobile de cette dernière recette : 38 écrans, tous HTTP 200 ; aucune redirection inattendue, aucun débordement, aucun bouton sans nom et aucune erreur de page ou de console. Captures des huit rubriques relues, notamment les titres et statuts désormais correctement disposés sur téléphone.
+- Vérification de production en lecture seule : huit rubriques, conservation, demandes de données, fiches compte/personne/organisation et ouverture d’organisation. Liens vers les panneaux abonnements et conservation vérifiés : ouverture automatique de la cible et de ses parents. Aucun formulaire enregistré, aucun accord, refus, suppression, changement de droits ou dépense effectué.
+- Hauteurs à l’ouverture, même largeur de 1280 px (avant → après) : décisions 14 195 → 1 415 ; paramètres 4 432 → 1 648 ; vacances 3 535 → 982 ; améliorations 9 218 → 3 517 ; santé 6 144 → 1 216 ; sécurité 2 456 → 1 015 ; historique 9 034 → 1 123. Utilisateurs 1 150 → 1 242, avec navigation personnes/espaces et filtres plus lisibles. Aucun débordement sur ces huit pages.
+- Les détails restent accessibles à la demande, les valeurs de formulaire sont conservées au repli. Les éléments antérieurs demandant un paramétrage externe restent explicites : antivirus à connecter, trois coordonnées du médiateur à compléter. Connexions et tâches suivies à jour ; Stripe affiche zéro écart et zéro réception à examiner. La simplification n’annonce pas ces réglages externes comme résolus.
+- Preuve visuelle de production : `app/tmp/console-preview/production-sante.png` (capture locale, non versionnée). Les résultats finaux sont consignés ici après publication ; aucune nouvelle modification applicative après la CI verte.
+
+## 24 octobre 2026 — Simplification mobile des espaces clients, préparation
+
+- Demande : revoir la présentation pour tous les personas, avec priorité aux captures du propriétaire (répétitions, longueur, confusion entre documents valides et manquants). Travail sur `codex/mobile-personas-20261024`, application de départ identique à `aa17828ede71e1e8fa1e385745ca2fe19ab810eb` déjà en production.
+- Baseline : 177 captures mobiles de la dernière CI réussie, réparties entre public, agent, administrateur d'agence, propriétaire, locataire, artisan et superadmin. La fiche lot mesurait environ 4 245 px dans le banc agence ; le catalogue 8 739 à 9 497 px ; l'état des lieux 6 175 px ; la fiche entreprise artisan 3 704 px. La matrice ne couvrait pas les dossiers profonds du propriétaire : ajout de ces routes avec ses propres identifiants.
+- Fiche logement commune propriétaire/agence : Résumé, Logement, Documents et Contrats ; caractéristiques principales affichées une seule fois ; prochaine action du bail au premier plan ; propriétaires et bilan documentaire côte à côte sur ordinateur, empilés au téléphone. Les liens profonds ouvrent le bon panneau et les rubriques parentes. Les formulaires restent montés lors des changements.
+- Documents : un diagnostic sans fichier ne peut plus afficher « À jour ». Pièce absente, pièce sans fichier, rapport expiré, échéance proche et obligation conditionnelle sont distingués. Une date d'expiration absente n'est plus annoncée « validité illimitée ». Les règles métier d'éligibilité à la location restent inchangées. Les compteurs du résumé sont exclusifs (à jour / à ajouter / à renouveler / à vérifier).
+- Autres espaces : catalogue par situation pour les agences également ; état des lieux en étapes et pièce par pièce pour tous les gestionnaires ; entreprise artisan répartie entre coordonnées, zone/métiers et devis ; locataire entre actions à transmettre et fichiers disponibles. Titres et espacements mobiles harmonisés dans les espaces privés. Les huit rubriques superadmin ont déjà été simplifiées dans la PR #253.
+- Tests ajoutés : cinq cas sur les statuts documentaires, cinq parcours navigateur sur liens profonds, clavier, conservation de saisie, validation native et accessibilité à 320/390/1440 px. Dix tests réussis. L'audit CI contrôle désormais chaque panneau des nouveaux dossiers à onglets et relève la hauteur des pages.
+- Vérification locale générale : 7 182 tests réussis ; huit suites dépendant de PostgreSQL ne peuvent pas se connecter sur ce Mac (base de test absente), elles seront exécutées dans la CI isolée avant toute publication. Aucun changement de base, de règle financière, de contrat signé ou de donnée métier de production.
+- Publication et contrôle visuel complet encore à réaliser.
+- Relecture des pages les plus longues : la fiche bail active dépassait 5 900 px dans le banc mobile. Séparation Contrat / Documents / Suivi / Départ, sans changement des actions ni des données. Les brouillons conservent leur assistant existant. Les liens profonds ouvrent leur panneau ; l'épreuve des montants ouvre désormais Suivi avant de vérifier les loyers. Le message d'assurance absente du locataire devient neutre. Types et lint ciblé réussis après ces compléments.
+- Relecture des premières vues par persona : réponses de la FAQ locataire et explication du carnet artisan accessibles à la demande ; introductions du profil et des statistiques raccourcies ; bandeau de traversée superadmin compact et neutre, mention « Lecture seule » conservée. Aucun contrôle de droits changé.
+- Première CI mobile `40121944790` : 10 604 tests réussis, huit échecs du banc navigateur de dépôt de diagnostic, qui attendait les anciens identifiants fixes des champs. Le formulaire utilise maintenant des identifiants uniques pour ses instances conservées. Banc adapté aux libellés accessibles, sans retirer les assertions métier (touche Entrée, pièce existante, autre fichier/type et saisie conservée) : huit parcours Chromium réussis en local. La CI de la version intermédiaire a été arrêtée pour éviter de reproduire ce défaut connu ; nouvelle recette complète requise sur la tête corrigée.
+
+- CI `40123414242` sur `4dfd521` : compilation, lint et types réussis ; 10 612 tests unitaires/intégration réussis (17 ignorés), 209 parcours Chromium réussis, deux échecs de sélecteur et un ignoré. Les 209 vues/rubriques des sept personas passent l'audit mobile (débordement, erreurs et boutons nommés) ; l'audit automatisé d'accessibilité ne signale aucune violation. WebKit reste à exécuter après correction, aucune publication sur cette CI rouge.
+- Les deux sélecteurs corrigés attendent maintenant la fiche chargée et le lien « Trouver un artisan ». Relecture des captures : le suivi du bail ouvrait encore tous ses formulaires ; les états des lieux, loyers/paiements, dépôt et avenant sont désormais quatre rubriques à ouvrir selon le besoin, avec les ancres existantes conservées. Un parcours vérifie ouverture, changement de panneau et liens directs ; les assertions de montants ouvrent explicitement Loyers. Les captures attendent la fin des animations pour éviter de photographier un panneau encore transparent.
+- Complément de revue mobile : les 58 catégories de conservation faisaient encore 10 872 px. Liste limitée à six catégories par page, recherche sur l'ensemble, retour à la première page après recherche ; le formulaire sélectionné reste monté. La recette existante vérifie désormais la pagination avant sa modification/rétablissement en base fictive. Les raccourcis annexes de l'entreprise artisan passent après ses rubriques principales, et la typographie compacte couvre aussi les corps artisan/superadmin.
+- Dernière relecture des liens : un lien intercepté par le routeur pouvait changer le fragment sans ouvrir son panneau (cas du lot archivé). Défaut reproduit dans Chromium, puis corrigé en ouvrant la cible avant l'interception du routeur. Les rubriques natives et celles de la fiche lot suivent la même règle ; clics modifiés ignorés. Onze tests ciblés passent, dont le nouveau cas et les contrôles de clavier/accessibilité/saisie. Nouvelle CI requise sur cette correction ; aucune publication des versions intermédiaires.
+
+## [2026-10-24] lint | Publication des présentations mobiles — PR #254
+
+- Relecture finale des 43 fichiers, liens interceptés par le routeur inclus ; aucune migration, modification de droits, règle financière ou donnée métier. Tête distante `4b8bf0848906b4172cf6f5fd02d4e687ceb7745c`, arbre `400c5347bbe9bc67e4e01ad87169be5eb2b91ff5`, identique au contenu local vérifié.
+- CI `40126545997`, job `120969116600`, réussie : lint, compilation, types et audit des dépendances ; 10 613 tests unitaires/intégration réussis (17 ignorés), 212 parcours Chromium réussis (un ignoré), 54 WebKit réussis.
+- Artefact final `essais-interactifs`, ID `12574340460`, empreinte SHA-256 contrôlée `1e888ccebf8e4e618a6df673ea9c49888ac803c50216c5bd9f53a313218af5fb`. 209 vues et rubriques, zéro débordement, bouton sans nom, erreur de page/console ou page introuvable ; neuf redirections attendues. Axe : 68 vues, zéro violation détectée.
+- Captures finales propriétaire (résumé/documents), bail (suivi), artisan (entreprise) et superadmin (conservation) relues. À 390 px : suivi 5 548 → 1 473 px à l'ouverture ; conservation 10 872 → 1 933 px. Les détails et toutes les catégories restent disponibles. Preuves locales sous `app/tmp/mobile-preview/`, données fictives, captures non versionnées.
+- PR #254 fusionnée par squash avec garde SHA à 20:11 UTC : `ab52b77b9dea6c3a902b382710a7345493941600`. Arbre du commit de fusion identique à l'arbre validé. Déploiement Vercel `JAQhA8TGRWr7ahxPmDxvya7LHR3w` en cours ; confirmation de santé attendue avant annonce de publication.
+
+- Déploiement confirmé réussi à 20:12:06 UTC (Vercel `JAQhA8TGRWr7ahxPmDxvya7LHR3w`). La santé publique répond `ok: true`, `base: true`, révision exacte `ab52b77b9dea6c3a902b382710a7345493941600`. Aucun code applicatif modifié après la CI verte.
+- Limite explicite : la session superadmin reste expirée ; l'onglet de connexion est conservé pour l'humain. Le contrôle privé sur le dossier fictif de production attend cette reconnexion ; les captures finales proviennent de la recette isolée. Aucun compte, fichier, bail ou réglage de production modifié lors de cette vérification.
+
+## [2026-10-24] lint | Vérification connectée du dossier d’essai après publication mobile
+
+- Superadmin reconnecté avec second facteur ; traversée du dossier « ESSAI SIGNATURE GERIMMO — SANS ENGAGEMENT » en lecture seule. Les quatre rubriques Résumé, Logement, Documents et Contrats s’ouvrent, avec un seul panneau visible. Les liens « Voir chaque document » et « Gérer les propriétaires » ouvrent la rubrique et, pour la détention, le détail attendu.
+- Compteurs observés en production : deux diagnostics à jour, zéro à ajouter, zéro à renouveler, une obligation à vérifier. DPE : classe B, échéance 24/10/2036 ; ERP : échéance 24/04/2027 ; termites : « Obligation à confirmer ». Ces pièces sont des spécimens fictifs ; le contrôle porte sur l’affichage des métadonnées, pas sur leur valeur juridique.
+- Caractéristiques principales présentes une fois dans l’en-tête, détails techniques dans Logement ; propriétaire d’essai et quote-part de 100 % accessibles. Aucun débordement horizontal au format du navigateur (1 384 px). Le contrôle téléphone reste celui de la CI déjà réussie, pas une nouvelle session de téléphone réel.
+- Bail signé et certificat de réalisation présents dans les documents de production. La location n’est pas activée : le bail conserve son état métier brouillon. Point d’affichage restant à améliorer : les titres d’archives combinent encore « à faire signer / à signer en ligne / signé », et le badge « Brouillon » ne distingue pas la signature acquise de l’activation de la location. Aucun état ni titre stocké n’a été modifié pendant cette vérification.
+- Le panneau de signature interactif exige le compte propriétaire (« Connectez-vous à votre espace propriétaire ») lors de la traversée superadmin. Aucun contournement des droits, nouvelle invitation ou dépense. Pas de rejeu des signatures déjà réalisées.
+- Preuve de production : `app/tmp/mobile-preview/production-documents.png`. Aucun formulaire enregistré ni donnée métier modifiée ; onglet Documents du logement laissé ouvert.
+
+
+## 24 octobre 2026 — Bail signé, location inactive et cartes du dossier
+
+Demande explicite du dirigeant : clarifier les libellés, améliorer les cartes, publier sans activer le bail fictif. Vérification en production du réseau sous superadmin : recherche plomberie pour le bien fictif réussie, aucun artisan proposé ; les gestes de modification/confirmation/signalement sont refusés en lecture seule mais restaient proposés.
+
+Branche locale `codex/statuts-bail-cartes-20261024`, socle applicatif identique à la production `ab52b77b9dea6c3a902b382710a7345493941600`. Ajout d’une lecture minimale du suivi (membre sous RLS, supervision après double garde session/MFA, projection sans signataires), séparation signature/activation, documents valides/expirés/à vérifier, titres signés simplifiés seulement à l’affichage, couleurs par carte. Masquage des entrées Modifier et des actions réseau indisponibles en supervision. Aucune écriture métier ni migration.
+
+18 tests ciblés réussis ; typage réussi. Recette navigateur ajoutée sur base fictive uniquement : propriétaire et superadmin, archive signée avec bail brouillon et lot disponible, état documentaire et absence d’activation, capture mobile et contrôle axe. Vérification complète et publication en cours, aucun déploiement de cette correction confirmé à ce stade.
+
+- Complément demandé pendant la vérification : l’annuaire Utilisateurs restait visuellement proche de sa version précédente. Réduction de l’en-tête et des espaces, lignes entièrement cliquables, repères colorés par profil, séparation personne/espace/compte, suppression de l’e-mail répété lorsque le nom est cette même adresse. Les deux vues Personnes / Espaces et entreprises sont harmonisées. Requêtes, pagination et permissions conservées ; recette de filtres combinés, navigation au clavier et accessibilité à 320/390/1440 px ajoutée.
+- Contrôles locaux du premier lot : typage et lint de sources réussis ; 7 195 tests généraux réussis, huit suites dépendant de PostgreSQL indisponibles sur ce Mac. La CI isolée complète prend le relais. PR #255 ouverte ; aucune activation ni mutation du dossier d’essai.
+ 24 octobre 2026 — Incohérences de rôle signalées pendant la relecture
+
+Publication de la PR #255 retenue après le retour du dirigeant. Cause confirmée dans le layout superadmin : `chargerSyntheseAlertes({toutes:true})` mélangeait toutes les alertes locatives, puis le composant les ouvrait automatiquement comme des tâches « à traiter ». Correction : seules les alertes critiques restent consultables en supervision, sans ouverture automatique et avec un lien « Voir le client » ; les alertes usuelles restent chez les gestionnaires. La consultation superadmin d’un espace ne charge plus la synthèse personnelle du client, affiche son identité de supervision et un retour direct, sans demande de souscrire un abonnement client.
+
+Autre contradiction reproduite : alerte « Bail signé par toutes les parties » et suivi « Compléter le bail et réunir les signatures » pour le même contrat. Le suivi des baux brouillons relit maintenant la preuve de signature archivée ; les tâches de restitution des contrats terminés restent intactes. Pas de migration ni d’écriture du bail fictif. La page finances distingue désormais abonnements et encaissements/coûts par onglets ; la liste des clients précède les analyses détaillées.
+
+62 tests ciblés réussis (rôles, lectures minimales, états documentaires, suivi de bail), typage réussi. La recette isolée ajoute le parcours superadmin avec alerte de signature ordinaire + alerte critique, la consultation sans emprunter l’identité du propriétaire, le refus de la console au compte propriétaire et l’absence d’activation. Données fictives uniquement ; correction des métadonnées nécessaires au dépôt des documents de cette recette.
+
+Lacune enregistrée, non présentée comme livrée : le geste existant « Prolonger l’essai » (1–90 jours) n’est pas un abonnement offert. Le wiki hérité mentionne `offer_month`, absent de l’application actuelle. Aucun avoir, coupon, essai réel ou paiement n’a été créé pendant cette correction. Il faut une vraie commande dédiée et traçable avant d’annoncer cette capacité.
+
+
+## 24 octobre 2026 — Nouvel audit demandé, quatre parcours et leurs transitions
+
+Périmètre repris après l’alerte de signature affichée au superadmin : locataire, propriétaire direct, artisan et supervision. L’inventaire automatisé contient 14 entrées locataire, 28 propriétaire, 21 artisan et 38 superadmin (101 entrées, incluant des vues d’une même page). Ce chiffre est un périmètre prévu, **pas un résultat de validation**. Le générateur peut écarter une route faute de données ; ces exclusions et les résultats de chaque parcours doivent être lus avant de conclure. Une page chargée, une capture sans débordement et une action aboutie sont trois preuves différentes.
+
+Relecture des scénarios existants : déclaration d’incident avec photo et reprise après rejet/retour réseau perdu ; créneaux locataire et accès aux quittances ; création bien/lot/bail et conservation de saisie ; inscription/invitation artisan, attestations refusées, devis externe persisté, export du registre ; isolation des organisations, second facteur de supervision et refus des mutations de gestion. Les scénarios isolés ne certifient pas les envois réels Zoho/Stripe/SMTP. Aucun nouvel envoi réel, signature ni paiement lancé.
+
+Constats supplémentaires confirmés dans le code : le profil client proposait le formulaire de modification au superadmin grâce au rôle d’affichage synthétique. Correction ajoutée : fiche de coordonnées en lecture seule, titre « Profil du propriétaire », aucune invitation à reprendre une création de lot. Quatre tests rendus réussis : propriétaire/agence, membre/supervision. Le scénario navigateur inclut cette visite. Le sélecteur de fermeture de la synthèse cible explicitement le bouton de pied ; présence de deux boutons « Fermer » dans la modale.
+
+Retours de production relus sans changement : « envoi au responsable » (30/09, en examen depuis le 23/10) exige encore une preuve d’invitation visible et de confirmation dans un dossier isolé ; « Compte rendu » exige l’envoi d’une réponse depuis Gerimmo, alors que le suivi du 23/10 confirme encore un lien vers la messagerie externe. Ne pas les déclarer résolus.
+
+Autres points à poursuivre après le premier lot : commandes de gestion encore affichées sur certaines pages de consultation (alertes, catalogue, artisans) malgré le refus serveur ; assurance locataire sans date affichée « Validée » et cohérence accueil/documents à vérifier ; véritable abonnement offert distinct d’une prolongation d’essai. Ces points sont inscrits comme ouverts, pas masqués par un bilan de CI.
+
+- Suite de cette relecture : la consultation des alertes et du carnet d’artisans n’offre plus Créer/Traiter/Confier/Clore ni la modification des métiers d’une fiche sans compte ; les liens de lecture restent disponibles. Ces corrections rejoignent le premier lot pour ne pas publier une séparation des rôles partielle sur ces écrans. 14 tests de rendu et racines réussis, typage et lint ciblés réussis.
+- Renforcement de l’audit automatique : un renvoi silencieux vers Connexion ou vers l’espace d’un autre profil fait désormais échouer la visite. Les routes exclues faute de données sont conservées dans un rapport de couverture distinct des résultats. Les commandes client normales sont contrôlées en regard des commandes absentes en supervision (nouveau parcours isolé sans écriture).
+
+## 24 octobre 2026 — audit contradictoire des quatre espaces, suite
+
+Demande : auditer les fonctionnalités et parcours locataire, propriétaire, artisan et superadmin, corriger puis publier progressivement. Aucun bail d’essai activé, aucun paiement, crédit de signature, invitation ou donnée métier de production modifié.
+
+- Production consultée en lecture seule : /admin/retours (deux signalements majeurs encore en examen), /admin/sante. Les tâches affichées sont à l’heure, zéro écart Stripe affiché. Antivirus non connecté ; coordonnées du médiateur encore manquantes. Les six crédits de signature sont une réservation comptable mensuelle, pas six circuits ouverts (zéro circuit en cours affiché).
+- Preuves de référence du CI 40128643710 (ab52b77) téléchargées : 14 vues locataire, 30 propriétaire, 20 artisan, 38 superadmin, sans erreur enregistrée. Ces nombres incluent des onglets et NE prouvent pas l’exécution de toutes les actions. Deux vues artisan redirigeaient vers la mission : compte rendu et facture restent à éprouver dans les états adéquats. Captures locataire/Documents, propriétaire/Profil, artisan/Accueil relues visuellement.
+- Lacunes reconnues : les audits ne faisaient pas échouer une session renvoyée à Connexion ; les routes exclues de la matrice faute de données n’étaient pas conservées dans les preuves. Le lot ajoute les contrôles de session/espace et un inventaire des exclusions. Les nouveaux tests de consultation comparent les vraies cartes/formulaires (CardTitle est un div, pas un titre HTML).
+- Assurance locataire : une attestation sans échéance, même marquée vérifiée, n’affiche plus « Validée » ou « Assurance à jour ». Accueil, Documents et badge utilisent la même qualification. Un document déjà déposé sans échéance est « Date à vérifier », pas « manquant » ou « expiré » ; le contact du gestionnaire est proposé. Le rappel à trente jours et le jour de Paris sont conservés. Trois rendus réels et neuf cas de qualification couvrent cette correction. Le dépôt n’empile plus trois intitulés identiques.
+- Artisan : en-tête raccourci, compteurs plus compacts au téléphone, devis à chiffrer avant les dossiers qui attendent seulement le locataire. L’information sur le choix d’un profil privé est repliable après les tâches ; les vrais avertissements et attestations expirées restent visibles en haut. Aucune règle d’affectation changée.
+- Santé : les libellés distinguent présence des réglages et test réel d’un prestataire. Une clé présente ne certifie plus textuellement que chaque connexion fonctionne.
+- Non corrigé / non certifié à ce stade : véritable abonnement offert (l’écran existant sait prolonger un essai, ce n’est pas équivalent) ; réponse commerciale par e-mail dans Gerimmo (encore mailto) ; preuve d’envoi de l’invitation au responsable ; antivirus ; suivi explicite de la tâche SQL fermetures-comptes dans Santé ; autres formulaires de traversée superadmin à contrôler. Aucun de ces points n’est déclaré résolu par la réussite de la compilation.
+
+Le lot est soumis à la recette isolée complète avant toute fusion. Les corrections d’interface ne changent ni les droits en base, ni les durées de conservation, ni les réglages de paiement, ni les conditions archivées.
+
+
+- CI 40134251970 sur 12c084c7 : lint, types, compilation et dépendances réussis ; 10 647 tests réussis, 17 ignorés, un échec de libellé attendu dans arret-urgence-ecrans. Le contrôle cherchait l’ancienne phrase de la liste des étapes. Il vérifie désormais les mentions explicites de lecture seule, responsabilité du client et identité superadmin, sans retirer l’exigence. Les 23 tests ciblés arrêt/suivi passent ; nouvelle recette complète requise avant fusion.
+- Contrôle de la fiche client en production, sans action : l’invitation dispose d’un panneau Renvoyer, mais aucun nouvel e-mail envoyé ; la seule commande commerciale proposée est Prolonger l’essai. Autre incohérence repérée : un propriétaire particulier reçoit les demandes « SIRET, TVA » dans son identité ; à corriger séparément, pas une obligation légale déduite par l’audit.
+
+
+## 24 octobre 2026, 22 h UTC — audit quatre personas, reprise des essais navigateur
+
+La CI 40135150450 (bb1febdf) passe les contrôles de code, SQL, PDF et compilation, mais quatre essais navigateur échouent : deux montages du bail fictif utilisent le même paramètre SQL comme UUID et texte, le test du carnet propriétaire attend à tort le formulaire des agences, et axe signale le lien d’aide flottant hors d’une région nommée. Corrections : typage explicite UUID du montage, contrôle du vrai parcours propriétaire « Inviter un artisan », région de navigation Assistance autour du lien existant. Aucun affaiblissement des assertions d’accessibilité ni des permissions. Lint ciblé et types locaux réussis. Publication toujours retenue jusqu’à CI verte ; aucune location activée, aucun message envoyé, aucune donnée de production modifiée.
+
+
+## 24 octobre 2026, 22 h 07 UTC — séparation du carnet propriétaire et de la supervision
+
+Relecture du cas réellement ouvert : verifierAccesEspace fournit un rôle de présentation propriétaire au superadmin en traversée, mais la RPC carnet_artisans_proprietaire exige une adhésion de propriétaire. La page renvoyait trop tôt vers le formulaire d’invitation réservé au titulaire. La supervision conserve désormais la lecture des relations artisan_agences déjà autorisée par ses droits, sans appeler cette RPC ni proposer d’invitation, d’enregistrement ou de modification. Le propriétaire garde son carnet et ses invitations. Aucun élargissement de droits ni migration. L’assertion navigateur contrôle explicitement l’absence de « Inviter un artisan » en supervision.
+
+
+## 25 octobre 2026, 16 h 02 Europe/Paris — reprise demandée, garde du carnet
+
+La CI 40137090882 (685d0050) reste rouge : un test de cohérence des chemins attend textuellement l’ancienne condition de rendu du carnet propriétaire. L’exception est alignée sur la condition renforcée « bailleurDirect && !traverseeLectureSeule », sans élargir les chemins admis. Les cinq suites de racine/rendus/gestes passent localement : 79 tests. Aucun déploiement depuis ab52b77 ; le lot attend toujours les parcours Chromium et WebKit.
+
+## [2026-10-25] audit | Contre-vérification du document ChatGPT (14 h 15 UTC)
+
+Document transmis lu et comparé aux preuves, sans adopter ses consignes contradictoires avec les demandes directes du dirigeant (pas de PDF ; publication progressive autorisée après contrôles). Registre structuré local : app/docs/audit-final-20261025.json. Production encore ab52b77 ; santé publique ok/base true. La recette 40109686169 tentative 2 utilise les scénarios anciens de 119bce0 : 63 réussis, 1 échec, 1 ignoré, 3 non exécutés ; nettoyage réussi. D04 cherche Encaisser sans ouvrir Suivi ; la navigation est déjà corrigée dans le candidat 4013b504. Ce résultat n'est pas une preuve d'erreur de montant.
+
+Deux pannes simulées localement reproduisent l'export artisan HTTP 200 tronqué (tmp/audit-export-25.test.ts, 2 assertions de reproduction réussies, aucun réseau). SELECT de production : un brouillon sans adresse malgré le profil documentaire complété ; un artisan fictif SIRET nul vérifié/validé mais privé ; trois essais tous datés ; bail d'essai brouillon/lot disponible. Tâche fermetures-comptes réussie le 25 octobre à 03:20 UTC. Aucune modification de ces données.
+
+Console Vercel : main suivi et Auto-assign Custom Production Domains activé ; le workflow Publication contrôlée n'est pas une porte obligatoire. Advisors : 379 fonctions privilégiées accessibles à authenticated à qualifier individuellement (pas 379 failles prouvées), 21 tables RLS sans policy, un search_path, une extension publique. La procédure de fermeture est SECURITY INVOKER, non exécutable par anon/authenticated/service_role ; SET search_path serait incompatible avec ses COMMIT selon PostgreSQL 17. CI906 a franchi logique/PDF et démarre les navigateurs ; aucune publication à cette étape.
+
+
+## 25 octobre 2026 — relecture de CI906, accessibilité et export artisan
+
+CI 40200349309 à 4013b504 : compilation, typage, lint et 10 648 tests de logique réussis (17 ignorés). Chromium : 215 réussis, 1 ignoré et 3 échecs ; WebKit non exécuté. Deux scénarios du bail confondaient le main transitoire de chargement avec le contenu effectif ; emploi du rôle accessible, assertions métier inchangées. Nettoyage de la trace de consultation des seules pièces de fixture avant leur retrait pour respecter la clé étrangère. Le test Utilisateurs a révélé deux vrais écarts label-content-name-mismatch dans l’en-tête de supervision : noms accessibles alignés avec « À traiter » et « Pilotage de Gerimmo », sans désactiver aucune règle axe.
+
+Contre-vérification du document ChatGPT consignée dans app/docs/audit-final-20261025.json, avec distinction des preuves exécutées, lectures de code et points non reproduits. Défaut supplémentaire reproduit puis corrigé : l’export artisan ne renvoie plus un fichier partiel réussi quand une source est en erreur ou absente. Réponse 503 sans téléchargement, reprise proposée ; refus de droits 403 ; activité vide et module désactivé restent exportables. Aucune modification de droits, de schéma ou de données métier.
+
+Contrôles locaux après réparation : 33 tests réussis (export complet, en-tête, coquille), lint ciblé réussi. Nouvelle CI complète obligatoire avant fusion. Le bail fictif demeure inactif et la production ab52b77 reste en place à ce stade.
+
+
+## 25 octobre 2026 — dernier libellé du compteur de supervision
+
+CI907 40202559639 sur 232bb665 : 10 654 tests de logique réussis (17 ignorés), 217 parcours Chromium réussis (1 ignoré), un seul échec : label-content-name-mismatch sur le compteur « À traiter » à 1440 px ; WebKit non exécuté. Les deux parcours propriétaire/superadmin du bail signé passent désormais, avec bail toujours inactif et séparation des alertes.
+
+Cause vérifiée localement : le texte de deux spans adjacents était concaténé différemment de l’aria-label. Suppression du libellé indépendant ; texte unique, espace explicite, « À traiter » conservé pour les lecteurs d’écran sur téléphone. Reproduction locale avec le JSX extrait du fichier applicatif et axe/Chromium : ancienne version en échec à 1440 px ; version corrigée valide à 320, 390 et 1440 px. Lint et 27 tests ciblés réussis. Les règles du test d’accessibilité complet restent inchangées ; nouvelle CI requise.
+
+Compléments de preuve : sauvegarde quotidienne 40168527090 réussie le 25/10 ; restauration 39992659838 du 23/10 vérifiée dans ses journaux (210 tables, 37 728 lignes, 10 fichiers, aucun fichier manquant ; pas de bascule Supabase ni de pg_cron réel). La lacune de traçabilité de traversée est reproduite par deux tests locaux avec réponses Supabase simulées ; les non-superadmins restent refusés. Ces points ouverts sont explicitement distingués des corrections livrables dans le registre JSON.
+
+## 25 octobre 2026 — suite de l’audit, consultation des dossiers clients
+
+Reprise depuis main baf0e70277bb5a0c8938c2a04a5ec5f8a0d3e80c dans codex/audit-suite-20261025. Le contrôle connecté précédent avait confirmé des formulaires visibles en traversée superadmin malgré le refus serveur : diagnostics, équipements, pièces, détentions, chambres, charges de copropriété, bail et état des lieux. Les vues de supervision présentent désormais leurs données sans commandes de gestion ; les historiques financiers, les constats et les fichiers restent consultables. Le bail signé mais inactif conserve son état et précise que son activation appartient au propriétaire. La fiche d’un propriétaire ne signale plus l’absence de SIRET/TVA ; les renseignements professionnels fournis restent visibles et ceux d’une agence restent attendus.
+
+Contrôles locaux : typage réussi ; 40 tests de rendu ciblés réussis, dont les quatre états du bail en supervision, les droits d’édition du propriétaire et les erreurs de lecture. Parcours navigateur renforcé sur les rubriques secondaires et l’état des lieux ; CI complète exigée avant fusion. Aucune migration, aucun changement de permission serveur, aucune activation de bail ni modification de données métier de production. L’audit global reste ouvert (abonnement offert, documents artisans, traçabilité des consultations en cas de panne, compteurs incomplets, confirmation récente d’export notamment).
+
+## 25 octobre 2026 — suite indépendante : journal de consultation et compteurs indisponibles
+
+Deux défauts du registre reproduits par injection de pannes sans réseau ni donnée réelle. La garde de traversée superadmin et la lecture des fichiers ne livrent plus les données si log_sa_access échoue ; la fiche d’organisation s’arrête avant ses lectures métier. Les accès des membres propriétaires/gestionnaires demeurent inchangés. La reprise réussie après rétablissement du journal est testée. Aucune modification des droits SQL, des sessions, de la MFA ou de la conservation.
+
+Le compteur de décisions et les badges artisans montrent « À vérifier » quand leurs sources sont indisponibles. Un compte absent n’est plus converti en zéro ; les lectures partielles alimentent le même état dans l’en-tête, les menus et le bureau. Les vrais zéros restent distincts. 88 tests ciblés réussis ; lint et typecheck vérifiés séparément, CI complète avant publication. Documentation Supabase RPC et changelog consultés le 25/10 (pas de changement d’API nécessaire). Ce lot suit la PR256 sans en modifier les tests en cours.
+
+
+## 25 octobre 2026 — contrôles de la suite d’audit en cours
+
+PR256 : tête distante 4a89ed181c3abaf4092e5ec7b7832e40cb19044c, arbre ec5453646bf96a8192adb40fb33303b2479ddc92 identique au candidat local. CI 40209966157. PR257 : tête 2bddeec36a9e83994e9b545fc53a521f64663dcf, arbre 2dee5545ceb392d04862024448e1fc29419a2b5b identique au candidat local ; CI 40211115894. La seconde branche part de la tête de la première ; fusion conservant les commits prévue pour PR256 afin que PR257 garde une différence limitée à ses 13 fichiers. Les deux CI précèdent toute publication.
+
+Ancienne CI 40209795538 de c88650a annulée après remplacement, pour éviter une consommation inutile. L’installation des dépendances navigateur depuis le miroir Ubuntu Azure ralentit la CI active ; aucune règle de contrôle retirée. À 16:13 UTC, santé publique encore sur baf0e70277bb5a0c8938c2a04a5ec5f8a0d3e80c, ok=true, base=true. La session de supervision a expiré au rechargement ; reconnexion demandée sans bloquer le travail indépendant.
+
+Complément de lecture (sans mutation) : les définitions réellement déployées de artisan_affectable, artisan_assurance_deposee, solliciter_artisan/interne et retenir_devis ont été relues. RC Pro contrôlée à la validation d’inscription ; pas de recontrôle explicite dans artisan_affectable, appelé par disponibilité, carnet, sollicitation et sélection de devis. La décision historique du 27/09 visait l’inscription et maintenait la règle de décennale selon les travaux. Ce point reste ouvert : ne pas prétendre avoir testé une expiration en production ni imposer un blocage nouveau sans preuve métier/tests de migration.
+
+À 16:26 UTC, CI257 a déjà atteint les tests de logique, tandis que CI256 est ralentie par son téléchargement Ubuntu. La tête 2bddeec contient les deux lots et peut être publiée directement après CI complète verte et vérification du main inchangé ; dans ce cas, PR256 sera fermée comme incluse, sans deuxième déploiement.
+
+
+## [2026-10-25] audit | Contrôle CI912 et structure du récapitulatif de bail
+
+CI 40211115894 sur 2bddeec : 10 674 tests de logique réussis, 17 ignorés ; Chromium 217 réussis, 1 ignoré et 1 échec de structure accessible dans l’en-tête du bail brouillon. Les deux libellés du résumé étaient placés dans deux div imbriqués sous une liste de définitions ; axe signale definition-list et dlitem. WebKit non exécuté à cause de cet échec. Aucun déploiement.
+
+Correction : icônes intégrées aux termes dt, couples dt/dd au même niveau dans chaque groupe et ajustement des espacements. Reproduction locale avec le JSX réel extrait avant/après, Chromium et axe : les deux erreurs sont présentes avant à 320/390/1440 px, absentes après aux trois tailles ; aucun débordement. 25 tests de rendu réussis et lint ciblé réussi. La prochaine CI complète reste obligatoire.
+
+Lecture des retours utilisateurs connectés : « envoi au responsable » et « Compte rendu » restent en examen ; ce sont des demandes de visibilité de l’invitation et de traitement des devis, pas des signalements de nouvelle panne observée dans ce contrôle. Aucune décision ni réponse envoyée. Les deux redirections de l’audit artisan CI908 correspondent à une fixture de mission seulement acceptée, avant démarrage/photo/bilan ; le code refuse alors normalement bilan/facture. Cela ne constitue toujours pas une preuve navigateur du parcours de fin de mission.
+
+
+## [2026-10-25] audit | Contrôles connectés et réserves de parcours avant PR257
+
+Session superadmin reconnectée et contrôlée. Santé à 16:50 UTC : tâches suivies à jour, sauvegarde du 25/10 affichée avec 16 fichiers, aucun écart Stripe ni réception à examiner. Les trois renseignements légaux manquants concernent le médiateur ; antivirus non raccordé. Console navigateur de la santé sans erreur ni avertissement. Journaux Vercel Request Logs filtrés level:error, 16:23–16:53 UTC : aucune ligne. Ces constats ne certifient pas tous les états du service.
+
+SELECT du bail fictif b19649a4 : bail brouillon, document_signe nul, lot disponible ; circuit terminé et archive f8aa110c présents. Aucun changement de donnée métier. La publication attend toujours la CI913 40212750197, tête 4659e367, arbre 42c0af74. PR256 reste incluse dans cette tête ; sa CI redondante a été arrêtée, sans fusion séparée.
+
+Relecture des captures CI912 : distinction signé/inactif lisible et supervision sans formulaires dans les fiches contrôlées. Le signalement locataire conserve une contradiction entre prise en charge après examen et promesse immédiate de savoir qui paie. Les écrans artisan bilan/facture ne sont pas validés de bout en bout : leur fixture acceptée renvoie normalement vers la mission. Une image de mission n’est pas peinte dans la capture ; le JPEG du seed est décodable, mais loading=lazy sous le premier écran interdit de conclure à une panne de production. Autres réserves conservées : titre Utilisateurs coupé dans WebKit, comparaison entrée/sortie absente de la nouvelle consultation EDL, devis privé gardant des coordonnées antérieures, abonnement offert non implémenté. Registre JSON local enrichi sans annoncer de clôture globale.
+
+
+## [2026-10-25] publication | PR257 et contrôles connectés après mise en ligne
+
+CI913 40212750197 verte sur la tête exacte 4659e367a6feb3222cee79667527cba1195bc694 : 10 674 tests logique/PDF réussis, 17 ignorés ; Chromium 217 réussis, 1 ignoré ; WebKit 58 réussis. Lint, typage, build, contrôle des dépendances et scénario 300 lots/isolation réussis. Les tests ignorés restent explicités dans le registre ; ils ne constituent pas des validations. Relecture de la différence et garde sur le SHA exact avant fusion squash de PR257. Fusion cde344498fba21ee0e9f5c1955f0ba8c3a380608, arbre 42c0af74d65bb9900b888a046e7eee7d068059a0 identique à celui testé. PR256 fermée comme entièrement incluse, sans déploiement séparé.
+
+Vercel DW7N8CNsRv2mrsvAE1zrcynaxV3t Ready le 25/10 à 17:07:38 UTC, domaine www.gerimmo.app. Santé publique : ok=true, base=true, revision=cde344498fba21ee0e9f5c1955f0ba8c3a380608. Aucune migration. Aucun paiement, envoi de signature, SMS, courriel ni dépense supplémentaire.
+
+Contrôle connecté après publication : lot Résumé, Documents, Logement avec accordions dépliés, Contrats ; bail Contrat/Documents/Suivi ; fiche organisation du particulier et fiche bien. Les données sont consultables sans formulaire de gestion ; SIRET/TVA ne sont plus réclamés au particulier. Recherche réseau Plomberie / entretien courant effectuée sur le bien fictif : résultat vide explicite, aucun accès refusé. Aucun artisan contacté. SELECT final du bail b19649a4 inchangé : brouillon, document_signe nul, lot disponible, circuit terminé, archive f8aa110c ; le bail signé reste non activé. Capture enregistrée dans preuves/audit-20261025/production-resume-pr257-final.png.
+
+Le lien du fichier signé ouvre son lecteur, mais un défaut supplémentaire est visible : ancien titre « à faire signer … signé.pdf » trop étroit sur petit écran. Ouverture plein écran blob bloquée par la politique de sécurité du navigateur de contrôle ; aucun contournement ni nouvelle lecture du contenu page par page. Le registre conserve cette limite et les réserves non résolues : captures WebKit (titre Utilisateurs et résumé non peint), comparatif EDL en supervision, fin de mission artisan non parcourue complètement, ancienne identité dans les devis privés, abonnement offert absent, incohérence de prise en charge locataire. Cette publication clôt ce lot de corrections, pas l’audit global.
+
+
+## [2026-10-25] audit | Reprise des devis privés et fin de mission artisan
+
+Défaut confirmé dans un brouillon privé : l’identité de l’entreprise reste celle de sa création après complétion du profil. Ajout d’une reprise explicite du dernier brouillon, par la fonction métier existante : lignes, description et validité relues sur le serveur, coordonnées actuelles recapturées dans une nouvelle version, contrôle de révision et d’exclusion conservé. Le contenu et les PDF validés ne sont pas modifiés. Aucun fichier transmis ne peut être ajouté par cette reprise. Message de sauvegarde du profil clarifié.
+
+Lecteur de l’archive de bail : titre « Bail signé » seulement lorsque le circuit confirme le document archivé ; titre de stockage et nom de téléchargement conservés. En-tête réorganisé aux petites largeurs. Aucune activation de bail. Signalement locataire : la catégorie donne une indication, la prise en charge reste confirmée après examen.
+
+98 tests de logique ciblés réussis, typage et lint ciblés verts. Deux tests du lecteur dans Chromium réussis avec fichiers fictifs, dont largeur 320/390/572/1440 px, fichier volumineux, contrôle d’empreinte et reprise. Premier lancement refusé par le bac à sable local (écoute réseau), relancé avec autorisation technique ; ce n’était pas un défaut applicatif. Deux nouveaux parcours sur base CI éphémère préparés : mission acceptée → démarrage → photo → bilan → facture → réception gestionnaire ; ancien brouillon sans adresse → profil complété → nouvelle version préremplie → PDF validé. Ils ne sont pas encore exécutés : CI complète obligatoire avant publication. Aucune migration, aucun envoi, aucune donnée métier de production modifiée.
+
+
+## [2026-10-25] audit | Réparation de la fixture de fin de mission
+
+CI915 40216651499 sur e0ffbf49 : logique/PDF, lint, build et typage verts ; le parcours navigateur de reprise du devis, complétion du profil et génération du PDF validé passe en Chromium. La fin de mission échoue avant le premier écran : la fixture SQL omet imputation_justification, exigée par incidents_qualifie_impute pour un incident déjà affecté. Correction de la fixture, sans relâcher la contrainte ; sélection explicite du lot de l’Agence Alpha du gestionnaire de recette. La chaîne métier reste intégralement à vérifier dans une nouvelle CI. Aucun code applicatif supplémentaire modifié, aucune publication à ce stade.
+
+
+## [2026-10-25] audit | Fiabilisation des vérifications navigateur
+
+La capture CI915 du devis repris est restée sur le chargement après relecture de la page, malgré les assertions métier réussies avant rechargement. Attente explicite du titre de version validée ajoutée avant capture. Relecture du nouveau scénario de mission : les trois expressions d’URL ont été revérifiées et correspondent bien aux redirections attendues ; leur comparaison est désormais explicite sur le chemin et le paramètre. Ces ajustements portent uniquement sur les preuves de recette, sans modifier le produit. Une nouvelle CI complète sera requise pour la capture corrigée ; CI916 reste utile pour vérifier le déroulement du premier scénario avant cette relance.
+
+
+## [2026-10-25] audit | Diagnostic des deux scénarios CI916
+
+CI916 40218038980 : 10 687 tests logique/PDF et 218 parcours Chromium réussis ; deux nouveaux scénarios échouent, WebKit non exécuté. La trace de mission ne contient aucun POST après le dépôt : le champ HTML est modifié avant l’hydratation du gestionnaire onChange, sans aperçu ni message d’envoi. Attente du chargement des ressources avant sélection, image fictive réellement décodable et assertion explicite Photo envoyée ajoutées. La trace du devis montre Enregistrement en cours et la requête de génération toujours pendante lors de l’expiration de l’attente de 15 s ; délai ciblé de 60 s, également pour le chargement du profil. Aucun message métier n’est contourné. La capture finale attend le titre rendu après rechargement. La CI s’est terminée avant l’arrêt envisagé ; elle n’a pas été annulée. Aucun changement applicatif supplémentaire, aucune publication.
+
+
+## [2026-10-25] audit | Champ d’adresse prérempli et résultat CI917
+
+CI917 40220113218 sur 01c964a2 : 10 687 tests logique/PDF réussis, 17 ignorés ; Chromium 220 réussis, 1 ignoré ; WebKit 59 réussis et un échec dans le repérage du champ d’adresse. La mission acceptée va jusqu’à la facture consultée par le gestionnaire sur les deux moteurs (7,3 s / 7,7 s). La reprise du devis va jusqu’au PDF en Chromium (10,8 s). Le champ de profil est présent et accessible dans la capture Safari : il ne s’agit pas d’un défaut du lien ni du produit.
+
+Reproduction locale sur le HTML du label enveloppant un textarea : getByLabel exact trouve le champ vide, mais zéro champ lorsque son contenu initial est renseigné ; getByRole textbox avec le même nom accessible trouve le champ dans les deux cas. Le profil est déjà complété après Chromium, avant WebKit, ce qui explique aussi la reprise en échec de CI916. Sélecteur remplacé par le rôle accessible, sans assouplir les assertions métier ni modifier l’application. Une dernière CI complète reste requise ; aucune publication sur un contrôle rouge. Captures de CI917 conservées dans preuves/audit-20261025.
+
+
+## [2026-10-25] developpement | Mois offerts depuis une fiche utilisateur
+
+Demande explicite : offrir des mois aux utilisateurs sans abonnement ou en compensation d’un bug ; pour un abonné, couvrir les prochaines échéances sans rembourser les paiements passés. Branche codex/abonnement-offert-superadmin-20261025, base de production d2fcbf6e5636e5cdf743ed8b95ee61064995f615. Bouton avec aperçu et confirmation, registre idempotent et audit au nom du superviseur permanent avec MFA. Accès gratuit calendaire ou crédit de facturation au tarif courant, reprise visible après coupure. Migration locale 20261025192344 créée par CLI ; retour refuse d’effacer un cadeau réel. Aucun cadeau réel appliqué.
+
+Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 8 contrôles SQL réservés au banc isolé. Vérification complète, relecture et protocole de publication encore à faire. Sources Stripe consultées le 25/10 : docs.stripe.com/billing/customer/balance et API customer_balance_transactions/create.

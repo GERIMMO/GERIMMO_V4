@@ -121,6 +121,9 @@ function fichiersSource(dossier: string): string[] {
 type Exception = { fichier: string; argument: string; raison: string };
 
 const EXCEPTIONS: Exception[] = [
+  { fichier: "src/app/actions/qualification-diagnostic.ts", argument: "annee", raison: "année entière : quatre chiffres contrôlés puis bornes 1800 et année courante à Paris" },
+  { fichier: "src/app/agence/[orgId]/parc/[bienId]/qualification-diagnostic.tsx", argument: 'donnees.get("annee_installation")', raison: "reprise seulement après succès de l’action serveur, qui impose quatre chiffres entre 1800 et l’année courante" },
+  { fichier: "src/components/lecteur-document.tsx", argument: 'reponse.headers.get("content-length")', raison: "taille HTTP indicative en octets ; le flux est aussi recompté et borné à 50 Mio" },
   { fichier: "src/app/actions/reglage-souscription.ts", argument: "revisionBrute", raison: "révision : chiffres seuls, entier sûr entre 0 et 2147483646, comparé atomiquement à la révision enregistrée ; jamais un montant" },
   // Tailles HTTP en octets, jamais des montants saisis. La lecture du flux
   // recompte les octets et impose la limite même sans cet en-tête indicatif.

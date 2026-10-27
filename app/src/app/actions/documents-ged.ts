@@ -21,6 +21,22 @@ export type EtatDocumentGed = {
   valeurs?: Record<string, string>;
 };
 
+// Le formulaire transmet les filtres, jamais une destination de navigation.
+// Les valeurs répétées ou trop longues sont ignorées comme un filtre absent.
+function filtresApresRemplacement(formData: FormData): URLSearchParams {
+  const resultat = new URLSearchParams();
+  const brut = formData.get("retour_filtres");
+  if (typeof brut !== "string" || brut.length > 4096) return resultat;
+  const filtres = new URLSearchParams(brut);
+  for (const [cle, maximum] of [["type", 80], ["q", 200], ["du", 10], ["au", 10]] as const) {
+    const valeurs = filtres.getAll(cle);
+    if (valeurs.length !== 1 || !valeurs[0] || valeurs[0].length > maximum) continue;
+    if ((cle === "du" || cle === "au") && !/^\d{4}-\d{2}-\d{2}$/.test(valeurs[0])) continue;
+    resultat.set(cle, valeurs[0]);
+  }
+  return resultat;
+}
+
 // Remplacer une pièce par une nouvelle version (maquette pageDocument :
 // « Le remplacement conserve l'historique »). Le fichier est vérifié comme au
 // dépôt (type réel, PDF complet, anti-doublon), puis la RPC definer
@@ -117,8 +133,11 @@ export async function remplacerDocument(
   }
 
   revalidatePath(`/agence/${orgId}/documents`);
-  // La liste ne montre que les versions courantes : ouvrir la nouvelle
-  redirect(`${baseEspace(orgId, role === "proprietaire_direct")}/documents?sel=${nouvelleVersion}`);
+  revalidatePath(`/espace/${orgId}/documents`);
+  // Ouvrir la nouvelle version dans la même liste filtrée, sous la racine du profil.
+  const parametres = filtresApresRemplacement(formData);
+  parametres.set("sel", nouvelleVersion);
+  redirect(`${baseEspace(orgId, role === "proprietaire_direct")}/documents?${parametres}`);
 }
 
 // Les entités rattachables depuis la fiche de pièce (module 12 — l'énum
@@ -179,5 +198,6 @@ export async function rattacherDocument(
   }
 
   revalidatePath(`/agence/${orgId}/documents`);
+  revalidatePath(`/espace/${orgId}/documents`);
   return { succes: "Pièce rattachée — elle apparaît désormais sur cette fiche." };
 }

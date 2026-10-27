@@ -408,7 +408,7 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
         -- (hausse, périodicité, résiliation), qu'un compte gelé doit encore pouvoir prendre.
         -- retractations_abonnement (plan du 23/10, R01) : la rétractation reste ouverte à un compte gelé.
         and c.relname not in ('acces_pieces_log', 'audit_log',
-                              'abonnements', 'abonnement_evenements', 'intentions_souscription', 'verrous_facturation',
+                              'abonnements', 'abonnement_evenements', 'intentions_souscription', 'verrous_facturation', 'mois_offerts',
                               'retractations_abonnement',
                               'retours_utilisateurs', 'retours_soutiens',
                               'automation_events', 'orchestration_cases', 'orchestration_history')
@@ -447,7 +447,7 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
       select distinct g.grantee
       from information_schema.role_table_grants g
       where g.table_schema = 'public'
-        and g.table_name in ('abonnements', 'abonnement_evenements', 'intentions_souscription', 'verrous_facturation',
+        and g.table_name in ('abonnements', 'abonnement_evenements', 'intentions_souscription', 'verrous_facturation', 'mois_offerts',
                              'retractations_abonnement')
         and g.grantee in ('anon', 'authenticated')`);
     expect(rows.map((r) => r.grantee)).toEqual([]);

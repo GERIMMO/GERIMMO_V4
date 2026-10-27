@@ -1,0 +1,29 @@
+.formulaire { display:grid; gap:22px; min-width:0; }
+.groupe { min-width:0; padding:0; border:0; margin:0; }
+.groupe > legend { margin-bottom:14px; font-size:15px; font-weight:650; color:var(--encre); }
+.sansTitre > legend { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); }
+.aide { margin:0 0 14px; font-size:12px; line-height:1.6; color:var(--texte-secondaire); }
+.reprise { display:flex; align-items:flex-start; gap:9px; padding:11px 13px; border:1px solid #d9e5df; border-radius:9px; background:#f3f8f5; color:#305c48; font-size:12px; line-height:1.6; }
+.reprise svg { flex-shrink:0; margin-top:2px; }
+.options { min-width:0; border:1px solid var(--filet); border-radius:10px; background:var(--carte); }
+.options > summary { display:flex; align-items:center; gap:12px; min-height:54px; padding:13px 16px; cursor:pointer; list-style:none; }
+.options > summary::-webkit-details-marker { display:none; }
+.options > summary > span:first-child { flex:1; min-width:0; }
+.options > summary strong { display:block; font-size:13px; font-weight:600; color:var(--encre); }
+.options > summary small { display:block; margin-top:3px; color:var(--texte-secondaire); font-size:11px; line-height:1.5; }
+.options > summary svg { flex-shrink:0; color:var(--texte-secondaire); }
+.options[open] > summary { border-bottom:1px solid var(--filet-leger); }
+.options[open] > summary svg { transform:rotate(180deg); }
+.options > summary:focus-visible { outline:2px solid var(--marque); outline-offset:3px; border-radius:9px; }
+.options > .groupe { padding:17px 16px; }
+.options > .groupe > legend { display:none; }
+.restant { color:#935e14; background:#fff5df; padding:4px 7px; border-radius:6px; font-size:11px; white-space:nowrap; }
+.total { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:8px; margin-top:15px; padding:12px 14px; border-radius:9px; background:var(--creme); font-size:12px; color:var(--texte-secondaire); }
+.total strong { font-size:20px; font-weight:650; color:var(--encre); font-variant-numeric:tabular-nums; }
+.formulaire [hidden] { display:none !important; }
+@media(max-width:600px) {
+  .formulaire { gap:18px; }
+  .formulaire input, .formulaire select, .formulaire textarea { font-size:16px; min-height:44px; }
+  .options > summary { padding:12px; gap:8px; }
+  .options > .groupe { padding:15px 12px; }
+}

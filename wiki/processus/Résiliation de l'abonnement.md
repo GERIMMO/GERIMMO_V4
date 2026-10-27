@@ -102,3 +102,7 @@ facture restée impayée annulée.
 > - **Accord exprès et non-reconduction** (R212-1 3°, R212-4, R212-5) : appliqués à tout
 >   client, sans chercher s'il est consommateur — à confirmer sur Légifrance (source non
 >   ouverte le 23/10/2026).
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

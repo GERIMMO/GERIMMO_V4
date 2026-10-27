@@ -1084,5 +1084,29 @@
     "persona": "superadmin",
     "label": "Demandes privées de données et procédure de fermeture",
     "dynamic": ""
+  },
+  {
+    "path": "/admin/conservation",
+    "persona": "superadmin",
+    "label": "Durées de conservation",
+    "dynamic": ""
+  },
+  {
+    "path": "/espace/ORG/parc/BIEN_PD/lots/LOT_PD",
+    "persona": "proprietaire",
+    "label": "Fiche du logement propriétaire",
+    "dynamic": ""
+  },
+  {
+    "path": "/espace/ORG/parc/BIEN_PD",
+    "persona": "proprietaire",
+    "label": "Fiche du bien propriétaire",
+    "dynamic": ""
+  },
+  {
+    "path": "/espace/ORG/baux/BAIL_PD",
+    "persona": "proprietaire",
+    "label": "Contrat du propriétaire",
+    "dynamic": ""
   }
 ]

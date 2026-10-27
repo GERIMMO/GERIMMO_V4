@@ -145,24 +145,24 @@ export default async function LayoutArtisan({
   const navigation = { aFaireMaintenant, devisAChiffrer, piecesAAJour };
 
   return (
-    <div className={`artisan-app ${styles.shell}`}>
+    <div className={`artisan-app experience-unifiee ${styles.shell}`}>
       <BandeauSessionSupervision />
       <div className={fiche ? styles.workspace : styles.onboarding}>
         {fiche && (
-          <aside className={styles.sidebar}>
+          <aside data-espace-menu className={`${styles.sidebar} ambiance-menu-artisan`}>
             <Link href="/artisan" aria-label="Accueil de mon espace artisan" className={styles.brand}>
               <MarqueGerimmo surEncre />
               <span>Espace artisan</span>
             </Link>
             <NavArtisan {...navigation} presentation="bureau" clientsExternes />
             <div className={styles.sidebarFoot}>
-              <LienAssistance><CircleHelp size={19} aria-hidden /> Aide et retours</LienAssistance>
+              <LienAssistance><CircleHelp size={19} aria-hidden /> Aide</LienAssistance>
               <span>Votre activité, en confiance.</span>
             </div>
           </aside>
         )}
         <div className={styles.body}>
-          <header className={styles.topbar}>
+          <header data-espace-entete className={`${styles.topbar} ambiance-haut-artisan`}>
             {/* De 700 à 999 px l'en-tête est blanc : tuile (D28 A, DES-B-10). Sous 700 px il est déjà bleu nuit,
                 la feuille de style du portail efface alors la tuile. */}
             <Link href="/artisan" aria-label="Accueil de mon espace artisan" className={`${styles.mobileBrand} rounded-xl`}>
@@ -170,9 +170,10 @@ export default async function LayoutArtisan({
             </Link>
             <span className={styles.spaceLabel}><Wrench size={18} aria-hidden /> Espace artisan</span>
             <div className={styles.topbarActions}>
-              <LienAssistance className={styles.help} title="Aide et retours">
+              <span className="ambiance-repere" aria-hidden="true" />
+              <span data-aide-mobile><LienAssistance className={styles.help} title="Aide">
                 <CircleHelp size={19} aria-hidden /><span>Aide</span>
-              </LienAssistance>
+              </LienAssistance></span>
               <MenuCompte initiales={initiales} titre={nom} liens={compteLiens} compteId={user.id} />
             </div>
           </header>

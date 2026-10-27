@@ -11,7 +11,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Cohérence des loyers de référence]] — contrôle indicatif à la saisie du bail, surface habitable et complément, sans modification automatique des montants.
 
 ## Personas
-- [[Super Admin]] — l'éditeur de la plateforme ; console, modèles, blacklist globale, facturation.
+- [[Super Admin]] — l'éditeur de la plateforme ; console, modèles, blacklist globale, facturation ; **24/10** : simplification des huit rubriques et des fiches liées préparée, publication suivie dans `log.md`.
 - [[Administrateur d'agence]] — « agent ++ » : administration, paramétrages, vue retards ; **20/10** : hors V1 publique depuis le 13/10, son agence s'inscrit sur la liste d'attente du site (`/agences`, déployé le 20/10 au soir (PR #227)) — [[Liste d'attente des agences]].
 - [[Agent immobilier]] — gestion locative quotidienne ; limité à ses mandats (V3) ; **20/10** : agences hors V1 publique, liste d'attente ouverte sur le site (déployé le 20/10 au soir (PR #227)) — [[Liste d'attente des agences]].
 - [[Propriétaire bailleur]] — deux personas V3 : mandant (aucun accès, compte rendu mensuel reçu) vs gestion directe (accès complet) ; **16/10** : le propriétaire direct invite ses artisans par e-mail (PR #194), l'ajout par SIRET restant réservé aux agences.
@@ -287,3 +287,15 @@ Les pages [[Registre des anomalies — audit du 13 octobre 2026]], [[Dossier de 
 - **22 octobre 2026 — signatures et conservation, local** : états détaillés des actes, protection des preuves et bilan sans suppression ; adresse personnelle conservée, anciens réglages Youtrust supprimés le 23 octobre après confirmation. [Bilan et limites](app/docs/signatures-conservation-22-octobre.md). Aucun nouveau déploiement.
 
 - **23 octobre 2026 — réglages et accès Youtrust retirés** : trois variables Production supprimées sur Vercel, redéploiement de la version existante réussi, sonde du site et de la base au vert ; dernière clé Sandbox révoquée chez le fournisseur et ancien webhook Gerimmo supprimé après confirmation finale. Documents et abonnement fournisseur conservés. [État](app/docs/signatures-conservation-22-octobre.md).
+
+- [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] — corrections adverses, sources officielles et preuves de publication.
+
+- **24 octobre 2026 — réglage des durées par le dirigeant, en validation locale** : [[Durées de conservation#Réglage par le dirigeant — préparation du 24 octobre 2026|écran superadmin, décisions tracées et conservation des échéances déjà constituées]].
+
+- **24 octobre 2026 — bureau de direction simplifié, en validation** : demandes regroupées en trois catégories, problèmes en premier, recherche et six demandes par page ; toutes les décisions restent explicites. Preuves dans `log.md`.
+
+- 24/10/2026 : périmètre logement/bâtiment et plafonds de propositions (5 veilles, 2 articles), anciens hors-sujets en réserve ; [[Guide de ton du journal]]. Suite de la PR #252, publication après CI.
+
+- **24 octobre 2026 — présentation mobile des espaces, en validation** : [[Présentation mobile des espaces — 24 octobre 2026]] — rubriques courtes, documents explicites et conservation des saisies.
+
+- **25 octobre 2026 — mois offerts, en validation** : [[Cycle de vie de l'abonnement#Mois offerts depuis le superadmin — décision du 25 octobre 2026]].

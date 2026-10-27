@@ -16,11 +16,13 @@ export function FormulaireAlerte({
   orgId,
   membres,
   estResponsable,
+  estProprietaire = false,
 }: {
   orgId: string;
   membres: Membre[];
   // Seul le responsable de l'agence peut confier à tout le monde
   estResponsable: boolean;
+  estProprietaire?: boolean;
 }) {
   const actionLiee = creerAlerte.bind(null, orgId);
   const [etat, action] = useActionState<EtatAlerte, FormData>(
@@ -37,7 +39,7 @@ export function FormulaireAlerte({
     <form data-saisie-confirmee ref={formulaire} action={action} className="formulaire-reperes space-y-4">
       <LegendeChamps />
       <div className="space-y-2">
-        <Label htmlFor="titre-alerte">Titre</Label>
+        <Label htmlFor="titre-alerte">{estProprietaire ? "Que devez-vous faire ?" : "Titre"}</Label>
         <Input
           id="titre-alerte"
           name="titre"
@@ -47,7 +49,7 @@ export function FormulaireAlerte({
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="criticite">Criticité</Label>
+        <Label htmlFor="criticite">{estProprietaire ? "Priorité" : "Criticité"}</Label>
         <select
           id="criticite"
           name="criticite"
@@ -88,7 +90,7 @@ export function FormulaireAlerte({
               — Choisir —
             </option>
             {/* Seul le responsable de l'agence peut confier à tout le monde */}
-            {estResponsable && <option value={ASSIGNATION_TOUS}>Toute l’agence</option>}
+            {estResponsable && <option value={ASSIGNATION_TOUS}>{estProprietaire ? "Tous les membres" : "Toute l’agence"}</option>}
             {membres.map((m) => (
               <option key={m.account_id} value={m.account_id}>
                 {m.email}
@@ -112,7 +114,7 @@ export function FormulaireAlerte({
         </p>
       )}
       <BoutonEnvoi className="w-full" enCoursTexte="Création…">
-        Créer l&apos;alerte
+        {estProprietaire ? "Créer le rappel" : "Créer l'alerte"}
       </BoutonEnvoi>
     </form>
   );

@@ -105,14 +105,32 @@ describe("le bouton de « Mes lots » vide : toute la table de vérité", () => 
 });
 
 // ── Les écrans rendus, avec un faux accès aux données ───────────────────────────────────────────────────────────
-type Reponse = { data: unknown; error: unknown };
+type Reponse = { data: unknown; error: unknown; count?: number | null };
 
-/** Un faux client : chaque lecture rend la réponse prévue pour sa table (vide par défaut), et se laisse relire. */
+/** Tables distinctes, compte exact avant pagination et plages inclusives comme l'API réelle. */
 function fauxClient(reponses: Record<string, Reponse>) {
   const tablesLues: string[] = [];
   const chaine = (table: string): unknown => {
+    let compter = false;
+    let plage: [number, number] | null = null;
+    const ordres: string[] = [];
     const p: unknown = new Proxy(() => undefined, {
-      get: (_, nom) => (nom === "then" ? (ok: (r: Reponse) => unknown, ko: (e: unknown) => unknown) => Promise.resolve(reponses[table] ?? { data: [], error: null }).then(ok, ko) : () => p),
+      get: (_, nom) => {
+        if (nom === "select") return (_colonnes: string, options?: { count?: string }) => { compter = options?.count === "exact"; return p; };
+        if (nom === "range") return (debut: number, fin: number) => { plage = [debut, fin]; return p; };
+        if (nom === "order") return (colonne: string) => { ordres.push(colonne); return p; };
+        if (nom === "then") return (ok: (r: Reponse) => unknown, ko: (e: unknown) => unknown) => {
+          const retour = reponses[table] ?? { data: [], error: null };
+          let data = retour.data;
+          const count = compter ? retour.count !== undefined ? retour.count : retour.error ? null : Array.isArray(data) ? data.length : data == null ? 0 : 1 : null;
+          if (Array.isArray(data)) {
+            data = [...data].sort((a, b) => { for (const colonne of ordres) { const comparaison = String(a[colonne] ?? "").localeCompare(String(b[colonne] ?? "")); if (comparaison) return comparaison; } return 0; });
+            if (plage) data = (data as unknown[]).slice(plage[0], plage[1] + 1);
+          }
+          return Promise.resolve({ ...retour, data, count }).then(ok, ko);
+        };
+        return () => p;
+      },
       apply: () => p,
     });
     return p;
@@ -132,9 +150,10 @@ function fauxClient(reponses: Record<string, Reponse>) {
 const COMPLET = { address_line1: "12 rue des Lilas", postal_code: "75011", city: "Paris", email_contact: "a@exemple.fr" };
 const bien = (extra: Record<string, unknown> = {}) => ({
   id: "bien-1", nom: "Rue des Lilas", type: "appartement", address_line1: "12 rue des Lilas", postal_code: "75011", city: "Paris",
-  archived_at: null, lots: [{ id: "lot-1", nom: "Lot unique", etat: "brouillon", surface_m2: null, pieces: null, identifiant_fiscal: null, chauffage: null, eau_chaude: null, locaux_privatifs: null, description: null }],
+  organization_id: "org-1", archived_at: null,
   ...extra,
 });
+const lot = () => ({ id: "lot-1", organization_id: "org-1", bien_id: "bien-1", nom: "Lot unique", etat: "brouillon", meuble: false, surface_m2: null, pieces: null, identifiant_fiscal: null, chauffage: null, eau_chaude: null, locaux_privatifs: null, description: null });
 const OK = (data: unknown): Reponse => ({ data, error: null });
 const PANNE: Reponse = { data: null, error: { message: "indisponible" } };
 
@@ -195,7 +214,7 @@ describe("« Mes lots » vide (D29 B) : le bouton que voit le propriétaire", ()
   });
 
   it("ne lit pas le profil, et ne l'annonce pas, quand le parc a un bien visible", async () => {
-    const faux = acces("proprietaire_direct", { biens: OK([bien()]), organizations: OK({}) });
+    const faux = acces("proprietaire_direct", { biens: OK([bien()]), lots: OK([lot()]), organizations: OK({}) });
     const html = await rendreParc();
     expect(faux.tablesLues).not.toContain("organizations");
     expect(html).not.toContain("Compléter mon profil");
@@ -203,7 +222,7 @@ describe("« Mes lots » vide (D29 B) : le bouton que voit le propriétaire", ()
   });
 
   it("n'annonce rien quand le parc ne contient que des biens retirés : ce n'est pas l'état vide du premier bien", async () => {
-    const faux = acces("proprietaire_direct", { biens: OK([bien({ archived_at: "2026-10-01T08:00:00Z", lots: [] })]), organizations: OK({}) });
+    const faux = acces("proprietaire_direct", { biens: OK([bien({ archived_at: "2026-10-01T08:00:00Z" })]), organizations: OK({}) });
     const html = await rendreParc();
     expect(faux.tablesLues).not.toContain("organizations");
     expect(html).not.toContain("Compléter mon profil");

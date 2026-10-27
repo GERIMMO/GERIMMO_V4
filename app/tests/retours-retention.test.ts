@@ -29,7 +29,7 @@ describe.skipIf(!url)("Conservation du support : contenu limité à six mois",()
   expect((await db.query("select has_function_privilege('anon','public.purger_signalements_support()','EXECUTE') ok")).rows[0].ok).toBe(false);
  });
  it('raccorde la purge au nettoyage existant et respecte une règle désactivée',async()=>{
-  await agir(sa);await db.query("update public.retention_rules set actif=false where data_type='support:bug'");expect((await db.query('select public.purger_signalements_support() n')).rows[0].n).toBe(0);
+  await db.query("update public.retention_rules set actif=false where data_type='support:bug'");await agir(sa);expect((await db.query('select public.purger_signalements_support() n')).rows[0].n).toBe(0);
   const {rows:[r]}=await db.query("select pg_get_functiondef('public.appliquer_retention()'::regprocedure) f");expect(r.f).toContain("'signalements_support',public.purger_signalements_support()");
  });
 });

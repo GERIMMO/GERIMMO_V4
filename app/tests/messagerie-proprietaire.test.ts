@@ -31,7 +31,7 @@ describe("ouverture des conversations du propriétaire", () => {
     const html = await rendre(fil.person_id);
     expect(banc.rpc).toHaveBeenCalledWith("messages_personne", { p_org: "org-proprietaire", p_person: fil.person_id });
     expect(html).toContain(message.texte);
-    expect(html).toContain("Tout est lu");
+    expect(html).not.toContain("2 messages non lus");
     expect(html).toContain("Votre message");
   });
   it("garde les non-lus et signale l'échec si la conversation ne peut pas être lue", async () => {

@@ -15,6 +15,7 @@ import {
   statutDiagnostic,
   type NiveauDiagnostic,
 } from "@/lib/parc";
+import { evaluerQualificationDiagnostic, type QualificationDiagnostic } from "@/lib/qualification-diagnostics";
 
 // Le niveau, dit en français — à afficher à côté de CHAQUE compteur pour que
 // « 2 manquants » sur le bien et « 3 manquants » sur son lot cessent de se
@@ -40,8 +41,9 @@ export type DiagnosticDeposeMin = {
   date_expiration: string | null;
 };
 
-// Les diagnostics exigibles d'un bien, éventuellement restreints à un niveau
-// de rattachement. Se déduit du bien (type, année) — RM-0.6.1.
+// Les diagnostics à suivre, éventuellement restreints à un niveau de
+// rattachement. Gaz et électricité sont proposés pour qualifier l’installation,
+// sans que leur présence dans cette liste suffise à rendre un rapport exigible.
 export function diagnosticsExigibles(
   bien: BienPourDiagnostics,
   niveau?: NiveauDiagnostic
@@ -56,14 +58,23 @@ export function diagnosticsExigibles(
 }
 
 // Ce qui manque : exigible sans AUCUN dépôt en cours (un dépôt expiré reste
-// listé « périmé » à part — voir alerteDiagnosticsNiveau).
+// listé « périmé » à part — voir alerteDiagnosticsNiveau). Une installation
+// non qualifiée ne constitue pas un document manquant.
 export function diagnosticsManquants(
   bien: BienPourDiagnostics,
   deposes: DiagnosticDeposeMin[],
-  niveau?: NiveauDiagnostic
+  niveau?: NiveauDiagnostic,
+  qualifications: QualificationDiagnostic[] = [],
 ): DiagnosticExigible[] {
   const presents = new Set(deposes.map((d) => d.type));
-  return diagnosticsExigibles(bien, niveau).filter((e) => !presents.has(e.type));
+  const parType = new Map<string, QualificationDiagnostic>(qualifications.map(qualification => [qualification.type, qualification]));
+  return diagnosticsExigibles(bien, niveau).filter((e) => {
+    if (presents.has(e.type)) return false;
+    if (e.type === "electricite" || e.type === "gaz") {
+      return evaluerQualificationDiagnostic(e.type, parType.get(e.type)) === "necessaire";
+    }
+    return true;
+  });
 }
 
 // Pastille d'alerte d'une section « Diagnostics », étiquetée de son niveau :
@@ -71,9 +82,10 @@ export function diagnosticsManquants(
 export function alerteDiagnosticsNiveau(
   bien: BienPourDiagnostics,
   deposes: DiagnosticDeposeMin[],
-  niveau: NiveauDiagnostic
+  niveau: NiveauDiagnostic,
+  qualifications: QualificationDiagnostic[] = [],
 ): string | undefined {
-  const manquants = diagnosticsManquants(bien, deposes, niveau);
+  const manquants = diagnosticsManquants(bien, deposes, niveau, qualifications);
   const base = alerteDiagnostics(manquants.map((m) => m.type), deposes);
   return base ? `${base} (${LIBELLES_NIVEAU_DIAGNOSTIC[niveau]})` : undefined;
 }

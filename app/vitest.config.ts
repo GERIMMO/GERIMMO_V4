@@ -178,6 +178,7 @@ export const FICHIERS_EN_SERIE = [
   // comptes_inactifs_a_prevenir et fermetures_comptes_programmer_inactifs, règle compte:inactif) dans la transaction du
   // fichier.
   "tests/activation-inactivite-v1-base.test.ts",
+  "tests/conservation-reglages-base.test.ts",
 ];
 
 export default defineConfig({

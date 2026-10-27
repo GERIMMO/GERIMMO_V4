@@ -206,14 +206,14 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
   const ouvert = sel ?? visibles[0]?.id ?? null;
 
   return (
-    <main className="incidents-page mx-auto w-full max-w-7xl flex-1 p-4 sm:p-7" data-selection={sel ? "active" : undefined}>
+    <main className="incidents-page mx-auto w-full max-w-7xl flex-1 p-4 sm:p-7" data-proprietaire={estProprietaire || undefined} data-selection={sel ? "active" : undefined}>
       <header className="incidents-entete">
         <div>
           <TitreEcran rubrique="incidents">Incidents</TitreEcran>
-          <p>Du signalement à la résolution, gardez le fil de chaque intervention.</p>
+          {!estProprietaire && <p>Du signalement à la résolution, gardez le fil de chaque intervention.</p>}
         </div>
         <div className={`incidents-entete-actions${sel ? " max-[1100px]:hidden" : ""}`}>
-          <Link href={`${base}/${estProprietaire ? "reseau" : "artisans"}`} className="btn-secondaire">
+          <Link href={`${base}/artisans`} className="btn-secondaire">
             <Wrench size={16} aria-hidden="true" /> Carnet d&apos;artisans
           </Link>
           <Link href={`${base}/incidents/nouveau`} className="btn-or">
@@ -226,8 +226,8 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
           const Icone = v.cle === "a-traiter" ? TriangleAlert : v.cle === "clos" ? CircleCheck : v.cle === "tous" ? Inbox : Clock3;
           return (
             <Link key={v.cle} href={lien(v.cle, sel && filtres[v.cle as keyof typeof filtres].some((i) => i.id === sel) ? sel : null)} aria-current={vue === v.cle ? "page" : undefined} className="incidents-filtre" data-vue={v.cle}>
-              <span className="incidents-filtre-icone"><Icone size={19} aria-hidden="true" /></span>
-              <span>{v.libelle}<strong>{compteVue(v.cle)}</strong></span>
+              {!estProprietaire && <span className="incidents-filtre-icone"><Icone size={19} aria-hidden="true" /></span>}
+              <span className="incidents-filtre-libelle">{v.libelle}<strong>{compteVue(v.cle)}</strong></span>
               <IndicateurLien />
             </Link>
           );
@@ -267,10 +267,10 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
           liste au lieu d'être rendu dessous, avec un lien retour en tête. */}
       <div className={`split${sel ? " detail-actif" : ""}${!ouvert ? " split-sans-detail" : ""}`}>
         <div className="colonne-liste-split volet-liste">
-          <div className="incidents-liste-entete">
+          {!estProprietaire && <div className="incidents-liste-entete">
             <h2>Les signalements</h2>
             <span>{libelleVue}</span>
-          </div>
+          </div>}
           {visibles.length === 0 && vueIllisible(vue) ? (
             /* Ni liste ni état vide : « aucun incident déclaré » serait faux —
                c'est la lecture qui a échoué, pas l'agence qui n'a rien. */
@@ -288,9 +288,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                     {/* « À traiter », le mot du filtre et de la mention — pas
                         « à qualifier », un troisième nom pour le même état. */}
                     <p className="explication">
-                      Vos locataires déclarent depuis leur espace et le dossier
-                      arrive dans la file « À traiter ». Vous pouvez aussi saisir
-                      un incident reçu par téléphone.
+                      {estProprietaire ? "Déclarez un problème dans l’un de vos logements. Les signalements de vos locataires apparaissent aussi ici." : "Vos locataires déclarent depuis leur espace et le dossier arrive dans la file « À traiter ». Vous pouvez aussi saisir un incident reçu par téléphone."}
                     </p>
                     <span className="geste">
                       <Link
@@ -344,14 +342,14 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                     <span>{i.numero}</span>
                     <time dateTime={i.created_at}>{formaterDate(i.created_at)}</time>
                   </span>
-                  <b className="incident-rang-titre">{titreIncident(i.categorie)}</b>
-                  <span className="incident-rang-lot">{lot?.nom ?? "Lot non disponible"}</span>
+                  <b className="incident-rang-titre">{estProprietaire ? lot?.nom ?? "Lot non disponible" : titreIncident(i.categorie)}</b>
+                  <span className="incident-rang-lot">{estProprietaire ? titreIncident(i.categorie) : lot?.nom ?? "Lot non disponible"}</span>
                   <span className="incident-rang-etats">
                     {i.urgence === "urgente" && <span className="puce puce-rouge">Urgent</span>}
                     {i.etat !== "clos" && idsAvecDevisADecider.has(i.id) && (
-                      <span className="puce puce-rouge">Devis à décider</span>
+                      <span className={`puce ${estProprietaire ? "puce-ambre" : "puce-rouge"}`}>Devis à décider</span>
                     )}
-                    <span className={COULEURS_ETAT_INCIDENT[i.etat] ?? "puce puce-grise"}>
+                    <span className={`incident-statut ${COULEURS_ETAT_INCIDENT[i.etat] ?? "puce puce-grise"}`}>
                       {ETATS_INCIDENT[i.etat] ?? "État à vérifier"}
                     </span>
                     <IndicateurLien />

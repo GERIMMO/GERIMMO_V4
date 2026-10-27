@@ -35,14 +35,18 @@ export function RubriqueDossier({ id, titre, resume, ouverte = false, children }
     };
     hashChange();
     window.addEventListener("hashchange", hashChange);
-    document.addEventListener("click", clic);
-    return () => { window.removeEventListener("hashchange", hashChange); document.removeEventListener("click", clic); };
-  }, []);
+    // Ouvrir avant que le routeur intercepte le lien sans émettre hashchange.
+    document.addEventListener("click", clic, true);
+    return () => { window.removeEventListener("hashchange", hashChange); document.removeEventListener("click", clic, true); };
+  }); // Les navigations internes peuvent conserver le composant.
   if (direct) return <section id={id} className="space-y-4 scroll-mt-24">
     <header><h3 className="font-semibold">{titre}</h3><p className="mt-1 text-sm text-muted-foreground">{resume}</p></header>
     {children}
   </section>;
-  return <details id={id} ref={details} open={ouverte} className="dossier-rubrique">
+  return <details id={id} ref={details} open={ouverte} className="dossier-rubrique" onInvalidCapture={event => {
+    let parent: HTMLElement | null = event.target as HTMLElement;
+    while (parent) { if (parent instanceof HTMLDetailsElement) parent.open = true; parent = parent.parentElement; }
+  }}>
     <summary><span className="min-w-0"><span className="dossier-rubrique-titre">{titre}</span><span className="dossier-rubrique-resume">{resume}</span></span><ChevronDown className="dossier-chevron size-5 shrink-0" aria-hidden="true" /></summary>
     <div className="dossier-rubrique-contenu space-y-4">{children}</div>
   </details>;

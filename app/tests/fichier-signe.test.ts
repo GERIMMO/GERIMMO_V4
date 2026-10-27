@@ -10,6 +10,10 @@ function client(url="https://stockage.example.invalid/storage/v1/object/sign/doc
 }
 const options={path:"organisation/document.pdf",mime:"application/pdf",titre:"Document relu",retour:"depuis les documents"};
 describe("Lecture directe de pièces privées",()=>{
+ it("le lecteur intégré reçoit un lien privé éphémère et le nom du fichier",async()=>{const {db,createSignedUrl}=client();const r=await servirFichierSigne(db,{...options,apercuIntegre:true});expect(r.status).toBe(200);expect(r.headers.get('Cache-Control')).toBe('private, no-store');expect(r.headers.get('X-Content-Type-Options')).toBe('nosniff');expect(r.headers.get('Access-Control-Allow-Origin')).toBeNull();expect(await r.json()).toEqual({url:'https://stockage.example.invalid/storage/v1/object/sign/documents/fichier?token=fictif',mime:'application/pdf',nom:'Document relu.pdf'});expect(createSignedUrl).toHaveBeenCalledWith(options.path,60,undefined);});
+ it.each(['text/html','image/svg+xml',null])('le lecteur refuse un format non affichable %s avant de signer',async(mime)=>{const {db,createSignedUrl}=client();expect((await servirFichierSigne(db,{...options,mime,apercuIntegre:true})).status).toBe(415);expect(createSignedUrl).not.toHaveBeenCalled();});
+ it('le manifeste ne contourne jamais la vérification des archives',async()=>{const {db,createSignedUrl}=client();expect((await servirFichierSigne(db,{...options,sha256:'a'.repeat(64),apercuIntegre:true})).status).toBe(415);expect(createSignedUrl).not.toHaveBeenCalled();});
+ it('un lien intégré ne peut pointer vers un autre hébergeur',async()=>{const {db}=client('https://autre.example.invalid/fichier');expect((await servirFichierSigne(db,{...options,apercuIntegre:true})).status).toBe(502);});
  it.each(['documents','artisan-prive','devis-preparations'] as const)('utilise le compartiment autorisé %s',async(compartiment)=>{const {db}=client();expect((await servirFichierSigne(db,{...options,compartiment})).status).toBe(200);expect(db.storage.from).toHaveBeenCalledWith(compartiment);});
  it('refuse un compartiment non prévu avant de signer',async()=>{const {db,createSignedUrl}=client();expect((await servirFichierSigne(db,{...options,compartiment:'inconnu' as 'documents'})).status).toBe(502);expect(createSignedUrl).not.toHaveBeenCalled();});
  it('refuse une empreinte incorrecte avant de signer',async()=>{const {db,createSignedUrl}=client();expect((await servirFichierSigne(db,{...options,sha256:'incorrect'})).status).toBe(502);expect(createSignedUrl).not.toHaveBeenCalled();});
@@ -21,4 +25,10 @@ describe("Lecture directe de pièces privées",()=>{
  it("échappe le titre et ne peut fermer le script par les données",async()=>{const {db}=client();const r=await servirFichierSigne(db,{...options,titre:'</script><script>alert(1)</script>'});const h=await r.text();expect(h).not.toContain('<script>alert(1)');expect(h).toContain('\\u003c');expect(h.match(/<script nonce=/g)).toHaveLength(1);});
  it.each(['javascript:alert(1)','https://autre.example.invalid/fichier','http://stockage.example.invalid/fichier','https://compte:secret'+'@'+'stockage.example.invalid/fichier'])('refuse une destination non prévue : %s',async(url)=>{const {db}=client(url);expect((await servirFichierSigne(db,options)).status).toBe(502);});
  it("un stockage indisponible donne une réponse compréhensible sans révéler son erreur",async()=>{const {db,createSignedUrl}=client();createSignedUrl.mockRejectedValue(Error('diagnostic confidentiel'));const r=await servirFichierSigne(db,options);expect(r.status).toBe(502);expect(await r.text()).not.toContain('confidentiel');});
+});
+
+it("sépare le titre lisible du nom de téléchargement, sans en déduire une signature",async()=>{
+ const {db}=client();const r=await servirFichierSigne(db,{...options,titre:'Ancien titre à faire signer',libelle:'Bail signé'});const h=await r.text();
+ expect(h).toContain('<strong>Bail signé</strong>');expect(h).toContain('"nom":"Ancien titre à faire signer.pdf"');
+ const autre=await servirFichierSigne(db,{...options,libelle:'<img src=x onerror=alert(1)>'});expect(await autre.text()).toContain('&lt;img src=x onerror=alert(1)&gt;');
 });

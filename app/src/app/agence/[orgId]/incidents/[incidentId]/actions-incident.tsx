@@ -52,6 +52,7 @@ export function FormulaireQualification({
   justification,
   apresSucces,
   estProprietaire = false,
+  informeLocataire = true,
 }: {
   orgId: string;
   incidentId: string;
@@ -61,8 +62,10 @@ export function FormulaireQualification({
   apresSucces?: () => void;
   /** Propriétaire direct : le repère juridique lui dit « C'est vous qui décidez qui paie ». */
   estProprietaire?: boolean;
+  informeLocataire?: boolean;
 }) {
   const actionLiee = qualifierIncident.bind(null, orgId, incidentId);
+  const idJustification = useId();
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
   useEffect(() => {
     if (etat.succes) apresSucces?.();
@@ -90,9 +93,9 @@ export function FormulaireQualification({
         ))}
       </fieldset>
       <div className="space-y-1.5">
-        <Label htmlFor="justification">Justification *</Label>
+        <Label htmlFor={idJustification}>Justification *</Label>
         <textarea
-          id="justification"
+          id={idJustification}
           name="justification"
           required
           // 24/09 : trois lignes — l'aide tient sur trois lignes au téléphone
@@ -104,14 +107,14 @@ export function FormulaireQualification({
         />
       </div>
       <Retour etat={etat} />
-      <BoutonEnvoi enCoursTexte="Qualification…">
-        Qualifier l&apos;incident
+      <BoutonEnvoi enCoursTexte={estProprietaire ? "Enregistrement…" : "Qualification…"}>
+        {estProprietaire ? "Confirmer la prise en charge" : "Qualifier l'incident"}
       </BoutonEnvoi>
-      <p className="text-sm text-muted-foreground">
-        Le locataire est informé immédiatement — avant toute intervention, pas à la
+      {(!estProprietaire || informeLocataire) && <p className="text-sm text-muted-foreground">
+        {estProprietaire ? <>Votre décision et cette justification seront visibles dans l’espace du locataire.</> : <>Le locataire est informé immédiatement — avant toute intervention, pas à la
         facture. <strong>Cette justification lui est montrée telle que vous l&apos;écrivez</strong> : gardez
-        vos notes personnelles pour vous.
-      </p>
+        vos notes personnelles pour vous.</>}
+      </p>}
     </form>
   );
 }
@@ -128,6 +131,8 @@ export function FormulaireCloture({
   apresSucces?: () => void;
 }) {
   const actionLiee = cloturerIncident.bind(null, orgId, incidentId);
+  const idMotif = useId();
+  const idCommentaire = useId();
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
   useEffect(() => {
     if (etat.succes) apresSucces?.();
@@ -136,9 +141,9 @@ export function FormulaireCloture({
   return (
     <form data-saisie-confirmee action={action} className="space-y-3">
       <div className="space-y-1.5">
-        <Label htmlFor="motif">Motif *</Label>
+        <Label htmlFor={idMotif}>Motif *</Label>
         <select
-          id="motif"
+          id={idMotif}
           name="motif"
           required
           defaultValue={etat.valeurs?.motif ?? ""}
@@ -155,9 +160,9 @@ export function FormulaireCloture({
         </select>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="commentaire">Ce qui a été fait</Label>
+        <Label htmlFor={idCommentaire}>Ce qui a été fait</Label>
         <textarea
-          id="commentaire"
+          id={idCommentaire}
           name="commentaire"
           rows={2}
           defaultValue={etat.valeurs?.commentaire}

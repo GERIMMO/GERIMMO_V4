@@ -155,3 +155,7 @@ courriers générés — jamais sur un bail ni un EDL.
 > - Les relances J+7/J+21 et l’alerte J+28 restent à développer avant de les annoncer : **toujours absentes au 19/10** ; les rappels automatiques du prestataire ne sont pas utilisés (les tests contrôlent l'absence de relance automatique). L’expiration (30 jours après préparation) et le rapprochement du statut sont préparés.
 > - Les mandats et les représentants de personnes morales restent hors du circuit. Avenants, cautionnement (acte distinct du garant), états des lieux, accords d'échelonnement et de travaux et acceptation de devis sont ajoutés au circuit par la PR #206 (18/10), envois aux clients désactivés (*au 18/10 en journée : hors de ce premier circuit*).
 > - La délivrabilité e-mail/SMS, le rendu de la signature prestataire et ses preuves ont été vérifiés **une fois**, sur l'essai du titulaire du 18/10 (deux signatures SMS, PDF et certificat relus) ; la recette humaine fictive sur la mention de caution et le devis, demandée par le dossier technique avant ouverture aux clients, n'est pas faite ; aucune recette de production ne joue le circuit (*au 18/10 en journée : attendaient le compte API et une recette sandbox*).
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

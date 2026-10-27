@@ -283,3 +283,7 @@ mandaté (décision du 23/10) ; sources juridiques non ouvertes le 23/10.
 ## Correction locale du 22 octobre : preuves et invitations
 
 La limite indépendante de 24 mois sur les demandes signées est retirée. Original, signé, annexes et certificats référencés sont protégés du nettoyage automatique dans la migration préparée ; aucun effacement distant. Un bilan agrégé, réservé au superadmin permanent avec MFA, permet d’examiner les contacts et invitations échus sans supprimer. Les nouvelles règles d’invitations (3 mois) et de listes d’attente (36 mois) restent désactivées ; devis et intentions de congé passent dans le catalogue au lieu de durées codées en dur. L’effacement qualifié des preuves reste à finaliser selon clôture des comptes, gestion directe/déléguée, litiges et obligations comptables. Il ne s’agit pas d’une conservation illimitée décidée. La politique publique locale distingue retrait de fichier et anonymisation irréversible. Aucune de ces modifications n’est encore déployée. [Détail, sources et limites](../../app/docs/signatures-conservation-22-octobre.md).
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

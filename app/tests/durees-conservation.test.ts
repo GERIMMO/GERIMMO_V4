@@ -22,6 +22,7 @@ import { ACTIONS_CONTROLE_INTERNE, DUREES_CONSERVATION, dureesDuTexte, moisDeLEx
 import { PRESTATAIRES, cleCoordonnees } from "../src/lib/editeur";
 
 const lecture = vi.hoisted(() => ({ valeurs: {} as Record<string, string | null> }));
+vi.mock("@/lib/conservation-publique", () => ({ lireDureesPubliques: async () => ({ regles: [], indisponible: false }) }));
 vi.mock("@/lib/editeur-serveur", () => ({
   lireEditeur: async () => ({ editeur: lecture.valeurs, indisponible: false }),
 }));

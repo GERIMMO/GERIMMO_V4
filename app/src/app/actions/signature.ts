@@ -108,6 +108,7 @@ export async function annulerDemandeSignature(
   });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/documents`);
+  revalidatePath(`/espace/${orgId}/documents`);
   return { succes: "Demande annulée." };
 }
 
@@ -128,6 +129,7 @@ export async function partagerDocument(
   });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/documents`);
+  revalidatePath(`/espace/${orgId}/documents`);
   return {
     succes: partager
       ? "Mis à disposition — le locataire le voit dans « Mes documents »."

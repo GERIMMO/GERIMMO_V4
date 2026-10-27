@@ -74,8 +74,9 @@ describe("confidentialité : un seul point de départ pour les demandes du formu
   const formulaire = fs.readFileSync(path.join(__dirname, "../src/app/formulaire-devis-vitrine.tsx"), "utf8");
   it("ne compte plus depuis le seul dépôt", () => {
     expect(confidentialite).not.toContain("24 mois après leur dépôt");
-    expect(confidentialite).toMatch(/24 mois\s+après leur dernier traitement/);
+    expect(confidentialite).toMatch(/dureeCourante\("contact:devis", "24 mois"\)\}\s+après leur dernier traitement/);
     expect(confidentialite).toContain("Dernier traitement ou dépôt si la demande n’a pas encore été traitée");
-    expect(formulaire).toMatch(/24 mois après\s+le dernier traitement/);
+    expect(formulaire).toContain("à partir du dernier traitement");
+    expect(formulaire).toContain("Les durées en vigueur figurent dans notre politique de confidentialité");
   });
 });

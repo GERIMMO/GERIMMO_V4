@@ -91,11 +91,12 @@ export function PagesJournal({
 }) {
   if (page === 1 && !suite) return null;
   const journal = cle.slice("p_".length) as keyof Pages;
+  const ancre = { audit: "audit", technique: "historique-service", acces: "acces-documents" }[journal];
   return (
     <nav aria-label="Pages du journal" className="mt-3 flex items-center justify-between gap-3 text-sm">
-      {page > 1 ? <Link href={adressePage(journal, page - 1, filtres, pages)} className="underline">Précédent</Link> : <span />}
+      {page > 1 ? <Link href={`${adressePage(journal, page - 1, filtres, pages)}#${ancre}`} className="underline">Précédent</Link> : <span />}
       <span className="text-muted-foreground">Page {page}</span>
-      {suite ? <Link href={adressePage(journal, page + 1, filtres, pages)} className="underline">Suivant</Link> : <span />}
+      {suite ? <Link href={`${adressePage(journal, page + 1, filtres, pages)}#${ancre}`} className="underline">Suivant</Link> : <span />}
     </nav>
   );
 }

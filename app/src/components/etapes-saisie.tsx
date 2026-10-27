@@ -1,22 +1,70 @@
 "use client";
 
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { NavigationParcours, type EtapeParcours } from "./navigation-parcours";
 import styles from "./presentation-parcours.module.css";
 
 /** Les panneaux restent montés : changer d’étape ne réinitialise aucun champ.
  * Les champs masqués restent soumis ; une erreur native ouvre leur panneau. */
-export function EtapesSaisie({ titre, etapes, contenus, conclusion, activer = true }: {
+export function EtapesSaisie({ titre, etapes, contenus, conclusion, activer = true, afficherNumeroEtape = true }: {
   titre: string;
   etapes: EtapeParcours[];
   contenus: ReactNode[];
   conclusion?: ReactNode;
   activer?: boolean;
+  afficherNumeroEtape?: boolean;
 }) {
   const [erreur, setErreur] = useState("");
   const [etape, setEtape] = useState(0);
   const root = useRef<HTMLDivElement>(null);
   const id = useId();
+  // Un lien vers un réglage ouvre son panneau, quelle que soit l’ancre.
+  // Les champs restent montés : une navigation ne perd aucune saisie.
+  useEffect(() => {
+    if (!activer) return;
+    let ouverture: number | undefined, defilement: number | undefined;
+    function ouvrirAncre(hash = window.location.hash) {
+      if (!hash) return;
+      let ancre: string;
+      try { ancre = decodeURIComponent(hash.slice(1)); } catch { return; }
+      const cible = document.getElementById(ancre);
+      const panneau = cible?.closest<HTMLElement>("[data-panneau]");
+      if (!cible || !panneau || !root.current?.contains(panneau)) return;
+      const index = Number(panneau.dataset.panneau);
+      if (!Number.isInteger(index)) return;
+      if (ouverture !== undefined) cancelAnimationFrame(ouverture);
+      if (defilement !== undefined) cancelAnimationFrame(defilement);
+      ouverture = requestAnimationFrame(() => {
+        setErreur("");
+        setEtape(index);
+        defilement = requestAnimationFrame(() => {
+          document.getElementById(id)?.focus({ preventScroll: true });
+          cible.scrollIntoView({ block: "start" });
+        });
+      });
+    }
+    const suivreAncre = () => ouvrirAncre();
+    function suivreLien(event: MouseEvent) {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const lien = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+      if (!lien || lien.target === "_blank" || lien.hasAttribute("download")) return;
+      const url = new URL(lien.href, window.location.href);
+      // Next Link ne déclenche pas toujours hashchange, ni un lien vers la
+      // même ancre déjà présente dans l’URL après un changement d’étape.
+      if (url.origin === location.origin && url.pathname === location.pathname && url.search === location.search) ouvrirAncre(url.hash);
+    }
+    suivreAncre();
+    window.addEventListener("hashchange", suivreAncre);
+    window.addEventListener("popstate", suivreAncre);
+    document.addEventListener("click", suivreLien);
+    return () => {
+      if (ouverture !== undefined) cancelAnimationFrame(ouverture);
+      if (defilement !== undefined) cancelAnimationFrame(defilement);
+      window.removeEventListener("hashchange", suivreAncre);
+      window.removeEventListener("popstate", suivreAncre);
+      document.removeEventListener("click", suivreLien);
+    };
+  }, [activer, id]);
   function changer(i: number) {
     setErreur("");
     setEtape(i);
@@ -47,7 +95,7 @@ export function EtapesSaisie({ titre, etapes, contenus, conclusion, activer = tr
   }}>
     <NavigationParcours titre={titre} label={`Étapes : ${titre}`} etapes={etapes} etape={etape} changer={changer} />
     <div data-corps-etapes className="rounded-2xl border border-[var(--filet)] bg-[var(--papier)] p-4 sm:p-6">
-      <p className="eyebrow">Étape {etape + 1} / {etapes.length}</p>
+      {afficherNumeroEtape && <p className="eyebrow">Étape {etape + 1} / {etapes.length}</p>}
       <h2 id={id} tabIndex={-1} className="mt-1 text-xl">{etapes[etape].titre}</h2>
       <p className="mb-5 mt-1 text-sm text-muted-foreground">{etapes[etape].detail}</p>
       {erreur && <p role="alert" className="mb-4 text-sm text-destructive">{erreur}</p>}

@@ -187,6 +187,30 @@ export default async function PageConditionsArtisans() {
           décrit ces traitements et les droits de l&apos;Artisan, dont celui
           d&apos;obtenir un réexamen humain de sa note.
         </p>
+        <p>
+          <b className="font-semibold">Accès aux données.</b> Dans son espace,
+          l&apos;Artisan consulte et utilise les données de son entreprise,
+          ses attestations, sollicitations, devis, interventions, factures,
+          clients externes, évaluations et indicateurs. Les coordonnées et
+          documents des propriétaires et locataires ne lui sont accessibles
+          que dans les dossiers où il intervient et selon les droits de son
+          espace. Il n&apos;a pas accès aux dossiers des autres artisans, ni
+          à un ensemble de leurs données, même agrégées.
+          L&apos;Éditeur accède aux données nécessaires à la fourniture,
+          à la sécurité et à la supervision du service ; les destinataires,
+          finalités et durées sont décrits dans la page confidentialité et
+          l&apos;annexe ci-dessous. Aucun partage avec des tiers à des fins
+          publicitaires ou de revente n&apos;est réalisé.
+        </p>
+        <p>
+          Avant la fermeture de son compte, l&apos;Artisan peut exporter ses
+          données (article A8). Après la fermeture, il ne dispose plus
+          d&apos;accès technique à son espace ; il peut demander à
+          l&apos;Éditeur une copie des données encore conservées le concernant,
+          selon ses droits et sans accès aux données d&apos;autrui. Les
+          informations qui restent dans les dossiers d&apos;un propriétaire
+          demeurent sous la responsabilité de ce propriétaire.
+        </p>
       </Article>
 
       <Article titre="A10. Restriction, suspension, exclusion">
@@ -198,7 +222,7 @@ export default async function PageConditionsArtisans() {
           d&apos;interventions, contenu illicite. Il en communique les motifs
           par courriel, au plus tard quand la mesure prend effet, en précisant
           les faits en cause ; l&apos;Artisan peut y répondre et demander un
-          réexamen. Sauf manquements répétés, ou obligation légale ou
+          réexamen. Sauf manquements répétés démontrés, ou obligation légale ou
           réglementaire qui l&apos;en empêche, la fermeture définitive du compte
           est notifiée trente jours avant de prendre effet.
         </p>
@@ -215,8 +239,13 @@ export default async function PageConditionsArtisans() {
       <Article titre="A12. Modification">
         <p>
           Toute modification est notifiée à l&apos;Artisan par courriel au moins
-          quinze jours avant sa prise d&apos;effet ; l&apos;Artisan qui la
-          refuse peut fermer son compte avant cette date. Chaque version est
+          quinze jours avant sa prise d&apos;effet. Ce délai est prolongé
+          lorsque les adaptations techniques ou commerciales nécessaires
+          l&apos;exigent. L&apos;Artisan qui refuse peut mettre fin au contrat
+          avant cette date ; sa demande prend effet au plus tard quinze jours
+          après la réception du préavis. Aucune modification rétroactive
+          n&apos;est imposée, sauf obligation légale ou réglementaire ou
+          modification favorable à l&apos;Artisan. Chaque version est
           archivée et consultable.
         </p>
       </Article>

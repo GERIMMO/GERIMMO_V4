@@ -50,19 +50,21 @@ export function AppelsCharges({
   lotId,
   appels,
   anneeCourante,
+  lectureSeule = false,
 }: {
   orgId: string;
   bienId: string;
   lotId: string;
   appels: AppelCharge[];
   anneeCourante: number;
+  lectureSeule?: boolean;
 }) {
   return (
     <div className="space-y-4">
       {appels.map((a) => (
-        <AppelBloc key={a.id} orgId={orgId} bienId={bienId} lotId={lotId} appel={a} />
+        <AppelBloc key={a.id} orgId={orgId} bienId={bienId} lotId={lotId} appel={a} lectureSeule={lectureSeule} />
       ))}
-      <FormCreerAppel orgId={orgId} bienId={bienId} lotId={lotId} anneeCourante={anneeCourante} />
+      {!lectureSeule && <FormCreerAppel orgId={orgId} bienId={bienId} lotId={lotId} anneeCourante={anneeCourante} />}
     </div>
   );
 }
@@ -72,11 +74,13 @@ function AppelBloc({
   bienId,
   lotId,
   appel,
+  lectureSeule,
 }: {
   orgId: string;
   bienId: string;
   lotId: string;
   appel: AppelCharge;
+  lectureSeule: boolean;
 }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
@@ -84,7 +88,7 @@ function AppelBloc({
   const recup = appel.postes.filter((p) => p.nature === "recuperable").reduce((s, p) => s + Number(p.montant), 0);
   const nonRecup = appel.postes.filter((p) => p.nature === "non_recuperable").reduce((s, p) => s + Number(p.montant), 0);
   const aQualifier = appel.postes.filter((p) => p.nature === "a_qualifier").length;
-  const modifiable = appel.statut === "brouillon";
+  const modifiable = !lectureSeule && appel.statut === "brouillon";
   const ecartTotal = Math.round((somme - Number(appel.total)) * 100) / 100;
 
   return (
@@ -138,6 +142,7 @@ function AppelBloc({
         </ul>
       )}
 
+      {lectureSeule && appel.statut === "brouillon" && <p className="text-sm text-muted-foreground">Saisi : {eur(somme)} / {eur(appel.total)}{ecartTotal !== 0 && ` · écart ${eur(ecartTotal)}`}{aQualifier > 0 && ` · ${aQualifier} poste(s) à qualifier`}</p>}
       {modifiable ? (
         <>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">

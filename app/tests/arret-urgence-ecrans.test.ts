@@ -274,6 +274,8 @@ describe("D46 / IA-01 et IA-07 : la page « Relais en mon absence » et la liste
 
   it("la liste des prochaines étapes dit qu'elle ne lance rien", () => {
     const page = readFileSync("src/app/admin/autonomie/page.tsx", "utf8");
-    expect(page).toContain("elle ne la lance pas, l’étape se fait dans le dossier concerné");
+    expect(page).toContain("Consultez les dossiers des clients en lecture seule.");
+    expect(page).toContain("Les actions de gestion leur appartiennent.");
+    expect(page).toContain("Vous restez connecté en superadmin pendant la consultation.");
   });
 });

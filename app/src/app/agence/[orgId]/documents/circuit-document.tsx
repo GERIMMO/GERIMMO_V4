@@ -33,6 +33,10 @@ export type DemandeDuDocument = {
 // — chaque demande s'affiche (en attente / signée) et s'annule.
 const TYPES_PARTAGEABLES = ["quittance", "courrier"];
 
+export function peutPartagerDocument(type: string, nombrePersonnes: number) {
+  return TYPES_PARTAGEABLES.includes(type) && nombrePersonnes > 0;
+}
+
 export function CircuitDocument({
   orgId,
   documentId,
@@ -41,6 +45,7 @@ export function CircuitDocument({
   signataires,
   demandes,
   lienFermer,
+  integre = false,
 }: {
   orgId: string;
   documentId: string;
@@ -50,10 +55,11 @@ export function CircuitDocument({
   signataires: { id: string; nom: string }[];
   demandes: DemandeDuDocument[];
   lienFermer: string;
+  integre?: boolean;
 }) {
   const [enCours, demarrer] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
-  const partageable = TYPES_PARTAGEABLES.includes(type) && signataires.length > 0;
+  const partageable = peutPartagerDocument(type, signataires.length);
   if (!partageable && demandes.length === 0) return null;
 
   const agir = (action: () => Promise<{ erreur?: string; succes?: string }>) =>
@@ -64,7 +70,7 @@ export function CircuitDocument({
     });
 
   return (
-    <div className="mt-3 space-y-2.5 border-t border-border pt-3">
+    <div className={integre ? "space-y-4" : "mt-3 space-y-2.5 border-t border-border pt-3"}>
       {partageable && (
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {partageLe ? (
@@ -128,7 +134,7 @@ export function CircuitDocument({
                 En attente de {d.prestataire === "youtrust" ? "signature électronique" : "signature"} — {d.personNom}, demandée le{" "}
                 {formaterDate(d.demandee_le)}
               </span>
-              <Button
+              {d.prestataire !== "youtrust" && <Button
                 type="button"
                 size="sm"
                 variant="ghost"
@@ -137,7 +143,7 @@ export function CircuitDocument({
               >
                 {enCours && <Spinner />}
                 Annuler
-              </Button>
+              </Button>}
             </>
           )}
         </div>

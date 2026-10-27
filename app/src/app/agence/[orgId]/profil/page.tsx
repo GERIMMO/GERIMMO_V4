@@ -29,11 +29,11 @@ export const metadata = { title: "Profil — Gerimmo" };
 export default async function PageProfil(props: PageProps<"/agence/[orgId]/profil">) {
   const { orgId } = await props.params;
   const { retour } = await props.searchParams;
-  const { supabase, role, estProprietaire, organisation } = await verifierAccesEspace(orgId);
+  const { supabase, role, estProprietaire, organisation, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
-  const responsable = ROLES_RESPONSABLES.includes(role);
-  const titre = estProprietaire ? "Mon profil" : "Profil de l'agence";
+  const responsable = !traverseeLectureSeule && ROLES_RESPONSABLES.includes(role);
+  const titre = estProprietaire ? (traverseeLectureSeule ? "Profil du propriétaire" : "Mon profil") : "Profil de l'agence";
   // 24/09 : côté agence, la barre latérale et la barre haute nomment déjà
   // l'organisation — la mention à droite du titre ne sert qu'au propriétaire.
   const mention = estProprietaire ? organisation.name : undefined;
@@ -111,9 +111,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
       <EnteteReglages titre={titre} mention={mention}>
-        Ces informations signent vos documents générés (bail, quittances, états
-        des lieux…) : en-tête, pied de page et «&nbsp;Fait à&nbsp;». Un champ
-        obligatoire vide empêche la génération de ces documents.
+        Vos coordonnées pour les baux, quittances et états des lieux.
       </EnteteReglages>
 
       {/* 24/09 : l'ordre « à compléter » ne s'adresse qu'à qui peut compléter.
@@ -122,7 +120,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
         (responsable ? (
           <div className="border-l-[3px] border-l-warning bg-warning-soft p-3">
             <p className="text-sm text-warning-soft-foreground">
-              À compléter pour des documents complets : {manquants.join("\u00a0· ")}.
+              Avant de générer vos documents : renseignez {manquants.join("\u00a0· ")}.
             </p>
           </div>
         ) : (
@@ -134,15 +132,15 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
           </p>
         ))}
 
-      {retour === "nouveau-lot" && estProprietaire && <div className="rounded-xl border bg-card p-4 text-sm">
+      {retour === "nouveau-lot" && estProprietaire && responsable && <div className="rounded-xl border bg-card p-4 text-sm">
         <p>Complétez et enregistrez votre profil pour reprendre l’ajout de votre logement.</p>
         <Link href={`${base}/parc/nouveau`} className="mt-2 inline-flex min-h-11 items-center font-semibold underline">Reprendre la création du lot →</Link>
       </div>}
       <div className={estProprietaire ? "space-y-4" : "loc-carte"}>
-        <div className={estProprietaire ? "sr-only" : "entete-carte"}>
+        {!estProprietaire && <div className="entete-carte">
           <h2 className="titre-carte leading-[inherit]">Identité</h2>
           {!responsable && <span className="puce puce-grise">lecture seule</span>}
-        </div>
+        </div>}
         {!responsable && (
           <p className="mesure-lecture mb-4 text-sm text-muted-foreground">
             Demandez à un responsable de l&apos;organisation de modifier ces

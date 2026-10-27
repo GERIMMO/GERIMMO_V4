@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useId } from "react";
+import { Fragment, useId, useLayoutEffect, useRef } from "react";
 import { CheckCheck, MessageCircle, Send } from "lucide-react";
 import { repondreMessagePersonne, type EtatMessage } from "@/app/actions/messages";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
@@ -13,10 +13,31 @@ import styles from "./messagerie.module.css";
 export function ConversationProprietaire({ orgId, personId, prenom, messages }: {
   orgId: string; personId: string; prenom: string | null; messages: MessagePersonne[];
 }) {
-  const { etat, enCours, soumettre, version } = useActionFormulaire<EtatMessage>(repondreMessagePersonne.bind(null, orgId, personId), true);
+  const historique = useRef<HTMLDivElement>(null);
+  const suivreFin = useRef(true);
+  const reponseEnvoyee = useRef(false);
+  const { etat, enCours, soumettre, version } = useActionFormulaire<EtatMessage>(async (precedent, donnees) => {
+    const retour = await repondreMessagePersonne(orgId, personId, precedent, donnees);
+    if (retour.succes) reponseEnvoyee.current = true;
+    return retour;
+  }, true);
   const idTexte = useId();
+  const dernierMessage = messages.at(-1)?.id;
+  // Ouvrir sur le dernier échange et montrer notre réponse après confirmation.
+  // Une mise à jour ne déplace pas le lecteur qui consulte des messages plus anciens.
+  useLayoutEffect(() => {
+    const element = historique.current;
+    if (!element || (!suivreFin.current && !reponseEnvoyee.current)) return;
+    element.scrollTop = element.scrollHeight;
+    suivreFin.current = true;
+    reponseEnvoyee.current = false;
+  }, [dernierMessage, etat]);
   return <div className={styles.echange}>
-    {messages.length ? <div className={styles.historique} role="region" aria-label="Historique des messages" tabIndex={0}>
+    {messages.length ? <div ref={historique} className={styles.historique} role="region" aria-label="Historique des messages" tabIndex={0}
+      onScroll={event => {
+        const element = event.currentTarget;
+        suivreFin.current = element.scrollHeight - element.scrollTop - element.clientHeight <= 48;
+      }}>
       {messages.map((message, index) => {
         const date = new Date(message.cree_le);
         const nouveauJour = index === 0 || jourParis(date) !== jourParis(new Date(messages[index - 1].cree_le));

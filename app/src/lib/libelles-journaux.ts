@@ -3,6 +3,7 @@ import { ACTIONS_SUPERVISION } from "./journal-supervision";
 import { GESTES_TRACE } from "./gestes-trace";
 
 const ACTIONS: Record<string, string> = {
+  conservation_regle_modifiee: "Durée de conservation modifiée",
   signature_preparation_abandonnee: "Préparation de signature interrompue avant envoi",
   consultation_organisation: "Consultation d’une organisation",
   traversee_espace: "Consultation d’un espace client par la supervision",
@@ -56,6 +57,8 @@ const ACTIONS: Record<string, string> = {
   facture_validee: "Facture d’artisan contrôlée et validée",
   reglement_facture_enregistre: "Règlement d’une facture d’artisan déclaré (écriture de dépense liée)",
   reglement_facture_retire: "Règlement d’une facture d’artisan retiré (contre-écriture passée)",
+  mois_abonnement_offerts: "Mois d’abonnement offerts",
+  mois_offerts_credit_applique: "Crédit de mois offerts appliqué",
   mois_reouvert: "Mois comptable rouvert",
   inscription_proprietaire: "Inscription d’un propriétaire bailleur",
   organisation_ouverte: "Ouverture d’une organisation",

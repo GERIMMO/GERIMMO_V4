@@ -6,8 +6,11 @@ export async function CompleterSurPlace({ orgId, bailId, lotId, individuel }: { 
   const db = await createClient();
   const [lotRes, catalogue, equipes, chambres] = await Promise.all([
     db.from("lots").select("*").eq("id", lotId).eq("organization_id", orgId).maybeSingle(),
-    db.from("equipements_catalogue").select("id,nom").eq("organization_id", orgId).eq("actif", true).order("nom"),
-    db.from("lot_equipements").select("equipement_id").eq("lot_id", lotId),
+    // Un équipement retiré du catalogue reste une caractéristique du lot tant
+    // que son affectation existe ; il est également conservé dans le PDF du bail.
+    db.from("equipements_catalogue").select("id,nom").eq("organization_id", orgId).order("nom"),
+    db.from("lot_equipements").select("equipement_id,lot:lots!inner(organization_id)")
+      .eq("lot_id", lotId).eq("lot.organization_id", orgId),
     individuel ? db.from("lot_chambres").select("*").eq("lot_id", lotId).eq("organization_id", orgId).order("nom") : Promise.resolve({data:[],error:null}),
   ]);
   const lot = lotRes.data;

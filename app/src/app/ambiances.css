@@ -1,0 +1,248 @@
+/* Couche décorative commune : aucun jeton de marque, d'alerte ou d'état métier
+   n'est réaffecté. Le calendrier est synchronisé sur Paris par AmbianceSite.
+   Tous les ornements sont limités à l'écran : jamais dans les courriers imprimés. */
+:root {
+  --ambiance-accent: #d5b777;
+  --ambiance-encre: #74603c;
+  --ambiance-fond: #faf7f1;
+  --ambiance-filet: color-mix(in srgb, var(--ambiance-accent) 42%, #e4e8ec);
+  --ambiance-motif: none;
+}
+
+html[data-ambiance-site="hiver"] {
+  --ambiance-accent: #9db9cf;
+  --ambiance-encre: #44627b;
+  --ambiance-fond: #f1f6fa;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/hiver.svg");
+}
+html[data-ambiance-site="printemps"] {
+  --ambiance-accent: #a9bf9a;
+  --ambiance-encre: #4d6743;
+  --ambiance-fond: #f4f7f0;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/printemps.svg");
+}
+html[data-ambiance-site="ete"] {
+  --ambiance-accent: #78b8b2;
+  --ambiance-encre: #306b67;
+  --ambiance-fond: #f0f8f7;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/ete.svg");
+}
+html[data-ambiance-site="automne"] {
+  --ambiance-accent: #d3a278;
+  --ambiance-encre: #845532;
+  --ambiance-fond: #fbf5ef;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/automne.svg");
+}
+html[data-ambiance-site="nouvel-an"] {
+  --ambiance-accent: #d5bd80;
+  --ambiance-encre: #79602e;
+  --ambiance-fond: #faf7ef;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/nouvel-an.svg");
+}
+html[data-ambiance-site="saint-valentin"] {
+  --ambiance-accent: #d9a6b4;
+  --ambiance-encre: #8a4e61;
+  --ambiance-fond: #fbf2f5;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/saint-valentin.svg");
+}
+html[data-ambiance-site="paques"] {
+  --ambiance-accent: #b9afcf;
+  --ambiance-encre: #6f5c8e;
+  --ambiance-fond: #f6f3fa;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/paques.svg");
+}
+html[data-ambiance-site="fete-travail"] {
+  --ambiance-accent: #a3c2aa;
+  --ambiance-encre: #43694d;
+  --ambiance-fond: #f2f8f3;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/fete-travail.svg");
+}
+html[data-ambiance-site="fete-meres"] {
+  --ambiance-accent: #d8a6bc;
+  --ambiance-encre: #874c67;
+  --ambiance-fond: #fcf3f7;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/fete-meres.svg");
+}
+html[data-ambiance-site="fete-peres"] {
+  --ambiance-accent: #9fb2cb;
+  --ambiance-encre: #48617f;
+  --ambiance-fond: #f2f5fa;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/fete-peres.svg");
+}
+html[data-ambiance-site="fete-musique"] {
+  --ambiance-accent: #b6a4d2;
+  --ambiance-encre: #6d568d;
+  --ambiance-fond: #f7f3fb;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/fete-musique.svg");
+}
+html[data-ambiance-site="14-juillet"] {
+  --ambiance-accent: #a2b5ce;
+  --ambiance-encre: #4a627f;
+  --ambiance-fond: #f3f6fb;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/14-juillet.svg");
+}
+html[data-ambiance-site="rentree"] {
+  --ambiance-accent: #a4b3b9;
+  --ambiance-encre: #4a626c;
+  --ambiance-fond: #f2f6f7;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/rentree.svg");
+}
+html[data-ambiance-site="halloween"] {
+  --ambiance-accent: #dea773;
+  --ambiance-encre: #89552f;
+  --ambiance-fond: #fcf4ec;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/halloween.svg");
+}
+html[data-ambiance-site="noel"] {
+  --ambiance-accent: #a7bdaf;
+  --ambiance-encre: #496854;
+  --ambiance-fond: #f3f8f4;
+  --ambiance-motif: url("/illustrations/ambiances-motifs/noel.svg");
+}
+
+@media screen {
+  /* Un petit signe de saison, sans libellé supplémentaire ni cible interactive. */
+  .ambiance-repere {
+    display: inline-block;
+    flex: 0 0 26px;
+    width: 26px;
+    height: 26px;
+    background: var(--ambiance-encre);
+    mask: var(--ambiance-motif) center / contain no-repeat;
+    pointer-events: none;
+    visibility: hidden;
+  }
+  html[data-ambiance-site] .ambiance-repere { visibility: visible; }
+  html[data-ambiance-site] .gerimmo-prestige :is(.coquille-haut, .bandeau-appli, .ambiance-haut-artisan, .public-navigation) {
+    box-shadow: inset 0 -2px var(--ambiance-filet);
+  }
+  html[data-ambiance-site] .gerimmo-prestige .loc-haut {
+    border-bottom-color: var(--ambiance-filet);
+  }
+  /* Le fond des dossiers reste uni ; seuls les repères décoratifs sont teintés. */
+  html[data-ambiance-site] .gerimmo-prestige .titre-ecran-icone {
+    background: var(--ambiance-fond);
+    border-color: var(--ambiance-filet);
+  }
+  html[data-ambiance-site] .gerimmo-prestige :is(.entete-page, .incidents-entete) {
+    border-bottom-color: var(--ambiance-filet);
+  }
+  html[data-ambiance-site] .gerimmo-prestige :is([data-ui="modale-entete"], .tiroir-tete) {
+    box-shadow: inset 0 2px var(--ambiance-filet);
+  }
+
+  /* Seul le tiroir de navigation prend une photo. Les formulaires restent blancs.
+     Voile d'au moins 84 % sous le texte, y compris avec les scènes les plus claires. */
+  html[data-ambiance-site] body.gerimmo-prestige .tiroir:has(.coquille-menu) {
+    --trait-doux: #ffffff24;
+    --survol: #223a56;
+    background-color: #14263d;
+    background-image: linear-gradient(180deg, #14263dfc, #14263dd6 55%, #14263de6), var(--ambiance-image);
+    background-position: center;
+    background-size: cover;
+    color: #cad4e1;
+  }
+  html[data-ambiance-site] body.gerimmo-prestige .tiroir:has(.coquille-menu) :is(.tiroir-tete h2, .tiroir-tete button, .coquille-menu a) { color: #e1e9f3; }
+  html[data-ambiance-site] body.gerimmo-prestige .tiroir:has(.coquille-menu) .coquille-menu a:hover { background: #223a56; color: #fff; }
+  html[data-ambiance-site] body.gerimmo-prestige .tiroir:has(.coquille-menu) .coquille-menu a.actif {
+    background: #2b405b;
+    color: #fff;
+    box-shadow: inset 3px 0 var(--ambiance-accent);
+  }
+  html[data-ambiance-site] body.gerimmo-prestige .tiroir:has(.coquille-menu) :is(a, button):focus-visible { outline-color: #e4c995; }
+
+  html[data-ambiance-site] .gerimmo-prestige .coquille-auth .panneau-marque {
+    background-image: linear-gradient(110deg, #14263df5 0%, #14263de6 48%, #14263dd6 100%), var(--ambiance-image);
+    background-position: center;
+    background-size: cover;
+  }
+  .ambiance-marque-auth { display: flex; align-items: center; gap: 24px; }
+  .public-logo .ambiance-repere { margin-left: 16px; width: 24px; height: 24px; flex-basis: 24px; }
+  html[data-ambiance-site] .gerimmo-prestige .public-pied {
+    background-image: linear-gradient(100deg, #14263df5 15%, #14263de6 100%), var(--ambiance-image);
+    background-position: center;
+    background-size: cover;
+    border-top: 2px solid var(--ambiance-accent);
+  }
+  html[data-ambiance-site] .gerimmo-prestige .public-hero {
+    background: linear-gradient(110deg, #fbfaf7 25%, var(--ambiance-fond) 100%);
+  }
+}
+
+@media screen and (min-width: 641px) {
+  html[data-ambiance-site] .gerimmo-prestige :is(.coquille-late, .loc-late) {
+    background-color: #14263d;
+    background-image: linear-gradient(180deg, #14263d 0%, #14263df5 22%, #14263dd6 48%, #14263dd6 82%, #14263df5 100%), var(--ambiance-image);
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
+  html[data-ambiance-site] .gerimmo-prestige :is(.coquille-late .coquille-menu, .loc-late .loc-menu) a.actif {
+    box-shadow: inset 3px 0 var(--ambiance-accent);
+  }
+}
+@media screen and (min-width: 901px) {
+  html[data-ambiance-site] .gerimmo-prestige .admin-late {
+    background-image: linear-gradient(180deg, #14263d 0%, #14263df5 22%, #14263dd6 48%, #14263dd6 82%, #14263df5 100%), var(--ambiance-image);
+    background-position: center;
+    background-size: cover;
+  }
+  html[data-ambiance-site] .gerimmo-prestige .admin-coquille .admin-nav-lien[aria-current="page"] {
+    box-shadow: inset 3px 0 var(--ambiance-accent);
+  }
+}
+@media screen and (min-width: 1000px) {
+  html[data-ambiance-site] .gerimmo-prestige .ambiance-menu-artisan {
+    background-image: linear-gradient(180deg, #14263d 0%, #14263df5 22%, #14263dd6 48%, #14263dd6 82%, #14263df5 100%), var(--ambiance-image);
+    background-position: center;
+    background-size: cover;
+  }
+  html[data-ambiance-site] .gerimmo-prestige .ambiance-menu-artisan a[aria-current="page"] {
+    box-shadow: inset 3px 0 var(--ambiance-accent);
+  }
+}
+@media screen and (min-width: 1024px) {
+  .ambiance-marque-auth { display: none; }
+}
+@media screen and (max-width: 699px) {
+  .ambiance-haut-artisan .ambiance-repere { background: var(--ambiance-accent); }
+}
+@media screen and (max-width: 640px) {
+  .ambiance-repere { width: 22px; height: 22px; flex-basis: 22px; }
+  .public-logo .ambiance-repere { margin-left: 8px; width: 20px; height: 20px; flex-basis: 20px; }
+  html[data-ambiance-site] .gerimmo-prestige .public-navigation .public-inscription {
+    min-height: 44px;
+    padding: 10px 12px;
+    gap: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  html[data-ambiance-site] .gerimmo-prestige .loc-late { box-shadow: inset 0 -2px var(--ambiance-filet); }
+  html[data-ambiance-site] .gerimmo-prestige .coquille-basse a.actif {
+    color: #14263d;
+    background: var(--ambiance-fond);
+    box-shadow: inset 0 2px var(--ambiance-accent);
+  }
+  html[data-ambiance-site] .gerimmo-prestige .artisan-navigation a[aria-current="page"] {
+    background: var(--ambiance-fond);
+  }
+  html[data-ambiance-site] .gerimmo-prestige .artisan-navigation a[aria-current="page"] > span[aria-hidden] {
+    background: var(--ambiance-accent);
+  }
+}
+@media screen and (max-width: 360px) {
+  .public-navigation .public-inscription > svg { display: none; }
+}
+@media screen and (max-width: 420px) {
+  /* Les actions priment sur le motif lorsque la largeur devient limitée. */
+  .admin-bandeau .ambiance-repere { display: none; }
+  .loc-haut .ambiance-repere { display: none; }
+  .public-logo .ambiance-repere { display: none; }
+}
+@media (forced-colors: active) {
+  .ambiance-repere { display: none; }
+}
+@media print {
+  :root { --ambiance-fond: #fff; --ambiance-encre: #17283e; }
+  .ambiance-repere { display: none; }
+}

@@ -10,7 +10,7 @@ import {
 import { CarteMission } from "./carte-mission";
 import { CarteSollicitation } from "./carte-sollicitation";
 import { degreEcheance, demandeAChiffrer, jourLong, PIECES_ARTISAN, texteEcheance, libelle } from "./libelles";
-import { Avertissement, Carte, CLASSE_BOUTON_SECONDAIRE, Erreur, Information, TitreSection } from "./ui";
+import { Avertissement, Carte, CLASSE_BOUTON_SECONDAIRE, Erreur, TitreSection } from "./ui";
 import { presenceReseau, rappelPresenceReseau } from "@/lib/reseau";
 import { exclusionLue } from "@/lib/artisan-prive-exclusion";
 
@@ -100,10 +100,9 @@ export default async function PageArtisanAccueil({
 
   return (
     <div className="space-y-6">
-      <div className="portail-hero portail-hero-accueil">
+      <div className={`portail-hero portail-hero-accueil ${styles.dailyHeader}`}>
         <p className="portail-surtitre">{jourLong(new Date().toISOString())}</p>
         <h1 className="mt-0.5">Aujourd&apos;hui</h1>
-        <p className="mt-2 text-base">Vos missions, vos rendez-vous et les réponses attendues.</p>
       </div>
 
       {refus && (
@@ -119,12 +118,7 @@ export default async function PageArtisanAccueil({
           <Link href="/artisan/entreprise" className="inline-flex min-h-11 items-center underline underline-offset-4">Voir le détail</Link>
         </Avertissement>
       )}
-      {rappelReseau?.ton === "information" && (
-        <Information>
-          {rappelReseau.texte}{" "}
-          <Link href="/artisan/entreprise" className="inline-flex min-h-11 items-center underline underline-offset-4">Mon entreprise</Link>
-        </Information>
-      )}
+
 
       {lectureIncertaine && (
         <Erreur>
@@ -167,7 +161,7 @@ export default async function PageArtisanAccueil({
             { href: "/artisan/devis", valeur: aChiffrer.length, libelle: "Devis à chiffrer", icone: FileText, ton: "vert" },
             { href: aPlanifier.length ? "#rendez-vous-a-fixer" : "/artisan/agenda", valeur: aPlanifier.length, libelle: "Rendez-vous à fixer", icone: CalendarDays, ton: "violet" },
           ].map((indicateur) => (
-            <Link key={indicateur.libelle} href={indicateur.href} className={styles.metric}>
+            <Link key={indicateur.libelle} href={indicateur.href} className={styles.metric} data-a-faire={indicateur.valeur > 0}>
               <span className={styles.icon} data-tone={indicateur.ton}><indicateur.icone size={20} aria-hidden /></span>
               <span><strong>{indicateur.valeur}</strong><small>{indicateur.libelle}</small></span>
             </Link>
@@ -247,6 +241,16 @@ export default async function PageArtisanAccueil({
             </section>
           )}
 
+          {aChiffrer.length > 0 && (
+            <section>
+              <TitreSection>Devis à chiffrer ({aChiffrer.length})</TitreSection>
+              <div className="artisan-liste">
+                {aChiffrer.map((l) => (
+                  <CarteSollicitation key={l.sollicitation_id} ligne={l} />
+                ))}
+              </div>
+            </section>
+          )}
           {enAttenteDuLocataire.length > 0 && (
             <section>
               <TitreSection>
@@ -260,17 +264,6 @@ export default async function PageArtisanAccueil({
                     origine="aujourdhui"
                     aFaire={`${l.creneaux_en_attente} date${l.creneaux_en_attente > 1 ? "s" : ""} au choix du locataire`}
                   />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {aChiffrer.length > 0 && (
-            <section>
-              <TitreSection>Devis à chiffrer ({aChiffrer.length})</TitreSection>
-              <div className="artisan-liste">
-                {aChiffrer.map((l) => (
-                  <CarteSollicitation key={l.sollicitation_id} ligne={l} />
                 ))}
               </div>
             </section>
@@ -293,6 +286,13 @@ export default async function PageArtisanAccueil({
             Voir tout mon agenda
           </Link>
         </section>
+      )}
+      {rappelReseau?.ton === "information" && (
+        <details className={styles.networkNote}>
+          <summary>Votre profil est privé</summary>
+          <p>{rappelReseau.texte}</p>
+          <Link href="/artisan/entreprise" className="inline-flex min-h-11 items-center underline underline-offset-4">Mon entreprise</Link>
+        </details>
       )}
     </div>
   );

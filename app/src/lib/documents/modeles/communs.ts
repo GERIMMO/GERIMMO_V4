@@ -120,7 +120,7 @@ export async function chargerContexteBail(
   const CHAMPS_PERSONNE =
     "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite";
 
-  const [{ data: organisation }, { data: bail }] = await Promise.all([
+  const [{ data: organisation, error: erreurOrganisation }, { data: bail, error: erreurBail }] = await Promise.all([
     supabase
       .from("organizations")
       .select(
@@ -152,6 +152,7 @@ export async function chargerContexteBail(
       .eq("organization_id", orgId)
       .maybeSingle(),
   ]);
+  if (erreurOrganisation || erreurBail) return { erreur: "Les informations du bail ne peuvent pas être chargées. Réessayez." };
   if (!organisation) return { erreur: "Organisation introuvable." };
   if (!bail) return { erreur: "Bail introuvable." };
 
@@ -177,16 +178,17 @@ export async function chargerContexteBail(
 
   // Les équipements du lot (liste fermée du catalogue de l'agence) — ils
   // remplissent « Éléments d'équipement du logement » du contrat type
-  const { data: lignesEquipements } = await supabase
+  const { data: lignesEquipements, error: erreurEquipements } = await supabase
     .from("lot_equipements")
     .select("equipement:equipements_catalogue(nom)")
     .eq("lot_id", lot.id);
+  if (erreurEquipements) return { erreur: "Les équipements du logement ne peuvent pas être chargés. Réessayez." };
   const equipements = ((lignesEquipements ?? []) as { equipement: UnOuPlusieurs<{ nom: string }> }[])
     .map((l) => premier(l.equipement)?.nom)
     .filter((n): n is string => Boolean(n))
     .sort((a, b) => a.localeCompare(b, "fr"));
 
-  const [{ data: detentions }, { data: bailPersonnes }, { data: principal }] = await Promise.all([
+  const [{ data: detentions, error: erreurDetentions }, { data: bailPersonnes, error: erreurPersonnes }, { data: principal, error: erreurPrincipal }] = await Promise.all([
     supabase
       .from("detentions")
       .select(`quote_part, person:persons!detentions_person_id_fkey(${CHAMPS_PERSONNE})`)
@@ -198,8 +200,9 @@ export async function chargerContexteBail(
       .eq("bail_id", bailId),
     bail.locataire_principal
       ? supabase.from("persons").select(CHAMPS_PERSONNE).eq("id", bail.locataire_principal).maybeSingle()
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
   ]);
+  if (erreurDetentions || erreurPersonnes || erreurPrincipal) return { erreur: "Les bailleurs et les occupants ne peuvent pas être vérifiés. Réessayez." };
 
   const bailleurs = (detentions ?? [])
     .map((d) => {

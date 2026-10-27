@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { LabelBail as Label, PastilleBail, ProfilBailACompleter } from "@/components/pastille-bail";
 import { QUALITES_BAILLEUR, estPersonnePhysique } from "@/lib/qualite-bailleur";
 import { formaterDate } from "@/lib/ged";
+import { correspond } from "@/lib/roles-personnes";
+import { nouvelleCleEnvoi } from "@/lib/cle-envoi";
 
 export type PersonneBail = {
   id: string; nom: string; prenom: string | null; email: string | null; telephone: string | null;
@@ -42,12 +44,22 @@ function ResumePersonne({ personne: p, badge, actions }: { personne: PersonneBai
   </div>;
 }
 
-function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false, enregistrer, annuler }: {
+function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false, existantes = [], adresseSource, emailInitial = "", reutiliser, enregistrer, annuler }: {
   orgId: string; bailId: string; personne?: PersonneBail; proprietaire: boolean; garant?: boolean;
+  existantes?: PersonneBail[]; adresseSource?: PersonneBail; emailInitial?: string; reutiliser?: (p: PersonneBail) => void;
   enregistrer: (p: PersonneBail, avertissement?: string) => void; annuler: () => void;
 }) {
   const id = `personne-bail-${personne?.id ?? "nouvelle"}`;
   const [morale, setMorale] = useState(personne ? !estPersonnePhysique(personne.qualite, personne.prenom) : false);
+  const [qualite, setQualite] = useState(personne?.qualite ?? (morale ? "Personne morale" : "Personne physique"));
+  const [creationId] = useState(nouvelleCleEnvoi);
+  const [valeurs, setValeurs] = useState<Record<string,string>>(() => Object.fromEntries(
+    ["nom","prenom","email","telephone","date_naissance","commune_naissance","address_line1","postal_code","city"]
+      .map(champ => [champ, personne?.[champ as keyof PersonneBail] ?? (champ === "email" ? emailInitial : "")]),
+  ));
+  const [adresseReprise, setAdresseReprise] = useState(false);
+  const personnesConnues = !personne && valeurs.email.trim() ? existantes.filter(p => !p.archived_at && p.email?.trim().toLowerCase() === valeurs.email.trim().toLowerCase()) : [];
+  const peutReprendreAdresse = !personne && adresseSource?.address_line1?.trim() && adresseSource.postal_code?.trim() && adresseSource.city?.trim();
   const { etat, enCours, soumettre } = useActionFormulaire<EtatPersonnesBail>(async (precedent, donnees) => {
     const retour = personne ? await modifierPersonneBail(orgId, bailId, personne.id, precedent, donnees) : await creerPersonneBail(orgId, bailId, precedent, donnees);
     const personId = personne?.id ?? retour.personneCreee?.id;
@@ -71,18 +83,37 @@ function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false,
   ];
   return <form data-saisie-confirmee onSubmit={soumettre} className="bail-personne-formulaire space-y-4">
     <p className="font-semibold">{personne ? `Compléter la fiche de ${nom(personne)}` : "Créer une personne"}</p>
+    {!personne && <input type="hidden" name="creation_id" value={creationId} />}
+    {!personne && emailInitial && <p className="text-sm text-muted-foreground">Adresse e-mail reprise de votre recherche.</p>}
+    {personnesConnues.length > 0 && reutiliser && <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
+      <p className="text-sm font-medium">Cette adresse e-mail figure déjà dans votre annuaire.</p>
+      {personnesConnues.map(p => <ResumePersonne key={p.id} personne={p} actions={<Button type="button" variant="outline" onClick={() => reutiliser(p)}>Réutiliser cette fiche</Button>} />)}
+      <p className="text-xs text-muted-foreground">Son identité et ses coordonnées seront reprises dans ce bail.</p>
+    </div>}
+    {personne && proprietaire && <div className="space-y-1.5"><Label htmlFor={`${id}-qualite`} champ="proprietaire.qualite" renseigne={Boolean(personne.qualite)}>Qualité du propriétaire *</Label><select id={`${id}-qualite`} name="qualite" className={selectClasse} required value={qualite} onChange={e => {
+      setQualite(e.target.value);
+      setMorale(!estPersonnePhysique(e.target.value));
+    }}>{QUALITES_BAILLEUR.map(q => <option key={q}>{q}</option>)}</select></div>}
     {!personne && proprietaire && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={morale} onChange={e => setMorale(e.target.checked)} />Il s’agit d’une société</label>}
     {morale && <input type="hidden" name="morale" value="on" />}
+    {peutReprendreAdresse && adresseSource && <div className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
+      <p className="text-sm"><strong>Adresse de {nom(adresseSource)}</strong><br />{adresseSource.address_line1}, {adresseSource.postal_code} {adresseSource.city}</p>
+      <Button type="button" variant="outline" onClick={() => {
+        setValeurs(v => ({ ...v, address_line1: adresseSource.address_line1!, postal_code: adresseSource.postal_code!, city: adresseSource.city! }));
+        setAdresseReprise(true);
+      }}>Utiliser cette adresse</Button>
+      {adresseReprise && <p role="status" className="text-xs text-muted-foreground">Adresse reprise de la fiche de {nom(adresseSource)}. Elle reste modifiable.</p>}
+    </div>}
     <div className="grid gap-3 sm:grid-cols-2">{champs.map(c => <div key={c.name} className={c.name === "address_line1" ? "space-y-1.5 sm:col-span-2" : "space-y-1.5"}>
       <Label htmlFor={`${id}-${c.name}`} champ={`${proprietaire ? "proprietaire" : garant ? "garant" : "locataire"}.${c.name}`} renseigne={Boolean(personne?.[c.name as keyof PersonneBail])}>{c.label}{c.required ? " *" : ""}</Label>
       <Input id={`${id}-${c.name}`} name={c.name} required={c.required} type={c.type ?? "text"} maxLength={c.max}
-        defaultValue={personne?.[c.name as keyof PersonneBail] ?? ""} />
+        value={valeurs[c.name] ?? ""} onChange={e => { const valeur = e.target.value; setValeurs(v => ({ ...v, [c.name]: valeur })); }} />
     </div>)}
-      {personne && proprietaire ? <div className="space-y-1.5"><Label htmlFor={`${id}-qualite`} champ="proprietaire.qualite" renseigne={Boolean(personne.qualite)}>Qualité du propriétaire *</Label><select id={`${id}-qualite`} name="qualite" className={selectClasse} required defaultValue={personne.qualite ?? (morale ? "Personne morale" : "Personne physique")}>{QUALITES_BAILLEUR.map(q => <option key={q}>{q}</option>)}</select></div> : <input type="hidden" name="qualite" value={personne?.qualite ?? (morale ? "Personne morale" : "Personne physique")} />}
+      {!(personne && proprietaire) && <input type="hidden" name="qualite" value={personne?.qualite ?? (morale ? "Personne morale" : "Personne physique")} />}
     </div>
     <p className="text-xs text-muted-foreground">* Informations nécessaires au dossier. La fiche est aussi disponible dans « Locataires & garants ».</p>
     <Retour etat={etat} />
-    <div className="flex flex-wrap gap-2"><Button type="submit" disabled={enCours}>{enCours ? "Enregistrement…" : personne ? "Enregistrer la fiche" : "Créer cette personne"}</Button><Button type="button" variant="ghost" disabled={enCours} onClick={annuler}>Annuler</Button></div>
+    <div className="flex flex-wrap gap-2"><Button type="submit" disabled={enCours || personnesConnues.length > 0}>{enCours ? "Enregistrement…" : personne ? "Enregistrer la fiche" : "Créer cette personne"}</Button><Button type="button" variant="ghost" disabled={enCours} onClick={annuler}>Annuler</Button></div>
   </form>;
 }
 
@@ -91,7 +122,8 @@ function ChoisirPersonne({ orgId, bailId, role, personnes, principalId, couvrabl
   enregistrerLocal: (p: PersonneBail) => void; choisir: (p: PersonneBail) => void; fermer: () => void;
 }) {
   const [selection, setSelection] = useState("");
-  const [nouvelle, setNouvelle] = useState(false);
+  const [recherche, setRecherche] = useState("");
+  const [nouvelle, setNouvelle] = useState(personnes.length === 0);
   const [creee, setCreee] = useState<PersonneBail | null>(null);
   const [avertissement, setAvertissement] = useState<string>();
   const personne = personnes.find(p => p.id === selection) ?? (creee?.id === selection ? creee : null);
@@ -102,22 +134,30 @@ function ChoisirPersonne({ orgId, bailId, role, personnes, principalId, couvrabl
     if (retour.succes) choisir(personne);
     return retour;
   });
-  if (nouvelle) return <EditerPersonne orgId={orgId} bailId={bailId} proprietaire={false} garant={role === "garant"} enregistrer={(p, message) => {
+  const selectionnerFiche = (p: PersonneBail, message?: string) => {
     setAvertissement(message); enregistrerLocal(p); setCreee(p); setSelection(p.id); setNouvelle(false);
-  }} annuler={() => setNouvelle(false)} />;
+  };
+  if (nouvelle) return <EditerPersonne orgId={orgId} bailId={bailId} proprietaire={false} garant={role === "garant"}
+    existantes={personnes} reutiliser={selectionnerFiche} enregistrer={selectionnerFiche}
+    emailInitial={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recherche.trim()) ? recherche.trim() : ""}
+    adresseSource={role === "colocataire" ? couvrables.find(p => p.id === principalId) : undefined}
+    annuler={() => personnes.length === 0 ? fermer() : setNouvelle(false)} />;
   const choix = creee && !personnes.some(p => p.id === creee.id) ? [...personnes, creee] : personnes;
+  const resultats = choix.filter(p => p.id === selection || correspond(recherche, p.nom, p.prenom, p.email, p.telephone));
   return <form data-saisie-confirmee onSubmit={soumettre} className="bail-personne-formulaire space-y-3">
     <input type="hidden" name="role" value={role} /><input type="hidden" name="principal_attendu" value={principalId ?? ""} />
+    <div className="space-y-1.5"><Label htmlFor={`recherche-bail-${role}`}>Rechercher une personne</Label><Input id={`recherche-bail-${role}`} type="search" autoComplete="off" value={recherche} onChange={e => { setRecherche(e.target.value); setSelection(""); }} placeholder="Nom, e-mail ou téléphone" /></div>
     <div className="flex flex-wrap items-end gap-2"><div className="min-w-0 flex-1 basis-60 space-y-1.5">
       <Label htmlFor={`choix-bail-${role}`}>Choisir un {libelle} enregistré</Label>
       <select className={selectClasse} id={`choix-bail-${role}`} name="person_id" value={selection} onChange={e => setSelection(e.target.value)} required>
-        <option value="">Sélectionner dans mes personnes…</option>{choix.map(p => <option key={p.id} value={p.id}>{nom(p)}{p.email ? ` — ${p.email}` : ""}</option>)}
+        <option value="">Sélectionner dans mes personnes…</option>{resultats.map(p => <option key={p.id} value={p.id}>{nom(p)}{p.email ? ` — ${p.email}` : ""}</option>)}
       </select></div><Button type="button" variant="outline" onClick={() => setNouvelle(true)}><Plus size={15} />Créer une personne</Button>
     </div>
     {choix.length === 0 && <p className="text-sm text-muted-foreground">Aucune personne disponible. Créez sa fiche ici pour l’utiliser dans ce bail.</p>}
+    {choix.length > 0 && recherche.trim() && <p role="status" className="text-xs text-muted-foreground">{resultats.length ? `${resultats.length} fiche${resultats.length > 1 ? "s" : ""} trouvée${resultats.length > 1 ? "s" : ""}.` : "Aucune fiche ne correspond à cette recherche."}</p>}
     {avertissement && <p role="status" className="text-sm text-warning-soft-foreground">{avertissement}</p>}
-    {personne && <ResumePersonne personne={personne} badge="Sélectionné" />}
-    {role === "garant" && <div className="space-y-1.5"><Label htmlFor="garant-couvre">Ce garant couvre</Label><select id="garant-couvre" name="garant_de" required className={selectClasse} defaultValue={principalId ?? ""}><option value="">Choisir le locataire…</option>{couvrables.map(p => <option key={p.id} value={p.id}>{nom(p)}</option>)}</select></div>}
+    {personne && <><ResumePersonne personne={personne} badge="Fiche existante" /><p className="text-xs text-muted-foreground">Identité et coordonnées reprises de votre annuaire.</p></>}
+    {role === "garant" && <div className="space-y-1.5"><Label htmlFor="garant-couvre">Ce garant couvre</Label><select id="garant-couvre" name="garant_de" required className={selectClasse} defaultValue={couvrables.length === 1 ? couvrables[0].id : ""}><option value="">Choisir le locataire…</option>{couvrables.map(p => <option key={p.id} value={p.id}>{nom(p)}</option>)}</select><p className="text-xs text-muted-foreground">{couvrables.length === 1 ? "Le seul locataire du bail est présélectionné." : "Plusieurs locataires : choisissez la personne couverte."}</p></div>}
     <Retour etat={etat} /><div className="flex flex-wrap gap-2"><Button type="submit" disabled={enCours || !personne}>{enCours ? "Enregistrement…" : role === "principal" ? "Utiliser ce locataire" : `Ajouter ce ${libelle}`}</Button><Button type="button" variant="ghost" disabled={enCours} onClick={fermer}>Annuler</Button></div>
   </form>;
 }

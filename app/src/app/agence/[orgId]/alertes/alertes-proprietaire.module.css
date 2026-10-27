@@ -1,0 +1,18 @@
+.page .creation { margin-bottom: 20px; border: 1px solid var(--filet); border-radius: 10px; background: #fff; }
+.creation > summary { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 12px 18px; color: #24496f; font-size: 14px; font-weight: 600; cursor: pointer; }
+.creation > summary::before { content: "+"; font-size: 21px; font-weight: 400; }
+.creation[open] > summary::before { content: "−"; }
+.creation > summary::-webkit-details-marker { display: none; }
+.page .creation > :global([data-slot="card"]) { border: 0; border-top: 1px solid var(--filet); border-radius: 0 0 10px 10px; box-shadow: none; background: #fff; }
+.creation :global(form) { max-width: 640px; }
+.page :global(.rang-alerte) { padding: 18px 20px; border-left-color: transparent; background: #fff; gap: 16px; }
+.page :global(.rang-alerte:hover) { background: #f7f9fb; }
+.page :global(.rang-alerte.critique) { border-left-color: var(--destructive); }
+.page :global(.rang-alerte .etiquette-alerte) { background: transparent; color: var(--texte-secondaire); padding: 0; font-size: 12px; font-weight: 600; }
+.page :global(.rang-alerte.critique .etiquette-alerte) { color: var(--destructive); }
+.page :global(.filtre) { min-height: 44px; border-radius: 7px; }
+.page :global(.filtre.actif) { background: #173653; color: white; border-color: #173653; }
+.page :global(.filtre.actif .mono-discret) { color: inherit; }
+.page :global(.vide-guide) { border: 1px solid var(--filet); background: #fff; }
+.page :global(.historique-carte > summary) { min-height: 48px; font-size: 13px; }
+@media (max-width: 640px) { .page :global(.rang-alerte) { padding: 16px; } }

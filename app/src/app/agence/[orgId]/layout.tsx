@@ -1,8 +1,11 @@
+import { lireToutesLesPages } from "@/lib/lecture-complete";
+import { SelecteurPatrimoine } from "@/components/selecteur-patrimoine";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { identiteDuCompte, initialesDe } from "@/lib/identite-compte";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { compterActionsDuJour } from "@/lib/actions-du-jour";
+import { chargerVerificationsProprietaire } from "@/lib/lecture-verifications-proprietaire";
 import { totalMessagesNonLus } from "@/lib/messagerie";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { ROLES_RESPONSABLES, aujourdhuiParis } from "@/lib/ged";
@@ -20,6 +23,7 @@ import { baseEspace, racineEspace } from "@/lib/racine-espace";
 import { FournisseurRacineEspace } from "@/components/racine-espace-contexte";
 import { joursJusquaParis } from "@/lib/heure-paris-calcul";
 import { NouvelleVersionConditions } from "@/components/nouvelle-version-conditions";
+import { LienContenu } from "@/components/lien-contenu";
 
 // Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée.
 //
@@ -80,7 +84,7 @@ export default async function LayoutAgence({
     actionsDuJour,
     { data: etatAbonnementBrut },
   ] = await Promise.all([
-    chargerSyntheseAlertes(supabase, { orgId }),
+    traverseeLectureSeule ? Promise.resolve([]) : chargerSyntheseAlertes(supabase, { orgId }),
     // Badge maquette : les incidents encore ouverts (tout sauf clos).
     // Les lignes plutôt que le compte : le badge doit compter la MÊME chose
     // que la tuile du tableau de bord, à 200 px de là — c'est-à-dire les
@@ -102,7 +106,9 @@ export default async function LayoutAgence({
     // on n'en trouve qu'un ») : baux bloqués, mes alertes dédoublonnées,
     // rapports à valider. Un seul calcul, mémorisé par requête — la page qui
     // suit le relit sans nouvel aller-retour.
-    compterActionsDuJour(supabase, orgId, { userId: user.id, portefeuille, racine: racineEspace(estProprietaire) }),
+    estProprietaire && !traverseeLectureSeule
+      ? chargerVerificationsProprietaire(supabase, orgId, { userId: user.id, portefeuille }).then(({ verifications }) => verifications)
+      : compterActionsDuJour(supabase, orgId, { userId: user.id, portefeuille, racine: racineEspace(estProprietaire) }),
     // Lu pour TOUTE organisation (audit 29/09) : l'écriture se ferme aussi
     // hors essai — souscription résiliée, prélèvement en défaut —, et l'écran
     // doit le dire au lieu de laisser chaque bouton échouer un à un.
@@ -127,20 +133,19 @@ export default async function LayoutAgence({
   // Le propriétaire direct qui a plusieurs organisations (SCI, nom propre)
   // choisit dans la barre : tout suit, lots, livre, fiscalité.
   let organisations: { id: string; nom: string }[] = [];
+  let organisationsIndisponibles = false;
   if (estProprietaire) {
-    const { data: adhesions } = await supabase
+    type Adhesion = { organization_id: string; organisation: { id: string; name: string; type: string } | { id: string; name: string; type: string }[] | null };
+    const adhesions = await lireToutesLesPages<Adhesion>((debut, fin) => supabase
       .from("memberships")
-      .select("organization_id, organisation:organizations(id, name, type)")
+      .select("organization_id, organisation:organizations(id, name, type)", { count: "exact" })
       .eq("account_id", user.id)
       .eq("role", "proprietaire_direct")
-      .eq("status", "active");
-    organisations = ((adhesions ?? []) as {
-      organization_id: string;
-      organisation:
-        | { id: string; name: string; type: string }
-        | { id: string; name: string; type: string }[]
-        | null;
-    }[])
+      .eq("status", "active")
+      .order("organization_id")
+      .range(debut, fin), a => a.organization_id);
+    organisationsIndisponibles = Boolean(adhesions.echec);
+    organisations = (adhesions.lignes ?? [])
       .map((a) => {
         const o = Array.isArray(a.organisation) ? a.organisation[0] : a.organisation;
         return o ? { id: o.id, nom: o.name } : null;
@@ -183,7 +188,7 @@ export default async function LayoutAgence({
       ? "Rien à régler pour l'instant"
       : null;
   const essai =
-    estResponsable && organisation.status === "essai" && organisation.essai_fin
+    !traverseeLectureSeule && estResponsable && organisation.status === "essai" && organisation.essai_fin
       ? {
           jours: joursRestants(organisation.essai_fin),
           href: `${base}/abonnement`,
@@ -192,7 +197,11 @@ export default async function LayoutAgence({
         }
       : null;
 
-  const liensCompte = estProprietaire
+  const liensCompte = traverseeLectureSeule ? [
+    { href: "/admin/brief", libelle: "Revenir au superadmin" },
+    { href: `/admin/organisations/${orgId}`, libelle: "Fiche du client" },
+    { href: "/compte", libelle: "Sécurité de mon compte" },
+  ] : estProprietaire
     ? [
         { href: `${base}/profil`, libelle: "Mon profil" },
         { href: "/compte", libelle: "Sécurité du compte" },
@@ -206,14 +215,15 @@ export default async function LayoutAgence({
 
   return (
     <FournisseurRacineEspace racine={racine}>
-    <div className="coquille gerimmo-prestige" style={estProprietaire ? undefined : styleMarque(organisation)}>
+    <div className={`coquille gerimmo-prestige${estProprietaire ? " espace-proprietaire" : ""}`} style={estProprietaire ? undefined : styleMarque(organisation)}>
+      {estProprietaire && <LienContenu />}
       <aside className="coquille-late">
         <BarreLaterale
           orgId={orgId}
           racine={racine}
           espace={espace}
           navigation={navigation}
-          organisations={organisations}
+          organisations={estProprietaire ? [] : organisations}
           essai={essai}
           marque={estProprietaire ? undefined : { nom: organisation.nom_portail || organisation.name, logoUrl: organisation.logo_url }}
         />
@@ -226,47 +236,47 @@ export default async function LayoutAgence({
             <MarqueOrganisation marque={estProprietaire ? undefined : organisation} tuile />
           </span>
           <RechercheEspace orgId={orgId} racine={racine} />
-          <SyntheseAlertes
+          <span className="ambiance-repere" aria-hidden="true" />
+          {!traverseeLectureSeule && <SyntheseAlertes
             alertes={alertes}
             membres={membres}
             estResponsable={estResponsable}
             aujourdhui={aujourdhuiParis()}
-          />
-          {/* L'aide, dans la barre plutôt qu'en rond flottant sur le contenu
-              (24/09) : icône seule sous 1 024 px, et sur téléphone
-              (≤ 640 px) elle passe dans le tiroir « Menu » de la barre basse.
-              `!` : `.lien-bandeau` (hors couche) l'emporterait sur `hidden`. */}
-          <LienAssistance destination={estProprietaire ? `${base}/faq` : undefined} title="Aide et retours" className="lien-bandeau justify-center pointer-coarse:min-w-11 max-[641px]:!hidden">
+          />}
+          {/* Le propriétaire dispose d'une seule entrée Aide dans son menu. */}
+          {!estProprietaire && <LienAssistance title="Aide et retours" className="lien-bandeau justify-center pointer-coarse:min-w-11 max-[641px]:!hidden">
             <IconeTrait nom="quest" className="size-4 shrink-0" />
             <span className="hidden lg:inline">Aide et retours</span>
-          </LienAssistance>
+          </LienAssistance>}
           <MenuCompte
             // Le propriétaire, c'est une personne (27/09) : ses initiales, pas
             // celle de son « Parc ».
             initiales={
-              (estProprietaire ? initialesDe(await identiteDuCompte(supabase, orgId, user)) : null) ??
+              (traverseeLectureSeule ? "SA" : estProprietaire ? initialesDe(await identiteDuCompte(supabase, orgId, user)) : null) ??
               (organisation.name?.[0] ?? "◇").toUpperCase()
             }
-            titre={estProprietaire ? "Espace propriétaire" : organisation.name}
+            titre={traverseeLectureSeule ? "Superadmin · consultation" : estProprietaire ? "Espace propriétaire" : organisation.name}
             sousTitre={
-              estProprietaire ? undefined : role === "admin_agence" ? "Admin d'agence" : "Agent"
+              traverseeLectureSeule ? undefined : estProprietaire ? undefined : role === "admin_agence" ? "Admin d'agence" : "Agent"
             }
             liens={liensCompte}
             compteId={user.id}
           />
         </header>
+        {estProprietaire && <SelecteurPatrimoine orgId={orgId} nom={organisation.name} organisations={organisations} indisponible={organisationsIndisponibles} />}
         {/* L'essai terminé se dit en clair, une fois, en tête — mais seulement
             s'il FERME l'écriture (25/09 : le propriétaire d'un seul bien lisait
             « la saisie est suspendue » alors qu'il pouvait saisir). À TOUS les
             rôles : un agent qui ne peut plus écrire doit savoir pourquoi, et à
             qui s'adresser. Le responsable, lui, a le lien. */}
         {traverseeLectureSeule && (
-          <p role="status" className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-3 text-sm">
-            Consultation de {organisation.name} en lecture seule. Les modifications de gestion sont refusées. Par votre compte de supervision, vous pouvez préparer un geste distinct :{" "}
+          <p role="status" className="flex flex-wrap items-center gap-x-3 border-b border-[var(--trait)] bg-[var(--filet-leger)] px-4 py-2 text-sm">
+            <span><strong>Consultation superadmin · lecture seule</strong> · {organisation.name}</span>{" "}
+            <Link href="/admin/brief" className="font-semibold underline">Revenir au superadmin</Link>
             <Link href={`/admin/organisations/${orgId}/support`} className="font-semibold underline">Ouvrir le support</Link>
           </p>
         )}
-        {ecritureFermee && (
+        {ecritureFermee && !traverseeLectureSeule && (
           <p className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-1.5 text-center text-xs text-[var(--warning-soft-foreground)]">
             {organisation.status === "essai"
               ? "Période d'essai terminée — lecture seule"
@@ -295,8 +305,9 @@ export default async function LayoutAgence({
             pour vérifier les échanges en attente.
           </p>
         )}
+        {estProprietaire && <span id="contenu-espace" tabIndex={-1} className="sr-only" />}
         {children}
-        <BarreBasse espace={espace} navigation={navigation} orgId={orgId} racine={racine} organisations={organisations} />
+        <BarreBasse espace={espace} navigation={navigation} orgId={orgId} racine={racine} organisations={estProprietaire ? [] : organisations} />
       </div>
       <Toasteur />
     </div>

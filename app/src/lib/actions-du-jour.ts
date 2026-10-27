@@ -2,7 +2,7 @@ import { deElide } from "@/lib/elision";
 import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  actionsAttendues,
+  lireActionsAttendues,
   sansAlertesDoublonnees,
   type ActionAttendue,
 } from "@/lib/actions-attendues";
@@ -252,7 +252,7 @@ export type LectureActionsDuJour = {
   /** Les actions attendues sur les baux — /alertes s'en sert pour dédoublonner sa table. */
   attendues: ActionAttendue[];
   /** Une lecture en échec ne doit jamais ressembler à du vide : chaque écran le dit. */
-  erreurs: { alertes: boolean; rapports: boolean };
+  erreurs: { baux: boolean; alertes: boolean; rapports: boolean };
 };
 
 // `cache()` compare ses arguments par référence : le layout et la page
@@ -285,11 +285,11 @@ const lire = cache(
       // impayés, EDL d'entrée non signé, diagnostics obligatoires, pièces
       // expirées — même source que la fiche, pour que l'accueil ne dise jamais
       // « tout est à jour » quand un bail est bloqué.
-      attendues,
+      lectureAttendues,
       { data: alertes, error: erreurAlertes },
       { data: rapports, error: erreurRapports },
     ] = await Promise.all([
-      actionsAttendues(supabase, orgId, { portefeuille, racine }),
+      lireActionsAttendues(supabase, orgId, { portefeuille, racine }),
       // « À traiter » se calcule sur MES alertes (revue recette 08/08) : celles
       // qui me sont confiées nominativement, plus celles à tout le monde.
       supabase
@@ -309,6 +309,7 @@ const lire = cache(
         .eq("statut", "a_valider")
         .order("mois"),
     ]);
+    const attendues = lectureAttendues.actions;
     const plan = regrouperActionsDuJour({
       orgId,
       racine,
@@ -321,7 +322,7 @@ const lire = cache(
     return {
       plan,
       attendues,
-      erreurs: { alertes: Boolean(erreurAlertes), rapports: Boolean(erreurRapports) },
+      erreurs: { baux: Object.values(lectureAttendues.erreurs).some(Boolean), alertes: Boolean(erreurAlertes), rapports: Boolean(erreurRapports) },
     };
   }
 );

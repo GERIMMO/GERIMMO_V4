@@ -1,3 +1,4 @@
+import { ConsoleSection } from "@/components/console-section";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -37,10 +38,8 @@ export default async function PageDonneesAdmin({ searchParams }: { searchParams:
   return <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-7">
     <Link className="lien-discret" href="/admin/securite">← Sécurité et conformité</Link>
     <header><p className="eyebrow">Confidentialité et comptes</p><h1>Demandes sur les données</h1><p className="mt-2 text-muted-foreground">Une file privée, de la demande à la réponse. Les opérations d’effacement restent contrôlées et tracées.</p></header>
-    <div className="flex flex-wrap gap-3"><Link className="btn-secondaire" href="?etat=ouvert" aria-current={!terminees?"page":undefined}>À traiter</Link><Link className="btn-secondaire" href="?etat=resolu" aria-current={terminees?"page":undefined}>Terminées</Link><Link className="lien-discret" href="/admin/journaux#conservation">Durées et nettoyages</Link><Link className="lien-discret" href="/admin/sante#sauvegarde">Dernière sauvegarde</Link></div>
-    <FermeturesComptes />
-    <ControleArchivesSignatures />
-    <BilanConservationContacts />
+    <div className="flex flex-wrap gap-3"><Link className="btn-secondaire" href="?etat=ouvert" aria-current={!terminees?"page":undefined}>À traiter</Link><Link className="btn-secondaire" href="?etat=resolu" aria-current={terminees?"page":undefined}>Terminées</Link><Link className="lien-discret" href="/admin/conservation">Régler les durées</Link><Link className="lien-discret" href="/admin/sante#sauvegarde">Dernière sauvegarde</Link></div>
+
     <section aria-label="Demandes privées" className="space-y-4">
       {r.error?<p role="alert" className="err">Lecture indisponible : aucun total ni statut ne peut être confirmé.</p>:<p className="text-sm">{r.count ?? 0} demande{r.count===1?"":"s"} {terminees?"terminée(s)":"à traiter"}.</p>}
       {demandes.map(d=>{const limite=echeanceDemandeDonnees(d.cree_le);const retard=!terminees&&!d.reponse&&limite&&limite<aujourdHui;return <article key={d.id} className="loc-carte space-y-3">
@@ -54,7 +53,10 @@ export default async function PageDonneesAdmin({ searchParams }: { searchParams:
       </article>})}
       {(page>1||(r.count??0)>20)&&<nav aria-label="Pages des demandes de données" className="flex justify-between">{page>1?<Link href={adresse(page-1)}>Précédente</Link>:<span/>}<span>Page {page}</span>{page*20<(r.count??0)&&<Link href={adresse(page+1)}>Suivante</Link>}</nav>}
     </section>
-    <section className="loc-carte space-y-4"><h2>Procédure de traitement</h2><p className="text-sm">Cette page enregistre les réponses et décisions, et programme les fermetures de comptes. Aucune suppression n’a lieu au clic : l’effacement s’exécute la nuit de la date d’effet, après la sauvegarde du jour, et reste annulable jusque-là.</p><ol className="space-y-4">{ETAPES.map(([titre,texte],i)=><li key={titre} className="flex gap-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--creme)] font-semibold">{i+1}</span><div><h3>{titre}</h3><p className="mt-1 text-sm text-muted-foreground">{texte}</p></div></li>)}</ol></section>
+    <FermeturesComptes />
+    <ConsoleSection titre="Archives des signatures" description="Contrôler les preuves et les copies chez les prestataires." icone="documents"><ControleArchivesSignatures /></ConsoleSection>
+    <ConsoleSection titre="Simuler le nettoyage" description="Obtenir un bilan sans supprimer de données." icone="reglages" ton="vert"><BilanConservationContacts /></ConsoleSection>
+    <ConsoleSection titre="Comment traiter une demande" description="La procédure, de la réponse à la vérification finale." icone="documents"><p className="text-sm">Cette page enregistre les réponses et décisions, et programme les fermetures de comptes. Aucune suppression n’a lieu au clic : l’effacement s’exécute la nuit de la date d’effet, après la sauvegarde du jour, et reste annulable jusque-là.</p><ol className="space-y-4">{ETAPES.map(([titre,texte],i)=><li key={titre} className="flex gap-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--creme)] font-semibold">{i+1}</span><div><h3>{titre}</h3><p className="mt-1 text-sm text-muted-foreground">{texte}</p></div></li>)}</ol></ConsoleSection>
     <p className="text-sm text-muted-foreground">Repère : <a className="lien-discret" href="https://www.cnil.fr/fr/passer-laction/les-droits-des-personnes-sur-leurs-donnees" target="_blank" rel="noreferrer">droits des personnes — CNIL</a>. Les durées configurées doivent être justifiées par catégorie ; elles ne remplacent pas une validation juridique.</p>
   </main>;
 }

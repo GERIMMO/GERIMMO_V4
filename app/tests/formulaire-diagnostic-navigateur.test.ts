@@ -98,10 +98,12 @@ describe.skipIf(!CHROMIUM)("Dépôt d'un diagnostic et proposition de la pièce 
       if (url.pathname === "/banc.js") return route.fulfill({ contentType: "text/javascript; charset=utf-8", body: script });
       return route.fulfill({ contentType: "text/html; charset=utf-8", body: '<!doctype html><html lang="fr"><body><div id="racine"></div><script src="/banc.js"></script></body></html>' });
     });
-    await page.goto("http://localhost/banc");
-    await page.waitForSelector("#diag-fichier-lot");
-    // La date du jour et l'expiration sont posées après l'hydratation ; le bouton d'envoi s'active à ce moment.
-    await page.waitForFunction(() => (document.querySelector<HTMLInputElement>("#diag-realisation-lot")?.value ?? "") !== "");
+    // Chemin éligible : le vrai garde de saisie doit pouvoir distinguer une
+    // confirmation d'une réponse arrivée après une nouvelle modification.
+    await page.goto("http://localhost/espace/test/diagnostics");
+    await page.getByLabel("Rapport du diagnostiqueur", { exact: true }).waitFor();
+    // La date du rapport n'est pas déduite de la date de dépôt.
+    expect(await page.getByLabel("Réalisé le", { exact: true }).inputValue()).toBe("");
     await page.waitForFunction(() => [...document.querySelectorAll("button")].some((b) => b.textContent === "Déposer" && !b.disabled));
   });
   afterEach(async () => {
@@ -113,6 +115,7 @@ describe.skipIf(!CHROMIUM)("Dépôt d'un diagnostic et proposition de la pièce 
 
   const reponses = (...r: EtatParc[]) => page.evaluate((r) => { window.__bancDiagnostic.reponses.push(...r); }, r);
   const envois = (): Promise<EnvoiRecu[]> => page.evaluate(() => window.__bancDiagnostic.envois);
+  const confirmations = (): Promise<string[]> => page.evaluate(() => window.__bancDiagnostic.confirmations);
   const deposer = () => page.getByRole("button", { name: "Déposer", exact: true });
   const utiliser = () => page.getByRole("button", { name: "Utiliser cette pièce pour ce lot", exact: true });
   /** Laisse React finir de poser l'état et d'exécuter les effets qui suivent une réponse. */
@@ -123,10 +126,14 @@ describe.skipIf(!CHROMIUM)("Dépôt d'un diagnostic et proposition de la pièce 
     await page.waitForFunction(() => ![...document.querySelectorAll("button")].some((b) => b.disabled));
     await laisserAfficher();
   }
-  /** Remplit ce que le rapport exige (fichier, classe du DPE ; les dates sont déjà posées). */
+  /** Remplit les données du rapport ; seule l'échéance est calculée. */
   async function remplir(nom = "dpe-immeuble.pdf") {
-    await page.setInputFiles("#diag-fichier-lot", PDF(nom));
-    await page.selectOption("#diag-classe-lot", "C");
+    await page.getByLabel("Rapport du diagnostiqueur", { exact: true }).setInputFiles(PDF(nom));
+    await page.getByLabel("Classe énergétique (DPE)", { exact: true }).selectOption("C");
+    await page.getByLabel("Réalisé le", { exact: true }).fill("2026-10-01");
+  }
+  async function ouvrirInformationsFacultatives() {
+    await page.getByText("Informations facultatives", { exact: true }).click();
   }
   /** Premier dépôt, refusé : le serveur propose la pièce déjà rangée. */
   async function deposerEtRecevoirLaProposition(reponse: EtatParc = PROPOSITION) {
@@ -138,13 +145,71 @@ describe.skipIf(!CHROMIUM)("Dépôt d'un diagnostic et proposition de la pièce 
     await utiliser().waitFor({ state: "visible", timeout: 3000 });
   }
 
+  // ───────── fermeture déclenchée seulement par une saisie confirmée ─────────
+
+  it("appelle une seule fois le parent après un dépôt réussi, avec le message complet", async () => {
+    await remplir();
+    const message = "Diagnostic enregistré. Le fichier a été reconnu comme PDF.";
+    await reponses({ succes: message });
+    await deposer().click();
+    await attendre(1);
+    expect(await confirmations()).toEqual([message]);
+  });
+
+  it("un refus conserve le dépôt ouvert sans appeler le parent", async () => {
+    await remplir();
+    await reponses({ erreur: "Rapport refusé." });
+    await deposer().click();
+    await attendre(1);
+    expect(await confirmations()).toEqual([]);
+    expect(await page.getByLabel("Réalisé le", { exact: true }).inputValue()).toBe("2026-10-01");
+    expect(await page.getByLabel("Rapport du diagnostiqueur", { exact: true }).evaluate((champ: HTMLInputElement) => champ.files?.[0]?.name)).toBe("dpe-immeuble.pdf");
+  });
+
+  it("la proposition d'une pièce existante ne déclenche pas une fermeture", async () => {
+    await deposerEtRecevoirLaProposition();
+    expect(await confirmations()).toEqual([]);
+    expect(await utiliser().isVisible()).toBe(true);
+  });
+
+  it("un nouveau rendu et une nouvelle identité du callback ne rejouent pas la confirmation", async () => {
+    await remplir();
+    await reponses(SUCCES);
+    await deposer().click();
+    await attendre(1);
+    await page.getByRole("button", { name: "Rejouer le rendu", exact: true }).click();
+    await laisserAfficher();
+    expect(await confirmations()).toEqual([SUCCES.succes]);
+    // Le dépôt suivant doit en revanche produire sa propre confirmation.
+    await remplir("deuxieme-rapport.pdf");
+    await reponses(SUCCES);
+    await deposer().click();
+    await attendre(2);
+    expect(await confirmations()).toEqual([SUCCES.succes, SUCCES.succes]);
+  });
+
+  it("une réponse tardive ne ferme ni ne vide un brouillon modifié pendant le dépôt", async () => {
+    await remplir();
+    await reponses(SUCCES);
+    await page.evaluate(() => { window.__bancDiagnostic.retarder = true; });
+    await deposer().click();
+    await page.waitForFunction(() => Boolean(window.__bancDiagnostic.liberer));
+    await page.getByLabel("Réalisé le", { exact: true }).fill("2026-10-02");
+    await page.evaluate(() => { window.__bancDiagnostic.liberer?.(); });
+    await attendre(1);
+    expect(await confirmations()).toEqual([]);
+    expect(await page.getByLabel("Réalisé le", { exact: true }).inputValue()).toBe("2026-10-02");
+    expect(await page.getByLabel("Rapport du diagnostiqueur", { exact: true }).evaluate((champ: HTMLInputElement) => champ.files?.[0]?.name)).toBe("dpe-immeuble.pdf");
+  });
+
   // ───────── la touche Entrée ─────────
 
   it("Entrée dans « Diagnostiqueur » envoie « Déposer » : la pièce proposée n'est PAS rattachée", async () => {
     await deposerEtRecevoirLaProposition();
     await reponses(SUCCES);
-    await page.fill("#diag-diagnostiqueur-lot", "Cabinet Martin");
-    await page.press("#diag-diagnostiqueur-lot", "Enter");
+    await ouvrirInformationsFacultatives();
+    await page.getByLabel("Diagnostiqueur", { exact: true }).fill("Cabinet Martin");
+    await page.getByLabel("Diagnostiqueur", { exact: true }).press("Enter");
     await attendre(2);
     const recus = await envois();
     expect(recus[1].pieceExistante).toBeNull();
@@ -156,7 +221,7 @@ describe.skipIf(!CHROMIUM)("Dépôt d'un diagnostic et proposition de la pièce 
   it("Entrée dans une date envoie aussi « Déposer », sans rattacher la pièce proposée", async () => {
     await deposerEtRecevoirLaProposition();
     await reponses(SUCCES);
-    await page.press("#diag-realisation-lot", "Enter");
+    await page.getByLabel("Réalisé le", { exact: true }).press("Enter");
     await attendre(2);
     expect((await envois())[1].pieceExistante).toBeNull();
   });
@@ -164,7 +229,8 @@ describe.skipIf(!CHROMIUM)("Dépôt d'un diagnostic et proposition de la pièce 
   it("le clic sur « Utiliser cette pièce pour ce lot » rattache la pièce, avec ce qui est déjà saisi", async () => {
     await deposerEtRecevoirLaProposition();
     await reponses(SUCCES);
-    await page.fill("#diag-diagnostiqueur-lot", "Cabinet Martin");
+    await ouvrirInformationsFacultatives();
+    await page.getByLabel("Diagnostiqueur", { exact: true }).fill("Cabinet Martin");
     await utiliser().click();
     await attendre(2);
     const recus = await envois();
@@ -176,7 +242,7 @@ describe.skipIf(!CHROMIUM)("Dépôt d'un diagnostic et proposition de la pièce 
 
   it("choisir un AUTRE fichier retire la proposition (et le refus qui allait avec)", async () => {
     await deposerEtRecevoirLaProposition();
-    await page.setInputFiles("#diag-fichier-lot", PDF("un-autre-rapport.pdf"));
+    await page.getByLabel("Rapport du diagnostiqueur", { exact: true }).setInputFiles(PDF("un-autre-rapport.pdf"));
     await utiliser().waitFor({ state: "detached", timeout: 2000 });
     expect(await page.getByText("Ce rapport est déjà dans votre dossier").count()).toBe(0);
     expect(await page.getByText("Rattachez cette pièce existante").count()).toBe(0);
@@ -184,10 +250,11 @@ describe.skipIf(!CHROMIUM)("Dépôt d'un diagnostic et proposition de la pièce 
 
   it("choisir un autre fichier puis appuyer sur Entrée dépose le NOUVEAU fichier, sans pièce rattachée", async () => {
     await deposerEtRecevoirLaProposition();
-    await page.setInputFiles("#diag-fichier-lot", PDF("un-autre-rapport.pdf"));
+    await page.getByLabel("Rapport du diagnostiqueur", { exact: true }).setInputFiles(PDF("un-autre-rapport.pdf"));
     await utiliser().waitFor({ state: "detached", timeout: 2000 });
     await reponses(SUCCES);
-    await page.press("#diag-diagnostiqueur-lot", "Enter");
+    await ouvrirInformationsFacultatives();
+    await page.getByLabel("Diagnostiqueur", { exact: true }).press("Enter");
     await attendre(2);
     const recus = await envois();
     expect(recus[1].pieceExistante).toBeNull();
@@ -196,21 +263,22 @@ describe.skipIf(!CHROMIUM)("Dépôt d'un diagnostic et proposition de la pièce 
 
   it("changer le TYPE de diagnostic retire la proposition", async () => {
     await deposerEtRecevoirLaProposition();
-    await page.selectOption("#diag-type-lot", "plomb");
+    await page.getByLabel("Type de diagnostic", { exact: true }).selectOption("plomb");
     await utiliser().waitFor({ state: "detached", timeout: 2000 });
   });
 
   it("corriger une date ou le diagnostiqueur laisse la proposition : le rapport, lui, n'a pas changé", async () => {
     await deposerEtRecevoirLaProposition();
-    await page.fill("#diag-diagnostiqueur-lot", "Cabinet Martin");
-    await page.fill("#diag-realisation-lot", "2026-10-01");
+    await ouvrirInformationsFacultatives();
+    await page.getByLabel("Diagnostiqueur", { exact: true }).fill("Cabinet Martin");
+    await page.getByLabel("Réalisé le", { exact: true }).fill("2026-10-01");
     await laisserAfficher();
     expect(await utiliser().isVisible()).toBe(true);
   });
 
   it("une nouvelle proposition (autre dépôt refusé) s'affiche de nouveau après avoir été retirée", async () => {
     await deposerEtRecevoirLaProposition();
-    await page.setInputFiles("#diag-fichier-lot", PDF("un-autre-rapport.pdf"));
+    await page.getByLabel("Rapport du diagnostiqueur", { exact: true }).setInputFiles(PDF("un-autre-rapport.pdf"));
     await utiliser().waitFor({ state: "detached", timeout: 2000 });
     await reponses(AUTRE_PROPOSITION);
     await deposer().click();

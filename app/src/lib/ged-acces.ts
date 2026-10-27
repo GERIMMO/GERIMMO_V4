@@ -60,7 +60,9 @@ export async function verifierGerant(orgId: string, geste?: GesteTrace) {
           await tracerTraversee(supabase, { orgId, nature: "geste", resultat: "refuse", motif: "lecture_seule", geste });
           return { supabase, user: null, role: null };
         }
-        await tracerTraversee(supabase, { orgId, nature: "geste", resultat: "autorise" });
+        if (!await tracerTraversee(supabase, { orgId, nature: "geste", resultat: "autorise" })) {
+          throw new Error("Consultation indisponible : le journal d’accès ne répond pas. Réessayez plus tard.");
+        }
         return {
           supabase,
           user,

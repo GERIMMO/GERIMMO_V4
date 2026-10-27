@@ -104,3 +104,9 @@ périodicité et une formule ([[Grille tarifaire]]).
 >   l'adresse des conditions.
 > - **Recette Stripe en mode test** à faire : texte sous le bouton avec et sans essai, durée
 >   du webhook avec le rendu du PDF.
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.
+
+Point résolu : archive du 30 septembre enregistrée avant publication, le 24 octobre à 08:13 UTC. La nouvelle version doit être archivée immédiatement après sa mise en ligne.

@@ -163,3 +163,7 @@ d'assurance que s'il prouve avoir réclamé le document ([[Dossier locataire]]).
 - La **mise à disposition** d'un courrier dans l'espace locataire
   ([[Document]]) n'est **pas** une notification : Gerimmo génère et suit, il ne
   notifie jamais (RM-A3.1) — la LRAR reste le canal des actes.
+
+## Relecture avant publication du 24 octobre
+
+Voir [[Relecture adverse et publication conformité V1 — 24 octobre 2026]] pour les sources officielles consultées, les corrections retenues et les réserves encore ouvertes. Les mentions « non publié » ci-dessus décrivent l’état avant la mise en ligne ; seule une entrée `deploy` du journal en atteste l’achèvement.

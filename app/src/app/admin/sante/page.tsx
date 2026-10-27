@@ -1,3 +1,4 @@
+import { ConsoleSection } from "@/components/console-section";
 import { SuiviStripe, type ControleStripe } from "./controle-stripe";
 import { BudgetSignatures, type BudgetSignature } from "./budget-signatures";
 import { ouvertureSignatures } from "@/lib/ouverture-signatures";
@@ -149,25 +150,23 @@ export default async function PageSante() {
         <div className="min-w-0 flex-[1_1_20rem]">
           <TitreEcran rubrique="sante">Santé et connexions</TitreEcran>
           <p className="mt-2 text-sm text-muted-foreground">
-            Les services reliés à Gerimmo, le travail réalisé automatiquement et,
-            pour chaque point rouge, la commande qui le règle.
+            Vérifiez les points à traiter, puis ouvrez le contrôle concerné.
           </p>
         </div>
         <span className="mono-discret sans-majuscules max-w-full whitespace-normal">
           {nbPoints === null
             ? `${nbManque} connexion${nbManque > 1 ? "s" : ""} manque${nbManque > 1 ? "nt" : ""} · travail automatique à vérifier${aVerifier}`
             : nbPoints === 0
-              ? `Connexions et tâches suivies à jour${aVerifier}`
+              ? `Réglages présents · tâches suivies à jour${aVerifier}`
               : `${nbPoints} point${nbPoints > 1 ? "s" : ""} à traiter : ${detailPoints}${aVerifier}`}
         </span>
       </div>
 
+      <nav aria-label="Accès aux contrôles" className="mb-5 flex flex-wrap gap-3"><a className="btn-secondaire" href="#connexions">Connexions</a><a className="btn-secondaire" href="#taches">Tâches et sauvegarde</a><a className="btn-secondaire" href="#budget-signatures">Signatures</a></nav>
       {/* ── Configuration ─────────────────────────────────────────────── */}
-      <section className="section-ecran">
+      <ConsoleSection id="connexions" titre="Connexions des services" description="Présence des réglages nécessaires aux services." icone="sante" statut={nbManque+nbAttention ? `${nbManque+nbAttention} à vérifier` : "Réglages présents"}>
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
-            Connexions indispensables
-          </h2>
+
           <span className="mono-discret">{configuration.filter((v) => v.estConnexion !== false).length}</span>
         </div>
         {/* La liste commune de la console (nuit du 25/09) : des rangs à filet
@@ -196,18 +195,16 @@ export default async function PageSante() {
           ))}
         </ul>
         <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
-          Gerimmo vérifie chaque connexion sans afficher de clé ni de donnée
-          confidentielle. Aucun écran de Gerimmo ne pose une variable : elle se
-          pose chez Vercel, puis le service est redéployé.
+          Ce contrôle confirme la présence des réglages, sans afficher les clés.
+          Il ne teste pas un paiement, un e-mail ou une signature chez le prestataire.
+          Les réglages serveur se modifient chez Vercel, puis le service est redéployé.
         </p>
-      </section>
+      </ConsoleSection>
 
       {/* ── Tâches planifiées ─────────────────────────────────────────── */}
-      <section className="section-ecran">
+      <ConsoleSection id="taches" titre="Tâches automatiques" description="Derniers passages, retards et sauvegarde." icone="historique" ton="vert" statut={taches === null ? "Lecture indisponible" : nbEchec+nbRetard+nbJamais ? `${nbEchec+nbRetard+nbJamais} à vérifier` : "Passages consultables"}>
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
-            Travail automatique
-          </h2>
+
           <Link href="/admin/journaux#historique-service" className="lien-discret text-sm">
             Voir l&apos;historique →
           </Link>
@@ -315,13 +312,11 @@ export default async function PageSante() {
             : "l’alerte quotidienne du relais, à 5 h (heure de Paris), et l’e-mail immédiat des urgences du mode vacances, qui ne partent pas : le relais n’est pas configuré, aucune tâche en échec n’est signalée par e-mail."}{" "}
           <Link href="/admin/relais#alerte-email" className="lien-discret">Alerte e-mail du relais →</Link>
         </p>
-      </section>
+      </ConsoleSection>
 
-      <section className="section-ecran">
+      <ConsoleSection titre="Protection des fichiers" description="Formats, accès et analyse antivirus." icone="securite" ton="ambre" statut="Antivirus à connecter">
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
-            Protection des fichiers
-          </h2>
+
           <span className="puce puce-prep">antivirus à connecter</span>
         </div>
         <p className="mesure-lecture text-sm text-[var(--texte-secondaire)]">
@@ -330,14 +325,12 @@ export default async function PageSante() {
           n&apos;est pas encore disponible : le service dédié doit être relié et
           testé avant son activation.
         </p>
-      </section>
+      </ConsoleSection>
 
       {/* ── Documents légaux ──────────────────────────────────────────── */}
-      <section className="section-ecran">
+      <ConsoleSection titre="Informations légales" description="Faits requis et informations à compléter." icone="documents" statut={identite.indisponible ? "Lecture indisponible" : manquants.length+aCompleter.length ? `${manquants.length+aCompleter.length} à compléter` : "Complètes"}>
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
-            Documents légaux
-          </h2>
+
           <span className={`puce ${manquants.length > 0 ? "puce-rouge" : aCompleter.length > 0 ? "puce-prep" : "puce-loue"}`}>
             {manquants.length > 0
               ? `${manquants.length} à fournir`
@@ -403,7 +396,7 @@ export default async function PageSante() {
             </p>
           </div>
         )}
-      </section>
+      </ConsoleSection>
 
       <ArchiveConditions
         versions={versionsArchivees}
@@ -413,11 +406,9 @@ export default async function PageSante() {
       />
 
       {/* ── Envois automatiques ───────────────────────────────────────── */}
-      <section className="section-ecran">
+      <ConsoleSection titre="Envois des organisations" description="Avis d’échéance, quittances et relances activés." icone="personnes" ton="violet" statut={adoption ? `${adoption.vivantes} espaces` : "Lecture indisponible"}>
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
-            Envois automatiques
-          </h2>
+
           <span className="mono-discret">
             {adoption ? `${adoption.vivantes} organisation${adoption.vivantes > 1 ? "s" : ""} active${adoption.vivantes > 1 ? "s" : ""} ou en essai` : "—"}
           </span>
@@ -449,7 +440,7 @@ export default async function PageSante() {
           {/* La commande de la section (audit C36) : les organisations, pas un chiffre seul. */}
           {" "}<Link href="/admin/clients" className="lien-discret">Voir les organisations →</Link>
         </p>
-      </section>
+      </ConsoleSection>
     <SuiviStripe controle={controleStripe.error ? null : controleStripe.data as ControleStripe}/><BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} ouverture={ouverture}/></main>
   );
 }

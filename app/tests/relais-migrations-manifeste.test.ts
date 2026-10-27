@@ -105,6 +105,14 @@ const MISSION_OCTOBRE = [
   "20261024140000_conservation_et_prospection.sql",
   // 24/10, intégration des textes de la V1 : la règle d'inactivité (compte:inactif) s'active avec la V1 des conditions.
   "20261024150000_activation_inactivite_v1.sql",
+  "20261024105901_reglages_conservation_superadmin.sql",
+  "20261025192344_mois_offerts_superadmin.sql",
+  "20261026090335_rappels_loyers_proprietaire.sql",
+  "20261026110449_reception_loyer_idempotence_durable.sql",
+  "20261026213652_qualifications_diagnostics_lot.sql",
+  "20261026214857_qualification_diagnostic_annee_installation.sql",
+  "20261026232941_pieces_attendues_bail.sql",
+
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

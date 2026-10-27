@@ -34,8 +34,9 @@ test.describe('Études, validation et visibilité par profil',()=>{
    await lecture.reload();await lecture.screenshot({path:'e2e/.results/veille-utilisateur.png',fullPage:true});await expect(lecture.getByRole('heading',{name:titre,exact:true})).toBeVisible();await expect(lecture.locator('body')).not.toContainText('Tester un dossier complet');
    // L'artisan lit la veille dans sa coquille (/artisan/regles, 25/09), sans filtre d'autres publics : la lecture « locataire » se fait par l'adresse publique.
    await lecture.goto('/veille?public=locataire');await expect(lecture.getByRole('heading',{name:titre,exact:true})).toHaveCount(0);
-   await page.goto('/admin/autonomie#ameliorations');const proposition=page.locator('article').filter({has:page.getByRole('heading',{name:'Adapter Gerimmo : '+titre,exact:true})});
+   await page.goto('/admin/autonomie#ameliorations');const proposition=page.locator('details').filter({has:page.getByRole('heading',{name:'Adapter Gerimmo : '+titre,exact:true})});
    await expect(proposition).toContainText('Éviter une nouvelle saisie');
+   await proposition.locator(':scope > summary').click();
    await proposition.getByText('Autoriser la préparation d’une correction',{exact:true}).click();
    await expect(proposition.getByLabel('Demande à préparer, sans donnée personnelle')).toHaveValue(/Vérifier la reprise des informations/);
    await expect(proposition.getByRole('button',{name:'Autoriser cette préparation'})).toBeVisible();
@@ -69,7 +70,7 @@ test.describe('Études, validation et visibilité par profil',()=>{
    await page.getByLabel('Publier automatiquement').check();await page.getByRole('button',{name:'Enregistrer les réglages'}).click();await expect(page.getByRole('status')).toContainText('mis à jour');
   }
   const artisan=await browser.newContext({storageState:'e2e/.auth/artisan.json'});const ecran=await artisan.newPage();await sansSyntheseAlertes(ecran);
-  try{await ecran.goto('/artisan/entreprise');await ecran.getByRole('link',{name:'Les règles à connaître pour mon activité'}).click();await expect(ecran).toHaveURL(/\/artisan\/regles/);}finally{await artisan.close();}
+  try{await ecran.goto('/artisan/entreprise#entreprise-reseau');await ecran.getByRole('link',{name:'Les règles à connaître pour mon activité'}).click();await expect(ecran).toHaveURL(/\/artisan\/regles/);}finally{await artisan.close();}
  });
 
 });

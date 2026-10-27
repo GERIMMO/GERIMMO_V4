@@ -22,7 +22,7 @@ test.describe("Couverture du réseau depuis le bien", () => {
     await page.getByRole("button", { name: "Créer le lot et continuer", exact: true }).click();
     await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+\?parcours=1&etape=lot$/);
     await page.getByRole("link", { name: "Retour au logement", exact: false }).click();
-    await page.getByRole("link", { name: "Artisans Consulter le réseau pour ce bien" }).click();
+    await page.getByRole("link", { name: "Trouver un artisan", exact: true }).click();
     await page.getByLabel("Métier recherché", { exact: true }).selectOption("plomberie");
     await page.getByRole("button", { name: "Rechercher des artisans", exact: true }).click();
     // Audit 29/09 : la commune évidente est proposée et confirmée dès la

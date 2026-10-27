@@ -245,16 +245,30 @@ describe("D08 — l'entrée dans un espace client par la page (verifierAccesEspa
     expect(appelsTrace()).toHaveLength(0);
   });
 
-  it("une trace en panne ne bloque pas la page", async () => {
+  it("une trace en panne ferme la consultation superadmin", async () => {
     mocks.traceEnPanne = true;
     const erreur = vi.spyOn(console, "error").mockImplementation(() => {});
-    const espace = await verifierAccesEspace(ORG + "-panne");
-    expect(espace.role).toBe("admin_agence");
+    await expect(verifierAccesEspace(ORG + "-panne")).rejects.toThrow("journal d’accès");
     erreur.mockRestore();
   });
 });
 
 describe("D08 — un geste dans un espace client (verifierGerant)", () => {
+  it("un fichier n’est pas livré quand la trace échoue, puis redevient accessible après reprise", async () => {
+    mocks.entetes = {"x-gerimmo-methode":"GET", "x-gerimmo-chemin":`/espace/${ORG}/documents/${BAIL}/fichier`};
+    mocks.traceEnPanne = true;
+    const erreur=vi.spyOn(console,"error").mockImplementation(()=>{});
+    await expect(verifierGerant(ORG)).rejects.toThrow("journal d’accès");
+    mocks.traceEnPanne = false;
+    expect((await verifierGerant(ORG)).user?.id).toBe("sa");
+    erreur.mockRestore();
+  });
+  it("un propriétaire membre conserve son accès même si le journal de traversée est indisponible", async () => {
+    mocks.membre={role:"proprietaire_direct"}; mocks.traceEnPanne=true;
+    expect((await verifierGerant(ORG)).user?.id).toBe("sa");
+    expect(appelsTrace()).toHaveLength(0);
+  });
+
   it("une action serveur écrit « traversee_action », avec son empreinte, la page et l'objet", async () => {
     mocks.entetes = { "x-gerimmo-chemin": `/agence/${ORG}/baux/${BAIL}`, "x-gerimmo-methode": "POST", "next-action": ACTION };
     const acces = await verifierGerant(ORG);

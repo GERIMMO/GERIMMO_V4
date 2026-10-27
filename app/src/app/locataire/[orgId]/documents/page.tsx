@@ -1,3 +1,7 @@
+import { ApercuDocumentEspace } from "@/components/apercu-document-espace";
+import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
+import { OngletsDossier } from "@/components/onglets-dossier";
+import { RubriqueDossier } from "@/components/rubrique-dossier";
 import { deElide } from "@/lib/elision";
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
@@ -43,7 +47,7 @@ type LigneEcheancier = {
   quittance_id: string | null;
 };
 
-function statutAssurance(expire: string | null): { texte: string; classe: string } {
+function statutAssurance(expire: string | null, verifiee: boolean): { texte: string; classe: string } {
   if (!expire) return { texte: "sans date d'expiration", classe: "text-muted-foreground" };
   // Minuit LOCAL des deux côtés (revue 23/08 : la date seule se parse en UTC,
   // le lendemain de l'expiration affichait encore « expire dans 0 j »), mais
@@ -62,7 +66,7 @@ function statutAssurance(expire: string | null): { texte: string; classe: string
       texte: `expire dans ${jours} j (${formaterDate(expire)})`,
       classe: "text-warning-soft-foreground",
     };
-  return { texte: `valide jusqu'au ${formaterDate(expire)}`, classe: "text-success-soft-foreground" };
+  return { texte: `échéance le ${formaterDate(expire)}`, classe: verifiee ? "text-success-soft-foreground" : "text-muted-foreground" };
 }
 
 // « Mes documents » (maquette v10) : ce qui est conservé pour moi, et mon
@@ -91,7 +95,7 @@ export default async function PageDocumentsLocataire(
     demandee_le: string;
   }[]);
   const demandes = (demandesBrutes ?? []) as DemandePiece[];
-  const pieces = (piecesBrutes ?? []) as Piece[];
+  const pieces = [...new Map(((piecesBrutes ?? []) as Piece[]).map(p => [p.document_id, p])).values()];
   const quittances = ((echeancier ?? []) as LigneEcheancier[]).filter((l) => l.quittance_id);
   const disponibilites = await disponibilitesQuittances(supabase, quittances.map(q => q.quittance_id));
   const total = pieces.length + quittances.filter(q => disponibilites[q.quittance_id!] === "disponible").length;
@@ -103,9 +107,10 @@ export default async function PageDocumentsLocataire(
     .filter((p) => p.type === "attestation_assurance")
     .sort((a, b) => b.depose_le.localeCompare(a.depose_le));
   const assurance = attestations[0];
-  const statut = assurance ? statutAssurance(assurance.expire_le) : null;
+  const etatAssurance = etatAssuranceLocataire(assurance);
+  const statut = assurance && etatAssurance.dateConnue ? statutAssurance(assurance.expire_le, Boolean(assurance.verifie_le)) : null;
   const deuxAttestations =
-    attestations.some((p) => p.verifie_le && !estExpiree(p.expire_le)) &&
+    attestations.some((p) => etatAssuranceLocataire(p).validee) &&
     attestations.some((p) => !p.verifie_le);
 
   const moisLong = (d: string) =>
@@ -144,6 +149,10 @@ export default async function PageDocumentsLocataire(
         {enPreparation} justificatif{enPreparation > 1 ? "s" : ""} de loyer en préparation ou à vérifier. Les boutons de téléchargement apparaîtront dès que les informations nécessaires seront complètes. <Link href={`/locataire/${orgId}/contact`} className="underline">Contacter mon gestionnaire</Link>
       </p>}
 
+      <OngletsDossier libelle="Rubriques de mes documents"
+        initiale={aSigner.length || demandes.length || (adhesionActive && (!etatAssurance.nonExpiree)) ? "documents-a-transmettre" : "documents-disponibles"}
+        rubriques={[
+          { id: "documents-a-transmettre", titre: "À transmettre", contenu: <>
       {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
       {aSigner.length > 0 && adhesionActive && (
         <div className="loc-carte border-l-4 border-l-[var(--or)]">
@@ -185,7 +194,7 @@ export default async function PageDocumentsLocataire(
           scroll-mt : l'en-tête .loc-haut est collant (globals.css:627). */}
       <div
         id="assurance"
-        className={`loc-carte scroll-mt-24 ${lecturePiecesKO || (assurance && assurance.verifie_le && !estExpiree(assurance.expire_le)) ? "" : "border-l-4 border-l-[var(--or)]"}`}
+        className={`loc-carte scroll-mt-24 ${lecturePiecesKO || etatAssurance.validee ? "" : "border-l-4 border-l-[var(--or)]"}`}
       >
         <div className="entete-carte !mb-1">
           <h2 className="titre-carte text-base font-medium">Votre assurance habitation</h2>
@@ -194,50 +203,40 @@ export default async function PageDocumentsLocataire(
           {!lecturePiecesKO && !assurance && adhesionActive && (
             <span className="loc-tag ambre">à déposer</span>
           )}
-          {!lecturePiecesKO &&
-            assurance &&
-            (assurance.verifie_le ? (
-              estExpiree(assurance.expire_le) ? (
-                <span className="loc-tag rouge">Expirée</span>
-              ) : (
-                <span className="loc-tag vert">Validée</span>
-              )
-            ) : (
-              <span className="loc-tag ambre">En cours de vérification</span>
-            ))}
+          {!lecturePiecesKO && assurance && (
+            <span className={`loc-tag ${etatAssurance.validee ? "vert" : etatAssurance.dateConnue && !etatAssurance.nonExpiree ? "rouge" : "ambre"}`}>
+              {etatAssurance.libelle}
+            </span>
+          )}
         </div>
         {lecturePiecesKO ? (
           <LectureImpossible quoi="l'état de votre assurance" />
         ) : assurance ? (
           <p className="text-sm text-muted-foreground">
             {assurance.titre || "Attestation déposée"} —{" "}
-            <span className={statut?.classe}>{statut?.texte}</span>.
+            <span className={statut?.classe}>{statut?.texte ?? "date d’expiration à vérifier avec votre gestionnaire"}</span>.
             {deuxAttestations &&
               " Votre attestation validée reste en vigueur pendant la vérification de la nouvelle."}
           </p>
         ) : (
-          adhesionActive ? (
-            <p className="text-sm text-destructive-soft-foreground">
-              Aucune attestation déposée. L&apos;assurance habitation est obligatoire
-              pendant toute la durée du bail — déposez la vôtre ci-dessous, une
-              photo lisible suffit.
-            </p>
-          ) : (
+          adhesionActive ? null : (
             <p className="text-sm text-muted-foreground">
               Bail terminé — plus d&apos;attestation à fournir.
             </p>
           )
         )}
         {adhesionActive && (
-          <div className="mt-3.5">
-            <FormulaireAttestation orgId={orgId} renouvellement={Boolean(assurance)} />
-          </div>
+          <RubriqueDossier id="depot-assurance" titre={assurance ? "Déposer une nouvelle attestation" : "Ajouter mon attestation"} resume="PDF ou photo lisible" ouverte={!assurance}>
+            <FormulaireAttestation orgId={orgId} renouvellement={Boolean(assurance)} sansTitre />
+          </RubriqueDossier>
         )}
       </div>
+</> },
+          { id: "documents-disponibles", titre: "Mes fichiers", contenu: <>
 
       <div className="loc-carte">
         <div className="entete-carte">
-          <h2 className="titre-carte text-base font-medium">Conservés pour vous</h2>
+          <h2 className="titre-carte text-base font-medium">Documents disponibles</h2>
         </div>
         {aEchoue(ePieces, eEcheancier) ? (
           <LectureImpossible quoi="les pièces conservées pour vous" />
@@ -263,28 +262,14 @@ export default async function PageDocumentsLocataire(
                   key={`${p.source}-${p.document_id}`}
                   className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 text-sm"
                 >
-                  <a
-                    href={fichier}
-                    target="_blank"
-                    rel="noopener"
-                    tabIndex={-1}
-                    className={TITRE_RANG}
-                  >
+                  <div className={TITRE_RANG}>
                     <b className="line-clamp-2 font-medium">{nom}</b>
                     <small className="block text-muted-foreground">{sousTitre(p)}</small>
-                  </a>
+                  </div>
                   {/* Liens stylés en bouton : hors du filet tactile du socle
                       (button/select), d'où le min-h au pointeur grossier */}
                   <span className={ACTIONS_RANG}>
-                    <a
-                      href={fichier}
-                      target="_blank"
-                      rel="noopener"
-                      aria-label={`Ouvrir ${nom}`}
-                      className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                    >
-                      Ouvrir
-                    </a>
+                    <ApercuDocumentEspace fichier={fichier} titre={nom} mime={p.mime_type}/>
                     <a
                       href={`${fichier}?mode=telechargement`}
                       target="_blank"
@@ -360,7 +345,9 @@ export default async function PageDocumentsLocataire(
         <p className="mt-3 text-[13px] text-muted-foreground">
           {CONSERVATION_DOCUMENTS_LOCATAIRE}
         </p>
-      </div>
+      </div></> },
+        ]} />
+
     </div>
   );
 }

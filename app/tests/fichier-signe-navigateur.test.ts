@@ -15,7 +15,7 @@ describe.skipIf(process.env.GERIMMO_TEST_PDF!=="1")("Document volumineux dans le
   const server=createServer(async(req,res)=>{
    if(['/document','/miniature','/pdf','/telechargement'].includes(req.url||'')){
     const db={storage:{from:()=>({createSignedUrl:async()=>({data:{signedUrl:`${base}/${req.url==='/pdf'?'pdf-octets':'stockage'}?token=essai${req.url==='/telechargement'?'&download=1':''}`},error:null})})}} as unknown as SupabaseClient;
-    const r=await servirFichierSigne(db,{path:'piece.png',mime:req.url==='/pdf'?'application/pdf':'image/png',titre:'Pièce fictive',retour:'depuis le dossier',apercuImage:req.url==='/miniature',mode:req.url==='/telechargement'?'telechargement':'consultation'});const texte=await r.text();tailleReponse=Buffer.byteLength(texte);res.writeHead(r.status,Object.fromEntries(r.headers));res.end(texte);return;
+    const r=await servirFichierSigne(db,{path:'piece.png',mime:req.url==='/pdf'?'application/pdf':'image/png',titre:req.url==='/pdf'?'Bail nu (généré, à faire signer) — à signer en ligne — signé':'Pièce fictive',libelle:req.url==='/pdf'?'Bail signé':undefined,retour:'depuis le dossier',apercuImage:req.url==='/miniature',mode:req.url==='/telechargement'?'telechargement':'consultation'});const texte=await r.text();tailleReponse=Buffer.byteLength(texte);res.writeHead(r.status,Object.fromEntries(r.headers));res.end(texte);return;
    }
    if(req.url==='/liste'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<img alt=Miniature src=/miniature><a href=/telechargement>Télécharger</a>');return;}
    if(req.url==='/incorpore'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end('<iframe title="Dossier" src="/pdf" style="width:500px;height:500px"></iframe>');return;}
@@ -42,7 +42,13 @@ describe.skipIf(process.env.GERIMMO_TEST_PDF!=="1")("Document volumineux dans le
    await page.goto(`${base}/pdf`);const ouvrir=page.getByRole('link',{name:'Ouvrir le PDF en plein écran'});await ouvrir.waitFor();
    expect(await ouvrir.getAttribute('href')).toMatch(/^blob:/);expect(await ouvrir.getAttribute('target')).toBe('_blank');expect(await page.locator('iframe').isVisible()).toBe(false);
    const pdfTelecharge=page.waitForEvent('download');await page.getByRole('link',{name:'Télécharger',exact:true}).click();const pdfFlux=await(await pdfTelecharge).createReadStream();let taillePdf=0;for await(const octets of pdfFlux!)taillePdf+=octets.length;expect(taillePdf).toBe(pdfOctets.length);
-   await page.setViewportSize({width:1440,height:900});expect(await page.locator('iframe').isVisible()).toBe(true);
+   for(const largeur of [320,390,572,1440]) {
+    await page.setViewportSize({width:largeur,height:900});
+    expect(await page.locator('header strong').innerText()).toBe('Bail signé');
+    const titre=await page.locator('header strong').boundingBox();expect(titre!.width).toBeGreaterThan(150);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+   }
+   expect(await page.locator('iframe').isVisible()).toBe(true);
    await page.goto(`${base}/incorpore`);const cadre=page.frameLocator('iframe[title="Dossier"]');await cadre.getByRole('link',{name:'Ouvrir le PDF en plein écran'}).waitFor();
    expect(await cadre.locator('#apercu iframe').isVisible()).toBe(true);
    expect(await cadre.locator('#aide-pdf').isVisible()).toBe(false);

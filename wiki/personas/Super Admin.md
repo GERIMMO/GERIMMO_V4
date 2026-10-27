@@ -3,7 +3,7 @@ type: persona
 tags: [role, plateforme]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-23
+updated: 2026-10-24
 sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]", "[[Fiches des anomalies P3 — audit du 13 octobre 2026]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
 ---
 
@@ -177,3 +177,16 @@ les appels payants à l'IA, l'arrêt avant les prochains effets.
 >   globale existe en base sans écran pour la poser ; aucun levier par commune (à trancher
 >   si besoin). Migration `20261023180000`,
 >   appliquée en production le 23/10 ; [[Ouverture du réseau d'artisans]].
+
+
+## Simplification de la console — publiée le 24 octobre 2026
+
+À la demande du dirigeant, huit rubriques et leurs fiches liées sont réorganisées : décisions, utilisateurs, vacances/relais, améliorations du produit, santé/connexions, sécurité/conformité, historique/sauvegardes et paramètres.
+
+- Les informations utiles restent au premier niveau ; les détails, anciennes périodes et procédures se déplient à la demande.
+- Une couleur douce et une icône distinguent chaque groupe ; les statuts restent écrits. Une lecture indisponible ne devient pas un état sain.
+- Les liens directs ouvrent la rubrique ciblée. Un champ invalide caché est révélé avant correction. Replier une rubrique conserve tous les champs du formulaire.
+- Les coordonnées publiques sont regroupées en contact/entreprise, médiateur et prestataires. Les durées de conservation restent sur leur écran dédié.
+- Les droits, validations et confirmations ne changent pas. Le diagnostic du portail artisan est décrit comme une consultation en lecture seule, conformément au contrôle déjà appliqué.
+
+Contrôles et statut de publication : entrée correspondante dans `log.md`. Cette réorganisation ne change aucune règle métier.

@@ -21,6 +21,7 @@ import {
   PRESTATAIRES,
   sousTraitantsClient,
 } from "../src/lib/editeur";
+import { formulaireRetractation } from "../src/lib/courriers-contrat";
 import { NATURES_RETOUR } from "../src/lib/retours";
 import { RAPPEL_COMPLEMENT_EDL_ENTREE, RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT } from "../src/lib/textes-signature-actes";
 
@@ -80,7 +81,7 @@ describe("V1 des conditions clients : articles clés", () => {
     const page = texte(html);
     for (const attendu of [
       "« Renoncer au contrat ici »",
-      "Commandé le :",
+      "Commandé le (*)/reçu le (*) :",
       "14 bis. Garanties légales (Client consommateur)",
       "15.5 — Résiliation pour manquement de l'Éditeur.",
       "Article L. 215-1-1.",
@@ -97,6 +98,29 @@ describe("V1 des conditions clients : articles clés", () => {
     expect(page).not.toContain("Souscrit le :");
     // Intégration du 24/10 : pas d'ancre `id` dans le texte contractuel (liste blanche du balisage archivé, M1).
     expect(html).not.toContain('id="retractation"');
+  });
+
+  it("le modèle officiel R. 221-1 est identique sur la page et dans le courriel", async () => {
+    // Source indépendante : annexe R. 221-1, Légifrance LEGIARTI000045418600, consultée le 24/10/2026.
+    const lignes = [
+      "Je/nous (*) vous notifie/notifions (*) par la présente ma/notre (*) rétractation du contrat portant sur la vente du bien (*)/pour la prestation de services (*) ci-dessous :",
+      "Commandé le (*)/reçu le (*) :",
+      "Nom du (des) consommateur(s) :",
+      "Adresse du (des) consommateur(s) :",
+      "Signature du (des) consommateur(s) (uniquement en cas de notification du présent formulaire sur papier) :",
+      "Date :",
+      "(*) Rayez la mention inutile.",
+    ];
+    const page = await conditions();
+    expect(formulaireRetractation(IDENTITE).slice(2)).toEqual(lignes);
+    for (const ligne of lignes) expect(page).toContain(ligne);
+  });
+
+  it("l'arrêt technique d'une signature ne promet pas l'annulation juridique des engagements", async () => {
+    const art = article(await conditions(), "4.7 — Signature électronique.", "4.8 —");
+    expect(art).not.toContain("n'engage aucun signataire");
+    expect(art).toContain("ne tranche pas la portée juridique");
+    expect(art).toContain("sauf pour la caution ou le garant");
   });
 
   it("8.10 : rétractation ouverte à toutes les formules, remboursement intégral, nouveau délai au passage à l'annuel", async () => {
@@ -397,6 +421,18 @@ describe("conditions de l'espace artisan (R10)", () => {
     const page = await artisans();
     expect(page).toContain("dans une commune qu'il a choisie, pour un métier qu'il a déclaré");
     expect(page).toContain("la fermeture définitive du compte est notifiée trente jours avant de prendre effet");
+  });
+
+  it("l'artisan connaît ses accès aux données, leur fin et les préavis de modification", async () => {
+    const page = await artisans();
+    const donnees = article(page, "A9. Données personnelles", "A10.");
+    for (const mention of ["évaluations et indicateurs", "même agrégées", "Après la fermeture", "copie des données encore conservées", "Aucun partage avec des tiers à des fins publicitaires"]) {
+      expect(donnees).toContain(mention);
+    }
+    const modifications = article(page, "A12. Modification", "A13.");
+    expect(modifications).toContain("Ce délai est prolongé");
+    expect(modifications).toContain("au plus tard quinze jours après la réception du préavis");
+    expect(modifications).toContain("Aucune modification rétroactive");
   });
 
   it("l'annexe de l'Artisan : sortie par la fermeture du compte, mêmes sous-traitants, aucune clause de remboursement", async () => {

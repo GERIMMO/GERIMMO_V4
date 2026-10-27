@@ -131,7 +131,7 @@ export async function PaneIncident({
       <div className="vide-guide">
         <p className="titre">Dossier introuvable</p>
         <p className="explication">
-          Ce numéro d&apos;incident n&apos;existe pas dans cette agence.
+          Ce dossier n&apos;est pas disponible dans votre espace.
           Choisissez un dossier dans la liste.
         </p>
       </div>
@@ -354,110 +354,13 @@ export async function PaneIncident({
           ? { titre: "Dossier clos", texte: "Retrouvez les décisions et les échanges dans la chronologie.", cible: "chronologie", bouton: "Voir l’historique", ton: "termine" }
           : { titre: "Suivre l’intervention", texte: "Consultez l’avancement et les informations transmises par l’artisan.", cible: "intervention", bouton: "Voir le suivi", ton: "info" };
 
-  return (
-    <div className="incident-dossier min-w-0 space-y-4">
-      {incident.etat === "clos" && <BilanContactIncident orgId={orgId} incidentId={incidentId} />}
-      <EchecLecture quoi={lecturesManquees} />
-      <section className="incident-entete" aria-label="Résumé du signalement">
-        <div className="incident-entete-haut">
-          <div>
-            <p className="incident-reference">{incident.numero} · <time dateTime={incident.created_at}>{formaterDateHeure(incident.created_at)}</time></p>
-            <h2>{titreIncident(incident.categorie)}</h2>
-          </div>
-          <div className="incident-badges">
-            {incident.urgence === "urgente" && <span className="puce puce-rouge">Urgent</span>}
-            <span className={COULEURS_ETAT_INCIDENT[incident.etat] ?? "puce puce-grise"}>{ETATS_INCIDENT[incident.etat] ?? incident.etat}</span>
-          </div>
-        </div>
-        <div className="incident-reperes">
-          <div><Building2 size={17} aria-hidden="true" /><div><span>Logement concerné</span>
-            {lot ? <Link href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <strong>Lot non disponible</strong>}
-            {incident.piece && <small>{incident.piece}</small>}
-          </div></div>
-          <div><UserRound size={17} aria-hidden="true" /><div><span>{incident.canal === "espace_locataire" ? "Déclaré par" : "Contact du logement"}</span>
-            {declarant ? <>
-              <Link href={`${base}/personnes/${declarant.id}#messages`}>{nomComplet(declarant)}</Link>
-              {declarant.telephone && <a href={`tel:${declarant.telephone.replace(/\s/g, "")}`} className="incident-telephone">{formaterTelephone(declarant.telephone)}</a>}
-            </> : <strong>{declarantIllisible ? "Déclarant hors de votre portefeuille" : "Aucun bail actif sur le lot"}</strong>}
-          </div></div>
-        </div>
-        {!estProprietaire && (peutModifierSuivi ? (
-          <details className="incident-attribution" open={!incident.responsable_account_id}>
-            <summary><span>Suivi du dossier : <b>{responsableAffiche}</b></span><span>Modifier</span></summary>
-            <div><FormulaireAttribution orgId={orgId} incidentId={incidentId} responsable={incident.responsable_account_id} membres={membres} monCompte={monCompte} estResponsable={estResponsable} /></div>
-          </details>
-        ) : <p className="incident-suivi-lecture">Suivi du dossier : <b>{responsableAffiche}</b></p>)}
-        <ol className="incident-etapes" aria-label="Avancement du dossier">
-          {etapesFlux.map((f, n) => <li key={f} data-etat={n < positionFlux ? "fait" : n === positionFlux ? "courant" : "a-venir"} aria-current={n === positionFlux ? "step" : undefined}>
-            <span>{n < positionFlux ? <Check size={12} aria-hidden="true" /> : n + 1}</span>{ETAPES_FLUX[f] ?? f}
-          </li>)}
-        </ol>
-      </section>
-      <div className="incident-prochaine-action" data-ton={prochaineAction.ton}>
-        <div><span>Prochaine étape</span><strong>{prochaineAction.titre}</strong><p>{prochaineAction.texte}</p></div>
-        <a href={`#${prochaineAction.cible}`}>{prochaineAction.bouton}<ArrowRight size={16} aria-hidden="true" /></a>
-      </div>
-      <div className="incident-contenu">
-
-        <div className="min-w-0 space-y-4">
-
-          <div className="incident-contexte">
-          <Card className="incident-signalement">
-            <CardHeader>
-              <CardTitle className="text-base"><MessageSquareText size={18} aria-hidden="true" />
-                {incident.canal === "espace_locataire"
-                  ? "Ce qu'a dit le locataire"
-                  : "Le signalement"}
-              </CardTitle>
-              {categorie && <CardDescription>{categorie.libelle} · {CANAUX_INCIDENT[incident.canal] ?? incident.canal}</CardDescription>}
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {incident.description ? (
-                <p className="text-sm">« {incident.description} »</p>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Signalé sans description — les photos parlent pour lui.
-                </p>
-              )}
-              {photos.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {photos.map((p) => (
-                    // La route documents journalise chaque consultation
-                    // (RM-A4 : pas de trace, pas d'accès). Le lien ouvre la
-                    // photo en grand — la vignette 80px ne se zoome pas au doigt.
-                    <a
-                      key={p.id}
-                      href={`${base}/documents/${p.id}/fichier`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`${base}/documents/${p.id}/fichier?apercu=image`}
-                        alt={p.titre ?? "Photo de l'incident"}
-                        className="h-20 w-20 rounded-[10px] border border-border object-cover"
-                      />
-                    </a>
-                  ))}
-                </div>
-              )}
-              {/* 24/09 : pièce, canal et date de déclaration sont déjà dans
-                  l'en-tête du dossier, juste au-dessus. Ne reste que ce qu'il
-                  ne dit pas — l'ancienneté, quand le locataire l'a donnée. */}
-              {incident.anciennete && (
-                <div className="ligne-info">
-                  <span>Ancienneté</span>
-                  <span>{incident.anciennete}</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card id="chronologie">
-            <CardHeader>
+  const ConteneurChronologie = estProprietaire ? "details" : "div";
+  const chronologie = (<ConteneurChronologie id="chronologie" className={estProprietaire ? "incident-historique" : undefined}>
+          {estProprietaire && <summary><History size={16} aria-hidden="true" />Historique du dossier</summary>}
+          <Card>
+            {!estProprietaire && <CardHeader>
               <CardTitle className="text-base"><History size={18} aria-hidden="true" />Chronologie</CardTitle>
-            </CardHeader>
+            </CardHeader>}
             <CardContent>
               {!erreurEvenements && (evenements ?? []).length === 0 && (
                 <p className="text-sm text-muted-foreground">
@@ -483,6 +386,107 @@ export async function PaneIncident({
               </div>
             </CardContent>
           </Card>
+          </ConteneurChronologie>);
+  const galeriePhotos = photos.length > 0 ? (<div className="flex flex-wrap gap-2">
+                  {photos.map((p) => (
+                    // La route documents journalise chaque consultation
+                    // (RM-A4 : pas de trace, pas d'accès). Le lien ouvre la
+                    // photo en grand — la vignette 80px ne se zoome pas au doigt.
+                    <a
+                      key={p.id}
+                      href={`${base}/documents/${p.id}/fichier`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`${base}/documents/${p.id}/fichier?apercu=image`}
+                        alt={p.titre ?? "Photo de l'incident"}
+                        className="h-20 w-20 rounded-[10px] border border-border object-cover"
+                      />
+                    </a>
+                  ))}
+                </div>) : null;
+  return (
+    <div className="incident-dossier min-w-0 space-y-4" data-proprietaire={estProprietaire || undefined}>
+      {incident.etat === "clos" && <BilanContactIncident orgId={orgId} incidentId={incidentId} />}
+      <EchecLecture quoi={lecturesManquees} />
+      <section className="incident-entete" aria-label="Résumé du signalement">
+        <div className="incident-entete-haut">
+          <div>
+            <p className="incident-reference">{incident.numero} · <time dateTime={incident.created_at}>{formaterDateHeure(incident.created_at)}</time></p>
+            <h2>{titreIncident(incident.categorie)}</h2>
+          </div>
+          <div className="incident-badges">
+            {incident.urgence === "urgente" && <span className="puce puce-rouge">Urgent</span>}
+            <span className={`incident-statut ${COULEURS_ETAT_INCIDENT[incident.etat] ?? "puce puce-grise"}`}>{ETATS_INCIDENT[incident.etat] ?? incident.etat}</span>
+          </div>
+        </div>
+        <div className="incident-reperes">
+          <div><Building2 size={17} aria-hidden="true" /><div><span>Logement concerné</span>
+            {lot ? <Link href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <strong>Lot non disponible</strong>}
+            {incident.piece && <small>{incident.piece}</small>}
+          </div></div>
+          <div><UserRound size={17} aria-hidden="true" /><div><span>{incident.canal === "espace_locataire" ? "Déclaré par" : "Contact du logement"}</span>
+            {declarant ? <>
+              <Link href={`${base}/personnes/${declarant.id}#messages`}>{nomComplet(declarant)}</Link>
+              {declarant.telephone && <a href={`tel:${declarant.telephone.replace(/\s/g, "")}`} className="incident-telephone">{formaterTelephone(declarant.telephone)}</a>}
+            </> : <strong>{declarantIllisible ? "Déclarant hors de votre portefeuille" : estProprietaire ? "Aucun locataire rattaché au dossier" : "Aucun bail actif sur le lot"}</strong>}
+          </div></div>
+        </div>
+        {!estProprietaire && (peutModifierSuivi ? (
+          <details className="incident-attribution" open={!incident.responsable_account_id}>
+            <summary><span>Suivi du dossier : <b>{responsableAffiche}</b></span><span>Modifier</span></summary>
+            <div><FormulaireAttribution orgId={orgId} incidentId={incidentId} responsable={incident.responsable_account_id} membres={membres} monCompte={monCompte} estResponsable={estResponsable} /></div>
+          </details>
+        ) : <p className="incident-suivi-lecture">Suivi du dossier : <b>{responsableAffiche}</b></p>)}
+        {!estProprietaire && <ol className="incident-etapes" aria-label="Avancement du dossier">
+          {etapesFlux.map((f, n) => <li key={f} data-etat={n < positionFlux ? "fait" : n === positionFlux ? "courant" : "a-venir"} aria-current={n === positionFlux ? "step" : undefined}>
+            <span>{n < positionFlux ? <Check size={12} aria-hidden="true" /> : n + 1}</span>{ETAPES_FLUX[f] ?? f}
+          </li>)}
+        </ol>}
+      </section>
+      {!(estProprietaire && prochaineAction.cible === "qualification") && <div className="incident-prochaine-action" data-ton={prochaineAction.ton}>
+        <div>{!estProprietaire && <span>Prochaine étape</span>}<strong>{prochaineAction.titre}</strong>{!estProprietaire && <p>{prochaineAction.texte}</p>}</div>
+        <a href={`#${prochaineAction.cible}`}>{prochaineAction.bouton}<ArrowRight size={16} aria-hidden="true" /></a>
+      </div>}
+      <div className="incident-contenu">
+
+        <div className="min-w-0 space-y-4">
+
+          <div className="incident-contexte">
+          <Card className="incident-signalement">
+            <CardHeader>
+              <CardTitle className="text-base"><MessageSquareText size={18} aria-hidden="true" />
+                {incident.canal === "espace_locataire"
+                  ? "Ce qu'a dit le locataire"
+                  : "Le signalement"}
+              </CardTitle>
+              {categorie && !estProprietaire && <CardDescription>{categorie.libelle} · {CANAUX_INCIDENT[incident.canal] ?? incident.canal}</CardDescription>}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {incident.description ? (
+                <p className="text-sm">« {incident.description} »</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Aucune description ajoutée.
+                </p>
+              )}
+              {!estProprietaire && galeriePhotos}
+              {/* 24/09 : pièce, canal et date de déclaration sont déjà dans
+                  l'en-tête du dossier, juste au-dessus. Ne reste que ce qu'il
+                  ne dit pas — l'ancienneté, quand le locataire l'a donnée. */}
+              {incident.anciennete && (
+                <div className="ligne-info">
+                  <span>Ancienneté</span>
+                  <span>{incident.anciennete}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {!estProprietaire && chronologie}
 
           </div>
 
@@ -490,11 +494,11 @@ export async function PaneIncident({
             <Card id="qualification" className="incident-qualification">
               <CardHeader>
                 <CardTitle className="text-base"><CircleDollarSign size={19} aria-hidden="true" />Qui prend en charge ?</CardTitle>
-                <CardDescription>
+                {(!estProprietaire || etatIncident === "qualifie") && <CardDescription>
                   {etatIncident === "qualifie"
                     ? "Déjà qualifié — requalifier répond à une contestation ou corrige la décision."
                     : "Sélectionnez la prise en charge et précisez la raison de votre choix."}
-                </CardDescription>
+                </CardDescription>}
               </CardHeader>
               <CardContent className="space-y-4">
                 {incident.imputation_contestation && (
@@ -523,6 +527,7 @@ export async function PaneIncident({
                     qualifier (déclaré, rouvert), rien n'est coché (RM-7.2.1). */}
                 <FormulaireQualification
                   estProprietaire={estProprietaire}
+                  informeLocataire={Boolean(incident.declarant_person_id)}
                   orgId={orgId}
                   incidentId={incidentId}
                   categorie={incident.categorie}
@@ -551,7 +556,7 @@ export async function PaneIncident({
             <Card id="qualification">
               <CardHeader>
                 <CardTitle className="text-base"><CircleDollarSign size={18} aria-hidden="true" />Prise en charge</CardTitle>
-                <CardDescription>La décision enregistrée dans ce dossier.</CardDescription>
+                {!estProprietaire && <CardDescription>La décision enregistrée dans ce dossier.</CardDescription>}
               </CardHeader>
               <CardContent className="space-y-4">
                 {incident.imputation && (
@@ -577,6 +582,7 @@ export async function PaneIncident({
                   <div className="pt-3">
                     <FormulaireQualification
                       estProprietaire={estProprietaire}
+                      informeLocataire={Boolean(incident.declarant_person_id)}
                       orgId={orgId}
                       incidentId={incidentId}
                       categorie={incident.categorie}
@@ -596,7 +602,7 @@ export async function PaneIncident({
             <Card id="qualification">
               <CardHeader>
                 <CardTitle className="text-base"><CircleDollarSign size={18} aria-hidden="true" />Prise en charge</CardTitle>
-                <CardDescription>La décision enregistrée dans ce dossier.</CardDescription>
+                {!estProprietaire && <CardDescription>La décision enregistrée dans ce dossier.</CardDescription>}
               </CardHeader>
               <CardContent>
                 {incident.imputation ? (
@@ -701,9 +707,14 @@ export async function PaneIncident({
               )}
             </CardContent>
           </Card></details>
+          {estProprietaire && chronologie}
         </div>
 
-        <div className="incident-photos">
+        <div className="incident-photos space-y-4">
+          {estProprietaire && galeriePhotos && <Card>
+            <CardHeader><CardTitle className="text-base"><Camera size={18} aria-hidden="true" />Photos du dossier</CardTitle></CardHeader>
+            <CardContent>{galeriePhotos}</CardContent>
+          </Card>}
 
           {incident.etat !== "clos" && (
             <details open={!estProprietaire} className="rounded-xl border border-border bg-card p-4"><summary className="flex cursor-pointer items-center gap-2 font-semibold"><Camera size={18} aria-hidden="true"/>Ajouter des photos au dossier</summary><Card className="mt-3 border-0 shadow-none">

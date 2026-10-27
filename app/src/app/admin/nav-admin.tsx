@@ -65,8 +65,9 @@ function Groupes({ artisansEnAttente, decisions, auClic }: { artisansEnAttente: 
 export function NavAdmin({ artisansEnAttente = 0, decisions = 0 }: { artisansEnAttente?: number | null; decisions?: number | null }) {
   const { fermer } = useContext(MenuSupervision);
   return <div className="admin-menu-conteneur">
-    {/* Au téléphone, la recherche vit dans le menu (audit C26) ; la fenêtre est celle de la barre haute. */}
-    <button type="button" className="admin-nav-lien min-[901px]:hidden" onClick={() => { fermer(); window.dispatchEvent(new Event("gerimmo:ouvrir-recherche")); }}><Search size={18} aria-hidden="true" /><span>Rechercher un client ou un dossier…</span></button>
+    {/* Au téléphone, la recherche vit dans le menu (audit C26) ; la fenêtre est celle de la barre haute. Le menu se
+        replie : le focus passe d'abord au bouton du menu, où la recherche le rendra en se fermant (audit #264, TRV-02). */}
+    <button type="button" className="admin-nav-lien min-[901px]:hidden" onClick={() => { document.querySelector<HTMLElement>('[aria-controls="menu-supervision"]')?.focus(); fermer(); window.dispatchEvent(new Event("gerimmo:ouvrir-recherche")); }}><Search size={18} aria-hidden="true" /><span>Rechercher un client ou un dossier…</span></button>
     <Groupes artisansEnAttente={artisansEnAttente} decisions={decisions} auClic={fermer} />
   </div>;
 }

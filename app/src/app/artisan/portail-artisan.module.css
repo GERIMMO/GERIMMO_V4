@@ -95,6 +95,9 @@
   .metric .icon { width: 32px; height: 32px; }
 }
 @media (prefers-reduced-motion: reduce) { .shortcut, .metric { transition: none; } }
+/* Même règle que l'en-tête du propriétaire (globals.css, audit #264, TRV-08) : sous 500 px de haut, l'en-tête
+   défile avec la page au lieu de garder 68 px sur 256 au zoom de 400 %. La navigation basse reste. */
+@media (max-height: 500px) { .topbar { position: relative; } }
 
 @media (min-width: 1000px) { .onboarding .mobileBrand { display: block; } .onboarding .spaceLabel { display: none; } }
 @media (max-width: 699px) {

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useEffectEvent, type RefObject } from "react";
+import { useEffect, useEffectEvent, useRef, type MouseEvent, type PointerEvent, type RefObject } from "react";
 import { cibleDeTabulation } from "@/lib/piege-focus";
+import { MESSAGE_FERMER_FENETRE, saisiesModifiees } from "@/lib/protection-saisie";
 
 const CONTROLES = 'a[href], button, input:not([type="hidden"]), select, textarea, summary, [tabindex], [contenteditable="true"]';
 const fenetres: HTMLElement[] = [];
@@ -16,8 +17,14 @@ function controles(racine: HTMLElement) {
     .filter(element => element.tabIndex >= 0 && !element.matches(":disabled") && visible(element));
 }
 
-/** Les dialogues natifs sont au-dessus de tous les portails, dans la top layer. */
-function premierPlan() {
+/**
+ * Les dialogues natifs sont au-dessus de tous les portails, dans la top layer.
+ *
+ * Aussi le garde du raccourci ⌘/Ctrl K (audit #264, TRV-V01) : il comptait toute balise `role="dialog"` ou
+ * `dialog[open]`, y compris une fenêtre gardée montée mais masquée (`ouverte={false}`) et le lecteur intégré
+ * non modal. Le raccourci affiché ne faisait alors plus rien. Seule une fenêtre visible au premier plan compte.
+ */
+export function premierPlan() {
   const natifs = Array.from(document.querySelectorAll<HTMLDialogElement>("dialog:modal"));
   if (natifs.length) return natifs.at(-1)!;
   return Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]'))
@@ -79,4 +86,30 @@ export function useFenetreModale(racine: RefObject<HTMLDivElement | null>, ouver
       }
     };
   }, [ouverte, racine]);
+}
+
+/**
+ * Le clic sur le voile, et lui seul (audit #264, TRV-01).
+ *
+ * Une sélection de texte commencée dans un champ et relâchée sur le voile envoie son « click » à leur
+ * ancêtre commun : le voile. La fenêtre se refermait alors au milieu d'une saisie. Elle ne se ferme plus que
+ * sur un geste commencé ET fini sur le voile. Et jamais en abandonnant sans le dire un formulaire suivi
+ * (lib/protection-saisie) modifié dans la fenêtre : on le demande d'abord, comme pour quitter la page — sauf
+ * si la fenêtre garde son contenu une fois refermée (`saisieConservee`).
+ */
+export function useFermetureParLeVoile(racine: RefObject<HTMLElement | null>, fermer: () => void, saisieConservee = false) {
+  const appuiSurLeVoile = useRef(false);
+  return {
+    onPointerDown: (event: PointerEvent<HTMLElement>) => { appuiSurLeVoile.current = event.target === event.currentTarget; },
+    onPointerUp: (event: PointerEvent<HTMLElement>) => { if (event.target !== event.currentTarget) appuiSurLeVoile.current = false; },
+    onClick: (event: MouseEvent<HTMLElement>) => {
+      const surLeVoile = appuiSurLeVoile.current && event.target === event.currentTarget;
+      appuiSurLeVoile.current = false;
+      if (!surLeVoile) return;
+      const fenetre = racine.current;
+      if (!saisieConservee && fenetre && saisiesModifiees().some(formulaire => fenetre.contains(formulaire))
+        && !window.confirm(MESSAGE_FERMER_FENETRE)) return;
+      fermer();
+    },
+  };
 }

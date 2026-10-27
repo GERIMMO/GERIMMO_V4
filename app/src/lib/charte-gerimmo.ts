@@ -16,4 +16,10 @@ export const CHARTE_GERIMMO = {
   logoTransparentHauteur: 1115,
   logoLargeur: 2016,
   logoHauteur: 1594,
+  // Icônes d'onglet et d'écran d'accueil : le même logo réduit, aux mêmes proportions (audit #264, TRV-04 : le
+  // logo de 285 Ko servait d'icône à chaque premier chargement). Écart moyen < 1/255 aux tailles affichées.
+  icone: "/logo/gerimmo-icone-96.png",
+  iconeTaille: "96x76",
+  iconeEcran: "/logo/gerimmo-icone-228.png",
+  iconeEcranTaille: "228x180",
 } as const;

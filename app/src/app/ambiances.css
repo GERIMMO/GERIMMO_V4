@@ -169,7 +169,12 @@ html[data-ambiance-site="noel"] {
   }
 }
 
+/* `html:not([data-ambiance-site])` : avant l'hydratation, AmbianceSite n'a pas encore posé l'ambiance. Les règles
+   de base téléchargeaient alors la photo « quartier » (292 Ko) pour quelques instants, aussitôt remplacée par la
+   photo du jour (audit #264, TRV-03 : deux photos plein format au premier chargement). D'ici là, le menu garde
+   son bleu nuit uni, sans photo. */
 @media screen and (min-width: 641px) {
+  html:not([data-ambiance-site]) .gerimmo-prestige :is(.coquille-late, .loc-late) { background-image: none; }
   html[data-ambiance-site] .gerimmo-prestige :is(.coquille-late, .loc-late) {
     background-color: #14263d;
     background-image: linear-gradient(180deg, #14263d 0%, #14263df5 22%, #14263dd6 48%, #14263dd6 82%, #14263df5 100%), var(--ambiance-image);
@@ -182,6 +187,7 @@ html[data-ambiance-site="noel"] {
   }
 }
 @media screen and (min-width: 901px) {
+  html:not([data-ambiance-site]) .gerimmo-prestige .admin-late { background-image: none; }
   html[data-ambiance-site] .gerimmo-prestige .admin-late {
     background-image: linear-gradient(180deg, #14263d 0%, #14263df5 22%, #14263dd6 48%, #14263dd6 82%, #14263df5 100%), var(--ambiance-image);
     background-position: center;
@@ -192,6 +198,7 @@ html[data-ambiance-site="noel"] {
   }
 }
 @media screen and (min-width: 1000px) {
+  html:not([data-ambiance-site]) .gerimmo-prestige .ambiance-menu-artisan { background-color: #14263d; background-image: none; }
   html[data-ambiance-site] .gerimmo-prestige .ambiance-menu-artisan {
     background-image: linear-gradient(180deg, #14263d 0%, #14263df5 22%, #14263dd6 48%, #14263dd6 82%, #14263df5 100%), var(--ambiance-image);
     background-position: center;
@@ -234,7 +241,9 @@ html[data-ambiance-site="noel"] {
   .public-navigation .public-inscription > svg { display: none; }
 }
 @media screen and (max-width: 420px) {
-  /* Les actions priment sur le motif lorsque la largeur devient limitée. */
+  /* Les actions priment sur le motif lorsque la largeur devient limitée. L'en-tête du propriétaire et de
+     l'agence aussi (audit #264, TRV-12) : le repère s'y glissait entre « Rechercher » et le menu du compte. */
+  .coquille-haut .ambiance-repere { display: none; }
   .admin-bandeau .ambiance-repere { display: none; }
   .loc-haut .ambiance-repere { display: none; }
   .public-logo .ambiance-repere { display: none; }

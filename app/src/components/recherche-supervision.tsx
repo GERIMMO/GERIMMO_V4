@@ -10,6 +10,7 @@ import {
   type ResultatRechercheSupervision,
 } from "@/app/actions/recherche-supervision";
 import { normaliserRecherche } from "@/lib/recherche-espace";
+import { premierPlan, useFermetureParLeVoile } from "@/lib/use-fenetre-modale";
 
 // X18 (SA-09, 14/10) : un bien, un lot ou un incident retrouvé par sa référence mène à la fiche de son organisation.
 const ICONES: Record<ResultatRechercheSupervision["type"], typeof Building2> = {
@@ -23,7 +24,7 @@ export function RechercheSupervision({ masquerSousMobile = false }: { masquerSou
   const [ouverte, ouvrir] = useState(false);
   useEffect(() => {
     const raccourci = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k" && !document.querySelector('[role="dialog"], dialog[open]')) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k" && !premierPlan()) {
         event.preventDefault();
         ouvrir(true);
       }
@@ -46,6 +47,8 @@ export function RechercheSupervision({ masquerSousMobile = false }: { masquerSou
 function FenetreRecherche({ fermer }: { fermer: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const champ = useRef<HTMLInputElement>(null);
+  // Le fond du dialogue natif (::backdrop) a pour cible le <dialog> lui-même : même règle que le voile des fenêtres.
+  const voile = useFermetureParLeVoile(dialog, fermer);
   const [saisie, saisir] = useState("");
   const [tentative, recommencer] = useState(0);
   const [reponse, afficher] = useState<{ texte: string; tentative: number; contenu: ReponseRechercheSupervision } | null>(null);
@@ -73,9 +76,15 @@ function FenetreRecherche({ fermer }: { fermer: () => void }) {
 
   useEffect(() => {
     const element = dialog.current!;
+    // Audit #264, TRV-02 : la fenêtre se ferme en se démontant, et `close()` sur un dialogue déjà retiré du
+    // document ne rend le focus à personne. On le rend nous-mêmes au bouton (ou au raccourci) qui l'a ouverte.
+    const declencheur = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     element.showModal();
     champ.current?.focus();
-    return () => element.close();
+    return () => {
+      element.close();
+      if (declencheur?.isConnected) declencheur.focus({ preventScroll: true });
+    };
   }, []);
   useEffect(() => {
     if (texte.length < 2) return;
@@ -88,7 +97,7 @@ function FenetreRecherche({ fermer }: { fermer: () => void }) {
     return () => { abandon = true; clearTimeout(timer); };
   }, [texte, tentative]);
 
-  return <dialog ref={dialog} className="recherche-dialog" aria-labelledby="recherche-supervision-titre" onCancel={(e) => { e.preventDefault(); fermer(); }} onClick={(e) => { if (e.target === dialog.current) fermer(); }}>
+  return <dialog ref={dialog} className="recherche-dialog" aria-labelledby="recherche-supervision-titre" onCancel={(e) => { e.preventDefault(); fermer(); }} {...voile}>
     <div className="recherche-corps">
       <header className="recherche-entete">
         <div><p className="eyebrow">Supervision Gerimmo</p><h2 id="recherche-supervision-titre">Retrouvez un client ou un dossier</h2></div>

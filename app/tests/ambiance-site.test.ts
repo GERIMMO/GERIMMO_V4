@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AmbianceSite } from "@/components/ambiance-site";
 
-const cycle = vi.hoisted(() => ({ effet: undefined as undefined | (() => void | (() => void)) }));
+const cycle = vi.hoisted(() => ({ effet: undefined as undefined | (() => void | (() => void)), rafraichir: vi.fn() }));
 vi.mock("react", () => ({ useEffect: (effet: () => void | (() => void)) => { cycle.effet = effet; } }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: cycle.rafraichir }) }));
 
 let nettoyer: void | (() => void);
 let fenetre: EventTarget;
@@ -42,6 +43,7 @@ afterEach(() => {
   nettoyer?.();
   nettoyer = undefined;
   cycle.effet = undefined;
+  cycle.rafraichir.mockReset();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
@@ -63,6 +65,20 @@ describe("ambiance commune aux pages et aux portails", () => {
     vi.advanceTimersByTime(1_000);
     expect(attributs.get("data-ambiance-site")).toBe("automne");
     expect(vi.getTimerCount()).toBe(1);
+  });
+
+  // Audit #264, TRV-13 : la photo passait au 1er novembre, la date rendue par le serveur restait au 31 octobre.
+  it("rafraîchit la page quand le jour de Paris change, jamais au montage ni le même jour", () => {
+    vi.setSystemTime(new Date("2026-10-31T22:58:30Z"));
+    monter();
+    expect(cycle.rafraichir).not.toHaveBeenCalled();
+    fenetre.dispatchEvent(new Event("focus"));
+    expect(cycle.rafraichir).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(120_000);
+    expect(attributs.get("data-ambiance-site")).toBe("automne");
+    expect(cycle.rafraichir).toHaveBeenCalledTimes(1);
+    fenetre.dispatchEvent(new Event("focus"));
+    expect(cycle.rafraichir).toHaveBeenCalledTimes(1);
   });
 
   it.each([

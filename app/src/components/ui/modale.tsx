@@ -2,7 +2,7 @@
 
 import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useFenetreModale } from "@/lib/use-fenetre-modale";
+import { useFenetreModale, useFermetureParLeVoile } from "@/lib/use-fenetre-modale";
 
 // « Sommes-nous dans le navigateur ? », posé comme React veut qu'on le pose :
 // une source extérieure qui ne change jamais, un instantané `false` au rendu
@@ -17,7 +17,8 @@ const AU_SERVEUR = () => false;
 // dépôt portait trois implémentations divergentes — voile encre 35 %, boîte
 // crème à angles vifs, en-tête clair à filet bas (liseré rouge en tête pour
 // le critique/danger) avec surtitre mono + h3, corps en dessous. Escape et clic
-// sur le voile ferment.
+// sur le voile ferment (le voile : geste commencé et fini sur lui, voir
+// useFermetureParLeVoile).
 export function Modale({
   titre,
   surtitre,
@@ -26,7 +27,7 @@ export function Modale({
   large = false,
   tresLarge = false,
   haut = false,
-  ouverte = true,
+  ouverte: ouverteDemandee,
   pied,
   fermer,
   children,
@@ -73,7 +74,10 @@ export function Modale({
   // n'aurait réparé que ce bandeau-ci, jusqu'au prochain ancêtre animé.
   const monte = useSyncExternalStore(RIEN_A_ECOUTER, AU_NAVIGATEUR, AU_SERVEUR);
   const dialogue = useRef<HTMLDivElement>(null);
+  const ouverte = ouverteDemandee ?? true;
   useFenetreModale(dialogue, monte && ouverte, fermer);
+  // Une fenêtre pilotée par `ouverte` reste montée une fois refermée : sa saisie n'est pas abandonnée.
+  const voile = useFermetureParLeVoile(dialogue, fermer, ouverteDemandee !== undefined);
 
   // Rien avant le montage : le portail exige `document`, et une modale ne
   // s'ouvre jamais au premier rendu du serveur.
@@ -94,7 +98,7 @@ export function Modale({
       className={`fixed inset-0 z-50 flex max-w-[100vw] justify-center overflow-x-hidden overflow-y-auto bg-[var(--encre)]/35 p-4 ${
         haut ? "items-start pt-[10vh]" : "items-center"
       }`}
-      onClick={fermer}
+      {...voile}
     >
       <div
         ref={dialogue}

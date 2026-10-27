@@ -255,6 +255,7 @@ export async function VoletArtisan({
   // RM-7.2.7 interdit d'affecter sans imputation. On l'annonce plutôt que de
   // laisser un formulaire se faire refuser.
   if (etat === "declare" || etat === "rouvert") {
+    if (estProprietaire) return null;
     return (
       <Card>
         <CardHeader>

@@ -109,6 +109,16 @@ beforeEach(() => {
 });
 
 describe("ListeAlertes (écran Alertes) : « Traiter » et les liens de la liste", () => {
+  it("ne conclut pas à une liste vide si les actions des baux sont illisibles", () => {
+    for (const estProprietaire of [true, false]) {
+      const html = renderToStaticMarkup(createElement(ListeAlertes, {
+        orgId: ORG, membres: [], monCompte: "compte", estResponsable: true,
+        estProprietaire, listeIncomplete: true, alertes: [],
+      }));
+      expect(html).not.toContain("Aucune action en attente");
+      expect(html).not.toContain("Votre journée est dégagée");
+    }
+  });
   it("la supervision consulte les dossiers sans se voir confier ni proposer de clore les alertes", () => {
     const html = renderToStaticMarkup(createElement(ListeAlertes, {
       orgId: ORG, membres: [], monCompte: "superadmin", estResponsable: true,

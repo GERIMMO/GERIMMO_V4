@@ -47,7 +47,7 @@ function LectureImpossible({ quoi }: { quoi: string }) {
 // sources d'action fondues en une seule liste), les chiffres ensuite.
 export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId]">) {
   const { orgId } = await props.params;
-  const { supabase, user, role, organisation, estProprietaire } =
+  const { supabase, user, role, organisation, estProprietaire, traverseeLectureSeule } =
     await verifierAccesEspace(orgId);
   // « Bonjour » nominatif (audit 09/09) : le prénom vit dans les métadonnées
   // du compte (inscription) — comme l'espace locataire salue par la fiche.
@@ -66,6 +66,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         organisation={organisation}
         prenom={prenom}
         userId={user.id}
+        lectureSeule={traverseeLectureSeule}
       />
     );
   }

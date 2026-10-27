@@ -1,3 +1,4 @@
+import { ApercuDocumentEspace } from "@/components/apercu-document-espace";
 import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { OngletsDossier } from "@/components/onglets-dossier";
 import { RubriqueDossier } from "@/components/rubrique-dossier";
@@ -261,28 +262,14 @@ export default async function PageDocumentsLocataire(
                   key={`${p.source}-${p.document_id}`}
                   className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 text-sm"
                 >
-                  <a
-                    href={fichier}
-                    target="_blank"
-                    rel="noopener"
-                    tabIndex={-1}
-                    className={TITRE_RANG}
-                  >
+                  <div className={TITRE_RANG}>
                     <b className="line-clamp-2 font-medium">{nom}</b>
                     <small className="block text-muted-foreground">{sousTitre(p)}</small>
-                  </a>
+                  </div>
                   {/* Liens stylés en bouton : hors du filet tactile du socle
                       (button/select), d'où le min-h au pointeur grossier */}
                   <span className={ACTIONS_RANG}>
-                    <a
-                      href={fichier}
-                      target="_blank"
-                      rel="noopener"
-                      aria-label={`Ouvrir ${nom}`}
-                      className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                    >
-                      Ouvrir
-                    </a>
+                    <ApercuDocumentEspace fichier={fichier} titre={nom} mime={p.mime_type}/>
                     <a
                       href={`${fichier}?mode=telechargement`}
                       target="_blank"

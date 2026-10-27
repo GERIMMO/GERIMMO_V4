@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { EtatBail } from "@/app/actions/baux";
 const m = vi.hoisted(() => ({ differer: false, enAttente: [] as (() => void)[], etat: {} as EtatBail, etape: "clauses", soumettre: vi.fn(), sauvegarder: vi.fn(), action: null as null | ((ancien: EtatBail, f: FormData) => Promise<EtatBail>) }));
 vi.mock("react", async (original) => {
@@ -15,7 +15,7 @@ vi.mock("react", async (original) => {
   return { ...reel, ...remplacement, default: { ...reel, ...remplacement } };
 });
 vi.mock("@/lib/use-action-formulaire", () => ({ useActionFormulaire: (a: typeof m.action) => { m.action = a; return { etat: m.etat, soumettre: m.soumettre, enCours: false }; } }));
-vi.mock("@/lib/suivi-enregistrement", () => ({ useActionStateSuivi: (a: typeof m.action) => { m.action = a; return [m.etat, m.soumettre, false]; } }));
+vi.mock("@/lib/suivi-enregistrement", () => ({ CompletudeBail: {}, useActionStateSuivi: (a: typeof m.action) => { m.action = a; return [m.etat, m.soumettre, false]; } }));
 vi.mock("@/app/actions/etapes-bail", () => ({ modifierEtapeBail: m.sauvegarder }));
 vi.mock("@/app/actions/baux", () => ({ modifierComplementsBail: m.sauvegarder }));
 import { FormulaireParcoursBail } from "@/app/agence/[orgId]/baux/[bailId]/formulaire-parcours-bail";
@@ -26,7 +26,8 @@ import type { ReactNode } from "react";
 const defauts = { travaux_recents: null, encadrement_loyer: true, loyer_hc: 1200, loyer_reference: 20, loyer_reference_majore: 24, complement_loyer: 0, type: "nu" };
 const avertissement = (rendu: ReactNode) => trouver(rendu, e => e.type === AvertissementsLoyer)[0];
 const codes = (rendu: ReactNode) => (avertissement(rendu)?.props.avertissements as { code: string }[] ?? []).map(a => a.code);
-beforeEach(() => { vi.clearAllMocks(); m.differer = false; m.enAttente = []; m.etat = {}; m.etape = "clauses"; m.sauvegarder.mockResolvedValue({ succes: "Étape enregistrée.", avertissements: [{ code: "base_superieure", message: "Montant à vérifier" }] }); });
+afterEach(() => vi.unstubAllGlobals());
+beforeEach(() => { vi.stubGlobal("location", {hash:""}); vi.stubGlobal("window",new EventTarget()); vi.stubGlobal("document",new EventTarget()); vi.clearAllMocks(); m.differer = false; m.enAttente = []; m.etat = {}; m.etape = "clauses"; m.sauvegarder.mockResolvedValue({ succes: "Étape enregistrée.", avertissements: [{ code: "base_superieure", message: "Montant à vérifier" }] }); });
 describe("X08 — avertissement réactif, sans empêcher l’enregistrement", () => {
   it("parcours courant : référence majorée modifiée puis corrigée et encadrement désactivé", async () => {
     const i = monter(FormulaireParcoursBail, { orgId: "o", bailId: "b", defauts, agence: false, meuble: false, chambres: [], surfaceHabitable: 50 });
@@ -43,7 +44,7 @@ describe("X08 — avertissement réactif, sans empêcher l’enregistrement", ()
     await saisir("chambre_id", "ancienne-chambre");
     await saisir("type", "nu"); expect(codes(i.rendu)).not.toContain("colocation_individuelle"); expect(codes(i.rendu)).toContain("base_superieure");
     await saisir("encadrement_loyer", "false"); expect(codes(i.rendu)).toEqual([]);
-    expect(trouver(i.rendu, e => Boolean(e.props.enCoursTexte))[0].props.enCours).toBe(false);
+    expect(trouver(i.rendu, e => e.type === "form")[0].props["aria-busy"]).toBe(false);
     i.demonter();
   });
   it("préserve le montant saisi quand React applique la mise à jour après la restauration du champ", async () => {
@@ -65,6 +66,20 @@ describe("X08 — avertissement réactif, sans empêcher l’enregistrement", ()
     expect(codes(i.rendu)).toContain("base_superieure"); expect(avertissement(i.rendu).props.enregistre).toBe(true);
     (trouver(i.rendu, e => e.type === "form")[0].props.onChange as () => void)(); await i.vider();
     expect(codes(i.rendu)).toEqual([]); expect(avertissement(i.rendu).props.enregistre).toBe(false);
+    i.demonter();
+  });
+  it("garde les choix applicables dans les options fermées et désactive les autres étapes", () => {
+    m.etape = "loyer";
+    const i = monter(FormulaireParcoursBail, { orgId: "o", bailId: "b", defauts: {...defauts, revision_irl: true, irl_valeur: 145.17, charges: 0}, agence: false, meuble: false, chambres: [] });
+    i.stabiliser();
+    const options = trouver(i.rendu, e => e.type === "details" && e.props.id === "complements-paiement")[0];
+    expect(options.props.open).toBe(false);
+    expect(trouver(options, e => e.type === "fieldset")[0].props.disabled).toBe(false);
+    expect(trouver(options, e => e.props.name === "revision_irl")[0].props.value).toBe("true");
+    expect(trouver(options, e => e.props.name === "irl_valeur")[0].props.value).toBe("145.17");
+    expect(trouver(i.rendu, e => e.props.name === "charges")[0].props.value).toBe("0");
+    const clauses = trouver(i.rendu, e => e.type === "details" && e.props.id === "complements-travaux")[0];
+    expect(trouver(clauses, e => e.type === "fieldset")[0].props.disabled).toBe(true);
     i.demonter();
   });
   it("compléments : le texte saisi réactualise le calcul sans attendre la sauvegarde", async () => {

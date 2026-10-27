@@ -16,6 +16,8 @@ const echapper = (s: string) => s.replaceAll("&", "&amp;").replaceAll("<", "&lt;
 export async function servirFichierSigne(db: SupabaseClient, options: {
   path: string; mime: string | null | undefined; titre: string | null;
   mode?: "consultation" | "telechargement"; retour: string; apercuImage?: boolean;
+  /** Lecteur du dossier : URL éphémère après les mêmes contrôles d'accès. */
+  apercuIntegre?: boolean;
   compartiment?: "documents" | "devis-preparations" | "artisan-prive";
   sha256?: string;
   /** Titre de lecture issu de l’état métier ; le nom de fichier archivé est conservé. */
@@ -27,6 +29,9 @@ export async function servirFichierSigne(db: SupabaseClient, options: {
     return pageErreurFichier(502,"Fichier indisponible","Le document ne peut pas être vérifié pour l’instant.",options.retour);
   }
   const mime = Object.hasOwn(EXTENSIONS, options.mime ?? "") ? options.mime as MimeAccepte : null;
+  if (options.apercuIntegre && (!mime || !["application/pdf", "image/png", "image/jpeg"].includes(mime) || options.sha256 || options.mode === "telechargement")) {
+    return Response.json({ erreur: "Aperçu indisponible pour ce fichier." }, { status: 415, headers: entetes });
+  }
   const ext = mime ? EXTENSIONS[mime] : "bin";
   const titre = (options.titre || "document").replace(/[\u0000-\u001f\u007f/\\]/g," ").slice(0,180);
   const nom = titre.endsWith(`.${ext}`) ? titre : `${titre}.${ext}`;
@@ -43,6 +48,12 @@ export async function servirFichierSigne(db: SupabaseClient, options: {
     if (url.origin !== stockage.origin || (url.protocol !== "https:" && !(url.protocol === "http:" && ["localhost","127.0.0.1"].includes(url.hostname)))) throw Error();
     if (url.username || url.password) throw Error();
   } catch { return pageErreurFichier(502,"Fichier indisponible","Le lien du document ne peut pas être ouvert. Réessayez.",options.retour); }
+  if (options.apercuIntegre) {
+    // Ce manifeste privé évite les visionneuses PDF imbriquées, notamment sur
+    // téléphone. Les octets restent chargés depuis Storage, sans les faire
+    // transiter par la fonction d'hébergement ni rendre le fichier public.
+    return Response.json({ url: url.toString(), mime, nom }, { headers: entetes });
+  }
   // Une archive contrôlée doit être vérifiée une nouvelle fois sur les octets
   // réellement reçus : aucun lien de téléchargement ne contourne cette empreinte.
   if (!options.sha256 && (telechargement || (options.apercuImage && (mime === "image/png" || mime === "image/jpeg")))) return new Response(null,{status:303,headers:{...entetes,Location:url.toString()}});

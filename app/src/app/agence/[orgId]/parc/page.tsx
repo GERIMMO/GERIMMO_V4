@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ChevronRight, MapPin } from "lucide-react";
 import { TitreEcran } from "@/components/titre-ecran";
 import { BoutonResumeBien } from "@/components/resume-bien";
@@ -29,6 +30,9 @@ import { FenetreLotProvider, BoutonLot } from "@/components/fenetre-lot";
 import { EchecLecture } from "./echec-lecture";
 import styles from "./liste-lots.module.css";
 import { baseEspace } from "@/lib/racine-espace";
+import { chargerBauxActifsDuParc, chargerChambresDuParc, chargerPatrimoineDuParc, verifierLectureDuParc, totalLoyersDuParc } from "@/lib/locations-parc";
+import { occupationLot } from "@/lib/occupation-lot";
+import { VueParcProprietaire } from "./vue-parc-proprietaire";
 
 export const metadata = { title: "Parc — Gerimmo" };
 
@@ -43,6 +47,7 @@ type LotResume = {
   eau_chaude: string | null;
   locaux_privatifs: string | null;
   description: string | null;
+  meuble: boolean;
 };
 
 // Le parc de l'agence : chaque bien et ses lots (RM-0.1.2 : tout bien a au
@@ -80,12 +85,12 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     { data: pieces, error: erreurPieces },
     { data: chambres, error: erreurChambres },
   ] = await Promise.all([
-    supabase
+    estProprietaire ? chargerPatrimoineDuParc(supabase, orgId) : supabase
       .from("biens")
       // !lots_bien_id_fkey : depuis les FK composites (revue 2), deux relations
       // lient lots à biens — sans ce choix explicite, PostgREST refuse la jointure
       .select(
-        "id, nom, type, address_line1, postal_code, city, archived_at, lots!lots_bien_id_fkey(id, nom, etat, surface_m2, pieces, identifiant_fiscal, chauffage, eau_chaude, locaux_privatifs, description)"
+        "id, nom, type, address_line1, postal_code, city, archived_at, lots!lots_bien_id_fkey(id, nom, etat, surface_m2, pieces, identifiant_fiscal, chauffage, eau_chaude, locaux_privatifs, description, meuble)"
       )
       .eq("organization_id", orgId)
       .order("nom"),
@@ -94,19 +99,21 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
       .select("id, nom, actif")
       .eq("organization_id", orgId)
       .order("nom"),
-    // Aperçu (maquette) : le quittancement mensuel des baux en cours
-    supabase
-      .from("baux")
-      .select("loyer_hc, charges, lot_id")
-      .eq("organization_id", orgId)
-      .in("etat", ["actif", "preavis"]),
+    chargerBauxActifsDuParc(supabase, orgId),
     // Motifs de blocage de tous les lots en préparation, en un aller-retour (perf 30/08)
     supabase.rpc("lots_blocages_location", { p_org: orgId }),
-    supabase.from("detentions").select("lot_id, quote_part").eq("organization_id", orgId).is("date_fin", null),
-    supabase.from("diagnostics").select("lot_id, bien_id, type, date_expiration, classe_dpe").eq("organization_id", orgId).is("archived_at", null),
-    supabase.from("lot_pieces").select("lot_id").eq("organization_id", orgId),
-    supabase.from("lot_chambres").select("lot_id").eq("organization_id", orgId),
+    verifierLectureDuParc(supabase.from("detentions").select("lot_id, quote_part", { count: "exact" }).eq("organization_id", orgId).is("date_fin", null), estProprietaire),
+    verifierLectureDuParc(supabase.from("diagnostics").select("lot_id, bien_id, type, date_expiration, classe_dpe", { count: "exact" }).eq("organization_id", orgId).is("archived_at", null), estProprietaire),
+    verifierLectureDuParc(supabase.from("lot_pieces").select("lot_id", { count: "exact" }).eq("organization_id", orgId), estProprietaire),
+    chargerChambresDuParc(supabase, orgId),
   ]);
+
+  // Les anciens liens de sélection rejoignent aussi la fiche propriétaire.
+  // Le choix est résolu depuis les données autorisées, jamais depuis un id arbitraire.
+  if (estProprietaire && selection && !erreurBiens) {
+    const bien = (biens ?? []).find(item => selection.type === "bien" ? item.id === selection.id : (item.lots as LotResume[]).some(lot => lot.id === selection.id));
+    if (bien) redirect(selection.type === "bien" ? `${base}/parc/${bien.id}` : `${base}/parc/${bien.id}/lots/${selection.id}`);
+  }
 
   // Un bien RETIRÉ (archivé, 27/09) quitte le parc et l'abonnement : il ne
   // se liste plus avec les autres, mais reste joignable (« Biens retirés »,
@@ -138,12 +145,11 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   );
   const enPreparation = tousLots.filter((l) => l.etat === "brouillon");
   const disponibles = tousLots.filter((l) => l.etat === "disponible");
-  const quittancement = (bauxActifs ?? [])
-    .filter((b) => !portefeuille || portefeuille.has(b.lot_id as string))
+  const lotsConnus = new Set(tousLots.map(l => l.id));
+  const quittancement = estProprietaire ? totalLoyersDuParc(bauxActifs ?? [], lotsConnus) : (bauxActifs ?? [])
+    .filter(b => !portefeuille || portefeuille.has(b.lot_id))
     .reduce((s, b) => s + Number(b.loyer_hc) + Number(b.charges), 0);
 
-
-  const lotsConnus = new Set(tousLots.map(l => l.id));
   const totalBlocages = (blocagesParc ?? []).filter((l: { lot_id: string }) => lotsConnus.has(l.lot_id))
     .reduce((n: number, l: { blocages: string[] | null }) => n + new Set((l.blocages ?? []).map(message => etiqueterNiveau(resumerBlocage(message), message))).size, 0);
   const progressions = new Map(biensVisibles.flatMap(bien => bien.lotsVisibles.map(lot => [lot.id, avancementLot({
@@ -200,7 +206,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
       <div className="entete-page">
         <TitreEcran rubrique="lots">
           {estProprietaire
-            ? "Mes lots"
+            ? "Biens & locations"
             : role === "agent"
               ? "Mon portefeuille"
               : "Parc de l'agence"}
@@ -208,10 +214,10 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         <div className="flex flex-wrap items-center gap-4">
           {/* Plus de préfixe « Mon portefeuille · » (24/09) : il répétait le
               titre posé sur la même ligne, et l'entrée active du menu. */}
-          <span className="mono-discret">
+          {!estProprietaire && <span className="mono-discret">
             {biensVisibles.length} bien{biensVisibles.length > 1 ? "s" : ""} · {nbLots} lot
             {nbLots > 1 ? "s" : ""}
-          </span>
+          </span>}
           {/* Charte 04 : un seul bouton principal par écran. Sur un parc vide,
               c'est celui de l'état vide qui porte l'appel à l'action.
               L'AGENT AUSSI AJOUTE UN BIEN, depuis le 12/09. Le bouton lui était
@@ -315,6 +321,23 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
             </>
           )}
         </div>
+      ) : estProprietaire ? (
+        <VueParcProprietaire lectureLocations={!erreurBaux && !erreurChambres} loyers={erreurBaux ? null : quittancement}
+          biens={biensVisibles.map(bien => ({
+            id: bien.id, nom: bien.nom, adresse: [bien.address_line1, [bien.postal_code, bien.city].filter(Boolean).join(" ")].filter(Boolean).join(", "), href: `${base}/parc/${bien.id}`,
+            lots: bien.lotsVisibles.map(lot => {
+              const locations = (bauxActifs ?? []).filter(bail => bail.lot_id === lot.id);
+              const prochain = progressions.get(lot.id)?.prochain;
+              return { id: lot.id, nom: lot.nom === "Lot unique" ? bien.nom : lot.nom, etat: lot.etat, surface: lot.surface_m2, meuble: lot.meuble,
+                href: `${base}/parc/${bien.id}/lots/${lot.id}`,
+                locataires: locations.flatMap(bail => { const personne = bail.locataire as unknown as { nom: string; prenom: string | null } | null; return personne ? [[personne.prenom, personne.nom].filter(Boolean).join(" ")] : []; }),
+                loyer: erreurBaux ? null : totalLoyersDuParc(locations, lotsConnus),
+                occupation: erreurBaux || erreurChambres ? null : occupationLot((chambres ?? []).filter(chambre => chambre.lot_id === lot.id), locations),
+                aCompleter: prochain ? { titre: prochain.titre, ancre: prochain.ancre } : null,
+              };
+            }),
+          }))}
+          retires={biensRetires.map(bien => ({ id: bien.id, nom: bien.nom, href: `${base}/parc/${bien.id}` }))} />
       ) : (
         // Maquette (charte v2) : maître-détail — la liste des lots regroupés
         // par bien à gauche (adresse en en-tête de groupe, lots indentés) ; à

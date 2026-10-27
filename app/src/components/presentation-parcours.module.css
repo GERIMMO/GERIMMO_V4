@@ -1,4 +1,17 @@
 .presentation { min-width: 0; }
+.parcoursBail .entete { padding:18px 22px; gap:12px; }
+.presentation.parcoursBail .entete h2 { font-size:24px; margin:2px 0; }
+.parcoursBail .icone { flex-basis:38px; height:38px; border-radius:10px; }
+.parcoursBail .corps { padding:20px 22px 0; }
+.parcoursBail .validee { margin-bottom:16px; }
+.parcoursBail [id^="complements-"] { scroll-margin-top:calc(var(--hauteur-haut, 76px) + 18px); }
+.presentation.parcoursBail .pied:global(.assistant-pied) { padding:14px 22px; }
+@media(max-width:600px) {
+  .parcoursBail .entete { padding:16px; }
+  .parcoursBail .corps { padding:16px 14px 0; }
+  .presentation.parcoursBail .pied:global(.assistant-pied) { padding:14px; flex-wrap:wrap; gap:10px; }
+  .parcoursBail .pied button { min-height:44px; }
+}
 .navigation {
   margin: 14px 0 18px;
   padding: 12px 16px 4px;

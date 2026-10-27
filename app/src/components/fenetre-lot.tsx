@@ -4,7 +4,7 @@ import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import Link from "next/link";
 import { ageAu, type PersonneResume } from "@/lib/resume-location";
 import { changerEtatLot } from "@/app/actions/parc";
-import { createContext, useCallback, useContext, useEffect, useState, useRef, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, useRef, useId, type ReactNode } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   chargerFicheLot,
@@ -28,6 +28,7 @@ import { ajouterEcriture, type EtatCompta } from "@/app/actions/compta";
 import { encaisserReste } from "@/app/actions/quittancement";
 import { ajouterEncaissement, ajouterRelance, type EtatLoyers } from "@/app/actions/loyers";
 import { Modale } from "@/components/ui/modale";
+import { LecteurDocument } from "@/components/lecteur-document";
 import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
@@ -139,9 +140,9 @@ export function FenetreLotProvider({
   );
   const ouvrir = useCallback<Ouvrir>((id, libelle) => setOuvert({ id, libelle }), []);
   return (
-    <ContexteFenetre.Provider value={ouvrir}>
+    <ContexteFenetre.Provider value={estProprietaire ? null : ouvrir}>
       {children}
-      {ouvert && (
+      {ouvert && !estProprietaire && (
         <FenetreLot
           key={ouvert.id}
           orgId={orgId}
@@ -153,6 +154,31 @@ export function FenetreLotProvider({
       )}
     </ContexteFenetre.Provider>
   );
+}
+
+/** Les outils propres au lot restent accessibles sans réintroduire une fenêtre.
+ * Le premier dépliage charge la rubrique ; la fermer conserve les saisies.
+ * En affichage direct, le contenu est disponible dès le montage de la section. */
+export function SuiviLotProprietaire({ orgId, lotId, rubrique, lectureSeule = false, affichage = "repliable", documentsDejaAffiches, resume }: {
+  orgId: string; lotId: string; rubrique: "documents" | "compta" | "historique"; lectureSeule?: boolean;
+  affichage?: "repliable" | "direct";
+  documentsDejaAffiches?: string[];
+  resume?: ReactNode;
+}) {
+  const [charge, charger] = useState(false);
+  const titreId = useId();
+  const titre = rubrique === "documents" ? affichage === "direct" ? "Autres documents" : "Documents déposés" : rubrique === "compta" ? "Journal & dépenses" : "Historique du lot";
+  const contenu = (affichage === "direct" || charge) && <div className="pt-4">
+    {rubrique === "documents" ? <OngletDocuments orgId={orgId} fiche={{ lot_id: lotId, portee: "gerant" }} fermer={() => {}} estProprietaire lectureSeule={lectureSeule} documentsDejaAffiches={documentsDejaAffiches} autresDocuments={affichage === "direct"} apercuIntegre={affichage === "direct"} /> : rubrique === "historique" ? <OngletHistorique lotId={lotId} /> : <OngletComptabilite orgId={orgId} fiche={{ lot_id: lotId, bail_id: null }} rafraichir={() => {}} estProprietaire lectureSeule={lectureSeule} />}
+  </div>;
+  if (affichage === "direct") return <section className="suivi-lot-proprietaire" aria-labelledby={titreId}>
+    <h3 id={titreId} className="text-base font-semibold">{titre}</h3>
+    {contenu}
+  </section>;
+  return <details className="suivi-lot-proprietaire" onToggle={event => { if (event.currentTarget.open) charger(true); }}>
+    <summary>{resume ?? titre}</summary>
+    {contenu}
+  </details>;
 }
 
 type Onglet = "resume" | "documents" | "compta" | "historique";
@@ -993,12 +1019,13 @@ function EnAttente({ quoi }: { quoi: string }) {
 
 /* ── Onglet « Documents » ─────────────────────────────────────────────── */
 
-function OngletDocuments({ orgId, fiche, fermer }: { orgId: string; fiche: FicheLot; fermer: () => void }) {
+function OngletDocuments({ orgId, fiche, fermer, estProprietaire = false, lectureSeule = false, documentsDejaAffiches = [], autresDocuments = false, apercuIntegre = false }: { orgId: string; fiche: Pick<FicheLot, "lot_id" | "portee">; fermer: () => void; estProprietaire?: boolean; lectureSeule?: boolean; documentsDejaAffiches?: string[]; autresDocuments?: boolean; apercuIntegre?: boolean }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
   const locataire = fiche.portee === "locataire";
   const [docs, setDocs] = useState<DocumentDuLot[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [apercu, setApercu] = useState<Pick<DocumentDuLot, "document_id" | "titre"> | null>(null);
 
   useEffect(() => {
     let vivant = true;
@@ -1012,6 +1039,11 @@ function OngletDocuments({ orgId, fiche, fermer }: { orgId: string; fiche: Fiche
     };
   }, [fiche.lot_id]);
 
+  // Filtre de présentation uniquement : les identifiants transmis par la page
+  // peuvent évoluer sans relancer la lecture des documents du lot.
+  const identifiantsAffiches = new Set(documentsDejaAffiches);
+  const documentsVisibles = docs?.filter(document => !identifiantsAffiches.has(document.document_id)) ?? null;
+
   return (
     <div className="space-y-3">
       {erreur && (
@@ -1020,27 +1052,34 @@ function OngletDocuments({ orgId, fiche, fermer }: { orgId: string; fiche: Fiche
         </p>
       )}
       {!docs && !erreur && <EnAttente quoi="Lecture des documents…" />}
-      {docs && docs.length === 0 && (
+      {documentsVisibles && documentsVisibles.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          {locataire
+          {autresDocuments ? "Aucun autre document pour ce lot." : locataire
             ? "Aucun document partagé avec vous pour l’instant."
-            : "Aucun document sur ce lot, son bail ou son mandat."}
+            : estProprietaire ? "Aucun document rattaché." : "Aucun document sur ce lot, son bail ou son mandat."}
         </p>
       )}
-      {docs && docs.length > 0 && (
+      {documentsVisibles && documentsVisibles.length > 0 && (
         <ul className="divide-y divide-border">
-          {docs.map((d) => {
+          {documentsVisibles.map((d) => {
             const expire = d.expire_le ? new Date(d.expire_le) < new Date() : false;
             return (
               <li key={d.document_id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
                 <span className="min-w-0 flex-1">
-                  <Link
+                  {apercuIntegre ? <button
+                    type="button"
+                    aria-haspopup="dialog"
+                    onClick={() => setApercu({ document_id: d.document_id, titre: d.titre })}
+                    className="block min-h-11 w-full truncate text-left text-[13.5px] font-semibold lien-discret"
+                  >
+                    {d.titre}
+                  </button> : <Link
                     href={locataire ? `/locataire/${orgId}/documents` : `${base}/documents?sel=${d.document_id}`}
                     onNavigate={fermer}
                     className="block truncate text-[13.5px] font-semibold lien-discret"
                   >
                     {d.titre}
-                  </Link>
+                  </Link>}
                   <span className="block truncate text-xs text-muted-foreground">
                     {TYPES_DOCUMENT[d.type] ?? "Document"} · {d.rattachement} · déposé le{" "}
                     {formaterDate(d.depose_le)}
@@ -1056,17 +1095,20 @@ function OngletDocuments({ orgId, fiche, fermer }: { orgId: string; fiche: Fiche
           })}
         </ul>
       )}
-      <Link
+      {!lectureSeule && <Link
         href={locataire ? `/locataire/${orgId}/documents` : `${base}/documents?sel=depot`}
         onNavigate={fermer}
         className={buttonVariants({ variant: "outline", size: "sm" })}
       >
         {locataire ? "Déposer mon attestation d’assurance" : "Déposer un document"}
-      </Link>
-      <p className="text-xs text-muted-foreground">
+      </Link>}
+      {!estProprietaire && <p className="text-xs text-muted-foreground">
         Le type d’une pièce pilote ses droits d’accès, ses relances et sa durée de
         conservation.
-      </p>
+      </p>}
+      {apercuIntegre && apercu && <Modale titre={apercu.titre} tresLarge fermer={() => setApercu(null)}>
+        <LecteurDocument fichier={`${base}/documents/${apercu.document_id}/fichier`} titre={apercu.titre} mime={null} presentation="fiche" />
+      </Modale>}
     </div>
   );
 }
@@ -1078,11 +1120,13 @@ function OngletComptabilite({
   fiche,
   rafraichir,
   estProprietaire,
+  lectureSeule = false,
 }: {
   orgId: string;
-  fiche: FicheLot;
+  fiche: Pick<FicheLot, "lot_id" | "bail_id">;
   rafraichir: () => void;
   estProprietaire: boolean;
+  lectureSeule?: boolean;
 }) {
   const bailId = fiche.bail_id;
   const [donnees, setDonnees] = useState<{
@@ -1149,7 +1193,7 @@ function OngletComptabilite({
               </p>
             ) : (
               <ul className="divide-y divide-border">
-                {donnees.ecritures.slice(0, 12).map((e) => (
+                {(estProprietaire ? donnees.ecritures : donnees.ecritures.slice(0, 12)).map((e) => (
                   <li key={e.ecriture_id} className="flex flex-wrap items-baseline gap-x-3 py-2 text-sm">
                     <span className="shrink-0 text-xs text-muted-foreground">
                       {formaterDate(e.date_piece)}
@@ -1175,7 +1219,7 @@ function OngletComptabilite({
                 ))}
               </ul>
             )}
-            {donnees.ecritures.length > 12 && (
+            {!estProprietaire && donnees.ecritures.length > 12 && (
               <p className="mt-1 text-xs text-muted-foreground">
                 Les {donnees.ecritures.length - 12} écritures plus anciennes sont dans la
                 fiche complète du lot.
@@ -1183,7 +1227,7 @@ function OngletComptabilite({
             )}
           </div>
 
-          <FormulaireDepense orgId={orgId} lotId={fiche.lot_id} relire={relire} />
+          {!lectureSeule && <FormulaireDepense orgId={orgId} lotId={fiche.lot_id} relire={relire} />}
           {/* Le rapport de gestion va au mandant : un propriétaire en direct
               n'a personne à qui l'adresser. */}
           {!estProprietaire && <BlocRapport lotId={fiche.lot_id} rapport={donnees.rapport} />}

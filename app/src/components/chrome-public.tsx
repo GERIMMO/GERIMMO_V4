@@ -20,7 +20,7 @@ function BandeauPublic() {
   return (
     <header className="bandeau-public public-navigation print:hidden">
       <div className="public-navigation-interieur">
-        <Link href="/" aria-label="Gerimmo — accueil" className="public-logo"><MarqueGerimmo /></Link>
+        <Link href="/" aria-label="Gerimmo — accueil" className="public-logo"><MarqueGerimmo /><span className="ambiance-repere" aria-hidden="true" /></Link>
         <nav aria-label="Navigation principale" className="public-nav-bureau">
           {NAVIGATION.map(([href, titre]) => <Link key={href} href={href}>{titre}</Link>)}
         </nav>

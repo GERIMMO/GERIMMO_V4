@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { rattacherDocument, type EtatDocumentGed } from "@/app/actions/documents-ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -35,14 +35,24 @@ export function FormulaireRattacher({
   // La liste des baux s'arrête à un plafond : un sélecteur qui tait les baux
   // les plus anciens ferait croire qu'ils n'existent pas.
   bauxTronques = false,
+  integre = false,
+  onFermer,
 }: {
   orgId: string;
   documentId: string;
   fiches: FichesRattachables;
   bauxTronques?: boolean;
+  integre?: boolean;
+  onFermer?: () => void;
 }) {
+  const identifiant = useId();
   const [ouvert, setOuvert] = useState(false);
   const [famille, setFamille] = useState<keyof FichesRattachables>("personnes");
+  const [entiteId, setEntiteId] = useState("");
+  function fermer() {
+    if (integre) onFermer?.();
+    else setOuvert(false);
+  }
   const actionLiee = rattacherDocument.bind(null, orgId, documentId);
   // Toast à la résolution de l'action (convention 24/08), jamais dans un effet
   const [etat, action] = useActionState<EtatDocumentGed, FormData>(
@@ -50,14 +60,15 @@ export function FormulaireRattacher({
       const res = await actionLiee(precedent, formData);
       if (res.succes) {
         afficherToast(res.succes);
-        setOuvert(false);
+        if (!integre) setEntiteId("");
+        fermer();
       }
       return res;
     },
     {}
   );
 
-  if (!ouvert) {
+  if (!integre && !ouvert) {
     return (
       <Button type="button" variant="outline" size="sm" onClick={() => setOuvert(true)}>
         Rattacher à une autre fiche
@@ -66,15 +77,18 @@ export function FormulaireRattacher({
   }
 
   return (
-    <form data-saisie-confirmee action={action} className="space-y-3 rounded-md border border-border p-3">
+    <form data-saisie-confirmee action={action} className={integre ? "space-y-4" : "space-y-3 rounded-md border border-border p-3"}>
       <input type="hidden" name="entite" value={ENTITE_SQL[famille]} />
       <div className="space-y-2">
-        <Label htmlFor="famille-rattachement">Type de fiche</Label>
+        <Label htmlFor={`${identifiant}-famille`}>Type de fiche</Label>
         <select
-          id="famille-rattachement"
+          id={`${identifiant}-famille`}
           value={famille}
-          onChange={(e) => setFamille(e.target.value as keyof FichesRattachables)}
-          className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          onChange={(e) => {
+            setFamille(e.target.value as keyof FichesRattachables);
+            setEntiteId("");
+          }}
+          className="min-h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm"
         >
           {(Object.keys(LIBELLES_ENTITE) as (keyof FichesRattachables)[]).map((f) => (
             <option key={f} value={f}>
@@ -84,14 +98,15 @@ export function FormulaireRattacher({
         </select>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="fiche-rattachement">Fiche</Label>
-        {/* La saisie est reposée en erreur via etat.valeurs (recette 22/08) */}
+        <Label htmlFor={`${identifiant}-fiche`}>Fiche</Label>
+        {/* Le choix reste présent après une erreur et se vide au changement de famille. */}
         <select
-          id="fiche-rattachement"
+          id={`${identifiant}-fiche`}
           name="entite_id"
           required
-          defaultValue={etat.valeurs?.entite_id ?? ""}
-          className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          value={entiteId}
+          onChange={(e) => setEntiteId(e.target.value)}
+          className="min-h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm"
         >
           <option value="">— Choisir —</option>
           {fiches[famille].map((f) => (
@@ -107,12 +122,12 @@ export function FormulaireRattacher({
           rattache depuis sa propre fiche.
         </p>
       )}
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-      <div className="flex gap-2">
-        <BoutonEnvoi size="sm" enCoursTexte="Rattachement…">
-          Rattacher
+      {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
+      <div className="flex flex-wrap gap-2">
+        <BoutonEnvoi size="sm" className={integre ? "min-h-11" : undefined} enCoursTexte="Enregistrement…">
+          {integre ? "Lier le document" : "Rattacher"}
         </BoutonEnvoi>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
+        <Button type="button" variant="ghost" size="sm" className={integre ? "min-h-11" : undefined} onClick={fermer}>
           Fermer
         </Button>
       </div>

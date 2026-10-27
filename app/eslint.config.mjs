@@ -32,6 +32,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "public/pdfjs/**", // Fichiers PDF.js recopiés depuis node_modules au postinstall.
+    "tmp/**", // Épreuves et scripts temporaires locaux hors livraison.
   ]),
 ]);
 

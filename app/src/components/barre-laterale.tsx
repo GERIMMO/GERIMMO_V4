@@ -276,14 +276,13 @@ export function BarreBasse({
             {toutes.map((e) => (
               <Entree key={e.href} e={e} active={e === active} onClick={() => setOuvert(false)} />
             ))}
-            {/* L'aide, en dernier et à part de l'espace (24/09) : le rond
-                flottant mordait les champs et les montants alignés à droite. */}
-            <div className="mt-1 border-t border-[var(--trait-doux)] pt-1">
-              <LienAssistance destination={toutes.find(e => e.href === `${racine}/${orgId}/faq`)?.href} onClick={() => setOuvert(false)}>
+            {/* L'aide intégrée au menu du propriétaire ne se répète pas ici. */}
+            {!toutes.some(e => e.href === `${racine}/${orgId}/faq`) && <div className="mt-1 border-t border-[var(--trait-doux)] pt-1">
+              <LienAssistance onClick={() => setOuvert(false)}>
                 <Icone nom="quest" />
                 <span className="lib">Aide et retours</span>
               </LienAssistance>
-            </div>
+            </div>}
           </nav>
         </Tiroir>
       )}

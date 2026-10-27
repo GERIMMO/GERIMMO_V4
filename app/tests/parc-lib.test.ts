@@ -76,18 +76,28 @@ describe("diagnosticsAttendus", () => {
     expect(attendus).toContain("plomb");
     expect(attendus).toContain("amiante_privatif");
     expect(attendus).toContain("electricite");
+    expect(attendus).toContain("gaz");
+    expect(attendus).not.toContain("termites");
   });
 
   it("local récent : pas de DPE d'habitation ni de plomb", () => {
     const attendus = diagnosticsAttendus({ type: "local", annee_construction: 2020 });
     expect(attendus).not.toContain("dpe");
     expect(attendus).not.toContain("plomb");
+    expect(attendus).not.toContain("electricite");
+    expect(attendus).not.toContain("gaz");
+    expect(attendus).not.toContain("termites");
     expect(attendus).toContain("erp");
   });
 
-  it("sans année connue : seuls DPE/ERP/termites sont proposés", () => {
+  it("sans année connue : gaz et électricité restent à qualifier pour le logement", () => {
     const attendus = diagnosticsAttendus({ type: "maison", annee_construction: null });
-    expect(attendus).toEqual(["dpe", "erp", "termites"]);
+    expect(attendus).toEqual(["dpe", "electricite", "gaz", "erp"]);
+  });
+
+  it("l’année récente du bâtiment ne tranche pas à la place des informations d’installation", () => {
+    const attendus = diagnosticsAttendus({ type: "appartement", annee_construction: 2020 });
+    expect(attendus).toEqual(["dpe", "electricite", "gaz", "erp"]);
   });
 });
 

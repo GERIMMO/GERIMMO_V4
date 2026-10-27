@@ -1,0 +1,42 @@
+.carte, .repos { position: relative; }
+button.carte { text-align: left; cursor: pointer; font-family: inherit; border-color: #bdcede; background: #f1f6fb; }
+button.carte:hover { border-color: #879eb8; background: #eaf2f9; }
+.lienTaches { border-color: #bdcede; background: #f1f6fb; }
+.lienTaches:hover { border-color: #879eb8; background: #eaf2f9; }
+.carte > span, .repos > span { padding-right: 22px; }
+.fleche { position: absolute; top: 22px; right: 18px; color: #425d79; }
+.carte small.apercu { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.5; overflow-wrap: anywhere; }
+.contenu { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+/* Une même alerte pour toutes les actions importantes, avec un texte toujours lisible. */
+button.carte[data-importante='true'] { background: #9d343b; border-color: #8b2930; gap: 8px; }
+button.carte[data-importante='true']:hover { background: #892a31; border-color: #7a2229; }
+button.carte[data-importante='true'] > span,
+button.carte[data-importante='true'] > strong,
+button.carte[data-importante='true'] > small,
+button.carte[data-importante='true'] > svg { color: #fff; }
+button.carte > strong.question { font-size: clamp(20px, 1.8vw, 25px); line-height: 1.25; letter-spacing: -.02em; text-wrap: balance; }
+/* Un clignotement lent : rouge clair puis soutenu, texte stable et contraste blanc supérieur à 4,5:1. */
+@keyframes respirationAlerte {
+  0%, 100% { background-color: #781d2b; border-color: #681927; box-shadow: 0 0 0 0 #c2465200, 0 0 0 #9d343b00; }
+  50% { background-color: #c24652; border-color: #a73540; box-shadow: 0 0 0 7px #c2465238, 0 8px 24px #9d343b20; }
+}
+@media screen and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+  button.carte[data-importante='true'] { animation: respirationAlerte 3s ease-in-out infinite; }
+  button.carte[data-importante='true']:is(:hover, :focus-visible, [aria-expanded='true']) { animation: none; box-shadow: none; }
+}
+@media (max-width: 700px) {
+  .fleche { top: 14px; right: 10px; width: 16px; height: 16px; }
+}
+@media (max-width: 600px) {
+  button.carte[data-importante='true'] { grid-column: 1 / -1; grid-row: 1; display: flex; align-items: flex-start; padding: 18px; gap: 8px; }
+  button.carte[data-importante='true'] > span { min-height: 0; font-size: 12px; }
+  button.carte[data-importante='true'] > span svg { display: block; }
+  button.carte[data-importante='true'] > strong.question { font-size: 23px; text-align: left; text-wrap: initial; }
+  button.carte[data-importante='true'] > small { font-size: 12px; }
+  button.carte[data-importante='true'] > .fleche { top: 18px; right: 16px; transform: none; }
+}
+@media (max-width: 370px) {
+  .fleche { top: 50%; right: 12px; transform: translateY(-50%); }
+  .carte > strong, .repos > strong { padding-right: 24px; }
+  .carte small.apercu { grid-column: 1 / -1; padding-right: 24px; }
+}

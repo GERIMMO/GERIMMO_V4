@@ -680,13 +680,13 @@ export async function deposerDiagnostic(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
-  revalidatePath(`/agence/${orgId}/parc/${bienId}`);
-  revalidatePath(`/agence/${orgId}/baux`, "layout");
-  if (lotId) revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
-  revalidatePath(`/agence/${orgId}/baux`, "layout");
-  revalidatePath(`/agence/${orgId}/parc`);
-  revalidatePath(`/agence/${orgId}/baux`, "layout");
-  revalidatePath(`/agence/${orgId}/documents`);
+  for (const racine of ["agence", "espace"]) {
+    revalidatePath(`/${racine}/${orgId}/parc/${bienId}`);
+    if (lotId) revalidatePath(`/${racine}/${orgId}/parc/${bienId}/lots/${lotId}`);
+    revalidatePath(`/${racine}/${orgId}/parc`);
+    revalidatePath(`/${racine}/${orgId}/documents`);
+    revalidatePath(`/${racine}/${orgId}/baux`, "layout");
+  }
   if (pieceReutilisee !== null) {
     return { succes: `${referentiel.libelle} enregistré pour ${ceNiveau} avec la pièce déjà déposée (« ${pieceReutilisee} »), sans copie supplémentaire.` };
   }

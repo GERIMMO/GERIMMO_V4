@@ -29,9 +29,10 @@ describe("étape Personnes du bail", () => {
   });
   it("réutilise la création de l’annuaire, sans redirection ni détention cachée", async () => {
     m.creer.mockResolvedValue({ succes: "Fiche créée.", personneCreee: { id: "nouvelle" } });
-    const f = form({ nom: "Test", role: "proprietaire_mandant", lot_id: "autre-lot" });
+    const f = form({ nom: "Test", role: "proprietaire_mandant", lot_id: "autre-lot", creation_id: "67360dd2-c21d-4d8e-9b5a-ed389c3448d3" });
     expect(await creerPersonneBail("org", "bail", {}, f)).toHaveProperty("personneCreee.id", "nouvelle");
     expect(f.get("rester_dans_parcours")).toBe("1"); expect(f.has("role")).toBe(false); expect(f.has("lot_id")).toBe(false);
+    expect(m.creer.mock.calls[0][2].get("creation_id")).toBe("67360dd2-c21d-4d8e-9b5a-ed389c3448d3");
     expect(m.revalidate).toHaveBeenCalledWith("/agence/org/baux/bail");
   });
   it("conserve l’erreur et la saisie renvoyées par la création", async () => {

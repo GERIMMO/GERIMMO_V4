@@ -460,6 +460,9 @@ export async function qualifierIncident(
   revalidatePath(`/agence/${orgId}/alertes`);
   // Tableau de bord : donut incidents + KPI
   revalidatePath(`/agence/${orgId}`);
+  revalidatePath(`/espace/${orgId}/incidents`);
+  revalidatePath(`/espace/${orgId}/alertes`);
+  revalidatePath(`/espace/${orgId}`);
   return { succes: "Incident qualifié — le locataire voit l'imputation dès maintenant." };
 }
 
@@ -488,6 +491,9 @@ export async function cloturerIncident(
   revalidatePath(`/agence/${orgId}/incidents`);
   revalidatePath(`/agence/${orgId}/alertes`);
   revalidatePath(`/agence/${orgId}`);
+  revalidatePath(`/espace/${orgId}/incidents`);
+  revalidatePath(`/espace/${orgId}/alertes`);
+  revalidatePath(`/espace/${orgId}`);
   return { succes: "Incident clos — les alertes liées sont soldées." };
 }
 

@@ -1,0 +1,38 @@
+.lecteur { display: flex; position: relative; inset: auto; flex-direction: column; width: 100%; min-width: 0; max-width: none; padding: 0; margin: 0; overflow: hidden; border: 1px solid #d8dfe7; border-radius: 12px; color: #172b46; background: #f1f4f7; }
+.lecteur.agrandi { position: fixed; inset: 12px; width: calc(100vw - 24px); height: calc(100dvh - 24px); max-height: none; margin: 0; border-radius: 12px; }
+.lecteur::backdrop { background: #11243dcc; }
+.barre { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 8px; border-bottom: 1px solid #d8dfe7; background: #fff; }
+.groupe { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.actions { margin-left: auto; flex-wrap: wrap; }
+.lecteur button { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 6px; min-width: 40px; min-height: 44px; padding: 7px 9px; border: 1px solid transparent; border-radius: 7px; font: inherit; font-size: 12px; line-height: 1.3; color: #172b46; background: transparent; cursor: pointer; }
+.lecteur button:hover:not(:disabled) { background: #edf2f7; border-color: #d8dfe7; }
+.lecteur button:focus-visible { outline: 2px solid #94743e; outline-offset: -2px; }
+.lecteur button:disabled { opacity: .38; cursor: default; }
+.lecteur button svg { flex-shrink: 0; }
+.pagination { min-width: 48px; text-align: center; font-variant-numeric: tabular-nums; font-size: 12px; white-space: nowrap; }
+.pourcentage { width: 42px; text-align: center; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.zone { position: relative; min-width: 0; min-height: 260px; max-height: min(68dvh, 780px); padding: 12px; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.fiche:not(.agrandi) .zone { max-height: clamp(280px, calc(100dvh - 470px), 580px); }
+.fiche .actions > button:last-child { background: #203a58; color: white; }
+.fiche .actions > button:last-child:hover:not(:disabled) { background: #2e4d70; border-color: #2e4d70; }
+.fiche .pagination { min-width: 44px; }
+.agrandi .zone { flex: 1; max-height: none; min-height: 0; }
+.pagePdf { min-width: 100%; width: max-content; }
+.feuille { position: relative; margin-inline: auto; background: white; box-shadow: 0 2px 12px #11243d1a; }
+.feuille canvas { display: block; max-width: none; }
+.imageCadre { margin-inline: auto; }
+.image { display: block; width: 100%; max-width: none; height: auto; background: white; }
+.etat { margin: 16px; color: #52647a; font-size: 13px; text-align: center; }
+.erreur { margin: 12px 16px; color: #8a3d34; font-size: 13px; }
+.vide { display: grid; justify-items: center; align-content: center; min-height: 240px; gap: 16px; padding: 24px 12px; text-align: center; }
+.vide p { max-width: 38ch; font-size: 14px; line-height: 1.65; }
+.vide button { background: #172b46; color: #fff; padding-inline: 16px; }
+.vide button:hover:not(:disabled) { background: #243d5e; color: #fff; }
+/* Couche de sélection PDF.js 6, isolée du style du site et sans contenu HTML du document. */
+.texte { position: absolute; inset: 0; overflow: clip; text-align: initial; line-height: 1; letter-spacing: normal; word-spacing: normal; text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; --min-font-size: 1; --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size)); --min-font-size-inv: calc(1 / var(--min-font-size)); }
+.texte :is(span, br) { position: absolute; color: transparent; white-space: pre; cursor: text; transform-origin: 0 0; user-select: text; }
+.texte > :not(:global(.markedContent)), .texte :global(.markedContent) span:not(:global(.markedContent)) { z-index: 1; --font-height: 0; font-size: calc(var(--text-scale-factor) * var(--font-height)); --scale-x: 1; --rotate: 0deg; transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv)); }
+.texte :global(.markedContent) { display: contents; }
+.texte ::selection { color: transparent; background: #b89b5360; }
+@media (max-width: 420px) { .barre { gap: 3px; padding: 5px; } .actions { width: 100%; justify-content: flex-end; border-top: 1px solid #edf0f4; padding-top: 3px; } .groupe { gap: 0; } .lecteur button { padding-inline: 7px; min-width: 38px; } .lecteur.agrandi { inset: 4px; width: calc(100vw - 8px); height: calc(100dvh - 8px); border-radius: 8px; } }
+@media (prefers-reduced-motion: reduce) { .lecteur { scroll-behavior: auto; } }

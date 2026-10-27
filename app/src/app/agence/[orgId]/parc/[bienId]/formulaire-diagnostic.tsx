@@ -21,8 +21,9 @@ export function FormulaireDiagnostic({
   niveau,
   typeInitial,
   tousNiveaux = false,
-  initialiserDate = true,
+  initialiserDate = false,
   actionDepot,
+  onDepotConfirmeAction,
 }: {
   orgId: string;
   bienId: string;
@@ -33,6 +34,7 @@ export function FormulaireDiagnostic({
   tousNiveaux?: boolean;
   initialiserDate?: boolean;
   actionDepot?: (etat:EtatParc,form:FormData)=>Promise<EtatParc>;
+  onDepotConfirmeAction?: (message: string) => void;
 }) {
   const identifiant = useId();
   const types = Object.entries(TYPES_DIAGNOSTIC).filter(
@@ -41,6 +43,7 @@ export function FormulaireDiagnostic({
   const actionLiee = actionDepot ?? deposerDiagnostic.bind(null, orgId, bienId, lotId);
   const {etat, soumettre: action, enCours, version} = useActionFormulaire<EtatParc>(actionLiee, true);
   const formulaire = useRef<HTMLFormElement>(null);
+  const versionAnnoncee = useRef(0);
   const [etatModifie, setEtatModifie] = useState<typeof etat | null>(null);
   // Réponse (état) pour laquelle la proposition « Utiliser cette pièce » a cessé de valoir : l'utilisateur a choisi un autre
   // fichier ou un autre type depuis. Une nouvelle réponse du serveur est un autre objet : elle rouvre la proposition.
@@ -54,8 +57,8 @@ export function FormulaireDiagnostic({
     setExpiration(expirationDiagnostic(leType, laRealisation));
   };
 
-  // Date de réalisation pré-remplie à aujourd'hui (retour recette S2) —
-  // posée après l'hydratation pour rester cohérente avec le rendu serveur
+  // La date du rapport n'est pas connue au dépôt. L'initialisation explicite
+  // reste disponible pour les appelants qui connaissent une réalisation du jour.
   useEffect(() => {
     if (!initialiserDate) return;
     const minuterie = setTimeout(() => {
@@ -89,6 +92,14 @@ export function FormulaireDiagnostic({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version]);
 
+  useEffect(() => {
+    // Seule une saisie confirmée et restée inchangée incrémente la version.
+    // Ni une erreur ni le succès tardif d'un ancien brouillon ne ferment la fiche.
+    if (version <= versionAnnoncee.current) return;
+    versionAnnoncee.current = version;
+    if (etat.succes && !etat.erreur) onDepotConfirmeAction?.(etat.succes);
+  }, [version, etat.succes, etat.erreur, onDepotConfirmeAction]);
+
   const propositionAffichee = Boolean(etat.pieceExistante) && propositionRetiree !== etat;
 
   return (
@@ -107,26 +118,22 @@ export function FormulaireDiagnostic({
       }}
       ref={formulaire}
       onSubmit={action}
+      aria-busy={enCours}
       className="flex flex-col gap-3 border-t border-border pt-4"
     >
-      <p className="text-sm font-medium">
-        {typeInitial
-          ? `Déposer : ${TYPES_DIAGNOSTIC[typeInitial]?.libelle ?? typeInitial}`
-          : "Déposer un diagnostic"}
-      </p>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="space-y-1.5 rounded-xl border border-border bg-muted/20 p-3 sm:p-4">
+        <Label htmlFor={`diag-fichier-${niveau}-${identifiant}`}>Rapport du diagnostiqueur</Label>
+        <ChampFichier depotDirect id={`diag-fichier-${niveau}-${identifiant}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
+        <p className="text-xs text-muted-foreground">PDF, JPEG ou PNG · 10 Mo maximum</p>
+      </div>
+      <div className={`grid gap-3 sm:grid-cols-2${type === "dpe" ? " lg:grid-cols-3" : ""}`}>
         {typeInitial ? (
           // Ouvert depuis la ligne d'un diagnostic précis : le type est acquis,
           // un menu serait à la fois inutile et une source d'erreur (un reset
           // le ramenait sur la 1re option et le dépôt partait du mauvais type).
-          <div className="space-y-1.5">
-            <input type="hidden" name="type" value={typeInitial} />
-            <p className="pt-1 text-xs text-muted-foreground">
-              {TYPES_DIAGNOSTIC[typeInitial]?.aide}
-            </p>
-          </div>
+          <input type="hidden" name="type" value={typeInitial} />
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 sm:col-span-full">
             <Label htmlFor={`diag-type-${niveau}-${identifiant}`}>Type de diagnostic</Label>
             <select
               id={`diag-type-${niveau}-${identifiant}`}
@@ -136,7 +143,7 @@ export function FormulaireDiagnostic({
                 setType(e.target.value);
                 majExpiration(e.target.value, realisation);
               }}
-              className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+              className="min-h-11 w-full rounded-lg border border-input bg-background px-3 text-base sm:text-sm"
             >
               {types.map(([valeur, t]) => (
                 <option key={valeur} value={valeur}>
@@ -145,21 +152,10 @@ export function FormulaireDiagnostic({
               ))}
             </select>
             {TYPES_DIAGNOSTIC[type] && (
-              <p className="text-sm text-muted-foreground">{TYPES_DIAGNOSTIC[type].aide}{tousNiveaux && ` · ${TYPES_DIAGNOSTIC[type].niveau === "lot" ? "Logement" : "Bâtiment"}`}</p>
+              <p className="text-xs text-muted-foreground">{TYPES_DIAGNOSTIC[type].aide}{tousNiveaux && ` · ${TYPES_DIAGNOSTIC[type].niveau === "lot" ? "Logement" : "Bâtiment"}`}</p>
             )}
           </div>
         )}
-        <div className="space-y-1.5">
-          <Label htmlFor={`diag-diagnostiqueur-${niveau}-${identifiant}`}>Diagnostiqueur</Label>
-          {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
-          <Input
-            id={`diag-diagnostiqueur-${niveau}-${identifiant}`}
-            name="diagnostiqueur"
-            maxLength={120}
-            placeholder="Cabinet (facultatif)"
-            defaultValue={etat.valeurs?.diagnostiqueur}
-          />
-        </div>
         {type === "dpe" && (
           <div className="space-y-1.5">
             <Label htmlFor={`diag-classe-${niveau}-${identifiant}`}>Classe énergétique (DPE)</Label>
@@ -168,18 +164,15 @@ export function FormulaireDiagnostic({
               name="classe_dpe"
               required={Boolean(actionDepot)}
               defaultValue={etat.valeurs?.classe_dpe ?? ""}
-              className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+              className="min-h-11 w-full rounded-lg border border-input bg-background px-3 text-base sm:text-sm"
             >
-              <option value="">—</option>
+              <option value="">Classe indiquée sur le rapport</option>
               {["A", "B", "C", "D", "E", "F", "G"].map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
               ))}
             </select>
-            <p className="text-sm text-muted-foreground">
-              Classe G : logement interdit à la location (loi Climat).
-            </p>
           </div>
         )}
         <div className="space-y-1.5">
@@ -188,6 +181,7 @@ export function FormulaireDiagnostic({
             id={`diag-realisation-${niveau}-${identifiant}`}
             name="date_realisation"
             type="date"
+            className="min-h-11 text-base sm:text-sm"
             max={aujourdhuiParis()}
             required
             value={realisation}
@@ -196,6 +190,7 @@ export function FormulaireDiagnostic({
               majExpiration(type, e.target.value);
             }}
           />
+          <p className="text-xs text-muted-foreground">Date indiquée sur le rapport.</p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor={`diag-expiration-${niveau}-${identifiant}`}>Expire le</Label>
@@ -204,26 +199,33 @@ export function FormulaireDiagnostic({
             required={TYPES_DIAGNOSTIC[type]?.validite_mois != null}
             name="date_expiration"
             type="date"
+            className="min-h-11 text-base sm:text-sm"
             min={realisation || undefined}
             value={expiration}
             onChange={(e) => setExpiration(e.target.value)}
           />
-          <p className="text-sm text-muted-foreground">
-            {TYPES_DIAGNOSTIC[type]?.validite_mois != null ? "Date d’expiration obligatoire : vérifiez la date indiquée sur le rapport." : "Laisser vide uniquement si le rapport ne prévoit pas de date d’expiration."}
-          </p>
-        </div>
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor={`diag-fichier-${niveau}-${identifiant}`}>
-            Rapport du diagnostiqueur
-          </Label>
-          <ChampFichier depotDirect id={`diag-fichier-${niveau}-${identifiant}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
-          <p className="text-sm text-muted-foreground">
-            Rapport requis. PDF, JPEG ou PNG
-            (10 Mo maximum), à déposer avec les dates et la classe figurant sur le rapport.
+          <p className="text-xs text-muted-foreground">
+            {TYPES_DIAGNOSTIC[type]?.validite_mois != null
+              ? "Calculée à partir de la réalisation. Ajustez-la si le rapport indique une autre échéance."
+              : "À renseigner seulement si le rapport indique une échéance."}
           </p>
         </div>
       </div>
-      <BoutonEnvoi enCours={enCours} size="sm" variant="outline" enCoursTexte="Dépôt…" className="order-last self-start">
+      <details className="rounded-lg border border-border px-3">
+        <summary className="min-h-11 cursor-pointer py-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring">Informations facultatives</summary>
+        <div className="space-y-1.5 pb-3">
+          <Label htmlFor={`diag-diagnostiqueur-${niveau}-${identifiant}`}>Diagnostiqueur</Label>
+          <Input
+            id={`diag-diagnostiqueur-${niveau}-${identifiant}`}
+            name="diagnostiqueur"
+            maxLength={120}
+            className="min-h-11 text-base sm:text-sm"
+            placeholder="Nom du cabinet"
+            defaultValue={etat.valeurs?.diagnostiqueur}
+          />
+        </div>
+      </details>
+      <BoutonEnvoi enCours={enCours} variant="outline" enCoursTexte="Dépôt…" className="order-last min-h-11 w-full sm:w-auto sm:self-start">
         Déposer
       </BoutonEnvoi>
       {etat.pieceExistante ? (

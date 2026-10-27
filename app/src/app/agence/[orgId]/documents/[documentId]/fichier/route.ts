@@ -72,5 +72,6 @@ export async function GET(
     if (!suivi.erreur && etatSignatureDocument(suivi.circuits, documentId) === "signe") libelle = "Bail signé";
   }
   return servirFichierSigne(supabase, { path: doc.storage_path, mime: doc.mime_type,
-    titre: doc.titre, libelle, mode, apercuImage: request.nextUrl.searchParams.get("apercu") === "image", retour: "depuis votre dossier Documents" });
+    titre: doc.titre, libelle, mode, apercuImage: request.nextUrl.searchParams.get("apercu") === "image",
+    apercuIntegre: request.nextUrl.searchParams.get("apercu") === "integre", retour: "depuis votre dossier Documents" });
 }

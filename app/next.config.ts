@@ -173,6 +173,10 @@ const nextConfig: NextConfig = {
       // Audit du 13/10 (PRF-05, D45 A) : durée courte avec revalidation, voir CACHE_IMAGES_DE_MARQUE.
       { source: "/logo/:path*", headers: [{ key: "Cache-Control", value: CACHE_IMAGES_DE_MARQUE }] },
       { source: "/illustrations/:path*", headers: [{ key: "Cache-Control", value: CACHE_IMAGES_DE_MARQUE }] },
+      // Le décodeur PDF s'exécute dans un worker local versionné. L'autorisation
+      // WebAssembly lui est réservée ; les pages conservent leur CSP habituelle.
+      { source: "/pdfjs/:version/pdf.worker.min.mjs", headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'" }] },
+      { source: "/pdfjs/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
     ];
   },
   // Audit 09/09 (P1) : sur Vercel, le bundler embarquait @sparticuz/chromium

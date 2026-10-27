@@ -84,11 +84,6 @@ const LIBRE_DANS_FICHIER_A_HOOK: Exception[] = [
     raison: "Bouton « Retirer » seul : aucun champ, rien à perdre.",
   },
   {
-    fichier: "app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-bail-lot.tsx",
-    balise: '<form onSubmit={soumettre} className="space-y-3">',
-    raison: "Bouton « Commencer le bail » seul : aucun champ, rien à perdre.",
-  },
-  {
     fichier: "app/assistance/formulaire-retour.tsx",
     balise: '<form onSubmit={soumettre} className="mt-3">',
     raison: "Bouton « Soutenir cette idée » seul : aucun champ, rien à perdre.",

@@ -11,7 +11,7 @@ import { useBaseEspace } from "@/components/racine-espace-contexte";
 
 const THEMES = ["Tout", "Prise en main", "Locataires", "Finances", "Abonnement"] as const;
 
-export function AideProprietaire({ orgId, nom, assistance }: { orgId: string; nom: string; assistance: string }) {
+export function AideProprietaire({ orgId, assistance }: { orgId: string; assistance: string }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
   const [recherche, setRecherche] = useState("");
@@ -20,7 +20,7 @@ export function AideProprietaire({ orgId, nom, assistance }: { orgId: string; no
   const questions = QUESTIONS.filter((q) => (theme === "Tout" || q.theme === theme) && correspond(recherche, q.question, q.reponse, q.theme));
   const reinitialiser = () => { setRecherche(""); setTheme("Tout"); };
   return <div className={styles.introduction}>
-    <EnteteReglages rubrique="aide" titre="Aide" mention={nom}>Les réponses à vos questions et vos échanges avec Gerimmo, au même endroit.</EnteteReglages>
+    <EnteteReglages rubrique="aide" titre="Aide">Les réponses à vos questions et vos échanges avec Gerimmo, au même endroit.</EnteteReglages>
     <nav className={styles.raccourcis} aria-label="Sections de l’aide">
       <Link href="#questions-titre"><BookOpen size={17} aria-hidden="true" />Questions fréquentes</Link>
       <Link href={assistance}><MessageCircle size={17} aria-hidden="true" />Contacter Gerimmo</Link>

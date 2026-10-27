@@ -1,0 +1,10 @@
+import { beforeEach, expect, it, vi } from "vitest";
+const m = vi.hoisted(() => ({ user: true, piece: true, rpc: vi.fn(), servir: vi.fn() }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: async () => ({ data: { user: m.user ? { id: "artisan" } : null } }) }, rpc: m.rpc }) }));
+vi.mock("@/lib/fichier-signe", () => ({ servirFichierSigne: m.servir }));
+import { GET } from "@/app/artisan/attestations/[pieceId]/fichier/route";
+beforeEach(() => { vi.clearAllMocks(); m.user = true; m.piece = true; m.rpc.mockImplementation(async () => ({ data: m.piece ? [{ piece_id: "piece", storage_path: "artisans/artisan/assurance.pdf", type: "assurance" }] : [], error: null })); m.servir.mockResolvedValue(new Response("OK")); });
+const ouvrir = (query = "apercu=integre") => GET(new Request(`https://gerimmo.example.invalid/artisan/attestations/piece/fichier?${query}`), { params: Promise.resolve({ pieceId: "piece" }) });
+it.each(["session", "piece"])("refuse l’aperçu sans %s autorisée", async cas => { if (cas === "session") m.user = false; else m.piece = false; expect((await ouvrir()).status).toBeGreaterThanOrEqual(400); expect(m.servir).not.toHaveBeenCalled(); });
+it("sert l’aperçu uniquement après lecture des pièces de cet artisan", async () => { await ouvrir(); expect(m.rpc).toHaveBeenCalledWith("mes_pieces_artisan"); expect(m.servir).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ apercuIntegre: true, mode: "consultation", mime: "application/pdf" })); });
+it("conserve le téléchargement depuis la visionneuse", async () => { await ouvrir("mode=telechargement"); expect(m.servir).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ apercuIntegre: false, mode: "telechargement" })); });

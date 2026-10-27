@@ -24,12 +24,13 @@ const m = vi.hoisted(() => ({
   acces: vi.fn(),
   portefeuille: vi.fn(),
   envoyer: vi.fn(),
+  revalidate: vi.fn(),
   redirect: vi.fn((url: string) => {
     throw Object.assign(new Error("NEXT_REDIRECT"), { url });
   }),
 }));
 vi.mock("next/navigation", () => ({ redirect: m.redirect, unstable_rethrow: vi.fn() }));
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: m.revalidate }));
 vi.mock("@/lib/ged-acces", () => ({ verifierGerant: m.verifierGerant, verifierLocataire: vi.fn() }));
 vi.mock("@/lib/ged-depot", () => ({ deposerFichierGed: vi.fn(), preparerFichierGed: vi.fn(), abandonnerPieceGed: vi.fn() }));
 vi.mock("@/lib/espace", () => ({ verifierAccesEspace: m.acces }));
@@ -43,7 +44,7 @@ import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { envoyerAvisCapaciteDepassee } from "@/lib/avis-abonnement";
 import { archiverPersonne, creerPersonne } from "@/app/actions/personnes";
 import { creerEdl } from "@/app/actions/edl";
-import { remplacerDocument } from "@/app/actions/documents-ged";
+import { rattacherDocument, remplacerDocument } from "@/app/actions/documents-ged";
 import { deposerBailSigne } from "@/app/actions/baux";
 
 const ORG = "org-test";
@@ -281,8 +282,64 @@ describe("remplacerDocument : la nouvelle version s'ouvre sous la racine du prof
       const url = await urlDeRedirection(remplacerDocument(ORG, "doc-1", {}, f));
       expect(url).toBe(`${p.attendu}/documents?sel=doc-2`);
       expect(url).not.toContain(p.interdit);
+      expect(m.revalidate).toHaveBeenCalledWith(`/agence/${ORG}/documents`);
+      expect(m.revalidate).toHaveBeenCalledWith(`/espace/${ORG}/documents`);
+    });
+
+    it(`${p.nom} conserve les filtres et remplace uniquement la sélection`, async () => {
+      gerant(p.role, scenario(nom => nom === "remplacer_document_ged" ? { data: "doc-2" } : { data: null }));
+      const f = new FormData();
+      f.set("fichier", pdf("attestation.pdf", p.role));
+      f.set("retour_filtres", "type=attestation_assurance&q=Camille+%26+Martin&du=2026-01-01&au=2026-10-26&sel=doc-1&retour=https%3A%2F%2Fexample.invalid&orgId=autre");
+      const url = await urlDeRedirection(remplacerDocument(ORG, "doc-1", {}, f));
+      expect(url).toBe(`${p.attendu}/documents?type=attestation_assurance&q=Camille+%26+Martin&du=2026-01-01&au=2026-10-26&sel=doc-2`);
     });
   }
+
+  it("ignore les valeurs répétées, trop longues et les dates mal formées", async () => {
+    gerant("proprietaire_direct", scenario(nom => nom === "remplacer_document_ged" ? { data: "doc-2" } : { data: null }));
+    const f = new FormData();
+    f.set("fichier", pdf("attestation.pdf", "filtres invalides"));
+    f.set("retour_filtres", `type=bail&type=courrier&q=${"a".repeat(201)}&du=26%2F10%2F2026&au=2026-10-26`);
+    expect(await urlDeRedirection(remplacerDocument(ORG, "doc-1", {}, f)))
+      .toBe(`/espace/${ORG}/documents?au=2026-10-26&sel=doc-2`);
+  });
+
+  for (const filtre of ["q=" + "a".repeat(4096), new File(["q=bail"], "filtres.txt")]) {
+    it(`ignore un retour ${typeof filtre === "string" ? "surdimensionné" : "qui est un fichier"}`, async () => {
+      gerant("proprietaire_direct", scenario(nom => nom === "remplacer_document_ged" ? { data: "doc-2" } : { data: null }));
+      const f = new FormData();
+      f.set("fichier", pdf("attestation.pdf", "retour invalide"));
+      f.set("retour_filtres", filtre);
+      expect(await urlDeRedirection(remplacerDocument(ORG, "doc-1", {}, f)))
+        .toBe(`/espace/${ORG}/documents?sel=doc-2`);
+    });
+  }
+});
+
+describe("rattacherDocument : la fiche se met à jour dans les deux espaces", () => {
+  for (const p of PROFILS) {
+    it(`${p.nom} revalide les deux routes après un rattachement confirmé`, async () => {
+      gerant(p.role, scenario(nom => ({ data: nom === "document_liens" ? null : { id: "fiche-1" } })));
+      const f = new FormData();
+      f.set("entite", "lot");
+      f.set("entite_id", "lot-1");
+      expect((await rattacherDocument(ORG, "doc-1", {}, f)).succes).toBeTruthy();
+      expect(m.revalidate).toHaveBeenCalledWith(`/agence/${ORG}/documents`);
+      expect(m.revalidate).toHaveBeenCalledWith(`/espace/${ORG}/documents`);
+    });
+  }
+
+  it("ne revalide pas une écriture refusée", async () => {
+    gerant("proprietaire_direct", scenario(nom => nom === "document_liens"
+      ? { error: { message: "Rattachement refusé" } }
+      : { data: { id: "fiche-1" } }));
+    const f = new FormData();
+    f.set("entite", "lot");
+    f.set("entite_id", "lot-1");
+    expect((await rattacherDocument(ORG, "doc-1", {}, f)).erreur).toBeTruthy();
+    expect(m.revalidate).not.toHaveBeenCalled();
+  });
 });
 
 describe("deposerBailSigne : les liens « à corriger » d'une mise en location refusée", () => {

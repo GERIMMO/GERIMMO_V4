@@ -103,7 +103,7 @@ test("fiche lot : les caractéristiques se consultent avant de modifier", async 
   await page.goto(CHEMIN_LOT);
   await page.getByRole("tab", { name: "Logement", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Caractéristiques du logement" })).toBeVisible();
-  await expect(page.locator("#caracteristiques").getByRole("button", { name: "Modifier", exact: true })).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("#caracteristiques").getByRole("button", { name: "Compléter", exact: true })).toHaveAttribute("aria-expanded", "false");
   // Les champs vides portent un libellé explicite plutôt qu’un tiret.
   const tirets = await page.locator("main dd", { hasText: /^—$/ }).count();
   expect(tirets, "une rangée qui affiche « — » ne dit rien et coûte une ligne").toBe(0);
@@ -139,7 +139,7 @@ test("fiche bien : les lots passent avant l'administratif", async ({ page }) => 
   expect(lots, "les lots doivent précéder la fiche administrative du bien").toBeLessThan(leBien);
 });
 
-test("fiche bien : une obligation à confirmer n'est pas annoncée comme manquante", async ({ page }) => {
+test("fiche bien : le rapport termites reste facultatif et replié parmi les compléments", async ({ page }) => {
   await page.goto(CHEMIN_BIEN);
   const fiche = page.locator("main.bien-visuel");
   await expect(fiche.locator("#lots")).toBeVisible();
@@ -147,7 +147,13 @@ test("fiche bien : une obligation à confirmer n'est pas annoncée comme manquan
   const rubrique = page.getByRole("button", { name: /Diagnostics du bien/ });
   await rubrique.click();
   await expect(rubrique).toHaveAttribute("aria-expanded", "true");
-  await expect(page.getByText("Obligation à confirmer", { exact:true })).toBeVisible();
+  const complements = fiche.locator("#diagnostics details").filter({ has: page.locator("summary", { hasText: /^Documents complémentaires/ }) });
+  await expect(complements).not.toHaveAttribute("open", "");
+  await complements.locator("summary").click();
+  const termites = complements.getByRole("listitem").filter({ has: page.getByText("Termites", { exact: true }) });
+  await expect(termites).toHaveAttribute("data-etat", "facultatif");
+  await expect(termites.getByText("Facultatif", { exact: true })).toBeVisible();
+  await expect(termites.getByRole("button", { name: "Ajouter le fichier", exact: true })).toBeVisible();
 });
 
 test("fiche bien : l'annonce aux locataires ne déploie plus son formulaire", async ({ page }) => {

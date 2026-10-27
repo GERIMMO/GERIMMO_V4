@@ -60,7 +60,7 @@ const LIBELLE_ETAT: Record<string, string> = {
 function blocLocataire(f: Fusion, p: PersonneDocument): string {
   // Le téléphone est expressément facultatif dans le contrat type : absent,
   // il s'imprime « — » sans alimenter les manquants (brique `facultatif`).
-  return `<p>${f.champ(nomPersonne(p), "nom et prénom(s)")}, né(e) le ${f.date(p.date_naissance)}
+  return `<p>${f.champ(nomPersonne(p), "nom et prénom(s)")}, né(e) le ${f.date(p.date_naissance, "Date de naissance du locataire")}
   à ${f.champ(p.commune_naissance, "commune de naissance")}, demeurant ${f.champ(adressePersonne(p), "adresse actuelle")}.<br/>
   Adresse électronique : ${f.champ(p.email, "adresse électronique")} — Numéro de téléphone portable :
   ${facultatif(p.telephone)}.</p>`;
@@ -219,7 +219,7 @@ export function construireBailMeuble(
 
     ${section("III — Date de prise d'effet et durée du contrat")}
     ${dateConclusion(ctx, f)}
-    <p>Date de prise d'effet : ${f.date(ctx.bail.date_debut)}.<br/>
+    <p>Date de prise d'effet : ${f.date(ctx.bail.date_debut, "Date d’entrée")}.<br/>
     Durée du contrat : ${f.champ(dureeContrat, "durée applicable au régime du bail")}.</p>
     ${
       ctx.bail.duree_reduite_evenement

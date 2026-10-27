@@ -25,6 +25,8 @@ export async function deposerAnnexeBail(orgId:string,bailId:string,_etat:EtatBai
  const {error:lien}=await supabase.from("document_liens").insert({organization_id:orgId,document_id:depot.documentId,entite:"bail",entite_id:bailId});
  revalidatePath(`/agence/${orgId}/documents`);
  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+ revalidatePath(`/espace/${orgId}/documents`);
+ revalidatePath(`/espace/${orgId}/baux/${bailId}`);
  if(lien)return {erreur:`Document enregistré dans Documents, mais non rattaché au bail : ${sansJargon(lien.message)}. Rattachez cette pièce depuis Documents.`};
  return {succes:depot.avertissement??"Justificatif ajouté au bail."};
 }
@@ -40,6 +42,7 @@ export async function corrigerClasseDpeBail(orgId:string,bailId:string,diagnosti
  if(error)return {erreur:sansJargon(error.message)};
  if(!data?.length)return {erreur:"Ce DPE n’est plus disponible pour ce logement. Rechargez le dossier."};
  revalidatePath(`/agence/${orgId}/baux/${bailId}`);revalidatePath(`/agence/${orgId}/parc`,"layout");
+ revalidatePath(`/espace/${orgId}/baux/${bailId}`);revalidatePath(`/espace/${orgId}/parc`,"layout");
  return {succes:"Classe du DPE enregistrée."};
 }
 
@@ -53,6 +56,6 @@ export async function deposerDiagnosticBail(orgId:string,bailId:string,etat:Etat
  const erreur=erreurDiagnosticBail(form,aujourdhuiParis());
  if(erreur)return {erreur};
  const resultat=await deposerDiagnostic(orgId,bienId,bail.lot_id,etat,form);
- if(resultat.succes)revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+ if(resultat.succes){revalidatePath(`/agence/${orgId}/baux/${bailId}`);revalidatePath(`/espace/${orgId}/baux/${bailId}`);}
  return resultat;
 }

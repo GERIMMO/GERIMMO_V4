@@ -2116,6 +2116,9 @@ a:focus-visible > .carte-espace {
   box-shadow: none;
 }
 .coquille-haut .recherche-ouvrir:hover { border-color: var(--trait); background: var(--survol); }
+/* Zoom fort ou téléphone couché (audit #264, TRV-08) : à 400 %, l'en-tête collant et la barre basse prenaient
+   54 à 61 % de la hauteur visible. Sous 500 px de haut, l'en-tête défile avec la page ; la barre basse reste. */
+@media (max-height: 500px) { .coquille-haut { position: relative; } }
 .coquille-haut .lien-bandeau { min-height: 34px; padding: 6px 10px; border-radius: 8px; font-size: 13px; }
   /* Sur écran tactile ou téléphone, « Rechercher », « Alertes » et « Aide »
      de la barre haute reçoivent la cible de 44 px (24/09). */

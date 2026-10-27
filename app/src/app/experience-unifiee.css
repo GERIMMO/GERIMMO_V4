@@ -5,10 +5,24 @@
   background: #f4f6f8;
 }
 .experience-unifiee :is(.loc-corps,.admin-corps,.artisan-corps) { background: #f4f6f8; min-width: 0; }
-.experience-unifiee :is(.loc-late,.admin-late,[data-espace-menu]) {
-  background-color: #14263d;
-  background-image: linear-gradient(180deg,#14263d 0%,#14263df5 22%,#14263dc7 48%,#14263dd1 82%,#14263df5 100%),url('/illustrations/quartier-gerimmo-2026.jpg');
-  background-size: cover; background-position: center,68% center;
+/* Le menu sombre seulement aux largeurs où la coquille le prévoit (prestige.css, ambiances.css) : en dessous,
+   l'en-tête du locataire (≤ 640 px) et le menu de la supervision (≤ 900 px) restent clairs, et leurs liens
+   gris lisibles (audit #264, ED-02 : 2 à 2,9:1 sur la photo ; ED-05 : tuile du nom collée sur la photo). */
+@media(min-width:641px) {
+  .experience-unifiee :is(.loc-late,[data-espace-menu]) {
+    background-color: #14263d;
+    background-image: linear-gradient(180deg,#14263d 0%,#14263df5 22%,#14263dc7 48%,#14263dd1 82%,#14263df5 100%),url('/illustrations/quartier-gerimmo-2026.jpg');
+    background-size: cover; background-position: center,68% center;
+  }
+  .experience-unifiee :is(.loc-late,[data-espace-menu]) :is(a,button):focus-visible { outline-color: #e4c995; }
+}
+@media(min-width:901px) {
+  .experience-unifiee .admin-late {
+    background-color: #14263d;
+    background-image: linear-gradient(180deg,#14263d 0%,#14263df5 22%,#14263dc7 48%,#14263dd1 82%,#14263df5 100%),url('/illustrations/quartier-gerimmo-2026.jpg');
+    background-size: cover; background-position: center,68% center;
+  }
+  .experience-unifiee .admin-late :is(a,button):focus-visible { outline-color: #e4c995; }
 }
 .experience-unifiee :is(.loc-haut,.admin-bandeau,[data-espace-entete]) { min-height: 72px; border-color: #dfe5eb; }
 .experience-unifiee h1 { font-size: clamp(26px,2.4vw,36px); line-height: 1.2; letter-spacing: -.03em; }
@@ -16,8 +30,9 @@
 .experience-unifiee :is(.loc-carte,[data-slot="card"],.dossier-panneau,.colonne-liste,.colonne-liste-split,.historique-carte) { background: #fff; border-color: #dfe5eb; border-radius: 14px; box-shadow: var(--ombre-portee); }
 .experience-unifiee :is(.barre-filtres,.recherche-personnes) { background: #fff; border-color: #dfe5eb; border-radius: 12px; }
 .experience-unifiee :is(.btn-or,.btn-secondaire,.bouton-gerimmo,[data-slot="button"]) { min-height: 44px; border-radius: 9px; font-weight: 600; }
-.experience-unifiee .btn-or { background: #d6bb83; color: #17283e; border-color: #c9ab6d; }
-.experience-unifiee .btn-or:hover { background: #e2c995; }
+/* L'or par défaut ; la charte d'une agence (styleMarque) pose ses propres --bouton-principal (audit #264, ED-03). */
+.experience-unifiee .btn-or { background: var(--bouton-principal, #d6bb83); color: var(--sur-bouton-principal, #17283e); border-color: var(--bouton-principal, #c9ab6d); }
+.experience-unifiee .btn-or:hover { background: var(--bouton-principal-survol, #e2c995); }
 .experience-unifiee :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]) { border-radius: 9px; }
 .experience-unifiee :is(.loc-carte,.dossier-panneau) { padding: 22px; }
 .experience-unifiee .rang { gap: 14px; padding: 14px 16px; }
@@ -25,7 +40,6 @@
 .experience-unifiee .tete-liste { background: #f6f8fa; }
 .experience-unifiee details[open]>:not(summary) { animation: none; }
 .experience-unifiee :is(a,button,input,select,textarea,summary):focus-visible { outline: 3px solid #937036; outline-offset: 3px; }
-.experience-unifiee :is(.loc-late,.admin-late,[data-espace-menu]) :is(a,button):focus-visible { outline-color: #e4c995; }
 body:has(.experience-unifiee) :is([data-ui="modale"],.recherche-dialog) { --filet: #dfe5eb; --trait: #dfe5eb; --texte-secondaire: #4b5870; background: #fff; border-color: #dfe5eb; border-radius: 16px; }
 body:has(.experience-unifiee) [data-ui="modale-entete"] { padding: 20px 24px; background: #f8fafb; }
 body:has(.experience-unifiee) [data-ui="modale-corps"] { padding: 24px; }

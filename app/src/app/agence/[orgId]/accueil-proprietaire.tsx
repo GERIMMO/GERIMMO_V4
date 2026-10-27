@@ -40,7 +40,6 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   const contexteAction = (action: ActionDuJour) => action.source === "alerte" && typeof action.alerte.details?.lot_id === "string"
     ? nomsLots.get(action.alerte.details.lot_id) : null;
   const critiques = actions.filter(a => a.criticite === "critique");
-  const autres = actions.filter(a => a.criticite !== "critique");
   const incidentsAvecActions = new Set<string>();
   const listeDemandes = (liste: ActionDuJour[], titre: string, id: string) => liste.length > 0 && <section className={styles.demandes} aria-labelledby={id}>
     <h2 id={id} className="sr-only">{titre}</h2>
@@ -67,8 +66,6 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
     } catch { return { lot, blocages: null }; }
   }));
   const taches = construireTachesAccueil({ base, actions, lots: patrimoine?.lots ?? [], lotsSansBail: patrimoine?.lotsSansBail ?? [], preparation, diagnostics: diagnostics ?? [] });
-  const clesDemandesCourantes = new Set(autres.map(a => a.cle));
-  const demandesCourantes = taches.filter(tache => clesDemandesCourantes.has(tache.cle)).length;
   // Chaque échéance due compte, même quand la fenêtre ne présente que la plus ancienne de son bail (audit du 27/10, LAT-03).
   const totalPrioritaire = critiques.length + rappels.totalEcheancesDues;
   const automatisations = [
@@ -84,7 +81,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
       <Link href={`${base}/loyers`} className={styles.indicateur}><span><Banknote size={18} aria-hidden="true" />Encaissé en {nomMois}</span><strong>{encaisse === null ? "—" : eur(encaisse)}</strong><small>{encaisse === null ? "Montant indisponible" : "Règlements déclarés"}</small><ArrowUpRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
       <CarteVerifications base={base} patrimoine={patrimoine ? { biens: patrimoine.biens, lots: patrimoine.lots.length } : null}
         loyersAConfirmer={rappels.totalEcheancesDues}
-        total={totalPrioritaire || (incertain ? 0 : demandesCourantes)} critiques={verifications.critiques} apercu={verifications.premiere?.titre ?? null}
+        total={totalPrioritaire || (incertain ? 0 : taches.length)} critiques={verifications.critiques} apercu={verifications.premiere?.titre ?? null}
         hrefTaches="#taches-proprietaire"
         indisponible={incertain} className={styles.indicateur}>
         {Object.values(erreurs).some(Boolean) && <p className="err" role="alert">Certaines demandes sont indisponibles. La liste peut être incomplète.</p>}

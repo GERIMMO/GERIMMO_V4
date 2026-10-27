@@ -1,8 +1,6 @@
-import { ApercuDocumentEspace } from "@/components/apercu-document-espace";
 import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { OngletsDossier } from "@/components/onglets-dossier";
 import { RubriqueDossier } from "@/components/rubrique-dossier";
-import { deElide } from "@/lib/elision";
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
 import { libelleDocumentLoyer } from "@/lib/documents-loyer";
@@ -16,7 +14,7 @@ import {
   formaterDate,
 } from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
-import { buttonVariants } from "@/components/ui/button";
+import { ConsultationDocument } from "../consultation-document";
 import { FormulaireAttestation } from "../formulaire-attestation";
 import { DepotSignature } from "./depot-signature";
 import { DepotPiece, type DemandePiece } from "./depot-piece";
@@ -24,11 +22,12 @@ import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
 
 export const metadata = { title: "Mes documents" };
 
-// Rangs de « Conservés pour vous » : le titre est un lien, les actions
-// passent sous lui au téléphone (voir la liste).
+// Rangs de « Documents disponibles » : le titre est le bouton qui ouvre
+// l'aperçu en fenêtre (voir la liste). Bleu des liens-actions de la charte :
+// il se lit comme ce qu'il est, un geste.
 const TITRE_RANG =
-  "-mx-2 min-w-0 flex-1 rounded-md px-2 py-1 transition-colors hover:bg-[var(--survol)]";
-const ACTIONS_RANG = "flex shrink-0 basis-full items-center gap-2 sm:basis-auto";
+  "-mx-2 min-w-0 flex-1 rounded-md px-2 py-1 text-left transition-colors hover:bg-[var(--survol)] pointer-coarse:min-h-11";
+const NOM_RANG = "line-clamp-2 font-medium text-[var(--bleu)]";
 
 type Piece = {
   document_id: string;
@@ -247,12 +246,15 @@ export default async function PageDocumentsLocataire(
           </p>
         ) : (
           // Chaque rang se clique sur son titre (24/09) : seul un « Ouvrir »
-          // fantôme, à 800 px du titre, ouvrait le fichier. Le titre reprend
-          // le lien d'« Ouvrir » (hors tabulation : le bouton reste la cible
-          // du clavier) ; les deux boutons, en contour, se lisent comme des
-          // boutons et tombent sous le titre au téléphone. line-clamp-2 et
-          // non truncate : le mois d'un reçu, seule chose qui le distingue
-          // d'un autre, disparaissait dans l'ellipse.
+          // fantôme, à 800 px du titre, ouvrait le fichier. Et UN SEUL GESTE
+          // pour toutes les pièces (décision du 27/10, audit #264 ED-04) : le
+          // titre ouvre l'aperçu en fenêtre — pièce, bail signé ou quittance —
+          // et le téléchargement (ou « Enregistrer en PDF » pour la quittance,
+          // qui n'a pas de fichier) se fait dedans. Il y avait deux gestes :
+          // « Aperçu » en fenêtre pour une pièce, titre et « Ouvrir » en nouvel
+          // onglet pour une quittance. line-clamp-2 et non truncate : le mois
+          // d'un reçu, seule chose qui le distingue d'un autre, disparaissait
+          // dans l'ellipse.
           <ul className="divide-y divide-border">
             {pieces.map((p) => {
               const nom = p.titre || (TYPES_DOCUMENT[p.type] ?? "Document");
@@ -262,31 +264,19 @@ export default async function PageDocumentsLocataire(
                   key={`${p.source}-${p.document_id}`}
                   className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 text-sm"
                 >
-                  <div className={TITRE_RANG}>
-                    <b className="line-clamp-2 font-medium">{nom}</b>
+                  <ConsultationDocument titre={nom} cible={{ fichier, mime: p.mime_type }} className={TITRE_RANG}>
+                    <b className={NOM_RANG}>{nom}</b>
                     <small className="block text-muted-foreground">{sousTitre(p)}</small>
-                  </div>
-                  {/* Liens stylés en bouton : hors du filet tactile du socle
-                      (button/select), d'où le min-h au pointeur grossier */}
-                  <span className={ACTIONS_RANG}>
-                    <ApercuDocumentEspace fichier={fichier} titre={nom} mime={p.mime_type}/>
-                    <a
-                      href={`${fichier}?mode=telechargement`}
-                      target="_blank"
-                      rel="noopener"
-                      aria-label={`Télécharger ${nom}`}
-                      className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                    >
-                      Télécharger
-                    </a>
-                  </span>
+                  </ConsultationDocument>
                 </li>
               );
             })}
             {quittances.map((q) => {
-              const libelle = `${q.statut === "paye" ? "la" : "le"} ${libelleDocumentLoyer(q.statut)} ${deElide(moisLong(q.periode))}`;
+              const nature = libelleDocumentLoyer(q.statut);
+              // Le titre de la fenêtre, en toutes lettres : « Reçu de paiement partiel — septembre 2026 ».
+              const titre = `${nature.charAt(0).toUpperCase()}${nature.slice(1)} — ${moisLong(q.periode)}`;
               if (disponibilites[q.quittance_id!] !== "disponible") return <li key={q.quittance_id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
-                <div><b className="font-medium first-letter:uppercase">{libelleDocumentLoyer(q.statut)} — {moisLong(q.periode)}</b>
+                <div><b className="font-medium">{titre}</b>
                   <p className="text-xs text-muted-foreground">{disponibilites[q.quittance_id!] === "lecture_impossible" ? "Disponibilité à vérifier. Réessayez dans un instant." : "Des informations du document restent à compléter par votre gestionnaire."}</p></div>
                 <span className="loc-tag ambre">{disponibilites[q.quittance_id!] === "lecture_impossible" ? "À vérifier" : "En préparation"}</span>
               </li>;
@@ -295,45 +285,10 @@ export default async function PageDocumentsLocataire(
                   key={q.quittance_id}
                   className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 text-sm"
                 >
-                  <Link
-                    href={`/quittance/${q.quittance_id}`}
-                    target="_blank"
-                    rel="noopener"
-                    tabIndex={-1}
-                    className={TITRE_RANG}
-                  >
-                    <b className="line-clamp-2 font-medium first-letter:uppercase">
-                      {libelleDocumentLoyer(q.statut)} — {moisLong(q.periode)}
-                    </b>
+                  <ConsultationDocument titre={titre} cible={{ quittance: q.quittance_id! }} className={TITRE_RANG}>
+                    <b className={NOM_RANG}>{titre}</b>
                     <small className="block text-muted-foreground">Justificatif de paiement du loyer</small>
-                  </Link>
-                  {/* Les mêmes deux gestes que les pièces, dans la même colonne
-                      (24/09) : le reçu n'avait qu'« Ouvrir », décalé à droite,
-                      et ne se téléchargeait pas d'ici. La quittance n'a pas de
-                      fichier : « Télécharger » ouvre sa page en mode
-                      impression (?imprimer=1), d'où « Enregistrer en PDF ». */}
-                  <span className={ACTIONS_RANG}>
-                    <Link
-                      href={`/quittance/${q.quittance_id}`}
-                      target="_blank"
-                      rel="noopener"
-                      aria-label={`Ouvrir ${libelle}`}
-                      className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                    >
-                      Ouvrir
-                    </Link>
-                    <Link
-                      href={`/quittance/${q.quittance_id}?imprimer=1`}
-                      target="_blank"
-                      rel="noopener"
-                      aria-label={`Enregistrer en PDF ${libelle}`}
-                      className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                    >
-                      {/* Le geste réel (27/09) : la feuille d'impression, d'où
-                          « Enregistrer en PDF » — pas un téléchargement. */}
-                      Enregistrer en PDF
-                    </Link>
-                  </span>
+                  </ConsultationDocument>
                 </li>
               );
             })}

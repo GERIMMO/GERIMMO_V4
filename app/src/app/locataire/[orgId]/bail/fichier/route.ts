@@ -75,6 +75,9 @@ export async function GET(
     );
   }
 
+  // ?apercu=integre : le manifeste du lecteur en fenêtre (accueil, « Mon
+  // logement »), après les mêmes contrôles — comme la route des pièces.
   return servirFichierSigne(supabase, { path: doc.storage_path, mime: doc.mime_type,
-    titre: doc.titre, mode, retour: "depuis votre dossier Documents" });
+    titre: doc.titre, mode, apercuIntegre: request.nextUrl.searchParams.get("apercu") === "integre",
+    retour: "depuis votre dossier Documents" });
 }

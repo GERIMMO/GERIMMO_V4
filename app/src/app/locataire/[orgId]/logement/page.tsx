@@ -5,6 +5,7 @@ import { TYPES_BAIL } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { FenetreLotProvider, BoutonLot } from "@/components/fenetre-lot";
+import { ConsultationDocument } from "../consultation-document";
 import { CarteConge } from "./carte-conge";
 import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
 import type { BailLocataire } from "../types";
@@ -202,15 +203,16 @@ export default async function PageLogementLocataire(
           </p>
         )}
         <div className="mt-4 flex flex-wrap gap-2">
+          {/* En fenêtre, comme depuis l'accueil et « Mes documents » (27/10,
+              ED-04) : un seul geste de consultation dans l'espace. */}
           {bail.document_signe && (
-            <a
-              href={`/locataire/${orgId}/bail/fichier`}
-              target="_blank"
-              rel="noreferrer"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+            <ConsultationDocument
+              titre="Mon bail signé"
+              cible={{ fichier: `/locataire/${orgId}/bail/fichier`, mime: null }}
+              className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
             >
               Consulter mon bail signé
-            </a>
+            </ConsultationDocument>
           )}
           <Link
             href={`/locataire/${orgId}/loyers`}

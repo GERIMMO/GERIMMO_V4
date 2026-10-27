@@ -8,7 +8,6 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { eur } from "@/lib/ged";
-import { CSS_POLICES } from "@/lib/documents/polices";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 import {
   assemblerQuittanceDelivree,
@@ -16,6 +15,7 @@ import {
   manquantsQuittance,
 } from "@/lib/quittance-conforme";
 import { DocumentQuittance } from "./document-quittance";
+import { htmlQuittancePourEcran } from "./ecran";
 import { racineEspace } from "@/lib/racine-espace";
 
 // Un seul appel base pour la page et son titre (React déduplique via cache).
@@ -33,19 +33,6 @@ const chargerMarqueQuittance = cache(async (orgId: string): Promise<Marque | nul
   const db = await createClient();
   return chargerMarque(db, orgId);
 });
-
-// Sur un écran de téléphone, les marges d'une feuille A4 (56 pt) et le titre
-// espacé à 23 pt ne tiennent pas : on les resserre À L'ÉCRAN seulement —
-// l'impression garde la mise en page du modèle.
-const CSS_ECRAN = `<style>@media screen and (max-width: 640px){
-  body{padding:20px 16px 0;font-size:10pt}
-  h1{font-size:15pt;letter-spacing:.16em}
-  .sous-titre{font-size:9pt;letter-spacing:.12em}
-  .entete{flex-direction:column;align-items:flex-start;gap:8px}
-  .cartouche-ref{text-align:left}
-  .cartouches{grid-template-columns:1fr}
-  .sig-emetteur{margin-left:0}
-}</style>`;
 
 // Le titre de l'onglet suit la nature du document : un reçu partiel n'est pas
 // une quittance (audit 09/09) — et il porte le nom de l'émetteur, pas Gerimmo.
@@ -105,9 +92,7 @@ export default async function PageQuittance(props: {
             {nature} — <span className="capitalize">{mois}</span>
           </h1>
           <DocumentQuittance
-            html={document.html
-              .replace(CSS_POLICES, "")
-              .replace("</head>", `${CSS_ECRAN}</head>`)}
+            html={htmlQuittancePourEcran(document.html)}
             titre={`${nature} — ${mois}`}
             imprimerAuChargement={imprimer === "1"}
           />

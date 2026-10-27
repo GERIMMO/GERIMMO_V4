@@ -524,7 +524,9 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
     );
   });
 
-  it("l'agence saisit pour le locataire : canal agence, déclarant déduit du bail actif", async () => {
+  // Audit de la PR #264, FL-01 : le gérant n'est plus enregistré comme déclarant au nom du locataire. Le seul bail
+  // actif du lot reste rattaché : son locataire suit l'incident comme le sien (contestation, réouverture).
+  it("l'agence saisit pour le locataire : canal agence, seul bail actif rattaché, aucun déclarant", async () => {
     await simuler(db, agentA);
     const {
       rows: [{ id: incident }],
@@ -541,8 +543,15 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
       [incident]
     );
     expect(i.canal).toBe("agence");
-    expect(i.declarant_person_id).toBe(personneLocataire);
+    expect(i.declarant_person_id).toBeNull();
     expect(i.bail_id).not.toBeNull();
+
+    await simuler(db, compteLocataire);
+    const { rows: vus } = await db.query(
+      `select id, est_declarant from public.mes_incidents_locataire($1) where id = $2`,
+      [orgA, incident]
+    );
+    expect(vus).toEqual([{ id: incident, est_declarant: true }]);
   });
 
   it("confidentialité : le nouveau locataire du lot ne voit pas les incidents de l'ancien bail (revue n°2)", async () => {

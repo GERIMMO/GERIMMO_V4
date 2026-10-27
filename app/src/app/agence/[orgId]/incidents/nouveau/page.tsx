@@ -2,6 +2,7 @@ import Link from "next/link";
 import { TitreEcran } from "@/components/titre-ecran";
 import { verifierAccesEspace } from "@/lib/espace";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
+import { nomComplet } from "@/lib/roles-personnes";
 import {
   Card,
   CardContent,
@@ -34,6 +35,29 @@ export default async function PageNouvelIncident(
     .eq("organization_id", orgId)
     .neq("etat", "archive")
     .order("nom");
+  // FL-01 (audit PR #264) : ce que l'on sait déjà du lot sert au formulaire.
+  // Les baux en cours disent QUI suivra l'incident — en colocation à baux
+  // individuels, le gérant choisit la chambre, sinon aucun colocataire ne le
+  // voit ; les chambres et pièces du lot remplacent la liste générique.
+  const [
+    { data: bauxBruts, error: erreurBaux },
+    { data: chambresBrutes, error: erreurChambres },
+    { data: piecesBrutes, error: erreurPieces },
+  ] = await Promise.all([
+    supabase
+      .from("baux")
+      .select("id, lot_id, chambre:lot_chambres!baux_chambre_meme_lot_fk(nom), locataire:persons!baux_locataire_meme_org_fk(nom, prenom)")
+      .eq("organization_id", orgId)
+      .in("etat", ["actif", "preavis"]),
+    supabase.from("lot_chambres").select("lot_id, nom").eq("organization_id", orgId).order("nom"),
+    supabase.from("lot_pieces").select("lot_id, nom, ordre").eq("organization_id", orgId).order("ordre"),
+  ]);
+  const baux = (bauxBruts ?? []) as unknown as {
+    id: string;
+    lot_id: string;
+    chambre: UnOuPlusieurs<{ nom: string }>;
+    locataire: UnOuPlusieurs<{ nom: string; prenom: string | null }>;
+  }[];
   const lots = ((lotsBruts ?? []) as unknown as {
     id: string;
     nom: string;
@@ -42,6 +66,24 @@ export default async function PageNouvelIncident(
   }[]).map((l) => ({
     id: l.id,
     libelle: `${l.nom} — ${premier(l.bien)?.nom ?? ""}`,
+    baux: baux
+      .filter((b) => b.lot_id === l.id)
+      .map((b) => {
+        const locataire = premier(b.locataire);
+        return {
+          id: b.id,
+          libelle: [premier(b.chambre)?.nom ?? "Logement entier", locataire ? nomComplet(locataire) : null]
+            .filter(Boolean)
+            .join(" — "),
+        };
+      })
+      .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr")),
+    pieces: [
+      ...new Set([
+        ...((chambresBrutes ?? []) as { lot_id: string; nom: string }[]).filter((c) => c.lot_id === l.id).map((c) => c.nom),
+        ...((piecesBrutes ?? []) as { lot_id: string; nom: string }[]).filter((p) => p.lot_id === l.id).map((p) => p.nom),
+      ]),
+    ],
   }));
 
   return (
@@ -66,8 +108,8 @@ export default async function PageNouvelIncident(
           {/* Les mots du propriétaire, pas ceux du gestionnaire d'agence
               (25/09, D06) : il saisit lui-même, après l'appel de son locataire. */}
           {estProprietaire
-            ? "Décrivez le problème. Le locataire pourra le suivre depuis son espace si son bail est actif."
-            : "Ouvert par le gestionnaire, par exemple après un appel du locataire. S'il y a un bail actif sur le lot, le locataire suivra l'incident depuis son espace."}
+            ? "Décrivez le problème. Le locataire du bail concerné pourra le suivre depuis son espace."
+            : "Ouvert par le gestionnaire, par exemple après un appel du locataire. Le locataire du bail concerné suivra l'incident depuis son espace."}
         </p>
       </div>
 
@@ -78,8 +120,10 @@ export default async function PageNouvelIncident(
                 (audit 09/09). `.vide` disait « rien à afficher » là où il
                 fallait dire « je n'ai pas pu lire » : c'est l'encart d'échec
                 de la zone, le même que partout ailleurs. */}
-            {erreurLots ? (
-              <EchecLecture quoi={["les lots du parc"]} />
+            {/* Sans les baux du lot, le formulaire ne saurait plus demander la
+                chambre en colocation : il ne s'ouvre pas sur une lecture partielle. */}
+            {erreurLots || erreurBaux || erreurChambres || erreurPieces ? (
+              <EchecLecture quoi={[erreurLots ? "les lots du parc" : "les baux, chambres et pièces des lots"]} />
             ) : (
               <FormulaireIncident orgId={orgId} lots={lots} lotInitial={lots.find(l => l.id === lotDemande)?.id} estProprietaire={estProprietaire} />
             )}

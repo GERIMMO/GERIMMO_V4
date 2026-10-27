@@ -112,6 +112,8 @@ const MISSION_OCTOBRE = [
   "20261026213652_qualifications_diagnostics_lot.sql",
   "20261026214857_qualification_diagnostic_annee_installation.sql",
   "20261026232941_pieces_attendues_bail.sql",
+  // Audit de la PR #264, FL-01 (27/10) : l'incident ouvert par le gérant ne se rattache qu'au bail choisi ou au seul bail en cours.
+  "20261027100100_incident_gerant_bail_explicite.sql",
 
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */

@@ -25,6 +25,7 @@ const incident: IncidentVerification = {
   imputation_justification: null,
   imputation_contestation: null,
   declarant_person_id: "locataire-1",
+  bail_id: "bail-1",
 };
 const rendre = (modifications: Partial<IncidentVerification> = {}, lectureSeule = false) =>
   renderToStaticMarkup(createElement(ActionsRapidesIncident, {

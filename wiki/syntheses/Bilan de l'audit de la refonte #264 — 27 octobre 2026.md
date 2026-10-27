@@ -13,11 +13,20 @@ sources: []
 > chantier par chantier, tests, migrations) est dans le dépôt : `app/docs/audit-refonte-264-20261027.md` ; les preuves
 > (47 captures avant/après, constats et rapports des chantiers) dans `app/docs/preuves-audit-264/`.
 
-## Verdict : prêt à publier, avec réserves
+## Mise en production du 27 octobre (après le feu vert)
+
+Publié le 27/10 à 15 h 12 UTC : migrations `20261027100000` → `100500` appliquées à 15 h 02 (run 40526954680) après
+simulation (40518220377), sauvegarde (40520623873) et CI verte (40518225925) ; PR #267 fusionnée → `main` `79a7aadd` ;
+déploiement Vercel `dpl_4jYuA3ToD7V8KC2fbUqEH2tNr39a` READY, pages publiques en 200, aucune erreur d'exécution.
+Recette de production : 65 réussis, 2 échecs imputables aux tests (titre du parcours de démarrage changé par #264 ;
+course du test de dépôt sur l'adresse « ?sel=depot »), specs corrigées ensuite. Détail dans `log.md` (entrées `deploy`
+et `audit` du 27/10).
+
+## Verdict avant publication : prêt à publier, avec réserves
 
 La refonte publiée le 27/10 (`555c5282`) fonctionne, mais elle contenait **70 défauts confirmés** (2 critiques,
 20 majeurs, 41 mineurs, 7 cosmétiques). Ils sont tous traités sur la branche `claude/compassionate-euler-qpqjp6`
-(tête `05369286`, poussée, **non fusionnée**) : 53 corrigés, 12 corrigés pour l'essentiel avec un reste décrit, 5
+(tête `42cc254e`, fusionnée en squash le 27/10 → `79a7aadd`) : 53 corrigés, 12 corrigés pour l'essentiel avec un reste décrit, 5
 renvoyés à une décision produit. La batterie complète est au niveau de l'état d'avant correction, et **aucune donnée
 réelle n'est touchée en production** (relevé en lecture seule du 27/10 : 0 DPE ancien affiché valide, 0 alerte
 d'impayé ouverte, 0 incident sur un lot à plusieurs baux, 0 relance, 2 brouillons de bail, 7 documents).

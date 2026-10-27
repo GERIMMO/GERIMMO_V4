@@ -15,7 +15,7 @@ const rendre=(patch:Partial<RappelLoyer>={},lectureSeule=false)=>renderToStaticM
 describe("rappels de loyers : étapes de la relance",()=>{
   it("le composant serveur expose le titre et les actions en mode page, tout en gardant le mode fenêtre par défaut", async () => {
     const requete = (lignes: unknown[]) => {
-      const q = { order: () => q, eq: () => q, gte: () => q, limit: () => q,
+      const q = { order: () => q, eq: () => q, gte: () => q, or: () => q, limit: () => q,
         range: async () => ({ data: lignes, error: null }),
         maybeSingle: async () => ({ data: lignes[0] ?? null, error: null }) };
       return q;

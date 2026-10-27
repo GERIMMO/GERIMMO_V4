@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -37,15 +38,29 @@ export function detteDuBail(lignes: RappelLoyer[], aujourdHui: string): DetteBai
   return { ...dette, reste: dette.reste / 100, resteEchu: dette.resteEchu / 100 };
 }
 
+/** Début de la note que la relance du tableau de bord laisse au bail. */
+export const NOTE_RELANCE_TABLEAU = "Relance par e-mail depuis le tableau de bord";
+
+/** Une relance du tableau de bord par échéance : son identifiant se déduit de l'organisation et de l'appel. */
+export function idRelanceReception(orgId: string, appelId: string) {
+  const h = createHash("sha256").update(`relance-reception/${orgId}/${appelId}`).digest("hex");
+  return `${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-a${h.slice(17,20)}-${h.slice(20,32)}`;
+}
+
 /** Même repère que les relances du bail : une relance après l'échéance ouvre déjà le suivi. */
-export async function lireDerniereRelanceReception(supabase: SupabaseClient, orgId: string, ligne: Pick<RappelLoyer, "bail_id" | "date_echeance">) {
+export async function lireDerniereRelanceReception(supabase: SupabaseClient, orgId: string, ligne: Pick<RappelLoyer, "appel_id" | "bail_id" | "date_echeance">) {
   // Une ligne par stade suffit, même si le bail contient plus d'une page de relances.
   // À date égale, le stade le plus avancé prime sur l'ordre arbitraire des identifiants.
   const niveaux = ["mise_en_demeure", "relance_2", "relance_1"];
-  const resultats = await Promise.all(niveaux.map(niveau => supabase.from("relances").select("niveau,date_envoi")
-    .eq("organization_id", orgId).eq("bail_id", ligne.bail_id).eq("niveau", niveau)
-    .gte("date_envoi", ligne.date_echeance.slice(0,10))
-    .order("date_envoi", { ascending: false }).order("id", { ascending: false }).limit(1).maybeSingle()));
+  const resultats = await Promise.all(niveaux.map(niveau => {
+    let requete = supabase.from("relances").select("niveau,date_envoi")
+      .eq("organization_id", orgId).eq("bail_id", ligne.bail_id).eq("niveau", niveau)
+      .gte("date_envoi", ligne.date_echeance.slice(0,10));
+    // La relance du tableau de bord ne vise que son échéance : celle d'un autre mois n'ouvre pas le suivi de celui-ci
+    // (audit du 27/10, LAT-02). Les autres relances du bail gardent la règle commune.
+    if (niveau === "relance_1") requete = requete.or(`id.eq.${idRelanceReception(orgId, ligne.appel_id)},note.is.null,note.not.like.${NOTE_RELANCE_TABLEAU}*`);
+    return requete.order("date_envoi", { ascending: false }).order("id", { ascending: false }).limit(1).maybeSingle();
+  }));
   const erreur = resultats.find(r => r.error)?.error;
   if (erreur) return { data: null, error: erreur };
   const relances = resultats.flatMap(r => r.data ? [r.data] : []);

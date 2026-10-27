@@ -20,9 +20,9 @@ beforeEach(()=>{
     q.eq.mockImplementation((...args:unknown[])=>{m.filtres.push(["rappels",...args]);return q;});return q;
   });
   m.from.mockImplementation((table:string)=>{
-    const q={select:vi.fn(),eq:vi.fn(),gte:vi.fn(),in:vi.fn(),order:vi.fn(),limit:vi.fn(),maybeSingle:async()=>({data:m.tables[table],error:m.erreurs[table]??null}),upsert:m.trace,
+    const q={select:vi.fn(),eq:vi.fn(),gte:vi.fn(),or:vi.fn(),in:vi.fn(),order:vi.fn(),limit:vi.fn(),maybeSingle:async()=>({data:m.tables[table],error:m.erreurs[table]??null}),upsert:m.trace,
       then:(resolve:(value:{data:unknown;error:unknown})=>unknown)=>Promise.resolve({data:m.tables[table==="persons"?"colocataires":table],error:m.erreurs[table]??null}).then(resolve)};
-    for(const nom of ["select","eq","gte","in","order","limit"] as const)q[nom].mockImplementation((...args:unknown[])=>{m.filtres.push([table,nom,...args]);return q;});return q;
+    for(const nom of ["select","eq","gte","or","in","order","limit"] as const)q[nom].mockImplementation((...args:unknown[])=>{m.filtres.push([table,nom,...args]);return q;});return q;
   });
   m.acces.mockResolvedValue({user:{id:"moi"},role:"proprietaire_direct",supabase:{rpc:m.rpc,from:m.from}});
   m.envoyer.mockResolvedValue({});m.trace.mockResolvedValue({error:null});

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { lireDerniereRelanceReception, organiserRappelsLoyers, type RappelLoyer } from "@/lib/rappels-loyers";
+import { idRelanceReception, lireDerniereRelanceReception, NOTE_RELANCE_TABLEAU, organiserRappelsLoyers, type RappelLoyer } from "@/lib/rappels-loyers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const ligne = (patch: Partial<RappelLoyer> = {}): RappelLoyer => ({
@@ -44,10 +44,28 @@ describe("rappels contractuels de réception des loyers", () => {
     let niveaux=["relance_1","relance_2","mise_en_demeure"];
     const supabase={from:()=>{
       let niveau="";
-      const q={select:vi.fn(),eq:vi.fn(),gte:vi.fn(),order:vi.fn(),limit:vi.fn(),maybeSingle:async()=>({data:niveaux.includes(niveau)?{niveau,date_envoi:"2026-10-12"}:null,error:null})};
-      q.select.mockReturnValue(q);q.eq.mockImplementation((col:string,val:string)=>{if(col==="niveau")niveau=val;return q;});q.gte.mockReturnValue(q);q.order.mockReturnValue(q);q.limit.mockReturnValue(q);return q;
+      const q={select:vi.fn(),eq:vi.fn(),gte:vi.fn(),or:vi.fn(),order:vi.fn(),limit:vi.fn(),maybeSingle:async()=>({data:niveaux.includes(niveau)?{niveau,date_envoi:"2026-10-12"}:null,error:null})};
+      q.select.mockReturnValue(q);q.eq.mockImplementation((col:string,val:string)=>{if(col==="niveau")niveau=val;return q;});q.gte.mockReturnValue(q);q.or.mockReturnValue(q);q.order.mockReturnValue(q);q.limit.mockReturnValue(q);return q;
     }} as unknown as SupabaseClient;
     expect((await lireDerniereRelanceReception(supabase,"org",ligne())).data?.niveau).toBe("mise_en_demeure");
     niveaux=["relance_1","relance_2"];expect((await lireDerniereRelanceReception(supabase,"org",ligne())).data?.niveau).toBe("relance_2");
+  });
+  it("une relance du tableau de bord ne compte que pour l'échéance qu'elle vise (audit du 27/10, LAT-02)", async () => {
+    const filtres: { niveau: string; or: string[] }[] = [];
+    const supabase = { from: () => {
+      const courant = { niveau: "", or: [] as string[] }; filtres.push(courant);
+      const q = { select: () => q, gte: () => q, order: () => q, limit: () => q,
+        eq: (col: string, val: string) => { if (col === "niveau") courant.niveau = val; return q; },
+        or: (expr: string) => { courant.or.push(expr); return q; },
+        maybeSingle: async () => ({ data: null, error: null }) };
+      return q;
+    } } as unknown as SupabaseClient;
+    expect((await lireDerniereRelanceReception(supabase, "org", ligne())).data).toBeNull();
+    const propre = idRelanceReception("org", "octobre");
+    expect(filtres.find(f => f.niveau === "relance_1")?.or).toEqual([`id.eq.${propre},note.is.null,note.not.like.${NOTE_RELANCE_TABLEAU}*`]);
+    expect(filtres.filter(f => f.niveau !== "relance_1").every(f => f.or.length === 0)).toBe(true);
+    // Identifiant stable : la relance déjà tracée pour cette échéance reste reconnue après la mise à jour.
+    expect(propre).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-a[0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(idRelanceReception("org", "septembre")).not.toBe(propre);
   });
 });

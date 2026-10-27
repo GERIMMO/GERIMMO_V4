@@ -6,6 +6,7 @@
  *  - ED-03 : la charte d'une agence colore le bouton d'action principal de l'espace locataire ;
  *  - TRV-12 : le repère saisonnier quitte l'en-tête du propriétaire à ≤ 420 px ;
  *  - TRV-08 : sous 500 px de haut, l'en-tête du propriétaire n'est plus collant ;
+ *  - TRV-02 : la recherche ouverte (dialogue natif) bloque le défilement de la page derrière elle ;
  *  - TRV-03 : avant l'hydratation (pas d'ambiance posée), aucune photo de fond n'est demandée pour le menu.
  */
 import { existsSync, readFileSync } from "node:fs";
@@ -104,6 +105,20 @@ describe.skipIf(!chrome)("feuilles de style des espaces (audit #264)", () => {
       expect((await style(page, ".coquille-haut")).position, `${largeur}×${hauteur}`).toBe(attendu);
       await page.close();
     }
+  });
+
+  it("TRV-02 : la page derrière la recherche ouverte ne défile plus, et défile de nouveau à sa fermeture", async () => {
+    const page = await ouvrir(1440, 600, true);
+    await page.evaluate(() => {
+      document.body.insertAdjacentHTML("beforeend", '<div style="height:3000px"></div><dialog class="recherche-dialog"><input aria-label="Recherche"></dialog>');
+      document.querySelector<HTMLDialogElement>(".recherche-dialog")!.showModal();
+    });
+    expect(await page.evaluate(() => getComputedStyle(document.body).overflow)).toBe("hidden");
+    await page.mouse.move(5, 590); await page.mouse.wheel(0, 800); await page.waitForTimeout(200);
+    expect(await page.evaluate(() => scrollY)).toBe(0);
+    await page.evaluate(() => document.querySelector<HTMLDialogElement>(".recherche-dialog")!.close());
+    expect(await page.evaluate(() => getComputedStyle(document.body).overflow)).not.toBe("hidden");
+    await page.close();
   });
 
   it("TRV-03 : avant l'ambiance, le menu ne demande aucune photo ; avec elle, une seule", async () => {

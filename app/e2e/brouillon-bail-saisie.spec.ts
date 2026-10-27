@@ -47,6 +47,7 @@ for (const largeur of [390, 1440]) {
 
       // CB-01 : l'onglet resté ouvert ne réécrit pas le loyer enregistré par l'autre.
       const autre = await page.context().newPage();
+      await sansSyntheseAlertes(autre);
       await autre.setViewportSize({ width: largeur, height: 900 });
       await page.goto(`${adresse}#etape-bail-4`);
       await autre.goto(`${adresse}#etape-bail-4`);

@@ -553,7 +553,9 @@ function correctifParMarque(fichier: string) {
 
     it("le retour rétablit les définitions d'avant, se rejoue sans effet ; aller, retour, aller redonne l'état migré", async () => {
       const migre = await empreinte();
-      const definitionsMigrees = await Promise.all(blocs.map((b) => definition(b.signature)));
+      // L'une après l'autre : un seul client, déjà dans une transaction (pg@9 refusera deux requêtes en vol).
+      const definitionsMigrees: string[] = [];
+      for (const b of blocs) definitionsMigrees.push(await definition(b.signature));
       await db.query(sansEnveloppe(retour));
       const apres = await empreinte();
       for (const [n, b] of blocs.entries()) {

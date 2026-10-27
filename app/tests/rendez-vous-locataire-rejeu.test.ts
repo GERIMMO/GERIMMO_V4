@@ -47,6 +47,8 @@ describe.skipIf(!url)("D22 — rejeu de la migration du report et de l'annulatio
     )).rows[0].e as string;
   const marques = async (sig: string) =>
     (await db.query("select (length(d) - length(replace(d, 'Décision D22', ''))) / length('Décision D22') as n from pg_get_functiondef($1::regprocedure) d", [sig])).rows[0].n as number;
+  // L'une après l'autre : un seul client, déjà dans une transaction (pg@9 refusera deux requêtes en vol).
+  const marquesDes = async (sigs: string[]) => { const n: number[] = []; for (const s of sigs) n.push(await marques(s)); return n; };
 
   beforeAll(async () => { db = new Client({ connectionString: url }); await db.connect(); await db.query("begin"); });
   beforeEach(async () => {
@@ -62,12 +64,12 @@ describe.skipIf(!url)("D22 — rejeu de la migration du report et de l'annulatio
 
   it("deux rejeus de suite laissent les fonctions, leurs droits et les contraintes à l'identique", async () => {
     const avant = await empreinte();
-    const marquesAvant = await Promise.all(FONCTIONS.slice(0, 7).map(marques));
+    const marquesAvant = await marquesDes(FONCTIONS.slice(0, 7));
     expect(marquesAvant.every((n) => n >= 1)).toBe(true);
     await db.query(migration);
     await db.query(migration);
     expect(await empreinte()).toBe(avant);
-    expect(await Promise.all(FONCTIONS.slice(0, 7).map(marques))).toEqual(marquesAvant);
+    expect(await marquesDes(FONCTIONS.slice(0, 7))).toEqual(marquesAvant);
     // choisir_creneau porte UNE marque (le rejeu ne recopie plus sa ligne).
     expect(await marques("public.choisir_creneau(uuid,uuid)")).toBe(1);
   });

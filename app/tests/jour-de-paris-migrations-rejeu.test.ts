@@ -319,7 +319,9 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
 
   describe.each(FAMILLES)("$nom — forme de production", (famille) => {
     it("sur des définitions d'une AUTRE mise en forme (capitales, indentation retirée), la migration les ramène au jour de Paris", async () => {
-      const avant = Object.fromEntries(await Promise.all(famille.fonctions.map(async ([s]) => [s, normaliser(await definition(s))])));
+      // L'une après l'autre : un seul client, déjà dans une transaction (pg@9 refusera deux requêtes en vol).
+      const avant: Record<string, string> = {};
+      for (const [s] of famille.fonctions) avant[s] = normaliser(await definition(s));
       await remettreAvantAutrement(famille);
       for (const [signature, attendu] of famille.fonctions) {
         const def = await definition(signature);

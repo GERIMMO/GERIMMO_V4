@@ -7,7 +7,8 @@ import { baseEspace } from "@/lib/racine-espace";
 import { premier } from "@/lib/postgrest";
 import { sansJargon } from "@/lib/erreurs";
 import { valeursDuFormulaire } from "@/lib/formulaires";
-import { CHAMPS_ETAPE_BAIL, lireEtapeBail, type EtapeSaisieBail } from "@/lib/champs-etape-bail";
+import { CHAMPS_ETAPE_BAIL, champsDifferents, lireEtapeBail, lireValeursLues, type EtapeSaisieBail } from "@/lib/champs-etape-bail";
+import { initialiserParcoursBail } from "@/lib/initialiser-parcours-bail";
 import type { EtatBail } from "./baux";
 
 function revaliderBailEtLot(orgId: string, bailId: string, lotId: string, bienId: string | null | undefined, proprietaire: boolean) {
@@ -30,6 +31,12 @@ export async function modifierEtapeBail(orgId: string, bailId: string, etape: Et
   if (!bail || bail.etat !== "brouillon") return {erreur:"Seul un bail en brouillon accessible peut être modifié.",valeurs};
   const lot = premier(bail.lot);
   if (!lot) return {erreur:"Le logement n’a pas pu être vérifié.",valeurs};
+  // Une étape enregistrée entre-temps dans un autre onglet, ou par une autre
+  // personne, n’est jamais écrasée sans le dire : la saisie reste affichée.
+  const enregistrees = initialiserParcoursBail(bail, lot.meuble===true);
+  const lues = lireValeursLues(form.get("valeurs_lues"));
+  const ailleurs = lues ? champsDifferents(etape, lues, enregistrees) : [];
+  if (ailleurs.length) return {erreur:"Cette étape a été enregistrée entre-temps dans un autre onglet ou par une autre personne. Rien n’a été enregistré : vérifiez les valeurs ci-dessous, puis enregistrez à nouveau.",valeurs,modifieesAilleurs:Object.fromEntries(ailleurs.map(nom=>[nom,enregistrees[nom]??""]))};
   const resultat = lireEtapeBail(etape,form,bail,{meuble:lot.meuble===true,surface:lot.surface_m2 == null ? null : Number(lot.surface_m2)});
   if (resultat.erreur || !resultat.patch) return {erreur:resultat.erreur,valeurs};
   let modification = supabase.from("baux").update(resultat.patch).eq("id",bailId).eq("organization_id",orgId).eq("etat","brouillon");
@@ -38,11 +45,13 @@ export async function modifierEtapeBail(orgId: string, bailId: string, etape: Et
   for (const cle of ["type","loyer_hc","depot_garantie","charges_mode"]) {
     modification = bail[cle] == null ? modification.is(cle,null) : modification.eq(cle,bail[cle]);
   }
-  const {data,error} = await modification.select("id");
+  const {data,error} = await modification.select("*");
   if(error) return {erreur:sansJargon(error.message),valeurs};
   if(!data?.length) return {erreur:"Le bail a changé pendant l’enregistrement. Rechargez le dossier avant de réessayer ; votre saisie reste affichée.",valeurs};
   revaliderBailEtLot(orgId, bailId, bail.lot_id, lot.bien_id, role === "proprietaire_direct");
-  return {succes:"Étape enregistrée.",avertissements:avertissementsCoherenceLoyer({...bail,...resultat.patch},lot.surface_m2)};
+  // La ligne relue après les déclencheurs devient la nouvelle référence du formulaire.
+  const apres = initialiserParcoursBail({...bail,...resultat.patch,...data[0]}, lot.meuble===true);
+  return {succes:"Étape enregistrée.",avertissements:avertissementsCoherenceLoyer({...bail,...resultat.patch},lot.surface_m2),valeursEnregistrees:Object.fromEntries(CHAMPS_ETAPE_BAIL[etape].map(nom=>[nom,apres[nom]??""]))};
 }
 
 /** Créer le dossier de préparation et ouvrir son parcours dans la même réponse.

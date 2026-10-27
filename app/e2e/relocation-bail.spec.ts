@@ -92,10 +92,10 @@ for (const largeur of [390, 1440]) {
       // Le jour d’échéance (1) et la révision IRL (oui) reviennent aux défauts de la base d’un brouillon sans bail précédent : ils restent modifiables.
       await expect(page.locator('#parcours-jour_echeance')).toHaveValue('1');
       await expect(page.locator('#parcours-irl_trimestre')).toHaveValue('');
-      await expect(page.locator('#parcours-revision_irl')).toHaveValue('false');
+      await expect(page.locator('#parcours-revision_irl')).toHaveValue('true');
       await expect(page.getByRole('navigation', { name: 'Étapes du bail' }).getByRole('button', { name: /Étape 04 Loyer Saisie non enregistrée/ })).toBeVisible();
       expect(await enBase()).toMatchObject({ loyer: 930, charges: 65 });
-
+      // Les nouvelles conditions s'enregistrent comme d'habitude (révision IRL restée au défaut « oui ») ; la mention ne revient pas.
       // Les nouvelles conditions s'enregistrent comme d'habitude ; la mention ne revient pas.
       await page.locator('#parcours-loyer_hc').fill('950');
       await page.locator('#parcours-charges').fill('70');
@@ -103,7 +103,7 @@ for (const largeur of [390, 1440]) {
       await page.locator('#parcours-jour_echeance').fill('5');
       await page.locator('.assistant-pied').getByRole('button', { name: 'Enregistrer et continuer', exact: true }).click();
       await expect(page).toHaveURL(/#etape-bail-5$/);
-      expect(await enBase()).toMatchObject({ loyer: 950, charges: 70, depot: 950, jour: 5, revision_irl: false, locataire_principal: null, date_debut: null });
+      expect(await enBase()).toMatchObject({ loyer: 950, charges: 70, depot: 950, jour: 5, revision_irl: true, locataire_principal: null, date_debut: null });
       await page.goto(`/espace/${ORG}/baux/${bailId}#etape-bail-4`);
       await expect(page.locator('#assistant-bail-titre')).toHaveText('Loyer');
       await expect(page.locator('#parcours-loyer_hc')).toHaveValue('950');

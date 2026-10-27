@@ -182,6 +182,9 @@ export const FICHIERS_EN_SERIE = [
   // Audit de la PR #264 (27/10, LAT-01) : rejeu de 20261027100000 (déclencheur recréé sur encaissements) dans la
   // transaction du test.
   "tests/alerte-impaye-encaissement-base.test.ts",
+  // Audit de la PR #264, FL-01 (27/10) : rejeu de 20261027100100 et de son retour (drop/create de
+  // ouvrir_incident_agence, create or replace des fonctions locataire des incidents) dans la transaction du fichier.
+  "tests/incident-gerant-colocation-base.test.ts",
 ];
 
 export default defineConfig({

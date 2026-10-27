@@ -39,6 +39,7 @@ export type IncidentLocataire = {
   clos_le: string | null;
   declare_le: string;
   nb_photos: number;
+  /** Le dossier est le sien : il l'a déclaré, ou le gérant l'a ouvert sur son bail (FL-01). */
   est_declarant: boolean;
 };
 
@@ -121,8 +122,10 @@ function CarteIncident({
 
   const charge = priseEnCharge(incident);
   const suiviHistorique = suivi?.etape === "terminee" && ["rouvert", "qualifie"].includes(incident.etat);
-  // Contestation et réouverture : réservées au déclarant (les colocataires
-  // sont informés mais les fonctions en base n'acceptent que lui)
+  // Contestation et réouverture : réservées au titulaire du dossier — le
+  // déclarant, ou le locataire du bail que le gérant a rattaché à l'incident
+  // (`est_declarant`, FL-01). Les colocataires sont informés mais les fonctions
+  // en base n'acceptent que lui.
   const peutContester =
     incident.est_declarant &&
     (incident.imputation === "locataire" || incident.imputation === "degradation_fautive") &&

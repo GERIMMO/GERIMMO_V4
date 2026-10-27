@@ -211,6 +211,20 @@ export const PIECES_INCIDENT = [
   "Parties communes",
 ] as const;
 
+/**
+ * Pièces proposées au gérant qui déclare un incident sur un lot (FL-01, audit PR #264). Les pièces enregistrées du lot
+ * le décrivent : elles sont proposées avec ses chambres. Sans elles, la liste générique reste : une colocation préparée
+ * chambre par chambre n'enregistre souvent que ses chambres, et sa cuisine ou sa salle d'eau partagées doivent rester
+ * désignables (relecture du 27/10) ; ses chambres nommées y prennent la place de « Chambre ».
+ */
+export function piecesIncidentDuLot(chambres: readonly string[], pieces: readonly string[]): string[] {
+  const liste =
+    pieces.length > 0
+      ? [...chambres, ...pieces, "Parties communes"]
+      : PIECES_INCIDENT.flatMap((p) => (p === "Chambre" && chambres.length > 0 ? chambres : [p]));
+  return [...new Set(liste)];
+}
+
 // Repère juridique d'une catégorie : qui prend EN GÉNÉRAL la réparation en
 // charge, et sur quel fondement. C'est une INFORMATION, jamais une
 // pré-sélection : « la cause ne se déduit pas de la catégorie » (RM-7.2.1,

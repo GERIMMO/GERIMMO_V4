@@ -40,6 +40,16 @@ export function RepereJuridique({ slug, estProprietaire = false }: { slug: strin
   );
 }
 
+/** Un lot du parc et ce que l'on sait déjà de lui (FL-01, audit PR #264). */
+export type LotIncident = {
+  id: string;
+  libelle: string;
+  /** Baux en cours du lot : chambre et locataire. */
+  baux: { id: string; libelle: string }[];
+  /** Pièces proposées : chambres et pièces enregistrées du lot, ou liste générique (`piecesIncidentDuLot`). */
+  pieces: string[];
+};
+
 export function FormulaireIncident({
   orgId,
   lots,
@@ -47,13 +57,22 @@ export function FormulaireIncident({
   estProprietaire = false,
 }: {
   orgId: string;
-  lots: { id: string; libelle: string }[];
+  lots: LotIncident[];
   lotInitial?: string;
   estProprietaire?: boolean;
 }) {
   const actionLiee = ouvrirIncident.bind(null, orgId);
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
   const [categorie, setCategorie] = useState("");
+  // Le lot choisi pilote les champs qui suivent ; après un refus, le select
+  // retombe sur la saisie envoyée, qui est ce dernier choix.
+  const [lotChoisi, setLotChoisi] = useState(lotInitial);
+  const lot = lots.find((l) => l.id === lotChoisi);
+  // Plusieurs baux en cours (colocation à baux individuels) : le gérant dit
+  // quelle chambre est concernée. Sans ce choix, l'incident était rattaché au
+  // bail le plus récent et montré à ce seul colocataire (FL-01).
+  const plusieursBaux = (lot?.baux.length ?? 0) > 1;
+  const pieces = lot?.pieces ?? [...PIECES_INCIDENT];
 
   return (
     <form data-saisie-confirmee action={action} className="formulaire-reperes space-y-4">
@@ -67,6 +86,7 @@ export function FormulaireIncident({
           name="lot"
           required
           defaultValue={etat.valeurs?.lot ?? lotInitial}
+          onChange={(e) => setLotChoisi(e.target.value)}
           className={classeSelect}
         >
           <option value="" disabled>
@@ -79,6 +99,38 @@ export function FormulaireIncident({
           ))}
         </select>
       </div>
+
+      {plusieursBaux && lot && (
+        <div className="space-y-1.5">
+          <Label htmlFor="bail">Chambre concernée</Label>
+          {/* key : changer de lot repart d'un choix vide, jamais du bail d'un autre lot */}
+          <select
+            key={lot.id}
+            id="bail"
+            name="bail"
+            required
+            defaultValue={etat.valeurs?.lot === lot.id ? etat.valeurs?.bail ?? "" : ""}
+            className={classeSelect}
+            aria-describedby="bail-aide"
+          >
+            <option value="" disabled>
+              Choisissez la chambre…
+            </option>
+            {lot.baux.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.libelle}
+              </option>
+            ))}
+            {/* « Parties communes » désigne celles de l'immeuble, transmises au
+                syndic (RM-7.1.4) : ici, les espaces partagés de la colocation. */}
+            <option value="aucun">Espaces partagés ou tout le logement</option>
+          </select>
+          <p id="bail-aide" className="text-xs text-muted-foreground">
+            Seul le locataire de la chambre choisie suivra l&apos;incident depuis son espace. Espaces partagés ou tout
+            le logement : aucun colocataire ne le verra.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label htmlFor="categorie">Catégorie</Label>
@@ -105,9 +157,11 @@ export function FormulaireIncident({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="piece">Pièce concernée — Facultatif</Label>
-          <select id="piece" name="piece" defaultValue={etat.valeurs?.piece ?? ""} className={classeSelect}>
+          {/* Les chambres et pièces du lot quand elles sont enregistrées (FL-01) ;
+              key : la liste change avec le lot, la sélection repart de zéro. */}
+          <select key={lot?.id ?? ""} id="piece" name="piece" defaultValue={etat.valeurs?.piece ?? ""} className={classeSelect}>
             <option value="">—</option>
-            {PIECES_INCIDENT.map((p) => (
+            {pieces.map((p) => (
               <option key={p} value={p}>
                 {p}
               </option>

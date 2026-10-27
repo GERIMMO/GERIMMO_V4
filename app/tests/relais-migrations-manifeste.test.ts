@@ -112,6 +112,8 @@ const MISSION_OCTOBRE = [
   "20261026213652_qualifications_diagnostics_lot.sql",
   "20261026214857_qualification_diagnostic_annee_installation.sql",
   "20261026232941_pieces_attendues_bail.sql",
+  // 27/10, audit de la PR #264 (LAT-01) : l'alerte d'impayé suit les encaissements.
+  "20261027100000_alerte_impaye_suit_encaissements.sql",
   // 27/10, audit #264 (création du bail) : l'assurance du locataire suit l'activation ; libellé de l'étape « Le bail ».
   "20261027100300_bail_assurance_activation_et_libelle_colocation.sql",
 

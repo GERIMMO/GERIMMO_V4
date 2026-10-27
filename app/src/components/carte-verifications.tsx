@@ -38,8 +38,9 @@ export function CarteVerifications(props: Props) {
     avant.current = demandeEnFenetre;
   }, [demandeEnFenetre]);
 
-  if (lienTaches) return <Link ref={lienPatrimoine} href={lienTaches} className={`${props.className} ${styles.carte} ${styles.lienTaches}`}
-    aria-label={`${props.total} demande${props.total > 1 ? "s" : ""} à vérifier — voir mes tâches`}>
+  // Le lien comme le bouton n'ont pas d'aria-label : leur nom accessible est le texte visible, dans son ordre (audit du
+  // 27/10, TRV-06 : un aria-label réordonné le contredisait, label-content-name-mismatch).
+  if (lienTaches) return <Link ref={lienPatrimoine} href={lienTaches} className={`${props.className} ${styles.carte} ${styles.lienTaches}`}>
     <span><ListChecks size={18} aria-hidden="true" />À vérifier</span>
     <strong>{props.total} <em>demande{props.total > 1 ? "s" : ""}</em></strong>
     <small className={styles.apercu}>Voir mes tâches</small>
@@ -71,12 +72,9 @@ function Demandes({ total, loyersAConfirmer = 0, critiques, apercu, indisponible
   const titrePrioritaire = apercu?.trim() || "Une action importante vous attend";
   const autres = Math.max(0, total - loyersAConfirmer);
   const autresDemandes = autres ? `${autres} autre${autres > 1 ? "s" : ""} demande${autres > 1 ? "s" : ""}${critiques ? `, dont ${critiques} prioritaire${critiques > 1 ? "s" : ""}` : ""}` : null;
-  const libelle = prioritaire ? `${titrePrioritaire} — ${compteurDemandes} à vérifier, dont ${critiques} prioritaire${critiques > 1 ? "s" : ""}${loyers ? `, ${compteurLoyers}` : ""}`
-    : loyers ? `Avez-vous reçu vos loyers ? ${compteurLoyers}${autresDemandes ? `, ${autresDemandes}` : ""}`
-    : total ? `${compteurDemandes} à vérifier` : "Vérifications indisponibles";
   return <>
     <button type="button" className={`${className} ${styles.carte}`} data-critique={prioritaire} data-loyers={loyers} data-importante={importante}
-      aria-haspopup="dialog" aria-expanded={ouverte} aria-label={`${libelle}${indisponible && (total || loyers) ? ", liste incomplète" : ""} — ${loyers && !prioritaire ? "ouvrir les loyers" : "ouvrir le détail"}`}
+      aria-haspopup="dialog" aria-expanded={ouverte}
       onClick={() => changerOuverture(true)}>
       {prioritaire ? <>
         <span><CircleAlert size={18} aria-hidden="true" />{critiques} action{critiques > 1 ? "s" : ""} prioritaire{critiques > 1 ? "s" : ""}</span>
@@ -89,7 +87,7 @@ function Demandes({ total, loyersAConfirmer = 0, critiques, apercu, indisponible
       </> : loyers ? <>
         <span><BellRing size={18} aria-hidden="true" />{compteurLoyers}</span>
         <strong className={styles.question}>Avez-vous reçu vos loyers ?</strong>
-        <small className={styles.apercu}>{indisponible ? "Liste incomplète · Voir les loyers" : autresDemandes ?? "Voir les loyers et les actions"}</small>
+        <small className={styles.apercu}>{indisponible ? "Liste incomplète · Voir les loyers" : autresDemandes ?? "Voir les loyers"}</small>
       </> : <>
         <span><ListChecks size={18} aria-hidden="true" />À vérifier</span>
         <strong>{total ? <>{total} <em>demande{total > 1 ? "s" : ""}</em></> : <em>Indisponible</em>}</strong>

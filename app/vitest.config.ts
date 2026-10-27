@@ -179,6 +179,9 @@ export const FICHIERS_EN_SERIE = [
   // fichier.
   "tests/activation-inactivite-v1-base.test.ts",
   "tests/conservation-reglages-base.test.ts",
+  // Audit de la PR #264 (27/10, LAT-01) : rejeu de 20261027100000 (déclencheur recréé sur encaissements) dans la
+  // transaction du test.
+  "tests/alerte-impaye-encaissement-base.test.ts",
 ];
 
 export default defineConfig({

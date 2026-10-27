@@ -282,6 +282,10 @@ describe("alertes : la liste reçoit le drapeau de la garde", () => {
       banc.donnees = {
         memberships: adhesion(p),
         alerts: [alerte("al-1", "loyer_impaye", { bail_id: BAIL }), alerte("al-2", "assurance_expiration", { person_id: LOCATAIRE })],
+        // Audit du 27/10 (LAT-01, LAT-07) : chez le propriétaire direct, la dette d'un bail se lit sur sa ligne de loyer à
+        // confirmer (lien vers les loyers du bail) ; l'alerte d'impayé d'un bail sans terme dû n'est plus présentée.
+        rappels_loyers_proprietaire: [{ appel_id: "appel-1", bail_id: BAIL, lot_nom: "Lot TEST", locataire: "Locataire TEST", periode: "2026-09-01",
+          date_echeance: "2026-09-05", montant_du: 800, montant_couvert: 0, non_recu_signale_le: null }],
       };
       const html = await rendre((await PageAlertes({ params: Promise.resolve({ orgId: ORG }), searchParams: Promise.resolve({}) } as never)) as ReactElement);
       verifier(html, p, [`/baux/${BAIL}#loyers`, `/personnes/${LOCATAIRE}#pieces`]);

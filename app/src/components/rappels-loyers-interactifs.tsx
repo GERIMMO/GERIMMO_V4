@@ -22,7 +22,7 @@ export function RappelsLoyersInteractifs({ orgId, aujourdHui, dus, totalEcheance
   const [confirmation, setConfirmation] = useState("");
   if (!dus.length) return null;
   return <section className={styles.carte} aria-labelledby="reception-loyers-titre" data-attente={dus.length > 0}>
-    {dansFenetre ? <h2 id="reception-loyers-titre" className="sr-only">Avez-vous reçu vos loyers ?</h2> : <div className={styles.entete}><span className={styles.icone}><BellRing size={22} aria-hidden="true" /></span><div><h2 id="reception-loyers-titre">Avez-vous reçu vos loyers ?</h2><p>Confirmez les règlements reçus à l’échéance.</p></div><span className={styles.compteur}>{dus.length} à confirmer</span></div>}
+    {dansFenetre ? <h2 id="reception-loyers-titre" className="sr-only">Avez-vous reçu vos loyers ?</h2> : <div className={styles.entete}><span className={styles.icone}><BellRing size={22} aria-hidden="true" /></span><div><h2 id="reception-loyers-titre">Avez-vous reçu vos loyers ?</h2><p>Confirmez les règlements reçus à l’échéance.</p></div><span className={styles.compteur}>{totalEcheancesDues} à confirmer</span></div>}
     {dus.length > 0 ? <>
       <ul className={styles.liste}>{dus.map(l => <ReceptionLoyer key={`${l.appel_id}:${l.montant_couvert}`} orgId={orgId} ligne={l} aujourdHui={aujourdHui} lectureSeule={lectureSeule} onSucces={setConfirmation} />)}</ul>
       {totalEcheancesDues > dus.length && <p className={styles.precision}>Plusieurs mois restent à vérifier sur certains baux. Le plus ancien est présenté en premier ; le suivant apparaîtra une fois celui-ci réglé.</p>}
@@ -48,8 +48,12 @@ function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, onSucces }: { 
   };
   const reste = Math.round((Number(ligne.montant_du) - Number(ligne.montant_couvert)) * 100) / 100;
   const partiel = Number(ligne.montant_couvert) > 0;
+  // Un arriéré de plusieurs mois reste lisible sur la ligne du bail (audit du 27/10, LAT-03). « Prioritaire » suit le
+  // seuil de l'alerte d'impayé, critique à partir de deux termes échus.
+  const autresMois = Math.max(0, (ligne.dette_bail?.echeances ?? 1) - 1);
+  const prioritaire = (ligne.dette_bail?.termesEchus ?? 0) >= 2;
   return <li className={styles.ligne}>
-    <div className={styles.resume}><div className={styles.identite}><b>{ligne.lot_nom}</b><span>{ligne.locataire ?? "Locataire"} · {moisEnFrancais(ligne.periode.slice(0,7))}</span><span className={styles.date}><CalendarDays size={14} aria-hidden="true" />Prévu le {formaterDate(ligne.date_echeance)}{ligne.date_echeance.slice(0,10) < aujourdHui && " · échéance passée"}</span></div><div className={styles.montant}><strong>{eur(reste)}</strong><span>{partiel ? "restant à recevoir" : "à recevoir"}</span>{partiel && <small>{eur(Number(ligne.montant_couvert))} déjà enregistrés</small>}</div></div>
+    <div className={styles.resume}><div className={styles.identite}><div className={styles.titreLigne}><b><Link href={`/espace/${orgId}/baux/${ligne.bail_id}#loyers`}>{ligne.lot_nom}</Link></b>{prioritaire && <strong className={styles.prioritaire}>Prioritaire</strong>}</div><span>{ligne.locataire ?? "Locataire"} · {moisEnFrancais(ligne.periode.slice(0,7))}</span><span className={styles.date}><CalendarDays size={14} aria-hidden="true" />Prévu le {formaterDate(ligne.date_echeance)}{ligne.date_echeance.slice(0,10) < aujourdHui && " · échéance passée"}</span>{autresMois > 0 && <span className={styles.arriere}>{autresMois === 1 ? "1 autre mois" : `${autresMois} autres mois`} à recevoir sur ce bail</span>}</div><div className={styles.montant}><strong>{eur(reste)}</strong><span>{partiel ? "restant à recevoir" : "à recevoir"}</span>{partiel && <small>{eur(Number(ligne.montant_couvert))} déjà enregistrés</small>}{autresMois > 0 && ligne.dette_bail && <small className={styles.total}>{eur(ligne.dette_bail.reste)} au total</small>}</div></div>
     {ligne.non_recu_signale_le && <p className={styles.signale}>Pas encore reçu · signalé le {formaterDate(ligne.non_recu_signale_le)}</p>}
     {!lectureSeule && !etat.termine && <>
       {!choix && <div className={styles.choix}>
@@ -93,11 +97,14 @@ function EnvoiRelance({ orgId, ligne }: { orgId: string; ligne: RappelLoyer }) {
     return resultat;
   });
   if (etat.succes) return <p className={styles.succes} role="status">{etat.succes}</p>;
+  const reste = Number(ligne.montant_du)-Number(ligne.montant_couvert);
+  // Le courriel annonce aussi la dette échue totale du bail : la confirmation la montre avant l'envoi.
+  const total = ligne.dette_bail && ligne.dette_bail.resteEchu > reste + 0.004 ? ligne.dette_bail.resteEchu : null;
   return <form data-saisie-confirmee onSubmit={soumettre} className={styles.formulaire}>
-    <input type="hidden" name="reste_attendu" value={(Number(ligne.montant_du)-Number(ligne.montant_couvert)).toFixed(2)} />
-    <p>Envoyer au locataire une relance amiable pour le loyer {deElide(moisEnFrancais(ligne.periode.slice(0,7)))} : {eur(Number(ligne.montant_du)-Number(ligne.montant_couvert))} restant à recevoir. Vérifiez votre compte bancaire avant l’envoi.</p>
+    <input type="hidden" name="reste_attendu" value={reste.toFixed(2)} />
+    <p>Envoyer au locataire une relance amiable pour le loyer {deElide(moisEnFrancais(ligne.periode.slice(0,7)))} : {eur(reste)} restant à recevoir{total !== null && <>, {eur(total)} échus au total sur le bail</>}. Vérifiez votre compte bancaire avant l’envoi.</p>
     <label className={styles.confirmationEnvoi}><input type="checkbox" name="confirmer" value="oui" required />Je confirme que ce règlement n’a pas été reçu et souhaite relancer le locataire et les colocataires concernés par e-mail.</label>
-    <div className={styles.choix}><BoutonEnvoi className="btn-secondaire" type="submit" disabled={enCours}>{enCours ? "Envoi…" : "Envoyer la relance par e-mail"}</BoutonEnvoi></div>
+    <div className={styles.choix}><BoutonEnvoi variant="outline" className="btn-secondaire" type="submit" disabled={enCours}>{enCours ? "Envoi…" : "Envoyer la relance par e-mail"}</BoutonEnvoi></div>
     {etat.erreur && <p className="err mt-3" role="alert">{etat.erreur}</p>}
   </form>;
 }

@@ -15,13 +15,15 @@ button.carte[data-importante='true'] > strong,
 button.carte[data-importante='true'] > small,
 button.carte[data-importante='true'] > svg { color: #fff; }
 button.carte > strong.question { font-size: clamp(20px, 1.8vw, 25px); line-height: 1.25; letter-spacing: -.02em; text-wrap: balance; }
-/* Un clignotement lent : rouge clair puis soutenu, texte stable et contraste blanc supérieur à 4,5:1. */
+/* Une pulsation lente : rouge clair puis soutenu, texte stable et contraste blanc supérieur à 4,5:1. Deux cycles, moins
+   de cinq secondes au total, puis la carte reste fixe (WCAG 2.2.2, audit du 27/10, TRV-10) ; aucune avec « réduire les
+   animations ». Elle part du rouge fixe de la carte et y revient : aucun saut de teinte au début ni à la fin. */
 @keyframes respirationAlerte {
-  0%, 100% { background-color: #781d2b; border-color: #681927; box-shadow: 0 0 0 0 #c2465200, 0 0 0 #9d343b00; }
+  0%, 100% { background-color: #9d343b; border-color: #8b2930; box-shadow: 0 0 0 0 #c2465200, 0 0 0 #9d343b00; }
   50% { background-color: #c24652; border-color: #a73540; box-shadow: 0 0 0 7px #c2465238, 0 8px 24px #9d343b20; }
 }
 @media screen and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
-  button.carte[data-importante='true'] { animation: respirationAlerte 3s ease-in-out infinite; }
+  button.carte[data-importante='true'] { animation: respirationAlerte 2.4s ease-in-out 2; }
   button.carte[data-importante='true']:is(:hover, :focus-visible, [aria-expanded='true']) { animation: none; box-shadow: none; }
 }
 @media (max-width: 700px) {

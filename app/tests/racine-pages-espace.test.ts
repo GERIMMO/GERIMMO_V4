@@ -559,6 +559,10 @@ describe("écrans : aucune adresse de gestion écrite en dur", () => {
       raison: "suivi de la relance du loyer présenté au seul propriétaire depuis son accueil",
       preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
     }, {
+      fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "ReceptionLoyer", forme: '`/espace/${orgId}/baux/${ligne.bail_id}#loyers`', nombre: 1,
+      raison: "loyers du bail ouverts depuis le nom du lot, dans le rappel de réception du seul propriétaire (audit du 27/10, LAT-07)",
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+    }, {
       fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "PreparationRecommande", forme: '`/espace/${orgId}`', nombre: 1,
       raison: "retour du PDF de recommandé vers le seul accueil propriétaire qui présente ce formulaire",
       preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],

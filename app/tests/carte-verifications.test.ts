@@ -1,5 +1,6 @@
 import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CarteVerifications } from "@/components/carte-verifications";
 import { SelecteurPatrimoine } from "@/components/selecteur-patrimoine";
@@ -13,12 +14,18 @@ function rendre(patch: Partial<ComponentProps<typeof CarteVerifications>> = {}) 
   };
   return renderToStaticMarkup(createElement(CarteVerifications, props));
 }
+/** Sans aria-label, le nom accessible de la carte est son texte visible, dans l'ordre (audit du 27/10, TRV-06). */
+function nomAccessible(html: string) {
+  expect(html).not.toContain("aria-label");
+  return html.replace(/<[^>]+>/g, " ").replace(/&#x27;/g, "'").replace(/\s+/g, " ").trim();
+}
 
 describe("carte de l'accueil : patrimoine au repos, vérifications à la demande", () => {
   it("rejoint les tâches courantes déjà visibles sans ouvrir une fenêtre intermédiaire", () => {
     const html = rendre({ total: 2, hrefTaches: "#taches-proprietaire" });
     expect(html).toContain('href="#taches-proprietaire"');
-    expect(html).toContain("2 demandes à vérifier — voir mes tâches");
+    // Le nom accessible est le libellé visible, dans son ordre (audit du 27/10, TRV-06 : label-content-name-mismatch).
+    expect(nomAccessible(html)).toBe("À vérifier 2 demandes Voir mes tâches");
     expect(html).not.toContain("<button");
     expect(html).not.toContain("aria-haspopup");
     expect(html).not.toContain("Détail de la demande TEST");
@@ -42,7 +49,7 @@ describe("carte de l'accueil : patrimoine au repos, vérifications à la demande
 
   it("annonce les demandes prioritaires et garde leur détail fermé au chargement", () => {
     const html = rendre({ total: 3, critiques: 1, apercu: "Assurance à vérifier" });
-    expect(html).toContain('aria-label="Assurance à vérifier — 3 demandes à vérifier, dont 1 prioritaire — ouvrir le détail"');
+    expect(nomAccessible(html)).toBe("1 action prioritaire Assurance à vérifier 3 demandes");
     expect(html).toContain('aria-haspopup="dialog"');
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain('data-importante="true"');
@@ -56,8 +63,7 @@ describe("carte de l'accueil : patrimoine au repos, vérifications à la demande
 
   it("garde un accès aux détails quand le nombre de demandes n'a pas pu être vérifié", () => {
     const html = rendre({ indisponible: true });
-    expect(html).toContain('aria-label="Vérifications indisponibles — ouvrir le détail"');
-    expect(html).toContain("Liste incomplète · Voir le détail");
+    expect(nomAccessible(html)).toBe("À vérifier Indisponible Liste incomplète · Voir le détail");
     expect(html).not.toContain(`href="${BASE}/parc"`);
     expect(html).not.toContain("0 demande");
     expect(html).toContain('data-importante="false"');
@@ -72,17 +78,13 @@ describe("carte de l'accueil : patrimoine au repos, vérifications à la demande
 
   it("annonce une lecture incomplète même si des demandes connues restent présentes", () => {
     const html = rendre({ total: 1, indisponible: true, apercu: "Demande connue" });
-    expect(html).toContain('aria-label="1 demande à vérifier, liste incomplète — ouvrir le détail"');
-    expect(html).toContain("Liste incomplète · Voir le détail");
+    expect(nomAccessible(html)).toBe("À vérifier 1 demande Liste incomplète · Voir le détail");
   });
 
   it.each([1, 2])("pose directement la question pour %i loyer à confirmer", loyersAConfirmer => {
     const html = rendre({ total: loyersAConfirmer, loyersAConfirmer, apercu: "Réception du loyer à confirmer" });
-    const libelle = html.match(/aria-label="([^"]*)"/)?.[1] ?? "";
-    expect(libelle).toMatch(/^Avez-vous reçu vos loyers \?/);
-    expect(libelle).toContain(`${loyersAConfirmer} loyer${loyersAConfirmer > 1 ? "s" : ""}`);
-    expect(libelle).toContain("ouvrir les loyers");
-    expect(html.replace(/<[^>]*>/g, " ")).toMatch(/Avez-vous reçu vos loyers \?/);
+    expect(nomAccessible(html)).toBe(`${loyersAConfirmer} loyer${loyersAConfirmer > 1 ? "s" : ""} à confirmer Avez-vous reçu vos loyers ? Voir les loyers`);
+    expect(html).toContain('aria-haspopup="dialog"');
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain('data-importante="true"');
     expect(html).toContain('data-critique="false"');
@@ -92,21 +94,16 @@ describe("carte de l'accueil : patrimoine au repos, vérifications à la demande
 
   it("compte les loyers distinctement des autres demandes conservées dans le détail", () => {
     const html = rendre({ total: 5, loyersAConfirmer: 2, apercu: "Document à vérifier" });
-    const texte = html.replace(/<[^>]*>/g, " ");
-    const libelle = html.match(/aria-label="([^"]*)"/)?.[1] ?? "";
-    expect(libelle).toMatch(/^Avez-vous reçu vos loyers \?/);
-    expect(libelle).toContain("2 loyers");
-    expect(texte).toMatch(/2\s+loyers/);
+    const texte = nomAccessible(html);
+    expect(texte).toBe("2 loyers à confirmer Avez-vous reçu vos loyers ? 3 autres demandes");
     expect(texte).not.toMatch(/5\s+loyers/);
-    expect(libelle).toMatch(/3 autres demandes/);
     expect(html).not.toContain("Détail de la demande TEST");
   });
 
   it("met une urgence avant la question des loyers sans perdre leurs compteurs", () => {
     const html = rendre({ total: 5, loyersAConfirmer: 2, critiques: 2, apercu: "Intervention urgente" });
-    const libelle = html.match(/aria-label="([^"]*)"/)?.[1] ?? "";
-    const texte = html.replace(/<[^>]*>/g, " ");
-    expect(libelle).toBe("Intervention urgente — 5 demandes à vérifier, dont 2 prioritaires, 2 loyers à confirmer — ouvrir le détail");
+    const texte = nomAccessible(html);
+    expect(texte).toBe("2 actions prioritaires Intervention urgente 5 demandes · 2 loyers à confirmer");
     expect(html).toContain('data-importante="true"');
     expect(html).toContain('data-critique="true"');
     expect(html).toContain('data-loyers="true"');
@@ -118,26 +115,20 @@ describe("carte de l'accueil : patrimoine au repos, vérifications à la demande
 
   it.each([null, "   "])("présente un titre explicite pour une urgence sans aperçu : %j", apercu => {
     const html = rendre({ total: 1, critiques: 1, apercu });
-    expect(html).toContain('aria-label="Une action importante vous attend — 1 demande à vérifier, dont 1 prioritaire — ouvrir le détail"');
+    expect(nomAccessible(html)).toBe("1 action prioritaire Une action importante vous attend Voir l’action attendue");
     expect(html).toContain('data-importante="true"');
-    expect(html).toContain("Voir l’action attendue");
     expect(html).not.toContain("0 loyer");
   });
 
   it("conserve le caractère prioritaire et l'incomplétude de la lecture ensemble", () => {
     const html = rendre({ total: 2, critiques: 1, apercu: "Incident à traiter", indisponible: true });
-    expect(html).toContain('aria-label="Incident à traiter — 2 demandes à vérifier, dont 1 prioritaire, liste incomplète — ouvrir le détail"');
+    expect(nomAccessible(html)).toBe("1 action prioritaire Incident à traiter 2 demandes · Liste incomplète");
     expect(html).toContain('data-importante="true"');
-    expect(html).toContain("2 demandes · Liste incomplète");
   });
 
   it("annonce l'incomplétude quand des loyers connus restent à confirmer", () => {
     const html = rendre({ total: 2, loyersAConfirmer: 1, indisponible: true });
-    const libelle = html.match(/aria-label="([^"]*)"/)?.[1] ?? "";
-    expect(libelle).toMatch(/^Avez-vous reçu vos loyers \?/);
-    expect(libelle).toContain("1 loyer");
-    expect(libelle).toContain("liste incomplète");
-    expect(html).toContain("Liste incomplète");
+    expect(nomAccessible(html)).toBe("1 loyer à confirmer Avez-vous reçu vos loyers ? Liste incomplète · Voir les loyers");
     expect(html).not.toContain(`href="${BASE}/parc"`);
   });
 
@@ -152,8 +143,7 @@ describe("carte de l'accueil : patrimoine au repos, vérifications à la demande
 
   it("garde les autres vérifications une fois les loyers reçus", () => {
     const html = rendre({ total: 1, loyersAConfirmer: 0, apercu: "Assurance à vérifier" });
-    expect(html).toContain('aria-label="1 demande à vérifier — ouvrir le détail"');
-    expect(html).toContain("Assurance à vérifier");
+    expect(nomAccessible(html)).toBe("À vérifier 1 demande Assurance à vérifier");
     expect(html).not.toContain("Avez-vous reçu vos loyers ?");
     expect(html).not.toContain(`href="${BASE}/parc"`);
     expect(html).toContain('data-importante="false"');
@@ -165,7 +155,7 @@ describe("carte de l'accueil : patrimoine au repos, vérifications à la demande
     expect(prioritaire).toContain('data-importante="true"');
     const ordinaire = rendre({ total: 1, critiques: 0, apercu: "Document à vérifier" });
     expect(ordinaire).toContain('data-importante="false"');
-    expect(ordinaire).toContain('aria-label="1 demande à vérifier — ouvrir le détail"');
+    expect(nomAccessible(ordinaire)).toBe("À vérifier 1 demande Document à vérifier");
     expect(ordinaire).not.toContain("Incident urgent");
     expect(ordinaire).not.toContain(`href="${BASE}/parc"`);
   });
@@ -194,5 +184,29 @@ describe("contexte du patrimoine", () => {
     }));
     expect(html).toContain("Autres patrimoines indisponibles · Réessayer");
     expect(html).toContain('href="/espaces"');
+  });
+});
+
+describe("carte rouge : une pulsation brève, jamais sans fin (audit du 27/10, TRV-10)", () => {
+  const css = readFileSync("src/components/carte-verifications.module.css", "utf8");
+  it("s'arrête avant cinq secondes (WCAG 2.2.2) et ne joue qu'en l'absence de « réduire les animations »", () => {
+    const declarations = [...css.matchAll(/animation:\s*respirationAlerte\s+([\d.]+)s\s+[\w-]+\s+([^;]+);/g)];
+    expect(declarations).toHaveLength(1);
+    const [, duree, repetitions] = declarations[0];
+    expect(repetitions.trim()).toMatch(/^\d+$/);
+    expect(Number(duree) * Number(repetitions)).toBeLessThanOrEqual(5);
+    expect(css).not.toMatch(/infinite/);
+    const debut = css.indexOf("@media screen and (prefers-reduced-motion: no-preference)");
+    const fin = css.indexOf("@media", debut + 1);
+    const position = css.indexOf("animation: respirationAlerte");
+    expect(debut).toBeGreaterThanOrEqual(0);
+    expect(position > debut && position < fin).toBe(true);
+  });
+
+  it("part du rouge fixe de la carte et y revient : aucun saut de teinte au début ni à la fin", () => {
+    const fixe = css.match(/button\.carte\[data-importante='true'\] \{ background: (#[0-9a-f]{6}); border-color: (#[0-9a-f]{6});/);
+    const extremes = css.match(/0%, 100% \{ background-color: (#[0-9a-f]{6}); border-color: (#[0-9a-f]{6});/);
+    expect(fixe).not.toBeNull();
+    expect(extremes?.slice(1, 3)).toEqual(fixe?.slice(1, 3));
   });
 });

@@ -91,12 +91,16 @@ describe("synthèse commune de l’accueil, de la navigation et de À faire", ()
     expect(m.loyers).toHaveBeenCalledWith(db, org);
   });
 
-  it("présente les échéances successives d’un même bail sans gonfler le compteur", async () => {
+  it("présente les échéances successives d’un même bail une à une et compte chacune, comme la section des loyers", async () => {
     const lignes = [rappel({ appel_id: "septembre", periode: "2026-09-01", date_echeance: "2026-09-26" }), rappel()];
     const db = client();
     const lire = () => chargerVerificationsProprietaire(db as never, org, { userId: "compte", portefeuille: null });
     m.loyers.mockResolvedValue({ lignes, error: null });
-    expect((await lire()).verifications.total).toBe(1);
+    // Une seule ligne présentée, mais deux confirmations à faire : l'en-tête « N à traiter » compte les échéances, comme
+    // « N à confirmer » et la carte de l'accueil (audit du 27/10, LAT-03 : plus d'unités mélangées sur un même écran).
+    const premier = (await lire()).verifications;
+    expect(premier.rappels.dus).toHaveLength(1);
+    expect(premier.total).toBe(2);
     m.loyers.mockResolvedValue({ lignes: [{ ...lignes[0], montant_couvert: 800 }, { ...lignes[1], montant_couvert: 200 }], error: null });
     const suivant = (await lire()).verifications;
     expect(suivant.total).toBe(1);

@@ -55,8 +55,11 @@ describe("vérifications du propriétaire", () => {
     const septembre = ligne({ appel_id: "septembre", periode: "2026-09-01", date_echeance: "2026-09-05" });
     const octobre = ligne();
     const premier = preparer({ lignesLoyers: [octobre, septembre] });
-    expect(premier.total).toBe(1);
+    // Le bail présente un mois à la fois, mais « À faire » compte ses deux échéances, comme la section des loyers et la
+    // carte de l'accueil (audit du 27/10, LAT-03 : les unités ne se mélangent plus sur un même écran).
+    expect(premier.total).toBe(2);
     expect(premier.rappels.totalEcheancesDues).toBe(2);
+    expect(premier.rappels.dus).toHaveLength(1);
     expect(premier.rappels.dus.map(l => l.appel_id)).toEqual(["septembre"]);
     const suivant = preparer({ lignesLoyers: [octobre, { ...septembre, montant_couvert: 800 }] });
     expect(suivant.rappels.dus.map(l => l.appel_id)).toEqual(["octobre"]);

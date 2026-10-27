@@ -58,5 +58,7 @@ export function preparerVerificationsProprietaire({
   } else if (uniques.length) {
     premiere = { titre: uniques[0].titre, source: "action" };
   }
-  return { actions: uniques, rappels, total: uniques.length + rappels.dus.length, critiques, premiere, alerteImpayeVisible };
+  // Chaque échéance due compte, comme « N à confirmer » de la section des loyers et la carte de l'accueil : un bail
+  // présente ses mois l'un après l'autre, chacun demande sa confirmation (audit du 27/10, LAT-03).
+  return { actions: uniques, rappels, total: uniques.length + rappels.totalEcheancesDues, critiques, premiere, alerteImpayeVisible };
 }

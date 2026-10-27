@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { Client } from "pg";
 import { debordementHorizontal, entrerDansEspace, sansSyntheseAlertes } from "./aides";
 
 // Parcours locataire au téléphone : le geste qui compte est la déclaration
@@ -102,6 +103,91 @@ test("mes loyers : échéancier lisible à 390px, quittance/reçu accessible", a
   await page.goto(`/locataire/${orgId}/loyers`);
   await expect(page.locator("h1, h2").first()).toBeVisible();
   expect(await debordementHorizontal(page)).toBe(0);
+});
+
+// Le document conforme d'une quittance n'est délivré que complet, et le seed ne
+// renseigne pas l'adresse de l'agence : on la complète le temps du test sur la
+// base API locale, puis on la remet. Sans base locale, le reçu n'est pas testé.
+async function completerAgence(orgId: string): Promise<(() => Promise<void>) | null> {
+  const cible = process.env.SUPALOCAL_DB;
+  if (!cible) return null;
+  const url = new URL(cible);
+  if (!["localhost", "127.0.0.1"].includes(url.hostname) || !/^gerimmo_ci_[a-z_]+_api$/.test(url.pathname.slice(1))) throw new Error("Base fictive locale requise");
+  const db = new Client({ connectionString: cible });
+  await db.connect();
+  const avant = (await db.query("select address_line1, postal_code, city, email_contact from public.organizations where id=$1", [orgId])).rows[0];
+  await db.query(`update public.organizations set address_line1=coalesce(address_line1,'3 place de la Mairie'), postal_code=coalesce(postal_code,'75004'),
+    city=coalesce(city,'Paris'), email_contact=coalesce(email_contact,'contact@alpha.test') where id=$1`, [orgId]);
+  return async () => {
+    await db.query("update public.organizations set address_line1=$2, postal_code=$3, city=$4, email_contact=$5 where id=$1",
+      [orgId, avant.address_line1, avant.postal_code, avant.city, avant.email_contact]);
+    await db.end();
+  };
+}
+
+// UN SEUL GESTE DE CONSULTATION (décision du 27/10, audit #264 ED-04) : dans
+// « Mes documents », le titre de chaque pièce, du bail signé et de chaque
+// quittance ouvre l'aperçu en fenêtre, et le téléchargement se fait dedans ;
+// plus de nouvel onglet, plus de bouton « Aperçu » ou « Ouvrir » à côté du
+// titre. Le bail de l'accueil passe par la même fenêtre. Clavier : Entrée
+// ouvre, Échap referme et rend le focus au titre.
+async function verifierConsultation(page: import("@playwright/test").Page) {
+  const orgId = await ouvrirEspace(page);
+  const remettre = await completerAgence(orgId);
+  try {
+    await page.goto(`/locataire/${orgId}/documents`);
+    await page.getByRole("tab", { name: "Mes fichiers", exact: true }).click();
+    const titreBail = page.getByRole("button", { name: /^Bail signé/ });
+    await expect(titreBail).toBeVisible();
+    const liste = page.locator("ul").filter({ has: titreBail });
+    await expect(liste.locator("a[target=_blank]")).toHaveCount(0);
+    await expect(liste.getByRole("button", { name: /^(Aperçu|Ouvrir|Enregistrer en PDF|Télécharger)/ })).toHaveCount(0);
+
+    await titreBail.focus();
+    await page.keyboard.press("Enter");
+    const fenetre = page.getByRole("dialog", { name: "Bail signé" });
+    await expect(fenetre).toBeVisible();
+    await expect(fenetre.getByRole("button", { name: "Télécharger" })).toBeVisible();
+    await expect(fenetre.getByText(/^(1 page|\d+ \/ \d+)$/)).toBeVisible();
+    expect(await debordementHorizontal(page)).toBe(0);
+    await page.keyboard.press("Escape");
+    await expect(fenetre).toBeHidden();
+    await expect(titreBail).toBeFocused();
+
+    if (remettre) {
+      const titreRecu = liste.getByRole("button", { name: /^(Reçu de paiement partiel|Quittance) — / }).first();
+      await titreRecu.click();
+      const fenetreRecu = page.getByRole("dialog", { name: /^(Reçu de paiement partiel|Quittance) — / });
+      await expect(fenetreRecu).toBeVisible();
+      await expect(fenetreRecu.getByRole("button", { name: "Imprimer ou enregistrer en PDF" })).toBeVisible();
+      // Le document conforme lui-même (art. 21), dans son cadre isolé.
+      await expect(fenetreRecu.frameLocator("iframe").locator("body")).toContainText("Article 21 de la loi n° 89-462 du 6 juillet 1989");
+      await fenetreRecu.getByRole("button", { name: "Fermer" }).click();
+      await expect(fenetreRecu).toBeHidden();
+      await expect(titreRecu).toBeFocused();
+    }
+
+    await page.goto(`/locataire/${orgId}`);
+    await expect(page.locator('a[href$="/bail/fichier"]')).toHaveCount(0);
+    await page.getByRole("button", { name: "Consulter mon bail signé" }).click();
+    const fenetreAccueil = page.getByRole("dialog", { name: "Mon bail signé" });
+    await expect(fenetreAccueil.getByRole("button", { name: "Télécharger" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(fenetreAccueil).toBeHidden();
+  } finally {
+    await remettre?.();
+  }
+}
+
+test("mes documents : le titre ouvre l'aperçu en fenêtre, un seul geste pour toutes les pièces", async ({ page }) => {
+  await verifierConsultation(page);
+});
+
+test.describe("ordinateur 1440×900", () => {
+  test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
+  test("mes documents : le même geste de consultation à l'ordinateur", async ({ page }) => {
+    await verifierConsultation(page);
+  });
 });
 
 test("une photo refusée conserve la catégorie, la pièce, le texte et le fichier sélectionné", async ({ page }) => {

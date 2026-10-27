@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 // Le document conforme (modèle PDF des quittances) affiché tel quel. Sa
 // feuille de style est celle d'un document A4 — `body`, `h1`, `table` — : on
 // l'isole dans un cadre pour qu'elle ne déborde pas sur la page, et c'est CE
-// cadre qu'on imprime, avec ses règles @page (27/09). « Télécharger » (Mes
-// documents) arrive avec ?imprimer=1 : la feuille d'impression s'ouvre alors
-// d'elle-même, d'où « Enregistrer en PDF ».
+// cadre qu'on imprime, avec ses règles @page (27/09). Avec ?imprimer=1, la
+// feuille d'impression s'ouvre d'elle-même, d'où « Enregistrer en PDF ».
+// Depuis le 27/10 (ED-04), « Mes documents » du locataire affiche ce même
+// cadre dans sa fenêtre d'aperçu, sans impression automatique.
 export function DocumentQuittance({
   html,
   titre,

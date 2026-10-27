@@ -184,6 +184,50 @@ test('propriétaire : le bail reprend le lot et permet de créer puis retrouver 
   }
 });
 
+// Audit #264 (FL-09) : la fiche d’un colocataire nomme sa chambre, celle d’un garant le locataire couvert,
+// et la liste dit « bail en préparation » comme la fiche.
+test('propriétaire : fiches et liste des personnes d’un bail de chambre en préparation', async ({ page }) => {
+  const cible = process.env.SUPALOCAL_DB;
+  test.skip(!cible, 'Ce scénario exige une base API locale pour isoler ses données.');
+  const url = new URL(cible!);
+  if (!['127.0.0.1', 'localhost'].includes(url.hostname) || !/^gerimmo_ci_[a-z_]+_api$/.test(url.pathname.slice(1))) throw new Error('Base API locale de recette requise');
+  const db = new Client({ connectionString: cible });
+  await db.connect();
+  const [lotId, chambreId, locataireId, garantId, bailId] = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+  const suffixe = lotId.slice(0, 8);
+  try {
+    const sources = (await db.query("select id from public.lots where organization_id=$1 and nom=$2", [ORG, 'Appartement T2 — 12 rue des Lilas'])).rows;
+    expect(sources).toHaveLength(1);
+    await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots,
+      to_jsonb(l)||jsonb_build_object('id',$1::text,'nom',$2::text,'etat','disponible','created_at',now(),'updated_at',now()))).*
+      from public.lots l where l.id=$4 and l.organization_id=$3`, [lotId, `E2E chambres ${suffixe}`, ORG, sources[0].id]);
+    await db.query(`insert into public.lot_chambres (id, organization_id, lot_id, nom, surface_m2, volume_m3, description, espaces_partages)
+      values ($1,$2,$3,$4,12,30,'Chambre meublée','Cuisine')`, [chambreId, ORG, lotId, `Chambre bleue ${suffixe}`]);
+    await db.query(`insert into public.persons (id, organization_id, nom, prenom, email) values
+      ($1,$3,$4,'Inès',$5), ($2,$3,$6,'Marc',$7)`, [locataireId, garantId, ORG, `Coloc${suffixe}`, `coloc.${suffixe}@example.invalid`, `Garant${suffixe}`, `garant.${suffixe}@example.invalid`]);
+    await db.query(`insert into public.baux (id, organization_id, lot_id, type, etat, chambre_id, locataire_principal, date_debut, loyer_hc, charges)
+      values ($1,$2,$3,'colocation','brouillon',$4,$5,'2026-12-01',450,50)`, [bailId, ORG, lotId, chambreId, locataireId]);
+    await db.query(`insert into public.bail_personnes (organization_id, bail_id, person_id, role, garant_de) values ($1,$2,$3,'garant',$4)`, [ORG, bailId, garantId, locataireId]);
+    await page.goto(`/espace/${ORG}/personnes/${locataireId}`);
+    await expect(page.locator('#rattachements')).toContainText(`E2E chambres ${suffixe} · Chambre bleue ${suffixe}`);
+    await page.goto(`/espace/${ORG}/personnes/${garantId}`);
+    await expect(page.locator('#rattachements')).toContainText(`Garant de Coloc${suffixe} Inès`);
+    await page.goto(`/espace/${ORG}/personnes`);
+    const ligne = (nom: string) => page.locator('li').filter({ hasText: nom }).first();
+    await expect(ligne(`Coloc${suffixe}`)).toContainText('Locataire · bail en préparation');
+    await expect(ligne(`Garant${suffixe}`)).toContainText('Garant · bail en préparation');
+    await expect(ligne(`Coloc${suffixe}`)).not.toContainText('Sans bail en cours');
+    expect(await debordementHorizontal(page)).toBe(0);
+  } finally {
+    await db.query('delete from public.bail_personnes where bail_id=$1 and organization_id=$2', [bailId, ORG]);
+    await db.query('delete from public.baux where id=$1 and organization_id=$2', [bailId, ORG]);
+    await db.query('delete from public.lot_chambres where id=$1 and organization_id=$2', [chambreId, ORG]);
+    await db.query('delete from public.lots where id=$1 and organization_id=$2', [lotId, ORG]);
+    await db.query('delete from public.persons where id = any($1::uuid[]) and organization_id=$2', [[locataireId, garantId], ORG]);
+    await db.end();
+  }
+});
+
 // Audit #264 (FL-02, CB-02, CB-03) : un bail commencé se reprend depuis l’en-tête, la liste des biens et l’accueil ;
 // un second geste de création reprend le brouillon vierge au lieu d’en créer un autre.
 test('propriétaire : un bail commencé se reprend partout, sans brouillon vierge en double', async ({ page }) => {

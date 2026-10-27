@@ -21,7 +21,7 @@ import {
   ETATS_MANDAT,
   COULEURS_ETAT_MANDAT,
 } from "@/lib/baux";
-import { rolesDePersonne } from "@/lib/roles-personnes";
+import { nomComplet, rolesDePersonne } from "@/lib/roles-personnes";
 import {
   FormulairePiece,
   FormulaireNouvelleVersion,
@@ -83,13 +83,14 @@ type BailVivant = {
   loyer_hc: number | string | null;
   charges: number | string | null;
   date_debut: string | null;
+  chambre_id: string | null;
   lot: UnOuPlusieurs<{ nom: string; bien: UnOuPlusieurs<{ nom: string }> }>;
 };
 // Le mandat que l'en-tête résume : le plus avancé des mandats non résiliés
 const ORDRE_MANDAT = ["actif", "preavis", "a_signer", "brouillon"];
 
 const COLONNES_BAIL_VIVANT =
-  "id, etat, loyer_hc, charges, date_debut, lot:lots!baux_lot_meme_org_fk(nom, bien:biens!lots_bien_id_fkey(nom))";
+  "id, etat, loyer_hc, charges, date_debut, chambre_id, lot:lots!baux_lot_meme_org_fk(nom, bien:biens!lots_bien_id_fkey(nom))";
 
 export default async function PagePersonne(
   props: PageProps<"/agence/[orgId]/personnes/[personId]">
@@ -179,7 +180,7 @@ export default async function PagePersonne(
       .order("created_at"),
     supabase
       .from("bail_personnes")
-      .select("bail_id, role")
+      .select("bail_id, role, garant_de")
       .eq("organization_id", orgId)
       .eq("person_id", personId)
       .or(`date_depart.is.null,date_depart.gte.${aujourdhui}`),
@@ -271,6 +272,20 @@ export default async function PagePersonne(
             .in("etat", ["brouillon", "actif", "preavis"])
         : Promise.resolve({ data: [], error: null }),
     ]);
+  // Ce que la ligne du bail doit nommer : la chambre d'un contrat individuel, et la
+  // personne qu'un garant couvre (audit #264, FL-09).
+  const idsChambres = [...new Set([...(bauxPrincipal ?? []), ...(bauxLies ?? [])].flatMap((b) => (b as { chambre_id: string | null }).chambre_id ?? []))];
+  const idsGarantis = [...new Set(((liensBail ?? []) as { garant_de: string | null }[]).flatMap((l) => l.garant_de ?? []))];
+  const [{ data: chambresBaux, error: erreurChambresBaux }, { data: garantis, error: erreurGarantis }] = await Promise.all([
+    idsChambres.length
+      ? supabase.from("lot_chambres").select("id, nom").eq("organization_id", orgId).in("id", idsChambres)
+      : Promise.resolve({ data: [], error: null }),
+    idsGarantis.length
+      ? supabase.from("persons").select("id, nom, prenom").eq("organization_id", orgId).in("id", idsGarantis)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  const nomChambre = new Map(((chambresBaux ?? []) as { id: string; nom: string }[]).map((c) => [c.id, c.nom]));
+  const nomGaranti = new Map(((garantis ?? []) as { id: string; nom: string; prenom: string | null }[]).map((p) => [p.id, nomComplet(p)]));
   // Grille du 28/09/2026 : l'impact d'une activation sur le volume facturé,
   // montré sur le bouton « Activer » AVANT le geste.
   const impacts = new Map<string, { avant: number; apres: number; capacite: number | null }>();
@@ -339,7 +354,7 @@ export default async function PagePersonne(
   // Ce que la personne EST (24/09) — mêmes règles et mêmes puces que la liste
   // (lib/roles-personnes) : la liste disait « Propriétaire mandant », la
   // fiche ne disait rien, il fallait le deviner aux cartes plus bas.
-  const liensVivants = ((liensBail ?? []) as { bail_id: string; role: string }[]);
+  const liensVivants = ((liensBail ?? []) as { bail_id: string; role: string; garant_de: string | null }[]);
   const bauxLiesVivants = new Set(((bauxLies ?? []) as { id: string; etat: string }[]).filter(b => b.etat !== "brouillon").map((b) => b.id));
   const bauxLiesBrouillons = new Set(((bauxLies ?? []) as { id: string; etat: string }[]).filter(b => b.etat === "brouillon").map((b) => b.id));
   const roleSurBail = (role: string) =>
@@ -367,13 +382,15 @@ export default async function PagePersonne(
 
   // Les baux vivants, vus depuis la personne : principal, colocataire, garant
   const roleBail = new Map(liensVivants.map((l) => [l.bail_id, l.role]));
+  const garantDe = new Map(liensVivants.flatMap((l) => l.role === "garant" && l.garant_de && nomGaranti.has(l.garant_de) ? [[l.bail_id, nomGaranti.get(l.garant_de)!] as const] : []));
   const locations = [
-    ...((bauxPrincipal ?? []) as unknown as BailVivant[]).map((b) => ({ ...b, role: "Locataire" })),
+    ...((bauxPrincipal ?? []) as unknown as BailVivant[]).map((b) => ({ ...b, role: "Locataire", garantDe: null as string | null })),
     ...((bauxLies ?? []) as unknown as BailVivant[])
       .filter((b) => !(bauxPrincipal ?? []).some((p) => p.id === b.id))
       .map((b) => ({
         ...b,
         role: roleBail.get(b.id) === "garant" ? "Garant" : "Colocataire",
+        garantDe: garantDe.get(b.id) ?? null,
       })),
   ];
   const titreLocations = locations.every(l => l.etat === "brouillon") ? "Baux en préparation" : locations.some(l => l.etat === "brouillon") ? "Baux et locations" : locations.every((l) => l.role === "Garant")
@@ -401,6 +418,7 @@ export default async function PagePersonne(
       "les lots rattachables à un mandat",
     (erreurLiensBail || erreurBauxPrincipal || erreurBauxLies) &&
       "les baux (rôles locataire et garant)",
+    (erreurChambresBaux || erreurGarantis) && "les chambres louées et les locataires garantis",
   ].filter((q): q is string => Boolean(q));
   // Sans ces lectures, « aucun lot à couvrir » serait une affirmation fausse
   const lotsIllisibles = Boolean(erreurLots || erreurCouvrantes || erreurDetentions);
@@ -464,7 +482,7 @@ export default async function PagePersonne(
                 const loyerCc =
                   b.loyer_hc != null && b.charges != null ? Number(b.loyer_hc) + Number(b.charges) : null;
                 const faitsBail = [
-                  b.role,
+                  b.garantDe ? `Garant de ${b.garantDe}` : b.role,
                   loyerCc !== null ? `${eur(loyerCc)} charges comprises` : b.loyer_hc != null ? `${eur(b.loyer_hc)} hors charges · charges à préciser` : "Loyer à renseigner",
                   b.date_debut ? `${b.etat === "brouillon" ? "début prévu le" : "depuis le"} ${formaterDate(b.date_debut)}` : null,
                 ].filter((f): f is string => Boolean(f));
@@ -479,6 +497,7 @@ export default async function PagePersonne(
                     >
                       <span className="flex flex-wrap items-center gap-2">
                         {lot ? `${premier(lot.bien)?.nom ?? ""} · ${lot.nom}` : "Lot"}
+                        {b.chambre_id && nomChambre.has(b.chambre_id) ? ` · ${nomChambre.get(b.chambre_id)}` : ""}
                         {b.etat !== "actif" && (
                           <span className={COULEURS_ETAT_BAIL[b.etat] ?? "puce puce-grise"}>
                             {ETATS_BAIL[b.etat] ?? b.etat}

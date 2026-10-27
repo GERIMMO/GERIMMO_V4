@@ -27,7 +27,8 @@ function dansFiltre(personne: PersonneListe, filtre: Filtre) {
 }
 
 function tonRole(libelle: string) {
-  return libelle === "Locataire" ? "locataire" : libelle === "Garant" ? "garant" : "proprietaire";
+  // Un bail encore en préparation reste neutre, comme sa puce sur la fiche (audit #264, FL-09).
+  return libelle.endsWith("bail en préparation") ? "neutre" : libelle === "Locataire" ? "locataire" : libelle === "Garant" ? "garant" : "proprietaire";
 }
 
 export function AnnuaireProprietaire({ orgId, personnes, listeIllisible }: {

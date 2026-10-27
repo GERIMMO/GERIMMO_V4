@@ -56,11 +56,13 @@ export async function modifierEtapeBail(orgId: string, bailId: string, etape: Et
   return {succes:"Étape enregistrée.",avertissements:avertissementsCoherenceLoyer({...bail,...resultat.patch},lot.surface_m2),valeursEnregistrees:Object.fromEntries(CHAMPS_ETAPE_BAIL[etape].map(nom=>[nom,apres[nom]??""]))};
 }
 
-/** Brouillon du lot encore vierge : ni chambre, ni locataire, ni date, ni loyer, ni personne rattachée.
- * Le plus ancien est repris plutôt que d’en créer un second (audit #264, FL-02 / CB-02). */
+/** Brouillon du lot encore vierge : ni chambre, ni locataire, ni date, ni dépôt de garantie, ni personne rattachée.
+ * Le plus ancien est repris plutôt que d’en créer un second (audit #264, FL-02 / CB-02). Le dépôt, et non le loyer,
+ * marque une étape Loyer enregistrée : elle l’exige (lireEtapeBail) alors que la relocation ne le reprend jamais
+ * du bail précédent (CB-08) — un brouillon pré-rempli que personne n’a touché reste vierge. */
 async function brouillonVierge(supabase: SupabaseClient, orgId: string, lotId: string): Promise<{ id: string | null } | { erreur: string }> {
   const {data:vierges,error}=await supabase.from("baux").select("id").eq("organization_id",orgId).eq("lot_id",lotId).eq("etat","brouillon")
-    .is("chambre_id",null).is("locataire_principal",null).is("date_debut",null).is("loyer_hc",null).is("document_signe",null).is("signe_envoye_le",null)
+    .is("chambre_id",null).is("locataire_principal",null).is("date_debut",null).is("depot_garantie",null).is("document_signe",null).is("signe_envoye_le",null)
     .order("created_at").order("id");
   if(error)return {erreur:"Les contrats déjà en préparation n’ont pas pu être vérifiés. Rechargez la fiche."};
   if(!vierges?.length)return {id:null};

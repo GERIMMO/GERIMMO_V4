@@ -216,7 +216,8 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,agenc
  const typeRepris=Boolean(bailPrecedent&&["nu","meuble"].includes(bailPrecedent.type)&&valeurs.type===bailPrecedent.type);
  const minuscule=(libelle:string)=>libelle.charAt(0).toLowerCase()+libelle.slice(1);
  const effacerReprises=()=>{
-   const vides=initialiserParcoursBail({},meuble);
+   // Les réglages du parcours et le jour d’échéance d’un brouillon sans bail précédent (1, défaut de la base) ; les montants restent à saisir.
+   const vides=initialiserParcoursBail({jour_echeance:1},meuble);
    setValeurs(v=>({...v,...Object.fromEntries(CHAMPS_LOYER_REPRIS.map(nom=>[nom,vides[nom]??""]))}));
    setModifie(true);
  };

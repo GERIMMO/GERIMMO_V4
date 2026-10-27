@@ -51,6 +51,16 @@ for (const largeur of [390, 1440]) {
         from public.baux where id=$1`, [bailId])).rows[0];
       expect(await enBase()).toEqual({ type: 'nu', loyer: 930, charges: 65, depot: null, jour: 5, revision_irl: true, irl_trimestre: 'T2', irl: 140.59, charges_mode: 'provision', locataire_principal: null, date_debut: null });
 
+      // FL-02 / CB-02 tiennent aussi en relocation : le brouillon pré-rempli, que personne n’a touché, est repris par
+      // l’en-tête et par le geste secondaire « Préparer un autre contrat », jamais doublé.
+      const brouillons = async () => (await db.query("select count(*)::int as n from public.baux where lot_id=$1 and etat='brouillon'", [lotId])).rows[0].n;
+      await page.goto(`/espace/${ORG}/parc/${sources[0].bien_id}/lots/${lotId}`);
+      await expect(page.locator('#nouvelle-location').getByRole('link', { name: 'Reprendre le bail', exact: true })).toHaveAttribute('href', new RegExp(`/baux/${bailId}$`));
+      await page.locator('summary').filter({ hasText: 'Préparer un autre contrat' }).click();
+      await page.locator('#nouveau-contrat').getByRole('button', { name: 'Commencer le bail', exact: true }).click();
+      await expect(page).toHaveURL(new RegExp(`/baux/${bailId}#etape-bail-1$`));
+      expect(await brouillons()).toBe(1);
+
       // Étape « Le bail » : le type repris est signalé.
       await expect(page.locator('#parcours-type')).toHaveValue('nu');
       await expect(page.locator('#form-parcours-bail').getByText('Le type de bail est repris du bail précédent (du 01/09/2023 au 31/08/2026), à vérifier.')).toBeVisible();
@@ -79,7 +89,8 @@ for (const largeur of [390, 1440]) {
       await expect(mention).toHaveCount(0);
       await expect(page.locator('#parcours-loyer_hc')).toHaveValue('');
       await expect(page.locator('#parcours-charges')).toHaveValue('');
-      await expect(page.locator('#parcours-jour_echeance')).toHaveValue('');
+      // Le jour d’échéance revient au 1 d’un brouillon sans bail précédent (défaut de la base) : il reste modifiable.
+      await expect(page.locator('#parcours-jour_echeance')).toHaveValue('1');
       await expect(page.locator('#parcours-irl_trimestre')).toHaveValue('');
       await expect(page.locator('#parcours-revision_irl')).toHaveValue('false');
       await expect(page.getByRole('navigation', { name: 'Étapes du bail' }).getByRole('button', { name: /Étape 04 Loyer Saisie non enregistrée/ })).toBeVisible();

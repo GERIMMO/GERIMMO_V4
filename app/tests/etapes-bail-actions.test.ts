@@ -137,8 +137,19 @@ it("FL-02 : reprend le brouillon vierge du lot au lieu d’en créer un second",
  expect(insert).not.toHaveBeenCalled();
  expect(m.redirect).toHaveBeenCalledExactlyOnceWith("/espace/org/baux/vierge-ancien#etape-bail-1");
  for(const filtre of [["organization_id","org"],["lot_id","lot"],["etat","brouillon"]])expect(brouillons.eq).toHaveBeenCalledWith(...filtre);
- for(const colonne of ["chambre_id","locataire_principal","date_debut","loyer_hc","document_signe","signe_envoye_le"])expect(brouillons.is).toHaveBeenCalledWith(colonne,null);
+ // Le dépôt de garantie, exigé pour enregistrer l’étape Loyer et jamais repris du bail précédent, marque la saisie ; le loyer non (CB-08).
+ for(const colonne of ["chambre_id","locataire_principal","date_debut","depot_garantie","document_signe","signe_envoye_le"])expect(brouillons.is).toHaveBeenCalledWith(colonne,null);
+ expect(brouillons.is).not.toHaveBeenCalledWith("loyer_hc",null);
  expect(brouillons.order).toHaveBeenCalledWith("created_at");
+});
+
+it("CB-08 / FL-02 : en relocation, le brouillon pré-rempli depuis le bail précédent et jamais touché est repris au second geste, pas doublé",async()=>{
+ const {insert,brouillons}=contexteCreation({vierges:[{id:"prerempli"}],precedents:[bailTermine]});
+ await expect(commencerBail("org","lot","bien")).rejects.toBe(m.redirection);
+ expect(insert).not.toHaveBeenCalled();
+ expect(brouillons.is).toHaveBeenCalledWith("depot_garantie",null);
+ expect(brouillons.is).not.toHaveBeenCalledWith("loyer_hc",null);
+ expect(m.redirect).toHaveBeenCalledExactlyOnceWith("/espace/org/baux/prerempli#etape-bail-1");
 });
 
 it("FL-02 : un brouillon sans saisie mais avec une personne rattachée n’est pas repris",async()=>{

@@ -628,6 +628,7 @@ export async function deposerDiagnostic(
     if (!piece) {
       return { erreur: "Cette pièce n’est plus disponible dans votre dossier. Choisissez à nouveau le rapport à déposer.", valeurs };
     }
+    if (piece.misADisposition) return { erreur: REFUS_PIECE_PARTAGEE, valeurs };
     let dejaUtilisee = supabase
       .from("diagnostics")
       .select("id")
@@ -665,10 +666,11 @@ export async function deposerDiagnostic(
       // Le même rapport est déjà rangé : si c'est bien un rapport de diagnostic de cette organisation, on le
       // propose (« Utiliser cette pièce pour ce lot ») au lieu de laisser l'utilisateur dans une impasse.
       const offre = depot.doublonId ? await lirePieceDiagnostic(supabase, orgId, depot.doublonId) : null;
+      if (offre?.misADisposition) return { erreur: REFUS_PIECE_PARTAGEE, valeurs };
       return {
         erreur: depot.erreur ?? "Échec du dépôt du fichier.",
         valeurs,
-        ...(offre ? { pieceExistante: offre } : {}),
+        ...(offre ? { pieceExistante: { id: offre.id, titre: offre.titre, type: offre.type } } : {}),
       };
     }
     documentId = depot.documentId;
@@ -713,21 +715,33 @@ export async function deposerDiagnostic(
 // libre, avec les pièces personnelles) ou joint au bail comme annexe (« Autre ») s'utilise aussi : sinon l'anti-doublon
 // le refuse sans issue. La base le reclasse en « Diagnostic » dans la transaction du diagnostic, pour qu'il suive la
 // conservation des diagnostics (fin de gestion du bien) et non celle d'un document quelconque.
+// Un courrier mis à disposition du locataire n'est pas proposé : reclassé, il quitterait son espace (seuls les
+// quittances et courriers partagés y figurent). Le refus dit comment faire ; la base le refuse aussi
+// (reclasser_rapport_diagnostic).
 const TYPES_PIECE_DIAGNOSTIC = ["diagnostic", "autre", "courrier"];
+const REFUS_PIECE_PARTAGEE =
+  "Ce fichier est déjà dans vos documents et mis à disposition de votre locataire : le déclarer comme rapport de diagnostic le retirerait de son espace. Si c’est voulu, retirez d’abord la mise à disposition (Documents, fiche du document : « Retirer de son espace »), puis déposez-le à nouveau ici.";
 async function lirePieceDiagnostic(
   supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
   orgId: string,
   documentId: string
-): Promise<{ id: string; titre: string | null; type: string } | null> {
+): Promise<{ id: string; titre: string | null; type: string; misADisposition: boolean } | null> {
   const { data } = await supabase
     .from("documents")
-    .select("id, titre, type")
+    .select("id, titre, type, partage_le")
     .eq("id", documentId)
     .eq("organization_id", orgId)
     .in("type", TYPES_PIECE_DIAGNOSTIC)
     .is("purged_at", null)
     .maybeSingle();
-  return data ? { id: data.id as string, titre: (data.titre as string | null) ?? null, type: data.type as string } : null;
+  if (!data) return null;
+  const type = data.type as string;
+  return {
+    id: data.id as string,
+    titre: (data.titre as string | null) ?? null,
+    type,
+    misADisposition: type !== "diagnostic" && data.partage_le != null,
+  };
 }
 
 // Pièces du lot : la vraie liste (Séjour, Chambre 1…) qui sert à générer la

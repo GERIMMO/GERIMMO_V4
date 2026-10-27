@@ -173,7 +173,9 @@ $function$;
 -- 2. DOC-02 — reclassement du rapport rangé en « Autre » ou « Courrier ». La fiche document reste fermée en écriture
 -- aux comptes (update révoqué) : seule cette fonction, déclenchée par l'insertion du diagnostic qui la cite, change
 -- son type. Les autres types (pièce d'identité, justificatif, bail…) ne sont jamais reclassés ; l'application ne les
--- propose d'ailleurs pas (lirePieceDiagnostic, src/app/actions/parc.ts).
+-- propose d'ailleurs pas (lirePieceDiagnostic, src/app/actions/parc.ts). Un courrier mis à disposition du locataire
+-- n'est pas reclassé non plus : son espace ne montre que les quittances et courriers partagés (mes_pieces_locataire),
+-- il le perdrait sans que personne l'ait décidé.
 create or replace function public.reclasser_rapport_diagnostic()
 returns trigger
 language plpgsql
@@ -182,9 +184,10 @@ set search_path = ''
 as $$
 declare
   v_ancien text;
+  v_partage timestamptz;
 begin
   if new.document_id is null then return new; end if;
-  select d.type::text into v_ancien
+  select d.type::text, d.partage_le into v_ancien, v_partage
     from public.documents d
    where d.id = new.document_id
      and d.organization_id = new.organization_id
@@ -199,6 +202,10 @@ begin
                      or exists (select 1 from jsonb_array_elements(c.annexes) a where a ->> 'id' = new.document_id::text))
                 and c.etat in ('preparation', 'en_cours', 'a_verifier')) then
     raise exception 'Ce fichier fait partie d’une signature en cours : déclarez ce diagnostic une fois la signature terminée ou annulée.'
+      using errcode = '23514';
+  end if;
+  if v_partage is not null then
+    raise exception 'Ce fichier est mis à disposition de votre locataire : retirez la mise à disposition avant de le déclarer comme rapport de diagnostic.'
       using errcode = '23514';
   end if;
   update public.documents set type = 'diagnostic' where id = new.document_id;

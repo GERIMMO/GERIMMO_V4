@@ -23,7 +23,7 @@ const AUTRE_BIEN = "00000000-0000-4000-8000-000000000b02";
 const PIECE = "00000000-0000-4000-8000-00000000d0c1";
 const AUTRE_PIECE = "00000000-0000-4000-8000-00000000d0c2";
 
-type Piece = { id: string; titre: string | null; type: string; organization_id: string; purged_at: string | null };
+type Piece = { id: string; titre: string | null; type: string; organization_id: string; purged_at: string | null; partage_le?: string | null };
 // Une ligne de la table `diagnostics`, telle que la requête « pièce déjà utilisée » peut la rencontrer.
 type LigneDiagnostic = {
   id: string; organization_id: string; document_id: string; type: string;
@@ -52,7 +52,7 @@ function constructeur(table: string) {
         && (filtres.type === undefined || filtres.type === p.type)
         && (filtres.type_in === undefined || (filtres.type_in as string[]).includes(p.type))
         && (filtres.purged_at_is === undefined || (filtres.purged_at_is === null && p.purged_at === null));
-      return ok ? { id: p!.id, titre: p!.titre, type: p!.type } : null;
+      return ok ? { id: p!.id, titre: p!.titre, type: p!.type, partage_le: p!.partage_le ?? null } : null;
     }
     if (table === "diagnostics") {
       // Chaque filtre posé par l'action doit être satisfait par la ligne (`xxx_is` : colonne `is null`). Un filtre retiré
@@ -329,6 +329,41 @@ describe("DOC-02 : un rapport déjà rangé en « Autre » ou « Courrier » se 
     const r = await deposerDiagnostic(ORG, BIEN, LOT_B, {}, formulaire({ piece_existante: PIECE }));
     expect(r.erreur).toMatch(/plus disponible/);
     expect(insertionsDiagnostic()).toHaveLength(0);
+  });
+});
+
+// DOC-02, relecture : un courrier mis à disposition du locataire n'apparaît dans son espace que tant qu'il reste un
+// courrier. Le reclasser en « Diagnostic » le lui retirait en silence : il n'est ni proposé ni accepté, et le refus dit
+// comment faire.
+describe("DOC-02 : un courrier mis à disposition du locataire n'est pas reclassé en silence", () => {
+  beforeEach(() => {
+    banc.piece = pieceDiagnostic({ type: "courrier", titre: "DPE partagé", partage_le: "2026-10-20T10:00:00Z" });
+  });
+
+  it("ne propose pas la pièce au refus de doublon et dit pourquoi", async () => {
+    const r = await deposerDiagnostic(ORG, BIEN, LOT_B, {}, formulaire());
+    expect(r.pieceExistante).toBeUndefined();
+    expect(r.erreur).toMatch(/mis à disposition de votre locataire.*retirez d’abord la mise à disposition/);
+    expect(insertionsDiagnostic()).toHaveLength(0);
+  });
+
+  it("refuse la pièce passée directement, sans rien écrire", async () => {
+    const r = await deposerDiagnostic(ORG, BIEN, LOT_B, {}, formulaire({ piece_existante: PIECE }, false));
+    expect(r.succes).toBeUndefined();
+    expect(r.erreur).toMatch(/mis à disposition de votre locataire/);
+    expect(banc.ecritures).toHaveLength(0);
+  });
+
+  it("propose de nouveau le courrier une fois la mise à disposition retirée", async () => {
+    banc.piece = pieceDiagnostic({ type: "courrier", titre: "DPE partagé", partage_le: null });
+    const r = await deposerDiagnostic(ORG, BIEN, LOT_B, {}, formulaire());
+    expect(r.pieceExistante).toEqual({ id: PIECE, titre: "DPE partagé", type: "courrier" });
+  });
+
+  it("garde la proposition d'un rapport déjà classé « Diagnostic », même marqué partagé (rien à retirer au locataire)", async () => {
+    banc.piece = pieceDiagnostic({ partage_le: "2026-10-20T10:00:00Z" });
+    const r = await deposerDiagnostic(ORG, BIEN, LOT_B, {}, formulaire());
+    expect(r.pieceExistante).toEqual({ id: PIECE, titre: "DPE — 13/10/2026", type: "diagnostic" });
   });
 });
 

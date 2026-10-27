@@ -5,7 +5,8 @@
  *    location et l'alerte quotidienne lisent l'échéance plafonnée ;
  *  - DOC-02 : un rapport rangé en « Autre » ou « Courrier », cité par un diagnostic, est reclassé « Diagnostic » dans
  *    la même transaction (trace dans audit_log) ; une pièce d'un autre type ne l'est jamais ; un fichier d'une signature
- *    en cours (verrouillé) est refusé avec un message qui parle du diagnostic ;
+ *    en cours (verrouillé) est refusé avec un message qui parle du diagnostic ; un courrier mis à disposition du
+ *    locataire aussi : reclassé, il quitterait son espace sans que personne l'ait décidé ;
  *  - DOC-04 : diagnostics_a_renouveler rend le rapport d'un DPE expiré par le plafond, avec son bien et son lot.
  * Transaction annulée, base locale jetable (SUPABASE_DB_URL).
  */
@@ -20,7 +21,9 @@ verifierBaseDeTest(url);
 
 describe.skipIf(!url)("Diagnostics : validité réglementaire du DPE, rapport reclassé, rapports à renouveler", () => {
   let db: Client;
-  let gerant: string, org: string, bien: string, lot: string;
+  let gerant: string, locataire: string, org: string, bien: string, lot: string;
+  const UTILISATEUR = `insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current)
+      values('00000000-0000-0000-0000-000000000000',gen_random_uuid(),'authenticated','authenticated','test-doc264-'||gen_random_uuid()||'@example.invalid','x',now(),'{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','') returning id`;
   let n = 0;
 
   const admin = async () => { await db.query("reset role"); await db.query("select set_config('request.jwt.claims','',true)"); };
@@ -48,8 +51,8 @@ describe.skipIf(!url)("Diagnostics : validité réglementaire du DPE, rapport re
     db = new Client({ connectionString: url });
     await db.connect();
     await db.query("begin");
-    gerant = (await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current)
-      values('00000000-0000-0000-0000-000000000000',gen_random_uuid(),'authenticated','authenticated','test-doc264-'||gen_random_uuid()||'@example.invalid','x',now(),'{"provider":"email","providers":["email"]}','{}',now(),now(),'','','','','') returning id`)).rows[0].id;
+    gerant = (await db.query(UTILISATEUR)).rows[0].id;
+    locataire = (await db.query(UTILISATEUR)).rows[0].id;
     org = (await db.query("insert into organizations(name,status,type) values('TEST DOC-264','active','proprietaire_direct') returning id")).rows[0].id;
     await db.query("insert into memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct')", [gerant, org]);
     bien = (await db.query("insert into biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'TEST Gambetta','appartement','1 rue TEST','75020','Paris') returning id", [org])).rows[0].id;
@@ -142,6 +145,36 @@ describe.skipIf(!url)("Diagnostics : validité réglementaire du DPE, rapport re
     await admin();
     expect(await typeDocument(annexe)).toBe("autre");
     expect((await db.query("select count(*)::int n from public.diagnostics where document_id=$1", [annexe])).rows[0].n).toBe(0);
+  });
+
+  it("DOC-02 : un courrier mis à disposition du locataire n'est pas reclassé ; il reste dans son espace", async () => {
+    await db.query("insert into memberships(account_id,organization_id,role) values($1,$2,'locataire')", [locataire, org]);
+    const personne = (await db.query("insert into public.persons(organization_id,nom,account_id) values($1,'TEST Locataire',$2) returning id", [org, locataire])).rows[0].id;
+    const courrier = await document("courrier", "DPE remis au locataire");
+    await db.query("insert into public.document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'personne',$3)", [org, courrier, personne]);
+    await comme(gerant);
+    await db.query("select public.partager_document_locataire($1,$2,true)", [org, courrier]);
+    const voit = async () => {
+      await comme(locataire);
+      const ids = (await db.query("select document_id from public.mes_pieces_locataire($1)", [org])).rows.map((r) => r.document_id);
+      await comme(gerant);
+      return ids.includes(courrier);
+    };
+    expect(await voit()).toBe(true);
+    await db.query("savepoint partage");
+    await expect(dpe("2022-03-15", "2032-03-15", courrier)).rejects.toThrow(
+      "Ce fichier est mis à disposition de votre locataire : retirez la mise à disposition avant de le déclarer comme rapport de diagnostic.");
+    await db.query("rollback to savepoint partage");
+    expect(await voit()).toBe(true);
+    await admin();
+    expect(await typeDocument(courrier)).toBe("courrier");
+    expect((await db.query("select count(*)::int n from public.diagnostics where document_id=$1", [courrier])).rows[0].n).toBe(0);
+    // Mise à disposition retirée par le propriétaire : la déclaration redevient possible.
+    await comme(gerant);
+    await db.query("select public.partager_document_locataire($1,$2,false)", [org, courrier]);
+    await dpe("2022-03-15", "2032-03-15", courrier);
+    await admin();
+    expect(await typeDocument(courrier)).toBe("diagnostic");
   });
 
   it("DOC-04 : diagnostics_a_renouveler rend le rapport du DPE expiré par le plafond, avec son bien et son lot", async () => {

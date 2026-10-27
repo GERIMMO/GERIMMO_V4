@@ -59,6 +59,7 @@ import { destinationSure } from "@/lib/destination-sure";
 import { sansJargon } from "@/lib/erreurs";
 import { suiteInvitationLocataire } from "@/lib/invitations-locataire";
 import { CLE_PROFIL_A_CONFIRMER, informationsAConfirmer } from "@/lib/revalidation-inscription";
+import { CLE_PREMIER_MOT_DE_PASSE } from "@/lib/premier-mot-de-passe";
 
 export type MotifLien =
   /** La supervision vient d'ouvrir l'organisation : son responsable crée son mot de passe. */
@@ -81,6 +82,14 @@ const MOTIFS_ANONYMES: ReadonlySet<MotifLien> = new Set([
   "mot_de_passe_oublie",
   "compte_existant",
   "confirmation_inscription",
+]);
+
+/** Les invitations : la personne n'a jamais eu de mot de passe, elle CRÉE le premier (audit final du 27/10, DRT-05). */
+const MOTIFS_INVITATION: ReadonlySet<MotifLien> = new Set([
+  "invitation_responsable",
+  "renvoi_supervision",
+  "invitation_agent",
+  "invitation_locataire",
 ]);
 
 export const MESSAGE_TROP_DE_DEMANDES =
@@ -392,6 +401,18 @@ export async function envoyerLienMotDePasse(params: {
     // l'erreur pour une invitation — celui qui invite doit savoir.
     if (anonyme) return {};
     return { erreur: sansJargon(error?.message ?? "Le lien n’a pas pu être créé.") };
+  }
+
+  // Audit final du 27/10 (DRT-05) : l'invité qui ne s'est jamais connecté CRÉE son premier mot de passe — la page le
+  // dit et le garde connecté (actions/auth.ts). La marque vit dans app_metadata, que seul le service écrit (jamais
+  // user_metadata : son titulaire peut l'écrire lui-même). Une métadonnée seule ne touche ni aux jetons ni aux sessions
+  // (règle prouvée plus bas, GoTrue v2.197.0) : le lien qui vient d'être fabriqué reste valable. Un compte qui s'est
+  // déjà connecté garde le parcours de récupération ; un échec ici n'arrête pas l'envoi (la page retombe dessus).
+  if (MOTIFS_INVITATION.has(params.motif) && data.user?.id && !data.user.last_sign_in_at) {
+    const { error: erreurMarque } = await service.auth.admin.updateUserById(data.user.id, {
+      app_metadata: { [CLE_PREMIER_MOT_DE_PASSE]: true },
+    });
+    if (erreurMarque) console.error("[lien-mot-de-passe] marque du premier mot de passe non posée :", params.motif, erreurMarque.message);
   }
 
   const erreurEnvoi = await envoyerCourrier({

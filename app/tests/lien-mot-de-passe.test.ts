@@ -144,6 +144,36 @@ describe("envoyerLienMotDePasse — invitations", () => {
     expect(courrier.html).not.toContain("supabase.co");
   });
 
+  // Audit final du 27/10 (DRT-05) : l'invité qui ne s'est jamais connecté reçoit la marque de son premier mot de passe —
+  // dans app_metadata (clé de service), après la fabrication du lien (une métadonnée seule ne touche pas aux jetons).
+  it("marque le premier mot de passe d'un invité jamais connecté, après le lien, dans app_metadata seulement", async () => {
+    const { generateLink, updateUserById } = admin({ utilisateur: { id: "u-invite", email_confirmed_at: null, last_sign_in_at: null } });
+    expect(await envoyerLienMotDePasse({ email: "loc@exemple.fr", motif: "invitation_locataire", organisation: ORG, next: "/nouveau-mot-de-passe?suite=%2Finvitations%2Fabc" })).toEqual({});
+    expect(updateUserById).toHaveBeenCalledWith("u-invite", { app_metadata: { premier_mot_de_passe: true } });
+    expect(updateUserById.mock.calls[0][1]).not.toHaveProperty("user_metadata");
+    expect(updateUserById.mock.invocationCallOrder[0]).toBeGreaterThan(generateLink.mock.invocationCallOrder[0]);
+    expect(mocks.envoyerEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("ne marque ni un compte déjà connecté, ni une récupération ou une inscription", async () => {
+    const { updateUserById } = admin({ utilisateur: { id: "u1", email_confirmed_at: "2026-10-01T00:00:00Z", last_sign_in_at: "2026-10-02T00:00:00Z" } });
+    await envoyerLienMotDePasse({ email: "agent@agence.fr", motif: "invitation_agent", organisation: ORG });
+    expect(updateUserById).not.toHaveBeenCalled();
+    const { updateUserById: recuperation } = admin({ utilisateur: { id: "u1", email_confirmed_at: null, last_sign_in_at: null } });
+    await envoyerLienMotDePasse({ email: "moi@exemple.fr", motif: "mot_de_passe_oublie" });
+    await envoyerLienMotDePasse({ email: "moi@exemple.fr", motif: "compte_existant" });
+    expect(recuperation).not.toHaveBeenCalled();
+  });
+
+  it("une marque qui ne se pose pas n'empêche pas l'envoi de l'invitation", async () => {
+    const { updateUserById } = admin({ utilisateur: { id: "u-invite", email_confirmed_at: null, last_sign_in_at: null } });
+    updateUserById.mockResolvedValueOnce({ data: { user: null }, error: { message: "panne" } });
+    const erreur = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await envoyerLienMotDePasse({ email: "resp@agence.fr", motif: "invitation_responsable" })).toEqual({});
+    expect(mocks.envoyerEmail).toHaveBeenCalledTimes(1);
+    erreur.mockRestore();
+  });
+
   it("remonte l'erreur à celui qui invite quand le compte est introuvable", async () => {
     admin({ erreurLien: "User with this email not found" });
     const r = await envoyerLienMotDePasse({ email: "inconnu@agence.fr", motif: "invitation_agent" });

@@ -36,7 +36,9 @@ export default async function PageConfirmerLien({ searchParams }: { searchParams
   const { token_hash: jeton, type, next: brut, email: adresse, etape } = await searchParams;
   const email = adresse && adresse.length <= 254 ? adresse : "";
   const next = destinationSure(brut);
-  const motDePasse = next === "/nouveau-mot-de-passe";
+  // Le lien d'une invitation porte sa suite (« /nouveau-mot-de-passe?suite=/invitations/… ») : c'est encore le choix
+  // d'un mot de passe (audit final du 27/10, DRT-05 : la page disait « Accéder à votre compte »).
+  const motDePasse = next.startsWith("/nouveau-mot-de-passe");
   const inscription = type === "signup";
   const confirmation = (await cookies()).get(COOKIE_CONFIRMATION)?.value ?? "";
 

@@ -18,10 +18,12 @@ export async function terminerInscriptionLocale(page: Page, email: string, motDe
   await page.goto(`/auth/confirm?${new URLSearchParams({ token_hash: jeton, type, email, next: `/nouveau-mot-de-passe?suite=${encodeURIComponent(suite)}` })}`);
   await page.getByRole("button", { name: /Confirmer mon adresse|Choisir mon mot de passe|Continuer/ }).click();
   await expect(page).toHaveURL(/\/nouveau-mot-de-passe/);
-  await page.getByLabel("Nouveau mot de passe", { exact: true }).fill(motDePasse);
+  // Un invité crée son PREMIER mot de passe (audit final du 27/10, DRT-05) : « Mot de passe » et « Créer mon mot de
+  // passe » ; une inscription ou une récupération gardent « Nouveau mot de passe » et « Changer le mot de passe ».
+  await page.getByLabel(/^(Nouveau )?mot de passe$/i).fill(motDePasse);
   await page.getByLabel("Confirmation", { exact: true }).fill(motDePasse);
   await page.getByRole("checkbox", { name: /accepte les conditions/ }).check();
-  await page.getByRole("button", { name: "Changer le mot de passe", exact: true }).click();
+  await page.getByRole("button", { name: /^(Changer le|Créer mon) mot de passe$/ }).click();
   // Relevé du 23/10 (PRO-5) : le premier choix après la confirmation garde la session ouverte et mène à l'espace ou à
   // l'étape suivante — plus d'écran de connexion ni de « Mot de passe modifié. Connectez-vous… ». L'appelant attend
   // ensuite sa propre destination.

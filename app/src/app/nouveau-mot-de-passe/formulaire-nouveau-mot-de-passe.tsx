@@ -30,7 +30,16 @@ const CHAMPS_DU_PROFIL: ChampNouveauMotDePasse[] = ["espace", "cgu", ...CHAMPS_T
 const ID_ERREUR = "erreur-nouveau-mot-de-passe";
 const ID_AIDE_MOT_DE_PASSE = "aide-mot-de-passe";
 
-export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirmer }: { suite?: string; profilAConfirmer?: Record<string, string> }) {
+export function FormulaireNouveauMotDePasse({
+  suite = "/espaces",
+  profilAConfirmer,
+  premierChoix = false,
+}: {
+  suite?: string;
+  profilAConfirmer?: Record<string, string>;
+  /** L'invité crée son PREMIER mot de passe (audit final du 27/10, DRT-05) : rien à « changer ». */
+  premierChoix?: boolean;
+}) {
   const [etat, action] = useActionState<EtatNouveauMotDePasse, FormData>(
     definirNouveauMotDePasse,
     {}
@@ -123,7 +132,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
             </fieldset>
           )}
           <div className="space-y-2">
-            <Label htmlFor="mot_de_passe">Nouveau mot de passe</Label>
+            <Label htmlFor="mot_de_passe">{premierChoix ? "Mot de passe" : "Nouveau mot de passe"}</Label>
             <Input
               id="mot_de_passe"
               name="mot_de_passe"
@@ -159,7 +168,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
           </div>
           {!champErreur && alerte}
           <BoutonEnvoi envoiNatif enCoursTexte="Enregistrement…" className="w-full">
-            Changer le mot de passe
+            {premierChoix ? "Créer mon mot de passe" : "Changer le mot de passe"}
           </BoutonEnvoi>
         </form>
       </CardContent>

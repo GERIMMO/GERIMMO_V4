@@ -745,6 +745,34 @@ async function routerAuth(methode, chemin, url, corps, claims) {
       },
     };
   }
+  // L'API d'administration met à jour un compte (clé de service) : mot de passe et métadonnées. Les métadonnées
+  // d'application (`app_metadata`) ne sont jamais modifiables par le titulaire : c'est là que la fabrique de liens pose
+  // la marque du premier mot de passe d'un invité (lib/premier-mot-de-passe.ts, audit final du 27/10, DRT-05). Comme
+  // GoTrue : une métadonnée seule ne touche ni aux jetons ni aux sessions ; une valeur nulle retire la clé.
+  if (chemin.startsWith("admin/users/") && methode === "PUT") {
+    if (claims?.role !== "service_role") return { statut: 401, corps: { code: "not_admin", msg: "User not allowed" } };
+    const id = chemin.slice("admin/users/".length);
+    if (!await utilisateurParId(id)) return { statut: 404, corps: { code: "user_not_found", msg: "User not found" } };
+    if (corps.password) {
+      await admin((c) => c.query(
+        "update auth.users set encrypted_password = extensions.crypt($1, extensions.gen_salt('bf')), updated_at = now() where id = $2",
+        [corps.password, id],
+      ));
+    }
+    if (corps.app_metadata) {
+      await admin((c) => c.query(
+        "update auth.users set raw_app_meta_data = jsonb_strip_nulls(coalesce(raw_app_meta_data, '{}'::jsonb) || $1::jsonb), updated_at = now() where id = $2",
+        [JSON.stringify(corps.app_metadata), id],
+      ));
+    }
+    if (corps.user_metadata) {
+      await admin((c) => c.query(
+        "update auth.users set raw_user_meta_data = jsonb_strip_nulls(coalesce(raw_user_meta_data, '{}'::jsonb) || $1::jsonb), updated_at = now() where id = $2",
+        [JSON.stringify(corps.user_metadata), id],
+      ));
+    }
+    return { statut: 200, corps: utilisateurJson(await utilisateurParId(id)) };
+  }
   if (chemin === "user" && methode === "GET") {
     if (!claims?.sub) return { statut: 401, corps: { code: "no_authorization", msg: "Jeton absent ou invalide" } };
     if (!await sessionLocaleActive(claims)) return { statut: 401, corps: { code: "session_not_found", msg: "Session expirée" } };

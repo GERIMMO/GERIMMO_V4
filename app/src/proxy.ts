@@ -289,18 +289,23 @@ export async function proxy(request: NextRequest) {
     secure: request.nextUrl.protocol === "https:",
   });
 
-  // Le rôle de supervision nécessite un second facteur, y compris lorsqu'il
-  // ouvre un espace agence. La page de configuration reste accessible avant AAL2.
+  // LE SECOND FACTEUR. Le rôle de supervision l'exige toujours, y compris lorsqu'il ouvre un espace agence. Depuis
+  // l'audit final du 27/10 (PUB-01), tout compte qui a activé sa double authentification depuis « Mon compte » passe
+  // aussi par le sas : un facteur vérifié existe ⇔ nextLevel === "aal2" — avant, seul super_admin était regardé, et
+  // le mot de passe seul ouvrait l'espace malgré la protection posée. La lecture est locale (jeton décodé, facteurs de
+  // la session en cookie) : aucun aller-retour de plus. La page du sas reste accessible avant AAL2. Une erreur de
+  // lecture ferme la supervision (jamais ouverte par défaut) et laisse passer les autres rôles, comme avant.
   const roles = (memberships ?? []).map(m => m.role);
   let niveauMfa: string | null | undefined;
-  if (!isPublic && pathname !== "/securite" && roles.includes("super_admin")) {
+  if (!isPublic && pathname !== "/securite") {
     const { data: niveau, error: erreurMfa } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     niveauMfa = niveau?.currentLevel;
-    if (erreurMfa || doitVerifierSecondFacteur(roles, niveau?.currentLevel)) {
+    if ((erreurMfa && roles.includes("super_admin")) || doitVerifierSecondFacteur(roles, niveau?.currentLevel, niveau?.nextLevel)) {
       const url = request.nextUrl.clone();
       url.pathname = "/securite";
       url.search = `?suite=${encodeURIComponent(pathname + request.nextUrl.search)}`;
-      const redirect = NextResponse.redirect(url);
+      // 303 pour un POST (action serveur) : un 307 rejouerait l'action sur /securite.
+      const redirect = NextResponse.redirect(url, statutRedirection(request.method));
       response.cookies.getAll().forEach(c => redirect.cookies.set(c));
       return redirect;
     }

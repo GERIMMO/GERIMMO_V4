@@ -27,7 +27,9 @@ const API_LOCALE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:543
  * n'est pas en aal2 — et les facteurs de l'émulateur vivent en mémoire, donc ils
  * repartent à zéro à chaque démarrage du banc. Sans ce passage, la session du
  * persona superadmin ne s'ouvrait jamais : le setup échouait, et AUCUNE spec ne
- * tournait (constat du 19/09). Les autres personas ne voient pas ce sas.
+ * tournait (constat du 19/09). Les autres personas ne voient pas ce sas tant
+ * qu'ils n'ont pas activé leur double authentification (audit final du 27/10,
+ * PUB-01 ; les comptes du seed n'en ont pas).
  */
 async function franchirLeSasMfa(page: Page) {
   try {

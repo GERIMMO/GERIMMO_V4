@@ -57,17 +57,23 @@ export function AssistantBail({ orgId, bailId, contenus, formulaire, controleIni
       if(i>=0){etapeRef.current=i;setEtape(i);setCibleNavigation({hash});}
     };
     const sync=()=>{
-      if(enregistrementRef.current){history.replaceState(history.state,"",`${location.pathname}${location.search}#etape-bail-${etapeRef.current+1}`);return;}
+      if(enregistrementRef.current){history.replaceState(null,"",`${location.pathname}${location.search}#etape-bail-${etapeRef.current+1}`);return;}
       ouvrir(location.hash);
     };
     const clic=(event:MouseEvent)=>{
       if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
       const lien=event.target instanceof Element?event.target.closest<HTMLAnchorElement>("a[href]"):null;
-      if(!lien||lien.target==="_blank"||lien.hasAttribute("download"))return;
+      if(!lien||(lien.target&&lien.target!=="_self")||lien.hasAttribute("download"))return;
       const url=new URL(lien.href,location.href);
       if(url.origin!==location.origin||url.pathname!==location.pathname||url.search!==location.search||indexEtapeBail(url.hash)<0)return;
       if(enregistrementRef.current){event.preventDefault();return;}
-      // Un clic vers l’ancre déjà courante ne déclenche pas hashchange.
+      // Utiliser l’API publique permet à Next de synchroniser son URL canonique.
+      // Recopier history.state transmettrait son marqueur interne __NA : Next
+      // ignorerait alors ce changement et pourrait restaurer l’ancienne étape.
+      // Annuler le saut natif évite une seconde navigation concurrente.
+      event.preventDefault();
+      if(location.hash!==url.hash)history.pushState(null,"",url.href);
+      // Une ancre déjà courante doit aussi rouvrir et focaliser son champ.
       ouvrir(url.hash);
     };
     sync();document.addEventListener("click",clic,true);window.addEventListener("hashchange",sync);window.addEventListener("popstate",sync);
@@ -101,7 +107,7 @@ export function AssistantBail({ orgId, bailId, contenus, formulaire, controleIni
     });
     return()=>cancelAnimationFrame(frame);
   },[etape,cibleNavigation]);
-  function changer(i:number) {etapeRef.current=i;setEtape(i);const hash=`#etape-bail-${i+1}`;setCibleNavigation({hash});history.replaceState(history.state,"",`${location.pathname}${location.search}${hash}`);}
+  function changer(i:number) {etapeRef.current=i;setEtape(i);const hash=`#etape-bail-${i+1}`;setCibleNavigation({hash});history.replaceState(null,"",`${location.pathname}${location.search}${hash}`);}
   const manquantsEtape = controle.manquants.filter(m => positionChamp(m) === etape);
   const IconeEtape = icones[etape];
   const locataireAChoisir=controle.erreur==="Renseignez d'abord le locataire principal du bail.";

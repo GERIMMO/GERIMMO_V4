@@ -29,6 +29,7 @@ function Recapitulatif(){
   return <div>
     <a href="#parcours-date_debut">Corriger la date</a>
     <a href="#parcours-loyer_hc">Corriger le loyer</a>
+    <a href="#etape-bail-4">Modifier le loyer</a>
     <a href="#parcours-irl_valeur">Corriger l’indice</a>
     <a href="#parcours-dpe_depenses_min">Corriger le DPE</a>
     <a href="#titre-proprietaires-bail">Corriger le propriétaire</a>

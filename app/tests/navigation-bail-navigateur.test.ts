@@ -58,6 +58,39 @@ describe.skipIf(!chrome)("Navigation du bail : entrer dans une étape sans l’e
     await page.waitForFunction(id=>document.activeElement?.id===id,await champ.getAttribute("id"));
     expect(await page.evaluate(()=>window.__navigationBail)).toEqual({invalides:0,envois:0});
   });
+  it("garde l’étape corrigée après une relecture du routeur, avec un seul retour dans l’historique",async()=>{
+    await page.evaluate(()=>{
+      // Contrat de l’API History de Next : un état marqué __NA provient du
+      // routeur lui-même et ne synchronise pas une navigation applicative.
+      const pousser=history.pushState.bind(history),remplacer=history.replaceState.bind(history);
+      let canonique=location.href;
+      remplacer({__NA:true},"",canonique);
+      history.pushState=(etat,titre,url)=>{
+        if(!etat?.__NA&&!etat?._N&&url)canonique=new URL(String(url),location.href).href;
+        pousser({...etat,__NA:true},titre,url);
+      };
+      history.replaceState=(etat,titre,url)=>{
+        if(!etat?.__NA&&!etat?._N&&url)canonique=new URL(String(url),location.href).href;
+        remplacer({...etat,__NA:true},titre,url);
+      };
+      (window as Window & { relireUrlRouteur:()=>void }).relireUrlRouteur=()=>{
+        remplacer(history.state,"",canonique);
+        window.dispatchEvent(new PopStateEvent("popstate",{state:history.state}));
+      };
+    });
+    await page.getByRole("button",{name:/Étape 07 Récapitulatif/}).click();
+    const profondeur=await page.evaluate(()=>history.length);
+    await page.getByRole("link",{name:"Modifier le loyer",exact:true}).click();
+    await page.getByLabel("Loyer d’essai").waitFor();
+    await page.evaluate(()=>(window as Window & { relireUrlRouteur:()=>void }).relireUrlRouteur());
+    expect(new URL(page.url()).hash).toBe("#etape-bail-4");
+    expect(await page.getByLabel("Loyer d’essai").isVisible()).toBe(true);
+    expect(await page.evaluate(()=>history.length)).toBe(profondeur+1);
+    expect(await page.evaluate(()=>window.__navigationBail)).toEqual({invalides:0,envois:0});
+    await page.goBack();
+    await page.getByRole("heading",{name:"Récapitulatif",exact:true}).waitFor();
+    expect(new URL(page.url()).hash).toBe("#etape-bail-7");
+  });
   it("déplie les options, conserve la saisie et refocalise une ancre déjà courante",async()=>{
     await page.getByRole("button",{name:/Étape 07 Récapitulatif/}).click();
     await page.getByRole("link",{name:"Corriger l’indice",exact:true}).click();

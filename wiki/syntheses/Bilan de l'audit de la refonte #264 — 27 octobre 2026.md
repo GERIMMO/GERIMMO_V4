@@ -77,11 +77,16 @@ contrastes du menu supervision, zoom 400 %, focus des fenêtres), performance (i
   banc, pas un défaut de l'application.
 - 101 cas de test ajoutés (22 fichiers), dont 6 parcours navigateur et 5 tests SQL des migrations.
 
-## Les cinq décisions du 27 octobre : tranchées et réalisées (non publié)
+## Seconde mise en production du 27 octobre (les cinq décisions)
 
-Le 27/10 en fin de journée, vous avez tranché les cinq décisions ; les cinq chantiers sont faits, relus par relecture
-adverse et intégrés sur la branche `claude/compassionate-euler-qpqjp6`, **non fusionnée** : votre accord est attendu
-avant publication. Aucune migration : seulement du code.
+Publié le 27/10 à 21 h 05 UTC après feu vert : PR #269 fusionnée (`main` `ff969f7e`) sur CI verte (run 40579541473),
+aucune migration ; Vercel `dpl_5s79ZpRnS2tFdKx4RW8B3d8qD5f5` READY à 21 h 06, 0 erreur d'exécution ; recette de
+production verte (run 40585968963, 68 tests). Détail dans `log.md` (entrée `deploy` du 27/10 au soir).
+
+## Les cinq décisions du 27 octobre : tranchées et réalisées
+
+Le 27/10 en fin de journée, vous avez tranché les cinq décisions ; les cinq chantiers ont été faits, relus par relecture
+adverse, intégrés puis **publiés** (voir ci-dessus). Aucune migration : seulement du code.
 
 | Décision | Ce que fait l'application maintenant | Relecture |
 |---|---|---|
@@ -110,11 +115,6 @@ résultat du CREP (DOC-07) ; seuil du quota de dépôts (DOC-13) ; décor saison
 - WebKit mobile non rejoué ; stockage et planificateur émulés ; CREP et durées de bail repris du code et du wiki sans
   revérification en ligne (le DPE, lui, est sourcé).
 - Les espaces artisan et supervision ont été parcourus avec moins de profondeur que l'espace propriétaire.
-
-## Pour publier les cinq décisions (après votre accord)
-
-Sans migration : PR de la branche vers `main`, CI verte sur la révision exacte, fusion squash, déploiement Vercel,
-« Recette de production avec nettoyage », journal. Le protocole complet ci-dessous reste celui de la première publication.
 
 ## Pour publier (rappel de la première publication, faite)
 

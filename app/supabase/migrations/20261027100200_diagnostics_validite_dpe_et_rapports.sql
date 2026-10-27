@@ -192,6 +192,15 @@ begin
      and d.purged_at is null
    for update;
   if not found then return new; end if;
+  -- L'acte ou une annexe d'une signature en cours est verrouillé (proteger_document_en_signature_bail, même condition) :
+  -- le refus est dit dans les termes du diagnostic, au lieu de « Annulez le circuit… avant de modifier ce document ».
+  if exists (select 1 from public.bail_signature_circuits c
+              where (c.document_id = new.document_id
+                     or exists (select 1 from jsonb_array_elements(c.annexes) a where a ->> 'id' = new.document_id::text))
+                and c.etat in ('preparation', 'en_cours', 'a_verifier')) then
+    raise exception 'Ce fichier fait partie d’une signature en cours : déclarez ce diagnostic une fois la signature terminée ou annulée.'
+      using errcode = '23514';
+  end if;
   update public.documents set type = 'diagnostic' where id = new.document_id;
   insert into public.audit_log (organization_id, account_id, action, details)
   values (new.organization_id, (select auth.uid()), 'document_reclasse_diagnostic',

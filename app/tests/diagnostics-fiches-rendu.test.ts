@@ -3,7 +3,9 @@
  *  - DOC-09 : sur la fiche bien (lignes non compactes), « Voir le document » ouvre l'aperçu intégré, comme sur la fiche
  *    lot, au lieu d'un nouvel onglet ;
  *  - DOC-12 : bâtiment construit il y a moins de quinze ans, l'année d'installation de l'électricité et du gaz est
- *    proposée d'après la construction, à confirmer (rien n'est enregistré sans « Enregistrer ») ;
+ *    proposée d'après la construction, à confirmer (rien n'est enregistré sans « Enregistrer ») ; jamais une année à
+ *    venir (bâtiment vendu sur plan), que le serveur refuserait ;
+ *  - DOC-01 : une échéance passée se lit « Échu », même pour un diagnostic dont le fichier manque encore ;
  *  - DOC-04, DOC-N1, DOC-03 : un rapport de diagnostic dit son échéance réelle (plafond du DPE compris), le bien ou le
  *    lot qu'il sert et la fiche où le renouveler.
  */
@@ -35,6 +37,25 @@ describe("DOC-09 : « Voir le document » de la fiche bien ouvre l'aperçu inté
   });
 });
 
+describe("DOC-01 : l'échéance passée d'un diagnostic se lit « Échu », fichier joint ou non", () => {
+  it("un DPE ancien saisi sans rapport, plafonné au 31/12/2024, dit « Échu » et demande toujours son fichier", () => {
+    const html = renderToStaticMarkup(createElement(LignesDiagnostics, {
+      orgId: "org", bienId: "bien", lotId: "lot", niveau: "lot", attendus: ["dpe"],
+      diagnostics: [{ id: "dpe", type: "dpe", date_realisation: "2019-05-10", date_expiration: "2024-12-31", diagnostiqueur: null, document_id: null, classe_dpe: "D" }],
+    }));
+    expect(html).toContain("Fichier à joindre");
+    expect(html).toContain("Échu le 31/12/2024");
+    expect(html).not.toContain("Échéance le 31/12/2024");
+  });
+
+  it("une échéance à venir reste une « Échéance »", () => {
+    const html = renderToStaticMarkup(createElement(LignesDiagnostics, {
+      orgId: "org", bienId: "bien", lotId: null, niveau: "bien", attendus: ["erp"], diagnostics: [{ ...ERP, date_expiration: "2099-04-01" }],
+    }));
+    expect(html).toContain("Échéance le 01/04/2099");
+  });
+});
+
 describe("DOC-12 : l'année de construction d'un bâtiment récent est proposée pour l'installation", () => {
   const rendre = (anneeConstruction: number | null, qualifications: unknown[] = []) => renderToStaticMarkup(createElement(LignesDiagnostics, {
     orgId: "org", bienId: "bien", lotId: "lot", niveau: "lot", attendus: ["electricite", "gaz"], diagnostics: [],
@@ -55,6 +76,13 @@ describe("DOC-12 : l'année de construction d'un bâtiment récent est proposée
       expect(html).not.toContain("Proposée d’après la construction");
       expect(html).toContain("Laissez vide si vous ne savez pas.");
     }
+  });
+
+  it("bâtiment pas encore livré (vente sur plan) : aucune année à venir n'est proposée, le serveur la refuserait", () => {
+    const html = rendre(annee + 1);
+    expect(html).not.toContain("Proposée d’après la construction");
+    expect(html).not.toContain(`value="${annee + 1}"`);
+    expect(html).toContain("Laissez vide si vous ne savez pas.");
   });
 
   it("une réponse déjà enregistrée n'est jamais remplacée par la proposition", () => {

@@ -9,6 +9,7 @@ import {
   type NiveauDiagnostic,
 } from "@/lib/parc";
 import { presentationDiagnostic, diagnosticConditionnel } from "@/lib/presentation-diagnostics";
+import { jourAParis } from "@/lib/presentation-document";
 import { qualificationsDiagnosticsIdentiques, type QualificationDiagnostic } from "@/lib/qualification-diagnostics";
 import { QualificationDuDiagnostic } from "./qualification-diagnostic";
 import styles from "./lignes-diagnostics.module.css";
@@ -127,8 +128,9 @@ export function LignesDiagnostics({
           <strong ref={element => { titres.current[type] = element; }} tabIndex={-1}>{nom}</strong>
           <BadgeStatut ton={presentation.ton}>{presentation.libelle}</BadgeStatut>
         </div>
+        {/* Échéance passée : « Échu », même quand le fichier manque encore (DPE ancien plafonné, saisi sans rapport). */}
         {!question && (!compact || d || type === "termites" || lectureSeule) && <p className={styles.date}>{d?.date_expiration
-          ? `${presentation.etat === "expire" ? "Échu" : "Échéance"} le ${formaterDate(d.date_expiration)}`
+          ? `${d.date_expiration < jourAParis() ? "Échu" : "Échéance"} le ${formaterDate(d.date_expiration)}`
           : d ? "Aucune échéance renseignée" : type === "termites" ? "Hors dossier de location. Conservez ici un éventuel rapport termites." : lectureSeule ? "Aucun fichier déposé." : "Ajoutez le fichier pour le retrouver ici."}
           {type === "dpe" && d?.classe_dpe && <> · Classe {d.classe_dpe}</>}
         </p>}

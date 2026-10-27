@@ -21,7 +21,10 @@ export function QualificationDuDiagnostic({ orgId, bienId, lotId, type, qualific
 }) {
   // DOC-12 : une installation n'est pas plus ancienne que le bâtiment qui l'abrite. Bâtiment de moins de quinze ans :
   // son année de construction est proposée, à confirmer d'un geste (« Enregistrer ») ; rien n'est enregistré sans lui.
-  const anneeProposee = !qualification && anneeConstruction && Number(jourAParis().slice(0, 4)) - anneeConstruction < 15
+  // Un bâtiment pas encore livré (vente sur plan, année à venir) n'a pas d'installation à dater : le serveur refuserait
+  // l'année proposée.
+  const ageBatiment = anneeConstruction ? Number(jourAParis().slice(0, 4)) - anneeConstruction : null;
+  const anneeProposee = !qualification && ageBatiment !== null && ageBatiment >= 0 && ageBatiment < 15
     ? String(anneeConstruction) : "";
   const [modifier, setModifier] = useState(false);
   const [datePrecise, setDatePrecise] = useState(qualification?.situation === "date_connue");

@@ -4,7 +4,8 @@
  *    01/01/2018 au 30/06/2021 que jusqu'au 31/12/2024. L'échéance saisie n'est pas réécrite ; le blocage de mise en
  *    location et l'alerte quotidienne lisent l'échéance plafonnée ;
  *  - DOC-02 : un rapport rangé en « Autre » ou « Courrier », cité par un diagnostic, est reclassé « Diagnostic » dans
- *    la même transaction (trace dans audit_log) ; une pièce d'un autre type ne l'est jamais ;
+ *    la même transaction (trace dans audit_log) ; une pièce d'un autre type ne l'est jamais ; un fichier d'une signature
+ *    en cours (verrouillé) est refusé avec un message qui parle du diagnostic ;
  *  - DOC-04 : diagnostics_a_renouveler rend le rapport d'un DPE expiré par le plafond, avec son bien et son lot.
  * Transaction annulée, base locale jetable (SUPABASE_DB_URL).
  */
@@ -122,6 +123,25 @@ describe.skipIf(!url)("Diagnostics : validité réglementaire du DPE, rapport re
     await admin();
     expect([await typeDocument(courrier), await typeDocument(identite), await typeDocument(rapport)]).toEqual(["diagnostic", "piece_identite", "diagnostic"]);
     expect((await db.query("select count(*)::int n from public.audit_log where organization_id=$1 and action='document_reclasse_diagnostic'", [org])).rows[0].n).toBe(1);
+  });
+
+  it("DOC-02 : un fichier qui fait partie d'une signature en cours n'est pas reclassé ; le refus parle du diagnostic", async () => {
+    const annexe = await document("autre", "Annexe CREP");
+    const acte = await document("bail", "Avenant à signer");
+    // Circuit posé tel que l'écrit le serveur (déclencheurs de préparation contournés, comme les tests de signature).
+    await db.query("set local session_replication_role = replica");
+    await db.query(`insert into public.bail_signature_circuits(organization_id,document_id,created_by,prestataire,environnement,empreinte,pdf_hash,signataires,annexes,etat,modele,cible_id)
+      values($1,$2,$3,'zoho','sandbox',repeat('a',64),repeat('a',64),'[{"statut":"sent"},{"statut":"sent"}]',$4,'en_cours','avenant',gen_random_uuid())`,
+      [org, acte, gerant, JSON.stringify([{ id: annexe }])]);
+    await db.query("set local session_replication_role = origin");
+    await comme(gerant);
+    await db.query("savepoint verrou");
+    await expect(dpe("2022-03-15", "2032-03-15", annexe)).rejects.toThrow(
+      "Ce fichier fait partie d’une signature en cours : déclarez ce diagnostic une fois la signature terminée ou annulée.");
+    await db.query("rollback to savepoint verrou");
+    await admin();
+    expect(await typeDocument(annexe)).toBe("autre");
+    expect((await db.query("select count(*)::int n from public.diagnostics where document_id=$1", [annexe])).rows[0].n).toBe(0);
   });
 
   it("DOC-04 : diagnostics_a_renouveler rend le rapport du DPE expiré par le plafond, avec son bien et son lot", async () => {

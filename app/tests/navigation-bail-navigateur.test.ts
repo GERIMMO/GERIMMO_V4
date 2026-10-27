@@ -73,7 +73,7 @@ describe.skipIf(!chrome)("Navigation du bail : entrer dans une étape sans l’e
         if(!etat?.__NA&&!etat?._N&&url)canonique=new URL(String(url),location.href).href;
         remplacer({...etat,__NA:true},titre,url);
       };
-      (window as Window & { relireUrlRouteur:()=>void }).relireUrlRouteur=()=>{
+      (window as unknown as Window & { relireUrlRouteur:()=>void }).relireUrlRouteur=()=>{
         remplacer(history.state,"",canonique);
         window.dispatchEvent(new PopStateEvent("popstate",{state:history.state}));
       };
@@ -82,7 +82,7 @@ describe.skipIf(!chrome)("Navigation du bail : entrer dans une étape sans l’e
     const profondeur=await page.evaluate(()=>history.length);
     await page.getByRole("link",{name:"Modifier le loyer",exact:true}).click();
     await page.getByLabel("Loyer d’essai").waitFor();
-    await page.evaluate(()=>(window as Window & { relireUrlRouteur:()=>void }).relireUrlRouteur());
+    await page.evaluate(()=>(window as unknown as Window & { relireUrlRouteur:()=>void }).relireUrlRouteur());
     expect(new URL(page.url()).hash).toBe("#etape-bail-4");
     expect(await page.getByLabel("Loyer d’essai").isVisible()).toBe(true);
     expect(await page.evaluate(()=>history.length)).toBe(profondeur+1);

@@ -139,6 +139,45 @@ describe("Détention refusée : reprendre la fiche effectivement créée", () =>
     expect(banc.creerDetention).not.toHaveBeenCalled();
   });
 
+  it("FL-04 : une SCI familiale sans prénom garde la qualité choisie, jamais « Personne morale » par défaut", async () => {
+    banc.totalDetenu = 0;
+    const saisie = nouvellePersonne();
+    saisie.set("nouveau_nom", "SCI familiale Roux");
+    saisie.set("nouveau_prenom", "");
+    saisie.set("nouveau_date_naissance", "");
+    saisie.set("nouveau_commune_naissance", "");
+    saisie.set("nouveau_qualite", "SCI familiale");
+    expect((await enregistrer(saisie)).succes).toBe("Détention enregistrée.");
+    expect(banc.creerPersonne).toHaveBeenCalledWith(expect.objectContaining({ nom: "SCI familiale Roux", prenom: null, qualite: "SCI familiale" }));
+  });
+
+  it("FL-04 : sans prénom ni qualité choisie, la fiche n'est pas créée", async () => {
+    const saisie = nouvellePersonne();
+    saisie.set("nouveau_prenom", "");
+    const resultat = await enregistrer(saisie);
+    expect(resultat.erreur).toContain("qualité");
+    expect(resultat.valeurs?.nouveau_nom).toBe("Martin");
+    expect(banc.creerPersonne).not.toHaveBeenCalled();
+    expect(banc.creerDetention).not.toHaveBeenCalled();
+  });
+
+  it("FL-04 : une personne physique exige son prénom ; une qualité inconnue est refusée", async () => {
+    const sansPrenom = nouvellePersonne();
+    sansPrenom.set("nouveau_prenom", "");
+    sansPrenom.set("nouveau_qualite", "Personne physique");
+    expect((await enregistrer(sansPrenom)).erreur).toContain("prénom");
+    const inconnue = nouvellePersonne();
+    inconnue.set("nouveau_qualite", "Association de fait");
+    expect((await enregistrer(inconnue)).erreur).toContain("Qualité inconnue");
+    expect(banc.creerPersonne).not.toHaveBeenCalled();
+  });
+
+  it("FL-04 : une fiche avec prénom reste une personne physique quand la qualité n'est pas transmise", async () => {
+    banc.totalDetenu = 0;
+    expect((await enregistrer(nouvellePersonne())).succes).toBe("Détention enregistrée.");
+    expect(banc.creerPersonne).toHaveBeenCalledWith(expect.objectContaining({ prenom: "Camille", qualite: "Personne physique" }));
+  });
+
   it("une détention refusée pour une fiche existante n'annonce aucune création", async () => {
     const saisie = nouvellePersonne();
     saisie.set("person_id", "personne-existante");

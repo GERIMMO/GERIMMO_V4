@@ -16,6 +16,14 @@ export async function chargerBauxActifsDuParc(db: SupabaseClient, orgId: string)
   return { data: lecture.lignes, error: lecture.echec };
 }
 
+/** Baux en préparation du parc : le lot qui en porte un le dit et y mène (audit #264, CB-03). */
+export async function chargerBrouillonsDuParc(db: SupabaseClient, orgId: string) {
+  const lecture = await lireToutesLesPages<{ id: string; lot_id: string }>((debut, fin) => db.from("baux")
+    .select("id,lot_id", { count: "exact" }).eq("organization_id", orgId).eq("etat", "brouillon")
+    .order("created_at").order("id").range(debut, fin), bail => bail.id);
+  return { data: lecture.lignes, error: lecture.echec };
+}
+
 export async function chargerChambresDuParc(db: SupabaseClient, orgId: string) {
   const lecture = await lireToutesLesPages<ChambreDuParc>((debut, fin) => db.from("lot_chambres")
     .select("id,lot_id", { count: "exact" }).eq("organization_id", orgId).order("id").range(debut, fin), chambre => chambre.id);

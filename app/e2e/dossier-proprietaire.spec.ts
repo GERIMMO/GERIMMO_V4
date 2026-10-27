@@ -183,3 +183,106 @@ test('propriétaire : le bail reprend le lot et permet de créer puis retrouver 
     await db.end();
   }
 });
+
+// Audit #264 (FL-09) : la fiche d’un colocataire nomme sa chambre, celle d’un garant le locataire couvert,
+// et la liste dit « bail en préparation » comme la fiche.
+test('propriétaire : fiches et liste des personnes d’un bail de chambre en préparation', async ({ page }) => {
+  const cible = process.env.SUPALOCAL_DB;
+  test.skip(!cible, 'Ce scénario exige une base API locale pour isoler ses données.');
+  const url = new URL(cible!);
+  if (!['127.0.0.1', 'localhost'].includes(url.hostname) || !/^gerimmo_ci_[a-z_]+_api$/.test(url.pathname.slice(1))) throw new Error('Base API locale de recette requise');
+  const db = new Client({ connectionString: cible });
+  await db.connect();
+  const [lotId, chambreId, locataireId, garantId, bailId] = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+  const suffixe = lotId.slice(0, 8);
+  try {
+    const sources = (await db.query("select id from public.lots where organization_id=$1 and nom=$2", [ORG, 'Appartement T2 — 12 rue des Lilas'])).rows;
+    expect(sources).toHaveLength(1);
+    await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots,
+      to_jsonb(l)||jsonb_build_object('id',$1::text,'nom',$2::text,'etat','disponible','created_at',now(),'updated_at',now()))).*
+      from public.lots l where l.id=$4 and l.organization_id=$3`, [lotId, `E2E chambres ${suffixe}`, ORG, sources[0].id]);
+    await db.query(`insert into public.lot_chambres (id, organization_id, lot_id, nom, surface_m2, volume_m3, description, espaces_partages)
+      values ($1,$2,$3,$4,12,30,'Chambre meublée','Cuisine')`, [chambreId, ORG, lotId, `Chambre bleue ${suffixe}`]);
+    await db.query(`insert into public.persons (id, organization_id, nom, prenom, email) values
+      ($1,$3,$4,'Inès',$5), ($2,$3,$6,'Marc',$7)`, [locataireId, garantId, ORG, `Coloc${suffixe}`, `coloc.${suffixe}@example.invalid`, `Garant${suffixe}`, `garant.${suffixe}@example.invalid`]);
+    await db.query(`insert into public.baux (id, organization_id, lot_id, type, etat, chambre_id, locataire_principal, date_debut, loyer_hc, charges)
+      values ($1,$2,$3,'colocation','brouillon',$4,$5,'2026-12-01',450,50)`, [bailId, ORG, lotId, chambreId, locataireId]);
+    await db.query(`insert into public.bail_personnes (organization_id, bail_id, person_id, role, garant_de) values ($1,$2,$3,'garant',$4)`, [ORG, bailId, garantId, locataireId]);
+    await page.goto(`/espace/${ORG}/personnes/${locataireId}`);
+    await expect(page.locator('#rattachements')).toContainText(`E2E chambres ${suffixe} · Chambre bleue ${suffixe}`);
+    await page.goto(`/espace/${ORG}/personnes/${garantId}`);
+    await expect(page.locator('#rattachements')).toContainText(`Garant de Coloc${suffixe} Inès`);
+    await page.goto(`/espace/${ORG}/personnes`);
+    const ligne = (nom: string) => page.locator('li').filter({ hasText: nom }).first();
+    await expect(ligne(`Coloc${suffixe}`)).toContainText('Locataire · bail en préparation');
+    await expect(ligne(`Garant${suffixe}`)).toContainText('Garant · bail en préparation');
+    await expect(ligne(`Coloc${suffixe}`)).not.toContainText('Sans bail en cours');
+    // Un bail seulement en préparation n'est pas un bail en cours : les deux fiches restent dans ce filtre,
+    // pas sous « Locataires » ni « Garants » (relecture de l’audit #264, FL-09).
+    const filtre = (nom: string) => page.getByRole('group', { name: 'Filtrer par rôle' }).getByRole('button').filter({ hasText: nom });
+    await filtre('Sans bail en cours').click();
+    await expect(ligne(`Coloc${suffixe}`)).toBeVisible();
+    await expect(ligne(`Garant${suffixe}`)).toBeVisible();
+    await filtre('Locataires').click();
+    await expect(page.locator('li').filter({ hasText: `Coloc${suffixe}` })).toHaveCount(0);
+    expect(await debordementHorizontal(page)).toBe(0);
+  } finally {
+    await db.query('delete from public.bail_personnes where bail_id=$1 and organization_id=$2', [bailId, ORG]);
+    await db.query('delete from public.baux where id=$1 and organization_id=$2', [bailId, ORG]);
+    await db.query('delete from public.lot_chambres where id=$1 and organization_id=$2', [chambreId, ORG]);
+    await db.query('delete from public.lots where id=$1 and organization_id=$2', [lotId, ORG]);
+    await db.query('delete from public.persons where id = any($1::uuid[]) and organization_id=$2', [[locataireId, garantId], ORG]);
+    await db.end();
+  }
+});
+
+// Audit #264 (FL-02, CB-02, CB-03) : un bail commencé se reprend depuis l’en-tête, la liste des biens et l’accueil ;
+// un second geste de création reprend le brouillon vierge au lieu d’en créer un autre.
+test('propriétaire : un bail commencé se reprend partout, sans brouillon vierge en double', async ({ page }) => {
+  const cible = process.env.SUPALOCAL_DB;
+  test.skip(!cible, 'Ce scénario exige une base API locale pour isoler son lot.');
+  const url = new URL(cible!);
+  if (!['127.0.0.1', 'localhost'].includes(url.hostname) || !/^gerimmo_ci_[a-z_]+_api$/.test(url.pathname.slice(1))) throw new Error('Base API locale de recette requise');
+  const db = new Client({ connectionString: cible });
+  await db.connect();
+  const lotId = randomUUID();
+  try {
+    const sources = (await db.query("select id from public.lots where organization_id=$1 and nom=$2", [ORG, 'Appartement T2 — 12 rue des Lilas'])).rows;
+    expect(sources).toHaveLength(1);
+    await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots,
+      to_jsonb(l)||jsonb_build_object('id',$1::text,'nom',$2::text,'etat','disponible','created_at',now(),'updated_at',now()))).*
+      from public.lots l where l.id=$4 and l.organization_id=$3`, [lotId, `E2E reprise ${lotId}`, ORG, sources[0].id]);
+    await db.query(`insert into public.detentions(id,lot_id,organization_id,person_id,quote_part,date_debut,date_fin)
+      select gen_random_uuid(),$1,organization_id,person_id,quote_part,date_debut,date_fin from public.detentions
+      where lot_id=$3 and organization_id=$2`, [lotId, ORG, sources[0].id]);
+    const brouillons = async () => (await db.query("select count(*)::int as n from public.baux where lot_id=$1 and etat='brouillon'", [lotId])).rows[0].n;
+    await page.goto(`/espace/${ORG}/parc`);
+    const fiche = (await page.locator(`a[data-lot-id="${lotId}"]`).getAttribute('href'))!;
+    await page.goto(fiche);
+    await page.locator('#nouvelle-location').getByRole('button', { name: 'Commencer un bail', exact: true }).click();
+    await expect(page).toHaveURL(/\/baux\/[0-9a-f-]+#etape-bail-1$/);
+    const bailId = /\/baux\/([0-9a-f-]+)#/.exec(page.url())![1];
+    // L’en-tête reprend ce brouillon : il ne propose plus d’en créer un autre.
+    await page.goto(fiche);
+    const entete = page.locator('#nouvelle-location');
+    await expect(entete.getByRole('button')).toHaveCount(0);
+    await expect(entete.getByRole('link', { name: 'Reprendre le bail', exact: true })).toHaveAttribute('href', new RegExp(`/baux/${bailId}$`));
+    // Le geste secondaire reste offert, mais un brouillon encore vierge est repris, pas doublé.
+    await page.locator('summary').filter({ hasText: 'Préparer un autre contrat' }).click();
+    await page.locator('#nouveau-contrat').getByRole('button', { name: 'Commencer le bail', exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/baux/${bailId}#etape-bail-1$`));
+    expect(await brouillons()).toBe(1);
+    // La liste des biens et l’accueil mènent au bail en préparation.
+    await page.goto(`/espace/${ORG}/parc`);
+    await expect(page.locator(`a[href$="/baux/${bailId}"]`).filter({ hasText: 'Reprendre le bail en préparation' })).toHaveCount(1);
+    await page.goto(`/espace/${ORG}`);
+    await expect(page.locator(`#taches-proprietaire a[href$="/baux/${bailId}"]`)).toHaveCount(1);
+    expect(await debordementHorizontal(page)).toBe(0);
+  } finally {
+    // Périmètre exclusivement créé par CETTE tentative, jamais le lot du seed.
+    await db.query('delete from public.baux where lot_id=$1 and organization_id=$2', [lotId, ORG]);
+    await db.query('delete from public.detentions where lot_id=$1 and organization_id=$2', [lotId, ORG]);
+    await db.query('delete from public.lots where id=$1 and organization_id=$2', [lotId, ORG]);
+    await db.end();
+  }
+});

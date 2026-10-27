@@ -65,7 +65,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
       return { lot, blocages: error || !Array.isArray(data) ? null : data as string[] };
     } catch { return { lot, blocages: null }; }
   }));
-  const taches = construireTachesAccueil({ base, actions, lots: patrimoine?.lots ?? [], lotsSansBail: patrimoine?.lotsSansBail ?? [], preparation, diagnostics: diagnostics ?? [] });
+  const taches = construireTachesAccueil({ base, actions, lots: patrimoine?.lots ?? [], lotsSansBail: patrimoine?.lotsSansBail ?? [], lotsEnPreparation: patrimoine?.lotsEnPreparation ?? [], preparation, diagnostics: diagnostics ?? [] });
   // Chaque échéance due compte, même quand la fenêtre ne présente que la plus ancienne de son bail (audit du 27/10, LAT-03).
   const totalPrioritaire = critiques.length + rappels.totalEcheancesDues;
   const automatisations = [

@@ -26,6 +26,9 @@ export function resumerPilotage(biens: { id: string; nom?: string }[], lots: Lot
     biens: biens.length, lots: visibles, contrats: contrats.length, lotsOccupes: occupes.size,
     chambresSansBail: occupations.reduce((n, o) => n + o.chambresSansBail, 0),
     lotsSansBail: visibles.filter(l => l.etat === "disponible" && !engages.has(l.id)),
+    // Un bail commencé reste une tâche jusqu'à son activation (audit #264, CB-03).
+    lotsEnPreparation: visibles.map(l => ({ ...l, brouillons: baux.filter(b => b.lot_id === l.id && b.etat === "brouillon").map(b => b.id) }))
+      .filter(l => l.brouillons.length > 0),
   };
 }
 

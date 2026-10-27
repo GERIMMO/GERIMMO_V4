@@ -17,9 +17,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modale } from "@/components/ui/modale";
 import { nomComplet } from "@/lib/roles-personnes";
+import { AIDE_QUALITE, QUALITES_BAILLEUR } from "@/lib/qualite-bailleur";
 
 type Personne = { id: string; nom: string; prenom: string | null };
-const FICHE_VIDE = { nom: "", prenom: "", email: "", dateNaissance: "", communeNaissance: "", adresse: "", codePostal: "", ville: "" };
+const FICHE_VIDE = { nom: "", qualite: "", prenom: "", email: "", dateNaissance: "", communeNaissance: "", adresse: "", codePostal: "", ville: "" };
 
 export function FormulaireDetention({
   orgId,
@@ -28,6 +29,7 @@ export function FormulaireDetention({
   personnes,
   proprietairesIds,
   premierProprietaire,
+  estProprietaire = false,
 }: {
   orgId: string;
   bienId: string;
@@ -35,6 +37,8 @@ export function FormulaireDetention({
   personnes: Personne[];
   proprietairesIds: string[];
   premierProprietaire: boolean;
+  /** Espace du propriétaire direct : ses fiches vivent dans « Locataires & garants », pas « Personnes ». */
+  estProprietaire?: boolean;
 }) {
   const actionLiee = ajouterDetention.bind(null, orgId, bienId, lotId);
   const { etat, soumettre: action, enCours } = useActionFormulaire<EtatParc>(actionLiee);
@@ -92,6 +96,9 @@ export function FormulaireDetention({
   const autres = personnesDisponibles.filter((p) => !proprietairesIds.includes(p.id));
   // Quote-part visible dès qu'il y a (ou qu'on déclare) plusieurs propriétaires
   const montrerQuotePart = !premierProprietaire || indivision;
+  // La qualité se choisit, elle ne se déduit pas d'un prénom vide : la durée du bail nu
+  // en dépend (lib/qualite-bailleur.ts). Seule une personne physique porte un prénom (audit #264, FL-04).
+  const personnePhysique = nouveau.qualite === "Personne physique";
 
   useEffect(() => {
     if (!etat.succes) return;
@@ -185,16 +192,17 @@ export function FormulaireDetention({
           <>
             {/* Valeurs saisies dans la pop-up, reportées ici pour l'envoi */}
             <input type="hidden" name="nouveau_nom" value={nouveau.nom} />
-            <input type="hidden" name="nouveau_prenom" value={nouveau.prenom} />
+            <input type="hidden" name="nouveau_qualite" value={nouveau.qualite} />
+            <input type="hidden" name="nouveau_prenom" value={personnePhysique ? nouveau.prenom : ""} />
             <input type="hidden" name="nouveau_email" value={nouveau.email} />
-            <input type="hidden" name="nouveau_date_naissance" value={nouveau.dateNaissance} />
-            <input type="hidden" name="nouveau_commune_naissance" value={nouveau.communeNaissance} />
+            <input type="hidden" name="nouveau_date_naissance" value={personnePhysique ? nouveau.dateNaissance : ""} />
+            <input type="hidden" name="nouveau_commune_naissance" value={personnePhysique ? nouveau.communeNaissance : ""} />
             <input type="hidden" name="nouveau_adresse" value={nouveau.adresse} />
             <input type="hidden" name="nouveau_code_postal" value={nouveau.codePostal} />
             <input type="hidden" name="nouveau_ville" value={nouveau.ville} />
             {!modaleOuverte && (
               <p className="text-xs text-muted-foreground sm:col-span-2">
-                Nouveau <b>propriétaire</b> : {nomComplet(nouveau) || "nom à compléter"} — {nouveau.email || "adresse email à compléter"}{" "}
+                Nouveau <b>propriétaire</b> : {nomComplet(personnePhysique ? nouveau : { nom: nouveau.nom }) || "nom à compléter"}{nouveau.qualite ? ` · ${nouveau.qualite}` : ""} — {nouveau.email || "adresse email à compléter"}{" "}
                 <button
                   type="button"
                   onClick={() => setModaleOuverte(true)}
@@ -210,8 +218,7 @@ export function FormulaireDetention({
           <Label htmlFor="detention-debut">Début de détention</Label>
           <InputDateJour id="detention-debut" name="date_debut" valeurSoumise={etat.valeurs?.date_debut} />
           <p className="text-sm text-muted-foreground">
-            Vide = aujourd&apos;hui. La somme active ne peut pas dépasser 100 %
-            .
+            Vide = aujourd&apos;hui. La somme active ne peut pas dépasser 100&nbsp;%.
           </p>
         </div>
       </div>
@@ -230,7 +237,7 @@ export function FormulaireDetention({
       {modaleOuverte && (
         <Modale
           titre="Nouveau propriétaire"
-          surtitre="La fiche complète se retrouve dans Personnes"
+          surtitre={estProprietaire ? "La fiche complète se retrouve dans Locataires & garants" : "La fiche complète se retrouve dans Personnes"}
           fermer={fermerModale}
         >
           <div
@@ -240,7 +247,7 @@ export function FormulaireDetention({
               // détention) — sur un bouton, elle garde son sens.
               if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") {
                 e.preventDefault();
-                if ([...e.currentTarget.querySelectorAll<HTMLInputElement>("input")].every(input => input.reportValidity())) {
+                if ([...e.currentTarget.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input, select")].every(input => input.reportValidity())) {
                   setModaleOuverte(false);
                 }
               }
@@ -257,22 +264,43 @@ export function FormulaireDetention({
                   onChange={(e) => setNouveau({ ...nouveau, nom: e.target.value })}
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="detention-qualite">Qualité du propriétaire *</Label>
+                {/* Liste fermée, comme sur la fiche de la personne : 3 ans pour une personne
+                    physique, une indivision de personnes physiques ou une SCI familiale, 6 ans
+                    pour une autre personne morale (art. 10 et 13 de la loi du 6 juillet 1989). */}
+                <select
+                  id="detention-qualite"
+                  required
+                  value={nouveau.qualite}
+                  onChange={(e) => setNouveau({ ...nouveau, qualite: e.target.value })}
+                  className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                >
+                  <option value="" disabled>— Choisir —</option>
+                  {QUALITES_BAILLEUR.map((q) => (
+                    <option key={q} value={q}>
+                      {q} — {AIDE_QUALITE[q]}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               <div className="space-y-1.5"><Label htmlFor="detention-adresse">Adresse *</Label><Input id="detention-adresse" required value={nouveau.adresse} onChange={(e) => setNouveau({ ...nouveau, adresse: e.target.value })} /></div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5"><Label htmlFor="detention-cp">Code postal *</Label><Input id="detention-cp" required value={nouveau.codePostal} onChange={(e) => setNouveau({ ...nouveau, codePostal: e.target.value })} /></div>
                 <div className="space-y-1.5"><Label htmlFor="detention-ville">Ville *</Label><Input id="detention-ville" required value={nouveau.ville} onChange={(e) => setNouveau({ ...nouveau, ville: e.target.value })} /></div>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="detention-prenom">Prénom</Label>
+              {personnePhysique && <div className="space-y-1.5">
+                <Label htmlFor="detention-prenom">Prénom *</Label>
                 <Input
                   id="detention-prenom"
+                  required
                   maxLength={120}
                   value={nouveau.prenom}
                   onChange={(e) => setNouveau({ ...nouveau, prenom: e.target.value })}
                 />
-              </div>
-              {nouveau.prenom && <div className="grid gap-3 sm:grid-cols-2">
+              </div>}
+              {personnePhysique && <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5"><Label htmlFor="detention-naissance">Date de naissance *</Label><Input id="detention-naissance" type="date" required value={nouveau.dateNaissance} onChange={(e) => setNouveau({ ...nouveau, dateNaissance: e.target.value })} /></div>
                 <div className="space-y-1.5"><Label htmlFor="detention-commune-naissance">Commune de naissance *</Label><Input id="detention-commune-naissance" required value={nouveau.communeNaissance} onChange={(e) => setNouveau({ ...nouveau, communeNaissance: e.target.value })} /></div>
               </div>}
@@ -288,8 +316,8 @@ export function FormulaireDetention({
                   onChange={(e) => setNouveau({ ...nouveau, email: e.target.value })}
                 />
                 <p className="text-sm text-muted-foreground">
-                  Une adresse ne peut appartenir qu&apos;à une seule fiche de
-                  l&apos;agence.
+                  Une adresse ne peut appartenir qu&apos;à une seule fiche{" "}
+                  {estProprietaire ? "de votre espace" : "de l’agence"}.
                 </p>
               </div>
               <div className="flex items-center justify-end gap-2">
@@ -300,7 +328,7 @@ export function FormulaireDetention({
                   type="button"
                   size="sm"
                   onClick={(e) => {
-                    if (![...e.currentTarget.closest(".space-y-3")!.querySelectorAll<HTMLInputElement>("input")].every(input => input.reportValidity())) return;
+                    if (![...e.currentTarget.closest(".space-y-3")!.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input, select")].every(input => input.reportValidity())) return;
                     // Validation native des deux champs obligatoires avant de
                     // refermer — la création réelle part avec la détention.
                     if (!refNom.current?.reportValidity()) return;

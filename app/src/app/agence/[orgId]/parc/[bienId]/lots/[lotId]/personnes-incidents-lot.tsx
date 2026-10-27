@@ -76,6 +76,11 @@ export async function PersonnesLot({ orgId, lotId, base, lectureSeule, baux, err
     liens,
     identites.map(personne => ({ ...personne, date_naissance: null })),
   );
+  // Un brouillon sans aucune personne n'a ni locataire ni garant à présenter : il reste
+  // visible dans la carte du bail, pas ici sous « Location N » (audit #264, FL-11).
+  const bauxAvecPersonnes = bauxLus.filter(bail => bail.etat !== "brouillon"
+    || [...resume.locataires, ...resume.garants].some(lien => lien.bail_id === bail.id));
+  if (!bauxAvecPersonnes.length) return <p className={styles.vide}>Aucun locataire ni garant rattaché à une location en cours.</p>;
   const aujourdHui = aujourdhuiParis();
   const personne = (lien: PersonneResume, role: string) => {
     const identite = identitesParId.get(lien.person_id);
@@ -95,14 +100,14 @@ export async function PersonnesLot({ orgId, lotId, base, lectureSeule, baux, err
 
   return <div className={styles.contenu}>
     {lectureChambres.error && <LectureIndisponible>Le nom des chambres n’a pas pu être chargé.</LectureIndisponible>}
-    {bauxLus.map((bail, index) => {
+    {bauxAvecPersonnes.map((bail, index) => {
       const locataires = resume.locataires.filter(lien => lien.bail_id === bail.id);
       const actuels = locataires.filter(lien => !lien.depart || lien.depart > aujourdHui);
       const anciens = locataires.filter(lien => lien.depart && lien.depart <= aujourdHui);
       const garants = resume.garants.filter(lien => lien.bail_id === bail.id);
       return <div key={bail.id} className={styles.contrat}>
-        {(bauxLus.length > 1 || bail.etat !== "actif" || bail.chambre_id) && <div className={styles.contratEntete}>
-          <span>{bail.chambre_id ? chambres.get(bail.chambre_id) ?? "Chambre" : bauxLus.length > 1 ? `Location ${index + 1}` : "Location"}</span>
+        {(bauxAvecPersonnes.length > 1 || bail.etat !== "actif" || bail.chambre_id) && <div className={styles.contratEntete}>
+          <span>{bail.chambre_id ? chambres.get(bail.chambre_id) ?? "Chambre" : bauxAvecPersonnes.length > 1 ? `Location ${index + 1}` : "Location"}</span>
           {bail.etat === "brouillon" && <span className="puce puce-prep">En préparation</span>}
           {bail.etat === "preavis" && <span className="puce puce-prep">Préavis</span>}
         </div>}

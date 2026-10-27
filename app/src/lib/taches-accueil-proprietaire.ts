@@ -18,6 +18,8 @@ type Options = {
   actions: ActionDuJour[];
   lots: LotPilotage[];
   lotsSansBail: LotPilotage[];
+  /** Lots dont un bail est en préparation, avec les identifiants de ces brouillons. */
+  lotsEnPreparation?: (LotPilotage & { brouillons: string[] })[];
   preparation: { lot: LotPilotage; blocages: string[] | null }[];
   diagnostics: (DiagnosticPilotage & { lot: LotPilotage })[];
 };
@@ -26,7 +28,7 @@ const incidentId = (action: ActionDuJour) => action.source === "alerte" && typeo
   ? action.alerte.details.incident_id : null;
 
 /** Une tâche se traite depuis sa cible ; les priorités restent dans leur carte dédiée. */
-export function construireTachesAccueil({ base, actions, lots, lotsSansBail, preparation, diagnostics }: Options): TacheAccueil[] {
+export function construireTachesAccueil({ base, actions, lots, lotsSansBail, lotsEnPreparation = [], preparation, diagnostics }: Options): TacheAccueil[] {
   const nomsLots = new Map(lots.map(lot => [lot.id, lot.nom]));
   const incidentsDejaAffiches = new Set(actions.filter(a => a.criticite === "critique").map(incidentId).filter(Boolean));
   const cles = new Set<string>();
@@ -56,6 +58,17 @@ export function construireTachesAccueil({ base, actions, lots, lotsSansBail, pre
     ciblesExistantes.add(href);
     taches.push({ cle: `surveillance-${diagnostic.id}`, titre: "Vérifier les conditions de location", contexte: diagnostic.lot.nom,
       detail: `DPE ${diagnostic.classe_dpe}`, echeance: null, href, geste: "Voir le DPE", nature: "document" });
+  }
+
+  // Un bail commencé se reprend avant d'en préparer un autre : un seul brouillon s'ouvre
+  // directement, plusieurs renvoient à la fiche du lot qui les liste (audit #264, CB-03).
+  for (const lot of lotsEnPreparation) {
+    const href = lot.brouillons.length === 1 ? `${base}/baux/${lot.brouillons[0]}` : `${base}/parc/${lot.bien_id}/lots/${lot.id}#baux`;
+    if (ciblesExistantes.has(href)) continue;
+    ciblesExistantes.add(href);
+    taches.push({ cle: `bail-preparation-${lot.id}`, titre: "Finaliser le bail", contexte: lot.nom,
+      detail: lot.brouillons.length > 1 ? `${lot.brouillons.length} baux en préparation` : "Bail en préparation",
+      echeance: null, href, geste: lot.brouillons.length > 1 ? "Voir les baux" : "Reprendre le bail", nature: "location" });
   }
 
   const preparations = new Map(preparation.map(p => [p.lot.id, p.blocages]));

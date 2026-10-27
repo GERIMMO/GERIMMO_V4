@@ -91,7 +91,9 @@ avant publication. Aucune migration : seulement du code.
 | **ED-04 Documents du locataire** | Un seul geste : le titre de chaque pièce, bail ou quittance ouvre l'aperçu en fenêtre, téléchargement ou impression depuis la fenêtre, plus aucun nouvel onglet. | ok |
 | **TRV-05 Images inutilisées** | 14 photos et le composant BandeauAccueil supprimés (−2,4 Mo) ; un test empêche qu'une illustration non référencée revienne. | ok |
 
-Vérification : {{INTEG5_BILAN}}
+Vérification : lint 0, types 0, build OK, **11 726 tests unitaires verts**, 257 parcours navigateur (253 verts
+au premier passage, 3 échecs analysés et rejoués verts : deux attentes de test périmées par une retouche, un test de
+supervision instable sous charge sans lien avec les changements). Détail au § 11 du rapport (tête `3b58d8f2`).
 
 Restent à votre choix, signalés par les relectures : marquer aussi « repris du bail précédent » sur la fiche du lot ;
 rendre l'inventaire du meublé « à vérifier » tant qu'un état manque (migration) ; appliquer le geste unique aux liens vers

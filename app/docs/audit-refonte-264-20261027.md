@@ -636,7 +636,27 @@ complète. Aucune migration. Les rapports des chantiers et des relectures sont d
   meublé au forfait reprend type et mode, et le plafond du dépôt suit alors le type repris (« à vérifier » seul signal).
 
 ### 11.6 Intégration et batterie
-{{INTEG5}}
+Sur la branche de travail après fusion des cinq chantiers (tête `3b58d8f2`), banc identique à la CI (base neuve, 432 migrations,
+émulateur, build de production) :
+
+| Contrôle | Résultat |
+|---|---|
+| `npm run lint` | 0 erreur |
+| `npm run build` puis `npm run typecheck` | OK, 0 erreur (la nouvelle route `/quittance/[id]/document` génère son type au build, comme en CI) |
+| Vitest complet | **811 fichiers, 11 726 tests réussis**, 22 ignorés, 0 échec |
+| Parcours navigateur (257) | 253 réussis, 1 ignoré, 3 échecs analysés : 2 = attente du test de relocation périmée par la retouche « révision IRL au défaut » (test aligné, rejoué 2/2 vert) ; 1 = `supervision-consignes` à 390 px, deux `<main>` pendant une navigation sous charge (aucun fichier de supervision touché ; rejoué seul : 4/4 vert) |
+
+Retouches d'intégration (trois commits, issues des relectures) : titres soulignés et en-tête actualisé dans « Mes
+documents » ; révision IRL remise au défaut de la base après « Effacer ces valeurs » (comme le jour d'échéance), avec les
+tests d'écran et de parcours alignés sur ce choix. Fusions sans conflit ; aucun fichier touché par deux chantiers.
+
+Leçon de banc : la suite unitaire et les parcours navigateur ne doivent pas tourner en même temps sur le même banc — les
+tests `*-api` ouvrent des sessions avec les comptes fictifs partagés et invalident celles du navigateur (premier passage
+pollué, arrêté, puis rejoué seul : c'est le passage ci-dessus).
+
+Déploiement : aucune migration, aucune variable, aucun secret ; suppression de 14 fichiers de `public/illustrations/`
+(jamais demandés par aucune page : leurs adresses répondront 404 sans effet) ; recette de production à relancer après
+la fusion.
 
 ## Annexe A — Sources
 

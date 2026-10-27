@@ -7223,6 +7223,8 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   « relocation », refaite : ok.
 - Intégration sur `claude/compassionate-euler-qpqjp6` (fusions sans conflit), trois retouches issues des relectures
   (titres soulignés et en-tête de « Mes documents » ; révision IRL au défaut de la base après « Effacer ces valeurs »).
-  Aucune migration. {{INTEG5_LOG}}
+  Aucune migration. Batterie sur la tête `3b58d8f2` : lint 0, types 0, build OK, Vitest 811 fichiers /
+  11 726 tests verts, 257 parcours navigateur (253 verts, 1 ignoré, 3 échecs analysés : 2 attentes périmées corrigées et
+  rejouées vertes, 1 instable `supervision-consignes` 390 px rejoué vert seul).
 - Rapport : `app/docs/audit-refonte-264-20261027.md` § 11 ; preuves : `app/docs/preuves-audit-264/decisions.json` et
   15 captures ; bilan du wiki mis à jour. **Rien n'est fusionné ni déployé** : accord attendu.

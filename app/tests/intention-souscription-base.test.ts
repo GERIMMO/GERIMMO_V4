@@ -304,6 +304,9 @@ describe.skipIf(!url)("intentions de souscription : une seule en cours, droits r
     const avant = await empreinte();
     await db.query(migration);
     await db.query(migration);
+    // Les migrations ultérieures reposent la garde de traversée sur la table recréée.
+    // Le retour du socle supprime cette table : restaurer aussi cette protection actuelle.
+    await db.query("select public.poser_gardes_traversee()");
     expect(await empreinte()).toEqual(avant);
 
     await db.query(retour);
@@ -318,6 +321,9 @@ describe.skipIf(!url)("intentions de souscription : une seule en cours, droits r
     expect(await gardeOrigine()).toBe(origine);
 
     await db.query(migration);
+    // Les migrations ultérieures reposent la garde de traversée sur la table recréée.
+    // Le retour du socle supprime cette table : restaurer aussi cette protection actuelle.
+    await db.query("select public.poser_gardes_traversee()");
     expect(await empreinte()).toEqual(avant);
     await service();
     expect((await reserver()).reprise).toBe(false);

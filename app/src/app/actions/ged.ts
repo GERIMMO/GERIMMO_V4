@@ -8,12 +8,15 @@ import { TYPES_DEPOSABLES } from "@/lib/ged";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { estUuid } from "@/lib/identifiants";
 
 export type EtatDepot = {
   erreur?: string;
   succes?: string;
   avertissement?: string;
   documentId?: string;
+  // Vrai quand le document apparaît désormais sur la fiche du lot d'origine
+  lotLie?: boolean;
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
 };
@@ -33,7 +36,12 @@ export async function deposerDocument(
   const type = String(formData.get("type") ?? "");
   const titre = String(formData.get("titre") ?? "").trim();
   const personneId = String(formData.get("personne") ?? "").trim();
+  const lotId = String(formData.get("lot") ?? "").trim();
 
+  // Un fichier choisi mais vide n'est pas un fichier absent (audit #264, DOC-11).
+  if (fichier instanceof File && fichier.size === 0 && fichier.name) {
+    return { erreur: "Ce fichier est vide : choisissez le document complet.", valeurs };
+  }
   if (!(fichier instanceof File) || fichier.size === 0) {
     return { erreur: "Choisissez un fichier.", valeurs };
   }
@@ -60,6 +68,25 @@ export async function deposerDocument(
       return { erreur: "Cette personne n’est plus disponible dans cet espace. Choisissez une autre personne ou déposez le document sans la lier.", valeurs };
     }
   }
+  // Dépôt ouvert depuis la fiche d'un lot (audit #264, DOC-05) : même garde.
+  // La RLS des lots borne aussi l'agent à son portefeuille.
+  if (lotId) {
+    const { data: lot, error } = estUuid(lotId)
+      ? await supabase
+          .from("lots")
+          .select("id")
+          .eq("id", lotId)
+          .eq("organization_id", orgId)
+          .neq("etat", "archive")
+          .maybeSingle()
+      : { data: null, error: null };
+    if (error) {
+      return { erreur: "Impossible de vérifier le lot pour le moment. Votre saisie est conservée ; réessayez.", valeurs };
+    }
+    if (!lot) {
+      return { erreur: "Ce lot n’est plus disponible dans cet espace. Décochez le rattachement au lot ou revenez à sa fiche.", valeurs };
+    }
+  }
 
   const resultat = await deposerFichierGed(supabase, user, orgId, fichier, type, titre);
   if (resultat.erreur || !resultat.documentId) {
@@ -80,12 +107,27 @@ export async function deposerDocument(
       avertissements.push(`Le lien avec la personne n’a pas pu être ajouté : ${sansJargon(erreurLien.message)} Vous pouvez le réessayer depuis la fiche du document.`);
     }
   }
+  let lotLie = false;
+  if (lotId) {
+    const { error: erreurLien } = await supabase.from("document_liens").insert({
+      document_id: resultat.documentId,
+      organization_id: orgId,
+      entite: "lot",
+      entite_id: lotId,
+    });
+    if (erreurLien) {
+      avertissements.push(`Le lien avec le lot n’a pas pu être ajouté : ${sansJargon(erreurLien.message)} Vous pouvez le réessayer depuis la fiche du document.`);
+    } else {
+      lotLie = true;
+    }
+  }
 
   revalidatePath(`/agence/${orgId}/documents`);
   revalidatePath(`/espace/${orgId}/documents`);
   return {
     succes: "Document déposé.",
     documentId: resultat.documentId,
+    ...(lotLie ? { lotLie } : {}),
     ...(avertissements.length ? { avertissement: avertissements.join(" ") } : {}),
   };
 }

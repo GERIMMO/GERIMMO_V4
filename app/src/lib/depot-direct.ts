@@ -2,19 +2,48 @@ import {createHash} from 'node:crypto';
 import type {SupabaseClient} from '@supabase/supabase-js';
 import {detecterMimeReel,pdfComplet,TAILLE_MAX_DEPOT_OCTETS} from './file-type';
 import {BUCKET_TRANSIT,PREFIXE_DEPOT,MAX_DEPOT_DIRECT,MAX_FORMULAIRE_DIRECT,descriptionDepotValide,type DescriptionDepot} from './depot-direct-commun';
+import {formaterHeureParis} from './heure-paris';
 const verifies=new WeakSet<File>();
+// Une réservation reprise doit laisser le temps de soumettre le formulaire.
+const MARGE_REPRISE=30*60_000;
 /** Seul un fichier réellement relu et contrôlé côté serveur bénéficie du transport direct. */
 export function limiteFichierDepose(f:File){return verifies.has(f)?MAX_DEPOT_DIRECT:TAILLE_MAX_DEPOT_OCTETS;}
 export async function reserverDepotDirect(db:SupabaseClient,description:DescriptionDepot) {
  if(!descriptionDepotValide(description))return {erreur:'Choisissez un PDF, JPEG ou PNG de 10 Mo maximum.'};
  const {data:{user},error:auth}=await db.auth.getUser();
  if(auth||!user)return {erreur:'Reconnectez-vous avant de déposer le document.'};
+ // Nouvel essai du même fichier (doublon refusé par l’action métier, saisie corrigée, page rechargée) :
+ // sa réservation encore valable est reprise, sans quota ni stockage supplémentaires (audit #264, DOC-13).
+ const reprise=await db.from('depots_temporaires').select('id,chemin').eq('compte_id',user.id).eq('empreinte',description.empreinte)
+  .eq('nom',description.nom).eq('mime',description.mime).eq('taille',description.taille)
+  .gt('expire_le',new Date(Date.now()+MARGE_REPRISE).toISOString()).order('created_at',{ascending:false}).limit(1).maybeSingle();
+ if(reprise.data){
+  const {id,chemin}=reprise.data as {id:string;chemin:string};
+  const present=await db.storage.from(BUCKET_TRANSIT).list(user.id,{search:id,limit:10});
+  if(!present.error&&(present.data??[]).some(o=>o.name===id))return {id,chemin,transfere:true as const};
+  // Transfert interrompu : le même chemin réservé reçoit un nouvel essai.
+  if(!present.error){
+   const signe=await db.storage.from(BUCKET_TRANSIT).createSignedUploadUrl(chemin,{upsert:false});
+   if(!signe.error&&signe.data)return {id,chemin:signe.data.path,jeton:signe.data.token};
+  }
+ }
  const r=await db.from('depots_temporaires').insert({nom:description.nom,mime:description.mime,taille:description.taille,empreinte:description.empreinte}).select('id,chemin').single();
- if(r.error||!r.data)return {erreur:'Le dépôt ne peut pas être préparé. Vérifiez votre accès ou réessayez dans une heure si vous avez envoyé beaucoup de fichiers.'};
+ if(r.error||!r.data){
+  if(r.error?.message?.includes('Limite des dépôts'))return {erreur:await messageQuota(db,user.id)};
+  return {erreur:'Le dépôt ne peut pas être préparé. Vérifiez votre accès ou réessayez dans une heure si vous avez envoyé beaucoup de fichiers.'};
+ }
  // Session de l’utilisateur, jamais de clé de service : la policy borne le chemin réservé.
  const signe=await db.storage.from(BUCKET_TRANSIT).createSignedUploadUrl(r.data.chemin,{upsert:false});
  if(signe.error||!signe.data)return {erreur:'Le transfert ne peut pas être préparé. Votre fichier reste sélectionné.'};
  return {id:r.data.id as string,chemin:signe.data.path,jeton:signe.data.token};
+}
+/** La limite glissante (20 fichiers ou 100 Mo par heure) se libère quand la plus ancienne réservation de l’heure sort de la fenêtre. */
+async function messageQuota(db:SupabaseClient,compte:string):Promise<string> {
+ const plusAncienne=await db.from('depots_temporaires').select('created_at').eq('compte_id',compte)
+  .gt('created_at',new Date(Date.now()-3_600_000).toISOString()).order('created_at',{ascending:true}).limit(1).maybeSingle();
+ const debut=plusAncienne.data?Date.parse(String(plusAncienne.data.created_at)):Number.NaN;
+ const reprise=Number.isFinite(debut)?` Vous pourrez reprendre vers ${formaterHeureParis(debut+3_600_000)} (heure de Paris).`:' Réessayez dans une heure.';
+ return `Vous avez envoyé beaucoup de fichiers en peu de temps (20 fichiers ou 100 Mo par heure au plus).${reprise} Votre fichier reste sélectionné.`;
 }
 /** Remplace uniquement les références de transit ; les fichiers classiques suivent leur circuit existant. */
 export async function resoudreDepotsFormulaire(db:SupabaseClient,form:FormData):Promise<string|null> {

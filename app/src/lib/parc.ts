@@ -41,6 +41,17 @@ export const COULEURS_ETAT_LOT: Record<string, string> = {
   archive: "puce puce-grise",
 };
 
+// Le nom seul ne désigne pas un lot : « Lot unique », posé à la création d'un
+// bien sans découpage, se répète d'un bien à l'autre (audit #264, DOC-06).
+// Comme sur la page Parc, le lot unique prend le nom de son bien ; les autres
+// se lisent « bien · lot ».
+export function libelleLot(lotNom: string | null | undefined, bienNom: string | null | undefined): string {
+  const lot = lotNom?.trim() ?? "";
+  const bien = bienNom?.trim() ?? "";
+  if (!bien) return lot || "Lot";
+  return !lot || lot === "Lot unique" ? bien : `${bien} · ${lot}`;
+}
+
 export type NiveauDiagnostic = "bien" | "lot";
 
 // Répartition bien/lot et validités (RM-0.6.x). validite_mois nulle = illimité

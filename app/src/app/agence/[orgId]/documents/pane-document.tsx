@@ -17,6 +17,7 @@ import { nomComplet } from "@/lib/roles-personnes";
 import { CircuitDocument, type DemandeDuDocument } from "./circuit-document";
 import { EchecLecture, PanneauEchecLecture } from "./echec-lecture";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
+import { libelleLot } from "@/lib/parc";
 import { Card, CardContent } from "@/components/ui/card";
 import { ActionsDocument } from "./actions-document";
 import { FormulaireRemplacer } from "./formulaire-remplacer";
@@ -150,12 +151,12 @@ export async function PaneDocument({
         .order("nom"),
       supabase
         .from("lots")
-        .select("id, nom")
+        .select("id, nom, etat, bien:biens!lots_bien_id_fkey(nom)")
         .eq("organization_id", orgId)
         .order("nom"),
       supabase
         .from("baux")
-        .select("id, etat, date_debut, locataire_principal, lot:lots(nom)")
+        .select("id, etat, date_debut, locataire_principal, lot:lots(nom, bien:biens!lots_bien_id_fkey(nom))")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(PLAFOND_BAUX),
@@ -186,7 +187,10 @@ export async function PaneDocument({
   }
 
   const nomsPersonnes = new Map((personnes ?? []).map((p) => [p.id, nomComplet(p)]));
-  const nomsLots = new Map((lots ?? []).map((l) => [l.id, l.nom]));
+  // « Lot unique » se répète d'un bien à l'autre : le lot se nomme avec son
+  // bien, ici comme dans « Déjà lié à » et les baux (audit #264, DOC-06).
+  const lotsLus = (lots ?? []) as { id: string; nom: string; etat: string; bien: UnOuPlusieurs<{ nom: string }> }[];
+  const nomsLots = new Map(lotsLus.map((l) => [l.id, libelleLot(l.nom, premier(l.bien)?.nom)]));
   const demandes: DemandeDuDocument[] = (
     (demandesBrutes ?? []) as {
       id: string;
@@ -213,10 +217,11 @@ export async function PaneDocument({
     etat: string;
     date_debut: string | null;
     locataire_principal: string | null;
-    lot: UnOuPlusieurs<{ nom: string }>;
+    lot: UnOuPlusieurs<{ nom: string; bien: UnOuPlusieurs<{ nom: string }> }>;
   }[];
   const libelleBail = (b: (typeof baux)[number]) => {
-    const morceaux = [`Bail ${premier(b.lot)?.nom ?? ""}`.trim()];
+    const lot = premier(b.lot);
+    const morceaux = [lot ? `Bail ${libelleLot(lot.nom, premier(lot.bien)?.nom)}` : "Bail"];
     if (b.locataire_principal && nomsPersonnes.has(b.locataire_principal)) {
       morceaux.push(nomsPersonnes.get(b.locataire_principal)!);
     } else if (b.date_debut) {
@@ -274,7 +279,11 @@ export async function PaneDocument({
 
   const fiches: FichesRattachables = {
     personnes: (personnes ?? []).map((p) => ({ id: p.id, libelle: nomComplet(p) })),
-    lots: (lots ?? []).map((l) => ({ id: l.id, libelle: l.nom })),
+    // Un lot archivé ne reçoit plus de pièce ; tri par bien, puis par lot.
+    lots: lotsLus
+      .filter((l) => l.etat !== "archive")
+      .map((l) => ({ id: l.id, libelle: nomsLots.get(l.id)! }))
+      .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr", { numeric: true })),
     baux: baux.map((b) => ({ id: b.id, libelle: libelleBail(b) })),
   };
   const bauxTronques = baux.length >= PLAFOND_BAUX;

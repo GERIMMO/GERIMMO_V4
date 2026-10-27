@@ -136,8 +136,10 @@ describe("la coquille de l'espace (layout) : contexte, barres, recherche, menu d
       expect(html).toContain(`data-barre="${p.racine}"`);
       expect(html).toContain(`data-barre-basse="${p.racine}"`);
       expect(html).toContain(`data-recherche="${p.racine}"`);
-      // Le plan du jour (pastille « Alertes ») compose ses liens sous la même racine.
-      expect(p.proprietaire ? m.charger : m.compter).toHaveBeenCalledWith(db, ORG, expect.objectContaining({ racine: p.racine }));
+      // Le plan du jour (pastille « Alertes ») compose ses liens sous la même racine. Le menu du propriétaire direct n'a
+      // pas cette pastille : le layout ne calcule pas ses vérifications (audit du 27/10, LAT-08).
+      if (p.proprietaire) expect(m.charger).not.toHaveBeenCalled();
+      else expect(m.compter).toHaveBeenCalledWith(db, ORG, expect.objectContaining({ racine: p.racine }));
       // Menu du compte (profil), lien de l'essai (responsables seulement), entrées de navigation.
       expect(html).toContain(`href="${base}/profil"`);
       if (p.role !== "agent") expect(html).toContain(`data-essai="${base}/abonnement"`);
@@ -152,7 +154,8 @@ describe("la coquille de l'espace (layout) : contexte, barres, recherche, menu d
 });
 
 it("le menu propriétaire ne duplique plus les tâches du tableau de bord", async () => {
-  const db = client(table => table === "rappels_loyers_proprietaire" ? [{
+  const lues: string[] = [];
+  const db = client(table => (lues.push(table), table) === "rappels_loyers_proprietaire" ? [{
     appel_id: "appel", bail_id: "bail", lot_nom: "Appartement", locataire: "Camille", periode: "2020-01-01",
     date_echeance: aujourdhuiParis(), montant_du: 800, montant_couvert: 0, non_recu_signale_le: null,
   }] : []);
@@ -163,6 +166,9 @@ it("le menu propriétaire ne duplique plus les tâches du tableau de bord", asyn
     principales: expect.not.arrayContaining([expect.objectContaining({ libelle: "À faire" })]),
   }));
   expect(m.compter).not.toHaveBeenCalled();
+  // Ni plan du jour ni rappels de loyers : aucune pastille ne les affiche dans ce menu (audit du 27/10, LAT-08).
+  expect(m.charger).not.toHaveBeenCalled();
+  expect(lues).not.toContain("rappels_loyers_proprietaire");
 });
 
 it("la consultation superadmin ne reçoit pas les alertes ni l'identité du propriétaire", async () => {
@@ -192,11 +198,13 @@ describe("l'accueil du propriétaire direct (servi au seul propriétaire direct)
     const db = client((table) => table === "biens" ? [{ id: "bien-1" }] : table === "lots" ? [{ id: "lot-1", nom: "Lot TEST", etat: "disponible", bien_id: "bien-1" }] : []);
     const html = renderToStaticMarkup((await AccueilProprietaire({ supabase: db as never, orgId: ORG, organisation: { name: "Parc TEST", status: "active", essai_fin: null }, userId: "compte" })) as never);
     expect(m.charger).toHaveBeenCalledWith(db, ORG, expect.objectContaining({ racine: "/espace" }));
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ base: `/espace/${ORG}`, total: 1, loyersAConfirmer: 0, indisponible: false }));
+    // Audit du 27/10 (LAT-05) : la carte annonce le chiffre de « Mes tâches » (l'alerte et le lot sans bail).
+    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ base: `/espace/${ORG}`, total: 2, loyersAConfirmer: 0, indisponible: false }));
     const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((x) => x[1]).filter((h) => h.startsWith("/agence") || h.startsWith("/espace"));
     // Encaissé, lots, récapitulatif fiscal, alertes, rang « Traiter », lots sans bail et réglages.
     expect(hrefs).toEqual(expect.arrayContaining([
-      `/espace/${ORG}/loyers`, `/espace/${ORG}/parc`, `/espace/${ORG}/comptabilite/fiscal`, `/espace/${ORG}/alertes`,
+      // L'encaissé du mois mène aux recettes datées de Finances (audit du 27/10, LAT-06).
+      `/espace/${ORG}/loyers#operations`, `/espace/${ORG}/parc`, `/espace/${ORG}/comptabilite/fiscal`, `/espace/${ORG}/alertes`,
       `/espace/${ORG}/alertes?traiter=al-1`, `/espace/${ORG}/parc/bien-1/lots/lot-1#baux`, `/espace/${ORG}/profil#envois`,
     ]));
     for (const h of hrefs) expect(h.startsWith(`/espace/${ORG}`), h).toBe(true);
@@ -268,13 +276,14 @@ describe("accueil : un seul geste pour chaque loyer à confirmer", () => {
     expect(await rendre(patch)).toContain("Loyer en retard TEST");
     expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ loyersAConfirmer: 0 }));
   });
-  it("transmet un seul loyer par bail même si plusieurs mois restent dus", async () => {
+  it("compte chaque échéance due dans la carte, même si la fenêtre ne présente que la plus ancienne du bail", async () => {
     m.charger.mockResolvedValue({ plan: { surLesBaux: [], enRetard: [], aVenir: [], total: 0 }, erreurs: { alertes: false, rapports: false } });
     const db = client(table => table === "rappels_loyers_proprietaire" ? [rappel, {
       ...rappel, appel_id: "suivant", periode: "2020-02-01", date_echeance: "2020-02-05",
     }] : []);
     renderToStaticMarkup(await AccueilProprietaire({ supabase: db as never, orgId: ORG, organisation: { name: "Parc", status: "active", essai_fin: null }, userId: "compte" }));
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ total: 1, loyersAConfirmer: 1 }));
+    // Audit du 27/10 (LAT-03) : « 2 loyers à confirmer » ; la ligne du bail annonce l'autre mois et le total.
+    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ total: 2, loyersAConfirmer: 2 }));
   });
   it("revient à une carte sans demande après réception de tous les loyers", async () => {
     m.charger.mockResolvedValue({ plan: { surLesBaux: [], enRetard: [], aVenir: [], total: 0 }, erreurs: { alertes: false, rapports: false } });

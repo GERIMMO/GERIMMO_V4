@@ -93,7 +93,7 @@ export function ActionsRapidesIncident({ orgId, href, incident, lectureSeule = f
       </div>
       {cle === "decision" && <FormulaireQualification orgId={orgId} incidentId={incident.id} categorie={incident.categorie}
         imputation={incident.imputation} justification={incident.imputation_justification} estProprietaire
-        informeLocataire={Boolean(incident.declarant_person_id)} apresSucces={apresDecision} />}
+        informeLocataire={Boolean(incident.declarant_person_id || incident.bail_id)} apresSucces={apresDecision} />}
       {cle === "cloture" && <FormulaireCloture orgId={orgId} incidentId={incident.id} motifs={motifs} apresSucces={apresCloture} />}
       {cle === "photo" && <FormulairePhotoIncident orgId={orgId} incidentId={incident.id} />}
     </section>)}

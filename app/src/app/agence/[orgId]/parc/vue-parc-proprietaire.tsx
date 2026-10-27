@@ -14,6 +14,8 @@ export type LotDuParc = {
   href: string; locataires: string[]; loyer: number | null;
   occupation: ReturnType<typeof occupationLot> | null;
   aCompleter: { titre: string; ancre: string } | null;
+  /** Contrat(s) en préparation : un seul s'ouvre directement, plusieurs renvoient à la fiche (audit #264, CB-03). */
+  bailEnPreparation?: { href: string; nombre: number } | null;
 };
 export type BienDuParc = { id: string; nom: string; adresse: string; href: string; lots: LotDuParc[] };
 const FILTRES = [{ id: "tous", nom: "Tous" }, { id: "loue", nom: "En location" }, { id: "libre", nom: "Sans location" }, { id: "colocation", nom: "Colocation" }, { id: "brouillon", nom: "En préparation" }] as const;
@@ -27,7 +29,8 @@ export function VueParcProprietaire({ biens, retires, loyers, lectureLocations }
   const [filtre, filtrer] = useState<Filtre>("tous");
   const uid = useId();
   const tous = biens.flatMap(item => item.lots);
-  const dansFiltre = (lot: LotDuParc) => filtre === "tous" || filtre === "brouillon" && lot.etat === "brouillon"
+  // « En préparation » couvre le lot à préparer comme le bail qu'on prépare (audit #264, CB-03).
+  const dansFiltre = (lot: LotDuParc) => filtre === "tous" || filtre === "brouillon" && (lot.etat === "brouillon" || Boolean(lot.bailEnPreparation))
     || filtre === "loue" && (lot.occupation?.contratsActifs ?? 0) > 0
     || filtre === "libre" && lot.occupation?.contratsActifs === 0
     || filtre === "colocation" && (lot.occupation?.chambresPreparees ?? 0) > 0;
@@ -63,13 +66,15 @@ export function VueParcProprietaire({ biens, retires, loyers, lectureLocations }
           <Link href={lot.href} className={styles.dossierLot} data-lot-id={lot.id}>
             <div className={styles.lotEntete}><strong>{lot.nom}</strong><span className={COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}>{ETATS_LOT[lot.etat] ?? lot.etat}</span></div>
             <p className={styles.lotCaracteristiques}>{[lot.surface == null ? null : formaterSurface(lot.surface), lot.meuble ? "Meublé" : "Non meublé", (lot.occupation?.chambresPreparees ?? 0) > 0 ? `${lot.occupation!.chambresPreparees} chambre${lot.occupation!.chambresPreparees > 1 ? "s" : ""}` : null].filter(Boolean).join(" · ")}</p>
-            <div className={styles.lotLocation}><span>{lot.occupation === null ? "Locations indisponibles" : lot.occupation.contratsActifs ? lot.locataires.join(", ") || `${lot.occupation.contratsActifs} bail${lot.occupation.contratsActifs > 1 ? "s" : ""} en cours` : "Sans location en cours"}</span>
+            <div className={styles.lotLocation}><span>{lot.occupation === null ? "Locations indisponibles" : lot.occupation.contratsActifs ? lot.locataires.join(", ") || `${lot.occupation.contratsActifs} ${lot.occupation.contratsActifs > 1 ? "baux" : "bail"} en cours` : lot.bailEnPreparation ? "Bail en préparation" : "Sans location en cours"}</span>
               {lot.loyer !== null && (lot.occupation?.contratsActifs ?? 0) > 0 && <strong>{eur(lot.loyer)}<small> / mois CC</small></strong>}
             </div>
             {!!lot.occupation?.chambresPreparees && !lot.occupation.logementEntierOccupe && <p className={styles.chambresParc}>{lot.occupation.chambresLouees} chambre{lot.occupation.chambresLouees > 1 ? "s" : ""} louée{lot.occupation.chambresLouees > 1 ? "s" : ""}{lot.occupation.chambresSansBail > 0 ? ` · ${lot.occupation.chambresSansBail} sans bail` : ""}</p>}
             <span className={styles.ouvrirDossier}>Ouvrir le dossier<ArrowRight size={16} aria-hidden="true" /></span>
           </Link>
-          {lot.aCompleter && <Link className={styles.completerLot} href={`${lot.href}#${lot.aCompleter.ancre}`}>Compléter : {lot.aCompleter.titre.toLowerCase()}<ArrowRight size={14} aria-hidden="true" /></Link>}
+          {lot.bailEnPreparation && <Link className={styles.completerLot} href={lot.bailEnPreparation.href}>{lot.bailEnPreparation.nombre > 1 ? `${lot.bailEnPreparation.nombre} baux en préparation` : "Reprendre le bail en préparation"}<ArrowRight size={14} aria-hidden="true" /></Link>}
+          {/* Les caractéristiques se complètent dans le formulaire du lot, ouvert d'emblée (audit #264, FL-05). */}
+          {lot.aCompleter && <Link className={styles.completerLot} href={lot.aCompleter.ancre === "caracteristiques" ? `${lot.href}?modifier=1#caracteristiques` : `${lot.href}#${lot.aCompleter.ancre}`}>Compléter : {lot.aCompleter.titre.toLowerCase()}<ArrowRight size={14} aria-hidden="true" /></Link>}
         </li>)}</ul> : <div className={styles.bienSansLot}><p>Aucun lot actif.</p><Link href={item.href}>Gérer les lots de ce bien →</Link></div>}
       </section>)}
       {!groupes.length && <div className="vide-guide"><h2>Aucun lot dans cette sélection</h2><p>Essayez un autre nom ou retirez un filtre.</p><button type="button" className="btn-secondaire" onClick={reinitialiser}>Afficher tous les lots</button></div>}

@@ -110,11 +110,38 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
     ),
   };
 
+  // La liste dit ce que dit la fiche : une personne d'un bail encore en préparation
+  // n'est pas « Sans bail en cours » (audit #264, FL-09 ; mêmes libellés que la fiche).
+  const bauxEnPreparation = new Set(
+    ((baux ?? []) as { id: string; etat: string }[]).filter((b) => b.etat === "brouillon").map((b) => b.id)
+  );
+  const enPreparation = {
+    locataires: new Set([
+      ...((baux ?? []) as { id: string; locataire_principal: string | null }[])
+        .filter((b) => bauxEnPreparation.has(b.id) && b.locataire_principal)
+        .map((b) => b.locataire_principal as string),
+      ...((bailPersonnes ?? []) as { person_id: string; role: string; bail_id: string }[])
+        .filter((l) => l.role === "colocataire" && bauxEnPreparation.has(l.bail_id))
+        .map((l) => l.person_id),
+    ]),
+    garants: new Set(
+      ((bailPersonnes ?? []) as { person_id: string; role: string; bail_id: string }[])
+        .filter((l) => l.role === "garant" && bauxEnPreparation.has(l.bail_id))
+        .map((l) => l.person_id)
+    ),
+  };
+
   const fiches: PersonneListe[] = (
     (personnes ?? []) as Omit<PersonneListe, "roles">[]
   ).map((p) => ({
     ...p,
-    roles: rolesDePersonne(p.id, liens, role === "proprietaire_direct"),
+    roles: [
+      ...rolesDePersonne(p.id, liens, role === "proprietaire_direct"),
+      ...(!liens.locataires.has(p.id) && enPreparation.locataires.has(p.id)
+        ? [{ libelle: "Locataire · bail en préparation", classe: "text-muted-foreground", puce: "puce-grise" }] : []),
+      ...(!liens.garants.has(p.id) && enPreparation.garants.has(p.id)
+        ? [{ libelle: "Garant · bail en préparation", classe: "text-muted-foreground", puce: "puce-grise" }] : []),
+    ],
     messagesNonLus: nonLusParPersonne.get(p.id) ?? 0,
   }));
 

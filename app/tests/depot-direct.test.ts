@@ -9,7 +9,8 @@ function base(modif:Record<string,unknown>={},source?:Uint8Array){
  const d={id,compte_id:compte,nom:'Essai.pdf',mime:'application/pdf',taille:octets.length,empreinte:createHash('sha256').update(octets).digest('hex'),chemin:`${compte}/${id}`,expire_le:new Date(Date.now()+3600000).toISOString(),...modif};
  const download=vi.fn(async()=>({data:new Blob([new Uint8Array(octets)])}));
  const signed=vi.fn(async()=>({data:{path:d.chemin,token:'fictif'}}));
- const insert=vi.fn(()=>q);const q={select:()=>q,eq:()=>q,insert,single:async()=>({data:d})};
+ // gt/order/limit/maybeSingle : recherche d’une réservation à reprendre (DOC-13), aucune ici.
+ const insert=vi.fn(()=>q);const q={select:()=>q,eq:()=>q,gt:()=>q,order:()=>q,limit:()=>q,maybeSingle:async()=>({data:null}),insert,single:async()=>({data:d})};
  const auth=vi.fn(async()=>({data:{user:{id:compte}},error:null}));
  const db={auth:{getUser:auth},from:vi.fn(()=>q),storage:{from:vi.fn(()=>({download,createSignedUploadUrl:signed}))}};
  return {db:db as unknown as SupabaseClient,d,auth,download,signed,insert};

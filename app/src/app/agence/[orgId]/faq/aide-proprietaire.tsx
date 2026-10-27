@@ -5,11 +5,9 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, ChevronDown, Inbox, Lightbulb, MessageCircle, Search, X } from "lucide-react";
 import { correspond } from "@/lib/roles-personnes";
 import { EnteteReglages } from "../profil/famille-reglages";
-import { QUESTIONS } from "./questions";
+import { LIBELLES_LIEN_AIDE, QUESTIONS, THEMES_AIDE as THEMES } from "./questions";
 import styles from "./aide.module.css";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
-
-const THEMES = ["Tout", "Prise en main", "Locataires", "Finances", "Abonnement"] as const;
 
 export function AideProprietaire({ orgId, assistance }: { orgId: string; assistance: string }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
@@ -43,7 +41,7 @@ export function AideProprietaire({ orgId, assistance }: { orgId: string; assista
       <div id="questions-aide" className={styles.questions}>
         {questions.map((q) => <details key={q.question} className={styles.question}>
           <summary><span><small>{q.theme}</small><strong>{q.question}</strong></span><ChevronDown size={17} aria-hidden="true" /></summary>
-          <div><p>{q.reponse}</p>{q.lien && <Link href={`${base}/${q.lien}`}>Ouvrir {q.lien === "messages" ? "mes messages" : q.lien === "abonnement" ? "mon abonnement" : "mes finances"} <ArrowRight size={14} aria-hidden="true" /></Link>}</div>
+          <div><p>{q.reponse}</p>{q.lien && <Link href={`${base}/${q.lien}`}>Ouvrir {LIBELLES_LIEN_AIDE[q.lien] ?? "la rubrique"} <ArrowRight size={14} aria-hidden="true" /></Link>}</div>
         </details>)}
         {questions.length === 0 && <div className={styles.vide}><Search size={28} aria-hidden="true" /><h3>Aucune réponse trouvée</h3><p>Essayez un autre mot-clé ou écrivez-nous pour être accompagné.</p><button type="button" onClick={reinitialiser}>Afficher toutes les questions</button></div>}
       </div>

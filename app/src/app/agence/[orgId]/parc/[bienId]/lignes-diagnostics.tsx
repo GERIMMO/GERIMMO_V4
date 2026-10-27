@@ -9,6 +9,7 @@ import {
   type NiveauDiagnostic,
 } from "@/lib/parc";
 import { presentationDiagnostic, diagnosticConditionnel } from "@/lib/presentation-diagnostics";
+import { jourAParis } from "@/lib/presentation-document";
 import { qualificationsDiagnosticsIdentiques, type QualificationDiagnostic } from "@/lib/qualification-diagnostics";
 import { QualificationDuDiagnostic } from "./qualification-diagnostic";
 import styles from "./lignes-diagnostics.module.css";
@@ -44,6 +45,7 @@ export function LignesDiagnostics({
   qualifications = [],
   qualificationIndisponible = false,
   compact = false,
+  anneeConstruction = null,
 }: {
   orgId: string;
   bienId: string;
@@ -55,6 +57,8 @@ export function LignesDiagnostics({
   qualifications?: QualificationDiagnostic[];
   qualificationIndisponible?: boolean;
   compact?: boolean;
+  // DOC-12 : l'année de construction connue, proposée comme année d'installation d'un bâtiment récent.
+  anneeConstruction?: number | null;
 }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
@@ -124,13 +128,14 @@ export function LignesDiagnostics({
           <strong ref={element => { titres.current[type] = element; }} tabIndex={-1}>{nom}</strong>
           <BadgeStatut ton={presentation.ton}>{presentation.libelle}</BadgeStatut>
         </div>
+        {/* Échéance passée : « Échu », même quand le fichier manque encore (DPE ancien plafonné, saisi sans rapport). */}
         {!question && (!compact || d || type === "termites" || lectureSeule) && <p className={styles.date}>{d?.date_expiration
-          ? `${presentation.etat === "expire" ? "Échu" : "Échéance"} le ${formaterDate(d.date_expiration)}`
+          ? `${d.date_expiration < jourAParis() ? "Échu" : "Échéance"} le ${formaterDate(d.date_expiration)}`
           : d ? "Aucune échéance renseignée" : type === "termites" ? "Hors dossier de location. Conservez ici un éventuel rapport termites." : lectureSeule ? "Aucun fichier déposé." : "Ajoutez le fichier pour le retrouver ici."}
           {type === "dpe" && d?.classe_dpe && <> · Classe {d.classe_dpe}</>}
         </p>}
         {question && <QualificationDuDiagnostic orgId={orgId} bienId={bienId} lotId={lotId!}
-          type={type as "gaz" | "electricite"} qualification={qualification} lectureSeule={lectureSeule || qualificationIndisponible}
+          type={type as "gaz" | "electricite"} qualification={qualification} anneeConstruction={anneeConstruction} lectureSeule={lectureSeule || qualificationIndisponible}
           onEnregistreAction={reponse => {
             const titre = titres.current[type];
             const rendreFocus = document.activeElement === document.body || titre?.closest("li")?.contains(document.activeElement);
@@ -149,8 +154,11 @@ export function LignesDiagnostics({
           }} />}
         {confirmations[type] && <p className={styles.confirmation} role="status">{confirmations[type]}</p>}
         <div className={styles.actions}>
-          {d?.document_id && (compact ? <Button type="button" variant="outline" size="sm" aria-label={`Voir le document : ${nom}`} onClick={() => setApercu({ id: d.document_id!, nom })}>Voir</Button> : <a href={`${base}/documents/${d.document_id}/fichier`} target="_blank" rel="noreferrer"
-            aria-label={`Voir le document : ${nom}`} className={buttonVariants({ variant: "outline", size: "sm" })}>Voir le document</a>)}
+          {/* DOC-09 : même aperçu intégré sur la fiche bien que sur la fiche lot, au lieu d'un nouvel onglet. En consultation
+              (supervision), la vue reste sans commande : le fichier garde son lien direct. */}
+          {d?.document_id && (lectureSeule
+            ? <a href={`${base}/documents/${d.document_id}/fichier`} target="_blank" rel="noreferrer" aria-label={`Voir le document : ${nom}`} className={buttonVariants({ variant: "outline", size: "sm" })}>{compact ? "Voir" : "Voir le document"}</a>
+            : <Button type="button" variant="outline" size="sm" aria-label={`Voir le document : ${nom}`} onClick={() => setApercu({ id: d.document_id!, nom })}>{compact ? "Voir" : "Voir le document"}</Button>)}
           {!lectureSeule && presentation.etat !== "non_concerne" && (!d?.document_id || renouveler || ouvert === type) && <Button type="button" size="sm" variant={question && presentation.etat === "a_confirmer" && ouvert !== type ? "ghost" : "outline"} aria-expanded={ouvert === type}
             onClick={() => basculerDepot(type)}>{ouvert === type ? "Fermer le dépôt" : renouveler ? "Renouveler" : question && presentation.etat === "a_confirmer" ? "J’ai déjà le rapport" : "Ajouter le fichier"}</Button>}
         </div>

@@ -37,6 +37,9 @@ export function styleMarque(m: MarqueOrganisation | null | undefined): CSSProper
     "--encre": encre, "--encre-profond": melanger(encre, "#000000", .2),
     "--graphite": melanger(encre, "#000000", .12), "--sur-encre": "#ffffff",
     "--ring": principale, "--sidebar-primary": principale, "--sidebar-primary-foreground": "#ffffff",
+    // Le bouton d'action des espaces unifiés (experience-unifiee.css) prend la couleur de l'agence, pas l'or de
+    // Gerimmo (audit #264, ED-03).
+    "--bouton-principal": principale, "--bouton-principal-survol": sombre, "--sur-bouton-principal": "#ffffff",
   } as CSSProperties;
 }
 /**

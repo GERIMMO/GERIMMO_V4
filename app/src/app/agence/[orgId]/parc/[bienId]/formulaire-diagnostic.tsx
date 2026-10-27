@@ -1,11 +1,11 @@
 "use client";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
-import { expirationDiagnostic } from "@/lib/documents-bail";
+import { expirationCrepPositif, expirationDiagnostic, plafondDpe } from "@/lib/documents-bail";
 
 import { useEffect, useId, useRef, useState } from "react";
 import { deposerDiagnostic, type EtatParc } from "@/app/actions/parc";
 import { TYPES_DIAGNOSTIC, type NiveauDiagnostic } from "@/lib/parc";
-import { aujourdhuiParis } from "@/lib/ged";
+import { TYPES_DOCUMENT, aujourdhuiParis, formaterDate } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,10 +51,14 @@ export function FormulaireDiagnostic({
   const [type, setType] = useState(typeInitial ?? types[0]?.[0] ?? "");
   const [realisation, setRealisation] = useState("");
   const [expiration, setExpiration] = useState("");
+  const plafond = type === "dpe" ? plafondDpe(realisation) : null;
+
+  // DOC-07 : résultat du CREP, qui décide seul de sa durée (six ans s'il relève du plomb, sans limite sinon).
+  const [resultatPlomb, setResultatPlomb] = useState("");
 
   // Pré-remplissage de l'expiration : date de réalisation + validité du type
-  const majExpiration = (leType: string, laRealisation: string) => {
-    setExpiration(expirationDiagnostic(leType, laRealisation));
+  const majExpiration = (leType: string, laRealisation: string, resultat = resultatPlomb) => {
+    setExpiration(leType === "plomb" && resultat === "presence" ? expirationCrepPositif(laRealisation) : expirationDiagnostic(leType, laRealisation));
   };
 
   // La date du rapport n'est pas connue au dépôt. L'initialisation explicite
@@ -78,6 +82,7 @@ export function FormulaireDiagnostic({
     const minuterie = setTimeout(() => {
       setRealisation("");
       setExpiration("");
+      setResultatPlomb("");
       // Le nouveau formulaire repart du type initial, y compris dans l’état React.
       setType(typeInitial ?? types[0]?.[0] ?? "");
     }, 0);
@@ -101,6 +106,7 @@ export function FormulaireDiagnostic({
   }, [version, etat.succes, etat.erreur, onDepotConfirmeAction]);
 
   const propositionAffichee = Boolean(etat.pieceExistante) && propositionRetiree !== etat;
+  const typeAReclasser = etat.pieceExistante?.type && etat.pieceExistante.type !== "diagnostic" ? etat.pieceExistante.type : null;
 
   return (
     // Colonne flex : « Déposer » est écrit AVANT la proposition dans le DOM mais s'affiche après (`order-last`). La touche
@@ -156,6 +162,32 @@ export function FormulaireDiagnostic({
             )}
           </div>
         )}
+        {type === "plomb" && (
+          // DOC-07 : la durée du CREP dépend de son résultat (art. L. 1334-7 et R. 1334-11 du code de la santé publique).
+          <fieldset className="space-y-1.5 sm:col-span-full">
+            <legend className="text-sm font-medium">Résultat du constat</legend>
+            {[
+              ["presence", "Plomb au-dessus du seuil réglementaire"],
+              ["absence", "Pas de plomb au-dessus du seuil"],
+            ].map(([valeur, libelle]) => (
+              <label key={valeur} className="flex min-h-11 items-center gap-2 text-sm">
+                <input
+                  type="radio"
+                  name="plomb_resultat"
+                  value={valeur}
+                  required
+                  checked={resultatPlomb === valeur}
+                  onChange={() => {
+                    setResultatPlomb(valeur);
+                    majExpiration(type, realisation, valeur);
+                  }}
+                />
+                {libelle}
+              </label>
+            ))}
+            <p className="text-xs text-muted-foreground">Indiqué en conclusion du rapport. Pour la location : six ans s’il relève du plomb, sans limite de validité sinon.</p>
+          </fieldset>
+        )}
         {type === "dpe" && (
           <div className="space-y-1.5">
             <Label htmlFor={`diag-classe-${niveau}-${identifiant}`}>Classe énergétique (DPE)</Label>
@@ -196,17 +228,23 @@ export function FormulaireDiagnostic({
           <Label htmlFor={`diag-expiration-${niveau}-${identifiant}`}>Expire le</Label>
           <Input
             id={`diag-expiration-${niveau}-${identifiant}`}
-            required={TYPES_DIAGNOSTIC[type]?.validite_mois != null}
+            required={TYPES_DIAGNOSTIC[type]?.validite_mois != null || (type === "plomb" && resultatPlomb === "presence")}
             name="date_expiration"
             type="date"
             className="min-h-11 text-base sm:text-sm"
             min={realisation || undefined}
+            max={plafond ?? undefined}
             value={expiration}
             onChange={(e) => setExpiration(e.target.value)}
           />
           <p className="text-xs text-muted-foreground">
-            {TYPES_DIAGNOSTIC[type]?.validite_mois != null
+            {plafond
+              // DOC-01 : le rapport d'avant juillet 2021 imprime « dix ans », que le décret a raccourcis.
+              ? `DPE réalisé avant le 1er juillet 2021 : valable au plus tard jusqu’au ${formaterDate(plafond)} (décret n° 2020-1610), même si le rapport indique une date plus lointaine.`
+              : TYPES_DIAGNOSTIC[type]?.validite_mois != null || (type === "plomb" && resultatPlomb === "presence")
               ? "Calculée à partir de la réalisation. Ajustez-la si le rapport indique une autre échéance."
+              : type === "plomb" && resultatPlomb === "absence"
+              ? "Sans limite de validité : laissez vide."
               : "À renseigner seulement si le rapport indique une échéance."}
           </p>
         </div>
@@ -235,13 +273,27 @@ export function FormulaireDiagnostic({
         // autre fichier ou un autre type est choisi ; le refus brut qui allait avec ne s'affiche pas non plus.
         propositionAffichee && (
           <div role="status" className="space-y-2 rounded-md border border-border bg-muted/40 p-3 text-sm">
-            <p>
-              <strong>Ce rapport est déjà dans votre dossier</strong>, sous le nom « {etat.pieceExistante.titre ?? "sans titre"} ».
-            </p>
-            <p className="text-muted-foreground">
-              S’il vaut aussi pour {niveau === "lot" ? "ce lot" : "ce bien"} (par exemple le diagnostic collectif d’un immeuble),
-              utilisez cette même pièce : elle ne sera pas déposée une seconde fois.
-            </p>
+            {typeAReclasser ? (
+              // DOC-02 : le fichier a d'abord été rangé sans être déclaré comme rapport. Le reclassement est dit avant d'être fait.
+              <>
+                <p>
+                  <strong>Ce fichier est déjà dans vos documents</strong>, rangé en « {TYPES_DOCUMENT[typeAReclasser] ?? typeAReclasser} » sous le nom « {etat.pieceExistante.titre ?? "sans titre"} ».
+                </p>
+                <p className="text-muted-foreground">
+                  Utilisez-le comme rapport de ce diagnostic : il sera classé en « Diagnostic » dans vos documents, sans nouvelle copie.
+                </p>
+              </>
+            ) : (
+              <>
+                <p>
+                  <strong>Ce rapport est déjà dans votre dossier</strong>, sous le nom « {etat.pieceExistante.titre ?? "sans titre"} ».
+                </p>
+                <p className="text-muted-foreground">
+                  S’il vaut aussi pour {niveau === "lot" ? "ce lot" : "ce bien"} (par exemple le diagnostic collectif d’un immeuble),
+                  utilisez cette même pièce : elle ne sera pas déposée une seconde fois.
+                </p>
+              </>
+            )}
             <BoutonEnvoi
               type="submit"
               name="piece_existante"
@@ -250,7 +302,7 @@ export function FormulaireDiagnostic({
               size="sm"
               enCoursTexte="Enregistrement…"
             >
-              {niveau === "lot" ? "Utiliser cette pièce pour ce lot" : "Utiliser cette pièce pour ce bien"}
+              {typeAReclasser ? "Utiliser ce fichier comme rapport" : niveau === "lot" ? "Utiliser cette pièce pour ce lot" : "Utiliser cette pièce pour ce bien"}
             </BoutonEnvoi>
           </div>
         )

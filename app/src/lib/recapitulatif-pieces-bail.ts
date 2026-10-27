@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { classerPiecesBail, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
+import { avecEcheanceReglementaire, classerPiecesBail, type DiagnosticBail, type PieceBail } from "@/lib/documents-bail";
 import { preparerDiagnosticsBail } from "@/lib/exigences-diagnostics-bail";
 import { TYPES_DIAGNOSTIC } from "@/lib/parc";
 import { jourAParis, jourValide } from "@/lib/presentation-document";
@@ -85,10 +85,11 @@ export async function lireRecapitulatifPiecesBail(
   const edls = liste<{ id: string; etat: string }>(edlR);
   const circuits = liste<{ etat: string; garant: string | null; document_id: string | null; document_signe: string | null; created_at: string; essai: boolean; environnement: string }>(circuitsR);
   const identifiees = assurances.lignes.filter(p => p.nature === "assurance_proprietaire" ? p.bail_id === null : p.bail_id === bailId);
-  const diagnostics: DiagnosticBail[] = [
+  // DOC-01 : l'échéance d'un DPE d'avant le 01/07/2021 est plafonnée (décret n° 2020-1610).
+  const diagnostics: DiagnosticBail[] = avecEcheanceReglementaire([
     ...diagsLot.lignes.map(d => ({ ...d, niveau: "lot" as const })),
     ...diagsBien.lignes.map(d => ({ ...d, niveau: "bien" as const })),
-  ];
+  ]);
   const ids = [...new Set([
     ...liens.lignes.map(p => p.document_id), ...diagnostics.map(d => d.document_id),
     ...identifiees.map(p => p.document_id), bail.reglement_copropriete,

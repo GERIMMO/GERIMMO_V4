@@ -11,6 +11,8 @@ export type IncidentVerification = {
   imputation_justification: string | null;
   imputation_contestation: string | null;
   declarant_person_id: string | null;
+  /** Bail rattaché : son locataire voit la décision, même sans déclarant (FL-01). */
+  bail_id: string | null;
 };
 
 /** Relit l'état réel avant de proposer un geste depuis une alerte qui peut dater. */
@@ -32,7 +34,7 @@ export async function chargerIncidentsVerifications(
     for (let debut = 0; debut < ids.length; debut += 100) {
       const lot = ids.slice(debut, debut + 100);
       const { data, error } = await supabase.from("incidents")
-        .select("id,etat,categorie,description,imputation,imputation_justification,imputation_contestation,declarant_person_id")
+        .select("id,etat,categorie,description,imputation,imputation_justification,imputation_contestation,declarant_person_id,bail_id")
         .eq("organization_id", orgId).in("id", lot);
       if (error || !data) return { incidents: new Map(), indisponible: true };
       const attendus = new Set(lot);

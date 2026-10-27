@@ -19,7 +19,9 @@ const sansCommande = (html: string) => expect(html).not.toMatch(/<(form|input|te
 describe("Consultation superadmin : les données restent, les commandes de gestion disparaissent", () => {
   it.each([true,false])("diagnostics, lecture seule=%s : conserve les fichiers, dates et classes", lectureSeule => {
     const html=renderToStaticMarkup(createElement(LignesDiagnostics, { ...cible, niveau:"lot", lectureSeule, attendus:["dpe","plomb"], diagnostics:[{id:"d",type:"dpe",date_realisation:"2019-01-01",date_expiration:"2020-01-01",document_id:"pdf",diagnostiqueur:"Cabinet témoin",classe_dpe:"B"}] }));
-    expect(html).toContain("/documents/pdf/fichier"); expect(html).toContain("Classe B"); expect(html).toContain("Cabinet témoin"); expect(html).toContain("Expiré");
+    // Consultation : lien direct vers le fichier (aucune commande). Gestion : « Voir le document » ouvre l'aperçu intégré (audit #264, DOC-09).
+    if(lectureSeule) expect(html).toContain("/documents/pdf/fichier"); else expect(html).toContain('aria-label="Voir le document : DPE"');
+    expect(html).toContain("Classe B"); expect(html).toContain("Cabinet témoin"); expect(html).toContain("Expiré");
     if(lectureSeule){sansCommande(html);expect(html).toContain("Aucun fichier déposé");expect(html).not.toContain("modifications");}
     else {expect(html).toContain("Renouveler");expect(html).toContain("Modifier la classe DPE");expect(html).toContain("Ajouter le fichier");}
   });

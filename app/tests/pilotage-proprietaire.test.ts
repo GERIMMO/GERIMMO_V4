@@ -29,6 +29,14 @@ describe("Pilotage propriétaire : unités locatives et patrimoine actif", () =>
     expect(resultat).toMatchObject({ contrats: 0, lotsOccupes: 0 });
   });
 
+  it("CB-03 : garde la trace des baux en préparation, y compris sur un lot loué, hors lots archivés", () => {
+    const resultat = resumerPilotage([{ id: "bien" }], [lot("prepare"), lot("coloc", "loue"), lot("archive", "archive"), lot("libre")], [
+      bail("b1", "prepare", "brouillon"), bail("b2", "coloc", "actif", "ch1"), bail("b3", "coloc", "brouillon", "ch2"),
+      bail("b4", "coloc", "brouillon"), bail("b5", "archive", "brouillon"), bail("b6", "libre", "termine"),
+    ], []);
+    expect(resultat.lotsEnPreparation.map(l => [l.id, l.brouillons])).toEqual([["prepare", ["b1"]], ["coloc", ["b3", "b4"]]]);
+  });
+
   it("un nouveau DPE favorable remplace l'ancien signalement F/G sans modifier la liste source", () => {
     const diagnostics = [
       { id: "ancien", lot_id: "renove", date_realisation: "2024-01-01", classe_dpe: "G" },

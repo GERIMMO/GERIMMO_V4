@@ -7171,3 +7171,12 @@ Reproduction locale sur le HTML du label enveloppant un textarea : getByLabel ex
 Demande explicite : offrir des mois aux utilisateurs sans abonnement ou en compensation d’un bug ; pour un abonné, couvrir les prochaines échéances sans rembourser les paiements passés. Branche codex/abonnement-offert-superadmin-20261025, base de production d2fcbf6e5636e5cdf743ed8b95ee61064995f615. Bouton avec aperçu et confirmation, registre idempotent et audit au nom du superviseur permanent avec MFA. Accès gratuit calendaire ou crédit de facturation au tarif courant, reprise visible après coupure. Migration locale 20261025192344 créée par CLI ; retour refuse d’effacer un cadeau réel. Aucun cadeau réel appliqué.
 
 Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 8 contrôles SQL réservés au banc isolé. Vérification complète, relecture et protocole de publication encore à faire. Sources Stripe consultées le 25/10 : docs.stripe.com/billing/customer/balance et API customer_balance_transactions/create.
+
+## [2026-10-27] audit | Audit de la refonte #264 (tableau de bord, loyers, lot, documents, bail, espaces)
+
+- Version auditée `555c5282` = production Vercel ; banc local identique à la CI ; référence : lint 0, types 0, 11 498 tests, 235 parcours.
+- 6 domaines audités avec vérification adverse : 70 constats (2 critiques FL-01 et DOC-02, 20 majeurs, 41 mineurs, 7 cosmétiques).
+- 7 chantiers isolés avec relecture adverse ; 53 corrigés, 12 partiels, 5 décisions requises ; 101 cas de test ajoutés ; 5 migrations `20261027100000` → `100500` avec retours.
+- Intégration relue (2 interactions corrigées) ; batterie finale : lint 0, types 0, 250 parcours, 11 674 tests (1 échec de banc antérieur à la refonte).
+- Production (lecture seule) : aucune donnée touchée par les défauts. Rien publié : branche `claude/compassionate-euler-qpqjp6` poussée (`05369286`), fusion et migrations en attente d'accord.
+- Rapport : `app/docs/audit-refonte-264-20261027.md` ; bilan : [[Bilan de l'audit de la refonte #264 — 27 octobre 2026]] ; preuves : `app/docs/preuves-audit-264/`.

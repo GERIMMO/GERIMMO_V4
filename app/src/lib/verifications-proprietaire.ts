@@ -18,11 +18,16 @@ export function preparerVerificationsProprietaire({
   const rappels = organiserRappelsLoyers(loyersIndisponibles ? [] : lignesLoyers, aujourdHui);
   const bauxPresentes = new Set(rappels.dus.map(ligne => ligne.bail_id));
   const impayesPresentes = new Set([...bauxPresentes].map(id => `impaye-${id}`));
+  const bauxAvecEchu = new Set(loyersIndisponibles ? [] : lignesLoyers
+    .filter(l => Number(l.montant_du) > Number(l.montant_couvert) && l.date_echeance.slice(0,10) < aujourdHui).map(l => l.bail_id));
+  // Le rappel du bail porte déjà la dette. Sans terme échu à recevoir, l'alerte d'impayé est périmée (la base la
+  // ferme à l'encaissement, audit du 27/10) : elle ne devient jamais l'action prioritaire d'un bail à jour.
+  const alerteImpayeVisible = (bailId: string) => loyersIndisponibles || (!bauxPresentes.has(bailId) && bauxAvecEchu.has(bailId));
   const sansDoublonsLoyers = actions.filter(action => {
     if (impayesPresentes.has(action.cle)) return false;
     if (action.source !== "alerte" || action.type !== "loyer_impaye") return true;
     const bailId = action.alerte.details?.bail_id;
-    return typeof bailId !== "string" || !bauxPresentes.has(bailId);
+    return typeof bailId !== "string" || alerteImpayeVisible(bailId);
   });
   const triees = sansDoublonsLoyers.sort((a, b) => {
     const criticite = Number(b.criticite === "critique") - Number(a.criticite === "critique");
@@ -53,5 +58,7 @@ export function preparerVerificationsProprietaire({
   } else if (uniques.length) {
     premiere = { titre: uniques[0].titre, source: "action" };
   }
-  return { actions: uniques, rappels, total: uniques.length + rappels.dus.length, critiques, premiere };
+  // Chaque échéance due compte, comme « N à confirmer » de la section des loyers et la carte de l'accueil : un bail
+  // présente ses mois l'un après l'autre, chacun demande sa confirmation (audit du 27/10, LAT-03).
+  return { actions: uniques, rappels, total: uniques.length + rappels.totalEcheancesDues, critiques, premiere, alerteImpayeVisible };
 }

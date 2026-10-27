@@ -112,6 +112,16 @@ const MISSION_OCTOBRE = [
   "20261026213652_qualifications_diagnostics_lot.sql",
   "20261026214857_qualification_diagnostic_annee_installation.sql",
   "20261026232941_pieces_attendues_bail.sql",
+  // 27/10, audit de la PR #264 (LAT-01) : l'alerte d'impayé suit les encaissements.
+  "20261027100000_alerte_impaye_suit_encaissements.sql",
+  // Audit de la PR #264, FL-01 (27/10) : l'incident ouvert par le gérant ne se rattache qu'au bail choisi ou au seul bail en cours.
+  "20261027100100_incident_gerant_bail_explicite.sql",
+  // 27/10, audit de la refonte #264 (diagnostics) : validité réglementaire du DPE, rapport déjà rangé, rapports à renouveler.
+  "20261027100200_diagnostics_validite_dpe_et_rapports.sql",
+  // 27/10, audit #264 (création du bail) : l'assurance du locataire suit l'activation ; libellé de l'étape « Le bail ».
+  "20261027100300_bail_assurance_activation_et_libelle_colocation.sql",
+  // 27/10, audit #264 (CB-16) : « N baux en cours » dans le parcours de démarrage.
+  "20261027100500_parcours_demarrage_pluriel_baux.sql",
 
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */

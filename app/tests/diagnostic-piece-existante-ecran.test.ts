@@ -99,3 +99,35 @@ describe("X07 : l'écran propose la pièce existante", () => {
     expect(rendre("lot")).toContain('name="fichier"');
   });
 });
+
+// DOC-02 (audit #264) : le fichier a d'abord été rangé dans Documents en « Autre ». L'écran le dit, annonce le
+// reclassement avant qu'il ait lieu, et propose de l'utiliser comme rapport.
+describe("DOC-02 : un fichier rangé en « Autre » se propose comme rapport", () => {
+  it("nomme le rangement, annonce le reclassement et offre « Utiliser ce fichier comme rapport »", () => {
+    banc.etat = { erreur: REFUS, pieceExistante: { id: PIECE, titre: "VDD-DPE-2019-v2", type: "autre" } };
+    const html = rendre("lot");
+    expect(html).toContain("Ce fichier est déjà dans vos documents");
+    expect(html).toContain("rangé en « Autre »");
+    expect(html).toContain("classé en « Diagnostic »");
+    const bouton = (html.match(/<button\b[^>]*>[^<]*<\/button>/g) ?? []).find((b) => b.includes('name="piece_existante"'));
+    expect(bouton).toContain(`value="${PIECE}"`);
+    expect(bouton).toContain("Utiliser ce fichier comme rapport");
+    expect(html).not.toContain('role="alert"');
+  });
+});
+
+// DOC-07 (audit #264) : la durée du CREP dépend de son résultat ; la question est posée même quand le type vient de la ligne.
+describe("DOC-07 : le dépôt d'un CREP demande son résultat", () => {
+  it("pose la question du résultat, obligatoire, avec la règle de durée", () => {
+    const html = rendre("lot", "plomb");
+    expect(html).toContain("Résultat du constat");
+    const radios = html.match(/<input[^>]*name="plomb_resultat"[^>]*>/g) ?? [];
+    expect(radios).toHaveLength(2);
+    expect(radios.every((r) => r.includes("required"))).toBe(true);
+    expect(html).toMatch(/six ans s’il relève du plomb, sans limite de validité sinon/);
+  });
+
+  it("ne la pose pas pour un autre diagnostic", () => {
+    expect(rendre("lot", "dpe")).not.toContain("plomb_resultat");
+  });
+});

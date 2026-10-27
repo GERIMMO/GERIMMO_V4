@@ -22,6 +22,8 @@ const identitesFichiers = new WeakMap<File, number>();
 let numeroFichier = 0;
 /** Aussi dit par le garde de la copie locale (lib/garde-copie-locale.ts) : un seul texte pour « quitter cette page ». */
 export const MESSAGE_QUITTER = "Des modifications ne sont pas encore enregistrées. Quitter cette page et les abandonner ?";
+/** Le même avertissement lorsqu'un clic sur le voile refermerait une fenêtre et sa saisie (lib/use-fenetre-modale.ts). */
+export const MESSAGE_FERMER_FENETRE = "Des modifications ne sont pas encore enregistrées. Fermer cette fenêtre et les abandonner ?";
 
 export type ClicSurLien = Pick<MouseEvent, "defaultPrevented" | "button" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey">;
 export type LienClique = { href: string; target: string; download: boolean };

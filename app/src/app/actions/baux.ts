@@ -37,6 +37,10 @@ export type EtatBail = {
   // le formulaire affiche alors la case à cocher, même si son propre calcul
   // n'avait pas vu l'écart.
   confirmationRequise?: boolean;
+  // Parcours du brouillon : valeurs de l’étape après enregistrement, ou valeurs
+  // enregistrées entre-temps ailleurs qui ont fait refuser la saisie (CB-01).
+  valeursEnregistrees?: Record<string, string>;
+  modifieesAilleurs?: Record<string, string>;
 };
 
 // Créer un bail (brouillon) sur un lot.

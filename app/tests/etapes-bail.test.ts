@@ -1,5 +1,5 @@
 import {describe,it,expect} from "vitest";
-import {lireEtapeBail,indexEtapeBail,ETAPES_BAIL} from "@/lib/champs-etape-bail";
+import {lireEtapeBail,indexEtapeBail,ETAPES_BAIL,champsDifferents,memeValeurEtapeBail} from "@/lib/champs-etape-bail";
 const actuel={type:"nu",loyer_hc:500,charges:40,depot_garantie:400,charges_mode:"provision",locataire_principal:"locataire",jour_echeance:1,clause_resolutoire_assurance:true};
 const logement={meuble:false,surface:46};
 const form=(v:Record<string,string>)=>{const f=new FormData();Object.entries(v).forEach(([k,v])=>f.set(k,v));return f;};
@@ -29,6 +29,10 @@ describe("saisie progressive du bail",()=>{
  });
  it("refuse une date inexistante",()=>expect(lireEtapeBail("bail",form({...dates,date_debut:"2026-02-30"}),actuel,logement).erreur).toBeTruthy());
  it("refuse un dépôt trop élevé",()=>expect(lireEtapeBail("loyer",form({...montants,depot_garantie:"501"}),actuel,logement).erreur).toMatch(/plafond/));
+ it("CB-16 : le refus du dépôt donne le plafond calculé, sans renvoyer à l’étape où l’on se trouve",()=>{
+  expect(lireEtapeBail("loyer",form({...montants,depot_garantie:"1000,01"}),{...actuel,type:"meuble"},{...logement,meuble:true}).erreur).toBe("Le dépôt de garantie dépasse le plafond de 1 000,00 € pour ce type de bail.");
+  expect(lireEtapeBail("bail",form(dates),{...actuel,type:"meuble",depot_garantie:800},logement).erreur).toBe("Le dépôt de garantie dépasse le plafond de 500,00 € pour ce type de bail. Corrigez-le à l’étape Loyer.");
+ });
  it("vérifie le plafond du meublé en colocation",()=>expect(lireEtapeBail("loyer",form({...montants,depot_garantie:"800"}),{...actuel,type:"colocation"},{...logement,meuble:true}).erreur).toBeUndefined());
  it("interdit le forfait pour le nu",()=>expect(lireEtapeBail("loyer",form({...montants,charges_mode:"forfait"}),actuel,logement).erreur).toMatch(/provisions/));
  it("le passage du meublé au nu revérifie le dépôt",()=>expect(lireEtapeBail("bail",form(dates),{...actuel,type:"meuble",depot_garantie:800},logement).erreur).toMatch(/plafond/));
@@ -36,5 +40,14 @@ describe("saisie progressive du bail",()=>{
  it("désactive les montants de référence hors encadrement",()=>expect(lireEtapeBail("clauses",form({encadrement_loyer:"false",loyer_reference:"25"}),actuel,logement).patch?.loyer_reference).toBeNull());
  it("ne conserve pas une clause de servitude inapplicable",()=>expect(lireEtapeBail("clauses",form({servitude_residence_principale:"false",clause_resolutoire_servitude:"true"}),actuel,logement).patch?.clause_resolutoire_servitude).toBe(false));
  it("supprime les données conditionnelles d’un ancien loyer non applicable",()=>expect(lireEtapeBail("loyer",form({...montants,precedente_location:"premiere",dernier_loyer:"200"}),actuel,logement).patch?.dernier_loyer).toBeNull());
+ it("une clause sur plusieurs lignes enregistrée n’est pas une modification (fins de ligne CRLF du formulaire, LF du champ)",()=>{
+  // Le navigateur soumet un textarea en CRLF ; la base garde ce texte, alors que textarea.value se relit en LF.
+  const enregistree=String(lireEtapeBail("clauses",form({clauses_particulieres:"Animaux acceptés.\r\nJardin entretenu."}),actuel,logement).patch?.clauses_particulieres);
+  expect(enregistree).toBe("Animaux acceptés.\r\nJardin entretenu.");
+  expect(champsDifferents("clauses",{clauses_particulieres:"Animaux acceptés.\nJardin entretenu."},{clauses_particulieres:enregistree})).toEqual([]);
+  expect(memeValeurEtapeBail("travaux_locataire","Peinture.\nSol.","Peinture.\r\nSol.")).toBe(true);
+  expect(champsDifferents("clauses",{clauses_particulieres:"Animaux acceptés.\nJardin entretenu."},{clauses_particulieres:"Animaux acceptés."})).toEqual(["clauses_particulieres"]);
+  expect(memeValeurEtapeBail("loyer_hc","800","800.00")).toBe(true);
+ });
  it.each([["#etape-bail-1",0],["#etape-bail-7",6],["#etape-bail-11",6],["#completer-personnes",1],["#completer-lot",2],["#completer-dpe",4],["#complements-paiement",3],["#complements-precedent",3],["#complements-energie",4],["#complements-conditions",5],["#signature",6],["#edl",6]] as const)("oriente le lien %s",(hash,index)=>expect(indexEtapeBail(hash)).toBe(index));
 });

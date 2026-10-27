@@ -45,7 +45,7 @@ export function cibleChampBail(champ: string, orgId: string, racine: string = RA
     return { href: "#completer-lot", etape: "logement" };
   }
   const vers = (href: string, etape: string) => ({ href, etape });
-  if (/^(commune|adresse du mandataire)$|carte et CCI|garantie financière|siret/i.test(champ)) return vers(`${racine}/${orgId}/profil`, "personnes");
+  if (/^(commune|adresse du mandataire)$|carte et CCI|garantie financière|siret|\(profil\)$/i.test(champ)) return vers(`${racine}/${orgId}/profil`, "personnes");
   if (/Date d[’']entrée/i.test(champ)) return vers("#parcours-date_debut", "bail");
   if (/date prévue/i.test(champ)) return vers("#parcours-date_conclusion_prevue", "bail");
   if (/inventaire du mobilier/i.test(champ)) return vers("#inventaire", "documents");

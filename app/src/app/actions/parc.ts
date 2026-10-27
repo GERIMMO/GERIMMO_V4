@@ -21,6 +21,8 @@ import {
   ETATS_LOT,
 } from "@/lib/parc";
 import { baseEspace } from "@/lib/racine-espace";
+import { erreurEcheanceDpe } from "@/lib/documents-bail";
+import { QUALITES_BAILLEUR, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 
 export type EtatParc = {
   erreur?: string;
@@ -34,7 +36,9 @@ export type EtatParc = {
   valeurs?: Record<string, string>;
   // Dépôt d'un diagnostic refusé parce que le MÊME rapport est déjà rangé : la pièce existante, que l'écran
   // propose d'utiliser pour ce lot (ou ce bien) au lieu de la déposer en double (X07, PROP-11).
-  pieceExistante?: { id: string; titre: string | null };
+  // `type` : « autre » ou « courrier » quand le même fichier a d'abord été rangé dans Documents sans être déclaré comme
+  // rapport (DOC-02) — l'écran le dit, et la pièce sera reclassée en « Diagnostic » par la base.
+  pieceExistante?: { id: string; titre: string | null; type?: string };
 };
 
 // Zone tendue saisie : « oui », « non » ou non vérifiée (NULL). Un ancien
@@ -417,6 +421,14 @@ export async function ajouterDetention(
     const adresse = String(formData.get("nouveau_adresse") ?? "").trim();
     const codePostal = String(formData.get("nouveau_code_postal") ?? "").trim();
     const ville = String(formData.get("nouveau_ville") ?? "").trim();
+    // La qualité se choisit dans la liste fermée : la déduire d'un prénom vide faisait
+    // d'une SCI familiale une « Personne morale », donc un bail nu de 6 ans au lieu de 3
+    // (lib/qualite-bailleur.ts). Sans choix, seule une fiche avec prénom reste une
+    // personne physique, comme le veut estPersonnePhysique (audit #264, FL-04).
+    const qualiteLue = normaliserQualiteBailleur(String(formData.get("nouveau_qualite") ?? "")) ?? (prenom ? "Personne physique" : null);
+    if (!qualiteLue) return { erreur: "Choisissez la qualité du nouveau propriétaire (personne physique, SCI familiale, indivision, société…).", valeurs };
+    if (!estQualiteBailleur(qualiteLue)) return { erreur: `Qualité inconnue : choisissez parmi ${QUALITES_BAILLEUR.join(", ")}.`, valeurs };
+    if (qualiteLue === "Personne physique" && !prenom) return { erreur: "Le prénom du propriétaire est obligatoire pour une personne physique.", valeurs };
     if (!nom) return { erreur: "Le nom du nouveau propriétaire est obligatoire.", valeurs };
     if (!email) return { erreur: "L'adresse email du propriétaire est obligatoire.", valeurs };
     if (!adresse || !codePostal || !ville) return { erreur: "L'adresse complète du propriétaire est obligatoire.", valeurs };
@@ -436,7 +448,7 @@ export async function ajouterDetention(
     }
     const { data: personne, error: erreurPersonne } = await supabase
       .from("persons")
-      .insert({ organization_id: orgId, nom, prenom: prenom || null, email, date_naissance: dateNaissance || null, commune_naissance: communeNaissance || null, address_line1: adresse, postal_code: codePostal, city: ville, qualite: prenom ? "Personne physique" : "Personne morale" })
+      .insert({ organization_id: orgId, nom, prenom: prenom || null, email, date_naissance: dateNaissance || null, commune_naissance: communeNaissance || null, address_line1: adresse, postal_code: codePostal, city: ville, qualite: qualiteLue })
       .select("id, nom, prenom")
       .single();
     if (erreurPersonne) return { erreur: sansJargon(erreurPersonne.message), valeurs };
@@ -593,6 +605,13 @@ export async function deposerDiagnostic(
   if (!referentiel) return { erreur: "Type de diagnostic invalide.", valeurs };
   if (!realisation) return { erreur: "La date de réalisation est obligatoire.", valeurs };
   if (referentiel.validite_mois != null && !expiration) return { erreur: "La date d’expiration de ce diagnostic est obligatoire.", valeurs };
+  const erreurEcheance = erreurEcheanceDpe(type, realisation, expiration);
+  if (erreurEcheance) return { erreur: erreurEcheance, valeurs };
+  // DOC-07 : un CREP qui relève du plomb doit dater de moins de six ans à la signature du bail (art. R. 1334-11 du
+  // code de la santé publique) : son échéance n'est plus facultative.
+  if (type === "plomb" && formData.get("plomb_resultat") === "presence" && !expiration) {
+    return { erreur: "Un constat qui relève du plomb vaut six ans pour la location : indiquez son échéance.", valeurs };
+  }
 
   // Rattachement bien OU lot selon la nature du diagnostic (RM-0.6.2) ;
   // le dépôt archive l'ancien du même type et lève seul le blocage (RM-0.8.5)
@@ -605,6 +624,7 @@ export async function deposerDiagnostic(
   let documentId: string;
   let avertissement: string | undefined;
   let pieceReutilisee: string | null = null;
+  let pieceReclassee = false;
 
   // X07 (PROP-11) : un diagnostic collectif (DPE d'un immeuble) vaut pour plusieurs lots avec LE MÊME rapport.
   // « Utiliser cette pièce » rattache le diagnostic de ce lot à la pièce déjà rangée : aucun nouveau dépôt,
@@ -617,6 +637,7 @@ export async function deposerDiagnostic(
     if (!piece) {
       return { erreur: "Cette pièce n’est plus disponible dans votre dossier. Choisissez à nouveau le rapport à déposer.", valeurs };
     }
+    if (piece.misADisposition) return { erreur: REFUS_PIECE_PARTAGEE, valeurs };
     let dejaUtilisee = supabase
       .from("diagnostics")
       .select("id")
@@ -631,6 +652,7 @@ export async function deposerDiagnostic(
     }
     documentId = piece.id;
     pieceReutilisee = piece.titre ?? "sans titre";
+    pieceReclassee = piece.type !== "diagnostic";
   } else {
     // PDF du rapport OBLIGATOIRE (arbitrage 2026-08-01) : le diagnostic est annexé
     // au bail, on exige son rapport dès le dépôt. Déposé dans la GED (type réel
@@ -653,10 +675,11 @@ export async function deposerDiagnostic(
       // Le même rapport est déjà rangé : si c'est bien un rapport de diagnostic de cette organisation, on le
       // propose (« Utiliser cette pièce pour ce lot ») au lieu de laisser l'utilisateur dans une impasse.
       const offre = depot.doublonId ? await lirePieceDiagnostic(supabase, orgId, depot.doublonId) : null;
+      if (offre?.misADisposition) return { erreur: REFUS_PIECE_PARTAGEE, valeurs };
       return {
         erreur: depot.erreur ?? "Échec du dépôt du fichier.",
         valeurs,
-        ...(offre ? { pieceExistante: { id: offre.id, titre: offre.titre } } : {}),
+        ...(offre ? { pieceExistante: { id: offre.id, titre: offre.titre, type: offre.type } } : {}),
       };
     }
     documentId = depot.documentId;
@@ -688,7 +711,7 @@ export async function deposerDiagnostic(
     revalidatePath(`/${racine}/${orgId}/baux`, "layout");
   }
   if (pieceReutilisee !== null) {
-    return { succes: `${referentiel.libelle} enregistré pour ${ceNiveau} avec la pièce déjà déposée (« ${pieceReutilisee} »), sans copie supplémentaire.` };
+    return { succes: `${referentiel.libelle} enregistré pour ${ceNiveau} avec la pièce déjà déposée (« ${pieceReutilisee} »), sans copie supplémentaire.${pieceReclassee ? " Elle est désormais classée en « Diagnostic » dans vos documents." : ""}` };
   }
   const base = `${referentiel.libelle} déposé.`;
   return { succes: avertissement ? `${base} ${avertissement}` : base };
@@ -697,20 +720,37 @@ export async function deposerDiagnostic(
 // Un rapport de diagnostic vivant de CETTE organisation, relu sous les droits de l'utilisateur (un agent restreint
 // ne voit pas les pièces hors de son portefeuille). `null` : introuvable, d'une autre organisation, d'un autre
 // type (pièce d'identité, quittance…) ou effacé.
+// DOC-02 : le même rapport d'abord rangé dans Documents en « Autre » ou « Courrier » (seuls types proposés au dépôt
+// libre, avec les pièces personnelles) ou joint au bail comme annexe (« Autre ») s'utilise aussi : sinon l'anti-doublon
+// le refuse sans issue. La base le reclasse en « Diagnostic » dans la transaction du diagnostic, pour qu'il suive la
+// conservation des diagnostics (fin de gestion du bien) et non celle d'un document quelconque.
+// Un courrier mis à disposition du locataire n'est pas proposé : reclassé, il quitterait son espace (seuls les
+// quittances et courriers partagés y figurent). Le refus dit comment faire ; la base le refuse aussi
+// (reclasser_rapport_diagnostic).
+const TYPES_PIECE_DIAGNOSTIC = ["diagnostic", "autre", "courrier"];
+const REFUS_PIECE_PARTAGEE =
+  "Ce fichier est déjà dans vos documents et mis à disposition de votre locataire : le déclarer comme rapport de diagnostic le retirerait de son espace. Si c’est voulu, retirez d’abord la mise à disposition (Documents, fiche du document : « Retirer de son espace »), puis déposez-le à nouveau ici.";
 async function lirePieceDiagnostic(
   supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
   orgId: string,
   documentId: string
-): Promise<{ id: string; titre: string | null } | null> {
+): Promise<{ id: string; titre: string | null; type: string; misADisposition: boolean } | null> {
   const { data } = await supabase
     .from("documents")
-    .select("id, titre, type")
+    .select("id, titre, type, partage_le")
     .eq("id", documentId)
     .eq("organization_id", orgId)
-    .eq("type", "diagnostic")
+    .in("type", TYPES_PIECE_DIAGNOSTIC)
     .is("purged_at", null)
     .maybeSingle();
-  return data ? { id: data.id as string, titre: (data.titre as string | null) ?? null } : null;
+  if (!data) return null;
+  const type = data.type as string;
+  return {
+    id: data.id as string,
+    titre: (data.titre as string | null) ?? null,
+    type,
+    misADisposition: type !== "diagnostic" && data.partage_le != null,
+  };
 }
 
 // Pièces du lot : la vraie liste (Séjour, Chambre 1…) qui sert à générer la

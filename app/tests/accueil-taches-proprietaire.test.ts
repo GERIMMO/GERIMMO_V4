@@ -61,6 +61,23 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 0, critiques: 0, patrimoine: { biens: 1, lots: 1 }, indisponible: false }));
   });
 
+  it("la carte « À vérifier » annonce le chiffre de « Mes tâches » vers laquelle elle mène (audit du 27/10, LAT-05)", async () => {
+    const donnees = pilotage();
+    const loue = { ...lot, id: "loue", nom: "T2 loué", etat: "loue" };
+    m.pilotage.mockResolvedValue({ ...donnees, patrimoine: { ...donnees.patrimoine, lots: [lot, loue], lotsSansBail: [lot] },
+      diagnostics: [{ id: "dpe", lot_id: "loue", classe_dpe: "F", date_realisation: "2020-01-01", lot: loue }] });
+    m.verifications.mockResolvedValue(lecture([action("Demande TEST")]));
+    const html = await rendre();
+    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 3, critiques: 0, hrefTaches: "#taches-proprietaire" }));
+    expect(html).toContain('aria-label="3 tâches"');
+  });
+
+  it("l'encaissé du mois dit sa définition et mène aux recettes datées de Finances (audit du 27/10, LAT-06)", async () => {
+    const html = await rendre();
+    expect(html).toContain('href="/espace/org/loyers#operations"');
+    expect(html).toContain("Reçus ce mois, toutes échéances");
+  });
+
   it("garde les tâches fiables sans annoncer un repos quand une source échoue", async () => {
     m.verifications.mockResolvedValue(lecture([action("Demande connue")], false, true));
     const html = await rendre();

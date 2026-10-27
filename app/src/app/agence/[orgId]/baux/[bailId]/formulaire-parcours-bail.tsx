@@ -7,13 +7,15 @@ import { ChevronDown, CheckCheck } from "lucide-react";
 import { initialiserParcoursBail } from "@/lib/initialiser-parcours-bail";
 import { CompletudeBail } from "@/lib/suivi-enregistrement";
 import { champBailManquant } from "@/lib/reperes-bail";
-import { eur } from "@/lib/ged";
+import { eur, formaterDate } from "@/lib/ged";
+import { Modale } from "@/components/ui/modale";
+import { Button } from "@/components/ui/button";
 import styles from "./formulaire-parcours-bail.module.css";
 import { EtapeComplementsBail } from "@/lib/etape-complements-bail";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { modifierEtapeBail } from "@/app/actions/etapes-bail";
 import type { EtatBail } from "@/app/actions/baux";
-import { type EtapeSaisieBail, type ValeursParcoursBail } from "@/lib/champs-etape-bail";
+import { CHAMPS_ETAPE_BAIL, ETAPES_BAIL, champsDifferents, memeValeurEtapeBail, type EtapeSaisieBail, type ValeursParcoursBail } from "@/lib/champs-etape-bail";
 import { Input } from "@/components/ui/input";
 import { LabelBail as Label } from "@/components/pastille-bail";
 import { lireMontantFacultatif } from "@/lib/saisie-montant";
@@ -90,6 +92,9 @@ const groupes:Groupe[]=[
   {nom:"clauses_particulieres",titre:"Clauses particulières",type:"textarea"},
  ]},
 ];
+const champsParNom=new Map(groupes.flatMap(g=>g.champs).map(c=>[c.nom,c]));
+const ETAPES_SAISIE=["bail","loyer","documents","clauses"] as const;
+const libelleChamp=(nom:string)=>champsParNom.get(nom)?.titre.replace(/\s*\([^)]*\)$/,"")??nom;
 
 export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chambres,surfaceHabitable,lienChambres}:{orgId:string;bailId:string;defauts:ValeursParcoursBail;agence:boolean;meuble:boolean;chambres:{id:string;nom:string}[];surfaceHabitable?:number|null;lienChambres?:string}) {
  const parcours=useContext(EtapeComplementsBail);
@@ -98,6 +103,17 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
  const formulaireRef=useRef<HTMLFormElement>(null);
  const envoiRef=useRef(false);
  const [valeurs,setValeurs]=useState<Record<string,string>>(()=>initialiserParcoursBail(defauts,meuble));
+ // Dernières valeurs enregistrées connues de cette fenêtre. Envoyées avec la saisie, elles
+ // permettent au serveur de refuser d’écraser une étape enregistrée entre-temps ailleurs (CB-01).
+ const [lues,setLues]=useState<Record<string,string>>(()=>initialiserParcoursBail(defauts,meuble));
+ const destinationDemandee=useRef<string|null>(null);
+ const destinationEnvoi=useRef<string|null>(null);
+ const [demande,setDemande]=useState<string|null>(null);
+ // Le bouton Retour du navigateur change l’étape sous la fenêtre : elle se referme
+ // au lieu d’agir sur l’étape nouvellement affichée.
+ const [etapeDemande,setEtapeDemande]=useState(etape);
+ if(etapeDemande!==etape){setEtapeDemande(etape);setDemande(null);}
+ const boutonEnregistrer=useRef<HTMLButtonElement>(null);
  const [ouverts,setOuverts]=useState<Record<string,boolean>>({});
  useEffect(()=>{
    const ouvrirCible=(hash:string)=>{
@@ -123,34 +139,85 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
  const {etat,soumettre,enCours}=useActionFormulaire<EtatBail>(async (ancien,form)=>{
    const active=etape as EtapeSaisieBail;
    setRetourEtape(active);
-   if(active==="documents"&&form.get("continuer")==="1") {
+   if(active==="documents"&&(form.get("continuer")==="1"||destinationEnvoi.current)) {
      const fichiers=document.getElementById("documents-bail")?.querySelectorAll<HTMLInputElement>('input[type="file"]');
      if(Array.from(fichiers??[]).some(champ=>Boolean(champ.files?.length))) {
        return {erreur:"Un fichier est sélectionné mais pas encore déposé. Utilisez le bouton de dépôt de son formulaire avant de continuer."};
      }
    }
    const res=await modifierEtapeBail(orgId,bailId,active,ancien,form);
+   if(res.modifieesAilleurs) {
+     const recentes=res.modifieesAilleurs;
+     // Un champ resté tel que lu reprend la valeur enregistrée ailleurs ; une saisie différente est conservée.
+     setValeurs(v=>({...v,...Object.fromEntries(Object.entries(recentes).filter(([nom])=>memeValeurEtapeBail(nom,v[nom],lues[nom])))}));
+     setLues(l=>({...l,...recentes}));
+   }
    if(res.erreur) {
      setOuverts(v=>({...v,...Object.fromEntries(groupes.filter(g=>g.etapes.includes(active)&&g.repliable).map(g=>[g.titre,true]))}));
      requestAnimationFrame(()=>formulaireRef.current?.querySelector<HTMLElement>('[role="alert"]')?.focus());
    }
-   if(res.succes){setModifie(false);if(form.get("continuer")==="1")parcours?.ouvrir(({bail:"personnes",loyer:"documents",documents:"clauses",clauses:"recapitulatif"})[active]);}
+   if(res.succes){
+     setModifie(false);
+     const enregistrees=res.valeursEnregistrees;
+     if(enregistrees)setLues(l=>({...l,...enregistrees}));
+     if(destinationEnvoi.current)parcours?.allerA?.(destinationEnvoi.current);
+     else if(form.get("continuer")==="1")parcours?.ouvrir(({bail:"personnes",loyer:"documents",documents:"clauses",clauses:"recapitulatif"})[active]);
+   }
    return res;
  });
+ // Étapes dont un champ affiché diffère de la valeur enregistrée : signalées dans le fil
+ // et au récapitulatif, et retenues le temps de proposer de les enregistrer (CB-05).
+ const contexteAffichage={...valeurs,logement_meuble:String(meuble)};
+ const champsAffiches=new Set(groupes.filter(g=>!g.agence||agence).flatMap(g=>g.champs.filter(c=>!c.visible||c.visible(contexteAffichage)).map(c=>c.nom)));
+ const nonEnregistres=(id:EtapeSaisieBail)=>champsDifferents(id,valeurs,lues).filter(nom=>champsAffiches.has(nom));
+ const etapesNonEnregistrees=ETAPES_SAISIE.filter(id=>nonEnregistres(id).length).join(",");
+ const etapeNonEnregistree=etapesNonEnregistrees.split(",").includes(etape);
+ const signalerNonEnregistrees=parcours?.signalerNonEnregistrees;
+ const definirGarde=parcours?.definirGarde;
+ useEffect(()=>{signalerNonEnregistrees?.(etapesNonEnregistrees?etapesNonEnregistrees.split(","):[]);},[etapesNonEnregistrees,signalerNonEnregistrees]);
+ useEffect(()=>{
+   if(!definirGarde)return;
+   definirGarde(etapeNonEnregistree?ancre=>{setDemande(ancre);return true;}:null);
+   return()=>definirGarde(null);
+ },[definirGarde,etapeNonEnregistree]);
+ // La fenêtre place d’abord le focus sur sa croix de fermeture : il revient à l’action proposée.
+ useEffect(()=>{if(demande)boutonEnregistrer.current?.focus({preventScroll:true});},[demande]);
+ const enregistrerPuisAller=()=>{
+   const ancre=demande;setDemande(null);
+   // Après la fermeture de la fenêtre : un champ invalide doit pouvoir recevoir le focus.
+   requestAnimationFrame(()=>{destinationDemandee.current=ancre;formulaireRef.current?.requestSubmit();destinationDemandee.current=null;});
+ };
+ const abandonner=()=>{
+   const ancre=demande,active=etape as EtapeSaisieBail;
+   setValeurs(v=>({...v,...Object.fromEntries(CHAMPS_ETAPE_BAIL[active].map(nom=>[nom,lues[nom]??""]))}));
+   setModifie(false);setDemande(null);
+   if(ancre)parcours?.allerA?.(ancre);
+ };
+ const afficherValeur=(nom:string,brut:string)=>{
+   const champ=champsParNom.get(nom);
+   if(!brut.trim())return "non renseigné";
+   const option=(nom==="chambre_id"?chambres.map(c=>[c.id,c.nom] as [string,string]):champ?.options)?.find(([v])=>v===brut);
+   if(option)return option[1];
+   if(champ?.type==="montant"){const lu=lireMontantFacultatif(brut);return "montant" in lu&&lu.montant!=null?eur(lu.montant):brut;}
+   if(champ?.type==="date")return formaterDate(brut);
+   return brut.length>80?`${brut.slice(0,80)}…`:brut;
+ };
  const visible=["bail","loyer","documents","clauses"].includes(etape);
  const montantLoyer=lireMontantFacultatif(valeurs.loyer_hc??"");
  const montantCharges=lireMontantFacultatif(valeurs.charges??"");
  const totalMensuel="montant" in montantLoyer&&"montant" in montantCharges&&montantLoyer.montant!=null&&montantCharges.montant!=null?montantLoyer.montant+montantCharges.montant:null;
- return <form ref={formulaireRef} data-saisie-confirmee id="form-parcours-bail" hidden={!visible} onSubmit={async event=>{
+ const titreEtape=ETAPES_BAIL.find(e=>e.id===etape)?.titre??"";
+ return <><form ref={formulaireRef} data-saisie-confirmee id="form-parcours-bail" hidden={!visible} onSubmit={async event=>{
    if(envoiRef.current){event.preventDefault();return;}
-   envoiRef.current=true;parcours?.signalerEnregistrement?.(true);
+   envoiRef.current=true;destinationEnvoi.current=destinationDemandee.current;parcours?.signalerEnregistrement?.(true);
    try { await soumettre(event); }
-   finally { envoiRef.current=false;parcours?.signalerEnregistrement?.(false); }
+   finally { envoiRef.current=false;destinationEnvoi.current=null;parcours?.signalerEnregistrement?.(false); }
  }} className={`bail-formulaire-etape ${styles.formulaire}`} onChange={()=>setModifie(true)} aria-busy={enCours} onInvalidCapture={event=>{
    const champ=event.target as HTMLElement;
    const bloc=champ.closest<HTMLDetailsElement>("details[data-groupe]");
    if(bloc){bloc.open=true;setOuverts(v=>({...v,[bloc.dataset.groupe!]:true}));}
  }}>
+  {visible&&<input type="hidden" name="valeurs_lues" value={JSON.stringify(Object.fromEntries(CHAMPS_ETAPE_BAIL[etape as EtapeSaisieBail].map(nom=>[nom,lues[nom]??""])))}/>}
   {etape==="bail"&&<p className={styles.reprise}><CheckCheck size={17} aria-hidden="true"/>Les informations du lot, les propriétaires et les diagnostics déjà enregistrés sont repris dans ce parcours.</p>}
   {groupes.filter(g=>!g.agence||agence).map(g=>{
    const actif=g.etapes.includes(etape),contexte={...valeurs,logement_meuble:String(meuble)};
@@ -180,7 +247,21 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
    }}><summary><span><strong>{g.titre}</strong><small>{g.resume}</small></span>{restant>0&&<span className={styles.restant}>{restant} à compléter</span>}<ChevronDown size={17} aria-hidden="true"/></summary>{champs}</details>:<div key={g.titre} id={g.ancre} hidden={!actif}>{champs}</div>;
   })}
   {["loyer","clauses"].includes(etape)&&<AvertissementsLoyer avertissements={!modifie&&retourEtape===etape&&etat.avertissements?etat.avertissements:avertissementsCoherenceLoyer({...valeurs,encadrement_loyer:valeurs.encadrement_loyer==="true",chambre_id:valeurs.type==="colocation_individuelle"?valeurs.chambre_id:null},surfaceHabitable)} enregistre={!modifie&&retourEtape===etape&&Boolean(etat.succes)} />}
-  {retourEtape===etape&&etat.erreur&&<p role="alert" tabIndex={-1} className="text-sm text-destructive">{etat.erreur}</p>}
+  {retourEtape===etape&&etat.erreur&&<div role="alert" tabIndex={-1} className="text-sm text-destructive"><p>{etat.erreur}</p>
+   {etat.modifieesAilleurs&&<ul className="mt-1 list-disc space-y-0.5 pl-5">{Object.entries(etat.modifieesAilleurs).map(([nom,enregistree])=><li key={nom}>
+    {libelleChamp(nom)} — valeur enregistrée : {afficherValeur(nom,enregistree)}{memeValeurEtapeBail(nom,valeurs[nom],enregistree)?", reprise ici.":` ; votre saisie (${afficherValeur(nom,valeurs[nom]??"")}) est conservée.`}
+   </li>)}</ul>}
+  </div>}
   {retourEtape===etape&&etat.succes&&!modifie&&<p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}
- </form>;
+ </form>
+ {demande&&<Modale titre="Modifications non enregistrées" surtitre={`Étape ${titreEtape}`} fermer={()=>setDemande(null)}
+  pied={<div className="flex flex-wrap justify-end gap-2">
+   <Button type="button" variant="outline" onClick={()=>setDemande(null)}>Rester sur l’étape</Button>
+   <Button type="button" variant="outline" onClick={abandonner}>Abandonner les modifications</Button>
+   <Button ref={boutonEnregistrer} type="button" onClick={enregistrerPuisAller}>Enregistrer et continuer</Button>
+  </div>}>
+  <p className="text-sm">Les modifications de l’étape « {titreEtape} » ne sont pas encore enregistrées : {ETAPES_SAISIE.includes(etape as EtapeSaisieBail)?nonEnregistres(etape as EtapeSaisieBail).map(libelleChamp).join(", "):""}.</p>
+  <p className="text-sm text-muted-foreground">Tant qu’elles ne le sont pas, le récapitulatif et le contrat reprennent les valeurs enregistrées.</p>
+ </Modale>}
+ </>;
 }

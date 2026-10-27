@@ -1,6 +1,7 @@
 import { lireMentionsContrat, verifierHonorairesContrat } from "@/lib/mentions-contrat";
 import { moisDepotGarantie } from "@/lib/depot-garantie";
 import { lireMontantFacultatif } from "@/lib/saisie-montant";
+import { eur } from "@/lib/ged";
 
 export const ETAPES_BAIL = [
   { id: "bail", titre: "Le bail", detail: "Type de contrat et dates" },
@@ -61,7 +62,9 @@ export function lireEtapeBail(etape: EtapeSaisieBail, form: FormData, actuel: Va
     const fusion = { ...actuel, ...patch };
     if (etape === "loyer" && ["loyer_hc","charges","depot_garantie"].some(n => patch[n] == null)) return erreur("Renseignez le loyer, les charges et le dépôt. Indiquez 0 si le montant est nul.");
     if (fusion.type === "nu" && fusion.charges_mode === "forfait") return erreur("Un bail nu utilise des provisions sur charges. Corrigez le mode de charges à l’étape Loyer.");
-    if (fusion.loyer_hc != null && fusion.depot_garantie != null && Number(fusion.depot_garantie) > moisDepotGarantie(String(fusion.type), logement.meuble) * Number(fusion.loyer_hc)) return erreur("Le dépôt de garantie dépasse le plafond du type de bail choisi. Corrigez-le à l’étape Loyer.");
+    // Le message donne le plafond calculé, et ne renvoie à l'étape Loyer que depuis une autre étape (audit #264, CB-16).
+    const plafondDepot = fusion.loyer_hc == null ? null : moisDepotGarantie(String(fusion.type), logement.meuble) * Number(fusion.loyer_hc);
+    if (plafondDepot != null && fusion.depot_garantie != null && Number(fusion.depot_garantie) > plafondDepot) return erreur(`Le dépôt de garantie dépasse le plafond de ${eur(plafondDepot)} pour ce type de bail.${etape === "loyer" ? "" : " Corrigez-le à l’étape Loyer."}`);
     if (etape === "loyer") {
       patch.revision_irl ??= false;
       patch.paiement_echeance ??= "echoir";
@@ -83,6 +86,35 @@ export function lireEtapeBail(etape: EtapeSaisieBail, form: FormData, actuel: Va
   const verif = lireMentionsContrat(mentions);
   if (verif.erreur) return erreur(verif.erreur);
   return { patch, erreur: undefined };
+}
+
+/** Valeurs de l’étape telles que le formulaire les a lues, envoyées avec la saisie (champ caché `valeurs_lues`). */
+export function lireValeursLues(brut: FormDataEntryValue | null): Record<string, string> | null {
+  if (typeof brut !== "string" || !brut) return null;
+  try {
+    const lues: unknown = JSON.parse(brut);
+    if (!lues || typeof lues !== "object" || Array.isArray(lues)) return null;
+    return Object.fromEntries(Object.entries(lues).filter(([, valeur]) => typeof valeur === "string"));
+  } catch { return null; }
+}
+
+/** Deux écritures d’un même champ désignent-elles la même valeur ? Les montants se comparent par valeur :
+ * « 800 » et « 800.00 » désignent le même loyer. Un texte sur plusieurs lignes est soumis en CRLF (FormData)
+ * et enregistré tel quel, mais se relit en LF dans le champ (textarea.value) : c’est le même texte. */
+export function memeValeurEtapeBail(nom: string, a: string | undefined, b: string | undefined) {
+  const valeur = (brut: string | undefined) => {
+    const texte = (brut ?? "").replace(/\r\n?/g, "\n").trim();
+    if (!nombres.has(nom)) return texte;
+    const lu = lireMontantFacultatif(texte);
+    return "montant" in lu ? String(lu.montant) : texte;
+  };
+  return valeur(a) === valeur(b);
+}
+
+/** Champs de l’étape (connus de `reference`) dont la valeur diffère entre deux états : saisie enregistrée
+ * ailleurs depuis sa lecture (serveur), ou saisie pas encore enregistrée (formulaire). */
+export function champsDifferents(etape: EtapeSaisieBail, reference: Record<string, string>, comparees: Record<string, string>): string[] {
+  return CHAMPS_ETAPE_BAIL[etape].filter(nom => Object.hasOwn(reference, nom) && !memeValeurEtapeBail(nom, reference[nom], comparees[nom]));
 }
 
 export function indexEtapeBail(hash: string) {

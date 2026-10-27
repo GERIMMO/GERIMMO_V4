@@ -5,6 +5,7 @@ import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement
 import { modeSignatureDocument } from "@/lib/politique-signature";
 import type { Assemblage } from "./index";
 import { aujourdhuiParis } from "@/lib/ged";
+import { echeanceReglementaire } from "@/lib/documents-bail";
 
 export const CODES_COMPLEMENTS_BAIL = ["bordereau_ddt", "inventaire_entree", "inventaire_sortie", "avenant_remplacement", "liste_dossier", "attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "situation_dette", "protocole_apurement", "accuse_conge", "decompte_retenues", "attestation_fin_bail", "autorisation_travaux"] as const;
 export type LigneDocument = Record<string, unknown>;
@@ -44,7 +45,9 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     if (["attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "protocole_apurement"].includes(code) && ctx.bail.etat === "brouillon") return { erreur: "Ce document se prépare pour un bail engagé, après la signature du contrat." };
 
     if (code === "bordereau_ddt") {
-      const lignes = await lireLignes(supabase.from("diagnostics").select("type, date_realisation, date_expiration, diagnostiqueur, document_id, classe_dpe").eq("organization_id", orgId).or(`lot_id.eq.${ctx.lot.id},bien_id.eq.${ctx.bien.id}`).is("archived_at", null).order("type"));
+      // DOC-01 : la validité d'un DPE d'avant le 01/07/2021 est plafonnée (décret n° 2020-1610).
+      const lignes = (await lireLignes(supabase.from("diagnostics").select("type, date_realisation, date_expiration, diagnostiqueur, document_id, classe_dpe").eq("organization_id", orgId).or(`lot_id.eq.${ctx.lot.id},bien_id.eq.${ctx.bien.id}`).is("archived_at", null).order("type")))
+        .map((l): LigneDocument => ({ ...l, date_expiration: echeanceReglementaire(String(l.type), l.date_realisation as string | null, l.date_expiration as string | null) }));
       contenu = `${section("Diagnostics recensés")}${lignesTableau(f,lignes,[["Diagnostic","type","texte"],["Réalisé le","date_realisation","date"],["Validité","date_expiration","date"],["Diagnostiqueur","diagnostiqueur","texte"]])}
       <p>Pièces disponibles : ${lignes.filter(l=>l.document_id).length} sur ${lignes.length} diagnostics recensés.</p>
       ${lignes.some(l=>!l.document_id) ? `<p>${f.champ(null,"rapports de diagnostic à déposer avant remise du dossier")}</p>` : ""}

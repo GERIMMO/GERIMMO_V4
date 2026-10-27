@@ -24,6 +24,7 @@ import {
 } from "@/lib/notifications";
 import { lireCleEnvoi } from "@/lib/cle-envoi";
 import { baseEspace } from "@/lib/racine-espace";
+import { estUuid } from "@/lib/identifiants";
 
 export type EtatIncidentAction = {
   erreur?: string;
@@ -42,7 +43,7 @@ const MAX_PHOTOS = 5;
 // descriptionRequise : l'agence décrit toujours (elle retranscrit un appel) ;
 // le locataire peut s'en passer si une photo parle pour lui (RM-19.2.2,
 // report du 21/08 levé par Tahir le 05/09).
-function lireChampsDeclaration(formData: FormData, descriptionRequise = true): {
+function lireChampsDeclaration(formData: FormData, descriptionRequise = true, piecesDuLot: string[] = []): {
   erreur?: string;
   categorie?: string;
   description?: string;
@@ -64,7 +65,8 @@ function lireChampsDeclaration(formData: FormData, descriptionRequise = true): {
       erreur: "Décrivez le problème en une phrase au moins — cela évite un aller-retour avec l'agence.",
     };
   }
-  if (piece && !(PIECES_INCIDENT as readonly string[]).includes(piece)) {
+  // Le gérant peut aussi nommer une chambre ou une pièce enregistrée du lot (FL-01).
+  if (piece && !(PIECES_INCIDENT as readonly string[]).includes(piece) && !piecesDuLot.includes(piece)) {
     return { erreur: "Pièce inconnue." };
   }
   if (!["normale", "urgente"].includes(urgence)) {
@@ -387,7 +389,23 @@ export async function ouvrirIncident(
   const valeurs = valeursDuFormulaire(formData);
   const lotId = String(formData.get("lot") ?? "");
   if (!lotId) return { erreur: "Choisissez le lot concerné.", valeurs };
-  const champs = lireChampsDeclaration(formData);
+  // FL-01 (audit PR #264) : la chambre choisie en colocation à baux individuels.
+  // « aucun » (parties communes, tout le logement) et l'absence de choix
+  // laissent la base décider : le seul bail en cours du lot, sinon aucun.
+  const bail = String(formData.get("bail") ?? "");
+  if (bail && bail !== "aucun" && !estUuid(bail)) return { erreur: "Choisissez la chambre concernée.", valeurs };
+  // Une pièce hors de la liste générique doit être une chambre ou une pièce
+  // enregistrée de CE lot : lues seulement dans ce cas.
+  const piece = String(formData.get("piece") ?? "").trim();
+  let piecesDuLot: string[] = [];
+  if (piece && !(PIECES_INCIDENT as readonly string[]).includes(piece)) {
+    const [{ data: chambres }, { data: pieces }] = await Promise.all([
+      supabase.from("lot_chambres").select("nom").eq("organization_id", orgId).eq("lot_id", lotId),
+      supabase.from("lot_pieces").select("nom").eq("organization_id", orgId).eq("lot_id", lotId),
+    ]);
+    piecesDuLot = [...(chambres ?? []), ...(pieces ?? [])].map((p: { nom: string }) => p.nom);
+  }
+  const champs = lireChampsDeclaration(formData, true, piecesDuLot);
   if (champs.erreur) return { erreur: champs.erreur, valeurs };
   const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
   if (erreurDepotDirect) return { erreur: erreurDepotDirect };
@@ -402,6 +420,7 @@ export async function ouvrirIncident(
     p_piece: champs.piece || null,
     p_anciennete: champs.anciennete || null,
     p_urgence: champs.urgence,
+    p_bail: bail && bail !== "aucun" ? bail : null,
   });
   if (error) return { erreur: `Ouverture impossible : ${sansJargon(error.message)}`, valeurs };
 

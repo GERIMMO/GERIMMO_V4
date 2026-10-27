@@ -159,7 +159,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   );
   // Incidents mis à la charge du locataire dont la fenêtre de contestation lui
   // est encore ouverte. Conditions COPIÉES du bouton « Contester » de la liste
-  // (incidents-locataire.tsx:99-103) : réservé au DÉCLARANT — les colocataires
+  // (incidents-locataire.tsx:99-103) : réservé au TITULAIRE (le déclarant, ou le
+  // locataire du bail rattaché par le gérant, FL-01) — les colocataires
   // sont informés mais les fonctions en base n'acceptent que lui — tant que le
   // dossier n'est pas clos et que la contestation n'a pas déjà été déposée.
   // Revue du 11/09 : annoncer « Voir / contester » à un colocataire l'enverrait

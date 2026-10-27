@@ -30,8 +30,9 @@ import { FenetreLotProvider, BoutonLot } from "@/components/fenetre-lot";
 import { EchecLecture } from "./echec-lecture";
 import styles from "./liste-lots.module.css";
 import { baseEspace } from "@/lib/racine-espace";
-import { chargerBauxActifsDuParc, chargerChambresDuParc, chargerPatrimoineDuParc, verifierLectureDuParc, totalLoyersDuParc } from "@/lib/locations-parc";
+import { chargerBauxActifsDuParc, chargerBrouillonsDuParc, chargerChambresDuParc, chargerPatrimoineDuParc, verifierLectureDuParc, totalLoyersDuParc } from "@/lib/locations-parc";
 import { occupationLot } from "@/lib/occupation-lot";
+import { avecEcheanceReglementaire } from "@/lib/documents-bail";
 import { VueParcProprietaire } from "./vue-parc-proprietaire";
 
 export const metadata = { title: "Parc — Gerimmo" };
@@ -84,6 +85,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     { data: diagnostics, error: erreurDiagnostics },
     { data: pieces, error: erreurPieces },
     { data: chambres, error: erreurChambres },
+    { data: brouillons, error: erreurBrouillons },
   ] = await Promise.all([
     estProprietaire ? chargerPatrimoineDuParc(supabase, orgId) : supabase
       .from("biens")
@@ -103,9 +105,11 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     // Motifs de blocage de tous les lots en préparation, en un aller-retour (perf 30/08)
     supabase.rpc("lots_blocages_location", { p_org: orgId }),
     verifierLectureDuParc(supabase.from("detentions").select("lot_id, quote_part", { count: "exact" }).eq("organization_id", orgId).is("date_fin", null), estProprietaire),
-    verifierLectureDuParc(supabase.from("diagnostics").select("lot_id, bien_id, type, date_expiration, classe_dpe", { count: "exact" }).eq("organization_id", orgId).is("archived_at", null), estProprietaire),
+    verifierLectureDuParc(supabase.from("diagnostics").select("lot_id, bien_id, type, date_realisation, date_expiration, classe_dpe", { count: "exact" }).eq("organization_id", orgId).is("archived_at", null), estProprietaire),
     verifierLectureDuParc(supabase.from("lot_pieces").select("lot_id", { count: "exact" }).eq("organization_id", orgId), estProprietaire),
     chargerChambresDuParc(supabase, orgId),
+    // Seule la vue du propriétaire signale un bail en préparation sur la carte du lot (audit #264, CB-03).
+    estProprietaire ? chargerBrouillonsDuParc(supabase, orgId) : Promise.resolve({ data: [] as { id: string; lot_id: string }[], error: null }),
   ]);
 
   // Les anciens liens de sélection rejoignent aussi la fiche propriétaire.
@@ -152,12 +156,14 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
 
   const totalBlocages = (blocagesParc ?? []).filter((l: { lot_id: string }) => lotsConnus.has(l.lot_id))
     .reduce((n: number, l: { blocages: string[] | null }) => n + new Set((l.blocages ?? []).map(message => etiqueterNiveau(resumerBlocage(message), message))).size, 0);
+  // DOC-01 : échéance des DPE d'avant le 01/07/2021 plafonnée (décret n° 2020-1610), comme sur la fiche lot.
+  const diagnosticsPlafonnes = avecEcheanceReglementaire(diagnostics ?? []);
   const progressions = new Map(biensVisibles.flatMap(bien => bien.lotsVisibles.map(lot => [lot.id, avancementLot({
     lot, bien,
     quoteParts: erreurDetentions ? null : (detentions ?? []).filter(d => d.lot_id === lot.id).reduce((n, d) => n + Number(d.quote_part), 0),
     pieces: erreurPieces || erreurChambres ? null : [...(pieces ?? []), ...(chambres ?? [])].filter(p => p.lot_id === lot.id).length,
-    diagnosticsLot: erreurDiagnostics ? null : (diagnostics ?? []).filter(d => d.lot_id === lot.id),
-    diagnosticsBien: erreurDiagnostics ? null : (diagnostics ?? []).filter(d => d.bien_id === bien.id),
+    diagnosticsLot: erreurDiagnostics ? null : diagnosticsPlafonnes.filter(d => d.lot_id === lot.id),
+    diagnosticsBien: erreurDiagnostics ? null : diagnosticsPlafonnes.filter(d => d.bien_id === bien.id),
   })] as const)));
 
   // Un parc illisible ressemble trait pour trait à un parc vide : sans ce
@@ -175,6 +181,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   noter("les diagnostics des lots", erreurDiagnostics);
   noter("les pièces des lots", erreurPieces);
   noter("les chambres en colocation", erreurChambres);
+  noter("les baux en préparation", erreurBrouillons);
 
   // D29 B (fiche DES-A-11) : l'adresse reste facultative à l'inscription du propriétaire, mais « Créer un lot »
   // lui demande d'abord de compléter son profil. Sur un parc VIDE, le bouton le dit d'avance au lieu de promettre
@@ -328,12 +335,14 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
             lots: bien.lotsVisibles.map(lot => {
               const locations = (bauxActifs ?? []).filter(bail => bail.lot_id === lot.id);
               const prochain = progressions.get(lot.id)?.prochain;
+              const enPreparation = (brouillons ?? []).filter(bail => bail.lot_id === lot.id);
               return { id: lot.id, nom: lot.nom === "Lot unique" ? bien.nom : lot.nom, etat: lot.etat, surface: lot.surface_m2, meuble: lot.meuble,
                 href: `${base}/parc/${bien.id}/lots/${lot.id}`,
                 locataires: locations.flatMap(bail => { const personne = bail.locataire as unknown as { nom: string; prenom: string | null } | null; return personne ? [[personne.prenom, personne.nom].filter(Boolean).join(" ")] : []; }),
                 loyer: erreurBaux ? null : totalLoyersDuParc(locations, lotsConnus),
                 occupation: erreurBaux || erreurChambres ? null : occupationLot((chambres ?? []).filter(chambre => chambre.lot_id === lot.id), locations),
                 aCompleter: prochain ? { titre: prochain.titre, ancre: prochain.ancre } : null,
+                bailEnPreparation: enPreparation.length ? { nombre: enPreparation.length, href: enPreparation.length === 1 ? `${base}/baux/${enPreparation[0].id}` : `${base}/parc/${bien.id}/lots/${lot.id}#baux` } : null,
               };
             }),
           }))}

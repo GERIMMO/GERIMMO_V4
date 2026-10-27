@@ -14,6 +14,9 @@ import {
 import { formaterTaille } from "@/lib/file-type";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { nomComplet } from "@/lib/roles-personnes";
+import { estUuid } from "@/lib/identifiants";
+import { libelleLot } from "@/lib/parc";
+import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import {
   Card,
   CardContent,
@@ -28,8 +31,14 @@ import { EchecLecture } from "./echec-lecture";
 import { PaneDocument } from "./pane-document";
 import { FiltresProprietaire } from "./filtres-proprietaire";
 import { titreAffiche } from "./titre-document";
+import { presentationRapport, syntheseRapport, usagesParDocument, type UsageRapport } from "@/lib/rapports-diagnostic";
 import { baseEspace } from "@/lib/racine-espace";
 import styles from "./documents-proprietaire.module.css";
+
+// Les diagnostics qui citent la pièce, archivés compris. Littéral local : le contrôle des embeds ambigus
+// (tests/embeds-ambigus.test.ts) ne lit que les constantes du fichier.
+const CHAMPS_USAGE_RAPPORT =
+  "document_id, type, date_realisation, date_expiration, archived_at, lot_id, bien_id, lot:lots!diagnostics_lot_id_fkey(nom, bien_id, bien:biens!lots_bien_id_fkey(nom)), bien:biens!diagnostics_bien_id_fkey(nom)";
 
 export const metadata = { title: "Documents — Gerimmo" };
 
@@ -54,7 +63,7 @@ type DocRang = {
   liens: LienRang[];
 };
 
-type ARenouveler = { id: string; titre: string | null; expire_le: string };
+type ARenouveler = { id: string; titre: string | null; expire_le: string; rattachement?: string | null };
 
 // Couleurs de la barre « Par type » (maquette apercuDocs) — tokens charte
 const COULEURS_TYPES = [
@@ -82,9 +91,30 @@ export default async function PageDocuments(
     au: uneValeur(brut.au),
   };
   const sel = uneValeur(brut.sel) ?? null;
+  const lotDemande = uneValeur(brut.lot);
   const { supabase, role, user, estProprietaire } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
+  // Dépôt ouvert depuis la fiche d'un lot (audit #264, DOC-05) : le lot est
+  // relu dans cet espace, sous la RLS (un agent ne lit que son portefeuille),
+  // avant d'être proposé au rattachement ; l'action le revérifie. Un lot
+  // inconnu n'est simplement pas proposé ; une lecture refusée est dite.
+  const { data: lotLu, error: erreurLot } = sel === "depot" && estUuid(lotDemande)
+    ? await supabase
+        .from("lots")
+        .select("id, nom, bien_id, bien:biens!lots_bien_id_fkey(nom)")
+        .eq("id", lotDemande)
+        .eq("organization_id", orgId)
+        .neq("etat", "archive")
+        .maybeSingle()
+    : { data: null, error: null };
+  const lotDepot = lotLu ? {
+    id: lotLu.id as string,
+    libelle: libelleLot(lotLu.nom, premier(lotLu.bien as UnOuPlusieurs<{ nom: string }>)?.nom),
+    // La fiche du lot du propriétaire montre ses « Autres documents » : le
+    // dépôt y revient. Celle de l'agence ne les liste pas : pas de retour forcé.
+    retour: estProprietaire ? `${base}/parc/${lotLu.bien_id}/lots/${lotLu.id}#documents-lot` : undefined,
+  } : undefined;
   // Périmètre portefeuille (RM-18.1.3, audit 09/09) : l'agent ne voit que les
   // pièces rattachées à ses lots, baux, incidents et locataires — les pièces
   // d'organisation (sans rattachement) restent visibles de tous. Le filtre
@@ -124,6 +154,7 @@ export default async function PageDocuments(
     { data: documents, error: erreurDocuments, count: totalFiltre },
     { data: statsTypes, error: erreurStats },
     { data: aRenouvelerBrut, error: erreurRenouveler },
+    { data: diagnosticsARenouveler, error: erreurDiagnosticsARenouveler },
     { count: totalCourants, error: erreurTotal },
     { data: personnes, error: erreurPersonnes },
   ] = await Promise.all([
@@ -134,6 +165,12 @@ export default async function PageDocuments(
       ? Promise.resolve({ data: [], error: null })
       : supabase.rpc("documents_stats_par_type", { p_org: orgId, p_lots: lotsPerimetre }),
     supabase.rpc("documents_a_renouveler", {
+      p_org: orgId,
+      p_limite: limiteRenouvellement(),
+      p_lots: lotsPerimetre,
+    }),
+    // DOC-04 : l'échéance d'un rapport de diagnostic vit dans `diagnostics` (plafond du DPE compris).
+    supabase.rpc("diagnostics_a_renouveler", {
       p_org: orgId,
       p_limite: limiteRenouvellement(),
       p_lots: lotsPerimetre,
@@ -162,10 +199,19 @@ export default async function PageDocuments(
   // Le typage de .rpc().select() hésite entre ligne et tableau : la fonction
   // renvoie toujours un setof, on fixe le tableau
   const docs = ((documents ?? []) as unknown as DocRang[]);
+  // DOC-04 et DOC-N1 : les rapports de diagnostic de la liste disent leur échéance et le bien ou le lot qu'ils servent.
+  const idsVivants = docs.filter(d => !d.purged_at).map(d => d.id);
+  const { data: usagesBruts, error: erreurUsages } = idsVivants.length
+    ? await supabase.from("diagnostics").select(CHAMPS_USAGE_RAPPORT).eq("organization_id", orgId).in("document_id", idsVivants)
+    : { data: [], error: null };
+  const usages = usagesParDocument((usagesBruts ?? []) as unknown as UsageRapport[]);
   const nomsPersonnes = new Map((personnes ?? []).map((p) => [p.id, nomComplet(p)]));
   const suiviSignatures = await lirePresentationSignatures(orgId, { documents: docs.filter(d => !d.purged_at).map(d => d.id) });
 
-  const aRenouveler = (aRenouvelerBrut ?? []) as ARenouveler[];
+  const aRenouveler = [
+    ...((aRenouvelerBrut ?? []) as ARenouveler[]),
+    ...((diagnosticsARenouveler ?? []) as ARenouveler[]),
+  ].filter((d, i, liste) => liste.findIndex(x => x.id === d.id) === i).sort((a, b) => a.expire_le.localeCompare(b.expire_le));
   const entreesTypes = ((statsTypes ?? []) as { type: string; total: number }[]).map(
     (s) => [s.type, Number(s.total)] as [string, number]
   );
@@ -176,9 +222,11 @@ export default async function PageDocuments(
   // un rattachement manquant pour une pièce sans personne.
   const lecturesManquees = [
     erreurStats && "la répartition par type",
-    erreurRenouveler && "les documents à renouveler",
+    (erreurRenouveler || erreurDiagnosticsARenouveler) && "les documents à renouveler",
+    erreurUsages && "l’échéance et le rattachement des rapports de diagnostic",
     erreurTotal && "le nombre total de documents",
     erreurPersonnes && "les personnes rattachées",
+    erreurLot && "le lot d’où le dépôt a été ouvert",
     suiviSignatures.erreur && "le suivi des signatures",
   ].filter((q): q is string => Boolean(q));
 
@@ -229,8 +277,8 @@ export default async function PageDocuments(
   if (estProprietaire && sel === "depot") {
     return (
       <main className={`mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7 ${styles.page}`}>
-        <Link href={lien(null)} className="lien-discret mb-2 inline-flex min-h-11 items-center">
-          ← Retour aux documents
+        <Link href={lotDepot?.retour ?? lien(null)} className="lien-discret mb-2 inline-flex min-h-11 items-center">
+          {lotDepot?.retour ? "← Retour au lot" : "← Retour aux documents"}
         </Link>
         <div className={styles.entetePage}>
           <div className="entete-page">
@@ -238,10 +286,10 @@ export default async function PageDocuments(
           </div>
         </div>
         <div className="max-w-2xl">
-          <EchecLecture quoi={erreurPersonnes ? ["les personnes rattachées"] : []} />
+          <EchecLecture quoi={[erreurPersonnes && "les personnes rattachées", erreurLot && "le lot d’où le dépôt a été ouvert"].filter((q): q is string => Boolean(q))} />
           <Card>
             <CardContent>
-              <FormulaireDepot orgId={orgId} personnes={personnes ?? []} lienAnnuler={lien(null)} typeInitial={recherche.type} />
+              <FormulaireDepot orgId={orgId} personnes={personnes ?? []} lienAnnuler={lotDepot?.retour ?? lien(null)} typeInitial={recherche.type} lot={lotDepot} />
             </CardContent>
           </Card>
         </div>
@@ -397,7 +445,7 @@ export default async function PageDocuments(
               <ul>
                 {aRenouveler.map((d) => <li key={d.id}>
                   <Link href={lien(d.id)}>
-                    <span>{titreAffiche(d.titre) ?? "Sans titre"}<small>Échéance : {formaterDate(d.expire_le)}</small></span>
+                    <span>{titreAffiche(d.titre) ?? "Sans titre"}<small>{d.rattachement ? `${d.rattachement} · ` : ""}Échéance : {formaterDate(d.expire_le)}</small></span>
                     <ChevronRight size={16} aria-hidden="true" />
                   </Link>
                 </li>)}
@@ -501,7 +549,9 @@ export default async function PageDocuments(
                     .filter((l) => l.entite === "personne")
                     .map((l) => nomsPersonnes.get(l.entite_id) ?? "Personne")
                     .join(", ");
-                  const presentation = presentationDocument(d, etatSignatureDocument(suiviSignatures.circuits, d.id));
+                  const rapport = syntheseRapport(usages.get(d.id) ?? []);
+                  const presentation = presentationRapport(d, rapport, doc => presentationDocument(doc, etatSignatureDocument(suiviSignatures.circuits, d.id)));
+                  const lieA = rapport?.rattachements.map(r => r.libelle).join(", ");
                   if (estProprietaire) {
                     const Icone = d.mime_type?.startsWith("image/") ? FileImage : FileText;
                     return <Link
@@ -513,7 +563,7 @@ export default async function PageDocuments(
                       <span className={styles.iconeFichier} aria-hidden="true"><Icone size={19} strokeWidth={1.6} /></span>
                       <span className={styles.identiteDocument}>
                         <span className={styles.titreLigne}>{titreAffiche(d.titre) ?? "Sans titre"}</span>
-                        <span className={styles.metaDocument}>{TYPES_DOCUMENT[d.type] ?? d.type}{rattachements && ` · ${rattachements}`}</span>
+                        <span className={styles.metaDocument}>{TYPES_DOCUMENT[d.type] ?? d.type}{lieA && ` · ${lieA}`}{rattachements && ` · ${rattachements}`}</span>
                       </span>
                       <time className={styles.dateDocument} dateTime={d.created_at} title="Date de dépôt">{formaterDate(d.created_at)}</time>
                       <span className={`${styles.statutDocument} puce ${presentation.classe}`} title={presentation.detail}>{presentation.libelle}</span>
@@ -536,6 +586,7 @@ export default async function PageDocuments(
                           {" · "}
                           {formaterDate(d.created_at)}
                           {!estProprietaire && d.taille_octets ? ` · ${formaterTaille(d.taille_octets)}` : ""}
+                          {lieA && ` · ${lieA}`}
                           {rattachements && ` · ${rattachements}`}
                         </small>
                       </span>
@@ -591,7 +642,7 @@ export default async function PageDocuments(
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <FormulaireDepot orgId={orgId} personnes={personnes ?? []} />
+                      <FormulaireDepot orgId={orgId} personnes={personnes ?? []} lot={lotDepot} />
                     </CardContent>
                   </Card>
                 ) : (
@@ -618,7 +669,7 @@ export default async function PageDocuments(
                               <span className="min-w-0 flex-1 truncate">
                                 {titreAffiche(d.titre) ?? "Sans titre"}
                                 <small className="ml-2 text-muted-foreground">
-                                  expire le {formaterDate(d.expire_le)}
+                                  {d.rattachement ? `${d.rattachement} · ` : ""}expire le {formaterDate(d.expire_le)}
                                 </small>
                               </span>
                               <span className="flex shrink-0 items-center gap-1.5">

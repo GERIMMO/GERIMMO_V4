@@ -17,15 +17,22 @@ import { nomComplet } from "@/lib/roles-personnes";
 import { CircuitDocument, type DemandeDuDocument } from "./circuit-document";
 import { EchecLecture, PanneauEchecLecture } from "./echec-lecture";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
+import { libelleLot } from "@/lib/parc";
 import { Card, CardContent } from "@/components/ui/card";
 import { ActionsDocument } from "./actions-document";
 import { FormulaireRemplacer } from "./formulaire-remplacer";
 import { FormulaireRattacher, type FichesRattachables } from "./formulaire-rattacher";
 import { ActionsFicheDocument } from "./actions-fiche-document";
 import { titreAffiche } from "./titre-document";
+import { presentationRapport, syntheseRapport, type UsageRapport } from "@/lib/rapports-diagnostic";
 import { baseEspace } from "@/lib/racine-espace";
 import { verifierAccesEspace } from "@/lib/espace";
 import styles from "./documents-proprietaire.module.css";
+
+// Les diagnostics qui citent la pièce, archivés compris. Littéral local : le contrôle des embeds ambigus
+// (tests/embeds-ambigus.test.ts) ne lit que les constantes du fichier.
+const CHAMPS_USAGE_RAPPORT =
+  "document_id, type, date_realisation, date_expiration, archived_at, lot_id, bien_id, lot:lots!diagnostics_lot_id_fkey(nom, bien_id, bien:biens!lots_bien_id_fkey(nom)), bien:biens!diagnostics_bien_id_fkey(nom)";
 
 function DetailsDocument({ proprietaire, titre, ouvert = false, children }: { proprietaire: boolean; titre: string; ouvert?: boolean; children: ReactNode }) {
   return proprietaire
@@ -130,6 +137,7 @@ export async function PaneDocument({
     { data: lots, error: erreurLots },
     { data: bauxBruts, error: erreurBaux },
     { data: demandesBrutes, error: erreurDemandes },
+    { data: usagesBruts, error: erreurUsages },
   ] = await Promise.all([
       supabase
         .from("documents")
@@ -150,16 +158,18 @@ export async function PaneDocument({
         .order("nom"),
       supabase
         .from("lots")
-        .select("id, nom")
+        .select("id, nom, etat, bien:biens!lots_bien_id_fkey(nom)")
         .eq("organization_id", orgId)
         .order("nom"),
       supabase
         .from("baux")
-        .select("id, etat, date_debut, locataire_principal, lot:lots(nom)")
+        .select("id, etat, date_debut, locataire_principal, lot:lots(nom, bien:biens!lots_bien_id_fkey(nom))")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(PLAFOND_BAUX),
       supabase.rpc("demandes_signature_document", { p_org: orgId, p_doc: doc.id }),
+      // DOC-03, DOC-04, DOC-N1 : le diagnostic qui cite la pièce porte son échéance et son bien ou son lot.
+      supabase.from("diagnostics").select(CHAMPS_USAGE_RAPPORT).eq("organization_id", orgId).eq("document_id", doc.id),
     ]);
 
   // Versions antérieures : remonter la chaîne remplace_id (bornée — une pièce
@@ -186,7 +196,10 @@ export async function PaneDocument({
   }
 
   const nomsPersonnes = new Map((personnes ?? []).map((p) => [p.id, nomComplet(p)]));
-  const nomsLots = new Map((lots ?? []).map((l) => [l.id, l.nom]));
+  // « Lot unique » se répète d'un bien à l'autre : le lot se nomme avec son
+  // bien, ici comme dans « Déjà lié à » et les baux (audit #264, DOC-06).
+  const lotsLus = (lots ?? []) as { id: string; nom: string; etat: string; bien: UnOuPlusieurs<{ nom: string }> }[];
+  const nomsLots = new Map(lotsLus.map((l) => [l.id, libelleLot(l.nom, premier(l.bien)?.nom)]));
   const demandes: DemandeDuDocument[] = (
     (demandesBrutes ?? []) as {
       id: string;
@@ -213,10 +226,11 @@ export async function PaneDocument({
     etat: string;
     date_debut: string | null;
     locataire_principal: string | null;
-    lot: UnOuPlusieurs<{ nom: string }>;
+    lot: UnOuPlusieurs<{ nom: string; bien: UnOuPlusieurs<{ nom: string }> }>;
   }[];
   const libelleBail = (b: (typeof baux)[number]) => {
-    const morceaux = [`Bail ${premier(b.lot)?.nom ?? ""}`.trim()];
+    const lot = premier(b.lot);
+    const morceaux = [lot ? `Bail ${libelleLot(lot.nom, premier(lot.bien)?.nom)}` : "Bail"];
     if (b.locataire_principal && nomsPersonnes.has(b.locataire_principal)) {
       morceaux.push(nomsPersonnes.get(b.locataire_principal)!);
     } else if (b.date_debut) {
@@ -251,7 +265,15 @@ export async function PaneDocument({
     erreurBaux && "les baux de l'agence",
     erreurDemandes && "les demandes de signature",
     erreurIncidents && "les incidents rattachés",
+    erreurUsages && "le diagnostic qui utilise ce rapport",
   ].filter((q): q is string => Boolean(q));
+  const rapport = syntheseRapport((usagesBruts ?? []) as unknown as UsageRapport[]);
+  // DOC-03 : un rapport en service se renouvelle sur sa fiche (nouvelles dates, ancien diagnostic archivé). Une
+  // « nouvelle version » ici changeait le fichier sans que le lot ni le bail le voient.
+  const ficheRapport = rapport && !rapport.remplace ? rapport.rattachements[0] : undefined;
+  const renouvelerSurFiche = ficheRapport
+    ? { href: `${base}${ficheRapport.chemin}`, libelle: ficheRapport.niveau === "lot" ? "Renouveler sur la fiche du lot" : "Renouveler sur la fiche du bien" }
+    : undefined;
 
   const libelleLien = (l: Lien): string => {
     switch (l.entite) {
@@ -274,7 +296,11 @@ export async function PaneDocument({
 
   const fiches: FichesRattachables = {
     personnes: (personnes ?? []).map((p) => ({ id: p.id, libelle: nomComplet(p) })),
-    lots: (lots ?? []).map((l) => ({ id: l.id, libelle: l.nom })),
+    // Un lot archivé ne reçoit plus de pièce ; tri par bien, puis par lot.
+    lots: lotsLus
+      .filter((l) => l.etat !== "archive")
+      .map((l) => ({ id: l.id, libelle: nomsLots.get(l.id)! }))
+      .sort((a, b) => a.libelle.localeCompare(b.libelle, "fr", { numeric: true })),
     baux: baux.map((b) => ({ id: b.id, libelle: libelleBail(b) })),
   };
   const bauxTronques = baux.length >= PLAFOND_BAUX;
@@ -308,7 +334,8 @@ export async function PaneDocument({
   const fichier = `${base}/documents/${doc.id}/fichier`;
   const suiviSignature = await lirePresentationSignatures(orgId, { documents: [doc.id] });
   if (suiviSignature.erreur) lecturesManquees.push("le suivi des signatures");
-  const presentation = presentationDocument(doc, etatSignatureDocument(suiviSignature.circuits, doc.id), Boolean(remplaceePar));
+  const presentation = presentationRapport(doc, rapport, d => presentationDocument(d, etatSignatureDocument(suiviSignature.circuits, doc.id), Boolean(remplaceePar)));
+  const echeance = rapport?.expireLe ?? doc.expire_le;
 
   return (
     <div className={estProprietaire ? styles.dossier : "space-y-3.5"}>
@@ -351,9 +378,17 @@ export async function PaneDocument({
 
       {!estProprietaire && <p className="text-sm text-muted-foreground">{presentation.detail}</p>}
 
+      {rapport && rapport.rattachements.length > 0 && <p className="text-sm">
+        Rapport de diagnostic de{" "}
+        {rapport.rattachements.map((r, i) => <span key={r.chemin}>
+          {i > 0 && ", "}
+          <Link href={`${base}${r.chemin}`} className="lien-discret">{r.libelle}</Link>
+        </span>)}
+      </p>}
+
       {estProprietaire && <ActionsFicheDocument key={`actions-${doc.id}`}
         orgId={orgId} documentId={doc.id} type={doc.type} expireLe={doc.expire_le}
-        remplace={Boolean(remplaceePar)} fiches={fiches} bauxTronques={bauxTronques}
+        remplace={Boolean(remplaceePar)} renouvelerSurFiche={renouvelerSurFiche} fiches={fiches} bauxTronques={bauxTronques}
         liens={doc.liens.filter(l => l.entite !== "organisation").map(l => ({ cle: `${l.entite}-${l.entite_id}`, libelle: libelleLien(l) }))}
         partageLe={doc.partage_le}
         signataires={doc.liens.filter(l => l.entite === "personne").map(l => ({ id: l.entite_id, nom: nomsPersonnes.get(l.entite_id) ?? "Personne" }))}
@@ -465,10 +500,10 @@ export async function PaneDocument({
                 <span>{formaterTaille(doc.taille_octets)}</span>
               </div>
             )}
-            {doc.expire_le && (
+            {echeance && (
               <div className="ligne-info">
                 <span>Expire le</span>
-                <span>{formaterDate(doc.expire_le)}</span>
+                <span>{formaterDate(echeance)}</span>
               </div>
             )}
             {doc.verifie_le && (
@@ -479,12 +514,18 @@ export async function PaneDocument({
             )}
             {!estProprietaire && <div className="mt-4 flex flex-wrap items-start gap-2">
               {!estProprietaire && <ActionsDocument orgId={orgId} documentId={doc.id} titre={titreAffiche(doc.titre)} />}
-              {!remplaceePar && (
+              {!remplaceePar && !renouvelerSurFiche && (
                 <FormulaireRemplacer
                   orgId={orgId}
                   documentId={doc.id}
                   expireLe={doc.expire_le}
                 />
+              )}
+              {renouvelerSurFiche && (
+                <Link href={renouvelerSurFiche.href} className="lien-discret inline-flex min-h-9 items-center gap-1.5">
+                  {renouvelerSurFiche.libelle}
+                  <IndicateurLien />
+                </Link>
               )}
             </div>}
           </CardContent>

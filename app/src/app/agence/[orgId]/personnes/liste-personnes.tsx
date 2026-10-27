@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EchecLecture } from "../documents/echec-lecture";
-import { correspond, initiales, type RolePersonne } from "@/lib/roles-personnes";
+import { correspond, initiales, sansRoleEnCours, type RolePersonne } from "@/lib/roles-personnes";
 import { AnnuaireProprietaire } from "./annuaire-proprietaire";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
 
@@ -56,8 +56,10 @@ export function ListePersonnes({
       p.prenom,
       p.email,
       // Filtrer sur « garant » ou « propriétaire » liste les fiches de ce
-      // rôle ; « sans » trouve celles qui n'en ont aucun.
-      ...(p.roles.length > 0 ? p.roles.map((r) => r.libelle) : [sansRole])
+      // rôle ; « sans » trouve celles qui n'en ont aucun en cours (un bail
+      // seulement en préparation n'en fait pas un, audit #264, FL-09).
+      ...p.roles.map((r) => r.libelle),
+      ...(sansRoleEnCours(p.roles) ? [sansRole] : [])
     )
   );
 

@@ -69,7 +69,7 @@ const correspondances: [RegExp, string[]][] = [
   [/^adresse électronique$/i, ['proprietaire.email', 'locataire.email']],
   [/^nom et prénom\(s\), ou dénomination$/i, ['proprietaire.nom', 'proprietaire.prenom']],
   [/^nom et prénom\(s\)$|^nom et prénom\(s\) du ou des locataires$|^nom du colocataire/i, ['locataire.nom', 'locataire.prenom']],
-  [/^commune$|^adresse du mandataire$|carte et CCI|garantie financière|siret/i, ['profil']],
+  [/^commune$|^adresse du mandataire$|carte et CCI|garantie financière|siret|\(profil\)$/i, ['profil']],
 ];
 export function champsManquantsBail(mentions: string[]): Set<string> {
   return new Set(mentions.flatMap(mention => correspondances.filter(([motif]) => motif.test(mention)).flatMap(([, champs]) => champs)));

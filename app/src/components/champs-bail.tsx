@@ -82,9 +82,9 @@ export function ChampsBail({
     setLocataire("");
   };
   // Clic sur le fond : on referme sans perdre une saisie déjà commencée —
-  // seule une pop-up vide vaut annulation (même règle que la détention).
+  // seule une pop-up vide (aucun champ rempli) vaut annulation (même règle que la détention).
   const fermerModale = () => {
-    if (!nouveau.nom && !nouveau.email) {
+    if (Object.values(nouveau).every((valeur) => !valeur)) {
       annulerNouveau();
       return;
     }
@@ -155,7 +155,7 @@ export function ChampsBail({
             <input type="hidden" name="nouveau_locataire_ville" value={nouveau.ville} />
             {!modaleOuverte && (
               <p className="text-xs text-muted-foreground">
-                Nouveau <b>locataire</b> : {nomComplet(nouveau)} — {nouveau.email}{" "}
+                Nouveau <b>locataire</b> : {nomComplet(nouveau) || "nom à compléter"} — {nouveau.email || "adresse email à compléter"}{" "}
                 <button
                   type="button"
                   onClick={() => setModaleOuverte(true)}

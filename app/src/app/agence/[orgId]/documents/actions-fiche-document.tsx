@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Link2, Upload, Users, X } from "lucide-react";
+import Link from "next/link";
+import { Link2, RefreshCw, Upload, Users, X } from "lucide-react";
 import { FormulaireRattacher, type FichesRattachables } from "./formulaire-rattacher";
 import { FormulaireRemplacer } from "./formulaire-remplacer";
 import { CircuitDocument, peutPartagerDocument, type DemandeDuDocument } from "./circuit-document";
@@ -14,6 +15,8 @@ type Props = {
   type: string;
   expireLe: string | null;
   remplace: boolean;
+  // DOC-03 : rapport de diagnostic en service — il se renouvelle sur sa fiche, pas par une nouvelle version ici.
+  renouvelerSurFiche?: { href: string; libelle: string };
   fiches: FichesRattachables;
   bauxTronques: boolean;
   liens: { cle: string; libelle: string }[];
@@ -34,7 +37,7 @@ export function ActionsFicheDocument(props: Props) {
   const enAttente = props.demandes.filter(d => !d.signee_le).length;
   const actions = [
     { cle: "liens" as const, libelle: "Lier à une fiche", titre: "Lier ce document", Icone: Link2 },
-    ...(!props.remplace ? [{ cle: "version" as const, libelle: "Nouvelle version", titre: "Ajouter une nouvelle version", Icone: Upload }] : []),
+    ...(!props.remplace && !props.renouvelerSurFiche ? [{ cle: "version" as const, libelle: "Nouvelle version", titre: "Ajouter une nouvelle version", Icone: Upload }] : []),
     ...(circuitVisible ? [{ cle: "partage" as const, libelle: "Partage et signatures", titre: "Partage et signatures", Icone: Users }] : []),
   ];
 
@@ -80,6 +83,7 @@ export function ActionsFicheDocument(props: Props) {
         <Icone size={16} aria-hidden="true" />{libelle}
         {cle === "partage" && enAttente > 0 && <span className={styles.compteurSignatures}>{enAttente}<span className="sr-only"> en attente</span></span>}
       </button>)}
+      {props.renouvelerSurFiche && <Link href={props.renouvelerSurFiche.href}><RefreshCw size={16} aria-hidden="true" />{props.renouvelerSurFiche.libelle}</Link>}
     </div>
     {actions.map(({ cle, titre }) => <div
       key={cle}

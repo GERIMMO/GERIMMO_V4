@@ -33,10 +33,11 @@ function Recapitulatif(){
     <a href="#parcours-irl_valeur">Corriger l’indice</a>
     <a href="#parcours-dpe_depenses_min">Corriger le DPE</a>
     <a href="#titre-proprietaires-bail">Corriger le propriétaire</a>
+    <a href="#reglement-copro">Corriger le règlement</a>
     <button type="button" onClick={()=>parcours?.signalerEnregistrement?.(true)}>Simuler un enregistrement</button>
     <button type="button" onClick={()=>parcours?.signalerEnregistrement?.(false)}>Terminer l’enregistrement</button>
   </div>;
 }
 createRoot(document.getElementById("racine")!).render(<StrictMode><AssistantBail
-  orgId="org" bailId="bail" controleInitial={{ manquants: [] }} contenus={[null,<section key="personnes"><h3 id="titre-proprietaires-bail">Propriétaire d’essai</h3></section>,null,null,null,null,<Recapitulatif key="recap"/>]} formulaire={<Formulaire />}
+  orgId="org" bailId="bail" controleInitial={{ manquants: [] }} contenus={[null,<section key="personnes"><h3 id="titre-proprietaires-bail">Propriétaire d’essai</h3></section>,null,null,<section key="documents" id="reglement-copro"><h3>Règlement d’essai</h3><details><summary>Déposer le règlement</summary><input type="file" name="fichier" aria-label="Fichier d’essai"/></details></section>,null,<Recapitulatif key="recap"/>]} formulaire={<Formulaire />}
 /></StrictMode>);

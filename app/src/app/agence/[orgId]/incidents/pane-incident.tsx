@@ -103,7 +103,7 @@ export async function PaneIncident({
       supabase
         .from("incidents")
         .select(
-          "*, lot:lots(id, nom, bien_id), declarant:persons(id, nom, prenom, telephone)"
+          "*, lot:lots(id, nom, bien_id), declarant:persons(id, nom, prenom, telephone), bail:baux!incidents_bail_meme_org_fk(chambre:lot_chambres!baux_chambre_meme_lot_fk(nom), locataire:persons!baux_locataire_meme_org_fk(id, nom, prenom, telephone))"
         )
         .eq("id", incidentId)
         .eq("organization_id", orgId)
@@ -139,14 +139,15 @@ export async function PaneIncident({
   }
 
   const lot = premier(incident.lot as UnOuPlusieurs<{ id: string; nom: string; bien_id: string }>);
-  const declarant = premier(
-    incident.declarant as UnOuPlusieurs<{
-      id: string;
-      nom: string;
-      prenom: string | null;
-      telephone: string | null;
-    }>
+  type Contact = { id: string; nom: string; prenom: string | null; telephone: string | null };
+  // FL-01 (audit PR #264) : un incident ouvert par le gérant n'a plus de
+  // déclarant ; le contact du logement est alors le locataire du bail rattaché
+  // (la chambre choisie en colocation), qui le suit depuis son espace.
+  const bail = premier(
+    incident.bail as UnOuPlusieurs<{ chambre: UnOuPlusieurs<{ nom: string }>; locataire: UnOuPlusieurs<Contact> }>
   );
+  const chambre = premier(bail?.chambre ?? null)?.nom ?? null;
+  const declarant = premier(incident.declarant as UnOuPlusieurs<Contact>) ?? premier(bail?.locataire ?? null);
   // Un `declarant` nul veut dire DEUX choses, et l'écran ne doit pas les
   // confondre : soit l'incident n'a pas de déclarant (aucun bail actif sur le
   // lot lors d'une saisie agence), soit il en a un que CET agent n'a pas le
@@ -155,7 +156,10 @@ export async function PaneIncident({
   // incidents ne filtre rien par portefeuille. Relevé du 11/09 : le volet
   // affirmait « aucun bail actif sur le lot » dans le second cas — un fait
   // faux, là où tout le reste de l'écran sépare « vide » et « lecture refusée ».
-  const declarantIllisible = !declarant && Boolean(incident.declarant_person_id);
+  // Depuis FL-01, même chose pour le locataire du bail rattaché ; et « aucun
+  // bail actif sur le lot » ne vaut plus pour une colocation dont l'incident
+  // touche les parties communes : l'écran dit « aucun locataire rattaché ».
+  const declarantIllisible = !declarant && Boolean(incident.declarant_person_id || incident.bail_id);
   const emails = new Map(membres.map((m) => [m.account_id, m.email]));
   const photos = ((liens ?? []) as unknown as {
     document: UnOuPlusieurs<{ id: string; titre: string | null; purged_at: string | null }>;
@@ -426,13 +430,14 @@ export async function PaneIncident({
         <div className="incident-reperes">
           <div><Building2 size={17} aria-hidden="true" /><div><span>Logement concerné</span>
             {lot ? <Link href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <strong>Lot non disponible</strong>}
-            {incident.piece && <small>{incident.piece}</small>}
+            {/* La chambre du bail rattaché, puis la pièce si elle dit autre chose. */}
+            {(chambre || incident.piece) && <small>{[...new Set([chambre, incident.piece].filter(Boolean))].join(" · ")}</small>}
           </div></div>
           <div><UserRound size={17} aria-hidden="true" /><div><span>{incident.canal === "espace_locataire" ? "Déclaré par" : "Contact du logement"}</span>
             {declarant ? <>
               <Link href={`${base}/personnes/${declarant.id}#messages`}>{nomComplet(declarant)}</Link>
               {declarant.telephone && <a href={`tel:${declarant.telephone.replace(/\s/g, "")}`} className="incident-telephone">{formaterTelephone(declarant.telephone)}</a>}
-            </> : <strong>{declarantIllisible ? "Déclarant hors de votre portefeuille" : estProprietaire ? "Aucun locataire rattaché au dossier" : "Aucun bail actif sur le lot"}</strong>}
+            </> : <strong>{declarantIllisible ? (incident.declarant_person_id ? "Déclarant hors de votre portefeuille" : "Locataire hors de votre portefeuille") : "Aucun locataire rattaché au dossier"}</strong>}
           </div></div>
         </div>
         {!estProprietaire && (peutModifierSuivi ? (
@@ -527,7 +532,7 @@ export async function PaneIncident({
                     qualifier (déclaré, rouvert), rien n'est coché (RM-7.2.1). */}
                 <FormulaireQualification
                   estProprietaire={estProprietaire}
-                  informeLocataire={Boolean(incident.declarant_person_id)}
+                  informeLocataire={Boolean(incident.declarant_person_id || incident.bail_id)}
                   orgId={orgId}
                   incidentId={incidentId}
                   categorie={incident.categorie}
@@ -582,7 +587,7 @@ export async function PaneIncident({
                   <div className="pt-3">
                     <FormulaireQualification
                       estProprietaire={estProprietaire}
-                      informeLocataire={Boolean(incident.declarant_person_id)}
+                      informeLocataire={Boolean(incident.declarant_person_id || incident.bail_id)}
                       orgId={orgId}
                       incidentId={incidentId}
                       categorie={incident.categorie}

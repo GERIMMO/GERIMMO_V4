@@ -14,6 +14,7 @@ import {
 } from "@/lib/file-type";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { baseEspace } from "@/lib/racine-espace";
+import { aujourdhuiParis } from "@/lib/ged";
 
 export type EtatDocumentGed = {
   erreur?: string;
@@ -58,8 +59,24 @@ export async function remplacerDocument(
   const fichier = formData.get("fichier");
   const titre = String(formData.get("titre") ?? "").trim();
   const expireLe = String(formData.get("expire_le") ?? "").trim();
+  if (fichier instanceof File && fichier.size === 0 && fichier.name) {
+    return { erreur: "Ce fichier est vide : choisissez le document complet.", valeurs };
+  }
   if (!(fichier instanceof File) || fichier.size === 0) {
     return { erreur: "Choisissez le fichier de la nouvelle version.", valeurs };
+  }
+  // Une nouvelle version ne naît pas « Expiré » (audit #264, DOC-08) : la fiche
+  // est immuable et l'anti-doublon refuse de redéposer le même fichier, une
+  // échéance déjà passée ne se corrigerait plus. Jour de Paris, comme
+  // l'attestation déposée par le locataire.
+  if (expireLe && (!/^\d{4}-\d{2}-\d{2}$/.test(expireLe) || Number.isNaN(Date.parse(expireLe)))) {
+    return { erreur: "La date d'expiration n'est pas valide.", valeurs };
+  }
+  if (expireLe && expireLe < aujourdhuiParis()) {
+    return {
+      erreur: "Cette date d'expiration est déjà passée : indiquez celle qui figure sur le nouveau document.",
+      valeurs,
+    };
   }
   if (fichier.size > limiteFichierDepose(fichier)) {
     return { erreur: `Fichier trop volumineux (${limiteFichierDepose(fichier) / 1024 / 1024} Mo maximum).`, valeurs };

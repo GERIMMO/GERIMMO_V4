@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ChampFichier } from "@/components/champ-fichier";
+import { estExpiree, formaterDate } from "@/lib/ged";
 
 // « Remplacer » (maquette pageDocument) : nouvelle version de la pièce, même
 // type, rattachements conservés — l'historique reste consultable sur la fiche.
@@ -21,8 +22,10 @@ export function FormulaireRemplacer({
 }: {
   orgId: string;
   documentId: string;
-  // L'échéance de la version remplacée, proposée en pré-remplissage : une
-  // pièce renouvelée porte sa NOUVELLE date, pas l'ancienne (revue 26/08)
+  // L'échéance de la version remplacée, rappelée en aide et jamais
+  // pré-remplie : une pièce renouvelée porte sa NOUVELLE date (revue 26/08) ;
+  // pré-remplie, une échéance dépassée faisait naître la nouvelle version
+  // « Expiré » (audit #264, DOC-08).
   expireLe: string | null;
   integre?: boolean;
   onFermer?: () => void;
@@ -74,9 +77,14 @@ export function FormulaireRemplacer({
             id={`${identifiant}-expiration`}
             name="expire_le"
             type="date"
+            required
+            aria-describedby={`${identifiant}-expiration-aide`}
             className={integre ? "min-h-11" : undefined}
-            defaultValue={etat.valeurs?.expire_le ?? expireLe}
+            defaultValue={etat.valeurs?.expire_le}
           />
+          <p id={`${identifiant}-expiration-aide`} className="text-sm text-muted-foreground">
+            Celle qui figure sur le nouveau document. Version actuelle : {formaterDate(expireLe)}{estExpiree(expireLe) ? " (dépassée)" : ""}.
+          </p>
         </div>
       )}
       {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}

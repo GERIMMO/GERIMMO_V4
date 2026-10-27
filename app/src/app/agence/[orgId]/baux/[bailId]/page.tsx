@@ -15,6 +15,7 @@ import { verifierDossierBail } from "./verifier-dossier";
 import Link from "next/link";
 import { ChambresLogement } from "../../parc/[bienId]/lots/[lotId]/chambres-logement";
 import { lienLotDepuisBail } from "@/lib/parcours-lot";
+import { bailPrecedentDuLot } from "@/lib/reprise-bail-precedent";
 import { CompleterSurPlace } from "./completer-sur-place";
 import { RubriqueDossier } from "@/components/rubrique-dossier";
 import styles from "./bail.module.css";
@@ -191,6 +192,12 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       .eq("organization_id", orgId).eq("bail_id", bailId).eq("nature", "assurance_locataire").maybeSingle()
     : { data: null, error: null };
   const attestationLocataire = premier(assuranceLocataire?.document ?? null);
+  // Relocation (décision du 27/10, CB-08) : le bail précédent du lot dont le brouillon a repris les conditions
+  // à sa création ; l’étape Loyer signale les valeurs encore identiques et propose de les effacer.
+  const { data: bauxPrecedents } = bail.etat === "brouillon"
+    ? await supabase.from("baux").select("id, chambre_id, type, date_debut, date_fin, date_sortie_reelle, loyer_hc, charges, charges_mode, jour_echeance, paiement_echeance, revision_irl, irl_trimestre, irl_valeur").eq("organization_id", orgId).eq("lot_id", bail.lot_id).in("etat", ["termine", "preavis"])
+    : { data: null };
+  const bailPrecedent = bailPrecedentDuLot(Array.isArray(bauxPrecedents) ? bauxPrecedents : []);
 
   // Résolution des noms pour la colocation (colocataires + garants nominatifs)
   const nomsPersonnes = new Map(
@@ -1243,7 +1250,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </HistoriqueBailLecture>
           </>} /> },
       ]} /> : bail.etat === "brouillon" ? <AssistantBail
-        formulaire={<FormulaireParcoursBail lienChambres={lot?lienLotDepuisBail(orgId,lot.bien_id,bail.lot_id,bailId,"equipements",1,racineEspace(estProprietaire)):undefined} surfaceHabitable={lot?.surface_m2} orgId={orgId} bailId={bailId} defauts={bail} agence={agence} meuble={Boolean(lot?.meuble)} chambres={chambres ?? []} />}
+        formulaire={<FormulaireParcoursBail lienChambres={lot?lienLotDepuisBail(orgId,lot.bien_id,bail.lot_id,bailId,"equipements",1,racineEspace(estProprietaire)):undefined} surfaceHabitable={lot?.surface_m2} orgId={orgId} bailId={bailId} defauts={bail} bailPrecedent={bailPrecedent} agence={agence} meuble={Boolean(lot?.meuble)} chambres={chambres ?? []} />}
         orgId={orgId} bailId={bailId} controleInitial={await verifierDossierBail(orgId, bailId)}
         contenus={[
           null,

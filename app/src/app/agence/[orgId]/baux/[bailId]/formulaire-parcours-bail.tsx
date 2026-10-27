@@ -3,8 +3,9 @@ import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
 import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import { useContext, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, CheckCheck } from "lucide-react";
+import { ChevronDown, CheckCheck, History } from "lucide-react";
 import { initialiserParcoursBail } from "@/lib/initialiser-parcours-bail";
+import { CHAMPS_LOYER_REPRIS, periodeBailPrecedent, type BailPrecedent } from "@/lib/reprise-bail-precedent";
 import { CompletudeBail } from "@/lib/suivi-enregistrement";
 import { champBailManquant } from "@/lib/reperes-bail";
 import { eur, formaterDate } from "@/lib/ged";
@@ -96,7 +97,7 @@ const champsParNom=new Map(groupes.flatMap(g=>g.champs).map(c=>[c.nom,c]));
 const ETAPES_SAISIE=["bail","loyer","documents","clauses"] as const;
 const libelleChamp=(nom:string)=>champsParNom.get(nom)?.titre.replace(/\s*\([^)]*\)$/,"")??nom;
 
-export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chambres,surfaceHabitable,lienChambres}:{orgId:string;bailId:string;defauts:ValeursParcoursBail;agence:boolean;meuble:boolean;chambres:{id:string;nom:string}[];surfaceHabitable?:number|null;lienChambres?:string}) {
+export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,agence,meuble,chambres,surfaceHabitable,lienChambres}:{orgId:string;bailId:string;defauts:ValeursParcoursBail;bailPrecedent?:BailPrecedent|null;agence:boolean;meuble:boolean;chambres:{id:string;nom:string}[];surfaceHabitable?:number|null;lienChambres?:string}) {
  const parcours=useContext(EtapeComplementsBail);
  const etape=parcours?.etape??"bail";
  const controle=useContext(CompletudeBail);
@@ -207,6 +208,19 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
  const montantCharges=lireMontantFacultatif(valeurs.charges??"");
  const totalMensuel="montant" in montantLoyer&&"montant" in montantCharges&&montantLoyer.montant!=null&&montantCharges.montant!=null?montantLoyer.montant+montantCharges.montant:null;
  const titreEtape=ETAPES_BAIL.find(e=>e.id===etape)?.titre??"";
+ // Relocation (décision du 27/10, CB-08) : les valeurs de l’étape Loyer encore identiques au bail précédent sont
+ // signalées avec sa période, et un lien les efface ; la mention disparaît dès que le loyer et les charges changent.
+ const reprises=bailPrecedent?CHAMPS_LOYER_REPRIS.filter(nom=>bailPrecedent[nom]!=null&&valeurs[nom]?.trim()&&memeValeurEtapeBail(nom,valeurs[nom],String(bailPrecedent[nom]))):[];
+ const periodePrecedent=bailPrecedent?periodeBailPrecedent(bailPrecedent):"";
+ const mentionReprise=bailPrecedent&&(reprises.includes("loyer_hc")||reprises.includes("charges"));
+ const typeRepris=Boolean(bailPrecedent&&["nu","meuble"].includes(bailPrecedent.type)&&valeurs.type===bailPrecedent.type);
+ const minuscule=(libelle:string)=>libelle.charAt(0).toLowerCase()+libelle.slice(1);
+ const effacerReprises=()=>{
+   // Les réglages du parcours et le jour d’échéance d’un brouillon sans bail précédent (1, défaut de la base) ; les montants restent à saisir.
+   const vides=initialiserParcoursBail({jour_echeance:1},meuble);
+   setValeurs(v=>({...v,...Object.fromEntries(CHAMPS_LOYER_REPRIS.map(nom=>[nom,vides[nom]??""]))}));
+   setModifie(true);
+ };
  return <><form ref={formulaireRef} data-saisie-confirmee id="form-parcours-bail" hidden={!visible} onSubmit={async event=>{
    if(envoiRef.current){event.preventDefault();return;}
    envoiRef.current=true;destinationEnvoi.current=destinationDemandee.current;parcours?.signalerEnregistrement?.(true);
@@ -218,7 +232,8 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,agence,meuble,chamb
    if(bloc){bloc.open=true;setOuverts(v=>({...v,[bloc.dataset.groupe!]:true}));}
  }}>
   {visible&&<input type="hidden" name="valeurs_lues" value={JSON.stringify(Object.fromEntries(CHAMPS_ETAPE_BAIL[etape as EtapeSaisieBail].map(nom=>[nom,lues[nom]??""])))}/>}
-  {etape==="bail"&&<p className={styles.reprise}><CheckCheck size={17} aria-hidden="true"/>Les informations du lot, les propriétaires et les diagnostics déjà enregistrés sont repris dans ce parcours.</p>}
+  {etape==="bail"&&<p className={styles.reprise}><CheckCheck size={17} aria-hidden="true"/><span>Les informations du lot, les propriétaires et les diagnostics déjà enregistrés sont repris dans ce parcours.{typeRepris&&` Le type de bail est repris du bail précédent${periodePrecedent?` (${periodePrecedent})`:""}, à vérifier.`}</span></p>}
+  {etape==="loyer"&&mentionReprise&&<p id="reprise-bail-precedent" className={styles.reprise}><History size={17} aria-hidden="true"/><span>Repris du bail précédent{periodePrecedent?` (${periodePrecedent})`:""}, à vérifier : {reprises.map(nom=>minuscule(libelleChamp(nom))).join(", ")}. <button type="button" className="underline" onClick={effacerReprises}>Effacer ces valeurs</button></span></p>}
   {groupes.filter(g=>!g.agence||agence).map(g=>{
    const actif=g.etapes.includes(etape),contexte={...valeurs,logement_meuble:String(meuble)};
    const champsVisibles=g.champs.filter(c=>!c.visible||c.visible(contexte));

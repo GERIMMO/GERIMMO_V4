@@ -100,7 +100,7 @@ export function navigationEspace({
   const loyers: EntreeNav = { href: `${base}/loyers`, libelle: "Loyers & charges", icone: "euro", court: "Loyers" };
 
   if (role === "proprietaire_direct") {
-    const lots: EntreeNav = { href: `${base}/parc`, libelle: "Mes lots", icone: "cle", court: "Lots" };
+    const lots: EntreeNav = { href: `${base}/parc`, libelle: "Biens & locations", icone: "cle", court: "Biens" };
     const finances: EntreeNav = { ...loyers, libelle: "Finances", court: "Finances", alias: [`${base}/comptabilite`] };
     return {
       separateurEnTete: true,
@@ -112,17 +112,18 @@ export function navigationEspace({
         lots,
         { href: `${base}/personnes`, libelle: "Locataires & garants", icone: "gens", court: "Locataires" },
         finances,
-        incidents,
-        alertes,
-        agenda,
         messages,
+        documents,
       ],
       secondaires: [
-        documents,
+        incidents,
+        agenda,
+        parametres,
+        artisans,
         abonnement,
         { href: `${base}/faq`, libelle: "Aide", icone: "quest" },
       ],
-      barreBasse: [tableauDeBord, lots, finances, alertes],
+      barreBasse: [tableauDeBord, lots, finances, incidents],
     };
   }
 

@@ -92,6 +92,13 @@ function SousSection({ titre, id, children }: { titre: string; id?: string; chil
   );
 }
 
+function Fonctionnement({ titre, children }: { titre: string; children: ReactNode }) {
+  return <details className="text-sm text-muted-foreground">
+    <summary className="min-h-11 cursor-pointer py-3 font-medium text-foreground" aria-label={`Fonctionnement : ${titre}`}>Fonctionnement</summary>
+    <div className="pb-2">{children}</div>
+  </details>;
+}
+
 function Formulaire({
   orgId,
   organisation,
@@ -143,10 +150,10 @@ function Formulaire({
   return (
     <form data-saisie-confirmee onSubmit={soumettre} onInput={() => setModifie(true)} className="space-y-4" aria-busy={enCours}>
       <fieldset disabled={enCours} className="min-w-0">
-      <EtapesSaisie activer={estProprietaire} titre="Mon profil" etapes={[
+      <EtapesSaisie activer={estProprietaire} afficherNumeroEtape={!estProprietaire} titre="Mon profil" etapes={[
         {titre:"Identité", detail:"Ces informations sont nécessaires pour préparer vos documents."},
         {titre:"Paiement", detail:"Vos coordonnées pour recevoir les loyers."},
-        {titre:"Préférences", detail:"Envois et relances automatiques — facultatif. Vous choisissez ce que vous activez."},
+        {titre:"Préférences", detail:"Choisissez les e-mails à envoyer automatiquement."},
       ]} conclusion={<div className="flex min-w-0 flex-wrap items-center justify-end gap-3">{retourEnregistrement}<BoutonEnvoi enCours={enCours} disabled={enregistre} enCoursTexte="Enregistrement…">{enregistre ? "Profil enregistré" : "Enregistrer mon profil"}</BoutonEnvoi></div>} contenus={[
       <div key="identite" className="space-y-4">
       <p className="text-sm text-muted-foreground">* champ obligatoire</p>
@@ -323,7 +330,8 @@ function Formulaire({
         </SousSection>
       )}
       </div>,
-      <div key="preferences" className="space-y-4">
+      <div key="preferences" id={estProprietaire ? "envois" : undefined} className="space-y-4 scroll-mt-24">
+      {estProprietaire && <p className="text-sm font-medium">En enregistrant, vous autorisez l’envoi automatique des e-mails cochés jusqu’à désactivation. Les options décochées restent en envoi manuel.</p>}
       <SousSection titre="Avis d'échéance">
         <label
           htmlFor="pr-avis-auto"
@@ -338,14 +346,17 @@ function Formulaire({
           />
           Annoncer chaque échéance au locataire par e-mail
         </label>
-        <p className="text-sm text-muted-foreground">
+        {estProprietaire ? <>
+          <p className="text-sm text-muted-foreground">Le locataire reçoit le montant et la date de chaque échéance. Vérifiez son adresse e-mail.</p>
+          <Fonctionnement titre="avis d’échéance"><p>Les échéances déjà réglées ne sont pas réclamées. Seuls les appels créés depuis moins de 45 jours sont envoyés, avec le solde antérieur éventuel. Activer l’option n’envoie pas tout l’historique.</p></Fonctionnement>
+        </> : <p className="text-sm text-muted-foreground">
           À la création de l&apos;appel, le locataire reçoit le détail de son
           terme et sa date d&apos;échéance, avec son solde antérieur s&apos;il en
           a un. Un terme déjà réglé n&apos;est jamais réclamé, et cocher la case
           n&apos;envoie pas l&apos;historique : seuls les appels de moins de 45
           jours partent. Vérifiez les adresses de vos locataires avant de
           cocher.
-        </p>
+        </p>}
       </SousSection>
       <SousSection titre="Envoi des quittances">
         <label
@@ -361,13 +372,16 @@ function Formulaire({
           />
           Envoyer automatiquement les quittances et reçus aux locataires
         </label>
-        <p className="text-sm text-muted-foreground">
+        {estProprietaire ? <>
+          <p className="text-sm text-muted-foreground">Les quittances et reçus non envoyés partent une fois par jour, sans nouvelle validation.</p>
+          <Fonctionnement titre="quittances et reçus"><p>Seuls les documents émis depuis moins de 45 jours et jamais envoyés sont concernés. En désactivant l’option, vous gardez l’envoi manuel depuis Finances.</p></Fonctionnement>
+        </> : <p className="text-sm text-muted-foreground">
           Une fois par jour, les quittances émises depuis moins de 45 jours et
           jamais envoyées partent au locataire, sans qu&apos;il y ait à cliquer.
           Cocher cette case vaut validation permanente de leur envoi. Décochée,
           rien ne part sans votre geste — l&apos;envoi groupé reste disponible
           depuis « Loyers &amp; charges ».
-        </p>
+        </p>}
       </SousSection>
       <SousSection titre="Relances d'impayé" id="relances">
         <label
@@ -383,6 +397,7 @@ function Formulaire({
           />
           Relancer automatiquement les loyers impayés par e-mail
         </label>
+        {estProprietaire && <p className="text-sm text-muted-foreground">À la seconde relance, le garant est aussi informé si son e-mail est connu. Le recommandé reste à votre initiative.</p>}
         <div className="grid gap-3 sm:grid-cols-2">
           <label htmlFor="pr-relance-1" className="text-sm">
             <span className="block text-xs text-muted-foreground">Première relance, jours après l&apos;échéance</span>
@@ -420,7 +435,7 @@ function Formulaire({
             />
           </label>
         </div>
-        <p className="text-sm text-muted-foreground">
+        {estProprietaire ? <Fonctionnement titre="relances d’impayés"><p>Chaque matin, le loyer impayé le plus ancien de chaque bail est vérifié. La première relance suit le premier délai, puis la seconde le second : jamais deux le même jour. Les relances manuelles comptent aussi et chaque envoi est conservé dans le bail. Une dette totale inférieure au seuil n’est pas relancée.</p></Fonctionnement> : <p className="text-sm text-muted-foreground">
           Chaque matin, le terme impayé le plus ancien de chaque bail reçoit sa
           première relance passé le premier délai, puis la seconde passé le
           second — jamais deux courriers le même jour, et une relance que vous
@@ -429,7 +444,7 @@ function Formulaire({
           le bail, comme si vous l&apos;aviez saisie. Une dette totale sous le
           seuil n&apos;est pas relancée ; à la seconde relance, la caution du
           bail (si son e-mail est connu) est informée de l&apos;incident.
-        </p>
+        </p>}
       </SousSection>
       </div>,
       ]} />

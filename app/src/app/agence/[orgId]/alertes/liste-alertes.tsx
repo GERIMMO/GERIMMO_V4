@@ -68,6 +68,7 @@ export function ListeAlertes({
   ouvrirAlerteId,
   aujourdhui,
   actionsAuDessus = 0,
+  listeIncomplete = false,
 }: {
   orgId: string;
   alertes: AlerteRang[];
@@ -85,6 +86,7 @@ export function ListeAlertes({
   // rapports à valider — 24/09) : sans alerte, on ne dit pas « journée
   // dégagée » sous une liste de choses à faire.
   actionsAuDessus?: number;
+  listeIncomplete?: boolean;
 }) {
   const reference = dateDeReference(aujourdhui);
   const router = useRouter();
@@ -138,6 +140,7 @@ export function ListeAlertes({
     filtre === "toutes" ? alertes : alertes.filter((a) => a.criticite === filtre);
   const miennes = lectureSeule ? filtrees : filtrees.filter((a) => estConfieeAMoi(a, monCompte));
   const autres = lectureSeule ? [] : filtrees.filter((a) => !estConfieeAMoi(a, monCompte));
+  const plusieursNiveaux = new Set(alertes.map(a => a.criticite)).size > 1;
 
   // Le compte vit sur la pastille : on n'ouvre pas un filtre pour découvrir
   // qu'il ne contient rien.
@@ -169,6 +172,8 @@ export function ListeAlertes({
 
   const rang = (a: AlerteRang, grisee: boolean) => {
     const fiche = ficheDe(a);
+    const echeance = estProprietaire ? afficherEcheance(a.echeance, reference)?.texte : consequence(a, reference);
+    const niveauUtile = !estProprietaire || a.criticite !== "normale";
     // Le contexte (`details.libelle`) est souvent déjà dans le titre — « État
     // des lieux d'entrée — Lot · Locataire » puis « Lot · Locataire » : il ne
     // s'affiche que s'il apprend quelque chose (24/09).
@@ -188,10 +193,10 @@ export function ListeAlertes({
               Avant le 12/09, « NORMALE · CONFIÉE À TOUT LE MONDE » s'affichait
               au même poids que le titre, à l'identique sur chaque rang : la
               seule chose qui distinguait deux alertes était la plus discrète. */}
-          <span className="etiquette-alerte">
+          {niveauUtile && <span className="etiquette-alerte">
             {CRITICITES[a.criticite] ?? a.criticite}
-          </span>
-          <div className="mt-1.5 text-[14.5px] font-semibold">{a.titre}</div>
+          </span>}
+          <div className={`${niveauUtile ? "mt-1.5 " : ""}text-[14.5px] font-semibold`}>{a.titre}</div>
           {/* Le contexte que l'alerte transporte (recette 21/08 : treize
               « État des lieux à réaliser » identiques, illisibles).
               Deux lignes plutôt qu'une coupe nette : sur un téléphone,
@@ -202,13 +207,14 @@ export function ListeAlertes({
               {libelle}
             </div>
           )}
-          {consequence(a, reference) && (
-            <div className="consequence-alerte">{consequence(a, reference)}</div>
+          {echeance && (
+            <div className="consequence-alerte">{echeance}</div>
           )}
-          <div className="mt-1 text-xs text-muted-foreground">
+          {!estProprietaire && <div className="mt-1 text-xs text-muted-foreground">
             créée le {formaterDateHeure(a.created_at)} · confiée à{" "}
             {nomAssignation(a, membres)}
-          </div>
+          </div>}
+          {estProprietaire && grisee && <p className="mt-1 text-xs text-muted-foreground">Confiée à {nomAssignation(a, membres)}</p>}
           {/* Une rangée grisée sans bouton laissait croire à une panne : on
               dit pourquoi elle est intouchable, et qui peut agir. */}
           {grisee && (
@@ -253,11 +259,11 @@ export function ListeAlertes({
                 variant="ghost"
                 size="sm"
                 className="relative z-10"
-                aria-label="Confier / clore l’alerte"
-                title="Confier ou clore l'alerte"
+                aria-label={estProprietaire ? `Clore ou confier : ${a.titre}` : "Confier / clore l’alerte"}
+                title={estProprietaire ? "Clore ou confier" : "Confier ou clore l'alerte"}
                 onClick={() => setOuverte(a)}
               >
-                Confier / clore
+                {estProprietaire ? "Clore ou confier" : "Confier / clore"}
               </Button>
             </span>
           ) : (
@@ -275,6 +281,8 @@ export function ListeAlertes({
     );
   };
 
+  if (alertes.length === 0 && (listeIncomplete || (estProprietaire && actionsAuDessus > 0))) return null;
+
   return (
     <div>
       {/* Pas de filtres au-dessus d'une liste vide : quatre pastilles à zéro
@@ -286,12 +294,12 @@ export function ListeAlertes({
           pastilles ne comptent que cette table (« Toutes 2 », « Critiques
           0 ») — deux chiffres différents sous un même mot. La légende dit ce
           que les pastilles filtrent. */}
-      {alertes.length > 0 && actionsAuDessus > 0 && (
+      {!estProprietaire && alertes.length > 0 && actionsAuDessus > 0 && (
         <p className="mb-2 text-xs text-muted-foreground">
           Filtres des alertes ci-dessous — les baux et rapports listés au-dessus n’y sont pas comptés.
         </p>
       )}
-      {alertes.length > 0 && (
+      {alertes.length > 0 && (!estProprietaire || plusieursNiveaux) && (
         <div className="mb-4 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
           {pastille("toutes", "Toutes les alertes")}
           {pastille("critique", "Critiques")}
@@ -308,13 +316,13 @@ export function ListeAlertes({
               ? "Aucune alerte à ce niveau"
               : actionsAuDessus > 0
                 ? "Aucune alerte ouverte"
-                : lectureSeule ? "Aucune alerte ouverte" : "Votre journée est dégagée"}
+                : lectureSeule ? "Aucune alerte ouverte" : estProprietaire ? "Aucune action en attente" : "Votre journée est dégagée"}
           </p>
           <p className="explication">
             {filtre !== "toutes"
               ? "Consultez tous les niveaux pour retrouver les autres alertes."
               : actionsAuDessus > 0
-                ? "Ce qui vous attend est listé au-dessus ; Gerimmo posera ici les alertes dès qu’il y aura autre chose à faire."
+                ? estProprietaire ? "Vos actions en cours sont listées au-dessus." : "Ce qui vous attend est listé au-dessus ; Gerimmo posera ici les alertes dès qu’il y aura autre chose à faire."
               : /* Les exemples (« diagnostic périmé, état des lieux… ») et
                    « ce qui ne rentre pas dans ces cases » sont dits par la
                    carte « Créer une alerte », juste à côté (24/09). */
@@ -333,7 +341,7 @@ export function ListeAlertes({
               On le dit, et on y mène. */}
           {filtre === "toutes" && estProprietaire && (
             <p className="explication">
-              Les diagnostics et pièces à compléter avant de louer restent dans{" "}
+              Diagnostics et pièces à compléter :{" "}
               <Link href={`${racine}/${orgId}/parc`} className="lien-discret">
                 Mes lots
               </Link>

@@ -77,5 +77,5 @@ export async function GET(
   }
 
   return servirFichierSigne(supabase, { path: doc.storage_path, mime: doc.mime_type,
-    titre: doc.titre, mode, retour: "depuis votre dossier Documents" });
+    titre: doc.titre, mode, apercuIntegre: request.nextUrl.searchParams.get("apercu") === "integre", retour: "depuis votre dossier Documents" });
 }

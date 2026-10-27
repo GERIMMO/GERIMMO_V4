@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useRef, useEffect, useState, useTransition, type ReactNode } from "react";
 import { cibleChampBail } from "@/lib/documents/champs-bail-parcours";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { NavigationBail } from "./navigation-bail";
 import styles from "@/components/presentation-parcours.module.css";
 import { RubriquesDirectes } from "@/components/rubrique-dossier";
@@ -17,6 +18,11 @@ export function AssistantBail({ orgId, bailId, contenus, formulaire, controleIni
     return position >= 0 ? position : 5;
   };
   const [etape,setEtape]=useState(0);
+  const [cibleNavigation,setCibleNavigation]=useState<{hash:string}|null>(null);
+  const [enregistrement,setEnregistrement]=useState(false);
+  const enregistrementRef=useRef(false);
+  const etapeRef=useRef(0);
+  const signalerEnregistrement=useCallback((enCours:boolean)=>{enregistrementRef.current=enCours;setEnregistrement(enCours);},[]);
   const [controle,setControle]=useState(controleInitial);
   const [chargement,demarrer]=useTransition();
   const requete = useRef(0);
@@ -46,23 +52,69 @@ export function AssistantBail({ orgId, bailId, contenus, formulaire, controleIni
     };
   }, [verifier]);
   useEffect(()=>{
-    const sync=()=>{const i=indexEtapeBail(location.hash);if(i>=0)setEtape(i);};
-    const clic=(e:MouseEvent)=>{const a=(e.target as Element).closest('a[href^="#"]');if(a){const i=indexEtapeBail(a.getAttribute("href") ?? "");if(i>=0)setEtape(i);}};
-    sync();document.addEventListener("click",clic);window.addEventListener("hashchange",sync);
-    return()=>{document.removeEventListener("click",clic);window.removeEventListener("hashchange",sync);};
+    const ouvrir=(hash:string)=>{
+      const i=indexEtapeBail(hash);
+      if(i>=0){etapeRef.current=i;setEtape(i);setCibleNavigation({hash});}
+    };
+    const sync=()=>{
+      if(enregistrementRef.current){history.replaceState(history.state,"",`${location.pathname}${location.search}#etape-bail-${etapeRef.current+1}`);return;}
+      ouvrir(location.hash);
+    };
+    const clic=(event:MouseEvent)=>{
+      if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+      const lien=event.target instanceof Element?event.target.closest<HTMLAnchorElement>("a[href]"):null;
+      if(!lien||lien.target==="_blank"||lien.hasAttribute("download"))return;
+      const url=new URL(lien.href,location.href);
+      if(url.origin!==location.origin||url.pathname!==location.pathname||url.search!==location.search||indexEtapeBail(url.hash)<0)return;
+      if(enregistrementRef.current){event.preventDefault();return;}
+      // Un clic vers l’ancre déjà courante ne déclenche pas hashchange.
+      ouvrir(url.hash);
+    };
+    sync();document.addEventListener("click",clic,true);window.addEventListener("hashchange",sync);window.addEventListener("popstate",sync);
+    return()=>{document.removeEventListener("click",clic,true);window.removeEventListener("hashchange",sync);window.removeEventListener("popstate",sync);};
   },[]);
-  function changer(i:number) {setEtape(i); history.replaceState(null,"",`${location.pathname}${location.search}#etape-bail-${i+1}`); document.getElementById("assistant-bail-titre")?.focus({preventScroll:true}); document.getElementById("assistant-bail-navigation")?.scrollIntoView({block:"start"});}
+  useEffect(()=>{
+    if(!cibleNavigation)return;
+    const frame=requestAnimationFrame(()=>{
+      if(enregistrementRef.current)return;
+      const racine=document.getElementById("assistant-bail-navigation");
+      const cible=document.getElementById(decodeURIComponent(cibleNavigation.hash.slice(1)));
+      if(!cible||!racine?.contains(cible)){
+        document.getElementById("assistant-bail-titre")?.focus({preventScroll:true});
+        racine?.scrollIntoView({block:"start"});
+        return;
+      }
+      // Attendre le panneau actif avant de déplier et de placer le curseur.
+      // Le toggle natif synchronise aussi les détails contrôlés du formulaire.
+      let parent:HTMLElement|null=cible;
+      while(parent&&parent!==racine){if(parent instanceof HTMLDetailsElement)parent.open=true;parent=parent.parentElement;}
+      const visible=(element:HTMLElement)=>!element.closest("[hidden], [inert]")&&!element.matches(":disabled")&&element.getClientRects().length>0;
+      const champs='input:not([type="hidden"]), select, textarea';
+      const scope=cible.matches(champs)?cible.closest("fieldset")??cible:cible;
+      const champ=cible.matches(champs)&&visible(cible)?cible:Array.from(scope.querySelectorAll<HTMLElement>(champs)).find(visible);
+      const titre=Array.from(cible.querySelectorAll<HTMLElement>("h2,h3,h4,legend")).find(visible);
+      const focus=champ??titre??(visible(cible)?cible:document.getElementById("assistant-bail-titre"));
+      if(!focus)return;
+      if(!focus.matches(champs)&&!focus.hasAttribute("tabindex"))focus.setAttribute("tabindex","-1");
+      focus.focus({preventScroll:true});
+      focus.scrollIntoView({block:"center"});
+    });
+    return()=>cancelAnimationFrame(frame);
+  },[etape,cibleNavigation]);
+  function changer(i:number) {etapeRef.current=i;setEtape(i);const hash=`#etape-bail-${i+1}`;setCibleNavigation({hash});history.replaceState(history.state,"",`${location.pathname}${location.search}${hash}`);}
   const manquantsEtape = controle.manquants.filter(m => positionChamp(m) === etape);
   const IconeEtape = icones[etape];
-  return <SuiviEnregistrement.Provider value={verifier}><CompletudeBail.Provider value={controle}><RubriquesDirectes.Provider value={true}><div className={`assistant-location assistant-bail ${styles.presentation}`} id="assistant-bail-navigation" style={{scrollMarginTop:"calc(var(--hauteur-haut, 76px) + 20px)"}}>
+  const locataireAChoisir=controle.erreur==="Renseignez d'abord le locataire principal du bail.";
+  return <SuiviEnregistrement.Provider value={verifier}><CompletudeBail.Provider value={controle}><RubriquesDirectes.Provider value={true}><div className={`assistant-location assistant-bail ${styles.presentation} ${styles.parcoursBail}`} id="assistant-bail-navigation" style={{scrollMarginTop:"calc(var(--hauteur-haut, 76px) + 20px)"}}>
     <NavigationBail etapes={etapes.map((e,i) => {
       const restant = controle.manquants.filter(m => positionChamp(m) === i).length;
+      // Le contrôle du texte du contrat ne certifie pas les pièces ni leurs échéances.
+      if (i === 4) return { ...e, statutLibelle: restant ? `${restant} champs · pièces à vérifier` : "Pièces à vérifier" };
       return { ...e, ...(i < etapes.length-1 && !controle.erreur ? { statut: restant ? "incomplet" as const : "complet" as const, restant } : {}) };
-    })} etape={etape} changer={changer} />
+    })} etape={etape} changer={i=>{if(!enregistrement)changer(i);}} />
     {chargement && <p className={styles.verification} role="status">Vérification automatique en cours…</p>}
-    {controle.erreur && !chargement && <p className={styles.verificationErreur} role="alert">{controle.erreur}</p>}
+    {controle.erreur && !chargement && (!locataireAChoisir||[1,6].includes(etape)) && <p className={locataireAChoisir?styles.verification:styles.verificationErreur} role={locataireAChoisir?"status":"alert"}>{controle.erreur}</p>}
     <div><div className={`assistant-carte ${styles.cadre}`}>
-      {["conditions","paiement","precedent","travaux","honoraires"].map(id=><span key={id} id={`complements-${id}`} className="block scroll-mt-24"/>)}
       <header className={styles.entete}>
         <span className={styles.icone}><IconeEtape size={23} aria-hidden="true" /></span>
         <div><span className={styles.surtitre}>Étape {String(etape+1).padStart(2,"0")} / {etapes.length}</span>
@@ -71,15 +123,14 @@ export function AssistantBail({ orgId, bailId, contenus, formulaire, controleIni
         </div>
       </header>
       <div className={styles.corps}>
-      {etape < etapes.length-1 && !controle.erreur && !manquantsEtape.length && <p className={styles.validee} role="status"><CircleCheck size={17} aria-hidden="true"/>Les mentions requises pour le PDF sont enregistrées.</p>}
-      {etape < etapes.length-1 && <p className={styles.aide}><span className={styles.legendePastille} aria-hidden="true"/> Pastille rouge : information obligatoire à compléter. Mise à jour après chaque enregistrement.</p>}
-      <EtapeComplementsBail.Provider value={{etape:etapes[etape].id, revision, ouvrir:(id)=>{const i=etapes.findIndex(e=>e.id===id);if(i>=0)changer(i);}}}>
+      {etape < etapes.length-1 && etape !== 4 && !controle.erreur && !manquantsEtape.length && <p className={styles.validee} role="status"><CircleCheck size={17} aria-hidden="true"/>Informations requises enregistrées.</p>}
+      <EtapeComplementsBail.Provider value={{etape:etapes[etape].id, revision, signalerEnregistrement, ouvrir:(id)=>{const i=etapes.findIndex(e=>e.id===id);if(i>=0)changer(i);}}}>
         {formulaire}
         {contenus.map((c,i)=><section key={i} hidden={i!==etape} aria-label={etapes[i].titre} className="assistant-panneau">{c}</section>)}
       </EtapeComplementsBail.Provider>
       </div>
       {/* React réutilise le bouton en passant à une étape de saisie : annuler son action native avant qu’il ne devienne submit. */}
-      <div className={`assistant-pied ${styles.pied}`}>{etape>0?<button type="button" className="btn-secondaire" onClick={()=>changer(etape-1)}><ArrowLeft size={16} aria-hidden="true"/>Précédent</button>:<span/>}{etape<etapes.length-1&&([0,3,4,5].includes(etape)?<button type="submit" form="form-parcours-bail" name="continuer" value="1" className="btn-or">Enregistrer et continuer<ArrowRight size={16} aria-hidden="true"/></button>:<button type="button" className="btn-or" onClick={event=>{event.preventDefault();changer(etape+1);}}>Suivant<ArrowRight size={16} aria-hidden="true"/></button>)}</div>
+      <div className={`assistant-pied ${styles.pied}`}>{etape>0?<button type="button" disabled={enregistrement} className="btn-secondaire" onClick={()=>changer(etape-1)}><ArrowLeft size={16} aria-hidden="true"/>Précédent</button>:<span/>}{etape<etapes.length-1&&([0,3,4,5].includes(etape)?<BoutonEnvoi form="form-parcours-bail" name="continuer" value="1" className="btn-or" enCours={enregistrement} enCoursTexte="Enregistrement…">Enregistrer et continuer<ArrowRight size={16} aria-hidden="true"/></BoutonEnvoi>:<button type="button" className="btn-or" onClick={event=>{event.preventDefault();changer(etape+1);}}>Suivant<ArrowRight size={16} aria-hidden="true"/></button>)}</div>
     </div></div>
   </div></RubriquesDirectes.Provider></CompletudeBail.Provider></SuiviEnregistrement.Provider>;
 }

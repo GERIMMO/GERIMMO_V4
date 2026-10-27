@@ -46,4 +46,47 @@ describe.skipIf(!chrome)("Navigation du bail : entrer dans une étape sans l’e
     await page.getByRole("button", { name: "Enregistrer et continuer", exact: true }).click();
     expect(await page.evaluate(() => window.__navigationBail)).toEqual({ invalides: 1, envois: 1 });
   });
+  it.each([
+    ["Corriger la date","Date d’entrée d’essai"],
+    ["Corriger le loyer","Loyer d’essai"],
+    ["Corriger le DPE","Dépenses DPE d’essai"],
+  ])("le récapitulatif ouvre et focalise directement le champ : %s",async(lien,label)=>{
+    await page.getByRole("button",{name:/Étape 07 Récapitulatif/}).click();
+    await page.getByRole("link",{name:lien,exact:true}).click();
+    const champ=page.getByLabel(label,{exact:true});
+    await champ.waitFor();
+    await page.waitForFunction(id=>document.activeElement?.id===id,await champ.getAttribute("id"));
+    expect(await page.evaluate(()=>window.__navigationBail)).toEqual({invalides:0,envois:0});
+  });
+  it("déplie les options, conserve la saisie et refocalise une ancre déjà courante",async()=>{
+    await page.getByRole("button",{name:/Étape 07 Récapitulatif/}).click();
+    await page.getByRole("link",{name:"Corriger l’indice",exact:true}).click();
+    const indice=page.getByLabel("Indice d’essai");
+    await indice.waitFor();
+    await page.waitForFunction(()=>document.activeElement?.id==="parcours-irl_valeur");
+    await indice.fill("145,50");
+    await page.getByLabel("Loyer d’essai").click();
+    await page.getByRole("link",{name:"Revenir à l’indice"}).click();
+    await page.waitForFunction(()=>document.activeElement?.id==="parcours-irl_valeur");
+    await page.getByRole("button",{name:/Étape 07 Récapitulatif/}).click();
+    await page.getByRole("link",{name:"Corriger l’indice",exact:true}).click();
+    expect(await indice.inputValue()).toBe("145,50");
+    expect(await page.evaluate(()=>window.__navigationBail)).toEqual({invalides:0,envois:0});
+  });
+  it("ne quitte pas l’étape pendant un enregistrement",async()=>{
+    await page.getByRole("button",{name:/Étape 07 Récapitulatif/}).click();
+    await page.getByRole("button",{name:"Simuler un enregistrement"}).click();
+    await page.getByRole("link",{name:"Corriger le loyer",exact:true}).click();
+    expect(await page.getByRole("heading",{name:"Récapitulatif",exact:true}).isVisible()).toBe(true);
+    expect(new URL(page.url()).hash).toBe("#etape-bail-7");
+    await page.getByRole("button",{name:"Terminer l’enregistrement"}).click();
+    await page.getByRole("link",{name:"Corriger le loyer",exact:true}).click();
+    await page.getByLabel("Loyer d’essai").waitFor();
+  });
+  it("focalise le titre exact de la rubrique propriétaire sans ouvrir de formulaire",async()=>{
+    await page.getByRole("button",{name:/Étape 07 Récapitulatif/}).click();
+    await page.getByRole("link",{name:"Corriger le propriétaire",exact:true}).click();
+    await page.waitForFunction(()=>document.activeElement?.id==="titre-proprietaires-bail");
+    expect(await page.getByRole("heading",{name:"Propriétaire d’essai"}).isVisible()).toBe(true);
+  });
 });

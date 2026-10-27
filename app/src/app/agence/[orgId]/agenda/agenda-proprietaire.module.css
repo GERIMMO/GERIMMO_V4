@@ -31,7 +31,7 @@
 .jour[data-aujourdhui="true"] .numero { background: var(--encre); color: var(--sur-encre); }
 .jour:hover { background: var(--creme); border-color: var(--filet); }
 .jour[aria-current="date"] { background: var(--or-clair); border-color: var(--prestige-champagne); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--prestige-champagne) 20%, transparent); }
-.horsMois { padding: 13px 14px; color: color-mix(in srgb, var(--texte-secondaire) 68%, var(--carte)); font-size: 13px; }
+.horsMois { padding: 13px 14px; color: #657083; font-size: 13px; }
 .evenement { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; color: var(--success-soft-foreground); font-size: 10px; white-space: nowrap; }
 .pointEvenement { flex: 0 0 5px; height: 5px; border-radius: 50%; background: var(--success); }
 .nombreEvenements { margin-left: auto; font-size: 9px; }

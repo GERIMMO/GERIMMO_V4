@@ -18,7 +18,7 @@ import { lienLotDepuisBail } from "@/lib/parcours-lot";
 import { CompleterSurPlace } from "./completer-sur-place";
 import { RubriqueDossier } from "@/components/rubrique-dossier";
 import styles from "./bail.module.css";
-import { FileText, CalendarDays, Wallet, ShieldCheck, Users, House, Pencil } from "lucide-react";
+import { FileText, CalendarDays, Wallet, ShieldCheck, Users, House } from "lucide-react";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate, eur, aujourdhuiParis } from "@/lib/ged";
@@ -114,6 +114,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const suiviSignature = await lirePresentationSignatures(orgId, { baux: [bailId] });
   const documentSigne = bail.document_signe ?? archiveSignee(signatureDuBail(suiviSignature.circuits, bailId));
   const signeNonActif = bail.etat === "brouillon" && Boolean(documentSigne);
+  const assistantBailAffiche = bail.etat === "brouillon" && !traverseeLectureSeule;
 
   const { data: chambres, error: erreurChambres } = await supabase.from("lot_chambres").select("id, nom, surface_m2, volume_m3, description, espaces_partages").eq("lot_id", bail.lot_id).eq("organization_id", orgId).order("nom");
   const chambre = chambres?.find(c => c.id === bail.chambre_id);
@@ -1105,14 +1106,18 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   return (
     <main className={`${styles.page} dossier-bail mx-auto w-full max-w-6xl space-y-[1.125rem] p-4 sm:p-7`}>
       <Link href={lot ? `${base}/parc/${lot.bien_id}/lots/${lot.id}` : `${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {lot?.nom ?? "Mes lots"}</Link>
-      <header className={styles.entete}>
+      <header className={`${styles.entete}${assistantBailAffiche ? ` ${styles.enteteBrouillon}` : ""}`}>
         <span className={styles.icone}><FileText size={26} aria-hidden="true" /></span>
-        <div className="min-w-0 flex-1"><p className={styles.surtitre}>Contrat de location · {TYPES_BAIL[bail.type] ?? bail.type}</p><div className="flex flex-wrap items-center gap-3"><h1>{lot?.nom ?? "Fiche du bail"}</h1><span className={signeNonActif ? "puce puce-loue" : COULEURS_ETAT_BAIL[bail.etat] ?? "puce puce-grise"}>{signeNonActif ? "Bail signé" : suiviSignature.erreur && bail.etat === "brouillon" ? "Signature à vérifier" : ETATS_BAIL[bail.etat] ?? "État à vérifier"}</span>{signeNonActif && <span className="puce puce-prep">Location non activée</span>}</div><p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Users size={16} aria-hidden="true" />{erreurLocataire ? "Locataire indisponible" : locataire ? nomComplet(locataire) : "Locataire à renseigner"}{bail.chambre_id && ` · ${chambre?.nom ?? "Chambre"}`}</p></div>
-        {bail.etat === "brouillon" && !traverseeLectureSeule ? <a href="#corriger" className="btn-secondaire"><Pencil size={15} aria-hidden="true" /> Modifier le contrat</a> : lot && <Link className="btn-secondaire" href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}><House size={15} aria-hidden="true" /> Voir le logement</Link>}
+        <div className="min-w-0 flex-1">
+          <p className={styles.surtitre}>Contrat de location · {TYPES_BAIL[bail.type] ?? bail.type}</p>
+          <div className="flex flex-wrap items-center gap-3"><h1>{lot?.nom ?? "Fiche du bail"}</h1><span className={signeNonActif ? "puce puce-loue" : COULEURS_ETAT_BAIL[bail.etat] ?? "puce puce-grise"}>{signeNonActif ? "Bail signé" : suiviSignature.erreur && bail.etat === "brouillon" ? "Signature à vérifier" : ETATS_BAIL[bail.etat] ?? "État à vérifier"}</span>{signeNonActif && <span className="puce puce-prep">Location non activée</span>}</div>
+          {(erreurLocataire || locataire || !assistantBailAffiche || signeNonActif) ? <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Users size={16} aria-hidden="true" />{erreurLocataire ? "Locataire indisponible" : locataire ? nomComplet(locataire) : "Locataire à renseigner"}{bail.chambre_id && ` · ${chambre?.nom ?? "Chambre"}`}</p> : bail.chambre_id && <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><House size={16} aria-hidden="true" />{chambre?.nom ?? "Chambre"}</p>}
+        </div>
+        {!assistantBailAffiche && lot && <Link className="btn-secondaire" href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}><House size={15} aria-hidden="true" /> Voir le logement</Link>}
         {!traverseeLectureSeule && bail.etat === "brouillon" && !documentSigne && !suiviSignature.erreur && !bail.signe_envoye_le && <SupprimerBailBrouillon orgId={orgId} bailId={bailId} revenirAuLot libelle={[lot?.nom, TYPES_BAIL[bail.type] ?? bail.type, locataire ? nomComplet(locataire) : null, bail.date_debut ? `Entrée le ${formaterDate(bail.date_debut)}` : null].filter(Boolean).join(" · ")} />}
-        {bail.etat === "brouillon" && <dl className={styles.resumeBrouillon}>
-          <div><dt><Wallet size={17} aria-hidden="true"/>Loyer mensuel · charges comprises</dt><dd>{bail.loyer_hc != null && bail.charges != null ? eur(Number(bail.loyer_hc) + Number(bail.charges)) : "À compléter"}</dd></div>
-          <div><dt><CalendarDays size={17} aria-hidden="true"/>Date d’entrée</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "À renseigner"}</dd></div>
+        {bail.etat === "brouillon" && (bail.loyer_hc != null || bail.charges != null || bail.date_debut) && <dl className={styles.resumeBrouillon}>
+          {(bail.loyer_hc != null || bail.charges != null) && <div><dt><Wallet size={16} aria-hidden="true"/>{bail.loyer_hc != null ? bail.charges != null ? "Loyer charges comprises" : "Loyer hors charges" : "Charges mensuelles"}</dt><dd>{eur(Number(bail.loyer_hc ?? 0) + Number(bail.charges ?? 0))}</dd></div>}
+          {bail.date_debut && <div><dt><CalendarDays size={16} aria-hidden="true"/>Entrée le</dt><dd>{formaterDate(bail.date_debut)}</dd></div>}
         </dl>}
       </header>
       {bail.etat !== "brouillon" && <dl className={styles.chiffres}>
@@ -1121,7 +1126,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         <div><dt><ShieldCheck size={17} aria-hidden="true" /> Dépôt de garantie</dt><dd>{bail.depot_garantie == null ? "À renseigner" : eur(Number(bail.depot_garantie))}</dd><dd className={styles.precision}>Montant prévu au contrat</dd></div>
         <div><dt><CalendarDays size={17} aria-hidden="true" /> Échéance du loyer</dt><dd>{bail.jour_echeance == null ? "À renseigner" : `Le ${bail.jour_echeance} du mois`}</dd><dd className={styles.precision}>{bail.charges_mode === "forfait" ? "Charges au forfait" : bail.charges_mode === "provision" ? "Provisions sur charges" : "Conditions du contrat"}</dd></div>
       </dl>}
-      {signeNonActif ? <div className="rounded-xl border border-success/20 bg-success-soft p-4 text-sm"><strong>Le bail est signé. La location n’est pas encore activée.</strong><p className="mt-1">Le contrat signé est archivé ; l’activation reste une action séparée.</p><Link className="inline-flex min-h-11 items-center underline" href={`${base}/documents/${documentSigne}/fichier`}>Consulter le bail signé →</Link></div> : bail.etat === "brouillon" && <p className="text-sm text-muted-foreground">Vos informations enregistrées sont reprises dans les étapes du bail.</p>}
+      {signeNonActif && <div className="rounded-xl border border-success/20 bg-success-soft p-4 text-sm"><strong>Le bail est signé. La location n’est pas encore activée.</strong><p className="mt-1">Le contrat signé est archivé ; l’activation reste une action séparée.</p><Link className="inline-flex min-h-11 items-center underline" href={`${base}/documents/${documentSigne}/fichier`}>Consulter le bail signé →</Link></div>}
       {suiviSignature.erreur && <p role="status" className="text-sm">Le suivi des signatures est indisponible. Réessayez pour connaître l’état du contrat.</p>}
       <EchecLecture quoi={echecs} />
 
@@ -1174,7 +1179,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       {bail.etat !== "brouillon" && <AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(bail, lot?.surface_m2)} />}
       {traverseeLectureSeule ? <OngletsDossier libelle="Consultation du bail" initiale={signeNonActif ? "signature" : undefined} rubriques={[
         { id: "bail-informations", titre: "Contrat", contenu: <RecapitulatifParcoursBail
-          lectureSeule orgId={orgId} lotId={bail.lot_id} bail={bail}
+          lectureSeule orgId={orgId} lotId={bail.lot_id} bailId={bailId} bail={bail} estProprietaire={estProprietaire} erreurPersonnes={Boolean(erreurLocataire || erreurPersonnes || erreurBailPersonnes)}
           personnes={[...(locataire ? [{nom:nomComplet(locataire),role:"Locataire principal"}]:[]),...lignesColoc.filter(p=>!p.date_depart).map(p=>({nom:p.person_nom,role:p.role === "garant"?"Garant":"Colocataire"}))]}
           documents={null} signature={null} /> },
         { id: "signature", titre: "Documents", contenu: <section className="rounded-xl border bg-card p-4 space-y-3">
@@ -1216,19 +1221,19 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </HistoriqueBailLecture>
           </>} /> },
       ]} /> : bail.etat === "brouillon" ? <AssistantBail
-        formulaire={<FormulaireParcoursBail surfaceHabitable={lot?.surface_m2} orgId={orgId} bailId={bailId} defauts={bail} agence={agence} meuble={Boolean(lot?.meuble)} chambres={chambres ?? []} />}
+        formulaire={<FormulaireParcoursBail lienChambres={lot?lienLotDepuisBail(orgId,lot.bien_id,bail.lot_id,bailId,"equipements",1,racineEspace(estProprietaire)):undefined} surfaceHabitable={lot?.surface_m2} orgId={orgId} bailId={bailId} defauts={bail} agence={agence} meuble={Boolean(lot?.meuble)} chambres={chambres ?? []} />}
         orgId={orgId} bailId={bailId} controleInitial={await verifierDossierBail(orgId, bailId)}
         contenus={[
-          lot ? <p key="chambres" className="text-sm text-muted-foreground">Pour louer une chambre avec son propre contrat, <Link className="underline" href={lienLotDepuisBail(orgId,lot.bien_id,bail.lot_id,bailId,"equipements",1,racineEspace(estProprietaire))}>préparez ses caractéristiques dans le lot</Link>.</p> : null,
+          null,
           <EtapePersonnesBail key="personnes" orgId={orgId} bailId={bailId} lotId={bail.lot_id} principalId={bail.locataire_principal} colocation={bail.type === "colocation" && !bail.chambre_id} />,
           <CompleterSurPlace key="logement" orgId={orgId} bailId={bailId} lotId={bail.lot_id} individuel={Boolean(bail.chambre_id)} />,
           bail.chambre_id && lot ? <div key="plafond" id="loyer-plafond-colocation"><ChambresLogement orgId={orgId} lotId={bail.lot_id} bienId={lot.bien_id} chambres={[]} plafond={lot.colocation_loyer_reference} mode="plafond" /></div> : null,
-          lot ? <DocumentsParcoursBail key="documents" orgId={orgId} bailId={bailId} lotId={bail.lot_id} bienId={lot.bien_id} copropriete={premier(lot.bien)?.copropriete ?? null} reglementId={bail.reglement_copropriete} annexes={annexesContrat} /> : <p key="documents">Le logement est indisponible.</p>,
+          lot ? <DocumentsParcoursBail key="documents" orgId={orgId} bailId={bailId} lotId={bail.lot_id} bienId={lot.bien_id} copropriete={premier(lot.bien)?.copropriete ?? null} reglementId={bail.reglement_copropriete} annexes={annexesContrat} dateDebut={bail.date_debut} edlEntree={(edls ?? []).find(e => e.type === "entree") ?? null} erreurEdl={Boolean(erreurEdls)} /> : <p key="documents">Le logement est indisponible.</p>,
           null,
-          <div key="recapitulatif" className="space-y-4"><AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(bail, lot?.surface_m2)} /><RecapitulatifParcoursBail orgId={orgId} lotId={bail.lot_id} bail={bail}
+          <div key="recapitulatif" className="space-y-4"><AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(bail, lot?.surface_m2)} /><RecapitulatifParcoursBail orgId={orgId} lotId={bail.lot_id} bailId={bailId} bail={bail} estProprietaire={estProprietaire} erreurPersonnes={Boolean(erreurLocataire || erreurPersonnes || erreurBailPersonnes)}
             personnes={[...(locataire ? [{nom:nomComplet(locataire),role:"Locataire principal"}]:[]),...lignesColoc.filter(p=>!p.date_depart).map(p=>({nom:p.person_nom,role:p.role === "garant"?"Garant":"Colocataire"}))]}
-            documents={<div className="bail-batiment-resume"><strong>Documents et annexes</strong><p>Vérifiez les diagnostics, la notice, le règlement et les pièces déposées avant la signature.</p><a className="lien-discret" href="#etape-bail-5">Revoir les documents →</a></div>}
-            signature={<FinaliserParcoursBail key={JSON.stringify([bail,lignesColoc,inventaire])} orgId={orgId} bailId={bailId}
+            documents={null}
+            signature={<FinaliserParcoursBail recapitulatifStructure key={JSON.stringify([bail,lignesColoc,inventaire])} orgId={orgId} bailId={bailId}
               code={bail.chambre_id?"bail_individuel":bail.type==="colocation"?"bail_colocation":bail.type==="meuble"?"bail_meuble":"bail_nu"}
               signataires={[...(bail.locataire_principal ? [{id:bail.locataire_principal,nom:locataire?nomComplet(locataire):"Locataire principal"}]:[]),...lignesColoc.filter(p=>p.role==="colocataire"&&!p.date_depart).map(p=>({id:p.person_id,nom:p.person_nom}))]}
               edlId={(edls??[]).find(e=>e.type==="entree")?.id??null}

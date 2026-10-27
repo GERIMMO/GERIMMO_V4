@@ -58,7 +58,7 @@ export default async function PageBien(
   // Le lien retour porte le nom de l'entrée du menu (24/09) : « ← Parc »
   // ne se lisait nulle part ailleurs.
   const libelleParc = estProprietaire
-    ? "Mes lots"
+    ? "Biens & locations"
     : role === "agent"
       ? "Mon portefeuille"
       : "Parc de l'agence";

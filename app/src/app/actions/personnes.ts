@@ -144,7 +144,7 @@ export async function creerPersonne(
   if (refusFiche) return { erreur: refusFiche, valeurs };
 
   // Décision D31 (PR178-A-03) : clé d'idempotence de la demande, tirée par l'écran et conservée avec sa copie
-  // locale. Facultative : sans elle (création depuis l'étape « bail »), le comportement d'avant est inchangé.
+  // locale, y compris dans l'étape « Personnes » du bail. Facultative pour les anciens formulaires.
   const cle = String(formData.get("creation_id") ?? "").trim();
   if (cle && !UUID.test(cle)) {
     return { erreur: "La référence de cette demande est illisible. Rechargez le formulaire avant de créer la fiche.", valeurs };

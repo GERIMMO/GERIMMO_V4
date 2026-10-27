@@ -1,0 +1,35 @@
+.diagnostics { min-width:0; }
+.liste { margin:14px 0 4px; padding:0; list-style:none; }
+.liste > li { padding:13px 0; border-bottom:1px solid var(--filet-leger); }
+.ligne { display:flex; align-items:center; flex-wrap:wrap; gap:10px 12px; }
+.icone { flex-shrink:0; color:var(--texte-secondaire); }
+.identite { flex:1; min-width:180px; }
+.identite strong { display:flex; flex-wrap:wrap; align-items:center; gap:7px; color:var(--encre); font-size:13px; font-weight:600; }
+.detail { display:block; margin-top:3px; color:var(--texte-secondaire); font-size:11px; line-height:1.6; }
+.classe { padding:2px 6px; border-radius:4px; background:var(--marque-clair); font-size:10px; }
+.etat { display:inline-flex; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600; color:var(--texte-secondaire); background:var(--creme); }
+.etat[data-ton="ok"] { background:#edf6f1; color:#28604a; }
+.etat[data-ton="attention"] { background:#fbf3e3; color:#806536; }
+.actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px 14px; }
+.actions a, .actions button, .gerer { display:inline-flex; align-items:center; gap:5px; min-height:40px; color:var(--encre); font-size:12px; cursor:pointer; }
+.actions a, .gerer { text-decoration:underline; text-underline-offset:3px; }
+.actions button { background:none; border:0; padding:0; }
+.actions button:hover { text-decoration:underline; text-underline-offset:3px; }
+.actions a:focus-visible, .actions button:focus-visible, .gerer:focus-visible, .anciens summary:focus-visible { outline:2px solid var(--marque); outline-offset:3px; border-radius:3px; }
+.anciens { margin:4px 0 0 30px; }
+.anciens summary { width:fit-content; min-height:36px; display:list-item; align-content:center; cursor:pointer; color:var(--texte-secondaire); font-size:11px; }
+.anciens ul { margin:0; padding:0; list-style:none; }
+.anciens li { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px 16px; padding:6px 0; color:var(--texte-secondaire); font-size:11px; }
+.anciens small { display:block; margin-top:3px; }
+.avertissement { padding:10px 12px; border-radius:8px; background:var(--creme); }
+.avertissement a { text-decoration:underline; text-underline-offset:3px; }
+.reference { margin:8px 0; }
+.gerer { margin-top:8px; }
+@media(max-width:600px) {
+  .ligne { gap:8px 10px; }
+  .identite { min-width:calc(100% - 30px); }
+  .etat { margin-left:28px; }
+  .actions { flex:1; }
+  .actions a, .actions button { min-height:44px; }
+  .anciens { margin-left:28px; }
+}

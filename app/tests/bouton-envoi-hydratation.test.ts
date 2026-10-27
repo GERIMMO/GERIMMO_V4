@@ -139,7 +139,9 @@ describe("qui attend la page, qui n'attend pas", () => {
   // 23 fichiers (35 formulaires sur 216) ont encore un bouton d'envoi écrit à la main : supervision (admin) et portail
   // artisan surtout. Ils gardent leur comportement d'avant. Cette liste dit l'écart et ne peut que raccourcir : un nouveau
   // formulaire protégé doit employer BoutonEnvoi, ou se justifier ici.
+  // Le parcours bail est soumis par les boutons de navigation externes : aucun bouton d’envoi dans ce formulaire.
   const BOUTON_ECRIT_A_LA_MAIN = [
+    "src/app/agence/[orgId]/baux/[bailId]/formulaire-parcours-bail.tsx",
     "src/app/admin/consignes/formulaires.tsx",
     "src/app/admin/marketing/formulaire-campagne.tsx",
     "src/app/admin/marketing/reglages-automatiques.tsx",

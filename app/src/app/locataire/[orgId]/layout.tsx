@@ -98,7 +98,7 @@ export default async function LayoutLocataire({
   );
 
   return (
-    <div className="loc-app gerimmo-prestige" style={styleMarque(apparence)}>
+    <div className="loc-app gerimmo-prestige experience-unifiee" style={styleMarque(apparence)}>
       <aside className="loc-late">
         <div className="loc-logo min-w-0">
           <Link href={`/locataire/${orgId}`} className="block min-w-0 max-w-full overflow-hidden">
@@ -121,6 +121,7 @@ export default async function LayoutLocataire({
       </aside>
       <div className="min-w-0">
         <header className="loc-haut">
+          <span className="ambiance-repere" aria-hidden="true" />
           <MenuCompte
             initiales={
               personne

@@ -46,7 +46,7 @@ const LIBELLES: Record<string, { titre: string; geste: string }> = {
 // mot à l'écran, le lot reste un concept de code.
 const LIBELLES_PROPRIETAIRE: Record<string, { titre: string; geste: string }> = {
   ...LIBELLES,
-  lot_pret: { titre: "Un bien en état d'être loué", geste: "Lever ce qui bloque" },
+  lot_pret: { titre: "Préparation du logement", geste: "Compléter le logement" },
 };
 
 // `base` : « /espace/<id> » chez le propriétaire direct, « /agence/<id> » chez une agence (décision D27).
@@ -121,7 +121,7 @@ export async function ParcoursDemarrage({
     <section className={`loc-carte ${styles.carte}`} aria-labelledby="parcours-titre">
       <div className={styles.resume}>
         <div className={styles.principal}>
-          <h2 id="parcours-titre" className={styles.titre}>Mettre votre premier {estProprietaire ? "bien" : "lot"} en location</h2>
+          <h2 id="parcours-titre" className={styles.titre}>{estProprietaire ? "Terminer votre première location" : "Mettre votre premier lot en location"}</h2>
           {suivante && <p className={styles.prochaine}>Prochaine étape : <strong>{libelles[suivante.etape]?.titre ?? suivante.etape}</strong></p>}
         </div>
         <div className={styles.actions}>
@@ -189,7 +189,7 @@ export async function ParcoursDemarrage({
         })}
       </ol>
 
-      {proposerAutomatique ? (
+      {!automatiqueProposeAilleurs && (proposerAutomatique ? (
         <div className="assistant-suggestion mt-3 border-b-0">
           <p>
             Une fois le bail actif, le loyer du mois est calculé seul le 1ᵉʳ ;
@@ -214,7 +214,7 @@ export async function ParcoursDemarrage({
             ? " et part au locataire."
             : ", à lui envoyer d'un clic depuis la fiche du bail."}
         </p>
-      )}
+      ))}
         </div>
       </details>
     </section>

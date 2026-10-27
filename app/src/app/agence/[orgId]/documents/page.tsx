@@ -1,5 +1,6 @@
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
+import { ArrowLeft, ChevronLeft, ChevronRight, FileImage, FileText, TriangleAlert } from "lucide-react";
 import { lirePresentationSignatures } from "@/lib/lecture-presentation-signatures";
 import { etatSignatureDocument } from "@/lib/presentation-signatures";
 import { presentationDocument } from "@/lib/presentation-document";
@@ -25,8 +26,10 @@ import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { FormulaireDepot } from "./formulaire-depot";
 import { EchecLecture } from "./echec-lecture";
 import { PaneDocument } from "./pane-document";
+import { FiltresProprietaire } from "./filtres-proprietaire";
 import { titreAffiche } from "./titre-document";
 import { baseEspace } from "@/lib/racine-espace";
+import styles from "./documents-proprietaire.module.css";
 
 export const metadata = { title: "Documents — Gerimmo" };
 
@@ -127,7 +130,9 @@ export default async function PageDocuments(
     requete,
     // La vue d'ensemble se calcule sur TOUTES les pièces courantes, agrégées
     // EN SQL — jamais sur une fenêtre plafonnée (revue 26/08, passes 1 et 2)
-    supabase.rpc("documents_stats_par_type", { p_org: orgId, p_lots: lotsPerimetre }),
+    estProprietaire
+      ? Promise.resolve({ data: [], error: null })
+      : supabase.rpc("documents_stats_par_type", { p_org: orgId, p_lots: lotsPerimetre }),
     supabase.rpc("documents_a_renouveler", {
       p_org: orgId,
       p_limite: limiteRenouvellement(),
@@ -201,6 +206,7 @@ export default async function PageDocuments(
   // son seul geste de dépôt (24/09 — barre de filtres, deux cartes vides et
   // trois « Déposer » disaient la même chose).
   const parcVide = !erreurDocuments && !filtresActifs && docs.length === 0 && !sel;
+  const indexSelection = docs.findIndex(d => d.id === sel);
 
   // Les liens préservent filtres et sélection (même motif que les incidents) ;
   // typeCible permet aux types cliquables de garder les autres filtres
@@ -218,21 +224,46 @@ export default async function PageDocuments(
     return `${base}/documents${q ? `?${q}` : ""}`;
   };
 
+  // Le dépôt est une tâche à part entière : les filtres et la liste restent
+  // dans l'adresse de retour, sans repousser le formulaire sous le premier écran.
+  if (estProprietaire && sel === "depot") {
+    return (
+      <main className={`mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7 ${styles.page}`}>
+        <Link href={lien(null)} className="lien-discret mb-2 inline-flex min-h-11 items-center">
+          ← Retour aux documents
+        </Link>
+        <div className={styles.entetePage}>
+          <div className="entete-page">
+            <TitreEcran rubrique="documents">Déposer un document</TitreEcran>
+          </div>
+        </div>
+        <div className="max-w-2xl">
+          <EchecLecture quoi={erreurPersonnes ? ["les personnes rattachées"] : []} />
+          <Card>
+            <CardContent>
+              <FormulaireDepot orgId={orgId} personnes={personnes ?? []} lienAnnuler={lien(null)} typeInitial={recherche.type} />
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
   return (
     // Même gabarit que les autres écrans de l'espace (audit 27/09 : en
     // max-w-6xl, le titre partait 12 px plus à gauche que partout ailleurs).
-    <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
+    <main className={`mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7${estProprietaire ? ` ${styles.page}` : ""}`} data-document-ouvert={estProprietaire && Boolean(sel)}>
       {/* L'en-tête standard de l'espace (tour du 24/09) : le titre, la
           mention, l'action — sans fil d'Ariane, Documents est une page de
           premier niveau et le menu dit déjà où l'on est. Même ordre
           qu'Incidents : le compteur, l'action secondaire en lien discret,
           puis le seul bouton principal (charte 04). La phrase d'aide passe
           sous le filet. */}
-      <div className="mb-6">
+      <div className={estProprietaire ? styles.entetePage : "mb-6"}>
         <div className="entete-page">
           <TitreEcran rubrique="documents">Documents</TitreEcran>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="mono-discret">
+          <div className={`flex flex-wrap items-center gap-3${estProprietaire ? ` ${styles.actionsPage}` : ""}`}>
+            {!estProprietaire && <span className="mono-discret">
               {portefeuille ? "Mon portefeuille · " : ""}
               {erreurDocuments ? (
                 "nombre indisponible"
@@ -245,22 +276,22 @@ export default async function PageDocuments(
                     : ""}
                 </>
               )}
-            </span>
-            <Link href={`${base}/documents/catalogue`} className="lien-discret">
-              Préparer un document
+            </span>}
+            <Link href={`${base}/documents/catalogue`} className="lien-discret" aria-label={estProprietaire ? "Préparer un document" : undefined}>
+              {estProprietaire ? "Préparer" : "Préparer un document"}
             </Link>
             {/* Parc vide : le guide, dessous, porte le seul geste de dépôt */}
             {!parcVide && (
-              <Link href={lien("depot")} className="btn-or">
-                + Déposer un document
+              <Link href={lien("depot")} className="btn-or" aria-label={estProprietaire ? "Déposer un document" : undefined}>
+                {estProprietaire ? "+ Déposer" : "+ Déposer un document"}
               </Link>
             )}
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">
+        {!estProprietaire && <p className="text-sm text-muted-foreground">
           Baux, diagnostics, quittances et justificatifs de vos lots, au même
           endroit.
-        </p>
+        </p>}
       </div>
 
       <EchecLecture quoi={lecturesManquees} />
@@ -285,7 +316,7 @@ export default async function PageDocuments(
         </div>
       ) : (
         <>
-          <form method="get" className="barre-filtres mb-4 flex flex-wrap items-end gap-2">
+          {estProprietaire ? <FiltresProprietaire recherche={recherche} lienEffacer={`${base}/documents`} /> : <form method="get" className="barre-filtres mb-4 flex flex-wrap items-end gap-2">
             <div className="w-full sm:w-auto">
               <label htmlFor="type" className="libelle-champ mb-1 block">
                 Type
@@ -354,7 +385,25 @@ export default async function PageDocuments(
             >
               Filtrer
             </button>
-          </form>
+          </form>}
+
+          {estProprietaire && aRenouveler.length > 0 && (
+            <details className={styles.renouvellements}>
+              <summary>
+                <TriangleAlert size={17} aria-hidden="true" />
+                <span>{aRenouveler.length} document{aRenouveler.length > 1 ? "s" : ""} à renouveler</span>
+                <span className={styles.voirRenouvellements}>Voir les documents</span>
+              </summary>
+              <ul>
+                {aRenouveler.map((d) => <li key={d.id}>
+                  <Link href={lien(d.id)}>
+                    <span>{titreAffiche(d.titre) ?? "Sans titre"}<small>Échéance : {formaterDate(d.expire_le)}</small></span>
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </Link>
+                </li>)}
+              </ul>
+            </details>
+          )}
 
           {/* Vue scindée maquette : les documents à gauche, la fiche ou la vue
               d'ensemble à droite (?sel=…).
@@ -362,24 +411,30 @@ export default async function PageDocuments(
               sous 900px quand une sélection existe — la fiche (ou le formulaire
               de dépôt) remplace la liste au lieu d'être rendue dessous, avec un
               lien retour en tête. */}
-          <div className={`split${sel ? " detail-actif" : " split-apercu"}`}>
+          <div className={`split${sel ? " detail-actif" : estProprietaire ? "" : " split-apercu"}${estProprietaire ? ` ${styles.espaceDocuments}` : ""}`}>
             <div className="colonne-liste-split volet-liste">
               <div className="tete-liste">
                 {/* L'intitulé de la colonne dit ce qu'elle CONTIENT : « tous les
                     documents » sous un filtre actif était faux. */}
                 <span className="mono-discret">
-                  {filtresActifs ? "Documents filtrés" : "Tous les documents"}
-                  {!erreurDocuments ? ` · ${libelleCompte}` : ""}
+                  {estProprietaire && !erreurDocuments ? <>
+                    {libelleCompte} document{compteListe === null || compteListe !== 1 ? "s" : ""}
+                    {filtresActifs && totalCourants != null && totalCourants !== compteListe ? ` sur ${totalCourants}` : ""}
+                  </> : <>
+                    {filtresActifs ? "Documents filtrés" : "Tous les documents"}
+                    {!erreurDocuments ? ` · ${libelleCompte}` : ""}
+                  </>}
                 </span>
-                {sel && (
+                {sel && !estProprietaire && (
                   <Link
                     href={lien(null)}
                     className="lien-discret inline-flex items-center gap-1.5"
                   >
-                    Vue d&apos;ensemble
+                    Vue d’ensemble
                     <IndicateurLien />
                   </Link>
                 )}
+                {estProprietaire && !sel && !erreurDocuments && docs.length > 0 && <span className={styles.ordreListe}>Plus récents d’abord</span>}
               </div>
               {erreurDocuments ? (
                 /* Ni liste ni état vide : proposer « déposez la première pièce »
@@ -396,8 +451,8 @@ export default async function PageDocuments(
                       <>
                         <p className="titre">Aucun document ne correspond</p>
                         <p className="explication">
-                          Le type, la période ou le titre cherché ne retiennent rien.
-                          Repartez de la liste complète, puis resserrez d&apos;un cran.
+                          {estProprietaire ? "Essayez un autre titre ou retirez un filtre." : <>Le type, la période ou le titre cherché ne retiennent rien.
+                          Repartez de la liste complète, puis resserrez d&apos;un cran.</>}
                         </p>
                         <span className="geste">
                           <Link
@@ -447,6 +502,24 @@ export default async function PageDocuments(
                     .map((l) => nomsPersonnes.get(l.entite_id) ?? "Personne")
                     .join(", ");
                   const presentation = presentationDocument(d, etatSignatureDocument(suiviSignatures.circuits, d.id));
+                  if (estProprietaire) {
+                    const Icone = d.mime_type?.startsWith("image/") ? FileImage : FileText;
+                    return <Link
+                      key={d.id}
+                      href={lien(d.id)}
+                      className={`${styles.documentLigne}${actif ? ` ${styles.documentActif}` : ""}`}
+                      aria-current={actif ? "true" : undefined}
+                    >
+                      <span className={styles.iconeFichier} aria-hidden="true"><Icone size={19} strokeWidth={1.6} /></span>
+                      <span className={styles.identiteDocument}>
+                        <span className={styles.titreLigne}>{titreAffiche(d.titre) ?? "Sans titre"}</span>
+                        <span className={styles.metaDocument}>{TYPES_DOCUMENT[d.type] ?? d.type}{rattachements && ` · ${rattachements}`}</span>
+                      </span>
+                      <time className={styles.dateDocument} dateTime={d.created_at} title="Date de dépôt">{formaterDate(d.created_at)}</time>
+                      <span className={`${styles.statutDocument} puce ${presentation.classe}`} title={presentation.detail}>{presentation.libelle}</span>
+                      <span className={styles.ouvrirDocument} aria-hidden="true"><IndicateurLien /><ChevronRight size={16} /></span>
+                    </Link>;
+                  }
                   return (
                     <Link
                       key={d.id}
@@ -455,14 +528,14 @@ export default async function PageDocuments(
                       aria-current={actif ? "true" : undefined}
                     >
                       <span className="min-w-0 flex-1">
-                        <b className="block truncate">{titreAffiche(d.titre) ?? "Sans titre"}</b>
+                        <b className={estProprietaire ? styles.titreLigne : "block truncate"}>{titreAffiche(d.titre) ?? "Sans titre"}</b>
                         {/* Le détail passe à la ligne au lieu d'être tronqué
                             (25/09 : « · 160… » à 1280 px comme à 390 px). */}
                         <small className="block">
                           {TYPES_DOCUMENT[d.type] ?? d.type}
                           {" · "}
                           {formaterDate(d.created_at)}
-                          {d.taille_octets ? ` · ${formaterTaille(d.taille_octets)}` : ""}
+                          {!estProprietaire && d.taille_octets ? ` · ${formaterTaille(d.taille_octets)}` : ""}
                           {rattachements && ` · ${rattachements}`}
                         </small>
                       </span>
@@ -500,9 +573,13 @@ export default async function PageDocuments(
             {sel ? (
               <div className="min-w-0">
                 {/* Visible sous 900px seulement (.retour-liste) : la liste est masquée */}
-                <Link href={lien(null)} className="retour-liste mb-2">
-                  ← Tous les documents
-                </Link>
+                {estProprietaire ? <nav className={styles.navigationDocument} aria-label="Navigation des documents">
+                  <Link href={lien(null)}><ArrowLeft size={16} aria-hidden="true" />Retour à la liste</Link>
+                  {indexSelection >= 0 && docs.length > 1 && <div className={styles.parcourirDocuments}>
+                    {indexSelection > 0 ? <Link href={lien(docs[indexSelection - 1].id)} aria-label="Document précédent" title="Document précédent"><ChevronLeft size={18} aria-hidden="true" /></Link> : <span aria-disabled="true" aria-label="Document précédent"><ChevronLeft size={18} aria-hidden="true" /></span>}
+                    {indexSelection < docs.length - 1 ? <Link href={lien(docs[indexSelection + 1].id)} aria-label="Document suivant" title="Document suivant"><ChevronRight size={18} aria-hidden="true" /></Link> : <span aria-disabled="true" aria-label="Document suivant"><ChevronRight size={18} aria-hidden="true" /></span>}
+                  </div>}
+                </nav> : <Link href={lien(null)} className="retour-liste mb-2">← Retour aux documents</Link>}
                 {sel === "depot" ? (
                   <Card className="h-fit">
                     <CardHeader>
@@ -518,10 +595,10 @@ export default async function PageDocuments(
                     </CardContent>
                   </Card>
                 ) : (
-                  <PaneDocument orgId={orgId} documentId={sel} lienFermer={lien(null)} />
+                  <PaneDocument key={sel} orgId={orgId} documentId={sel} lienFermer={lien(null)} />
                 )}
               </div>
-            ) : (
+            ) : !estProprietaire ? (
               <div className="space-y-3.5">
                 {aRenouveler.length > 0 && (
                   <Card data-tone="critical">
@@ -618,7 +695,7 @@ export default async function PageDocuments(
                   </CardContent>
                 </Card>
               </div>
-            )}
+            ) : null}
           </div>
         </>
       )}

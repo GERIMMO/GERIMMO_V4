@@ -107,6 +107,7 @@ async function chargerCatalogue() {
               from unnest(p.proargtypes) with ordinality t(t, ord)) as arg_types
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'`);
+  catalogue.fns = new Map();
   for (const f of fns) if (!catalogue.fns.has(f.nom)) catalogue.fns.set(f.nom, f);
 }
 
@@ -1081,6 +1082,16 @@ const serveur = http.createServer(async (req, res) => {
 });
 
 await chargerCatalogue();
+// Comme PostgREST, prendre en compte les migrations locales sans redémarrer Next.
+const connexionCatalogue = await pool.connect();
+await connexionCatalogue.query("listen pgrst");
+let rechargementCatalogue = Promise.resolve();
+connexionCatalogue.on("notification", message => {
+  if (message.channel !== "pgrst" || message.payload !== "reload schema") return;
+  rechargementCatalogue = rechargementCatalogue.then(chargerCatalogue)
+    .then(() => console.log("[supalocal] Catalogue SQL rechargé."))
+    .catch(erreur => console.error("[supalocal] Catalogue SQL non rechargé :", erreur.message));
+});
 fs.mkdirSync(STOCKAGE, { recursive: true });
 // La clé de service du banc : un JWT `service_role` signé du secret local. À
 // poser dans SUPABASE_SERVICE_ROLE_KEY du serveur Next pour que les liens de

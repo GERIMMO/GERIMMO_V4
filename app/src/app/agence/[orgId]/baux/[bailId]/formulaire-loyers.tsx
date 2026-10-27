@@ -661,7 +661,7 @@ export function FormulaireLoyers({
       )}
 
       {/* Impayés & relances */}
-      <div className="space-y-2 border-t border-border pt-4">
+      <div id="relances" className="scroll-mt-24 space-y-2 border-t border-border pt-4">
         <p className="text-sm font-medium">
           Relances{impaye && <span className="ml-2 text-sm text-destructive">impayé en cours</span>}
         </p>

@@ -26,6 +26,7 @@ export function MarqueGerimmo({
         width={CHARTE_GERIMMO.logoTransparentLargeur}
         height={CHARTE_GERIMMO.logoTransparentHauteur}
         sizes="(max-width: 640px) 72px, 180px"
+        loading="eager"
       />
     </span>
   );

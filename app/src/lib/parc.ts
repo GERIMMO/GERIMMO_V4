@@ -95,7 +95,7 @@ export const TYPES_DIAGNOSTIC: Record<
     libelle: "Termites",
     niveau: "bien",
     validite_mois: 6,
-    aide: "Zone déclarée par arrêté préfectoral (6 mois)",
+    aide: "Vente en zone déclarée par arrêté préfectoral (6 mois) — hors dossier de location",
   },
 };
 
@@ -108,19 +108,16 @@ export function diagnosticsAttendus(bien: {
 }): string[] {
   const attendus: string[] = [];
   const habitation = (TYPES_HABITATION as readonly string[]).includes(bien.type);
-  if (habitation) attendus.push("dpe");
+  if (habitation) attendus.push("dpe", "electricite", "gaz");
   attendus.push("erp");
   if (bien.annee_construction !== null) {
     if (habitation && bien.annee_construction < 1949) attendus.push("plomb");
     if (bien.annee_construction < 1997) {
       attendus.push("amiante_privatif", "amiante_communes");
     }
-    // Électricité/gaz : « installation > 15 ans » approximée par l'âge du bâti
-    if (habitation && bien.annee_construction <= new Date().getFullYear() - 15) {
-      attendus.push("electricite", "gaz");
-    }
   }
-  attendus.push("termites"); // selon zone — non bloquant, proposé partout
+  // Gaz et électricité sont à qualifier selon les installations, indépendamment du bâti.
+  // Les termites restent déposables en complément, hors dossier de location.
   return attendus;
 }
 

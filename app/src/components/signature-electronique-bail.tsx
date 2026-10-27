@@ -19,7 +19,19 @@ const instant = (iso: string) => new Date(iso).toLocaleString("fr-FR",{day:"nume
 const ETATS = { pret:"Prêt à relire",preparation:"Préparation de l’envoi",en_cours:"Signatures en cours",a_verifier:"Envoi à vérifier",termine:"Toutes les signatures reçues",annule:"Circuit annulé",refuse:"Signature refusée",expire:"Demande expirée" };
 const PERSONNES: Record<string,string> = { signed:"Signé",notified:"Invitation envoyée",initiated:"À son tour",verified:"Identité vérifiée",processing:"Signature en cours",declined:"Refusé",error:"Invitation à vérifier",aborted:"Interrompu",consent_given:"Signature en cours" };
 
-export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature}:{orgId:string;bailId:string;selection?:SelectionSignature;apresSignature?:React.ReactNode}) {
+/** Filtre de présentation seulement : les actions conservent les manquants du serveur. */
+export function ManquantsSignature({ manquants, manquantsDejaAffiches, corriger }: {
+  manquants: string[]; manquantsDejaAffiches?: string[]; corriger?: (champ: string) => string;
+}) {
+  if (!manquants.length) return null;
+  const visibles = manquants.filter(m => !manquantsDejaAffiches?.includes(m));
+  return <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm">
+    {visibles.length ? <><strong>À compléter avant l’envoi</strong><ul className="mt-2 list-disc pl-5 space-y-1">{visibles.map((m, i) => <li key={i}>{corriger ? <a className="inline-flex min-h-11 items-center underline underline-offset-4" href={corriger(m)}>{m} →</a> : m}</li>)}</ul></>
+      : <a className="inline-flex min-h-11 items-center underline underline-offset-4" href="#bilan-bail">Complétez les points du bilan avant de préparer les signatures →</a>}
+  </div>;
+}
+
+export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature,manquantsDejaAffiches}:{orgId:string;bailId:string;selection?:SelectionSignature;apresSignature?:React.ReactNode;manquantsDejaAffiches?:string[]}) {
   const titreId = useId();
   const cleSelection = JSON.stringify(selection);
   const base = useBaseEspace(orgId);
@@ -108,7 +120,7 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
         {p.preuveDocumentId&&<a className="col-start-2 text-xs underline" href={`${base}/documents/${p.preuveDocumentId}/fichier`} target="_blank" rel="noreferrer">Preuve de signature<span className="sr-only"> de {p.prenom} {p.nom}</span></a>}
       </li>)}
     </ol>}
-    {!!vue?.manquants?.length&&!actif&&c?.etat!=="termine"&&<div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm"><strong>À compléter avant l’envoi</strong><ul className="mt-2 list-disc pl-5 space-y-1">{vue.manquants.map((m,i)=><li key={i}>{estBail ? <a className="inline-flex min-h-11 items-center underline underline-offset-4" href={corriger(m)}>{m} →</a> : m}</li>)}</ul></div>}
+    {!!vue?.manquants?.length&&!actif&&c?.etat!=="termine"&&<ManquantsSignature manquants={vue.manquants} manquantsDejaAffiches={estBail ? manquantsDejaAffiches : undefined} corriger={estBail ? corriger : undefined}/>}
     {!!annexes.length&&<div className="text-sm"><p className="font-medium">Annexes jointes au contrat · {annexes.length}</p><ul className="mt-1 grid gap-x-4 sm:grid-cols-2">{annexes.map(a=><li key={a.id}><a className="inline-flex min-h-11 items-center underline underline-offset-4" href={`${base}/documents/${a.id}/fichier`} target="_blank" rel="noreferrer">{a.titre}</a></li>)}</ul></div>}
     {code==="edl"&&c&&c.etat!=="pret"&&c.confirmation_sur_place?.texte&&<div className="rounded-xl border border-border p-3 text-sm"><p className="font-medium">Confirmation du bailleur avant l’envoi</p><p>{c.confirmation_sur_place.texte}</p><p className="text-xs text-muted-foreground">Donnée le {instant(c.confirmation_sur_place.confirme_le)}, depuis l’espace propriétaire. Elle est conservée avec ce circuit de signature.</p></div>}
     {actif&&<div className="space-y-2"><div className="flex justify-between text-sm"><span>Progression</span><span>{signes} / {parties.length} signatures</span></div><progress className="h-2 w-full accent-primary" max={Math.max(1,parties.length)} value={signes} aria-label="Signatures reçues"/><p className="text-xs text-muted-foreground">Le PDF envoyé reste inchangé. Chaque personne reçoit son invitation lorsque vient son tour.</p></div>}

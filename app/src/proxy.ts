@@ -89,7 +89,7 @@ const SEGMENTS_CONNUS = new Set([
   "inscription", "invitations", "journal", "locataire", "mentions-legales", "mot-de-passe-oublie",
   "nouveau-mot-de-passe", "outils", "polices", "quittance", "relais", "securite", "signature", "tarifs", "veille",
   // public
-  "illustrations", "logo", "marketing",
+  "illustrations", "logo", "marketing", "pdfjs",
 ]);
 
 type ClientProxy = ReturnType<typeof createServerClient>;
@@ -415,6 +415,6 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     // Tout sauf les ressources statiques
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|pdfjs/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

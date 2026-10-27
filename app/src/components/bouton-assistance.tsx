@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { MessageSquarePlus } from "lucide-react";
 import { ecranSansDonnees } from "@/lib/retours";
+import { useRacineEspace } from "@/components/racine-espace-contexte";
+import { cheminPourProfil } from "@/lib/racine-espace";
 
 // LA DERNIÈRE ACTION — ce que faisait la personne avant de demander de l'aide
 // (bouton, lien, saisie, envoi), jointe à sa demande. Une seule mémoire pour
@@ -64,7 +66,11 @@ export function LienAssistance({
   onClick?: () => void;
   children: ReactNode;
 }) {
-  const chemin = usePathname();
+  const cheminInterne = usePathname();
+  const racine = useRacineEspace();
+  // Le serveur voit la route /agence réécrite ; le navigateur voit /espace.
+  // La racine fournie par le layout rend le lien identique dès l'hydratation.
+  const chemin = cheminPourProfil(cheminInterne, racine === "/espace");
   const action = useSyncExternalStore(abonner, () => derniereAction, () => "navigation" as Action);
   // `retour` porte le chemin RÉEL pour le seul lien « Retour à la page
   // précédente » de /assistance (24/09) : jamais stocké, relu à travers

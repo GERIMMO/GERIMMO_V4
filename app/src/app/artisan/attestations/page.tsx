@@ -1,5 +1,6 @@
+import { ApercuDocumentEspace } from "@/components/apercu-document-espace";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Building2, CheckCircle2, Clock3, FileCheck2, FileText, Info, Plus, ShieldCheck, ShieldPlus, Upload } from "lucide-react";
+import { ArrowRight, BadgeCheck, Building2, CheckCircle2, Clock3, FileCheck2, FileText, Info, Plus, ShieldCheck, ShieldPlus, Upload } from "lucide-react";
 import { chargerPieces, verifierAccesArtisan } from "../acces";
 import { dateSimple, degreEcheance, LISTE_PIECES, PIECES_ARTISAN, texteEcheance, type DegreEcheance } from "../libelles";
 import { EnteteSousPage, Erreur, Etiquette, Succes } from "../ui";
@@ -46,7 +47,7 @@ export default async function PageAttestations(props: PageProps<"/artisan/attest
             return <li key={t} className={styles.document} data-prioritaire={t === "decennale"} data-expire={piece?.expiree}>
               <span className={styles.icone}><Icone size={21} aria-hidden/></span>
               <div className={styles.detail}><h3>{PIECES_ARTISAN[t]}</h3><p>{PRESENTATION[t].aide}</p><div className={styles.statut}><Etiquette ton={degre ? TON_ECHEANCE[degre] : t === "certification" ? "neutre" : "attente"}>{piece ? texteEcheance(piece.jours_avant_echeance, piece.expiree) : t === "certification" ? "Facultatif" : "À déposer"}</Etiquette>{piece?.expire_le && <span>Jusqu’au {dateSimple(piece.expire_le)}</span>}</div></div>
-              <div className={styles.actionsDocument}>{piece && <Link href={`/artisan/attestations/${piece.piece_id}/fichier`} target="_blank" rel="noreferrer" className={styles.ouvrir}>Ouvrir <ArrowUpRight size={14} aria-hidden/><span className="sr-only"> : {PIECES_ARTISAN[t]}</span></Link>}<Link href={`/artisan/attestations?type=${t}#deposer`} className={styles.secondaire}>{piece ? "Renouveler" : "Déposer"}<ArrowRight size={14} aria-hidden/><span className="sr-only"> : {PIECES_ARTISAN[t]}</span></Link></div>
+              <div className={styles.actionsDocument}>{piece && <ApercuDocumentEspace fichier={`/artisan/attestations/${piece.piece_id}/fichier`} titre={PIECES_ARTISAN[t]}/>}<Link href={`/artisan/attestations?type=${t}#deposer`} className={styles.secondaire}>{piece ? "Renouveler" : "Déposer"}<ArrowRight size={14} aria-hidden/><span className="sr-only"> : {PIECES_ARTISAN[t]}</span></Link></div>
             </li>;
           })}</ul>
         </section>

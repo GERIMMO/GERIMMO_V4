@@ -28,6 +28,12 @@ for(const [nom,route] of [['propriétaire',proprietaire],['locataire',locataire]
  it('journalise le téléchargement avant de signer le lien',async()=>{expect((await appeler()).status).toBe(200);expect(b.rpc).toHaveBeenCalledWith('log_document_access',{doc:'document',acces:'telechargement'});expect(b.signer).toHaveBeenCalledWith(expect.anything(),expect.objectContaining({path:'organisation/piece.pdf',mode:'telechargement'}));expect(b.rpc.mock.invocationCallOrder.at(-1)).toBeLessThan(b.signer.mock.invocationCallOrder[0]);});
 });
 
+for (const [nom, route] of [['propriétaire', proprietaire], ['locataire', locataire]] as const) describe(`Aperçu intégré ${nom} : mêmes contrôles que la consultation`,()=>{
+ const appeler=()=>route(new NextRequest('https://gerimmo.example.invalid/document?apercu=integre'),{params:Promise.resolve({orgId:'organisation',documentId:'document'})});
+ it('journalise avant de fournir le manifeste',async()=>{expect((await appeler()).status).toBe(200);expect(b.rpc).toHaveBeenCalledWith('log_document_access',{doc:'document',acces:'consultation'});expect(b.signer).toHaveBeenCalledWith(expect.anything(),expect.objectContaining({apercuIntegre:true,mode:'consultation'}));expect(b.rpc.mock.invocationCallOrder.at(-1)).toBeLessThan(b.signer.mock.invocationCallOrder[0]);});
+ it.each(['session','document','trace'] as const)('refuse un accès sans %s avant signature',async(cas)=>{if(cas==='session')b.autorise=false;if(cas==='document')b.doc=null;if(cas==='trace')b.traceErreur=true;expect((await appeler()).status).toBeGreaterThanOrEqual(400);expect(b.signer).not.toHaveBeenCalled();});
+});
+
 for(const termine of [true,false])it(`le lecteur distingue une archive confirmée (${termine}) du titre historique`,async()=>{
  b.doc!.type='bail';b.doc!.titre='Bail nu (généré, à faire signer) — à signer en ligne — signé';
  signature.lire.mockResolvedValue({erreur:false,circuits:[{etat:termine?'termine':'en_cours',document_signe:'document',document_id:'original'}]});

@@ -137,10 +137,10 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
         <Link href={`${base}/parc/nouveau`} className="mt-2 inline-flex min-h-11 items-center font-semibold underline">Reprendre la création du lot →</Link>
       </div>}
       <div className={estProprietaire ? "space-y-4" : "loc-carte"}>
-        <div className={estProprietaire ? "sr-only" : "entete-carte"}>
+        {!estProprietaire && <div className="entete-carte">
           <h2 className="titre-carte leading-[inherit]">Identité</h2>
           {!responsable && <span className="puce puce-grise">lecture seule</span>}
-        </div>
+        </div>}
         {!responsable && (
           <p className="mesure-lecture mb-4 text-sm text-muted-foreground">
             Demandez à un responsable de l&apos;organisation de modifier ces

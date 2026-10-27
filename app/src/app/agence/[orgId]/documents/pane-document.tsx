@@ -1,4 +1,6 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { LecteurDocument } from "@/components/lecteur-document";
 import { lirePresentationSignatures } from "@/lib/lecture-presentation-signatures";
 import { etatSignatureDocument } from "@/lib/presentation-signatures";
 import { presentationDocument } from "@/lib/presentation-document";
@@ -19,9 +21,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ActionsDocument } from "./actions-document";
 import { FormulaireRemplacer } from "./formulaire-remplacer";
 import { FormulaireRattacher, type FichesRattachables } from "./formulaire-rattacher";
+import { ActionsFicheDocument } from "./actions-fiche-document";
 import { titreAffiche } from "./titre-document";
 import { baseEspace } from "@/lib/racine-espace";
 import { verifierAccesEspace } from "@/lib/espace";
+import styles from "./documents-proprietaire.module.css";
+
+function DetailsDocument({ proprietaire, titre, ouvert = false, children }: { proprietaire: boolean; titre: string; ouvert?: boolean; children: ReactNode }) {
+  return proprietaire
+    ? <details className={styles.details} open={ouvert}><summary>{titre}</summary>{children}</details>
+    : <>{children}</>;
+}
 
 // Les baux proposés au rattachement sont bornés — le sélecteur le DIT quand
 // il atteint le plafond, au lieu de laisser croire que l'agence n'en a pas
@@ -301,7 +311,7 @@ export async function PaneDocument({
   const presentation = presentationDocument(doc, etatSignatureDocument(suiviSignature.circuits, doc.id), Boolean(remplaceePar));
 
   return (
-    <div className="space-y-3.5">
+    <div className={estProprietaire ? styles.dossier : "space-y-3.5"}>
       <EchecLecture quoi={lecturesManquees} />
       {remplaceePar && (
         <div className="rounded-lg border border-warning-soft bg-warning-soft/40 p-3 text-sm">
@@ -316,15 +326,20 @@ export async function PaneDocument({
         </div>
       )}
 
-      <div className="entete-page">
+      <div className={estProprietaire ? styles.enteteDocument : "entete-page"}>
         <div>
-          <span className="eyebrow">
+          {!estProprietaire && <span className="eyebrow">
             {(TYPES_DOCUMENT[doc.type] ?? doc.type).toUpperCase()} · DÉPOSÉ LE{" "}
             {formaterDate(doc.created_at)}
-          </span>
+          </span>}
           <h2 className="font-heading mt-0.5 text-xl font-semibold text-[var(--encre)]">
             {titreAffiche(doc.titre) ?? "Sans titre"}
           </h2>
+          {estProprietaire && <p className={styles.metaFiche}>
+            {TYPES_DOCUMENT[doc.type] ?? doc.type}
+            {doc.taille_octets != null && ` · ${formaterTaille(doc.taille_octets)}`}
+            {` · Déposé le ${formaterDate(doc.created_at)}`}
+          </p>}
         </div>
         <span
           className={`puce ${presentation.classe}`}
@@ -334,10 +349,19 @@ export async function PaneDocument({
         </span>
       </div>
 
-      <p className="text-sm text-muted-foreground">{presentation.detail}</p>
+      {!estProprietaire && <p className="text-sm text-muted-foreground">{presentation.detail}</p>}
+
+      {estProprietaire && <ActionsFicheDocument key={`actions-${doc.id}`}
+        orgId={orgId} documentId={doc.id} type={doc.type} expireLe={doc.expire_le}
+        remplace={Boolean(remplaceePar)} fiches={fiches} bauxTronques={bauxTronques}
+        liens={doc.liens.filter(l => l.entite !== "organisation").map(l => ({ cle: `${l.entite}-${l.entite_id}`, libelle: libelleLien(l) }))}
+        partageLe={doc.partage_le}
+        signataires={doc.liens.filter(l => l.entite === "personne").map(l => ({ id: l.entite_id, nom: nomsPersonnes.get(l.entite_id) ?? "Personne" }))}
+        demandes={demandes} lienFermer={lienFermer}
+      />}
 
       {/* Aperçu — servi par la route /fichier : droits revérifiés, accès tracé */}
-      {doc.mime_type?.startsWith("image/") ? (
+      {estProprietaire ? <LecteurDocument key={`lecteur-${doc.id}`} fichier={fichier} titre={titreAffiche(doc.titre) ?? "Document"} mime={doc.mime_type} presentation="fiche" /> : doc.mime_type?.startsWith("image/") ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={`${fichier}?apercu=image`}
@@ -366,14 +390,15 @@ export async function PaneDocument({
       )}
 
       {/* CardContent sans pt-5 : la Card pose déjà sa marge (24/09) */}
-      <div className="deux-col">
+      <div className={estProprietaire ? styles.informations : "deux-col"}>
+        {!estProprietaire && <DetailsDocument proprietaire={estProprietaire} titre="Rattachements et signatures" ouvert={demandes.some(d => !d.signee_le)}>
         <Card>
           <CardContent>
-            <h3 className="text-base font-medium">Rattachements</h3>
-            <p className="mt-1.5 mb-3 text-sm text-muted-foreground">
+            {!estProprietaire && <h3 className="text-base font-medium">Rattachements</h3>}
+            {!estProprietaire && <p className="mt-1.5 mb-3 text-sm text-muted-foreground">
               Ce document apparaît sur chacune de ces fiches. Il n&apos;est
               stocké qu&apos;une fois.
-            </p>
+            </p>}
             <div className="mb-3.5 flex flex-wrap gap-1.5">
               {doc.liens.map((l) => (
                 <span key={`${l.entite}-${l.entite_id}`} className="puce puce-encre">
@@ -408,14 +433,20 @@ export async function PaneDocument({
             />
           </CardContent>
         </Card>
+        </DetailsDocument>}
 
+        <DetailsDocument proprietaire={estProprietaire} titre="Informations du document">
         <Card>
           <CardContent>
-            <h3 className="mb-2 text-base font-medium">Cycle de vie</h3>
-            <div className="ligne-info">
+            {!estProprietaire && <h3 className="mb-2 text-base font-medium">Cycle de vie</h3>}
+            {!estProprietaire && <div className="ligne-info">
               <span>Type</span>
               <span>{TYPES_DOCUMENT[doc.type] ?? doc.type}</span>
-            </div>
+            </div>}
+            {estProprietaire && <div className="ligne-info">
+              <span>État</span>
+              <span>{presentation.detail}</span>
+            </div>}
             <div className="ligne-info">
               <span>Conservation</span>
               <span>
@@ -428,7 +459,7 @@ export async function PaneDocument({
               <span>Visible par</span>
               <span>{visibiliteDocument(doc.type)}</span>
             </div>
-            {doc.taille_octets != null && (
+            {!estProprietaire && doc.taille_octets != null && (
               <div className="ligne-info">
                 <span>Taille</span>
                 <span>{formaterTaille(doc.taille_octets)}</span>
@@ -446,8 +477,8 @@ export async function PaneDocument({
                 <span>{formaterDate(doc.verifie_le)}</span>
               </div>
             )}
-            <div className="mt-4 flex flex-wrap items-start gap-2">
-              <ActionsDocument orgId={orgId} documentId={doc.id} titre={titreAffiche(doc.titre)} />
+            {!estProprietaire && <div className="mt-4 flex flex-wrap items-start gap-2">
+              {!estProprietaire && <ActionsDocument orgId={orgId} documentId={doc.id} titre={titreAffiche(doc.titre)} />}
               {!remplaceePar && (
                 <FormulaireRemplacer
                   orgId={orgId}
@@ -455,15 +486,17 @@ export async function PaneDocument({
                   expireLe={doc.expire_le}
                 />
               )}
-            </div>
+            </div>}
           </CardContent>
         </Card>
+        </DetailsDocument>
       </div>
 
       {anterieures.length > 0 && (
+        <DetailsDocument proprietaire={estProprietaire} titre="Versions antérieures">
         <Card>
           <CardContent>
-            <h3 className="mb-2 text-base font-medium">Versions antérieures</h3>
+            {!estProprietaire && <h3 className="mb-2 text-base font-medium">Versions antérieures</h3>}
             <ul className="divide-y divide-border text-sm">
               {anterieures.map((v) => (
                 <li key={v.id} className="flex items-center justify-between gap-3 py-2">
@@ -489,6 +522,7 @@ export async function PaneDocument({
             </ul>
           </CardContent>
         </Card>
+        </DetailsDocument>
       )}
     </div>
   );

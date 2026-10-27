@@ -56,7 +56,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           contenu et le corps prend le reste (24/09). */}
       {/* Ordinateur : colonne + corps. Téléphone : barre haute, puis le menu
           (seulement ouvert), puis le corps — un seul menu dans la page. */}
-      <div className={`admin-coquille ${styles.shell} min-[901px]:grid-rows-[auto_minmax(0,1fr)] max-[900px]:grid-rows-[auto_auto_minmax(0,1fr)]`}>
+      <div className={`admin-coquille experience-unifiee ${styles.shell} min-[901px]:grid-rows-[auto_minmax(0,1fr)] max-[900px]:grid-rows-[auto_auto_minmax(0,1fr)]`}>
         <PresenceSupervision />
         <header className="bandeau-appli admin-bandeau min-[901px]:col-start-2 min-[901px]:row-start-1 max-[900px]:row-start-1">
           <div className="admin-bandeau-interieur">
@@ -72,6 +72,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
               </Link>
               <BoutonMenuSupervision />
               <RechercheSupervision masquerSousMobile />
+              <span className="ambiance-repere" aria-hidden="true" />
               <Link href="/admin/brief?vue=decisions" className="lien-bandeau ml-auto">
                 <span className="max-[640px]:sr-only">À traiter</span>{" "}
                 <span className={`puce ml-1.5 max-[640px]:ml-0 ${totalAffiche === null || totalAffiche > 0 ? "puce-prep" : "puce-grise"}`}>{totalAffiche ?? "À vérifier"}</span>

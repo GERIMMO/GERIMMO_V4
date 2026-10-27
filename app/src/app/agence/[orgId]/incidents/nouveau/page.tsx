@@ -66,7 +66,7 @@ export default async function PageNouvelIncident(
           {/* Les mots du propriétaire, pas ceux du gestionnaire d'agence
               (25/09, D06) : il saisit lui-même, après l'appel de son locataire. */}
           {estProprietaire
-            ? "Vous le saisissez vous-même, par exemple après un appel de votre locataire. S'il a un bail actif, il suivra l'incident depuis son espace."
+            ? "Décrivez le problème. Le locataire pourra le suivre depuis son espace si son bail est actif."
             : "Ouvert par le gestionnaire, par exemple après un appel du locataire. S'il y a un bail actif sur le lot, le locataire suivra l'incident depuis son espace."}
         </p>
       </div>
@@ -86,19 +86,19 @@ export default async function PageNouvelIncident(
           </CardContent>
         </Card>
 
-        <Card className="carte-rubrique h-fit" data-ton="or">
+        <Card className="carte-rubrique h-fit" data-ton={estProprietaire ? undefined : "or"}>
           <CardHeader>
-            <CardTitle className="text-base">Ce qui va se passer</CardTitle>
+            <CardTitle className="text-base">{estProprietaire ? "Après la déclaration" : "Ce qui va se passer"}</CardTitle>
             <CardDescription>
               {estProprietaire
-                ? "Une fois déclaré, vous dites qui paie la réparation — vous ou le locataire — en expliquant pourquoi ; il en est prévenu aussitôt. Rien n'est confié à un artisan avant."
+                ? "Décidez ensuite qui paie la réparation et expliquez pourquoi. Le locataire reçoit votre décision avant toute sollicitation d’un artisan."
                 : "L'incident arrive « à qualifier » : vous tranchez l'imputation (qui paie) avec une justification opposable, le locataire en est informé immédiatement. Rien n'est confié à un artisan sans imputation."}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             <p>
               {estProprietaire
-                ? "Le repère juridique affiché sous la catégorie est une information — la cause ne se déduit pas de la catégorie, c'est vous qui décidez."
+                ? "Le repère juridique est indicatif : la catégorie ne suffit pas à déterminer qui paie."
                 : "Le repère juridique affiché sous la catégorie est une information — la cause ne se déduit pas de la catégorie, c'est vous qui tranchez."}
             </p>
           </CardContent>

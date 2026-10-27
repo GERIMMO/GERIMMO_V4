@@ -7,8 +7,8 @@ export const ETAPES_BAIL = [
   { id: "personnes", titre: "Personnes", detail: "Propriétaires, locataires et garants" },
   { id: "logement", titre: "Le logement", detail: "Vérifier les informations reprises du lot" },
   { id: "loyer", titre: "Loyer", detail: "Montants, charges et paiement" },
-  { id: "documents", titre: "Documents", detail: "Diagnostics repris du lot et annexes du contrat" },
-  { id: "clauses", titre: "Autres et clauses", detail: "Règles locales, travaux et clauses particulières" },
+  { id: "documents", titre: "Documents", detail: "Pièces attendues et documents déjà enregistrés" },
+  { id: "clauses", titre: "Clauses", detail: "Règles locales, travaux et clauses particulières" },
   { id: "recapitulatif", titre: "Récapitulatif", detail: "Relire le contrat, générer les PDF et préparer les signatures" },
 ] as const;
 export const CHAMPS_ETAPE_BAIL = {
@@ -86,10 +86,17 @@ export function lireEtapeBail(etape: EtapeSaisieBail, form: FormData, actuel: Va
 }
 
 export function indexEtapeBail(hash: string) {
+  try { hash = decodeURIComponent(hash); } catch { return -1; }
   const directe = /^#etape-bail-(\d+)$/.exec(hash);
   if (directe) return Math.min(6,Math.max(0,Number(directe[1])-1));
+  if (hash.startsWith("#parcours-")) {
+    const champ = hash.slice("#parcours-".length);
+    const etape = Object.entries(CHAMPS_ETAPE_BAIL).find(([, champs]) => (champs as readonly string[]).includes(champ))?.[0];
+    return ETAPES_BAIL.findIndex(e => e.id === etape);
+  }
+  if (/^#titre-(proprietaires|locataires|garants)-bail$/.test(hash)) return 1;
   if (/completer-person/.test(hash)) return 1;
-  if (/completer-dpe|complements-energie|reglement-copro|documents-bail|inventaire/.test(hash)) return 4;
+  if (/completer-dpe|complements-energie|reglement-copro|documents-bail|inventaire|assurances-bail|annexes-attendues/.test(hash)) return 4;
   if (/completer-(logement|lot|bien|equipements|chambres)/.test(hash)) return 2;
   if (/complements-(paiement|precedent|honoraires)|loyer/.test(hash)) return 3;
   if (/complements|clauses/.test(hash)) return 5;

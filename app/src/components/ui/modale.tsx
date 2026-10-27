@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { useRef, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useFenetreModale } from "@/lib/use-fenetre-modale";
 
 // « Sommes-nous dans le navigateur ? », posé comme React veut qu'on le pose :
 // une source extérieure qui ne change jamais, un instantané `false` au rendu
@@ -25,6 +26,7 @@ export function Modale({
   large = false,
   tresLarge = false,
   haut = false,
+  ouverte = true,
   pied,
   fermer,
   children,
@@ -47,6 +49,8 @@ export function Modale({
   tresLarge?: boolean;
   // Posée en haut de l'écran (synthèse de la cloche) plutôt que centrée
   haut?: boolean;
+  /** Garde une saisie montée lorsque la fenêtre est temporairement refermée. */
+  ouverte?: boolean;
   // Rangée de pied séparée d'un filet (bouton Fermer…)
   pied?: ReactNode;
   fermer: () => void;
@@ -68,21 +72,8 @@ export function Modale({
   // soit écrite, elle se pose au même endroit. Retirer le `backdrop-filter`
   // n'aurait réparé que ce bandeau-ci, jusqu'au prochain ancêtre animé.
   const monte = useSyncExternalStore(RIEN_A_ECOUTER, AU_NAVIGATEUR, AU_SERVEUR);
-
-  useEffect(() => {
-    const surTouche = (e: KeyboardEvent) => {
-      if (e.key === "Escape") fermer();
-    };
-    window.addEventListener("keydown", surTouche);
-    // Sur tactile, le défilement dans la modale se propage sinon à la page
-    // en arrière-plan (scroll chaining)
-    const debordement = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", surTouche);
-      document.body.style.overflow = debordement;
-    };
-  }, [fermer]);
+  const dialogue = useRef<HTMLDivElement>(null);
+  useFenetreModale(dialogue, monte && ouverte, fermer);
 
   // Rien avant le montage : le portail exige `document`, et une modale ne
   // s'ouvre jamais au premier rendu du serveur.
@@ -90,6 +81,8 @@ export function Modale({
 
   return createPortal(
     <div
+      hidden={!ouverte}
+      style={ouverte ? undefined : { display: "none" }}
       // max-w-[100vw] n'est pas une ceinture de sécurité décorative (constat de
       // rendu du 11/09, à 390 px) : quand le document est plus large que la
       // fenêtre, le bloc conteneur d'un `fixed inset-0` s'étire à la largeur du
@@ -104,10 +97,13 @@ export function Modale({
       onClick={fermer}
     >
       <div
+        ref={dialogue}
+        data-ui="modale"
         role="dialog"
         aria-modal="true"
         aria-label={titre}
-        className={`flex max-h-[calc(100dvh-2rem)] w-full flex-col border border-border bg-background text-foreground ${
+        tabIndex={-1}
+        className={`flex max-h-[calc(100dvh-2rem)] w-full flex-col border border-border bg-background text-foreground outline-none ${
           haut ? "" : "my-auto"
         } ${
           // UNE SEULE CLASSE DE LARGEUR, ET C'EST DÉLIBÉRÉ (constat au
@@ -129,6 +125,7 @@ export function Modale({
             pesait plus lourd que le contenu. Le critique garde son signal
             par un liseré rouge en tête et un surtitre rouge. */}
         <div
+          data-ui="modale-entete"
           className={`flex items-start justify-between gap-3 border-b border-[var(--filet)] bg-[var(--ivoire)] px-5 py-3.5 text-[var(--encre)] ${
             variante === "critique" ? "border-t-4 border-t-[var(--destructive)]" : ""
           }`}
@@ -153,15 +150,15 @@ export function Modale({
             type="button"
             onClick={fermer}
             aria-label="Fermer"
-            className="-mr-2 -mt-1 flex size-10 shrink-0 items-center justify-center text-[var(--texte-secondaire)] transition-colors hover:text-[var(--encre)]"
+            className="-mr-2 -mt-1 flex size-11 shrink-0 items-center justify-center text-[var(--texte-secondaire)] transition-colors hover:text-[var(--encre)]"
           >
             <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
               <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
           </button>
         </div>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">{children}</div>
-        {pied && <div className="border-t border-border px-5 py-2.5 text-right">{pied}</div>}
+        <div data-ui="modale-corps" className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">{children}</div>
+        {pied && <div data-ui="modale-pied" className="border-t border-border px-5 py-2.5 text-right">{pied}</div>}
       </div>
     </div>,
     document.body

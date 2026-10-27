@@ -5,6 +5,14 @@ import { erreurVolumeDepot } from "@/lib/limite-depot";
 
 import { useEffect, useImperativeHandle, useRef, useState, type ChangeEvent, type Ref } from "react";
 
+// Un fichier de 0 octet affiche bien son nom, mais n'a rien à envoyer : le
+// dire dès la sélection plutôt que « Choisissez un fichier » au retour du
+// serveur (audit #264, DOC-11).
+export function fichierVide(fichiers: FileList | File[] | null | undefined): string | null {
+  const vide = Array.from(fichiers ?? []).find((f) => f.size === 0);
+  return vide ? `Le fichier « ${vide.name} » est vide : choisissez le document complet.` : null;
+}
+
 // CHAMP FICHIER EN FRANÇAIS (relevé du 25/09, D10). Un `<input type="file">`
 // nu rend le libellé du navigateur — « Choose File / No file chosen » sur un
 // navigateur en anglais, quel que soit le `lang` de la page. Ici, le champ
@@ -63,8 +71,8 @@ export function ChampFichier({
         .filter(c => c.name && !c.matches(":disabled"));
       const directs = champs.filter(c => c.dataset.depotDirect === "oui").flatMap(c => Array.from(c.files ?? []));
       const classiques = champs.filter(c => c.dataset.depotDirect !== "oui" && c.name && !c.disabled).flatMap(c => Array.from(c.files ?? []));
-      const message = directs.some(f => f.size > MAX_DEPOT_DIRECT) ? "Ce fichier dépasse 10 Mo. Réduisez sa taille avant de l’envoyer."
-        : directs.length > 10 || directs.reduce((n,f) => n + f.size, 0) > MAX_FORMULAIRE_DIRECT ? "Déposez au maximum dix fichiers et 50 Mo par envoi." : erreurVolumeDepot(classiques);
+      const message = fichierVide(champ.current?.files) ?? (directs.some(f => f.size > MAX_DEPOT_DIRECT) ? "Ce fichier dépasse 10 Mo. Réduisez sa taille avant de l’envoyer."
+        : directs.length > 10 || directs.reduce((n,f) => n + f.size, 0) > MAX_FORMULAIRE_DIRECT ? "Déposez au maximum dix fichiers et 50 Mo par envoi." : erreurVolumeDepot(classiques));
       setErreur(message);
       if (message) { event.preventDefault(); event.stopImmediatePropagation(); champ.current?.focus(); }
     };
@@ -112,6 +120,7 @@ export function ChampFichier({
           // du champ peut être remplacée ensuite, les noms restent les mêmes.
           setTransfert(null);
           setNoms(Array.from(e.currentTarget.files ?? []).map((f) => f.name));
+          setErreur(fichierVide(e.currentTarget.files));
           onChange?.(e);
         }}
       />

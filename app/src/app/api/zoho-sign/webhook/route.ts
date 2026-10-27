@@ -1,3 +1,4 @@
+import { corpsAnnonceTropGrand, LIMITE_CORPS_WEBHOOK, lireCorpsBorne } from "@/lib/corps-borne";
 import { configurationSuiviSignatureBail } from "@/lib/signature-bail";
 import { synchroniserCircuitSignatureBail } from "@/lib/signature-bail-worker";
 import { clientDeService } from "@/lib/supabase/service";
@@ -16,17 +17,13 @@ function refuser(motif: MotifRefus, erreur: string) {
 export async function POST(request: Request) {
   const secret = process.env.ZOHO_SIGN_WEBHOOK_SECRET?.trim();
   if (!secret) return Response.json({ erreur: "Réception non configurée." }, { status: 503 });
-  if (Number(request.headers.get("content-length")) > 1_048_576) return Response.json({ erreur: "Corps trop volumineux." }, { status: 413 });
-  const reader = request.body?.getReader();
-  if (!reader) return Response.json({ erreur: "Corps absent." }, { status: 400 });
-  const morceaux: Uint8Array[] = []; let taille = 0;
-  for (;;) {
-    const { done, value } = await reader.read(); if (done) break;
-    taille += value.byteLength;
-    if (taille > 1_048_576) { await reader.cancel(); return Response.json({ erreur: "Corps trop volumineux." }, { status: 413 }); }
-    morceaux.push(value);
+  if (corpsAnnonceTropGrand(request, LIMITE_CORPS_WEBHOOK)) return Response.json({ erreur: "Corps trop volumineux." }, { status: 413 });
+  let brut: string;
+  try { brut = (await lireCorpsBorne(request.body, LIMITE_CORPS_WEBHOOK)).toString("utf8"); }
+  catch (e) {
+    if ((e as Error).message === "corps_absent") return Response.json({ erreur: "Corps absent." }, { status: 400 });
+    return Response.json({ erreur: "Corps trop volumineux." }, { status: 413 });
   }
-  const brut = Buffer.concat(morceaux).toString("utf8");
   const signature = request.headers.get("x-zs-webhook-signature");
   if (!webhookZohoValide(brut, signature, secret)) return refuser(signature ? "signature_invalide" : "signature_absente", "Signature refusée.");
   let evenement;

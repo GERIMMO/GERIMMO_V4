@@ -1,6 +1,7 @@
 // Réception signée, conservation durable des références et verrou de traitement.
 // Un traitement interrompu reste rejouable ; une livraison concurrente n'est
 // jamais déclarée terminée tant que la première n'a pas abouti.
+import { corpsAnnonceTropGrand, LIMITE_CORPS_WEBHOOK, lireCorpsBorne } from "@/lib/corps-borne";
 import { clientStripe, configurationStripe, lireErreurStripe } from "@/lib/stripe";
 import { clientDeService } from "@/lib/supabase/service";
 import { executerEvenementStripe } from "@/lib/stripe-file";
@@ -46,7 +47,19 @@ export async function POST(request: Request) {
     return Response.json({ erreur: "Signature absente." }, { status: 400 });
   }
 
-  const brut = await request.text();
+  // Audit final du 27/10 (COD-14) : le corps est lu en mémoire avant la vérification de signature, donc par n'importe qui.
+  // Même borne que la réception Zoho (un mégaoctet) ; Stripe n'envoie que des événements de quelques kilooctets, et il ne
+  // rejoue pas un 413 utilement : une livraison plus grosse que la borne n'est pas la sienne.
+  if (corpsAnnonceTropGrand(request, LIMITE_CORPS_WEBHOOK)) {
+    return Response.json({ erreur: "Corps trop volumineux." }, { status: 413 });
+  }
+  let brut: string;
+  try {
+    brut = (await lireCorpsBorne(request.body, LIMITE_CORPS_WEBHOOK)).toString("utf8");
+  } catch (e) {
+    if ((e as Error).message === "corps_absent") return Response.json({ erreur: "Corps absent." }, { status: 400 });
+    return Response.json({ erreur: "Corps trop volumineux." }, { status: 413 });
+  }
   const stripe = clientStripe(reglages.config);
   let evenement: Stripe.Event;
   try {

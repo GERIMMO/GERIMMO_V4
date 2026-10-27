@@ -50,7 +50,7 @@ it("n’actualise aucune page si la saisie est refusée",async()=>{
  expect(m.revalidate).not.toHaveBeenCalled();
 });
 
-function contexteCreation({role="proprietaire_direct",user=true,absent=false,erreurLecture=false,erreurInsertion=false,sansIdentifiant=false,meuble=false,vierges=[] as {id:string}[],liens=[] as {bail_id:string}[],erreurBrouillons=false}={}) {
+function contexteCreation({role="proprietaire_direct",user=true,absent=false,erreurLecture=false,erreurInsertion=false,sansIdentifiant=false,meuble=false,vierges=[] as {id:string}[],liens=[] as {bail_id:string}[],erreurBrouillons=false,precedents=[] as Record<string,unknown>[],erreurPrecedents=false}={}) {
  const q={select:vi.fn(),eq:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data:absent?null:{id:"lot",meuble},error:erreurLecture?{message:"Lecture refusée"}:null})};
  q.select.mockReturnValue(q);q.eq.mockReturnValue(q);
  const insert=vi.fn().mockReturnValue({select:()=>({single:async()=>({data:erreurInsertion||sansIdentifiant?null:{id:"nouveau"},error:erreurInsertion?{message:"Écriture refusée"}:null})})});
@@ -58,9 +58,37 @@ function contexteCreation({role="proprietaire_direct",user=true,absent=false,err
  const brouillons={select:vi.fn(),eq:vi.fn(),is:vi.fn(),order:vi.fn(),then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data:erreurBrouillons?null:vierges,error:erreurBrouillons?{message:"Lecture refusée"}:null}).then(resolve)};
  brouillons.select.mockReturnValue(brouillons);brouillons.eq.mockReturnValue(brouillons);brouillons.is.mockReturnValue(brouillons);brouillons.order.mockReturnValue(brouillons);
  const personnes={select:()=>({in:async()=>({data:liens,error:null})})};
- m.acces.mockResolvedValue({user:user?{id:"moi"}:null,role,supabase:{from:(table:string)=>table==="lots"?q:table==="bail_personnes"?personnes:{insert,select:brouillons.select}}});
- return {q,insert,brouillons};
+ // Décision du 27/10 (CB-08) : avant d'insérer, l'action lit les baux terminés ou en préavis du lot (colonnes détaillées).
+ const anciens={eq:vi.fn(),in:vi.fn(),then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data:erreurPrecedents?null:precedents,error:erreurPrecedents?{message:"Lecture refusée"}:null}).then(resolve)};
+ anciens.eq.mockReturnValue(anciens);anciens.in.mockReturnValue(anciens);
+ const baux={insert,select:vi.fn((colonnes:string)=>colonnes==="id"?brouillons:anciens)};
+ m.acces.mockResolvedValue({user:user?{id:"moi"}:null,role,supabase:{from:(table:string)=>table==="lots"?q:table==="bail_personnes"?personnes:baux}});
+ return {q,insert,brouillons,anciens};
 }
+const bailTermine={id:"ancien",chambre_id:null,type:"nu",date_debut:"2023-09-01",date_fin:"2026-08-31",date_sortie_reelle:"2026-08-31",loyer_hc:930,charges:65,charges_mode:"provision",jour_echeance:5,paiement_echeance:"echoir",revision_irl:true,irl_trimestre:"T2",irl_valeur:140.59,locataire_principal:"ancien-locataire",depot_garantie:900};
+
+it("CB-08 : en relocation, le brouillon reprend le type, le loyer, les charges, l’échéance et l’IRL du bail précédent, jamais le locataire, les dates ni le dépôt",async()=>{
+ const {insert,anciens}=contexteCreation({meuble:true,precedents:[bailTermine,{...bailTermine,id:"plus-ancien",date_sortie_reelle:"2021-05-31",loyer_hc:800}]});
+ await expect(commencerBail("org","lot","bien")).rejects.toBe(m.redirection);
+ expect(anciens.in).toHaveBeenCalledWith("etat",["termine","preavis"]);
+ for(const filtre of [["organization_id","org"],["lot_id","lot"]])expect(anciens.eq).toHaveBeenCalledWith(...filtre);
+ expect(insert).toHaveBeenCalledExactlyOnceWith({organization_id:"org",lot_id:"lot",etat:"brouillon",type:"nu",loyer_hc:930,charges:65,charges_mode:"provision",jour_echeance:5,paiement_echeance:"echoir",revision_irl:true,irl_trimestre:"T2",irl_valeur:140.59});
+ expect(m.redirect).toHaveBeenCalledExactlyOnceWith("/espace/org/baux/nouveau#etape-bail-1");
+});
+
+it("CB-08 : colocation à baux individuels — un bail de chambre n’est pas repris pour le lot entier à la création",async()=>{
+ const {insert}=contexteCreation({precedents:[{...bailTermine,type:"colocation",chambre_id:"chambre-a"}]});
+ await expect(commencerBail("org","lot","bien")).rejects.toBe(m.redirection);
+ expect(insert).toHaveBeenCalledExactlyOnceWith({organization_id:"org",lot_id:"lot",type:"nu",etat:"brouillon"});
+});
+
+it("CB-08 : ne crée rien si les contrats précédents du lot ne peuvent pas être lus",async()=>{
+ const {insert}=contexteCreation({erreurPrecedents:true});
+ expect((await commencerBail("org","lot","bien")).erreur).toBeTruthy();
+ expect(insert).not.toHaveBeenCalled();
+ expect(m.redirect).not.toHaveBeenCalled();
+ expect(m.revalidate).not.toHaveBeenCalled();
+});
 
 it.each([
  {role:"proprietaire_direct",racine:"/espace",meuble:true,type:"meuble"},

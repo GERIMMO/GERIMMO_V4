@@ -10,6 +10,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { CHAMPS_ETAPE_BAIL, champsDifferents, lireEtapeBail, lireValeursLues, type EtapeSaisieBail } from "@/lib/champs-etape-bail";
 import { initialiserParcoursBail } from "@/lib/initialiser-parcours-bail";
+import { bailPrecedentDuLot, valeursReprisesDuBail } from "@/lib/reprise-bail-precedent";
 import type { EtatBail } from "./baux";
 
 function revaliderBailEtLot(orgId: string, bailId: string, lotId: string, bienId: string | null | undefined, proprietaire: boolean) {
@@ -81,7 +82,14 @@ export async function commencerBail(orgId:string,lotId:string,bienId:string):Pro
   if("erreur" in existant)return {erreur:existant.erreur};
   let bailId=existant.id;
   if(!bailId){
-    const {data,error}=await supabase.from("baux").insert({organization_id:orgId,lot_id:lotId,type:lot.meuble?"meuble":"nu",etat:"brouillon"}).select("id").single();
+    // Relocation (décision du 27/10, CB-08) : le bail précédent le plus récent du lot propose son type (nu/meublé),
+    // son loyer, ses charges et leur mode, son échéance et sa référence IRL ; l’étape Loyer le signale et tout reste
+    // modifiable. Jamais le locataire, les garants, les dates ni le dépôt de garantie versé.
+    const {data:precedents,error:lecturePrecedents}=await supabase.from("baux").select("id, chambre_id, type, date_debut, date_fin, date_sortie_reelle, loyer_hc, charges, charges_mode, jour_echeance, paiement_echeance, revision_irl, irl_trimestre, irl_valeur").eq("organization_id",orgId).eq("lot_id",lotId).in("etat",["termine","preavis"]);
+    if(lecturePrecedents)return {erreur:"Les contrats précédents du logement n’ont pas pu être lus. Rechargez la fiche."};
+    const precedent=bailPrecedentDuLot(precedents??[]);
+    const typeDuLot=lot.meuble?"meuble":"nu";
+    const {data,error}=await supabase.from("baux").insert({organization_id:orgId,lot_id:lotId,type:typeDuLot,etat:"brouillon",...(precedent?valeursReprisesDuBail(precedent,typeDuLot):{})}).select("id").single();
     if(error||!data)return {erreur:sansJargon(error?.message??"Le brouillon n’a pas pu être créé.")};
     bailId=String(data.id);
   }

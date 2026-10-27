@@ -43,6 +43,11 @@ describe("rappels de loyers : étapes de la relance",()=>{
   it("laisse consulter le bail quand l'historique est indisponible",()=>{
     const html=rendre({historique_relances_disponible:false});expect(html).toContain("n’a pas pu être vérifié");expect(html).toContain("Suivre les relances");expect(html).not.toContain("Envoyer la relance par e-mail");expect(html).not.toContain('data-modele="mise_en_demeure"');
   });
+  it("annonce la dette échue totale du bail avant l'envoi de la relance (audit du 27/10, NEW-01)",()=>{
+    const html=rendre({dette_bail:{echeances:2,reste:1400,termesEchus:2,resteEchu:1400}});
+    expect(html).toContain(`600,00\u00a0€ restant à recevoir, 1\u202f400,00\u00a0€ échus au total sur le bail`);
+    expect(rendre({dette_bail:{echeances:1,reste:600,termesEchus:1,resteEchu:600}})).not.toContain("au total sur le bail");
+  });
   it("ne rend aucun geste d'écriture dans une traversée en lecture seule",()=>{
     const html=rendre({},true);expect(html).not.toContain("<button");expect(html).not.toContain("Gérer la relance");
   });

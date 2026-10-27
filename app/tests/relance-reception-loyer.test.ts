@@ -1,20 +1,23 @@
 import { beforeEach, expect, it, vi } from "vitest";
-const m = vi.hoisted(() => ({ acces: vi.fn(), rpc: vi.fn(), from: vi.fn(), envoyer: vi.fn(), revalider: vi.fn(), trace: vi.fn(), tables:{} as Record<string,unknown>, erreurs:{} as Record<string,unknown>, filtres: [] as unknown[][], ouverte:true, ligne:null as unknown }));
+const m = vi.hoisted(() => ({ acces: vi.fn(), rpc: vi.fn(), from: vi.fn(), envoyer: vi.fn(), revalider: vi.fn(), trace: vi.fn(), tables:{} as Record<string,unknown>, erreurs:{} as Record<string,unknown>, filtres: [] as unknown[][], ouverte:true, ligne:null as unknown, lignesBail:null as unknown[]|null }));
 vi.mock("@/lib/ged-acces",()=>({verifierGerant:m.acces}));
 vi.mock("@/lib/email",()=>({envoyerEmail:m.envoyer}));
 vi.mock("@/lib/site",()=>({adresseDuSite:()=>"http://localhost:3568"}));
 vi.mock("next/cache",()=>({revalidatePath:m.revalider}));
 import { envoyerRelanceReception } from "@/app/actions/reception-loyer";
-import { aujourdhuiParis } from "@/lib/ged";
+import { aujourdhuiParis, eur } from "@/lib/ged";
 
 const f=()=>{const form=new FormData();form.set("confirmer","oui");form.set("reste_attendu","600");return form;};
 beforeEach(()=>{
-  vi.clearAllMocks();m.ouverte=true;m.erreurs={};m.filtres=[];
+  vi.clearAllMocks();m.ouverte=true;m.erreurs={};m.filtres=[];m.lignesBail=null;
   m.ligne={appel_id:"appel",bail_id:"bail",lot_nom:"TEST Appartement",periode:"2026-01-01",date_echeance:"2026-01-05",montant_du:800,montant_couvert:200};
   m.tables={relances:null,baux:{locataire_principal:"locataire"},persons:{email:"locataire@example.invalid",prenom:"Camille"},bail_personnes:[],colocataires:[],organizations:{name:"Claire"}};
   m.rpc.mockImplementation((nom:string)=>{
     if(nom==="etat_abonnement")return Promise.resolve({data:[{ecriture_ouverte:m.ouverte}],error:null});
-    const q={eq:vi.fn(),maybeSingle:async()=>({data:m.ligne,error:null})};q.eq.mockReturnValue(q);return q;
+    // Lecture de la ligne relancée (maybeSingle), puis de toutes les lignes du bail pour la dette totale.
+    const q={eq:vi.fn(),maybeSingle:async()=>({data:m.ligne,error:null}),
+      then:(resolve:(value:{data:unknown;error:unknown})=>unknown)=>Promise.resolve({data:m.lignesBail??(m.ligne?[m.ligne]:[]),error:m.erreurs.dette??null}).then(resolve)};
+    q.eq.mockImplementation((...args:unknown[])=>{m.filtres.push(["rappels",...args]);return q;});return q;
   });
   m.from.mockImplementation((table:string)=>{
     const q={select:vi.fn(),eq:vi.fn(),gte:vi.fn(),in:vi.fn(),order:vi.fn(),limit:vi.fn(),maybeSingle:async()=>({data:m.tables[table],error:m.erreurs[table]??null}),upsert:m.trace,
@@ -84,4 +87,15 @@ it("ne commence aucun envoi quand les colocataires ne peuvent pas être vérifi�
 });
 it("ne trace pas un envoi quand l'adresse principale est vide",async()=>{
   m.tables.persons={email:"  ",prenom:"Camille"};expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toContain("adresse e-mail");expect(m.envoyer).not.toHaveBeenCalled();expect(m.trace).not.toHaveBeenCalled();
+});
+it("dit la dette échue totale du bail quand plusieurs termes restent dus (audit du 27/10, NEW-01)",async()=>{
+  m.lignesBail=[m.ligne,{...(m.ligne as object),appel_id:"suivant",periode:"2026-02-01",date_echeance:"2026-02-05",montant_couvert:0}];
+  expect((await envoyerRelanceReception("org","appel",{},f())).succes).toContain("enregistrée");
+  expect(m.filtres).toContainEqual(["rappels","bail_id","bail"]);
+  const envoi=m.envoyer.mock.calls[0][0];
+  expect(envoi.html).toContain("600,00");expect(envoi.html).toContain("Au total");expect(envoi.html).toContain(eur(1400));
+  expect(envoi.cleIdempotence).toContain("/60000/140000/");
+});
+it("n'envoie rien si la dette totale du bail ne peut pas être lue",async()=>{
+  m.erreurs.dette={message:"indisponible"};expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toContain("dette totale");expect(m.envoyer).not.toHaveBeenCalled();
 });

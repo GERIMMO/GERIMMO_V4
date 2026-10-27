@@ -93,9 +93,12 @@ function EnvoiRelance({ orgId, ligne }: { orgId: string; ligne: RappelLoyer }) {
     return resultat;
   });
   if (etat.succes) return <p className={styles.succes} role="status">{etat.succes}</p>;
+  const reste = Number(ligne.montant_du)-Number(ligne.montant_couvert);
+  // Le courriel annonce aussi la dette échue totale du bail : la confirmation la montre avant l'envoi.
+  const total = ligne.dette_bail && ligne.dette_bail.resteEchu > reste + 0.004 ? ligne.dette_bail.resteEchu : null;
   return <form data-saisie-confirmee onSubmit={soumettre} className={styles.formulaire}>
-    <input type="hidden" name="reste_attendu" value={(Number(ligne.montant_du)-Number(ligne.montant_couvert)).toFixed(2)} />
-    <p>Envoyer au locataire une relance amiable pour le loyer {deElide(moisEnFrancais(ligne.periode.slice(0,7)))} : {eur(Number(ligne.montant_du)-Number(ligne.montant_couvert))} restant à recevoir. Vérifiez votre compte bancaire avant l’envoi.</p>
+    <input type="hidden" name="reste_attendu" value={reste.toFixed(2)} />
+    <p>Envoyer au locataire une relance amiable pour le loyer {deElide(moisEnFrancais(ligne.periode.slice(0,7)))} : {eur(reste)} restant à recevoir{total !== null && <>, {eur(total)} échus au total sur le bail</>}. Vérifiez votre compte bancaire avant l’envoi.</p>
     <label className={styles.confirmationEnvoi}><input type="checkbox" name="confirmer" value="oui" required />Je confirme que ce règlement n’a pas été reçu et souhaite relancer le locataire et les colocataires concernés par e-mail.</label>
     <div className={styles.choix}><BoutonEnvoi className="btn-secondaire" type="submit" disabled={enCours}>{enCours ? "Envoi…" : "Envoyer la relance par e-mail"}</BoutonEnvoi></div>
     {etat.erreur && <p className="err mt-3" role="alert">{etat.erreur}</p>}

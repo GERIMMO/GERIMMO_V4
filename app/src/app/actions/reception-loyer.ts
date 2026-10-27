@@ -13,7 +13,7 @@ import { adresseDuSite } from "@/lib/site";
 import { aujourdhuiParis } from "@/lib/ged";
 import { cleRelanceLoyer } from "@/lib/cles-idempotence-courriels";
 import { corpsRelanceLoyer, sujetRelanceLoyer } from "@/lib/relance-loyer-email";
-import { lireDerniereRelanceReception, type RappelLoyer } from "@/lib/rappels-loyers";
+import { detteDuBail, lireDerniereRelanceReception, type RappelLoyer } from "@/lib/rappels-loyers";
 
 export type EtatReceptionLoyer = { erreur?: string; succes?: string; termine?: boolean };
 
@@ -75,6 +75,10 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   const reste = Math.round((Number(ligne.montant_du) - Number(ligne.montant_couvert)) * 100) / 100;
   const resteAttendu = lireMontant(form.get("reste_attendu"));
   if ("erreur" in resteAttendu || resteAttendu.montant !== reste) return { erreur: "Le montant restant à recevoir a changé. Actualisez le tableau de bord avant de relancer le locataire." };
+  // Comme les relances automatiques : le courrier dit aussi la dette échue totale du bail (audit du 27/10, NEW-01).
+  const { data: lignesDuBail, error: erreurDette } = await supabase.rpc("rappels_loyers_proprietaire", { p_org: orgId }).eq("bail_id", ligne.bail_id);
+  if (erreurDette || !Array.isArray(lignesDuBail)) return { erreur: "Impossible de vérifier la dette totale du bail. Aucun message envoyé." };
+  const totalDu = detteDuBail(lignesDuBail as RappelLoyer[], aujourdhuiParis()).resteEchu;
   // Une première relance par échéance ; les suites et le recommandé se gèrent depuis le bail.
   const h = createHash("sha256").update(`relance-reception/${orgId}/${appelId}`).digest("hex");
   const id = `${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-a${h.slice(17,20)}-${h.slice(20,32)}`;
@@ -106,10 +110,10 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   if (!site || !/^https?:\/\//.test(site)) return { erreur: "L’adresse du site doit être configurée avant d’envoyer une relance." };
   let envoyes = 0;
   for (const destinataire of destinataires.values()) {
-    const message = { niveau: "relance_1" as const, prenom: destinataire.prenom, emetteur: organisation.name, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, lien: `${site}/locataire/${orgId}/loyers` };
+    const message = { niveau: "relance_1" as const, prenom: destinataire.prenom, emetteur: organisation.name, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, totalDu, lien: `${site}/locataire/${orgId}/loyers` };
     const envoi = await envoyerEmail({ organisation: { db: supabase, id: orgId }, to: destinataire.email,
       subject: sujetRelanceLoyer(message), html: corpsRelanceLoyer(message),
-      cleIdempotence: cleRelanceLoyer({ bailId: ligne.bail_id, niveau: "relance_1", dateEcheance: ligne.date_echeance, destinataire: destinataire.email, role: "locataire", reste }),
+      cleIdempotence: cleRelanceLoyer({ bailId: ligne.bail_id, niveau: "relance_1", dateEcheance: ligne.date_echeance, destinataire: destinataire.email, role: "locataire", reste, totalDu }),
     });
     if (envoi.erreur) return { erreur: envoyes ? `La relance a été envoyée à ${envoyes} destinataire${envoyes > 1 ? "s" : ""}, mais un autre envoi reste à terminer. ${envoi.erreur} La relance n’est pas marquée comme terminée dans le bail.` : envoi.erreur };
     envoyes += 1;

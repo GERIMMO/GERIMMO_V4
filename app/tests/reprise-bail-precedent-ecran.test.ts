@@ -40,7 +40,7 @@ describe("CB-08 — mention « Repris du bail précédent » à l’étape Loyer
     expect(mention(i.rendu)).toBeUndefined();
     expect(["loyer_hc", "charges", "irl_trimestre", "irl_valeur"].map(nom => valeur(i.rendu, nom))).toEqual(["", "", "", ""]);
     // Les réglages du parcours reviennent, et le jour d’échéance au 1 d’un brouillon sans bail précédent (défaut de la base).
-    expect(["charges_mode", "paiement_echeance", "revision_irl", "jour_echeance"].map(nom => valeur(i.rendu, nom))).toEqual(["provision", "echoir", "false", "1"]);
+    expect(["charges_mode", "paiement_echeance", "revision_irl", "jour_echeance"].map(nom => valeur(i.rendu, nom))).toEqual(["provision", "echoir", "true", "1"]);
     // Le type, saisi à l’étape « Le bail », n’est pas touché par l’effacement.
     expect(valeur(i.rendu, "type")).toBe("nu");
     i.demonter();

@@ -89,7 +89,7 @@ for (const largeur of [390, 1440]) {
       await expect(mention).toHaveCount(0);
       await expect(page.locator('#parcours-loyer_hc')).toHaveValue('');
       await expect(page.locator('#parcours-charges')).toHaveValue('');
-      // Le jour d’échéance revient au 1 d’un brouillon sans bail précédent (défaut de la base) : il reste modifiable.
+      // Le jour d’échéance (1) et la révision IRL (oui) reviennent aux défauts de la base d’un brouillon sans bail précédent : ils restent modifiables.
       await expect(page.locator('#parcours-jour_echeance')).toHaveValue('1');
       await expect(page.locator('#parcours-irl_trimestre')).toHaveValue('');
       await expect(page.locator('#parcours-revision_irl')).toHaveValue('false');

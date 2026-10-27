@@ -7,6 +7,7 @@ import Link from "next/link";
 import { estARenouveler, eur, formaterDate } from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
+import { ConsultationDocument } from "./consultation-document";
 import { CarteGestionnaire, type Gestionnaire } from "./cartes-laterales";
 import { CarteDepotGarantie, type RestitutionLocataire } from "./carte-depot-garantie";
 import { aEchoue, LectureImpossible, PanneLecture } from "./panne-lecture";
@@ -350,8 +351,10 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 l'accueil n'en nommait aucune (relevé 11/09). La route
                 /bail/fichier refait elle-même le contrôle d'accès — parcours
                 1.14, locataire principal ou colocataire, bail actif ou en
-                préavis : le lien ne déplace aucun droit. document_signe est
+                préavis : le lecteur ne déplace aucun droit. document_signe est
                 déjà porté par mon_bail_locataire, aucune lecture de plus.
+                En fenêtre, comme depuis « Mes documents » (27/10, ED-04) : le
+                même bail s'ouvrait ici dans un nouvel onglet.
                 pointer-coarse:min-h-10 : les liens stylés en bouton sm (28 px)
                 échappent au filet tactile du socle. */}
             <div className="mt-2.5 flex flex-wrap gap-2">
@@ -362,14 +365,13 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 Voir les détails →
               </Link>
               {bail.document_signe && (
-                <a
-                  href={`/locataire/${orgId}/bail/fichier`}
-                  target="_blank"
-                  rel="noopener"
+                <ConsultationDocument
+                  titre="Mon bail signé"
+                  cible={{ fichier: `/locataire/${orgId}/bail/fichier`, mime: null }}
                   className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
                 >
                   Consulter mon bail signé
-                </a>
+                </ConsultationDocument>
               )}
             </div>
           </div>

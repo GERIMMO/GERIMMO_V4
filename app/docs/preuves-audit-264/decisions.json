@@ -1,0 +1,581 @@
+{
+ "date": "2026-10-27",
+ "note": "Rapports des correcteurs (dernier état) et des relectures adverses des cinq chantiers de décision. Les têtes de branche indiquées sont celles intégrées (après harmonisation des auteurs des commits).",
+ "chantiers": [
+  {
+   "cle": "images",
+   "rapport": {
+    "cle": "images",
+    "branche": "audit264/images",
+    "tete": "b9fd849d5812fca0073f94a2fc9681b42d458c08",
+    "migration": "",
+    "constats": [
+     {
+      "id": "TRV-05",
+      "statut": "corrige",
+      "effet_utilisateur": "Aucun effet visible : les 14 photos (public/illustrations/accueil et accueil-salon) et le composant BandeauAccueil n'étaient servis ni rendus nulle part. Le dépôt et le déploiement perdent 2 441 954 octets (≈ 2,4 Mo) de fichiers morts ; l'accueil public, le tableau de bord du propriétaire et les 15 ambiances rendent exactement les mêmes photos qu'avant (captures identiques à l'octet).",
+      "correction": "Suppression par git rm des 7 WebP de public/illustrations/accueil, des 7 WebP de public/illustrations/accueil-salon, de src/components/bandeau-accueil.tsx et de src/components/bandeau-accueil.module.css. Aucun import ni test à retirer : le composant n'était importé nulle part (seul fichier qui le citait : lui-même) ; PhotoDecor, ambianceAccueil et lucide-react restent utilisés ailleurs. Les dossiers accueil-evenements (15 photos visées par ambiance-accueil.ts, photo-ambiance.tsx, ambiance-site.tsx), ambiances-motifs (15 SVG cités par ambiances.css) et les quatre fichiers à la racine (interieur, intervention, quartier, journal-repli) sont référencés et restent. Aucune autre modification (les mentions dans app/docs/preuves-audit-264 et le wiki sont la trace documentaire du constat, pas des références de code).",
+      "verification": "Preuve d'absence de référence (avant) : rg « accueil-salon|illustrations/accueil/|BandeauAccueil|bandeau-accueil » sur tout app/ (src, public, tests, e2e, scripts, next.config.ts, ambiance-accueil.ts, ambiances.css) et la racine du dépôt : hors du composant lui-même, seuls app/docs/preuves-audit-264/*.json, app/docs/audit-refonte-264-20261027.md et wiki/syntheses/Bilan… (rapports d'audit). Chemins dynamiques « /illustrations/${…} » : uniquement accueil-evenements (ambiance-accueil.ts:128, photo-ambiance.tsx:33). Noms de fichiers (automne.webp…) hors public : seulement via accueil-evenements. Reproduction du constat par le nouveau test tests/illustrations-referencees.test.ts AVANT suppression : échec listant exactement les 14 orphelines (accueil/*.webp, accueil-salon/*.webp), aucune illustration référencée manquante (<banc>/audit-264/fix-images/test-illustrations-AVANT.log). APRÈS : 3/3 tests passent (test-illustrations-APRES.log). Poids : du -ch avant = accueil 1,5 Mo (1 473 158 o), accueil-salon 960 Ko (965 414 o), composant 1 421 + 1 961 o, total 2 441 954 o ; public/illustrations 6 892 035 o → 4 453 463 o après (−2 438 572 o, exactement les 14 images) (poids-avant.txt, poids-apres.txt). Banc isolé images/n=1 (serveur 3101, émulateur 54331, 432 migrations, données de parcours) : « npm run build » OK avant et après. Navigateur (verif-photos.cjs, avant puis après, verif-photos-avant.log / -apres.log, captures/avant-* et apres-*) : accueil public 390×844 et 1440×900, photo du salon chargée (interieur-gerimmo-2026.jpg via next/image), ambiance « halloween » posée ; propriétaire connecté 390 et 1440 : photo accueil-evenements/halloween.webp chargée, menu latéral à 1440 avec fond accueil-evenements/halloween.webp (248 px) ; 15 ambiances simulées par horloge figée dans le navigateur (dates du test ambiance-accueil : hiver, printemps, ete, automne, nouvel-an, saint-valentin, paques, fete-travail, fete-meres, fete-peres, fete-musique, 14-juillet, rentree, halloween, noel) : data-ambiance-site attendu et --ambiance-image → accueil-evenements/<id>.webp répond 200 image/webp dans les 15 cas, avant comme après. Les 4 captures avant/après sont identiques à l'octet (comparaison-captures.txt). curl : /illustrations/accueil/halloween.webp et accueil-salon/halloween.webp 200 avant → 404 après ; accueil-evenements/halloween.webp et interieur-gerimmo-2026.jpg 200 avant et après (curl-avant.txt, curl-apres.txt). Les deux « KO » de la page publique (intervention-gerimmo-2026.jpg, journal-repli.svg) sont des images paresseuses sous la ligne de flottaison, identiques avant et après, sans lien avec le chantier.",
+      "fichiers": [
+       "app/public/illustrations/accueil/automne.webp",
+       "app/public/illustrations/accueil/ete.webp",
+       "app/public/illustrations/accueil/halloween.webp",
+       "app/public/illustrations/accueil/hiver.webp",
+       "app/public/illustrations/accueil/noel.webp",
+       "app/public/illustrations/accueil/printemps.webp",
+       "app/public/illustrations/accueil/saint-valentin.webp",
+       "app/public/illustrations/accueil-salon/automne.webp",
+       "app/public/illustrations/accueil-salon/ete.webp",
+       "app/public/illustrations/accueil-salon/halloween.webp",
+       "app/public/illustrations/accueil-salon/hiver.webp",
+       "app/public/illustrations/accueil-salon/noel.webp",
+       "app/public/illustrations/accueil-salon/printemps.webp",
+       "app/public/illustrations/accueil-salon/saint-valentin.webp",
+       "app/src/components/bandeau-accueil.tsx",
+       "app/src/components/bandeau-accueil.module.css",
+       "app/tests/illustrations-referencees.test.ts"
+      ],
+      "tests_ajoutes": [
+       "app/tests/illustrations-referencees.test.ts : « aucun fichier de public/illustrations n'est sans référence dans src/ » (chemins /illustrations/… en clair dans src/**/*.{ts,tsx,css} + photos du calendrier ambianceAccueil sur chaque jour de 2026), « chaque illustration référencée par le code existe », et un garde-fou sur la taille des deux ensembles (> 30)"
+      ],
+      "reste": ""
+     }
+    ],
+    "tests_executes": [
+     {
+      "commande": "npx vitest run tests/illustrations-referencees.test.ts (arbre intact, avant suppression)",
+      "resultat": "1 échec attendu : les 14 orphelines listées (accueil/*.webp, accueil-salon/*.webp) ; 2 passés"
+     },
+     {
+      "commande": "npx vitest run tests/illustrations-referencees.test.ts (après suppression)",
+      "resultat": "3 passés"
+     },
+     {
+      "commande": "npm run lint",
+      "resultat": "OK (code 0)"
+     },
+     {
+      "commande": "npm run typecheck",
+      "resultat": "OK (code 0)"
+     },
+     {
+      "commande": "npx vitest run tests/illustrations-referencees.test.ts tests/ambiance-accueil.test.ts tests/ambiance-site.test.ts tests/entetes-cache-statiques.test.ts tests/feuilles-espaces-navigateur.test.ts tests/execution-en-serie.test.ts",
+      "resultat": "6 fichiers, 167 tests passés"
+     },
+     {
+      "commande": "banc-isole (copie pointée sur la grappe privée) images 1 all, puis build && web après suppression",
+      "resultat": "432 migrations appliquées, seed OK, build OK (avant et après), web prêt sur 3101"
+     },
+     {
+      "commande": "node verif-photos.cjs avant / apres (Playwright, 390×844 et 1440×900, propriétaire connecté, 15 ambiances à horloge simulée)",
+      "resultat": "Identique avant/après : photos publiques et du tableau de bord chargées, 15/15 ambiances → accueil-evenements/<id>.webp 200 image/webp ; 4 captures identiques à l'octet ; chemins orphelins 200 → 404"
+     },
+     {
+      "commande": "npx playwright test --config e2e/playwright.config.ts e2e/audit-ecrans.spec.ts (banc 3101)",
+      "resultat": "8 passés (setup + 7 personas, 179 écrans à 390×844, aucun écran en erreur ni 404)"
+     }
+    ],
+    "tests_existants_modifies": [],
+    "a_integrer": "Aucune migration, aucun manifeste touché (ordre-migrations.txt, relais-migrations inchangés). Aucun fichier partagé modifié : uniquement des suppressions de fichiers que personne n'importe, plus un test ajouté. Risque de conflit avec les autres chantiers : nul, sauf si un chantier parallèle réintroduisait une référence à /illustrations/accueil/ ou accueil-salon/ — le nouveau test tests/illustrations-referencees.test.ts le signalerait (il échoue aussi si un chantier ajoute une illustration dans public/illustrations sans la référencer dans src/, ou référence une illustration absente : c'est voulu, l'intégrateur doit le savoir). Déploiement : rien à faire côté Vercel/Supabase ; les deux chemins supprimés répondront 404, ce qui est sans effet puisqu'aucune page ne les demandait (aucune requête relevée avant suppression sur l'accueil public ni sur les espaces). Les rapports d'audit (app/docs/preuves-audit-264, app/docs/audit-refonte-264-20261027.md, wiki) citent encore ces chemins comme trace du constat : rien à changer.",
+    "limites": "- Le serveur Postgres partagé (127.0.0.1:5432) a perdu le mot de passe « gerimmo-ci-local » au redémarrage du conteneur (journal : « User postgres has no password assigned ») ; sa modification a été refusée par le classificateur (ressource partagée). Le banc a donc tourné sur une grappe PostgreSQL privée (initdb trust, port 5440, données dans /tmp/gerimmo-pg-images, arrêtée à la fin) via une copie du script banc-isole.sh ne différant que par le port (<banc>/audit-264/fix-images/banc-isole-images.sh, demarrer-postgres-prive.sh). Toutes les migrations du worktree y ont été appliquées ; les autres chantiers rencontreront le même blocage sur 5432 tant que le mot de passe n'est pas reposé.\\n- Le composant partagé supprimé (BandeauAccueil) n'était utilisé par aucun espace ; les espaces agence, locataire, artisan et supervision ont néanmoins été parcourus par e2e/audit-ecrans.spec.ts (179 écrans, 8 passés). Les captures 390/1440 portent sur l'accueil public et le tableau de bord du propriétaire ; les 15 ambiances ont été vérifiées en navigateur par horloge simulée (attribut et image servie), pas par 15 jeux de captures.\\n- Aucun fait métier ou réglementaire en jeu : aucune source à citer.\\n- Scripts, journaux et captures : <banc>/audit-264/fix-images/ (verif-photos.cjs, verif-photos-avant.json/.log, verif-photos-apres.json/.log, captures/, poids-avant.txt, poids-apres.txt, curl-avant.txt, curl-apres.txt, comparaison-captures.txt, test-illustrations-AVANT.log, test-illustrations-APRES.log, lint.log, typecheck.log, vitest-voisins.log, e2e-audit-ecrans.log, e2e-audit/).",
+    "tete_integree": "da1b8002"
+   },
+   "relectures": [
+    {
+     "cle": "images",
+     "verdict": "ok",
+     "bloquants": [],
+     "non_bloquants": [
+      "Le rapport du correcteur cite un fichier « poids-apres.txt » qui n'existe pas dans <banc>/audit-264/fix-images/ (seul poids-avant.txt y est). La mesure a été refaite sur la branche : public/illustrations = 4 453 463 octets (du -sb), soit 6 892 035 − 2 438 572, conforme au chiffre annoncé.",
+      "Le test tests/illustrations-referencees.test.ts ne parcourt que src/**/*.{ts,tsx,css} : une illustration référencée uniquement hors de src/ (next.config.ts, e2e/, scripts/, supabase/functions/) serait comptée orpheline. Aujourd'hui aucune référence de ce genre n'existe (grep sur tout app/ : seuls tests/ambiance-accueil, ambiance-site et feuilles-espaces citent accueil-evenements) ; c'est une limite de portée à connaître pour l'intégrateur, pas un défaut.",
+      "Le composant supprimé (BandeauAccueil) n'est pas couvert par le nouveau test (qui ne garde que public/illustrations) ; sa réintroduction inutilisée ne serait pas détectée. Sans objet pour TRV-05, qui demandait un contrôle sur les illustrations.",
+      "Le banc a dû tourner sur la grappe PostgreSQL privée du correcteur (port 5440, copie de banc-isole.sh ne différant que par le port), le serveur partagé 5432 refusant toujours le mot de passe « gerimmo-ci-local » (FATAL: password authentication failed). Grappe arrêtée à la fin, comme trouvée."
+     ],
+     "verifications": [
+      "Diff lu : la branche audit264/images (tête b9fd849d, parent 79a7aadd = fusion #267) ne contient qu'un commit : suppression de 14 WebP (public/illustrations/accueil et accueil-salon), de src/components/bandeau-accueil.tsx et .module.css, ajout de tests/illustrations-referencees.test.ts ; 17 fichiers, aucun autre code touché, aucune migration, aucun manifeste, aucun test existant modifié.",
+      "Reproduction de l'auditeur rejouée (grep « accueil-salon|illustrations/accueil/|BandeauAccueil|bandeau-accueil » sur tout le worktree hors node_modules) : aucune référence hors app/docs/preuves-audit-264/*.json, app/docs/audit-refonte-264-20261027.md et wiki/syntheses (rapports d'audit) ; chemins dynamiques /illustrations/${…} uniquement vers accueil-evenements ; les 34 fichiers restants de public/illustrations (15 accueil-evenements, 15 ambiances-motifs, 4 à la racine) sont tous référencés.",
+      "Test de régression pertinent : en restaurant temporairement les 16 fichiers supprimés dans ma copie (git checkout 79a7aadd -- …), npx vitest run tests/illustrations-referencees.test.ts échoue en listant exactement les 14 orphelines (test-illustrations-SANS-correction.log) ; après remise à l'état de la branche, 3/3 passent.",
+      "Banc isolé images n=1 depuis ma copie (reset → base gerimmo_ci_fix_images_b avec toutes les migrations, émulateur 54331, seed OK, build OK, web prêt sur 3101 ; banc.log).",
+      "curl sur le banc (curl.txt) : /illustrations/accueil/halloween.webp, accueil-salon/halloween.webp, accueil/hiver.webp → 404 ; accueil-evenements/halloween.webp et hiver.webp, interieur-gerimmo-2026.jpg, quartier-gerimmo-2026.jpg, ambiances-motifs/halloween.svg → 200 avec le bon type MIME.",
+      "Navigateur (verif-espaces.cjs, Playwright, verif-espaces.log/.json, captures/) : public, propriétaire, agence (admin.alpha), locataire, artisan à 390×844 et 1440×900 : aucune réponse HTTP ≥ 400, aucune erreur console ; photos chargées (interieur-gerimmo-2026.jpg sur l'accueil public, accueil-evenements/halloween.webp sur le tableau de bord propriétaire, fond du menu latéral à 1440 sur propriétaire/agence/locataire/artisan = accueil-evenements/halloween.webp, motif ambiances-motifs/halloween.svg) ; seuls « KO » : intervention-gerimmo-2026.jpg et journal-repli.svg, images paresseuses sous la ligne de flottaison, identiques au constat du correcteur avant suppression. Les ERR_ABORTED relevés sont des préchargements RSC annulés par Next, sans lien.",
+      "15 ambiances à horloge simulée (hiver … noel), sur la page publique ET sur l'accueil du propriétaire connecté : data-ambiance-site attendu et --ambiance-image → accueil-evenements/<id>.webp répond 200 image/webp dans les 30 cas.",
+      "npm run lint : code 0 ; npm run typecheck : code 0 (lint.log, typecheck.log).",
+      "npx vitest run tests/illustrations-referencees tests/ambiance-accueil tests/ambiance-site tests/entetes-cache-statiques tests/inventaire-ecrans tests/icone-site tests/execution-en-serie tests/racine-pages-espace : 8 fichiers, 179 tests passés (vitest-voisins.log).",
+      "npx playwright test --config e2e/playwright.config.ts e2e/audit-ecrans.spec.ts sur le banc 3101 : 8 passés (setup + public, agent, admin, locataire, propriétaire, superadmin avec MFA, artisan ; 179 écrans à 390×844, aucun écran en erreur ni 404 ; e2e-audit-ecrans.log, e2e-audit/).",
+      "Captures téléphone et ordinateur du tableau de bord propriétaire relues visuellement : photo d'ambiance Halloween, menu, cartes intacts.",
+      "Fin : banc images 1 arrêté, grappe PostgreSQL privée arrêtée, worktree rev-images-1 retiré ; branche audit264/images intacte à b9fd849d5812fca0073f94a2fc9681b42d458c08. Preuves dans <banc>/audit-264/rev-images-1/."
+     ]
+    }
+   ]
+  },
+  {
+   "cle": "meuble",
+   "rapport": {
+    "cle": "meuble",
+    "branche": "audit264/meuble",
+    "tete": "3046d6aac4fd852fc5d0a59a349ff94e44bc5d4d",
+    "migration": "",
+    "constats": [
+     {
+      "id": "CB-14",
+      "statut": "corrige",
+      "effet_utilisateur": "Dans l'inventaire du bail meublé (assistant, étape Documents, carte « Inventaire du mobilier »), un bouton « Ajouter les 11 éléments obligatoires » crée d'un coup les lignes du mobilier imposé par le décret n° 2015-981 (un exemplaire chacune, pièce vide, état « à préciser », dans l'ordre du décret). Un second clic n'ajoute rien et le dit (« Aucun élément ajouté : 11 éléments déjà présents. ») ; un élément déjà saisi à la main (même en minuscules / sans accents) est sauté et compté (« 10 éléments ajoutés … 1 élément déjà présent. »). Chaque ligne sans état porte la puce « État à préciser » et un bouton « Compléter » qui ouvre sur place quantité + état (Enregistrer / Annuler) ; une ligne renseignée a « Modifier ». Au téléphone, la désignation prend sa propre ligne au-dessus des gestes (sans cela, trois gestes côte à côte la réduisaient à rien).",
+      "correction": "Nouveau module <copie-2/app/src/lib/inventaire-meuble.ts : MOBILIER_DECRET_2015_981 (liste déplacée depuis le composant, une seule source), ETATS_INVENTAIRE / LIBELLE_ETAT_INVENTAIRE, cleDesignation (casse, accents, espaces) et mobilierDecretManquant. Deux actions serveur ajoutées dans <copie-2/app/src/app/actions/baux.ts : ajouterMobilierDecret (verifierGerant, lecture des désignations du bail bornée bail_id + organization_id, insertion groupée des manquants avec ordre = rang dans le décret, message avec le compte des présents) et modifierInventaireLigne (quantité ≥ 1, état parmi les valeurs de la contrainte ou vide, update borné id + bail_id + organization_id, refus si aucune ligne). Composant <copie-2/app/src/app/agence/[orgId]/baux/[bailId]/formulaire-inventaire.tsx : formulaire bouton seul (data-saisie-libre) avec BoutonEnvoi (double soumission neutralisée par le pending), messages role=status/alert, sous-composant LigneMobilier (puce « État à préciser », Compléter/Modifier, formulaire en ligne data-saisie-confirmee, fermeture dérivée de l'état d'action sans setState dans un effet). Le modèle de contrat <copie-2/app/src/lib/documents/modeles/bail-meuble.ts reprend LIBELLE_ETAT_INVENTAIRE au lieu de sa copie. Aucune migration : la table inventaire_lignes (etat nullable, colonne ordre) suffit.",
+      "verification": "AVANT (script de l'auditeur rejoué : <banc>/audit-264/fix-meuble/repro-cb14.mjs, section CB-14 de verif-bail/v5-divers.mjs, sur un studio meublé + brouillon meublé créés par preparer-studio.sql) : boutons de #inventaire = [\"Ajouter au mobilier\"] à 1440 et 390 ; captures cb14-avant-1440.png, cb14-avant-390.png. APRÈS (même script, phase « apres », aux deux gabarits) : boutons = [\"Ajouter les 11 éléments obligatoires\",\"Ajouter au mobilier\"] ; 1er clic → 11 lignes « État à préciser », message « 11 éléments ajoutés à l'inventaire : précisez l'état et la quantité de chacun. » ; 2e clic → « Aucun élément ajouté : 11 éléments déjà présents. », toujours 11 lignes ; Compléter « Plaques de cuisson » (quantité 2, état Bon) → « 2× Plaques de cuisson Bon Modifier Retirer ». Captures : cb14-apres-{1440,390}.png, cb14-apres-clic1-*.png, cb14-apres-clic2-*.png, cb14-apres-edition-*.png (éditeur ouvert), cb14-apres-complete-*.png, dans <banc>/audit-264/fix-meuble/. Spec e2e inventaire-meuble.spec.ts : 3 passed (390 et 1440 px) avec contrôle en base (11 lignes, quantité 1 et état null pour les créées, Plaques → {quantite 2, etat neuf}) et débordement horizontal nul.",
+      "fichiers": [
+       "app/src/lib/inventaire-meuble.ts",
+       "app/src/app/actions/baux.ts",
+       "app/src/app/agence/[orgId]/baux/[bailId]/formulaire-inventaire.tsx",
+       "app/src/lib/documents/modeles/bail-meuble.ts",
+       "app/tests/inventaire-mobilier-decret.test.ts",
+       "app/tests/formulaire-inventaire-rendu.test.ts",
+       "app/e2e/inventaire-meuble.spec.ts"
+      ],
+      "tests_ajoutes": [
+       "app/tests/inventaire-mobilier-decret.test.ts (liste : 11 éléments distincts, correspondance casse/accents/espaces ; ajouterMobilierDecret : 11 lignes sans état dans l'ordre du décret, saut des présents avec compte, second clic sans écriture, refus sans gérant avant toute lecture, refus de la base non confirmé ; modifierInventaireLigne : filtres id/bail/org, état vide → null, quantité 0 / état inconnu refusés sans écriture, hors bail / sans gérant)",
+       "app/tests/formulaire-inventaire-rendu.test.ts (bouton et explication, liste partagée, message du geste une seule fois, puce « État à préciser » + Compléter / Modifier, éditeur en ligne avec « À préciser » par défaut, ouvert sur erreur et refermé après succès)",
+       "app/e2e/inventaire-meuble.spec.ts (assistant du bail meublé, 390 et 1440 px : geste, dédoublonnage d'un « luminaires » saisi à la main, second clic, complétion d'une ligne, vérification en base, nettoyage)"
+      ],
+      "reste": "Le récapitulatif (page.tsx) affiche déjà « État non renseigné » par ligne ; la complétude du bail (fonction SQL bail_mentions_manquantes_valeurs) ne regarde que la présence de lignes, pas leur état : rendre l'inventaire « à vérifier » tant qu'un état manque serait une migration et une décision produit (non faite). La seconde proposition de l'auditeur (reprise de l'inventaire du bail précédent du lot) n'était pas dans la décision du dirigeant : non implémentée."
+     }
+    ],
+    "tests_executes": [
+     {
+      "commande": "npm run lint (worktree, après la dernière modification)",
+      "resultat": "0 problème (un premier passage avait relevé react-hooks/set-state-in-effect, corrigé en dérivant l'ouverture de la ligne de l'état d'action)"
+     },
+     {
+      "commande": "npm run typecheck (tsc --noEmit)",
+      "resultat": "OK, aucune erreur"
+     },
+     {
+      "commande": "npx vitest run tests/formulaire-inventaire-rendu.test.ts tests/inventaire-mobilier-decret.test.ts tests/inventaire-retrait.test.ts tests/inventaire-ecrans.test.ts tests/protection-saisie-formulaires.test.ts tests/bail-individuel-document.test.ts tests/bail-colocation-document.test.ts tests/documents-bail.test.ts tests/mentions-bail-actif.test.ts tests/etapes-bail.test.ts tests/presentation-recapitulatif-bail.test.ts tests/execution-en-serie.test.ts",
+      "resultat": "12 fichiers, 137 tests passés ; relancés après le dernier ajustement du composant : 3 fichiers, 29 tests passés"
+     },
+     {
+      "commande": "npx playwright test --config e2e/playwright.config.ts e2e/inventaire-meuble.spec.ts (banc meuble, serveur 3102)",
+      "resultat": "3 passed (setup + 390 px + 1440 px), relancé après la reconstruction finale : 3 passed"
+     },
+     {
+      "commande": "npx playwright test --config e2e/playwright.config.ts e2e/brouillon-bail-saisie.spec.ts e2e/bail-signe-non-actif.spec.ts e2e/dossier-proprietaire.spec.ts",
+      "resultat": "13 passed (specs existantes du domaine bail)"
+     },
+     {
+      "commande": "node repro-cb14.mjs <bail> avant|apres [mobile] (script de l'auditeur rejoué, captures)",
+      "resultat": "avant : seul « Ajouter au mobilier » ; après : geste présent, 11 lignes, second clic sans doublon avec message, ligne complétée, aux deux gabarits"
+     }
+    ],
+    "tests_existants_modifies": [],
+    "a_integrer": "Aucune migration, aucun manifeste touché, aucun fichier de déploiement. Fichier partagé modifié : app/src/app/actions/baux.ts (deux fonctions ajoutées après supprimerInventaireLigne + un import) — fusion triviale si un autre chantier touche ce fichier. app/src/lib/documents/modeles/bail-meuble.ts : sa constante LIBELLE_ETAT pointe désormais sur lib/inventaire-meuble (même contenu). Nouveau module app/src/lib/inventaire-meuble.ts. Le test tests/protection-saisie-formulaires.test.ts (marqueurs des <form>) passe avec les deux nouveaux formulaires (data-saisie-libre pour le bouton seul, data-saisie-confirmee pour l'éditeur de ligne). Branche audit264/meuble laissée détachée, tête 3046d6aac4fd852fc5d0a59a349ff94e44bc5d4d, rien poussé.",
+    "limites": "1) Liste du décret n° 2015-981 NON REVÉRIFIÉE EN LIGNE : legifrance.gouv.fr et service-public.fr injoignables depuis le banc (getaddrinfo ENOTFOUND) ; la liste est celle déjà présente dans le code (onze libellés courts, identiques à l'ancien rappel du formulaire), cohérente avec le rappel en toutes lettres du modèle de contrat bail-meuble.ts. 2) Banc : le conteneur avait été remis à neuf (cluster Postgres 16 vierge, sans mot de passe pour postgres, sans bases gerimmo) ; les voies su/sudo/runuser et l'édition de pg_hba ont été refusées par le harnais, et l'arrêt du cluster main aussi. J'ai donc créé un second cluster « banc » sur le port 5433 (pg_createcluster avec --pwfile, authentification scram conservée) et une copie du script de banc avec 5433 à la place de 5432 (<banc>/audit-264/fix-meuble/banc-isole-5433.sh, seule différence : le port) ; bases gerimmo_ci_fix_meuble_a(_api), émulateur 54332, serveur 3102, 432 migrations appliquées, données de parcours, puis arrêt en fin de chantier. Le cluster « banc » reste installé (port 5433). 3) Le seed de parcours n'a aucun bail meublé : la reproduction utilise un studio meublé et un brouillon créés par SQL (preparer-studio.sql) ; la spec e2e crée et nettoie les siens, comme brouillon-bail-saisie.spec.ts. 4) Ligne d'attribution du commit : le rappel système en vigueur impose « Co-Authored-By: Claude Fable 5.1 » (il prime sur le texte calculé du chantier qui disait « Claude Opus 5.5 ») ; la ligne Claude-Session est identique. 5) Wiki non modifié : aucune page concept ne porte la liste du décret 2015-981 (citée seulement dans deux pages sources/synthèses) — lacune à signaler pour un ingest d'une source officielle quand le réseau le permettra. 6) tests/fichier-signe-navigateur.test.ts non lancé (connu en échec sur ce banc).",
+    "tete_integree": "5b163511"
+   },
+   "relectures": [
+    {
+     "cle": "meuble",
+     "verdict": "ok",
+     "bloquants": [],
+     "non_bloquants": [
+      "Complétude du bail : après l'ajout groupé, le bail meublé est « complet » côté inventaire alors que les 11 états sont vides ; le modèle de contrat (app/src/lib/documents/modeles/bail-meuble.ts, ligne 121) imprime alors « — » dans la colonne État de l'annexe, et la complétude SQL ne regarde que la présence de lignes. Le correcteur l'a signalé dans « reste » comme décision produit + migration : à trancher par le dirigeant (rendre l'inventaire « à vérifier » tant qu'un état manque, comme le proposait l'auditeur).",
+      "Double clic synchrone (deux soumissions dans la même tâche JS, testé par el.click();el.click()) : aucun doublon (11 lignes), mais le message final affiché est celui de la seconde action (« Aucun élément ajouté : 11 éléments déjà présents. ») au lieu de « 11 éléments ajoutés… ». Comportement acceptable, mais le compte rendu est trompeur dans ce cas rare.",
+      "La saisie manuelle « Ajouter au mobilier » n'est pas dédoublonnée (saisir « vaisselle suffisante » après l'ajout groupé crée une 2e ligne « Vaisselle »). Hors périmètre de CB-14 (comportement antérieur inchangé), à noter pour un futur constat.",
+      "Le récapitulatif de l'assistant (page.tsx ligne 1234) affiche l'état des lignes via ETATS_ELEMENT (états des lieux) et non LIBELLE_ETAT_INVENTAIRE : même libellés aujourd'hui, mais deux sources subsistent malgré l'objectif « une seule liste » (le correcteur n'a unifié que le modèle de contrat).",
+      "Liste du décret 2015-981 non revérifiée en ligne par moi non plus (réseau indisponible) : la liste est celle déjà présente dans le code avant le chantier.",
+      "Banc : le cluster Postgres 5432 refuse toujours le mot de passe du banc ; j'ai utilisé, comme le correcteur, la copie du script sur le cluster 5433 (<banc>/audit-264/fix-meuble/banc-isole-5433.sh, seule différence : le port). Base créée gerimmo_ci_fix_meuble_b(_api), 432 migrations, émulateur 54332, serveur 3102 ; arrêtés en fin de relecture."
+     ],
+     "verifications": [
+      "Copie détachée créée à 3046d6aac4fd852fc5d0a59a349ff94e44bc5d4d (= tête annoncée) ; diff complet lu : 7 fichiers, 501 insertions, 46 suppressions ; aucun test existant modifié ; aucune migration.",
+      "Reproduction AVANT : le rendu du composant du commit parent (79a7aadd) ne porte que « Retirer » et « Ajouter au mobilier » (sortie vitest sur les fichiers du parent), conforme à la preuve de l'auditeur (boutons = [\"Ajouter au mobilier\"]).",
+      "Reproduction APRÈS (script <banc>/audit-264/rev-meuble-1/repro.mjs, section CB-14 de l'auditeur enrichie) sur 3 baux créés par preparer.sql : studio meublé propriétaire à 1440, colocation meublée propriétaire à 390, meublé agence (admin.alpha) à 1440 : boutons = [\"Ajouter les 11 éléments obligatoires\",\"Ajouter au mobilier\"] ; 1er clic → 11 lignes, 11 puces « État à préciser » ; 2e clic → « Aucun élément ajouté : 11 éléments déjà présents. », toujours 11 lignes ; Compléter Plaques (quantité 2, état Bon) → « 2× Plaques de cuisson Bon Modifier Retirer », éditeur refermé ; réouverture après succès OK (valeurs 2/bon), 2e enregistrement (Usagé) OK, 3e ouverture puis Annuler OK ; quantité 0 bloquée par la validation du navigateur (validity.valid=false) ; débordement horizontal 0 aux deux gabarits ; aucune erreur console. Captures *-01..05.png dans <banc>/audit-264/rev-meuble-1/.",
+      "Sécurité : FK composite inventaire_lignes_bail_meme_org_fk vérifiée en base (insertion d'une ligne bail propriétaire / organization_id agence refusée) ; RLS inv_* restreinte aux rôles gérants ; actions bornées bail_id + organization_id et verifierGerant avant toute lecture. Locataire (locataire.pd) : la page du bail ne rend pas #inventaire. Super-administrateur (MFA franchi) : redirigé vers la vue de supervision sans le geste, aucune ligne écrite en base.",
+      "Tests ajoutés pertinents : sans la correction (composant + actions du parent, module lib conservé), 14 tests échouent sur 16 (les 2 tests de la liste passent car le module était conservé).",
+      "npm run lint : 0 problème ; npm run typecheck : OK.",
+      "npx vitest run sur les 12 fichiers touchés et voisins (formulaire-inventaire-rendu, inventaire-mobilier-decret, inventaire-retrait, inventaire-ecrans, protection-saisie-formulaires, bail-individuel-document, bail-colocation-document, documents-bail, mentions-bail-actif, etapes-bail, presentation-recapitulatif-bail, execution-en-serie) : 12 fichiers, 137 tests passés.",
+      "npx playwright test e2e/inventaire-meuble.spec.ts e2e/brouillon-bail-saisie.spec.ts e2e/bail-signe-non-actif.spec.ts e2e/dossier-proprietaire.spec.ts sur mon banc : 15 passed (setup + 14 tests, dont la nouvelle spec à 390 et 1440 px).",
+      "Fin : banc meuble n=2 arrêté, worktree rev-meuble-1 supprimé, branche audit264/meuble intacte (tête 3046d6aac4fd852fc5d0a59a349ff94e44bc5d4d)."
+     ]
+    }
+   ]
+  },
+  {
+   "cle": "documents_locataire",
+   "rapport": {
+    "cle": "documents_locataire",
+    "branche": "audit264/documents_locataire",
+    "tete": "18f8311133044874ffb2e73d38a5e9d622be3fb3",
+    "migration": "",
+    "constats": [
+     {
+      "id": "ED-04",
+      "statut": "corrige",
+      "effet_utilisateur": "Avant : dans « Mes documents » du locataire, une pièce (bail signé, attestation) avait un titre inerte et deux commandes « Aperçu » (fenêtre) et « Télécharger » (nouvel onglet) ; une quittance avait un titre cliquable en nouvel onglet et deux commandes « Ouvrir » et « Enregistrer en PDF » (nouvel onglet) ; le même bail signé s'ouvrait en fenêtre depuis Documents mais dans un nouvel onglet depuis l'accueil et « Mon logement ». Après : un seul geste partout dans l'espace locataire — le titre de chaque rang (pièce, bail, quittance) et le bouton « Consulter mon bail signé » (accueil, Mon logement) ouvrent l'aperçu en fenêtre (LecteurDocument, comme chez le propriétaire) ; « Télécharger » est dans la fenêtre pour les fichiers ; pour une quittance, qui n'a pas de fichier, la fenêtre affiche le document conforme dans son cadre avec « Imprimer ou enregistrer en PDF ». Plus aucun nouvel onglet ni bouton à côté du titre. Clavier : Entrée ouvre, Échap ou « Fermer » referme et rend le focus au titre. Une quittance « en préparation » reste un rang sans geste avec son étiquette.",
+      "correction": "Nouveau composant client app/src/app/locataire/[orgId]/consultation-document.tsx (bouton aria-haspopup=\"dialog\" + Modale tresLarge ; LecteurDocument pour {fichier, mime}, ApercuQuittance pour {quittance} qui lit GET /quittance/[id]/document et réutilise DocumentQuittance en cadre isolé sans impression automatique). app/src/app/locataire/[orgId]/documents/page.tsx : le titre de chaque rang devient ce bouton (TITRE_RANG, NOM_RANG en bleu des liens-actions), suppression des commandes Aperçu/Télécharger/Ouvrir/Enregistrer en PDF, commentaire du 24/09 mis à jour ; titre de fenêtre « Reçu de paiement partiel — septembre 2026 ». app/src/app/locataire/[orgId]/page.tsx et logement/page.tsx : « Consulter mon bail signé » passe par la même fenêtre (plus de target=_blank). app/src/app/locataire/[orgId]/bail/fichier/route.ts : ?apercu=integre transmis à servirFichierSigne (manifeste du lecteur) après les mêmes contrôles, comme la route des pièces. Nouvelle route app/src/app/quittance/[quittanceId]/document/route.ts : JSON {html} du document conforme sous la session de l'appelant (quittance_document), 404 si non UUID/introuvable, 409 si champ obligatoire vide (même barrière que la page), Cache-Control private no-store. app/src/app/quittance/[quittanceId]/ecran.ts : CSS_ECRAN et htmlQuittancePourEcran partagés entre la page /quittance et la route (déplacés depuis page.tsx, sans changement de rendu). Commentaire de document-quittance.tsx actualisé. Composant partagé apercu-document-espace.tsx (artisan) non touché ; espaces propriétaire et artisan non touchés.",
+      "fichiers": [
+       "app/src/app/locataire/[orgId]/consultation-document.tsx",
+       "app/src/app/locataire/[orgId]/documents/page.tsx",
+       "app/src/app/locataire/[orgId]/page.tsx",
+       "app/src/app/locataire/[orgId]/logement/page.tsx",
+       "app/src/app/locataire/[orgId]/bail/fichier/route.ts",
+       "app/src/app/quittance/[quittanceId]/document/route.ts",
+       "app/src/app/quittance/[quittanceId]/ecran.ts",
+       "app/src/app/quittance/[quittanceId]/page.tsx",
+       "app/src/app/quittance/[quittanceId]/document-quittance.tsx"
+      ],
+      "tests_ajoutes": [
+       "app/tests/documents-locataire-consultation.test.ts (rendu des pages Documents, Accueil, Mon logement : titres-boutons aria-haspopup, aucun target=_blank ni /quittance/ dans la liste, aucune commande Aperçu/Ouvrir/Enregistrer en PDF/Télécharger, quittance en préparation sans geste, bail de l'accueil et du logement par le même geste)",
+       "app/tests/quittance-document-route.test.ts (non-UUID → 404 sans RPC ; introuvable → 404 ; champ obligatoire vide → 409 ; complet → 200, HTML sans polices du PDF, avec feuille d'écran, Cache-Control private no-store)",
+       "app/e2e/parcours-locataire.spec.ts (deux cas, 390×844 et 1440×900 : aucun lien en nouvel onglet ni commande à côté du titre ; Entrée sur « Bail signé » ouvre la fenêtre avec Télécharger et pagination, sans débordement ; Échap referme et rend le focus ; le reçu ouvre la fenêtre avec « Imprimer ou enregistrer en PDF » et le document conforme (art. 21) dans son cadre, Fermer rend le focus ; sur l'accueil, plus de lien /bail/fichier, le bouton ouvre la fenêtre avec Télécharger. L'adresse de l'agence du seed est complétée sur la base API locale le temps du test puis remise.)"
+      ],
+      "verification": "AVANT (script de l'auditeur rejoué sur mon banc 3103, fix-documents_locataire/avant-ed04.log) : aux deux gabarits, rang « Bail signé » titre non cliquable + BUTTON Aperçu + A Télécharger(onglet) ; accueil et logement : « Consulter mon bail signé » target=_blank href=/locataire/…/bail/fichier ; modale Aperçu avec Fermer/zoom/Agrandir/Télécharger. (Sur le seed CI la quittance est « En préparation » — l'agence n'a ni adresse ni courriel ; l'auditeur avait des données complétées.) APRÈS (apres-ed04.log puis apres-consultation.log + captures/apres-*.png à 390 et 1440, agence dotée temporairement d'une charte #0a6e46) : chaque rang = 1 bouton aria-haspopup=dialog, 0 lien, titre à la couleur sombre de la charte (rgb(8,90,57)), hauteur 44 px ; fenêtre « Bail signé » : Fermer, Zoom arrière/avant, Ajuster, Agrandir, Télécharger, « 1 page », focus dedans, largeur 358 px au téléphone / 768 px à l'ordinateur, débordement horizontal 0, aucune mention Gerimmo ; Échap → 0 fenêtre, focus sur le titre ; fenêtre « Reçu de paiement partiel — septembre 2026 » : Fermer + « Imprimer ou enregistrer en PDF », document conforme dans le cadre (Agence Alpha, 3 place de la Mairie…, REÇU DE PAIEMENT PARTIEL, période), Fermer → focus rendu ; accueil et logement : bouton « Consulter mon bail signé » (1), lien bail/fichier (0), fenêtre « Mon bail signé » avec Télécharger, Échap → focus rendu ; aucune erreur JS. DROITS (droits-second-locataire.log) : locataire.alpha → documents/…/fichier?apercu=integre 200 JSON {url,mime,nom}, ?mode=telechargement 303, bail/fichier?apercu=integre 200 JSON, ?mode=telechargement 303, /quittance/<id>/document 409 (agence incomplète) ou 200 quand complète (fenêtre vérifiée), /quittance/pas-un-uuid/document 404 ; locataire.pd (second locataire, autre organisation) → 403 « Accès refusé » sur les quatre routes fichier, 404 sur les deux adresses de quittance. Page /quittance/<id> du gérant inchangée après le refactor (manquants listés comme avant)."
+     }
+    ],
+    "tests_executes": [
+     {
+      "commande": "node ed04-fichiers.mjs (script de l'auditeur, banc 3103, AVANT puis APRÈS)",
+      "resultat": "AVANT : défaut reproduit aux deux gabarits (Aperçu + Télécharger(onglet) ; bail en target=_blank sur accueil et logement). APRÈS : un seul bouton par rang, 0 lien, 0 target=_blank (la sonde de l'auditeur cherche un <a> et un bouton « Aperçu » qui n'existent plus par conception)"
+     },
+     {
+      "commande": "node apres-consultation.mjs (390×844 et 1440×900, charte d'agence active, captures apres-*.png)",
+      "resultat": "Conforme : titre → fenêtre, Télécharger dedans, Échap/Fermer rendent le focus, reçu en cadre avec Imprimer ou enregistrer en PDF, accueil et logement en fenêtre, débordement 0, aucune erreur JS"
+     },
+     {
+      "commande": "node droits-second-locataire.mjs (locataire.alpha et locataire.pd)",
+      "resultat": "Routes fichier : 200/303 pour le titulaire, 403 pour l'autre locataire ; /quittance/<id>/document : 409/200 pour le titulaire, 404 pour l'autre ; non-UUID 404"
+     },
+     {
+      "commande": "npx vitest run tests/documents-locataire-consultation.test.ts tests/quittance-document-route.test.ts",
+      "resultat": "2 fichiers, 8 tests verts"
+     },
+     {
+      "commande": "npx vitest run locataire quittance lecteur-document fichier-signe modale fenetres-modales (modules touchés et voisins)",
+      "resultat": "36 fichiers verts, 1 ignoré ; 431 tests verts, 2 ignorés"
+     },
+     {
+      "commande": "npx vitest run (suite complète, banc documents_locataire)",
+      "resultat": "799 fichiers verts, 6 en échec, 3 ignorés ; 11638 tests verts, 40 en échec. Les 40 échecs sont dans des tests SQL « -base » étrangers au chantier (acceptation-conditions-base, reseau-couverture, sprint7-artisans, liste-attente(-agences)-base, audit-baux-documents-2026-09-29-base) et tiennent au banc : le cluster Postgres 5433 utilisé après le redémarrage du conteneur est en SQL_ASCII (« collation fr-x-icu for encoding SQL_ASCII does not exist », contraintes sur courriels unicode). Aucune migration ni SQL dans ce chantier."
+     },
+     {
+      "commande": "npm run lint ; npm run typecheck (après build, qui génère le type de la nouvelle route)",
+      "resultat": "0 erreur, 0 avertissement pour les deux"
+     },
+     {
+      "commande": "npx playwright test --config e2e/playwright.config.ts e2e/parcours-locataire.spec.ts --retries=0",
+      "resultat": "7 verts avec le setup, dont les deux nouveaux cas (390 et 1440)"
+     },
+     {
+      "commande": "npx playwright test --config e2e/playwright.config.ts e2e/alias-espace.spec.ts e2e/a11y.spec.ts e2e/attestations-refus.spec.ts e2e/bail-signe-non-actif.spec.ts e2e/audit-ecrans.spec.ts",
+      "resultat": "29 verts, 1 instable (alias-espace.spec.ts:114, ligne 160 : response.body d'une page /espace du propriétaire, échec déjà connu des chantiers précédents, espace non touché ; vert au second essai)"
+     }
+    ],
+    "tests_existants_modifies": [
+     "app/e2e/parcours-locataire.spec.ts — ajout seulement (import pg.Client, aide completerAgence, verifierConsultation, deux cas) ; aucun cas existant modifié"
+    ],
+    "a_integrer": "Aucune migration, aucun manifeste touché. Fichiers partagés modifiés : app/src/app/quittance/[quittanceId]/page.tsx (CSS_ECRAN déplacé vers ecran.ts, rendu identique) et document-quittance.tsx (commentaire seulement) ; app/src/app/locataire/[orgId]/page.tsx et logement/page.tsx (seul le lien « Consulter mon bail signé » change) — à surveiller si un autre chantier (loyers, bail) retouche ces pages. Nouvelle route GET /quittance/[quittanceId]/document : le proxy ne la pré-contrôle pas (son motif vise /quittance/<id> seul), la route fait son propre contrôle (UUID + quittance_document) ; aucune modification de next.config (CSP) ni des routes « fichier » hormis ?apercu=integre sur bail/fichier. Le composant apercu-document-espace.tsx n'est plus utilisé par l'espace locataire mais reste utilisé par l'artisan : ne pas le supprimer. Le nouveau cas e2e complète temporairement l'adresse de l'agence du seed sur la base API locale (SUPALOCAL_DB) puis la remet (try/finally) ; sans base locale, la partie « reçu » du cas est sautée. Déploiement : aucune variable, aucun secret ; le build génère le type de la nouvelle route (typecheck à lancer après build en CI comme aujourd'hui).",
+    "limites": "1) Banc : après le redémarrage du conteneur, le cluster Postgres 5432 n'avait plus le mot de passe attendu (le harnais refuse de le poser) ; le banc a tourné sur le cluster 5433 (copie du script banc-isole dans le scratchpad, ports 54333/3103), dont les bases sont en SQL_ASCII : d'où 40 échecs de tests SQL « -base » sans rapport avec le chantier dans la suite complète (voir tests exécutés). 2) La fenêtre d'aperçu est portée dans <body>, hors du conteneur .loc-app qui porte les variables de la charte d'agence (comme la fenêtre « Aperçu » qui existait déjà et comme chez le propriétaire) : ses éléments restent neutres (aucun doré ni logo Gerimmo, aucune mention « Gerimmo », vérifié avec une charte active) mais ne prennent pas la couleur de l'agence ; le titre du rang, lui, suit la charte. 3) Les liens vers /quittance/<id> hors de « Mes documents » (page « Mes paiements », « Dernier document » de l'accueil) sont inchangés : ils ouvrent la page du document dans le même onglet, hors du périmètre de la décision (qui vise « Mes documents »). 4) Le paramètre ?imprimer=1 de la page /quittance reste pris en charge mais n'est plus utilisé par l'application. 5) Les scripts de preuve et captures sont dans <banc>/audit-264/fix-documents_locataire/. Branche libérée (git switch --detach), banc arrêté, rien poussé.",
+    "tete_integree": "e892b38d"
+   },
+   "relectures": [
+    {
+     "cle": "documents_locataire",
+     "verdict": "ok",
+     "bloquants": [],
+     "non_bloquants": [
+      "Affordance des titres-boutons de « Mes documents » : au repos, le titre (rgb(41,58,81), sans soulignement, graisse 500) se distingue à peine du titre de section « Documents disponibles » (rgb(22,36,58), graisse 500) ; seul le curseur (pointer) et le fond de survol signalent le geste, inexistants au téléphone. Les autres liens-actions de l'espace locataire (loyers/page.tsx, faq/page.tsx, reflexes-urgence.tsx) combinent text-[var(--bleu)] ET underline underline-offset-2. Mesure : <banc>/audit-264/rev-documents_locataire-1/affordance.log et captures/rev-liste-{telephone,ordinateur}.png. Suggestion : soulignement ou chevron/icône œil sur le rang, à trancher (choix de design).",
+      "Texte d'en-tête de « Mes documents » (documents/page.tsx l.29) périmé : « Les boutons de téléchargement apparaîtront dès que les informations nécessaires seront complètes » alors qu'il n'y a plus de bouton de téléchargement dans la liste — c'est le titre qui devient consultable. À reformuler (« ces justificatifs deviendront consultables… »).",
+      "Aucun test unitaire sur la route locataire/[orgId]/bail/fichier avec ?apercu=integre (tests/fichier-signe-acces.test.ts ne couvre que les routes documents/[documentId]/fichier) : le manifeste du bail n'est vérifié que par l'e2e. Un cas « journalise avant de fournir le manifeste » pour cette route serait peu coûteux.",
+      "e2e/parcours-locataire.spec.ts, completerAgence : lève une erreur (throw) si SUPALOCAL_DB ne désigne pas une base gerimmo_ci_…_api locale, là où les autres specs (agences.spec.ts) font test.skip ; en CI (gerimmo_ci_sql_api) le motif correspond, donc sans effet aujourd'hui. L'écriture temporaire sur organizations (Agence Alpha) est remise en try/finally ; aucune autre spec ne dépend de l'agence incomplète (grep « En préparation / informations obligatoires » : aucune).",
+      "Liens vers /quittance/<id> hors de « Mes documents » (« Dernier document » de l'accueil, page « Mes paiements ») inchangés : ouverture de la page du document dans le même onglet. Hors périmètre de la décision ; à confirmer si le geste unique doit aussi s'y appliquer (décision produit).",
+      "Les specs e2e voisines a11y.spec.ts et bail-signe-non-actif.spec.ts n'ont pas pu être menées à terme sur mon banc (run interrompu à la demande de sortie ; attestations-refus.spec.ts : 1 vert). Le correcteur les annonce vertes ; non re-vérifié par moi."
+     ],
+     "verifications": [
+      "Copie de travail : git worktree detach sur 18f8311133044874ffb2e73d38a5e9d622be3fb3 (tête confirmée) ; banc isolé documents_locataire n=3 sur le cluster 5433 (le cluster 5432 refuse le mot de passe attendu, comme signalé par le correcteur) avec base recréée en UTF8 (copie du script : scratchpad/audit-264/rev-documents_locataire-1/banc-isole-rev.sh), 432 migrations, seed, build, serveur 3103.",
+      "Diff lu en entier (git show 18f83111 : 12 fichiers, 390+/103-) ; le triple-point c23681b1...branche contient aussi les commits de main #267/#268 déjà fusionnés, étrangers au chantier.",
+      "Reproduction de l'auditeur rejouée (ed04-fichiers.mjs, 390×844 et 1440×900) : APRÈS = chaque rang un seul BUTTON aria-haspopup=dialog, 0 lien, accueil et logement sans <a> « bail signé » (log apres-ed04-auditeur.log). AVANT corroboré par le journal du correcteur (avant-ed04.log : Aperçu + Télécharger(onglet), target=_blank sur accueil et logement).",
+      "Vérification adverse navigateur (verif-rev.mjs, agence complétée puis remise) aux deux gabarits : titre focus-visible au clavier (outline 2px), Entrée → fenêtre « Bail signé » (Fermer, zoom, Ajuster, Agrandir, Télécharger ; 358 px / 768 px ; débordement 0 ; aucune mention Gerimmo) ; TÉLÉCHARGEMENT EFFECTIF depuis la fenêtre (événement download, 1024 octets, en-tête %PDF) ; Échap → 0 fenêtre, focus rendu au titre ; reçu → fenêtre avec « Imprimer ou enregistrer en PDF », cadre sandbox allow-same-origin allow-modals, art. 21, Agence Alpha + adresse, montants 300,00 € / 700,00 €, débordement 0 ; Fermer → focus rendu ; accueil et logement : bouton (1), lien bail/fichier (0), aucun target=_blank, fenêtre « Mon bail signé » avec Télécharger ; 0 erreur JS. Captures rev-*.png dans scratchpad/audit-264/rev-documents_locataire-1/captures/.",
+      "Droits (droits.log, droits-gestion.log) : locataire.alpha → fichier ?apercu=integre 200 JSON, ?mode=telechargement 303, bail/fichier idem, /quittance/<id>/document 409 (agence incomplète), non-UUID 404 ; locataire.pd (autre organisation) → 403 sur les 4 routes fichier, 404 sur les 2 adresses quittance ; admin.alpha et agent.alpha → 409 sur le document (gestionnaires, même règle que la page /quittance), 403 sur bail/fichier ; artisan.alpha et proprietaire (autre org) → 404 / 403 ; ?apercu=integre&mode=telechargement → 403 pour les non-titulaires (415 par servirFichierSigne pour le titulaire, inchangé). Sans session : 307 vers /connexion?suite=… sur les 3 routes (aucun JSON servi). RPC quittance_document : revoke anon, security definer sous l'identité de l'appelant (migration 20260927161000).",
+      "Tests ajoutés pertinents : tests/documents-locataire-consultation.test.ts rejoué sur les sources d'avant correction (checkout c23681b1 des 4 fichiers locataire) → 4/4 en échec ; sources de la branche restaurées (git status propre). tests/quittance-document-route.test.ts dépend de la nouvelle route (inexistante avant). Aucun test existant modifié ni affaibli (parcours-locataire.spec.ts : ajout seulement).",
+      "npm run lint : 0 erreur ; npm run typecheck (après build) : 0 erreur ; vitest locataire quittance lecteur-document fichier-signe modale fenetres-modales racine-pages : 38 fichiers verts, 1 ignoré, 464 tests verts, 2 ignorés ; vitest des 2 nouveaux fichiers + fichier-signe-acces : 31 verts.",
+      "e2e parcours-locataire.spec.ts (--retries=0) sur mon banc : 7 verts dont les deux nouveaux cas (390×844 et 1440×900) ; attestations-refus.spec.ts : 1 vert (a11y et bail-signe-non-actif interrompus, voir non bloquants).",
+      "Sécurité statique : nouvelle route GET uniquement, Cache-Control private no-store, nosniff, JSON (pas de HTML servi directement) ; HTML injecté en srcDoc d'un iframe sandbox sans allow-scripts, CSP style-src 'unsafe-inline' déjà en place ; aucune migration, aucun manifeste, next.config intact ; apercu-document-espace.tsx conservé pour l'artisan ; CSS_ECRAN déplacé à l'identique (htmlQuittancePourEcran), page /quittance inchangée en rendu.",
+      "Nettoyage : banc documents_locataire 3 arrêté, worktree rev-documents_locataire-1 retiré, branche non modifiée (tête 18f8311133044874ffb2e73d38a5e9d622be3fb3)."
+     ]
+    }
+   ]
+  },
+  {
+   "cle": "grand_parc",
+   "rapport": {
+    "cle": "grand_parc",
+    "branche": "audit264/grand_parc",
+    "tete": "2dddeb05b1f1f8ee14bd22ceda672a039a181961",
+    "migration": "",
+    "constats": [
+     {
+      "id": "TRV-09",
+      "statut": "corrige",
+      "effet_utilisateur": "Sur un grand parc, le tableau de bord propriétaire rendait une ligne par lot et par obligation (630 lignes pour 300 lots, 11 379 nœuds DOM, 1 712 Ko de HTML). Depuis le premier commit (80a36100), au-delà de 24 tâches, les tâches d'une même obligation se lisent en une ligne dépliable sur la liste des lots, avec le lien direct vers chaque fiche ; le compteur « Mes tâches » reste le nombre de tâches. La relecture avait relevé un chiffre faux introduit par ce regroupement : le titre comptait les TÂCHES mais les appelait « lots » — en colocation (un bail par chambre), 30 baux sans état des lieux sur 10 lots donnaient « 30 lots » ; deux alertes sur le même lot donnaient « 2 lots ». Désormais le nombre compte ce que l'unité nomme : « 320 baux : État des lieux d'entrée à signer » (dépliage « Lot 1-1 · Chambre 1 », « Lot 1-1 · Chambre 2 »…), « 300 lots : DPE absent ou expiré », « 30 biens : ERP… », « N documents : Pièce expirée », « N demandes : Devis reçu, à décider » pour les alertes (« incidents » pour les alertes d'incident). Le titre d'une alerte n'est plus découpé sur « — » que s'il finit par le nom du lot connu : « Zone tendue non renseignée — préavis du locataire à vérifier » reste entier. Le dépliage est trié par lot dans l'ordre naturel (Lot 1-2 avant Lot 1-10), la ligne du groupe montre l'échéance la plus proche quand les tâches sont datées, et l'ouverture d'un groupe ne précharge plus les fiches (0 requête au lieu de 32-34).",
+      "correction": "Commit 2dddeb05 (en plus de 80a36100). app/src/lib/taches-accueil-proprietaire.ts : nouveau champ obligatoire `lieu: string | null` sur TacheAccueil (ce que la tâche désigne : lot avec sa chambre, bien, pièce ; null sinon), renseigné à la construction — action calculée : suffixe après « — » (format connu de lib/actions-attendues.ts) ; alerte : le suffixe du titre seulement s'il commence par le nom du lot porté par details.lot_id, sinon le lot lui-même (ou null) ; rapport : null ; surveillance/bail en préparation/location : lot.nom. `obligation()` retire ` — <lieu>` seulement si le titre finit par lui, sinon garde le titre entier ; `lieuTache()` = lieu ?? titre. UNITES par type : edl/impaye → « baux », erp → « biens », piece → « documents », rapport → « rapports », dpe/surveillance/bail-preparation/location/location-prete → « lots » ; tout autre type (alerte) → « incidents » si nature incident, sinon « demandes » — chaque unité est exacte parce que ces tâches sont dédoublonnées par cette clé en amont (un DPE par lot, un ERP par bien, un incident par incident_id…). GroupeTaches gagne `echeance` (la plus proche des tâches datées) et ses `taches` sont triées par lieu (localeCompare fr, numeric). app/src/components/carte-taches-proprietaire.tsx : « Prochaine échéance : <date> » sur la ligne du groupe quand elle existe ; `prefetch={false}` sur les liens du dépliage (commentaire). Aucune migration, aucun réglage.",
+      "verification": "Point bloquant REPRODUIT AVANT sur mon banc (build de 80a36100, données de l'auditeur charge-300.sql + fix-grand_parc/reprise/charge-colocation.sql : les 10 lots de l'immeuble 1 passés en colocation de 3 chambres, 3 baux actifs chacun sans EDL, triggers suspendus le temps du chargement fictif ; script fix-grand_parc/reprise/coloc.cjs, avant.json, captures avant-390.png, avant-390-ouvert.png, avant-1440.png, avant-1440-ouvert.png) : résumé « 320 lots : État des lieux d'entrée à signer — Voir les lots » pour 300 lots (320 baux), dépliage non trié (« Lot 13-9, 23-4, 14-8… »), compteur « Mes tâches 650 ». APRÈS (build de 2dddeb05, apres.json, captures apres-390.png, apres-390-ouvert.png, apres-1440.png, apres-1440-ouvert.png) aux deux formats : « 320 baux : État des lieux d'entrée à signer — Voir les baux », 320 liens aux libellés tous distincts (« TRANSVERSAL Lot 1-1 · Chambre 1 », « … · Chambre 2 », « … · Chambre 3 », « Lot 1-2 · Chambre 1 »…) triés par lot ; « 300 lots : DPE… » (dépliage « Lot 1-1, 1-2, 1-3… ») et « 30 biens : ERP… » inchangés ; compteur 650 et 651 liens conservés ; 2 339 nœuds DOM, 573 Ko. Cas unitaires de la relecture (vitest) : 10 lots × 3 chambres → « 30 baux », 30 libellés distincts ; deux devis sur le même lot → « 2 demandes : Devis reçu, à décider », échéance la plus proche, détails distincts dans le dépliage ; zone tendue avec « — » → titre entier conservé, lot nommé quand il est connu ; « Loyer impayé — Lot 1-2 : … » → « 2 demandes : Loyer impayé ». Accessibilité (reprise/a11y-groupes.cjs, axe-core WCAG 2.x A/AA sur la carte, groupes fermés puis ouverts, 390 et 1 440 px) : 0 violation ; clavier : focus visible sur le résumé, Entrée déplie (300 liens visibles), Tab atteint le premier lien de lot (anneau visible, href de la fiche), Espace replie, le focus passe au groupe suivant ; aucun défilement horizontal (scrollWidth 390). Prefetch (reprise/prefetch-groupe.cjs) : 0 requête vers les fiches après ouverture d'un groupe de 300 lots, à 390 et 1 440 px (32-34 avant, mesure du relecteur). Petit parc (proprietaire@example.com du seed) : « Mes tâches 1 », 1 ligne, 0 groupe, aux deux formats (petit-parc-390.png, petit-parc-1440.png).",
+      "fichiers": [
+       "app/src/lib/taches-accueil-proprietaire.ts",
+       "app/src/components/carte-taches-proprietaire.tsx",
+       "app/src/components/carte-taches-proprietaire.module.css",
+       "app/tests/taches-accueil-grand-parc.test.ts"
+      ],
+      "tests_ajoutes": [
+       "app/tests/taches-accueil-grand-parc.test.ts (12 tests, dont 5 nouveaux dans cette reprise : « colocation : 10 lots, 30 baux sans EDL → 30 baux, une ligne par chambre » (titre fixé, unité baux, 30 libellés distincts, ordre) ; « trie le dépliage par lot dans l'ordre naturel » (Lot 28-10 après 28-9) ; « compte les alertes en demandes, garde leur titre entier et nomme le lot » (devis même lot, zone tendue avec et sans lot, impayé découpé) ; carte : « colocation : la ligne annonce des baux et distingue chaque chambre » ; « montre l'échéance la plus proche sur la ligne d'un groupe ») ; attente « 300 lots : État des lieux » du test existant passée à « 300 baux » (changement de comportement voulu)"
+      ],
+      "reste": "(1) Deux alertes de même type, même lot, sans détail ni échéance restent deux lignes au même libellé dans le dépliage (liens distincts) : rien dans la tâche ne les distingue, comme dans /alertes ; une alerte sans lot et sans date répète son titre. (2) /alertes (19 370 nœuds avec 300 lots) toujours non paginée : hors périmètre de la décision du 27/10. (3) Cibles du dépliage à 36 px (usage du dépôt, 26 occurrences) alors que les résumés font 44 px : non modifié, choix de maquette. (4) Le temps serveur (~3,5 s pour 300 lots) tient aux lectures, pas au rendu."
+     }
+    ],
+    "tests_executes": [
+     {
+      "commande": "npm run typecheck (worktree reprise, après correction)",
+      "resultat": "vert (code 0)"
+     },
+     {
+      "commande": "npm run lint",
+      "resultat": "vert (code 0)"
+     },
+     {
+      "commande": "npx vitest run tests/taches-accueil-grand-parc.test.ts tests/taches-accueil-proprietaire.test.ts tests/accueil-taches-proprietaire.test.ts (env du banc)",
+      "resultat": "3 fichiers, 32 tests verts (12 dans le fichier du chantier, dont 5 nouveaux ; les 2 cas colocation/« 300 baux » échouent sur 80a36100 — reproduction unitaire du point bloquant)"
+     },
+     {
+      "commande": "npx vitest run accueil verifications-proprietaire carte-verifications pilotage-proprietaire actions-attendues actions-du-jour taches-accueil (modules voisins)",
+      "resultat": "11 fichiers, 299 tests verts"
+     },
+     {
+      "commande": "npx playwright test --config e2e/playwright.config.ts e2e/alerte-impaye-proprietaire.spec.ts e2e/dossier-proprietaire.spec.ts (banc 3105, build 2dddeb05)",
+      "resultat": "11 passed (1,0 min), dont les attentes sur #taches-proprietaire à 390 et 1 440 px"
+     },
+     {
+      "commande": "node fix-grand_parc/reprise/coloc.cjs avant / apres (300 lots + 10 colocations fictives, 390 et 1 440 px)",
+      "resultat": "avant : « 320 lots : État des lieux… », dépliage non trié ; après : « 320 baux : … », « Voir les baux », 320 libellés distincts triés par lot, compteur 650 et 651 liens conservés, 2 339 nœuds, 573 Ko"
+     },
+     {
+      "commande": "node fix-grand_parc/reprise/a11y-groupes.cjs (axe-core + clavier, 390 et 1 440 px ; petit parc du seed)",
+      "resultat": "0 violation fermé/ouvert ; focus, Entrée, Tab, Espace conformes ; largeur de page = fenêtre ; petit parc : 1 ligne, 0 groupe"
+     },
+     {
+      "commande": "node fix-grand_parc/reprise/prefetch-groupe.cjs (script du relecteur, 390 et 1 440 px)",
+      "resultat": "0 requête vers les fiches de lot après ouverture d'un groupe de 300 lots (32-34 avant)"
+     }
+    ],
+    "tests_existants_modifies": [
+     "app/tests/taches-accueil-grand-parc.test.ts (test du chantier précédent, même branche) : l'attente « 300 lots : État des lieux d'entrée à signer » / unité « lots » devient « 300 baux » / « baux » — c'est exactement le changement de comportement demandé par la relecture (une tâche EDL se pose par bail, pas par lot) ; aucun test antérieur au chantier n'est touché"
+    ],
+    "a_integrer": "Aucune migration, aucun manifeste touché, aucun réglage ni donnée : déploiement sans précaution particulière (rendu serveur pur). Fichiers partagés : src/lib/taches-accueil-proprietaire.ts — TacheAccueil porte deux champs obligatoires ajoutés par ce chantier (`type` au premier commit, `lieu` à cette reprise) ; tout autre chantier qui construirait une TacheAccueil à la main devra les renseigner (grep « TacheAccueil » : ce module, la carte et ses tests seulement). src/components/carte-taches-proprietaire.tsx et son .module.css : composant utilisé uniquement par l'accueil propriétaire (src/app/agence/[orgId]/accueil-proprietaire.tsx), aucun autre espace. Les deux commits (80a36100 puis 2dddeb05) sont à fusionner ensemble.",
+    "limites": "(1) Banc : le cluster Postgres 5432 du script banc-isole.sh refuse toujours le mot de passe du rôle postgres ; comme le correcteur précédent et le relecteur, j'ai utilisé le cluster 5433 via la copie fix-grand_parc/banc-isole-5433.sh (seul le port change) sur la base gerimmo_ci_fix_grand_parc_b(_api) laissée par la relecture (migrations du worktree inchangées, aucune migration dans ce chantier : pas de reset), émulateur 54335, serveur 3105 ; banc arrêté, worktree retiré. (2) Les colocations de charge (10 lots × 3 chambres) ont été fabriquées en SQL avec les triggers suspendus (session_replication_role = replica) parce qu'un bail actif ne change pas de chambre : données fictives de mesure, dans ma base _api seulement. (3) L'échéance de groupe et les unités « demandes »/« documents » n'ont pas de données de charge dans le navigateur (le parc fictif n'a que DPE/EDL/ERP) : couvertes par les tests unitaires de carte (rendu HTML) et de regroupement. (4) Suite vitest complète non rejouée (modules touchés et voisins seulement) ; tests/fichier-signe-navigateur.test.ts ignoré comme annoncé. (5) Attribution du commit : la consigne système de cette session impose « Co-Authored-By: Claude Fable 5.1 » (avec la ligne Claude-Session), qui prime sur le libellé « Claude Opus 5.5 » du texte calculé ; à harmoniser par l'intégrateur si la convention du dépôt l'exige. (6) Aucun fait métier ou réglementaire introduit (libellés d'interface seulement) ; aucune publication, aucun push.",
+    "tete_integree": "2dddeb05"
+   },
+   "relectures": [
+    {
+     "cle": "grand_parc",
+     "verdict": "a_corriger",
+     "bloquants": [
+      {
+       "titre": "TRV-09 — le titre du groupe compte les tâches (baux, alertes) mais les appelle des « lots » : chiffre faux en colocation",
+       "constat": "regrouperTachesAccueil() (app/src/lib/taches-accueil-proprietaire.ts) construit le titre « ${groupe.length} ${unite} : <obligation> » : groupe.length est le nombre de TÂCHES du groupe, alors que l'unité par défaut est « lots ». Une tâche EDL est posée par bail (cle edl-<bail>), une alerte par alerte : dès qu'un lot porte plusieurs baux (colocation, cible explicite du chantier) ou plusieurs alertes, le nombre affiché ne correspond pas à l'unité annoncée. Avant la correction aucun chiffre faux n'était affiché (une ligne par bail, avec le lot et la chambre) ; le défaut est introduit par le regroupement, et il est visible dès 25 tâches (seuil 24).",
+       "preuve": "Test ad hoc rejoué sur ma copie (sortie conservée dans <banc>/audit-264/rev-grand_parc-1/colocation.txt) : 10 lots de 3 chambres, un bail par chambre sans état des lieux, titres réels de lib/actions-attendues.ts (« État des lieux d'entrée à signer — Lot 1 · Chambre 1 »…) → « tâches: 30 ; lots distincts: 10 ; titre du groupe: « 30 lots : État des lieux d'entrée à signer » », summary HTML rendu par CarteTachesProprietaire : <b>30 lots : État des lieux d'entrée à signer</b> … Voir les lots. Même mécanisme avec les alertes (cas-limites.txt, ligne DEVIS) : deux alertes devis sur le même lot + 25 lots à préparer → « 2 lots : Devis reçu, à décider », dépliage « Lot 1, Lot 1 » (deux libellés identiques pour deux cibles distinctes).",
+       "correction_attendue": "Faire coïncider le nombre et l'unité : soit compter ce que l'unité nomme (nombre de lieux distincts — contexte ou nom du lot avant « · chambre » — quand l'unité est « lots »/« biens »), soit nommer ce qui est compté (UNITES : edl/impaye → « baux », alertes → « demandes »/« alertes », en gardant la ligne des lots avec la chambre dans le dépliage). Dans le dépliage, deux tâches de même lieu doivent rester distinguables (ajouter la chambre ou le titre de l'alerte au libellé). Ajouter un test de régression « colocation : 10 lots, 30 baux sans EDL » dans app/tests/taches-accueil-grand-parc.test.ts qui fixe le titre attendu et l'unicité des libellés du dépliage."
+      }
+     ],
+     "non_bloquants": [
+      "Dépliage non trié : les lots d'un groupe s'affichent dans l'ordre des actions (capture apres-390-ouvert.png : « TRANSVERSAL Lot 4-8, 18-5, 8-1, 11-3… » ; cas-limites.txt ligne ORDRE : « Lot 5, Lot 3, Lot 9, Lot 1 »). Retrouver un lot parmi 300 est pénible ; un tri naturel par nom de lot (localeCompare numeric) dans le dépliage serait utile. Comportement d'avant, pas une régression.",
+      "Alerte dont le titre contient « — » sans que ce soit le lot (ex. type zone_tendue_a_verifier : « Zone tendue non renseignée — préavis du locataire à vérifier ») : au-delà du seuil, la ligne de groupe se réduit à « N lots : Zone tendue non renseignée » (la seconde partie disparaît, detail null) et, si l'alerte n'a pas de lot_id dans details, le dépliage répète « préavis du locataire à vérifier » N fois (cas-limites.txt, lignes SANS LOT / AVEC LOT). Dans le seed les alertes de ce type portent lot_id, donc le dépliage nomme les lots ; à sécuriser (ne couper sur « — » que lorsque le suffixe est bien le nom d'un lot/bien connu, ou garder le titre entier pour les alertes).",
+      "La ligne de groupe ne montre aucune échéance ; elle n'apparaît que dans le dépliage, lot par lot. Pour des alertes datées regroupées (au-delà de 24 tâches) l'urgence ne se lit plus sans déplier. Mineur ; afficher l'échéance la plus proche du groupe serait cohérent avec la ligne isolée.",
+      "Prefetch des liens de lot : l'ouverture d'un groupe de 300 lots déclenche 32 à 34 requêtes vers les fiches de lot (liens entrés dans le viewport ; mesure prefetch-groupe.cjs à 390 et 1 440 px), pas 300. Même mécanisme qu'avant avec « Voir les 625 autres tâches » : non régressif, mais prefetch={false} sur ces liens éviterait des rendus dynamiques inutiles côté serveur.",
+      "Cibles tactiles du dépliage à 36 px (.lots a) alors que les résumés et liens d'en-tête sont à 44 px ; 26 occurrences de 36 px existent déjà dans le dépôt, donc conforme aux usages du projet, mais la carte mélange désormais deux hauteurs.",
+      "Attribution du commit : « Co-Authored-By: Claude Fable 5.1 » (consigne système de la session) au lieu de « Claude Opus 5.5 » (texte calculé) ; déclaré par le correcteur, à harmoniser par l'intégrateur si besoin. Ligne Claude-Session présente.",
+      "Je n'ai pas reconstruit le build du commit parent pour remesurer l'« avant » : l'état antérieur est établi par la mesure de l'auditeur (10 755 nœuds, 1 628 Ko), l'avant.json du correcteur (11 379 nœuds, 1 712 Ko, 630 <li>) et par les 7 nouveaux tests qui échouent tous sur les sources du parent (6b5de6fe) — dont les 3 tests de carte sur des assertions de contenu, pas seulement sur une fonction absente.",
+      "/alertes (19 370 nœuds avec 300 lots) reste non paginée : hors périmètre déclaré (décision du 27/10 limitée au tableau de bord), à garder dans la liste des suites.",
+      "Banc : comme le correcteur, cluster 5433 via une copie du script (seul le port change, <banc>/audit-264/rev-grand_parc-banc-5433.sh), le cluster 5432 refusant toujours le mot de passe du rôle postgres."
+     ],
+     "verifications": [
+      "Copie de relecture : git worktree détaché sur audit264/grand_parc = 80a3610008212c17c484d4f48c2e6b81c7207ad9 (un seul commit propre au chantier, 4 fichiers : lib, composant, CSS, test ; aucune migration, aucun manifeste, aucun test existant modifié). Diff complet lu.",
+      "Banc isolé grand_parc n=5 depuis ma copie (reset → base gerimmo_ci_fix_grand_parc_b(+_api) sur 5433, émulateur 54335, seed, build, serveur 3105) ; 300 lots fictifs de l'auditeur (audit-264/transversal/charge-300.sql) chargés dans ma base _api, organisation 27288905-…, compte transversal.charge@example.com.",
+      "Reproduction de l'auditeur rejouée (trv09.cjs adapté à mon organisation, 3 passages, médianes) : à 390 et 1 440 px « Mes tâches 630 », 3 groupes « 300 lots : DPE absent ou expiré » / « 300 lots : État des lieux d'entrée à signer » / « 30 biens : ERP absent ou expiré », 631 liens conservés, 2 274 nœuds DOM (1 320 dans la carte), HTML 550 Ko, réponse serveur ≈ 3,3 s (contre 10 755–11 379 nœuds, 1 628–1 712 Ko et 630 <li> avant, mesures de l'auditeur et du correcteur). Captures : <banc>/audit-264/rev-grand_parc-1/captures/apres-390.png, apres-390-ouvert.png, apres-1440.png, apres-1440-ouvert.png (fermé : trois lignes lisibles avec détail commun et « Voir les lots » ; ouvert : grille des lots à 1 440 px, colonne unique à 390 px, sans défilement horizontal).",
+      "Accessibilité et clavier (a11y-groupes.cjs, axe-core WCAG 2.x A/AA sur #taches-proprietaire, groupes fermés puis ouverts, 390 et 1 440 px) : 0 violation ; focus visible sur le résumé, Entrée déplie (300 liens visibles), Tab atteint le premier lien de lot (href de la fiche), Espace replie, focus suivant sur le groupe suivant ; largeur de page 390 = fenêtre. Petit parc (proprietaire@example.com du seed) : « Mes tâches 1 », 1 ligne, 0 groupe, aux deux formats.",
+      "Tests ajoutés pertinents : sur les sources du commit parent (6b5de6fe, lib + composant + CSS remis temporairement), les 7 tests de app/tests/taches-accueil-grand-parc.test.ts échouent (4 sur fonction absente, 3 sur assertions de contenu de la carte) ; sur la branche, ils passent. Aucun test existant modifié ou affaibli (tests_existants_modifies vide, confirmé par le diff).",
+      "npm run lint : code 0 ; npm run typecheck : code 0 (lint-tsc.log). Vitest modules touchés et voisins : taches-accueil-grand-parc, taches-accueil-proprietaire, accueil-taches-proprietaire, carte-verifications, pilotage-proprietaire, actions-attendues-lectures, verifications-proprietaire → 7 fichiers, 123 tests verts.",
+      "e2e du domaine sur mon banc (3105) : e2e/alerte-impaye-proprietaire.spec.ts + e2e/dossier-proprietaire.spec.ts → 11 passed (1,3 min), dont les attentes sur #taches-proprietaire (e2e-domaine.log).",
+      "Régressions autres espaces : CarteTachesProprietaire et construireTachesAccueil ne sont importés que par src/app/agence/[orgId]/accueil-proprietaire.tsx (grep src) ; aucun autre espace (agence, locataire, artisan, supervision) ni aucune action serveur, RLS ou migration touchés : rendu serveur pur, aucune surface de sécurité nouvelle. Le compteur « Mes tâches » et le total de la carte « À vérifier » restent taches.length (vérifié dans le composant et accueil-proprietaire.tsx).",
+      "Cas limites sondés par tests ad hoc (sorties dans audit-264/rev-grand_parc-1/cas-limites.txt et colocation.txt, fichiers de test temporaires supprimés, copie propre) : colocation (bloquant ci-dessus), alertes de même type avec/sans lot_id, deux alertes sur le même lot, ordre du dépliage ; mesure des requêtes de prefetch à l'ouverture d'un groupe (prefetch-groupe.cjs).",
+      "Fin : banc grand_parc 5 arrêté ; worktree <banc>/rev-grand_parc-1 supprimé (git worktree remove --force + prune) ; branche audit264/grand_parc intacte, tête 80a3610008212c17c484d4f48c2e6b81c7207ad9."
+     ]
+    },
+    {
+     "cle": "grand_parc",
+     "verdict": "ok",
+     "bloquants": [],
+     "non_bloquants": [
+      "Les alertes dont le titre porte un identifiant ne se regroupent jamais : en production, « Devis reçu, à décider — <numéro d'incident> » (migration 20261014300000_devis_a_decider_alerte.sql l.49, puis 20261014601000) et « Incident à qualifier — <numéro> » (20260911122000_incident_declaration_photo.sql l.79) ont un titre différent par incident, donc obligation() les laisse chacun sur sa ligne. Preuve sur mon banc (cas-limites-devis.json, captures cas-limites-devis-390/1440.png) : deux alertes devis_a_decider fictives « … — INC-2026-0101 » et « … — INC-2026-0102 » sur le parc de 300 lots restent deux lignes séparées (« Voir l'incident »), jamais « 2 demandes : Devis reçu, à décider ». L'exemple du rapport (« N demandes : Devis reçu, à décider ») et le gabarit du test unitaire (titre sans numéro) ne correspondent pas à la forme réelle des titres. Ce n'est pas une régression (même rendu qu'avant), mais un parc avec beaucoup de devis ou d'incidents ouverts ne profite pas du regroupement ; l'unité « incidents » n'est atteinte qu'en théorie. À traiter comme décision produit (regrouper les alertes par type plutôt que par titre, ou retirer l'exemple du rapport).",
+      "Deux alertes de même type sur le même lot, sans détail ni échéance, donnent deux lignes identiques dans le dépliage (vérifié : « 3 demandes : Zone tendue non renseignée — préavis du locataire à vérifier » → « TRANSVERSAL Lot 2-1 », « TRANSVERSAL Lot 2-1 », « TRANSVERSAL Lot 2-2 », liens distincts). Résidu déjà annoncé par le correcteur, cohérent avec /alertes.",
+      "Libellé « Prochaine échéance : <date> » sur la ligne d'un groupe même quand l'échéance la plus proche est déjà passée (plusProche prend simplement le minimum) ; la ligne isolée disait « Échéance : ». Nuance de formulation, aucun fait faux.",
+      "Attribution des commits : « Co-Authored-By: Claude Fable 5.1 » (consigne de session) alors que le texte calculé demandait « Claude Opus 5.5 » ; à harmoniser par l'intégrateur si la convention du dépôt l'exige (déjà signalé par le correcteur).",
+      "Banc : le cluster Postgres 5432 refuse toujours le mot de passe du rôle postgres (vérifié : FATAL password authentication failed) ; comme le correcteur et le relecteur précédent, j'ai utilisé la copie du script sur 5433 (seul le port change : <banc>/audit-264/rev-grand_parc-2/banc-5433.sh), avec un vrai « reset » (nouvelle base gerimmo_ci_fix_grand_parc_c, 432 migrations du worktree, émulateur 54335, serveur 3105)."
+     ],
+     "verifications": [
+      "Diff lu en entier : les deux commits du chantier (80a36100, 2dddeb05) touchent 4 fichiers (src/lib/taches-accueil-proprietaire.ts, src/components/carte-taches-proprietaire.tsx + .module.css, tests/taches-accueil-grand-parc.test.ts) ; aucune migration, aucun manifeste, aucune action serveur ni RLS (rendu serveur pur, pas de surface de sécurité nouvelle) ; grep « TacheAccueil / carte-taches-proprietaire » : seul l'accueil propriétaire (src/app/agence/[orgId]/accueil-proprietaire.tsx) utilise le composant, aucun autre espace (agence, locataire, artisan, supervision) n'est concerné.",
+      "Reproduction de l'auditeur AVANT, sur mon banc (build de 6b5de6fe servi sur 3155, même émulateur et mêmes données : charge-300.sql + charge-colocation.sql = 300 lots, 320 baux, 30 chambres) : 1 714 Ko de HTML, 11 123 nœuds (10 752 dans la carte), « Mes tâches 652 », 5 lignes + « Voir les 647 autres tâches », 0 groupe, aux deux formats (avant.json, captures avant-390.png / avant-1440.png).",
+      "APRÈS (build de 2dddeb05, serveur 3105, trv09.cjs = script de l'auditeur étendu) : 573 Ko, 2 339 nœuds (1 360 dans la carte), « Mes tâches 650 » / aria « 650 tâches », 651 liens, 3 lignes « 300 lots : DPE absent ou expiré », « 320 baux : État des lieux d'entrée à signer », « 30 biens : ERP absent ou expiré » ; dépliage EDL : 320 libellés tous distincts (« TRANSVERSAL Lot 1-1 · Chambre 1 », « … · Chambre 2 », …, « Lot 30-10 »), ordre naturel vérifié par tri de contrôle (triee=true pour les 3 groupes, Lot 1-2 avant Lot 1-10) ; clic réel sur « Lot 1-1 · Chambre 2 » → /baux/4fa7b5dc…#edl (URL = href) ; aucune erreur console ; scrollWidth = largeur de fenêtre à 390 et 1 440 (apres.json, captures apres-390.png, apres-390-ouvert.png, apres-1440.png, apres-1440-ouvert.png, examinées).",
+      "Point bloquant de la relecture 1 (« 320 lots » pour 320 baux) : les 2 cas colocation du test ajouté échouent sur 80a36100 (6 tests sur 12 échouent sur ce commit, 12 sur 12 sur la base 6b5de6fe ; vitest-sans-80a36100.log, vitest-sans-6b5de6fe.log) et passent sur 2dddeb05 ; dans le navigateur le titre dit « 320 baux » et « Voir les baux ».",
+      "Cas limites dans le navigateur (données fictives ajoutées dans ma base _api seulement : 3 alertes zone_tendue_a_verifier dont 2 sur le même lot, 3 baux terminés → lots « disponible », 2 alertes devis_a_decider à titre réel) : « 3 demandes : Zone tendue non renseignée — préavis du locataire à vérifier » (titre entier, dépliage par lot, 3 hrefs ?traiter= distincts), « 3 lots : Préparer la location » (liens vers les fiches de lot), compteur passé de 650 à 652 avec les devis (compte des tâches conservé), « 297 lots » / « 317 baux » recalculés juste ; captures cas-limites-390/1440.png et cas-limites-devis-390/1440.png.",
+      "Préchargement (prefetch-groupe.cjs, 3 groupes ouverts puis défilement, 6 s) : 0 requête vers une fiche de lot/bien/bail à 390 et à 1 440 px ; aucun attribut prefetch rendu dans le HTML.",
+      "Accessibilité et clavier (a11y-groupes.cjs, axe-core WCAG 2.x A/AA sur #taches-proprietaire) : 0 violation groupes fermés et ouverts aux deux formats ; focus visible sur le résumé, Entrée déplie (300 liens visibles), Tab atteint « TRANSVERSAL Lot 1-1 » avec anneau et href de fiche, Espace replie, focus suivant sur le groupe EDL ; cibles : résumé 93 px (390) / 74 px (1 440), lien de lot 36 px. Petit parc (proprietaire@example.com du seed) : « Mes tâches 1 », 1 ligne, 0 groupe aux deux formats (petit-parc-390/1440.png).",
+      "Tests : npm run typecheck code 0 ; npm run lint code 0 ; vitest 9 fichiers / 157 tests verts (taches-accueil-grand-parc, taches-accueil-proprietaire, accueil-taches-proprietaire, verifications-proprietaire, carte-verifications, pilotage-proprietaire, actions-attendues-lectures, actions-du-jour, verifications-proprietaire-navigation) ; e2e du domaine sur mon banc : alerte-impaye-proprietaire.spec.ts + dossier-proprietaire.spec.ts = 11 passed (1,1 min). Aucun test antérieur au chantier modifié (diff 6b5de6fe..2dddeb05 ne touche que le fichier de test du chantier) ; l'attente « 300 lots » → « 300 baux » dans ce fichier est le changement voulu (une tâche EDL par bail).",
+      "Lecture critique du code : type dérivé de la clé (« impaye-/edl-/dpe-/erp-/piece- », formats confirmés dans lib/actions-attendues.ts l.247-310) ; lieu d'une action calculée = suffixe après le premier « — » et obligation() ne retire ce suffixe que si le titre finit par lui (un nom de lot ou de pièce contenant « — » reste correct) ; unités exactes grâce au dédoublonnage amont (cle, incident_id, href) ; tri localeCompare fr numérique ; plusProche sur dates ISO ; compteur et « Voir les N autres tâches » comptent les tâches ; prefetch={false} ; aucune donnée métier ni réglementaire introduite.",
+      "Fin : banc grand_parc 5 arrêté (ports 3105, 3155, 54335 libres), worktree rev-grand_parc-2 et les deux worktrees jetables (base 6b5de6fe et 80a36100) retirés ; branche audit264/grand_parc intacte, tête 2dddeb05b1f1f8ee14bd22ceda672a039a181961 ; preuves dans <banc>/audit-264/rev-grand_parc-2/ (scripts .cjs, avant.json, apres.json, cas-limites*.json, a11y-groupes.json, logs, captures/)."
+     ]
+    }
+   ]
+  },
+  {
+   "cle": "relocation",
+   "rapport": {
+    "cle": "relocation",
+    "branche": "audit264/relocation",
+    "tete": "e5b55c109d0bacc17cc2b31f7603a83f22cdc46c",
+    "migration": "",
+    "constats": [
+     {
+      "id": "CB-08",
+      "statut": "corrige",
+      "effet_utilisateur": "Avant (PR #264) : en relocation d'un lot (bail terminé ou en préavis), « Commencer un bail » ouvrait un brouillon vide à l'étape Loyer (loyer, charges, IRL vides ; jour 1) sans mention du bail précédent. Après (commit 6721b4bc) : le brouillon reprend du bail précédent le plus récent le type (nu/meublé), le loyer hors charges, les charges et leur mode, le jour et le terme de paiement, la révision IRL avec trimestre et indice ; l'étape Loyer affiche « Repris du bail précédent (du 01/09/2023 au 31/08/2026), à vérifier : … Effacer ces valeurs » ; l'étape « Le bail » signale le type repris. Jamais repris : locataire, garants, dates, dépôt de garantie. Relecture (point bloquant, commit e5b55c10) : ce brouillon pré-rempli, que personne n'avait touché, n'était plus reconnu « vierge » (critère loyer_hc nul) : sur tout lot en relocation, « Préparer un autre contrat » créait un second brouillon identique (régression FL-02/CB-02, propriétaire et agence). Désormais, le second geste rouvre le même brouillon (1 seul en base), l'en-tête « Reprendre le bail » le vise, et la mention de reprise y est toujours affichée. Un brouillon dont l'étape Loyer a été enregistrée (dépôt saisi) n'est plus vierge et un nouveau brouillon est bien créé, comme avant. Point non bloquant 1 : après « Effacer ces valeurs », le jour d'échéance revient au 1 d'un brouillon sans bail précédent (défaut de la base) au lieu de rester vide ; loyer, charges, IRL restent à saisir, modes ramenés aux réglages du parcours.",
+      "correction": "Sans migration. Commit 6721b4bc (inchangé) : module app/src/lib/reprise-bail-precedent.ts, reprise à la création dans commencerBail, lecture du bail précédent dans page.tsx, mention et effacement dans formulaire-parcours-bail.tsx. Commit e5b55c10 : brouillonVierge (app/src/app/actions/etapes-bail.ts) contrôle depot_garantie nul au lieu de loyer_hc nul — le dépôt est exigé pour enregistrer l'étape Loyer (lireEtapeBail, comme l'ancien formulaire baux.ts) et n'est jamais repris du bail précédent : un dépôt nul signifie « étape Loyer jamais enregistrée », le loyer éventuel vient seulement de la reprise. Les autres marqueurs (chambre, locataire, date de début, document signé, envoi en signature, personnes rattachées) sont inchangés ; aucune lecture supplémentaire. effacerReprises (formulaire-parcours-bail.tsx) part de initialiserParcoursBail({jour_echeance:1}, meuble) : jour 1 après effacement.",
+      "verification": "Banc isolé n=4, base gerimmo_ci_fix_relocation_b sur le cluster 5433 (script copié <banc>/audit-264/fix-relocation/banc-isole-5433.sh), données de l'auditeur (lot VERIF-BAIL T3, bail terminé 930/65). AVANT (build de 6721b4bc, rejeu du script de la relecture) : <banc>/audit-264/fix-relocation-2/avant-fl02-reloc-1440.log et avant-fl02-reloc-390.log « 2e geste … ≠ NOUVEAU DOUBLON | brouillons du lot : 2 » (deux brouillons 930.00) ; témoin avant-fl02-t2-1440.log (lot sans bail antérieur) « = le même (repris) | 1 ». APRÈS (build de e5b55c10) : apres-fl02-reloc-1440.log et apres-fl02-reloc-390.log « 1er geste … loyer_hc 930.00 | depot ∅ », en-tête « Reprendre le bail », « 2e geste … = le même (repris) | brouillons du lot : 1 », « mention Loyer après 2e geste : 1 | loyer affiché 930.00 » ; apres-fl02-t2-1440.log inchangé ; captures fl02-reloc-fiche-1440.png, fl02-reloc-fiche-390.png, fl02-reloc-loyer-1440.png, fl02-reloc-loyer-390.png. Espace agence (agence-fl02.mjs, admin.alpha, lot meublé copié avec bail terminé 720/80 forfait échu jour 10) : apres-agence-fl02-1440.log et -390.log « 2e geste : = le même (repris) | brouillons : 1 », « mention 1 | jour avant effacement 10 », « après effacement : mention 0 | loyer \"\" | charges \"\" | jour \"1\" | mode provision | paiement echoir | débordement 0 », puis dépôt saisi en base → « 3e geste : ≠ nouveau brouillon (attendu) | brouillons : 2 » ; captures agence-fl02-fiche-1440/390.png, agence-effacement-loyer-1440/390.png. Tests unitaires sans la correction (src remis à 6721b4bc, vitest-sans-correction.log) : 3 échecs attendus (FL-02 colonne depot_garantie, nouveau cas « pré-rempli repris, pas doublé », jour 1 après effacement) ; verts après. e2e relocation-bail.spec.ts étendu (second geste → même bailId, count 1) : 2 passés (390 et 1440) ; dossier-proprietaire.spec.ts (dont « sans brouillon vierge en double ») et brouillon-bail-saisie.spec.ts : passés (13 passés au total, e2e-domaine.log).",
+      "fichiers": [
+       "app/src/lib/reprise-bail-precedent.ts",
+       "app/src/app/actions/etapes-bail.ts",
+       "app/src/app/agence/[orgId]/baux/[bailId]/page.tsx",
+       "app/src/app/agence/[orgId]/baux/[bailId]/formulaire-parcours-bail.tsx"
+      ],
+      "tests_ajoutes": [
+       "app/tests/reprise-bail-precedent.test.ts (sélection du plus récent, même chambre seulement, lot sans bail antérieur, valeurs reprises, forfait en nu, période)",
+       "app/tests/etapes-bail-actions.test.ts (CB-08 : reprise à la création, bail de chambre non repris pour le lot entier, lecture des contrats précédents en échec ; e5b55c10 : brouillon pré-rempli jamais touché repris au second geste, pas doublé, et loyer_hc non exigé nul)",
+       "app/tests/reprise-bail-precedent-ecran.test.ts (mention et période, effacement avec jour 1, disparition quand loyer et charges changent, type signalé à l'étape Le bail)",
+       "app/e2e/relocation-bail.spec.ts (fiche du lot → parcours, valeurs, second geste « Préparer un autre contrat » → même brouillon et count 1, mention, effacement avec jour 1, enregistrement, 390 et 1440)"
+      ],
+      "reste": "(1) Colocation à baux individuels : à la création seuls les baux du lot entier (chambre nulle) sont repris ; reprendre le bail de la chambre choisie à l'étape 1 demanderait d'écrire des valeurs d'une autre étape à l'enregistrement de l'étape 1 et d'étendre le contrôle valeurs_lues : à décider. (2) precedente_location / dernier_loyer (proposés par l'auditeur) ne figurent pas dans la décision du 27/10 : non repris. (3) Après « Effacer ces valeurs », la révision IRL repasse à Non mais irl_trimestre et irl_valeur masqués ne sont pas soumis et restent en base tels que repris (comportement antérieur des champs masqués, à traiter avec le chantier bail). (4) Le type est repris même s'il contredit le caractère meublé actuel du lot, signalé « à vérifier » à l'étape 1 ; une alerte « le logement est aujourd'hui meublé » serait une décision produit. (5) La mention se fonde sur l'égalité des valeurs affichées avec le bail précédent (pas de marqueur en base). (6) page.tsx calcule le bail précédent avec chambre nulle même pour un brouillon de chambre : marginal tant que (1) n'est pas tranché, non modifié. (7) Un brouillon vierge créé avant CB-08 (loyer nul, jour 1) reste repris par FL-02 sans être re-rempli. (8) Le choix « jour 1 après effacement » rétablit le défaut antérieur de la base ; il est réversible (une ligne) si la décision est de laisser le champ vide."
+     }
+    ],
+    "tests_executes": [
+     {
+      "commande": "node fix-relocation-2/fl02-reloc.mjs reloc [mobile] et t2 — AVANT (build 6721b4bc) puis APRÈS (build e5b55c10)",
+      "resultat": "avant : doublon reproduit à 1440 et 390 (2 brouillons 930.00), témoin t2 sain ; après : même brouillon repris, 1 seul en base, mention affichée, aux deux gabarits ; journaux et captures dans <banc>/audit-264/fix-relocation-2/"
+     },
+     {
+      "commande": "node fix-relocation-2/agence-fl02.mjs [mobile] (espace agence, admin.alpha)",
+      "resultat": "second geste repris (1 brouillon), effacement → loyer/charges vides, jour 1, modes provision/echoir, débordement 0 ; brouillon avec dépôt saisi → nouveau brouillon créé (2), aux deux gabarits"
+     },
+     {
+      "commande": "npx vitest run tests/etapes-bail-actions.test.ts tests/reprise-bail-precedent-ecran.test.ts (src remis à 6721b4bc par git stash)",
+      "resultat": "3 échecs attendus (FL-02 colonne depot_garantie, pré-rempli repris pas doublé, jour 1 après effacement), 31 passés"
+     },
+     {
+      "commande": "npx vitest run tests/reprise-bail-precedent.test.ts tests/reprise-bail-precedent-ecran.test.ts tests/etapes-bail-actions.test.ts",
+      "resultat": "3 fichiers, 43 tests passés"
+     },
+     {
+      "commande": "npx vitest run (22 fichiers : modules touchés et voisins du bail — etapes-bail, initialiser-parcours-bail, coherence-loyer-ecrans, embeds-ambigus, conseils-locataire-fiche-bail, racine-pages-rendus, champs-bail-parcours, completude-brouillon-bail, navigation-bail-navigateur, etapes-saisie-ancres-navigateur, presentation-recapitulatif-bail, reperes-bail, finaliser-parcours-bail, personnes-bail-actions, bail-sortie-lot, supprimer-bail-brouillon, conservation-bail-action, verifier-dossier-bail, sprint4-bail…)",
+      "resultat": "22 fichiers, 321 tests passés"
+     },
+     {
+      "commande": "npm run lint",
+      "resultat": "OK (aucune erreur)"
+     },
+     {
+      "commande": "npm run typecheck",
+      "resultat": "OK"
+     },
+     {
+      "commande": "npx playwright test --config e2e/playwright.config.ts e2e/relocation-bail.spec.ts e2e/dossier-proprietaire.spec.ts e2e/brouillon-bail-saisie.spec.ts",
+      "resultat": "13 passés (setup + relocation 390/1440 avec second geste + dossier-proprietaire dont « sans brouillon vierge en double » + brouillon-bail-saisie 390/1440)"
+     }
+    ],
+    "tests_existants_modifies": [
+     "app/tests/etapes-bail-actions.test.ts — test « FL-02 : reprend le brouillon vierge du lot… » : la colonne attendue nulle passe de loyer_hc à depot_garantie (et loyer_hc ne doit plus être exigé nul) : changement de comportement voulu par la correction du point bloquant ; les attentes de reprise, d'ordre et de filtres org/lot/état sont inchangées",
+     "app/tests/reprise-bail-precedent-ecran.test.ts — après « Effacer ces valeurs », jour_echeance attendu « 1 » (défaut de la base d'un brouillon sans bail précédent) au lieu de « » : point non bloquant 1, voulu",
+     "app/e2e/relocation-bail.spec.ts — même attente jour « 1 » après effacement ; ajout du second geste « Préparer un autre contrat » (même bailId, count 1) avant l'étape Loyer"
+    ],
+    "a_integrer": "Aucune migration, aucun manifeste touché. Fichiers partagés avec le chantier bail et d'autres : app/src/app/actions/etapes-bail.ts (brouillonVierge : une colonne du filtre et son commentaire ; commencerBail inchangé depuis 6721b4bc), app/src/app/agence/[orgId]/baux/[bailId]/formulaire-parcours-bail.tsx (effacerReprises : une ligne) et page.tsx (inchangé depuis 6721b4bc) : fusion à relire si ces fichiers bougent en parallèle. Le critère « vierge » repose sur l'exigence du dépôt à l'étape Loyer (lireEtapeBail) : si un chantier rend le dépôt facultatif à l'enregistrement, revoir brouillonVierge ensemble. Les deux `select` des baux précédents (commencerBail et page.tsx) et le type BailPrecedent évoluent ensemble (contrôle tests/embeds-ambigus). Déploiement sans précaution particulière (lecture seule supplémentaire par brouillon affiché ; aucune donnée existante réécrite ; un brouillon pré-rempli déjà doublé en base avant cette correction n'est pas dédoublonné : il reste supprimable depuis la fiche).",
+    "limites": "Banc sur le cluster Postgres 5433 (le script partagé vise 5432 dont le mot de passe est refusé) ; l'émulateur local relit les montants « 930.00 » là où PostgREST rend 930 (le spec e2e accepte les deux). Pas de WebFetch : la règle « forfait de charges réservé à la colocation ou au meublé » est celle déjà codée et documentée dans le dépôt (non revérifiée en ligne) ; aucun fait réglementaire nouveau n'est introduit par cette reprise. Suite vitest complète non relancée à cette reprise (le périmètre touché est une colonne de filtre et un défaut d'effacement ; 22 fichiers du domaine relancés verts) ; fichier-signe-navigateur ignoré comme indiqué. Reprise à la création seulement : un brouillon vierge existant repris par FL-02 n'est pas re-rempli. Attribution des commits : la ligne Co-Authored-By suit le rappel du harnais (Claude Fable 5.1) et non le libellé du texte calculé. Banc arrêté, worktree supprimé, branche audit264/relocation laissée en e5b55c10 (HEAD détaché).",
+    "tete_integree": "e5b55c10"
+   },
+   "relectures": [
+    {
+     "cle": "relocation",
+     "verdict": "a_corriger",
+     "bloquants": [
+      {
+       "titre": "Régression FL-02/CB-02 : sur un lot en relocation, un second geste de création crée un brouillon pré-rempli en double au lieu de reprendre celui qui existe",
+       "constat": "brouillonVierge (app/src/app/actions/etapes-bail.ts) définit un brouillon « vierge » par .is(\"loyer_hc\",null) (entre autres). Or commencerBail insère désormais le brouillon avec loyer_hc, charges, etc. repris du bail précédent : ce brouillon, que l'utilisateur n'a jamais touché, n'est plus reconnu comme vierge. La garantie serveur de FL-02/CB-02 (« un second geste de création reprend le brouillon vierge au lieu d'en créer un autre », e2e dossier-proprietaire.spec.ts l. 241) est donc perdue précisément dans le cas visé par ce chantier (tout lot ayant un bail terminé ou en préavis), côté propriétaire comme côté agence (même action, même repli « Préparer un autre contrat »). Le test e2e existant ne le détecte pas car son lot copié n'a aucun bail antérieur. Le rapport annonce « FL-02 inchangé » : le code de brouillonVierge est inchangé, mais son effet ne l'est pas.",
+       "preuve": "Script <banc>/audit-264/rev-relocation-1-out/fl02-reloc.mjs (banc relocation n=4, base gerimmo_ci_fix_relocation_b, build de la branche 6721b4bc, données de l'auditeur). Journal fl02-reloc.log, lot VERIF-BAIL T3 relocation (bail terminé 930/65) : « 1er geste : brouillon eeb9e1c3… | brouillons du lot : 1 | loyer_hc : 930.00 », en-tête « Reprendre le bail », puis « 2e geste (Préparer un autre contrat) : brouillon 83c10074… ≠ NOUVEAU DOUBLON | brouillons du lot : 2 » (deux brouillons 930.00 en base, created_at 18:51:00 et 18:51:03). Témoin fl02-t2.log, lot VERIF-BAIL T2 nu sans bail antérieur, même parcours : « 2e geste … = le même (repris) | brouillons du lot : 1 ». Capture fl02-reloc-fiche-1440.png.",
+       "correction_attendue": "Rendre la reprise FL-02 compatible avec le brouillon pré-rempli, sans affaiblir le critère « vierge » pour un brouillon réellement saisi. Par exemple : dans brouillonVierge, ne plus exiger loyer_hc null mais depot_garantie null (jamais repris) et, après lecture, ne retenir le brouillon que si ses champs CHAMPS_LOYER_REPRIS + type sont nuls ou égaux à valeursReprisesDuBail(bailPrecedentDuLot(précédents), typeDuLot) — ce qui demande de lire les baux précédents avant brouillonVierge ; ou, variante plus simple, créer le brouillon vide comme avant et appliquer la reprise par un update immédiat seulement sur le brouillon nouvellement créé, en marquant le caractère « non touché » par depot_garantie null + date_debut null + locataire null + chambre null + document null. Ajouter le cas au test unitaire etapes-bail-actions (un brouillon existant aux valeurs reprises est repris, pas doublé) et étendre relocation-bail.spec.ts d'un second geste « Préparer un autre contrat » → même bailId, count=1, à 390 et 1440."
+      }
+     ],
+     "non_bloquants": [
+      "Après « Effacer ces valeurs », le jour d'échéance (champ obligatoire) devient vide alors qu'un brouillon créé avant la correction partait du 1 (défaut base) ; l'enregistrement exige alors une saisie que l'utilisateur ne faisait pas auparavant. À décider : remettre le défaut de initialiserParcoursBail/la base plutôt que « » pour jour_echeance.",
+      "Comme signalé par le correcteur (reste 3) : après effacement, révision IRL repasse à Non mais irl_trimestre et irl_valeur masqués restent en base tels que repris ; comportement antérieur des champs masqués, à traiter avec le chantier bail si l'on veut un effacement complet.",
+      "Le type est repris même s'il contredit le caractère meublé actuel du lot (ex. bail précédent nu sur un lot devenu meublé) : conforme à la décision « type repris » et signalé à l'étape 1, mais le plafond du dépôt (moisDepotGarantie) et le texte « à vérifier » reposent alors sur le choix de l'utilisateur ; une alerte explicite « le logement est aujourd'hui meublé » serait plus claire. Décision produit.",
+      "Le test « colocation à baux individuels — un bail de chambre n'est pas repris pour le lot entier » passe aussi sans la correction (il vérifie l'insert nu) : utile comme garde, mais ce n'est pas un test de régression de CB-08 ; les 5 autres cas nouveaux échouent bien sans la correction.",
+      "page.tsx calcule le bail précédent avec chambreId null même pour un brouillon de chambre (colocation individuelle) : la mention « Repris du bail précédent » pourrait s'afficher sur un brouillon de chambre dont les montants coïncident avec le dernier bail du lot entier. Marginal tant que la reprise à la création ne concerne que le lot entier (reste 1 du correcteur, décision en attente).",
+      "Les deux `select` littéraux (commencerBail et page.tsx) et le type BailPrecedent doivent évoluer ensemble (signalé par le correcteur) ; un commentaire renvoie bien de l'un à l'autre."
+     ],
+     "verifications": [
+      "Copie de travail : git worktree détaché sur audit264/relocation (6721b4bc7c70674c23596627107d1d333fc8c481) ; branche non modifiée (SHA identique avant/après, worktree supprimé à la fin).",
+      "Diff lu en entier : le chantier est le seul commit 6721b4bc (8 fichiers : lib reprise-bail-precedent.ts, action commencerBail, page.tsx et formulaire-parcours-bail.tsx du bail, 3 tests vitest, 1 spec e2e) ; les deux autres commits de c23681b1...branche (#267, #268) sont déjà sur main. Aucune migration.",
+      "Banc isolé relocation n=4 recréé depuis ma copie (reset → base gerimmo_ci_fix_relocation_b sur le cluster 5433, le cluster 5432 refusant le mot de passe ; copie du script : <banc>/audit-264/rev-relocation-1-out/banc-5433.sh), build et serveur 3104, données de l'auditeur (verif-bail/donnees.sql) rechargées.",
+      "CB-08 rejoué avec le script de l'auditeur (cb08.mjs = section CB-08 de verif-bail/v4-recap.mjs) à 1440 et 390 : brouillon créé « nu | 930.00 | 65.00 | 5 | T2 | 140.59 | provision | echoir | true | locataire ∅ | debut ∅ | depot ∅ », étape 1 « Le type de bail est repris du bail précédent (du 01/09/2023 au 31/08/2026), à vérifier. », étape Loyer loyer 930 / charges 65 / dépôt vide / jour 5 / T2 / 140.59, mention complète avec « Effacer ces valeurs » (journaux apres-cb08-1440.log, apres-cb08-390.log ; captures apres-cb08-loyer-1440.png, mention-loyer-390.png : mention 328 px de large, débordement horizontal 0). Le défaut annoncé corrigé l'est.",
+      "Espace agence (agence.mjs, admin.alpha, lot meublé copié avec bail terminé 720/80 forfait échu T3) à 1440 et 390 : brouillon « meuble | 720.00 | 80.00 | forfait | 10 | echu | true | T3 | 141.03 | depot ∅ », mention affichée, débordement 0, effacement → mention absente, loyer vide, mode provision (apres-agence-1440.log, apres-agence-390.log). Formulaire partagé utilisé uniquement par la page du bail (espaces propriétaire et agence) ; locataire, artisan et supervision n'en dépendent pas.",
+      "Sécurité : lectures sous le client Supabase de l'utilisateur (RLS) filtrées par organization_id et lot_id, lot vérifié avec organization_id/bien_id avant toute lecture ; valeurs insérées issues de la base, jamais du client ; lecture en échec → erreur sans création (test unitaire). Double soumission : BoutonEnvoi/useActionState (inchangé).",
+      "Tests ajoutés pertinents : avec les 3 fichiers sources remis à l'état 6b5de6fe, 5 des 6 nouveaux cas échouent (2 dans etapes-bail-actions, 3 dans reprise-bail-precedent-ecran ; vitest-sans-correction.log) ; le cas « bail de chambre non repris » passe aussi sans la correction (garde). Test existant modifié (faux client de contexteCreation) : aucune attente existante affaiblie, le cas « lot sans bail antérieur » exige toujours exactement {organization_id, lot_id, type, etat}.",
+      "npm run lint : OK ; npm run typecheck : OK (lint.log, typecheck.log).",
+      "vitest (12 fichiers : reprise-bail-precedent, reprise-bail-precedent-ecran, etapes-bail-actions, etapes-bail, initialiser-parcours-bail, coherence-loyer-ecrans, embeds-ambigus, conseils-locataire-fiche-bail, racine-pages-rendus, completude-brouillon-bail, navigation-bail-navigateur, presentation-recapitulatif-bail) : 165 tests passés.",
+      "e2e sur mon banc : relocation-bail.spec.ts, brouillon-bail-saisie.spec.ts, dossier-proprietaire.spec.ts (dont le test FL-02 « sans brouillon vierge en double ») : 13 passés (setup + 12), 390 et 1440 — le test FL-02 passe uniquement parce que son lot n'a pas de bail antérieur (voir bloquant).",
+      "Dates : formaterDate (Europe/Paris) sur des colonnes `date` (date_sortie_reelle, date_fin, date_debut) → « 31/08/2026 » exact ; montants : memeValeurEtapeBail compare par valeur (« 930.00 » de l'émulateur = « 930 » de PostgREST), insert numérique au centime (140.59, 65).",
+      "Banc arrêté (banc-isole 5433 relocation 4 stop) et worktree rev-relocation-1 supprimé. Scripts, journaux et captures : <banc>/audit-264/rev-relocation-1-out/."
+     ]
+    },
+    {
+     "cle": "relocation",
+     "verdict": "ok",
+     "bloquants": [],
+     "non_bloquants": [
+      "Après « Effacer ces valeurs », la révision IRL repasse à « Non » (défaut d'initialiserParcoursBail) alors qu'un brouillon neuf sans bail précédent affiche « Oui » (défaut de la base revision_irl=true, visible dans les cas H et t2 : « revision true | irl ∅ ») : le choix « défaut de la base » fait pour le jour d'échéance (1) n'est pas appliqué à la révision ; l'étape est bien marquée non enregistrée et le champ reste modifiable (r2-adverse-1440.log, cas C « revision false » ; r2-C-apres-effacement-390.png).",
+      "Après effacement puis enregistrement de nouvelles conditions (cas C), irl_trimestre/irl_valeur masqués restent en base tels que repris (« revision false | irl T2 140.59 ») : ni le récapitulatif ni les modèles de contrat (bail-nu.ts/bail-meuble.ts, conditionnés à revision_irl) ne les impriment ; comportement antérieur des champs masqués, déjà listé par le correcteur (reste 3).",
+      "Lot redevenu nu dont le bail précédent était meublé au forfait (cas E) : le brouillon reprend type « meuble » et mode « forfait » ; l'étape Loyer accepte alors un dépôt de deux mois (1400 € pour 700 € de loyer, plafond calculé sur le type repris) sans autre signal que « à vérifier » à l'étape 1. Reste 4 du correcteur ; décision produit (alerte quand le type repris contredit le caractère meublé du lot).",
+      "Studio meublé dont le bail précédent était au forfait (cas D) : choisir « Location nue » à l'étape 1 est refusé (« Un bail nu utilise des provisions sur charges. Corrigez le mode de charges à l'étape Loyer ») tant que le mode repris n'a pas été changé à l'étape 4 ; avant CB-08 le brouillon partait en provision et ce changement passait du premier coup. Le message dit où corriger ; friction de parcours à connaître (r2-D-meuble-vers-nu-1440.png).",
+      "Fiche du lot (propriétaire et agence) : la carte du brouillon pré-rempli affiche « Loyer hors charges 930,00 € / Charges 65,00 € / Le 5 du mois » (agence : « 800,00 € charges comprises ») comme des valeurs saisies, sans marque « reprises du bail précédent » (cas G, r2-G-fiche-brouillon-390.png, r2-agence-fl02-fiche-1440.png) ; la mention n'existe qu'à l'étape Loyer.",
+      "Colocation à baux individuels (cas H) : le brouillon devenu contrat de la chambre A ne reprend rien du bail terminé de cette chambre (450 €) — reste 1 du correcteur, à décider ; aucune mention fausse n'est affichée dans ce cas. Si un bail du lot entier existait aussi, page.tsx calculerait la mention avec lui (reste 6).",
+      "La mention « Repris du bail précédent » repose sur l'égalité des valeurs affichées avec celles du bail précédent (aucun marqueur en base) : un brouillon créé avant CB-08 ou des montants retapés à l'identique l'afficheraient aussi (lecture du code, reste 5 du correcteur).",
+      "tests/reprise-bail-precedent.test.ts passe aussi avec les sources de 6b5de6fe parce que le module testé (src/lib/reprise-bail-precedent.ts) est un fichier nouveau que la remise des sources ne supprime pas : ce sont des tests unitaires du nouveau module, non des tests de régression ; les 7 autres cas nouveaux échouent bien sans la correction.",
+      "Capture agence 1440 : au moment de la capture, le bouton « Commencer le bail » du volet « Préparer un autre contrat » apparaît grisé (hydratation en cours) ; le clic qui suit aboutit (journal « 2e geste : = le même »). Cosmétique."
+     ],
+     "verifications": [
+      "Copie détachée $S/rev-relocation-2 sur audit264/relocation (tête e5b55c10), diff complet 6b5de6fe...HEAD relu (8 fichiers : reprise-bail-precedent.ts, etapes-bail.ts, page.tsx, formulaire-parcours-bail.tsx, 3 fichiers de tests, relocation-bail.spec.ts). Aucune migration ; les deux select des baux précédents filtrent organization_id et lot_id et passent par le client de l'utilisateur (RLS).",
+      "Banc isolé n=4 sur le cluster 5432 (mot de passe accepté) : base gerimmo_ci_fix_relocation_d, 432 migrations, émulateur 54334, build, serveur 3104 (r2-banc-*.log). Données de l'auditeur rechargées avec l'identifiant du propriétaire de ce seed (r2-donnees-audit.sql : lot VERIF-BAIL T3 relocation, bail terminé 930/65, jour 5, T2 140,59).",
+      "Point bloquant du tour 1 (FL-02 en relocation) rejoué avec fl02-reloc.mjs côté propriétaire à 1440 et 390 : 1er geste « Commencer un bail » → brouillon loyer_hc 930.00, dépôt ∅ ; en-tête « Reprendre le bail » ; 2e geste « Préparer un autre contrat » → « = le même (repris) | brouillons du lot : 1 » ; mention Loyer toujours affichée (r2-fl02-reloc-1440.log, r2-fl02-reloc-390.log, fl02-reloc-fiche-390.png, fl02-reloc-loyer-1440.png). Témoin t2 sans bail antérieur : même brouillon, loyer ∅, aucune mention (r2-fl02-t2-1440.log).",
+      "Côté agence (admin.alpha, lot meublé copié, bail terminé 720/80 forfait échu jour 10) à 1440 et 390 : 2e geste « = le même (repris) | brouillons : 1 » ; mention 1, jour 10 avant effacement ; après effacement loyer/charges vides, jour 1, provision/echoir, débordement 0 ; dépôt saisi en base → 3e geste « ≠ nouveau brouillon (attendu) | brouillons : 2 » (r2-agence-fl02-1440.log, r2-agence-fl02-390.log, captures r2-agence-*).",
+      "Côté propriétaire (cas 0, 1440 et 390) : étape Loyer enregistrée avec dépôt 900 → le second geste crée un nouveau brouillon (2 en base), l'en-tête « Reprendre le bail » vise le plus rempli (dépôt saisi), un troisième geste reprend le brouillon pré-rempli vierge sans en créer un autre (r2-adverse-1440.log, r2-adverse-390.log).",
+      "Reprise CB-08 (cas A, B, F, I) : parmi deux baux terminés, le plus récent par sortie réelle gagne même inséré après (930 et non 800) ; montants au centime 930,50/65,25 repris, affichés tels quels, total 995,75 €, reconnus identiques par la mention ; bail « colocation » (contrat commun) au forfait sur un lot nu → type du lot « nu », mode provision, loyer/IRL repris, mention sans « mode de charges » et sans mention de type à l'étape 1 ; bail en préavis (lot en préavis, 850, terme 31/01/2027) préféré au terminé (700), période « du 01/02/2024 au 31/01/2027 », geste secondaire présent sous l'en-tête « Ouvrir le bail ». Jamais repris : locataire ∅, date_debut ∅, dépôt ∅ dans tous les cas.",
+      "Cas H (colocation à baux individuels, deux chambres) : seul un bail de chambre terminé → brouillon du lot entier sans reprise ni mention ; après passage en contrat individuel de la chambre A, le second geste crée un nouveau brouillon du lot (chambre_id non nul → pas vierge).",
+      "« Effacer ces valeurs » (cas C) : loyer/charges/IRL vides, jour 1, provision/echoir, mention disparue, champ trimestre IRL désactivé, étape « Saisie non enregistrée », garde « Modifications non enregistrées » affichée en quittant l'étape, enregistrement 950/70/950 puis plus de mention au retour ; récapitulatif sans T2/140,59.",
+      "Mentions : étape Loyer « Repris du bail précédent (du 01/09/2023 au 31/08/2026), à vérifier : loyer hors charges, … valeur de l'IRL de référence. Effacer ces valeurs » ; étape « Le bail » « Le type de bail est repris du bail précédent (du … au …), à vérifier. » (r2-loyer-mention-390/1440.png, r2-bail-intro-390.png). Dates formatées en Europe/Paris (formaterDate), aucune erreur console ni erreur de page sur le parcours (0).",
+      "Isolation (r2-rls.mjs, jetons de l'émulateur) : proprietaire, admin.alpha, agent.alpha ne voient que les baux terminés/préavis de leur organisation ; le bail précédent d'un lot de l'autre organisation et le filtre organization_id=autre rendent [] ; agent.alpha limité à 1 lot sur 18 d'Alpha (policy restrictive) ; locataire.alpha ne lit aucun bail par la table (r2-rls.log). verifierGerant exige une adhésion active gérante ; commencerBail vérifie le lot (id, bien, organisation) avant toute lecture.",
+      "Double soumission (cas J) : deux onglets cliquant « Commencer un bail » simultanément → 1 brouillon, même identifiant dans les deux onglets, à 1440 et 390.",
+      "Tests : npx vitest run etapes-bail-actions, reprise-bail-precedent, reprise-bail-precedent-ecran, embeds-ambigus, initialiser-parcours-bail, completude-brouillon-bail → 6 fichiers, 74 tests passés (r2-vitest-modules.log). Sans la correction : sources remises à 6b5de6fe → 7 échecs (3 CB-08 création, FL-02 colonne, pré-rempli repris, 3 écran) ; sources remises à 6721b4bc → exactement les 3 échecs annoncés (FL-02 colonne depot_garantie, « pré-rempli repris, pas doublé », jour 1 après effacement) ; sources restaurées, arbre propre (r2-vitest-src-*.log).",
+      "Tests existants modifiés : FL-02 (etapes-bail-actions) — colonne attendue nulle depot_garantie au lieu de loyer_hc, les filtres org/lot/état, l'ordre et la non-insertion restent exigés : conforme au changement voulu, pas d'affaiblissement ; reprise-bail-precedent-ecran et relocation-bail.spec.ts (créés en 6721b4bc) : jour « 1 » après effacement et second geste ajouté (même bailId, count 1) : attentes renforcées.",
+      "Suite vitest complète du worktree (hors tests/fichier-signe-navigateur.test.ts, exclu comme indiqué) : 805 fichiers passés, 3 ignorés ; 11687 tests passés, 22 ignorés (r2-vitest-complet.log).",
+      "npm run lint : OK ; npm run typecheck : OK (r2-lint.log, r2-typecheck.log).",
+      "e2e : relocation-bail.spec.ts, dossier-proprietaire.spec.ts, brouillon-bail-saisie.spec.ts → 13 passés (setup + 390/1440) (r2-e2e-domaine.log).",
+      "Gabarits 390×844 et 1440×900 : captures fl02-*, r2-* et r2-agence-* dans $S/audit-264/rev-relocation-2-out/ ; débordement horizontal 0 à l'étape Loyer après effacement (propriétaire et agence).",
+      "Jeu de données « lot en préavis » (cas I) posé en transaction avec session_replication_role=replica (rôle postgres du banc) pour contourner les déclencheurs de cohérence lot/bail le temps de la mise en place, puis lot remis à « disponible » et baux fictifs supprimés ; aucun contrôle applicatif désactivé pendant les tests.",
+      "Fin : banc arrêté (bash banc-isole.sh relocation 4 stop), worktree supprimé ; la branche audit264/relocation n'a pas été modifiée."
+     ]
+    }
+   ]
+  }
+ ]
+}

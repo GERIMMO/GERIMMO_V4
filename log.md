@@ -7213,3 +7213,18 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   publication) ; aucune reprise à décider.
 - Restent au dirigeant : les 5 décisions produit du bilan (CB-08, CB-14, TRV-09, ED-04, TRV-05) ; wiki à mettre à jour
   (Incident, Cycle de vie d'un incident, Diagnostic, alertes d'impayé).
+
+## [2026-10-27] fix | Les cinq décisions du 27/10 réalisées (CB-08, CB-14, TRV-09, ED-04, TRV-05) — non publié
+- Recette de production verte sur `main` après #268 : run 40545322110 (`6b5de6fe`, 68 tests, 16:53 → 17:05 UTC).
+- Cinq chantiers isolés (branches `audit264/images`, `meuble`, `documents_locataire`, `grand_parc`, `relocation`), chacun
+  relu par relecture adverse ; deux points bloquants trouvés et repris (grand parc : le titre d'un groupe comptait les baux
+  en les appelant « lots » ; relocation : le brouillon pré-rempli n'était plus « vierge », doublon au second geste —
+  régression de FL-02 évitée avant publication). Un redémarrage du conteneur a interrompu la seconde relecture de
+  « relocation », refaite : ok.
+- Intégration sur `claude/compassionate-euler-qpqjp6` (fusions sans conflit), trois retouches issues des relectures
+  (titres soulignés et en-tête de « Mes documents » ; révision IRL au défaut de la base après « Effacer ces valeurs »).
+  Aucune migration. Batterie sur la tête `3b58d8f2` : lint 0, types 0, build OK, Vitest 811 fichiers /
+  11 726 tests verts, 257 parcours navigateur (253 verts, 1 ignoré, 3 échecs analysés : 2 attentes périmées corrigées et
+  rejouées vertes, 1 instable `supervision-consignes` 390 px rejoué vert seul).
+- Rapport : `app/docs/audit-refonte-264-20261027.md` § 11 ; preuves : `app/docs/preuves-audit-264/decisions.json` et
+  15 captures ; bilan du wiki mis à jour. **Rien n'est fusionné ni déployé** : accord attendu.

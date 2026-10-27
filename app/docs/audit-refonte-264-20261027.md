@@ -10,7 +10,8 @@
 **Prêt à publier avec réserves.** Les 70 défauts confirmés sont traités (53 corrigés, 12 partiellement, 5 renvoyés à une
 décision produit) ; la batterie complète est au niveau de la référence ; aucune donnée réelle n'est encore touchée en
 production. Les réserves sont listées en § 7 (décisions) et § 10 (déploiement : cinq migrations à passer par le chantier
-« Migrations Supabase », simulation d'abord, avant le code).
+« Migrations Supabase », simulation d'abord, avant le code). **Mise à jour du 27/10 au soir** : #267 est publiée (voir
+`log.md`), et les cinq décisions du § 7 ont été tranchées et réalisées (§ 11), en attente d'accord pour une seconde publication.
 
 ## 1. Périmètre et correspondance avec la version publiée
 
@@ -308,7 +309,7 @@ l'audit ne pouvait pas trancher seul. Chacun est décrit avec ce qui a été fai
 
 - **LAT-03** (loyers, partiel) — Sur la ligne du bail, dans la fenêtre et dans « À faire », l'arriéré est visible : « 1 autre mois à recevoir sur ce bail », « 1 040,00 € au total », et la marque « Prioritaire » à partir de deux termes échus. La carte de l'accueil compte les échéances dues (« 7 loyers à confirmer »). Nouveau à cette reprise : l'en-tête « N à traiter » de « À faire » compte aussi les échéances, et non plus les baux. Sur VLA : « 15 À TRAITER », soit 10 demandes et « 5 à confirmer », au lieu de « 14 » face à « 5 à 
   - Reste : Décision requise : Finances (/espace/<org>/loyers) n'affiche toujours pas d'arriéré cumulé, seulement les échéances de la période. Faut-il un indicateur « arriéré à ce jour », et sous quelle forme ? L'unité retenue est l'échéance : la carte de l'accueil, la section des loyers et l'en-tête de « À faire » la partagent désormais. Le test d'origine de la PR « sans gonfler le compteur » comptait un bail pour une demande ; il est adapté (voir tests_existants_modifies). Si le produit préfère compter le
-- **TRV-09** (loyers, décision requise) — Sur un parc de 300 lots, le tableau de bord rend toujours une tâche par lot et par obligation (des centaines de lignes), et /alertes n'est pas paginé.
+- **TRV-09** (loyers, décision requise) — **fait le 27/10, voir § 11** — Sur un parc de 300 lots, le tableau de bord rend toujours une tâche par lot et par obligation (des centaines de lignes), et /alertes n'est pas paginé.
   - Reste : Décisions attendues : (1) regrouper par nature, et lesquelles ? (2) vers quelle destination filtrée (par exemple Biens filtrés par obligation, à créer) ? (3) plafonner « Mes tâches » avec un lien vers la liste complète ? (4) paginer /alertes ?
 - **FL-04** (fiche_lot, partiel) — La fenêtre « Nouveau propriétaire » demande la qualité dans la liste fermée (Personne physique, Indivision, SCI familiale, SCI, Personne morale), chacune avec son aide (bail nu de 3 ou 6 ans). Prénom, date et commune de naissance ne sont demandés, et obligatoires, que pour une personne physique. Une SCI familiale saisie sans prénom est enregistrée « SCI familiale » (bail nu de 3 ans), plus « Personne morale ». La carte « Propriétaires » affiche la qualité, et « bail nu de 6 ans » quand elle l'im
   - Reste : L'étape 2 du parcours du bail (personnes-bail.tsx, autre chantier) n'affiche ni la qualité ni la durée qui en découle. Les fiches créées avant la correction avec « Personne morale » par défaut ne sont pas reprises (aucune donnée réécrite) : à corriger depuis la fiche de la personne.
@@ -324,19 +325,19 @@ l'audit ne pouvait pas trancher seul. Chacun est décrit avec ce qui a été fai
   - Reste : DÉCISION REQUISE pour les diagnostics : aucune réponse n'est ajoutée. concepts/Diagnostic.md signale des références « citées de mémoire — à confirmer » et des points à trancher, et le chantier diagnostics modifie leur qualification en parallèle. La liste des diagnostics exigés est à valider sur service-public.fr ou legifrance.gouv.fr (non revérifié en ligne ici), puis à rédiger avec ce chantier.
 - **CB-09** (bail, partiel) — Sans locataire choisi, une seule correction « Choisir le locataire principal » remplace les cinq lignes d'identité, de naissance et d'adresse. Les mentions brutes ont un libellé lisible (Inventaire du mobilier, Classe énergie du DPE, Ville de votre profil, etc.).
   - Reste : Le ciblage vise toujours le titre de section, pas la carte de la personne. Le lien vers /profil n'a pas de paramètre de retour vers le bail : la page profil ne gère que retour=nouveau-lot, et la modifier sort de ce chantier.
-- **CB-08** (bail, décision requise) — En relocation, le brouillon ne reprend toujours rien du bail précédent du lot (loyer, charges, échéance, IRL, précédente location).
-- **CB-14** (bail, décision requise) — L'inventaire du meublé se saisit toujours meuble par meuble ; la liste du décret n'est qu'un rappel.
+- **CB-08** (bail, décision requise) — **fait le 27/10, voir § 11** — En relocation, le brouillon ne reprend toujours rien du bail précédent du lot (loyer, charges, échéance, IRL, précédente location).
+- **CB-14** (bail, décision requise) — **fait le 27/10, voir § 11** — L'inventaire du meublé se saisit toujours meuble par meuble ; la liste du décret n'est qu'un rappel.
 - **DOC-13** (depot_documents, partiel) — Redéposer le même fichier refusé comme doublon ne consomme plus le quota. Sur le banc, 22 essais consécutifs laissent le nombre de réservations de l'heure à 8, au lieu de bloquer au 17e essai. Un transfert interrompu puis relancé ne consomme pas non plus de nouvelle réservation. Un fichier invalide (format, PDF tronqué, fichier vide, image illisible) est refusé dans le navigateur avant toute réservation. Quand la limite est atteinte, le message donne la cause et l'heure de reprise : « Vous avez 
   - Reste : Le PREMIER essai d'un doublon consomme encore une réservation, car ses octets ont réellement transité avant le contrôle métier. Ne pas le compter rouvrirait l'abus de stockage que le quota borne, sauf à libérer côté serveur l'objet transité. L'alternative serait un contrôle d'empreinte avant transfert, propre à chaque parcours et à son organisation. Le seuil de 20 par heure pour l'installation d'un parc reste lui aussi une décision produit : la limite est voulue et testée par tests/depot-direct-
 - **DOC-10** (depot_documents, partiel) — Images : un PNG ou un JPEG dont seule la signature est valide est refusé avant tout transfert avec le message « L'image « … » est endommagée ou illisible. Choisissez une photo ou un scan qui s'ouvre sur votre appareil. » Une image valide passe. Aucune bibliothèque n'est chargée : le contrôle utilise le décodeur natif du navigateur (createImageBitmap), qui s'applique à tous les espaces utilisant le dépôt direct. PDF : le PDF corrompu de l'auditeur est toujours accepté (décision requise ci-dessous
   - Reste : DÉCISION REQUISE pour les PDF. pdf.js (pdfjs-dist 6.4.299) n'est PAS chargé sur la page de dépôt : LecteurDocument l'importe dynamiquement pour l'aperçu seulement. L'ouvrir avant transfert ajouterait au premier dépôt environ 433 Ko de module et 1,26 Mo de worker (tailles brutes) dans tous les formulaires à dépôt direct. Plusieurs fixtures e2e de PDF minimaux, sans xref (alias-espace, personne-reprise, invitation-artisan), seraient aussi à revoir. Un contrôle structurel sans pdf.js (startxref ava
 - **ED-03** (transversal, partiel) — Avant : dans l'espace locataire d'une agence à charte, le bouton d'action principal (« Signaler un problème ») restait doré, la couleur de Gerimmo, au milieu d'une page aux couleurs de l'agence. Après : il prend la couleur de l'agence, avec un texte blanc. Sans charte, l'or reste.
   - Reste : Décision requise : faut-il masquer le décor saisonnier de Gerimmo (citrouille de l'en-tête, photo d'ambiance du menu) quand une charte d'agence est active ? Le wiki (concepts/Marque blanche.md) définit l'habillage par le logo et deux couleurs, sans rien dire du décor saisonnier : ce n'est pas implémenté.
-- **ED-04** (transversal, décision requise) — Dans « Mes documents » du locataire, une pièce s'ouvre en fenêtre (Aperçu) avec un titre non cliquable, une quittance dans un nouvel onglet avec un titre cliquable, et le bail s'ouvre en fenêtre depuis Documents mais dans un nouvel onglet depuis l'accueil et « Mon logement ».
+- **ED-04** (transversal, décision requise) — **fait le 27/10, voir § 11** — Dans « Mes documents » du locataire, une pièce s'ouvre en fenêtre (Aperçu) avec un titre non cliquable, une quittance dans un nouvel onglet avec un titre cliquable, et le bail s'ouvre en fenêtre depuis Documents mais dans un nouvel onglet depuis l'accueil et « Mon logement ».
   - Reste : Décision attendue : aperçu en fenêtre partout (Modale ApercuDocumentEspace), ou nouvel onglet partout, pour le bail signé, les pièces et les quittances, depuis Documents, l'accueil et « Mon logement ». Une fois le geste choisi, le titre de chaque rang le déclenche (règle du 24/09) et le commentaire est mis à jour.
 - **TRV-03** (transversal, partiel) — Avant : au premier chargement, le menu latéral téléchargeait deux photos plein format, « quartier » (292 Ko) puis celle du jour (253 Ko), soit 547 Ko en 4G lente selon l'auditeur. Après : une seule photo (255 Ko). Avant l'hydratation, le menu reste bleu nuit uni au lieu d'afficher brièvement la photo « quartier » aussitôt remplacée. Après l'hydratation, l'affichage est identique au pixel près.
   - Reste : La photo du jour reste servie plein format (1400×933, 140 à 385 Ko) sous un voile de 84 %. Des variantes réduites pour les fonds voilés imposeraient 15 fichiers de plus dans public/ (le tableau de bord, lui, passe par next/image). Estimation mesurée (fonds-estimation.cjs, WebP q60, voile composé) : halloween 253 → 154 Ko, écart moyen 0,61/255, p99 3/255 ; total 4,0 → 2,5 Mo. Le gain par premier chargement est à arbitrer contre le poids ajouté au dépôt (voir aussi TRV-05) : non fait.
-- **TRV-05** (transversal, décision requise) — Aucun effet pour l'utilisateur : fichiers jamais servis. Ils alourdissent le dépôt et le déploiement.
+- **TRV-05** (transversal, décision requise) — **fait le 27/10, voir § 11** — Aucun effet pour l'utilisateur : fichiers jamais servis. Ils alourdissent le dépôt et le déploiement.
   - Reste : Décision attendue : supprimer les deux dossiers (14 images, ≈ 2,4 Mo) et le composant BandeauAccueil avec son module CSS, ou les conserver pour un usage prévu. Usage actuel : aucun.
 
 Défauts antérieurs à la refonte relevés en passant, non traités (hors périmètre, à planifier) :
@@ -348,13 +349,14 @@ Défauts antérieurs à la refonte relevés en passant, non traités (hors péri
 
 ## 8. Preuves
 
-- **Captures avant/après** (47 fichiers WebP, 1,6 Mo) : `app/docs/preuves-audit-264/` — nommées par constat, gabarit
+- **Captures avant/après** (47 fichiers WebP, 1,6 Mo, puis 15 de plus pour les chantiers de décision du § 11) : `app/docs/preuves-audit-264/` — nommées par constat, gabarit
   (`tel` = 390×844, `ordi` = 1440×900) et moment (`avant`, `apres`).
 - **Reproductions** : chaque constat de l'annexe B porte ses étapes de reproduction, sa preuve (sortie, requête, capture)
   et sa cause dans `app/docs/preuves-audit-264/constats.json` (extraction des rapports des auditeurs et des
   vérificateurs). Les tests ajoutés (§ 6) sont les reproductions durables.
 - **Rapports des chantiers** (statut par constat, correction, vérification avant/après, tests, limites) :
-  `app/docs/preuves-audit-264/corrections.json`.
+  `app/docs/preuves-audit-264/corrections.json` ; ceux des cinq chantiers de décision et de leurs relectures adverses :
+  `app/docs/preuves-audit-264/decisions.json`.
 - Les scripts navigateur, journaux et 1 477 captures brutes des auditeurs (375 Mo) restent dans l'espace de travail de
   la session (`scratchpad/audit-264/`), non versionnés.
 
@@ -541,6 +543,120 @@ Précautions :
 - Wiki à mettre à jour (hors code) : `concepts/Incident.md` (« l'agent peut saisir pour lui » → bail choisi ou unique,
   jamais de déclarant pour le gérant), `processus/Cycle de vie d'un incident.md`, `concepts/Diagnostic.md` (« 10 ans » →
   régime transitoire du DPE), `concepts/Alerte.md` ou équivalent (l'alerte d'impayé suit les encaissements).
+
+## 11. Chantiers des cinq décisions du 27 octobre
+
+Le 27/10 après la publication de #267, le dirigeant a tranché les cinq décisions du § 7 : les cinq sont **faites**.
+Même méthode que les corrections : un chantier isolé par décision (branche `audit264/<chantier>`, base, émulateur et
+serveur propres), relecture adverse, reprise si point bloquant, puis intégration sur la branche de travail et batterie
+complète. Aucune migration. Les rapports des chantiers et des relectures sont dans `docs/preuves-audit-264/decisions.json`.
+
+| Décision | Chantier | Tête | Relecture | Résultat |
+|---|---|---|---|---|
+| TRV-05 — images inutilisées | `audit264/images` | `da1b8002` | ok au 1ᵉʳ tour | 14 WebP et BandeauAccueil supprimés (−2 438 572 octets) ; test `illustrations-referencees` |
+| CB-14 — inventaire du meublé | `audit264/meuble` | `5b163511` | ok au 1ᵉʳ tour | « Ajouter les 11 éléments obligatoires », compléter l'état sur place |
+| ED-04 — documents du locataire | `audit264/documents_locataire` | `e892b38d` | ok au 1ᵉʳ tour | un seul geste : le titre ouvre l'aperçu en fenêtre, pièces, bail et quittances |
+| TRV-09 — grand parc | `audit264/grand_parc` | `2dddeb05` | 1 bloquant, repris, ok au 2ᵉ tour | au-delà de 24 tâches, une ligne dépliable par obligation |
+| CB-08 — relocation | `audit264/relocation` | `e5b55c10` | 1 bloquant, repris, ok au 2ᵉ tour | le brouillon reprend type, loyer, charges, échéance, IRL du bail précédent, signalés et effaçables |
+
+### 11.1 TRV-05 — Retrait des 14 images et du composant jamais utilisés
+- **Effet** : aucun pour l'utilisateur (fichiers jamais servis) ; le dépôt et le déploiement perdent 2,4 Mo.
+- **Preuve d'absence d'usage** : recherche de toute référence (`/illustrations/accueil/`, `accueil-salon`, `BandeauAccueil`)
+  dans `src/`, `public/`, `tests/`, `e2e/`, `scripts/`, `next.config.ts` : seuls les rapports d'audit les citent. Captures de
+  l'accueil public et du tableau de bord identiques à l'octet avant et après.
+- **Garde-fou** : `tests/illustrations-referencees.test.ts` échoue si une illustration de `public/illustrations` n'est
+  référencée nulle part dans `src/` ou si une illustration référencée manque. Limite connue : une référence hors de `src/`
+  (aucune aujourd'hui) serait comptée orpheline.
+
+### 11.2 CB-14 — Inventaire du meublé : les 11 éléments du décret en un geste
+- **Effet** : dans la carte « Inventaire du mobilier », un bouton crée d'un coup les 11 lignes du décret n° 2015-981 (un
+  exemplaire, état « à préciser ») ; un second clic n'ajoute rien et le dit ; un élément déjà saisi à la main (casse, accents
+  ignorés) est sauté et compté. Chaque ligne sans état porte « État à préciser » et « Compléter » (quantité + état, sur place).
+- **Code** : module `lib/inventaire-meuble.ts` (liste unique du décret, normalisation), actions serveur `ajouterMobilierDecret`
+  et `modifierInventaireLigne` (bornées bail + organisation, gérant vérifié), composant `formulaire-inventaire.tsx`. Le modèle
+  de contrat meublé reprend la même liste de libellés.
+- **Tests** : `inventaire-mobilier-decret.test.ts`, `formulaire-inventaire-rendu.test.ts`, e2e `inventaire-meuble.spec.ts`
+  (390 et 1440). La liste du décret est celle déjà présente dans le code (non revérifiée en ligne : Légifrance injoignable).
+- **Restes (décision)** : la complétude du bail ne regarde que la présence de lignes, pas leur état (rendre l'inventaire « à
+  vérifier » tant qu'un état manque = migration + choix produit) ; la saisie manuelle n'est pas dédoublonnée (comportement
+  antérieur) ; en cas de double clic dans la même tâche, le message affiché est celui du second clic (aucun doublon).
+
+### 11.3 ED-04 — Espace locataire : un seul geste de consultation
+- **Effet** : dans « Mes documents », le titre de chaque rang (pièce, bail signé, quittance ou reçu) ouvre l'aperçu en fenêtre ;
+  « Télécharger » est dans la fenêtre ; une quittance, qui n'a pas de fichier, s'affiche dans son cadre avec « Imprimer ou
+  enregistrer en PDF ». « Consulter mon bail signé » (accueil, Mon logement) passe par la même fenêtre. Plus aucun nouvel
+  onglet. Clavier : Entrée ouvre, Échap referme et rend le focus. À l'intégration : titres soulignés comme les autres
+  liens-actions de l'espace (le geste se voyait seulement au survol) et texte d'en-tête actualisé.
+- **Code** : composant `consultation-document.tsx` ; nouvelle route `GET /quittance/[id]/document` (HTML du document conforme,
+  sous la session de l'appelant, mêmes barrières que la page, `no-store`) ; `?apercu=integre` sur la route du bail signé.
+- **Tests** : `documents-locataire-consultation.test.ts`, `quittance-document-route.test.ts`, e2e `parcours-locataire.spec.ts`
+  (2 cas, 390 et 1440). Espaces propriétaire et artisan non touchés ; `apercu-document-espace.tsx` reste utilisé par l'artisan.
+- **Restes** : la fenêtre, portée dans `<body>`, reste neutre sous une charte d'agence (comme avant) ; les liens vers
+  `/quittance/<id>` hors de « Mes documents » (accueil, Mes paiements) sont inchangés — à confirmer si le geste unique doit
+  aussi s'y appliquer.
+
+### 11.4 TRV-09 — Grand parc : tâches regroupées par obligation
+- **Effet** : au-delà de 24 tâches, les tâches d'une même obligation se lisent en une ligne « 300 lots : DPE absent ou
+  expiré », « 320 baux : État des lieux d'entrée à signer », « 30 biens : ERP… », dépliable sur la liste triée des lots
+  (lien vers chaque fiche, échéance la plus proche sur la ligne). Un petit parc garde une ligne par tâche ; « Mes tâches »
+  reste le nombre de tâches. Mesure sur 300 lots fictifs : 11 379 → 2 274 nœuds DOM, 1 712 → 550 Ko de HTML.
+- **Relecture (bloquant repris)** : le titre comptait les tâches mais les appelait « lots » (30 baux de colocation sur 10
+  lots → « 30 lots »). Désormais le nombre compte ce que l'unité nomme (baux, lots, biens, documents, demandes, incidents) ;
+  le dépliage distingue chambre et titre ; les alertes dont le titre porte un numéro ne se regroupent pas ; `prefetch`
+  désactivé sur le dépliage (32 requêtes évitées).
+- **Tests** : `taches-accueil-grand-parc.test.ts` (12 tests, dont la colocation 10 lots / 30 baux) ; le test ajouté au
+  premier commit a été ajusté pour l'unité « baux » (changement voulu par la relecture, aucun test antérieur touché).
+- **Restes** : `/alertes` (19 370 nœuds avec 300 lots) n'est pas paginée (hors périmètre de la décision) ; le temps serveur
+  (3,5 s pour 300 lots) tient aux lectures, pas au rendu.
+
+### 11.5 CB-08 — Relocation : le brouillon reprend le bail précédent
+- **Effet** : sur un lot dont un bail est terminé ou en préavis, « Commencer un bail » crée un brouillon qui reprend du bail
+  précédent le plus récent le type (nu/meublé), le loyer hors charges, les charges et leur mode, le jour et le terme de
+  paiement, la révision IRL (trimestre, indice). L'étape Loyer dit « Repris du bail précédent (du … au …), à vérifier : … »
+  avec « Effacer ces valeurs » ; l'étape « Le bail » signale le type repris. Jamais repris : locataire, garants, dates, dépôt.
+  Un bail nu ne reprend pas un forfait de charges. Même comportement côté agence.
+- **Relecture (bloquant repris)** : le brouillon pré-rempli n'était plus reconnu « vierge » (critère : loyer nul), donc un
+  second « Préparer un autre contrat » créait un doublon — régression de FL-02 sur tous les lots en relocation. Le critère
+  devient « dépôt de garantie nul » (exigé pour enregistrer l'étape Loyer, jamais repris) : le second geste rouvre le même
+  brouillon ; un brouillon dont l'étape Loyer a été enregistrée n'est plus vierge, comme avant.
+- **Tests** : `reprise-bail-precedent.test.ts`, `reprise-bail-precedent-ecran.test.ts`, cas ajoutés à
+  `etapes-bail-actions.test.ts`, e2e `relocation-bail.spec.ts` (second geste inclus). Trois tests existants ajustés, tous
+  pour le changement de comportement voulu : colonne « vierge » (`depot_garantie` au lieu de `loyer_hc`), jour d'échéance
+  « 1 » après effacement (défaut de la base, comme un brouillon sans bail précédent).
+- **Restes (décision)** : en colocation à baux individuels, seuls les baux du lot entier sont repris à la création (la
+  chambre n'est connue qu'à l'étape 1) ; après effacement, l'IRL masquée garde ses valeurs en base (comportement antérieur
+  des champs masqués) ; le type est repris même s'il contredit le caractère meublé actuel du lot (signalé, à l'utilisateur
+  de vérifier) ; `precedente_location` / `dernier_loyer` ne sont pas remplis (colonnes absentes du brouillon).
+- **Seconde relecture (ok, 0 bloquant)** : second geste rejoué côté propriétaire et agence (1 brouillon en base), isolation
+  entre organisations vérifiée (un bail précédent d'une autre organisation n'est jamais lu), double soumission (1 brouillon),
+  centimes, bail en préavis préféré au terminé, suite unitaire complète verte. Points relevés et traités à l'intégration :
+  après « Effacer ces valeurs », la révision IRL repasse « Oui » comme un brouillon neuf (défaut de la base), cohérent
+  avec le jour d'échéance. Points laissés en décision : la fiche du lot affiche les valeurs reprises sans la marque
+  « reprises du bail précédent » (elle n'existe qu'à l'étape Loyer) ; un lot redevenu nu dont le bail précédent était
+  meublé au forfait reprend type et mode, et le plafond du dépôt suit alors le type repris (« à vérifier » seul signal).
+
+### 11.6 Intégration et batterie
+Sur la branche de travail après fusion des cinq chantiers (tête `3b58d8f2`), banc identique à la CI (base neuve, 432 migrations,
+émulateur, build de production) :
+
+| Contrôle | Résultat |
+|---|---|
+| `npm run lint` | 0 erreur |
+| `npm run build` puis `npm run typecheck` | OK, 0 erreur (la nouvelle route `/quittance/[id]/document` génère son type au build, comme en CI) |
+| Vitest complet | **811 fichiers, 11 726 tests réussis**, 22 ignorés, 0 échec |
+| Parcours navigateur (257) | 253 réussis, 1 ignoré, 3 échecs analysés : 2 = attente du test de relocation périmée par la retouche « révision IRL au défaut » (test aligné, rejoué 2/2 vert) ; 1 = `supervision-consignes` à 390 px, deux `<main>` pendant une navigation sous charge (aucun fichier de supervision touché ; rejoué seul : 4/4 vert) |
+
+Retouches d'intégration (trois commits, issues des relectures) : titres soulignés et en-tête actualisé dans « Mes
+documents » ; révision IRL remise au défaut de la base après « Effacer ces valeurs » (comme le jour d'échéance), avec les
+tests d'écran et de parcours alignés sur ce choix. Fusions sans conflit ; aucun fichier touché par deux chantiers.
+
+Leçon de banc : la suite unitaire et les parcours navigateur ne doivent pas tourner en même temps sur le même banc — les
+tests `*-api` ouvrent des sessions avec les comptes fictifs partagés et invalident celles du navigateur (premier passage
+pollué, arrêté, puis rejoué seul : c'est le passage ci-dessus).
+
+Déploiement : aucune migration, aucune variable, aucun secret ; suppression de 14 fichiers de `public/illustrations/`
+(jamais demandés par aucune page : leurs adresses répondront 404 sans effet) ; recette de production à relancer après
+la fusion.
 
 ## Annexe A — Sources
 

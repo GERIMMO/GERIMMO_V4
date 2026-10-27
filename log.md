@@ -7228,3 +7228,15 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   rejouées vertes, 1 instable `supervision-consignes` 390 px rejoué vert seul).
 - Rapport : `app/docs/audit-refonte-264-20261027.md` § 11 ; preuves : `app/docs/preuves-audit-264/decisions.json` et
   15 captures ; bilan du wiki mis à jour. **Rien n'est fusionné ni déployé** : accord attendu.
+
+## [2026-10-27] deploy | Cinq décisions du 27/10 en production (PR #269)
+- CI « Lint, types, tests, build » verte sur la révision exacte `62ff3d01` (run 40579541473, 20:36 → 21:04 UTC) ; aucune
+  migration (pas de simulation ni d'application à faire).
+- Fusion squash → `main` `ff969f7e` à 21:05 UTC ; déploiement Vercel `dpl_5s79ZpRnS2tFdKx4RW8B3d8qD5f5` READY à 21:06,
+  alias `www.gerimmo.app`, 0 erreur d'exécution sur 2 h.
+- « Recette de production avec nettoyage » verte : run 40585968963 (21:20 → 21:29 UTC, 68 tests).
+- Un redémarrage du conteneur de la session a eu lieu entre la fusion et la recette : aucun effet sur la production ;
+  bancs locaux relancés.
+- Ce qui change pour les utilisateurs : relocation pré-remplie depuis le bail précédent ; 11 éléments du décret en un geste
+  dans l'inventaire du meublé ; tâches du grand parc regroupées par obligation ; un seul geste de consultation dans
+  « Mes documents » du locataire ; 2,4 Mo d'images inutilisées retirées.

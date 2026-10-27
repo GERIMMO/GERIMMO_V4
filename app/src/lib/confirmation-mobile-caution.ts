@@ -35,8 +35,6 @@ import { telephoneZoho } from "@/lib/zoho-sign";
 // l'acte de cautionnement du même bail est repris sans nouvelle demande (`reprendre_mobiles_garants_bail`) ; sinon un
 // lien lui part, et le bail attend. Chaque lien porte son garant et son acte (« cautionnement » ou « bail »).
 
-/** Sept jours au plus (la base retient aussi la veille de l'expiration de la préparation, si elle est plus proche). */
-export const DUREE_LIEN_CAUTION_JOURS = 7;
 /** Liens envoyés par organisation et par heure (même compteur que les invitations, clé distincte). */
 export const LIMITE_LIENS_CAUTION_PAR_ORGANISATION = 20;
 /** Confirmations tentées par adresse IP et par heure sur la page publique. */

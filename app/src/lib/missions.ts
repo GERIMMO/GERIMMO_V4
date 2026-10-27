@@ -44,10 +44,6 @@ export const TACHES_SUIVIES={
 } as Record<Mission|'orchestrateur'|'sauvegarde',{nom:string;equipe:Equipe}>;
 export type TacheSuivie=keyof typeof TACHES_SUIVIES;
 export function estTacheSuivie(cle:string):cle is TacheSuivie{return Object.hasOwn(TACHES_SUIVIES,cle);}
-/** Le nom d'une tâche du journal, ou un repli honnête. */
-export function libelleTache(cle:string):string{return estTacheSuivie(cle)?TACHES_SUIVIES[cle].nom:'Travail automatique de Gerimmo';}
-/** « Équipe Finance et fiscalité » pour une tâche connue, sinon null. */
-export function equipeDeLaTache(cle:string):Equipe|null{return estTacheSuivie(cle)?TACHES_SUIVIES[cle].equipe:null;}
 export function missionsDeLEquipe(equipe:Equipe):Mission[]{return (Object.keys(MISSIONS) as Mission[]).filter(m=>MISSIONS[m].equipe===equipe);}
 // Ce que le passage garde de sa réponse : des comptes et des drapeaux, jamais un
 // texte (un message d'erreur peut porter une adresse ou un secret).

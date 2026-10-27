@@ -11,7 +11,6 @@ export type LigneMarche = {
   periode_publicite_debut: string | null; periode_publicite_fin: string | null;
   observations: Record<string, ObservationTerritoriale>; mesure_le: string;
 };
-export const COLONNES_MARCHE = 'departement,logements_locatifs,agences_locales,tension_marche,concurrence,artisans_disponibles,cout_publicitaire_cents,clics_publicitaires,prospects,clients_gagnes,cout_acquisition_cents,cout_prospect_cents,periode_publicite_debut,periode_publicite_fin,observations,mesure_le';
 export const LIBELLES_MARCHE: Record<string, string> = {
   logements_loues_prive: 'logements privés loués vides', agences: 'entreprises immobilières', communes_zone_tendue: 'communes en zone tendue',
   artisans_disponibles: 'artisans vérifiés', concurrence: 'concurrence directe', cout_acquisition_cents: 'coût par nouveau client',

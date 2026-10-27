@@ -93,14 +93,6 @@ export const ORDRE_CRITICITE: Record<string, number> = {
   informative: 2,
 };
 
-// Badges de criticité — uniquement des tokens du design system (marque blanche S14)
-// Charte 04 — badges de statut : texte coloré, sans pastille ni fond.
-export const COULEURS_CRITICITE: Record<string, string> = {
-  informative: "text-muted-foreground",
-  normale: "text-warning-soft-foreground",
-  critique: "text-destructive",
-};
-
 export const ROLES_GERANTS = ["admin_agence", "agent", "proprietaire_direct"];
 
 // Le responsable de l'espace : assigne « tout le monde », réattribue les

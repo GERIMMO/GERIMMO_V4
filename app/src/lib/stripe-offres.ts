@@ -25,7 +25,6 @@ import {
   EcritureStripeHorsDelai,
   lireErreurStripe,
   messageStripePourClient,
-  piedDeFacturePour,
   verifierAucuneSouscriptionVivante,
   type Echec,
   type Reussite,
@@ -36,7 +35,6 @@ import {
   formuleParCode,
   offreAgence,
   offreFormule,
-  type LigneTarif,
   type Offre,
   type Periodicite,
   type RegimeTva,
@@ -94,11 +92,6 @@ export async function assurerTauxTva(
     metadata: { gerimmo: marque },
   });
   return cree.id;
-}
-
-/** La mention de facture exigée par le régime (franchise en base). */
-export function piedDeFacture(regime: RegimeTva): string | undefined {
-  return piedDeFacturePour(regime);
 }
 
 /**
@@ -926,7 +919,3 @@ export function offrePour(
   return offreFormule(f, unites, periodicite);
 }
 
-/** Montant affiché d'une ligne, utile pour comparer ce qui est facturé à la grille. */
-export function totalLignes(lignes: LigneTarif[]): number {
-  return lignes.reduce((t, l) => t + l.totalCents, 0);
-}

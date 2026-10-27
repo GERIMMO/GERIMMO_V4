@@ -137,8 +137,6 @@ export const LIBELLE_CONFIRMATION_EXERCICE_NON_TERMINE =
 
 // D40 (CHF-06, option A) : une régularisation émise en cours de bail n'écrit ni appel ni écriture au livre. Son solde est repris au décompte
 // de sortie (montants_reels_bail), tant qu'il n'est pas finalisé. L'appel complémentaire ou l'avoir (option B) est différé : avis spécialisé.
-export const MESSAGE_SOLDE_NON_APPELE = "Ce solde n’est pas appelé : il sera repris au décompte de sortie.";
-
 // La phrase dite à l'émission. `etale` : le locataire a demandé les douze mensualités ; l'échéancier est enregistré mais aucune mensualité
 // n'est appelée, ce que la phrase dit au lieu de juxtaposer « étalé » et « pas appelé ».
 export function messageSoldeNonAppele(decompte: EtatDecompteSortie = "non_finalise", etale = false): string {

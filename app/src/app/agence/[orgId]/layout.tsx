@@ -5,7 +5,6 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { identiteDuCompte, initialesDe } from "@/lib/identite-compte";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { compterActionsDuJour } from "@/lib/actions-du-jour";
-import { chargerVerificationsProprietaire } from "@/lib/lecture-verifications-proprietaire";
 import { totalMessagesNonLus } from "@/lib/messagerie";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { ROLES_RESPONSABLES, aujourdhuiParis } from "@/lib/ged";
@@ -105,9 +104,11 @@ export default async function LayoutAgence({
     // que /alertes montre (relevé du 24/09 : « on lit “2 à faire”, on clique,
     // on n'en trouve qu'un ») : baux bloqués, mes alertes dédoublonnées,
     // rapports à valider. Un seul calcul, mémorisé par requête — la page qui
-    // suit le relit sans nouvel aller-retour.
-    estProprietaire && !traverseeLectureSeule
-      ? chargerVerificationsProprietaire(supabase, orgId, { userId: user.id, portefeuille }).then(({ verifications }) => verifications)
+    // suit le relit sans nouvel aller-retour. Le menu du propriétaire direct n'a
+    // pas d'entrée « Alertes » : rien à compter pour lui à chaque page (audit du
+    // 27/10, LAT-08) ; l'accueil et « À faire » calculent leurs vérifications.
+    estProprietaire
+      ? Promise.resolve({ total: 0, critiques: 0 })
       : compterActionsDuJour(supabase, orgId, { userId: user.id, portefeuille, racine: racineEspace(estProprietaire) }),
     // Lu pour TOUTE organisation (audit 29/09) : l'écriture se ferme aussi
     // hors essai — souscription résiliée, prélèvement en défaut —, et l'écran

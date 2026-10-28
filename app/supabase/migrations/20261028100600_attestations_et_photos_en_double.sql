@@ -214,4 +214,10 @@ set titre = 'Photo de chantier ' || case substring(titre from '^Chantier \((avan
 where type = 'photo_incident'
   and titre ~ '^Chantier \((avant|pendant|apres)\) — .+$';
 
+-- Intégration de l'audit final (28/10) : dernière migration du lot, elle rappelle la pose des gardes du second facteur
+-- (20261028100000, PUB-01) après les fonctions SECURITY DEFINER redéfinies par 20261028100200 à 20261028100600, comme
+-- l'exige l'en-tête de poser_gardes_second_facteur. Rejouable. À DÉPLACER en fin de la migration qui passera en dernier
+-- si une migration plus récente s'ajoute au lot.
+select public.poser_gardes_second_facteur();
+
 select public.fermer_fonctions_a_anon();

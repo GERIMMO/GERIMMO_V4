@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, ArrowUpRight, House, FileText, Wallet, Bell, KeyRound, Wrench, Check, ShieldCheck, Smartphone, ChevronDown } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createClientPublic } from "@/lib/supabase/public";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { CartesOffresPubliques } from "@/components/cartes-offres-publiques";
 import { ImageJournal } from "@/components/image-journal";
@@ -57,10 +57,13 @@ const faq = (duree: string): [string, string][] => [
 
 
 export default async function PageVitrine() {
-  const supabase = await createClient();
-  const { data: articles } = await supabase.from("publications")
-    .select("id, titre, slug, chapo, publie_le, facebook_image_url")
-    .eq("statut", "publiee").order("publie_le", { ascending: false }).limit(3);
+  // Lecture publique sans cookie (audit final, PUB-05) : la page reste statique et relue toutes les heures.
+  const supabase = createClientPublic();
+  const { data: articles } = supabase
+    ? await supabase.from("publications")
+      .select("id, titre, slug, chapo, publie_le, facebook_image_url")
+      .eq("statut", "publiee").order("publie_le", { ascending: false }).limit(3)
+    : { data: null };
   const duree = dureeEssai();
   const offre = libelleOffreLancement();
   return (
@@ -74,7 +77,8 @@ export default async function PageVitrine() {
               <h1>Vos locations,<br /><em>l’esprit tranquille.</em></h1>
               <p className="public-chapo">Du premier bail au suivi des loyers, retrouvez vos biens, vos locataires et vos documents dans un espace simple et organisé.</p>
               <div className="public-actions">
-                <Link href="/inscription" className="btn-or">Créer mon compte <ArrowUpRight size={18} aria-hidden /></Link>
+                {/* Le bandeau porte déjà le bouton doré « Créer mon compte » : un seul primaire par écran (audit final, UX-18). */}
+                <Link href="/inscription" className="btn-secondaire">Créer mon compte <ArrowUpRight size={18} aria-hidden /></Link>
                 <a href="#fonctionnalites" className="btn-secondaire">Découvrir Gerimmo <ArrowRight size={17} aria-hidden /></a>
               </div>
               <Link href="/tarifs" title={offre ?? undefined} className="public-essai"><span aria-hidden className="public-point" />{badgeEssai()}</Link>

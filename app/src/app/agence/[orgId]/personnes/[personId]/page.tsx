@@ -21,7 +21,7 @@ import {
   ETATS_MANDAT,
   COULEURS_ETAT_MANDAT,
 } from "@/lib/baux";
-import { nomComplet, rolesDePersonne } from "@/lib/roles-personnes";
+import { ROLE_BAILLEUR_LUI_MEME, nomComplet, rolesDePersonne } from "@/lib/roles-personnes";
 import {
   FormulairePiece,
   FormulaireNouvelleVersion,
@@ -380,6 +380,8 @@ export default async function PagePersonne(
   // Même libellé que la puce de la liste pour une fiche sans lien vivant
   const sansRole = estProprietaire ? "Sans bail en cours" : "Fiche à rattacher à un lot ou à un bail";
   const estSaFiche = personne.account_id === user.id;
+  // Sa propre fiche de bailleur, encore sans bien (audit final, UX-01) : « Vous — bailleur », pas « Sans bail en cours ».
+  if (estSaFiche && estProprietaire && roles.length === 0) roles.push(ROLE_BAILLEUR_LUI_MEME);
 
   // Les baux vivants, vus depuis la personne : principal, colocataire, garant
   const roleBail = new Map(liensVivants.map((l) => [l.bail_id, l.role]));

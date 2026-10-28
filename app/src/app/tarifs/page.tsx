@@ -107,7 +107,8 @@ export default function PageTarifs() {
 
         <p className="text-[13px] text-[var(--texte-secondaire)]">{mentionTaxes}</p>
         <div className="flex flex-wrap gap-3">
-          <Link href="/inscription" className="btn-or">
+          {/* Le bandeau porte déjà le bouton doré « Créer mon compte » : un seul primaire par écran (audit final, UX-18). */}
+          <Link href="/inscription" className="btn-secondaire">
             Commencer l&apos;essai gratuit
           </Link>
           <Link href="/conditions" className="btn-secondaire">

@@ -84,7 +84,8 @@ export function FormulaireDevisVitrine() {
         </p>
       )}
       <div className="sm:col-span-2">
-        <button type="submit" disabled={enCours} className="btn-or">
+        {/* Le bandeau porte déjà le bouton doré « Créer mon compte » : un seul primaire par écran (audit final, UX-18). */}
+        <button type="submit" disabled={enCours} className="btn-secondaire">
           {enCours ? <><Spinner className="size-3" /> Envoi…</> : "Envoyer mon message"}
         </button>
         {/* Intégration des textes du 24/10 (finition conservation, M5) : la demande vit 24 mois (contact:devis) ; le

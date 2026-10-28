@@ -9,7 +9,8 @@ vi.mock("@/lib/pilotage-proprietaire", () => ({ chargerPilotageProprietaire: m.p
 vi.mock("@/lib/lecture-verifications-proprietaire", () => ({ chargerVerificationsProprietaire: m.verifications }));
 vi.mock("@/lib/incidents-verifications", () => ({ chargerIncidentsVerifications: async () => ({ incidents: new Map(), indisponible: false }) }));
 vi.mock("@/components/accueil-bienvenue", () => ({ AccueilBienvenue: () => null }));
-vi.mock("@/components/parcours-demarrage", () => ({ ParcoursDemarrage: () => null }));
+// Audit final (UX-02, UX-18) : l'accueil lit lui-même les étapes du parcours et le profil du bailleur.
+vi.mock("@/components/parcours-demarrage", () => ({ ParcoursDemarrage: () => null, lireEtapesDemarrage: async () => null, parcoursEnCours: () => false }));
 vi.mock("@/components/actions-rapides-incident", () => ({ ActionsRapidesIncident: () => null }));
 vi.mock("@/components/rappels-loyers", () => ({ RappelsLoyers: () => null }));
 vi.mock("@/components/carte-verifications", () => ({ CarteVerifications: (props: { children: ReactNode }) => {
@@ -38,7 +39,8 @@ beforeEach(() => {
   m.rpc.mockResolvedValue({ data: [], error: null });
 });
 async function rendre() {
-  return renderToStaticMarkup(await AccueilProprietaire({ supabase: { rpc: m.rpc } as never, orgId: "org", userId: "gerant",
+  const from = () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) });
+  return renderToStaticMarkup(await AccueilProprietaire({ supabase: { rpc: m.rpc, from } as never, orgId: "org", userId: "gerant",
     organisation: { name: "SCI", status: "active", essai_fin: null } }));
 }
 

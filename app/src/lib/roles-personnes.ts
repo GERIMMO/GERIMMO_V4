@@ -60,6 +60,17 @@ export function rolesDePersonne(
   return roles;
 }
 
+// La fiche du bailleur lui-même (audit final, UX-01) : `initialiser_espace_proprietaire` crée au propriétaire direct une
+// fiche à son nom (elle portera la détention de ses biens), mais tant qu'il n'a ni bien ni mandat, aucune règle ne la
+// reconnaissait : « Locataires & garants » la comptait « Sans bail en cours », comme un futur locataire.
+export const ROLE_BAILLEUR_LUI_MEME: RolePersonne = { libelle: "Vous — bailleur", classe: "text-foreground", puce: "puce-encre" };
+
+/** Chez le propriétaire direct, sa propre fiche sans rôle déduit est « Vous — bailleur », jamais « Sans bail en cours ». */
+export function avecLeBailleurLuiMeme(roles: RolePersonne[], estSaFiche: boolean, estProprietaire: boolean): RolePersonne[] {
+  if (!estProprietaire || !estSaFiche || roles.some((r) => r.libelle === "Propriétaire")) return roles;
+  return [ROLE_BAILLEUR_LUI_MEME, ...roles];
+}
+
 // Un bail encore en préparation se lit dans la liste (« Locataire · bail en
 // préparation ») sans faire un rôle en cours : une fiche qui n'a que ces
 // rôles-là, ou aucun, reste « sans bail en cours » pour les filtres et la

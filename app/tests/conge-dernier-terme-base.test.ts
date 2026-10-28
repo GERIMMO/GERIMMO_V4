@@ -22,14 +22,15 @@ const url = process.env.SUPABASE_DB_URL;
 verifierBaseDeTest(url);
 
 describe("dernier terme et congé — manifeste et retour (sans base)", () => {
-  it("la migration est au manifeste une seule fois, en dernier, avec son retour listé au LISEZ-MOI et dans la chaîne complète", () => {
+  it("la migration est au manifeste une seule fois, en dernier, avec son retour listé au LISEZ-MOI", () => {
     const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${NOM}.sql`)).toHaveLength(1);
     expect(manifeste.indexOf(`${NOM}.sql`)).toBeGreaterThan(manifeste.indexOf("20261027100500_parcours_demarrage_pluriel_baux.sql"));
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
     expect(lisezMoi).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
-    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\s*`20261028100100`/);
+    // Hors de la chaîne « Ordre complet » : la migration ne cite pas aujourdhui_paris().
+    expect(lisezMoi).not.toMatch(/Ordre complet si tout doit être défait :\s*`20261028100100`/);
     expect(readFileSync("tests/relais-migrations-manifeste.test.ts", "utf8")).toContain(`"${NOM}.sql",`);
   });
 

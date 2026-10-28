@@ -11,6 +11,12 @@ import { RACINE_AGENCE } from "@/lib/racine-espace";
 // départage.
 
 export type LienManquant = { href: string; ecran: string };
+
+/** « dans le profil de l’organisation », « dans la fiche du lot », « dans les compléments du contrat » : l'écran précédé de son article (audit final du 27/10, LOY-15). */
+export function dansEcran(ecran: string): string {
+  const article = ecran.startsWith("profil") ? "le" : ecran.startsWith("compléments") ? "les" : "la";
+  return `dans ${article} ${ecran}`;
+}
 type Liens = { entite: "bail" | "personne" | "lot" | "mandat"; entiteId: string }[];
 type Cible = "organisation" | "personne" | "lot" | "bail" | "complements";
 
@@ -122,7 +128,7 @@ export function lienPourManquant(
   const vers = (cible: Cible, regle?: Regle): LienManquant | null => {
     switch (cible) {
       case "organisation":
-        return { href: `${base}/profil`, ecran: "profil de l'organisation" };
+        return { href: `${base}/profil`, ecran: "profil de l’organisation" };
       case "personne":
         if (personne)
           return { href: `${base}/personnes/${personne.entiteId}`, ecran: "fiche de la personne" };

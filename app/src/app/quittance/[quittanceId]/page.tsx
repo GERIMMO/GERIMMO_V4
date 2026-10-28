@@ -8,7 +8,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { eur } from "@/lib/ged";
-import { lienPourManquant } from "@/lib/documents/ou-renseigner";
+import { lienPourManquant, dansEcran } from "@/lib/documents/ou-renseigner";
 import {
   assemblerQuittanceDelivree,
   chargerQuittanceDocument,
@@ -123,7 +123,7 @@ export default async function PageQuittance(props: {
                           {" "}
                           —{" "}
                           <Link href={lien.href} className="lien-discret">
-                            à renseigner dans {lien.ecran}
+                            à renseigner {dansEcran(lien.ecran)}
                           </Link>
                         </>
                       )}

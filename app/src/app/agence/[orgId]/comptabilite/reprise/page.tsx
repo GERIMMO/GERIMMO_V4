@@ -29,6 +29,10 @@ export default async function PageRepriseComptable(
   // Une balance d'ouverture engage tout le portefeuille : elle appartient au
   // responsable. La base le revérifie (ouvrir_reprise, reprendre_soldes).
   if (!role || !ROLES_RESPONSABLES.includes(role)) notFound();
+  // La reprise ne concerne qu'une agence qui arrive avec un portefeuille : le livre du propriétaire direct ne la propose pas
+  // (comptabilite/page.tsx), et ses textes parlent de mandants et de fonds des propriétaires. L'adresse directe ne l'ouvre
+  // donc pas non plus (audit final du 27/10, LOY-18).
+  if (estProprietaire) notFound();
 
   // Ce qui a déjà été repris : une bascule est définitive, et la page doit le
   // dire avant qu'on en lance une seconde.

@@ -14,6 +14,7 @@ import type { EtatLoyers } from "@/app/actions/loyers";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { eur, moisEnFrancais } from "@/lib/ged";
+import { libelleEncaisser } from "@/lib/finances";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
 
@@ -41,6 +42,9 @@ export type LigneQuittancement = {
   // Nulle quand ce terme est bien le plus ancien encore dû.
   dette_anterieure_periode: string | null;
   dette_anterieure_reste: number | null;
+  // Depuis 20261028100200 (relectures de LOY-07) : l'échéance de l'appel, et la dette antérieure mois par mois.
+  date_echeance?: string | null;
+  dette_anterieure_detail?: { periode: string; reste: number | string }[] | null;
 };
 
 // Statut et actions d'une ligne (encaisser, relancer, quittance) — partagés
@@ -117,10 +121,10 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
           <form data-saisie-confirmee action={actionEnc} className="relative z-10 inline-flex flex-wrap items-center gap-1.5">
             <BoutonEnvoi size="sm" variant="outline">
               {/* Le montant reste celui de CE terme : c'est ce que vérifie la base (encaisser_reste_atomique, reste attendu).
-                  L'imputation au plus ancien (RM-3.3.2) en sert d'abord la dette antérieure : le libellé dit combien, pour
-                  ne pas laisser croire que les 700 € soldent le mois le plus ancien (troisième relecture). */}
+                  L'imputation au plus ancien (RM-3.3.2) en sert d'abord la dette antérieure, mois par mois : le libellé
+                  dit la répartition réelle (relectures du chantier). */}
               {termeServiDAbord
-                ? `Encaisser ${eur(reste)} (dont ${eur(Math.min(reste, detteAnterieure))} pour ${moisEnFrancais(termeServiDAbord)})`
+                ? libelleEncaisser(reste, l.dette_anterieure_detail, termeServiDAbord, eur, moisEnFrancais)
                 : `Encaisser ${eur(reste)}`}
             </BoutonEnvoi>
           </form>

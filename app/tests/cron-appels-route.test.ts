@@ -107,7 +107,8 @@ describe("le message dit ce qu'il doit dire", () => {
   it("sépare le loyer des charges", () => {
     const html = corpsAvisEcheance(base);
     expect(html).toContain("Loyer hors charges");
-    expect(html).toContain("Provision pour charges");
+    // Audit final du 27/10 (LOY-02) : le libellé suit le mode du bail ; sans mode transmis, il reste neutre.
+    expect(html).toContain("Provision ou forfait de charges");
   });
 
   it("explique le prorata au lieu de laisser un montant inexpliqué", () => {

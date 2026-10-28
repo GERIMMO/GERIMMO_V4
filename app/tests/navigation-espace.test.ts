@@ -88,7 +88,7 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     const n = nav("proprietaire_direct");
     const libelles = [...n.principales, ...n.secondaires].map((e) => e.libelle);
     expect(libelles).toContain("Biens & locations");
-    expect(libelles).toContain("Locataires & garants");
+    expect(libelles).toContain("Personnes");
     expect(libelles).toContain("Aide");
     expect(chemins("proprietaire_direct")).not.toContain("/administration");
     // Le carnet d'artisans a son entrée dans « Plus » (24/09) : il n'était

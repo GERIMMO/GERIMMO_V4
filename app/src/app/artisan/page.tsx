@@ -3,6 +3,7 @@ import { CalendarDays, ClipboardCheck, FileText, Wrench } from "lucide-react";
 import styles from "./portail-artisan.module.css";
 import {
   chargerAgenda,
+  chargerDemandesRdv,
   chargerPieces,
   chargerSollicitations,
   verifierAccesArtisan,
@@ -28,23 +29,22 @@ export const metadata = { title: "Aujourd'hui — Gerimmo" };
  *      PAS DE FACTURE (RM-7.5.2). C'est l'argent qui attend ;
  *   3. une mission non acceptée — l'agence, elle, attend.
  */
-export default async function PageArtisanAccueil({
-  searchParams,
-}: PageProps<"/artisan">) {
+export default async function PageArtisanAccueil() {
   const { supabase, fiche } = await verifierAccesArtisan();
-  const { refus } = await searchParams;
   // Décision du 23/10/2026 : le réseau propose l'artisan dans sa zone dès qu'il est validé et public. Ce qui manque se
   // dit dès l'arrivée, plutôt qu'un artisan validé mais privé qui attend des demandes qui ne viendront pas. Rester
   // privé est un choix : le rappel est alors informatif (relecture produit du 23/10, M-1).
   const { data: exclusion } = await supabase.rpc("artisan_exclusion_plateforme");
   const rappelReseau = rappelPresenceReseau(presenceReseau(fiche, exclusionLue(exclusion) === "liste_noire"));
 
-  const [agenda, sollicitations, pieces] = await Promise.all([
+  const [agenda, sollicitations, pieces, demandesRdv] = await Promise.all([
     chargerAgenda(),
     chargerSollicitations(),
     chargerPieces(),
+    chargerDemandesRdv(),
   ]);
 
+  const reports = agenda.lignes.filter(l => l.statut === "planifiee" && demandesRdv.lignes.some(d => d.intervention_id === l.intervention_id && d.type === "report" && d.statut === "en_attente"));
   const aAccepter = agenda.lignes.filter((l) => l.statut === "proposee");
   const aRendreCompte = agenda.lignes.filter(
     (l) => l.statut === "en_cours" && !l.compte_rendu_depose
@@ -91,12 +91,13 @@ export default async function PageArtisanAccueil({
   // parties chez le locataire n'appelle aucun geste, mais la cacher derrière
   // un écran vide donnerait à l'artisan l'impression de l'avoir perdue.
   const rienAFaire =
+    reports.length === 0 &&
     aAccepter.length === 0 &&
     aRendreCompte.length === 0 &&
     aPlanifier.length === 0 &&
     enAttenteDuLocataire.length === 0 &&
     aChiffrer.length === 0;
-  const lectureIncertaine = Boolean(agenda.erreur || sollicitations.erreur || pieces.erreur);
+  const lectureIncertaine = Boolean(agenda.erreur || sollicitations.erreur || pieces.erreur || demandesRdv.erreur);
 
   return (
     <div className="space-y-6">
@@ -104,13 +105,6 @@ export default async function PageArtisanAccueil({
         <p className="portail-surtitre">{jourLong(new Date().toISOString())}</p>
         <h1 className="mt-0.5">Aujourd&apos;hui</h1>
       </div>
-
-      {refus && (
-        <Avertissement>
-          Mission refusée. Votre interlocuteur est prévenu et peut la réaffecter ; vous n&apos;avez
-          rien d&apos;autre à faire.
-        </Avertissement>
-      )}
 
       {rappelReseau?.ton === "avertissement" && (
         <Avertissement>
@@ -153,13 +147,13 @@ export default async function PageArtisanAccueil({
         </Carte>
       )}
 
-      {!agenda.erreur && !sollicitations.erreur && (
+      {!agenda.erreur && !sollicitations.erreur && !demandesRdv.erreur && (
         <nav className={styles.overview} aria-label="Résumé de mon activité">
           {[
             { href: aRendreCompte.length ? "#comptes-rendus" : "/artisan/agenda", valeur: aRendreCompte.length, libelle: "Comptes rendus à déposer", icone: ClipboardCheck, ton: "or" },
             { href: aAccepter.length ? "#missions-a-accepter" : "/artisan/agenda", valeur: aAccepter.length, libelle: "Missions à accepter", icone: Wrench, ton: "bleu" },
             { href: "/artisan/devis", valeur: aChiffrer.length, libelle: "Devis à chiffrer", icone: FileText, ton: "vert" },
-            { href: aPlanifier.length ? "#rendez-vous-a-fixer" : "/artisan/agenda", valeur: aPlanifier.length, libelle: "Rendez-vous à fixer", icone: CalendarDays, ton: "violet" },
+            { href: reports.length ? "#reports-a-traiter" : aPlanifier.length ? "#rendez-vous-a-fixer" : "/artisan/agenda", valeur: aPlanifier.length + reports.length, libelle: "Rendez-vous à traiter", icone: CalendarDays, ton: "violet" },
           ].map((indicateur) => (
             <Link key={indicateur.libelle} href={indicateur.href} className={styles.metric} data-a-faire={indicateur.valeur > 0}>
               <span className={styles.icon} data-tone={indicateur.ton}><indicateur.icone size={20} aria-hidden /></span>
@@ -187,6 +181,7 @@ export default async function PageArtisanAccueil({
         </Carte>
       ) : rienAFaire ? null : (
         <div className="space-y-6">
+          {reports.length > 0 && <section id="reports-a-traiter"><TitreSection>Reports de rendez-vous à traiter ({reports.length})</TitreSection><div className="artisan-liste">{reports.map(l => <CarteMission key={l.intervention_id} ligne={l} origine="aujourdhui" aFaire="Répondre à la demande de report" />)}</div></section>}
           {aRendreCompte.length > 0 && (
             <section id="comptes-rendus" className="scroll-mt-28">
               <TitreSection>
@@ -276,7 +271,7 @@ export default async function PageArtisanAccueil({
           <TitreSection>Prochaines interventions</TitreSection>
           <div className="artisan-liste">
             {aVenir.map((l) => (
-              <CarteMission key={l.intervention_id} ligne={l} origine="aujourdhui" />
+              <CarteMission key={l.intervention_id} ligne={l} origine="aujourdhui" aFaire={reports.some(r => r.intervention_id === l.intervention_id) ? "Demande de report à traiter" : undefined} />
             ))}
           </div>
           <Link

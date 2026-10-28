@@ -110,7 +110,7 @@ export function navigationEspace({
       principales: [
         tableauDeBord,
         lots,
-        { href: `${base}/personnes`, libelle: "Locataires & garants", icone: "gens", court: "Locataires" },
+        { href: `${base}/personnes`, libelle: "Personnes", icone: "gens", court: "Personnes" },
         finances,
         messages,
         documents,

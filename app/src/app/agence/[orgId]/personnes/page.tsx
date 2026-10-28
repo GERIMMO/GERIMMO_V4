@@ -7,13 +7,11 @@ import { EchecLecture } from "../documents/echec-lecture";
 import { FormulairePersonne } from "./formulaire-personne";
 import { ListePersonnes, type PersonneListe } from "./liste-personnes";
 
-// 24/09 : l'onglet porte le nom de la rubrique du menu — « Locataires &
-// garants » chez le propriétaire direct, pas « Personnes ».
-// verifierAccesEspace est sous cache() : la page ne refait pas la lecture.
+// La rubrique comprend aussi les propriétaires : son titre couvre tous les rôles.
 export async function generateMetadata(props: PageProps<"/agence/[orgId]/personnes">) {
   const { orgId } = await props.params;
-  const { estProprietaire } = await verifierAccesEspace(orgId);
-  return { title: `${estProprietaire ? "Locataires & garants" : "Personnes"} — Gerimmo` };
+  await verifierAccesEspace(orgId);
+  return { title: "Personnes — Gerimmo" };
 }
 
 // Les personnes de l'agence. La fiche n'a pas de rôle en propre (module 0b) :
@@ -175,7 +173,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
   return (
     <main className={`mx-auto w-full p-4 sm:p-7 ${parcours.pageCreation}`}>
       <EchecLecture quoi={lecturesManquees} />
-      <VuePersonnes titre={role === "proprietaire_direct" ? "Locataires & garants" : "Personnes"}
+      <VuePersonnes titre="Personnes"
         estProprietaire={role === "proprietaire_direct"}
         nombre={erreurPersonnes ? "nombre indisponible" : `${fiches.length} fiche${fiches.length > 1 ? "s" : ""}`}
         liste={<ListePersonnes orgId={orgId} personnes={fiches} listeIllisible={Boolean(erreurPersonnes)} estBailleurDirect={role === "proprietaire_direct"} />}

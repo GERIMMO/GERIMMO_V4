@@ -50,7 +50,7 @@ test('intervention acceptée : démarrage, photo, bilan, facture et réception g
   await page.screenshot({path:info.outputPath('facture-avant-depot.png'),fullPage:true});
   expect(await debordementHorizontal(page)).toBe(0);
   await page.getByRole('button',{name:'Déposer ma facture',exact:true}).click();
-  await expect(page).toHaveURL(/\/artisan\/facturation\?facture=1/);
+  await expect(page).toHaveURL(/\/artisan\/facturation\?facture=[0-9a-f-]{36}/);
   const {rows:[f]}=await db.query('select id,document_id,montant_ttc_cents from intervention_factures where intervention_id=$1',[mission]);
   expect(f.montant_ttc_cents).toBe('10000');
   expect((await db.query('select travaux_realises from intervention_comptes_rendus where intervention_id=$1',[mission])).rows[0].travaux_realises).toBe(bilan);

@@ -1,3 +1,4 @@
+import { LectureImpossibleArtisan } from "../../ui";
 import { AccuseAnnulation } from "./accuse-annulation";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -15,6 +16,7 @@ import {
 } from "../../libelles";
 import {
   Avertissement,
+  Erreur,
   Carte,
   CLASSE_AIDE,
   CLASSE_BOUTON_PRINCIPAL,
@@ -67,6 +69,7 @@ export default async function PageMission(
     chargerReglementsFactures(),
     chargerDemandesRdv(),
   ]);
+  if (agenda.erreur) return <LectureImpossibleArtisan href={`/artisan/missions/${interventionId}`} />;
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
   const factureReglement = reglements.lignes.find((r) => r.intervention_id === interventionId);
@@ -120,9 +123,10 @@ export default async function PageMission(
         <Retour href="/artisan/agenda">Mon agenda</Retour>
       )}
 
-      {termine && (
+      {demandesRdv.erreur && <Erreur>Les demandes de changement de rendez-vous n’ont pas pu être chargées. Rechargez la page avant de modifier les dates.</Erreur>}
+      {termine && mission.statut === "terminee" && mission.compte_rendu_depose && (
         <Succes>
-          Compte rendu envoyé. L&apos;intervention est terminée : vous pouvez
+          Compte rendu enregistré. L&apos;intervention est terminée : vous pouvez
           déposer votre facture.
         </Succes>
       )}
@@ -424,6 +428,7 @@ export default async function PageMission(
             <LigneInfo libelle="Facture">
               {mission.facture_deposee ? "Déposée" : "À déposer"}
             </LigneInfo>
+            {mission.facture_deposee && factureReglement && <LigneInfo libelle={`Facture n° ${factureReglement.numero}`}>{euros(factureReglement.montant_ttc_cents)} TTC</LigneInfo>}
             {mission.facture_deposee && (
               <LigneInfo libelle="Règlement">
                 {reglements.erreur

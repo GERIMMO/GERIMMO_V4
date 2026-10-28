@@ -149,17 +149,22 @@ test.describe("Propriétaire direct : l'alias /espace", () => {
       expect(new URL(ancienFichier.lieu,"http://adresse.invalide").pathname).toBe(cheminFichier);
       // L'aperçu reste dans l'espace : seuls les octets viennent directement du stockage.
       const lectureStockage=page.waitForResponse(r=>new URL(r.url()).origin===new URL(api!).origin
-        && new URL(r.url()).pathname.includes("/storage/v1/object/sign/") && r.request().method()==="GET");
+        && new URL(r.url()).pathname.includes("/storage/v1/object/sign/") && r.request().method()==="GET")
+        .then(r => ({ statut: r.status(), type: r.headers()["content-type"] }));
       const apercu=await page.goto(cheminFichier);
       expect(apercu?.status()).toBe(200);
       expect(apercu?.headers()["content-type"]).toContain("text/html");
       expect(new URL(page.url()).pathname).toBe(cheminFichier);
       const fichier=await lectureStockage;
-      expect(fichier.status()).toBe(200);
-      expect(fichier.headers()["content-type"]).toContain("application/pdf");
-      expect(await fichier.body()).toEqual(pdf);
+      expect(fichier.statut).toBe(200);
+      expect(fichier.type).toContain("application/pdf");
       await expect(page.getByRole("link",{name:"Ouvrir le PDF en plein écran"})).toBeVisible();
       await expect(page.getByRole("link",{name:"Télécharger",exact:true})).toHaveAttribute("href",/^blob:/);
+      // Le lecteur et le téléchargement utilisent le même blob. Ses octets
+      // sont vérifiés sur le téléchargement ci-dessous, sans dépendre du
+      // cache réseau éphémère de Chromium ni assouplir la politique CSP.
+      const blob = await page.getByRole("link", {name:"Télécharger",exact:true}).getAttribute("href");
+      await expect(page.getByRole("link", {name:"Ouvrir le PDF en plein écran",exact:true})).toHaveAttribute("href", blob!);
       await expect(page.locator("#etat")).toBeHidden();
       const attenteDownload=page.waitForEvent("download");
       await page.getByRole("link",{name:"Télécharger",exact:true}).click();

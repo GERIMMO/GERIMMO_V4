@@ -1,3 +1,4 @@
+import { LectureImpossibleArtisan } from "../../../ui";
 import { notFound, redirect } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
 import { chargerAgenda, verifierAccesArtisan } from "../../../acces";
@@ -23,6 +24,7 @@ export default async function PageFacture(
   await verifierAccesArtisan();
   const { interventionId } = await props.params;
   const agenda = await chargerAgenda();
+  if (agenda.erreur) return <LectureImpossibleArtisan href={`/artisan/missions/${interventionId}/facture`} />;
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
   if (

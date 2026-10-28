@@ -441,7 +441,7 @@ export async function refuserMaMission(
   }
 
   rafraichirMission(interventionId);
-  redirect("/artisan?refus=1");
+  redirect("/artisan");
 }
 
 /**
@@ -688,7 +688,7 @@ export async function deposerMaFacture(
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
   rafraichirMission(interventionId);
-  redirect("/artisan/facturation?facture=1");
+  redirect(`/artisan/facturation?facture=${interventionId}`);
 }
 
 // ══════════════════════════════════════════════════════════════════════════

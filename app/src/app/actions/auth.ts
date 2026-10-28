@@ -1,7 +1,7 @@
 "use server";
 
 import { destinationSure } from "@/lib/destination-sure";
-import { RAISON_DECONNEXION } from "@/lib/copies-locales";
+import { RAISON_DECONNEXION, RAISON_DECONNEXION_LOCALE } from "@/lib/copies-locales";
 
 import { CONDITIONS_VERSION } from "@/lib/editeur";
 import {
@@ -39,7 +39,17 @@ function qualiteDeLaListe(brut: FormDataEntryValue | null): string {
 
 export async function seDeconnecter() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    // Le SDK peut fermer la session de cet appareil même si la révocation
+    // distante échoue. La lecture locale sert uniquement à choisir le message.
+    const { data, error: erreurSession } = await supabase.auth.getSession();
+    if (!erreurSession && !data.session) {
+      (await cookies()).delete(ACTIVITY_COOKIE);
+      redirect(`/connexion?raison=${RAISON_DECONNEXION_LOCALE}`);
+    }
+    throw new Error("La déconnexion n’a pas pu être confirmée. Réessayez.");
+  }
   (await cookies()).delete(ACTIVITY_COOKIE);
   // Audit du 13/10 (VER-PR178-05) : les copies de saisie gardées sur l'appareil s'effacent à l'ARRIVÉE sur cette adresse
   // (PurgerCopiesALaDeconnexion), donc seulement une fois la session fermée. Si la déconnexion échoue (hors ligne), la

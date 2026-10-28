@@ -127,11 +127,11 @@ function CarteIncident({
   // (`est_declarant`, FL-01). Les colocataires sont informés mais les fonctions
   // en base n'acceptent que lui.
   const peutContester =
-    incident.est_declarant &&
+    peutAgir && incident.est_declarant &&
     (incident.imputation === "locataire" || incident.imputation === "degradation_fautive") &&
     !incident.imputation_contestee_le &&
     incident.etat !== "clos";
-  const peutRouvrir = incident.est_declarant && incident.etat === "clos";
+  const peutRouvrir = peutAgir && incident.est_declarant && incident.etat === "clos";
 
   // Liseré gauche façon maquette pLocIncidents : vert = clos, ambre = une
   // décision ou une action côté locataire (à sa charge, intervention

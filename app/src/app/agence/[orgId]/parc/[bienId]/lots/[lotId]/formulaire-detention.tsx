@@ -37,7 +37,7 @@ export function FormulaireDetention({
   personnes: Personne[];
   proprietairesIds: string[];
   premierProprietaire: boolean;
-  /** Espace du propriétaire direct : ses fiches vivent dans « Locataires & garants », pas « Personnes ». */
+  /** Espace du propriétaire direct : ses fiches vivent dans « Personnes », pas « Personnes ». */
   estProprietaire?: boolean;
 }) {
   const actionLiee = ajouterDetention.bind(null, orgId, bienId, lotId);
@@ -237,7 +237,7 @@ export function FormulaireDetention({
       {modaleOuverte && (
         <Modale
           titre="Nouveau propriétaire"
-          surtitre={estProprietaire ? "La fiche complète se retrouve dans Locataires & garants" : "La fiche complète se retrouve dans Personnes"}
+          surtitre={"La fiche complète se retrouve dans Personnes"}
           fermer={fermerModale}
         >
           <div

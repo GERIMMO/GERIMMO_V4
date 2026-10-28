@@ -1,3 +1,4 @@
+import { LectureImpossibleArtisan } from "../../../ui";
 import { notFound, redirect } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
 import { chargerAgenda, verifierAccesArtisan, type LigneAgenda } from "../../../acces";
@@ -56,6 +57,7 @@ export default async function PageCreneaux(
   const { interventionId } = await props.params;
 
   const agenda = await chargerAgenda();
+  if (agenda.erreur) return <LectureImpossibleArtisan href={`/artisan/missions/${interventionId}/creneaux`} />;
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
   if (mission.statut === "acceptee" && mission.dates_locataire_en_attente > 0) {

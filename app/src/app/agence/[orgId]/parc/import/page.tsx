@@ -7,9 +7,12 @@ import { FormulaireImport } from "./formulaire-import";
 import { baseEspace } from "@/lib/racine-espace";
 
 // L'onglet porte le nom de l'écran (audit final, UX-05 : « Import des lots » sous le H1 « Importer mes lots »).
+// Même garde que la page, comme l'aide et les mandats : à un agent, l'onglet prend le titre de la page introuvable au lieu
+// de nommer l'écran refusé (intégration de l'audit final, chemins-proposes.spec : « Reprendre le parc — Gerimmo »).
 export async function generateMetadata(props: PageProps<"/agence/[orgId]/parc/import">) {
   const { orgId } = await props.params;
-  const { estProprietaire } = await verifierAccesEspace(orgId);
+  const { role, estProprietaire } = await verifierAccesEspace(orgId);
+  if (!role || !ROLES_RESPONSABLES.includes(role)) notFound();
   return { title: `${estProprietaire ? "Importer mes lots" : "Reprendre le parc"} — Gerimmo` };
 }
 

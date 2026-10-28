@@ -130,6 +130,9 @@ describe.skipIf(!url)("retours des migrations du 26 octobre 2026 (base)", () => 
     // Rejeu : « rien à faire », aucune erreur.
     for (const nom of [PIECES, ANNEE, QUALIFICATIONS]) await db.query(retour(nom));
     for (const nom of [QUALIFICATIONS, ANNEE, PIECES, ACTIVATION]) await db.query(migration(nom));
+    // Les deux tables recréées n'ont pas encore la politique restrictive du second facteur (20261028100000, PUB-01) :
+    // comme après toute migration qui crée une table sous RLS, on rappelle la pose des gardes (procédure du LISEZ-MOI).
+    await db.query("select public.poser_gardes_second_facteur()");
     expect(await empreinte()).toBe(migre);
     expect(await objets()).toEqual({ pieces: true, qualifications: true, affecter: true, controler: true, tracer: true, contrainte: true });
   });

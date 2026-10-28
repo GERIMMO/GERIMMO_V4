@@ -1002,6 +1002,8 @@ Les trois migrations de la PR #264 du 26/10 sont appliquées en production depui
 | `20261026214857_qualification_diagnostic_annee_installation.retour.sql` | `20261026214857_qualification_diagnostic_annee_installation.sql` (situation « année connue » d’une installation gaz ou électricité) | Refuse tant qu’une qualification porte une année (`annee_connue`) : la requalifier est une décision métier. Rend à la table ses deux contraintes d’avant, retire la contrainte sur l’année, la colonne `annee_installation` et la version. « Rien à faire » si la colonne est déjà absente. |
 | `20261026213652_qualifications_diagnostics_lot.retour.sql` | `20261026213652_qualifications_diagnostics_lot.sql` (installation gaz et électricité qualifiée par lot : plus de quinze ans, date connue, absente, inconnue) | Refuse tant qu’une qualification existe : la supprimer effacerait une réponse du propriétaire. Retire les trois politiques, le déclencheur `qualifications_diagnostics_trace`, la table (avec ses index et sa garde d’abonnement), `tracer_qualification_diagnostic()` et la version. À jouer après le retour de `20261026214857` (sa version doit être retirée avant celle-ci : `migrations.yml` refuse une version déjà enregistrée). |
 
+**Rejeu après retour (intégration du 28/10).** Si ces migrations sont rejouées après leur retour, alors que `20261028100000` est en place, rappeler ensuite `select public.poser_gardes_second_facteur();` : les tables `pieces_attendues_bail` et `qualifications_diagnostics_lot` recréées n’ont pas la politique restrictive `second_facteur` tant que la pose n’est pas rappelée. Preuve : `tests/retours-26-octobre-base.test.ts`.
+
 ### Alerte d’impayé et encaissements (27 octobre)
 
 | Retour | Migration | Condition |

@@ -103,6 +103,11 @@ describe.skipIf(!DB_URL)("garde centrale du second facteur devant l'API (PUB-01,
   it("configuration : le rôle de PostgREST appelle la garde, hors de l'API (schéma garde_api), sans search_path, exécutable par tous ses rôles", async () => {
     expect((await db.query("select to_regrole('authenticator') is not null as present")).rows[0].present).toBe(true);
     expect(await preRequeteConfiguree()).toBe(GARDE);
+    // Posé pour CETTE base (`alter role … in database`), que PostgREST lit avant le réglage commun : les autres bases
+    // d'un même serveur ne sont pas touchées.
+    expect((await db.query(`select array_to_string(setconfig, ',') as c from pg_db_role_setting
+      where setrole = to_regrole('authenticator') and setdatabase = (select oid from pg_database where datname = current_database())`)).rows[0]?.c)
+      .toContain(`pgrst.db_pre_request=${GARDE}`);
     const { rows } = await db.query(`
       select p.prosecdef, p.provolatile, p.proconfig, format_type(p.prorettype, null) as retour,
              has_function_privilege('anon', p.oid, 'EXECUTE') as anon,
@@ -139,10 +144,21 @@ describe.skipIf(!DB_URL)("garde centrale du second facteur devant l'API (PUB-01,
     for (const [methode, chemin] of [["GET", "/memberships"], ["HEAD", "/memberships"], ["POST", "/rpc/ma_session_active"], ["GET", "/rpc/ma_session_active"]]) {
       expect(await requete(jeton(titulaire, "aal1"), methode, chemin), `${methode} ${chemin}`).toBe("passe");
     }
-    // Le préfixe de la passerelle ne change rien ; un chemin voisin n'est pas dans la liste.
-    expect(await requete(jeton(titulaire, "aal1"), "GET", "/rest/v1/memberships")).toBe("passe");
-    expect(await requete(jeton(titulaire, "aal1"), "GET", "/memberships_x")).toMatch(refus);
-    expect(await requete(jeton(titulaire, "aal1"), "POST", "/rpc/ma_session_active_x")).toMatch(refus);
+    // Toutes les formes du chemin que PostgREST ou la passerelle peuvent poser (« /table » de PostgREST, « table » de la
+    // documentation Supabase, préfixe /rest/v1, barre finale), et la méthode en toute casse : si la liste blanche ne
+    // correspondait pas, le compte à facteur resterait bloqué dans le sas.
+    const formes = (nom: string) => [nom, `/${nom}`, `/rest/v1/${nom}`, `rest/v1/${nom}`, `//${nom}/`];
+    for (const chemin of formes("memberships")) for (const methode of ["GET", "get", "Get", "head"]) {
+      expect(await requete(jeton(titulaire, "aal1"), methode, chemin), `${methode} ${chemin}`).toBe("passe");
+    }
+    for (const chemin of formes("rpc/ma_session_active")) for (const methode of ["POST", "post", "GET", "get"]) {
+      expect(await requete(jeton(titulaire, "aal1"), methode, chemin), `${methode} ${chemin}`).toBe("passe");
+    }
+    // Un chemin voisin, une autre méthode, ou un préfixe qui n'est pas celui de la passerelle n'y sont pas.
+    for (const [methode, chemin] of [["GET", "/memberships_x"], ["POST", "/rpc/ma_session_active_x"], ["post", "memberships"],
+      ["patch", "/rest/v1/memberships"], ["GET", "/autre/memberships"], ["GET", "/rpc/memberships"], ["DELETE", "rpc/ma_session_active"]]) {
+      expect(await requete(jeton(titulaire, "aal1"), methode, chemin), `${methode} ${chemin}`).toMatch(refus);
+    }
   });
 
   it("inchangés : le même compte en aal2, un compte sans facteur, un facteur non vérifié, anon, le service", async () => {

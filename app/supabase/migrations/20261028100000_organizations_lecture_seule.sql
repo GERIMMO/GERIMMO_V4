@@ -410,8 +410,13 @@ begin
   if (select public.niveau_assurance_suffisant()) then
     return;
   end if;
-  -- PostgREST pose request.path sans le préfixe /rest/v1 que retire la passerelle (« /memberships », « /rpc/… »).
-  v_chemin := regexp_replace(coalesce(current_setting('request.path', true), ''), '^/*(rest/v1/)?', '');
+  -- La forme du chemin ne doit jamais faire échouer la liste blanche (le compte resterait bloqué dans le sas) :
+  -- PostgREST pose request.path tel qu'il le reçoit (rawPathInfo, « /memberships » derrière la passerelle qui retire
+  -- /rest/v1), la documentation Supabase l'écrit sans barre (« memberships », « rpc/function »). Toutes ces formes se
+  -- ramènent à « memberships » : préfixe /rest/v1 éventuel, barres de tête et de fin retirés. La méthode est comparée
+  -- sans tenir compte de la casse.
+  v_chemin := regexp_replace(regexp_replace(coalesce(current_setting('request.path', true), ''),
+                                            '^/*(rest/v1/+)?', ''), '/+$', '');
   v_methode := upper(coalesce(current_setting('request.method', true), ''));
   if (v_chemin = 'memberships' and v_methode in ('GET', 'HEAD'))
      or (v_chemin = 'rpc/ma_session_active' and v_methode in ('GET', 'HEAD', 'POST')) then
@@ -427,9 +432,13 @@ comment on function garde_api.exiger_second_facteur() is
 revoke all on function garde_api.exiger_second_facteur() from public;
 grant execute on function garde_api.exiger_second_facteur() to anon, authenticated, service_role;
 
--- L'enregistrement auprès de PostgREST. Une autre fonction de pré-requête déjà configurée n'est pas écrasée en silence :
--- la migration s'arrête, il faut les chaîner (aucune dans ce dépôt au 28/10). Base sans le rôle `authenticator` (base
--- de test montée sans le bootstrap du banc) : rien à configurer.
+-- L'enregistrement auprès de PostgREST, pour CETTE base (`alter role … in database`) : PostgREST lit les réglages du
+-- rôle authenticator communs (setdatabase = 0) et ceux de sa base, ces derniers l'emportant (source de PostgREST,
+-- Config/Database.hs, queryDbSettings ; docs/references/configuration.rst, « ALTER ROLE authenticator IN DATABASE »).
+-- En production (une base), même effet que la forme commune ; sur un Postgres local partagé par plusieurs bancs, le
+-- réglage ne touche pas les autres bases. Une autre fonction de pré-requête déjà configurée, commune ou propre à la
+-- base, n'est pas écrasée en silence : la migration s'arrête, il faut les chaîner (aucune dans ce dépôt au 28/10).
+-- Base sans le rôle `authenticator` (base de test montée sans le bootstrap du banc) : rien à configurer.
 do $garde$
 declare
   v_actuelle text;
@@ -438,13 +447,17 @@ begin
     raise notice 'Rôle authenticator absent : pgrst.db_pre_request non configuré.';
     return;
   end if;
-  select substr(s, length('pgrst.db_pre_request=') + 1) into v_actuelle
+  select string_agg(distinct substr(s, length('pgrst.db_pre_request=') + 1), ', ') into v_actuelle
     from pg_catalog.pg_db_role_setting r, unnest(r.setconfig) s
-   where r.setrole = 'authenticator'::regrole and r.setdatabase = 0 and s like 'pgrst.db_pre_request=%';
-  if coalesce(v_actuelle, '') not in ('', 'garde_api.exiger_second_facteur') then
+   where r.setrole = 'authenticator'::regrole
+     and r.setdatabase in (0, (select oid from pg_catalog.pg_database where datname = current_database()))
+     and s like 'pgrst.db_pre_request=%'
+     and substr(s, length('pgrst.db_pre_request=') + 1) <> 'garde_api.exiger_second_facteur';
+  if v_actuelle is not null then
     raise exception 'pgrst.db_pre_request vaut déjà « % » : chaîner cette fonction avec garde_api.exiger_second_facteur avant de migrer', v_actuelle;
   end if;
-  alter role authenticator set pgrst.db_pre_request = 'garde_api.exiger_second_facteur';
+  execute format('alter role authenticator in database %I set pgrst.db_pre_request = %L',
+                 current_database(), 'garde_api.exiger_second_facteur');
 end $garde$;
 notify pgrst, 'reload config';
 

@@ -221,7 +221,7 @@ describe.skipIf(!DB_URL)("fiche de l'organisation en lecture seule (base)", () =
     expect((await db.query("select to_regnamespace('garde_api') is null as absent")).rows[0].absent).toBe(true);
     // La garde centrale de l'API est retirée de la configuration de PostgREST ; la demande d'archive et la simulation des
     // archives retrouvent leur texte d'avant.
-    const preRequete = "select count(*)::int n from pg_db_role_setting r, unnest(r.setconfig) s where r.setrole = to_regrole('authenticator') and s like 'pgrst.db_pre_request=%'";
+    const preRequete = "select count(*)::int n from pg_db_role_setting r, unnest(r.setconfig) s where r.setrole = to_regrole('authenticator') and r.setdatabase in (0, (select oid from pg_database where datname = current_database())) and s like 'pgrst.db_pre_request=%'";
     expect((await db.query(preRequete)).rows[0].n).toBe(0);
     expect((await db.query("select prosrc from pg_proc where proname = 'demander_export_complet'")).rows[0].prosrc).not.toContain("niveau_assurance_suffisant");
     expect((await db.query("select prosrc from pg_proc where proname = 'lignes_lisibles_par'")).rows[0].prosrc).not.toContain("archive_compte");

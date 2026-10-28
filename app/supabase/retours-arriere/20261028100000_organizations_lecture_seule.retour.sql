@@ -13,10 +13,12 @@ begin;
 set local lock_timeout = '10s';
 -- D'abord la garde centrale de l'API : PostgREST cesse d'appeler garde_api.exiger_second_facteur (configuration relue
 -- au « reload config », envoyé à la validation de cette transaction) avant qu'elle ne disparaisse plus bas.
+-- Le réglage de CETTE base seulement, comme la migration l'a posé (`in database`) : les autres bases d'un même serveur
+-- gardent le leur.
 do $retour_garde$
 begin
   if to_regrole('authenticator') is not null then
-    alter role authenticator reset pgrst.db_pre_request;
+    execute format('alter role authenticator in database %I reset pgrst.db_pre_request', current_database());
   end if;
 end $retour_garde$;
 notify pgrst, 'reload config';

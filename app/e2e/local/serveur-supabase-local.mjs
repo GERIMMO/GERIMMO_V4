@@ -288,8 +288,14 @@ async function chargerConfigurationApi() {
      order by r.setdatabase desc limit 1`);
   const valeur = rows[0]?.valeur || null;
   // Un nom qualifié simple, comme PostgREST l'attend : jamais du SQL interpolé tel quel.
-  preRequete = valeur && /^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$/.test(valeur) ? valeur : null;
-  if (valeur && !preRequete) console.error(`[supalocal] pgrst.db_pre_request ignoré (nom invalide) : ${valeur}`);
+  const nom = valeur && /^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$/.test(valeur) ? valeur : null;
+  if (valeur && !nom) console.error(`[supalocal] pgrst.db_pre_request ignoré (nom invalide) : ${valeur}`);
+  // ÉCART VOULU avec PostgREST, qui échouerait sur chaque requête : une fonction absente de CETTE base (réglage commun
+  // d'un Postgres local partagé, base montée sans la migration) est ignorée, avec un avertissement, pour ne casser aucun
+  // autre banc. La migration 20261028100000 pose le réglage pour sa seule base (`in database`).
+  const existe = nom ? (await pool.query("select to_regprocedure($1) is not null as existe", [`${nom}()`])).rows[0].existe : false;
+  if (nom && !existe) console.warn(`[supalocal] AVERTISSEMENT : pgrst.db_pre_request = ${nom}, fonction absente de cette base : pré-requête ignorée.`);
+  preRequete = existe ? nom : null;
 }
 
 // ── Exécution SQL sous identité (RLS réel) ─────────────────────────────────

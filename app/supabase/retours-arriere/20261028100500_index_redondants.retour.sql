@@ -10,8 +10,9 @@ declare
 begin
   perform set_config('lock_timeout', '10s', true);
   create index if not exists appels_loyer_bail_idx on public.appels_loyer (bail_id, periode);
-  select left('fk_' || c.conrelid::regclass::text || '_' || substr(md5(c.oid::text), 1, 10), 63) into v_index
-  from pg_constraint c
+  -- relname, et non regclass::text : le nom ne dépend pas du search_path de la session.
+  select left('fk_' || t.relname || '_' || substr(md5(c.oid::text), 1, 10), 63) into v_index
+  from pg_constraint c join pg_class t on t.oid = c.conrelid
   where c.conrelid = 'public.marketing_campagnes'::regclass and c.contype = 'f'
     and c.conkey = array[(select attnum from pg_attribute where attrelid = c.conrelid and attname = 'publication_id')];
   if v_index is not null then

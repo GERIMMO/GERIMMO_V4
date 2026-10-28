@@ -1014,7 +1014,7 @@ Remettre le code précédent avant `20261027100100_incident_gerant_bail_explicit
 
 ### Assurance du locataire à l’activation du bail (27 octobre, audit #264)
 
-`20261027100300_bail_assurance_activation_et_libelle_colocation.retour.sql` retire le déclencheur qui rattache l’assurance du locataire, classée pendant la préparation, aux locataires engagés à l’activation du bail, et rétablit l’ancien message de `choisir_personne_bail`. Remettre le code précédent avant ce retour. Les liens « personne » déjà posés (par le déclencheur ou par la reprise de la migration) sont conservés : ils désignent la pièce fournie par le locataire. Aucun retour n’a été exécuté en production.
+`20261027100300_bail_assurance_activation_et_libelle_colocation.retour.sql` (instruction `DO` atomique depuis le 28/10 : jouable dans une transaction contrôlée, qu’elle ne valide jamais) retire le déclencheur qui rattache l’assurance du locataire, classée pendant la préparation, aux locataires engagés à l’activation du bail, et rétablit l’ancien message de `choisir_personne_bail`. Remettre le code précédent avant ce retour. Les liens « personne » déjà posés (par le déclencheur ou par la reprise de la migration) sont conservés : ils désignent la pièce fournie par le locataire. Aucun retour n’a été exécuté en production.
 
 ### Parcours de démarrage : pluriel de « bail » (27 octobre, audit #264)
 
@@ -1026,4 +1026,4 @@ Remettre le code précédent avant `20261027100100_incident_gerant_bail_explicit
 
 | Retour | Migration | Condition |
 | --- | --- | --- |
-| `20261028100500_index_redondants.retour.sql` | `20261028100500_index_redondants.sql` (retire `appels_loyer_bail_idx` et `fk_marketing_campagnes_65790471cc`, chacun doublon exact d’un index unique) | Non exécuté en production. Instruction atomique ; recrée les deux index (`create index if not exists`) et retire la version. Aucune donnée touchée, aucun code à remettre. Hors de la chaîne « Ordre complet » (indépendant). Preuve : `tests/index-redondants-base.test.ts`. |
+| `20261028100500_index_redondants.retour.sql` | `20261028100500_index_redondants.sql` (retire `appels_loyer_bail_idx` et l’index de clé étrangère `fk_marketing_campagnes_<empreinte>` sur `publication_id` — l’empreinte dépend de l’oid de la contrainte, donc de la base —, chacun doublon exact d’un index unique valide) | Non exécuté en production. Instruction atomique ; recrée les deux index (`create index if not exists`) et retire la version. Aucune donnée touchée, aucun code à remettre. Hors de la chaîne « Ordre complet » (indépendant). Preuve : `tests/index-redondants-base.test.ts`. |

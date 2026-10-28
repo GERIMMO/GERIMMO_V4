@@ -21,8 +21,9 @@ export async function POST(request: Request) {
   let brut: string;
   try { brut = (await lireCorpsBorne(request.body, LIMITE_CORPS_WEBHOOK)).toString("utf8"); }
   catch (e) {
-    if ((e as Error).message === "corps_absent") return Response.json({ erreur: "Corps absent." }, { status: 400 });
-    return Response.json({ erreur: "Corps trop volumineux." }, { status: 413 });
+    if ((e as Error).message === "corps_trop_grand") return Response.json({ erreur: "Corps trop volumineux." }, { status: 413 });
+    // Corps absent, ou flux coupé en cours de lecture : l'expéditeur réessaie (tout code autre que 2xx).
+    return Response.json({ erreur: "Corps absent ou illisible." }, { status: 400 });
   }
   const signature = request.headers.get("x-zs-webhook-signature");
   if (!webhookZohoValide(brut, signature, secret)) return refuser(signature ? "signature_invalide" : "signature_absente", "Signature refusée.");

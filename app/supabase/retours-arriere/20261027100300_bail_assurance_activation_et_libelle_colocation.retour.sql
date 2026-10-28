@@ -1,14 +1,18 @@
 -- Retire le rattachement de l'assurance du locataire à l'activation du bail et rétablit l'ancien message de
 -- choisir_personne_bail (20261009150000). Les liens « personne » déjà posés sont conservés : ils désignent la pièce
 -- réellement fournie par le locataire, et les retirer lui ferait de nouveau réclamer son attestation.
-begin;
-set local lock_timeout = '10s';
+-- Une seule instruction DO atomique (audit final du 28/10, relecture COD-02) : seule en autocommit, ou intégralement
+-- annulable dans une transaction externe, qu'elle ne valide jamais — la séquence des retours du 26/10, qui commence par
+-- celui-ci, se joue ainsi dans une transaction contrôlée. Se rejoue sans effet.
+do $retour_atomique$
+begin
+perform set_config('lock_timeout', '10s', true);
 drop trigger if exists baux_assurance_locataire_activation on public.baux;
 drop function if exists public.rattacher_assurance_locataire_activation();
 create or replace function public.choisir_personne_bail(
   p_bail uuid, p_person uuid, p_role text, p_garant_de uuid default null,
   p_principal_attendu uuid default null
-) returns void language plpgsql security invoker set search_path = '' as $$
+) returns void language plpgsql security invoker set search_path = '' as $fonction$
 declare b public.baux%rowtype;
 begin
   select * into b from public.baux where id = p_bail for update;
@@ -45,9 +49,12 @@ begin
       values(b.organization_id,p_bail,p_person,p_role,case when p_role='garant' then p_garant_de end);
   end if;
 end;
-$$;
+$fonction$;
 revoke all on function public.choisir_personne_bail(uuid,uuid,text,uuid,uuid) from public, anon;
 grant execute on function public.choisir_personne_bail(uuid,uuid,text,uuid,uuid) to authenticated;
-notify pgrst,'reload schema';
-delete from supabase_migrations.schema_migrations where version = '20261027100300';
-commit;
+perform pg_notify('pgrst', 'reload schema');
+if to_regclass('supabase_migrations.schema_migrations') is not null then
+  delete from supabase_migrations.schema_migrations where version = '20261027100300';
+end if;
+end;
+$retour_atomique$;

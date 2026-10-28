@@ -27,7 +27,8 @@ describe("index redondants — fichiers (sans base)", () => {
   it("la migration retire les deux doublons, est rejouable, au manifeste une fois, avec son retour au LISEZ-MOI", () => {
     const sql = readFileSync(`supabase/migrations/${NOM}.sql`, "utf8");
     expect(sql).toContain("drop index if exists public.appels_loyer_bail_idx;");
-    expect(sql).toContain("u.indexrelid::regclass::text = 'marketing_campagnes_publication_unique'");
+    expect(sql).toContain("cu.relname = 'marketing_campagnes_publication_unique'");
+    expect(sql).toContain("u.indisvalid and u.indisready");
     expect(sql).not.toMatch(/fk_marketing_campagnes_[0-9a-f]{10}/);
     expect(sql).not.toMatch(/^(begin|commit);$/m);
     expect(sql.trim().endsWith("select public.fermer_fonctions_a_anon();")).toBe(true);
@@ -56,6 +57,25 @@ describe.skipIf(!url)("index redondants — base migrée", () => {
       and (indexname = any($1::text[]) or (tablename = 'marketing_campagnes' and indexname like 'fk\\_marketing\\_campagnes\\_%' and indexdef like '%(publication_id)')) order by 1`,
       [["appels_loyer_bail_id_periode_key", "marketing_campagnes_publication_unique", "appels_loyer_bail_idx"]]);
     expect(rows.map((r) => r.indexname)).toEqual(["appels_loyer_bail_id_periode_key", "marketing_campagnes_publication_unique"]);
+  });
+
+  it("relecture : un index unique jumeau invalide protège l'index de clé étrangère ; le search_path n'y change rien", async () => {
+    await db.query("savepoint jumeau");
+    try {
+      await db.query(readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8"));
+      await db.query("update pg_index set indisvalid = false where indexrelid = 'public.marketing_campagnes_publication_unique'::regclass");
+      await db.query(readFileSync(`supabase/migrations/${NOM}.sql`, "utf8"));
+      const fk = async () => (await db.query(`select count(*)::int n from pg_index i join pg_class c on c.oid = i.indexrelid
+        where i.indrelid = 'public.marketing_campagnes'::regclass and c.relname like 'fk\\_marketing\\_campagnes\\_%' and not i.indisunique
+        and i.indkey::text = (select indkey::text from pg_index where indexrelid = 'public.marketing_campagnes_publication_unique'::regclass)`)).rows[0].n as number;
+      expect(await fk()).toBe(1);
+      await db.query("update pg_index set indisvalid = true where indexrelid = 'public.marketing_campagnes_publication_unique'::regclass");
+      await db.query("set local search_path = ''");
+      await db.query(readFileSync(`supabase/migrations/${NOM}.sql`, "utf8"));
+      expect(await fk()).toBe(0);
+    } finally {
+      await db.query("rollback to savepoint jumeau");
+    }
   });
 
   it("le retour recrée les deux doublons ; la migration les retire de nouveau, deux fois sans erreur", async () => {

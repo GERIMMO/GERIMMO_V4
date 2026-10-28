@@ -104,6 +104,16 @@ describe("la route refuse plutôt que de s'ouvrir", () => {
     expect(lu).toBe(false);
   });
 
+  it("un flux coupé en cours de lecture répond 400, pas « trop volumineux » (relecture COD-14)", async () => {
+    reglagesComplets();
+    const flux = new ReadableStream<Uint8Array>({ pull(controleur) { controleur.error(new Error("connexion coupée")); } }, { highWaterMark: 0 });
+    const r = await POST(new Request("https://exemple.fr/api/stripe/webhook", {
+      method: "POST", body: flux, duplex: "half", headers: { "stripe-signature": "t=1,v1=x" },
+    } as RequestInit));
+    expect(r.status).toBe(400);
+    expect(await r.json()).toEqual({ erreur: "Corps absent ou illisible." });
+  });
+
   it("un corps vide avec une signature vide reste refusé", async () => {
     reglagesComplets();
     const r = await POST(appel("", ""));

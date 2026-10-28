@@ -57,8 +57,9 @@ export async function POST(request: Request) {
   try {
     brut = (await lireCorpsBorne(request.body, LIMITE_CORPS_WEBHOOK)).toString("utf8");
   } catch (e) {
-    if ((e as Error).message === "corps_absent") return Response.json({ erreur: "Corps absent." }, { status: 400 });
-    return Response.json({ erreur: "Corps trop volumineux." }, { status: 413 });
+    if ((e as Error).message === "corps_trop_grand") return Response.json({ erreur: "Corps trop volumineux." }, { status: 413 });
+    // Corps absent, ou flux coupé en cours de lecture : l'expéditeur réessaie (tout code autre que 2xx).
+    return Response.json({ erreur: "Corps absent ou illisible." }, { status: 400 });
   }
   const stripe = clientStripe(reglages.config);
   let evenement: Stripe.Event;

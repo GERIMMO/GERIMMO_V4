@@ -30,8 +30,8 @@ const ANNEE = "20261026214857_qualification_diagnostic_annee_installation";
 const PIECES = "20261026232941_pieces_attendues_bail";
 const ACTIVATION = "20261027100300_bail_assurance_activation_et_libelle_colocation";
 const migration = (nom: string) => readFileSync(`supabase/migrations/${nom}.sql`, "utf8");
-/** Le retour de 20261027100300 gère sa propre transaction : on lui retire cette enveloppe seule. */
-const retour = (nom: string) => readFileSync(`supabase/retours-arriere/${nom}.retour.sql`, "utf8").replace(/^begin;$/m, "").replace(/^commit;$/m, "");
+/** Joués tels quels : les quatre retours sont des instructions DO atomiques (celui de 20261027100300 depuis le 28/10). */
+const retour = (nom: string) => readFileSync(`supabase/retours-arriere/${nom}.retour.sql`, "utf8");
 
 describe.skipIf(!url)("retours des migrations du 26 octobre 2026 (base)", () => {
   let db: Client, org: string, lot: string, compte: string;
@@ -84,6 +84,13 @@ describe.skipIf(!url)("retours des migrations du 26 octobre 2026 (base)", () => 
       [["20261026213652", "20261026214857", "20261026232941", "20261027100300"]]);
   });
   afterEach(async () => { await db.query("rollback"); await db.end(); });
+
+  it("le retour de 20261027100300, premier de la séquence, ne valide jamais la transaction qui le contient", async () => {
+    expect(retour(ACTIVATION)).toMatch(/^do \$retour_atomique\$/m);
+    expect(retour(ACTIVATION)).not.toMatch(/^(begin|commit);$/m);
+    await db.query(retour(ACTIVATION));
+    expect((await db.query("select now() = statement_timestamp() as nouvelle")).rows[0].nouvelle).toBe(false);
+  });
 
   it("la base de test porte les trois migrations : leur rejeu direct échoue (fichiers non rejouables, déjà appliqués)", async () => {
     expect(await objets()).toEqual({ pieces: true, qualifications: true, affecter: true, controler: true, tracer: true, contrainte: true });

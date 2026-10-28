@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { Client } from "pg";
 import { randomUUID } from "node:crypto";
-import { sansSyntheseAlertes, debordementHorizontal } from "./aides";
+import { sansSyntheseAlertes, debordementHorizontal, connecterVers } from "./aides";
 import { pdfFictif } from "./pdf-fictif";
 import { CONDITIONS_VERSION } from "../src/lib/editeur";
 
@@ -43,9 +43,8 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     await db.query("commit");
     await info.attach("fixture-consommations", { contentType: "application/json", body: Buffer.from(JSON.stringify({ org, bien, lot, bail, compteProprietaire, compteLocataire, largeur })) });
     await page.setViewportSize({ width: largeur, height: 900 }); await sansSyntheseAlertes(page);
-    await page.goto("/connexion"); await page.locator("#email").fill(emailProprietaire); await page.locator("#mot-de-passe").fill(motDePasse); await page.getByRole("button", { name: "Se connecter", exact: true }).click(); await page.waitForURL(/\/(espace|espaces)(\/|$)/, { timeout: 25000 });
     const chemin = `/espace/${org}/parc/${bien}/lots/${lot}`;
-    await page.goto(chemin);
+    await connecterVers(page, emailProprietaire, motDePasse, chemin);
     const bloc = page.locator("section#consommations");
     await expect(bloc.getByRole("heading", { name: "Contrats & consommations" })).toBeVisible();
     await bloc.getByRole("button", { name: "Ajouter un compteur", exact: true }).click();
@@ -57,8 +56,7 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     await meter.getByRole("button", { name: "Enregistrer", exact: true }).click();
     await expect(bloc.getByText(/Compteur enregistré/)).toBeVisible();
     expect((await db.query("select count(*)::int n from demandes_releves d join compteurs_consommation c on c.id=d.compteur_id where c.lot_id=$1 and statut='attendue'", [lot])).rows[0].n).toBe(1);
-    await sansSyntheseAlertes(tp); await tp.goto("/connexion"); await tp.locator("#email").fill(emailLocataire); await tp.locator("#mot-de-passe").fill(motDePasse); await tp.getByRole("button", { name: "Se connecter", exact: true }).click(); await tp.waitForURL(/\/(locataire|espaces)(\/|$)/, { timeout: 25000 });
-    await tp.goto(`/locataire/${org}/releves`);
+    await sansSyntheseAlertes(tp); await connecterVers(tp, emailLocataire, motDePasse, `/locataire/${org}/releves`);
     const releve = tp.locator("section").filter({ has: tp.getByText(nom, { exact: true }) });
     await releve.getByLabel("Index affiché (m³)", { exact: true }).fill("99");
     await releve.getByRole("button", { name: "Transmettre mon relevé" }).click();

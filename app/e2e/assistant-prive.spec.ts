@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { debordementHorizontal, entrerDansEspace, sansSyntheseAlertes } from "./aides";
+import { connecterVers, debordementHorizontal, entrerDansEspace, sansSyntheseAlertes } from "./aides";
 
 for (const profil of [
   { role: "espace", email: "proprietaire@example.com", page: "messages" },
@@ -8,13 +8,15 @@ for (const profil of [
   test(`assistant privé ${profil.role} : entrée discrète et indisponibilité honnête sans fournisseur`, async ({ page }, testInfo) => {
     test.skip(process.env.E2E_CI !== "1" || Boolean(process.env.OPENAI_API_KEY || process.env.OPEN_AI_KEY) || !/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(process.env.E2E_BASE_URL ?? ""), "Banc local isolé sans clé fournisseur uniquement");
     await sansSyntheseAlertes(page);
-    await page.goto("/connexion");
-    await page.locator("#email").fill(profil.email);
-    await page.locator("#mot-de-passe").fill(process.env.E2E_MOT_DE_PASSE ?? "Gerimmo-Demo-2026");
-    await page.getByRole("button", { name: "Se connecter", exact: true }).click();
-    await page.waitForURL(/\/(espaces|espace|locataire)(\/|$)/);
-    const orgId = profil.role === "espace" ? "3c1d1e95-3570-400b-8012-44530be145b1" : await entrerDansEspace(page, "locataire");
-    await page.goto(`/${profil.role}/${orgId}/${profil.page}`);
+    await connecterVers(page, profil.email, process.env.E2E_MOT_DE_PASSE ?? "Gerimmo-Demo-2026",
+      profil.role === "espace" ? "/espace/3c1d1e95-3570-400b-8012-44530be145b1/messages" : "/espaces");
+    if (profil.role === "locataire") {
+      const orgId = await entrerDansEspace(page, "locataire");
+      const lien = page.locator(`a[href="/locataire/${orgId}/contact"]`).filter({ visible: true });
+      if (await lien.count() === 0) await page.getByRole("button", { name: "Menu", exact: true }).click();
+      await lien.first().click();
+      await expect(page).toHaveURL(new RegExp(`/locataire/${orgId}/contact$`));
+    }
     const assistant = page.locator("details").filter({ has: page.locator("summary").filter({ hasText: "Demander à Gerimmo" }) });
     await expect(assistant).toHaveCount(1);
     await expect(assistant).not.toHaveAttribute("open");

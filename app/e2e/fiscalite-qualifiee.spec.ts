@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {Client} from 'pg';
 import {randomUUID} from 'node:crypto';
 import {readFileSync} from 'node:fs';
-import {debordementHorizontal,sansSyntheseAlertes} from './aides';
+import {connecterVers,debordementHorizontal,sansSyntheseAlertes} from './aides';
 const ORG='3c1d1e95-3570-400b-8012-44530be145b1';
 test('fiscalité : qualifier copro, terrain et 230, puis retrouver le même export',async({page},testInfo)=>{
  test.setTimeout(90_000);
@@ -15,10 +15,13 @@ test('fiscalité : qualifier copro, terrain et 230, puis retrouver le même expo
   await db.query("insert into persons(id,organization_id,nom,qualite) values($1,$2,$3,'Personne physique')",[personne,ORG,`TEST Propriétaire ${lot.slice(0,8)}`]);
   await db.query("insert into detentions(organization_id,lot_id,person_id,quote_part,date_debut) values($1,$2,$3,100,'2026-01-01')",[ORG,lot,personne]);
   await db.query("insert into ecritures(id,organization_id,lot_id,categorie,sens,montant,date_piece) values($1,$2,$3,'Copropriété TEST','depense',1200,'2026-10-12'),($4,$2,$3,'Achat terrain TEST','depense',1000,'2026-10-12')",[copro,ORG,lot,terrain]);
-  await sansSyntheseAlertes(page);await page.goto('/connexion');await page.locator('#email').fill('proprietaire@example.com');await page.locator('#mot-de-passe').fill(process.env.E2E_MOT_DE_PASSE??'Gerimmo-Demo-2026');await page.getByRole('button',{name:'Se connecter',exact:true}).click();await page.waitForURL(/\/(espaces|espace|agence)\//);
-  await page.goto(`/espace/${ORG}/comptabilite/fiscal?annee=2026&bien=${bien}`);
-  await expect(page.getByRole('link',{name:'Exporter les montants (CSV)'})).toHaveCount(0);
+  await sansSyntheseAlertes(page);
+  await connecterVers(page,'proprietaire@example.com',process.env.E2E_MOT_DE_PASSE??'Gerimmo-Demo-2026',`/espace/${ORG}/comptabilite/fiscal?annee=2026&bien=${bien}`);
   const profil=page.locator('details').filter({has:page.locator('summary').filter({hasText:`TEST Propriétaire ${lot.slice(0,8)}`})});
+  // Vérifier l’écran attendu avant l’absence d’un export : l’URL seule
+  // pourrait précéder la fin du rendu après la connexion.
+  await expect(profil.locator('summary')).toBeVisible();
+  await expect(page.getByRole('link',{name:'Exporter les montants (CSV)'})).toHaveCount(0);
   await profil.locator('[name="location_nue"]').selectOption('reel');await profil.locator('[name="location_meublee"]').selectOption('non_concerne');await profil.locator('[name="justification"]').fill('Déclaration TEST au réel vérifiée');await profil.locator('[name="confirme"]').check();await profil.getByRole('button',{name:'Enregistrer',exact:true}).click();
   await expect(page.getByText('À compléter — les totaux portent uniquement sur les montants confirmés.')).toBeVisible();
   expect((await db.query('select imposition,location_nue,version from fiscal_profils_detenteurs where person_id=$1',[personne])).rows).toEqual([{imposition:'ir',location_nue:'reel',version:1}]);

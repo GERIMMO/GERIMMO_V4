@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
 import { randomUUID } from "node:crypto";
-import { sansSyntheseAlertes, debordementHorizontal } from "./aides";
+import { connecterVers, sansSyntheseAlertes, debordementHorizontal } from "./aides";
 import AxeBuilder from "@axe-core/playwright";
 
 const ORG="3c1d1e95-3570-400b-8012-44530be145b1";
@@ -33,11 +33,7 @@ for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : éc
     await db.query("insert into appels_loyer(id,organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values($1,$3,$4,date_trunc('month',public.aujourdhui_paris()),public.aujourdhui_paris()+1,750,50,800),($2,$3,$4,date_trunc('month',public.aujourdhui_paris())+interval '1 month',public.aujourdhui_paris()+30,750,50,800)",[appel,futur,ORG,bail]);
     await db.query("commit");
     await page.setViewportSize({width:largeur,height:950});await sansSyntheseAlertes(page);
-    await page.goto("/connexion");await page.locator("#email").fill("proprietaire@example.com");await page.locator("#mot-de-passe").fill(process.env.E2E_MOT_DE_PASSE??"Gerimmo-Demo-2026");
-    await page.getByRole("button",{name:"Se connecter",exact:true}).click();await page.waitForURL(/\/espace\//);
-    // La page de connexion efface le marqueur de synthèse. Une vraie navigation
-    // réapplique l'aide du banc avant de tester les demandes de loyer.
-    await page.goto(`/espace/${ORG}`);
+    await connecterVers(page,"proprietaire@example.com",process.env.E2E_MOT_DE_PASSE??"Gerimmo-Demo-2026",`/espace/${ORG}`);
     const bloc=page.getByRole("region",{name:"Avez-vous reçu vos loyers ?"});
     // D'autres tests peuvent créer leurs propres loyers dans cet espace :
     // les gestes et le solde portent exclusivement sur notre lot unique.

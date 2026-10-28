@@ -4,6 +4,13 @@ import {randomUUID} from 'node:crypto';
 import AxeBuilder from '@axe-core/playwright';
 import {sansSyntheseAlertes,debordementHorizontal} from './aides';
 const ORG='3c1d1e95-3570-400b-8012-44530be145b1';
+async function rechargerApresFixture(page:Page){
+ // Ces rechargements ne sont pas des gestes utilisateur : ils relisent les
+ // fixtures SQL. Attendre la fin du préchargement Next avant de détruire le
+ // document évite d'annuler ses requêtes RSC encore en vol dans WebKit.
+ await page.waitForLoadState('networkidle');
+ await page.reload();
+}
 async function connecter(page:Page,email:string,destination:string){
  await page.context().clearCookies();await page.goto(`/connexion?suite=${encodeURIComponent(destination)}`);await page.locator('#email').fill(email);await page.locator('#mot-de-passe').fill(process.env.E2E_MOT_DE_PASSE??'Gerimmo-Demo-2026');
  // La connexion remet ce marqueur à zéro à son montage. Le rétablir après
@@ -36,10 +43,10 @@ for(const largeur of [390,1440]) test.describe(`${largeur}px`,()=>{
   const quittances=page.getByRole('form',{name:'Quittances et reçus de paiement'}),recommandes=page.getByRole('form',{name:'Recommandés électroniques'});
   await quittances.getByRole('button',{name:'J’accepte la réception électronique'}).click();await expect(quittances.getByText('Accord électronique enregistré',{exact:true})).toBeVisible();
   await recommandes.getByRole('button',{name:'J’accepte la réception électronique'}).click();await expect(recommandes.getByText('Accord électronique enregistré',{exact:true})).toBeVisible();
-  await page.reload();await page.getByText('Réception de mes documents',{exact:true}).click();await expect(quittances.getByRole('button',{name:'Retirer mon accord'})).toBeVisible();
+  await rechargerApresFixture(page);await page.getByText('Réception de mes documents',{exact:true}).click();await expect(quittances.getByRole('button',{name:'Retirer mon accord'})).toBeVisible();
   await quittances.getByRole('button',{name:'Retirer mon accord'}).click();await expect(quittances.getByText('Aucun accord électronique enregistré',{exact:true})).toBeVisible();
   expect((await db.query('select quittances_electroniques,recommandes_electroniques from consentements_documents_locataire where person_id=$1',[personne])).rows[0]).toEqual({quittances_electroniques:false,recommandes_electroniques:true});
-  await db.query("update memberships set status='inactive' where account_id=$1 and organization_id=$2",[compte,ORG]);await page.reload();await page.getByText('Réception de mes documents',{exact:true}).click();
+  await db.query("update memberships set status='inactive' where account_id=$1 and organization_id=$2",[compte,ORG]);await rechargerApresFixture(page);await page.getByText('Réception de mes documents',{exact:true}).click();
   await recommandes.getByRole('button',{name:'Retirer mon accord'}).click();await expect(recommandes.getByText('Aucun accord électronique enregistré',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'J’accepte la réception électronique'})).toHaveCount(0);
   expect((await db.query('select recommandes_electroniques from consentements_documents_locataire where person_id=$1',[personne])).rows[0].recommandes_electroniques).toBe(false);
   expect(await debordementHorizontal(page)).toBe(0);await page.screenshot({path:info.outputPath(`consentements-retires-${largeur}.png`),fullPage:true});
@@ -68,13 +75,13 @@ for(const largeur of [390,1440]) test.describe(`${largeur}px`,()=>{
   expect(await debordementHorizontal(page)).toBe(0);await fiche.screenshot({path:info.outputPath(`ar24-suivi-${largeur}.png`)});expect(erreurs).toEqual([]);
   // L'attestation ci-dessous est une donnée fictive de recette, jamais une réponse fournisseur réelle.
   await db.query("update recommandes_ar24 set statut='echec',ar24_id=$2 where id=$1",[courrier,largeur]);
-  await page.reload();await historique.locator('summary').click();await historique.getByRole('button',{name:'Voir le courrier et son suivi'}).click();
+  await rechargerApresFixture(page);await historique.locator('summary').click();await historique.getByRole('button',{name:'Voir le courrier et son suivi'}).click();
   // Une absence de bouton ne prouve pas que la fiche a fini de charger.
   // Attendre l'échec lu du serveur avant de contrôler le droit de réessayer.
   await expect(fiche.getByText('AR24 signale un échec. Faites vérifier son caractère définitif avant toute nouvelle lettre, afin d’éviter un double envoi.',{exact:true})).toBeVisible();
   await expect(fiche.getByRole('button',{name:'Préparer une nouvelle lettre'})).toHaveCount(0);
   await db.query("select attester_echec_definitif_ar24($1,$2,'Attestation fictive de recette locale')",[ORG,courrier]);
-  await page.reload();await historique.locator('summary').click();await historique.getByRole('button',{name:'Voir le courrier et son suivi'}).click();
+  await rechargerApresFixture(page);await historique.locator('summary').click();await historique.getByRole('button',{name:'Voir le courrier et son suivi'}).click();
   await fiche.getByRole('button',{name:'Préparer une nouvelle lettre'}).click();await historique.getByRole('button',{name:'Préparer la nouvelle lettre'}).click();
   await expect(historique.getByRole('alert')).toContainText('L’envoi AR24 n’est pas encore activé');
   expect((await db.query('select id from recommandes_ar24 where bail_id=$1',[bail])).rowCount).toBe(1);expect(erreurs).toEqual([]);

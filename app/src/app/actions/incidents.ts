@@ -116,7 +116,11 @@ async function joindrePhotos(
     )
   ).filter((p): p is Prete => p !== null);
 
+  // Audit final (DOC-10) : une photo déjà connue de l'espace n'est plus écartée. Elle n'est pas renvoyée au Storage
+  // (l'objet resterait orphelin) : la base la rattache au dossier (`joindre_photo_incident` sans chemin), ou dit
+  // pourquoi elle ne le peut pas (document d'un autre type).
   let deposables = pretes;
+  let dejaConnues: Prete[] = [];
   if (pretes.length > 0) {
     const { data: doublons } = await supabase
       .from("documents")
@@ -125,13 +129,8 @@ async function joindrePhotos(
       .in("empreinte", pretes.map((p) => p.empreinte))
       .is("purged_at", null);
     const dejaDeposees = new Set((doublons ?? []).map((d) => d.empreinte));
-    deposables = pretes.filter((p) => {
-      if (dejaDeposees.has(p.empreinte)) {
-        echecs.push(`« ${p.fichier.name} » est déjà dans la GED`);
-        return false;
-      }
-      return true;
-    });
+    dejaConnues = pretes.filter((p) => dejaDeposees.has(p.empreinte));
+    deposables = pretes.filter((p) => !dejaDeposees.has(p.empreinte));
   }
 
   const uploads = await Promise.all(
@@ -148,7 +147,7 @@ async function joindrePhotos(
     })
   );
 
-  for (const u of uploads) {
+  for (const u of [...dejaConnues.map((p) => ({ ...p, chemin: null })), ...uploads]) {
     if (!u) continue;
     const { error } = await supabase.rpc("joindre_photo_incident", {
       p_org: orgId,

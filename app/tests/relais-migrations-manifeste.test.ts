@@ -122,6 +122,9 @@ const MISSION_OCTOBRE = [
   "20261027100300_bail_assurance_activation_et_libelle_colocation.sql",
   // 27/10, audit #264 (CB-16) : « N baux en cours » dans le parcours de démarrage.
   "20261027100500_parcours_demarrage_pluriel_baux.sql",
+  // 28/10, audit final (documents et incidents) : même fichier pour deux attestations, photo d'incident déjà connue
+  // rattachée, titre des photos de chantier.
+  "20261028100600_attestations_et_photos_en_double.sql",
 
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */

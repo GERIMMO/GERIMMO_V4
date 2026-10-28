@@ -100,7 +100,8 @@ describe.skipIf(!url)("alerte d'impayé et encaissements (avec base)", () => {
     expect((await reception(ancien, "recu", 800, 800)).statut).toBe("enregistre");
     const [apresUn] = await alertes();
     expect(apresUn).toMatchObject({ statut: "ouverte", criticite: "normale", seuil: "1" });
-    expect(apresUn.titre).toContain("800,00 €");
+    // Montant au format de l'écran depuis 20261028100200 (audit final, LOY-11) : espace insécable avant le symbole.
+    expect(apresUn.titre).toContain("800,00\u00a0€");
     expect((await reception(recent, "recu", 800, 800)).statut).toBe("enregistre");
     // Fermée par la base, sans auteur, bien que la réception vienne de la session du propriétaire : l'historique
     // l'affiche « Fermée automatiquement » (alertes/page.tsx), comme une fermeture de la tâche de nuit.
@@ -116,7 +117,7 @@ describe.skipIf(!url)("alerte d'impayé et encaissements (avec base)", () => {
     await reception(recent, "partiel", 300, 800);
     const [alerte] = await alertes();
     expect(alerte).toMatchObject({ statut: "ouverte", seuil: "1" });
-    expect(alerte.titre).toContain("500,00 €");
+    expect(alerte.titre).toContain("500,00\u00a0€");
   });
 
   it("l'annulation du règlement rouvre la même alerte, sans doublon, autant de fois qu'elle se répète", async () => {

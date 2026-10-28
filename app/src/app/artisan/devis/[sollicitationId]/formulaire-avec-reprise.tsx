@@ -8,7 +8,7 @@ import { FormulaireDevis } from "./formulaire-devis";
 import { CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SOBRE } from "../../ui";
 
 export function FormulaireAvecReprise({ compteId, ...props }: {
-  compteId: string; sollicitationId: string; echeanceParDefaut: string; initiale?: PreparationDevis | null; erreurPreparation?: string;
+  compteId: string; sollicitationId: string; echeanceParDefaut: string; validiteMinimum?: string; initiale?: PreparationDevis | null; erreurPreparation?: string;
   /** D18 (livraison 2) : défini quand le client a demandé une révision ; le formulaire prépare cette version. */
   versionSuivante?: number;
 }) {
@@ -35,7 +35,7 @@ export function FormulaireAvecReprise({ compteId, ...props }: {
         <dl className="mt-3 space-y-3 text-sm">
           {[["Diagnostic", b.contenu.diagnostic], ["Délai", b.contenu.delai], ["Durée", b.contenu.duree], ["Validité", b.contenu.valide_jusqu_au], ["Contraintes", b.contenu.contraintes], ["Observations", b.contenu.observations], ...(props.versionSuivante ? [["Ce qui change", b.contenu.note_revision ?? ""]] : [])].map(([titre, valeur]) => <div key={titre}><dt className="font-semibold">{titre}</dt><dd className="whitespace-pre-wrap break-words">{valeur || "Non renseigné"}</dd></div>)}
         </dl>
-        <ul className="mt-4 space-y-2 text-sm">{b.contenu.lignes.map((l, i) => <li key={i} className="break-words">{l.libelle || "Prestation à compléter"} · Quantité : {l.quantite || "à compléter"} · Prix HT : {l.prix || "à compléter"} € · TVA : {l.tva ? `${Number(l.tva)/100} %` : "à choisir"}</li>)}</ul>
+        <ul className="mt-4 space-y-2 text-sm">{b.contenu.lignes.map((l, i) => <li key={i} className="break-words">{l.libelle || "Prestation à compléter"} · Quantité&nbsp;: {l.quantite || "à compléter"} · Prix HT&nbsp;: {l.prix || "à compléter"} € · TVA&nbsp;: {l.tva ? `${Number(l.tva)/100} %` : "à choisir"}</li>)}</ul>
       </details>
       <div className="flex flex-wrap gap-3">
         {!conflit && <button className={`${CLASSE_BOUTON_PRINCIPAL} sm:w-auto`} onClick={() => setChoix({ copie: b })}>Reprendre ma saisie</button>}

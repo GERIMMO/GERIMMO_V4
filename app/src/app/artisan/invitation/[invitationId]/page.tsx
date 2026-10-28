@@ -78,12 +78,12 @@ export default async function PageInvitationArtisan(props: PageProps<"/artisan/i
           <TitreSection>{invitant ? `Vous êtes dans le carnet d’artisans de ${invitant}` : "Vous êtes dans son carnet d’artisans"}</TitreSection>
           {fiche?.statut_plateforme === "valide" ? (
             <p className="text-base text-[var(--corps)]">
-              Votre inscription est validée par Gerimmo : vous pouvez recevoir ses demandes pour les biens situés dans
+              Votre inscription est validée par Gerimmo&nbsp;: vous pouvez recevoir ses demandes pour les biens situés dans
               votre zone d’intervention. Vérifiez que vos codes postaux sont à jour.
             </p>
           ) : (
             <p className="text-base text-[var(--corps)]">
-              Prochaine étape : déposez vos attestations de responsabilité civile professionnelle et de garantie
+              Prochaine étape&nbsp;: déposez vos attestations de responsabilité civile professionnelle et de garantie
               décennale. Gerimmo vérifie ensuite votre inscription ; personne ne peut vous solliciter avant.
             </p>
           )}
@@ -126,7 +126,7 @@ function EnAttente({ invitation, invitant }: { invitation: InvitationRecue; invi
         <Carte>
           <TitreSection>1. Inscrire votre entreprise</TitreSection>
           <p className="text-base text-[var(--corps)]">
-            Avant d’accepter, inscrivez votre entreprise : SIRET, métiers, mobile et zone d’intervention. Vous
+            Avant d’accepter, inscrivez votre entreprise&nbsp;: SIRET, métiers, mobile et zone d’intervention. Vous
             reviendrez ensuite ici.
           </p>
           <Link href={`/artisan/inscription?invitation=${invitation.id}`} className={CLASSE_BOUTON_PRINCIPAL}>
@@ -136,7 +136,7 @@ function EnAttente({ invitation, invitant }: { invitation: InvitationRecue; invi
         <Carte>
           <TitreSection>2. Accepter l’invitation</TitreSection>
           <p className="text-base text-[var(--corps)]">
-            Valable jusqu’au {valableJusquAu(invitation.expire_le)} inclus. Vous pouvez aussi la refuser dès maintenant : rien
+            Valable jusqu’au {valableJusquAu(invitation.expire_le)} inclus. Vous pouvez aussi la refuser dès maintenant&nbsp;: rien
             ne sera partagé.
           </p>
           <ReponseInvitationArtisan invitationId={invitation.id} accepter={false} />
@@ -176,7 +176,7 @@ function SansSession({ invitationId }: { invitationId: string }) {
       </Carte>
 
       <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
-        Ensuite : votre entreprise (SIRET, métiers, zone d’intervention), puis votre réponse à l’invitation. Gerimmo
+        Ensuite&nbsp;: votre entreprise (SIRET, métiers, zone d’intervention), puis votre réponse à l’invitation. Gerimmo
         valide votre inscription avant toute intervention.
       </p>
     </div>

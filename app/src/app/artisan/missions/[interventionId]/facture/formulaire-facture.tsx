@@ -90,8 +90,8 @@ export function FormulaireFacture({
           className={CLASSE_CHAMP}
         />
         <p className={CLASSE_AIDE}>
-          Pré-rempli avec le montant engagé. Un autre montant reste possible :
-          expliquez alors l&apos;écart, votre interlocuteur le tranchera.
+          Pré-rempli avec le montant engagé. Un autre montant reste possible&nbsp;:
+          expliquez alors l’écart, votre interlocuteur le tranchera.
         </p>
       </div>
 

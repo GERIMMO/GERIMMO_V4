@@ -76,8 +76,8 @@ export default async function PageComptePhoto(
       {mission.statut !== "en_cours" ? (
         <>
           <Avertissement>
-            Démarrez l&apos;intervention avant d&apos;en rendre compte : les photos
-            et le bilan s&apos;ouvrent ensuite.
+            Démarrez l’intervention avant d’en rendre compte&nbsp;: les photos
+            et le bilan s’ouvrent ensuite.
           </Avertissement>
           <AvertissementRendezVousAnticipe debutPrevu={mission.debut_prevu} finPrevue={mission.fin_prevue} geste="demarrer" />
           <BoutonDemarrer interventionId={interventionId} />
@@ -91,8 +91,8 @@ export default async function PageComptePhoto(
               pourquoi au lieu de retomber sur l'écran sans un mot. */}
           {raison === "photo" && !mission.photo_apres_deposee && (
             <Avertissement>
-              La photo du travail terminé manque : le bilan ne s&apos;ouvre
-              qu&apos;une fois qu&apos;elle est envoyée.
+              La photo du travail terminé manque&nbsp;: le bilan ne s’ouvre
+              qu’une fois qu’elle est envoyée.
             </Avertissement>
           )}
 
@@ -104,7 +104,7 @@ export default async function PageComptePhoto(
             moment="apres"
             dejaEnvoyee={mission.photo_apres_deposee}
             titre="Photographier le travail terminé"
-            aide="Sans elle, l'intervention ne peut pas être terminée — donc pas de facture."
+            aide="Sans elle, l’intervention ne peut pas être terminée — donc pas de facture."
           />
 
           {mission.photo_apres_deposee ? (
@@ -121,7 +121,7 @@ export default async function PageComptePhoto(
           <Carte>
             <TitreSection>Avant et pendant (facultatif)</TitreSection>
             <p className="mb-3 text-[0.9375rem] text-[var(--texte-secondaire)]">
-              Utile quand l&apos;état d&apos;origine explique le prix, ou quand on découvre
+              Utile quand l’état d’origine explique le prix, ou quand on découvre
               autre chose en ouvrant. Le locataire consulte ces photos avant de vous
               noter.
             </p>

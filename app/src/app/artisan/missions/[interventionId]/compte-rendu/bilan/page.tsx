@@ -69,7 +69,7 @@ export default async function PageBilan(
         }`}
       />
 
-      <Succes>Photo du travail réalisé : envoyée.</Succes>
+      <Succes>Photo du travail réalisé&nbsp;: envoyée.</Succes>
 
       {erreurBudget && <Erreur>Le budget autorisé n’a pas pu être relu. Rechargez cette page avant de terminer l’intervention.</Erreur>}
       {!erreurBudget && <FormulaireBilan

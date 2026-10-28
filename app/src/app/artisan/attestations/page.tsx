@@ -30,7 +30,7 @@ export default async function PageAttestations(props: PageProps<"/artisan/attest
   return <div className={styles.page}>
     <EnteteSousPage rubrique="documents" titre="Mes attestations" mention="Votre dossier professionnel, partagé pour toutes vos interventions."
       action={!pieces.erreur && <Link href={`/artisan/attestations?type=${prochaine ?? "decennale"}#deposer`} className={styles.principal}><Plus size={17} aria-hidden/>Déposer un document</Link>}/>
-    {inscrit && <Succes>Votre entreprise est inscrite. Déposez maintenant votre décennale et votre RC pro : Gerimmo valide l’inscription au vu de ces pièces, et vous pourrez recevoir de nouvelles demandes après validation.</Succes>}
+    {inscrit && <Succes>Votre entreprise est inscrite. Déposez maintenant votre décennale et votre RC pro&nbsp;: Gerimmo valide l’inscription au vu de ces pièces, et vous pourrez recevoir de nouvelles demandes après validation.</Succes>}
     {pieces.erreur ? <Erreur>Vos attestations n’ont pas pu être lues. <a className="underline" href="/artisan/attestations">Recharger la page</a> avant de déposer un document.</Erreur> : <>
       <div className={styles.indicateurs} aria-label="État du dossier">
         <div><span className={styles.icone} data-ton="bleu"><FileCheck2 size={21} aria-hidden/></span><span><strong>{deposees.size}</strong><span>Document{deposees.size > 1 ? "s" : ""} déposé{deposees.size > 1 ? "s" : ""}</span></span></div>

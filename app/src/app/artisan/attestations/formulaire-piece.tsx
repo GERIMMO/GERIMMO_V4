@@ -39,7 +39,7 @@ function Envoyer() {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className={CLASSE_BOUTON_PRINCIPAL} disabled={pending}>
-      {pending ? "Envoi…" : "Déposer l'attestation"}
+      {pending ? "Envoi…" : "Déposer l’attestation"}
     </button>
   );
 }
@@ -104,7 +104,7 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
           </div>
           <div className="min-w-[9rem] flex-1 space-y-1.5">
             <label htmlFor={idExpire} className={CLASSE_LIBELLE}>
-              Valable jusqu&apos;au{dateExigee ? "" : " (facultatif)"}
+              Valable jusqu’au{dateExigee ? "" : " (facultatif)"}
             </label>
             <input
               id={idExpire}
@@ -118,14 +118,14 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
         </div>
         {dateExigee && (
           <p data-aide-date className={`-mt-2 ${CLASSE_AIDE}`}>
-            C&apos;est cette date qui fait foi : elle est lue à l&apos;instant où une
+            C’est cette date qui fait foi&nbsp;: elle est lue à l’instant où une
             personne cherche un artisan.
           </p>
         )}
 
         <div data-fichier-piece className="space-y-1.5">
           <label htmlFor={idFichier} className={CLASSE_LIBELLE}>
-            L&apos;attestation
+            L’attestation
           </label>
           {/* 25/09 (A6) : le champ maison, en français quel que soit le
               navigateur — un champ natif affichait « Choose File ». */}

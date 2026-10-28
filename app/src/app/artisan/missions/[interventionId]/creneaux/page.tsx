@@ -20,7 +20,7 @@ import { FormulaireCreneaux } from "./formulaire-creneaux";
 function titreEcran(mission: LigneAgenda | undefined): string {
   if (mission?.statut === "planifiee") return "Déplacer le rendez-vous";
   if (mission?.statut === "acceptee" && mission.creneaux_en_attente > 0)
-    return "Proposer d'autres créneaux";
+    return "Proposer d’autres créneaux";
   return "Proposer des créneaux";
 }
 
@@ -80,18 +80,18 @@ export default async function PageCreneaux(
 
       {planifiee && (
         <Avertissement>
-          Un rendez-vous est déjà fixé : {creneauTexte(mission.debut_prevu, mission.fin_prevue)}.
-          En proposer d&apos;autres L&apos;ANNULE : le locataire sera invité à
-          rechoisir parmi vos nouvelles dates, et n&apos;aura plus l&apos;ancienne.
-          Ne le faites que si vous ne pouvez pas l&apos;honorer.
+          Un rendez-vous est déjà fixé&nbsp;: {creneauTexte(mission.debut_prevu, mission.fin_prevue)}.
+          En proposer d’autres L’ANNULE&nbsp;: le locataire sera invité à
+          rechoisir parmi vos nouvelles dates, et n’aura plus l’ancienne.
+          Ne le faites que si vous ne pouvez pas l’honorer.
         </Avertissement>
       )}
 
       {enAttente && (
         <Avertissement>
-          Le locataire n&apos;a pas encore répondu à vos{" "}
+          Le locataire n’a pas encore répondu à vos{" "}
           {mission.creneaux_en_attente} date{mission.creneaux_en_attente > 1 ? "s" : ""}.
-          En proposer d&apos;autres les annule : ne le faites que si vous ne pouvez
+          En proposer d’autres les annule&nbsp;: ne le faites que si vous ne pouvez
           plus les tenir.
         </Avertissement>
       )}
@@ -101,7 +101,7 @@ export default async function PageCreneaux(
           rare se lit à la demande, sous le formulaire (tour du 24/09). */}
       <p className="text-base text-[var(--corps)]">
         Trois créneaux au minimum ; le locataire en retient un ou vous en
-        propose trois à son tour. Les propositions restent des alternatives :
+        propose trois à son tour. Les propositions restent des alternatives&nbsp;:
         un chevauchement avec un rendez-vous déjà confirmé sera signalé au
         moment du choix. Votre interlocuteur peut arbitrer un maintien justifié.
       </p>
@@ -112,7 +112,7 @@ export default async function PageCreneaux(
         <p className="text-[0.9375rem] text-[var(--corps)]">
           Le locataire peut refuser tous vos créneaux, mais il doit alors vous en
           proposer trois à son tour. Au sixième refus, le rendez-vous se règle
-          avec votre interlocuteur, par téléphone : vous n&apos;avez plus rien à proposer.
+          avec votre interlocuteur, par téléphone&nbsp;: vous n’avez plus rien à proposer.
         </p>
       </DetailsInformation>
     </div>

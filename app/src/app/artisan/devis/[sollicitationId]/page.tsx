@@ -104,7 +104,14 @@ export default async function PageRepondreDevis(
   const versionSuivante = (demande.version ?? 1) + 1;
   let preparation: Awaited<ReturnType<typeof chargerPreparationDevis>>["preparation"] = null;
   let erreurPreparation: string | undefined;
-  try { preparation = (await chargerPreparationDevis(sollicitationId)).preparation; }
+  // Audit final (DOC-08) : l'adresse de l'entreprise figure sur le devis, qui ne se valide pas sans elle. Elle se
+  // signale dès l'ouverture, avec le chemin pour la compléter, plutôt qu'au moment de générer le PDF.
+  let adresseManquante = false;
+  try {
+    const chargement = await chargerPreparationDevis(sollicitationId);
+    preparation = chargement.preparation;
+    adresseManquante = !chargement.profil.adresse?.trim();
+  }
   catch { erreurPreparation = "Le service de préparation est momentanément indisponible. Vos devis déjà envoyés restent consultables."; }
 
   // Trente jours : la validité par défaut du module 9, celle que la base
@@ -112,6 +119,8 @@ export default async function PageRepondreDevis(
   // serveur est en UTC, et entre minuit et 2 h (heure d'été) le jour UTC est
   // celui de la veille.
   const echeanceParDefaut = decalerJour(aujourdhuiParis(), 30);
+  // Une validité au jour même est déjà dépassée pour la base : le champ refuse dès l'étape 2 (DOC-08).
+  const validiteMinimum = decalerJour(aujourdhuiParis(), 1);
 
   const decennaleManquante = demande.decennale_requise && fiche?.decennale_valide === false;
 
@@ -156,7 +165,7 @@ export default async function PageRepondreDevis(
         <section className="rounded-xl border-2 border-[var(--destructive-soft-foreground)] bg-[var(--destructive-soft)] p-4" aria-label="Révision demandée" data-revision-demandee>
           <h2 className="text-lg font-semibold">Le client demande une révision de votre devis</h2>
           <p className="mt-2 whitespace-pre-wrap break-words text-[0.9375rem]">
-            Ce qui est demandé : « {demande.revision_motif ?? "aucune précision transmise"} »
+            Ce qui est demandé&nbsp;: « {demande.revision_motif ?? "aucune précision transmise"} »
           </p>
           <p className="mt-2 text-[0.9375rem]">
             {demande.revision_avant
@@ -177,11 +186,11 @@ export default async function PageRepondreDevis(
           {/* D18 (livraison 1) : le client a refusé ce devis ; son motif est transmis tel quel, il n'y a rien d'autre à faire. */}
           {demande.statut === "refusee" && (
             <div className="mb-4 rounded-xl border border-[var(--filet)] p-4" data-devis-refuse>
-              <p className="font-semibold">Votre devis n’a pas été retenu : le client l’a refusé.</p>
+              <p className="font-semibold">Votre devis n’a pas été retenu&nbsp;: le client l’a refusé.</p>
               <p className="mt-2 whitespace-pre-wrap break-words text-[0.9375rem]">
-                Motif transmis : « {demande.decision_motif ?? "aucun motif transmis"} »
+                Motif transmis&nbsp;: « {demande.decision_motif ?? "aucun motif transmis"} »
               </p>
-              <p className={`mt-2 ${CLASSE_AIDE}`}>Cette demande est close : vous n’avez rien d’autre à faire. Votre devis reste consultable ci-dessous.</p>
+              <p className={`mt-2 ${CLASSE_AIDE}`}>Cette demande est close&nbsp;: vous n’avez rien d’autre à faire. Votre devis reste consultable ci-dessous.</p>
             </div>
           )}
           {/* L'état est l'étiquette de l'en-tête ; ici, ce qu'il a répondu. */}
@@ -190,7 +199,7 @@ export default async function PageRepondreDevis(
               <LigneInfo libelle="Montant">{euros(demande.montant_ttc_cents)} TTC</LigneInfo>
             )}
             {demande.valide_jusqu_au && (
-              <LigneInfo libelle="Valable jusqu'au">{dateSimple(demande.valide_jusqu_au)}</LigneInfo>
+              <LigneInfo libelle="Valable jusqu’au">{dateSimple(demande.valide_jusqu_au)}</LigneInfo>
             )}
           </div>
           {demande.montant_ttc_cents !== null ? (
@@ -204,7 +213,7 @@ export default async function PageRepondreDevis(
             </a>
           ) : (
             <p className={`mt-3 ${CLASSE_AIDE}`}>
-              Aucun devis n&apos;a été envoyé pour cette demande.
+              Aucun devis n’a été envoyé pour cette demande.
             </p>
           )}
         </Carte>
@@ -212,12 +221,21 @@ export default async function PageRepondreDevis(
         <>
           {decennaleManquante && (
             <Avertissement>
-              Ces travaux exigent une décennale valide, et la vôtre ne l&apos;est plus.
-              Elle est revérifiée au moment où votre interlocuteur retient un devis :{" "}
+              Ces travaux exigent une décennale valide, et la vôtre ne l’est plus.
+              Elle est revérifiée au moment où votre interlocuteur retient un devis&nbsp;:{" "}
               <Link href="/artisan/attestations" className="font-semibold underline underline-offset-4">
                 mettez-la à jour
               </Link>
               , sinon le vôtre ne pourra pas être retenu.
+            </Avertissement>
+          )}
+
+          {adresseManquante && (
+            <Avertissement>
+              L’adresse de votre entreprise manque&nbsp;: elle figure sur le devis, qui ne pourra pas être validé sans elle.{" "}
+              <Link href="/artisan/entreprise#documents" className="font-semibold underline underline-offset-4">
+                Compléter ma fiche entreprise
+              </Link>
             </Avertissement>
           )}
 
@@ -228,6 +246,7 @@ export default async function PageRepondreDevis(
             erreurPreparation={erreurPreparation}
             sollicitationId={sollicitationId}
             echeanceParDefaut={echeanceParDefaut}
+            validiteMinimum={validiteMinimum}
             versionSuivante={enRevision ? versionSuivante : undefined}
           />
         </>

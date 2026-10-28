@@ -68,13 +68,13 @@ export function ReglageVisibilite({
       <span className={styles.visibiliteEtat} data-public={publique}>{publique ? <Globe2 size={15} aria-hidden/> : <LockKeyhole size={15} aria-hidden/>}{publique ? "Profil public" : "Profil privé"}</span>
       <p className={styles.descriptionVisibilite}>
         {publique
-          ? "Votre profil est public : une fois votre inscription validée, le réseau Gerimmo vous propose aux propriétaires dont le bien est dans votre zone, pour vos métiers. Ils peuvent vous demander un devis."
-          : "Votre profil est privé : le réseau Gerimmo ne vous propose à personne ; seuls les propriétaires et gestionnaires qui vous ont ajouté à leur carnet peuvent vous solliciter."}
+          ? "Votre profil est public\u00a0: une fois votre inscription validée, le réseau Gerimmo vous propose aux propriétaires dont le bien est dans votre zone, pour vos métiers. Ils peuvent vous demander un devis."
+          : "Votre profil est privé\u00a0: le réseau Gerimmo ne vous propose à personne ; seuls les propriétaires et gestionnaires qui vous ont ajouté à leur carnet peuvent vous solliciter."}
       </p>
       {/* Relecture sécurité du 23/10 : ce qu'un profil public montre, et à qui, se dit avant de le rendre public. */}
       <p className={styles.aide}>
-        Profil public : les propriétaires dont un bien est dans votre zone voient le nom de votre entreprise, vos
-        métiers et votre note. Votre téléphone et votre e-mail ne leur sont transmis qu&apos;avec une demande de devis.
+        Profil public&nbsp;: les propriétaires dont un bien est dans votre zone voient le nom de votre entreprise, vos
+        métiers et votre note. Votre téléphone et votre e-mail ne leur sont transmis qu’avec une demande de devis.
       </p>
 
       {etat.succes && (
@@ -90,8 +90,8 @@ export function ReglageVisibilite({
 
       {!publique && !siretVerifie ? (
         <p className="mt-3 text-[0.9375rem] text-[var(--texte-secondaire)]">
-          La publication s&apos;ouvrira quand votre SIRET aura été vérifié par
-          Gerimmo. C&apos;est une vérification, effectuée par Gerimmo.
+          La publication s’ouvrira quand votre SIRET aura été vérifié par
+          Gerimmo. C’est une vérification, effectuée par Gerimmo.
         </p>
       ) : (
         <form data-saisie-confirmee action={action} className="mt-3">
@@ -112,7 +112,7 @@ export function ReglageVisibilite({
         </form>
       )}
       <p className={styles.aide}>
-        Vous seul décidez de ce réglage : ni vos clients, ni Gerimmo ne peuvent le
+        Vous seul décidez de ce réglage&nbsp;: ni vos clients, ni Gerimmo ne peuvent le
         changer.
       </p>
     </Carte>
@@ -172,8 +172,8 @@ export function FormulaireMetiersZones({
           </div>
         )}
         <p className={styles.aide}>
-          Vous n&apos;êtes proposé que dans vos métiers, et pour les biens situés
-          dans votre zone. C&apos;est vous qui la choisissez : vos clients ne
+          Vous n’êtes proposé que dans vos métiers, et pour les biens situés
+          dans votre zone. C’est vous qui la choisissez&nbsp;: vos clients ne
           peuvent pas la modifier.
         </p>
         {complement}
@@ -193,7 +193,7 @@ export function FormulaireMetiersZones({
         <fieldset>
           <legend className={CLASSE_LIBELLE}>Mes métiers</legend>
           <p className="mb-2 text-[0.9375rem] text-[var(--texte-secondaire)]">
-            Un artisan n&apos;est proposé que dans son métier.
+            Un artisan n’est proposé que dans son métier.
           </p>
           <div className={styles.metiers}>
             {LISTE_METIERS.map((m) => (
@@ -221,13 +221,13 @@ export function FormulaireMetiersZones({
 
         <div className="space-y-1.5">
           <label htmlFor={idZones} className={CLASSE_LIBELLE}>
-            Ma zone d&apos;intervention
+            Ma zone d’intervention
           </label>
           <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
             Des codes postaux (91300) ou des départements entiers (91, 94, 77),
             séparés par des virgules. Un département couvre tous ses codes postaux.
             Le réseau Gerimmo vous propose pour les biens de cette zone ; un métier
-            retiré n&apos;est plus proposé nulle part.
+            retiré n’est plus proposé nulle part.
           </p>
           <input
             id={idZones}

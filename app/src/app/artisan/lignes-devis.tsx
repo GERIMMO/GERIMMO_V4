@@ -63,9 +63,9 @@ export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail d
     {/* Le total est du texte, pas une boîte : posé dans un cadre blanc, il passait pour un champ désactivé.
         25/09 (A8) : il s'affiche à 0,00 € dès le départ — l'artisan voit le format attendu avant de saisir. */}
     <div data-totaux-devis aria-live="polite">
-      <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Total HT : {euros(total?.montant_ht_cents ?? 0)} · TVA : {euros(total?.montant_tva_cents ?? 0)}</p>
-      <p className="text-[1.0625rem] font-semibold text-[var(--encre)]">Total TTC : {euros(total?.montant_ttc_cents ?? 0)}</p>
-      {!total && <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">{aDesErreurs ? "Le total n’est pas calculé : corrigez les champs signalés ci-dessus." : "Le total se met à jour à mesure que les lignes se complètent (prestation, prix et taux de TVA)."}</p>}
+      <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Total HT&nbsp;: {euros(total?.montant_ht_cents ?? 0)} · TVA&nbsp;: {euros(total?.montant_tva_cents ?? 0)}</p>
+      <p className="text-[1.0625rem] font-semibold text-[var(--encre)]">Total TTC&nbsp;: {euros(total?.montant_ttc_cents ?? 0)}</p>
+      {!total && <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">{aDesErreurs ? "Le total n’est pas calculé\u00a0: corrigez les champs signalés ci-dessus." : "Le total se met à jour à mesure que les lignes se complètent (prestation, prix et taux de TVA)."}</p>}
     </div>
   </fieldset>;
 }

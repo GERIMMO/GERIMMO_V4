@@ -2,6 +2,8 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { LigneDevisCalculee } from "@/lib/devis-structure";
 import { avoirDeLaFacture, type AvoirArtisan } from "@/lib/artisan-prive-avoir";
+import { formaterDate } from "@/lib/ged";
+import type { FactureVueParArtisan } from "@/lib/reglement-facture";
 
 export { activationModuleArtisan } from "./artisan-activation";
 export type ClientExterne = {id:string;nom:string;type:string;email:string;telephone:string;adresse:string;revision:number;archive_le:string|null};
@@ -20,11 +22,18 @@ export async function chargerActivitePrivee() {
 }
 // D24-C : une facture externe annulée par un avoir n'est plus due. L'avoir en déduit tout le montant ; la base refuse de l'émettre
 // tant qu'un règlement déclaré est actif, et refuse ensuite tout nouveau règlement : le reste dû d'une facture annulée est nul.
-export function bilanReglements(f:FactureArtisanPrivee,reglements:ReglementArtisan[],avoirs?:AvoirArtisan[]) {
+// Audit final (DOC-03) : sur une facture Gerimmo, le client déclare aussi son règlement (`mes_reglements_factures_artisan`).
+// Tant que l'artisan n'a rien pointé dans son registre, le résumé le dit au lieu d'afficher « Aucun règlement déclaré »
+// à côté de « Réglée le … (déclaré par votre client) », et le solde devient « Reste à pointer ». Les deux registres restent
+// distincts : le pointage de l'artisan n'est jamais déduit de la déclaration du client.
+export function bilanReglements(f:FactureArtisanPrivee,reglements:ReglementArtisan[],avoirs?:AvoirArtisan[],etatClient?:Pick<FactureVueParArtisan,"etat"|"reglee_le">|null) {
   const lignes=reglements.filter(r=>r.facture_externe_id===f.id||r.facture_gerimmo_id===f.id);
   const declare=lignes.filter(r=>!r.annule_le).reduce((s,r)=>s+Number(r.montant_cents),0);
   const avoir=f.origine==="externe"?avoirDeLaFacture(f.id,avoirs):null;
   const solde=Number(f.montant_ttc_cents)-(avoir?avoir.montant_ttc_cents:0)-declare;
-  const etat=avoir?`Annulée par l’avoir ${avoir.numero}`:declare===0?"Aucun règlement déclaré":declare===Number(f.montant_ttc_cents)?"Déclaré réglé":"Règlement partiel déclaré";
-  return {lignes,declare,solde,etat,avoir};
+  const regleeSelonClient=f.origine==="gerimmo"&&(etatClient?.etat==="reglee"||etatClient?.etat==="partiellement_reglee");
+  const selonClient=etatClient?.etat==="reglee"?`Réglée${etatClient.reglee_le?` le ${formaterDate(etatClient.reglee_le)}`:""} selon votre client`:"Partiellement réglée selon votre client";
+  const etat=avoir?`Annulée par l’avoir ${avoir.numero}`:declare===0?(regleeSelonClient?`${selonClient} · réception à pointer`:"Aucun règlement déclaré"):declare===Number(f.montant_ttc_cents)?"Déclaré réglé":"Règlement partiel déclaré";
+  const libelleSolde=regleeSelonClient&&solde>0?"Reste à pointer":"Solde";
+  return {lignes,declare,solde,etat,avoir,libelleSolde};
 }

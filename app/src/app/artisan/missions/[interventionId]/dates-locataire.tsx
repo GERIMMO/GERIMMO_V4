@@ -107,7 +107,7 @@ export function DatesLocataire({
             </label>
             <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
               Le gérant fixera le rendez-vous avec vous et le locataire, par
-              téléphone : dites-lui vos disponibilités.
+              téléphone&nbsp;: dites-lui vos disponibilités.
             </p>
             <textarea
               id={idMotif}

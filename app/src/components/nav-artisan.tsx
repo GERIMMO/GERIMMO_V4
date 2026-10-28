@@ -53,7 +53,7 @@ export function NavArtisan({
   const pathname = usePathname();
 
   const entrees = [
-    { href: "/artisan", libelle: "Aujourd'hui", icone: "jour", exact: true, badge: aFaireMaintenant },
+    { href: "/artisan", libelle: "Aujourd’hui", icone: "jour", exact: true, badge: aFaireMaintenant },
     {
       href: "/artisan/agenda",
       libelle: "Agenda",

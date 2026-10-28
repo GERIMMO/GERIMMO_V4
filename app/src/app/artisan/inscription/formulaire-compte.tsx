@@ -70,8 +70,8 @@ export function FormulaireCompteArtisan({ invitationId }: { invitationId?: strin
         />
         <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
           {invitationId
-            ? "Utilisez l’adresse qui a reçu l’invitation : c’est avec elle que vous pourrez l’accepter."
-            : "Si un gestionnaire a déjà créé votre fiche, utilisez l’adresse qu’il a enregistrée pour vous : c’est lui qui vous la rattache."}
+            ? "Utilisez l’adresse qui a reçu l’invitation\u00a0: c’est avec elle que vous pourrez l’accepter."
+            : "Si un gestionnaire a déjà créé votre fiche, utilisez l’adresse qu’il a enregistrée pour vous\u00a0: c’est lui qui vous la rattache."}
         </p>
       </div>
 

@@ -115,14 +115,14 @@ export default async function PageMission(
   return (
     <div className="space-y-5">
       {depuisAujourdhui ? (
-        <Retour href="/artisan">Aujourd&apos;hui</Retour>
+        <Retour href="/artisan">Aujourd’hui</Retour>
       ) : (
         <Retour href="/artisan/agenda">Mon agenda</Retour>
       )}
 
       {termine && (
         <Succes>
-          Compte rendu envoyé. L&apos;intervention est terminée : vous pouvez
+          Compte rendu envoyé. L’intervention est terminée&nbsp;: vous pouvez
           déposer votre facture.
         </Succes>
       )}
@@ -173,7 +173,7 @@ export default async function PageMission(
           posée avant le titre, elle faisait un second bandeau). */}
       {raison === "demarrer" && mission.statut !== "en_cours" && (
         <Avertissement>
-          Le bilan ne s&apos;ouvre qu&apos;une fois l&apos;intervention démarrée : le
+          Le bilan ne s’ouvre qu’une fois l’intervention démarrée&nbsp;: le
           bouton est ci-dessous.
         </Avertissement>
       )}
@@ -191,11 +191,11 @@ export default async function PageMission(
           fallait faire quelque chose. */}
       {mission.statut === "acceptee" && attendLocataire && (
         <Carte className="border-l-4 border-l-[var(--warning)]">
-          <TitreSection>Rien à faire pour l&apos;instant : le locataire choisit</TitreSection>
+          <TitreSection>Rien à faire pour l’instant&nbsp;: le locataire choisit</TitreSection>
           <p className="text-base text-[var(--corps)]">
             {mission.creneaux_en_attente} date{mission.creneaux_en_attente > 1 ? "s" : ""}{" "}
             proposée{mission.creneaux_en_attente > 1 ? "s" : ""} au locataire. Vous serez
-            prévenu de son choix ; gardez-les libres d&apos;ici là.
+            prévenu de son choix ; gardez-les libres d’ici là.
           </p>
           {mesDates.length > 0 && (
             <ul className="mt-2 space-y-1">
@@ -207,34 +207,34 @@ export default async function PageMission(
             </ul>
           )}
           {creneaux.erreur && (
-            <p className={`mt-2 ${CLASSE_AIDE}`}>Le détail des dates n&apos;a pas pu être chargé.</p>
+            <p className={`mt-2 ${CLASSE_AIDE}`}>Le détail des dates n’a pas pu être chargé.</p>
           )}
           <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1">
             <Link
               href={`/artisan/missions/${mission.intervention_id}/creneaux`}
               className="inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
             >
-              Proposer d&apos;autres créneaux
+              Proposer d’autres créneaux
             </Link>
             <BoutonDemarrer interventionId={mission.intervention_id} sansRendezVous discret />
           </div>
           <p className={`mt-1 ${CLASSE_AIDE}`}>
-            Proposer d&apos;autres dates annule celles en attente ; démarrer sans
-            rendez-vous n&apos;a de sens que pour un dépannage sans attendre.
+            Proposer d’autres dates annule celles en attente ; démarrer sans
+            rendez-vous n’a de sens que pour un dépannage sans attendre.
           </p>
         </Carte>
       )}
 
       {repondreLocataire && (
         <Carte className="border-l-4 border-l-[var(--warning)]">
-          <TitreSection>Le locataire vous propose d&apos;autres dates</TitreSection>
+          <TitreSection>Le locataire vous propose d’autres dates</TitreSection>
           <p className="mb-3 text-base text-[var(--corps)]">
-            Aucune de vos dates ne lui convenait. Retenez l&apos;une des siennes, ou
-            refusez-les : le gérant fixera alors le rendez-vous.
+            Aucune de vos dates ne lui convenait. Retenez l’une des siennes, ou
+            refusez-les&nbsp;: le gérant fixera alors le rendez-vous.
           </p>
           {creneaux.erreur ? (
             <p className={CLASSE_AIDE}>
-              Les dates du locataire n&apos;ont pas pu être chargées. Rechargez la page.
+              Les dates du locataire n’ont pas pu être chargées. Rechargez la page.
             </p>
           ) : (
             <DatesLocataire
@@ -271,13 +271,13 @@ export default async function PageMission(
             {reportEnAttente.motif_texte ? ` — « ${reportEnAttente.motif_texte} »` : ""}.
           </p>
           <p className={`mt-1 mb-3 ${CLASSE_AIDE}`}>
-            Le rendez-vous actuel reste valable tant que vous n&apos;avez pas répondu
+            Le rendez-vous actuel reste valable tant que vous n’avez pas répondu
             {reportEnAttente.expire_le ? ` (au plus tard ${instantRdv(reportEnAttente.expire_le)})` : ""}. Sans
             réponse, il est maintenu et le gérant est prévenu.
           </p>
           {creneaux.erreur ? (
             <p className={CLASSE_AIDE}>
-              Les dates du locataire n&apos;ont pas pu être chargées. Rechargez la page.
+              Les dates du locataire n’ont pas pu être chargées. Rechargez la page.
             </p>
           ) : (
             <DatesLocataire
@@ -326,8 +326,8 @@ export default async function PageMission(
             Rendre compte du travail
           </Link>
           <p className={CLASSE_AIDE}>
-            Deux écrans : la photo du travail réalisé, puis ce que vous avez
-            fait. Sans le compte rendu, l&apos;intervention ne peut pas être
+            Deux écrans&nbsp;: la photo du travail réalisé, puis ce que vous avez
+            fait. Sans le compte rendu, l’intervention ne peut pas être
             terminée ; vous pourrez ensuite déposer votre facture.
           </p>
         </div>
@@ -362,7 +362,7 @@ export default async function PageMission(
                 : "mt-2 inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
             }
           >
-            Ouvrir l&apos;itinéraire
+            Ouvrir l’itinéraire
           </a>
         )}
       </Carte>
@@ -376,7 +376,7 @@ export default async function PageMission(
           <LigneInfo libelle="Nature des travaux">
             {libelle(NATURES_TRAVAUX, mission.nature_travaux)}
           </LigneInfo>
-          <LigneInfo libelle="Référence de l'incident">{mission.incident_numero}</LigneInfo>
+          <LigneInfo libelle="Référence de l’incident">{mission.incident_numero}</LigneInfo>
           {mission.montant_ttc_cents !== null && (
             <LigneInfo libelle="Devis retenu">
               {euros(mission.montant_ttc_cents)} TTC
@@ -397,17 +397,24 @@ export default async function PageMission(
         <Carte>
           <TitreSection>Sur place</TitreSection>
           {occupant && <p className="text-base text-[var(--corps)]">{occupant}</p>}
-          {mission.occupant_telephone && (
-            <a
-              href={`tel:${mission.occupant_telephone.replace(/\s/g, "")}`}
-              className={`${CLASSE_BOUTON_SECONDAIRE} mt-3`}
-            >
-              Appeler {mission.occupant_telephone}
-            </a>
+          {/* Audit final (DOC-07) : sans numéro, la carte dit à qui s'adresser au lieu d'annoncer un contact absent. */}
+          {mission.occupant_telephone ? (
+            <>
+              <a
+                href={`tel:${mission.occupant_telephone.replace(/\s/g, "")}`}
+                className={`${CLASSE_BOUTON_SECONDAIRE} mt-3`}
+              >
+                Appeler {mission.occupant_telephone}
+              </a>
+              <p className={`mt-2 ${CLASSE_AIDE}`}>
+                Ce contact vous est ouvert le temps de la mission, et refermé à la fin.
+              </p>
+            </>
+          ) : (
+            <p className={`mt-2 ${CLASSE_AIDE}`}>
+              Aucun numéro connu pour l’occupant&nbsp;: convenez de l’accès au logement avec {mission.agence_nom}.
+            </p>
           )}
-          <p className={`mt-2 ${CLASSE_AIDE}`}>
-            Ce contact vous est ouvert le temps de la mission, et refermé à la fin.
-          </p>
         </Carte>
       )}
 
@@ -427,7 +434,7 @@ export default async function PageMission(
             {mission.facture_deposee && (
               <LigneInfo libelle="Règlement">
                 {reglements.erreur
-                  ? "État non lu : rechargez la page"
+                  ? "État non lu\u00a0: rechargez la page"
                   : factureReglement
                     ? phraseEtatPourArtisan(factureReglement)
                     : "Déposée, en attente de contrôle"}
@@ -443,7 +450,7 @@ export default async function PageMission(
           )}
           {factureReglement && factureReglement.reglements.length > 0 && (
             <p className={`mt-1 ${CLASSE_AIDE}`}>
-              Déclaration de votre client, sans virement de Gerimmo : vérifiez la réception sur votre compte.
+              Déclaration de votre client, sans virement de Gerimmo&nbsp;: vérifiez la réception sur votre compte.
             </p>
           )}
           {!mission.facture_deposee && mission.compte_rendu_depose && mission.photo_apres_deposee ? (

@@ -10,6 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
 import { ecrireLocal, ecrireSession, lireLocal, lireSession } from "@/lib/stockage-session";
 import { aujourdhuiParis } from "@/lib/ged";
+import { syntheseDejaVue, valeurJourSynthese, valeurOngletSynthese } from "@/lib/synthese-alertes-vue";
 import { ModaleAlerte } from "@/app/agence/[orgId]/alertes/modale-alerte";
 import { racineEspace } from "@/lib/racine-espace";
 
@@ -99,7 +100,7 @@ export function SyntheseAlertes({
   useEffect(() => {
     if (ouvertureExaminee.current) return;
     ouvertureExaminee.current = true;
-    if (modeAdmin || alertes.length === 0 || lireSession(CLE_SESSION_ALERTES) || lireLocal(CLE_JOUR_ALERTES) === `${compteId ?? ""}:${aujourdhui ?? aujourdhuiParis()}`) return;
+    if (modeAdmin || alertes.length === 0 || syntheseDejaVue({ onglet: lireSession(CLE_SESSION_ALERTES), journee: lireLocal(CLE_JOUR_ALERTES), compteId, jour: aujourdhui ?? aujourdhuiParis() })) return;
     // Ouverture différée d'un tick : évite un re-rendu en cascade à l'hydratation
     const minuterie = setTimeout(() => setOuverte(true), 0);
     return () => clearTimeout(minuterie);
@@ -115,8 +116,8 @@ export function SyntheseAlertes({
 
   const fermer = useCallback(() => {
     if (!modeAdmin) {
-      ecrireSession(CLE_SESSION_ALERTES, "1");
-      ecrireLocal(CLE_JOUR_ALERTES, `${compteId ?? ""}:${aujourdhui ?? aujourdhuiParis()}`);
+      ecrireSession(CLE_SESSION_ALERTES, valeurOngletSynthese(compteId));
+      ecrireLocal(CLE_JOUR_ALERTES, valeurJourSynthese(compteId, aujourdhui ?? aujourdhuiParis()));
     }
     setOuverte(false);
   }, [modeAdmin, aujourdhui, compteId]);

@@ -260,7 +260,9 @@ describe.skipIf(!DB_URL)("Lot finance-dates — rejeu sur une base déjà migré
 
   it("sur les définitions d'AVANT, les migrations posent leur correctif et retrouvent exactement l'état migré", async () => {
     const migre = await empreinte();
-    const migreDefs = Object.fromEntries(await Promise.all(FONCTIONS.map(async (s) => [s, await definition(s)])));
+    // L'une après l'autre : un seul client, déjà dans une transaction (pg@9 refusera deux requêtes en vol).
+    const migreDefs: Record<string, string> = {};
+    for (const s of FONCTIONS) migreDefs[s] = await definition(s);
     for (const def of Object.values({ ...definitionsAnterieures(R410), ...definitionsAnterieures(R413), ...definitionsAnterieures(R415), ...definitionsAnterieures(R416) })) await db.query(def);
     await db.query("alter table public.quittances alter column date_emission set default current_date");
     for (const signature of FONCTIONS) expect(await definition(signature), signature).not.toMatch(/Décision X(1[34]|09)/);

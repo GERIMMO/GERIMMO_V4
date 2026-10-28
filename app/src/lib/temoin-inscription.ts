@@ -17,10 +17,6 @@ export const MOTIF_CONFIRMATION = "confirmation";
 /** Deux jours : plus long que la validité d'un lien de confirmation. */
 export const DUREE_TEMOIN_INSCRIPTION_S = 2 * 24 * 60 * 60;
 
-export function nouveauTemoinInscription(): string {
-  return randomBytes(32).toString("base64url");
-}
-
 /** L'empreinte gardée dans le compte : le témoin lui-même ne quitte jamais le navigateur et le serveur. */
 export function empreinteTemoinInscription(temoin: string): string {
   return createHash("sha256").update(temoin, "utf8").digest("hex");

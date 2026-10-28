@@ -14,14 +14,16 @@ import { orchestrerDossiers } from "@/lib/orchestrateur";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+// Audit final (COD-16) : le résultat d'une passe ne se met pas en cache (`force-dynamic` ne pose aucun en-tête).
+const SANS_CACHE = { "Cache-Control": "no-store" };
 
 export async function GET(request: Request) {
   if (!porteurDuSecret(request, process.env.CRON_SECRET)) {
-    return Response.json({ erreur: "Non autorisé." }, { status: 401 });
+    return Response.json({ erreur: "Non autorisé." }, { status: 401, headers: SANS_CACHE });
   }
   const supabase = clientDeService();
-  if (!supabase) return Response.json({ erreur: "Service indisponible." }, { status: 503 });
+  if (!supabase) return Response.json({ erreur: "Service indisponible." }, { status: 503, headers: SANS_CACHE });
   // `orchestrerDossiers` consigne lui-même `tache_orchestrateur`.
   const resultat = await orchestrerDossiers(supabase);
-  return Response.json(resultat, { status: resultat.erreur ? 500 : 200 });
+  return Response.json(resultat, { status: resultat.erreur ? 500 : 200, headers: SANS_CACHE });
 }

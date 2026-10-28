@@ -6,6 +6,7 @@
 // est le miroir côté serveur, testé autour du 25 octobre 2026.
 
 const FUSEAU = "Europe/Paris";
+import { ajouterJours } from "./dates";
 
 type Composantes = { annee: number; mois: number; jour: number; heure: number; minute: number; seconde: number; isodow: number };
 
@@ -62,8 +63,7 @@ export function instantParis(jour: string, heure: number, minute = 0): Date {
 
 /** Le lendemain d'une date « AAAA-MM-JJ ». */
 export function lendemain(jour: string): string {
-  const [a, m, j] = jour.split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, j + 1)).toISOString().slice(0, 10);
+  return ajouterJours(jour, 1);
 }
 
 /** Le jour ISO (1 = lundi … 7 = dimanche) d'une date « AAAA-MM-JJ ». */

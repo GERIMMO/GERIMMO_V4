@@ -1,5 +1,7 @@
 // Référentiel partagé de la GED et des alertes (Sprint 1).
 // Le type du document pilote droits, affichage et conservation (module 12).
+import { aujourdhuiParis as jourDeParis } from "./dates";
+import { formaterEuros } from "./montants";
 
 export const TYPES_DOCUMENT: Record<string, string> = {
   piece_identite: "Pièce d'identité",
@@ -93,14 +95,6 @@ export const ORDRE_CRITICITE: Record<string, number> = {
   informative: 2,
 };
 
-// Badges de criticité — uniquement des tokens du design system (marque blanche S14)
-// Charte 04 — badges de statut : texte coloré, sans pastille ni fond.
-export const COULEURS_CRITICITE: Record<string, string> = {
-  informative: "text-muted-foreground",
-  normale: "text-warning-soft-foreground",
-  critique: "text-destructive",
-};
-
 export const ROLES_GERANTS = ["admin_agence", "agent", "proprietaire_direct"];
 
 // Le responsable de l'espace : assigne « tout le monde », réattribue les
@@ -129,10 +123,7 @@ export function formaterDate(iso: string | null | undefined): string {
 // bail). U+00A0, comme Intl.NumberFormat fr-FR, les tient ensemble.
 export function eur(montant: number | string | null | undefined): string {
   if (montant === null || montant === undefined || montant === "") return "—";
-  return `${Number(montant).toLocaleString("fr-FR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}\u00A0€`;
+  return formaterEuros(Number(montant));
 }
 
 // Un mois comptable arrive en « 2026-06 » ou « 2026-06-01 » selon la table.
@@ -153,7 +144,7 @@ export function moisEnFrancais(mois: string | null | undefined): string {
 // la veille avant 2 h du matin, heure de Paris. Sept fichiers avaient chacun
 // leur copie de ce contournement ; une seule suffit.
 export function aujourdhuiParis(): string {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+  return jourDeParis();
 }
 
 // Une saisie utilisateur employée dans un motif ilike doit être littérale :

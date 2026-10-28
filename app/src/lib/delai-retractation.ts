@@ -11,6 +11,7 @@
 // Module pur : aucune base, aucun fuseau de la machine. Les dates « AAAA-MM-JJ » sont des jours civils de Paris.
 
 import { dateParis, instantParis, isodow, lendemain } from "@/lib/heure-paris-calcul";
+import { ajouterJours } from "@/lib/dates";
 
 /** Durée du délai, en jours. */
 export const DUREE_RETRACTATION_JOURS = 14;
@@ -34,10 +35,6 @@ export function dimancheDePaques(annee: number): string {
   return `${annee}-${String(mois).padStart(2, "0")}-${String(jour).padStart(2, "0")}`;
 }
 
-function plusJours(jour: string, n: number): string {
-  const [a, m, j] = jour.split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, j + n)).toISOString().slice(0, 10);
-}
 
 /**
  * Les onze jours fériés nationaux (code du travail, L. 3133-1) : 1er janvier, lundi de Pâques, 1er mai, 8 mai,
@@ -47,7 +44,7 @@ function plusJours(jour: string, n: number): string {
 export function joursFeries(annee: number): Set<string> {
   const paques = dimancheDePaques(annee);
   const fixes = ["01-01", "05-01", "05-08", "07-14", "08-15", "11-01", "11-11", "12-25"].map((md) => `${annee}-${md}`);
-  return new Set([...fixes, plusJours(paques, 1), plusJours(paques, 39), plusJours(paques, 50)]);
+  return new Set([...fixes, ajouterJours(paques, 1), ajouterJours(paques, 39), ajouterJours(paques, 50)]);
 }
 
 export function estJourFerie(jour: string): boolean {
@@ -62,7 +59,7 @@ export function estJourOuvrableDuDelai(jour: string): boolean {
 
 /** Le dernier jour du délai ouvert par une conclusion à cet instant (jour de Paris). */
 export function dernierJourRetractation(conclusion: Date): string {
-  let jour = plusJours(dateParis(conclusion), DUREE_RETRACTATION_JOURS);
+  let jour = ajouterJours(dateParis(conclusion), DUREE_RETRACTATION_JOURS);
   while (!estJourOuvrableDuDelai(jour)) jour = lendemain(jour);
   return jour;
 }

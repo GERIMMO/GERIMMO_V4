@@ -1,5 +1,6 @@
 import PostalMime, { type Email } from "postal-mime";
 import { Resend } from "resend";
+import { lireCorpsBorne } from "./corps-borne";
 
 const SOURCE = "contact@gerimmo.app";
 const MARQUEUR = "X-Gerimmo-Transfer";
@@ -17,23 +18,6 @@ export function configurationTransfert(env: Record<string, string | undefined> =
   if (env.RESEND_CONTACT_TRANSFERT_ACTIF !== "true" || (env.VERCEL_ENV && env.VERCEL_ENV !== "production")) return null;
   if (!destination || destination === SOURCE || !env.RESEND_API_KEY?.trim() || !env.RESEND_CONTACT_WEBHOOK_SECRET?.trim()) return null;
   return { destination, cle: env.RESEND_API_KEY.trim(), secret: env.RESEND_CONTACT_WEBHOOK_SECRET.trim() };
-}
-
-/** Lit un flux borné, même si Content-Length est absent ou mensonger. */
-export async function lireCorpsBorne(body: ReadableStream<Uint8Array> | null, limite: number): Promise<Buffer> {
-  if (!body) throw new Error("corps_absent");
-  const reader = body.getReader();
-  const chunks: Uint8Array[] = [];
-  let taille = 0;
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) return Buffer.concat(chunks);
-      taille += value.byteLength;
-      if (taille > limite) { await reader.cancel(); throw new Error("corps_trop_grand"); }
-      chunks.push(value);
-    }
-  } finally { reader.releaseLock(); }
 }
 
 function recent(value: unknown, maintenant: number) {

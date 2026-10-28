@@ -84,6 +84,8 @@ describe("accès : le secret d'abord, le reste ensuite", () => {
     for (const nom of NOMS) {
       const r = await GET(appel(nom, secret));
       expect(r.status, nom).toBe(401);
+      // Audit final (COD-16) : aucune réponse de tâche ne se met en cache.
+      expect(r.headers.get("Cache-Control"), nom).toBe("no-store");
       expect(await r.json()).toEqual({ erreur: "Non autorisé." });
     }
     expect(traitementsAppeles()).toEqual([]);
@@ -168,6 +170,7 @@ describe("chaque mission passe par le verrou, puis par SON traitement", () => {
     const requete = appel(nom);
     const r = await GET(requete);
     expect(r.status).toBe(200);
+    expect(r.headers.get("Cache-Control")).toBe("no-store");
     // Le traitement exécuté est celui de la mission demandée, pas celui d'une autre.
     expect(await r.json()).toEqual({ mission: nom, traites: 1 });
     expect(traitementsAppeles()).toEqual([nom]);

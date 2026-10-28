@@ -1,20 +1,18 @@
+import { ajouterJours, aujourdhuiParis, jourIsoValide } from "./dates";
 export const VUES_AGENDA = ["mois", "semaine", "a-planifier", "a-verifier"] as const;
 export type VueAgenda = typeof VUES_AGENDA[number];
 export const TAILLE_PAGE_AGENDA = 30;
 
 export function jourParis(date: Date) {
-  return date.toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+  return aujourdhuiParis(date);
 }
 export function decalerJour(jour: string, decalage: number) {
-  const date = new Date(`${jour}T12:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + decalage);
-  return date.toISOString().slice(0, 10);
+  return ajouterJours(jour, decalage);
 }
 /** Un lundi civil, indépendant du fuseau du serveur et de l'heure d'été. */
 export function semaineAgenda(saisie: unknown, maintenant = new Date()) {
   const valide = typeof saisie === "string" && /^(19|20|21)\d{2}-\d{2}-\d{2}$/.test(saisie)
-    && Number.isFinite(Date.parse(`${saisie}T12:00:00Z`))
-    && new Date(`${saisie}T12:00:00Z`).toISOString().slice(0, 10) === saisie;
+    && jourIsoValide(saisie);
   const jour = valide ? saisie as string : jourParis(maintenant);
   const lundi = decalerJour(jour, -((new Date(`${jour}T12:00:00Z`).getUTCDay() + 6) % 7));
   return { lundi, suivant: decalerJour(lundi, 7), precedent: decalerJour(lundi, -7), dimanche: decalerJour(lundi, 6) };

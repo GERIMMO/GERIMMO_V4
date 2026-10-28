@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { configurationTransfert, lireCorpsBorne, traiterTransfertContact } from "../src/lib/transfert-contact";
+import { lireCorpsBorne } from "../src/lib/corps-borne";
+import { configurationTransfert, traiterTransfertContact } from "../src/lib/transfert-contact";
 
 const NOW = Date.parse("2026-10-22T10:00:00Z");
 const ID = "11111111-2222-4333-8444-555555555555";

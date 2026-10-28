@@ -277,7 +277,9 @@ describe.skipIf(!DB_URL)("jour de Paris, la suite — migrations et retours arri
 
   describe.each(FAMILLES)("$nom — formes rencontrées", (famille) => {
     it("sur des définitions d'une AUTRE mise en forme (capitales, indentation retirée), la migration les ramène au jour de Paris, logique inchangée", async () => {
-      const avant = Object.fromEntries(await Promise.all(famille.fonctions.map(async ([s]) => [s, normaliser(await definition(s))])));
+      // L'une après l'autre : un seul client, déjà dans une transaction (pg@9 refusera deux requêtes en vol).
+      const avant: Record<string, string> = {};
+      for (const [s] of famille.fonctions) avant[s] = normaliser(await definition(s));
       await remettreAvantAutrement(famille);
       for (const [signature, attendu] of famille.fonctions) {
         const def = await definition(signature);
@@ -421,7 +423,8 @@ describe.skipIf(!DB_URL)("jour de Paris, la suite — migrations et retours arri
 
     it("aller, retour, aller : l'état migré est retrouvé à l'identique ; le retour rend la logique d'avant", async () => {
       const migre = await empreinte();
-      const normalisees = Object.fromEntries(await Promise.all(SIGNATURES.map(async (s) => [s, normaliser(await definition(s))])));
+      const normalisees: Record<string, string> = {};
+      for (const s of SIGNATURES) normalisees[s] = normaliser(await definition(s));
       for (const famille of [...FAMILLES].reverse()) await db.query(sansEnveloppe(retour(famille)));
       const defait = await empreinte();
       expect(defait).not.toEqual(migre);

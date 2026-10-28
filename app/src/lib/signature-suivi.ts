@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CircuitBail } from "./signature-bail";
 import { verifierAvantEffet } from "./controle-effets";
+import { aujourdhuiParis } from "./dates";
 import { lireDemandeZoho, rappelerDemandeZoho, retrouverBrouillonZoho, type ConfigurationZohoSign } from "./zoho-sign";
 
 function verifierConnexion(c: CircuitBail, config: ConfigurationZohoSign) {
@@ -35,9 +36,7 @@ export async function rapprocherSignatureInterrompue(db:SupabaseClient,config:Co
   } finally {await liberer(db,id,jeton);}
 }
 
-function jourParis(date:Date) {
-  return new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).format(date);
-}
+const jourParis = (date: Date) => aujourdhuiParis(date);
 /** J+28 déclenche une alerte interne, jamais un troisième rappel au signataire. */
 export function rangRelanceSignature(envoye:string|null|undefined,expire:string,maintenant=new Date()):7|21|null {
   if(!envoye || !Number.isFinite(Date.parse(envoye)) || !Number.isFinite(Date.parse(expire)) || Date.parse(expire)<=maintenant.getTime())return null;

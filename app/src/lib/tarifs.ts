@@ -20,7 +20,6 @@
 export type Centimes = number;
 
 export type Periodicite = "mensuel" | "annuel";
-export const PERIODICITES: readonly Periodicite[] = ["mensuel", "annuel"];
 
 export type CodeFormule = "solo" | "bailleur" | "investisseur" | "patrimoine";
 

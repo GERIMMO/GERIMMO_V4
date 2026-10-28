@@ -61,7 +61,10 @@ describe("/api/cron/relais", () => {
   it("refuse sans le secret, et n'appelle rien", async () => {
     const fournisseur = fauxFournisseurEmail();
     vi.stubGlobal("fetch", fournisseur.fetch);
-    expect((await GET(appel(null))).status).toBe(401);
+    const refus = await GET(appel(null));
+    expect(refus.status).toBe(401);
+    // Audit final (COD-16) : aucune réponse de tâche ne se met en cache.
+    expect(refus.headers.get("Cache-Control")).toBe("no-store");
     expect((await GET(appel("mauvais-secret-de-la-meme-longueur-x"))).status).toBe(401);
     expect(m.rpc).not.toHaveBeenCalled();
     expect(fournisseur.appels).toEqual([]);
@@ -90,6 +93,7 @@ describe("/api/cron/relais", () => {
     vi.stubGlobal("fetch", fournisseur.fetch);
     const r = await GET(appel());
     expect(r.status).toBe(200);
+    expect(r.headers.get("Cache-Control")).toBe("no-store");
     const corps = await r.json();
     expect(corps).toMatchObject({ jour: "2026-10-15", statut: "envoye", destinataires: 2, envoyes: 2 });
     // La réponse de la route ne dit aucune adresse.

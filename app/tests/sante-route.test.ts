@@ -26,6 +26,8 @@ describe("la route de santé", () => {
     vi.stubEnv("VERCEL_GIT_COMMIT_SHA", "0123456789abcdef");
     const r = await GET(new Request("https://exemple.fr/api/sante"));
     expect(r.status).toBe(503);
+    // Audit final (COD-16) : un état de santé ne se met jamais en cache, en erreur comme en succès.
+    expect(r.headers.get("Cache-Control")).toBe("no-store");
     expect(await r.json()).toEqual({
       ok: false,
       base: false,
@@ -62,6 +64,7 @@ describe("la route de santé", () => {
     };
     const r = await GET(new Request("https://exemple.fr/api/sante"));
     expect(r.status).toBe(200);
+    expect(r.headers.get("Cache-Control")).toBe("no-store");
     expect(await r.json()).toMatchObject({ ok: true, base: true });
     expect(options).toEqual([undefined]);
     expect(limites).toEqual([1]);

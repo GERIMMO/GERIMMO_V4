@@ -110,6 +110,9 @@ describe("export du journal de gestion : au-delà de 1 000 lignes (A04)", () => 
     const { res, donnees } = await exporter();
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Disposition")).toContain("journal-de-gestion-complet.csv");
+    // Audit final (COD-08) : un journal privé ne se met pas en cache et ne se laisse pas deviner un autre type.
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(donnees).toHaveLength(1001);
     // La 1 001e écriture, et son mandant, qui ne se lit que sur la 1 001e ligne de mandat.
     expect(donnees.at(-1)).toContain("ecriture-1000");
@@ -151,7 +154,11 @@ describe("export du journal de gestion : au-delà de 1 000 lignes (A04)", () => 
   it("le compte annoncé dépasse ce qui se lit : refus en français, aucun fichier « complet »", async () => {
     banc.compteMenteur = { ecritures: 1 };
     const { res, corps } = await exporter();
-    expect(res.status).toBe(500);
+    // Audit final (COD-08) : une lecture qu'on ne peut pas vérifier n'est pas une panne du serveur — 503, à réessayer.
+    expect(res.status).toBe(503);
+    expect(res.headers.get("Retry-After")).toBe("30");
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
     expect(res.headers.get("Content-Type")).toContain("text/plain");
     expect(res.headers.get("Content-Disposition")).toBeNull();
     expect(corps).toMatch(/^Export impossible/);
@@ -163,7 +170,7 @@ describe("export du journal de gestion : au-delà de 1 000 lignes (A04)", () => 
   it("même refus quand ce sont les lignes de mandat qui manquent", async () => {
     banc.compteMenteur = { mandat_lignes: 1 };
     const { res, corps } = await exporter();
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
     expect(res.headers.get("Content-Disposition")).toBeNull();
     expect(corps).toMatch(/mandant/);
     expect(corps).toMatch(/1\s002 lignes de mandat/);
@@ -172,7 +179,7 @@ describe("export du journal de gestion : au-delà de 1 000 lignes (A04)", () => 
   it("une écriture ajoutée entre deux pages : le compte a changé, l'export est refusé plutôt que bancal", async () => {
     banc.apresPremierePage = { ecritures: (lignes) => { lignes.splice(10, 0, { ...ecriture(5000), id: "e-ajout" }); } };
     const { res, corps } = await exporter();
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
     expect(corps).toMatch(/modifié pendant la lecture/);
   });
 
@@ -180,7 +187,7 @@ describe("export du journal de gestion : au-delà de 1 000 lignes (A04)", () => 
     // La 1 001e écriture passe en tête : la page 2 relit la 1 000e, et la 1 001e n'est jamais lue.
     banc.apresPremierePage = { ecritures: (lignes) => { lignes.unshift(lignes.pop()!); } };
     const { res, corps } = await exporter();
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
     expect(corps).toMatch(/modifié pendant la lecture/);
   });
 
@@ -205,16 +212,19 @@ describe("export du journal de gestion : au-delà de 1 000 lignes (A04)", () => 
     banc.role = "agent";
     banc.portefeuille = new PortefeuilleIndisponible();
     const { res, corps } = await exporter();
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(503);
+    expect(res.headers.get("Retry-After")).toBe("30");
     expect(res.headers.get("Content-Disposition")).toBeNull();
     expect(corps).toMatch(/portefeuille/);
   });
 
-  it("portefeuille qui atteint la limite de lecture (peut-être tronqué) : refus", async () => {
+  it("portefeuille qui atteint la limite de lecture (peut-être tronqué) : refus 422, réessayer ne changera rien", async () => {
     banc.role = "agent";
     banc.portefeuille = new Set(serie(1000, (i) => `lot-${n4(i)}`));
     const { res, corps } = await exporter();
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(422);
+    expect(res.headers.get("Retry-After")).toBeNull();
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
     expect(corps).toMatch(/portefeuille/);
   });
 

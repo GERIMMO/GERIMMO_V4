@@ -62,8 +62,6 @@ export function codeDeLaRecherche(recherche: URLSearchParams | Record<string, st
 export const JOURS_ESSAI_FILLEUL = 30;
 /** Grille historique : ce que gagne le parrain encore en essai, trente jours. */
 export const JOURS_OFFERTS_PARRAIN = 30;
-/** Grille du 28/09/2026 (décision du 30/09) : un mois offert au parrain. */
-export const MOIS_OFFERTS_PARRAIN = 1;
 
 export type NatureAvantage = "essai_filleul" | "essai_parrain" | "avoir_parrain";
 export type EtatAvantage = "a_appliquer" | "applique" | "sans_objet" | "en_attente";

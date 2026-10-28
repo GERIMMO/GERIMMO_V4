@@ -147,18 +147,6 @@ export function statutDiagnostic(
   return expiration <= dans90j ? "expire_bientot" : "valide";
 }
 
-export const COULEURS_STATUT_DIAGNOSTIC: Record<StatutDiagnostic, string> = {
-  valide: "text-success-soft-foreground",
-  expire_bientot: "text-warning-soft-foreground",
-  expire: "text-destructive",
-};
-
-export const LIBELLES_STATUT_DIAGNOSTIC: Record<StatutDiagnostic, string> = {
-  valide: "Valide",
-  expire_bientot: "Expire bientôt",
-  expire: "Expiré",
-};
-
 export const MODES_CLE: Record<string, string> = {
   surface: "Surface (défaut)",
   tantiemes: "Tantièmes",

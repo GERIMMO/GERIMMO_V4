@@ -84,6 +84,36 @@ describe("la route refuse plutôt que de s'ouvrir", () => {
     }
   });
 
+  it("un corps de deux mégaoctets, même signé, est refusé en 413 avant toute vérification (audit final, COD-14)", async () => {
+    // La borne de la réception Zoho, reportée ici : le corps entier était chargé en mémoire sans plafond.
+    reglagesComplets();
+    const r = await POST(appel("x".repeat(2 * 1_048_576), "t=1,v1=x"));
+    expect(r.status).toBe(413);
+    expect(await r.json()).toEqual({ erreur: "Corps trop volumineux." });
+  });
+
+  it("un Content-Length qui annonce plus que la borne est refusé sans lire le flux", async () => {
+    reglagesComplets();
+    let lu = false;
+    // highWaterMark 0 : le flux n'est tiré qu'à la première lecture, jamais à sa construction.
+    const flux = new ReadableStream<Uint8Array>({ pull(controleur) { lu = true; controleur.enqueue(new TextEncoder().encode("{}")); controleur.close(); } }, { highWaterMark: 0 });
+    const r = await POST(new Request("https://exemple.fr/api/stripe/webhook", {
+      method: "POST", body: flux, duplex: "half", headers: { "stripe-signature": "t=1,v1=x", "content-length": String(2 * 1_048_576) },
+    } as RequestInit));
+    expect(r.status).toBe(413);
+    expect(lu).toBe(false);
+  });
+
+  it("un flux coupé en cours de lecture répond 400, pas « trop volumineux » (relecture COD-14)", async () => {
+    reglagesComplets();
+    const flux = new ReadableStream<Uint8Array>({ pull(controleur) { controleur.error(new Error("connexion coupée")); } }, { highWaterMark: 0 });
+    const r = await POST(new Request("https://exemple.fr/api/stripe/webhook", {
+      method: "POST", body: flux, duplex: "half", headers: { "stripe-signature": "t=1,v1=x" },
+    } as RequestInit));
+    expect(r.status).toBe(400);
+    expect(await r.json()).toEqual({ erreur: "Corps absent ou illisible." });
+  });
+
   it("un corps vide avec une signature vide reste refusé", async () => {
     reglagesComplets();
     const r = await POST(appel("", ""));

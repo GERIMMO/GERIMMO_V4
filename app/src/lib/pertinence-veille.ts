@@ -76,10 +76,6 @@ export function evaluerPertinence(sujet: SujetVeilleCandidat, mots: MotsPertinen
   return { pertinent: true, motif: `mots : ${inclus.slice(0, 5).join(", ")}`, inclus, exclus };
 }
 
-export function estSujetPertinent(sujet: SujetVeilleCandidat, mots: MotsPertinence): boolean {
-  return evaluerPertinence(sujet, mots).pertinent;
-}
-
 /** « logement, loyer ; bail » → ["logement", "loyer", "bail"] (saisie du superviseur). */
 export function lireMots(brut: string): string[] {
   return [...new Set(brut.split(/[\n,;]+/).map((m) => m.trim()).filter((m) => m.length >= 2 && m.length <= 60))].slice(0, 300);

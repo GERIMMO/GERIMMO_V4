@@ -68,11 +68,24 @@ function preferer(a: PeriodeMandant, b: PeriodeMandant): number {
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
-/** Un refus en clair : jamais un fichier qui aurait l'air complet sans l'être. */
-function refus(message: string): Response {
+// Le journal est privé : aucun relais ni navigateur ne doit en garder une copie, ni deviner un autre type que le nôtre
+// (mêmes en-têtes que les routes de fichier, src/lib/fichier-signe.ts). Posés sur le CSV comme sur chaque refus.
+const ENTETES_PRIVES = { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" };
+
+/**
+ * Un refus en clair : jamais un fichier qui aurait l'air complet sans l'être. Audit final du 27/10 (COD-08) : ces refus
+ * sont des situations connues, pas des pannes du serveur — 503 (avec `Retry-After`) quand une lecture a échoué ou n'a pas
+ * pu être vérifiée (réessayer suffit souvent), 422 quand le portefeuille dépasse ce que l'export sait lire (réessayer ne
+ * changera rien). Un 500 les comptait comme erreurs serveur dans la surveillance.
+ */
+function refus(message: string, status: 503 | 422 = 503): Response {
   return new Response(message, {
-    status: 500,
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
+    status,
+    headers: {
+      ...ENTETES_PRIVES,
+      "Content-Type": "text/plain; charset=utf-8",
+      ...(status === 503 ? { "Retry-After": "30" } : {}),
+    },
   });
 }
 
@@ -149,7 +162,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   if (portefeuille && portefeuille.size >= LIMITE_LIGNES_API) {
     return refus(
       `Export impossible : la lecture de votre portefeuille a atteint la limite de ${LIMITE_LIGNES_AFFICHEE} lots` +
-        " et peut être incomplète. Le fichier n'est pas produit ; signalez-le depuis Aide et retours."
+        " et peut être incomplète. Le fichier n'est pas produit ; signalez-le depuis Aide et retours.",
+      422
     );
   }
 
@@ -313,6 +327,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   const csv = [periode, entete, ...lignes].join("\r\n");
   return new Response("﻿" + csv, {
     headers: {
+      ...ENTETES_PRIVES,
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="journal-de-gestion${suffixe}.csv"`,
     },

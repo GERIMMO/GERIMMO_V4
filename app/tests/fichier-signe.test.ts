@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { servirFichierSigne } from "@/lib/fichier-signe";
+import { nomFichierSur, servirFichierSigne } from "@/lib/fichier-signe";
 afterEach(()=>vi.unstubAllEnvs());
 function client(url="https://stockage.example.invalid/storage/v1/object/sign/documents/fichier?token=fictif") {
  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL","https://stockage.example.invalid");
@@ -19,9 +19,9 @@ describe("Lecture directe de pièces privées",()=>{
  it('refuse une empreinte incorrecte avant de signer',async()=>{const {db,createSignedUrl}=client();expect((await servirFichierSigne(db,{...options,sha256:'incorrect'})).status).toBe(502);expect(createSignedUrl).not.toHaveBeenCalled();});
  it('vérifie les octets même pour un téléchargement demandé',async()=>{const {db}=client();const r=await servirFichierSigne(db,{...options,mode:'telechargement',sha256:'a'.repeat(64)});expect(r.status).toBe(200);expect(r.headers.get('Location')).toBeNull();expect(await r.text()).toContain("crypto.subtle.digest('SHA-256'");});
  it("ne renvoie que la visionneuse et signe pour une minute",async()=>{const {db,createSignedUrl}=client();const r=await servirFichierSigne(db,options);expect(r.status).toBe(200);expect(createSignedUrl).toHaveBeenCalledWith(options.path,60,undefined);const texte=await r.text();expect(Buffer.byteLength(texte)).toBeLessThan(10000);expect(texte).toContain('URL.createObjectURL');expect(texte).toContain("credentials:'omit'");expect(r.headers.get('Cache-Control')).toBe('private, no-store');expect(r.headers.get('Referrer-Policy')).toBe('no-referrer');expect(r.headers.get('Content-Security-Policy')).toContain("script-src 'nonce-");expect(r.headers.get('Content-Security-Policy')).not.toContain('unsafe-inline');});
- it("le téléchargement ne fait pas transiter le contenu par la fonction",async()=>{const {db,createSignedUrl}=client();const r=await servirFichierSigne(db,{...options,mode:'telechargement'});expect(r.status).toBe(303);expect(await r.text()).toBe('');expect(createSignedUrl).toHaveBeenCalledWith(options.path,60,{download:'Document relu.pdf'});});
+ it("le téléchargement ne fait pas transiter le contenu par la fonction",async()=>{const {db,createSignedUrl}=client();const r=await servirFichierSigne(db,{...options,mode:'telechargement'});expect(r.status).toBe(303);expect(await r.text()).toBe('');expect(createSignedUrl).toHaveBeenCalledWith(options.path,60,{download:'document-relu.pdf'});});
  it("une vignette reçoit les pixels depuis Storage plutôt qu'une page HTML",async()=>{const {db,createSignedUrl}=client();const r=await servirFichierSigne(db,{...options,mime:'image/png',apercuImage:true});expect(r.status).toBe(303);expect(await r.text()).toBe('');expect(createSignedUrl).toHaveBeenCalledWith(options.path,60,undefined);});
- it.each(['text/html','image/svg+xml','__proto__','toString'])('force le téléchargement pour %s',async(mime)=>{const {db,createSignedUrl}=client();const r=await servirFichierSigne(db,{...options,mime});expect(r.status).toBe(303);expect(createSignedUrl).toHaveBeenCalledWith(options.path,60,{download:'Document relu.bin'});});
+ it.each(['text/html','image/svg+xml','__proto__','toString'])('force le téléchargement pour %s',async(mime)=>{const {db,createSignedUrl}=client();const r=await servirFichierSigne(db,{...options,mime});expect(r.status).toBe(303);expect(createSignedUrl).toHaveBeenCalledWith(options.path,60,{download:'document-relu.bin'});});
  it("échappe le titre et ne peut fermer le script par les données",async()=>{const {db}=client();const r=await servirFichierSigne(db,{...options,titre:'</script><script>alert(1)</script>'});const h=await r.text();expect(h).not.toContain('<script>alert(1)');expect(h).toContain('\\u003c');expect(h.match(/<script nonce=/g)).toHaveLength(1);});
  it.each(['javascript:alert(1)','https://autre.example.invalid/fichier','http://stockage.example.invalid/fichier','https://compte:secret'+'@'+'stockage.example.invalid/fichier'])('refuse une destination non prévue : %s',async(url)=>{const {db}=client(url);expect((await servirFichierSigne(db,options)).status).toBe(502);});
  it("un stockage indisponible donne une réponse compréhensible sans révéler son erreur",async()=>{const {db,createSignedUrl}=client();createSignedUrl.mockRejectedValue(Error('diagnostic confidentiel'));const r=await servirFichierSigne(db,options);expect(r.status).toBe(502);expect(await r.text()).not.toContain('confidentiel');});
@@ -31,4 +31,10 @@ it("sépare le titre lisible du nom de téléchargement, sans en déduire une si
  const {db}=client();const r=await servirFichierSigne(db,{...options,titre:'Ancien titre à faire signer',libelle:'Bail signé'});const h=await r.text();
  expect(h).toContain('<strong>Bail signé</strong>');expect(h).toContain('"nom":"Ancien titre à faire signer.pdf"');
  const autre=await servirFichierSigne(db,{...options,libelle:'<img src=x onerror=alert(1)>'});expect(await autre.text()).toContain('&lt;img src=x onerror=alert(1)&gt;');
+});
+
+it("nomme le téléchargement en ASCII sûr, sans double encodage par le client Storage (BAIL-11)",async()=>{
+ const {db,createSignedUrl}=client();await servirFichierSigne(db,{...options,titre:'Bail nu (généré, à faire signer)',mode:'telechargement'});
+ expect(createSignedUrl).toHaveBeenCalledWith(options.path,60,{download:'bail-nu-genere-a-faire-signer.pdf'});
+ expect(nomFichierSur('Été — <b>x</b>.pdf','pdf')).toBe('ete-b-x-b.pdf');expect(nomFichierSur('','pdf')).toBe('document.pdf');
 });

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, section, tableau, titre, eur } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
-import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte } from "./communs";
+import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte, surfaceM2 } from "./communs";
 import { modeSignatureDocument } from "@/lib/politique-signature";
 import type { Assemblage } from "./index";
 import { aujourdhuiParis } from "@/lib/ged";
@@ -73,8 +73,8 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         <p>Cette attestation décrit les conditions du bail ; les paiements effectifs sont justifiés par les quittances ou reçus.</p>`;
       if (code === "attestation_caf") contenu += `${section("Informations pour l’attestation officielle")}
         <p>Numéro allocataire : ${opt("allocataire","numéro allocataire CAF ou MSA")} ; nombre d’occupants du contrat : ${ctx.locataires.length}.
-        Logement ${ctx.lot.meuble ? "meublé" : "nu"} ; surface du logement : ${f.champ(ctx.lot.surface_m2,"surface du logement")} m².
-        ${ctx.chambre ? `Surface privative : ${f.champ(ctx.chambre.surface_m2,"surface privative")} m².` : ""}</p>
+        Logement ${ctx.lot.meuble ? "meublé" : "nu"} ; surface du logement : ${f.champ(surfaceM2(ctx.lot.surface_m2),"surface du logement")}.
+        ${ctx.chambre ? `Surface privative : ${f.champ(surfaceM2(ctx.chambre.surface_m2),"surface privative")}.` : ""}</p>
         <p>Le formulaire officiel Cerfa 10842*07 reste à compléter et signer par le bailleur. Ce récapitulatif prépare la saisie ; il ne vaut pas formulaire CAF/MSA homologué.</p>`;
       signatures = true;
     } else if (["relance_simple","seconde_relance","mise_en_demeure","situation_dette","protocole_apurement"].includes(code)) {

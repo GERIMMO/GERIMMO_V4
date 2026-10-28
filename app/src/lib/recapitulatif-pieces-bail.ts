@@ -139,7 +139,8 @@ export async function lireRecapitulatifPiecesBail(
     let etat: EtatPiece;
     if (exigences.contexteIndisponible || (ligne.niveau === "lot" ? diagsLot.erreur : diagsBien.erreur)) etat = INDISPONIBLE;
     else if (ligne.exigence === "non_concerne") etat = { statut: "non_concerne", detail: "Selon les informations enregistrées sur l’installation." };
-    else if (ligne.exigence === "a_preciser") etat = { statut: "a_verifier", detail: ligne.precision ?? "L’ancienneté de l’installation reste à préciser." };
+    // Un rapport enregistré se montre tel qu'il est ; l'ancienneté de l'installation n'est demandée qu'à défaut (BAIL-25).
+    else if (ligne.exigence === "a_preciser" && !ligne.rapport) etat = { statut: "a_verifier", detail: ligne.precision ?? "L’ancienneté de l’installation reste à préciser." };
     else if (!ligne.rapport) etat = { statut: "a_completer", detail: ligne.precision ?? "Rapport à ajouter." };
     else {
       etat = fichier(ligne.rapport.document_id, moment === "signature");

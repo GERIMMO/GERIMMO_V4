@@ -61,7 +61,7 @@ export function GenererAvenant({
           code="avenant"
           cibleId={bailId}
           cheminRetour={cheminRetour}
-          libelle="Générer l'avenant (PDF)"
+          libelle="Générer l’avenant (PDF)"
           options={{ objet: objet.trim(), modifications }}
         />
       ) : (

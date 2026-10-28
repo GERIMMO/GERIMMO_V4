@@ -84,24 +84,26 @@ export function BoutonGenererDocument({
       {affichage?.erreur && <span className="text-xs text-destructive">{affichage.erreur}</span>}
       {affichage && (affichage.manquants?.length ?? 0) > 0 && (
         <span className="block w-full text-xs text-warning-soft-foreground">
-          À renseigner avant de générer le PDF :{" "}
-          {affichage.manquants!.slice(0, montrerTous ? undefined : 5).map((m, i) => {
-            const cible = lienPourManquant(m, orgId, affichage.liens ?? [], code, racine);
-            return (
-              <span key={m}>
-                {i > 0 && " · "}
-                {m}
-                {(cible || completionSurPlace) && (
-                  <>
-                    {" "}
-                    <LienCompletion href={completionSurPlace ? cibleChampBail(m,orgId,racine).href : cible!.href} className="lien-discret">
-                      {completionSurPlace ? "Compléter ici" : `renseigner (${cible!.ecran})`} →
-                    </LienCompletion>
-                  </>
-                )}
-              </span>
-            );
-          })}
+          À renseigner avant de générer le PDF :
+          {/* Une ligne par information, majuscule et verbe (BAIL-28) : « Domicile ou siège social — à renseigner (profil de l’organisation) → » */}
+          <ul className="mt-1 list-disc space-y-0.5 pl-4">
+            {affichage.manquants!.slice(0, montrerTous ? undefined : 5).map((m) => {
+              const cible = lienPourManquant(m, orgId, affichage.liens ?? [], code, racine);
+              return (
+                <li key={m}>
+                  {m.charAt(0).toLocaleUpperCase("fr") + m.slice(1)}
+                  {(cible || completionSurPlace) && (
+                    <>
+                      {" — "}
+                      <LienCompletion href={completionSurPlace ? cibleChampBail(m,orgId,racine).href : cible!.href} className="lien-discret">
+                        {completionSurPlace ? "compléter ici" : `à renseigner (${cible!.ecran.replaceAll("'", "’")})`} →
+                      </LienCompletion>
+                    </>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
           {affichage.manquants!.length > 5 && (
             <button type="button" className="ml-2 lien-discret" aria-expanded={montrerTous} onClick={() => setMontrerTous(!montrerTous)}>
               {montrerTous ? "Réduire la liste" : `Voir les ${affichage.manquants!.length} informations à compléter`}

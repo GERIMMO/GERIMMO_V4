@@ -10,7 +10,6 @@ import {
   cartouches,
   echapper,
   enTete,
-  faitA,
   section,
   titre,
 } from "../gabarit";
@@ -79,7 +78,8 @@ export async function assemblerAvenant(
 
     <div class="bloc-signataires">
     ${section("Date et signatures")}
-    ${faitA(f, exp.ville, new Date().toISOString(), ", en autant d'exemplaires originaux que de parties.")}
+    <p>Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>, en autant
+    d'exemplaires originaux que de parties.</p>
     <div class="signatures">
       ${cadreSignature("Le bailleur", f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination"))}
       ${cadreSignature(

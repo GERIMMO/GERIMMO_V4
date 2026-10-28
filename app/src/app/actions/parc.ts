@@ -13,7 +13,7 @@ import { piecesHabituelles } from "@/lib/pieces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { estUuid } from "@/lib/identifiants";
 import { verifierAnneeConstruction, verifierCodePostalBien, verifierSurface } from "@/lib/validation-fiches";
-import { erreurDuChamp, lireDecimal, lireDecimalFacultatif } from "@/lib/saisie-montant";
+import { erreurDuChamp, lireDecimal, lireDecimalFacultatif, verifierDecimalesSurface } from "@/lib/saisie-montant";
 import {
   TYPES_BIEN,
   TYPES_DIAGNOSTIC,
@@ -120,6 +120,8 @@ export async function creerBien(
   const surfaces: number[] = [];
   for (const lot of lotsAValider) {
     const brute = String(lot.surface ?? "").trim();
+    const decimales = verifierDecimalesSurface(brute);
+    if (decimales) return { erreur: decimales, valeurs };
     const lue = brute ? lireDecimal(brute) : null;
     if (lue && "erreur" in lue) return { erreur: erreurDuChamp("Surface habitable", lue.erreur), valeurs };
     surfaces.push(lue ? lue.valeur : 0);
@@ -241,11 +243,8 @@ export async function modifierLot(
   const tantiemeLu = lireDecimalFacultatif(formData.get("tantieme"));
   if ("erreur" in tantiemeLu) return { erreur: erreurDuChamp("Tantième", tantiemeLu.erreur), valeurs };
   if (!nom) return { erreur: "Le nom du lot est obligatoire.", valeurs };
-  for (const champ of ["identifiant_fiscal", "description", "chauffage", "eau_chaude", "locaux_privatifs"]) {
-    if (!String(formData.get(champ) ?? "").trim()) {
-      return { erreur: "Renseignez tous les champs du logement destinés au bail. Indiquez « Néant » lorsqu'un élément ne s'applique pas.", valeurs };
-    }
-  }
+  // Les mentions du contrat (identifiant fiscal, chauffage, eau chaude, locaux privatifs, autres parties) ne sont plus
+  // exigées pour corriger un étage ou un nom : le parcours du bail les réclame quand il en a besoin (audit final, BAIL-23).
   if (["surface_m2", "pieces"].some((champ) => formData.has(champ) && !String(formData.get(champ) ?? "").trim())) {
     return { erreur: "La surface habitable et le nombre de pièces sont obligatoires.", valeurs };
   }
@@ -276,6 +275,8 @@ export async function modifierLot(
     // Les surfaces se lisent sur le texte tel que tapé (« 45,5 » vaut 45,5) : champs en `type="text"`, jamais
     // `type="number"` qui donne 455 à un navigateur non francophone (VER-TS-02).
     const nomSurface = champ === "surface_carrez" ? "Surface Carrez" : "Surface habitable";
+    const decimales = verifierDecimalesSurface(formData.get(champ));
+    if (decimales) return { erreur: erreurDuChamp(nomSurface, decimales), valeurs };
     const lue = lireDecimalFacultatif(formData.get(champ));
     if ("erreur" in lue) return { erreur: erreurDuChamp(nomSurface, lue.erreur), valeurs };
     maj[champ] = lue.valeur;
@@ -363,6 +364,8 @@ export async function decouperBien(
   const lots: { nom: string; surface_m2: number | "" }[] = [];
   for (const [i, nom] of noms.entries()) {
     if (nom.length === 0) continue;
+    const decimales = verifierDecimalesSurface(surfaces[i] ?? "");
+    if (decimales) return { erreur: erreurDuChamp("Surface d'un lot", decimales) };
     const lue = lireDecimalFacultatif(surfaces[i] ?? "");
     if ("erreur" in lue) return { erreur: erreurDuChamp("Surface d'un lot", lue.erreur) };
     if (lue.valeur !== null && lue.valeur <= 0) return { erreur: "La surface d'un lot doit être supérieure à zéro." };

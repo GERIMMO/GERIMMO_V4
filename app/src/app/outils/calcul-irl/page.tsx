@@ -62,7 +62,7 @@ export default async function PageCalculIrl() {
             métropolitaine ne s&apos;y applique pas.
           </li>
           <li>
-            Aucune valeur d&apos;indice n&apos;est écrite dans cet outil : elles sont lues chez l&apos;Insee.
+            Les indices sont lus chez l&apos;Insee ; si la série est indisponible, saisissez-les vous-même.
             Vérifiez-les sur{" "}
             <a href={URL_SERIE_INSEE_IRL} target="_blank" rel="noopener noreferrer" className="lien-texte">
               le site de l&apos;Insee

@@ -27,11 +27,30 @@ describe("quittance ou reçu partiel", () => {
     expect(formaterEuros(r.resteDu)).toBe("470,00 €");
   });
 
-  it("payé en entier → quittance, rien de dû", () => {
+  it("payé en entier → quittance, rien de dû, imprimable", () => {
     const r = calculerQuittance({ loyerHc: 850, charges: 120, montantRecu: 970 });
     expect(r.estQuittance).toBe(true);
     expect(r.titre).toBe("Quittance de loyer");
     expect(r.resteDu).toBe(0);
+    expect(r.tropPercu).toBe(0);
+    expect(r.imprimable).toBe(true);
+  });
+
+  // Audit final (PUB-12) : un loyer de −850 € donnait une « Quittance de loyer » de −730,00 € prête à imprimer.
+  it("un montant négatif n'établit aucun document", () => {
+    const r = calculerQuittance({ loyerHc: -850, charges: 120, montantRecu: -730 });
+    expect(r.montantNegatif).toBe(true);
+    expect(r.imprimable).toBe(false);
+    expect(calculerQuittance({ loyerHc: 850, charges: 120, montantRecu: -1 }).imprimable).toBe(false);
+  });
+
+  // Audit final (PUB-12) : 2 000 € reçus pour un terme de 970 € attestaient « avoir reçu 2 000,00 € » sans alerte.
+  it("un montant reçu au-delà du terme est un trop-perçu : la quittance attend une saisie corrigée", () => {
+    const r = calculerQuittance({ loyerHc: 850, charges: 120, montantRecu: 2000 });
+    expect(r.estQuittance).toBe(true);
+    expect(r.tropPercu).toBe(1030);
+    expect(r.imprimable).toBe(false);
+    expect(formaterEuros(r.tropPercu)).toMatch(/^1\s030,00\s€$/);
   });
 });
 

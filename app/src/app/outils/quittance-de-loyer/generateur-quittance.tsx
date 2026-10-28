@@ -184,7 +184,9 @@ export function GenerateurQuittance() {
       id="q-resultat"
       titre="Document produit"
       pastille={
-        r.estQuittance ? (
+        !r.imprimable ? (
+          <Pastille ton="erreur">À corriger</Pastille>
+        ) : r.estQuittance ? (
           <Pastille ton="succes">Terme soldé</Pastille>
         ) : (
           <Pastille ton="attention">Paiement partiel</Pastille>
@@ -208,7 +210,7 @@ export function GenerateurQuittance() {
             libelle: "Montant reçu",
             valeur: r.recu,
             texte: formaterEuros(r.recu),
-            ton: r.estQuittance ? "succes" : "attention",
+            ton: r.estQuittance && r.imprimable ? "succes" : "attention",
           },
         ]}
       />
@@ -218,12 +220,31 @@ export function GenerateurQuittance() {
         <LigneDetail libelle="Montant reçu" valeur={formaterEuros(r.recu)} />
         <LigneDetail libelle="Reste dû" valeur={formaterEuros(r.resteDu)} testId="q-reste" fort />
       </ListeDetail>
-      {!r.estQuittance && (
+      {/* Audit final (PUB-12) : un loyer de −850 € produisait une « Quittance de loyer » de −730,00 €, et 2 000 € reçus
+          pour un terme de 970 € une quittance attestant « avoir reçu 2 000,00 € » sans un mot. Aucun des deux ne part
+          sur papier : le document attend une saisie corrigée. */}
+      {r.montantNegatif && (
+        <div data-testid="q-alerte-negatif">
+          <Alerte gravite="erreur" titre="Montant négatif">
+            Un loyer, une provision ou un montant reçu ne peut pas être négatif : vérifiez la saisie.
+          </Alerte>
+        </div>
+      )}
+      {!r.montantNegatif && r.tropPercu > 0 && (
+        <div data-testid="q-alerte-trop-percu">
+          <Alerte gravite="erreur" titre="Montant reçu supérieur au terme">
+            Le montant reçu dépasse le terme de <b className="montant">{formaterEuros(r.tropPercu)}</b> : une quittance ne peut
+            porter que le terme désigné ({formaterEuros(r.total)}). Vérifiez la saisie, ou établissez une quittance par terme.
+          </Alerte>
+        </div>
+      )}
+      {r.imprimable && !r.estQuittance && (
         <Alerte gravite="attention">
           Le terme n&apos;est pas soldé : le document est un reçu de paiement partiel, qui ne vaut pas quittance.
         </Alerte>
       )}
-      <button type="button" onClick={() => window.print()} className="btn-or min-h-11 w-full justify-center !py-3 !text-[14.5px]">
+      {/* Le bouton doré de la page est « Créer mon compte » (bandeau) : imprimer est un geste secondaire (audit final, UX-18). */}
+      <button type="button" onClick={() => window.print()} disabled={!r.imprimable} className="btn-secondaire min-h-11 w-full justify-center !py-3 !text-[14.5px]">
         <IconeImprimer />
         Imprimer {r.estQuittance ? "la quittance" : "le reçu"}
       </button>

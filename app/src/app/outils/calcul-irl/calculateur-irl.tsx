@@ -99,11 +99,13 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
   const [trimBail, setTrimBail] = useState<CodeTrimestre>(() => referencePublieeA(dateExemple(serie))?.trimestre ?? "T2");
   const [saisieManuelle, setSaisieManuelle] = useState(false);
 
-  // Saisie manuelle
-  const [indiceRef, setIndiceRef] = useState(enTexte(EXEMPLE_IRL.indiceReference));
+  // Saisie manuelle. Série de l'Insee indisponible (audit final, PUB-02) : les deux indices partent VIDES — l'exemple
+  // passait pour une valeur lue chez l'Insee, et la pastille « Indices cohérents » le certifiait avec une lettre à
+  // 859,79 € prête à imprimer. L'exemple ne sert plus qu'au parcours automatique, où il est annoncé comme tel.
+  const [indiceRef, setIndiceRef] = useState(serie == null ? "" : enTexte(EXEMPLE_IRL.indiceReference));
   const [trimRef, setTrimRef] = useState<CodeTrimestre>(codeDe(EXEMPLE_IRL.trimestreReference.trimestre));
   const [anneeRef, setAnneeRef] = useState(String(EXEMPLE_IRL.trimestreReference.annee));
-  const [indiceNouv, setIndiceNouv] = useState(enTexte(EXEMPLE_IRL.indiceNouveau));
+  const [indiceNouv, setIndiceNouv] = useState(serie == null ? "" : enTexte(EXEMPLE_IRL.indiceNouveau));
   const [trimNouv, setTrimNouv] = useState<CodeTrimestre>(codeDe(EXEMPLE_IRL.trimestreNouveau.trimestre));
   const [anneeNouv, setAnneeNouv] = useState(String(EXEMPLE_IRL.trimestreNouveau.annee));
 
@@ -295,26 +297,28 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
               {MESSAGE_ZONE_SPECIFIQUE[zoneSpecifique]}
             </Alerte>
           ) : serie == null ? (
-            <p data-testid="irl-serie-indisponible" className="rounded-xl bg-[var(--creme)] px-3.5 py-2.5 text-[13px] text-[var(--texte-secondaire)]">
-              Les indices de l&apos;Insee n&apos;ont pas pu être chargés : saisissez-les ci-dessous, depuis{" "}
-              <a href={URL_SERIE_INSEE_IRL} target="_blank" rel="noopener noreferrer" className="lien-texte">
-                la série de l&apos;IRL publiée par l&apos;Insee
-              </a>
-              .
-            </p>
+            <div data-testid="irl-serie-indisponible">
+              <Alerte gravite="attention" titre="Indices à saisir">
+                Les indices de l&apos;Insee n&apos;ont pas pu être chargés : relevez-les sur{" "}
+                <a href={URL_SERIE_INSEE_IRL} target="_blank" rel="noopener noreferrer" className="lien-texte">
+                  la série de l&apos;IRL publiée par l&apos;Insee
+                </a>{" "}
+                et saisissez-les ci-dessous.
+              </Alerte>
+            </div>
           ) : null}
           <Groupe legende="Indice de référence" description="Celui du bail, ou de la dernière révision appliquée.">
             <Segments nom="irl-trim-ref" libelle="Trimestre" valeur={trimRef} onChange={setTrimRef} options={TRIMESTRES} />
             <div className="grid gap-4 sm:grid-cols-2">
               <Choix id="irl-annee-ref" libelle="Année" valeur={anneeRef} onChange={setAnneeRef} options={ANNEES} />
-              <Champ id="irl-indice-ref" libelle="Valeur de l'indice" valeur={indiceRef} onChange={setIndiceRef} decimal />
+              <Champ id="irl-indice-ref" libelle="Valeur de l'indice" valeur={indiceRef} onChange={setIndiceRef} decimal placeholder="ex. 146,68" />
             </div>
           </Groupe>
           <Groupe legende="Nouvel indice" description="Même trimestre, un an plus tard.">
             <Segments nom="irl-trim-nouv" libelle="Trimestre" valeur={trimNouv} onChange={setTrimNouv} options={TRIMESTRES} />
             <div className="grid gap-4 sm:grid-cols-2">
               <Choix id="irl-annee-nouv" libelle="Année" valeur={anneeNouv} onChange={setAnneeNouv} options={ANNEES} />
-              <Champ id="irl-indice-nouv" libelle="Valeur de l'indice" valeur={indiceNouv} onChange={setIndiceNouv} decimal />
+              <Champ id="irl-indice-nouv" libelle="Valeur de l'indice" valeur={indiceNouv} onChange={setIndiceNouv} decimal placeholder="ex. 148,37" />
             </div>
             {serie != null && !zoneSpecifique && (
               <button type="button" onClick={() => setSaisieManuelle(false)} className="btn-secondaire min-h-11">
@@ -452,7 +456,8 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
               </div>
             </Groupe>
             <div className="mt-6">
-              <button type="button" onClick={() => window.print()} className="btn-or min-h-11 !px-5" disabled={!r.ok}>
+              {/* Le bouton doré de la page est « Créer mon compte » (bandeau) : imprimer est un geste secondaire (audit final, UX-18). */}
+              <button type="button" onClick={() => window.print()} className="btn-secondaire min-h-11 !px-5" disabled={!r.ok}>
                 <IconeImprimer />
                 Imprimer la lettre
               </button>

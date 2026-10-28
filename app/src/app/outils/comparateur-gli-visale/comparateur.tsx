@@ -34,7 +34,9 @@ export function ComparateurGliVisale() {
   const [loyerCc, setLoyerCc] = useState("970");
   const [zone, setZone] = useState<ZoneVisale>("reste");
   const [age, setAge] = useState<(typeof AGES)[number]["valeur"]>("moins-30");
-  const [situation, setSituation] = useState<SituationTrentePlus>("salarie-recent");
+  // Audit final (PUB-13) : la liste partait sur le cas le plus favorable (« Salarié du privé embauché depuis moins de
+  // 6 mois ») et le verdict « Visale est possible » tombait sans que l'utilisateur ait rien choisi.
+  const [situation, setSituation] = useState<SituationTrentePlus | "">("");
   const [etudiant, setEtudiant] = useState(false);
   const [taux, setTaux] = useState(formaterNombre(TAUX_GLI_PAR_DEFAUT * 100));
   const [tmi, setTmi] = useState("0.3");
@@ -44,7 +46,7 @@ export function ComparateurGliVisale() {
   const visale = evaluerVisale({
     zone,
     moinsDe30Ans: age === "moins-30",
-    situation,
+    situation: situation === "" ? null : situation,
     etudiantSansRevenus: etudiant,
     loyerCc: loyer,
   });
@@ -59,12 +61,12 @@ export function ComparateurGliVisale() {
       <Groupe legende="Le locataire">
         <Segments nom="cmp-age" libelle="Âge du locataire" valeur={age} onChange={setAge} options={[...AGES]} />
         {age === "30-plus" && (
-          <Choix
+          <Choix<SituationTrentePlus | "">
             id="cmp-situation"
             libelle="Situation du locataire"
             valeur={situation}
             onChange={setSituation}
-            options={SITUATIONS_TRENTE_PLUS}
+            options={[{ valeur: "", libelle: "Choisir la situation" }, ...SITUATIONS_TRENTE_PLUS]}
           />
         )}
         <Case id="cmp-etudiant" coche={etudiant} onChange={setEtudiant} libelle="Le locataire est étudiant, sans revenus" />
@@ -96,21 +98,33 @@ export function ComparateurGliVisale() {
       id="cmp-resultat"
       titre="Comparaison"
       pastille={
-        visale.eligible ? <Pastille ton="succes">Visale possible</Pastille> : <Pastille ton="erreur">Visale exclue</Pastille>
+        visale.aCompleter ? (
+          <Pastille ton="neutre">À compléter</Pastille>
+        ) : visale.eligible ? (
+          <Pastille ton="succes">Visale possible</Pastille>
+        ) : (
+          <Pastille ton="erreur">Visale exclue</Pastille>
+        )
       }
     >
       <section aria-labelledby="cmp-visale" className="space-y-3">
         <h3 id="cmp-visale" className="text-[13.5px] font-medium text-[var(--texte-secondaire)]">
           Visale (Action Logement)
         </h3>
-        <p
-          data-testid="cmp-visale-verdict"
-          className={`font-heading text-[28px] font-extrabold leading-[1.1] tracking-[-0.02em] ${
-            visale.eligible ? "text-[var(--success)]" : "text-[var(--destructive-soft-foreground)]"
-          }`}
-        >
-          {visale.eligible ? "Visale est possible" : "Visale est exclue"}
-        </p>
+        {visale.aCompleter ? (
+          <p data-testid="cmp-visale-verdict" className="rounded-xl bg-[var(--creme)] px-4 py-4 text-[14px] text-[var(--texte-secondaire)]">
+            {visale.aCompleter}
+          </p>
+        ) : (
+          <p
+            data-testid="cmp-visale-verdict"
+            className={`font-heading text-[28px] font-extrabold leading-[1.1] tracking-[-0.02em] ${
+              visale.eligible ? "text-[var(--success)]" : "text-[var(--destructive-soft-foreground)]"
+            }`}
+          >
+            {visale.eligible ? "Visale est possible" : "Visale est exclue"}
+          </p>
+        )}
         {visale.motifs.map((m) => (
           <Alerte key={m} gravite="erreur">
             {m}

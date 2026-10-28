@@ -42,11 +42,33 @@ describe("parcours automatique (série chargée)", () => {
 
 describe("repli (série indisponible)", () => {
   const html = renderToStaticMarkup(createElement(CalculateurIrl, { serie: null }));
+  const t = texte(html);
 
-  it("saisie manuelle des deux indices, avec un message discret", () => {
+  it("saisie manuelle des deux indices, avec une alerte visible", () => {
     expect(html).toContain('data-testid="irl-serie-indisponible"');
+    expect(t).toContain("Les indices de l'Insee n'ont pas pu être chargés");
     expect(html).toContain('id="irl-indice-ref"');
     expect(html).toContain('id="irl-indice-nouv"');
     expect(html).not.toContain("Saisir les indices moi-même");
+  });
+
+  // Audit final (PUB-02) : les indices d'exemple (146,68 / 148,37) étaient pré-remplis comme de vraies valeurs, la
+  // pastille disait « Indices cohérents » et une lettre à 859,79 € était prête à imprimer, pendant que la page
+  // affirmait qu'aucune valeur d'indice n'est écrite dans l'outil.
+  it("les deux indices partent vides, marqués comme exemples : ni verdict, ni lettre, ni impression", () => {
+    const champ = (id: string) => html.match(new RegExp(`<input[^>]*id="${id}"[^>]*>`))?.[0] ?? "";
+    expect(champ("irl-indice-ref")).toContain('value=""');
+    expect(champ("irl-indice-ref")).toContain('placeholder="ex. 146,68"');
+    expect(champ("irl-indice-nouv")).toContain('value=""');
+    expect(t).not.toContain("Indices cohérents");
+    expect(t).toContain("À compléter");
+    expect(t).not.toContain("859,79");
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*>[^<]*<svg[\s\S]*?Imprimer la lettre/);
+  });
+
+  it("la page ne prétend plus qu'aucune valeur d'indice n'est écrite dans l'outil", () => {
+    const page = readFileSync(path.resolve(__dirname, "../src/app/outils/calcul-irl/page.tsx"), "utf8");
+    expect(page).not.toContain("Aucune valeur d&apos;indice");
+    expect(page).toContain("si la série est indisponible, saisissez-les vous-même");
   });
 });

@@ -23,6 +23,12 @@ export type ResultatQuittance = {
   /** Payé en entier (ou plus) : quittance ; sinon, reçu de paiement partiel. */
   estQuittance: boolean;
   resteDu: number;
+  /** Reçu au-delà du terme (audit final, PUB-12) : la quittance ne peut attester que le terme, le document attend. */
+  tropPercu: number;
+  /** Un montant négatif n'est pas un montant (audit final, PUB-12) : aucun document ne s'établit. */
+  montantNegatif: boolean;
+  /** Le document peut partir sur papier : ni montant négatif, ni trop-perçu. */
+  imprimable: boolean;
   titre: "Quittance de loyer" | "Reçu de paiement partiel";
 };
 
@@ -30,11 +36,16 @@ export function calculerQuittance(e: EntreeQuittance): ResultatQuittance {
   const total = arrondiCentime((e.loyerHc ?? 0) + (e.charges ?? 0));
   const recu = arrondiCentime(e.montantRecu ?? 0);
   const estQuittance = recu >= total;
+  const montantNegatif = [e.loyerHc, e.charges, e.montantRecu].some((m) => m != null && m < 0);
+  const tropPercu = recu > total ? arrondiCentime(recu - total) : 0;
   return {
     total,
     recu,
     estQuittance,
     resteDu: estQuittance ? 0 : arrondiCentime(total - recu),
+    tropPercu,
+    montantNegatif,
+    imprimable: !montantNegatif && tropPercu === 0,
     titre: estQuittance ? "Quittance de loyer" : "Reçu de paiement partiel",
   };
 }

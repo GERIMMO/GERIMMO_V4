@@ -1,3 +1,5 @@
+import { queElide } from "@/lib/elision";
+
 // Textes de l'espace locataire dits à plusieurs endroits — écrits une fois.
 
 /**
@@ -11,3 +13,13 @@
  */
 export const CONSERVATION_DOCUMENTS_LOCATAIRE =
   "Vos quittances et reçus restent consultables ici tant que votre espace est ouvert ; leur fichier est retiré trois ans après la fin du bail (page Confidentialité). Enregistrez-les en PDF pour garder votre propre exemplaire.";
+
+/**
+ * La légende du bouton grisé « Attestation de bon paiement » de « Mes paiements » : le dernier mois en souffrance et le nombre
+ * d'autres mois, accordés (audit final du 27/10, DRT-12 : « dès que octobre 2026 et 1 autre mois sera soldés »).
+ */
+export function legendeAttestationIndisponible(dernierMois: string, autresMois: number): string {
+  const plusieurs = autresMois > 0;
+  const autres = plusieurs ? ` et ${autresMois} autre${autresMois > 1 ? "s" : ""} mois` : "";
+  return `Disponible dès ${queElide(dernierMois)}${autres} ${plusieurs ? "seront soldés" : "sera soldé"}.`;
+}

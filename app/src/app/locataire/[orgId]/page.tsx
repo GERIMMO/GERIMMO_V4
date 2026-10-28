@@ -1,6 +1,7 @@
 import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { deElide } from "@/lib/elision";
+import { tacheLoyerEnRetard } from "@/lib/tache-loyer-locataire";
 import { Banknote, Files, Wrench } from "lucide-react";
 import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
@@ -226,17 +227,11 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
       action: "Choisir",
     });
   }
-  if (bail && enRetard && prochaine) {
-    aFaire.push({
-      cle: "loyer",
-      titre: `Loyer ${deElide(moisLong(prochaine.periode))} à régler`,
-      detail:
-        prochaine.statut === "partiel"
-          ? `Il reste ${eur(resteADevoir)} à régler par virement à votre gestionnaire.`
-          : `${eur(resteADevoir)} à régler par virement à votre gestionnaire.`,
-      href: `/locataire/${orgId}/loyers`,
-      action: "Mes paiements",
-    });
+  // Toutes les échéances en retard, pas seulement la plus ancienne (audit final du 27/10, DRT-01) : la tuile « Loyer restant
+  // à régler » et « Mes paiements » disent le total, la tâche le disait pour un seul mois.
+  const tacheLoyer = bail && enRetard && prochaine ? tacheLoyerEnRetard(retards) : null;
+  if (tacheLoyer) {
+    aFaire.push({ cle: "loyer", ...tacheLoyer, href: `/locataire/${orgId}/loyers`, action: "Mes paiements" });
   }
   if (adhesionActive && !assuranceAJour) {
     aFaire.push({

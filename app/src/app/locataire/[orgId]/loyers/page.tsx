@@ -1,9 +1,9 @@
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
-import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
+import { aujourdhuiParis, eur, formaterDate, ordinalJour } from "@/lib/ged";
 import { premierDuMoisSuivant } from "@/lib/echeances";
-import { CONSERVATION_DOCUMENTS_LOCATAIRE } from "@/lib/locataire-textes";
+import { CONSERVATION_DOCUMENTS_LOCATAIRE, legendeAttestationIndisponible } from "@/lib/locataire-textes";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
@@ -148,7 +148,7 @@ export default async function PagePaiementsLocataire(
         <TitreEcran rubrique="finances">Mes paiements</TitreEcran>
         {bail?.jour_echeance != null && (
           <span className="mono-discret">
-            Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
+            Loyer dû le {ordinalJour(bail.jour_echeance)} du mois
           </span>
         )}
       </div>
@@ -234,7 +234,7 @@ export default async function PagePaiementsLocataire(
                 <p className="mt-1 text-[13px] text-muted-foreground">
                   Prochaine échéance{" "}
                   {bail.jour_echeance != null
-                    ? `le ${bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} ${moisLong(moisSuivant)}`
+                    ? `le ${ordinalJour(bail.jour_echeance)} ${moisLong(moisSuivant)}`
                     : `en ${moisLong(moisSuivant)}`}
                   .
                 </p>
@@ -371,9 +371,7 @@ export default async function PagePaiementsLocataire(
                   Attestation de bon paiement
                 </span>
                 <span className="mt-1.5 block">
-                  Disponible dès que {moisLong(dernier.periode)}
-                  {enSouffrance.length > 1 ? ` et ${enSouffrance.length - 1} autre mois` : ""} sera
-                  soldé{enSouffrance.length > 1 ? "s" : ""}.
+                  {legendeAttestationIndisponible(moisLong(dernier.periode), enSouffrance.length - 1)}
                 </span>
               </p>
             );

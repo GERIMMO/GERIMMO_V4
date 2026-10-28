@@ -21,7 +21,7 @@ import { CHAMPS_ETAPE_BAIL, ETAPES_BAIL, champsDifferents, memeValeurEtapeBail, 
 import { Input } from "@/components/ui/input";
 import { LabelBail as Label } from "@/components/pastille-bail";
 import { lireMontantFacultatif } from "@/lib/saisie-montant";
-import { libelleTrimestreIrlEcran, lireTrimestreIrl } from "@/lib/trimestre-irl";
+import { libelleTrimestreIrlEcran } from "@/lib/trimestre-irl";
 import { ChampTrimestreIrl } from "@/components/champ-trimestre-irl";
 
 type Champ = { nom:string; titre:string; type?:"number"|"montant"|"date"|"textarea"; options?:[string,string][]; requis?:boolean; aide?:string; visible?:(v:Record<string,string>)=>boolean; min?:number; max?:number; entier?:boolean };
@@ -214,7 +214,7 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,agenc
  const titreEtape=ETAPES_BAIL.find(e=>e.id===etape)?.titre??"";
  // Relocation (décision du 27/10, CB-08) : les valeurs de l’étape Loyer encore identiques au bail précédent sont
  // signalées avec sa période, et un lien les efface ; la mention disparaît dès que le loyer et les charges changent.
- const reprises=bailPrecedent?CHAMPS_LOYER_REPRIS.filter(nom=>bailPrecedent[nom]!=null&&valeurs[nom]?.trim()&&(nom==="irl_trimestre"?lireTrimestreIrl(valeurs[nom])?.numero===lireTrimestreIrl(String(bailPrecedent[nom]))?.numero:memeValeurEtapeBail(nom,valeurs[nom],String(bailPrecedent[nom])))):[];
+ const reprises=bailPrecedent?CHAMPS_LOYER_REPRIS.filter(nom=>bailPrecedent[nom]!=null&&valeurs[nom]?.trim()&&memeValeurEtapeBail(nom,valeurs[nom],String(bailPrecedent[nom]))):[];
  const periodePrecedent=bailPrecedent?periodeBailPrecedent(bailPrecedent):"";
  const mentionReprise=bailPrecedent&&(reprises.includes("loyer_hc")||reprises.includes("charges"));
  const typeRepris=Boolean(bailPrecedent&&["nu","meuble"].includes(bailPrecedent.type)&&valeurs.type===bailPrecedent.type);

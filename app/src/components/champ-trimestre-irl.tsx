@@ -20,12 +20,17 @@ export function ChampTrimestreIrl({ id, name, value, defaut, modifier, reference
   const numero = lu?.numero ? `T${lu.numero}` : "";
   const annee = lu?.annee ? String(lu.annee) : "";
   const aujourdhui = aujourdhuiParis();
-  const dateReference = reference && /^\d{4}-\d{2}-\d{2}$/.test(reference) ? reference : aujourdhui;
+  // Jamais au-delà d'aujourd'hui : un indice pas encore publié ne se présélectionne pas (relecture BAIL-02).
+  const dateReference = reference && /^\d{4}-\d{2}-\d{2}$/.test(reference) && reference < aujourdhui ? reference : aujourdhui;
+  const annees = anneesTrimestreIrl(aujourdhui);
+  // Une valeur enregistrée hors de la liste (année future) reste affichée telle quelle : l'écran montre ce qui sera envoyé.
+  if (lu?.annee && !annees.includes(lu.annee)) annees.unshift(lu.annee);
   const changer = (n: string, a: string) => {
     const suivant = n ? `${n}${a ? ` ${a}` : ""}` : "";
     setInterne(suivant); modifier?.(suivant);
   };
-  const nonPublie = lu?.annee && publicationTrimestreIrl(lu.numero, lu.annee) > dateReference;
+  const publication = lu?.annee ? publicationTrimestreIrl(lu.numero, lu.annee) : null;
+  const nonPublie = publication !== null && publication > dateReference;
   return <div className="space-y-1.5">
     <input type="hidden" name={name} value={courant} disabled={disabled} />
     <div className="grid grid-cols-2 gap-2">
@@ -37,11 +42,13 @@ export function ChampTrimestreIrl({ id, name, value, defaut, modifier, reference
       <select id={`${id}-annee`} aria-label="Année de l’indice IRL de référence" value={annee} disabled={disabled || !numero} className={className}
         onChange={e => changer(numero, e.target.value)}>
         <option value="">Année à choisir</option>
-        {anneesTrimestreIrl(aujourdhui).map(a => <option key={a} value={String(a)}>{a}</option>)}
+        {annees.map(a => <option key={a} value={String(a)}>{a}</option>)}
       </select>
     </div>
     {nonPublie && <p role="status" className="text-xs text-warning-soft-foreground">
-      L’indice du {ORDINAUX[lu!.numero]} trimestre {lu!.annee} est publié vers le {formaterDate(publicationTrimestreIrl(lu!.numero, lu!.annee!))}, après le {formaterDate(dateReference)} : vérifiez qu’il était connu à la signature.
+      {publication! > aujourdhui
+        ? `L’indice du ${ORDINAUX[lu!.numero]} trimestre ${lu!.annee} n’est pas encore publié (vers le ${formaterDate(publication!)}) : choisissez le dernier indice connu.`
+        : `L’indice du ${ORDINAUX[lu!.numero]} trimestre ${lu!.annee} est publié vers le ${formaterDate(publication!)}, après le ${formaterDate(dateReference)} : vérifiez qu’il était connu à la signature.`}
     </p>}
   </div>;
 }

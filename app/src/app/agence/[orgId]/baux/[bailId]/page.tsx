@@ -713,6 +713,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 chambre_id: bail.chambre_id,
                 locataire_principal: bail.locataire_principal,
                 date_debut: bail.date_debut,
+                date_conclusion_prevue: bail.date_conclusion_prevue,
                 loyer_hc: bail.loyer_hc,
                 charges: bail.charges,
                 charges_mode: bail.charges_mode,

@@ -27,7 +27,7 @@ describe("import contrôlé et trimestre IRL daté (fichiers)", () => {
     expect(sql).toContain("create or replace function public.montant_en_euros(p numeric)");
     // Le garde-fou du 27/09 (bail engagé : le loyer ne rouvre pas le dépôt) est conservé tel quel.
     expect(sql).toContain("and old.etat is distinct from 'brouillon'::public.bail_etat");
-    expect(sql).toContain("where b.irl_trimestre ~ '^T[1-4]$'"); expect(sql).toContain("and b.etat = 'brouillon'");
+    expect(sql).toContain("and b.irl_trimestre ~ '^T[1-4]$'"); expect(sql).toContain("select public.tache_systeme();"); expect(sql).toContain("and b.etat = 'brouillon'");
     expect(sql.match(/set search_path (?:to|=) ''/g)?.length).toBeGreaterThanOrEqual(3);
     expect(sql.trim().endsWith("select public.fermer_fonctions_a_anon();")).toBe(true);
     const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
@@ -150,8 +150,34 @@ describe.skipIf(!DB_URL)("import contrôlé et trimestre IRL daté (base)", () =
     await db.query("set local session_replication_role = replica");
     await db.query(`update public.baux set irl_trimestre='T4', irl_valeur=142.06, revision_irl=true, etat='actif' where id=$1`, [actif]);
     await db.query("set local session_replication_role = origin");
+    // Conclusion prévue dans le futur (2027-05-01) : jamais un indice pas encore publié aujourd'hui.
+    const futur = (await importer([{ ...LIGNE, lot: "H", locataire_nom: "Huitième" }], true))[0].bail_id as string;
+    await db.query(`update public.baux set irl_trimestre='T1', date_debut='2027-06-01', date_conclusion_prevue='2027-05-01' where id=$1`, [futur]);
+    // Organisations en lecture seule (essai échu, abonnement suspendu) : la reprise ne doit pas faire échouer la migration.
+    const lectureSeule: string[] = [];
+    for (const etat of ["essai_echu", "suspendue"]) {
+      const { rows: [o] } = await db.query(
+        `insert into public.organizations (name, status, type, essai_fin) values ($1, $2, 'proprietaire_direct', current_date - 30) returning id`,
+        [`AF lecture seule ${etat}`, etat === "suspendue" ? "suspendue" : "essai"]);
+      await db.query("set local session_replication_role = replica");
+      const { rows: [bi] } = await db.query(`insert into public.biens (organization_id, nom, type, address_line1, postal_code, city) values ($1,'B','appartement','1 rue','69001','Lyon') returning id`, [o.id]);
+      const { rows: [lo] } = await db.query(`insert into public.lots (bien_id, organization_id, nom) values ($1,$2,'L') returning id`, [bi.id, o.id]);
+      const { rows: [ba] } = await db.query(`insert into public.baux (organization_id, lot_id, etat, type, date_debut, jour_echeance, revision_irl, irl_trimestre)
+        values ($1,$2,'brouillon','nu','2026-12-01',1,true,'T3') returning id`, [o.id, lo.id]);
+      await db.query("set local session_replication_role = origin");
+      expect((await db.query(`select public.org_ecriture_ouverte($1) as ouverte`, [o.id])).rows[0].ouverte).toBe(false);
+      lectureSeule.push(ba.id);
+    }
     const migration = readFileSync(`supabase/migrations/${MIGRATION}.sql`, "utf8");
+    // La migration s'exécute sans session utilisateur, comme le chantier de déploiement.
+    await db.query("reset role"); await db.query(`select set_config('request.jwt.claims', '', true)`);
     await db.query(migration);
+    expect((await db.query(`select irl_trimestre from public.baux where id = any($1::uuid[]) order by irl_trimestre`, [lectureSeule])).rows.map((x) => x.irl_trimestre)).toEqual(["T3 2026", "T3 2026"]);
+    expect((await db.query(`select current_setting('gerimmo.systeme', true) as s`)).rows[0].s).toBe("");
+    expect((await db.query(`select irl_trimestre from public.baux where id=$1`, [futur])).rows[0].irl_trimestre).toMatch(/^T1 20\d\d$/);
+    const anneeFutur = Number((await db.query(`select irl_trimestre from public.baux where id=$1`, [futur])).rows[0].irl_trimestre.slice(3));
+    const { rows: [{ publie }] } = await db.query(`select make_date($1::int, 4, 15) <= (now() at time zone 'Europe/Paris')::date as publie`, [anneeFutur]);
+    expect(publie).toBe(true);
     const lire = async () => (await db.query(`select id, irl_trimestre from public.baux where id = any($1::uuid[])`, [[decembre, janvier, mai, sansDate]])).rows
       .reduce((acc, x) => ({ ...acc, [x.id]: x.irl_trimestre }), {} as Record<string, string>);
     expect(await lire()).toEqual({ [decembre]: "T3 2026", [janvier]: "T4 2025", [mai]: "2e trimestre 2025", [sansDate]: "T2" });

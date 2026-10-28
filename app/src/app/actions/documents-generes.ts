@@ -9,6 +9,7 @@ import { rendrePdf, copieDeTravail } from "@/lib/documents/rendu";
 import { MODELES, type CodeModele, type Modele } from "@/lib/documents/modeles";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
 import { derniereVersionGeneree } from "@/lib/documents/version-generee";
+import { MANQUE_ANNEE_IRL, REFUS_ANNEE_IRL, trimestreIrlSansAnnee } from "@/lib/documents/completude-brouillon-bail";
 import { versRouteAgence } from "@/lib/racine-espace";
 
 export type EtatGeneration = {
@@ -47,6 +48,14 @@ export async function genererDocument(
   try {
     const assemblage = await modele.assembler(supabase, orgId, cibleId, options);
     if ("erreur" in assemblage) return { erreur: assemblage.erreur };
+
+    // Un contrat ne s'imprime jamais avec « Trimestre de référence : T2 » sans année (relecture BAIL-02).
+    if (["bail_nu", "bail_meuble", "bail_colocation", "bail_individuel", "cautionnement"].includes(code)) {
+      const { data: bailIrl, error: erreurIrl } = await supabase.from("baux").select("id, etat, revision_irl, irl_trimestre")
+        .eq("id", cibleId).eq("organization_id", orgId).maybeSingle();
+      if (erreurIrl) return { erreur: "Le bail ne peut pas être vérifié. Réessayez." };
+      if (bailIrl && await trimestreIrlSansAnnee(supabase, orgId, bailIrl)) return { erreur: REFUS_ANNEE_IRL, manquants: [MANQUE_ANNEE_IRL], liens: assemblage.liens };
+    }
 
     const refus = refusDocumentIncomplet(assemblage.document);
     if (refus) {

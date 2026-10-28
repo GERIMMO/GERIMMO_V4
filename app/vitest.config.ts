@@ -21,6 +21,9 @@ import { configDefaults, defineConfig } from "vitest/config";
  * `npm test` en local. Le test `tests/execution-en-serie.test.ts` garde cette liste cohérente avec les fichiers.
  */
 export const FICHIERS_EN_SERIE = [
+  // Audit final (28/10) : rejeu complet de 20261028100300 (create or replace de importer_parc et du déclencheur du
+  // plafond, UPDATE de baux, COMMENT ON COLUMN baux) dans la transaction du fichier.
+  "tests/import-controle-irl-annee-base.test.ts",
   // A01/A02 (23/10) : rejeu et retour de 20261023162446, pose complète des gardes, fixture validée (deux sessions).
   "tests/intention-souscription-base.test.ts",
   // Réseau d'artisans choisi par l'artisan (23/10) : rejeu de 20261023180000 et de son retour (index sur artisan_zones,

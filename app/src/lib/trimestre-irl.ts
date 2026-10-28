@@ -55,6 +55,13 @@ export function anneeTrimestreIrlPlausible(numero: number, reference: string): n
   return annee;
 }
 
+/** Un indice daté est-il publié à cette date ? « T3 » sans année n'est pas daté (null). */
+export function trimestreIrlPublie(libelle: string | null | undefined, date: string): boolean | null {
+  const lu = lireTrimestreIrl(libelle);
+  if (!lu?.annee) return null;
+  return publicationTrimestreIrl(lu.numero, lu.annee) <= date;
+}
+
 /** Années proposées : de 1990 à l'année en cours, la plus récente d'abord. */
 export function anneesTrimestreIrl(aujourdhui: string): number[] {
   const fin = Number(aujourdhui.slice(0, 4));

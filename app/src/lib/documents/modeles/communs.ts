@@ -338,11 +338,7 @@ export function titreContratAFaireSigner(
   return `Bail ${regime} — ${[ctx.lot.nom, qui].filter(Boolean).join(" · ")} (à faire signer)`;
 }
 export function estContratAFaireSigner(titre: string | null): boolean {
-  const t = titre ?? "";
-  if (/^(Bail|Colocation|Contrat individuel) .*\((?:généré, )?à faire signer\)$/.test(t)) return true;
-  // Ancien titre du bail meublé (« Bail meublé — Bernard Lucas »), sans mention : jamais une copie à signer en ligne
-  // ni un contrat signé (relecture BAIL-03).
-  return t.startsWith("Bail meublé — ") && !t.includes("(") && !t.includes(" — à signer en ligne") && !t.endsWith(" — signé");
+  return /^(Bail|Colocation|Contrat individuel) .*\((?:généré, )?à faire signer\)$/.test(titre ?? "");
 }
 
 // Référence courte et stable d'un objet (les épreuves montrent « référence »)

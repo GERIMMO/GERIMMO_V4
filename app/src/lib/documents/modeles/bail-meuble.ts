@@ -383,7 +383,9 @@ export async function assemblerBailMeuble(
   return {
     document,
     titreGed: titreContratAFaireSigner("meublé", ctx),
-    remplaceVersion: estContratAFaireSigner,
+    // L'ancien titre généré de ce bail (« Bail meublé — Bernard Lucas », sans mention) est reconnu À L'IDENTIQUE
+    // seulement : une pièce déposée sous un autre titre n'est jamais remplacée (relecture BAIL-03).
+    remplaceVersion: (titre: string | null) => estContratAFaireSigner(titre) || titre === `Bail meublé — ${nomPersonne(ctx.locataires[0]) ?? ctx.lot.nom}`,
     nomFichier: `bail-meuble-${referenceCourte("BAIL", ctx.bail.id).toLowerCase()}`,
     // Lié au lot comme le bail nu : avant signature, le contrat appartient au dossier du logement (BAIL-03).
     liens: [{ entite: "bail", entiteId: ctx.bail.id }, { entite: "lot", entiteId: ctx.lot.id }, ...liensLocataires(ctx)],

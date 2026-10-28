@@ -18,8 +18,8 @@
 -- `reviser_loyer` en déduit l'année de la première révision. Un brouillon dont le contrat est parti en signature
 -- (circuit prêt, en préparation, en cours, à vérifier ou signé) la garde aussi : son contrat est recalculé et comparé
 -- à l'empreinte du circuit. Pour les autres brouillons, l'année est celle du dernier trimestre de ce numéro déjà
--- PUBLIÉ à la date de conclusion prévue, à défaut à la date d'entrée (T1 publié mi-avril, T2 mi-juillet, T3
--- mi-octobre, T4 mi-janvier suivant). Sans aucune de ces dates, la valeur reste « Tn » : l'écran la présente
+-- PUBLIÉ à la date de conclusion prévue, à défaut à la date d'entrée, jamais après aujourd'hui (T1 publié mi-avril, T2 mi-juillet, T3
+-- mi-octobre, T4 mi-janvier suivant). L'écriture se fait en tâche système (organisations en lecture seule comprises). Sans aucune de ces dates, la valeur reste « Tn » : l'écran la présente
 -- « année à préciser » et l'étape Loyer exige de la compléter. Aucune autre colonne n'est touchée.
 --
 -- Rejouable : create or replace, signatures inchangées ; la reprise ne cible que les valeurs sans année.
@@ -340,22 +340,29 @@ revoke execute on function public.importer_parc(uuid, jsonb, boolean) from publi
 -- ═════════════════════════════════════════════════════════════════════════
 -- 4. Trimestre IRL de référence daté (BAIL-02) — reprise signalée, brouillons seulement
 -- ═════════════════════════════════════════════════════════════════════════
+-- Écriture de maintenance : une organisation en lecture seule (essai échu, abonnement suspendu) ne doit pas faire
+-- échouer la migration (déclencheur abonnement_baux) ; levée pour cette seule écriture, comme les tâches planifiées.
+select public.tache_systeme();
 update public.baux b
    set irl_trimestre = b.irl_trimestre || ' ' || (
          select max(a)::text
-           from generate_series(extract(year from coalesce(b.date_conclusion_prevue, b.date_debut))::integer - 2,
-                                extract(year from coalesce(b.date_conclusion_prevue, b.date_debut))::integer) a
+           from generate_series(extract(year from r.reference)::integer - 2, extract(year from r.reference)::integer) a
           -- date de publication approchée de l'indice « Tn a » : mi-avril, mi-juillet, mi-octobre, mi-janvier suivant
           where case substr(b.irl_trimestre, 2, 1)
                   when '4' then make_date(a + 1, 1, 15)
                   else make_date(a, substr(b.irl_trimestre, 2, 1)::integer * 3 + 1, 15)
-                end <= coalesce(b.date_conclusion_prevue, b.date_debut))
- where b.irl_trimestre ~ '^T[1-4]$'
+                end <= r.reference)
+  -- Jamais un indice pas encore publié aujourd'hui : une conclusion prévue dans le futur se ramène au jour de Paris.
+  from (select bb.id, least(coalesce(bb.date_conclusion_prevue, bb.date_debut), (now() at time zone 'Europe/Paris')::date) as reference
+          from public.baux bb) r
+ where r.id = b.id
+   and b.irl_trimestre ~ '^T[1-4]$'
    and b.etat = 'brouillon'
    and coalesce(b.date_conclusion_prevue, b.date_debut) is not null
    and not exists (select 1 from public.bail_signature_circuits c
                     where c.bail_id = b.id and c.modele = 'bail'
                       and c.etat in ('pret', 'preparation', 'en_cours', 'a_verifier', 'termine'));
+select pg_catalog.set_config('gerimmo.systeme', '', true);
 
 comment on column public.baux.irl_trimestre is
   'Trimestre de l''indice IRL de référence du bail, avec son année : « T3 2026 » (lu par trimestre_irl_numero / trimestre_irl_annee).';

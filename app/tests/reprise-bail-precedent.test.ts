@@ -4,7 +4,7 @@ import { bailPrecedentDuLot, periodeBailPrecedent, valeursReprisesDuBail, type B
 // Décision du 27/10 (CB-08) : en relocation, le brouillon reprend les conditions du bail précédent le plus récent.
 const termine = (suite: Partial<BailPrecedent>): BailPrecedent => ({
   id: "ancien", chambre_id: null, type: "nu", date_debut: "2023-09-01", date_fin: "2026-08-31", date_sortie_reelle: "2026-08-31",
-  loyer_hc: 930, charges: 65, charges_mode: "provision", jour_echeance: 5, paiement_echeance: "echoir", revision_irl: true, irl_trimestre: "T2", irl_valeur: 140.59,
+  loyer_hc: 930, charges: 65, charges_mode: "provision", jour_echeance: 5, paiement_echeance: "echoir", revision_irl: true, irl_trimestre: "T2 2023", irl_valeur: 140.59,
   ...suite,
 });
 
@@ -32,7 +32,9 @@ describe("bail précédent du lot", () => {
 
 describe("valeurs reprises", () => {
   it("reprend le type nu/meublé, le loyer, les charges et leur mode, l’échéance, le paiement et la référence IRL", () => {
-    expect(valeursReprisesDuBail(termine({}), "meuble")).toEqual({ type: "nu", loyer_hc: 930, charges: 65, charges_mode: "provision", jour_echeance: 5, paiement_echeance: "echoir", revision_irl: true, irl_trimestre: "T2", irl_valeur: 140.59 });
+    expect(valeursReprisesDuBail(termine({}), "meuble")).toEqual({ type: "nu", loyer_hc: 930, charges: 65, charges_mode: "provision", jour_echeance: 5, paiement_echeance: "echoir", revision_irl: true, irl_trimestre: "T2 2023", irl_valeur: 140.59 });
+    // Un trimestre sans année n'est jamais repris (décision du 28/10, relecture BAIL-02) : le champ reste à choisir.
+    expect(valeursReprisesDuBail(termine({ irl_trimestre: "T2" }), "meuble")).not.toHaveProperty("irl_trimestre");
   });
   it("ne reprend jamais le locataire, les dates ni le dépôt de garantie", () => {
     const reprises = valeursReprisesDuBail({ ...termine({}), locataire_principal: "ancien-locataire", depot_garantie: 900 } as BailPrecedent, "nu");

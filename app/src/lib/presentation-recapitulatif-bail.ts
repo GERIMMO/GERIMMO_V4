@@ -121,4 +121,5 @@ const LIBELLES_MENTIONS: Record<string, string> = {
   "inventaire du mobilier — au moins les 11 éléments du décret": "Inventaire du mobilier",
   "classe DPE du logement": "Classe énergie du DPE",
   "équipements du logement": "Équipements du logement",
+  "année de l’indice IRL de référence": "Année du trimestre IRL de référence",
 };

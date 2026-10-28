@@ -1,8 +1,8 @@
 import { lireMentionsContrat, verifierHonorairesContrat } from "@/lib/mentions-contrat";
 import { moisDepotGarantie } from "@/lib/depot-garantie";
 import { lireMontantFacultatif } from "@/lib/saisie-montant";
-import { eur } from "@/lib/ged";
-import { FORMAT_TRIMESTRE_IRL, trimestreIrlCanonique } from "@/lib/trimestre-irl";
+import { aujourdhuiParis, eur } from "@/lib/ged";
+import { FORMAT_TRIMESTRE_IRL, trimestreIrlCanonique, trimestreIrlPublie } from "@/lib/trimestre-irl";
 
 export const ETAPES_BAIL = [
   { id: "bail", titre: "Le bail", detail: "Type de contrat et dates" },
@@ -48,6 +48,7 @@ export function lireEtapeBail(etape: EtapeSaisieBail, form: FormData, actuel: Va
       if (options[nom] && brut && !options[nom].includes(brut)) return erreur("Choisissez une valeur proposée dans la liste.");
       // Le trimestre IRL de référence porte son année (« T3 2026 ») : un acte qui dit « T3 » est incomplet (BAIL-02).
       if (nom === "irl_trimestre" && brut && !FORMAT_TRIMESTRE_IRL.test(trimestreIrlCanonique(brut) ?? "")) return erreur("Choisissez le trimestre et l’année de l’indice IRL de référence dans la liste.");
+      if (nom === "irl_trimestre" && brut && trimestreIrlPublie(trimestreIrlCanonique(brut), aujourdhuiParis()) === false) return erreur("L’indice IRL de ce trimestre n’est pas encore publié : choisissez le dernier indice connu à la signature.");
       patch[nom] = nom === "irl_trimestre" ? trimestreIrlCanonique(brut) : brut || null;
     }
   }

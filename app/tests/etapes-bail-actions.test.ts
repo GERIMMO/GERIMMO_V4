@@ -65,14 +65,14 @@ function contexteCreation({role="proprietaire_direct",user=true,absent=false,err
  m.acces.mockResolvedValue({user:user?{id:"moi"}:null,role,supabase:{from:(table:string)=>table==="lots"?q:table==="bail_personnes"?personnes:baux}});
  return {q,insert,brouillons,anciens};
 }
-const bailTermine={id:"ancien",chambre_id:null,type:"nu",date_debut:"2023-09-01",date_fin:"2026-08-31",date_sortie_reelle:"2026-08-31",loyer_hc:930,charges:65,charges_mode:"provision",jour_echeance:5,paiement_echeance:"echoir",revision_irl:true,irl_trimestre:"T2",irl_valeur:140.59,locataire_principal:"ancien-locataire",depot_garantie:900};
+const bailTermine={id:"ancien",chambre_id:null,type:"nu",date_debut:"2023-09-01",date_fin:"2026-08-31",date_sortie_reelle:"2026-08-31",loyer_hc:930,charges:65,charges_mode:"provision",jour_echeance:5,paiement_echeance:"echoir",revision_irl:true,irl_trimestre:"T2 2023",irl_valeur:140.59,locataire_principal:"ancien-locataire",depot_garantie:900};
 
 it("CB-08 : en relocation, le brouillon reprend le type, le loyer, les charges, l’échéance et l’IRL du bail précédent, jamais le locataire, les dates ni le dépôt",async()=>{
  const {insert,anciens}=contexteCreation({meuble:true,precedents:[bailTermine,{...bailTermine,id:"plus-ancien",date_sortie_reelle:"2021-05-31",loyer_hc:800}]});
  await expect(commencerBail("org","lot","bien")).rejects.toBe(m.redirection);
  expect(anciens.in).toHaveBeenCalledWith("etat",["termine","preavis"]);
  for(const filtre of [["organization_id","org"],["lot_id","lot"]])expect(anciens.eq).toHaveBeenCalledWith(...filtre);
- expect(insert).toHaveBeenCalledExactlyOnceWith({organization_id:"org",lot_id:"lot",etat:"brouillon",type:"nu",loyer_hc:930,charges:65,charges_mode:"provision",jour_echeance:5,paiement_echeance:"echoir",revision_irl:true,irl_trimestre:"T2",irl_valeur:140.59});
+ expect(insert).toHaveBeenCalledExactlyOnceWith({organization_id:"org",lot_id:"lot",etat:"brouillon",type:"nu",loyer_hc:930,charges:65,charges_mode:"provision",jour_echeance:5,paiement_echeance:"echoir",revision_irl:true,irl_trimestre:"T2 2023",irl_valeur:140.59});
  expect(m.redirect).toHaveBeenCalledExactlyOnceWith("/espace/org/baux/nouveau#etape-bail-1");
 });
 

@@ -17,3 +17,11 @@ describe("Document de devis",()=>{
     await fs.writeFile("tmp/pdfs/devis-gerimmo-envoye.pdf",await rendrePdf(assemblerDevisArtisan({...doc,...court})));
 },30000);
 });
+
+describe("Audit final (DOC-21) — adresse du destinataire", () => {
+  it("imprimée quand elle est connue, échappée ; absente sinon", () => {
+    const avec = assemblerDevisArtisan({ ...doc, destinataire_adresse: "12 rue <b>Haute</b>, 69007 Lyon" });
+    expect(avec.html).toContain("Adresse du destinataire :</strong> 12 rue &lt;b&gt;Haute&lt;/b&gt;, 69007 Lyon");
+    expect(assemblerDevisArtisan({ ...doc, destinataire_adresse: "  " }).html).not.toContain("Adresse du destinataire");
+  });
+});

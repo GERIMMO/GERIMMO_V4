@@ -274,7 +274,8 @@ describe("X17 — une validation qui échoue n'abandonne pas son PDF", () => {
     preparer(prepValide());
     m.single.mockResolvedValue({ data: null, error: { message: "conflit" } });
     await POST(requete(), contexte);
-    const lectures = m.requetes.filter((r) => r.op === "select");
+    // L'adresse de l'organisation destinataire (audit final, DOC-21) est une lecture distincte, sans rapport avec la relecture.
+    const lectures = m.requetes.filter((r) => r.op === "select" && r.table !== "organizations");
     expect(lectures).toHaveLength(1);
     expect(lectures[0].table).toBe(TABLE);
     expect(lectures[0].colonnes).toBe("pdf_path");

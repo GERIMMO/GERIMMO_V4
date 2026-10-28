@@ -38,8 +38,17 @@ export async function POST(request: Request, context: { params: Promise<{sollici
   const instant=new Date().toISOString();
   const entreprise={artisan_nom:fiche.raison_sociale,artisan_siret:fiche.siret,artisan_telephone:fiche.telephone,artisan_email:fiche.email,
     artisan_adresse:profil.adresse,artisan_mentions:profil.mentions,artisan_logo:profil.logo_data};
+  // Audit final (DOC-21) : l'adresse de l'organisation destinataire, quand elle est renseignée. Lecture bornée à
+  // l'organisation de la demande, déjà prouvée comme adressée à cet artisan (chargerPreparationDevis).
+  // Une lecture en échec n'empêche pas le devis : l'adresse est alors simplement omise.
+  let destinataireAdresse="";
+  try {
+    const {data}=await service.from("organizations").select("address_line1,postal_code,city").eq("id",demande.organization_id).limit(1);
+    const o=(Array.isArray(data)?data[0]:null) as {address_line1:string|null;postal_code:string|null;city:string|null}|null;
+    if(o) destinataireAdresse=[o.address_line1,[o.postal_code,o.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  } catch { /* adresse omise */ }
   const doc=assemblerDevisArtisan({
-    id,...saisie.calcul,...entreprise,description:saisie.prestations,diagnostic:saisie.diagnostic,
+    id,...saisie.calcul,destinataire_adresse:destinataireAdresse||null,...entreprise,description:saisie.prestations,diagnostic:saisie.diagnostic,
     delai_intervention:saisie.delai,duree_estimee:saisie.duree,contraintes:saisie.contraintes||null,observations:saisie.observations||null,
     statut:"valide",depose_le:instant,valide_jusqu_au:saisie.valideJusquAu,agence_nom:demande.agence_nom,
     incident_numero:demande.incident_numero,commune:demande.ville,code_postal:demande.code_postal,

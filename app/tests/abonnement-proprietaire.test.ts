@@ -92,6 +92,28 @@ function abonner(changements = {}) {
   paiement = { ...paiement, souscrit: true, paye: true, formule: "bailleur", unites_souscrites: 3, montant_periode_cents: 999, periode_fin: "2099-11-24", ...changements };
 }
 
+describe("espace suspendu par la supervision (audit final du 27/10, DRT-04)", () => {
+  it("la carte « suspendu par Gerimmo » remplace « droits payés » et le bloc de souscription", async () => {
+    etat = { ...etat, statut: "suspendue", ecriture_ouverte: false };
+    mocks.rpc.mockImplementation(async (nom: string) =>
+      nom === "org_suspendue_par_supervision" ? { data: true, error: null } : { data: [nom === "etat_abonnement" ? etat : paiement], error: null });
+    const html = await rendre();
+    expect(html).toContain("Votre espace est suspendu par Gerimmo.");
+    expect(html).toContain('href="/assistance"');
+    expect(html).not.toContain("payés ont pris fin");
+    expect(html).not.toContain("Choisir ma formule");
+    expect(html).not.toContain("Reprendre avec un abonnement");
+  });
+  it("suspendue par l'impayé : le texte et la souscription d'avant", async () => {
+    etat = { ...etat, statut: "suspendue", ecriture_ouverte: false };
+    mocks.rpc.mockImplementation(async (nom: string) =>
+      nom === "org_suspendue_par_supervision" ? { data: false, error: null } : { data: [nom === "etat_abonnement" ? etat : paiement], error: null });
+    const html = await rendre();
+    expect(html).not.toContain("suspendu par Gerimmo");
+    expect(html).toContain("Reprendre avec un abonnement");
+  });
+});
+
 describe("présentation de l’abonnement propriétaire", () => {
   it("présente l’essai et le tarif proposé sans annoncer un abonnement payé", async () => {
     const html = await rendre();

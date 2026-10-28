@@ -1,8 +1,9 @@
 import { ConfirmationPaiement } from "./confirmation-paiement";
 import { joursJusquaParis } from "@/lib/heure-paris-calcul";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { BoutonPortail, BoutonSouscrire } from "./boutons-abonnement";
+import { CarteEspaceSuspendu } from "./carte-suspension";
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, formaterDate } from "@/lib/ged";
 import {
@@ -82,6 +83,9 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
   // barème et un chemin d'encaissement. Réservé au RESPONSABLE dans les deux
   // cas — un agent n'a pas à connaître la facture de son agence, et la base
   // refuse déjà de la lui rendre (`mon_abonnement`).
+  // Audit final du 27/10 (DRT-06) : un agent de l'agence qui ouvre cet écran par son adresse revient à son tableau de
+  // bord, qui lui dit pourquoi — au lieu de la 404 publique hors de la coquille. Le propriétaire direct garde la 404 (D27).
+  if (role === "agent") redirect(`${base}?acces=administrateur`);
   if (!["admin_agence", "proprietaire_direct"].includes(role)) notFound();
   const estAgence = organisation.type === "agence";
 
@@ -113,6 +117,11 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
   );
   const ferme = etat ? !etat.ecriture_ouverte : false;
   const enEssai = etat?.statut === "essai";
+  // Audit final du 27/10 (DRT-04) : suspendu ou archivé par la supervision, et non par l'impayé.
+  const suspensionSupervision =
+    ferme && ["suspendue", "archivee"].includes(etat?.statut ?? "")
+      ? (await supabase.rpc("org_suspendue_par_supervision", { p_org: orgId })).data === true
+      : false;
   const jours = etat?.essai_fin ? Math.max(0, joursJusquaParis(etat.essai_fin)) : null;
 
   // Retour de Stripe. `annule` n'est pas une erreur : le client a fermé la page
@@ -236,7 +245,9 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
         </div>
       )}
 
-      {ferme && !paiement?.paiement_en_retard && (
+      {suspensionSupervision && <CarteEspaceSuspendu archive={etat?.statut === "archivee"} />}
+
+      {ferme && !suspensionSupervision && !paiement?.paiement_en_retard && (
         <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
@@ -386,7 +397,7 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
                 (décision du 28/09) : le bouton fait passer l'organisation
                 aux formules actuelles, présentées avec leur montant exact
                 avant toute page de paiement. */}
-            {!paiement?.paye && !paiement?.paiement_en_retard ? (
+            {suspensionSupervision ? null : !paiement?.paye && !paiement?.paiement_en_retard ? (
               <>
                 <p className="mesure-lecture text-sm text-muted-foreground">
                   {rienAPayer && !estAgence

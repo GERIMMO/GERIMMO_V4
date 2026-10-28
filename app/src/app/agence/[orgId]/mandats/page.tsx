@@ -1,7 +1,7 @@
 import { deElide } from "@/lib/elision";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, formaterDate, moisEnFrancais } from "@/lib/ged";
 import { initiales, nomComplet } from "@/lib/roles-personnes";
@@ -20,6 +20,9 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
   const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
+  // Audit final du 27/10 (DRT-06) : un agent de l'agence qui ouvre cet écran par son adresse revient à son tableau de
+  // bord, qui lui dit pourquoi — au lieu de la 404 publique hors de la coquille. Le propriétaire direct garde la 404 (D27).
+  if (!estProprietaire && role === "agent") redirect(`${base}?acces=administrateur`);
   if (estProprietaire || role !== "admin_agence") notFound();
 
   const [

@@ -71,6 +71,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     );
   }
   const estResponsable = ROLES_RESPONSABLES.includes(role);
+  // Audit final du 27/10 (DRT-06) : un agent renvoyé ici d'un écran de l'administrateur (Administration, Mandats &
+  // versements, Mon abonnement) lit pourquoi.
+  const accesRefuse = !estResponsable && (await props.searchParams).acces === "administrateur";
   // L'assistant propose l'automatisation au bon moment (audit du 20/09) : dès
   // qu'un lot est loué et qu'un des trois envois automatiques est éteint, il
   // le dit — une fois par écran, un lien, jamais un geste à la place du
@@ -424,6 +427,12 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           </p>
         </div>
       </div>
+
+      {accesRefuse && (
+        <p role="status" className="mt-4 border-l-[3px] border-l-warning bg-warning-soft p-3 text-sm text-warning-soft-foreground">
+          Cet écran est réservé à l&apos;administrateur de l&apos;agence&nbsp;: demandez-lui ce dont vous avez besoin.
+        </p>
+      )}
 
       {lecturesEnEchec.length > 0 && (
         <div className="err mt-4" role="alert">

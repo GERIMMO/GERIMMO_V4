@@ -23,6 +23,7 @@ import { FournisseurRacineEspace } from "@/components/racine-espace-contexte";
 import { joursJusquaParis } from "@/lib/heure-paris-calcul";
 import { NouvelleVersionConditions } from "@/components/nouvelle-version-conditions";
 import { LienContenu } from "@/components/lien-contenu";
+import { bandeauLectureSeule, causeFermeture } from "@/lib/lecture-seule";
 
 // Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée.
 //
@@ -121,6 +122,12 @@ export default async function LayoutAgence({
   // Fermée seulement si la base le dit : une lecture en échec ne ferme rien à
   // l'écran (la base, elle, refuse déjà les écritures si c'est le cas).
   const ecritureFermee = etatAbonnement?.ecriture_ouverte === false;
+  // Audit final du 27/10 (DRT-04) : « suspendue » vient de l'impayé OU de la supervision ; seule la seconde se lève
+  // en nous écrivant, pas en souscrivant. Lu seulement quand la question se pose.
+  const suspendueParSupervision =
+    ecritureFermee && !traverseeLectureSeule && ["suspendue", "archivee"].includes(organisation.status)
+      ? (await supabase.rpc("org_suspendue_par_supervision", { p_org: orgId })).data === true
+      : false;
   const badgeIncidents = ((incidentsOuverts ?? []) as { lot_id: string | null }[]).filter(
     (i) => !portefeuille || (i.lot_id != null && portefeuille.has(i.lot_id))
   ).length;
@@ -277,24 +284,27 @@ export default async function LayoutAgence({
             <Link href={`/admin/organisations/${orgId}/support`} className="font-semibold underline">Ouvrir le support</Link>
           </p>
         )}
-        {ecritureFermee && !traverseeLectureSeule && (
-          <p className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-1.5 text-center text-xs text-[var(--warning-soft-foreground)]">
-            {organisation.status === "essai"
-              ? "Période d'essai terminée — lecture seule"
-              : "Abonnement inactif ou impayé — lecture seule"}{" "}
-            —{" "}
-            {estResponsable ? (
-              <>
-                activez l&apos;abonnement pour continuer à saisir.{" "}
-                <Link href={`${base}/abonnement`} className="font-semibold underline underline-offset-2">
-                  Choisir ma formule →
-                </Link>
-              </>
-            ) : (
-              "votre administrateur doit activer l'abonnement pour que la saisie reprenne."
-            )}
-          </p>
-        )}
+        {ecritureFermee && !traverseeLectureSeule && (() => {
+          const bandeau = bandeauLectureSeule({
+            cause: causeFermeture(organisation.status, suspendueParSupervision),
+            status: organisation.status,
+            estResponsable,
+            base,
+          });
+          return (
+            <p role="status" className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-1.5 text-center text-xs text-[var(--warning-soft-foreground)]">
+              {bandeau.etat} — {bandeau.suite}
+              {bandeau.lien && (
+                <>
+                  {" "}
+                  <Link href={bandeau.lien.href} className="font-semibold underline underline-offset-2">
+                    {bandeau.lien.libelle}
+                  </Link>
+                </>
+              )}
+            </p>
+          );
+        })()}
         {/* Plan de conformité du 23/10 (R19) : « Nos conditions générales évoluent », pour le seul responsable, hors
             traversée de supervision ; rien ne s'affiche tant que sa dernière acceptation porte la version en vigueur. */}
         {estResponsable && !traverseeLectureSeule && (

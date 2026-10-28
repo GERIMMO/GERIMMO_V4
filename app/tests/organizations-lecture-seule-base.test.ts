@@ -149,6 +149,39 @@ describe.skipIf(!DB_URL)("fiche de l'organisation en lecture seule (base)", () =
     expect(await iban()).toBe("FR7630006000011234567890189");
   });
 
+  // DRT-04 : la suspension par la supervision se distingue de l'impayé, pour les seuls gestionnaires de l'organisation.
+  it("org_suspendue_par_supervision : vrai après suspendre, faux après réactiver, faux pour l'impayé et hors de l'organisation", async () => {
+    const lire = async (compte: string) => {
+      await agir(compte);
+      return (await essai("select public.org_suspendue_par_supervision($1) s", [org])).rows[0].s as boolean;
+    };
+    expect(await lire(gestionnaire)).toBe(false);
+    await agir(superviseur, "aal2");
+    await essai("select public.controler_organisation($1, 'suspendre', null, 'TEST DRT-04') r", [org]);
+    expect(await lire(gestionnaire)).toBe(true);
+    // Un compte étranger à l'organisation n'apprend rien.
+    const etranger = randomUUID();
+    await db.query("reset role");
+    await db.query(
+      `insert into auth.users (id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data)
+       values ($1, 'authenticated', 'authenticated', $2, 'x', now(), '{}', '{}')`, [etranger, `${etranger}@test.local`]);
+    expect(await lire(etranger)).toBe(false);
+    // Une seule transaction pour tout le test : now() ne bouge pas. Le geste précédent est daté une minute plus tôt,
+    // comme il le serait entre deux requêtes réelles.
+    await db.query("reset role");
+    await db.query("update public.audit_log set created_at = created_at - interval '1 minute' where organization_id = $1", [org]);
+    await agir(superviseur, "aal2");
+    await essai("select public.controler_organisation($1, 'reactiver', null, 'TEST DRT-04 fin') r", [org]);
+    expect(await lire(gestionnaire)).toBe(false);
+    // L'impayé pose aussi « suspendue » (abonnement_appliquer) : sans geste de supervision, ce n'est pas une suspension par Gerimmo.
+    await service();
+    await essai("update public.organizations set status = 'suspendue' where id = $1", [org]);
+    expect(await lire(gestionnaire)).toBe(false);
+    await db.query("reset role");
+    const droits = await db.query(`select has_function_privilege('anon', 'public.org_suspendue_par_supervision(uuid)', 'execute') as a`);
+    expect(droits.rows[0].a).toBe(false);
+  });
+
   it("la migration se rejoue sans erreur et son retour retire le déclencheur et la fonction", async () => {
     await db.query("reset role");
     await db.query(readFileSync(`supabase/migrations/${MIGRATION}.sql`, "utf8"));
@@ -160,7 +193,7 @@ describe.skipIf(!DB_URL)("fiche de l'organisation en lecture seule (base)", () =
       .join("\n");
     await db.query(retour);
     expect((await db.query("select count(*)::int n from pg_trigger where tgname = 'abonnement_organizations'")).rows[0].n).toBe(0);
-    expect((await db.query("select count(*)::int n from pg_proc where proname = 'organizations_refuser_ecriture_si_fermee'")).rows[0].n).toBe(0);
+    expect((await db.query("select count(*)::int n from pg_proc where proname in ('organizations_refuser_ecriture_si_fermee', 'org_suspendue_par_supervision')")).rows[0].n).toBe(0);
     // Et la marche avant se rejoue à l'identique.
     await db.query(readFileSync(`supabase/migrations/${MIGRATION}.sql`, "utf8"));
     expect((await db.query("select count(*)::int n from pg_trigger where tgname = 'abonnement_organizations'")).rows[0].n).toBe(1);

@@ -58,6 +58,9 @@ export const FICHIERS_EN_SERIE = [
   "tests/confirmation-auth-migration-rejeu.test.ts",
   "tests/retour-adresse-confirmee-migration.test.ts",
   "tests/retours-oct16-registre.test.ts",
+  // Audit final du 27/10 : rejeu de 20261028100100 et de son retour (contraintes sur ecritures : verrou incompatible avec
+  // les écritures parallèles).
+  "tests/conge-dernier-terme-base.test.ts",
   "tests/relais-retention-sentinelle-oct16.test.ts",
   // Fixtures validées (concurrence entre deux sessions) + rejeu des migrations (DDL tenu pendant le fichier).
   "tests/cle-envoi-encaissements.test.ts",

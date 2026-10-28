@@ -64,6 +64,10 @@ const ANCRES_BAIL = new Map<string, string>([
   // (generer_alertes_conservation, 20261024140000 : {bail_id, echeance, pieces}) mène à la carte « Conservation des
   // pièces », où se suspend la suppression en cas de litige ; les pièces se téléchargent depuis la fiche.
   ["conservation_echeance", "#conservation"],
+  // Audit final du 27/10 (LOY-01) : ajuster_appel_fin_de_bail (20261028100100) pose {bail_id, lot_id, appel_id, periode,
+  // montant_appele, montant_du} quand le dernier terme ne peut pas être recalculé (quittance déjà envoyée, terme après la
+  // fin du bail) : le gérant régularise depuis les loyers du bail.
+  ["terme_a_regulariser", "#loyers"],
 ]);
 
 /**
@@ -132,6 +136,7 @@ const LIBELLES = new Map<string, string>([
   ["loyer_impaye", "Ouvrir les loyers du bail"],
   ["zone_tendue_a_verifier", "Vérifier la zone tendue du bail"],
   ["regularisation_non_appelee", "Ouvrir les loyers et régularisations du bail"],
+  ["terme_a_regulariser", "Régulariser le dernier terme du bail"],
   ["message_locataire", "Lire et répondre au message"],
   ["piece_deposee", "Contrôler la pièce déposée"],
   ["restitution_echeance", "Ouvrir la restitution"],

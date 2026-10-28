@@ -122,7 +122,9 @@ const MISSION_OCTOBRE = [
   "20261027100300_bail_assurance_activation_et_libelle_colocation.sql",
   // 27/10, audit #264 (CB-16) : « N baux en cours » dans le parcours de démarrage.
   "20261027100500_parcours_demarrage_pluriel_baux.sql",
-
+  // 28/10, audit final du 27/10 (LOY-01, LOY-V01, COD-03) : le dernier terme suit le congé ; dépôt, retenues, postes et
+  // écritures au centime.
+  "20261028100100_conge_ajuste_dernier_terme_et_depot_au_centime.sql",
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

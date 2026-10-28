@@ -8,7 +8,8 @@ import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { QuittancementMois, type LigneQuittancement } from "@/app/agence/[orgId]/comptabilite/quittancement-mois";
 import { RecapitulatifFiscal } from "@/components/recapitulatif-fiscal";
-import { avecEcheances, lireLivreFinances, resumerLivre, totauxEcheances } from "@/lib/finances";
+import { echeancesNonVerifiees, lireLivreFinances, resumerLivre, totauxEcheances } from "@/lib/finances";
+import { lireQuittancementMois } from "@/lib/quittancement-du-mois";
 import { baseEspace } from "@/lib/racine-espace";
 
 export async function PageFinances({ orgId, recherche }: {
@@ -26,7 +27,7 @@ export async function PageFinances({ orgId, recherche }: {
   const [{ data: biens, error: erreurBiens }, { data: lots, error: erreurLots }, quittancement, livre] = await Promise.all([
     supabase.from("biens").select("id, nom, archived_at").eq("organization_id", orgId).order("nom"),
     supabase.from("lots").select("id, bien_id").eq("organization_id", orgId),
-    supabase.rpc("quittancement_mois", { p_org: orgId, p_mois: `${mois}-01` }),
+    lireQuittancementMois(supabase, orgId, `${mois}-01`),
     lireLivreFinances(supabase, orgId),
   ]);
   // Décision D27 : « Finances » n'existe que chez le propriétaire direct (/espace/<id>).
@@ -34,8 +35,10 @@ export async function PageFinances({ orgId, recherche }: {
   const href = (a: number, m = numeroMois, anchor = "") => `${base}/loyers?${new URLSearchParams({ annee: String(a), mois: String(m), ...(bien ? { bien } : {}) })}${anchor}`;
   const perimetre = bien ? new Set((lots ?? []).filter(l => l.bien_id === bien).map(l => l.id)) : null;
   const erreurPerimetre = erreurBiens || erreurLots || (bien && !(biens ?? []).some(b => b.id === bien));
-  // La date d'échéance de chaque appel décide de ce qui est exigible (troisième relecture de LOY-07).
-  const lignes = await avecEcheances(supabase, orgId, ((quittancement.data ?? []) as LigneQuittancement[]).filter(l => !perimetre || perimetre.has(l.lot_id)));
+  // La date d'échéance de chaque appel décide de ce qui est exigible (relectures de LOY-07) ; elle vient de quittancement_mois.
+  const lignes = ((quittancement.data ?? []) as LigneQuittancement[]).filter(l => !perimetre || perimetre.has(l.lot_id));
+  const datesManquantes = echeancesNonVerifiees(lignes);
+  if (datesManquantes) console.error("Finances : quittancement_mois sans date d'échéance ; « Reste dû » non garanti", { orgId, mois });
   // « Reste dû » = échéances atteintes ; un terme pas encore exigible se dit « à échoir » (audit final du 27/10, LOY-07).
   const echeances = totauxEcheances(lignes, actuel);
   const resume = resumerLivre(livre.lignes, annee, perimetre);
@@ -52,6 +55,7 @@ export async function PageFinances({ orgId, recherche }: {
       <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="titre-loyers" className="titre-rubrique text-lg font-semibold"><Banknote size={22} aria-hidden="true" />Loyers et charges</h2><span className="text-sm text-muted-foreground">Échéances {deElide(moisEnFrancais(mois))}</span></div>
       {quittancement.error ? <p role="alert" className="err">Impossible de lire les loyers de cette période.</p> : <>
         <Chiffres valeurs={[["Demandé", echeances.demande], ["Réglé sur ces échéances", echeances.regle], ["Reste dû", echeances.resteDu]]} />
+        {datesManquantes && <p role="status" className="text-xs text-muted-foreground">Les dates d’échéance n’ont pas pu être vérifiées : « Reste dû » peut compter un terme pas encore exigible. Rechargez la page.</p>}
         {echeances.aEchoir > 0 && <p className="text-xs text-muted-foreground">{eur(echeances.aEchoir)} à échoir sur ces échéances : terme pas encore exigible, hors du reste dû.</p>}
         {/* 44 px au doigt, comme les autres dépliages de la page (audit final du 27/10, LOY-09 : 20 px). */}
         {lignes.length ? <details className="rounded-lg border border-border p-3"><summary className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-medium">Gérer les {lignes.length} loyers {deElide(moisEnFrancais(mois))} <span aria-hidden>⌄</span></summary>{mois === actuel.slice(0, 7) ? <Card size="sm" className="mt-3"><QuittancementMois orgId={orgId} mois={mois} moisLabel={moisEnFrancais(mois)} lignes={lignes} proprietaire envoiGroupe={!bien} /></Card> : <ul className="mt-3 divide-y divide-border">{lignes.map(l => <li key={l.appel_id}><Link className="flex flex-wrap justify-between gap-2 py-3 text-sm" href={`${base}/baux/${l.bail_id}#loyers`}><span>{l.locataire ?? "Locataire non renseigné"} · {l.lot_nom}</span><span>{eur(Number(l.montant_du))} demandé · {eur(Number(l.montant_couvert))} réglé →</span></Link></li>)}</ul>}</details> : <p className="text-sm text-muted-foreground">Aucun loyer demandé sur cette période.</p>}

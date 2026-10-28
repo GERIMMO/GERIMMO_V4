@@ -3,7 +3,7 @@ import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { chargerQuittancementDuMois } from "@/lib/quittancement-du-mois";
-import { accordMontant, avecEcheances, relancesDuMois, totauxEcheances } from "@/lib/finances";
+import { accordMontant, echeancesNonVerifiees, relancesDuMois, totauxEcheances } from "@/lib/finances";
 import { aujourdhuiParis, eur, moisEnFrancais } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,18 +38,21 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
   const dansPortefeuille = (lotId: string | null | undefined) =>
     !portefeuille || (lotId != null && portefeuille.has(lotId));
-  const quittancement = await chargerQuittancementDuMois(supabase, orgId, dansPortefeuille);
-  const { mois, error } = quittancement;
+  const { mois, error, lignes } = await chargerQuittancementDuMois(supabase, orgId, dansPortefeuille);
   // L'exigibilité se juge sur la date d'échéance de chaque appel, pas sur son statut (troisième relecture de LOY-07) : un
-  // terme pas encore échu (loyer payé à terme échu, acompte ou APL déjà versés compris) se dit « à échoir ».
-  const lignes = await avecEcheances(supabase, orgId, quittancement.lignes);
+  // terme pas encore échu (loyer payé à terme échu, acompte ou APL déjà versés compris) se dit « à échoir ». La date vient
+  // de quittancement_mois ; si elle manque, aucune relance n'est proposée sur une donnée incomplète, et l'écran le dit.
+  const datesManquantes = echeancesNonVerifiees(lignes);
+  if (datesManquantes) console.error("Loyers : quittancement_mois sans date d'échéance ; relances non proposées", { orgId, mois });
   const jour = aujourdhuiParis();
   const { demande: appele, regle: encaisse, aEchoir } = totauxEcheances(lignes, jour);
   const impayes = lignes.filter((l) => Number(l.montant_couvert) < Number(l.montant_du));
   const nbRegles = lignes.length - impayes.length;
   // Un terme à échoir n'est pas encore dû : il ne se relance pas, sauf pour la dette antérieure échue qu'il porte. La tuile
   // et la carte « Impayés à relancer » comptent la même liste (relecture de LOY-07).
-  const { aRelancer: relances, detteAnterieure, exigible } = relancesDuMois(lignes, jour);
+  const lecture = relancesDuMois(lignes, jour);
+  const { detteAnterieure, exigible } = lecture;
+  const relances = datesManquantes ? [] : lecture.aRelancer;
   const aRelancer = relances.length;
   // Un mois sans appel n'est pas un mois réussi : rien n'était dû. Les tuiles
   // restent neutres et la carte des impayés se tait (24/09).
@@ -158,13 +161,15 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
             </div>
             {/* Le chiffre principal est ce qui est à relancer : termes échus non réglés et dettes des mois précédents
                 (troisième relecture de LOY-07 : « 0,00 € » en rouge avec 400 € dus). Le terme à échoir reste en secondaire. */}
-            <div className={`kpi ${exigible > 0 ? "rouge" : moisVide ? "" : "vert"}`}>
+            <div className={`kpi ${datesManquantes ? "" : exigible > 0 ? "rouge" : moisVide ? "" : "vert"}`}>
               <span className="eyebrow">Exigible à relancer</span>
-              <span className="chiffre montant mt-1 block">{eur(exigible)}</span>
+              <span className="chiffre montant mt-1 block">{datesManquantes ? "—" : eur(exigible)}</span>
               <span className="block text-xs text-muted-foreground">
                 {moisVide
                   ? "rien n’était dû"
-                  : aRelancer > 0
+                  : datesManquantes
+                    ? "échéances à vérifier"
+                    : aRelancer > 0
                     ? `${aRelancer} locataire${aRelancer > 1 ? "s" : ""} à relancer`
                     : "rien à relancer"}
                 {detteAnterieure > 0 && <span className="block">dont {eur(detteAnterieure)} des mois précédents</span>}
@@ -225,7 +230,12 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {impayes.length === 0 && relances.length === 0 ? (
+              {datesManquantes ? (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Les dates d’échéance n’ont pas pu être vérifiées&nbsp;: aucune relance n’est proposée sur une lecture
+                  incomplète. Rechargez la page.
+                </p>
+              ) : impayes.length === 0 && relances.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Aucun impayé sur {moisEnFrancais(mois)}&nbsp;: tout est encaissé.
                 </p>

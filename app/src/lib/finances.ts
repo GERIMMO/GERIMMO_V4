@@ -39,6 +39,47 @@ export function resumerLivre(ecritures: EcritureFinances[], annee: number, lots:
  */
 export type EcheanceDuMois = { montant_du: number | string; montant_couvert: number | string; statut: string; date_echeance?: string | null };
 
+/** Le reste d'un mois de dette antérieure, tel que `quittancement_mois` le détaille (du plus ancien au plus récent). */
+export type DetteDuMois = { periode: string; reste: number | string };
+
+/**
+ * Où ira l'argent d'un encaissement, selon l'imputation du plus ancien au plus récent (RM-3.3.2, « Quittancement des
+ * loyers ») : chaque mois de dette antérieure reçoit au plus son propre reste, puis le terme cliqué. Au centime.
+ */
+export function repartitionEncaissement(montant: number, detail: DetteDuMois[] | null | undefined) {
+  let disponible = Math.round(montant * 100);
+  const parts: { periode: string; montant: number }[] = [];
+  for (const m of [...(detail ?? [])].sort((a, b) => a.periode.localeCompare(b.periode))) {
+    if (disponible <= 0) break;
+    const part = Math.min(disponible, Math.max(0, Math.round(Number(m.reste) * 100)));
+    if (part > 0) { parts.push({ periode: m.periode, montant: part / 100 }); disponible -= part; }
+  }
+  return { anterieur: parts, terme: disponible / 100 };
+}
+
+/**
+ * Le libellé du bouton « Encaisser » d'un terme : le montant (le reste de CE terme, que la base contrôle), puis où il ira
+ * d'abord quand une dette antérieure existe (quatrième relecture : « dont 700,00 € pour août » était faux avec une dette
+ * sur deux mois). Un ou deux mois servis : chaque part est dite ; au-delà, le total et le premier mois.
+ * `moisEnLettres` : « 2026-08-01 » → « août 2026 ». Sans détail (fonction de base antérieure), le mois le plus ancien seul.
+ */
+export function libelleEncaisser(reste: number, detail: DetteDuMois[] | null | undefined, premierMois: string | null,
+  eurFr: (n: number) => string, moisEnLettres: (periode: string) => string): string {
+  const base = `Encaisser ${eurFr(reste)}`;
+  if (!detail?.length) return premierMois ? `${base} (${moisEnLettres(premierMois)} d’abord)` : base;
+  const { anterieur } = repartitionEncaissement(reste, detail);
+  if (!anterieur.length) return base;
+  if (anterieur.length === 1) return `${base} (dont ${eurFr(anterieur[0].montant)} pour ${moisEnLettres(anterieur[0].periode)})`;
+  if (anterieur.length === 2) {
+    const [a, b] = anterieur;
+    const memeAnnee = a.periode.slice(0, 4) === b.periode.slice(0, 4);
+    const premier = memeAnnee ? moisEnLettres(a.periode).replace(/ \d{4}$/, "") : moisEnLettres(a.periode);
+    return `${base} (dont ${eurFr(a.montant)} pour ${premier} et ${eurFr(b.montant)} pour ${moisEnLettres(b.periode)})`;
+  }
+  const total = anterieur.reduce((t, p) => t + Math.round(p.montant * 100), 0) / 100;
+  return `${base} (dont ${eurFr(total)} de dette antérieure, ${moisEnLettres(anterieur[0].periode)} d’abord)`;
+}
+
 /**
  * Un terme est-il encore à échoir ? L'exigibilité se juge sur la DATE d'échéance, comparée au jour de Paris, avec la règle de
  * la base (etat_loyers_bail_brut : un terme est impayé à partir du lendemain de son échéance). Le statut ne suffit pas :
@@ -49,15 +90,13 @@ export function estAEchoir(l: EcheanceDuMois, aujourdHui: string): boolean {
   return l.date_echeance ? l.date_echeance.slice(0, 10) >= aujourdHui : l.statut === "attendu";
 }
 
-/** Les lignes du quittancement complétées de la date d'échéance de leur appel (une lecture, filtrée par l'organisation). */
-export async function avecEcheances<T extends EcheanceDuMois & { appel_id: string }>(supabase: SupabaseClient, orgId: string, lignes: T[]): Promise<T[]> {
-  if (!lignes.length) return lignes;
-  const { data, error } = await supabase.from("appels_loyer").select("id, date_echeance")
-    .eq("organization_id", orgId).in("id", lignes.map((l) => l.appel_id));
-  // Lecture en échec : le statut de la base reste le repère (estAEchoir retombe sur « attendu »).
-  if (error || !data) return lignes;
-  const dates = new Map((data as { id: string; date_echeance: string }[]).map((a) => [a.id, a.date_echeance]));
-  return lignes.map((l) => ({ ...l, date_echeance: dates.get(l.appel_id) ?? null }));
+/**
+ * Les dates d'échéance manquent-elles ? `quittancement_mois` les rend depuis 20261028100200 ; sans elles, l'exigibilité ne
+ * se juge plus que sur le statut, et un acompte sur un terme à échoir passerait pour exigible. Les écrans le disent et ne
+ * proposent alors aucune relance (relecture de LOY-07 : plus de repli silencieux).
+ */
+export function echeancesNonVerifiees(lignes: EcheanceDuMois[]): boolean {
+  return lignes.some((l) => !l.date_echeance);
 }
 
 /**

@@ -56,7 +56,8 @@ export function FilMessages({
     });
 
   return (
-    <div className="loc-carte">
+    // `min-w-0` : la carte est un élément de grille, qui refuse sinon d'être plus étroit que son plus long mot (DRT-02).
+    <div className="loc-carte min-w-0">
       <h2 className="titre-carte text-base font-medium">Écrire à {agence}</h2>
       {lectureEnEchec ? (
         <div className="mt-2">
@@ -70,9 +71,11 @@ export function FilMessages({
       ) : (
         <div className="mt-3 space-y-2.5">
           {messages.map((m) => (
+            // Un message sans espace (adresse, référence) étirait toute la page, et les retours à la ligne s'effaçaient
+            // (audit final du 27/10, DRT-02 et DRT-03) : la bulle coupe les mots trop longs et garde les paragraphes.
             <div
               key={m.id}
-              className={`max-w-[88%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
+              className={`min-w-0 max-w-[88%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed [overflow-wrap:anywhere] ${
                 m.auteur === "locataire"
                   ? "ml-auto rounded-br-sm bg-[var(--encre)] text-[var(--sur-encre)]"
                   : "rounded-bl-sm bg-[var(--ardoise)]"
@@ -87,7 +90,7 @@ export function FilMessages({
               >
                 {m.auteur === "locataire" ? "Vous" : agence} · {quand(m.cree_le)}
               </p>
-              {m.texte}
+              <p className="whitespace-pre-wrap">{m.texte}</p>
             </div>
           ))}
         </div>

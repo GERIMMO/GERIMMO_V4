@@ -227,7 +227,7 @@ describe("les écrans de l'artisan", () => {
     expect(html).toContain("Révision demandée par le client");
     expect(html).toContain("Ce que le client demandait : « Merci de détailler la main-d&#x27;œuvre et de revoir le prix du joint. »");
     expect(html).toContain("Version 2");
-    expect(html).toContain("Ce qui changeait : « Main-d&#x27;œuvre détaillée par heure, prix du joint ramené au tarif fournisseur. »");
+    expect(html).toContain("Ce qui changeait\u00a0: « Main-d&#x27;œuvre détaillée par heure, prix du joint ramené au tarif fournisseur. »");
     expect(html).toContain("Envoyée, en attente de décision");
   });
   it("une seule version sans révision : rien de plus que la carte « Ma réponse »", () => {

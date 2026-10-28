@@ -46,8 +46,8 @@ export default async function PageDevisArtisan(props: PageProps<"/artisan/devis"
           dessous contredisait ce qu'il demande de ne pas conclure (24/09). */}
       {sollicitations.erreur ? (
         <Erreur>
-          Vos demandes n&apos;ont pas pu être lues à l&apos;instant. Rechargez dans un
-          instant plutôt que de conclure qu&apos;il n&apos;y en a pas.
+          Vos demandes n’ont pas pu être lues à l’instant. Rechargez dans un
+          instant plutôt que de conclure qu’il n’y en a pas.
         </Erreur>
       ) : (
         <>
@@ -57,7 +57,7 @@ export default async function PageDevisArtisan(props: PageProps<"/artisan/devis"
               <Vide>
                 Aucune demande en attente.
                 {fiche?.statut_plateforme === "en_attente"
-                  ? " Votre inscription est encore en cours de validation : vous ne pouvez pas encore recevoir de nouvelle demande."
+                  ? " Votre inscription est encore en cours de validation\u00a0: vous ne pouvez pas encore recevoir de nouvelle demande."
                   : ""}
               </Vide>
             ) : (

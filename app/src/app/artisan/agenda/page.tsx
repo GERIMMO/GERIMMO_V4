@@ -105,8 +105,8 @@ export default async function PageAgendaArtisan() {
 
       {agenda.erreur && (
         <Erreur>
-          Votre agenda n&apos;a pas pu être lu à l&apos;instant. Ne partez pas sur
-          une journée vide : rechargez dans un instant.
+          Votre agenda n’a pas pu être lu à l’instant. Ne partez pas sur
+          une journée vide&nbsp;: rechargez dans un instant.
         </Erreur>
       )}
 
@@ -172,7 +172,7 @@ export default async function PageAgendaArtisan() {
         joursAVenir.map(([cle, lignes]) => (
           <section key={cle} id={`jour-${cle}`} className="scroll-mt-28">
             <TitreSection>
-              {cle === aujourdhui ? "Aujourd'hui — " : ""}
+              {cle === aujourdhui ? "Aujourd’hui — " : ""}
               {jourLong(lignes[0].debut_prevu)}
             </TitreSection>
             <div className="artisan-liste">
@@ -186,7 +186,7 @@ export default async function PageAgendaArtisan() {
         // Rien de fixé, mais des missions attendent une date : l'état vide
         // renvoie à la liste juste dessous plutôt qu'ailleurs.
         <Vide>
-          Aucun rendez-vous fixé pour l&apos;instant. Les missions ci-dessous en
+          Aucun rendez-vous fixé pour l’instant. Les missions ci-dessous en
           attendent un.
         </Vide>
       ) : (
@@ -195,7 +195,7 @@ export default async function PageAgendaArtisan() {
         <Vide action={{ href: "/artisan/attestations", libelle: "Mes attestations" }}>
           Aucune intervention à votre agenda. Les missions que vos clients vous confient apparaissent ici.
           {fiche.statut_plateforme === "en_attente"
-            ? " Votre inscription est encore en cours de validation : vous pourrez recevoir de nouvelles demandes après validation."
+            ? " Votre inscription est encore en cours de validation\u00a0: vous pourrez recevoir de nouvelles demandes après validation."
             : ""}
         </Vide>
       )}

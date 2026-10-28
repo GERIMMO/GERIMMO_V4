@@ -14,12 +14,12 @@ export function PresenceReseau({ fiche, exclu }: { fiche: FichePresenceReseau; e
   const { propose, conditions } = presenceReseau(fiche, exclu);
   return (
     <Carte className={styles.bloc}>
-      <div className={styles.titreBloc}><span className={styles.icone}><Network size={19} aria-hidden/></span><div><h2>Suis-je proposé dans le réseau ?</h2><p>{propose ? "Oui : les propriétaires de votre zone vous trouvent pour vos métiers." : "Pas encore : voici ce qui manque."}</p></div></div>
+      <div className={styles.titreBloc}><span className={styles.icone}><Network size={19} aria-hidden/></span><div><h2>Suis-je proposé dans le réseau ?</h2><p>{propose ? "Oui\u00a0: les propriétaires de votre zone vous trouvent pour vos métiers." : "Pas encore\u00a0: voici ce qui manque."}</p></div></div>
       <ul className="space-y-2" aria-label="Conditions pour être proposé dans le réseau Gerimmo">
         {conditions.map((c) => (
           <li key={c.cle} className="flex items-start gap-2 text-[0.9375rem]">
             {c.remplie ? <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[var(--success)]" aria-hidden/> : <CircleDashed size={18} className="mt-0.5 shrink-0 text-[var(--texte-secondaire)]" aria-hidden/>}
-            <span><span className="sr-only">{c.remplie ? "Fait : " : "À faire : "}</span><b className="font-medium">{c.libelle}</b>{!c.remplie && <span className="block text-xs text-[var(--texte-secondaire)]">{c.aide}</span>}</span>
+            <span><span className="sr-only">{c.remplie ? "Fait\u00a0: " : "À faire\u00a0: "}</span><b className="font-medium">{c.libelle}</b>{!c.remplie && <span className="block text-xs text-[var(--texte-secondaire)]">{c.aide}</span>}</span>
           </li>
         ))}
       </ul>

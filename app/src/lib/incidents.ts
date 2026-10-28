@@ -202,6 +202,11 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   rdv_annule_par_locataire: "Rendez-vous annulé par le locataire",
 };
 
+// Longueurs maximales de la déclaration (audit final, DOC-20) : la description s'aligne sur les messages (4 000 caractères),
+// « Depuis quand ? » est une indication courte. Contrôlées par l'action ; les formulaires posent le même `maxLength`.
+export const LONGUEUR_MAX_DESCRIPTION_INCIDENT = 4000;
+export const LONGUEUR_MAX_ANCIENNETE_INCIDENT = 240;
+
 export const PIECES_INCIDENT = [
   "Cuisine",
   "Salle d'eau",

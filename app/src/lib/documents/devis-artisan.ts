@@ -6,6 +6,8 @@ export type DevisArtisanDocument = {
   diagnostic: string | null; delai_intervention: string | null; duree_estimee: string | null; contraintes: string | null; observations: string | null;
   statut: string; depose_le: string; valide_jusqu_au: string; artisan_nom: string; artisan_siret: string; artisan_telephone: string | null; artisan_email: string | null;
   agence_nom: string; incident_numero: string; commune: string | null; code_postal: string | null;
+  /** L'adresse du destinataire (organisation ou client externe), quand elle est connue (audit final, DOC-21). */
+  destinataire_adresse?: string | null;
 };
 const paragraphes = (texte: string) => texte.split(/\n+/).filter(Boolean).map(p => `<p>${echapper(p)}</p>`).join("");
 export function assemblerDevisArtisan(d: DevisArtisanDocument) {
@@ -37,6 +39,7 @@ export function assemblerDevisArtisan(d: DevisArtisanDocument) {
     ? `<img src="${d.artisan_logo}" alt="Logo de l’entreprise" style="display:block;max-width:150px;max-height:48px;object-fit:contain;margin-bottom:12px" />` : "";
   const corps=logo+titre("Devis de travaux",`${echapper(reference)} · ${echapper(statut)}`,[])+identite+
     (d.artisan_adresse ? `<p><strong>Adresse de l’entreprise :</strong> ${echapper(d.artisan_adresse)}</p>` : "")+
+    (d.destinataire_adresse?.trim() ? `<p><strong>Adresse du destinataire :</strong> ${echapper(d.destinataire_adresse.trim())}</p>` : "")+
     (d.artisan_mentions ? paragraphes(d.artisan_mentions) : "")+
     (contact ? `<p>${echapper(contact)}</p>` : "")+
     (d.commune ? `<p>Localisation : ${echapper([d.code_postal,d.commune].filter(Boolean).join(" "))}</p>` : "")+

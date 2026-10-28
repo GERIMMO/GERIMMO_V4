@@ -93,9 +93,9 @@ export function FormulaireInscription({ invitationId }: { invitationId?: string 
         />
         <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
           Quatorze chiffres. Il identifie votre entreprise sur toute la
-          plateforme : si un gestionnaire a déjà créé votre fiche, elle vous est
-          rattachée au lieu d&apos;être dupliquée — à condition que votre
-          compte porte l&apos;adresse e-mail qu&apos;il a enregistrée pour vous.
+          plateforme&nbsp;: si un gestionnaire a déjà créé votre fiche, elle vous est
+          rattachée au lieu d’être dupliquée — à condition que votre
+          compte porte l’adresse e-mail qu’il a enregistrée pour vous.
         </p>
       </div>
 
@@ -113,7 +113,7 @@ export function FormulaireInscription({ invitationId }: { invitationId?: string 
           className={CLASSE_CHAMP}
         />
         <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
-          C&apos;est par lui qu&apos;on vous joint sur le chantier.
+          C’est par lui qu’on vous joint sur le chantier.
         </p>
       </div>
 
@@ -165,11 +165,11 @@ export function FormulaireInscription({ invitationId }: { invitationId?: string 
 
       <div className="space-y-1.5">
         <label htmlFor={idZones} className={CLASSE_LIBELLE}>
-          Votre zone d&apos;intervention
+          Votre zone d’intervention
         </label>
         <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
           Des codes postaux (91300) ou des départements entiers (91, 94, 77),
-          séparés par des virgules. C&apos;est là que le réseau Gerimmo vous
+          séparés par des virgules. C’est là que le réseau Gerimmo vous
           proposera, une fois votre inscription validée et votre profil rendu
           public. Vous pourrez la modifier ensuite dans « Mon entreprise ».
         </p>

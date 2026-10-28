@@ -22,7 +22,7 @@ export function AvertissementRendezVousAnticipe({
   if (!avantRendezVous(debutPrevu)) return null;
   return (
     <Avertissement>
-      Rendez-vous confirmé avec le locataire : {creneauTexte(debutPrevu, finPrevue)}. {phraseAvantLeGeste(geste)}
+      Rendez-vous confirmé avec le locataire&nbsp;: {creneauTexte(debutPrevu, finPrevue)}. {phraseAvantLeGeste(geste)}
     </Avertissement>
   );
 }

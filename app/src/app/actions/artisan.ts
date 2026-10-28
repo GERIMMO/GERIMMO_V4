@@ -32,6 +32,7 @@ import {
   notifierReponseReportRdv,
 } from "@/lib/notifications";
 import type { DemandeRdvArtisan } from "@/lib/rendez-vous-locataire";
+import { MESSAGE_SIRET_INVALIDE, siretPlausible } from "@/lib/siret";
 
 /**
  * Actions du portail artisan.
@@ -199,6 +200,7 @@ export async function inscrireMonEntreprise(
   if (!/^\d{14}$/.test(siret)) {
     return { erreur: "Le SIRET compte quatorze chiffres.", valeurs };
   }
+  if (!siretPlausible(siret)) return { erreur: MESSAGE_SIRET_INVALIDE, valeurs };
   if (!telephone) {
     return {
       erreur: "Votre mobile est obligatoire — c'est par lui qu'on vous joint sur le chantier.",

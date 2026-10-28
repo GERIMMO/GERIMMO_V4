@@ -8,7 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { detecterMimeReel, EXTENSIONS } from "@/lib/file-type";
-import { categorieIncident, MOTIF_DECISION_DEVIS, MOTIFS_CLOTURE, PIECES_INCIDENT } from "@/lib/incidents";
+import { categorieIncident, LONGUEUR_MAX_ANCIENNETE_INCIDENT, LONGUEUR_MAX_DESCRIPTION_INCIDENT, MOTIF_DECISION_DEVIS, MOTIFS_CLOTURE, PIECES_INCIDENT } from "@/lib/incidents";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { joindrePhotosAvecReprise } from "@/lib/photos-incident-reprise";
 // 25/09 : les e-mails qui préviennent l'artisan et l'agence. Aucun ne fait
@@ -65,6 +65,12 @@ function lireChampsDeclaration(formData: FormData, descriptionRequise = true, pi
       erreur: "Décrivez le problème en une phrase au moins — cela évite un aller-retour avec l'agence.",
     };
   }
+  if (description.length > LONGUEUR_MAX_DESCRIPTION_INCIDENT) {
+    return { erreur: "La description dépasse 4\u00a0000 caractères\u00a0: résumez-la, les photos complètent." };
+  }
+  if (anciennete.length > LONGUEUR_MAX_ANCIENNETE_INCIDENT) {
+    return { erreur: "«\u00a0Depuis quand\u00a0?\u00a0» attend une indication courte (240 caractères au plus)." };
+  }
   // Le gérant peut aussi nommer une chambre ou une pièce enregistrée du lot (FL-01).
   if (piece && !(PIECES_INCIDENT as readonly string[]).includes(piece) && !piecesDuLot.includes(piece)) {
     return { erreur: "Pièce inconnue." };
@@ -116,7 +122,11 @@ async function joindrePhotos(
     )
   ).filter((p): p is Prete => p !== null);
 
+  // Audit final (DOC-10) : une photo déjà connue de l'espace n'est plus écartée. Elle n'est pas renvoyée au Storage
+  // (l'objet resterait orphelin) : la base la rattache au dossier (`joindre_photo_incident` sans chemin), ou dit
+  // pourquoi elle ne le peut pas (document d'un autre type).
   let deposables = pretes;
+  let dejaConnues: Prete[] = [];
   if (pretes.length > 0) {
     const { data: doublons } = await supabase
       .from("documents")
@@ -125,13 +135,8 @@ async function joindrePhotos(
       .in("empreinte", pretes.map((p) => p.empreinte))
       .is("purged_at", null);
     const dejaDeposees = new Set((doublons ?? []).map((d) => d.empreinte));
-    deposables = pretes.filter((p) => {
-      if (dejaDeposees.has(p.empreinte)) {
-        echecs.push(`« ${p.fichier.name} » est déjà dans la GED`);
-        return false;
-      }
-      return true;
-    });
+    dejaConnues = pretes.filter((p) => dejaDeposees.has(p.empreinte));
+    deposables = pretes.filter((p) => !dejaDeposees.has(p.empreinte));
   }
 
   const uploads = await Promise.all(
@@ -148,7 +153,7 @@ async function joindrePhotos(
     })
   );
 
-  for (const u of uploads) {
+  for (const u of [...dejaConnues.map((p) => ({ ...p, chemin: null })), ...uploads]) {
     if (!u) continue;
     const { error } = await supabase.rpc("joindre_photo_incident", {
       p_org: orgId,

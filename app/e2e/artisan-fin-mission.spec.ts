@@ -23,7 +23,7 @@ test('intervention acceptée : démarrage, photo, bilan, facture et réception g
   await sansSyntheseAlertes(page);
   await page.goto(`/artisan/missions/${mission}/compte-rendu/bilan`);
   await expect(page).toHaveURL(url => url.pathname === `/artisan/missions/${mission}` && url.searchParams.get('raison') === 'demarrer');
-  await page.getByRole('button',{name:"Je démarre l'intervention",exact:true}).click();
+  await page.getByRole('button',{name:"Je démarre l’intervention",exact:true}).click();
   await expect.poll(async()=>(await db.query('select statut from incident_interventions where id=$1',[mission])).rows[0].statut).toBe('en_cours');
   await page.goto(`/artisan/missions/${mission}/compte-rendu/bilan`);
   await expect(page).toHaveURL(url => url.pathname === `/artisan/missions/${mission}/compte-rendu` && url.searchParams.get('raison') === 'photo');
@@ -40,7 +40,7 @@ test('intervention acceptée : démarrage, photo, bilan, facture et réception g
   await page.getByRole('link',{name:'Continuer — le bilan',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Le bilan',exact:true})).toBeVisible();
   await page.getByLabel('Ce que vous avez fait',{exact:true}).fill(bilan);
-  await page.getByRole('button',{name:"Terminer l'intervention",exact:true}).click();
+  await page.getByRole('button',{name:"Terminer l’intervention",exact:true}).click();
   await expect(page).toHaveURL(url => url.pathname === `/artisan/missions/${mission}` && url.searchParams.get('termine') === '1');
   await page.getByRole('link',{name:'Déposer ma facture',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Déposer ma facture',exact:true})).toBeVisible();

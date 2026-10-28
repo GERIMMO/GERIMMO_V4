@@ -14,7 +14,7 @@ import { Avertissement, Carte, CLASSE_BOUTON_SECONDAIRE, Erreur, TitreSection } 
 import { presenceReseau, rappelPresenceReseau } from "@/lib/reseau";
 import { exclusionLue } from "@/lib/artisan-prive-exclusion";
 
-export const metadata = { title: "Aujourd'hui — Gerimmo" };
+export const metadata = { title: "Aujourd’hui — Gerimmo" };
 
 /**
  * L'écran d'arrivée : CE QUI M'ATTEND, dans l'ordre où il faut s'en occuper.
@@ -102,13 +102,13 @@ export default async function PageArtisanAccueil({
     <div className="space-y-6">
       <div className={`portail-hero portail-hero-accueil ${styles.dailyHeader}`}>
         <p className="portail-surtitre">{jourLong(new Date().toISOString())}</p>
-        <h1 className="mt-0.5">Aujourd&apos;hui</h1>
+        <h1 className="mt-0.5">Aujourd’hui</h1>
       </div>
 
       {refus && (
         <Avertissement>
-          Mission refusée. Votre interlocuteur est prévenu et peut la réaffecter ; vous n&apos;avez
-          rien d&apos;autre à faire.
+          Mission refusée. Votre interlocuteur est prévenu et peut la réaffecter ; vous n’avez
+          rien d’autre à faire.
         </Avertissement>
       )}
 
@@ -122,8 +122,8 @@ export default async function PageArtisanAccueil({
 
       {lectureIncertaine && (
         <Erreur>
-          Connexion instable : cette page peut être incomplète. Ne concluez pas
-          d&apos;une liste vide qu&apos;il n&apos;y a rien — rechargez dans un instant.
+          Connexion instable&nbsp;: cette page peut être incomplète. Ne concluez pas
+          d’une liste vide qu’il n’y a rien — rechargez dans un instant.
         </Erreur>
       )}
 
@@ -137,7 +137,7 @@ export default async function PageArtisanAccueil({
                 {texteEcheance(piece.jours_avant_echeance, piece.expiree)}
                 {piece.type === "decennale" && degre === "expiree" && (
                   <span className="block text-[var(--destructive-soft-foreground)]">
-                    Vous n&apos;êtes plus proposé pour les travaux qui l&apos;exigent.
+                    Vous n’êtes plus proposé pour les travaux qui l’exigent.
                     Vos interventions en cours, elles, ne sont pas interrompues.
                   </span>
                 )}

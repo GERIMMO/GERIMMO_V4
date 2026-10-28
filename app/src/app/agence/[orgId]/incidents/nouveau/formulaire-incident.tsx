@@ -8,8 +8,7 @@ import {
   categorieIncident,
   CATEGORIES_INCIDENT,
   IMPUTATIONS_INCIDENT,
-  PIECES_INCIDENT,
-} from "@/lib/incidents";
+  PIECES_INCIDENT, LONGUEUR_MAX_ANCIENNETE_INCIDENT, LONGUEUR_MAX_DESCRIPTION_INCIDENT } from "@/lib/incidents";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { ChampFichier } from "@/components/champ-fichier";
 import { Input } from "@/components/ui/input";
@@ -195,6 +194,7 @@ export function FormulaireIncident({
         <textarea
           id="description"
           name="description"
+          maxLength={LONGUEUR_MAX_DESCRIPTION_INCIDENT}
           required
           rows={3}
           placeholder="Ce que décrit le locataire : où exactement, depuis quand, est-ce que cela s'aggrave…"
@@ -208,6 +208,7 @@ export function FormulaireIncident({
         <Input
           id="anciennete"
           name="anciennete"
+          maxLength={LONGUEUR_MAX_ANCIENNETE_INCIDENT}
           placeholder="« Depuis dimanche, ça s'étend »"
           defaultValue={etat.valeurs?.anciennete}
         />

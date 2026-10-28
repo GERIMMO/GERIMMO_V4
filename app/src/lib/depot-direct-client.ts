@@ -20,6 +20,9 @@ export async function preparerDepotsDirects(form:FormData,options:{imagesSeuleme
  const noms=new Set(reperes.map(r=>r.nom));
  const fichiers=Array.from(form.entries()).filter((e):e is [string,File]=>noms.has(e[0])&&e[1] instanceof File&&e[1].size>0);
  if(fichiers.length>10||fichiers.reduce((n,[,f])=>n+f.size,0)>MAX_FORMULAIRE_DIRECT)throw new ErreurDepotDirect('Déposez au maximum dix fichiers et 50 Mo par envoi.');
+ // Un champ qui n'accepte que des photos (accept="image/…", sans PDF) refuse tout autre fichier en parlant de photo,
+ // pas de « PDF complet » (audit final, DOC-18).
+ const photosSeulement=(nom:string)=>reperes.filter(r=>r.nom===nom).some(r=>{const champ=document.getElementById(r.id);return champ instanceof HTMLInputElement&&/image\//i.test(champ.accept)&&!/pdf/i.test(champ.accept);});
  const client=createClient();const references=new Map<File,string>();
  for(const [nom,fichier] of fichiers){
   const informer=(texte:string)=>{for(const r of reperes.filter(r=>r.nom===nom)){const champ=document.getElementById(r.id);if(champ instanceof HTMLInputElement&&Array.from(champ.files??[]).includes(fichier))champ.dispatchEvent(new CustomEvent(EVENEMENT_DEPOT,{detail:texte}));}};
@@ -27,7 +30,7 @@ export async function preparerDepotsDirects(form:FormData,options:{imagesSeuleme
    if(fichier.size>MAX_DEPOT_DIRECT)throw new ErreurDepotDirect('Ce fichier dépasse 10 Mo. Réduisez sa taille avant de l’envoyer.');
    informer('Vérification du fichier…');
    const octets=new Uint8Array(await fichier.arrayBuffer());const mime=detecterMimeReel(octets);
-   if(options.imagesSeulement&&mime!=='image/jpeg'&&mime!=='image/png')throw new ErreurDepotDirect(`Le fichier « ${fichier.name} » n'est pas une image JPEG ou PNG.`);
+   if((options.imagesSeulement||photosSeulement(nom))&&mime!=='image/jpeg'&&mime!=='image/png')throw new ErreurDepotDirect(`Le fichier « ${fichier.name} » n'est pas une image JPEG ou PNG.`);
    if(!mime||(mime==='application/pdf'&&!pdfComplet(octets)))throw new ErreurDepotDirect('Choisissez un PDF complet, JPEG ou PNG.');
    if(mime!=='application/pdf'&&!(await imageLisible(octets,mime)))throw new ErreurDepotDirect(`L’image « ${fichier.name} » est endommagée ou illisible. Choisissez une photo ou un scan qui s’ouvre sur votre appareil.`);
    const precedent=transferts.get(fichier);

@@ -18,7 +18,7 @@ export function PhotosDeLaDemande({ photos, erreur, base }: {
     return (
       <Carte>
         <TitreSection>Photos jointes par le locataire</TitreSection>
-        <p role="alert" className={CLASSE_AIDE}>Les photos n&apos;ont pas pu être chargées. Rechargez la page.</p>
+        <p role="alert" className={CLASSE_AIDE}>Les photos n’ont pas pu être chargées. Rechargez la page.</p>
       </Carte>
     );
   }

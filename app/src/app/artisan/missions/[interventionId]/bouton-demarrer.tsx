@@ -17,7 +17,7 @@ function Bouton({ className }: { className: string }) {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className={className} disabled={pending}>
-      {pending ? "Démarrage…" : "Je démarre l'intervention"}
+      {pending ? "Démarrage…" : "Je démarre l’intervention"}
     </button>
   );
 }

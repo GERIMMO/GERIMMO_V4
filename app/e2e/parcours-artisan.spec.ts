@@ -12,7 +12,7 @@ import { debordementHorizontal } from "./aides";
 test.use({ storageState: path.join(__dirname, ".auth", "artisan.json") });
 
 const PAGES = [
-  ["/artisan", "Aujourd'hui"],
+  ["/artisan", "Aujourd’hui"],
   ["/artisan/agenda", "agenda"],
   ["/artisan/devis", "devis"],
   ["/artisan/attestations", "attestations"],

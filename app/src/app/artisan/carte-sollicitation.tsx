@@ -74,7 +74,7 @@ export function CarteSollicitation({ ligne }: { ligne: LigneSollicitation }) {
       {ligne.montant_ttc_cents !== null ? (
         <p className="mt-2.5 text-[0.9375rem] text-[var(--texte-secondaire)]">
           Votre devis{ligne.version && ligne.version > 1 ? ` (version ${ligne.version})` : ""} : {euros(ligne.montant_ttc_cents)} TTC
-          {ligne.valide_jusqu_au ? ` · valable jusqu'au ${dateSimple(ligne.valide_jusqu_au)}` : ""}
+          {ligne.valide_jusqu_au ? ` · valable jusqu’au ${dateSimple(ligne.valide_jusqu_au)}` : ""}
         </p>
       ) : (
         <p className="mt-2.5 text-[0.9375rem] text-[var(--texte-secondaire)]">

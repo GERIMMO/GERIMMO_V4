@@ -41,7 +41,7 @@ function Etat({ dejaEnvoyee }: { dejaEnvoyee: boolean }) {
   if (dejaEnvoyee) return null;
   return (
     <p className="text-center text-[0.9375rem] text-[var(--texte-secondaire)]">
-      La photo part dès que vous l&apos;avez prise.
+      La photo part dès que vous l’avez prise.
     </p>
   );
 }

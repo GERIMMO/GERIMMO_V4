@@ -126,6 +126,9 @@ const MISSION_OCTOBRE = [
   "20261028100000_organizations_lecture_seule.sql",
   // 28/10, audit final (COD-06) : deux index strictement redondants retirés.
   "20261028100500_index_redondants.sql",
+  // 28/10, audit final (documents et incidents) : même fichier pour deux attestations, photo d'incident déjà connue
+  // rattachée, titre des photos de chantier.
+  "20261028100600_attestations_et_photos_en_double.sql",
 
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */

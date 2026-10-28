@@ -392,6 +392,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
               monCompte={user.id}
               estResponsable={ROLES_RESPONSABLES.includes(role)}
               membres={membres}
+              devisADecider={idsAvecDevisADecider.has(ouvert)}
             />
           </div>
         )}

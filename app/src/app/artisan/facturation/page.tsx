@@ -25,8 +25,8 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
   return <div className={styles.page}>
     <EnteteSousPage rubrique="finances" titre="Ma facturation" mention="De l’intervention terminée à la facture transmise."
       action={<Link href="/artisan/agenda" className={styles.lienAgenda}><CalendarDays size={17} aria-hidden/>Mon agenda</Link>}/>
-    <ReglementsDansFacturation />
-    {facture && <Succes>Facture déposée. Votre interlocuteur est prévenu : il la contrôle et la règle selon ses délais.</Succes>}
+    <ReglementsDansFacturation etatsClient={reglements.erreur ? undefined : reglementDe} />
+    {facture && <Succes>Facture déposée. Votre interlocuteur est prévenu&nbsp;: il la contrôle et la règle selon ses délais.</Succes>}
     {agenda.erreur ? <Erreur>Vos interventions n’ont pas pu être chargées. Rechargez la page avant de conclure qu’aucune intervention n’est facturable.</Erreur> : <>
       <nav className={styles.indicateurs} aria-label="Résumé de la facturation">
         <Link href="#a-facturer" className={styles.indicateur} data-ton="bleu"><span className={styles.icone}><ReceiptText size={21} aria-hidden/></span><span><strong>{aFacturer.length}</strong><span>À facturer</span><small>Interventions prêtes</small></span><ArrowRight size={16} aria-hidden/></Link>
@@ -51,14 +51,14 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
           </section>
           <section id="factures-deposees" className={styles.section}>
             <div className={styles.titreSection}><div><h2>Factures déposées <span>{deposees.length}</span></h2><p>Les factures transmises pour vos interventions, et le règlement que vos clients déclarent.</p></div><FileCheck2 size={21} aria-hidden/></div>
-            {reglements.erreur && <p className={styles.aucuneFacture} role="alert">L’état de règlement de vos factures n’a pas pu être lu : rechargez la page avant de conclure qu’aucun règlement n’est déclaré.</p>}
+            {reglements.erreur && <p className={styles.aucuneFacture} role="alert">L’état de règlement de vos factures n’a pas pu être lu&nbsp;: rechargez la page avant de conclure qu’aucun règlement n’est déclaré.</p>}
             {deposees.length ? <ul className={styles.liste}>{deposees.map(l => <LigneFacturation key={l.intervention_id} ligne={l} reglement={reglementDe.get(l.intervention_id)}/>)}</ul> : <p className={styles.aucuneFacture}>Vos prochaines factures apparaîtront ici après leur dépôt.</p>}
           </section>
         </div>
         <aside className={styles.guide} aria-label="Comment transmettre une facture">
           <p className={styles.surtitre}>Vos repères</p><h2>Facturer en 3 étapes</h2>
           <ol><li><span>1</span><div><h3>Terminez l’intervention</h3><p>Ajoutez le compte rendu et une photo du travail réalisé.</p></div></li><li><span>2</span><div><h3>Déposez votre facture</h3><p>Le montant est prérempli à partir du devis ou de l’avenant accepté. Vous pouvez justifier un écart.</p></div></li><li><span>3</span><div><h3>Votre client est prévenu</h3><p>Il retrouve la facture dans son espace pour la contrôler et la régler.</p></div></li></ol>
-          <div className={styles.note}><Info size={17} aria-hidden/><p>Le dépôt est suivi ici. Quand votre client déclare un règlement, sa date et son moyen s’affichent sur la facture : c’est une déclaration de sa part, pas un virement de Gerimmo. Vérifiez la réception sur votre compte.</p></div>
+          <div className={styles.note}><Info size={17} aria-hidden/><p>Le dépôt est suivi ici. Quand votre client déclare un règlement, sa date et son moyen s’affichent sur la facture&nbsp;: c’est une déclaration de sa part, pas un virement de Gerimmo. Vérifiez la réception sur votre compte.</p></div>
           <Link href="/artisan/entreprise#documents" className={styles.lienGuide}>Vérifier ma fiche entreprise <ArrowRight size={15} aria-hidden/></Link>
         </aside>
       </div>

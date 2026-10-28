@@ -58,7 +58,7 @@ export default async function PageReglesArtisan(props: PageProps<"/artisan/regle
         <Erreur>Les informations sont momentanément indisponibles. Rechargez dans un instant.</Erreur>
       ) : lignes.length === 0 ? (
         <Vide action={{ href: "/artisan/entreprise", libelle: "Revenir à mon entreprise" }}>
-          Aucune nouvelle règle pour les artisans pour l&apos;instant. Ce qui vous
+          Aucune nouvelle règle pour les artisans pour l’instant. Ce qui vous
           concerne apparaîtra ici, relu avant publication.
         </Vide>
       ) : (
@@ -76,8 +76,8 @@ export default async function PageReglesArtisan(props: PageProps<"/artisan/regle
               </div>
               <p className={`mt-3 ${CLASSE_AIDE}`}>
                 {i.application_le
-                  ? `Application annoncée : ${dateSimple(i.application_le)}.`
-                  : "Date d'application à vérifier dans la source selon votre situation."}
+                  ? `Application annoncée\u00a0: ${dateSimple(i.application_le)}.`
+                  : "Date d’application à vérifier dans la source selon votre situation."}
               </p>
               {source && (
                 <a
@@ -91,7 +91,7 @@ export default async function PageReglesArtisan(props: PageProps<"/artisan/regle
               )}
               <p className={`mt-2 ${CLASSE_AIDE}`}>
                 Information relue le {dateSimple(i.valide_le)}. Vérifiez les conditions et
-                les règles locales dans la source avant d&apos;agir.
+                les règles locales dans la source avant d’agir.
               </p>
             </Carte>
           );
@@ -124,7 +124,7 @@ export default async function PageReglesArtisan(props: PageProps<"/artisan/regle
       <Carte>
         <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
           Cette sélection aide à repérer les changements. Elle ne remplace pas
-          l&apos;examen de votre situation par un professionnel compétent.
+          l’examen de votre situation par un professionnel compétent.
         </p>
       </Carte>
     </div>

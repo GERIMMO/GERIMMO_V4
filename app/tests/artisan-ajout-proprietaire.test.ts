@@ -6,7 +6,7 @@ import { creerOuRattacherArtisan } from "@/app/agence/[orgId]/artisans/actions";
 beforeEach(() => { vi.clearAllMocks(); banc.rpc.mockResolvedValue({ error: null }); });
 function formulaire() {
   const form = new FormData();
-  for (const [k,v] of Object.entries({ raison_sociale: "Entreprise test", siret: "12345678901234", telephone: "0600000000", metiers: "plomberie", codes_postaux: "69007" })) form.set(k,v);
+  for (const [k,v] of Object.entries({ raison_sociale: "Entreprise test", siret: "12345678901237", telephone: "0600000000", metiers: "plomberie", codes_postaux: "69007" })) form.set(k,v);
   return form;
 }
 it("refuse la création et le rattachement par un propriétaire avant tout appel en base", async () => {

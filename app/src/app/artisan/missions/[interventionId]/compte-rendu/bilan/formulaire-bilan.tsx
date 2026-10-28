@@ -40,7 +40,7 @@ function Envoyer() {
   const { pending } = useFormStatus();
   return (
     <button type="submit" className={CLASSE_BOUTON_PRINCIPAL} disabled={pending}>
-      {pending ? "Envoi du compte rendu…" : "Terminer l'intervention"}
+      {pending ? "Envoi du compte rendu…" : "Terminer l’intervention"}
     </button>
   );
 }
@@ -80,10 +80,10 @@ export function FormulaireBilan({
   const enAttente = avenants.some(a => a.statut === "a_decider");
   return (
     <div className="space-y-5">
-      {montantDevisCents !== null && <Carte><TitreSection>Budget autorisé : {euros(montantDevisCents)}</TitreSection>
+      {montantDevisCents !== null && <Carte><TitreSection>Budget autorisé&nbsp;: {euros(montantDevisCents)}</TitreSection>
         {avenants.map(a => <div key={a.id} className="mt-3 border-t border-[var(--filet)] pt-3 text-sm">
           <p className="font-semibold">{a.statut === "a_decider" ? "Accord attendu" : a.statut === "accepte" ? "Dépassement accepté" : a.statut === "refuse" ? "Dépassement refusé" : "Demande annulée"} · {euros(a.nouveau_montant_cents)}</p>
-          <p>{a.motif}</p>{a.decision_motif && <p className="text-[var(--texte-secondaire)]">Réponse : {a.decision_motif}</p>}
+          <p>{a.motif}</p>{a.decision_motif && <p className="text-[var(--texte-secondaire)]">Réponse&nbsp;: {a.decision_motif}</p>}
         </div>)}
         {enAttente && <p className="mt-3 text-sm">Attendez la réponse avant d’engager les travaux supplémentaires. Le budget autorisé reste le plafond de cette intervention.</p>}
       </Carte>}
@@ -99,7 +99,7 @@ export function FormulaireBilan({
             <span aria-hidden className="information-chevron">⌄</span>
           </summary>
           <p className="mt-4 text-[0.9375rem] text-[var(--texte-secondaire)]">
-            Demandez l&apos;accord avant de terminer. Le nouveau total, la raison et la décision restent dans le dossier.
+            Demandez l’accord avant de terminer. Le nouveau total, la raison et la décision restent dans le dossier.
           </p>
           <form data-saisie-confirmee action={actionAvenant} className="mt-4 space-y-3">
             <p className="text-sm">Reprenez le détail complet des travaux, y compris les postes déjà prévus. Le total remplacera le montant autorisé après acceptation.</p>
@@ -120,7 +120,7 @@ export function FormulaireBilan({
           Ce que vous avez fait
         </label>
         <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Une ou deux phrases suffisent. C&apos;est ce que lira votre interlocuteur avant de
+          Une ou deux phrases suffisent. C’est ce que lira votre interlocuteur avant de
           facturer.
         </p>
         <textarea
@@ -140,7 +140,7 @@ export function FormulaireBilan({
         </label>
         <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
           {montantDevisCents !== null
-            ? "À renseigner seulement s'il diffère du devis retenu. S'il est supérieur, l'avenant doit être accepté avant l'envoi."
+            ? "À renseigner seulement s’il diffère du devis retenu. S’il est supérieur, l’avenant doit être accepté avant l’envoi."
             : "Si vous connaissez déjà le montant de votre facture."}
         </p>
         <input
@@ -157,7 +157,7 @@ export function FormulaireBilan({
         <TitreSection>Avez-vous trouvé autre chose que prévu ?</TitreSection>
         <p className="text-[0.9375rem] text-[var(--corps)]">
           Vous êtes le seul à avoir vu la cause réelle. Si elle ne correspond pas
-          à ce qu&apos;on vous avait décrit, dites-le : votre interlocuteur réexaminera la prise en charge
+          à ce qu’on vous avait décrit, dites-le&nbsp;: votre interlocuteur réexaminera la prise en charge
           avant la facturation. Vous signalez la cause, votre interlocuteur décide de l’imputation.
         </p>
 
@@ -168,7 +168,7 @@ export function FormulaireBilan({
             onChange={(e) => setAutreCause(e.target.checked)}
             className="size-6 shrink-0 accent-[var(--encre)]"
           />
-          Oui, j&apos;ai constaté autre chose
+          Oui, j’ai constaté autre chose
         </label>
 
         {autreCause && (

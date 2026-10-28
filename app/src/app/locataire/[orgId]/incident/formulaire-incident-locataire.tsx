@@ -10,7 +10,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { declarerMonIncident, type EtatIncidentAction } from "@/app/actions/incidents";
 import { compresserChampFichiers } from "@/lib/compresser-image";
-import { categorieIncident, CATEGORIES_INCIDENT, PIECES_INCIDENT } from "@/lib/incidents";
+import { categorieIncident, CATEGORIES_INCIDENT, PIECES_INCIDENT, LONGUEUR_MAX_ANCIENNETE_INCIDENT, LONGUEUR_MAX_DESCRIPTION_INCIDENT } from "@/lib/incidents";
 import {
   brancherConservationDesPhotos,
   fichiersDuChamp,
@@ -347,6 +347,7 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
             <textarea
               id="description"
               name="description"
+              maxLength={LONGUEUR_MAX_DESCRIPTION_INCIDENT}
               required={photos.length === 0}
               rows={3}
               placeholder="Où exactement, est-ce que cela s'aggrave, qu'avez-vous déjà essayé…"
@@ -360,6 +361,7 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
             <Input
               id="anciennete"
               name="anciennete"
+              maxLength={LONGUEUR_MAX_ANCIENNETE_INCIDENT}
               placeholder="« Depuis dimanche »"
               value={saisie.anciennete} onChange={e => setSaisie(s => ({ ...s, anciennete: e.target.value }))}
             />

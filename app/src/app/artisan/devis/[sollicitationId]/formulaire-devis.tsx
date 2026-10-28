@@ -22,7 +22,7 @@ function estSaisieDevis(cible: EventTarget) {
   if (!(cible instanceof HTMLInputElement || cible instanceof HTMLSelectElement || cible instanceof HTMLTextAreaElement)) return false;
   return ["diagnostic", "delai", "duree", "contraintes", "observations", "valide_jusqu_au", "note_revision"].includes(cible.name) || Boolean(cible.closest("[data-lignes-devis]"));
 }
-export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erreurPreparation,cleLocale,copieInitiale,versionSuivante}: {sollicitationId:string;echeanceParDefaut:string;initiale?:PreparationDevis|null;erreurPreparation?:string;cleLocale:string;copieInitiale?:BrouillonDevisLocal;versionSuivante?:number}) {
+export function FormulaireDevis({sollicitationId,echeanceParDefaut,validiteMinimum,initiale,erreurPreparation,cleLocale,copieInitiale,versionSuivante}: {sollicitationId:string;echeanceParDefaut:string;validiteMinimum?:string;initiale?:PreparationDevis|null;erreurPreparation?:string;cleLocale:string;copieInitiale?:BrouillonDevisLocal;versionSuivante?:number}) {
   const [etat,action]=useActionState(envoyerDevisValide.bind(null,sollicitationId),{});
   const [refus,actionRefus]=useActionState(declinerMaSollicitation.bind(null,sollicitationId),{});
   const [refusOuvert,setRefusOuvert]=useState(false);
@@ -123,7 +123,7 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
       ]} conclusion={<Envoyer valide={valide&&!enregistrement&&!chargement} versionSuivante={versionSuivante}/>} contenus={[
         <div key={`prestations-${cle}`} className="space-y-5">
           {/* D18 (livraison 2) : « ce qui change » est obligatoire pour une version suivante ; la base le lit dans la préparation envoyée. */}
-          {versionSuivante&&<label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Ce qui change dans la version {versionSuivante}</span><textarea name="note_revision" required maxLength={4000} rows={3} defaultValue={copieInitiale ? copieInitiale.contenu.note_revision : preparation?.saisie?.noteRevision} placeholder="Ex. : main-d’œuvre détaillée par heure, prix du joint ramené au tarif fournisseur." className={CLASSE_ZONE_TEXTE}/><span className={CLASSE_AIDE}>Transmis au client avec la nouvelle version : il lit ce qui a été revu.</span></label>}
+          {versionSuivante&&<label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Ce qui change dans la version {versionSuivante}</span><textarea name="note_revision" required maxLength={4000} rows={3} defaultValue={copieInitiale ? copieInitiale.contenu.note_revision : preparation?.saisie?.noteRevision} placeholder="Ex. : main-d’œuvre détaillée par heure, prix du joint ramené au tarif fournisseur." className={CLASSE_ZONE_TEXTE}/><span className={CLASSE_AIDE}>Transmis au client avec la nouvelle version&nbsp;: il lit ce qui a été revu.</span></label>}
           <div className={styles.aideProposition}>
             <h3><Sparkles size={19} aria-hidden/>{chargement?"Gerimmo prépare votre proposition…":proposition?.moteur==="ia"?"Proposition préparée avec l’IA":"Proposition Gerimmo"}</h3>
             <p>Ajustez cette base selon votre diagnostic. Vous décidez des prestations et de vos prix.</p>
@@ -137,7 +137,7 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
           <div className={styles.conditions}>
             <label className="space-y-1.5"><span className={CLASSE_LIBELLE}>Délai avant intervention</span><input name="delai" required maxLength={240} defaultValue={saisie?.delai} placeholder="Ex. : sous cinq jours" className={CLASSE_CHAMP}/></label>
             <label className="space-y-1.5"><span className={CLASSE_LIBELLE}>Durée estimée</span><input name="duree" required maxLength={240} defaultValue={saisie?.duree} placeholder="Ex. : une heure" className={CLASSE_CHAMP}/></label>
-            <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Valable jusqu’au</span><input name="valide_jusqu_au" type="date" required defaultValue={copieInitiale ? copieInitiale.contenu.valide_jusqu_au : saisie?.valideJusquAu||echeanceParDefaut} className={CLASSE_CHAMP}/></label>
+            <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Valable jusqu’au</span><input name="valide_jusqu_au" type="date" required min={validiteMinimum} defaultValue={copieInitiale ? copieInitiale.contenu.valide_jusqu_au : saisie?.valideJusquAu||echeanceParDefaut} className={CLASSE_CHAMP}/></label>
           </div>
           <div className={styles.complements}>
             <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Contraintes et accès <span className={styles.facultatif}>Facultatif</span></span><textarea name="contraintes" rows={3} maxLength={3000} defaultValue={saisie?.contraintes} placeholder="Accès au logement, matériel à prévoir…" className={CLASSE_ZONE_TEXTE}/></label>
@@ -155,7 +155,7 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
       {erreur&&<div className="mt-3"><Erreur>{erreur}</Erreur></div>}
     </form>
     {/* D18 (livraison 2) : en révision, renoncer clôt la demande ; la version précédente reste au dossier. */}
-    <div className={styles.refus}>{!refusOuvert?<button type="button" onClick={()=>setRefusOuvert(true)}>{versionSuivante?"Je renonce à cette demande":"Je ne peux pas chiffrer cette demande"}</button>:<form data-saisie-libre action={actionRefus} className="space-y-3"><label className="block">Motif (facultatif)<textarea name="motif" rows={2} className={CLASSE_ZONE_TEXTE}/></label>{refus.erreur&&<Erreur>{refus.erreur}</Erreur>}<button type="submit" className={CLASSE_BOUTON_SOBRE}>{versionSuivante?"Confirmer : je renonce, sans nouvelle version":"Confirmer : je ne chiffre pas"}</button><button type="button" className={CLASSE_BOUTON_SOBRE} onClick={()=>setRefusOuvert(false)}>Revenir</button></form>}</div>
+    <div className={styles.refus}>{!refusOuvert?<button type="button" onClick={()=>setRefusOuvert(true)}>{versionSuivante?"Je renonce à cette demande":"Je ne peux pas chiffrer cette demande"}</button>:<form data-saisie-libre action={actionRefus} className="space-y-3"><label className="block">Motif (facultatif)<textarea name="motif" rows={2} className={CLASSE_ZONE_TEXTE}/></label>{refus.erreur&&<Erreur>{refus.erreur}</Erreur>}<button type="submit" className={CLASSE_BOUTON_SOBRE}>{versionSuivante?"Confirmer\u00a0: je renonce, sans nouvelle version":"Confirmer\u00a0: je ne chiffre pas"}</button><button type="button" className={CLASSE_BOUTON_SOBRE} onClick={()=>setRefusOuvert(false)}>Revenir</button></form>}</div>
   </div>;
 }
 
@@ -190,8 +190,8 @@ function ResumeDevis({compact = false}: {compact?: boolean}) {
       <p className="whitespace-pre-wrap">{resume.diagnostic || "Diagnostic à compléter"}</p>
       <ul>{resume.prestations.map((p,i) => <li key={i}>{p}</li>)}</ul>
       <dl><div><dt>Intervention</dt><dd>{resume.delai || "À compléter"}</dd></div><div><dt>Durée estimée</dt><dd>{resume.duree || "À compléter"}</dd></div><div><dt>Valable jusqu’au</dt><dd>{resume.validite ? new Date(`${resume.validite}T12:00:00`).toLocaleDateString("fr-FR") : "Non précisée"}</dd></div></dl>
-      {resume.contraintes&&<p className="mt-4 whitespace-pre-wrap"><strong>Contraintes et accès :</strong> {resume.contraintes}</p>}
-      {resume.observations&&<p className="mt-4 whitespace-pre-wrap"><strong>Observations et conditions :</strong> {resume.observations}</p>}
+      {resume.contraintes&&<p className="mt-4 whitespace-pre-wrap"><strong>Contraintes et accès&nbsp;:</strong> {resume.contraintes}</p>}
+      {resume.observations&&<p className="mt-4 whitespace-pre-wrap"><strong>Observations et conditions&nbsp;:</strong> {resume.observations}</p>}
     </div>
     <div className={styles.resumeTotal}><span>Total TTC</span><strong>{resume.total === null ? "À compléter" : euros(resume.total)}</strong></div>
   </div>;

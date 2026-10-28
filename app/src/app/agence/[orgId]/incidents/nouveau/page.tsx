@@ -14,6 +14,7 @@ import {
 import { EchecLecture } from "../../documents/echec-lecture";
 import { FormulaireIncident } from "./formulaire-incident";
 import { baseEspace } from "@/lib/racine-espace";
+import { comparerNaturel } from "@/lib/tri-naturel";
 
 export const metadata = { title: "Déclarer un incident — Gerimmo" };
 
@@ -64,7 +65,10 @@ export default async function PageNouvelIncident(
     nom: string;
     etat: string;
     bien: UnOuPlusieurs<{ nom: string }>;
-  }[]).map((l) => ({
+  }[])
+    // Par immeuble, puis par lot, dans l'ordre des numéros (DOC-14).
+    .sort((a, b) => comparerNaturel(premier(a.bien)?.nom ?? "", premier(b.bien)?.nom ?? "") || comparerNaturel(a.nom, b.nom))
+    .map((l) => ({
     id: l.id,
     libelle: `${l.nom} — ${premier(l.bien)?.nom ?? ""}`,
     baux: baux

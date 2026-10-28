@@ -21,7 +21,7 @@ export default function PagePanneArtisan() {
         Lecture momentanément impossible
       </h1>
       <Erreur>
-        Votre fiche n&apos;a pas pu être lue à l&apos;instant. Rien n&apos;est perdu — ni
+        Votre fiche n’a pas pu être lue à l’instant. Rien n’est perdu — ni
         vos attestations, ni vos missions.
       </Erreur>
       {/* 25/09 (A17) : « signalez-le » mène à l'aide, au lieu de le laisser

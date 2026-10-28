@@ -27,9 +27,9 @@ for(const largeur of [390,1440])test(`profil : avertissement avant sortie, annul
 test('artisan : erreur de dépôt garde le fichier et empêche une sortie accidentelle',async({browser})=>{
  const context=await browser.newContext({storageState:'e2e/.auth/artisan.json'});const page=await context.newPage();
  try{await page.goto('/artisan/attestations');await page.getByRole('link',{name:'Déposer : Assurance décennale',exact:true}).click();
- const f=page.locator('form').filter({has:page.getByRole('button',{name:"Déposer l'attestation",exact:true})});
+ const f=page.locator('form').filter({has:page.getByRole('button',{name:"Déposer l’attestation",exact:true})});
  await f.locator('[name="expire_le"]').fill('2030-01-01');await f.locator('[type="file"]').setInputFiles({name:'test-refuse.pdf',mimeType:'application/pdf',buffer:Buffer.from('FAUX PDF')});
- await f.getByRole('button',{name:"Déposer l'attestation",exact:true}).click();await expect(f.getByRole('alert')).toBeVisible();
+ await f.getByRole('button',{name:"Déposer l’attestation",exact:true}).click();await expect(f.getByRole('alert')).toBeVisible();
  await expect(f.getByText('test-refuse.pdf',{exact:true})).toBeVisible();expect(await f.locator('[type="file"]').evaluate((e:HTMLInputElement)=>e.files?.length)).toBe(1);
  await annulerDepart(page,()=>page.getByRole('link',{name:'Annuler',exact:true}).click());await expect(f.locator('[name="expire_le"]')).toHaveValue('2030-01-01');
  }finally{await context.close();}
@@ -102,16 +102,16 @@ test('pièce trop volumineuse : refus avant envoi, saisie et fichier conservés'
  const context=await browser.newContext({storageState:'e2e/.auth/artisan.json',viewport:{width:390,height:844}});const page=await context.newPage();
  try {
   await page.goto('/artisan/attestations');await page.getByRole('link',{name:'Déposer : Assurance décennale',exact:true}).click();
-  const f=page.locator('form').filter({has:page.getByRole('button',{name:"Déposer l'attestation",exact:true})});
+  const f=page.locator('form').filter({has:page.getByRole('button',{name:"Déposer l’attestation",exact:true})});
   await f.locator('[name="expire_le"]').fill('2030-01-01');
   await f.locator('[type="file"]').setInputFiles({name:'piece-volumineuse.pdf',mimeType:'application/pdf',buffer:Buffer.alloc(10*1024*1024+1)});
   const requetes:string[]=[];page.on('request',r=>{if(r.method()==='POST')requetes.push(r.url());});
-  await f.getByRole('button',{name:"Déposer l'attestation",exact:true}).click();
+  await f.getByRole('button',{name:"Déposer l’attestation",exact:true}).click();
   await expect(f.getByRole('alert')).toContainText('dépasse 10 Mo');expect(requetes).toEqual([]);
   await expect(f.locator('[name="expire_le"]')).toHaveValue('2030-01-01');
   expect(await f.locator('[type="file"]').evaluate((e:HTMLInputElement)=>e.files?.[0]?.size)).toBe(10*1024*1024+1);
   await f.locator('[type="file"]').setInputFiles({name:'petite-piece.pdf',mimeType:'application/pdf',buffer:Buffer.from('pas un pdf')});
   await expect(f.getByRole('alert')).toHaveCount(0);
-  await f.getByRole('button',{name:"Déposer l'attestation",exact:true}).click();await expect(f.getByRole('alert')).toContainText('PDF complet');expect(requetes).toEqual([]);
+  await f.getByRole('button',{name:"Déposer l’attestation",exact:true}).click();await expect(f.getByRole('alert')).toContainText('PDF complet');expect(requetes).toEqual([]);
  }finally{await context.close();}
 });

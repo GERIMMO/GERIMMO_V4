@@ -1,6 +1,7 @@
 "use client";
 
 import { useId } from "react";
+import Link from "next/link";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   blacklisterArtisanLocal,
@@ -19,11 +20,23 @@ import { Label } from "@/components/ui/label";
 // le placeholder disparaît à la première frappe, ce n'est pas un nom
 // accessible (e2e/a11y.spec.ts le vérifie et rougit sinon).
 
+// Le retour est annoncé aux lecteurs d'écran (audit final, DOC-23) : le succès en région polie, l'erreur en alerte.
+// Après une création, le lien ouvre la fiche dans le volet du carnet.
 function Retour({ etat }: { etat: EtatArtisanAction }) {
   return (
     <>
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-      {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
+      <p role="alert" className="text-sm text-destructive empty:hidden">{etat.erreur}</p>
+      <p role="status" className="text-sm text-success-soft-foreground empty:hidden">
+        {etat.succes}
+        {etat.succes && etat.artisanId && (
+          <>
+            {" "}
+            <Link href={`?sel=${etat.artisanId}`} className="inline-flex min-h-11 items-center font-medium underline underline-offset-4">
+              Ouvrir sa fiche
+            </Link>
+          </>
+        )}
+      </p>
     </>
   );
 }

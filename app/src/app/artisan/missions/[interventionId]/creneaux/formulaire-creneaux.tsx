@@ -3,6 +3,8 @@
 import { useId, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { useFormStatus } from "react-dom";
+import { decalerJour, jourParis } from "@/lib/agenda-gestion";
+import { instantParis } from "@/lib/heure-paris-calcul";
 import {
   proposerMesCreneaux,
   type EtatArtisanAction,
@@ -26,9 +28,11 @@ import {
  * ne puisse pas s'arrêter après le premier.
  *
  * LES HEURES PARTENT EN ABSOLU. Le champ caché porte des instants ISO
- * construits ici, sur l'appareil de l'artisan — le seul qui connaisse son
- * fuseau. Un « 08:00 » envoyé nu serait lu dans le fuseau du serveur : il
- * proposerait 10 h en croyant proposer 8 h.
+ * construits ici. Un « 08:00 » envoyé nu serait lu dans le fuseau du serveur :
+ * il proposerait 10 h en croyant proposer 8 h. Les heures saisies sont celles
+ * de Paris, comme partout ailleurs dans le produit (le locataire les lit et
+ * les choisit à l'heure de Paris) : un téléphone réglé sur un autre fuseau ne
+ * les décale plus (audit final, DOC-06).
  */
 
 type Creneau = { jour: string; debut: string; fin: string };
@@ -45,8 +49,9 @@ function deuxHeuresApres(heure: string): string {
 }
 
 function enInstant(jour: string, heure: string): string | null {
-  if (!jour || !heure) return null;
-  const d = new Date(`${jour}T${heure}`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(jour) || !/^\d{2}:\d{2}$/.test(heure)) return null;
+  const [h, m] = heure.split(":").map(Number);
+  const d = instantParis(jour, h, m);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
@@ -75,10 +80,9 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
   const base = useId();
 
   // Demain : on ne propose pas un rendez-vous pour le jour même, et surtout
-  // pas pour hier — le champ refuse les dates passées.
-  const demain = new Date();
-  demain.setDate(demain.getDate() + 1);
-  const minimum = `${demain.getFullYear()}-${String(demain.getMonth()+1).padStart(2,"0")}-${String(demain.getDate()).padStart(2,"0")}`;
+  // pas pour hier — le champ refuse les dates passées. Demain à Paris, pas
+  // selon le calendrier de l'appareil.
+  const minimum = decalerJour(jourParis(new Date()), 1);
 
   function modifier(index: number, champ: keyof Creneau, valeur: string) {
     setCreneaux((liste) =>

@@ -54,7 +54,7 @@ export default async function PageInscriptionArtisan(props: PageProps<"/artisan/
         <ol className="space-y-2 text-[0.9375rem] text-[var(--corps)]">
           <li>
             <b className="font-medium">1.</b> Vous déposez vos attestations —
-            décennale et responsabilité civile professionnelle d&apos;abord.
+            décennale et responsabilité civile professionnelle d’abord.
           </li>
           <li>
             <b className="font-medium">2.</b> Gerimmo vérifie votre SIRET et
@@ -63,7 +63,7 @@ export default async function PageInscriptionArtisan(props: PageProps<"/artisan/
           </li>
           <li>
             <b className="font-medium">3.</b> Vous décidez seul de votre
-            visibilité : privée par défaut, publique si vous le voulez. Public,
+            visibilité&nbsp;: privée par défaut, publique si vous le voulez. Public,
             vous êtes proposé par le réseau Gerimmo aux propriétaires dont le
             bien est dans votre zone, pour vos métiers.
           </li>
@@ -98,8 +98,8 @@ function PremiereMarche({ invitationId }: { invitationId?: string }) {
       </Carte>
 
       <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
-        Ensuite : votre SIRET, vos métiers et votre mobile, puis vos
-        attestations. Gerimmo valide votre inscription avant que l&apos;on
+        Ensuite&nbsp;: votre SIRET, vos métiers et votre mobile, puis vos
+        attestations. Gerimmo valide votre inscription avant que l’on
         puisse vous solliciter.
       </p>
     </div>

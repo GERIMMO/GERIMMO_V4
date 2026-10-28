@@ -19,6 +19,8 @@ export const TYPES_DOCUMENT: Record<string, string> = {
   autre: "Autre",
   // Déposée par l'artisan après l'intervention (audit du 27/09, module 9.7).
   facture_artisan: "Facture d'artisan",
+  // Le PDF du devis envoyé par l'artisan (module 9) : il s'affichait sous sa clé brute « devis » (audit final, DOC-11).
+  devis: "Devis d'artisan",
   document_test: "Document de test (purge immédiate)",
 };
 

@@ -82,7 +82,7 @@ export function AccepterOuRefuser({ interventionId }: { interventionId: string }
               Pourquoi refusez-vous ?
             </label>
             <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-              Votre interlocuteur doit confier la mission à quelqu&apos;un d&apos;autre : dites-lui
+              Votre interlocuteur doit confier la mission à quelqu’un d’autre&nbsp;: dites-lui
               ce qui vous en empêche (délai, hors de votre zone, hors de votre
               métier…).
             </p>

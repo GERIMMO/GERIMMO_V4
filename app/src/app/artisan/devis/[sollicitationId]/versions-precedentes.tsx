@@ -60,13 +60,13 @@ export function VersionsPrecedentes({
               <div className="mt-2">
                 <LigneInfo libelle="Montant">{euros(v.montant_ttc_cents)} TTC</LigneInfo>
                 <LigneInfo libelle="Envoyée le">{dateSimple(v.depose_le)}</LigneInfo>
-                <LigneInfo libelle="Valable jusqu'au">{dateSimple(v.valide_jusqu_au)}</LigneInfo>
+                <LigneInfo libelle="Valable jusqu’au">{dateSimple(v.valide_jusqu_au)}</LigneInfo>
                 {v.decide_le && (
                   <LigneInfo libelle={v.decision === "revision" ? "Révision demandée le" : "Décision du client le"}>{dateSimple(v.decide_le)}</LigneInfo>
                 )}
               </div>
               {v.note_revision && (
-                <p className="mt-2 whitespace-pre-wrap break-words text-[0.9375rem]">Ce qui changeait : « {v.note_revision} »</p>
+                <p className="mt-2 whitespace-pre-wrap break-words text-[0.9375rem]">Ce qui changeait&nbsp;: « {v.note_revision} »</p>
               )}
               {v.decision_motif && (
                 <p className="mt-2 whitespace-pre-wrap break-words text-[0.9375rem]">

@@ -76,12 +76,15 @@ export default async function LayoutArtisan({
   // (CONDITIONS_ARTISANS_VERSION), le compte qui ne les a pas acceptées voit leur case à la place de la page demandée.
   // D'ici là, rien n'est exigé ni lu. La garde est de parcours : les données restent protégées en base. Elle se tait
   // pendant un diagnostic du super-administrateur (lecture seule), comme la coquille agence en traversée.
+  // Elle ne vise que les comptes qui ont une fiche artisan (audit final, DOC-01) : sans fiche, la page garde sa propre
+  // garde (verifierAccesArtisan), qui renvoie le locataire ou le gérant vers ses espaces et l'artisan neuf à l'inscription,
+  // où il accepte déjà ces conditions avec son mot de passe.
   const [[agenda, sollicitations, pieces], autresEspaces, conditionsAAccepter] = await Promise.all([
     fiche
       ? Promise.all([chargerAgenda(), chargerSollicitations(), chargerPieces()])
       : Promise.resolve([null, null, null] as const),
     lireAutresEspaces(user.id),
-    conditionsArtisansAAccepter(supabase, user.id),
+    fiche ? conditionsArtisansAAccepter(supabase, user.id) : Promise.resolve(null),
   ]);
 
   // « Mes espaces » ne s'affiche que s'il mène ailleurs (audit du 27/09) : pour
@@ -187,7 +190,7 @@ export default async function LayoutArtisan({
           {refuse && (
             <p role="alert" className={styles.refused}>
               Votre inscription a été refusée.
-              {fiche?.statut_motif ? ` Motif : ${fiche.statut_motif}` : ""}
+              {fiche?.statut_motif ? ` Motif\u00a0: ${fiche.statut_motif}` : ""}
             </p>
           )}
           <main className={`artisan-corps ${styles.content}`}>

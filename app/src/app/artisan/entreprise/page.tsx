@@ -43,7 +43,7 @@ export default async function PageEntreprise() {
       </div></div>
       <Link href="#documents" className={styles.boutonDevis}><FilePenLine size={17} aria-hidden/>Personnaliser mes devis</Link>
     </section>
-    {aucunePiece && <p className={styles.alerteAttestation}><FileCheck2 size={17} aria-hidden/><span>Déposez votre décennale pour être proposé sur les {"travaux qui l'exigent"}. <Link href="/artisan/attestations">Ajouter une attestation <ArrowUpRight size={13} aria-hidden/></Link></span></p>}
+    {aucunePiece && <p className={styles.alerteAttestation}><FileCheck2 size={17} aria-hidden/><span>Déposez votre décennale pour être proposé sur les {"travaux qui l’exigent"}. <Link href="/artisan/attestations">Ajouter une attestation <ArrowUpRight size={13} aria-hidden/></Link></span></p>}
     <OngletsDossier libelle="Rubriques de mon entreprise" rubriques={[
       { id: "entreprise-coordonnees", titre: "Coordonnées", contenu: <>
         <Carte className={styles.bloc}>

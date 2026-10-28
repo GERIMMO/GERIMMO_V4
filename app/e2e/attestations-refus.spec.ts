@@ -5,7 +5,7 @@ test.use({ storageState: 'e2e/.auth/artisan.json' });
 test('attestation : date future refusée et fichier conservé après un rejet', async ({ page }) => {
   await page.goto('/artisan/attestations');
   await page.getByRole('link', { name: 'Déposer : Assurance décennale', exact: true }).click();
-  const formulaire = page.locator('form').filter({ has: page.getByRole('button', { name: "Déposer l'attestation", exact: true }) });
+  const formulaire = page.locator('form').filter({ has: page.getByRole('button', { name: "Déposer l’attestation", exact: true }) });
   const emission = formulaire.locator('[name="emise_le"]');
   const demain = jourAttestation(new Date(Date.now() + 86400000));
   await expect(emission).toHaveAttribute('max', jourAttestation());
@@ -16,7 +16,7 @@ test('attestation : date future refusée et fichier conservé après un rejet', 
   const fichier = formulaire.locator('input[type="file"]');
   await fichier.setInputFiles({ name: 'document-invalide.pdf', mimeType: 'application/pdf', buffer: Buffer.from('Ceci est un texte, pas un PDF.') });
   await expect(formulaire.getByText('document-invalide.pdf', { exact: true })).toBeVisible();
-  await formulaire.getByRole('button', { name: "Déposer l'attestation", exact: true }).click();
+  await formulaire.getByRole('button', { name: "Déposer l’attestation", exact: true }).click();
   await expect(formulaire.getByRole('alert')).toBeVisible();
   await expect(formulaire.getByText('document-invalide.pdf', { exact: true })).toBeVisible();
   expect(await fichier.evaluate((el: HTMLInputElement) => el.files?.length)).toBe(1);

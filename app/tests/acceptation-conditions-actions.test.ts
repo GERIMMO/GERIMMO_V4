@@ -205,11 +205,20 @@ describe("la garde de l'espace artisan (R10)", () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
+  it("publiées, compte sans fiche artisan (locataire, gérant) : refusé, rien d'enregistré (audit final, DOC-01)", async () => {
+    etat.version = "2026-11-15";
+    const r = await accepterConditionsArtisans({}, envoi({ cgu_version: "2026-11-15", cgu: "on" }));
+    expect(r.erreur).toBe("Cette acceptation est réservée aux artisans inscrits.");
+    expect(acceptation()).toBeUndefined();
+  });
+
   it("publiées : version affichée et case exigées, puis conditions_artisans enregistrées et l'espace rafraîchi", async () => {
     etat.version = "2026-11-15";
+    // Depuis l'audit final (DOC-01), seul un compte qui a une fiche artisan accepte ces conditions.
+    rpc.mockImplementation(async (fn: string) => ({ data: fn === "mon_artisan" ? [{ artisan_id: "a1" }] : null, error: null }));
     expect((await accepterConditionsArtisans({}, envoi({ cgu_version: "2026-11-01", cgu: "on" }))).erreur).toBe(ERREUR_CONDITIONS_PERIMEES);
     expect((await accepterConditionsArtisans({}, envoi({ cgu_version: "2026-11-15" }))).erreur).toBe("Acceptez les conditions de l’espace artisan pour continuer.");
-    expect(rpc).not.toHaveBeenCalled();
+    expect(acceptation()).toBeUndefined();
     const r = await accepterConditionsArtisans({}, envoi({ cgu_version: "2026-11-15", cgu: "on" }));
     expect(r.succes).toBeTruthy();
     expect(acceptation()).toEqual({ p_version: "2026-11-15", p_source: "compte", p_document: "conditions_artisans" });

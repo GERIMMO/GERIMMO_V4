@@ -8,6 +8,7 @@ import { CASE_CONDITIONS_ARTISANS, versionArtisansPubliee } from "@/lib/conditio
 import { ERREUR_ACCEPTATION_CONDITIONS, ERREUR_CONDITIONS_PERIMEES } from "@/lib/garde-souscription";
 import { abonnementCourant } from "@/lib/conditions-acceptation-serveur";
 import { messageAccordEnregistre } from "@/lib/nouvelle-version-conditions";
+import { chargerFicheArtisan } from "@/app/artisan/acces";
 
 // Les deux acceptations qui se donnent APRÈS l'inscription (plan de conformité du 23/10/2026, lot 1A) :
 //  · la nouvelle version des conditions clients, depuis l'écran « Nos conditions générales évoluent » (R19) ;
@@ -53,11 +54,12 @@ export async function accepterConditionsArtisans(
   if (!version) return { erreur: "Aucune condition propre à l’espace artisan n’est à accepter pour le moment." };
   if (formData.get("cgu_version") !== version) return { erreur: ERREUR_CONDITIONS_PERIMEES };
   if (!formData.get("cgu")) return { erreur: CASE_CONDITIONS_ARTISANS.refus };
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Seul un artisan inscrit (fiche) accepte ces conditions : un locataire ou un gérant arrivé sur une URL de l'espace
+  // artisan n'enregistre aucun accord à un texte qui ne le concerne pas (audit final, DOC-01).
+  const { supabase, user, fiche, erreur } = await chargerFicheArtisan();
   if (!user) return { erreur: RECONNEXION };
+  if (erreur) return { erreur: ERREUR_ACCEPTATION_CONDITIONS };
+  if (!fiche) return { erreur: "Cette acceptation est réservée aux artisans inscrits." };
   const { error } = await supabase.rpc("accepter_cgu", {
     p_version: version,
     p_source: "compte",

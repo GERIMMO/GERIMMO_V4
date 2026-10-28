@@ -39,6 +39,7 @@ import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResol
 import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
 import { mentionCadreCautionBail } from "@/lib/textes-signature-actes";
+import { prorataPremiereEcheance } from "@/lib/prorata-premiere-echeance";
 
 // Une ligne de l'inventaire du mobilier attaché au bail (table inventaire_lignes)
 export type LigneInventaire = {
@@ -64,19 +65,16 @@ function blocLocataire(f: Fusion, p: PersonneDocument): string {
 }
 
 // Montant dû à la première échéance : loyer + charges, proratisés lorsque le
-// bail ne démarre pas un 1er du mois (jours restants inclus / jours du mois).
+// bail ne démarre pas un 1er du mois — la même règle d'arrondi que l'appel de
+// loyer en base et que le bail nu (audit final du 27/10, COD-01).
 function montantPremiereEcheance(f: Fusion, bail: ContexteBail["bail"]): string {
   const libelle = "loyer + charges, montant au prorata";
   if (bail.loyer_hc === null || bail.charges === null || !bail.date_debut) {
     return f.champ(null, libelle);
   }
-  const total = Number(bail.loyer_hc) + Number(bail.charges);
-  const debut = new Date(`${bail.date_debut.slice(0, 10)}T12:00:00`);
-  if (debut.getDate() === 1) return f.champ(eur(total), libelle);
-  const joursDuMois = new Date(debut.getFullYear(), debut.getMonth() + 1, 0).getDate();
-  const joursOccupes = joursDuMois - debut.getDate() + 1;
-  const prorata = Math.round((total * joursOccupes * 100) / joursDuMois) / 100;
-  return f.champ(`${eur(prorata)} (premier mois au prorata)`, libelle);
+  const echeance = prorataPremiereEcheance(bail.loyer_hc, bail.charges, bail.date_debut);
+  if (!echeance.prorata) return f.champ(eur(echeance.total), libelle);
+  return f.champ(`${eur(echeance.total)} (premier mois au prorata)`, libelle);
 }
 
 export function construireBailMeuble(

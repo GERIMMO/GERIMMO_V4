@@ -7240,3 +7240,14 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
 - Ce qui change pour les utilisateurs : relocation pré-remplie depuis le bail précédent ; 11 éléments du décret en un geste
   dans l'inventaire du meublé ; tâches du grand parc regroupées par obligation ; un seul geste de consultation dans
   « Mes documents » du locataire ; 2,4 Mo d'images inutilisées retirées.
+
+## [2026-10-28] fix | Audit final du 27/10 — chantier « loyers : calculs et documents » (branche `audit_final/loyers_calculs`, non publié)
+- Dix constats corrigés en local : LOY-01/LOY-V01 (le dernier terme suit le congé enregistré ou annulé ; migration
+  `20261028100100`), COD-01 (une seule fonction de prorata pour le bail nu, le bail meublé et la base), COD-03 (dépôt,
+  retenues, postes de charges et écritures au centime), LOY-02 (e-mails de reçu et d'avis : total du terme, encaissé, solde,
+  libellé des charges), LOY-04 (export CSV : dates vérifiées, 400 en français), LOY-06 (courriers d'un propriétaire direct
+  signés du bailleur, « Fait à » et signature sur une rangée), LOY-16 (bouton « Prorata (PDF) »), LOY-19 (export : « auto »
+  et colonne mandant), LOY-17 (plus de « gestionnaire » chez un propriétaire direct).
+- Wiki : nouvelle règle [[Prorata du premier et du dernier terme]] (sourcée par la migration `20260803_prorata_au_centime`),
+  index mis à jour.
+

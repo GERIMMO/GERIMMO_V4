@@ -43,7 +43,7 @@
 .precision { padding: 0 24px 18px; }
 .pied { padding: 13px 24px; border-top: 1px solid #e3e9f0; display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
 .pied svg { flex-shrink: 0; }
-.pied a { margin-left: auto; min-height: 30px; align-content: center; font-weight: 600; color: #14304f; text-decoration: underline; text-underline-offset: 3px; }
+.pied a { margin-left: auto; min-height: 44px; align-content: center; font-weight: 600; color: #14304f; text-decoration: underline; text-underline-offset: 3px; }
 .vide { display: flex; align-items: center; gap: 10px; padding: 18px 24px; font-size: 14px; }
 .vide svg { flex-shrink: 0; color: #225c43; }
 @media (max-width: 600px) {
@@ -58,4 +58,10 @@
   .champs { grid-template-columns: 1fr; }
   .pied { padding: 12px 16px; align-items: flex-start; }
   .pied a { margin-left: 0; }
+}
+/* Au doigt, 44 px pour le lien du lot et la case de confirmation de la relance (audit final du 27/10, LOY-09 : 18 px). */
+@media (pointer: coarse) {
+  .titreLigne a { display: inline-flex; align-items: center; min-height: 44px; }
+  .confirmationEnvoi { align-items: center; min-height: 44px; }
+  .confirmationEnvoi input { margin-top: 0; width: 24px; height: 24px; }
 }

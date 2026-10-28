@@ -32,3 +32,22 @@ export function resumerLivre(ecritures: EcritureFinances[], annee: number, lots:
     depenses: lignes.reduce((s,e) => s + (e.sens === "depense" ? Number(e.montant) : 0),0),
   };
 }
+
+/** Une ligne de quittancement_mois : ce qui compte ici, le montant demandé, le montant couvert et le statut de l'échéance. */
+export type EcheanceDuMois = { montant_du: number | string; montant_couvert: number | string; statut: string };
+
+/**
+ * Les chiffres des échéances d'un mois, au centime. « Reste dû » ne compte que les échéances atteintes : un terme dont
+ * l'échéance n'est pas arrivée (statut « attendu », bail payé à terme échu le 5 du mois suivant) se dit « à échoir » à part
+ * (audit final du 27/10, LOY-07 : « Reste dû 3 110 € » dont 710 € pas encore exigibles).
+ */
+export function totauxEcheances(lignes: EcheanceDuMois[]) {
+  const centimes = (v: number | string) => Math.round(Number(v) * 100);
+  const totaux = { demande: 0, regle: 0, resteDu: 0, aEchoir: 0 };
+  for (const l of lignes) {
+    const du = centimes(l.montant_du), couvert = Math.min(du, centimes(l.montant_couvert));
+    totaux.demande += du; totaux.regle += couvert;
+    if (l.statut === "attendu") totaux.aEchoir += Math.max(0, du - couvert); else totaux.resteDu += Math.max(0, du - couvert);
+  }
+  return { demande: totaux.demande / 100, regle: totaux.regle / 100, resteDu: totaux.resteDu / 100, aEchoir: totaux.aEchoir / 100 };
+}

@@ -1,7 +1,8 @@
 # Sauvegarde quotidienne de Gerimmo vers un stockage objet Scaleway (Paris).
 #
 # CE QUE FAIT CE CHANTIER. Chaque nuit (et à la demande), il
-# exporte la base de production (pg_dump des schémas public, auth, storage, support_interne et supabase_migrations,
+# exporte la base de production (pg_dump des schémas public, auth, storage,
+# support_interne, consommations_interne et supabase_migrations,
 # DROITS COMPRIS depuis le 27/09 : sans GRANT/REVOKE, une restauration
 # rouvrait toutes les fonctions à anon)
 # (14/10, D07 : avec la liste des tâches planifiées pg_cron, `cron.job`, que pg_dump
@@ -110,6 +111,10 @@ jobs:
       - name: Dépendances (client Supabase pour la copie des fichiers)
         working-directory: app
         run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Vérifier la couverture des schémas applicatifs
+        working-directory: app
+        run: npx vitest run tests/sauvegarde-schemas.test.ts --maxWorkers=1
 
       - name: Exporter la base et copier les fichiers (chiffrés)
         working-directory: app

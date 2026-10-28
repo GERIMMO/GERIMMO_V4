@@ -21,6 +21,7 @@ import { configDefaults, defineConfig } from "vitest/config";
  * `npm test` en local. Le test `tests/execution-en-serie.test.ts` garde cette liste cohérente avec les fichiers.
  */
 export const FICHIERS_EN_SERIE = [
+  "tests/restauration-archive.test.ts",
   "tests/factures-fourniture-journal-base.test.ts",
   "tests/patrimoine-finance-retours-base.test.ts",
   "tests/recommandes-ar24-base.test.ts",

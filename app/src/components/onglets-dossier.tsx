@@ -16,6 +16,18 @@ export function OngletsDossier({ rubriques, initiale, libelle = "Rubriques du do
   const uid = useId();
   const pathname = usePathname();
   const recherche = useSearchParams().toString();
+  // La cible d'une ancre dont le panneau est encore masqué : on n'y défile qu'une fois le panneau affiché (seconde relecture
+  // du 28/10 : « Traiter » d'une alerte menait au haut du bail, le défilement partait avant le changement d'onglet).
+  const aDefiler = useRef<HTMLElement | null>(null);
+  const defiler = (cible: HTMLElement) => {
+    if (cible.closest("[hidden]")) return false;
+    aDefiler.current = null;
+    cible.scrollIntoView({ block: "start" });
+    return true;
+  };
+  useEffect(() => {
+    if (aDefiler.current) defiler(aDefiler.current);
+  }, [active]);
   useEffect(() => {
     const ouvrir = (hash: string) => {
       let cible: HTMLElement | null;
@@ -26,7 +38,8 @@ export function OngletsDossier({ rubriques, initiale, libelle = "Rubriques du do
       for (let parent: HTMLElement | null = cible; parent && parent !== racine.current; parent = parent.parentElement) {
         if (parent instanceof HTMLDetailsElement) parent.open = true;
       }
-      requestAnimationFrame(() => cible?.scrollIntoView({ block: "start" }));
+      aDefiler.current = cible;
+      requestAnimationFrame(() => { if (aDefiler.current === cible) defiler(cible); });
     };
     const hashChange = () => ouvrir(location.hash);
     const clic = (event: MouseEvent) => {

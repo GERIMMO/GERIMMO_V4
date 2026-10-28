@@ -157,7 +157,18 @@ test.describe("Propriétaire direct : l'alias /espace", () => {
       const fichier=await lectureStockage;
       expect(fichier.status()).toBe(200);
       expect(fichier.headers()["content-type"]).toContain("application/pdf");
-      expect(await fichier.body()).toEqual(pdf);
+      // Chromium n'a pas toujours gardé le corps : la visionneuse le lit en flux pour en faire un blob, et le protocole
+      // répond alors « No resource with given identifier found » (audit final du 28/10 : un échec sur deux, sur main
+      // comme sur la branche). La même adresse signée est alors relue par le contexte de la page : l'octet à octet
+      // reste exigé, sur ce que le stockage sert à cette adresse.
+      const octets=await fichier.body().catch(async(erreur:Error)=>{
+        if(!/No resource with given identifier found/.test(erreur.message)) throw erreur;
+        const relu=await page.request.get(fichier.url());
+        expect(relu.status()).toBe(200);
+        expect(relu.headers()["content-type"]).toContain("application/pdf");
+        return relu.body();
+      });
+      expect(octets).toEqual(pdf);
       await expect(page.getByRole("link",{name:"Ouvrir le PDF en plein écran"})).toBeVisible();
       await expect(page.getByRole("link",{name:"Télécharger",exact:true})).toHaveAttribute("href",/^blob:/);
       await expect(page.locator("#etat")).toBeHidden();

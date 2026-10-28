@@ -66,6 +66,20 @@ describe('Accès web à la supervision',()=>{
     session(['proprietaire_direct'],'aal1',false,'aal2',false);
     expect((await proxy(new NextRequest('https://gerimmo.test/compte'))).headers.get('location')).toBeNull();
   });
+  // Seconde relecture du 28/10 : la base refuse toute requête d'un compte à facteur resté en aal1. Les deux pages
+  // publiques qui lisent sous la session du visiteur connecté passent par le sas ; sans facteur, ou en aal2, rien ne change.
+  it('inscription et invitation de l’artisan : le sas d’abord pour un compte à facteur en aal1',async()=>{
+    const invitation='/artisan/invitation/0fc294d4-ea73-40b4-bac7-7c9b3223e94c';
+    for(const path of ['/artisan/inscription?invitation=x',invitation]){
+      session(['artisan'],'aal1',false,'aal1',true);
+      const u=new URL((await proxy(new NextRequest('https://gerimmo.test'+path))).headers.get('location')!);
+      expect(u.pathname).toBe('/securite');expect(u.searchParams.get('suite')).toBe(path);
+      session(['artisan'],'aal2',false,'aal2',true);
+      expect((await proxy(new NextRequest('https://gerimmo.test'+path))).headers.get('location')).toBeNull();
+      session(['artisan'],'aal1',false,'aal1',false);
+      expect((await proxy(new NextRequest('https://gerimmo.test'+path))).headers.get('location')).toBeNull();
+    }
+  });
   it('une erreur de lecture du niveau ne ferme pas l’espace d’un rôle hors supervision',async()=>{
     session(['locataire'],null,true,null);
     expect((await proxy(new NextRequest('https://gerimmo.test/locataire/alpha'))).headers.get('location')).toBeNull();

@@ -310,9 +310,15 @@ export async function proxy(request: NextRequest) {
   // niveau courant vient du jeton d'accès, que getUser() a validé. La base l'exige aussi (politique second_facteur,
   // 20261028100000). La page du sas reste accessible avant AAL2. Une erreur de lecture du niveau ferme la supervision
   // (jamais ouverte par défaut) ; pour les autres, le facteur vérifié suffit à imposer le sas.
+  //
+  // Seconde relecture du 28/10 : la base refuse désormais toute requête d'un compte à facteur resté en aal1 (fonction de
+  // pré-requête exiger_second_facteur). Les deux pages publiques qui lisent et écrivent sous la session de leur visiteur
+  // connecté — l'inscription de l'entreprise de l'artisan et sa page d'invitation — passent donc aussi par le sas :
+  // sinon elles proposeraient d'inscrire une entreprise déjà inscrite, ou diraient l'invitation « pas chargée ».
   const roles = (memberships ?? []).map(m => m.role);
+  const publiqueSousSession = pathname.startsWith("/artisan/inscription") || CHEMIN_INVITATION_ARTISAN.test(pathname);
   let niveauMfa: string | null | undefined;
-  if (!isPublic && pathname !== "/securite") {
+  if ((!isPublic || publiqueSousSession) && pathname !== "/securite") {
     const { data: niveau, error: erreurMfa } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     niveauMfa = niveau?.currentLevel;
     const facteur = aUnFacteurVerifie(user);

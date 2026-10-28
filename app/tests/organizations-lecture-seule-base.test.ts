@@ -217,7 +217,13 @@ describe.skipIf(!DB_URL)("fiche de l'organisation en lecture seule (base)", () =
       .join("\n");
     await db.query(retour);
     expect((await db.query("select count(*)::int n from pg_trigger where tgname = 'abonnement_organizations'")).rows[0].n).toBe(0);
-    expect((await db.query("select count(*)::int n from pg_proc where proname in ('organizations_refuser_ecriture_si_fermee', 'org_suspendue_par_supervision', 'suspension_par_supervision', 'niveau_assurance_suffisant', 'poser_gardes_second_facteur')")).rows[0].n).toBe(0);
+    expect((await db.query("select count(*)::int n from pg_proc where proname in ('organizations_refuser_ecriture_si_fermee', 'org_suspendue_par_supervision', 'suspension_par_supervision', 'niveau_assurance_suffisant', 'poser_gardes_second_facteur', 'exiger_second_facteur')")).rows[0].n).toBe(0);
+    // La garde centrale de l'API est retirée de la configuration de PostgREST ; la fermeture à anon et la demande
+    // d'archive retrouvent leur texte d'avant.
+    const preRequete = "select count(*)::int n from pg_db_role_setting r, unnest(r.setconfig) s where r.setrole = to_regrole('authenticator') and s like 'pgrst.db_pre_request=%'";
+    expect((await db.query(preRequete)).rows[0].n).toBe(0);
+    expect((await db.query("select prosrc from pg_proc where proname = 'fermer_fonctions_a_anon'")).rows[0].prosrc).toContain("array[]::text[]");
+    expect((await db.query("select prosrc from pg_proc where proname = 'demander_export_complet'")).rows[0].prosrc).not.toContain("niveau_assurance_suffisant");
     expect((await db.query("select count(*)::int n from pg_policy where polname = 'second_facteur'")).rows[0].n).toBe(0);
     expect((await db.query("select count(*)::int n from pg_proc where prosrc like '%uid_second_facteur()%'")).rows[0].n).toBe(0);
     // abonnement_appliquer a retrouvé son texte d'avant (sans la garde de la supervision).
@@ -225,5 +231,6 @@ describe.skipIf(!DB_URL)("fiche de l'organisation en lecture seule (base)", () =
     // Et la marche avant se rejoue à l'identique.
     await db.query(readFileSync(`supabase/migrations/${MIGRATION}.sql`, "utf8"));
     expect((await db.query("select count(*)::int n from pg_trigger where tgname = 'abonnement_organizations'")).rows[0].n).toBe(1);
+    expect((await db.query(preRequete.replace("count(*)::int n", "s"))).rows.map((r) => r.s)).toEqual(["pgrst.db_pre_request=public.exiger_second_facteur"]);
   });
 });

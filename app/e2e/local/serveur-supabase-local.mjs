@@ -271,8 +271,32 @@ function erreurDepuisPg(e) {
   return erreurRest(statut, e.code ?? "XX000", e.message, e.detail ?? null, e.hint ?? null);
 }
 
+// ── La fonction de pré-requête de PostgREST (`pgrst.db_pre_request`) ───────
+// PostgREST lit sa configuration en base dans les réglages du rôle `authenticator` (ceux de la base courante priment
+// sur les réglages communs), au démarrage et à chaque `notify pgrst, 'reload config'`, puis appelle la fonction avant
+// CHAQUE requête REST, RPC et GraphQL, une fois l'identité posée. L'émulateur fait de même : sans cela, la garde du
+// second facteur (exiger_second_facteur, migration 20261028100000) ne serait jamais éprouvée sur le banc. Elle ne
+// s'applique ni au stockage ni à l'authentification, comme sur Supabase.
+let preRequete = null;
+async function chargerConfigurationApi() {
+  const { rows } = await pool.query(`
+    select substr(s, length('pgrst.db_pre_request=') + 1) as valeur
+      from pg_catalog.pg_db_role_setting r, unnest(r.setconfig) s
+     where to_regrole('authenticator') is not null and r.setrole = to_regrole('authenticator')
+       and r.setdatabase in (0, (select oid from pg_catalog.pg_database where datname = current_catalog))
+       and s like 'pgrst.db_pre_request=%'
+     order by r.setdatabase desc limit 1`);
+  const valeur = rows[0]?.valeur || null;
+  // Un nom qualifié simple, comme PostgREST l'attend : jamais du SQL interpolé tel quel.
+  preRequete = valeur && /^[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*$/.test(valeur) ? valeur : null;
+  if (valeur && !preRequete) console.error(`[supalocal] pgrst.db_pre_request ignoré (nom invalide) : ${valeur}`);
+}
+
 // ── Exécution SQL sous identité (RLS réel) ─────────────────────────────────
-async function sousIdentite(claims, fn) {
+// `requete` ({ methode, chemin }) : une requête de l'API de données (REST, RPC, GraphQL) — les variables
+// request.method et request.path de PostgREST sont posées et la fonction de pré-requête est appelée. Le stockage n'en
+// passe pas (requete absente).
+async function sousIdentite(claims, fn, requete = null) {
   const client = await pool.connect();
   try {
     await client.query("begin");
@@ -283,6 +307,10 @@ async function sousIdentite(claims, fn) {
       JSON.stringify(claims ?? { role: "anon" }),
     ]);
     await client.query(`set local role ${role}`);
+    if (requete) {
+      await client.query("select set_config('request.method', $1, true), set_config('request.path', $2, true)", [requete.methode, requete.chemin]);
+      if (preRequete) await client.query(`select ${preRequete}()`);
+    }
     const r = await fn(client);
     await client.query("commit");
     return r;
@@ -293,6 +321,7 @@ async function sousIdentite(claims, fn) {
     client.release();
   }
 }
+const sousIdentiteApi = (claims, requete, fn) => sousIdentite(claims, fn, requete);
 // Requêtes d'administration (auth, storage interne) : superutilisateur.
 async function admin(fn) {
   const client = await pool.connect();
@@ -433,7 +462,7 @@ async function lireTable(claims, table, url, entetes) {
   const prefer = entetes.prefer ?? "";
   const veutCompte = /count=exact/.test(prefer);
 
-  return sousIdentite(claims, async (client) => {
+  return sousIdentiteApi(claims, { methode: entetes.methode ?? "GET", chemin: `/${table}` }, async (client) => {
     let total = null;
     const inner = arbre.some((n) => n.type === "embed" && n.inner);
     if (veutCompte && !inner) {
@@ -481,7 +510,7 @@ async function ecrireTable(claims, table, url, entetes, corps, methode) {
   ])].map(c => `"${c.replaceAll('"', '""')}"`).join(", ");
   const retour = representation ? ` returning ${colonnesSql}` : "";
 
-  return sousIdentite(claims, async (client) => {
+  return sousIdentiteApi(claims, { methode, chemin: `/${table}` }, async (client) => {
     let lignes = [];
     if (methode === "POST") {
       const objets = Array.isArray(corps) ? corps : [corps];
@@ -567,7 +596,7 @@ async function appelerRpc(claims, nom, corps, url, methode, entetes) {
     .filter((a) => Object.prototype.hasOwnProperty.call(args, a.nom));
   const params = fournis.map((a) => preparerValeur(args[a.nom], a.type));
   const listeArgs = fournis.map((a, i) => `"${a.nom}" => $${i + 1}::${a.type}`).join(", ");
-  return sousIdentite(claims, async (client) => {
+  return sousIdentiteApi(claims, { methode, chemin: `/rpc/${nom}` }, async (client) => {
     if (fn.retourne_set || fn.type_retour.startsWith("TABLE") || fn.type_retour.startsWith("SETOF")) {
       // Les RPC setof de PostgREST acceptent les mêmes filtres SQL que les
       // tables. Les ignorer donnait de faux résultats dans la recherche GED.
@@ -1098,6 +1127,20 @@ const serveur = http.createServer(async (req, res) => {
         return repondreJson(r.statut, r.lignes);
       }
     }
+    // /graphql/v1 : sur Supabase, la passerelle le sert par PostgREST (POST /rpc/graphql, schéma graphql_public) ; la
+    // fonction de pré-requête s'y applique donc comme au reste de l'API. pg_graphql n'est pas installé sur le banc : la
+    // garde passée, l'émulateur répond ce que PostgREST répond sans la fonction (404 PGRST202).
+    if (segments[0] === "graphql" && segments[1] === "v1") {
+      const corps = brut.length ? JSON.parse(brut.toString()) : {};
+      const resultat = await sousIdentite(claims, async (client) => {
+        const { rows } = await client.query("select to_regprocedure('graphql_public.graphql(text, jsonb, text, jsonb)') is not null as present");
+        if (!rows[0].present) throw erreurRest(404, "PGRST202", "Could not find the function graphql_public.graphql in the schema cache");
+        const r = await client.query("select graphql_public.graphql($1, $2::jsonb, $3, $4::jsonb) as j",
+          [corps.query ?? null, JSON.stringify(corps.variables ?? {}), corps.operationName ?? null, JSON.stringify(corps.extensions ?? {})]);
+        return r.rows[0].j;
+      }, { methode: "POST", chemin: "/rpc/graphql" });
+      return repondreJson(200, resultat);
+    }
     // /storage/v1/…
     if (segments[0] === "storage" && segments[1] === "v1") {
       const r = await routerStorage(req.method, segments.slice(2), url, brut, entetes, claims);
@@ -1125,11 +1168,18 @@ const serveur = http.createServer(async (req, res) => {
 });
 
 await chargerCatalogue();
+await chargerConfigurationApi();
 // Comme PostgREST, prendre en compte les migrations locales sans redémarrer Next.
 const connexionCatalogue = await pool.connect();
 await connexionCatalogue.query("listen pgrst");
 let rechargementCatalogue = Promise.resolve();
 connexionCatalogue.on("notification", message => {
+  if (message.channel === "pgrst" && message.payload === "reload config") {
+    rechargementCatalogue = rechargementCatalogue.then(chargerConfigurationApi)
+      .then(() => console.log(`[supalocal] Configuration de l'API relue (pré-requête : ${preRequete ?? "aucune"}).`))
+      .catch(erreur => console.error("[supalocal] Configuration de l'API non relue :", erreur.message));
+    return;
+  }
   if (message.channel !== "pgrst" || message.payload !== "reload schema") return;
   rechargementCatalogue = rechargementCatalogue.then(chargerCatalogue)
     .then(() => console.log("[supalocal] Catalogue SQL rechargé."))
@@ -1148,4 +1198,5 @@ await admin((c) => c.query("do $$ begin if to_regclass('auth.mfa_factors') is no
 serveur.listen(PORT, "127.0.0.1", () => {
   console.log(`Émulateur Supabase local prêt : http://127.0.0.1:${PORT} → ${DB_URL}`);
   console.log(`SUPABASE_SERVICE_ROLE_KEY=${CLE_SERVICE}`);
+  console.log(`Pré-requête de l'API (pgrst.db_pre_request) : ${preRequete ?? "aucune"}`);
 });

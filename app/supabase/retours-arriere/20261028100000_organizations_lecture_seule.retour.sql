@@ -5,9 +5,20 @@
 -- migration : un événement Stripe lève de nouveau une suspension de la supervision), puis les fonctions ajoutées et le
 -- déclencheur abonnement_organizations. Aucune donnée n'est touchée ; les lignes « abonnement_statut_retenu » du
 -- journal sont conservées. RÉINTRODUIT : PUB-01 côté données (un mot de passe seul lit tout par l'API pour un compte
--- à second facteur), DRT-V01 et la levée d'une suspension par Stripe.
+-- à second facteur), DRT-V01 et la levée d'une suspension par Stripe. La garde centrale de l'API (pgrst.db_pre_request,
+-- exiger_second_facteur) est retirée en premier ; fermer_fonctions_a_anon et demander_export_complet retrouvent leur
+-- texte d'avant (la preuve récente redevient « second facteur ou mot de passe de moins de quinze minutes »).
 begin;
 set local lock_timeout = '10s';
+-- D'abord la garde centrale de l'API : PostgREST cesse d'appeler exiger_second_facteur (relue au « reload config »,
+-- envoyé à la validation de cette transaction) avant qu'elle ne disparaisse plus bas.
+do $retour_garde$
+begin
+  if to_regrole('authenticator') is not null then
+    alter role authenticator reset pgrst.db_pre_request;
+  end if;
+end $retour_garde$;
+notify pgrst, 'reload config';
 do $retour$
 declare t record;
 begin
@@ -146,6 +157,110 @@ begin
   return v_org;
 end;
 $function$;
+-- fermer_fonctions_a_anon et demander_export_complet retrouvent leur texte d'avant (20260911290000, 20261024130000).
+create or replace function public.fermer_fonctions_a_anon()
+returns integer
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  f record;
+  -- Aucune fonction du produit n'a besoin d'être appelée sans être connecté :
+  -- le seul geste public du site — la demande de devis — écrit dans une table,
+  -- sous politique RLS, pas par RPC. Si un jour il en faut une (un webhook
+  -- signé, par exemple), elle s'ajoute ICI, avec la raison en commentaire —
+  -- et le test cesse alors de la compter.
+  v_publiques text[] := array[]::text[];
+  v_auth boolean;
+  v_svc boolean;
+  v_n integer := 0;
+begin
+  for f in
+    select p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.prokind = 'f'
+      and has_function_privilege('anon', p.oid, 'EXECUTE')
+    order by p.proname
+  loop
+    if f.proname = any(v_publiques) then continue; end if;
+
+    -- CE QUI SE PASSE AVANT DE RETIRER, ET POURQUOI. Le droit de `anon` peut
+    -- venir de deux endroits : une mention explicite, ou le droit de PUBLIC —
+    -- celui que PostgreSQL accorde d'office et qui revient après un DROP. Il
+    -- faut retirer les deux, sinon on ne ferme rien. Mais PUBLIC couvre AUSSI
+    -- `authenticated` et `service_role` : sur une fonction dont c'est la seule
+    -- source de droit, le retirer les mettrait dehors avec `anon`, et la moitié
+    -- du produit tomberait. On note donc ce qu'ils peuvent AVANT, et on le leur
+    -- rend nommément APRÈS. Le droit ne change pour personne sauf `anon`.
+    v_auth := has_function_privilege('authenticated', f.oid, 'EXECUTE');
+    v_svc := has_function_privilege('service_role', f.oid, 'EXECUTE');
+
+    execute format('revoke execute on function public.%I(%s) from public, anon',
+                   f.proname, f.args);
+    if v_auth then
+      execute format('grant execute on function public.%I(%s) to authenticated',
+                     f.proname, f.args);
+    end if;
+    if v_svc then
+      execute format('grant execute on function public.%I(%s) to service_role',
+                     f.proname, f.args);
+    end if;
+    v_n := v_n + 1;
+  end loop;
+  return v_n;
+end;
+$$;
+comment on function public.fermer_fonctions_a_anon() is
+  'Retire à anon et à PUBLIC le droit d''exécuter toute fonction du schéma public. À APPELER EN FIN DE TOUTE MIGRATION qui crée ou REFAIT (drop/create) une fonction : un DROP rend les droits par défaut, et la fonction renaît ouverte.';
+revoke execute on function public.fermer_fonctions_a_anon() from public, anon, authenticated;
+create or replace function public.demander_export_complet(p_org uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_id uuid;
+  v_recent boolean;
+begin
+  if v_uid is null then raise exception 'Connexion requise' using errcode = '42501'; end if;
+  if not exists (select 1 from public.memberships m
+                  where m.account_id = v_uid and m.organization_id = p_org and m.status = 'active'
+                    and m.role in ('admin_agence', 'proprietaire_direct')) then
+    raise exception 'Réservé au titulaire de l''espace' using errcode = '42501';
+  end if;
+  select coalesce((select auth.jwt()) ->> 'aal', '') = 'aal2'
+      or exists (select 1 from jsonb_array_elements(coalesce((select auth.jwt()) -> 'amr', '[]'::jsonb)) e
+                  where e ->> 'method' = 'password'
+                    and coalesce((e ->> 'timestamp')::bigint, 0) >= extract(epoch from now())::bigint - 900)
+    into v_recent;
+  if not v_recent then
+    raise exception 'Confirmez votre identité : second facteur, ou nouvelle connexion avec votre mot de passe'
+      using errcode = '42501';
+  end if;
+  perform pg_catalog.pg_advisory_xact_lock(620240, pg_catalog.hashtext(p_org::text));
+  if exists (select 1 from public.exports_complets x
+              where x.organisation_id_export = p_org and x.statut in ('demande', 'en_cours')
+                and x.demande_le > now() - interval '1 hour') then
+    raise exception 'Une archive est déjà en préparation pour cet espace' using errcode = '23505';
+  end if;
+  if (select count(*) from public.exports_complets x
+       where x.organisation_id_export = p_org and x.demande_le > now() - interval '24 hours') >= 3 then
+    raise exception 'Trois archives au plus par jour : réessayez demain' using errcode = '54000';
+  end if;
+  insert into public.exports_complets (organisation_id_export, demande_par) values (p_org, v_uid) returning id into v_id;
+  insert into public.audit_log (account_id, organization_id, action, details)
+  values (v_uid, p_org, 'export_complet_demande', jsonb_build_object('export_id', v_id));
+  return v_id;
+end $$;
+revoke all on function public.demander_export_complet(uuid) from public, anon;
+grant execute on function public.demander_export_complet(uuid) to authenticated;
+drop function if exists public.exiger_second_facteur();
 drop function if exists public.poser_gardes_second_facteur();
 drop function if exists public.uid_second_facteur();
 drop function if exists public.niveau_assurance_suffisant();

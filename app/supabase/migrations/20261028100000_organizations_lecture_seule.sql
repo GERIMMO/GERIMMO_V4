@@ -19,7 +19,10 @@
 -- Second facteur (PUB-01, fin de fichier) : niveau_assurance_suffisant(), politique restrictive « second_facteur » sur
 -- toutes les tables de public sous RLS et sur storage.objects, et identité neutralisée (uid_second_facteur) dans les
 -- fonctions SECURITY DEFINER appelables par authenticated — poser_gardes_second_facteur(), à rappeler après toute
--- migration qui crée une table ou (re)définit une telle fonction. Stripe
+-- migration qui crée une table ou (re)définit une telle fonction. Et surtout, devant toute l'API (seconde relecture du
+-- 28/10) : exiger_second_facteur(), fonction de pré-requête de PostgREST (pgrst.db_pre_request du rôle authenticator),
+-- qui refuse toute requête REST, RPC ou GraphQL d'un compte à facteur resté en aal1 ; demander_export_complet exige le
+-- second facteur d'un compte qui en a un. Stripe
 -- (DRT-04) : abonnement_appliquer ne lève plus une suspension décidée par la supervision.
 --
 -- Rejouable (create or replace, drop … if exists) ; aucune donnée lue ni réécrite.
@@ -355,6 +358,202 @@ begin
   return v_org;
 end;
 $function$;
+
+-- ── La garde CENTRALE de l'API : toute requête d'un compte à facteur resté en aal1 est refusée (seconde relecture du
+-- 28/10, PUB-01 ; décision du dirigeant) ──────────────────────────────────────────────────────────────────────────
+-- La politique restrictive ne garde que les tables : les fonctions SECURITY DEFINER contournent la RLS. Hors de la
+-- liste nommée de poser_gardes_second_facteur, plus de deux cents d'entre elles reconnaissent l'appelant par auth.uid() :
+-- avec le mot de passe seul, un jeton aal1 lisait encore l'échéancier et les quittances du locataire, l'export de
+-- l'artisan, le périmètre des personnes du gérant, et ÉCRIVAIT (declarer_reception_loyer créait un encaissement,
+-- preparer_invitation_artisan une invitation, demander_export_complet une archive). Les réécrire toutes, et tenir à jour
+-- celles de demain, n'est pas tenable. La porte est donc posée DEVANT l'API, une fois : PostgREST appelle la fonction de
+-- pré-requête (`pgrst.db_pre_request`, méthode documentée par Supabase, « Securing your API », « Enforce additional
+-- rules on each request ») avant chaque requête REST, RPC et GraphQL (/graphql/v1 est servi par PostgREST, /rpc/graphql),
+-- sous le rôle de la requête. Elle ne s'applique ni au stockage ni au temps réel (documentation Supabase) : la politique
+-- restrictive reste posée, en défense en profondeur, sur les tables et sur storage.objects.
+--
+-- Laissés passer, et eux seuls, avant le code : ce que le proxy et la page du sas lisent pour décider (src/proxy.ts,
+-- src/app/securite/page.tsx, lib/autorisation-nouveau-mot-de-passe.ts) — la lecture des adhésions (la politique
+-- restrictive n'y laisse voir que les lignes du compte) et la session courante (ma_session_active, qui ne rend que son
+-- identifiant et sa date). Sans eux, le proxy répondrait « vérification de votre session indisponible » au lieu
+-- d'ouvrir le sas. Le code lui-même (enroll, challenge, verify), la déconnexion et le mot de passe passent par le
+-- serveur d'authentification, pas par cette API.
+--
+-- Rien ne change pour anon, le service et les tâches planifiées (aucune identité), ni pour une session aal2, ni pour un
+-- compte sans facteur vérifié (une lecture de auth.mfa_factors par l'index de user_id ; aucune pour aal2 et anon).
+-- 42501 : PostgREST répond 403 à un compte connecté.
+create or replace function public.exiger_second_facteur()
+returns void
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_chemin text;
+  v_methode text;
+begin
+  if v_uid is null or coalesce((select auth.jwt()) ->> 'aal', '') = 'aal2' then
+    return;
+  end if;
+  if not exists (select 1 from auth.mfa_factors f where f.user_id = v_uid and f.status = 'verified') then
+    return;
+  end if;
+  -- PostgREST pose request.path sans le préfixe /rest/v1 que retire la passerelle (« /memberships », « /rpc/… »).
+  v_chemin := regexp_replace(coalesce(current_setting('request.path', true), ''), '^/*(rest/v1/)?', '');
+  v_methode := upper(coalesce(current_setting('request.method', true), ''));
+  if (v_chemin = 'memberships' and v_methode in ('GET', 'HEAD'))
+     or (v_chemin = 'rpc/ma_session_active' and v_methode in ('GET', 'HEAD', 'POST')) then
+    return;
+  end if;
+  raise exception 'Second facteur requis : saisissez le code de votre application d’authentification pour continuer.'
+    using errcode = '42501',
+          hint = 'Votre compte a activé la double authentification ; le mot de passe seul n’ouvre pas ses données.';
+end;
+$$;
+comment on function public.exiger_second_facteur() is
+  'Fonction de pré-requête de PostgREST (pgrst.db_pre_request) : refuse toute requête d''un compte à second facteur vérifié resté en aal1, sauf la lecture de ses adhésions et de sa session par le sas (audit final, PUB-01).';
+-- PostgREST l'appelle sous le rôle de la requête, anon compris : sans ce droit, toute requête anonyme échouerait. Elle
+-- ne rend rien et ne fait rien pour anon (aucune identité). Inscrite à ce titre dans les exceptions de
+-- fermer_fonctions_a_anon (ci-dessous), seul endroit où une fonction peut rester ouverte à anon.
+revoke all on function public.exiger_second_facteur() from public;
+grant execute on function public.exiger_second_facteur() to anon, authenticated, service_role;
+
+-- fermer_fonctions_a_anon, reprise de sa définition en vigueur (20260911290000), avec sa première exception.
+create or replace function public.fermer_fonctions_a_anon()
+returns integer
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  f record;
+  -- Aucune fonction du produit n'a besoin d'être appelée sans être connecté :
+  -- le seul geste public du site — la demande de devis — écrit dans une table,
+  -- sous politique RLS, pas par RPC. Si un jour il en faut une (un webhook
+  -- signé, par exemple), elle s'ajoute ICI, avec la raison en commentaire —
+  -- et le test cesse alors de la compter.
+  --  · exiger_second_facteur (audit final du 27/10/2026, PUB-01) : la fonction de pré-requête de PostgREST, appelée
+  --    sous le rôle de CHAQUE requête, anonyme comprise. Elle ne fait rien sans identité.
+  v_publiques text[] := array['exiger_second_facteur']::text[];
+  v_auth boolean;
+  v_svc boolean;
+  v_n integer := 0;
+begin
+  for f in
+    select p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.prokind = 'f'
+      and has_function_privilege('anon', p.oid, 'EXECUTE')
+    order by p.proname
+  loop
+    if f.proname = any(v_publiques) then continue; end if;
+
+    -- CE QUI SE PASSE AVANT DE RETIRER, ET POURQUOI. Le droit de `anon` peut
+    -- venir de deux endroits : une mention explicite, ou le droit de PUBLIC —
+    -- celui que PostgreSQL accorde d'office et qui revient après un DROP. Il
+    -- faut retirer les deux, sinon on ne ferme rien. Mais PUBLIC couvre AUSSI
+    -- `authenticated` et `service_role` : sur une fonction dont c'est la seule
+    -- source de droit, le retirer les mettrait dehors avec `anon`, et la moitié
+    -- du produit tomberait. On note donc ce qu'ils peuvent AVANT, et on le leur
+    -- rend nommément APRÈS. Le droit ne change pour personne sauf `anon`.
+    v_auth := has_function_privilege('authenticated', f.oid, 'EXECUTE');
+    v_svc := has_function_privilege('service_role', f.oid, 'EXECUTE');
+
+    execute format('revoke execute on function public.%I(%s) from public, anon',
+                   f.proname, f.args);
+    if v_auth then
+      execute format('grant execute on function public.%I(%s) to authenticated',
+                     f.proname, f.args);
+    end if;
+    if v_svc then
+      execute format('grant execute on function public.%I(%s) to service_role',
+                     f.proname, f.args);
+    end if;
+    v_n := v_n + 1;
+  end loop;
+  return v_n;
+end;
+$$;
+comment on function public.fermer_fonctions_a_anon() is
+  'Retire à anon et à PUBLIC le droit d''exécuter toute fonction du schéma public. À APPELER EN FIN DE TOUTE MIGRATION qui crée ou REFAIT (drop/create) une fonction : un DROP rend les droits par défaut, et la fonction renaît ouverte.';
+revoke execute on function public.fermer_fonctions_a_anon() from public, anon, authenticated;
+
+-- L'enregistrement auprès de PostgREST. Une autre fonction de pré-requête déjà configurée n'est pas écrasée en silence :
+-- la migration s'arrête, il faut les chaîner (aucune dans ce dépôt au 28/10). Base sans le rôle `authenticator` (base
+-- de test montée sans le bootstrap du banc) : rien à configurer.
+do $garde$
+declare
+  v_actuelle text;
+begin
+  if to_regrole('authenticator') is null then
+    raise notice 'Rôle authenticator absent : pgrst.db_pre_request non configuré.';
+    return;
+  end if;
+  select substr(s, length('pgrst.db_pre_request=') + 1) into v_actuelle
+    from pg_catalog.pg_db_role_setting r, unnest(r.setconfig) s
+   where r.setrole = 'authenticator'::regrole and r.setdatabase = 0 and s like 'pgrst.db_pre_request=%';
+  if coalesce(v_actuelle, '') not in ('', 'public.exiger_second_facteur') then
+    raise exception 'pgrst.db_pre_request vaut déjà « % » : chaîner cette fonction avec public.exiger_second_facteur avant de migrer', v_actuelle;
+  end if;
+  alter role authenticator set pgrst.db_pre_request = 'public.exiger_second_facteur';
+end $garde$;
+notify pgrst, 'reload config';
+
+-- La demande d'archive complète exigeait « second facteur, ou mot de passe saisi il y a moins de quinze minutes » :
+-- pour un compte qui a un facteur, le mot de passe récent ne suffit plus. Reprise de la définition en vigueur
+-- (20261024130000), seule la preuve récente change.
+create or replace function public.demander_export_complet(p_org uuid)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := (select auth.uid());
+  v_id uuid;
+  v_recent boolean;
+begin
+  if v_uid is null then raise exception 'Connexion requise' using errcode = '42501'; end if;
+  if not exists (select 1 from public.memberships m
+                  where m.account_id = v_uid and m.organization_id = p_org and m.status = 'active'
+                    and m.role in ('admin_agence', 'proprietaire_direct')) then
+    raise exception 'Réservé au titulaire de l''espace' using errcode = '42501';
+  end if;
+  if not (select public.niveau_assurance_suffisant()) then
+    raise exception 'Confirmez votre identité avec le code de votre application d’authentification'
+      using errcode = '42501';
+  end if;
+  select coalesce((select auth.jwt()) ->> 'aal', '') = 'aal2'
+      or exists (select 1 from jsonb_array_elements(coalesce((select auth.jwt()) -> 'amr', '[]'::jsonb)) e
+                  where e ->> 'method' = 'password'
+                    and coalesce((e ->> 'timestamp')::bigint, 0) >= extract(epoch from now())::bigint - 900)
+    into v_recent;
+  if not v_recent then
+    raise exception 'Confirmez votre identité : second facteur, ou nouvelle connexion avec votre mot de passe'
+      using errcode = '42501';
+  end if;
+  perform pg_catalog.pg_advisory_xact_lock(620240, pg_catalog.hashtext(p_org::text));
+  if exists (select 1 from public.exports_complets x
+              where x.organisation_id_export = p_org and x.statut in ('demande', 'en_cours')
+                and x.demande_le > now() - interval '1 hour') then
+    raise exception 'Une archive est déjà en préparation pour cet espace' using errcode = '23505';
+  end if;
+  if (select count(*) from public.exports_complets x
+       where x.organisation_id_export = p_org and x.demande_le > now() - interval '24 hours') >= 3 then
+    raise exception 'Trois archives au plus par jour : réessayez demain' using errcode = '54000';
+  end if;
+  insert into public.exports_complets (organisation_id_export, demande_par) values (p_org, v_uid) returning id into v_id;
+  insert into public.audit_log (account_id, organization_id, action, details)
+  values (v_uid, p_org, 'export_complet_demande', jsonb_build_object('export_id', v_id));
+  return v_id;
+end $$;
+revoke all on function public.demander_export_complet(uuid) from public, anon;
+grant execute on function public.demander_export_complet(uuid) to authenticated;
 
 -- En dernier : toutes les fonctions ci-dessus existent (abonnement_appliquer, org_suspendue_par_supervision…).
 select public.poser_gardes_second_facteur();

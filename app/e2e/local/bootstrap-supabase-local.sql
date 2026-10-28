@@ -14,7 +14,13 @@ do $$ begin
   if not exists (select from pg_roles where rolname = 'service_role') then
     create role service_role nologin bypassrls;
   end if;
+  -- Le rôle de connexion de PostgREST, comme sur Supabase : il porte la configuration en base de l'API
+  -- (`pgrst.db_pre_request`, garde du second facteur, migration 20261028100000), que l'émulateur relit comme PostgREST.
+  if not exists (select from pg_roles where rolname = 'authenticator') then
+    create role authenticator noinherit nologin;
+  end if;
 end $$;
+grant anon, authenticated, service_role to authenticator;
 
 grant anon, authenticated, service_role to current_user;
 grant usage on schema public to anon, authenticated, service_role;
@@ -83,6 +89,9 @@ create table if not exists auth.mfa_factors (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+-- Même index que Supabase Auth : la garde du second facteur (exiger_second_facteur) y lit les facteurs du compte à
+-- chaque requête de l'API.
+create index if not exists mfa_factors_user_id_idx on auth.mfa_factors (user_id);
 revoke all on auth.mfa_factors from anon, authenticated;
 
 -- Sous-ensemble des jetons utilisé par le bouton de confirmation du banc UI.

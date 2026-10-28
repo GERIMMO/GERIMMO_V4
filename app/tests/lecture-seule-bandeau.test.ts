@@ -33,13 +33,13 @@ describe("le bandeau", () => {
   });
   it("essai échu et impayé gardent leurs textes et le lien vers l'abonnement", () => {
     expect(bandeauLectureSeule({ cause: "essai", estResponsable: true, base: BASE })).toEqual({
-      etat: "Période d'essai terminée — lecture seule",
-      suite: "activez l'abonnement pour continuer à saisir.",
+      etat: "Période d’essai terminée — lecture seule",
+      suite: "activez l’abonnement pour continuer à saisir.",
       lien: { href: `${BASE}/abonnement`, libelle: "Choisir ma formule →" },
     });
     const agent = bandeauLectureSeule({ cause: "abonnement", estResponsable: false, base: BASE });
     expect(agent.etat).toBe("Abonnement inactif ou impayé — lecture seule");
-    expect(agent.suite).toBe("votre administrateur doit activer l'abonnement pour que la saisie reprenne.");
+    expect(agent.suite).toBe("votre administrateur doit activer l’abonnement pour que la saisie reprenne.");
     expect(agent.lien).toBeUndefined();
   });
 });

@@ -25,15 +25,15 @@ export function bandeauLectureSeule(params: {
       etat: `${status === "archivee" ? "Espace archivé" : "Espace suspendu"} par Gerimmo — lecture seule`,
       suite: estResponsable
         ? "pour en connaître la raison ou demander la réouverture, écrivez-nous."
-        : "seul Gerimmo peut rouvrir la saisie ; votre administrateur peut nous écrire.",
+        : "seul Gerimmo peut rouvrir la saisie\u00a0; votre administrateur peut nous écrire.",
       ...(estResponsable ? { lien: { href: "/assistance", libelle: "Écrire à l’assistance →" } } : {}),
     };
   }
   return {
-    etat: cause === "essai" ? "Période d'essai terminée — lecture seule" : "Abonnement inactif ou impayé — lecture seule",
+    etat: cause === "essai" ? "Période d’essai terminée — lecture seule" : "Abonnement inactif ou impayé — lecture seule",
     suite: estResponsable
-      ? "activez l'abonnement pour continuer à saisir."
-      : "votre administrateur doit activer l'abonnement pour que la saisie reprenne.",
+      ? "activez l’abonnement pour continuer à saisir."
+      : "votre administrateur doit activer l’abonnement pour que la saisie reprenne.",
     ...(estResponsable ? { lien: { href: `${base}/abonnement`, libelle: "Choisir ma formule →" } } : {}),
   };
 }

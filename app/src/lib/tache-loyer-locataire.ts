@@ -1,5 +1,6 @@
 import { deElide } from "@/lib/elision";
 import { eur } from "@/lib/ged";
+import { accordMontant } from "@/lib/finances";
 
 /** Une ligne de l'échéancier du locataire (mon_echeancier_locataire) en retard : impayée ou partiellement réglée. */
 export type EcheanceEnRetard = {
@@ -50,6 +51,6 @@ export function tacheLoyerEnRetard(retards: EcheanceEnRetard[]): { titre: string
     : `Loyers ${deElide(listerMois(lignes.map((l) => l.periode)))} à régler`;
   return {
     titre,
-    detail: `${eur(total)} restent dus sur ${lignes.length} échéances, dont ${eur(resteCentimes(premiere) / 100)} ${deElide(moisLongLocataire(premiere.periode))}, à régler par virement à votre gestionnaire.`,
+    detail: `${eur(total)} ${accordMontant(total, "reste dû", "restent dus")} sur ${lignes.length} échéances, dont ${eur(resteCentimes(premiere) / 100)} ${deElide(moisLongLocataire(premiere.periode))}, à régler par virement à votre gestionnaire.`,
   };
 }

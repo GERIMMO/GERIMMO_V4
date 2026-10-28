@@ -116,8 +116,11 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
         <>
           <form data-saisie-confirmee action={actionEnc} className="relative z-10 inline-flex flex-wrap items-center gap-1.5">
             <BoutonEnvoi size="sm" variant="outline">
+              {/* Le montant reste celui de CE terme : c'est ce que vérifie la base (encaisser_reste_atomique, reste attendu).
+                  L'imputation au plus ancien (RM-3.3.2) en sert d'abord la dette antérieure : le libellé dit combien, pour
+                  ne pas laisser croire que les 700 € soldent le mois le plus ancien (troisième relecture). */}
               {termeServiDAbord
-                ? `Encaisser ${eur(reste)} (${moisEnFrancais(termeServiDAbord)} d'abord)`
+                ? `Encaisser ${eur(reste)} (dont ${eur(Math.min(reste, detteAnterieure))} pour ${moisEnFrancais(termeServiDAbord)})`
                 : `Encaisser ${eur(reste)}`}
             </BoutonEnvoi>
           </form>

@@ -6,7 +6,8 @@
 -- Défait : rend à `enregistrer_conge` son texte de 20260929150000 et à `annuler_conge` celui de 20260803_annuler_conge (sans
 -- l'ajustement du dernier terme) ; retire `ajuster_appel_fin_de_bail(uuid, date)`, `montants_appel_loyer(uuid, date, numeric, numeric)`,
 -- `poser_alerte_terme(…)`, `suivre_document_remplace(uuid, uuid)`, `mois_de_periode(date)`, `montant_alerte(numeric)` et les
--- déclencheurs `appel_loyer_base_mensuelle` (appels_loyer) et `quittance_suit_document_remplace` (quittances) avec leurs fonctions ;
+-- déclencheurs `appel_loyer_base_mensuelle` (appels_loyer) et `quittance_suit_document_remplace` (quittances) avec leurs fonctions,
+-- et l'index `alerts_document_remplace_ouverte_idx` ; rend à `montants_reels_bail` son texte de 20260927104000 ;
 -- retire la garde du centime d'`encaisser_depot` (remplacement inverse à compte exact de l'ancre, sinon arrêt sans rien
 -- modifier) ; retire les quatre contraintes du centime ; supprime la version.
 -- CONSERVE : les appels de loyer déjà recalculés par un congé (ils sont justes), les quittances resynchronisées, les
@@ -238,6 +239,33 @@ drop trigger if exists appel_loyer_base_mensuelle on public.appels_loyer;
 drop function if exists public.appel_loyer_fixe_base();
 drop function if exists public.mois_de_periode(date);
 drop function if exists public.montant_alerte(numeric);
+drop index if exists public.alerts_document_remplace_ouverte_idx;
+
+-- montants_reels_bail : texte de 20260927104000 (tous les appels comptent comme dus).
+create or replace function public.montants_reels_bail(p_bail uuid)
+ returns table(depot numeric, impayes numeric, trop_percu numeric)
+ language sql
+ stable security definer
+ set search_path to ''
+as $function$
+  with net as (
+    select
+      coalesce((select sum(montant_du) from public.appels_loyer where bail_id = p_bail), 0)
+      -- ecart = provisions − réel : un écart négatif est un complément dû par
+      -- le locataire, un écart positif un trop-perçu qui lui revient.
+      - coalesce((select sum(ecart) from public.regularisations_charges where bail_id = p_bail), 0)
+      - coalesce((select sum(montant) from public.encaissements where bail_id = p_bail), 0) as solde
+  )
+  select
+    -- Le dépôt à restituer est celui qui a été ENCAISSÉ (audit 09/09)
+    coalesce((select sum(montant) from public.depot_encaissements where bail_id = p_bail), 0),
+    round(greatest(0, net.solde), 2),
+    round(greatest(0, - net.solde), 2)
+  from net;
+$function$;
+comment on function public.montants_reels_bail(uuid) is null;
+revoke execute on function public.montants_reels_bail(uuid) from public, anon, authenticated;
+grant execute on function public.montants_reels_bail(uuid) to service_role;
 
 do $retour$
 declare v_def text; v_ancre text;

@@ -194,6 +194,8 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     const [alerte] = await alertes();
     expect(alerte).toMatchObject({ statut: "ouverte", origine_id: bail, motif: "appel_apres_fin" });
     expect(alerte.titre).toContain("appelé après la fin du bail");
+    // Réglé (l'imputation y porte l'excédent du mois de sortie) : non dû, ce qui a été versé revient au locataire.
+    expect(alerte.titre).toContain("non dû, ce qui a été versé dessus revient au locataire");
     // Le locataire reste finalement : le mois de sortie redevient plein, le terme suivant redevient dû, l'alerte se ferme.
     await db.query("select public.annuler_conge($1,'TEST rétractation')", [bail]);
     expect(await appel(precedent)).toMatchObject({ montant_du: "500.00", prorata: false });
@@ -366,6 +368,74 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     await db.query("select public.enregistrer_conge($1,'locataire',($2::date - interval '2 months' + interval '24 days')::date,1::smallint)", [bail, mois]);
     expect(await quittance(mois)).toMatchObject([{ est_quittance: true, montant: "500.00" }]);
     expect(await alertes("document_envoye_remplace")).toMatchObject([{ statut: "fermee", closed_action: "Document revenu à celui envoyé au locataire" }]);
+  });
+
+  it("reçu envoyé, congé tardif puis annulation : le reçu redevenu identique reprend sa marque d'envoi ; un second congé rouvre une alerte", async () => {
+    // Troisième relecture du 28/10 (N2) : sans la marque, le gérant voyait « Envoyer le reçu » et le remplacement suivant
+    // passait sans alerte.
+    await db.query("reset role");
+    await db.query("select public.supprimer_encaissement(e.id,'TEST paiement partiel') from public.encaissements e where e.bail_id=$1 and e.date_paiement>=$2", [bail, mois]);
+    await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,300,$3,'virement')", [org, bail, mois]);
+    const envoi = (await db.query("update public.quittances q set email_envoye_at=now() - interval '3 days' from public.appels_loyer a where a.id=q.appel_id and a.bail_id=$1 and a.periode=$2 returning q.email_envoye_at::text e, q.date_emission::text d", [bail, mois])).rows[0];
+    await agir(compte);
+    const congeTardif = () => db.query("select public.enregistrer_conge($1,'locataire',($2::date - interval '2 months' + interval '24 days')::date,1::smallint)", [bail, mois]);
+    const etatEnvoi = async () => {
+      await db.query("reset role");
+      const r = (await db.query("select q.est_quittance, q.montant::text, q.email_envoye_at::text e, q.date_emission::text d from public.quittances q join public.appels_loyer a on a.id=q.appel_id where a.bail_id=$1 and a.periode=$2", [bail, mois])).rows[0];
+      await agir(compte);
+      return r;
+    };
+    const ouvertes = async () => (await alertes("document_envoye_remplace")).filter((a) => a.statut === "ouverte");
+
+    await congeTardif();
+    expect(await etatEnvoi()).toMatchObject({ est_quittance: false, e: null });
+    expect(await ouvertes()).toHaveLength(1);
+
+    await db.query("select public.annuler_conge($1,'TEST rétractation')", [bail]);
+    // Revenu à l'identique : marque d'envoi et date d'émission d'origine, aucune alerte ouverte.
+    expect(await etatEnvoi()).toEqual({ est_quittance: false, montant: "300.00", e: envoi.e, d: envoi.d });
+    expect(await ouvertes()).toHaveLength(0);
+    expect((await alertes("document_envoye_remplace"))[0]).toMatchObject({ statut: "fermee", closed_action: "Document revenu à celui envoyé au locataire" });
+
+    await congeTardif();
+    expect(await etatEnvoi()).toMatchObject({ est_quittance: false, e: null });
+    const [nouvelle] = await ouvertes();
+    expect(nouvelle.titre).toContain("pour 300,00\u00a0€ est remplacé par un reçu de");
+  });
+
+  it("décompte de sortie (D1) : le terme appelé après la fin ne compte pas ; non payé, l'alerte dit de ne pas le réclamer", async () => {
+    // Troisième relecture du 28/10 : avant, ce terme (500 €) était retenu sur le dépôt.
+    const precedent = (await db.query("select ($1::date - interval '1 month')::date::text m", [mois])).rows[0].m;
+    await db.query("reset role");
+    await db.query("select public.supprimer_encaissement(e.id,'TEST impayé') from public.encaissements e where e.bail_id=$1 and e.date_paiement>=$2", [bail, precedent]);
+    await agir(compte);
+    await db.query("select public.enregistrer_conge($1,'locataire',($2::date - interval '2 months' + interval '24 days')::date,1::smallint)", [bail, mois]);
+    const du = (await appel(precedent)).montant_du;
+    await db.query("reset role");
+    expect((await db.query("select impayes::text, trop_percu::text from public.montants_reels_bail($1)", [bail])).rows[0]).toEqual({ impayes: du, trop_percu: "0.00" });
+    await agir(compte);
+    const [alerte] = (await alertes()).filter((a) => a.motif === "appel_apres_fin");
+    expect(alerte.titre).toContain("500,00\u00a0€ non dus, ne les réclamez pas");
+    expect(alerte.consigne).toContain("il n’est pas dû, ne le réclamez pas");
+    // Le locataire avait tout réglé (2 000 € sur quatre mois) : le trop versé lui revient au décompte.
+    await db.query("reset role");
+    await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,500,$3,'virement')", [org, bail, precedent]);
+    const attendu = (500 - Number(du)).toFixed(2);
+    expect((await db.query("select impayes::text, trop_percu::text from public.montants_reels_bail($1)", [bail])).rows[0]).toEqual({ impayes: "0.00", trop_percu: attendu });
+  });
+
+  it("décompte de sortie (D2) : quittance de 500 € déjà envoyée pour un dernier terme dû au prorata : le trop-perçu revient au locataire", async () => {
+    await db.query("reset role");
+    await db.query("update public.quittances q set email_envoye_at=now() from public.appels_loyer a where a.id=q.appel_id and a.bail_id=$1 and a.periode=$2", [bail, mois]);
+    await agir(compte);
+    await conge();
+    expect(await appel(mois)).toMatchObject({ montant_du: "500.00" });
+    const total = (await attendu25()).total;
+    await db.query("reset role");
+    expect((await db.query("select impayes::text, trop_percu::text from public.montants_reels_bail($1)", [bail])).rows[0])
+      .toEqual({ impayes: "0.00", trop_percu: (500 - Number(total)).toFixed(2) });
+    await agir(compte);
+    expect((await alertes())[0].consigne).toContain(`Le décompte de sortie ne retient que les ${total.replace(".", ",")}\u00a0€ dus.`);
   });
 
   it("COD-03 : une écriture héritée à millièmes reste annulable (la contre-écriture recopie son montant)", async () => {

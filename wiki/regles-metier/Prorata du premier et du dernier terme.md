@@ -53,9 +53,15 @@ d'échéance, quittance, décompte de prorata.
   régulariser » est posée au gérant. Même alerte pour un terme appelé **après** la fin du bail (congé saisi très tard) : il
   n'est jamais supprimé ni modifié automatiquement. L'application n'a **pas d'outil de régularisation** d'un terme appelé
   (évolution future, décision du 28/10) : l'alerte et la ligne du terme sur le bail donnent le **montant exact** (appelé en
-  trop ou non appelé) et la consigne « à régulariser avec le locataire (remboursement, ou déduction au solde de tout
-  compte) » — le [[Quittancement des loyers]] intègre trop-perçu et dettes au [[Solde de tout compte]]. Le décompte de sortie
-  de Gerimmo (`montants_reels_bail`) compte encore le montant **appelé** : la consigne le dit.
+  trop ou non appelé) et quoi faire. Terme appelé après la fin et **non payé** : « il n'est pas dû, ne le réclamez pas ».
+  Terme **payé** (ou trop appelé et quittancé) : ce qui a été versé revient au locataire, « trop-perçu au solde de tout
+  compte, ou remboursement » — le [[Quittancement des loyers]] intègre trop-perçu et dettes au [[Solde de tout compte]],
+  qui prévoit la ligne « Trop-perçu éventuel — dû au locataire ».
+- **Décompte de sortie** (`montants_reels_bail`, décision du 28/10) : il compte ce qui est **dû jusqu'à la fin du bail**.
+  Un terme appelé après le mois de fin compte pour 0 ; le terme du mois de fin compte pour son montant dû, recalculé sur
+  sa base (même s'il a été figé au mois plein par une quittance envoyée). Exemples : fin au 25/09, octobre appelé 500 € non
+  payé, 2 000 € versés → trop-perçu 83,33 € (et non « impayés 416,67 € » retenus sur le dépôt) ; quittance d'octobre de
+  500 € envoyée, 403,22 € dus → trop-perçu 96,78 €. Aucun appel n'est modifié.
 - Le mois d'entrée et les mois pleins antérieurs ne sont **jamais** recalculés. La clôture anticipée du bail
   (`terminer_bail`, décision D34) laisse les montants tels quels.
 - **Base du recalcul : la base mensuelle qui a émis l'appel**, jamais le loyer révisé depuis (relectures du 28/10). Chaque
@@ -65,11 +71,14 @@ d'échéance, quittance, décompte de prorata.
   le 20/10, congé tardif avec fin le 25/09 → septembre = 375,00 + 41,67 = **416,67 €** (et non 443,45 €) ; appel d'octobre
   émis à 500,00 €, révision le 20/10 (ou le 01/10), congé avec fin le 25/10 puis annulation → octobre revient à **500,00 €**
   (et non 532,14 €). Appels antérieurs à la migration : mois plein = ses montants ; prorata = ancien loyer de la première
-  révision **enregistrée** après l'appel, à défaut le loyer du bail.
+  révision **enregistrée** après l'appel (même horodatage = même transaction, la révision est tenue pour postérieure : dans
+  l'application révision et émission sont deux gestes distincts), à défaut le loyer du bail.
 - Une quittance ou un reçu **déjà envoyé d'un autre terme** que la nouvelle imputation des règlements change est **réécrit**
   (il reste cohérent avec l'écran du bail : montant, versements listés, solde) et redevient « à envoyer ». Une alerte
   « Document envoyé remplacé » dit ce qui a été envoyé (nature, date, montant) et ce qui le remplace ; elle suit les
-  encaissements suivants et se ferme quand le nouveau document part au locataire (ou redevient identique à l'envoyé).
+  encaissements suivants et se ferme quand le nouveau document part au locataire, ou quand il redevient identique à
+  l'envoyé : il reprend alors sa marque d'envoi et sa date d'émission d'origine, et un remplacement ultérieur rouvre une
+  alerte.
   Décision du 28/10 : rien n'est remis en l'état, un document recomposé à la lecture ne peut pas être figé sans gel des
   versements imprimés.
 - Un **avis d'échéance déjà envoyé** dont le montant change : alerte d'information qui garde le montant de l'avis **envoyé**
@@ -93,7 +102,8 @@ d'échéance, quittance, décompte de prorata.
 
 > [!warning] Points à trancher / contradictions
 > - Régularisation d'un terme déjà quittancé ou appelé après la fin du bail : aucun outil (avoir, annulation de terme) dans
->   l'application au 28/10 ; le décompte de sortie compte le montant appelé. Évolution à décider.
+>   l'application au 28/10 ; le décompte de sortie compte le montant dû, mais l'échéancier et les relances voient encore
+>   le terme appelé. Évolution à décider.
 > - La règle d'arrondi n'a pas de source réglementaire : c'est une convention du dépôt (migration du 03/08/2026), cohérente
 >   avec la pratique (loyer et charges distincts sur la quittance, art. 21 de la loi du 6 juillet 1989). À confirmer si un
 >   texte ou une jurisprudence impose un autre mode de calcul (par exemple sur 30 jours fixes).

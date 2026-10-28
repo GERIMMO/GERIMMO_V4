@@ -7263,3 +7263,9 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   envoyé remplacé » jusqu'au renvoi ; l'alerte d'avis recalculé garde le montant envoyé et se ferme s'il y revient ; les
   alertes « Terme à régulariser » donnent le montant exact et mènent à la ligne du terme. Page
   [[Prorata du premier et du dernier terme]] mise à jour (signature de `montants_appel_loyer`, point à trancher ajouté).
+
+## [2026-10-28] fix | Troisième relecture du chantier « loyers : calculs » — décompte de sortie sur le dû, document revenu à l'identique
+- Le décompte de sortie compte ce qui est dû jusqu'à la fin du bail : un terme appelé après la fin ne pèse plus sur le
+  dépôt, le trop appelé d'un dernier terme quittancé revient au locataire en trop-perçu. Un document revenu identique à
+  celui envoyé reprend sa marque d'envoi ; un terme après la fin non payé : « ne le réclamez pas ». Page
+  [[Prorata du premier et du dernier terme]] mise à jour.

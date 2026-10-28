@@ -25,6 +25,9 @@
 --    envoyé recalculé est signalé (montant de l'avis envoyé gardé, alerte fermée s'il y revient) ; les alertes devenues
 --    sans objet (congé annulé) se ferment.
 --    La clôture anticipée (`terminer_bail`, décision D34) laisse volontairement les montants : inchangée.
+--    Le décompte de sortie (`montants_reels_bail`, section 7) compte ce qui est DÛ jusqu'à la fin du bail : un terme
+--    appelé après la fin ne pèse plus sur le dépôt, et le trop appelé d'un dernier terme déjà quittancé revient au
+--    locataire en trop-perçu (troisième relecture du 28/10).
 --
 -- 2. Le dépôt de garantie s'exprime au centime (COD-03).
 --    Avant : `encaisser_depot` (security definer, exécutable par un compte connecté) acceptait 10,005 € par appel RPC
@@ -106,6 +109,11 @@ revoke execute on function public.montants_appel_loyer(uuid, date, numeric, nume
 --      `generer_appels_loyer_interne` vient d'utiliser. Un recalcul au prorata garde la base mémorisée.
 --    · Appels existants (colonnes ajoutées, aucune autre valeur touchée) : mois plein = ses propres montants ; prorata =
 --      ancien loyer de la première révision ENREGISTRÉE après l'appel, à défaut le loyer du bail ; charges du bail.
+--      Égalité des horodatages (troisième relecture du 28/10) : created_at vaut l'heure de début de TRANSACTION ; une
+--      révision et un appel au même created_at sont nés dans la même transaction. Dans l'application, `reviser_loyer` et
+--      la génération des appels sont deux appels distincts (deux transactions) : l'égalité ne se voit que dans un script
+--      de reprise ou de données, qui crée le bail, émet ses appels PUIS le révise. La révision est donc tenue pour
+--      postérieure (>=) : l'appel est parti de son ancien loyer. Départage stable : created_at, puis id.
 -- ---------------------------------------------------------------------------------------------------------------
 alter table public.appels_loyer add column if not exists base_loyer_hc numeric;
 alter table public.appels_loyer add column if not exists base_charges numeric;
@@ -122,8 +130,8 @@ begin
   update public.appels_loyer a
      set base_loyer_hc = case when not a.prorata then a.loyer_hc else coalesce(
            (select rv.ancien_loyer from public.revisions_loyer rv
-             where rv.bail_id = a.bail_id and rv.created_at > a.created_at
-             order by rv.created_at asc limit 1),
+             where rv.bail_id = a.bail_id and rv.created_at >= a.created_at
+             order by rv.created_at asc, rv.id asc limit 1),
            (select b.loyer_hc from public.baux b where b.id = a.bail_id)) end,
          base_charges = case when not a.prorata then a.charges
            else (select b.charges from public.baux b where b.id = a.bail_id) end
@@ -250,9 +258,17 @@ begin
       continue;
     end if;
     if v_trouve and q.est_quittance = v_quittance and q.montant = v_montant then
+      -- Le document redevient celui que le locataire a reçu (troisième relecture du 28/10) : il en reprend la marque
+      -- d'envoi et la date d'émission d'origine (gardées complètes dans l'alerte, jamais écrasées). Sans cela, le gérant
+      -- verrait « Envoyer » pour un document déjà délivré, et un nouveau remplacement passerait sans alerte. L'alerte est
+      -- fermée AVANT : la mise à jour de la quittance ne la retrouve plus (pas de boucle du déclencheur).
       update public.alerts set statut = 'fermee', closed_at = now(), closed_by = null,
              closed_action = 'Document revenu à celui envoyé au locataire', updated_at = now()
        where id = al.id;
+      update public.quittances
+         set email_envoye_at = (al.details ->> 'envoye_at')::timestamptz,
+             date_emission = coalesce((al.details ->> 'date_emission_envoyee')::date, date_emission)
+       where appel_id = p_appel and email_envoye_at is null and al.details ? 'envoye_at';
       continue;
     end if;
 
@@ -355,6 +371,8 @@ declare
   v_qui text;
   v_ecart numeric;
   v_avis numeric;
+  v_couvert numeric;
+  v_au_decompte boolean;
 begin
   select b.id, b.organization_id, b.lot_id, b.date_debut, b.date_fin, b.loyer_hc, b.charges, b.locataire_principal,
          l.nom as lot_nom
@@ -390,16 +408,32 @@ begin
   loop
     if v_fin_mois is not null and r.periode > v_fin_mois then
       -- Terme appelé pour un mois qui suit la fin du bail (congé saisi très tard) : il ne se supprime pas d'ici.
+      -- Ce que le locataire a déjà versé sur ce terme (imputation du plus ancien au plus récent) : non payé, il ne se
+      -- réclame pas ; payé, la somme lui revient (troisième relecture du 28/10).
+      select coalesce(max(eb.montant_couvert), 0) into v_couvert from public.etat_loyers_bail_brut(p_bail) eb where eb.appel_id = r.id;
       perform public.poser_alerte_terme(v.organization_id, p_bail, 'terme_a_regulariser', 'normale',
-        format('Terme %s appelé après la fin du bail (%s) — %s : %s à régulariser avec le locataire',
-          public.mois_de_periode(r.periode), to_char(v.date_fin, 'DD/MM/YYYY'), v_qui, public.montant_alerte(r.montant_du)),
+        case when v_couvert > 0 then
+          -- Sans montant dans le titre : les encaissements suivants le changent ; la ligne du terme dit « couvert … ».
+          format('Terme %s appelé après la fin du bail (%s) — %s : non dû, ce qui a été versé dessus revient au locataire',
+            public.mois_de_periode(r.periode), to_char(v.date_fin, 'DD/MM/YYYY'), v_qui)
+        else
+          format('Terme %s appelé après la fin du bail (%s) — %s : %s non dus, ne les réclamez pas',
+            public.mois_de_periode(r.periode), to_char(v.date_fin, 'DD/MM/YYYY'), v_qui, public.montant_alerte(r.montant_du))
+        end,
         v.date_fin,
         jsonb_build_object('bail_id', p_bail, 'lot_id', v.lot_id, 'appel_id', r.id, 'periode', r.periode,
-                           'montant_appele', r.montant_du, 'montant_du', 0, 'date_fin', v.date_fin, 'motif', 'appel_apres_fin',
-                           'consigne', format('Ce terme suit la fin du bail (%s) : %s appelés sans être dus. Gerimmo ne supprime '
-                             'pas un terme appelé ; à régulariser avec le locataire (remboursement, ou déduction au solde de '
-                             'tout compte). Le décompte de sortie le compte encore comme dû.',
-                             to_char(v.date_fin, 'DD/MM/YYYY'), public.montant_alerte(r.montant_du))));
+                           'montant_appele', r.montant_du, 'montant_du', 0, 'montant_verse', v_couvert,
+                           'date_fin', v.date_fin, 'motif', 'appel_apres_fin',
+                           'consigne', case when v_couvert > 0 then
+                             format('Ce terme suit la fin du bail (%s) : il n’est pas dû (%s appelés). Ce qui a été versé '
+                               'dessus (« couvert » sur cette ligne) revient au locataire : trop-perçu au solde de tout compte, '
+                               'ou remboursement. Gerimmo ne supprime pas un terme appelé ; le décompte de sortie ne le retient pas.',
+                               to_char(v.date_fin, 'DD/MM/YYYY'), public.montant_alerte(r.montant_du))
+                           else
+                             format('Ce terme suit la fin du bail (%s) : il n’est pas dû, ne le réclamez pas (%s appelés). '
+                               'Gerimmo ne supprime pas un terme appelé ; le décompte de sortie ne le retient pas.',
+                               to_char(v.date_fin, 'DD/MM/YYYY'), public.montant_alerte(r.montant_du))
+                           end));
       v_fondees := v_fondees || r.id;
       continue;
     end if;
@@ -409,7 +443,7 @@ begin
     v_base_loyer := coalesce(r.base_loyer_hc,
       case when not coalesce(r.prorata, false) then r.loyer_hc end,
       (select rv.ancien_loyer from public.revisions_loyer rv
-        where rv.bail_id = p_bail and rv.created_at > r.created_at order by rv.created_at asc limit 1),
+        where rv.bail_id = p_bail and rv.created_at >= r.created_at order by rv.created_at asc, rv.id asc limit 1),
       v.loyer_hc);
     v_base_charges := coalesce(r.base_charges, case when not coalesce(r.prorata, false) then r.charges end, v.charges);
     select * into m from public.montants_appel_loyer(p_bail, r.periode, v_base_loyer, v_base_charges);
@@ -421,6 +455,8 @@ begin
     if exists (select 1 from public.quittances x where x.appel_id = r.id and x.email_envoye_at is not null) then
       -- La quittance ou le reçu de ce terme est déjà parti : le document délivré ne se réécrit pas, le gérant régularise.
       v_ecart := r.montant_du - m.montant_du;
+      -- Le mois de fin du bail se compte au décompte de sortie pour son montant DÛ (montants_reels_bail, section 7).
+      v_au_decompte := v.date_fin is not null and r.periode = v_fin_mois;
       perform public.poser_alerte_terme(v.organization_id, p_bail, 'terme_a_regulariser', 'normale',
         format('Terme %s appelé %s au lieu de %s — %s : %s %s',
           public.mois_de_periode(r.periode), public.montant_alerte(r.montant_du), public.montant_alerte(m.montant_du), v_qui,
@@ -433,15 +469,21 @@ begin
                            'motif', 'quittance_envoyee',
                            'consigne', case when v_ecart > 0 then
                              format('Document déjà envoyé : Gerimmo ne modifie pas ce terme. %s appelés en trop (%s appelés, '
-                               '%s dus) ; à régulariser avec le locataire (remboursement, ou déduction au solde de tout '
-                               'compte). Le décompte de sortie compte encore les %s appelés.',
+                               '%s dus) ; à régulariser avec le locataire (trop-perçu au solde de tout compte, ou '
+                               'remboursement). %s',
                                public.montant_alerte(v_ecart), public.montant_alerte(r.montant_du),
-                               public.montant_alerte(m.montant_du), public.montant_alerte(r.montant_du))
+                               public.montant_alerte(m.montant_du),
+                               case when v_au_decompte then format('Le décompte de sortie ne retient que les %s dus.',
+                                 public.montant_alerte(m.montant_du))
+                               else format('Le décompte de sortie compte les %s appelés.', public.montant_alerte(r.montant_du)) end)
                            else
                              format('Document déjà envoyé : Gerimmo ne modifie pas ce terme. %s non appelés (%s appelés, '
-                               '%s dus) ; à régulariser avec le locataire. Le décompte de sortie ne compte que les %s appelés.',
+                               '%s dus) ; à régulariser avec le locataire. %s',
                                public.montant_alerte(-v_ecart), public.montant_alerte(r.montant_du),
-                               public.montant_alerte(m.montant_du), public.montant_alerte(r.montant_du))
+                               public.montant_alerte(m.montant_du),
+                               case when v_au_decompte then format('Le décompte de sortie retient les %s dus.',
+                                 public.montant_alerte(m.montant_du))
+                               else format('Le décompte de sortie ne compte que les %s appelés.', public.montant_alerte(r.montant_du)) end)
                            end));
       v_fondees := v_fondees || r.id;
       continue;
@@ -496,7 +538,8 @@ begin
         'Document envoyé remplacé', null,
         jsonb_build_object('bail_id', p_bail, 'lot_id', v.lot_id, 'appel_id', e.appel_id, 'periode', r.periode,
                            'quittance_id', e.id, 'envoye_est_quittance', e.est_quittance, 'montant_envoye', e.montant,
-                           'envoye_le', to_char((e.email_envoye_at at time zone 'Europe/Paris')::date, 'DD/MM/YYYY')));
+                           'envoye_le', to_char((e.email_envoye_at at time zone 'Europe/Paris')::date, 'DD/MM/YYYY'),
+                           'envoye_at', e.email_envoye_at, 'date_emission_envoyee', e.date_emission));
       -- Le titre et la consigne se composent d'une seule main (section 2), d'après le document actuel.
       perform public.suivre_document_remplace(v.organization_id, e.appel_id);
     end loop;
@@ -803,6 +846,69 @@ comment on constraint appel_charges_postes_montant_centime_check on public.appel
   'Un poste de charges s''exprime au centime près (audit final du 27/10, COD-03).';
 comment on constraint ecritures_montant_centime_check on public.ecritures is
   'Une écriture du journal s''exprime au centime près (audit final du 27/10, COD-03) : tous ses écrivains arrondissent déjà. Une contre-écriture, qui recopie le montant annulé, en est exemptée.';
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- 7. Le décompte de sortie se fonde sur ce qui est DÛ jusqu'à la fin du bail (troisième relecture du 28/10, décision
+--    du dirigeant). Avant : `montants_reels_bail` additionnait tous les appels. Un terme appelé après la fin du bail
+--    (congé saisi tard) et un dernier terme figé au mois plein par une quittance déjà envoyée étaient comptés comme dus :
+--    D1 — fin au 25/09, octobre appelé 500 € non payé, 2 000 € versés : « impayés 416,67 € » retenus sur le dépôt alors
+--    que le locataire a 83,33 € de trop-perçu ; D2 — quittance d'octobre de 500 € envoyée, 403,22 € dus : trop-perçu de
+--    96,78 € absent. Wiki [[Solde de tout compte]] : « Dernier loyer et prorata — dû par le locataire », « Trop-perçu
+--    éventuel — dû au locataire ».
+--    Maintenant, quand le bail a une date de fin (congé enregistré ; `terminer_bail` ne la change pas, D34) :
+--    · un appel d'un mois POSTÉRIEUR au mois de fin compte pour 0 ;
+--    · l'appel du mois de fin compte pour son montant dû, recalculé sur la base qui l'a émis (même règle que la
+--      génération : `montants_appel_loyer`) ; c'est déjà son montant, sauf s'il a été figé par un document envoyé ;
+--    · les autres appels, les régularisations et les encaissements comptent comme avant.
+--    Aucun appel n'est modifié : seul le calcul du décompte change. Un décompte déjà arrêté garde ses montants
+--    (restitutions.impayes / trop_percu) jusqu'à son rafraîchissement, comme avant.
+--    Repart de 20260927104000 (dernière définition).
+-- ---------------------------------------------------------------------------------------------------------------
+create or replace function public.montants_reels_bail(p_bail uuid)
+ returns table(depot numeric, impayes numeric, trop_percu numeric)
+ language sql
+ stable security definer
+ set search_path to ''
+as $function$
+  with fin as (
+    select date_trunc('month', b.date_fin)::date as mois from public.baux b where b.id = p_bail
+  ),
+  dus as (
+    select coalesce(sum(case
+      when f.mois is null or a.periode < f.mois then a.montant_du
+      when a.periode > f.mois then 0
+      when a.base_loyer_hc is null or a.base_charges is null then a.montant_du
+      else (select m.montant_du from public.montants_appel_loyer(p_bail, a.periode, a.base_loyer_hc, a.base_charges) m)
+    end), 0) as du
+    from public.appels_loyer a
+    left join fin f on true
+    where a.bail_id = p_bail
+  ),
+  net as (
+    select
+      (select du from dus)
+      -- ecart = provisions − réel : un écart négatif est un complément dû par
+      -- le locataire, un écart positif un trop-perçu qui lui revient.
+      - coalesce((select sum(ecart) from public.regularisations_charges where bail_id = p_bail), 0)
+      - coalesce((select sum(montant) from public.encaissements where bail_id = p_bail), 0) as solde
+  )
+  select
+    -- Le dépôt à restituer est celui qui a été ENCAISSÉ (audit 09/09)
+    coalesce((select sum(montant) from public.depot_encaissements where bail_id = p_bail), 0),
+    round(greatest(0, net.solde), 2),
+    round(greatest(0, - net.solde), 2)
+  from net;
+$function$;
+comment on function public.montants_reels_bail(uuid) is
+  'Dépôt encaissé, impayés et trop-perçu du bail pour le décompte de sortie : appels DUS jusqu''à la fin du bail (terme après la fin = 0, mois de fin recalculé sur sa base), régularisations, encaissements.';
+revoke execute on function public.montants_reels_bail(uuid) from public, anon, authenticated;
+grant execute on function public.montants_reels_bail(uuid) to service_role;
+
+-- Le déclencheur des quittances cherche l'alerte ouverte d'un appel à chaque écriture : un index partiel la trouve sans
+-- parcourir les alertes ouvertes de l'organisation (troisième relecture : 2,4 ms par ligne avec 20 000 alertes).
+create index if not exists alerts_document_remplace_ouverte_idx
+  on public.alerts (organization_id, (details ->> 'appel_id'))
+  where type = 'document_envoye_remplace' and statut = 'ouverte';
 
 -- Filet commun : aucune fonction de `public` ne reste ouverte à anon.
 select public.fermer_fonctions_a_anon();

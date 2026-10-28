@@ -663,10 +663,24 @@ async function sessionLocaleActive(claims) {
   return rows.length === 1;
 }
 
+// Les facteurs vivent en mémoire (mfa-local.mjs) ; la base en garde le reflet dans auth.mfa_factors, que lit
+// public.niveau_assurance_suffisant() (audit final du 27/10, PUB-01). Recopié après chaque geste sur les facteurs.
+async function refleterFacteurs(compte) {
+  await admin(async (c) => {
+    await c.query("delete from auth.mfa_factors where user_id = $1", [compte]);
+    for (const f of facteursPour(compte)) {
+      await c.query(
+        "insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status) values ($1, $2, $3, 'totp', $4)",
+        [f.id, compte, f.friendly_name ?? null, f.status],
+      );
+    }
+  });
+}
 async function routerAuth(methode, chemin, url, corps, claims) {
   if (chemin === 'factors' || chemin.startsWith('factors/')) {
     if (!await sessionLocaleActive(claims)) return { statut: 401, corps: { msg: 'Session expirée' } };
     const resultat = routerMfaLocal(methode, chemin, corps, claims);
+    if (claims?.sub) await refleterFacteurs(claims.sub);
     if (resultat.valide) {
       const u = await utilisateurParId(claims.sub);
       if (!u) return { statut: 401, corps: { msg: 'Utilisateur disparu' } };
@@ -1020,6 +1034,7 @@ const serveur = http.createServer(async (req, res) => {
     // infranchissable (le secret, lui, était perdu).
     if (req.method === "POST" && url.pathname === "/__banc/oublier-facteurs") {
       oublierFacteurs();
+      await admin((c) => c.query("delete from auth.mfa_factors"));
       return repondreJson(200, { oublies: true });
     }
     const segments = url.pathname.split("/").filter(Boolean);
@@ -1125,6 +1140,10 @@ fs.mkdirSync(STOCKAGE, { recursive: true });
 // poser dans SUPABASE_SERVICE_ROLE_KEY du serveur Next pour que les liens de
 // connexion (inscription, mot de passe oublié, invitations) se fabriquent.
 const CLE_SERVICE = signer({ role: "service_role", iss: "supabase-local" });
+
+// Le magasin de facteurs repart vide à chaque démarrage : son reflet en base aussi, sinon un compte garderait un
+// facteur « vérifié » dont plus personne n'a le secret (audit final du 27/10, PUB-01). Base sans la table : rien.
+await admin((c) => c.query("do $$ begin if to_regclass('auth.mfa_factors') is not null then delete from auth.mfa_factors; end if; end $$"));
 
 serveur.listen(PORT, "127.0.0.1", () => {
   console.log(`Émulateur Supabase local prêt : http://127.0.0.1:${PORT} → ${DB_URL}`);

@@ -5,7 +5,7 @@ import { FormulaireDeconnexion } from '@/components/formulaire-deconnexion';
 import { PurgerCopiesAutresComptes } from "@/components/purger-copies-autres-comptes";
 import { MarqueGerimmo } from '@/components/marque-gerimmo';
 import { FormulaireMfa } from './formulaire-mfa';
-import { destinationApresMfa } from '@/lib/mfa';
+import { aUnFacteurVerifie, destinationApresMfa } from '@/lib/mfa';
 
 export const metadata = { title: 'Sécurité du compte — Gerimmo' };
 
@@ -15,17 +15,15 @@ export default async function PageSecurite({ searchParams }: PageProps<'/securit
   if (!user) redirect('/connexion');
   // Lire son propre rôle reste possible avant le second facteur ; aucune
   // autorisation de supervision n'est accordée par cette lecture.
-  const [{ data: adhesion, error }, { data: niveau, error: erreurNiveau }] = await Promise.all([
-    supabase.from('memberships').select('id').eq('account_id', user.id).eq('role', 'super_admin').eq('status', 'active').limit(1).maybeSingle(),
-    supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
-  ]);
+  const { data: adhesion, error } = await supabase.from('memberships').select('id')
+    .eq('account_id', user.id).eq('role', 'super_admin').eq('status', 'active').limit(1).maybeSingle();
   if (error) throw new Error('Impossible de vérifier les droits du compte.');
   // Audit final du 27/10 (PUB-01) : le sas sert aussi à tout compte qui a activé sa double authentification depuis
-  // « Mon compte » (un facteur vérifié ⇔ nextLevel === 'aal2'), que le proxy renvoie ici avant d'ouvrir l'espace.
-  // Sans adhésion de supervision ni facteur, rien à vérifier : retour aux espaces. Une lecture du niveau en échec
-  // laisse la carte le dire (elle relit elle-même), plutôt que de renvoyer vers un proxy qui ramènerait ici.
+  // « Mon compte », que le proxy renvoie ici avant d'ouvrir l'espace. Le facteur se lit dans l'utilisateur vérifié par
+  // getUser(), jamais dans la session du cookie (relecture du 28/10). Sans adhésion de supervision ni facteur, rien à
+  // vérifier : retour aux espaces.
   const supervision = Boolean(adhesion);
-  if (!supervision && !erreurNiveau && niveau?.nextLevel !== 'aal2') redirect('/espaces');
+  if (!supervision && !aUnFacteurVerifie(user)) redirect('/espaces');
   const params = await searchParams;
   return <main className="mx-auto w-full max-w-xl px-5 py-10 sm:py-16">
     <div className="mb-10 flex items-center justify-between"><MarqueGerimmo tuile /><PurgerCopiesAutresComptes compteId={user.id} /><FormulaireDeconnexion className="lien-discret text-sm">Se déconnecter</FormulaireDeconnexion></div>

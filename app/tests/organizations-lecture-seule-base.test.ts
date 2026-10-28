@@ -36,9 +36,9 @@ describe("fiche de l'organisation en lecture seule (fichiers)", () => {
     expect(retour).toContain("drop function if exists public.organizations_refuser_ecriture_si_fermee();");
     const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
     expect(lisezMoi).toContain(`${MIGRATION}.retour.sql`);
-    // Hors de la chaîne « Ordre complet » (réservée aux migrations qui citent aujourdhui_paris()).
-    expect(lisezMoi).toContain("Hors de la chaîne « Ordre complet » (ne cite pas `aujourdhui_paris()`) ; indépendant des autres retours.");
-    expect(sql).not.toContain("aujourdhui_paris");
+    // abonnement_appliquer cite aujourdhui_paris() : le retour est en tête de la chaîne « Ordre complet ».
+    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\n`20261028100000`/);
+    expect(sql).toContain("public.aujourdhui_paris()");
   });
 });
 
@@ -184,6 +184,28 @@ describe.skipIf(!DB_URL)("fiche de l'organisation en lecture seule (base)", () =
     expect(droits.rows[0].a).toBe(false);
   });
 
+  // Décision déléguée du dirigeant (relecture du 28/10) : un événement Stripe ne lève jamais une suspension de la supervision.
+  it("abonnement_appliquer : Stripe « active » ne lève pas une suspension de la supervision, mais lève celle de l'impayé", async () => {
+    await db.query("reset role");
+    await db.query("insert into public.abonnements (organization_id, stripe_customer_id) values ($1, 'cus_test_drt04')", [org]);
+    const appliquer = async () => {
+      await db.query("reset role");
+      await essai("select public.abonnement_appliquer('cus_test_drt04', 'sub_test', 'active', 1, now() + interval '1 month', false)");
+      return (await db.query("select status from public.organizations where id = $1", [org])).rows[0].status as string;
+    };
+    await agir(superviseur, "aal2");
+    await essai("select public.controler_organisation($1, 'suspendre', null, 'TEST DRT-04 Stripe') r", [org]);
+    expect(await appliquer()).toBe("suspendue");
+    expect((await db.query("select details->>'motif' m from public.audit_log where organization_id = $1 and action = 'abonnement_statut_retenu'", [org])).rows[0]?.m).toBe("suspension_supervision");
+    // Réactivée par la supervision, puis suspendue pour impayé (service) : Stripe rouvre comme avant.
+    await db.query("update public.audit_log set created_at = created_at - interval '1 minute' where organization_id = $1", [org]);
+    await agir(superviseur, "aal2");
+    await essai("select public.controler_organisation($1, 'reactiver', null, 'TEST DRT-04 Stripe fin') r", [org]);
+    await service();
+    await essai("update public.organizations set status = 'suspendue' where id = $1", [org]);
+    expect(await appliquer()).toBe("active");
+  });
+
   it("la migration se rejoue sans erreur et son retour retire le déclencheur et la fonction", async () => {
     await db.query("reset role");
     await db.query(readFileSync(`supabase/migrations/${MIGRATION}.sql`, "utf8"));
@@ -195,7 +217,11 @@ describe.skipIf(!DB_URL)("fiche de l'organisation en lecture seule (base)", () =
       .join("\n");
     await db.query(retour);
     expect((await db.query("select count(*)::int n from pg_trigger where tgname = 'abonnement_organizations'")).rows[0].n).toBe(0);
-    expect((await db.query("select count(*)::int n from pg_proc where proname in ('organizations_refuser_ecriture_si_fermee', 'org_suspendue_par_supervision')")).rows[0].n).toBe(0);
+    expect((await db.query("select count(*)::int n from pg_proc where proname in ('organizations_refuser_ecriture_si_fermee', 'org_suspendue_par_supervision', 'suspension_par_supervision', 'niveau_assurance_suffisant', 'poser_gardes_second_facteur')")).rows[0].n).toBe(0);
+    expect((await db.query("select count(*)::int n from pg_policy where polname = 'second_facteur'")).rows[0].n).toBe(0);
+    expect((await db.query("select count(*)::int n from pg_proc where prosrc like '%uid_second_facteur()%'")).rows[0].n).toBe(0);
+    // abonnement_appliquer a retrouvé son texte d'avant (sans la garde de la supervision).
+    expect((await db.query("select prosrc from pg_proc where proname = 'abonnement_appliquer'")).rows[0].prosrc).not.toContain("suspension_par_supervision");
     // Et la marche avant se rejoue à l'identique.
     await db.query(readFileSync(`supabase/migrations/${MIGRATION}.sql`, "utf8"));
     expect((await db.query("select count(*)::int n from pg_trigger where tgname = 'abonnement_organizations'")).rows[0].n).toBe(1);

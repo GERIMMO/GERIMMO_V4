@@ -28,8 +28,7 @@ import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
 import { baseEspace } from "@/lib/racine-espace";
 import { CHAMPS_PROFIL_INSCRIPTION, CLE_PROFIL_A_CONFIRMER, saisieProfilARetenir } from "@/lib/revalidation-inscription";
 import { autorisationNouveauMotDePasse } from "@/lib/autorisation-nouveau-mot-de-passe";
-import { CLE_PREMIER_MOT_DE_PASSE, premierMotDePasse } from "@/lib/premier-mot-de-passe";
-import { clientDeService } from "@/lib/supabase/service";
+import { effacerMarquePremierMotDePasse, premierMotDePasse } from "@/lib/premier-mot-de-passe";
 
 // La qualité voyage dans les métadonnées jusqu'à la fiche personne, dont la
 // liste est fermée (audit 29/09) : une valeur hors liste est laissée vide
@@ -203,12 +202,7 @@ export async function definirNouveauMotDePasse(
     const { error: erreurConnexion } = await supabase.auth.signInWithPassword({ email: user.email, password: motDePasse });
     sessionParMotDePasse = !erreurConnexion;
   }
-  if (premierChoix) {
-    const { error: erreurMarque } = (await clientDeService()?.auth.admin.updateUserById(user.id, {
-      app_metadata: { [CLE_PREMIER_MOT_DE_PASSE]: false },
-    })) ?? { error: null };
-    if (erreurMarque) console.error("[auth] marque du premier mot de passe non effacée :", erreurMarque.message);
-  }
+  if (premierChoix) await effacerMarquePremierMotDePasse(user.id);
 
   // Sécurité : toute autre session active est invalidée — si quelqu'un était
   // connecté avec l'ancien mot de passe, il est éjecté

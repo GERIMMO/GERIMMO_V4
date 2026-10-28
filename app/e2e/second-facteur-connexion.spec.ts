@@ -62,6 +62,21 @@ test("un propriétaire qui a activé sa double authentification passe par le sas
     expect(new URL(neuf.url()).searchParams.get("suite")).toBe(adresse);
   }
 
+  // 3 bis. Relecture adverse du 28/10 : retirer `factors` de la session du cookie (objet non signé) ne fait pas passer
+  //        le sas — le proxy lit le facteur dans l'utilisateur vérifié par le serveur d'authentification.
+  const fragments = (await contexte.cookies()).filter((k) => /^sb-.*-auth-token(\.\d+)?$/.test(k.name)).sort((a, b) => a.name.localeCompare(b.name));
+  const nom = fragments[0].name.replace(/\.\d+$/, "");
+  const brut = fragments.map((k) => k.value).join("");
+  const session = JSON.parse(brut.startsWith("base64-") ? Buffer.from(brut.slice(7), "base64").toString() : decodeURIComponent(brut));
+  expect((session.user?.factors ?? []).some((f: { status: string }) => f.status === "verified")).toBe(true);
+  delete session.user.factors;
+  const valeur = "base64-" + Buffer.from(JSON.stringify(session)).toString("base64url");
+  const morceaux = valeur.match(/.{1,3180}/g)!;
+  await contexte.clearCookies({ name: new RegExp(`^${nom}`) });
+  await contexte.addCookies(morceaux.map((v, i) => ({ name: morceaux.length === 1 ? nom : `${nom}.${i}`, value: v, url: neuf.url() })));
+  await neuf.goto("/compte");
+  await neuf.waitForURL(/\/securite\?suite=%2Fcompte/, { timeout: 20_000 });
+
   // 4. Le code ouvre l'espace ; « Mon compte » montre alors la protection active, gestes de remplacement ouverts.
   await neuf.getByLabel("Code à six chiffres").fill(totp(secret));
   await neuf.getByRole("button", { name: "Vérifier et continuer" }).click();

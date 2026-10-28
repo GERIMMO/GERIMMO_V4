@@ -72,6 +72,19 @@ create table if not exists auth.sessions (
 );
 revoke all on auth.sessions from anon, authenticated;
 
+-- Les seconds facteurs, comme sur Supabase (sous-ensemble). L'émulateur y reflète son magasin en mémoire (mfa-local.mjs) :
+-- public.niveau_assurance_suffisant() les lit pour exiger aal2 d'un compte qui en a un (audit final du 27/10, PUB-01).
+create table if not exists auth.mfa_factors (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  friendly_name text,
+  factor_type text not null default 'totp',
+  status text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+revoke all on auth.mfa_factors from anon, authenticated;
+
 -- Sous-ensemble des jetons utilisé par le bouton de confirmation du banc UI.
 create table if not exists auth.one_time_tokens (
   id uuid primary key default gen_random_uuid(),

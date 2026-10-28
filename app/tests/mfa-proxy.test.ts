@@ -4,10 +4,12 @@ import { proxy } from '@/proxy';
 const mocks=vi.hoisted(()=>({client:vi.fn()}));
 vi.mock('@supabase/ssr',()=>({createServerClient:mocks.client}));
 beforeEach(()=>vi.clearAllMocks());
-function session(roles=['super_admin'],niveau: string|null='aal1', erreur=false, niveauSuivant: string|null=niveau) {
+// `facteurVerifie` : ce que rend getUser() (serveur d'authentification) ; `niveauSuivant` : ce que la session du cookie
+// prétend (relecture du 28/10 : seul le premier fait foi).
+function session(roles=['super_admin'],niveau: string|null='aal1', erreur=false, niveauSuivant: string|null=niveau, facteurVerifie=niveauSuivant==='aal2') {
   const q={select:vi.fn(()=>q),eq:vi.fn(()=>q),then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data:roles.map(role=>({role})),error:null}).then(resolve)};
   const mfa={getAuthenticatorAssuranceLevel:vi.fn(async()=>({data:{currentLevel:niveau,nextLevel:niveauSuivant},error:erreur?{message:'indisponible'}:null}))};
-  mocks.client.mockReturnValue({from:()=>q,rpc:async()=>({data:[{id:"session-fictive",cree_le:new Date().toISOString()}],error:null}),auth:{getUser:async()=>({data:{user:{id:'compte',last_sign_in_at:new Date().toISOString()}}}),mfa}});
+  mocks.client.mockReturnValue({from:()=>q,rpc:async()=>({data:[{id:"session-fictive",cree_le:new Date().toISOString()}],error:null}),auth:{getUser:async()=>({data:{user:{id:'compte',last_sign_in_at:new Date().toISOString(),factors:facteurVerifie?[{id:'f1',status:'verified'}]:[]}}}),mfa}});
   return mfa;
 }
 describe('Accès web à la supervision',()=>{
@@ -55,6 +57,14 @@ describe('Accès web à la supervision',()=>{
     const m=session(['proprietaire_direct'],'aal1',false,'aal2');
     for(const path of ['/securite','/tarifs','/journal/un-article']) expect((await proxy(new NextRequest('https://gerimmo.test'+path))).headers.get('location')).toBeNull();
     expect(m.getAuthenticatorAssuranceLevel).not.toHaveBeenCalled();
+  });
+  // Relecture adverse du 28/10 : retirer `factors` du cookie faisait tomber nextLevel à aal1 et passer le sas.
+  it('le facteur se lit dans l’utilisateur vérifié, pas dans la session du cookie',async()=>{
+    session(['proprietaire_direct'],'aal1',false,'aal1',true);
+    expect(new URL((await proxy(new NextRequest('https://gerimmo.test/compte'))).headers.get('location')!).pathname).toBe('/securite');
+    // Et l'inverse : une session qui se prétend porteuse d'un facteur n'impose rien à un compte qui n'en a pas.
+    session(['proprietaire_direct'],'aal1',false,'aal2',false);
+    expect((await proxy(new NextRequest('https://gerimmo.test/compte'))).headers.get('location')).toBeNull();
   });
   it('une erreur de lecture du niveau ne ferme pas l’espace d’un rôle hors supervision',async()=>{
     session(['locataire'],null,true,null);

@@ -36,7 +36,9 @@ describe("fiche de l'organisation en lecture seule (fichiers)", () => {
     expect(retour).toContain("drop function if exists public.organizations_refuser_ecriture_si_fermee();");
     const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
     expect(lisezMoi).toContain(`${MIGRATION}.retour.sql`);
-    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\n`20261028100000`/);
+    // Hors de la chaîne « Ordre complet » (réservée aux migrations qui citent aujourdhui_paris()).
+    expect(lisezMoi).toContain("Hors de la chaîne « Ordre complet » (ne cite pas `aujourdhui_paris()`) ; indépendant des autres retours.");
+    expect(sql).not.toContain("aujourdhui_paris");
   });
 });
 

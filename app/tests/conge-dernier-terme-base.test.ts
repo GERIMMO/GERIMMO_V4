@@ -459,6 +459,26 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     expect((await alertes())[0].consigne).toContain(`Le décompte de sortie ne retient que les ${total.replace(".", ",")}\u00a0€ dus.`);
   });
 
+  it("un document envoyé retiré hors de tout congé (règlement retiré) est signalé, puis l'alerte se ferme s'il revient", async () => {
+    // Quatrième relecture du 28/10 : une resynchronisation qui SUPPRIME un document déjà envoyé (encaissement retiré,
+    // terme devenu non dû) le faisait en silence.
+    await db.query("reset role");
+    await db.query("update public.quittances q set email_envoye_at=now() from public.appels_loyer a where a.id=q.appel_id and a.bail_id=$1 and a.periode=$2", [bail, mois]);
+    const enc = (await db.query("select e.id, e.montant::text m, e.date_paiement::text d from public.encaissements e where e.bail_id=$1 and e.date_paiement>=$2", [bail, mois])).rows[0];
+    await db.query("select public.supprimer_encaissement($1,'TEST règlement retiré')", [enc.id]);
+    await agir(compte);
+    expect(await quittance(mois)).toEqual([]);
+    const [alerte] = (await alertes("document_envoye_remplace")).filter((a) => a.statut === "ouverte");
+    expect(alerte.titre).toMatch(/^La quittance (d’|de ).+ envoyée le .+ pour 500,00\u00a0€ n’est plus couverte par les règlements/);
+    // Le règlement est ressaisi : la quittance redevient celle qui a été envoyée, marque d'envoi rendue, alerte fermée.
+    await db.query("reset role");
+    await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,$3,$4,'virement')", [org, bail, enc.m, enc.d]);
+    await agir(compte);
+    expect((await quittance(mois))[0]).toMatchObject({ est_quittance: true, montant: "500.00" });
+    expect((await quittance(mois))[0].email_envoye_at).not.toBeNull();
+    expect(await alertes("document_envoye_remplace")).toMatchObject([{ statut: "fermee", closed_action: "Document revenu à celui envoyé au locataire" }]);
+  });
+
   it("COD-03 : une écriture héritée à millièmes reste annulable (la contre-écriture recopie son montant)", async () => {
     await db.query("reset role");
     await db.query("alter table public.encaissements drop constraint encaissements_montant_centime_check");

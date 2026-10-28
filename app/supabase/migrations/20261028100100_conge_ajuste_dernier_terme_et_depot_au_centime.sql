@@ -325,7 +325,24 @@ as $$
 declare
   v_org uuid := coalesce(new.organization_id, old.organization_id);
   v_appel uuid := coalesce(new.appel_id, old.appel_id);
+  v_periode date;
 begin
+  -- Un document déjà ENVOYÉ qui disparaît (plus rien de couvert : terme devenu non dû après la fin du bail, règlement
+  -- retiré) le fait savoir, quel que soit l'auteur de la resynchronisation (quatrième relecture du 28/10).
+  if tg_op = 'DELETE' and old.email_envoye_at is not null
+     and not exists (select 1 from public.alerts x
+                      where x.organization_id = v_org and x.statut = 'ouverte' and x.type = 'document_envoye_remplace'
+                        and x.details ->> 'appel_id' = v_appel::text) then
+    select a.periode into v_periode from public.appels_loyer a where a.id = v_appel;
+    if found then
+      perform public.poser_alerte_terme(v_org, old.bail_id, 'document_envoye_remplace', 'normale',
+        'Document envoyé remplacé', null,
+        jsonb_build_object('bail_id', old.bail_id, 'appel_id', v_appel, 'periode', v_periode,
+                           'quittance_id', old.id, 'envoye_est_quittance', old.est_quittance, 'montant_envoye', old.montant,
+                           'envoye_le', to_char((old.email_envoye_at at time zone 'Europe/Paris')::date, 'DD/MM/YYYY'),
+                           'envoye_at', old.email_envoye_at, 'date_emission_envoyee', old.date_emission));
+    end if;
+  end if;
   if exists (select 1 from public.alerts x
               where x.organization_id = v_org and x.statut = 'ouverte' and x.type = 'document_envoye_remplace'
                 and x.details ->> 'appel_id' = v_appel::text) then

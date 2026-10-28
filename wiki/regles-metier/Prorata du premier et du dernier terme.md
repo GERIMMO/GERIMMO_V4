@@ -50,18 +50,32 @@ d'échéance, quittance, décompte de prorata.
 - À l'**annulation** d'un congé (le locataire reste), l'appel de l'ancien mois de sortie, né au prorata, **redevient un mois
   plein**.
 - Si une **quittance ou un reçu de ce terme a déjà été envoyé** au locataire, l'appel n'est pas modifié : une alerte « Terme à
-  régulariser » est posée au gérant, qui décide. Même alerte pour un terme appelé **après** la fin du bail (congé saisi très
-  tard) : il n'est jamais supprimé ni modifié automatiquement.
+  régulariser » est posée au gérant. Même alerte pour un terme appelé **après** la fin du bail (congé saisi très tard) : il
+  n'est jamais supprimé ni modifié automatiquement. L'application n'a **pas d'outil de régularisation** d'un terme appelé
+  (évolution future, décision du 28/10) : l'alerte et la ligne du terme sur le bail donnent le **montant exact** (appelé en
+  trop ou non appelé) et la consigne « à régulariser avec le locataire (remboursement, ou déduction au solde de tout
+  compte) » — le [[Quittancement des loyers]] intègre trop-perçu et dettes au [[Solde de tout compte]]. Le décompte de sortie
+  de Gerimmo (`montants_reels_bail`) compte encore le montant **appelé** : la consigne le dit.
 - Le mois d'entrée et les mois pleins antérieurs ne sont **jamais** recalculés. La clôture anticipée du bail
   (`terminer_bail`, décision D34) laisse les montants tels quels.
-- **Base du recalcul : le loyer en vigueur pendant la période**, jamais le loyer révisé depuis (relecture du 28/10). Un
-  appel au mois plein garde ses propres loyer et charges ; un appel au prorata repart de l'ancien loyer de la première
-  révision IRL qui prend effet après la fin du mois, à défaut du loyer du bail. Exemple : révision 450 → 482,14 € le 20/10,
-  congé tardif avec fin le 25/09 → septembre = 375,00 + 41,67 = **416,67 €** (et non 443,45 €).
-- Une quittance ou un reçu **déjà envoyé d'un autre terme** n'est pas réécrit par la nouvelle imputation des règlements :
-  il reste tel qu'il a été délivré, et une alerte invite le gérant à le revoir.
-- Un **avis d'échéance déjà envoyé** dont le montant change : alerte d'information « prévenez le locataire ».
+- **Base du recalcul : la base mensuelle qui a émis l'appel**, jamais le loyer révisé depuis (relectures du 28/10). Chaque
+  appel mémorise à l'émission le loyer et les charges du mois plein qui l'ont produit (`appels_loyer.base_loyer_hc`,
+  `base_charges`) : un mois plein est sa propre base ; un appel né au prorata garde la base du bail à son émission. Une
+  révision IRL ne touche pas les appels déjà émis, même datée du 1er du mois de sortie. Exemples : révision 450 → 482,14 €
+  le 20/10, congé tardif avec fin le 25/09 → septembre = 375,00 + 41,67 = **416,67 €** (et non 443,45 €) ; appel d'octobre
+  émis à 500,00 €, révision le 20/10 (ou le 01/10), congé avec fin le 25/10 puis annulation → octobre revient à **500,00 €**
+  (et non 532,14 €). Appels antérieurs à la migration : mois plein = ses montants ; prorata = ancien loyer de la première
+  révision **enregistrée** après l'appel, à défaut le loyer du bail.
+- Une quittance ou un reçu **déjà envoyé d'un autre terme** que la nouvelle imputation des règlements change est **réécrit**
+  (il reste cohérent avec l'écran du bail : montant, versements listés, solde) et redevient « à envoyer ». Une alerte
+  « Document envoyé remplacé » dit ce qui a été envoyé (nature, date, montant) et ce qui le remplace ; elle suit les
+  encaissements suivants et se ferme quand le nouveau document part au locataire (ou redevient identique à l'envoyé).
+  Décision du 28/10 : rien n'est remis en l'état, un document recomposé à la lecture ne peut pas être figé sans gel des
+  versements imprimés.
+- Un **avis d'échéance déjà envoyé** dont le montant change : alerte d'information qui garde le montant de l'avis **envoyé**
+  (« envoyé pour 500,00 € — le terme est maintenant de 403,22 € ») et **se ferme** si le terme y revient (annulation).
 - Les alertes « Terme à régulariser » qui n'ont plus d'objet (congé annulé ou modifié) **se ferment d'elles-mêmes**.
+- « Traiter » mène à la **ligne du terme** dans l'échéancier du bail, où la consigne est rappelée.
 
 ## Conséquences si non respectée
 - Un centime d'écart entre le contrat signé et le premier avis d'échéance ou la quittance : contestation possible du
@@ -71,12 +85,15 @@ d'échéance, quittance, décompte de prorata.
 
 ## Implications pour l'application
 - Toute nouvelle écriture d'un prorata (document, e-mail, écran) passe par `prorataPremiereEcheance` côté application ou par
-  `montants_appel_loyer(p_bail, p_mois)` côté base ; aucune formule locale.
+  `montants_appel_loyer(p_bail, p_mois, p_loyer, p_charges)` côté base (la base mensuelle est passée par l'appelant :
+  celle qui a émis l'appel) ; aucune formule locale.
 - Tests : `app/tests/prorata-premiere-echeance.test.ts` (propriété sur 10 000 triplets : contrat nu = contrat meublé = règle
   de la base), `app/tests/prorata.test.ts` (appel de loyer), `app/tests/conge-dernier-terme-base.test.ts` (congé enregistré ou
   annulé après la génération).
 
 > [!warning] Points à trancher / contradictions
+> - Régularisation d'un terme déjà quittancé ou appelé après la fin du bail : aucun outil (avoir, annulation de terme) dans
+>   l'application au 28/10 ; le décompte de sortie compte le montant appelé. Évolution à décider.
 > - La règle d'arrondi n'a pas de source réglementaire : c'est une convention du dépôt (migration du 03/08/2026), cohérente
 >   avec la pratique (loyer et charges distincts sur la quittance, art. 21 de la loi du 6 juillet 1989). À confirmer si un
 >   texte ou une jurisprudence impose un autre mode de calcul (par exemple sur 30 jours fixes).

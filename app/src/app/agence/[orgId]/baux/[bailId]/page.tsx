@@ -264,6 +264,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       { data: regularisations, error: erreurRegul },
       // Encaissement du dépôt : même condition, même aller-retour
       { data: depotEncaissements, error: erreurDepot },
+      // Ce qu'il reste à faire sur un terme (alertes ouvertes du bail, migration 20261028100100) : une information de
+      // plus sur la ligne, jamais bloquante (une lecture en échec n'affiche rien).
+      { data: alertesTermes },
     ],
     { data: restitutionBrute, error: erreurRestitution },
     // Le décompte travaille sur un INSTANTANÉ des montants (dépôt encaissé,
@@ -311,8 +314,17 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .select("id, montant, date_encaissement, moyen, versant_libelle, versant_person_id")
           .eq("bail_id", bailId)
           .order("date_encaissement"),
+        supabase
+          .from("alerts")
+          .select("details")
+          .eq("organization_id", orgId)
+          .eq("statut", "ouverte")
+          .eq("origine_type", "bail")
+          .eq("origine_id", bailId)
+          .in("type", ["terme_a_regulariser", "document_envoye_remplace", "avis_echeance_recalcule"])
+          .order("created_at"),
       ])
-      : Promise.resolve([vide, vide, vide, vide, vide, vide, vide, vide]),
+      : Promise.resolve([vide, vide, vide, vide, vide, vide, vide, vide, vide]),
     restitutionActif
       ? supabase
           .from("restitutions")
@@ -329,6 +341,13 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // L'échéancier porte son drapeau de prorata : la ligne du premier (ou dernier) terme propose le décompte.
   const appelsProrata = new Set(((proratas ?? []) as { id: string }[]).map((a) => a.id));
   const echeancier = (echeancierBrut ?? []).map((l: LigneEcheance) => ({ ...l, prorata: appelsProrata.has(l.appel_id) }));
+  const consignesTermes: Record<string, string[]> = {};
+  for (const { details } of (alertesTermes ?? []) as { details: Record<string, unknown> | null }[]) {
+    const appel = details?.appel_id, consigne = details?.consigne;
+    if (typeof appel === "string" && typeof consigne === "string" && consigne) {
+      (consignesTermes[appel] ??= []).push(consigne);
+    }
+  }
   const ecarts = ((comparatif ?? []) as {
     piece: string | null;
     libelle: string;
@@ -936,6 +955,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               copropriete={Boolean(premier(lot?.bien ?? null)?.copropriete)}
               aujourdhui={aujourdhuiParis()}
               decompteSortie={etatDecompteSortie(restitution, erreurRestitution)}
+              consignesTermes={consignesTermes}
             />
           </div>
         </RubriqueDossier>

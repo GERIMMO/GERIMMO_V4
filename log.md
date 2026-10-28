@@ -7256,3 +7256,10 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   postérieure) ; les alertes « Terme à régulariser » se ferment quand le congé est annulé ; un document déjà envoyé d'un
   autre terme n'est plus réécrit ; avis d'échéance recalculé signalé ; contre-écritures exemptées du centime ; relances
   automatiques d'un propriétaire direct signées du bailleur. Page [[Prorata du premier et du dernier terme]] complétée.
+
+## [2026-10-28] fix | Seconde relecture du chantier « loyers : calculs » — base mémorisée à l'émission, documents remplacés suivis
+- Congé puis annulation ne refacture plus le mois de sortie au loyer révisé dans le mois : chaque appel mémorise la base
+  mensuelle qui l'a émis. Un document déjà envoyé que l'imputation change est réécrit et suivi par une alerte « Document
+  envoyé remplacé » jusqu'au renvoi ; l'alerte d'avis recalculé garde le montant envoyé et se ferme s'il y revient ; les
+  alertes « Terme à régulariser » donnent le montant exact et mènent à la ligne du terme. Page
+  [[Prorata du premier et du dernier terme]] mise à jour (signature de `montants_appel_loyer`, point à trancher ajouté).

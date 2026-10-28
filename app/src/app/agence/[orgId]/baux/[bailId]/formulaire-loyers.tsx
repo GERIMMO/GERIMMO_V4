@@ -241,6 +241,7 @@ export function FormulaireLoyers({
   copropriete = false,
   aujourdhui = aujourdhuiParis(),
   decompteSortie = "non_finalise",
+  consignesTermes = {},
 }: {
   orgId: string;
   bailId: string;
@@ -265,6 +266,11 @@ export function FormulaireLoyers({
   decompteSortie?: EtatDecompteSortie;
   /** « /espace » chez le propriétaire direct, « /agence » sinon (décision D27) ; la page du bail la transmet. */
   racine?: string;
+  /**
+   * Ce qu'il reste à faire sur un terme, par appel : la consigne des alertes ouvertes du bail (terme à régulariser,
+   * document envoyé remplacé, avis recalculé — migration 20261028100100). « Traiter » mène à cette ligne.
+   */
+  consignesTermes?: Record<string, string[]>;
 }) {
   const base = baseDepuisRacine(orgId, racine);
   const [etatEnc, formEnc] = useActionState<EtatLoyers, FormData>(
@@ -428,7 +434,8 @@ export function FormulaireLoyers({
             return (
               <li
                 key={l.appel_id}
-                className={`rang-echeance text-sm ${
+                id={`terme-${l.appel_id}`}
+                className={`rang-echeance scroll-mt-24 text-sm ${
                   l.statut === "paye"
                     ? "terme-paye"
                     : l.statut === "impaye"
@@ -516,6 +523,11 @@ export function FormulaireLoyers({
                     </span>
                   );
                 })()}
+                {(consignesTermes[l.appel_id] ?? []).map((consigne) => (
+                  <p key={consigne} className="col-span-full text-xs text-warning-soft-foreground">
+                    {consigne}
+                  </p>
+                ))}
               </li>
             );
           })}

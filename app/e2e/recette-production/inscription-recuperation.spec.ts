@@ -72,7 +72,8 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
     await page.getByLabel("Nouveau mot de passe", { exact: true }).fill(c.motDePasse);
     await page.getByLabel("Confirmation", { exact: true }).fill(c.motDePasse);
     await page.getByRole("checkbox", { name: /accepte les conditions/ }).check();
-    await cliquer(page.getByRole("button", { name: "Changer le mot de passe", exact: true }));
+    // Audit final (UX-06) : à la première confirmation, le bouton dit « Choisir mon mot de passe ».
+    await cliquer(page.getByRole("button", { name: "Choisir mon mot de passe", exact: true }));
     // Relevé du 23/10 (PRO-5) : le premier choix garde la session ouverte et mène droit à l'espace, sans repasser par
     // la connexion. Décision D27 : l'espace du propriétaire direct qui vient de s'inscrire est /espace/<id>.
     await page.waitForURL(/\/espace\/[a-f0-9-]{36}/, { timeout: 30_000 });

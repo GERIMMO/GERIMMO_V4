@@ -47,7 +47,7 @@ export default async function PageNouveauMotDePasse({ searchParams }: { searchPa
             : `Compte : ${user.email}. Choisissez un mot de passe d'au moins 12 caractères — il sera vérifié contre les fuites de données connues.`
       }
     >
-      <FormulaireNouveauMotDePasse suite={suite} profilAConfirmer={profilAConfirmer} />
+      <FormulaireNouveauMotDePasse suite={suite} profilAConfirmer={profilAConfirmer} premierChoix={apresConfirmation || Boolean(profilAConfirmer)} />
     </CoquilleAuth>
   );
 }

@@ -5,6 +5,7 @@ import { diagnosticsExigibles, obligatoireEnDefaut } from "@/lib/diagnostics";
 import { statutDiagnostic } from "@/lib/parc";
 import { avecEcheanceReglementaire } from "@/lib/documents-bail";
 import { RACINE_AGENCE } from "@/lib/racine-espace";
+import { termeApresFinDuBail } from "@/lib/echeances";
 import { lireToutesLesPages, type PageLue } from "@/lib/lecture-complete";
 
 // Actions attendues sur les baux en cours — LA source commune (audit 09/09,
@@ -193,7 +194,7 @@ export async function lireActionsAttendues(
     else encaisseParBail.set(e.bail_id, cumul);
   }
   const appelsParBail = new Map<string, { montant_du: number; date_echeance: string }[]>();
-  const moisFin = new Map(baux.map((b) => [b.id, b.date_fin ? b.date_fin.slice(0, 7) : null]));
+  const moisFin = new Map(baux.map((b) => [b.id, b.date_fin ?? null]));
   for (const a of (appels ?? []) as {
     bail_id: string;
     montant_du: number;
@@ -201,8 +202,7 @@ export async function lireActionsAttendues(
     periode?: string;
   }[]) {
     // Terme d'un mois postérieur à la fin du bail : non dû (même règle qu'etat_loyers_bail_brut).
-    const fin = moisFin.get(a.bail_id);
-    if (fin && typeof a.periode === "string" && a.periode.slice(0, 7) > fin) continue;
+    if (typeof a.periode === "string" && termeApresFinDuBail(a.periode, moisFin.get(a.bail_id))) continue;
     const liste = appelsParBail.get(a.bail_id) ?? [];
     const montant = centimesFiables(a.montant_du, true);
     if (montant === null || !/^\d{4}-\d{2}-\d{2}$/.test(a.date_echeance)) erreurs.appels = true;

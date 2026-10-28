@@ -29,6 +29,7 @@ import {
   libelleCharges,
   bornesTerme,
 } from "./communs";
+import { termeApresFinDuBail } from "@/lib/echeances";
 import type { Assemblage } from "./index";
 
 export type DonneesAvisEcheance = {
@@ -139,6 +140,10 @@ export async function assemblerAvisEcheance(
 
   const ctx = await chargerContexteBail(supabase, orgId, appel.bail_id);
   if ("erreur" in ctx) return ctx;
+  // Un terme appelé après la fin du bail n'est pas dû (migration 20261028100100) : aucun avis ne le réclame.
+  if (termeApresFinDuBail(appel.periode, ctx.bail.date_fin)) {
+    return { erreur: "Ce terme suit la fin du bail : il n’est pas dû, aucun avis d’échéance ne se prépare." };
+  }
 
   // L'arriéré : ce qui reste dû sur les termes antérieurs à celui-ci.
   const { data: etat } = await supabase.rpc("etat_loyers_bail", { p_bail: appel.bail_id });

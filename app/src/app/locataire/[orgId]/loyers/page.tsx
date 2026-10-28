@@ -2,7 +2,7 @@ import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
-import { premierDuMoisSuivant } from "@/lib/echeances";
+import { bailFiniAvantMoisSuivant, phraseFinDeBail, premierDuMoisSuivant } from "@/lib/echeances";
 import { CONSERVATION_DOCUMENTS_LOCATAIRE } from "@/lib/locataire-textes";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
@@ -117,7 +117,9 @@ export default async function PagePaiementsLocataire(
   // le dernier jour du mois, `new Date()` dirait encore le mois qui finit alors que Paris est déjà au suivant.
   const moisSuivant = premierDuMoisSuivant(aujourdhuiParis());
   // Le bail prend fin avant le mois suivant (congé) : aucune échéance n'est plus à venir.
-  const finAvantMoisSuivant = Boolean(bail?.date_fin && bail.date_fin.slice(0, 7) < moisSuivant.slice(0, 7));
+  const finAvantMoisSuivant = Boolean(bail && bailFiniAvantMoisSuivant(bail.date_fin, aujourdhuiParis()));
+  // Les mois DUS : un terme « non dû » (après la fin du bail) ne compte pas dans « X quittances sur Y mois ».
+  const moisDus = lignesLoyer.filter((l) => l.statut !== "non_du").length;
 
   const pastilles = douzeDerniers.length > 1 && (
     <>
@@ -236,7 +238,7 @@ export default async function PagePaiementsLocataire(
                 </p>
                 <p className="mt-1 text-[13px] text-muted-foreground">
                   {finAvantMoisSuivant && bail.date_fin ? (
-                    <>Votre bail {bail.date_fin < aujourdhuiParis() ? "a pris" : "prend"} fin le {formaterDate(bail.date_fin)} : aucune échéance n’est plus à venir.</>
+                    <>{phraseFinDeBail(bail.date_fin, aujourdhuiParis())}</>
                   ) : (
                     <>
                       Prochaine échéance{" "}
@@ -282,7 +284,7 @@ export default async function PagePaiementsLocataire(
                 nomme ce qu'elle compte (24/09). */}
             {!aEchoue(eEcheancier) && lignesLoyer.length > 0 && (
               <span className="mono-discret">
-                {nbQuittances} quittance{nbQuittances > 1 ? "s" : ""} sur {lignesLoyer.length} mois
+                {nbQuittances} quittance{nbQuittances > 1 ? "s" : ""} sur {moisDus} mois
               </span>
             )}
           </div>

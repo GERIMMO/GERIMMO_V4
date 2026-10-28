@@ -506,15 +506,15 @@ export function FormulaireLoyers({
                           />
                         </>
                       )}
-                      {/* Documents-0 : avis d'échéance (17), prorata (21) */}
-                      <BoutonGenererDocument
+                      {/* Documents-0 : avis d'échéance (17), prorata (21) ; aucun avis pour un terme non dû. */}
+                      {l.statut !== "non_du" && <BoutonGenererDocument
                         orgId={orgId}
                         code="avis_echeance"
                         cibleId={l.appel_id}
                         cheminRetour={`${base}/baux/${bailId}`}
                         libelle="Avis d'échéance (PDF)"
                         variant="ghost"
-                      />
+                      />}
                       {Number(l.montant_du) > 0 && l.prorata && (
                         <BoutonGenererDocument
                           orgId={orgId}

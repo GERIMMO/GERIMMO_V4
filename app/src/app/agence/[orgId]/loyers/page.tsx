@@ -43,6 +43,8 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
   const encaisse = lignes.reduce((t, l) => t + Math.min(Number(l.montant_couvert), Number(l.montant_du)), 0);
   const reste = Math.max(0, appele - encaisse);
   const impayes = lignes.filter((l) => Number(l.montant_couvert) < Number(l.montant_du));
+  // Les termes DUS du mois : un terme « non dû » (après la fin du bail) ne se compte pas.
+  const nbTermes = lignes.filter((l) => l.statut !== "non_du").length;
   const nbRegles = lignes.length - impayes.length;
   // Un mois sans appel n'est pas un mois réussi : rien n'était dû. Les tuiles
   // restent neutres et la carte des impayés se tait (24/09).
@@ -134,8 +136,8 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
               <span className="chiffre montant mt-1 block">{eur(appele)}</span>
               <span className="block text-xs text-muted-foreground">
                 {estProprietaire
-                  ? `${lignes.length} loyer${lignes.length > 1 ? "s" : ""}`
-                  : `${lignes.length} terme${lignes.length > 1 ? "s" : ""} de loyer`}
+                  ? `${nbTermes} loyer${nbTermes > 1 ? "s" : ""}`
+                  : `${nbTermes} terme${nbTermes > 1 ? "s" : ""} de loyer`}
               </span>
             </div>
             <div className={`kpi ${moisVide ? "" : "vert"}`}>

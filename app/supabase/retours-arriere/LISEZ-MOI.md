@@ -1011,3 +1011,9 @@ Remettre le code précédent avant `20261027100100_incident_gerant_bail_explicit
 | Retour | Migration | Condition |
 | --- | --- | --- |
 | `20261027100500_parcours_demarrage_pluriel_baux.retour.sql` | `20261027100500_parcours_demarrage_pluriel_baux.sql` | Non exécuté en production. Remet la définition précédente de `public.parcours_demarrage` (texte « N bailx en cours ») ; aucune donnée touchée. Remettre le code précédent n’est pas nécessaire : la signature est inchangée. |
+
+### Import du parc contrôlé comme il est inséré ; trimestre IRL daté (28 octobre, audit final)
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261028100300_import_controle_complet_et_trimestre_irl_annee.retour.sql` | `20261028100300_import_controle_complet_et_trimestre_irl_annee.sql` (audit final, BAIL-05 : la passe de contrôle de `importer_parc` rejoue les règles de la table et dit tous les motifs ; BAIL-02 : `baux.irl_trimestre` porte son année) | Non exécuté en production. Rend à `importer_parc` et à `controler_plafond_depot_garantie` leur définition précédente (montant brut « 700.00 € » dans le message) et supprime `montant_en_euros`. **Conserve** les trimestres IRL datés (« T3 2026 », ajoutés par la reprise ou saisis depuis) : texte libre que l’ancienne version lit et imprime sans erreur, son menu ne les propose simplement pas ; aucune donnée réécrite. Remettre le code précédent n’est pas nécessaire : signatures inchangées. Hors de la chaîne « Ordre complet » (ne cite pas `aujourdhui_paris()`). Preuve : `tests/import-controle-irl-annee-base.test.ts`. |

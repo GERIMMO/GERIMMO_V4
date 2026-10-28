@@ -43,7 +43,7 @@ describe.skipIf(!disponible)('Cinq identités réutilisables : cycle réel en ba
     expect(preparation.status, 'Préparation des seules bases fictives').toBe(0);
     db = new Client({ connectionString: url.href }); await db.connect();
     // Le banc n'exécute pas GoTrue ni cron ; ces tables permettent de vérifier les retraits.
-    await db.query(`create table auth.mfa_factors(id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id) on delete cascade);
+    await db.query(`create table if not exists auth.mfa_factors(id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id) on delete cascade); -- le bootstrap du banc la crée depuis l'audit final du 27/10 (PUB-01)
       create function cron.unschedule(bigint) returns boolean language sql as $$ delete from cron.job where jobid=$1 returning true $$;
       create function cron.unschedule(text) returns boolean language sql as $$ delete from cron.job where jobname=$1 returning true $$;`);
     const fichier = path.join(dossier, 'env-prive'); writeFileSync(fichier, '', { mode: 0o600 });

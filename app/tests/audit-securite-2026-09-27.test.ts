@@ -139,7 +139,7 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
         where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef
           and has_function_privilege('authenticated', p.oid, 'EXECUTE')
           and p.prorettype <> 'trigger'::regtype
-          and p.prosrc !~* '(auth\\.(uid|role|jwt)|is_super_admin|is_permanent_super_admin|org_ids_avec_roles|has_org_role|ma_personne|mon_artisan_id|mes_publics|_hors_portefeuille|artisan_supervise|orgs_de_mes_missions|est_agent_restreint|verifier_|garde_|exiger_|controler_mise_en_location|creer_fiche_justificatif|has_supervision_power|mon_|mes_|ma_)'`
+          and p.prosrc !~* '(auth\\.(uid|role|jwt)|uid_second_facteur|is_super_admin|is_permanent_super_admin|org_ids_avec_roles|has_org_role|ma_personne|mon_artisan_id|mes_publics|_hors_portefeuille|artisan_supervise|orgs_de_mes_missions|est_agent_restreint|verifier_|garde_|exiger_|controler_mise_en_location|creer_fiche_justificatif|has_supervision_power|mon_|mes_|ma_)'`
     );
     const motivees = new Set([
       "montant_abonnement_cents(text,integer)", // calcul pur du tarif, sans donnée

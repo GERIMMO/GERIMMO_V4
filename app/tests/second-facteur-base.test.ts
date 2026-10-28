@@ -55,13 +55,22 @@ describe.skipIf(!DB_URL)("second facteur exigé par la base (PUB-01)", () => {
   afterEach(async () => { await db.query("rollback; reset role"); });
   afterAll(async () => { await db?.end(); });
 
-  it("la politique restrictive est posée sur toutes les tables de public sous RLS et sur storage.objects", async () => {
-    const { rows: [r] } = await db.query(`
-      select count(*) filter (where c.relrowsecurity) as rls,
-             count(*) filter (where c.relrowsecurity and exists (select 1 from pg_policy p where p.polrelid = c.oid and p.polname = 'second_facteur' and not p.polpermissive)) as gardees
-        from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p')`);
-    expect(Number(r.gardees)).toBe(Number(r.rls));
-    expect(Number(r.rls)).toBeGreaterThan(100);
+  it("la politique restrictive garde chaque table ouverte aux comptes connectés hors supervision, et storage.objects", async () => {
+    // Tables sous RLS dont une politique permissive vise authenticated (ou tous) sans se limiter à la supervision.
+    const { rows } = await db.query(`
+      select c.relname,
+             exists (select 1 from pg_policy p where p.polrelid = c.oid and p.polname = 'second_facteur' and not p.polpermissive) as gardee,
+             exists (select 1 from pg_policy p where p.polrelid = c.oid and p.polpermissive
+                       and (p.polroles = '{0}'::oid[] or 'authenticated'::regrole = any (p.polroles))
+                       and coalesce(pg_get_expr(p.polqual, p.polrelid), pg_get_expr(p.polwithcheck, p.polrelid), 'true')
+                           !~ '^\\(*\\s*SELECT (public\\.)?(is_super_admin|is_permanent_super_admin|has_supervision_power)\\(\\) AS [a-z_]+\\)*$') as ouverte
+        from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p') and c.relrowsecurity`);
+    const ecarts = rows.filter((r) => r.gardee !== r.ouverte).map((r) => r.relname);
+    expect(ecarts).toEqual([]);
+    for (const t of ["persons", "baux", "lots", "documents", "organizations", "encaissements", "memberships", "quittances"]) {
+      expect(rows.find((r) => r.relname === t)?.gardee, t).toBe(true);
+    }
+    expect(rows.filter((r) => r.gardee).length).toBeGreaterThan(100);
     expect((await db.query("select 1 from pg_policy where polrelid = 'storage.objects'::regclass and polname = 'second_facteur' and not polpermissive")).rows).toHaveLength(1);
   });
 
@@ -93,10 +102,12 @@ describe.skipIf(!DB_URL)("second facteur exigé par la base (PUB-01)", () => {
     expect((await essai("select * from public.mon_espace_locataire($1)", [org])).rows).toHaveLength(0);
     expect((await essai("select public.uid_second_facteur() u")).rows[0].u).toBe("00000000-0000-0000-0000-000000000000");
     await expect(essai("select public.generer_alertes_assurance()")).rejects.toThrow(/reserve au cron/);
-    // Seule exception : la session courante, lue par le proxy avant le code.
-    const { rows } = await db.query(`select p.proname from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prosecdef
-      and p.prorettype <> 'trigger'::regtype and has_function_privilege('authenticated', p.oid, 'EXECUTE') and p.prosrc like '%auth.uid()%' order by 1`);
-    expect(rows.map((r) => r.proname)).toEqual(["ma_session_active", "niveau_assurance_suffisant", "uid_second_facteur"]);
+    // Les portes communes et les lectures du locataire sont neutralisées ; la session courante, lue par le proxy avant
+    // le code, ne l'est pas.
+    const { rows } = await db.query(`select p.proname, p.prosrc like '%uid_second_facteur()%' as neutralisee from pg_proc p
+      where p.pronamespace = 'public'::regnamespace and p.proname in ('org_ids_avec_roles', 'has_org_role', 'mon_artisan_id', 'ma_personne_locataire', 'mon_bail_locataire', 'ma_session_active')`);
+    const etat = Object.fromEntries(rows.map((r) => [r.proname, r.neutralisee]));
+    expect(etat).toEqual({ org_ids_avec_roles: true, has_org_role: true, mon_artisan_id: true, ma_personne_locataire: true, mon_bail_locataire: true, ma_session_active: false });
   });
 
   it("le même compte en aal2, un compte sans facteur en aal1 : inchangés", async () => {

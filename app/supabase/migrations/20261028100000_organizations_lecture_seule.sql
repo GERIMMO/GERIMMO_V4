@@ -144,11 +144,15 @@ grant execute on function public.uid_second_facteur() to authenticated, service_
 
 -- La pose, rejouable — À RAPPELER EN FIN DE TOUTE MIGRATION qui crée une table sous RLS ou (re)définit une fonction
 -- SECURITY DEFINER appelable par authenticated, comme poser_gardes_abonnement :
---  1. politique restrictive « second_facteur » sur chaque table de public sous RLS ; `memberships` garde les propres
---     lignes du compte lisibles en aal1 (le proxy et la page du sas y lisent ses rôles avant le code) ;
---  2. dans chaque fonction SECURITY DEFINER de public appelable par authenticated (hors déclencheurs), auth.uid()
---     devient public.uid_second_facteur(). Exception : ma_session_active, lue par le proxy avant le code (elle ne rend
---     que l'identifiant et la date de la session courante).
+--  1. politique restrictive « second_facteur » sur chaque table de public sous RLS qu'au moins une politique
+--     permissive ouvre aux comptes connectés hors supervision (une table sans politique, ou réservée à la supervision —
+--     qui exige déjà aal2 —, n'a rien à garder) ; `memberships` garde les propres lignes du compte lisibles en aal1 (le
+--     proxy et la page du sas y lisent ses rôles avant le code) ;
+--  2. dans les fonctions SECURITY DEFINER par lesquelles un compte se reconnaît (les portes communes : organisations,
+--     fiche et bail du locataire, fiche de l'artisan) et dans celles qui rendent au locataire ses propres données
+--     sans passer par elles, auth.uid() devient public.uid_second_facteur(). Liste nommée ci-dessous : les autres
+--     fonctions passent par ces portes, ou exigent déjà la supervision (aal2) ; ma_session_active, lue par le proxy
+--     avant le code, garde auth.uid() (elle ne rend que l'identifiant et la date de la session courante).
 create or replace function public.poser_gardes_second_facteur()
 returns integer
 language plpgsql
@@ -159,13 +163,33 @@ declare
   t record;
   v_def text;
   v_n integer := 0;
+  v_identite text[] := array[
+    -- portes communes
+    'org_ids_avec_roles', 'has_org_role', 'user_org_ids', 'is_active_member', 'lots_de_mon_portefeuille',
+    'ma_personne_locataire', 'ma_personne_espace', 'mon_dernier_bail_locataire', 'pieces_bail_locataire',
+    'mon_artisan_id', 'artisan_identite_reelle', 'exiger_artisan_reel', 'verifier_declarant_photo',
+    'reseau_verifier_acces_bien',
+    -- données du locataire rendues sans passer par une porte commune
+    'mon_espace_locataire', 'mon_bail_locataire', 'mon_bail_document_locataire', 'mon_depot_locataire',
+    'mon_dossier_locataire', 'mon_gestionnaire_locataire', 'mes_relances_locataire', 'mes_infos_pratiques_locataire',
+    'mes_invitations_locataire', 'mes_incidents_locataire', 'mon_suivi_intervention', 'attestation_emetteur_locataire'];
 begin
+  -- Repartir de zéro : une table qui ne remplit plus la condition perd sa politique.
+  for t in select c.relname from pg_class c join pg_policy p on p.polrelid = c.oid
+            where c.relnamespace = 'public'::regnamespace and p.polname = 'second_facteur' loop
+    execute format('drop policy if exists second_facteur on public.%I', t.relname);
+  end loop;
   for t in
     select c.relname from pg_class c
      where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p') and c.relrowsecurity
+       and exists (
+         select 1 from pg_policy p
+          where p.polrelid = c.oid and p.polpermissive
+            and (p.polroles = '{0}'::oid[] or 'authenticated'::regrole = any (p.polroles))
+            and coalesce(pg_get_expr(p.polqual, p.polrelid), pg_get_expr(p.polwithcheck, p.polrelid), 'true')
+                !~ '^\(*\s*SELECT (public\.)?(is_super_admin|is_permanent_super_admin|has_supervision_power)\(\) AS [a-z_]+\)*$')
      order by c.relname
   loop
-    execute format('drop policy if exists second_facteur on public.%I', t.relname);
     if t.relname = 'memberships' then
       execute 'create policy second_facteur on public.memberships as restrictive for all to authenticated '
            || 'using ((select public.niveau_assurance_suffisant()) or account_id = (select auth.uid())) '
@@ -180,10 +204,8 @@ begin
   for t in
     select p.oid from pg_proc p
      where p.pronamespace = 'public'::regnamespace and p.prosecdef and p.prokind = 'f'
-       and p.prorettype <> 'trigger'::regtype
-       and has_function_privilege('authenticated', p.oid, 'EXECUTE')
+       and p.proname = any (v_identite)
        and p.prosrc like '%auth.uid()%'
-       and p.proname not in ('ma_session_active', 'uid_second_facteur', 'niveau_assurance_suffisant')
   loop
     v_def := replace(pg_get_functiondef(t.oid), 'auth.uid()', 'public.uid_second_facteur()');
     execute v_def;

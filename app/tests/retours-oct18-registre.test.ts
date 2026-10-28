@@ -149,7 +149,8 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
   const existe = async (signature: string) => (await db.query('select to_regprocedure($1) is not null as e', [signature])).rows[0].e as boolean;
   const occurrences = (texte: string, motif: string) => texte.split(motif).length - 1;
   const declencheurs = async () => (await db.query("select tgname from pg_trigger where not tgisinternal and tgname = any($1) and (tgname <> 'traversee_lecture_seule' or tgrelid = to_regclass('public.bail_signature_circuits')) order by 1", [DECLENCHEURS])).rows.map((r) => r.tgname as string);
-  const politiques = async () => (await db.query("select policyname from pg_policies where (schemaname = 'public' and tablename = any($1)) or policyname like 'signature_bail_fichier%' order by 1", [TABLES])).rows.map((r) => r.policyname as string);
+// Audit final du 27/10 (PUB-01) : la politique restrictive transverse « second_facteur » est posée par poser_gardes_second_facteur(), pas par ce lot.
+  const politiques = async () => (await db.query("select policyname from pg_policies where ((schemaname = 'public' and tablename = any($1)) or policyname like 'signature_bail_fichier%') and policyname <> 'second_facteur' order by 1", [TABLES])).rows.map((r) => r.policyname as string);
   const index = async (table: string) => (await db.query('select indexname from pg_indexes where schemaname = $1 and tablename = $2 order by 1', ['public', table])).rows.map((r) => r.indexname as string);
   const contrainte = async (nom: string) => (await db.query('select exists(select 1 from pg_constraint where conname = $1) as e', [nom])).rows[0].e as boolean;
   const versionsPresentes = async () => (await db.query('select version from supabase_migrations.schema_migrations where version = any($1) order by 1', [[...TOUTES_VERSIONS, SENTINELLE]])).rows.map((r) => r.version as string);

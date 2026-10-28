@@ -238,6 +238,16 @@ export function faitA(f: Fusion, ville: string | null | undefined, dateIso: stri
   return `<p>Fait à ${f.champ(ville, "commune")}, le ${f.date(dateIso)}${suite}</p>`;
 }
 
+// « Fait à … » et la signature de l'émetteur sur une même rangée insécable (audit final du 27/10, LOY-06) : à la suite
+// l'un de l'autre, le bloc de signature, déjà insécable, basculait seul en page 2 d'une quittance standard — une
+// page entière pour « Signature » et un nom. Côte à côte, la quittance tient sur une page.
+// Styles EN LIGNE, jamais dans la feuille commune : elle entre dans l'empreinte des baux déjà envoyés en signature
+// (tests/signature-empreinte-avant-24-octobre.test.ts), qu'une règle ajoutée ici rendrait invérifiables.
+export function faitASigne(f: Fusion, ville: string | null | undefined, dateIso: string, nom: string | null | undefined, img: string | null): string {
+  const signature = blocSignatureEmetteur(nom, img).replace('<div class="sig-emetteur">', '<div class="sig-emetteur" style="margin-top:0">');
+  return `<div class="deux-col fait-signe" style="align-items:end;margin-top:6pt">${faitA(f, ville, dateIso)}${signature}</div>`;
+}
+
 // ------------------------------------------------------------------
 // Page complète
 // ------------------------------------------------------------------

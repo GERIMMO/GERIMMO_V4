@@ -143,3 +143,22 @@ export function resumerBlocage(message: string): string {
   if (m.includes("diagnostic")) return "Diagnostic expiré";
   return message;
 }
+
+// Un terme d'un mois postérieur au mois de fin du bail (congé saisi tard) n'est pas dû : la base le compte à 0 avec le
+// statut « non_du » (etat_loyers_bail_brut, migration 20261028100100). Les écrans qui lisent `appels_loyer` sans passer
+// par cet état appliquent la même règle ici, sur les mois « AAAA-MM ».
+export function termeApresFinDuBail(periode: string, dateFin: string | null | undefined): boolean {
+  return Boolean(dateFin) && periode.slice(0, 7) > (dateFin as string).slice(0, 7);
+}
+
+/** Le bail prend fin avant le mois qui suit le jour donné : plus aucune échéance n'est à venir. */
+export function bailFiniAvantMoisSuivant(dateFin: string | null | undefined, jour: string): boolean {
+  return Boolean(dateFin) && (dateFin as string).slice(0, 7) < premierDuMoisSuivant(jour).slice(0, 7);
+}
+
+/** « Votre bail a pris fin le 25/09/2026 : aucune échéance n’est plus à venir. » (ou « prend fin » si la date est à venir). */
+export function phraseFinDeBail(dateFin: string, jour: string): string {
+  const [a, m, j] = dateFin.slice(0, 10).split("-");
+  return `Votre bail ${dateFin.slice(0, 10) < jour ? "a pris" : "prend"} fin le ${j}/${m}/${a} : aucune échéance n’est plus à venir.`;
+}
+

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { identiteDuCompte } from "@/lib/identite-compte";
 import { verifierAccesEspace } from "@/lib/espace";
-import { resumerBlocage } from "@/lib/echeances";
+import { resumerBlocage, termeApresFinDuBail } from "@/lib/echeances";
 import { cibleBlocage } from "@/lib/parc";
 import { chargerActionsDuJour, type ActionDuJour } from "@/lib/actions-du-jour";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
@@ -121,7 +121,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     // le lot du bail embarqué pour le filtre « mon portefeuille »
     supabase
       .from("appels_loyer")
-      .select("montant_du, bail:baux!appels_loyer_bail_id_fkey(lot_id)")
+      .select("montant_du, periode, bail:baux!appels_loyer_bail_id_fkey(lot_id, date_fin)")
       .eq("organization_id", orgId)
       .eq("periode", moisCourant),
     supabase
@@ -181,6 +181,8 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const lotDuBail = (l: LigneAvecBail) => premier(l.bail)?.lot_id ?? null;
   const totalAppele = (appelsMois ?? [])
     .filter((a) => dansPortefeuille(lotDuBail(a as LigneAvecBail)))
+    // Un terme appelé après la fin du bail n'est pas dû (migration 20261028100100) : hors du dénominateur.
+    .filter((a) => !termeApresFinDuBail(String(a.periode), premier((a as { bail: UnOuPlusieurs<{ date_fin: string | null }> }).bail)?.date_fin))
     .reduce((s, a) => s + Number(a.montant_du), 0);
   const totalEncaisse = (encaissementsMois ?? [])
     .filter((e) => dansPortefeuille(lotDuBail(e as LigneAvecBail)))

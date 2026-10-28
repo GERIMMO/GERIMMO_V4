@@ -41,25 +41,21 @@ import type { Assemblage } from "./index";
 import { formaterIndice, ordinalJour } from "@/lib/ged";
 import { dureeBailNuAnnees } from "@/lib/qualite-bailleur";
 import { mentionCadreCautionBail } from "@/lib/textes-signature-actes";
-
-
+import { prorataPremiereEcheance } from "@/lib/prorata-premiere-echeance";
 
 // Montant total dû à la première échéance : loyer + charges, proratisés quand
-// le bail ne prend pas effet un 1er du mois (jours restants jusqu'à la fin du
-// mois inclus / jours du mois). Sans loyer, charges ou date de début, le
-// calcul est impossible : le libellé d'épreuve reste et compte manquant.
+// le bail ne prend pas effet un 1er du mois — la même règle d'arrondi que
+// l'appel de loyer en base (audit final du 27/10, COD-01 : lib/prorata-premiere-echeance).
+// Sans loyer, charges ou date de début, le calcul est impossible : le libellé
+// d'épreuve reste et compte manquant.
 function premiereEcheance(f: Fusion, bail: ContexteBail["bail"]): string {
   const libelle = "loyer + charges, montant au prorata";
   if (bail.loyer_hc === null || bail.charges === null || !bail.date_debut) {
     return f.champ(null, libelle);
   }
-  const total = Number(bail.loyer_hc) + Number(bail.charges);
-  const debut = new Date(`${bail.date_debut.slice(0, 10)}T12:00:00`);
-  const jour = debut.getDate();
-  if (jour === 1) return f.montant(total, libelle);
-  const joursDuMois = new Date(debut.getFullYear(), debut.getMonth() + 1, 0).getDate();
-  const prorata = Math.round(((joursDuMois - jour + 1) / joursDuMois) * total * 100) / 100;
-  return `${f.montant(prorata, libelle)} (premier mois au prorata)`;
+  const echeance = prorataPremiereEcheance(bail.loyer_hc, bail.charges, bail.date_debut);
+  if (!echeance.prorata) return f.montant(echeance.total, libelle);
+  return `${f.montant(echeance.total, libelle)} (premier mois au prorata)`;
 }
 
 function blocLocataire(f: Fusion, p: PersonneDocument): string {

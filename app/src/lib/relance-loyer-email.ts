@@ -28,7 +28,15 @@ export type RelanceLoyer = {
   totalDu?: number | null;
   /** Lien vers « Mes paiements » du locataire. */
   lien: string;
+  /** Propriétaire direct : le locataire écrit à son bailleur, pas à un « gestionnaire » (audit final du 27/10, LOY-17). */
+  proprietaireDirect?: boolean;
 };
+
+/** Qui le locataire a en face : « votre bailleur » chez un propriétaire direct, « votre gestionnaire » en agence. */
+function interlocuteur(proprietaireDirect: boolean | undefined, possessif: "votre"): string {
+  const nom = proprietaireDirect ? "bailleur" : "gestionnaire";
+  return `${possessif} ${nom}`;
+}
 
 /**
  * Information de la caution (audit gestion du 29/09). Au niveau 2 de relance,
@@ -44,6 +52,7 @@ export type InformationCaution = {
   periode: string;
   dateEcheance: string;
   totalDu: number;
+  proprietaireDirect?: boolean;
 };
 
 export function sujetInformationCaution(c: Pick<InformationCaution, "lot">): string {
@@ -61,7 +70,7 @@ export function corpsInformationCaution(c: InformationCaution): string {
         (échéance du ${formaterDate(c.dateEcheance)}) pour ${echapperHtml(c.lot)}, malgré une première relance.</p>
       <p>À ce jour, <strong>${eur(c.totalDu)}</strong> restent dus sur le bail, tous termes échus confondus.</p>
       <p>Ce message vous informe de l’incident de paiement ; il ne vous demande aucun règlement à ce stade.
-        Pour toute question, écrivez au gestionnaire du bail.</p>
+        Pour toute question, écrivez ${c.proprietaireDirect ? "au bailleur" : "au gestionnaire du bail"}.</p>
       <p>— ${echapperHtml(c.emetteur)}</p>
     </div>`;
 }
@@ -87,9 +96,9 @@ export function corpsRelanceLoyer(r: RelanceLoyer): string {
   }`;
   const suite =
     r.niveau === "relance_1"
-      ? `<p>Si votre règlement est parti ces derniers jours, merci de ne pas tenir compte de ce message. Sinon, vous pouvez le régler par virement à votre gestionnaire, aux coordonnées habituelles.</p>`
-      : `<p>Ce message fait suite à une première relance restée sans effet. Sans règlement ni réponse de votre part dans les prochains jours, votre gestionnaire pourra vous adresser une mise en demeure par lettre recommandée — ce que nous préférons éviter.</p>`;
-  const aide = `<p>Une difficulté de paiement ? Écrivez à votre gestionnaire : une solution se trouve toujours plus tôt que tard.</p>`;
+      ? `<p>Si votre règlement est parti ces derniers jours, merci de ne pas tenir compte de ce message. Sinon, vous pouvez le régler par virement à ${interlocuteur(r.proprietaireDirect, "votre")}, aux coordonnées habituelles.</p>`
+      : `<p>Ce message fait suite à une première relance restée sans effet. Sans règlement ni réponse de votre part dans les prochains jours, ${interlocuteur(r.proprietaireDirect, "votre")} pourra vous adresser une mise en demeure par lettre recommandée — ce que nous préférons éviter.</p>`;
+  const aide = `<p>Une difficulté de paiement ? Écrivez à ${interlocuteur(r.proprietaireDirect, "votre")} : une solution se trouve toujours plus tôt que tard.</p>`;
   return `
     <div style="font-family:sans-serif;font-size:14px;color:#111">
       <h2>${r.niveau === "relance_1" ? "Loyer en attente" : "Seconde relance"} — ${mois}</h2>

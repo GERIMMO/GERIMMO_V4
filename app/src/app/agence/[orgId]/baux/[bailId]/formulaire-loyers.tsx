@@ -242,6 +242,7 @@ export function FormulaireLoyers({
   copropriete = false,
   aujourdhui = aujourdhuiParis(),
   decompteSortie = "non_finalise",
+  consignesTermes = {},
 }: {
   orgId: string;
   bailId: string;
@@ -266,6 +267,11 @@ export function FormulaireLoyers({
   decompteSortie?: EtatDecompteSortie;
   /** « /espace » chez le propriétaire direct, « /agence » sinon (décision D27) ; la page du bail la transmet. */
   racine?: string;
+  /**
+   * Ce qu'il reste à faire sur un terme, par appel : la consigne des alertes ouvertes du bail (terme à régulariser,
+   * document envoyé remplacé, avis recalculé — migration 20261028100100). « Traiter » mène à cette ligne.
+   */
+  consignesTermes?: Record<string, string[]>;
 }) {
   const base = baseDepuisRacine(orgId, racine);
   const [etatEnc, formEnc] = useActionState<EtatLoyers, FormData>(
@@ -305,6 +311,7 @@ export function FormulaireLoyers({
   const totalDu = echeancier.reduce((s, l) => s + Number(l.montant_du), 0);
   const totalEncaisse = encaissements.reduce((s, e) => s + Number(e.montant), 0);
   const solde = totalDu - totalEncaisse;
+  const finAppelee = Boolean(dateFin && echeancier.some((l) => l.periode.slice(0, 7) >= dateFin.slice(0, 7)));
   const quittanceParAppel = new Map(quittances.map((q) => [q.appel_id, q]));
 
   return (
@@ -335,13 +342,17 @@ export function FormulaireLoyers({
             l'écran Loyers & charges ; « En avance » quand le locataire a
             versé plus que dû (24/09). */}
         <div className={`kpi ${solde > 0 ? "rouge" : "vert"}`}>
-          <span className="eyebrow">{solde < 0 ? "En avance" : "Reste dû"}</span>
+          {/* Bail dont le mois de fin est appelé : il n'y a plus d'échéance à venir, l'excédent est un trop-perçu qui
+              revient au locataire (wiki « Solde de tout compte » ; migration 20261028100100). */}
+          <span className="eyebrow">{solde < 0 ? (finAppelee ? "Trop-perçu" : "En avance") : "Reste dû"}</span>
           <span className="chiffre block">{eur(Math.abs(solde))}</span>
           <span className="block text-xs text-muted-foreground">
             {solde > 0
               ? "à régler par le locataire"
               : solde < 0
-                ? "versé d'avance par le locataire"
+                ? finAppelee
+                  ? "versé en trop, revient au locataire"
+                  : "versé d'avance par le locataire"
                 : "à jour"}
           </span>
         </div>
@@ -429,7 +440,8 @@ export function FormulaireLoyers({
             return (
               <li
                 key={l.appel_id}
-                className={`rang-echeance text-sm ${
+                id={`terme-${l.appel_id}`}
+                className={`rang-echeance scroll-mt-24 text-sm ${
                   l.statut === "paye"
                     ? "terme-paye"
                     : l.statut === "impaye"
@@ -495,15 +507,15 @@ export function FormulaireLoyers({
                           />
                         </>
                       )}
-                      {/* Documents-0 : avis d'échéance (17), prorata (21) */}
-                      <BoutonGenererDocument
+                      {/* Documents-0 : avis d'échéance (17), prorata (21) ; aucun avis pour un terme non dû. */}
+                      {l.statut !== "non_du" && <BoutonGenererDocument
                         orgId={orgId}
                         code="avis_echeance"
                         cibleId={l.appel_id}
                         cheminRetour={`${base}/baux/${bailId}`}
                         libelle="Avis d'échéance (PDF)"
                         variant="ghost"
-                      />
+                      />}
                       {Number(l.montant_du) > 0 && l.prorata && (
                         <BoutonGenererDocument
                           orgId={orgId}
@@ -517,6 +529,11 @@ export function FormulaireLoyers({
                     </span>
                   );
                 })()}
+                {(consignesTermes[l.appel_id] ?? []).map((consigne) => (
+                  <p key={consigne} className="col-span-full text-xs text-warning-soft-foreground">
+                    {consigne}
+                  </p>
+                ))}
               </li>
             );
           })}

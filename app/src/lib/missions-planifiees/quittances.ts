@@ -168,6 +168,8 @@ export async function traiterQuittances(request: Request) {
         loyerHc: Number(l.loyer_hc),
         charges: Number(l.charges),
         montant: Number(l.montant),
+        // Forfait ou provision : le même libellé que le document (audit final du 27/10, LOY-02).
+        chargesMode: conforme.charges_mode,
         // Chez un propriétaire direct, le bailleur signe : pas le nom du « parc ».
         emetteur: parties(conforme).emetteur ?? l.emetteur,
         prenom: l.prenom,

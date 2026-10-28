@@ -137,3 +137,27 @@ describe("le geste qui règle l'alerte", () => {
     expect(gesteAlerte({ details: { bail_id: "b" } }, "agence")).toBeNull();
   });
 });
+
+// Seconde relecture du 28/10 (migration 20261028100100) : les alertes d'un terme mènent à SA ligne de l'échéancier, et le
+// bouton ne promet pas un geste de régularisation qui n'existe pas dans l'application.
+describe("alertes d'un terme du bail", () => {
+  const appel = "0b5c1f7e-2a3d-4c4e-8f90-123456789abc";
+  it("terme à régulariser : la ligne du terme, avec un libellé honnête", () => {
+    expect(gesteAlerte({ type: "terme_a_regulariser", details: { bail_id: "bail", appel_id: appel } }, "org", "/espace"))
+      .toEqual({ href: `/espace/org/baux/bail#terme-${appel}`, libelle: "Voir le terme à régulariser", seFermeSeule: false });
+  });
+  it("document envoyé remplacé : envoyer le document à jour, l'alerte se ferme à l'envoi", () => {
+    expect(gesteAlerte({ type: "document_envoye_remplace", details: { bail_id: "bail", appel_id: appel, nouveau_est_quittance: true } }, "agence"))
+      .toEqual({ href: `/agence/agence/baux/bail#terme-${appel}`, libelle: "Envoyer le document à jour", seFermeSeule: true });
+  });
+  it("document envoyé retiré (plus rien de couvert) : rien à envoyer, le terme se régularise", () => {
+    expect(gesteAlerte({ type: "document_envoye_remplace", details: { bail_id: "bail", appel_id: appel, nouveau_est_quittance: null } }, "agence"))
+      .toEqual({ href: `/agence/agence/baux/bail#terme-${appel}`, libelle: "Voir le terme à régulariser", seFermeSeule: false });
+  });
+  it("sans appel_id lisible : les loyers du bail, jamais une ancre fabriquée", () => {
+    expect(cheminFicheAlerte({ type: "avis_echeance_recalcule", details: { bail_id: "bail", appel_id: "x\" onmouseover" } }, "agence"))
+      .toBe("/agence/agence/baux/bail#loyers");
+    expect(cheminFicheAlerte({ type: "terme_a_regulariser", details: { bail_id: "bail" } }, "agence"))
+      .toBe("/agence/agence/baux/bail#loyers");
+  });
+});

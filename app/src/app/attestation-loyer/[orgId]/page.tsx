@@ -77,7 +77,8 @@ export default async function PageAttestationLoyer(
       timeZone: "UTC",
     });
   // À jour = aucun mois échu impayé ou partiel (le mois « à échoir » ne compte pas)
-  const moisEchus = lignes.filter((l) => l.statut !== "attendu");
+  // Un terme « non dû » (après la fin du bail) n'est ni échu ni payé : il ne compte pas.
+  const moisEchus = lignes.filter((l) => l.statut !== "attendu" && l.statut !== "non_du");
   const enSouffrance = moisEchus.filter((l) => l.statut === "impaye" || l.statut === "partiel");
   const moisPayes = moisEchus.filter((l) => l.statut === "paye");
   // Loyer charges comprises : inconnu tant que rien n'est renseigné. `eur`

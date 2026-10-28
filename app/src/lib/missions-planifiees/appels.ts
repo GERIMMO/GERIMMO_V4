@@ -117,6 +117,19 @@ export async function traiterAppels(request: Request) {
     return Response.json({ envoyes: 0, echecs: 0 });
   }
 
+  // Forfait ou provision : le libellé des charges suit le bail, comme sur le document (audit final du 27/10, LOY-02).
+  // Une lecture pour toute la passe ; un bail illisible garde le libellé neutre.
+  const modesCharges = new Map<string, string | null>();
+  try {
+    const { data: baux } = await supabase
+      .from("baux")
+      .select("id, charges_mode")
+      .in("id", [...new Set(lignes.map((l) => l.bail_id))]);
+    for (const b of (baux ?? []) as { id: string; charges_mode: string | null }[]) modesCharges.set(b.id, b.charges_mode);
+  } catch {
+    // Lecture impossible : l'avis part avec le libellé neutre, il ne se bloque pas pour un libellé.
+  }
+
   let envoyes = 0;
   const echecs: EchecConsigne[] = [];
   const marquageEchecs: EchecConsigne[] = [];
@@ -127,6 +140,7 @@ export async function traiterAppels(request: Request) {
         periode: l.periode,
         loyerHc: Number(l.loyer_hc),
         charges: Number(l.charges),
+        chargesMode: modesCharges.get(l.bail_id) ?? null,
         resteDu: Number(l.reste_du),
         dateEcheance: l.date_echeance,
         prorata: l.prorata,

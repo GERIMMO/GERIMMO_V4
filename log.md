@@ -7240,3 +7240,43 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
 - Ce qui change pour les utilisateurs : relocation pré-remplie depuis le bail précédent ; 11 éléments du décret en un geste
   dans l'inventaire du meublé ; tâches du grand parc regroupées par obligation ; un seul geste de consultation dans
   « Mes documents » du locataire ; 2,4 Mo d'images inutilisées retirées.
+
+## [2026-10-28] fix | Audit final du 27/10 — chantier « loyers : calculs et documents » (branche `audit_final/loyers_calculs`, non publié)
+- Dix constats corrigés en local : LOY-01/LOY-V01 (le dernier terme suit le congé enregistré ou annulé ; migration
+  `20261028100100`), COD-01 (une seule fonction de prorata pour le bail nu, le bail meublé et la base), COD-03 (dépôt,
+  retenues, postes de charges et écritures au centime), LOY-02 (e-mails de reçu et d'avis : total du terme, encaissé, solde,
+  libellé des charges), LOY-04 (export CSV : dates vérifiées, 400 en français), LOY-06 (courriers d'un propriétaire direct
+  signés du bailleur, « Fait à » et signature sur une rangée), LOY-16 (bouton « Prorata (PDF) »), LOY-19 (export : « auto »
+  et colonne mandant), LOY-17 (plus de « gestionnaire » chez un propriétaire direct).
+- Wiki : nouvelle règle [[Prorata du premier et du dernier terme]] (sourcée par la migration `20260803_prorata_au_centime`),
+  index mis à jour.
+
+## [2026-10-28] fix | Relecture adverse du chantier « loyers : calculs » — dernier terme au loyer en vigueur, alertes sans objet fermées
+- Le dernier terme recalculé par un congé part du loyer en vigueur pendant la période (jamais d'une révision IRL
+  postérieure) ; les alertes « Terme à régulariser » se ferment quand le congé est annulé ; un document déjà envoyé d'un
+  autre terme n'est plus réécrit ; avis d'échéance recalculé signalé ; contre-écritures exemptées du centime ; relances
+  automatiques d'un propriétaire direct signées du bailleur. Page [[Prorata du premier et du dernier terme]] complétée.
+
+## [2026-10-28] fix | Seconde relecture du chantier « loyers : calculs » — base mémorisée à l'émission, documents remplacés suivis
+- Congé puis annulation ne refacture plus le mois de sortie au loyer révisé dans le mois : chaque appel mémorise la base
+  mensuelle qui l'a émis. Un document déjà envoyé que l'imputation change est réécrit et suivi par une alerte « Document
+  envoyé remplacé » jusqu'au renvoi ; l'alerte d'avis recalculé garde le montant envoyé et se ferme s'il y revient ; les
+  alertes « Terme à régulariser » donnent le montant exact et mènent à la ligne du terme. Page
+  [[Prorata du premier et du dernier terme]] mise à jour (signature de `montants_appel_loyer`, point à trancher ajouté).
+
+## [2026-10-28] fix | Troisième relecture du chantier « loyers : calculs » — décompte de sortie sur le dû, document revenu à l'identique
+- Le décompte de sortie compte ce qui est dû jusqu'à la fin du bail : un terme appelé après la fin ne pèse plus sur le
+  dépôt, le trop appelé d'un dernier terme quittancé revient au locataire en trop-perçu. Un document revenu identique à
+  celui envoyé reprend sa marque d'envoi ; un terme après la fin non payé : « ne le réclamez pas ». Page
+  [[Prorata du premier et du dernier terme]] mise à jour.
+
+## [2026-10-28] fix | Quatrième relecture du chantier « loyers : calculs » — terme après la fin du bail non dû partout
+- Un terme d'un mois postérieur à la fin du bail n'est pas dû : échéancier, reste dû, espace du locataire, relances
+  automatiques, alerte d'impayé et décompte alignés (statut « Non dû — après la fin du bail ») ; aucune relance ne le
+  réclame. Page [[Prorata du premier et du dernier terme]] mise à jour.
+
+## [2026-10-28] fix | Sixième relecture du chantier « loyers : calculs » — ligne 211 sur le loyer dû
+- La ventilation fiscale des règlements suit le loyer dû (terme après la fin du bail = 0, dernier terme au prorata) ; le
+  loyer rendu au locataire au solde de tout compte se retranche de la 211 l'année de la restitution. Assurance non
+  réclamée pour un bail fini ; historique du lot « Non dû — après la fin du bail ». Pages [[Fiscalité]] et
+  [[Prorata du premier et du dernier terme]] mises à jour.

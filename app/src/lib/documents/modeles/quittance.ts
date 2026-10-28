@@ -8,8 +8,7 @@ import {
   cartouches,
   enTete,
   eur,
-  faitA,
-  blocSignatureEmetteur,
+  faitASigne,
   formaterDateFr,
   section,
   tableau,
@@ -18,6 +17,7 @@ import {
 import {
   chargerContexteBail,
   expediteur,
+  expediteurCourrier,
   nomsBailleurs,
   nomsLocataires,
   adresseLogement,
@@ -176,8 +176,7 @@ export function construireQuittance(d: DonneesQuittance) {
              6 juillet 1989).</p>`
       }
     </div>
-    ${faitA(f, d.exp.ville, d.dateEmission)}
-    ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
+    ${faitASigne(f, d.exp.ville, d.dateEmission, d.exp.nom, d.signatureImg ?? null)}
   `;
 
   return assemblerPage({
@@ -248,7 +247,7 @@ export async function assemblerQuittance(
     logementAdresse: adresseLogement(ctx.lot, ctx.bien),
     referenceBail: referenceCourte("BAIL", ctx.bail.id),
     dateBail: ctx.bail.date_debut,
-    exp: expediteur(ctx),
+    exp: expediteurCourrier(ctx),
     signatureImg: await signatureOrganisation(supabase, orgId),
     f,
   });

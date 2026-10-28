@@ -64,7 +64,22 @@ const ANCRES_BAIL = new Map<string, string>([
   // (generer_alertes_conservation, 20261024140000 : {bail_id, echeance, pieces}) mène à la carte « Conservation des
   // pièces », où se suspend la suppression en cas de litige ; les pièces se téléchargent depuis la fiche.
   ["conservation_echeance", "#conservation"],
+  // Audit final du 27/10 (LOY-01) : ajuster_appel_fin_de_bail (20261028100100) pose {bail_id, lot_id, appel_id, periode,
+  // montant_appele, montant_du, consigne} quand le dernier terme ne peut pas être recalculé (quittance déjà envoyée, terme
+  // après la fin du bail). Aucun outil ne modifie un terme appelé (évolution future) : l'alerte et la ligne du terme disent
+  // le montant exact et quoi faire. À défaut d'appel_id, les loyers du bail ; sinon la ligne du terme (TERMES_DU_BAIL).
+  ["terme_a_regulariser", "#loyers"],
+  // Relecture du 28/10 : l'avis d'échéance déjà envoyé d'un terme recalculé par un congé (même charge utile).
+  ["avis_echeance_recalcule", "#loyers"],
+  // Seconde relecture du 28/10 : le document déjà envoyé qu'une resynchronisation a remplacé ({bail_id, appel_id, periode,
+  // montant_envoye, envoye_le, nouveau_montant, consigne}) ; le nouveau document s'envoie depuis la ligne du terme.
+  ["document_envoye_remplace", "#loyers"],
 ]);
+
+// Les alertes d'un terme précis : « Traiter » mène à SA ligne dans l'échéancier (`id="terme-<appel_id>"`,
+// formulaire-loyers.tsx), où se lisent la consigne et les documents du terme.
+const TERMES_DU_BAIL = new Set(["terme_a_regulariser", "avis_echeance_recalcule", "document_envoye_remplace"]);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Les types dont la base ferme l'alerte d'elle-même dès que l'objet d'origine
@@ -96,6 +111,9 @@ const SE_FERMENT_SEULES = new Set([
   "restitution_echeance",
   "retenue_sans_justificatif",
   "versement_proprietaire",
+  // Seconde relecture du 28/10 : le déclencheur quittance_suit_document_remplace la ferme dès que le nouveau document
+  // part au locataire (ou redevient celui qui a été envoyé).
+  "document_envoye_remplace",
 ]);
 
 // Ce qu'on va faire là-bas, dit à l'infinitif et sans jargon : le bouton
@@ -132,6 +150,10 @@ const LIBELLES = new Map<string, string>([
   ["loyer_impaye", "Ouvrir les loyers du bail"],
   ["zone_tendue_a_verifier", "Vérifier la zone tendue du bail"],
   ["regularisation_non_appelee", "Ouvrir les loyers et régularisations du bail"],
+  // Aucun outil de régularisation (seconde relecture du 28/10) : le bouton ne promet pas un geste qui n'existe pas.
+  ["terme_a_regulariser", "Voir le terme à régulariser"],
+  ["avis_echeance_recalcule", "Voir le terme et son avis d’échéance"],
+  ["document_envoye_remplace", "Envoyer le document à jour"],
   ["message_locataire", "Lire et répondre au message"],
   ["piece_deposee", "Contrôler la pièce déposée"],
   ["restitution_echeance", "Ouvrir la restitution"],
@@ -193,7 +215,8 @@ export function cheminFicheAlerte(a: Alerte, orgId: string, racine: string = RAC
   const ancre = type ? ANCRES_BAIL.get(type) : undefined;
   const bail = texte(a.details, "bail_id");
   if (ancre !== undefined && bail) {
-    return `${base}/baux/${bail}${ancre}`;
+    const appel = type && TERMES_DU_BAIL.has(type) ? texte(a.details, "appel_id") : null;
+    return `${base}/baux/${bail}${appel && UUID.test(appel) ? `#terme-${appel}` : ancre}`;
   }
 
   // Un diagnostic ne dit pas où il est posé : sa charge utile ne porte que son
@@ -246,9 +269,11 @@ export function cheminFicheAlerte(a: Alerte, orgId: string, racine: string = RAC
 export function gesteAlerte(a: Alerte, orgId: string, racine: string = RACINE_AGENCE): GesteAlerte | null {
   const href = cheminFicheAlerte(a, orgId, racine);
   if (!href || !a.type) return null;
+  // Un document envoyé que les règlements ne couvrent plus a été retiré : rien à envoyer, le terme se régularise.
+  const retire = a.type === "document_envoye_remplace" && a.details?.nouveau_est_quittance === null;
   return {
     href,
-    libelle: LIBELLES.get(a.type) ?? "Ouvrir le dossier concerné",
-    seFermeSeule: SE_FERMENT_SEULES.has(a.type),
+    libelle: retire ? "Voir le terme à régulariser" : (LIBELLES.get(a.type) ?? "Ouvrir le dossier concerné"),
+    seFermeSeule: SE_FERMENT_SEULES.has(a.type) && !retire,
   };
 }

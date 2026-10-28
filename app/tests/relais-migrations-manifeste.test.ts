@@ -124,6 +124,9 @@ const MISSION_OCTOBRE = [
   "20261027100500_parcours_demarrage_pluriel_baux.sql",
   // Audit final du 27/10 (DRT-V01, DRT-04) : fiche de l'organisation en lecture seule.
   "20261028100000_organizations_lecture_seule.sql",
+  // 28/10, audit final du 27/10 (LOY-01, LOY-V01, COD-03) : le dernier terme suit le congé ; dépôt, retenues, postes et
+  // écritures au centime.
+  "20261028100100_conge_ajuste_dernier_terme_et_depot_au_centime.sql",
   // 28/10, audit final du 27/10 (LOY-10, LOY-11) : « Nom Prénom » dans les rappels de loyers, montants français des alertes.
   "20261028100200_loyers_ecrans_nom_et_montants.sql",
   // 28/10, audit final (BAIL-05, BAIL-02) : contrôle de l'import identique à l'insertion ; trimestre IRL daté.

@@ -11,10 +11,12 @@ import { envoyerEmail } from "@/lib/email";
 import { adresseDuSite } from "@/lib/site";
 import { aujourdhuiParis } from "@/lib/ged";
 import { cleRelanceLoyer } from "@/lib/cles-idempotence-courriels";
+import { nomsDetenteursParLot } from "@/lib/detenteurs";
 import { corpsRelanceLoyer, sujetRelanceLoyer } from "@/lib/relance-loyer-email";
 import { detteDuBail, idRelanceReception, lireDerniereRelanceReception, NOTE_RELANCE_TABLEAU, type RappelLoyer } from "@/lib/rappels-loyers";
 
 export type EtatReceptionLoyer = { erreur?: string; succes?: string; termine?: boolean };
+
 
 export async function declarerReceptionLoyer(orgId: string, appelId: string, _etat: EtatReceptionLoyer, form: FormData): Promise<EtatReceptionLoyer> {
   const { supabase, user, role } = await verifierGerant(orgId, { geste: "encaissement" });
@@ -83,11 +85,14 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   const { data: connue, error: erreurConnue } = await lireDerniereRelanceReception(supabase, orgId, ligne);
   if (erreurConnue) return { erreur: "Impossible de vérifier les relances déjà envoyées. Aucun nouvel envoi." };
   if (connue) return { succes: "Une relance de cette échéance a déjà été enregistrée. Consultez le suivi du bail pour la suite." };
-  const { data: bail, error: erreurBail } = await supabase.from("baux").select("locataire_principal").eq("organization_id",orgId).eq("id",ligne.bail_id).maybeSingle();
+  const { data: bail, error: erreurBail } = await supabase.from("baux").select("locataire_principal,lot_id").eq("organization_id",orgId).eq("id",ligne.bail_id).maybeSingle();
   if (erreurBail || !bail?.locataire_principal) return { erreur: "Le destinataire n’a pas pu être vérifié. Aucun message envoyé." };
   const { data: personne, error: erreurPersonne } = await supabase.from("persons").select("email,prenom").eq("organization_id",orgId).eq("id",bail.locataire_principal).maybeSingle();
   const { data: organisation, error: erreurOrganisation } = await supabase.from("organizations").select("name").eq("id",orgId).maybeSingle();
   if (erreurPersonne || erreurOrganisation || !personne?.email?.trim() || !organisation) return { erreur: "Vérifiez l’adresse e-mail du locataire et votre profil avant l’envoi." };
+  // Le bailleur signe, pas le nom du « parc » : les détenteurs du lot, comme la quittance (envoyerQuittance) et les
+  // relances automatiques (audit final du 27/10, LOY-17). Sans détenteur lisible, le nom de l'espace reste, comme avant.
+  const emetteur = (bail.lot_id && (await nomsDetenteursParLot(supabase, orgId, [bail.lot_id])).get(bail.lot_id)) || organisation.name;
   // Même règle que les relances du bail : les colocataires encore engagés reçoivent aussi le courrier.
   const { data: parties, error: erreurParties } = await supabase.from("bail_personnes").select("person_id,date_solidarite_fin")
     .eq("organization_id",orgId).eq("bail_id",ligne.bail_id).eq("role","colocataire");
@@ -108,7 +113,7 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   if (!site || !/^https?:\/\//.test(site)) return { erreur: "L’adresse du site doit être configurée avant d’envoyer une relance." };
   let envoyes = 0;
   for (const destinataire of destinataires.values()) {
-    const message = { niveau: "relance_1" as const, prenom: destinataire.prenom, emetteur: organisation.name, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, totalDu, lien: `${site}/locataire/${orgId}/loyers` };
+    const message = { niveau: "relance_1" as const, prenom: destinataire.prenom, emetteur, proprietaireDirect: true, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, totalDu, lien: `${site}/locataire/${orgId}/loyers` };
     const envoi = await envoyerEmail({ organisation: { db: supabase, id: orgId }, to: destinataire.email,
       subject: sujetRelanceLoyer(message), html: corpsRelanceLoyer(message),
       cleIdempotence: cleRelanceLoyer({ bailId: ligne.bail_id, niveau: "relance_1", dateEcheance: ligne.date_echeance, destinataire: destinataire.email, role: "locataire", reste, totalDu }),

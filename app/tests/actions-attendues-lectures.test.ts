@@ -176,3 +176,21 @@ describe("Plan du jour : contrat d'incertitude des actions sur les baux", () => 
     expect(resultat.attendues).toEqual([]); expect(resultat.plan.total).toBe(0);
   });
 });
+
+// Quatrième relecture du 28/10 (migration 20261028100100) : un terme d'un mois postérieur à la fin du bail n'est pas dû,
+// comme en base (etat_loyers_bail_brut) : il ne devient pas un « Loyer impayé ».
+describe("Actions attendues : terme appelé après la fin du bail", () => {
+  it("ne compte pas un terme postérieur au mois de fin, mais compte toujours le mois de fin", async () => {
+    const tables = base();
+    tables.baux = [{ ...tables.baux[0], etat: "preavis", date_fin: "2026-09-25" }];
+    tables.appels_loyer = [
+      ligne({ id: "a-sept", bail_id: "bail", montant_du: 500, date_echeance: "2026-09-01", periode: "2026-09-01" }),
+      ligne({ id: "a-oct", bail_id: "bail", montant_du: 500, date_echeance: "2026-10-01", periode: "2026-10-01" }),
+    ];
+    tables.encaissements = [ligne({ id: "e", bail_id: "bail", montant: 500 })];
+    expect(cles(await lireActionsAttendues(client(tables).db, "org"))).not.toContain("impaye-bail");
+    tables.encaissements = [ligne({ id: "e", bail_id: "bail", montant: 400 })];
+    const resultat = await lireActionsAttendues(client(tables).db, "org");
+    expect(resultat.actions.find((a) => a.cle === "impaye-bail")?.detail).toMatch(/^100,00\s€ échus non couverts$/);
+  });
+});

@@ -24,6 +24,8 @@ type LigneBrute = {
   montant: number | string;
   libelle: string | null;
   systeme: boolean;
+  /** Écriture de loyer née d'un encaissement (déclencheur) : créée automatiquement, sans porter `systeme`. */
+  encaissement_id?: string | null;
   id: string;
   contre_ecriture_de: string | null;
   lot_id: string | null;
@@ -76,9 +78,10 @@ const ENTETES_PRIVES = { "Cache-Control": "private, no-store", "X-Content-Type-O
  * Un refus en clair : jamais un fichier qui aurait l'air complet sans l'être. Audit final du 27/10 (COD-08) : ces refus
  * sont des situations connues, pas des pannes du serveur — 503 (avec `Retry-After`) quand une lecture a échoué ou n'a pas
  * pu être vérifiée (réessayer suffit souvent), 422 quand le portefeuille dépasse ce que l'export sait lire (réessayer ne
- * changera rien). Un 500 les comptait comme erreurs serveur dans la surveillance.
+ * changera rien). Un 500 les comptait comme erreurs serveur dans la surveillance. 400 quand la période lue dans l'URL
+ * n'est pas une date (LOY-04).
  */
-function refus(message: string, status: 503 | 422 = 503): Response {
+function refus(message: string, status: 503 | 422 | 400 = 503): Response {
   return new Response(message, {
     status,
     headers: {
@@ -88,6 +91,21 @@ function refus(message: string, status: 503 | 422 = 503): Response {
     },
   });
 }
+
+/**
+ * Une borne de période lue dans l'URL : « AAAA-MM-JJ » et une date qui existe (audit final du 27/10, LOY-04 : « abc » ou
+ * « 2026-02-30 » partaient tels quels à la base, qui répondait en anglais, en 500). Le futur est admis : « Exporter 2026 »
+ * borne au 31 décembre.
+ */
+export function dateIsoValide(v: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const [a, m, j] = v.split("-").map(Number);
+  const d = new Date(Date.UTC(a, m - 1, j));
+  return d.getUTCFullYear() === a && d.getUTCMonth() === m - 1 && d.getUTCDate() === j;
+}
+
+const MESSAGE_PERIODE_INVALIDE =
+  "Période invalide : indiquez des dates au format AAAA-MM-JJ, la date de début avant la date de fin.";
 
 const nombre = (n: number) => n.toLocaleString("fr-FR");
 
@@ -101,7 +119,9 @@ function pourquoiEcrituresIncompletes(echec: EchecLecture): string {
     " Réessayez dans un instant ; si le problème persiste, signalez-le depuis Aide et retours.";
   switch (echec.motif) {
     case "erreur":
-      return `Export impossible : ${echec.message}`;
+      // Le détail technique va au journal du serveur, jamais dans le fichier (audit final du 27/10, LOY-04).
+      console.error("[export journal] lecture des écritures :", echec.message);
+      return "Export impossible : les écritures n'ont pas pu être lues." + suite;
     case "sans-compte":
       return "Export impossible : le nombre d'écritures du journal n'a pas pu être vérifié." + suite;
     case "modifiee":
@@ -167,10 +187,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
     );
   }
 
-  // Période facultative : ?du=2026-01-01&au=2026-12-31. Sans elle, tout le journal.
+  // Période facultative : ?du=2026-01-01&au=2026-12-31. Sans elle, tout le journal. Une borne illisible ou des bornes
+  // inversées (fichier vide « du 31/12 au 01/01 ») se refusent en français, avant toute lecture (audit final, LOY-04).
   const url = new URL(req.url);
   const du = url.searchParams.get("du");
   const au = url.searchParams.get("au");
+  if ((du !== null && !dateIsoValide(du)) || (au !== null && !dateIsoValide(au)) || (du && au && du > au)) {
+    return refus(MESSAGE_PERIODE_INVALIDE, 400);
+  }
 
   // Toutes les pages, avec le compte exact (audit du 23/10, A04) : une seule lecture s'arrêtait à 1 000 écritures, et
   // le fichier se disait complet. L'identifiant ferme l'ordre : deux écritures du même jour, créées au même instant, ne
@@ -180,7 +204,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
       let requete = supabase
         .from("ecritures")
         .select(
-          "id, lot_id, date_piece, date_imputation, categorie, sens, montant, libelle, systeme," +
+          "id, lot_id, date_piece, date_imputation, categorie, sens, montant, libelle, systeme, encaissement_id," +
             " contre_ecriture_de," +
             // Deux clés étrangères relient lots à biens (dont une composite qui garde
             // l'agence cohérente) : il faut nommer celle qu'on suit.
@@ -273,12 +297,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
     ? lignesBrutes.filter((e) => e.lot_id != null && portefeuille.has(e.lot_id))
     : lignesBrutes;
 
+  // Un propriétaire direct n'a pas de mandant : la colonne, toujours vide chez lui, est omise (audit final, LOY-19).
+  const avecMandant = role !== "proprietaire_direct";
   const entete = [
     "date_piece",
     "date_imputation",
     "bien",
     "lot",
-    "mandant",
+    ...(avecMandant ? ["mandant"] : []),
     "categorie",
     "sens",
     "montant",
@@ -298,12 +324,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
       e.date_imputation,
       champ(premier(lot?.bien)?.nom),
       champ(lot?.nom),
-      champ(mandant),
+      ...(avecMandant ? [champ(mandant)] : []),
       champ(e.categorie),
       e.sens,
       montantFr(e.montant),
       champ(e.libelle),
-      e.systeme ? "oui" : "non",
+      // « auto » : créée par la base — honoraires et dépôt (`systeme`), mais aussi l'écriture de loyer que
+      // l'encaissement engendre, qui ne porte pas `systeme` (audit final, LOY-19).
+      e.systeme || e.encaissement_id ? "oui" : "non",
       e.contre_ecriture_de
         ? (repereParId.get(e.contre_ecriture_de) ?? e.contre_ecriture_de)
         : "",
@@ -312,7 +340,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
 
   const periode =
     du || au
-      ? `Journal de gestion du ${du ? formaterDate(du) : "début"} au ${au ? formaterDate(au) : "ce jour"}`
+      ? `Journal de gestion du ${du ? formaterDate(du) : "début"} ${au ? `au ${formaterDate(au)}` : "à ce jour"}`
       : "Journal de gestion";
   // Les deux liens de l'écran (« Exporter 2026 » et « Tout exporter »)
   // rendaient le MÊME nom de fichier : deux exports de portées différentes se

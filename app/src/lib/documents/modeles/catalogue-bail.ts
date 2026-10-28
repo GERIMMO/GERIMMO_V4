@@ -83,7 +83,10 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       const detteCentimes = echus.reduce((s,l)=>s+Math.round((montant(l.montant_du)-montant(l.montant_couvert))*100),0);
       if (code !== "situation_dette" && detteCentimes <= 0) return { erreur: "Aucune dette échue n’est constatée : ce courrier n’a pas lieu d’être généré." };
       contenu = `${section(code === "situation_dette" ? "Situation des échéances" : "Échéances restant dues")}
-        ${lignesTableau(f,code === "situation_dette" ? termes : echus,[["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"]])}
+        ${code === "situation_dette"
+          // Un terme « non dû » (après la fin du bail, migration 20261028100100) le dit, au lieu d'« Appelé 0,00 € ».
+          ? lignesTableau(f,termes.map(l => ({ ...l, appele: l.statut === "non_du" ? "Non dû — après la fin du bail" : eur(montant(l.montant_du)) })),[["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","appele","texte"],["Couvert","montant_couvert","montant"]])
+          : lignesTableau(f,echus,[["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"]])}
         <p><strong>Solde échu au ${f.date(aujourdhui)} : ${eur(detteCentimes/100)}.</strong> Les échéances à venir sont exclues de ce solde.</p>`;
       if (code === "relance_simple") contenu += `<p>Sauf règlement intervenu depuis l’établissement de ce décompte, nous vous invitons à régulariser les sommes échues. En cas de difficulté ou de désaccord, contactez votre gestionnaire afin d’examiner votre situation.</p>`;
       if (code === "seconde_relance") {

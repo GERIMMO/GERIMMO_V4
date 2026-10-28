@@ -12,6 +12,7 @@
 import { eur } from "@/lib/ged";
 import { particuleDe } from "@/lib/elision";
 import { echapperHtml, moisDeLaPeriode } from "@/lib/quittance-email";
+import { libelleCharges } from "@/lib/documents/modeles/communs";
 
 export type AvisEcheance = {
   periode: string;
@@ -22,6 +23,8 @@ export type AvisEcheance = {
   dateEcheance: string;
   /** Terme partiel : entrée ou sortie en cours de mois. */
   prorata: boolean;
+  /** `baux.charges_mode` : « forfait » ou « provision ». Le libellé des charges suit, comme sur le document. */
+  chargesMode?: string | null;
   /** Ce qui restait dû sur les termes antérieurs. Zéro si le locataire est à jour. */
   arriere: number;
   emetteur: string;
@@ -67,7 +70,7 @@ export function corpsAvisEcheance(a: AvisEcheance): string {
          à régler pour le <strong>${jourDeLEcheance(a.dateEcheance)}</strong> :</p>
       <ul>
         <li>Loyer hors charges : ${eur(a.loyerHc)}</li>
-        <li>Provision pour charges : ${eur(a.charges)}</li>
+        <li>${libelleCharges(a.chargesMode)} : ${eur(a.charges)}</li>
         <li><strong>Montant de l'échéance : ${eur(a.resteDu)}</strong></li>
       </ul>
       ${mentionProrata}

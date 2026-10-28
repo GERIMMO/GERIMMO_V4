@@ -37,8 +37,9 @@ describe("fiche de l'organisation en lecture seule (fichiers)", () => {
     const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
     expect(lisezMoi).toContain(`${MIGRATION}.retour.sql`);
     // abonnement_appliquer cite aujourdhui_paris() : le retour est en tête de la chaîne « Ordre complet », derrière
-    // le seul retour plus récent qui la précède à l'intégration (20261028100200, loyers et écrans).
-    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\n(?:`20261028100200`[^\n]*?, puis )?`20261028100000`/);
+    // les seuls retours plus récents qui la précèdent à l'intégration (20261028100200 puis 20261028100100, ordre inverse
+    // du manifeste).
+    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\n(?:`20261028100200`[^\n]*?, puis )?(?:`20261028100100`[^\n]*?, puis )?`20261028100000`/);
     expect(sql).toContain("public.aujourdhui_paris()");
   });
 });

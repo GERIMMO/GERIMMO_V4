@@ -66,7 +66,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Dépôt de garantie]] — plafonné, jamais révisé ; colocation à bail commun nue/meublée clarifiée le 14/09 ; **16/10** : encaissement (PR #189) et restitution (PR #195, à ratifier) au jour de Paris.
 - [[Garantie]] — caution solidaire (acte signé électroniquement, Zoho Sign depuis le 18/10) et garanties externes ; **24/10** : case « aucune assurance ni autre garantie » avant l'acte, la caution confirme son mobile, garant du bail aligné, mention « reconnaît avoir reçu un exemplaire ».
 - [[Comptabilité]] — déclarative de caisse ; écritures 2 dates, clôture verrouillante.
-- [[Fiscalité]] — aide à la déclaration (récap 2044) ; régimes LMNP/SCI à trancher.
+- [[Fiscalité]] — aide à la déclaration (récap 2044) ; régimes LMNP/SCI à trancher ; 211 sur le loyer dû, loyer rendu au solde de tout compte retranché l’année de la restitution (28/10).
 - [[Journal éditorial]] — le journal public et son **moteur de propositions** : huit veines ancrées sur le wiki, un angle et un plan, jamais un chiffre inventé.
 - [[Incident]] — désordre signalé ; l'imputation (qui paie) tranchée par l'agent, **requalifiable** depuis le 23/08 pour répondre à une contestation sans clôturer (contredit RM-7.5.3, à trancher).
 - [[Devis]] — 2 max, validité 30 j, accord du mandant au-delà du seuil. **19/10 (B5)** : un devis signé peut encore expirer ou être annulé (archive conservée), une seule offre signée vivante par dossier, validité jugée au jour de Paris (`retenir_devis`, `deposer_devis`).
@@ -84,6 +84,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 ## Règles métier
 - [[Grille tarifaire]] — **28/09/2026** : particuliers Solo 5,99 € → Patrimoine 29,99 € TTC/mois (annuel = 2 mois offerts, +1 €/bien au-delà de 20) ; agences 39 € HT jusqu'à 10 lots puis tranches cumulatives ; plus de premier bien offert ; essai 2 mois jusqu'au 31/12/2026 (offre de lancement), puis 1 mois ; franchise en base de TVA (art. 293 B du CGI) ; grilles antérieures en historique.
 - [[Quittance conforme]] — loyer/charges séparés, identité légale du bailleur.
+- [[Prorata du premier et du dernier terme]] — **28/10, stable** : terme partiel au réel du mois, loyer et charges arrondis séparément au centime, total = somme (règle unique base / contrats / documents, COD-01) ; le dernier terme suit le congé enregistré ou annulé (migration `20261028100100`), sur la base mensuelle qui a émis l’appel ; quittance envoyée ⇒ alerte au gérant avec le montant exact.
 - [[Mentions obligatoires du bail]] — modèle-type et compléments DPE, servitude, clauses et honoraires revus le 14/09/2026 ; revue de tous les régimes encore ouverte.
 - [[Clauses abusives et clauses résolutoires]] — 9 clauses non écrites, 4 résolutoires admises.
 - [[Cycle de vie de l'abonnement]] — essai 2 mois (30/09 ; 14 j avant) → paiement, ou **gel en lecture seule** (consultable, exportable) ; résiliation en fin de période, préavis de révision d'un mois (art. 8.9), rétractation 14 j (art. 8.10), préavis de modification d'un mois (art. 16) ; **24/10** : avis de reconduction entre trois mois et un mois, rétractation en ligne pour toutes les formules, article 15 (lecture seule à J+15, résiliation au plus tôt à J+30), suppression après 24 mois sans connexion ni abonnement (règle inactive jusqu'à la V1).

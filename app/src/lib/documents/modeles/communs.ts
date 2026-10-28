@@ -297,6 +297,18 @@ export function expediteur(ctx: {
   };
 }
 
+// L'expéditeur d'un COURRIER DE GESTION (quittance, reçu, avis d'échéance, décompte de prorata) : chez un propriétaire
+// direct, le bailleur écrit et signe lui-même — l'en-tête, le pied et la signature portent son nom (les détenteurs du
+// lot), jamais celui du « parc », qui n'est pas une personne (audit final du 27/10, LOY-06 ; même règle que `parties()`
+// de lib/quittance-conforme.ts pour la version web). L'agence, mandataire, signe de son nom. Les contrats et états des
+// lieux gardent `expediteur` : ce sont des actes des parties, pas des courriers.
+export function expediteurCourrier(ctx: Pick<ContexteBail, "organisation" | "bailleurs">): ReturnType<typeof expediteur> {
+  const exp = expediteur(ctx);
+  if (ctx.organisation.type !== "proprietaire_direct") return exp;
+  const noms = ctx.bailleurs.map((b) => nomPersonne(b)).filter(Boolean).join(", ");
+  return noms ? { ...exp, nom: noms } : exp;
+}
+
 // Le nom du bailleur tel que les épreuves l'affichent : les détenteurs joints
 export function nomsBailleurs(f: Fusion, bailleurs: ContexteBail["bailleurs"]): string {
   return f.champ(

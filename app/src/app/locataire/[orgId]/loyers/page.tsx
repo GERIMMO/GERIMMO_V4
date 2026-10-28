@@ -2,7 +2,7 @@ import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { aujourdhuiParis, eur, formaterDate, ordinalJour } from "@/lib/ged";
-import { premierDuMoisSuivant } from "@/lib/echeances";
+import { bailFiniAvantMoisSuivant, phraseFinDeBail, premierDuMoisSuivant } from "@/lib/echeances";
 import { CONSERVATION_DOCUMENTS_LOCATAIRE, legendeAttestationIndisponible } from "@/lib/locataire-textes";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
@@ -96,14 +96,15 @@ export default async function PagePaiementsLocataire(
 
   const moisLong = (d: string) =>
     new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
-  const prochaine = lignesLoyer.find((l) => l.statut !== "paye");
+  // Un terme « non dû » (après la fin du bail) n'est ni à payer ni à venir.
+  const prochaine = lignesLoyer.find((l) => l.statut !== "paye" && l.statut !== "non_du");
   const forfait = bail?.charges_mode === "forfait";
   // Seuls les mois SOLDÉS ont une quittance ; un paiement partiel n'a qu'un
   // reçu, et la mention le comptait comme une quittance (24/09).
   const nbQuittances = lignesLoyer.filter((l) => l.statut === "paye" && l.quittance_id && disponibilites[l.quittance_id] === "disponible").length;
   // Les 12 derniers mois en pastilles : payé plein, à venir cerclé laiton,
   // impayé rouge — le « parcours » du locataire en un regard.
-  const douzeDerniers = lignesLoyer.slice(-12);
+  const douzeDerniers = lignesLoyer.filter((l) => l.statut !== "non_du").slice(-12);
   const payes = douzeDerniers.filter((l) => l.statut === "paye").length;
   // Les pastilles ne parlent qu'au survol (title) : au tactile, les mois
   // restant à régler sont nommés en clair sous la frise.
@@ -115,6 +116,10 @@ export default async function PagePaiementsLocataire(
   // Le mois se compte au jour de Paris, comme la base : le serveur tourne en UTC, et entre 22 h et 24 h
   // le dernier jour du mois, `new Date()` dirait encore le mois qui finit alors que Paris est déjà au suivant.
   const moisSuivant = premierDuMoisSuivant(aujourdhuiParis());
+  // Le bail prend fin avant le mois suivant (congé) : aucune échéance n'est plus à venir.
+  const finAvantMoisSuivant = Boolean(bail && bailFiniAvantMoisSuivant(bail.date_fin, aujourdhuiParis()));
+  // Les mois DUS : un terme « non dû » (après la fin du bail) ne compte pas dans « X quittances sur Y mois ».
+  const moisDus = lignesLoyer.filter((l) => l.statut !== "non_du").length;
 
   const pastilles = douzeDerniers.length > 1 && (
     <>
@@ -164,7 +169,7 @@ export default async function PagePaiementsLocataire(
         <div className="space-y-4">
           <div className="loc-carte">
             <div className="entete-carte !mb-1">
-              <h2 className="titre-carte text-base font-medium">{prochaine && ["impaye", "partiel"].includes(prochaine.statut) ? "Loyer restant à régler" : "Prochain loyer"}</h2>
+              <h2 className="titre-carte text-base font-medium">{prochaine && ["impaye", "partiel"].includes(prochaine.statut) ? "Loyer restant à régler" : finAvantMoisSuivant && !prochaine ? "Mes loyers" : "Prochain loyer"}</h2>
               {aEchoue(eEcheancier, eBaux) ? null : prochaine ? (
                 <span className="loc-tag bleu capitalize">{moisLong(prochaine.periode)}</span>
               ) : bail ? (
@@ -232,11 +237,17 @@ export default async function PagePaiementsLocataire(
                   Tous vos loyers sont à jour — rien à régler pour l&apos;instant.
                 </p>
                 <p className="mt-1 text-[13px] text-muted-foreground">
-                  Prochaine échéance{" "}
-                  {bail.jour_echeance != null
-                    ? `le ${ordinalJour(bail.jour_echeance)} ${moisLong(moisSuivant)}`
-                    : `en ${moisLong(moisSuivant)}`}
-                  .
+                  {finAvantMoisSuivant && bail.date_fin ? (
+                    <>{phraseFinDeBail(bail.date_fin, aujourdhuiParis())}</>
+                  ) : (
+                    <>
+                      Prochaine échéance{" "}
+                      {bail.jour_echeance != null
+                        ? `le ${ordinalJour(bail.jour_echeance)} ${moisLong(moisSuivant)}`
+                        : `en ${moisLong(moisSuivant)}`}
+                      .
+                    </>
+                  )}
                 </p>
                 {sommesEchues.length > 1 && <div className="mt-4 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3">
                   <p className="text-sm">Total restant sur les {sommesEchues.length} échéances dues</p><p className="montant text-xl font-semibold">{eur(soldeEchu)}</p>
@@ -273,7 +284,7 @@ export default async function PagePaiementsLocataire(
                 nomme ce qu'elle compte (24/09). */}
             {!aEchoue(eEcheancier) && lignesLoyer.length > 0 && (
               <span className="mono-discret">
-                {nbQuittances} quittance{nbQuittances > 1 ? "s" : ""} sur {lignesLoyer.length} mois
+                {nbQuittances} quittance{nbQuittances > 1 ? "s" : ""} sur {moisDus} mois
               </span>
             )}
           </div>

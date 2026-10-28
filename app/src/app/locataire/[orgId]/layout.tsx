@@ -7,7 +7,8 @@ import { styleMarque } from "@/lib/marque-organisation";
 import { SidebarLocataire } from "@/components/nav-locataire";
 import { MenuCompte } from "@/components/menu-compte";
 import { nomComplet } from "@/lib/roles-personnes";
-import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
+import { assuranceReclamee, etatAssuranceLocataire } from "@/lib/assurance-locataire";
+import { aujourdhuiParis } from "@/lib/ged";
 import { aEchoue } from "./panne-lecture";
 
 // L'apparence de l'organisation, lue une fois par requête : la marque de la
@@ -75,7 +76,8 @@ export default async function LayoutLocataire({
   const derniere = attestations[0];
   // L'assurance n'est réclamée qu'à un locataire en place : sans bail actif,
   // le badge ne réclame rien (audit 06/09 — badge figé à 1 pour un sortant).
-  const bailActif = ((baux ?? []) as unknown[]).length > 0;
+  // Sixième relecture du 28/10 : un bail dont la date de fin est passée ne réclame plus l'assurance (même règle que l'accueil).
+  const bailActif = assuranceReclamee(baux as { date_fin?: string | null }[] | null, aujourdhuiParis());
   // Le badge se déclenche à J-30, pas à l'expiration : c'est le seuil que
   // RM-0b.5.1 rend dû AU LOCATAIRE, et celui que l'accueil et la page
   // Documents affichent désormais (revue 11/09 — le menu restait muet

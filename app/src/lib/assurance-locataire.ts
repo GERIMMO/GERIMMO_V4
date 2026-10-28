@@ -21,3 +21,12 @@ export function etatAssuranceLocataire(attestation: Attestation | undefined) {
       : "Validée",
   };
 }
+
+/**
+ * L'assurance n'est réclamée qu'à un locataire en place (sixième relecture du 28/10) : un bail dont la date de fin est
+ * passée (« Votre bail a pris fin le … ») ne la réclame plus, ni dans « Ce qui vous attend » ni dans le badge du menu.
+ */
+export function assuranceReclamee(baux: { date_fin?: string | null }[] | null | undefined, jour: string): boolean {
+  return (baux ?? []).some((b) => !b.date_fin || b.date_fin >= jour);
+}
+

@@ -1,11 +1,12 @@
-import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
+import { assuranceReclamee, etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { deElide } from "@/lib/elision";
 import { tacheLoyerEnRetard } from "@/lib/tache-loyer-locataire";
 import { Banknote, Files, Wrench } from "lucide-react";
 import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
-import { estARenouveler, eur, formaterDate } from "@/lib/ged";
+import { aujourdhuiParis, estARenouveler, eur, formaterDate } from "@/lib/ged";
+import { bailFiniAvantMoisSuivant, phraseFinDeBail } from "@/lib/echeances";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { ConsultationDocument } from "./consultation-document";
@@ -84,7 +85,9 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   }[];
   const retards = lignes.filter(l => ["impaye", "partiel"].includes(l.statut));
   const totalRetard = retards.reduce((s, l) => s + Math.max(0, Math.round(Number(l.montant_du) * 100) - Math.round(Number(l.montant_couvert) * 100)), 0) / 100;
-  const prochaine = lignes.find((l) => l.statut !== "paye");
+  // Un terme « non dû » (après la fin du bail, migration 20261028100100) n'est ni à payer ni à venir.
+  const prochaine = lignes.find((l) => l.statut !== "paye" && l.statut !== "non_du");
+  const finDuBail = Boolean(bail && bailFiniAvantMoisSuivant(bail.date_fin, aujourdhuiParis()));
   const mesPieces = (pieces ?? []) as {
     type: string;
     depose_le: string;
@@ -118,7 +121,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   // Même règle que le badge du menu (audit 06/09) : sans bail actif, aucune
   // assurance n'est réclamée — sinon l'accueil s'alarmait quand le menu, lui,
   // ne comptait rien.
-  const assuranceAJour = !bail || attestationValide;
+  // Sixième relecture du 28/10 : un bail fini (date de fin passée) ne réclame plus l'assurance.
+  const assuranceAJour = !assuranceReclamee(baux as BailLocataire[] | null, aujourdhuiParis()) || attestationValide;
   // RM-0b.5.1 et le tableau des seuils de [[Dossier locataire]] : le rappel de
   // renouvellement est dû AU LOCATAIRE à J-30. Relevé du 11/09 : l'accueil
   // lisait estExpiree (strict « < aujourd'hui ») et affichait « ✓ Assurance à
@@ -150,7 +154,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   // cachait derrière un nombre. On ne nomme que ce qui est réellement là.
   const contenuDocuments = [
     quittances.some((l) => l.statut === "paye") ? "vos quittances" : null,
-    quittances.some((l) => l.statut !== "paye") ? "vos reçus de paiement" : null,
+    quittances.some((l) => l.statut !== "paye" && l.statut !== "non_du") ? "vos reçus de paiement" : null,
     mesPieces.some((p) => p.type === "bail") ? "votre bail" : null,
     mesPieces.some((p) => p.type === "attestation_assurance") ? "vos attestations" : null,
   ].filter((m): m is string => Boolean(m));
@@ -441,7 +445,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
             />
           ) : (
           <div className={`${CARTE_KPI} carte-rubrique`} data-ton="bleu">
-            <p className="titre-rubrique text-sm font-semibold"><Banknote size={20} aria-hidden="true" />{enRetard ? "Loyer restant à régler" : "Prochain loyer"}</p>
+            <p className="titre-rubrique text-sm font-semibold"><Banknote size={20} aria-hidden="true" />{enRetard ? "Loyer restant à régler" : finDuBail && !prochaine ? "Mes loyers" : "Prochain loyer"}</p>
             {eEcheancier ? (
               <div className="mt-2">
                 <LectureImpossible quoi="votre échéancier" />
@@ -463,6 +467,9 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               <div className="mt-2">
                 <LectureImpossible quoi="votre dépôt de garantie" />
               </div>
+            ) : finDuBail && bail?.date_fin ? (
+              // Même message que « Mes paiements » : le bail est fini, aucune échéance n'est plus à venir.
+              <p className="mt-2 text-sm text-muted-foreground">{phraseFinDeBail(bail.date_fin, aujourdhuiParis())}</p>
             ) : (
               <p className="mt-2 text-sm text-muted-foreground">
                 Rien à régler pour l&apos;instant.

@@ -262,14 +262,19 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     attendues,
     { data: comparatif, error: erreurComparatif },
     [
-      { data: echeancier, error: erreurEcheancier },
+      { data: echeancierBrut, error: erreurEcheancier },
       { data: encaissements, error: erreurEncaissements },
       { data: quittances, error: erreurQuittances },
+      // Les termes au prorata : etat_loyers_bail ne les distingue pas, le bouton « Prorata (PDF) » en dépend (audit final, LOY-16).
+      { data: proratas },
       { data: revisions, error: erreurRevisions },
       { data: relances, error: erreurRelances },
       { data: regularisations, error: erreurRegul },
       // Encaissement du dépôt : même condition, même aller-retour
       { data: depotEncaissements, error: erreurDepot },
+      // Ce qu'il reste à faire sur un terme (alertes ouvertes du bail, migration 20261028100100) : une information de
+      // plus sur la ligne, jamais bloquante (une lecture en échec n'affiche rien).
+      { data: alertesTermes },
     ],
     { data: restitutionBrute, error: erreurRestitution },
     // Le décompte travaille sur un INSTANTANÉ des montants (dépôt encaissé,
@@ -296,6 +301,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .from("quittances")
           .select("id, appel_id, montant, date_emission, email_envoye_at, est_quittance")
           .eq("bail_id", bailId),
+        supabase.from("appels_loyer").select("id, prorata").eq("bail_id", bailId).eq("prorata", true),
         supabase
           .from("revisions_loyer")
           .select("id, date_effet, date_echeance, date_demande, irl_trimestre, ancien_loyer, nouveau_loyer, irl_reference, irl_nouveau")
@@ -316,8 +322,17 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .select("id, montant, date_encaissement, moyen, versant_libelle, versant_person_id")
           .eq("bail_id", bailId)
           .order("date_encaissement"),
+        supabase
+          .from("alerts")
+          .select("details")
+          .eq("organization_id", orgId)
+          .eq("statut", "ouverte")
+          .eq("origine_type", "bail")
+          .eq("origine_id", bailId)
+          .in("type", ["terme_a_regulariser", "document_envoye_remplace", "avis_echeance_recalcule"])
+          .order("created_at"),
       ])
-      : Promise.resolve([vide, vide, vide, vide, vide, vide, vide]),
+      : Promise.resolve([vide, vide, vide, vide, vide, vide, vide, vide, vide]),
     restitutionActif
       ? supabase
           .from("restitutions")
@@ -331,6 +346,16 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       ? supabase.rpc("montants_restitution_a_jour", { p_bail: bailId })
       : Promise.resolve({ data: null, error: null }),
   ]);
+  // L'échéancier porte son drapeau de prorata : la ligne du premier (ou dernier) terme propose le décompte.
+  const appelsProrata = new Set(((proratas ?? []) as { id: string }[]).map((a) => a.id));
+  const echeancier = (echeancierBrut ?? []).map((l: LigneEcheance) => ({ ...l, prorata: appelsProrata.has(l.appel_id) }));
+  const consignesTermes: Record<string, string[]> = {};
+  for (const { details } of (alertesTermes ?? []) as { details: Record<string, unknown> | null }[]) {
+    const appel = details?.appel_id, consigne = details?.consigne;
+    if (typeof appel === "string" && typeof consigne === "string" && consigne) {
+      (consignesTermes[appel] ??= []).push(consigne);
+    }
+  }
   const ecarts = ((comparatif ?? []) as {
     piece: string | null;
     libelle: string;
@@ -940,6 +965,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               copropriete={Boolean(premier(lot?.bien ?? null)?.copropriete)}
               aujourdhui={aujourdhuiParis()}
               decompteSortie={etatDecompteSortie(restitution, erreurRestitution)}
+              consignesTermes={consignesTermes}
             />
           </div>
         </RubriqueDossier>

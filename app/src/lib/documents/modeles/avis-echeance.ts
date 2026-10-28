@@ -10,8 +10,7 @@ import {
   enTete,
   eur,
   facultatif,
-  faitA,
-  blocSignatureEmetteur,
+  faitASigne,
   formaterDateFr,
   section,
   tableau,
@@ -20,6 +19,7 @@ import {
 import {
   chargerContexteBail,
   expediteur,
+  expediteurCourrier,
   nomsBailleurs,
   nomsLocataires,
   adresseLogement,
@@ -29,6 +29,7 @@ import {
   libelleCharges,
   bornesTerme,
 } from "./communs";
+import { termeApresFinDuBail } from "@/lib/echeances";
 import type { Assemblage } from "./index";
 
 export type DonneesAvisEcheance = {
@@ -56,6 +57,8 @@ export type DonneesAvisEcheance = {
   signatureImg?: string | null;
   /** Jour d'établissement de l'avis (« AAAA-MM-JJ »). Par défaut : le jour de Paris, celui que la base donne à l'appel. */
   jour?: string;
+  /** Propriétaire direct : le locataire se rapproche de son bailleur, pas d'un « gestionnaire » (audit final, LOY-17). */
+  proprietaireDirect?: boolean;
   f: Fusion;
 };
 
@@ -108,11 +111,10 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
     <p>Lieu de paiement prévu au bail : ${f.champ(d.lieuPaiement ?? null, "domicile du bailleur, virement…")}.</p>
     <p>Coordonnées bancaires : ${facultatif(d.iban ?? null)}.</p>
     <div class="mentions">
-      <p>En cas de difficulté de paiement, rapprochez-vous sans attendre de votre gestionnaire :
+      <p>En cas de difficulté de paiement, rapprochez-vous sans attendre de votre ${d.proprietaireDirect ? "bailleur" : "gestionnaire"} :
       des solutions amiables existent (délais, aides au logement).</p>
     </div>
-    ${faitA(f, d.exp.ville, jour)}
-    ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
+    ${faitASigne(f, d.exp.ville, jour, d.exp.nom, d.signatureImg ?? null)}
   `;
   return assemblerPage({
     f,
@@ -138,6 +140,10 @@ export async function assemblerAvisEcheance(
 
   const ctx = await chargerContexteBail(supabase, orgId, appel.bail_id);
   if ("erreur" in ctx) return ctx;
+  // Un terme appelé après la fin du bail n'est pas dû (migration 20261028100100) : aucun avis ne le réclame.
+  if (termeApresFinDuBail(appel.periode, ctx.bail.date_fin)) {
+    return { erreur: "Ce terme suit la fin du bail : il n’est pas dû, aucun avis d’échéance ne se prépare." };
+  }
 
   // L'arriéré : ce qui reste dû sur les termes antérieurs à celui-ci.
   const { data: etat } = await supabase.rpc("etat_loyers_bail", { p_bail: appel.bail_id });
@@ -164,8 +170,9 @@ export async function assemblerAvisEcheance(
     logementAdresse: adresseLogement(ctx.lot, ctx.bien),
     referenceBail: referenceCourte("BAIL", ctx.bail.id),
     dateBail: ctx.bail.date_debut,
-    exp: expediteur(ctx),
+    exp: expediteurCourrier(ctx),
     signatureImg: await signatureOrganisation(supabase, orgId),
+    proprietaireDirect: ctx.organisation.type === "proprietaire_direct",
     f,
   });
 

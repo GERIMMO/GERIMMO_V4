@@ -47,6 +47,8 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
   const jour = aujourdhuiParis();
   const { demande: appele, regle: encaisse, aEchoir } = totauxEcheances(lignes, jour);
   const impayes = lignes.filter((l) => Number(l.montant_couvert) < Number(l.montant_du));
+  // Les termes DUS du mois : un terme « non dû » (après la fin du bail) ne se compte pas.
+  const nbTermes = lignes.filter((l) => l.statut !== "non_du").length;
   const nbRegles = lignes.length - impayes.length;
   // Un terme à échoir n'est pas encore dû : il ne se relance pas, sauf pour la dette antérieure échue qu'il porte. La tuile
   // et la carte « Impayés à relancer » comptent la même liste (relecture de LOY-07).
@@ -144,8 +146,8 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
               <span className="chiffre montant mt-1 block">{eur(appele)}</span>
               <span className="block text-xs text-muted-foreground">
                 {estProprietaire
-                  ? `${lignes.length} loyer${lignes.length > 1 ? "s" : ""}`
-                  : `${lignes.length} terme${lignes.length > 1 ? "s" : ""} de loyer`}
+                  ? `${nbTermes} loyer${nbTermes > 1 ? "s" : ""}`
+                  : `${nbTermes} terme${nbTermes > 1 ? "s" : ""} de loyer`}
               </span>
             </div>
             <div className={`kpi ${moisVide ? "" : "vert"}`}>

@@ -62,6 +62,11 @@ d'échéance, quittance, décompte de prorata.
   sa base (même s'il a été figé au mois plein par une quittance envoyée). Exemples : fin au 25/09, octobre appelé 500 € non
   payé, 2 000 € versés → trop-perçu 83,33 € (et non « impayés 416,67 € » retenus sur le dépôt) ; quittance d'octobre de
   500 € envoyée, 403,22 € dus → trop-perçu 96,78 €. Aucun appel n'est modifié.
+- **Un terme d'un mois postérieur au mois de fin du bail n'est pas dû — une seule source de vérité** (décision du 28/10) :
+  l'imputation des règlements (`etat_loyers_bail_brut`) le compte à 0, avec le statut « Non dû — après la fin du bail ».
+  L'échéancier du bail, le reste dû, l'espace du locataire, le quittancement du mois, les relances automatiques (aucun
+  courriel au locataire, aux colocataires ni à la caution), l'alerte d'impayé et le décompte disent la même chose. Ce qui
+  a été versé dessus n'y est plus imputé : c'est un excédent du bail (« En avance » à l'écran, trop-perçu au décompte).
 - Le mois d'entrée et les mois pleins antérieurs ne sont **jamais** recalculés. La clôture anticipée du bail
   (`terminer_bail`, décision D34) laisse les montants tels quels.
 - **Base du recalcul : la base mensuelle qui a émis l'appel**, jamais le loyer révisé depuis (relectures du 28/10). Chaque
@@ -102,8 +107,9 @@ d'échéance, quittance, décompte de prorata.
 
 > [!warning] Points à trancher / contradictions
 > - Régularisation d'un terme déjà quittancé ou appelé après la fin du bail : aucun outil (avoir, annulation de terme) dans
->   l'application au 28/10 ; le décompte de sortie compte le montant dû, mais l'échéancier et les relances voient encore
->   le terme appelé. Évolution à décider.
+>   l'application au 28/10. Le terme après la fin est compté non dû partout ; le dernier terme figé au mois plein par une
+>   quittance envoyée reste affiché à son montant appelé (seul le décompte de sortie retient le montant dû). Évolution à
+>   décider.
 > - La règle d'arrondi n'a pas de source réglementaire : c'est une convention du dépôt (migration du 03/08/2026), cohérente
 >   avec la pratique (loyer et charges distincts sur la quittance, art. 21 de la loi du 6 juillet 1989). À confirmer si un
 >   texte ou une jurisprudence impose un autre mode de calcul (par exemple sur 30 jours fixes).

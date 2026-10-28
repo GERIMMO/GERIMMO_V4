@@ -96,14 +96,15 @@ export default async function PagePaiementsLocataire(
 
   const moisLong = (d: string) =>
     new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
-  const prochaine = lignesLoyer.find((l) => l.statut !== "paye");
+  // Un terme « non dû » (après la fin du bail) n'est ni à payer ni à venir.
+  const prochaine = lignesLoyer.find((l) => l.statut !== "paye" && l.statut !== "non_du");
   const forfait = bail?.charges_mode === "forfait";
   // Seuls les mois SOLDÉS ont une quittance ; un paiement partiel n'a qu'un
   // reçu, et la mention le comptait comme une quittance (24/09).
   const nbQuittances = lignesLoyer.filter((l) => l.statut === "paye" && l.quittance_id && disponibilites[l.quittance_id] === "disponible").length;
   // Les 12 derniers mois en pastilles : payé plein, à venir cerclé laiton,
   // impayé rouge — le « parcours » du locataire en un regard.
-  const douzeDerniers = lignesLoyer.slice(-12);
+  const douzeDerniers = lignesLoyer.filter((l) => l.statut !== "non_du").slice(-12);
   const payes = douzeDerniers.filter((l) => l.statut === "paye").length;
   // Les pastilles ne parlent qu'au survol (title) : au tactile, les mois
   // restant à régler sont nommés en clair sous la frise.

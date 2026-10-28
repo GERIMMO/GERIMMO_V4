@@ -7,7 +7,8 @@
 -- l'ajustement du dernier terme) ; retire `ajuster_appel_fin_de_bail(uuid, date)`, `montants_appel_loyer(uuid, date, numeric, numeric)`,
 -- `poser_alerte_terme(…)`, `suivre_document_remplace(uuid, uuid)`, `mois_de_periode(date)`, `montant_alerte(numeric)` et les
 -- déclencheurs `appel_loyer_base_mensuelle` (appels_loyer) et `quittance_suit_document_remplace` (quittances) avec leurs fonctions,
--- et l'index `alerts_document_remplace_ouverte_idx` ; rend à `montants_reels_bail` son texte de 20260927104000 ;
+-- et l'index `alerts_document_remplace_ouverte_idx` ; rend à `montants_reels_bail` son texte de 20260927104000 et à
+-- `etat_loyers_bail_brut` celui de 20260910140000 (un terme après la fin du bail redevient dû et relancé) ;
 -- retire la garde du centime d'`encaisser_depot` (remplacement inverse à compte exact de l'ancre, sinon arrêt sans rien
 -- modifier) ; retire les quatre contraintes du centime ; supprime la version.
 -- CONSERVE : les appels de loyer déjà recalculés par un congé (ils sont justes), les quittances resynchronisées, les
@@ -240,6 +241,40 @@ drop function if exists public.appel_loyer_fixe_base();
 drop function if exists public.mois_de_periode(date);
 drop function if exists public.montant_alerte(numeric);
 drop index if exists public.alerts_document_remplace_ouverte_idx;
+
+-- etat_loyers_bail_brut : texte de 20260910140000.
+CREATE OR REPLACE FUNCTION public.etat_loyers_bail_brut(p_bail uuid)
+ RETURNS TABLE(appel_id uuid, periode date, date_echeance date, montant_du numeric, cumul_du numeric, montant_couvert numeric, statut text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  with b as (
+    select id, organization_id from public.baux where id = p_bail
+  ), a as (
+    select al.id, al.periode, al.date_echeance, al.montant_du,
+      sum(al.montant_du) over (order by al.periode rows between unbounded preceding and current row) as cumul_du
+    from public.appels_loyer al join b on b.id = al.bail_id
+    where al.organization_id = b.organization_id
+  ), tot as (
+    select coalesce(sum(e.montant), 0) as encaisse
+    from public.encaissements e join b on b.id = e.bail_id
+    where e.organization_id = b.organization_id
+  )
+  select
+    a.id, a.periode, a.date_echeance, a.montant_du, a.cumul_du,
+    round(least(a.montant_du, greatest(0, tot.encaisse - (a.cumul_du - a.montant_du))), 2) as montant_couvert,
+    case
+      when tot.encaisse >= a.cumul_du then 'paye'
+      when tot.encaisse > (a.cumul_du - a.montant_du) then 'partiel'
+      when a.date_echeance < public.aujourdhui_paris() then 'impaye'
+      else 'attendu'
+    end as statut
+  from a, tot
+  order by a.periode;
+$function$;
+comment on function public.etat_loyers_bail_brut(uuid) is null;
+revoke execute on function public.etat_loyers_bail_brut(uuid) from public, anon, authenticated;
 
 -- montants_reels_bail : texte de 20260927104000 (tous les appels comptent comme dus).
 create or replace function public.montants_reels_bail(p_bail uuid)

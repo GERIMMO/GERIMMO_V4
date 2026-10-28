@@ -194,8 +194,15 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     const [alerte] = await alertes();
     expect(alerte).toMatchObject({ statut: "ouverte", origine_id: bail, motif: "appel_apres_fin" });
     expect(alerte.titre).toContain("appelé après la fin du bail");
-    // Réglé (l'imputation y porte l'excédent du mois de sortie) : non dû, ce qui a été versé revient au locataire.
-    expect(alerte.titre).toContain("non dû, ce qui a été versé dessus revient au locataire");
+    // Quatrième relecture du 28/10 : non dû, une seule source de vérité (etat_loyers_bail_brut) : 0 dû, aucun règlement
+    // imputé, la quittance du terme (payé avant le congé) est retirée ; ce qui a été versé est en trop-perçu.
+    expect(alerte.titre).toContain("500,00\u00a0€ non dus, ne les réclamez pas");
+    await db.query("reset role");
+    expect((await db.query("select montant_du::float8 du, montant_couvert::float8 couvert, statut from public.etat_loyers_bail_brut($1) where periode=$2", [bail, mois])).rows[0])
+      .toEqual({ du: 0, couvert: 0, statut: "non_du" });
+    expect(Number((await db.query("select trop_percu from public.montants_reels_bail($1)", [bail])).rows[0].trop_percu)).toBe(Number((1000 - Number(total)).toFixed(2)));
+    await agir(compte);
+    expect(await quittance(mois)).toEqual([]);
     // Le locataire reste finalement : le mois de sortie redevient plein, le terme suivant redevient dû, l'alerte se ferme.
     await db.query("select public.annuler_conge($1,'TEST rétractation')", [bail]);
     expect(await appel(precedent)).toMatchObject({ montant_du: "500.00", prorata: false });
@@ -292,82 +299,90 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     expect(await appel(mois)).toEqual({ loyer_hc: "450.00", charges: "50.00", montant_du: "500.00", prorata: false });
   });
 
-  it("congé tardif, reçu déjà envoyé sur le terme suivant : le document est recomposé comme l'écran du bail, une alerte le suit jusqu'au renvoi", async () => {
-    // Seconde relecture du 28/10 (R5), voie décidée : rien n'est remis en l'état. Le terme courant a été réglé 300 € et
-    // son reçu est parti ; le congé tardif (fin le 25 du mois précédent) réduit le mois précédent, l'excédent couvre le terme
-    // courant.
-    const precedent = (await db.query("select ($1::date - interval '1 month')::date::text m", [mois])).rows[0].m;
+  it("congé tardif, reçu déjà envoyé sur le terme qui suit la fin : non dû partout (échéancier, relances, décompte), le reçu retiré est signalé", async () => {
+    // Quatrième relecture du 28/10 : la relance automatique réclamait ce terme alors que l'alerte disait « ne le réclamez
+    // pas ». Le terme courant a été réglé 300 € et son reçu est parti ; relances automatiques activées.
     await db.query("reset role");
+    await db.query("update public.organizations set relances_envoi_auto=true where id=$1", [org]);
+    await db.query("update public.persons set email='locataire-test@example.invalid' where id=(select locataire_principal from public.baux where id=$1)", [bail]);
     await db.query("select public.supprimer_encaissement(e.id,'TEST paiement partiel') from public.encaissements e where e.bail_id=$1 and e.date_paiement>=$2", [bail, mois]);
+    // Échu depuis 30 jours, au-delà des délais de relance de l'espace.
+    await db.query("update public.appels_loyer set date_echeance=public.aujourdhui_paris()-30 where bail_id=$1 and periode=$2", [bail, mois]);
     await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,300,$3,'virement')", [org, bail, mois]);
     await db.query("update public.quittances q set email_envoye_at=now() from public.appels_loyer a where a.id=q.appel_id and a.bail_id=$1 and a.periode=$2", [bail, mois]);
+    // Avant le congé, le terme est bien relancé (contrôle du montage).
+    expect((await db.query("select count(*)::int n from public.relances_loyer_dues(500) where bail_id=$1", [bail])).rows[0].n).toBe(1);
     await agir(compte);
-    expect(await quittance(mois)).toMatchObject([{ est_quittance: false, montant: "300.00" }]);
     await db.query("select public.enregistrer_conge($1,'locataire',($2::date - interval '2 months' + interval '24 days')::date,1::smallint)", [bail, mois]);
+    const precedent = (await db.query("select ($1::date - interval '1 month')::date::text m", [mois])).rows[0].m;
+    const du = Number((await appel(precedent)).montant_du);
 
-    // Le document tel que la page, le PDF et l'espace locataire le recomposent (assemblerQuittance) : mêmes lectures.
-    const documentEtEcran = async () => {
-      await db.query("reset role");
-      const q = (await db.query("select q.est_quittance, q.montant::numeric m, q.email_envoye_at, a.id appel, a.montant_du::numeric du from public.quittances q join public.appels_loyer a on a.id=q.appel_id where a.bail_id=$1 and a.periode=$2", [bail, mois])).rows[0];
-      const appels = (await db.query("select id, periode::text, montant_du::numeric montant_du from public.appels_loyer where bail_id=$1", [bail])).rows;
-      const versements = (await db.query("select date_paiement::text, mode, montant::numeric montant, created_at::text from public.encaissements where bail_id=$1", [bail])).rows;
-      const ecran = (await db.query("select montant_du::numeric du, montant_couvert::numeric couvert, statut from public.etat_loyers_bail($1) where periode=$2", [bail, mois])).rows[0];
-      await agir(compte);
-      const listes = versementsDuTerme(appels.map((a) => ({ ...a, montant_du: Number(a.montant_du) })),
-        versements.map((v) => ({ ...v, montant: Number(v.montant) })), q.appel);
-      return {
-        document: { montant: Number(q.m), versements: Math.round(listes.reduce((t, v) => t + v.montant, 0) * 100) / 100, solde: Math.round((Number(q.du) - Number(q.m)) * 100) / 100, envoye: q.email_envoye_at !== null },
-        ecran: { couvert: Number(ecran.couvert), reste: Math.round((Number(ecran.du) - Number(ecran.couvert)) * 100) / 100 },
-      };
-    };
-    const apresConge = await documentEtEcran();
-    expect(apresConge.document.montant).toBeGreaterThan(300);
-    expect(apresConge.document).toEqual({ montant: apresConge.ecran.couvert, versements: apresConge.ecran.couvert, solde: apresConge.ecran.reste, envoye: false });
-    const [alerte] = await alertes("document_envoye_remplace");
-    const nouveau = apresConge.document.montant.toFixed(2).replace(".", ",");
-    expect(alerte).toMatchObject({ statut: "ouverte", origine_id: bail });
-    expect(alerte.titre).toMatch(new RegExp(`^Le reçu (d’|de ).+ envoyé le \\d{2}/\\d{2}/\\d{4} pour 300,00\u00a0€ est remplacé par un reçu de ${nouveau}\u00a0€ — `));
-    expect(alerte.titre).toContain("envoyez le nouveau document au locataire");
-    expect(await appel(precedent)).toMatchObject({ prorata: true });
-
-    // Le locataire règle le solde : le déclencheur des encaissements réécrit le document, l'alerte suit (quittance de 500 €).
     await db.query("reset role");
-    await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,$3,$4,'virement')", [org, bail, apresConge.ecran.reste, jour]);
+    // Échéancier : non dû, rien d'imputé ; aucune relance (ni niveau 1 ni niveau 2) ; aucune alerte d'impayé.
+    expect((await db.query("select montant_du::float8 du, montant_couvert::float8 couvert, statut from public.etat_loyers_bail_brut($1) where periode=$2", [bail, mois])).rows[0])
+      .toEqual({ du: 0, couvert: 0, statut: "non_du" });
+    expect((await db.query("select count(*)::int n from public.relances_loyer_dues(500) where bail_id=$1", [bail])).rows[0].n).toBe(0);
+    await db.query("insert into public.relances(organization_id,bail_id,niveau,date_envoi) values($1,$2,'relance_1',public.aujourdhui_paris()-20)", [org, bail]);
+    expect((await db.query("select count(*)::int n from public.relances_loyer_dues(500) where bail_id=$1", [bail])).rows[0].n).toBe(0);
+    await db.query("select public.suivre_impayes_bail($1)", [bail]);
+    expect((await db.query("select count(*)::int n from public.alerts where organization_id=$1 and type='loyer_impaye' and statut='ouverte'", [org])).rows[0].n).toBe(0);
+    // Écran et décompte disent la même chose : rien dû, l'excédent versé est un trop-perçu.
+    const ecran = (await db.query(`select coalesce(sum(montant_du),0)::numeric - (select coalesce(sum(montant),0) from public.encaissements where bail_id=$1) solde
+      from public.etat_loyers_bail_brut($1)`, [bail])).rows[0];
+    const decompte = (await db.query("select impayes::numeric, trop_percu::numeric from public.montants_reels_bail($1)", [bail])).rows[0];
+    expect(Number(decompte.impayes)).toBe(0);
+    expect(Number(decompte.trop_percu)).toBe(Number((300 + 500 - du).toFixed(2)));
+    expect(-Number(ecran.solde)).toBe(Number(decompte.trop_percu));
     await agir(compte);
-    const solde = await documentEtEcran();
-    expect(solde.document).toEqual({ montant: 500, versements: 500, solde: 0, envoye: false });
-    expect((await alertes("document_envoye_remplace"))[0].titre).toContain("est remplacé par une quittance de 500,00\u00a0€");
+    // Le reçu envoyé n'est plus couvert : retiré, le gérant le sait.
+    expect(await quittance(mois)).toEqual([]);
+    const [alerte] = (await alertes("document_envoye_remplace")).filter((a) => a.statut === "ouverte");
+    expect(alerte.titre).toMatch(/^Le reçu (d’|de ).+ envoyé le \d{2}\/\d{2}\/\d{4} pour 300,00\u00a0€ n’est plus couvert par les règlements — /);
+    expect((await alertes()).find((a) => a.motif === "appel_apres_fin")?.titre).toContain("non dus, ne les réclamez pas");
+  });
 
-    // Le gérant envoie la quittance à jour : l'alerte n'a plus d'objet.
+  it("quittance envoyée retirée par un congé tardif, puis annulation après un règlement corrigé : le nouveau reçu est recomposé comme l'écran et signalé", async () => {
+    // Tout est réglé, la quittance du terme courant (500 €) est partie. Le congé tardif rend ce terme non dû : la quittance
+    // est retirée. Le règlement du mois précédent est ramené à son prorata, puis le locataire se rétracte : le terme
+    // courant redevient dû et n'est couvert qu'en partie. Voie (a) : le document est recomposé, l'alerte le dit.
+    const precedent = (await db.query("select ($1::date - interval '1 month')::date::text m", [mois])).rows[0].m;
     await db.query("reset role");
     await db.query("update public.quittances q set email_envoye_at=now() from public.appels_loyer a where a.id=q.appel_id and a.bail_id=$1 and a.periode=$2", [bail, mois]);
     await agir(compte);
-    expect(await alertes("document_envoye_remplace")).toMatchObject([{ statut: "fermee", closed_action: "Document à jour envoyé au locataire" }]);
-  });
-
-  it("annulation qui retire la couverture d'un document envoyé : il est retiré, l'alerte le dit, puis se ferme s'il revient à l'identique", async () => {
-    // Le mois précédent est né au prorata (fin le 25), réglé de son seul prorata ; le terme courant, réglé 500 €, a sa
-    // quittance envoyée. La rétractation remet le mois précédent à 500 € : l'imputation ne couvre plus tout le terme courant.
-    const precedent = (await db.query("select ($1::date - interval '1 month')::date::text m", [mois])).rows[0].m;
     await db.query("select public.enregistrer_conge($1,'locataire',($2::date - interval '2 months' + interval '24 days')::date,1::smallint)", [bail, mois]);
+    expect(await quittance(mois)).toEqual([]);
+    expect((await alertes("document_envoye_remplace"))[0].titre).toMatch(/^La quittance (d’|de ).+ envoyée le .+ pour 500,00\u00a0€ n’est plus couverte par les règlements/);
     await db.query("reset role");
     await db.query("select public.supprimer_encaissement(e.id,'TEST règlement du prorata') from public.encaissements e where e.bail_id=$1 and e.date_paiement>=$2::date and e.date_paiement<$3::date", [bail, precedent, mois]);
     await db.query(`insert into encaissements(organization_id,bail_id,montant,date_paiement,mode)
       select $1,$2,a.montant_du,a.date_echeance,'virement' from public.appels_loyer a where a.bail_id=$2 and a.periode=$3::date`, [org, bail, precedent]);
-    await db.query("select * from public.resynchroniser_quittances($1)", [bail]);
-    await db.query("update public.quittances q set email_envoye_at=now() from public.appels_loyer a where a.id=q.appel_id and a.bail_id=$1 and a.periode=$2", [bail, mois]);
     await agir(compte);
+    const prorata = Number((await appel(precedent)).montant_du);
     await db.query("select public.annuler_conge($1,'TEST rétractation')", [bail]);
     expect(await appel(precedent)).toMatchObject({ montant_du: "500.00", prorata: false });
-    // Comme sur main : le document suit l'imputation (reçu du montant couvert, à renvoyer).
-    const [q] = await quittance(mois);
-    expect(q).toMatchObject({ est_quittance: false, email_envoye_at: null });
+    // Le document tel que la page, le PDF et l'espace locataire le recomposent (assemblerQuittance) : mêmes lectures.
+    await db.query("reset role");
+    const q = (await db.query("select q.est_quittance, q.montant::numeric m, q.email_envoye_at, a.id appel, a.montant_du::numeric du from public.quittances q join public.appels_loyer a on a.id=q.appel_id where a.bail_id=$1 and a.periode=$2", [bail, mois])).rows[0];
+    const appels = (await db.query("select id, periode::text, montant_du::numeric montant_du from public.appels_loyer where bail_id=$1", [bail])).rows;
+    const versements = (await db.query("select date_paiement::text, mode, montant::numeric montant, created_at::text from public.encaissements where bail_id=$1", [bail])).rows;
+    const ecran = (await db.query("select montant_du::numeric du, montant_couvert::numeric couvert from public.etat_loyers_bail_brut($1) where periode=$2", [bail, mois])).rows[0];
+    await agir(compte);
+    const listes = versementsDuTerme(appels.map((a) => ({ ...a, montant_du: Number(a.montant_du) })),
+      versements.map((v) => ({ ...v, montant: Number(v.montant) })), q.appel);
+    expect({ est_quittance: q.est_quittance, montant: Number(q.m), envoye: q.email_envoye_at !== null }).toEqual({ est_quittance: false, montant: prorata, envoye: false });
+    expect(Math.round(listes.reduce((t, v) => t + v.montant, 0) * 100) / 100).toBe(Number(ecran.couvert));
+    expect(Math.round((Number(q.du) - Number(q.m)) * 100) / 100).toBe(Math.round((Number(ecran.du) - Number(ecran.couvert)) * 100) / 100);
     const [alerte] = (await alertes("document_envoye_remplace")).filter((a) => a.statut === "ouverte");
-    expect(alerte.titre).toMatch(/^La quittance (d’|de ).+ envoyée le .+ pour 500,00 € est remplacée par un reçu de /);
-    // Un nouveau congé identique rend la quittance de 500 € : l'alerte n'a plus d'objet.
-    await db.query("select public.enregistrer_conge($1,'locataire',($2::date - interval '2 months' + interval '24 days')::date,1::smallint)", [bail, mois]);
+    expect(alerte.titre).toMatch(/^La quittance (d’|de ).+ envoyée le .+ pour 500,00\u00a0€ est remplacée par un reçu de /);
+    // Le locataire règle le solde : la quittance de 500 € redevient celle qu'il a reçue ; marque d'envoi rendue.
+    await db.query("reset role");
+    await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,$3,$4,'virement')", [org, bail, (500 - prorata).toFixed(2), jour]);
+    await agir(compte);
     expect(await quittance(mois)).toMatchObject([{ est_quittance: true, montant: "500.00" }]);
-    expect(await alertes("document_envoye_remplace")).toMatchObject([{ statut: "fermee", closed_action: "Document revenu à celui envoyé au locataire" }]);
+    expect((await quittance(mois))[0].email_envoye_at).not.toBeNull();
+    const [fermee] = await alertes("document_envoye_remplace");
+    expect(fermee).toMatchObject({ statut: "fermee", closed_action: "Document revenu à celui envoyé au locataire" });
+    expect(fermee.titre).toContain("est revenue à l’identique du document envoyé");
   });
 
   it("reçu envoyé, congé tardif puis annulation : le reçu redevenu identique reprend sa marque d'envoi ; un second congé rouvre une alerte", async () => {
@@ -387,8 +402,9 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     };
     const ouvertes = async () => (await alertes("document_envoye_remplace")).filter((a) => a.statut === "ouverte");
 
+    // Le terme qui suit la fin n'est pas dû (quatrième relecture) : le reçu est retiré, l'alerte le dit.
     await congeTardif();
-    expect(await etatEnvoi()).toMatchObject({ est_quittance: false, e: null });
+    expect(await etatEnvoi()).toBeUndefined();
     expect(await ouvertes()).toHaveLength(1);
 
     await db.query("select public.annuler_conge($1,'TEST rétractation')", [bail]);
@@ -398,9 +414,10 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     expect((await alertes("document_envoye_remplace"))[0]).toMatchObject({ statut: "fermee", closed_action: "Document revenu à celui envoyé au locataire" });
 
     await congeTardif();
-    expect(await etatEnvoi()).toMatchObject({ est_quittance: false, e: null });
+    expect(await etatEnvoi()).toBeUndefined();
     const [nouvelle] = await ouvertes();
-    expect(nouvelle.titre).toContain("pour 300,00\u00a0€ est remplacé par un reçu de");
+    expect(nouvelle.titre).toContain("pour 300,00\u00a0€ n’est plus couvert par les règlements");
+    expect((await alertes("document_envoye_remplace")).filter((a) => a.statut === "fermee")[0].titre).toContain("est revenu à l’identique du document envoyé");
   });
 
   it("décompte de sortie (D1) : le terme appelé après la fin ne compte pas ; non payé, l'alerte dit de ne pas le réclamer", async () => {
@@ -416,7 +433,11 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     await agir(compte);
     const [alerte] = (await alertes()).filter((a) => a.motif === "appel_apres_fin");
     expect(alerte.titre).toContain("500,00\u00a0€ non dus, ne les réclamez pas");
-    expect(alerte.consigne).toContain("il n’est pas dû, ne le réclamez pas");
+    expect(alerte.consigne).toContain("il n’est pas dû (500,00\u00a0€ appelés), ne le réclamez pas");
+    // L'échéancier dit la même chose que le décompte (avant : octobre « partiel », reste dû affiché).
+    await db.query("reset role");
+    expect((await db.query("select statut from public.etat_loyers_bail_brut($1) where periode=$2", [bail, mois])).rows[0].statut).toBe("non_du");
+    await agir(compte);
     // Le locataire avait tout réglé (2 000 € sur quatre mois) : le trop versé lui revient au décompte.
     await db.query("reset role");
     await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,500,$3,'virement')", [org, bail, precedent]);

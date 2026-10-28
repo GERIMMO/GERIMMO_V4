@@ -89,7 +89,8 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
       <span className={COULEURS_STATUT_APPEL_LOYER[l.statut] ?? "puce puce-grise"}>
         {STATUTS_APPEL_LOYER[l.statut] ?? "État du paiement à vérifier"}
       </span>
-      {l.statut === "paye" ? (
+      {/* Terme après la fin du bail : rien à encaisser ni à quittancer (migration 20261028100100). */}
+      {l.statut === "non_du" ? null : l.statut === "paye" ? (
         l.quittance_id ? (
           <>
             {/* .lien-discret EST ce lien bleu 12 px : il était refait à la

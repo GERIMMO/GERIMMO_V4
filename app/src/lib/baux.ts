@@ -51,6 +51,9 @@ export const STATUTS_APPEL_LOYER: Record<string, string> = {
   partiel: "Partiel",
   impaye: "Impayé",
   attendu: "À échoir",
+  // Un terme d'un mois postérieur à la fin du bail (congé saisi tard) : la base le compte à 0, aucune relance ne le
+  // réclame (etat_loyers_bail_brut, migration 20261028100100).
+  non_du: "Non dû — après la fin du bail",
 };
 
 export const COULEURS_STATUT_APPEL_LOYER: Record<string, string> = {
@@ -58,6 +61,7 @@ export const COULEURS_STATUT_APPEL_LOYER: Record<string, string> = {
   partiel: "puce puce-prep",
   impaye: "puce puce-rouge",
   attendu: "puce puce-grise",
+  non_du: "puce puce-grise",
 };
 
 // Mentions obligatoires du contrat exigées À L'ACTIVATION — wiki « Mentions

@@ -39,6 +39,8 @@ type BailEnCours = {
   id: string;
   etat: string;
   lot_id: string;
+  /** Fin du bail (congé) : un terme d'un mois postérieur n'est pas dû, comme en base (etat_loyers_bail_brut). */
+  date_fin?: string | null;
   chambre_id?: string | null;
   lot: UnOuPlusieurs<{
     id: string;
@@ -107,7 +109,7 @@ export async function lireActionsAttendues(
 
   const { data: bauxBruts, error: erreurBaux } = await lectureCompleteSecurisee<BailEnCours>((debut, fin) => {
     let requeteBaux = supabase.from("baux").select(
-      "id, etat, lot_id, chambre_id, lot:lots(id, nom, bien_id, bien:biens!lots_bien_id_fkey(id, nom, type, annee_construction))", { count: "exact" },
+      "id, etat, lot_id, chambre_id, date_fin, lot:lots(id, nom, bien_id, bien:biens!lots_bien_id_fkey(id, nom, type, annee_construction))", { count: "exact" },
     ).eq("organization_id", orgId).in("etat", ["actif", "preavis"]);
     if (bailId) requeteBaux = requeteBaux.eq("id", bailId);
     return requeteBaux.order("id").range(debut, fin);
@@ -136,9 +138,9 @@ export async function lireActionsAttendues(
           .eq("type", "entree")
           .eq("etat", "signe")
           .in("bail_id", ids).order("id").range(debut, fin)),
-    lirePourLesBaux<{ id: string; bail_id: string; montant_du: number; date_echeance: string }>(bailIds, (ids, debut, fin) => supabase
+    lirePourLesBaux<{ id: string; bail_id: string; montant_du: number; date_echeance: string; periode: string }>(bailIds, (ids, debut, fin) => supabase
           .from("appels_loyer")
-          .select("id,bail_id,montant_du,date_echeance", { count: "exact" })
+          .select("id,bail_id,montant_du,date_echeance,periode", { count: "exact" })
           .eq("organization_id", orgId)
           .in("bail_id", ids).order("id").range(debut, fin)),
     lirePourLesBaux<{ id: string; bail_id: string; montant: number }>(bailIds, (ids, debut, fin) => supabase
@@ -191,11 +193,16 @@ export async function lireActionsAttendues(
     else encaisseParBail.set(e.bail_id, cumul);
   }
   const appelsParBail = new Map<string, { montant_du: number; date_echeance: string }[]>();
+  const moisFin = new Map(baux.map((b) => [b.id, b.date_fin ? b.date_fin.slice(0, 7) : null]));
   for (const a of (appels ?? []) as {
     bail_id: string;
     montant_du: number;
     date_echeance: string;
+    periode?: string;
   }[]) {
+    // Terme d'un mois postérieur à la fin du bail : non dû (même règle qu'etat_loyers_bail_brut).
+    const fin = moisFin.get(a.bail_id);
+    if (fin && typeof a.periode === "string" && a.periode.slice(0, 7) > fin) continue;
     const liste = appelsParBail.get(a.bail_id) ?? [];
     const montant = centimesFiables(a.montant_du, true);
     if (montant === null || !/^\d{4}-\d{2}-\d{2}$/.test(a.date_echeance)) erreurs.appels = true;

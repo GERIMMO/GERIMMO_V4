@@ -7269,3 +7269,8 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   dépôt, le trop appelé d'un dernier terme quittancé revient au locataire en trop-perçu. Un document revenu identique à
   celui envoyé reprend sa marque d'envoi ; un terme après la fin non payé : « ne le réclamez pas ». Page
   [[Prorata du premier et du dernier terme]] mise à jour.
+
+## [2026-10-28] fix | Quatrième relecture du chantier « loyers : calculs » — terme après la fin du bail non dû partout
+- Un terme d'un mois postérieur à la fin du bail n'est pas dû : échéancier, reste dû, espace du locataire, relances
+  automatiques, alerte d'impayé et décompte alignés (statut « Non dû — après la fin du bail ») ; aucune relance ne le
+  réclame. Page [[Prorata du premier et du dernier terme]] mise à jour.

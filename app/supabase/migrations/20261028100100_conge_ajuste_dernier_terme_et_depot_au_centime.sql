@@ -262,8 +262,13 @@ begin
       -- d'envoi et la date d'émission d'origine (gardées complètes dans l'alerte, jamais écrasées). Sans cela, le gérant
       -- verrait « Envoyer » pour un document déjà délivré, et un nouveau remplacement passerait sans alerte. L'alerte est
       -- fermée AVANT : la mise à jour de la quittance ne la retrouve plus (pas de boucle du déclencheur).
+      v_mois := public.mois_de_periode((al.details ->> 'periode')::date);
       update public.alerts set statut = 'fermee', closed_at = now(), closed_by = null,
-             closed_action = 'Document revenu à celui envoyé au locataire', updated_at = now()
+             closed_action = 'Document revenu à celui envoyé au locataire', updated_at = now(),
+             titre = case when v_quittance then 'La quittance ' else 'Le reçu ' end || v_mois
+                     || case when v_quittance then ' envoyée le ' else ' envoyé le ' end || (al.details ->> 'envoye_le')
+                     || ' pour ' || public.montant_alerte(v_montant)
+                     || ' est revenu' || case when v_quittance then 'e' else '' end || ' à l’identique du document envoyé'
        where id = al.id;
       update public.quittances
          set email_envoye_at = (al.details ->> 'envoye_at')::timestamptz,
@@ -371,7 +376,6 @@ declare
   v_qui text;
   v_ecart numeric;
   v_avis numeric;
-  v_couvert numeric;
   v_au_decompte boolean;
 begin
   select b.id, b.organization_id, b.lot_id, b.date_debut, b.date_fin, b.loyer_hc, b.charges, b.locataire_principal,
@@ -408,32 +412,19 @@ begin
   loop
     if v_fin_mois is not null and r.periode > v_fin_mois then
       -- Terme appelé pour un mois qui suit la fin du bail (congé saisi très tard) : il ne se supprime pas d'ici.
-      -- Ce que le locataire a déjà versé sur ce terme (imputation du plus ancien au plus récent) : non payé, il ne se
-      -- réclame pas ; payé, la somme lui revient (troisième relecture du 28/10).
-      select coalesce(max(eb.montant_couvert), 0) into v_couvert from public.etat_loyers_bail_brut(p_bail) eb where eb.appel_id = r.id;
+      -- Il n'est pas dû (section 8 : etat_loyers_bail_brut le compte à 0, aucune relance ne le réclame) ; ce qui a pu
+      -- être versé dessus reste en excédent du bail (quatrième relecture du 28/10).
       perform public.poser_alerte_terme(v.organization_id, p_bail, 'terme_a_regulariser', 'normale',
-        case when v_couvert > 0 then
-          -- Sans montant dans le titre : les encaissements suivants le changent ; la ligne du terme dit « couvert … ».
-          format('Terme %s appelé après la fin du bail (%s) — %s : non dû, ce qui a été versé dessus revient au locataire',
-            public.mois_de_periode(r.periode), to_char(v.date_fin, 'DD/MM/YYYY'), v_qui)
-        else
-          format('Terme %s appelé après la fin du bail (%s) — %s : %s non dus, ne les réclamez pas',
-            public.mois_de_periode(r.periode), to_char(v.date_fin, 'DD/MM/YYYY'), v_qui, public.montant_alerte(r.montant_du))
-        end,
+        format('Terme %s appelé après la fin du bail (%s) — %s : %s non dus, ne les réclamez pas',
+          public.mois_de_periode(r.periode), to_char(v.date_fin, 'DD/MM/YYYY'), v_qui, public.montant_alerte(r.montant_du)),
         v.date_fin,
         jsonb_build_object('bail_id', p_bail, 'lot_id', v.lot_id, 'appel_id', r.id, 'periode', r.periode,
-                           'montant_appele', r.montant_du, 'montant_du', 0, 'montant_verse', v_couvert,
-                           'date_fin', v.date_fin, 'motif', 'appel_apres_fin',
-                           'consigne', case when v_couvert > 0 then
-                             format('Ce terme suit la fin du bail (%s) : il n’est pas dû (%s appelés). Ce qui a été versé '
-                               'dessus (« couvert » sur cette ligne) revient au locataire : trop-perçu au solde de tout compte, '
-                               'ou remboursement. Gerimmo ne supprime pas un terme appelé ; le décompte de sortie ne le retient pas.',
-                               to_char(v.date_fin, 'DD/MM/YYYY'), public.montant_alerte(r.montant_du))
-                           else
-                             format('Ce terme suit la fin du bail (%s) : il n’est pas dû, ne le réclamez pas (%s appelés). '
-                               'Gerimmo ne supprime pas un terme appelé ; le décompte de sortie ne le retient pas.',
-                               to_char(v.date_fin, 'DD/MM/YYYY'), public.montant_alerte(r.montant_du))
-                           end));
+                           'montant_appele', r.montant_du, 'montant_du', 0, 'date_fin', v.date_fin, 'motif', 'appel_apres_fin',
+                           'consigne', format('Ce terme suit la fin du bail (%s) : il n’est pas dû (%s appelés), ne le '
+                             'réclamez pas. Gerimmo le compte à 0 (« Non dû — après la fin du bail ») : ni reste dû, ni '
+                             'relance. Ce qui a pu être versé dessus revient au locataire : trop-perçu au solde de tout '
+                             'compte, ou remboursement.',
+                             to_char(v.date_fin, 'DD/MM/YYYY'), public.montant_alerte(r.montant_du))));
       v_fondees := v_fondees || r.id;
       continue;
     end if;
@@ -523,7 +514,9 @@ begin
     end if;
   end loop;
 
-  if v_recalcules > 0 then
+  -- La date de fin a changé : un terme qui la suit change de statut (section 8) même quand aucun appel n'est recalculé.
+  -- La resynchronisation (sans effet si rien ne diffère) et le suivi de l'impayé se font donc à chaque passage.
+  if true then
     -- Quittance ou reçu suivent le nouveau montant (une quittance de 500 € sur un appel de 403,22 € ne se laisse pas).
     -- L'imputation est globale : un document déjà envoyé d'un AUTRE terme peut être réécrit ou retiré. Il l'est (le
     -- document reste cohérent avec l'écran du bail), et le gérant est alerté de ce qui a été envoyé et le remplace.
@@ -909,6 +902,60 @@ grant execute on function public.montants_reels_bail(uuid) to service_role;
 create index if not exists alerts_document_remplace_ouverte_idx
   on public.alerts (organization_id, (details ->> 'appel_id'))
   where type = 'document_envoye_remplace' and statut = 'ouverte';
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- 8. Un terme d'un mois POSTÉRIEUR au mois de fin du bail n'est pas dû : une seule source de vérité (quatrième
+--    relecture du 28/10, décision du dirigeant). Avant : le décompte (section 7) le comptait pour 0, mais l'échéancier,
+--    le reste dû, l'espace du locataire, les relances automatiques (`relances_loyer_dues` : vrai courriel au locataire,
+--    puis aux colocataires et à la caution), l'alerte de nuit et `suivre_impayes_bail` le réclamaient (« Impayé
+--    500,00 € ») alors que l'alerte du gérant disait « non dû, ne le réclamez pas ».
+--    Maintenant `etat_loyers_bail_brut`, que toutes ces lectures consomment (relances_loyer_dues, suivre_impayes_bail,
+--    generer_alertes_impayes par elle, quittancement_mois et rappels_loyers_proprietaire par etat_loyers_bail,
+--    mon_echeancier_locataire, appels_a_envoyer, contrats_du_lot, fiche_lot, resynchroniser_quittances…), rend pour un
+--    tel terme : montant_du = 0, montant_couvert = 0, statut « non_du » (affiché « Non dû — après la fin du bail »).
+--    Il n'absorbe aucun règlement : ce qui a été versé dessus reste en excédent du bail (trop-perçu au décompte, « en
+--    avance » à l'écran). Aucun appel n'est modifié (appels_loyer.montant_du garde le montant appelé).
+--    Signature et colonnes inchangées. Repart de 20260910140000 (dernière définition).
+-- ---------------------------------------------------------------------------------------------------------------
+create or replace function public.etat_loyers_bail_brut(p_bail uuid)
+ returns table(appel_id uuid, periode date, date_echeance date, montant_du numeric, cumul_du numeric, montant_couvert numeric, statut text)
+ language sql
+ stable security definer
+ set search_path to ''
+as $function$
+  with b as (
+    select id, organization_id, date_trunc('month', date_fin)::date as mois_fin from public.baux where id = p_bail
+  ), a0 as (
+    select al.id, al.periode, al.date_echeance,
+      (b.mois_fin is not null and al.periode > b.mois_fin) as non_du,
+      case when b.mois_fin is not null and al.periode > b.mois_fin then 0 else al.montant_du end as montant_du
+    from public.appels_loyer al join b on b.id = al.bail_id
+    where al.organization_id = b.organization_id
+  ), a as (
+    select a0.*,
+      sum(a0.montant_du) over (order by a0.periode rows between unbounded preceding and current row) as cumul_du
+    from a0
+  ), tot as (
+    select coalesce(sum(e.montant), 0) as encaisse
+    from public.encaissements e join b on b.id = e.bail_id
+    where e.organization_id = b.organization_id
+  )
+  select
+    a.id, a.periode, a.date_echeance, a.montant_du, a.cumul_du,
+    round(least(a.montant_du, greatest(0, tot.encaisse - (a.cumul_du - a.montant_du))), 2) as montant_couvert,
+    case
+      when a.non_du then 'non_du'
+      when tot.encaisse >= a.cumul_du then 'paye'
+      when tot.encaisse > (a.cumul_du - a.montant_du) then 'partiel'
+      when a.date_echeance < public.aujourdhui_paris() then 'impaye'
+      else 'attendu'
+    end as statut
+  from a, tot
+  order by a.periode;
+$function$;
+comment on function public.etat_loyers_bail_brut(uuid) is
+  'Imputation des encaissements du plus ancien terme au plus récent ; un terme d''un mois postérieur à la fin du bail n''est pas dû (montant_du 0, statut non_du, aucun règlement imputé).';
+revoke execute on function public.etat_loyers_bail_brut(uuid) from public, anon, authenticated;
 
 -- Filet commun : aucune fonction de `public` ne reste ouverte à anon.
 select public.fermer_fonctions_a_anon();

@@ -5,6 +5,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant } from "@/lib/ged-acces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { codesPostauxValides, METIERS_ARTISAN, siretNormalise } from "./referentiel";
+import { MESSAGE_SIRET_INVALIDE, siretPlausible } from "@/lib/siret";
 
 // Les gestes du CARNET D'ARTISANS de l'agence.
 //
@@ -24,6 +25,8 @@ export type EtatArtisanAction = {
   succes?: string;
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
+  // La fiche créée ou rattachée, que le message de succès propose d'ouvrir (audit final, DOC-23).
+  artisanId?: string;
 };
 
 // Métiers et codes postaux arrivent en cases cochées / champ libre : même
@@ -71,6 +74,7 @@ export async function creerOuRattacherArtisan(
       valeurs,
     };
   }
+  if (!siretPlausible(siret)) return { erreur: MESSAGE_SIRET_INVALIDE, valeurs };
   if (!telephone) {
     // Module 19 : l'artisan travaille depuis le chantier, le mobile n'est pas
     // un confort. La base l'exige aussi (artisans.telephone not null).
@@ -79,7 +83,7 @@ export async function creerOuRattacherArtisan(
   const champs = lireMetiersEtZones(formData);
   if (champs.erreur) return { erreur: champs.erreur, valeurs };
 
-  const { error } = await supabase.rpc("artisan_creer_ou_rattacher", {
+  const { data: artisanId, error } = await supabase.rpc("artisan_creer_ou_rattacher", {
     p_org: orgId,
     p_raison_sociale: raisonSociale,
     p_siret: siret,
@@ -94,6 +98,7 @@ export async function creerOuRattacherArtisan(
   return {
     succes:
       "Artisan enregistré. Si ce SIRET existait déjà chez Gerimmo, sa fiche vous a été rattachée plutôt que dupliquée.",
+    artisanId: typeof artisanId === "string" ? artisanId : undefined,
   };
 }
 

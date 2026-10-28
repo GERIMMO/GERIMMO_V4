@@ -50,7 +50,8 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
   // Une boîte distincte par passage : les alias « + » partagent volontairement le plafond anti-abus.
   const email = `artisan-invite-${marque}@resend.dev`;
   const raisonSociale = `Plomberie Invitée ${marque}`;
-  const siret = `7${String(Date.now()).slice(-13)}`;
+  // Un SIRET fictif à clé de Luhn valide : l'inscription refuse une suite de chiffres quelconque (audit final, DOC-09).
+  const siret = siretFictif(`7${String(Date.now()).slice(-12)}`);
 
   // Un bien à Bordeaux (commune confirmée, aucun artisan du réseau pour la plomberie) et un incident de plomberie qualifié.
   const { rows: [{ id: incident }] } = await db.query(
@@ -151,14 +152,14 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     const dans300Jours = new Date(Date.now() + 300 * 86_400_000).toISOString().slice(0, 10);
     for (const type of ["rc_pro", "decennale"]) {
       await a.goto(`/artisan/attestations?type=${type}#deposer`);
-      const formulaire = a.locator("form").filter({ has: a.getByRole("button", { name: "Déposer l'attestation", exact: true }) });
+      const formulaire = a.locator("form").filter({ has: a.getByRole("button", { name: "Déposer l’attestation", exact: true }) });
       await formulaire.locator('[name="expire_le"]').fill(dans300Jours);
       await formulaire.locator('input[type="file"]').setInputFiles({
         name: `${type}.pdf`,
         mimeType: "application/pdf",
         buffer: Buffer.from(`%PDF-1.7\n% ATTESTATION FICTIVE ${type} ${marque}\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF`),
       });
-      await formulaire.getByRole("button", { name: "Déposer l'attestation", exact: true }).click();
+      await formulaire.getByRole("button", { name: "Déposer l’attestation", exact: true }).click();
       await expect(formulaire.getByRole("status").filter({ hasText: type === "decennale" ? "Décennale enregistrée" : "Attestation enregistrée" })).toBeVisible();
       await expect(formulaire.getByRole("status", { name: "Transfert du fichier" })).toHaveCount(0);
     }
@@ -228,3 +229,16 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await db.end();
   }
 });
+
+/** Complète treize chiffres par la clé qui rend le SIRET valide au sens de Luhn. */
+function siretFictif(treize: string): string {
+  for (let cle = 0; cle <= 9; cle++) {
+    const siret = `${treize}${cle}`;
+    const somme = [...siret].map(Number).reduce((s, c, i) => {
+      const v = i % 2 === 0 ? c * 2 : c;
+      return s + (v > 9 ? v - 9 : v);
+    }, 0);
+    if (somme % 10 === 0) return siret;
+  }
+  throw new Error("clé introuvable");
+}

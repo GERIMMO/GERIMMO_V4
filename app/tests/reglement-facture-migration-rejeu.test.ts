@@ -98,7 +98,8 @@ describe.skipIf(!DB_URL)("Migration 20261014610000 — rejeu sur la base", () =>
     etat["table"] = table.rows[0].v;
     const index = await db.query("select string_agg(indexdef, '|' order by indexdef) as v from pg_indexes where tablename = 'intervention_facture_reglements'");
     etat["index"] = index.rows[0].v;
-    const politiques = await db.query("select string_agg(polname, ',' order by polname) as v from pg_policy where polrelid = 'public.intervention_facture_reglements'::regclass");
+    // Audit final du 27/10 (PUB-01) : la politique restrictive transverse « second_facteur » est posée par poser_gardes_second_facteur(), pas par ce lot.
+    const politiques = await db.query("select string_agg(polname, ',' order by polname) as v from pg_policy where polrelid = 'public.intervention_facture_reglements'::regclass and polname <> 'second_facteur'");
     etat["politiques"] = politiques.rows[0].v;
     const declencheurs = await db.query("select string_agg(tgname, ',' order by tgname) as v from pg_trigger where tgrelid = 'public.intervention_facture_reglements'::regclass and not tgisinternal");
     etat["declencheurs"] = declencheurs.rows[0].v;

@@ -11,6 +11,10 @@ import { envoyerEmail } from "@/lib/email";
 import { adresseDuSite, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
 import { erreurDuChamp, lireMontantFacultatif } from "@/lib/saisie-montant";
 
+/** La fiche en lecture seule : même phrase que la base (déclencheur abonnement_organizations). */
+const MESSAGE_PROFIL_LECTURE_SEULE =
+  "Votre espace est en lecture seule : la fiche de l’organisation ne se modifie pas pour le moment. Vos données restent consultables et exportables.";
+
 export type EtatProfilOrganisation = {
   erreur?: string;
   succes?: string;
@@ -31,6 +35,13 @@ export async function modifierProfilOrganisation(
     return { erreur: "Réservé au responsable de l'organisation." };
   }
   const valeurs = valeursDuFormulaire(formData);
+  // Audit final du 27/10 (DRT-V01) : en lecture seule (essai échu, impayé, suspension par la supervision), la fiche ne
+  // se modifie pas. La base le refuse aussi (déclencheur abonnement_organizations, 20261028100000), mais une phrase
+  // vaut mieux qu'une erreur de contrainte — et l'écran, lui, montre une fiche à lire (profil/page.tsx).
+  const { data: etatBrut } = await supabase.rpc("etat_abonnement", { p_org: orgId });
+  if ((etatBrut as { ecriture_ouverte?: boolean }[] | null)?.[0]?.ecriture_ouverte === false) {
+    return { erreur: MESSAGE_PROFIL_LECTURE_SEULE, valeurs };
+  }
   const nom = String(formData.get("name") ?? "").trim();
   if (!nom) return { erreur: "Le nom est obligatoire.", valeurs };
 

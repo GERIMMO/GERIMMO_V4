@@ -8,6 +8,16 @@ describe('Protection MFA et retour vers la page demandée', () => {
     expect(doitVerifierSecondFacteur(['super_admin'],'aal2')).toBe(false);
     expect(doitVerifierSecondFacteur(['admin_agence'],'aal1')).toBe(false);
   });
+  // Audit final du 27/10 (PUB-01) : un second facteur activé depuis « Mon compte » (nextLevel aal2) est exigé de tout
+  // rôle ; sans facteur (nextLevel aal1 ou inconnu), rien ne change ; une session déjà en aal2 passe.
+  it('exige le second facteur activé par un propriétaire, un locataire ou un artisan', () => {
+    expect(doitVerifierSecondFacteur(['proprietaire_direct'],'aal1','aal2')).toBe(true);
+    expect(doitVerifierSecondFacteur(['locataire'],null,'aal2')).toBe(true);
+    expect(doitVerifierSecondFacteur(['artisan'],'aal2','aal2')).toBe(false);
+    expect(doitVerifierSecondFacteur(['proprietaire_direct'],'aal1','aal1')).toBe(false);
+    expect(doitVerifierSecondFacteur(['admin_agence'],'aal1',null)).toBe(false);
+    expect(doitVerifierSecondFacteur(['super_admin'],'aal1','aal1')).toBe(true);
+  });
   it.each(['12345','1234567','12 456','abcdef','１２３４５６'])('refuse un code mal formé : %s', code => expect(codeTotpValide(code)).toBe(false));
   it('conserve les zéros initiaux', () => expect(codeTotpValide('001234')).toBe(true));
   it('conserve destination et filtres internes, sans boucle de connexion', () => {

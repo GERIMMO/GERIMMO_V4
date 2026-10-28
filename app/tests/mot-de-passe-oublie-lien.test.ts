@@ -29,6 +29,12 @@ describe("demanderReinitialisation", () => {
     expect((await demanderReinitialisation({}, form("moi@exemple.fr"))).message).toMatch(/Si un compte existe/);
   });
 
+  // Audit final du 27/10 (PUB-16) : la panne d'envoi, annoncée pour toute adresse, se dit ; jamais « vient d'être envoyé ».
+  it("dit la panne d'envoi annoncée par la fabrique de liens", async () => {
+    mocks.lien.mockResolvedValue({ erreur: "L’envoi des e-mails est momentanément indisponible.", indisponible: true });
+    expect(await demanderReinitialisation({}, form("moi@exemple.fr"))).toEqual({ erreur: "L’envoi des e-mails est momentanément indisponible." });
+  });
+
   it("dit la limite de fréquence", async () => {
     mocks.lien.mockResolvedValue({ erreur: "Trop de demandes", limite: true });
     expect(await demanderReinitialisation({}, form("moi@exemple.fr"))).toEqual({ erreur: "Trop de demandes" });

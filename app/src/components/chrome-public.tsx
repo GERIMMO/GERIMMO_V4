@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { AccesEnTete, LiensCompte } from "@/components/acces-public";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { MenuPublicMobile } from "@/components/menu-public-mobile";
 import "@/app/vitrine.css";
@@ -25,8 +25,7 @@ function BandeauPublic() {
           {NAVIGATION.map(([href, titre]) => <Link key={href} href={href}>{titre}</Link>)}
         </nav>
         <div className="public-acces">
-          <Link href="/connexion" className="public-connexion">Se connecter</Link>
-          <Link href="/inscription" className="btn-or public-inscription">Créer mon compte <ArrowUpRight size={16} aria-hidden /></Link>
+          <AccesEnTete />
         </div>
         <MenuPublicMobile liens={NAVIGATION} />
       </div>
@@ -36,9 +35,10 @@ function BandeauPublic() {
 
 // « Agences » (20/10/2026) : la liste d'attente des agences, dans le pied seulement — ni dans NAVIGATION ni dans le menu
 // mobile, pour ne pas charger la navigation principale d'une offre qui n'est pas ouverte.
-const GROUPES_PIED = [
+const GROUPES_PIED: { titre: string; compte?: boolean; liens: (readonly [string, string])[] }[] = [
   { titre: "Découvrir", liens: [["/#fonctionnalites", "La solution"], ["/tarifs", "Tarifs"], ["/outils", "Outils gratuits"], ["/journal", "Journal"]] },
-  { titre: "Votre espace", liens: [["/inscription", "Créer mon compte"], ["/connexion", "Se connecter"], ["/#contact", "Nous écrire"], ["/artisan/inscription", "Rejoindre le réseau d’artisans"], ["/agences", "Agences"]] },
+  // « Créer mon compte » et « Se connecter » viennent de LiensCompte (« Mon espace » pour une personne connectée, PUB-10).
+  { titre: "Votre espace", compte: true, liens: [["/#contact", "Nous écrire"], ["/artisan/inscription", "Rejoindre le réseau d’artisans"], ["/agences", "Agences"]] },
   { titre: "Informations", liens: [["/mentions-legales", "Mentions légales"], ["/conditions", "Conditions générales"], ["/confidentialite", "Confidentialité"]] },
 ];
 
@@ -50,8 +50,8 @@ export function PiedPublic({ courant }: { courant?: string }) {
           <Link href="/" aria-label="Gerimmo — accueil"><MarqueGerimmo surEncre /></Link>
           <p>Vos biens, vos locataires et vos documents.<br />Tout simplement, au même endroit.</p>
         </div>
-        {GROUPES_PIED.map(({ titre, liens }) => (
-          <nav key={titre} aria-label={titre}><p>{titre}</p>{liens.map(([href, libelle]) => <Link key={href} href={href} aria-current={href === courant ? "page" : undefined}>{libelle}</Link>)}</nav>
+        {GROUPES_PIED.map(({ titre, liens, compte }) => (
+          <nav key={titre} aria-label={titre}><p>{titre}</p>{compte && <LiensCompte courant={courant} />}{liens.map(([href, libelle]) => <Link key={href} href={href} aria-current={href === courant ? "page" : undefined}>{libelle}</Link>)}</nav>
         ))}
       </div>
       <div className="public-conteneur public-pied-bas"><span>© Gerimmo {new Date().getFullYear()}</span><span>L’immobilier en confiance.</span></div>

@@ -1,11 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { doitVerifierSecondFacteur, estSuperviseurActif } from "@/lib/mfa";
+import { aUnFacteurVerifie, doitVerifierSecondFacteur, estSuperviseurActif } from "@/lib/mfa";
 import { estAdresseSupervision } from "@/lib/garde-admin";
 import { ENTETE_CHEMIN, ENTETE_METHODE } from "@/lib/entetes-traversee";
 import { ACTIVITY_COOKIE, lireActivite, secretDActivite, signerActivite, strictestLimits } from "@/lib/session-policy";
 import { COOKIES_SESSION } from "@/lib/supabase/cookies";
 import { statutRedirection } from "@/lib/redirection";
+import { effacerMarquePremierMotDePasse, premierMotDePasse } from "@/lib/premier-mot-de-passe";
 import { ROLES_GERANTS } from "@/lib/ged";
 import {
   ENTETE_ALIAS,
@@ -129,11 +130,23 @@ async function typeDeLOrganisation(
   return (organisation as { type?: string } | null)?.type ?? null;
 }
 
+// LES FICHIERS SERVIS À LA RACINE (audit final du 27/10/2026, PUB-14). Un premier segment qui porte un point (fichier)
+// ou commence par « . » n'était jamais inconnu : /humans.txt, /manifest.webmanifest ou /.well-known/security.txt
+// invitaient un robot ou un scanner à se connecter. Seuls ceux-ci existent : les fichiers de public/ et les routes
+// de src/app (robots.ts, sitemap.ts) — tests/proxy-adresse-inconnue.test.ts tient la liste en phase avec public/.
+const FICHIERS_RACINE = new Set([
+  "robots.txt", "sitemap.xml", "favicon.ico", "apple-touch-icon.png",
+  "file.svg", "globe.svg", "next.svg", "vercel.svg", "window.svg",
+]);
+
 function adresseInconnue(pathname: string): boolean {
   const segment = pathname.split("/")[1] ?? "";
-  // « _next », « .well-known » et les fichiers à la racine (favicon, robots…)
-  // restent à Next.js.
-  if (!segment || segment.startsWith("_") || segment.startsWith(".") || segment.includes(".")) return false;
+  // Les adresses internes de Next.js restent à Next.js.
+  if (!segment || segment === "_next" || segment.startsWith("__next")) return false;
+  // Un dossier « _… » de src/app est privé (jamais routé) : /_introuvable, la page interne vers laquelle ce proxy
+  // réécrit, n'est pas une adresse privée qui mériterait la connexion (PUB-14).
+  if (segment.startsWith("_")) return true;
+  if (segment.startsWith(".") || segment.includes(".")) return !FICHIERS_RACINE.has(segment);
   return !SEGMENTS_CONNUS.has(segment);
 }
 
@@ -289,18 +302,38 @@ export async function proxy(request: NextRequest) {
     secure: request.nextUrl.protocol === "https:",
   });
 
-  // Le rôle de supervision nécessite un second facteur, y compris lorsqu'il
-  // ouvre un espace agence. La page de configuration reste accessible avant AAL2.
+  // LE SECOND FACTEUR. Le rôle de supervision l'exige toujours, y compris lorsqu'il ouvre un espace agence. Depuis
+  // l'audit final du 27/10 (PUB-01), tout compte qui a activé sa double authentification depuis « Mon compte » passe
+  // aussi par le sas — avant, seul super_admin était regardé, et le mot de passe seul ouvrait l'espace malgré la
+  // protection posée. Le facteur se lit dans l'utilisateur VÉRIFIÉ par getUser() ci-dessus (réponse du serveur
+  // d'authentification), pas dans la session du cookie que le navigateur peut réécrire (relecture du 28/10) ; le
+  // niveau courant vient du jeton d'accès, que getUser() a validé. La base l'exige aussi (politique second_facteur,
+  // 20261028100000). La page du sas reste accessible avant AAL2. Une erreur de lecture du niveau ferme la supervision
+  // (jamais ouverte par défaut) ; pour les autres, le facteur vérifié suffit à imposer le sas.
+  //
+  // Seconde relecture du 28/10 : la base refuse désormais toute requête d'un compte à facteur resté en aal1 (fonction de
+  // pré-requête exiger_second_facteur). Les deux pages publiques qui lisent et écrivent sous la session de leur visiteur
+  // connecté — l'inscription de l'entreprise de l'artisan et sa page d'invitation — passent donc aussi par le sas :
+  // sinon elles proposeraient d'inscrire une entreprise déjà inscrite, ou diraient l'invitation « pas chargée ».
   const roles = (memberships ?? []).map(m => m.role);
+  const publiqueSousSession = pathname.startsWith("/artisan/inscription") || CHEMIN_INVITATION_ARTISAN.test(pathname);
   let niveauMfa: string | null | undefined;
-  if (!isPublic && pathname !== "/securite" && roles.includes("super_admin")) {
+  if ((!isPublic || publiqueSousSession) && pathname !== "/securite") {
     const { data: niveau, error: erreurMfa } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     niveauMfa = niveau?.currentLevel;
-    if (erreurMfa || doitVerifierSecondFacteur(roles, niveau?.currentLevel)) {
+    const facteur = aUnFacteurVerifie(user);
+    // DRT-05, relecture du 28/10 : la marque du premier mot de passe d'un invité n'a plus de sens dès qu'une session
+    // s'ouvre par mot de passe (le jeton validé le dit) — l'invité qui s'est connecté autrement que par son lien ne
+    // doit pas lire « Créez votre mot de passe » à une récupération ultérieure. Rare : seulement si la marque est posée.
+    if (premierMotDePasse(user) && (niveau?.currentAuthenticationMethods ?? []).some((m: unknown) => (typeof m === "string" ? m : (m as { method?: string })?.method) === "password")) {
+      await effacerMarquePremierMotDePasse(user.id);
+    }
+    if ((erreurMfa && (roles.includes("super_admin") || facteur)) || doitVerifierSecondFacteur(roles, niveau?.currentLevel, facteur ? "aal2" : null)) {
       const url = request.nextUrl.clone();
       url.pathname = "/securite";
       url.search = `?suite=${encodeURIComponent(pathname + request.nextUrl.search)}`;
-      const redirect = NextResponse.redirect(url);
+      // 303 pour un POST (action serveur) : un 307 rejouerait l'action sur /securite.
+      const redirect = NextResponse.redirect(url, statutRedirection(request.method));
       response.cookies.getAll().forEach(c => redirect.cookies.set(c));
       return redirect;
     }

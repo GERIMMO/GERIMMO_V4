@@ -107,6 +107,7 @@ describe.skipIf(!DB_URL)("Lot avoir-facture-externe — rejeu et retour arrière
 
   const definition = async (signature: string) => (await db.query("select pg_get_functiondef($1::text::regprocedure) as def", [signature])).rows[0].def as string;
   /** Tout ce que la migration peut changer : définitions et droits des trois fonctions, objets de schéma. */
+  // Audit final du 27/10 (PUB-01) : la politique restrictive transverse « second_facteur » est posée par poser_gardes_second_facteur(), pas par ce lot.
   async function empreinte() {
     const etat: Record<string, string> = {};
     for (const signature of [EXTERNE, REGLEMENT, LECTURE]) {
@@ -124,7 +125,7 @@ describe.skipIf(!DB_URL)("Lot avoir-facture-externe — rejeu et retour arrière
       (select pg_get_indexdef(to_regclass('public.artisan_factures_externes_chantier_en_vigueur_key'))) as index_en_vigueur,
       exists(select 1 from pg_constraint where conrelid = 'public.artisan_factures_externes'::regclass and conname = 'artisan_factures_externes_chantier_id_key') as contrainte_origine,
       (select relacl::text from pg_class where oid = to_regclass('public.artisan_avoirs_externes')) as droits_table,
-      (select string_agg(polname, ',') from pg_policy where polrelid = to_regclass('public.artisan_avoirs_externes')) as politiques`);
+      (select string_agg(polname, ',') from pg_policy where polrelid = to_regclass('public.artisan_avoirs_externes') and polname <> 'second_facteur') as politiques`);
     for (const [cle, valeur] of Object.entries(rows[0])) etat[cle] = String(valeur);
     return etat;
   }

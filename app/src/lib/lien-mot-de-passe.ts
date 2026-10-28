@@ -59,6 +59,7 @@ import { destinationSure } from "@/lib/destination-sure";
 import { sansJargon } from "@/lib/erreurs";
 import { suiteInvitationLocataire } from "@/lib/invitations-locataire";
 import { CLE_PROFIL_A_CONFIRMER, informationsAConfirmer } from "@/lib/revalidation-inscription";
+import { CLE_PREMIER_MOT_DE_PASSE } from "@/lib/premier-mot-de-passe";
 
 export type MotifLien =
   /** La supervision vient d'ouvrir l'organisation : son responsable crée son mot de passe. */
@@ -83,6 +84,14 @@ const MOTIFS_ANONYMES: ReadonlySet<MotifLien> = new Set([
   "confirmation_inscription",
 ]);
 
+/** Les invitations : la personne n'a jamais eu de mot de passe, elle CRÉE le premier (audit final du 27/10, DRT-05). */
+const MOTIFS_INVITATION: ReadonlySet<MotifLien> = new Set([
+  "invitation_responsable",
+  "renvoi_supervision",
+  "invitation_agent",
+  "invitation_locataire",
+]);
+
 export const MESSAGE_TROP_DE_DEMANDES =
   "Trop de demandes de lien pour cette adresse ou depuis ce réseau. Réessayez dans une heure.";
 export const MESSAGE_TROP_D_INVITATIONS =
@@ -91,6 +100,34 @@ export const MESSAGE_TROP_D_INVITATIONS =
 export const LIMITE_INVITATIONS_PAR_ORGANISATION = 30;
 
 const NON_CONFIGURE = "L’envoi des liens de connexion n’est pas configuré. Contactez l’administrateur.";
+
+// L'ENVOI EN PANNE SE DIT, À TOUTES LES ADRESSES PAREIL (audit final du 27/10/2026, PUB-16).
+//
+// Une demande anonyme (mot de passe oublié, inscription) répondait « un e-mail vient d'être envoyé » même quand le
+// service d'envoi n'était pas configuré ou refusait : l'échec ne se lisait que dans les journaux. Le dire seulement
+// quand l'envoi échoue créerait un oracle d'énumération (aucun envoi n'est tenté pour une adresse inconnue). La panne
+// est donc annoncée indépendamment de l'adresse : (a) clé d'envoi absente, ou limite de fréquence illisible : après
+// la limite (consommée comme toute demande), avant toute recherche du compte ; (b) pendant cinq minutes après l'échec
+// d'un envoi NON anonyme (invitation, geste d'un gérant), qui ne dépend d'aucune adresse demandée. Un envoi anonyme en
+// échec garde la réponse neutre et n'ouvre JAMAIS cette fenêtre : sinon la demande suivante, pour une adresse témoin,
+// dirait si la précédente avait un compte (relecture adverse du 28/10). La panne reste journalisée.
+// L'inscription, elle, crée d'abord le compte (le banc local en dépend) : c'est sa réponse qui est rendue identique —
+// adresse neuve ou déjà inscrite, un envoi en échec répond MESSAGE_ENVOI_INDISPONIBLE, sans fenêtre.
+export const MESSAGE_ENVOI_INDISPONIBLE =
+  "L’envoi des e-mails est momentanément indisponible : aucun message ne peut partir pour le moment. Réessayez dans quelques minutes.";
+export const DUREE_PANNE_ENVOI_MS = 5 * 60 * 1000;
+let panneEnvoiJusqua = 0;
+function noterPanneEnvoi() {
+  panneEnvoiJusqua = Date.now() + DUREE_PANNE_ENVOI_MS;
+}
+/** La demande anonyme doit-elle annoncer la panne d'envoi ? Même réponse pour toute adresse. */
+function envoiIndisponible(): boolean {
+  return !process.env.RESEND_API_KEY || Date.now() < panneEnvoiJusqua;
+}
+/** Remise à zéro de la fenêtre de panne : tests seulement. */
+export function oublierPanneEnvoi() {
+  panneEnvoiJusqua = 0;
+}
 const INDISPONIBLE = "Le service est momentanément indisponible. Réessayez dans un instant.";
 
 type Courrier = {
@@ -308,7 +345,7 @@ export async function envoyerRappelInvitationLocataire(params: {
 }
 
 type Service = NonNullable<ReturnType<typeof clientDeService>>;
-type Refus = { erreur: string; limite?: true };
+type Refus = { erreur: string; limite?: true; indisponible?: true };
 
 /** La limite des demandes anonymes : 3 par adresse et 20 par IP sur une heure. `null` : la demande passe. */
 async function limiteAnonyme(service: Service, email: string): Promise<Refus | null> {
@@ -316,7 +353,7 @@ async function limiteAnonyme(service: Service, email: string): Promise<Refus | n
     p_email: email,
     p_ip: await ipDeLaRequete(),
   });
-  if (error) return { erreur: INDISPONIBLE };
+  if (error) return { erreur: INDISPONIBLE, indisponible: true };
   if (autorise !== true) return { erreur: MESSAGE_TROP_DE_DEMANDES, limite: true };
   return null;
 }
@@ -368,7 +405,7 @@ export async function envoyerLienMotDePasse(params: {
   motif: MotifLien;
   next?: string;
   organisation?: string;
-}): Promise<{ erreur?: string; limite?: true }> {
+}): Promise<{ erreur?: string; limite?: true; indisponible?: true }> {
   const email = params.email.trim().toLowerCase();
   const anonyme = MOTIFS_ANONYMES.has(params.motif);
   if (!email) return { erreur: "Adresse e-mail manquante." };
@@ -380,6 +417,7 @@ export async function envoyerLienMotDePasse(params: {
   if (anonyme) {
     const refus = await limiteAnonyme(service, email);
     if (refus) return refus;
+    if (envoiIndisponible()) return { erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true };
   } else if (params.organisation) {
     const refus = await limiteOrganisation(service, params.organisation);
     if (refus) return refus;
@@ -394,6 +432,18 @@ export async function envoyerLienMotDePasse(params: {
     return { erreur: sansJargon(error?.message ?? "Le lien n’a pas pu être créé.") };
   }
 
+  // Audit final du 27/10 (DRT-05) : l'invité qui ne s'est jamais connecté CRÉE son premier mot de passe — la page le
+  // dit et le garde connecté (actions/auth.ts). La marque vit dans app_metadata, que seul le service écrit (jamais
+  // user_metadata : son titulaire peut l'écrire lui-même). Une métadonnée seule ne touche ni aux jetons ni aux sessions
+  // (règle prouvée plus bas, GoTrue v2.197.0) : le lien qui vient d'être fabriqué reste valable. Un compte qui s'est
+  // déjà connecté garde le parcours de récupération ; un échec ici n'arrête pas l'envoi (la page retombe dessus).
+  if (MOTIFS_INVITATION.has(params.motif) && data.user?.id && !data.user.last_sign_in_at) {
+    const { error: erreurMarque } = await service.auth.admin.updateUserById(data.user.id, {
+      app_metadata: { [CLE_PREMIER_MOT_DE_PASSE]: true },
+    });
+    if (erreurMarque) console.error("[lien-mot-de-passe] marque du premier mot de passe non posée :", params.motif, erreurMarque.message);
+  }
+
   const erreurEnvoi = await envoyerCourrier({
     origine,
     email,
@@ -402,7 +452,11 @@ export async function envoyerLienMotDePasse(params: {
     next: params.next ?? "/nouveau-mot-de-passe",
     type: "recovery",
   });
-  if (erreurEnvoi) return anonyme ? {} : { erreur: erreurEnvoi };
+  if (erreurEnvoi) {
+    if (anonyme) return {};
+    noterPanneEnvoi();
+    return { erreur: erreurEnvoi };
+  }
   return {};
 }
 
@@ -411,7 +465,7 @@ export type ResultatInscription =
   | { etat: "confirmation_envoyee" }
   /** L'adresse a déjà un compte confirmé : son titulaire a reçu un lien de reconnexion. */
   | { etat: "compte_existant" }
-  | { erreur: string; code?: string; limite?: true };
+  | { erreur: string; code?: string; limite?: true; indisponible?: true };
 
 /** L'erreur d'Auth qui dit qu'un compte confirmé porte déjà cette adresse. Exporté pour les tests. */
 export function adresseDejaInscrite(error: { code?: string; message: string }): boolean {
@@ -508,7 +562,10 @@ export async function inscrireEtEnvoyerConfirmation(params: {
     if (jeton) {
       const suite = destinationSure(params.next);
       const next = suite === "/espaces" ? "/nouveau-mot-de-passe" : `/nouveau-mot-de-passe?suite=${encodeURIComponent(suite)}`;
-      await envoyerCourrier({ origine, email, motif: "compte_existant", jeton, next, type: "recovery" });
+      // Même réponse qu'une adresse neuve dont la confirmation n'a pas pu partir (PUB-16) : rien n'est révélé.
+      if (await envoyerCourrier({ origine, email, motif: "compte_existant", jeton, next, type: "recovery" })) {
+        return { erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true };
+      }
     }
     return { etat: "compte_existant" };
   };
@@ -577,7 +634,7 @@ export async function inscrireEtEnvoyerConfirmation(params: {
     next: params.next,
     type: typeLien,
   });
-  if (erreurEnvoi) return { erreur: erreurEnvoi };
+  if (erreurEnvoi) return { erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true };
   return { etat: "confirmation_envoyee" };
 }
 

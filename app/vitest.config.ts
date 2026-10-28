@@ -187,6 +187,13 @@ export const FICHIERS_EN_SERIE = [
   "tests/incident-gerant-colocation-base.test.ts",
   // Audit de la PR #264, ED-01 (27/10) : rejeu de 20261027100300 (déclencheur recréé sur baux) dans la transaction du test.
   "tests/assurance-locataire-activation-base.test.ts",
+  // Audit final, seconde relecture du 28/10 (PUB-01) : un compte des données de parcours porte un second facteur
+  // pendant le fichier (rejeu par l'API du banc) ; un autre fichier qui se connecterait avec lui serait refusé.
+  "tests/garde-second-facteur-api-banc.test.ts",
+  // Audit final (DRT-V01, PUB-01) : rejeu de 20261028100000 et de son retour dans la transaction du test — politiques
+  // second_facteur reposées sur toutes les tables, fonctions refaites, rôle authenticator reconfiguré : verrous en
+  // blocage mutuel avec les écritures des autres fichiers (deadlock reproduit le 28/10 avec second-facteur-base).
+  "tests/organizations-lecture-seule-base.test.ts",
 ];
 
 export default defineConfig({

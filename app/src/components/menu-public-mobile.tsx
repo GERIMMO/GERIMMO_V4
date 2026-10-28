@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { Menu } from "lucide-react";
+import { LiensCompte } from "@/components/acces-public";
 
 export function MenuPublicMobile({ liens }: { liens: readonly (readonly [string, string])[] }) {
   const menu = useRef<HTMLDetailsElement>(null);
@@ -19,7 +20,7 @@ export function MenuPublicMobile({ liens }: { liens: readonly (readonly [string,
       }}>
         {liens.map(([href, titre]) => <Link key={href} href={href}>{titre}</Link>)}
         <Link href="/#espaces">Les espaces Gerimmo</Link>
-        <Link href="/connexion">Se connecter</Link>
+        <LiensCompte inscription={false} />
       </nav>
     </details>
   );

@@ -13,6 +13,8 @@ import type { VersionArchivee } from "../src/lib/conditions-versions";
 const m = vi.hoisted(() => ({ versions: [] as (VersionArchivee & { texte_html: string })[] }));
 vi.mock("@/components/chrome-public", () => ({ EnTetePublic: () => null, PiedPublic: () => null }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({}) }));
+// Audit final du 27/10 (PUB-03) : la version archivée se lit sans cookie (client anonyme) pour répondre un vrai 404.
+vi.mock("@/lib/supabase/anonyme", () => ({ clientAnonyme: () => ({}) }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("introuvable"); } }));
 vi.mock("@/app/admin/sante/bouton-archiver-conditions", () => ({ BoutonArchiverConditions: () => null }));
 vi.mock("@/lib/conditions-versions", async (importer) => {

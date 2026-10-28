@@ -28,6 +28,7 @@ import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
 import { baseEspace } from "@/lib/racine-espace";
 import { CHAMPS_PROFIL_INSCRIPTION, CLE_PROFIL_A_CONFIRMER, saisieProfilARetenir } from "@/lib/revalidation-inscription";
 import { autorisationNouveauMotDePasse } from "@/lib/autorisation-nouveau-mot-de-passe";
+import { effacerMarquePremierMotDePasse, premierMotDePasse } from "@/lib/premier-mot-de-passe";
 
 // La qualité voyage dans les métadonnées jusqu'à la fiche personne, dont la
 // liste est fermée (audit 29/09) : une valeur hors liste est laissée vide
@@ -74,9 +75,10 @@ export async function demanderReinitialisation(
     motif: "mot_de_passe_oublie",
     next: "/nouveau-mot-de-passe",
   });
-  // Seule la limite de fréquence se dit : elle vaut pour toute adresse, avec
-  // ou sans compte, et ne révèle donc rien. Le reste : réponse neutre.
-  if (envoi.limite) return { erreur: envoi.erreur };
+  // Seules la limite de fréquence et la panne d'envoi se disent : elles valent
+  // pour toute adresse, avec ou sans compte, et ne révèlent donc rien
+  // (audit final du 27/10, PUB-16). Le reste : réponse neutre.
+  if (envoi.limite || envoi.indisponible) return { erreur: envoi.erreur };
   return { message: MESSAGE_NEUTRE };
 }
 
@@ -188,12 +190,19 @@ export async function definirNouveauMotDePasse(
   // l'utilisait (bouton Retour, poste partagé) pouvait reposer le mot de passe sans connaître l'actuel. La connexion
   // avec le mot de passe qui vient d'être choisi ouvre une nouvelle session (`amr` = password, cookies réécrits) ; la
   // fermeture des « autres » sessions ci-dessous emporte alors celle du lien. Un lien e-mail ne sert qu'à un seul choix,
-  // comme avant PRO-5. Jamais une marque dans les métadonnées du compte : son titulaire peut les écrire lui-même.
+  // comme avant PRO-5. Jamais une marque dans user_metadata : son titulaire peut l'écrire lui-même.
+  //
+  // L'INVITÉ (responsable, agent, locataire) suit le même chemin (audit final du 27/10, DRT-05) : il vient de créer son
+  // PREMIER mot de passe, le renvoyer vers « Mot de passe modifié. Connectez-vous… » lui faisait ressaisir ce qu'il
+  // venait de choisir. Sa marque vit dans app_metadata, que seul le service écrit (lib/premier-mot-de-passe.ts) ; elle
+  // est effacée ici, par le service, une fois le choix fait — une récupération ultérieure reprend le parcours ordinaire.
+  const premierChoix = premierMotDePasse(user);
   let sessionParMotDePasse = false;
-  if (profil && user.email) {
+  if ((profil || premierChoix) && user.email) {
     const { error: erreurConnexion } = await supabase.auth.signInWithPassword({ email: user.email, password: motDePasse });
     sessionParMotDePasse = !erreurConnexion;
   }
+  if (premierChoix) await effacerMarquePremierMotDePasse(user.id);
 
   // Sécurité : toute autre session active est invalidée — si quelqu'un était
   // connecté avec l'ancien mot de passe, il est éjecté
@@ -318,7 +327,8 @@ async function finirInscription(params: {
   const { email, metadonnees, next, valeurs } = params;
   const resultat = await inscrireEtEnvoyerConfirmation({ email, metadonnees, next });
   if ("erreur" in resultat) {
-    if (resultat.limite) return { erreur: resultat.erreur, valeurs };
+    // La limite et la panne d'envoi valent pour toute adresse (PUB-16) : elles se disent telles quelles.
+    if (resultat.limite || resultat.indisponible) return { erreur: resultat.erreur, valeurs };
     const issue = classerErreurInscription({ code: resultat.code, message: resultat.erreur });
     if (issue.type === "mot_de_passe_faible") return { message: MESSAGE_BOITE_MAIL };
     // « adresse déjà inscrite » est traité par la fabrique elle-même (état

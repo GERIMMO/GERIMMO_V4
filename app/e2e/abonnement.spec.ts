@@ -148,14 +148,13 @@ test.describe("Côté agence", () => {
 test.describe("Un agent ne voit pas la facture de son agence", () => {
   test.use({ storageState: path.join(__dirname, ".auth", "agent.json") });
 
-  test("l'écran est introuvable pour un agent", async ({ page }) => {
+  // Audit final du 27/10 (DRT-06) : l'agent n'atterrit plus sur la 404 publique, hors de son espace ; il revient à son
+  // tableau de bord, qui lui dit que l'écran est réservé à l'administrateur. La facture reste hors de sa vue.
+  test("l'écran renvoie l'agent à son tableau de bord, sans rien de la facture", async ({ page }) => {
     await sansSyntheseAlertes(page);
     await page.goto("/agence/c14c3187-1258-4e58-8822-368c6007e3fa/abonnement");
-    // On vérifie CE QUE L'AGENT VOIT, pas le code HTTP : en développement,
-    // Next sert sa page « introuvable » dans une enveloppe 200 (le squelette
-    // part avant que la page ne décide). Le code varierait selon le mode ; le
-    // contenu, lui, est ce qui compte.
-    await expect(page.locator("body")).toContainText("404");
+    await expect(page).toHaveURL(/\/agence\/c14c3187-1258-4e58-8822-368c6007e3fa\?acces=administrateur$/);
+    await expect(page.locator("body")).toContainText("réservé à l’administrateur de l’agence");
     const texte = await page.locator("body").innerText();
     // Ni montant, ni bouton : la facture de l'agence ne le regarde pas.
     expect(texte).not.toContain("Mon abonnement");

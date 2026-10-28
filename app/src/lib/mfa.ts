@@ -1,7 +1,23 @@
 import { destinationSure } from './destination-sure';
 
-export function doitVerifierSecondFacteur(roles: string[], niveau: string | null | undefined) {
-  return roles.includes('super_admin') && niveau !== 'aal2';
+/**
+ * Le sas du second facteur (/securite) s'impose à la supervision, toujours (RM-A4.1), et — audit final du 27/10/2026,
+ * PUB-01 — à tout compte qui a activé sa double authentification depuis « Mon compte » : un facteur TOTP vérifié
+ * existe ⇔ `niveauSuivant === 'aal2'` (auth-js le lit localement : jeton décodé et facteurs de la session, sans
+ * aller-retour). « Elle sera demandée à chaque connexion », promet l'écran d'activation : tant que la session n'est
+ * pas en aal2, le mot de passe seul n'ouvre rien.
+ */
+/**
+ * Le compte a-t-il un second facteur vérifié ? Lu dans l'utilisateur rendu par `auth.getUser()` (réponse du serveur
+ * d'authentification), JAMAIS dans la session du cookie : son objet `user` n'est pas signé, et en retirer `factors`
+ * faisait passer le sas (relecture adverse du 28/10, PUB-01).
+ */
+export function aUnFacteurVerifie(user: { factors?: { status?: string }[] | null } | null | undefined) {
+  return (user?.factors ?? []).some((f) => f.status === 'verified');
+}
+
+export function doitVerifierSecondFacteur(roles: string[], niveau: string | null | undefined, niveauSuivant?: string | null) {
+  return (roles.includes('super_admin') || niveauSuivant === 'aal2') && niveau !== 'aal2';
 }
 
 /**

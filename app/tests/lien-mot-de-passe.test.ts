@@ -40,6 +40,8 @@ import {
   LIMITE_INVITATIONS_PAR_ORGANISATION,
   MESSAGE_TROP_D_INVITATIONS,
   MESSAGE_TROP_DE_DEMANDES,
+  MESSAGE_ENVOI_INDISPONIBLE,
+  oublierPanneEnvoi,
   premiereConfirmation,
 } from "../src/lib/lien-mot-de-passe";
 import { GET, POST } from "../src/app/auth/confirm/route";
@@ -95,6 +97,10 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.cookies.mockResolvedValue(jarre);
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app");
+  // Audit final du 27/10 (PUB-16) : sans clé d'envoi, une demande anonyme annonce la panne avant tout ; ces tests
+  // supposent l'envoi configuré, et chacun part sans fenêtre de panne ouverte.
+  vi.stubEnv("RESEND_API_KEY", "re_test_fictive");
+  oublierPanneEnvoi();
   mocks.envoyerEmail.mockResolvedValue({ id: "courriel" });
   mocks.headers.mockResolvedValue(new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }));
 });
@@ -144,6 +150,36 @@ describe("envoyerLienMotDePasse — invitations", () => {
     expect(courrier.html).not.toContain("supabase.co");
   });
 
+  // Audit final du 27/10 (DRT-05) : l'invité qui ne s'est jamais connecté reçoit la marque de son premier mot de passe —
+  // dans app_metadata (clé de service), après la fabrication du lien (une métadonnée seule ne touche pas aux jetons).
+  it("marque le premier mot de passe d'un invité jamais connecté, après le lien, dans app_metadata seulement", async () => {
+    const { generateLink, updateUserById } = admin({ utilisateur: { id: "u-invite", email_confirmed_at: null, last_sign_in_at: null } });
+    expect(await envoyerLienMotDePasse({ email: "loc@exemple.fr", motif: "invitation_locataire", organisation: ORG, next: "/nouveau-mot-de-passe?suite=%2Finvitations%2Fabc" })).toEqual({});
+    expect(updateUserById).toHaveBeenCalledWith("u-invite", { app_metadata: { premier_mot_de_passe: true } });
+    expect(updateUserById.mock.calls[0][1]).not.toHaveProperty("user_metadata");
+    expect(updateUserById.mock.invocationCallOrder[0]).toBeGreaterThan(generateLink.mock.invocationCallOrder[0]);
+    expect(mocks.envoyerEmail).toHaveBeenCalledTimes(1);
+  });
+
+  it("ne marque ni un compte déjà connecté, ni une récupération ou une inscription", async () => {
+    const { updateUserById } = admin({ utilisateur: { id: "u1", email_confirmed_at: "2026-10-01T00:00:00Z", last_sign_in_at: "2026-10-02T00:00:00Z" } });
+    await envoyerLienMotDePasse({ email: "agent@agence.fr", motif: "invitation_agent", organisation: ORG });
+    expect(updateUserById).not.toHaveBeenCalled();
+    const { updateUserById: recuperation } = admin({ utilisateur: { id: "u1", email_confirmed_at: null, last_sign_in_at: null } });
+    await envoyerLienMotDePasse({ email: "moi@exemple.fr", motif: "mot_de_passe_oublie" });
+    await envoyerLienMotDePasse({ email: "moi@exemple.fr", motif: "compte_existant" });
+    expect(recuperation).not.toHaveBeenCalled();
+  });
+
+  it("une marque qui ne se pose pas n'empêche pas l'envoi de l'invitation", async () => {
+    const { updateUserById } = admin({ utilisateur: { id: "u-invite", email_confirmed_at: null, last_sign_in_at: null } });
+    updateUserById.mockResolvedValueOnce({ data: { user: null }, error: { message: "panne" } });
+    const erreur = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await envoyerLienMotDePasse({ email: "resp@agence.fr", motif: "invitation_responsable" })).toEqual({});
+    expect(mocks.envoyerEmail).toHaveBeenCalledTimes(1);
+    erreur.mockRestore();
+  });
+
   it("remonte l'erreur à celui qui invite quand le compte est introuvable", async () => {
     admin({ erreurLien: "User with this email not found" });
     const r = await envoyerLienMotDePasse({ email: "inconnu@agence.fr", motif: "invitation_agent" });
@@ -186,6 +222,52 @@ describe("envoyerLienMotDePasse — limite par organisation (audit 30/09, M4)", 
     const { generateLink } = admin({ erreurRpc: "panne" });
     expect((await envoyerLienMotDePasse({ email: "loc@exemple.fr", motif: "renvoi_supervision", organisation: ORG })).erreur).toBeTruthy();
     expect(generateLink).not.toHaveBeenCalled();
+  });
+});
+
+describe("PUB-16 — la panne d'envoi se dit, à toutes les adresses pareil (audit final du 27/10)", () => {
+  it("sans clé d'envoi : la panne est annoncée avant toute recherche, adresse connue ou non, après la limite", async () => {
+    vi.stubEnv("RESEND_API_KEY", "");
+    const { generateLink, rpc } = admin();
+    expect(await envoyerLienMotDePasse({ email: "moi@exemple.fr", motif: "mot_de_passe_oublie" })).toEqual({ erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true });
+    expect(generateLink).not.toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledWith("autoriser_lien_mot_de_passe", expect.anything());
+  });
+  // Relecture adverse du 28/10 : un envoi anonyme en échec n'ouvre aucune fenêtre — sinon la sonde témoin/cible/témoin
+  // dirait si la cible a un compte. Les deux sondes témoin répondent pareil, que la cible existe ou non.
+  it("sonde témoin / cible / témoin pendant une panne : les témoins répondent pareil, cible connue ou non", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.envoyerEmail.mockResolvedValue({ erreur: "Le service d’e-mail a refusé l’envoi." });
+    const sonde = async (cibleExiste: boolean) => {
+      oublierPanneEnvoi();
+      admin({ erreurLien: "User with this email not found" });
+      await envoyerLienMotDePasse({ email: "temoin@exemple.fr", motif: "mot_de_passe_oublie" });
+      if (cibleExiste) admin(); else admin({ erreurLien: "User with this email not found" });
+      const cible = await envoyerLienMotDePasse({ email: "cible@exemple.fr", motif: "mot_de_passe_oublie" });
+      admin({ erreurLien: "User with this email not found" });
+      const temoin = await envoyerLienMotDePasse({ email: "temoin@exemple.fr", motif: "mot_de_passe_oublie" });
+      return { cible, temoin };
+    };
+    const existante = await sonde(true);
+    const inconnue = await sonde(false);
+    expect(existante.cible).toEqual(inconnue.cible);
+    expect(existante.temoin).toEqual(inconnue.temoin);
+    expect(existante.temoin).toEqual({});
+  });
+  it("l'échec d'une invitation (geste d'un gérant) ouvre la fenêtre : toute demande anonyme annonce alors la panne", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    admin();
+    mocks.envoyerEmail.mockResolvedValueOnce({ erreur: "Le service d’e-mail a refusé l’envoi." });
+    expect((await envoyerLienMotDePasse({ email: "loc@exemple.fr", motif: "invitation_locataire" })).erreur).toBeTruthy();
+    const { rpc, generateLink } = admin();
+    expect(await envoyerLienMotDePasse({ email: "inconnu@exemple.fr", motif: "mot_de_passe_oublie" })).toEqual({ erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true });
+    // La limite est consommée avant ; aucune recherche du compte.
+    expect(rpc).toHaveBeenCalled();
+    expect(generateLink).not.toHaveBeenCalled();
+  });
+  it("la limite de fréquence illisible se dit comme une panne", async () => {
+    admin({ erreurRpc: "panne" });
+    expect((await envoyerLienMotDePasse({ email: "moi@exemple.fr", motif: "mot_de_passe_oublie" })).indisponible).toBe(true);
   });
 });
 
@@ -417,10 +499,13 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2 ; 
     expect(generateLink).not.toHaveBeenCalled();
   });
 
+  // PUB-16 : l'échec se dit toujours, mais par une phrase identique pour une adresse neuve et une adresse déjà
+  // inscrite (le détail du prestataire reste au journal) — sinon l'écran dirait laquelle a un compte.
   it("remonte l'échec de l'e-mail : l'inscrit doit savoir qu'il n'a rien reçu", async () => {
     auth();
     mocks.envoyerEmail.mockResolvedValue({ erreur: "Le service d’e-mail a refusé l’envoi." });
-    expect(await inscrire()).toEqual({ erreur: "Le service d’e-mail a refusé l’envoi." });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await inscrire()).toEqual({ erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true });
   });
 
   it("dit que l'envoi n'est pas configuré sans clé de service ou sans adresse du site", async () => {

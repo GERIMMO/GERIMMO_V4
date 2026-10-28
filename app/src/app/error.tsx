@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { signalerErreurEcran } from "@/app/actions/erreurs";
@@ -27,11 +28,18 @@ export default function Erreur({
   return (
     <main className="mx-auto w-full max-w-xl p-6 sm:p-10">
       <div className="vide-guide">
-        <p className="titre">Cette page n&apos;a pas pu s&apos;afficher</p>
+        {/* Audit final du 27/10 (PUB-15) : un vrai titre de page, et une sortie pour le visiteur sans compte — cette
+            frontière couvre aussi la vitrine, les outils et la connexion, où « Aide et retours » n'existe pas. */}
+        <h1 className="titre">Cette page n&apos;a pas pu s&apos;afficher</h1>
         <p className="explication">
           L&apos;incident est noté — la page, pas vos données. Vous pouvez
-          réessayer ; si cela se reproduit, signalez-le depuis « Aide et
-          retours » en indiquant la référence ci-dessous.
+          réessayer&nbsp;; si cela se reproduit, écrivez-nous en indiquant la
+          référence ci-dessous&nbsp;: depuis «&nbsp;Aide et retours&nbsp;» si
+          vous êtes connecté, sinon par le{" "}
+          <Link href="/#contact" className="lien-texte">
+            formulaire de contact
+          </Link>
+          .
         </p>
         <div className="geste">
           <button type="button" onClick={reset} className="btn-or">

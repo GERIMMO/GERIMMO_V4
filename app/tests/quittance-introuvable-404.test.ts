@@ -27,6 +27,9 @@ beforeEach(() => {
       : mocks.rpc(nom, args),
     auth: {
       getUser: async () => ({ data: { user: { id: "compte", last_sign_in_at: new Date().toISOString() } } }),
+      // Le proxy lit le niveau du second facteur de tout compte connecté (audit final du 27/10, PUB-01) : un
+      // locataire sans facteur passe.
+      mfa: { getAuthenticatorAssuranceLevel: async () => ({ data: { currentLevel: "aal1", nextLevel: "aal1" }, error: null }) },
     },
   });
 });

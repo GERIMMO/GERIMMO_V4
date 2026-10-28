@@ -32,7 +32,13 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   const { supabase, role, estProprietaire, organisation, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
+  // Audit final du 27/10 (DRT-V01) : sous le bandeau « lecture seule » (essai échu, impayé, suspension), la fiche se
+  // lit mais ne se modifie plus — comme pour l'agent, une fiche à lire plutôt que 28 champs qui échoueraient à l'envoi.
+  // Fermée seulement si la base le dit (le layout lit de même) ; la base refuse de toute façon l'écriture.
+  const { data: etatAbonnementBrut } = await supabase.rpc("etat_abonnement", { p_org: orgId });
+  const ecritureFermee = (etatAbonnementBrut as { ecriture_ouverte?: boolean }[] | null)?.[0]?.ecriture_ouverte === false;
   const responsable = !traverseeLectureSeule && ROLES_RESPONSABLES.includes(role);
+  const peutModifier = responsable && !ecritureFermee;
   const titre = estProprietaire ? (traverseeLectureSeule ? "Profil du propriétaire" : "Mon profil") : "Profil de l'agence";
   // 24/09 : côté agence, la barre latérale et la barre haute nomment déjà
   // l'organisation — la mention à droite du titre ne sert qu'au propriétaire.
@@ -139,18 +145,22 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
       <div className={estProprietaire ? "space-y-4" : "loc-carte"}>
         {!estProprietaire && <div className="entete-carte">
           <h2 className="titre-carte leading-[inherit]">Identité</h2>
-          {!responsable && <span className="puce puce-grise">lecture seule</span>}
+          {!peutModifier && <span className="puce puce-grise">lecture seule</span>}
         </div>}
-        {!responsable && (
+        {!responsable ? (
           <p className="mesure-lecture mb-4 text-sm text-muted-foreground">
             Demandez à un responsable de l&apos;organisation de modifier ces
             informations.
           </p>
-        )}
+        ) : ecritureFermee ? (
+          <p className="mesure-lecture mb-4 text-sm text-muted-foreground">
+            Votre espace est en lecture seule&nbsp;: ces informations se modifieront de nouveau dès la reprise de la saisie.
+          </p>
+        ) : null}
         <FormulaireProfilOrganisation
           orgId={orgId}
           organisation={profil}
-          lectureSeule={!responsable}
+          lectureSeule={!peutModifier}
           estProprietaire={estProprietaire}
         />
       </div>
@@ -246,7 +256,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
         <div className="mt-4">
         <div className="entete-carte">
           <h2 className="titre-carte leading-[inherit]">Signature préenregistrée</h2>
-          {!responsable && <span className="puce puce-grise">lecture seule</span>}
+          {!peutModifier && <span className="puce puce-grise">lecture seule</span>}
         </div>
         <p className="mesure-lecture mb-4 text-sm text-muted-foreground">
           Apposée sur les documents que vous émettez seul — quittances, reçus,
@@ -255,7 +265,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
         {roleMetier ? <FormulaireSignature
           orgId={orgId}
           apercu={apercuSignature}
-          lectureSeule={!responsable}
+          lectureSeule={!peutModifier}
         /> : <p className="rounded-lg bg-muted p-4 text-sm">La signature reste sous le contrôle du responsable de cette organisation. L’accès de supervision ne permet ni de la remplacer ni de l’apposer sur de nouveaux documents.</p>}
       </div>
       </details>

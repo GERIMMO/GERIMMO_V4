@@ -10,9 +10,10 @@ import { ConfirmationPaiement } from "./confirmation-paiement";
 import Link from "next/link";
 import { ArrowRight, Building2, CalendarDays, Check, CreditCard, PenLine, ShieldCheck, Users } from "lucide-react";
 import styles from "./abonnement.module.css";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { BoutonPortail, BoutonResiliation, FormulaireHausse, FormulairePeriodicite } from "./boutons-abonnement";
 import { DetailMontants, FormulaireSouscription } from "./formulaire-souscription";
+import { CarteEspaceSuspendu } from "./carte-suspension";
 import { REGIME_TVA } from "@/lib/editeur";
 import { motifIdentiteEditeur } from "@/lib/garde-souscription";
 import { lireGardeSouscription } from "@/lib/garde-souscription-serveur";
@@ -106,6 +107,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   const { supabase, user, organisation, role, estProprietaire } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
+  // Audit final du 27/10 (DRT-06) : un agent de l'agence qui ouvre cet écran par son adresse revient à son tableau de
+  // bord, qui lui dit pourquoi — au lieu de la 404 publique hors de la coquille. Le propriétaire direct garde la 404 (D27).
+  if (role === "agent") redirect(`${base}?acces=administrateur`);
   if (!["admin_agence", "proprietaire_direct"].includes(role)) notFound();
   const estAgence = organisation.type === "agence";
   const unite = estAgence ? "lot sous mandat" : "bien";
@@ -146,6 +150,11 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   const enGestion = etat.unites_a_couvrir ?? 0;
   const ferme = !etat.ecriture_ouverte;
   const enEssai = etat.statut === "essai";
+  // Audit final du 27/10 (DRT-04) : suspendu ou archivé par la supervision, et non par l'impayé.
+  const suspensionSupervision =
+    ferme && ["suspendue", "archivee"].includes(etat.statut)
+      ? (await supabase.rpc("org_suspendue_par_supervision", { p_org: orgId })).data === true
+      : false;
   const cadeauxLus = await supabase.rpc("lire_mois_offerts", { p_org: orgId });
   const cadeaux = (cadeauxLus.data ?? []) as { id: string; nature: string; fin: string | null; montant_cents: number; applique_le: string | null }[];
   const accesOffert = enEssai && !ferme && cadeaux.some(c => c.nature === "acces" && c.fin === etat.essai_fin);
@@ -334,7 +343,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         </div>
       )}
 
-      {ferme && !alerteRetard && !resilieeImpaye && (
+      {suspensionSupervision && <CarteEspaceSuspendu archive={etat.statut === "archivee"} />}
+
+      {ferme && !suspensionSupervision && !alerteRetard && !resilieeImpaye && (
         <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">Votre compte est en lecture seule.</b>{" "}
@@ -515,7 +526,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
       </div>
 
       {/* SOUSCRIRE : récapitulatif avant paiement. */}
-      {!souscrit && !accesOffert && (
+      {!souscrit && !accesOffert && !suspensionSupervision && (
         <section className={estAgence ? "loc-carte" : styles.choix} aria-labelledby="choisir-abonnement">
           <div className={estAgence ? "entete-carte" : styles.titreSection}>
             <h2 id="choisir-abonnement">{ferme ? "Reprendre avec un abonnement" : "Choisir ma formule"}</h2>

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion } from "../gabarit";
-import { chargerContexteBail, liensLocataires, referenceCourte } from "./communs";
+import { chargerContexteBail, estContratAFaireSigner, liensLocataires, referenceCourte } from "./communs";
 import { construireBailNu } from "./bail-nu";
 import { construireBailMeuble, type LigneInventaire } from "./bail-meuble";
 import type { Assemblage } from "./index";
@@ -23,6 +23,7 @@ export async function assemblerBailIndividuel(supabase: SupabaseClient, orgId: s
   return {
     document: ctx.lot.meuble ? construireBailMeuble(ctx, options) : construireBailNu(ctx, options),
     titreGed: `Contrat individuel ${ctx.lot.meuble ? "meublé" : "nu"} — ${ctx.chambre.nom} (à faire signer)`,
+    remplaceVersion: estContratAFaireSigner,
     nomFichier: `contrat-individuel-${referenceCourte("BAIL", bailId).toLowerCase()}`,
     liens: [{ entite: "bail", entiteId: bailId }, { entite: "lot", entiteId: ctx.lot.id }, ...liensLocataires(ctx)],
   };

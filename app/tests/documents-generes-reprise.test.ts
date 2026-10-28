@@ -58,3 +58,29 @@ describe("reprise d'un PDF déjà rangé", () => {
     expect(m.liens).not.toHaveBeenCalled();
   });
 });
+
+describe("regénération d'un contrat : la nouvelle version remplace la précédente (audit final, BAIL-03)", () => {
+  function avecVersions(documents: { id: string; titre: string; created_at: string; remplace_id: string | null }[]) {
+    const q = (donnees: unknown) => { const r = { select: () => r, eq: () => r, in: () => r, is: () => r, order: () => r, upsert: m.liens, then: (ok: (v: unknown) => unknown) => Promise.resolve({ data: donnees, error: null }).then(ok) }; return r; };
+    m.verifier.mockResolvedValue({ user: { id: "user-1" }, role: "proprietaire_direct", supabase: { from: (table: string) => table === "documents" ? q(documents) : table === "document_liens" ? { ...q(documents.map(d => ({ document_id: d.id }))), upsert: m.liens } : q([]) } });
+    m.assembler.mockResolvedValue({ document: {}, liens, titreGed: "Bail nu — T2 · Bernard Lucas (à faire signer)", nomFichier: "bail", remplaceVersion: (t: string | null) => /à faire signer/.test(t ?? "") });
+  }
+  it("passe la dernière version active en remplace_id", async () => {
+    avecVersions([
+      { id: "v2", titre: "Bail nu (généré, à faire signer)", created_at: "2026-10-27T21:43:18Z", remplace_id: "v1" },
+      { id: "v1", titre: "Bail nu (généré, à faire signer)", created_at: "2026-10-27T21:42:01Z", remplace_id: null },
+      { id: "signe", titre: "Bail signé", created_at: "2026-10-27T22:00:00Z", remplace_id: null },
+    ]);
+    await generer();
+    expect(m.depot.mock.lastCall?.[6]).toEqual({ genereServeur: true, remplaceId: "v2" });
+  });
+  it("première génération : rien à remplacer", async () => {
+    avecVersions([]);
+    await generer();
+    expect(m.depot.mock.lastCall?.[6]).toEqual({ genereServeur: true, remplaceId: undefined });
+  });
+  it("un modèle sans versionnage ne remplace rien", async () => {
+    await generer();
+    expect(m.depot.mock.lastCall?.[6]).toEqual({ genereServeur: true, remplaceId: undefined });
+  });
+});

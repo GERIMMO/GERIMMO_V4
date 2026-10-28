@@ -10,6 +10,7 @@ import { CompletudeBail } from "@/lib/suivi-enregistrement";
 import { Button } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
 import { LecteurDocument } from "@/components/lecteur-document";
+import { formaterDateHeure } from "@/lib/ged";
 import { SignatureElectroniqueBail } from "@/components/signature-electronique-bail";
 import { OuvrirSignatureDocument } from "@/components/ouvrir-signature-document";
 import { useBaseEspace, useRacineEspace } from "@/components/racine-espace-contexte";
@@ -71,15 +72,18 @@ function PdfEtatDesLieux({ orgId, edlId, retour, revision, lectureSeule }: { org
   </>;
 }
 
-export function FinaliserParcoursBail({ orgId, bailId, code, edlId, preparationEdl, proprietaireDirect = false, documentSigne = null, lectureSeule = false, recapitulatifStructure = false }: {
+export function FinaliserParcoursBail({ orgId, bailId, code, edlId, preparationEdl, proprietaireDirect = false, documentSigne = null, lectureSeule = false, recapitulatifStructure = false, pdfInitial = null }: {
   orgId: string; bailId: string; code: CodeModele; signataires: { id: string; nom: string }[]; edlId: string | null;
   preparationEdl: ReactNode; signatureManuelle: ReactNode; proprietaireDirect?: boolean; documentSigne?: string | null;
   lectureSeule?: boolean; recapitulatifStructure?: boolean;
+  /** Dernier PDF du contrat déjà rangé dans Documents : proposé à la relecture dès l'ouverture (BAIL-04). */
+  pdfInitial?: { documentId: string; genereLe: string } | null;
 }) {
   const base = useBaseEspace(orgId), racine = useRacineEspace(), titreId = useId();
   const controle = useContext(CompletudeBail);
   const revision = useContext(EtapeComplementsBail)?.revision ?? 0;
-  const [generation, setGeneration] = useState<Generation | null>(null);
+  const [generation, setGeneration] = useState<Generation | null>(() => pdfInitial
+    ? { resultat: { documentId: pdfInitial.documentId, manquants: [] }, revision, controle } : null);
   const [enCours, demarrer] = useTransition();
   const retour = `${base}/baux/${bailId}`;
   const pdfCourant = generation?.revision === revision;
@@ -116,6 +120,7 @@ export function FinaliserParcoursBail({ orgId, bailId, code, edlId, preparationE
             {documentId && <ApercuPdf key={documentId} fichier={`${base}/documents/${documentId}/fichier`} titre="Contrat de location" libelle="Relire le contrat"/>}
           </div>
           {pdfCourant && generation?.resultat.erreur && <p className={styles.erreur} role="alert">{generation.resultat.erreur}</p>}
+          {documentId && documentId === pdfInitial?.documentId && <p className={styles.message}>PDF généré le {formaterDateHeure(pdfInitial.genereLe)}. Si le dossier a changé depuis, actualisez-le avant les signatures.</p>}
           {perime && <p className={styles.message} role="status">Le dossier a changé. Générez un nouveau PDF avant les signatures.</p>}
         </>}
       </section>

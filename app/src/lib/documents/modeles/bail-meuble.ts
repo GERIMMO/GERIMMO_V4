@@ -8,6 +8,7 @@
 // mobilier (décret n° 2015-981).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { libelleTrimestreIrl } from "@/lib/trimestre-irl";
 import { LIBELLE_ETAT_INVENTAIRE } from "@/lib/inventaire-meuble";
 import {
   Fusion,
@@ -34,6 +35,8 @@ import {
   type ContexteBail,
   type PersonneDocument,
   liensLocataires,
+  estContratAFaireSigner,
+  titreContratAFaireSigner,
 } from "./communs";
 import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
@@ -237,7 +240,7 @@ export function construireBailMeuble(
       ctx.bail.revision_irl
         ? `<p>Le loyer est révisé chaque année à la date anniversaire du contrat, dans la limite de la
            variation de l'indice de référence des loyers (IRL). Trimestre de référence :
-           ${f.champ(ctx.bail.irl_trimestre, "ex. 2e trimestre 2026")} — valeur de l'indice :
+           ${f.champ(libelleTrimestreIrl(ctx.bail.irl_trimestre) ?? ctx.bail.irl_trimestre, "ex. 2e trimestre 2026")} — valeur de l'indice :
            ${f.champ(
              ctx.bail.irl_valeur !== null ? Number(ctx.bail.irl_valeur).toLocaleString("fr-FR") : null,
              "valeur de l'indice"
@@ -379,8 +382,10 @@ export async function assemblerBailMeuble(
 
   return {
     document,
-    titreGed: `Bail meublé — ${nomPersonne(ctx.locataires[0]) ?? ctx.lot.nom}`,
+    titreGed: titreContratAFaireSigner("meublé", ctx),
+    remplaceVersion: estContratAFaireSigner,
     nomFichier: `bail-meuble-${referenceCourte("BAIL", ctx.bail.id).toLowerCase()}`,
-    liens: [{ entite: "bail", entiteId: ctx.bail.id }, ...liensLocataires(ctx)],
+    // Lié au lot comme le bail nu : avant signature, le contrat appartient au dossier du logement (BAIL-03).
+    liens: [{ entite: "bail", entiteId: ctx.bail.id }, { entite: "lot", entiteId: ctx.lot.id }, ...liensLocataires(ctx)],
   };
 }

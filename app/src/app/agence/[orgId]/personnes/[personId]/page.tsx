@@ -144,7 +144,7 @@ export default async function PagePersonne(
   // Quatre lectures indépendantes — un seul aller-retour
   const [
     // Pièces courantes du dossier (versioning : seules les non remplacées)
-    { data: pieces, error: erreurPieces },
+    { data: piecesDossier, error: erreurPieces },
     // Versions antérieures (recette 13/08) : l'historique reste consultable —
     // on remonte la chaîne remplace_id de chaque pièce courante.
     { data: liensDossier, error: erreurLiensDossier },
@@ -192,6 +192,10 @@ export default async function PagePersonne(
       .eq("locataire_principal", personId)
       .in("etat", ["brouillon", "actif", "preavis"]),
   ]);
+
+  // Les contrats (bail généré à faire signer, bail signé) sont rattachés à la personne pour la navigation
+  // documentaire, mais ne sont pas ses justificatifs : ils se lisent depuis le bail (audit final, BAIL-03).
+  const pieces = (piecesDossier ?? []).filter((p: { type: string }) => p.type !== "bail");
 
   // « Confié à » (maquette v3, RM-18.1.3) : la liste des gérants de l'agence
   const { data: donneesGerants, error: erreurGerants } =

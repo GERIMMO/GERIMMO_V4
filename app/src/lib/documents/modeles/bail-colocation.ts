@@ -1,7 +1,7 @@
 // Contrat commun : le régime dépend du logement, jamais d'une option du navigateur.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion } from "../gabarit";
-import { chargerContexteBail, liensLocataires, referenceCourte } from "./communs";
+import { chargerContexteBail, estContratAFaireSigner, liensLocataires, referenceCourte, titreContratAFaireSigner } from "./communs";
 import { construireBailNu } from "./bail-nu";
 import { construireBailMeuble, type LigneInventaire } from "./bail-meuble";
 import type { Assemblage } from "./index";
@@ -30,10 +30,10 @@ export async function assemblerBailColocation(supabase: SupabaseClient, orgId: s
   }
   const options = { dpeClasse: dpe?.classe_dpe ?? null, f: new Fusion(), inventaire };
   const document = ctx.lot.meuble ? construireBailMeuble(ctx, options) : construireBailNu(ctx, options);
-  const regime = ctx.lot.meuble ? "meublé" : "nu";
   return {
     document,
-    titreGed: `Colocation — bail commun ${regime} (à faire signer)`,
+    titreGed: titreContratAFaireSigner(ctx.lot.meuble ? "commun de colocation meublée" : "commun de colocation nue", ctx),
+    remplaceVersion: estContratAFaireSigner,
     nomFichier: `colocation-${ctx.lot.meuble ? "meuble" : "nu"}-${referenceCourte("BAIL", bailId).toLowerCase()}`,
     liens: [{ entite: "bail", entiteId: bailId }, { entite: "lot", entiteId: ctx.lot.id }, ...liensLocataires(ctx)],
   };

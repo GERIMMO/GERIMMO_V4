@@ -10,7 +10,7 @@ const FIN_ISO = /^(.*) — (\d{4}-\d{2}-\d{2})$/;
 export function titreAffiche(titre: string | null | undefined): string | null {
   if (!titre) return null;
   if (titre.endsWith(" — signé") || titre.startsWith("Certificat de réalisation — ")) {
-    titre = titre.replace(" (généré, à faire signer)", "").replace(" — à signer en ligne", "");
+    titre = titre.replace(/ \((?:généré, )?à faire signer\)/, "").replace(" — à signer en ligne", "");
   }
   const m = FIN_ISO.exec(titre);
   if (!m) return titre;

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { chargerQuittancementDuMois } from "@/lib/quittancement-du-mois";
+import { totauxEcheances } from "@/lib/finances";
 import { eur, moisEnFrancais } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,11 +40,13 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
     !portefeuille || (lotId != null && portefeuille.has(lotId));
   const { mois, lignes, error } = await chargerQuittancementDuMois(supabase, orgId, dansPortefeuille);
 
-  const appele = lignes.reduce((t, l) => t + Number(l.montant_du), 0);
-  const encaisse = lignes.reduce((t, l) => t + Math.min(Number(l.montant_couvert), Number(l.montant_du)), 0);
-  const reste = Math.max(0, appele - encaisse);
+  // Mêmes chiffres que Finances du propriétaire (audit final du 27/10, LOY-07) : un terme pas encore exigible (statut
+  // « attendu », loyer payé à terme échu) se dit « à échoir », hors du reste dû.
+  const { demande: appele, regle: encaisse, resteDu: reste, aEchoir } = totauxEcheances(lignes);
   const impayes = lignes.filter((l) => Number(l.montant_couvert) < Number(l.montant_du));
   const nbRegles = lignes.length - impayes.length;
+  // Un terme à échoir n'est pas encore dû : il ne se relance pas.
+  const aRelancer = impayes.filter((l) => l.statut !== "attendu").length;
   // Un mois sans appel n'est pas un mois réussi : rien n'était dû. Les tuiles
   // restent neutres et la carte des impayés se tait (24/09).
   const moisVide = lignes.length === 0;
@@ -157,7 +160,10 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
                   ? "rien n’était dû"
                   : impayes.length === 0
                     ? "rien à relancer"
-                    : `${impayes.length} locataire${impayes.length > 1 ? "s" : ""} à relancer`}
+                    : aRelancer === 0
+                      ? "rien d’exigible à relancer"
+                      : `${aRelancer} locataire${aRelancer > 1 ? "s" : ""} à relancer`}
+                {aEchoir > 0 && <span className="block">{eur(aEchoir)} à échoir, hors du reste dû</span>}
               </span>
             </div>
           </section>

@@ -38,6 +38,7 @@ import {
 import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
+import { formaterIndice, ordinalJour } from "@/lib/ged";
 import { mentionCadreCautionBail } from "@/lib/textes-signature-actes";
 
 // Une ligne de l'inventaire du mobilier attaché au bail (table inventaire_lignes)
@@ -239,7 +240,7 @@ export function construireBailMeuble(
            variation de l'indice de référence des loyers (IRL). Trimestre de référence :
            ${f.champ(ctx.bail.irl_trimestre, "ex. 2e trimestre 2026")} — valeur de l'indice :
            ${f.champ(
-             ctx.bail.irl_valeur !== null ? Number(ctx.bail.irl_valeur).toLocaleString("fr-FR") : null,
+             ctx.bail.irl_valeur !== null ? formaterIndice(ctx.bail.irl_valeur) : null,
              "valeur de l'indice"
            )}.</p>`
         : `<p>Le contrat ne prévoit pas de clause de révision annuelle du loyer.</p>`
@@ -253,7 +254,7 @@ export function construireBailMeuble(
     Montant mensuel : ${f.montant(ctx.bail.charges, "montant mensuel")}.</p>
     ${sousSection("C. Modalités de paiement")}
     <p>Périodicité : ${f.champ("mensuelle", "mensuelle, trimestrielle…")} — paiement ${f.champ(echeanceLibelle, "à échoir ou échu")}
-    le ${f.champ(ctx.bail.jour_echeance, "jour du mois")} de chaque mois.<br/>
+    le ${f.champ(ctx.bail.jour_echeance == null ? null : ordinalJour(Number(ctx.bail.jour_echeance)), "jour du mois")} de chaque mois.<br/>
     Lieu de paiement : ${f.champ(ctx.bail.lieu_paiement, "domicile du bailleur, virement…")} — Coordonnées bancaires :
     ${facultatif(ctx.organisation.iban)}.<br/>
     Montant total dû à la première échéance : ${montantPremiereEcheance(f, ctx.bail)}.</p>

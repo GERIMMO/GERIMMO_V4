@@ -30,7 +30,7 @@ import {
   formaterSurface,
 } from "@/lib/parc";
 import { diagnosticsExigibles } from "@/lib/diagnostics";
-import { formaterDate, eur } from "@/lib/ged";
+import { formaterDate, eur, ordinalJour } from "@/lib/ged";
 import { ETATS_BAIL, COULEURS_ETAT_BAIL, TYPES_BAIL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
 import { LignesDiagnostics, type DiagnosticDepose } from "../../lignes-diagnostics";
@@ -729,7 +729,7 @@ export default async function PageLot(
         <div><dt>Loyer et charges / mois</dt><dd>{b.loyer_hc == null ? "À préciser" : eur(Number(b.loyer_hc) + Number(b.charges ?? 0))}</dd></div>
         <div><dt>Loyer hors charges</dt><dd>{b.loyer_hc == null ? "À préciser" : eur(Number(b.loyer_hc))}</dd></div>
         <div><dt>Charges</dt><dd>{b.charges == null ? "À préciser" : eur(Number(b.charges))}</dd></div>
-        <div><dt>Échéance du loyer</dt><dd>{b.jour_echeance == null ? "À préciser" : `Le ${b.jour_echeance === 1 ? "1er" : b.jour_echeance} du mois`}</dd></div>
+        <div><dt>Échéance du loyer</dt><dd>{b.jour_echeance == null ? "À préciser" : `Le ${ordinalJour(b.jour_echeance)} du mois`}</dd></div>
         <div><dt>Dépôt de garantie</dt><dd>{b.depot_garantie == null ? "À préciser" : eur(Number(b.depot_garantie))}</dd></div>
         <div><dt>{b.etat === "brouillon" ? "Entrée prévue" : "Entrée"}</dt><dd>{b.date_debut ? formaterDate(b.date_debut) : "À préciser"}</dd></div>
         {b.date_fin && <div><dt>Fin du contrat</dt><dd>{formaterDate(b.date_fin)}</dd></div>}

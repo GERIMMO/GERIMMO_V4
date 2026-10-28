@@ -138,3 +138,38 @@ for (const largeur of [390, 1440]) test(`agence : rang critique de la liste des 
     await db.end();
   }
 });
+
+// Relecture de LOY-07, page Loyers de l'agence : un terme à échoir ne se présente plus « à relancer ». Le seed : septembre
+// partiellement réglé (400 € restent), octobre impayé. On repousse l'échéance d'octobre (terme « attendu »), puis on la remet.
+for (const largeur of [390, 1440]) test(`agence : la page Loyers ne relance que l'exigible, terme à échoir à part (${largeur}px)`, async ({ page }, info) => {
+  const url = process.env.SUPALOCAL_DB;
+  test.skip(!url || !/^postgres(?:ql)?:\/\/[^@]*@(?:localhost|127\.0\.0\.1):\d+\/gerimmo_ci_[a-z_]+_api$/.test(url), "Base API locale fictive requise");
+  const db = new Client({ connectionString: url }); await db.connect();
+  const { rows: [appel] } = await db.query(`select a.id, a.date_echeance::text date_echeance from public.appels_loyer a
+    join public.baux b on b.id=a.bail_id join public.persons p on p.id=b.locataire_principal
+    where p.email='locataire.alpha@example.com' and a.organization_id=$1 and a.periode=date_trunc('month',public.aujourdhui_paris())::date`, [ORG_ALPHA]);
+  test.skip(!appel, "Échéance du mois du locataire alpha absente du seed");
+  try {
+    await db.query("update public.appels_loyer set date_echeance=public.aujourdhui_paris()+8 where id=$1", [appel.id]);
+    await page.setViewportSize({ width: largeur, height: largeur < 500 ? 844 : 900 });
+    await page.addInitScript(() => { try { sessionStorage.setItem("gerimmo-synthese-alertes-vue", "1"); } catch {} });
+    await connecter(page, "admin.alpha@example.com"); await page.waitForURL(/\/agence\//);
+    await page.goto(`/agence/${ORG_ALPHA}/loyers`);
+    const tuile = page.locator(".grille-kpi .kpi").filter({ hasText: "Reste dû" });
+    await expect(tuile).toContainText(/1 locataire à relancer/);
+    // Une dette antérieure échue ne s'affiche pas en vert « à jour ».
+    await expect(tuile).toHaveClass(/rouge/);
+    await expect(tuile).toContainText(/400,00[  ]€ dus sur des mois précédents/);
+    await expect(tuile).toContainText(/700,00[  ]€ à échoir, hors du reste dû/);
+    // Les rangs de la carte « Impayés à relancer » : un seul, pour la dette antérieure, son terme dit « à échoir ».
+    const ligne = page.locator("a").filter({ hasText: "Relancer sur le bail" });
+    await expect(ligne).toHaveCount(1);
+    await expect(ligne).toContainText(/dette antérieure 400,00[  ]€ · 700,00[  ]€ à échoir/);
+    await expect(ligne).not.toContainText("reste 700");
+    expect(await debordementHorizontal(page)).toBe(0);
+    await page.screenshot({ path: info.outputPath(`agence-loyers-a-echoir-${largeur}.png`), fullPage: true });
+  } finally {
+    await db.query("update public.appels_loyer set date_echeance=$2::date where id=$1", [appel.id, appel.date_echeance]);
+    await db.end();
+  }
+});

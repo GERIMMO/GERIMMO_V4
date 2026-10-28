@@ -131,7 +131,7 @@ describe("portail artisan (mineurs et détails)", () => {
   it("les attestations ne se contredisent plus : seule la décennale conditionne l'affectation", () => {
     const entreprise = lire("app/artisan/entreprise/page.tsx");
     expect(entreprise).not.toContain("à déposer pour être proposé aux agences");
-    expect(entreprise).toContain("travaux qui l'exigent");
+    expect(entreprise).toContain("travaux qui l’exigent");
   });
 
   it("/compte parle à l'artisan de sa situation et lui rend son portail", () => {

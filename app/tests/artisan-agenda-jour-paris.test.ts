@@ -25,7 +25,7 @@ describe("les sept jours de l’agenda commencent aujourd’hui à Paris", () =>
     ["Pacific/Kiritimati", "2026-10-18T10:30:00Z", "dimanche 18 octobre 2026", [18, 19, 20, 21, 22, 23, 24]],
     ["UTC", "2026-03-28T23:30:00Z", "dimanche 29 mars 2026", [29, 30, 31, 1, 2, 3, 4]],
     ["UTC", "2026-10-24T22:30:00Z", "dimanche 25 octobre 2026", [25, 26, 27, 28, 29, 30, 31]],
-    ["UTC", "2026-12-31T23:30:00Z", "vendredi 1 janvier 2027", [1, 2, 3, 4, 5, 6, 7]],
+    ["UTC", "2026-12-31T23:30:00Z", "vendredi 1er janvier 2027", [1, 2, 3, 4, 5, 6, 7]],
   ])("serveur %s, instant %s", async (fuseau, instant, titre, numeros) => {
     process.env.TZ = fuseau;
     vi.useFakeTimers({ toFake: ["Date"] });

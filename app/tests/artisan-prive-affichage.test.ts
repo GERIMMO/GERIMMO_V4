@@ -80,7 +80,7 @@ describe("heures de l'espace privé : toujours à l'heure de Paris, sans seconde
 
   it("fiche du chantier : rendez-vous actuel et historique à l'heure de Paris", async () => {
     const page = await html(PageChantier({ params: Promise.resolve({ chantierId: "h1" }) }));
-    expect(page).toContain("Rendez-vous actuel : 22/10/2026 09:00 — 11:00");
+    expect(page).toContain("Rendez-vous actuel\u00a0: 22/10/2026 09:00 — 11:00");
     expect(page).toContain("14/10/2026 01:14 · Chantier créé");
     expect(page).not.toMatch(/\d{2}:\d{2}:\d{2}/);
   });

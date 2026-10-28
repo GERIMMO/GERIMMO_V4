@@ -488,7 +488,7 @@ describe("D16 — photos du locataire visibles de l'artisan : l'écran", () => {
     expect(await rendre({ photos: [], erreur: false, base: "/x" })).toBe("");
     const panne = await rendre({ photos: [], erreur: true, base: "/x" });
     expect(panne).toContain('role="alert"');
-    expect(panne).toContain("Les photos n&#x27;ont pas pu être chargées");
+    expect(panne).toContain("Les photos n’ont pas pu être chargées");
   });
 
   it("la demande de devis et la mission affichent le bloc, chargé par la liste que la base ouvre", () => {

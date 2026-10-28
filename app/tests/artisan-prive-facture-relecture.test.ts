@@ -156,7 +156,7 @@ describe("fiche du chantier terminé — le formulaire de facture passe par la r
   it("prévient avant la saisie que la facture ne se modifiera plus (seulement l'annuler par un avoir) et que le numéro doit être unique", async () => {
     const page = await html(PageChantier({ params: Promise.resolve({ chantierId: "h1" }) }));
     expect(page).toContain("Déposer la facture");
-    expect(page).toContain("Une facture déposée ne se modifie plus : en cas d’erreur, vous pourrez l’annuler par un avoir");
+    expect(page).toContain("Une facture déposée ne se modifie plus\u00a0: en cas d’erreur, vous pourrez l’annuler par un avoir");
     expect(page).toContain("les majuscules et les espaces autour ne comptent pas");
   });
 

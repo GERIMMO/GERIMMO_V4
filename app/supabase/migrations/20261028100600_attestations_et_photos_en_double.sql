@@ -16,7 +16,8 @@
 --    d'un tiers ni aucun autre type de document (pièce personnelle, bail…) n'est réutilisé — ceux-là restent refusés.
 --    Le plafond de dix photos par incident vaut aussi pour un rattachement ; une photo déjà rattachée à CE dossier n'est
 --    pas liée deux fois. Sans fichier transmis (`p_storage_path` nul : l'écran du gérant a reconnu le doublon avant tout
---    envoi), seul le rattachement est possible. Reprise de la dernière définition (20260821135221_s7_incidents_garde_fous).
+--    envoi), seul le rattachement est possible. Reprise de la définition installée : celle de 20260821135221_s7_incidents_garde_fous
+--    avec la garde de portefeuille de l'agent ajoutée par 20260913150000_incidents_portefeuille_agent (conservée en tête).
 --
 -- 3. DOC-12 — TITRE DE LA PHOTO DE CHANTIER. `deposer_photo_intervention` écrivait la valeur brute de l'énumération :
 --    « Chantier (apres) — INC-2026-0001 » dans Documents, la fiche incident et le texte de remplacement des images. Le
@@ -55,6 +56,10 @@ declare
   v_existant_type public.document_type;
   v_existant_auteur uuid;
 begin
+  -- Périmètre incident de l'agent (recette 13/09).
+  if public.incident_hors_portefeuille(p_org, p_incident) then
+    raise exception 'Ce dossier est hors de votre portefeuille' using errcode = '42501';
+  end if;
   select i.*, p.account_id as declarant_account into v
   from public.incidents i
   left join public.persons p on p.id = i.declarant_person_id

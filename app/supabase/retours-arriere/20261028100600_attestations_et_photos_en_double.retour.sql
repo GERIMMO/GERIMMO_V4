@@ -1,6 +1,6 @@
 -- Retour arrière de 20261028100600_attestations_et_photos_en_double.sql — audit final du 28/10/2026 (DOC-04, DOC-10, DOC-12).
--- Remet l'index d'unicité (artisan, empreinte) des attestations, `joindre_photo_incident` dans sa définition de
--- 20260821135221_s7_incidents_garde_fous (photo déjà connue refusée) et `deposer_photo_intervention` dans celle de
+-- Remet l'index d'unicité (artisan, empreinte) des attestations, `joindre_photo_incident` dans sa définition installée
+-- (20260821135221_s7_incidents_garde_fous + garde de portefeuille de 20260913150000 ; photo déjà connue refusée) et `deposer_photo_intervention` dans celle de
 -- 20260911180000_module8_artisans_socle (titre « Chantier (apres) — … »), puis rend aux titres renommés leur forme ancienne.
 -- REFUSE (sans rien modifier) tant qu'un même fichier est actif sous deux types d'attestation pour un artisan : l'ancien
 -- index ne pourrait pas être recréé ; retirer d'abord l'une des deux pièces. Les rattachements de photos déjà connues
@@ -38,6 +38,10 @@ declare
   v_doc uuid;
   v_nb bigint;
 begin
+  -- Périmètre incident de l'agent (recette 13/09).
+  if public.incident_hors_portefeuille(p_org, p_incident) then
+    raise exception 'Ce dossier est hors de votre portefeuille' using errcode = '42501';
+  end if;
   select i.*, p.account_id as declarant_account into v
   from public.incidents i
   left join public.persons p on p.id = i.declarant_person_id

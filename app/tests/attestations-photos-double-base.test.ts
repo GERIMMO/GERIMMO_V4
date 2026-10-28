@@ -26,6 +26,8 @@ describe("attestations et photos en double (fichiers)", () => {
     const sql = readFileSync(`supabase/migrations/${MIGRATION}.sql`, "utf8");
     expect(sql).toContain("set search_path = ''");
     expect(sql.trim().endsWith("select public.fermer_fonctions_a_anon();")).toBe(true);
+    // La garde de portefeuille de l'agent (20260913150000, injectée dans la définition installée) est conservée.
+    expect(sql).toContain("if public.incident_hors_portefeuille(p_org, p_incident) then\n    raise exception 'Ce dossier est hors de votre portefeuille' using errcode = '42501';");
     const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${MIGRATION}.sql`)).toHaveLength(1);
     const retour = readFileSync(`supabase/retours-arriere/${MIGRATION}.retour.sql`, "utf8");

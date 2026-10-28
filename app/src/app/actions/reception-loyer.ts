@@ -11,27 +11,12 @@ import { envoyerEmail } from "@/lib/email";
 import { adresseDuSite } from "@/lib/site";
 import { aujourdhuiParis } from "@/lib/ged";
 import { cleRelanceLoyer } from "@/lib/cles-idempotence-courriels";
+import { nomsDetenteursParLot } from "@/lib/detenteurs";
 import { corpsRelanceLoyer, sujetRelanceLoyer } from "@/lib/relance-loyer-email";
 import { detteDuBail, idRelanceReception, lireDerniereRelanceReception, NOTE_RELANCE_TABLEAU, type RappelLoyer } from "@/lib/rappels-loyers";
 
 export type EtatReceptionLoyer = { erreur?: string; succes?: string; termine?: boolean };
 
-type ClientSupabase = Awaited<ReturnType<typeof verifierGerant>>["supabase"];
-
-/** Les détenteurs du lot, joints (« Moreau Claire, Moreau Jean ») ; vide si rien ne se lit. */
-async function nomsDetenteurs(supabase: ClientSupabase, orgId: string, lotId: string | null): Promise<string> {
-  if (!lotId) return "";
-  try {
-    const { data, error } = await supabase.from("detentions").select("person:persons!detentions_person_id_fkey(nom,prenom)")
-      .eq("organization_id", orgId).eq("lot_id", lotId).is("date_fin", null);
-    if (error) return "";
-    return ((data ?? []) as { person: { nom: string; prenom: string | null } | { nom: string; prenom: string | null }[] | null }[])
-      .map(d => { const p = Array.isArray(d.person) ? d.person[0] : d.person; return p ? [p.nom, p.prenom].filter(Boolean).join(" ") : ""; })
-      .filter(Boolean).join(", ");
-  } catch {
-    return "";
-  }
-}
 
 export async function declarerReceptionLoyer(orgId: string, appelId: string, _etat: EtatReceptionLoyer, form: FormData): Promise<EtatReceptionLoyer> {
   const { supabase, user, role } = await verifierGerant(orgId, { geste: "encaissement" });
@@ -107,7 +92,7 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   if (erreurPersonne || erreurOrganisation || !personne?.email?.trim() || !organisation) return { erreur: "Vérifiez l’adresse e-mail du locataire et votre profil avant l’envoi." };
   // Le bailleur signe, pas le nom du « parc » : les détenteurs du lot, comme la quittance (envoyerQuittance) et les
   // relances automatiques (audit final du 27/10, LOY-17). Sans détenteur lisible, le nom de l'espace reste, comme avant.
-  const emetteur = (await nomsDetenteurs(supabase, orgId, bail.lot_id)) || organisation.name;
+  const emetteur = (bail.lot_id && (await nomsDetenteursParLot(supabase, orgId, [bail.lot_id])).get(bail.lot_id)) || organisation.name;
   // Même règle que les relances du bail : les colocataires encore engagés reçoivent aussi le courrier.
   const { data: parties, error: erreurParties } = await supabase.from("bail_personnes").select("person_id,date_solidarite_fin")
     .eq("organization_id",orgId).eq("bail_id",ligne.bail_id).eq("role","colocataire");

@@ -48,6 +48,7 @@ import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache } from "@/lib/tache";
 import { adresseDuSite } from "@/lib/site";
 import { timingSafeEqual } from "node:crypto";
+import { nomsDetenteursParLot } from "@/lib/detenteurs";
 
 type Ligne = {
   bail_id: string;
@@ -137,6 +138,20 @@ export async function traiterRelances(request: Request) {
   } catch {
     // Lecture impossible : la relance part avec le mot « gestionnaire », elle ne se bloque pas pour un mot.
   }
+  // Et elle est signée du bailleur (les détenteurs du lot), comme la quittance et la relance du tableau de bord ; à défaut,
+  // du nom de l'espace (relecture du 28/10).
+  const signataires = new Map<string, string>();
+  const bauxDirects = [...new Set(lignes.filter((l) => proprietairesDirects.has(l.organization_id)).map((l) => l.bail_id))];
+  if (bauxDirects.length > 0) {
+    try {
+      const { data: baux } = await supabase.from("baux").select("id, lot_id").in("id", bauxDirects);
+      const lotDuBail = new Map(((baux ?? []) as { id: string; lot_id: string | null }[]).map((b) => [b.id, b.lot_id]));
+      const noms = await nomsDetenteursParLot(supabase, null, [...lotDuBail.values()].filter((l): l is string => Boolean(l)));
+      for (const [bail, lot] of lotDuBail) if (lot && noms.get(lot)) signataires.set(bail, noms.get(lot)!);
+    } catch {
+      // Lecture impossible : signature au nom de l'espace.
+    }
+  }
 
   let envoyees = 0;
   const echecs: EchecConsigne[] = [];
@@ -148,7 +163,7 @@ export async function traiterRelances(request: Request) {
         niveau: l.niveau,
         prenom,
         proprietaireDirect,
-        emetteur: l.emetteur,
+        emetteur: signataires.get(l.bail_id) ?? l.emetteur,
         lot: l.lot,
         periode: l.periode,
         dateEcheance: l.date_echeance,
@@ -210,7 +225,7 @@ export async function traiterRelances(request: Request) {
           cleIdempotence: cle(caution, "caution"),
           subject: sujetInformationCaution({ lot: l.lot }),
           html: corpsInformationCaution({
-            emetteur: l.emetteur,
+            emetteur: signataires.get(l.bail_id) ?? l.emetteur,
             proprietaireDirect,
             locataire: l.locataire ?? null,
             lot: l.lot,

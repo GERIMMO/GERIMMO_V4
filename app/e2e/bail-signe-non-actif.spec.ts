@@ -15,8 +15,8 @@ for (const persona of ["proprietaire", "superadmin"]) {
       const url = new URL(cible!);
       if (!["localhost", "127.0.0.1"].includes(url.hostname) || !/^gerimmo_ci_[a-z_]+_api$/.test(url.pathname.slice(1))) throw new Error("Base fictive locale requise");
       const db = new Client({ connectionString: cible }); await db.connect();
-      const lot = randomUUID(), bail = randomUUID(), original = randomUUID(), signe = randomUUID(), circuit = randomUUID(), dpe = randomUUID(), sansDate = randomUUID();
-      const docs = [original, signe, dpe, sansDate];
+      const lot = randomUUID(), bail = randomUUID(), original = randomUUID(), signe = randomUUID(), circuit = randomUUID(), dpe = randomUUID(), sansDate = randomUUID(), classee = randomUUID();
+      const docs = [original, signe, dpe, sansDate, classee];
       const edl = randomUUID();
       const suivi = randomUUID(), alerteSignature = randomUUID(), alerteCritique = randomUUID();
       try {
@@ -31,7 +31,10 @@ for (const persona of ["proprietaire", "superadmin"]) {
           [original, "Bail nu (généré, à faire signer) — à signer en ligne", "bail", null],
           [signe, "Bail nu (généré, à faire signer) — à signer en ligne — signé", "bail", null],
           [dpe, "Diagnostic expiré — essai", "diagnostic", "2020-01-01"],
-          [sansDate, "Pièce à vérifier — essai", "autre", null],
+          // Audit final DOC-22 (relecture validée, fix-documents_incidents/relecture.json) : une pièce qui se contrôle
+          // (justificatif) sans échéance reste « À vérifier » ; une pièce « autre » est « Classé ».
+          [sansDate, "Pièce à vérifier — essai", "justificatif", null],
+          [classee, "Pièce classée — essai", "autre", null],
         ]) {
           await db.query("insert into public.documents(id,organization_id,type,titre,storage_path,mime_type,expire_le,taille_octets,empreinte) values($1::uuid,$2,$3,$4,$5,'application/pdf',$6,123,repeat(replace($1::uuid::text,'-',''),2))", [id, ORG, type, titre, `${ORG}/essai/${id}.pdf`, expiration]);
           await db.query("insert into public.document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'bail',$3)", [ORG, id, bail]);
@@ -125,6 +128,9 @@ for (const persona of ["proprietaire", "superadmin"]) {
         await expect(archive).not.toContainText("à faire signer");
         await expect(page.getByRole("link").filter({ hasText: "Diagnostic expiré — essai" }).first()).toContainText("Expiré");
         await expect(page.getByRole("link").filter({ hasText: "Pièce à vérifier — essai" }).first()).toContainText("À vérifier");
+        const classeeLien = page.getByRole("link").filter({ hasText: "Pièce classée — essai" }).first();
+        await expect(classeeLien).toContainText(/Classé$/);
+        await expect(classeeLien).not.toContainText("À vérifier");
         expect(await debordementHorizontal(page)).toBe(0);
         if (persona === "superadmin") {
           await page.goto(`/espace/${ORG}/parc/${source.bien_id}`);

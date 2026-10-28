@@ -254,9 +254,11 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     attendues,
     { data: comparatif, error: erreurComparatif },
     [
-      { data: echeancier, error: erreurEcheancier },
+      { data: echeancierBrut, error: erreurEcheancier },
       { data: encaissements, error: erreurEncaissements },
       { data: quittances, error: erreurQuittances },
+      // Les termes au prorata : etat_loyers_bail ne les distingue pas, le bouton « Prorata (PDF) » en dépend (audit final, LOY-16).
+      { data: proratas },
       { data: revisions, error: erreurRevisions },
       { data: relances, error: erreurRelances },
       { data: regularisations, error: erreurRegul },
@@ -288,6 +290,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .from("quittances")
           .select("id, appel_id, montant, date_emission, email_envoye_at, est_quittance")
           .eq("bail_id", bailId),
+        supabase.from("appels_loyer").select("id, prorata").eq("bail_id", bailId).eq("prorata", true),
         supabase
           .from("revisions_loyer")
           .select("id, date_effet, date_echeance, date_demande, irl_trimestre, ancien_loyer, nouveau_loyer, irl_reference, irl_nouveau")
@@ -309,7 +312,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .eq("bail_id", bailId)
           .order("date_encaissement"),
       ])
-      : Promise.resolve([vide, vide, vide, vide, vide, vide, vide]),
+      : Promise.resolve([vide, vide, vide, vide, vide, vide, vide, vide]),
     restitutionActif
       ? supabase
           .from("restitutions")
@@ -323,6 +326,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       ? supabase.rpc("montants_restitution_a_jour", { p_bail: bailId })
       : Promise.resolve({ data: null, error: null }),
   ]);
+  // L'échéancier porte son drapeau de prorata : la ligne du premier (ou dernier) terme propose le décompte.
+  const appelsProrata = new Set(((proratas ?? []) as { id: string }[]).map((a) => a.id));
+  const echeancier = (echeancierBrut ?? []).map((l: LigneEcheance) => ({ ...l, prorata: appelsProrata.has(l.appel_id) }));
   const ecarts = ((comparatif ?? []) as {
     piece: string | null;
     libelle: string;

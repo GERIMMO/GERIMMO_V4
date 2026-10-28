@@ -69,19 +69,28 @@ describe("LOY-03 : les pièces qui attendent l'exercice d'un lot se comptent à 
   });
 });
 
+const JOUR = "2026-10-28";
 describe("LOY-07 : « Reste dû » ne compte que les échéances atteintes, le terme à échoir se dit à part", () => {
+  it("l'exigibilité suit la date d'échéance, pas le statut : un acompte sur un terme à échoir (« partiel ») reste à échoir", () => {
+    const t = totauxEcheances([
+      { montant_du: 700, montant_couvert: 200, statut: "partiel", date_echeance: "2026-11-05" },
+      { montant_du: 700, montant_couvert: 200, statut: "partiel", date_echeance: "2026-10-01" },
+      { montant_du: 700, montant_couvert: 0, statut: "attendu", date_echeance: JOUR },
+    ], JOUR);
+    expect(t).toEqual({ demande: 2100, regle: 400, resteDu: 500, aEchoir: 1200 });
+  });
   it("un terme « attendu » sort du reste dû", () => {
     const t = totauxEcheances([
       { montant_du: 1000, montant_couvert: 0, statut: "impaye" }, { montant_du: 900, montant_couvert: 0, statut: "impaye" },
       { montant_du: "710.00", montant_couvert: "0.00", statut: "attendu" }, { montant_du: 500, montant_couvert: 500, statut: "paye" },
       { montant_du: 500, montant_couvert: 0, statut: "impaye" },
-    ]);
+    ], JOUR);
     expect(t).toEqual({ demande: 3610, regle: 500, resteDu: 2400, aEchoir: 710 });
   });
   it("au centime, et un trop-perçu ne compte pas deux fois", () => {
-    expect(totauxEcheances([{ montant_du: "0.10", montant_couvert: "0.30", statut: "paye" }, { montant_du: "0.20", montant_couvert: 0, statut: "attendu" }]))
+    expect(totauxEcheances([{ montant_du: "0.10", montant_couvert: "0.30", statut: "paye" }, { montant_du: "0.20", montant_couvert: 0, statut: "attendu" }], JOUR))
       .toEqual({ demande: 0.3, regle: 0.1, resteDu: 0, aEchoir: 0.2 });
-    expect(totauxEcheances([])).toEqual({ demande: 0, regle: 0, resteDu: 0, aEchoir: 0 });
+    expect(totauxEcheances([], JOUR)).toEqual({ demande: 0, regle: 0, resteDu: 0, aEchoir: 0 });
   });
 });
 

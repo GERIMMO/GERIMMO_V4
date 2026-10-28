@@ -34,7 +34,7 @@ export const metadata = metadonneesPubliques({
 // 23/10/2026). Aucun juriste n'a relu ce texte.
 
 export default async function PageConditionsArtisans() {
-  const { editeur: EDITEUR, indisponible } = await lireEditeur();
+  const { editeur: EDITEUR, indisponible } = await lireEditeur({ pagePublique: true });
   // La même liste figée que l'annexe 1 des conditions clients : lue depuis les constantes, jamais depuis la base.
   const prestataires = sousTraitantsClient();
   return (

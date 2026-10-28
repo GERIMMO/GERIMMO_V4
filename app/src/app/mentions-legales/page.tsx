@@ -17,7 +17,7 @@ export const metadata = metadonneesPubliques({
 // Les autres prestataires et les traitements sont détaillés dans la confidentialité.
 // Référence : Service Public, F37351, vérifiée le 13/10/2026.
 export default async function PageMentionsLegales() {
-  const { editeur: EDITEUR, indisponible } = await lireEditeur();
+  const { editeur: EDITEUR, indisponible } = await lireEditeur({ pagePublique: true });
   const hebergeurs = prestatairesAvecFaits(EDITEUR).filter((p) => p.cle === "vercel" || p.cle === "supabase");
   const individuel = estEntrepreneurIndividuel(EDITEUR);
   return (

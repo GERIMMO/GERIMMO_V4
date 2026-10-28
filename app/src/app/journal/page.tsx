@@ -28,16 +28,19 @@ function jour(d: string | null) {
 export const revalidate = 3600;
 
 export default async function PageJournal() {
-  // Lecture publique sans cookie (audit final, PUB-05) : la page reste statique.
+  // Lecture publique sans cookie (audit final, PUB-05) : la page reste statique. Une lecture en échec LÈVE : « Le
+  // premier article arrive » ne doit pas être mis en cache une heure (relecture adverse du 28/10) — Next garde la
+  // dernière version réussie, et un build sans base échoue.
   const supabase = createClientPublic();
-  const { data } = supabase
+  const { data, error } = supabase
     ? await supabase
       .from("publications")
       .select("id, titre, slug, chapo, publie_le, facebook_image_url")
       .eq("statut", "publiee")
       .order("publie_le", { ascending: false })
       .limit(50)
-    : { data: null };
+    : { data: null, error: null };
+  if (error) throw new Error(`Articles du journal illisibles : la page n'est pas mise en cache (${error.message}).`);
 
   const articles = data ?? [];
 

@@ -1,3 +1,4 @@
+import {revalidatePath} from "next/cache";
 import {LIMITE_ARTICLES,sujetDansPerimetre} from "@/lib/cadre-editorial";
 import { verifierAvantEffet, ArretSupervision } from "@/lib/controle-effets";
 import {clientDeService} from '@/lib/supabase/service';
@@ -56,6 +57,12 @@ export async function appelAutorise(request:Request,db:Db){
 }
 
 // ── Diffusion ──────────────────────────────────────────────────────────────
+/** L'accueil et le journal sont relus toutes les heures (ISR, audit final PUB-05) : un article paru les invalide tout de
+ * suite. Hors d'une requête Next (tests, script), il n'y a rien à invalider. */
+function revaliderPagesPubliques(){
+ try{revalidatePath('/');revalidatePath('/journal');}catch{/* hors requête Next */}
+}
+
 export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boolean}={}){
  const {data:ids,error}=await db.rpc('publications_marketing_echues');
  if(error)return {erreur:'Les posts à diffuser ne peuvent pas être lus.',diffuses:[] as string[],attentes:[] as string[],erreurs:[] as string[]};
@@ -75,6 +82,7 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   const parution=await db.rpc('publier_article_automatique',{p_id:a.id,p_manuel:options.manuel===true});
   if(parution.error){erreurs.push(`${a.id} : ${parution.error.message}`);continue;}
   if(parution.data!==true){attentes.push(a.id);continue;}
+  revaliderPagesPubliques();
   const campagne=await db.from('marketing_campagnes').upsert({publication_id:a.id,nom:a.titre.slice(0,160),description:a.facebook_texte,canal:'facebook',nature:'organique',objectif:'notoriete',statut:'idee',publication_prevue_le:null,budget_cents:0},{onConflict:'publication_id'});
   if(campagne.error){erreurs.push(`${a.id} : fiche de suivi indisponible, Facebook non tenté.`);continue;}
   const reservation=await db.rpc('reserver_diffusion_facebook',{p_id:a.id,p_automatique:true});

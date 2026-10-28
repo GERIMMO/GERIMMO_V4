@@ -57,13 +57,16 @@ const faq = (duree: string): [string, string][] => [
 
 
 export default async function PageVitrine() {
-  // Lecture publique sans cookie (audit final, PUB-05) : la page reste statique et relue toutes les heures.
+  // Lecture publique sans cookie (audit final, PUB-05) : la page reste statique et relue toutes les heures. Une lecture
+  // en échec LÈVE : un accueil sans journal ne doit pas être mis en cache une heure (relecture adverse du 28/10) — Next
+  // garde la dernière version réussie, et un build sans base échoue.
   const supabase = createClientPublic();
-  const { data: articles } = supabase
+  const { data: articles, error: erreurArticles } = supabase
     ? await supabase.from("publications")
       .select("id, titre, slug, chapo, publie_le, facebook_image_url")
       .eq("statut", "publiee").order("publie_le", { ascending: false }).limit(3)
-    : { data: null };
+    : { data: null, error: null };
+  if (erreurArticles) throw new Error(`Articles du journal illisibles : l'accueil n'est pas mis en cache (${erreurArticles.message}).`);
   const duree = dureeEssai();
   const offre = libelleOffreLancement();
   return (

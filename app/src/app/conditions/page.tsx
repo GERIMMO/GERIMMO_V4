@@ -110,7 +110,7 @@ const CLAUSES: Record<
 };
 
 export default async function PageConditions() {
-  const {editeur:EDITEUR,indisponible}=await lireEditeur();
+  const {editeur:EDITEUR,indisponible}=await lireEditeur({ pagePublique: true });
   // V1 (plan du 23/10, R11) : l'annexe 1 ne cite que les sous-traitants ultérieurs des données du Client, lus depuis
   // les constantes du code et jamais depuis la base : la liste fait partie de la version acceptée.
   const prestataires = sousTraitantsClient();

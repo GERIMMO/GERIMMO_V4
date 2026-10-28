@@ -52,7 +52,7 @@ export default async function PageConfidentialite() {
     return r && r.duree_mois !== r.duree_initiale_mois ? `${r.duree_mois} mois` : reference;
   };
   const conservationModifiee = conservation.indisponible || conservation.regles.some(r => r.duree_mois !== r.duree_initiale_mois);
-  const {editeur:EDITEUR,indisponible}=await lireEditeur();
+  const {editeur:EDITEUR,indisponible}=await lireEditeur({ pagePublique: true });
   // 29/09 : les droits ne s'exercent plus par le formulaire de devis de
   // l'accueil (une demande commerciale) : « Aide et retours » pour qui a un
   // compte, l'adresse de contact de l'éditeur pour tous, dès qu'elle est

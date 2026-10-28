@@ -29,6 +29,9 @@ export const revalidate = 3600;
 export default async function PageVersionsConditions() {
   const db = createClientPublic();
   const versions = db ? await listerVersionsArchivees(db) : null;
+  // Une lecture en échec LÈVE (relecture adverse du 28/10) : la liste « indisponible » ne doit pas être mise en cache
+  // une heure — Next garde la dernière version réussie, et un build sans base échoue.
+  if (db && versions === null) throw new Error("Versions archivées illisibles : la page n'est pas mise en cache.");
   return (
     <CadreLegal chemin="/conditions">
       <div>

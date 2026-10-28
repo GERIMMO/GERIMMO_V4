@@ -39,6 +39,7 @@ import {
 } from "../artisans/referentiel";
 import { EchecLecture } from "../documents/echec-lecture";
 import { VoletArtisan } from "./volet-artisan";
+import { prochaineActionIncident } from "./prochaine-action";
 import {
   FormulaireAttribution,
   FormulaireCloture,
@@ -83,12 +84,15 @@ export async function PaneIncident({
   monCompte,
   estResponsable,
   membres,
+  devisADecider = false,
 }: {
   orgId: string;
   incidentId: string;
   monCompte: string;
   estResponsable: boolean;
   membres: MembreGerant[];
+  /** Un devis déposé et encore valable attend la décision du gérant (même règle que « Devis à décider » de la liste). */
+  devisADecider?: boolean;
 }) {
   const { supabase, role, user, estProprietaire } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
@@ -348,15 +352,7 @@ export async function PaneIncident({
     (estResponsable || !incident.responsable_account_id || incident.responsable_account_id === monCompte);
   const responsableAffiche = incident.responsable_account_id === monCompte ? "vous" : incident.responsable_account_id ? emails.get(incident.responsable_account_id) ?? "un gestionnaire" : "non attribué";
 
-  const prochaineAction = aQualifier && decisionRequise
-    ? { titre: "Indiquer qui prend en charge", texte: "Choisissez qui paie et expliquez votre décision avant de solliciter un artisan.", cible: "qualification", bouton: "Prendre une décision", ton: "attention" }
-    : etatIncident === "qualifie"
-      ? { titre: "Organiser la résolution", texte: "Sollicitez un artisan si nécessaire, ou clôturez le dossier si le problème est réglé.", cible: "intervention", bouton: "Voir les possibilités", ton: "info" }
-      : etatIncident === "termine"
-        ? { titre: "Vérifier et clôturer", texte: "Consultez le compte rendu de l’intervention avant de clôturer le dossier.", cible: "intervention", bouton: "Voir le compte rendu", ton: "attention" }
-        : etatIncident === "clos"
-          ? { titre: "Dossier clos", texte: "Retrouvez les décisions et les échanges dans la chronologie.", cible: "chronologie", bouton: "Voir l’historique", ton: "termine" }
-          : { titre: "Suivre l’intervention", texte: "Consultez l’avancement et les informations transmises par l’artisan.", cible: "intervention", bouton: "Voir le suivi", ton: "info" };
+  const prochaineAction = prochaineActionIncident({ etat: etatIncident, aQualifier, decisionRequise, devisADecider });
 
   const ConteneurChronologie = estProprietaire ? "details" : "div";
   const chronologie = (<ConteneurChronologie id="chronologie" className={estProprietaire ? "incident-historique" : undefined}>

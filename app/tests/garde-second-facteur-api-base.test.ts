@@ -159,6 +159,14 @@ describe.skipIf(!DB_URL)("garde centrale du second facteur devant l'API (PUB-01,
     expect(src.match(/auth\.mfa_factors/g)).toHaveLength(1);
   });
 
+  it("les archives rejouent les politiques de lecture sans la garde de session : un compte à facteur y retrouve ses lignes", async () => {
+    await db.query("insert into public.persons (organization_id, nom, prenom) values ($1, 'TEST', 'Archive')", [org]);
+    for (const compteId of [titulaire, sansFacteur]) {
+      const { rows } = await db.query("select jsonb_array_length(public.lignes_lisibles_par('public.persons'::regclass, $1, $2, $3)) n", ["$T.organization_id = $1", org, compteId]);
+      expect(rows[0].n, compteId === titulaire ? "compte à facteur" : "compte sans facteur").toBe(1);
+    }
+  });
+
   it("demander_export_complet : pour un compte à facteur, le mot de passe récent ne suffit plus ; sans facteur, inchangé", async () => {
     const appel = async (sub: string, aal: string) => {
       await db.query("savepoint essai");

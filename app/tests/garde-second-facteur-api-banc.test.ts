@@ -28,7 +28,7 @@ const CLE_PUBLIQUE = "cle-locale";
 const MOT_DE_PASSE = "Gerimmo-Demo-2026";
 
 type Reponse = { status: number; data: unknown; error: { code?: string; message?: string } | null };
-type Appel = { nom: string; faire: (c: SupabaseClient) => Promise<Reponse>; ecriture?: boolean };
+type Appel = { nom: string; faire: (c: SupabaseClient) => PromiseLike<Reponse>; ecriture?: boolean };
 
 const nouveauClient = () => createClient(api, CLE_PUBLIQUE, { auth: { persistSession: false, autoRefreshToken: false } });
 async function connecter(email: string) {
@@ -38,7 +38,8 @@ async function connecter(email: string) {
   return { client: c, jeton: data.session.access_token };
 }
 const aal = (jeton: string) => JSON.parse(Buffer.from(jeton.split(".")[1], "base64url").toString()).aal;
-const resume = (r: Reponse) => ({ status: r.status, code: r.error?.code ?? null, data: r.error ? null : r.data });
+const resume = (r: Reponse) => ({ status: r.status, code: r.error?.code ?? null, message: r.error?.message ?? null, data: r.error ? null : r.data });
+const GARDE = /^Second facteur requis/;
 async function graphql(jeton: string) {
   const r = await fetch(`${api}/graphql/v1`, {
     method: "POST",
@@ -96,7 +97,8 @@ describe.skipIf(!local)("garde centrale du second facteur, par l'API du banc (PU
       expect((await sans.client.auth.getUser()).data.user?.factors?.filter((f) => f.status === "verified") ?? [], "le compte n'a pas encore de facteur").toEqual([]);
       const reference = await Promise.all(appels.map(async (a) => resume(await a.faire(sans.client))));
       for (const [i, a] of appels.entries()) {
-        if (a.ecriture) expect(reference[i].status, `${a.nom} sans facteur`).not.toBe(403);
+        // L'écriture répond par la voix de la fonction (appel introuvable, espace d'un autre) : la garde l'a laissée passer.
+        if (a.ecriture) expect(reference[i].message ?? "", `${a.nom} sans facteur`).not.toMatch(GARDE);
         else expect(reference[i], `${a.nom} sans facteur`).toMatchObject({ status: 200, code: null });
       }
       // (2) Le titulaire active son facteur : session aal2, mêmes réponses.

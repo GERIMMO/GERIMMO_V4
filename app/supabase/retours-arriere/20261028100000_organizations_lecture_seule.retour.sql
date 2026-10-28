@@ -6,8 +6,9 @@
 -- déclencheur abonnement_organizations. Aucune donnée n'est touchée ; les lignes « abonnement_statut_retenu » du
 -- journal sont conservées. RÉINTRODUIT : PUB-01 côté données (un mot de passe seul lit tout par l'API pour un compte
 -- à second facteur), DRT-V01 et la levée d'une suspension par Stripe. La garde centrale de l'API (pgrst.db_pre_request,
--- exiger_second_facteur) est retirée en premier ; fermer_fonctions_a_anon et demander_export_complet retrouvent leur
--- texte d'avant (la preuve récente redevient « second facteur ou mot de passe de moins de quinze minutes »).
+-- exiger_second_facteur) est retirée en premier ; fermer_fonctions_a_anon, demander_export_complet et
+-- lignes_lisibles_par retrouvent leur texte d'avant (la preuve récente redevient « second facteur ou mot de passe de
+-- moins de quinze minutes »).
 begin;
 set local lock_timeout = '10s';
 -- D'abord la garde centrale de l'API : PostgREST cesse d'appeler exiger_second_facteur (relue au « reload config »,
@@ -157,7 +158,8 @@ begin
   return v_org;
 end;
 $function$;
--- fermer_fonctions_a_anon et demander_export_complet retrouvent leur texte d'avant (20260911290000, 20261024130000).
+-- fermer_fonctions_a_anon, demander_export_complet et lignes_lisibles_par retrouvent leur texte d'avant (20260911290000,
+-- 20261024130000).
 create or replace function public.fermer_fonctions_a_anon()
 returns integer
 language plpgsql
@@ -260,6 +262,62 @@ begin
 end $$;
 revoke all on function public.demander_export_complet(uuid) from public, anon;
 grant execute on function public.demander_export_complet(uuid) to authenticated;
+create or replace function public.lignes_lisibles_par(p_table regclass, p_filtre text, p_valeur uuid, p_compte uuid)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = ''
+as $$
+declare
+  v_claims text := current_setting('request.jwt.claims', true);
+  v_sub text := current_setting('request.jwt.claim.sub', true);
+  v_role text := current_setting('request.jwt.claim.role', true);
+  v_cols text;
+  v_permissives text;
+  v_restrictives text;
+  v_rls boolean;
+  v_nom text;
+  v_res jsonb;
+begin
+  if p_table is null or p_compte is null or p_filtre is null then return '[]'::jsonb; end if;
+  if not pg_catalog.has_table_privilege('authenticated', p_table, 'SELECT') then return '[]'::jsonb; end if;
+  select pg_catalog.quote_ident(c.relname) into v_nom from pg_catalog.pg_class c where c.oid = p_table;
+  select string_agg(format('%s.%I', v_nom, a.attname), ', ' order by a.attnum) into v_cols
+    from pg_catalog.pg_attribute a
+   where a.attrelid = p_table and a.attnum > 0 and not a.attisdropped
+     and pg_catalog.has_column_privilege('authenticated', p_table, a.attnum, 'SELECT');
+  if v_cols is null then return '[]'::jsonb; end if;
+  select c.relrowsecurity into v_rls from pg_catalog.pg_class c where c.oid = p_table;
+  if v_rls then
+    select string_agg('(' || coalesce(pg_catalog.pg_get_expr(p.polqual, p.polrelid), 'true') || ')', ' or ')
+             filter (where p.polpermissive),
+           string_agg('(' || coalesce(pg_catalog.pg_get_expr(p.polqual, p.polrelid), 'true') || ')', ' and ')
+             filter (where not p.polpermissive)
+      into v_permissives, v_restrictives
+      from pg_catalog.pg_policy p
+     where p.polrelid = p_table and p.polcmd in ('r', '*')
+       and (0::oid = any(p.polroles) or 'authenticated'::regrole::oid = any(p.polroles));
+    if v_permissives is null then return '[]'::jsonb; end if;
+  end if;
+  perform pg_catalog.set_config('request.jwt.claims',
+    jsonb_build_object('sub', p_compte, 'role', 'authenticated', 'aal', 'aal1')::text, true);
+  if v_sub is not null then perform pg_catalog.set_config('request.jwt.claim.sub', p_compte::text, true); end if;
+  if v_role is not null then perform pg_catalog.set_config('request.jwt.claim.role', 'authenticated', true); end if;
+  execute format('select coalesce(jsonb_agg(to_jsonb(x) order by to_jsonb(x)::text), ''[]''::jsonb) from (select %s from %s where (%s) and (%s) and (%s)) x',
+                 v_cols, p_table, replace(p_filtre, '$T', v_nom), coalesce(v_permissives, 'true'), coalesce(v_restrictives, 'true'))
+    into v_res using p_valeur;
+  perform pg_catalog.set_config('request.jwt.claims', coalesce(v_claims, ''), true);
+  if v_sub is not null then perform pg_catalog.set_config('request.jwt.claim.sub', v_sub, true); end if;
+  if v_role is not null then perform pg_catalog.set_config('request.jwt.claim.role', v_role, true); end if;
+  return v_res;
+exception when others then
+  perform pg_catalog.set_config('request.jwt.claims', coalesce(v_claims, ''), true);
+  if v_sub is not null then perform pg_catalog.set_config('request.jwt.claim.sub', v_sub, true); end if;
+  if v_role is not null then perform pg_catalog.set_config('request.jwt.claim.role', v_role, true); end if;
+  raise;
+end $$;
+revoke all on function public.lignes_lisibles_par(regclass, text, uuid, uuid) from public, anon, authenticated, service_role;
 drop function if exists public.exiger_second_facteur();
 drop function if exists public.poser_gardes_second_facteur();
 drop function if exists public.uid_second_facteur();

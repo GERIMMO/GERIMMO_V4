@@ -224,6 +224,7 @@ describe.skipIf(!DB_URL)("fiche de l'organisation en lecture seule (base)", () =
     expect((await db.query(preRequete)).rows[0].n).toBe(0);
     expect((await db.query("select prosrc from pg_proc where proname = 'fermer_fonctions_a_anon'")).rows[0].prosrc).toContain("array[]::text[]");
     expect((await db.query("select prosrc from pg_proc where proname = 'demander_export_complet'")).rows[0].prosrc).not.toContain("niveau_assurance_suffisant");
+    expect((await db.query("select prosrc from pg_proc where proname = 'lignes_lisibles_par'")).rows[0].prosrc).not.toContain("archive_compte");
     expect((await db.query("select count(*)::int n from pg_policy where polname = 'second_facteur'")).rows[0].n).toBe(0);
     expect((await db.query("select count(*)::int n from pg_proc where prosrc like '%uid_second_facteur()%'")).rows[0].n).toBe(0);
     // abonnement_appliquer a retrouvé son texte d'avant (sans la garde de la supervision).

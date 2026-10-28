@@ -124,25 +124,30 @@ export function libelle(table: Record<string, string>, cle: string | null | unde
 // manqué, et le module 11 le compte contre lui.
 const FUSEAU = "Europe/Paris";
 
+// « 1er janvier », pas « 1 janvier » (audit final, DOC-17) : `toLocaleDateString` ne produit pas l'ordinal.
+function avecPremier(date: string): string {
+  return date.replace(/(^|\s)1(?=\s)/, "$11er");
+}
+
 export function jourCourt(iso: string | null | undefined): string {
   if (!iso) return "Rendez-vous à fixer";
-  return new Date(iso).toLocaleDateString("fr-FR", {
+  return avecPremier(new Date(iso).toLocaleDateString("fr-FR", {
     weekday: "short",
     day: "numeric",
     month: "short",
     timeZone: FUSEAU,
-  });
+  }));
 }
 
 export function jourLong(iso: string | null | undefined): string {
   if (!iso) return "Rendez-vous à fixer";
-  return new Date(iso).toLocaleDateString("fr-FR", {
+  return avecPremier(new Date(iso).toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
     timeZone: FUSEAU,
-  });
+  }));
 }
 
 export function heure(iso: string | null | undefined): string {
@@ -161,12 +166,12 @@ export function creneauTexte(debut: string | null, fin: string | null): string {
 
 export function dateSimple(iso: string | null | undefined): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("fr-FR", {
+  return avecPremier(new Date(iso).toLocaleDateString("fr-FR", {
     day: "numeric",
     month: "long",
     year: "numeric",
     timeZone: FUSEAU,
-  });
+  }));
 }
 
 /**

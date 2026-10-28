@@ -110,3 +110,31 @@ test("locataire : la tâche de l'accueil dit le total dû sur deux échéances, 
   await expect(page.getByText("Disponible dès qu’octobre 2026 et 1 autre mois seront soldés.")).toBeVisible();
   await expect(page.getByText("Loyer dû le 1er du mois")).toBeVisible();
 });
+
+// Relecture du chantier (LOY-08) : sur la liste « Alertes » de l'agence, la conséquence « Dépassée de N j — elle remonte au
+// responsable… » d'un rang critique passait elle aussi en rouge vif sur fond rouge pâle (4,1:1). Une alerte critique
+// fictive, échue depuis quarante jours, est posée le temps du test.
+for (const largeur of [390, 1440]) test(`agence : rang critique de la liste des alertes lisible (AA) à ${largeur}px`, async ({ page }, info) => {
+  const url = process.env.SUPALOCAL_DB;
+  test.skip(!url || !/^postgres(?:ql)?:\/\/[^@]*@(?:localhost|127\.0\.0\.1):\d+\/gerimmo_ci_[a-z_]+_api$/.test(url), "Base API locale fictive requise");
+  const db = new Client({ connectionString: url }); await db.connect();
+  const id = randomUUID();
+  try {
+    await db.query(`insert into public.alerts(id,organization_id,type,titre,criticite,assigned_all,echeance)
+      values($1,$2,'manuelle','TEST Écrans — alerte critique échue','critique',true,public.aujourdhui_paris()-40)`, [id, ORG_ALPHA]);
+    await page.setViewportSize({ width: largeur, height: largeur < 500 ? 844 : 900 });
+    await page.addInitScript(() => { try { sessionStorage.setItem("gerimmo-synthese-alertes-vue", "1"); } catch {} });
+    await connecter(page, "admin.alpha@example.com"); await page.waitForURL(/\/agence\//);
+    await page.goto(`/agence/${ORG_ALPHA}/alertes`);
+    const rang = page.locator(".rang-alerte.critique").filter({ hasText: "TEST Écrans — alerte critique échue" });
+    await expect(rang).toBeVisible();
+    await expect(rang.locator(".consequence-alerte")).toContainText("Dépassée de 40 j");
+    const violations = (await new AxeBuilder({ page }).withTags(TAGS).analyze()).violations.filter(v => v.id === "color-contrast");
+    expect(violations).toEqual([]);
+    expect(await debordementHorizontal(page)).toBe(0);
+    await page.screenshot({ path: info.outputPath(`agence-alertes-critique-${largeur}.png`) });
+  } finally {
+    await db.query("delete from public.alerts where id=$1", [id]);
+    await db.end();
+  }
+});

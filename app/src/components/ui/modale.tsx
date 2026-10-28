@@ -146,9 +146,10 @@ export function Modale({
                 </p>
               )}
               {/* Un h2 : la fenêtre s'ouvre sous le h1 de n'importe quel écran, et un h3 y sautait un niveau (axe heading-order,
-                  audit final du 27/10, LOY-08). Même rendu qu'avant : `text-base` reprend la taille du h3 de la charte, et la
-                  règle des fenêtres de prestige.css (h2 et h3 en 24 px) l'emporte toujours là où elle s'applique. */}
-              <h2 className="mt-0.5 text-base text-[var(--encre)]">{titre}</h2>
+                  audit final du 27/10, LOY-08). Même dessin qu'avant : `text-base` reprend la taille du h3 de la charte (la règle
+                  des fenêtres de prestige.css, h2 et h3 en 24 px, l'emporte là où elle s'applique), et l'interligne et
+                  l'interlettrage de l'ancien h3 sont imposés, car prestige.css donne au h2 un interligne de 1,2 et -0,025em. */}
+              <h2 className="mt-0.5 text-base !leading-[1.6] !tracking-[-0.015em] text-[var(--encre)]">{titre}</h2>
             </div>
           )}
           {/* Fermeture au doigt : Escape n'existe pas sur mobile et le tap

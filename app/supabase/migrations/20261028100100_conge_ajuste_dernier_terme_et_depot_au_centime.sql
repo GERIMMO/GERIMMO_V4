@@ -15,7 +15,10 @@
 --    quittance de cet appel a déjà été ENVOYÉE au locataire (`quittances.email_envoye_at`), rien n'est modifié : une
 --    alerte « terme_a_regulariser » le dit au gérant (le document délivré ne se réécrit pas dans son dos). Un appel
 --    POSTÉRIEUR au mois de sortie (congé saisi très tard) n'est jamais supprimé ni modifié : même alerte.
---    Le mois d'entrée et les autres mois ne sont jamais touchés (un loyer révisé depuis ne réécrit pas l'histoire).
+--    Le mois d'entrée et les autres mois ne sont jamais touchés, et la BASE du recalcul est le loyer en vigueur pendant la
+--    période (relecture du 28/10 : un loyer révisé depuis ne réécrit pas l'histoire). Un document déjà envoyé d'un autre
+--    terme n'est pas réécrit par la resynchronisation ; un avis d'échéance déjà envoyé recalculé est signalé ; les
+--    alertes devenues sans objet (congé annulé) se ferment.
 --    La clôture anticipée (`terminer_bail`, décision D34) laisse volontairement les montants : inchangée.
 --
 -- 2. Le dépôt de garantie s'exprime au centime (COD-03).
@@ -39,10 +42,13 @@
 -- Retour arrière : supabase/retours-arriere/20261028100100_conge_ajuste_dernier_terme_et_depot_au_centime.retour.sql
 
 -- ---------------------------------------------------------------------------------------------------------------
--- 1. Les montants d'un terme, tels que la génération les calcule (20261014120000) : bornes du mois, un seul arrondi
---    à la fin sur chaque composante. `montant_du` = loyer + charges (le total EST la somme des lignes affichées).
+-- 1. Les montants d'un terme, tels que la génération les calcule (20261014120000) : bornes du bail dans le mois, un seul
+--    arrondi à la fin sur chaque composante, `montant_du` = loyer + charges. La BASE (loyer et charges mensuels) est
+--    passée par l'appelant : celle EN VIGUEUR pendant la période, jamais le loyer révisé depuis (relecture du 28/10).
 -- ---------------------------------------------------------------------------------------------------------------
-create or replace function public.montants_appel_loyer(p_bail uuid, p_mois date)
+-- Une première version (bancs d'essai seulement) prenait la base dans le bail : retirée.
+drop function if exists public.montants_appel_loyer(uuid, date);
+create or replace function public.montants_appel_loyer(p_bail uuid, p_mois date, p_loyer numeric, p_charges numeric)
 returns table(loyer_hc numeric, charges numeric, montant_du numeric, prorata boolean)
 language plpgsql
 stable
@@ -59,7 +65,7 @@ declare
   v_loyer numeric;
   v_charges numeric;
 begin
-  select b.date_debut, b.date_fin, b.loyer_hc, b.charges into v from public.baux b where b.id = p_bail;
+  select b.date_debut, b.date_fin into v from public.baux b where b.id = p_bail;
   if v.date_debut is null then raise exception 'Le bail n''a pas de date de début'; end if;
   v_jours_mois := extract(day from (v_mois + interval '1 month' - interval '1 day'))::int;
   v_premier := case
@@ -71,23 +77,53 @@ begin
     else v_jours_mois end;
   v_jours_dus := greatest(0, v_dernier - v_premier + 1);
   if v_jours_dus = v_jours_mois then
-    v_loyer := round(coalesce(v.loyer_hc, 0), 2);
-    v_charges := round(coalesce(v.charges, 0), 2);
+    v_loyer := round(coalesce(p_loyer, 0), 2);
+    v_charges := round(coalesce(p_charges, 0), 2);
   else
-    v_loyer := round(coalesce(v.loyer_hc, 0) * v_jours_dus / v_jours_mois, 2);
-    v_charges := round(coalesce(v.charges, 0) * v_jours_dus / v_jours_mois, 2);
+    v_loyer := round(coalesce(p_loyer, 0) * v_jours_dus / v_jours_mois, 2);
+    v_charges := round(coalesce(p_charges, 0) * v_jours_dus / v_jours_mois, 2);
   end if;
   return query select v_loyer, v_charges, v_loyer + v_charges, v_jours_dus < v_jours_mois;
 end;
 $$;
-comment on function public.montants_appel_loyer(uuid, date) is
-  'Loyer, charges, total et prorata d''un terme selon les bornes du bail dans le mois : la règle de generer_appels_loyer_interne (un seul arrondi par composante).';
-revoke execute on function public.montants_appel_loyer(uuid, date) from public, anon, authenticated;
+comment on function public.montants_appel_loyer(uuid, date, numeric, numeric) is
+  'Loyer, charges, total et prorata d''un terme selon les bornes du bail dans le mois, sur la base mensuelle donnée : la règle de generer_appels_loyer_interne (un seul arrondi par composante).';
+revoke execute on function public.montants_appel_loyer(uuid, date, numeric, numeric) from public, anon, authenticated;
+
+-- Pose ou met à jour l'alerte d'un terme (une alerte ouverte par type et par appel : un congé repassé la met à jour au
+-- lieu de la doubler). Ancrée sur le bail : « Traiter » mène aux loyers du bail.
+create or replace function public.poser_alerte_terme(p_org uuid, p_bail uuid, p_type text, p_criticite public.alerte_criticite,
+  p_titre text, p_echeance date, p_details jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update public.alerts
+     set titre = p_titre, criticite = p_criticite, details = details || p_details, echeance = p_echeance, updated_at = now()
+   where organization_id = p_org and statut = 'ouverte' and type = p_type
+     and details ->> 'appel_id' = p_details ->> 'appel_id';
+  if not found then
+    insert into public.alerts (organization_id, type, criticite, titre, echeance, details, origine_type, origine_id)
+    values (p_org, p_type, p_criticite, p_titre, p_echeance, p_details, 'bail', p_bail);
+  end if;
+end;
+$$;
+revoke execute on function public.poser_alerte_terme(uuid, uuid, text, public.alerte_criticite, text, date, jsonb) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- 2. Après un congé enregistré ou annulé : l'appel du mois de fin (nouveau et ancien) suit la date de fin du bail.
---    Rend le nombre d'appels recalculés. Une quittance déjà envoyée fige l'appel : alerte au gérant, jamais une
---    réécriture silencieuse. Un appel postérieur au mois de sortie reste tel quel : alerte aussi.
+--    Rend le nombre d'appels recalculés.
+--    · Base du recalcul : le loyer EN VIGUEUR pendant la période. Un appel au mois plein garde ses propres loyer et
+--      charges (ils ont été appelés au loyer de l'époque) ; un appel au prorata repart de l'ancien loyer de la première
+--      révision qui prend effet après la fin du mois, à défaut du loyer du bail.
+--    · Une quittance ou un reçu déjà ENVOYÉ fige l'appel : alerte « terme_a_regulariser », jamais une réécriture
+--      silencieuse. Un terme appelé après la fin du bail reste tel quel : même alerte.
+--    · La resynchronisation des quittances ne réécrit pas le document déjà envoyé d'un AUTRE terme (l'imputation est
+--      globale) : il est laissé tel quel et le gérant est alerté.
+--    · Un avis d'échéance déjà envoyé dont le montant change : alerte d'information (« avis_echeance_recalcule »).
+--    · Les alertes « terme_a_regulariser » du bail qui n'ont plus d'objet (congé annulé ou modifié) se ferment.
 -- ---------------------------------------------------------------------------------------------------------------
 create or replace function public.ajuster_appel_fin_de_bail(p_bail uuid, p_ancienne_fin date default null)
 returns integer
@@ -99,14 +135,21 @@ declare
   v record;
   r record;
   m record;
+  e record;
+  q record;
   v_mois date[];
   v_fin_mois date;
   v_recalcules integer := 0;
+  v_fondees uuid[] := '{}';
+  v_resynchro boolean := false;
+  v_envoyes jsonb;
+  v_base_loyer numeric;
+  v_base_charges numeric;
   v_qui text;
   v_titre text;
-  v_details jsonb;
 begin
-  select b.id, b.organization_id, b.lot_id, b.date_debut, b.date_fin, b.locataire_principal, l.nom as lot_nom
+  select b.id, b.organization_id, b.lot_id, b.date_debut, b.date_fin, b.loyer_hc, b.charges, b.locataire_principal,
+         l.nom as lot_nom
     into v
   from public.baux b
   left join public.lots l on l.id = b.lot_id
@@ -114,7 +157,7 @@ begin
   if v.id is null or v.date_debut is null then return 0; end if;
 
   -- Les mois concernés : celui de la date de fin actuelle (congé enregistré) et celui de l'ancienne (congé annulé,
-  -- ou préavis modifié). Jamais le mois d'entrée seul : son prorata d'entrée n'a pas changé.
+  -- ou préavis modifié).
   v_mois := array_remove(array[
     case when v.date_fin is not null then date_trunc('month', v.date_fin)::date end,
     case when p_ancienne_fin is not null then date_trunc('month', p_ancienne_fin)::date end
@@ -123,8 +166,12 @@ begin
 
   select p.nom || coalesce(' ' || p.prenom, '') into v_qui from public.persons p where p.id = v.locataire_principal;
 
+  -- Les documents déjà envoyés du bail, avant toute écriture : ils ne se réécrivent pas.
+  select coalesce(jsonb_agg(to_jsonb(x)), '[]'::jsonb) into v_envoyes
+  from public.quittances x where x.bail_id = p_bail and x.email_envoye_at is not null;
+
   for r in
-    select a.id, a.periode, a.loyer_hc, a.charges, a.montant_du, a.prorata
+    select a.id, a.periode, a.loyer_hc, a.charges, a.montant_du, a.prorata, a.email_envoye_at
     from public.appels_loyer a
     where a.bail_id = p_bail
       and (a.periode = any (v_mois) or (v_fin_mois is not null and a.periode > v_fin_mois))
@@ -132,50 +179,103 @@ begin
   loop
     if v_fin_mois is not null and r.periode > v_fin_mois then
       -- Terme appelé pour un mois qui suit la fin du bail (congé saisi très tard) : il ne se supprime pas d'ici.
-      v_titre := format('Terme de %s appelé après la fin du bail — %s%s : %s € à régulariser',
-        to_char(r.periode, 'MM/YYYY'), coalesce(v_qui, 'locataire'), coalesce(' (' || v.lot_nom || ')', ''),
-        replace(to_char(r.montant_du, 'FM999999990.00'), '.', ','));
-      v_details := jsonb_build_object('bail_id', p_bail, 'lot_id', v.lot_id, 'appel_id', r.id, 'periode', r.periode,
-                                      'montant_appele', r.montant_du, 'montant_du', 0, 'date_fin', v.date_fin,
-                                      'motif', 'appel_apres_fin');
-    else
-      select * into m from public.montants_appel_loyer(p_bail, r.periode);
-      if r.loyer_hc = m.loyer_hc and r.charges = m.charges and r.montant_du = m.montant_du
-         and coalesce(r.prorata, false) = m.prorata then
-        continue;
-      end if;
-      if not exists (select 1 from public.quittances q where q.appel_id = r.id and q.email_envoye_at is not null) then
-        update public.appels_loyer
-           set loyer_hc = m.loyer_hc, charges = m.charges, montant_du = m.montant_du, prorata = m.prorata
-         where id = r.id;
-        v_recalcules := v_recalcules + 1;
-        continue;
-      end if;
-      -- La quittance ou le reçu de ce terme est déjà parti : le document délivré ne se réécrit pas, le gérant tranche.
-      v_titre := format('Terme de %s à régulariser — %s%s : appelé %s €, dû %s € (quittance déjà envoyée)',
-        to_char(r.periode, 'MM/YYYY'), coalesce(v_qui, 'locataire'), coalesce(' (' || v.lot_nom || ')', ''),
-        replace(to_char(r.montant_du, 'FM999999990.00'), '.', ','),
-        replace(to_char(m.montant_du, 'FM999999990.00'), '.', ','));
-      v_details := jsonb_build_object('bail_id', p_bail, 'lot_id', v.lot_id, 'appel_id', r.id, 'periode', r.periode,
-                                      'montant_appele', r.montant_du, 'montant_du', m.montant_du, 'date_fin', v.date_fin,
-                                      'motif', 'quittance_envoyee');
+      perform public.poser_alerte_terme(v.organization_id, p_bail, 'terme_a_regulariser', 'normale',
+        format('Terme de %s appelé après la fin du bail — %s%s : %s € à régulariser',
+          to_char(r.periode, 'MM/YYYY'), coalesce(v_qui, 'locataire'), coalesce(' (' || v.lot_nom || ')', ''),
+          replace(to_char(r.montant_du, 'FM999999990.00'), '.', ',')),
+        v.date_fin,
+        jsonb_build_object('bail_id', p_bail, 'lot_id', v.lot_id, 'appel_id', r.id, 'periode', r.periode,
+                           'montant_appele', r.montant_du, 'montant_du', 0, 'date_fin', v.date_fin, 'motif', 'appel_apres_fin'));
+      v_fondees := v_fondees || r.id;
+      continue;
     end if;
-    -- Une alerte ouverte par terme : le même congé repassé (préavis modifié) la met à jour au lieu de la doubler.
-    update public.alerts
-       set titre = v_titre, details = details || v_details, echeance = v.date_fin, updated_at = now()
-     where organization_id = v.organization_id and statut = 'ouverte' and type = 'terme_a_regulariser'
-       and details ->> 'appel_id' = r.id::text;
-    if not found then
-      -- Ancrée sur le bail (alerte_origine ne connaît pas ce type ; le déclencheur respecte une origine déjà posée) :
-      -- « Traiter » mène aux loyers du bail et une clôture par l'origine la retrouve.
-      insert into public.alerts (organization_id, type, criticite, titre, echeance, details, origine_type, origine_id)
-      values (v.organization_id, 'terme_a_regulariser', 'normale', v_titre, v.date_fin, v_details, 'bail', p_bail);
+
+    -- La base en vigueur pendant la période (relecture du 28/10 : jamais le loyer révisé depuis).
+    if not coalesce(r.prorata, false) then
+      v_base_loyer := r.loyer_hc;
+      v_base_charges := r.charges;
+    else
+      select rv.ancien_loyer into v_base_loyer
+        from public.revisions_loyer rv
+       where rv.bail_id = p_bail
+         and rv.date_effet > (r.periode + interval '1 month' - interval '1 day')::date
+       order by rv.date_effet asc limit 1;
+      v_base_loyer := coalesce(v_base_loyer, v.loyer_hc);
+      v_base_charges := v.charges;
+    end if;
+    select * into m from public.montants_appel_loyer(p_bail, r.periode, v_base_loyer, v_base_charges);
+    if r.loyer_hc = m.loyer_hc and r.charges = m.charges and r.montant_du = m.montant_du
+       and coalesce(r.prorata, false) = m.prorata then
+      continue;
+    end if;
+
+    if exists (select 1 from public.quittances x where x.appel_id = r.id and x.email_envoye_at is not null) then
+      -- La quittance ou le reçu de ce terme est déjà parti : le document délivré ne se réécrit pas, le gérant tranche.
+      perform public.poser_alerte_terme(v.organization_id, p_bail, 'terme_a_regulariser', 'normale',
+        format('Terme de %s à régulariser — %s%s : appelé %s €, dû %s € (quittance déjà envoyée)',
+          to_char(r.periode, 'MM/YYYY'), coalesce(v_qui, 'locataire'), coalesce(' (' || v.lot_nom || ')', ''),
+          replace(to_char(r.montant_du, 'FM999999990.00'), '.', ','),
+          replace(to_char(m.montant_du, 'FM999999990.00'), '.', ',')),
+        v.date_fin,
+        jsonb_build_object('bail_id', p_bail, 'lot_id', v.lot_id, 'appel_id', r.id, 'periode', r.periode,
+                           'montant_appele', r.montant_du, 'montant_du', m.montant_du, 'date_fin', v.date_fin,
+                           'motif', 'quittance_envoyee'));
+      v_fondees := v_fondees || r.id;
+      continue;
+    end if;
+
+    update public.appels_loyer
+       set loyer_hc = m.loyer_hc, charges = m.charges, montant_du = m.montant_du, prorata = m.prorata
+     where id = r.id;
+    v_recalcules := v_recalcules + 1;
+
+    if r.email_envoye_at is not null then
+      -- L'avis d'échéance de ce terme est déjà parti avec l'ancien montant : le gérant prévient le locataire.
+      perform public.poser_alerte_terme(v.organization_id, p_bail, 'avis_echeance_recalcule', 'informative',
+        format('Avis d''échéance de %s déjà envoyé — %s%s : le terme passe de %s € à %s €, prévenez le locataire',
+          to_char(r.periode, 'MM/YYYY'), coalesce(v_qui, 'locataire'), coalesce(' (' || v.lot_nom || ')', ''),
+          replace(to_char(r.montant_du, 'FM999999990.00'), '.', ','),
+          replace(to_char(m.montant_du, 'FM999999990.00'), '.', ',')),
+        null,
+        jsonb_build_object('bail_id', p_bail, 'lot_id', v.lot_id, 'appel_id', r.id, 'periode', r.periode,
+                           'ancien_montant', r.montant_du, 'nouveau_montant', m.montant_du));
     end if;
   end loop;
 
   if v_recalcules > 0 then
     -- Quittance ou reçu suivent le nouveau montant (une quittance de 500 € sur un appel de 403,22 € ne se laisse pas).
     perform public.resynchroniser_quittances(p_bail);
+    v_resynchro := true;
+    -- Un document déjà ENVOYÉ d'un autre terme, que l'imputation globale aurait réécrit ou retiré, est remis tel qu'il
+    -- a été délivré ; le gérant est alerté (il régularise : avoir, nouveau document).
+    for e in select * from jsonb_populate_recordset(null::public.quittances, v_envoyes) loop
+      select x.est_quittance, x.montant into q from public.quittances x where x.id = e.id;
+      if found and q.est_quittance is not distinct from e.est_quittance and q.montant = e.montant then
+        continue;
+      end if;
+      if found then
+        update public.quittances
+           set est_quittance = e.est_quittance, montant = e.montant, date_emission = e.date_emission,
+               email_envoye_at = e.email_envoye_at
+         where id = e.id;
+      else
+        insert into public.quittances (id, organization_id, bail_id, appel_id, est_quittance, montant, date_emission,
+                                       created_at, email_envoye_at)
+        values (e.id, e.organization_id, e.bail_id, e.appel_id, e.est_quittance, e.montant, e.date_emission,
+                e.created_at, e.email_envoye_at);
+      end if;
+      select a.periode into r from public.appels_loyer a where a.id = e.appel_id;
+      perform public.poser_alerte_terme(v.organization_id, p_bail, 'terme_a_regulariser', 'normale',
+        format('%s de %s déjà envoyé%s à revoir — %s%s : après le congé, l''imputation des règlements ne la couvre plus (%s €)',
+          case when e.est_quittance then 'Quittance' else 'Reçu' end, to_char(r.periode, 'MM/YYYY'),
+          case when e.est_quittance then 'e' else '' end,
+          coalesce(v_qui, 'locataire'), coalesce(' (' || v.lot_nom || ')', ''),
+          replace(to_char(coalesce(q.montant, 0), 'FM999999990.00'), '.', ',')),
+        v.date_fin,
+        jsonb_build_object('bail_id', p_bail, 'lot_id', v.lot_id, 'appel_id', e.appel_id, 'periode', r.periode,
+                           'montant_envoye', e.montant, 'montant_impute', coalesce(q.montant, 0), 'motif', 'document_envoye'));
+      v_fondees := v_fondees || e.appel_id;
+    end loop;
     -- L'alerte d'impayé déjà ouverte suit le nouveau dû ; la nuit reste seule à en poser une nouvelle (27/10, LAT-01).
     if exists (select 1 from public.alerts a
                 where a.organization_id = v.organization_id and a.type = 'loyer_impaye' and a.statut = 'ouverte'
@@ -183,11 +283,21 @@ begin
       perform public.suivre_impayes_bail(p_bail);
     end if;
   end if;
+
+  -- Les alertes de régularisation de ce bail qui n'ont plus d'objet (congé annulé ou modifié) se ferment d'elles-mêmes,
+  -- sans auteur. Celles d'un document déjà envoyé ne se jugent qu'après une resynchronisation.
+  update public.alerts a
+     set statut = 'fermee', closed_at = now(), closed_by = null,
+         closed_action = 'Congé annulé ou modifié : plus rien à régulariser', updated_at = now()
+   where a.organization_id = v.organization_id and a.type = 'terme_a_regulariser' and a.statut = 'ouverte'
+     and a.origine_type = 'bail' and a.origine_id = p_bail
+     and not ((a.details ->> 'appel_id')::uuid = any (v_fondees))
+     and (v_resynchro or coalesce(a.details ->> 'motif', '') <> 'document_envoye');
   return v_recalcules;
 end;
 $$;
 comment on function public.ajuster_appel_fin_de_bail(uuid, date) is
-  'Après un congé enregistré ou annulé : recalcule l''appel du mois de fin (nouveau et ancien) avec la règle de la génération, resynchronise les quittances ; alerte terme_a_regulariser si une quittance est déjà envoyée ou si un terme suit la fin du bail.';
+  'Après un congé enregistré ou annulé : recalcule l''appel du mois de fin (nouveau et ancien) au loyer en vigueur pendant la période, resynchronise les quittances sans réécrire un document déjà envoyé ; alertes terme_a_regulariser (fermées quand elles n''ont plus d''objet) et avis_echeance_recalcule.';
 revoke execute on function public.ajuster_appel_fin_de_bail(uuid, date) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------------------------------------------
@@ -444,11 +554,14 @@ begin
   loop
     if not exists (select 1 from pg_constraint
                    where conrelid = ('public.' || c.tbl)::regclass and conname = c.nom) then
-      execute format('alter table public.%I add constraint %I check (%I = round(%I, 2)) not valid', c.tbl, c.nom, c.col, c.col);
+      -- Une contre-écriture recopie le montant qu'elle annule : une écriture héritée à millièmes doit rester annulable.
+      execute format('alter table public.%I add constraint %I check (%s%I = round(%I, 2)) not valid', c.tbl, c.nom,
+        case when c.tbl = 'ecritures' then 'contre_ecriture_de is not null or ' else '' end, c.col, c.col);
     end if;
     if exists (select 1 from pg_constraint
                where conrelid = ('public.' || c.tbl)::regclass and conname = c.nom and not convalidated) then
-      execute format('select count(*) from public.%I where %I <> round(%I, 2)', c.tbl, c.col, c.col) into v_hors;
+      execute format('select count(*) from public.%I where %s%I <> round(%I, 2)', c.tbl,
+        case when c.tbl = 'ecritures' then 'contre_ecriture_de is null and ' else '' end, c.col, c.col) into v_hors;
       if v_hors = 0 then
         execute format('alter table public.%I validate constraint %I', c.tbl, c.nom);
       else
@@ -466,7 +579,7 @@ comment on constraint retenues_montant_retenu_centime_check on public.retenues i
 comment on constraint appel_charges_postes_montant_centime_check on public.appel_charges_postes is
   'Un poste de charges s''exprime au centime près (audit final du 27/10, COD-03).';
 comment on constraint ecritures_montant_centime_check on public.ecritures is
-  'Une écriture du journal s''exprime au centime près (audit final du 27/10, COD-03) : tous ses écrivains arrondissent déjà.';
+  'Une écriture du journal s''exprime au centime près (audit final du 27/10, COD-03) : tous ses écrivains arrondissent déjà. Une contre-écriture, qui recopie le montant annulé, en est exemptée.';
 
 -- Filet commun : aucune fonction de `public` ne reste ouverte à anon.
 select public.fermer_fonctions_a_anon();

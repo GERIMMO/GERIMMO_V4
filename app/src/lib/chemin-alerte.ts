@@ -68,6 +68,8 @@ const ANCRES_BAIL = new Map<string, string>([
   // montant_appele, montant_du} quand le dernier terme ne peut pas être recalculé (quittance déjà envoyée, terme après la
   // fin du bail) : le gérant régularise depuis les loyers du bail.
   ["terme_a_regulariser", "#loyers"],
+  // Relecture du 28/10 : l'avis d'échéance déjà envoyé d'un terme recalculé par un congé (même charge utile).
+  ["avis_echeance_recalcule", "#loyers"],
 ]);
 
 /**
@@ -137,6 +139,7 @@ const LIBELLES = new Map<string, string>([
   ["zone_tendue_a_verifier", "Vérifier la zone tendue du bail"],
   ["regularisation_non_appelee", "Ouvrir les loyers et régularisations du bail"],
   ["terme_a_regulariser", "Régulariser le dernier terme du bail"],
+  ["avis_echeance_recalcule", "Prévenir le locataire du nouveau montant"],
   ["message_locataire", "Lire et répondre au message"],
   ["piece_deposee", "Contrôler la pièce déposée"],
   ["restitution_echeance", "Ouvrir la restitution"],

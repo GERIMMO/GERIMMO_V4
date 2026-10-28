@@ -52,8 +52,16 @@ d'échéance, quittance, décompte de prorata.
 - Si une **quittance ou un reçu de ce terme a déjà été envoyé** au locataire, l'appel n'est pas modifié : une alerte « Terme à
   régulariser » est posée au gérant, qui décide. Même alerte pour un terme appelé **après** la fin du bail (congé saisi très
   tard) : il n'est jamais supprimé ni modifié automatiquement.
-- Le mois d'entrée et les mois pleins antérieurs ne sont **jamais** recalculés (un loyer révisé depuis ne réécrit pas
-  l'histoire). La clôture anticipée du bail (`terminer_bail`, décision D34) laisse les montants tels quels.
+- Le mois d'entrée et les mois pleins antérieurs ne sont **jamais** recalculés. La clôture anticipée du bail
+  (`terminer_bail`, décision D34) laisse les montants tels quels.
+- **Base du recalcul : le loyer en vigueur pendant la période**, jamais le loyer révisé depuis (relecture du 28/10). Un
+  appel au mois plein garde ses propres loyer et charges ; un appel au prorata repart de l'ancien loyer de la première
+  révision IRL qui prend effet après la fin du mois, à défaut du loyer du bail. Exemple : révision 450 → 482,14 € le 20/10,
+  congé tardif avec fin le 25/09 → septembre = 375,00 + 41,67 = **416,67 €** (et non 443,45 €).
+- Une quittance ou un reçu **déjà envoyé d'un autre terme** n'est pas réécrit par la nouvelle imputation des règlements :
+  il reste tel qu'il a été délivré, et une alerte invite le gérant à le revoir.
+- Un **avis d'échéance déjà envoyé** dont le montant change : alerte d'information « prévenez le locataire ».
+- Les alertes « Terme à régulariser » qui n'ont plus d'objet (congé annulé ou modifié) **se ferment d'elles-mêmes**.
 
 ## Conséquences si non respectée
 - Un centime d'écart entre le contrat signé et le premier avis d'échéance ou la quittance : contestation possible du

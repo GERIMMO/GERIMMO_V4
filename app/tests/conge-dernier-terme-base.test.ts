@@ -72,8 +72,8 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
   }
   async function alertes() {
     await db.query("reset role");
-    const { rows } = await db.query<{ statut: string; titre: string; origine_type: string; origine_id: string; motif: string; appel_id: string }>(
-      `select statut::text, titre, origine_type, origine_id, details->>'motif' motif, details->>'appel_id' appel_id from public.alerts
+    const { rows } = await db.query<{ statut: string; titre: string; origine_type: string; origine_id: string; motif: string; appel_id: string; closed_action: string | null }>(
+      `select statut::text, titre, origine_type, origine_id, details->>'motif' motif, details->>'appel_id' appel_id, closed_action from public.alerts
         where organization_id=$1 and type='terme_a_regulariser' order by created_at`, [org]);
     await agir(compte);
     return rows;
@@ -102,9 +102,9 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     const bien = (await db.query("insert into biens(organization_id,nom,type,address_line1,postal_code,city,zone_tendue) values($1,'TEST Bien','appartement','1 rue fictive','75001','Paris',true) returning id", [org])).rows[0].id;
     lot = (await db.query("insert into lots(organization_id,bien_id,nom,etat) values($1,$2,'TEST Appartement','loue') returning id", [org, bien])).rows[0].id;
     const personne = (await db.query("insert into persons(organization_id,nom,prenom) values($1,'TEST Locataire','Awa') returning id", [org])).rows[0].id;
-    // Entré le 1er, quatre mois plus tôt : loyer 450 + 50 de charges, dépôt 450.
-    bail = (await db.query(`insert into baux(organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,depot_garantie,jour_echeance,zone_tendue)
-      values($1,$2,$3,'nu','actif',($4::date - interval '4 months')::date,450,50,450,1,true) returning id`, [org, lot, personne, mois])).rows[0].id;
+    // Entré le 1er, treize mois plus tôt (une révision IRL est donc possible) : loyer 450 + 50 de charges, dépôt 450.
+    bail = (await db.query(`insert into baux(organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,depot_garantie,jour_echeance,zone_tendue,revision_irl,irl_valeur,irl_trimestre)
+      values($1,$2,$3,'nu','actif',($4::date - interval '13 months')::date,450,50,450,1,true,true,140,'T2 2025') returning id`, [org, lot, personne, mois])).rows[0].id;
     await db.query("select public.generer_appels_loyer_interne($1)", [bail]);
     // Tout est payé, mois courant compris : quittances émises.
     await db.query(`insert into encaissements(organization_id,bail_id,montant,date_paiement,mode)
@@ -140,11 +140,13 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     expect(alerte).toMatchObject({ statut: "ouverte", origine_type: "bail", origine_id: bail, motif: "quittance_envoyee" });
     expect(alerte.titre).toContain("appelé 500,00 €");
     expect(alerte.titre).toContain(`dû ${(await attendu25()).total.replace(".", ",")} €`);
-    // Rétractation puis nouveau congé : la même alerte, mise à jour, jamais une seconde.
+    // Rétractation : l'appel de 500 € redevient exact, l'alerte n'a plus d'objet et se ferme d'elle-même (relecture du 28/10).
     await db.query("select public.annuler_conge($1,'TEST rétractation')", [bail]);
     expect(await appel(mois)).toMatchObject({ montant_du: "500.00", prorata: false });
+    expect(await alertes()).toMatchObject([{ statut: "fermee", closed_action: "Congé annulé ou modifié : plus rien à régulariser" }]);
+    // Nouveau congé : une seule alerte ouverte, que le même congé repassé met à jour au lieu de la doubler.
     await conge();
-    expect(await alertes()).toHaveLength(1);
+    expect((await alertes()).filter((a) => a.statut === "ouverte")).toHaveLength(1);
   });
 
   it("congé puis annulation : l'appel né au prorata redevient un mois plein, le reçu redevient un reçu partiel", async () => {
@@ -183,6 +185,85 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     const [alerte] = await alertes();
     expect(alerte).toMatchObject({ statut: "ouverte", origine_id: bail, motif: "appel_apres_fin" });
     expect(alerte.titre).toContain("appelé après la fin du bail");
+    // Le locataire reste finalement : le mois de sortie redevient plein, le terme suivant redevient dû, l'alerte se ferme.
+    await db.query("select public.annuler_conge($1,'TEST rétractation')", [bail]);
+    expect(await appel(precedent)).toMatchObject({ montant_du: "500.00", prorata: false });
+    expect(await alertes()).toMatchObject([{ statut: "fermee", closed_action: "Congé annulé ou modifié : plus rien à régulariser" }]);
+  });
+
+  it("révision IRL appliquée après le mois de sortie, puis congé tardif : le prorata part du loyer de l'époque, pas du loyer révisé", async () => {
+    // Relecture du 28/10 (scénario A2) : 450 → 482,14 € ce mois-ci ; fin le 25 du mois précédent.
+    await db.query("select public.reviser_loyer($1,150,'T2 2026',$2::date)", [bail, jour]);
+    expect((await db.query("select loyer_hc::text l from public.baux where id=$1", [bail])).rows[0].l).toBe("482.14");
+    const precedent = (await db.query("select ($1::date - interval '1 month')::date::text m", [mois])).rows[0].m;
+    await db.query("select public.enregistrer_conge($1,'locataire',($2::date - interval '2 months' + interval '24 days')::date,1::smallint)", [bail, mois]);
+    const j = (await db.query("select extract(day from ($1::date + interval '1 month - 1 day'))::int j", [precedent])).rows[0].j;
+    const attendu = (await db.query("select round(450.0*25/$1::int,2)::text l, round(50.0*25/$1::int,2)::text c, (round(450.0*25/$1::int,2)+round(50.0*25/$1::int,2))::text t", [j])).rows[0];
+    expect(await appel(precedent)).toEqual({ loyer_hc: attendu.l, charges: attendu.c, montant_du: attendu.t, prorata: true });
+  });
+
+  it("fin au dernier jour du mois après une révision : le mois plein appelé à l'ancien loyer n'est pas réécrit", async () => {
+    // Relecture du 28/10 (scénario A) : la base d'un mois plein est son propre loyer, jamais celui du bail révisé.
+    await db.query("select public.reviser_loyer($1,150,'T2 2026',$2::date)", [bail, jour]);
+    const precedent = (await db.query("select ($1::date - interval '1 month')::date::text m", [mois])).rows[0].m;
+    await db.query("reset role");
+    await db.query("update public.baux set etat='preavis', date_fin=($1::date - 1) where id=$2", [mois, bail]);
+    expect((await db.query("select public.ajuster_appel_fin_de_bail($1) n", [bail])).rows[0].n).toBe(0);
+    await agir(compte);
+    expect(await appel(precedent)).toEqual({ loyer_hc: "450.00", charges: "50.00", montant_du: "500.00", prorata: false });
+    expect(await quittance(precedent)).toEqual([{ est_quittance: true, montant: "500.00", email_envoye_at: null }]);
+  });
+
+  it("avis d'échéance déjà envoyé : l'appel est recalculé et le gérant est invité à prévenir le locataire", async () => {
+    await db.query("reset role");
+    await db.query("update public.appels_loyer set email_envoye_at=now() where bail_id=$1 and periode=$2", [bail, mois]);
+    await agir(compte);
+    await conge();
+    expect(await appel(mois)).toMatchObject({ montant_du: (await attendu25()).total, prorata: true });
+    await db.query("reset role");
+    const { rows } = await db.query("select criticite::text, titre, origine_id from public.alerts where organization_id=$1 and type='avis_echeance_recalcule'", [org]);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ criticite: "informative", origine_id: bail });
+    expect(rows[0].titre).toContain(`passe de 500,00 € à ${(await attendu25()).total.replace(".", ",")} €`);
+  });
+
+  it("le document déjà envoyé d'un AUTRE terme n'est pas réécrit par l'imputation : il reste tel quel et le gérant est alerté", async () => {
+    // Le mois précédent est né au prorata (fin le 25), réglé et quittancé ; le mois courant, réglé 500 €, a sa quittance envoyée.
+    const precedent = (await db.query("select ($1::date - interval '1 month')::date::text m", [mois])).rows[0].m;
+    await db.query("select public.enregistrer_conge($1,'locataire',($2::date - interval '2 months' + interval '24 days')::date,1::smallint)", [bail, mois]);
+    await db.query("reset role");
+    // Le mois précédent a été réglé de son seul prorata ; le terme courant (appelé après la fin) a été réglé 500 € et sa
+    // quittance est partie avant la rétractation.
+    await db.query("select public.supprimer_encaissement(e.id,'TEST règlement du prorata') from public.encaissements e where e.bail_id=$1 and e.date_paiement>=$2::date and e.date_paiement<$3::date", [bail, precedent, mois]);
+    await db.query(`insert into encaissements(organization_id,bail_id,montant,date_paiement,mode)
+      select $1,$2,a.montant_du,a.date_echeance,'virement' from public.appels_loyer a where a.bail_id=$2 and a.periode=$3::date`, [org, bail, precedent]);
+    await db.query("select * from public.resynchroniser_quittances($1)", [bail]);
+    await db.query("update public.quittances q set email_envoye_at=now() from public.appels_loyer a where a.id=q.appel_id and a.bail_id=$1 and a.periode=$2", [bail, mois]);
+    await agir(compte);
+    const avant = await quittance(mois);
+    expect(avant).toMatchObject([{ est_quittance: true, montant: "500.00" }]);
+    // Rétractation : le mois précédent redevient plein (500), l'imputation ne couvre plus tout le mois courant.
+    await db.query("select public.annuler_conge($1,'TEST rétractation')", [bail]);
+    expect(await appel(precedent)).toMatchObject({ montant_du: "500.00", prorata: false });
+    expect(await quittance(mois)).toEqual(avant);
+    const alertesOuvertes = (await alertes()).filter((a) => a.statut === "ouverte");
+    expect(alertesOuvertes).toHaveLength(1);
+    expect(alertesOuvertes[0]).toMatchObject({ motif: "document_envoye" });
+    expect(alertesOuvertes[0].titre).toContain("Quittance de");
+    expect(alertesOuvertes[0].titre).toContain("déjà envoyée à revoir");
+  });
+
+  it("COD-03 : une écriture héritée à millièmes reste annulable (la contre-écriture recopie son montant)", async () => {
+    await db.query("reset role");
+    await db.query("alter table public.encaissements drop constraint encaissements_montant_centime_check");
+    await db.query("alter table public.ecritures drop constraint ecritures_montant_centime_check");
+    const id = (await db.query("insert into public.encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,100.005,$3,'virement') returning id", [org, bail, jour])).rows[0].id;
+    await db.query(readFileSync(`supabase/migrations/${NOM}.sql`, "utf8"));
+    expect((await db.query("select convalidated v from pg_constraint where conname='ecritures_montant_centime_check'")).rows[0].v).toBe(false);
+    await agir(compte);
+    await db.query("select public.supprimer_encaissement($1,'TEST encaissement erroné')", [id]);
+    await db.query("reset role");
+    expect((await db.query("select count(*)::int n from public.ecritures where contre_ecriture_de is not null and montant=100.005 and organization_id=$1", [org])).rows[0].n).toBe(1);
   });
 
   it("l'alerte d'impayé déjà ouverte suit le nouveau dû du dernier terme", async () => {

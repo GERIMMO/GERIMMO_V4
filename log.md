@@ -7251,3 +7251,8 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
 - Wiki : nouvelle règle [[Prorata du premier et du dernier terme]] (sourcée par la migration `20260803_prorata_au_centime`),
   index mis à jour.
 
+## [2026-10-28] fix | Relecture adverse du chantier « loyers : calculs » — dernier terme au loyer en vigueur, alertes sans objet fermées
+- Le dernier terme recalculé par un congé part du loyer en vigueur pendant la période (jamais d'une révision IRL
+  postérieure) ; les alertes « Terme à régulariser » se ferment quand le congé est annulé ; un document déjà envoyé d'un
+  autre terme n'est plus réécrit ; avis d'échéance recalculé signalé ; contre-écritures exemptées du centime ; relances
+  automatiques d'un propriétaire direct signées du bailleur. Page [[Prorata du premier et du dernier terme]] complétée.

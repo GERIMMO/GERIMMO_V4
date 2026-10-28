@@ -4,7 +4,7 @@
 -- joue À LA MAIN, une fois décidé, avec la procédure de LISEZ-MOI.md. Une seule transaction : la moindre erreur annule tout.
 --
 -- Défait : rend à `enregistrer_conge` son texte de 20260929150000 et à `annuler_conge` celui de 20260803_annuler_conge (sans
--- l'ajustement du dernier terme) ; retire `ajuster_appel_fin_de_bail(uuid, date)` et `montants_appel_loyer(uuid, date)` ;
+-- l'ajustement du dernier terme) ; retire `ajuster_appel_fin_de_bail(uuid, date)`, `montants_appel_loyer(uuid, date, numeric, numeric)` et `poser_alerte_terme(…)` ;
 -- retire la garde du centime d'`encaisser_depot` (remplacement inverse à compte exact de l'ancre, sinon arrêt sans rien
 -- modifier) ; retire les quatre contraintes du centime ; supprime la version.
 -- CONSERVE : les appels de loyer déjà recalculés par un congé (ils sont justes), les quittances resynchronisées et les
@@ -225,7 +225,8 @@ end $function$;
 revoke execute on function public.annuler_conge(uuid, text) from public, anon;
 
 drop function if exists public.ajuster_appel_fin_de_bail(uuid, date);
-drop function if exists public.montants_appel_loyer(uuid, date);
+drop function if exists public.montants_appel_loyer(uuid, date, numeric, numeric);
+drop function if exists public.poser_alerte_terme(uuid, uuid, text, public.alerte_criticite, text, date, jsonb);
 
 do $retour$
 declare v_def text; v_ancre text;

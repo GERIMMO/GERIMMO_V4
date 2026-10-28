@@ -202,6 +202,15 @@ describe.skipIf(!DB_URL)("attestations et photos en double (base)", () => {
     const { rows: [{ doc: meme }] } = await db.query(
       `select public.joindre_photo_incident($1,$2,$3,'image/jpeg',100,$4) as doc`, [org, incident3, `${org}/l2.jpg`, empreinte("d")]);
     expect(meme).toBe(doc);
+    // Une photo d'incident sans auteur connu n'est pas la sienne : refusée (logique à trois valeurs).
+    await enTantQuePostgres();
+    await db.query(
+      `insert into public.documents (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte)
+       values ($1,'photo_incident','Photo sans auteur',$2,'image/jpeg',100,$3)`, [org, `${org}/sans-auteur.jpg`, empreinte("9")]);
+    await objetDepose(`${org}/l3.jpg`, locataire);
+    await agir(locataire);
+    await expect(essai(`select public.joindre_photo_incident($1,$2,$3,'image/jpeg',100,$4)`,
+      [org, incident3, `${org}/l3.jpg`, empreinte("9")])).rejects.toThrow(/déjà été déposée/);
     // Un document d'un autre type, même pour le gérant, n'est jamais réutilisé comme photo.
     await enTantQuePostgres();
     await db.query(

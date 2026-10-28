@@ -88,7 +88,9 @@ begin
   from public.documents d
   where d.organization_id = p_org and d.empreinte = p_empreinte and d.purged_at is null;
   if found then
-    if v_existant_type <> 'photo_incident' or not (v_gerant or v_existant_auteur = (select auth.uid())) then
+    -- coalesce : une photo sans auteur connu (deposited_by nul) n'est jamais celle du locataire.
+    if v_existant_type <> 'photo_incident'
+       or not (v_gerant or coalesce(v_existant_auteur = (select auth.uid()), false)) then
       raise exception 'Cette photo a déjà été déposée';
     end if;
     if exists (select 1 from public.document_liens dl

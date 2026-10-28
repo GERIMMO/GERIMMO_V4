@@ -48,6 +48,14 @@ describe("tacheLoyerEnRetard", () => {
     });
     expect(tache([{ ...septembre, montant_du: "700.10", montant_couvert: "0.20" }, octobre])?.detail).toContain("1 399,90 €");
   });
+  it("au-delà de trois mois, le titre dit depuis quand plutôt que d'énumérer", () => {
+    const mois = ["2026-06-01", "2026-07-01", "2026-08-01", "2026-09-01"].map((periode) => ({ ...octobre, periode }));
+    expect(tache(mois)).toEqual({
+      titre: "Loyers impayés depuis juin 2026",
+      detail: "2 800,00 € restent dus sur 4 échéances, dont 700,00 € de juin 2026, à régler par virement à votre gestionnaire.",
+    });
+    expect(tache(mois.slice(1))?.titre).toBe("Loyers de juillet, août et septembre 2026 à régler");
+  });
   it("rien en retard : aucune tâche ; les mois de deux années se citent en entier", () => {
     expect(tacheLoyerEnRetard([])).toBeNull();
     expect(listerMois(["2026-11-01", "2026-12-01", "2027-01-01"])).toBe("novembre 2026, décembre 2026 et janvier 2027");

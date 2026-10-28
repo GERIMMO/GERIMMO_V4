@@ -44,8 +44,12 @@ export function tacheLoyerEnRetard(retards: EcheanceEnRetard[]): { titre: string
         : `${eur(total)} à régler par virement à votre gestionnaire.`,
     };
   }
+  // Au-delà de trois mois, l'énumération ne tient plus sur une ligne de téléphone : le titre dit depuis quand (relecture du chantier).
+  const titre = lignes.length > 3
+    ? `Loyers impayés depuis ${moisLongLocataire(premiere.periode)}`
+    : `Loyers ${deElide(listerMois(lignes.map((l) => l.periode)))} à régler`;
   return {
-    titre: `Loyers ${deElide(listerMois(lignes.map((l) => l.periode)))} à régler`,
+    titre,
     detail: `${eur(total)} restent dus sur ${lignes.length} échéances, dont ${eur(resteCentimes(premiere) / 100)} ${deElide(moisLongLocataire(premiere.periode))}, à régler par virement à votre gestionnaire.`,
   };
 }

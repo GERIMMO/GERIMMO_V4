@@ -76,9 +76,10 @@ export async function demanderReinitialisation(
     motif: "mot_de_passe_oublie",
     next: "/nouveau-mot-de-passe",
   });
-  // Seule la limite de fréquence se dit : elle vaut pour toute adresse, avec
-  // ou sans compte, et ne révèle donc rien. Le reste : réponse neutre.
-  if (envoi.limite) return { erreur: envoi.erreur };
+  // Seules la limite de fréquence et la panne d'envoi se disent : elles valent
+  // pour toute adresse, avec ou sans compte, et ne révèlent donc rien
+  // (audit final du 27/10, PUB-16). Le reste : réponse neutre.
+  if (envoi.limite || envoi.indisponible) return { erreur: envoi.erreur };
   return { message: MESSAGE_NEUTRE };
 }
 
@@ -332,7 +333,8 @@ async function finirInscription(params: {
   const { email, metadonnees, next, valeurs } = params;
   const resultat = await inscrireEtEnvoyerConfirmation({ email, metadonnees, next });
   if ("erreur" in resultat) {
-    if (resultat.limite) return { erreur: resultat.erreur, valeurs };
+    // La limite et la panne d'envoi valent pour toute adresse (PUB-16) : elles se disent telles quelles.
+    if (resultat.limite || resultat.indisponible) return { erreur: resultat.erreur, valeurs };
     const issue = classerErreurInscription({ code: resultat.code, message: resultat.erreur });
     if (issue.type === "mot_de_passe_faible") return { message: MESSAGE_BOITE_MAIL };
     // « adresse déjà inscrite » est traité par la fabrique elle-même (état

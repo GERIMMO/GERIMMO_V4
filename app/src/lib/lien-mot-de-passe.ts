@@ -100,6 +100,32 @@ export const MESSAGE_TROP_D_INVITATIONS =
 export const LIMITE_INVITATIONS_PAR_ORGANISATION = 30;
 
 const NON_CONFIGURE = "L’envoi des liens de connexion n’est pas configuré. Contactez l’administrateur.";
+
+// L'ENVOI EN PANNE SE DIT, À TOUTES LES ADRESSES PAREIL (audit final du 27/10/2026, PUB-16).
+//
+// Une demande anonyme (mot de passe oublié, inscription) répondait « un e-mail vient d'être envoyé » même quand le
+// service d'envoi n'était pas configuré ou refusait : l'échec ne se lisait que dans les journaux. Le dire seulement
+// quand l'envoi échoue créerait un oracle d'énumération (aucun envoi n'est tenté pour une adresse inconnue). La panne
+// est donc annoncée indépendamment de l'adresse : (a) clé d'envoi absente, ou limite de fréquence illisible : avant
+// toute recherche du compte ; (b) après un échec d'envoi, pendant cinq minutes, à toute demande anonyme de cette
+// instance — la demande qui a échoué garde, elle, la réponse neutre. La panne reste journalisée.
+// L'inscription, elle, crée d'abord le compte (le banc local en dépend) : c'est sa réponse qui est rendue identique —
+// adresse neuve ou déjà inscrite, un envoi en échec répond MESSAGE_ENVOI_INDISPONIBLE.
+export const MESSAGE_ENVOI_INDISPONIBLE =
+  "L’envoi des e-mails est momentanément indisponible : aucun message ne peut partir pour le moment. Réessayez dans quelques minutes.";
+export const DUREE_PANNE_ENVOI_MS = 5 * 60 * 1000;
+let panneEnvoiJusqua = 0;
+function noterPanneEnvoi() {
+  panneEnvoiJusqua = Date.now() + DUREE_PANNE_ENVOI_MS;
+}
+/** La demande anonyme doit-elle annoncer la panne d'envoi ? Même réponse pour toute adresse. */
+function envoiIndisponible(): boolean {
+  return !process.env.RESEND_API_KEY || Date.now() < panneEnvoiJusqua;
+}
+/** Remise à zéro de la fenêtre de panne : tests seulement. */
+export function oublierPanneEnvoi() {
+  panneEnvoiJusqua = 0;
+}
 const INDISPONIBLE = "Le service est momentanément indisponible. Réessayez dans un instant.";
 
 type Courrier = {
@@ -317,7 +343,7 @@ export async function envoyerRappelInvitationLocataire(params: {
 }
 
 type Service = NonNullable<ReturnType<typeof clientDeService>>;
-type Refus = { erreur: string; limite?: true };
+type Refus = { erreur: string; limite?: true; indisponible?: true };
 
 /** La limite des demandes anonymes : 3 par adresse et 20 par IP sur une heure. `null` : la demande passe. */
 async function limiteAnonyme(service: Service, email: string): Promise<Refus | null> {
@@ -325,7 +351,7 @@ async function limiteAnonyme(service: Service, email: string): Promise<Refus | n
     p_email: email,
     p_ip: await ipDeLaRequete(),
   });
-  if (error) return { erreur: INDISPONIBLE };
+  if (error) return { erreur: INDISPONIBLE, indisponible: true };
   if (autorise !== true) return { erreur: MESSAGE_TROP_DE_DEMANDES, limite: true };
   return null;
 }
@@ -377,7 +403,7 @@ export async function envoyerLienMotDePasse(params: {
   motif: MotifLien;
   next?: string;
   organisation?: string;
-}): Promise<{ erreur?: string; limite?: true }> {
+}): Promise<{ erreur?: string; limite?: true; indisponible?: true }> {
   const email = params.email.trim().toLowerCase();
   const anonyme = MOTIFS_ANONYMES.has(params.motif);
   if (!email) return { erreur: "Adresse e-mail manquante." };
@@ -387,6 +413,7 @@ export async function envoyerLienMotDePasse(params: {
   if (!origine || !service) return { erreur: NON_CONFIGURE };
 
   if (anonyme) {
+    if (envoiIndisponible()) return { erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true };
     const refus = await limiteAnonyme(service, email);
     if (refus) return refus;
   } else if (params.organisation) {
@@ -423,7 +450,11 @@ export async function envoyerLienMotDePasse(params: {
     next: params.next ?? "/nouveau-mot-de-passe",
     type: "recovery",
   });
-  if (erreurEnvoi) return anonyme ? {} : { erreur: erreurEnvoi };
+  if (erreurEnvoi) {
+    if (!anonyme) return { erreur: erreurEnvoi };
+    noterPanneEnvoi();
+    return {};
+  }
   return {};
 }
 
@@ -432,7 +463,7 @@ export type ResultatInscription =
   | { etat: "confirmation_envoyee" }
   /** L'adresse a déjà un compte confirmé : son titulaire a reçu un lien de reconnexion. */
   | { etat: "compte_existant" }
-  | { erreur: string; code?: string; limite?: true };
+  | { erreur: string; code?: string; limite?: true; indisponible?: true };
 
 /** L'erreur d'Auth qui dit qu'un compte confirmé porte déjà cette adresse. Exporté pour les tests. */
 export function adresseDejaInscrite(error: { code?: string; message: string }): boolean {
@@ -529,7 +560,11 @@ export async function inscrireEtEnvoyerConfirmation(params: {
     if (jeton) {
       const suite = destinationSure(params.next);
       const next = suite === "/espaces" ? "/nouveau-mot-de-passe" : `/nouveau-mot-de-passe?suite=${encodeURIComponent(suite)}`;
-      await envoyerCourrier({ origine, email, motif: "compte_existant", jeton, next, type: "recovery" });
+      // Même réponse qu'une adresse neuve dont la confirmation n'a pas pu partir (PUB-16) : rien n'est révélé.
+      if (await envoyerCourrier({ origine, email, motif: "compte_existant", jeton, next, type: "recovery" })) {
+        noterPanneEnvoi();
+        return { erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true };
+      }
     }
     return { etat: "compte_existant" };
   };
@@ -598,7 +633,10 @@ export async function inscrireEtEnvoyerConfirmation(params: {
     next: params.next,
     type: typeLien,
   });
-  if (erreurEnvoi) return { erreur: erreurEnvoi };
+  if (erreurEnvoi) {
+    noterPanneEnvoi();
+    return { erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true };
+  }
   return { etat: "confirmation_envoyee" };
 }
 

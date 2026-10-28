@@ -40,6 +40,8 @@ import {
   LIMITE_INVITATIONS_PAR_ORGANISATION,
   MESSAGE_TROP_D_INVITATIONS,
   MESSAGE_TROP_DE_DEMANDES,
+  MESSAGE_ENVOI_INDISPONIBLE,
+  oublierPanneEnvoi,
   premiereConfirmation,
 } from "../src/lib/lien-mot-de-passe";
 import { GET, POST } from "../src/app/auth/confirm/route";
@@ -95,6 +97,10 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.cookies.mockResolvedValue(jarre);
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app");
+  // Audit final du 27/10 (PUB-16) : sans clé d'envoi, une demande anonyme annonce la panne avant tout ; ces tests
+  // supposent l'envoi configuré, et chacun part sans fenêtre de panne ouverte.
+  vi.stubEnv("RESEND_API_KEY", "re_test_fictive");
+  oublierPanneEnvoi();
   mocks.envoyerEmail.mockResolvedValue({ id: "courriel" });
   mocks.headers.mockResolvedValue(new Headers({ "x-forwarded-for": "203.0.113.7, 10.0.0.1" }));
 });
@@ -216,6 +222,32 @@ describe("envoyerLienMotDePasse — limite par organisation (audit 30/09, M4)", 
     const { generateLink } = admin({ erreurRpc: "panne" });
     expect((await envoyerLienMotDePasse({ email: "loc@exemple.fr", motif: "renvoi_supervision", organisation: ORG })).erreur).toBeTruthy();
     expect(generateLink).not.toHaveBeenCalled();
+  });
+});
+
+describe("PUB-16 — la panne d'envoi se dit, à toutes les adresses pareil (audit final du 27/10)", () => {
+  it("sans clé d'envoi : la panne est annoncée avant toute recherche, adresse connue ou non", async () => {
+    vi.stubEnv("RESEND_API_KEY", "");
+    const { generateLink, rpc } = admin();
+    expect(await envoyerLienMotDePasse({ email: "moi@exemple.fr", motif: "mot_de_passe_oublie" })).toEqual({ erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true });
+    expect(generateLink).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+  it("un envoi en échec garde la réponse neutre, puis toute demande anonyme annonce la panne pendant la fenêtre", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    admin();
+    mocks.envoyerEmail.mockResolvedValueOnce({ erreur: "Le service d’e-mail a refusé l’envoi." });
+    expect(await envoyerLienMotDePasse({ email: "connu@exemple.fr", motif: "mot_de_passe_oublie" })).toEqual({});
+    const { generateLink } = admin({ erreurLien: "User with this email not found" });
+    expect(await envoyerLienMotDePasse({ email: "inconnu@exemple.fr", motif: "mot_de_passe_oublie" })).toEqual({ erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true });
+    expect(generateLink).not.toHaveBeenCalled();
+    // Une invitation (geste d'un gérant) n'est pas concernée : elle dit son propre échec, ou part.
+    admin();
+    expect(await envoyerLienMotDePasse({ email: "loc@exemple.fr", motif: "invitation_locataire" })).toEqual({});
+  });
+  it("la limite de fréquence illisible se dit comme une panne", async () => {
+    admin({ erreurRpc: "panne" });
+    expect((await envoyerLienMotDePasse({ email: "moi@exemple.fr", motif: "mot_de_passe_oublie" })).indisponible).toBe(true);
   });
 });
 
@@ -447,10 +479,13 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2 ; 
     expect(generateLink).not.toHaveBeenCalled();
   });
 
+  // PUB-16 : l'échec se dit toujours, mais par une phrase identique pour une adresse neuve et une adresse déjà
+  // inscrite (le détail du prestataire reste au journal) — sinon l'écran dirait laquelle a un compte.
   it("remonte l'échec de l'e-mail : l'inscrit doit savoir qu'il n'a rien reçu", async () => {
     auth();
     mocks.envoyerEmail.mockResolvedValue({ erreur: "Le service d’e-mail a refusé l’envoi." });
-    expect(await inscrire()).toEqual({ erreur: "Le service d’e-mail a refusé l’envoi." });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await inscrire()).toEqual({ erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true });
   });
 
   it("dit que l'envoi n'est pas configuré sans clé de service ou sans adresse du site", async () => {

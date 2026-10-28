@@ -3,8 +3,8 @@ import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { chargerQuittancementDuMois } from "@/lib/quittancement-du-mois";
-import { relancesDuMois, totauxEcheances } from "@/lib/finances";
-import { eur, moisEnFrancais } from "@/lib/ged";
+import { accordMontant, avecEcheances, relancesDuMois, totauxEcheances } from "@/lib/finances";
+import { aujourdhuiParis, eur, moisEnFrancais } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuittancementMois } from "../comptabilite/quittancement-mois";
@@ -38,16 +38,18 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
   const dansPortefeuille = (lotId: string | null | undefined) =>
     !portefeuille || (lotId != null && portefeuille.has(lotId));
-  const { mois, lignes, error } = await chargerQuittancementDuMois(supabase, orgId, dansPortefeuille);
-
-  // Mêmes chiffres que Finances du propriétaire (audit final du 27/10, LOY-07) : un terme pas encore exigible (statut
-  // « attendu », loyer payé à terme échu) se dit « à échoir », hors du reste dû.
-  const { demande: appele, regle: encaisse, resteDu: reste, aEchoir } = totauxEcheances(lignes);
+  const quittancement = await chargerQuittancementDuMois(supabase, orgId, dansPortefeuille);
+  const { mois, error } = quittancement;
+  // L'exigibilité se juge sur la date d'échéance de chaque appel, pas sur son statut (troisième relecture de LOY-07) : un
+  // terme pas encore échu (loyer payé à terme échu, acompte ou APL déjà versés compris) se dit « à échoir ».
+  const lignes = await avecEcheances(supabase, orgId, quittancement.lignes);
+  const jour = aujourdhuiParis();
+  const { demande: appele, regle: encaisse, aEchoir } = totauxEcheances(lignes, jour);
   const impayes = lignes.filter((l) => Number(l.montant_couvert) < Number(l.montant_du));
   const nbRegles = lignes.length - impayes.length;
   // Un terme à échoir n'est pas encore dû : il ne se relance pas, sauf pour la dette antérieure échue qu'il porte. La tuile
   // et la carte « Impayés à relancer » comptent la même liste (relecture de LOY-07).
-  const { aRelancer: relances, detteAnterieure } = relancesDuMois(lignes);
+  const { aRelancer: relances, detteAnterieure, exigible } = relancesDuMois(lignes, jour);
   const aRelancer = relances.length;
   // Un mois sans appel n'est pas un mois réussi : rien n'était dû. Les tuiles
   // restent neutres et la carte des impayés se tait (24/09).
@@ -154,19 +156,19 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
                   : `${nbRegles} sur ${lignes.length} réglé${nbRegles > 1 ? "s" : ""} en entier`}
               </span>
             </div>
-            <div className={`kpi ${reste > 0 || detteAnterieure > 0 ? "rouge" : moisVide ? "" : "vert"}`}>
-              <span className="eyebrow">Reste dû</span>
-              <span className="chiffre montant mt-1 block">{eur(reste)}</span>
+            {/* Le chiffre principal est ce qui est à relancer : termes échus non réglés et dettes des mois précédents
+                (troisième relecture de LOY-07 : « 0,00 € » en rouge avec 400 € dus). Le terme à échoir reste en secondaire. */}
+            <div className={`kpi ${exigible > 0 ? "rouge" : moisVide ? "" : "vert"}`}>
+              <span className="eyebrow">Exigible à relancer</span>
+              <span className="chiffre montant mt-1 block">{eur(exigible)}</span>
               <span className="block text-xs text-muted-foreground">
                 {moisVide
                   ? "rien n’était dû"
-                    : aRelancer > 0
+                  : aRelancer > 0
                     ? `${aRelancer} locataire${aRelancer > 1 ? "s" : ""} à relancer`
-                    : impayes.length === 0
-                      ? "rien à relancer"
-                      : "rien d’exigible à relancer"}
-                {detteAnterieure > 0 && <span className="block">{eur(detteAnterieure)} dus sur des mois précédents</span>}
-                {aEchoir > 0 && <span className="block">{eur(aEchoir)} à échoir, hors du reste dû</span>}
+                    : "rien à relancer"}
+                {detteAnterieure > 0 && <span className="block">dont {eur(detteAnterieure)} des mois précédents</span>}
+                {aEchoir > 0 && <span className="block">{eur(aEchoir)} à échoir, non compris</span>}
               </span>
             </div>
           </section>
@@ -218,18 +220,19 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
             <CardHeader>
               <CardTitle>Impayés à relancer</CardTitle>
               <CardDescription>
-                Chaque terme non couvert, avec son reste. La relance se consigne sur le bail —
-                elle vaut preuve.
+                Ce qui est échu et non réglé, mois précédents compris, locataire par locataire.
+                La relance se consigne sur le bail — elle vaut preuve.
               </CardDescription>
             </CardHeader>
             <CardContent>
               {impayes.length === 0 && relances.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Aucun impayé sur {moisEnFrancais(mois)} : tout est encaissé.
+                  Aucun impayé sur {moisEnFrancais(mois)}&nbsp;: tout est encaissé.
                 </p>
               ) : relances.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Rien d’exigible à relancer sur {moisEnFrancais(mois)} : {aEchoir > 0 ? `${eur(aEchoir)} restent à échoir.` : "les termes ne sont pas encore échus."}
+                  {/* Ici, des termes restent non réglés sans être échus : par construction, aEchoir > 0. */}
+                  Rien d’exigible à relancer sur {moisEnFrancais(mois)}&nbsp;: {eur(aEchoir)} {accordMontant(aEchoir, "reste", "restent")} à échoir.
                 </p>
               ) : (
                 <ul className="divide-y divide-border">

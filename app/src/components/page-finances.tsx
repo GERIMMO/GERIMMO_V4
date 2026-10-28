@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { QuittancementMois, type LigneQuittancement } from "@/app/agence/[orgId]/comptabilite/quittancement-mois";
 import { RecapitulatifFiscal } from "@/components/recapitulatif-fiscal";
-import { lireLivreFinances, resumerLivre, totauxEcheances } from "@/lib/finances";
+import { avecEcheances, lireLivreFinances, resumerLivre, totauxEcheances } from "@/lib/finances";
 import { baseEspace } from "@/lib/racine-espace";
 
 export async function PageFinances({ orgId, recherche }: {
@@ -34,9 +34,10 @@ export async function PageFinances({ orgId, recherche }: {
   const href = (a: number, m = numeroMois, anchor = "") => `${base}/loyers?${new URLSearchParams({ annee: String(a), mois: String(m), ...(bien ? { bien } : {}) })}${anchor}`;
   const perimetre = bien ? new Set((lots ?? []).filter(l => l.bien_id === bien).map(l => l.id)) : null;
   const erreurPerimetre = erreurBiens || erreurLots || (bien && !(biens ?? []).some(b => b.id === bien));
-  const lignes = ((quittancement.data ?? []) as LigneQuittancement[]).filter(l => !perimetre || perimetre.has(l.lot_id));
+  // La date d'échéance de chaque appel décide de ce qui est exigible (troisième relecture de LOY-07).
+  const lignes = await avecEcheances(supabase, orgId, ((quittancement.data ?? []) as LigneQuittancement[]).filter(l => !perimetre || perimetre.has(l.lot_id)));
   // « Reste dû » = échéances atteintes ; un terme pas encore exigible se dit « à échoir » (audit final du 27/10, LOY-07).
-  const echeances = totauxEcheances(lignes);
+  const echeances = totauxEcheances(lignes, actuel);
   const resume = resumerLivre(livre.lignes, annee, perimetre);
   const bouton = buttonVariants({ variant: "outline", size: "sm" });
   return <main className="mx-auto w-full max-w-5xl space-y-4 p-4 sm:p-7">

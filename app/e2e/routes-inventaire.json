@@ -366,6 +366,12 @@
     "dynamic": ""
   },
   {
+    "path": "/artisan/missions",
+    "persona": "artisan",
+    "label": "Missions (renvoi vers l'agenda)",
+    "dynamic": ""
+  },
+  {
     "path": "/artisan/missions/INTERVENTION",
     "persona": "artisan",
     "label": "Fiche mission",

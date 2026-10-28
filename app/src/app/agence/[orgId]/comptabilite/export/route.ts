@@ -325,7 +325,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
 
   const periode =
     du || au
-      ? `Journal de gestion du ${du ? formaterDate(du) : "début"} au ${au ? formaterDate(au) : "ce jour"}`
+      ? `Journal de gestion du ${du ? formaterDate(du) : "début"} ${au ? `au ${formaterDate(au)}` : "à ce jour"}`
       : "Journal de gestion";
   // Les deux liens de l'écran (« Exporter 2026 » et « Tout exporter »)
   // rendaient le MÊME nom de fichier : deux exports de portées différentes se

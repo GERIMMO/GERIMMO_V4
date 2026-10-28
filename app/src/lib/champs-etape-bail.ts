@@ -2,6 +2,7 @@ import { lireMentionsContrat, verifierHonorairesContrat } from "@/lib/mentions-c
 import { moisDepotGarantie } from "@/lib/depot-garantie";
 import { lireMontantFacultatif } from "@/lib/saisie-montant";
 import { eur } from "@/lib/ged";
+import { FORMAT_TRIMESTRE_IRL, trimestreIrlCanonique } from "@/lib/trimestre-irl";
 
 export const ETAPES_BAIL = [
   { id: "bail", titre: "Le bail", detail: "Type de contrat et dates" },
@@ -23,7 +24,7 @@ export type ValeursParcoursBail = Record<string, string | number | boolean | nul
 const nombres = new Set(["loyer_hc", "charges", "depot_garantie", "jour_echeance", "irl_valeur", "dernier_loyer", "honoraires_bailleur", "honoraires_locataire", "honoraires_edl_bailleur", "honoraires_edl_locataire", "dpe_depenses_min", "dpe_depenses_max", "loyer_reference", "loyer_reference_majore", "complement_loyer", "travaux_recents_montant"]);
 const booleens = new Set(["meuble_etudiant", "revision_irl", "precedent_loyer_revise", "encadrement_loyer", "servitude_residence_principale", "clause_resolutoire_assurance", "clause_resolutoire_troubles", "clause_resolutoire_servitude"]);
 const dates = new Set(["date_debut", "date_conclusion_prevue", "dernier_loyer_versement", "dernier_loyer_revision"]);
-const options: Record<string, string[]> = { type:["nu","meuble","colocation","colocation_individuelle"], charges_mode:["provision","forfait"], irl_trimestre:["T1","T2","T3","T4"], fixation_loyer:["libre","plafonnement","reevaluation"], paiement_echeance:["echoir","echu"], precedente_location:["premiere","ancienne","recente"], zone_honoraires:["tres_tendue","tendue","autre"] };
+const options: Record<string, string[]> = { type:["nu","meuble","colocation","colocation_individuelle"], charges_mode:["provision","forfait"], fixation_loyer:["libre","plafonnement","reevaluation"], paiement_echeance:["echoir","echu"], precedente_location:["premiere","ancienne","recente"], zone_honoraires:["tres_tendue","tendue","autre"] };
 
 /** Chaque enregistrement ne modifie que les champs de l’étape, jamais les personnes ni les autres étapes. */
 export function lireEtapeBail(etape: EtapeSaisieBail, form: FormData, actuel: ValeursParcoursBail, logement: { meuble: boolean; surface: number | null }) {
@@ -45,7 +46,9 @@ export function lireEtapeBail(etape: EtapeSaisieBail, form: FormData, actuel: Va
       if (brut.length > (nom === "clauses_particulieres" ? 4000 : nom.startsWith("travaux_") ? 2000 : 500)) return erreur("Un texte est trop long. Raccourcissez-le avant d’enregistrer.");
       if (dates.has(nom) && brut && (!/^\d{4}-\d{2}-\d{2}$/.test(brut) || !Number.isFinite(Date.parse(brut)) || new Date(brut).toISOString().slice(0,10) !== brut)) return erreur("Vérifiez les dates renseignées.");
       if (options[nom] && brut && !options[nom].includes(brut)) return erreur("Choisissez une valeur proposée dans la liste.");
-      patch[nom] = brut || null;
+      // Le trimestre IRL de référence porte son année (« T3 2026 ») : un acte qui dit « T3 » est incomplet (BAIL-02).
+      if (nom === "irl_trimestre" && brut && !FORMAT_TRIMESTRE_IRL.test(trimestreIrlCanonique(brut) ?? "")) return erreur("Choisissez le trimestre et l’année de l’indice IRL de référence dans la liste.");
+      patch[nom] = nom === "irl_trimestre" ? trimestreIrlCanonique(brut) : brut || null;
     }
   }
   if (etape === "bail") {

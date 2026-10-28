@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modale } from "@/components/ui/modale";
 import { nomComplet } from "@/lib/roles-personnes";
+import { aujourdhuiParis } from "@/lib/ged";
+import { trimestresIrlProposes } from "@/lib/trimestre-irl";
 
 type Personne = { id: string; nom: string; prenom: string | null };
 
@@ -341,9 +343,10 @@ export function ChampsBail({
           className={classeSelect}
         >
           <option value="">—</option>
-          {["T1", "T2", "T3", "T4"].map((t) => (
-            <option key={t} value={t}>
-              {t}
+          {/* Un trimestre IRL se désigne avec son année (BAIL-02) */}
+          {trimestresIrlProposes(aujourdhuiParis(), valeurs?.irl_trimestre ?? defauts.irl_trimestre).map((t) => (
+            <option key={t.valeur} value={t.valeur}>
+              {t.libelle}
             </option>
           ))}
         </select>

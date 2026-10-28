@@ -3,6 +3,7 @@ import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direc
 
 
 import { avertissementsCoherenceLoyer, type AvertissementLoyer } from "@/lib/coherence-loyer";
+import { trimestreIrlCanonique } from "@/lib/trimestre-irl";
 import { premier } from "@/lib/postgrest";
 import { lireMentionsContrat, verifierHonorairesContrat } from "@/lib/mentions-contrat";
 import { sansJargon } from "@/lib/erreurs";
@@ -177,7 +178,7 @@ function lireChampsBail(
       charges_mode: formData.get("charges_mode") === "forfait" ? "forfait" : "provision",
       depot_garantie: depot,
       jour_echeance: Number(jour),
-      irl_trimestre: String(formData.get("irl_trimestre") ?? "").trim() || null,
+      irl_trimestre: trimestreIrlCanonique(String(formData.get("irl_trimestre") ?? "")),
       revision_irl: formData.get("revision_irl") === "on",
     },
   };

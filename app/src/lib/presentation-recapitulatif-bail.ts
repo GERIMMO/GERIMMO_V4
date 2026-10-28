@@ -1,5 +1,6 @@
 import { eur, formaterDate } from "@/lib/ged";
 import { TYPES_BAIL } from "@/lib/baux";
+import { libelleTrimestreIrl } from "@/lib/trimestre-irl";
 import type { ValeursParcoursBail } from "@/lib/champs-etape-bail";
 import { informationsLogementBail } from "@/lib/logement-bail-complements";
 import { champsManquantsBail } from "@/lib/reperes-bail";
@@ -75,7 +76,7 @@ export function rubriquesRecapBail({ bail, lot, bien, personnes, liens, erreurLo
       ligne("jour_echeance", "Échéance mensuelle", absent(bail.jour_echeance) ? null : `Le ${bail.jour_echeance} de chaque mois`),
       choix("paiement_echeance", "Paiement", { echoir: "À échoir", echu: "À terme échu" }), texte("lieu_paiement", "Lieu de paiement"),
       ligne("revision_irl", "Révision annuelle", ouiNon(bail.revision_irl)),
-      ...(bail.revision_irl === true ? [texte("irl_trimestre", "Trimestre IRL"), texte("irl_valeur", "Indice IRL")] : []),
+      ...(bail.revision_irl === true ? [ligne("irl_trimestre", "Trimestre IRL", libelleTrimestreIrl(texteRecapBail(bail.irl_trimestre))), texte("irl_valeur", "Indice IRL")] : []),
       choix("fixation_loyer", "Fixation du loyer", { libre: "Libre", plafonnement: "Plafonnement", reevaluation: "Réévaluation" }),
       choix("precedente_location", "Précédente location", { premiere: "Première location", ancienne: "Départ depuis au moins 18 mois", recente: "Départ depuis moins de 18 mois" }),
       ...(bail.precedente_location === "recente" ? [montant("dernier_loyer", "Précédent loyer"), ligne("dernier_loyer_versement", "Dernier versement", date(bail.dernier_loyer_versement)), ligne("precedent_loyer_revise", "Précédent loyer révisé", ouiNon(bail.precedent_loyer_revise)), ...(bail.precedent_loyer_revise === true ? [ligne("dernier_loyer_revision", "Dernière révision", date(bail.dernier_loyer_revision))] : [])] : []),

@@ -2,6 +2,7 @@
 import { InputDateJour } from "@/components/input-date-jour";
 
 import Link from "next/link";
+import { libelleTrimestreIrl } from "@/lib/trimestre-irl";
 import { useId, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
@@ -585,7 +586,7 @@ export function FormulaireLoyers({
                 {irlReferenceCourante ?? "à renseigner sur le bail"}
                 {!derniereRevision && irlTrimestre && (
                   <span className="ml-1 text-xs font-normal text-muted-foreground">
-                    ({irlTrimestre})
+                    ({libelleTrimestreIrl(irlTrimestre) ?? irlTrimestre})
                   </span>
                 )}
               </p>

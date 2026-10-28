@@ -1,5 +1,6 @@
 "use client";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
+import { avertissementsDatesBail } from "@/lib/coherence-dates-bail";
 import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import { useContext, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -8,7 +9,7 @@ import { initialiserParcoursBail } from "@/lib/initialiser-parcours-bail";
 import { CHAMPS_LOYER_REPRIS, periodeBailPrecedent, type BailPrecedent } from "@/lib/reprise-bail-precedent";
 import { CompletudeBail } from "@/lib/suivi-enregistrement";
 import { champBailManquant } from "@/lib/reperes-bail";
-import { eur, formaterDate } from "@/lib/ged";
+import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
 import { Modale } from "@/components/ui/modale";
 import { Button } from "@/components/ui/button";
 import styles from "./formulaire-parcours-bail.module.css";
@@ -20,6 +21,7 @@ import { CHAMPS_ETAPE_BAIL, ETAPES_BAIL, champsDifferents, memeValeurEtapeBail, 
 import { Input } from "@/components/ui/input";
 import { LabelBail as Label } from "@/components/pastille-bail";
 import { lireMontantFacultatif } from "@/lib/saisie-montant";
+import { trimestresIrlProposes } from "@/lib/trimestre-irl";
 
 type Champ = { nom:string; titre:string; type?:"number"|"montant"|"date"|"textarea"; options?:[string,string][]; requis?:boolean; aide?:string; visible?:(v:Record<string,string>)=>boolean; min?:number; max?:number; entier?:boolean };
 type Groupe = { etapes:string[]; titre:string; aide?:string; agence?:boolean; repliable?:boolean; resume?:string; ancre?:string; champs:Champ[] };
@@ -54,7 +56,8 @@ const groupes:Groupe[]=[
  ]},
  {etapes:["loyer"],titre:"Révision et paiement",repliable:true,ancre:"complements-paiement",resume:"Révision annuelle, fixation et modalités de paiement",champs:[
   {nom:"revision_irl",titre:"Révision annuelle du loyer (IRL)",options:choix},
-  {nom:"irl_trimestre",titre:"Trimestre IRL",options:[["","À confirmer"],["T1","T1"],["T2","T2"],["T3","T3"],["T4","T4"]],visible:v=>v.revision_irl==="true"},
+  // Les options sont posées au rendu (année en cours) : un trimestre IRL se désigne avec son année (BAIL-02).
+  {nom:"irl_trimestre",titre:"Trimestre IRL",options:[["","À confirmer"]],visible:v=>v.revision_irl==="true",aide:"Le dernier indice publié à la signature du contrat."},
   {nom:"irl_valeur",titre:"Valeur de l’IRL de référence",type:"montant",visible:v=>v.revision_irl==="true"},
   {nom:"fixation_loyer",titre:"Fixation initiale du loyer",options:[["","À confirmer"],["libre","Librement fixé"],["plafonnement","Plafonnement en zone d’encadrement"],["reevaluation","Réévaluation après travaux"]]},
   {nom:"paiement_echeance",titre:"Paiement du loyer",options:[["echoir","À échoir (d’avance)"],["echu","À terme échu"]]},
@@ -197,7 +200,7 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,agenc
  const afficherValeur=(nom:string,brut:string)=>{
    const champ=champsParNom.get(nom);
    if(!brut.trim())return "non renseigné";
-   const option=(nom==="chambre_id"?chambres.map(c=>[c.id,c.nom] as [string,string]):champ?.options)?.find(([v])=>v===brut);
+   const option=(nom==="chambre_id"?chambres.map(c=>[c.id,c.nom] as [string,string]):nom==="irl_trimestre"?trimestresIrlProposes(aujourdhuiParis(),brut).map(o=>[o.valeur,o.libelle] as [string,string]):champ?.options)?.find(([v])=>v===brut);
    if(option)return option[1];
    if(champ?.type==="montant"){const lu=lireMontantFacultatif(brut);return "montant" in lu&&lu.montant!=null?eur(lu.montant):brut;}
    if(champ?.type==="date")return formaterDate(brut);
@@ -243,7 +246,8 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,agenc
     {g.aide&&<p className={styles.aide}>{g.aide}</p>}
     <div className={`grid gap-4 ${g.etapes[0]==="documents"?"sm:grid-cols-3":"sm:grid-cols-2"}`}>{g.champs.map(c=>{
      const id=`parcours-${c.nom}`,affiche=!c.visible||c.visible(contexte);
-     const opts=c.nom==="chambre_id"?[["","Choisir une chambre"],...chambres.map(ch=>[ch.id,ch.nom])] as [string,string][]:c.options;
+     const opts=c.nom==="chambre_id"?[["","Choisir une chambre"],...chambres.map(ch=>[ch.id,ch.nom])] as [string,string][]
+      :c.nom==="irl_trimestre"?[["","À confirmer"],...trimestresIrlProposes(aujourdhuiParis(),valeurs.irl_trimestre).map(o=>[o.valeur,o.libelle] as [string,string])]:c.options;
      return <div key={c.nom} hidden={!affiche} className={c.type==="textarea"?"space-y-1.5 sm:col-span-2":"space-y-1.5"}>
       <Label htmlFor={id} champ={`bail.${c.nom}`} renseigne={Boolean(valeurs[c.nom]?.trim())}>{c.titre}{c.requis?" *":""}</Label>
       {opts?<select id={id} name={c.nom} value={valeurs[c.nom]??""} required={c.requis&&affiche} disabled={!affiche} aria-describedby={c.aide?`${id}-aide`:undefined} onChange={e=>modifierValeur(c.nom,e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{opts.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
@@ -261,6 +265,8 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,agenc
     const ouvert=event.currentTarget.open;setOuverts(v=>v[g.titre]===ouvert?v:{...v,[g.titre]:ouvert});
    }}><summary><span><strong>{g.titre}</strong><small>{g.resume}</small></span>{restant>0&&<span className={styles.restant}>{restant} à compléter</span>}<ChevronDown size={17} aria-hidden="true"/></summary>{champs}</details>:<div key={g.titre} id={g.ancre} hidden={!actif}>{champs}</div>;
   })}
+  {/* Dates incohérentes ou entrée ancienne : signalées, jamais refusées (reprise d’un bail en cours) — BAIL-01 */}
+  {etape==="bail"&&<AvertissementsLoyer objet="dates" avertissements={avertissementsDatesBail(valeurs,aujourdhuiParis())} enregistre={!modifie&&retourEtape==="bail"&&Boolean(etat.succes)} />}
   {["loyer","clauses"].includes(etape)&&<AvertissementsLoyer avertissements={!modifie&&retourEtape===etape&&etat.avertissements?etat.avertissements:avertissementsCoherenceLoyer({...valeurs,encadrement_loyer:valeurs.encadrement_loyer==="true",chambre_id:valeurs.type==="colocation_individuelle"?valeurs.chambre_id:null},surfaceHabitable)} enregistre={!modifie&&retourEtape===etape&&Boolean(etat.succes)} />}
   {retourEtape===etape&&etat.erreur&&<div role="alert" tabIndex={-1} className="text-sm text-destructive"><p>{etat.erreur}</p>
    {etat.modifieesAilleurs&&<ul className="mt-1 list-disc space-y-0.5 pl-5">{Object.entries(etat.modifieesAilleurs).map(([nom,enregistree])=><li key={nom}>

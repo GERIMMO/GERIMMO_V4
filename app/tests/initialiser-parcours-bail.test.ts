@@ -23,7 +23,7 @@ describe("reprise des informations du bail", () => {
     expect(valeurs).not.toHaveProperty("jour_echeance");
   });
   it("réenregistre les réglages repris sans effacer révision ou précédent loyer", () => {
-    const existant = { type: "nu", loyer_hc: 500, charges: 0, depot_garantie: 0, jour_echeance: 5, revision_irl: true, irl_trimestre: "T2", irl_valeur: 145.17, precedente_location: "recente", dernier_loyer: 490, dernier_loyer_versement: "2026-09-05", precedent_loyer_revise: false, paiement_echeance: "echu" };
+    const existant = { type: "nu", loyer_hc: 500, charges: 0, depot_garantie: 0, jour_echeance: 5, revision_irl: true, irl_trimestre: "T2 2026", irl_valeur: 145.17, precedente_location: "recente", dernier_loyer: 490, dernier_loyer_versement: "2026-09-05", precedent_loyer_revise: false, paiement_echeance: "echu" };
     const form = new FormData();
     Object.entries(initialiserParcoursBail(existant, false)).forEach(([cle, valeur]) => form.set(cle, valeur));
     const resultat = lireEtapeBail("loyer", form, existant, { meuble: false, surface: 45 });

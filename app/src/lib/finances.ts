@@ -87,6 +87,8 @@ export function libelleEncaisser(reste: number, detail: DetteDuMois[] | null | u
  * de LOY-07). Sans date lue, on retombe sur le statut « attendu ».
  */
 export function estAEchoir(l: EcheanceDuMois, aujourdHui: string): boolean {
+  // Un terme postérieur à la fin du bail n'est pas dû (statut « non_du », 20261028100100) : ni exigible, ni à échoir.
+  if (l.statut === "non_du") return false;
   return l.date_echeance ? l.date_echeance.slice(0, 10) >= aujourdHui : l.statut === "attendu";
 }
 
@@ -108,6 +110,8 @@ export function totauxEcheances(lignes: EcheanceDuMois[], aujourdHui: string) {
   const centimes = (v: number | string) => Math.round(Number(v) * 100);
   const totaux = { demande: 0, regle: 0, resteDu: 0, aEchoir: 0 };
   for (const l of lignes) {
+    // « non_du » : ni demandé, ni à échoir, ni dans le reste dû, même si une ligne portait un montant (intégration du 28/10).
+    if (l.statut === "non_du") continue;
     const du = centimes(l.montant_du), couvert = Math.min(du, centimes(l.montant_couvert));
     totaux.demande += du; totaux.regle += couvert;
     if (estAEchoir(l, aujourdHui)) totaux.aEchoir += Math.max(0, du - couvert); else totaux.resteDu += Math.max(0, du - couvert);
@@ -128,7 +132,8 @@ export function relancesDuMois<T extends EcheanceARelancer>(lignes: T[], aujourd
   const centimes = (v: number | string | null | undefined) => Math.round(Number(v ?? 0) * 100);
   const aRelancer = lignes
     .map((l) => {
-      const reste = Math.max(0, centimes(l.montant_du) - centimes(l.montant_couvert));
+      // Un terme « non_du » ne se relance jamais pour lui-même ; une dette antérieure échue portée par sa ligne reste due.
+      const reste = l.statut === "non_du" ? 0 : Math.max(0, centimes(l.montant_du) - centimes(l.montant_couvert));
       const aEchoir = estAEchoir(l, aujourdHui);
       return { ligne: l, resteExigible: aEchoir ? 0 : reste, aEchoir: aEchoir ? reste : 0, detteAnterieure: Math.max(0, centimes(l.dette_anterieure_reste)) };
     })

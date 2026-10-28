@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { Client } from "pg";
+import { sansSyntheseAlertes } from "./aides";
 
 /**
  * LE PREMIER MOT DE PASSE D'UN INVITÉ (audit final du 27/10/2026, DRT-05).
@@ -26,6 +27,7 @@ test("un locataire invité crée son mot de passe et arrive connecté sur son in
   try {
     await db.query("insert into persons(id, organization_id, nom, prenom, email) values ($1, $2, 'TEST Premier mot de passe', 'Lou', $3)", [person, ORG, email]);
 
+    await sansSyntheseAlertes(page);
     // 1. Le propriétaire invite : le compte est créé, la marque du premier mot de passe posée par le service.
     await page.goto(`/espace/${ORG}/personnes/${person}#acces-locataire`);
     const carte = page.locator("#acces-locataire");

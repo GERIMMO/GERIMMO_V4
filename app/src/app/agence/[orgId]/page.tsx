@@ -430,7 +430,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
 
       {accesRefuse && (
         <p role="status" className="mt-4 border-l-[3px] border-l-warning bg-warning-soft p-3 text-sm text-warning-soft-foreground">
-          Cet écran est réservé à l&apos;administrateur de l&apos;agence&nbsp;: demandez-lui ce dont vous avez besoin.
+          Cet écran est réservé à l’administrateur de l’agence&nbsp;: demandez-lui ce dont vous avez besoin.
         </p>
       )}
 

@@ -12,7 +12,7 @@ import { adresseDuSite, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
 import { erreurDuChamp, lireMontantFacultatif } from "@/lib/saisie-montant";
 
 /** La fiche en lecture seule : même phrase que la base (déclencheur abonnement_organizations). */
-export const MESSAGE_PROFIL_LECTURE_SEULE =
+const MESSAGE_PROFIL_LECTURE_SEULE =
   "Votre espace est en lecture seule : la fiche de l’organisation ne se modifie pas pour le moment. Vos données restent consultables et exportables.";
 
 export type EtatProfilOrganisation = {

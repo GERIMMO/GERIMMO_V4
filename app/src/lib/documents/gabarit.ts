@@ -241,8 +241,11 @@ export function faitA(f: Fusion, ville: string | null | undefined, dateIso: stri
 // « Fait à … » et la signature de l'émetteur sur une même rangée insécable (audit final du 27/10, LOY-06) : à la suite
 // l'un de l'autre, le bloc de signature, déjà insécable, basculait seul en page 2 d'une quittance standard — une
 // page entière pour « Signature » et un nom. Côte à côte, la quittance tient sur une page.
+// Styles EN LIGNE, jamais dans la feuille commune : elle entre dans l'empreinte des baux déjà envoyés en signature
+// (tests/signature-empreinte-avant-24-octobre.test.ts), qu'une règle ajoutée ici rendrait invérifiables.
 export function faitASigne(f: Fusion, ville: string | null | undefined, dateIso: string, nom: string | null | undefined, img: string | null): string {
-  return `<div class="deux-col fait-signe">${faitA(f, ville, dateIso)}${blocSignatureEmetteur(nom, img)}</div>`;
+  const signature = blocSignatureEmetteur(nom, img).replace('<div class="sig-emetteur">', '<div class="sig-emetteur" style="margin-top:0">');
+  return `<div class="deux-col fait-signe" style="align-items:end;margin-top:6pt">${faitA(f, ville, dateIso)}${signature}</div>`;
 }
 
 // ------------------------------------------------------------------
@@ -385,13 +388,10 @@ const CSS_DOCUMENT = `
               break-inside:avoid-page; page-break-inside:avoid; }
   .sig-emetteur { margin-top:14pt; margin-left:auto; width:180pt; text-align:center;
                   break-inside:avoid-page; page-break-inside:avoid; }
-  .fait-signe { align-items:end; margin-top:6pt; }
-  .fait-signe p { margin:0 0 4pt; }
-  .fait-signe .sig-emetteur { margin-top:0; }
   .sig-libelle { color:var(--laiton); font-size:7.5pt; letter-spacing:0.14em;
                  text-transform:uppercase; margin-bottom:4pt; }
   .sig-image { max-height:52pt; max-width:170pt; }
-  .sig-vide { height:36pt; border-bottom:0.75pt dotted var(--filet); }
+  .sig-vide { height:44pt; border-bottom:0.75pt dotted var(--filet); }
   .sig-nom { font-size:8.5pt; color:var(--texte-secondaire); margin-top:3pt; }
   img, figure { break-inside:avoid-page; page-break-inside:avoid; }
   .saut { break-before:page; page-break-before:always; }

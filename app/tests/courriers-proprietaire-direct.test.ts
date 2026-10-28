@@ -72,13 +72,13 @@ describe("quittance et avis PDF d'un propriétaire direct (LOY-06)", () => {
 
   it("« Fait à » et la signature forment une rangée insécable", () => {
     const html = construireQuittance(quittance(exp)).html;
-    expect(html).toMatch(/<div class="deux-col fait-signe"><p>Fait à [\s\S]*?<\/p><div class="sig-emetteur">/);
+    expect(html).toMatch(/<div class="deux-col fait-signe"[^>]*><p>Fait à [\s\S]*?<\/p><div class="sig-emetteur"/);
     const avis = construireAvisEcheance({
       reference: "AVIS-1", periode: "2026-10-01", dateEcheance: "2026-10-05", loyerHc: 650, charges: 50, montantDu: 700, prorata: false,
       chargesMode: "provision", bailleurNom: "Moreau Claire", locatairesNoms: "Leblanc Julie", logementAdresse: "1 rue", referenceBail: "BAIL-1",
       dateBail: "2026-01-16", exp, jour: "2026-10-01", f: new Fusion(),
     }).html;
-    expect(avis).toMatch(/<div class="deux-col fait-signe"><p>Fait à [\s\S]*?<\/p><div class="sig-emetteur">/);
+    expect(avis).toMatch(/<div class="deux-col fait-signe"[^>]*><p>Fait à [\s\S]*?<\/p><div class="sig-emetteur"/);
     expect(avis).toContain('<div class="sig-nom">Moreau Claire</div>');
   });
 });

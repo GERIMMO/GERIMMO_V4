@@ -126,12 +126,16 @@ export async function traiterRelances(request: Request) {
   // Chez un propriétaire direct, le courrier parle du bailleur, jamais d'un gestionnaire (audit final du 27/10, LOY-17).
   // Une lecture pour toute la passe ; une organisation illisible garde le mot « gestionnaire ».
   const proprietairesDirects = new Set<string>();
-  const { data: organisations } = await supabase
-    .from("organizations")
-    .select("id, type")
-    .in("id", [...new Set(lignes.map((l) => l.organization_id))]);
-  for (const o of (organisations ?? []) as { id: string; type: string | null }[]) {
-    if (o.type === "proprietaire_direct") proprietairesDirects.add(o.id);
+  try {
+    const { data: organisations } = await supabase
+      .from("organizations")
+      .select("id, type")
+      .in("id", [...new Set(lignes.map((l) => l.organization_id))]);
+    for (const o of (organisations ?? []) as { id: string; type: string | null }[]) {
+      if (o.type === "proprietaire_direct") proprietairesDirects.add(o.id);
+    }
+  } catch {
+    // Lecture impossible : la relance part avec le mot « gestionnaire », elle ne se bloque pas pour un mot.
   }
 
   let envoyees = 0;

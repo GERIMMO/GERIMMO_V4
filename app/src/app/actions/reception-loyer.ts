@@ -16,6 +16,23 @@ import { detteDuBail, idRelanceReception, lireDerniereRelanceReception, NOTE_REL
 
 export type EtatReceptionLoyer = { erreur?: string; succes?: string; termine?: boolean };
 
+type ClientSupabase = Awaited<ReturnType<typeof verifierGerant>>["supabase"];
+
+/** Les détenteurs du lot, joints (« Moreau Claire, Moreau Jean ») ; vide si rien ne se lit. */
+async function nomsDetenteurs(supabase: ClientSupabase, orgId: string, lotId: string | null): Promise<string> {
+  if (!lotId) return "";
+  try {
+    const { data, error } = await supabase.from("detentions").select("person:persons!detentions_person_id_fkey(nom,prenom)")
+      .eq("organization_id", orgId).eq("lot_id", lotId).is("date_fin", null);
+    if (error) return "";
+    return ((data ?? []) as { person: { nom: string; prenom: string | null } | { nom: string; prenom: string | null }[] | null }[])
+      .map(d => { const p = Array.isArray(d.person) ? d.person[0] : d.person; return p ? [p.nom, p.prenom].filter(Boolean).join(" ") : ""; })
+      .filter(Boolean).join(", ");
+  } catch {
+    return "";
+  }
+}
+
 export async function declarerReceptionLoyer(orgId: string, appelId: string, _etat: EtatReceptionLoyer, form: FormData): Promise<EtatReceptionLoyer> {
   const { supabase, user, role } = await verifierGerant(orgId, { geste: "encaissement" });
   if (!user || role !== "proprietaire_direct") return { erreur: "Accès refusé." };
@@ -89,12 +106,8 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   const { data: organisation, error: erreurOrganisation } = await supabase.from("organizations").select("name").eq("id",orgId).maybeSingle();
   if (erreurPersonne || erreurOrganisation || !personne?.email?.trim() || !organisation) return { erreur: "Vérifiez l’adresse e-mail du locataire et votre profil avant l’envoi." };
   // Le bailleur signe, pas le nom du « parc » : les détenteurs du lot, comme la quittance (envoyerQuittance) et les
-  // relances automatiques (audit final du 27/10, LOY-17). Sans détenteur renseigné, le nom de l'espace reste.
-  const { data: detenteurs, error: erreurDetenteurs } = await supabase.from("detentions").select("person:persons(nom,prenom)")
-    .eq("organization_id",orgId).eq("lot_id",bail.lot_id).is("date_fin",null);
-  if (erreurDetenteurs) return { erreur: "Le signataire de la relance n’a pas pu être vérifié. Aucun message envoyé." };
-  const emetteur = (detenteurs ?? []).map(d => { const p = Array.isArray(d.person) ? d.person[0] : d.person; return p ? [p.nom, p.prenom].filter(Boolean).join(" ") : ""; })
-    .filter(Boolean).join(", ") || organisation.name;
+  // relances automatiques (audit final du 27/10, LOY-17). Sans détenteur lisible, le nom de l'espace reste, comme avant.
+  const emetteur = (await nomsDetenteurs(supabase, orgId, bail.lot_id)) || organisation.name;
   // Même règle que les relances du bail : les colocataires encore engagés reçoivent aussi le courrier.
   const { data: parties, error: erreurParties } = await supabase.from("bail_personnes").select("person_id,date_solidarite_fin")
     .eq("organization_id",orgId).eq("bail_id",ligne.bail_id).eq("role","colocataire");

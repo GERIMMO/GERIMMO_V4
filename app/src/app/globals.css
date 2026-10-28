@@ -58,36 +58,45 @@
 
 :root {
   /* ------------------------------------------------------------------ */
-  /* Charte graphique GERIMMO v3 — bleu (décision du 17/09/2026)         */
-  /* Trois familles : un BLEU de marque, une MARINE, des gris perle.      */
-  /* Le bleu est l'accent unique — bouton, entrée active, liseré, lien ; */
-  /* la marine porte les titres et les rares surfaces sombres ; le gris   */
-  /* perle est le fond de page, les cartes sont blanches. Plus de crème,  */
-  /* plus de laiton, plus d'empattements.                                 */
+  /* Charte graphique GERIMMO — nuit et champagne (prestige)             */
+  /* Les couleurs de marque sont déclarées ICI UNE FOIS (audit final,     */
+  /* UX-16) : prestige.css les redéfinissait toutes sur :root avec        */
+  /* d'autres valeurs, et ce bloc décrivait encore la charte bleue du     */
+  /* 17/09 que plus aucune page n'affichait. prestige.css garde les       */
+  /* jetons de surface (fonds, filets, liens), la typographie et les      */
+  /* composants ; proprietaire.css et experience-unifiee.css affinent par */
+  /* spécificité (fonds sombres, tiroirs, modales). Même valeurs que      */
+  /* lib/charte-gerimmo.ts.                                               */
   /*                                                                     */
-  /* Les jetons HISTORIQUES (--or, --encre, --creme…) sont conservés et   */
-  /* redéfinis : 330 usages dans les composants les lisent, et la marque  */
-  /* blanche (module 17) veut qu'une agence change SA couleur en un seul  */
-  /* endroit — celui-ci. Aucune couleur en dur dans les composants.       */
+  /* Les jetons HISTORIQUES (--or, --encre, --creme…) sont conservés :    */
+  /* 330 usages dans les composants les lisent, et la marque blanche      */
+  /* (lib/marque-organisation.ts) les repose en style inline sur la       */
+  /* coquille de l'espace. Aucune couleur en dur dans les composants.     */
   /* ------------------------------------------------------------------ */
 
-  /* Le bleu de marque — l'accent unique */
-  --marque: #2457f5;
-  --marque-sombre: #1a44cf;     /* survol de l'accent, liens, texte bleu */
-  --marque-clair: #dfe9ff;      /* fond de sélection, pastille douce */
-  --sur-marque: #ffffff;        /* texte posé sur le bleu */
+  /* Nuit et champagne */
+  --prestige-nuit: #14304f;
+  --prestige-champagne: #b7975a;
+  --prestige-champagne-texte: #826838;
 
-  /* Jetons « or » (ex-laiton) : ils désignent désormais l'accent bleu */
-  --or-clair: var(--marque-clair);
-  --or: var(--marque);          /* liseré actif, pastille, bouton d'action */
-  --or-texte: var(--marque-sombre);
-  --or-filet: #cfdbff;
-  --sur-or: var(--sur-marque);
+  /* La marque — nuit */
+  --marque: #14304f;
+  --marque-sombre: #293a51;     /* survol de la marque, liens */
+  --marque-clair: #edf0f4;      /* fond de sélection, pastille douce */
+  --sur-marque: #fff;           /* texte posé sur la nuit */
 
-  /* Marine — titres, surfaces sombres */
-  --encre: #0f2352;
-  --graphite: #17306b;          /* survol des aplats marine */
-  --sur-encre: #ffffff;         /* texte posé sur la marine */
+  /* Jetons « or » — champagne : liseré actif, pastille, bouton d'action */
+  --or: #b7975a;
+  --or-sombre: #826838;
+  --or-texte: #826838;
+  --sur-or: #16243a;
+  --or-clair: #fbf8f1;
+  --or-filet: #e3d6bc;
+
+  /* Encre — titres, surfaces sombres */
+  --encre: #16243a;
+  --graphite: #293a51;          /* survol des aplats encre */
+  --sur-encre: #fff;            /* texte posé sur l'encre */
   --corps: #151b2b;             /* corps de texte */
   --texte-secondaire: #4b5870;
   /* #6b7386 jusqu'au 19/09, et il tombait SOUS le seuil AA : 4,44 contre le
@@ -102,7 +111,6 @@
   --survol: #edf2ff;            /* fond d'un rang survolé ou actif */
   --survol-critique: #fbe3e3;   /* le même, sur un rang critique */
   --encre-profond: #0a1735;
-  --or-sombre: var(--marque-sombre);
 
   /* Gris perle et fonds */
   --creme: #f2f5fb;             /* fond de page (le nom reste, la crème part) */
@@ -896,7 +904,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
   padding: 9px 10px;
   font-size: 13.5px;
   color: var(--corps);
-  min-height: 40px;
+  min-height: var(--cible-tactile);
   border-radius: var(--radius-md);
 }
 .menu-compte-volet a:hover,
@@ -1441,7 +1449,7 @@ p a {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    min-height: 40px;
+    min-height: var(--cible-tactile);
     font-size: 13px;
     color: var(--bleu);
   }
@@ -1701,7 +1709,7 @@ p a {
 @media (prefers-reduced-motion: reduce) { .information-chevron { transition: none; } }
 
 /* Recherche transversale : les mêmes couleurs, un accès discret et constant. */
-.recherche-ouvrir { margin-right:auto; min-width:0; display:flex; align-items:center; gap:10px; min-height:42px; padding:8px 12px; border:1px solid var(--filet); border-radius:10px; background:var(--ivoire); color:var(--encre); font-size:13px; text-align:left; }
+.recherche-ouvrir { margin-right:auto; min-width:0; display:flex; align-items:center; gap:10px; min-height: var(--cible-tactile); padding:8px 12px; border:1px solid var(--filet); border-radius:10px; background:var(--ivoire); color:var(--encre); font-size:13px; text-align:left; }
 .recherche-ouvrir:hover { border-color:var(--or); }
 .recherche-ouvrir kbd { margin-left:12px; font-size:10px; white-space:nowrap; }
 .recherche-dialog { padding:0; border:1px solid var(--filet); width:min(640px,calc(100vw - 24px)); max-width:none; max-height:calc(100dvh - 32px); margin:8vh auto auto; color:var(--encre); background:var(--ivoire); box-shadow:0 24px 90px color-mix(in srgb,var(--encre) 20%,transparent); border-radius:12px; overflow:hidden; }
@@ -1872,7 +1880,7 @@ body:has(.recherche-dialog[open]) { overflow:hidden; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
+  min-height: var(--cible-tactile);
   padding: 7px 10px;
   border-radius: 8px;
   font-size: 13px;
@@ -2242,6 +2250,9 @@ a:focus-visible > .carte-espace {
      la racine le règle. 72 px = la barre (57 px) + un souffle. Posé seulement
      là où la barre existe (agence, propriétaire, locataire). */
   html:has(.coquille-basse) { scroll-padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+  /* Le toast se pose AU-DESSUS de la barre fixe, jamais dessus (audit final, UX-08 : il masquait « Biens / Finances /
+     Incidents » 33 px durant). Même repère que le défilement : la barre (57 px) + un souffle. */
+  html:has(.coquille-basse) .toast { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
   .coquille-corps .entete-page { padding: 0 0 14px; }
   .coquille-basse {
     position: fixed;
@@ -2542,7 +2553,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   flex-wrap: wrap; /* sur téléphone, le sous-titre passe dessous, le titre reste entier */
   align-items: center;
   gap: 4px 8px;
-  min-height: 40px;
+  min-height: var(--cible-tactile);
   color: var(--texte-2);
   font-size: 13.5px;
   font-weight: 500;
@@ -2651,7 +2662,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
     align-items: center;
     flex: none;
     width: 100%;
-    min-height: 40px;
+    min-height: var(--cible-tactile);
     padding: 9px 12px;
     border-radius: 9px;
     color: var(--texte-secondaire);
@@ -2987,7 +2998,7 @@ h2 { font-size: 1.3125rem; }
   .admin-corps > main, .coquille-corps > main, .portail-ecrans > main { padding: 36px 44px 80px; }
   .admin-nav { padding: 18px 14px; gap: 4px; }
 }
-.admin-nav-lien { min-height: 42px; padding: 10px 14px; font-size: 13.5px; }
+.admin-nav-lien { min-height: var(--cible-tactile); padding: 10px 14px; font-size: 13.5px; }
 /* Cartes empilées avec `mt-4` (16 px) : 28 px entre deux cartes. */
 .loc-carte + .loc-carte, .loc-carte + section.loc-carte, .section-ecran + .loc-carte { margin-top: var(--rythme-4); }
 /* …mais pas dans une grille de tuiles : la grille a déjà son `gap`, et la
@@ -3523,7 +3534,7 @@ h2 { font-size: 1.3125rem; }
 .saisie-repere > span { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; color: var(--sur-marque); background: var(--marque); font-weight: 650; }
 .saisie-repere h2 { font-size: 16px; font-weight: 650; }
 .saisie-repere p { font-size: 12px; color: var(--texte-secondaire); margin-top: 3px; }
-.saisie-bien input:not([type=checkbox]), .saisie-bien select { min-height: 42px; border-radius: 8px; background: var(--surface); }
+.saisie-bien input:not([type=checkbox]), .saisie-bien select { min-height: var(--cible-tactile); border-radius: 8px; background: var(--surface); }
 .dossier-location .rang-section { min-height: 68px; }
 .dossier-location .rang-section[aria-expanded=true] { background: color-mix(in srgb, var(--marque) 5%, var(--surface)); margin-bottom: 15px; }
 @media (max-width: 1199px) { .dossier-grille { grid-template-columns: minmax(0,1fr); } .dossier-reperes { position: static; grid-template-columns: repeat(2,minmax(0,1fr)); } .dossier-chiffres { grid-template-columns: repeat(2,minmax(0,1fr)); } }

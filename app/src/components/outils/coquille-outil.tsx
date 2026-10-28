@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
-import { badgeEssai, dureeEssai, offreLancementActive } from "@/lib/tarifs";
+import { badgeEssai, badgeEssaiCourt, dureeEssai, offreLancementActive } from "@/lib/tarifs";
 import { IconeTrait, PucesGratuit, TuileOutil, outilsPresentes } from "./icones-outils";
 
 // LA COQUILLE DES OUTILS GRATUITS (29/09, habillée le 30/09) : en-tête et
@@ -42,7 +42,8 @@ export function CoquilleOutil({
         <header className="outil-entete print:hidden">
           <div className="mx-auto w-full max-w-6xl px-4 pt-5 pb-8 sm:px-7 sm:pt-7 sm:pb-10">
             <nav aria-label="Fil d'Ariane" className="text-[13px] text-[var(--texte-secondaire)]">
-              <Link href="/outils" className="lien-discret">
+              {/* Cible tactile de 44 px sans décaler la ligne (audit final, PUB-07 : 91 × 14 px). */}
+              <Link href="/outils" className="lien-discret -my-3 inline-flex min-h-11 items-center">
                 ← Outils gratuits
               </Link>
             </nav>
@@ -119,7 +120,7 @@ export function AutresOutils({ sauf }: { sauf?: string }) {
         <h2 id="autres-outils" className="outil-h2 font-heading font-bold text-[var(--encre)]">
           Les autres outils gratuits
         </h2>
-        <Link href="/outils" className="lien-discret text-[13.5px]">
+        <Link href="/outils" className="lien-discret -my-2 inline-flex min-h-11 items-center text-[13.5px]">
           Tous les outils →
         </Link>
       </div>
@@ -166,7 +167,8 @@ export function AppelEssai() {
               lancement ? "bg-[var(--ivoire)] text-[var(--encre)]" : "border border-white/30 text-[var(--sur-marque)]"
             }`}
           >
-            {badgeEssai()}
+            <span className="sm:hidden">{badgeEssaiCourt()}</span>
+            <span className="hidden sm:inline">{badgeEssai()}</span>
           </p>
           <h2 id="appel-essai" className="mt-2 max-w-[26ch] text-balance font-heading font-bold leading-[1.18] text-[var(--sur-marque)]">
             Ce calcul, Gerimmo le fait chaque mois pour vous

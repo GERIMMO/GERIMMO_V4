@@ -1,4 +1,7 @@
 import { lireEditeur } from "@/lib/editeur-serveur";
+
+// Page publique relue toutes les heures (audit final, PUB-05) : ses lectures se font sans cookie.
+export const revalidate = 3600;
 import Link from "next/link";
 import { Article, CoquilleLegale, TableauPrestataires } from "@/components/coquille-legale";
 import {

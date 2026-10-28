@@ -11,4 +11,8 @@ export const policeDocument = localFont({
   ],
   display: "swap",
   fallback: ["Georgia", "Times New Roman", "serif"],
+  // Sans préchargement (audit final, PUB-06) : Next préchargeait les deux fichiers (≈ 41 Ko) sur toutes les pages
+  // publiques, journal et pages légales compris, qui n'affichent aucun document. La police se charge à la demande,
+  // là où un document se dessine.
+  preload: false,
 });

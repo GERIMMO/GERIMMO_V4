@@ -45,7 +45,7 @@
 .prix { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 8px; margin-top: 19px; font-size: 28px; font-weight: 650; font-variant-numeric: tabular-nums; }
 .prix small { font-size: 11px; font-weight: 400; color: var(--texte-secondaire); }
 .noteFormule { margin: 10px 0 18px; font-size: 11px; line-height: 1.65; color: var(--texte-secondaire); }
-.selectionFormule { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: auto; padding: 10px 6px; min-height: 40px; border: 1px solid var(--filet); border-radius: 7px; font-size: 11px; }
+.selectionFormule { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: auto; padding: 10px 6px; min-height: var(--cible-tactile); border: 1px solid var(--filet); border-radius: 7px; font-size: 11px; }
 .formule[data-selectionnee="true"] .selectionFormule { color: var(--sur-encre); background: var(--encre); border-color: var(--encre); }
 .recapitulatif { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 24px; padding: 23px; border: 1px solid var(--filet); border-radius: 12px; background: var(--carte); }
 .total { min-width: 0; }
@@ -57,7 +57,7 @@
 .indisponible { display: flex; align-items: center; gap: 14px; padding: 15px 18px; border: 1px solid var(--filet); border-radius: 10px; background: var(--ardoise); color: var(--encre); font-size: 12px; line-height: 1.6; }
 .indisponible > svg { flex-shrink: 0; }
 .indisponible p { flex: 1; }
-.indisponible a { display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 8px 12px; background: var(--carte); border: 1px solid var(--filet); border-radius: 7px; font-size: 11px; font-weight: 550; }
+.indisponible a { display: inline-flex; align-items: center; justify-content: center; min-height: var(--cible-tactile); padding: 8px 12px; background: var(--carte); border: 1px solid var(--filet); border-radius: 7px; font-size: 11px; font-weight: 550; }
 .conditionsAAccepter { display: grid; gap: 10px; padding: 15px 18px; border: 1px solid var(--filet); border-radius: 10px; background: var(--ardoise); color: var(--encre); font-size: 12px; line-height: 1.6; }
 .inclus { padding-top: 14px; }
 .services { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }

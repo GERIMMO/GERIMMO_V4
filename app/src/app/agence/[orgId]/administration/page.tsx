@@ -181,7 +181,7 @@ export default async function PageAdministration(
 
       <div className="loc-carte">
         <div className="entete-carte">
-          <h3>Équipe &amp; portefeuilles</h3>
+          <h2 className="titre-carte">Équipe &amp; portefeuilles</h2>
           {equipeLue && (
             <span className="mono-discret">
               {equipe.length} membre{equipe.length > 1 ? "s" : ""}
@@ -294,7 +294,7 @@ export default async function PageAdministration(
 
       <div className="loc-carte">
         <div className="entete-carte">
-          <h3>Abonnement de l&apos;agence</h3>
+          <h2 className="titre-carte">Abonnement de l&apos;agence</h2>
           {statut && (
             <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
           )}

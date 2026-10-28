@@ -47,7 +47,8 @@ export function PiedPublic({ courant }: { courant?: string }) {
     <footer className="public-pied print:hidden">
       <div className="public-conteneur public-pied-grille">
         <div className="public-pied-marque">
-          <Link href="/" aria-label="Gerimmo — accueil"><MarqueGerimmo surEncre /></Link>
+          {/* Cible tactile de 44 px (audit final, PUB-07 : le logo du pied faisait 140 × 18 px). */}
+          <Link href="/" aria-label="Gerimmo — accueil" className="inline-flex min-h-11 items-center"><MarqueGerimmo surEncre /></Link>
           <p>Vos biens, vos locataires et vos documents.<br />Tout simplement, au même endroit.</p>
         </div>
         {GROUPES_PIED.map(({ titre, liens }) => (

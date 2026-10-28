@@ -147,9 +147,11 @@ export default async function PageAgenda({ params, searchParams }: {
       <section className="agenda-periode" aria-label={`Mois affiché : ${moisLong(agenda.mois.premier)}`}>
         <p className="text-xs text-muted-foreground">{agenda.total} rendez-vous ce mois-ci · Heure de Paris</p>
         <nav className="dossier-nav agenda-nav-mois" aria-label="Changer de mois">
-          <Link href={lienMois(agenda.mois.precedent.slice(0, 7))} aria-label="Mois précédent" className="inline-flex min-w-11 items-center justify-center"><ChevronLeft className="size-4" aria-hidden="true" /></Link>
-          <Link href={`${base}/agenda`} className="inline-flex items-center">Ce mois-ci</Link>
-          <Link href={lienMois(agenda.mois.suivant.slice(0, 7))} aria-label="Mois suivant" className="inline-flex min-w-11 items-center justify-center"><ChevronRight className="size-4" aria-hidden="true" /></Link>
+          {/* Sans préchargement (audit final, UX-13) : chaque case du mois et chaque mois voisin lançaient un rendu serveur
+              à l'ouverture — 80 requêtes avant tout geste. Les onglets de vue, eux, restent préchargés. */}
+          <Link href={lienMois(agenda.mois.precedent.slice(0, 7))} prefetch={false} aria-label="Mois précédent" className="inline-flex min-w-11 items-center justify-center"><ChevronLeft className="size-4" aria-hidden="true" /></Link>
+          <Link href={`${base}/agenda`} prefetch={false} className="inline-flex items-center">Ce mois-ci</Link>
+          <Link href={lienMois(agenda.mois.suivant.slice(0, 7))} prefetch={false} aria-label="Mois suivant" className="inline-flex min-w-11 items-center justify-center"><ChevronRight className="size-4" aria-hidden="true" /></Link>
         </nav>
       </section>
 
@@ -165,6 +167,7 @@ export default async function PageAgenda({ params, searchParams }: {
             <Link
               key={j}
               href={lienMois(agenda.mois.mois, j)}
+              prefetch={false}
               aria-current={actif ? "date" : undefined}
               aria-label={`${jourLong(`${j}T12:00:00Z`)}${nb ? `, ${nb} rendez-vous` : ""}`}
               className={`agenda-jour${actif ? " actif" : ""}${j === aujourdhui ? " aujourdhui" : ""}${nb ? " occupe" : ""}`}

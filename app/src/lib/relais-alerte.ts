@@ -234,12 +234,12 @@ export function htmlAlerteRelais(c: ConstatRelais, maintenant: Date, lienConsole
     ? `${points} point${points > 1 ? "s" : ""} à vérifier`
     : `Rappel : ${urgences} urgence${urgences > 1 ? "s" : ""} des dernières 24 h`;
   return `
-<div style="font-family:Figtree,Segoe UI,Arial,sans-serif;max-width:600px;margin:0 auto;color:#0f2352">
+<div style="font-family:Figtree,Segoe UI,Arial,sans-serif;max-width:600px;margin:0 auto;color:#14304f">
   <p style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#53617a;margin:0 0 8px">Relais du ${echapper(jour)}, 5 h (heure de Paris)</p>
   <h1 style="font-size:22px;line-height:1.25;margin:0 0 4px">${entete}</h1>
   ${blocs.join("\n  ")}
   <p style="margin:22px 0 20px">
-    <a href="${echapper(lienConsole)}" style="display:inline-block;background:#2457f5;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Ouvrir la console</a>
+    <a href="${echapper(lienConsole)}" style="display:inline-block;background:#14304f;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Ouvrir la console</a>
   </p>
   <p style="font-size:13px;color:#53617a;margin:0">Cet e-mail part au plus une fois par jour, vers 5 h (heure de Paris), et seulement s’il y a quelque chose à signaler. Les urgences partent aussi dans un e-mail immédiat, au plus ${DELAI_URGENCE_MAX_MINUTES} minutes après l’événement (un passage automatique les constate toutes les ${INTERVALLE_PASSAGE_URGENCES_MINUTES} minutes) ; il les rappelle ici. Il ne contient ni nom ni montant ; rien ne se décide depuis lui : les gestes se font dans la console.</p>
 </div>`;

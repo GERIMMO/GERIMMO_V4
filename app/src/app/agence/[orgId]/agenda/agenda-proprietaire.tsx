@@ -80,9 +80,11 @@ export function AgendaProprietaire({ agenda, comptesVues, base, aujourdhui }: {
         <header className={styles.enteteMois}>
           <div><h2>{moisAffiche}</h2><p>{agenda.total} rendez-vous ce mois-ci</p></div>
           <nav className={styles.navigationMois} aria-label="Changer de mois">
-            <Link href={lienMois(agenda.mois.precedent.slice(0, 7))} aria-label="Mois précédent" scroll={false}><ChevronLeft size={18} aria-hidden="true" /></Link>
-            <Link href={`${base}/agenda`} className={styles.aujourdhuiLien}>Aujourd’hui</Link>
-            <Link href={lienMois(agenda.mois.suivant.slice(0, 7))} aria-label="Mois suivant" scroll={false}><ChevronRight size={18} aria-hidden="true" /></Link>
+            {/* Sans préchargement (audit final, UX-13) : chaque case du mois et chaque mois voisin lançaient un rendu
+                serveur à l'ouverture — 80 requêtes avant tout geste. Les onglets de vue, eux, restent préchargés. */}
+            <Link href={lienMois(agenda.mois.precedent.slice(0, 7))} prefetch={false} aria-label="Mois précédent" scroll={false}><ChevronLeft size={18} aria-hidden="true" /></Link>
+            <Link href={`${base}/agenda`} prefetch={false} className={styles.aujourdhuiLien}>Aujourd’hui</Link>
+            <Link href={lienMois(agenda.mois.suivant.slice(0, 7))} prefetch={false} aria-label="Mois suivant" scroll={false}><ChevronRight size={18} aria-hidden="true" /></Link>
           </nav>
         </header>
         <div className={styles.grille} role="group" aria-label={`Rendez-vous ${deElide(moisAffiche)}`}>
@@ -92,7 +94,7 @@ export function AgendaProprietaire({ agenda, comptesVues, base, aujourdhui }: {
             const rendezVous = parJour.get(jour) ?? [];
             const nb = rendezVous.length;
             const jourActuel = jour === aujourdhui;
-            return <Link key={jour} href={lienMois(agenda.mois.mois, jour)} scroll={false}
+            return <Link key={jour} href={lienMois(agenda.mois.mois, jour)} scroll={false} prefetch={false}
               aria-current={jour === agenda.jour ? "date" : undefined}
               aria-label={`${jourLong(`${jour}T12:00:00Z`)}${jourActuel ? ", aujourd’hui" : ""}, ${nb} rendez-vous`}
               className={styles.jour} data-aujourdhui={jourActuel} data-weekend={(i + agenda.mois.decalage) % 7 >= 5}>

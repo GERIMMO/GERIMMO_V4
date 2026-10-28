@@ -17,7 +17,13 @@ import { eur } from "@/lib/ged";
 import { adresseDuSite } from "@/lib/site";
 import { baseEspace } from "@/lib/racine-espace";
 
-export const metadata = { title: "Profil — Gerimmo" };
+// L'onglet porte le nom de l'écran (audit final, UX-05 : « Profil — Gerimmo » sous le H1 « Mon profil »).
+// verifierAccesEspace est sous cache() : la page ne refait pas la lecture.
+export async function generateMetadata(props: PageProps<"/agence/[orgId]/profil">) {
+  const { orgId } = await props.params;
+  const { estProprietaire, traverseeLectureSeule } = await verifierAccesEspace(orgId);
+  return { title: `${estProprietaire ? (traverseeLectureSeule ? "Profil du propriétaire" : "Mon profil") : "Profil de l'agence"} — Gerimmo` };
+}
 
 // Profil de l'organisation (sprint « Documents-0 ») : l'identité imprimée en
 // en-tête et en pied de chaque document généré, et la commune du « Fait à ».
@@ -156,7 +162,8 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
       </div>
 
       <details className="loc-carte" open={!estProprietaire || undefined}>
-        <summary className="cursor-pointer font-semibold">Parrainage — {filleuls} filleul{filleuls > 1 ? "s" : ""}</summary>
+        {/* 44 px au doigt (audit final, UX-12) : le résumé ne faisait que 24 px. */}
+        <summary className="cursor-pointer py-2.5 font-semibold">Parrainage — {filleuls} filleul{filleuls > 1 ? "s" : ""}</summary>
         <div className="mt-4">
         <div className="entete-carte">
           <h2 className="titre-carte leading-[inherit]">Parrainage</h2>
@@ -242,7 +249,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
       </details>
 
       <details className="loc-carte" open={!estProprietaire || undefined}>
-        <summary className="cursor-pointer font-semibold">Signature préenregistrée — facultatif</summary>
+        <summary className="cursor-pointer py-2.5 font-semibold">Signature préenregistrée — facultatif</summary>
         <div className="mt-4">
         <div className="entete-carte">
           <h2 className="titre-carte leading-[inherit]">Signature préenregistrée</h2>

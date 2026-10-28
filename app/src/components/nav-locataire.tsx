@@ -104,10 +104,6 @@ export function SidebarLocataire({
             className={cn(active && "actif")}
               aria-current={active ? "page" : undefined}
             title={e.libelle}
-            // Accessibilité (audit 09/09) : le lien s'annonce en entier, le
-            // badge est décoratif — sinon les lecteurs d'écran ne lisent
-            // que le nombre
-            aria-label={nb > 0 ? `${e.libelle}, ${nb} élément${nb > 1 ? "s" : ""} à traiter` : undefined}
           >
             <Icone nom={e.icone} />
             <span className="lib">{e.libelle}</span>
@@ -116,6 +112,10 @@ export function SidebarLocataire({
                 {nb > 99 ? "99+" : nb}
               </span>
             )}
+            {/* Accessibilité (audit 09/09) : le lien s'annonce en entier, le badge est décoratif. Le complément PROLONGE le
+                texte visible au lieu de le remplacer par un aria-label (audit final, UX-09, label-content-name-mismatch),
+                comme la barre latérale du propriétaire (barre-laterale.tsx). */}
+            {nb > 0 && <span className="sr-only"> — {nb} élément{nb > 1 ? "s" : ""} à traiter</span>}
           </Link>
         );
       })}

@@ -2,6 +2,9 @@ import type { ReactNode } from "react";
 import { lireDureesPubliques } from "@/lib/conservation-publique";
 import { DureesActuelles, ReferenceConservation } from "@/components/conservation-publique";
 import { lireEditeur } from "@/lib/editeur-serveur";
+
+// Page publique relue toutes les heures (audit final, PUB-05) : ses lectures se font sans cookie.
+export const revalidate = 3600;
 import Link from "next/link";
 import { AFournir, Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
 import { CONDITIONS_DATE, courrielDeContact, confidentialiteIncomplete, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";

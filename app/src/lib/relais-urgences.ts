@@ -80,13 +80,13 @@ export function htmlUrgencesRelais(urgences: UrgenceEnvoi[], lienConsole: string
   const n = urgences.length;
   const lignes = urgences.map((u) => `<li>${echapper(formaterDateHeureParis(u.posee_le))} — ${echapper(libelleUrgence(u.nature))}</li>`).join("");
   return `
-<div style="font-family:Figtree,Segoe UI,Arial,sans-serif;max-width:600px;margin:0 auto;color:#0f2352">
+<div style="font-family:Figtree,Segoe UI,Arial,sans-serif;max-width:600px;margin:0 auto;color:#14304f">
   <p style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#53617a;margin:0 0 8px">Relais — urgence du mode vacances</p>
   <h1 style="font-size:22px;line-height:1.25;margin:0 0 12px">${n > 1 ? `${n} urgences à examiner` : "1 urgence à examiner"}</h1>
   <ul style="margin:0;padding-left:20px;line-height:1.6">${lignes}</ul>
   <p style="font-size:13px;color:#53617a;margin:8px 0 0">Heures du constat (heure de Paris).</p>
   <p style="margin:22px 0 20px">
-    <a href="${echapper(lienConsole)}" style="display:inline-block;background:#2457f5;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Ouvrir la console</a>
+    <a href="${echapper(lienConsole)}" style="display:inline-block;background:#14304f;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Ouvrir la console</a>
   </p>
   <p style="font-size:13px;color:#53617a;margin:0">Cet e-mail part au plus ${DELAI_URGENCE_MAX_MINUTES} min après l’événement : un passage automatique constate les urgences toutes les ${INTERVALLE_PASSAGE_URGENCES_MINUTES} minutes, jour et nuit, et l’heure indiquée est celle de ce constat ; une urgence signalée à la main dans la console part aussitôt. Il part une seule fois par urgence, au plus ${PLAFOND_URGENCES_PAR_HEURE} fois par heure : au-delà, ou si l’envoi échoue, les urgences en attente partent groupées au passage suivant ou dans l’e-mail de 5 h (heure de Paris), qui les rappelle toutes. Il ne contient ni nom ni montant ; l’arrêt d’urgence ne le coupe pas. Rien ne se décide depuis lui : les gestes se font dans la console.</p>
 </div>`;

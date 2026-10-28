@@ -200,16 +200,16 @@ function corpsDuCourrier(c: Courrier, lien: string, origine: string): string {
     c.renouvellement ?? `S’il a expiré, demandez-en un nouveau sur <a href="${oublie}">la page « Mot de passe oublié »</a>.`;
   const siIgnore = c.siIgnore ?? "Vous n’êtes pas à l’origine de cette demande ? Ignorez ce message : votre compte reste inchangé.";
   return `
-    <div style="font-family:sans-serif;font-size:14px;color:#151b2b;max-width:560px">
-      <h2 style="color:#0f2352">${c.titre}</h2>
+    <div style="font-family:sans-serif;font-size:14px;color:#16243a;max-width:560px">
+      <h2 style="color:#14304f">${c.titre}</h2>
       <p>Bonjour,</p>
       <p>${c.texte}</p>
       <p style="margin:24px 0">
-        <a href="${href}" style="display:inline-block;background:#0f2352;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600">${c.bouton}</a>
+        <a href="${href}" style="display:inline-block;background:#14304f;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:6px;font-weight:600">${c.bouton}</a>
       </p>
-      <p style="color:#4a5163">Ce lien est personnel, valable pour une durée limitée et ne sert qu’une fois. ${renouvellement}</p>
-      <p style="color:#4a5163">Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :<br><span style="word-break:break-all">${href}</span></p>
-      <p style="color:#4a5163">${siIgnore}</p>
+      <p style="color:#626f82">Ce lien est personnel, valable pour une durée limitée et ne sert qu’une fois. ${renouvellement}</p>
+      <p style="color:#626f82">Si le bouton ne fonctionne pas, copiez cette adresse dans votre navigateur :<br><span style="word-break:break-all">${href}</span></p>
+      <p style="color:#626f82">${siIgnore}</p>
       <p>— L’équipe Gerimmo</p>
     </div>`;
 }

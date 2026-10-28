@@ -4,7 +4,7 @@
 .incidents-entete > div:first-child { min-width: 0; }
 .incidents-entete p { margin-top: 10px; font-size: 14px; line-height: 1.6; color: var(--texte-secondaire, #626f82); }
 .incidents-entete-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.gerimmo-prestige .incidents-entete-actions a { min-height: 42px; padding: 10px 14px; gap: 8px; font-size: 13px; }
+.gerimmo-prestige .incidents-entete-actions a { min-height: var(--cible-tactile); padding: 10px 14px; gap: 8px; font-size: 13px; }
 .incidents-filtres { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px; }
 .incidents-filtre { --ton: #546176; --teinte: #eef1f5; display: flex; align-items: center; gap: 12px; padding: 13px 16px; border: 1px solid #dce2e9; border-radius: 12px; background: #fff; color: #506079; transition: border-color .15s, background .15s; }
 .incidents-filtre[data-vue="en-cours"] { --ton: #355d87; --teinte: #edf3fa; }
@@ -93,7 +93,7 @@
   .incidents-page .split { grid-template-columns: minmax(0, 1fr); }
   .incidents-page .colonne-liste-split { position: static; max-height: none; }
   .incidents-page .split.detail-actif > .volet-liste { display: none; }
-  .incidents-page .retour-liste { display: inline-flex; align-items: center; min-height: 40px; }
+  .incidents-page .retour-liste { display: inline-flex; align-items: center; min-height: var(--cible-tactile); }
   .incidents-page .rang.actif.max-\[1100px\]\:bg-transparent { background: transparent; border-left-color: transparent; }
 }
 @media (max-width: 640px) {

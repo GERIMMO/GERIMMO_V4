@@ -9,7 +9,14 @@ import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { baseEspace } from "@/lib/racine-espace";
 
-export const metadata = { title: "Mandats & versements — Gerimmo" };
+// Le titre n'est posé que si la page s'ouvre (audit final, UX-14) : un propriétaire direct tombait sur « Cette page est
+// introuvable » sous un onglet « Mandats & versements ». verifierAccesEspace est sous cache() : aucune lecture de plus.
+export async function generateMetadata(props: PageProps<"/agence/[orgId]/mandats">) {
+  const { orgId } = await props.params;
+  const { role, estProprietaire } = await verifierAccesEspace(orgId);
+  if (estProprietaire || role !== "admin_agence") notFound();
+  return { title: "Mandats & versements — Gerimmo" };
+}
 
 // Mandats & versements (maquette v6, admin d'agence) : chaque mandat actif avec
 // son mandant, ses lots, son dernier rapport de gestion et l'état du

@@ -45,7 +45,7 @@
 .contenu { min-width:0; display:grid; grid-template-columns:minmax(0,1fr); gap:16px; }
 .contenu > div { min-width:0; }
 .fiche :global(.dossier-raccourcis) { padding:5px; gap:6px; margin-bottom:18px; }
-.fiche :global(.dossier-raccourcis button) { flex:1; font-size:12px; min-height:42px; }
+.fiche :global(.dossier-raccourcis button) { flex:1; font-size:12px; min-height:var(--cible-tactile); }
 .fiche :global(.dossier-raccourcis button[aria-current=page]) { background:var(--prestige-nuit); color:#fff; }
 .apercu { display:grid; gap:18px; }
 .locationResume { display:flex; flex-wrap:wrap; align-items:center; gap:16px; padding:19px 20px; border:1px solid #e5dcc7; border-radius:12px; background:linear-gradient(110deg,#fcf9f0,#fff); scroll-margin-top:96px; }

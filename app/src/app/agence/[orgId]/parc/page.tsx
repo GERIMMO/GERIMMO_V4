@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, MapPin } from "lucide-react";
+import { ChevronRight, MapPin, Plus } from "lucide-react";
 import { TitreEcran } from "@/components/titre-ecran";
 import { BoutonResumeBien } from "@/components/resume-bien";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -35,7 +35,13 @@ import { occupationLot } from "@/lib/occupation-lot";
 import { avecEcheanceReglementaire } from "@/lib/documents-bail";
 import { VueParcProprietaire } from "./vue-parc-proprietaire";
 
-export const metadata = { title: "Parc — Gerimmo" };
+// L'onglet porte le nom de l'écran, celui de l'entrée de menu (audit final, UX-05 : « Parc — Gerimmo » sous le H1
+// « Biens & locations »). verifierAccesEspace est sous cache() : la page ne refait pas la lecture.
+export async function generateMetadata(props: PageProps<"/agence/[orgId]/parc">) {
+  const { orgId } = await props.params;
+  const { role, estProprietaire } = await verifierAccesEspace(orgId);
+  return { title: `${estProprietaire ? "Biens & locations" : role === "agent" ? "Mon portefeuille" : "Parc de l'agence"} — Gerimmo` };
+}
 
 type LotResume = {
   id: string;
@@ -254,7 +260,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                 </Link>
               )}
               <Link href={`${base}/parc/nouveau`} className="btn-or">
-                + Ajouter un bien
+                <Plus size={17} aria-hidden="true" />Ajouter un bien
               </Link>
             </>
           )}

@@ -13,12 +13,13 @@ import { couperAuMot } from "@/lib/utils";
 export const NOM_DU_SITE = "Gerimmo";
 
 /**
- * Le logo officiel sert aussi aux aperçus de partage.
+ * La carte des aperçus de partage : 1200 × 630 (audit final, PUB-18), pas le logo brut.
  */
 const IMAGE_PARTAGE = {
-  url: CHARTE_GERIMMO.logo,
-  width: CHARTE_GERIMMO.logoLargeur,
-  height: CHARTE_GERIMMO.logoHauteur,
+  url: CHARTE_GERIMMO.imagePartage,
+  width: CHARTE_GERIMMO.imagePartageLargeur,
+  height: CHARTE_GERIMMO.imagePartageHauteur,
+  type: "image/jpeg",
   alt: "Gerimmo — L’immobilier en confiance",
 };
 

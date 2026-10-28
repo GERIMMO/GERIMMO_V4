@@ -60,8 +60,8 @@ export function corpsAvisEcheance(a: AvisEcheance): string {
          solderez votre compte, soit ${eur(a.resteDu + a.arriere)} au total.</p>`
       : "";
   return `
-    <div style="font-family:sans-serif;font-size:14px;color:#151b2b">
-      <h2 style="color:#0f2352">Avis d'échéance — ${mois}</h2>
+    <div style="font-family:sans-serif;font-size:14px;color:#16243a">
+      <h2 style="color:#14304f">Avis d'échéance — ${mois}</h2>
       <p>Bonjour${a.prenom ? " " + echapperHtml(a.prenom) : ""},</p>
       <p>Voici le détail de votre échéance ${particuleDe(mois)}<strong>${mois}</strong>,
          à régler pour le <strong>${jourDeLEcheance(a.dateEcheance)}</strong> :</p>

@@ -65,6 +65,11 @@ describe("les textes (français, sans jargon)", () => {
     expect(revenue).toMatch(/Réessayer/);
   });
 
+  // Audit final (UX-17) : le message se lit aussi à la souris — jamais « touchez ».
+  it("ne dit jamais « touchez » : le message vaut au doigt comme à la souris", () => {
+    for (const texte of Object.values(TEXTES_HORS_LIGNE)) expect(texte).not.toMatch(/touchez/i);
+  });
+
   it("ne contient ni anglais ni code d'erreur du navigateur", () => {
     for (const texte of Object.values(TEXTES_HORS_LIGNE)) expect(texte).not.toMatch(/offline|ERR_|network|retry/i);
   });

@@ -6,7 +6,12 @@ import { EnteteFiche } from "@/components/fiche-parc";
 import { FormulaireImport } from "./formulaire-import";
 import { baseEspace } from "@/lib/racine-espace";
 
-export const metadata = { title: "Import des lots — Gerimmo" };
+// L'onglet porte le nom de l'écran (audit final, UX-05 : « Import des lots » sous le H1 « Importer mes lots »).
+export async function generateMetadata(props: PageProps<"/agence/[orgId]/parc/import">) {
+  const { orgId } = await props.params;
+  const { estProprietaire } = await verifierAccesEspace(orgId);
+  return { title: `${estProprietaire ? "Importer mes lots" : "Reprendre le parc"} — Gerimmo` };
+}
 
 /**
  * La reprise d'un parc existant (module 16.3 : « dizaines de lots, ligne par
@@ -29,7 +34,7 @@ export default async function PageImportParc(
   // « Reprendre un parc », la page « Reprendre mon parc », le retour « ← Mon
   // parc » — alors que le propriétaire arrive de « Mes lots ». Le retour porte
   // le nom de l'entrée du menu ; l'écran et son lien d'entrée, le même titre.
-  const libelleParc = estProprietaire ? "Mes lots" : "Parc de l'agence";
+  const libelleParc = estProprietaire ? "Biens & locations" : "Parc de l'agence";
   const titre = estProprietaire ? "Importer mes lots" : "Reprendre le parc";
   // Ce qui décide si le fichier passera se lit sans ouvrir le dépliage.
   const obligatoires = COLONNES.filter(([, , requise]) => requise).map(([, libelle]) =>

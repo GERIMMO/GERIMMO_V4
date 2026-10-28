@@ -30,7 +30,7 @@ export function BoutonMenuSupervision() {
 /** La colonne latérale : toujours là sur ordinateur ; au téléphone, seulement quand le menu est ouvert (un seul menu dans la page). */
 export function ColonneSupervision({ children }: { children: ReactNode }) {
   const { ouvert } = useContext(MenuSupervision);
-  return <aside id="menu-supervision" className={`admin-late min-[901px]:col-start-1 min-[901px]:row-start-1 min-[901px]:row-span-2 max-[900px]:row-start-2${ouvert ? "" : " max-[900px]:hidden!"}`}>{children}</aside>;
+  return <aside id="menu-supervision" aria-label="Menu de la supervision" className={`admin-late min-[901px]:col-start-1 min-[901px]:row-start-1 min-[901px]:row-span-2 max-[900px]:row-start-2${ouvert ? "" : " max-[900px]:hidden!"}`}>{children}</aside>;
 }
 
 function Groupes({ artisansEnAttente, decisions, auClic }: { artisansEnAttente: number | null; decisions: number | null; auClic?: () => void }) {

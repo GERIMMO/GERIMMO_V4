@@ -180,7 +180,7 @@ export default async function PageFicheArtisan(
             <Info libelle="Métiers">
               {listeMetiers.length > 0 ? listeMetiers.join(" · ") : "Non renseignés"}
             </Info>
-            <Info libelle="Email">{artisan.email || "Non renseigné"}</Info>
+            <Info libelle="E-mail">{artisan.email || "Non renseigné"}</Info>
             <Info libelle="Téléphone">{artisan.telephone || "Non renseigné"}</Info>
             <Info libelle="Visibilité">
               {LIBELLES_VISIBILITE[artisan.visibilite] ?? artisan.visibilite}

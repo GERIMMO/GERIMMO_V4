@@ -26,3 +26,14 @@ export function deElide(mot: string): string {
   const m = mot.trim();
   return `${particuleDe(m)}${m}`;
 }
+
+/** « que » ou « qu’ » seul, selon le mot qui suit : « dès qu’octobre 2026 », « dès que septembre 2026 ». */
+export function particuleQue(mot: string): "que " | "qu’" {
+  return VOYELLE_INITIALE.test(mot.trim()) ? "qu’" : "que ";
+}
+
+/** « que » + mot, avec élision : queElide("octobre 2026") → « qu’octobre 2026 » (audit final du 27/10, DRT-12). */
+export function queElide(mot: string): string {
+  const m = mot.trim();
+  return `${particuleQue(m)}${m}`;
+}

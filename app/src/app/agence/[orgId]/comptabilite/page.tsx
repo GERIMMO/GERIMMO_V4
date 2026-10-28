@@ -1,5 +1,6 @@
 import { deElide } from "@/lib/elision";
 import { TitreEcran } from "@/components/titre-ecran";
+import { libelleCategorie } from "@/lib/categories-ecritures";
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, formaterDate, moisEnFrancais, aujourdhuiParis } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
@@ -41,30 +42,6 @@ export async function generateMetadata(props: { params: Promise<{ orgId: string 
 // Le journal affiché est paginé ; les totaux, eux, se calculent en base sur
 // TOUT le journal. L'écran doit dire lequel des deux il montre.
 const LIGNES_JOURNAL = 200;
-
-// Les catégories posées par le système sont des codes (« depot_garantie ») :
-// affichés bruts, ils parlaient la langue de la base. Une catégorie saisie à
-// la main passe telle quelle, capitale en tête.
-const LIBELLES_CATEGORIE: Record<string, string> = {
-  loyer: "Loyer",
-  honoraires: "Honoraires",
-  depot_garantie: "Dépôt de garantie",
-  charges: "Charges",
-  travaux: "Travaux",
-  assurance: "Assurance",
-  taxe_fonciere: "Taxe foncière",
-  regularisation_charges: "Régularisation des charges",
-  // Solde de tout compte (audit métier du 27/09) : avance restituée au locataire
-  trop_percu_restitue: "Trop-perçu restitué",
-  reversement: "Reversement",
-};
-
-function libelleCategorie(categorie: string): string {
-  const connu = LIBELLES_CATEGORIE[categorie];
-  if (connu) return connu;
-  const texte = categorie.replace(/_/g, " ").trim();
-  return texte ? texte.charAt(0).toUpperCase() + texte.slice(1) : "Sans catégorie";
-}
 
 type Ecriture = {
   id: string;

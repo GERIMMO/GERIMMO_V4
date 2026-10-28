@@ -1,4 +1,4 @@
-import { eur, formaterDate } from "@/lib/ged";
+import { eur, formaterDate, formaterIndice, ordinalJour } from "@/lib/ged";
 import { TYPES_BAIL } from "@/lib/baux";
 import { libelleTrimestreIrlEcran } from "@/lib/trimestre-irl";
 import type { ValeursParcoursBail } from "@/lib/champs-etape-bail";
@@ -73,10 +73,11 @@ export function rubriquesRecapBail({ bail, lot, bien, personnes, liens, erreurLo
       montant("loyer_hc", "Loyer hors charges"), montant("charges", "Charges"),
       { ...ligne("loyer_hc", "Total mensuel", montantRecapBail(bail.loyer_hc) !== null && montantRecapBail(bail.charges) !== null ? eur(Number(bail.loyer_hc) + Number(bail.charges)) : null), champ: "total_calcule", facultatif: true },
       montant("depot_garantie", "Dépôt de garantie"), choix("charges_mode", "Mode de charges", { forfait: "Forfait", provision: "Provision avec régularisation" }),
-      ligne("jour_echeance", "Échéance mensuelle", absent(bail.jour_echeance) ? null : `Le ${bail.jour_echeance} de chaque mois`),
+      ligne("jour_echeance", "Échéance mensuelle", absent(bail.jour_echeance) ? null : `Le ${ordinalJour(Number(bail.jour_echeance))} de chaque mois`),
       choix("paiement_echeance", "Paiement", { echoir: "À échoir", echu: "À terme échu" }), texte("lieu_paiement", "Lieu de paiement"),
       ligne("revision_irl", "Révision annuelle", ouiNon(bail.revision_irl)),
-      ...(bail.revision_irl === true ? [ligne("irl_trimestre", "Trimestre IRL", libelleTrimestreIrlEcran(texteRecapBail(bail.irl_trimestre))), texte("irl_valeur", "Indice IRL")] : []),
+      // Trimestre IRL daté (BAIL-02) ; l'indice s'écrit « 145,17 », comme sur le contrat (BAIL-16).
+      ...(bail.revision_irl === true ? [ligne("irl_trimestre", "Trimestre IRL", libelleTrimestreIrlEcran(texteRecapBail(bail.irl_trimestre))), ligne("irl_valeur", "Indice IRL", absent(bail.irl_valeur) || !Number.isFinite(Number(bail.irl_valeur)) ? texteRecapBail(bail.irl_valeur) : formaterIndice(Number(bail.irl_valeur)))] : []),
       choix("fixation_loyer", "Fixation du loyer", { libre: "Libre", plafonnement: "Plafonnement", reevaluation: "Réévaluation" }),
       choix("precedente_location", "Précédente location", { premiere: "Première location", ancienne: "Départ depuis au moins 18 mois", recente: "Départ depuis moins de 18 mois" }),
       ...(bail.precedente_location === "recente" ? [montant("dernier_loyer", "Précédent loyer"), ligne("dernier_loyer_versement", "Dernier versement", date(bail.dernier_loyer_versement)), ligne("precedent_loyer_revise", "Précédent loyer révisé", ouiNon(bail.precedent_loyer_revise)), ...(bail.precedent_loyer_revise === true ? [ligne("dernier_loyer_revision", "Dernière révision", date(bail.dernier_loyer_revision))] : [])] : []),

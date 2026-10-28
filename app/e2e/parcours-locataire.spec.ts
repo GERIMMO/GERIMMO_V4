@@ -226,3 +226,33 @@ test("une photo refusée conserve la catégorie, la pièce, le texte et le fichi
   await expect(page.getByText("1 photo jointe", { exact: false })).toBeVisible();
   await expect(repere).toBeVisible();
 });
+
+// Audit final du 27/10 (DRT-02, DRT-03) : un message sans espace (adresse, référence) étirait toute la page « Mon
+// gestionnaire » à 26 000 px, et les retours à la ligne d'un message s'effaçaient à l'affichage. Le message fictif est
+// écrit directement dans la base API locale, puis retiré.
+for (const largeur of [390, 1280]) test(`mon gestionnaire : un message sans espace ne déforme pas la page à ${largeur}px, les paragraphes restent`, async ({ page }) => {
+  const cible = process.env.SUPALOCAL_DB;
+  test.skip(!cible, "Base API locale fictive requise");
+  const url = new URL(cible!);
+  if (!["localhost", "127.0.0.1"].includes(url.hostname) || !/^gerimmo_ci_[a-z_]+_api$/.test(url.pathname.slice(1))) throw new Error("Base fictive locale requise");
+  const orgId = await ouvrirEspace(page);
+  const db = new Client({ connectionString: cible }); await db.connect();
+  const id = randomUUID();
+  try {
+    const { rows: [personne] } = await db.query("select id from public.persons where organization_id=$1 and email='locataire.alpha@example.com'", [orgId]);
+    await db.query("insert into public.messages(id, organization_id, person_id, auteur, texte) values ($1,$2,$3,'locataire',$4)",
+      [id, orgId, personne.id, `E2E-${id.slice(0, 8)} première ligne\ndeuxième ligne\n\n${"x".repeat(2000)}`]);
+    await page.setViewportSize({ width: largeur, height: largeur < 500 ? 844 : 900 });
+    await page.goto(`/locataire/${orgId}/contact`);
+    const bulle = page.locator("div.rounded-xl").filter({ hasText: `E2E-${id.slice(0, 8)}` });
+    await expect(bulle).toBeVisible();
+    expect(await debordementHorizontal(page)).toBe(0);
+    expect(await bulle.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    // Deux sauts de ligne conservés (une ligne vide = deux sauts consécutifs).
+    const texte = await bulle.locator("p.whitespace-pre-wrap").innerText();
+    expect(texte).toContain("première ligne\ndeuxième ligne\n\nxxx");
+  } finally {
+    await db.query("delete from public.messages where id=$1", [id]);
+    await db.end();
+  }
+});

@@ -194,7 +194,7 @@ export default async function PageEspaces() {
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-4 py-3 sm:px-7">
           <MarqueGerimmo tuile />
           <div className="flex items-center gap-2">
-            <SyntheseAlertes alertes={alertes} rappel aujourdhui={aujourdhuiParis()} />
+            <SyntheseAlertes alertes={alertes} rappel aujourdhui={aujourdhuiParis()} compteId={user.id} />
             <PurgerCopiesAutresComptes compteId={user.id} />
             <FormulaireDeconnexion className="lien-bandeau">
               Se déconnecter

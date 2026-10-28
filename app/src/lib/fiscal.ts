@@ -13,6 +13,10 @@ export type RubriqueFiscale={code:string;libelle:string;sens:'recette'|'depense'
 export type RecapitulatifFiscal={annee:number;versionRegles:string;rubriques:RubriqueFiscale[];fondsTravauxAlur:number;totalRecettes:number;totalCharges:number;revenuNet:number;totalRecettesQuotePart:number;totalChargesQuotePart:number;revenuNetQuotePart:number;ventile:boolean;meuble:{recettes:number;depenses:number;nbEcritures:number};nbEcritures:number;nbRetenues:number;nbHorsPerimetre:number;chargesRecuperees:number;teomExclue:number;coproRecuperableExclue:number;aQualifier:number;nonDeductible:number;incomplet:boolean;alertes:string[];ecrituresAQualifier:string[];
  /** Parmi les pièces à qualifier, les loyers encaissés dont la répartition loyer / charges n'est pas encore justifiée (FIN-11, D02). */
  ecrituresLoyersSansVentilation:string[];
+ /** Pièces d'un lot connu sans exercice confirmé couvrant leur date : elles attendent la confirmation du lot, pas une qualification pièce par pièce (audit final du 27/10, LOY-03). */
+ ecrituresSansExercice:string[];
+ /** Les lots dont l'exercice de l'année reste à confirmer, d'après ces pièces. */
+ lotsSansExercice:string[];
  /** Dépenses rangées d'office en « fonds de travaux ALUR » d'après leur libellé, qu'une qualification existe ou non (FIN-07, D03). */
  ecrituresFondsTravauxAlur:string[]};
 export const RUBRIQUES_FISCALES=[
@@ -55,11 +59,14 @@ const arrondir=(n:number)=>Math.round((n+Number.EPSILON)*100)/100;
  * les anciennes recettes depuis un bail courant. */
 export function ventilerLoyer(montant:number,loyerHc:number,charges:number){const total=loyerHc+charges;if(!(charges>0)||!(total>0))return{part211:montant,part212:0};const part212=Math.sign(montant)*Math.round(Math.abs(montant)*charges/total*100)/100;return{part211:arrondir(montant-part212),part212};}
 export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,options:OptionsFiscales={}):RecapitulatifFiscal{
- const montants=new Map<string,number>(),parts=new Map<string,number>(),categories=new Map<string,Set<string>>(),alertes=new Set<string>(),aQualifierIds=new Set<string>(),loyersSansVentilationIds=new Set<string>(),fondsTravauxAlurIds=new Set<string>(),lots=new Set<string>();
+ const montants=new Map<string,number>(),parts=new Map<string,number>(),categories=new Map<string,Set<string>>(),alertes=new Set<string>(),aQualifierIds=new Set<string>(),loyersSansVentilationIds=new Set<string>(),fondsTravauxAlurIds=new Set<string>(),sansExerciceIds=new Set<string>(),lotsSansExercice=new Set<string>(),lots=new Set<string>();
  let fondsTravauxAlur=0,chargesRecuperees=0,teomExclue=0,aQualifier=0,nonDeductible=0,nbEcritures=0,nbRetenues=0,nbHorsPerimetre=0,ventile=false;
  const meuble={recettes:0,depenses:0,nbEcritures:0};
  const ajouter=(code:string,montant:number,quote:number,categorie:string)=>{montants.set(code,(montants.get(code)??0)+montant);parts.set(code,(parts.get(code)??0)+montant*quote/100);if(!categories.has(code))categories.set(code,new Set());categories.get(code)!.add(categorie);};
  const inconnue=(e:EcritureFiscale,montant:number,motif:string)=>{aQualifier+=montant;if(e.id)aQualifierIds.add(e.contre_ecriture_de??e.id);alertes.add(motif);};
+ // Le lot est connu mais son exercice de l'année n'est pas confirmé à cette date : la pièce attend UNE confirmation par lot (rubrique
+ // « Périodes fiscales et régularisation 230 »), pas une qualification une par une — la phrase de l'écran les distingue (LOY-03).
+ const sansExercice=(e:EcritureFiscale,montant:number,lot:string)=>{aQualifier+=montant;if(e.id)sansExerciceIds.add(e.contre_ecriture_de??e.id);lotsSansExercice.add(lot);alertes.add('Confirmez le lot, le régime et la quote-part à la date de chaque pièce.');};
  for(const e of ecritures){
   if(!e.date_piece?.startsWith(String(annee))||!['recette','depense'].includes(e.sens)||e.categorie==='depot_garantie')continue;
   nbEcritures++;
@@ -72,7 +79,7 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
   if(lot)lots.add(lot);
   const exercice=lot?options.exercices?.get(lot):undefined;
   const periode=exercice?.periodes.find(p=>p.debut<=e.date_piece&&p.fin>=e.date_piece);
-  if(options.exigerPerimetre&&(!lot||!periode)){inconnue(e,montant,'Confirmez le lot, le régime et la quote-part à la date de chaque pièce.');continue;}
+  if(options.exigerPerimetre&&(!lot||!periode)){if(lot)sansExercice(e,montant,lot);else inconnue(e,montant,'Confirmez le lot, le régime et la quote-part à la date de chaque pièce.');continue;}
   if(periode?.regime==='hors_perimetre'){nbHorsPerimetre++;continue;}
   const quote=periode?.quote_part??(lot?options.quoteParts?.get(lot):undefined)??100;
   if(quote!==100)ventile=true;
@@ -114,7 +121,7 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
  const rubriques:RubriqueFiscale[]=RUBRIQUES_FISCALES.map(r=>({...r,montant:arrondir(montants.get(r.code)??0),montantQuotePart:arrondir(parts.get(r.code)??0),categories:[...(categories.get(r.code)??[])],aCompleter:r.code==='230'?manque230:(r.code==='222'||r.code==='250')&&!montants.has(r.code),reintegration:r.code==='230'}));
  const somme=(sens:string,part:boolean)=>arrondir(rubriques.filter(r=>r.sens===sens).reduce((s,r)=>s+(r.reintegration?-1:1)*(part?r.montantQuotePart:r.montant),0));
  const totalRecettes=somme('recette',false),totalCharges=somme('depense',false),totalRecettesQuotePart=somme('recette',true),totalChargesQuotePart=somme('depense',true);
- return{annee,versionRegles:'2026-10-12-v1',rubriques,fondsTravauxAlur:arrondir(fondsTravauxAlur),totalRecettes,totalCharges,revenuNet:arrondir(totalRecettes-totalCharges),totalRecettesQuotePart,totalChargesQuotePart,revenuNetQuotePart:arrondir(totalRecettesQuotePart-totalChargesQuotePart),ventile,meuble:{recettes:arrondir(meuble.recettes),depenses:arrondir(meuble.depenses),nbEcritures:meuble.nbEcritures},nbEcritures,nbRetenues,nbHorsPerimetre,chargesRecuperees:arrondir(chargesRecuperees),teomExclue:arrondir(teomExclue),coproRecuperableExclue:0,aQualifier:arrondir(aQualifier),nonDeductible:arrondir(nonDeductible),incomplet:alertes.size>0,alertes:[...alertes],ecrituresAQualifier:[...aQualifierIds],ecrituresLoyersSansVentilation:[...loyersSansVentilationIds].filter(i=>aQualifierIds.has(i)),ecrituresFondsTravauxAlur:[...fondsTravauxAlurIds]};
+ return{annee,versionRegles:'2026-10-12-v1',rubriques,fondsTravauxAlur:arrondir(fondsTravauxAlur),totalRecettes,totalCharges,revenuNet:arrondir(totalRecettes-totalCharges),totalRecettesQuotePart,totalChargesQuotePart,revenuNetQuotePart:arrondir(totalRecettesQuotePart-totalChargesQuotePart),ventile,meuble:{recettes:arrondir(meuble.recettes),depenses:arrondir(meuble.depenses),nbEcritures:meuble.nbEcritures},nbEcritures,nbRetenues,nbHorsPerimetre,chargesRecuperees:arrondir(chargesRecuperees),teomExclue:arrondir(teomExclue),coproRecuperableExclue:0,aQualifier:arrondir(aQualifier),nonDeductible:arrondir(nonDeductible),incomplet:alertes.size>0,alertes:[...alertes],ecrituresAQualifier:[...aQualifierIds],ecrituresLoyersSansVentilation:[...loyersSansVentilationIds].filter(i=>aQualifierIds.has(i)),ecrituresFondsTravauxAlur:[...fondsTravauxAlurIds],ecrituresSansExercice:[...sansExerciceIds],lotsSansExercice:[...lotsSansExercice]};
 }
 /**
  * Le périmètre d'un récapitulatif, dit en clair (vérification du 14/10, VER-TS-04) : « 12 écritures enregistrées »
@@ -137,15 +144,20 @@ export function phrasePerimetreFiscal(r:RecapitulatifFiscal,options:{tableau?:bo
  * D02 (FIN-11, option A) : combien de pièces restent à qualifier à la main, dit en clair, là où le récapitulatif annonce qu'il est
  * incomplet. Les loyers encaissés avant la mise en place de la ventilation fiscale ne sont pas repris automatiquement et aucun
  * outil de reprise par lot n'existe encore : chacun se qualifie (ou retrouve sa ventilation) pièce par pièce. `null` si rien n'est à qualifier.
+ * Audit final du 27/10 (LOY-03) : les pièces d'un lot sans exercice confirmé se comptent à part — « 48 pièces restent à qualifier, une
+ * par une » annonçait quarante-huit gestes là où la confirmation de l'exercice d'un lot en retirait neuf d'un coup, et la rubrique
+ * « Qualifier les pièces » n'en listait que quatre.
  */
 export function phrasePiecesAQualifier(r:RecapitulatifFiscal):string|null{
- const n=r.ecrituresAQualifier.length;
- if(n===0)return null;
+ const n=r.ecrituresAQualifier.length,s=r.ecrituresSansExercice.length,k=r.lotsSansExercice.length;
+ if(n===0&&s===0)return null;
+ const exercice=s>0?`${s} pièce${s>1?'s':''} attend${s>1?'ent':''} la confirmation de l’exercice ${k>1?`de ${k} lots`:s>1?'de leur lot':'de son lot'} (rubrique « Périodes fiscales et régularisation 230 » : une confirmation par lot, sans qualifier chaque pièce)`:'';
+ if(n===0)return `${exercice} avant que ce récapitulatif soit complet.`;
  const m=r.ecrituresLoyersSansVentilation.length;
  const debut=n>1?`${n} pièces restent à qualifier, une par une,`:'1 pièce reste à qualifier';
  const loyers=m>0?`, dont ${m} loyer${m>1?'s':''} encaissé${m>1?'s':''} sans répartition justifiée entre loyer et charges`:'';
  const reprise=m>0?' Les loyers encaissés avant la mise en place de la ventilation fiscale ne sont pas repris automatiquement : chacun se qualifie dans « Qualifier les pièces ».':'';
- return `${debut} avant que ce récapitulatif soit complet${loyers}.${reprise}`;
+ return `${exercice?`${exercice} ; `:''}${debut} avant que ce récapitulatif soit complet${loyers}.${reprise}`;
 }
 /**
  * D03 (FIN-07, option A) : une dépense au libellé « fonds de travaux / ALUR » est rangée d'office à part, avant que sa qualification

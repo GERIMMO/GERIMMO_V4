@@ -84,6 +84,15 @@ export function afficherEcheance(
 }
 
 /**
+ * La classe de l'échéance posée sur un rang d'alerte : sur le fond rouge pâle d'un rang critique, le rouge vif ne passe plus le
+ * contraste AA (4,1:1 pour « Dépassée de 56 j ») ; le jeton de texte sur fond doux (6,3:1), déjà celui des puces et des KPI rouges,
+ * le remplace (audit final du 27/10, LOY-08). Ailleurs, la classe de l'échéance reste la sienne.
+ */
+export function classeEcheanceSurRang(echeance: Pick<EcheanceAffichee, "classe">, critique: boolean): string {
+  return critique && echeance.classe === "text-destructive" ? "text-destructive-soft-foreground" : echeance.classe;
+}
+
+/**
  * Le premier jour du mois qui suit le jour donné (« AAAA-MM-JJ », le jour de Paris), en ISO UTC à minuit.
  * Sert à dire « prochaine échéance en novembre » à un locataire à jour : le mois se lit sur le jour de Paris que
  * le serveur passe, jamais sur `new Date()` (le serveur est en UTC : à cheval sur la fin du mois, il se tromperait).

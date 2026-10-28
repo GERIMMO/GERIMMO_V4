@@ -6,8 +6,10 @@ import styles from "./carte-taches-proprietaire.module.css";
 
 const icones = { incident: Wrench, document: FileText, location: KeyRound, demande: ClipboardList };
 
-export function CarteTachesProprietaire({ taches, base, indisponible, prioritesPresentes, chambresSansBail = 0 }: {
+export function CarteTachesProprietaire({ taches, base, indisponible, prioritesPresentes, chambresSansBail = 0, totalAFaire = 0 }: {
   taches: TacheAccueil[]; base: string; indisponible: boolean; prioritesPresentes: boolean; chambresSansBail?: number;
+  /** Ce que la page « À faire » compte (demandes et loyers à confirmer) : le lien l'annonce, car il ne compte pas comme cette carte. */
+  totalAFaire?: number;
 }) {
   // Grand parc : une ligne par obligation, dépliable sur ses lots ; le compteur reste le nombre de tâches.
   const entrees = regrouperTachesAccueil(taches);
@@ -40,8 +42,10 @@ export function CarteTachesProprietaire({ taches, base, indisponible, prioritesP
   return <section id="taches-proprietaire" className={styles.carte} aria-labelledby="taches-proprietaire-titre" tabIndex={-1}>
     <header className={styles.entete}>
       <h2 id="taches-proprietaire-titre">Mes tâches{taches.length > 0 && <span className={styles.compteur} aria-label={`${taches.length} tâche${taches.length > 1 ? "s" : ""}${indisponible ? ` connue${taches.length > 1 ? "s" : ""}` : ""}`}>{taches.length}</span>}</h2>
-      {/* Le lien dit le nom de la page qu'il ouvre, « À faire » (audit final, UX-05 : « Toutes les demandes » menait à « À faire »). */}
-      <Link href={`${base}/alertes`}>Tout ce qu’il y a à faire<ArrowRight size={15} aria-hidden="true" /></Link>
+      {/* Le lien dit le nom de la page qu'il ouvre, « À faire » (audit final, UX-05 : « Toutes les demandes » menait à
+          « À faire »), avec le compte de la page (LOY-20 : « 16 à traiter » sous « Mes tâches 13 ») : la page « À faire »
+          compte les demandes et les loyers à confirmer, cette carte les tâches hors priorités plus les lots à louer. */}
+      <Link href={`${base}/alertes`}>À faire{totalAFaire > 0 && <span className={styles.compteur} aria-label={`${totalAFaire} à traiter`}>{totalAFaire}</span>}<ArrowRight size={15} aria-hidden="true" /></Link>
     </header>
     {indisponible && <p className={styles.incomplet} role="alert">Certaines tâches n’ont pas pu être vérifiées. La liste peut être incomplète.</p>}
     {taches.length > 0 ? <>

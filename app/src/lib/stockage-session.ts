@@ -14,3 +14,15 @@ export function ecrireSession(cle: string, valeur: string): void {
 export function oublierSession(cle: string): void {
   try { sessionStorage.removeItem(cle); } catch { /* idem */ }
 }
+
+// Même prudence pour le localStorage, partagé par tous les onglets du site : un repère de confort (la synthèse d'alertes
+// déjà fermée aujourd'hui), jamais un état dont dépendrait un geste.
+export function lireLocal(cle: string): string | null {
+  try { return localStorage.getItem(cle); } catch { return null; }
+}
+export function ecrireLocal(cle: string, valeur: string): void {
+  try { localStorage.setItem(cle, valeur); } catch { /* stockage refusé : le repère n'est pas mémorisé */ }
+}
+export function oublierLocal(cle: string): void {
+  try { localStorage.removeItem(cle); } catch { /* idem */ }
+}

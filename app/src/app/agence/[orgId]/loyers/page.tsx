@@ -3,7 +3,8 @@ import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { chargerQuittancementDuMois } from "@/lib/quittancement-du-mois";
-import { eur, moisEnFrancais } from "@/lib/ged";
+import { accordMontant, echeancesNonVerifiees, relancesDuMois, totauxEcheances } from "@/lib/finances";
+import { aujourdhuiParis, eur, moisEnFrancais } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuittancementMois } from "../comptabilite/quittancement-mois";
@@ -37,13 +38,22 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
   const dansPortefeuille = (lotId: string | null | undefined) =>
     !portefeuille || (lotId != null && portefeuille.has(lotId));
-  const { mois, lignes, error } = await chargerQuittancementDuMois(supabase, orgId, dansPortefeuille);
-
-  const appele = lignes.reduce((t, l) => t + Number(l.montant_du), 0);
-  const encaisse = lignes.reduce((t, l) => t + Math.min(Number(l.montant_couvert), Number(l.montant_du)), 0);
-  const reste = Math.max(0, appele - encaisse);
+  const { mois, error, lignes } = await chargerQuittancementDuMois(supabase, orgId, dansPortefeuille);
+  // L'exigibilité se juge sur la date d'échéance de chaque appel, pas sur son statut (troisième relecture de LOY-07) : un
+  // terme pas encore échu (loyer payé à terme échu, acompte ou APL déjà versés compris) se dit « à échoir ». La date vient
+  // de quittancement_mois ; si elle manque, aucune relance n'est proposée sur une donnée incomplète, et l'écran le dit.
+  const datesManquantes = echeancesNonVerifiees(lignes);
+  if (datesManquantes) console.error("Loyers : quittancement_mois sans date d'échéance ; relances non proposées", { orgId, mois });
+  const jour = aujourdhuiParis();
+  const { demande: appele, regle: encaisse, aEchoir } = totauxEcheances(lignes, jour);
   const impayes = lignes.filter((l) => Number(l.montant_couvert) < Number(l.montant_du));
   const nbRegles = lignes.length - impayes.length;
+  // Un terme à échoir n'est pas encore dû : il ne se relance pas, sauf pour la dette antérieure échue qu'il porte. La tuile
+  // et la carte « Impayés à relancer » comptent la même liste (relecture de LOY-07).
+  const lecture = relancesDuMois(lignes, jour);
+  const { detteAnterieure, exigible } = lecture;
+  const relances = datesManquantes ? [] : lecture.aRelancer;
+  const aRelancer = relances.length;
   // Un mois sans appel n'est pas un mois réussi : rien n'était dû. Les tuiles
   // restent neutres et la carte des impayés se tait (24/09).
   const moisVide = lignes.length === 0;
@@ -149,15 +159,21 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
                   : `${nbRegles} sur ${lignes.length} réglé${nbRegles > 1 ? "s" : ""} en entier`}
               </span>
             </div>
-            <div className={`kpi ${reste > 0 ? "rouge" : moisVide ? "" : "vert"}`}>
-              <span className="eyebrow">Reste dû</span>
-              <span className="chiffre montant mt-1 block">{eur(reste)}</span>
+            {/* Le chiffre principal est ce qui est à relancer : termes échus non réglés et dettes des mois précédents
+                (troisième relecture de LOY-07 : « 0,00 € » en rouge avec 400 € dus). Le terme à échoir reste en secondaire. */}
+            <div className={`kpi ${datesManquantes ? "" : exigible > 0 ? "rouge" : moisVide ? "" : "vert"}`}>
+              <span className="eyebrow">Exigible à relancer</span>
+              <span className="chiffre montant mt-1 block">{datesManquantes ? "—" : eur(exigible)}</span>
               <span className="block text-xs text-muted-foreground">
                 {moisVide
                   ? "rien n’était dû"
-                  : impayes.length === 0
-                    ? "rien à relancer"
-                    : `${impayes.length} locataire${impayes.length > 1 ? "s" : ""} à relancer`}
+                  : datesManquantes
+                    ? "échéances à vérifier"
+                    : aRelancer > 0
+                    ? `${aRelancer} locataire${aRelancer > 1 ? "s" : ""} à relancer`
+                    : "rien à relancer"}
+                {detteAnterieure > 0 && <span className="block">dont {eur(detteAnterieure)} des mois précédents</span>}
+                {aEchoir > 0 && <span className="block">{eur(aEchoir)} à échoir, non compris</span>}
               </span>
             </div>
           </section>
@@ -209,18 +225,28 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
             <CardHeader>
               <CardTitle>Impayés à relancer</CardTitle>
               <CardDescription>
-                Chaque terme non couvert, avec son reste. La relance se consigne sur le bail —
-                elle vaut preuve.
+                Ce qui est échu et non réglé, mois précédents compris, locataire par locataire.
+                La relance se consigne sur le bail — elle vaut preuve.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {impayes.length === 0 ? (
+              {datesManquantes ? (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Les dates d’échéance n’ont pas pu être vérifiées&nbsp;: aucune relance n’est proposée sur une lecture
+                  incomplète. Rechargez la page.
+                </p>
+              ) : impayes.length === 0 && relances.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Aucun impayé sur {moisEnFrancais(mois)} : tout est encaissé.
+                  Aucun impayé sur {moisEnFrancais(mois)}&nbsp;: tout est encaissé.
+                </p>
+              ) : relances.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {/* Ici, des termes restent non réglés sans être échus : par construction, aEchoir > 0. */}
+                  Rien d’exigible à relancer sur {moisEnFrancais(mois)}&nbsp;: {eur(aEchoir)} {accordMontant(aEchoir, "reste", "restent")} à échoir.
                 </p>
               ) : (
                 <ul className="divide-y divide-border">
-                  {impayes.map((l) => (
+                  {relances.map(({ ligne: l, resteExigible, aEchoir: termeAEchoir, detteAnterieure: dette }) => (
                     <li key={l.appel_id}>
                       {/* La relance se fait sur le bail, section des loyers :
                           le lien le dit et y mène directement — et c'est TOUT
@@ -233,8 +259,10 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
                         <span className="min-w-0">
                           <span className="block font-medium">{l.locataire ?? "Locataire"}</span>
                           <span className="block text-xs text-muted-foreground">
-                            {l.lot_nom} · reste {eur(Number(l.montant_du) - Number(l.montant_couvert))}
-                            {l.dette_anterieure_reste ? ` · dette antérieure ${eur(Number(l.dette_anterieure_reste))}` : ""}
+                            {[l.lot_nom,
+                              resteExigible > 0 ? `reste ${eur(resteExigible)}` : null,
+                              dette > 0 ? `dette antérieure ${eur(dette)}` : null,
+                              termeAEchoir > 0 ? `${eur(termeAEchoir)} à échoir` : null].filter(Boolean).join(" · ")}
                           </span>
                         </span>
                         <span className="lien-discret">Relancer sur le bail →</span>

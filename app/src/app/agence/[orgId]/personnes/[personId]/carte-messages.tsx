@@ -50,9 +50,11 @@ export function CarteMessages({
       ) : (
         <div className="space-y-2">
           {messages.map((m) => (
+            // Même recette que le fil du locataire (audit final du 27/10, DRT-02 et DRT-03) : un mot de 4 000 caractères
+            // sortait de la carte, les retours à la ligne du locataire disparaissaient.
             <div
               key={m.id}
-              className={`max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed ${
+              className={`min-w-0 max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed [overflow-wrap:anywhere] ${
                 m.auteur === "gerant"
                   ? "ml-auto rounded-br-sm bg-[var(--encre)] text-[var(--sur-encre)]"
                   : "rounded-bl-sm bg-[var(--ardoise)]"
@@ -65,7 +67,7 @@ export function CarteMessages({
               >
                 {m.auteur === "gerant" ? "Vous" : (prenom ?? "Locataire")} · {quand(m.cree_le)}
               </p>
-              {m.texte}
+              <p className="whitespace-pre-wrap">{m.texte}</p>
             </div>
           ))}
         </div>

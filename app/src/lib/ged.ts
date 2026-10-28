@@ -128,6 +128,19 @@ export function eur(montant: number | string | null | undefined): string {
   return formaterEuros(Number(montant));
 }
 
+// Le quantième d'un jour du mois, « 1er » le premier (usage français) : « Le 1er du mois », « le 1er de chaque mois ».
+// La fiche du bail écrivait « Le 1 du mois », la fiche du lot « 1er », l'espace locataire « 1ᵉʳ » (audit final du 27/10,
+// LOY-12 et BAIL-14) : une seule forme, celle des courriers (jourEnLettres).
+export function ordinalJour(jour: number): string {
+  return jour === 1 ? "1er" : String(jour);
+}
+
+// Un indice (IRL) à la française : « 145,17 », « 144,50 » — jamais « 145.17 » ni « 144.5 » (audit final du 27/10, LOY-13 et BAIL-16).
+export function formaterIndice(valeur: number | string | null | undefined): string {
+  if (valeur === null || valeur === undefined || valeur === "") return "—";
+  return Number(valeur).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 // Un mois comptable arrive en « 2026-06 » ou « 2026-06-01 » selon la table.
 // Affiché tel quel, c'est une référence technique ; dit en français, c'est une
 // date que l'agent lit sans réfléchir.

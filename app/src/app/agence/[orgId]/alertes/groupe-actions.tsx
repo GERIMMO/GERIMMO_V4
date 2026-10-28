@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { ActionDuJour } from "@/lib/actions-du-jour";
-import { afficherEcheance } from "@/lib/echeances";
+import { afficherEcheance, classeEcheanceSurRang } from "@/lib/echeances";
 import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 
@@ -128,7 +128,7 @@ export function GroupeActions({
                   allonge ; l'échéance ne se dit que lorsqu'elle distingue
                   cette action-là des autres. */}
               {ech && (
-                <span className={`text-[length:var(--pas-appui)] ${ech.classe}`}>
+                <span className={`text-[length:var(--pas-appui)] ${classeEcheanceSurRang(ech, a.criticite === "critique")}`}>
                   {ech.texte}
                 </span>
               )}

@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
+import { aujourdhuiParis, eur, formaterDate, formaterIndice } from "@/lib/ged";
 import {
   STATUTS_APPEL_LOYER,
   COULEURS_STATUT_APPEL_LOYER,
@@ -558,7 +558,7 @@ export function FormulaireLoyers({
               {revisions.map((r) => (
                 <li key={r.id} className="flex flex-wrap items-center gap-2">
                   {formaterDate(r.date_effet)} : {eur(r.ancien_loyer)} → {eur(r.nouveau_loyer)} (IRL{" "}
-                  {r.irl_reference} → {r.irl_nouveau}
+                  {formaterIndice(r.irl_reference)} → {formaterIndice(r.irl_nouveau)}
                   {r.irl_trimestre ? `, ${r.irl_trimestre}` : ""})
                   {r.date_demande && r.date_echeance && r.date_demande > r.date_echeance
                     ? ` · demandée le ${formaterDate(r.date_demande)}, après l'échéance du ${formaterDate(r.date_echeance)}`
@@ -583,7 +583,7 @@ export function FormulaireLoyers({
                 {derniereRevision ? "IRL de référence (dernière révision)" : "IRL de référence (figé au bail)"}
               </p>
               <p className="flex h-9 items-center text-sm font-medium">
-                {irlReferenceCourante ?? "à renseigner sur le bail"}
+                {irlReferenceCourante == null ? "à renseigner sur le bail" : formaterIndice(irlReferenceCourante)}
                 {!derniereRevision && irlTrimestre && (
                   <span className="ml-1 text-xs font-normal text-muted-foreground">
                     ({libelleTrimestreIrl(irlTrimestre) ?? irlTrimestre})

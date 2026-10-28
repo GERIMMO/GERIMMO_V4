@@ -588,7 +588,9 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
   color: var(--texte-secondaire);
   margin-top: 3px;
 }
-.rang-alerte.critique .consequence-alerte { color: var(--destructive); }
+/* Sur le fond rouge pâle d'un rang critique, le rouge vif tombait à 4,1:1 : le jeton de texte sur fond doux (6,3:1), comme
+   l'échéance de la synthèse (audit final du 27/10, LOY-08). */
+.rang-alerte.critique .consequence-alerte { color: var(--destructive-soft-foreground); }
 .rang-alerte.normale .consequence-alerte { color: var(--warning-soft-foreground); }
 
 /* Alerte confiée à quelqu'un d'autre : grisée, aucune action possible */

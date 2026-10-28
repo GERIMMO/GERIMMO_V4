@@ -110,7 +110,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
         <ParcoursDemarrage supabase={supabase} orgId={orgId} estProprietaire automatiqueProposeAilleurs etapes={etapesDemarrage} />
 
         <CarteTachesProprietaire taches={taches} base={base} indisponible={incertain || patrimoine === null || diagnostics === null}
-          prioritesPresentes={totalPrioritaire > 0} chambresSansBail={patrimoine?.chambresSansBail ?? 0} />
+          prioritesPresentes={totalPrioritaire > 0} chambresSansBail={patrimoine?.chambresSansBail ?? 0} totalAFaire={incertain ? 0 : verifications.total} />
       </div>
 
       <aside className={styles.secondaire} aria-label="Outils de gestion">

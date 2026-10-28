@@ -250,6 +250,7 @@ export default async function LayoutAgence({
             membres={membres}
             estResponsable={estResponsable}
             aujourdhui={aujourdhuiParis()}
+            compteId={user.id}
           />}
           {/* Le propriétaire dispose d'une seule entrée Aide dans son menu. */}
           {!estProprietaire && <LienAssistance title="Aide et retours" className="lien-bandeau justify-center pointer-coarse:min-w-11 max-[641px]:!hidden">

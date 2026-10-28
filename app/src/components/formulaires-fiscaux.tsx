@@ -3,7 +3,8 @@ import { useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {qualifierPieceFiscale,enregistrerExerciceFiscal,retrouverVentilation} from '@/app/actions/fiscalite';
 import {RUBRIQUES_FISCALES,PHRASE_FONDS_TRAVAUX_CHOIX_NON_APPLIQUE,estFondsTravauxAlur,rubriqueDe,type EcritureFiscale,type QualificationFiscale,type ComposantesFiscales,type ExerciceFiscalLot,type PeriodeFiscale} from '@/lib/fiscal';
-import {eur} from '@/lib/ged';
+import {eur,formaterDate} from '@/lib/ged';
+import {libelleCategorie} from '@/lib/categories-ecritures';
 const champ='min-h-11 w-full rounded-lg border border-input bg-background px-3 text-sm';
 const Etat=({etat}:{etat:{erreur?:string;succes?:string}})=><>{etat.erreur&&<p role="alert" className="err">{etat.erreur}</p>}{etat.succes&&<p role="status" className="text-sm">{etat.succes}</p>}</>;
 // `capture` : la ventilation déjà figée de la pièce. Avec elle, la reprise n'a plus rien à retrouver (FIN-06) : le bouton ne se propose pas, et ce qui reste
@@ -16,7 +17,8 @@ export function QualificationPiece({orgId,ecriture,qualification,lots,capture}:{
  // D03 (FIN-07) : le classement d'office en fonds de travaux ALUR passe avant la qualification ; on le dit avant et après le choix.
  const alurAuto=ecriture.sens==='depense'&&estFondsTravauxAlur(ecriture.categorie);
  const choixIgnore=alurAuto&&!!qualification&&qualification.nature!=='a_qualifier';
- return <details className="rounded-lg border p-3"><summary className="min-h-11 cursor-pointer text-sm">{ecriture.date_piece} · {ecriture.categorie} · {Number(ecriture.montant).toFixed(2)} € — {qualification?`qualification v${qualification.version}`:'à qualifier'}{alurAuto&&' · rangée d’office en fonds de travaux ALUR'}</summary>
+ {/* Date, catégorie et montant dits comme sur le livre, pas comme en base (audit final du 27/10, LOY-14 : « 2026-09-15 · taxe_fonciere · 1032.00 € »). */}
+ return <details className="rounded-lg border p-3"><summary className="min-h-11 cursor-pointer text-sm">{formaterDate(ecriture.date_piece)} · {libelleCategorie(ecriture.categorie)} · {eur(ecriture.montant)} — {qualification?`qualification v${qualification.version}`:'à qualifier'}{alurAuto&&' · rangée d’office en fonds de travaux ALUR'}</summary>
   {alurAuto&&<p role="note" className="my-3 border-l-[3px] border-l-[var(--or)] bg-[var(--or-clair)] p-3 text-sm">{choixIgnore&&<strong>Votre qualification v{qualification!.version} n’est pas appliquée. </strong>}{PHRASE_FONDS_TRAVAUX_CHOIX_NON_APPLIQUE}</p>}
   {capture&&Number(capture.non_ventile)>0&&<p className="my-3 text-sm">La ventilation historique de ce paiement est déjà conservée ; il reste {eur(capture.non_ventile)} non ventilés (avance ou part sans échéance vérifiée). Qualifiez cette pièce ci-dessous, avec sa justification.</p>}
   {ecriture.encaissement_id&&!capture&&<form data-saisie-confirmee action={reprendre} className="my-3 space-y-2"><p className="text-sm">Une ancienne échéance conservée peut démontrer les parts loyer et charges. Les situations ambiguës restent à justifier.</p><button className="btn" disabled={enReprise}>Retrouver la ventilation historique</button><Etat etat={reprise}/></form>}

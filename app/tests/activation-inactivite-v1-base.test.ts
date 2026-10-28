@@ -100,7 +100,7 @@ describe("activation de l'inactivité — fichiers (sans base)", () => {
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
     expect(lisezMoi).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
-    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\s*`20261028100000`[^`]*`20261027100000`[^`]*`20261026110449`[^`]*`20261026090335`[^`]*`20261025192344`[^`]*`20261024105901`[^`]*`20261024150000`[^`]*`20261024140000`/);
+    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\s*(?:`20261028100200`[^`]*)?`20261028100000`[^`]*`20261027100000`[^`]*`20261026110449`[^`]*`20261026090335`[^`]*`20261025192344`[^`]*`20261024105901`[^`]*`20261024150000`[^`]*`20261024140000`/);
     expect(RETOUR_CONSERVATION).toContain("left(version, 14) > '20261024140000' and left(version, 14) <= '20261024150000'");
     expect(readFileSync("vitest.config.ts", "utf8")).toContain('"tests/activation-inactivite-v1-base.test.ts"');
   });

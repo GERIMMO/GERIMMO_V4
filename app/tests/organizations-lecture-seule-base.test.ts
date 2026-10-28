@@ -36,8 +36,9 @@ describe("fiche de l'organisation en lecture seule (fichiers)", () => {
     expect(retour).toContain("drop function if exists public.organizations_refuser_ecriture_si_fermee();");
     const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
     expect(lisezMoi).toContain(`${MIGRATION}.retour.sql`);
-    // abonnement_appliquer cite aujourdhui_paris() : le retour est en tête de la chaîne « Ordre complet ».
-    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\n`20261028100000`/);
+    // abonnement_appliquer cite aujourdhui_paris() : le retour est en tête de la chaîne « Ordre complet », derrière
+    // le seul retour plus récent qui la précède à l'intégration (20261028100200, loyers et écrans).
+    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\n(?:`20261028100200`[^\n]*?, puis )?`20261028100000`/);
     expect(sql).toContain("public.aujourdhui_paris()");
   });
 });

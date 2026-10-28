@@ -122,6 +122,8 @@ const MISSION_OCTOBRE = [
   "20261027100300_bail_assurance_activation_et_libelle_colocation.sql",
   // 27/10, audit #264 (CB-16) : « N baux en cours » dans le parcours de démarrage.
   "20261027100500_parcours_demarrage_pluriel_baux.sql",
+  // 28/10, audit final (PUB-20) : « Compléter le logement » mène au lot bloqué, pas à la liste du parc.
+  "20261028100400_parcours_demarrage_lot_bloque.sql",
 
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */

@@ -1011,3 +1011,9 @@ Remettre le code précédent avant `20261027100100_incident_gerant_bail_explicit
 | Retour | Migration | Condition |
 | --- | --- | --- |
 | `20261027100500_parcours_demarrage_pluriel_baux.retour.sql` | `20261027100500_parcours_demarrage_pluriel_baux.sql` | Non exécuté en production. Remet la définition précédente de `public.parcours_demarrage` (texte « N bailx en cours ») ; aucune donnée touchée. Remettre le code précédent n’est pas nécessaire : la signature est inchangée. |
+
+### Parcours de démarrage : le lot à compléter (28 octobre, audit final PUB-20)
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261028100400_parcours_demarrage_lot_bloque.retour.sql` | `20261028100400_parcours_demarrage_lot_bloque.sql` | Non exécuté en production. Remet la définition de `public.parcours_demarrage` du 27/10 (`20261027100500`) : la ligne `lot_pret` ne porte plus d’identifiant tant qu’aucun lot n’est prêt (« Compléter le logement » retombe sur la liste du parc). Aucune donnée touchée ; signature inchangée, remettre le code précédent n’est pas nécessaire. Hors de la chaîne « Ordre complet » (ne cite pas `aujourdhui_paris()`). |

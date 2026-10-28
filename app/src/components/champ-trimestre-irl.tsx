@@ -30,7 +30,7 @@ export function ChampTrimestreIrl({ id, name, value, defaut, modifier, reference
     <input type="hidden" name={name} value={courant} disabled={disabled} />
     <div className="grid grid-cols-2 gap-2">
       <select id={id} value={numero} disabled={disabled} aria-describedby={describedBy} className={className}
-        onChange={e => changer(e.target.value, annee || (e.target.value ? String(anneeTrimestreIrlPlausible(Number(e.target.value.slice(1)), dateReference)) : ""))}>
+        onChange={e => changer(e.target.value, annee || (e.target.value ? String(anneeTrimestreIrlPlausible(lireTrimestreIrl(e.target.value)!.numero, dateReference)) : ""))}>
         <option value="">À confirmer</option>
         {[1, 2, 3, 4].map(n => <option key={n} value={`T${n}`}>{ORDINAUX[n]} trimestre</option>)}
       </select>

@@ -28,6 +28,7 @@
 --    Le décompte de sortie (`montants_reels_bail`, section 7) compte ce qui est DÛ jusqu'à la fin du bail : un terme
 --    appelé après la fin ne pèse plus sur le dépôt, et le trop appelé d'un dernier terme déjà quittancé revient au
 --    locataire en trop-perçu (troisième relecture du 28/10).
+--    La ventilation fiscale des règlements suit le même dû (section 9) : la ligne 211 ne déclare plus un loyer rendu.
 --
 -- 2. Le dépôt de garantie s'exprime au centime (COD-03).
 --    Avant : `encaisser_depot` (security definer, exécutable par un compte connecté) acceptait 10,005 € par appel RPC
@@ -973,6 +974,197 @@ $function$;
 comment on function public.etat_loyers_bail_brut(uuid) is
   'Imputation des encaissements du plus ancien terme au plus récent ; un terme d''un mois postérieur à la fin du bail n''est pas dû (montant_du 0, statut non_du, aucun règlement imputé).';
 revoke execute on function public.etat_loyers_bail_brut(uuid) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- 9. Fiscalité : la ligne 211 suit le loyer DÛ, pas le loyer APPELÉ (sixième relecture du 28/10, décision du
+--    dirigeant ; wiki [[Fiscalité]] : 211 = loyers bruts encaissés hors charges, par année d'encaissement).
+--    Avant : `capturer_composantes_fiscales` ventilait chaque règlement de loyer sur appels_loyer.montant_du. Ce chantier
+--    rend au locataire, au décompte de sortie, ce qui n'était pas dû (terme après la fin du bail, dernier terme au
+--    prorata) ; la ventilation, elle, restait celle du montant appelé : le bailleur déclarait un loyer qu'il rembourse
+--    (F1 : 87,10 € de trop ; F2 : 450 €).
+--    Maintenant :
+--    · à l'encaissement, la ventilation impute sur le montant DÛ, avec la règle de montants_reels_bail et
+--      d'etat_loyers_bail_brut (terme d'un mois postérieur au mois de fin = 0 ; terme du mois de fin = montant recalculé
+--      sur sa base) : l'excédent tombe en « non ventilé », comme tout trop-perçu ;
+--    · quand le dû baisse APRÈS la ventilation (congé saisi après le paiement, F1), la correction est enregistrée sur
+--      l'écriture de restitution du trop-perçu (catégorie trop_percu_restitue, écrite par finaliser_decompte à la date de
+--      la restitution) : composantes loyer HT et charges ventilées en trop, terme par terme, plafonnées au montant rendu.
+--      fiscal.ts les retranche de la ligne 211 (et des charges récupérées) de l'année de cette écriture : on déclare
+--      l'année où l'argent est rendu (comptabilité de trésorerie). Aucune capture ni déclaration antérieure n'est
+--      réécrite. Un trop-perçu ordinaire (versement en plus) n'a rien de ventilé en trop : inchangé.
+--    Repart de la définition en vigueur (20261012224000 modifiée par 20261014420000, relue telle quelle).
+-- ---------------------------------------------------------------------------------------------------------------
+create or replace function public.capturer_composantes_fiscales()
+ returns trigger
+ language plpgsql
+ security definer
+ set search_path to ''
+as $function$
+declare origine public.fiscal_encaissements_composantes; enc public.encaissements;
+ a record; avant numeric; cumul numeric:=0; gauche numeric; droite numeric;
+ hc numeric:=0; ch numeric:=0; affecte numeric:=0; part numeric; partch numeric;
+ details jsonb:='[]';
+ v_fin date; m record; du numeric; du_hc numeric; du_ch numeric;
+begin
+ if new.contre_ecriture_de is not null then
+  select * into origine from public.fiscal_encaissements_composantes where ecriture_id=new.contre_ecriture_de;
+  if found then
+   insert into public.fiscal_encaissements_composantes(ecriture_id,organization_id,loyer_hc,charges,non_ventile,appels,version_regle)
+   values(new.id,new.organization_id,origine.loyer_hc,origine.charges,origine.non_ventile,origine.appels,origine.version_regle);
+  end if;
+  return new;
+ end if;
+ -- Sixième relecture du 28/10 : la restitution d'un trop-perçu porte la part de loyer et de charges ventilée en trop.
+ if new.categorie='trop_percu_restitue' and new.sens='depense' and new.bail_id is not null then
+  perform public.capturer_correction_trop_percu(new.id);
+  return new;
+ end if;
+ if new.encaissement_id is null or new.categorie<>'loyer' or new.sens<>'recette' then return new; end if;
+ select * into enc from public.encaissements where id=new.encaissement_id and organization_id=new.organization_id;
+ if not found then return new; end if;
+ perform 1 from public.baux where id=enc.bail_id for update;
+ select date_trunc('month', b.date_fin)::date into v_fin from public.baux b where b.id=enc.bail_id;
+ -- X11 (FIN-09) v2 : « avant » ignore les encaissements qui attendent leur tour, c'est-à-dire ceux de la
+ -- MÊME instruction (xmin et cmin identiques) pas encore captés ; aucun horodatage n'est lu. Migration 20261014420000.
+ select coalesce(sum(o.montant),0) into avant
+   from public.encaissements o
+   cross join (select e.xmin as x, e.cmin as c from public.encaissements e where e.id=enc.id) me
+   cross join (select n.xmin as x, n.cmin as c from public.ecritures n where n.id=new.id) mn
+  where o.bail_id=enc.bail_id and o.organization_id=enc.organization_id and o.id<>enc.id
+    and (exists(select 1 from public.ecritures x
+                join public.fiscal_encaissements_composantes c on c.ecriture_id=x.id
+                where x.encaissement_id=o.id and x.contre_ecriture_de is null)
+         or not ((o.xmin=me.x and o.cmin=me.c)
+                 or exists(select 1 from public.ecritures y
+                           where y.encaissement_id=o.id and y.categorie='loyer' and y.sens='recette'
+                             and y.xmin=mn.x and y.cmin=mn.c)));
+ for a in select * from public.appels_loyer where bail_id=enc.bail_id and organization_id=enc.organization_id order by periode,id loop
+  -- Un terme d'un mois postérieur à la fin du bail n'est pas dû : rien ne s'y impute (section 8).
+  if v_fin is not null and a.periode > v_fin then continue; end if;
+  if a.montant_du<=0 or a.loyer_hc<0 or a.charges<0 or a.montant_du<>a.loyer_hc+a.charges then
+   -- Un appel incohérent n'autorise jamais une ventilation inventée.
+   cumul:=cumul+greatest(a.montant_du,0); continue;
+  end if;
+  -- Le terme du mois de fin compte pour son montant dû, recalculé sur sa base (section 7).
+  if v_fin is not null and a.periode = v_fin and a.base_loyer_hc is not null and a.base_charges is not null then
+   select * into m from public.montants_appel_loyer(enc.bail_id, a.periode, a.base_loyer_hc, a.base_charges);
+   du_hc:=m.loyer_hc; du_ch:=m.charges;
+  else
+   du_hc:=a.loyer_hc; du_ch:=a.charges;
+  end if;
+  du:=du_hc+du_ch;
+  if du<=0 then continue; end if;
+  gauche:=least(du,greatest(0,avant-cumul));
+  droite:=least(du,greatest(0,avant+new.montant-cumul));
+  part:=droite-gauche;
+  if part>0 then
+   partch:=round(droite*du_ch/du,2)-round(gauche*du_ch/du,2);
+   hc:=hc+part-partch; ch:=ch+partch; affecte:=affecte+part;
+   details:=details||jsonb_build_array(jsonb_build_object('appel_id',a.id,'periode',a.periode,'loyer_hc_appel',a.loyer_hc,'charges_appel',a.charges,'montant_du',du,'montant_appele',a.montant_du,'couvert_avant',gauche,'couvert_apres',droite,'loyer_hc',part-partch,'charges',partch));
+  end if;
+  cumul:=cumul+du;
+ end loop;
+ insert into public.fiscal_encaissements_composantes(ecriture_id,organization_id,loyer_hc,charges,non_ventile,appels)
+ values(new.id,new.organization_id,hc,ch,round(new.montant-affecte,2),details);
+ return new;
+end $function$;
+revoke execute on function public.capturer_composantes_fiscales() from public, anon, authenticated;
+
+-- La correction portée par l'écriture de restitution d'un trop-perçu : pour chaque terme du bail, ce que les
+-- ventilations de loyer conservées (contre-écritures déduites) ont attribué au-delà du dû, moins les corrections déjà
+-- portées par une restitution antérieure ; plafonnée au montant rendu. Rien n'est écrit s'il n'y a rien à corriger
+-- (trop-perçu ordinaire : la pièce reste à qualifier, comme avant).
+create or replace function public.capturer_correction_trop_percu(p_ecriture uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  e public.ecritures;
+  v_fin date;
+  v_hc numeric := 0;
+  v_ch numeric := 0;
+  v_details jsonb := '[]';
+  r record;
+  m record;
+  du_hc numeric;
+  du_ch numeric;
+  v_deja_hc numeric;
+  v_deja_ch numeric;
+begin
+  select * into e from public.ecritures where id = p_ecriture;
+  if not found or e.bail_id is null then return; end if;
+  if exists (select 1 from public.fiscal_encaissements_composantes where ecriture_id = e.id) then return; end if;
+  select date_trunc('month', b.date_fin)::date into v_fin from public.baux b where b.id = e.bail_id;
+  for r in
+    select a.id, a.periode, a.loyer_hc, a.charges, a.base_loyer_hc, a.base_charges,
+           coalesce(sum(s.sgn * (d ->> 'loyer_hc')::numeric), 0) as ventile_hc,
+           coalesce(sum(s.sgn * (d ->> 'charges')::numeric), 0) as ventile_ch
+      from public.appels_loyer a
+      join public.ecritures x on x.bail_id = a.bail_id and x.organization_id = a.organization_id and x.categorie = 'loyer'
+      join public.fiscal_encaissements_composantes c on c.ecriture_id = x.id
+      cross join lateral jsonb_array_elements(c.appels) d
+      cross join lateral (select case when x.contre_ecriture_de is null then 1 else -1 end as sgn) s
+     where a.bail_id = e.bail_id and a.organization_id = e.organization_id
+       and d ->> 'appel_id' = a.id::text and d ? 'loyer_hc' and d ? 'charges'
+     group by a.id, a.periode, a.loyer_hc, a.charges, a.base_loyer_hc, a.base_charges
+     order by a.periode
+  loop
+    if v_fin is not null and r.periode > v_fin then
+      du_hc := 0; du_ch := 0;
+    elsif v_fin is not null and r.periode = v_fin and r.base_loyer_hc is not null and r.base_charges is not null then
+      select * into m from public.montants_appel_loyer(e.bail_id, r.periode, r.base_loyer_hc, r.base_charges);
+      du_hc := m.loyer_hc; du_ch := m.charges;
+    else
+      du_hc := r.loyer_hc; du_ch := r.charges;
+    end if;
+    if r.ventile_hc > du_hc or r.ventile_ch > du_ch then
+      v_hc := v_hc + greatest(0, r.ventile_hc - du_hc);
+      v_ch := v_ch + greatest(0, r.ventile_ch - du_ch);
+      v_details := v_details || jsonb_build_array(jsonb_build_object('source', 'trop_percu_restitue', 'appel_id', r.id,
+        'periode', r.periode, 'ventile_hc', r.ventile_hc, 'du_hc', du_hc, 'ventile_charges', r.ventile_ch, 'du_charges', du_ch));
+    end if;
+  end loop;
+  -- Les corrections déjà portées par une restitution antérieure du même bail (contre-écritures déduites).
+  select coalesce(sum(case when x.contre_ecriture_de is null then c.loyer_hc else -c.loyer_hc end), 0),
+         coalesce(sum(case when x.contre_ecriture_de is null then c.charges else -c.charges end), 0)
+    into v_deja_hc, v_deja_ch
+    from public.ecritures x join public.fiscal_encaissements_composantes c on c.ecriture_id = x.id
+   where x.bail_id = e.bail_id and x.organization_id = e.organization_id and x.categorie = 'trop_percu_restitue'
+     and x.id <> e.id;
+  v_hc := round(greatest(0, v_hc - v_deja_hc), 2);
+  v_ch := round(greatest(0, v_ch - v_deja_ch), 2);
+  -- Plafond : la correction ne dépasse jamais ce qui est rendu.
+  v_hc := least(v_hc, e.montant);
+  v_ch := least(v_ch, e.montant - v_hc);
+  if v_hc + v_ch <= 0 then return; end if;
+  insert into public.fiscal_encaissements_composantes(ecriture_id, organization_id, loyer_hc, charges, non_ventile, appels)
+  values (e.id, e.organization_id, v_hc, v_ch, round(e.montant - v_hc - v_ch, 2), v_details);
+end;
+$$;
+comment on function public.capturer_correction_trop_percu(uuid) is
+  'Sur l''écriture de restitution d''un trop-perçu : loyer HT et charges ventilés au-delà du dû (terme après la fin du bail, dernier terme recalculé), à retrancher de la ligne 211 l''année de la restitution.';
+revoke execute on function public.capturer_correction_trop_percu(uuid) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- 10. Historique du lot : un terme appelé après la fin du bail le dit (« · Non dû — après la fin du bail »), comme
+--     l'échéancier (sixième relecture du 28/10). Remplacement à compte exact dans la définition en vigueur
+--     (20260912200000) ; ancre absente ou répétée : arrêt sans rien modifier ; rejoué, il ne fait rien.
+-- ---------------------------------------------------------------------------------------------------------------
+do $historique$
+declare v_def text; v_ancre text;
+begin
+  select pg_get_functiondef('public.historique_du_lot'::regproc) into v_def;
+  if position('Non dû — après la fin du bail' in v_def) > 0 then return; end if;
+  v_ancre := $ancre$           to_char(a.periode, 'TMMonth YYYY'), a.montant_du, null$ancre$;
+  if (length(v_def) - length(replace(v_def, v_ancre, ''))) <> length(v_ancre) then
+    raise exception 'Historique du lot : définition inattendue (ancre absente ou répétée)';
+  end if;
+  execute replace(v_def, v_ancre, $nouveau$           to_char(a.periode, 'TMMonth YYYY')
+             || case when b.date_fin is not null and a.periode > date_trunc('month', b.date_fin)::date
+                     then ' · Non dû — après la fin du bail' else '' end, a.montant_du, null$nouveau$);
+end $historique$;
 
 -- Filet commun : aucune fonction de `public` ne reste ouverte à anon.
 select public.fermer_fonctions_a_anon();

@@ -1,4 +1,4 @@
-import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
+import { assuranceReclamee, etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { deElide } from "@/lib/elision";
 import { Banknote, Files, Wrench } from "lucide-react";
@@ -120,7 +120,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   // Même règle que le badge du menu (audit 06/09) : sans bail actif, aucune
   // assurance n'est réclamée — sinon l'accueil s'alarmait quand le menu, lui,
   // ne comptait rien.
-  const assuranceAJour = !bail || attestationValide;
+  // Sixième relecture du 28/10 : un bail fini (date de fin passée) ne réclame plus l'assurance.
+  const assuranceAJour = !assuranceReclamee(baux as BailLocataire[] | null, aujourdhuiParis()) || attestationValide;
   // RM-0b.5.1 et le tableau des seuils de [[Dossier locataire]] : le rappel de
   // renouvellement est dû AU LOCATAIRE à J-30. Relevé du 11/09 : l'accueil
   // lisait estExpiree (strict « < aujourd'hui ») et affichait « ✓ Assurance à

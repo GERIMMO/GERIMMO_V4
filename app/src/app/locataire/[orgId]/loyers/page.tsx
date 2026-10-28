@@ -169,7 +169,7 @@ export default async function PagePaiementsLocataire(
         <div className="space-y-4">
           <div className="loc-carte">
             <div className="entete-carte !mb-1">
-              <h2 className="titre-carte text-base font-medium">{prochaine && ["impaye", "partiel"].includes(prochaine.statut) ? "Loyer restant à régler" : "Prochain loyer"}</h2>
+              <h2 className="titre-carte text-base font-medium">{prochaine && ["impaye", "partiel"].includes(prochaine.statut) ? "Loyer restant à régler" : finAvantMoisSuivant && !prochaine ? "Mes loyers" : "Prochain loyer"}</h2>
               {aEchoue(eEcheancier, eBaux) ? null : prochaine ? (
                 <span className="loc-tag bleu capitalize">{moisLong(prochaine.periode)}</span>
               ) : bail ? (

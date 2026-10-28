@@ -9,6 +9,9 @@
 -- déclencheurs `appel_loyer_base_mensuelle` (appels_loyer) et `quittance_suit_document_remplace` (quittances) avec leurs fonctions,
 -- et l'index `alerts_document_remplace_ouverte_idx` ; rend à `montants_reels_bail` son texte de 20260927104000 et à
 -- `etat_loyers_bail_brut` celui de 20260910140000 (un terme après la fin du bail redevient dû et relancé) ;
+-- rend à `capturer_composantes_fiscales` sa définition d'avant (ventilation sur le montant appelé) et retire
+-- `capturer_correction_trop_percu(uuid)`, ôte de `historique_du_lot` la mention « Non dû » ; les composantes déjà conservées (dont les corrections portées par une
+-- restitution) sont CONSERVÉES : fiscal.ts d'avant les ignore sur une restitution, qui redevient « à qualifier » ;
 -- retire la garde du centime d'`encaisser_depot` (remplacement inverse à compte exact de l'ancre, sinon arrêt sans rien
 -- modifier) ; retire les quatre contraintes du centime ; supprime la version.
 -- CONSERVE : les appels de loyer déjà recalculés par un congé (ils sont justes), les quittances resynchronisées, les
@@ -241,6 +244,81 @@ drop function if exists public.appel_loyer_fixe_base();
 drop function if exists public.mois_de_periode(date);
 drop function if exists public.montant_alerte(numeric);
 drop index if exists public.alerts_document_remplace_ouverte_idx;
+
+-- historique_du_lot : remplacement inverse à compte exact (absent : rien à faire ; répété : arrêt).
+do $historique_retour$
+declare v_def text; v_ancre text;
+begin
+  select pg_get_functiondef('public.historique_du_lot'::regproc) into v_def;
+  v_ancre := $ancre$           to_char(a.periode, 'TMMonth YYYY')
+             || case when b.date_fin is not null and a.periode > date_trunc('month', b.date_fin)::date
+                     then ' · Non dû — après la fin du bail' else '' end, a.montant_du, null$ancre$;
+  if position(v_ancre in v_def) = 0 then return; end if;
+  if (length(v_def) - length(replace(v_def, v_ancre, ''))) <> length(v_ancre) then
+    raise exception 'Retour 20261028100100 : définition d''historique_du_lot inattendue (ancre répétée)';
+  end if;
+  execute replace(v_def, v_ancre, $ancien$           to_char(a.periode, 'TMMonth YYYY'), a.montant_du, null$ancien$);
+end $historique_retour$;
+
+-- capturer_composantes_fiscales : définition d'avant (20261012224000 modifiée par 20261014420000).
+CREATE OR REPLACE FUNCTION public.capturer_composantes_fiscales()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare origine public.fiscal_encaissements_composantes; enc public.encaissements;
+ a record; avant numeric; cumul numeric:=0; gauche numeric; droite numeric;
+ hc numeric:=0; ch numeric:=0; affecte numeric:=0; part numeric; partch numeric;
+ details jsonb:='[]';
+begin
+ if new.contre_ecriture_de is not null then
+  select * into origine from public.fiscal_encaissements_composantes where ecriture_id=new.contre_ecriture_de;
+  if found then
+   insert into public.fiscal_encaissements_composantes(ecriture_id,organization_id,loyer_hc,charges,non_ventile,appels,version_regle)
+   values(new.id,new.organization_id,origine.loyer_hc,origine.charges,origine.non_ventile,origine.appels,origine.version_regle);
+  end if;
+  return new;
+ end if;
+ if new.encaissement_id is null or new.categorie<>'loyer' or new.sens<>'recette' then return new; end if;
+ select * into enc from public.encaissements where id=new.encaissement_id and organization_id=new.organization_id;
+ if not found then return new; end if;
+ perform 1 from public.baux where id=enc.bail_id for update;
+ -- X11 (FIN-09) v2 : « avant » ignore les encaissements qui attendent leur tour, c'est-à-dire ceux de la
+ -- MÊME instruction (xmin et cmin identiques) pas encore captés ; aucun horodatage n'est lu. Migration 20261014420000.
+ select coalesce(sum(o.montant),0) into avant
+   from public.encaissements o
+   cross join (select e.xmin as x, e.cmin as c from public.encaissements e where e.id=enc.id) me
+   cross join (select n.xmin as x, n.cmin as c from public.ecritures n where n.id=new.id) mn
+  where o.bail_id=enc.bail_id and o.organization_id=enc.organization_id and o.id<>enc.id
+    and (exists(select 1 from public.ecritures x
+                join public.fiscal_encaissements_composantes c on c.ecriture_id=x.id
+                where x.encaissement_id=o.id and x.contre_ecriture_de is null)
+         or not ((o.xmin=me.x and o.cmin=me.c)
+                 or exists(select 1 from public.ecritures y
+                           where y.encaissement_id=o.id and y.categorie='loyer' and y.sens='recette'
+                             and y.xmin=mn.x and y.cmin=mn.c)));
+ for a in select * from public.appels_loyer where bail_id=enc.bail_id and organization_id=enc.organization_id order by periode,id loop
+  if a.montant_du<=0 or a.loyer_hc<0 or a.charges<0 or a.montant_du<>a.loyer_hc+a.charges then
+   -- Un appel incohérent n'autorise jamais une ventilation inventée.
+   cumul:=cumul+greatest(a.montant_du,0); continue;
+  end if;
+  gauche:=least(a.montant_du,greatest(0,avant-cumul));
+  droite:=least(a.montant_du,greatest(0,avant+new.montant-cumul));
+  part:=droite-gauche;
+  if part>0 then
+   partch:=round(droite*a.charges/a.montant_du,2)-round(gauche*a.charges/a.montant_du,2);
+   hc:=hc+part-partch; ch:=ch+partch; affecte:=affecte+part;
+   details:=details||jsonb_build_array(jsonb_build_object('appel_id',a.id,'periode',a.periode,'loyer_hc_appel',a.loyer_hc,'charges_appel',a.charges,'montant_du',a.montant_du,'couvert_avant',gauche,'couvert_apres',droite,'loyer_hc',part-partch,'charges',partch));
+  end if;
+  cumul:=cumul+a.montant_du;
+ end loop;
+ insert into public.fiscal_encaissements_composantes(ecriture_id,organization_id,loyer_hc,charges,non_ventile,appels)
+ values(new.id,new.organization_id,hc,ch,round(new.montant-affecte,2),details);
+ return new;
+end $function$;
+revoke execute on function public.capturer_composantes_fiscales() from public, anon, authenticated;
+drop function if exists public.capturer_correction_trop_percu(uuid);
 
 -- etat_loyers_bail_brut : texte de 20260910140000.
 CREATE OR REPLACE FUNCTION public.etat_loyers_bail_brut(p_bail uuid)

@@ -3,7 +3,7 @@ type: concept
 tags: [fiscalite, revenus-fonciers, proprietaire]
 status: draft
 created: 2026-07-22
-updated: 2026-10-14
+updated: 2026-10-28
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite]]"]
 ---
 
@@ -120,6 +120,22 @@ LMP et SCI restent en V2. Voir [[Propriétaire bailleur]].
   déduit quand le décompte du syndic est ventilé (postes « récupérable » retirés, lot par
   lot) ; sinon, la réintégration de la part récupérable passe par la ligne 230 l'année
   suivante.
+
+## Ligne 211 et trop-perçu rendu au locataire (décision du 28/10/2026, migration `20261028100100`)
+
+- La 211 retient le loyer **hors charges encaissé et dû** : à l'encaissement, chaque règlement est ventilé sur le montant
+  **dû** du terme (un terme appelé après la fin du bail compte pour 0 ; le dernier terme compte pour son prorata
+  recalculé) ; l'excédent reste « non ventilé », comme tout trop-perçu.
+- Quand le dû baisse **après** la ventilation (congé saisi après le paiement du dernier terme), la correction est
+  portée par l'écriture de **restitution du trop-perçu** au [[Solde de tout compte]] : la part de loyer hors charges
+  rendue se retranche de la 211 (et la part de charges, des charges récupérées) **l'année de la restitution** — logique
+  de trésorerie, cohérente avec « 211 = loyers encaissés, par année d'encaissement ». Les années déjà déclarées ne sont
+  pas réécrites.
+- Exemples : octobre payé 500 € le 01/10, congé avec fin au 25/10 → 96,78 € rendus, dont 87,10 € de loyer hors charges
+  retranchés de la 211 ; terme d'octobre non dû payé après une fin au 25/09 → 500 € non ventilés, 75 € de loyer de
+  septembre retranchés à la restitution.
+- Limite : un trop-perçu rendu **hors** décompte de sortie, sans écriture de restitution rattachée au bail, n'est pas
+  corrigé automatiquement (qualification manuelle de la pièce).
 
 > [!warning] Correction du 29/09/2026
 > Le récapitulatif comptait jusqu'ici les provisions de charges en recette (ligne 212

@@ -67,6 +67,7 @@ d'échéance, quittance, décompte de prorata.
   L'échéancier du bail, le reste dû, l'espace du locataire, le quittancement du mois, les relances automatiques (aucun
   courriel au locataire, aux colocataires ni à la caution), l'alerte d'impayé et le décompte disent la même chose. Ce qui
   a été versé dessus n'y est plus imputé : c'est un excédent du bail (« En avance » à l'écran, trop-perçu au décompte).
+- **Fiscalité** : la ligne 211 suit le même dû (voir [[Fiscalité]], § « Ligne 211 et trop-perçu rendu au locataire »).
 - Le mois d'entrée et les mois pleins antérieurs ne sont **jamais** recalculés. La clôture anticipée du bail
   (`terminer_bail`, décision D34) laisse les montants tels quels.
 - **Base du recalcul : la base mensuelle qui a émis l'appel**, jamais le loyer révisé depuis (relectures du 28/10). Chaque

@@ -28,3 +28,19 @@ describe("lecture de l’assurance par le locataire", () => {
     expect(etatAssuranceLocataire({ expire_le: "2026-11-24", verifie_le: null }).aRenouveler).toBe(false);
   });
 });
+
+// Sixième relecture du 28/10 : un bail dont la date de fin est passée ne réclame plus l'assurance.
+describe("assurance réclamée seulement à un locataire en place", () => {
+  it("bail sans fin, ou qui finit aujourd'hui ou plus tard : réclamée", async () => {
+    const { assuranceReclamee } = await import("@/lib/assurance-locataire");
+    expect(assuranceReclamee([{ date_fin: null }], "2026-10-28")).toBe(true);
+    expect(assuranceReclamee([{ date_fin: "2026-10-28" }], "2026-10-28")).toBe(true);
+    expect(assuranceReclamee([{ date_fin: "2026-11-30" }], "2026-10-28")).toBe(true);
+  });
+  it("bail fini, ou aucun bail : non réclamée", async () => {
+    const { assuranceReclamee } = await import("@/lib/assurance-locataire");
+    expect(assuranceReclamee([{ date_fin: "2026-09-25" }], "2026-10-28")).toBe(false);
+    expect(assuranceReclamee([], "2026-10-28")).toBe(false);
+    expect(assuranceReclamee(null, "2026-10-28")).toBe(false);
+  });
+});

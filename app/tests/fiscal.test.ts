@@ -41,3 +41,39 @@ describe('périmètre daté, aucune reprise du lot courant',()=>{
  it('lot manquant peut être attribué dans la qualification sans modifier le journal',()=>{const r=recapitulatifFiscal([{...e,lot_id:null}],2026,options({qualifications:new Map([q('x','deductible','223',{lot_id:'lot'})])}));expect(r.totalCharges).toBe(100);});
  it('222 et intérêts restent annoncés à compléter s’ils ne sont pas suivis',()=>{const r=recapitulatifFiscal([],2026);expect(ligne(r,'222').aCompleter).toBe(true);expect(ligne(r,'250').aCompleter).toBe(true);});
 });
+// Sixième relecture du 28/10 (migration 20261028100100) : la restitution d'un trop-perçu porte la part de loyer ventilée en
+// trop ; elle se retranche de la ligne 211 l'année où l'argent est rendu (comptabilité de trésorerie).
+describe('restitution d’un trop-perçu ventilé en loyer',()=>{
+ const loyer=(id:string,montant:number,date:string)=>piece(id,'loyer',montant,'recette',{bail_id:'bail',encaissement_id:`enc-${id}`,date_piece:date});
+ const restitution=piece('rest','trop_percu_restitue',96.78,'depense',{bail_id:'bail',date_piece:'2027-01-15'});
+ const exercices=new Map([['lot',exercice({annee:2027,periodes:[{debut:'2027-01-01',fin:'2027-12-31',quote_part:100,regime:'nu'}]})]]);
+ const composantes=new Map([
+  ['oct',{ecriture_id:'oct',loyer_hc:450,charges:50,non_ventile:0}],
+  ['rest',{ecriture_id:'rest',loyer_hc:87.10,charges:9.68,non_ventile:0}],
+ ]);
+ it('F1 : payé en N au loyer appelé, rendu en N+1 : la ligne 211 de N est inchangée',()=>{
+  const r=recapitulatifFiscal([loyer('oct',500,'2026-10-01'),restitution],2026,options({composantes}));
+  expect(ligne(r,'211').montant).toBe(450);expect(r.chargesRecuperees).toBe(50);
+ });
+ it('F1 : l’année de la restitution, la part de loyer rendue se retranche de 211 et des charges récupérées',()=>{
+  const r=recapitulatifFiscal([loyer('oct',500,'2026-10-01'),restitution],2027,options({composantes,exercices}));
+  expect(ligne(r,'211').montant).toBe(-87.1);expect(r.chargesRecuperees).toBe(-9.68);expect(r.aQualifier).toBe(0);
+ });
+ it('même année : 211 = loyer HT dû',()=>{
+  const r=recapitulatifFiscal([loyer('oct',500,'2026-10-01'),{...restitution,date_piece:'2026-11-05'}],2026,options({composantes}));
+  expect(ligne(r,'211').montant).toBe(362.9);
+ });
+ it('trop-perçu ordinaire (rien de ventilé en trop) : la restitution reste à qualifier, 211 inchangée',()=>{
+  const r=recapitulatifFiscal([loyer('oct',500,'2026-10-01'),{...restitution,id:'rest2',montant:100,date_piece:'2026-11-05'}],2026,options({composantes}));
+  expect(ligne(r,'211').montant).toBe(450);expect(r.aQualifier).toBe(100);
+ });
+ it('part non ventilée de la restitution (versement en plus) : à qualifier ; la part de loyer se retranche',()=>{
+  const c=new Map([...composantes,['rest',{ecriture_id:'rest',loyer_hc:75,charges:8.33,non_ventile:500}]]);
+  const r=recapitulatifFiscal([loyer('oct',500,'2026-10-01'),{...restitution,montant:583.33,date_piece:'2026-11-05'}],2026,options({composantes:c}));
+  expect(ligne(r,'211').montant).toBe(375);expect(r.aQualifier).toBe(500);
+ });
+ it('une qualification manuelle de la restitution prime sur la correction automatique',()=>{
+  const r=recapitulatifFiscal([loyer('oct',500,'2026-10-01'),{...restitution,date_piece:'2026-11-05'}],2026,options({composantes,qualifications:new Map([q('rest','non_deductible',null)])}));
+  expect(ligne(r,'211').montant).toBe(450);expect(r.nonDeductible).toBe(96.78);
+ });
+});

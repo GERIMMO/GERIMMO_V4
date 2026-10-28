@@ -66,7 +66,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Dépôt de garantie]] — plafonné, jamais révisé ; colocation à bail commun nue/meublée clarifiée le 14/09 ; **16/10** : encaissement (PR #189) et restitution (PR #195, à ratifier) au jour de Paris.
 - [[Garantie]] — caution solidaire (acte signé électroniquement, Zoho Sign depuis le 18/10) et garanties externes ; **24/10** : case « aucune assurance ni autre garantie » avant l'acte, la caution confirme son mobile, garant du bail aligné, mention « reconnaît avoir reçu un exemplaire ».
 - [[Comptabilité]] — déclarative de caisse ; écritures 2 dates, clôture verrouillante.
-- [[Fiscalité]] — aide à la déclaration (récap 2044) ; régimes LMNP/SCI à trancher.
+- [[Fiscalité]] — aide à la déclaration (récap 2044) ; régimes LMNP/SCI à trancher ; 211 sur le loyer dû, loyer rendu au solde de tout compte retranché l’année de la restitution (28/10).
 - [[Journal éditorial]] — le journal public et son **moteur de propositions** : huit veines ancrées sur le wiki, un angle et un plan, jamais un chiffre inventé.
 - [[Incident]] — désordre signalé ; l'imputation (qui paie) tranchée par l'agent, **requalifiable** depuis le 23/08 pour répondre à une contestation sans clôturer (contredit RM-7.5.3, à trancher).
 - [[Devis]] — 2 max, validité 30 j, accord du mandant au-delà du seuil. **19/10 (B5)** : un devis signé peut encore expirer ou être annulé (archive conservée), une seule offre signée vivante par dossier, validité jugée au jour de Paris (`retenir_devis`, `deposer_devis`).

@@ -20,6 +20,7 @@ import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
 import { versementsDuTerme } from "@/lib/documents/modeles/quittance";
+import { recapitulatifFiscal, type ComposantesFiscales, type EcritureFiscale } from "@/lib/fiscal";
 
 const NOM = "20261028100100_conge_ajuste_dernier_terme_et_depot_au_centime";
 const url = process.env.SUPABASE_DB_URL;
@@ -477,6 +478,87 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     expect((await quittance(mois))[0]).toMatchObject({ est_quittance: true, montant: "500.00" });
     expect((await quittance(mois))[0].email_envoye_at).not.toBeNull();
     expect(await alertes("document_envoye_remplace")).toMatchObject([{ statut: "fermee", closed_action: "Document revenu à celui envoyé au locataire" }]);
+  });
+
+  // Sixième relecture du 28/10 : la ligne 211 suit le loyer DÛ. Le récapitulatif est calculé par recapitulatifFiscal sur
+  // les écritures et les composantes conservées en base, comme l'écran et le PDF de la 2044.
+  async function ligne211(annee: number) {
+    await db.query("reset role");
+    const ecritures = (await db.query("select id, categorie, sens, montant::float8 montant, date_piece::text, contre_ecriture_de, lot_id, bail_id, encaissement_id, libelle from public.ecritures where bail_id=$1", [bail])).rows as EcritureFiscale[];
+    const composantes = (await db.query("select c.ecriture_id, c.loyer_hc::float8 loyer_hc, c.charges::float8 charges, c.non_ventile::float8 non_ventile from public.fiscal_encaissements_composantes c join public.ecritures x on x.id=c.ecriture_id where x.bail_id=$1", [bail])).rows as ComposantesFiscales[];
+    await agir(compte);
+    const r = recapitulatifFiscal(ecritures, annee, { composantes: new Map(composantes.map((c) => [c.ecriture_id, c])) });
+    return { l211: r.rubriques.find((x) => x.code === "211")!.montant, aQualifier: r.aQualifier };
+  }
+  const restituer = async () => {
+    const r = (await db.query("select public.demarrer_restitution($1, public.aujourdhui_paris(), true) r", [bail])).rows[0].r;
+    return Number((await db.query("select public.finaliser_decompte($1) s", [r])).rows[0].s);
+  };
+
+  it("fiscalité (F1) : terme payé au loyer appelé puis congé : la restitution retranche de la 211 le loyer rendu, sans réécrire les captures", async () => {
+    const annee = Number(jour.slice(0, 4));
+    // Tout est payé, mois courant compris (500 €) ; le congé ramène le mois courant à 25 jours.
+    const avant = await ligne211(annee);
+    await db.query("reset role");
+    const capturesAvant = (await db.query("select c.ecriture_id, c.loyer_hc::text, c.charges::text from public.fiscal_encaissements_composantes c join public.ecritures x on x.id=c.ecriture_id where x.bail_id=$1 order by 1", [bail])).rows;
+    await agir(compte);
+    await conge();
+    expect((await ligne211(annee)).l211).toBe(avant.l211);
+    const rendu = await restituer();
+    const a = await attendu25();
+    expect(rendu).toBeCloseTo(500 - Number(a.total), 2);
+    await db.query("reset role");
+    const correction = (await db.query(`select c.loyer_hc::float8 hc, c.charges::float8 ch, c.non_ventile::float8 nv from public.fiscal_encaissements_composantes c
+      join public.ecritures x on x.id=c.ecriture_id where x.bail_id=$1 and x.categorie='trop_percu_restitue'`, [bail])).rows[0];
+    expect(correction).toEqual({ hc: Number((450 - Number(a.loyer)).toFixed(2)), ch: Number((50 - Number(a.charges)).toFixed(2)), nv: 0 });
+    // Aucune capture antérieure n'est réécrite.
+    expect((await db.query("select c.ecriture_id, c.loyer_hc::text, c.charges::text from public.fiscal_encaissements_composantes c join public.ecritures x on x.id=c.ecriture_id where x.bail_id=$1 and x.categorie='loyer' order by 1", [bail])).rows).toEqual(capturesAvant);
+    await agir(compte);
+    // Payé et rendu la même année : 211 = loyer HT dû des paiements de l'année.
+    expect((await ligne211(annee)).l211).toBeCloseTo(avant.l211 - (450 - Number(a.loyer)), 2);
+  });
+
+  it("fiscalité (F2) : terme non dû payé après un congé tardif : non ventilé à l'encaissement ; la restitution retranche le reste", async () => {
+    const annee = Number(jour.slice(0, 4));
+    const precedent = (await db.query("select ($1::date - interval '1 month')::date::text m", [mois])).rows[0].m;
+    // Le mois courant n'est pas encore payé ; congé tardif (fin le 25 du mois précédent, déjà payé 500 €).
+    await db.query("reset role");
+    await db.query("select public.supprimer_encaissement(e.id,'TEST pas encore payé') from public.encaissements e where e.bail_id=$1 and e.date_paiement>=$2", [bail, mois]);
+    await agir(compte);
+    await db.query("select public.enregistrer_conge($1,'locataire',($2::date - interval '2 months' + interval '24 days')::date,1::smallint)", [bail, mois]);
+    // Le locataire paie ensuite le terme non dû : rien n'en est ventilé en loyer.
+    await db.query("reset role");
+    const enc = (await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,500,$3,'virement') returning id", [org, bail, jour])).rows[0].id;
+    expect((await db.query("select c.loyer_hc::float8 hc, c.non_ventile::float8 nv from public.fiscal_encaissements_composantes c join public.ecritures x on x.id=c.ecriture_id where x.encaissement_id=$1 and x.contre_ecriture_de is null", [enc])).rows[0]).toEqual({ hc: 0, nv: 500 });
+    await agir(compte);
+    const du = Number((await appel(precedent)).montant_du);
+    const rendu = await restituer();
+    expect(rendu).toBeCloseTo(500 + 500 - du, 2);
+    await db.query("reset role");
+    const jours = (await db.query("select extract(day from ($1::date + interval '1 month - 1 day'))::int j", [precedent])).rows[0].j;
+    const htPrecedent = Number((await db.query("select round(450.0*25/$1::int,2)::float8 l", [jours])).rows[0].l);
+    const correction = (await db.query(`select c.loyer_hc::float8 hc, c.non_ventile::float8 nv from public.fiscal_encaissements_composantes c
+      join public.ecritures x on x.id=c.ecriture_id where x.bail_id=$1 and x.categorie='trop_percu_restitue'`, [bail])).rows[0];
+    expect(correction).toEqual({ hc: Number((450 - htPrecedent).toFixed(2)), nv: 500 });
+    await agir(compte);
+  });
+
+  it("fiscalité : un trop-perçu ordinaire (versement en plus, rien de ventilé en trop) reste inchangé", async () => {
+    const annee = Number(jour.slice(0, 4));
+    await db.query("reset role");
+    await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,100,$3,'virement')", [org, bail, jour]);
+    await agir(compte);
+    const avant = await ligne211(annee);
+    // Congé présenté le 1er du mois : fin le 1er du mois suivant, aucun terme appelé n'est recalculé ni rendu non dû.
+    await db.query("select public.enregistrer_conge($1,'locataire',$2::date,1::smallint)", [bail, mois]);
+    const rendu = await restituer();
+    expect(rendu).toBe(100);
+    await db.query("reset role");
+    expect((await db.query("select count(*)::int n from public.fiscal_encaissements_composantes c join public.ecritures x on x.id=c.ecriture_id where x.bail_id=$1 and x.categorie='trop_percu_restitue'", [bail])).rows[0].n).toBe(0);
+    await agir(compte);
+    const apres = await ligne211(annee);
+    expect(apres.l211).toBe(avant.l211);
+    expect(apres.aQualifier).toBe(avant.aQualifier + 100);
   });
 
   it("COD-03 : une écriture héritée à millièmes reste annulable (la contre-écriture recopie son montant)", async () => {

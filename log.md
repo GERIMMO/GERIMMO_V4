@@ -7274,3 +7274,9 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
 - Un terme d'un mois postérieur à la fin du bail n'est pas dû : échéancier, reste dû, espace du locataire, relances
   automatiques, alerte d'impayé et décompte alignés (statut « Non dû — après la fin du bail ») ; aucune relance ne le
   réclame. Page [[Prorata du premier et du dernier terme]] mise à jour.
+
+## [2026-10-28] fix | Sixième relecture du chantier « loyers : calculs » — ligne 211 sur le loyer dû
+- La ventilation fiscale des règlements suit le loyer dû (terme après la fin du bail = 0, dernier terme au prorata) ; le
+  loyer rendu au locataire au solde de tout compte se retranche de la 211 l'année de la restitution. Assurance non
+  réclamée pour un bail fini ; historique du lot « Non dû — après la fin du bail ». Pages [[Fiscalité]] et
+  [[Prorata du premier et du dernier terme]] mises à jour.

@@ -7,7 +7,10 @@
  *
  * Ici : l'appel du mois de fin est recalculé avec la règle de la génération (arrondi par composante) à l'enregistrement et à
  * l'annulation du congé, quittance ou reçu resynchronisés ; une quittance déjà envoyée fige l'appel et pose une alerte ; un
- * terme appelé après la fin du bail n'est jamais touché (alerte) ; le mois d'entrée n'est jamais recalculé. Le dépôt, les
+ * terme appelé après la fin du bail n'est jamais touché (alerte) ; le mois d'entrée n'est jamais recalculé. La base du
+ * recalcul est celle qui a émis l'appel (seconde relecture du 28/10) : une révision datée dans le mois de sortie ne refacture
+ * pas ce mois après une annulation. Un document envoyé d'un autre terme que l'imputation remplace est réécrit (cohérent avec
+ * l'écran du bail) et une alerte le suit jusqu'au renvoi. Le dépôt, les
  * retenues, les postes de charges et les écritures refusent les millièmes. Le dernier bloc rejoue la migration et son retour
  * dans la transaction du test (DDL sur `ecritures`) : le fichier tourne en série (FICHIERS_EN_SERIE de vitest.config.ts).
  */
@@ -16,6 +19,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
+import { versementsDuTerme } from "@/lib/documents/modeles/quittance";
 
 const NOM = "20261028100100_conge_ajuste_dernier_terme_et_depot_au_centime";
 const url = process.env.SUPABASE_DB_URL;
@@ -70,11 +74,12 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     await agir(compte);
     return rows;
   }
-  async function alertes() {
+  async function alertes(type = "terme_a_regulariser") {
     await db.query("reset role");
-    const { rows } = await db.query<{ statut: string; titre: string; origine_type: string; origine_id: string; motif: string; appel_id: string; closed_action: string | null }>(
-      `select statut::text, titre, origine_type, origine_id, details->>'motif' motif, details->>'appel_id' appel_id, closed_action from public.alerts
-        where organization_id=$1 and type='terme_a_regulariser' order by created_at`, [org]);
+    const { rows } = await db.query<{ statut: string; titre: string; origine_type: string; origine_id: string; motif: string; appel_id: string; closed_action: string | null; consigne: string | null }>(
+      `select statut::text, titre, origine_type, origine_id, details->>'motif' motif, details->>'appel_id' appel_id, closed_action,
+              details->>'consigne' consigne from public.alerts
+        where organization_id=$1 and type=$2 order by created_at`, [org, type]);
     await agir(compte);
     return rows;
   }
@@ -138,8 +143,12 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     expect(await appel(mois)).toMatchObject({ montant_du: "500.00", prorata: false });
     const [alerte] = await alertes();
     expect(alerte).toMatchObject({ statut: "ouverte", origine_type: "bail", origine_id: bail, motif: "quittance_envoyee" });
-    expect(alerte.titre).toContain("appelé 500,00 €");
-    expect(alerte.titre).toContain(`dû ${(await attendu25()).total.replace(".", ",")} €`);
+    // Le montant exact et quoi faire (seconde relecture du 28/10 : aucun outil de régularisation, l'alerte le dit).
+    const total = (await attendu25()).total;
+    const ecart = (500 - Number(total)).toFixed(2).replace(".", ",");
+    expect(alerte.titre).toContain(`appelé 500,00\u00a0€ au lieu de ${total.replace(".", ",")}\u00a0€`);
+    expect(alerte.titre).toContain(`${ecart}\u00a0€ appelés en trop, à régulariser avec le locataire`);
+    expect(alerte.consigne).toContain("solde de tout compte");
     // Rétractation : l'appel de 500 € redevient exact, l'alerte n'a plus d'objet et se ferme d'elle-même (relecture du 28/10).
     await db.query("select public.annuler_conge($1,'TEST rétractation')", [bail]);
     expect(await appel(mois)).toMatchObject({ montant_du: "500.00", prorata: false });
@@ -224,33 +233,139 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     const { rows } = await db.query("select criticite::text, titre, origine_id from public.alerts where organization_id=$1 and type='avis_echeance_recalcule'", [org]);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ criticite: "informative", origine_id: bail });
-    expect(rows[0].titre).toContain(`passe de 500,00 € à ${(await attendu25()).total.replace(".", ",")} €`);
+    expect(rows[0].titre).toContain(`envoyé pour 500,00\u00a0€`);
+    expect(rows[0].titre).toContain(`maintenant de ${(await attendu25()).total.replace(".", ",")}\u00a0€`);
+    // Seconde relecture du 28/10 : l'annulation ramène le terme au montant de l'avis ENVOYÉ, l'alerte n'a plus d'objet.
+    await agir(compte);
+    await db.query("select public.annuler_conge($1,'TEST rétractation')", [bail]);
+    await db.query("reset role");
+    const apres = await db.query("select statut::text, closed_action from public.alerts where organization_id=$1 and type='avis_echeance_recalcule'", [org]);
+    expect(apres.rows).toEqual([{ statut: "fermee", closed_action: "Montant revenu à celui de l’avis envoyé" }]);
   });
 
-  it("le document déjà envoyé d'un AUTRE terme n'est pas réécrit par l'imputation : il reste tel quel et le gérant est alerté", async () => {
-    // Le mois précédent est né au prorata (fin le 25), réglé et quittancé ; le mois courant, réglé 500 €, a sa quittance envoyée.
+  it("avis envoyé, puis deux recalculs successifs : l'alerte garde le montant de l'avis envoyé", async () => {
+    await db.query("reset role");
+    await db.query("update public.appels_loyer set email_envoye_at=now() where bail_id=$1 and periode=$2", [bail, mois]);
+    await agir(compte);
+    await conge();
+    // Préavis modifié : fin le 10 au lieu du 25 (403,22 → ~161 €) ; l'avis envoyé portait toujours 500 €.
+    await db.query("reset role");
+    await db.query("update public.baux set date_fin=($1::date + 9) where id=$2", [mois, bail]);
+    await db.query("select public.ajuster_appel_fin_de_bail($1, ($2::date + 24))", [bail, mois]);
+    const { rows } = await db.query("select titre, details->>'montant_envoye' envoye from public.alerts where organization_id=$1 and type='avis_echeance_recalcule' and statut='ouverte'", [org]);
+    expect(rows).toHaveLength(1);
+    expect(Number(rows[0].envoye)).toBe(500);
+    expect(rows[0].titre).toContain("envoyé pour 500,00\u00a0€");
+  });
+
+  it.each([
+    ["datée du 20 (ou du jour, s'il précède)", "least($2::date + 19, public.aujourdhui_paris())"],
+    ["datée du 1er", "$2::date"],
+  ])("appel émis à 450 + 50, révision %s, congé fin au 25 puis annulation : 500,00 € et rien de dû", async (_libelle, dateRevision) => {
+    // Seconde relecture du 28/10 (R1, R2) : la révision ne touche pas l'appel déjà émis ; elle ne doit pas le refacturer.
+    await db.query(`select public.reviser_loyer($1,150,'T2 2026',${dateRevision})`, [bail, mois]);
+    await conge();
+    expect(await appel(mois)).toMatchObject({ montant_du: (await attendu25()).total, prorata: true });
+    await db.query("select public.annuler_conge($1,'Le locataire reste')", [bail]);
+    expect(await appel(mois)).toEqual({ loyer_hc: "450.00", charges: "50.00", montant_du: "500.00", prorata: false });
+    await db.query("reset role");
+    expect((await db.query("select statut from public.etat_loyers_bail_brut($1) where periode=$2", [bail, mois])).rows[0].statut).toBe("paye");
+    expect(Number((await db.query("select impayes from public.montants_reels_bail($1)", [bail])).rows[0].impayes)).toBe(0);
+  });
+
+  it("appel né au prorata au loyer 450, révision dans le mois, puis annulation : 500,00 €", async () => {
+    // Seconde relecture du 28/10 (R3) : la base mémorisée à l'émission du prorata est celle du bail à ce moment-là.
+    await db.query("reset role");
+    await db.query("select public.supprimer_encaissement(e.id,'TEST retour avant le cycle') from public.encaissements e where e.bail_id=$1 and e.date_paiement>=$2", [bail, mois]);
+    await db.query("delete from public.appels_loyer where bail_id=$1 and periode=$2", [bail, mois]);
+    await agir(compte);
+    await conge();
+    await db.query("select public.generer_appels_loyer($1)", [bail]);
+    expect(await appel(mois)).toMatchObject({ montant_du: (await attendu25()).total, prorata: true });
+    await db.query("reset role");
+    expect((await db.query("select base_loyer_hc::float8 l, base_charges::float8 c from public.appels_loyer where bail_id=$1 and periode=$2", [bail, mois])).rows[0]).toEqual({ l: 450, c: 50 });
+    await agir(compte);
+    await db.query("select public.reviser_loyer($1,150,'T2 2026',least($2::date + 19, public.aujourdhui_paris()))", [bail, mois]);
+    await db.query("select public.annuler_conge($1,'Le locataire reste')", [bail]);
+    expect(await appel(mois)).toEqual({ loyer_hc: "450.00", charges: "50.00", montant_du: "500.00", prorata: false });
+  });
+
+  it("congé tardif, reçu déjà envoyé sur le terme suivant : le document est recomposé comme l'écran du bail, une alerte le suit jusqu'au renvoi", async () => {
+    // Seconde relecture du 28/10 (R5), voie décidée : rien n'est remis en l'état. Le terme courant a été réglé 300 € et
+    // son reçu est parti ; le congé tardif (fin le 25 du mois précédent) réduit le mois précédent, l'excédent couvre le terme
+    // courant.
+    const precedent = (await db.query("select ($1::date - interval '1 month')::date::text m", [mois])).rows[0].m;
+    await db.query("reset role");
+    await db.query("select public.supprimer_encaissement(e.id,'TEST paiement partiel') from public.encaissements e where e.bail_id=$1 and e.date_paiement>=$2", [bail, mois]);
+    await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,300,$3,'virement')", [org, bail, mois]);
+    await db.query("update public.quittances q set email_envoye_at=now() from public.appels_loyer a where a.id=q.appel_id and a.bail_id=$1 and a.periode=$2", [bail, mois]);
+    await agir(compte);
+    expect(await quittance(mois)).toMatchObject([{ est_quittance: false, montant: "300.00" }]);
+    await db.query("select public.enregistrer_conge($1,'locataire',($2::date - interval '2 months' + interval '24 days')::date,1::smallint)", [bail, mois]);
+
+    // Le document tel que la page, le PDF et l'espace locataire le recomposent (assemblerQuittance) : mêmes lectures.
+    const documentEtEcran = async () => {
+      await db.query("reset role");
+      const q = (await db.query("select q.est_quittance, q.montant::numeric m, q.email_envoye_at, a.id appel, a.montant_du::numeric du from public.quittances q join public.appels_loyer a on a.id=q.appel_id where a.bail_id=$1 and a.periode=$2", [bail, mois])).rows[0];
+      const appels = (await db.query("select id, periode::text, montant_du::numeric montant_du from public.appels_loyer where bail_id=$1", [bail])).rows;
+      const versements = (await db.query("select date_paiement::text, mode, montant::numeric montant, created_at::text from public.encaissements where bail_id=$1", [bail])).rows;
+      const ecran = (await db.query("select montant_du::numeric du, montant_couvert::numeric couvert, statut from public.etat_loyers_bail($1) where periode=$2", [bail, mois])).rows[0];
+      await agir(compte);
+      const listes = versementsDuTerme(appels.map((a) => ({ ...a, montant_du: Number(a.montant_du) })),
+        versements.map((v) => ({ ...v, montant: Number(v.montant) })), q.appel);
+      return {
+        document: { montant: Number(q.m), versements: Math.round(listes.reduce((t, v) => t + v.montant, 0) * 100) / 100, solde: Math.round((Number(q.du) - Number(q.m)) * 100) / 100, envoye: q.email_envoye_at !== null },
+        ecran: { couvert: Number(ecran.couvert), reste: Math.round((Number(ecran.du) - Number(ecran.couvert)) * 100) / 100 },
+      };
+    };
+    const apresConge = await documentEtEcran();
+    expect(apresConge.document.montant).toBeGreaterThan(300);
+    expect(apresConge.document).toEqual({ montant: apresConge.ecran.couvert, versements: apresConge.ecran.couvert, solde: apresConge.ecran.reste, envoye: false });
+    const [alerte] = await alertes("document_envoye_remplace");
+    const nouveau = apresConge.document.montant.toFixed(2).replace(".", ",");
+    expect(alerte).toMatchObject({ statut: "ouverte", origine_id: bail });
+    expect(alerte.titre).toMatch(new RegExp(`^Le reçu (d’|de ).+ envoyé le \\d{2}/\\d{2}/\\d{4} pour 300,00\u00a0€ est remplacé par un reçu de ${nouveau}\u00a0€ — `));
+    expect(alerte.titre).toContain("envoyez le nouveau document au locataire");
+    expect(await appel(precedent)).toMatchObject({ prorata: true });
+
+    // Le locataire règle le solde : le déclencheur des encaissements réécrit le document, l'alerte suit (quittance de 500 €).
+    await db.query("reset role");
+    await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,$3,$4,'virement')", [org, bail, apresConge.ecran.reste, jour]);
+    await agir(compte);
+    const solde = await documentEtEcran();
+    expect(solde.document).toEqual({ montant: 500, versements: 500, solde: 0, envoye: false });
+    expect((await alertes("document_envoye_remplace"))[0].titre).toContain("est remplacé par une quittance de 500,00\u00a0€");
+
+    // Le gérant envoie la quittance à jour : l'alerte n'a plus d'objet.
+    await db.query("reset role");
+    await db.query("update public.quittances q set email_envoye_at=now() from public.appels_loyer a where a.id=q.appel_id and a.bail_id=$1 and a.periode=$2", [bail, mois]);
+    await agir(compte);
+    expect(await alertes("document_envoye_remplace")).toMatchObject([{ statut: "fermee", closed_action: "Document à jour envoyé au locataire" }]);
+  });
+
+  it("annulation qui retire la couverture d'un document envoyé : il est retiré, l'alerte le dit, puis se ferme s'il revient à l'identique", async () => {
+    // Le mois précédent est né au prorata (fin le 25), réglé de son seul prorata ; le terme courant, réglé 500 €, a sa
+    // quittance envoyée. La rétractation remet le mois précédent à 500 € : l'imputation ne couvre plus tout le terme courant.
     const precedent = (await db.query("select ($1::date - interval '1 month')::date::text m", [mois])).rows[0].m;
     await db.query("select public.enregistrer_conge($1,'locataire',($2::date - interval '2 months' + interval '24 days')::date,1::smallint)", [bail, mois]);
     await db.query("reset role");
-    // Le mois précédent a été réglé de son seul prorata ; le terme courant (appelé après la fin) a été réglé 500 € et sa
-    // quittance est partie avant la rétractation.
     await db.query("select public.supprimer_encaissement(e.id,'TEST règlement du prorata') from public.encaissements e where e.bail_id=$1 and e.date_paiement>=$2::date and e.date_paiement<$3::date", [bail, precedent, mois]);
     await db.query(`insert into encaissements(organization_id,bail_id,montant,date_paiement,mode)
       select $1,$2,a.montant_du,a.date_echeance,'virement' from public.appels_loyer a where a.bail_id=$2 and a.periode=$3::date`, [org, bail, precedent]);
     await db.query("select * from public.resynchroniser_quittances($1)", [bail]);
     await db.query("update public.quittances q set email_envoye_at=now() from public.appels_loyer a where a.id=q.appel_id and a.bail_id=$1 and a.periode=$2", [bail, mois]);
     await agir(compte);
-    const avant = await quittance(mois);
-    expect(avant).toMatchObject([{ est_quittance: true, montant: "500.00" }]);
-    // Rétractation : le mois précédent redevient plein (500), l'imputation ne couvre plus tout le mois courant.
     await db.query("select public.annuler_conge($1,'TEST rétractation')", [bail]);
     expect(await appel(precedent)).toMatchObject({ montant_du: "500.00", prorata: false });
-    expect(await quittance(mois)).toEqual(avant);
-    const alertesOuvertes = (await alertes()).filter((a) => a.statut === "ouverte");
-    expect(alertesOuvertes).toHaveLength(1);
-    expect(alertesOuvertes[0]).toMatchObject({ motif: "document_envoye" });
-    expect(alertesOuvertes[0].titre).toContain("Quittance de");
-    expect(alertesOuvertes[0].titre).toContain("déjà envoyée à revoir");
+    // Comme sur main : le document suit l'imputation (reçu du montant couvert, à renvoyer).
+    const [q] = await quittance(mois);
+    expect(q).toMatchObject({ est_quittance: false, email_envoye_at: null });
+    const [alerte] = (await alertes("document_envoye_remplace")).filter((a) => a.statut === "ouverte");
+    expect(alerte.titre).toMatch(/^La quittance (d’|de ).+ envoyée le .+ pour 500,00 € est remplacée par un reçu de /);
+    // Un nouveau congé identique rend la quittance de 500 € : l'alerte n'a plus d'objet.
+    await db.query("select public.enregistrer_conge($1,'locataire',($2::date - interval '2 months' + interval '24 days')::date,1::smallint)", [bail, mois]);
+    expect(await quittance(mois)).toMatchObject([{ est_quittance: true, montant: "500.00" }]);
+    expect(await alertes("document_envoye_remplace")).toMatchObject([{ statut: "fermee", closed_action: "Document revenu à celui envoyé au locataire" }]);
   });
 
   it("COD-03 : une écriture héritée à millièmes reste annulable (la contre-écriture recopie son montant)", async () => {
@@ -308,7 +423,8 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     const migration = readFileSync(`supabase/migrations/${NOM}.sql`, "utf8");
     const retour = readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8").replace(/^begin;$/m, "").replace(/^commit;$/m, "");
     const etat = async () => (await db.query(`select
-        to_regprocedure('public.ajuster_appel_fin_de_bail(uuid,date)') is not null ajuster,
+        to_regprocedure('public.ajuster_appel_fin_de_bail(uuid,date)') is not null
+          and exists (select 1 from pg_trigger where tgname in ('appel_loyer_base_mensuelle','quittance_suit_document_remplace') having count(*) = 2) ajuster,
         pg_get_functiondef('public.enregistrer_conge(uuid,public.conge_par,date,smallint,text,uuid,numeric,text)'::regprocedure) like '%ajuster_appel_fin_de_bail%' conge,
         pg_get_functiondef('public.annuler_conge(uuid,text)'::regprocedure) like '%ajuster_appel_fin_de_bail%' annulation,
         pg_get_functiondef('public.encaisser_depot(uuid,numeric,date,text,uuid,text,uuid)'::regprocedure) like '%au centime près%' depot,

@@ -4,11 +4,15 @@
 -- joue À LA MAIN, une fois décidé, avec la procédure de LISEZ-MOI.md. Une seule transaction : la moindre erreur annule tout.
 --
 -- Défait : rend à `enregistrer_conge` son texte de 20260929150000 et à `annuler_conge` celui de 20260803_annuler_conge (sans
--- l'ajustement du dernier terme) ; retire `ajuster_appel_fin_de_bail(uuid, date)`, `montants_appel_loyer(uuid, date, numeric, numeric)` et `poser_alerte_terme(…)` ;
+-- l'ajustement du dernier terme) ; retire `ajuster_appel_fin_de_bail(uuid, date)`, `montants_appel_loyer(uuid, date, numeric, numeric)`,
+-- `poser_alerte_terme(…)`, `suivre_document_remplace(uuid, uuid)`, `mois_de_periode(date)`, `montant_alerte(numeric)` et les
+-- déclencheurs `appel_loyer_base_mensuelle` (appels_loyer) et `quittance_suit_document_remplace` (quittances) avec leurs fonctions ;
 -- retire la garde du centime d'`encaisser_depot` (remplacement inverse à compte exact de l'ancre, sinon arrêt sans rien
 -- modifier) ; retire les quatre contraintes du centime ; supprime la version.
--- CONSERVE : les appels de loyer déjà recalculés par un congé (ils sont justes), les quittances resynchronisées et les
--- alertes « terme_a_regulariser » posées (le gérant les ferme). Aucune donnée n'est réécrite.
+-- CONSERVE : les appels de loyer déjà recalculés par un congé (ils sont justes), les quittances resynchronisées, les
+-- alertes « terme_a_regulariser », « document_envoye_remplace » et « avis_echeance_recalcule » posées (le gérant les
+-- ferme) et les colonnes `appels_loyer.base_loyer_hc` / `base_charges` (plus lues ni tenues après le retour ; une marche
+-- avant remplit celles restées vides). Aucune donnée n'est réécrite.
 -- Remettre le code précédent n'est pas nécessaire (signatures inchangées) ; l'application ignore une alerte d'un type
 -- qu'elle ne nomme pas (bouton « Traiter » absent, titre affiché).
 --
@@ -227,6 +231,13 @@ revoke execute on function public.annuler_conge(uuid, text) from public, anon;
 drop function if exists public.ajuster_appel_fin_de_bail(uuid, date);
 drop function if exists public.montants_appel_loyer(uuid, date, numeric, numeric);
 drop function if exists public.poser_alerte_terme(uuid, uuid, text, public.alerte_criticite, text, date, jsonb);
+drop trigger if exists quittance_suit_document_remplace on public.quittances;
+drop function if exists public.quittance_suit_document_remplace();
+drop function if exists public.suivre_document_remplace(uuid, uuid);
+drop trigger if exists appel_loyer_base_mensuelle on public.appels_loyer;
+drop function if exists public.appel_loyer_fixe_base();
+drop function if exists public.mois_de_periode(date);
+drop function if exists public.montant_alerte(numeric);
 
 do $retour$
 declare v_def text; v_ancre text;

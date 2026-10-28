@@ -38,13 +38,8 @@ describe.skipIf(!DB_URL)("Surface publique des fonctions", () => {
     await db?.end();
   });
 
-  // La seule exception (audit final du 28/10, PUB-01) : exiger_second_facteur(), la fonction de pré-requête que PostgREST
-  // appelle sous le rôle de CHAQUE requête, anonyme comprise — inscrite dans `v_publiques` de la fermeture. Elle ne
-  // fait rien sans identité (tests/garde-second-facteur-api-base.test.ts). Toute autre reste comptée.
-  const EXCEPTIONS = ["exiger_second_facteur()"];
-
   it("aucune fonction de `public` n'est exécutable par anon", async () => {
-    const { rows: toutes } = await db.query<{ signature: string; definer: boolean }>(
+    const { rows } = await db.query<{ signature: string; definer: boolean }>(
       `select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' as signature,
               p.prosecdef as definer
          from pg_proc p
@@ -54,7 +49,6 @@ describe.skipIf(!DB_URL)("Surface publique des fonctions", () => {
           and has_function_privilege('anon', p.oid, 'EXECUTE')
         order by p.prosecdef desc, p.proname`
     );
-    const rows = toutes.filter((r) => !EXCEPTIONS.includes(r.signature));
     // Le message porte la réparation : celui qui casse ce test vient d'écrire
     // une migration, il doit savoir quoi y ajouter sans aller lire ailleurs.
     const ouvertes = rows
@@ -86,17 +80,6 @@ describe.skipIf(!DB_URL)("Surface publique des fonctions", () => {
       rows.map((r) => r.signature),
       "Ces fonctions sont appelées par des écrans de l'application connectée : sans droit pour `authenticated`, les pages rendent une erreur."
     ).toEqual([]);
-  });
-
-  it("l'exception de la fermeture est la fonction de pré-requête de l'API, et elle seule", async () => {
-    const { rows } = await db.query<{ signature: string }>(
-      `select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')' as signature
-         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-        where n.nspname = 'public' and p.prokind = 'f' and has_function_privilege('anon', p.oid, 'EXECUTE')`
-    );
-    expect(rows.map((r) => r.signature)).toEqual(EXCEPTIONS);
-    const { rows: [f] } = await db.query<{ src: string }>("select prosrc as src from pg_proc where proname = 'fermer_fonctions_a_anon'");
-    expect(f.src).toContain("array['exiger_second_facteur']");
   });
 
   it("la fermeture est rejouable et ne casse rien quand tout est déjà fermé", async () => {

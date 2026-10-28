@@ -148,7 +148,11 @@ describe.skipIf(!URL || !KEY)("API — isolation multi-agences (RM-A1.7)", () =>
     const { data: sienne } = await a.from("organizations").select("id");
     expect(toutes ?? []).toHaveLength(0);
     expect((sienne ?? []).length).toBeGreaterThan(0);
-    expect((await sa.rpc("is_super_admin")).data).toBe(false);
+    // Audit final du 28/10 (PUB-01) : un super admin dont le second facteur est vérifié et qui n'a saisi que son mot de
+    // passe est refusé par la garde centrale de l'API (403, 42501) ; sans facteur, la fonction répond « non ». Aucun
+    // accès dans les deux cas.
+    const statut = await sa.rpc("is_super_admin");
+    expect(statut.data === false || (statut.status === 403 && statut.error?.code === "42501"), JSON.stringify(statut)).toBe(true);
   });
 
   it("un admin ne peut pas créer de fiche chez une autre agence", async () => {

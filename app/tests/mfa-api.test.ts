@@ -32,7 +32,9 @@ describe.skipIf(!local)('MFA — parcours SDK et protection des données', () =>
       expect((await c.rpc('is_super_admin')).data).toBe(true);
       await c.auth.signOut();
       expect((await c.auth.signInWithPassword({email,password})).error).toBeNull();
-      expect((await c.rpc('is_super_admin')).data).toBe(false);
+      // Audit final du 28/10 (PUB-01) : facteur vérifié, mot de passe seul ⇒ la garde centrale de l'API refuse (403).
+      const refus=await c.rpc('is_super_admin');
+      expect([refus.status,refus.error?.code,refus.data]).toEqual([403,'42501',null]);
       expect((await c.auth.mfa.unenroll({factorId:f.id})).error).not.toBeNull();
       expect((await c.auth.mfa.challengeAndVerify({factorId:f.id,code:totp(f.totp.secret)})).error).toBeNull();
       expect((await c.rpc('is_super_admin')).data).toBe(true);

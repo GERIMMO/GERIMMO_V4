@@ -4,7 +4,7 @@
  * La politique restrictive « second_facteur » ne garde que les tables : les fonctions SECURITY DEFINER contournent la
  * RLS, et plus de deux cents d'entre elles reconnaissent l'appelant par auth.uid(). Avec le mot de passe seul, un jeton
  * aal1 lisait l'échéancier du locataire, ses quittances, l'export de l'artisan, et créait un encaissement. Migration
- * 20261028100000 : exiger_second_facteur(), fonction de pré-requête de PostgREST (`pgrst.db_pre_request` du rôle
+ * 20261028100000 : garde_api.exiger_second_facteur(), fonction de pré-requête de PostgREST (`pgrst.db_pre_request` du rôle
  * authenticator), refuse toute requête REST, RPC et GraphQL d'un compte à facteur resté en aal1, sauf ce que le sas lit
  * pour décider (ses adhésions, sa session).
  *
@@ -26,7 +26,7 @@ config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
 verifierBaseDeTest(DB_URL);
 
-const GARDE = "public.exiger_second_facteur";
+const GARDE = "garde_api.exiger_second_facteur";
 
 describe.skipIf(!DB_URL)("garde centrale du second facteur devant l'API (PUB-01, seconde relecture)", () => {
   let db: Client;
@@ -94,13 +94,13 @@ describe.skipIf(!DB_URL)("garde centrale du second facteur devant l'API (PUB-01,
     }
     expect(await preRequeteConfiguree(),
       `${fonctions.length} fonctions SECURITY DEFINER exécutables par authenticated reconnaissent l'appelant par auth.uid()/auth.jwt() : ` +
-      "sans `alter role authenticator set pgrst.db_pre_request = 'public.exiger_second_facteur'`, un jeton aal1 d'un compte à second facteur les appelle.",
+      "sans `alter role authenticator set pgrst.db_pre_request = 'garde_api.exiger_second_facteur'`, un jeton aal1 d'un compte à second facteur les appelle.",
     ).toBe(GARDE);
     // Et la fonction configurée existe dans CETTE base : PostgREST échouerait sur chaque requête sinon.
     expect((await db.query("select to_regprocedure($1) is not null as presente", [`${GARDE}()`])).rows[0].presente).toBe(true);
   });
 
-  it("configuration : le rôle de PostgREST appelle la garde ; elle est SECURITY DEFINER, sans search_path, ouverte à tous les rôles de l'API", async () => {
+  it("configuration : le rôle de PostgREST appelle la garde, hors de l'API (schéma garde_api), sans search_path, exécutable par tous ses rôles", async () => {
     expect((await db.query("select to_regrole('authenticator') is not null as present")).rows[0].present).toBe(true);
     expect(await preRequeteConfiguree()).toBe(GARDE);
     const { rows } = await db.query(`
@@ -108,9 +108,15 @@ describe.skipIf(!DB_URL)("garde centrale du second facteur devant l'API (PUB-01,
              has_function_privilege('anon', p.oid, 'EXECUTE') as anon,
              has_function_privilege('authenticated', p.oid, 'EXECUTE') as authentifie,
              has_function_privilege('service_role', p.oid, 'EXECUTE') as service
-        from pg_proc p where p.oid = 'public.exiger_second_facteur()'::regprocedure`);
-    expect(rows[0]).toMatchObject({ prosecdef: true, provolatile: "s", retour: "void", anon: true, authentifie: true, service: true });
+        from pg_proc p where p.oid = 'garde_api.exiger_second_facteur()'::regprocedure`);
+    // Droits de l'appelant : la lecture des facteurs passe par niveau_assurance_suffisant, fermée à anon.
+    expect(rows[0]).toMatchObject({ prosecdef: false, provolatile: "s", retour: "void", anon: true, authentifie: true, service: true });
     expect(rows[0].proconfig).toEqual(['search_path=""']);
+    // L'API n'expose que public (et graphql_public) : la garde n'est pas une RPC ; aucune fonction de public n'est
+    // ouverte à anon pour elle (invariant de fermer_fonctions_a_anon).
+    const schema = (await db.query("select has_schema_privilege('anon', 'garde_api', 'USAGE') as anon, has_schema_privilege('anon', 'garde_api', 'CREATE') as creer")).rows[0];
+    expect(schema).toEqual({ anon: true, creer: false });
+    expect((await db.query("select count(*)::int n from pg_proc where pronamespace = 'garde_api'::regnamespace")).rows[0].n).toBe(1);
   });
 
   it("aal1 avec facteur vérifié : chaque fonction de l'inventaire, une table, GraphQL et toute écriture sont refusés (403)", async () => {
@@ -153,10 +159,13 @@ describe.skipIf(!DB_URL)("garde centrale du second facteur devant l'API (PUB-01,
     // La table du banc est minuscule : le planificateur peut préférer la lecture séquentielle ; l'index doit exister.
     expect((await db.query("select count(*)::int n from pg_index i where i.indrelid = 'auth.mfa_factors'::regclass and (select attname from pg_attribute where attrelid = i.indrelid and attnum = i.indkey[0]) = 'user_id'")).rows[0].n).toBeGreaterThan(0);
     expect(plan).toMatch(/mfa_factors/);
-    const src = (await db.query("select prosrc from pg_proc where oid = 'public.exiger_second_facteur()'::regprocedure")).rows[0].prosrc as string;
-    // Le jeton aal2 et l'absence d'identité sortent avant toute lecture.
-    expect(src.indexOf("'aal2'")).toBeLessThan(src.indexOf("auth.mfa_factors"));
-    expect(src.match(/auth\.mfa_factors/g)).toHaveLength(1);
+    const src = (await db.query("select prosrc from pg_proc where oid = 'garde_api.exiger_second_facteur()'::regprocedure")).rows[0].prosrc as string;
+    // Le jeton aal2 et l'absence d'identité sortent avant toute lecture ; la seule lecture est celle de
+    // niveau_assurance_suffisant, qui lit auth.mfa_factors une fois.
+    expect(src.indexOf("'aal2'")).toBeLessThan(src.indexOf("niveau_assurance_suffisant"));
+    expect(src.match(/niveau_assurance_suffisant/g)).toHaveLength(1);
+    const niveau = (await db.query("select prosrc from pg_proc where oid = 'public.niveau_assurance_suffisant()'::regprocedure")).rows[0].prosrc as string;
+    expect(niveau.match(/auth\.mfa_factors/g)).toHaveLength(1);
   });
 
   it("les archives rejouent les politiques de lecture sans la garde de session : un compte à facteur y retrouve ses lignes", async () => {

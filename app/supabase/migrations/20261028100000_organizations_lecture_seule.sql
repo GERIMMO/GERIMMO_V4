@@ -20,7 +20,7 @@
 -- toutes les tables de public sous RLS et sur storage.objects, et identité neutralisée (uid_second_facteur) dans les
 -- fonctions SECURITY DEFINER appelables par authenticated — poser_gardes_second_facteur(), à rappeler après toute
 -- migration qui crée une table ou (re)définit une telle fonction. Et surtout, devant toute l'API (seconde relecture du
--- 28/10) : exiger_second_facteur(), fonction de pré-requête de PostgREST (pgrst.db_pre_request du rôle authenticator),
+-- 28/10) : garde_api.exiger_second_facteur(), pré-requête de PostgREST (pgrst.db_pre_request du rôle authenticator),
 -- qui refuse toute requête REST, RPC ou GraphQL d'un compte à facteur resté en aal1 ; demander_export_complet exige le
 -- second facteur d'un compte qui en a un. Stripe
 -- (DRT-04) : abonnement_appliquer ne lève plus une suspension décidée par la supervision.
@@ -383,24 +383,31 @@ $function$;
 -- serveur d'authentification, pas par cette API.
 --
 -- Rien ne change pour anon, le service et les tâches planifiées (aucune identité), ni pour une session aal2, ni pour un
--- compte sans facteur vérifié (une lecture de auth.mfa_factors par l'index de user_id ; aucune pour aal2 et anon).
--- 42501 : PostgREST répond 403 à un compte connecté.
-create or replace function public.exiger_second_facteur()
+-- compte sans facteur vérifié (niveau_assurance_suffisant : une lecture de auth.mfa_factors par l'index de user_id ;
+-- aucune pour aal2 et anon). 42501 : PostgREST répond 403 à un compte connecté.
+--
+-- UN SCHÉMA À ELLE, HORS DE L'API. PostgREST l'appelle sous le rôle de CHAQUE requête, anonyme comprise : anon doit
+-- pouvoir l'exécuter. Dans public, elle deviendrait la seule fonction ouverte à anon (contre l'invariant tenu par
+-- fermer_fonctions_a_anon et ses tests) et serait appelable en RPC ; dans garde_api, schéma que l'API n'expose pas,
+-- elle n'est que la pré-requête. Elle s'exécute avec les droits de l'appelant (pas de SECURITY DEFINER) : la lecture
+-- des facteurs passe par niveau_assurance_suffisant(), fermée à anon, qu'un appel anonyme n'atteint jamais.
+create schema if not exists garde_api;
+revoke all on schema garde_api from public;
+grant usage on schema garde_api to anon, authenticated, service_role;
+create or replace function garde_api.exiger_second_facteur()
 returns void
 language plpgsql
 stable
-security definer
 set search_path = ''
 as $$
 declare
-  v_uid uuid := (select auth.uid());
   v_chemin text;
   v_methode text;
 begin
-  if v_uid is null or coalesce((select auth.jwt()) ->> 'aal', '') = 'aal2' then
+  if (select auth.uid()) is null or coalesce((select auth.jwt()) ->> 'aal', '') = 'aal2' then
     return;
   end if;
-  if not exists (select 1 from auth.mfa_factors f where f.user_id = v_uid and f.status = 'verified') then
+  if (select public.niveau_assurance_suffisant()) then
     return;
   end if;
   -- PostgREST pose request.path sans le préfixe /rest/v1 que retire la passerelle (« /memberships », « /rpc/… »).
@@ -415,76 +422,10 @@ begin
           hint = 'Votre compte a activé la double authentification ; le mot de passe seul n’ouvre pas ses données.';
 end;
 $$;
-comment on function public.exiger_second_facteur() is
+comment on function garde_api.exiger_second_facteur() is
   'Fonction de pré-requête de PostgREST (pgrst.db_pre_request) : refuse toute requête d''un compte à second facteur vérifié resté en aal1, sauf la lecture de ses adhésions et de sa session par le sas (audit final, PUB-01).';
--- PostgREST l'appelle sous le rôle de la requête, anon compris : sans ce droit, toute requête anonyme échouerait. Elle
--- ne rend rien et ne fait rien pour anon (aucune identité). Inscrite à ce titre dans les exceptions de
--- fermer_fonctions_a_anon (ci-dessous), seul endroit où une fonction peut rester ouverte à anon.
-revoke all on function public.exiger_second_facteur() from public;
-grant execute on function public.exiger_second_facteur() to anon, authenticated, service_role;
-
--- fermer_fonctions_a_anon, reprise de sa définition en vigueur (20260911290000), avec sa première exception.
-create or replace function public.fermer_fonctions_a_anon()
-returns integer
-language plpgsql
-volatile
-security definer
-set search_path = ''
-as $$
-declare
-  f record;
-  -- Aucune fonction du produit n'a besoin d'être appelée sans être connecté :
-  -- le seul geste public du site — la demande de devis — écrit dans une table,
-  -- sous politique RLS, pas par RPC. Si un jour il en faut une (un webhook
-  -- signé, par exemple), elle s'ajoute ICI, avec la raison en commentaire —
-  -- et le test cesse alors de la compter.
-  --  · exiger_second_facteur (audit final du 27/10/2026, PUB-01) : la fonction de pré-requête de PostgREST, appelée
-  --    sous le rôle de CHAQUE requête, anonyme comprise. Elle ne fait rien sans identité.
-  v_publiques text[] := array['exiger_second_facteur']::text[];
-  v_auth boolean;
-  v_svc boolean;
-  v_n integer := 0;
-begin
-  for f in
-    select p.oid, p.proname, pg_get_function_identity_arguments(p.oid) as args
-    from pg_proc p
-    join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public'
-      and p.prokind = 'f'
-      and has_function_privilege('anon', p.oid, 'EXECUTE')
-    order by p.proname
-  loop
-    if f.proname = any(v_publiques) then continue; end if;
-
-    -- CE QUI SE PASSE AVANT DE RETIRER, ET POURQUOI. Le droit de `anon` peut
-    -- venir de deux endroits : une mention explicite, ou le droit de PUBLIC —
-    -- celui que PostgreSQL accorde d'office et qui revient après un DROP. Il
-    -- faut retirer les deux, sinon on ne ferme rien. Mais PUBLIC couvre AUSSI
-    -- `authenticated` et `service_role` : sur une fonction dont c'est la seule
-    -- source de droit, le retirer les mettrait dehors avec `anon`, et la moitié
-    -- du produit tomberait. On note donc ce qu'ils peuvent AVANT, et on le leur
-    -- rend nommément APRÈS. Le droit ne change pour personne sauf `anon`.
-    v_auth := has_function_privilege('authenticated', f.oid, 'EXECUTE');
-    v_svc := has_function_privilege('service_role', f.oid, 'EXECUTE');
-
-    execute format('revoke execute on function public.%I(%s) from public, anon',
-                   f.proname, f.args);
-    if v_auth then
-      execute format('grant execute on function public.%I(%s) to authenticated',
-                     f.proname, f.args);
-    end if;
-    if v_svc then
-      execute format('grant execute on function public.%I(%s) to service_role',
-                     f.proname, f.args);
-    end if;
-    v_n := v_n + 1;
-  end loop;
-  return v_n;
-end;
-$$;
-comment on function public.fermer_fonctions_a_anon() is
-  'Retire à anon et à PUBLIC le droit d''exécuter toute fonction du schéma public. À APPELER EN FIN DE TOUTE MIGRATION qui crée ou REFAIT (drop/create) une fonction : un DROP rend les droits par défaut, et la fonction renaît ouverte.';
-revoke execute on function public.fermer_fonctions_a_anon() from public, anon, authenticated;
+revoke all on function garde_api.exiger_second_facteur() from public;
+grant execute on function garde_api.exiger_second_facteur() to anon, authenticated, service_role;
 
 -- L'enregistrement auprès de PostgREST. Une autre fonction de pré-requête déjà configurée n'est pas écrasée en silence :
 -- la migration s'arrête, il faut les chaîner (aucune dans ce dépôt au 28/10). Base sans le rôle `authenticator` (base
@@ -500,10 +441,10 @@ begin
   select substr(s, length('pgrst.db_pre_request=') + 1) into v_actuelle
     from pg_catalog.pg_db_role_setting r, unnest(r.setconfig) s
    where r.setrole = 'authenticator'::regrole and r.setdatabase = 0 and s like 'pgrst.db_pre_request=%';
-  if coalesce(v_actuelle, '') not in ('', 'public.exiger_second_facteur') then
-    raise exception 'pgrst.db_pre_request vaut déjà « % » : chaîner cette fonction avec public.exiger_second_facteur avant de migrer', v_actuelle;
+  if coalesce(v_actuelle, '') not in ('', 'garde_api.exiger_second_facteur') then
+    raise exception 'pgrst.db_pre_request vaut déjà « % » : chaîner cette fonction avec garde_api.exiger_second_facteur avant de migrer', v_actuelle;
   end if;
-  alter role authenticator set pgrst.db_pre_request = 'public.exiger_second_facteur';
+  alter role authenticator set pgrst.db_pre_request = 'garde_api.exiger_second_facteur';
 end $garde$;
 notify pgrst, 'reload config';
 

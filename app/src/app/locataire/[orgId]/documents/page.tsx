@@ -1,3 +1,4 @@
+import { ConsentementsDocuments } from "./consentements";
 import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { OngletsDossier } from "@/components/onglets-dossier";
 import { RubriqueDossier } from "@/components/rubrique-dossier";
@@ -75,8 +76,14 @@ export default async function PageDocumentsLocataire(
   props: PageProps<"/locataire/[orgId]/documents">
 ) {
   const { orgId } = await props.params;
-  const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, adhesionActive, personne } = await verifierAccesEspaceLocataire(orgId);
+  const accord = personne
+    ? await supabase.from("consentements_documents_locataire").select("quittances_electroniques,recommandes_electroniques,adresse_email").eq("organization_id", orgId).eq("person_id", personne.id).maybeSingle()
+    : null;
 
+  const destinataire = personne ? await supabase.from("persons").select("email").eq("organization_id", orgId).eq("id", personne.id).maybeSingle() : null;
+  const adresseReception = destinataire?.data?.email ?? (!adhesionActive ? accord?.data?.adresse_email : "") ?? "";
+  const adresseAccordValide = Boolean(adresseReception && accord?.data?.adresse_email === adresseReception.trim().toLowerCase());
   const [
     { data: piecesBrutes, error: ePieces },
     { data: echeancier, error: eEcheancier },
@@ -144,6 +151,8 @@ export default async function PageDocumentsLocataire(
       {aEchoue(ePieces, eEcheancier, eDemandes, eSignatures) && (
         <PanneLecture quoi="vos documents" />
       )}
+
+      {personne && ((accord?.error || destinataire?.error) ? <p role="alert" className="err">Vos préférences de réception ne peuvent pas être chargées. Réessayez avant de les modifier.</p> : <ConsentementsDocuments key={adresseReception || "sans-email"} orgId={orgId} retraitSeulement={!adhesionActive} email={adresseReception} quittances={adresseAccordValide && accord?.data?.quittances_electroniques === true} recommandes={adresseAccordValide && accord?.data?.recommandes_electroniques === true} />)}
 
       {enPreparation > 0 && <p className="rounded-xl border border-[var(--filet)] bg-[var(--warning-soft)] p-4 text-sm" role="status">
         {enPreparation} justificatif{enPreparation > 1 ? "s" : ""} de loyer en préparation ou à vérifier. Ces justificatifs deviendront consultables dès que les informations nécessaires seront complètes. <Link href={`/locataire/${orgId}/contact`} className="underline">Contacter mon gestionnaire</Link>

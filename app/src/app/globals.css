@@ -1043,7 +1043,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
    Le nom de l'agence et l'avatar partagent UNE ligne en tête ; la navigation
    passe dans la barre basse commune (`.coquille-basse`, voir la coquille). */
 @media (max-width: 640px) {
-  .loc-app { grid-template-columns: minmax(0, 1fr); position: relative; }
+  .loc-app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); position: relative; }
   .loc-late { position: static; height: auto; flex-flow: row nowrap; align-items: center; min-height: 58px; padding-right: 64px; }
   .loc-logo { border-bottom: none; padding: 10px 6px 10px 14px; }
   .loc-logo .loc-logo-texte { display: none; }
@@ -2773,11 +2773,14 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: none; }
 }
+/* Les textes restent opaques dès l’ouverture : le fondu du conteneur et de son voile
+   se multipliait et rendait les petits textes illisibles pendant l’animation. */
 @keyframes fenetre-arrive {
-  from { opacity: 0; transform: translateY(10px) scale(0.985); }
-  to { opacity: 1; transform: none; }
+  from { transform: translateY(10px) scale(0.985); }
+  to { transform: none; }
 }
-@keyframes voile-arrive { from { opacity: 0; } to { opacity: 1; } }
+/* La couleur de fond seule s’anime jusqu’à la couleur propre à chaque voile. */
+@keyframes voile-arrive { from { background-color: transparent; } }
 @keyframes jauge-remplit { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes pastille-pop {
   0% { transform: scale(0.6); opacity: 0; }

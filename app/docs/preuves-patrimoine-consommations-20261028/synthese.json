@@ -1,0 +1,320 @@
+{
+  "date": "2026-10-28",
+  "statut": "controles-locaux-prevus-termines-publication-non-effectuee",
+  "publication": "non-effectuee",
+  "base_commit": "22f13b6e2eeb0618a9efa2e65878dfd4b0f42776",
+  "branche": "codex/patrimoine-consommations-20261028",
+  "migrations_neuves": 444,
+  "suite_principale": {
+    "reussis": 11989,
+    "echecs": 0,
+    "ignores": 39,
+    "portee": "metier, persistance SQL locale, isolation, rendu PDF, gardes et code",
+    "fichiers_reussis": 831,
+    "fichiers_ignores": 7,
+    "fichiers_total": 838,
+    "duree_secondes": 189.9,
+    "statut": "finale-apres-dernieres-corrections",
+    "motif_ignores": "Services, outils ou configurations spécifiques absents de la passe principale."
+  },
+  "reprise_rappels_entretien": {
+    "reussis": 25,
+    "echecs": 0,
+    "fichiers": 2,
+    "additionner_a_suite_principale": false
+  },
+  "api_complementaires": {
+    "reussis": 100,
+    "echecs": 0,
+    "ignores": 0,
+    "api_locale": true,
+    "fournisseurs_simules": true,
+    "reseau_externe": false,
+    "nature": "100 tests ciblés rejoués, dont 13 précédemment ignorés ; pas 100 nouveaux tests"
+  },
+  "chromium": {
+    "statut": "reprises-reussies",
+    "reussis": 258,
+    "echecs": 4,
+    "ignores": 2,
+    "classification_echecs": "banc et hypothèses de fixtures corrigés, reprises réussies sur base propre",
+    "preuve": "chromium-validation.log",
+    "echecs_passe_complete_resolus": 4,
+    "reprises": {
+      "abonnement": 11,
+      "parcours_cibles": 14,
+      "totaliser": false
+    },
+    "confirmation_ar24": {
+      "moteur": "chromium",
+      "largeurs": [
+        390,
+        1440
+      ],
+      "reussis": 2,
+      "echecs": 0,
+      "ignores": 0,
+      "retries": 0,
+      "dureeSecondes": 17.2,
+      "site": "http://localhost:3572",
+      "envoisExternes": 0,
+      "controleErreursNavigateur": "intégral, aucun filtre"
+    }
+  },
+  "webkit": {
+    "statut": "reprises-reussies",
+    "reussis": 70,
+    "echecs": 2,
+    "cas": "AR24 aux formats390 et1440",
+    "diagnostic": "défaut de synchronisation du banc corrigé, sans modification du produit ni filtrage des erreurs",
+    "echecs_passe_complete_resolus": 2,
+    "reprise": {
+      "moteur": "webkit",
+      "largeurs": [
+        390,
+        1440
+      ],
+      "reussis": 2,
+      "echecs": 0,
+      "ignores": 0,
+      "retries": 0,
+      "dureeSecondes": 16.6,
+      "site": "http://localhost:3572",
+      "envoisExternes": 0,
+      "controleErreursNavigateur": "intégral, aucun filtre"
+    }
+  },
+  "ordinateur": {
+    "statut": "verifie",
+    "routes_resolues": 182,
+    "routes_ecartees": 4,
+    "ancienne_matrice": 183,
+    "exclusions": [
+      "VERSION",
+      "FACTURE_EXTERNE",
+      "INVITATION",
+      "BAIL_PD"
+    ],
+    "bail_proprietaire_couvert_separement": [
+      390,
+      768,
+      1440
+    ],
+    "tests_reussis": 8,
+    "tests_echecs": 0,
+    "duree_minutes": 4.8,
+    "profils": 7,
+    "visites_avec_onglets": 210,
+    "visites_par_profil": {
+      "public": 23,
+      "agent": 45,
+      "proprietaire": 27,
+      "locataire": 15,
+      "admin": 39,
+      "artisan": 22,
+      "superadmin": 39
+    },
+    "largeur_px": 1440,
+    "portee": "affichage, navigation, erreurs et noms des commandes ; pas chaque action métier"
+  },
+  "correctif_attendu": null,
+  "limites": [
+    "Pas de comptabilité complète de SCI à IS, liasse, bilan, amortissement, FEC ou télédéclaration.",
+    "Appels et prestataires réels non testés.",
+    "Paiements fournisseur confirmés sans écran de rectification.",
+    "Rapprochement avec les appels du syndic requis avant régularisation automatique."
+  ],
+  "preuves": [
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/abonnement-reprise-livraison.log",
+      "octets": 1682,
+      "sha256": "b0912ee8b73a0c92ffb640e6fcb1cd108735e61fb26ca4438927cb93df37ec22"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/api-complements.json",
+      "octets": 43709,
+      "sha256": "afa5593d297e45cbb2519c99ef7228d0fd5577e5e8ffbc461da029ab9a2de9d1"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/api-complements.log",
+      "octets": 4275,
+      "sha256": "93ce607f9ee6a4eeb208395e0088cf0869126325f99d55bae2bb5f98dd9739a4"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/bootstrap-livraison.log",
+      "octets": 84,
+      "sha256": "204ea9191b9bf990b0eaadac4ae84be56998936b6629d91d54bb4738844d2f32"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/bootstrap-patrimoine-cloture.log",
+      "octets": 84,
+      "sha256": "cdd9a60d7c743a3a393d73a1fd6145215a995d4b96ebb8541f2d18e5b1ee5160"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/build-final.log",
+      "octets": 6466,
+      "sha256": "f33403e1851f0c7064c31d6a08f0992b1cab75ae869474dd3ca743c122c45859"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/chromium-ar24-reprise-bilan.json",
+      "octets": 270,
+      "sha256": "bf7b4ff3cc7e37661ffe696c1872f80259dd30831b1dd2e114495faf8b7ecb16"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/chromium-ar24-reprise-execution.log",
+      "octets": 382,
+      "sha256": "7a99abdf94b9991528de9d92d1526963358339f8c797941a80f06b38853bbde3"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/chromium-reprises.log",
+      "octets": 2213,
+      "sha256": "8e0442265841334292de7359ed0ad406b1ef35306d4b77f4cd8ccfe0fc10c3c5"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/chromium-validation.log",
+      "octets": 59585,
+      "sha256": "2c7a735beb03f4414fa621006e42a8bb0152f7a5139d88149f1cc4ca8bff05e8"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/contrats-historique-final.log",
+      "octets": 2687,
+      "sha256": "d493c814dfc5150dc355f066d9b6348ba2a67fcc219e78d10434fcebc6e94829"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/eslint-livraison.log",
+      "octets": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/eslint.log",
+      "octets": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/matrice-finale.log",
+      "octets": 263,
+      "sha256": "6373e6df8261f15d6fdd778e4d1de9e8001ce043de61846c303630fc1c226193"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/ordinateur-livraison.log",
+      "octets": 1389,
+      "sha256": "2732c73b16dea189582d85a73c1b798a1fe8980e7c90de1a5d1b6fc234e087f9"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/patrimoine-cloture-advisors.json",
+      "octets": 24426,
+      "sha256": "bb23562d78f82c87c6428bd808d0ab8be305b38ce1724ceed900382f3bdc43be"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/quittances-consentement.log",
+      "octets": 14886,
+      "sha256": "43a95d4634adac98a396ed5d40d61aac222a7bce2b840b0e0a6aeef15e096dfb"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/rappels-entretien.log",
+      "octets": 2475,
+      "sha256": "a5b1d588abe56c64e7350ac79603b95626419548180c0e6101cefb009912310d"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/schema-advisors.json",
+      "octets": 13659,
+      "sha256": "4c6fc8d2c410984d2dcb785f69d3582a51027ca6963506b41d159cfc5fd1bd1f"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/schema-controles.json",
+      "octets": 40291,
+      "sha256": "1e0e08f99aa0934c57ece416b8669248fc86617343cdcc7d21531c8528d4235f"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/suite-finale-livraison.json",
+      "octets": 1013,
+      "sha256": "5e1b835bd52966e5747626786fe3ffb3d11cf92816219c7ba54b06051750898f"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/suite-finale-livraison.log",
+      "octets": 152206,
+      "sha256": "ed677a3284b5d4c61cd09e471533f4aa21cfcad16ce4287488563ad0aa2a9ee2"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/suite-principale.json",
+      "octets": 914,
+      "sha256": "203a7c7a5220ebc3ba6bc4baaa241f3f045d54858376b6329e93ace2e607a7f3"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/suite-principale.log",
+      "octets": 149329,
+      "sha256": "e6b8e9278979b38cfc24082d64f7afe4aa640ec571c192b6cb29aeafce2b3e02"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/typescript-livraison.log",
+      "octets": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/typescript.log",
+      "octets": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/webkit-ar24-diagnostic.txt",
+      "octets": 6362,
+      "sha256": "614f4c6ba413f6c9dbb875ec103a908ed742b164ad92e297438ae2e3a32a59dd"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/webkit-ar24-reprise-bilan.json",
+      "octets": 268,
+      "sha256": "3a594bf9b576ca101b6add67c13805f07090a515450437cbf4193e4c6bf1065d"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/webkit-ar24-reprise-execution.log",
+      "octets": 396,
+      "sha256": "b21552e5cc4318c5d8a269de617e5beef5a4694ce1dab79c001e80dec14bd3d5"
+    },
+    {
+      "fichier": "../../../../../output/patrimoine-consommations-20261028/preuves/cloture-locale/webkit-livraison.log",
+      "octets": 26694,
+      "sha256": "dabcc6bf00c0984e30e71915c57f7b5b2f9a71e585525bd247fcba71d4931d8e"
+    }
+  ],
+  "reprise_abonnement": {
+    "reussis": 11,
+    "echecs": 0,
+    "duree_secondes": 39,
+    "nature": "reprise ciblée sur base propre"
+  },
+  "consentement_quittance": {
+    "reussis": 75,
+    "echecs": 0,
+    "statut": "correctif ciblé validé"
+  },
+  "comptage_schema": {
+    "tables": 15,
+    "fonctions": 56,
+    "portee": "fonctions explicitement créées/redéfinies ou réécrites par les nouvelles migrations",
+    "tables_non_protegees": 0,
+    "routines_non_protegees": 0,
+    "fonctions_manquantes": 0
+  },
+  "base_installation_finale": "gerimmo_ci_patrimoine_cloture",
+  "ordre_migrations_conforme": true,
+  "cible_final_verrou_contrat": {
+    "reussis": 80,
+    "echecs": 0,
+    "dont_paiement_regularisation": 19
+  },
+  "code_types_build": "dernières passes complètes réussies",
+  "hors_validation": [
+    "Prestataires externes réels : IA, courriels, signatures, AR24",
+    "Téléphones physiques",
+    "Routes sans fixture VERSION, FACTURE_EXTERNE, INVITATION ; BAIL_PD couvert par parcours ciblés"
+  ],
+  "reprise_tests_ignores": {
+    "dans_reprise_api_simulee": 13,
+    "premier_mot_de_passe": 4,
+    "revocation_session": 1,
+    "retours_zoho": 8,
+    "restent_ignores": 26,
+    "modifier_total_suite_principale": false,
+    "envoi_signature_reel": false
+  }
+}

@@ -16,8 +16,8 @@ export type FilConversation = {
   dernier_le: string | null; dernier_auteur: "locataire" | "gerant" | null; non_lus: number;
 };
 
-export function MessagerieProprietaire({ orgId, fils, selection, conversation }: {
-  orgId: string; fils: FilConversation[]; selection?: string; conversation?: ReactNode;
+export function MessagerieProprietaire({ orgId, fils, selection, conversation, assistant }: {
+  orgId: string; fils: FilConversation[]; selection?: string; conversation?: ReactNode; assistant?: ReactNode;
 }) {
   const [recherche, setRecherche] = useState("");
   const [nonLuesSeulement, setNonLuesSeulement] = useState(false);
@@ -34,6 +34,7 @@ export function MessagerieProprietaire({ orgId, fils, selection, conversation }:
       {fils.length > 0 && <Link href={`${base}/personnes`} className="btn-or"><PenLine size={16} aria-hidden="true" />Nouveau message</Link>}
     </header>
 
+    {assistant}
     <div className={styles.messagerie} data-selection={Boolean(ouverte)} data-vide={fils.length === 0}>
       {fils.length > 0 && <section className={styles.annuaire} aria-label="Conversations">
         <header className={styles.enteteAnnuaire}><h2>Conversations</h2></header>

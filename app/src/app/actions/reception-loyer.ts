@@ -49,7 +49,7 @@ export async function declarerReceptionLoyer(orgId: string, appelId: string, _et
     revalidatePath(`/agence/${orgId}${suffixe}`);
     revalidatePath(`/espace/${orgId}${suffixe}`);
   }
-  if (resultat.statut === "non_recu") return { succes: "Votre réponse « Pas encore reçu » est enregistrée. Le rappel reste visible ; aucun message n’a été envoyé au locataire." };
+  if (resultat.statut === "non_recu") return { succes: "Votre réponse « Pas encore reçu » est enregistrée. Le rappel reste visible. Si les relances automatiques sont activées et leur délai atteint, cette confirmation autorise le prochain envoi. Le paiement sera revérifié avant toute relance." };
   if (resultat.statut === "annule") return { succes: "Ce règlement a été annulé dans le bail. Aucun règlement ajouté ; vérifiez votre compte bancaire avant une nouvelle déclaration." };
   if (resultat.statut === "deja_solde") return { succes: "Cette échéance est déjà soldée. Aucun règlement ajouté.", termine: true };
   const emission = await emettreRecusQuittances(supabase, resultat.bail_id);

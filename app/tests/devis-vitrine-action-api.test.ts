@@ -119,7 +119,7 @@ describe.skipIf(!actif)("X02 — formulaire de contact du site vitrine, de bout 
     const direct = await connecte.from("demandes_devis").insert({ nom: "Compte", email: `compte${DOMAINE}`, message: "direct" });
     expect(direct.error).not.toBeNull();
     expect(await lignes(`compte${DOMAINE}`)).toHaveLength(0);
-    await connecte.auth.signOut();
+    await connecte.auth.signOut({ scope: "local" });
   });
 
   it("9. sans clé de service, le formulaire le dit en français au lieu d'échouer", async () => {

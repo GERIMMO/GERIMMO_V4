@@ -107,6 +107,19 @@ async function expirerDemandesRdv(supabase: NonNullable<ReturnType<typeof client
   }
 }
 
+/** Demandes visibles dans l'espace locataire ; aucun courriel supplémentaire n'est envoyé par cette collecte. */
+async function planifierReleves(supabase: SupabaseClient): Promise<{ creees: number; annulees: number; erreur?: string }> {
+  await verifierAvantEffet(supabase, "rappels");
+  try {
+    const resultat = await supabase.rpc("planifier_releves_consommation");
+    if (resultat?.error || !resultat?.data) return { creees: 0, annulees: 0, erreur: "Collecte des relevés à reprendre" };
+    return { creees: Number(resultat.data.creees) || 0, annulees: Number(resultat.data.annulees) || 0 };
+  } catch (e) {
+    if (e instanceof ArretSupervision) throw e;
+    return { creees: 0, annulees: 0, erreur: "Collecte des relevés à reprendre" };
+  }
+}
+
 /** Comparaison à temps constant, sans fuir la longueur du secret. */
 function memeSecret(fourni: string, attendu: string): boolean {
   const a = Buffer.from(fourni);
@@ -148,6 +161,7 @@ export async function traiterRappels(request: Request) {
   // envoi. Son échec ne prive personne de son rappel : il est compté (-1) et consigné.
   await verifierAvantEffet(supabase, "rappels");
   const demandesExpirees = await expirerDemandesRdv(supabase);
+  const releves_compteurs = await planifierReleves(supabase);
   const reports = await envoyerRelancesReportsRdv(supabase, { echeanceMs }).catch(e => {
     if (e instanceof ArretSupervision) throw e;
     return { envoyees:0, echecs:1, incertaines:0, ignorees:0, non_notees:0 };
@@ -172,7 +186,7 @@ export async function traiterRappels(request: Request) {
     // cœur que la ronde du matin attend à cette heure-là.
     const invitations = await relancerInvitations(supabase, echeanceMs);
     const alertes_conservation = await alerterConservation(supabase, echeanceMs);
-    const bilan = { rappeles: 0, echecs: 0, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations, alertes_conservation };
+    const bilan = { rappeles: 0, echecs: 0, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations, alertes_conservation, releves_compteurs };
     await consignerTache(supabase, "rappels", bilan);
     return Response.json(bilan);
   }
@@ -247,7 +261,7 @@ export async function traiterRappels(request: Request) {
   }
   const invitations = await relancerInvitations(supabase, echeanceMs);
   const alertes_conservation = await alerterConservation(supabase, echeanceMs);
-  const bilan = { rappeles, echecs: echecs.length, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations, alertes_conservation };
+  const bilan = { rappeles, echecs: echecs.length, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations, alertes_conservation, releves_compteurs };
   await consignerTache(supabase, "rappels", bilan);
   return Response.json(bilan);
 }

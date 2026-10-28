@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ActionDuJour } from "@/lib/actions-du-jour";
 import { preparerVerificationsProprietaire } from "@/lib/verifications-proprietaire";
 
-const m = vi.hoisted(() => ({ pilotage: vi.fn(), verifications: vi.fn(), carte: vi.fn(), rpc: vi.fn() }));
+const m = vi.hoisted(() => ({ pilotage: vi.fn(), verifications: vi.fn(), carte: vi.fn(), rpc: vi.fn(), consommations: vi.fn() }));
+vi.mock("@/lib/taches-consommations", () => ({ chargerTachesConsommations: m.consommations }));
 vi.mock("@/lib/pilotage-proprietaire", () => ({ chargerPilotageProprietaire: m.pilotage }));
 vi.mock("@/lib/lecture-verifications-proprietaire", () => ({ chargerVerificationsProprietaire: m.verifications }));
 vi.mock("@/lib/incidents-verifications", () => ({ chargerIncidentsVerifications: async () => ({ incidents: new Map(), indisponible: false }) }));
@@ -36,6 +37,7 @@ const pilotage = () => ({
 beforeEach(() => {
   vi.clearAllMocks(); m.pilotage.mockResolvedValue(pilotage()); m.verifications.mockResolvedValue(lecture());
   m.rpc.mockResolvedValue({ data: [], error: null });
+  m.consommations.mockResolvedValue({ taches: [], indisponible: false });
 });
 async function rendre() {
   return renderToStaticMarkup(await AccueilProprietaire({ supabase: { rpc: m.rpc } as never, orgId: "org", userId: "gerant",
@@ -43,6 +45,16 @@ async function rendre() {
 }
 
 describe("accueil propriétaire : priorités et tâches à leur place", () => {
+  it("inclut une facture à répartir dans les tâches et signale une lecture consommations incomplète", async () => {
+    m.consommations.mockResolvedValue({ taches: [{ cle: "repartition:f", type: "facture_repartition", titre: "Répartir la facture EAU-TEST", detail: null, contexte: "Eau", lieu: null, echeance: null, href: "/espace/org/parc/bien#consommations", geste: "Préparer", nature: "demande" }], indisponible: false });
+    const html = await rendre();
+    expect(html).toContain("Répartir la facture EAU-TEST");
+    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 1 }));
+    m.consommations.mockResolvedValue({ taches: [], indisponible: true });
+    expect(await rendre()).toContain("La liste peut être incomplète");
+    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ indisponible: true }));
+  });
+
   it("compte uniquement les urgences et loyers dans la carte rouge, sans répéter les tâches", async () => {
     m.verifications.mockResolvedValue(lecture([action("Urgence TEST", true), action("Demande courante TEST")], true));
     const html = await rendre();

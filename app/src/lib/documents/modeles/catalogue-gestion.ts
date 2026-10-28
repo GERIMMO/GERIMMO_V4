@@ -9,6 +9,7 @@ import type { Assemblage, LienDocument } from "./index";
 import { aujourdhuiParis } from "@/lib/ged";
 import { erreurDuChamp, lireMontantFacultatif } from "@/lib/saisie-montant";
 import { identifiantsDesEcritures, lectureTronquee, lireParIdentifiants, messageDocumentLectureTronquee } from "@/lib/lectures-fiscales";
+import { lireCadreFiscal } from "@/lib/lecture-profils-fiscaux";
 
 export const CODES_COMPLEMENTS_GESTION = ["regularisation_charges", "decompte_charges", "consultation_charges", "restitution_cles", "ordre_intervention", "comparatif_devis", "compte_rendu_intervention", "recap_incident", "cloture_mensuelle", "ecriture_rectificative", "recap_fiscal_nu", "recap_fiscal_meuble", "avenant_mandat", "avenant_perimetre", "rapport_gestion", "bordereau_versement", "resiliation_mandat", "recap_fiscal_agence"] as const;
 
@@ -78,6 +79,14 @@ export async function chargerRecapitulatifNu(db: SupabaseClient, orgId: string, 
   const exercices = new Map<string,ExerciceFiscalLot>();
   for (const x of lectureExercices.lignes as unknown as ExerciceFiscalLot[]) if (x.lot_id === lotId && !exercices.has(x.lot_id)) exercices.set(x.lot_id,x);
   const ecritures = anneeOrg.filter(e => (texte(e.lot_id) || qualifications.get(texte(e.contre_ecriture_de) || texte(e.id))?.lot_id) === lotId);
+  const organisations = await lireLignes(db.from("organizations").select("id,type").eq("id", orgId).limit(1));
+  const typeEspace = organisations[0]?.type;
+  if (typeEspace !== "agence" && typeEspace !== "proprietaire_direct") throw new RefusDocument(MESSAGE_CHARGEMENT_IMPOSSIBLE);
+  // Ce nouveau profil est réservé à la gestion directe. Le parcours des agences conserve ses qualifications existantes.
+  if (typeEspace === "proprietaire_direct") {
+    const cadreFiscal = await lireCadreFiscal(db, orgId, annee, new Set([lotId]));
+    if (cadreFiscal.blocage2044) throw new RefusDocument(cadreFiscal.blocage2044);
+  }
   return recapitulatifFiscal(ecritures as unknown as EcritureFiscale[],annee,{qualifications,composantes,exercices,exigerPerimetre:true});
 }
 

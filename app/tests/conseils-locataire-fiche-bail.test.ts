@@ -53,6 +53,8 @@ vi.mock("@/app/agence/[orgId]/baux/[bailId]/etape-personnes-bail", () => ({ Etap
 vi.mock("@/app/agence/[orgId]/baux/[bailId]/completer-sur-place", () => ({ CompleterSurPlace: () => null }));
 vi.mock("@/app/agence/[orgId]/baux/[bailId]/documents-parcours-bail", () => ({ DocumentsParcoursBail: () => null }));
 vi.mock("@/app/agence/[orgId]/baux/[bailId]/recapitulatif-parcours-bail", () => ({ RecapitulatifParcoursBail: () => null }));
+// Le suivi AR24 est un composant serveur asynchrone, testé séparément en navigateur.
+vi.mock("@/components/historique-recommandes", () => ({ HistoriqueRecommandes: () => null }));
 vi.mock("@/lib/actions-attendues", () => ({ actionsAttendues: async () => [] }));
 vi.mock("@/app/agence/[orgId]/baux/[bailId]/verifier-dossier", () => ({
   verifierDossierBail: async () => ({ manquants: [] }),

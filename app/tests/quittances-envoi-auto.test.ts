@@ -110,6 +110,8 @@ beforeEach(async () => {
     [org, lot, loc]
   );
   bail = b;
+  // Ce banc vérifie le choix d’envoi de l’agence ; le locataire a déjà consenti.
+  await db.query("insert into consentements_documents_locataire(organization_id,person_id,adresse_email,quittances_electroniques,quittances_modifie_le) values($1,$2,'claire.martin@exemple.fr',true,now())",[org,loc]);
   await couvrirParMandat(db, bail);
 
   // Un mois appelé, encaissé intégralement : la quittance existe et n'est pas

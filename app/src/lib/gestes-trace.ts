@@ -15,6 +15,7 @@
  * Chaque nouvelle action financière s'y ajoute (tests/gestes-trace.test.ts le vérifie sur le code).
  */
 export const GESTES_TRACE = {
+  suivi_consommations: "mise à jour des compteurs, contrats et factures du bien",
   // Loyers et quittances d'un bail (actions/loyers.ts, actions/quittancement.ts)
   envoi_quittance: "envoi d’une quittance au locataire",
   ajout_relance: "ajout d’une relance de loyer",

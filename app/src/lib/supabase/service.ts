@@ -64,6 +64,10 @@
 
 // Mois offerts : après is_permanent_super_admin() et confirmation atomique,
 // verrou de facturation et enregistrement de la preuve Stripe du seul cadeau confirmé.
+// Et le suivi AR24 (actions/recommandes.ts) : APRÈS verifierGerant et lecture sous RLS,
+// une réservation atomique dans la session fige destinataire, consentement, solde, tarif et empreinte.
+// Le service ne fait qu’appeler enregistrer_suivi_ar24 pour CETTE commande, après la réponse prestataire.
+// L’utilisateur ne peut pas affirmer lui-même une expédition ou une preuve fournisseur. Aucun secret OTP conservé.
 import "server-only";
 import { createClient as creerClientSupabase } from "@supabase/supabase-js";
 

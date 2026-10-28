@@ -16,6 +16,7 @@ export type RappelLoyer = {
   historique_relances_disponible?: boolean;
   /** Dette du bail, calculée sur toutes ses lignes (ligne présentée = la plus ancienne). */
   dette_bail?: DetteBail;
+  relances_automatiques?: { active: boolean; premierDelai: number; secondDelai: number } | null;
 };
 
 export type DetteBail = {

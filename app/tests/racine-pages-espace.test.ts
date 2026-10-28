@@ -139,11 +139,7 @@ const ECARTS_DU_CHOIX: Exception[] = [
     raison: "« Finances » n'existe que chez le propriétaire direct",
     preuve: ["src/app/agence/[orgId]/loyers/page.tsx", "if (estProprietaire) return <PageFinances"],
   },
-  {
-    fichier: "src/components/recapitulatif-fiscal.tsx", fonction: "RecapitulatifFiscal", forme: "const base = baseEspace(orgId, true)", nombre: 1,
-    raison: "l'aide à la déclaration n'existe que chez le propriétaire direct",
-    preuve: ["src/components/recapitulatif-fiscal.tsx", "if (!estProprietaire) notFound();"],
-  },
+
   {
     // Le DÉFAUT de la propriété `base` de ConsultationOuverte, et lui seul : le `const base` de VoletArtisan, dans le
     // même fichier, reste soumis à la règle (contre-relecture du 15/10, mutation X34).
@@ -406,6 +402,9 @@ function transmissionAdmise(nom: string, e: ts.Expression | null): boolean {
 
 /** Les transmissions admises hors de cette règle (forme exacte de l'attribut). */
 const TRANSMISSIONS_ADMISES: Exception[] = [
+  { fichier: "src/components/consommations-formulaires.tsx", fonction: "Facture", forme: "<RepartitionFacture> base={p.base}", nombre: 1,
+    raison: "la base authentifiée est transmise sans transformation dans les props regroupées du suivi des consommations",
+    preuve: ["src/components/consommations-bien.tsx", "base={base}" ] },
   { fichier: "src/app/agence/[orgId]/baux/[bailId]/finaliser-parcours-bail.tsx", fonction: "FinaliserParcoursBail", forme: "<PointsManquantsFinalisation> racine={racine}", nombre: 1,
     raison: "la racine vient du contexte de l’espace authentifié via useRacineEspace, sans transformation",
     preuve: ["src/app/agence/[orgId]/baux/[bailId]/finaliser-parcours-bail.tsx", "racine = useRacineEspace()"] },

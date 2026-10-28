@@ -316,7 +316,7 @@ describe.skipIf(!url)("acceptation des conditions et classement des artisans (av
     const { rows: [a] } = await db.query("select annulation_demandee, changement_applique_pour from public.abonnements where organization_id = $1", [e.org]);
     expect(a).toEqual({ annulation_demandee: true, changement_applique_pour: null });
     const { rows: journal } = await db.query("select action, details from public.audit_log where organization_id = $1 and action like 'abonnement%'", [e.org]);
-    expect(journal).toEqual([{ action: "abonnement_non_reconduit_conditions", details: { version: "v-nouvelle", periode_fin: "2027-03-01T00:00:00+00:00", echeancier_libere: true } }]);
+    expect(journal.map(j => ({ ...j, details: { ...j.details, periode_fin: new Date(j.details.periode_fin).toISOString() } }))).toEqual([{ action: "abonnement_non_reconduit_conditions", details: { version: "v-nouvelle", periode_fin: "2027-03-01T00:00:00.000Z", echeancier_libere: true } }]);
     // Programmé pour finir : il n'est plus listé.
     expect(await listes("v-nouvelle")).not.toContain(e.org);
   });

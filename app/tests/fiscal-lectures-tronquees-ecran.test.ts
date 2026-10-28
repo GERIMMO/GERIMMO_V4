@@ -1,3 +1,4 @@
+import { avecDetenteursAuReel } from "./fixtures/profil-fiscal";
 /**
  * Décision X12 du 14/10/2026 (fiche FIN-12), recommandation suivie : l'écran « Récapitulatif fiscal » ne lit plus TOUTES les
  * qualifications et TOUTES les captures de l'organisation (sans filtre d'année) ; il lit celles des écritures de l'année (et des
@@ -57,7 +58,7 @@ function dossier(): Record<string, Ligne[]> {
   };
 }
 function poser(tables: Record<string, Ligne[]>, lecturesEnErreur?: Record<string, string>) {
-  banc.base = baseSimulee(tables, { plafondLignes: 1000, lecturesEnErreur });
+  banc.base = baseSimulee(avecDetenteursAuReel(tables), { plafondLignes: 1000, lecturesEnErreur });
 }
 async function page(compact = false) {
   return texteDe(renderToStaticMarkup(await PageRecap({

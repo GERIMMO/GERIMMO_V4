@@ -31,7 +31,7 @@ import { fauxFournisseurEmail } from "./fixtures/faux-fournisseur-email";
 const rpc = vi.fn();
 vi.mock("@/lib/supabase/service", () => ({
   clientDeService: () => ({
-    rpc: (...a: unknown[]) => (a[0] === "verifier_arret_supervision" ? Promise.resolve({ data: true, error: null }) : rpc(...a)),
+    rpc: (...a: unknown[]) => (["verifier_arret_supervision", "relance_loyer_envoi_confirme"].includes(String(a[0])) ? Promise.resolve({ data: true, error: null }) : rpc(...a)),
   }),
 }));
 // Pas de marque d'agence à lire : l'envoi part avec l'expéditeur par défaut.
@@ -84,11 +84,33 @@ describe("quittances", () => {
   function banc(marquage: { erreur: boolean }) {
     rpc.mockImplementation(async (fn: string) => {
       if (fn === "quittances_a_envoyer") return { data: [ligne], error: null };
+      if (fn === "quittance_envoi_autorise") return { data: true, error: null };
       if (fn === "quittance_document") return { data: quittanceDocumentComplete(), error: null };
       if (fn === "marquer_quittance_envoyee") return { error: marquage.erreur ? { message: "verrou" } : null };
       return { data: null, error: null };
     });
   }
+
+  it.each(["retrait", "adresse modifiée", "lecture indisponible"])("refuse l'envoi si %s pendant la préparation du document", async (changement) => {
+    const { traiterQuittances: GET } = await import("../src/lib/missions-planifiees/quittances");
+    let prepare = false;
+    rpc.mockImplementation(async (fn: string, args: Record<string, unknown>) => {
+      if (fn === "quittances_a_envoyer") return { data: [ligne], error: null };
+      if (fn === "quittance_document") { prepare = true; return { data: quittanceDocumentComplete(), error: null }; }
+      if (fn === "quittance_envoi_autorise") {
+        if (!args.p_destinataire) return { data: true, error: null };
+        expect(prepare).toBe(true);
+        expect(args).toEqual({ p_org: ligne.organization_id, p_bail: ligne.bail_id, p_destinataire: ligne.destinataire });
+        return { data: false, error: changement === "lecture indisponible" ? { message: "indisponible" } : null };
+      }
+      return { data: null, error: null };
+    });
+    await GET(appel("quittances"));
+    expect(fournisseur.appels).toHaveLength(0);
+    expect(appelsDe("marquer_quittance_envoyee")).toHaveLength(0);
+    expect(bilanConsigne()).toMatchObject({ envoyees: 0, echecs: 1 });
+    expect(appelsDe("quittance_envoi_autorise")).toHaveLength(2);
+  });
 
   it("une quittance non marquée, reprise dans les 24 h (relance manuelle, seconde passe), n'est envoyée qu'une fois", async () => {
     const { traiterQuittances: GET } = await import("../src/lib/missions-planifiees/quittances");
@@ -134,6 +156,7 @@ describe("quittances", () => {
     let courante = { ...ligne, est_quittance: false, montant: 400 };
     rpc.mockImplementation(async (fn: string) => {
       if (fn === "quittances_a_envoyer") return { data: [courante], error: null };
+      if (fn === "quittance_envoi_autorise") return { data: true, error: null };
       if (fn === "quittance_document") return { data: quittanceDocumentComplete(), error: null };
       return { data: null, error: null };
     });

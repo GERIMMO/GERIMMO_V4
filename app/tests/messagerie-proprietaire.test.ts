@@ -12,7 +12,7 @@ const rendre = async (personne?: string | string[]) => renderToStaticMarkup(awai
 
 beforeEach(() => {
   vi.resetAllMocks();
-  banc.acces.mockResolvedValue({ supabase: { rpc: banc.rpc }, role: "proprietaire_direct" });
+  banc.acces.mockResolvedValue({ supabase: { rpc: banc.rpc }, role: "proprietaire_direct", user: { id: "compte-test" }, traverseeLectureSeule: false });
   banc.rpc.mockImplementation(async (nom: string) => ({ data: nom === "fils_messages_gerant" ? [fil] : [message], error: null }));
 });
 

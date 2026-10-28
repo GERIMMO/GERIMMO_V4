@@ -1,3 +1,4 @@
+import { avecDetenteursAuReel } from "./fixtures/profil-fiscal";
 /**
  * Relevés de la relecture finance du 13/10/2026 (FIN-05, FIN-06, FIN-08) : trois textes du récapitulatif fiscal
  * affirmaient ce que les chiffres ne disent pas.
@@ -60,14 +61,14 @@ async function page() {
   return texteDe(renderToStaticMarkup(await PageRecap({ params: Promise.resolve({ orgId: "org" }), searchParams: Promise.resolve({ annee: "2026" }) })));
 }
 function fixture(ecritures: unknown[], qualifications: unknown[] = [], composantes: unknown[] = []) {
-  banc.donnees = {
-    ecritures,
-    fiscal_qualifications_ecritures: qualifications,
-    fiscal_encaissements_composantes: composantes,
+  banc.donnees = avecDetenteursAuReel({
+    ecritures: ecritures as Record<string, unknown>[],
+    fiscal_qualifications_ecritures: qualifications as Record<string, unknown>[],
+    fiscal_encaissements_composantes: composantes as Record<string, unknown>[],
     fiscal_exercices_lots: [EXERCICE],
     lots: [{ id: "lot", nom: "Lot A" }],
     biens: [],
-  };
+  });
 }
 
 beforeEach(() => {

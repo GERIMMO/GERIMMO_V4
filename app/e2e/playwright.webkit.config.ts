@@ -27,7 +27,7 @@ export default defineConfig({
     {
       name: "mobile-webkit",
       dependencies: ["setup-webkit"],
-      testMatch: /(?:utilisateurs|bail-signe-non-actif|dossier-proprietaire|parcours-locataire|parcours-artisan|artisan-fin-mission|depot-direct|bouton-envoi-hydratation|protection-saisie|repli-hors-ligne|vitrine)\.spec\.ts/,
+      testMatch: /(?:consommations-patrimoine|recommandes-consentements|assistant-prive|fiscalite-qualifiee|utilisateurs|bail-signe-non-actif|dossier-proprietaire|parcours-locataire|parcours-artisan|artisan-fin-mission|depot-direct|bouton-envoi-hydratation|protection-saisie|repli-hors-ligne|vitrine)\.spec\.ts/,
     },
   ],
 });

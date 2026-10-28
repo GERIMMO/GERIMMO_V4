@@ -1,3 +1,4 @@
+import { avecDetenteursAuReel } from "./fixtures/profil-fiscal";
 /**
  * Lot « fiscal-charges », décisions du dirigeant du 14/10/2026 sur l'écran du récapitulatif fiscal :
  *  · D03 (FIN-07, option A) : une dépense rangée d'office en « fonds de travaux ALUR » ne voit jamais sa qualification appliquée ;
@@ -70,7 +71,7 @@ async function page(compact = false) {
 function fixture(ecritures: unknown[], qualifications: unknown[] = [], composantes: unknown[] = []) {
   const deLOrganisation = (lignes: unknown[]) => lignes.map((l) => ({ organization_id: "org", ...(l as Ligne) }));
   const lignesEcritures = deLOrganisation(ecritures);
-  banc.base = baseSimulee({
+  banc.base = baseSimulee(avecDetenteursAuReel({
     // Avant les bonnes lignes : une pièce de même identifiant dans une autre organisation, une pièce de l'an dernier.
     ecritures: [
       ...lignesEcritures.map(jumelleEtrangere),
@@ -91,7 +92,7 @@ function fixture(ecritures: unknown[], qualifications: unknown[] = [], composant
     ],
     lots: [{ organization_id: AUTRE_ORGANISATION, id: "lot", nom: "Lot d'une autre agence" }, { organization_id: "org", id: "lot", nom: "Lot A" }],
     biens: [],
-  });
+  }));
 }
 const exercices = new Map([["lot", EXERCICE as never]]);
 

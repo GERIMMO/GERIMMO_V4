@@ -564,6 +564,12 @@
     "dynamic": "orgId"
   },
   {
+    "path": "/locataire/ORG/releves",
+    "persona": "locataire",
+    "label": "Relevés de compteurs",
+    "dynamic": "orgId"
+  },
+  {
     "path": "/locataire/ORG/faq",
     "persona": "locataire",
     "label": "FAQ locataire",

@@ -1,3 +1,4 @@
+import { AssistantPrive } from "@/components/assistant-prive";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
@@ -17,7 +18,7 @@ export default async function PageContactLocataire(
   props: PageProps<"/locataire/[orgId]/contact">
 ) {
   const { orgId } = await props.params;
-  const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, adhesionActive, user } = await verifierAccesEspaceLocataire(orgId);
 
   const [
     { data: gestionnaires, error: eGestionnaire },
@@ -54,6 +55,8 @@ export default async function PageContactLocataire(
           </span>
         )}
       </div>
+
+      <AssistantPrive key={`${orgId}:${user.id}`} orgId={orgId} compteId={user.id} lectureSeule={!adhesionActive} />
 
       {aEchoue(eGestionnaire, eFil) && (
         <PanneLecture quoi="votre fil de messages" />

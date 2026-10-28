@@ -13,6 +13,7 @@ describe.skipIf(!url)("Suppression transactionnelle des brouillons", () => {
   beforeEach(async () => {
     await db.query("begin");
     await db.query(readFileSync("supabase/migrations/20261010090000_supprimer_bail_brouillon.sql","utf8"));
+    await db.query(readFileSync("supabase/migrations/20261028161844_dependances_suppression_bail.sql","utf8"));
     org = await id("insert into public.organizations(name,status) values ('Test suppression brouillon','active') returning id");
     user = await id("insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) values(gen_random_uuid(),'authenticated','authenticated','brouillon-'||gen_random_uuid()||'@test.local','x',now(),'{}','{}',now(),now()) returning id");
     await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct')",[user,org]);
@@ -74,6 +75,23 @@ describe.skipIf(!url)("Suppression transactionnelle des brouillons", () => {
   it("conserve les opérations financières associées", async () => {
     await db.query("insert into public.appels_loyer(organization_id,bail_id,periode,date_echeance) values($1,$2,current_date,current_date)",[org,bail]);
     await connecter(); await expect(supprimer()).rejects.toThrow(/opérations ou un suivi/);
+  });
+  it("refuse aussi une dépendance dont la colonne est nommée bail_referent", async () => {
+    await db.query("create table public.dependance_bail_essai(bail_referent uuid references public.baux(id))");
+    await db.query("insert into public.dependance_bail_essai values($1)", [bail]);
+    await connecter();
+    await expect(supprimer()).rejects.toThrow(/opérations ou un suivi/);
+  });
+  it("rejoue la correction et son retour sans modifier les autres contrôles du brouillon", async () => {
+    const definition = async () => (await db.query("select pg_get_functiondef('public.supprimer_bail_brouillon(uuid,uuid)'::regprocedure) as texte")).rows[0].texte;
+    const corrigee = await definition();
+    const migration = readFileSync("supabase/migrations/20261028161844_dependances_suppression_bail.sql", "utf8");
+    const retour = readFileSync("supabase/retours-arriere/20261028161844_dependances_suppression_bail.retour.sql", "utf8");
+    await db.query(migration); expect(await definition()).toBe(corrigee);
+    await db.query(retour); const ancienne = await definition();
+    expect(ancienne).toContain("v_table regclass;");
+    await db.query(retour); expect(await definition()).toBe(ancienne);
+    await db.query(migration); expect(await definition()).toBe(corrigee);
   });
   it("refuse un autre propriétaire sans accès à l’organisation", async () => {
     const autre=await id("insert into public.organizations(name,status) values('Autre test','active') returning id");

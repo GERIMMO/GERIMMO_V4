@@ -62,7 +62,7 @@ describe.skipIf(!actif)("Compte rendu — API, RLS, vrai PDF et archivage", () =
       await sql.query("delete from public.biens where id=$1", [bienId]);
     }
     if (personId) await sql.query("delete from public.persons where id=$1", [personId]);
-    await db.auth.signOut(); await sql.end();
+    await db.auth.signOut({ scope: "local" }); await sql.end();
   });
   it("reprend un échec d’envoi avec les mêmes octets et une seule alerte de versement", async () => {
     email.mockResolvedValueOnce({ erreur: "Transport fictif indisponible" }).mockResolvedValue({ id: "test-accepte" });

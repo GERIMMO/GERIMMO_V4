@@ -126,6 +126,11 @@ export async function traiterRelances(request: Request) {
   let envoyees = 0;
   const echecs: EchecConsigne[] = [];
   for (const l of lignes) {
+    const verifierSolde = async () => {
+      await verifierAvantEffet(supabase, "relances");
+      const verification = await supabase.rpc("relance_loyer_envoi_confirme", { p_bail: l.bail_id, p_niveau: l.niveau, p_echeance: l.date_echeance, p_reste: Number(l.reste), p_total: l.total_du == null ? null : Number(l.total_du) });
+      if (verification.error || verification.data !== true) throw new Error("Le solde ou la confirmation du propriétaire a changé. Aucun nouvel envoi.");
+    };
     const courrier = (prenom: string | null) => ({
       subject: sujetRelanceLoyer({ niveau: l.niveau, periode: l.periode }),
       html: corpsRelanceLoyer({
@@ -154,7 +159,7 @@ export async function traiterRelances(request: Request) {
       });
     await verifierAvantEffet(supabase, "relances");
     const envoi = await envoyerEmail({
-      avantEnvoi: () => verifierAvantEffet(supabase, "relances"),
+      avantEnvoi: verifierSolde,
       organisation: { db: supabase, id: l.organization_id },
       to: l.destinataire,
       cleIdempotence: cle(l.destinataire, "locataire"),
@@ -170,7 +175,7 @@ export async function traiterRelances(request: Request) {
     for (const autre of l.autres_destinataires ?? []) {
       await verifierAvantEffet(supabase, "relances");
       const copie = await envoyerEmail({
-      avantEnvoi: () => verifierAvantEffet(supabase, "relances"),
+      avantEnvoi: verifierSolde,
         organisation: { db: supabase, id: l.organization_id },
         to: autre,
         cleIdempotence: cle(autre, "locataire"),
@@ -187,7 +192,7 @@ export async function traiterRelances(request: Request) {
       for (const caution of l.garants ?? []) {
         await verifierAvantEffet(supabase, "relances");
         const info = await envoyerEmail({
-      avantEnvoi: () => verifierAvantEffet(supabase, "relances"),
+      avantEnvoi: verifierSolde,
           organisation: { db: supabase, id: l.organization_id },
           to: caution,
           cleIdempotence: cle(caution, "caution"),

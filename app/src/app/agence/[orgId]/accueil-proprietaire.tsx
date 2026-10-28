@@ -1,3 +1,4 @@
+import { chargerTachesConsommations } from "@/lib/taches-consommations";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Banknote, FileText, Settings2 } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -23,14 +24,15 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
 }) {
   const base = baseEspace(orgId, true);
   const aujourdHui = aujourdhuiParis();
-  const [pilotage, lectureVerifications] = await Promise.all([
+  const [pilotage, lectureVerifications, lectureConsommations] = await Promise.all([
     chargerPilotageProprietaire(supabase, orgId, aujourdHui),
     chargerVerificationsProprietaire(supabase, orgId, { userId, portefeuille: null }),
+    chargerTachesConsommations(supabase, orgId, base, aujourdHui),
   ]);
   const { erreurs, lectureLoyers, verifications } = lectureVerifications;
   const { actions, rappels } = verifications;
   const lectureIncidents = await chargerIncidentsVerifications(supabase, orgId, actions);
-  const incertain = Object.values(erreurs).some(Boolean) || Boolean(lectureLoyers.error);
+  const incertain = lectureConsommations.indisponible || Object.values(erreurs).some(Boolean) || Boolean(lectureLoyers.error);
   const cible = (a: ActionDuJour) => a.source === "alerte" ? a.href ?? `${base}/alertes?traiter=${a.alerte.id}` : a.href;
   const geste = (a: ActionDuJour) => a.source === "bail" ? "Ouvrir le bail"
     : a.source === "rapport" ? "Valider"
@@ -67,6 +69,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   }));
   const taches = construireTachesAccueil({ base, actions, lots: patrimoine?.lots ?? [], lotsSansBail: patrimoine?.lotsSansBail ?? [], lotsEnPreparation: patrimoine?.lotsEnPreparation ?? [], preparation, diagnostics: diagnostics ?? [] });
   // Chaque échéance due compte, même quand la fenêtre ne présente que la plus ancienne de son bail (audit du 27/10, LAT-03).
+  taches.push(...lectureConsommations.taches);
   const totalPrioritaire = critiques.length + rappels.totalEcheancesDues;
   const automatisations = [
     { nom: "Avis d’échéance", active: reglages?.appels_envoi_auto },

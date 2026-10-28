@@ -1,3 +1,4 @@
+import { avecDetenteursAuReel } from "./fixtures/profil-fiscal";
 /**
  * Lot « fiscal-charges », décisions du dirigeant du 14/10/2026 sur les documents du catalogue :
  *  · D37 (CHF-01, option B) : le champ « intérêts d'emprunt » du récapitulatif annuel · location nue est prérempli avec le montant
@@ -74,7 +75,7 @@ function fixture(): Record<string, Row[]> {
 let base: BaseSimulee;
 /** La base simulée de ce test : `base` garde les lectures et les écritures pour les assertions. */
 function mockDb(tables = fixture()) {
-  base = baseSimulee(tables);
+  base = baseSimulee(avecDetenteursAuReel(tables));
   return base.client;
 }
 const texteDe = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/&#x27;|&#39;|&apos;|’/g, "'").replace(/[  ]/g, " ").replace(/\s+/g, " ");

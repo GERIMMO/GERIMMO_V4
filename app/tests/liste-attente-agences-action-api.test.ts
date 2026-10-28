@@ -133,7 +133,7 @@ describe.skipIf(!actif)("liste d'attente des agences — l'inscription de bout e
     await inscrireAgence({}, formulaire({}));
     const lecture = await connecte.from("liste_attente_agences").select("email");
     expect(lecture.data ?? []).toEqual([]);
-    await connecte.auth.signOut();
+    await connecte.auth.signOut({ scope: "local" });
   });
 
   it("7. sans clé de service, le formulaire le dit en français au lieu d'échouer, et repose la saisie", async () => {

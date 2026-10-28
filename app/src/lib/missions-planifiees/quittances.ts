@@ -1,3 +1,4 @@
+import { verifierAccordQuittance } from "@/lib/accord-quittance";
 import { verifierAvantEffet } from "@/lib/controle-effets";
 // Tâche planifiée : envoyer les quittances que personne n'a envoyées.
 //
@@ -140,6 +141,12 @@ export async function traiterQuittances(request: Request) {
   // Ce n'est pas une panne de la tâche : consignée à part (`reportees`).
   const reportees: EchecConsigne[] = [];
   for (const l of lignes) {
+    // Un retrait après la sélection du lot doit encore arrêter cet envoi.
+    const accord = await supabase.rpc("quittance_envoi_autorise", { p_org: l.organization_id, p_bail: l.bail_id });
+    if (accord.error || accord.data !== true) {
+      reportees.push({ quittance_id: l.quittance_id, organization_id: l.organization_id, motif: accord.error ? "accord du locataire non vérifiable" : "accord électronique absent ou retiré" });
+      continue;
+    }
     const conforme = await chargerQuittanceDocument(supabase, l.quittance_id);
     const manquants = conforme ? manquantsQuittance(assemblerQuittanceDelivree(conforme)) : ["document illisible"];
     if (!conforme || manquants.length > 0) {
@@ -152,7 +159,10 @@ export async function traiterQuittances(request: Request) {
     }
     await verifierAvantEffet(supabase, "quittances");
     const envoi = await envoyerEmail({
-      avantEnvoi: () => verifierAvantEffet(supabase, "quittances"),
+      avantEnvoi: async () => {
+        await verifierAvantEffet(supabase, "quittances");
+        await verifierAccordQuittance(supabase, l.organization_id, l.bail_id, l.destinataire);
+      },
       organisation: { db: supabase, id: l.organization_id },
       cleIdempotence: cleQuittance({
         quittanceId: l.quittance_id,

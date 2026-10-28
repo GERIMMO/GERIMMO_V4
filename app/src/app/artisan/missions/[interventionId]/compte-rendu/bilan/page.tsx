@@ -1,3 +1,4 @@
+import { LectureImpossibleArtisan } from "../../../../ui";
 import { notFound, redirect } from "next/navigation";
 import type { LigneDevis } from "@/lib/devis-structure";
 import { titreIncident } from "@/lib/incidents";
@@ -25,6 +26,7 @@ export default async function PageBilan(
   const { interventionId } = await props.params;
 
   const agenda = await chargerAgenda();
+  if (agenda.erreur) return <LectureImpossibleArtisan href={`/artisan/missions/${interventionId}/compte-rendu/bilan`} />;
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
 

@@ -103,9 +103,7 @@ export default async function PagePersonne(
   const { supabase, user, estProprietaire } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
-  // 24/09 : la rubrique porte le nom du menu — « Locataires & garants » chez
-  // le propriétaire direct. Le retour disait « Personnes » à un clic de là.
-  const rubrique = estProprietaire ? "Locataires & garants" : "Personnes";
+  const rubrique = "Personnes";
   const aujourdhui = aujourdhuiParis();
 
   const { data: personne, error: erreurPersonne } = await supabase

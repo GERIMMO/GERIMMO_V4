@@ -18,6 +18,7 @@ export const PREFIXE_COPIES_LOCALES = "gerimmo:";
 export const BASE_COPIES_FICHIERS = "gerimmo-reprises";
 /** Valeur du paramètre `raison` de /connexion quand la déconnexion vient d'aboutir. */
 export const RAISON_DECONNEXION = "deconnecte";
+export const RAISON_DECONNEXION_LOCALE = "deconnecte-localement";
 /** Durée annoncée à l'écran (« 7 jours ») : brouillon de lot, devis, fiche personne, incident. */
 export const DUREE_COPIES_LOCALES_MS = 7 * 24 * 60 * 60 * 1000;
 

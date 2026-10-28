@@ -63,7 +63,7 @@ export function MessagerieProprietaire({ orgId, fils, selection, conversation }:
             {(recherche || nonLuesSeulement) && <button type="button" onClick={() => { setRecherche(""); setNonLuesSeulement(false); }}>Afficher toutes les conversations</button>}
           </div>}
         </div>
-        <Link href={`${base}/personnes`} className={styles.annuaireLien}><UsersRound size={16} aria-hidden="true" />Locataires & garants<ArrowRight size={14} aria-hidden="true" /></Link>
+        <Link href={`${base}/personnes`} className={styles.annuaireLien}><UsersRound size={16} aria-hidden="true" />Personnes<ArrowRight size={14} aria-hidden="true" /></Link>
       </section>}
 
       <section className={styles.conversation} aria-label={ouverte ? `Conversation avec ${[ouverte.prenom, ouverte.nom].filter(Boolean).join(" ")}` : "Vos échanges"}>

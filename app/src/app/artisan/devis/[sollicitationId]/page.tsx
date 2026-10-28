@@ -1,3 +1,4 @@
+import { LectureImpossibleArtisan } from "../../ui";
 import Link from "next/link";
 import { SuiviSignatureDevisArtisan } from "@/components/suivi-signature-devis-artisan";
 import { CalendarDays, FileText, MapPin, ShieldCheck, Wrench } from "lucide-react";
@@ -45,6 +46,7 @@ export async function generateMetadata(
 ) {
   const { sollicitationId } = await props.params;
   const sollicitations = await chargerSollicitations();
+  if (sollicitations.erreur) return <LectureImpossibleArtisan href={`/artisan/devis/${sollicitationId}`} />;
   const demande = sollicitations.lignes.find((l) => l.sollicitation_id === sollicitationId);
   return {
     title: demande && !demandeAChiffrer(demande.statut) ? "Demande de devis" : "Répondre à une demande",
@@ -91,6 +93,7 @@ export default async function PageRepondreDevis(
     chargerPhotosDemande(sollicitationId, null),
     chargerVersionsDevis(sollicitationId),
   ]);
+  if (sollicitations.erreur) return <LectureImpossibleArtisan href={`/artisan/devis/${sollicitationId}`} />;
   const demande = sollicitations.lignes.find(
     (l) => l.sollicitation_id === sollicitationId
   );

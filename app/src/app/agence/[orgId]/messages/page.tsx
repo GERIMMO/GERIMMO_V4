@@ -41,7 +41,7 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
   const fils = (data ?? []) as FilConversation[];
   const nonLus = fils.reduce((s, f) => s + f.non_lus, 0);
   // Le propriétaire en gestion directe n'a pas d'entrée « Personnes » : son
-  // menu dit « Locataires & garants » (même adaptation que personnes/page.tsx).
+  // menu dit « Personnes » (même adaptation que personnes/page.tsx).
   const estProprietaire = role === "proprietaire_direct";
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);

@@ -310,3 +310,8 @@ export function DetailsInformation({
     <div className="mt-4">{children}</div>
   </details>;
 }
+
+/** Une lecture échouée ne prouve jamais que le dossier est absent. */
+export function LectureImpossibleArtisan({ href }: { href: string }) {
+  return <div className="space-y-4"><EnteteSousPage titre="Dossier indisponible" /><Erreur>Ce dossier n’a pas pu être chargé. Réessayez dans un instant.</Erreur><a href={href} className={CLASSE_BOUTON_SECONDAIRE}>Réessayer</a><Retour href="/artisan">Aujourd’hui</Retour></div>;
+}

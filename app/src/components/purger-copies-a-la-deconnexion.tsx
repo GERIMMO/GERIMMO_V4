@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { purgerCopiesLocales, RAISON_DECONNEXION } from "@/lib/copies-locales";
+import { purgerCopiesLocales, RAISON_DECONNEXION, RAISON_DECONNEXION_LOCALE } from "@/lib/copies-locales";
 import { messageBrouillonsConserves } from "@/lib/edl-brouillon";
 
 /**
@@ -18,7 +18,7 @@ export function AvertissementBrouillonsEdl({ nombre, anciens = 0 }: { nombre: nu
 }
 
 /**
- * À poser sur la page de connexion : arrivé ici par `/connexion?raison=deconnecte`, la session est fermée, et les copies
+ * À poser sur la page de connexion : après déconnexion globale ou locale confirmée, la session de cet appareil est fermée, et les copies
  * de saisie gardées sur l'appareil (brouillons, pièces jointes, quittance de l'outil public) sont effacées.
  *
  * Audit du 13/10 (PR178-A-01, puis VER-PR178-05) : la purge partait d'abord au clic sur « Se déconnecter », AVANT la
@@ -33,7 +33,7 @@ export function PurgerCopiesALaDeconnexion() {
   const raison = useSearchParams().get("raison");
   const [gardes, setGardes] = useState({ conserves: 0, anciens: 0 });
   useEffect(() => {
-    if (raison !== RAISON_DECONNEXION) return;
+    if (raison !== RAISON_DECONNEXION && raison !== RAISON_DECONNEXION_LOCALE) return;
     const { conserves, anciens } = purgerCopiesLocales();
     // L'avertissement dépend du stockage de l'appareil, que le rendu serveur ne connaît pas : il vient après l'hydratation.
     queueMicrotask(() => setGardes({ conserves, anciens }));

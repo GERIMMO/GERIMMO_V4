@@ -22,6 +22,10 @@ type Message = {
 };
 
 const MESSAGES: Record<string, Message> = {
+  "deconnecte-localement": {
+    texte: "Vous êtes déconnecté sur cet appareil. La fermeture des sessions sur vos autres appareils n’a pas pu être confirmée. Reconnectez-vous pour réessayer de les fermer.",
+    ton: "attention",
+  },
   "session-expiree": {
     texte: "Votre session a expiré, veuillez vous reconnecter.",
     ton: "info",

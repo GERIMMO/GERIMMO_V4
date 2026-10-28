@@ -1,3 +1,4 @@
+import { LectureImpossibleArtisan } from "../../../ui";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
@@ -43,6 +44,7 @@ export default async function PageComptePhoto(
   const { raison } = await props.searchParams;
 
   const agenda = await chargerAgenda();
+  if (agenda.erreur) return <LectureImpossibleArtisan href={`/artisan/missions/${interventionId}/compte-rendu`} />;
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
 

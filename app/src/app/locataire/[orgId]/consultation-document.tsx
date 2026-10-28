@@ -27,7 +27,12 @@ export function ConsultationDocument({ titre, cible, className, children }: {
 }) {
   const [ouvert, setOuvert] = useState(false);
   return <>
-    <button type="button" aria-haspopup="dialog" onClick={() => setOuvert(true)} className={className}>{children ?? titre}</button>
+    <button type="button" aria-haspopup="dialog" onClick={(event) => {
+      // Safari ne focalise pas toujours le bouton au clic : la modale doit
+      // mémoriser ce déclencheur pour lui rendre le focus à sa fermeture.
+      event.currentTarget.focus({ preventScroll: true });
+      setOuvert(true);
+    }} className={className}>{children ?? titre}</button>
     {ouvert && <Modale titre={titre} tresLarge fermer={() => setOuvert(false)}>
       {"fichier" in cible
         ? <LecteurDocument fichier={cible.fichier} titre={titre} mime={cible.mime} presentation="fiche" />

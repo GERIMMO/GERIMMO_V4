@@ -295,4 +295,30 @@ describe.skipIf(!url)("incident ouvert par le gérant : bail choisi ou seul bail
     expect(await vu(compteB, apres)).toEqual([]);
     expect(await fenetre(compteSeul, lotEntier)).toEqual({ ouverts: 1, historique: ["Incident déclaré"] });
   });
+  it("après fin du bail : conserve les incidents du bail choisi sans les ouvrir à l’autre chambre", async () => {
+    const incident = await ouvrir(lotColoc, bailA);
+    await postgres();
+    await db.query(readFileSync("supabase/migrations/20261028125513_historique_incidents_bail_termine.sql", "utf8"));
+    await db.query("update public.baux set etat='termine',date_fin=date '2026-02-01' where id=$1", [bailA]);
+    expect((await vu(compteA, incident)).map(r => r.id)).toEqual([incident]);
+    expect(await vu(compteB, incident)).toEqual([]);
+    expect(await vu(compteSeul, incident)).toEqual([]);
+    await postgres();
+    await db.query("update public.memberships set status='inactive' where account_id=$1 and organization_id=$2", [compteA, org]);
+    expect((await vu(compteA, incident)).map(r => r.id)).toEqual([incident]);
+    await refus(/Accès refusé/, "select public.contester_imputation($1,$2,'Je conteste')", [org, incident]);
+    await refus(/Accès refusé/, "select public.rouvrir_incident($1,$2,'Toujours présent')", [org, incident]);
+    await postgres();
+    await db.query(readFileSync("supabase/retours-arriere/20261028125513_historique_incidents_bail_termine.retour.sql", "utf8"));
+    expect(await vu(compteA, incident)).toEqual([]);
+    await postgres();
+    const nouvelle = readFileSync("supabase/migrations/20261028125513_historique_incidents_bail_termine.sql", "utf8");
+    await db.query(nouvelle);
+    await db.query(nouvelle);
+    expect((await vu(compteA, incident)).map(r => r.id)).toEqual([incident]);
+    await postgres();
+    await db.query("delete from public.memberships where account_id=$1 and organization_id=$2", [compteA, org]);
+    expect(await vu(compteA, incident)).toEqual([]);
+  });
+
 });

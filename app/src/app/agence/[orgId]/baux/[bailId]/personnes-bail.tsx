@@ -111,7 +111,7 @@ function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false,
     </div>)}
       {!(personne && proprietaire) && <input type="hidden" name="qualite" value={personne?.qualite ?? (morale ? "Personne morale" : "Personne physique")} />}
     </div>
-    <p className="text-xs text-muted-foreground">* Informations nécessaires au dossier. La fiche est aussi disponible dans « Locataires & garants ».</p>
+    <p className="text-xs text-muted-foreground">* Informations nécessaires au dossier. La fiche est aussi disponible dans « Personnes ».</p>
     <Retour etat={etat} />
     <div className="flex flex-wrap gap-2"><Button type="submit" disabled={enCours || personnesConnues.length > 0}>{enCours ? "Enregistrement…" : personne ? "Enregistrer la fiche" : "Créer cette personne"}</Button><Button type="button" variant="ghost" disabled={enCours} onClick={annuler}>Annuler</Button></div>
   </form>;
@@ -222,7 +222,7 @@ export function PersonnesBail({ orgId, bailId, personnes, detentions, participan
       <Link className="btn-secondaire" href={proprietairesHref}>Gérer les propriétaires et l’indivision dans le lot</Link>
     </section>
     <section className="bail-personnes-section bail-personnes-locataires" aria-labelledby="titre-locataires-bail">
-      <div className="bail-personnes-entete"><span className="bail-personnes-icone"><Users size={19} /></span><div><h3 id="titre-locataires-bail">Locataire{colocation ? "s" : ""}</h3><p>Choisissez dans « Locataires & garants » ou créez une nouvelle fiche.</p></div></div>
+      <div className="bail-personnes-entete"><span className="bail-personnes-icone"><Users size={19} /></span><div><h3 id="titre-locataires-bail">Locataire{colocation ? "s" : ""}</h3><p>Choisissez dans « Personnes » ou créez une nouvelle fiche.</p></div></div>
       {conseils}
       {principalId ? carte(principalId, "Locataire principal") : <p className="text-sm text-muted-foreground"><PastilleBail manquant/> Choisissez le locataire de ce bail.</p>}
       {participants.filter(p => p.role === "colocataire").map(p => carte(p.person_id, "Colocataire", false, p))}

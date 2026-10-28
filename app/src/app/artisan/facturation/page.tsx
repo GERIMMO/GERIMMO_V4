@@ -26,7 +26,7 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
     <EnteteSousPage rubrique="finances" titre="Ma facturation" mention="De l’intervention terminée à la facture transmise."
       action={<Link href="/artisan/agenda" className={styles.lienAgenda}><CalendarDays size={17} aria-hidden/>Mon agenda</Link>}/>
     <ReglementsDansFacturation />
-    {facture && <Succes>Facture déposée. Votre interlocuteur est prévenu : il la contrôle et la règle selon ses délais.</Succes>}
+    {typeof facture === "string" && !reglements.erreur && reglementDe.has(facture) && <Succes>Facture n° {reglementDe.get(facture)!.numero} enregistrée. Son état de règlement est indiqué ci-dessous.</Succes>}
     {agenda.erreur ? <Erreur>Vos interventions n’ont pas pu être chargées. Rechargez la page avant de conclure qu’aucune intervention n’est facturable.</Erreur> : <>
       <nav className={styles.indicateurs} aria-label="Résumé de la facturation">
         <Link href="#a-facturer" className={styles.indicateur} data-ton="bleu"><span className={styles.icone}><ReceiptText size={21} aria-hidden/></span><span><strong>{aFacturer.length}</strong><span>À facturer</span><small>Interventions prêtes</small></span><ArrowRight size={16} aria-hidden/></Link>
@@ -77,7 +77,8 @@ function etiquetteFacture(deposee: boolean, reglement: FactureVueParArtisan | un
 
 function LigneFacturation({ ligne, reglement }: { ligne: LigneAgenda; reglement?: FactureVueParArtisan }) {
   const deposee = ligne.facture_deposee;
-  const montant = montantEngage(ligne);
+  const engagement = montantEngage(ligne);
+  const montant = deposee ? reglement?.montant_ttc_cents ?? null : engagement;
   const etiquette = etiquetteFacture(deposee, reglement);
   return <li className={styles.facture}>
     <div className={styles.client}><MarqueAgence nom={ligne.agence_nom}/><Etiquette ton={etiquette.ton}>{etiquette.texte}</Etiquette></div>
@@ -85,10 +86,11 @@ function LigneFacturation({ ligne, reglement }: { ligne: LigneAgenda; reglement?
       <div>
         <h3>{titreIncident(ligne.categorie)}</h3>
         <p>{[ligne.incident_numero, reglement ? `facture n° ${reglement.numero}` : null, ligne.debut_prevu ? jourCourt(ligne.debut_prevu) : null, ligne.ville].filter(Boolean).join(" · ")}</p>
+        {deposee && engagement !== null && <p>Devis et avenants acceptés : {euros(engagement)} TTC{montant !== null && montant !== engagement ? ` · Écart : ${euros(montant - engagement)}` : ""}</p>}
         {deposee && reglement && <p>{phraseEtatPourArtisan(reglement)}</p>}
         {deposee && reglement && reglement.reglements.length > 0 && <ul>{reglement.reglements.map((r, i) => <li key={`${r.date_reglement}-${i}`}>{ligneReglementPourArtisan(r)}</li>)}</ul>}
       </div>
-      <div className={styles.montant}><strong>{montant !== null ? euros(montant) : "À préciser"}{montant !== null && <small> TTC</small>}</strong><span>{ligne.montant_plafond_cents !== null && ligne.montant_plafond_cents !== ligne.montant_ttc_cents ? "Avenant accepté" : "Devis retenu"}</span></div>
+      <div className={styles.montant}><strong>{montant !== null ? euros(montant) : deposee ? "Montant indisponible" : "À préciser"}{montant !== null && <small> TTC</small>}</strong><span>{deposee ? "Montant facturé" : ligne.montant_plafond_cents !== null && ligne.montant_plafond_cents !== ligne.montant_ttc_cents ? "Avenant accepté" : "Devis retenu"}</span></div>
     </div>
     <Link href={`/artisan/missions/${ligne.intervention_id}${deposee ? "" : "/facture"}`} className={deposee ? styles.boutonSecondaire : styles.boutonPrincipal}>{deposee ? <FileCheck2 size={16} aria-hidden/> : <FileUp size={16} aria-hidden/>}{deposee ? "Voir la mission" : "Déposer ma facture"}<ArrowRight size={15} aria-hidden/></Link>
   </li>;

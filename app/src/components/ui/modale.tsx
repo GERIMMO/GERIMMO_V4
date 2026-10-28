@@ -148,9 +148,11 @@ export function Modale({
                   {surtitre}
                 </p>
               )}
-              {/* Un <h2> (audit final, UX-10 / DRT-08) : toute fenêtre se pose sur une page qui a son <h1>, et le <h3>
-                  creusait un saut de niveau sur chaque page où la synthèse d'alertes s'ouvre à l'arrivée. */}
-              <h2 id={idTitre} className="mt-0.5 text-[var(--encre)]">{titre}</h2>
+              {/* Un <h2> (audit final, UX-10 / DRT-08 ; LOY-08 du chantier des loyers) : toute fenêtre se pose sur une page qui
+                  a son <h1>, et le <h3> creusait un saut de niveau sur chaque page où la synthèse d'alertes s'ouvre à l'arrivée.
+                  Même dessin qu'avant : `text-base` reprend la taille du h3 de la charte, l'interligne et l'interlettrage de
+                  l'ancien h3 sont imposés (prestige.css donne au h2 un interligne de 1,2 et -0,025em). */}
+              <h2 id={idTitre} className="mt-0.5 text-base !leading-[1.6] !tracking-[-0.015em] text-[var(--encre)]">{titre}</h2>
             </div>
           )}
           {/* Fermeture au doigt : Escape n'existe pas sur mobile et le tap

@@ -111,7 +111,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   const manquants = [
     !profil.address_line1 && "adresse",
     !profil.city && "ville (le « Fait à » des documents)",
-    !profil.email_contact && "email de contact",
+    !profil.email_contact && "e-mail de contact",
   ].filter(Boolean) as string[];
 
   return (

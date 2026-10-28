@@ -82,7 +82,7 @@ export default async function PageDocumentsLocataire(
     { data: echeancier, error: eEcheancier },
     { data: demandesBrutes, error: eDemandes },
     { data: signaturesBrutes, error: eSignatures },
-    { data: baux },
+    { data: baux, error: eBaux },
   ] = await Promise.all([
     supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
@@ -93,7 +93,8 @@ export default async function PageDocumentsLocataire(
     // (audit final, DRT-09).
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
   ]);
-  const assuranceAttendue = adhesionActive && ((baux ?? []) as unknown[]).length > 0;
+  // Lecture du bail en échec : on ne sait pas, on garde la règle d'avant (adhésion active) plutôt que de taire la demande.
+  const assuranceAttendue = adhesionActive && (Boolean(eBaux) || ((baux ?? []) as unknown[]).length > 0);
   const aSigner = ((signaturesBrutes ?? []) as {
     id: string;
     document_id: string;

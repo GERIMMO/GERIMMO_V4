@@ -61,7 +61,7 @@ describe("PUB-18 : image de partage 1200 × 630, légère", () => {
 describe("UX-10 / DRT-08 : titres", () => {
   it("le titre de toute fenêtre est un h2 qui la nomme", () => {
     const m = lire("src/components/ui/modale.tsx");
-    expect(m).toMatch(/<h2 id=\{idTitre\}/);
+    expect(m).toMatch(/<h2 id=\{idTitre\} className="mt-0.5 text-base !leading-\[1.6\] !tracking-\[-0.015em\]/);
     expect(m).toContain("aria-labelledby={entete ? undefined : idTitre}");
     expect(m).not.toMatch(/<h3[^>]*>\{titre\}<\/h3>/);
   });

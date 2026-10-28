@@ -50,6 +50,27 @@ const nomApi = nom + '_api';
 try {
   // Le nom est validé ci-dessus et aucune suppression de base n'est permise.
   await admin.query(`create database "${nomApi}" template "${nom}"`);
+  // `create database … template` ne copie pas les réglages propres à la base source (pg_db_role_setting : `alter role
+  // … in database …`, `alter database … set …`). Les migrations en posent — 20261028100000 déclare à PostgREST la
+  // pré-requête du second facteur (`alter role authenticator in database <base> set pgrst.db_pre_request`) — : sans
+  // eux, l'émulateur de la base API servait sans la garde centrale (intégration de l'audit final, 28/10). Recopie
+  // générique, rôle par rôle, réglage par réglage.
+  const { rows: reglages } = await admin.query(`
+    select r.rolname as role, split_part(c, '=', 1) as nom, substr(c, length(split_part(c, '=', 1)) + 2) as valeur
+      from pg_db_role_setting s
+      join pg_database d on d.oid = s.setdatabase
+      left join pg_roles r on r.oid = s.setrole
+      cross join lateral unnest(s.setconfig) c
+     where d.datname = $1`, [nom]);
+  for (const { role, nom: parametre, valeur } of reglages) {
+    if (!/^[a-z_][a-z0-9_.]*$/i.test(parametre)) throw new Error(`Réglage de base inattendu : ${parametre}`);
+    const { rows: [{ sql }] } = await admin.query(
+      role === null
+        ? `select format('alter database %I set ${parametre} = %L', $1::text, $2::text) as sql`
+        : `select format('alter role %I in database %I set ${parametre} = %L', $3::text, $1::text, $2::text) as sql`,
+      role === null ? [nomApi, valeur] : [nomApi, valeur, role]);
+    await admin.query(sql);
+  }
 } finally { await admin.end(); }
 const apiUrl = new URL(url); apiUrl.pathname = '/' + nomApi;
 const api = new Client({ connectionString: apiUrl.href });

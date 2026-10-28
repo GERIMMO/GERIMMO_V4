@@ -9,7 +9,7 @@
 .recherche > button { position: absolute; right: 0; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 8px; color: var(--texte-secondaire); }
 .repere { display: flex; align-items: center; justify-content: end; gap: 8px; font-size: 12px; color: var(--texte-secondaire); }
 .filtres { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
-.filtres button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 8px 13px; border: 1px solid var(--filet); border-radius: 9px; background: var(--carte); font-size: 12px; color: var(--texte-secondaire); transition: background .15s, border-color .15s; }
+.filtres button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: var(--cible-tactile); padding: 8px 13px; border: 1px solid var(--filet); border-radius: 9px; background: var(--carte); font-size: 12px; color: var(--texte-secondaire); transition: background .15s, border-color .15s; }
 .filtres button:hover { background: var(--creme); border-color: var(--encre); }
 .filtres button[aria-pressed="true"] { background: var(--encre); border-color: var(--encre); color: var(--sur-encre); }
 .filtres button:disabled { opacity: .55; cursor: not-allowed; }

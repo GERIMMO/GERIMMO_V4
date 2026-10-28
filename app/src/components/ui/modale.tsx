@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useSyncExternalStore, type ReactNode } from "react";
+import { useId, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useFenetreModale, useFermetureParLeVoile } from "@/lib/use-fenetre-modale";
 
@@ -74,6 +74,7 @@ export function Modale({
   // n'aurait réparé que ce bandeau-ci, jusqu'au prochain ancêtre animé.
   const monte = useSyncExternalStore(RIEN_A_ECOUTER, AU_NAVIGATEUR, AU_SERVEUR);
   const dialogue = useRef<HTMLDivElement>(null);
+  const idTitre = useId();
   const ouverte = ouverteDemandee ?? true;
   useFenetreModale(dialogue, monte && ouverte, fermer);
   // Une fenêtre pilotée par `ouverte` reste montée une fois refermée : sa saisie n'est pas abandonnée.
@@ -105,7 +106,9 @@ export function Modale({
         data-ui="modale"
         role="dialog"
         aria-modal="true"
-        aria-label={titre}
+        // La fenêtre est nommée par son titre visible quand il est rendu ici ; un en-tête à soi garde l'aria-label.
+        aria-label={entete ? titre : undefined}
+        aria-labelledby={entete ? undefined : idTitre}
         tabIndex={-1}
         className={`flex max-h-[calc(100dvh-2rem)] w-full flex-col border border-border bg-background text-foreground outline-none ${
           haut ? "" : "my-auto"
@@ -145,7 +148,11 @@ export function Modale({
                   {surtitre}
                 </p>
               )}
-              <h3 className="mt-0.5 text-[var(--encre)]">{titre}</h3>
+              {/* Un <h2> (audit final, UX-10 / DRT-08 ; LOY-08 du chantier des loyers) : toute fenêtre se pose sur une page qui
+                  a son <h1>, et le <h3> creusait un saut de niveau sur chaque page où la synthèse d'alertes s'ouvre à l'arrivée.
+                  Même dessin qu'avant : `text-base` reprend la taille du h3 de la charte, l'interligne et l'interlettrage de
+                  l'ancien h3 sont imposés (prestige.css donne au h2 un interligne de 1,2 et -0,025em). */}
+              <h2 id={idTitre} className="mt-0.5 text-base !leading-[1.6] !tracking-[-0.015em] text-[var(--encre)]">{titre}</h2>
             </div>
           )}
           {/* Fermeture au doigt : Escape n'existe pas sur mobile et le tap

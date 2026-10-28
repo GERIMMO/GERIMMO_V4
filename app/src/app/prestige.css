@@ -1,25 +1,15 @@
 /* Thème commun à toutes les routes, activé dans le layout racine.
  * Les couleurs d’état restent sémantiques et les marques d’organisation
- * explicitement configurées conservent leurs propres jetons. */
+ * explicitement configurées conservent leurs propres jetons.
+ *
+ * ORDRE DES COUCHES (audit final, UX-16). Les couleurs de marque (nuit, champagne, encre : --marque, --or, --encre et
+ * leurs déclinaisons) sont déclarées une seule fois, sur :root dans globals.css. Cette feuille pose les jetons de
+ * surface (fonds, filets, liens), la typographie et les composants de la charte ; proprietaire.css et
+ * experience-unifiee.css affinent ensuite par spécificité (fonds sombres, tiroirs, modales) — leurs règles de focus et
+ * de hauteur de bouton se recouvrent volontairement, ne les fusionner pas sans relire ces écrans. */
 :root,
 body.gerimmo-prestige,
 .gerimmo-prestige {
-  --prestige-nuit: #14304f;
-  --prestige-champagne: #b7975a;
-  --prestige-champagne-texte: #826838;
-  --marque: #14304f;
-  --marque-sombre: #293a51;
-  --marque-clair: #edf0f4;
-  --sur-marque: #fff;
-  --or: #b7975a;
-  --or-sombre: #826838;
-  --or-texte: #826838;
-  --sur-or: #16243a;
-  --or-clair: #fbf8f1;
-  --or-filet: #e3d6bc;
-  --encre: #16243a;
-  --graphite: #293a51;
-  --sur-encre: #fff;
   --encre-profond: #14304f;
   --corps: #16243a;
   --texte-secondaire: #4b5870;
@@ -122,7 +112,7 @@ body.gerimmo-prestige,
   border-bottom: 1px solid var(--filet);
 }
 .gerimmo-prestige .coquille-haut .recherche-ouvrir {
-  min-height: 42px;
+  min-height: var(--cible-tactile);
   max-width: 420px;
   border: 1px solid var(--filet);
   border-radius: 7px;

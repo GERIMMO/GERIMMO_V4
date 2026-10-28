@@ -122,6 +122,8 @@ export async function deciderPostProgramme(_etat: EtatCampagne, donnees: FormDat
   revalidatePath("/admin/brief");
   revalidatePath("/admin/publications");
   revalidatePath("/journal");
+  // L'accueil affiche les trois derniers articles et n'est relu que toutes les heures (audit final, PUB-05).
+  revalidatePath("/");
   const messages: Record<string, string> = {
     valider: "Validé : le post partira à l’heure prévue.",
     publier_maintenant: `Publication lancée.${suite}`,

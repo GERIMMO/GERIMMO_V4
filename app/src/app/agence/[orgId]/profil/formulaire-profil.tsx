@@ -8,7 +8,6 @@ import { couleurValide, logoAffichable, styleMarque } from "@/lib/marque-organis
 import { useState } from "react";
 import { CheckCircle2, CircleAlert } from "lucide-react";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
-import { afficherToast } from "@/components/ui/toast";
 import {
   modifierProfilOrganisation,
   type EtatProfilOrganisation,
@@ -114,8 +113,9 @@ function Formulaire({
     const retour = await modifierProfilOrganisation(orgId, precedent, donnees);
     if (retour.succes) {
       setModifie(false);
+      // Une seule confirmation (audit final, UX-08) : l'encadré « Profil enregistré à … » reste à l'écran ; le toast disait
+      // la même chose une troisième fois, et masquait la barre basse au téléphone.
       setHeureEnregistrement(new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }));
-      afficherToast("Votre profil a bien été enregistré.");
     }
     return retour;
   });
@@ -202,7 +202,7 @@ function Formulaire({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="pr-email">Email de contact *</Label>
+          <Label htmlFor="pr-email">E-mail de contact *</Label>
           <Input
             id="pr-email"
             name="email_contact"
@@ -430,7 +430,9 @@ function Formulaire({
               type="text"
               inputMode="decimal"
               name="relance_seuil_montant"
-              defaultValue={organisation.relance_seuil_montant ?? 5}
+              // Montant écrit à la française (audit final, UX-17) : la base rend « 5.00 », l'écran dit « 5,00 » ; la
+              // relecture (lireMontantFacultatif) accepte la virgule.
+              defaultValue={Number(organisation.relance_seuil_montant ?? 5).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               className="mt-1"
             />
           </label>
@@ -505,7 +507,7 @@ function FicheProfil({
         <Ligne libelle="Code postal">{texte(o.postal_code)}</Ligne>
         <Ligne libelle="Ville">{texte(o.city)}</Ligne>
         <Ligne libelle="Téléphone">{texte(o.telephone)}</Ligne>
-        <Ligne libelle="Email de contact">{texte(o.email_contact)}</Ligne>
+        <Ligne libelle="E-mail de contact">{texte(o.email_contact)}</Ligne>
         <Ligne libelle="SIRET">{texte(o.siret)}</Ligne>
         {!estProprietaire && (
           <>
@@ -522,7 +524,7 @@ function FicheProfil({
 
       {!estProprietaire && (
         <div>
-          <h4 className="eyebrow">Votre marque sur Gerimmo</h4>
+          <h3 className="eyebrow">Votre marque sur Gerimmo</h3>
           <dl>
             <Ligne libelle="Nom affiché">{texte(o.nom_portail)}</Ligne>
             <Ligne libelle="Logo">
@@ -557,7 +559,7 @@ function FicheProfil({
       )}
 
       <div id="relances">
-        <h4 className="eyebrow">Envois automatiques</h4>
+        <h3 className="eyebrow">Envois automatiques</h3>
         <dl>
           <Ligne libelle="Avis d'échéance par e-mail">
             {o.appels_envoi_auto ? "Activés" : "Désactivés"}

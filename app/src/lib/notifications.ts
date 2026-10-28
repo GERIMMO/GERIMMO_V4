@@ -85,13 +85,13 @@ export function gabaritNotification(g: Gabarit): string {
   const paragraphes = g.lignes.map((l) => `<p>${e(l)}</p>`).join("\n      ");
   const action = g.action
     ? g.action.lien
-      ? `<p style="margin:20px 0"><a href="${e(g.action.lien)}" style="display:inline-block;padding:10px 18px;background:#0f2352;color:#ffffff;text-decoration:none;border-radius:6px">${e(g.action.libelle)}</a></p>
+      ? `<p style="margin:20px 0"><a href="${e(g.action.lien)}" style="display:inline-block;padding:10px 18px;background:#14304f;color:#ffffff;text-decoration:none;border-radius:6px">${e(g.action.libelle)}</a></p>
       <p style="font-size:12px;color:#555">Si le bouton ne s'affiche pas : ${e(g.action.lien)}</p>`
       : `<p><strong>${e(g.action.libelle)}</strong> — connectez-vous à votre espace pour le faire.</p>`
     : "";
   return `
-    <div style="font-family:sans-serif;font-size:14px;color:#151b2b">
-      <h2 style="color:#0f2352">${e(g.titre)}</h2>
+    <div style="font-family:sans-serif;font-size:14px;color:#16243a">
+      <h2 style="color:#14304f">${e(g.titre)}</h2>
       <p>Bonjour${g.prenom ? " " + e(g.prenom) : ""},</p>
       ${paragraphes}
       ${action}

@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import { ArrowRight, Info, Mail, MessageCircle, Phone, Search, ShieldCheck, UserRound, UsersRound, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { correspond, initiales, nomComplet, sansRoleEnCours } from "@/lib/roles-personnes";
+import { ROLE_BAILLEUR_LUI_MEME, correspond, initiales, nomComplet, sansRoleEnCours } from "@/lib/roles-personnes";
 import { EchecLecture } from "../documents/echec-lecture";
 import type { PersonneListe } from "./liste-personnes";
 import styles from "./annuaire-personnes.module.css";
@@ -21,9 +21,10 @@ const FILTRES = [
 type Filtre = (typeof FILTRES)[number]["id"];
 
 function dansFiltre(personne: PersonneListe, filtre: Filtre) {
+  // Le bailleur lui-même (audit final, UX-01) compte parmi les propriétaires, jamais « Sans bail en cours ».
   return filtre === "toutes" || (filtre === "sans-bail"
     ? sansRoleEnCours(personne.roles)
-    : personne.roles.some((role) => role.libelle === filtre));
+    : personne.roles.some((role) => role.libelle === filtre || (filtre === "Propriétaire" && role.libelle === ROLE_BAILLEUR_LUI_MEME.libelle)));
 }
 
 function tonRole(libelle: string) {
@@ -45,6 +46,9 @@ export function AnnuaireProprietaire({ orgId, personnes, listeIllisible }: {
     ...personne.roles.map((role) => role.libelle), ...(sansRoleEnCours(personne.roles) ? ["Sans bail en cours"] : []),
   ));
   const filtreActif = recherche.trim() !== "" || filtre !== "toutes";
+  // Compte neuf (audit final, UX-01) : la seule fiche est celle du bailleur lui-même. L'annuaire le dit et guide vers la
+  // première fiche de locataire ou de garant, au lieu de présenter le propriétaire comme un futur locataire.
+  const seulementVous = personnes.length > 0 && personnes.every((personne) => personne.estVous);
   function reinitialiser() { setRecherche(""); setFiltre("toutes"); }
 
   return <div className={styles.annuaire}>
@@ -54,7 +58,7 @@ export function AnnuaireProprietaire({ orgId, personnes, listeIllisible }: {
         <Label htmlFor={idRecherche} className="sr-only">Filtrer les fiches</Label>
         <Input id={idRecherche} type="search" value={recherche} disabled={listeIllisible}
           onChange={(event) => setRecherche(event.target.value)} aria-controls={idListe}
-          placeholder="Nom, email, téléphone…" />
+          placeholder="Nom, e-mail, téléphone…" />
         {recherche && <button type="button" onClick={() => setRecherche("")} aria-label="Effacer la recherche"><X size={17} /></button>}
       </div>
       <p className={styles.repere}><UsersRound size={16} aria-hidden="true" />
@@ -75,6 +79,15 @@ export function AnnuaireProprietaire({ orgId, personnes, listeIllisible }: {
       <span role="status">{listeIllisible ? "" : `${visibles.length} fiche${visibles.length > 1 ? "s" : ""}${filtreActif ? ` sur ${personnes.length}` : ""}`}</span>
     </div>
     <div id={idListe}>
+      {!listeIllisible && seulementVous && !filtreActif && (
+        <div className={styles.vide} data-testid="annuaire-premiere-fiche">
+          <span className={styles.iconeVide}><UsersRound size={25} aria-hidden="true" /></span>
+          <h3>Votre première fiche commence ici</h3>
+          <p>Votre propre fiche de bailleur est déjà là : elle portera vos biens. Créez une fiche pour un locataire ou un garant, vous la retrouverez lors de la préparation de vos baux.</p>
+          {/* L'en-tête porte déjà le bouton doré « Créer une fiche » : un seul primaire par écran (UX-18). */}
+          <a href="#creer-fiche" className="btn-secondaire">Créer une fiche</a>
+        </div>
+      )}
       {listeIllisible ? <EchecLecture quoi={["vos fiches"]} /> : visibles.length === 0 ? (
         <div className={styles.vide}>
           <span className={styles.iconeVide}><UsersRound size={25} aria-hidden="true" /></span>
@@ -104,7 +117,7 @@ export function AnnuaireProprietaire({ orgId, personnes, listeIllisible }: {
                 </span>
               </span>
               <span className={styles.coordonnees}>
-                <span data-manquant={!personne.email}><Mail size={15} aria-hidden="true" /><span>{personne.email || "Email non renseigné"}</span></span>
+                <span data-manquant={!personne.email}><Mail size={15} aria-hidden="true" /><span>{personne.email || "E-mail non renseigné"}</span></span>
                 <span data-manquant={!personne.telephone}><Phone size={15} aria-hidden="true" /><span>{personne.telephone || "Téléphone non renseigné"}</span></span>
               </span>
               <span className={styles.acces}>
@@ -116,6 +129,6 @@ export function AnnuaireProprietaire({ orgId, personnes, listeIllisible }: {
         })}
       </ul>}
     </div>
-    {!listeIllisible && personnes.length > 0 && <p className={styles.note}><Info size={15} aria-hidden="true" />Les rôles « Locataire » et « Garant » correspondent aux baux en cours. Vos autres fiches restent disponibles pour un prochain bail.</p>}
+    {!listeIllisible && personnes.length > 0 && !seulementVous && <p className={styles.note}><Info size={15} aria-hidden="true" />Les rôles « Locataire » et « Garant » correspondent aux baux en cours. Vos autres fiches restent disponibles pour un prochain bail.</p>}
   </div>;
 }

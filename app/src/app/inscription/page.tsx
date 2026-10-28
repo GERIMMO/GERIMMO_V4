@@ -2,7 +2,7 @@ import { CoquilleAuth } from "@/components/coquille-auth";
 import { codeDeLaRecherche } from "@/lib/parrainage";
 import { FormulaireInscription } from "./formulaire-inscription";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
-import { badgeEssai, dureeEssai, offreLancementActive } from "@/lib/tarifs";
+import { badgeEssai, badgeEssaiCourt, dureeEssai, offreLancementActive } from "@/lib/tarifs";
 
 // La durée de l'essai dépend du jour de l'inscription (offre de lancement :
 // 2 mois jusqu'au 31/12/2026, 1 mois ensuite) : tout est calculé au rendu.
@@ -43,7 +43,8 @@ export default async function PageInscription(props: PageProps<"/inscription">) 
                 : "border border-border text-[var(--texte-secondaire)]"
             }`}
           >
-            {badgeEssai()}
+            <span className="sm:hidden">{badgeEssaiCourt()}</span>
+            <span className="hidden sm:inline">{badgeEssai()}</span>
           </span>
           <br />
           {`Un compte, votre parc, ${duree} pour l'essayer — sans\u00a0carte\u00a0bancaire.`}

@@ -4,7 +4,14 @@ import { ContenuAssistance, type ParametresAssistance } from "@/app/assistance/c
 import { AideProprietaire } from "./aide-proprietaire";
 import styles from "./aide.module.css";
 
-export const metadata = { title: "Aide — Gerimmo" };
+// Le titre n'est posé que si la page s'ouvre (audit final, UX-14) : hors propriétaire direct, l'onglet disait « Aide »
+// sur « Cette page est introuvable ». verifierAccesEspace est sous cache() : aucune lecture de plus.
+export async function generateMetadata(props: PageProps<"/agence/[orgId]/faq">) {
+  const { orgId } = await props.params;
+  const { estProprietaire } = await verifierAccesEspace(orgId);
+  if (!estProprietaire) notFound();
+  return { title: "Aide — Gerimmo" };
+}
 
 export default async function PageFaqProprietaire(props: PageProps<"/agence/[orgId]/faq">) {
   const { orgId } = await props.params;

@@ -2,7 +2,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { aujourdhuiParis } from "@/lib/ged";
 import { VuePersonnes } from "./vue-personnes";
 import parcours from "@/components/presentation-parcours.module.css";
-import { rolesDePersonne } from "@/lib/roles-personnes";
+import { avecLeBailleurLuiMeme, rolesDePersonne } from "@/lib/roles-personnes";
 import { EchecLecture } from "../documents/echec-lecture";
 import { FormulairePersonne } from "./formulaire-personne";
 import { ListePersonnes, type PersonneListe } from "./liste-personnes";
@@ -36,7 +36,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
   ] = await Promise.all([
     supabase
       .from("persons")
-      .select("id, nom, prenom, email, telephone")
+      .select("id, nom, prenom, email, telephone, account_id")
       .eq("organization_id", orgId)
       .is("archived_at", null)
       .order("nom"),
@@ -131,12 +131,15 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
     ),
   };
 
+  // La fiche du compte lui-même (audit final, UX-01) : chez le propriétaire direct, « Vous — bailleur », pas « Sans bail
+  // en cours » — même règle que la fiche (lib/roles-personnes).
   const fiches: PersonneListe[] = (
-    (personnes ?? []) as Omit<PersonneListe, "roles">[]
-  ).map((p) => ({
+    (personnes ?? []) as (Omit<PersonneListe, "roles" | "estVous"> & { account_id: string | null })[]
+  ).map(({ account_id, ...p }) => ({
     ...p,
+    estVous: account_id === user.id,
     roles: [
-      ...rolesDePersonne(p.id, liens, role === "proprietaire_direct"),
+      ...avecLeBailleurLuiMeme(rolesDePersonne(p.id, liens, role === "proprietaire_direct"), account_id === user.id, role === "proprietaire_direct"),
       ...(!liens.locataires.has(p.id) && enPreparation.locataires.has(p.id)
         ? [{ libelle: "Locataire · bail en préparation", classe: "text-muted-foreground", puce: "puce-grise" }] : []),
       ...(!liens.garants.has(p.id) && enPreparation.garants.has(p.id)

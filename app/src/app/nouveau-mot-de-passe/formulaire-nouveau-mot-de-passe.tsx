@@ -23,7 +23,8 @@ const CHAMPS_TEXTE_PROFIL = [
   ["adresse", "Adresse"],
   ["code_postal", "Code postal"],
   ["ville", "Ville"],
-  ["code_parrainage", "Code de parrainage, si concerné"],
+  // « (facultatif) », comme sur /inscription (audit final, UX-06 : « si concerné » était la troisième façon de le dire).
+  ["code_parrainage", "Code de parrainage (facultatif)"],
 ] as const;
 /** Les champs du bloc « Vérifiez vos informations » auxquels un refus peut s'adresser. */
 const CHAMPS_DU_PROFIL: ChampNouveauMotDePasse[] = ["espace", "cgu", ...CHAMPS_TEXTE_PROFIL.map(([champ]) => champ)];
@@ -34,11 +35,15 @@ export function FormulaireNouveauMotDePasse({
   suite = "/espaces",
   profilAConfirmer,
   premierChoix = false,
+  apresConfirmation = false,
 }: {
   suite?: string;
   profilAConfirmer?: Record<string, string>;
   /** L'invité crée son PREMIER mot de passe (audit final du 27/10, DRT-05) : rien à « changer ». */
   premierChoix?: boolean;
+  /** Première confirmation (inscription, profil à vérifier) : aucun mot de passe n'existe encore, le bouton le choisit
+   * (audit final, UX-06). */
+  apresConfirmation?: boolean;
 }) {
   const [etat, action] = useActionState<EtatNouveauMotDePasse, FormData>(
     definirNouveauMotDePasse,
@@ -117,7 +122,7 @@ export function FormulaireNouveauMotDePasse({
                 </div>
               ))}
               <label className="block space-y-1 text-sm">
-                <span>Qualité du bailleur, si concerné</span>
+                <span>Qualité du bailleur (facultatif)</span>
                 <select key={`qualite-${qualite}`} name="qualite" defaultValue={qualite} className="w-full rounded-md border bg-background px-3 py-2">
                   <option value="">Non renseignée</option>
                   {QUALITES_BAILLEUR.map((qualite) => <option key={qualite} value={qualite}>{qualite}</option>)}
@@ -148,7 +153,7 @@ export function FormulaireNouveauMotDePasse({
               className={`text-xs ${tropCourt ? "text-destructive" : "text-muted-foreground"}`}
             >
               {tropCourt
-                ? `Encore ${12 - longueur} caractère(s) : 12 minimum.`
+                ? `Encore ${12 - longueur} caractère${12 - longueur > 1 ? "s" : ""} : 12 minimum.`
                 : "12 caractères minimum."}
             </p>
             {sous("mot_de_passe")}
@@ -167,8 +172,10 @@ export function FormulaireNouveauMotDePasse({
             {sous("confirmation")}
           </div>
           {!champErreur && alerte}
+          {/* Le bouton dit le geste de l'écran (audit final, UX-06) : à la première confirmation, le titre est « Choisissez
+              votre mot de passe » — « Changer le mot de passe » parlait d'un mot de passe qui n'existe pas encore. */}
           <BoutonEnvoi envoiNatif enCoursTexte="Enregistrement…" className="w-full">
-            {premierChoix ? "Créer mon mot de passe" : "Changer le mot de passe"}
+            {premierChoix ? "Créer mon mot de passe" : apresConfirmation ? "Choisir mon mot de passe" : "Changer le mot de passe"}
           </BoutonEnvoi>
         </form>
       </CardContent>

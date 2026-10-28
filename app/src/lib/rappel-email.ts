@@ -88,8 +88,8 @@ export function corpsRappel(r: Rappel): string {
          votre fiabilité.</p>`;
 
   return `
-    <div style="font-family:sans-serif;font-size:14px;color:#151b2b">
-      <h2 style="color:#0f2352">${r.echeance === "veille" ? "Intervention demain" : "Intervention la semaine prochaine"}</h2>
+    <div style="font-family:sans-serif;font-size:14px;color:#16243a">
+      <h2 style="color:#14304f">${r.echeance === "veille" ? "Intervention demain" : "Intervention la semaine prochaine"}</h2>
       <p>Bonjour${r.prenom ? " " + echapperHtml(r.prenom) : ""},</p>
       ${r.destinataire === "locataire" ? pourLeLocataire : pourLArtisan}
       <p>— ${echapperHtml(r.emetteur)}</p>

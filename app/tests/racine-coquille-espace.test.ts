@@ -62,7 +62,8 @@ vi.mock("@/components/marque-organisation", () => ({ MarqueOrganisation: () => n
 // 24/10 (plan de conformité, R19) : l'écran d'une nouvelle version des conditions est un composant serveur asynchrone,
 // éprouvé par tests/conditions-acceptation.test.ts ; il ne porte aucune adresse de gestion.
 vi.mock("@/components/nouvelle-version-conditions", () => ({ NouvelleVersionConditions: () => null }));
-vi.mock("@/components/parcours-demarrage", () => ({ ParcoursDemarrage: () => null }));
+// Audit final (UX-02, UX-18) : l'accueil lit lui-même les étapes du parcours (lireEtapesDemarrage).
+vi.mock("@/components/parcours-demarrage", () => ({ ParcoursDemarrage: () => null, lireEtapesDemarrage: async () => null, parcoursEnCours: () => false }));
 vi.mock("@/app/agence/[orgId]/articles-accueil", () => ({ ArticlesAccueil: () => null }));
 // Composant serveur asynchrone : ses échéances et adresses ont leur recette dédiée.
 vi.mock("@/components/rappels-loyers", () => ({ RappelsLoyers: (p: { lectureSeule: boolean }) => {

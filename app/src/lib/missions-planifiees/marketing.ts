@@ -1,3 +1,4 @@
+import {revalidatePath} from "next/cache";
 import {LIMITE_ARTICLES,sujetDansPerimetre} from "@/lib/cadre-editorial";
 import { verifierAvantEffet, ArretSupervision } from "@/lib/controle-effets";
 import {clientDeService} from '@/lib/supabase/service';
@@ -12,7 +13,6 @@ import {envoyerSurFacebook} from '@/lib/facebook';
 import {alerterSuperviseurDuPost} from '@/lib/alerte-veto-marketing';
 import {composantesParis,dateParis} from '@/lib/heure-paris-calcul';
 import {PlafondIAAtteint,reserverAppelIA} from '@/lib/plafond-ia';
-import {revalidatePath} from 'next/cache';
 
 // LA MISSION MARKETING EN DEUX TEMPS (06/10/2026).
 //
@@ -57,9 +57,11 @@ export async function appelAutorise(request:Request,db:Db){
 }
 
 // ── Diffusion ──────────────────────────────────────────────────────────────
-/** Rafraîchit la page de l'article et la liste du journal ; hors requête Next (tests, script), sans effet. */
+/** Rafraîchit l'accueil, la liste du journal et la page de l'article (ISR, audit final PUB-03 et PUB-05) : un article
+ * paru les invalide tout de suite. Hors requête Next (tests, script), sans effet. */
 export function rafraichirJournal(slug:string|null|undefined){
  try{
+  revalidatePath('/');
   revalidatePath('/journal');
   if(slug)revalidatePath(`/journal/${slug}`);
  }catch(e){console.error('[marketing] journal non rafraîchi :',e instanceof Error?e.message:e);}
@@ -83,8 +85,9 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   const parution=await db.rpc('publier_article_automatique',{p_id:a.id,p_manuel:options.manuel===true});
   if(parution.error){erreurs.push(`${a.id} : ${parution.error.message}`);continue;}
   if(parution.data!==true){attentes.push(a.id);continue;}
-  // Audit final, relecture du 28/10 (PUB-03) : l'article est rendu en ISR ; un « introuvable » servi avant sa parution
-  // resterait en cache une heure. La parution automatique rafraîchit sa page et la liste, comme la parution manuelle.
+  // Audit final, relecture du 28/10 (PUB-03, PUB-05) : l'accueil, le journal et l'article sont rendus en ISR ; un
+  // « introuvable » servi avant la parution resterait en cache une heure. La parution automatique les rafraîchit, comme
+  // la parution manuelle.
   rafraichirJournal(a.slug);
   const campagne=await db.from('marketing_campagnes').upsert({publication_id:a.id,nom:a.titre.slice(0,160),description:a.facebook_texte,canal:'facebook',nature:'organique',objectif:'notoriete',statut:'idee',publication_prevue_le:null,budget_cents:0},{onConflict:'publication_id'});
   if(campagne.error){erreurs.push(`${a.id} : fiche de suivi indisponible, Facebook non tenté.`);continue;}

@@ -127,6 +127,11 @@ export function badgeEssai(date: Date = new Date()): string {
     : `${dureeEssai(date)} d'essai gratuit`;
 }
 
+/** Le même badge, en court, pour les petites largeurs (audit final, PUB-17 : la pilule se cassait sur deux lignes à 390 px). */
+export function badgeEssaiCourt(date: Date = new Date()): string {
+  return offreLancementActive(date) ? "2 mois gratuits jusqu'au 31/12" : `${dureeEssai(date)} d'essai gratuit`;
+}
+
 // ── Calculs ─────────────────────────────────────────────────────────────────
 
 function entierPositif(n: number): number {

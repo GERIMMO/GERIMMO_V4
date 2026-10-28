@@ -151,11 +151,8 @@ html[data-ambiance-site="noel"] {
   }
   html[data-ambiance-site] body.gerimmo-prestige .tiroir:has(.coquille-menu) :is(a, button):focus-visible { outline-color: #e4c995; }
 
-  html[data-ambiance-site] .gerimmo-prestige .coquille-auth .panneau-marque {
-    background-image: linear-gradient(110deg, #14263df5 0%, #14263de6 48%, #14263dd6 100%), var(--ambiance-image);
-    background-position: center;
-    background-size: cover;
-  }
+  /* Connexion et inscription gardent la seule photo du panneau (globals.css) : la photo de saison s'y ajoutait
+     après l'hydratation, soit deux photos chargées pour une seule affichée (audit final, PUB-04). */
   .ambiance-marque-auth { display: flex; align-items: center; gap: 24px; }
   .public-logo .ambiance-repere { margin-left: 16px; width: 24px; height: 24px; flex-basis: 24px; }
   html[data-ambiance-site] .gerimmo-prestige .public-pied {
@@ -163,6 +160,13 @@ html[data-ambiance-site="noel"] {
     background-position: center;
     background-size: cover;
     border-top: 2px solid var(--ambiance-accent);
+  }
+  /* Au téléphone, le pied n'affiche pas la photo (audit final, PUB-04) : sous un voile à 90–96 %, un aplat suffit, et la
+     photo pleine largeur (250 Ko) n'a pas à être téléchargée sur chaque page publique. */
+  @media (max-width: 640px) {
+    html[data-ambiance-site] .gerimmo-prestige .public-pied {
+      background-image: linear-gradient(100deg, #14263df5 15%, #14263de6 100%);
+    }
   }
   html[data-ambiance-site] .gerimmo-prestige .public-hero {
     background: linear-gradient(110deg, #fbfaf7 25%, var(--ambiance-fond) 100%);

@@ -48,8 +48,8 @@ export const SITUATIONS_TRENTE_PLUS: { valeur: SituationTrentePlus; libelle: str
 export type EntreeVisale = {
   zone: ZoneVisale;
   moinsDe30Ans: boolean;
-  /** Seulement si 30 ans ou plus. */
-  situation: SituationTrentePlus;
+  /** Seulement si 30 ans ou plus ; `null` tant que l'utilisateur n'a rien choisi (audit final, PUB-13). */
+  situation: SituationTrentePlus | null;
   etudiantSansRevenus: boolean;
   loyerCc: number | null;
 };
@@ -58,12 +58,21 @@ export type ResultatVisale = {
   eligible: boolean;
   plafond: number;
   motifs: string[];
+  /** Ce qui manque pour conclure (loyer absent ou négatif, situation non choisie) : aucun verdict tant que c'est là. */
+  aCompleter: string | null;
 };
 
 export function evaluerVisale(e: EntreeVisale): ResultatVisale {
   const p = PLAFONDS_VISALE_2026[e.zone];
   const plafond = e.etudiantSansRevenus ? p.etudiantSansRevenus : p.general;
   const motifs: string[] = [];
+  // Audit final (PUB-13) : un loyer de −100 € et une situation jamais choisie donnaient « Visale est possible ».
+  const aCompleter =
+    e.loyerCc == null || e.loyerCc <= 0
+      ? "Indiquez le loyer charges comprises."
+      : !e.moinsDe30Ans && e.situation == null
+        ? "Indiquez la situation du locataire."
+        : null;
   if (!e.moinsDe30Ans && e.situation === "autre") {
     motifs.push(
       "À partir de 30 ans, Visale n'est ouverte qu'aux salariés du privé embauchés depuis moins de 6 mois, aux personnes gagnant au plus 1 710 € net par mois, ou en mobilité professionnelle ou avec une promesse d'embauche."
@@ -76,7 +85,7 @@ export function evaluerVisale(e: EntreeVisale): ResultatVisale {
       }).`
     );
   }
-  return { eligible: motifs.length === 0, plafond, motifs };
+  return { eligible: aCompleter == null && motifs.length === 0, plafond, motifs, aCompleter };
 }
 
 /** Ce que couvre Visale (Action Logement, vérifié le 29/09/2026). */

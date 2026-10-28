@@ -94,7 +94,7 @@ async function alerterRelais(
   const envoyer = deps.envoyer ?? envoyerEmail;
   const champs = r.champs.map((c) => CHAMPS_EDITEUR[c] ?? c);
   const html = `
-<div style="font-family:Figtree,Segoe UI,Arial,sans-serif;max-width:600px;margin:0 auto;color:#0f2352">
+<div style="font-family:Figtree,Segoe UI,Arial,sans-serif;max-width:600px;margin:0 auto;color:#14304f">
   <h1 style="font-size:20px;line-height:1.3;margin:0 0 12px">Conditions publiées différentes de leur archive</h1>
   <p style="margin:0 0 12px">La page publiée des ${echapper(LIBELLE_DOCUMENT[r.document].toLowerCase())}, version du ${echapper(dateEnLettres(r.version))}, ne correspond plus au texte archivé sous cette version. L'archive n'a pas été modifiée.</p>
   <p style="margin:0 0 12px">${champs.length ? `Informations de l'éditeur modifiées depuis l'archivage : ${echapper(champs.join(", "))}.` : "Les informations de l'éditeur n'ont pas changé : c'est le texte de la page qui a changé."}</p>

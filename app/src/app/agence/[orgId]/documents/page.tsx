@@ -1,6 +1,6 @@
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
-import { ArrowLeft, ChevronLeft, ChevronRight, FileImage, FileText, TriangleAlert } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, FileImage, FileText, Plus, TriangleAlert } from "lucide-react";
 import { lirePresentationSignatures } from "@/lib/lecture-presentation-signatures";
 import { etatSignatureDocument } from "@/lib/presentation-signatures";
 import { presentationDocument } from "@/lib/presentation-document";
@@ -331,7 +331,7 @@ export default async function PageDocuments(
             {/* Parc vide : le guide, dessous, porte le seul geste de dépôt */}
             {!parcVide && (
               <Link href={lien("depot")} className="btn-or" aria-label={estProprietaire ? "Déposer un document" : undefined}>
-                {estProprietaire ? "+ Déposer" : "+ Déposer un document"}
+                <Plus size={17} aria-hidden="true" />{estProprietaire ? "Déposer" : "Déposer un document"}
               </Link>
             )}
           </div>
@@ -358,7 +358,7 @@ export default async function PageDocuments(
           </p>
           <span className="geste">
             <Link href={lien("depot")} className="btn-or">
-              + Déposer un document
+              <Plus size={17} aria-hidden="true" />Déposer un document
             </Link>
           </span>
         </div>

@@ -10,7 +10,7 @@
 .empty > svg { color: #638270; background: #eff5f1; padding: 14px; box-sizing: content-box; border-radius: 15px; }
 .empty h3 { font-size: 16px; font-weight: 600; }
 .empty p { font-size: 13px; line-height: 1.7; color: var(--texte-secondaire); max-width: 52ch; }
-.empty a { display: inline-flex; align-items: center; gap: 8px; margin-top: 4px; min-height: 40px; font-size: 12px; font-weight: 600; color: #486d90; }
+.empty a { display: inline-flex; align-items: center; gap: 8px; margin-top: 4px; min-height: var(--cible-tactile); font-size: 12px; font-weight: 600; color: #486d90; }
 .notice { padding: 14px 18px; margin: 0 23px 18px; border-radius: 8px; background: #fcf1df; color: #8b652b; font-size: 12px; line-height: 1.7; }
 .networkCard { background: linear-gradient(135deg,#213a53,#34546c); color: #fff; border-radius: 13px; padding: 23px; }
 .networkCard > svg { color: #dfcb9c; margin-bottom: 20px; }
@@ -68,9 +68,9 @@
 .pastEmpty { padding: 4px 23px 24px; color: var(--texte-secondaire); font-size: 12px; line-height: 1.7; }
 .filterForm { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; padding: 0 23px 20px; }
 .filterForm label { display: grid; gap: 6px; flex: 1; min-width: 130px; font-size: 11px; color: var(--texte-secondaire); }
-.filterForm select { border: 1px solid #dce3e9; border-radius: 7px; background: #fff; padding: 10px 30px 10px 11px; font-size: 12px; min-height: 42px; color: var(--encre); max-width: 100%; }
-.filterForm button { min-height: 42px; }
-.filterForm > a { display: inline-flex; align-items: center; min-height: 42px; font-size: 11px; color: #5c768c; }
+.filterForm select { border: 1px solid #dce3e9; border-radius: 7px; background: #fff; padding: 10px 30px 10px 11px; font-size: 12px; min-height: var(--cible-tactile); color: var(--encre); max-width: 100%; }
+.filterForm button { min-height: var(--cible-tactile); }
+.filterForm > a { display: inline-flex; align-items: center; min-height: var(--cible-tactile); font-size: 11px; color: #5c768c; }
 .requestList { display: grid; gap: 18px; padding: 0 20px 20px; }
 .request { border: 1px solid #e0e5eb; border-radius: 10px; background: #fff; min-width: 0; scroll-margin-top: 90px; }
 .request[data-blocking="true"] { border-top: 3px solid #bd7667; }

@@ -10,7 +10,7 @@ import {
 } from "@/lib/conditions-versions";
 import { formaterDateParis } from "@/lib/heure-paris";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
-import { createClient } from "@/lib/supabase/server";
+import { createClientPublic } from "@/lib/supabase/public";
 
 export const metadata = metadonneesPubliques({
   titre: "Versions archivées des conditions générales — Gerimmo",
@@ -23,8 +23,15 @@ export const metadata = metadonneesPubliques({
 // conditions reste lisible telle qu'elle a été acceptée (table `versions_conditions`, ajout seul, lecture publique).
 // Rien ici n'est contractuel : la page renvoie au texte archivé de chaque version, et à la version en vigueur.
 
+// Page publique relue toutes les heures (audit final, PUB-05) : lecture sans cookie.
+export const revalidate = 3600;
+
 export default async function PageVersionsConditions() {
-  const versions = await listerVersionsArchivees(await createClient());
+  const db = createClientPublic();
+  const versions = db ? await listerVersionsArchivees(db) : null;
+  // Une lecture en échec LÈVE (relecture adverse du 28/10) : la liste « indisponible » ne doit pas être mise en cache
+  // une heure — Next garde la dernière version réussie, et un build sans base échoue.
+  if (db && versions === null) throw new Error("Versions archivées illisibles : la page n'est pas mise en cache.");
   return (
     <CadreLegal chemin="/conditions">
       <div>

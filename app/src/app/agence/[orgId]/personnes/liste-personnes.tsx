@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useId, useState } from "react";
+import { UserRoundPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EchecLecture } from "../documents/echec-lecture";
@@ -18,6 +19,8 @@ export type PersonneListe = {
   roles: RolePersonne[];
   // Messages du locataire pas encore lus par un gestionnaire (chantier D1)
   messagesNonLus?: number;
+  /** La fiche du compte connecté lui-même (le bailleur, chez le propriétaire direct — audit final, UX-01). */
+  estVous?: boolean;
 };
 
 // Le champ FILTRE la liste déjà chargée : à l'échelle d'une agence (quelques
@@ -79,7 +82,7 @@ export function ListePersonnes({
           type="search"
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
-          placeholder="Filtrer par nom, email ou rôle…"
+          placeholder="Filtrer par nom, e-mail ou rôle…"
         />
       </div>
 
@@ -114,7 +117,7 @@ export function ListePersonnes({
                 </p>
                 <span className="geste">
                   <a href="#creer-fiche" className="btn-or">
-                    + Créer une fiche
+                    <UserRoundPlus size={17} aria-hidden="true" />Créer une fiche
                   </a>
                 </span>
               </>
@@ -163,7 +166,7 @@ export function ListePersonnes({
                 </b>
                 <small className="block truncate">
                   {[p.email, p.telephone].filter(Boolean).join(" · ") ||
-                    "Sans email ni téléphone"}
+                    "Sans e-mail ni téléphone"}
                 </small>
               </span>
               {/* Au téléphone, les puces passent SOUS le nom (46 px = avatar

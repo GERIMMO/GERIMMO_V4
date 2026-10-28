@@ -136,7 +136,7 @@ export default async function PageAdminOrganisation(
   // n'est pas remplie. Une ligne le dit, avec le geste ; les champs remplis s'affichent.
   const champs: [string, string | null | undefined][] = [
     ["Adresse", [organisation.address_line1, [organisation.postal_code, organisation.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") || null],
-    ["Email de contact", organisation.email_contact],
+    ["E-mail de contact", organisation.email_contact],
     ["Téléphone", organisation.telephone],
     ...((famille === "agence" || organisation.siret) ? [["SIRET", organisation.siret]] as [string, string | null][] : []),
     ...(famille === "agence" ? ([["Carte professionnelle", organisation.carte_pro], ["Garantie financière", organisation.garantie_financiere]] as [string, string | null][]) : []),

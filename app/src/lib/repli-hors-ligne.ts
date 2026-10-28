@@ -16,9 +16,10 @@ import { clicQuitteLaPage, type ClicSurLien, type LienClique } from "@/lib/prote
  */
 export const TEXTES_HORS_LIGNE = {
   titre: "Connexion perdue",
-  horsLigne: "Votre appareil n’est plus connecté à Internet. Vous restez sur cette page : vérifiez votre connexion, puis touchez « Réessayer ».",
+  // « Réessayez » plutôt que « touchez » (audit final, UX-17) : le message se lit aussi à la souris.
+  horsLigne: "Votre appareil n’est plus connecté à Internet. Vous restez sur cette page : vérifiez votre connexion, puis réessayez.",
   toujoursHorsLigne: "La connexion n’est pas revenue. Vérifiez votre réseau, puis réessayez.",
-  connexionRevenue: "La connexion est revenue. Touchez « Réessayer » pour ouvrir la page.",
+  connexionRevenue: "La connexion est revenue : choisissez « Réessayer » pour ouvrir la page.",
   reessayer: "Réessayer",
   fermer: "Fermer",
 } as const;

@@ -6,7 +6,8 @@ import { baseEspace } from "@/lib/racine-espace";
 import type { ActionDuJour } from "@/lib/actions-du-jour";
 import { chargerVerificationsProprietaire } from "@/lib/lecture-verifications-proprietaire";
 import { chargerPilotageProprietaire } from "@/lib/pilotage-proprietaire";
-import { ParcoursDemarrage } from "@/components/parcours-demarrage";
+import { ParcoursDemarrage, lireEtapesDemarrage, parcoursEnCours } from "@/components/parcours-demarrage";
+import { boutonPremierBien, elementsManquantsDuBailleur } from "@/lib/profil-bailleur";
 import { RappelsLoyers } from "@/components/rappels-loyers";
 import { AccueilBienvenue } from "@/components/accueil-bienvenue";
 import { CarteVerifications } from "@/components/carte-verifications";
@@ -23,10 +24,17 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
 }) {
   const base = baseEspace(orgId, true);
   const aujourdHui = aujourdhuiParis();
-  const [pilotage, lectureVerifications] = await Promise.all([
+  const [pilotage, lectureVerifications, etapesDemarrage, profil] = await Promise.all([
     chargerPilotageProprietaire(supabase, orgId, aujourdHui),
     chargerVerificationsProprietaire(supabase, orgId, { userId, portefeuille: null }),
+    lireEtapesDemarrage(supabase, orgId),
+    // Le premier geste du bandeau suit la règle de « Mes lots » et de « Créer un lot » (lib/profil-bailleur, D29 B) :
+    // tant que l'adresse ou l'e-mail de contact manquent, il mène au profil, pas au mur de /parc/nouveau (audit final,
+    // UX-02 / PUB-11). Une lecture tombée ne dit rien du profil : le bouton habituel, et la porte décidera.
+    supabase.from("organizations").select("address_line1,postal_code,city,email_contact").eq("id", orgId).maybeSingle(),
   ]);
+  const premierBien = boutonPremierBien({ base, manquants: elementsManquantsDuBailleur(profil.data ?? null), erreurLecture: Boolean(profil.error) });
+  const gesteBandeau = premierBien.detourParProfil ? { libelle: premierBien.libelle, href: premierBien.href } : { libelle: "Ajouter un bien", href: `${base}/parc/nouveau` };
   const { erreurs, lectureLoyers, verifications } = lectureVerifications;
   const { actions, rappels } = verifications;
   const lectureIncidents = await chargerIncidentsVerifications(supabase, orgId, actions);
@@ -75,7 +83,8 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   ];
 
   return <main className={styles.page}>
-    <AccueilBienvenue jourParis={aujourdHui} prenom={prenom} base={base} lectureSeule={lectureSeule} />
+    {/* Un seul bouton doré sur l'écran (audit final, UX-18) : celui de la prochaine étape du parcours tant qu'il s'affiche. */}
+    <AccueilBienvenue jourParis={aujourdHui} prenom={prenom} base={base} lectureSeule={lectureSeule} geste={gesteBandeau} secondaire={parcoursEnCours(etapesDemarrage)} />
 
     <section className={styles.indicateurs} aria-label="Votre patrimoine en bref">
       {/* Total des règlements datés du mois, quelle que soit l'échéance réglée : il mène aux recettes datées de Finances,
@@ -90,7 +99,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
         {lectureIncidents.indisponible && <p className={styles.note}>Certaines actions rapides sont indisponibles. Vous pouvez ouvrir la fiche de l’incident.</p>}
         {listeDemandes(critiques, "Prioritaires", "priorites-titre")}
         <RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />
-        {actions.length > 0 && <Link className={styles.toutesDemandes} href={`${base}/alertes`}>Voir toutes les demandes<ArrowRight size={15} aria-hidden="true" /></Link>}
+        {actions.length > 0 && <Link className={styles.toutesDemandes} href={`${base}/alertes`}>Tout ce qu’il y a à faire<ArrowRight size={15} aria-hidden="true" /></Link>}
       </CarteVerifications>
       <Link href={`${base}/parc`} className={styles.indicateur}><span><FileText size={18} aria-hidden="true" />Locations en cours</span><strong>{patrimoine ? patrimoine.contrats : "—"}</strong><small>{patrimoine ? `${patrimoine.lotsOccupes} lot${patrimoine.lotsOccupes > 1 ? "s" : ""} occupé${patrimoine.lotsOccupes > 1 ? "s" : ""}` : "Locations indisponibles"}</small><ArrowUpRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
     </section>
@@ -98,7 +107,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
 
     <div className={styles.grille}>
       <div className={styles.principal}>
-        <ParcoursDemarrage supabase={supabase} orgId={orgId} estProprietaire automatiqueProposeAilleurs />
+        <ParcoursDemarrage supabase={supabase} orgId={orgId} estProprietaire automatiqueProposeAilleurs etapes={etapesDemarrage} />
 
         <CarteTachesProprietaire taches={taches} base={base} indisponible={incertain || patrimoine === null || diagnostics === null}
           prioritesPresentes={totalPrioritaire > 0} chambresSansBail={patrimoine?.chambresSansBail ?? 0} />
@@ -114,7 +123,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
         <nav className={styles.outils} aria-label="Outils du propriétaire">
           <Link href={`${base}/documents?sel=depot`}>Déposer un document<ArrowRight size={16} aria-hidden="true" /></Link>
           <Link href={`${base}/comptabilite/fiscal`}>Préparer ma déclaration<ArrowRight size={16} aria-hidden="true" /></Link>
-          <Link href={`${base}/parc/import`}>Importer mon parc<ArrowRight size={16} aria-hidden="true" /></Link>
+          <Link href={`${base}/parc/import`}>Importer mes lots<ArrowRight size={16} aria-hidden="true" /></Link>
           <Link href={`${base}/journal`}>Le journal Gerimmo<ArrowRight size={16} aria-hidden="true" /></Link>
         </nav>
       </aside>

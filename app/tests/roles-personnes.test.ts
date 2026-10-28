@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { correspond, normaliser, rolesDePersonne, sansRoleEnCours } from "../src/lib/roles-personnes";
+import { avecLeBailleurLuiMeme, correspond, normaliser, rolesDePersonne, sansRoleEnCours } from "../src/lib/roles-personnes";
 import { AnnuaireProprietaire } from "../src/app/agence/[orgId]/personnes/annuaire-proprietaire";
 
 const vide = new Set<string>();
@@ -114,5 +114,35 @@ describe("filtres de la liste « Locataires & garants » (audit #264, FL-09)", (
     expect(compteurs(html)).toEqual({
       "Toutes les fiches": 5, Locataires: 1, Garants: 0, Propriétaires: 1, "Sans bail en cours": 3,
     });
+  });
+});
+
+describe("la fiche du bailleur lui-même (audit final, UX-01)", () => {
+  // Un compte neuf n'a qu'une fiche, la sienne : elle était comptée « Sans bail en cours », comme un futur locataire.
+  const vide = { proprietaires: new Set<string>(), mandants: new Set<string>(), locataires: new Set<string>(), garants: new Set<string>() };
+
+  it("chez le propriétaire direct, sa fiche sans bien est « Vous — bailleur », jamais sans rôle", () => {
+    expect(avecLeBailleurLuiMeme(rolesDePersonne("moi", vide, true), true, true).map((r) => r.libelle)).toEqual(["Vous — bailleur"]);
+    // Avec une détention, le rôle « Propriétaire » suffit.
+    const detenteur = { ...vide, proprietaires: new Set(["moi"]) };
+    expect(avecLeBailleurLuiMeme(rolesDePersonne("moi", detenteur, true), true, true).map((r) => r.libelle)).toEqual(["Propriétaire"]);
+    // La fiche d'un tiers, ou l'agence, ne change pas.
+    expect(avecLeBailleurLuiMeme([], false, true)).toEqual([]);
+    expect(avecLeBailleurLuiMeme([], true, false)).toEqual([]);
+  });
+
+  it("compte neuf : l'annuaire guide vers la première fiche et ne compte rien « Sans bail en cours »", () => {
+    const html = renderToStaticMarkup(createElement(AnnuaireProprietaire, {
+      orgId: "o", listeIllisible: false, personnes: [{
+        id: "moi", nom: "Neuf", prenom: "Camille", email: null, telephone: null, estVous: true,
+        roles: avecLeBailleurLuiMeme([], true, true),
+      }],
+    }));
+    expect(html).toContain("Votre première fiche commence ici");
+    expect(html).toContain("Vous — bailleur");
+    const texte = html.replace(/<[^>]+>/g, "|");
+    expect(texte).toMatch(/Sans bail en cours\|+0/);
+    expect(texte).toMatch(/Propriétaires\|+1/);
+    expect(html).not.toContain("Vos autres fiches restent disponibles");
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { ouvrirIncident, type EtatIncidentAction } from "@/app/actions/incidents";
 import { compresserChampFichiers } from "@/lib/compresser-image";
@@ -72,9 +72,41 @@ export function FormulaireIncident({
   // bail le plus récent et montré à ce seul colocataire (FL-01).
   const plusieursBaux = (lot?.baux.length ?? 0) > 1;
   const pieces = lot?.pieces ?? [...PIECES_INCIDENT];
+  // Audit final (UX-07) : la validation était laissée au navigateur — bulle « Please select an item in the list. » sur
+  // un Chromium en anglais, sans message sous le champ ni aria-invalid. Même motif que
+  // formulaire-nouveau-mot-de-passe.tsx : le formulaire dit en français ce qui manque, sous le champ, et y pose le focus.
+  type ChampObligatoire = "lot" | "bail" | "categorie" | "description";
+  const MESSAGES: Record<ChampObligatoire, string> = {
+    lot: "Choisissez le lot concerné.",
+    bail: "Choisissez la chambre concernée, ou « Espaces partagés ou tout le logement ».",
+    categorie: "Choisissez la catégorie la plus proche.",
+    description: "Décrivez le problème : où exactement, depuis quand.",
+  };
+  const [manquants, setManquants] = useState<Partial<Record<ChampObligatoire, string>>>({});
+  const marque = (champ: ChampObligatoire, aide?: string) => ({
+    "aria-invalid": manquants[champ] ? true : undefined,
+    "aria-describedby": [aide, manquants[champ] ? `erreur-${champ}` : undefined].filter(Boolean).join(" ") || undefined,
+  });
+  const effacer = (champ: ChampObligatoire) => manquants[champ] && setManquants((m) => ({ ...m, [champ]: undefined }));
+  const sous = (champ: ChampObligatoire) =>
+    manquants[champ] ? <p id={`erreur-${champ}`} role="alert" className="text-sm text-destructive">{manquants[champ]}</p> : null;
+  function verifierAvantEnvoi(e: FormEvent<HTMLFormElement>) {
+    const champs = e.currentTarget.elements;
+    const erreurs: typeof manquants = {};
+    for (const nom of ["lot", "bail", "categorie", "description"] as const) {
+      const champ = champs.namedItem(nom) as HTMLSelectElement | HTMLTextAreaElement | null;
+      if (champ && !champ.value.trim()) erreurs[nom] = MESSAGES[nom];
+    }
+    setManquants(erreurs);
+    const premier = (Object.keys(erreurs) as ChampObligatoire[])[0];
+    if (premier) {
+      e.preventDefault();
+      (champs.namedItem(premier) as HTMLElement | null)?.focus();
+    }
+  }
 
   return (
-    <form data-saisie-confirmee action={action} className="formulaire-reperes space-y-4">
+    <form data-saisie-confirmee action={action} noValidate onSubmit={verifierAvantEnvoi} className="formulaire-reperes space-y-4">
       <LegendeChamps />
       {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
           sur la saisie (recette 22/08 — mécanique commune, lib/formulaires.ts) */}
@@ -85,8 +117,9 @@ export function FormulaireIncident({
           name="lot"
           required
           defaultValue={etat.valeurs?.lot ?? lotInitial}
-          onChange={(e) => setLotChoisi(e.target.value)}
+          onChange={(e) => { setLotChoisi(e.target.value); effacer("lot"); }}
           className={classeSelect}
+          {...marque("lot")}
         >
           <option value="" disabled>
             Choisissez le lot…
@@ -97,6 +130,7 @@ export function FormulaireIncident({
             </option>
           ))}
         </select>
+        {sous("lot")}
       </div>
 
       {plusieursBaux && lot && (
@@ -110,7 +144,8 @@ export function FormulaireIncident({
             required
             defaultValue={etat.valeurs?.lot === lot.id ? etat.valeurs?.bail ?? "" : ""}
             className={classeSelect}
-            aria-describedby="bail-aide"
+            onChange={() => effacer("bail")}
+            {...marque("bail", "bail-aide")}
           >
             <option value="" disabled>
               Choisissez la chambre…
@@ -124,6 +159,7 @@ export function FormulaireIncident({
                 syndic (RM-7.1.4) : ici, les espaces partagés de la colocation. */}
             <option value="aucun">Espaces partagés ou tout le logement</option>
           </select>
+          {sous("bail")}
           <p id="bail-aide" className="text-xs text-muted-foreground">
             Seul le locataire de la chambre choisie suivra l&apos;incident depuis son espace. Espaces partagés ou tout
             le logement : aucun colocataire ne le verra.
@@ -139,7 +175,8 @@ export function FormulaireIncident({
           required
           defaultValue={etat.valeurs?.categorie ?? ""}
           className={classeSelect}
-          onChange={(e) => setCategorie(e.target.value)}
+          onChange={(e) => { setCategorie(e.target.value); effacer("categorie"); }}
+          {...marque("categorie")}
         >
           <option value="" disabled>
             La catégorie la plus proche…
@@ -150,6 +187,7 @@ export function FormulaireIncident({
             </option>
           ))}
         </select>
+        {sous("categorie")}
         <RepereJuridique slug={categorie} estProprietaire={estProprietaire} />
       </div>
 
@@ -199,8 +237,11 @@ export function FormulaireIncident({
           rows={3}
           placeholder="Ce que décrit le locataire : où exactement, depuis quand, est-ce que cela s'aggrave…"
           defaultValue={etat.valeurs?.description}
+          onChange={() => effacer("description")}
           className="w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-sm"
+          {...marque("description")}
         />
+        {sous("description")}
       </div>
 
       <div className="space-y-1.5">

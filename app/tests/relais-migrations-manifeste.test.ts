@@ -124,6 +124,8 @@ const MISSION_OCTOBRE = [
   "20261027100500_parcours_demarrage_pluriel_baux.sql",
   // Audit final du 27/10 (DRT-V01, DRT-04) : fiche de l'organisation en lecture seule.
   "20261028100000_organizations_lecture_seule.sql",
+  // 28/10, audit final (PUB-20) : « Compléter le logement » mène au lot bloqué, pas à la liste du parc.
+  "20261028100400_parcours_demarrage_lot_bloque.sql",
   // 28/10, audit final (COD-06) : deux index strictement redondants retirés.
   "20261028100500_index_redondants.sql",
   // 28/10, audit final (documents et incidents) : même fichier pour deux attestations, photo d'incident déjà connue

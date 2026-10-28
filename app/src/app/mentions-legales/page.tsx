@@ -1,4 +1,7 @@
 import { lireEditeur } from "@/lib/editeur-serveur";
+
+// Page publique relue toutes les heures (audit final, PUB-05) : ses lectures se font sans cookie.
+export const revalidate = 3600;
 import Link from "next/link";
 import { Article, CoordonneesMediateur, CoquilleLegale, Fait } from "@/components/coquille-legale";
 import { courrielDeContact, documentsIncomplets, estEntrepreneurIndividuel, REGIME_TVA, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";
@@ -14,7 +17,7 @@ export const metadata = metadonneesPubliques({
 // Les autres prestataires et les traitements sont détaillés dans la confidentialité.
 // Référence : Service Public, F37351, vérifiée le 13/10/2026.
 export default async function PageMentionsLegales() {
-  const { editeur: EDITEUR, indisponible } = await lireEditeur();
+  const { editeur: EDITEUR, indisponible } = await lireEditeur({ pagePublique: true });
   const hebergeurs = prestatairesAvecFaits(EDITEUR).filter((p) => p.cle === "vercel" || p.cle === "supabase");
   const individuel = estEntrepreneurIndividuel(EDITEUR);
   return (
@@ -69,9 +72,10 @@ export default async function PageMentionsLegales() {
         <p>Après une réclamation écrite, le consommateur peut recourir gratuitement à un médiateur compétent.</p>
       </Article>
 
-      <nav aria-label="Informations juridiques complémentaires" className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
-        <Link href="/conditions" className="lien-texte">Conditions générales</Link>
-        <Link href="/confidentialite" className="lien-texte">Données personnelles et confidentialité</Link>
+      {/* Liens isolés : cible de 44 px (audit final, PUB-07 ; WCAG 2.5.8). */}
+      <nav aria-label="Informations juridiques complémentaires" className="flex flex-wrap gap-x-6 text-sm">
+        <Link href="/conditions" className="lien-texte inline-flex min-h-11 items-center">Conditions générales</Link>
+        <Link href="/confidentialite" className="lien-texte inline-flex min-h-11 items-center">Données personnelles et confidentialité</Link>
       </nav>
     </CoquilleLegale>
   );

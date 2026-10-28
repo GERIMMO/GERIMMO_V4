@@ -82,12 +82,19 @@ export default async function PageDocumentsLocataire(
     { data: echeancier, error: eEcheancier },
     { data: demandesBrutes, error: eDemandes },
     { data: signaturesBrutes, error: eSignatures },
+    { data: baux, error: eBaux },
   ] = await Promise.all([
     supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
     supabase.rpc("mes_demandes_signature", { p_org: orgId }),
+    // L'assurance n'est réclamée qu'à un locataire en place (RM-0b.5.1) : même règle que l'accueil et le badge du menu
+    // (layout.tsx). Un invité sans bail actif lisait ici « à déposer » quand l'accueil disait « Rien à régler »
+    // (audit final, DRT-09).
+    supabase.rpc("mon_bail_locataire", { p_org: orgId }),
   ]);
+  // Lecture du bail en échec : on ne sait pas, on garde la règle d'avant (adhésion active) plutôt que de taire la demande.
+  const assuranceAttendue = adhesionActive && (Boolean(eBaux) || ((baux ?? []) as unknown[]).length > 0);
   const aSigner = ((signaturesBrutes ?? []) as {
     id: string;
     document_id: string;
@@ -150,7 +157,7 @@ export default async function PageDocumentsLocataire(
       </p>}
 
       <OngletsDossier libelle="Rubriques de mes documents"
-        initiale={aSigner.length || demandes.length || (adhesionActive && (!etatAssurance.nonExpiree)) ? "documents-a-transmettre" : "documents-disponibles"}
+        initiale={aSigner.length || demandes.length || (assuranceAttendue && (!etatAssurance.nonExpiree)) ? "documents-a-transmettre" : "documents-disponibles"}
         rubriques={[
           { id: "documents-a-transmettre", titre: "À transmettre", contenu: <>
       {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
@@ -194,13 +201,13 @@ export default async function PageDocumentsLocataire(
           scroll-mt : l'en-tête .loc-haut est collant (globals.css:627). */}
       <div
         id="assurance"
-        className={`loc-carte scroll-mt-24 ${lecturePiecesKO || etatAssurance.validee ? "" : "border-l-4 border-l-[var(--or)]"}`}
+        className={`loc-carte scroll-mt-24 ${lecturePiecesKO || etatAssurance.validee || !assuranceAttendue ? "" : "border-l-4 border-l-[var(--or)]"}`}
       >
         <div className="entete-carte !mb-1">
           <h2 className="titre-carte text-base font-medium">Votre assurance habitation</h2>
           {/* Filet doré et badge du menu disaient « à faire » ; l'en-tête,
               lui, ne disait rien — contrairement à ses voisines (24/09). */}
-          {!lecturePiecesKO && !assurance && adhesionActive && (
+          {!lecturePiecesKO && !assurance && assuranceAttendue && (
             <span className="loc-tag ambre">à déposer</span>
           )}
           {!lecturePiecesKO && assurance && (
@@ -219,7 +226,13 @@ export default async function PageDocumentsLocataire(
               " Votre attestation validée reste en vigueur pendant la vérification de la nouvelle."}
           </p>
         ) : (
-          adhesionActive ? null : (
+          adhesionActive ? (
+            assuranceAttendue ? null : (
+              <p className="text-sm text-muted-foreground">
+                À déposer dès l&apos;activation de votre bail.
+              </p>
+            )
+          ) : (
             <p className="text-sm text-muted-foreground">
               Bail terminé — plus d&apos;attestation à fournir.
             </p>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { inscrireProprietaire, type EtatInscription } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,33 @@ export function FormulaireInscription({
   // second envoi enregistrait une autre qualité que celle choisie. La clé, égale à la valeur à reposer, remonte la
   // liste quand cette valeur change : elle part de la qualité envoyée. Sans script, le HTML du serveur la porte déjà.
   const qualite = etat.valeurs?.qualite ?? "Personne physique";
+  // Audit final (UX-07) : la validation était laissée au navigateur — une bulle éphémère, dans la langue du navigateur,
+  // sans message sous le champ ni aria-invalid. Même motif que formulaire-nouveau-mot-de-passe.tsx : le formulaire
+  // vérifie lui-même les deux champs obligatoires, dit en français ce qui manque sous le champ, et y pose le focus.
+  const [manquants, setManquants] = useState<Partial<Record<"nom" | "email", string>>>({});
+  const marque = (champ: "nom" | "email") => ({
+    "aria-invalid": manquants[champ] ? true : undefined,
+    "aria-describedby": manquants[champ] ? `erreur-${champ}` : undefined,
+    onChange: () => manquants[champ] && setManquants((m) => ({ ...m, [champ]: undefined })),
+  });
+  const sous = (champ: "nom" | "email") =>
+    // Pas de role="alert" ici : le focus va au champ, qui lit ce message par aria-describedby (une alerte focalisée,
+    // AlerteFormulaire, reprendrait le focus au champ).
+    manquants[champ] ? <p id={`erreur-${champ}`} className="text-sm text-destructive">{manquants[champ]}</p> : null;
+  function verifierAvantEnvoi(e: FormEvent<HTMLFormElement>) {
+    const champs = e.currentTarget.elements;
+    const nom = champs.namedItem("nom") as HTMLInputElement;
+    const email = champs.namedItem("email") as HTMLInputElement;
+    const erreurs: typeof manquants = {};
+    if (!nom.value.trim()) erreurs.nom = "Indiquez votre nom.";
+    if (!email.value.trim()) erreurs.email = "Indiquez votre adresse e-mail.";
+    else if (!email.validity.valid) erreurs.email = "Cette adresse e-mail n’est pas valide (ex. prenom@exemple.fr).";
+    setManquants(erreurs);
+    if (erreurs.nom || erreurs.email) {
+      e.preventDefault();
+      (erreurs.nom ? nom : email).focus();
+    }
+  }
 
   if (etat.message) {
     return (
@@ -55,7 +82,7 @@ export function FormulaireInscription({
             24/09 : « (facultatif) » sur chaque champ optionnel, rien sur les
             obligatoires — seul le code de parrainage le disait, et neuf champs
             paraissaient requis quand cinq ne le sont pas. */}
-        <form data-saisie-libre action={action} className="space-y-4">
+        <form data-saisie-libre action={action} noValidate onSubmit={verifierAvantEnvoi} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="prenom">Prénom (facultatif)</Label>
@@ -76,7 +103,9 @@ export function FormulaireInscription({
                 autoComplete="family-name"
                 required
                 defaultValue={etat.valeurs?.nom}
+                {...marque("nom")}
               />
+              {sous("nom")}
             </div>
           </div>
           <div className="space-y-2">
@@ -131,7 +160,9 @@ export function FormulaireInscription({
               autoComplete="email"
               required
               defaultValue={etat.valeurs?.email}
+              {...marque("email")}
             />
+            {sous("email")}
           </div>
           <div className="space-y-2">
             <Label htmlFor="code-parrainage">Code de parrainage (facultatif)</Label>
@@ -140,7 +171,7 @@ export function FormulaireInscription({
               name="code_parrainage"
               autoComplete="off"
               autoCapitalize="characters"
-              placeholder="Ex. : ABCD1234"
+              placeholder="ex. ABCD1234"
               maxLength={12}
               defaultValue={etat.valeurs?.code_parrainage ?? codeParrain ?? ""}
             />

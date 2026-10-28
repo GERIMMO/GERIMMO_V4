@@ -23,7 +23,9 @@ export async function terminerInscriptionLocale(page: Page, email: string, motDe
   await page.getByLabel(/^(Nouveau )?mot de passe$/i).fill(motDePasse);
   await page.getByLabel("Confirmation", { exact: true }).fill(motDePasse);
   await page.getByRole("checkbox", { name: /accepte les conditions/ }).check();
-  await page.getByRole("button", { name: /^(Changer le|Créer mon) mot de passe$/ }).click();
+  // Audit final : un invité crée son PREMIER mot de passe (DRT-05, « Créer mon mot de passe ») ; à la première
+  // confirmation d'une inscription, le bouton dit « Choisir mon mot de passe » (UX-06). Jamais « Changer le… » ici.
+  await page.getByRole("button", { name: /^(Choisir|Créer) mon mot de passe$/ }).click();
   // Relevé du 23/10 (PRO-5) : le premier choix après la confirmation garde la session ouverte et mène à l'espace ou à
   // l'étape suivante — plus d'écran de connexion ni de « Mot de passe modifié. Connectez-vous… ». L'appelant attend
   // ensuite sa propre destination.

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClientPublic } from "@/lib/supabase/public";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 import { ImageJournal } from "@/components/image-journal";
@@ -24,14 +24,23 @@ function jour(d: string | null) {
   });
 }
 
+// Relu toutes les heures ; la publication d'un article invalide la page (revalidatePath).
+export const revalidate = 3600;
+
 export default async function PageJournal() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("publications")
-    .select("id, titre, slug, chapo, publie_le, facebook_image_url")
-    .eq("statut", "publiee")
-    .order("publie_le", { ascending: false })
-    .limit(50);
+  // Lecture publique sans cookie (audit final, PUB-05) : la page reste statique. Une lecture en échec LÈVE : « Le
+  // premier article arrive » ne doit pas être mis en cache une heure (relecture adverse du 28/10) — Next garde la
+  // dernière version réussie, et un build sans base échoue.
+  const supabase = createClientPublic();
+  const { data, error } = supabase
+    ? await supabase
+      .from("publications")
+      .select("id, titre, slug, chapo, publie_le, facebook_image_url")
+      .eq("statut", "publiee")
+      .order("publie_le", { ascending: false })
+      .limit(50)
+    : { data: null, error: null };
+  if (error) throw new Error(`Articles du journal illisibles : la page n'est pas mise en cache (${error.message}).`);
 
   const articles = data ?? [];
 
@@ -44,6 +53,9 @@ export default async function PageJournal() {
           plus d'aplat marine sous le bandeau. 24/09 : plus de photo non plus.
           Celle des pages de connexion, sans rapport avec le journal, faisait
           d'une page secondaire la plus décorée du site. */}
+      {/* Un <header> frère de <main> est un second repère « banner » (audit final, PUB-08, axe landmark-no-duplicate-banner) :
+          l'en-tête du site le porte déjà ; celui de la page vit dans <main>, comme sur /tarifs. */}
+      <main className="flex flex-1 flex-col">
       <header className="public-page-intro">
         <div className="public-conteneur">
           <p className="eyebrow text-[var(--or-texte)]">Journal</p>
@@ -57,7 +69,7 @@ export default async function PageJournal() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-7">
+      <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-7">
         {articles.length === 0 ? (
           <div className="vide-guide">
             <p className="titre">Le premier article arrive</p>
@@ -102,6 +114,7 @@ export default async function PageJournal() {
             ))}
           </div>
         )}
+      </div>
       </main>
 
       <PiedPublic courant="/journal" />

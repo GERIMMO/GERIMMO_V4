@@ -455,7 +455,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         ) : (
           <>
         <div className="entete-carte">
-          <h3>{souscrit && actuelle ? libelleOffre(actuelle) : "Aucun abonnement en cours"}</h3>
+          <h2 className="titre-carte">{souscrit && actuelle ? libelleOffre(actuelle) : "Aucun abonnement en cours"}</h2>
           <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
         </div>
         <div className="ligne-info">

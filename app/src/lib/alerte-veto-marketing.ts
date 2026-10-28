@@ -35,7 +35,7 @@ export function htmlAlerteVeto(post: ApercuPost, lienEcran: string): string {
     ? "La validation est obligatoire : ce post ne partira pas sans votre accord."
     : `Sans geste de votre part, il part automatiquement le ${quand}.`;
   return `
-<div style="font-family:Figtree,Segoe UI,Arial,sans-serif;max-width:600px;margin:0 auto;color:#0f2352">
+<div style="font-family:Figtree,Segoe UI,Arial,sans-serif;max-width:600px;margin:0 auto;color:#14304f">
   <p style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#53617a;margin:0 0 8px">${post.rattrapage ? "Post préparé en rattrapage" : post.veille ? "Post de veille préparé" : "Post préparé"}</p>
   <h1 style="font-size:22px;line-height:1.25;margin:0 0 12px">${echapper(post.titre)}</h1>
   <p style="margin:0 0 16px;color:#53617a">Parution prévue le <strong>${echapper(quand)}</strong>. ${echapper(consigne)}</p>
@@ -43,7 +43,7 @@ export function htmlAlerteVeto(post: ApercuPost, lienEcran: string): string {
   <p style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#53617a;margin:0 0 6px">Texte Facebook</p>
   <p style="white-space:pre-wrap;margin:0 0 16px;line-height:1.5">${echapper(post.facebook_texte?.trim() || `${post.titre}\n\n${post.chapo ?? ""}`)}</p>
   <p style="margin:0 0 20px">
-    <a href="${echapper(lienEcran)}" style="display:inline-block;background:#2457f5;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Publier maintenant, modifier, reporter ou refuser</a>
+    <a href="${echapper(lienEcran)}" style="display:inline-block;background:#14304f;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600">Publier maintenant, modifier, reporter ou refuser</a>
   </p>
   <p style="font-size:13px;color:#53617a;margin:0">Les gestes se font dans la console, avec votre session. Rien ne part depuis cet e-mail.</p>
 </div>`;

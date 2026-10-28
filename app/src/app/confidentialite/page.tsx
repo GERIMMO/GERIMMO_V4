@@ -2,6 +2,9 @@ import type { ReactNode } from "react";
 import { lireDureesPubliques } from "@/lib/conservation-publique";
 import { DureesActuelles, ReferenceConservation } from "@/components/conservation-publique";
 import { lireEditeur } from "@/lib/editeur-serveur";
+
+// Page publique relue toutes les heures (audit final, PUB-05) : ses lectures se font sans cookie.
+export const revalidate = 3600;
 import Link from "next/link";
 import { AFournir, Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
 import { CONDITIONS_DATE, courrielDeContact, confidentialiteIncomplete, prestatairesAvecFaits, prestatairesIncomplets } from "@/lib/editeur";
@@ -49,7 +52,7 @@ export default async function PageConfidentialite() {
     return r && r.duree_mois !== r.duree_initiale_mois ? `${r.duree_mois} mois` : reference;
   };
   const conservationModifiee = conservation.indisponible || conservation.regles.some(r => r.duree_mois !== r.duree_initiale_mois);
-  const {editeur:EDITEUR,indisponible}=await lireEditeur();
+  const {editeur:EDITEUR,indisponible}=await lireEditeur({ pagePublique: true });
   // 29/09 : les droits ne s'exercent plus par le formulaire de devis de
   // l'accueil (une demande commerciale) : « Aide et retours » pour qui a un
   // compte, l'adresse de contact de l'éditeur pour tous, dès qu'elle est

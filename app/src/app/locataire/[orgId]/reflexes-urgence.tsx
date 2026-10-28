@@ -52,7 +52,9 @@ export function ReflexesUrgence({ hrefSignalement, surFormulaire = false }: { hr
             Puis{" "}
             <Link
               href={hrefSignalement}
-              className="inline-flex min-h-11 items-center font-medium text-[var(--bleu)] underline underline-offset-2"
+              // Zone tactile de 44 px sans gonfler la ligne du paragraphe (audit final, DRT-10) : le bloc en ligne prend
+              // 44 px avec son remplissage, la marge négative rend la place à la ligne de texte.
+              className="inline-block py-3 -my-3 font-medium text-[var(--bleu)] underline underline-offset-2"
             >
               signalez-le ici
             </Link>

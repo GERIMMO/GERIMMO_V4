@@ -87,8 +87,9 @@ export default async function PageDemandesLocataire(
                 {incidents.length - enCours.length > 1 ? "s" : ""}
               </span>
             )}
+            {/* Un créneau attend son choix : c'est lui qui porte le bouton doré, le signalement passe en second (audit final, UX-18). */}
             {boutonSignaler && (
-              <Link href={`/locataire/${orgId}/incident`} className="btn-or">
+              <Link href={`/locataire/${orgId}/incident`} className={aChoisir > 0 ? "btn-secondaire" : "btn-or"}>
                 Signaler un problème{"\u00a0"}→
               </Link>
             )}

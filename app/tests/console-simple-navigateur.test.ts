@@ -13,9 +13,12 @@ describe.skipIf(!chrome)("Console simplifiée : saisies, liens et clavier", () =
   const erreurs: string[] = [];
   const css = readFileSync(resolve(root, "src/components/console-section.module.css"), "utf8").replaceAll(/:global\(([^)]+)\)/g, "$1");
   const prestige = readFileSync(resolve(root, "src/app/prestige.css"), "utf8");
+  // Audit final (UX-16) : les couleurs de marque (--or, --marque, --encre…) ne sont plus redéclarées par prestige.css,
+  // seulement sur le :root de globals.css — la page réelle charge les deux feuilles ; le banc reprend ce bloc de jetons.
+  const jetons = /:root \{\n  \/\* -{10}[\s\S]*?\n\}/.exec(readFileSync(resolve(root, "src/app/globals.css"), "utf8"))?.[0] ?? "";
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Paramètres — aperçu fictif</title><style>
     *{box-sizing:border-box}body{margin:0;background:#f6f8fb;color:#1b3049;font:15px system-ui}main{max-width:1040px;margin:auto;padding:24px}h1{font:32px Georgia;margin:8px 0 26px}h2{margin:0}button,input,textarea{font:inherit}a{color:#174c8a}.champ{display:block;width:100%;padding:10px;border:1px solid #b5c4d4;border-radius:7px;background:white;color:#1b3049;margin-top:5px}label{display:block}.grid{display:grid}.gap-4{gap:16px}.btn-or,.btn-secondaire{display:inline-block;border:1px solid #244969;border-radius:8px;min-height:44px;padding:12px;background:#244969;color:white;cursor:pointer}.my-4{margin:16px 0}.mt-3{margin-top:12px}.text-muted-foreground{color:#536576}.titre-ecran{display:flex;gap:12px;align-items:baseline}.titre-ecran-icone{color:#645384}.err{color:#992e20}:root{--encre:#1b3049;--texte-secondaire:#536576;--filet:#dce3eb;--carte:#fff}@media(min-width:640px){.sm\\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}}${css}
-    ${prestige}</style></head><body class="gerimmo-prestige"><div id="racine"></div><script charset="utf-8" src="/banc.js"></script></body></html>`;
+    ${jetons}${prestige}</style></head><body class="gerimmo-prestige"><div id="racine"></div><script charset="utf-8" src="/banc.js"></script></body></html>`;
   beforeAll(async () => {
     const bundle = await rolldown({input:resolve(root,"tests/fixtures/navigateur/banc-console-simple.tsx"),platform:"browser",
       plugins:[{name:"actions-isolees",resolveId(id){

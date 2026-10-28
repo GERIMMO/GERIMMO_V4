@@ -25,13 +25,25 @@ import { baseEspace } from "@/lib/racine-espace";
  * la quittance qui en découle, sont la vraie fin du démarrage.
  */
 
-type Etape = {
+export type EtapeDemarrage = {
   etape: string;
   faite: boolean;
   detail: string | null;
   lot_id: string | null;
   bien_id: string | null;
 };
+type Etape = EtapeDemarrage;
+
+/** Les étapes du parcours ; `null` quand la lecture a échoué (on n'affiche rien plutôt qu'une fin qu'on n'a pas constatée). */
+export async function lireEtapesDemarrage(supabase: SupabaseClient, orgId: string): Promise<Etape[] | null> {
+  const { data, error } = await supabase.rpc("parcours_demarrage", { p_org: orgId });
+  return error ? null : ((data ?? []) as Etape[]);
+}
+
+/** Le bloc s'affiche tant qu'une étape reste à faire : l'écran qui le porte n'a alors pas d'autre bouton primaire (audit final, UX-18). */
+export function parcoursEnCours(etapes: Etape[] | null): boolean {
+  return etapes !== null && etapes.length > 0 && etapes.some((e) => !e.faite);
+}
 
 const LIBELLES: Record<string, { titre: string; geste: string }> = {
   identite: { titre: "Votre identité", geste: "Compléter le profil" },
@@ -49,6 +61,14 @@ const LIBELLES_PROPRIETAIRE: Record<string, { titre: string; geste: string }> = 
   lot_pret: { titre: "Préparation du logement", geste: "Compléter le logement" },
 };
 
+/** La section de la fiche du lot qui lève le premier blocage énuméré par la base (« DPE absent… · ERP absent… »). */
+export function ancreDuBlocage(detail: string | null): string {
+  const premier = (detail ?? "").split(" · ")[0];
+  if (/DPE|ERP|diagnostic|risques|amiante|plomb|électri|gaz/i.test(premier)) return "#diagnostics";
+  if (/détention/i.test(premier)) return "#detention";
+  return "#caracteristiques";
+}
+
 // `base` : « /espace/<id> » chez le propriétaire direct, « /agence/<id> » chez une agence (décision D27).
 function lien(base: string, e: Etape): string {
   switch (e.etape) {
@@ -61,6 +81,11 @@ function lien(base: string, e: Etape): string {
     case "loyer":
       return `${base}/loyers`;
     case "lot_pret":
+      // Le lot à compléter, ouvert sur son premier blocage (audit final, PUB-20) : diagnostics (DPE, ERP…), détention,
+      // sinon les caractéristiques du logement.
+      return e.bien_id && e.lot_id
+        ? `${base}/parc/${e.bien_id}/lots/${e.lot_id}${ancreDuBlocage(e.detail)}`
+        : `${base}/parc`;
     case "bail":
       // Le formulaire de création d'un bail vit sur la fiche du lot, section
       // « Baux & état des lieux » — c'est l'unique porte d'entrée du produit.
@@ -77,6 +102,7 @@ export async function ParcoursDemarrage({
   orgId,
   automatiqueProposeAilleurs = false,
   estProprietaire = false,
+  etapes: etapesLues,
 }: {
   supabase: SupabaseClient;
   orgId: string;
@@ -84,11 +110,13 @@ export async function ParcoursDemarrage({
   automatiqueProposeAilleurs?: boolean;
   /** Propriétaire direct : « bien » à l'écran, jamais « lot ». */
   estProprietaire?: boolean;
+  /** Les étapes déjà lues par l'écran (lireEtapesDemarrage) : une seule lecture quand il en a besoin lui aussi. */
+  etapes?: Etape[] | null;
 }) {
   const libelles = estProprietaire ? LIBELLES_PROPRIETAIRE : LIBELLES;
   const base = baseEspace(orgId, estProprietaire);
-  const [{ data, error }, reglages] = await Promise.all([
-    supabase.rpc("parcours_demarrage", { p_org: orgId }),
+  const [parcours, reglages] = await Promise.all([
+    etapesLues === undefined ? lireEtapesDemarrage(supabase, orgId) : Promise.resolve(etapesLues),
     // Les trois envois automatiques (audit du 20/09, proposition n° 7) : le
     // moment de les proposer est CELUI-CI, avant le premier bail, pas après
     // le premier loyer réclamé à la main. Une lecture tombée vaut « rien
@@ -101,7 +129,7 @@ export async function ParcoursDemarrage({
   ]);
   // Une lecture tombée ne doit pas se déguiser en parcours terminé : on
   // n'affiche rien plutôt que d'annoncer une fin qu'on n'a pas constatée.
-  if (error) return null;
+  if (parcours === null) return null;
   const envois = (reglages.data as ReglagesEnvoi | null) ?? {
     quittances_envoi_auto: false,
     appels_envoi_auto: false,
@@ -109,7 +137,7 @@ export async function ParcoursDemarrage({
   };
   const proposerAutomatique = !automatiqueProposeAilleurs && toutManuel(envois);
 
-  const etapes = (data ?? []) as Etape[];
+  const etapes = parcours;
   if (etapes.length === 0 || etapes.every((e) => e.faite)) return null;
 
   const faites = etapes.filter((e) => e.faite).length;

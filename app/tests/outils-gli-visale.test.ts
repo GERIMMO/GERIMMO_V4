@@ -38,6 +38,24 @@ describe("éligibilité Visale", () => {
     expect(r.motifs.join(" ")).toMatch(/plafond/);
   });
 
+  // Audit final (PUB-13) : un loyer de −100 € donnait « Visale est possible », et le passage à « 30 ans ou plus »
+  // pré-choisissait le cas le plus favorable sans que l'utilisateur ait rien dit.
+  it("loyer absent ou négatif : rien à conclure, et le dit", () => {
+    for (const loyerCc of [null, 0, -100]) {
+      const r = evaluerVisale({ zone: "reste", moinsDe30Ans: true, situation: null, etudiantSansRevenus: false, loyerCc });
+      expect(r.eligible).toBe(false);
+      expect(r.aCompleter).toBe("Indiquez le loyer charges comprises.");
+    }
+  });
+
+  it("30 ans et plus sans situation choisie : aucun verdict tant que la situation manque", () => {
+    const r = evaluerVisale({ zone: "reste", moinsDe30Ans: false, situation: null, etudiantSansRevenus: false, loyerCc: 970 });
+    expect(r.eligible).toBe(false);
+    expect(r.aCompleter).toBe("Indiquez la situation du locataire.");
+    // Moins de 30 ans : la situation ne compte pas.
+    expect(evaluerVisale({ zone: "reste", moinsDe30Ans: true, situation: null, etudiantSansRevenus: false, loyerCc: 970 }).aCompleter).toBeNull();
+  });
+
   it("moins de 30 ans sous le plafond : éligible", () => {
     expect(evaluerVisale({ zone: "reste", moinsDe30Ans: true, situation: "autre", etudiantSansRevenus: false, loyerCc: 970 }).eligible).toBe(true);
   });

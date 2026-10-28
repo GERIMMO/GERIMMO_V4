@@ -449,7 +449,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
             />
           ) : (
           <div className={`${CARTE_KPI} carte-rubrique`} data-ton="bleu">
-            <p className="titre-rubrique text-sm font-semibold"><Banknote size={20} aria-hidden="true" />{enRetard ? "Loyer restant à régler" : "Prochain loyer"}</p>
+            <p className="titre-rubrique text-sm font-semibold"><Banknote size={20} aria-hidden="true" />{enRetard ? "Loyer restant à régler" : finDuBail && !prochaine ? "Mes loyers" : "Prochain loyer"}</p>
             {eEcheancier ? (
               <div className="mt-2">
                 <LectureImpossible quoi="votre échéancier" />

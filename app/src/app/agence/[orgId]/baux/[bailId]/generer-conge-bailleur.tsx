@@ -152,6 +152,16 @@ export function GenererCongeBailleur({
           </div>
         )}
       </div>
+      {(motif === "vente" || motif === "reprise") && (
+        <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-950">
+          À joindre au congé : la notice d’information sur les obligations du bailleur et les voies de recours et
+          d’indemnisation du locataire (arrêté du 13 décembre 2017).{" "}
+          <a className="underline" href="https://www.legifrance.gouv.fr/loda/id/JORFTEXT000036219156" target="_blank" rel="noopener noreferrer">
+            Texte officiel sur Légifrance
+          </a>
+          . Le PDF généré le rappelle.
+        </p>
+      )}
       {prixManquant && (
         <p className="text-xs text-muted-foreground">
           En location nue, le congé pour vendre vaut offre de vente au locataire : le prix

@@ -133,7 +133,7 @@ export function AssistantBail({ orgId, bailId, contenus, formulaire, controleIni
       const restant = controle.manquants.filter(m => positionChamp(m) === i).length;
       if (nonEnregistrees.includes(e.id)) return { ...e, statut: "incomplet" as const, statutLibelle: "Saisie non enregistrée" };
       // Le contrôle du texte du contrat ne certifie pas les pièces ni leurs échéances.
-      if (i === 4) return { ...e, statutLibelle: restant ? `${restant} champs · pièces à vérifier` : "Pièces à vérifier" };
+      if (i === 4) return { ...e, statutLibelle: restant ? `${restant} champ${restant > 1 ? "s" : ""} · pièces à vérifier` : "Pièces à vérifier" };
       return { ...e, ...(i < etapes.length-1 && !controle.erreur ? { statut: restant ? "incomplet" as const : "complet" as const, restant } : {}) };
     })} etape={etape} changer={i=>{if(!enregistrement)demanderEtape(i);}} />
     {etape === etapes.length-1 && nonEnregistrees.length > 0 && <p className={styles.verificationErreur} role="alert">Des modifications ne sont pas enregistrées ({nonEnregistrees.map(id => etapes.find(e => e.id === id)?.titre).join(", ")}) : ce récapitulatif et le contrat reprennent les valeurs enregistrées. <a href={`#etape-bail-${etapes.findIndex(e => e.id === nonEnregistrees[0])+1}`} className="underline">Revenir à l’étape {etapes.find(e => e.id === nonEnregistrees[0])?.titre} pour les enregistrer</a></p>}

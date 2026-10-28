@@ -8,6 +8,16 @@ const DUREE_LIEN = 60;
 export const TAILLE_MAX_REPONSE_FICHIER = 4 * 1024 * 1024;
 const entetes = { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff" };
 const echapper = (s: string) => s.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+/** Nom de fichier ASCII sûr pour l'option `download` du lien signé : « Bail nu (généré, à faire signer) » →
+ * « bail-nu-genere-a-faire-signer.pdf ». Le client Storage encode l'option deux fois (URLSearchParams puis encodeURI) :
+ * accents, parenthèses et virgules arrivaient abîmés au navigateur (« Bail nu %28g%C3%A9n%C3%A9r%C3%A9%2C… »). Le titre
+ * lisible reste celui de la page d'aperçu (audit final, BAIL-11). */
+export function nomFichierSur(titre: string | null | undefined, extension: string): string {
+  const sansExtension = (titre || "").replace(new RegExp(`\\.${extension}$`, "i"), "");
+  const base = (sansExtension || "document").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9._-]+/g, "-").replace(/-{2,}/g, "-").replace(/^[-.]+|[-.]+$/g, "").toLowerCase().slice(0, 120) || "document";
+  return `${base}.${extension}`;
+}
 /** À appeler seulement après contrôle métier et journalisation de l'accès.
  * Le navigateur charge les octets depuis Storage ; l'URL Gerimmo de consultation
  * reste stable et son actualisation revérifie les droits. Aucun fichier ne transite
@@ -38,7 +48,7 @@ export async function servirFichierSigne(db: SupabaseClient, options: {
   const libelle = options.libelle || nom;
   const telechargement = options.mode === "telechargement" || !mime;
   const { data, error } = await db.storage.from(compartiment).createSignedUrl(options.path, DUREE_LIEN,
-    telechargement ? { download: nom } : undefined).catch(() => ({data:null,error:true}));
+    telechargement ? { download: nomFichierSur(titre, ext) } : undefined).catch(() => ({data:null,error:true}));
   if (error || !data?.signedUrl) return pageErreurFichier(502, "Fichier indisponible",
     "Le document ne peut pas être ouvert pour l’instant. Réessayez depuis votre dossier.", options.retour);
   let url: URL;

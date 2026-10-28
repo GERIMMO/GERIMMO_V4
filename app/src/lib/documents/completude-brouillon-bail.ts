@@ -3,8 +3,23 @@ import { Fusion } from "./gabarit";
 import { construireBailMeuble, type LigneInventaire } from "./modeles/bail-meuble";
 import { construireBailNu } from "./modeles/bail-nu";
 import { adresseOrganisation, adressePersonne, chargerContexteBail } from "./modeles/communs";
+import { lireTrimestreIrl } from "@/lib/trimestre-irl";
 
 export type CompletudeBrouillonBail = { erreur?: string; manquants: string[] };
+/** Trimestre IRL enregistré sans son année (« T2 », reprise ou ancienne saisie) : à compléter avant le contrat. */
+export const MANQUE_ANNEE_IRL = "année de l’indice IRL de référence";
+export const REFUS_ANNEE_IRL = "Choisissez l’année du trimestre IRL de référence à l’étape Loyer avant de préparer le contrat.";
+
+/** Un brouillon révisable dont le trimestre IRL n'a pas d'année, et dont le contrat n'est pas parti en signature
+ * (un contrat parti se recalcule à l'identique pour être activé : il garde sa valeur) — relecture BAIL-02. */
+export async function trimestreIrlSansAnnee(supabase: SupabaseClient, orgId: string, bail: { id: string; etat: string; revision_irl: boolean | null; irl_trimestre: string | null }): Promise<boolean> {
+  if (bail.etat !== "brouillon" || bail.revision_irl !== true || !bail.irl_trimestre?.trim()) return false;
+  if (lireTrimestreIrl(bail.irl_trimestre)?.annee) return false;
+  const { data, error } = await supabase.from("bail_signature_circuits").select("id").eq("organization_id", orgId)
+    .eq("bail_id", bail.id).eq("modele", "bail").in("etat", ["preparation", "en_cours", "a_verifier", "termine"]).limit(1);
+  if (error) throw new Error("Le suivi des signatures ne peut pas être vérifié.");
+  return !(data ?? []).length;
+}
 /** Mentions du profil de l’organisation (en-tête du contrat), à compléter depuis le profil. */
 export const MANQUE_ADRESSE_PROFIL = "adresse de l’organisation (profil)";
 export const MANQUE_EMAIL_PROFIL = "adresse électronique de l’organisation (profil)";
@@ -71,6 +86,7 @@ export async function verifierCompletudeBrouillonBail(
     manquants.add(MANQUE_EMAIL_PROFIL);
   }
   if (!bail.locataire_principal) manquants.add("nom et prénom(s)");
+  if (await trimestreIrlSansAnnee(supabase, orgId, bail)) manquants.add(MANQUE_ANNEE_IRL);
   if (bail.type === "colocation" && !bail.chambre_id && new Set(ctx.locataires.map((p) => p.id)).size < 2) {
     manquants.add("nom du colocataire 2");
   }

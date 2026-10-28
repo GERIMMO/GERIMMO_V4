@@ -16,9 +16,9 @@ import { FormulaireParcoursBail } from "@/app/agence/[orgId]/baux/[bailId]/formu
 import { monter, trouver, texte } from "./aide/hooks-sans-dom";
 import type { BailPrecedent } from "@/lib/reprise-bail-precedent";
 
-const bailPrecedent: BailPrecedent = { id: "ancien", chambre_id: null, type: "nu", date_debut: "2023-09-01", date_fin: "2026-08-31", date_sortie_reelle: "2026-08-31", loyer_hc: 930, charges: 65, charges_mode: "provision", jour_echeance: 5, paiement_echeance: "echoir", revision_irl: true, irl_trimestre: "T2", irl_valeur: 140.59 };
+const bailPrecedent: BailPrecedent = { id: "ancien", chambre_id: null, type: "nu", date_debut: "2023-09-01", date_fin: "2026-08-31", date_sortie_reelle: "2026-08-31", loyer_hc: 930, charges: 65, charges_mode: "provision", jour_echeance: 5, paiement_echeance: "echoir", revision_irl: true, irl_trimestre: "T2 2023", irl_valeur: 140.59 };
 // Le brouillon tel que commencerBail l’a créé : les valeurs du bail précédent, sans dépôt ni dates.
-const defauts = { type: "nu", loyer_hc: 930, charges: 65, charges_mode: "provision", jour_echeance: 5, paiement_echeance: "echoir", revision_irl: true, irl_trimestre: "T2", irl_valeur: 140.59, depot_garantie: null, date_debut: null };
+const defauts = { type: "nu", loyer_hc: 930, charges: 65, charges_mode: "provision", jour_echeance: 5, paiement_echeance: "echoir", revision_irl: true, irl_trimestre: "T2 2023", irl_valeur: 140.59, depot_garantie: null, date_debut: null };
 const props = { orgId: "o", bailId: "b", defauts, bailPrecedent, agence: false, meuble: false, chambres: [] as { id: string; nom: string }[], surfaceHabitable: 62 };
 const mention = (rendu: unknown) => trouver(rendu as Parameters<typeof trouver>[0], e => e.props.id === "reprise-bail-precedent")[0];
 const valeur = (rendu: unknown, nom: string) => trouver(rendu as Parameters<typeof trouver>[0], e => e.props.name === nom)[0]?.props.value;

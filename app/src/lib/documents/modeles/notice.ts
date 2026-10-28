@@ -1,7 +1,8 @@
-// 05 — Notice d'information, annexe obligatoire au contrat de location
-// (arrêté du 29 mai 2015). Cible : le bail. Les rubriques reprennent le
-// contenu de la notice officielle sous forme condensée et fidèle — le texte
-// intégral officiel pourra remplacer chaque rubrique sans toucher au gabarit.
+// 05 — Notice d'information (résumé). Cible : le bail. Les rubriques résument
+// les droits et obligations des parties ; ce n'est PAS le texte de la notice
+// fixée par l'arrêté du 29 mai 2015, qui doit être annexé au bail : le PDF le
+// dit en tête et renvoie au texte officiel (décision du 28/10, audit final
+// BAIL-09). Le texte intégral remplacera les rubriques quand il sera fourni.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, assemblerPage, cartouches, echapper, enTete, faitA, section, titre } from "../gabarit";
@@ -15,6 +16,9 @@ import {
   liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
+
+/** Décision du 28/10 (BAIL-09) : le résumé ne se présente pas comme la notice officielle. */
+export const MENTION_NOTICE_OFFICIELLE = "Le texte intégral de la notice fixée par l’arrêté du 29 mai 2015 doit être annexé au bail : https://www.legifrance.gouv.fr/loda/id/JORFTEXT000030649868";
 
 // Rubriques de la notice (arrêté du 29 mai 2015, résumé fidèle rubrique par
 // rubrique). Servies telles quelles : zéro donnée à demander.
@@ -78,22 +82,19 @@ export async function assemblerNotice(
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const corps = `
     ${enTete(f, exp, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
-    ${titre("Notice d'information", "Annexe obligatoire au contrat de location", [
-      "Relative aux droits et obligations des locataires et des bailleurs",
-      "Arrêté du 29 mai 2015 pris en application de l'article 3 de la loi n° 89-462 du 6 juillet 1989",
-    ])}
+    ${titre("Notice d'information — résumé", "Droits et obligations des locataires et des bailleurs", [])}
+    <div class="encadre"><p>${echapper(MENTION_NOTICE_OFFICIELLE)}</p></div>
     ${cartouches([
       ["Annexée au contrat", `Réf. ${f.champ(referenceBail, "référence du bail")} du ${f.date(ctx.bail.date_debut)}`],
       ["Logement", `<div>${f.champ(adresseLogement(ctx.lot, ctx.bien), "adresse complète, étage, porte")}</div>`],
       ["Bailleur", `<div>${nomsBailleurs(f, ctx.bailleurs)}</div>`],
       ["Locataire", `<div>${nomsLocataires(f, ctx.locataires)}</div>`],
     ])}
-    <p>La présente notice est remise au locataire et annexée au contrat de location dont elle fait
-    partie intégrante. Elle rappelle les droits et obligations respectifs des parties ainsi que les
-    voies de recours et d'indemnisation ouvertes en cas de litige.</p>
+    <p>Ce résumé rappelle les droits et obligations respectifs des parties ainsi que les voies de
+    recours et d'indemnisation ouvertes en cas de litige. Il ne remplace pas la notice officielle.</p>
     ${RUBRIQUES.map(([t, texte]) => `${section(t)}<p>${echapper(texte)}</p>`).join("")}
     ${section("Remise de la notice")}
-    <p>Le locataire reconnaît avoir reçu la présente notice avec son exemplaire du contrat de
+    <p>Le locataire reconnaît avoir reçu le présent résumé avec son exemplaire du contrat de
     location. Pour toute question : la commission départementale de conciliation et l'ADIL de votre
     département (coordonnées sur service-public.fr et anil.org).</p>
     ${faitA(f, exp.ville, new Date().toISOString())}
@@ -102,8 +103,8 @@ export async function assemblerNotice(
   return {
     document: assemblerPage({
       f,
-      titreDocument: "Notice d'information",
-      nomPied: "Notice d'information",
+      titreDocument: "Notice d'information — résumé",
+      nomPied: "Notice d'information — résumé",
       reference: referenceCourte("NOTICE", ctx.bail.id),
       corps,
     }),

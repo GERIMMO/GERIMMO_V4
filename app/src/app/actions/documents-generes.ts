@@ -8,6 +8,8 @@ import { appliquerMarqueDocument } from "@/lib/documents/marque";
 import { rendrePdf, copieDeTravail } from "@/lib/documents/rendu";
 import { MODELES, type CodeModele, type Modele } from "@/lib/documents/modeles";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
+import { derniereVersionGeneree } from "@/lib/documents/version-generee";
+import { MANQUE_ANNEE_IRL, REFUS_ANNEE_IRL, trimestreIrlSansAnnee } from "@/lib/documents/completude-brouillon-bail";
 import { versRouteAgence } from "@/lib/racine-espace";
 
 export type EtatGeneration = {
@@ -47,6 +49,14 @@ export async function genererDocument(
     const assemblage = await modele.assembler(supabase, orgId, cibleId, options);
     if ("erreur" in assemblage) return { erreur: assemblage.erreur };
 
+    // Un contrat ne s'imprime jamais avec « Trimestre de référence : T2 » sans année (relecture BAIL-02).
+    if (["bail_nu", "bail_meuble", "bail_colocation", "bail_individuel", "cautionnement"].includes(code)) {
+      const { data: bailIrl, error: erreurIrl } = await supabase.from("baux").select("id, etat, revision_irl, irl_trimestre")
+        .eq("id", cibleId).eq("organization_id", orgId).maybeSingle();
+      if (erreurIrl) return { erreur: "Le bail ne peut pas être vérifié. Réessayez." };
+      if (bailIrl && await trimestreIrlSansAnnee(supabase, orgId, bailIrl)) return { erreur: REFUS_ANNEE_IRL, manquants: [MANQUE_ANNEE_IRL], liens: assemblage.liens };
+    }
+
     const refus = refusDocumentIncomplet(assemblage.document);
     if (refus) {
       return {
@@ -62,6 +72,18 @@ export async function genererDocument(
     const fichier = new File([octets as BlobPart], `${assemblage.nomFichier}.pdf`, {
       type: "application/pdf",
     });
+    // Un contrat regénéré remplace sa version précédente (remplace_id) : une seule
+    // version active dans Documents et sur la fiche du locataire, l'historique
+    // conservé (audit final, BAIL-03). Une lecture en échec ne bloque pas le PDF :
+    // il est rangé sans remplacer, comme avant.
+    let remplaceId: string | undefined;
+    if (assemblage.remplaceVersion && assemblage.liens[0]) {
+      const precedente = await derniereVersionGeneree(supabase, orgId, {
+        typeGed: modele.typeGed, entite: assemblage.liens[0].entite, entiteId: assemblage.liens[0].entiteId, titre: assemblage.remplaceVersion,
+      });
+      if (precedente.erreur) console.warn(`[documents] version précédente de ${code} illisible : PDF rangé sans remplacement`);
+      remplaceId = precedente.version?.id;
+    }
     const depot = await deposerFichierGed(
       supabase,
       user,
@@ -69,7 +91,7 @@ export async function genererDocument(
       fichier,
       modele.typeGed,
       assemblage.titreGed,
-      { genereServeur: true }
+      { genereServeur: true, remplaceId }
     );
     // Un nouvel essai doit aussi réparer les liens si le premier dépôt a
     // enregistré le PDF mais échoué au rattachement au dossier.

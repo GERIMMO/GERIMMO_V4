@@ -110,6 +110,14 @@ export function lireDecimal(brut: FormDataEntryValue | null): DecimalLu {
   return { valeur };
 }
 
+/**
+ * Une surface se garde au centième de m² (lots.surface_m2 numeric(7,2)) : « 46,555 » est refusé en le disant plutôt
+ * qu'arrondi en silence par la base pendant que le champ continue d'afficher 46,555 (audit final, BAIL-08).
+ */
+export function verifierDecimalesSurface(brut: FormDataEntryValue | null): string | null {
+  return /^\d+[.,]\d{3,}$/.test(String(brut ?? "").trim()) ? "La surface s’exprime au centième de m² : deux décimales au plus." : null;
+}
+
 /** Un décimal facultatif : vide vaut « non renseigné » (`null`), jamais zéro ; le reste se lit comme `lireDecimal`. */
 export function lireDecimalFacultatif(brut: FormDataEntryValue | null): { valeur: number | null } | { erreur: string } {
   if (String(brut ?? "").trim() === "") return { valeur: null };

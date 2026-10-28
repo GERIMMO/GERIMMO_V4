@@ -52,6 +52,19 @@ export function verifierDateNaissance(date: string, aujourdhui: string): string 
 }
 
 /**
+ * Une personne née à cette date est-elle encore mineure au jour donné (18 ans révolus) ? Un 29 février devient
+ * majeur le 1er mars. La fiche n'exige pas la majorité (un mineur hérite d'une quote-part) : c'est au rattachement
+ * d'un locataire ou d'un garant que la question se pose, en avertissement (audit final, BAIL-07).
+ */
+export function estMineur(dateNaissance: string | null | undefined, aujourdhui: string): boolean {
+  const d = (dateNaissance ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !/^\d{4}-\d{2}-\d{2}$/.test(aujourdhui)) return false;
+  const [annee, mois, jour] = d.split("-").map(Number);
+  const majorite = mois === 2 && jour === 29 ? `${annee + 18}-03-01` : `${annee + 18}-${d.slice(5)}`;
+  return aujourdhui < majorite;
+}
+
+/**
  * L'année de construction pilote les diagnostics et les mentions du bail : un
  * entier plausible (1600 jusqu'à cinq ans après l'année en cours, pour un
  * immeuble en cours de construction).

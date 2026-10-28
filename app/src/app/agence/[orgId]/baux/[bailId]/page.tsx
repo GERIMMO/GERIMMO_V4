@@ -1,6 +1,7 @@
 import { SuiviBailLecture, HistoriqueBailLecture } from "./suivi-bail-lecture";
 import { OngletsDossier } from "@/components/onglets-dossier";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
+import { avertissementsDatesBail } from "@/lib/coherence-dates-bail";
 import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import { SupprimerBailBrouillon } from "@/components/supprimer-bail-brouillon";
 import { FormulaireParcoursBail } from "./formulaire-parcours-bail";
@@ -9,6 +10,8 @@ import { RecapitulatifParcoursBail } from "./recapitulatif-parcours-bail";
 import { lirePresentationSignatures } from "@/lib/lecture-presentation-signatures";
 import { archiveSignee, signatureDuBail } from "@/lib/presentation-signatures";
 import { FinaliserParcoursBail } from "./finaliser-parcours-bail";
+import { derniereVersionGeneree } from "@/lib/documents/version-generee";
+import { estContratAFaireSigner } from "@/lib/documents/modeles/communs";
 import { EtapePersonnesBail } from "./etape-personnes-bail";
 import { AssistantBail } from "./assistant-bail";
 import { verifierDossierBail } from "./verifier-dossier";
@@ -116,6 +119,11 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const documentSigne = bail.document_signe ?? archiveSignee(signatureDuBail(suiviSignature.circuits, bailId));
   const signeNonActif = bail.etat === "brouillon" && Boolean(documentSigne);
   const assistantBailAffiche = bail.etat === "brouillon" && !traverseeLectureSeule;
+  // Le dernier PDF du contrat déjà généré est proposé à la relecture dès l'ouverture, au lieu de « À générer »
+  // après chaque rechargement — ce qui faisait regénérer et empiler des brouillons (audit final, BAIL-04).
+  const pdfContrat = assistantBailAffiche && !documentSigne
+    ? await derniereVersionGeneree(supabase, orgId, { typeGed: "bail", entite: "bail", entiteId: bailId, titre: estContratAFaireSigner })
+    : { version: null };
 
   const { data: chambres, error: erreurChambres } = await supabase.from("lot_chambres").select("id, nom, surface_m2, volume_m3, description, espaces_partages").eq("lot_id", bail.lot_id).eq("organization_id", orgId).order("nom");
   const chambre = chambres?.find(c => c.id === bail.chambre_id);
@@ -587,8 +595,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         <CardHeader>
           <CardTitle className="text-base">Notice d&apos;information</CardTitle>
           <CardDescription>
-            Annexe obligatoire au contrat (arrêté du 29 mai 2015) — générée et
-            rangée dans Documents, à remettre avec le bail.
+            Le PDF généré est un résumé des droits et obligations, rangé dans Documents. Le texte intégral de la
+            notice fixée par l’arrêté du 29 mai 2015 doit être annexé au bail :{" "}
+            <a className="underline" href="https://www.legifrance.gouv.fr/loda/id/JORFTEXT000030649868" target="_blank" rel="noopener noreferrer">texte officiel sur Légifrance</a>.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -704,6 +713,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 chambre_id: bail.chambre_id,
                 locataire_principal: bail.locataire_principal,
                 date_debut: bail.date_debut,
+                date_conclusion_prevue: bail.date_conclusion_prevue,
                 loyer_hc: bail.loyer_hc,
                 charges: bail.charges,
                 charges_mode: bail.charges_mode,
@@ -1259,7 +1269,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           bail.chambre_id && lot ? <div key="plafond" id="loyer-plafond-colocation"><ChambresLogement orgId={orgId} lotId={bail.lot_id} bienId={lot.bien_id} chambres={[]} plafond={lot.colocation_loyer_reference} mode="plafond" /></div> : null,
           lot ? <DocumentsParcoursBail key="documents" orgId={orgId} bailId={bailId} lotId={bail.lot_id} bienId={lot.bien_id} copropriete={premier(lot.bien)?.copropriete ?? null} reglementId={bail.reglement_copropriete} annexes={annexesContrat} dateDebut={bail.date_debut} edlEntree={(edls ?? []).find(e => e.type === "entree") ?? null} erreurEdl={Boolean(erreurEdls)} /> : <p key="documents">Le logement est indisponible.</p>,
           null,
-          <div key="recapitulatif" className="space-y-4"><AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(bail, lot?.surface_m2)} /><RecapitulatifParcoursBail orgId={orgId} lotId={bail.lot_id} bailId={bailId} bail={bail} estProprietaire={estProprietaire} erreurPersonnes={Boolean(erreurLocataire || erreurPersonnes || erreurBailPersonnes)}
+          <div key="recapitulatif" className="space-y-4"><AvertissementsLoyer objet="dates" avertissements={avertissementsDatesBail(bail, aujourdhuiParis())} /><AvertissementsLoyer avertissements={avertissementsCoherenceLoyer(bail, lot?.surface_m2)} /><RecapitulatifParcoursBail orgId={orgId} lotId={bail.lot_id} bailId={bailId} bail={bail} estProprietaire={estProprietaire} erreurPersonnes={Boolean(erreurLocataire || erreurPersonnes || erreurBailPersonnes)}
             personnes={[...(locataire ? [{nom:nomComplet(locataire),role:"Locataire principal"}]:[]),...lignesColoc.filter(p=>!p.date_depart).map(p=>({nom:p.person_nom,role:p.role === "garant"?"Garant":"Colocataire"}))]}
             documents={null}
             signature={<FinaliserParcoursBail recapitulatifStructure key={JSON.stringify([bail,lignesColoc,inventaire])} orgId={orgId} bailId={bailId}
@@ -1267,7 +1277,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               signataires={[...(bail.locataire_principal ? [{id:bail.locataire_principal,nom:locataire?nomComplet(locataire):"Locataire principal"}]:[]),...lignesColoc.filter(p=>p.role==="colocataire"&&!p.date_depart).map(p=>({id:p.person_id,nom:p.person_nom}))]}
               edlId={(edls??[]).find(e=>e.type==="entree")?.id??null}
               preparationEdl={erreurEdls?<p role="alert">Les états des lieux n’ont pas pu être chargés.</p>:<FormulaireCreerEdl orgId={orgId} bailId={bailId} bailEtat={bail.etat} typesExistants={(edls??[]).map(e=>e.type)}/>}
-              signatureManuelle={depotSigne} proprietaireDirect={estProprietaire} documentSigne={documentSigne} lectureSeule={traverseeLectureSeule}/>} /></div>
+              signatureManuelle={depotSigne} proprietaireDirect={estProprietaire} documentSigne={documentSigne} lectureSeule={traverseeLectureSeule}
+              pdfInitial={pdfContrat.version ? { documentId: pdfContrat.version.id, genereLe: pdfContrat.version.created_at } : null}/>} /></div>
         ]} /> : <OngletsDossier libelle="Rubriques du bail" rubriques={[
           {id:"bail-informations",titre:"Contrat",contenu:rubriqueContrat},
           {id:"bail-documents",titre:"Documents",contenu:rubriqueSignature},

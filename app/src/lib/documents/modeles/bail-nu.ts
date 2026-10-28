@@ -7,6 +7,7 @@
 // clauses vides s'impriment « — » ou « Néant. » sans créer de manquant.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { libelleTrimestreIrl } from "@/lib/trimestre-irl";
 import {
   Fusion,
   assemblerPage,
@@ -31,6 +32,8 @@ import {
   type ContexteBail,
   type PersonneDocument,
   liensLocataires,
+  estContratAFaireSigner,
+  titreContratAFaireSigner,
 } from "./communs";
 import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
@@ -195,7 +198,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
       ctx.bail.revision_irl
         ? `<p>Le loyer est révisé chaque année à la date anniversaire du contrat, dans la limite de la
            variation de l'indice de référence des loyers (IRL). Trimestre de référence :
-           ${f.champ(ctx.bail.irl_trimestre, "ex. 2e trimestre 2026")} — valeur de l'indice :
+           ${f.champ(libelleTrimestreIrl(ctx.bail.irl_trimestre) ?? ctx.bail.irl_trimestre, "ex. 2e trimestre 2026")} — valeur de l'indice :
            ${f.champ(
              ctx.bail.irl_valeur !== null ? Number(ctx.bail.irl_valeur).toLocaleString("fr-FR") : null,
              "valeur de l'indice"
@@ -314,7 +317,8 @@ export async function assemblerBailNu(
 
   return {
     document,
-    titreGed: "Bail nu (généré, à faire signer)",
+    titreGed: titreContratAFaireSigner("nu", ctx),
+    remplaceVersion: estContratAFaireSigner,
     nomFichier: `bail-nu-${referenceCourte("BAIL", ctx.bail.id).toLowerCase()}`,
     liens: [
       { entite: "bail", entiteId: ctx.bail.id },

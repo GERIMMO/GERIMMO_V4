@@ -242,6 +242,12 @@ export function nomPersonne(p: { nom: string; prenom: string | null } | null | u
   return [p.nom, p.prenom].filter(Boolean).join(" ");
 }
 
+// « 46 m² », « 45,5 m² » : la chaîne numeric de PostgREST (« 46.00 ») ne s'imprime pas telle quelle (BAIL-15).
+export function surfaceM2(valeur: number | string | null | undefined): string | null {
+  if (valeur === null || valeur === undefined || valeur === "" || !Number.isFinite(Number(valeur))) return null;
+  return `${Number(valeur).toLocaleString("fr-FR", { maximumFractionDigits: 2 })} m²`;
+}
+
 export function adressePersonne(p: PersonneDocument | null | undefined): string | null {
   if (!p?.address_line1) return null;
   return [p.address_line1, [p.postal_code, p.city].filter(Boolean).join(" ")]
@@ -316,6 +322,23 @@ export function liensLocataires(
   if (ctx.bail.locataire_principal) ids.add(ctx.bail.locataire_principal);
   for (const l of ctx.locataires) if (l.id) ids.add(l.id);
   return [...ids].map((id) => ({ entite: "personne" as const, entiteId: id }));
+}
+
+// Titre GED commun aux contrats générés, à faire signer (audit final, BAIL-18) :
+// « Bail nu — Appartement T2 · Bernard Lucas (à faire signer) ». La même forme
+// pour le nu, le meublé et le contrat commun de colocation. La regénération du
+// contrat remplace la version précédente qui porte ce titre (BAIL-03) ; les
+// anciens titres sont reconnus pour que la première regénération les remplace.
+export function titreContratAFaireSigner(
+  regime: "nu" | "meublé" | "commun de colocation nue" | "commun de colocation meublée",
+  ctx: Pick<ContexteBail, "lot" | "locataires">
+): string {
+  const locataires = ctx.locataires.map((l) => nomPersonne(l)).filter(Boolean);
+  const qui = locataires.length > 2 ? `${locataires[0]} et ${locataires.length - 1} colocataires` : locataires.join(", ");
+  return `Bail ${regime} — ${[ctx.lot.nom, qui].filter(Boolean).join(" · ")} (à faire signer)`;
+}
+export function estContratAFaireSigner(titre: string | null): boolean {
+  return /^(Bail|Colocation|Contrat individuel) .*\((?:généré, )?à faire signer\)$/.test(titre ?? "");
 }
 
 // Référence courte et stable d'un objet (les épreuves montrent « référence »)

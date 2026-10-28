@@ -1,5 +1,6 @@
 import type { ValeursParcoursBail } from "./champs-etape-bail";
 import { formaterDate } from "./ged";
+import { lireTrimestreIrl } from "./trimestre-irl";
 
 /** Un bail terminé ou en préavis du lot, tel que le lisent commencerBail et la page du bail pour préparer une
  * relocation (décision du 27/10, CB-08) : chaque `select` reste un littéral dans son fichier (contrôle des embeds). */
@@ -39,6 +40,12 @@ export function bailPrecedentDuLot<T extends BailPrecedent>(baux: readonly T[], 
 export function valeursReprisesDuBail(precedent: BailPrecedent, typeParDefaut: "nu" | "meuble"): ValeursParcoursBail {
   const reprises: ValeursParcoursBail = { type: precedent.type === "nu" || precedent.type === "meuble" ? precedent.type : typeParDefaut };
   for (const nom of CHAMPS_LOYER_REPRIS) if (precedent[nom] != null) reprises[nom] = precedent[nom];
+  // Un trimestre IRL n'est jamais repris sans son année (« T2 » s'imprimerait tel quel) : daté, il est repris entier ;
+  // sinon le champ reste vide, à choisir (décision du 28/10, relecture BAIL-02).
+  if (precedent.irl_trimestre != null) {
+    const lu = lireTrimestreIrl(precedent.irl_trimestre);
+    if (lu?.annee) reprises.irl_trimestre = `T${lu.numero} ${lu.annee}`; else delete reprises.irl_trimestre;
+  }
   if (reprises.type === "nu" && reprises.charges_mode === "forfait") reprises.charges_mode = "provision";
   return reprises;
 }

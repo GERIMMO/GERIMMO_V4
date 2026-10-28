@@ -40,6 +40,10 @@ import {
 } from "./communs";
 import type { Assemblage } from "./index";
 
+/** Décision du 28/10 (audit final, BAIL-10) : la notice prévue pour le congé pour vente ou reprise est rappelée et
+ * renvoyée au texte officiel ; son contenu n'est pas rédigé ici. */
+export const RAPPEL_NOTICE_CONGE = "Une notice d’information relative aux obligations du bailleur et aux voies de recours et d’indemnisation du locataire (arrêté du 13 décembre 2017) doit être jointe au présent congé : https://www.legifrance.gouv.fr/loda/id/JORFTEXT000036219156";
+
 const LIBELLES_MOTIF = {
   vente: "vente",
   reprise: "reprise",
@@ -250,6 +254,7 @@ export async function assemblerCongeBailleur(
     </div>
 
     ${section("Mentions")}
+    ${motif === "vente" || motif === "reprise" ? `<div class="encadre"><p>${echapper(RAPPEL_NOTICE_CONGE)}</p></div>` : ""}
     <div class="mentions">
       <p>Pendant le délai de préavis, le locataire n'est redevable du loyer et des charges que
       pour le temps où il occupe réellement les lieux : il peut quitter le logement à tout moment,

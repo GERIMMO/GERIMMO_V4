@@ -13,7 +13,7 @@ const correspondances: [RegExp, string[]][] = [
   [/^montant mensuel$|^loyer \+ charges/i, ['bail.loyer_hc', 'bail.charges']],
   [/montant convenu/i, ['bail.depot_garantie']],
   [/provisions avec régularisation/i, ['bail.charges_mode']],
-  [/^ex\. 2e trimestre/i, ['bail.irl_trimestre']],
+  [/^ex\. 2e trimestre|^année de l’indice IRL/i, ['bail.irl_trimestre']],
   [/valeur de l'indice/i, ['bail.irl_valeur']],
   [/libre, plafonnement/i, ['bail.fixation_loyer']],
   [/domicile du bailleur, virement/i, ['bail.lieu_paiement']],

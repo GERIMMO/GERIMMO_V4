@@ -38,7 +38,7 @@ for (const largeur of [390, 1440]) {
         select gen_random_uuid(),$1,organization_id,person_id,quote_part,date_debut,date_fin from public.detentions
         where lot_id=$3 and organization_id=$2`, [lotId, ORG, sources[0].id]);
       await db.query(`insert into public.baux(organization_id,lot_id,type,etat,date_debut,date_fin,date_sortie_reelle,loyer_hc,charges,depot_garantie,jour_echeance,revision_irl,irl_trimestre,irl_valeur,charges_mode,paiement_echeance)
-        values($1,$2,'nu','termine','2023-09-01','2026-08-31','2026-08-31',930,65,900,5,true,'T2',140.59,'provision','echoir')`, [ORG, lotId]);
+        values($1,$2,'nu','termine','2023-09-01','2026-08-31','2026-08-31',930,65,900,5,true,'T2 2023',140.59,'provision','echoir')`, [ORG, lotId]);
       await page.setViewportSize({ width: largeur, height: largeur === 390 ? 844 : 900 });
       await connecter(page);
 
@@ -49,7 +49,7 @@ for (const largeur of [390, 1440]) {
       const bailId = page.url().match(/baux\/([0-9a-f-]{36})/)![1];
       const enBase = async () => (await db.query(`select type, loyer_hc::float as loyer, charges::float as charges, depot_garantie::float as depot, jour_echeance as jour, revision_irl, irl_trimestre, irl_valeur::float as irl, charges_mode, locataire_principal, date_debut
         from public.baux where id=$1`, [bailId])).rows[0];
-      expect(await enBase()).toEqual({ type: 'nu', loyer: 930, charges: 65, depot: null, jour: 5, revision_irl: true, irl_trimestre: 'T2', irl: 140.59, charges_mode: 'provision', locataire_principal: null, date_debut: null });
+      expect(await enBase()).toEqual({ type: 'nu', loyer: 930, charges: 65, depot: null, jour: 5, revision_irl: true, irl_trimestre: 'T2 2023', irl: 140.59, charges_mode: 'provision', locataire_principal: null, date_debut: null });
 
       // FL-02 / CB-02 tiennent aussi en relocation : le brouillon pré-rempli, que personne n’a touché, est repris par
       // l’en-tête et par le geste secondaire « Préparer un autre contrat », jamais doublé.
@@ -81,6 +81,8 @@ for (const largeur of [390, 1440]) {
       await page.locator('details#complements-paiement summary').click();
       await expect(page.locator('#parcours-revision_irl')).toHaveValue('true');
       await expect(page.locator('#parcours-irl_trimestre')).toHaveValue('T2');
+      // Le trimestre est repris avec son année, jamais sans (décision du 28/10, relecture BAIL-02).
+      await expect(page.locator('#parcours-irl_trimestre-annee')).toHaveValue('2023');
       await expect(page.locator('#parcours-irl_valeur')).toHaveValue('140.59');
       expect(await debordementHorizontal(page)).toBe(0);
 

@@ -63,12 +63,11 @@ export function FormulaireLot({
           <Input id="lot-etage" name="etage" maxLength={40} defaultValue={etat.valeurs?.etage ?? lot.etage ?? ""} />
         </div>
         <div hidden={masquer("identifiant_fiscal")} className="space-y-2 sm:col-span-2">
-          <Label htmlFor="lot-fiscal" champ="lot.identifiant_fiscal" renseigne={String(etat.valeurs?.identifiant_fiscal ?? lot.identifiant_fiscal ?? "").trim() !== ""}>Identifiant fiscal du logement *</Label>
+          <Label htmlFor="lot-fiscal" champ="lot.identifiant_fiscal" renseigne={String(etat.valeurs?.identifiant_fiscal ?? lot.identifiant_fiscal ?? "").trim() !== ""}>Identifiant fiscal du logement — Attendu au bail</Label>
           <Input
             id="lot-fiscal"
             name="identifiant_fiscal"
             maxLength={20}
-            required
             defaultValue={etat.valeurs?.identifiant_fiscal ?? lot.identifiant_fiscal ?? ""}
             placeholder="13 chiffres (avis de taxe foncière) — obligatoire au bail"
           />
@@ -127,34 +126,31 @@ export function FormulaireLot({
         {/* Régimes de chauffage/eau chaude et accessoires : repris tels quels
             dans la désignation du bail (art. 3 loi 89-462) */}
         <div hidden={masquer("chauffage")} className="space-y-2">
-          <Label htmlFor="lot-chauffage" champ="lot.chauffage" renseigne={String(etat.valeurs?.chauffage ?? lot.chauffage ?? "").trim() !== ""}>Chauffage *</Label>
+          <Label htmlFor="lot-chauffage" champ="lot.chauffage" renseigne={String(etat.valeurs?.chauffage ?? lot.chauffage ?? "").trim() !== ""}>Chauffage — Attendu au bail</Label>
           <Input
             id="lot-chauffage"
             name="chauffage"
             maxLength={200}
-            required
             defaultValue={etat.valeurs?.chauffage ?? lot.chauffage ?? ""}
             placeholder="Individuel — électricité"
           />
         </div>
         <div hidden={masquer("eau_chaude")} className="space-y-2">
-          <Label htmlFor="lot-eau-chaude" champ="lot.eau_chaude" renseigne={String(etat.valeurs?.eau_chaude ?? lot.eau_chaude ?? "").trim() !== ""}>Eau chaude *</Label>
+          <Label htmlFor="lot-eau-chaude" champ="lot.eau_chaude" renseigne={String(etat.valeurs?.eau_chaude ?? lot.eau_chaude ?? "").trim() !== ""}>Eau chaude — Attendu au bail</Label>
           <Input
             id="lot-eau-chaude"
             name="eau_chaude"
             maxLength={200}
-            required
             defaultValue={etat.valeurs?.eau_chaude ?? lot.eau_chaude ?? ""}
             placeholder="Individuelle — ballon électrique"
           />
         </div>
         <div hidden={masquer("locaux_privatifs")} className="space-y-2 sm:col-span-2">
-          <Label htmlFor="lot-locaux-privatifs" champ="lot.locaux_privatifs" renseigne={String(etat.valeurs?.locaux_privatifs ?? lot.locaux_privatifs ?? "").trim() !== ""}>Locaux privatifs *</Label>
+          <Label htmlFor="lot-locaux-privatifs" champ="lot.locaux_privatifs" renseigne={String(etat.valeurs?.locaux_privatifs ?? lot.locaux_privatifs ?? "").trim() !== ""}>Locaux privatifs — Attendu au bail</Label>
           <Input
             id="lot-locaux-privatifs"
             name="locaux_privatifs"
             maxLength={300}
-            required
             defaultValue={etat.valeurs?.locaux_privatifs ?? lot.locaux_privatifs ?? ""}
             placeholder="Cave n° 4, parking n° 12…"
           />
@@ -171,13 +167,12 @@ export function FormulaireLot({
         </div>
       </div>
       <div hidden={masquer("description")} className="space-y-2">
-        <Label htmlFor="lot-description" champ="lot.description" renseigne={String(etat.valeurs?.description ?? lot.description ?? "").trim() !== ""}>Autres parties du logement *</Label>
+        <Label htmlFor="lot-description" champ="lot.description" renseigne={String(etat.valeurs?.description ?? lot.description ?? "").trim() !== ""}>Autres parties du logement — Attendu au bail</Label>
         <textarea
           id="lot-description"
           name="description"
           rows={3}
           maxLength={2000}
-          required
           placeholder="Balcon, terrasse, jardin… ou Néant"
           defaultValue={etat.valeurs?.description ?? lot.description ?? ""}
           className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"

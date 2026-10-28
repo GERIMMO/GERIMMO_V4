@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modale } from "@/components/ui/modale";
 import { nomComplet } from "@/lib/roles-personnes";
+import { ChampTrimestreIrl } from "@/components/champ-trimestre-irl";
 
 type Personne = { id: string; nom: string; prenom: string | null };
 
@@ -17,6 +18,7 @@ export type BailDefauts = {
   chambre_id?: string | null;
   locataire_principal?: string | null;
   date_debut?: string | null;
+  date_conclusion_prevue?: string | null;
   loyer_hc?: number | string | null;
   charges?: number | string | null;
   charges_mode?: string;
@@ -334,19 +336,8 @@ export function ChampsBail({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={`${prefixe}-irl`}>Trimestre IRL — Obligatoire si révision annuelle</Label>
-        <select
-          id={`${prefixe}-irl`}
-          name="irl_trimestre"
-          defaultValue={valeurs?.irl_trimestre ?? defauts.irl_trimestre ?? ""}
-          className={classeSelect}
-        >
-          <option value="">—</option>
-          {["T1", "T2", "T3", "T4"].map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
+        {/* Trimestre et année de l’indice de référence, envoyés ensemble « T3 2026 » (BAIL-02) */}
+        <ChampTrimestreIrl id={`${prefixe}-irl`} name="irl_trimestre" defaut={valeurs?.irl_trimestre ?? defauts.irl_trimestre ?? ""} reference={defauts.date_conclusion_prevue ?? defauts.date_debut ?? null} className={classeSelect} />
       </div>
       {/* `pt-6` aligne la case sur les champs voisins en deux colonnes ; en
           une seule (téléphone) ce vide la décrochait du champ précédent (24/09). */}

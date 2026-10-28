@@ -40,6 +40,9 @@ export type Assemblage =
       avertissement?: string;
       /** Texte à apposer personnellement, figé avec le PDF avant l'envoi. */
       mentionCaution?: string;
+      /** Le document généré remplace la dernière version active du même type, liée au premier des `liens`, dont le
+       * titre répond à ce critère (remplace_id) : une seule version active, l'historique conservé (BAIL-03). */
+      remplaceVersion?: (titre: string | null) => boolean;
     }
   | { erreur: string };
 

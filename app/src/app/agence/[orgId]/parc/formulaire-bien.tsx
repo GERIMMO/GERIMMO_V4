@@ -464,8 +464,8 @@ export function FormulaireBien({
             <option value="non">Non — hors zone tendue</option>
           </select>
           <p className="text-sm text-muted-foreground">
-            Zone tendue : préavis du locataire d&apos;1 mois de plein droit. Tant
-            qu&apos;elle n&apos;est pas vérifiée, un congé à 1 mois est accepté
+            Zone tendue : préavis du locataire d’un mois de plein droit. Tant
+            qu’elle n’est pas vérifiée, un congé à un mois est accepté
             et signalé à vérifier.
           </p>
         </div>

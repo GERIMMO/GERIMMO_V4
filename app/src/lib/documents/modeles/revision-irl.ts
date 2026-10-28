@@ -2,6 +2,7 @@
 // note de calcul. Cible : la révision enregistrée.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { libelleTrimestreIrl } from "@/lib/trimestre-irl";
 import {
   Fusion,
   assemblerPage,
@@ -167,7 +168,7 @@ export async function assemblerRevisionIrl(
     nouveauLoyer: Number(r.nouveau_loyer),
     irlReference: r.irl_reference === null ? null : Number(r.irl_reference),
     irlNouveau: r.irl_nouveau === null ? null : Number(r.irl_nouveau),
-    trimestre: ctx.bail.irl_trimestre,
+    trimestre: libelleTrimestreIrl(ctx.bail.irl_trimestre) ?? ctx.bail.irl_trimestre,
     charges: ctx.bail.charges === null ? null : Number(ctx.bail.charges),
     chargesMode: ctx.bail.charges_mode,
     bailleurNom: nomsBailleurs(f, ctx.bailleurs),

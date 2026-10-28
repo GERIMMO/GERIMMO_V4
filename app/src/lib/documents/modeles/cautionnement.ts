@@ -8,6 +8,7 @@
 // Acte des parties : cadres de signature, jamais de signature d'émetteur.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { libelleTrimestreIrl } from "@/lib/trimestre-irl";
 import { lireMontantAvecEspaces } from "@/lib/saisie-montant";
 import { texteMentionCaution } from "@/lib/mention-caution";
 import { REFUS_SANS_GARANTIE_CUMULEE } from "@/lib/textes-signature-actes";
@@ -139,7 +140,7 @@ export async function assemblerCautionnement(
     ${
       ctx.bail.revision_irl
         ? `Le loyer est révisé chaque année dans la limite de la variation de l'indice de référence
-           des loyers (IRL) — trimestre de référence : ${f.champ(ctx.bail.irl_trimestre, "trimestre IRL de référence")}.
+           des loyers (IRL) — trimestre de référence : ${f.champ(libelleTrimestreIrl(ctx.bail.irl_trimestre) ?? ctx.bail.irl_trimestre, "trimestre IRL de référence")}.
            Le cautionnement s'étend au loyer ainsi révisé.`
         : `Le bail ne prévoit pas de clause de révision annuelle du loyer.`
     }</p>

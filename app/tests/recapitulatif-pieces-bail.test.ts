@@ -117,6 +117,15 @@ describe("Récapitulatif des pièces du bail", () => {
     f.echecs.add("qualifications_diagnostics_lot");
     expect(piece(await f.lire(), "diagnostics-contexte").statut).toBe("a_verifier");
   });
+  it("un rapport électricité ou gaz enregistré se montre même si l’ancienneté de l’installation reste à préciser (BAIL-25)", async () => {
+    const f = fixture(); f.donnees.qualifications_diagnostics_lot = [];
+    f.donnees.diagnostics.push(diagnostic("elec", "electricite"));
+    f.donnees.documents.push(fichier("elec"));
+    const elec = piece(await f.lire(), "diagnostic-lot:electricite");
+    expect(elec.detail).not.toMatch(/ancienneté/);
+    // Sans rapport, l’ancienneté reste demandée.
+    expect(piece(await f.lire(), "diagnostic-lot:gaz")).toMatchObject({ statut: "a_verifier" });
+  });
   it("l’amiante reste à disposition, et une année inconnue demande précision", async () => {
     const f = fixture(); f.donnees.biens[0].annee_construction = 1930;
     expect(piece(await f.lire(), "diagnostic-lot:amiante_privatif").moment).toBe("gestion");

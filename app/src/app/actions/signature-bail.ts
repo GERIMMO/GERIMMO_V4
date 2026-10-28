@@ -16,6 +16,7 @@ import { synchroniserCircuitSignatureBail } from "@/lib/signature-bail-worker";
 import { verifierAvantEffet } from "@/lib/controle-effets";
 import { sansJargon } from "@/lib/erreurs";
 import { assemblerSignatureDocument, selectionDuCircuit } from "@/lib/signature-document";
+import { REFUS_ANNEE_IRL, trimestreIrlSansAnnee } from "@/lib/documents/completude-brouillon-bail";
 import { selectionSignatureValide, type SelectionSignature } from "@/lib/politique-signature";
 import { signatureEnEssai } from "@/lib/signature-essai";
 import { fermetureModeleSignature } from "@/lib/signature-interrupteurs";
@@ -138,6 +139,12 @@ export async function preparerSignatureBail(org: string, bail: string, choix?: S
     const preparation = await assemblerSignatureDocument(supabase,org,selection);
     bail = preparation.bailId ?? selection.cibleId;
     if (preparation.manquants.length) return { ...await lireSignatureBail(org,bail,selection), erreur: "Complétez les informations signalées avant de préparer le document." };
+    // Relecture BAIL-02 : jamais un nouveau circuit sur un contrat dont le trimestre IRL n'a pas d'année.
+    if (selection.code === "bail" || selection.code === "cautionnement") {
+      const lu = await supabase.from("baux").select("id, etat, revision_irl, irl_trimestre").eq("id",bail).eq("organization_id",org).maybeSingle();
+      if (lu.error) throw new Error("Le bail ne peut pas être vérifié.");
+      if (lu.data && await trimestreIrlSansAnnee(supabase,org,lu.data)) return { ...await lireSignatureBail(org,bail,selection), erreur: REFUS_ANNEE_IRL };
+    }
     let recherche = supabase.from("bail_signature_circuits").select("*").eq("organization_id",org).eq("modele",selection.code).eq("cible_id",selection.cibleId).in("etat",["pret","preparation","en_cours","a_verifier"]);
     if (selection.code === "cautionnement") recherche=recherche.eq("options->>garant",selection.options?.garant ?? "");
     const courant = await recherche.maybeSingle();

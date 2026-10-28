@@ -3,6 +3,7 @@ import { resoudreDepotsFormulaire, limiteFichierDepose } from "@/lib/depot-direc
 
 
 import { avertissementsCoherenceLoyer, type AvertissementLoyer } from "@/lib/coherence-loyer";
+import { FORMAT_TRIMESTRE_IRL, trimestreIrlCanonique, trimestreIrlPublie } from "@/lib/trimestre-irl";
 import { premier } from "@/lib/postgrest";
 import { lireMentionsContrat, verifierHonorairesContrat } from "@/lib/mentions-contrat";
 import { sansJargon } from "@/lib/erreurs";
@@ -165,6 +166,13 @@ function lireChampsBail(
     };
   }
 
+  // Même règle que l'étape Loyer (relecture BAIL-02) : un trimestre IRL se désigne avec son année, déjà publiée.
+  const irlTrimestre = trimestreIrlCanonique(String(formData.get("irl_trimestre") ?? ""));
+  if (formData.get("revision_irl") === "on" && irlTrimestre) {
+    if (!FORMAT_TRIMESTRE_IRL.test(irlTrimestre)) return { erreur: "Choisissez le trimestre et l’année de l’indice IRL de référence dans la liste." };
+    if (trimestreIrlPublie(irlTrimestre, aujourdhuiParis()) === false) return { erreur: "L’indice IRL de ce trimestre n’est pas encore publié : choisissez le dernier indice connu à la signature." };
+  }
+
   return {
     valeurs: {
       type,
@@ -177,7 +185,7 @@ function lireChampsBail(
       charges_mode: formData.get("charges_mode") === "forfait" ? "forfait" : "provision",
       depot_garantie: depot,
       jour_echeance: Number(jour),
-      irl_trimestre: String(formData.get("irl_trimestre") ?? "").trim() || null,
+      irl_trimestre: irlTrimestre,
       revision_irl: formData.get("revision_irl") === "on",
     },
   };

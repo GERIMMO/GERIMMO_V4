@@ -96,9 +96,10 @@ export function AgendaProprietaire({ agenda, comptesVues, base, aujourdhui }: {
             const jourActuel = jour === aujourdhui;
             return <Link key={jour} href={lienMois(agenda.mois.mois, jour)} scroll={false} prefetch={false}
               aria-current={jour === agenda.jour ? "date" : undefined}
-              aria-label={`${jourLong(`${jour}T12:00:00Z`)}${jourActuel ? ", aujourd’hui" : ""}, ${nb} rendez-vous`}
               className={styles.jour} data-aujourdhui={jourActuel} data-weekend={(i + agenda.mois.decalage) % 7 >= 5}>
+              {/* Nom accessible : le chiffre affiché d'abord, puis la date complète masquée à l'écran (WCAG 2.5.3). */}
               <span className={styles.numero}>{Number(jour.slice(8))}</span>
+              <span className="sr-only">{` — ${jourLong(`${jour}T12:00:00Z`)}${jourActuel ? ", aujourd’hui" : ""}, ${nb} rendez-vous`}</span>
               {nb > 0 && <span className={styles.evenement} aria-hidden="true"><span className={styles.pointEvenement} /><span className={styles.heureEvenement}>{heure(rendezVous[0].debut_prevu)}</span><span className={styles.nombreEvenements}>{nb > 1 ? `+${nb - 1}` : "1 RDV"}</span></span>}
             </Link>;
           })}

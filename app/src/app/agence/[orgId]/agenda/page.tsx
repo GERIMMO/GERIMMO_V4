@@ -169,10 +169,12 @@ export default async function PageAgenda({ params, searchParams }: {
               href={lienMois(agenda.mois.mois, j)}
               prefetch={false}
               aria-current={actif ? "date" : undefined}
-              aria-label={`${jourLong(`${j}T12:00:00Z`)}${nb ? `, ${nb} rendez-vous` : ""}`}
               className={`agenda-jour${actif ? " actif" : ""}${j === aujourdhui ? " aujourdhui" : ""}${nb ? " occupe" : ""}`}
             >
+              {/* Le nom accessible commence par le chiffre affiché (WCAG 2.5.3) : la date complète le suit, masquée à
+                  l'écran. Un aria-label « jeudi 1er octobre » ne contenait pas le « 1 » visible (audit final, DOC-17). */}
               <span className="agenda-jour-numero">{Number(j.slice(8))}</span>
+              <span className="sr-only">{` — ${jourLong(`${j}T12:00:00Z`)}${nb ? `, ${nb} rendez-vous` : ""}`}</span>
               {nb > 0 && <span className="agenda-jour-compte" aria-hidden="true">{nb}</span>}
             </Link>
           );

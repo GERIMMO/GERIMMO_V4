@@ -116,6 +116,8 @@ export default async function PagePaiementsLocataire(
   // Le mois se compte au jour de Paris, comme la base : le serveur tourne en UTC, et entre 22 h et 24 h
   // le dernier jour du mois, `new Date()` dirait encore le mois qui finit alors que Paris est déjà au suivant.
   const moisSuivant = premierDuMoisSuivant(aujourdhuiParis());
+  // Le bail prend fin avant le mois suivant (congé) : aucune échéance n'est plus à venir.
+  const finAvantMoisSuivant = Boolean(bail?.date_fin && bail.date_fin.slice(0, 7) < moisSuivant.slice(0, 7));
 
   const pastilles = douzeDerniers.length > 1 && (
     <>
@@ -233,11 +235,17 @@ export default async function PagePaiementsLocataire(
                   Tous vos loyers sont à jour — rien à régler pour l&apos;instant.
                 </p>
                 <p className="mt-1 text-[13px] text-muted-foreground">
-                  Prochaine échéance{" "}
-                  {bail.jour_echeance != null
-                    ? `le ${bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} ${moisLong(moisSuivant)}`
-                    : `en ${moisLong(moisSuivant)}`}
-                  .
+                  {finAvantMoisSuivant && bail.date_fin ? (
+                    <>Votre bail prend fin le {formaterDate(bail.date_fin)} : aucune échéance n’est plus à venir.</>
+                  ) : (
+                    <>
+                      Prochaine échéance{" "}
+                      {bail.jour_echeance != null
+                        ? `le ${bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} ${moisLong(moisSuivant)}`
+                        : `en ${moisLong(moisSuivant)}`}
+                      .
+                    </>
+                  )}
                 </p>
                 {sommesEchues.length > 1 && <div className="mt-4 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3">
                   <p className="text-sm">Total restant sur les {sommesEchues.length} échéances dues</p><p className="montant text-xl font-semibold">{eur(soldeEchu)}</p>

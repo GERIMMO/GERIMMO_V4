@@ -310,6 +310,7 @@ export function FormulaireLoyers({
   const totalDu = echeancier.reduce((s, l) => s + Number(l.montant_du), 0);
   const totalEncaisse = encaissements.reduce((s, e) => s + Number(e.montant), 0);
   const solde = totalDu - totalEncaisse;
+  const finAppelee = Boolean(dateFin && echeancier.some((l) => l.periode.slice(0, 7) >= dateFin.slice(0, 7)));
   const quittanceParAppel = new Map(quittances.map((q) => [q.appel_id, q]));
 
   return (
@@ -340,13 +341,17 @@ export function FormulaireLoyers({
             l'écran Loyers & charges ; « En avance » quand le locataire a
             versé plus que dû (24/09). */}
         <div className={`kpi ${solde > 0 ? "rouge" : "vert"}`}>
-          <span className="eyebrow">{solde < 0 ? "En avance" : "Reste dû"}</span>
+          {/* Bail dont le mois de fin est appelé : il n'y a plus d'échéance à venir, l'excédent est un trop-perçu qui
+              revient au locataire (wiki « Solde de tout compte » ; migration 20261028100100). */}
+          <span className="eyebrow">{solde < 0 ? (finAppelee ? "Trop-perçu" : "En avance") : "Reste dû"}</span>
           <span className="chiffre block">{eur(Math.abs(solde))}</span>
           <span className="block text-xs text-muted-foreground">
             {solde > 0
               ? "à régler par le locataire"
               : solde < 0
-                ? "versé d'avance par le locataire"
+                ? finAppelee
+                  ? "versé en trop, revient au locataire"
+                  : "versé d'avance par le locataire"
                 : "à jour"}
           </span>
         </div>

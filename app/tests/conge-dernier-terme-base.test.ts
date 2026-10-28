@@ -33,8 +33,8 @@ describe("dernier terme et congé — manifeste et retour (sans base)", () => {
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
     expect(lisezMoi).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
-    // Hors de la chaîne « Ordre complet » : la migration ne cite pas aujourdhui_paris().
-    expect(lisezMoi).not.toMatch(/Ordre complet si tout doit être défait :\s*`20261028100100`/);
+    // Quatrième relecture : etat_loyers_bail_brut cite aujourdhui_paris() ; le retour ouvre la chaîne « Ordre complet ».
+    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\s*`20261028100100`/);
     expect(readFileSync("tests/relais-migrations-manifeste.test.ts", "utf8")).toContain(`"${NOM}.sql",`);
   });
 

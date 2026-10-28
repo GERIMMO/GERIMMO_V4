@@ -77,14 +77,16 @@ test("un propriétaire qui a activé sa double authentification passe par le sas
   await neuf.goto("/compte");
   await neuf.waitForURL(/\/securite\?suite=%2Fcompte/, { timeout: 20_000 });
 
-  // 4. Le code ouvre l'espace ; « Mon compte » montre alors la protection active, gestes de remplacement ouverts.
+  // 4. Le code mène à la page demandée (« Mon compte »), qui montre la protection active, gestes de remplacement
+  //    ouverts ; l'espace s'ouvre ensuite sans nouveau détour.
   await neuf.getByLabel("Code à six chiffres").fill(totp(secret));
   await neuf.getByRole("button", { name: "Vérifier et continuer" }).click();
-  await neuf.waitForURL(/\/(espace|espaces|agence)(\/|\?|$)/, { timeout: 30_000 });
-  await neuf.goto("/compte");
-  await expect(neuf).toHaveURL(/\/compte/);
+  await neuf.waitForURL(/\/compte(\?|$)/, { timeout: 30_000 });
   const carteNeuve = neuf.locator(".loc-carte", { hasText: "Double authentification" });
   await expect(carteNeuve.getByText("active", { exact: true })).toBeVisible();
   await expect(carteNeuve.getByRole("button", { name: "Remplacer l’application" })).toBeVisible();
+  await neuf.goto("/espaces");
+  await neuf.waitForURL(/\/(espace|espaces|agence)(\/|\?|$)/, { timeout: 30_000 });
+  expect(neuf.url()).not.toContain("/securite");
   await contexte.close();
 });

@@ -27,6 +27,7 @@
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import versions from "./conditions-versions.json";
+import { aujourdhuiParis } from "./dates";
 import {
   CONDITIONS_ARTISANS_DATE,
   CONDITIONS_ARTISANS_VERSION,
@@ -461,7 +462,7 @@ export async function lireVersionArchivee(
 export function jourDeParis(instant: string | Date): string | null {
   const d = instant instanceof Date ? instant : new Date(instant);
   if (Number.isNaN(d.getTime())) return null;
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  return aujourdhuiParis(d);
 }
 
 /**

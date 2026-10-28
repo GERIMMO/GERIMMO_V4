@@ -5,6 +5,7 @@ import { ArretSupervision } from "@/lib/controle-effets";
 import { versionDeclaree, type VersionDeclaree } from "@/lib/conditions-versions";
 import { CONDITIONS_VERSION } from "@/lib/editeur";
 import { aujourdhuiParis } from "@/lib/ged";
+import { ajouterMois } from "@/lib/dates";
 import { dateParis } from "@/lib/heure-paris-calcul";
 import { accordExpresRequis } from "@/lib/nouvelle-version-conditions";
 import { resilierAEcheance } from "@/lib/stripe-offres";
@@ -63,9 +64,7 @@ export function motifSansObjet(
 
 /** Le même jour, un mois plus tard (« 2026-01-31 » → « 2026-02-28 ») ; jours de calendrier, sans fuseau. */
 export function unMoisApres(jour: string): string {
-  const [a, m, j] = jour.split("-").map(Number);
-  const dernier = new Date(Date.UTC(a, m + 1, 0)).getUTCDate(); // dernier jour du mois suivant
-  return new Date(Date.UTC(a, m, Math.min(j, dernier))).toISOString().slice(0, 10);
+  return ajouterMois(jour, 1);
 }
 
 /** La garde du préavis : `null` si la version est archivée depuis un mois au moins (jour de Paris), sinon le motif. */

@@ -1,4 +1,5 @@
 import { lireMontantFacultatif } from '@/lib/saisie-montant';
+import { jourIsoValide } from '@/lib/dates';
 
 export type MentionsContrat = {
   date_conclusion_prevue?: string | null;
@@ -63,7 +64,7 @@ export function lireMentionsContrat(form: FormData): { mentions: MentionsContrat
         return { mentions, erreur: 'Choisissez une réponse dans les conditions du contrat.' };
       Object.assign(mentions, { [champ]: brut === '' ? null : brut === 'true' });
     } else if (champ === 'date_conclusion_prevue') {
-      if (brut && (!/^\d{4}-\d{2}-\d{2}$/.test(brut) || !Number.isFinite(Date.parse(brut)) || new Date(brut).toISOString().slice(0, 10) !== brut))
+      if (brut && !jourIsoValide(brut))
         return { mentions, erreur: 'La date prévue de conclusion est invalide.' };
       mentions.date_conclusion_prevue = brut || null;
     } else if (champ === 'zone_honoraires') {

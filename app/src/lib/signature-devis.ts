@@ -1,3 +1,4 @@
+import { formaterCentimes } from "./montants";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { assemblerPage, echapper, Fusion } from "./documents/gabarit";
 import type { ContexteBail } from "./documents/modeles/communs";
@@ -21,7 +22,7 @@ export async function assemblerSignatureDevis(db:SupabaseClient,org:string,selec
   const {signataires,manquants}=partiesSignatureBail({organisation:{type:"proprietaire_direct"},bailleurs:devis.proprietaires,locataires:[],garants:[]},false);
   const annexes=[devis.document];
   const reference=`DEVIS-${devis.id}-V${devis.version}`;
-  const montant=(devis.montant_ttc_cents/100).toLocaleString("fr-FR",{style:"currency",currency:"EUR"});
+  const montant=formaterCentimes(devis.montant_ttc_cents);
   const original=assemblerPage({f:new Fusion(),titreDocument:"Acceptation du devis",nomPied:"Acceptation du devis",reference,
     corps:`<h1>Acceptation du devis</h1><p>Référence : ${echapper(reference)}</p>
       <h2>Offre de ${echapper(devis.artisan_nom)}</h2>

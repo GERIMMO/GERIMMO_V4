@@ -1,3 +1,4 @@
+import { formaterCentimes } from "./montants";
 import { fermetureModeleSignature } from "./signature-interrupteurs";
 import { signatureEnEssai } from "./signature-essai";
 import { REGIME_TVA } from "@/lib/editeur";
@@ -133,7 +134,7 @@ function valeurBilan(cle: string, valeur: unknown): string | null {
     : typeof valeur === "string" && /^\d+$/.test(valeur) ? Number(valeur) : null;
   if (nombre === null || !Number.isSafeInteger(nombre) || nombre < 0) return null;
   return cle === "budgetMensuelCents"
-    ? `${(nombre / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" })} par mois`
+    ? `${formaterCentimes(nombre)} par mois`
     : String(nombre);
 }
 

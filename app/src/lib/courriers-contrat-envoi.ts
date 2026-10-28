@@ -32,6 +32,7 @@ import { adressesRelaisDuServeur } from "@/lib/relais-alerte-reglage";
 import { echapperMarque } from "@/lib/marque-organisation";
 import { formuleParCode, type Periodicite } from "@/lib/tarifs";
 import { dateParis } from "@/lib/heure-paris-calcul";
+import { ajouterJours } from "@/lib/dates";
 
 type Service = SupabaseClient;
 
@@ -344,12 +345,6 @@ export async function annulerFacturesOuvertes(
   return { sort: echecs.length > 0 ? "a_annuler" : annulees.length > 0 ? "annulees" : "aucune", annulees, echecs };
 }
 
-/** Le jour AAAA-MM-JJ, n jours plus tard (dates civiles). */
-function plusJours(jour: string, n: number): string {
-  const [a, m, j] = jour.slice(0, 10).split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, j + n)).toISOString().slice(0, 10);
-}
-
 /** Délai de la mise en demeure avant une résiliation par l'Éditeur (article 15.4 des conditions en vigueur : trente jours). */
 export const DELAI_MISE_EN_DEMEURE_JOURS = 30;
 
@@ -382,7 +377,7 @@ export async function notifierResiliationImpaye(
     await tracer(service, "resiliation_impaye_facture_non_annulee", { organisation: p.orgId, souscription: p.subscription, factures: factures.echecs });
   }
   const resilieLe = dateParis(p.resilieLe);
-  const resiliableLe = p.enDefautDepuis ? plusJours(p.enDefautDepuis, DELAI_MISE_EN_DEMEURE_JOURS) : null;
+  const resiliableLe = p.enDefautDepuis ? ajouterJours(p.enDefautDepuis, DELAI_MISE_EN_DEMEURE_JOURS) : null;
   // Un incident d'e-mail peut retarder le premier courrier : le défaut seul ne prouve pas la mise en demeure.
   // En l'absence de preuve lisible, le courrier reste factuel et le relais est alerté.
   let miseEnDemeureEnvoyeeLe: number | null = null;

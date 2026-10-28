@@ -1,9 +1,10 @@
 import { formaterDate } from "./ged";
+import { aujourdhuiParis, jourIsoValide } from "./dates";
 export function jourValide(jour: string | null | undefined): jour is string {
-  return Boolean(jour && /^\d{4}-\d{2}-\d{2}$/.test(jour) && Number.isFinite(Date.parse(jour)) && new Date(jour).toISOString().slice(0, 10) === jour);
+  return jourIsoValide(jour);
 }
 export function jourAParis(date = new Date()) {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+  return aujourdhuiParis(date);
 }
 type Document = { expire_le?: string | null; verifie_le?: string | null; purged_at?: string | null };
 /** Ne déduit jamais une validité du titre du fichier ni de sa durée de conservation. */

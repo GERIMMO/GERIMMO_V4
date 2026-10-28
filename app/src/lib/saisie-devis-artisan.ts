@@ -1,6 +1,7 @@
 import { decalerJour } from "./agenda-gestion";
 import { lireLignesDevis } from "./devis-structure";
 import { aujourdhuiParis } from "./ged";
+import { jourIsoValide } from "./dates";
 
 /** L'aperçu et l'envoi valident les mêmes données et recalculent les prix. */
 export function lireSaisieDevisArtisan(formData: FormData) {
@@ -23,7 +24,7 @@ export function lireSaisieDevisArtisan(formData: FormData) {
   if (noteRevision.length > 4000) {
     throw new Error("Raccourcissez « ce qui change » (4 000 caractères au plus).");
   }
-  if (validite && (!/^\d{4}-\d{2}-\d{2}$/.test(validite) || !Number.isFinite(Date.parse(validite)) || new Date(validite).toISOString().slice(0, 10) !== validite)) {
+  if (validite && !jourIsoValide(validite)) {
     throw new Error("Indiquez une date de validité correcte.");
   }
   // « Aujourd'hui » est le jour de Paris (le serveur tourne en UTC) : une validité au jour même est dépassée, et la

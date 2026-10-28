@@ -1,5 +1,7 @@
 // Référentiel partagé de la GED et des alertes (Sprint 1).
 // Le type du document pilote droits, affichage et conservation (module 12).
+import { aujourdhuiParis as jourDeParis } from "./dates";
+import { formaterEuros } from "./montants";
 
 export const TYPES_DOCUMENT: Record<string, string> = {
   piece_identite: "Pièce d'identité",
@@ -121,10 +123,7 @@ export function formaterDate(iso: string | null | undefined): string {
 // bail). U+00A0, comme Intl.NumberFormat fr-FR, les tient ensemble.
 export function eur(montant: number | string | null | undefined): string {
   if (montant === null || montant === undefined || montant === "") return "—";
-  return `${Number(montant).toLocaleString("fr-FR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}\u00A0€`;
+  return formaterEuros(Number(montant));
 }
 
 // Un mois comptable arrive en « 2026-06 » ou « 2026-06-01 » selon la table.
@@ -145,7 +144,7 @@ export function moisEnFrancais(mois: string | null | undefined): string {
 // la veille avant 2 h du matin, heure de Paris. Sept fichiers avaient chacun
 // leur copie de ce contournement ; une seule suffit.
 export function aujourdhuiParis(): string {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+  return jourDeParis();
 }
 
 // Une saisie utilisateur employée dans un motif ilike doit être littérale :

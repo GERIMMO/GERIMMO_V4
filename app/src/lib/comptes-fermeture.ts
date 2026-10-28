@@ -9,6 +9,7 @@
 // « conditions générales » sans numéro.
 
 import { echapperHtml } from "@/lib/quittance-email";
+import { ajouterJours, aujourdhuiParis } from "@/lib/dates";
 import { euros } from "@/lib/tarifs";
 
 /**
@@ -46,7 +47,7 @@ export type OrigineFermeture = "titulaire" | "super_admin" | "inactivite";
 
 /** Le jour de Paris (AAAA-MM-JJ) d'un instant. */
 export function jourParis(instant: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(instant);
+  return aujourdhuiParis(instant);
 }
 
 /** Minuit, heure de Paris, du jour donné (AAAA-MM-JJ), en secondes Unix : l'instant où Stripe arrête la souscription. */
@@ -61,8 +62,7 @@ export function minuitParisEnSecondes(jour: string): number {
 
 /** Le jour de Paris, n jours après celui de l'instant donné. */
 export function jourParisPlus(instant: Date, jours: number): string {
-  const [a, m, j] = jourParis(instant).split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, j + jours)).toISOString().slice(0, 10);
+  return ajouterJours(aujourdhuiParis(instant), jours);
 }
 
 /**

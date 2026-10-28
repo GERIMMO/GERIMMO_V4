@@ -1,4 +1,5 @@
 import { TYPES_DIAGNOSTIC } from "@/lib/parc";
+import { ajouterMois, jourIsoValide } from "@/lib/dates";
 
 export function expirationDiagnostic(type: string, realisation: string): string {
   const mois = TYPES_DIAGNOSTIC[type]?.validite_mois;
@@ -14,13 +15,7 @@ export function expirationCrepPositif(realisation: string): string {
   return dateValide(realisation) ? dateApresMois(realisation, VALIDITE_CREP_POSITIF_MOIS) : "";
 }
 
-function dateApresMois(realisation: string, mois: number): string {
-  const [annee, moisDepart, jour] = realisation.split("-").map(Number);
-  const fin = new Date(Date.UTC(annee, moisDepart - 1 + mois, 1));
-  const dernier = new Date(Date.UTC(fin.getUTCFullYear(), fin.getUTCMonth() + 1, 0)).getUTCDate();
-  fin.setUTCDate(Math.min(jour, dernier));
-  return fin.toISOString().slice(0, 10);
-}
+const dateApresMois = ajouterMois;
 
 // Décret n° 2020-1610 du 17/12/2020, art. 1 (art. D. 134-4-2 du CCH) : un DPE vaut dix ans, sauf ceux réalisés
 // avant le 1er juillet 2021 — du 01/01/2013 au 31/12/2017 : valables jusqu'au 31/12/2022 ; du 01/01/2018 au
@@ -58,9 +53,7 @@ export function erreurEcheanceDpe(type: string, realisation: string, expiration:
   return `Un DPE réalisé ${periode} n’est valable que jusqu’au ${plafond.split("-").reverse().join("/")} (décret n° 2020-1610), même si le rapport indique une date plus lointaine. Corrigez l’échéance.`;
 }
 
-function dateValide(date: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date;
-}
+const dateValide = jourIsoValide;
 
 export function erreurDiagnosticBail(form: FormData, aujourd: string): string | undefined {
   const type = String(form.get("type") ?? ""), realisation = String(form.get("date_realisation") ?? ""), expiration = String(form.get("date_expiration") ?? "");

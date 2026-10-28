@@ -40,3 +40,15 @@ test("vitrine mobile : navigation, fermeture du menu et questions fréquentes", 
   await expect(page.getByRole("heading", { name: "Tarifs", exact: true })).toBeVisible();
   expect(await debordementHorizontal(page)).toBe(0);
 });
+
+// Audit final du 27/10/2026 (PUB-03, PUB-14) : les adresses inconnues répondent un vrai 404, sans détour par la
+// connexion ; favicon.ico est une icône.
+test("adresses inconnues : 404 réel ; favicon.ico servi", async ({ request }) => {
+  for (const adresse of ["/journal/article-qui-n-existe-pas", "/journal/%3Cscript%3E", "/conditions/versions/conditions_clients/2020-01-01", "/humans.txt", "/.well-known/security.txt", "/_introuvable"]) {
+    const r = await request.get(adresse, { maxRedirects: 0 });
+    expect(r.status(), adresse).toBe(404);
+  }
+  const icone = await request.get("/favicon.ico");
+  expect(icone.status()).toBe(200);
+  expect(icone.headers()["content-type"]).toMatch(/image\/(x-icon|vnd\.microsoft\.icon)/);
+});

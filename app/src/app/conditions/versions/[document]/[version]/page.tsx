@@ -11,7 +11,7 @@ import {
   releveApresEffet,
 } from "@/lib/conditions-versions";
 import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
-import { createClient } from "@/lib/supabase/server";
+import { clientAnonyme } from "@/lib/supabase/anonyme";
 
 // Une version archivée des conditions (24/10/2026, plan de conformité, R12), affichée TELLE QU'ELLE A ÉTÉ RANGÉE :
 // le HTML de la page publiée ce jour-là (titre, chapeau, articles), dans le cadre des pages légales, précédé de sa
@@ -22,6 +22,14 @@ import { createClient } from "@/lib/supabase/server";
 
 const FORME_VERSION = /^[0-9A-Za-z._-]{1,40}$/;
 
+// Audit final du 27/10 (PUB-03) : la version archivée est publique et ne change plus (ajout seul) ; lue sans cookie,
+// la page est rendue à sa première visite puis gardée (ISR), et une version inconnue répond un vrai 404. Une lecture
+// en échec (`undefined`) affiche son message sans être gardée plus d'une heure.
+export const revalidate = 3600;
+export async function generateStaticParams() {
+  return [];
+}
+
 async function charger(params: Promise<{ document: string; version: string }>) {
   const { document, version: brute } = await params;
   let version: string;
@@ -31,7 +39,7 @@ async function charger(params: Promise<{ document: string; version: string }>) {
     return null;
   }
   if (!estDocumentConditions(document) || !FORME_VERSION.test(version)) return null;
-  const archivee = await lireVersionArchivee(await createClient(), document, version);
+  const archivee = await lireVersionArchivee(clientAnonyme(), document, version);
   return archivee === null ? null : { document, version, archivee };
 }
 

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { clientAnonyme } from "@/lib/supabase/anonyme";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { EncartOutils } from "@/components/outils/encart-outils";
 import { TexteMarkdown } from "@/components/texte-markdown";
@@ -14,8 +14,15 @@ import { dureeEssai } from "@/lib/tarifs";
 // les heures.
 export const revalidate = 3600;
 
+// Audit final du 27/10 (PUB-03) : lu sans cookie, l'article est rendu une fois puis gardé une heure (ISR), et un slug
+// inconnu répond un vrai 404 au lieu d'une page « introuvable » servie en 200. Aucun article n'est pré-rendu à la
+// construction (elle ne lit pas la base) : chacun l'est à sa première visite.
+export async function generateStaticParams() {
+  return [];
+}
+
 async function charger(slug: string) {
-  const supabase = await createClient();
+  const supabase = clientAnonyme();
   // La RLS ne laisse voir que les articles parus : inutile de refiltrer ici,
   // mais on garde le filtre par sécurité si la politique changeait un jour.
   const { data } = await supabase

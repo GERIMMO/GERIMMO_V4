@@ -39,6 +39,15 @@ function actualiser(orgId: string, bailId: string) {
   revalidatePath(`/agence/${orgId}/personnes`);
 }
 
+async function dejaRattachee(supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"], bailId: string, personne: string, role: string) {
+  if (role === "principal") {
+    const { data } = await supabase.from("baux").select("locataire_principal").eq("id", bailId).maybeSingle();
+    return data?.locataire_principal === personne;
+  }
+  const { data } = await supabase.from("bail_personnes").select("role").eq("bail_id", bailId).eq("person_id", personne).maybeSingle();
+  return data?.role === role;
+}
+
 export async function choisirPersonneBail(orgId: string, bailId: string, _etat: EtatPersonnesBail, form: FormData): Promise<EtatPersonnesBail> {
   const ctx = await contexte(orgId, bailId);
   if (!ctx) return { erreur: "Ce brouillon n’est pas accessible ou a déjà été signé." };
@@ -76,6 +85,10 @@ export async function creerPersonneBail(orgId: string, bailId: string, _etat: Et
   const mineur = rattachement ? avertissementMineur(fiche, role) : undefined;
   if (!rattachement || !retour.personneCreee?.id) return { ...retour, avertissement: [retour.avertissement, mineur].filter(Boolean).join(" ") || undefined };
   const { error } = await ctx.supabase.rpc("choisir_personne_bail", { p_bail: bailId, p_person: retour.personneCreee.id, ...rattachement });
+  // Réponse perdue puis renvoi de la même demande : la fiche est déjà au bail avec ce rôle, c'est un succès.
+  if (error && await dejaRattachee(ctx.supabase, bailId, retour.personneCreee.id, role)) {
+    return { ...retour, rattachee: true, succes: `Fiche créée. ${libelleRole(role)}`, avertissement: [retour.avertissement, mineur].filter(Boolean).join(" ") || undefined };
+  }
   if (error) {
     // La fiche existe : on le dit, et l'assistant la propose à la sélection plutôt que de la recréer.
     return { ...retour, avertissement: [retour.avertissement, `La fiche est créée mais n’a pas pu être ajoutée au bail : ${sansJargon(error.message)} Choisissez-la dans la liste.`, mineur].filter(Boolean).join(" ") };

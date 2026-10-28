@@ -32,19 +32,31 @@ export function libelleTrimestreIrl(libelle: string | null | undefined): string 
   return `${ORDINAUX[lu.numero]} trimestre ${lu.annee}`;
 }
 
-/** Les trimestres proposés à la saisie, du plus récent au plus ancien : ceux déjà écoulés de l'année en cours et
- * les quatre de l'année précédente — l'indice de référence est le dernier publié à la signature. Une valeur déjà
- * enregistrée hors de cette liste (bail ancien, reprise « T2 » sans année) reste proposée pour ne pas disparaître. */
-export function trimestresIrlProposes(aujourdhui: string, enregistre?: string | null): { valeur: string; libelle: string }[] {
-  const annee = Number(aujourdhui.slice(0, 4)), mois = Number(aujourdhui.slice(5, 7));
-  const trimestreCourant = Math.ceil(mois / 3);
-  const options: { valeur: string; libelle: string }[] = [];
-  for (let t = trimestreCourant - 1; t >= 1; t--) options.push({ valeur: `T${t} ${annee}`, libelle: `${ORDINAUX[t]} trimestre ${annee}` });
-  for (let t = 4; t >= 1; t--) options.push({ valeur: `T${t} ${annee - 1}`, libelle: `${ORDINAUX[t]} trimestre ${annee - 1}` });
-  const actuel = (enregistre ?? "").trim();
-  if (actuel && !options.some(o => o.valeur === actuel)) {
-    const lu = lireTrimestreIrl(actuel);
-    options.push({ valeur: actuel, libelle: libelleTrimestreIrl(actuel) ?? (lu ? `${ORDINAUX[lu.numero]} trimestre — année à préciser` : actuel) });
-  }
-  return options;
+/** Le libellé à montrer à l'écran : « 3e trimestre 2026 », ou « 3e trimestre — année à préciser » pour une valeur
+ * ancienne sans année (le contrat l'imprime telle quelle ; relecture BAIL-02). */
+export function libelleTrimestreIrlEcran(libelle: string | null | undefined): string | null {
+  const lu = lireTrimestreIrl(libelle);
+  if (!lu) return (libelle ?? "").trim() || null;
+  return lu.annee ? `${ORDINAUX[lu.numero]} trimestre ${lu.annee}` : `${ORDINAUX[lu.numero]} trimestre — année à préciser`;
+}
+
+/** Date (approchée) de publication par l'INSEE de l'indice du trimestre `numero` de l'année `annee` : mi-avril pour T1,
+ * mi-juillet pour T2, mi-octobre pour T3, mi-janvier suivant pour T4. Même règle que la reprise de la migration
+ * 20261028100300. */
+export function publicationTrimestreIrl(numero: number, annee: number): string {
+  return numero === 4 ? `${annee + 1}-01-15` : `${annee}-${String(numero * 3 + 1).padStart(2, "0")}-15`;
+}
+
+/** L'année plausible de l'indice de référence : le dernier trimestre de ce numéro déjà publié à la date de référence
+ * (conclusion prévue, à défaut entrée, à défaut aujourd'hui). */
+export function anneeTrimestreIrlPlausible(numero: number, reference: string): number {
+  let annee = Number(reference.slice(0, 4));
+  while (publicationTrimestreIrl(numero, annee) > reference) annee--;
+  return annee;
+}
+
+/** Années proposées : de 1990 à l'année en cours, la plus récente d'abord. */
+export function anneesTrimestreIrl(aujourdhui: string): number[] {
+  const fin = Number(aujourdhui.slice(0, 4));
+  return Array.from({ length: fin - 1990 + 1 }, (_, i) => fin - i);
 }

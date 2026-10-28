@@ -68,6 +68,14 @@ describe("créer une personne depuis l’assistant la rattache au bail dans le m
     expect(r.rattachee).toBe(true);
     expect(r.avertissement).toMatch(/Petit Léo est mineur·e .* Un garant doit en principe être majeur/);
   });
+  it("une demande renvoyée après une réponse perdue : la fiche déjà rattachée avec ce rôle est un succès (relecture)", async () => {
+    m.creer.mockResolvedValue({ succes: "Fiche créée.", personneCreee: { id: "garant" } });
+    m.rpc.mockResolvedValue({ error: { message: "Cette personne figure déjà dans ce bail." } });
+    const q: Record<string, unknown> = {}; Object.assign(q, { select: () => q, eq: () => q, maybeSingle: async () => ({ data: { id: "bail", lot_id: "lot", etat: "brouillon", role: "garant" }, error: null }) });
+    m.acces.mockResolvedValue({ user: { id: "moi" }, supabase: { from: () => q, rpc: m.rpc } });
+    const r = await creerPersonneBail("org", "bail", {}, form({ nom: "Durand", prenom: "Paul", role: "garant", garant_de: "loc", principal_attendu: "loc" }));
+    expect(r).toMatchObject({ rattachee: true, succes: "Fiche créée. Garant ajouté au bail." });
+  });
   it("si le rattachement échoue, la fiche créée est signalée et proposée à la sélection", async () => {
     m.creer.mockResolvedValue({ succes: "Fiche créée.", personneCreee: { id: "garant" } });
     m.rpc.mockResolvedValue({ error: { message: "Le locataire a changé depuis votre ouverture. Rechargez le dossier." } });

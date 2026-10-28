@@ -27,7 +27,7 @@ describe("import contrôlé et trimestre IRL daté (fichiers)", () => {
     expect(sql).toContain("create or replace function public.montant_en_euros(p numeric)");
     // Le garde-fou du 27/09 (bail engagé : le loyer ne rouvre pas le dépôt) est conservé tel quel.
     expect(sql).toContain("and old.etat is distinct from 'brouillon'::public.bail_etat");
-    expect(sql).toContain("where irl_trimestre ~ '^T[1-4]$'");
+    expect(sql).toContain("where b.irl_trimestre ~ '^T[1-4]$'"); expect(sql).toContain("and b.etat = 'brouillon'");
     expect(sql.match(/set search_path (?:to|=) ''/g)?.length).toBeGreaterThanOrEqual(3);
     expect(sql.trim().endsWith("select public.fermer_fonctions_a_anon();")).toBe(true);
     const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
@@ -125,11 +125,12 @@ describe.skipIf(!DB_URL)("import contrôlé et trimestre IRL daté (base)", () =
       .rejects.toThrow("Dépôt de garantie trop élevé : maximum 1 mois de loyer hors charges (soit 700,00 €) pour un bail nu");
   });
 
-  it("la reprise date les trimestres « T1 »…« T4 » d'après l'entrée, laisse le reste et se rejoue sans effet", async () => {
+  it("la reprise date les « Tn » des brouillons d'après le dernier indice publié, laisse les baux signés et en signature, et se rejoue sans effet", async () => {
     const r = await importer([LIGNE, { ...LIGNE, lot: "B", locataire_nom: "Autre" }, { ...LIGNE, lot: "C", locataire_nom: "Troisième" }, { ...LIGNE, lot: "D", locataire_nom: "Quatrième" }], true);
     const [decembre, janvier, mai, sansDate] = r.map((x) => x.bail_id as string);
     await db.query(`update public.baux set irl_trimestre='T3', date_debut='2026-12-01' where id=$1`, [decembre]);
-    await db.query(`update public.baux set irl_trimestre='T4', date_debut='2026-01-15' where id=$1`, [janvier]);
+    // Conclusion prévue le 01/03/2026 : l'indice T4 2025 (publié mi-janvier 2026) est le dernier connu.
+    await db.query(`update public.baux set irl_trimestre='T4', date_debut='2026-04-01', date_conclusion_prevue='2026-03-01' where id=$1`, [janvier]);
     await db.query(`update public.baux set irl_trimestre='2e trimestre 2025', date_debut='2026-05-10' where id=$1`, [mai]);
     await db.query(`update public.baux set irl_trimestre='T2', date_debut=null where id=$1`, [sansDate]);
     // Un bail dont le contrat est parti en signature garde « T1 » : l'activation recalcule son empreinte.
@@ -139,6 +140,16 @@ describe.skipIf(!DB_URL)("import contrôlé et trimestre IRL daté (base)", () =
       values ($1::uuid,'bail','Bail nu — E (à faire signer)',$1::text||'/e.pdf','application/pdf',10,repeat('c',64),$2) returning id`, [org, compte]);
     await db.query(`insert into public.bail_signature_circuits(organization_id,bail_id,document_id,created_by,prestataire,environnement,empreinte,pdf_hash,signataires,etat)
       values($1,$2,$3,$4,'zoho','production',repeat('b',64),repeat('a',64),'[{},{}]','en_cours')`, [org, enSignature, doc.id, compte]);
+    // Un circuit simplement « prêt » (PDF relu, pas encore envoyé) protège aussi le brouillon.
+    const pret = (await importer([{ ...LIGNE, lot: "F", locataire_nom: "Sixième" }], true))[0].bail_id as string;
+    await db.query(`update public.baux set irl_trimestre='T1', date_debut='2026-12-01' where id=$1`, [pret]);
+    await db.query(`insert into public.bail_signature_circuits(organization_id,bail_id,document_id,created_by,prestataire,environnement,empreinte,pdf_hash,signataires,etat)
+      values($1,$2,$3,$4,'zoho','production',repeat('b',64),repeat('a',64),'[{},{}]','pret')`, [org, pret, doc.id, compte]);
+    // Un bail signé (actif) garde « T4 » : l'année de son indice est un fait de son contrat.
+    const actif = (await importer([{ ...LIGNE, lot: "G", locataire_nom: "Septième", date_debut: "2025-01-01" }], true))[0].bail_id as string;
+    await db.query("set local session_replication_role = replica");
+    await db.query(`update public.baux set irl_trimestre='T4', irl_valeur=142.06, revision_irl=true, etat='actif' where id=$1`, [actif]);
+    await db.query("set local session_replication_role = origin");
     const migration = readFileSync(`supabase/migrations/${MIGRATION}.sql`, "utf8");
     await db.query(migration);
     const lire = async () => (await db.query(`select id, irl_trimestre from public.baux where id = any($1::uuid[])`, [[decembre, janvier, mai, sansDate]])).rows
@@ -147,5 +158,12 @@ describe.skipIf(!DB_URL)("import contrôlé et trimestre IRL daté (base)", () =
     await db.query(migration);
     expect(await lire()).toEqual({ [decembre]: "T3 2026", [janvier]: "T4 2025", [mai]: "2e trimestre 2025", [sansDate]: "T2" });
     expect((await db.query(`select irl_trimestre from public.baux where id=$1`, [enSignature])).rows[0].irl_trimestre).toBe("T1");
+    expect((await db.query(`select irl_trimestre from public.baux where id=$1`, [pret])).rows[0].irl_trimestre).toBe("T1");
+    expect((await db.query(`select irl_trimestre from public.baux where id=$1`, [actif])).rows[0].irl_trimestre).toBe("T4");
+    // La première révision légitime (indice T4 2024, demandée le 05/01/2026) reste acceptée (relecture BAIL-02).
+    await agir();
+    const { rows: [rev] } = await db.query(`select public.reviser_loyer($1, 144.64, 'T4 2024', '2026-01-05') as loyer`, [actif]);
+    await db.query("reset role");
+    expect(Number(rev.loyer)).toBeGreaterThan(700);
   });
 });

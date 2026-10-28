@@ -4,7 +4,8 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { libelleTrimestreIrl, trimestreIrlCanonique, trimestresIrlProposes } from "@/lib/trimestre-irl";
+import { anneeTrimestreIrlPlausible, anneesTrimestreIrl, libelleTrimestreIrl, libelleTrimestreIrlEcran, publicationTrimestreIrl, trimestreIrlCanonique } from "@/lib/trimestre-irl";
+import { valeursReprisesDuBail } from "@/lib/reprise-bail-precedent";
 import { lireEtapeBail } from "@/lib/champs-etape-bail";
 import { avertissementsDatesBail } from "@/lib/coherence-dates-bail";
 import { estMineur } from "@/lib/validation-fiches";
@@ -29,12 +30,23 @@ describe("BAIL-02 — trimestre IRL de référence avec son année", () => {
     expect(libelleTrimestreIrl("T3")).toBeNull();
     expect(trimestreIrlCanonique("2e trimestre 2025")).toBe("T2 2025");
   });
-  it("propose les trimestres écoulés de l’année et ceux de l’année précédente, et garde une valeur ancienne", () => {
-    expect(trimestresIrlProposes("2026-10-28").map(o => o.valeur)).toEqual(["T3 2026", "T2 2026", "T1 2026", "T4 2025", "T3 2025", "T2 2025", "T1 2025"]);
-    expect(trimestresIrlProposes("2026-10-28", "T2").at(-1)).toEqual({ valeur: "T2", libelle: "2e trimestre — année à préciser" });
+  it("année au choix depuis 1990 ; présélection sur le dernier indice PUBLIÉ à la conclusion (relecture)", () => {
+    expect(anneesTrimestreIrl("2026-10-28")[0]).toBe(2026); expect(anneesTrimestreIrl("2026-10-28").at(-1)).toBe(1990);
+    expect(anneeTrimestreIrlPlausible(4, "2019-02-20")).toBe(2018);
+    expect(anneeTrimestreIrlPlausible(4, "2025-01-10")).toBe(2023);
+    expect(anneeTrimestreIrlPlausible(3, "2026-10-15")).toBe(2026);
+    expect(anneeTrimestreIrlPlausible(3, "2026-10-14")).toBe(2025);
+    expect(publicationTrimestreIrl(1, 2019)).toBe("2019-04-15");
+    expect(libelleTrimestreIrlEcran("T3")).toBe("3e trimestre — année à préciser");
+    expect(libelleTrimestreIrlEcran("T1 2019")).toBe("1er trimestre 2019");
+  });
+  it("la relocation reprend le numéro du trimestre, pas son année", () => {
+    const precedent = { id: "a", chambre_id: null, type: "nu", date_debut: "2023-09-01", date_fin: null, date_sortie_reelle: null, loyer_hc: 930, charges: 65, charges_mode: "provision", jour_echeance: 5, paiement_echeance: "echoir", revision_irl: true, irl_trimestre: "T2 2025", irl_valeur: 140.59 };
+    expect(valeursReprisesDuBail(precedent, "nu").irl_trimestre).toBe("T2");
   });
   it("l’étape Loyer enregistre « T3 2026 » et refuse « T3 » sans année", () => {
     expect(lireEtapeBail("loyer", form({ ...montants, irl_trimestre: "T3 2026" }), actuel, { meuble: false, surface: 46 }).patch?.irl_trimestre).toBe("T3 2026");
+    expect(lireEtapeBail("loyer", form({ ...montants, irl_trimestre: "T1 2019" }), actuel, { meuble: false, surface: 46 }).patch?.irl_trimestre).toBe("T1 2019");
     expect(lireEtapeBail("loyer", form({ ...montants, irl_trimestre: "T3" }), actuel, { meuble: false, surface: 46 }).erreur).toMatch(/trimestre et l’année/);
   });
   it("le récapitulatif et le contrat écrivent « 3e trimestre 2026 »", () => {
@@ -102,8 +114,8 @@ describe("BAIL-18 — un titre commun pour les contrats à faire signer", () => 
     expect(titreContratAFaireSigner("nu", ctx)).toBe("Bail nu — Appartement T2 · Bernard Lucas (à faire signer)");
     expect(titreContratAFaireSigner("meublé", ctx)).toBe("Bail meublé — Appartement T2 · Bernard Lucas (à faire signer)");
     expect(titreContratAFaireSigner("commun de colocation nue", ctx)).toMatch(/^Bail commun de colocation nue — /);
-    for (const t of ["Bail nu (généré, à faire signer)", "Colocation — bail commun nu (à faire signer)", "Contrat individuel nu — Chambre 1 (à faire signer)", titreContratAFaireSigner("nu", ctx)]) expect(estContratAFaireSigner(t)).toBe(true);
-    for (const t of ["Bail signé", "Avenant — Changement de loyer", null]) expect(estContratAFaireSigner(t)).toBe(false);
+    for (const t of ["Bail meublé — Bernard Lucas", "Bail nu (généré, à faire signer)", "Colocation — bail commun nu (à faire signer)", "Contrat individuel nu — Chambre 1 (à faire signer)", titreContratAFaireSigner("nu", ctx)]) expect(estContratAFaireSigner(t)).toBe(true);
+    for (const t of ["Bail signé", "Avenant — Changement de loyer", "Bail meublé — Bernard Lucas — à signer en ligne", "Bail meublé — Bernard Lucas — à signer en ligne — signé", null]) expect(estContratAFaireSigner(t)).toBe(false);
     expect(titreAffiche(`${titreContratAFaireSigner("nu", ctx)} — à signer en ligne — signé`)).toBe("Bail nu — Appartement T2 · Bernard Lucas — signé");
   });
 });

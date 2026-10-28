@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modale } from "@/components/ui/modale";
 import { nomComplet } from "@/lib/roles-personnes";
-import { aujourdhuiParis } from "@/lib/ged";
-import { trimestresIrlProposes } from "@/lib/trimestre-irl";
+import { ChampTrimestreIrl } from "@/components/champ-trimestre-irl";
 
 type Personne = { id: string; nom: string; prenom: string | null };
 
@@ -336,20 +335,8 @@ export function ChampsBail({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={`${prefixe}-irl`}>Trimestre IRL — Obligatoire si révision annuelle</Label>
-        <select
-          id={`${prefixe}-irl`}
-          name="irl_trimestre"
-          defaultValue={valeurs?.irl_trimestre ?? defauts.irl_trimestre ?? ""}
-          className={classeSelect}
-        >
-          <option value="">—</option>
-          {/* Un trimestre IRL se désigne avec son année (BAIL-02) */}
-          {trimestresIrlProposes(aujourdhuiParis(), valeurs?.irl_trimestre ?? defauts.irl_trimestre).map((t) => (
-            <option key={t.valeur} value={t.valeur}>
-              {t.libelle}
-            </option>
-          ))}
-        </select>
+        {/* Trimestre et année de l’indice de référence, envoyés ensemble « T3 2026 » (BAIL-02) */}
+        <ChampTrimestreIrl id={`${prefixe}-irl`} name="irl_trimestre" defaut={valeurs?.irl_trimestre ?? defauts.irl_trimestre ?? ""} reference={defauts.date_debut ?? null} className={classeSelect} />
       </div>
       {/* `pt-6` aligne la case sur les champs voisins en deux colonnes ; en
           une seule (téléphone) ce vide la décrochait du champ précédent (24/09). */}

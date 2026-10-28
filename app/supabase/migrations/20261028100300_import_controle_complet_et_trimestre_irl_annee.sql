@@ -13,13 +13,14 @@
 -- BAIL-02. `baux.irl_trimestre` (texte libre) recevait « T1 »…« T4 » sans année : le contrat et l'acte de
 -- cautionnement imprimaient « Trimestre de référence : T3 », mention incomplète dans un acte. L'application écrit
 -- désormais « T3 2026 » (la forme que lisent déjà `trimestre_irl_numero` / `trimestre_irl_annee` et qu'écrit la
--- révision annuelle). REPRISE DE DONNÉES, SIGNALÉE : les valeurs « T1 »…« T4 » déjà enregistrées reçoivent l'année
--- déduite de la date d'entrée du bail — le dernier trimestre de ce numéro écoulé avant le trimestre de l'entrée,
--- c'est-à-dire l'indice publié à la signature (entrée en décembre 2026 et « T3 » → « T3 2026 » ; entrée en
--- janvier 2026 et « T4 » → « T4 2025 »). Un bail sans date d'entrée garde sa valeur : l'écran la propose comme
--- « année à préciser » et la saisie exige de la compléter. Un bail dont le contrat est parti en signature (circuit en
--- préparation, en cours, à vérifier ou signé) n'est pas repris : l'activation recalcule le contrat et compare son
--- empreinte à celle du circuit. Aucune autre colonne n'est touchée.
+-- révision annuelle). REPRISE DE DONNÉES, SIGNALÉE ET LIMITÉE AUX BROUILLONS : un bail signé (actif, préavis,
+-- terminé) garde sa valeur — l'année de son indice est un fait de son contrat que la base ne peut pas deviner, et
+-- `reviser_loyer` en déduit l'année de la première révision. Un brouillon dont le contrat est parti en signature
+-- (circuit prêt, en préparation, en cours, à vérifier ou signé) la garde aussi : son contrat est recalculé et comparé
+-- à l'empreinte du circuit. Pour les autres brouillons, l'année est celle du dernier trimestre de ce numéro déjà
+-- PUBLIÉ à la date de conclusion prévue, à défaut à la date d'entrée (T1 publié mi-avril, T2 mi-juillet, T3
+-- mi-octobre, T4 mi-janvier suivant). Sans aucune de ces dates, la valeur reste « Tn » : l'écran la présente
+-- « année à préciser » et l'étape Loyer exige de la compléter. Aucune autre colonne n'est touchée.
 --
 -- Rejouable : create or replace, signatures inchangées ; la reprise ne cible que les valeurs sans année.
 -- Retour arrière : supabase/retours-arriere/20261028100300_import_controle_complet_et_trimestre_irl_annee.retour.sql
@@ -337,22 +338,24 @@ comment on function public.importer_parc(uuid, jsonb, boolean) is
 revoke execute on function public.importer_parc(uuid, jsonb, boolean) from public, anon;
 
 -- ═════════════════════════════════════════════════════════════════════════
--- 4. Trimestre IRL de référence daté (BAIL-02) — reprise signalée des valeurs
---    « T1 »…« T4 » : l'année est celle du dernier trimestre de ce numéro écoulé
---    avant le trimestre de la date d'entrée. Les baux sans date d'entrée et les
---    libellés déjà datés ne sont pas touchés.
+-- 4. Trimestre IRL de référence daté (BAIL-02) — reprise signalée, brouillons seulement
 -- ═════════════════════════════════════════════════════════════════════════
-update public.baux
-   set irl_trimestre = irl_trimestre || ' ' ||
-       (extract(year from date_debut)::integer
-        - case when substr(irl_trimestre, 2, 1)::integer >= ceil(extract(month from date_debut) / 3.0) then 1 else 0 end)::text
- where irl_trimestre ~ '^T[1-4]$'
-   and date_debut is not null
-   -- Un bail dont le contrat est parti en signature garde sa valeur : l'activation recalcule le contrat et compare
-   -- son empreinte à celle du circuit ; une mention réécrite la ferait échouer.
+update public.baux b
+   set irl_trimestre = b.irl_trimestre || ' ' || (
+         select max(a)::text
+           from generate_series(extract(year from coalesce(b.date_conclusion_prevue, b.date_debut))::integer - 2,
+                                extract(year from coalesce(b.date_conclusion_prevue, b.date_debut))::integer) a
+          -- date de publication approchée de l'indice « Tn a » : mi-avril, mi-juillet, mi-octobre, mi-janvier suivant
+          where case substr(b.irl_trimestre, 2, 1)
+                  when '4' then make_date(a + 1, 1, 15)
+                  else make_date(a, substr(b.irl_trimestre, 2, 1)::integer * 3 + 1, 15)
+                end <= coalesce(b.date_conclusion_prevue, b.date_debut))
+ where b.irl_trimestre ~ '^T[1-4]$'
+   and b.etat = 'brouillon'
+   and coalesce(b.date_conclusion_prevue, b.date_debut) is not null
    and not exists (select 1 from public.bail_signature_circuits c
-                    where c.bail_id = baux.id and c.modele = 'bail'
-                      and c.etat in ('preparation', 'en_cours', 'a_verifier', 'termine'));
+                    where c.bail_id = b.id and c.modele = 'bail'
+                      and c.etat in ('pret', 'preparation', 'en_cours', 'a_verifier', 'termine'));
 
 comment on column public.baux.irl_trimestre is
   'Trimestre de l''indice IRL de référence du bail, avec son année : « T3 2026 » (lu par trimestre_irl_numero / trimestre_irl_annee).';

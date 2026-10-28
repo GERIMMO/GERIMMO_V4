@@ -122,6 +122,8 @@ export async function envoyerQuittance(
     loyerHc: q.loyer_hc,
     charges: q.charges,
     montant: q.montant,
+    // Forfait ou provision : le même libellé que le document (audit final du 27/10, LOY-02).
+    chargesMode: conforme.charges_mode,
     // Chez un propriétaire direct, le bailleur signe : pas le nom du « parc ».
     emetteur: parties(conforme).emetteur ?? q.emetteur,
     prenom: loc.prenom,

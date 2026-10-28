@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
+import { repartitionEncaissement } from "@/lib/finances";
 
 const NOM = "20261028100200_loyers_ecrans_nom_et_montants";
 const url = process.env.SUPABASE_DB_URL;
@@ -37,6 +38,10 @@ describe("loyers — écrans et textes : migration, manifeste et retour (sans ba
     expect(retour).toContain("concat_ws(' ',p.prenom,p.nom)");
     expect(retour).toContain("replace(to_char(v_du, 'FM999999990.00'), '.', ',') || ' €'");
     expect(retour).toContain("drop function if exists public.montant_fr(numeric);");
+    // Relectures de LOY-07 : quittancement_mois rend la date d'échéance et le détail de la dette ; droits remis à l'identique.
+    expect(corps).toContain("drop function if exists public.quittancement_mois(uuid, date);");
+    expect(corps).toContain("grant execute on function public.quittancement_mois(uuid, date) to authenticated, service_role;");
+    expect(retour).toContain("drop function if exists public.quittancement_mois(uuid, date);");
   });
 });
 
@@ -99,6 +104,48 @@ describe.skipIf(!url)("loyers — écrans et textes (avec base)", () => {
     await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,350,public.aujourdhui_paris(),'virement')", [org, bail]);
     const { rows: [apres] } = await db.query("select titre from public.alerts where organization_id=$1 and type='loyer_impaye' and statut='ouverte'", [org]);
     expect(apres.titre).toContain(": 1 050,00 € dus");
+  });
+
+  it("quittancement_mois rend l'échéance et la dette mois par mois ; la répartition affichée est celle de l'imputation réelle", async () => {
+    // Août 700 (300 reçus), septembre 700, octobre 700 : trois termes échus, lus sur octobre.
+    await db.query("reset role");
+    await db.query("delete from public.appels_loyer where bail_id=$1", [bail]);
+    const mois = (n: number) => `(date_trunc('month',public.aujourdhui_paris())-interval '${n} month')::date`;
+    await db.query(`insert into appels_loyer(organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values
+      ($1,$2,${mois(3)},${mois(3)}+4,650,50,700),($1,$2,${mois(2)},${mois(2)}+4,650,50,700),($1,$2,${mois(1)},${mois(1)}+4,650,50,700)`, [org, bail]);
+    await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,300,public.aujourdhui_paris(),'virement')", [org, bail]);
+    await agir(compte);
+    const { rows: [ligne] } = await db.query(`select date_echeance::text, dette_anterieure_detail, dette_anterieure_reste from public.quittancement_mois($1,${mois(1)})`, [org]);
+    const periodes = (await db.query(`select ${mois(3)}::text a, ${mois(2)}::text b, (${mois(1)}+4)::text e`)).rows[0];
+    expect(ligne.date_echeance).toBe(periodes.e);
+    expect(ligne.dette_anterieure_detail).toEqual([{ periode: periodes.a, reste: 400 }, { periode: periodes.b, reste: 700 }]);
+    const repartition = repartitionEncaissement(700, ligne.dette_anterieure_detail);
+    expect(repartition).toEqual({ anterieur: [{ periode: periodes.a, montant: 400 }, { periode: periodes.b, montant: 300 }], terme: 0 });
+    // La base, elle, fait la même chose : simulation d'un encaissement de 700 € (transaction du test, annulée à la fin).
+    await db.query("reset role");
+    await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,700,public.aujourdhui_paris(),'virement')", [org, bail]);
+    const etat = (await db.query("select periode::text, montant_couvert::float couvert from public.etat_loyers_bail_brut($1) order by periode", [bail])).rows;
+    expect(etat).toEqual([{ periode: periodes.a, couvert: 700 }, { periode: periodes.b, couvert: 300 }, { periode: (await db.query(`select ${mois(1)}::text p`)).rows[0].p, couvert: 0 }]);
+  });
+
+  it("plus de 1 000 baux : toutes les lignes, chacune avec sa date d'échéance, dans un ordre total qui se pagine", async () => {
+    await db.query("reset role");
+    const bien = (await db.query("select bien_id from lots where organization_id=$1 limit 1", [org])).rows[0].bien_id;
+    await db.query(`with l as (insert into lots(organization_id,bien_id,nom,etat) select $1,$2,'TEST Lot '||g,'loue' from generate_series(1,1100) g returning id, nom),
+      p as (insert into persons(organization_id,nom,prenom) select $1,'TEST','Masse '||g from generate_series(1,1100) g returning id, prenom),
+      lp as (select l.id lot, p.id personne from (select id, row_number() over (order by nom) r from l) l join (select id, row_number() over (order by prenom) r from p) p using (r)),
+      b as (insert into baux(organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,jour_echeance)
+        select $1,lot,personne,'nu','actif',public.aujourdhui_paris()-100,650,50,5 from lp returning id)
+      insert into appels_loyer(organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du)
+        select $1,b.id,date_trunc('month',public.aujourdhui_paris())::date,date_trunc('month',public.aujourdhui_paris())::date+4,650,50,700 from b`, [org, bien]);
+    await agir(compte);
+    const tout = (await db.query("select bail_id, appel_id, date_echeance from public.quittancement_mois($1,public.aujourdhui_paris())", [org])).rows;
+    expect(tout.length).toBeGreaterThan(1000);
+    expect(tout.every((r) => r.date_echeance !== null)).toBe(true);
+    const pages = [...(await db.query("select appel_id from public.quittancement_mois($1,public.aujourdhui_paris()) limit 1000 offset 0", [org])).rows,
+      ...(await db.query("select appel_id from public.quittancement_mois($1,public.aujourdhui_paris()) limit 1000 offset 1000", [org])).rows].map((r) => r.appel_id);
+    expect(pages).toEqual(tout.map((r) => r.appel_id));
+    expect(new Set(pages).size).toBe(tout.length);
   });
 
   it("la migration se rejoue sans effet et son retour rend les définitions précédentes", async () => {

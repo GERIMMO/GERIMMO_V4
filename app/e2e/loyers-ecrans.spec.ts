@@ -238,3 +238,33 @@ for (const largeur of [390, 1440]) test(`propriétaire : Finances, un acompte su
     } catch (e) { await db.query("rollback"); throw e; } finally { await db.end(); }
   }
 });
+
+// Quatrième relecture : le bouton « Encaisser » dit la répartition RÉELLE de l'imputation au plus ancien (RM-3.3.2). Un appel
+// d'août fictif (700 €) est ajouté avant septembre : les 300 € déjà reçus vont à août (400 € restent), septembre est impayé.
+// Encaisser les 700 € d'octobre servira 400 € à août et 300 € à septembre. L'appel fictif est retiré à la fin.
+for (const largeur of [390, 1440]) test(`agence : « Encaisser » détaille la répartition sur deux mois de dette (${largeur}px)`, async ({ page }, info) => {
+  const url = process.env.SUPALOCAL_DB;
+  test.skip(!url || !/^postgres(?:ql)?:\/\/[^@]*@(?:localhost|127\.0\.0\.1):\d+\/gerimmo_ci_[a-z_]+_api$/.test(url), "Base API locale fictive requise");
+  const db = new Client({ connectionString: url }); await db.connect();
+  const { rows: [bail] } = await db.query(`select b.id from public.baux b join public.persons p on p.id=b.locataire_principal
+    where p.email='locataire.alpha@example.com' and b.organization_id=$1 and b.etat in ('actif','preavis') limit 1`, [ORG_ALPHA]);
+  test.skip(!bail, "Bail du locataire alpha absent du seed");
+  const id = randomUUID();
+  try {
+    await db.query(`insert into public.appels_loyer(id,organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du)
+      values($1,$2,$3,(date_trunc('month',public.aujourdhui_paris())-interval '2 month')::date,(date_trunc('month',public.aujourdhui_paris())-interval '2 month')::date,650,50,700)`, [id, ORG_ALPHA, bail.id]);
+    await page.setViewportSize({ width: largeur, height: largeur < 500 ? 844 : 900 });
+    await page.addInitScript(() => { try { sessionStorage.setItem("gerimmo-synthese-alertes-vue", "1"); } catch {} });
+    await connecter(page, "admin.alpha@example.com"); await page.waitForURL(/\/agence\//);
+    await page.goto(`/agence/${ORG_ALPHA}/loyers`);
+    const bouton = page.getByRole("button", { name: /^Encaisser 700,00/ }).first();
+    await expect(bouton).toHaveText(/Encaisser 700,00[  ]€ \(dont 400,00[  ]€ pour [a-zéû]+ et 300,00[  ]€ pour [a-zéû]+ \d{4}\)/);
+    expect(await bouton.evaluate((e) => e.scrollWidth <= e.clientWidth + 1)).toBe(true);
+    expect(await debordementHorizontal(page)).toBe(0);
+    await page.screenshot({ path: info.outputPath(`agence-encaisser-deux-mois-${largeur}.png`), fullPage: true });
+  } finally {
+    await db.query("delete from public.quittances where appel_id=$1", [id]);
+    await db.query("delete from public.appels_loyer where id=$1", [id]);
+    await db.end();
+  }
+});

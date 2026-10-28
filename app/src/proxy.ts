@@ -129,11 +129,23 @@ async function typeDeLOrganisation(
   return (organisation as { type?: string } | null)?.type ?? null;
 }
 
+// LES FICHIERS SERVIS À LA RACINE (audit final du 27/10/2026, PUB-14). Un premier segment qui porte un point (fichier)
+// ou commence par « . » n'était jamais inconnu : /humans.txt, /manifest.webmanifest ou /.well-known/security.txt
+// invitaient un robot ou un scanner à se connecter. Seuls ceux-ci existent : les fichiers de public/ et les routes
+// de src/app (robots.ts, sitemap.ts) — tests/proxy-adresse-inconnue.test.ts tient la liste en phase avec public/.
+const FICHIERS_RACINE = new Set([
+  "robots.txt", "sitemap.xml", "favicon.ico", "apple-touch-icon.png",
+  "file.svg", "globe.svg", "next.svg", "vercel.svg", "window.svg",
+]);
+
 function adresseInconnue(pathname: string): boolean {
   const segment = pathname.split("/")[1] ?? "";
-  // « _next », « .well-known » et les fichiers à la racine (favicon, robots…)
-  // restent à Next.js.
-  if (!segment || segment.startsWith("_") || segment.startsWith(".") || segment.includes(".")) return false;
+  // Les adresses internes de Next.js restent à Next.js.
+  if (!segment || segment === "_next" || segment.startsWith("__next")) return false;
+  // Un dossier « _… » de src/app est privé (jamais routé) : /_introuvable, la page interne vers laquelle ce proxy
+  // réécrit, n'est pas une adresse privée qui mériterait la connexion (PUB-14).
+  if (segment.startsWith("_")) return true;
+  if (segment.startsWith(".") || segment.includes(".")) return !FICHIERS_RACINE.has(segment);
   return !SEGMENTS_CONNUS.has(segment);
 }
 

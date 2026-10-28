@@ -37,6 +37,31 @@ describe("sans session, une adresse inconnue", () => {
     },
   );
 
+  // Audit final du 27/10 (PUB-14) : un fichier inconnu à la racine, /.well-known et la page interne /_introuvable ne
+  // mènent plus à la connexion.
+  it.each(["/humans.txt", "/manifest.webmanifest", "/.well-known/security.txt", "/_introuvable", "/_autre/x", "/wp-login.php"])(
+    "%s : statut 404 sans détour par la connexion",
+    async (chemin) => {
+      const r = await proxy(new NextRequest(`https://gerimmo.test${chemin}`));
+      expect(r.status).toBe(404);
+      expect(r.headers.get("location")).toBeNull();
+    },
+  );
+
+  it.each(readdirSync(new URL("../public", import.meta.url), { withFileTypes: true }).filter((d) => d.isFile()).map((d) => d.name))(
+    "/%s (fichier de public/) n'est pas déclaré introuvable",
+    async (fichier) => {
+      const r = await proxy(new NextRequest(`https://gerimmo.test/${fichier}`));
+      expect(r.status).not.toBe(404);
+    },
+  );
+
+  it("les adresses internes de Next.js restent à Next.js", async () => {
+    for (const chemin of ["/_next/data/x.json", "/__nextjs_original-stack-frame"]) {
+      expect((await proxy(new NextRequest(`https://gerimmo.test${chemin}`))).status).not.toBe(404);
+    }
+  });
+
   it("une adresse privée existante mène toujours à la connexion, destination gardée", async () => {
     const r = await proxy(new NextRequest("https://gerimmo.test/agence/123/biens"));
     expect(r.headers.get("location")).toContain("/connexion?suite=%2Fagence%2F123%2Fbiens");

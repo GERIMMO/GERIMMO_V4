@@ -236,7 +236,7 @@ export default async function PagePaiementsLocataire(
                 </p>
                 <p className="mt-1 text-[13px] text-muted-foreground">
                   {finAvantMoisSuivant && bail.date_fin ? (
-                    <>Votre bail prend fin le {formaterDate(bail.date_fin)} : aucune échéance n’est plus à venir.</>
+                    <>Votre bail {bail.date_fin < aujourdhuiParis() ? "a pris" : "prend"} fin le {formaterDate(bail.date_fin)} : aucune échéance n’est plus à venir.</>
                   ) : (
                     <>
                       Prochaine échéance{" "}

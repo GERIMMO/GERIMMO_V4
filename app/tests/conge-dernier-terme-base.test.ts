@@ -587,7 +587,11 @@ describe.skipIf(!url)("le dernier terme suit le congé ; dépôt au centime (ave
     await db.query("reset role");
     const { rows } = await db.query("select titre from public.alerts where organization_id=$1 and type='loyer_impaye' and statut='ouverte'", [org]);
     expect(rows).toHaveLength(1);
-    expect(rows[0].titre).toContain(`${(await attendu25()).total.replace(".", ",")} €`);
+    // Intégration avec 20261028100200 (LOY-11, validé : fix-loyers_ecrans) : le titre écrit le montant par montant_fr, à
+    // la française (espace insécable avant « € », espace fine des milliers) — même montant, écrit par la même fonction.
+    const ecrit = (await db.query("select public.montant_fr($1::numeric) m", [(await attendu25()).total])).rows[0].m as string;
+    expect(ecrit).toBe(`${(await attendu25()).total.replace(".", ",")}\u00a0€`);
+    expect(rows[0].titre).toContain(`: ${ecrit} dus depuis le `);
   });
 
   it("COD-03 : le dépôt refuse les millièmes, en fonction comme en table ; le centime passe", async () => {

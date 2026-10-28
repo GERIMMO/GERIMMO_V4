@@ -226,24 +226,44 @@ describe("envoyerLienMotDePasse — limite par organisation (audit 30/09, M4)", 
 });
 
 describe("PUB-16 — la panne d'envoi se dit, à toutes les adresses pareil (audit final du 27/10)", () => {
-  it("sans clé d'envoi : la panne est annoncée avant toute recherche, adresse connue ou non", async () => {
+  it("sans clé d'envoi : la panne est annoncée avant toute recherche, adresse connue ou non, après la limite", async () => {
     vi.stubEnv("RESEND_API_KEY", "");
     const { generateLink, rpc } = admin();
     expect(await envoyerLienMotDePasse({ email: "moi@exemple.fr", motif: "mot_de_passe_oublie" })).toEqual({ erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true });
     expect(generateLink).not.toHaveBeenCalled();
-    expect(rpc).not.toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledWith("autoriser_lien_mot_de_passe", expect.anything());
   });
-  it("un envoi en échec garde la réponse neutre, puis toute demande anonyme annonce la panne pendant la fenêtre", async () => {
+  // Relecture adverse du 28/10 : un envoi anonyme en échec n'ouvre aucune fenêtre — sinon la sonde témoin/cible/témoin
+  // dirait si la cible a un compte. Les deux sondes témoin répondent pareil, que la cible existe ou non.
+  it("sonde témoin / cible / témoin pendant une panne : les témoins répondent pareil, cible connue ou non", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.envoyerEmail.mockResolvedValue({ erreur: "Le service d’e-mail a refusé l’envoi." });
+    const sonde = async (cibleExiste: boolean) => {
+      oublierPanneEnvoi();
+      admin({ erreurLien: "User with this email not found" });
+      await envoyerLienMotDePasse({ email: "temoin@exemple.fr", motif: "mot_de_passe_oublie" });
+      if (cibleExiste) admin(); else admin({ erreurLien: "User with this email not found" });
+      const cible = await envoyerLienMotDePasse({ email: "cible@exemple.fr", motif: "mot_de_passe_oublie" });
+      admin({ erreurLien: "User with this email not found" });
+      const temoin = await envoyerLienMotDePasse({ email: "temoin@exemple.fr", motif: "mot_de_passe_oublie" });
+      return { cible, temoin };
+    };
+    const existante = await sonde(true);
+    const inconnue = await sonde(false);
+    expect(existante.cible).toEqual(inconnue.cible);
+    expect(existante.temoin).toEqual(inconnue.temoin);
+    expect(existante.temoin).toEqual({});
+  });
+  it("l'échec d'une invitation (geste d'un gérant) ouvre la fenêtre : toute demande anonyme annonce alors la panne", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     admin();
     mocks.envoyerEmail.mockResolvedValueOnce({ erreur: "Le service d’e-mail a refusé l’envoi." });
-    expect(await envoyerLienMotDePasse({ email: "connu@exemple.fr", motif: "mot_de_passe_oublie" })).toEqual({});
-    const { generateLink } = admin({ erreurLien: "User with this email not found" });
+    expect((await envoyerLienMotDePasse({ email: "loc@exemple.fr", motif: "invitation_locataire" })).erreur).toBeTruthy();
+    const { rpc, generateLink } = admin();
     expect(await envoyerLienMotDePasse({ email: "inconnu@exemple.fr", motif: "mot_de_passe_oublie" })).toEqual({ erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true });
+    // La limite est consommée avant ; aucune recherche du compte.
+    expect(rpc).toHaveBeenCalled();
     expect(generateLink).not.toHaveBeenCalled();
-    // Une invitation (geste d'un gérant) n'est pas concernée : elle dit son propre échec, ou part.
-    admin();
-    expect(await envoyerLienMotDePasse({ email: "loc@exemple.fr", motif: "invitation_locataire" })).toEqual({});
   });
   it("la limite de fréquence illisible se dit comme une panne", async () => {
     admin({ erreurRpc: "panne" });

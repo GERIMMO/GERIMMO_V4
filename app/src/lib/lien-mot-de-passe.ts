@@ -106,11 +106,13 @@ const NON_CONFIGURE = "L’envoi des liens de connexion n’est pas configuré. 
 // Une demande anonyme (mot de passe oublié, inscription) répondait « un e-mail vient d'être envoyé » même quand le
 // service d'envoi n'était pas configuré ou refusait : l'échec ne se lisait que dans les journaux. Le dire seulement
 // quand l'envoi échoue créerait un oracle d'énumération (aucun envoi n'est tenté pour une adresse inconnue). La panne
-// est donc annoncée indépendamment de l'adresse : (a) clé d'envoi absente, ou limite de fréquence illisible : avant
-// toute recherche du compte ; (b) après un échec d'envoi, pendant cinq minutes, à toute demande anonyme de cette
-// instance — la demande qui a échoué garde, elle, la réponse neutre. La panne reste journalisée.
+// est donc annoncée indépendamment de l'adresse : (a) clé d'envoi absente, ou limite de fréquence illisible : après
+// la limite (consommée comme toute demande), avant toute recherche du compte ; (b) pendant cinq minutes après l'échec
+// d'un envoi NON anonyme (invitation, geste d'un gérant), qui ne dépend d'aucune adresse demandée. Un envoi anonyme en
+// échec garde la réponse neutre et n'ouvre JAMAIS cette fenêtre : sinon la demande suivante, pour une adresse témoin,
+// dirait si la précédente avait un compte (relecture adverse du 28/10). La panne reste journalisée.
 // L'inscription, elle, crée d'abord le compte (le banc local en dépend) : c'est sa réponse qui est rendue identique —
-// adresse neuve ou déjà inscrite, un envoi en échec répond MESSAGE_ENVOI_INDISPONIBLE.
+// adresse neuve ou déjà inscrite, un envoi en échec répond MESSAGE_ENVOI_INDISPONIBLE, sans fenêtre.
 export const MESSAGE_ENVOI_INDISPONIBLE =
   "L’envoi des e-mails est momentanément indisponible : aucun message ne peut partir pour le moment. Réessayez dans quelques minutes.";
 export const DUREE_PANNE_ENVOI_MS = 5 * 60 * 1000;
@@ -413,9 +415,9 @@ export async function envoyerLienMotDePasse(params: {
   if (!origine || !service) return { erreur: NON_CONFIGURE };
 
   if (anonyme) {
-    if (envoiIndisponible()) return { erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true };
     const refus = await limiteAnonyme(service, email);
     if (refus) return refus;
+    if (envoiIndisponible()) return { erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true };
   } else if (params.organisation) {
     const refus = await limiteOrganisation(service, params.organisation);
     if (refus) return refus;
@@ -451,9 +453,9 @@ export async function envoyerLienMotDePasse(params: {
     type: "recovery",
   });
   if (erreurEnvoi) {
-    if (!anonyme) return { erreur: erreurEnvoi };
+    if (anonyme) return {};
     noterPanneEnvoi();
-    return {};
+    return { erreur: erreurEnvoi };
   }
   return {};
 }
@@ -562,7 +564,6 @@ export async function inscrireEtEnvoyerConfirmation(params: {
       const next = suite === "/espaces" ? "/nouveau-mot-de-passe" : `/nouveau-mot-de-passe?suite=${encodeURIComponent(suite)}`;
       // Même réponse qu'une adresse neuve dont la confirmation n'a pas pu partir (PUB-16) : rien n'est révélé.
       if (await envoyerCourrier({ origine, email, motif: "compte_existant", jeton, next, type: "recovery" })) {
-        noterPanneEnvoi();
         return { erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true };
       }
     }
@@ -633,10 +634,7 @@ export async function inscrireEtEnvoyerConfirmation(params: {
     next: params.next,
     type: typeLien,
   });
-  if (erreurEnvoi) {
-    noterPanneEnvoi();
-    return { erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true };
-  }
+  if (erreurEnvoi) return { erreur: MESSAGE_ENVOI_INDISPONIBLE, indisponible: true };
   return { etat: "confirmation_envoyee" };
 }
 

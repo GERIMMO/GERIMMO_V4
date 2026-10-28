@@ -73,9 +73,10 @@ export function nomComplet(p: { nom: string; prenom?: string | null }): string {
   return `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}`;
 }
 
-// Initiales pour l'avatar de la liste (maquette .avatar) : « Dupont Alice » → DA
-export function initiales(nom: string, prenom: string | null): string {
-  const premiere = (texte: string) => texte.trim().charAt(0).toUpperCase();
+// Initiales pour l'avatar de la liste (maquette .avatar) : « Dupont Alice » → DA.
+// Prises sur la première lettre, jamais sur un signe (« <b>Bernard</b> » → B, BAIL-17).
+export function initiales(nom: string, prenom?: string | null): string {
+  const premiere = (texte: string) => (texte.match(/\p{L}/u)?.[0] ?? "").toLocaleUpperCase("fr");
   return `${premiere(nom)}${prenom ? premiere(prenom) : ""}` || "?";
 }
 

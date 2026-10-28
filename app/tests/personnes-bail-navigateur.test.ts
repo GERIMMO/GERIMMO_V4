@@ -93,7 +93,7 @@ describe.skipIf(!chrome)("Personnes du bail : parcours sans détour", () => {
     await page.getByRole("button",{name:"Créer une personne",exact:true}).click();
     await page.getByLabel("Adresse e-mail *",{exact:true}).fill("HELENE@example.test");
     await page.getByRole("button",{name:"Réutiliser cette fiche",exact:true}).waitFor();
-    expect(await page.getByRole("button",{name:"Créer cette personne",exact:true}).isDisabled()).toBe(true);
+    expect(await page.getByRole("button",{name:"Créer et ajouter au bail",exact:true}).isDisabled()).toBe(true);
     await page.getByRole("button",{name:"Réutiliser cette fiche",exact:true}).click();
     expect(await page.getByLabel("Choisir un locataire enregistré",{exact:true}).inputValue()).toBe("existante");
     expect(await page.evaluate(()=>window.__personnesBailEnvois)).toEqual([]);
@@ -122,12 +122,14 @@ describe.skipIf(!chrome)("Personnes du bail : parcours sans détour", () => {
     await page.getByRole("button",{name:"Choisir un locataire",exact:true}).click();
     for(const [label,valeur] of Object.entries({"Nom *":"Test","Prénom *":"Alice","Adresse e-mail *":"alice@example.test","Date de naissance *":"1990-01-01","Commune de naissance *":"Lyon","Adresse *":"1 rue Test","Code postal *":"69003","Ville *":"Lyon"}))await page.getByLabel(label,{exact:true}).fill(valeur);
     await page.evaluate(()=>{window.__personnesBailEchecCreation=1;});
-    await page.getByRole("button",{name:"Créer cette personne",exact:true}).click();
+    await page.getByRole("button",{name:"Créer et ajouter au bail",exact:true}).click();
     await page.getByText("Réponse interrompue. Votre saisie reste disponible.",{exact:true}).waitFor();
     expect(await page.getByLabel("Prénom *",{exact:true}).inputValue()).toBe("Alice");
-    await page.getByRole("button",{name:"Créer cette personne",exact:true}).click();
+    await page.getByRole("button",{name:"Créer et ajouter au bail",exact:true}).click();
     await page.waitForFunction(()=>window.__personnesBailEnvois.length===2);
     const envois=await page.evaluate(()=>window.__personnesBailEnvois);
     expect(envois[0].creation_id).toMatch(/^[0-9a-f-]{36}$/i);expect(envois[1].creation_id).toBe(envois[0].creation_id);
+    // Audit final, BAIL-24 : la fiche créée depuis l'assistant est rattachée au bail dans le même envoi.
+    expect(envois[1]).toMatchObject({ role: "principal" });
   });
 });

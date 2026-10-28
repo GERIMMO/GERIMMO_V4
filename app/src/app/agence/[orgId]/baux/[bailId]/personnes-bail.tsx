@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { LabelBail as Label, PastilleBail, ProfilBailACompleter } from "@/components/pastille-bail";
 import { QUALITES_BAILLEUR, estPersonnePhysique } from "@/lib/qualite-bailleur";
 import { formaterDate } from "@/lib/ged";
-import { correspond } from "@/lib/roles-personnes";
+import { correspond, initiales, nomComplet } from "@/lib/roles-personnes";
 import { nouvelleCleEnvoi } from "@/lib/cle-envoi";
 
 export type PersonneBail = {
@@ -24,7 +24,8 @@ export type PersonneBail = {
 export type DetentionBail = { id: string; person_id: string; quote_part: number; date_debut: string };
 export type ParticipantBail = { id: string; person_id: string; role: string; garant_de: string | null };
 type Role = "principal" | "colocataire" | "garant";
-const nom = (p: PersonneBail) => [p.prenom, p.nom].filter(Boolean).join(" ");
+// « Bernard Lucas », comme le récapitulatif, la fiche du lot et les contrats (BAIL-17).
+const nom = (p: PersonneBail) => nomComplet(p);
 const selectClasse = "min-h-11 w-full rounded-lg border border-input bg-card px-3 text-sm";
 function Retour({ etat }: { etat: EtatPersonnesBail }) {
   return <>{etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}{etat.succes && <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}{etat.avertissement && <p role="status" className="text-sm text-warning-soft-foreground">{etat.avertissement}</p>}</>;
@@ -32,7 +33,7 @@ function Retour({ etat }: { etat: EtatPersonnesBail }) {
 function ResumePersonne({ personne: p, badge, actions }: { personne: PersonneBail; badge?: string; actions?: ReactNode }) {
   const adresse = [p.address_line1, [p.postal_code, p.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   return <div className="bail-personne-resume">
-    <span className="bail-personne-avatar" aria-hidden="true">{[p.prenom?.[0], p.nom[0]].filter(Boolean).join("")}</span>
+    <span className="bail-personne-avatar" aria-hidden="true">{initiales(p.nom, p.prenom)}</span>
     <div className="min-w-0 flex-1">
       <div className="flex flex-wrap items-center gap-2"><strong>{nom(p)}</strong>{badge && <span className="puce puce-grise">{badge}</span>}</div>
       <p className="mt-1 break-words text-sm text-muted-foreground">{[p.email, p.telephone].filter(Boolean).join(" · ") || "Coordonnées à compléter"}</p>
@@ -44,10 +45,13 @@ function ResumePersonne({ personne: p, badge, actions }: { personne: PersonneBai
   </div>;
 }
 
-function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false, existantes = [], adresseSource, emailInitial = "", reutiliser, enregistrer, annuler }: {
+function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false, existantes = [], adresseSource, emailInitial = "", reutiliser, enregistrer, annuler, rattachement, rattacher }: {
   orgId: string; bailId: string; personne?: PersonneBail; proprietaire: boolean; garant?: boolean;
   existantes?: PersonneBail[]; adresseSource?: PersonneBail; emailInitial?: string; reutiliser?: (p: PersonneBail) => void;
   enregistrer: (p: PersonneBail, avertissement?: string) => void; annuler: () => void;
+  /** Rôle au bail de la fiche créée : elle est rattachée dans le même geste (BAIL-24). */
+  rattachement?: { role: Role; principalAttendu: string | null; garantDe?: string };
+  rattacher?: (p: PersonneBail, retour: EtatPersonnesBail) => void;
 }) {
   const id = `personne-bail-${personne?.id ?? "nouvelle"}`;
   const [morale, setMorale] = useState(personne ? !estPersonnePhysique(personne.qualite, personne.prenom) : false);
@@ -65,9 +69,10 @@ function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false,
     const personId = personne?.id ?? retour.personneCreee?.id;
     if (retour.succes && personId) {
       const valeur = (champ: string) => String(donnees.get(champ) ?? "").trim() || null;
-      enregistrer({ id: personId, nom: valeur("nom")!, prenom: morale ? null : valeur("prenom"), email: valeur("email"), telephone: valeur("telephone"),
+      const fiche: PersonneBail = { id: personId, nom: valeur("nom")!, prenom: morale ? null : valeur("prenom"), email: valeur("email"), telephone: valeur("telephone"),
         date_naissance: morale ? null : valeur("date_naissance"), commune_naissance: morale ? null : valeur("commune_naissance"), address_line1: valeur("address_line1"),
-        postal_code: valeur("postal_code"), city: valeur("city"), qualite: valeur("qualite") ?? (morale ? "Personne morale" : "Personne physique"), archived_at: null }, retour.avertissement);
+        postal_code: valeur("postal_code"), city: valeur("city"), qualite: valeur("qualite") ?? (morale ? "Personne morale" : "Personne physique"), archived_at: null };
+      if (retour.rattachee && rattacher) rattacher(fiche, retour); else enregistrer(fiche, retour.avertissement);
     }
     return retour;
   });
@@ -84,6 +89,7 @@ function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false,
   return <form data-saisie-confirmee onSubmit={soumettre} className="bail-personne-formulaire space-y-4">
     <p className="font-semibold">{personne ? `Compléter la fiche de ${nom(personne)}` : "Créer une personne"}</p>
     {!personne && <input type="hidden" name="creation_id" value={creationId} />}
+    {!personne && rattachement && <><input type="hidden" name="role" value={rattachement.role} /><input type="hidden" name="principal_attendu" value={rattachement.principalAttendu ?? ""} />{rattachement.garantDe && <input type="hidden" name="garant_de" value={rattachement.garantDe} />}</>}
     {!personne && emailInitial && <p className="text-sm text-muted-foreground">Adresse e-mail reprise de votre recherche.</p>}
     {personnesConnues.length > 0 && reutiliser && <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
       <p className="text-sm font-medium">Cette adresse e-mail figure déjà dans votre annuaire.</p>
@@ -113,13 +119,13 @@ function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false,
     </div>
     <p className="text-xs text-muted-foreground">* Informations nécessaires au dossier. La fiche est aussi disponible dans « Locataires & garants ».</p>
     <Retour etat={etat} />
-    <div className="flex flex-wrap gap-2"><Button type="submit" disabled={enCours || personnesConnues.length > 0}>{enCours ? "Enregistrement…" : personne ? "Enregistrer la fiche" : "Créer cette personne"}</Button><Button type="button" variant="ghost" disabled={enCours} onClick={annuler}>Annuler</Button></div>
+    <div className="flex flex-wrap gap-2"><Button type="submit" disabled={enCours || personnesConnues.length > 0}>{enCours ? "Enregistrement…" : personne ? "Enregistrer la fiche" : rattachement ? (rattachement.role === "garant" ? "Créer et ajouter ce garant" : "Créer et ajouter au bail") : "Créer cette personne"}</Button><Button type="button" variant="ghost" disabled={enCours} onClick={annuler}>Annuler</Button></div>
   </form>;
 }
 
 function ChoisirPersonne({ orgId, bailId, role, personnes, principalId, couvrables, enregistrerLocal, choisir, fermer }: {
   orgId: string; bailId: string; role: Role; personnes: PersonneBail[]; principalId: string | null; couvrables: PersonneBail[];
-  enregistrerLocal: (p: PersonneBail) => void; choisir: (p: PersonneBail) => void; fermer: () => void;
+  enregistrerLocal: (p: PersonneBail) => void; choisir: (p: PersonneBail, retour?: EtatPersonnesBail) => void; fermer: () => void;
 }) {
   const [selection, setSelection] = useState("");
   const [recherche, setRecherche] = useState("");
@@ -131,7 +137,7 @@ function ChoisirPersonne({ orgId, bailId, role, personnes, principalId, couvrabl
   const { etat, enCours, soumettre } = useActionFormulaire<EtatPersonnesBail>(async (precedent, donnees) => {
     if (!personne) return { erreur: "Choisissez une personne." };
     const retour = await choisirPersonneBail(orgId, bailId, precedent, donnees);
-    if (retour.succes) choisir(personne);
+    if (retour.succes) choisir(personne, retour);
     return retour;
   });
   const selectionnerFiche = (p: PersonneBail, message?: string) => {
@@ -139,6 +145,9 @@ function ChoisirPersonne({ orgId, bailId, role, personnes, principalId, couvrabl
   };
   if (nouvelle) return <EditerPersonne orgId={orgId} bailId={bailId} proprietaire={false} garant={role === "garant"}
     existantes={personnes} reutiliser={selectionnerFiche} enregistrer={selectionnerFiche}
+    // Garant de plusieurs locataires : la personne couverte se choisit ensuite, en deux temps comme avant.
+    rattachement={role !== "garant" || couvrables.length === 1 ? { role, principalAttendu: principalId, garantDe: role === "garant" ? couvrables[0].id : undefined } : undefined}
+    rattacher={(p, retour) => { enregistrerLocal(p); choisir(p, retour); }}
     emailInitial={/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recherche.trim()) ? recherche.trim() : ""}
     adresseSource={role === "colocataire" ? couvrables.find(p => p.id === principalId) : undefined}
     annuler={() => personnes.length === 0 ? fermer() : setNouvelle(false)} />;
@@ -182,8 +191,8 @@ export function PersonnesBail({ orgId, bailId, personnes, detentions, participan
   const garants = participants.filter(p => p.role === "garant");
   const enregistrerLocal = (p: PersonneBail) => setLocales(l => [...l.filter(x => x.id !== p.id), p]);
   const actualiser = () => { router.refresh(); notifier?.(); };
-  function selectionner() {
-    setRetour({ succes: ouvert === "garant" ? "Garant ajouté au bail." : "Locataire enregistré." }); actualiser();
+  function selectionner(_p: PersonneBail, resultat?: EtatPersonnesBail) {
+    setRetour({ succes: resultat?.succes ?? (ouvert === "garant" ? "Garant ajouté au bail." : "Locataire enregistré."), avertissement: resultat?.avertissement }); actualiser();
     setOuvert(null);
   }
   async function retirer(ligne: ParticipantBail) {

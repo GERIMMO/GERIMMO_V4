@@ -101,7 +101,7 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
       <div className={styles.annexes}>
         <article className={styles.carte} data-ton={docsBail.error ? undefined : notice ? "ok" : "attention"}>
           <div className={styles.carteEntete}><h4>Notice d’information</h4><span className={styles.etat} data-ton={docsBail.error ? undefined : notice ? "ok" : "attention"}>{docsBail.error ? "Indisponible" : notice ? "Disponible" : "À générer"}</span></div>
-          <p className={styles.obligation}>Obligatoire · Avec le bail</p><p>Les droits et obligations du propriétaire et du locataire. Gerimmo prépare le document.</p>
+          <p className={styles.obligation}>Obligatoire · Avec le bail</p><p>Gerimmo prépare un résumé des droits et obligations. Le texte intégral de la notice fixée par l’arrêté du 29 mai 2015 doit être annexé au bail : <a className="underline" href="https://www.legifrance.gouv.fr/loda/id/JORFTEXT000030649868" target="_blank" rel="noopener noreferrer">texte officiel sur Légifrance</a>.</p>
           {!docsBail.error && <div className={styles.actions}>{notice && <ApercuPieceBail fichier={fichier(notice.id)} titre="Notice d’information" mime="application/pdf"/>}<BoutonGenererDocument orgId={orgId} code="notice" cibleId={bailId} cheminRetour={`${base}/baux/${bailId}`} libelle={notice ? "Actualiser la notice" : "Générer la notice"}/></div>}
         </article>
         <article id="reglement-copro" className={styles.carte} data-ton={erreurReglement ? undefined : fichierReglement ? "ok" : copropriete !== false ? "attention" : undefined}>

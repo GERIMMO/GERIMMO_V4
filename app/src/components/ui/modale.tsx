@@ -145,7 +145,9 @@ export function Modale({
                   {surtitre}
                 </p>
               )}
-              <h3 className="mt-0.5 text-[var(--encre)]">{titre}</h3>
+              {/* Un h2 : la fenêtre s'ouvre sous le h1 de n'importe quel écran, et un h3 y sautait un niveau (axe heading-order,
+                  audit final du 27/10, LOY-08). La taille reste celle du h3 de la charte, 16 px. */}
+              <h2 className="mt-0.5 !text-base text-[var(--encre)]">{titre}</h2>
             </div>
           )}
           {/* Fermeture au doigt : Escape n'existe pas sur mobile et le tap

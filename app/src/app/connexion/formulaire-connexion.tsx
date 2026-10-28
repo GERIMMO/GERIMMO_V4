@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { destinationSure } from "@/lib/destination-sure";
-import { CLE_SESSION_ALERTES } from "@/components/synthese-alertes";
-import { oublierSession } from "@/lib/stockage-session";
+import { CLE_JOUR_ALERTES, CLE_SESSION_ALERTES } from "@/components/synthese-alertes";
+import { oublierLocal, oublierSession } from "@/lib/stockage-session";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,6 +76,7 @@ export function FormulaireConnexion() {
   // ne la rouvrirait jamais (le sessionStorage survit à la déconnexion).
   useEffect(() => {
     oublierSession(CLE_SESSION_ALERTES);
+    oublierLocal(CLE_JOUR_ALERTES);
   }, []);
 
   async function seConnecter(e: React.FormEvent) {

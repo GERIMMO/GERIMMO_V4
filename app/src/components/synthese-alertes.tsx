@@ -1,6 +1,6 @@
 "use client";
 import { cheminFicheAlerte } from "@/lib/chemin-alerte";
-import { afficherEcheance, dateDeReference } from "@/lib/echeances";
+import { afficherEcheance, classeEcheanceSurRang, dateDeReference } from "@/lib/echeances";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -8,7 +8,8 @@ import { Bell } from "lucide-react";
 import { CRITICITES, ORDRE_CRITICITE } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
-import { ecrireSession, lireSession } from "@/lib/stockage-session";
+import { ecrireLocal, ecrireSession, lireLocal, lireSession } from "@/lib/stockage-session";
+import { aujourdhuiParis } from "@/lib/ged";
 import { ModaleAlerte } from "@/app/agence/[orgId]/alertes/modale-alerte";
 import { racineEspace } from "@/lib/racine-espace";
 
@@ -50,6 +51,10 @@ const racineAlerte = (a: Pick<AlerteSynthese, "proprietaire_direct"> | undefined
 // déconnexion tant que l'onglet reste ouvert : la page de connexion le remet
 // à zéro, sinon une reconnexion dans le même onglet n'ouvrirait plus la synthèse.
 export const CLE_SESSION_ALERTES = "gerimmo-synthese-alertes-vue";
+// Le sessionStorage est propre à l'onglet : chaque lien ouvert dans un nouvel onglet rouvrait la synthèse et masquait la
+// page (audit final du 27/10, LOY-21). La fermeture se mémorise aussi pour la journée de Paris, dans le localStorage, que la
+// page de connexion efface comme le premier drapeau : la revue reste due à chaque connexion, pas à chaque onglet.
+export const CLE_JOUR_ALERTES = "gerimmo-synthese-alertes-vue-le";
 
 export function SyntheseAlertes({
   alertes,
@@ -89,11 +94,11 @@ export function SyntheseAlertes({
   useEffect(() => {
     if (ouvertureExaminee.current) return;
     ouvertureExaminee.current = true;
-    if (modeAdmin || alertes.length === 0 || lireSession(CLE_SESSION_ALERTES)) return;
+    if (modeAdmin || alertes.length === 0 || lireSession(CLE_SESSION_ALERTES) || lireLocal(CLE_JOUR_ALERTES) === (aujourdhui ?? aujourdhuiParis())) return;
     // Ouverture différée d'un tick : évite un re-rendu en cascade à l'hydratation
     const minuterie = setTimeout(() => setOuverte(true), 0);
     return () => clearTimeout(minuterie);
-  }, [alertes.length, modeAdmin]);
+  }, [alertes.length, modeAdmin, aujourdhui]);
 
   // Le brief de supervision ouvre cette même synthèse depuis sa priorité
   // « alertes critiques » : un seul détail à maintenir, et un clic utile.
@@ -104,9 +109,12 @@ export function SyntheseAlertes({
   }, []);
 
   const fermer = useCallback(() => {
-    if (!modeAdmin) ecrireSession(CLE_SESSION_ALERTES, "1");
+    if (!modeAdmin) {
+      ecrireSession(CLE_SESSION_ALERTES, "1");
+      ecrireLocal(CLE_JOUR_ALERTES, aujourdhui ?? aujourdhuiParis());
+    }
     setOuverte(false);
-  }, [modeAdmin]);
+  }, [modeAdmin, aujourdhui]);
 
   const triees = [...alertes].sort((a, b) => {
     const parCriticite =
@@ -245,7 +253,7 @@ export function SyntheseAlertes({
                             </span>
                             <span className="flex shrink-0 items-center gap-3">
                               {echeance && (
-                                <span className={`text-[length:var(--pas-appui)] ${echeance.classe}`}>
+                                <span className={`text-[length:var(--pas-appui)] ${classeEcheanceSurRang(echeance, a.criticite === "critique")}`}>
                                   {echeance.texte}
                                 </span>
                               )}

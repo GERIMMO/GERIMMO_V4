@@ -53,7 +53,9 @@ const racineAlerte = (a: Pick<AlerteSynthese, "proprietaire_direct"> | undefined
 export const CLE_SESSION_ALERTES = "gerimmo-synthese-alertes-vue";
 // Le sessionStorage est propre à l'onglet : chaque lien ouvert dans un nouvel onglet rouvrait la synthèse et masquait la
 // page (audit final du 27/10, LOY-21). La fermeture se mémorise aussi pour la journée de Paris, dans le localStorage, que la
-// page de connexion efface comme le premier drapeau : la revue reste due à chaque connexion, pas à chaque onglet.
+// page de connexion efface comme le premier drapeau : la revue reste due à chaque connexion, pas à chaque onglet. La valeur
+// porte le compte (« <compte>:<jour> ») : un autre compte ouvert dans le même navigateur sans passer par la connexion
+// (lien d'invitation, de récupération) voit sa propre synthèse.
 export const CLE_JOUR_ALERTES = "gerimmo-synthese-alertes-vue-le";
 
 export function SyntheseAlertes({
@@ -63,7 +65,10 @@ export function SyntheseAlertes({
   estResponsable = false,
   rappel = false,
   aujourdhui,
+  compteId,
 }: {
+  /** Le compte connecté : la fermeture du jour ne vaut que pour lui. */
+  compteId?: string;
   alertes: AlerteSynthese[];
   /** Date de Paris du serveur (« AAAA-MM-JJ ») : voir `dateDeReference`. */
   aujourdhui?: string;
@@ -94,11 +99,11 @@ export function SyntheseAlertes({
   useEffect(() => {
     if (ouvertureExaminee.current) return;
     ouvertureExaminee.current = true;
-    if (modeAdmin || alertes.length === 0 || lireSession(CLE_SESSION_ALERTES) || lireLocal(CLE_JOUR_ALERTES) === (aujourdhui ?? aujourdhuiParis())) return;
+    if (modeAdmin || alertes.length === 0 || lireSession(CLE_SESSION_ALERTES) || lireLocal(CLE_JOUR_ALERTES) === `${compteId ?? ""}:${aujourdhui ?? aujourdhuiParis()}`) return;
     // Ouverture différée d'un tick : évite un re-rendu en cascade à l'hydratation
     const minuterie = setTimeout(() => setOuverte(true), 0);
     return () => clearTimeout(minuterie);
-  }, [alertes.length, modeAdmin, aujourdhui]);
+  }, [alertes.length, modeAdmin, aujourdhui, compteId]);
 
   // Le brief de supervision ouvre cette même synthèse depuis sa priorité
   // « alertes critiques » : un seul détail à maintenir, et un clic utile.
@@ -111,10 +116,10 @@ export function SyntheseAlertes({
   const fermer = useCallback(() => {
     if (!modeAdmin) {
       ecrireSession(CLE_SESSION_ALERTES, "1");
-      ecrireLocal(CLE_JOUR_ALERTES, aujourdhui ?? aujourdhuiParis());
+      ecrireLocal(CLE_JOUR_ALERTES, `${compteId ?? ""}:${aujourdhui ?? aujourdhuiParis()}`);
     }
     setOuverte(false);
-  }, [modeAdmin, aujourdhui]);
+  }, [modeAdmin, aujourdhui, compteId]);
 
   const triees = [...alertes].sort((a, b) => {
     const parCriticite =

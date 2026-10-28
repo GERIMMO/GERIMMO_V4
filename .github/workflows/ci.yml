@@ -57,6 +57,12 @@ jobs:
       # bloquaient la CI sans rien changer au code en production.
       - name: Vérifier les vulnérabilités connues des dépendances livrées
         run: npm audit --audit-level=high --omit=dev
+      # Audit final du 27/10 (COD-13) : les outils de développement n'étaient jamais audités (six avis restés
+      # inaperçus, dont vitest et body-parser). Avertissement seulement, la décision du 03/10 tient : l'étape
+      # signale un avis modéré ou plus sans bloquer la CI.
+      - name: Signaler les vulnérabilités des outils de développement (avertissement)
+        continue-on-error: true
+        run: npm audit --audit-level=moderate
       # L'exercice de restauration (tests/exercice-restauration.test.ts) lance
       # un vrai pg_dump : le client doit être de la version du serveur (17).
       - name: Client PostgreSQL 17 (même version que le serveur)

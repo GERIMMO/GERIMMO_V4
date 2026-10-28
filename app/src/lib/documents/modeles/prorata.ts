@@ -8,8 +8,7 @@ import {
   cartouches,
   enTete,
   eur,
-  faitA,
-  blocSignatureEmetteur,
+  faitASigne,
   formaterDateFr,
   section,
   tableau,
@@ -18,6 +17,7 @@ import {
 import {
   chargerContexteBail,
   expediteur,
+  expediteurCourrier,
   nomsBailleurs,
   nomsLocataires,
   adresseLogement,
@@ -110,8 +110,7 @@ export function construireProrata(d: DonneesProrata) {
       <p>Le prorata est calculé au réel du mois considéré, au centime le plus proche. Ce décompte
       accompagne l'avis d'échéance ou la quittance du terme concerné.</p>
     </div>
-    ${faitA(f, d.exp.ville, new Date().toISOString())}
-    ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
+    ${faitASigne(f, d.exp.ville, new Date().toISOString(), d.exp.nom, d.signatureImg ?? null)}
   `;
   return assemblerPage({
     f,
@@ -158,7 +157,7 @@ export async function assemblerProrata(
     locatairesNoms: nomsLocataires(f, ctx.locataires),
     logementAdresse: adresseLogement(ctx.lot, ctx.bien),
     referenceBail: referenceCourte("BAIL", ctx.bail.id),
-    exp: expediteur(ctx),
+    exp: expediteurCourrier(ctx),
     signatureImg: await signatureOrganisation(supabase, orgId),
     f,
   });

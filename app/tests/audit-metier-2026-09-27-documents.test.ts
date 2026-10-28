@@ -285,6 +285,8 @@ vi.mock("@/lib/site", async (importOriginal) => ({
 }));
 vi.mock("@/lib/supabase/service", () => ({
   clientDeService: () => ({
+    // Audit final du 27/10 (LOY-17) : la tâche lit le type des organisations pour écrire « bailleur » ou « gestionnaire ».
+    from: () => ({ select: () => ({ in: async () => ({ data: [{ id: "o1", type: "agence" }], error: null }) }) }),
     rpc: async (nom: string, args: { p_note?: string }) => {
       if (nom === "verifier_arret_supervision") return {data:true,error:null};
       if (nom === "relances_loyer_dues")

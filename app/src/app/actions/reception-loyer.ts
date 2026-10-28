@@ -83,11 +83,18 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   const { data: connue, error: erreurConnue } = await lireDerniereRelanceReception(supabase, orgId, ligne);
   if (erreurConnue) return { erreur: "Impossible de vérifier les relances déjà envoyées. Aucun nouvel envoi." };
   if (connue) return { succes: "Une relance de cette échéance a déjà été enregistrée. Consultez le suivi du bail pour la suite." };
-  const { data: bail, error: erreurBail } = await supabase.from("baux").select("locataire_principal").eq("organization_id",orgId).eq("id",ligne.bail_id).maybeSingle();
+  const { data: bail, error: erreurBail } = await supabase.from("baux").select("locataire_principal,lot_id").eq("organization_id",orgId).eq("id",ligne.bail_id).maybeSingle();
   if (erreurBail || !bail?.locataire_principal) return { erreur: "Le destinataire n’a pas pu être vérifié. Aucun message envoyé." };
   const { data: personne, error: erreurPersonne } = await supabase.from("persons").select("email,prenom").eq("organization_id",orgId).eq("id",bail.locataire_principal).maybeSingle();
   const { data: organisation, error: erreurOrganisation } = await supabase.from("organizations").select("name").eq("id",orgId).maybeSingle();
   if (erreurPersonne || erreurOrganisation || !personne?.email?.trim() || !organisation) return { erreur: "Vérifiez l’adresse e-mail du locataire et votre profil avant l’envoi." };
+  // Le bailleur signe, pas le nom du « parc » : les détenteurs du lot, comme la quittance (envoyerQuittance) et les
+  // relances automatiques (audit final du 27/10, LOY-17). Sans détenteur renseigné, le nom de l'espace reste.
+  const { data: detenteurs, error: erreurDetenteurs } = await supabase.from("detentions").select("person:persons(nom,prenom)")
+    .eq("organization_id",orgId).eq("lot_id",bail.lot_id).is("date_fin",null);
+  if (erreurDetenteurs) return { erreur: "Le signataire de la relance n’a pas pu être vérifié. Aucun message envoyé." };
+  const emetteur = (detenteurs ?? []).map(d => { const p = Array.isArray(d.person) ? d.person[0] : d.person; return p ? [p.nom, p.prenom].filter(Boolean).join(" ") : ""; })
+    .filter(Boolean).join(", ") || organisation.name;
   // Même règle que les relances du bail : les colocataires encore engagés reçoivent aussi le courrier.
   const { data: parties, error: erreurParties } = await supabase.from("bail_personnes").select("person_id,date_solidarite_fin")
     .eq("organization_id",orgId).eq("bail_id",ligne.bail_id).eq("role","colocataire");
@@ -108,7 +115,7 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   if (!site || !/^https?:\/\//.test(site)) return { erreur: "L’adresse du site doit être configurée avant d’envoyer une relance." };
   let envoyes = 0;
   for (const destinataire of destinataires.values()) {
-    const message = { niveau: "relance_1" as const, prenom: destinataire.prenom, emetteur: organisation.name, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, totalDu, lien: `${site}/locataire/${orgId}/loyers` };
+    const message = { niveau: "relance_1" as const, prenom: destinataire.prenom, emetteur, proprietaireDirect: true, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, totalDu, lien: `${site}/locataire/${orgId}/loyers` };
     const envoi = await envoyerEmail({ organisation: { db: supabase, id: orgId }, to: destinataire.email,
       subject: sujetRelanceLoyer(message), html: corpsRelanceLoyer(message),
       cleIdempotence: cleRelanceLoyer({ bailId: ligne.bail_id, niveau: "relance_1", dateEcheance: ligne.date_echeance, destinataire: destinataire.email, role: "locataire", reste, totalDu }),

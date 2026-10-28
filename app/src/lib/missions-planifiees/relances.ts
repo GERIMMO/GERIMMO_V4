@@ -123,14 +123,27 @@ export async function traiterRelances(request: Request) {
     return Response.json({ envoyees: 0, echecs: 0 });
   }
 
+  // Chez un propriétaire direct, le courrier parle du bailleur, jamais d'un gestionnaire (audit final du 27/10, LOY-17).
+  // Une lecture pour toute la passe ; une organisation illisible garde le mot « gestionnaire ».
+  const proprietairesDirects = new Set<string>();
+  const { data: organisations } = await supabase
+    .from("organizations")
+    .select("id, type")
+    .in("id", [...new Set(lignes.map((l) => l.organization_id))]);
+  for (const o of (organisations ?? []) as { id: string; type: string | null }[]) {
+    if (o.type === "proprietaire_direct") proprietairesDirects.add(o.id);
+  }
+
   let envoyees = 0;
   const echecs: EchecConsigne[] = [];
   for (const l of lignes) {
+    const proprietaireDirect = proprietairesDirects.has(l.organization_id);
     const courrier = (prenom: string | null) => ({
       subject: sujetRelanceLoyer({ niveau: l.niveau, periode: l.periode }),
       html: corpsRelanceLoyer({
         niveau: l.niveau,
         prenom,
+        proprietaireDirect,
         emetteur: l.emetteur,
         lot: l.lot,
         periode: l.periode,
@@ -194,6 +207,7 @@ export async function traiterRelances(request: Request) {
           subject: sujetInformationCaution({ lot: l.lot }),
           html: corpsInformationCaution({
             emetteur: l.emetteur,
+            proprietaireDirect,
             locataire: l.locataire ?? null,
             lot: l.lot,
             periode: l.periode,

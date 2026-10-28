@@ -140,8 +140,9 @@ test('propriétaire : le bail reprend le lot et permet de créer puis retrouver 
   for (const [champ, valeur] of Object.entries({ nom, prenom:'Camille', email:`${nom.toLowerCase()}@example.invalid`, date_naissance:'1990-01-01', commune_naissance:'Lyon', address_line1:'1 rue des Essais', postal_code:'69003', city:'Lyon' })) {
     await formulaire.locator(`[name="${champ}"]`).fill(valeur);
   }
-  await formulaire.getByRole('button', { name:'Créer cette personne', exact:true }).click();
-  await personnes.getByRole('button', { name:'Utiliser ce locataire', exact:true }).click();
+  // Audit final BAIL-24 (relecture validée, fix-bail_parc/relecture.json et relecture-2.json) : depuis l'assistant, la
+  // fiche est créée ET rattachée au bail en un geste ; plus de « Utiliser ce locataire » à la suite.
+  await formulaire.getByRole('button', { name:'Créer et ajouter au bail', exact:true }).click();
   await expect(personnes.locator('.bail-personnes-locataires')).toContainText(nom);
   await navigation.getByRole('button', { name: /Étape 03 Le logement/ }).click();
   await expect(page.locator('#completer-lot')).toContainText(nomLot);

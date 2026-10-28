@@ -190,7 +190,9 @@ test.describe("Propriétaire direct : l'alias /espace", () => {
       const contenu=await page.request.get(destination.toString());
       expect(contenu.status()).toBe(200);
       expect(contenu.headers()["content-type"]).toContain("application/pdf");
-      expect(contenu.headers()["content-disposition"]).toBe(`attachment; filename*=UTF-8''${encodeURIComponent(`${titre}.pdf`)}`);
+      // Audit final BAIL-11 (relecture validée, fix-bail_parc/relecture.json) : le lien signé du stockage porte un nom ASCII
+      // sûr (nomFichierSur) ; le titre lisible reste celui de la visionneuse et de son bouton (ci-dessus).
+      expect(contenu.headers()["content-disposition"]).toBe(`attachment; filename*=UTF-8''test-d27-document-${titre.slice("TEST D27 document ".length)}.pdf`);
       expect(await contenu.body()).toEqual(pdf);
     } finally {
       await page.close();

@@ -19,8 +19,10 @@ vi.mock("@/app/locataire/[orgId]/documents/depot-signature", () => ({ DepotSigna
 vi.mock("@/components/fenetre-lot", () => ({ FenetreLotProvider: ({ children }: { children: unknown }) => children, BoutonLot: () => null }));
 vi.mock("@/lib/espace", () => ({
   verifierAccesEspaceLocataire: async () => ({
-    personne: { prenom: "Alice" }, adhesionActive: true,
-    supabase: { rpc: async (nom: string) => ({ error: null, data:
+    personne: { id: "alice", prenom: "Alice" }, adhesionActive: true,
+    supabase: {
+      from: () => { const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: null, error: null }) }; return q; },
+      rpc: (nom: string) => { const resultat = Promise.resolve({ error: null, data:
       nom === "mes_pieces_locataire" ? [
         { document_id: "bail-doc", type: "bail", titre: "Bail signé", mime_type: "application/pdf", depose_le: "2026-09-01", expire_le: null, verifie_le: null, source: "bail" },
         { document_id: "att", type: "attestation_assurance", titre: "Attestation habitation", mime_type: "image/jpeg", depose_le: "2026-01-01", expire_le: "2099-01-01", verifie_le: "2026-01-01", source: "dossier" },
@@ -32,7 +34,7 @@ vi.mock("@/lib/espace", () => ({
       ]
       : nom === "mon_bail_locataire" ? [{ bail_id: "bail", etat: "actif", date_debut: "2026-01-01", loyer_hc: 650, charges: 50, document_signe: "bail-doc", lot_nom: "T2", type: "nu" }]
       : nom === "mon_lot_locataire" ? "lot"
-      : [] }) },
+      : [] }); return Object.assign(resultat, { order: () => ({ range: () => resultat }) }); } },
   }),
 }));
 

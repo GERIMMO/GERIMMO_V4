@@ -81,7 +81,7 @@ describe.skipIf(!actif)("X18 — la recherche de la console retrouve un dossier 
 
   afterAll(async () => {
     if (facteur) await superviseur?.auth.mfa.unenroll({ factorId: facteur });
-    await superviseur?.auth.signOut();
+    await superviseur?.auth.signOut({ scope: "local" });
     if (compte) await sql.query("delete from public.audit_log where account_id = $1", [compte]);
     if (org) {
       await sql.query("delete from public.incidents where organization_id = $1", [org]);

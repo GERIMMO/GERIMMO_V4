@@ -38,6 +38,7 @@ import { ChampFichier } from "@/components/champ-fichier";
 import { RACINE_AGENCE, baseDepuisRacine } from "@/lib/racine-espace";
 import { CleEnvoi } from "@/components/cle-envoi";
 import { ConfirmationEncaissement } from "@/components/confirmation-encaissement";
+import { RegularisationFournitures } from "@/components/regularisation-fournitures";
 
 // Les modes de règlement qu'une agence rencontre vraiment. « autre » évite de
 // bloquer quelqu'un sur un cas rare.
@@ -744,6 +745,9 @@ export function FormulaireLoyers({
               </li>
             ))}
           </ul>
+        )}
+        {!chargesForfait && (
+          <RegularisationFournitures orgId={orgId} bailId={bailId} annee={exerciceReg} aujourdhui={aujourdhui ?? aujourdhuiParis()} base={base} onAnneeChange={setAnneeReg} />
         )}
         {!chargesForfait && (
         <form data-saisie-confirmee action={formReg} className="flex flex-wrap items-end gap-2">

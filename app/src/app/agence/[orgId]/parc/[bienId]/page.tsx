@@ -1,3 +1,4 @@
+import { ConsommationsBien } from "@/components/consommations-bien";
 import { bilanDiagnostics } from "@/lib/presentation-diagnostics";
 import Link from "next/link";
 import { IconeTrait } from "@/components/icone-trait";
@@ -289,6 +290,7 @@ export default async function PageBien(
       </header>
 
       <EchecLecture quoi={echecs} />
+      <ConsommationsBien orgId={orgId} bienId={bienId} base={base} lectureSeule={traverseeLectureSeule} />
       <AttentionFiche points={attention} />
 
       {/* LES LOTS D'ABORD, et c'est le correctif de fond du 11/09. Le lot est

@@ -645,6 +645,11 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261028171201` (protection du rattachement des contrats facturés : refuse si des factures existent), puis
+`20261028161844` (détection des dépendances des brouillons), puis `20261028161755` (gardes d’abonnement du patrimoine), puis `20261028161204` (index du patrimoine), puis
+`20261028155855` (décomptes annuels issus des fournitures), puis `20261028154615` (rapprochement des factures avec le journal), puis
+`20261028150004` (recommandés : ferme les nouvelles commandes et conserve les preuves), puis `20261028145948` (assistant privé : ferme les appels et conserve les compteurs), puis
+`20261028143735` (consommations : refuse de supprimer des relevés ou des factures enregistrés), puis `20261028143633` (profils fiscaux), puis `20261028143628` (consentements et confirmation des loyers), puis
 `20261027100000` (alerte d’impayé suivant les encaissements : retire le déclencheur et rend à suivre_impayes_bail sa définition précédente, sans toucher aux alertes), puis `20261026110449` (réceptions durables : refuse si des commandes existent), puis `20261026090335` (rappels de loyers : refuse si des déclarations existent ; encaissements et comptabilité conservés), puis
 `20261025192344` (mois offerts : refuse de perdre un cadeau, retire sa protection de paiement et ses extensions aux gardes), puis
 `20261024105901` (réglages de conservation : refuse de perdre des durées modifiées ; à défaire avant l’activation V1 malgré son horodatage), puis
@@ -1011,3 +1016,7 @@ Remettre le code précédent avant `20261027100100_incident_gerant_bail_explicit
 | Retour | Migration | Condition |
 | --- | --- | --- |
 | `20261027100500_parcours_demarrage_pluriel_baux.retour.sql` | `20261027100500_parcours_demarrage_pluriel_baux.sql` | Non exécuté en production. Remet la définition précédente de `public.parcours_demarrage` (texte « N bailx en cours ») ; aucune donnée touchée. Remettre le code précédent n’est pas nécessaire : la signature est inchangée. |
+
+### Contrats de fourniture facturés — 28 octobre 2026
+
+`20261028171201_historique_contrats_fourniture.retour.sql` retire les deux déclencheurs et leur fonction privée dans un même bloc. Il refuse si une facture existe, sans retirer la protection ni toucher aux données. Sur un module vide, il est rejouable et précède tous les autres retours du patrimoine ; il faut ensuite remettre le code antérieur qui permettait encore de modifier le rattachement ou le type d’un contrat facturé. Le retour ne supprime aucune facture. Les tests de consommations vérifient ce refus et les tests de chaîne des finances vérifient retour vide, rejeu et réinstallation.

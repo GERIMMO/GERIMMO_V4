@@ -1,3 +1,5 @@
+import { lireToutesLesPages } from "@/lib/lecture-complete";
+import type { MonReleveConsommation } from "@/lib/consommations";
 import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { deElide } from "@/lib/elision";
@@ -200,6 +202,9 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   // en clair et avec le geste à côté. Le loyer en retard y prend sa place —
   // il avait sa propre carte plus bas, qui répétait la même chose.
   const aFaire: { cle: string; titre: string; detail: string; href: string; action: string }[] = [];
+  const lectureReleves = await lireToutesLesPages<MonReleveConsommation>((debut, fin) => supabase.rpc("mes_releves_consommation", { p_org: orgId }, { count: "exact" }).order("demande_id").range(debut, fin), r => r.demande_id);
+  const relevesAttendus = (lectureReleves.lignes ?? []).filter((d: { peut_repondre: boolean }) => d.peut_repondre).length;
+  if (lectureReleves.echec || relevesAttendus > 0) aFaire.push({ cle: "releves", titre: lectureReleves.echec ? "Vérifier mes demandes de relevés" : `${relevesAttendus} relevé${relevesAttendus > 1 ? "s" : ""} à transmettre`, detail: lectureReleves.echec ? "Le suivi n’a pas pu être chargé." : "Recopiez l’index de votre compteur ; votre gestionnaire le recevra ici.", href: `/locataire/${orgId}/releves`, action: "Voir mes relevés" });
   if (eCreneaux) {
     // La lecture des rendez-vous a échoué. Ne rien dire ferait croire au
     // locataire qu'on n'attend rien de lui — et le dossier s'arrêterait là,

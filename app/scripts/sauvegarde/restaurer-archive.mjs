@@ -95,6 +95,36 @@ export async function verifierSupportInterne(cible, attendu = false) {
   return { present: true, protections: 'validées' };
 }
 
+/** Les anciennes archives sans consommations restent lisibles. Une archive
+ * portant leurs tables ou RPC doit aussi restaurer leurs fonctions privées.
+ * Contrairement au support, authenticated a volontairement USAGE ici :
+ * les wrappers SQL invoker et les politiques RLS l'exigent. */
+export async function verifierConsommationsInterne(cible, attendu = false) {
+  const present = (await cible.query("select to_regnamespace('consommations_interne') is not null as present")).rows[0].present;
+  if (!present) {
+    const dependant = (await cible.query("select to_regclass('public.compteurs_consommation') is not null or to_regprocedure('public.planifier_releves_consommation()') is not null as present")).rows[0].present;
+    if (attendu || dependant) throw new Error('Le schéma privé des consommations manque dans la restauration.');
+    return { present: false };
+  }
+  const etat = (await cible.query(`select
+    (select count(*) from pg_namespace n where n.nspname='consommations_interne'
+      and (has_schema_privilege('anon',n.oid,'USAGE') or has_schema_privilege('anon',n.oid,'CREATE')
+        or has_schema_privilege('authenticated',n.oid,'CREATE') or not has_schema_privilege('authenticated',n.oid,'USAGE'))) as schema_incorrect,
+    (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname='consommations_interne' and has_function_privilege('anon',p.oid,'EXECUTE')) as fonctions_anonymes,
+    (select count(*) from (values ('garder_rattachement()'),('garder_empreinte_repartition()'),('garder_facture()'),('planifier()')) f(signature)
+      where to_regprocedure('consommations_interne.'||f.signature) is null) as fonctions_manquantes,
+    (select count(*) from (values
+      ('public.compteurs_consommation','conso_rattachement','garder_rattachement()'),
+      ('public.contrats_fourniture','conso_rattachement','garder_rattachement()'),
+      ('public.repartitions_fourniture','conso_empreinte_repartition','garder_empreinte_repartition()'),
+      ('public.factures_fourniture','conso_facture','garder_facture()')) g(cible,nom,fonction)
+      where not exists(select 1 from pg_trigger t where t.tgrelid=to_regclass(g.cible) and t.tgname=g.nom
+        and t.tgenabled in ('O','A') and t.tgfoid=to_regprocedure('consommations_interne.'||g.fonction))) as gardes_manquantes`)).rows[0];
+  if (Object.values(etat).some(n => Number(n) !== 0)) throw new Error('Les protections des consommations restaurées ne sont pas confirmées.');
+  return { present: true, protections: 'validées' };
+}
+
 export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
   verifierPrefixe(prefixe);
   const url = verifierDestination(destination);
@@ -163,6 +193,7 @@ export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
     const manifesteBase = JSON.parse(await fs.readFile(path.join(travail, 'base/restauration-base.json'), 'utf8'));
     const historiqueMigrations = await verifierHistoriqueMigrations(cible, manifesteBase.schemas?.includes('supabase_migrations'));
     const supportInterne = await verifierSupportInterne(cible, manifesteBase.schemas?.includes('support_interne'));
+    const consommationsInterne = await verifierConsommationsInterne(cible, manifesteBase.schemas?.includes('consommations_interne'));
     const objets = (await cible.query('select bucket_id,name from storage.objects')).rows;
     const dansArchive = new Set(manifeste.objets.map(f => `${f.bucket}/${f.nom}`));
     const dansBase = new Set(objets.map(f => `${f.bucket_id}/${f.name}`));
@@ -178,7 +209,7 @@ export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
     }
     return { reussi: true, date: new Date().toISOString(), sauvegarde: prefixe, date_sauvegarde: infoBase.date,
       tables: tables.length, lignes, fichiers: manifeste.objets.length, fichiers_manquants: manquants,
-      octets_base: infoBase.octets, protections: 'validées', historique_migrations: historiqueMigrations, support_interne: supportInterne, taches_planifiees: tachesPlanifiees, duree_secondes: Math.ceil((Date.now() - debut) / 1000),
+      octets_base: infoBase.octets, protections: 'validées', historique_migrations: historiqueMigrations, support_interne: supportInterne, consommations_interne: consommationsInterne, taches_planifiees: tachesPlanifiees, duree_secondes: Math.ceil((Date.now() - debut) / 1000),
       portee: 'Base PostgreSQL et fichiers restaurés localement ; bascule des services Supabase non effectuée. Tâches pg_cron : liste et script de rejeu contrôlés sur un planificateur de façade ; pg_cron et pg_net non activés.' };
   } finally {
     if (cible) await cible.end().catch(() => {});

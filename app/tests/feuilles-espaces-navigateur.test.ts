@@ -11,7 +11,8 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { chromium, type Browser, type Page } from "@playwright/test";
+import { chromium, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { contraste, styleMarque } from "../src/lib/marque-organisation";
 
@@ -35,8 +36,8 @@ describe.skipIf(!chrome)("feuilles de style des espaces (audit #264)", () => {
   beforeAll(async () => { navigateur = await chromium.launch({ executablePath: chrome }); }, 60000);
   afterAll(async () => { await navigateur?.close(); });
 
-  async function ouvrir(largeur: number, hauteur: number, ambiance: boolean): Promise<Page> {
-    const page = await navigateur.newPage({ viewport: { width: largeur, height: hauteur } });
+  async function ouvrir(largeur: number, hauteur: number, ambiance: boolean, contexte?: BrowserContext): Promise<Page> {
+    const page = contexte ? await contexte.newPage() : await navigateur.newPage({ viewport: { width: largeur, height: hauteur } });
     photos = [];
     await page.route("http://localhost/**", route => {
       const chemin = new URL(route.request().url()).pathname;
@@ -132,4 +133,38 @@ describe.skipIf(!chrome)("feuilles de style des espaces (audit #264)", () => {
     expect(photos.filter(p => p.includes("quartier-gerimmo"))).toEqual([]);
     await apres.close();
   });
+  for (const largeur of [390, 1440]) {
+    it(`le texte des loyers reste opaque et contrasté pendant toute l’ouverture de la modale à ${largeur} px`, async () => {
+      const contexte = await navigateur.newContext({ viewport: { width: largeur, height: 950 } });
+      const page = await ouvrir(largeur, 950, false, contexte);
+      try {
+        await page.emulateMedia({ reducedMotion: "no-preference" });
+        await page.addStyleTag({ content: readFileSync(resolve(racine, "src/components/rappels-loyers.module.css"), "utf8") });
+        await page.evaluate(() => {
+          document.body.insertAdjacentHTML("beforeend", `<div id="voile-loyers" style="position:fixed;inset:0;background:rgb(15 35 82 / .35);padding:16px;z-index:100">
+            <div role="dialog" aria-modal="true" aria-label="Loyers à confirmer" style="background:white;color:#14304f;padding:16px;max-width:650px;margin:auto">
+              <section class="carte" aria-labelledby="reception-loyers-titre">
+                <div class="entete"><div><h2 id="reception-loyers-titre">Avez-vous reçu vos loyers ?</h2><p>Confirmez les règlements reçus à l’échéance.</p></div><span class="compteur">2 à confirmer</span></div>
+                <div class="ligne"><div class="resume"><div class="identite"><div class="titreLigne"><b>Appartement fictif</b><strong class="prioritaire">Prioritaire</strong></div><span>Locataire fictif · octobre 2026</span><span class="date">Prévu le 5 octobre 2026</span><span class="arriere">1 autre mois à recevoir sur ce bail</span></div><div class="montant"><strong>520,00 €</strong><span>à recevoir</span><small>100,00 € déjà enregistrés</small><small class="total">1 040,00 € au total</small></div></div><p class="signale">Pas encore reçu · signalé le 10 octobre</p><p class="succes">Réception enregistrée</p></div>
+                <p class="precision">Une confirmation récente est nécessaire avant la prochaine relance automatique.</p>
+              </section>
+            </div></div>`);
+          for (const animation of document.getElementById("voile-loyers")!.getAnimations({ subtree: true })) animation.pause();
+        });
+        for (const progression of [0, .25, .5, 1]) {
+          await page.evaluate(p => {
+            for (const animation of document.getElementById("voile-loyers")!.getAnimations({ subtree: true })) {
+              animation.currentTime = Number(animation.effect!.getComputedTiming().duration) * p;
+            }
+          }, progression);
+          const opacites = await page.locator('#voile-loyers, #voile-loyers > [role="dialog"]').evaluateAll(elements => elements.map(e => getComputedStyle(e).opacity));
+          expect(opacites, `opacité à ${progression * 100} %`).toEqual(["1", "1"]);
+          expect((await new AxeBuilder({ page }).include('[aria-labelledby="reception-loyers-titre"]').withRules(["color-contrast"]).analyze()).violations).toEqual([]);
+        }
+        await page.emulateMedia({ reducedMotion: "reduce" });
+        expect(await page.locator("#voile-loyers").evaluate(e => e.getAnimations({ subtree: true }).length)).toBe(0);
+      } finally { await contexte.close(); }
+    });
+  }
+
 });

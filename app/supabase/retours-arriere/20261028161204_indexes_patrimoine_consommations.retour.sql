@@ -1,0 +1,2 @@
+-- Index de support uniquement : les conserver n'altère aucune donnée ni règle.
+-- Aucun retrait automatique, pour ne pas dégrader les verrous et recherches FK.

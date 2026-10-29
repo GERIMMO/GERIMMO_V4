@@ -658,6 +658,7 @@ describe.skipIf(!DB_URL).each(VARIANTES)("jour de Paris — $nom", (variante) =>
       );
     }
     await db.query("set session_replication_role = origin");
+    await db.query("insert into consentements_documents_locataire(organization_id,person_id,adresse_email,quittances_electroniques) select b.organization_id,p.id,lower(btrim(p.email)),true from baux b join persons p on p.id=b.locataire_principal where b.id=$1",[m.bailCollectif]);
     await agir(null, "service_role");
     const { rows } = await db.query("select quittance_id from public.quittances_a_envoyer(200) where bail_id = $1", [m.bailCollectif]);
     expect(rows).toHaveLength(1);

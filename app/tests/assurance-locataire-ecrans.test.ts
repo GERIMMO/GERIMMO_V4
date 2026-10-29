@@ -9,11 +9,13 @@ vi.mock("@/app/locataire/[orgId]/documents/depot-piece", () => ({ DepotPiece: ()
 vi.mock("@/app/locataire/[orgId]/documents/depot-signature", () => ({ DepotSignature: () => null }));
 vi.mock("@/lib/espace", () => ({
   verifierAccesEspaceLocataire: async () => ({
-    personne: { prenom: "Alice" }, adhesionActive: true,
-    supabase: { rpc: async (nom: string) => ({ error: null, data:
+    personne: { id: "alice", prenom: "Alice" }, adhesionActive: true,
+    supabase: {
+      from: () => { const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: null, error: null }) }; return q; },
+      rpc: (nom: string) => { const resultat = Promise.resolve({ error: null, data:
       nom === "mes_pieces_locataire" ? [{ document_id: "att", type: "attestation_assurance", titre: "Attestation habitation", depose_le: "2026-01-01", expire_le: banc.expire, verifie_le: banc.verifie, source: "dossier" }]
       : nom === "mon_bail_locataire" ? [{ bail_id: "bail", etat: "actif", date_debut: "2026-01-01", loyer_hc: 650, charges: 50 }]
-      : [] }) },
+      : [] }); return Object.assign(resultat, { order: () => ({ range: () => resultat }) }); } },
   }),
 }));
 

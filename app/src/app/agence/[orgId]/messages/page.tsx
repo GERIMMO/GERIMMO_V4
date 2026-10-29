@@ -1,3 +1,4 @@
+import { AssistantPrive } from "@/components/assistant-prive";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -22,7 +23,7 @@ export const metadata = { title: "Messages — Gerimmo" };
 // l'agent ne voit que les fils des locataires de ses mandats.
 export default async function PageMessages(props: PageProps<"/agence/[orgId]/messages">) {
   const { orgId } = await props.params;
-  const { supabase, role } = await verifierAccesEspace(orgId);
+  const { supabase, role, user, traverseeLectureSeule } = await verifierAccesEspace(orgId);
 
   const { data, error } = await supabase.rpc("fils_messages_gerant", { p_org: orgId });
   if (error) {
@@ -55,6 +56,7 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
       ? await supabase.rpc("messages_personne", { p_org: orgId, p_person: conversation.person_id })
       : { data: null, error: null };
     return <MessagerieProprietaire orgId={orgId}
+      assistant={<AssistantPrive key={`${orgId}:${user.id}`} orgId={orgId} compteId={user.id} lectureSeule={traverseeLectureSeule} />}
       fils={fils.map((fil) => conversation?.person_id === fil.person_id && !erreurLecture ? { ...fil, non_lus: 0 } : fil)}
       selection={conversation?.person_id}
       conversation={conversation ? erreurLecture

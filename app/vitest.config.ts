@@ -21,6 +21,14 @@ import { configDefaults, defineConfig } from "vitest/config";
  * `npm test` en local. Le test `tests/execution-en-serie.test.ts` garde cette liste cohérente avec les fichiers.
  */
 export const FICHIERS_EN_SERIE = [
+  "tests/restauration-archive.test.ts",
+  "tests/factures-fourniture-journal-base.test.ts",
+  "tests/patrimoine-finance-retours-base.test.ts",
+  "tests/recommandes-ar24-base.test.ts",
+  "tests/conversation-privee-base.test.ts",
+  "tests/consommations-base.test.ts",
+  "tests/consentements-relances-base.test.ts",
+  "tests/profil-fiscal-base.test.ts",
   // A01/A02 (23/10) : rejeu et retour de 20261023162446, pose complète des gardes, fixture validée (deux sessions).
   "tests/intention-souscription-base.test.ts",
   // Réseau d'artisans choisi par l'artisan (23/10) : rejeu de 20261023180000 et de son retour (index sur artisan_zones,

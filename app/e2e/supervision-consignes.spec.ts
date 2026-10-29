@@ -65,11 +65,15 @@ for(const format of [{nom:'mobile',width:390,height:844,isMobile:true},{nom:'ord
    for(const ecran of [{chemin:'/admin/consignes',titre:'Consignes du dirigeant',nom:'consignes'},{chemin:'/admin/relais',titre:'Vacances et relais',nom:'relais'}]){
     await page.goto(ecran.chemin);
     await expect(page.getByRole('heading',{name:ecran.titre,exact:true})).toBeVisible();
-    await expect(page.locator('main')).not.toContainText('ne peuvent pas être vérifi');
+    // Le rendu diffusé peut conserver un fragment HTML sous <div hidden>.
+    // On contrôle le seul contenu principal exposé à l'utilisateur.
+    const principal=page.getByRole('main');
+    await expect(principal).toHaveCount(1);
+    await expect(principal).not.toContainText('ne peuvent pas être vérifi');
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
     await page.screenshot({path:testInfo.outputPath(`${ecran.nom}-${format.nom}.png`),fullPage:true,animations:'disabled'});
     await page.screenshot({path:testInfo.outputPath(`${ecran.nom}-${format.nom}-premier-ecran.png`),animations:'disabled'});
-    const carte=page.locator('main details').filter({has:page.getByRole('heading',{name:ecran.nom==='consignes'?'Créer une consigne':'Préparer une absence',exact:true})});
+    const carte=principal.locator('details').filter({has:page.getByRole('heading',{name:ecran.nom==='consignes'?'Créer une consigne':'Préparer une absence',exact:true})});
     await carte.locator(':scope > summary').click();
     await carte.screenshot({path:testInfo.outputPath(`${ecran.nom}-${format.nom}-formulaire.png`),animations:'disabled'});
    }

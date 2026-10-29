@@ -52,9 +52,30 @@ async function nomsDesFiches(c: SupabaseClient): Promise<string[]> {
 
 describe.skipIf(!URL || !KEY)("API — isolation multi-agences (RM-A1.7)", () => {
   const clients: SupabaseClient[] = [];
-  afterEach(async () => {
-    await Promise.all(clients.map((c) => c.auth.signOut()));
+  // Les personas servent aussi aux parcours navigateur : le nettoyage ne
+  // révoque que la session créée par ce test, jamais celles des autres suites.
+  async function fermerSessionsDuTest() {
+    await Promise.all(clients.map((c) => c.auth.signOut({ scope: "local" })));
     clients.length = 0;
+  }
+  afterEach(fermerSessionsDuTest);
+
+  it("le nettoyage préserve une autre session du même compte", async () => {
+    const autreSuite = await connecte(ADMIN_A);
+    try {
+      const notreSession = await connecte(ADMIN_A);
+      clients.push(notreSession);
+      const avant = (await autreSuite.auth.getUser()).data.user?.id;
+      expect(avant).toBeTruthy();
+      await fermerSessionsDuTest();
+      expect((await notreSession.auth.getSession()).data.session).toBeNull();
+      const lecture = await autreSuite.auth.getUser();
+      expect(lecture.error).toBeNull();
+      expect(lecture.data.user?.id).toBe(avant);
+      expect((await autreSuite.auth.refreshSession()).error).toBeNull();
+    } finally {
+      await autreSuite.auth.signOut({ scope: "local" });
+    }
   });
 
   it("un visiteur anonyme ne lit aucune table du socle ni du Sprint 1", async () => {

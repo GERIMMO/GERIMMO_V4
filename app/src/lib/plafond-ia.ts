@@ -34,6 +34,8 @@ export const USAGES_IA = {
   article: { libelle: "la rédaction assistée d’un article (console)", arret: "marketing" },
   brief: { libelle: "l’analyse des signaux du brief (console)", arret: null },
   devis: { libelle: "la proposition de devis préparée pour un artisan", arret: null },
+  conversation_privee: { libelle: "la conversation privée avec Gerimmo", arret: null },
+  lecture_document: { libelle: "la lecture assistée d’une facture ou d’un compteur", arret: null },
   atelier: { libelle: "le lancement de l’atelier de corrections (console)", arret: null },
 } as const satisfies Record<string, { libelle: string; arret: string | null }>;
 export type UsageIA = keyof typeof USAGES_IA;
@@ -87,4 +89,17 @@ export function lirePlafondIA(brut: FormDataEntryValue | null): { plafond: numbe
   const lu = lireDecimal(brut);
   if ("erreur" in lu || !Number.isInteger(lu.valeur) || lu.valeur < 0 || lu.valeur > PLAFOND_IA_MAXIMUM) return { erreur };
   return { plafond: lu.valeur };
+}
+
+/** Réservation d’un compte connecté : la base revérifie son adhésion et limite son usage individuel. */
+export async function reserverAppelIAPrive(db: SupabaseClient, orgId: string, usage: "conversation_privee" | "lecture_document"): Promise<void> {
+  let resultat;
+  try { resultat = await db.rpc("reserver_appel_ia_prive", { p_org: orgId, p_usage: usage }); }
+  catch { throw new ErreurIA("L’assistance est momentanément indisponible. Réessayez dans un instant."); }
+  if (resultat.error) throw new ErreurIA("L’assistance est indisponible pour cet espace. Rechargez la page avant de réessayer.");
+  if (resultat.data === "accorde") return;
+  if (resultat.data === "patientez") throw new ErreurIA("Patientez quelques secondes avant une nouvelle demande.");
+  if (resultat.data === "limite_compte") throw new ErreurIA("Vous avez atteint la limite de demandes du jour. Vous pourrez reprendre demain.");
+  if (resultat.data === "plafond") throw new ErreurIA("L’assistance a atteint sa limite du jour. Réessayez demain.");
+  throw new ErreurIA("L’assistance est momentanément indisponible. Aucun appel n’a été effectué.");
 }

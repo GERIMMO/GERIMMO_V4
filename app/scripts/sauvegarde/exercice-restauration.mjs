@@ -42,7 +42,7 @@ import { pathToFileURL } from 'node:url';
 import pg from 'pg';
 import { exporter, extraire, SCHEMAS, verifier } from './base.mjs';
 import { verifierHistoriqueMigrations } from './historique-migrations.mjs';
-import { verifierSupportInterne } from './restaurer-archive.mjs';
+import { verifierConsommationsInterne, verifierSupportInterne } from './restaurer-archive.mjs';
 
 const PRODUCTION = 'rddlxunppddzpsaatdaz';
 const LOCAUX = ['127.0.0.1', 'localhost', '::1'];
@@ -172,6 +172,7 @@ export async function exercer({ source, cible = 'gerimmo_restauration', garder =
       where n.nspname='public' and p.prokind='f' and has_function_privilege('anon',p.oid,'EXECUTE')`))[0]);
     bilan.historique_migrations = await verifierHistoriqueMigrations(cibleClient, true);
     bilan.support_interne = await verifierSupportInterne(cibleClient, SCHEMAS.includes('support_interne'));
+    bilan.consommations_interne = await verifierConsommationsInterne(cibleClient, SCHEMAS.includes('consommations_interne'));
     // D07 : les tâches pg_cron de la source (`cron.job`, hors des schémas sauvegardés) doivent se retrouver dans l'archive.
     const cronPresent = (await lireSource(`select (to_regclass('cron.job') is not null)::text`))[0] === 'true';
     const tachesSource = cronPresent ? Number((await lireSource('select count(*) from cron.job'))[0]) : 0;

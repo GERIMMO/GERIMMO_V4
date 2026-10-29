@@ -49,7 +49,7 @@ describe("vente au consommateur et impayé — fichiers (sans base)", () => {
     expect(RETOUR).toContain(`delete from supabase_migrations.schema_migrations where left(version, 14) = '${VERSION}'`);
   });
 
-  it("manifeste, LISEZ-MOI (ligne et tête de la chaîne « Ordre complet ») et classement en série", () => {
+  it("manifeste, LISEZ-MOI (ligne et ordre relatif dans la chaîne « Ordre complet ») et classement en série", () => {
     const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${NOM}.sql`)).toHaveLength(1);
     expect(manifeste.indexOf(`${NOM}.sql`)).toBeGreaterThan(manifeste.indexOf("20261024090000_versions_conditions_et_archives_comptes.sql"));
@@ -59,8 +59,8 @@ describe("vente au consommateur et impayé — fichiers (sans base)", () => {
     expect(lisezMoi).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
     // Les réglages de conservation se défont avant l'activation V1 malgré leur horodatage plus ancien,
     // puis le plan de conformité suit l'ordre inverse du manifeste.
-    expect(lisezMoi).toMatch(
-      /Ordre complet si tout doit être défait :\s*`20261027100000`[^`]*`20261026110449`[^`]*`20261026090335`[^`]*`20261025192344`[^`]*`20261024105901`[^`]*`20261024150000`[^`]*`20261024140000`[^`]*`20261024130000`[^`]*`20261024120000`[^`]*`20261024110000`[^`]*`20261024100000`[^`]*`20261024090000`[^`]*`20261023184512`/
+    expect(lisezMoi.match(/Ordre complet si tout doit être défait :([\s\S]*?)puis `500000`/)?.[1]).toMatch(
+      /`20261027100000`[^`]*`20261026110449`[^`]*`20261026090335`[^`]*`20261025192344`[^`]*`20261024105901`[^`]*`20261024150000`[^`]*`20261024140000`[^`]*`20261024130000`[^`]*`20261024120000`[^`]*`20261024110000`[^`]*`20261024100000`[^`]*`20261024090000`[^`]*`20261023184512`/
     );
     expect(readFileSync("vitest.config.ts", "utf8")).toContain('"tests/vente-impaye-base.test.ts"');
   });
@@ -140,7 +140,7 @@ describe.skipIf(!url)("vente au consommateur et impayé (avec base)", () => {
     return (await db.query<{ o: boolean }>("select public.org_ecriture_ouverte($1) as o", [org])).rows[0].o;
   }
   async function dues(org: string) {
-    return (await db.query("select * from public.abonnements_a_relancer(500) where organization_id = $1", [org])).rows;
+    return (await db.query("select a.*, a.resiliable_le::text as resiliable_le from public.abonnements_a_relancer(500) a where organization_id = $1", [org])).rows;
   }
   /** Le jour de Paris figé (la fonction est remplacée dans la transaction du cas, annulée ensuite). */
   async function jourDeParis(jour: string) {

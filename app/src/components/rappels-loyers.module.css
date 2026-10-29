@@ -2,7 +2,7 @@
 .entete { display: flex; align-items: center; gap: 14px; padding: 20px 24px; background: #f0f5fa; border-bottom: 1px solid #dce5ef; }
 .icone { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; border-radius: 12px; background: #14304f; color: #f3dfb1; }
 .entete h2 { font-size: 23px; line-height: 1.3; }
-.entete p, .precision, .pied { font-size: 13px; line-height: 1.6; color: #526078; }
+.entete p, .precision, .pied { font-size: 13px; line-height: 1.6; color: #46556d; }
 .entete p { margin-top: 4px; }
 .compteur { margin-left: auto; flex-shrink: 0; border-radius: 999px; padding: 5px 10px; background: #fff; color: #14304f; font-size: 12px; font-weight: 650; }
 .liste { list-style: none; margin: 0; padding: 0; }
@@ -11,17 +11,17 @@
 .resume { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
 .identite { display: flex; flex-direction: column; min-width: 0; gap: 4px; }
 .identite b { font-size: 15px; overflow-wrap: anywhere; }
-.identite span { font-size: 13px; color: #526078; }
+.identite span { font-size: 13px; color: #46556d; }
 .titreLigne { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .titreLigne a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
-.prioritaire { border-radius: 5px; background: #fff0eb; color: #9c341c; padding: 3px 6px; font-size: 11px; font-weight: 650; }
-.identite .arriere { color: #9c341c; font-weight: 600; }
+.prioritaire { border-radius: 5px; background: #fff0eb; color: #872b18; padding: 3px 6px; font-size: 11px; font-weight: 650; }
+.identite .arriere { color: #872b18; font-weight: 600; }
 .montant small.total { color: #14304f; font-weight: 650; }
 .date { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .date svg { flex-shrink: 0; }
 .montant { flex-shrink: 0; text-align: right; display: flex; flex-direction: column; gap: 3px; }
 .montant strong { font-size: 24px; font-variant-numeric: tabular-nums; color: #14304f; }
-.montant span, .montant small { font-size: 12px; color: #526078; }
+.montant span, .montant small { font-size: 12px; color: #46556d; }
 .choix { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
 .choix button { min-height: 44px; }
 .formulaire { margin-top: 15px; padding: 16px; background: #f6f8fb; border: 1px solid #dce5ef; border-radius: 10px; }
@@ -34,7 +34,7 @@
 .gestion summary { cursor: pointer; min-height: 44px; align-content: center; font-size: 13px; font-weight: 600; color: #14304f; }
 .gestion .precision { padding: 12px 0 0; }
 .recommande { margin-top: 16px; padding: 12px 16px; border: 1px solid #dce5ef; border-radius: 10px; background: #f6f8fb; }
-.recommande p { margin-top: 10px; font-size: 13px; line-height: 1.6; color: #526078; }
+.recommande p { margin-top: 10px; font-size: 13px; line-height: 1.6; color: #46556d; }
 .recommande label { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 14px; font-size: 13px; font-weight: 550; }
 .recommande input { width: 90px; min-height: 44px; padding: 9px; background: #fff; border: 1px solid #b6c3d2; border-radius: 7px; font-size: 16px; }
 .confirmationEnvoi { display: flex; align-items: flex-start; gap: 9px; margin-top: 12px; font-size: 13px; line-height: 1.6; }

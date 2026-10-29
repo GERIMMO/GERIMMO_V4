@@ -1,3 +1,4 @@
+import { avecDetenteursAuReel } from "./fixtures/profil-fiscal";
 /**
  * D37 (CHF-01, option B) : le formulaire « Récapitulatif annuel · location nue » préremplit le champ « intérêts d'emprunt » avec le montant
  * que le livre porte en ligne 250. La proposition vient du serveur (elle dépend du lot et de l'année choisis), vérifiée comme la génération :
@@ -70,7 +71,7 @@ function tables(): Record<string, Ligne[]> {
 }
 
 const lire = async (orgId: string, lot: string, annee: string) => {
-  banc.base = baseSimulee(tables());
+  banc.base = baseSimulee(avecDetenteursAuReel(tables()));
   return proposerInteretsEmprunt(orgId, lot, annee);
 };
 const baseCourante = () => banc.base as BaseSimulee;
@@ -78,7 +79,7 @@ const baseCourante = () => banc.base as BaseSimulee;
 beforeEach(() => {
   banc.autorise = true;
   banc.organisationsVerifiees = [];
-  banc.base = baseSimulee(tables());
+  banc.base = baseSimulee(avecDetenteursAuReel(tables()));
 });
 
 describe("D37 : proposition du montant des intérêts d'emprunt", () => {
@@ -94,7 +95,7 @@ describe("D37 : proposition du montant des intérêts d'emprunt", () => {
     const t = tables();
     t.ecritures = t.ecritures.filter((e) => e.id !== "interets");
     t.fiscal_qualifications_ecritures = t.fiscal_qualifications_ecritures.filter((q) => q.ecriture_id !== "interets");
-    banc.base = baseSimulee(t);
+    banc.base = baseSimulee(avecDetenteursAuReel(t));
     expect(await proposerInteretsEmprunt("org", "lot", "2026")).toEqual({ montant: "0", qualifie: false });
   });
 
@@ -113,14 +114,14 @@ describe("D37 : proposition du montant des intérêts d'emprunt", () => {
     const t = tables();
     t.fiscal_qualifications_ecritures = t.fiscal_qualifications_ecritures.filter((q) => q.organization_id !== "org");
     t.ecritures = [];
-    banc.base = baseSimulee(t);
+    banc.base = baseSimulee(avecDetenteursAuReel(t));
     expect(await proposerInteretsEmprunt("org", "lot", "2026")).toEqual({ montant: "0", qualifie: false });
   });
 
   it("une qualification en 250 ramenée à zéro par une annulation est un montant qualifié de 0", async () => {
     const t = tables();
     t.ecritures.push({ ...interets("org", "annulation", "lot", 2345.67, "2026-03-11"), sens: "recette", contre_ecriture_de: "interets" });
-    banc.base = baseSimulee(t);
+    banc.base = baseSimulee(avecDetenteursAuReel(t));
     expect(await proposerInteretsEmprunt("org", "lot", "2026")).toEqual({ montant: "0,00", qualifie: true });
   });
 

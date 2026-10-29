@@ -30,6 +30,10 @@ describe("rappels de loyers : étapes de la relance",()=>{
     const fenetre = renderToStaticMarkup(await RappelsLoyers({ supabase: db as never, orgId: "org" }));
     expect(fenetre).toContain('<h2 id="reception-loyers-titre" class="sr-only">');
   });
+  it("espace la deuxième relance quand la première a été confirmée en retard",()=>{
+    const html=rendre({relances_automatiques:{active:true,premierDelai:5,secondDelai:15},derniere_relance:{niveau:"relance_1",date_envoi:"2026-10-25"}});
+    expect(html).toContain("Prochain point le 04/11/2026");expect(html).not.toContain("Avant la deuxième relance, vérifiez");
+  });
   it("prépare un recommandé avec le délai exigé par le modèle",()=>{
     const html=rendre();expect(html).toContain('data-modele="mise_en_demeure" data-delai="15"');expect(html).toContain("Délai de règlement (jours)");expect(html).toContain('name="reste_attendu" value="600.00"');
   });

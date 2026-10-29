@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
 import { randomUUID } from "node:crypto";
-import { sansSyntheseAlertes, debordementHorizontal } from "./aides";
+import { connecterVers, sansSyntheseAlertes, debordementHorizontal } from "./aides";
 import AxeBuilder from "@axe-core/playwright";
 
 const ORG="3c1d1e95-3570-400b-8012-44530be145b1";
@@ -33,49 +33,51 @@ for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : éc
     await db.query("insert into appels_loyer(id,organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values($1,$3,$4,date_trunc('month',public.aujourdhui_paris()),public.aujourdhui_paris()+1,750,50,800),($2,$3,$4,date_trunc('month',public.aujourdhui_paris())+interval '1 month',public.aujourdhui_paris()+30,750,50,800)",[appel,futur,ORG,bail]);
     await db.query("commit");
     await page.setViewportSize({width:largeur,height:950});await sansSyntheseAlertes(page);
-    await page.goto("/connexion");await page.locator("#email").fill("proprietaire@example.com");await page.locator("#mot-de-passe").fill(process.env.E2E_MOT_DE_PASSE??"Gerimmo-Demo-2026");
-    await page.getByRole("button",{name:"Se connecter",exact:true}).click();await page.waitForURL(/\/espace\//);
+    await connecterVers(page,"proprietaire@example.com",process.env.E2E_MOT_DE_PASSE??"Gerimmo-Demo-2026",`/espace/${ORG}`);
     const bloc=page.getByRole("region",{name:"Avez-vous reçu vos loyers ?"});
+    // D'autres tests peuvent créer leurs propres loyers dans cet espace :
+    // les gestes et le solde portent exclusivement sur notre lot unique.
+    const ligne=bloc.locator("li").filter({has:page.getByRole("link",{name:nom,exact:true})});
     await ouvrirDemandes(page, true);
-    await expect(bloc).toHaveCount(0);
+    await expect(ligne).toHaveCount(0);
     // Le jour prévu est arrivé : la même échéance entre dans le tableau de bord.
     await db.query("update appels_loyer set date_echeance=public.aujourdhui_paris() where id=$1",[appel]);await page.reload();
-    await expect(bloc).toHaveCount(0);
+    await expect(ligne).toHaveCount(0);
     await ouvrirDemandes(page);
-    await expect(bloc).toBeVisible();await expect(bloc).toContainText(nom);await expect(bloc).toContainText("800,00");
+    await expect(bloc).toBeVisible();await expect(ligne).toBeVisible();await expect(ligne).toContainText(nom);await expect(ligne).toContainText("800,00");
     expect(await debordementHorizontal(page)).toBe(0);
     const violations=(await new AxeBuilder({page}).include('[aria-labelledby="reception-loyers-titre"]').analyze()).violations;
     expect(violations).toEqual([]);
     await page.screenshot({path:info.outputPath(`reception-${largeur}.png`),fullPage:true});
-    await bloc.getByRole("button",{name:"Pas encore reçu",exact:true}).click();await bloc.getByRole("button",{name:"Confirmer : pas encore reçu",exact:true}).click();
-    await expect(bloc.getByText(/Pas encore reçu · signalé le/)).toBeVisible();
-    await page.reload();await ouvrirDemandes(page);await expect(bloc.getByText(/Pas encore reçu · signalé le/)).toBeVisible();
+    await ligne.getByRole("button",{name:"Pas encore reçu",exact:true}).click();await ligne.getByRole("button",{name:"Confirmer : pas encore reçu",exact:true}).click();
+    await expect(ligne.getByText(/Pas encore reçu · signalé le/)).toBeVisible();
+    await page.reload();await ouvrirDemandes(page);await expect(ligne.getByText(/Pas encore reçu · signalé le/)).toBeVisible();
     expect((await db.query("select * from encaissements where bail_id=$1",[bail])).rowCount).toBe(0);
-    await bloc.getByRole("button",{name:"Reçu en partie",exact:true}).click();
-    await bloc.getByLabel("Montant reçu (€)",{exact:true}).fill("200");
+    await ligne.getByRole("button",{name:"Reçu en partie",exact:true}).click();
+    await ligne.getByLabel("Montant reçu (€)",{exact:true}).fill("200");
     await fenetreDemandes(page).getByRole("button",{name:"Fermer",exact:true}).click();
     await expect(demandes(page)).toBeFocused();
     await ouvrirDemandes(page);
-    await expect(bloc.getByLabel("Montant reçu (€)",{exact:true})).toHaveValue("200");
-    await bloc.getByRole("button",{name:"Confirmer la réception",exact:true}).click();
-    await expect(bloc).toContainText("600,00");await expect(bloc).toContainText("200,00");
-    await bloc.getByText("Gérer la relance et le recommandé",{exact:true}).click();
-    await expect(bloc).toContainText("Les relances seront disponibles dès demain");
-    await expect(bloc.getByRole("button",{name:"Envoyer la relance par e-mail",exact:true})).toHaveCount(0);
+    await expect(ligne.getByLabel("Montant reçu (€)",{exact:true})).toHaveValue("200");
+    await ligne.getByRole("button",{name:"Confirmer la réception",exact:true}).click();
+    await expect(ligne).toContainText("600,00");await expect(ligne).toContainText("200,00");
+    await ligne.getByText("Gérer la relance et le recommandé",{exact:true}).click();
+    await expect(ligne).toContainText("Les relances seront disponibles dès demain");
+    await expect(ligne.getByRole("button",{name:"Envoyer la relance par e-mail",exact:true})).toHaveCount(0);
     // Le paiement est maintenant en retard : les gestes de relance deviennent disponibles.
     await db.query("update appels_loyer set date_echeance=public.aujourdhui_paris()-1 where id=$1",[appel]);await page.reload();
     await ouvrirDemandes(page);
-    await bloc.getByText("Gérer la relance et le recommandé",{exact:true}).click();
-    await expect(bloc.getByRole("button",{name:"Envoyer la relance par e-mail",exact:true})).toBeVisible();
-    await bloc.getByText("Préparer le recommandé",{exact:true}).click();
-    await expect(bloc.getByLabel("Délai de règlement (jours)",{exact:true})).toHaveValue("15");
-    await bloc.getByLabel("Délai de règlement (jours)",{exact:true}).fill("0");
-    await expect(bloc.getByRole("button",{name:"Générer le recommandé en PDF",exact:true})).toHaveCount(0);
-    await bloc.getByLabel("Délai de règlement (jours)",{exact:true}).fill("15");
-    await expect(bloc.getByRole("button",{name:"Générer le recommandé en PDF",exact:true})).toBeVisible();
-    await expect(bloc.getByRole("link",{name:"Suivre les relances et l’envoi",exact:true})).toHaveAttribute("href",`/espace/${ORG}/baux/${bail}#relances`);
-    await bloc.getByRole("button",{name:"J’ai reçu le reste",exact:true}).click();await bloc.getByRole("button",{name:"Confirmer la réception",exact:true}).click();
-    await expect(bloc).toHaveCount(0);await page.reload();await ouvrirDemandes(page, true);await expect(bloc).toHaveCount(0);
+    await ligne.getByText("Gérer la relance et le recommandé",{exact:true}).click();
+    await expect(ligne.getByRole("button",{name:"Envoyer la relance par e-mail",exact:true})).toBeVisible();
+    await ligne.getByText("Préparer le recommandé",{exact:true}).click();
+    await expect(ligne.getByLabel("Délai de règlement (jours)",{exact:true})).toHaveValue("15");
+    await ligne.getByLabel("Délai de règlement (jours)",{exact:true}).fill("0");
+    await expect(ligne.getByRole("button",{name:"Générer le recommandé en PDF",exact:true})).toHaveCount(0);
+    await ligne.getByLabel("Délai de règlement (jours)",{exact:true}).fill("15");
+    await expect(ligne.getByRole("button",{name:"Générer le recommandé en PDF",exact:true})).toBeVisible();
+    await expect(ligne.getByRole("link",{name:"Suivre les relances et l’envoi",exact:true})).toHaveAttribute("href",`/espace/${ORG}/baux/${bail}#relances`);
+    await ligne.getByRole("button",{name:"J’ai reçu le reste",exact:true}).click();await ligne.getByRole("button",{name:"Confirmer la réception",exact:true}).click();
+    await expect(ligne).toHaveCount(0);await page.reload();await ouvrirDemandes(page, true);await expect(ligne).toHaveCount(0);
     expect((await db.query("select sum(montant)::float montant from encaissements where bail_id=$1",[bail])).rows[0].montant).toBe(800);
     expect((await db.query("select est_quittance from quittances where appel_id=$1",[appel])).rows[0].est_quittance).toBe(true);
   }finally{

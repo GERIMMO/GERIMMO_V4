@@ -8,6 +8,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { abandonnerPieceGed, preparerFichierGed } from "@/lib/ged-depot";
 import { cleQuittance } from "@/lib/cles-idempotence-courriels";
 import { envoyerEmail } from "@/lib/email";
+import { verifierAccordQuittance } from "@/lib/accord-quittance";
 import { corpsQuittance, sujetQuittance } from "@/lib/quittance-email";
 import {
   assemblerQuittanceDelivree,
@@ -84,6 +85,9 @@ export async function envoyerQuittance(
     ? await supabase.from("persons").select("email, nom, prenom").eq("id", bail.locataire_principal).maybeSingle()
     : { data: null };
   if (!loc?.email) return { erreur: "Le locataire n'a pas d'email renseigné." };
+  const accord = await supabase.rpc("quittance_envoi_autorise", { p_org: orgId, p_bail: bailId });
+  if (accord.error) return { erreur: "L’accord du locataire pour l’envoi électronique ne peut pas être vérifié. Aucun envoi effectué." };
+  if (accord.data !== true) return { erreur: "Le locataire n’a pas accepté les quittances électroniques. Il peut choisir ce mode dans ses documents ; en attendant, remettez-lui un exemplaire papier." };
 
   const { data, error: erreurDetail } = await supabase.rpc("quittance_detail", { p_quittance: quittanceId });
   if (erreurDetail)
@@ -134,6 +138,7 @@ export async function envoyerQuittance(
   // reprendrait la quittance non marquée non plus — tant que le service retient
   // la clé (24 h, voir lib/email.ts).
   const envoi = await envoyerEmail({
+    avantEnvoi: () => verifierAccordQuittance(supabase, orgId, bailId, loc.email),
     organisation: { db: supabase, id: orgId },
     to: loc.email,
     cleIdempotence: cleQuittance({ quittanceId, estQuittance: q.est_quittance, montant: q.montant, destinataire: loc.email }),

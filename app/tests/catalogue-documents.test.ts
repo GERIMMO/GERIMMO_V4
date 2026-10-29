@@ -1,3 +1,4 @@
+import { avecDetenteursAuReel } from "./fixtures/profil-fiscal";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { contexte } from "./fixtures/contexte-document";
@@ -37,11 +38,12 @@ function fixture():Record<string,Row[]> {return {
   fiscal_encaissements_composantes:[],
 };}
 function mockDb(tables=fixture(),failure?:string) {
+  tables=avecDetenteursAuReel(tables);
   const calls:{table:string;ops:[string,...unknown[]][]}[]=[];
   const query=(table:string)=>{
     const call={table,ops:[] as [string,...unknown[]][]};calls.push(call);
     const q:Record<string,unknown>={then:(resolve:(x:unknown)=>unknown)=>Promise.resolve({data:tables[table]??[],error:table===failure?{message:"indisponible"}:null}).then(resolve)};
-    for(const op of ["select","eq","is","in","not","or","order","limit","range","gte","lt"]) q[op]=(...args:unknown[])=>{call.ops.push([op,...args]);return q;};
+    for(const op of ["select","eq","is","in","not","or","order","limit","range","gte","lt","lte"]) q[op]=(...args:unknown[])=>{call.ops.push([op,...args]);return q;};
     return q;
   };
   return {db:{from:query,rpc:(nom:string,args:unknown)=>{const q=query(nom);calls[calls.length-1].ops.push(["rpc",args]);return q;}} as unknown as SupabaseClient,calls};
@@ -81,7 +83,7 @@ describe("Catalogue — documents issus des dossiers",()=>{
   });
   it.each(CODES_COMPLEMENTS_GESTION)("assemble %s sans données d’une autre organisation",async code=>{
     const data=fixture();if(code==="recap_fiscal_meuble") data.lots[0].meuble=true;
-    const {db,calls}=mockDb(data);const r=succes(await assemblerComplementGestion(code,db,"org",code==="cloture_mensuelle"?"org":"cible",options));
+    const {db,calls}=mockDb(data);const r=succes(await assemblerComplementGestion(code,db,"org",code==="cloture_mensuelle"?"org":code==="recap_fiscal_nu"?"lot":"cible",options));
     expect(r.document.html).toContain(CATALOGUE_DOCUMENTS.find(m=>m.id===code)!.nom);
     for(const c of calls.filter(c=>!["organizations","artisans","etat_loyers_bail"].includes(c.table))) expect(c.ops).toContainEqual(["eq","organization_id","org"]);
     for(const c of calls.filter(c=>c.table==="etat_loyers_bail")) expect(c.ops).toContainEqual(["rpc",{p_bail:"bail"}]);
@@ -205,7 +207,7 @@ it.skipIf(!process.env.GERIMMO_CATALOGUE_PDF_DIR || !process.env.GERIMMO_CHROME)
   }
   for(const code of CODES_COMPLEMENTS_GESTION){
     const t=fixture();if(code==="recap_fiscal_meuble") t.lots[0].meuble=true;
-    const r=succes(await assemblerComplementGestion(code,mockDb(t).db,"org",code==="cloture_mensuelle"?"org":"cible",options));
+    const r=succes(await assemblerComplementGestion(code,mockDb(t).db,"org",code==="cloture_mensuelle"?"org":code==="recap_fiscal_nu"?"lot":"cible",options));
     const pdf=await rendrePdf(r.document);expect(pdf.length).toBeGreaterThan(10000);writeFileSync(join(dir,`${code}.pdf`),pdf);
   }
 });

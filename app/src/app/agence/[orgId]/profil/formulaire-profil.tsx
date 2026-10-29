@@ -397,7 +397,7 @@ function Formulaire({
           />
           Relancer automatiquement les loyers impayés par e-mail
         </label>
-        {estProprietaire && <p className="text-sm text-muted-foreground">À la seconde relance, le garant est aussi informé si son e-mail est connu. Le recommandé reste à votre initiative.</p>}
+        {estProprietaire && <p className="text-sm text-muted-foreground">Votre confirmation est demandée avant chaque palier. Si la première relance part plus tard, l’écart entre les deux seuils est conservé. À la seconde relance, le garant est aussi informé si son e-mail est connu. Le recommandé reste à votre initiative.</p>}
         <div className="grid gap-3 sm:grid-cols-2">
           <label htmlFor="pr-relance-1" className="text-sm">
             <span className="block text-xs text-muted-foreground">Première relance, jours après l&apos;échéance</span>

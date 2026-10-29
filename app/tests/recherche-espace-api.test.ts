@@ -7,7 +7,7 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL, cle = process.env.NEXT_PUBLIC_
 describe.skipIf(!url || !cle)("Recherche étendue par l’API locale", () => {
   const clients: SupabaseClient[] = [];
   beforeAll(() => { expect(new URL(url!).hostname).toMatch(/^(localhost|127\.0\.0\.1)$/); });
-  afterEach(async () => { for (const c of clients) await c.auth.signOut(); clients.length = 0; });
+  afterEach(async () => { for (const c of clients) await c.auth.signOut({ scope: "local" }); clients.length = 0; });
   it.each(["admin.alpha", "agent.alpha"])("exécute toutes les recherches sans erreur pour %s", async compte => {
     const db = createClient(url!, cle!, { auth: { persistSession: false, autoRefreshToken: false } }); clients.push(db);
     const auth = await db.auth.signInWithPassword({ email: `${compte}@example.com`, password: "Gerimmo-Demo-2026" });

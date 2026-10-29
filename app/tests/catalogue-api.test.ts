@@ -11,7 +11,7 @@ describe.skipIf(!url||!key)("Catalogue — lecture réelle par l’API et les dr
     const {data,error}=await db.auth.signInWithPassword({email:process.env.TEST_ADMIN_A??"admin.alpha@example.com",password:process.env.TEST_MOT_DE_PASSE??"Gerimmo-Demo-2026"});expect(error).toBeNull();
     const org=await db.from("memberships").select("organization_id").eq("account_id",data.user!.id).eq("role","admin_agence").eq("status","active").limit(1).single();expect(org.error).toBeNull();orgId=org.data!.organization_id;
   });
-  afterAll(async()=>{await db?.auth.signOut();});
+  afterAll(async()=>{await db?.auth.signOut({ scope: "local" });});
   it.each(CATALOGUE_DOCUMENTS.filter(m=>Object.hasOwn(MODELES,m.code)))("charge les dossiers compatibles : $nom",async modele=>{
     const cibles=await chargerCiblesCatalogue(db,orgId,modele);
     expect(cibles.choix.length).toBeLessThanOrEqual(50);

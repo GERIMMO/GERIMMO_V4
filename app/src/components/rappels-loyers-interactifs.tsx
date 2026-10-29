@@ -14,6 +14,7 @@ import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { afficherToast } from "@/components/ui/toast";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import styles from "./rappels-loyers.module.css";
+import { RecommandeElectronique } from "./recommande-electronique";
 
 export function RappelsLoyersInteractifs({ orgId, aujourdHui, dus, totalEcheancesDues, lectureSeule, dansFenetre = false }: {
   orgId: string; aujourdHui: string; dus: RappelLoyer[]; prochaine: RappelLoyer | null; totalEcheancesDues: number; lectureSeule: boolean;
@@ -51,9 +52,18 @@ function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, onSucces }: { 
   // Un arriéré de plusieurs mois reste lisible sur la ligne du bail (audit du 27/10, LAT-03). « Prioritaire » suit le
   // seuil de l'alerte d'impayé, critique à partir de deux termes échus.
   const autresMois = Math.max(0, (ligne.dette_bail?.echeances ?? 1) - 1);
+  const suivi = ligne.relances_automatiques;
+  const prochainDelai = ligne.derniere_relance ? suivi?.secondDelai : suivi?.premierDelai;
+  const dateApres = (date: string, jours: number) => new Date(Date.parse(`${date.slice(0,10)}T12:00:00Z`) + jours * 86400000).toISOString().slice(0,10);
+  const dateSeuil = prochainDelai && Number.isInteger(prochainDelai) ? dateApres(ligne.date_echeance,prochainDelai) : null;
+  const dateApresPremiere = suivi && ligne.derniere_relance?.niveau === "relance_1" ? dateApres(ligne.derniere_relance.date_envoi,Math.max(1,suivi.secondDelai-suivi.premierDelai)) : null;
+  const prochaineDate = dateSeuil && dateApresPremiere ? (dateSeuil > dateApresPremiere ? dateSeuil : dateApresPremiere) : dateSeuil;
+  const confirmeAujourdHui = Boolean(ligne.non_recu_signale_le && new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris" }).format(new Date(ligne.non_recu_signale_le)) === aujourdHui && (!ligne.derniere_relance || ligne.derniere_relance.date_envoi < aujourdHui));
+  const doitReconfirmer = suivi?.active && ligne.derniere_relance?.niveau === "relance_1" && prochaineDate && prochaineDate <= aujourdHui;
   const prioritaire = (ligne.dette_bail?.termesEchus ?? 0) >= 2;
   return <li className={styles.ligne}>
     <div className={styles.resume}><div className={styles.identite}><div className={styles.titreLigne}><b><Link href={`/espace/${orgId}/baux/${ligne.bail_id}#loyers`}>{ligne.lot_nom}</Link></b>{prioritaire && <strong className={styles.prioritaire}>Prioritaire</strong>}</div><span>{ligne.locataire ?? "Locataire"} · {moisEnFrancais(ligne.periode.slice(0,7))}</span><span className={styles.date}><CalendarDays size={14} aria-hidden="true" />Prévu le {formaterDate(ligne.date_echeance)}{ligne.date_echeance.slice(0,10) < aujourdHui && " · échéance passée"}</span>{autresMois > 0 && <span className={styles.arriere}>{autresMois === 1 ? "1 autre mois" : `${autresMois} autres mois`} à recevoir sur ce bail</span>}</div><div className={styles.montant}><strong>{eur(reste)}</strong><span>{partiel ? "restant à recevoir" : "à recevoir"}</span>{partiel && <small>{eur(Number(ligne.montant_couvert))} déjà enregistrés</small>}{autresMois > 0 && ligne.dette_bail && <small className={styles.total}>{eur(ligne.dette_bail.reste)} au total</small>}</div></div>
+    {suivi?.active && ligne.derniere_relance?.niveau !== "relance_2" && ligne.derniere_relance?.niveau !== "mise_en_demeure" && prochaineDate && <p className={styles.precision}>{confirmeAujourdHui && prochaineDate <= aujourdHui ? "Confirmation enregistrée. La relance prévue sera préparée avec le solde vérifié au moment de l’envoi." : doitReconfirmer ? "Avant la deuxième relance, vérifiez à nouveau votre compte et confirmez le montant restant." : prochaineDate > aujourdHui ? `Prochain point le ${formaterDate(prochaineDate)}. Aucun envoi automatique avant cette date.` : "Une confirmation récente est nécessaire avant la prochaine relance automatique."}</p>}
     {ligne.non_recu_signale_le && <p className={styles.signale}>Pas encore reçu · signalé le {formaterDate(ligne.non_recu_signale_le)}</p>}
     {!lectureSeule && !etat.termine && <>
       {!choix && <div className={styles.choix}>
@@ -63,7 +73,7 @@ function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, onSucces }: { 
       </div>}
       {choix && <form data-saisie-confirmee onSubmit={soumettre} className={styles.formulaire} aria-label={`Confirmer le loyer de ${ligne.lot_nom}`}>
         <input type="hidden" name="reponse" value={choix} /><input type="hidden" name="cle_envoi" value={cle} /><input type="hidden" name="reste_attendu" value={reste.toFixed(2)} />
-        {choix === "non_recu" ? <p>Gerimmo conservera votre réponse. Ce loyer restera à recevoir ; aucun message ne sera envoyé au locataire.</p> : <>
+        {choix === "non_recu" ? <p>Gerimmo conserve votre réponse. Si vous avez activé les relances automatiques, elle autorise la relance arrivée à échéance. Votre confirmation sera demandée à nouveau avant le palier suivant.</p> : <>
           <p>{choix === "partiel" ? "Indiquez uniquement la somme effectivement reçue." : "Vérifiez la date et le mode de réception avant de confirmer."}</p>
           <div className={styles.champs}>
             <label htmlFor={`${uid}-montant`}>Montant reçu (€)<input id={`${uid}-montant`} name="montant" type="text" inputMode="decimal" required readOnly={choix === "recu"} defaultValue={choix === "recu" ? reste.toFixed(2).replace(".", ",") : ""} /></label>
@@ -120,6 +130,7 @@ function PreparationRecommande({ orgId, ligne }: { orgId: string; ligne: RappelL
     <label htmlFor={`${uid}-delai`}>Délai de règlement (jours)<input id={`${uid}-delai`} type="number" min="1" max="90" step="1" value={delai} onChange={event => setDelai(event.target.value)} aria-describedby={`${uid}-aide`} /></label>
     <p id={`${uid}-aide`}>De 1 à 90 jours. Le PDF récapitule toutes les échéances impayées du bail.</p>
     <div className={styles.choix}>{valide ? <BoutonGenererDocument key={delai} orgId={orgId} code="mise_en_demeure" cibleId={ligne.bail_id} cheminRetour={`/espace/${orgId}`} libelle="Générer le recommandé en PDF" options={{ delai }} /> : <p role="alert">Indiquez un nombre entier de 1 à 90 jours.</p>}</div>
-    <p>Le courrier est à envoyer hors de Gerimmo. Son numéro de suivi et sa première présentation se renseignent dans le bail.</p>
+    <RecommandeElectronique orgId={orgId} bailId={ligne.bail_id} delai={Number(delai)} />
+    <p>Le PDF reste disponible pour un envoi postal. L’envoi électronique demande l’accord du locataire, une connexion AR24 active et votre confirmation du courrier et du coût.</p>
   </details>;
 }

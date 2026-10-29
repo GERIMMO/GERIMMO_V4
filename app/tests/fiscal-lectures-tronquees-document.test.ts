@@ -1,3 +1,4 @@
+import { avecDetenteursAuReel } from "./fixtures/profil-fiscal";
 /**
  * Décision X21 du 14/10/2026 (fiche VER-TS-05), recommandation suivie : le récapitulatif annuel « location nue » d'un lot ne lit
  * plus TOUTES les qualifications et TOUTES les captures de l'organisation. Les deux lectures sont bornées aux pièces du lot et de
@@ -49,7 +50,7 @@ function dossier(): Record<string, Ligne[]> {
     fiscal_exercices_lots: [exercice("lot", 2026, 1)],
   };
 }
-const base = (tables: Record<string, Ligne[]>) => baseSimulee(tables, { plafondLignes: 1000 });
+const base = (tables: Record<string, Ligne[]>) => baseSimulee(avecDetenteursAuReel(tables), { plafondLignes: 1000 });
 const ligne = (recap: Awaited<ReturnType<typeof chargerRecapitulatifNu>>, code: string) => recap.rubriques.find((r) => r.code === code)!;
 const lire = (b: ReturnType<typeof base>, lot = "lot") => chargerRecapitulatifNu(b.client, "org", lot, 2026);
 

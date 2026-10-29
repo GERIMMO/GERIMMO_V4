@@ -202,7 +202,39 @@ describe("Email de quittance : distinguer un envoi refusé d'un envoi déjà par
       est_quittance: true,
     }], error: null };
     conforme = { data: quittanceDocumentComplete(), error: null };
-    banc.rpc.mockImplementation(async (fn: string) => (fn === "quittance_document" ? conforme : detail));
+    banc.rpc.mockImplementation(async (fn: string) => (fn === "quittance_envoi_autorise" ? { data: true, error: null } : fn === "quittance_document" ? conforme : detail));
+  });
+
+  it.each(["retrait", "adresse modifiée", "lecture indisponible"])("envoi manuel : %s après assemblage empêche l'effet", async (changement) => {
+    let prepare = false;
+    banc.rpc.mockImplementation(async (fn: string, args: Record<string, unknown>) => {
+      if (fn === "quittance_envoi_autorise") {
+        if (!args.p_destinataire) return { data: true, error: null };
+        expect(prepare).toBe(true);
+        expect(args.p_destinataire).toBe("locataire@recette.test");
+        return { data: false, error: changement === "lecture indisponible" ? { message: "indisponible" } : null };
+      }
+      if (fn === "quittance_document") { prepare = true; return conforme; }
+      return detail;
+    });
+    const effet = vi.fn();
+    banc.email.mockImplementation(async ({ avantEnvoi }: { avantEnvoi: () => Promise<void> }) => {
+      try { await avantEnvoi(); } catch (e) { return { erreur: (e as Error).message }; }
+      effet(); return {};
+    });
+    const resultat = await envoyerQuittance("org-test", "bail-test", "quittance-test");
+    expect(resultat.erreur).toContain("Aucun envoi effectué");
+    expect(effet).not.toHaveBeenCalled();
+    expect(banc.update).not.toHaveBeenCalled();
+  });
+
+  it("refuse un envoi sans accord et ne transforme pas une erreur de lecture en accord", async () => {
+    banc.rpc.mockResolvedValue({data:false,error:null});
+    expect((await envoyerQuittance("org-test","bail-test","quittance-test")).erreur).toContain("pas accepté");
+    expect(banc.email).not.toHaveBeenCalled();
+    banc.rpc.mockResolvedValue({data:null,error:{message:"indisponible"}});
+    expect((await envoyerQuittance("org-test","bail-test","quittance-test")).erreur).toContain("ne peut pas être vérifié");
+    expect(banc.email).not.toHaveBeenCalled();
   });
 
   it("n'envoie pas une quittance dont l'émetteur n'a pas d'adresse, et dit quoi compléter (27/09)", async () => {

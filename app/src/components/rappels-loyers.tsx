@@ -11,9 +11,11 @@ export async function RappelsLoyers({ supabase, orgId, lectureSeule = false, dan
   const aujourdHui = aujourdhuiParis();
   const rappels = organiserRappelsLoyers(lignes, aujourdHui);
   if (!rappels.dus.length) return null;
+  const reglages = await supabase.from("organizations").select("relances_envoi_auto,relance_1_jours,relance_2_jours").eq("id", orgId).maybeSingle();
+  const suivi = !reglages.error && reglages.data ? { active: reglages.data.relances_envoi_auto === true, premierDelai: reglages.data.relance_1_jours, secondDelai: reglages.data.relance_2_jours } : null;
   const dus = await Promise.all(rappels.dus.map(async ligne => {
     const { data, error } = await lireDerniereRelanceReception(supabase, orgId, ligne);
-    return { ...ligne, derniere_relance: data, historique_relances_disponible: !error };
+    return { ...ligne, relances_automatiques: suivi, derniere_relance: data, historique_relances_disponible: !error };
   }));
   return <RappelsLoyersInteractifs orgId={orgId} aujourdHui={aujourdHui} lectureSeule={lectureSeule} {...rappels} dus={dus} dansFenetre={dansFenetre} />;
 }

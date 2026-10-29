@@ -28,10 +28,11 @@ vi.mock("@/app/actions/documents-generes", () => ({ genererDocument: banc.genere
 vi.mock("@/lib/espace", () => ({
   verifierAccesEspaceLocataire: async () => ({
     supabase: {
-      rpc: async (nom: string) => ({
-        data: banc.donnees[nom] ?? [],
-        error: banc.erreurs[nom] ?? null,
-      }),
+      rpc: (nom: string) => {
+        const resultat = { data: banc.donnees[nom] ?? [], error: banc.erreurs[nom] ?? null, count: Array.isArray(banc.donnees[nom]) ? banc.donnees[nom].length : 0 };
+        const q = { order: () => q, range: () => Promise.resolve(resultat), then: (resolve: (r: typeof resultat) => unknown) => Promise.resolve(resultat).then(resolve) };
+        return q;
+      },
     },
     personne: { prenom: "Claire" },
     adhesionActive: false,

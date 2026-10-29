@@ -9,11 +9,11 @@ for (const chemin of ["/", "/tarifs"]) {
     await page.goto(chemin);
     const offres = page.locator(".offres-grille");
     const montants = () => offres.locator(".offre-prix").allTextContents();
-    expect((await montants()).map(t => Number(t.split("€")[0].trim().replace(",", ".")))).toEqual(FORMULES_PARTICULIER.map(f => f.mensuelCents / 100));
+    expect((await montants()).map(t => Number(t.split("€")[0].replace(/\s/g, "").replace(",", ".")))).toEqual(FORMULES_PARTICULIER.map(f => f.mensuelCents / 100));
     await page.getByRole("button", { name: /Annuel/ }).click();
     await expect(page.getByRole("button", { name: /Annuel/ })).toHaveAttribute("aria-pressed", "true");
     await expect(offres.locator(".offre-periode").first()).toHaveText("Prélevé en une fois pour 12 mois");
-    expect((await montants()).map(t => Number(t.split("€")[0].trim().replace(",", ".")))).toEqual(FORMULES_PARTICULIER.map(f => f.annuelCents / 100));
+    expect((await montants()).map(t => Number(t.split("€")[0].replace(/\s/g, "").replace(",", ".")))).toEqual(FORMULES_PARTICULIER.map(f => f.annuelCents / 100));
     for (const lien of await offres.getByRole("link", { name: "Créer mon compte" }).all()) await expect(lien).toHaveAttribute("href", "/inscription");
     await page.getByRole("button", { name: "Mensuel", exact: true }).click();
     await expect(offres.locator(".offre-periode").first()).toHaveText("Sans engagement");

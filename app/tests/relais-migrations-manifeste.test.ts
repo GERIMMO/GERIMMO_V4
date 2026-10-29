@@ -134,6 +134,8 @@ const MISSION_OCTOBRE = [
   "20261028161755_gardes_abonnement_patrimoine.sql",
   "20261028161844_dependances_suppression_bail.sql",
   "20261028171201_historique_contrats_fourniture.sql",
+  "20261029094312_ar24_consentements_portefeuille_agent.sql",
+  "20261029094905_consommations_portefeuille_immeuble.sql",
 
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */

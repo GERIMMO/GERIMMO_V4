@@ -12,6 +12,9 @@ async function rechargerApresFixture(page:Page){
  await page.reload();
 }
 async function connecter(page:Page,email:string,destination:string){
+ // Les cookies de recette changent hors de l'interface. Ne pas retirer la
+ // session pendant les préchargements du compte précédent dans WebKit.
+ await page.waitForLoadState('networkidle');
  await page.context().clearCookies();await page.goto(`/connexion?suite=${encodeURIComponent(destination)}`);await page.locator('#email').fill(email);await page.locator('#mot-de-passe').fill(process.env.E2E_MOT_DE_PASSE??'Gerimmo-Demo-2026');
  // La connexion remet ce marqueur à zéro à son montage. Le rétablir après
  // la saisie évite un rechargement du tableau de bord encore en préchargement.

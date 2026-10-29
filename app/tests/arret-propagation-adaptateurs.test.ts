@@ -32,7 +32,7 @@ describe("Un arrêt reste distinct d’une erreur fournisseur", () => {
     const create = vi.fn();
     const arret = new ArretSupervision();
     const stripe = protegerClientAutomatique({
-      subscriptions: { retrieve: async () => ({ id: "sub_test", schedule: null, metadata: {} }) },
+      subscriptions: { retrieve: async () => ({ id: "sub_test", schedule: null, metadata: { gerimmo_formule: "solo", gerimmo_unites: "1" }, items: { data: [{ quantity: 1, price: { unit_amount: 599, recurring: { interval: "month" } } }] } }) },
       products: { retrieve: async () => ({ id: "produit_test", active: true }) },
       subscriptionSchedules: { create },
     }, async () => { throw arret; });

@@ -140,6 +140,12 @@ export function periodeSuivante(a: {
   const formule = formuleParCode(a.formule);
   const capacite = a.unites_souscrites ?? formule?.biens ?? null;
   const tarif = formule && capacite ? (offreFormule(formule, capacite, periodicite)?.montantCents ?? null) : null;
+  const annuelCourant = formule && capacite ? offreFormule(formule, capacite, "annuel")?.montantCents : null;
+  // La tâche de facturation exige un nouvel accord pour changer de périodicité
+  // avec une ancienne condition tarifaire : l'avis garde donc ce contrat.
+  if (periodicite === "mensuel" && a.montant_periode_cents !== null && a.montant_periode_cents !== annuelCourant) {
+    return { periodicite: "annuel", montantCents: a.montant_periode_cents };
+  }
   if (periodicite === "mensuel") return { periodicite, montantCents: tarif };
   return { periodicite, montantCents: a.montant_periode_cents ?? tarif };
 }

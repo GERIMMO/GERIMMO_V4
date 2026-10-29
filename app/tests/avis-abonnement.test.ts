@@ -52,13 +52,13 @@ describe("plan du 23/10 (R17) : le montant de la période suivante", () => {
     expect(periodeSuivante({ formule: "bailleur", periodicite_suivante: null, unites_souscrites: 3, montant_periode_cents: 7490 })).toEqual({ periodicite: "annuel", montantCents: 7490 });
   });
   it("montant inconnu en base : le tarif annuel de la formule détenue", () => {
-    expect(periodeSuivante({ formule: "bailleur", periodicite_suivante: null, unites_souscrites: 3, montant_periode_cents: null })).toEqual({ periodicite: "annuel", montantCents: 9990 });
+    expect(periodeSuivante({ formule: "bailleur", periodicite_suivante: null, unites_souscrites: 3, montant_periode_cents: null })).toEqual({ periodicite: "annuel", montantCents: 17700 });
   });
   it("passage au mensuel demandé pour l'échéance : le prix mensuel, et l'avis le dit", () => {
-    const s = periodeSuivante({ formule: "bailleur", periodicite_suivante: "mensuel", unites_souscrites: 3, montant_periode_cents: 9990 });
-    expect(s).toEqual({ periodicite: "mensuel", montantCents: 999 });
+    const s = periodeSuivante({ formule: "bailleur", periodicite_suivante: "mensuel", unites_souscrites: 3, montant_periode_cents: 17700 });
+    expect(s).toEqual({ periodicite: "mensuel", montantCents: 1770 });
     const avis = courrierReconduction({ organisation: "O", echeance: "2026-12-15T10:00:00Z", montantCents: s.montantCents, periodiciteSuivante: s.periodicite, formule: "bailleur", lien: null });
-    expect(avis.html).toMatch(/il se poursuivra ensuite au mois, comme vous l'avez demandé, sans engagement, au prix de <strong>9,99/);
+    expect(avis.html).toMatch(/il se poursuivra ensuite au mois, comme vous l'avez demandé, sans engagement, au prix de <strong>17,70/);
     expect(avis.html).not.toContain("99,90");
     expect(avis.html).not.toContain("Vous pouvez aussi passer au paiement mensuel");
     expect(avis.html).toContain("Date limite de non-reconduction : 14 décembre 2026");
@@ -80,4 +80,9 @@ describe("fin d'essai", () => {
     expect(c.sujet).toContain("11 octobre 2026");
     expect(c.html).toMatch(/5,99/);
   });
+});
+
+
+it("l’avis ne promet pas une hausse de tarif non confirmée sur un ancien abonnement", () => {
+ expect(periodeSuivante({formule:"bailleur",periodicite_suivante:"mensuel",unites_souscrites:3,montant_periode_cents:9990})).toEqual({periodicite:"annuel",montantCents:9990});
 });

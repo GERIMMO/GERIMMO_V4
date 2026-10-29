@@ -546,7 +546,7 @@ describe("A01 — une seule page de paiement par organisation", () => {
   it("une autre formule pendant qu'une page est ouverte : l'ancienne page est expirée chez Stripe avant la nouvelle", async () => {
     etatOrganisation(false);
     const a = await issue(demarrerAbonnement(ORG, {}, souscrire("solo", 599)));
-    const b = await issue(demarrerAbonnement(ORG, {}, souscrire("bailleur", 999)));
+    const b = await issue(demarrerAbonnement(ORG, {}, souscrire("bailleur", 1770)));
     expect(b.url).toBeDefined();
     expect(b.url).not.toBe(a.url);
     expect(ouvertes().map((s) => s.url)).toEqual([b.url]);
@@ -873,4 +873,16 @@ describe("A02 — un Stripe très lent ne fait pas survivre une hausse à son ve
     expect(m.rpc).toHaveBeenCalledWith("abonnement_changements_a_recalculer", { p_org: ORG });
     expect(registre.verrous.size).toBe(0);
   });
+});
+
+
+it("une ancienne condition ne peut programmer une périodicité au nouveau prix sans accord", async () => {
+ etatOrganisation(true);
+ faux.souscription.metadata.gerimmo_formule="bailleur";
+ faux.souscription.metadata.gerimmo_unites="3";
+ faux.souscription.items.data[0].price.unit_amount=999;
+ const fd=new FormData();fd.set("periodicite","annuel");
+ const r=await issue(demanderPeriodicite(ORG,{},fd));
+ expect(r.erreur).toMatch(/tarif actuel est conservé/);
+ expect(m.rpc).not.toHaveBeenCalledWith("demander_periodicite_suivante",expect.anything());
 });

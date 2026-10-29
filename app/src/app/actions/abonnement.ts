@@ -32,6 +32,7 @@ import {
   apercuChangement,
   appliquerHausse,
   libererEcheancierDe,
+  lireDetails,
   offrePour,
   resilierAEcheance,
   type ChoixOffre,
@@ -533,6 +534,21 @@ export async function demanderPeriodicite(
   const verrou = souscription ? await prendreVerrouFacturation(clientDeService(), orgId, "periodicite") : null;
   if (verrou && !verrou.ok) return { erreur: verrou.erreur };
   try {
+    if (reglages.pret && souscription && verrou?.ok) {
+      try {
+        const s = await verrou.proteger(clientStripe(reglages.config)).subscriptions.retrieve(souscription);
+        const payee = lireDetails(s);
+        if (periodicite !== payee.periodicite) {
+          const reference = offrePour("proprietaire_direct", payee.unites ?? 0, payee.periodicite, payee.formule);
+          if (!reference || reference.montantCents !== payee.montantPeriodeCents) {
+            return { erreur: "Votre tarif actuel est conservé. Confirmez d’abord le nouveau tarif dans Mon abonnement avant de changer de périodicité." };
+          }
+        }
+      } catch (e) {
+        if (e instanceof ArretSupervision) throw e;
+        return { erreur: "Le tarif de votre abonnement n’a pas pu être vérifié. Réessayez dans un instant." };
+      }
+    }
     const { error } = await supabase.rpc("demander_periodicite_suivante", {
       p_org: orgId,
       p_periodicite: periodicite,

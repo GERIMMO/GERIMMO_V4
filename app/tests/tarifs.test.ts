@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import {
   FORMULES_PARTICULIER,
+  respectePlancherOffre,
   economieAnnuelleCents,
   estimationProrataCents,
   euros,
@@ -21,14 +22,14 @@ describe("particuliers : la formule la moins chère qui couvre le portefeuille",
     // biens, formule, mensuel, annuel, capacité
     [0, "solo", 599, 5990, 1],
     [1, "solo", 599, 5990, 1],
-    [2, "bailleur", 999, 9990, 3],
-    [3, "bailleur", 999, 9990, 3],
-    [4, "investisseur", 1999, 19990, 10],
-    [10, "investisseur", 1999, 19990, 10],
-    [11, "patrimoine", 2999, 29990, 20],
-    [20, "patrimoine", 2999, 29990, 20],
-    [21, "patrimoine", 3099, 30990, 21],
-    [25, "patrimoine", 3499, 34990, 25],
+    [2, "bailleur", 1770, 17700, 3],
+    [3, "bailleur", 1770, 17700, 3],
+    [4, "investisseur", 5900, 59000, 10],
+    [10, "investisseur", 5900, 59000, 10],
+    [11, "patrimoine", 11800, 118000, 20],
+    [20, "patrimoine", 11800, 118000, 20],
+    [21, "patrimoine", 12390, 123900, 21],
+    [25, "patrimoine", 14750, 147500, 25],
   ] as const)("%i bien(s) → %s, %i c/mois, %i c/an", (n, code, mensuel, annuel, capacite) => {
     const m = offreParticulier(n, "mensuel");
     const a = offreParticulier(n, "annuel");
@@ -39,13 +40,13 @@ describe("particuliers : la formule la moins chère qui couvre le portefeuille",
     expect(m.capacite).toBe(capacite);
   });
 
-  it("exemple de la grille : 25 biens = 34,99 € TTC/mois ou 349,90 € TTC/an", () => {
-    expect(euros(offreParticulier(25, "mensuel").montantCents)).toBe("34,99 €");
-    expect(euros(offreParticulier(25, "annuel").montantCents)).toBe("349,90 €");
+  it("exemple de la grille : 25 biens = 147,50 € TTC/mois ou 1475,00 € TTC/an", () => {
+    expect(euros(offreParticulier(25, "mensuel").montantCents)).toBe("147,50 €");
+    expect(euros(offreParticulier(25, "annuel").montantCents)).toBe("1\u202f475,00 €");
     const l = offreParticulier(25, "annuel").lignes;
     expect(l).toEqual([
-      expect.objectContaining({ produit: "gerimmo_formule_patrimoine", quantite: 1, totalCents: 29990 }),
-      expect.objectContaining({ produit: "gerimmo_bien_supplementaire", quantite: 5, prixUnitaireCents: 1000, totalCents: 5000 }),
+      expect.objectContaining({ produit: "gerimmo_formule_patrimoine", quantite: 1, totalCents: 118000 }),
+      expect.objectContaining({ produit: "gerimmo_bien_supplementaire", quantite: 5, prixUnitaireCents: 5900, totalCents: 29500 }),
     ]);
   });
 
@@ -60,30 +61,30 @@ describe("particuliers : la formule la moins chère qui couvre le portefeuille",
 
   it("une formule plus petite que le portefeuille ne le couvre pas ; une plus grande peut être choisie", () => {
     expect(offreFormule(FORMULES_PARTICULIER[0], 2, "mensuel")).toBeNull();
-    expect(offreFormule(FORMULES_PARTICULIER[2], 2, "mensuel")?.montantCents).toBe(1999);
+    expect(offreFormule(FORMULES_PARTICULIER[2], 2, "mensuel")?.montantCents).toBe(5900);
     expect(formulesCouvrant(2, "mensuel").map((o) => o.formule.code)).toEqual(["bailleur", "investisseur", "patrimoine"]);
     expect(formulesCouvrant(21, "annuel").map((o) => o.formule.code)).toEqual(["patrimoine"]);
   });
 
   it("aucune formule gratuite, même à zéro ou un bien", () => {
-    for (const n of [0, 1]) for (const p of ["mensuel", "annuel"] as const) expect(offreParticulier(n, p).montantCents).toBeGreaterThan(0);
+    for (const n of [0, 4900]) for (const p of ["mensuel", "annuel"] as const) expect(offreParticulier(n, p).montantCents).toBeGreaterThan(0);
   });
 });
 
 describe("agences : barème marginal, jamais le tarif de la dernière tranche sur tout", () => {
   it.each([
-    [0, 3900],
-    [1, 3900],
-    [10, 3900],
-    [11, 4100],
-    [20, 5900],
-    [50, 11900],
-    [51, 12050],
-    [100, 19400],
-    [200, 34400],
-    [201, 34500],
-    [300, 44400],
-    [500, 64400],
+    [0, 4900],
+    [1, 4900],
+    [10, 4900],
+    [11, 5390],
+    [20, 9800],
+    [50, 24500],
+    [51, 24990],
+    [100, 49000],
+    [200, 98000],
+    [201, 98490],
+    [300, 147000],
+    [500, 245000],
   ])("%i lots → %i c HT/mois", (lots, cents) => {
     expect(offreAgence(lots).montantCents).toBe(cents);
   });
@@ -98,16 +99,16 @@ describe("agences : barème marginal, jamais le tarif de la dernière tranche su
 
   it("le détail d'une facture se recalcule à la main", () => {
     expect(offreAgence(300).lignes.map((l) => [l.quantite, l.prixUnitaireCents, l.totalCents])).toEqual([
-      [1, 3900, 3900],
-      [40, 200, 8000],
-      [150, 150, 22500],
-      [100, 100, 10000],
+      [1, 4900, 4900],
+      [40, 490, 19600],
+      [150, 490, 73500],
+      [100, 490, 49000],
     ]);
   });
 
   it("une entrée absurde ne produit ni NaN ni montant négatif", () => {
-    expect(offreAgence(Number.NaN).montantCents).toBe(3900);
-    expect(offreAgence(-4).montantCents).toBe(3900);
+    expect(offreAgence(Number.NaN).montantCents).toBe(4900);
+    expect(offreAgence(-4).montantCents).toBe(4900);
     expect(offreParticulier(Number.NaN, "mensuel").montantCents).toBe(599);
   });
 });
@@ -145,5 +146,23 @@ describe("changements", () => {
     expect(estimationProrataCents(999, 1999, debut, fin, milieu)).toBe(500);
     expect(estimationProrataCents(1999, 999, debut, fin, milieu)).toBe(0); // une baisse ne se proratise pas
     expect(estimationProrataCents(999, 1999, debut, fin, fin + 1)).toBe(0);
+  });
+});
+
+
+describe("plancher commercial après remise", () => {
+  it("reste au-dessus de 4,90 pour chaque capacité, offre, période et supplément", () => {
+    for (let n=0;n<=1000;n++) {
+      for (const periode of ["mensuel","annuel"] as const) {
+        for (const offre of formulesCouvrant(n,periode)) expect(respectePlancherOffre(offre)).toBe(true);
+      }
+      expect(respectePlancherOffre(offreAgence(n))).toBe(true);
+    }
+  });
+  it("refuse un centime sous le plancher annuel et accepte sa borne exacte", () => {
+    const offre=offreParticulier(1,"annuel");
+    expect(respectePlancherOffre({...offre,montantCents:5880})).toBe(true);
+    expect(respectePlancherOffre({...offre,montantCents:5879})).toBe(false);
+    expect(respectePlancherOffre({...offre,montantCents:NaN})).toBe(false);
   });
 });

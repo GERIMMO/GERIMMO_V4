@@ -1028,3 +1028,7 @@ Remettre le code précédent avant `20261027100100_incident_gerant_bail_explicit
 `20261029094312_ar24_consentements_portefeuille_agent.retour.sql` conserve les politiques, le déclencheur et les gardes des RPC : les retirer réouvrirait les courriers et accords hors mandat. Aucune donnée n’est modifiée. Un retour du module complet retire ses tables et leurs protections ensemble.
 
 `20261029094905_consommations_portefeuille_immeuble.retour.sql` conserve la restriction des objets de consommation rattachés au bâtiment : seuls les rôles de gestion globale les consultent et les traitent. Le retour ne réouvre aucun accès à un agent partiellement mandaté. La fonction privée est retirée avec le module vide selon sa procédure de retour.
+
+### 20261029115616 — Plancher tarifaire
+
+La grille du 29 octobre et ses contraintes protègent le minimum de 4,90 par bien/mois après remise. Aucun abonnement existant n’est réécrit. Le retour fourni refuse un rétablissement automatique des anciens prix : préparer explicitement la grille de remplacement et les preuves de consentement avant tout autre prix.

@@ -188,8 +188,8 @@
   .public-conteneur, .public-navigation-interieur { width: calc(100% - 36px); }
   .public-navigation-interieur { min-height: 76px; gap: 12px; }
   .gerimmo-prestige .public-navigation .marque-gerimmo { width: 60px; }
-  .public-acces .public-connexion { display: none; }
-  .gerimmo-prestige .public-inscription { font-size: 12px; padding: 10px 12px; }
+  .public-acces .public-connexion { display: inline-flex; padding-inline: 12px; border: 1px solid #dce2e9; border-radius: 7px; white-space: nowrap; }
+  .gerimmo-prestige .public-inscription { display: none; }
   .public-menu-mobile nav { padding-inline: 18px; }
   .public-hero-grille { padding-top: 22px; gap: 22px; }
   .public-hero h1 { margin-block: 19px 22px; }

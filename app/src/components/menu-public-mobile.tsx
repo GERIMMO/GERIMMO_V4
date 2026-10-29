@@ -20,6 +20,7 @@ export function MenuPublicMobile({ liens }: { liens: readonly (readonly [string,
         {liens.map(([href, titre]) => <Link key={href} href={href}>{titre}</Link>)}
         <Link href="/#espaces">Les espaces Gerimmo</Link>
         <Link href="/connexion">Se connecter</Link>
+        <Link href="/inscription">Créer mon compte</Link>
       </nav>
     </details>
   );

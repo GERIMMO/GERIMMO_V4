@@ -645,6 +645,8 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261029094905` (conserve la restriction des charges communes d’immeuble, sans retirer les données), puis
+`20261029094312` (conserve les protections du portefeuille, sans retirer les données), puis
 `20261028171201` (protection du rattachement des contrats facturés : refuse si des factures existent), puis
 `20261028161844` (détection des dépendances des brouillons), puis `20261028161755` (gardes d’abonnement du patrimoine), puis `20261028161204` (index du patrimoine), puis
 `20261028155855` (décomptes annuels issus des fournitures), puis `20261028154615` (rapprochement des factures avec le journal), puis
@@ -1020,3 +1022,9 @@ Remettre le code précédent avant `20261027100100_incident_gerant_bail_explicit
 ### Contrats de fourniture facturés — 28 octobre 2026
 
 `20261028171201_historique_contrats_fourniture.retour.sql` retire les deux déclencheurs et leur fonction privée dans un même bloc. Il refuse si une facture existe, sans retirer la protection ni toucher aux données. Sur un module vide, il est rejouable et précède tous les autres retours du patrimoine ; il faut ensuite remettre le code antérieur qui permettait encore de modifier le rattachement ou le type d’un contrat facturé. Le retour ne supprime aucune facture. Les tests de consommations vérifient ce refus et les tests de chaîne des finances vérifient retour vide, rejeu et réinstallation.
+
+## Recommandés et accords dans le portefeuille de l’agent — 29 octobre 2026
+
+`20261029094312_ar24_consentements_portefeuille_agent.retour.sql` conserve les politiques, le déclencheur et les gardes des RPC : les retirer réouvrirait les courriers et accords hors mandat. Aucune donnée n’est modifiée. Un retour du module complet retire ses tables et leurs protections ensemble.
+
+`20261029094905_consommations_portefeuille_immeuble.retour.sql` conserve la restriction des objets de consommation rattachés au bâtiment : seuls les rôles de gestion globale les consultent et les traitent. Le retour ne réouvre aucun accès à un agent partiellement mandaté. La fonction privée est retirée avec le module vide selon sa procédure de retour.

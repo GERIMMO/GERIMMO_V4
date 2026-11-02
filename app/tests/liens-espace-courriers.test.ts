@@ -187,7 +187,9 @@ describe("avis de reconduction de l'abonnement", () => {
 describe("avis de fin d'essai (webhook Stripe « trial_will_end »)", () => {
   for (const p of PROFILS_COURRIER) {
     it(`${p.nom} : ${p.attendu}/abonnement`, async () => {
-      const finEssai = Math.floor(Date.parse("2026-11-01T00:00:00Z") / 1000);
+      // Trois jours devant : l'avis ne part que pour un essai qui n'est pas déjà terminé (une date figée au 1er novembre
+      // 2026 a fait tomber ce test dès le 2 novembre).
+      const finEssai = Math.floor(Date.now() / 1000) + 3 * 86400;
       const souscription = {
         id: "sub_test", customer: "cus_test", status: "trialing", trial_end: finEssai, metadata: {},
         items: { data: [{ quantity: 1, price: { unit_amount: 1200, recurring: { interval: "month" } } }] },

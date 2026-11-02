@@ -55,6 +55,8 @@ vi.mock("@/app/agence/[orgId]/baux/[bailId]/documents-parcours-bail", () => ({ D
 vi.mock("@/app/agence/[orgId]/baux/[bailId]/recapitulatif-parcours-bail", () => ({ RecapitulatifParcoursBail: () => null }));
 // Le suivi AR24 est un composant serveur asynchrone, testé séparément en navigateur.
 vi.mock("@/components/historique-recommandes", () => ({ HistoriqueRecommandes: () => null }));
+// Plan d'apurement (02/11) : composant serveur asynchrone, hors du périmètre de ce test (rendu statique synchrone).
+vi.mock("@/components/plan-apurement-bail", () => ({ PlanApurementBail: () => null }));
 vi.mock("@/lib/actions-attendues", () => ({ actionsAttendues: async () => [] }));
 vi.mock("@/app/agence/[orgId]/baux/[bailId]/verifier-dossier", () => ({
   verifierDossierBail: async () => ({ manquants: [] }),

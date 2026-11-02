@@ -7,7 +7,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { estUuid } from "@/lib/identifiants";
 import { resoudreDepotsFormulaire } from "@/lib/depot-direct";
 import { deposerFichierGed } from "@/lib/ged-depot";
-import { saisieCompteur, saisieContrat, saisieFacture, texteConso, dateConso } from "@/lib/saisie-consommations";
+import { saisieCompteur, saisieContrat, saisieFacture, saisieTaxeFonciere, texteConso, dateConso } from "@/lib/saisie-consommations";
 import { indexEnMillUnites } from "@/lib/consommations";
 import { lireCollectionConsommations } from "@/lib/lecture-consommations";
 
@@ -102,6 +102,57 @@ export async function enregistrerConsommation(orgId: string, bienId: string, lot
       }
       const { error } = await supabase.from("factures_fourniture").insert({ ...saisie, organization_id: orgId, contrat_id: contrat, document_id: docId });
       if (error) return { erreur: sansJargon(error.message), ...reprise };
+    } else if (action === "taxe_fonciere") {
+      // Avis de taxe foncière (02/11/2026) : une saisie, deux usages. La ligne TEOM (et ses frais de gestion)
+      // devient une facture du contrat « TEOM » du bâtiment, répartissable entre les locataires comme les autres
+      // charges ; le reste de l'avis — taxe foncière proprement dite, non récupérable — part en écriture de dépense,
+      // que le récapitulatif fiscal classe en ligne 227 (taxe foncière hors TEOM).
+      if (lotId) return { erreur: "L’avis de taxe foncière se saisit depuis la fiche du bien, pas d’un logement." };
+      const saisie = saisieTaxeFonciere(f, Number(aujourdhuiParis().slice(0, 4)));
+      const bienNom = await supabase.from("biens").select("nom").eq("id", bienId).eq("organization_id", orgId).maybeSingle();
+      let contratId: string | null = null;
+      const existant = await supabase.from("contrats_fourniture").select("id").eq("organization_id", orgId).eq("bien_id", bienId).is("lot_id", null).eq("categorie", "teom").eq("actif", true).order("created_at").limit(1).maybeSingle();
+      if (existant.error) return { erreur: "Le contrat TEOM du bien n’a pas pu être vérifié. Réessayez." };
+      contratId = existant.data?.id ?? null;
+      if (!contratId) {
+        const cree = await supabase.from("contrats_fourniture").insert({ organization_id: orgId, bien_id: bienId, lot_id: null, fournisseur: "Trésor public · taxe foncière", categorie: "teom", periodicite_mois: 12, preavis_jours: 0 }).select("id").single();
+        if (cree.error || !cree.data) return { erreur: `Le contrat TEOM du bien n’a pas pu être créé : ${sansJargon(cree.error?.message ?? "")}` };
+        contratId = cree.data.id;
+      }
+      const deja = await supabase.from("factures_fourniture").select("id").eq("organization_id", orgId).eq("contrat_id", contratId).eq("reference", saisie.reference).maybeSingle();
+      if (deja.data) return { erreur: `L’avis ${saisie.reference} est déjà enregistré pour ce bien.` };
+      let docId = id(f, "document_id", true);
+      if (!docId) {
+        const e = await resoudreDepotsFormulaire(supabase, f); if (e) return { erreur: e };
+        const fichier = f.get("document");
+        if (!(fichier instanceof File) || !fichier.size) return { erreur: "Joignez l’avis de taxe foncière." };
+        const dep = await deposerFichierGed(supabase, user, orgId, fichier, "justificatif", saisie.reference);
+        if (!dep.documentId && !dep.doublonId) return { erreur: dep.erreur ?? "Le document n’a pas pu être enregistré." };
+        docId = dep.documentId ?? dep.doublonId!;
+      }
+      const document = await supabase.from("documents").select("id,empreinte").eq("organization_id", orgId).eq("id", docId).is("purged_at", null).maybeSingle();
+      if (document.error || !document.data) return { erreur: "Ce justificatif n’est pas accessible dans ce dossier." };
+      const reprise = { documentId: docId, documentEmpreinte: document.data.empreinte as string };
+      const logements = await lireCollectionConsommations<{ id: string }>((debut, fin) => supabase.from("lots").select("id", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", bienId).order("id").range(debut, fin));
+      if (logements.error) return { erreur: "Le document est conservé, mais les logements n’ont pas pu être vérifiés. Réessayez.", ...reprise };
+      if (logements.data.length) {
+        const liens = await supabase.from("document_liens").upsert(logements.data.map(l => ({ organization_id: orgId, document_id: docId, entite: "lot", entite_id: l.id })), { onConflict: "document_id,entite,entite_id", ignoreDuplicates: true });
+        if (liens.error) return { erreur: `Le document est conservé, mais son classement dans le bien a échoué : ${sansJargon(liens.error.message)}`, ...reprise };
+      }
+      if (saisie.teom_cents + saisie.frais_gestion_cents > 0) {
+        const facture = await supabase.from("factures_fourniture").insert({ organization_id: orgId, contrat_id: contratId, document_id: docId, reference: saisie.reference,
+          periode_debut: `${saisie.annee}-01-01`, periode_fin: `${saisie.annee}-12-31`, total_cents: saisie.teom_cents + saisie.frais_gestion_cents, frais_fixes_cents: 0, frais_gestion_cents: saisie.frais_gestion_cents });
+        if (facture.error) return { erreur: sansJargon(facture.error.message), ...reprise };
+      }
+      if (saisie.proprietaire_cents > 0) {
+        const ecriture = await supabase.from("ecritures").insert({ organization_id: orgId, categorie: "Taxe foncière", sens: "depense", montant: saisie.proprietaire_cents / 100,
+          date_piece: aujourdhuiParis(), libelle: `${saisie.reference} (hors TEOM) · ${bienNom.data?.nom ?? "bien"}`, lot_id: null });
+        if (ecriture.error) return { erreur: `La part TEOM est enregistrée, mais l’écriture de taxe foncière a échoué : ${sansJargon(ecriture.error.message)}`, ...reprise };
+      }
+      actualiser(orgId);
+      return { succes: saisie.teom_cents + saisie.frais_gestion_cents > 0
+        ? `Avis enregistré : ${(saisie.teom_cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" })} de TEOM à répartir entre les locataires, le reste en charge déductible du propriétaire.`
+        : "Avis enregistré en charge déductible du propriétaire (aucune TEOM à répercuter)." };
     } else if (action === "releve" && cible) {
       const valeur = texteConso(f, "index").replace(",", "."); indexEnMillUnites(valeur);
       erreur = (await supabase.rpc("enregistrer_releve_compteur", { p_org: orgId, p_compteur: cible, p_index: valeur, p_date: dateConso(texteConso(f, "date")) })).error;

@@ -12,6 +12,7 @@ import { ApercuDocumentEspace } from "./apercu-document-espace";
 import { usePhotoConsommation } from "@/lib/use-photo-consommation";
 import { comparerFactureReleves, debutFactureSuivante } from "@/lib/rapprochement-fourniture";
 import { eur, formaterDate } from "@/lib/ged";
+import { lireMontantFacultatif } from "@/lib/saisie-montant";
 import { TYPES_COMPTEUR, CATEGORIES_FOURNITURE, consommationEntre, type CompteurConsommation, type ContratFourniture, type FactureFourniture, type DemandeReleve, type ReleveConsommation } from "@/lib/consommations";
 import styles from "./consommations.module.css";
 
@@ -37,7 +38,7 @@ function Form({ p, action, id, children, titre = "Enregistrer", fini, extra, blo
 function prochaineDate(date: string) { const d = new Date(`${date}T12:00:00Z`); d.setUTCMonth(d.getUTCMonth() + 1, 1); return d.toISOString().slice(0, 10); }
 
 export function FormulairesConsommations(p: Props) {
-  const [ajout, setAjout] = useState<"compteur" | "contrat" | null>(null);
+  const [ajout, setAjout] = useState<"compteur" | "contrat" | "taxe_fonciere" | null>(null);
   const [suggestion, setSuggestion] = useState<SuggestionCompteur | undefined>();
   const [message, setMessage] = useState("");
   const actifs = p.compteurs.filter(c => c.actif), contrats = p.contrats.filter(c => c.actif);
@@ -49,9 +50,9 @@ export function FormulairesConsommations(p: Props) {
     {contrats.map(c => <Contrat key={c.id} p={p} c={c} />)}
     {!p.lectureSeule && <>
       {p.suggestions.length > 0 && !ajout && <details><summary className={styles.muted}>Reprendre un compteur de l’état des lieux ({p.suggestions.length})</summary><div className={styles.list}>{p.suggestions.map((s, i) => <Button key={i} type="button" variant="outline" onClick={() => { setSuggestion(s); setAjout("compteur"); }}>{s.type.replaceAll("_", " ")} · {s.numero || "sans numéro"} · {s.index}</Button>)}</div></details>}
-      {!ajout ? <div className={styles.actions}><Button type="button" size="sm" variant="outline" onClick={() => { setMessage(""); setAjout("compteur"); }}>Ajouter un compteur</Button><Button type="button" size="sm" variant="outline" onClick={() => { setMessage(""); setAjout("contrat"); }}>Ajouter un contrat ou une charge</Button></div> : <>
-        <div className={styles.line}><h3>{ajout === "compteur" ? "Nouveau compteur" : "Nouveau contrat ou charge"}</h3><Button type="button" variant="ghost" onClick={() => setAjout(null)}>Annuler</Button></div>
-        {ajout === "compteur" ? <Form p={p} action="compteur" fini={terminer}><ChampsCompteur p={p} suggestion={suggestion} /></Form> : <Form p={p} action="contrat" fini={terminer}><ChampsContrat p={p} /></Form>}
+      {!ajout ? <div className={styles.actions}><Button type="button" size="sm" variant="outline" onClick={() => { setMessage(""); setAjout("compteur"); }}>Ajouter un compteur</Button><Button type="button" size="sm" variant="outline" onClick={() => { setMessage(""); setAjout("contrat"); }}>Ajouter un contrat ou une charge</Button>{!p.lotId && <Button type="button" size="sm" variant="outline" onClick={() => { setMessage(""); setAjout("taxe_fonciere"); }}>Saisir l’avis de taxe foncière</Button>}</div> : <>
+        <div className={styles.line}><h3>{ajout === "compteur" ? "Nouveau compteur" : ajout === "taxe_fonciere" ? "Avis de taxe foncière" : "Nouveau contrat ou charge"}</h3><Button type="button" variant="ghost" onClick={() => setAjout(null)}>Annuler</Button></div>
+        {ajout === "compteur" ? <Form p={p} action="compteur" fini={terminer}><ChampsCompteur p={p} suggestion={suggestion} /></Form> : ajout === "taxe_fonciere" ? <AvisTaxeFonciere p={p} fini={terminer} /> : <Form p={p} action="contrat" fini={terminer}><ChampsContrat p={p} /></Form>}
       </>}
     </>}
     {(p.compteurs.some(c => !c.actif) || p.contrats.some(c => !c.actif)) && <details><summary className={styles.muted}>Historique des compteurs et contrats arrêtés</summary>{p.compteurs.filter(c => !c.actif).map(c => <Compteur key={c.id} p={{ ...p, lectureSeule: true }} c={c} />)}{p.contrats.filter(c => !c.actif).map(c => <Contrat key={c.id} p={p} c={c} />)}</details>}
@@ -148,6 +149,34 @@ function NouvelleFacture({ p, c, derniere, fini }: { p: Props; c: ContratFournit
     {c.categorie === "teom" && <p className={styles.caption}>Recopiez uniquement la ligne « taxe d’enlèvement des ordures ménagères » et ses frais de gestion. Le total de l’avis foncier ne sera pas repris automatiquement.</p>}
     <div className={styles.fields}><Champ titre="Référence de la facture"><input name="reference" required maxLength={150} {...champ("reference")} /></Champ><Champ titre={c.categorie === "teom" ? "Montant TEOM (€), hors autres taxes" : "Total TTC (€)"}><input name="total" inputMode="decimal" required {...champ("total")} /></Champ><Champ titre="Période du"><input type="date" name="periode_debut" required {...champ("periode_debut")} /></Champ><Champ titre="Au"><input type="date" name="periode_fin" required {...champ("periode_fin")} /></Champ></div>
     <details open={lectureAppliquee}><summary>Consommation, abonnement et paiement</summary><div className={styles.fields}>{c.categorie === "gaz" && <Champ titre="Unité indiquée sur la facture"><select name="unite_consommation" {...champ("unite_consommation")}><option value="">À vérifier sur la facture</option><option value="m3">m³</option><option value="kwh">kWh</option></select></Champ>}<Champ titre="Consommation facturée (unité du compteur)"><input name="consommation" inputMode="decimal" {...champ("consommation")} /></Champ><Champ titre="Dont abonnement / frais fixes (€)"><input name="frais_fixes" inputMode="decimal" {...champ("frais_fixes")} /></Champ>{c.categorie === "teom" && <Champ titre="Dont frais de gestion (€)"><input name="frais_gestion" inputMode="decimal" {...champ("frais_gestion")} /></Champ>}<Champ titre="À payer avant le"><input name="date_echeance" type="date" {...champ("date_echeance")} /></Champ></div></details>
+  </Form>;
+}
+// Avis de taxe foncière (02/11/2026) : la ligne TEOM part en facture du contrat « TEOM » du bâtiment (répartissable),
+// le reste en charge déductible du propriétaire. L'OCR propose les montants ; le propriétaire les vérifie sur l'avis.
+function AvisTaxeFonciere({ p, fini }: { p: Props; fini: (message: string) => void }) {
+  const champId = useId();
+  const { fichier, preparation, erreur: erreurDepot, empreinte, choisir: choisirDocument, lierChamp: lierDocument } = usePhotoConsommation(true);
+  const anneeParis = Number(p.aujourdHui.slice(0, 4));
+  const [lus, setLus] = useState<Record<string, string>>({ annee: String(anneeParis) });
+  const champ = (nom: string) => ({ value: lus[nom] ?? "", onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setLus(v => ({ ...v, [nom]: e.target.value })) });
+  const lire = (nom: string) => { const m = lireMontantFacultatif(lus[nom] ?? ""); return "erreur" in m ? 0 : m.montant ?? 0; };
+  const proprietaire = lire("total_avis") - lire("teom") - lire("frais_gestion");
+  return <Form p={p} action="taxe_fonciere" titre="Enregistrer l’avis" fini={fini} bloque={preparation || !!erreurDepot} extra={etat => etat.documentId && empreinte && etat.documentEmpreinte === empreinte ? <><input type="hidden" name="document_id" value={etat.documentId} /><p className={styles.caption}>La pièce est déjà conservée. Corrigez les informations puis réessayez.</p></> : null}>
+    <p className={styles.caption}>Seule la taxe d’enlèvement des ordures ménagères (TEOM) se répercute aux locataires ; la taxe foncière elle-même et les frais de gestion restent au propriétaire et sont déductibles de ses revenus fonciers.</p>
+    <ChampFichier id={champId} ref={lierDocument} name="document" accept="application/pdf,image/jpeg,image/png" depotDirect libelle="Joindre l’avis de taxe foncière" onChange={choisirDocument} />
+    {preparation && <p role="status" className={styles.muted}>Préparation du document…</p>}{erreurDepot && <p role="alert" className={styles.error}>{erreurDepot}</p>}
+    <LectureDocumentAssistee key={fichier ? `${fichier.name}-${fichier.lastModified}` : "vide"} orgId={p.orgId} fichier={fichier} appliquer={lecture => {
+      const valeurs = Object.fromEntries(Object.entries(lecture).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+      // Sur un avis foncier, le total OCR est le total de l'avis ; la TEOM et ses frais sont des lignes à part.
+      setLus(precedentes => ({ ...precedentes, ...(valeurs.total ? { total_avis: valeurs.total } : {}), ...(valeurs.frais_gestion ? { frais_gestion: valeurs.frais_gestion } : {}) }));
+    }} />
+    <div className={styles.fields}>
+      <Champ titre="Année"><input name="annee" type="number" min={2000} max={anneeParis} required {...champ("annee")} /></Champ>
+      <Champ titre="Total de l’avis (€)"><input name="total_avis" inputMode="decimal" required {...champ("total_avis")} /></Champ>
+      <Champ titre="Dont TEOM (€)"><input name="teom" inputMode="decimal" {...champ("teom")} /></Champ>
+      <Champ titre="Dont frais de gestion de la TEOM (€)"><input name="frais_gestion" inputMode="decimal" {...champ("frais_gestion")} /></Champ>
+    </div>
+    {lire("total_avis") > 0 && <p className={styles.caption}>Part à répartir entre les locataires : {eur(lire("teom"))} · part du propriétaire (déductible) : {eur(Math.max(0, proprietaire))}.</p>}
   </Form>;
 }
 function Facture({ p, c, f }: { p: Props; c: ContratFourniture; f: FactureFourniture }) {

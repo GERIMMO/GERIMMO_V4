@@ -12,6 +12,7 @@ import { ANCRE_DEPOT_GARANTIE } from "../carte-depot-garantie";
 import { tagLocataire } from "../pastille-locataire";
 import type { BailLocataire } from "../types";
 import { BoutonCopierIban } from "./bouton-copier-iban";
+import { PlanApurementLocataire, type MonPlanApurement } from "@/components/plan-apurement-locataire";
 
 export const metadata = { title: "Mes paiements" };
 
@@ -30,6 +31,8 @@ export default async function PagePaiementsLocataire(
     { data: retenuesRows, error: eRetenues },
     { data: relancesRows, error: eRelances },
     { data: beneficiaire },
+    { data: plansRows },
+    { data: demandePlan },
   ] = await Promise.all([
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
@@ -42,7 +45,11 @@ export default async function PagePaiementsLocataire(
     // paiement) ; même lecture que la marque du layout. Lecture ratée : on
     // retombe sur le lien vers le gestionnaire, rien de plus.
     supabase.from("organizations").select("name, nom_portail, iban").eq("id", orgId).maybeSingle(),
+    // Plan d'apurement (02/11) : le plan vivant ou le dernier, et la demande en attente.
+    supabase.rpc("mon_plan_apurement", { p_org: orgId }),
+    supabase.rpc("ma_demande_plan_apurement", { p_org: orgId }),
   ]);
+  const planApurement = ((plansRows ?? []) as MonPlanApurement[])[0] ?? null;
   const ibanBrut = String(beneficiaire?.iban ?? "").replace(/\s+/g, "").toUpperCase();
   const ibanLisible = ibanBrut.replace(/(.{4})/g, "$1 ").trim();
   const nomBeneficiaire =
@@ -406,6 +413,14 @@ export default async function PagePaiementsLocataire(
           </p>
         </div>
       )}
+
+      {/* Plan d'apurement (02/11) : le plan en cours, ou la demande quand des loyers sont en retard */}
+      <PlanApurementLocataire
+        orgId={orgId}
+        plan={planApurement}
+        demandeEnCours={demandePlan === true}
+        detteEchue={soldeEchu}
+      />
 
       {/* Restitution du dépôt de garantie (module 2.7) : le suivi dès la
           remise des clés, le décompte détaillé seulement une fois établi */}

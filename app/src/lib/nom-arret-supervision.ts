@@ -38,6 +38,8 @@ export const TACHES_SQL: Record<string, { libelle: string; cles: readonly string
   "maintenance-artisans": { libelle: "Expiration des devis d’artisans dont la durée de validité est dépassée", cles: ["rappels"] },
   // 24/10/2026, plan de conformité (lot 1E, R14/R15) : migration 20261024130000.
   "fermetures-comptes": { libelle: "Fermeture des comptes arrivés à leur date d’effacement (demandes et comptes inactifs prévenus)", cles: ["purge"] },
+  // 02/11/2026, plan d'apurement : migration 20261102224000 (clé « relances », comme l'alerte d'impayé).
+  "plans-apurement-quotidiens": { libelle: "Suivi quotidien des plans d’apurement (tranches, défaut, caducité)", cles: ["relances"] },
 };
 
 /**

@@ -7240,3 +7240,25 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
 - Ce qui change pour les utilisateurs : relocation pré-remplie depuis le bail précédent ; 11 éléments du décret en un geste
   dans l'inventaire du meublé ; tâches du grand parc regroupées par obligation ; un seul geste de consultation dans
   « Mes documents » du locataire ; 2,4 Mo d'images inutilisées retirées.
+
+## [2026-11-02] fix | Plan d'apurement, avis de taxe foncière et rappels de l'année (besoin d'un prospect bailleur)
+- Besoin remonté par un bailleur à patrimoine mixte (nom propre, conjointe, SCI ; nu et meublé ; immeubles entiers) :
+  répartir les factures d'immeuble aux locataires, répercuter la TEOM de la taxe foncière, étaler la dette d'un
+  locataire en difficulté, être rappelé. Constat : le socle « consommations et factures de fourniture » (28/10)
+  couvre déjà la répartition par clé (surface, tantièmes, parts égales) ou par consommation et la régularisation
+  annuelle ; le plan d'apurement, lui, n'existait pas (point « à trancher » de l'audit du 29/09).
+- Plan d'apurement : migration `20261102224000_plan_apurement.sql` (tables, fonctions, tâche quotidienne 05 h 35 UTC,
+  prédicat de suspension injecté dans `relances_loyer_dues`, déclencheur sur les encaissements), écrans du bail
+  (proposer, protocole, signature, activer, annuler) et de « Mes paiements » du locataire (demande, suivi), quatre
+  alertes, retour arrière, tests `tests/plan-apurement-base.test.ts`. Wiki : [[Plan d'apurement]] créé,
+  [[Relances et mise en demeure]] mis à jour.
+- Avis de taxe foncière : bouton « Saisir l'avis de taxe foncière » sur la fiche du bien ; la ligne TEOM (et ses
+  frais de gestion) devient une facture du contrat « TEOM » du bâtiment, répartissable ; le reste part en écriture
+  de dépense « Taxe foncière » (ligne 227 du récapitulatif fiscal).
+- Rappels du tableau de bord du propriétaire : « Saisir l'avis de taxe foncière » dès le 15 septembre pour les
+  biens dont un locataire supporte des provisions ; « Régulariser les charges N-1 » dès février pour les baux ayant
+  des parts de factures validées sans régularisation.
+- Non fait, à trancher : refacturation immédiate d'une part de facture (hors régularisation annuelle) et appel du
+  solde d'une régularisation ou de son étalement — `appels_loyer` est unique par (bail, période), un appel
+  complémentaire demande une décision sur le modèle des termes ; rappel du locataire à J-3 d'une tranche ; garde-fou
+  de soutenabilité du plan.

@@ -49,14 +49,17 @@ describe("D06 : le périmètre des tâches SQL affiché est celui de la migratio
   const maintenance = readFileSync("supabase/migrations/20261014211000_maintenance_artisans_arret_urgence.sql", "utf8");
   // La fermeture des comptes (24/10, lot 1E de conformité) s'inscrit sous la clé « purge » (20261024130000).
   const fermetures = readFileSync("supabase/migrations/20261024130000_fermeture_comptes.sql", "utf8");
+  // Le suivi des plans d'apurement (02/11) s'inscrit sous la clé « relances » (20261102224000).
+  const plans = readFileSync("supabase/migrations/20261102224000_plan_apurement.sql", "utf8");
   const paires = [
     ...[...migration.matchAll(/^\s*\('([a-z-]+)', '([a-z]+)'\)[,]?\s*$/gm)].map((m) => [m[1], m[2]] as const),
     ...[...maintenance.matchAll(/^\s*values \('(maintenance-artisans)', '([a-z]+)'\) on conflict do nothing/gm)].map((m) => [m[1], m[2]] as const),
     ...[...fermetures.matchAll(/^insert into public\.supervision_taches_arret \(tache, cle\) values \('(fermetures-comptes)', '([a-z]+)'\)$/gm)].map((m) => [m[1], m[2]] as const),
+    ...[...plans.matchAll(/^insert into public\.supervision_taches_arret\(tache, cle\) values \('(plans-apurement-quotidiens)', '([a-z]+)'\) on conflict do nothing;$/gm)].map((m) => [m[1], m[2]] as const),
   ];
 
   it("chaque couple tâche / clé de la table SQL figure dans la liste de l'écran, et inversement", () => {
-    expect(paires.length).toBe(11);
+    expect(paires.length).toBe(12);
     expect(paires).toContainEqual(["maintenance-artisans", "rappels"]);
     expect(paires).toContainEqual(["fermetures-comptes", "purge"]);
     const sql = paires.map(([t, c]) => `${t}:${c}`).sort();
@@ -78,7 +81,7 @@ describe("D06 : le périmètre des tâches SQL affiché est celui de la migratio
   });
 
   it("l'arrêt global les arrête toutes ; une clé n'arrête que les siennes", () => {
-    expect(tachesSqlArretees("global")).toHaveLength(10);
+    expect(tachesSqlArretees("global")).toHaveLength(11);
     expect(tachesSqlArretees("purge")).toEqual([
       "Purge quotidienne des données dont la durée de conservation est échue",
       "Fermeture des comptes arrivés à leur date d’effacement (demandes et comptes inactifs prévenus)",

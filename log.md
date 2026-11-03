@@ -7262,3 +7262,23 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   solde d'une régularisation ou de son étalement — `appels_loyer` est unique par (bail, période), un appel
   complémentaire demande une décision sur le modèle des termes ; rappel du locataire à J-3 d'une tranche ; garde-fou
   de soutenabilité du plan.
+
+## [2026-11-03] deploy | Plan d'apurement, taxe foncière et rappels en production (PR #279)
+- Simulation de `20261102224000_plan_apurement.sql` sur la base de production verte (chantier 41544622296, 02/11 à 23 h 20 UTC).
+- CI « Lint, types, tests, build » verte sur la révision exacte `929d9a9` (run 41548225470) après deux réparations de
+  tests préexistants : fin d'essai figée au 1er novembre (`liens-espace-courriers`) et comparaison au jour de Paris du
+  début archivé (`conservation-prospection-base`, B2, tombait entre 22 h et minuit UTC).
+- Sauvegarde à la demande réussie à 00 h 07 UTC ; migration appliquée en production à 00 h 21 UTC (chantier 41552224087,
+  COMMIT) ; vérification en lecture seule : 12 fonctions, tâche `plans-apurement-quotidiens` (05 h 35 UTC) et sa ligne
+  d'arrêt, prédicat de suspension injecté dans `relances_loyer_dues`, aucun plan existant.
+- Fusion squash → `main` `13a46e1` ; déploiement Vercel `dpl_3gPdL3wcwTd2yn2Nm3UbsgqKs4um` READY en production ; aucune
+  erreur d'exécution sur 8 h.
+- « Recette de production avec nettoyage » (run 41588780417) : 71 tests sur 72 verts ; D37 (`montants-p1.spec.ts`,
+  qualification fiscale d'un lot) échoue car l'écran « Préparer ma déclaration » exige désormais les profils fiscaux
+  des détenteurs (PR #272 du 28/10, `blocage2044`) avant d'afficher les exercices par lot — le scénario de recette
+  n'a pas été mis à jour avec la PR #272 et aucune recette n'avait tourné depuis le 27/10. Sans lien avec la PR #279 ;
+  à corriger dans le scénario (déclarer le profil fiscal du détenteur avant la qualification).
+- Ce qui change pour les utilisateurs : plan d'apurement sur le bail (proposer, protocole, signature, activer, suivre)
+  et dans « Mes paiements » du locataire (demander, suivre) ; relances automatiques suspendues pendant un plan
+  respecté ; avis de taxe foncière saisi sur le bien (TEOM répartissable, reste déductible) ; rappels taxe foncière
+  (15 septembre) et régularisation N-1 (février) sur le tableau de bord du propriétaire.

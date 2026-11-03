@@ -64,6 +64,12 @@ const ANCRES_BAIL = new Map<string, string>([
   // (generer_alertes_conservation, 20261024140000 : {bail_id, echeance, pieces}) mène à la carte « Conservation des
   // pièces », où se suspend la suppression en cas de litige ; les pièces se téléchargent depuis la fiche.
   ["conservation_echeance", "#conservation"],
+  // Plan d'apurement (02/11) : les quatre alertes posent {bail_id, plan_id} (demande du locataire, tranche manquée,
+  // plan caduc, plan soldé) et mènent à la carte du plan, sous les loyers du bail.
+  ["plan_apurement_demande", "#plan-apurement"],
+  ["plan_apurement_defaut", "#plan-apurement"],
+  ["plan_apurement_caduc", "#plan-apurement"],
+  ["plan_apurement_solde", "#plan-apurement"],
 ]);
 
 /**
@@ -93,6 +99,9 @@ const SE_FERMENT_SEULES = new Set([
   "edl_entree",
   "edl_sortie",
   "loyer_impaye",
+  // Plan d'apurement : la demande se ferme à la proposition, le défaut au rattrapage ou à la caducité.
+  "plan_apurement_demande",
+  "plan_apurement_defaut",
   "restitution_echeance",
   "retenue_sans_justificatif",
   "versement_proprietaire",
@@ -116,6 +125,10 @@ const LIBELLES = new Map<string, string>([
   // Audit du 13/10 (PRO2-13, D19) : un devis reçu attend la décision du gérant
   // ou du propriétaire ; la retenir ferme l'alerte (déclencheur de base).
   ["devis_a_decider", "Examiner le devis reçu"],
+  ["plan_apurement_demande", "Étudier la demande de plan d’apurement"],
+  ["plan_apurement_defaut", "Reprendre le plan d’apurement"],
+  ["plan_apurement_caduc", "Reprendre les relances après le plan caduc"],
+  ["plan_apurement_solde", "Voir le plan d’apurement soldé"],
   // Décision D18 du 14/10 (livraison 2) : l'artisan n'a pas répondu à la demande de révision dans le délai ;
   // le gérant retient un autre devis ou sollicite un autre artisan. L'alerte se ferme à la main (ou avec le dossier).
   ["devis_revision_non_affectable", "Vérifier l’artisan ou reprendre la consultation"],

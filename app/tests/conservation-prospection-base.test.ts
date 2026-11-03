@@ -866,7 +866,9 @@ describe.skipIf(!url)("conservation et prospection (avec base)", () => {
     const archive = await un<{ factures: { stripe_facture: string }[]; debut: string }>(
       "select factures, debut_abonnement::text as debut from public.archives_comptes where account_id_origine = $1 and organisation_id_origine = $2", [titulaire, espace]);
     expect(archive.factures.map((f) => f.stripe_facture)).toEqual(["in_b2_ancienne", "in_b2_recente"]);
-    expect(archive.debut).toBe(await dateIlYa(8));
+    // Le début archivé est le jour de Paris de la facture (recu_le est un instant) : entre 22 h et minuit UTC, current_date
+    // est encore la veille et ce test tombait (CI du 02/11 à 23 h 46 UTC).
+    expect(archive.debut).toBe((await un<{ d: string }>("select ((now() at time zone 'Europe/Paris')::date - make_interval(months => 8))::date::text as d")).d);
     // L'espace effacé, l'archive porte les références : le journal reprend sa durée de six mois.
     await db.query("delete from public.abonnements where organization_id = $1", [espace]);
     await purge();

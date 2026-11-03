@@ -63,3 +63,16 @@ export function saisieFacture(f: FormData) {
   return { reference, periode_debut: debut, periode_fin: fin, total_cents: total, frais_fixes_cents: fixes,
     frais_gestion_cents: gestion, unite_consommation: unite || null, consommation: conso || null, date_echeance: dateConso(texteConso(f, "date_echeance"), false) };
 }
+
+/** Avis de taxe foncière (02/11/2026) : l'année, le total de l'avis, la ligne TEOM et ses frais de gestion. */
+export function saisieTaxeFonciere(f: FormData, anneeParis: number) {
+  const annee = Number(texteConso(f, "annee"));
+  if (!Number.isInteger(annee) || annee < 2000 || annee > anneeParis) throw new Error("Indiquez l’année de l’avis de taxe foncière.");
+  const total = centsConso(f, "total_avis", true)!;
+  const teom = centsConso(f, "teom") ?? 0;
+  const gestion = centsConso(f, "frais_gestion") ?? 0;
+  if (total <= 0) throw new Error("Le total de l’avis doit être positif.");
+  if (teom + gestion > total) throw new Error("La TEOM et ses frais de gestion ne peuvent pas dépasser le total de l’avis.");
+  const reference = texteConso(f, "reference") || `Taxe foncière ${annee}`;
+  return { annee, total_cents: total, teom_cents: teom, frais_gestion_cents: gestion, reference, proprietaire_cents: total - teom - gestion };
+}

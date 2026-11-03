@@ -146,6 +146,10 @@ const EXCEPTIONS: Exception[] = [
   { fichier: "src/app/actions/etudes-territoriales.ts", argument: "form.get('nombre')", raison: "nombre d'agences ou de clients de l'étude : entier sûr et positif, vérifié ensuite" },
   { fichier: "src/app/actions/appels-charges.ts", argument: 'String(formData.get("exercice") ?? "").trim()', raison: "année d'exercice, entière ; bornée par la base" },
   { fichier: "src/app/actions/loyers.ts", argument: 'String(formData.get("annee") ?? "").trim()', raison: "année de régularisation, entière ; bornée ensuite" },
+  // Plan d'apurement (02/11) : trois entiers bornés par la base (1-60 tranches, 0-30 jours, 1-6 tranches manquées).
+  { fichier: "src/app/actions/plan-apurement.ts", argument: 'String(f.get("tranches") ?? "").trim()', raison: "nombre de tranches mensuelles, entier de 1 à 60 ; la base borne" },
+  { fichier: "src/app/actions/plan-apurement.ts", argument: 'String(f.get("tolerance_jours") ?? "5").trim()', raison: "tolérance en jours, entière de 0 à 30 ; la base borne" },
+  { fichier: "src/app/actions/plan-apurement.ts", argument: 'String(f.get("seuil_caducite") ?? "2").trim()', raison: "tranches manquées avant caducité, entier de 1 à 6 ; la base borne" },
   { fichier: "src/app/actions/baux.ts", argument: 'formData.get("preavis_mois") ?? 3', raison: "préavis en mois, entier ; la base borne" },
   { fichier: "src/app/actions/baux.ts", argument: 'formData.get("quantite") ?? 1', raison: "quantité d'un meuble de l'inventaire, entière (arrondie vers le bas, au moins 1)" },
   { fichier: "src/app/actions/mandats.ts", argument: 'formData.get("date_rapport") ?? 10', raison: "jour du mois du rapport, entier de 1 à 28 ; la base borne" },

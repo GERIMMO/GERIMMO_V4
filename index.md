@@ -54,6 +54,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Clé de répartition]] — répartit une dépense commune entre lots ; 100 % exact, datée.
 - [[Diagnostic]] — DPE, ERP… ; expiré = création de bail bloquée.
 - [[Appel de charges]] — charges de copro : saisie poste à poste, ventilation récupérable.
+- [[Plan d'apurement]] — dette échue gelée, tranches mensuelles, relances suspendues tant qu'il est respecté (02/11).
 - [[Mandat de gestion]] — contrat-pivot agence↔propriétaire ; taux par lot, seuil de délégation.
 - [[Occupation d'un bien]] — le « bail » simplifié du code actuel.
 - [[Gérant]] — terme générique : agent immobilier ou propriétaire bailleur.

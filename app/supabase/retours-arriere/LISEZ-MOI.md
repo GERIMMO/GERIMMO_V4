@@ -645,6 +645,7 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261102224000` (plan d’apurement : refuse si un plan a été activé ; retire le prédicat de suspension des relances, la tâche quotidienne et les deux tables), puis
 `20261029094905` (conserve la restriction des charges communes d’immeuble, sans retirer les données), puis
 `20261029094312` (conserve les protections du portefeuille, sans retirer les données), puis
 `20261028171201` (protection du rattachement des contrats facturés : refuse si des factures existent), puis
@@ -1028,3 +1029,9 @@ Remettre le code précédent avant `20261027100100_incident_gerant_bail_explicit
 `20261029094312_ar24_consentements_portefeuille_agent.retour.sql` conserve les politiques, le déclencheur et les gardes des RPC : les retirer réouvrirait les courriers et accords hors mandat. Aucune donnée n’est modifiée. Un retour du module complet retire ses tables et leurs protections ensemble.
 
 `20261029094905_consommations_portefeuille_immeuble.retour.sql` conserve la restriction des objets de consommation rattachés au bâtiment : seuls les rôles de gestion globale les consultent et les traitent. Le retour ne réouvre aucun accès à un agent partiellement mandaté. La fonction privée est retirée avec le module vide selon sa procédure de retour.
+
+## Plan d’apurement — 2 novembre 2026
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261102224000_plan_apurement.retour.sql` | `20261102224000_plan_apurement.sql` (plan d’apurement : dette échue gelée, tranches mensuelles, suivi quotidien, suspension des relances automatiques pendant un plan vivant — RM-3.6.6, point « à trancher » de l’audit du 29/09) | **Préparé et vérifié localement le 02/11, non exécuté en production.** Instruction atomique, verrou borné. **Remettre d’abord le code précédent** (écrans du bail et de l’espace locataire, action serveur `plan-apurement.ts`). Refuse si un plan a été activé (états `actif`, `en_defaut`, `caduc`, `solde`) : les tranches constatées fondent la reprise des relances. Retire le prédicat `plan_apurement_suspend_relances` de `relances_loyer_dues` par relecture de la définition en vigueur, la tâche `plans-apurement-quotidiens` et sa ligne d’arrêt d’urgence (clé `relances`), le déclencheur `encaissement_plan`, les fonctions et les deux tables. Aucun encaissement, appel ni écriture n’est touché : le module n’en crée pas. En tête de la chaîne « Ordre complet » du jour de Paris (ses fonctions citent `aujourdhui_paris()`). Preuve : `tests/plan-apurement-base.test.ts`. |

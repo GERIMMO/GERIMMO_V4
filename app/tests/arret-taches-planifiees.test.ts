@@ -44,6 +44,8 @@ const CORRESPONDANCE: Record<string, string[]> = {
   "marketing-declencheur": ["marketing"],
   "maintenance-artisans": ["rappels"],
   "fermetures-comptes": ["purge"],
+  // 02/11/2026 : suivi quotidien des plans d'apurement (20261102224000), même clé que l'alerte d'impayé.
+  "plans-apurement-quotidiens": ["relances"],
 };
 const HORS_ARRET = ["relais-urgences"];
 const FONCTIONS: [tache: string, signature: string][] = [
@@ -151,12 +153,12 @@ describe.skipIf(!DB_URL)("arrêt d'urgence et tâches planifiées (D06)", () => 
     await db.query("reset role");
     const { rows: planifiees } = await db.query<{ jobname: string }>(`select jobname from cron.job order by 1`);
     const { rows: table } = await db.query<{ tache: string; cle: string }>(`select tache, cle from public.supervision_taches_arret order by 1, 2`);
-    // Les deux recensements ensemble couvrent exactement pg_cron : onze tâches, aucune dans les deux.
+    // Les deux recensements ensemble couvrent exactement pg_cron : douze tâches, aucune dans les deux.
     const { rows: horsArret } = await db.query<{ tache: string }>(`select tache from public.supervision_taches_hors_arret order by 1`);
     expect(horsArret.map((h) => h.tache)).toEqual(HORS_ARRET);
     expect(Object.keys(TACHES_SQL_HORS_ARRET).sort()).toEqual(HORS_ARRET);
     expect(planifiees.map((j) => j.jobname)).toEqual([...Object.keys(CORRESPONDANCE), ...HORS_ARRET].sort());
-    expect(planifiees).toHaveLength(11);
+    expect(planifiees).toHaveLength(12);
     for (const t of HORS_ARRET) expect(Object.keys(CORRESPONDANCE)).not.toContain(t);
     const lue: Record<string, string[]> = {};
     for (const { tache, cle } of table) (lue[tache] ??= []).push(cle);
@@ -173,7 +175,7 @@ describe.skipIf(!DB_URL)("arrêt d'urgence et tâches planifiées (D06)", () => 
 
   // Tour final du 16/10 (D06 / D42) : l'écran « Relais et arrêts » listait 9 tâches sur 10 ; la caducité des devis
   // (« maintenance-artisans », inscrite sous la clé « rappels » par 20261014211000) manquait au miroir TypeScript.
-  it("le miroir de l'écran (TACHES_SQL ∪ TACHES_SQL_HORS_ARRET) est exactement les deux tables, soit les onze tâches pg_cron", async () => {
+  it("le miroir de l'écran (TACHES_SQL ∪ TACHES_SQL_HORS_ARRET) est exactement les deux tables, soit les douze tâches pg_cron", async () => {
     await db.query("reset role");
     const { rows: table } = await db.query<{ tache: string; cle: string }>(`select tache, cle from public.supervision_taches_arret`);
     const { rows: horsArret } = await db.query<{ tache: string }>(`select tache from public.supervision_taches_hors_arret`);
@@ -186,7 +188,7 @@ describe.skipIf(!DB_URL)("arrêt d'urgence et tâches planifiées (D06)", () => 
     expect(ecran).toEqual(base);
     const tachesEcran = [...Object.keys(TACHES_SQL), ...Object.keys(TACHES_SQL_HORS_ARRET)].sort();
     expect(tachesEcran).toEqual(planifiees.map((j) => j.jobname).sort());
-    expect(tachesEcran).toHaveLength(11);
+    expect(tachesEcran).toHaveLength(12);
     expect(TACHES_SQL["maintenance-artisans"]?.cles).toEqual(["rappels"]);
     expect(TACHES_SQL["maintenance-artisans"]?.libelle).toMatch(/devis/);
   });

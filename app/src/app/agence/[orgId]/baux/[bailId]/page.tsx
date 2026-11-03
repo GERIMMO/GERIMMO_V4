@@ -1,4 +1,5 @@
 import { HistoriqueRecommandes } from "@/components/historique-recommandes";
+import { PlanApurementBail } from "@/components/plan-apurement-bail";
 import { SuiviBailLecture, HistoriqueBailLecture } from "./suivi-bail-lecture";
 import { OngletsDossier } from "@/components/onglets-dossier";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
@@ -934,6 +935,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               decompteSortie={etatDecompteSortie(restitution, erreurRestitution)}
             />
             <HistoriqueRecommandes orgId={orgId} bailId={bailId} />
+            <PlanApurementBail orgId={orgId} bailId={bailId} base={base} />
           </div>
         </RubriqueDossier>
       )}

@@ -10,7 +10,7 @@ export async function chargerTachesConsommations(db: SupabaseClient, orgId: stri
     lireCollectionConsommations<FactureFourniture>((debut, fin) => db.from("factures_fourniture").select("*", { count: "exact" }).eq("organization_id", orgId).order("id").range(debut, fin)),
     lireCollectionConsommations<{ id: string; bien_id: string; lot_id: string | null; libelle: string; bail_referent: string | null }>((debut, fin) => db.from("compteurs_consommation").select("id,bien_id,lot_id,libelle,bail_referent", { count: "exact" }).eq("organization_id", orgId).eq("actif", true).order("id").range(debut, fin)),
     lireCollectionConsommations<{ id: string; compteur_id: string; echeance: string }>((debut, fin) => db.from("demandes_releves").select("id,compteur_id,echeance", { count: "exact" }).eq("organization_id", orgId).eq("statut", "attendue").lte("echeance", limite).order("id").range(debut, fin)),
-    lireCollectionConsommations<{ id: string; facture_id: string; statut: string }>((debut, fin) => db.from("repartitions_fourniture").select("id,facture_id,statut", { count: "exact" }).eq("organization_id", orgId).eq("statut", "validee").order("id").range(debut, fin)),
+    lireCollectionConsommations<{ id: string; facture_id: string; statut: string; lignes: { bail_id: string | null; recuperable: boolean }[] | null }>((debut, fin) => db.from("repartitions_fourniture").select("id,facture_id,statut,lignes", { count: "exact" }).eq("organization_id", orgId).eq("statut", "validee").order("id").range(debut, fin)),
   ]);
   if ([cr, fr, mr, dr, rr].some(r => r.error)) return { taches: [], indisponible: true };
   const baux = await lireLiensConsommations<{ id: string; etat: string }>(mr.data.flatMap(c => c.bail_referent ? [c.bail_referent] : []), (ids, debut, fin) => db.from("baux").select("id,etat", { count: "exact" }).eq("organization_id", orgId).in("id", ids).order("id").range(debut, fin));
@@ -47,6 +47,32 @@ export async function chargerTachesConsommations(db: SupabaseClient, orgId: stri
       taches.push({ cle: `repartition:${f.id}`, type: "facture_repartition", titre: `Répartir la facture ${f.reference}`, detail: "Préparez puis vérifiez le décompte des charges. Le paiement du fournisseur ne le remplace pas.", contexte: c.fournisseur, lieu: null, echeance: null, href: href(c), geste: "Préparer", nature: "demande" });
     } else if (paiements.data.some(p => p.facture_id === f.id)) {
       taches.push({ cle: `ventilation:${f.id}`, type: "facture_ventilation", titre: "Ventiler cette dépense du bâtiment", detail: `Facture ${f.reference} : affectez la dépense aux logements dans vos finances. Aucune charge n’est demandée automatiquement aux locataires.`, contexte: c.fournisseur, lieu: null, echeance: null, href: href(c), geste: "Ventiler", nature: "demande" });
+    }
+  }
+  // Rappels de l'année (02/11/2026) : la taxe foncière à saisir dès la mi-septembre pour les biens dont un locataire
+  // supporte des provisions (sa TEOM se répercute), et la régularisation de l'exercice précédent à lancer dès février
+  // pour les baux qui ont des parts de factures validées sans régularisation.
+  const annee = Number(jour.slice(0, 4));
+  const [biensLus, lotsLus, bauxProvision, regularisations] = await Promise.all([
+    lireCollectionConsommations<{ id: string; nom: string }>((debut, fin) => db.from("biens").select("id,nom", { count: "exact" }).eq("organization_id", orgId).order("id").range(debut, fin)),
+    lireCollectionConsommations<{ id: string; bien_id: string }>((debut, fin) => db.from("lots").select("id,bien_id", { count: "exact" }).eq("organization_id", orgId).order("id").range(debut, fin)),
+    lireCollectionConsommations<{ id: string; lot_id: string }>((debut, fin) => db.from("baux").select("id,lot_id", { count: "exact" }).eq("organization_id", orgId).in("etat", ["actif", "preavis"]).eq("charges_mode", "provision").order("id").range(debut, fin)),
+    lireCollectionConsommations<{ id: string; bail_id: string; annee: number }>((debut, fin) => db.from("regularisations_charges").select("id,bail_id,annee", { count: "exact" }).eq("organization_id", orgId).eq("annee", annee - 1).order("id").range(debut, fin)),
+  ]);
+  if ([biensLus, lotsLus, bauxProvision, regularisations].some(r => r.error)) return { taches: [], indisponible: true };
+  if (jour >= `${annee}-09-15`) {
+    const biensAvecProvision = new Set(bauxProvision.data.flatMap(b => { const l = lotsLus.data.find(l => l.id === b.lot_id); return l ? [l.bien_id] : []; }));
+    const teomSaisie = new Set(factures.filter(f => f.periode_debut.startsWith(`${annee}-`) && contrats.some(c => c.id === f.contrat_id && c.categorie === "teom")).map(f => contrats.find(c => c.id === f.contrat_id)!.bien_id));
+    for (const bien of biensLus.data) if (biensAvecProvision.has(bien.id) && !teomSaisie.has(bien.id)) {
+      taches.push({ cle: `taxe-fonciere:${bien.id}:${annee}`, type: "taxe_fonciere_a_saisir", titre: `Saisir l’avis de taxe foncière ${annee}`, detail: "La TEOM de l’avis se répercute aux locataires ; le reste est déductible de vos revenus fonciers.", contexte: bien.nom, lieu: bien.nom, echeance: `${annee}-10-15`, href: `${base}/parc/${bien.id}#consommations`, geste: "Saisir l’avis", nature: "document" });
+    }
+  }
+  if (jour >= `${annee}-02-01`) {
+    const dejaRegularises = new Set(regularisations.data.map(r => r.bail_id));
+    const facturesExercice = new Set(factures.filter(f => f.periode_debut.startsWith(`${annee - 1}-`) || f.periode_fin.startsWith(`${annee - 1}-`)).map(f => f.id));
+    const bauxARegulariser = new Set(rr.data.filter(r => facturesExercice.has(r.facture_id)).flatMap(r => (r.lignes ?? []).filter(l => l.recuperable && l.bail_id).map(l => l.bail_id!)));
+    for (const bailId of bauxARegulariser) if (!dejaRegularises.has(bailId)) {
+      taches.push({ cle: `regularisation:${bailId}:${annee - 1}`, type: "regularisation_a_lancer", titre: `Régulariser les charges ${annee - 1}`, detail: "Des parts de factures sont validées pour ce bail : préparez le décompte annuel depuis les factures réparties.", contexte: null, lieu: null, echeance: `${annee}-03-31`, href: `${base}/baux/${bailId}#regularisation-fournitures`, geste: "Préparer", nature: "demande" });
     }
   }
   return { taches, indisponible: false };

@@ -21,6 +21,11 @@ export const GESTES_TRACE = {
   ajout_relance: "ajout d’une relance de loyer",
   suppression_relance: "suppression d’une relance de loyer",
   regularisation_charges: "régularisation des charges d’un bail",
+  // Plan d'apurement d'un bail (actions/plan-apurement.ts)
+  plan_apurement_proposition: "proposition d’un plan d’apurement",
+  plan_apurement_activation: "activation d’un plan d’apurement",
+  plan_apurement_annulation: "annulation d’un plan d’apurement",
+  plan_apurement_protocole: "génération du protocole d’un plan d’apurement",
   generation_appels: "génération des appels de loyer d’un bail",
   encaissement: "encaissement d’un loyer",
   suppression_encaissement: "suppression d’un encaissement de loyer",

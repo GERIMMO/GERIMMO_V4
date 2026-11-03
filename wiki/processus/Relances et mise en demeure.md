@@ -3,7 +3,7 @@ type: process
 tags: [loyer, impaye, relance, mise-en-demeure]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-16
+updated: 2026-11-02
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]"]
 ---
 
@@ -103,9 +103,37 @@ fonde ensuite un recours. L'escalade reste donc un geste du gérant, tracé dans
   (seul le document « protocole d'apurement » existe, sans échéancier en base) ; les
   relances ne peuvent donc pas être suspendues pendant un plan.
 
-> [!warning] À trancher (29/09/2026)
-> Modéliser le plan d'apurement (échéancier, statut) pour suspendre les relances
-> automatiques tant qu'il est respecté. Source : [[Audit complet du 29 septembre 2026]].
+> [!info] Tranché le 02/11/2026 — plan d'apurement modélisé
+> Migration `20261102224000_plan_apurement.sql` : tables `plans_apurement` et
+> `plan_apurement_tranches`, suivi quotidien (`plans-apurement-quotidiens`, 05 h 35 UTC) et
+> réévaluation à chaque encaissement. Voir [[Plan d'apurement]].
+
+## Plan d'apurement — état dans l'application au 02/11/2026
+
+- Le gérant (ou le propriétaire direct) **propose** un plan sur un bail dont la **dette échue**
+  (termes échus, calculés en base au jour de Paris) est positive : 1 à 60 tranches mensuelles,
+  première échéance sous trois mois, acompte facultatif, tolérance (5 j par défaut) et seuil de
+  caducité (2 tranches manquées par défaut). Un seul plan vivant par bail.
+- Le **protocole d'apurement** (modèle existant) se génère depuis le plan enregistré (mêmes
+  tranches, même dette arrêtée) et peut partir en signature Zoho. Le plan est **activé** par le
+  gérant quand le locataire a accepté (date d'acceptation).
+- **Mesure du respect** : la dette échue totale du bail doit rester, après la tranche *k*, au plus
+  égale à `dette_initiale − acompte − Σ tranches 1..k`. L'imputation « du plus ancien au plus
+  récent » (RM-3.3.2) est inchangée ; un loyer courant impayé fait donc monter la dette et casse
+  le plan, ce qui est voulu.
+- **États** : proposé → actif → (en défaut ⇄ actif) → caduc ; soldé dès que la dette échue est
+  nulle ; annulé par le gérant avec motif. Une tranche manquée puis rattrapée reste tracée
+  (« honorée en retard »).
+- **Relances automatiques** (RM-3.6.6) : suspendues pendant un plan actif ou en défaut, reprise
+  là où elles s'étaient arrêtées quand le plan est caduc ou annulé. L'alerte d'impayé, elle, reste
+  posée : c'est un constat, pas une relance.
+- **Alertes** au gérant : demande du locataire (`plan_apurement_demande`), tranche manquée
+  (`plan_apurement_defaut`, critique), plan caduc (`plan_apurement_caduc`, critique), plan soldé
+  (informative).
+- **Locataire** : demande un plan depuis « Mes paiements » (message au gérant + alerte) ; voit
+  son plan, sa progression et sa prochaine tranche.
+- Hors périmètre : délais de paiement accordés par le juge (art. 24 loi 1989), FSL, information
+  automatique de la caution hors relance de niveau 2.
 
 > [!info] Jour de référence (depuis le 15/10/2026)
 > L'état « impayé » d'un loyer, l'alerte d'impayé, les relances dues (jours de retard,

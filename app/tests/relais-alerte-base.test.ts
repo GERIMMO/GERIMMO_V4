@@ -313,9 +313,9 @@ describe.skipIf(!DB_URL)("D46-B — alerte e-mail du relais : la base", () => {
     await toutEstPasse();
     const s = await sentinelle();
     expect(s.taches_base_lisibles).toBe(true);
-    // Onze tâches pg_cron : « relais-urgences », le passage fréquent des urgences (20261014812000), et
-    // « fermetures-comptes », la fermeture des comptes (20261024130000, lot 1E de conformité du 24/10).
-    expect(s.taches_base.length).toBe(11);
+    // Douze tâches pg_cron : « relais-urgences », le passage fréquent des urgences (20261014812000),
+    // « fermetures-comptes », la fermeture des comptes (20261024130000), et « plans-apurement-quotidiens » (20261102224000).
+    expect(s.taches_base.length).toBe(12);
     expect(s.taches_base.filter((t) => t.etat !== "ok")).toEqual([]);
   });
 

@@ -75,3 +75,6 @@ describe("Mes documents : un seul geste de consultation", () => {
     }
   });
 });
+
+// Composant serveur asynchrone, testé séparément avec ses données et droits.
+vi.mock("@/components/suivi-echeanciers-charges", () => ({ SuiviEcheanciersCharges: () => null }));

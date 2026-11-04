@@ -24,7 +24,7 @@ export async function ConseilsAccueilProprietaire({ db, base }: { db: SupabaseCl
       <ImageJournal className={styles.vignetteConseil} url={premier.facebook_image_url} titre={premier.titre} tailles="140px"/>
       <div><small>À la une</small><h3>{titreSansDoublon(premier.titre)}</h3></div><ArrowRight size={17} aria-hidden="true"/>
     </Link> : <Link className={styles.articleVedette} href={`${base}/faq#questions-titre`}>
-      <span className={styles.vignetteConseil}><Image src="/illustrations/accueil-salon/automne.webp" alt="" width={280} height={190}/></span>
+      <span className={styles.vignetteConseil}><Image src="/illustrations/accueil-evenements/automne.webp" alt="" width={280} height={190}/></span>
       <div><small>Prise en main</small><h3>Bien démarrer avec Gerimmo</h3></div><ArrowRight size={17} aria-hidden="true"/>
     </Link>}
     <ul className={styles.conseilsListe}>

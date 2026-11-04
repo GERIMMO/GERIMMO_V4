@@ -645,6 +645,12 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261102224000` (plans d’apurement : refuse si un plan a été activé), puis
+`20261101201608` (interventions communes : restitue les fonctions précédentes), puis
+`20261101190943` (discussions : refuse si messages ou clôtures existent), puis
+`20261101161444` (retire les nouvelles entrées, conserve les incidents), puis
+`20261101154004` (retire les nouvelles entrées, conserve les colonnes et l’historique), puis
+`20261101152354` (échéanciers : refuse si un plan existe), puis
 `20261029094905` (conserve la restriction des charges communes d’immeuble, sans retirer les données), puis
 `20261029094312` (conserve les protections du portefeuille, sans retirer les données), puis
 `20261028171201` (protection du rattachement des contrats facturés : refuse si des factures existent), puis

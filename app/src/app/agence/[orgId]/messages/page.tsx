@@ -26,8 +26,9 @@ export const metadata = { title: "Messages — Gerimmo" };
 export default async function PageMessages(props: PageProps<"/agence/[orgId]/messages">) {
   const { orgId } = await props.params;
   const { supabase, role, user, traverseeLectureSeule } = await verifierAccesEspace(orgId);
-  if(role === "proprietaire_direct" && (await props.searchParams).vue === "interventions") {
-    const base=baseEspace(orgId,true);
+  const estProprietaire = role === "proprietaire_direct";
+  if(estProprietaire && (await props.searchParams).vue === "interventions") {
+    const base=baseEspace(orgId,estProprietaire);
     return <main className="mx-auto w-full max-w-6xl space-y-4 p-4 sm:p-7"><header className="entete-page"><TitreEcran rubrique="messages">Messages</TitreEcran></header><nav aria-label="Types de discussions" className="flex flex-wrap gap-2"><Link className="btn-secondaire" href={`${base}/messages`}>Locataires</Link><Link className="btn-or" aria-current="page" href={`${base}/messages?vue=interventions`}>Interventions</Link></nav><DiscussionsInterventions org={orgId} base={base}/></main>;
   }
 
@@ -50,7 +51,6 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
   const nonLus = fils.reduce((s, f) => s + f.non_lus, 0);
   // Le propriétaire en gestion directe n'a pas d'entrée « Personnes » : son
   // menu dit « Personnes » (même adaptation que personnes/page.tsx).
-  const estProprietaire = role === "proprietaire_direct";
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
 

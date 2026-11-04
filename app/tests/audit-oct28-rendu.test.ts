@@ -96,3 +96,6 @@ test('PROD-06 : lecture des demandes en échec ne signifie pas rien à faire', a
  const html=renderToStaticMarkup(await PageAccueil());
  expect(html).toContain('Connexion instable'); expect(html).not.toContain('Aucune mission à traiter maintenant');
 });
+
+// Les échanges sont un composant serveur asynchrone distinct du statut de mission.
+vi.mock("@/components/echanges-intervention", () => ({ EchangesIntervention: () => null }));

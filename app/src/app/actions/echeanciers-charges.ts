@@ -9,7 +9,7 @@ import {documentEcheancierCharges} from '@/lib/documents/echeancier-charges';
 import type {EcheancierCharges} from '@/lib/echeanciers-charges';
 import {lireMontantFacultatif} from '@/lib/saisie-montant';
 export type EtatEcheancierCharges={erreur?:string;succes?:string};
-function actualiser(org:string){for(const chemin of [`/espace/${org}`,`/agence/${org}`,`/locataire/${org}`])revalidatePath(chemin,'layout')}
+function actualiser(org:string){revalidatePath(`/espace/${org}`,'layout');revalidatePath(`/agence/${org}`,'layout');revalidatePath(`/locataire/${org}`,'layout')}
 export async function proposerEcheancierCharges(org:string,regularisation:string,_:EtatEcheancierCharges,f:FormData):Promise<EtatEcheancierCharges>{
  const {supabase,user}=await verifierGerant(org,{geste:'regularisation_charges',cible:regularisation});
  if(!user||![org,regularisation].every(estUuid))return{erreur:'Accès refusé.'};

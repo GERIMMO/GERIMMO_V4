@@ -43,3 +43,6 @@ describe("les écrans ne déclarent pas valide une assurance sans échéance", (
     expect(html).not.toContain("Assurance à jour");
   });
 });
+
+// Composant serveur asynchrone, testé séparément avec ses données et droits.
+vi.mock("@/components/suivi-echeanciers-charges", () => ({ SuiviEcheanciersCharges: () => null }));

@@ -62,3 +62,5 @@ returns setof public.documents language sql stable set search_path='' as $$
 $$;
 revoke all on function public.documents_du_bien(uuid,uuid,uuid[]) from public,anon;
 grant execute on function public.documents_du_bien(uuid,uuid,uuid[]) to authenticated,service_role;
+
+create index incidents_bien_organisation_fk on public.incidents(bien_id,organization_id);

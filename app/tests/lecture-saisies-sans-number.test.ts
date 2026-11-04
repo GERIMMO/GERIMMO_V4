@@ -121,6 +121,8 @@ function fichiersSource(dossier: string): string[] {
 type Exception = { fichier: string; argument: string; raison: string };
 
 const EXCEPTIONS: Exception[] = [
+  { fichier: "src/app/actions/echeanciers-charges.ts", argument: "f.get('nombre')", raison: "nombre de mensualités entier, borné de 1 à 24 par preparer_echeancier_charges" },
+  { fichier: "src/app/actions/echeanciers-charges.ts", argument: "f.get('rang')", raison: "rang entier, borné par agir_echeancier_charges entre 1 et le nombre des échéances du plan" },
   { fichier: "src/app/actions/qualification-diagnostic.ts", argument: "annee", raison: "année entière : quatre chiffres contrôlés puis bornes 1800 et année courante à Paris" },
   { fichier: "src/app/agence/[orgId]/parc/[bienId]/qualification-diagnostic.tsx", argument: 'donnees.get("annee_installation")', raison: "reprise seulement après succès de l’action serveur, qui impose quatre chiffres entre 1800 et l’année courante" },
   { fichier: "src/components/lecteur-document.tsx", argument: 'reponse.headers.get("content-length")', raison: "taille HTTP indicative en octets ; le flux est aussi recompté et borné à 50 Mio" },

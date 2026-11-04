@@ -76,10 +76,13 @@ grant execute on function public.fermer_echange_intervention(uuid,boolean) to au
 create function public.contexte_echange_intervention(p_intervention uuid) returns table(role_participant text,statut_intervention text)
 language sql stable security definer set search_path='' as $$
  select public.role_echange_intervention(m.id),m.statut::text from public.incident_interventions m
- where m.id=p_intervention and public.role_echange_intervention(m.id) is not null;
+ where auth.uid() is not null and m.id=p_intervention and public.role_echange_intervention(m.id) is not null;
 $$;
 revoke all on function public.contexte_echange_intervention(uuid) from public,anon;
 grant execute on function public.contexte_echange_intervention(uuid) to authenticated;
 
 -- Rendre les nouvelles fonctions disponibles sans attendre un redémarrage de l’API.
 notify pgrst, 'reload schema';
+
+create index intervention_messages_auteur_fk on public.intervention_messages(auteur_id);
+create index intervention_echanges_modificateur_fk on public.intervention_echanges_etat(modifie_par);

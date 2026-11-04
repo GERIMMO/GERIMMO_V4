@@ -619,7 +619,7 @@ export default async function PageDocuments(
                     const Icone = d.mime_type?.startsWith("image/") ? FileImage : FileText;
                     const groupe=nomsGroupes.get(d.id)??"Classement indisponible";
                     const debutGroupe=indexDocument===0 || nomsGroupes.get(docs[indexDocument-1].id)!==groupe;
-                    return <div key={d.id}>{debutGroupe && <h3 className={styles.groupeBien}>{groupe}</h3>}<Link
+                    return <div key={d.id}>{debutGroupe && <h2 className={styles.groupeBien}>{groupe}</h2>}<Link
                       href={lien(d.id)}
                       className={`${styles.documentLigne}${actif ? ` ${styles.documentActif}` : ""}`}
                       aria-current={actif ? "true" : undefined}

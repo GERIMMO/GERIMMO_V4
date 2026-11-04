@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Banknote, Building2, ChevronRight, House, Search, X } from "lucide-react";
+import { deElide } from "@/lib/elision";
 import { eur } from "@/lib/ged";
 import { correspond } from "@/lib/roles-personnes";
 import type { occupationLot } from "@/lib/occupation-lot";
@@ -46,7 +47,7 @@ export function VueParcProprietaire({ biens, retires, mois, loyersMois, base = "
     <dl className={styles.chiffresParc}>
       <div><dt><Building2 size={18} aria-hidden="true" />Biens</dt><dd>{biens.length}</dd></div>
       <div><dt><House size={18} aria-hidden="true" />Lots</dt><dd>{tous.length}</dd></div>
-      <div className={styles.carteLoyers}><dt><Banknote size={18} aria-hidden="true" />Loyers de {nomMois}</dt>
+      <div className={styles.carteLoyers}><dt><Banknote size={18} aria-hidden="true" />Loyers {deElide(nomMois)}</dt>
         <dd>{loyersMois === null ? <span className={styles.messageLoyers} role="status">Montants indisponibles</span>
           : loyersMois.attendu === 0 ? <span className={styles.messageLoyers}>Aucun loyer attendu ce mois-ci</span>
           : <><strong>{eur(loyersMois.encaisse)}</strong><span className={styles.attenduLoyers}> encaissé{loyersMois.encaisse > 1 ? "s" : ""} sur <b>{eur(loyersMois.attendu)}</b> attendus</span></>}

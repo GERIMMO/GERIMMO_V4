@@ -553,6 +553,9 @@ describe.skipIf(!DB_URL)("jour de Paris — migrations et retours arrière", () 
      * qui cite encore la fonction du jour de Paris est retirée (dans la transaction du test, annulée à la fin).
      */
     async function retirerLesLotsPosterieurs() {
+      // Les nouvelles politiques RLS dépendent de role_echange_intervention :
+      // utiliser son retour contrôlé avant de retirer les fonctions postérieures.
+      await db.query(readFileSync("supabase/retours-arriere/20261101190943_echanges_intervention_partages.retour.sql", "utf8"));
       const { rows } = await db.query<{ signature: string }>(
         `select p.oid::regprocedure::text as signature
            from pg_proc p

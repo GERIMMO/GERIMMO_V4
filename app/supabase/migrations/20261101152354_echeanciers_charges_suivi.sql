@@ -140,3 +140,7 @@ begin
 end;$$;
 revoke all on function public.preparer_echeancier_charges(uuid,integer,date),public.publier_echeancier_charges(uuid,text,text,bigint,text),public.agir_echeancier_charges(uuid,text,integer,bigint,date),public.synchroniser_rappels_echeanciers_charges(uuid) from public,anon;
 grant execute on function public.preparer_echeancier_charges(uuid,integer,date),public.publier_echeancier_charges(uuid,text,text,bigint,text),public.agir_echeancier_charges(uuid,text,integer,bigint,date),public.synchroniser_rappels_echeanciers_charges(uuid) to authenticated,service_role;
+
+create index echeanciers_charges_bail_fk on public.echeanciers_charges(bail_id);
+create index echeanciers_charges_document_fk on public.echeanciers_charges(document_id);
+create index echeanciers_charges_acceptant_fk on public.echeanciers_charges(accepte_par);

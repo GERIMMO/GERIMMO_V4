@@ -40,6 +40,8 @@ async function franchirLeSasMfa(page: Page) {
   await page.waitForURL(/\/(admin|espaces)/, { timeout: 20_000 });
 }
 
+test.use({ actionTimeout: 15000 });
+
 test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, solliciter par le carnet (resté privé, hors réseau)", async ({ browser }, info) => {
   test.setTimeout(300_000);
   const url = process.env.SUPALOCAL_DB;
@@ -90,8 +92,9 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await p.waitForLoadState("networkidle");
     await expect(p.getByRole("heading", { name: "Mes artisans" })).toBeVisible();
     await p.getByLabel(/Adresse e-mail de l’artisan/).fill(email);
-    await p.getByLabel("Nom, pour mémoire").fill("M. Invité");
-    await p.getByLabel("Métier, pour mémoire").selectOption("plomberie");
+    await p.locator("summary").filter({hasText:"Nom et métier — facultatif"}).click();
+    await p.getByLabel("Nom dans votre carnet").fill("M. Invité");
+    await p.getByLabel("Métier", {exact:true}).selectOption("plomberie");
     await p.getByRole("button", { name: "Envoyer l’invitation", exact: true }).click();
     await expect(p.getByRole("alert").filter({ hasText: "n’a pas été envoyé" })).toBeVisible();
     await p.reload();
@@ -173,11 +176,11 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await expect(ligneArtisan).toContainText("Inscrit, en attente de validation par Gerimmo");
     await expect(ligneArtisan).toContainText("0611223344");
     await p.goto(`/espace/${ORG}/incidents/${incident}`);
-    await p.getByLabel("Métier recherché *").selectOption("plomberie");
-    await p.getByLabel("Nature des travaux *").selectOption("entretien_courant");
+    await p.getByLabel("Quel artisan ? *").selectOption("plomberie");
+    await p.getByLabel("Pour quels travaux ? *").selectOption("entretien_courant");
     await expect(p.getByText(/^Aucun artisan du réseau n’est actuellement disponible pour ce métier et ces travaux dans cette zone\./)).toBeVisible();
     await expect(p.getByRole("link", { name: "Inviter un artisan" })).toHaveAttribute("href", `/espace/${ORG}/artisans#inviter-un-artisan`);
-    await expect(p.getByRole("button", { name: "Ouvrir la mise en concurrence" })).toBeDisabled();
+    await expect(p.getByRole("button", { name: "Chercher un artisan" })).toBeDisabled();
     // Seconde relecture du 15/10 : la fiche dit pourquoi l'artisan du carnet n'est pas proposé pour ce bien.
     const pourquoi = p.locator("li").filter({ hasText: raisonSociale }).filter({ hasText: "inscription pas validée par Gerimmo" });
     await expect(p.getByText("Dans votre carnet, ne peuvent pas être sollicités pour ce bien :")).toBeVisible();
@@ -211,10 +214,11 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await expect(ligneValidee.getByText("Validé", { exact: true })).toBeVisible();
     await expect(ligneValidee).not.toContainText("peut être sollicité");
     await p.goto(`/espace/${ORG}/incidents/${incident}`);
-    await p.getByLabel("Métier recherché *").selectOption("plomberie");
-    await p.getByLabel("Nature des travaux *").selectOption("entretien_courant");
+    await p.getByLabel("Quel artisan ? *").selectOption("plomberie");
+    await p.getByLabel("Pour quels travaux ? *").selectOption("entretien_courant");
     await expect(p.getByText(/Vous pouvez continuer avec 1 artisan de votre carnet personnel/)).toBeVisible();
-    await p.getByRole("checkbox", { name: /J'assume un devis unique|J’assume un devis unique/ }).check();
+    await p.locator("summary").filter({hasText:"Options du devis"}).click();
+    await p.getByRole("checkbox", { name: /Demander un seul devis/ }).check();
     await p.getByRole("button", { name: "Ouvrir avec mon carnet" }).click();
     await p.getByRole("button", { name: `Demander un devis à ${raisonSociale}` }).click();
     await expect.poll(async () => (await db.query(

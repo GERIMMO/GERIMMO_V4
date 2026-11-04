@@ -203,8 +203,8 @@ describe("l'accueil du propriétaire direct (servi au seul propriétaire direct)
     const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((x) => x[1]).filter((h) => h.startsWith("/agence") || h.startsWith("/espace"));
     // Encaissé, lots, récapitulatif fiscal, alertes, rang « Traiter », lots sans bail et réglages.
     expect(hrefs).toEqual(expect.arrayContaining([
-      // L'encaissé du mois mène aux recettes datées de Finances (audit du 27/10, LAT-06).
-      `/espace/${ORG}/loyers#operations`, `/espace/${ORG}/parc`, `/espace/${ORG}/comptabilite/fiscal`, `/espace/${ORG}/alertes`,
+      // La carte compare les échéances du mois : ouvrir leur suivi de réception.
+      `/espace/${ORG}/loyers`, `/espace/${ORG}/parc`, `/espace/${ORG}/comptabilite/fiscal`, `/espace/${ORG}/alertes`,
       `/espace/${ORG}/alertes?traiter=al-1`, `/espace/${ORG}/parc/bien-1/lots/lot-1#baux`, `/espace/${ORG}/profil#envois`,
     ]));
     for (const h of hrefs) expect(h.startsWith(`/espace/${ORG}`), h).toBe(true);
@@ -364,3 +364,8 @@ describe("accueil : les alertes ouvrent de vraies actions sur le bon incident", 
     expect(html).not.toContain("Ajouter une photo");
   });
 });
+
+// Composant serveur asynchrone, testé séparément avec ses données et droits.
+vi.mock("@/components/suivi-echeanciers-charges", () => ({ SuiviEcheanciersCharges: () => null }));
+
+vi.mock("@/components/conseils-accueil-proprietaire", () => ({ ConseilsAccueilProprietaire: () => null }));

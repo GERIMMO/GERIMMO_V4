@@ -25,12 +25,12 @@ function RendezVous({ rendezVous: r, base }: { rendezVous: RendezVousGestion; ba
   const incident = premier(r.incident);
   if (!incident) return null;
   const lot = premier(incident.lot);
-  const bien = premier(lot?.bien);
+  const bien = premier(incident.bien) ?? premier(lot?.bien);
   const artisan = premier(r.artisan);
   const adresse = [bien?.address_line1, bien?.city].filter(Boolean).join(", ");
   return <Link href={`${base}/incidents/${incident.id}`} className={styles.rendezVous} data-termine={r.statut === "terminee"}>
     <span className={styles.horaire}><Clock3 size={15} aria-hidden="true" />{creneauTexte(r.debut_prevu, r.fin_prevue)}</span>
-    <span className={styles.titreRendezVous}>{lot?.nom || "Logement du dossier"}</span>
+    <span className={styles.titreRendezVous}>{lot?.nom || (incident.bien_id ? "Parties communes" : "Logement du dossier")}</span>
     <span className={styles.statut}>{r.statut === "terminee" && <Check size={12} aria-hidden="true" />}{STATUTS_MISSION[r.statut] ?? "À consulter"}</span>
     <span className={styles.detailRendezVous}><Wrench size={14} aria-hidden="true" />{artisan?.raison_sociale || "Artisan du dossier"}</span>
     {adresse && <span className={styles.detailRendezVous}><MapPin size={14} aria-hidden="true" />{adresse}</span>}
@@ -112,8 +112,8 @@ export function AgendaProprietaire({ agenda, comptesVues, base, aujourdhui }: {
         </header>
         {duJour.length ? <div className={styles.rendezVousDuJour}>{duJour.map((r) => <RendezVous key={r.id} rendezVous={r} base={base} />)}</div> : <div className={styles.journeeVide}>
           <span className={styles.iconeVide}><CalendarCheck2 size={28} strokeWidth={1.5} aria-hidden="true" /></span>
-          <h3>Aucun rendez-vous prévu</h3><p>Rien n’est programmé pour cette journée. Sélectionnez une autre date pour consulter ses rendez-vous.</p>
-          <Link className={styles.lienAction} href={aConfirmer > 0 ? lien("a-planifier") : `${base}/incidents`}>{aConfirmer > 0 ? "Confirmer une date" : "Suivre mes incidents"}<ArrowRight size={15} aria-hidden="true" /></Link>
+          <h3>Aucun rendez-vous ce jour</h3>
+          {aConfirmer > 0 && <Link className={styles.lienAction} href={lien("a-planifier")}>Confirmer une date<ArrowRight size={15} aria-hidden="true" /></Link>}
         </div>}
         <div className={styles.conseil}><Info size={16} aria-hidden="true" /><p>Les rendez-vous apparaissent ici dès qu’un créneau est convenu dans le dossier d’incident.</p></div>
       </section>

@@ -1,4 +1,5 @@
 "use client";
+import { RegularisationFournitures } from "./regularisation-fournitures";
 import { useState } from "react";
 import { useActionStateProtegee } from "@/lib/use-action-state-protegee";
 import { preparerRepartitionFourniture, validerRepartitionFourniture, type EtatRepartition } from "@/app/actions/repartition-fourniture";
@@ -11,14 +12,18 @@ import { compteursPourFacture } from "@/lib/compteurs-facture";
 import type { CompteurConsommation, ReleveConsommation, FactureFourniture } from "@/lib/consommations";
 import styles from "./consommations.module.css";
 
-export function RepartitionFacture({ orgId, base, factureId, existante, lots, lectureSeule, categorie, reglagesPrecedents, baux = [], compteurs = [], releves = [], facture }: { orgId: string; base: string; factureId: string; existante?: RepartitionFourniture; lots: { id: string; nom: string }[]; lectureSeule: boolean; categorie: string; reglagesPrecedents?: { mode_interface?: string; colocation?: string | null }; baux?: { id: string; nom: string }[]; compteurs?: CompteurConsommation[]; releves?: ReleveConsommation[]; facture?: FactureFourniture }) {
-  const [ouvert, setOuvert] = useState(false);
+export function RepartitionFacture({ orgId, base, factureId, existante, lots, lectureSeule, categorie, reglagesPrecedents, baux = [], compteurs = [], releves = [], facture, ouvertInitialement = false, aujourdhui }: { orgId: string; base: string; factureId: string; existante?: RepartitionFourniture; lots: { id: string; nom: string }[]; lectureSeule: boolean; categorie: string; reglagesPrecedents?: { mode_interface?: string; colocation?: string | null }; baux?: { id: string; nom: string }[]; compteurs?: CompteurConsommation[]; releves?: ReleveConsommation[]; facture?: FactureFourniture; ouvertInitialement?: boolean; aujourdhui: string }) {
+  const [ouvert, setOuvert] = useState(ouvertInitialement);
+  const [bailDocument,setBailDocument] = useState<string | null>(null);
+  const [anneeDocument,setAnneeDocument] = useState(Number((facture?.periode_fin ?? aujourdhui).slice(0,4)));
   const [etat, submit, pending] = useActionStateProtegee(preparerRepartitionFourniture.bind(null, orgId, factureId), {} as EtatRepartition);
   const r = existante?.statut === "validee" ? existante : etat.repartition ?? existante;
   const recuperable = !["electricite_privative", "assurance", "internet", "autre"].includes(categorie);
   const reglages = r?.source?.reglages ?? reglagesPrecedents;
   return <div className={styles.list}><Button type="button" size="sm" variant="outline" onClick={() => setOuvert(!ouvert)}>{r?.statut === "validee" ? "Voir le décompte validé" : "Répartir cette facture"}</Button>
     {ouvert && <>
+      {categorie==="internet" && <p className={styles.muted}>Cet abonnement reste au propriétaire : aucune demande de remboursement automatique.</p>}
+      {categorie==="entretien" && <p className={styles.muted}>Seul l’entretien courant récupérable peut être réparti : vérifiez la prestation et le bail. Les gros travaux et réaménagements restent exclus.</p>}
       {!lectureSeule && r?.statut !== "validee" && <form data-saisie-confirmee action={submit} onReset={e => e.preventDefault()} className={styles.form}>
         <label>Répartition<select name="mode" aria-label="Répartition" defaultValue={reglages?.mode_interface ?? "cle"}><option value="cle">Clé enregistrée du bâtiment</option><option value="consommations">Consommations relevées + clé pour l’abonnement</option><option value="egales">Parts égales entre les logements</option></select></label>
         {facture && lots.map(lot => {
@@ -43,7 +48,8 @@ export function RepartitionFacture({ orgId, base, factureId, existante, lots, le
         <p className={styles.caption}>Total de la facture : {eur((Number(r.total_recuperable_cents) + Number(r.total_proprietaire_cents)) / 100)}.</p>
         <details className={styles.caption}><summary className="flex min-h-11 cursor-pointer items-center">Méthode de calcul</summary><p>{r.motif}</p></details>
         {!lectureSeule && r.statut !== "validee" && <Validation key={r.empreinte} orgId={orgId} r={r} />}
-        {r.statut === "validee" && <><Button type="button" variant="outline" onClick={() => telecharger(r, lots)}>Télécharger le décompte</Button>{!lectureSeule && [...new Set(r.lignes.filter(l => l.recuperable && l.bail_id).map(l => l.bail_id!))].map(id => <a key={id} className="inline-flex min-h-11 items-center text-sm underline underline-offset-4" href={`${base}/baux/${id}#regularisation-fournitures`}>Préparer la régularisation de {baux.find(b => b.id === id)?.nom ?? "ce bail"} →</a>)}</>}
+        {r.statut === "validee" && <><Button type="button" variant="outline" onClick={() => telecharger(r, lots)}>Télécharger le décompte</Button>{!lectureSeule && [...new Set(r.lignes.filter(l => l.recuperable && l.bail_id).map(l => l.bail_id!))].map(id => <Button key={id} type="button" variant="outline" onClick={()=>setBailDocument(id)}>Préparer le PDF de {baux.find(b => b.id === id)?.nom ?? "ce bail"}</Button>)}</>}
+        {r.statut === "validee" && bailDocument && !lectureSeule && <RegularisationFournitures key={bailDocument} orgId={orgId} bailId={bailDocument} annee={anneeDocument} aujourdhui={aujourdhui} base={base} onAnneeChange={a=>setAnneeDocument(Number(a))} affichageDirect identifiant={`decompte-${factureId}-${bailDocument}`} />}
         <p className={styles.caption}>La régularisation annuelle compare ces charges aux provisions déjà appelées.</p>
       </div>}
       {lectureSeule && !r && <p className={styles.muted}>Aucun décompte n’a été préparé.</p>}

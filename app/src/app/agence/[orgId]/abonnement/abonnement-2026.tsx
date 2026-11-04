@@ -237,7 +237,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
 
   return (
     <main className={estAgence ? "mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7" : `mx-auto w-full space-y-5 p-4 sm:p-7 ${styles.page}`}>
-      <EnteteReglages rubrique="abonnement" titre="Mon abonnement" mention={estAgence ? undefined : organisation.name}>
+      <EnteteReglages rubrique="abonnement" titre="Mon abonnement">
         {estAgence
           ? "Ce que vous payez, selon vos lots sous mandat, et l'état de votre compte."
           : "Votre formule, vos biens et votre facturation, en un coup d’œil."}

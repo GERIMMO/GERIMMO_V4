@@ -374,7 +374,12 @@ describe("Le barème est lisible par celui qui paie", () => {
     const somme = tranches.reduce((s, t) => s + Number(t.sous_total), 0);
     const total = tranches.reduce((s, t) => s + t.unites, 0);
     expect(total).toBe(12);
-    expect(somme).toBeCloseTo(await montant("agence", 12), 2);
+    // L'organisation relève de la grille actuelle ; le helper montant()
+    // vérifie ailleurs la grille historique, qui reste inchangée.
+    const { rows: [{ courant }] } = await db.query<{ courant: string }>(
+      "select (public.montant_offre_cents('agence',12,'mensuel') / 100.0)::text as courant"
+    );
+    expect(somme).toBeCloseTo(Number(courant), 2);
 
     const { rows: etat } = await db.query<{ mensuel: string; unite: string }>(
       "select mensuel::text, unite from public.etat_abonnement($1)",

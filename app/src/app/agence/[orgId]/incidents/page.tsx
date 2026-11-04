@@ -1,3 +1,4 @@
+import { libelleEtatIncidentProprietaire } from "@/lib/consigne-incident";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { ArrowRight, CircleCheck, Clock3, Inbox, Plus, TriangleAlert, Wrench } from "lucide-react";
@@ -12,6 +13,7 @@ import {
   ETATS_INCIDENT,
   incidentsATraiter,
   titreIncident,
+  titreIncidentProprietaire,
 } from "@/lib/incidents";
 import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
@@ -28,6 +30,10 @@ const PLAFOND_CLOS = 200;
 type Rang = {
   id: string;
   lot_id: string;
+  titre?:string|null;
+  description?:string|null;
+  bien_id?:string|null;
+  bien?:UnOuPlusieurs<{nom:string}>;
   numero: string;
   categorie: string;
   urgence: string;
@@ -88,7 +94,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
     );
   }
   const colonnes =
-    "id, lot_id, numero, categorie, urgence, etat, created_at, responsable_account_id, lot:lots(nom), declarant:persons(nom, prenom)";
+    "id, lot_id, bien_id, titre, description, numero, categorie, urgence, etat, created_at, responsable_account_id, lot:lots(nom), bien:biens!incidents_bien_meme_org_fk(nom), declarant:persons(nom, prenom)";
   let vivantsQuery = supabase.from("incidents").select(colonnes)
     .eq("organization_id", orgId).neq("etat", "clos")
     .order("created_at", { ascending: false });
@@ -206,7 +212,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
   const ouvert = sel ?? visibles[0]?.id ?? null;
 
   return (
-    <main className="incidents-page mx-auto w-full max-w-7xl flex-1 p-4 sm:p-7" data-proprietaire={estProprietaire || undefined} data-selection={sel ? "active" : undefined}>
+    <main className="incidents-page mx-auto w-full max-w-7xl flex-1 p-4 sm:p-7" data-parcours-intervention={estProprietaire || undefined} data-proprietaire={estProprietaire || undefined} data-selection={sel ? "active" : undefined}>
       <header className="incidents-entete">
         <div>
           <TitreEcran rubrique="incidents">Incidents</TitreEcran>
@@ -342,15 +348,15 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                     <span>{i.numero}</span>
                     <time dateTime={i.created_at}>{formaterDate(i.created_at)}</time>
                   </span>
-                  <b className="incident-rang-titre">{estProprietaire ? lot?.nom ?? "Lot non disponible" : titreIncident(i.categorie)}</b>
-                  <span className="incident-rang-lot">{estProprietaire ? titreIncident(i.categorie) : lot?.nom ?? "Lot non disponible"}</span>
+                  <b className="incident-rang-titre">{estProprietaire ? titreIncidentProprietaire(i) : titreIncident(i.categorie)}</b>
+                  <span className="incident-rang-lot">{estProprietaire ? (i.lot_id?lot?.nom??titreIncident(i.categorie):"Parties communes") : lot?.nom ?? "Parties communes"}</span>
                   <span className="incident-rang-etats">
                     {i.urgence === "urgente" && <span className="puce puce-rouge">Urgent</span>}
                     {i.etat !== "clos" && idsAvecDevisADecider.has(i.id) && (
                       <span className={`puce ${estProprietaire ? "puce-ambre" : "puce-rouge"}`}>Devis à décider</span>
                     )}
                     <span className={`incident-statut ${COULEURS_ETAT_INCIDENT[i.etat] ?? "puce puce-grise"}`}>
-                      {ETATS_INCIDENT[i.etat] ?? "État à vérifier"}
+                      {estProprietaire ? libelleEtatIncidentProprietaire(i.etat) : ETATS_INCIDENT[i.etat] ?? "État à vérifier"}
                     </span>
                     <IndicateurLien />
                     <ArrowRight size={16} aria-hidden="true" />

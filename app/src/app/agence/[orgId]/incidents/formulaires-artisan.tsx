@@ -98,6 +98,7 @@ export function FormulaireConsultation({
 }) {
   const actionLiee = ouvrirConsultation.bind(null, orgId, incidentId);
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const ConteneurOptions = estProprietaire ? "details" : "div";
   const idMetier = useId();
   const idNature = useId();
   const idValidite = useId();
@@ -111,7 +112,7 @@ export function FormulaireConsultation({
     <div className="space-y-3"><form data-saisie-confirmee action={action} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor={idMetier}>Métier recherché *</Label>
+          <Label htmlFor={idMetier}>{estProprietaire ? "Quel artisan ? *" : "Métier recherché *"}</Label>
           <select
             id={idMetier}
             name="metier"
@@ -129,13 +130,13 @@ export function FormulaireConsultation({
               </option>
             ))}
           </select>
-          <p className="text-sm text-muted-foreground">
+          {!estProprietaire && <p className="text-sm text-muted-foreground">
             Signalé comme « {categorieLibelle} ». Le métier n&apos;en est pas déduit
             automatiquement : à vous de dire qui doit intervenir.
-          </p>
+          </p>}
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor={idNature}>Nature des travaux *</Label>
+          <Label htmlFor={idNature}>{estProprietaire ? "Pour quels travaux ? *" : "Nature des travaux *"}</Label>
           <select
             id={idNature}
             name="nature"
@@ -149,18 +150,20 @@ export function FormulaireConsultation({
             </option>
             {Object.entries(NATURES_TRAVAUX).map(([valeur, libelle]) => (
               <option key={valeur} value={valeur}>
-                {libelle}
-                {decennaleRequise(valeur) ? " — décennale exigée" : " — sans décennale"}
+                {estProprietaire && valeur === "clos_et_couvert" ? "Toiture, façade ou étanchéité" : estProprietaire && valeur === "reseaux_encastres" ? "Canalisations ou câbles encastrés" : libelle}
+                {!estProprietaire && (decennaleRequise(valeur) ? " — décennale exigée" : " — sans décennale")}
               </option>
             ))}
           </select>
-          <p className="text-sm text-muted-foreground">
+          {!estProprietaire && <p className="text-sm text-muted-foreground">
             C&apos;est la nature, pas le métier, qui décide si l&apos;attestation
             décennale est exigée. Le filtre ne se désactive pas.
-          </p>
+          </p>}
         </div>
       </div>
 
+      <ConteneurOptions className={estProprietaire ? "incident-options-recherche" : undefined} open={estProprietaire && etat.erreur ? true : undefined}>
+      {estProprietaire && <summary>Options du devis</summary>}
       <div className="space-y-1.5">
         <Label htmlFor={idValidite}>Validité demandée aux devis (jours)</Label>
         <Input
@@ -186,7 +189,7 @@ export function FormulaireConsultation({
           className="mt-0.5 size-4 shrink-0 accent-[var(--encre)]"
         />
         <span>
-          J&apos;assume un devis unique
+          {estProprietaire ? "Demander un seul devis" : <>J&apos;assume un devis unique</>}
           <span className="block text-xs text-muted-foreground">
             Un seul artisan sollicité, donc pas de mise en concurrence. Le dossier
             conservera cette décision.
@@ -194,6 +197,8 @@ export function FormulaireConsultation({
         </span>
       </label>
 
+      {estProprietaire && <p className="text-xs text-muted-foreground">Les assurances des artisans sont vérifiées selon la nature des travaux choisie.</p>}
+      </ConteneurOptions>
       {disponibilites === null && <p role="alert" className="text-sm text-destructive">La disponibilité des artisans ne peut pas être vérifiée. Rechargez la page avant d’ouvrir une demande.</p>}
       {d && bienId && <MessageReseau orgId={orgId} bienId={bienId} disponibilite={d} />}
       {d && voieDeSortieAffichee(d, estProprietaire) && <VoieDeSortieReseau orgId={orgId} interetEnregistre={d.interet_enregistre} />}
@@ -202,7 +207,7 @@ export function FormulaireConsultation({
           sollicité, et pourquoi (zone, décennale, validation) — plutôt qu'un artisan validé qui disparaît sans mot. */}
       {estProprietaire && carnetBien && metier && nature && <CarnetNonSollicitable artisans={carnetBien} metier={metier} decennaleExigee={decennaleRequise(nature)} />}
       <Retour etat={etat} />
-      <BoutonEnvoi disabled={!autorisee} enCoursTexte="Ouverture…">{d && d.etat !== "ouverte" && d.nb_contacts > 0 ? "Ouvrir avec mon carnet" : "Ouvrir la mise en concurrence"}</BoutonEnvoi>
+      <BoutonEnvoi disabled={!autorisee} enCoursTexte="Ouverture…">{d && d.etat !== "ouverte" && d.nb_contacts > 0 ? "Ouvrir avec mon carnet" : estProprietaire ? "Chercher un artisan" : "Ouvrir la mise en concurrence"}</BoutonEnvoi>
     </form>
     {d && bienId && <InteretReseau key={`${bienId}-${metier}-${nature}`} orgId={orgId} bienId={bienId} disponibilite={d} />}
     </div>

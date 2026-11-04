@@ -1,4 +1,5 @@
 "use client";
+import { useParcoursDepense } from "./parcours-depense";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { useActionStateProtegee } from "@/lib/use-action-state-protegee";
 import { enregistrerConsommation, type EtatConsommations } from "@/app/actions/consommations";
@@ -18,7 +19,7 @@ import styles from "./consommations.module.css";
 
 export type BailConso = { id: string; lot_id: string; locataire_principal: string | null; nom: string; mode_charges: string | null; date_debut: string; date_fin: string | null; etat: string };
 export type SuggestionCompteur = { type: string; numero: string | null; index: string; date: string; lotId: string; bailId: string };
-type Props = { orgId: string; bienId: string; lotId: string | null; base: string; lectureSeule: boolean; aujourdHui: string;
+export type Props = { orgId: string; bienId: string; lotId: string | null; base: string; lectureSeule: boolean; aujourdHui: string;
   compteurs: CompteurConsommation[]; contrats: ContratFourniture[]; factures: FactureFourniture[]; demandes: DemandeReleve[]; releves: ReleveConsommation[];
   repartitions: RepartitionFourniture[];
   lots: { id: string; nom: string; etat: string }[]; baux: BailConso[]; suggestions: SuggestionCompteur[] };
@@ -179,7 +180,8 @@ function AvisTaxeFonciere({ p, fini }: { p: Props; fini: (message: string) => vo
     {lire("total_avis") > 0 && <p className={styles.caption}>Part à répartir entre les locataires : {eur(lire("teom"))} · part du propriétaire (déductible) : {eur(Math.max(0, proprietaire))}.</p>}
   </Form>;
 }
-function Facture({ p, c, f }: { p: Props; c: ContratFourniture; f: FactureFourniture }) {
+function Facture({ p, c, f, repartirDirectement = false }: { p: Props; c: ContratFourniture; f: FactureFourniture; repartirDirectement?: boolean }) {
+  const {facture:factureActive}=useParcoursDepense();
   const [paiement, setPaiement] = useState(false);
   const [rapprochement, setRapprochement] = useState(false);
   const comparaison = comparerFactureReleves(f, c, p.compteurs, p.releves, p.lots.map(l => l.id));
@@ -189,8 +191,10 @@ function Facture({ p, c, f }: { p: Props; c: ContratFourniture; f: FactureFourni
     <p className={styles.caption}>{formaterDate(f.periode_debut)} – {formaterDate(f.periode_fin)}</p>
     <div className={styles.actions}><ApercuDocumentEspace fichier={`${p.base}/documents/${f.document_id}/fichier`} titre={`Facture ${c.fournisseur} ${f.reference}`} />{!f.payee_le && !p.lectureSeule && <Button type="button" size="sm" variant="outline" onClick={() => setPaiement(!paiement)}>Indiquer le paiement</Button>}{f.consommation != null && <Button type="button" size="sm" variant="ghost" onClick={() => setRapprochement(!rapprochement)}>Comparer aux relevés</Button>}</div>
     {paiement && !p.lectureSeule && <Form p={p} action="facture_payee" id={f.id} fini={() => setPaiement(false)}><Champ titre="Payée le"><input name="date" type="date" defaultValue={p.aujourdHui} max={p.aujourdHui} required /></Champ></Form>}
-    <RepartitionFacture base={p.base} orgId={p.orgId} factureId={f.id} existante={p.repartitions.find(r => r.facture_id === f.id)} lots={c.lot_id ? p.lots.filter(l => l.id === c.lot_id) : p.lots} baux={p.baux} lectureSeule={p.lectureSeule} categorie={c.categorie} compteurs={p.compteurs} releves={p.releves} facture={f}
+    <RepartitionFacture key={`${f.id}:${factureActive===f.id}`} ouvertInitialement={repartirDirectement || factureActive===f.id} aujourdhui={p.aujourdHui} base={p.base} orgId={p.orgId} factureId={f.id} existante={p.repartitions.find(r => r.facture_id === f.id)} lots={c.lot_id ? p.lots.filter(l => l.id === c.lot_id) : p.lots} baux={p.baux} lectureSeule={p.lectureSeule} categorie={c.categorie} compteurs={p.compteurs} releves={p.releves} facture={f}
       reglagesPrecedents={p.factures.filter(x => x.contrat_id === c.id && x.periode_fin < f.periode_fin).map(x => p.repartitions.find(r => r.facture_id === x.id)?.source?.reglages).find(Boolean)} />
     {rapprochement && <div className={styles.warning}>{bilan ? <><p>Facture : {bilan.consommationFacturee.toLocaleString("fr-FR")} {comparaison.unite} · relevés : {bilan.consommationRelevee.toLocaleString("fr-FR")} {comparaison.unite} · écart : {bilan.ecart.toLocaleString("fr-FR")} {comparaison.unite}</p>{bilan.avertissements.map(a => <p key={a}>{a}</p>)}{!bilan.avertissements.length && <p>Les périodes et les consommations correspondent.</p>}</> : <p>{comparaison.erreur}</p>}</div>}
   </article>;
 }
+
+export { Facture as FicheFactureFourniture };

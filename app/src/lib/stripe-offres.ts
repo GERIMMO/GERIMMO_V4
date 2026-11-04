@@ -36,6 +36,7 @@ import {
   formuleParCode,
   offreAgence,
   offreFormule,
+  respectePlancherOffre,
   type LigneTarif,
   type Offre,
   type Periodicite,
@@ -127,6 +128,7 @@ export async function lignesStripe(
   offre: Offre,
   regime: RegimeTva
 ): Promise<LigneStripe[]> {
+  if (!respectePlancherOffre(offre)) throw new Error("Le tarif après remise doit rester au moins égal à 4,90 € par bien et par mois.");
   const inclusive = offre.public === "particulier";
   const taux =
     regime.nature === "assujetti" ? [await assurerTauxTva(stripe, regime.tauxPourcent, inclusive)] : undefined;
@@ -768,6 +770,18 @@ export async function programmerEcheance(
 ): Promise<Reussite<{ echeancier: string }> | Echec> {
   try {
     const s = await stripe.subscriptions.retrieve(params.subscription);
+    // Une baisse calculée avec la nouvelle grille ne doit jamais augmenter
+    // un ancien abonnement. Une périodicité demandée sous l'ancien tarif
+    // exige une nouvelle confirmation avant toute réécriture de prix.
+    const payee = lireDetails(s);
+    const reference = offrePour(params.offre.public === "agence" ? "agence" : "proprietaire_direct",
+      payee.unites ?? 0, payee.periodicite, payee.formule);
+    if (payee.montantPeriodeCents <= 0 ||
+      (params.offre.periodicite === payee.periodicite
+        ? params.offre.montantCents > payee.montantPeriodeCents
+        : !reference || reference.montantCents !== payee.montantPeriodeCents)) {
+      return { ok: false, erreur: "Votre tarif actuel est conservé. Confirmez le nouveau tarif dans Mon abonnement avant de changer de périodicité ou d’offre." };
+    }
     const lignes = await lignesStripe(stripe, params.offre, params.regime);
     const existant = typeof s.schedule === "string" ? s.schedule : (s.schedule?.id ?? null);
     const echeancier = existant

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState } from "react";
-import { ArrowRight, Building2, ChevronRight, Search, X } from "lucide-react";
-import { COULEURS_ETAT_LOT, ETATS_LOT, formaterSurface } from "@/lib/parc";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Banknote, Building2, ChevronRight, House, Search, X } from "lucide-react";
+import { deElide } from "@/lib/elision";
 import { eur } from "@/lib/ged";
 import { correspond } from "@/lib/roles-personnes";
 import type { occupationLot } from "@/lib/occupation-lot";
@@ -18,34 +18,42 @@ export type LotDuParc = {
   bailEnPreparation?: { href: string; nombre: number } | null;
 };
 export type BienDuParc = { id: string; nom: string; adresse: string; href: string; lots: LotDuParc[] };
-const FILTRES = [{ id: "tous", nom: "Tous" }, { id: "loue", nom: "En location" }, { id: "libre", nom: "Sans location" }, { id: "colocation", nom: "Colocation" }, { id: "brouillon", nom: "En préparation" }] as const;
-type Filtre = typeof FILTRES[number]["id"];
-
-export function VueParcProprietaire({ biens, retires, loyers, lectureLocations }: {
-  biens: BienDuParc[]; retires: { id: string; nom: string; href: string }[]; loyers: number | null; lectureLocations: boolean;
+export function VueParcProprietaire({ biens, retires, mois, loyersMois, base = "", bienSelectionne = null, children }: {
+  base?: string; bienSelectionne?: string | null; children?: ReactNode;
+  biens: BienDuParc[]; retires: { id: string; nom: string; href: string }[]; mois: string; loyersMois: { attendu: number; encaisse: number } | null;
 }) {
   const [recherche, chercher] = useState("");
   const [bien, choisirBien] = useState("");
-  const [filtre, filtrer] = useState<Filtre>("tous");
   const uid = useId();
+  const panneau = useRef<HTMLElement>(null);
+  const liste = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (bienSelectionne) {
+      panneau.current?.focus({ preventScroll: true });
+      if (window.matchMedia("(max-width: 900px)").matches) panneau.current?.scrollIntoView({ block: "start" });
+    } else if (window.matchMedia("(max-width: 900px)").matches) {
+      liste.current?.focus({ preventScroll: true });
+    }
+  }, [bienSelectionne]);
+  const nomMois = new Date(`${mois}-01T12:00:00Z`).toLocaleDateString("fr-FR", { month: "long", timeZone: "Europe/Paris" });
   const tous = biens.flatMap(item => item.lots);
-  // « En préparation » couvre le lot à préparer comme le bail qu'on prépare (audit #264, CB-03).
-  const dansFiltre = (lot: LotDuParc) => filtre === "tous" || filtre === "brouillon" && (lot.etat === "brouillon" || Boolean(lot.bailEnPreparation))
-    || filtre === "loue" && (lot.occupation?.contratsActifs ?? 0) > 0
-    || filtre === "libre" && lot.occupation?.contratsActifs === 0
-    || filtre === "colocation" && (lot.occupation?.chambresPreparees ?? 0) > 0;
   const groupes = biens.filter(item => !bien || item.id === bien).map(item => ({ ...item, lots: item.lots.filter(lot =>
-    dansFiltre(lot) && correspond(recherche, item.nom, item.adresse, lot.nom, ...lot.locataires),
-  ) })).filter(item => item.lots.length || (!item.lots.length && biens.find(source => source.id === item.id)?.lots.length === 0 && filtre === "tous" && correspond(recherche, item.nom, item.adresse)));
+    correspond(recherche, item.nom, item.adresse, lot.nom, ...lot.locataires),
+  ) })).filter(item => item.lots.length || (!item.lots.length && biens.find(source => source.id === item.id)?.lots.length === 0 && correspond(recherche, item.nom, item.adresse)));
   const total = groupes.reduce((somme, item) => somme + item.lots.length, 0);
-  const filtresActifs = Boolean(recherche || bien || filtre !== "tous");
-  const reinitialiser = () => { chercher(""); choisirBien(""); filtrer("tous"); };
-  // Le compteur d'un filtre décrit ses lots, jamais des chambres additionnées aux logements.
-  const compteColocations = tous.filter(lot => (lot.occupation?.chambresPreparees ?? 0) > 0).length;
+  const filtresActifs = Boolean(recherche || bien);
+  const reinitialiser = () => { chercher(""); choisirBien(""); };
   return <div className={styles.patrimoine}>
     <dl className={styles.chiffresParc}>
-      <div><dt>Biens</dt><dd>{biens.length}</dd></div><div><dt>Lots</dt><dd>{tous.length}</dd></div>
-      <div><dt>Loyers et charges mensuels</dt><dd>{loyers === null ? "—" : eur(loyers)}</dd></div>
+      <div><dt><Building2 size={18} aria-hidden="true" />Biens</dt><dd>{biens.length}</dd></div>
+      <div><dt><House size={18} aria-hidden="true" />Lots</dt><dd>{tous.length}</dd></div>
+      <div className={styles.carteLoyers}><dt><Banknote size={18} aria-hidden="true" />Loyers {deElide(nomMois)}</dt>
+        <dd>{loyersMois === null ? <span className={styles.messageLoyers} role="status">Montants indisponibles</span>
+          : loyersMois.attendu === 0 ? <span className={styles.messageLoyers}>Aucun loyer attendu ce mois-ci</span>
+          : <><strong>{eur(loyersMois.encaisse)}</strong><span className={styles.attenduLoyers}> encaissé{loyersMois.encaisse > 1 ? "s" : ""} sur <b>{eur(loyersMois.attendu)}</b> attendus</span></>}
+        </dd>
+        {loyersMois !== null && loyersMois.attendu > 0 && <p className={styles.precisionLoyers}>Charges comprises</p>}
+      </div>
     </dl>
     <div className={styles.outilsParc}>
       <div className={styles.rechercheParc}><Search size={18} aria-hidden="true" /><label className="sr-only" htmlFor={`${uid}-recherche`}>Rechercher un bien, un lot ou un locataire</label>
@@ -53,31 +61,25 @@ export function VueParcProprietaire({ biens, retires, loyers, lectureLocations }
         {recherche && <button type="button" aria-label="Effacer la recherche" onClick={() => chercher("")}><X size={17} aria-hidden="true" /></button>}
       </div>
       {biens.length > 1 && <div className={styles.choixBien}><label className="sr-only" htmlFor={`${uid}-bien`}>Choisir un bien</label><select id={`${uid}-bien`} value={bien} onChange={event => choisirBien(event.target.value)}><option value="">Tous les biens</option>{biens.map(item => <option key={item.id} value={item.id}>{item.nom}</option>)}</select></div>}
-      <div className={styles.filtresParc} role="group" aria-label="Filtrer les lots">
-        {FILTRES.filter(item => item.id !== "colocation" || compteColocations > 0).map(item => <button key={item.id} type="button" aria-pressed={filtre === item.id}
-          disabled={!lectureLocations && ["loue", "libre", "colocation"].includes(item.id)} onClick={() => filtrer(item.id)} aria-controls={`${uid}-liste`}>{item.nom}</button>)}
-      </div>
+
     </div>
     <div className={styles.resultatsParc}><p role="status">{total} lot{total > 1 ? "s" : ""}{filtresActifs ? ` sur ${tous.length}` : ""}</p>{filtresActifs && <button type="button" onClick={reinitialiser}>Effacer les filtres</button>}</div>
-    <div id={`${uid}-liste`} className={styles.groupesParc}>
-      {groupes.map(item => <section className={styles.bienParc} key={item.id} aria-label={item.nom}>
-        <header><span className={styles.iconeBien}><Building2 size={21} aria-hidden="true" /></span><div><h2>{item.nom}</h2>{item.adresse && <p>{item.adresse}</p>}</div><Link href={item.href} aria-label={`Gérer le bien ${item.nom}`} title="Gérer le bien"><ChevronRight size={18} aria-hidden="true" /></Link></header>
-        {item.lots.length ? <ul>{item.lots.map(lot => <li key={lot.id}>
-          <Link href={lot.href} className={styles.dossierLot} data-lot-id={lot.id}>
-            <div className={styles.lotEntete}><strong>{lot.nom}</strong><span className={COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}>{ETATS_LOT[lot.etat] ?? lot.etat}</span></div>
-            <p className={styles.lotCaracteristiques}>{[lot.surface == null ? null : formaterSurface(lot.surface), lot.meuble ? "Meublé" : "Non meublé", (lot.occupation?.chambresPreparees ?? 0) > 0 ? `${lot.occupation!.chambresPreparees} chambre${lot.occupation!.chambresPreparees > 1 ? "s" : ""}` : null].filter(Boolean).join(" · ")}</p>
-            <div className={styles.lotLocation}><span>{lot.occupation === null ? "Locations indisponibles" : lot.occupation.contratsActifs ? lot.locataires.join(", ") || `${lot.occupation.contratsActifs} ${lot.occupation.contratsActifs > 1 ? "baux" : "bail"} en cours` : lot.bailEnPreparation ? "Bail en préparation" : "Sans location en cours"}</span>
-              {lot.loyer !== null && (lot.occupation?.contratsActifs ?? 0) > 0 && <strong>{eur(lot.loyer)}<small> / mois CC</small></strong>}
-            </div>
-            {!!lot.occupation?.chambresPreparees && !lot.occupation.logementEntierOccupe && <p className={styles.chambresParc}>{lot.occupation.chambresLouees} chambre{lot.occupation.chambresLouees > 1 ? "s" : ""} louée{lot.occupation.chambresLouees > 1 ? "s" : ""}{lot.occupation.chambresSansBail > 0 ? ` · ${lot.occupation.chambresSansBail} sans bail` : ""}</p>}
-            <span className={styles.ouvrirDossier}>Ouvrir le dossier<ArrowRight size={16} aria-hidden="true" /></span>
+    <div className={styles.divisionParc} data-selection={Boolean(bienSelectionne)}>
+      <div ref={liste} tabIndex={-1} id={`${uid}-liste`} className={styles.listeBiens} aria-label="Liste des biens">
+        {groupes.length > 0 ? <nav aria-label="Vos biens"><ul>{groupes.map(item => <li key={item.id}>
+          <Link href={`${base}/parc?sel=bien:${item.id}`} scroll={false} aria-current={bienSelectionne === item.id ? "true" : undefined} className={styles.ligneBien}>
+            <span className={styles.iconeBien}><Building2 size={20} aria-hidden="true" /></span>
+            <span className={styles.identiteBien}><strong>{item.nom}</strong>{item.adresse && <small>{item.adresse}</small>}<span>{item.lots.length} lot{item.lots.length > 1 ? "s" : ""}{item.lots.some(lot => (lot.occupation?.chambresPreparees ?? 0) > 0) && <span className={styles.etiquetteColocation}> · Colocation · {item.lots.reduce((n, lot) => n + (lot.occupation?.chambresPreparees ?? 0), 0)} chambres</span>}</span></span>
+            <ChevronRight size={17} aria-hidden="true" />
           </Link>
-          {lot.bailEnPreparation && <Link className={styles.completerLot} href={lot.bailEnPreparation.href}>{lot.bailEnPreparation.nombre > 1 ? `${lot.bailEnPreparation.nombre} baux en préparation` : "Reprendre le bail en préparation"}<ArrowRight size={14} aria-hidden="true" /></Link>}
-          {/* Les caractéristiques se complètent dans le formulaire du lot, ouvert d'emblée (audit #264, FL-05). */}
-          {lot.aCompleter && <Link className={styles.completerLot} href={lot.aCompleter.ancre === "caracteristiques" ? `${lot.href}?modifier=1#caracteristiques` : `${lot.href}#${lot.aCompleter.ancre}`}>Compléter : {lot.aCompleter.titre.toLowerCase()}<ArrowRight size={14} aria-hidden="true" /></Link>}
-        </li>)}</ul> : <div className={styles.bienSansLot}><p>Aucun lot actif.</p><Link href={item.href}>Gérer les lots de ce bien →</Link></div>}
-      </section>)}
-      {!groupes.length && <div className="vide-guide"><h2>Aucun lot dans cette sélection</h2><p>Essayez un autre nom ou retirez un filtre.</p><button type="button" className="btn-secondaire" onClick={reinitialiser}>Afficher tous les lots</button></div>}
+        </li>)}</ul></nav> : <div className={styles.listeVide}><p>Aucun bien dans cette sélection.</p><button type="button" onClick={reinitialiser}>Afficher tous les biens</button></div>}
+      </div>
+      <section ref={panneau} tabIndex={-1} id="fiche-bien" className={styles.panneauBien} aria-label={bienSelectionne ? "Fiche complète du bien sélectionné" : "Détail du bien"}>
+        {bienSelectionne && children ? <>
+          <Link className={styles.retourBiens} href={`${base}/parc`} scroll={false}><ArrowLeft size={16} aria-hidden="true" />Retour à la liste</Link>
+          {children}
+        </> : <div className={styles.attenteBien}><span className={styles.iconeBien}><Building2 size={26} aria-hidden="true" /></span><h2>Sélectionnez un bien</h2><p>Retrouvez ici sa fiche complète et ses lots.</p></div>}
+      </section>
     </div>
     {retires.length > 0 && <details className={styles.archivesParc}><summary>Biens archivés · {retires.length}</summary><ul>{retires.map(item => <li key={item.id}><Link href={item.href}>{item.nom}<ArrowRight size={16} aria-hidden="true" /></Link></li>)}</ul></details>}
   </div>;

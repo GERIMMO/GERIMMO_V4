@@ -9,6 +9,8 @@ vi.mock("@/lib/taches-consommations", () => ({ chargerTachesConsommations: m.con
 vi.mock("@/lib/pilotage-proprietaire", () => ({ chargerPilotageProprietaire: m.pilotage }));
 vi.mock("@/lib/lecture-verifications-proprietaire", () => ({ chargerVerificationsProprietaire: m.verifications }));
 vi.mock("@/lib/incidents-verifications", () => ({ chargerIncidentsVerifications: async () => ({ incidents: new Map(), indisponible: false }) }));
+vi.mock("@/components/suivi-echeanciers-charges", () => ({ SuiviEcheanciersCharges: () => null }));
+vi.mock("@/components/conseils-accueil-proprietaire", () => ({ ConseilsAccueilProprietaire: () => null }));
 vi.mock("@/components/accueil-bienvenue", () => ({ AccueilBienvenue: () => null }));
 vi.mock("@/components/parcours-demarrage", () => ({ ParcoursDemarrage: () => null }));
 vi.mock("@/components/actions-rapides-incident", () => ({ ActionsRapidesIncident: () => null }));
@@ -55,6 +57,31 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ indisponible: true }));
   });
 
+  it("compare les loyers du mois dans le même périmètre, sans inclure un autre bien", async () => {
+    m.rpc.mockImplementation(async (nom: string) => ({ error: null, data: nom === "quittancement_mois" ? [
+      { lot_id: "lot", montant_du: "1000", montant_couvert: "400" },
+      { lot_id: "hors-patrimoine", montant_du: "99999", montant_couvert: "99999" },
+    ] : [] }));
+    const html = await rendre();
+    expect(html).toContain('aria-valuenow="40"');
+    expect(html).toContain("400,00");
+    expect(html).not.toContain("99999");
+    expect(html).toContain("Actions rapides");
+    expect(html).toContain("Mes événements");
+  });
+
+  it("n'affiche pas une progression réussie si aucun loyer n'est attendu", async () => {
+    const html = await rendre();
+    expect(html).toContain("Aucun loyer attendu ce mois-ci");
+    expect(html).not.toContain('aria-label="Loyers encaissés');
+  });
+
+  it("signale une lecture du mois impossible sans afficher un montant inventé", async () => {
+    m.rpc.mockResolvedValue({ data: null, error: { message: "indisponible" } });
+    const html = await rendre();
+    expect(html).toContain("Montants indisponibles");
+    expect(html).not.toContain('aria-label="Loyers encaissés');
+  });
   it("compte uniquement les urgences et loyers dans la carte rouge, sans répéter les tâches", async () => {
     m.verifications.mockResolvedValue(lecture([action("Urgence TEST", true), action("Demande courante TEST")], true));
     const html = await rendre();
@@ -84,10 +111,10 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     expect(html).toContain('aria-label="3 tâches"');
   });
 
-  it("l'encaissé du mois dit sa définition et mène aux recettes datées de Finances (audit du 27/10, LAT-06)", async () => {
+  it("le montant des échéances du mois mène au suivi des loyers", async () => {
     const html = await rendre();
-    expect(html).toContain('href="/espace/org/loyers#operations"');
-    expect(html).toContain("Reçus ce mois, toutes échéances");
+    expect(html).toContain('href="/espace/org/loyers"');
+    expect(html).toContain("Loyers encaissés");
   });
 
   it("garde les tâches fiables sans annoncer un repos quand une source échoue", async () => {

@@ -35,14 +35,14 @@ function moisLong(premier: string) {
 function CarteRendezVous({ r, base }: { r: RendezVousGestion; base: string }) {
   const incident = premier(r.incident)!;
   const lot = premier(incident.lot);
-  const bien = premier(lot?.bien);
+  const bien = premier(incident.bien) ?? premier(lot?.bien);
   const artisan = premier(r.artisan);
   return (
     <Link href={`${base}/incidents/${incident.id}`} className="agenda-rendezvous group">
       <div className="agenda-horaire"><Clock3 className="size-4" aria-hidden="true" /><p>{creneauTexte(r.debut_prevu, r.fin_prevue)}</p></div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3>{lot?.nom ?? "Logement du dossier"}</h3>
+          <h3>{lot?.nom ?? (incident.bien_id ? "Parties communes" : "Logement du dossier")}</h3>
           <span className={r.statut === "terminee" ? "puce puce-verte" : "puce puce-grise"}>{STATUTS_MISSION[r.statut] ?? "À consulter"}</span>
         </div>
         <p className="mt-1 text-sm">{artisan?.raison_sociale ?? "Artisan du dossier"}</p>

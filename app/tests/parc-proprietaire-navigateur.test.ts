@@ -35,43 +35,43 @@ describe.skipIf(!chrome)("Parc propriétaire : trouver le bon dossier sans fenê
     await page.getByRole("heading", { name: "Biens & locations" }).waitFor();
   });
   afterEach(async () => { await contexte?.close(); expect(erreurs).toEqual([]); });
-  for (const largeur of [390, 1440]) it(`filtre le bon bien et garde un lien direct à ${largeur}px`, async () => {
+  for (const largeur of [390, 1440]) it(`sélectionne le bien dans la même page à ${largeur}px`, async () => {
     await page.setViewportSize({ width: largeur, height: 900 });
-    expect(await page.locator("a[data-lot-id]").count()).toBe(3);
-    const coloc = page.locator('a[data-lot-id="coloc"]');
-    expect(await coloc.getAttribute("href")).toBe("/espace/fictif/parc/residence/lots/coloc");
-    expect(await page.getByRole("dialog").count()).toBe(0);
+    const liens = page.getByRole("navigation", { name: "Vos biens" }).getByRole("link");
+    expect(await liens.count()).toBe(3);
+    expect(await page.getByRole("button", { name: "En location", exact: true }).count()).toBe(0);
     await page.getByLabel("Choisir un bien", { exact: true }).selectOption("atelier");
-    expect(await page.locator("a[data-lot-id]").count()).toBe(1);
+    expect(await liens.count()).toBe(1);
     expect(await page.getByRole("status").textContent()).toBe("1 lot sur 3");
     await page.getByRole("button", { name: "Effacer les filtres" }).click();
-    await page.getByRole("button", { name: "En location", exact: true }).click();
-    expect(await page.locator("a[data-lot-id]").count()).toBe(2);
+    await liens.filter({ hasText: "Résidence des Lilas" }).click();
+    await page.getByRole("heading", { name: "Fiche : Résidence des Lilas", exact: true }).waitFor();
+    expect(new URL(page.url()).pathname).toBe("/espace/fictif/parc");
+    expect(await page.getByRole("dialog").count()).toBe(0);
+    const liste = page.getByRole("navigation", { name: "Vos biens" });
+    if (largeur === 390) {
+      expect(await liste.isVisible()).toBe(false);
+      await page.getByRole("link", { name: "Retour à la liste", exact: true }).click();
+      await liste.waitFor();
+    } else {
+      const dimensions = await page.evaluate(() => ({ gauche: document.querySelector('.listeBiens')!.getBoundingClientRect().width, droite: document.querySelector('.panneauBien')!.getBoundingClientRect().width }));
+      expect(dimensions.droite / dimensions.gauche).toBeCloseTo(2, 1);
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
-  });
-  it("distingue les chambres louées d'un bail sur le logement entier", async () => {
-    expect(await page.locator('a[data-lot-id="coloc"]').textContent()).toContain("2 chambres louées · 1 sans bail");
-    expect(await page.locator('a[data-lot-id="entier"]').textContent()).not.toContain("sans bail");
-    await page.getByRole("button", { name: "Sans location", exact: true }).click();
-    expect(await page.locator("a[data-lot-id]").count()).toBe(1);
-    expect(await page.locator("a[data-lot-id]").getAttribute("data-lot-id")).toBe("studio");
   });
   it("recherche sans accents et permet de sortir d'une sélection vide", async () => {
     const recherche = page.getByLabel("Rechercher un bien, un lot ou un locataire", { exact: true });
     await recherche.fill("residence");
-    expect(await page.locator("a[data-lot-id]").count()).toBe(2);
+    expect(await page.getByRole("navigation", { name: "Vos biens" }).getByRole("link").count()).toBe(1);
     await recherche.fill("introuvable");
-    await page.getByRole("heading", { name: "Aucun lot dans cette sélection" }).waitFor();
-    await page.getByRole("button", { name: "Afficher tous les lots" }).click();
+    await page.getByText("Aucun bien dans cette sélection.", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "Afficher tous les biens" }).click();
     expect(await recherche.inputValue()).toBe("");
-    expect(await page.getByRole("region", { name: "Immeuble à organiser", exact: true }).count()).toBe(1);
-    expect(await page.locator("a[data-lot-id]").count()).toBe(3);
+    expect(await page.getByRole("navigation", { name: "Vos biens" }).getByRole("link").count()).toBe(3);
   });
-  it("ne transforme pas une lecture manquante en logement disponible", async () => {
+  it("ne remplace pas un montant indisponible par zéro", async () => {
     await page.goto("http://localhost/espace/fictif/parc?illisible");
-    expect(await page.getByRole("button", { name: "Sans location", exact: true }).isDisabled()).toBe(true);
-    expect(await page.getByRole("button", { name: "En location", exact: true }).isDisabled()).toBe(true);
-    expect(await page.getByText("Locations indisponibles", { exact: true }).count()).toBe(3);
-    expect(await page.getByText("Sans location en cours", { exact: true }).count()).toBe(0);
+    await page.getByText("Montants indisponibles", { exact: true }).waitFor();
+    expect(await page.getByText("Aucun loyer attendu ce mois-ci", { exact: true }).count()).toBe(0);
   });
 });

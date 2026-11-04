@@ -17,4 +17,6 @@ const biens: BienDuParc[] = [
   { id: "atelier", nom: "Maison des Tilleuls", adresse: "23 avenue des Tilleuls · 75012 Paris", href: "/espace/fictif/parc/atelier", lots: [lot("studio", "Studio cour", "brouillon", [], [])] },
   { id: "vide", nom: "Immeuble à organiser", adresse: "19 rue de la Gare", href: "/espace/fictif/parc/vide", lots: [] },
 ];
-createRoot(document.getElementById("racine")!).render(<StrictMode><main><h1>Biens & locations</h1><VueParcProprietaire biens={biens} retires={[]} loyers={illisible ? null : 1800} lectureLocations={!illisible} /></main></StrictMode>);
+const selection = new URLSearchParams(location.search).get("sel")?.split(":")[1] ?? null;
+const choisi = biens.find(bien => bien.id === selection);
+createRoot(document.getElementById("racine")!).render(<StrictMode><main><h1>Biens & locations</h1><VueParcProprietaire biens={biens} retires={[]} base="/espace/fictif" bienSelectionne={choisi?.id} mois="2026-11" loyersMois={illisible ? null : { attendu: 1800, encaisse: 0 }}><article><h2>Fiche : {choisi?.nom}</h2><p>Informations du bien</p></article></VueParcProprietaire></main></StrictMode>);

@@ -11,7 +11,7 @@ import { saisieCompteur, saisieContrat, saisieFacture, saisieTaxeFonciere, texte
 import { indexEnMillUnites } from "@/lib/consommations";
 import { lireCollectionConsommations } from "@/lib/lecture-consommations";
 
-export type EtatConsommations = { erreur?: string; succes?: string; documentId?: string; documentEmpreinte?: string; synchronisationAReprendre?: boolean };
+export type EtatConsommations = { erreur?: string; succes?: string; documentId?: string; documentEmpreinte?: string; synchronisationAReprendre?: boolean; factureId?: string };
 function actualiser(org: string) {
   revalidatePath(`/agence/${org}`, "layout");
   revalidatePath(`/espace/${org}`, "layout");
@@ -100,8 +100,10 @@ export async function enregistrerConsommation(orgId: string, bienId: string, lot
         const liens = await supabase.from("document_liens").upsert(logements.data.map(l => ({ organization_id: orgId, document_id: docId, entite: "lot", entite_id: l.id })), { onConflict: "document_id,entite,entite_id", ignoreDuplicates: true });
         if (liens.error) return { erreur: `Le document est conservé, mais son classement dans le bien a échoué : ${sansJargon(liens.error.message)}`, ...reprise };
       }
-      const { error } = await supabase.from("factures_fourniture").insert({ ...saisie, organization_id: orgId, contrat_id: contrat, document_id: docId });
-      if (error) return { erreur: sansJargon(error.message), ...reprise };
+      const { data: factureCreee, error } = await supabase.from("factures_fourniture").insert({ ...saisie, organization_id: orgId, contrat_id: contrat, document_id: docId }).select("id").single();
+      if (error || !factureCreee) return { erreur: sansJargon(error?.message ?? "La facture n’a pas pu être conservée."), ...reprise };
+      actualiser(orgId);
+      return { succes: "Facture enregistrée. Vérifiez maintenant sa répartition.", factureId: factureCreee.id };
     } else if (action === "taxe_fonciere") {
       // Avis de taxe foncière (02/11/2026) : une saisie, deux usages. La ligne TEOM (et ses frais de gestion)
       // devient une facture du contrat « TEOM » du bâtiment, répartissable entre les locataires comme les autres

@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import path from "node:path";
-import { sansSyntheseAlertes, debordementHorizontal } from "./aides";
+import { sansSyntheseAlertes, debordementHorizontal, lienLotProprietaire } from "./aides";
 
 const base = "/espace/3c1d1e95-3570-400b-8012-44530be145b1";
 test.use({ storageState: path.join(__dirname, ".auth/proprietaire.json") });
@@ -35,7 +35,7 @@ for (const largeur of [390, 768, 1440]) {
   test(`fiche de lot : accès direct, clavier et retour à ${largeur}px`, async ({ page }, info) => {
     await page.setViewportSize({ width: largeur, height: 950 });
     await page.goto(`${base}/parc`, { waitUntil: "networkidle" });
-    const ouvrir = page.locator("a[data-lot-id]").filter({ hasText: "Appartement T2" }).first();
+    const ouvrir = (await lienLotProprietaire(page));
     const href = await ouvrir.getAttribute("href");
     expect(href).toMatch(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
     await ouvrir.focus();
@@ -43,25 +43,28 @@ for (const largeur of [390, 768, 1440]) {
     await expect(page).toHaveURL(href!);
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByRole("tablist")).toHaveCount(0);
-    for (const nom of ["Le logement", "Le bâtiment", "Locataires & garants", "Le bail", "Incidents"]) {
+    for (const nom of ["Logement et propriété", "Bâtiment", "Le bail", "Incidents"]) {
       await expect(page.getByRole("heading", { name: nom, exact: true })).toBeVisible();
     }
-    const documents = page.locator("details#documents-lot");
-    await expect(documents).not.toHaveAttribute("open", "");
-    const ouvrirDocuments = documents.locator(":scope > summary");
+    // Un logement vacant n'affiche plus de carte occupants vide.
+    await expect(page.getByRole('heading', { name: 'Locataires & garants', exact: true })).toHaveCount(0);
+    const documents = page.locator("#documents-lot");
+    await expect(documents).toBeVisible();
+    const diagnostics = documents.locator("details").filter({ has: page.locator(":scope > summary", {hasText:"Diagnostics du logement et du bâtiment"}) });
+    const ouvrirDocuments = diagnostics.locator(":scope > summary");
     await ouvrirDocuments.focus();
     await expect(ouvrirDocuments).toBeFocused();
     await page.keyboard.press("Enter");
-    await expect(documents).toHaveAttribute("open", "");
+    await expect(diagnostics).toHaveAttribute("open", "");
     await expect(documents.getByRole("link", { name: "Ouvrir la bibliothèque", exact: true })).toBeVisible();
     await page.keyboard.press("Space");
-    await expect(documents).not.toHaveAttribute("open", "");
+    await expect(diagnostics).not.toHaveAttribute("open", "");
     expect(await debordementHorizontal(page)).toBe(0);
     expect((await new AxeBuilder({ page }).include(".dossier-location").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations).toEqual([]);
     await page.screenshot({ path: info.outputPath(`fiche-lot-${largeur}.png`), fullPage: true });
     await page.getByRole("link", { name: "← Biens & locations", exact: true }).click();
     await expect(page).toHaveURL(`${base}/parc`);
-    await expect(ouvrir).toBeVisible();
+    await expect(await lienLotProprietaire(page)).toBeVisible();
   });
 }
 
@@ -97,29 +100,32 @@ for (const largeur of [390, 768, 1440]) test(`dépôt : formulaire et retour dir
 test("la fiche conserve les dépenses, les documents et l’historique sans modale", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 950 });
   await page.goto(`${base}/parc`, { waitUntil: "networkidle" });
-  await page.locator("a[data-lot-id]").filter({ hasText: "Appartement T2" }).first().click();
-  const journal = page.locator("details").filter({ has: page.locator("summary", { hasText: "Journal & dépenses" }) });
-  await journal.locator("summary").click();
-  const libelle = journal.getByLabel("Libellé (facultatif)", { exact: true });
-  await libelle.fill("Saisie locale non enregistrée");
-  await journal.locator("summary").click();
-  await journal.locator("summary").click();
-  await expect(libelle).toHaveValue("Saisie locale non enregistrée");
-  const documents = page.locator("details#documents-lot");
-  await expect(documents).not.toHaveAttribute("open", "");
-  await documents.locator(":scope > summary").click();
+  await (await lienLotProprietaire(page)).click();
+  await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
+  const depenses = page.locator("#consommations");
+  await depenses.getByRole("button", {name:"Ajouter une dépense",exact:true}).click();
+  const fournisseur = depenses.getByLabel("Fournisseur", {exact:true});
+  await fournisseur.fill("Saisie locale non enregistrée");
+  const documents = page.locator("#documents-lot");
   await expect(documents.getByRole("link", { name: "Déposer un document", exact: true })).toBeVisible();
-  await documents.locator(":scope > summary").click();
-  await expect(libelle).toHaveValue("Saisie locale non enregistrée");
+  const diagnostics = documents.locator("details").filter({has:page.locator(":scope > summary", {hasText:"Diagnostics du logement et du bâtiment"})});
+  await diagnostics.locator(":scope > summary").click();
+  await diagnostics.locator(":scope > summary").click();
+  await expect(fournisseur).toHaveValue("Saisie locale non enregistrée");
   const historique = page.locator("details").filter({ has: page.locator("summary", { hasText: "Historique du lot" }) });
-  await historique.locator("summary").click();
-  await expect(historique.locator("ol").or(historique.getByText("Rien ne s’est encore passé sur ce lot.", { exact: true }))).toBeVisible();
+  if (await historique.count()) {
+    await historique.locator("summary").click();
+    await expect(historique.locator("ol")).toBeVisible();
+  } else {
+    await expect(page.getByText("Rien ne s’est encore passé sur ce lot.", {exact:true})).toHaveCount(0);
+  }
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(await debordementHorizontal(page)).toBe(0);
 });
 
 test("les automatismes ouvrent directement les préférences du profil", async ({ page }) => {
   await page.goto(base, { waitUntil: "networkidle" });
+  await page.locator("summary").filter({ hasText: "Mes automatismes et outils" }).click();
   await page.getByRole("link", { name: "Régler les envois", exact: true }).click();
   await expect(page).toHaveURL(`${base}/profil#envois`);
   await expect(page.locator("#envois")).toBeVisible();
@@ -140,7 +146,7 @@ for (const largeur of [390, 1440]) test(`incident : décider puis consulter l’
   });
   expect(ordre).toBe(true);
   await expect(dossier.locator('.incident-historique')).not.toHaveAttribute('open', '');
-  await dossier.getByText('Historique du dossier', { exact: true }).click();
+  await dossier.locator('.incident-historique > summary').click();
   await expect(dossier.locator('.incident-historique')).toHaveAttribute('open', '');
   expect(await debordementHorizontal(page)).toBe(0);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);

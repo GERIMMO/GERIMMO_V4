@@ -204,7 +204,8 @@ export default async function LayoutAgence({
     { href: "/compte", libelle: "Sécurité de mon compte" },
   ] : estProprietaire
     ? [
-        { href: `${base}/profil`, libelle: "Mon profil" },
+        { href: `${base}/profil`, libelle: "Paramètres" },
+        { href: `${base}/abonnement`, libelle: "Abonnement et factures" },
         { href: "/compte", libelle: "Sécurité du compte" },
         { href: "/espaces", libelle: "Mes espaces" },
       ]

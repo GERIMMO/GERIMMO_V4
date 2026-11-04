@@ -5,7 +5,7 @@ import { lotsDuPortefeuille, PortefeuilleIndisponible } from "@/lib/portefeuille
 import { minuitParis, semaineAgenda, moisAgenda, jourAgenda, vueAgenda, pageAgenda, TAILLE_PAGE_AGENDA } from "@/lib/agenda-gestion";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 
-type IncidentAgenda = { id: string; numero: string; lot_id: string; categorie: string; urgence: string; lot: UnOuPlusieurs<{ nom: string; bien: UnOuPlusieurs<{ address_line1: string | null; city: string | null }> }> };
+type IncidentAgenda = { id: string; numero: string; lot_id: string | null; bien_id?: string | null; bien?: UnOuPlusieurs<{ nom: string; address_line1: string | null; city: string | null }>; categorie: string; urgence: string; lot: UnOuPlusieurs<{ nom: string; bien: UnOuPlusieurs<{ address_line1: string | null; city: string | null }> }> };
 export type RendezVousGestion = {
   id: string; statut: string; debut_prevu: string | null; fin_prevue: string | null;
   incident: UnOuPlusieurs<IncidentAgenda>; artisan: UnOuPlusieurs<{ raison_sociale: string }>;
@@ -25,7 +25,7 @@ export async function chargerAgendaGestion(orgId: string, options: { vue?: strin
   // !inner est essentiel : un dossier filtré ne doit laisser ni mission ni
   // compteur visibles. Les contraintes sont nommées pour les FK composées.
   let q = supabase.from("incident_interventions").select(
-    "id, statut, debut_prevu, fin_prevue, incident:incidents!incident_interventions_incident_meme_org_fk!inner(id, numero, lot_id, categorie, urgence, lot:lots(nom, bien:biens!lots_bien_id_fkey(address_line1, city))), artisan:artisans!incident_interventions_artisan_id_fkey(raison_sociale)",
+    "id, statut, debut_prevu, fin_prevue, incident:incidents!incident_interventions_incident_meme_org_fk!inner(id, numero, lot_id, bien_id, bien:biens!incidents_bien_meme_org_fk(nom, address_line1, city), categorie, urgence, lot:lots(nom, bien:biens!lots_bien_id_fkey(address_line1, city))), artisan:artisans!incident_interventions_artisan_id_fkey(raison_sociale)",
     { count: "exact" }
   ).eq("organization_id", orgId).eq("incident.organization_id", orgId);
   if (portefeuille) q = q.in("incident.lot_id", [...portefeuille]);
@@ -51,7 +51,7 @@ export async function chargerAgendaGestion(orgId: string, options: { vue?: strin
   // ou hors portefeuille ne doit devenir une carte orpheline.
   const lignes = ((data ?? []) as unknown as RendezVousGestion[]).filter((r) => {
     const incident = premier(r.incident);
-    return incident && (!portefeuille || portefeuille.has(incident.lot_id));
+    return incident && (!portefeuille || Boolean(incident.lot_id && portefeuille.has(incident.lot_id)));
   });
   return { ...vide, lignes, total: count ?? lignes.length };
 }

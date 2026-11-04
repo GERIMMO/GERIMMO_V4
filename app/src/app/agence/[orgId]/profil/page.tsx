@@ -29,14 +29,14 @@ export const metadata = { title: "Profil — Gerimmo" };
 export default async function PageProfil(props: PageProps<"/agence/[orgId]/profil">) {
   const { orgId } = await props.params;
   const { retour } = await props.searchParams;
-  const { supabase, role, estProprietaire, organisation, traverseeLectureSeule } = await verifierAccesEspace(orgId);
+  const { supabase, role, estProprietaire, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
   const responsable = !traverseeLectureSeule && ROLES_RESPONSABLES.includes(role);
-  const titre = estProprietaire ? (traverseeLectureSeule ? "Profil du propriétaire" : "Mon profil") : "Profil de l'agence";
+  const titre = estProprietaire ? (traverseeLectureSeule ? "Profil du propriétaire" : "Paramètres") : "Profil de l'agence";
   // 24/09 : côté agence, la barre latérale et la barre haute nomment déjà
   // l'organisation — la mention à droite du titre ne sert qu'au propriétaire.
-  const mention = estProprietaire ? organisation.name : undefined;
+  const mention = undefined;
 
   const { data: profil, error: erreurProfil } = await supabase
     .from("organizations")

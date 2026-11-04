@@ -403,3 +403,6 @@ describe("l'écran de validation de la facture : rendez-vous prévu / interventi
     expect(t).not.toContain("F-INCOHERENTE");
   });
 });
+
+// Les échanges sont un composant serveur asynchrone distinct du statut de mission.
+vi.mock("@/components/echanges-intervention", () => ({ EchangesIntervention: () => null }));

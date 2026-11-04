@@ -8,7 +8,7 @@ import { FormulaireAvecBrouillon } from "./formulaire-avec-brouillon";
 import { euros, offreParticulier, parPeriode, type Periodicite } from "@/lib/tarifs";
 import { baseEspace } from "@/lib/racine-espace";
 
-export const metadata = { title: "Créer un lot — Gerimmo" };
+export const metadata = { title: "Ajouter un bien — Gerimmo" };
 
 export default async function PageNouveauBien(
   props: PageProps<"/agence/[orgId]/parc/nouveau">
@@ -58,8 +58,8 @@ export default async function PageNouveauBien(
         <HousePlus size={27} aria-hidden="true"/>
         <div>
         <span className={styles.surtitre}>Nouveau logement</span>
-        <h1>Créer un lot</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Renseignez votre logement, étape par étape. Ses informations seront reprises dans le bail.</p>
+        <h1>{estProprietaire ? "Ajouter un bien" : "Créer un lot"}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Renseignez le bien et ses logements. Les informations seront reprises dans les baux.</p>
         </div>
       </header>
       {depassement && (

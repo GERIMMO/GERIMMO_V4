@@ -111,3 +111,6 @@
   .piedRedaction button { margin-left: auto; min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) { .fil { transition: none; } }
+
+.messagerie[data-vide="true"] .accueilConversation { min-height:0; padding:28px 22px; align-items:flex-start; text-align:left; gap:10px; }
+.messagerie[data-vide="true"] { border-radius:10px; box-shadow:none; }

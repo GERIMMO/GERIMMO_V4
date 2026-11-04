@@ -7,7 +7,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type Mentions = { personnes_presentes: string | null; detecteur_fumee_present: boolean | null; detecteur_fumee_etat: string | null; attestation_assurance_fournie: boolean | null; adresse_restitution_depot: string | null; observations: string | null };
+type Mentions = { date_edl?:string|null; personnes_presentes: string | null; detecteur_fumee_present: boolean | null; detecteur_fumee_etat: string | null; attestation_assurance_fournie: boolean | null; adresse_restitution_depot: string | null; observations: string | null };
 
 export function EdlMentions({ orgId, bailId, edlId, type, signe, mentions }: { orgId:string; bailId:string; edlId:string; type:"entree"|"sortie"; signe:boolean; mentions:Mentions }) {
   const [etat, action] = useActionState<EtatEdl, FormData>(enregistrerMentionsEdl.bind(null, orgId, bailId, edlId, type), {});
@@ -18,6 +18,7 @@ export function EdlMentions({ orgId, bailId, edlId, type, signe, mentions }: { o
   const base = useId();
   const classeChoix = "h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm";
   return <form data-saisie-confirmee action={action} className="grid gap-4 sm:grid-cols-2">
+    <div className="space-y-2"><Label htmlFor={`${base}-date`}>Date de l’état des lieux *</Label><Input id={`${base}-date`} name="date_edl" type="date" required disabled={signe} defaultValue={v("date_edl")} /></div>
     <div className="space-y-2 sm:col-span-2"><Label htmlFor="edl-presents">Personnes présentes *</Label><Input id="edl-presents" name="personnes_presentes" required disabled={signe} defaultValue={v("personnes_presentes")} placeholder="Bailleur, locataire, mandataire…" /></div>
     {type === "entree" ? <>
       <div className="space-y-2"><Label htmlFor={`${base}-detecteur`}>Détecteur de fumée *</Label><select id={`${base}-detecteur`} name="detecteur_fumee_present" required disabled={signe} defaultValue={mentions.detecteur_fumee_present == null ? "" : mentions.detecteur_fumee_present ? "oui" : "non"} className={classeChoix}><option value="">Choisir</option><option value="oui">Présent</option><option value="non">Absent</option></select></div>

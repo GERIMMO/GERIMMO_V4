@@ -18,7 +18,7 @@ export type Ligne = Record<string, unknown>;
 export type Filtre = { op: string; col: string; val: unknown };
 export type Lecture = { table: string; colonnes: string; filtres: Filtre[]; ordre: { col: string; croissant: boolean }[]; limite: number | null; plage: [number, number] | null };
 export type Ecriture = { table: string; op: string; valeurs: unknown };
-type Reponse = { data: unknown; error: { message: string } | null };
+type Reponse = { data: unknown; error: { message: string } | null; count?: number };
 
 export type OptionsBase = {
   /** Fonctions SQL appelables (`supabase.rpc`). Toute autre est refusée. */
@@ -69,9 +69,12 @@ export function baseSimulee(tables: Record<string, Ligne[]>, options: OptionsBas
   function from(table: string) {
     const lecture: Lecture = { table, colonnes: "*", filtres: [], ordre: [], limite: null, plage: null };
     let lue = false;
+    let compter = false;
+    let totalFiltre = 0;
     const executer = (): Ligne[] => {
       if (!lue) { lectures.push(lecture); lue = true; }
       let lignes = (tables[table] ?? []).filter((l) => lecture.filtres.every((f) => convient(l, f)));
+      totalFiltre = lignes.length;
       for (const { col, croissant } of [...lecture.ordre].reverse()) {
         lignes = [...lignes].sort((a, b) => {
           if (a[col] == null && b[col] == null) return 0;
@@ -88,7 +91,7 @@ export function baseSimulee(tables: Record<string, Ligne[]>, options: OptionsBas
       return lignes.map((l) => Object.fromEntries(colonnes.map((c) => [c, l[c]])));
     };
     const requete: Record<string, unknown> = {
-      select(colonnes = "*") { lecture.colonnes = colonnes; return requete; },
+      select(colonnes = "*", optionsSelect?: {count?:string}) { compter=optionsSelect?.count === "exact"; lecture.colonnes = colonnes; return requete; },
       order(col: string, opts?: { ascending?: boolean }) { lecture.ordre.push({ col, croissant: opts?.ascending !== false }); return requete; },
       limit(n: number) { lecture.limite = n; return requete; },
       range(de: number, a: number) { lecture.plage = [de, a]; return requete; },
@@ -112,7 +115,7 @@ export function baseSimulee(tables: Record<string, Ligne[]>, options: OptionsBas
           const panne = options.lecturesEnErreur?.[table];
           if (panne) { executer(); return Promise.resolve({ data: null, error: { message: panne } } as Reponse).then(resolve, rejeter); }
           const lignes = executer();
-          return Promise.resolve({ data: options.plafondLignes === undefined ? lignes : lignes.slice(0, options.plafondLignes), error: null } as Reponse).then(resolve, rejeter);
+          return Promise.resolve({ data: options.plafondLignes === undefined ? lignes : lignes.slice(0, options.plafondLignes), error: null, ...(compter ? {count:totalFiltre} : {}) } as Reponse).then(resolve, rejeter);
         }
         catch (e) { return Promise.reject(e).then(resolve, rejeter); }
       },

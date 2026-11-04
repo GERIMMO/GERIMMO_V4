@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowUpRight, BellRing, Building2, CircleAlert, ListChecks } from "lucide-react";
+import { ArrowRight, BellRing, Building2, CircleAlert, ListChecks } from "lucide-react";
 import { Modale } from "@/components/ui/modale";
 import styles from "./carte-verifications.module.css";
 
@@ -44,7 +44,7 @@ export function CarteVerifications(props: Props) {
     <span><ListChecks size={18} aria-hidden="true" />À vérifier</span>
     <strong>{props.total} <em>demande{props.total > 1 ? "s" : ""}</em></strong>
     <small className={styles.apercu}>Voir mes tâches</small>
-    <ArrowUpRight size={18} className={styles.fleche} aria-hidden="true" />
+    <ArrowRight size={18} className={styles.fleche} aria-hidden="true" />
   </Link>;
   if (aVerifier) return <Demandes {...props} signalerOuverture={ouverte => { etaitOuverte.current = ouverte; }} />;
   const { patrimoine, base, className } = props;
@@ -52,7 +52,7 @@ export function CarteVerifications(props: Props) {
     <span><Building2 size={18} aria-hidden="true" />Patrimoine</span>
     <strong>{patrimoine ? <>{patrimoine.biens} <em>bien{patrimoine.biens > 1 ? "s" : ""}</em></> : "—"}</strong>
     <small>{patrimoine ? `${patrimoine.lots} lot${patrimoine.lots > 1 ? "s" : ""}` : "Patrimoine indisponible"}</small>
-    <ArrowUpRight size={18} className={styles.fleche} aria-hidden="true" />
+    <ArrowRight size={18} className={styles.fleche} aria-hidden="true" />
   </Link>;
 }
 
@@ -93,7 +93,7 @@ function Demandes({ total, loyersAConfirmer = 0, critiques, apercu, indisponible
         <strong>{total ? <>{total} <em>demande{total > 1 ? "s" : ""}</em></> : <em>Indisponible</em>}</strong>
         <small className={styles.apercu}>{indisponible ? "Liste incomplète · Voir le détail" : apercu}</small>
       </>}
-      <ArrowUpRight size={18} className={styles.fleche} aria-hidden="true" />
+      <ArrowRight size={18} className={styles.fleche} aria-hidden="true" />
     </button>
     {visitee && <Modale titre={prioritaire ? "À traiter en priorité" : loyers ? "Loyers à confirmer" : "À vérifier"} tresLarge ouverte={ouverte} fermer={() => changerOuverture(false)}>
       <div className={styles.contenu}>{children}</div>

@@ -1,3 +1,4 @@
+import { lireEntitesPatrimoine } from "@/lib/entites-patrimoine";
 import { deElide } from "@/lib/elision";
 import Link from "next/link";
 import { Banknote, ArrowLeftRight, FileCheck2 } from "lucide-react";
@@ -23,6 +24,9 @@ export async function PageFinances({ orgId, recherche }: {
   const numeroMois = Number.isInteger(moisDemande) && moisDemande >= 1 && moisDemande <= 12 ? moisDemande : Number(actuel.slice(5, 7));
   const mois = `${annee}-${String(numeroMois).padStart(2, "0")}`;
   const bien = typeof recherche.bien === "string" ? recherche.bien : "";
+  const entiteId = typeof recherche.entite === "string" ? recherche.entite : "";
+  const patrimoine=await lireEntitesPatrimoine(supabase,orgId,annee);
+  const entite=patrimoine.entites.find(e=>e.id===entiteId);
   const [{ data: biens, error: erreurBiens }, { data: lots, error: erreurLots }, quittancement, livre] = await Promise.all([
     supabase.from("biens").select("id, nom, archived_at").eq("organization_id", orgId).order("nom"),
     supabase.from("lots").select("id, bien_id").eq("organization_id", orgId),
@@ -31,9 +35,9 @@ export async function PageFinances({ orgId, recherche }: {
   ]);
   // Décision D27 : « Finances » n'existe que chez le propriétaire direct (/espace/<id>).
   const base = baseEspace(orgId, true);
-  const href = (a: number, m = numeroMois, anchor = "") => `${base}/loyers?${new URLSearchParams({ annee: String(a), mois: String(m), ...(bien ? { bien } : {}) })}${anchor}`;
-  const perimetre = bien ? new Set((lots ?? []).filter(l => l.bien_id === bien).map(l => l.id)) : null;
-  const erreurPerimetre = erreurBiens || erreurLots || (bien && !(biens ?? []).some(b => b.id === bien));
+  const href = (a: number, m = numeroMois, anchor = "") => `${base}/loyers?${new URLSearchParams({ annee: String(a), mois: String(m), ...(bien ? { bien } : {}), ...(entiteId ? {entite:entiteId} : {}) })}${anchor}`;
+  const perimetre = bien || entiteId ? new Set((lots ?? []).filter(l => (!bien || l.bien_id === bien) && (!entiteId || !!entite?.lots.includes(l.id))).map(l => l.id)) : null;
+  const erreurPerimetre = erreurBiens || erreurLots || patrimoine.erreur || (entiteId && !entite) || (bien && !(biens ?? []).some(b => b.id === bien));
   const lignes = ((quittancement.data ?? []) as LigneQuittancement[]).filter(l => !perimetre || perimetre.has(l.lot_id));
   const appele = lignes.reduce((s, l) => s + Number(l.montant_du), 0);
   const regle = lignes.reduce((s, l) => s + Math.min(Number(l.montant_du), Number(l.montant_couvert)), 0);
@@ -42,10 +46,12 @@ export async function PageFinances({ orgId, recherche }: {
   return <main className="mx-auto w-full max-w-5xl space-y-4 p-4 sm:p-7">
     <div className="entete-page"><TitreEcran rubrique="finances">Finances</TitreEcran><span className="mono-discret">Loyers · Recettes et dépenses · Déclaration</span></div>
     <form data-saisie-libre key={`${annee}:${bien}:${numeroMois}`} action={`${base}/loyers`} className="barre-filtres flex flex-wrap items-end gap-3">
-      <label className="min-w-0 basis-full sm:basis-0 sm:flex-1 text-sm">Bien<select name="bien" defaultValue={bien} className="mt-1 block min-h-11 w-full rounded-lg border border-border bg-background px-3"><option value="">Tous les biens</option>{(biens ?? []).map(b => <option key={b.id} value={b.id}>{b.nom}{b.archived_at ? " (retiré)" : ""}</option>)}</select></label>
+      <label className="min-w-0 text-sm">Propriétaire / société<select name="entite" defaultValue={entiteId} className="mt-1 block min-h-11 max-w-full rounded-lg border border-border bg-background px-3"><option value="">Tout mon patrimoine</option>{patrimoine.entites.map(e=><option key={e.id} value={e.id}>{e.nom}{e.qualite?.includes("SCI")?" · SCI":""}</option>)}</select></label>
+      <label className="min-w-0 text-sm">Bien<select name="bien" defaultValue={bien} className="mt-1 block min-h-11 max-w-full rounded-lg border border-border bg-background px-3"><option value="">Tous les biens</option>{(biens??[]).map(b=><option key={b.id} value={b.id}>{b.nom}</option>)}</select></label>
       <label className="text-sm">Année<input name="annee" type="number" min="1970" max={anneeCourante + 1} defaultValue={annee} className="mt-1 block min-h-11 w-24 rounded-lg border border-border bg-background px-3" /></label>
       <input type="hidden" name="mois" value={numeroMois} /><button className={bouton} type="submit">Afficher</button>
     </form>
+    {entite && <p className="text-sm text-muted-foreground">Biens rattachés à {entite.nom} · flux complets des biens, avant répartition entre associés ou indivisaires.</p>}
     {erreurPerimetre ? <p className="err" role="alert">Impossible de lire le bien sélectionné. Rechargez la page ou choisissez un autre bien.</p> : <>
     <section id="loyers" aria-labelledby="titre-loyers" data-ton="bleu" className="carte-rubrique p-4 sm:p-5 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="titre-loyers" className="titre-rubrique text-lg font-semibold"><Banknote size={22} aria-hidden="true" />Loyers et charges</h2><span className="text-sm text-muted-foreground">Échéances {deElide(moisEnFrancais(mois))}</span></div>
@@ -67,7 +73,7 @@ export async function PageFinances({ orgId, recherche }: {
     </section>
     <section id="declaration" aria-labelledby="titre-declaration" data-ton="or" className="carte-rubrique p-4 sm:p-5 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="titre-declaration" className="titre-rubrique text-lg font-semibold"><FileCheck2 size={22} aria-hidden="true" />Déclaration fiscale</h2><span className="text-sm text-muted-foreground">Revenus {annee}</span></div>
-      <RecapitulatifFiscal params={Promise.resolve({orgId})} searchParams={Promise.resolve({annee:String(annee),bien: bien || undefined})} compact />
+      <RecapitulatifFiscal params={Promise.resolve({orgId})} searchParams={Promise.resolve({annee:String(annee),bien: bien || undefined, entite:entiteId || undefined})} compact />
       <details><summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium">Récapitulatifs précédents <span aria-hidden>⌄</span></summary><div className="mt-3"><p className="text-xs text-muted-foreground">Récapitulatifs des années précédentes, calculés depuis votre livre.</p><nav aria-label="Années fiscales précédentes" className="mt-2 flex flex-wrap gap-2">{Array.from({length:3},(_,i) => annee-i-1).filter(a=>a>=1970).map(a=><Link key={a} className={bouton} href={href(a,numeroMois,"#declaration")}>Revenus {a}</Link>)}</nav></div></details>
     </section>
     </>}

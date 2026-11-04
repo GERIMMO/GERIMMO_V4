@@ -88,7 +88,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
   const envoiBloque = Boolean(etat.creationIncertaine) && !creationId;
   const estProprio = role === "proprietaire_mandant";
   const personneMorale = estProprio && morale;
-  const roles = estBailleurDirect ? ROLES.filter(r => r.cle !== "proprietaire_mandant") : ROLES;
+  const roles = ROLES.map(r=>estBailleurDirect && r.cle === "proprietaire_mandant" ? {...r,libelle:"Propriétaire ou SCI",sous:"Détient les biens, seul ou à plusieurs"} : r);
 
   function afficher(numero: number) {
     flushSync(() => setEtape(numero));
@@ -158,7 +158,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
       {creationId && <input type="hidden" name="creation_id" value={creationId} />}
       {personneMorale && <input type="hidden" name="morale" value="on" />}
       {dansParcours && <input type="hidden" name="rester_dans_parcours" value="1" />}
-      <header className={parcours.entete}><span className={parcours.icone}><Icone size={23} aria-hidden="true" /></span><div><span className={parcours.surtitre}>Étape {String(etape+1).padStart(2,"0")} / 5</span><h2 ref={titre} tabIndex={-1} data-titre-reprise>{ETAPES[etape].titre}</h2><p>{ETAPES[etape].detail}.</p></div>{role && <div className={parcours.resumeLot}><strong>{ROLES.find(r=>r.cle===role)?.libelle}</strong><p>{personneMorale ? valeurs.nom : [valeurs.prenom,valeurs.nom].filter(Boolean).join(" ")}</p></div>}</header>
+      <header className={parcours.entete}><span className={parcours.icone}><Icone size={23} aria-hidden="true" /></span><div><span className={parcours.surtitre}>Étape {String(etape+1).padStart(2,"0")} / 5</span><h2 ref={titre} tabIndex={-1} data-titre-reprise>{ETAPES[etape].titre}</h2><p>{ETAPES[etape].detail}.</p></div>{role && <div className={parcours.resumeLot}><strong>{roles.find(r=>r.cle===role)?.libelle}</strong><p>{personneMorale ? valeurs.nom : [valeurs.prenom,valeurs.nom].filter(Boolean).join(" ")}</p></div>}</header>
       <div className={parcours.corps}>
         {(etape===1 || etape===2) && <p className={parcours.aide}><span className={parcours.legendePastille} aria-hidden="true" />Pastille rouge : information obligatoire à compléter.</p>}
         <div hidden={etape!==0}>
@@ -169,6 +169,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
         <fieldset data-etape-personne="1" hidden={etape!==1} disabled={enCours || Boolean(etat.personneCreee)} className="min-w-0 space-y-5">
           <legend className="sr-only">Identité</legend>
           {estProprio && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={morale} onChange={e=>setMorale(e.target.checked)} />Personne morale (SCI, société…)</label>}
+          {personneMorale && <label className="block space-y-1 text-sm">Type de société<select name="qualite" defaultValue="SCI" className="min-h-11 w-full rounded-lg border border-border bg-background px-3"><option value="SCI">SCI</option><option value="SCI familiale">SCI familiale</option><option value="Personne morale">Autre société</option></select></label>}
           <div className={styles.grille}>
             {champ("nom",personneMorale ? "Raison sociale" : "Nom",{autoComplete:personneMorale ? "organization" : "family-name",large:personneMorale})}
             <fieldset hidden={personneMorale} disabled={personneMorale} className="contents">{champ("prenom","Prénom",{autoComplete:"given-name"})}{champ("date_naissance","Date de naissance",{type:"date",autoComplete:"bday"})}{champ("commune_naissance","Commune de naissance")}</fieldset>
@@ -194,7 +195,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
         <div hidden={etape!==4} className="space-y-5">
           <div className={styles.recap}>
             <section><header><h3>Identité</h3><button type="button" onClick={()=>changer(1)}><Pencil size={13} aria-hidden="true" />Modifier</button></header><dl>
-              <div><dt>Rôle</dt><dd>{ROLES.find(r=>r.cle===role)?.libelle}</dd></div><div><dt>{personneMorale ? "Raison sociale" : "Nom et prénom"}</dt><dd>{personneMorale ? valeurs.nom : [valeurs.prenom,valeurs.nom].filter(Boolean).join(" ")}</dd></div>
+              <div><dt>Rôle</dt><dd>{roles.find(r=>r.cle===role)?.libelle}</dd></div><div><dt>{personneMorale ? "Raison sociale" : "Nom et prénom"}</dt><dd>{personneMorale ? valeurs.nom : [valeurs.prenom,valeurs.nom].filter(Boolean).join(" ")}</dd></div>
               {!personneMorale && <div><dt>Naissance</dt><dd>{valeurs.date_naissance ? formaterDate(valeurs.date_naissance) : "À compléter"} · {valeurs.commune_naissance}</dd></div>}
             </dl></section>
             <section><header><h3>Coordonnées</h3><button type="button" onClick={()=>changer(2)}><Pencil size={13} aria-hidden="true" />Modifier</button></header><dl>

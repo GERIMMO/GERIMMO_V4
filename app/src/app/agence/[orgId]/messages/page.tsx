@@ -1,4 +1,6 @@
 import { AssistantPrive } from "@/components/assistant-prive";
+import { lireContactsMessages } from "@/lib/contacts-messages";
+import { DiscussionsInterventions } from "@/components/discussions-interventions";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -24,6 +26,12 @@ export const metadata = { title: "Messages — Gerimmo" };
 export default async function PageMessages(props: PageProps<"/agence/[orgId]/messages">) {
   const { orgId } = await props.params;
   const { supabase, role, user, traverseeLectureSeule } = await verifierAccesEspace(orgId);
+  const estProprietaire = role === "proprietaire_direct";
+  if(estProprietaire && (await props.searchParams).vue === "interventions") {
+    const base=baseEspace(orgId,estProprietaire);
+    return <main className="mx-auto w-full max-w-6xl space-y-4 p-4 sm:p-7"><header className="entete-page"><TitreEcran rubrique="messages">Messages</TitreEcran></header><nav aria-label="Types de discussions" className="flex flex-wrap gap-2"><Link className="btn-secondaire" href={`${base}/messages`}>Locataires</Link><Link className="btn-or" aria-current="page" href={`${base}/messages?vue=interventions`}>Interventions</Link></nav><DiscussionsInterventions org={orgId} base={base}/></main>;
+  }
+
 
   const { data, error } = await supabase.rpc("fils_messages_gerant", { p_org: orgId });
   if (error) {
@@ -43,7 +51,6 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
   const nonLus = fils.reduce((s, f) => s + f.non_lus, 0);
   // Le propriétaire en gestion directe n'a pas d'entrée « Personnes » : son
   // menu dit « Personnes » (même adaptation que personnes/page.tsx).
-  const estProprietaire = role === "proprietaire_direct";
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
 
@@ -51,13 +58,17 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
     const selection = (await props.searchParams).personne;
     // La sélection doit appartenir à la liste autorisée par la RPC. Aucune
     // conversation n'est lue automatiquement en ouvrant la messagerie.
-    const conversation = fils.find((fil) => fil.person_id === selection);
+    const contacts=await lireContactsMessages(supabase,orgId);
+    const connus=new Set(fils.map(f=>f.person_id));
+    const conversations=[...fils,...contacts.contacts.filter(p=>!connus.has(p.id)).sort((a,b)=>a.nom.localeCompare(b.nom,"fr")).map(p=>({person_id:p.id,nom:p.nom,prenom:p.prenom,dernier:null,dernier_le:null,dernier_auteur:null,non_lus:0} satisfies FilConversation))];
+    const conversation = conversations.find((fil) => fil.person_id === selection);
     const { data: messages, error: erreurLecture } = conversation
       ? await supabase.rpc("messages_personne", { p_org: orgId, p_person: conversation.person_id })
       : { data: null, error: null };
     return <MessagerieProprietaire orgId={orgId}
       assistant={<AssistantPrive key={`${orgId}:${user.id}`} orgId={orgId} compteId={user.id} lectureSeule={traverseeLectureSeule} />}
-      fils={fils.map((fil) => conversation?.person_id === fil.person_id && !erreurLecture ? { ...fil, non_lus: 0 } : fil)}
+      erreurContacts={contacts.erreur}
+      fils={conversations.map((fil) => conversation?.person_id === fil.person_id && !erreurLecture ? { ...fil, non_lus: 0 } : fil)}
       selection={conversation?.person_id}
       conversation={conversation ? erreurLecture
         ? <EchecLecture quoi={["cette conversation"]} />

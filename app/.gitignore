@@ -54,3 +54,7 @@ e2e/recette-production/.resultats/
 # Sondes jetables du balayage des boutons (12/09) : écrites pour un audit,
 # supprimées après usage — leur méthode vit dans log.md, pas ici.
 /*.mjs
+
+# Construction réservée à la revue locale
+/.next-revue-locale/
+/.next-revue-candidate/

@@ -6,7 +6,7 @@ import { BoutonResumeBien } from "@/components/resume-bien";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { boutonPremierBien, doitLireLeProfilBailleur, elementsManquantsDuBailleur } from "@/lib/profil-bailleur";
-import { ROLES_RESPONSABLES, eur } from "@/lib/ged";
+import { ROLES_RESPONSABLES, eur, aujourdhuiParis } from "@/lib/ged";
 import { avancementLot } from "@/lib/avancement-lot";
 import { AvancementLot } from "@/components/avancement-lot";
 import { resumerBlocage } from "@/lib/echeances";
@@ -34,6 +34,10 @@ import { chargerBauxActifsDuParc, chargerBrouillonsDuParc, chargerChambresDuParc
 import { occupationLot } from "@/lib/occupation-lot";
 import { avecEcheanceReglementaire } from "@/lib/documents-bail";
 import { VueParcProprietaire } from "./vue-parc-proprietaire";
+import { FicheBien } from "./[bienId]/fiche-bien";
+
+import { resumerLoyersParcMois } from "@/lib/loyers-parc-mois";
+import type { LigneQuittancement } from "../comptabilite/quittancement-mois";
 
 export const metadata = { title: "Parc — Gerimmo" };
 
@@ -114,9 +118,9 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
 
   // Les anciens liens de sélection rejoignent aussi la fiche propriétaire.
   // Le choix est résolu depuis les données autorisées, jamais depuis un id arbitraire.
-  if (estProprietaire && selection && !erreurBiens) {
-    const bien = (biens ?? []).find(item => selection.type === "bien" ? item.id === selection.id : (item.lots as LotResume[]).some(lot => lot.id === selection.id));
-    if (bien) redirect(selection.type === "bien" ? `${base}/parc/${bien.id}` : `${base}/parc/${bien.id}/lots/${selection.id}`);
+  if (estProprietaire && selection?.type === "lot" && !erreurBiens) {
+    const bien = (biens ?? []).find(item => (item.lots as LotResume[]).some(lot => lot.id === selection.id));
+    if (bien) redirect(`${base}/parc/${bien.id}/lots/${selection.id}`);
   }
 
   // Un bien RETIRÉ (archivé, 27/09) quitte le parc et l'abonnement : il ne
@@ -153,6 +157,12 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   const quittancement = estProprietaire ? totalLoyersDuParc(bauxActifs ?? [], lotsConnus) : (bauxActifs ?? [])
     .filter(b => !portefeuille || portefeuille.has(b.lot_id))
     .reduce((s, b) => s + Number(b.loyer_hc) + Number(b.charges), 0);
+
+  const moisLoyers = aujourdhuiParis().slice(0, 7);
+  // Le mois courant uniquement : aucun report silencieux du mois précédent.
+  const echeancesMois = estProprietaire ? await supabase.rpc("quittancement_mois", { p_org: orgId, p_mois: `${moisLoyers}-01` }) : null;
+  const loyersMois = echeancesMois && !echeancesMois.error && !erreurBiens
+    ? resumerLoyersParcMois(((echeancesMois.data ?? []) as LigneQuittancement[]).filter(ligne => lotsConnus.has(ligne.lot_id))) : null;
 
   const totalBlocages = (blocagesParc ?? []).filter((l: { lot_id: string }) => lotsConnus.has(l.lot_id))
     .reduce((n: number, l: { blocages: string[] | null }) => n + new Set((l.blocages ?? []).map(message => etiqueterNiveau(resumerBlocage(message), message))).size, 0);
@@ -329,7 +339,8 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           )}
         </div>
       ) : estProprietaire ? (
-        <VueParcProprietaire lectureLocations={!erreurBaux && !erreurChambres} loyers={erreurBaux ? null : quittancement}
+        <VueParcProprietaire mois={moisLoyers} loyersMois={loyersMois} base={base}
+          bienSelectionne={selectionBien && biensVisibles.some(bien => bien.id === selectionBien.id) ? selectionBien.id : null}
           biens={biensVisibles.map(bien => ({
             id: bien.id, nom: bien.nom, adresse: [bien.address_line1, [bien.postal_code, bien.city].filter(Boolean).join(" ")].filter(Boolean).join(", "), href: `${base}/parc/${bien.id}`,
             lots: bien.lotsVisibles.map(lot => {
@@ -346,7 +357,9 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               };
             }),
           }))}
-          retires={biensRetires.map(bien => ({ id: bien.id, nom: bien.nom, href: `${base}/parc/${bien.id}` }))} />
+          retires={biensRetires.map(bien => ({ id: bien.id, nom: bien.nom, href: `${base}/parc/${bien.id}` }))}>
+          {selectionBien && biensVisibles.some(bien => bien.id === selectionBien.id) && <FicheBien orgId={orgId} bienId={selectionBien.id} integree />}
+        </VueParcProprietaire>
       ) : (
         // Maquette (charte v2) : maître-détail — la liste des lots regroupés
         // par bien à gauche (adresse en en-tête de groupe, lots indentés) ; à
@@ -584,7 +597,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           maison au lieu du triangle natif, et plus de titre répété à
           l'ouverture — le résumé EST le titre. Sur téléphone, le sous-titre
           forme sa propre ligne au lieu de se couper après « futurs ». */}
-      <details className="information-depliable mt-8 rounded-xl border border-border bg-card">
+      {(!estProprietaire || !selectionBien) && <details className="information-depliable mt-8 rounded-xl border border-border bg-card">
         <summary className="px-5 py-2 text-sm">
           <span className="min-w-0">
             Catalogue d’équipements
@@ -627,7 +640,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           )}
         </CardContent>
       </Card>
-      </details>
+      </details>}
       </main>
     </FenetreLotProvider>
   );

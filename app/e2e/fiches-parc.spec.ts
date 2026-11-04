@@ -144,6 +144,7 @@ test("fiche bien : le rapport termites reste facultatif et replié parmi les com
   const fiche = page.locator("main.bien-visuel");
   await expect(fiche.locator("#lots")).toBeVisible();
   await expect(fiche).not.toContainText("à déposer : Termites");
+  await fiche.locator("#informations > summary").click();
   const rubrique = page.getByRole("button", { name: /Diagnostics du bien/ });
   await rubrique.click();
   await expect(rubrique).toHaveAttribute("aria-expanded", "true");
@@ -158,6 +159,8 @@ test("fiche bien : le rapport termites reste facultatif et replié parmi les com
 
 test("fiche bien : l'annonce aux locataires ne déploie plus son formulaire", async ({ page }) => {
   await page.goto(CHEMIN_BIEN);
+  await expect(page.locator("#informations")).not.toHaveAttribute("open", "");
+  await page.locator("#informations > summary").click();
   const rangee = page.getByRole("button", { name: /Annonces aux locataires/ });
   await expect(rangee).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByLabel("Texte de l’annonce")).toBeHidden();

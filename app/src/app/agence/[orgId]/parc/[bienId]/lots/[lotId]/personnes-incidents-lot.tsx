@@ -39,7 +39,7 @@ export async function PersonnesLot({ orgId, lotId, base, lectureSeule, baux, err
 }) {
   if (erreurBaux) return <LectureIndisponible>Les locataires et garants n’ont pas pu être chargés.</LectureIndisponible>;
   const attendus = baux.filter(bail => bail.etat !== "termine");
-  if (!attendus.length) return <p className={styles.vide}>Aucun locataire ni garant rattaché à une location en cours.</p>;
+  if (!attendus.length) return <p className={styles.vide} data-occupants-vides>Aucun occupant pour le moment.</p>;
 
   const supabase = await createClient();
   // La relecture protège aussi d'un bail clôturé depuis le chargement de la page.
@@ -50,7 +50,7 @@ export async function PersonnesLot({ orgId, lotId, base, lectureSeule, baux, err
     return <LectureIndisponible>Les locataires et garants n’ont pas pu être chargés.</LectureIndisponible>;
   }
   const bauxLus = (lectureBaux.data as BailPersonnesLot[]).filter(bail => bail.etat !== "termine");
-  if (!bauxLus.length) return <p className={styles.vide}>Aucun locataire ni garant rattaché à une location en cours.</p>;
+  if (!bauxLus.length) return <p className={styles.vide} data-occupants-vides>Aucun occupant pour le moment.</p>;
   const idsChambres = [...new Set(bauxLus.flatMap(bail => bail.chambre_id ? [bail.chambre_id] : []))];
   const [lectureLiens, lectureChambres] = await Promise.all([
     supabase.from("bail_personnes").select("bail_id, person_id, role, garant_de, date_depart")
@@ -164,7 +164,7 @@ export async function IncidentsLot({ orgId, lotId, base, lectureSeule }: PropsLo
       </div>
     </Link>
   </li>;
-  return <div className={styles.contenu}>
+  return <div className={styles.contenu} data-incidents-vides={!ouverts.error && !enCours.length && !clos.error && !clotures.length}>
     {ouverts.error ? <LectureIndisponible>Les incidents en cours n’ont pas pu être chargés.</LectureIndisponible> : enCours.length ? <ul className={styles.incidents}>{enCours.map(ligne)}</ul> : <p className={styles.serein}><CheckCircle2 size={18} aria-hidden="true" />Aucun incident en cours.</p>}
     {!lectureSeule && <Link href={`${base}/incidents/nouveau?lot=${lotId}`} className={buttonVariants({ variant: "outline", size: "sm" })}><Plus size={14} aria-hidden="true" />Signaler un incident</Link>}
     {clos.error ? <LectureIndisponible>L’historique des incidents n’a pas pu être chargé.</LectureIndisponible> : clotures.length > 0 && <details className={styles.historique}>

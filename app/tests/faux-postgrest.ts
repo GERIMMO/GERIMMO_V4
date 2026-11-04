@@ -190,13 +190,13 @@ export function fauxClient(banc: BancFaux, rpc: RpcFaux = {}) {
 export const SCHEMA_CONNU = {
   incidents: {
     colonnes: [
-      "id", "organization_id", "lot_id", "numero", "categorie", "urgence", "etat", "created_at", "responsable_account_id",
+      "id", "organization_id", "lot_id", "bien_id", "titre", "numero", "categorie", "urgence", "etat", "created_at", "responsable_account_id",
       "declarant_person_id", "canal", "piece", "description", "anciennete", "imputation", "imputation_justification",
       "imputation_contestation", "imputation_contestee_le", "cloture_motif", "cloture_commentaire", "clos_le",
       // FL-01 (audit PR #264) : le bail rattaché dit au gérant quel locataire suit l'incident ouvert pour lui.
       "bail_id",
     ],
-    integrees: ["lot", "declarant", "bail"],
+    integrees: ["lot", "bien", "declarant", "bail"],
   },
   incident_evenements: {
     colonnes: ["id", "organization_id", "incident_id", "type", "acteur_account_id", "details", "created_at"],

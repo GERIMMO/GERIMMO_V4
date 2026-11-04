@@ -36,7 +36,7 @@ describe("l'année par défaut d'un document est celle de Paris", () => {
 const RACINE = resolve(__dirname, "..");
 
 describe("la fiche d'un bien n'affiche que les annonces encore visibles au jour de Paris", () => {
-  const source = readFileSync(join(RACINE, "src/app/agence/[orgId]/parc/[bienId]/page.tsx"), "utf8");
+  const source = readFileSync(join(RACINE, "src/app/agence/[orgId]/parc/[bienId]/fiche-bien.tsx"), "utf8");
   it("le filtre de visibilité lit aujourdhuiParis(), plus le jour UTC du serveur", () => {
     expect(source).toContain('.gte("visible_jusquau", aujourdhuiParis())');
     expect(source).not.toMatch(/visible_jusquau",\s*new Date\(\)/);
@@ -66,7 +66,7 @@ describe("aucun fichier de src/ n'écrit « aujourd'hui » en jour UTC", () => {
   it("la recherche voit bien tout src/ (sinon la garde ne garde rien)", () => {
     const noms = candidats.map((c) => c.rel);
     expect(noms).toContain("src/lib/documents/modeles/facture-honoraires.ts");
-    expect(noms).toContain("src/app/agence/[orgId]/parc/[bienId]/page.tsx");
+    expect(noms).toContain("src/app/agence/[orgId]/parc/[bienId]/fiche-bien.tsx");
     expect(candidats.length).toBeGreaterThan(500);
   });
 

@@ -1,4 +1,5 @@
-// LA GRILLE TARIFAIRE — un seul endroit, en centimes (décision du 28/09/2026).
+// LA GRILLE TARIFAIRE — un seul endroit, en centimes.
+// Révision du 29/10/2026 : minimum de 4,90 par bien/mois après remise annuelle.
 //
 // Le site public, « Mon abonnement », l'accueil, la console et Stripe lisent
 // tous ce fichier. La base porte les MÊMES chiffres (tables `tarif_formules`
@@ -24,6 +25,9 @@ export const PERIODICITES: readonly Periodicite[] = ["mensuel", "annuel"];
 
 export type CodeFormule = "solo" | "bailleur" | "investisseur" | "patrimoine";
 
+/** Minimum mensuel par bien couvert, y compris après la remise annuelle. */
+export const PLANCHER_MENSUEL_BIEN_CENTS = 490;
+
 export type Formule = {
   code: CodeFormule;
   nom: string;
@@ -38,15 +42,15 @@ export type Formule = {
 // ── Particuliers et SCI gérant leurs propres biens — prix TTC ───────────────
 export const FORMULES_PARTICULIER: readonly Formule[] = [
   { code: "solo", nom: "Solo", biens: 1, mensuelCents: 599, annuelCents: 5990 },
-  { code: "bailleur", nom: "Bailleur", biens: 3, mensuelCents: 999, annuelCents: 9990 },
-  { code: "investisseur", nom: "Investisseur", biens: 10, mensuelCents: 1999, annuelCents: 19990 },
-  { code: "patrimoine", nom: "Patrimoine", biens: 20, mensuelCents: 2999, annuelCents: 29990 },
+  { code: "bailleur", nom: "Bailleur", biens: 3, mensuelCents: 1770, annuelCents: 17700 },
+  { code: "investisseur", nom: "Investisseur", biens: 10, mensuelCents: 5900, annuelCents: 59000 },
+  { code: "patrimoine", nom: "Patrimoine", biens: 20, mensuelCents: 11800, annuelCents: 118000 },
 ];
 
 /** Au-delà de 20 biens : Patrimoine + ce prix TTC par bien supplémentaire. */
 export const SUPPLEMENT_BIEN_CENTS: Record<Periodicite, Centimes> = {
-  mensuel: 100,
-  annuel: 1000,
+  mensuel: 590,
+  annuel: 5900,
 };
 
 // ── Agences — prix HT, mensuel uniquement ────────────────────────────────────
@@ -62,10 +66,10 @@ export type Tranche = {
 };
 
 export const TRANCHES_AGENCE: readonly Tranche[] = [
-  { du: 1, au: 10, prixLotCents: 0, forfaitCents: 3900 },
-  { du: 11, au: 50, prixLotCents: 200, forfaitCents: 0 },
-  { du: 51, au: 200, prixLotCents: 150, forfaitCents: 0 },
-  { du: 201, au: null, prixLotCents: 100, forfaitCents: 0 },
+  { du: 1, au: 10, prixLotCents: 0, forfaitCents: 4900 },
+  { du: 11, au: 50, prixLotCents: 490, forfaitCents: 0 },
+  { du: 51, au: 200, prixLotCents: 490, forfaitCents: 0 },
+  { du: 201, au: null, prixLotCents: 490, forfaitCents: 0 },
 ];
 
 // L'ESSAI GRATUIT. Pour tous — particuliers, SCI et agences. Il se compte en
@@ -171,6 +175,13 @@ export type OffreAgence = {
 
 export type Offre = OffreParticulier | OffreAgence;
 
+/** Comparaison entière : aucun arrondi ne permet de passer sous le plancher. */
+export function respectePlancherOffre(offre: Offre): boolean {
+  const mois = offre.periodicite === "annuel" ? 12 : 1;
+  return Number.isSafeInteger(offre.montantCents) && offre.capacite > 0 &&
+    offre.montantCents >= offre.capacite * PLANCHER_MENSUEL_BIEN_CENTS * mois;
+}
+
 /** Une ligne de facture : ce que Stripe affichera, et ce que l'écran affiche. */
 export type LigneTarif = {
   /** Identifiant stable du produit (sert aussi d'identifiant produit Stripe). */
@@ -247,7 +258,7 @@ export function formulesCouvrant(biens: number, periodicite: Periodicite): Offre
 
 /**
  * Le montant HT mensuel d'une agence : barème MARGINAL, tranche par tranche.
- * Chaque lot est facturé au prix de SA tranche ; le socle de 39 € HT
+ * Chaque lot est facturé au prix de SA tranche ; le socle de 49 € HT
  * s'applique dès la souscription, même sous dix lots (et même à zéro lot).
  */
 export function offreAgence(lots: number): OffreAgence {

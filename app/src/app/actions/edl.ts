@@ -1,4 +1,6 @@
 "use server";
+import { jourValide } from "@/lib/presentation-document";
+import { aujourdhuiParis } from "@/lib/ged";
 import { resoudreDepotsFormulaire } from "@/lib/depot-direct";
 
 
@@ -37,6 +39,9 @@ export async function enregistrerMentionsEdl(
   const observations = texte("observations");
   if (!personnes || !observations) return { erreur: "Les personnes présentes et les observations sont obligatoires. Indiquez « Néant » si nécessaire.", valeurs };
   const maj: Record<string, unknown> = { personnes_presentes: personnes, observations };
+  const date=texte("date_edl");
+  if(date){if(!jourValide(date)||date>aujourdhuiParis())return {erreur:"Vérifiez la date de l’état des lieux : aujourd’hui ou une date passée.",valeurs};maj.date_edl=date;}
+
   if (type === "entree") {
     const detecteur = texte("detecteur_fumee_present");
     const assurance = texte("attestation_assurance_fournie");

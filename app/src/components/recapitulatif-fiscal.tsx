@@ -1,3 +1,4 @@
+import { lireEntitesPatrimoine } from "@/lib/entites-patrimoine";
 import Link from "next/link";
 import { csvRecapitulatifFiscal } from "@/lib/fiscal-export";
 import { notFound } from "next/navigation";
@@ -18,11 +19,11 @@ import { ProfilsFiscaux } from "@/components/profil-fiscal-detenteur";
 // recopier : ni télédéclaration, ni calcul d'impôt, ni conseil (RM-6.4.7).
 export async function RecapitulatifFiscal(props: {
   params: Promise<{ orgId: string }>;
-  searchParams: Promise<{ annee?: string; bien?: string }>;
+  searchParams: Promise<{ annee?: string; bien?: string; entite?: string }>;
   compact?: boolean;
 }) {
   const { orgId } = await props.params;
-  const { annee: anneeDemandee, bien } = await props.searchParams;
+  const { annee: anneeDemandee, bien, entite } = await props.searchParams;
   const { supabase, estProprietaire, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   if (!estProprietaire) notFound();
   // Décision D27 : l'aide à la déclaration n'existe que chez le propriétaire direct (/espace/<id>).
@@ -35,7 +36,7 @@ export async function RecapitulatifFiscal(props: {
   const { data: lotsDuBien, error: erreurBien } = bien
     ? await supabase.from("lots").select("id").eq("organization_id", orgId).eq("bien_id", bien)
     : { data: null, error: null };
-  const perimetre = lotsDuBien ? new Set(lotsDuBien.map(l => l.id)) : null;
+  let perimetre = lotsDuBien ? new Set(lotsDuBien.map(l => l.id)) : null;
   const anneeCourante = Number(aujourdhuiParis().slice(0, 4));
   // Une année hors de portée (« ?annee=abc », « ?annee=99999 ») partait telle
   // quelle dans les bornes de la requête : la lecture échouait, et l'écran
@@ -47,6 +48,9 @@ export async function RecapitulatifFiscal(props: {
     Number.isInteger(demandee) && demandee >= 1970 && demandee <= anneeCourante + 1
       ? demandee
       : anneeCourante;
+  const patrimoine=entite?await lireEntitesPatrimoine(supabase,orgId,annee):null;
+  const entiteChoisie=patrimoine?.entites.find(e=>e.id===entite);
+  if(entite){if(patrimoine?.erreur || !entiteChoisie)return <p role="alert" className="err">Le propriétaire sélectionné n’a pas pu être vérifié.</p>;perimetre=new Set(entiteChoisie.lots.filter(id=>!perimetre||perimetre.has(id)));}
   // Les onglets commencent à l'année de la première écriture du livre (audit
   // du 27/09) : un compte ouvert en septembre 2026 se voyait proposer 2024 et
   // 2025, deux récapitulatifs vides. Trois ans au plus, l'année affichée
@@ -99,7 +103,7 @@ export async function RecapitulatifFiscal(props: {
       {anneesProposees.map((a) => (
         <Link
           key={a}
-          href={`${base}/comptabilite/fiscal?annee=${a}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}`}
+          href={`${base}/comptabilite/fiscal?annee=${a}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}`}
           className={`${a === annee ? "filtre actif" : "filtre"} inline-flex items-center pointer-coarse:min-h-11`}
           aria-current={a === annee ? "page" : undefined}
         >
@@ -112,7 +116,7 @@ export async function RecapitulatifFiscal(props: {
   // au-dessus du titre, libellé du titre de la page qu'il rouvre (24/09).
   const retour = (
     <Link
-      href={`${base}/loyers?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}#declaration`}
+      href={`${base}/loyers?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}#declaration`}
       className="inline-flex min-h-9 items-center text-sm text-muted-foreground hover:underline"
     >
       ← Finances
@@ -171,15 +175,16 @@ export async function RecapitulatifFiscal(props: {
   }
 
   const choixPerimetre = <form data-saisie-libre action={`${base}/comptabilite/fiscal`} className="grid items-end gap-3 sm:grid-cols-[1fr_2fr_auto]">
+    {entite && <input name="entite" type="hidden" value={entite} />}
     <label className="space-y-1 text-sm">Année<select name="annee" defaultValue={annee} className="min-h-11 w-full rounded-lg border border-input bg-background px-3">{anneesProposees.map(a => <option key={a} value={a}>{a}</option>)}</select></label>
     <label className="space-y-1 text-sm">Biens<select name="bien" defaultValue={bien ?? ""} className="min-h-11 w-full rounded-lg border border-input bg-background px-3"><option value="">Tous mes biens</option>{(biensDisponibles ?? []).map(b => <option key={b.id} value={b.id}>{b.nom}</option>)}</select></label>
     <button type="submit" className="btn-or">Afficher</button>
   </form>;
   const cadreFiscal = await lireCadreFiscal(supabase, orgId, annee, perimetre ?? undefined);
   const profilsFiscaux = <ProfilsFiscaux orgId={orgId} annee={annee} base={base} detenteurs={cadreFiscal.detenteurs} profils={cadreFiscal.profils} erreur={cadreFiscal.erreur} lectureSeule={traverseeLectureSeule} />;
-  const preparation = <section className="loc-carte space-y-2"><h2 className="text-lg">Dossier pour votre déclaration ou votre comptable</h2><p className="text-sm text-muted-foreground">Les situations fiscales et le journal du 1er janvier au 31 décembre de tout cet espace, sans calcul d’impôt ni liasse fiscale. Les montants restent à affecter au bon propriétaire et au bon régime.</p><a className="btn-secondaire inline-flex" href={`${base}/comptabilite/fiscal/preparation?annee=${annee}`}>Exporter le dossier de préparation</a></section>;
+  const preparation = <section className="loc-carte space-y-2"><h2 className="text-lg">Dossier pour votre déclaration ou votre comptable</h2><p className="text-sm text-muted-foreground">Les situations fiscales et le journal du 1er janvier au 31 décembre du périmètre sélectionné, sans calcul d’impôt ni liasse fiscale. Les montants restent à affecter au bon propriétaire et au bon régime.</p><a className="btn-secondaire inline-flex" href={`${base}/comptabilite/fiscal/preparation?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}`}>Exporter le dossier de préparation</a></section>;
   if (cadreFiscal.blocage2044) {
-    if (props.compact) return <div className="space-y-2"><p className="text-sm">{cadreFiscal.blocage2044}</p><Link href={`${base}/comptabilite/fiscal?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}`} className="lien-discret inline-flex min-h-11 items-center">Préparer ma déclaration {annee} →</Link></div>;
+    if (props.compact) return <div className="space-y-2"><p className="text-sm">{cadreFiscal.blocage2044}</p><Link href={`${base}/comptabilite/fiscal?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}`} className="lien-discret inline-flex min-h-11 items-center">Préparer ma déclaration {annee} →</Link></div>;
     return <main className="mx-auto w-full max-w-4xl space-y-5 p-4 sm:p-7"><div>{retour}<div className="entete-page"><h1>Préparer ma déclaration {annee}</h1></div>{navigation}</div>{choixPerimetre}<p role="status" className="loc-carte text-sm">{cadreFiscal.blocage2044}</p>{profilsFiscaux}{!cadreFiscal.erreur && preparation}</main>;
   }
 
@@ -226,7 +231,7 @@ export async function RecapitulatifFiscal(props: {
       {recap.meuble.nbEcritures > 0 && <p className="text-sm">Locations meublées, hors revenus fonciers : {eur(recap.meuble.recettes)} de recettes et {eur(recap.meuble.depenses)} de dépenses.</p>}
     </>}
     <p className="text-xs text-muted-foreground">Aide à la déclaration de revenus fonciers ; aucune déclaration n’est envoyée.</p>
-    <Link className="lien-discret inline-flex min-h-11 items-center" href={`${base}/comptabilite/fiscal?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}`}>Préparer ma déclaration {annee} →</Link>
+    <Link className="lien-discret inline-flex min-h-11 items-center" href={`${base}/comptabilite/fiscal?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}`}>Préparer ma déclaration {annee} →</Link>
   </div>;
 
 

@@ -57,6 +57,13 @@ describe("agenda de gestion", () => {
     contexte([{ id: "intrus", incident: { id: "b", lot_id: "lot-b" } }, { id: "absent", incident: null }]);
     expect((await chargerAgendaGestion("alpha", {})).lignes).toEqual([]);
   });
+  it("conserve les parties communes pour le propriétaire, sans les attribuer au portefeuille d’un agent", async () => {
+    const commun={id:"mission-commune",incident:{id:"incident-commun",lot_id:null,bien_id:"immeuble",bien:{nom:"Résidence",address_line1:"1 rue du Test",city:"Paris"},lot:null}};
+    contexte([commun]);mocks.portefeuille.mockResolvedValue(null);
+    expect((await chargerAgendaGestion("org",{})).lignes).toHaveLength(1);
+    contexte([commun]);
+    expect((await chargerAgendaGestion("org",{})).lignes).toHaveLength(0);
+  });
   it("l’admin conserve l’accès aux rendez-vous de son organisation", async () => {
     const c = contexte(); mocks.portefeuille.mockResolvedValue(null);
     await chargerAgendaGestion("alpha", {});

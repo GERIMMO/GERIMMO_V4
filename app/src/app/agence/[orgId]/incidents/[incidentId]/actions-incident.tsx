@@ -53,6 +53,7 @@ export function FormulaireQualification({
   apresSucces,
   estProprietaire = false,
   informeLocataire = true,
+  partiesCommunes = false,
 }: {
   orgId: string;
   incidentId: string;
@@ -63,6 +64,7 @@ export function FormulaireQualification({
   /** Propriétaire direct : le repère juridique lui dit « C'est vous qui décidez qui paie ». */
   estProprietaire?: boolean;
   informeLocataire?: boolean;
+  partiesCommunes?: boolean;
 }) {
   const actionLiee = qualifierIncident.bind(null, orgId, incidentId);
   const idJustification = useId();
@@ -73,12 +75,12 @@ export function FormulaireQualification({
 
   return (
     <form data-saisie-confirmee action={action} className="incident-formulaire-qualification space-y-3">
-      <RepereJuridique slug={categorie} estProprietaire={estProprietaire} />
+      {!partiesCommunes && <RepereJuridique slug={categorie} estProprietaire={estProprietaire} />}
       <fieldset className="space-y-1.5">
-        <legend className="libelle-champ">Qui prend en charge *</legend>
+        <legend className={estProprietaire ? "sr-only" : "libelle-champ"}>Qui prend en charge *</legend>
         {/* Décision opposable : rangées pleine largeur avec du padding — les
             radios natives de 13px se cochent mal au pouce */}
-        {Object.entries(IMPUTATIONS_INCIDENT).map(([valeur, libelle]) => (
+        {partiesCommunes ? <><input type="hidden" name="imputation" value="proprietaire"/><p className="text-sm">Le propriétaire ou la société mandate l’artisan. La répartition des charges se traite ensuite depuis la facture.</p></> : Object.entries(IMPUTATIONS_INCIDENT).map(([valeur, libelle]) => (
           <label key={valeur} className="incident-choix-charge flex items-center gap-2.5 py-2 text-sm">
             <input
               type="radio"
@@ -88,12 +90,12 @@ export function FormulaireQualification({
               defaultChecked={(etat.valeurs?.imputation ?? imputation) === valeur}
               className="size-4 shrink-0 accent-[var(--encre)]"
             />
-            {libelle}
+            {estProprietaire ? ({proprietaire:"À ma charge", locataire:"À la charge du locataire", degradation_fautive:"Dégradation imputable au locataire"} as Record<string,string>)[valeur] ?? libelle : libelle}
           </label>
         ))}
       </fieldset>
       <div className="space-y-1.5">
-        <Label htmlFor={idJustification}>Justification *</Label>
+        <Label htmlFor={idJustification}>{estProprietaire ? "Pourquoi ce choix ? *" : "Justification *"}</Label>
         <textarea
           id={idJustification}
           name="justification"

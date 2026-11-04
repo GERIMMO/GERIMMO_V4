@@ -273,22 +273,19 @@ export function adresseLogement(lot: ContexteBail["lot"], bien: ContexteBail["bi
 // propriétaire) — le « Fait à » vient de sa ville. Type structurel minimal :
 // certains modèles chargent l'organisation avec leurs propres colonnes.
 export function expediteur(ctx: {
-  organisation: {
-    name: string;
-    address_line1: string | null;
-    postal_code: string | null;
-    city: string | null;
-    telephone: string | null;
-    email_contact: string | null;
-  };
+  organisation: { name:string; type?:string; address_line1:string|null; postal_code:string|null; city:string|null; telephone:string|null; email_contact:string|null };
+  bailleurs?: PersonneDocument[];
 }): EnTeteExpediteur & { ville: string | null } {
-  return {
-    nom: ctx.organisation.name,
-    adresse: adresseOrganisation(ctx.organisation),
-    email: ctx.organisation.email_contact,
-    telephone: ctx.organisation.telephone,
-    ville: ctx.organisation.city,
-  };
+  // Un même espace peut gérer un patrimoine personnel et plusieurs SCI.
+  // Les documents d'un bail sont émis par ses détenteurs, pas par le nom du parc.
+  if(ctx.organisation.type && ctx.organisation.type!=="agence" && ctx.bailleurs?.length){
+    const uniques=(valeurs:(string|null|undefined)[])=>[...new Set(valeurs.filter((v):v is string=>Boolean(v)))].join(" · ")||null;
+    return {nom:uniques(ctx.bailleurs.map(nomPersonne)) ?? ctx.organisation.name,
+      adresse:ctx.bailleurs.every(p=>adressePersonne(p))?uniques(ctx.bailleurs.map(adressePersonne)):null,
+      email:uniques(ctx.bailleurs.map(p=>p.email)),telephone:uniques(ctx.bailleurs.map(p=>p.telephone)),
+      ville:ctx.bailleurs[0]?.city??null};
+  }
+  return {nom:ctx.organisation.name,adresse:adresseOrganisation(ctx.organisation),email:ctx.organisation.email_contact,telephone:ctx.organisation.telephone,ville:ctx.organisation.city};
 }
 
 // Le nom du bailleur tel que les épreuves l'affichent : les détenteurs joints

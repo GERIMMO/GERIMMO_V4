@@ -80,7 +80,7 @@ export function FormulaireIncident({
       {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
           sur la saisie (recette 22/08 — mécanique commune, lib/formulaires.ts) */}
       <div className="space-y-1.5">
-        <Label htmlFor="lot">Lot concerné</Label>
+        <Label htmlFor="lot">{estProprietaire ? "Logement concerné" : "Lot concerné"}</Label>
         <select
           id="lot"
           name="lot"
@@ -90,7 +90,7 @@ export function FormulaireIncident({
           className={classeSelect}
         >
           <option value="" disabled>
-            Choisissez le lot…
+            {estProprietaire ? "Choisissez le logement…" : "Choisissez le lot…"}
           </option>
           {lots.map((l) => (
             <option key={l.id} value={l.id}>

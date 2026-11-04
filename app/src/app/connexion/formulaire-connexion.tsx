@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useHydrate, AIDE_BOUTON_EN_ATTENTE } from "@/lib/use-hydrate";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -65,6 +66,7 @@ function messageDeSuite(suite: string | null) {
 }
 
 export function FormulaireConnexion() {
+  const pret = useHydrate();
   const router = useRouter();
   const searchParams = useSearchParams();
   const message: Message | undefined =
@@ -100,7 +102,7 @@ export function FormulaireConnexion() {
           "Votre adresse e-mail n'est pas encore confirmée. Ouvrez le lien reçu par e-mail, puis reconnectez-vous."
         );
       } else if (error.name === "AuthRetryableFetchError" || error.status === 0) {
-        setErreur("Connexion au serveur impossible. Vérifiez votre accès à Internet et réessayez.");
+        setErreur("Le service de connexion ne répond pas. Réessayez dans un instant.");
       } else {
         setErreur("Identifiants invalides.");
       }
@@ -146,6 +148,7 @@ export function FormulaireConnexion() {
               type="email"
               autoComplete="email"
               required
+              disabled={!pret || enCours}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -157,13 +160,14 @@ export function FormulaireConnexion() {
               type="password"
               autoComplete="current-password"
               required
+              disabled={!pret || enCours}
               value={motDePasse}
               onChange={(e) => setMotDePasse(e.target.value)}
             />
           </div>
           {erreur && <AlerteFormulaire>{erreur}</AlerteFormulaire>}
-          <Button type="submit" className="w-full" disabled={enCours}>
-            {enCours ? <><Spinner /> Connexion…</> : "Se connecter"}
+          <Button type="submit" className="w-full" disabled={enCours || !pret} title={!pret ? AIDE_BOUTON_EN_ATTENTE : undefined}>
+            {!pret ? "Chargement…" : enCours ? <><Spinner /> Connexion…</> : "Se connecter"}
           </Button>
           {/* Cibles de 44 px au doigt (24/09) : ces liens texte n'en
               faisaient que 20, sous un bouton qui en fait 44. Le style du

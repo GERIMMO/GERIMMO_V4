@@ -49,7 +49,7 @@ const rendreIncidents = async (lectureSeule = false) => renderToStaticMarkup(awa
 
 describe("Personnes de la fiche lot", () => {
   it("distingue une absence de location d'une lecture des baux impossible", async () => {
-    expect(await rendrePersonnes([])).toContain("Aucun locataire ni garant");
+    expect(await rendrePersonnes([])).toContain("Aucun occupant pour le moment.");
     const html = await rendrePersonnes([], true);
     expect(html).toContain('role="alert"');
     expect(html).not.toContain("Aucun locataire");
@@ -73,7 +73,7 @@ describe("Personnes de la fiche lot", () => {
 
   it("ne présente pas un bail clôturé entre deux lectures comme une occupation actuelle", async () => {
     donnees.baux = [bail("bail", "termine")];
-    expect(await rendrePersonnes()).toContain("Aucun locataire ni garant");
+    expect(await rendrePersonnes()).toContain("Aucun occupant pour le moment.");
     expect(requetes.map(q => q.table)).toEqual(["baux"]);
   });
 

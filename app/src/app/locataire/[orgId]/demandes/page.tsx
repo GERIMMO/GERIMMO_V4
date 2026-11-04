@@ -1,3 +1,4 @@
+import { EchangesIntervention } from "@/components/echanges-intervention";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
@@ -141,6 +142,7 @@ export default async function PageDemandesLocataire(
         peutSignaler={peutSignaler}
         lectureEnEchec={aEchoue(eIncidents)}
       />
+      {!eSuivis && [...new Set(suivis.flatMap(s=>s.intervention_id?[s.intervention_id]:[]))].map(id=><EchangesIntervention key={id} intervention={id} />)}
     </div>
   );
 }

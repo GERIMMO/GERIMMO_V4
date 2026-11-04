@@ -212,3 +212,6 @@ describe("D36 — l'envoi du décompte n'est qu'un envoi (option C reportée)", 
     expect(banc.rpc).toHaveBeenCalledTimes(1);
   });
 });
+
+// Composant serveur asynchrone, testé séparément avec ses données et droits.
+vi.mock("@/components/suivi-echeanciers-charges", () => ({ SuiviEcheanciersCharges: () => null }));

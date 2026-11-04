@@ -84,7 +84,9 @@ export function construireBailMeuble(
   options: { dpeClasse: string | null; inventaire: LigneInventaire[]; f: Fusion }
 ) {
   const f = options.f;
-  const exp = expediteur(ctx);
+  // En-tête contractuel figé pour les circuits de signature déjà ouverts.
+  // Les bailleurs réels figurent dans la désignation des parties.
+  const exp = expediteur({ organisation: ctx.organisation });
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
   const indivision = ctx.bailleurs.length > 1;

@@ -136,8 +136,14 @@ const MISSION_OCTOBRE = [
   "20261028171201_historique_contrats_fourniture.sql",
   "20261029094312_ar24_consentements_portefeuille_agent.sql",
   "20261029094905_consommations_portefeuille_immeuble.sql",
-  // 02/11 : plan d'apurement (dette gelée, tranches, suspension des relances pendant un plan vivant).
+  "20261029115616_tarifs_plancher_490.sql",
+  "20261101152354_echeanciers_charges_suivi.sql",
+  "20261101154004_classement_biens_incidents_simples.sql",
+  "20261101161444_incidents_parties_communes.sql",
+  "20261101190943_echanges_intervention_partages.sql",
+  "20261101201608_interventions_parties_communes.sql",
   "20261102224000_plan_apurement.sql",
+
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */
 const DEJA_EN_PRODUCTION = [

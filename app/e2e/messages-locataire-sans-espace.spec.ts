@@ -42,9 +42,9 @@ for (const largeur of [390, 1440]) {
       await db.query("update public.lots set etat = 'loue' where id = $1", [lot]);
       await db.query("commit");
 
-      // « Nouveau message » mène à l'annuaire, où l'on choisit la personne.
+      // La messagerie garde l'accès à l'annuaire pour inviter une personne sans espace.
       await page.goto(`/espace/${org}/messages`);
-      await expect(page.getByRole("link", { name: "Nouveau message" }).first()).toHaveAttribute("href", `/espace/${org}/personnes`);
+      await expect(page.getByRole("link", { name: "Personnes", exact: true }).first()).toHaveAttribute("href", `/espace/${org}/personnes`);
 
       await page.goto(`/espace/${org}/personnes/${personne.id}`);
       // Locataire en cours (le bail apparaît sur sa fiche), sans espace : la navigation propose quand même « Messages ».

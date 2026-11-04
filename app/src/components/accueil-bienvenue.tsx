@@ -1,11 +1,9 @@
-import Link from "next/link";
-import { ArrowUpRight, Plus } from "lucide-react";
 import { ambianceAccueil } from "@/lib/ambiance-accueil";
 import { PhotoAmbiance } from "@/components/photo-ambiance";
 import styles from "./accueil-bienvenue.module.css";
 
 /** Une scène propre à chaque fête ou saison, choisie depuis le jour civil de Paris. */
-export function AccueilBienvenue({ jourParis, prenom, base, lectureSeule = false }: {
+export function AccueilBienvenue({ jourParis, prenom }: {
   jourParis: string;
   prenom: string | null;
   base: string;
@@ -25,18 +23,10 @@ export function AccueilBienvenue({ jourParis, prenom, base, lectureSeule = false
     <div className={styles.visuel} aria-hidden="true">
       <PhotoAmbiance
         idInitial={ambiance.id}
-        sizes="(max-width: 600px) 104px, (max-width: 1023px) 38vw, 32vw"
+        sizes="(max-width: 1023px) 100vw, calc(100vw - 280px)"
         priority
         className={styles.image}
       />
-    </div>
-    <div className={styles.actions}>
-      {!lectureSeule && <Link className={styles.ajouter} href={`${base}/parc/nouveau`}>
-        <Plus size={17} aria-hidden="true" />Ajouter un bien
-      </Link>}
-      <Link className={styles.documents} href={`${base}/documents`}>
-        Mes documents<ArrowUpRight size={16} aria-hidden="true" />
-      </Link>
     </div>
   </header>;
 }

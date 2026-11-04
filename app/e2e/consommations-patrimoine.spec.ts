@@ -45,8 +45,11 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     await page.setViewportSize({ width: largeur, height: 900 }); await sansSyntheseAlertes(page);
     const chemin = `/espace/${org}/parc/${bien}/lots/${lot}`;
     await connecterVers(page, emailProprietaire, motDePasse, chemin);
+    await expect(page.getByRole("heading", { name: "Locataires & garants", exact: true })).toBeVisible();
     const bloc = page.locator("section#consommations");
-    await expect(bloc.getByRole("heading", { name: "Contrats & consommations" })).toBeVisible();
+    await expect(bloc.getByRole("heading", { name: "Dépenses et règlements" })).toBeVisible();
+    const reglages = bloc.locator("details").filter({ has: page.locator(":scope > summary", { hasText: "Réglages des compteurs et abonnements" }) });
+    await reglages.locator(":scope > summary").click();
     await bloc.getByRole("button", { name: "Ajouter un compteur", exact: true }).click();
     const meter = bloc.locator('form:has(input[name="action"][value="compteur"])');
     await meter.getByLabel("Dernier index connu", { exact: true }).fill("100,125");
@@ -67,7 +70,7 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     await expect(releve.getByRole("button", { name: "Transmettre mon relevé" })).toHaveCount(0);
     await expect.poll(async () => (await db.query("select count(*)::int n from releves_consommation r join compteurs_consommation c on c.id=r.compteur_id where c.lot_id=$1 and r.index_releve=112.125", [lot])).rows[0].n).toBe(1);
     await tp.screenshot({ path: info.outputPath("releve-transmis.png"), fullPage: true });
-    await page.reload(); await expect(bloc.getByText(/^112,125 m³ au/)).toBeVisible();
+    await page.reload(); await reglages.locator(":scope > summary").click(); await expect(bloc.getByText(/^112,125 m³ au/)).toBeVisible();
     await bloc.getByRole("button", { name: "Ajouter un contrat ou une charge" }).click();
     const contrat = bloc.locator('form:has(input[name="action"][value="contrat"])');
     await contrat.getByLabel("Fournisseur ou organisme").fill("EAU TEST");
@@ -82,8 +85,8 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     await facture.getByLabel("Consommation facturée (unité du compteur)").fill("12"); await facture.getByLabel("Dont abonnement / frais fixes (€)").fill("10");
     await facture.getByRole("button", { name: "Enregistrer", exact: true }).click();
     await expect(facture).toHaveCount(0);
-    await bloc.locator("summary").filter({ hasText: /1 facture/ }).click();
-    const article = bloc.locator("article"); await expect(article.getByText(/EAU-TEST-01/)).toBeVisible();
+    await reglages.locator(":scope > summary").click();
+    const article = bloc.locator("article:visible").filter({ hasText: "EAU-TEST-01" }); await expect(article.getByText(/EAU-TEST-01/)).toBeVisible();
     const tabs = page.context().pages().length; await article.getByRole("button", { name: /^Aperçu/ }).click(); await expect(page.getByRole("dialog")).toBeVisible(); expect(page.context().pages().length).toBe(tabs); await page.keyboard.press("Escape");
     await article.getByRole("button", { name: "Répartir cette facture" }).click();
     await article.locator('select[name="mode"]').selectOption("consommations"); await article.getByRole("checkbox", { name: /Cette dépense est récupérable/ }).check();
@@ -101,8 +104,8 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     await expect.poll(async () => (await db.query("select count(*)::int n from paiements_factures_fourniture p join factures_fourniture f on f.id=p.facture_id join contrats_fourniture c on c.id=f.contrat_id where c.lot_id=$1", [lot])).rows[0].n).toBe(1);
     await page.screenshot({ path: info.outputPath("facture-repartie.png"), fullPage: true });
     await bloc.screenshot({ path: info.outputPath("suivi-consommations.png") });
-    await article.getByRole("link", { name: /Préparer la régularisation de/ }).click();
-    const regularisation = page.locator("#regularisation-fournitures");
+    await article.getByRole("button", { name: /Préparer le PDF de/ }).click();
+    const regularisation = article.locator('section[id^="decompte-"]');
     await expect(regularisation.getByRole("button", { name: "Préparer depuis les factures" })).toBeVisible();
     await regularisation.locator('[name="annee"]').fill(dates.aujourd.slice(0, 4));
     await regularisation.getByRole("button", { name: "Préparer depuis les factures" }).click();

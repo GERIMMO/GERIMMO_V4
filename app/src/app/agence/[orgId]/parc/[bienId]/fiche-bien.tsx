@@ -1,0 +1,637 @@
+import { DepliantBien } from "./depliant-bien";
+import styles from "./fiche-bien.module.css";
+import { lireLiensConsommations } from "@/lib/lecture-consommations";
+import { TYPES_BAIL } from "@/lib/baux";
+import { IncidentsBien } from "@/components/incidents-bien";
+import { ConsommationsBien } from "@/components/consommations-bien";
+import { bilanDiagnostics } from "@/lib/presentation-diagnostics";
+import Link from "next/link";
+import { IconeTrait } from "@/components/icone-trait";
+import { notFound } from "next/navigation";
+import { verifierAccesEspace } from "@/lib/espace";
+import {
+  TYPES_BIEN,
+  TYPES_NON_DECOUPABLES,
+  ETATS_LOT,
+  COULEURS_ETAT_LOT,
+  MODES_CLE,
+  formaterSurface,
+} from "@/lib/parc";
+import { diagnosticsExigibles } from "@/lib/diagnostics";
+import { aujourdhuiParis, formaterDate, eur } from "@/lib/ged";
+import { nomComplet } from "@/lib/roles-personnes";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { BadgeStatut } from "@/components/badge-statut";
+import { AttentionFiche } from "@/components/fiche-parc";
+import { EchecLecture, PageEchecLecture } from "../echec-lecture";
+import { BlocagesLocation, ListeBlocages } from "../blocages-location";
+import type { BienFormulaire } from "../formulaire-bien";
+import { BoutonsEtatLot } from "./lots/[lotId]/boutons-etat-lot";
+import { SectionLot } from "./lots/[lotId]/section-lot";
+import { FenetreLotProvider } from "@/components/fenetre-lot";
+import { RecapBien } from "./recap-bien";
+import { ChiffresBien } from "./chiffres-bien";
+import { LignesDiagnostics, type DiagnosticDepose } from "./lignes-diagnostics";
+import { FormulaireDecoupage } from "./formulaire-decoupage";
+import { FormulaireCle } from "./formulaire-cle";
+import { CarteAnnonces, type Annonce as AnnonceBien } from "./carte-annonces";
+import {
+  FormulaireInfosPratiques,
+  type InfosPratiques,
+} from "./formulaire-infos-pratiques";
+import { exigerUuids } from "@/lib/identifiants";
+import { ROLES_RESPONSABLES } from "@/lib/ged";
+import { CarteRetraitBien } from "./carte-retrait-bien";
+import { baseEspace, racineEspace } from "@/lib/racine-espace";
+
+export async function FicheBien({ orgId, bienId, integree = false }: {
+  orgId: string; bienId: string; integree?: boolean;
+}) {
+  const Conteneur = integree ? "div" : "main";
+  const Titre = integree ? "h2" : "h1";
+  exigerUuids(bienId);
+  const { supabase, role, estProprietaire, traverseeLectureSeule } = await verifierAccesEspace(orgId);
+  // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
+  const base = baseEspace(orgId, estProprietaire);
+  // Le lien retour porte le nom de l'entrée du menu (24/09) : « ← Parc »
+  // ne se lisait nulle part ailleurs.
+  const libelleParc = estProprietaire
+    ? "Biens & locations"
+    : role === "agent"
+      ? "Mon portefeuille"
+      : "Parc de l'agence";
+
+  const [
+    { data: bien, error: erreurBien },
+    { data: lots, error: erreurLots },
+    { data: diagnostics, error: erreurDiagnostics },
+    { data: cle, error: erreurCle },
+    { data: infos, error: erreurInfos },
+    { data: detentionsBien, error: erreurDetentions },
+    { data: annonces, error: erreurAnnonces },
+  ] = await Promise.all([
+    supabase
+      .from("biens")
+      .select("*")
+      .eq("id", bienId)
+      .eq("organization_id", orgId)
+      .maybeSingle(),
+    supabase
+      .from("lots")
+      .select("id, nom, etat, surface_m2, tantieme, pieces")
+      .eq("bien_id", bienId)
+      .order("created_at"),
+    supabase
+      .from("diagnostics")
+      .select("id, type, date_realisation, date_expiration, diagnostiqueur, document_id, classe_dpe")
+      .eq("bien_id", bienId)
+      .is("archived_at", null)
+      .order("type"),
+    supabase
+      .from("cles_repartition")
+      .select("id, mode, date_effet, cle_repartition_lignes(lot_id, pourcentage)")
+      .eq("bien_id", bienId)
+      .is("invalidated_at", null)
+      .maybeSingle(),
+    supabase
+      .from("bien_infos_pratiques")
+      .select("sortie_poubelles, local_poubelles, gardien, travaux, stationnement, autres")
+      .eq("bien_id", bienId)
+      .maybeSingle(),
+    // Recette 21/08 : la fiche bien dit qui possède quoi — détentions en
+    // cours de tous les lots du bien. Jointures explicites : detentions a
+    // DEUX clés étrangères vers persons ET deux vers lots (la clé simple et
+    // la clé composite qui garde l'agence cohérente). `!inner` ne choisit que
+    // le type de jointure, jamais la clé : sans `!fk` des deux côtés,
+    // PostgREST refuse la requête (PGRST201) et le bloc reste vide.
+    supabase
+      .from("detentions")
+      .select(
+        "lot_id, quote_part, person:persons!detentions_person_id_fkey(id, nom, prenom), lot:lots!detentions_lot_id_fkey!inner(bien_id)"
+      )
+      .eq("organization_id", orgId)
+      .eq("lot.bien_id", bienId)
+      .is("date_fin", null),
+    // Annonces aux locataires du bien (espace locataire v10), encore visibles au jour de PARIS : le jour UTC du
+    // serveur gardait affichée, entre minuit et 2 h, une annonce échue la veille (audit du 23/10, TST-5).
+    supabase
+      .from("annonces")
+      .select("id, texte, visible_jusquau")
+      .eq("organization_id", orgId)
+      .eq("bien_id", bienId)
+      .gte("visible_jusquau", aujourdhuiParis())
+      .order("visible_jusquau"),
+  ]);
+  // Lecture refusée : ce n'est pas un bien supprimé (relevé du 11/09).
+  if (erreurBien)
+    return (
+      <PageEchecLecture
+        titre="Fiche bien"
+        quoi={["le bien"]}
+        retour={{ href: `${base}/parc`, libelle: libelleParc }}
+      />
+    );
+  if (!bien) notFound();
+
+  // Blocages de mise en location, affichés directement sur la fiche bien :
+  // en mono-lot personne n'ouvre la fiche lot pour y trouver le bouton
+  const { data: blocagesBien, error: erreurBlocages } = await supabase.rpc("lots_blocages_location", {
+    p_org: orgId,
+    p_bien: bienId,
+  });
+  const blocagesParLot = new Map(
+    ((blocagesBien ?? []) as { lot_id: string; blocages: string[] | null }[]).map((b) => [
+      b.lot_id,
+      b.blocages ?? [],
+    ])
+  );
+
+  const lotsActifs = (lots ?? []).filter((l) => l.etat !== "archive");
+  // Les lots ARCHIVÉS restent listés (la fiche bien est le seul chemin vers le
+  // bouton de réactivation), mais ils étaient comptés nulle part : le titre
+  // annonçait « 2 lots » au-dessus d'une liste de trois (relevé du 11/09).
+  // Ils passent désormais en fin de liste et le titre les nomme.
+  const lotsArchives = (lots ?? []).filter((l) => l.etat === "archive");
+  const lotsAffiches = [...lotsActifs, ...lotsArchives];
+  const multiLots = lotsActifs.length > 1;
+  const { data: chambresDuBien, error: erreurChambres } = lotsActifs.length
+    ? await supabase.from("lot_chambres").select("id,lot_id,nom,surface_m2").eq("organization_id", orgId).in("lot_id", lotsActifs.map(lot => lot.id)).order("nom")
+    : { data: [], error: null };
+
+
+  const locationsCourantes=await lireLiensConsommations<{id:string;lot_id:string;type:string;loyer_hc:number|null;charges:number|null;locataire:{nom:string;prenom:string|null}|{nom:string;prenom:string|null}[]|null;etats_des_lieux:{id:string;type:string}[]}>(lotsActifs.map(l=>l.id),(ids,debut,fin)=>supabase.from("baux").select("id,lot_id,type,loyer_hc,charges,locataire:persons!baux_locataire_meme_org_fk(nom,prenom),etats_des_lieux(id,type)",{count:"exact"}).eq("organization_id",orgId).in("lot_id",ids).in("etat",["actif","preavis"]).order("id").range(debut,fin));
+  // Sur un bien multi-lots, l'ERP et la clé de répartition se règlent au niveau
+  // du bien : les répéter sous chaque lot noie les points réellement propres au
+  // lot. On isole donc ce qui est commun à TOUS les lots bloqués.
+  const listesBlocages = [...blocagesParLot.values()];
+  const blocagesCommuns =
+    listesBlocages.length > 1
+      ? listesBlocages[0].filter((b) => listesBlocages.every((l) => l.includes(b)))
+      : [];
+  // Diagnostics exigibles au niveau bien uniquement — calcul centralisé
+  // (lib/diagnostics, audit 09/09) ; ceux du lot sont sur sa fiche.
+  const exigiblesBien = diagnosticsExigibles(bien, "bien");
+  const bilan = bilanDiagnostics(exigiblesBien.map(e => e.type), diagnostics ?? []);
+  const manquants = exigiblesBien.filter(e => bilan.lignes.some(l => l.type === e.type && ["a_ajouter", "a_joindre"].includes(l.etat)));
+  // « L'immeuble » ne se dit que d'un immeuble (24/09) : sur un appartement
+  // (copropriété : non), « diagnostic de l'immeuble à déposer » désignait
+  // pour le lecteur autre chose que son bien.
+  const estImmeuble = bien.type === "immeuble";
+  const niveauBien = estImmeuble ? "à l’immeuble" : "au bien";
+  const alerteDiagnosticsBien = bilan.aAjouter ? `${bilan.aAjouter} à ajouter` : bilan.aRenouveler ? `${bilan.aRenouveler} à renouveler` : undefined;
+  const infosRenseignees = !!infos && Object.values(infos).some((v) => v);
+
+  // Ce que la base n'a pas rendu — un manque affiché n'est alors pas un manque.
+  const echecs: string[] = [];
+  const noter = (libelle: string, erreur: unknown) => {
+    if (erreur) echecs.push(libelle);
+  };
+  noter("les lots du bien", erreurLots);
+  noter("les chambres en colocation", erreurChambres);
+  noter("les diagnostics", erreurDiagnostics);
+  noter("la clé de répartition", erreurCle);
+  noter("les informations pratiques", erreurInfos);
+  noter("les propriétaires", erreurDetentions);
+  noter("les annonces aux locataires", erreurAnnonces);
+  noter("ce qui bloque la mise en location", erreurBlocages);
+
+  // Une ligne par propriétaire mandant : ses lots et quote-parts agrégés
+  const nomsLots = new Map((lots ?? []).map((l) => [l.id, l.nom]));
+  const parProprietaire = new Map<
+    string,
+    { id: string; nom: string; parts: string[] }
+  >();
+  for (const d of (detentionsBien ?? []) as unknown as {
+    lot_id: string;
+    quote_part: number;
+    person: { id: string; nom: string; prenom: string | null } | null;
+  }[]) {
+    if (!d.person) continue;
+    const entree = parProprietaire.get(d.person.id) ?? {
+      id: d.person.id,
+      nom: nomComplet(d.person),
+      parts: [],
+    };
+    entree.parts.push(
+      `${nomsLots.get(d.lot_id) ?? "Lot"} (${Number(d.quote_part)} %)`
+    );
+    parProprietaire.set(d.person.id, entree);
+  }
+  const proprietairesBien = [...parProprietaire.values()]
+    .map((p) => ({ id: p.id, nom: p.nom, detail: p.parts.join(" · ") }))
+    .sort((a, b) => a.nom.localeCompare(b.nom));
+
+  // Ce qui attend un geste, réuni EN HAUT et dit une seule fois. Le relevé du
+  // 11/09 : un diagnostic manquant se lisait au même poids que « Découpage en
+  // lots : non découpable », en quatrième position, sans que rien n'attire
+  // l'œil. Chaque point porte l'ancre de la section qui le règle.
+  const attention: { cle: string; texte: string; ancre?: string }[] = [];
+  if ((bien as { archived_at?: string | null }).archived_at) {
+    attention.push({
+      cle: "retrait",
+      texte: "Ce bien est retiré du parc : il apparaît grisé et ne compte plus dans l’abonnement.",
+      ancre: "retrait",
+    });
+  }
+  if (!erreurDiagnostics && manquants.length > 0) {
+    attention.push({
+      cle: "diagnostics",
+      texte: `Diagnostic${manquants.length > 1 ? "s" : ""} ${estImmeuble ? "de l’immeuble" : "du bien"} à déposer : ${manquants
+        .map((m) => m.libelle)
+        .join(", ")}.`,
+      ancre: "diagnostics",
+    });
+  }
+  if (multiLots && !cle) {
+    attention.push({
+      cle: "cle",
+      texte:
+        "La clé de répartition n’est pas validée : aucun lot ne peut passer en disponible.",
+      ancre: "cle",
+    });
+  }
+  // Les lots bloqués sont comptés, pas énumérés : le détail vit dans la liste
+  // des lots, juste dessous, avec le bouton qui va avec.
+  const lotsBloques = lotsActifs.filter((l) => (blocagesParLot.get(l.id) ?? []).length > 0);
+  if (lotsBloques.length > 0) {
+    attention.push({
+      cle: "lots",
+      texte:
+        lotsBloques.length === 1
+          ? `Le lot « ${lotsBloques[0].nom} » ne peut pas être mis en location.`
+          : `${lotsBloques.length} lots ne peuvent pas être mis en location.`,
+      ancre: "lots",
+    });
+  }
+
+  const loues = lotsActifs.filter((l) => ["loue", "preavis"].includes(l.etat)).length;
+
+  return (
+    <FenetreLotProvider orgId={orgId} estProprietaire={estProprietaire}>
+      <Conteneur className={`${estProprietaire?styles.fiche:""} ${integree ? "bien-visuel space-y-4" : "mx-auto w-full max-w-5xl bien-visuel space-y-[1.125rem] p-4 sm:p-7"}`}>
+      {!integree && <Link href={`${base}/parc`} className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-primary">← {libelleParc}</Link>}
+      <header className="bien-visuel-entete">
+        <div className="bien-visuel-identite">
+          <span className="bien-visuel-embleme"><IconeTrait nom={estImmeuble ? "parc" : "maison"} /></span>
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-2"><span className="eyebrow">{TYPES_BIEN[bien.type] ?? bien.type}</span><BadgeStatut ton={bien.archived_at ? "neutre" : "ok"}>{bien.archived_at ? "Retiré du parc" : "Au parc"}</BadgeStatut></div>
+            <Titre>{bien.nom}</Titre>
+            <p className="mt-2 text-sm text-muted-foreground">{bien.address_line1}{bien.address_line2 ? `, ${bien.address_line2}` : ""} · {bien.postal_code} {bien.city}</p>
+          </div>
+        </div>
+        <nav aria-label="Rubriques du bien" className="mt-4 flex flex-wrap gap-2">
+          <Link href={`${base}/documents?bien=${bienId}`} className={buttonVariants({variant:"outline",size:"sm"})}>Documents du bien</Link>
+          <Link href={estProprietaire?`${base}/loyers?bien=${bienId}`:`${base}/loyers`} className={buttonVariants({variant:"outline",size:"sm"})}>Finances du bien</Link>
+        </nav>
+        <ChiffresBien chiffres={[
+            {icone:"cle",label:"Lots actifs",valeur:erreurLots ? "Indisponible" : String(lotsActifs.length)},
+            {icone:"maison",label:"Lots loués",valeur:erreurLots ? "Indisponible" : lotsActifs.length ? `${loues} / ${lotsActifs.length}` : "Aucun"},
+            {icone:"parc",label:"Surface des lots actifs",valeur:!erreurLots && lotsActifs.length > 0 && lotsActifs.every(l=>l.surface_m2 != null) ? formaterSurface(lotsActifs.reduce((total,l)=>total+Number(l.surface_m2),0)) : "Non renseignée"},
+            {icone:"doc",label:"Diagnostics du bien",valeur:erreurDiagnostics ? "Indisponible" : `${(diagnostics ?? []).length} déposé${(diagnostics ?? []).length > 1 ? "s" : ""}`},
+          ]} />
+      </header>
+
+      <EchecLecture quoi={echecs} />
+      <AttentionFiche points={attention} />
+
+
+      {/* LES LOTS D'ABORD, et c'est le correctif de fond du 11/09. Le lot est
+          l'objet de travail de l'agence : c'est lui qui porte le bail, le
+          loyer, le locataire. Il arrivait en DEUXIÈME carte, après le type de
+          construction et l'année du bâtiment. On lit désormais le bien dans
+          l'ordre où on s'en sert. */}
+      <Card id="lots" className={`scroll-mt-20 ${estProprietaire?styles.locations:""}`}>
+        <CardHeader>
+          <CardTitle className="text-base">
+            <span className="bien-visuel-titre"><IconeTrait nom="cle" />{estProprietaire?`Logements · ${lotsActifs.length}`:multiLots ? `Les ${lotsActifs.length} lots` : lotsAffiches.length ? "Votre lot" : "Lots du bien"}</span>
+            {lotsArchives.length > 0
+              ? ` · ${lotsArchives.length} archivé${lotsArchives.length > 1 ? "s" : ""}`
+              : ""}
+          </CardTitle>
+          {/* La phrase n'apprend quelque chose qu'à qui prépare encore ses
+              lots. Sur un bien entièrement loué, elle est lue mille fois pour
+              ne rien dire — et une phrase qu'on apprend à sauter apprend aussi
+              à sauter celles qui comptent. */}
+          {/* Sur un bien à lot unique, la phrase exposait le modèle (bien /
+              lot) à qui ne possède qu'un T2 (24/09) : elle dit seulement où
+              agir. */}
+          {!estProprietaire && loues < lotsActifs.length && (
+            <CardDescription>
+              {lotsActifs.length === 1
+                ? "La mise en location se fait depuis le lot ci-dessous."
+                : "Le bail porte toujours sur un lot, jamais sur le bien. La mise en location se fait ici, lot par lot."}
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {locationsCourantes.error&&<p role="alert" className="text-sm text-destructive">Les locations n’ont pas pu être chargées.</p>}
+          {(chambresDuBien ?? []).length > 0 && <section className="chambres-apercu" aria-label="Chambres de la colocation">
+            <h3>Colocation · {chambresDuBien!.length} chambres privatives</h3>
+            <ul>{chambresDuBien!.map(chambre => <li key={chambre.id}><strong>{chambre.nom}</strong><span>{formaterSurface(chambre.surface_m2)}</span></li>)}</ul>
+          </section>}
+          {/* Ce qui bloque TOUS les lots : affiché une fois, pas sous chacun */}
+          {estProprietaire?(blocagesCommuns.length>0&&<details className={styles.preparation}><summary>Préparer la mise en location</summary>          <BlocagesLocation
+            motifs={blocagesCommuns}
+            ctx={{ orgId, bienId, lotId: lotsActifs[0]?.id ?? "", racine: racineEspace(estProprietaire) }}
+            pageCourante={`${base}/parc/${bienId}`}
+            titre="À régler pour l’ensemble des lots"
+          /></details>):(          <BlocagesLocation
+            motifs={blocagesCommuns}
+            ctx={{ orgId, bienId, lotId: lotsActifs[0]?.id ?? "", racine: racineEspace(estProprietaire) }}
+            pageCourante={`${base}/parc/${bienId}`}
+            titre="À régler pour l’ensemble des lots"
+          />)}
+
+          {!erreurLots && lotsAffiches.length === 0 && <div className="bien-visuel-vide"><span><IconeTrait nom="cle" /></span><div><p className="font-medium">Aucun lot rattaché</p><p className="mt-1 text-sm text-muted-foreground">Les lots et leur situation locative apparaîtront ici.</p></div></div>}
+          <ul className="divide-y divide-border">
+            {lotsAffiches.map((lot) => {
+              const blocages = blocagesParLot.get(lot.id) ?? [];
+              const propres = blocages.filter((b) => !blocagesCommuns.includes(b));
+              return (
+                <li key={lot.id} className={`space-y-2 py-3 ${lot.etat === "archive" ? "opacity-60" : ""}`}>
+                  {/* Depuis la fiche du bien, ouvrir directement le dossier complet. */}
+                  <Link
+                    href={`${base}/parc/${bienId}/lots/${lot.id}`}
+                    className="-mx-2 flex w-[calc(100%+1rem)] flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-[var(--survol)]"
+                  >
+                    <span
+                      className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}
+                    >
+                      {ETATS_LOT[lot.etat] ?? lot.etat}
+                    </span>
+                    {/* Sur téléphone, le nom — seul identifiant du rang —
+                        prend sa propre ligne, en tête, au lieu d'être coupé à
+                        quelques lettres (« E2E Lo… », 24/09). */}
+                    <span className="min-w-0 basis-full font-medium max-sm:order-first sm:flex-1 sm:basis-auto sm:truncate">
+                      {lot.nom}
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {formaterSurface(lot.surface_m2)}
+                      {lot.pieces ? ` · ${lot.pieces} pièce${lot.pieces > 1 ? "s" : ""}` : ""}
+                    </span>
+                    {blocages.length > 0 && (
+                      <BadgeStatut ton="attente">{blocages.length} à régler</BadgeStatut>
+                    )}
+                    {/* Le rang entier ouvre le lot : sur téléphone, le
+                        pseudo-bouton ne faisait que voler la place du nom. */}
+                    <span aria-hidden className="ml-auto shrink-0 text-muted-foreground">→</span>
+                  </Link>
+
+                  {/* Points propres à ce lot — repliés, la ligne reste lisible */}
+                  {locationsCourantes.data.filter(b=>b.lot_id===lot.id).map(b=>{const personne=Array.isArray(b.locataire)?b.locataire[0]:b.locataire;const edl=b.etats_des_lieux?.find(e=>e.type==="entree");return <div key={b.id} className={styles.locationResume}><div><strong>{personne?nomComplet(personne):"Locataire à renseigner"}</strong><span>{TYPES_BAIL[b.type]??b.type}{b.loyer_hc!=null&&b.charges!=null?` · ${eur(Number(b.loyer_hc)+Number(b.charges))} / mois, charges comprises`:" · Loyer à compléter"}</span></div><div className={styles.accesLocation}><Link href={`${base}/baux/${b.id}`}>Bail →</Link>{edl&&<Link href={`${base}/baux/${b.id}/edl/${edl.id}`}>État des lieux →</Link>}</div></div>})}
+                  {propres.length > 0 && (
+                    <details className="group">
+                      <summary className="cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">
+                        <span className="group-open:hidden">
+                          Voir ce qui bloque ce lot ({propres.length})
+                        </span>
+                        <span className="hidden group-open:inline">Masquer le détail</span>
+                      </summary>
+                      <div className="pl-3">
+                        <ListeBlocages
+                          motifs={propres}
+                          ctx={{ orgId, bienId, lotId: lot.id, racine: racineEspace(estProprietaire) }}
+                          pageCourante={`${base}/parc/${bienId}`}
+                        />
+                      </div>
+                    </details>
+                  )}
+
+                  {!traverseeLectureSeule && <details className={styles.optionsLot}><summary>Options du logement</summary>                  <BoutonsEtatLot
+                    orgId={orgId}
+                    bienId={bienId}
+                    lotId={lot.id}
+                    etat={lot.etat}
+                    bloque={blocages.length > 0}
+                    compact
+                    estBailleurDirect={estProprietaire}
+                  /></details>}
+                </li>
+              );
+            })}
+          </ul>
+          {!estProprietaire && lotsActifs.some((l) => l.etat === "brouillon") && (
+            <p className="text-xs text-muted-foreground">
+              La mise en location vérifie une dernière fois qu’il ne manque rien
+              au lot.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+
+      <div className={styles.suivi}>
+        <div className={styles.incidents}>
+      <IncidentsBien org={orgId} bien={bienId} base={base} lots={lots ?? []} lectureSeule={traverseeLectureSeule} />
+        </div>
+        <div className={styles.depenses}><ConsommationsBien orgId={orgId} bienId={bienId} base={base} lectureSeule={traverseeLectureSeule} />        </div>
+      </div>
+      <DepliantBien className={styles.batiment} id="informations">
+        <summary><span>Bâtiment et dossier</span><small>Caractéristiques, diagnostics, détention et répartition</small></summary>
+        <div className="space-y-4 pt-4">
+      {/* Le bien : condensé + sections repliables (consulter d'abord, éditer sur clic) */}
+      <Card className="scroll-mt-20">
+        <CardHeader><CardTitle className="bien-visuel-titre"><IconeTrait nom="maison" />Informations du bien</CardTitle></CardHeader>
+        <CardContent><RecapBien lectureSeule={traverseeLectureSeule} orgId={orgId} bien={bien as BienFormulaire} /></CardContent>
+      </Card>
+
+      <div className="bien-visuel-dossier">
+          {/* Diagnostics du bien */}
+          <SectionLot
+            id="diagnostics"
+            titre="Diagnostics du bien"
+            alerte={!erreurDiagnostics && alerteDiagnosticsBien ? `${alerteDiagnosticsBien} (${niveauBien})` : undefined}
+            // Plus de « · manque … » : le bandeau du haut le dit déjà, avec
+            // « Régler » ; la rangée garde sa pastille (24/09).
+            resume={
+              (diagnostics ?? []).length === 0
+                ? "Aucun diagnostic déposé"
+                : `${(diagnostics ?? []).length} déposé${(diagnostics ?? []).length > 1 ? "s" : ""} ${niveauBien}`
+            }
+          >
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                ERP, amiante des parties communes, termites… Les diagnostics du
+                lot (DPE…) se déposent sur sa fiche.
+              </p>
+              {erreurDiagnostics ? <p role="alert">Documents indisponibles. Réessayez pour connaître leur état.</p> : <LignesDiagnostics lectureSeule={traverseeLectureSeule}
+                orgId={orgId}
+                bienId={bienId}
+                lotId={null}
+                niveau="bien"
+                attendus={exigiblesBien.map((e) => e.type)}
+                diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
+              />}
+            </div>
+          </SectionLot>
+
+          {/* Propriétaires mandants du bien (recette 21/08) : qui possède
+              quoi, sans ouvrir chaque fiche lot. PLUS REPLIÉS (24/09) : la
+              rangée nommait le propriétaire sans mener à lui — déplier, puis
+              cliquer le nom, pour une liste en lecture seule qui tient à
+              l'écran. Chaque propriétaire est un rang entier cliquable. */}
+          <div className="bien-visuel-proprietaires">
+            <p className="bien-visuel-titre text-sm font-medium"><IconeTrait nom="gens" />
+              {estProprietaire ? "Détention du bien" : "Propriétaires mandants"}
+            </p>
+            {proprietairesBien.length === 0 ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                Aucune détention en cours — elles se règlent sur la fiche de
+                chaque lot.
+              </p>
+            ) : (
+              <ul className="-mx-2 mt-1 text-sm">
+                {proprietairesBien.map((p) => (
+                  <li key={p.id}>
+                    <Link
+                      href={`${base}/personnes/${p.id}`}
+                      className="rang flex-wrap gap-x-3 gap-y-0.5 rounded-md px-2 py-2"
+                    >
+                      <span className="min-w-0 font-medium">{p.nom}</span>
+                      <span className="text-muted-foreground sm:ml-auto">{p.detail}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Découpage en lots — seulement là où il s'applique : sur un bien
+              non découpable, la rangée ne s'ouvrait que pour le dire (24/09). */}
+          {!traverseeLectureSeule && !(TYPES_NON_DECOUPABLES as readonly string[]).includes(bien.type) && (
+            <SectionLot
+              titre="Découpage en lots"
+              resume={`${lotsActifs.length} lot${lotsActifs.length > 1 ? "s" : ""}`}
+            >
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Les nouveaux lots héritent des propriétaires du lot d&apos;origine
+                  ; un lot loué ne se redécoupe pas.
+                </p>
+                <FormulaireDecoupage orgId={orgId} bienId={bienId} />
+              </div>
+            </SectionLot>
+          )}
+
+          {/* Clé de répartition (multi-lots) */}
+          {multiLots && (
+            <SectionLot
+              id="cle"
+              titre="Clé de répartition"
+              alerte={cle ? undefined : "À valider"}
+              resume={
+                cle
+                  ? `En vigueur (${MODES_CLE[cle.mode] ?? cle.mode}, effet au ${formaterDate(cle.date_effet)})`
+                  : "À valider"
+              }
+            >
+              <div className="space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  100 % exactement, datée, jamais recalculée rétroactivement — une
+                  clé fausse fausse toutes les régularisations du bien.
+                </p>
+                {cle ? (
+                  <ul className="flex flex-wrap gap-1.5">
+                    {(cle.cle_repartition_lignes as { lot_id: string; pourcentage: number }[]).map(
+                      (ligne) => {
+                        const lot = (lots ?? []).find((l) => l.id === ligne.lot_id);
+                        return (
+                          <li key={ligne.lot_id} className="puce puce-grise">
+                            {lot?.nom ?? "Lot"} : {ligne.pourcentage} %
+                          </li>
+                        );
+                      }
+                    )}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-warning-soft-foreground">
+                    Aucune clé valide : les lots ne peuvent pas passer en disponible
+                    tant qu&apos;elle n&apos;est pas validée.
+                  </p>
+                )}
+                {!traverseeLectureSeule && <FormulaireCle
+                  // Remonté à neuf quand la structure des lots change (découpage)
+                  key={lotsActifs.map((l) => l.id).join("-")}
+                  orgId={orgId}
+                  bienId={bienId}
+                  lots={lotsActifs.map((l) => ({
+                    id: l.id,
+                    nom: l.nom,
+                    surface_m2: l.surface_m2,
+                    tantieme: l.tantieme,
+                  }))}
+                />}
+              </div>
+            </SectionLot>
+          )}
+
+          {/* Informations pratiques destinées au locataire */}
+          <SectionLot
+            id="infos-pratiques"
+            titre="Informations pratiques"
+            // Rubrique facultative : un résumé neutre, pas l'injonction d'un
+            // manque (24/09).
+            resume={infosRenseignees ? "Renseignées" : "Non renseignées"}
+          >
+            <FormulaireInfosPratiques lectureSeule={traverseeLectureSeule}
+              orgId={orgId}
+              bienId={bienId}
+              infos={(infos ?? null) as InfosPratiques | null}
+            />
+          </SectionLot>
+
+          {/* L'ANNONCE SE REPLIE. C'était une carte entière, formulaire ouvert,
+              en bas de page — deux cent quatre-vingts pixels au même poids que
+              les lots, pour un geste qu'une agence pose deux fois l'an. Elle
+              reste à un clic, et son résumé dit s'il y a quelque chose
+              d'affiché chez les locataires en ce moment. */}
+          <SectionLot
+            titre="Annonces aux locataires"
+            resume={
+              (annonces ?? []).length === 0
+                ? "Aucune annonce en cours"
+                : `${(annonces ?? []).length} annonce${(annonces ?? []).length > 1 ? "s" : ""} affichée${(annonces ?? []).length > 1 ? "s" : ""} chez les locataires`
+            }
+          >
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Coupure d&apos;eau, travaux, passage du syndic… L&apos;annonce
+                s&apos;affiche sur l&apos;accueil des locataires du bien jusqu&apos;à la
+                date choisie, puis disparaît seule.
+              </p>
+              <CarteAnnonces lectureSeule={traverseeLectureSeule}
+                orgId={orgId}
+                bienId={bienId}
+                annonces={(annonces ?? []) as AnnonceBien[]}
+              />
+            </div>
+          </SectionLot>
+      </div>
+
+        </div>
+      </DepliantBien>
+
+      {/* Retirer le bien du parc (audit du 27/09) : l'abonnement promettait
+          « un bien retiré n'est plus compté » sans qu'aucun geste existe.
+          Réservé au responsable, comme la réactivation d'un lot archivé. */}
+      {!traverseeLectureSeule && ROLES_RESPONSABLES.includes(role) && (
+        <details className={styles.administration}><summary>Gestion du bien</summary><CarteRetraitBien
+          orgId={orgId}
+          bienId={bienId}
+          retireLe={(bien as { archived_at?: string | null }).archived_at ?? null}
+          bailEnCours={lotsActifs.some((l) => l.etat === "loue" || l.etat === "preavis")}
+          estProprietaire={estProprietaire}
+        /></details>
+      )}
+
+      </Conteneur>
+    </FenetreLotProvider>
+  );
+}

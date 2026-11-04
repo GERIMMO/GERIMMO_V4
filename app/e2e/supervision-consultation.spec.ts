@@ -27,7 +27,7 @@ for (const persona of ["superadmin", "proprietaire"]) {
         await expect(page.getByRole("link", { name: /Enregistrer un artisan/ })).toHaveCount(0);
         await expect(page.getByRole("heading", { name: "Inviter un artisan", exact: true })).toHaveCount(0);
       } else {
-        await expect(page.getByRole("heading", { name: "Mon carnet d’artisans", exact: true })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Carnet d’artisans", exact: true })).toBeVisible();
         await expect(page.getByRole("heading", { name: "Inviter un artisan", exact: true })).toBeVisible();
         await expect(page.getByRole("link", { name: /Enregistrer un artisan/ })).toHaveCount(0);
       }

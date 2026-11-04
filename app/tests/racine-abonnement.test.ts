@@ -67,7 +67,7 @@ vi.mock("@/lib/supabase/service", () => ({ clientDeService: () => m.service }));
 vi.mock("@/lib/stripe", async (importer) => ({
   ...(await importer<typeof import("@/lib/stripe")>()),
   configurationStripe: () => ({ pret: true, config: { cle: "sk_test_x", secretWebhook: "whsec_x", prix: {} } }),
-  clientStripe: () => ({}),
+  clientStripe: () => ({ subscriptions: { retrieve: async () => ({ metadata: { gerimmo_formule: "solo", gerimmo_unites: "1" }, items: { data: [{ quantity: 1, price: { unit_amount: 599, recurring: { interval: "month" } } }] } }) } }),
   assurerClientStripe: async () => ({ ok: true, customer: "cus_test", remplace: false }),
   verifierClientDeLOrganisation: async () => ({ ok: true }),
   ouvrirPortailFacturation: m.portail,

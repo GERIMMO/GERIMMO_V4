@@ -8,7 +8,7 @@ import { documentRegularisationFournitures, type BrouillonRegularisationFournitu
 import { rendrePdf } from "@/lib/documents/rendu";
 import { preparerFichierGed, abandonnerPieceGed } from "@/lib/ged-depot";
 
-export type EtatRegularisationFournitures = { erreur?: string; succes?: string; brouillon?: BrouillonRegularisationFourniture; documentId?: string };
+export type EtatRegularisationFournitures = { erreur?: string; succes?: string; brouillon?: BrouillonRegularisationFourniture; documentId?: string; regularisationId?: string };
 export async function preparerRegularisationFournitures(orgId: string, bailId: string, _etat: EtatRegularisationFournitures, f: FormData): Promise<EtatRegularisationFournitures> {
   const { supabase, user } = await verifierGerant(orgId, { geste: "regularisation_charges", cible: bailId });
   const annee = lireAnneeExercice(f.get("annee"));
@@ -25,7 +25,7 @@ export async function emettreRegularisationFournitures(orgId: string, bailId: st
   const { data, error } = await supabase.from("brouillons_regularisation_fourniture").select("*").eq("id", id).eq("organization_id", orgId).eq("bail_id", bailId).single();
   if (error || !data) return { erreur: "Ce brouillon n’est pas accessible." };
   const d = data as BrouillonRegularisationFourniture;
-  if (d.regularisation_id) return { succes: "Cette régularisation est déjà enregistrée." };
+  if (d.regularisation_id) return { succes: "Cette régularisation est déjà enregistrée.", regularisationId: d.regularisation_id };
   if (f.get("empreinte") !== d.empreinte) return { erreur: "Le brouillon a changé. Recalculez-le puis vérifiez les nouveaux montants." };
   if (f.get("complet") !== "on") return { erreur: "Confirmez que toutes les charges de l’exercice sont présentes." };
   const etaler = f.get("etaler") === "on";
@@ -42,6 +42,6 @@ export async function emettreRegularisationFournitures(orgId: string, bailId: st
     const lie = lecture.data?.documents as unknown as { storage_path?: string } | null;
     if (lie?.storage_path && lie.storage_path !== piece.chemin) await abandonnerPieceGed(supabase, piece);
     revalidatePath(`/espace/${orgId}`, "layout"); revalidatePath(`/agence/${orgId}`, "layout"); revalidatePath(`/locataire/${orgId}`, "layout");
-    return { succes: "Régularisation enregistrée. Le décompte est disponible dans les documents du bail et du locataire.", documentId: lecture.data?.justificatif_document ?? undefined };
+    return { succes: "Régularisation enregistrée. Le décompte est disponible dans les documents du bail et du locataire.", regularisationId: r.data, documentId: lecture.data?.justificatif_document ?? undefined };
   } catch (e) { return { erreur: sansJargon(e instanceof Error ? e.message : "Le décompte n’a pas pu être préparé. Réessayez.") }; }
 }

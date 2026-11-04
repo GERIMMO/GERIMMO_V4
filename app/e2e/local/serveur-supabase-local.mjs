@@ -230,9 +230,9 @@ function traduireFiltre(col, expr, params, prefixe = "") {
     if (op === "like" || op === "ilike") v = v.replace(/\*/g, "%");
     params.push(v);
     sql = `${colonne} ${OPS[op]} $${params.length}`;
-  } else if (op === "cs") {
+  } else if (op === "cs" || op === "ov") {
     params.push(val);
-    sql = `${colonne} @> $${params.length}`;
+    sql = `${colonne} ${op === "cs" ? "@>" : "&&"} $${params.length}`;
   } else {
     throw erreurRest(400, "PGRST100", `Opérateur de filtre non géré : ${op}`);
   }

@@ -41,13 +41,13 @@ export function FormulaireInvitationArtisan({ orgId }: { orgId: string }) {
           placeholder="contact@plomberie-martin.fr"
         />
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <details open={Boolean(etat.valeurs?.nom || etat.valeurs?.metier)}><summary className="min-h-11 cursor-pointer content-center text-sm">Nom et métier — facultatif</summary><div className="grid gap-3 pt-2 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor={idNom}>Nom, pour mémoire</Label>
+          <Label htmlFor={idNom}>Nom dans votre carnet</Label>
           <Input id={idNom} name="nom" maxLength={LONGUEUR_MAX_NOM_MEMO} defaultValue={etat.valeurs?.nom} placeholder="M. Martin" />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor={idMetier}>Métier, pour mémoire</Label>
+          <Label htmlFor={idMetier}>Métier</Label>
           <select
             id={idMetier}
             name="metier"
@@ -63,11 +63,11 @@ export function FormulaireInvitationArtisan({ orgId }: { orgId: string }) {
           </select>
         </div>
       </div>
+      </details>
       <Retour etat={etat} />
       <BoutonEnvoi enCoursTexte="Envoi…">Envoyer l’invitation</BoutonEnvoi>
       <p className="text-sm text-muted-foreground">
-        Le nom et le métier ne servent qu’à vous y retrouver : l’artisan ne les voit pas. Il reçoit un e-mail au nom de
-        Gerimmo, valable 30 jours, qui ne dit rien de vos biens ni de vos locataires.
+        Invitation valable 30 jours. Les informations de vos biens et locataires ne sont pas transmises.
       </p>
     </form>
   );

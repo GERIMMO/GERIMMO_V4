@@ -159,7 +159,7 @@ export async function creerPersonne(
     address_line1: adresse,
     postal_code: codePostal,
     city: ville,
-    qualite: morale ? "Personne morale" : "Personne physique",
+    qualite: morale ? (["SCI", "SCI familiale", "Personne morale"].includes(String(formData.get("qualite"))) ? String(formData.get("qualite")) : "Personne morale") : "Personne physique",
   };
   // Rejeu : cette demande a peut-être déjà créé la fiche (réponse perdue, renvoi, double clic). On la retrouve AVANT
   // le contrôle de l'adresse email, que cette fiche porte déjà.

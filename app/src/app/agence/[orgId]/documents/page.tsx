@@ -1,3 +1,6 @@
+import { lireParIdentifiants } from "@/lib/lectures-fiscales";
+import { lireToutesLesPages } from "@/lib/lecture-complete";
+import { NavigationBiens } from "@/components/navigation-biens";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { ArrowLeft, ChevronLeft, ChevronRight, FileImage, FileText, TriangleAlert } from "lucide-react";
@@ -85,6 +88,7 @@ export default async function PageDocuments(
   const uneValeur = (v: string | string[] | undefined) =>
     typeof v === "string" && v ? v : undefined;
   const recherche = {
+    bien: uneValeur(brut.bien),
     type: uneValeur(brut.type),
     q: uneValeur(brut.q),
     du: uneValeur(brut.du),
@@ -122,6 +126,11 @@ export default async function PageDocuments(
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
   const lotsPerimetre = portefeuille ? Array.from(portefeuille) : null;
 
+  const {data:biens,error:erreurBiens}=estProprietaire?await supabase.from("biens").select("id,nom,archived_at").eq("organization_id",orgId).order("nom"): {data:[],error:null};
+  const bienChoisi=estProprietaire&&recherche.bien;
+  const bienInvalide=Boolean(bienChoisi&&(!estUuid(bienChoisi)||!(biens??[]).some(b=>b.id===bienChoisi)));
+  const rpcDocuments=bienChoisi?"documents_du_bien":"documents_courants";
+  const argsDocuments=bienChoisi?{p_org:orgId,p_bien:bienInvalide?"00000000-0000-0000-0000-000000000000":bienChoisi,...(lotsPerimetre ? {p_lots:lotsPerimetre} : {})}:{p_org:orgId,...(lotsPerimetre ? {p_lots:lotsPerimetre} : {})};
   const filtresActifs = Boolean(recherche.type || recherche.q || recherche.du || recherche.au);
   // Navigation par filtres, jamais par dossiers (RM-12.5.1). La fonction
   // documents_courants (security invoker : la RLS s'applique) écarte les
@@ -130,7 +139,7 @@ export default async function PageDocuments(
   // que les filtres retiennent, plafond compris. Sans lui, la seule façon de
   // savoir combien de pièces la liste tait serait de ne pas le savoir.
   let requete = supabase
-    .rpc("documents_courants", { p_org: orgId, p_lots: lotsPerimetre }, { count: "exact" })
+    .rpc(rpcDocuments, argsDocuments, { count: "exact" })
     .select(
       "id, type, titre, mime_type, taille_octets, expire_le, verifie_le, purged_at, created_at, liens:document_liens(entite, entite_id)"
     )
@@ -164,7 +173,7 @@ export default async function PageDocuments(
     estProprietaire
       ? Promise.resolve({ data: [], error: null })
       : supabase.rpc("documents_stats_par_type", { p_org: orgId, p_lots: lotsPerimetre }),
-    supabase.rpc("documents_a_renouveler", {
+    bienChoisi ? supabase.rpc(rpcDocuments,argsDocuments).select("id,titre,expire_le").not("expire_le","is",null).is("purged_at",null).lte("expire_le",limiteRenouvellement()).order("expire_le").limit(100) : supabase.rpc("documents_a_renouveler", {
       p_org: orgId,
       p_limite: limiteRenouvellement(),
       p_lots: lotsPerimetre,
@@ -183,8 +192,8 @@ export default async function PageDocuments(
     // l'omet — la fonction le prend nul par défaut.
     filtresActifs
       ? supabase.rpc(
-          "documents_courants",
-          lotsPerimetre ? { p_org: orgId, p_lots: lotsPerimetre } : { p_org: orgId },
+          rpcDocuments,
+          argsDocuments,
           { count: "exact", head: true }
         )
       : Promise.resolve({ count: null, error: null }),
@@ -205,7 +214,57 @@ export default async function PageDocuments(
     ? await supabase.from("diagnostics").select(CHAMPS_USAGE_RAPPORT).eq("organization_id", orgId).in("document_id", idsVivants)
     : { data: [], error: null };
   const usages = usagesParDocument((usagesBruts ?? []) as unknown as UsageRapport[]);
+  const lectureLiens=estProprietaire && docs.length ? await lireToutesLesPages<{id:string;document_id:string;entite:string;entite_id:string}>((debut,fin)=>supabase.from("document_liens").select("id,document_id,entite,entite_id",{count:"exact"}).eq("organization_id",orgId).in("document_id",docs.map(d=>d.id)).order("id").range(debut,fin),l=>l.id):null;
+  if(lectureLiens&&!lectureLiens.echec)for(const d of docs)d.liens=lectureLiens.lignes.filter(l=>l.document_id===d.id).map(l=>({entite:l.entite,entite_id:l.entite_id}));
   const nomsPersonnes = new Map((personnes ?? []).map((p) => [p.id, nomComplet(p)]));
+  const nomsGroupes = new Map<string,string>();
+  const lecturesClassement = estProprietaire ? await Promise.all([
+    lireToutesLesPages<{id:string;nom:string;bien_id:string}>((debut,fin)=>supabase.from("lots").select("id,nom,bien_id",{count:"exact"}).eq("organization_id",orgId).order("id").range(debut,fin),l=>l.id),
+    lireToutesLesPages<{id:string;lot_id:string}>((debut,fin)=>supabase.from("baux").select("id,lot_id",{count:"exact"}).eq("organization_id",orgId).order("id").range(debut,fin),b=>b.id),
+  ]) : null;
+  // Les diagnostics et les factures portent aussi leur rattachement dans leur dossier métier.
+  // Un document de diagnostic peut n’avoir qu’un lien d’organisation dans la GED.
+  const idsDocuments = docs.map(d=>d.id);
+  const [diagnosticsClasses,facturesClassees] = estProprietaire ? await Promise.all([
+    lireParIdentifiants<{document_id:string;bien_id:string|null;lot_id:string|null}>(idsDocuments,ids=>supabase.from("diagnostics").select("document_id,bien_id,lot_id").eq("organization_id",orgId).in("document_id",ids)),
+    lireParIdentifiants<{document_id:string;contrat_id:string}>(idsDocuments,ids=>supabase.from("factures_fourniture").select("document_id,contrat_id").eq("organization_id",orgId).in("document_id",ids)),
+  ]) : [{data:[],error:null,tronquee:false},{data:[],error:null,tronquee:false}];
+  const contratsClasses=estProprietaire?await lireParIdentifiants<{id:string;bien_id:string}>((facturesClassees.data??[]).map(f=>f.contrat_id),ids=>supabase.from("contrats_fourniture").select("id,bien_id").eq("organization_id",orgId).in("id",ids)):{data:[],error:null,tronquee:false};
+  let erreurClassement = !!lectureLiens?.echec || lecturesClassement?.some(l=>l.echec) || [diagnosticsClasses,facturesClassees,contratsClasses].some(r=>r.error||r.tronquee);
+  const idsInterventions=[...new Set(docs.flatMap(d=>(d.liens??[]).filter(l=>l.entite==="intervention").map(l=>l.entite_id)))];
+  const interventionsDocs=estProprietaire?await lireParIdentifiants<{id:string;incident_id:string}>(idsInterventions,ids=>supabase.from("incident_interventions").select("id,incident_id").eq("organization_id",orgId).in("id",ids)):{data:[],error:null,tronquee:false};
+  const incidentsIds=[...new Set([...docs.flatMap(d=>(d.liens??[]).filter(l=>l.entite==="incident").map(l=>l.entite_id)),...(interventionsDocs.data??[]).map(i=>i.incident_id)])];
+  const incidentsDocs=estProprietaire?await lireParIdentifiants<{id:string;lot_id:string|null;bien_id:string|null}>(incidentsIds,ids=>supabase.from("incidents").select("id,lot_id,bien_id").eq("organization_id",orgId).in("id",ids)):{data:[],error:null,tronquee:false};
+  erreurClassement=erreurClassement||!!interventionsDocs.error||interventionsDocs.tronquee||!!incidentsDocs.error||incidentsDocs.tronquee;
+  if(estProprietaire && !erreurClassement && lecturesClassement) {
+    const lotsClasses=new Map((lecturesClassement[0].lignes ?? []).map(l=>[l.id,l as {id:string;nom:string;bien_id:string}]));
+    const bauxClasses=new Map((lecturesClassement[1].lignes ?? []).map(b=>[b.id,b as {id:string;lot_id:string}]));
+    const nomsBiens=new Map((biens ?? []).map(b=>[b.id,b.nom]));
+    for(const d of docs) {
+      const noms=new Set<string>();
+      for(const dg of diagnosticsClasses.data??[])if(dg.document_id===d.id){
+        const bien=dg.bien_id??(dg.lot_id?lotsClasses.get(dg.lot_id)?.bien_id:null);
+        if(bien&&nomsBiens.has(bien))noms.add(nomsBiens.get(bien)!);
+      }
+      for(const f of facturesClassees.data??[])if(f.document_id===d.id){
+        const bien=contratsClasses.data?.find(c=>c.id===f.contrat_id)?.bien_id;
+        if(bien&&nomsBiens.has(bien))noms.add(nomsBiens.get(bien)!);
+      }
+      for(const l of d.liens ?? []) {
+        const incidentId=l.entite==="incident"?l.entite_id:l.entite==="intervention"?interventionsDocs.data?.find(i=>i.id===l.entite_id)?.incident_id:null;
+        const incident=incidentId?incidentsDocs.data?.find(i=>i.id===incidentId):null;
+        const lotIncident=incident?.lot_id?lotsClasses.get(incident.lot_id):null;
+        const bienIncident=incident?.bien_id??lotIncident?.bien_id;
+        if(bienIncident&&nomsBiens.has(bienIncident))noms.add(nomsBiens.get(bienIncident)!);
+        const lot=l.entite==="lot"?lotsClasses.get(l.entite_id):l.entite==="bail"?lotsClasses.get(bauxClasses.get(l.entite_id)?.lot_id ?? ""):null;
+        const nom=l.entite==="bien"?nomsBiens.get(l.entite_id):lot?nomsBiens.get(lot.bien_id):null;
+        if(nom)noms.add(nom);
+      }
+      const personnesDoc=(d.liens??[]).filter(l=>l.entite==="personne").map(l=>nomsPersonnes.get(l.entite_id)).filter(Boolean);
+      nomsGroupes.set(d.id,noms.size?[...noms].sort((a,b)=>a.localeCompare(b,"fr")).join(" · "):personnesDoc.length?`Dossier de ${personnesDoc.join(", ")}`:d.liens?.some(l=>l.entite!=="organisation")?"Rattachement à vérifier":"Documents généraux");
+    }
+    docs.sort((a,b)=>(nomsGroupes.get(a.id)??"").localeCompare(nomsGroupes.get(b.id)??"","fr")||b.created_at.localeCompare(a.created_at));
+  }
   const suiviSignatures = await lirePresentationSignatures(orgId, { documents: docs.filter(d => !d.purged_at).map(d => d.id) });
 
   const aRenouveler = [
@@ -221,12 +280,14 @@ export default async function PageDocuments(
   // DIT — sinon une répartition absente passerait pour un parc sans pièces et
   // un rattachement manquant pour une pièce sans personne.
   const lecturesManquees = [
+    (erreurBiens || bienInvalide) && "le bien sélectionné",
     erreurStats && "la répartition par type",
     (erreurRenouveler || erreurDiagnosticsARenouveler) && "les documents à renouveler",
     erreurUsages && "l’échéance et le rattachement des rapports de diagnostic",
     erreurTotal && "le nombre total de documents",
     erreurPersonnes && "les personnes rattachées",
     erreurLot && "le lot d’où le dépôt a été ouvert",
+    erreurClassement && "le classement par bien",
     suiviSignatures.erreur && "le suivi des signatures",
   ].filter((q): q is string => Boolean(q));
 
@@ -263,6 +324,7 @@ export default async function PageDocuments(
     typeCible: string | undefined = recherche.type
   ) => {
     const params = new URLSearchParams();
+    if (recherche.bien) params.set("bien", recherche.bien);
     if (typeCible) params.set("type", typeCible);
     if (recherche.q) params.set("q", recherche.q);
     if (recherche.du) params.set("du", recherche.du);
@@ -342,6 +404,7 @@ export default async function PageDocuments(
         </p>}
       </div>
 
+      {estProprietaire && <NavigationBiens biens={biens ?? []} selection={recherche.bien} chemin={`${base}/documents`} />}
       <EchecLecture quoi={lecturesManquees} />
 
       {/* Filtres — la recherche traite % et _ comme des caractères normaux.
@@ -482,7 +545,7 @@ export default async function PageDocuments(
                     <IndicateurLien />
                   </Link>
                 )}
-                {estProprietaire && !sel && !erreurDocuments && docs.length > 0 && <span className={styles.ordreListe}>Plus récents d’abord</span>}
+                {estProprietaire && !sel && !erreurDocuments && docs.length > 0 && <span className={styles.ordreListe}>Par bien · plus récents dans chaque dossier</span>}
               </div>
               {erreurDocuments ? (
                 /* Ni liste ni état vide : proposer « déposez la première pièce »
@@ -526,7 +589,7 @@ export default async function PageDocuments(
                   </div>
                 </div>
               ) : (
-                docs.map((d) => {
+                docs.map((d, indexDocument) => {
                   const actif = d.id === sel;
                   if (d.purged_at) {
                     // La fiche de traçabilité RGPD reste consultable (revue 26/08)
@@ -554,8 +617,9 @@ export default async function PageDocuments(
                   const lieA = rapport?.rattachements.map(r => r.libelle).join(", ");
                   if (estProprietaire) {
                     const Icone = d.mime_type?.startsWith("image/") ? FileImage : FileText;
-                    return <Link
-                      key={d.id}
+                    const groupe=nomsGroupes.get(d.id)??"Classement indisponible";
+                    const debutGroupe=indexDocument===0 || nomsGroupes.get(docs[indexDocument-1].id)!==groupe;
+                    return <div key={d.id}>{debutGroupe && <h3 className={styles.groupeBien}>{groupe}</h3>}<Link
                       href={lien(d.id)}
                       className={`${styles.documentLigne}${actif ? ` ${styles.documentActif}` : ""}`}
                       aria-current={actif ? "true" : undefined}
@@ -568,7 +632,7 @@ export default async function PageDocuments(
                       <time className={styles.dateDocument} dateTime={d.created_at} title="Date de dépôt">{formaterDate(d.created_at)}</time>
                       <span className={`${styles.statutDocument} puce ${presentation.classe}`} title={presentation.detail}>{presentation.libelle}</span>
                       <span className={styles.ouvrirDocument} aria-hidden="true"><IndicateurLien /><ChevronRight size={16} /></span>
-                    </Link>;
+                    </Link></div>;
                   }
                   return (
                     <Link

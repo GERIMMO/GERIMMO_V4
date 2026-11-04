@@ -375,3 +375,39 @@
 .sixCartes .editionDiscrete > summary { min-height:36px; }
 .actionsEntete > div { scroll-margin-top:90px; }
 @media(max-width:639px) { .sixCartes .editionDiscrete > summary { min-height:44px; } }
+
+/* Le suivi courant précède les caractéristiques permanentes. */
+.ficheProprietaire .carteIncidents { border-top:3px solid #c27b52; background:#fffaf6; }
+.ficheProprietaire .carteIncidents .panneauIcone { background:#f8e8dc; color:#934d2a; }
+.ficheProprietaire .carteDocuments { border-top:3px solid #4d8b7b; background:#f6fbf9; }
+.ficheProprietaire .carteDocuments .panneauIcone { background:#deeee7; color:#326654; }
+.ficheProprietaire .carteBail { border-top:3px solid #57789b; }
+.sixCartes > details[data-rubrique-dossier="logement-lot"], .sixCartes > details[data-rubrique-dossier="batiment-lot"] { border:1px solid var(--trait); border-radius:12px; background:#fff; overflow:clip; }
+.sixCartes > details[data-rubrique-dossier="logement-lot"] > summary, .sixCartes > details[data-rubrique-dossier="batiment-lot"] > summary { display:flex; align-items:center; gap:12px; padding:16px 20px; min-height:60px; cursor:pointer; list-style:none; color:var(--encre); }
+.sixCartes > details > summary::-webkit-details-marker { display:none; }
+.sixCartes > details > summary h2 { font-family:var(--font-interface),sans-serif; font-size:15px; font-weight:600; }
+.sixCartes > details > summary > svg:last-child { margin-left:auto; }
+.sixCartes > details[open] > summary > svg:last-child { transform:rotate(180deg); }
+.sixCartes > details > summary:focus-visible { outline:2px solid var(--or); outline-offset:-3px; }
+.sixCartes > details .carteAssemblee { border:0; border-top:1px solid var(--trait); border-radius:0; }
+.carteDocuments :global(.suivi-lot-proprietaire > div) { padding-top:0; }
+@media(max-width:900px) {
+ .sixCartes > [data-colonnes-fiche] { display:contents; }
+ .sixCartes [data-colonne-fiche] { display:contents; }
+ .sixCartes [data-rubrique-dossier="incidents-lot"] { order:1; }
+ .sixCartes [data-rubrique-dossier="documents-lot"] { order:2; }
+ .sixCartes [data-rubrique-dossier="contrats-lot"] { order:3; }
+ .sixCartes [data-rubrique-dossier="personnes-lot"] { order:4; }
+ .sixCartes > [data-rubrique-dossier="journal-lot"] { order:5; }
+ .sixCartes > [data-rubrique-dossier="logement-lot"] { order:6; }
+ .sixCartes > [data-rubrique-dossier="batiment-lot"] { order:7; }
+ .sixCartes > [data-rubrique-dossier="suivi-lot"] { order:8; }
+}
+
+/* États vides : garder l’action utile, supprimer l’espace de présentation. */
+.ficheProprietaire .panneau:has([data-incidents-vides="true"]), .ficheProprietaire .panneau:has([data-occupants-vides]), .ficheProprietaire .panneau:has(.videCarte) { padding:12px 16px; }
+.ficheProprietaire .panneau:has([data-incidents-vides="true"]) .panneauEntete, .ficheProprietaire .panneau:has([data-occupants-vides]) .panneauEntete, .ficheProprietaire .panneau:has(.videCarte) .panneauEntete { margin-bottom:8px; padding-bottom:8px; }
+.carteIncidents:has([data-incidents-vides="true"]) .lienArtisan { display:none; }
+.ficheProprietaire .videCarte { padding:0; }
+.fiche[data-proprietaire="true"] .entete { padding:14px 20px; }
+.fiche[data-proprietaire="true"] .entete h1 { font-size:clamp(23px,2.4vw,30px); }

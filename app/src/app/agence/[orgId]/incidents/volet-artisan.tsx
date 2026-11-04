@@ -1,3 +1,7 @@
+import { LienSectionIncident } from "@/components/lien-section-incident";
+import { ConsigneIncidentProprietaire } from "@/components/repere-incident-proprietaire";
+import { consigneMission } from "@/lib/consigne-incident";
+import { EchangesIntervention } from "@/components/echanges-intervention";
 import { MessageReseau, InteretReseau } from "@/components/disponibilite-reseau";
 import { CarnetNonSollicitable } from "@/components/carnet-non-sollicitable";
 import { cheminCarnetInvitation, type ArtisanCarnetBien } from "@/lib/invitations-artisan";
@@ -388,7 +392,7 @@ export async function VoletArtisan({
     // étrangères vers `biens`, PostgREST refuserait d'arbitrer l'embed.
     lotId
       ? supabase.from("lots").select("bien_id").eq("id", lotId).maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+      : supabase.from("incidents").select("bien_id").eq("id", incidentId).eq("organization_id", orgId).maybeSingle(),
     // L'alerte de révision : c'est ELLE qui dit si l'arbitrage reste à faire.
     // Voir plus bas pourquoi la comparaison d'imputations ne le disait pas.
     supabase
@@ -541,8 +545,11 @@ export async function VoletArtisan({
       )}
 
       {/* ─── La mission en cours, ou la dernière en date ─────────────────── */}
+      {estProprietaire && mission && ["affecte", "en_cours"].includes(etat) && <ConsigneIncidentProprietaire consigne={consigneMission(mission, creneauxEnAttente, !lotId, Boolean(erreurCreneaux || erreurComptesRendus))}/>}
+
+      {mission && !estProprietaire && <EchangesIntervention intervention={mission.id} />}
       {mission && (
-        <Card>
+        <Card className={estProprietaire ? "incident-carte-intervention" : undefined}>
           <CardHeader>
             <div className="entete-carte !mb-0">
               <CardTitle className="text-base">
@@ -720,7 +727,7 @@ export async function VoletArtisan({
                       ? "Fixer le rendez-vous vous-même (annule les créneaux proposés)"
                       : "Fixer le rendez-vous vous-même"}
                 </summary>
-                <div className="pt-3">
+                <div className="pt-3" id={`rdv-${mission.id}`}>
                   <FormulaireRendezVous orgId={orgId} interventionId={mission.id} />
                 </div>
               </details>
@@ -855,6 +862,8 @@ export async function VoletArtisan({
         </Card>
       )}
 
+      {mission && estProprietaire && <details id={`messages-${mission.id}`} className="incident-messages"><summary>Échanges avec les participants</summary><EchangesIntervention intervention={mission.id}/></details>}
+
       {/* ─── La mise en concurrence ouverte ──────────────────────────────── */}
       {consultationOuverte && (
         <div className="space-y-3">
@@ -880,15 +889,15 @@ export async function VoletArtisan({
 
       {/* ─── Ouvrir une (nouvelle) mise en concurrence ───────────────────── */}
       {!consultationOuverte && etat === "qualifie" && (
-        <Card className="border-l-[3px] border-l-[var(--or)]">
+        <Card className="incident-recherche-artisan border-l-[3px] border-l-[var(--or)]">
           <CardHeader>
-            <p className="eyebrow" style={{ color: "var(--or-texte)" }}>
+            {estProprietaire ? <CardTitle className="text-base">{consultations.length > 0 ? "Choisir un autre artisan" : "Faire intervenir un artisan"}</CardTitle> : <p className="eyebrow" style={{ color: "var(--or-texte)" }}>
               {consultations.length > 0 ? "Réaffecter" : "Confier à un artisan"}
-            </p>
+            </p>}
             <CardDescription>
-              Un incident peut aussi se clore sans artisan — un conseil au
+              {estProprietaire ? "Précisez votre besoin pour voir les artisans disponibles." : <>Un incident peut aussi se clore sans artisan — un conseil au
               téléphone suffit parfois. Si des travaux s&apos;imposent, mettez
-              deux entreprises en concurrence.
+              deux entreprises en concurrence.</>}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -903,6 +912,7 @@ export async function VoletArtisan({
                 categorieIncident(categorie)?.libelle ?? titreIncident(categorie)
               }
             />
+            {estProprietaire && <div className="incident-solution-alternative"><LienSectionIncident cible="cloture">Le problème est déjà réglé →</LienSectionIncident></div>}
           </CardContent>
         </Card>
       )}
@@ -981,10 +991,10 @@ export function ConsultationOuverte({
   const restants = affectables.filter((a) => !idsSollicites.has(a.artisan_id));
 
   return (
-    <Card>
+    <Card className={estProprietaire ? "incident-carte-intervention" : undefined}>
       <CardHeader>
         <div className="entete-carte !mb-0">
-          <CardTitle className="text-base">Mise en concurrence</CardTitle>
+          <CardTitle className="text-base">{estProprietaire ? "Artisans et devis" : "Mise en concurrence"}</CardTitle>
           {/* 24/09 : « 1 artisan sur 2 » se lisait comme une fraction ; le
               « 2 » est le plafond de sollicitations en parallèle (RM-9.1.1). */}
           <span className="mono-discret">

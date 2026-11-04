@@ -1,4 +1,5 @@
 import { LectureImpossibleArtisan } from "../../ui";
+import { EchangesIntervention } from "@/components/echanges-intervention";
 import { AccuseAnnulation } from "./accuse-annulation";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -468,6 +469,7 @@ export default async function PageMission(
           )}
         </Carte>
       )}
+      <EchangesIntervention intervention={interventionId} />
     </div>
   );
 }

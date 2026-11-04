@@ -118,9 +118,7 @@ export function navigationEspace({
       secondaires: [
         incidents,
         agenda,
-        parametres,
         artisans,
-        abonnement,
         { href: `${base}/faq`, libelle: "Aide", icone: "quest" },
       ],
       barreBasse: [tableauDeBord, lots, finances, incidents],

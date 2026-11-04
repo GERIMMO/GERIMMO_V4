@@ -5,12 +5,13 @@ import { TYPES_DOCUMENT } from "@/lib/ged";
 import styles from "./documents-proprietaire.module.css";
 
 export function FiltresProprietaire({ recherche, lienEffacer }: {
-  recherche: { q?: string; type?: string; du?: string; au?: string };
+  recherche: { bien?: string; q?: string; type?: string; du?: string; au?: string };
   lienEffacer: string;
 }) {
   const periodeActive = Boolean(recherche.du || recherche.au);
   const actifs = Boolean(recherche.q || recherche.type || periodeActive);
   return <Form action={lienEffacer} className={styles.filtres} aria-label="Rechercher et filtrer les documents">
+    {recherche.bien && <input type="hidden" name="bien" value={recherche.bien} />}
     <div className={styles.recherche}>
       <label htmlFor="q" className="sr-only">Recherche par titre</label>
       <Search size={17} aria-hidden="true" />
@@ -32,6 +33,6 @@ export function FiltresProprietaire({ recherche, lienEffacer }: {
       </div>
     </details>
     <button type="submit" className={styles.appliquer}>Filtrer</button>
-    {actifs && <Link href={lienEffacer} className={styles.effacer}>Effacer les filtres</Link>}
+    {actifs && <Link href={recherche.bien?`${lienEffacer}?${new URLSearchParams({bien:recherche.bien})}`:lienEffacer} className={styles.effacer}>Effacer les filtres</Link>}
   </Form>;
 }

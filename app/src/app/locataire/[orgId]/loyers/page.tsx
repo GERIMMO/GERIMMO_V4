@@ -1,3 +1,4 @@
+import { SuiviEcheanciersCharges } from "@/components/suivi-echeanciers-charges";
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
@@ -151,6 +152,7 @@ export default async function PagePaiementsLocataire(
 
   return (
     <div className="space-y-4">
+      <SuiviEcheanciersCharges org={orgId} proprietaire={false} base={`/locataire/${orgId}`} />
       <div className="entete-page">
         <TitreEcran rubrique="finances">Mes paiements</TitreEcran>
         {bail?.jour_echeance != null && (

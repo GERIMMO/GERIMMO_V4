@@ -138,6 +138,7 @@ export function environnementPourLeNavigateur(env: Record<string, string | undef
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  ...(process.env.GERIMMO_REVUE_LOCALE === "1" ? { distDir: process.env.GERIMMO_REVUE_CANDIDATE === "1" ? ".next-revue-candidate" : ".next-revue-locale" } : {}),
   env: {
     NEXT_PUBLIC_VERCEL_ENV: environnementPourLeNavigateur(),
     // Uniquement l'origine publique contrôlée, jamais les secrets de Vercel.
@@ -188,7 +189,11 @@ const nextConfig: NextConfig = {
     "/**": ["./node_modules/@sparticuz/chromium/bin/**/*"],
     "/": ["./node_modules/@sparticuz/chromium/bin/**/*"],
   },
+  // Garder les écrans de la recette locale évite de les recompiler à chaque retour.
+  ...(developpement ? { onDemandEntries: { maxInactiveAge: 2 * 60 * 1000, pagesBufferLength: 6 } } : {}),
   experimental: {
+    // Les compilations locales à froid peuvent dépasser la durée du proxy interne.
+    ...(developpement ? { proxyTimeout: 120_000 } : {}),
     // Perf 30/08 : cache client des pages dynamiques pendant 30 s — un retour
     // sur un onglet déjà visité ne repasse pas par le serveur ; les actions
     // (revalidatePath) invalident tout de suite ce qui a changé.

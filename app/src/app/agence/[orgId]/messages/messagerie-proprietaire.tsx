@@ -16,8 +16,8 @@ export type FilConversation = {
   dernier_le: string | null; dernier_auteur: "locataire" | "gerant" | null; non_lus: number;
 };
 
-export function MessagerieProprietaire({ orgId, fils, selection, conversation, assistant }: {
-  orgId: string; fils: FilConversation[]; selection?: string; conversation?: ReactNode; assistant?: ReactNode;
+export function MessagerieProprietaire({ orgId, fils, selection, conversation, assistant, erreurContacts = false }: {
+  orgId: string; fils: FilConversation[]; selection?: string; conversation?: ReactNode; assistant?: ReactNode; erreurContacts?: boolean;
 }) {
   const [recherche, setRecherche] = useState("");
   const [nonLuesSeulement, setNonLuesSeulement] = useState(false);
@@ -31,10 +31,12 @@ export function MessagerieProprietaire({ orgId, fils, selection, conversation, a
   return <main className={`mx-auto w-full p-4 sm:p-7 ${styles.page}`}>
     <header className={`entete-page ${styles.entete}`}>
       <div><TitreEcran rubrique="messages">Messages</TitreEcran>{nonLus > 0 && <p>{nonLus} message{nonLus > 1 ? "s" : ""} non lu{nonLus > 1 ? "s" : ""}</p>}</div>
-      {fils.length > 0 && <Link href={`${base}/personnes`} className="btn-or"><PenLine size={16} aria-hidden="true" />Nouveau message</Link>}
     </header>
 
     {assistant}
+    {erreurContacts && <p role="alert" className="mb-3 text-sm text-destructive">Certains contacts n’ont pas pu être chargés. Vos échanges existants restent disponibles.</p>}
+    <nav aria-label="Types de discussions" className="mb-4 flex flex-wrap gap-2"><Link className="btn-or" aria-current="page" href={`${base}/messages`}>Locataires</Link><Link className="btn-secondaire" href={`${base}/messages?vue=interventions`}>Interventions</Link></nav>
+
     <div className={styles.messagerie} data-selection={Boolean(ouverte)} data-vide={fils.length === 0}>
       {fils.length > 0 && <section className={styles.annuaire} aria-label="Conversations">
         <header className={styles.enteteAnnuaire}><h2>Conversations</h2></header>
@@ -53,7 +55,7 @@ export function MessagerieProprietaire({ orgId, fils, selection, conversation, a
             <Link href={`${base}/messages?personne=${encodeURIComponent(fil.person_id)}`} prefetch={false} scroll={false}
               aria-current={ouverte?.person_id === fil.person_id ? "page" : undefined} className={styles.fil} data-non-lu={fil.non_lus > 0}>
               <span className={styles.avatar} aria-hidden="true">{initiales(fil.nom, fil.prenom)}</span>
-              <span className={styles.apercuFil}><strong>{[fil.prenom, fil.nom].filter(Boolean).join(" ")}</strong><span>{fil.dernier_auteur === "gerant" ? "Vous : " : ""}{fil.dernier || "Ouvrir la conversation"}</span>
+              <span className={styles.apercuFil}><strong>{[fil.prenom, fil.nom].filter(Boolean).join(" ")}</strong><span>{fil.dernier_auteur === "gerant" ? "Vous : " : ""}{fil.dernier || "Écrire un premier message"}</span>
                 {fil.dernier_le && <time dateTime={fil.dernier_le}>{formaterDateHeure(fil.dernier_le)}</time>}
               </span>
               {fil.non_lus > 0 ? <span className={styles.badgeNonLu} aria-label={`${fil.non_lus} message${fil.non_lus > 1 ? "s" : ""} non lu${fil.non_lus > 1 ? "s" : ""}`}>{fil.non_lus}</span> : <ChevronRight size={15} className={styles.chevron} aria-hidden="true" />}

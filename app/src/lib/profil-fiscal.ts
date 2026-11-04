@@ -43,7 +43,7 @@ export function gardeAide2044(detenteurs: DetenteurFiscal[], profils: ProfilFisc
   if (!detenteurs.length) return "Renseignez d’abord le propriétaire du bien pour préparer sa fiscalité.";
   for (const personne of detenteurs) {
     const profil = dernierProfilFiscal(profils, personne.id, annee);
-    if (!profil) return "Confirmez la situation fiscale de chaque propriétaire concerné avant d’utiliser l’aide 2044.";
+    if (!profil) return "Confirmez la situation fiscale de chaque propriétaire pour afficher les déclarations adaptées.";
     if (normaliserQualiteBailleur(personne.qualite) !== profil.qualite) return "La qualité d’un propriétaire a changé. Confirmez à nouveau sa situation fiscale avant de préparer la déclaration.";
     if (!orientationFiscale(profil).aide2044) return "Ce périmètre comprend un régime qui ne relève pas de l’aide 2044. Consultez les déclarations adaptées ci-dessous et exportez le dossier de préparation.";
   }

@@ -5,6 +5,7 @@
  *
  * Nécessite SUPABASE_DB_URL. Chaque test tourne dans une transaction annulée.
  */
+import { readFileSync } from "node:fs";
 import { verifierBaseDeTest } from "./garde-base";
 import { config } from "dotenv";
 import { Client } from "pg";
@@ -508,4 +509,24 @@ describe.skipIf(!DB_URL)("grille tarifaire du 28/09/2026 — base", () => {
       expect(await dus()).toHaveLength(0);
     });
   });
+  describe("nouvelle grille et anciens contrats", () => {
+    it("refuse un centime sous le plancher, annuel et agence compris", async () => {
+      expect((await refus("update public.tarif_formules set annuel_cents=5879 where code='solo'")).message).toMatch(/plancher_490/);
+      expect((await refus("update public.tarif_formules set mensuel_cents=1469 where code='bailleur'")).message).toMatch(/plancher_490/);
+      expect((await refus("update public.tarif_tranches set prix_unitaire_cents=489 where grille='2026-09-28' and public='agence' and rang=2")).message).toMatch(/plancher_490/);
+    });
+    it("applique les nouveaux barèmes sans réécrire un abonnement déjà payé", async () => {
+      const o=await org("proprietaire_direct");
+      await souscrire(o,3,"bailleur");
+      await db.query("update public.abonnements set montant_periode_cents=999,montant_mensuel_cents=999 where organization_id=$1",[o]);
+      const avant=(await db.query("select to_jsonb(a) as ligne from public.abonnements a where organization_id=$1",[o])).rows[0].ligne;
+      await db.query("alter table public.tarif_formules drop constraint tarif_formules_plancher_490; alter table public.tarif_tranches drop constraint tarif_agence_plancher_490");
+      await db.query("update public.tarif_formules set mensuel_cents=999,annuel_cents=9990 where code='bailleur'");
+      await db.query(readFileSync("supabase/migrations/20261029115616_tarifs_plancher_490.sql","utf8"));
+      const apres=(await db.query("select to_jsonb(a) as ligne from public.abonnements a where organization_id=$1",[o])).rows[0].ligne;
+      expect(apres).toEqual(avant);
+      expect(Number((await db.query("select montant_offre_cents('proprietaire_direct',3,'mensuel') as montant")).rows[0].montant)).toBe(1770);
+    });
+  });
+
 });

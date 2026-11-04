@@ -67,6 +67,7 @@ export async function repondreMessagePersonne(
   const envoi = await notifierReponseGestionnaire(supabase, orgId, personId);
   // La réponse ferme l'alerte et solde les non-lus : liste des personnes,
   // badge de la barre latérale (layout) et fiche se rafraîchissent ensemble
+  revalidatePath(`/espace/${orgId}`, "layout");
   revalidatePath(`/agence/${orgId}`, "layout");
   revalidatePath(`/agence/${orgId}/personnes`);
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);

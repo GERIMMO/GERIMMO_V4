@@ -1,6 +1,7 @@
 import { chargerTachesConsommations } from "@/lib/taches-consommations";
+import { SuiviEcheanciersCharges } from "@/components/suivi-echeanciers-charges";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Banknote, FileText, Settings2 } from "lucide-react";
+import { ArrowRight, Banknote, FileText, Settings2 } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { baseEspace } from "@/lib/racine-espace";
@@ -9,6 +10,9 @@ import { chargerVerificationsProprietaire } from "@/lib/lecture-verifications-pr
 import { chargerPilotageProprietaire } from "@/lib/pilotage-proprietaire";
 import { ParcoursDemarrage } from "@/components/parcours-demarrage";
 import { RappelsLoyers } from "@/components/rappels-loyers";
+import { ActionsAccueilProprietaire } from "@/components/actions-accueil-proprietaire";
+import { ConseilsAccueilProprietaire } from "@/components/conseils-accueil-proprietaire";
+import { resumerLoyersParcMois } from "@/lib/loyers-parc-mois";
 import { AccueilBienvenue } from "@/components/accueil-bienvenue";
 import { CarteVerifications } from "@/components/carte-verifications";
 import { CarteTachesProprietaire } from "@/components/carte-taches-proprietaire";
@@ -24,10 +28,14 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
 }) {
   const base = baseEspace(orgId, true);
   const aujourdHui = aujourdhuiParis();
-  const [pilotage, lectureVerifications, lectureConsommations] = await Promise.all([
+  const [pilotage, lectureVerifications, lectureConsommations, echeances] = await Promise.all([
     chargerPilotageProprietaire(supabase, orgId, aujourdHui),
     chargerVerificationsProprietaire(supabase, orgId, { userId, portefeuille: null }),
     chargerTachesConsommations(supabase, orgId, base, aujourdHui),
+    (async () => {
+      try { return await supabase.rpc("quittancement_mois", { p_org: orgId, p_mois: `${aujourdHui.slice(0, 7)}-01` }); }
+      catch { return { data: null, error: true }; }
+    })(),
   ]);
   const { erreurs, lectureLoyers, verifications } = lectureVerifications;
   const { actions, rappels } = verifications;
@@ -37,7 +45,11 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   const geste = (a: ActionDuJour) => a.source === "bail" ? "Ouvrir le bail"
     : a.source === "rapport" ? "Valider"
     : a.href?.startsWith(`${base}/incidents?`) ? "Ouvrir l’incident" : "Traiter";
-  const { patrimoine, encaisse, reglages, diagnostics } = pilotage;
+  const { patrimoine, reglages, diagnostics } = pilotage;
+  const idsLots = new Set(patrimoine?.lots.map(l => l.id) ?? []);
+  const loyersMois = patrimoine && !echeances.error && Array.isArray(echeances.data)
+    ? resumerLoyersParcMois((echeances.data as { lot_id: string; montant_du: number | string; montant_couvert: number | string }[]).filter(l => idsLots.has(l.lot_id))) : null;
+  const pourcentage = loyersMois && loyersMois.attendu > 0 ? Math.min(100, Math.round(loyersMois.encaisse / loyersMois.attendu * 100)) : null;
   const nomsLots = new Map(patrimoine?.lots.map(lot => [lot.id, lot.nom]) ?? []);
   const contexteAction = (action: ActionDuJour) => action.source === "alerte" && typeof action.alerte.details?.lot_id === "string"
     ? nomsLots.get(action.alerte.details.lot_id) : null;
@@ -81,9 +93,13 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
     <AccueilBienvenue jourParis={aujourdHui} prenom={prenom} base={base} lectureSeule={lectureSeule} />
 
     <section className={styles.indicateurs} aria-label="Votre patrimoine en bref">
-      {/* Total des règlements datés du mois, quelle que soit l'échéance réglée : il mène aux recettes datées de Finances,
-          pas à la couverture des échéances du mois (audit du 27/10, LAT-06). */}
-      <Link href={`${base}/loyers#operations`} className={styles.indicateur}><span><Banknote size={18} aria-hidden="true" />Encaissé en {nomMois}</span><strong>{encaisse === null ? "—" : eur(encaisse)}</strong><small>{encaisse === null ? "Montant indisponible" : "Reçus ce mois, toutes échéances"}</small><ArrowUpRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
+      <Link href={`${base}/loyers`} className={styles.indicateur}>
+        <span><Banknote size={22} aria-hidden="true"/>Loyers encaissés</span>
+        <small>En {nomMois}</small>
+        <div className={styles.montantLoyer}><strong>{loyersMois ? eur(loyersMois.encaisse) : "—"}</strong>{loyersMois && loyersMois.attendu > 0 && <em>sur {eur(loyersMois.attendu)}</em>}</div>
+        {pourcentage !== null ? <div className={styles.progressionLoyer}><span role="progressbar" aria-label={`Loyers encaissés en ${nomMois}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pourcentage}><i style={{width:`${pourcentage}%`}}/></span><small>{pourcentage} %</small></div> : <small>{loyersMois ? "Aucun loyer attendu ce mois-ci" : "Montants indisponibles"}</small>}
+        <ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true"/>
+      </Link>
       <CarteVerifications base={base} patrimoine={patrimoine ? { biens: patrimoine.biens, lots: patrimoine.lots.length } : null}
         loyersAConfirmer={rappels.totalEcheancesDues}
         total={totalPrioritaire || (incertain ? 0 : taches.length)} critiques={verifications.critiques} apercu={verifications.premiere?.titre ?? null}
@@ -95,32 +111,37 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
         <RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />
         {actions.length > 0 && <Link className={styles.toutesDemandes} href={`${base}/alertes`}>Voir toutes les demandes<ArrowRight size={15} aria-hidden="true" /></Link>}
       </CarteVerifications>
-      <Link href={`${base}/parc`} className={styles.indicateur}><span><FileText size={18} aria-hidden="true" />Locations en cours</span><strong>{patrimoine ? patrimoine.contrats : "—"}</strong><small>{patrimoine ? `${patrimoine.lotsOccupes} lot${patrimoine.lotsOccupes > 1 ? "s" : ""} occupé${patrimoine.lotsOccupes > 1 ? "s" : ""}` : "Locations indisponibles"}</small><ArrowUpRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
+      <Link href={`${base}/parc`} className={styles.indicateur}><span><FileText size={18} aria-hidden="true" />Locations en cours</span><strong>{patrimoine ? patrimoine.contrats : "—"}</strong><small>{patrimoine ? `${patrimoine.lotsOccupes} lot${patrimoine.lotsOccupes > 1 ? "s" : ""} occupé${patrimoine.lotsOccupes > 1 ? "s" : ""}` : "Locations indisponibles"}</small><ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
     </section>
-    {(encaisse === null || patrimoine === null) && <p className="err" role="alert">Certains chiffres n’ont pas pu être vérifiés. Rechargez la page.</p>}
+    {(loyersMois === null || patrimoine === null) && <p className="err" role="alert">Certains chiffres n’ont pas pu être vérifiés. Rechargez la page.</p>}
+
+    <ActionsAccueilProprietaire base={base} lots={patrimoine?.lots ?? null} lectureSeule={lectureSeule}/>
+
+    <SuiviEcheanciersCharges org={orgId} proprietaire base={base} rappelsSeulement />
 
     <div className={styles.grille}>
       <div className={styles.principal}>
-        <ParcoursDemarrage supabase={supabase} orgId={orgId} estProprietaire automatiqueProposeAilleurs />
-
-        <CarteTachesProprietaire taches={taches} base={base} indisponible={incertain || patrimoine === null || diagnostics === null}
+        <CarteTachesProprietaire titre="Mes événements" limite={3}
+          introduction={<ParcoursDemarrage supabase={supabase} orgId={orgId} estProprietaire automatiqueProposeAilleurs/>} taches={taches} base={base} indisponible={incertain || patrimoine === null || diagnostics === null || lectureConsommations.indisponible}
           prioritesPresentes={totalPrioritaire > 0} chambresSansBail={patrimoine?.chambresSansBail ?? 0} />
       </div>
 
-      <aside className={styles.secondaire} aria-label="Outils de gestion">
-        <section className={styles.carte} aria-labelledby="auto-titre">
-          <div className={styles.teteCarte}><h2 id="auto-titre"><Settings2 size={20} aria-hidden="true" />Vos automatismes</h2></div>
-          <p className={styles.note}>Les échéances sont calculées depuis vos baux. Les quittances sont préparées après confirmation du règlement.</p>
-          {reglages ? <dl className={styles.automatismes}>{automatisations.map(a => <div key={a.nom}><dt>{a.nom}</dt><dd data-actif={a.active === true}>{a.active ? "Activé" : "Manuel"}</dd></div>)}</dl> : <p className="err" role="alert">Réglages d’envoi indisponibles.</p>}
-          <Link className={styles.lienPied} href={`${base}/profil#envois`}>Régler les envois<ArrowRight size={15} aria-hidden="true" /></Link>
-        </section>
-        <nav className={styles.outils} aria-label="Outils du propriétaire">
-          <Link href={`${base}/documents?sel=depot`}>Déposer un document<ArrowRight size={16} aria-hidden="true" /></Link>
-          <Link href={`${base}/comptabilite/fiscal`}>Préparer ma déclaration<ArrowRight size={16} aria-hidden="true" /></Link>
-          <Link href={`${base}/parc/import`}>Importer mon parc<ArrowRight size={16} aria-hidden="true" /></Link>
-          <Link href={`${base}/journal`}>Le journal Gerimmo<ArrowRight size={16} aria-hidden="true" /></Link>
-        </nav>
+      <aside className={styles.secondaire} aria-label="Articles et outils du propriétaire">
+        <ConseilsAccueilProprietaire db={supabase} base={base}/>
       </aside>
     </div>
+    <details className={styles.reglagesDiscrets}>
+      <summary><Settings2 size={17} aria-hidden="true"/>Mes automatismes et outils</summary>
+      <div className={styles.outilsSecondaires}>
+        <section aria-label="Envois automatiques">
+          {reglages ? <dl className={styles.automatismes}>{automatisations.map(a => <div key={a.nom}><dt>{a.nom}</dt><dd data-actif={a.active === true}>{a.active ? "Activé" : "Manuel"}</dd></div>)}</dl> : <p className="err" role="alert">Réglages d’envoi indisponibles.</p>}
+          <Link className={styles.lienPied} href={`${base}/profil#envois`}>Régler les envois<ArrowRight size={15} aria-hidden="true"/></Link>
+        </section>
+        <nav className={styles.outils} aria-label="Outils du propriétaire">
+          <Link href={`${base}/comptabilite/fiscal`}>Préparer ma déclaration<ArrowRight size={16} aria-hidden="true"/></Link>
+          <Link href={`${base}/parc/import`}>Importer mon parc<ArrowRight size={16} aria-hidden="true"/></Link>
+        </nav>
+      </div>
+    </details>
   </main>;
 }

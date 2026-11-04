@@ -173,6 +173,7 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
     expect(i.canal).toBe("espace_locataire");
     expect(i.declarant_person_id).toBe(personneLocataire);
     expect(i.bail_id).not.toBeNull();
+    expect((await db.query("select public.titulaire_incident(declarant_person_id,canal,bail_id) as titulaire from public.incidents where id=$1", [incident])).rows[0].titulaire).toBe(personneLocataire);
     expect(i.imputation).toBeNull();
 
     const { rows: evenements } = await db.query(
@@ -544,6 +545,7 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
     );
     expect(i.canal).toBe("agence");
     expect(i.declarant_person_id).toBeNull();
+    expect((await db.query("select public.titulaire_incident(declarant_person_id,canal,bail_id) as titulaire from public.incidents where id=$1", [incident])).rows[0].titulaire).toBe(personneLocataire);
     expect(i.bail_id).not.toBeNull();
 
     await simuler(db, compteLocataire);

@@ -42,7 +42,7 @@ test.describe("Côté propriétaire bailleur", () => {
     const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
     await expect(page.getByRole("radio", { name: /Adaptée à votre parc Bailleur/ })).toBeChecked();
     await expect(recap).toContainText("Formule Bailleur");
-    await expect(recap).toContainText("9,99");
+    await expect(recap).toContainText("17,70");
     // Plan du 23/10 (R55) : en franchise de TVA, « Total à payer » sans « TTC ».
     await expect(recap).toContainText("Total à payer");
     await expect(page.locator("main")).not.toContainText("offert, à vie");
@@ -51,7 +51,7 @@ test.describe("Côté propriétaire bailleur", () => {
   test("en annuel, le montant prélevé en une fois est affiché", async ({ page }) => {
     await page.locator("label").filter({ has: page.getByRole("radio", { name: /Annuel/ }) }).click();
     const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
-    await expect(recap).toContainText("99,90");
+    await expect(recap).toContainText("177,00");
     await expect(recap).toContainText("prélevés en une fois pour douze mois");
   });
 

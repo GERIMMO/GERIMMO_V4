@@ -247,6 +247,7 @@ export default async function PageEdl(
             type={edl.type as "entree" | "sortie"}
             signe={signe}
             mentions={{
+              date_edl: edl.date_edl,
               personnes_presentes: edl.personnes_presentes,
               detecteur_fumee_present: edl.detecteur_fumee_present,
               detecteur_fumee_etat: edl.detecteur_fumee_etat,

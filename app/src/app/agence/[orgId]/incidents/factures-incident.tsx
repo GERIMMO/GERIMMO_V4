@@ -63,7 +63,7 @@ export async function FacturesIncident({orgId,incidentId,imputation,base=baseEsp
     const termineAvant = termineLe !== null && avantRendezVous(mission?.debut_prevu, new Date(termineLe));
     const lignes = reglementsDe(f.id);
     const { etat, resteCents } = etatReglementFacture(f, lignes);
-    return <section key={f.id} className="rounded-xl border border-[var(--filet)] bg-[var(--carte)] p-4 space-y-3">
+    return <section key={f.id} className="incident-facture rounded-xl border border-[var(--filet)] bg-[var(--carte)] p-4 space-y-3">
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="font-semibold">Facture {f.numero} — {eur(f.montant_ttc_cents / 100)} TTC</h3>
       <span className={COULEUR_ETAT[etat] ?? "puce puce-grise"}>{LIBELLES_ETAT_REGLEMENT[etat]}</span>

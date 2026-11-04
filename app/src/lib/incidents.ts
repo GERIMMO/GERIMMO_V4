@@ -326,3 +326,11 @@ export function categorieIncident(slug: string | null | undefined): CategorieInc
 export function titreIncident(categorie: string): string {
   return categorieIncident(categorie)?.court ?? categorie;
 }
+
+/** Un propriétaire identifie le problème par son intitulé, plutôt que par « Autre ». */
+export function titreIncidentProprietaire(incident: { titre?: string | null; categorie: string; description?: string | null }): string {
+  if (incident.titre?.trim()) return incident.titre.trim();
+  const description = incident.description?.trim().split(/\r?\n/)[0];
+  if (incident.categorie === "autre" && description) return description.length > 90 ? `${description.slice(0, 87).trimEnd()}…` : description;
+  return titreIncident(incident.categorie);
+}

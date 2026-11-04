@@ -21,7 +21,7 @@ import { FormulaireBien } from "../../../formulaire-bien";
 import { FormulaireLot } from "./formulaire-lot";
 import { FormulaireEquipementCatalogue } from "../../../formulaire-equipement-catalogue";
 import { retourBailDuLot } from "@/lib/parcours-lot";
-import { House, Users, FileText, MapPin, Wrench, ArrowRight, ArrowUpRight, Building2, ChevronDown, History, Ruler, DoorOpen, Layers3, Sofa, Wallet } from "lucide-react";
+import { House, Users, FileText, MapPin, Wrench, ArrowRight, ArrowUpRight, Building2, ChevronDown, Ruler, DoorOpen, Layers3, Sofa } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
@@ -643,7 +643,7 @@ export default async function PageLot(
           <div><dt><Sofa size={14} aria-hidden="true" />Mobilier</dt><dd>{lot.meuble ? "Meublé" : "Non meublé"}</dd></div>
         </dl>;
   const carteLogement = <section className={styles.panneau} data-ton="bleu" aria-label="Le logement">
-        <div id="caracteristiques" className="scroll-mt-24"><RecapLot key={modifier ?? "lecture"} orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} copropriete={bien.copropriete} typeBien={bien.type} modifierInitial={modifier === "1"} lectureSeule={traverseeLectureSeule} titre={estProprietaire ? "Le logement" : undefined} boutonModifier={!estProprietaire} faits={estProprietaire ? faitsLot : undefined} manquants={caracteristiquesAFaire} /></div>
+        <div id="caracteristiques" className="scroll-mt-24"><RecapLot key={modifier ?? "lecture"} orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} copropriete={bien.copropriete} typeBien={bien.type} modifierInitial={modifier === "1"} lectureSeule={traverseeLectureSeule} titre={estProprietaire ? "Caractéristiques" : undefined} boutonModifier={!estProprietaire} faits={estProprietaire ? faitsLot : undefined} manquants={caracteristiquesAFaire} /></div>
         {estProprietaire ? <div className={styles.descriptionLogement}>
           <section id={traverseeLectureSeule || erreurPieces ? "pieces" : undefined} className={styles.inventaire}>
             <h3>Pièces pour l’état des lieux</h3>
@@ -658,12 +658,12 @@ export default async function PageLot(
         </div> : <div className="mt-4">{rubriquePieces}{rubriqueEquipements}</div>}
       </section>;
   const carteBatiment = <section className={styles.panneau} data-ton="vert" aria-labelledby="titre-batiment-lot">
-          <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><Building2 size={18} aria-hidden="true" /></span><h2 id="titre-batiment-lot">Le bâtiment</h2></header>
+          <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><Building2 size={18} aria-hidden="true" /></span><h2 id="titre-batiment-lot">Caractéristiques du bâtiment</h2></header>
           <dl className={styles.infosApercu}>
             <div><dt>Construction</dt><dd>{valeurLogement(bien.annee_construction)}</dd></div>
             <div><dt>Copropriété</dt><dd>{bien.copropriete ? "Oui" : "Non"}</dd></div>
-            <div><dt>Parties communes</dt><dd>{valeurLogement(bien.parties_communes)}</dd></div>
-            <div><dt>Internet, téléphone, TV</dt><dd>{valeurLogement(bien.acces_tic)}</dd></div>
+            {bien.parties_communes && <div><dt>Parties communes</dt><dd>{bien.parties_communes}</dd></div>}
+            {bien.acces_tic && <div><dt>Internet, téléphone, TV</dt><dd>{bien.acces_tic}</dd></div>}
           </dl>
           {!traverseeLectureSeule && <div className="mt-4"><SectionLot id="batiment" titre="Modifier l’adresse et le bâtiment" resume={[bien.address_line1, bien.city].filter(Boolean).join(" · ")}><FormulaireBien orgId={orgId} bien={bien} /></SectionLot></div>}
         </section>;
@@ -758,7 +758,7 @@ export default async function PageLot(
         <header className={styles.travailEntete}><h2 id="chambres-sans-location">Chambres sans location en cours</h2><a href="#chambres">Gérer les chambres <ArrowRight size={14} aria-hidden="true" /></a></header>
         <ul className={styles.chambresDisponibles}>{chambresSansBail.map(chambre => <li key={chambre.id}><strong>{chambre.nom}</strong><span>{chambre.surface_m2 == null ? "Surface à préciser" : formaterSurface(chambre.surface_m2)}</span></li>)}</ul>
       </section>}
-      {!bauxEnCours.length && !bauxBrouillons.length && <div className={styles.videCarte}><p>Aucun bail en cours.</p><small>{lot.etat === "archive" ? "Les anciens contrats restent consultables ci-dessous." : "Le loyer, les échéances et les dates apparaîtront ici dès qu’un bail sera préparé."}</small></div>}
+      {!bauxEnCours.length && !bauxBrouillons.length && <div className={styles.videCarte}><p>Aucun bail en cours.</p></div>}
       {creationSecondaire && <details className={`${styles.panneau} ${styles.nouvelleLocation}`}><summary>Préparer un autre contrat — facultatif<ChevronDown size={16} aria-hidden="true" /></summary><div id="nouveau-contrat"><FormulaireBailLot orgId={orgId} bienId={bienId} lotId={lotId} personnes={personnesLocataires} chambres={chambres ?? []} /></div></details>}
       {anciensBaux.length > 0 && <details className={`${styles.panneau} ${styles.anciensContrats}`}><summary>Anciens contrats · {anciensBaux.length}<ChevronDown size={16} aria-hidden="true" /></summary><ul className={styles.contratsTravail}>{anciensBaux.map(ligneBail)}</ul></details>}
     </>}
@@ -872,8 +872,8 @@ export default async function PageLot(
       <details className={styles.editionDiscrete}><summary>{traverseeLectureSeule ? "Historique de propriété" : "Gérer la propriété"}<ChevronDown size={14} aria-hidden="true" /></summary><div>{rubriqueDetention}</div></details>
     </>}
   </section>;
-  // Même résumé que « Journal & dépenses » : icône, titre et chevron (audit #264, FL-11).
-  const suiviLot = <div className={styles.carteJournal}><SuiviLotProprietaire orgId={orgId} lotId={lotId} rubrique="historique" resume={<><span className={styles.panneauIcone}><History size={18} aria-hidden="true" /></span><h2>Historique du lot</h2><ChevronDown className={styles.flecheJournal} size={18} aria-hidden="true" /></>} /></div>;
+  const lectureHistorique = estProprietaire ? await supabase.rpc("historique_du_lot", {p_lot:lotId,p_limite:1}) : {data:[],error:null};
+  const suiviLot = (lectureHistorique.error || lectureHistorique.data?.length > 0) ? <div className={styles.outilsLot}><SuiviLotProprietaire orgId={orgId} lotId={lotId} rubrique="historique" /></div> : null;
   return (
     <main data-proprietaire={estProprietaire} className={`${styles.fiche} dossier-location mx-auto w-full max-w-7xl space-y-[1.125rem] p-4 sm:p-7`}>
       <Link href={`${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {estProprietaire ? "Biens & locations" : "Mon portefeuille"}</Link>
@@ -893,21 +893,15 @@ export default async function PageLot(
         })}</ul>
       </aside> : <details className={styles.alertes}><summary>{attention.length} point{attention.length > 1 ? "s" : ""} à compléter dans votre dossier <ChevronDown size={16} aria-hidden="true" /></summary><AttentionFiche points={attention} /></details>)}
 
+      {estProprietaire && <ConsommationsBien orgId={orgId} bienId={bienId} lotId={lotId} base={base} lectureSeule={traverseeLectureSeule} />}
+
       {estProprietaire ? <FicheContinue afficherNavigation={false} className={`${styles.ficheProprietaire} ${styles.sixCartes}`} rubriques={[
-        { id: "logement-lot", titre: "Logement", colonne: "principale", contenu: <div className={styles.carteAssemblee}>{carteLogement}{propriete}<div className={styles.complementsCarte}>{colocationLot}{statutLot}</div></div> },
-        { id: "batiment-lot", titre: "Bâtiment et occupants", colonne: "secondaire", navigation: false, contenu: <div className={styles.cartesEmpilees}>
-          <div className={styles.carteAssemblee}>{carteBatiment}{bien.copropriete && <div className={styles.complementsCarte}>{chargesLot}</div>}</div>
-          <section id="personnes-lot" className={styles.panneau} aria-labelledby="personnes-fiche"><header className={styles.panneauEntete}><span className={styles.panneauIcone}><Users size={18} aria-hidden="true" /></span><h2 id="personnes-fiche">Locataires & garants</h2></header><PersonnesLot orgId={orgId} lotId={lotId} base={base} lectureSeule={traverseeLectureSeule} baux={baux ?? []} erreurBaux={Boolean(erreurBaux)} /></section>
-        </div> },
+        { id: "incidents-lot", titre: "Incidents", colonne: "principale", contenu: <div className={`${styles.panneau} ${styles.carteIncidents}`}><header className={styles.panneauEntete}><span className={styles.panneauIcone}><Wrench size={18} aria-hidden="true" /></span><h2 id="incidents-fiche">Incidents</h2></header><IncidentsLot orgId={orgId} lotId={lotId} base={base} lectureSeule={traverseeLectureSeule} /><Link className={styles.lienArtisan} href={`${base}/reseau?bien=${bienId}`}>Trouver un artisan <ArrowUpRight size={14} aria-hidden="true" /></Link></div> },
+        { id: "documents-lot", titre: "Documents récents", colonne: "secondaire", contenu: <section className={`${styles.panneau} ${styles.carteDocuments}`} aria-labelledby="documents-fiche"><header className={styles.panneauEntete}><span className={styles.panneauIcone}><FileText size={18} aria-hidden="true" /></span><h2 id="documents-fiche">Documents récents</h2></header><SuiviLotProprietaire orgId={orgId} lotId={lotId} rubrique="documents" affichage="direct" limiteDocuments={5} lectureSeule={traverseeLectureSeule} /><details className={styles.editionDiscrete}><summary>Diagnostics du logement et du bâtiment <ChevronDown size={14} aria-hidden="true" /></summary><div className={styles.diagnosticsGrille}>{rubriqueDiagnostics}{rubriqueDiagnosticsImmeuble}</div></details></section> },
         { id: "contrats-lot", titre: "Bail", colonne: "principale", contenu: <section className={`${styles.panneau} ${styles.carteBail}`} aria-labelledby="bail-fiche"><header className={styles.panneauEntete}><span className={styles.panneauIcone}><FileText size={18} aria-hidden="true" /></span><h2 id="bail-fiche">{bauxEnCours.length > 1 ? "Les baux" : "Le bail"}</h2></header>{travailLocations}</section> },
-        { id: "consommations-lot", titre: "Contrats & consommations", colonne: "principale", navigation: false, contenu: <ConsommationsBien orgId={orgId} bienId={bienId} lotId={lotId} base={base} lectureSeule={traverseeLectureSeule} /> },
-        { id: "journal-lot", titre: "Journal & dépenses", colonne: "principale", navigation: false, contenu: <div className={styles.carteJournal}><SuiviLotProprietaire orgId={orgId} lotId={lotId} rubrique="compta" lectureSeule={traverseeLectureSeule} resume={<><span className={styles.panneauIcone}><Wallet size={18} aria-hidden="true" /></span><h2>Journal & dépenses</h2><ChevronDown className={styles.flecheJournal} size={18} aria-hidden="true" /></>} /></div> },
-        { id: "incidents-lot", titre: "Incidents", colonne: "secondaire", contenu: <div className={styles.panneau}><header className={styles.panneauEntete}><span className={styles.panneauIcone}><Wrench size={18} aria-hidden="true" /></span><h2 id="incidents-fiche">Incidents</h2></header><IncidentsLot orgId={orgId} lotId={lotId} base={base} lectureSeule={traverseeLectureSeule} /><Link className={styles.lienArtisan} href={`${base}/reseau?bien=${bienId}`}>Trouver un artisan <ArrowUpRight size={14} aria-hidden="true" /></Link></div> },
-        { id: "documents-lot", titre: "Documents", repliable: true, resume: <><span className={styles.panneauIcone}><FileText size={18} aria-hidden="true" /></span><h2 id="documents-fiche">Documents</h2><ChevronDown className={styles.flecheDocuments} size={18} aria-hidden="true" /></>, contenu: <div className={styles.contenuDocuments}>
-            <div className={styles.actionsDocuments}><Link href={`${base}/documents`}>Ouvrir la bibliothèque <ArrowUpRight size={14} aria-hidden="true" /></Link></div>
-            <div className={styles.diagnosticsGrille}>{rubriqueDiagnostics}{rubriqueDiagnosticsImmeuble}</div>
-            <div className={styles.autresDocuments}><SuiviLotProprietaire orgId={orgId} lotId={lotId} rubrique="documents" affichage="direct" documentsDejaAffiches={[...(diagnostics ?? []), ...(diagnosticsBien ?? [])].flatMap(d => d.document_id ? [d.document_id] : [])} lectureSeule={traverseeLectureSeule} /></div>
-          </div> },
+        { id: "personnes-lot", titre: "Locataires et garants", colonne: "secondaire", contenu: (!erreurBaux && !(baux ?? []).some(b=>b.etat!=="termine")) ? null : <section className={styles.panneau} aria-labelledby="personnes-fiche"><header className={styles.panneauEntete}><span className={styles.panneauIcone}><Users size={18} aria-hidden="true" /></span><h2 id="personnes-fiche">Locataires & garants</h2></header><PersonnesLot orgId={orgId} lotId={lotId} base={base} lectureSeule={traverseeLectureSeule} baux={baux ?? []} erreurBaux={Boolean(erreurBaux)} /></section> },
+        { id: "logement-lot", titre: "Logement", repliable: true, resume: <><House size={18} aria-hidden="true" /><h2>Logement et propriété</h2><ChevronDown size={18} aria-hidden="true" /></>, contenu: <div className={styles.carteAssemblee}>{carteLogement}{propriete}<div className={styles.complementsCarte}>{colocationLot}{statutLot}</div></div> },
+        { id: "batiment-lot", titre: "Bâtiment", repliable: true, resume: <><Building2 size={18} aria-hidden="true" /><h2>Bâtiment</h2><ChevronDown size={18} aria-hidden="true" /></>, contenu: <div className={styles.carteAssemblee}>{carteBatiment}{bien.copropriete && <div className={styles.complementsCarte}>{chargesLot}</div>}</div> },
         { id: "suivi-lot", titre: "Historique du lot", navigation: false, contenu: suiviLot },
       ]} /> : <OngletsDossier initiale={modifier === "1" ? "logement-lot" : "resume-lot"} rubriques={[
         { id: "resume-lot", titre: "Résumé", contenu: vueEnsemble },

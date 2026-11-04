@@ -1,3 +1,4 @@
+import "../incidents/incidents.css";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { MapPin, Search, Wrench, ArrowUpRight, BookOpen, Building2 } from "lucide-react";
@@ -38,7 +39,7 @@ export default async function ReseauBien({ params, searchParams }: { params: Pro
   ]);
   const disponibilite = controle.data?.[0] ? { ...controle.data[0], metier, nature } as DisponibiliteReseau : null;
   const lienPage = (numero: number) => `${base}/reseau?${new URLSearchParams({ page: String(numero), ...(bienId ? { bien: bienId } : {}), ...(metier ? { metier } : {}), nature })}`;
-  return <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 p-4 sm:p-7">
+  return <main data-parcours-intervention className="mx-auto w-full max-w-6xl flex-1 space-y-6 p-4 sm:p-7">
     <div className="entete-page"><div><TitreEcran rubrique="incidents">Réseau d’artisans pour mes biens</TitreEcran><p className="mesure-lecture mt-2 text-sm text-[var(--texte-secondaire)]">Trouvez les professionnels disponibles autour de vos biens et suivez vos interventions.</p></div><Link className="btn-secondaire" href={`${base}/artisans`}><BookOpen size={17} aria-hidden="true" /> Mon carnet d’artisans</Link></div>
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
     <section className="loc-carte min-w-0 space-y-5"><div className="flex items-center gap-3"><span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--marque-clair)] text-[var(--marque-sombre)]"><Search size={20} aria-hidden="true" /></span><div><h2 className="font-heading text-xl">{estProprietaire ? "1. Choisir le bien" : "Votre recherche"}</h2><p className="mt-1 text-sm text-muted-foreground">Un bien, un métier, les bons contacts.</p></div></div>

@@ -1,5 +1,7 @@
+import "../incidents/incidents.css";
 import Link from "next/link";
-import { Wrench, History, UserPlus } from "lucide-react";
+import { TitreEcran } from "@/components/titre-ecran";
+import { Wrench, UserPlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { formaterDate } from "@/lib/ged";
 import { ANCRE_INVITER_ARTISAN, etatLigneCarnet, valableJusquAu, type LigneCarnetArtisan, type TonEtat } from "@/lib/invitations-artisan";
@@ -51,8 +53,8 @@ export async function CarnetProprietaire({ orgId }: { orgId: string }) {
     if (error) erreurProfils = true;
     for (const profil of data ?? []) profils.set(profil.id, profil);
   }
-  return <main className="mx-auto w-full max-w-5xl flex-1 space-y-5 p-4 sm:p-7">
-    <div className="entete-page"><div><h1>Mon carnet d’artisans</h1><p className="mt-2 text-sm text-muted-foreground">Les artisans que vous avez invités, et le suivi de leurs interventions.</p></div><div className="flex flex-wrap gap-2"><Link href={`#${ANCRE_INVITER_ARTISAN}`} className="btn-or">+ Inviter un artisan</Link><Link href={`${base}/reseau`} className="btn-secondaire">Consulter le réseau</Link></div></div>
+  return <main data-parcours-intervention className="mx-auto w-full max-w-5xl flex-1 space-y-5 p-4 sm:p-7">
+    <div className="entete-page"><div><TitreEcran rubrique="incidents">Carnet d’artisans</TitreEcran><p className="mt-2 text-sm text-muted-foreground">Les artisans que vous avez invités, et le suivi de leurs interventions.</p></div><div className="flex flex-wrap gap-2"><Link href={`#${ANCRE_INVITER_ARTISAN}`} className="btn-or">+ Inviter un artisan</Link><Link href={`${base}/reseau`} className="btn-secondaire">Consulter le réseau</Link></div></div>
 
     <section aria-labelledby="mes-artisans" className="loc-carte space-y-4">
       <div>
@@ -62,7 +64,7 @@ export async function CarnetProprietaire({ orgId }: { orgId: string }) {
       {/* Les gestes des lignes et leur message : au niveau de la liste, hors des lignes qui changent sous le bouton. */}
       <GestesDuCarnet orgId={orgId}>
       {erreurCarnet ? <p role="alert" className="err">La liste de vos artisans n’a pas pu être chargée. Rechargez la page.</p>
-        : carnet.length === 0 ? <p className="text-sm text-muted-foreground">Aucun artisan pour le moment. Invitez un artisan que vous connaissez avec le formulaire ci-dessous.</p>
+        : carnet.length === 0 ? <p className="text-sm text-muted-foreground">Aucun artisan enregistré. Invitez votre artisan ou consultez le réseau.</p>
         : <ul className="divide-y divide-[var(--filet)]">{carnet.map((ligne) => {
           const etat = etatLigneCarnet(ligne);
           const titre = ligne.raison_sociale ?? ligne.nom_memo ?? ligne.email ?? "Artisan";
@@ -88,12 +90,12 @@ export async function CarnetProprietaire({ orgId }: { orgId: string }) {
     </section>
 
     <section id={ANCRE_INVITER_ARTISAN} aria-labelledby="titre-inviter-artisan" className="loc-carte scroll-mt-20 space-y-3">
-      <div className="flex items-start gap-3"><span className="rounded-xl bg-[var(--marque-clair)] p-3 text-[var(--marque-sombre)]"><UserPlus size={20} aria-hidden="true" /></span><div><h2 id="titre-inviter-artisan" className="font-heading text-xl">Inviter un artisan</h2><p className="mt-1 text-sm text-muted-foreground">Indiquez son adresse e-mail. Il crée lui-même son compte, inscrit son entreprise et dépose ses attestations ; Gerimmo vérifie son inscription avant toute intervention.</p></div></div>
+      <div className="flex items-start gap-3"><span className="rounded-xl bg-[var(--marque-clair)] p-3 text-[var(--marque-sombre)]"><UserPlus size={20} aria-hidden="true" /></span><div><h2 id="titre-inviter-artisan" className="font-heading text-xl">Inviter un artisan</h2><p className="mt-1 text-sm text-muted-foreground">Son e-mail suffit. Il complète son profil ; Gerimmo vérifie son inscription avant toute intervention.</p></div></div>
       <FormulaireInvitationArtisan orgId={orgId} />
     </section>
 
     <h2 className="font-heading text-xl">Historique des interventions</h2>
-    {erreur ? <p role="alert" className="err">Votre historique n’a pas pu être chargé. Rechargez la page.</p> : !missions.length ? <section className="loc-carte py-10 text-center"><History aria-hidden="true" className="mx-auto mb-3 text-[var(--or-texte)]" size={30} /><h3 className="font-heading text-xl">Aucune intervention pour le moment</h3><p className="mt-2 text-sm text-muted-foreground">L’historique se complète automatiquement lorsqu’une intervention est confiée à un artisan.</p><Link className="btn-secondaire mt-5 inline-flex" href={`${base}/incidents`}>Voir mes incidents</Link></section> : <>
+    {erreur ? <p role="alert" className="err">Votre historique n’a pas pu être chargé. Rechargez la page.</p> : !missions.length ? <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">Les interventions confiées à vos artisans apparaîtront ici.</p> : <>
       {erreurProfils && <p role="alert" className="err">Certaines coordonnées sont indisponibles. L’historique reste consultable.</p>}
       {[...groupes].map(([id, historique]) => {
         const profil = profils.get(id);

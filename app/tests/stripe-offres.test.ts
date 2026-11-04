@@ -63,6 +63,7 @@ type Appels = Record<string, unknown[]>;
 
 function fauxStripe(options: {
   statut?: string;
+  montantCents?: number;
   items?: { id: string; product: string }[];
   refusCarte?: boolean;
   taux?: { id: string; percentage: number; inclusive: boolean; metadata: Record<string, string> }[];
@@ -88,7 +89,7 @@ function fauxStripe(options: {
   const items = (options.items ?? [{ id: "si_formule", product: "gerimmo_formule_bailleur" }]).map((i) => ({
     id: i.id,
     quantity: 1,
-    price: { id: `price_${i.id}`, product: i.product, unit_amount: 999, recurring: { interval: "month" } },
+    price: { id: `price_${i.id}`, product: i.product, unit_amount: options.montantCents ?? 1770, recurring: { interval: "month" } },
   }));
   const souscription = {
     id: "sub_1",
@@ -190,7 +191,7 @@ const TVA20 = { nature: "assujetti", tauxPourcent: 20 } as const;
 const INTENTION = { id: "00000000-0000-4000-8000-000000000001", creeLeMs: Date.UTC(2026, 9, 23, 12), expireLeS: Date.UTC(2026, 9, 23, 12, 45) / 1000 };
 
 describe("la page de paiement porte la grille, pas un tarif Stripe", () => {
-  it("25 biens en annuel : Patrimoine 299,90 € + 5 × 10 €, sans taux en franchise, mention 293 B", async () => {
+  it("25 biens en annuel : Patrimoine 1 180 € + 5 × 59 €, sans taux en franchise, mention 293 B", async () => {
     const { stripe, appels } = fauxStripe();
     const r = await creerSessionOffre(stripe, {
       offre: offreParticulier(25, "annuel"),
@@ -204,11 +205,11 @@ describe("la page de paiement porte la grille, pas un tarif Stripe", () => {
     expect(r.ok).toBe(true);
     const p = appels.checkout[0] as { line_items: { price_data: { unit_amount: number; recurring: { interval: string }; tax_behavior: string }; quantity: number; tax_rates?: string[] }[]; subscription_data: { metadata: Record<string, string>; trial_end?: number } };
     expect(p.line_items.map((l) => [l.price_data.unit_amount, l.quantity, l.price_data.recurring.interval, l.price_data.tax_behavior])).toEqual([
-      [29990, 1, "year", "inclusive"],
-      [1000, 5, "year", "inclusive"],
+      [118000, 1, "year", "inclusive"],
+      [5900, 5, "year", "inclusive"],
     ]);
     expect(p.line_items.every((l) => !l.tax_rates)).toBe(true);
-    expect(p.subscription_data.metadata).toMatchObject({ gerimmo_grille: "2026-09-28", gerimmo_formule: "patrimoine", gerimmo_unites: "25", gerimmo_montant_cents: "34990" });
+    expect(p.subscription_data.metadata).toMatchObject({ gerimmo_grille: "2026-09-28", gerimmo_formule: "patrimoine", gerimmo_unites: "25", gerimmo_montant_cents: "147500" });
     expect(p.subscription_data.trial_end).toBeUndefined();
     expect(appels["customers.update"][0]).toEqual({ invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." } });
   });
@@ -217,7 +218,7 @@ describe("la page de paiement porte la grille, pas un tarif Stripe", () => {
     const { stripe, appels } = fauxStripe();
     await creerSessionOffre(stripe, { offre: offreAgence(100), regime: TVA20, customer: "cus_1", orgId: "org_1", retourOk: "a", retourAnnule: "b", intention: INTENTION });
     const p = appels.checkout[0] as { line_items: { price_data: { unit_amount: number; tax_behavior: string }; quantity: number; tax_rates?: string[] }[] };
-    expect(p.line_items.map((l) => [l.price_data.unit_amount, l.quantity])).toEqual([[3900, 1], [200, 40], [150, 50]]);
+    expect(p.line_items.map((l) => [l.price_data.unit_amount, l.quantity])).toEqual([[4900, 1], [490, 40], [490, 50]]);
     expect(p.line_items.every((l) => l.price_data.tax_behavior === "exclusive" && l.tax_rates?.[0] === "txr_nouveau")).toBe(true);
     expect(appels["taxRates.create"][0]).toMatchObject({ percentage: 20, inclusive: false });
   });
@@ -324,7 +325,7 @@ describe("changer de formule", () => {
       { id: "si_b", price: { product: "gerimmo_bien_supplementaire" } },
     ] as unknown as Stripe.SubscriptionItem[];
     const lignes = [
-      { produit: "gerimmo_formule_patrimoine", quantite: 1, prix: { currency: "eur" as const, product: "gerimmo_formule_patrimoine", unit_amount: 2999, recurring: { interval: "month" as const }, tax_behavior: "inclusive" as const } },
+      { produit: "gerimmo_formule_patrimoine", quantite: 1, prix: { currency: "eur" as const, product: "gerimmo_formule_patrimoine", unit_amount: 11800, recurring: { interval: "month" as const }, tax_behavior: "inclusive" as const } },
     ];
     expect(elementsDeMiseAJour(existants, lignes)).toEqual([
       expect.objectContaining({ id: "si_a", quantity: 1 }),
@@ -689,4 +690,21 @@ describe("le miroir du webhook", () => {
     expect((await POST(evenement("evt_f1", "invoice.paid", facture(999)))).status).toBe(200);
     expect(appelsA("abonnement_facture_payee")[0][1]).toEqual({ p_customer: "cus_w", p_subscription: "sub_w" });
   });
+});
+
+
+describe("changement de grille sans hausse automatique d’un ancien contrat", () => {
+ it("refuse une fausse baisse devenue supérieure au montant réellement payé", async () => {
+  const {stripe,appels}=fauxStripe({montantCents:999});
+  const r=await appliquerBaisseAEcheance(stripe,{subscription:"sub_1",offre:offreParticulier(3,"mensuel"),regime:FRANCHISE,orgId:"o"});
+  expect(r.ok).toBe(false);
+  expect(appels["schedules.update"]).toBeUndefined();
+  expect(appels["schedules.create"]).toBeUndefined();
+ });
+ it("refuse une périodicité préparée sous les anciens prix sans nouveau consentement", async () => {
+  const {stripe,appels}=fauxStripe({montantCents:999});
+  const r=await programmerPeriodicite(stripe,{subscription:"sub_1",offre:offreParticulier(3,"annuel"),regime:FRANCHISE,orgId:"o"});
+  expect(r.ok).toBe(false);
+  expect(appels["schedules.update"]).toBeUndefined();
+ });
 });

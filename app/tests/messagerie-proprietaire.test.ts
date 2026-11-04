@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
 const banc = vi.hoisted(() => ({ rpc: vi.fn(), acces: vi.fn() }));
+vi.mock("@/lib/contacts-messages", () => ({lireContactsMessages:async()=>({contacts:[],erreur:false})}));
 vi.mock("@/lib/espace", () => ({ verifierAccesEspace: banc.acces }));
 vi.mock("@/app/actions/messages", () => ({ repondreMessagePersonne: vi.fn() }));
 import PageMessages from "@/app/agence/[orgId]/messages/page";

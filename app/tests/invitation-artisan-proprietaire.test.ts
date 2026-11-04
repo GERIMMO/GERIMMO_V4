@@ -975,4 +975,40 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
     const d = (await db.query("select * from public.reseau_disponibilite($1,$2,'plomberie','entretien_courant')", [org, bienParis])).rows[0];
     expect(Number(d.nb_contacts)).toBe(0);
   });
+  it("suit les parties communes du propriétaire jusqu’au devis et à la mission, sans faux locataire", async () => {
+    await postgres();
+    const artisan = await id("select id from public.artisans where account_id=$1", [artisanCompte]);
+    await db.query("insert into public.artisan_metiers(artisan_id,metier) values($1,'plomberie')", [artisan]);
+    await db.query("insert into public.artisan_zones(artisan_id,code_postal) values($1,'75011')", [artisan]);
+    await db.query("insert into public.artisan_agences(organization_id,artisan_id,statut,created_by) values($1,$2,'actif',$3)",[org,artisan,proprietaire]);
+    const commun = await id("insert into public.incidents(organization_id,bien_id,numero,canal,categorie,description) values($1,$2,'COMMUN-'||substr(gen_random_uuid()::text,1,8),'agence','plomberie_canalisation','Fuite dans les parties communes') returning id",[org,bienParis]);
+    await devenir(proprietaire);
+    await db.query("select public.qualifier_incident($1,$2,'proprietaire','Intervention sur les parties communes')",[org,commun]);
+    const consultation = await id("select public.ouvrir_consultation($1,$2,'plomberie','entretien_courant',true,30) id",[org,commun]);
+    const sollicitation = await id("select public.solliciter_artisan($1,$2,$3) id",[org,consultation,artisan]);
+    await devenir(artisanCompte);
+    expect((await db.query("select sollicitation_id from public.mes_sollicitations()")).rows.map(r=>r.sollicitation_id)).toContain(sollicitation);
+    const devis = await id("select public.deposer_devis_structure($1,jsonb_build_array(jsonb_build_object('libelle','Réparation commune','quantite',1,'prix_unitaire_ht_cents',12000,'tva_bps',0)),'Fuite constatée','Réparer la fuite','Sous 7 jours','Une journée',null,null,null,null,null,null,null) id",[sollicitation]);
+    await devenir(proprietaire);
+    expect((await db.query("select public.lire_devis_structure($1) doc",[sollicitation])).rows[0].doc?.commune).toBe('Paris');
+    expect((await db.query("select public.lire_devis_pdf_version($1,1) doc",[sollicitation])).rows[0].doc?.commune).toBe('Paris');
+    const mission = await id("select public.retenir_devis($1,$2) id",[org,devis]);
+    await devenir(artisanCompte);
+    await db.query("select public.accepter_mission($1)",[mission]);
+    const agenda = (await db.query("select * from public.mon_agenda_artisan()")).rows;
+    const rdv = agenda.find(r=>r.intervention_id===mission);
+    expect(rdv).toBeDefined();
+    expect(rdv.lot_nom).toBe('Parties communes');
+    expect(rdv.occupant_nom).toBeNull();
+    await postgres();
+    expect((await db.query("select lot_id,bail_id,declarant_person_id from public.incidents where id=$1",[commun])).rows[0]).toEqual({lot_id:null,bail_id:null,declarant_person_id:null});
+    await db.query("update public.artisans set email='audit.artisan@example.invalid' where id=$1",[artisan]);
+    await db.query("update public.incident_interventions set statut='planifiee',debut_prevu=((public.aujourdhui_paris()+1)::text||' 10:00 Europe/Paris')::timestamptz,fin_prevue=((public.aujourdhui_paris()+1)::text||' 11:00 Europe/Paris')::timestamptz where id=$1",[mission]);
+    await db.query("set local role service_role");
+    const rappels = (await db.query("select * from public.rendez_vous_a_rappeler()")).rows.filter(r=>r.intervention_id===mission);
+    expect(rappels.some(r=>r.destinataire==='artisan'&&r.lot==='Parties communes')).toBe(true);
+    expect(rappels.some(r=>r.destinataire==='locataire')).toBe(false);
+
+  });
+
 });

@@ -161,20 +161,22 @@ export function FenetreLotProvider({
 /** Les outils propres au lot restent accessibles sans réintroduire une fenêtre.
  * Le premier dépliage charge la rubrique ; la fermer conserve les saisies.
  * En affichage direct, le contenu est disponible dès le montage de la section. */
-export function SuiviLotProprietaire({ orgId, lotId, rubrique, lectureSeule = false, affichage = "repliable", documentsDejaAffiches, resume }: {
+export function SuiviLotProprietaire({ orgId, lotId, rubrique, lectureSeule = false, affichage = "repliable", documentsDejaAffiches, resume, limiteDocuments, saisieDepense = true }: {
   orgId: string; lotId: string; rubrique: "documents" | "compta" | "historique"; lectureSeule?: boolean;
   affichage?: "repliable" | "direct";
   documentsDejaAffiches?: string[];
+  limiteDocuments?: number;
+  saisieDepense?: boolean;
   resume?: ReactNode;
 }) {
   const [charge, charger] = useState(false);
   const titreId = useId();
   const titre = rubrique === "documents" ? affichage === "direct" ? "Autres documents" : "Documents déposés" : rubrique === "compta" ? "Journal & dépenses" : "Historique du lot";
   const contenu = (affichage === "direct" || charge) && <div className="pt-4">
-    {rubrique === "documents" ? <OngletDocuments orgId={orgId} fiche={{ lot_id: lotId, portee: "gerant" }} fermer={() => {}} estProprietaire lectureSeule={lectureSeule} documentsDejaAffiches={documentsDejaAffiches} autresDocuments={affichage === "direct"} apercuIntegre={affichage === "direct"} /> : rubrique === "historique" ? <OngletHistorique lotId={lotId} /> : <OngletComptabilite orgId={orgId} fiche={{ lot_id: lotId, bail_id: null }} rafraichir={() => {}} estProprietaire lectureSeule={lectureSeule} />}
+    {rubrique === "documents" ? <OngletDocuments orgId={orgId} fiche={{ lot_id: lotId, portee: "gerant" }} fermer={() => {}} estProprietaire lectureSeule={lectureSeule} documentsDejaAffiches={documentsDejaAffiches} limite={limiteDocuments} autresDocuments={affichage === "direct" && !limiteDocuments} apercuIntegre={affichage === "direct"} /> : rubrique === "historique" ? <OngletHistorique lotId={lotId} /> : <OngletComptabilite orgId={orgId} fiche={{ lot_id: lotId, bail_id: null }} rafraichir={() => {}} estProprietaire lectureSeule={lectureSeule} saisieDepense={saisieDepense} />}
   </div>;
   if (affichage === "direct") return <section className="suivi-lot-proprietaire" aria-labelledby={titreId}>
-    <h3 id={titreId} className="text-base font-semibold">{titre}</h3>
+    <h3 id={titreId} className={limiteDocuments ? "sr-only" : "text-base font-semibold"}>{titre}</h3>
     {contenu}
   </section>;
   return <details className="suivi-lot-proprietaire" onToggle={event => { if (event.currentTarget.open) charger(true); }}>
@@ -1021,7 +1023,7 @@ function EnAttente({ quoi }: { quoi: string }) {
 
 /* ── Onglet « Documents » ─────────────────────────────────────────────── */
 
-function OngletDocuments({ orgId, fiche, fermer, estProprietaire = false, lectureSeule = false, documentsDejaAffiches = [], autresDocuments = false, apercuIntegre = false }: { orgId: string; fiche: Pick<FicheLot, "lot_id" | "portee">; fermer: () => void; estProprietaire?: boolean; lectureSeule?: boolean; documentsDejaAffiches?: string[]; autresDocuments?: boolean; apercuIntegre?: boolean }) {
+function OngletDocuments({ orgId, fiche, fermer, estProprietaire = false, lectureSeule = false, documentsDejaAffiches = [], autresDocuments = false, apercuIntegre = false, limite }: { orgId: string; fiche: Pick<FicheLot, "lot_id" | "portee">; fermer: () => void; estProprietaire?: boolean; lectureSeule?: boolean; documentsDejaAffiches?: string[]; autresDocuments?: boolean; apercuIntegre?: boolean; limite?: number }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
   const locataire = fiche.portee === "locataire";
@@ -1044,7 +1046,8 @@ function OngletDocuments({ orgId, fiche, fermer, estProprietaire = false, lectur
   // Filtre de présentation uniquement : les identifiants transmis par la page
   // peuvent évoluer sans relancer la lecture des documents du lot.
   const identifiantsAffiches = new Set(documentsDejaAffiches);
-  const documentsVisibles = docs?.filter(document => !identifiantsAffiches.has(document.document_id)) ?? null;
+  const documentsFiltres = docs?.filter(document => !identifiantsAffiches.has(document.document_id)) ?? null;
+  const documentsVisibles = limite && documentsFiltres ? [...documentsFiltres].sort((a, b) => b.depose_le.localeCompare(a.depose_le)).slice(0, limite) : documentsFiltres;
 
   return (
     <div className="space-y-3">
@@ -1054,7 +1057,7 @@ function OngletDocuments({ orgId, fiche, fermer, estProprietaire = false, lectur
         </p>
       )}
       {!docs && !erreur && <EnAttente quoi="Lecture des documents…" />}
-      {documentsVisibles && documentsVisibles.length === 0 && (
+      {documentsVisibles && documentsVisibles.length === 0 && !limite && (
         <p className="text-sm text-muted-foreground">
           {autresDocuments ? "Aucun autre document pour ce lot." : locataire
             ? "Aucun document partagé avec vous pour l’instant."
@@ -1123,12 +1126,14 @@ function OngletComptabilite({
   rafraichir,
   estProprietaire,
   lectureSeule = false,
+  saisieDepense = true,
 }: {
   orgId: string;
   fiche: Pick<FicheLot, "lot_id" | "bail_id">;
   rafraichir: () => void;
   estProprietaire: boolean;
   lectureSeule?: boolean;
+  saisieDepense?: boolean;
 }) {
   const bailId = fiche.bail_id;
   const [donnees, setDonnees] = useState<{
@@ -1188,7 +1193,7 @@ function OngletComptabilite({
           )}
 
           <div>
-            <p className="eyebrow mb-1">Journal du lot</p>
+            {saisieDepense && <p className="eyebrow mb-1">Journal du lot</p>}
             {donnees.ecritures.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Aucune écriture sur ce lot pour l’instant.
@@ -1229,7 +1234,7 @@ function OngletComptabilite({
             )}
           </div>
 
-          {!lectureSeule && <FormulaireDepense orgId={orgId} lotId={fiche.lot_id} relire={relire} estProprietaire={estProprietaire} />}
+          {!lectureSeule && saisieDepense && <FormulaireDepense orgId={orgId} lotId={fiche.lot_id} relire={relire} estProprietaire={estProprietaire} />}
           {/* Le rapport de gestion va au mandant : un propriétaire en direct
               n'a personne à qui l'adresser. */}
           {!estProprietaire && <BlocRapport lotId={fiche.lot_id} rapport={donnees.rapport} />}
@@ -1631,10 +1636,7 @@ function OngletHistorique({ lotId }: { lotId: string }) {
           ))}
         </ol>
       )}
-      <p className="text-xs text-muted-foreground">
-        Reconstitué depuis les faits enregistrés — bail, termes, encaissements,
-        quittances, relances, états des lieux, incidents. Les 40 plus récents.
-      </p>
+      {evenements && evenements.length > 0 && <p className="text-xs text-muted-foreground">Les 40 événements les plus récents.</p>}
     </div>
   );
 }

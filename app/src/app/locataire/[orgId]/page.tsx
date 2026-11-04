@@ -1,5 +1,6 @@
 import { lireToutesLesPages } from "@/lib/lecture-complete";
 import type { MonReleveConsommation } from "@/lib/consommations";
+import { SuiviEcheanciersCharges } from "@/components/suivi-echeanciers-charges";
 import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { disponibilitesQuittances } from "@/lib/quittance-conforme";
 import { deElide } from "@/lib/elision";
@@ -312,6 +313,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
 
   return (
     <div className="space-y-4">
+      <SuiviEcheanciersCharges org={orgId} proprietaire={false} base={`/locataire/${orgId}`} rappelsSeulement />
       <div className="portail-hero portail-hero-accueil loc-bienvenue">
         <p className="portail-surtitre">{aujourdhui}</p>
         <h1 className="mt-0.5">

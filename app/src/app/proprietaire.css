@@ -158,3 +158,17 @@ body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) :is(a, button, select
 
 .espace-proprietaire .patrimoine-contexte { flex-wrap: wrap; }
 .patrimoine-indisponible { color: #874b20; text-decoration: underline; text-underline-offset: 3px; min-height: 36px; display: inline-flex; align-items: center; }
+
+/* Cadre propriétaire compact : géométrie sobre et hiérarchie commune. */
+.espace-proprietaire .coquille-corps > main { padding-top:22px; }
+.espace-proprietaire .coquille-corps :is(.entete-page,.incidents-entete) { padding-bottom:14px; margin-bottom:18px; gap:12px; }
+.espace-proprietaire h1 { font-size:clamp(26px,2.2vw,34px); }
+.espace-proprietaire .titre-ecran-icone { width:40px; height:40px; flex-basis:40px; border-radius:8px; }
+.espace-proprietaire :is(.loc-carte,[data-slot="card"],.dossier-panneau,.colonne-liste-split,.colonne-liste,.historique-carte,.carte-rubrique) { border-radius:10px; box-shadow:none; }
+.espace-proprietaire :is(.loc-carte,.dossier-panneau) { padding:18px; }
+.espace-proprietaire :is(.barre-filtres,.recherche-personnes) { border-radius:8px; padding:12px; }
+.espace-proprietaire .vide-guide { padding:18px; background:#fff; border-radius:10px; }
+.espace-proprietaire .carte-rubrique[data-ton="bleu"] { border-top:3px solid #55799c; }
+.espace-proprietaire .carte-rubrique[data-ton="vert"] { border-top:3px solid #4e8776; }
+.espace-proprietaire .carte-rubrique[data-ton="or"] { border-top:3px solid #b39458; }
+@media(max-width:640px) { .espace-proprietaire .coquille-corps > main { padding-top:16px; } .espace-proprietaire :is(.loc-carte,.dossier-panneau) { padding:14px; } }

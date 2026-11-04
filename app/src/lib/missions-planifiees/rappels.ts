@@ -160,8 +160,13 @@ export async function traiterRappels(request: Request) {
   // Fait AVANT de lire les rendez-vous à rappeler. Une écriture de la tâche : l'arrêt d'urgence l'interdit comme un
   // envoi. Son échec ne prive personne de son rappel : il est compté (-1) et consigné.
   await verifierAvantEffet(supabase, "rappels");
-  const demandesExpirees = await expirerDemandesRdv(supabase);
+  const rappelsCharges = await supabase.rpc("synchroniser_rappels_echeanciers_charges", { p_org: null });
+  if (!rappelsCharges || rappelsCharges.error) {
+    await consignerTache(supabase, "rappels", { erreur: "rappels de charges indisponibles" });
+    // Un échec des charges ne bloque pas les rappels de rendez-vous et invitations.
+  }
   const releves_compteurs = await planifierReleves(supabase);
+  const demandesExpirees = await expirerDemandesRdv(supabase);
   const reports = await envoyerRelancesReportsRdv(supabase, { echeanceMs }).catch(e => {
     if (e instanceof ArretSupervision) throw e;
     return { envoyees:0, echecs:1, incertaines:0, ignorees:0, non_notees:0 };
@@ -186,7 +191,7 @@ export async function traiterRappels(request: Request) {
     // cœur que la ronde du matin attend à cette heure-là.
     const invitations = await relancerInvitations(supabase, echeanceMs);
     const alertes_conservation = await alerterConservation(supabase, echeanceMs);
-    const bilan = { rappeles: 0, echecs: 0, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations, alertes_conservation, releves_compteurs };
+    const bilan = { releves_compteurs, rappels_charges_echec: Boolean(!rappelsCharges || rappelsCharges.error), rappeles: 0, echecs: 0, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations, alertes_conservation };
     await consignerTache(supabase, "rappels", bilan);
     return Response.json(bilan);
   }
@@ -261,7 +266,7 @@ export async function traiterRappels(request: Request) {
   }
   const invitations = await relancerInvitations(supabase, echeanceMs);
   const alertes_conservation = await alerterConservation(supabase, echeanceMs);
-  const bilan = { rappeles, echecs: echecs.length, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations, alertes_conservation, releves_compteurs };
+  const bilan = { releves_compteurs, rappels_charges_echec: Boolean(!rappelsCharges || rappelsCharges.error), rappeles, echecs: echecs.length, gestes, demandes_rdv_expirees: demandesExpirees, reports_rdv_relances: reports, invitations, alertes_conservation };
   await consignerTache(supabase, "rappels", bilan);
   return Response.json(bilan);
 }

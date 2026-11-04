@@ -1,13 +1,15 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ArrowRight, Check, ChevronDown, ClipboardList, FileText, KeyRound, Wrench } from "lucide-react";
-import { formaterDate } from "@/lib/ged";
+import { aujourdhuiParis, formaterDate } from "@/lib/ged";
 import { lieuTache, regrouperTachesAccueil, type GroupeTaches, type TacheAccueil } from "@/lib/taches-accueil-proprietaire";
 import styles from "./carte-taches-proprietaire.module.css";
 
 const icones = { incident: Wrench, document: FileText, location: KeyRound, demande: ClipboardList };
 
-export function CarteTachesProprietaire({ taches, base, indisponible, prioritesPresentes, chambresSansBail = 0 }: {
+export function CarteTachesProprietaire({ taches, base, indisponible, prioritesPresentes, chambresSansBail = 0, titre = "Mes tâches", introduction, limite = 5 }: {
   taches: TacheAccueil[]; base: string; indisponible: boolean; prioritesPresentes: boolean; chambresSansBail?: number;
+  titre?: string; introduction?: ReactNode; limite?: number;
 }) {
   // Grand parc : une ligne par obligation, dépliable sur ses lots ; le compteur reste le nombre de tâches.
   const entrees = regrouperTachesAccueil(taches);
@@ -32,22 +34,23 @@ export function CarteTachesProprietaire({ taches, base, indisponible, prioritesP
       <span className={styles.icone}><Icone size={18} aria-hidden="true" /></span>
       <span className={styles.contenu}><b>{tache.titre}</b>
         {(tache.contexte || tache.detail) && <small>{[tache.contexte, tache.detail].filter(Boolean).join(" · ")}</small>}
-        {tache.echeance && <small>Échéance : <time dateTime={tache.echeance}>{formaterDate(tache.echeance)}</time></small>}
+        {tache.echeance && <small data-en-retard={tache.echeance.slice(0,10) < aujourdhuiParis()}>Échéance : <time dateTime={tache.echeance}>{formaterDate(tache.echeance)}</time></small>}
       </span>
       <span className={styles.geste}>{tache.geste}<ArrowRight size={16} aria-hidden="true" /></span>
     </Link></li>;
   })}</ul>;
   return <section id="taches-proprietaire" className={styles.carte} aria-labelledby="taches-proprietaire-titre" tabIndex={-1}>
     <header className={styles.entete}>
-      <h2 id="taches-proprietaire-titre">Mes tâches{taches.length > 0 && <span className={styles.compteur} aria-label={`${taches.length} tâche${taches.length > 1 ? "s" : ""}${indisponible ? ` connue${taches.length > 1 ? "s" : ""}` : ""}`}>{taches.length}</span>}</h2>
+      <h2 id="taches-proprietaire-titre">{titre}{taches.length > 0 && <span className={styles.compteur} aria-label={`${taches.length} tâche${taches.length > 1 ? "s" : ""}${indisponible ? ` connue${taches.length > 1 ? "s" : ""}` : ""}`}>{taches.length}</span>}</h2>
       <Link href={`${base}/alertes`}>Toutes les demandes<ArrowRight size={15} aria-hidden="true" /></Link>
     </header>
+    {introduction}
     {indisponible && <p className={styles.incomplet} role="alert">Certaines tâches n’ont pas pu être vérifiées. La liste peut être incomplète.</p>}
     {taches.length > 0 ? <>
-      {lignes(entrees.slice(0, 5))}
-      {entrees.length > 5 && <details className={styles.suite}>
-        <summary>{nombre(entrees.slice(5)) === 1 ? "Voir l’autre tâche" : `Voir les ${nombre(entrees.slice(5))} autres tâches`}<ChevronDown size={16} aria-hidden="true" /></summary>
-        {lignes(entrees.slice(5))}
+      {lignes(entrees.slice(0, limite))}
+      {entrees.length > limite && <details className={styles.suite}>
+        <summary>{nombre(entrees.slice(limite)) === 1 ? "Voir l’autre tâche" : `Voir les ${nombre(entrees.slice(limite))} autres tâches`}<ChevronDown size={16} aria-hidden="true" /></summary>
+        {lignes(entrees.slice(limite))}
       </details>}
     </> : !indisponible && chambresSansBail === 0 && <p className={styles.calme}><Check size={18} aria-hidden="true" />{prioritesPresentes ? "Aucune autre tâche à traiter pour le moment." : "Aucune tâche détectée pour le moment."}</p>}
     {chambresSansBail > 0 && <Link className={styles.colocations} href={`${base}/parc`}>{chambresSansBail} chambre{chambresSansBail > 1 ? "s" : ""} sans bail en cours · Voir les colocations<ArrowRight size={15} aria-hidden="true" /></Link>}

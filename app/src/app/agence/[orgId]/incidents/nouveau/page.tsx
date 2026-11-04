@@ -1,3 +1,4 @@
+import "../incidents.css";
 import Link from "next/link";
 import { TitreEcran } from "@/components/titre-ecran";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -86,12 +87,12 @@ export default async function PageNouvelIncident(
   }));
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
+    <main className="incident-creation-page mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7" data-parcours-intervention={estProprietaire || undefined}>
       {/* L'en-tête de l'espace (25/09, D09) : cette page avait un fil
           d'Ariane et un titre nu, seule de son genre — `.entete-page` comme
           ses sœurs, le retour au-dessus, la phrase dessous. Un seul verbe par
           persona (D25) : « déclarer », celui du menu. */}
-      <div className="mb-6">
+      <div className="incident-creation-entete mb-6">
         {/* Le retour « ← Parent » dans le style de la fiche du bien (nuit du
             25 au 26/09) : un seul style de retour dans l'espace. */}
         <Link
@@ -112,7 +113,7 @@ export default async function PageNouvelIncident(
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="incident-creation-grille grid gap-6 lg:grid-cols-[1fr_320px]">
         <Card>
           <CardContent>
             {/* Un échec de lecture ne doit pas se déguiser en sélecteur vide

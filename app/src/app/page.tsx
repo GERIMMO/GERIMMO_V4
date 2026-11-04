@@ -27,7 +27,7 @@ const avec = (e: string | null) => (e ? ` ${e}` : "");
 const faq = (duree: string): [string, string][] => [
   [
     "Combien coûte Gerimmo pour un particulier ?",
-    `Le prix dépend du nombre de biens, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 9,99 €, Investisseur (jusqu'à 10) 19,99 €, Patrimoine (jusqu'à 20) 29,99 €${avec(TTC)} par mois — ou dix mensualités par an en paiement annuel. Au-delà de 20 biens, 1 € par bien et par mois. Essai gratuit de ${duree}, sans carte ; aucune formule n'est gratuite ensuite.`,
+    `Le prix dépend du nombre de biens, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 17,70 €, Investisseur (jusqu'à 10) 59 €, Patrimoine (jusqu'à 20) 118 €${avec(TTC)} par mois — ou dix mensualités par an en paiement annuel. Au-delà de 20 biens, 5,90 € par bien et par mois. Même avec le paiement annuel, le tarif reste supérieur à 4,90 € par bien et par mois. Essai gratuit de ${duree}, sans carte ; aucune formule n'est gratuite ensuite.`,
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",

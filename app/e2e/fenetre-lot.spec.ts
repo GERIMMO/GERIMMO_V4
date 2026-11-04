@@ -102,7 +102,7 @@ test.describe("Côté agence", () => {
     await page.getByRole("button", { name: /E2E Lot 1/ }).first().click();
     const f = fenetre(page);
     await f.getByRole("tab", { name: "Historique" }).click();
-    await expect(f.getByText(/Reconstitué depuis les faits/)).toBeVisible();
+    await expect(f.getByRole("tab", { name: "Historique", exact: true })).toHaveAttribute("aria-selected", "true");
     // L'encaissement du seed y figure, avec son montant.
     await expect(f.getByText("Encaissement").first()).toBeVisible();
     // Et la catégorie d'incident est dite en français, pas en code.

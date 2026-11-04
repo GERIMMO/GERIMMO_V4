@@ -164,14 +164,14 @@
 .espace-proprietaire [data-parcours-intervention] .rang.actif { background:#f6f3ed; border-left-color:#bfa780; }
 .espace-proprietaire [data-parcours-intervention] .incident-rang-titre { font-size:13px; line-height:1.4; font-weight:600; color:#35475d; }
 .espace-proprietaire [data-parcours-intervention] .incident-rang-lot { font-size:12px; color:#6b7787; }
-.espace-proprietaire [data-parcours-intervention] .incident-rang-reperes { margin-top:4px; font-size:10px; color:#7a8592; }
+.espace-proprietaire [data-parcours-intervention] .incident-rang-reperes { margin-top:4px; font-size:10px; color:#59697d; }
 .espace-proprietaire [data-parcours-intervention] .incident-statut { font-size:11px; font-weight:500; }
 .espace-proprietaire [data-parcours-intervention] .incident-dossier { display:grid; gap:12px; }
 .espace-proprietaire [data-parcours-intervention] .incident-dossier > * { margin-block:0; }
 .espace-proprietaire [data-parcours-intervention] .incident-entete { border-radius:8px; border-color:#e3e6e9; box-shadow:none; }
 .espace-proprietaire [data-parcours-intervention] .incident-entete-haut { padding:14px 16px 0; gap:10px; }
 .espace-proprietaire [data-parcours-intervention] .incident-entete h2 { font-size:22px; font-weight:500; line-height:1.25; margin-top:4px; }
-.espace-proprietaire [data-parcours-intervention] .incident-reference { font-size:10px; color:#7a8592; }
+.espace-proprietaire [data-parcours-intervention] .incident-reference { font-size:10px; color:#59697d; }
 .espace-proprietaire [data-parcours-intervention] .incident-description-resume { padding:10px 16px 0; margin:0; font-size:13px; line-height:1.6; color:#4c5e72; white-space:pre-wrap; overflow-wrap:anywhere; }
 .espace-proprietaire [data-parcours-intervention] .incident-reperes { padding:12px 16px 14px; gap:12px; }
 .espace-proprietaire [data-parcours-intervention] .incident-reperes :is(a,strong) { font-size:12px; font-weight:500; }
@@ -186,7 +186,7 @@
 .espace-proprietaire [data-parcours-intervention] [data-slot="card"] { padding-block:14px; gap:10px; border-radius:8px; border-color:#e4e7eb; box-shadow:none; }
 .espace-proprietaire [data-parcours-intervention] :is([data-slot="card-header"],[data-slot="card-content"]) { padding-inline:16px; }
 .espace-proprietaire [data-parcours-intervention] [data-slot="card-title"] { font-size:14px; font-weight:600; color:#35485e; line-height:1.4; }
-.espace-proprietaire [data-parcours-intervention] [data-slot="card-description"] { font-size:12px; line-height:1.55; color:#6c798b; }
+.espace-proprietaire [data-parcours-intervention] [data-slot="card-description"] { font-size:12px; line-height:1.55; color:#59697d; }
 .espace-proprietaire [data-parcours-intervention] [data-slot="card-title"] svg { width:17px; height:17px; color:#8190a2; }
 .espace-proprietaire [data-parcours-intervention] .incident-qualification { border-top:1px solid #e5e0d5; border-left:2px solid #c8b795; background:#fff; }
 .espace-proprietaire [data-parcours-intervention] .incident-choix-charge { min-height:42px; padding:9px 11px; border-radius:6px; border-color:#e3e6e9; font-size:13px; }
@@ -263,11 +263,11 @@
 
 /* Les faits du signalement restent visibles, indépendamment de l’étape. */
 .espace-proprietaire [data-parcours-intervention] .incident-identite-signalement { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 20px; padding:14px 16px; border:1px solid #e6e9ed; border-radius:8px; background:#f8fafb; }
-.espace-proprietaire [data-parcours-intervention] .incident-identite-signalement dt { font-size:11px; color:#728094; margin-bottom:3px; }
+.espace-proprietaire [data-parcours-intervention] .incident-identite-signalement dt { font-size:11px; color:#59697d; margin-bottom:3px; }
 .espace-proprietaire [data-parcours-intervention] .incident-identite-signalement dd { margin:0; font-size:13px; color:#34485e; overflow-wrap:anywhere; }
 .espace-proprietaire [data-parcours-intervention] .incident-photos-signalement { padding:12px 16px; border:1px solid #e6e9ed; border-radius:8px; background:#fff; }
 .espace-proprietaire [data-parcours-intervention] .incident-photos-signalement h3 { margin:0 0 8px; font:600 13px/1.4 var(--font-interface,sans-serif); color:#34485e; }
-.espace-proprietaire [data-parcours-intervention] .incident-photos-signalement p { font-size:12px; color:#728094; }
+.espace-proprietaire [data-parcours-intervention] .incident-photos-signalement p { font-size:12px; color:#59697d; }
 .espace-proprietaire [data-parcours-intervention] .incident-photos-signalement summary { min-height:40px; align-content:center; cursor:pointer; font-size:12px; color:#6b5d45; }
 .espace-proprietaire [data-parcours-intervention] .incident-parcours-simple li { width:0; }
 @media(max-width:450px) { .espace-proprietaire [data-parcours-intervention] .incident-identite-signalement { gap:12px; padding:12px 14px; } }
@@ -292,7 +292,7 @@
 .espace-proprietaire [data-parcours-intervention] .incident-fiche-description { margin:0; padding:14px 0; font-size:13px; line-height:1.65; color:#455b73; white-space:pre-wrap; overflow-wrap:anywhere; }
 .espace-proprietaire [data-parcours-intervention] .incident-fiche-photos { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 14px; padding-block:7px; }
 .espace-proprietaire [data-parcours-intervention] .incident-fiche-description + .incident-fiche-photos { border-top:1px solid #edf0f3; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos > span { display:flex; align-items:center; gap:7px; font-size:12px; color:#7a8796; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos > span { display:flex; align-items:center; gap:7px; font-size:12px; color:#59697d; }
 .espace-proprietaire [data-parcours-intervention] .incident-fiche-photos > div { order:2; flex-basis:100%; padding-block:7px; }
 .espace-proprietaire [data-parcours-intervention] .incident-fiche-photos details { min-width:0; }
 .espace-proprietaire [data-parcours-intervention] .incident-fiche-photos details[open] { flex-basis:100%; }
@@ -328,12 +328,12 @@
 .espace-proprietaire [data-parcours-intervention] .incident-fiche-identite { background:#fffdf8; }
 .espace-proprietaire [data-parcours-intervention] .incident-fiche-identite .incident-identite-signalement { padding-block:10px; }
 .espace-proprietaire [data-parcours-intervention] .incident-fiche-identite > .incident-fiche-description { padding:9px 0 12px; }
-.espace-proprietaire [data-parcours-intervention] .incident-informations-complementaires > summary { min-height:36px; align-content:center; cursor:pointer; color:#69788a; font-size:12px; }
+.espace-proprietaire [data-parcours-intervention] .incident-informations-complementaires > summary { min-height:36px; align-content:center; cursor:pointer; color:#59697d; font-size:12px; }
 .espace-proprietaire [data-parcours-intervention] .incident-informations-complementaires .incident-identite-signalement { border:0; padding-block:6px 12px; }
 .espace-proprietaire [data-parcours-intervention] .incident-recherche-artisan { border-left:3px solid #b9a075; }
 .espace-proprietaire [data-parcours-intervention] .incident-recherche-artisan [data-slot="card-title"] { font-size:16px; }
 .espace-proprietaire [data-parcours-intervention] .incident-options-recherche { border-top:1px solid #e9edf1; }
-.espace-proprietaire [data-parcours-intervention] .incident-options-recherche > summary { min-height:40px; align-content:center; cursor:pointer; color:#718093; font-size:12px; }
+.espace-proprietaire [data-parcours-intervention] .incident-options-recherche > summary { min-height:40px; align-content:center; cursor:pointer; color:#59697d; font-size:12px; }
 .espace-proprietaire [data-parcours-intervention] .incident-options-recherche > p { padding-block:4px 10px; }
 .espace-proprietaire [data-parcours-intervention] .incident-solution-alternative { margin-top:14px; padding-top:6px; border-top:1px solid #e9edf1; }
 .espace-proprietaire [data-parcours-intervention] .incident-solution-alternative a { display:inline-flex; align-items:center; min-height:40px; font-size:12px; color:#597568; }

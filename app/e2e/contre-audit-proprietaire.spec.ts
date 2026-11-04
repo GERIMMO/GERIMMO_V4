@@ -101,6 +101,7 @@ test("la fiche conserve les dépenses, les documents et l’historique sans moda
   await page.setViewportSize({ width: 390, height: 950 });
   await page.goto(`${base}/parc`, { waitUntil: "networkidle" });
   await (await lienLotProprietaire(page)).click();
+  await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
   const depenses = page.locator("#consommations");
   await depenses.getByRole("button", {name:"Ajouter une dépense",exact:true}).click();
   const fournisseur = depenses.getByLabel("Fournisseur", {exact:true});
@@ -112,14 +113,19 @@ test("la fiche conserve les dépenses, les documents et l’historique sans moda
   await diagnostics.locator(":scope > summary").click();
   await expect(fournisseur).toHaveValue("Saisie locale non enregistrée");
   const historique = page.locator("details").filter({ has: page.locator("summary", { hasText: "Historique du lot" }) });
-  await historique.locator("summary").click();
-  await expect(historique.locator("ol").or(historique.getByText("Rien ne s’est encore passé sur ce lot.", { exact: true }))).toBeVisible();
+  if (await historique.count()) {
+    await historique.locator("summary").click();
+    await expect(historique.locator("ol")).toBeVisible();
+  } else {
+    await expect(page.getByText("Rien ne s’est encore passé sur ce lot.", {exact:true})).toHaveCount(0);
+  }
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(await debordementHorizontal(page)).toBe(0);
 });
 
 test("les automatismes ouvrent directement les préférences du profil", async ({ page }) => {
   await page.goto(base, { waitUntil: "networkidle" });
+  await page.locator("summary").filter({ hasText: "Mes automatismes et outils" }).click();
   await page.getByRole("link", { name: "Régler les envois", exact: true }).click();
   await expect(page).toHaveURL(`${base}/profil#envois`);
   await expect(page.locator("#envois")).toBeVisible();
@@ -140,7 +146,7 @@ for (const largeur of [390, 1440]) test(`incident : décider puis consulter l’
   });
   expect(ordre).toBe(true);
   await expect(dossier.locator('.incident-historique')).not.toHaveAttribute('open', '');
-  await dossier.getByText('Historique du dossier', { exact: true }).click();
+  await dossier.locator('.incident-historique > summary').click();
   await expect(dossier.locator('.incident-historique')).toHaveAttribute('open', '');
   expect(await debordementHorizontal(page)).toBe(0);
   expect((await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze()).violations).toEqual([]);

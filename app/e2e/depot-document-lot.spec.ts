@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { Client } from 'pg';
-import { sansSyntheseAlertes, debordementHorizontal } from './aides';
+import { sansSyntheseAlertes, debordementHorizontal, lienLotProprietaire } from './aides';
 import { pdfFictif } from './pdf-fictif';
 
 // AUDIT #264, DOC-05 — « Déposer un document » depuis « Autres documents »
@@ -23,10 +23,9 @@ for (const largeur of [390, 1440]) {
     test.skip(!/^http:\/\/(localhost|127\.0\.0\.1):/.test(process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''), 'API fictive locale requise');
     await page.setViewportSize({ width: largeur, height: 900 });
     await page.goto(`/espace/${ORG}/parc`);
-    await page.locator('a[data-lot-id]').filter({ hasText: 'Appartement T2' }).first().click();
+    await (await lienLotProprietaire(page)).click();
     await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
     const adresseLot = new URL(page.url()).pathname;
-    await page.locator('details#documents-lot > summary').click();
     const autres = page.getByRole('region', { name: 'Autres documents', exact: true });
     await autres.getByRole('link', { name: 'Déposer un document', exact: true }).click();
 
@@ -45,7 +44,7 @@ for (const largeur of [390, 1440]) {
     // Le dépôt se referme sur le lot, section Documents ouverte, et le dit.
     await expect(page).toHaveURL(new RegExp(`${adresseLot}#documents-lot$`));
     await expect(page.getByRole('status').filter({ hasText: 'Document déposé et rattaché à « ' })).toBeVisible();
-    await expect(page.locator('details#documents-lot')).toHaveAttribute('open', '');
+    await expect(page.locator('#documents-lot')).toBeVisible();
     await expect(autres.getByRole('button', { name: titre, exact: true })).toBeVisible();
     await expect(autres.getByText(/ce lot · déposé le/).first()).toBeVisible();
     expect(await debordementHorizontal(page)).toBe(0);

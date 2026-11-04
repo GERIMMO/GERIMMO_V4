@@ -68,12 +68,12 @@ for (const persona of ["proprietaire", "superadmin"]) {
         await expect(contrats.getByText("La location attend votre activation.", { exact: true })).toBeVisible();
         await expect(contrats.getByRole("link", { name: "Consulter et activer", exact: true })).toHaveAttribute("href", `/espace/${ORG}/baux/${bail}#etape-bail-7`);
         await expect(page.getByRole("tablist")).toHaveCount(0);
-        const documents = page.locator("details#documents-lot");
-        await expect(documents).not.toHaveAttribute("open", "");
+        const documents = page.locator("#documents-lot");
+        await expect(documents).toBeVisible();
         expect(await debordementHorizontal(page)).toBe(0);
         await page.screenshot({ path: info.outputPath(`resume-${persona}.png`), fullPage: true });
         expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-        await expect(page.getByRole("heading", { name: "Le logement", exact: true })).toBeVisible();
+        await expect(page.getByRole("heading", { name: "Logement et propriété", exact: true })).toBeVisible();
         if (persona === "superadmin") {
           await expect(page.getByRole("link", { name: "Modifier le lot", exact: true })).toHaveCount(0);
           await expect(page.locator("#caracteristiques").getByRole("button", { name: "Modifier", exact: true })).toHaveCount(0);
@@ -81,8 +81,7 @@ for (const persona of ["proprietaire", "superadmin"]) {
           await expect(page.getByText("Gérer le statut du lot", {exact:true})).toHaveCount(0);
         } else await expect(page.getByRole("link", { name: "Modifier le lot", exact: true })).toBeVisible();
         await page.screenshot({ path: info.outputPath(`logement-${persona}.png`), fullPage: true });
-        await documents.locator(":scope > summary").click();
-        await expect(documents).toHaveAttribute("open", "");
+        await documents.locator("summary").filter({ hasText: "Diagnostics du logement et du bâtiment" }).click();
         await expect(page.getByText("Expiré · à renouveler", { exact: true })).toBeVisible();
         if (persona === "superadmin") {
           await expect(page.getByRole("button", {name:"Renouveler",exact:true})).toHaveCount(0);

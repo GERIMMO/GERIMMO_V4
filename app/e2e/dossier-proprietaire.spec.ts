@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { Client } from 'pg';
 import { randomUUID } from 'node:crypto';
-import { sansSyntheseAlertes, debordementHorizontal } from './aides';
+import { sansSyntheseAlertes, debordementHorizontal, lienLotProprietaire } from './aides';
 
 const ORG = '3c1d1e95-3570-400b-8012-44530be145b1';
 test.beforeEach(async ({ page }) => {
@@ -16,16 +16,19 @@ for (const largeur of [390, 1440]) {
   test(`propriétaire : repères et rubriques accessibles à ${largeur}px`, async ({ page }) => {
     await page.setViewportSize({ width: largeur, height: 1000 });
     await page.goto(`/espace/${ORG}/parc`);
-    await page.locator('a[data-lot-id]').filter({ hasText: 'Appartement T2' }).first().click();
+    await (await lienLotProprietaire(page)).click();
     await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByRole('tablist')).toHaveCount(0);
-    for (const nom of ['Le logement', 'Le bâtiment', 'Locataires & garants', 'Le bail', 'Incidents', 'Propriétaires']) {
+    for (const nom of ['Logement et propriété', 'Bâtiment', 'Le bail', 'Incidents', 'Documents récents']) {
       await expect(page.getByRole('heading', { name: nom, exact: true })).toBeVisible();
     }
-    const documents = page.locator('details#documents-lot');
-    await expect(documents).not.toHaveAttribute('open', '');
-    await documents.locator(':scope > summary').click();
+    // Un logement vacant n'affiche plus de carte occupants vide.
+    await expect(page.getByRole('heading', { name: 'Locataires & garants', exact: true })).toHaveCount(0);
+    const documents = page.locator('#documents-lot');
+    await expect(documents).toBeVisible();
+    await page.locator('details#logement-lot > summary').click();
+    await expect(page.getByRole('heading', { name: 'Propriétaires', exact: true })).toBeVisible();
     await expect(documents.getByRole('link', { name: 'Ouvrir la bibliothèque', exact: true })).toBeVisible();
     const rubrique = page.locator('details#pieces');
     const ouvrir = rubrique.locator(':scope > summary');
@@ -39,15 +42,15 @@ for (const largeur of [390, 1440]) {
     expect(await debordementHorizontal(page)).toBe(0);
     await page.goto(page.url().split('#')[0]);
     await page.reload();
-    await expect(documents).not.toHaveAttribute('open', '');
-    await expect(page.getByRole('heading', { name: 'Le logement', exact: true })).toBeVisible();
+    await expect(documents).toBeVisible();
+    await expect(page.locator('details#logement-lot')).not.toHaveAttribute('open', '');
     await page.screenshot({ path: `e2e/.results/dossier-${largeur}.png`, fullPage: true });
   });
 }
 
 test('propriétaire : un refus d’enregistrement reste visible sans perdre la saisie', async ({ page }) => {
   await page.goto(`/espace/${ORG}/parc`);
-  const href = await page.locator('a[data-lot-id]').filter({ hasText: 'Appartement T2' }).first().getAttribute('href');
+  const href = await (await lienLotProprietaire(page)).getAttribute('href');
   await page.goto(href! + '?parcours=1&etape=bien');
   const formulaire = page.locator('form.saisie-bien');
   await formulaire.locator('[name="nom"]').fill('   ');
@@ -71,7 +74,7 @@ for (const largeur of [390, 1440]) {
   test(`propriétaire : parcours guidé et saisies conservées à ${largeur}px`, async ({ page }) => {
     await page.setViewportSize({ width: largeur, height: 1000 });
     await page.goto(`/espace/${ORG}/parc`);
-    const href = await page.locator('a[data-lot-id]').filter({ hasText: 'Appartement T2' }).first().getAttribute('href');
+    const href = await (await lienLotProprietaire(page)).getAttribute('href');
     await page.goto(href! + '?parcours=1&etape=bien');
     const navigation = page.getByRole('navigation', { name: 'Étapes de la création du lot' });
     await expect(navigation.getByRole('button')).toHaveCount(6);
@@ -118,7 +121,7 @@ test('propriétaire : le bail reprend le lot et permet de créer puis retrouver 
       select gen_random_uuid(),$1,organization_id,person_id,quote_part,date_debut,date_fin from public.detentions
       where lot_id=$3 and organization_id=$2`, [lotId, ORG, sourceId]);
   await page.goto(`/espace/${ORG}/parc`);
-  const href = await page.locator(`a[data-lot-id="${lotId}"]`).getAttribute('href');
+  const href = await (await lienLotProprietaire(page, lotId)).getAttribute('href');
   // L’ancien lien de création rejoint directement l'action de préparation du bail.
   await page.goto(href! + '?parcours=1&etape=locataires');
   await expect(page).toHaveURL(/#nouvelle-location$/);
@@ -257,7 +260,7 @@ test('propriétaire : un bail commencé se reprend partout, sans brouillon vierg
       where lot_id=$3 and organization_id=$2`, [lotId, ORG, sources[0].id]);
     const brouillons = async () => (await db.query("select count(*)::int as n from public.baux where lot_id=$1 and etat='brouillon'", [lotId])).rows[0].n;
     await page.goto(`/espace/${ORG}/parc`);
-    const fiche = (await page.locator(`a[data-lot-id="${lotId}"]`).getAttribute('href'))!;
+    const fiche = (await (await lienLotProprietaire(page, lotId)).getAttribute('href'))!;
     await page.goto(fiche);
     await page.locator('#nouvelle-location').getByRole('button', { name: 'Commencer un bail', exact: true }).click();
     await expect(page).toHaveURL(/\/baux\/[0-9a-f-]+#etape-bail-1$/);
@@ -274,7 +277,8 @@ test('propriétaire : un bail commencé se reprend partout, sans brouillon vierg
     expect(await brouillons()).toBe(1);
     // La liste des biens et l’accueil mènent au bail en préparation.
     await page.goto(`/espace/${ORG}/parc`);
-    await expect(page.locator(`a[href$="/baux/${bailId}"]`).filter({ hasText: 'Reprendre le bail en préparation' })).toHaveCount(1);
+    await (await lienLotProprietaire(page, lotId)).click();
+    await expect(page.locator('#nouvelle-location').getByRole('link', { name: 'Reprendre le bail', exact: true })).toHaveAttribute('href', new RegExp(`/baux/${bailId}$`));
     await page.goto(`/espace/${ORG}`);
     await expect(page.locator(`#taches-proprietaire a[href$="/baux/${bailId}"]`)).toHaveCount(1);
     expect(await debordementHorizontal(page)).toBe(0);

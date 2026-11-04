@@ -35,7 +35,10 @@ const origine = readFileSync("supabase/migrations/20260928081000_ouverture_resea
  * reste celui de toute la chaîne : 20261024100000 (plan de conformité du 23/10, R10) ne trie plus par note qu'à partir
  * de trois évaluations dans `artisans_disponibles_bien`. Rejouable, elle accepte sa forme déjà convertie.
  */
-const SUITE = ["20261024100000_acceptation_conditions_et_classement_artisans.sql", "20261101201608_interventions_parties_communes.sql"].map(nom => readFileSync(`supabase/migrations/${nom}`, "utf8"));
+const SUITE = [
+  readFileSync("supabase/migrations/20261024100000_acceptation_conditions_et_classement_artisans.sql", "utf8"),
+  readFileSync("supabase/migrations/20261101201608_interventions_parties_communes.sql", "utf8"),
+];
 
 /** Les huit fonctions du réseau rendues par le retour, et leur corps dans 20260928081000. */
 const RESEAU = [

@@ -47,3 +47,11 @@ export async function entrerDansEspace(page: Page, prefixe: "agence" | "espace" 
 export async function debordementHorizontal(page: Page): Promise<number> {
   return page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 }
+
+/** La liste propriétaire sélectionne d’abord le bâtiment, puis son logement. */
+export async function lienLotProprietaire(page: Page, lot: string | RegExp = /Appartement T2/) {
+  await page.getByRole("navigation", { name: "Vos biens", exact: true }).getByRole("link", { name: /Résidence des Lilas/ }).click();
+  const liens = page.locator('#fiche-bien a[href*="/lots/"]');
+  const lien = typeof lot === "string" ? liens.and(page.locator(`a[href$="/lots/${lot}"]`)) : liens.filter({ hasText: lot });
+  return lien.first();
+}

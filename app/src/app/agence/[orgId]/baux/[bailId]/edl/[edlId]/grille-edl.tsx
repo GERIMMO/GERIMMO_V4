@@ -1,7 +1,7 @@
 "use client";
 
 import { useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { SuiviEnregistrement } from "@/lib/suivi-enregistrement";
+import { SuiviEnregistrement } from "@/lib/contexte-enregistrement";
 import { createPortal } from "react-dom";
 import { majGrilleEdl, type EtatEdl } from "@/app/actions/edl";
 import { formaterDate, formaterDateHeure } from "@/lib/ged";

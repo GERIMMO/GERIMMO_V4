@@ -63,19 +63,19 @@ export async function emettreRegularisationFournitures(orgId: string, bailId: st
   } catch (e) { return { erreur: sansJargon(e instanceof Error ? e.message : "Le décompte n’a pas pu être préparé. Réessayez.") }; }
 }
 
-export async function notifierDecompte(org: string, id: string): Promise<EtatRegularisationFournitures> {
-  const {supabase,user} = await verifierGerant(org,{geste:"regularisation_charges",cible:id});
+export async function notifierDecompte(orgId: string, id: string): Promise<EtatRegularisationFournitures> {
+  const {supabase,user} = await verifierGerant(orgId,{geste:"regularisation_charges",cible:id});
   if (!user || !estUuid(id)) return {erreur:"Accès refusé."};
-  const r = await supabase.rpc("notifier_decompte",{p_org:org,p_id:id});
+  const r = await supabase.rpc("notifier_decompte",{p_org:orgId,p_id:id});
   if (r.error) return {erreur:sansJargon(r.error.message)};
-  revalidatePath(`/locataire/${org}`,"layout");
-  revalidatePath(`/espace/${org}`, "layout");
+  revalidatePath(`/locataire/${orgId}`,"layout");
+  revalidatePath(`/espace/${orgId}`, "layout");
   return {avisLe:r.data};
 }
 
-export async function reglerAvisDecompte(org:string,bail:string,actif:boolean): Promise<EtatRegularisationFournitures> {
-  const {supabase,user} = await verifierGerant(org,{geste:"regularisation_charges",cible:bail});
+export async function reglerAvisDecompte(orgId:string,bail:string,actif:boolean): Promise<EtatRegularisationFournitures> {
+  const {supabase,user} = await verifierGerant(orgId,{geste:"regularisation_charges",cible:bail});
   if (!user || !estUuid(bail) || typeof actif !== "boolean") return {erreur:"Accès refusé."};
-  const r = await supabase.rpc("regler_avis_decompte",{p_org:org,p_bail:bail,p_actif:actif});
+  const r = await supabase.rpc("regler_avis_decompte",{p_org:orgId,p_bail:bail,p_actif:actif});
   return r.error ? {erreur:sansJargon(r.error.message)} : {automatique:r.data};
 }

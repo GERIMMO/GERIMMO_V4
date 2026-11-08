@@ -41,8 +41,10 @@ describe("X04 — une seule porte pour les missions", () => {
   it("les seules routes de tâche sont celle d'équipes, celle du suivi des dossiers et celle de l'alerte du relais", () => {
     // D46-B (15/10/2026) : l'alerte e-mail du relais n'est pas une mission (aucune clé dans MISSIONS) ; elle a sa route,
     // hors de l'enveloppe des missions, parce que l'arrêt d'urgence ne doit pas la couper (il en est l'un des sujets).
-    expect(routes().sort()).toEqual(["equipes/route.ts", "orchestrateur/route.ts", "relais/route.ts"]);
+    expect(routes().sort()).toEqual(["equipes/route.ts", "factures/route.ts", "orchestrateur/route.ts", "relais/route.ts"]);
     expect(Object.keys(MISSIONS)).not.toContain("relais");
+    // Point de test local : ne doit jamais exécuter de traitement en production.
+    expect(readFileSync(join(CRON, "factures/route.ts"), "utf8")).toContain('process.env.NODE_ENV==="production"');
   });
 
   it("aucune route directe ne subsiste pour une mission", () => {

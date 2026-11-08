@@ -115,7 +115,7 @@ describe.skipIf(!local)("PRO-5, suite — sur l'émulateur : après le premier c
 
   it("le premier choix mène à l'espace et laisse au navigateur une session « mot de passe »", async () => {
     const envoi = new FormData();
-    for (const [cle, valeur] of Object.entries({ mot_de_passe: choisi, confirmation: choisi, suite: "/espaces", espace: "proprietaire_direct", nom: "Corrigé", prenom: "Camille", cgu: "on" })) envoi.set(cle, valeur);
+    for (const [cle, valeur] of Object.entries({ mot_de_passe: choisi, confirmation: choisi, suite: "/espaces", espace: "proprietaire_direct", nom: "Corrigé", adresse: "1 rue Test", code_postal: "75001", ville: "Paris", prenom: "Camille", cgu: "on" })) envoi.set(cle, valeur);
     await expect(definirNouveauMotDePasse({}, envoi)).rejects.toThrow(/^REDIRECT \/espaces$/);
 
     const navigateur = clientDuNavigateur(bocal.cookies);

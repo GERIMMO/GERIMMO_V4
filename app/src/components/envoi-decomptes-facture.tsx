@@ -24,7 +24,7 @@ export function EnvoiDecomptesFacture({org,base,repartitionId,destinataires}:{or
   });}
   return <section className={styles.form}><h2>4 · Envoi et suivi</h2>
     <p className={styles.muted}>Partagez le détail de cette facture dans l’espace de chaque locataire. Cet envoi ne réclame aucun paiement et ne clôture pas les comptes annuels. Les provisions seront déduites lors de la régularisation.</p>
-    <form action={()=>traiter(true)} className={styles.list}>
+    <form data-saisie-libre action={()=>traiter(true)} className={styles.list}>
       {erreurSuivi && <p role="alert">{erreurSuivi}</p>}
       {destinataires.map(d=>{const e=etats[d.bail];return <article key={d.bail} className={styles.destinataire}>
         <div className={styles.line}><strong>{d.logement} · {d.nom}</strong><span className={styles.badge}>{e?.envoyeLe?`Envoyé le ${formaterDate(e.envoyeLe.slice(0,10))}`:e?.documentId?"Préparé · à vérifier":charge?"À préparer":"Chargement du suivi…"}</span></div>

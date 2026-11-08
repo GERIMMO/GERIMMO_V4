@@ -188,8 +188,8 @@ describe("Modèles 14/15 — états des lieux", () => {
     expect(doc.html).toContain("Clé porte d'entrée");
     expect(doc.html).toContain("Détecteur avertisseur autonome de fumée");
     // un élément non relevé reste en libellé
-    expect(doc.html).toContain("neuf, bon, usagé, mauvais");
-    expect(doc.manquants).toContain("neuf, bon, usagé, mauvais");
+    expect(doc.html).toContain("État de Réfrigérateur");
+    expect(doc.manquants).toEqual([expect.stringMatching(/^État de Réfrigérateur — /)]);
   });
 
   it.each([311.02, 8412, 0, "311.020"])("imprime l'index %s reçu de la base sans perdre le zéro", (releve) => {

@@ -34,11 +34,11 @@ export async function demanderIndexFacture(orgId:string,facture:string,compteur:
   return {succes:"Demande déposée dans l’espace du locataire. Les index seront repris dès réception ; des rappels sont prévus à J+3, J+7 et J+14."};
 }
 
-export async function rouvrirRepartitionFourniture(org:string,id:string):Promise<EtatRepartition> {
- const {supabase,user}=await verifierGerant(org,{geste:"suivi_consommations",cible:id});
+export async function rouvrirRepartitionFourniture(orgId:string,id:string):Promise<EtatRepartition> {
+ const {supabase,user}=await verifierGerant(orgId,{geste:"suivi_consommations",cible:id});
  if(!user||!estUuid(id)) return {erreur:"Accès refusé."};
- const r=await supabase.rpc("rouvrir_repartition_fourniture",{p_org:org,p_repartition:id});
+ const r=await supabase.rpc("rouvrir_repartition_fourniture",{p_org:orgId,p_repartition:id});
  if(r.error) return {erreur:sansJargon(r.error.message)};
- revalidatePath(`/espace/${org}`,"layout");
+ revalidatePath(`/espace/${orgId}`,"layout");
  return {succes:"Répartition rouverte. Corrigez puis recalculez avant validation."};
 }

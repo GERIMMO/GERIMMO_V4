@@ -44,7 +44,7 @@ function Emission({ envoiDirect = false, orgId, d, aujourdhui, base, etat, submi
   const [etaler, setEtaler] = useState(false);
   const [avis, envoyer, envoi] = useActionStateProtegee(async () => notifierDecompte(orgId,d.id), {} as EtatRegularisationFournitures);
   const dateAvis = avis.avisLe ?? etat.avisLe;
-  if (etat.succes) return <div className="space-y-2"><p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>{dateAvis ? <p>Avis envoyé dans Gerimmo le {formaterDate(dateAvis.slice(0,10))}{etat.consulteLe && ` · Accès au PDF le ${formaterDate(etat.consulteLe.slice(0,10))}`}</p> : <form action={envoyer}><BoutonEnvoi enCours={envoi} enCoursTexte="Transmission…">Notifier le locataire dans Gerimmo</BoutonEnvoi>{avis.erreur && <p role="alert">{avis.erreur}</p>}</form>}{etat.documentId && <ApercuDocumentEspace fichier={`${base}/documents/${etat.documentId}/fichier`} titre={`Décompte de charges ${d.annee}`} />}{etat.regularisationId && Number(d.source.ecart)<0 && <ProposerPlanCharges org={orgId} regularisation={etat.regularisationId} annee={d.annee} montant={-Number(d.source.ecart)} aujourdhui={aujourdhui} tardive={aujourdhui > `${d.annee+1}-12-31`} />}</div>;
+  if (etat.succes) return <div className="space-y-2"><p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>{dateAvis ? <p>Avis envoyé dans Gerimmo le {formaterDate(dateAvis.slice(0,10))}{etat.consulteLe && ` · Accès au PDF le ${formaterDate(etat.consulteLe.slice(0,10))}`}</p> : <form data-saisie-confirmee action={envoyer}><BoutonEnvoi enCours={envoi} enCoursTexte="Transmission…">Notifier le locataire dans Gerimmo</BoutonEnvoi>{avis.erreur && <p role="alert">{avis.erreur}</p>}</form>}{etat.documentId && <ApercuDocumentEspace fichier={`${base}/documents/${etat.documentId}/fichier`} titre={`Décompte de charges ${d.annee}`} />}{etat.regularisationId && Number(d.source.ecart)<0 && <ProposerPlanCharges org={orgId} regularisation={etat.regularisationId} annee={d.annee} montant={-Number(d.source.ecart)} aujourdhui={aujourdhui} tardive={aujourdhui > `${d.annee+1}-12-31`} />}</div>;
   const enCours = `${d.annee}-12-31` >= aujourdhui;
   const tardive = aujourdhui > `${d.annee + 1}-12-31`;
   return <form data-saisie-confirmee action={submit} className="space-y-3 text-sm"><input name="empreinte" type="hidden" value={d.empreinte} />
@@ -64,7 +64,7 @@ function ReglageAvis({org,bail,actif}:{org:string;bail:string;actif:boolean}) {
     reglerAvisDecompte(org,bail,f.get("actif")==="oui"), {} as EtatRegularisationFournitures);
   const auto = etat.automatique ?? actif;
   return <details><summary>Avis au locataire · {auto ? "automatique après validation" : "manuel"}</summary>
-    <form action={changer}><input type="hidden" name="actif" value={auto ? "non" : "oui"}/>
+    <form data-saisie-confirmee action={changer}><input type="hidden" name="actif" value={auto ? "non" : "oui"}/>
       <BoutonEnvoi variant="outline" enCours={pending} enCoursTexte="Enregistrement…">{auto ? "Revenir à l’envoi manuel" : "Notifier automatiquement après validation du décompte de ce bail"}</BoutonEnvoi>
       {etat.erreur && <p role="alert">{etat.erreur}</p>}</form></details>;
 }

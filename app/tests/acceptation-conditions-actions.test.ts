@@ -65,7 +65,7 @@ beforeEach(() => {
 
 const formulaire = (valeurs: Record<string, string>) => {
   const f = new FormData();
-  for (const [cle, valeur] of Object.entries({ mot_de_passe: "nouveau-mot-de-passe-1", confirmation: "nouveau-mot-de-passe-1", nom: "Martin", cgu: "on", ...valeurs })) f.set(cle, valeur);
+  for (const [cle, valeur] of Object.entries({ mot_de_passe: "nouveau-mot-de-passe-1", confirmation: "nouveau-mot-de-passe-1", nom: "Martin", adresse: "1 rue Test", code_postal: "75001", ville: "Paris", cgu: "on", ...valeurs })) f.set(cle, valeur);
   return f;
 };
 const acceptation = () => rpc.mock.calls.find(([fn]) => fn === "accepter_cgu")?.[1];

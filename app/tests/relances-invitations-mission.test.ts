@@ -1,3 +1,4 @@
+vi.mock("@/lib/automatisation-factures", () => ({ traiterFileFactures: vi.fn().mockResolvedValue({}) }));
 /**
  * Relances d'invitation de locataire (décision X16 du 15/10/2026, fiche REP-05) : ce qui ne demande pas la base.
  *  - la mission « rappels » les envoie (entrée unique des missions, arrêt d'urgence propagé), et son bilan les compte ;

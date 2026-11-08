@@ -402,9 +402,6 @@ function transmissionAdmise(nom: string, e: ts.Expression | null): boolean {
 
 /** Les transmissions admises hors de cette règle (forme exacte de l'attribut). */
 const TRANSMISSIONS_ADMISES: Exception[] = [
-  { fichier: "src/components/depenses-simplifiees.tsx", fonction: "DepensesSimplifiees", forme: "<RegularisationFournitures> base={p.base}", nombre: 1,
-    raison: "la base authentifiée reçue de ConsommationsBien est transmise sans transformation",
-    preuve: ["src/components/consommations-bien.tsx", "const donnees: Props = { orgId, bienId, lotId: null, base,"] },
   { fichier: "src/components/consommations-formulaires.tsx", fonction: "Facture", forme: "<RepartitionFacture> base={p.base}", nombre: 1,
     raison: "la base authentifiée est transmise sans transformation dans les props regroupées du suivi des consommations",
     preuve: ["src/components/consommations-bien.tsx", "base={base}" ] },
@@ -456,7 +453,7 @@ describe("chaque parent transmet le drapeau ou la racine, tels que la garde les 
       "src/components/consommations-bien.tsx › ConsommationsBien",
     ]);
     // Le journal déplacé reste réservé à la branche propriétaire du lot.
-    expect(lire("src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx")).toContain("estProprietaire && <ConsommationsBien");
+    expect(lire("src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx")).toContain("estProprietaire ? <FicheContinue");
     expect(lire("src/components/consommations-bien.tsx")).toContain("{lotId && <div id=\"journal-lot\"");
     expect(rendus.filter(r => r.balise === "RappelsLoyers").map(r => `${r.fichier} › ${fonctionEnglobante(r.el)}`).sort()).toEqual([
       "src/app/agence/[orgId]/accueil-proprietaire.tsx › AccueilProprietaire",

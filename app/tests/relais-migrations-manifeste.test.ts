@@ -150,6 +150,7 @@ const MISSION_OCTOBRE = [
   "20261107193000_reouverture_repartition_fourniture.sql",
   "20261108090000_suivi_releves_facture.sql",
   "20261108100000_factures_automatiques.sql",
+  "20261108113000_gardes_factures_publication.sql",
 
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */

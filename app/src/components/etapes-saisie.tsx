@@ -2,7 +2,7 @@
 
 import { useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { NavigationParcours, type EtapeParcours } from "./navigation-parcours";
-import { SuiviEnregistrement } from "@/lib/suivi-enregistrement";
+import { SuiviEnregistrement } from "@/lib/contexte-enregistrement";
 import styles from "./presentation-parcours.module.css";
 
 /** Les panneaux restent montés : changer d’étape ne réinitialise aucun champ.

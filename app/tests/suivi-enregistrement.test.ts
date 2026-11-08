@@ -5,5 +5,5 @@ import {useActionStateSuivi} from "@/lib/suivi-enregistrement";
 const useRenduTest=()=>useActionStateSuivi(async()=>({}),{});
 beforeEach(()=>{banc.etat={};banc.init=false;vi.clearAllMocks();useRenduTest();});
 it("ne vérifie pas au montage",()=>expect(banc.notifier).not.toHaveBeenCalled());
-it("vérifie après un succès et pas après une erreur",()=>{banc.etat={erreur:"Refus"};useRenduTest();expect(banc.notifier).not.toHaveBeenCalled();banc.etat={succes:"Enregistré"};useRenduTest();expect(banc.notifier).toHaveBeenCalledTimes(1);});
+it("notifie distinctement une erreur et un succès",()=>{banc.etat={erreur:"Refus"};useRenduTest();expect(banc.notifier).toHaveBeenLastCalledWith(false);banc.etat={succes:"Enregistré"};useRenduTest();expect(banc.notifier).toHaveBeenLastCalledWith(true);expect(banc.notifier).toHaveBeenCalledTimes(2);});
 it("ne relance pas à chaque rendu mais accepte deux enregistrements successifs",()=>{banc.etat={succes:"Enregistré"};useRenduTest();useRenduTest();expect(banc.notifier).toHaveBeenCalledTimes(1);banc.etat={succes:"Enregistré"};useRenduTest();expect(banc.notifier).toHaveBeenCalledTimes(2);});

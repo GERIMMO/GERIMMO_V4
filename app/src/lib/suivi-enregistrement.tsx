@@ -1,10 +1,9 @@
 "use client";
-import { createContext, useContext, useEffect, useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 
-/** Les formulaires hors assistant gardent leur comportement habituel. */
-export const CompletudeBail = createContext<{ manquants: string[]; erreur?: string } | null>(null);
-export const SuiviEnregistrement = createContext<((succes?: boolean) => void) | null>(null);
+import { SuiviEnregistrement } from "./contexte-enregistrement";
+export { SuiviEnregistrement, CompletudeBail } from "./contexte-enregistrement";
 
 export function useActionStateSuivi<State extends { succes?: string }, Payload>(
   action: (state: Awaited<State>, payload: Payload) => State | Promise<State>,

@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("react", async (importOriginal) => {
   const reel = await importOriginal<typeof import("react")>();
   const { hooks } = await import("./aide/hooks-sans-dom");
-  return { ...reel, ...hooks, default: { ...reel, ...hooks } };
+  return { ...reel, ...hooks, useContext: () => null, default: { ...reel, ...hooks, useContext: () => null } };
 });
 const { majGrilleEdl } = vi.hoisted(() => ({ majGrilleEdl: vi.fn() }));
 vi.mock("@/app/actions/edl", () => ({ majGrilleEdl }));

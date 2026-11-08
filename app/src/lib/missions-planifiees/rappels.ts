@@ -1,3 +1,4 @@
+import { traiterFileFactures } from "@/lib/automatisation-factures";
 import { ArretSupervision, verifierAvantEffet } from "@/lib/controle-effets";
 // Tâche planifiée : rappeler le rendez-vous à ceux qui doivent s'y trouver
 // (RM-10.5 — veille systématique, J-7 si posé assez tôt).
@@ -166,6 +167,10 @@ export async function traiterRappels(request: Request) {
     // Un échec des charges ne bloque pas les rappels de rendez-vous et invitations.
   }
   const releves_compteurs = await planifierReleves(supabase);
+  await traiterFileFactures(supabase,()=>verifierAvantEffet(supabase,"rappels")).catch(async e=>{
+    if(e instanceof ArretSupervision)throw e;
+    await consignerTache(supabase,"factures",{erreur:"Traitement automatique à reprendre"});
+  });
   const demandesExpirees = await expirerDemandesRdv(supabase);
   const reports = await envoyerRelancesReportsRdv(supabase, { echeanceMs }).catch(e => {
     if (e instanceof ArretSupervision) throw e;
@@ -184,7 +189,7 @@ export async function traiterRappels(request: Request) {
   const gestes = await envoyerRappelsGestes(supabase, undefined, () => verifierAvantEffet(supabase, "rappels"), { echeanceMs }).catch((e): BilanRappelsGestes => {
     if (e instanceof ArretSupervision) throw e;
     console.error("[cron rappels] rappels de gestes :", e instanceof Error ? e.message : e);
-    return { envoyes: 0, echecs: -1, sans_adresse: 0, non_consignes: 0, par_type: { creneau_non_choisi: 0, mission_non_acceptee: 0, piece_demandee: 0, devis_non_chiffre: 0 } };
+    return { envoyes: 0, echecs: -1, sans_adresse: 0, non_consignes: 0, par_type: { creneau_non_choisi: 0, mission_non_acceptee: 0, piece_demandee: 0, devis_non_chiffre: 0, releve_attendu: 0 } };
   });
   if (lignes.length === 0) {
     // Une passe sans rien à faire se consigne aussi : c'est le battement de

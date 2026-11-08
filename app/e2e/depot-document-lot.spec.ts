@@ -26,10 +26,10 @@ for (const largeur of [390, 1440]) {
     await (await lienLotProprietaire(page)).click();
     await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
     const adresseLot = new URL(page.url()).pathname;
-    const autres = page.getByRole('region', { name: 'Autres documents', exact: true });
+    const autres = page.locator('#documents-lot');
     await autres.getByRole('link', { name: 'Déposer un document', exact: true }).click();
 
-    await expect(page).toHaveURL(/\/documents\?sel=depot&lot=[0-9a-f-]{36}$/);
+    await expect(page).toHaveURL(/\/documents\?sel=depot&lot=[0-9a-f-]{36}&bien=[0-9a-f-]{36}$/);
     await expect(page.getByRole('link', { name: '← Retour au lot', exact: true })).toHaveAttribute('href', `${adresseLot}#documents-lot`);
     const form = page.locator('form').filter({ has: page.getByRole('button', { name: 'Déposer le document', exact: true }) });
     const rattacher = form.getByRole('checkbox', { name: /^Rattacher au lot « .+ »/ });

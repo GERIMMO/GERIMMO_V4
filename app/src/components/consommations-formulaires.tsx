@@ -1,4 +1,5 @@
 "use client";
+import { SuiviFactureAutomatique, type SuiviAutomatique } from "./suivi-facture-automatique";
 import { useParcoursDepense } from "./parcours-depense";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { useActionStateProtegee } from "@/lib/use-action-state-protegee";
@@ -17,10 +18,11 @@ import { lireMontantFacultatif } from "@/lib/saisie-montant";
 import { TYPES_COMPTEUR, CATEGORIES_FOURNITURE, consommationEntre, type CompteurConsommation, type ContratFourniture, type FactureFourniture, type DemandeReleve, type ReleveConsommation } from "@/lib/consommations";
 import styles from "./consommations.module.css";
 
-export type BailConso = { id: string; lot_id: string; locataire_principal: string | null; nom: string; mode_charges: string | null; date_debut: string; date_fin: string | null; etat: string };
+export type BailConso = { chambre_id?:string|null; id: string; lot_id: string; locataire_principal: string | null; nom: string; mode_charges: string | null; date_debut: string; date_fin: string | null; etat: string };
 export type SuggestionCompteur = { type: string; numero: string | null; index: string; date: string; lotId: string; bailId: string };
-export type Props = { orgId: string; bienId: string; lotId: string | null; base: string; lectureSeule: boolean; aujourdHui: string;
+export type Props = { suiviAuto?:SuiviAutomatique[]; liensReleves?: {facture_id:string;demande_id:string}[]; bienNom?: string; decomptes?: import("@/lib/regularisation-fournitures").EtatLigneDecompte[] | null; cles?: import("@/lib/cle-facture").CleFacture[]; orgId: string; bienId: string; lotId: string | null; base: string; lectureSeule: boolean; aujourdHui: string;
   compteurs: CompteurConsommation[]; contrats: ContratFourniture[]; factures: FactureFourniture[]; demandes: DemandeReleve[]; releves: ReleveConsommation[];
+  principaux?: CompteurConsommation[];
   repartitions: RepartitionFourniture[];
   lots: { id: string; nom: string; etat: string }[]; baux: BailConso[]; suggestions: SuggestionCompteur[] };
 type Contexte = Pick<Props, "orgId" | "bienId" | "lotId">;
@@ -51,7 +53,7 @@ export function FormulairesConsommations(p: Props) {
     {contrats.map(c => <Contrat key={c.id} p={p} c={c} />)}
     {!p.lectureSeule && <>
       {p.suggestions.length > 0 && !ajout && <details><summary className={styles.muted}>Reprendre un compteur de l’état des lieux ({p.suggestions.length})</summary><div className={styles.list}>{p.suggestions.map((s, i) => <Button key={i} type="button" variant="outline" onClick={() => { setSuggestion(s); setAjout("compteur"); }}>{s.type.replaceAll("_", " ")} · {s.numero || "sans numéro"} · {s.index}</Button>)}</div></details>}
-      {!ajout ? <div className={styles.actions}><Button type="button" size="sm" variant="outline" onClick={() => { setMessage(""); setAjout("compteur"); }}>Ajouter un compteur</Button><Button type="button" size="sm" variant="outline" onClick={() => { setMessage(""); setAjout("contrat"); }}>Ajouter un contrat ou une charge</Button>{!p.lotId && <Button type="button" size="sm" variant="outline" onClick={() => { setMessage(""); setAjout("taxe_fonciere"); }}>Saisir l’avis de taxe foncière</Button>}</div> : <>
+      {!ajout ? <div className={styles.actions}><Button type="button" size="sm" variant="outline" onClick={() => { setMessage(""); setAjout("compteur"); }}>Ajouter un compteur</Button><Button type="button" size="sm" variant="outline" onClick={() => { setMessage(""); setAjout("contrat"); }}>{p.lotId ? "Ajouter un abonnement" : "Ajouter un contrat ou une charge"}</Button>{!p.lotId && <Button type="button" size="sm" variant="outline" onClick={() => { setMessage(""); setAjout("taxe_fonciere"); }}>Saisir l’avis de taxe foncière</Button>}</div> : <>
         <div className={styles.line}><h3>{ajout === "compteur" ? "Nouveau compteur" : ajout === "taxe_fonciere" ? "Avis de taxe foncière" : "Nouveau contrat ou charge"}</h3><Button type="button" variant="ghost" onClick={() => setAjout(null)}>Annuler</Button></div>
         {ajout === "compteur" ? <Form p={p} action="compteur" fini={terminer}><ChampsCompteur p={p} suggestion={suggestion} /></Form> : ajout === "taxe_fonciere" ? <AvisTaxeFonciere p={p} fini={terminer} /> : <Form p={p} action="contrat" fini={terminer}><ChampsContrat p={p} /></Form>}
       </>}
@@ -62,27 +64,31 @@ export function FormulairesConsommations(p: Props) {
 
 function ChampsCompteur({ p, c, suggestion }: { p: Props; c?: CompteurConsommation; suggestion?: SuggestionCompteur }) {
   const lotsDisponibles = p.lots.filter(l => l.etat !== "archive");
-  const [lot, setLot] = useState(c?.lot_id ?? p.lotId ?? suggestion?.lotId ?? (lotsDisponibles.length === 1 ? lotsDisponibles[0].id : ""));
+  const [lot, setLot] = useState(c ? c.lot_id ?? "" : p.lotId ?? suggestion?.lotId ?? (lotsDisponibles.length === 1 ? lotsDisponibles[0].id : ""));
   const connu = suggestion?.type.toLowerCase().replaceAll("é", "e").replaceAll(" ", "_");
   const [type, setType] = useState(c?.type ?? (connu && connu in TYPES_COMPTEUR ? connu : "eau_froide"));
+  const uniteParDefaut = type.startsWith("eau") || type === "gaz" ? "m3" : "kwh";
+  const [unite, setUnite] = useState<string>(c?.unite ?? uniteParDefaut);
+  const principaux = (p.principaux ?? p.compteurs).filter(m => !m.lot_id && m.id !== c?.id && m.type === type && m.unite === unite && (m.actif || m.id === c?.compteur_principal_id));
   const candidats = p.baux.filter(b => b.lot_id === lot && b.locataire_principal && ["actif", "preavis"].includes(b.etat) && b.date_debut <= p.aujourdHui);
   const bailPropose = candidats.some(b => b.id === c?.bail_referent) ? c!.bail_referent! : candidats.some(b => b.id === suggestion?.bailId) ? suggestion!.bailId : candidats.length === 1 ? candidats[0].id : "";
   const dejaDemande = c && (p.demandes.some(d => d.compteur_id === c.id) || p.releves.some(r => r.compteur_id === c.id));
   return <>
     {suggestion && <p className={styles.ok}>Informations reprises de l’état des lieux. Vérifiez le compteur et la date avant d’activer le suivi.</p>}
     <div className={styles.fields}>
-      <Champ titre="Compteur"><select name="type" value={type} onChange={e => setType(e.target.value)} disabled={!!dejaDemande}>{Object.entries(TYPES_COMPTEUR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>{dejaDemande && <input type="hidden" name="type" value={type} />}</Champ>
+      <Champ titre="Compteur"><select name="type" value={type} onChange={e => { setType(e.target.value); setUnite(e.target.value.startsWith("eau") || e.target.value === "gaz" ? "m3" : "kwh"); }} disabled={!!dejaDemande}>{Object.entries(TYPES_COMPTEUR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>{dejaDemande && <input type="hidden" name="type" value={type} />}</Champ>
       {!p.lotId && <Champ titre="Emplacement"><select name="lot_id" value={lot} disabled={!!dejaDemande} onChange={e => setLot(e.target.value)}><option value="">Compteur général / parties communes</option>{p.lots.filter(l => l.etat !== "archive" || l.id === c?.lot_id).map(l => <option key={l.id} value={l.id}>{l.nom}{l.etat === "archive" ? " (archivé)" : ""}</option>)}</select>{dejaDemande && <input type="hidden" name="lot_id" value={lot} />}</Champ>}
       <Champ titre="Dernier index connu"><input name="index_initial" inputMode="decimal" required defaultValue={c?.index_initial ?? suggestion?.index ?? ""} readOnly={!!dejaDemande} /></Champ>
       <Champ titre="Date de ce relevé"><input name="date_index_initial" type="date" required max={p.aujourdHui} defaultValue={c?.date_index_initial ?? suggestion?.date ?? p.aujourdHui} readOnly={!!dejaDemande} /></Champ>
     </div>
+    {lot && <Champ titre="Compteur principal du bâtiment"><select key={lot + type + unite} name="compteur_principal_id" defaultValue={c?.compteur_principal_id ?? ""}><option value="">Sans rattachement</option>{principaux.map(m => <option key={m.id} value={m.id}>{m.libelle}{m.numero && ` · ${m.numero}`}</option>)}</select>{!principaux.length && <span className={styles.caption}>Ajoutez le compteur général depuis la fiche du bâtiment pour le relier ici.</span>}</Champ>}
     {lot && <Champ titre="Qui fera les prochains relevés ?"><select key={lot} name="bail_referent" defaultValue={bailPropose}><option value="">Je les renseignerai moi-même</option>{candidats.map(b => <option key={b.id} value={b.id}>{b.nom}</option>)}</select>{!candidats.length && <span className={styles.caption}>Les demandes au locataire seront disponibles dès qu’un bail sera en cours.</span>}</Champ>}
     <div className={styles.fields}><Champ titre="Prochaine demande"><input name="prochaine_demande" type="date" required defaultValue={c?.prochaine_demande ?? prochaineDate(p.aujourdHui)} /></Champ><Frequence valeur={c?.periodicite_mois} /></div>
     <details><summary>Numéro, accès et unité du compteur</summary><div className={styles.fields}>
       <Champ titre="Nom du compteur"><input name="libelle" maxLength={120} defaultValue={c?.libelle} placeholder={TYPES_COMPTEUR[type as keyof typeof TYPES_COMPTEUR]} /></Champ>
       <Champ titre="Numéro"><input name="numero" maxLength={120} defaultValue={c?.numero ?? suggestion?.numero ?? ""} /></Champ>
       <Champ titre="Où le trouver ?"><input name="emplacement" maxLength={500} defaultValue={c?.emplacement ?? ""} placeholder="Ex. placard de l’entrée" /></Champ>
-      <Champ titre="Unité affichée"><select name="unite" key={type} defaultValue={c?.unite ?? (type.startsWith("eau") || type === "gaz" ? "m3" : "kwh")} disabled={!!dejaDemande}><option value="m3">m³</option><option value="kwh">kWh</option></select>{dejaDemande && <input type="hidden" name="unite" value={c!.unite} />}</Champ>
+      <Champ titre="Unité affichée"><select name="unite" value={unite} onChange={e => setUnite(e.target.value)} disabled={!!dejaDemande}><option value="m3">m³</option><option value="kwh">kWh</option></select>{dejaDemande && <input type="hidden" name="unite" value={c!.unite} />}</Champ>
     </div></details>
   </>;
 }
@@ -98,7 +104,8 @@ function Compteur({ p, c }: { p: Props; c: CompteurConsommation }) {
   try { if (dernier) delta = consommationEntre(lignes[1]?.index_releve ?? c.index_initial, dernier.index_releve); } catch { /* Historique signalé dans la fiche, pas de calcul inventé. */ }
   return <div className={styles.row}>
     <div className={styles.line}><strong>{c.libelle}{!p.lotId && c.lot_id ? ` · ${p.lots.find(l => l.id === c.lot_id)?.nom ?? "Logement"}` : ""}</strong><span className={styles.badge}>{demande ? `Relevé attendu le ${formaterDate(demande.echeance)}` : c.actif ? "Suivi actif" : "Arrêté"}</span></div>
-    <p className={styles.muted}>{Number(precedent).toLocaleString("fr-FR")} {unite} au {formaterDate(dernier?.date_releve ?? c.date_index_initial)}{delta != null ? ` · ${delta.toLocaleString("fr-FR")} ${unite} depuis le relevé précédent` : ""}</p>
+    <p className={styles.muted}>{TYPES_COMPTEUR[c.type]}{c.numero && ` · n° ${c.numero}`} · {Number(precedent).toLocaleString("fr-FR")} {unite} au {formaterDate(dernier?.date_releve ?? c.date_index_initial)}{delta != null ? ` · ${delta.toLocaleString("fr-FR")} ${unite} depuis le relevé précédent` : ""}</p>
+    {c.compteur_principal_id && <p className={styles.caption}>Compteur principal · {(p.principaux ?? p.compteurs).find(m => m.id === c.compteur_principal_id)?.libelle ?? "Référence indisponible"}</p>}
     {c.bail_referent && <p className={styles.caption}>Relevés demandés à {p.baux.find(b => b.id === c.bail_referent)?.nom ?? "l’occupant désigné"}{c.actif ? ` · prochaine demande le ${formaterDate(c.prochaine_demande)}` : ""}</p>}
     {destinataireTermine && <p className={styles.warning}>Le bail du précédent destinataire est terminé. Choisissez qui recevra les prochains relevés.</p>}
     {!p.lectureSeule && <div className={styles.actions}><Button size="sm" variant="outline" type="button" onClick={() => setSaisie(!saisie)}>Renseigner un relevé</Button><Button size="sm" variant="ghost" type="button" onClick={() => setEdit(!edit)}>{destinataireTermine ? "Choisir le destinataire" : "Réglages"}</Button></div>}
@@ -111,6 +118,10 @@ function ChampsContrat({ p, c }: { p: Props; c?: ContratFourniture }) {
   const historique = !!c && p.factures.some(f => f.contrat_id === c.id);
   return <><div className={styles.fields}><Champ titre="Fournisseur ou organisme"><input name="fournisseur" required maxLength={150} defaultValue={c?.fournisseur} placeholder="Ex. fournisseur d’eau" /></Champ><Champ titre="Type"><select name="categorie" defaultValue={c?.categorie ?? "eau"} disabled={historique}>{Object.entries(CATEGORIES_FOURNITURE).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>{historique && <input name="categorie" type="hidden" value={c!.categorie} />}</Champ></div>
     {!p.lotId && <Champ titre="Concerne"><select name="lot_id" defaultValue={c?.lot_id ?? ""} disabled={historique}><option value="">Tout le bâtiment</option>{p.lots.filter(l => l.etat !== "archive" || l.id === c?.lot_id).map(l => <option key={l.id} value={l.id}>{l.nom}{l.etat === "archive" ? " (archivé)" : ""}</option>)}</select>{historique && <input name="lot_id" type="hidden" value={c!.lot_id ?? ""} />}</Champ>}
+    <div className={styles.fields}>
+      <Champ titre="Souscrit par"><input name="souscripteur" maxLength={150} defaultValue={c?.souscripteur ?? ""} placeholder="Nom de la personne ou de la société" /></Champ>
+      <Champ titre="Payé par"><input name="payeur" maxLength={150} defaultValue={c?.payeur ?? ""} placeholder="Nom de la personne ou de la société" /></Champ>
+    </div>
     {historique && <p className={styles.caption}>Des factures sont rattachées à ce contrat. Pour changer son type ou son logement, archivez-le puis ajoutez un nouveau contrat. Les autres réglages restent modifiables.</p>}
     <details open={!!c?.echeance}><summary>Montant et rappel d’échéance</summary><div className={styles.fields}><Champ titre="Montant habituel (€)"><input name="montant" inputMode="decimal" defaultValue={c?.montant_cents != null ? c.montant_cents / 100 : ""} /></Champ><Frequence valeur={c?.periodicite_mois} /><Champ titre="Fin de contrat / renouvellement"><input name="echeance" type="date" defaultValue={c?.echeance ?? ""} /></Champ><Champ titre="Préavis (jours)"><input name="preavis_jours" type="number" min="0" max="366" defaultValue={c?.preavis_jours ?? 30} /></Champ><Champ titre="Référence du contrat"><input name="reference" maxLength={150} defaultValue={c?.reference ?? ""} /></Champ></div></details>
   </>;
@@ -121,6 +132,7 @@ function Contrat({ p, c }: { p: Props; c: ContratFourniture }) {
   return <div className={styles.row}>
     <div className={styles.line}><strong>{c.fournisseur}</strong><span className={styles.badge}>{CATEGORIES_FOURNITURE[c.categorie]}</span></div>
     <p className={styles.muted}>{c.montant_cents != null ? `${eur(c.montant_cents / 100)} · ` : ""}{c.lot_id ? p.lots.find(l => l.id === c.lot_id)?.nom : "Bâtiment entier"}{c.echeance ? ` · échéance le ${formaterDate(c.echeance)}` : ""}</p>
+    <p className={styles.caption}>Souscrit par · {c.souscripteur || "À renseigner"}<br />Payé par · {c.payeur || "À renseigner"}</p>
     {!p.lectureSeule && <div className={styles.actions}><Button type="button" size="sm" variant="outline" onClick={() => setAjout(!ajout)}>{c.actif ? "Ajouter une facture" : "Ajouter la facture de clôture"}</Button>{c.actif && <Button type="button" size="sm" variant="ghost" onClick={() => setEdit(!edit)}>Modifier le contrat</Button>}</div>}
     {edit && !p.lectureSeule && <><Form p={p} action="contrat" id={c.id} fini={() => setEdit(false)}><ChampsContrat p={p} c={c} /></Form><details><summary className={styles.muted}>Contrat terminé</summary><Form p={p} action="archiver_contrat" id={c.id} titre="Archiver le contrat" fini={() => setEdit(false)} /></details></>}
     {ajout && !p.lectureSeule && <NouvelleFacture p={p} c={c} derniere={factures[0]} fini={() => setAjout(false)} />}
@@ -147,6 +159,7 @@ function NouvelleFacture({ p, c, derniere, fini }: { p: Props; c: ContratFournit
       setLus(precedentes => ({ ...precedentes, ...valeurs }));
       setLectureAppliquee(true);
     }} />
+    <label><input type="checkbox" name="automatique" defaultChecked/> Gerimmo gère la suite automatiquement ; je confirme les sommes reçues.</label>
     {c.categorie === "teom" && <p className={styles.caption}>Recopiez uniquement la ligne « taxe d’enlèvement des ordures ménagères » et ses frais de gestion. Le total de l’avis foncier ne sera pas repris automatiquement.</p>}
     <div className={styles.fields}><Champ titre="Référence de la facture"><input name="reference" required maxLength={150} {...champ("reference")} /></Champ><Champ titre={c.categorie === "teom" ? "Montant TEOM (€), hors autres taxes" : "Total TTC (€)"}><input name="total" inputMode="decimal" required {...champ("total")} /></Champ><Champ titre="Période du"><input type="date" name="periode_debut" required {...champ("periode_debut")} /></Champ><Champ titre="Au"><input type="date" name="periode_fin" required {...champ("periode_fin")} /></Champ></div>
     <details open={lectureAppliquee}><summary>Consommation, abonnement et paiement</summary><div className={styles.fields}>{c.categorie === "gaz" && <Champ titre="Unité indiquée sur la facture"><select name="unite_consommation" {...champ("unite_consommation")}><option value="">À vérifier sur la facture</option><option value="m3">m³</option><option value="kwh">kWh</option></select></Champ>}<Champ titre="Consommation facturée (unité du compteur)"><input name="consommation" inputMode="decimal" {...champ("consommation")} /></Champ><Champ titre="Dont abonnement / frais fixes (€)"><input name="frais_fixes" inputMode="decimal" {...champ("frais_fixes")} /></Champ>{c.categorie === "teom" && <Champ titre="Dont frais de gestion (€)"><input name="frais_gestion" inputMode="decimal" {...champ("frais_gestion")} /></Champ>}<Champ titre="À payer avant le"><input name="date_echeance" type="date" {...champ("date_echeance")} /></Champ></div></details>
@@ -180,19 +193,44 @@ function AvisTaxeFonciere({ p, fini }: { p: Props; fini: (message: string) => vo
     {lire("total_avis") > 0 && <p className={styles.caption}>Part à répartir entre les locataires : {eur(lire("teom"))} · part du propriétaire (déductible) : {eur(Math.max(0, proprietaire))}.</p>}
   </Form>;
 }
-function Facture({ p, c, f, repartirDirectement = false }: { p: Props; c: ContratFourniture; f: FactureFourniture; repartirDirectement?: boolean }) {
+function Facture({ p, c, f, pleinePage = false, repartirDirectement = false }: { p: Props; c: ContratFourniture; f: FactureFourniture; repartirDirectement?: boolean; pleinePage?: boolean }) {
+  const suiviAuto=p.suiviAuto?.find(a=>a.id===f.id);
+  const automatiqueEnCours=suiviAuto?.actif && ["a_traiter","releves_attendus"].includes(suiviAuto.etat);
   const {facture:factureActive}=useParcoursDepense();
   const [paiement, setPaiement] = useState(false);
   const [rapprochement, setRapprochement] = useState(false);
   const comparaison = comparerFactureReleves(f, c, p.compteurs, p.releves, p.lots.map(l => l.id));
   const bilan = comparaison.bilan;
-  return <article className={styles.invoice}>
+  return <article className={pleinePage ? styles.pageDecompte : styles.invoice}>
+    {pleinePage ? <><nav className={styles.filFacture} aria-label="Fil d’Ariane"><a href={`${p.base}/parc`}>Biens & locations</a><span>›</span><a href={`${p.base}/parc/${p.bienId}`}>{p.bienNom ?? "Le bien"}</a><span>›</span><span>Répartition de facture</span></nav>
+      <header className={styles.titreFacture}><span aria-hidden="true">▤</span><div><h1>{p.repartitions.some(r=>r.facture_id===f.id && r.statut==="validee") ? "Décompte validé" : "Répartition d’une facture"}</h1><p>{CATEGORIES_FOURNITURE[c.categorie]} · {c.fournisseur} · {f.reference}</p></div></header>
+      <div className={styles.outilsDecompte}>
+      <span>Période · {formaterDate(f.periode_debut)} → {formaterDate(f.periode_fin)}</span>
+      <ApercuDocumentEspace fichier={`${p.base}/documents/${f.document_id}/fichier`} titre={`Facture ${c.fournisseur} ${f.reference}`}/>
+      {f.consommation != null && <Button size="sm" variant="outline" aria-expanded={rapprochement} onClick={()=>setRapprochement(!rapprochement)}>Comparer aux relevés</Button>}
+      <a href={`${p.base}/parc/${p.bienId}#consommations`}>Retour aux factures</a></div></> : <>
+
     <div className={styles.line}><strong>{f.reference} · {eur(Number(f.total_cents) / 100)}</strong><span className={styles.badge}>{f.payee_le ? `Payée le ${formaterDate(f.payee_le)}` : "Paiement à vérifier"}</span></div>
     <p className={styles.caption}>{formaterDate(f.periode_debut)} – {formaterDate(f.periode_fin)}</p>
     <div className={styles.actions}><ApercuDocumentEspace fichier={`${p.base}/documents/${f.document_id}/fichier`} titre={`Facture ${c.fournisseur} ${f.reference}`} />{!f.payee_le && !p.lectureSeule && <Button type="button" size="sm" variant="outline" onClick={() => setPaiement(!paiement)}>Indiquer le paiement</Button>}{f.consommation != null && <Button type="button" size="sm" variant="ghost" onClick={() => setRapprochement(!rapprochement)}>Comparer aux relevés</Button>}</div>
+    </>}
     {paiement && !p.lectureSeule && <Form p={p} action="facture_payee" id={f.id} fini={() => setPaiement(false)}><Champ titre="Payée le"><input name="date" type="date" defaultValue={p.aujourdHui} max={p.aujourdHui} required /></Champ></Form>}
-    <RepartitionFacture key={`${f.id}:${factureActive===f.id}`} ouvertInitialement={repartirDirectement || factureActive===f.id} aujourdhui={p.aujourdHui} base={p.base} orgId={p.orgId} factureId={f.id} existante={p.repartitions.find(r => r.facture_id === f.id)} lots={c.lot_id ? p.lots.filter(l => l.id === c.lot_id) : p.lots} baux={p.baux} lectureSeule={p.lectureSeule} categorie={c.categorie} compteurs={p.compteurs} releves={p.releves} facture={f}
-      reglagesPrecedents={p.factures.filter(x => x.contrat_id === c.id && x.periode_fin < f.periode_fin).map(x => p.repartitions.find(r => r.facture_id === x.id)?.source?.reglages).find(Boolean)} />
+    {pleinePage && !automatiqueEnCours && !p.lectureSeule && !p.repartitions.some(r=>r.facture_id===f.id && r.statut==="validee") && <details><summary>Corriger les informations de la facture</summary><Form p={p} action="modifier_facture" id={f.id} titre="Enregistrer les corrections">
+      <div className={styles.fields}>
+      <Champ titre="Référence"><input name="reference" defaultValue={f.reference} required/></Champ>
+      <Champ titre="Montant TTC (€)"><input name="total" defaultValue={Number(f.total_cents)/100} inputMode="decimal" required/></Champ>
+      <Champ titre="Début de période"><input name="periode_debut" type="date" defaultValue={f.periode_debut} required/></Champ>
+      <Champ titre="Fin de période"><input name="periode_fin" type="date" defaultValue={f.periode_fin} required/></Champ>
+      <Champ titre="Consommation facturée"><input name="consommation" inputMode="decimal" defaultValue={f.consommation ?? ""}/></Champ>
+      <Champ titre="Unité"><select name="unite_consommation" defaultValue={f.unite_consommation ?? ""}><option value="">Sans unité</option><option value="m3">m³</option><option value="kwh">kWh</option></select></Champ>
+      <Champ titre="Dont frais fixes (€)"><input name="frais_fixes" defaultValue={Number(f.frais_fixes_cents)/100} inputMode="decimal"/></Champ>
+      <Champ titre="Dont frais non récupérables (€)"><input name="frais_gestion" defaultValue={Number(f.frais_gestion_cents)/100} inputMode="decimal"/></Champ>
+      <input type="hidden" name="date_echeance" value={f.date_echeance ?? ""}/>
+      </div><p>Le justificatif est conservé. Recalculez la répartition après toute correction.</p>
+    </Form></details>}
+    {!p.lectureSeule && <SuiviFactureAutomatique org={p.orgId} id={f.id} suivi={suiviAuto}/>}
+    {!automatiqueEnCours && <RepartitionFacture pleinePage={pleinePage} decomptes={p.decomptes} cles={p.cles} bienId={p.bienId} key={`${f.id}:${factureActive===f.id}:${f.periode_debut}:${f.periode_fin}:${f.total_cents}:${f.consommation}`} ouvertInitialement={repartirDirectement || factureActive===f.id} aujourdhui={p.aujourdHui} base={p.base} orgId={p.orgId} factureId={f.id} existante={p.repartitions.find(r => r.facture_id === f.id)} lots={c.lot_id ? p.lots.filter(l => l.id === c.lot_id) : p.lots} baux={p.baux} lectureSeule={p.lectureSeule} categorie={c.categorie} compteurs={p.compteurs} releves={p.releves} demandes={p.demandes.filter(d=>p.liensReleves?.some(l=>l.facture_id===f.id && l.demande_id===d.id))} facture={f}
+      reglagesPrecedents={p.factures.filter(x => x.contrat_id === c.id && x.periode_fin < f.periode_fin).map(x => p.repartitions.find(r => r.facture_id === x.id)?.source?.reglages).find(Boolean)} />}
     {rapprochement && <div className={styles.warning}>{bilan ? <><p>Facture : {bilan.consommationFacturee.toLocaleString("fr-FR")} {comparaison.unite} · relevés : {bilan.consommationRelevee.toLocaleString("fr-FR")} {comparaison.unite} · écart : {bilan.ecart.toLocaleString("fr-FR")} {comparaison.unite}</p>{bilan.avertissements.map(a => <p key={a}>{a}</p>)}{!bilan.avertissements.length && <p>Les périodes et les consommations correspondent.</p>}</> : <p>{comparaison.erreur}</p>}</div>}
   </article>;
 }

@@ -176,6 +176,9 @@ describe.skipIf(!CHROMIUM)("/inscription : « Vous louez en tant que » garde le
     expect(await qualite().inputValue()).toBe("Personne physique");
 
     await champ("nom").fill("Martin");
+    await champ("adresse").fill("3 rue du Test");
+    await champ("code_postal").fill("69003");
+    await champ("ville").fill("Lyon");
     await champ("email").fill(ADRESSE);
     await qualite().selectOption("SCI");
     await champ("code_parrainage").fill("ABC");
@@ -195,6 +198,9 @@ describe.skipIf(!CHROMIUM)("/inscription : « Vous louez en tant que » garde le
   it("refus de la fabrique de liens (trop de demandes) : la liste garde aussi le choix, et le nouvel essai le porte", async () => {
     await ouvrir(htmlDuServeur({}), { refus: [LIMITE, LIMITE] });
     await champ("nom").fill("Martin");
+    await champ("adresse").fill("3 rue du Test");
+    await champ("code_postal").fill("69003");
+    await champ("ville").fill("Lyon");
     await champ("email").fill(ADRESSE);
     await qualite().selectOption("SCI familiale");
     await envoyer();
@@ -209,6 +215,9 @@ describe.skipIf(!CHROMIUM)("/inscription : « Vous louez en tant que » garde le
   it("refus successifs avec d'autres choix, jusqu'au retour à « Personne physique » : la liste suit toujours le dernier envoi", async () => {
     await ouvrir(htmlDuServeur({}));
     await champ("nom").fill("Martin");
+    await champ("adresse").fill("3 rue du Test");
+    await champ("code_postal").fill("69003");
+    await champ("ville").fill("Lyon");
     await champ("email").fill(ADRESSE);
 
     // Chaque code est mal formé : l'action refuse sans rien appeler.
@@ -241,7 +250,7 @@ describe.skipIf(!CHROMIUM)("/inscription : « Vous louez en tant que » garde le
   it("sans script : la page rendue par le serveur après l'envoi natif affiche la qualité refusée, et la renverrait telle quelle", async () => {
     // Le vrai refus de l'action (code mal formé : aucun appel à la fabrique), tel que le serveur le rend à la page.
     const envoiNatif = new FormData();
-    const saisie = { nom: "Martin", email: ADRESSE, qualite: "SCI", code_parrainage: "ABC", prenom: "", telephone: "", adresse: "", code_postal: "", ville: "" };
+    const saisie = { nom: "Martin", email: ADRESSE, qualite: "SCI", code_parrainage: "ABC", prenom: "", telephone: "", adresse: "3 rue du Test", code_postal: "69003", ville: "Lyon" };
     for (const [cle, valeur] of Object.entries(saisie)) envoiNatif.set(cle, valeur);
     const refus = await inscrireProprietaire({}, envoiNatif);
     expect(refus).toMatchObject({ erreur: CODE_MAL_FORME, valeurs: { qualite: "SCI", nom: "Martin" } });

@@ -42,3 +42,5 @@ button.carte > strong.question { font-size: clamp(20px, 1.8vw, 25px); line-heigh
   .carte > strong, .repos > strong { padding-right: 24px; }
   .carte small.apercu { grid-column: 1 / -1; padding-right: 24px; }
 }
+
+button.carte > small.paliers { white-space: normal; overflow-wrap: anywhere; font-weight: 650; line-height: 1.35; grid-column: 1 / -1; }

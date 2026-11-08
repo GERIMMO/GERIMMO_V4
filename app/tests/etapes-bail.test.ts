@@ -51,3 +51,10 @@ describe("saisie progressive du bail",()=>{
  });
  it.each([["#etape-bail-1",0],["#etape-bail-7",6],["#etape-bail-11",6],["#completer-personnes",1],["#completer-lot",2],["#completer-dpe",4],["#complements-paiement",3],["#complements-precedent",3],["#complements-energie",4],["#complements-conditions",5],["#signature",6],["#edl",6]] as const)("oriente le lien %s",(hash,index)=>expect(indexEtapeBail(hash)).toBe(index));
 });
+
+ describe("Champs à corriger dans le loyer", () => {
+ const donnees = (v: Record<string,string>) => { const f=new FormData(); for(const [k,val] of Object.entries(v)) f.set(k,val); return f; };
+ const valeurs = {loyer_hc:"500",charges:"20",depot_garantie:"500",jour_echeance:"5"};
+ it("désigne le montant mal saisi", () => expect(lireEtapeBail("loyer",donnees({...valeurs,charges:"abc"}),{type:"nu"},{meuble:false,surface:40})).toMatchObject({champErreur:"charges",patch:null}));
+ it("désigne le dépôt au-delà du plafond", () => expect(lireEtapeBail("loyer",donnees({...valeurs,depot_garantie:"900"}),{type:"nu"},{meuble:false,surface:40})).toMatchObject({champErreur:"depot_garantie",patch:null}));
+ });

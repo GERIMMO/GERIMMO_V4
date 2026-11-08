@@ -14,8 +14,7 @@ config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
 verifierBaseDeTest(DB_URL);
 
-// Un compte tel que Supabase Auth le crée à l'inscription : nom et prénom
-// dans les métadonnées, c'est tout — l'espace n'existe pas encore.
+// Le compte est créé avec les coordonnées saisies avant l’ouverture du parc.
 async function creerCompte(
   db: Client,
   meta: Record<string, string> = {},
@@ -30,7 +29,7 @@ async function creerCompte(
     values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated','authenticated',
       $1,'x', now(), '{"provider":"email","providers":["email"]}'::jsonb, $2::jsonb, now(), now(),'','','','','')
     returning id`,
-    [email, JSON.stringify(meta)]
+    [email, JSON.stringify({ adresse: "3 rue du Test", code_postal: "69003", ville: "Lyon", ...meta })]
   );
   return { id, email };
 }
@@ -81,6 +80,14 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     return org;
   }
 
+  it("bloque une adresse incomplète avant la création du parc", async () => {
+    const c = await creerCompte(db, { nom: "Essai", ville: "   " });
+    await simuler(db, c.id);
+    await attendreEchec(db, /adresse postale complète/, "select public.initialiser_espace_proprietaire()");
+    await db.query("reset role");
+    expect((await db.query("select 1 from public.memberships where account_id=$1", [c.id])).rowCount).toBe(0);
+  });
+
   it("inscription : organisation en essai de 2 mois, adhésion et fiche du propriétaire — idempotente", async () => {
     const compte = await creerCompte(db, { nom: "Moreau", prenom: "Claire", espace: "proprietaire_direct" });
     const org = await ouvrirEspace(compte);
@@ -88,8 +95,10 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     await db.query("reset role");
     const {
       rows: [o],
-    } = await db.query(`select name, type, status, essai_fin from public.organizations where id=$1`, [org]);
+    } = await db.query(`select name, type, status, essai_fin, city, email_contact from public.organizations where id=$1`, [org]);
     expect(o.name).toBe("Parc de Claire Moreau");
+    expect(o.city).toBe("Lyon");
+    expect(o.email_contact).toBe(compte.email);
     expect(o.type).toBe("proprietaire_direct");
     expect(o.status).toBe("essai");
     const {

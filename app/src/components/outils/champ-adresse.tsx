@@ -16,14 +16,14 @@ export function ChampAdresse({
   valeur,
   onChange,
   onChoix,
-  aide,
+  aide, name, required = false,
 }: {
   id: string;
   libelle: string;
   valeur: string;
   onChange: (v: string) => void;
   onChoix: (s: SuggestionAdresse) => void;
-  aide?: string;
+  aide?: string; name?: string; required?: boolean;
 }) {
   const [suggestions, setSuggestions] = useState<SuggestionAdresse[]>([]);
   const [active, setActive] = useState(-1);
@@ -91,6 +91,9 @@ export function ChampAdresse({
         </svg>
         <input
           id={id}
+          name={name}
+          required={required}
+          maxLength={200}
           type="text"
           role="combobox"
           aria-autocomplete="list"

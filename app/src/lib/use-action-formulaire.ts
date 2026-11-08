@@ -32,10 +32,11 @@ export function useActionFormulaire<T extends Retour>(action: (etat: T, donnees:
       setEtat(retour);
       if (retourConfirme(retour)) {
         const inchange = confirmerSoumission(donnees);
-        notifier?.();
+        notifier?.(true);
         if (inchange && resetApresSucces) setVersion((v) => v + 1);
-      }
+      } else notifier?.(false);
     } catch (erreur) {
+      notifier?.(false);
       unstable_rethrow(erreur);
       // Session expirée (redirigée par le proxy) ou réponse perdue : le message n'est pas le même (audit du 13/10).
       setEtat({ erreur: erreur instanceof ErreurDepotDirect ? erreur.message : await messageApresEchec("La confirmation n’a pas pu être reçue. Votre saisie est conservée ; rouvrez le dossier pour vérifier le résultat avant de recommencer.") } as T);

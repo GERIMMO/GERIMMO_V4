@@ -1,3 +1,4 @@
+import { palierRappelReleve } from "./rappels-releves";
 import { ArretSupervision } from "./controle-effets";
 // Les e-mails qui préviennent quelqu'un qu'un geste l'attend (25/09).
 //
@@ -684,7 +685,8 @@ export type TypeRappel =
   | "creneau_non_choisi"
   | "mission_non_acceptee"
   | "piece_demandee"
-  | "devis_non_chiffre";
+  | "devis_non_chiffre"
+  | "releve_attendu";
 
 /** Après combien de jours sans geste on rappelle — une fois, et une seule. */
 export const DELAIS_RAPPEL: Record<TypeRappel, number> = {
@@ -692,6 +694,7 @@ export const DELAIS_RAPPEL: Record<TypeRappel, number> = {
   mission_non_acceptee: 2,
   piece_demandee: 7,
   devis_non_chiffre: 3,
+  releve_attendu: 3,
 };
 
 /** Le rôle qui reçoit chaque rappel : le message est écrit pour lui. */
@@ -700,6 +703,7 @@ export const ROLE_RAPPEL: Record<TypeRappel, Role> = {
   mission_non_acceptee: "artisan",
   piece_demandee: "locataire",
   devis_non_chiffre: "artisan",
+  releve_attendu: "locataire",
 };
 
 /**
@@ -761,6 +765,12 @@ export function messageRappelGeste(p: {
         relance: true,
         lien: p.lien,
       });
+    case "releve_attendu":
+      return { sujet: `Rappel — relevé de compteur attendu — ${p.emetteur}`, html: gabaritNotification({
+        titre: "Votre relevé est attendu", emetteur: p.emetteur,
+        lignes: [`Le relevé « ${p.libelle ?? "Compteur"} » manque pour vérifier les charges.`, "Indiquez l’index et sa date réelle dans votre espace. Si vous n’avez pas l’index demandé, prévenez le propriétaire ; ne l’estimez pas."],
+        action: {libelle:"Transmettre mon relevé",lien:p.lien},
+      }) };
     case "devis_non_chiffre":
       return {
         sujet: `Rappel — demande de devis sans réponse — ${p.emetteur}`,
@@ -1655,7 +1665,7 @@ const PLAFOND_PAR_TYPE = 100;
 export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: Date = new Date(), avantEffet?: () => Promise<void>, budget: BudgetRappels = {}): Promise<BilanRappelsGestes> {
   const bilan: BilanRappelsGestes = {
     envoyes: 0, echecs: 0, sans_adresse: 0, non_consignes: 0,
-    par_type: { creneau_non_choisi: 0, mission_non_acceptee: 0, piece_demandee: 0, devis_non_chiffre: 0 },
+    par_type: { creneau_non_choisi: 0, mission_non_acceptee: 0, piece_demandee: 0, devis_non_chiffre: 0, releve_attendu: 0 },
   };
   const horloge = budget.horloge ?? Date.now;
   const echeanceMs = budget.echeanceMs ?? horloge() + 160_000;
@@ -1729,6 +1739,14 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
       incidentId: s.incident_id, artisanId: s.artisan_id, lienChemin: `/artisan/devis/${s.id}`,
     });
   }
+  const {data: demandesReleves, error: erreurReleves} = await service.rpc("releves_a_rappeler");
+  if (erreurReleves) bilan.echecs += 1;
+  for (const d of demandesReleves ?? []) {
+    const palier = palierRappelReleve(d.created_at, maintenant);
+    if (palier == null) continue;
+    candidats.push({cle:`releve_attendu:${d.id}:j${palier}`, type:"releve_attendu", orgId:d.organization_id,
+      objetId:d.id, depuis:d.created_at, personId:d.personne_id, libelle:d.libelle, lienChemin:`/locataire/${d.organization_id}/releves`});
+  }
   if (candidats.length === 0) return bilan;
 
   // 2. Ce qui est déjà parti. Fenêtre de 90 jours : un objet plus vieux a été
@@ -1794,6 +1812,12 @@ async function envoyerUnRappel(service: SupabaseClient, c: Candidat, nom: string
       if (!inc) return { envoyee: false, motif: "introuvable" };
       const locataire = await lireLocataire(service, c.orgId, inc);
       to = locataire?.email; prenom = locataire?.prenom ?? null; categorie = inc.categorie;
+    } else if (c.type === "releve_attendu") {
+      // Relire juste avant l’envoi : un relevé reçu ou un départ annule le rappel.
+      const {data, error} = await service.rpc("releves_a_rappeler", {p_demande:c.objetId});
+      if (error || !data?.some((d:{organization_id:string;personne_id:string})=>d.organization_id===c.orgId && d.personne_id===c.personId)) return {envoyee:false,motif:"introuvable"};
+      const personne = c.personId ? await lirePersonne(service,c.orgId,c.personId) : null;
+      to=personne?.email; prenom=personne?.prenom ?? null;
     } else if (c.type === "piece_demandee") {
       const personne = c.personId ? await lirePersonne(service, c.orgId, c.personId) : null;
       to = personne?.email; prenom = personne?.prenom ?? null;

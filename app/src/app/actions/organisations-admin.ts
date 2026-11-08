@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normaliserCode } from "@/lib/parrainage";
+import { adresseManquante, adresseOuverture } from "@/lib/coordonnees-courrier";
+import { champTropLong, valeursBornees } from "@/lib/limites-saisie";
+import { emailValide } from "@/lib/marque-organisation";
 import { sansJargon } from "@/lib/erreurs";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { envoyerLienMotDePasse } from "@/lib/lien-mot-de-passe";
@@ -74,7 +77,16 @@ export async function ouvrirOrganisation(
     if (!parrain) return { erreur: "Code de parrainage inconnu.", valeurs };
   }
 
+  const coordonnees = adresseOuverture(formData);
+  const tropLong = champTropLong(coordonnees);
+  if (tropLong) return { erreur: tropLong, valeurs: valeursBornees(valeurs) };
+  const erreurAdresse = adresseManquante(coordonnees);
+  if (erreurAdresse) return { erreur: erreurAdresse, valeurs };
+  if (!emailValide(email)) return { erreur: "Renseignez une adresse e-mail valide pour le responsable.", valeurs };
   const { data, error } = await supabase.rpc("ouvrir_organisation", {
+    p_adresse: coordonnees.adresse,
+    p_code_postal: coordonnees.code_postal,
+    p_ville: coordonnees.ville,
     p_nom: nom,
     p_type: type,
     p_email_responsable: email,

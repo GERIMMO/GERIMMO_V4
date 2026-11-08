@@ -11,7 +11,7 @@ const f=()=>{const form=new FormData();form.set("confirmer","oui");form.set("res
 beforeEach(()=>{
   vi.clearAllMocks();m.ouverte=true;m.erreurs={};m.filtres=[];m.lignesBail=null;
   m.ligne={appel_id:"appel",bail_id:"bail",lot_nom:"TEST Appartement",periode:"2026-01-01",date_echeance:"2026-01-05",montant_du:800,montant_couvert:200};
-  m.tables={relances:null,baux:{locataire_principal:"locataire"},persons:{email:"locataire@example.invalid",prenom:"Camille"},bail_personnes:[],colocataires:[],organizations:{name:"Claire"}};
+  m.tables={relances:[],baux:{locataire_principal:"locataire"},persons:{email:"locataire@example.invalid",prenom:"Camille"},bail_personnes:[],colocataires:[],organizations:{name:"Claire",relance_1_jours:5,relance_2_jours:15}};
   m.rpc.mockImplementation((nom:string)=>{
     if(nom==="etat_abonnement")return Promise.resolve({data:[{ecriture_ouverte:m.ouverte}],error:null});
     // Lecture de la ligne relancée (maybeSingle), puis de toutes les lignes du bail pour la dette totale.
@@ -20,9 +20,10 @@ beforeEach(()=>{
     q.eq.mockImplementation((...args:unknown[])=>{m.filtres.push(["rappels",...args]);return q;});return q;
   });
   m.from.mockImplementation((table:string)=>{
-    const q={select:vi.fn(),eq:vi.fn(),gte:vi.fn(),or:vi.fn(),in:vi.fn(),order:vi.fn(),limit:vi.fn(),maybeSingle:async()=>({data:m.tables[table],error:m.erreurs[table]??null}),upsert:m.trace,
+    let niveau="";
+    const q={range:async()=>({data:[],error:null}),select:vi.fn(),eq:vi.fn(),gte:vi.fn(),or:vi.fn(),in:vi.fn(),order:vi.fn(),limit:vi.fn(),maybeSingle:async()=>({data:table==="relances"?(m.tables.relances as {niveau:string}[]).find(r=>r.niveau===niveau)??null:m.tables[table],error:m.erreurs[table]??null}),upsert:m.trace,
       then:(resolve:(value:{data:unknown;error:unknown})=>unknown)=>Promise.resolve({data:m.tables[table==="persons"?"colocataires":table],error:m.erreurs[table]??null}).then(resolve)};
-    for(const nom of ["select","eq","gte","or","in","order","limit"] as const)q[nom].mockImplementation((...args:unknown[])=>{m.filtres.push([table,nom,...args]);return q;});return q;
+    for(const nom of ["select","eq","gte","or","in","order","limit"] as const)q[nom].mockImplementation((...args:unknown[])=>{m.filtres.push([table,nom,...args]);if(nom==="eq" && args[0]==="niveau")niveau=String(args[1]);return q;});return q;
   });
   m.acces.mockResolvedValue({user:{id:"moi"},role:"proprietaire_direct",supabase:{rpc:m.rpc,from:m.from}});
   m.envoyer.mockResolvedValue({});m.trace.mockResolvedValue({error:null});
@@ -39,10 +40,20 @@ it("n'envoie pas de courrier pour une échéance soldée ou à venir",async()=>{
   m.ligne={date_echeance:"2099-01-01"};expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toContain("plus en attente");expect(m.envoyer).not.toHaveBeenCalled();
 });
 it.each(["relance_1","relance_2","mise_en_demeure"])("ne recommence pas la procédure après une %s déjà consignée",async(niveau)=>{
-  m.tables.relances={niveau,date_envoi:"2026-01-08"};expect((await envoyerRelanceReception("org","appel",{},f())).succes).toContain("déjà été enregistrée");expect(m.envoyer).not.toHaveBeenCalled();
+  m.tables.relances=[{niveau,date_envoi:"2026-01-08"}];expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toBeTruthy();expect(m.envoyer).not.toHaveBeenCalled();
   expect(m.filtres).toContainEqual(["relances","eq","organization_id","org"]);
   expect(m.filtres).toContainEqual(["relances","eq","bail_id","bail"]);
   expect(m.filtres).toContainEqual(["relances","gte","date_envoi","2026-01-05"]);
+});
+it("envoie la deuxième relance seulement après la première, avec sa propre trace",async()=>{
+  const form=f();form.set("niveau","relance_2");
+  expect((await envoyerRelanceReception("org","appel",{},form)).erreur).toMatch(/première relance/);
+  expect(m.envoyer).not.toHaveBeenCalled();
+  m.tables.relances=[{niveau:"relance_1",date_envoi:"2026-01-10"}];
+  expect((await envoyerRelanceReception("org","appel",{},form)).succes).toContain("enregistrée");
+  expect(m.trace).toHaveBeenCalledWith(expect.objectContaining({niveau:"relance_2"}),expect.anything());
+  m.tables.relances=[{niveau:"relance_1",date_envoi:"2026-01-10"},{niveau:"relance_2",date_envoi:"2026-01-25"}];
+  expect((await envoyerRelanceReception("org","appel",{},form)).erreur).toBeTruthy();expect(m.envoyer).toHaveBeenCalledTimes(1);
 });
 it("attend le lendemain de l'échéance pour relancer",async()=>{
   m.ligne={date_echeance:aujourdhuiParis()};expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toContain("dès demain");expect(m.envoyer).not.toHaveBeenCalled();
@@ -51,7 +62,7 @@ it("fait reconfirmer un montant modifié depuis la lecture",async()=>{
   const form=f();form.set("reste_attendu","800");expect((await envoyerRelanceReception("org","appel",{},form)).erreur).toContain("a changé");expect(m.envoyer).not.toHaveBeenCalled();
 });
 it("n'envoie rien si l'historique des relances ne peut pas être lu",async()=>{
-  m.erreurs.relances={message:"indisponible"};expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toContain("Impossible de vérifier les relances");expect(m.envoyer).not.toHaveBeenCalled();
+  m.erreurs.relances={message:"indisponible"};expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toContain("Impossible de vérifier le suivi");expect(m.envoyer).not.toHaveBeenCalled();
 });
 it("un e-mail indisponible n'est pas enregistré comme envoyé",async()=>{
   m.envoyer.mockResolvedValue({erreur:"L’envoi des e-mails n’est pas configuré."});

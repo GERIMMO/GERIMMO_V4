@@ -3,6 +3,7 @@ import {preparerDepotsDirects} from "@/lib/depot-direct-client";
 import {MARQUEUR_DEPOT} from "@/lib/depot-direct-commun";
 
 import Link from "next/link";
+import { ChampAdresse } from "@/components/outils/champ-adresse";
 import { RepriseLocale, StatutCopieLocale, useCopieFichiers } from "@/components/reprise-locale";
 import { cleCopieFichiers, type CopieFichiers } from "@/lib/brouillon-fichiers";
 import { validerBrouillonPersonne, type BrouillonPersonne } from "@/lib/brouillons-personne-incident";
@@ -180,7 +181,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
           <div className={styles.grille}>
             {champ("email","Adresse email",{type:"email",max:200,autoComplete:"email",aide:"Une adresse email correspond à une seule fiche dans votre espace."})}
             {champ("telephone","Téléphone",{type:"tel",max:40,autoComplete:"tel",facultatif:true})}
-            {champ("address_line1","Adresse",{max:200,autoComplete:"street-address",large:true})}
+            <div className={styles.large}><ChampAdresse id="p-address_line1" name="address_line1" required libelle="Adresse *" valeur={valeurs.address_line1} onChange={adresse => setValeurs(v => ({...v,address_line1:adresse}))} onChoix={adresse => setValeurs(v => ({...v,address_line1:adresse.name,postal_code:adresse.postcode,city:adresse.city}))} /></div>
             {champ("postal_code","Code postal",{max:12,autoComplete:"postal-code"})}
             {champ("city","Ville",{autoComplete:"address-level2"})}
           </div>

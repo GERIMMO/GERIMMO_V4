@@ -286,9 +286,10 @@ describe("« Créer un lot » (D29 B) : la porte devant le formulaire", () => {
 describe("l'inscription du propriétaire (D29 B)", () => {
   const inscription = lire("src/app/inscription/formulaire-inscription.tsx");
 
-  it("garde l'adresse facultative (inscription courte)", () => {
-    for (const champ of ["Adresse postale (facultatif)", "Code postal (facultatif)", "Ville (facultatif)"]) {
-      expect(inscription).toContain(champ);
+  it("demande les coordonnées nécessaires aux courriers dès l’inscription", () => {
+    for (const champ of ["Adresse postale", "Code postal", "Ville"]) {
+      expect(inscription).toContain("<AdresseOuverture");
+      expect(lire("src/components/adresse-ouverture.tsx")).toContain(champ);
     }
   });
 });

@@ -5,7 +5,7 @@ import { useHydrate, AIDE_BOUTON_EN_ATTENTE } from "@/lib/use-hydrate";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { destinationSure } from "@/lib/destination-sure";
+import { destinationApresConnexion, destinationSure } from "@/lib/destination-sure";
 import { CLE_SESSION_ALERTES } from "@/components/synthese-alertes";
 import { oublierSession } from "@/lib/stockage-session";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,9 @@ const MESSAGES: Record<string, Message> = {
 function messageDeSuite(suite: string | null) {
   const destination = destinationSure(suite, "");
   if (!destination) return undefined;
+  if (destinationApresConnexion(destination) !== destination) {
+    return { texte: "Connectez-vous pour ouvrir votre tableau de bord.", ton: "info" as const };
+  }
   return {
     texte: destination.startsWith("/assistance")
       ? "Connectez-vous pour accéder à l'aide et aux retours ; vous y serez ramené."
@@ -111,7 +114,7 @@ export function FormulaireConnexion() {
     }
     // Retour à la destination demandée avant la connexion, s'il y en avait
     // une — filtrée par destinationSure (aucune URL externe ne peut passer).
-    router.push(destinationSure(searchParams.get("suite")));
+    router.replace(destinationApresConnexion(searchParams.get("suite")));
     router.refresh();
   }
 

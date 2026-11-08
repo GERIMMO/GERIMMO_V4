@@ -187,9 +187,9 @@ describe("marque blanche et discrétion", () => {
 });
 
 describe("les rappels de gestes", () => {
-  it("les quatre délais et rôles sont ceux de l'audit (P2-7)", () => {
-    expect(DELAIS_RAPPEL).toEqual({ creneau_non_choisi: 3, mission_non_acceptee: 2, piece_demandee: 7, devis_non_chiffre: 3 });
-    expect(ROLE_RAPPEL).toEqual({ creneau_non_choisi: "locataire", mission_non_acceptee: "artisan", piece_demandee: "locataire", devis_non_chiffre: "artisan" });
+  it("les délais et rôles incluent les relevés attendus", () => {
+    expect(DELAIS_RAPPEL).toEqual({ creneau_non_choisi: 3, mission_non_acceptee: 2, piece_demandee: 7, devis_non_chiffre: 3, releve_attendu: 3 });
+    expect(ROLE_RAPPEL).toEqual({ creneau_non_choisi: "locataire", mission_non_acceptee: "artisan", piece_demandee: "locataire", devis_non_chiffre: "artisan", releve_attendu: "locataire" });
   });
 
   it("chaque type a son propre texte, et ne dit pas « Gerimmo »", () => {

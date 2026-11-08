@@ -55,8 +55,9 @@ export type EtatLoyers = {
 export async function envoyerQuittance(
   orgId: string,
   bailId: string,
-  quittanceId: string
-): Promise<EtatLoyers> {
+  quittanceId: string,
+  quittanceAttendue?: boolean,
+): Promise<EtatLoyers & { envoyeLe?: string; dateNonConsignee?: boolean }> {
   const { supabase, user } = await verifierGerant(orgId, { geste: "envoi_quittance", cible: bailId });
   if (!user) return { erreur: "Accès refusé." };
 
@@ -65,7 +66,7 @@ export async function envoyerQuittance(
   // le document au bail dont on va chercher le destinataire.
   const { data: document, error: erreurDocument } = await supabase
     .from("quittances")
-    .select("id")
+    .select("id,est_quittance,email_envoye_at")
     .eq("id", quittanceId)
     .eq("bail_id", bailId)
     .eq("organization_id", orgId)
@@ -74,6 +75,11 @@ export async function envoyerQuittance(
     return { erreur: "Impossible de vérifier le document à envoyer. Réessayez." };
   if (!document)
     return { erreur: "Ce document est introuvable ou inaccessible pour ce bail." };
+
+  if (quittanceAttendue !== undefined && document.est_quittance !== quittanceAttendue)
+    return { erreur: "Le document a changé. Vérifiez le solde du loyer." };
+  if (document.email_envoye_at)
+    return { succes: "L’envoi est déjà enregistré.", envoyeLe: document.email_envoye_at };
 
   const { data: bail } = await supabase
     .from("baux")
@@ -108,6 +114,8 @@ export async function envoyerQuittance(
   // compléter.
   const conforme = await chargerQuittanceDocument(supabase, quittanceId);
   if (!conforme) return { erreur: "Impossible de lire le document à envoyer. Réessayez." };
+  if (quittanceAttendue !== undefined && (q.est_quittance !== quittanceAttendue || conforme.est_quittance !== quittanceAttendue || Number(q.montant) !== Number(conforme.montant)))
+    return { erreur: "Le document a changé. Vérifiez le solde du loyer." };
   const manquants = manquantsQuittance(assemblerQuittanceDelivree(conforme));
   if (manquants.length > 0) return { erreur: motifQuittanceIncomplete(manquants, q.est_quittance) };
   const libelleEnvoi = q.est_quittance ? "Quittance envoyée" : "Reçu de paiement partiel envoyé";
@@ -152,19 +160,24 @@ export async function envoyerQuittance(
 
   // L'email est parti : si la mémorisation échoue, on le dit (le bouton
   // « Envoyer » réapparaîtrait, avec un double envoi possible).
-  const { error: erreurMemo } = await supabase
-    .from("quittances")
-    .update({ email_envoye_at: new Date().toISOString() })
-    .eq("id", quittanceId)
-    .eq("bail_id", bailId)
-    .eq("organization_id", orgId);
+  const envoyeLe = new Date().toISOString();
+  const miseAJour = await supabase.from("quittances").update({ email_envoye_at: envoyeLe })
+    .eq("organization_id", orgId).eq("bail_id", bailId).eq("id", quittanceId)
+    .eq("est_quittance", q.est_quittance).eq("montant", q.montant)
+    .is("email_envoye_at", null).select("email_envoye_at").maybeSingle();
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  if (erreurMemo) {
-    return {
-      succes: `${libelleEnvoi} à ${loc.email}, mais l'envoi n'a pas pu être mémorisé — le bouton peut réapparaître.`,
-    };
+  if (miseAJour.data?.email_envoye_at)
+    return { succes: `${libelleEnvoi} à ${loc.email}.`, envoyeLe: miseAJour.data.email_envoye_at };
+  if (!miseAJour.error) {
+    const { data: deja } = await supabase.from("quittances").select("email_envoye_at")
+      .eq("organization_id", orgId).eq("bail_id", bailId).eq("id", quittanceId)
+      .eq("est_quittance", q.est_quittance).eq("montant", q.montant).maybeSingle();
+    if (deja?.email_envoye_at) return { succes: libelleEnvoi, envoyeLe: deja.email_envoye_at };
   }
-  return { succes: `${libelleEnvoi} à ${loc.email}.` };
+  return {
+    envoyeLe, dateNonConsignee: true,
+    succes: `${libelleEnvoi} à ${loc.email}, mais l'envoi n'a pas pu être mémorisé — le bouton peut réapparaître.`,
+  };
 }
 
 // Relance d'impayé ou mise en demeure (LRAR hors plateforme : date de 1re présentation).
@@ -192,6 +205,8 @@ export async function ajouterRelance(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  revalidatePath(`/espace/${orgId}/baux/${bailId}`);
+  revalidatePath(`/espace/${orgId}`);
   return { succes: "Relance enregistrée." };
 }
 
@@ -205,6 +220,8 @@ export async function supprimerRelance(
   const { error } = await supabase.from("relances").delete().eq("id", relanceId).eq("organization_id", orgId);
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  revalidatePath(`/espace/${orgId}/baux/${bailId}`);
+  revalidatePath(`/espace/${orgId}`);
   return { succes: "Relance supprimée." };
 }
 

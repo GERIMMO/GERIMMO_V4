@@ -15,3 +15,15 @@ it("garde les fractions vacantes d'une colocation et ne régularise pas un forfa
   for (const debut of ["2026-01-01", "2026-01-10"]) expect(r.filter(s => s.periode_debut === debut).reduce((sum, s) => sum + s.fraction_numerateur! / s.fraction_denominateur!, 0)).toBe(1);
   expect(r.reduce((sum, s) => sum + s.poids_fixe, 0)).toBe(2);
 });
+
+import { controleCompteurGeneral } from "@/lib/controle-compteur-general";
+it("compare le général aux seuls divisionnaires liés, sans estimer une borne manquante",()=>{
+  const debut="2026-09-01", fin="2026-10-01";
+  const m={id:"principal",type:"eau_froide",unite:"m3",lot_id:null,date_index_initial:debut,index_initial:5};
+  const compteurs=[m,...["A","B","C"].map(id=>({...m,id,lot_id:id,compteur_principal_id:m.id}))];
+  const releves=compteurs.map((c,i)=>({compteur_id:c.id,date_releve:fin,index_releve:[60,15,20,30][i]}));
+  const bilan=(r:typeof releves)=>controleCompteurGeneral(compteurs,r,["A","B","C"],debut,fin);
+  expect(bilan(releves)[0]).toMatchObject({general:55,divisionnaires:50,ecart:5});
+  expect(()=>bilan(releves.slice(1))).toThrow(/manquant/);
+  expect(()=>bilan(releves.map(r=>({...r,index_releve:r.compteur_id==="principal"?10:r.index_releve})))).toThrow(/dépassent/);
+});

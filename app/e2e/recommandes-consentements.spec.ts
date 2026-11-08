@@ -40,7 +40,9 @@ for(const largeur of [390,1440]) test.describe(`${largeur}px`,()=>{
   await db.query("insert into lots(id,organization_id,bien_id,nom,etat) values($1,$2,$3,$4,'loue')",[lot,ORG,bien,nom]);
   await db.query("insert into persons(id,organization_id,account_id,nom,prenom,email) values($1,$2,$3,'Test AR24','Camille','locataire.alpha@example.com')",[personne,ORG,compte]);
   await db.query("insert into baux(id,organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,jour_echeance) values($1,$2,$3,$4,'nu','actif',public.aujourdhui_paris()-40,750,50,5)",[bail,ORG,lot,personne]);
-  await db.query("insert into appels_loyer(id,organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values($1,$2,$3,date_trunc('month',public.aujourdhui_paris()),public.aujourdhui_paris()-1,750,50,800)",[appel,ORG,bail]);await db.query('commit');adhesionCreee=true;
+  await db.query("insert into appels_loyer(id,organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values($1,$2,$3,date_trunc('month',public.aujourdhui_paris()),public.aujourdhui_paris()-180,750,50,800)",[appel,ORG,bail]);
+  await db.query("insert into relances(organization_id,bail_id,niveau,date_envoi) values($1,$2,'relance_1',public.aujourdhui_paris()-165),($1,$2,'relance_2',public.aujourdhui_paris()-90)",[ORG,bail]);
+  await db.query('commit');adhesionCreee=true;
   await page.setViewportSize({width:largeur,height:950});await sansSyntheseAlertes(page);await connecter(page,'locataire.alpha@example.com',`/locataire/${ORG}/documents`);
   await page.getByText('Réception de mes documents',{exact:true}).click();
   const quittances=page.getByRole('form',{name:'Quittances et reçus de paiement'}),recommandes=page.getByRole('form',{name:'Recommandés électroniques'});
@@ -57,7 +59,10 @@ for(const largeur of [390,1440]) test.describe(`${largeur}px`,()=>{
   await connecter(page,'proprietaire@example.com',`/espace/${ORG}`);
   await page.getByRole('region',{name:'Votre patrimoine en bref'}).getByRole('button',{name:/^(?:\d+ actions? prioritaires?|\d+ loyers? à confirmer|À vérifier) /}).click();
   const bloc=page.getByRole('region',{name:'Avez-vous reçu vos loyers ?'});const ligne=bloc.locator('li').filter({has:page.getByRole('link',{name:nom,exact:true})});
-  await ligne.getByText('Gérer la relance et le recommandé',{exact:true}).click();await ligne.getByText('Préparer le recommandé',{exact:true}).click();await ligne.getByRole('button',{name:'Préparer l’envoi AR24',exact:true}).click();
+  await expect(ligne.getByRole('button',{name:'Préparer l’envoi du recommandé AR24',exact:true})).toHaveCount(0);
+  await ligne.getByRole('button',{name:'Pas encore reçu',exact:true}).click();
+  await ligne.getByRole('button',{name:'Confirmer : pas encore reçu',exact:true}).click();
+  await ligne.getByRole('button',{name:'Préparer l’envoi du recommandé AR24',exact:true}).click();
   await expect(ligne.getByRole('alert')).toContainText('L’envoi AR24 n’est pas encore activé');
   await expect(ligne.getByRole('button',{name:/Confirmer l’envoi/})).toHaveCount(0);
   expect((await db.query('select 1 from recommandes_ar24 where bail_id=$1',[bail])).rowCount).toBe(0);

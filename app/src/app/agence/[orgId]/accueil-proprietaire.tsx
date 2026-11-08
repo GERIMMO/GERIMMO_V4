@@ -14,6 +14,7 @@ import { ActionsAccueilProprietaire } from "@/components/actions-accueil-proprie
 import { ConseilsAccueilProprietaire } from "@/components/conseils-accueil-proprietaire";
 import { resumerLoyersParcMois } from "@/lib/loyers-parc-mois";
 import { AccueilBienvenue } from "@/components/accueil-bienvenue";
+import { libellesPoints, pointReception } from "@/lib/paliers-reception-loyer";
 import { CarteVerifications } from "@/components/carte-verifications";
 import { CarteTachesProprietaire } from "@/components/carte-taches-proprietaire";
 import { construireTachesAccueil } from "@/lib/taches-accueil-proprietaire";
@@ -30,7 +31,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   const aujourdHui = aujourdhuiParis();
   const [pilotage, lectureVerifications, lectureConsommations, echeances] = await Promise.all([
     chargerPilotageProprietaire(supabase, orgId, aujourdHui),
-    chargerVerificationsProprietaire(supabase, orgId, { userId, portefeuille: null }),
+    chargerVerificationsProprietaire(supabase, orgId, { userId, portefeuille: null, avecPaliers: true }),
     chargerTachesConsommations(supabase, orgId, base, aujourdHui),
     (async () => {
       try { return await supabase.rpc("quittancement_mois", { p_org: orgId, p_mois: `${aujourdHui.slice(0, 7)}-01` }); }
@@ -40,7 +41,8 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   const { erreurs, lectureLoyers, verifications } = lectureVerifications;
   const { actions, rappels } = verifications;
   const lectureIncidents = await chargerIncidentsVerifications(supabase, orgId, actions);
-  const incertain = lectureConsommations.indisponible || Object.values(erreurs).some(Boolean) || Boolean(lectureLoyers.error);
+  const suiviIncomplet = rappels.dus.some(l => l.point?.etape === "inconnu");
+  const incertain = suiviIncomplet || lectureConsommations.indisponible || Object.values(erreurs).some(Boolean) || Boolean(lectureLoyers.error);
   const cible = (a: ActionDuJour) => a.source === "alerte" ? a.href ?? `${base}/alertes?traiter=${a.alerte.id}` : a.href;
   const geste = (a: ActionDuJour) => a.source === "bail" ? "Ouvrir le bail"
     : a.source === "rapport" ? "Valider"
@@ -80,9 +82,14 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
     } catch { return { lot, blocages: null }; }
   }));
   const taches = construireTachesAccueil({ base, actions, lots: patrimoine?.lots ?? [], lotsSansBail: patrimoine?.lotsSansBail ?? [], lotsEnPreparation: patrimoine?.lotsEnPreparation ?? [], preparation, diagnostics: diagnostics ?? [] });
-  // Chaque échéance due compte, même quand la fenêtre ne présente que la plus ancienne de son bail (audit du 27/10, LAT-03).
+  if (pilotage.coordonneesACompleter) taches.unshift({
+    cle: "coordonnees-courriers", type: "coordonnees", titre: "Compléter les coordonnées pour vos courriers",
+    detail: null, contexte: null, lieu: null, echeance: null, href: `${base}/profil`, geste: "Compléter le profil", nature: "demande",
+  });
   taches.push(...lectureConsommations.taches);
-  const totalPrioritaire = critiques.length + rappels.totalEcheancesDues;
+  const points = rappels.dus.map(ligne => ligne.point === undefined ? pointReception(ligne, aujourdHui) : ligne.point);
+  const loyersAConfirmer = rappels.dus.reduce((n, ligne, i) => n + (points[i]?.aConfirmer ? ligne.dette_bail.echeances : 0), 0);
+  const totalPrioritaire = critiques.length + loyersAConfirmer;
   const automatisations = [
     { nom: "Avis d’échéance", active: reglages?.appels_envoi_auto },
     { nom: "Envoi des quittances", active: reglages?.quittances_envoi_auto },
@@ -101,15 +108,16 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
         <ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true"/>
       </Link>
       <CarteVerifications base={base} patrimoine={patrimoine ? { biens: patrimoine.biens, lots: patrimoine.lots.length } : null}
-        loyersAConfirmer={rappels.totalEcheancesDues}
+        loyersAConfirmer={loyersAConfirmer} paliersLoyers={libellesPoints(points)}
         total={totalPrioritaire || (incertain ? 0 : taches.length)} critiques={verifications.critiques} apercu={verifications.premiere?.titre ?? null}
         hrefTaches="#taches-proprietaire"
         indisponible={incertain} className={styles.indicateur}>
         {Object.values(erreurs).some(Boolean) && <p className="err" role="alert">Certaines demandes sont indisponibles. La liste peut être incomplète.</p>}
+        {suiviIncomplet && <p className={styles.note}>Le palier de certains loyers n’a pas pu être vérifié. <Link href={`${base}/loyers`}>Voir les finances</Link></p>}
         {lectureIncidents.indisponible && <p className={styles.note}>Certaines actions rapides sont indisponibles. Vous pouvez ouvrir la fiche de l’incident.</p>}
         {listeDemandes(critiques, "Prioritaires", "priorites-titre")}
-        <RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />
-        {actions.length > 0 && <Link className={styles.toutesDemandes} href={`${base}/alertes`}>Voir toutes les demandes<ArrowRight size={15} aria-hidden="true" /></Link>}
+        <RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />
+        {(critiques.length > 0 || (actions.length > 0 && !loyersAConfirmer)) && <Link className={styles.toutesDemandes} href={`${base}/alertes`}>Voir toutes les demandes<ArrowRight size={15} aria-hidden="true" /></Link>}
       </CarteVerifications>
       <Link href={`${base}/parc`} className={styles.indicateur}><span><FileText size={18} aria-hidden="true" />Locations en cours</span><strong>{patrimoine ? patrimoine.contrats : "—"}</strong><small>{patrimoine ? `${patrimoine.lotsOccupes} lot${patrimoine.lotsOccupes > 1 ? "s" : ""} occupé${patrimoine.lotsOccupes > 1 ? "s" : ""}` : "Locations indisponibles"}</small><ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
     </section>

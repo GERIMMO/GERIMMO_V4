@@ -226,7 +226,7 @@ export default async function PageEdl(
 
       <EchecLecture quoi={echecs} />
 
-      {traverseeLectureSeule ? <EdlConsultation indisponibles={{lignes:Boolean(erreurLignes),compteurs:Boolean(erreurCompteurs),cles:Boolean(erreurCles)}} mentions={edl} lignes={lignes ?? []} compteurs={(compteurs ?? []) as Compteur[]} cles={(cles ?? []) as Cle[]} /> : <EtapesSaisie activer={!signe} titre="État des lieux" etapes={[
+      {traverseeLectureSeule ? <EdlConsultation indisponibles={{lignes:Boolean(erreurLignes),compteurs:Boolean(erreurCompteurs),cles:Boolean(erreurCles)}} mentions={edl} lignes={lignes ?? []} compteurs={(compteurs ?? []) as Compteur[]} cles={(cles ?? []) as Cle[]} /> : <EtapesSaisie enregistrerAvantSuite activer={!signe} titre="État des lieux" etapes={[
         {titre:"Informations", detail:"Identifiez les personnes présentes et les mentions du document."},
         {titre:"Les pièces", detail:"Examinez une pièce à la fois. Enregistrez la grille avant de poursuivre."},
         {titre:"Compteurs et clés", detail:"Renseignez les relevés et les clés remises, puis enregistrez."},
@@ -259,7 +259,7 @@ export default async function PageEdl(
         </CardContent>
       </Card>,
 
-      <Card key="pieces">
+      <Card key="pieces" id="edl-pieces">
         <CardHeader>
           <CardTitle className="text-base">Pièce par pièce</CardTitle>
           <CardDescription>
@@ -346,7 +346,7 @@ export default async function PageEdl(
         </CardContent>
       </Card>,
 
-      <Card key="annexes">
+      <Card key="annexes" id="edl-compteurs">
         <CardHeader>
           <CardTitle className="text-base">Compteurs & clés</CardTitle>
           <CardDescription>
@@ -356,7 +356,7 @@ export default async function PageEdl(
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <EdlAnnexes
+          <EdlAnnexes enregistrementAuSuivant={!signe}
             orgId={orgId}
             bailId={bailId}
             edlId={edlId}

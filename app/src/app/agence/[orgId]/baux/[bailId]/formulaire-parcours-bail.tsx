@@ -131,10 +131,11 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,agenc
  },[etape]);
  // Lire la valeur pendant l’événement : une mise à jour différée ne doit pas
  // relire un champ DOM déjà restauré par React ou par une actualisation.
- const modifierValeur=(nom:string,valeur:string)=>setValeurs(v=>({
+ const [erreursNatives,setErreursNatives]=useState<Record<string,string>>({});
+ const modifierValeur=(nom:string,valeur:string)=>{setErreursNatives(v=>({...v,[nom]:""}));setValeurs(v=>({
    ...v,[nom]:valeur,
    ...(nom==="type"&&valeur==="colocation_individuelle"&&!v.chambre_id&&chambres.length===1?{chambre_id:chambres[0].id}:{}),
- }));
+ }));};
  const [retourEtape,setRetourEtape]=useState("");
  const [modifie,setModifie]=useState(false);
  const {etat,soumettre,enCours}=useActionFormulaire<EtatBail>(async (ancien,form)=>{
@@ -227,7 +228,8 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,agenc
    try { await soumettre(event); }
    finally { envoiRef.current=false;destinationEnvoi.current=null;parcours?.signalerEnregistrement?.(false); }
  }} className={`bail-formulaire-etape ${styles.formulaire}`} onChange={()=>setModifie(true)} aria-busy={enCours} onInvalidCapture={event=>{
-   const champ=event.target as HTMLElement;
+   const champ=event.target as HTMLInputElement;
+   if(champ.name) setErreursNatives(v=>({...v,[champ.name]:champ.validationMessage}));
    const bloc=champ.closest<HTMLDetailsElement>("details[data-groupe]");
    if(bloc){bloc.open=true;setOuverts(v=>({...v,[bloc.dataset.groupe!]:true}));}
  }}>
@@ -242,13 +244,15 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,agenc
     <legend>{g.titre}</legend>
     {g.aide&&<p className={styles.aide}>{g.aide}</p>}
     <div className={`grid gap-4 ${g.etapes[0]==="documents"?"sm:grid-cols-3":"sm:grid-cols-2"}`}>{g.champs.map(c=>{
+     const erreurChamp = erreursNatives[c.nom] || (retourEtape === etape && etat.champErreur === c.nom && valeurs[c.nom] === etat.valeurs?.[c.nom] ? etat.erreur : undefined);
      const id=`parcours-${c.nom}`,affiche=!c.visible||c.visible(contexte);
      const opts=c.nom==="chambre_id"?[["","Choisir une chambre"],...chambres.map(ch=>[ch.id,ch.nom])] as [string,string][]:c.options;
      return <div key={c.nom} hidden={!affiche} className={c.type==="textarea"?"space-y-1.5 sm:col-span-2":"space-y-1.5"}>
       <Label htmlFor={id} champ={`bail.${c.nom}`} renseigne={Boolean(valeurs[c.nom]?.trim())}>{c.titre}{c.requis?" *":""}</Label>
-      {opts?<select id={id} name={c.nom} value={valeurs[c.nom]??""} required={c.requis&&affiche} disabled={!affiche} aria-describedby={c.aide?`${id}-aide`:undefined} onChange={e=>modifierValeur(c.nom,e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{opts.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
-       :c.type==="textarea"?<textarea id={id} name={c.nom} value={valeurs[c.nom]??""} disabled={!affiche} aria-describedby={c.aide?`${id}-aide`:undefined} rows={3} maxLength={c.nom==="clauses_particulieres"?4000:2000} onChange={e=>modifierValeur(c.nom,e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"/>
-       :<Input id={id} name={c.nom} type={c.type==="montant"?"text":(c.type??"text")} inputMode={c.type==="montant"?"decimal":undefined} disabled={!affiche} value={valeurs[c.nom]??""} required={c.requis&&affiche} aria-describedby={c.aide?`${id}-aide`:undefined} min={c.type==="number"?(c.min??0):undefined} max={c.max} step={c.type==="number"?(c.entier?1:"0.01"):undefined} maxLength={c.nom==="dpe_annees_reference"?100:500} onChange={e=>modifierValeur(c.nom,e.target.value)}/>}
+      {opts?<select id={id} name={c.nom} value={valeurs[c.nom]??""} required={c.requis&&affiche} disabled={!affiche} aria-invalid={Boolean(erreurChamp)} aria-describedby={[erreurChamp ? `${id}-erreur` : "", c.aide ? `${id}-aide` : ""].filter(Boolean).join(" ") || undefined} onChange={e=>modifierValeur(c.nom,e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{opts.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
+       :c.type==="textarea"?<textarea id={id} name={c.nom} value={valeurs[c.nom]??""} disabled={!affiche} aria-invalid={Boolean(erreurChamp)} aria-describedby={[erreurChamp ? `${id}-erreur` : "", c.aide ? `${id}-aide` : ""].filter(Boolean).join(" ") || undefined} rows={3} maxLength={c.nom==="clauses_particulieres"?4000:2000} onChange={e=>modifierValeur(c.nom,e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"/>
+       :<Input id={id} name={c.nom} type={c.type==="montant"?"text":(c.type??"text")} inputMode={c.type==="montant"?"decimal":undefined} disabled={!affiche} value={valeurs[c.nom]??""} required={c.requis&&affiche} aria-invalid={Boolean(erreurChamp)} aria-describedby={[erreurChamp ? `${id}-erreur` : "", c.aide ? `${id}-aide` : ""].filter(Boolean).join(" ") || undefined} min={c.type==="number"?(c.min??0):undefined} max={c.max} step={c.type==="number"?(c.entier?1:"0.01"):undefined} maxLength={c.nom==="dpe_annees_reference"?100:500} onChange={e=>modifierValeur(c.nom,e.target.value)}/>}
+      {erreurChamp && <p id={`${id}-erreur`} role="alert" className="text-sm text-destructive">{erreurChamp}</p>}
       {c.nom==="date_conclusion_prevue"&&valeurs.date_debut&&!valeurs.date_conclusion_prevue&&<button type="button" className="inline-flex min-h-9 items-center text-xs underline" onClick={()=>{modifierValeur("date_conclusion_prevue",valeurs.date_debut);setModifie(true);}}>Même date que l’entrée</button>}
       {c.nom==="chambre_id"&&lienChambres&&<Link href={lienChambres} className="text-xs underline">{chambres.length?"Modifier les chambres du lot":"Ajouter une chambre au lot"}</Link>}
       {c.aide&&<p id={`${id}-aide`} className="text-xs text-muted-foreground">{c.aide}</p>}

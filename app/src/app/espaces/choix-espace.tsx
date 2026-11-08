@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { ouvrirEspaceProprietaire, type EtatOuvertureEspace } from "@/app/actions/auth";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { AdresseOuverture } from "@/components/adresse-ouverture";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { dureeEssai } from "@/lib/tarifs";
@@ -21,11 +22,17 @@ import { CASE_CONDITIONS_CLIENTS } from "@/lib/conditions-acceptation";
 export function ChoixEspace({
   nomInitial,
   prenomInitial,
+  adresseInitiale,
+  qualiteInitiale,
+  reprendre = false,
 }: {
   nomInitial?: string;
   prenomInitial?: string;
+  adresseInitiale?: { adresse?: string; code_postal?: string; ville?: string };
+  qualiteInitiale?: string;
+  reprendre?: boolean;
 }) {
-  const [ouvert, setOuvert] = useState(false);
+  const [ouvert, setOuvert] = useState(reprendre);
   const [etat, action] = useActionState<EtatOuvertureEspace, FormData>(ouvrirEspaceProprietaire, {});
   const v = etat.valeurs ?? {};
 
@@ -71,7 +78,7 @@ export function ChoixEspace({
               <select
                 id="ouv-qualite"
                 name="qualite"
-                defaultValue={v.qualite ?? "Personne physique"}
+                defaultValue={v.qualite ?? qualiteInitiale ?? "Personne physique"}
                 className="h-11 w-full rounded-lg border border-input bg-transparent px-3 text-sm"
               >
                 {/* Liste fermée (audit 29/09) : la durée du bail nu en dépend. */}
@@ -82,6 +89,8 @@ export function ChoixEspace({
                 <option value="Personne morale">Autre personne morale (société…)</option>
               </select>
             </div>
+            <AdresseOuverture prefixe="ouv" valeurs={{ ...adresseInitiale, ...v }} />
+            <p className="text-xs text-muted-foreground">L’e-mail de votre compte sert de contact sur vos courriers.</p>
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" name="cgu" required className="mt-1" />
               {/* Nouvel onglet (24/09), comme à l'inscription : dans le même

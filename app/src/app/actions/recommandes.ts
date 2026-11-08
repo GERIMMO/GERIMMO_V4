@@ -1,6 +1,8 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+import { verifierCourrierDuBail } from "@/lib/rappels-loyers";
+import { aujourdhuiParis } from "@/lib/ged";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { clientDeService } from "@/lib/supabase/service";
@@ -81,6 +83,12 @@ export async function confirmerEnvoiRecommande(orgId:string,id:string,donnees:Fo
  if("erreur" in tarifLu || tarifLu.montant<0 || !Number.isSafeInteger(tarifLu.montant)) return {erreur:"Le coût du courrier est invalide. Relisez la préparation."};
  const tarif=tarifLu.montant;
  if(contenuLettreAr24(avant.contenu)!==avant.contenu || empreinte!==avant.empreinte || empreinte!==empreinteCourrierAr24(baseCourrier(avant)) || email!==avant.destinataire.email || tarif!==avant.tarif_ttc_centimes) return {erreur:"Le courrier ou son coût a changé. Relisez la préparation."};
+ if (avant.statut === "prepare") {
+  const termes = await supabase.rpc("etat_loyers_bail", { p_bail: avant.bail_id });
+  if (termes.error || !Array.isArray(termes.data) || termes.data.length >= 1000) return { erreur: "Impossible de vérifier les échéances avant l’envoi." };
+  const suivi = await verifierCourrierDuBail(supabase, orgId, avant.bail_id, termes.data, aujourdhuiParis(), "recommande");
+  if (suivi.erreur) return { erreur: suivi.erreur };
+ }
  const reservation=await supabase.rpc("reserver_recommande_ar24",{p_org:orgId,p_id:id,p_empreinte:empreinte,p_email:email,p_tarif:tarif});
  if(reservation.error||!reservation.data) return {erreur:reservation.error?.message??"La confirmation n’a pas pu être enregistrée."};
  const courrier=reservation.data.courrier as RecommandePrepare;

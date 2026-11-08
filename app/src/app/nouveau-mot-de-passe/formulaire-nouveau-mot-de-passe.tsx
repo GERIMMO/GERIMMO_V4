@@ -103,7 +103,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
               {CHAMPS_TEXTE_PROFIL.map(([champ, libelle]) => (
                 <div key={champ} className="space-y-1">
                   <Label htmlFor={`confirmation-${champ}`}>{libelle}</Label>
-                  <Input id={`confirmation-${champ}`} name={champ} defaultValue={valeur(champ)} maxLength={champ === "code_parrainage" ? 8 : LONGUEUR_MAX[champ]} {...marque(champ)} />
+                  <Input id={`confirmation-${champ}`} name={champ} required={espaceAffiche === "proprietaire_direct" && ["nom", "adresse", "code_postal", "ville"].includes(champ)} defaultValue={valeur(champ)} maxLength={champ === "code_parrainage" ? 8 : LONGUEUR_MAX[champ]} {...marque(champ)} />
                   {sous(champ)}
                 </div>
               ))}

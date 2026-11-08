@@ -18,7 +18,7 @@ export function natureFournisseur(contrats: Contrat[], fournisseur: string): Con
 
 /** Les montants d'un avis fiscal entier ne décrivent pas nécessairement sa ligne TEOM. */
 export function valeursLectureFacture(lecture: Record<string, unknown>, categorie: string) {
-  const champs = ["reference", "periode_debut", "periode_fin", "total", "frais_fixes", "frais_gestion", "consommation"];
+  const champs = ["reference", "periode_debut", "periode_fin", "total", "frais_fixes", "frais_gestion", "consommation", "unite_consommation"];
   return Object.fromEntries(champs.flatMap(cle => {
     if (categorie === "teom" && ["total", "frais_fixes", "frais_gestion"].includes(cle)) return [];
     const valeur = lecture[cle];

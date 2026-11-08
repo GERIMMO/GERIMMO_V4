@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
+import { useActionStateSuivi as useActionState } from "@/lib/suivi-enregistrement";
 import { enregistrerMentionsEdl, type EtatEdl } from "@/app/actions/edl";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ export function EdlMentions({ orgId, bailId, edlId, type, signe, mentions }: { o
   // étaient plus hauts de 4 px, plus carrés, et leur libellé décalé de 3 px.
   const base = useId();
   const classeChoix = "h-8 w-full rounded-lg border border-input bg-transparent px-2 text-sm";
-  return <form data-saisie-confirmee action={action} className="grid gap-4 sm:grid-cols-2">
+  return <form data-etape-enregistrement data-saisie-confirmee action={action} className="grid gap-4 sm:grid-cols-2">
     <div className="space-y-2"><Label htmlFor={`${base}-date`}>Date de l’état des lieux *</Label><Input id={`${base}-date`} name="date_edl" type="date" required disabled={signe} defaultValue={v("date_edl")} /></div>
     <div className="space-y-2 sm:col-span-2"><Label htmlFor="edl-presents">Personnes présentes *</Label><Input id="edl-presents" name="personnes_presentes" required disabled={signe} defaultValue={v("personnes_presentes")} placeholder="Bailleur, locataire, mandataire…" /></div>
     {type === "entree" ? <>

@@ -156,6 +156,7 @@ export type EnTeteExpediteur = {
   adresse: string | null | undefined;
   email: string | null | undefined;
   telephone?: string | null;
+  contactGestion?: boolean;
 };
 
 // Bloc expéditeur + cartouche référence, sous filet (page 1 de chaque épreuve)
@@ -168,7 +169,7 @@ export function enTete(
     <div class="exp">
       <div class="exp-nom">${f.champ(exp.nom, "nom et prénom(s), ou dénomination")}</div>
       <div>${f.champ(exp.adresse, "domicile ou siège social")}</div>
-      <div>${f.champ(exp.email, "adresse électronique")}&nbsp;&nbsp;·&nbsp;&nbsp;${facultatif(exp.telephone)}</div>
+      <div>${exp.contactGestion ? "Contact de gestion : " : ""}${f.champ(exp.email, "adresse électronique")}&nbsp;&nbsp;·&nbsp;&nbsp;${facultatif(exp.telephone)}</div>
     </div>
     <div class="cartouche-ref">
       <div>${echapper(cartouche.libelle)} <span class="mini">n°</span></div>

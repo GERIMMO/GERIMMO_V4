@@ -27,6 +27,7 @@ import { baseEspace, racineEspace } from "@/lib/racine-espace";
 
 export type BlocageActionable = { message: string; href: string; libelle: string };
 export type EtatBail = {
+  champErreur?: string;
   erreur?: string;
   succes?: string;
   avertissements?: AvertissementLoyer[];

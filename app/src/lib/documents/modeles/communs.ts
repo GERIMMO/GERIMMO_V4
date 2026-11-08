@@ -280,9 +280,12 @@ export function expediteur(ctx: {
   // Les documents d'un bail sont émis par ses détenteurs, pas par le nom du parc.
   if(ctx.organisation.type && ctx.organisation.type!=="agence" && ctx.bailleurs?.length){
     const uniques=(valeurs:(string|null|undefined)[])=>[...new Set(valeurs.filter((v):v is string=>Boolean(v)))].join(" · ")||null;
+    const emailBailleurs = uniques(ctx.bailleurs.map(p=>p.email?.trim()));
+    const contactGestion = ctx.organisation.email_contact?.trim() || null;
     return {nom:uniques(ctx.bailleurs.map(nomPersonne)) ?? ctx.organisation.name,
       adresse:ctx.bailleurs.every(p=>adressePersonne(p))?uniques(ctx.bailleurs.map(adressePersonne)):null,
-      email:uniques(ctx.bailleurs.map(p=>p.email)),telephone:uniques(ctx.bailleurs.map(p=>p.telephone)),
+      email:emailBailleurs ?? contactGestion, ...(!emailBailleurs && contactGestion ? { contactGestion: true } : {}),
+      telephone:uniques(ctx.bailleurs.map(p=>p.telephone)),
       ville:ctx.bailleurs[0]?.city??null};
   }
   return {nom:ctx.organisation.name,adresse:adresseOrganisation(ctx.organisation),email:ctx.organisation.email_contact,telephone:ctx.organisation.telephone,ville:ctx.organisation.city};

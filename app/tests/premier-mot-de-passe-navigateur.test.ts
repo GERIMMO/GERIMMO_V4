@@ -86,7 +86,7 @@ async function assembler(): Promise<string> {
 }
 
 /** Le profil saisi à l'inscription : propriétaire, sans qualité renseignée. */
-const PROFIL = { nom: "Initial", prenom: "Avant", espace: "proprietaire_direct", qualite: "" };
+const PROFIL = { nom: "Initial", prenom: "Avant", adresse: "3 rue du Test", code_postal: "69003", ville: "Lyon", espace: "proprietaire_direct", qualite: "" };
 const SAISIES_DIFFERENTES = "Les deux saisies ne correspondent pas.";
 const EXPOSE: RefusAuth = { code: "weak_password", message: "Password is known to be weak" };
 

@@ -1,3 +1,4 @@
+import { partsEgalesEnregistrees } from "@/lib/cle-facture";
 import { describe, expect, it } from "vitest";
 import { saisieCompteur, saisieContrat, saisieFacture } from "@/lib/saisie-consommations";
 import { proposerPartsOccupation } from "@/lib/proposition-repartition";
@@ -10,6 +11,11 @@ describe("saisie et répartition du patrimoine", () => {
   it("refuse un relevé futur ou une fausse date", () => {
     expect(() => saisieCompteur(fd({ type: "eau_froide", index_initial: "1", date_index_initial: "2026-11-01", prochaine_demande: "2026-12-01" }), "2026-10-28")).toThrow(/futur/);
     expect(() => saisieCompteur(fd({ type: "eau_froide", index_initial: "1", date_index_initial: "2026-02-30", prochaine_demande: "2026-12-01" }), "2026-10-28")).toThrow(/dates/);
+  });
+  it("conserve séparément le souscripteur et le payeur, même quand un seul est connu", () => {
+    const contrat = { fournisseur: "Eau locale", categorie: "eau", souscripteur: "SCI du Parc" };
+    expect(saisieContrat(fd(contrat))).toMatchObject({ souscripteur: "SCI du Parc", payeur: null });
+    expect(saisieContrat(fd({ ...contrat, payeur: "Camille" }))).toMatchObject({ souscripteur: "SCI du Parc", payeur: "Camille" });
   });
   it("un contrat nécessite seulement le fournisseur et sa nature", () => expect(saisieContrat(fd({ fournisseur: "Eau locale", categorie: "eau" }))).toMatchObject({ montant_cents: null, echeance: null, preavis_jours: 30 }));
   it("conserve les centimes, isole les frais TEOM et refuse un montant illisible", () => {
@@ -37,4 +43,14 @@ describe("saisie et répartition du patrimoine", () => {
     const r = proposerPartsOccupation([{ id: "a", nom: "Colocation", poids: 1 }, { id: "z", nom: "T2", poids: 1 }], [{ id: "b", lot_id: "a", chambre_id: "ch1", date_debut: "2025-01-01", date_fin: null, charges_mode: "provision" }], "2026-01-01", "2026-01-30", "eau", true, { mode: "surfaces", chambres: [{ id: "ch1", lot_id: "a", surface_m2: 10 }, { id: "ch2", lot_id: "a", surface_m2: 30 }] });
     expect(r.map(p => p.poids)).toEqual([1, 3, 4]);
   });
+});
+
+it("exige une clé égale couvrant chaque logement et toute la période",()=>{
+  const lots=[{id:"a"},{id:"b"}];
+  const cle={date_effet:"2026-01-01",cle_repartition_lignes:lots.map(l=>({lot_id:l.id,pourcentage:50}))};
+  const applicable=(cles:typeof cle[])=>partsEgalesEnregistrees(cles,lots,"2026-02-01","2026-02-28");
+  expect(applicable([cle])).toBe(true);
+  expect(applicable([])).toBe(false);
+  expect(applicable([cle,{...cle,date_effet:"2026-02-12"}])).toBe(false);
+  expect(applicable([{...cle,cle_repartition_lignes:[cle.cle_repartition_lignes[0]]}])).toBe(false);
 });

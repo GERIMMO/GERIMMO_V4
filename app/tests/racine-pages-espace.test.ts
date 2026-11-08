@@ -402,9 +402,6 @@ function transmissionAdmise(nom: string, e: ts.Expression | null): boolean {
 
 /** Les transmissions admises hors de cette règle (forme exacte de l'attribut). */
 const TRANSMISSIONS_ADMISES: Exception[] = [
-  { fichier: "src/components/depenses-simplifiees.tsx", fonction: "DepensesSimplifiees", forme: "<RegularisationFournitures> base={p.base}", nombre: 1,
-    raison: "la base authentifiée reçue de ConsommationsBien est transmise sans transformation",
-    preuve: ["src/components/consommations-bien.tsx", "const donnees: Props = { orgId, bienId, lotId: null, base,"] },
   { fichier: "src/components/consommations-formulaires.tsx", fonction: "Facture", forme: "<RepartitionFacture> base={p.base}", nombre: 1,
     raison: "la base authentifiée est transmise sans transformation dans les props regroupées du suivi des consommations",
     preuve: ["src/components/consommations-bien.tsx", "base={base}" ] },
@@ -456,7 +453,7 @@ describe("chaque parent transmet le drapeau ou la racine, tels que la garde les 
       "src/components/consommations-bien.tsx › ConsommationsBien",
     ]);
     // Le journal déplacé reste réservé à la branche propriétaire du lot.
-    expect(lire("src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx")).toContain("estProprietaire && <ConsommationsBien");
+    expect(lire("src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx")).toContain("estProprietaire ? <FicheContinue");
     expect(lire("src/components/consommations-bien.tsx")).toContain("{lotId && <div id=\"journal-lot\"");
     expect(rendus.filter(r => r.balise === "RappelsLoyers").map(r => `${r.fichier} › ${fonctionEnglobante(r.el)}`).sort()).toEqual([
       "src/app/agence/[orgId]/accueil-proprietaire.tsx › AccueilProprietaire",
@@ -558,23 +555,23 @@ describe("écrans : aucune adresse de gestion écrite en dur", () => {
     }, {
       fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "RappelsLoyersInteractifs", forme: '`/espace/${orgId}/loyers`', nombre: 1,
       raison: "rappel de réception réservé à l'accueil propriétaire, lien vers ses finances",
-      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],
     }, {
       fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "ReceptionLoyer", forme: '`/espace/${orgId}`', nombre: 1,
       raison: "retour de préparation d'une relance dans le rappel de réception du seul accueil propriétaire",
-      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],
     }, {
       fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "ReceptionLoyer", forme: '`/espace/${orgId}/baux/${ligne.bail_id}#relances`', nombre: 1,
       raison: "suivi de la relance du loyer présenté au seul propriétaire depuis son accueil",
-      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],
     }, {
       fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "ReceptionLoyer", forme: '`/espace/${orgId}/baux/${ligne.bail_id}#loyers`', nombre: 1,
       raison: "loyers du bail ouverts depuis le nom du lot, dans le rappel de réception du seul propriétaire (audit du 27/10, LAT-07)",
-      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],
     }, {
       fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "PreparationRecommande", forme: '`/espace/${orgId}`', nombre: 1,
       raison: "retour du PDF de recommandé vers le seul accueil propriétaire qui présente ce formulaire",
-      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],
     }, {
       fichier: "src/components/selecteur-patrimoine.tsx", fonction: "SelecteurPatrimoine", forme: '`/espace/${o.id}`', nombre: 1,
       raison: "sélecteur propre au propriétaire ; le layout ne fournit que ses adhésions actives de propriétaire_direct",

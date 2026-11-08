@@ -15,7 +15,7 @@ test.use({ storageState: path.join(__dirname, ".auth", "proprietaire.json") });
 async function ligneDpe(page: Page) {
   const ligne = page.locator("li").filter({ has: page.locator("strong", { hasText: /^DPE$/ }) }).first();
   if (!(await ligne.isVisible().catch(() => false))) {
-    await page.locator("summary").filter({ hasText: "Diagnostics du logement et du bâtiment" }).click();
+    await page.locator("summary").filter({ hasText: "Consulter les diagnostics" }).click();
   }
   await expect(ligne).toBeVisible();
   return ligne;

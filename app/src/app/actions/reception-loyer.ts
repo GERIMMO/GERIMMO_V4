@@ -1,20 +1,22 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { envoyerQuittance } from "./loyers";
 import { verifierGerant } from "@/lib/ged-acces";
 import { lireCleEnvoi } from "@/lib/cle-envoi";
 import { lireMontant, verifierDateDejaPassee } from "@/lib/saisie-montant";
 import { sansJargon } from "@/lib/erreurs";
 import { emettreRecusQuittances } from "@/lib/quittances";
+import { bilanApresPaiement, type BilanReception } from "@/lib/bilan-reception-loyer";
 import { eur } from "@/lib/ged";
 import { envoyerEmail } from "@/lib/email";
 import { adresseDuSite } from "@/lib/site";
 import { aujourdhuiParis } from "@/lib/ged";
 import { cleRelanceLoyer } from "@/lib/cles-idempotence-courriels";
-import { corpsRelanceLoyer, sujetRelanceLoyer } from "@/lib/relance-loyer-email";
-import { detteDuBail, idRelanceReception, lireDerniereRelanceReception, NOTE_RELANCE_TABLEAU, type RappelLoyer } from "@/lib/rappels-loyers";
+import { corpsRelanceLoyer, sujetRelanceLoyer, type RelanceLoyer } from "@/lib/relance-loyer-email";
+import { verifierCourrierDuBail, detteDuBail, idRelanceReception, NOTE_RELANCE_TABLEAU, type RappelLoyer } from "@/lib/rappels-loyers";
 
-export type EtatReceptionLoyer = { erreur?: string; succes?: string; termine?: boolean };
+export type EtatReceptionLoyer = { erreur?: string; succes?: string; termine?: boolean; bilan?: BilanReception };
 
 export async function declarerReceptionLoyer(orgId: string, appelId: string, _etat: EtatReceptionLoyer, form: FormData): Promise<EtatReceptionLoyer> {
   const { supabase, user, role } = await verifierGerant(orgId, { geste: "encaissement" });
@@ -49,14 +51,34 @@ export async function declarerReceptionLoyer(orgId: string, appelId: string, _et
     revalidatePath(`/agence/${orgId}${suffixe}`);
     revalidatePath(`/espace/${orgId}${suffixe}`);
   }
-  if (resultat.statut === "non_recu") return { succes: "Votre réponse « Pas encore reçu » est enregistrée. Le rappel reste visible. Si les relances automatiques sont activées et leur délai atteint, cette confirmation autorise le prochain envoi. Le paiement sera revérifié avant toute relance." };
+  if (resultat.statut === "non_recu") return { bilan: { statut: "non_recu" }, succes: "Votre réponse « Pas encore reçu » est enregistrée. Si les relances automatiques sont activées et leur délai atteint, cette confirmation autorise le prochain envoi. Le paiement sera revérifié avant toute relance." };
   if (resultat.statut === "annule") return { succes: "Ce règlement a été annulé dans le bail. Aucun règlement ajouté ; vérifiez votre compte bancaire avant une nouvelle déclaration." };
-  if (resultat.statut === "deja_solde") return { succes: "Cette échéance est déjà soldée. Aucun règlement ajouté.", termine: true };
-  const emission = await emettreRecusQuittances(supabase, resultat.bail_id);
+  if (resultat.statut === "deja_solde") return {
+    succes: "Cette échéance est déjà soldée.", termine: true,
+    bilan: await bilanApresPaiement(supabase, orgId, resultat.bail_id, appelId, "regle", null),
+  };
+  const emission = await emettreRecusQuittances(supabase, resultat.bail_id).catch(() => ({
+    erreur: "La création du justificatif reste à vérifier.",
+  }));
+  const bilan = await bilanApresPaiement(supabase, orgId, resultat.bail_id, appelId,
+    reponse === "partiel" ? "partiel" : "regle", cle.cle);
+  const quittanceAttendue = reponse === "recu";
+  const doc = bilan.document;
+  if (doc && doc.quittance === quittanceAttendue && !doc.envoyeLe && doc.disponibilite === "disponible") {
+    try {
+      const envoi = await envoyerQuittance(orgId, resultat.bail_id, doc.id, quittanceAttendue);
+      if (envoi.envoyeLe) doc.envoyeLe = envoi.envoyeLe;
+      if (envoi.dateNonConsignee) bilan.informationEnvoi = "La date d’envoi reste à enregistrer dans le suivi.";
+      else if (envoi.erreur) bilan.informationEnvoi = envoi.erreur;
+    } catch {
+      // Une erreur après l’encaissement ne doit jamais inviter à enregistrer le loyer une deuxième fois.
+      bilan.informationEnvoi = "Envoi du justificatif à vérifier. Le règlement est enregistré.";
+    }
+  }
   const message = resultat.statut === "deja_enregistre"
     ? "Ce règlement est déjà enregistré. Aucun doublon ajouté."
     : `${eur(Number(resultat.montant))} reçus et enregistrés. ${reponse === "partiel" ? "Le rappel sera actualisé avec le montant restant." : "Cette échéance est soldée."}`;
-  return { succes: emission.erreur ? `${message} Les documents restent à vérifier : ${emission.erreur}` : message, termine: true };
+  return { succes: emission.erreur ? `${message} Les documents restent à vérifier : ${emission.erreur}` : message, termine: reponse !== "partiel", bilan };
 }
 
 /** Relance amiable explicite : relecture du dû, clé stable et trace après acceptation de l'e-mail. */
@@ -76,13 +98,16 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   if ("erreur" in resteAttendu || resteAttendu.montant !== reste) return { erreur: "Le montant restant à recevoir a changé. Actualisez le tableau de bord avant de relancer le locataire." };
   // Comme les relances automatiques : le courrier dit aussi la dette échue totale du bail (audit du 27/10, NEW-01).
   const { data: lignesDuBail, error: erreurDette } = await supabase.rpc("rappels_loyers_proprietaire", { p_org: orgId }).eq("bail_id", ligne.bail_id);
-  if (erreurDette || !Array.isArray(lignesDuBail)) return { erreur: "Impossible de vérifier la dette totale du bail. Aucun message envoyé." };
+  if (erreurDette || !Array.isArray(lignesDuBail) || lignesDuBail.length >= 1000) return { erreur: "Impossible de vérifier la dette totale du bail. Aucun message envoyé." };
   const totalDu = detteDuBail(lignesDuBail as RappelLoyer[], aujourdhuiParis()).resteEchu;
-  // Une première relance par échéance ; les suites et le recommandé se gèrent depuis le bail.
-  const id = idRelanceReception(orgId, appelId);
-  const { data: connue, error: erreurConnue } = await lireDerniereRelanceReception(supabase, orgId, ligne);
-  if (erreurConnue) return { erreur: "Impossible de vérifier les relances déjà envoyées. Aucun nouvel envoi." };
-  if (connue) return { succes: "Une relance de cette échéance a déjà été enregistrée. Consultez le suivi du bail pour la suite." };
+  const niveau = form.get("niveau") ?? "relance_1";
+  if (niveau !== "relance_1" && niveau !== "relance_2") return { erreur: "Choisissez le palier de relance affiché." };
+  const plusAncienne = (lignesDuBail as RappelLoyer[]).filter(l => Number(l.montant_du) > Number(l.montant_couvert))
+    .sort((a,b) => a.periode.localeCompare(b.periode) || a.appel_id.localeCompare(b.appel_id))[0];
+  if (plusAncienne?.appel_id !== appelId) return { erreur: "Reprenez le suivi depuis la plus ancienne échéance impayée." };
+  const suivi = await verifierCourrierDuBail(supabase, orgId, ligne.bail_id, lignesDuBail, aujourdhuiParis(), niveau);
+  if (suivi.erreur) return { erreur: suivi.erreur };
+  const id = idRelanceReception(orgId, appelId, niveau);
   const { data: bail, error: erreurBail } = await supabase.from("baux").select("locataire_principal").eq("organization_id",orgId).eq("id",ligne.bail_id).maybeSingle();
   if (erreurBail || !bail?.locataire_principal) return { erreur: "Le destinataire n’a pas pu être vérifié. Aucun message envoyé." };
   const { data: personne, error: erreurPersonne } = await supabase.from("persons").select("email,prenom").eq("organization_id",orgId).eq("id",bail.locataire_principal).maybeSingle();
@@ -108,16 +133,16 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   if (!site || !/^https?:\/\//.test(site)) return { erreur: "L’adresse du site doit être configurée avant d’envoyer une relance." };
   let envoyes = 0;
   for (const destinataire of destinataires.values()) {
-    const message = { niveau: "relance_1" as const, prenom: destinataire.prenom, emetteur: organisation.name, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, totalDu, lien: `${site}/locataire/${orgId}/loyers` };
+    const message: RelanceLoyer = { niveau, prenom: destinataire.prenom, emetteur: organisation.name, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, totalDu, lien: `${site}/locataire/${orgId}/loyers` };
     const envoi = await envoyerEmail({ organisation: { db: supabase, id: orgId }, to: destinataire.email,
       subject: sujetRelanceLoyer(message), html: corpsRelanceLoyer(message),
-      cleIdempotence: cleRelanceLoyer({ bailId: ligne.bail_id, niveau: "relance_1", dateEcheance: ligne.date_echeance, destinataire: destinataire.email, role: "locataire", reste, totalDu }),
+      cleIdempotence: cleRelanceLoyer({ bailId: ligne.bail_id, niveau, dateEcheance: ligne.date_echeance, destinataire: destinataire.email, role: "locataire", reste, totalDu }),
     });
     if (envoi.erreur) return { erreur: envoyes ? `La relance a été envoyée à ${envoyes} destinataire${envoyes > 1 ? "s" : ""}, mais un autre envoi reste à terminer. ${envoi.erreur} La relance n’est pas marquée comme terminée dans le bail.` : envoi.erreur };
     envoyes += 1;
   }
   const { error: erreurTrace } = await supabase.from("relances").upsert({ id, organization_id: orgId, bail_id: ligne.bail_id,
-    niveau: "relance_1", date_envoi: aujourdhuiParis(), note: `${NOTE_RELANCE_TABLEAU} · échéance ${ligne.periode} · ${envoyes} destinataire${envoyes > 1 ? "s" : ""}`,
+    niveau, date_envoi: aujourdhuiParis(), note: `${NOTE_RELANCE_TABLEAU} · échéance ${ligne.periode} · ${envoyes} destinataire${envoyes > 1 ? "s" : ""}`,
   }, { onConflict: "id", ignoreDuplicates: true });
   for (const suffixe of ["", "/alertes", `/baux/${ligne.bail_id}`]) {
     revalidatePath(`/agence/${orgId}${suffixe}`); revalidatePath(`/espace/${orgId}${suffixe}`);

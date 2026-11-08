@@ -43,14 +43,14 @@ for (const largeur of [390, 768, 1440]) {
     await expect(page).toHaveURL(href!);
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByRole("tablist")).toHaveCount(0);
-    for (const nom of ["Logement et propriété", "Bâtiment", "Le bail", "Incidents"]) {
+    for (const nom of ["Caractéristiques", "Caractéristiques du bâtiment", "Bail et occupation", "Incidents"]) {
       await expect(page.getByRole("heading", { name: nom, exact: true })).toBeVisible();
     }
     // Un logement vacant n'affiche plus de carte occupants vide.
     await expect(page.getByRole('heading', { name: 'Locataires & garants', exact: true })).toHaveCount(0);
     const documents = page.locator("#documents-lot");
     await expect(documents).toBeVisible();
-    const diagnostics = documents.locator("details").filter({ has: page.locator(":scope > summary", {hasText:"Diagnostics du logement et du bâtiment"}) });
+    const diagnostics = documents.locator("details").filter({ has: page.locator(":scope > summary", {hasText:"Consulter les diagnostics"}) });
     const ouvrirDocuments = diagnostics.locator(":scope > summary");
     await ouvrirDocuments.focus();
     await expect(ouvrirDocuments).toBeFocused();
@@ -103,15 +103,14 @@ test("la fiche conserve les dépenses, les documents et l’historique sans moda
   await (await lienLotProprietaire(page)).click();
   await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
   const depenses = page.locator("#consommations");
-  await depenses.getByRole("button", {name:"Ajouter une dépense",exact:true}).click();
-  const fournisseur = depenses.getByLabel("Fournisseur", {exact:true});
-  await fournisseur.fill("Saisie locale non enregistrée");
+  const ajout = depenses.getByRole("link", { name: "Ajouter une facture", exact: true });
+  await expect(ajout).toHaveAttribute("href", /decompte=nouvelle&lot=[0-9a-f-]+$/);
   const documents = page.locator("#documents-lot");
   await expect(documents.getByRole("link", { name: "Déposer un document", exact: true })).toBeVisible();
-  const diagnostics = documents.locator("details").filter({has:page.locator(":scope > summary", {hasText:"Diagnostics du logement et du bâtiment"})});
+  const diagnostics = documents.locator("details").filter({has:page.locator(":scope > summary", {hasText:"Consulter les diagnostics"})});
   await diagnostics.locator(":scope > summary").click();
   await diagnostics.locator(":scope > summary").click();
-  await expect(fournisseur).toHaveValue("Saisie locale non enregistrée");
+  await expect(ajout).toBeVisible();
   const historique = page.locator("details").filter({ has: page.locator("summary", { hasText: "Historique du lot" }) });
   if (await historique.count()) {
     await historique.locator("summary").click();

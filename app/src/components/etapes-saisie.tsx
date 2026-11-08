@@ -1,19 +1,24 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { NavigationParcours, type EtapeParcours } from "./navigation-parcours";
+import { SuiviEnregistrement } from "@/lib/contexte-enregistrement";
 import styles from "./presentation-parcours.module.css";
 
 /** Les panneaux restent montés : changer d’étape ne réinitialise aucun champ.
  * Les champs masqués restent soumis ; une erreur native ouvre leur panneau. */
-export function EtapesSaisie({ titre, etapes, contenus, conclusion, activer = true, afficherNumeroEtape = true }: {
+export function EtapesSaisie({ titre, etapes, contenus, conclusion, activer = true, afficherNumeroEtape = true, enregistrerAvantSuite = false }: {
   titre: string;
+  enregistrerAvantSuite?: boolean;
   etapes: EtapeParcours[];
   contenus: ReactNode[];
   conclusion?: ReactNode;
   activer?: boolean;
   afficherNumeroEtape?: boolean;
 }) {
+  const notifierParent = useContext(SuiviEnregistrement);
+  const attente = useRef(false);
+  const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
   const [etape, setEtape] = useState(0);
   const root = useRef<HTMLDivElement>(null);
@@ -66,6 +71,7 @@ export function EtapesSaisie({ titre, etapes, contenus, conclusion, activer = tr
     };
   }, [activer, id]);
   function changer(i: number) {
+    if (attente.current) return;
     setErreur("");
     setEtape(i);
     requestAnimationFrame(() => {
@@ -75,15 +81,27 @@ export function EtapesSaisie({ titre, etapes, contenus, conclusion, activer = tr
   }
   function suivant() {
     const panneau = root.current?.querySelector(`[data-panneau="${etape}"]`);
-    // Les formulaires indépendants d’un état des lieux se valident à leur
-    // propre enregistrement, pas au passage vers la rubrique suivante.
+    // Les assistants imbriqués dans un formulaire vérifient le panneau courant.
     const formulaire = root.current?.closest("form");
     const invalide = formulaire ? panneau?.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input:invalid, select:invalid, textarea:invalid") : null;
     if (invalide) { invalide.reportValidity(); return; }
+    const aSauver = enregistrerAvantSuite ? panneau?.querySelector<HTMLFormElement>("form[data-etape-enregistrement]") : null;
+    if (aSauver) {
+      if (!aSauver.reportValidity()) return;
+      attente.current = true;
+      setEnCours(true);
+      aSauver.requestSubmit();
+      return;
+    }
     changer(etape + 1);
   }
   if (!activer) return <>{contenus}{conclusion}</>;
-  return <div ref={root} className={`${styles.presentation} space-y-5 scroll-mt-24`} onKeyDown={event => {
+  return <SuiviEnregistrement.Provider value={!enregistrerAvantSuite ? notifierParent : (succes = true) => {
+    const avancer = attente.current;
+    attente.current = false;
+    setEnCours(false);
+    if (succes && avancer) changer(etape + 1);
+  }}><div ref={root} className={`${styles.presentation} space-y-5 scroll-mt-24`} onKeyDown={event => {
     if (event.key === "Enter" && event.target instanceof HTMLInputElement && root.current?.closest("form") && etape < etapes.length - 1) { event.preventDefault(); suivant(); }
   }} onInvalidCapture={event => {
     event.preventDefault();
@@ -102,9 +120,9 @@ export function EtapesSaisie({ titre, etapes, contenus, conclusion, activer = tr
       {contenus.map((contenu, i) => <div key={i} data-panneau={i} hidden={i !== etape} className="space-y-4">{contenu}</div>)}
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--filet)] pt-4">
         {etape > 0 ? <button type="button" className="btn-secondaire" onClick={() => changer(etape - 1)}>Précédent</button> : <span />}
-        {etape < etapes.length - 1 ? <button type="button" className="btn-or" onClick={suivant}>Suivant →</button> : conclusion}
+        {etape < etapes.length - 1 ? <button type="button" className="btn-or" disabled={enCours} onClick={suivant}>{enCours ? "Enregistrement…" : "Suivant →"}</button> : conclusion}
       </div>
       <p className="mt-3 text-xs text-muted-foreground">Vos saisies restent en place entre les étapes, pendant que cette page est ouverte.</p>
     </div>
-  </div>;
+  </div></SuiviEnregistrement.Provider>;
 }

@@ -518,7 +518,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
        returning id`;
     const {
       rows: [{ id: compte }],
-    } = await db.query(compteAuth, ['{"nom":"Sarda","prenom":"Louise"}']);
+    } = await db.query(compteAuth, ['{"nom":"Sarda","prenom":"Louise","adresse":"3 rue du Test","code_postal":"69003","ville":"Lyon"}']);
 
     const enProprietaire = async (uid: string) => {
       await db.query("reset role");
@@ -597,7 +597,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     // 3. Un autre compte ouvre son propre espace, sans être gêné par le premier.
     const {
       rows: [{ id: voisin }],
-    } = await db.query(compteAuth, ['{"nom":"Nguyen","prenom":"Paul"}']);
+    } = await db.query(compteAuth, ['{"nom":"Nguyen","prenom":"Paul","adresse":"3 rue du Test","code_postal":"69003","ville":"Lyon"}']);
     await enProprietaire(voisin);
     const {
       rows: [{ org: espaceVoisin }],

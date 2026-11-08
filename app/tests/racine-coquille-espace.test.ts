@@ -239,7 +239,7 @@ describe("accueil : un seul geste pour chaque loyer à confirmer", () => {
   const rappel = { appel_id: "appel", bail_id: "bail-1", lot_nom: "Appartement", locataire: "Camille", periode: "2020-01-01", date_echeance: "2020-01-05", montant_du: 800, montant_couvert: 0, non_recu_signale_le: null };
   async function rendre(patch = {}, erreur = false, lectureSeule = false) {
     m.charger.mockResolvedValue({ plan: { surLesBaux: [{ source: "bail", cle: "impaye-bail-1", nature: "Bail", criticite: "critique", titre: "Loyer en retard TEST", detail: null, echeance: null, href: `/espace/${ORG}/baux/bail-1` }], enRetard: [], aVenir: [], total: 1 }, erreurs: { alertes: false, rapports: false } });
-    const db = client(table => table === "rappels_loyers_proprietaire" ? [{ ...rappel, ...patch }] : []);
+    const db = client(table => table === "rappels_loyers_proprietaire" ? [{ ...rappel, ...patch }] : table === "organizations" ? [{ relances_envoi_auto: false, relance_1_jours: 5, relance_2_jours: 15 }] : []);
     if (erreur) db.rpc = () => { const q = { order: () => q, range: async () => ({ data: null, error: { message: "indisponible" } }) }; return q; };
     return renderToStaticMarkup(await AccueilProprietaire({ supabase: db as never, orgId: ORG, organisation: { name: "Parc", status: "active", essai_fin: null }, userId: "compte", lectureSeule }));
   }

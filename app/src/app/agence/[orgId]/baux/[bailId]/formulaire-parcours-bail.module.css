@@ -27,3 +27,5 @@
   .options > summary { padding:12px; gap:8px; }
   .options > .groupe { padding:15px 12px; }
 }
+
+.formulaire [aria-invalid="true"] { border-color:var(--destructive); background:color-mix(in srgb,var(--destructive) 4%,white); }

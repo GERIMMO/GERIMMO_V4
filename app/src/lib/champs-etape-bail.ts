@@ -28,23 +28,23 @@ const options: Record<string, string[]> = { type:["nu","meuble","colocation","co
 /** Chaque enregistrement ne modifie que les champs de l’étape, jamais les personnes ni les autres étapes. */
 export function lireEtapeBail(etape: EtapeSaisieBail, form: FormData, actuel: ValeursParcoursBail, logement: { meuble: boolean; surface: number | null }) {
   const patch: ValeursParcoursBail = {};
-  const erreur = (message: string) => ({ erreur: message, patch: null });
+  const erreur = (message: string, champ?: string) => ({ erreur: message, champErreur: champ, patch: null });
   for (const nom of CHAMPS_ETAPE_BAIL[etape]) {
     if (!form.has(nom)) continue;
     const brut = String(form.get(nom) ?? "").trim();
     if (booleens.has(nom)) {
-      if (brut && !["true","false"].includes(brut)) return erreur("Choisissez Oui ou Non dans les champs proposés.");
+      if (brut && !["true","false"].includes(brut)) return erreur("Choisissez Oui ou Non dans les champs proposés.", nom);
       patch[nom] = brut ? brut === "true" : null;
     } else if (nombres.has(nom)) {
       // Lu sur le texte tel que tapé (« 840,00 » vaut 840) : stricte, comme tous les montants (VER-TS-02). Ni exposant,
       // ni hexadécimal, ni « Infinity » : `Number("1e3")` valait 1000 et `Number("0x10")` valait 16.
       const lu = lireMontantFacultatif(brut);
-      if ("erreur" in lu) return erreur(lu.erreur);
+      if ("erreur" in lu) return erreur(lu.erreur, nom);
       patch[nom] = lu.montant;
     } else {
       if (brut.length > (nom === "clauses_particulieres" ? 4000 : nom.startsWith("travaux_") ? 2000 : 500)) return erreur("Un texte est trop long. Raccourcissez-le avant d’enregistrer.");
-      if (dates.has(nom) && brut && (!/^\d{4}-\d{2}-\d{2}$/.test(brut) || !Number.isFinite(Date.parse(brut)) || new Date(brut).toISOString().slice(0,10) !== brut)) return erreur("Vérifiez les dates renseignées.");
-      if (options[nom] && brut && !options[nom].includes(brut)) return erreur("Choisissez une valeur proposée dans la liste.");
+      if (dates.has(nom) && brut && (!/^\d{4}-\d{2}-\d{2}$/.test(brut) || !Number.isFinite(Date.parse(brut)) || new Date(brut).toISOString().slice(0,10) !== brut)) return erreur("Vérifiez les dates renseignées.", nom);
+      if (options[nom] && brut && !options[nom].includes(brut)) return erreur("Choisissez une valeur proposée dans la liste.", nom);
       patch[nom] = brut || null;
     }
   }
@@ -58,13 +58,13 @@ export function lireEtapeBail(etape: EtapeSaisieBail, form: FormData, actuel: Va
     patch.meuble_etudiant ??= false;
   }
   if (etape === "bail" || etape === "loyer") {
-    if (etape === "loyer" && (!Number.isInteger(patch.jour_echeance) || Number(patch.jour_echeance)<1 || Number(patch.jour_echeance)>28)) return erreur("Le jour d’échéance doit être compris entre 1 et 28.");
+    if (etape === "loyer" && (!Number.isInteger(patch.jour_echeance) || Number(patch.jour_echeance)<1 || Number(patch.jour_echeance)>28)) return erreur("Le jour d’échéance doit être compris entre 1 et 28.", "jour_echeance");
     const fusion = { ...actuel, ...patch };
-    if (etape === "loyer" && ["loyer_hc","charges","depot_garantie"].some(n => patch[n] == null)) return erreur("Renseignez le loyer, les charges et le dépôt. Indiquez 0 si le montant est nul.");
-    if (fusion.type === "nu" && fusion.charges_mode === "forfait") return erreur("Un bail nu utilise des provisions sur charges. Corrigez le mode de charges à l’étape Loyer.");
+    if (etape === "loyer" && ["loyer_hc","charges","depot_garantie"].some(n => patch[n] == null)) return erreur("Renseignez ce montant. Indiquez 0 s’il est nul.", ["loyer_hc","charges","depot_garantie"].find(n => patch[n] == null));
+    if (fusion.type === "nu" && fusion.charges_mode === "forfait") return erreur("Un bail nu utilise des provisions sur charges. Corrigez le mode de charges à l’étape Loyer.", "charges_mode");
     // Le message donne le plafond calculé, et ne renvoie à l'étape Loyer que depuis une autre étape (audit #264, CB-16).
     const plafondDepot = fusion.loyer_hc == null ? null : moisDepotGarantie(String(fusion.type), logement.meuble) * Number(fusion.loyer_hc);
-    if (plafondDepot != null && fusion.depot_garantie != null && Number(fusion.depot_garantie) > plafondDepot) return erreur(`Le dépôt de garantie dépasse le plafond de ${eur(plafondDepot)} pour ce type de bail.${etape === "loyer" ? "" : " Corrigez-le à l’étape Loyer."}`);
+    if (plafondDepot != null && fusion.depot_garantie != null && Number(fusion.depot_garantie) > plafondDepot) return erreur(`Le dépôt de garantie dépasse le plafond de ${eur(plafondDepot)} pour ce type de bail.${etape === "loyer" ? "" : " Corrigez-le à l’étape Loyer."}`, "depot_garantie");
     if (etape === "loyer") {
       patch.revision_irl ??= false;
       patch.paiement_echeance ??= "echoir";

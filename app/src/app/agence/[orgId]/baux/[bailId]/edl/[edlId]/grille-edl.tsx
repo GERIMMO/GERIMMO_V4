@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useContext, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { SuiviEnregistrement } from "@/lib/contexte-enregistrement";
 import { createPortal } from "react-dom";
 import { majGrilleEdl, type EtatEdl } from "@/app/actions/edl";
 import { formaterDate, formaterDateHeure } from "@/lib/ged";
@@ -161,6 +162,7 @@ export function GrilleEdl({
     // Le point d’insertion fait partie des panneaux serveur : attendre leur montage.
     if (zoneSignatureId) queueMicrotask(() => setZoneSignature(document.getElementById(zoneSignatureId)));
   }, [zoneSignatureId]);
+  const notifierEnregistrement = useContext(SuiviEnregistrement);
   const actionMaj = majGrilleEdl.bind(null, orgId, bailId, edlId);
   const [etatMaj, setEtatMaj] = useState<EtatEdl>({});
   const [enCoursMaj, setEnCoursMaj] = useState(false);
@@ -405,11 +407,11 @@ export function GrilleEdl({
           </div>
         </div>
       )}
-      <form data-protection-saisie="locale"
+      <form data-etape-enregistrement data-protection-saisie="locale"
         ref={formulaire}
         onSubmit={async (event) => {
           event.preventDefault();
-          if (!navigator.onLine || verrouEnvoi.current) return;
+          if (!navigator.onLine || verrouEnvoi.current) { notifierEnregistrement?.(false); return; }
           const submitter = (event.nativeEvent as SubmitEvent).submitter;
           const donnees = new FormData(event.currentTarget);
           if (submitter instanceof HTMLButtonElement && submitter.name)
@@ -433,6 +435,7 @@ export function GrilleEdl({
             await preparerDepotsDirects(donnees);
             const retour = await actionMaj({}, donnees);
             setEtatMaj(retour);
+            notifierEnregistrement?.(Boolean(retour.succes));
             if (retour.succes) {
               setSynchronise(soumis);
               setConflit(null);
@@ -441,6 +444,7 @@ export function GrilleEdl({
               if (donnees.get("signer") === "1") window.location.reload();
             }
           } catch (erreur) {
+            notifierEnregistrement?.(false);
             setEtatMaj({ erreur: erreur instanceof ErreurDepotDirect?erreur.message: "La confirmation de sauvegarde n’a pas pu être reçue. Votre saisie reste sur cet appareil ; rouvrez le dossier pour vérifier ce qui a été enregistré." });
           } finally {
             verrouEnvoi.current = false;

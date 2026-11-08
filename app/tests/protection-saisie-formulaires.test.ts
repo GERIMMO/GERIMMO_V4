@@ -103,7 +103,7 @@ describe("les formulaires du code disent s'ils sont suivis (VER-PR178-01)", () =
   it("le test voit bien les formulaires, y compris sur plusieurs lignes", () => {
     expect(balises.length).toBeGreaterThan(200);
     const multiligne = balises.find((b) => b.fichier.endsWith("edl-annexes.tsx") && b.texte.includes("idFormAnnexes"));
-    expect(sansMarqueurs(multiligne?.texte ?? "")).toMatch(/^<form id=\{idFormAnnexes\} onSubmit=\{formAnnexes\}.*>$/);
+    expect(sansMarqueurs(multiligne?.texte ?? "")).toMatch(/^<form data-etape-enregistrement id=\{idFormAnnexes\} onSubmit=\{formAnnexes\}.*>$/);
     expect(balisesForm("// <form action={x}>\n/* <form> */\n{/* <form a> */}", "x.tsx")).toEqual([]);
   });
 

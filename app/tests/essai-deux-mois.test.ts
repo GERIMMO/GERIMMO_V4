@@ -215,7 +215,7 @@ describe.skipIf(!DB_URL)("la base applique l'essai du jour : 2 mois pendant l'of
          'essai-' || gen_random_uuid() || '@test.local','x', now(),
          '{"provider":"email","providers":["email"]}'::jsonb, $1::jsonb, now(), now(),'','','','','')
        returning id`,
-      [JSON.stringify(meta)]
+      [JSON.stringify({ adresse: "3 rue du Test", code_postal: "69003", ville: "Lyon", ...meta })]
     );
     return id;
   }
@@ -324,7 +324,7 @@ describe.skipIf(!DB_URL)("la base applique l'essai du jour : 2 mois pendant l'of
     const {
       rows: [r],
     } = await db.query<{ organization_id: string }>(
-      `select * from public.ouvrir_organisation('Agence Deux Mois','agence','deux-mois@exemple.fr')`
+      `select * from public.ouvrir_organisation('Agence Deux Mois','agence','deux-mois@exemple.fr',p_adresse=>'3 rue du Test',p_code_postal=>'69003',p_ville=>'Lyon')`
     );
     const { fin, attendu } = await essai(r.organization_id);
     expect(fin).toBe(attendu);
@@ -334,7 +334,7 @@ describe.skipIf(!DB_URL)("la base applique l'essai du jour : 2 mois pendant l'of
     const {
       rows: [n],
     } = await db.query<{ organization_id: string }>(
-      `select * from public.ouvrir_organisation('Agence Négociée','agence','negociee@exemple.fr',90,false)`
+      `select * from public.ouvrir_organisation('Agence Négociée','agence','negociee@exemple.fr',90,false,'3 rue du Test','69003','Lyon')`
     );
     await db.query("reset role");
     const {

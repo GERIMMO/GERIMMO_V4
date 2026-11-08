@@ -20,7 +20,7 @@ const incident = (id: string, etat = "declare", urgence = "normale") => ({ id, e
 beforeEach(() => {
   vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-26T12:00:00Z"));
   requetes = []; echec = () => false;
-  donnees = { baux: [bail()], bail_personnes: [], persons: [identite("principal", "Dupont")], lot_chambres: [], incidents: [] };
+  donnees = { baux: [bail()], bail_personnes: [], persons: [identite("principal", "Dupont")], lot_chambres: [], incidents_resume_lot: [] };
   banc.from.mockImplementation((table: string) => {
     const requete: Requete = { table, colonnes: "", filtres: [] };
     requetes.push(requete);
@@ -97,7 +97,7 @@ describe("Personnes de la fiche lot", () => {
 
 describe("Incidents de la fiche lot", () => {
   it("affiche les urgences avant les autres, avec leur lien direct et un historique replié", async () => {
-    donnees.incidents = [incident("normal"), incident("urgent", "en_cours", "urgente"), incident("clos", "clos"), { ...incident("autre-lot"), lot_id: "autre" }];
+    donnees.incidents_resume_lot = [incident("normal"), incident("urgent", "en_cours", "urgente"), incident("clos", "clos"), { ...incident("autre-lot"), lot_id: "autre" }];
     const html = await rendreIncidents(true);
     expect(html.indexOf("Dossier urgent")).toBeLessThan(html.indexOf("Dossier normal"));
     expect(html).toContain('href="/espace/org/incidents?sel=urgent"');
@@ -111,15 +111,23 @@ describe("Incidents de la fiche lot", () => {
     }
   });
 
+  it("montre l’artisan et la réponse attendue pour son rendez-vous", async () => {
+    donnees.incidents_resume_lot = [{ ...incident("suivi", "affecte"), imputation: "bailleur", artisan: "Atelier du Parc",
+      mission_id: "mission", mission_statut: "acceptee", propose_par: "artisan" }];
+    const html = await rendreIncidents();
+    expect(html).toContain("Atelier du Parc");
+    expect(html).toContain("Le locataire doit choisir un créneau");
+  });
+
   it("lit une deuxième page sans perdre les anciens incidents ouverts", async () => {
-    donnees.incidents = Array.from({ length: 501 }, (_, i) => incident(String(i)));
+    donnees.incidents_resume_lot = Array.from({ length: 501 }, (_, i) => incident(String(i)));
     const html = await rendreIncidents();
     expect(html).toContain("Dossier 500");
     expect(requetes.filter(q => q.debut !== undefined).map(q => q.debut)).toEqual([0, 500]);
   });
 
   it("distingue une erreur des incidents ouverts d'un lot sans incident", async () => {
-    echec = q => q.table === "incidents" && q.filtres.some(([operation]) => operation === "neq");
+    echec = q => q.table === "incidents_resume_lot" && q.filtres.some(([operation]) => operation === "neq");
     const html = await rendreIncidents();
     expect(html).toContain("Les incidents en cours n’ont pas pu être chargés");
     expect(html).not.toContain("Aucun incident en cours");

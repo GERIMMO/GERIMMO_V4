@@ -6,6 +6,7 @@ import { IncidentsBien } from "@/components/incidents-bien";
 import { ConsommationsBien } from "@/components/consommations-bien";
 import { bilanDiagnostics } from "@/lib/presentation-diagnostics";
 import Link from "next/link";
+import { House, Sofa, UsersRound, Building2 } from "lucide-react";
 import { IconeTrait } from "@/components/icone-trait";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -51,8 +52,8 @@ import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { CarteRetraitBien } from "./carte-retrait-bien";
 import { baseEspace, racineEspace } from "@/lib/racine-espace";
 
-export async function FicheBien({ orgId, bienId, integree = false }: {
-  orgId: string; bienId: string; integree?: boolean;
+export async function FicheBien({ orgId, bienId, decompte, lotFacture, integree = false }: {
+  orgId: string; bienId: string; integree?: boolean; decompte?: string; lotFacture?: string;
 }) {
   const Conteneur = integree ? "div" : "main";
   const Titre = integree ? "h2" : "h1";
@@ -85,7 +86,7 @@ export async function FicheBien({ orgId, bienId, integree = false }: {
       .maybeSingle(),
     supabase
       .from("lots")
-      .select("id, nom, etat, surface_m2, tantieme, pieces")
+      .select("id, nom, etat, surface_m2, tantieme, pieces, meuble")
       .eq("bien_id", bienId)
       .order("created_at"),
     supabase
@@ -139,6 +140,10 @@ export async function FicheBien({ orgId, bienId, integree = false }: {
       />
     );
   if (!bien) notFound();
+  if (decompte) {
+    if (decompte !== "nouvelle") exigerUuids(decompte);
+    return <main><ConsommationsBien orgId={orgId} bienId={bienId} base={base} lectureSeule={traverseeLectureSeule} factureSeule={decompte} lotId={lotFacture} bienNom={bien.nom}/></main>;
+  }
 
   // Blocages de mise en location, affichés directement sur la fiche bien :
   // en mono-lot personne n'ouvre la fiche lot pour y trouver le bouton
@@ -353,6 +358,9 @@ export async function FicheBien({ orgId, bienId, integree = false }: {
           <ul className="divide-y divide-border">
             {lotsAffiches.map((lot) => {
               const blocages = blocagesParLot.get(lot.id) ?? [];
+              const colocation = chambresDuBien?.some(chambre => chambre.lot_id === lot.id) || locationsCourantes.data?.some(bail => bail.lot_id === lot.id && bail.type === "colocation");
+              const IconeLot = colocation ? UsersRound : lot.meuble ? Sofa : bien.type === "maison" ? House : Building2;
+              const typeLot = colocation ? "Colocation" : lot.meuble ? "Logement meublé" : "Logement non meublé";
               const propres = blocages.filter((b) => !blocagesCommuns.includes(b));
               return (
                 <li key={lot.id} className={`space-y-2 py-3 ${lot.etat === "archive" ? "opacity-60" : ""}`}>
@@ -361,6 +369,7 @@ export async function FicheBien({ orgId, bienId, integree = false }: {
                     href={`${base}/parc/${bienId}/lots/${lot.id}`}
                     className="-mx-2 flex w-[calc(100%+1rem)] flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-[var(--survol)]"
                   >
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700" title={typeLot}><IconeLot size={22} aria-label={typeLot} /></span>
                     <span
                       className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}
                     >

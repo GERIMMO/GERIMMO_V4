@@ -6,6 +6,7 @@ export const TYPES_COMPTEUR = {
 export type TypeCompteur = keyof typeof TYPES_COMPTEUR;
 export type CompteurConsommation = {
   id: string; organization_id: string; bien_id: string; lot_id: string | null;
+  compteur_principal_id?: string | null;
   type: TypeCompteur; unite: "m3" | "kwh"; libelle: string; numero: string | null;
   emplacement: string | null; index_initial: number | string; date_index_initial: string;
   periodicite_mois: number; prochaine_demande: string; bail_referent: string | null;
@@ -36,6 +37,7 @@ export const CATEGORIES_FOURNITURE = {
 } as const;
 export type ContratFourniture = {
   id: string; organization_id: string; bien_id: string; lot_id: string | null;
+  souscripteur?: string | null; payeur?: string | null;
   fournisseur: string; categorie: keyof typeof CATEGORIES_FOURNITURE; reference: string | null;
   montant_cents: number | null; periodicite_mois: number; echeance: string | null;
   preavis_jours: number; actif: boolean; created_at: string;

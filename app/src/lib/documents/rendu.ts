@@ -21,16 +21,26 @@ const CHEMINS_CHROME_LOCAL = [
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 ].filter((c): c is string => Boolean(c));
 
-let navigateurEnCours: Promise<Browser> | null = null;
+// En développement les routes et les actions peuvent recharger ce module séparément.
+const moteur = globalThis as typeof globalThis & { gerimmoMoteurPdf?: Promise<Browser> };
 
-async function obtenirNavigateur(): Promise<Browser> {
-  if (navigateurEnCours) {
-    const b = await navigateurEnCours.catch(() => null);
-    if (b?.connected) return b;
-    navigateurEnCours = null;
+function obtenirNavigateur(): Promise<Browser> {
+  if (!moteur.gerimmoMoteurPdf) {
+    const lancement = lancerNavigateur();
+    moteur.gerimmoMoteurPdf = lancement;
+    const oublier = () => {
+      if (moteur.gerimmoMoteurPdf === lancement) delete moteur.gerimmoMoteurPdf;
+    };
+    lancement.then(b => b.once("disconnected", oublier), oublier);
   }
-  navigateurEnCours = lancerNavigateur();
-  return navigateurEnCours;
+  return moteur.gerimmoMoteurPdf;
+}
+
+/** Anticiper le démarrage coûteux sur le serveur local, sans fabriquer ni stocker de courrier. */
+export function preparerMoteurPdfLocal() {
+  if (process.env.NODE_ENV === "development" && !process.env.VERCEL && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    void obtenirNavigateur().catch(() => undefined);
+  }
 }
 
 async function lancerNavigateur(): Promise<Browser> {

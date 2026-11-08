@@ -14,7 +14,7 @@ function base(categorie="eau",manquant=false){
   compteurs_consommation:["a","b"].map(id=>({id,lot_id:id,type:"eau_froide",unite:"m3",actif:true,date_index_initial:"2026-10-01",index_initial:100})),
   releves_consommation:manquant?[]:["a","b"].map(id=>({id,compteur_id:id,date_releve:"2026-10-31",index_releve:120})),
  };
- const db={from(nom:string){const lignes=tables[nom]??[];let q:unknown; q=new Proxy({}, {get(_t,k){if(k==="then")return (f:(v:unknown)=>unknown)=>Promise.resolve({data:lignes,count:lignes.length,error:null}).then(f);if(k==="single"||k==="maybeSingle")return async()=>({data:lignes[0]??null,error:null});return ()=>q;}});return q;},async rpc(_n:string,p:{p_geste:string;p_args:Record<string,unknown>}){appels.push({geste:p.p_geste,args:p.p_args});return {data:true,error:null};}} as unknown as SupabaseClient;
+ const db={from(nom:string){const lignes=tables[nom]??[];const q:unknown=new Proxy({}, {get(_t,k){if(k==="then")return (f:(v:unknown)=>unknown)=>Promise.resolve({data:lignes,count:lignes.length,error:null}).then(f);if(k==="single"||k==="maybeSingle")return async()=>({data:lignes[0]??null,error:null});return ()=>q;}});return q;},async rpc(_n:string,p:{p_geste:string;p_args:Record<string,unknown>}){appels.push({geste:p.p_geste,args:p.p_args});return {data:true,error:null};}} as unknown as SupabaseClient;
  return {db,appels};
 }
 beforeEach(()=>{calcul.mockReset();pdf.mockReset();calcul.mockResolvedValue({repartition:{id:"rep",empreinte:"hash",lignes:[{bail_id:"bail",recuperable:true},{bail_id:null,recuperable:false}]}});pdf.mockResolvedValue({documentId:"doc"});});

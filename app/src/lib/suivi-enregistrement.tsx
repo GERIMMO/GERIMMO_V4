@@ -4,7 +4,7 @@ import { useActionStateProtegee as useActionState } from "@/lib/use-action-state
 
 /** Les formulaires hors assistant gardent leur comportement habituel. */
 export const CompletudeBail = createContext<{ manquants: string[]; erreur?: string } | null>(null);
-export const SuiviEnregistrement = createContext<(() => void) | null>(null);
+export const SuiviEnregistrement = createContext<((succes?: boolean) => void) | null>(null);
 
 export function useActionStateSuivi<State extends { succes?: string }, Payload>(
   action: (state: Awaited<State>, payload: Payload) => State | Promise<State>,
@@ -17,7 +17,7 @@ export function useActionStateSuivi<State extends { succes?: string }, Payload>(
   useEffect(() => {
     if (precedent.current === etat) return;
     precedent.current = etat;
-    if (etat.succes) notifier?.();
+    notifier?.(Boolean(etat.succes));
   }, [etat, notifier]);
   return retour;
 }

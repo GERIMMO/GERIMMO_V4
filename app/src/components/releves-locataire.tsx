@@ -28,6 +28,7 @@ function Releve({ orgId, d, aujourdHui }: { orgId: string; d: MonReleveConsommat
   if (etat.succes) return <p className={styles.ok} role="status">{d.libelle} : {etat.succes}</p>;
   return <section className={styles.panel}><header className={styles.header}><h2>{d.libelle}</h2><span className={styles.badge}>Pour le {formaterDate(d.echeance)}</span></header><div className={styles.body}>
     <p className={styles.muted}>{d.lot_nom}{d.numero ? ` · compteur ${d.numero}` : ""}{d.emplacement ? ` · ${d.emplacement}` : ""}</p>
+    <p className={styles.muted}>Index demandé au {formaterDate(d.echeance)}. Indiquez la date réelle de votre relevé : ne reconstituez pas un ancien index.</p>
     <p className={styles.muted}>Dernier index : {Number(d.index_precedent).toLocaleString("fr-FR")} {unite} au {formaterDate(d.date_precedente)}.</p>
     <form data-saisie-confirmee action={submit} onReset={e => e.preventDefault()} onSubmitCapture={verifierSoumission} className={styles.form}>
       <label>Index affiché ({unite})<input name="index" value={index} onChange={e => setIndex(e.target.value)} inputMode="decimal" required autoComplete="off" placeholder="Recopiez le nombre sur le compteur" /></label>

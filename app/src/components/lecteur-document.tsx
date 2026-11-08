@@ -131,14 +131,21 @@ function SessionLecteur({ fichier, titre, mime, presentation = "standard" }: Pro
         if (reponse.status === 401 || reponse.status === 403) throw new ErreurLecture("L’accès à ce document a expiré ou n’est plus autorisé. Rechargez le dossier.");
         if (reponse.status === 415) throw new ErreurLecture("Ce format ne peut pas être affiché ici. Vous pouvez le télécharger.");
         if (!reponse.ok) throw new ErreurLecture("Le document est indisponible. Réessayez.");
-        const meta = await reponse.json() as { url?: unknown; mime?: unknown; nom?: unknown };
-        const format = typeof meta.mime === "string" ? meta.mime.split(";")[0].toLowerCase() : mime;
-        if (!format || !FORMATS.has(format) || typeof meta.url !== "string") throw new ErreurLecture("Ce format ne peut pas être affiché ici. Vous pouvez le télécharger.");
-        const cible = new URL(meta.url);
-        if (cible.username || cible.password || (cible.protocol !== "https:" && !(cible.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(cible.hostname)))) throw new ErreurLecture("L’accès à ce document est indisponible.");
-        const donnees = await lireOctets(await fetch(cible.href, { signal: controle.signal, credentials: "omit", cache: "no-store", redirect: "error", referrerPolicy: "no-referrer" }), controle.signal);
-        controle.signal.throwIfAborted();
-        if (typeof meta.nom === "string" && meta.nom.trim()) nom.current = meta.nom;
+        let format: string | null;
+        let donnees: Uint8Array<ArrayBuffer>;
+        if (fichier.startsWith("/api/decompte-charges/") && reponse.headers.get("content-type") === "application/pdf") {
+          format = "application/pdf";
+          donnees = await lireOctets(reponse, controle.signal);
+        } else {
+          const meta = await reponse.json() as { url?: unknown; mime?: unknown; nom?: unknown };
+          format = typeof meta.mime === "string" ? meta.mime.split(";")[0].toLowerCase() : mime;
+          if (!format || !FORMATS.has(format) || typeof meta.url !== "string") throw new ErreurLecture("Ce format ne peut pas être affiché ici. Vous pouvez le télécharger.");
+          const cible = new URL(meta.url);
+          if (cible.username || cible.password || (cible.protocol !== "https:" && !(cible.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(cible.hostname)))) throw new ErreurLecture("L’accès à ce document est indisponible.");
+          donnees = await lireOctets(await fetch(cible.href, { signal: controle.signal, credentials: "omit", cache: "no-store", redirect: "error", referrerPolicy: "no-referrer" }), controle.signal);
+          controle.signal.throwIfAborted();
+          if (typeof meta.nom === "string" && meta.nom.trim()) nom.current = meta.nom;
+        }
         if (format === "application/pdf") {
           const moteur = await import("pdfjs-dist");
           controle.signal.throwIfAborted();

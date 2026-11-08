@@ -85,12 +85,20 @@ describe.skipIf(!DB_URL)("ouvrir une organisation depuis la console", () => {
     return sa;
   }
 
+  it("refuse une ouverture administrative sans adresse avant de créer un compte", async () => {
+    await agir(await superAdmin());
+    const email = "ouverture-incomplete@test.local";
+    expect(await refusee("select * from public.ouvrir_organisation('Parc incomplet','proprietaire_direct',$1)", [email])).toMatch(/adresse postale complète/);
+    await db.query("reset role");
+    expect((await db.query("select 1 from auth.users where email=$1", [email])).rowCount).toBe(0);
+  });
+
   it("crée l'organisation, le compte du responsable et l'adhésion qui les relie", async () => {
     await agir(await superAdmin());
     const {
       rows: [r],
     } = await db.query<{ organization_id: string; email_responsable: string; compte_deja_existant: boolean }>(
-      `select * from public.ouvrir_organisation('Cabinet Martin','agence','Patron@Cabinet-Martin.FR',14,false)`
+      `select * from public.ouvrir_organisation('Cabinet Martin','agence','Patron@Cabinet-Martin.FR',14,false,'3 rue du Test','69003','Lyon')`
     );
     expect(r.compte_deja_existant).toBe(false);
     // L'adresse est normalisée : deux invitations à « Patron@… » et
@@ -100,11 +108,13 @@ describe.skipIf(!DB_URL)("ouvrir une organisation depuis la console", () => {
     await db.query("reset role");
     const {
       rows: [org],
-    } = await db.query<{ name: string; type: string; status: string; essai_fin: string | null }>(
-      `select name, type::text, status::text, essai_fin from public.organizations where id=$1`,
+    } = await db.query<{ name: string; type: string; status: string; essai_fin: string | null; email_contact: string; address_line1: string }>(
+      `select name, type::text, status::text, essai_fin, email_contact, address_line1 from public.organizations where id=$1`,
       [r.organization_id]
     );
     expect(org.name).toBe("Cabinet Martin");
+    expect(org.email_contact).toBe(r.email_responsable);
+    expect(org.address_line1).toBe("3 rue du Test");
     expect(org.type).toBe("agence");
     expect(org.status).toBe("essai");
     expect(org.essai_fin).not.toBeNull();
@@ -127,7 +137,7 @@ describe.skipIf(!DB_URL)("ouvrir une organisation depuis la console", () => {
     const {
       rows: [r],
     } = await db.query<{ organization_id: string }>(
-      `select * from public.ouvrir_organisation('Parc Durand','proprietaire_direct','durand@exemple.fr',30,false)`
+      `select * from public.ouvrir_organisation('Parc Durand','proprietaire_direct','durand@exemple.fr',30,false,'3 rue du Test','69003','Lyon')`
     );
     await db.query("reset role");
     const {
@@ -147,12 +157,12 @@ describe.skipIf(!DB_URL)("ouvrir une organisation depuis la console", () => {
     const {
       rows: [premier],
     } = await db.query<{ email_responsable: string }>(
-      `select * from public.ouvrir_organisation('Agence Une','agence','double@exemple.fr',14,false)`
+      `select * from public.ouvrir_organisation('Agence Une','agence','double@exemple.fr',14,false,'3 rue du Test','69003','Lyon')`
     );
     const {
       rows: [second],
     } = await db.query<{ compte_deja_existant: boolean }>(
-      `select * from public.ouvrir_organisation('Agence Deux','agence','double@exemple.fr',14,false)`
+      `select * from public.ouvrir_organisation('Agence Deux','agence','double@exemple.fr',14,false,'3 rue du Test','69003','Lyon')`
     );
     expect(second.compte_deja_existant).toBe(true);
 
@@ -171,7 +181,7 @@ describe.skipIf(!DB_URL)("ouvrir une organisation depuis la console", () => {
     const {
       rows: [r],
     } = await db.query<{ organization_id: string }>(
-      `select * from public.ouvrir_organisation('Signée','agence','signee@exemple.fr',0,true)`
+      `select * from public.ouvrir_organisation('Signée','agence','signee@exemple.fr',0,true,'3 rue du Test','69003','Lyon')`
     );
     await db.query("reset role");
     const {

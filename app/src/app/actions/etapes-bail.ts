@@ -40,7 +40,7 @@ export async function modifierEtapeBail(orgId: string, bailId: string, etape: Et
   const ailleurs = lues ? champsDifferents(etape, lues, enregistrees) : [];
   if (ailleurs.length) return {erreur:"Cette étape a été enregistrée entre-temps dans un autre onglet ou par une autre personne. Rien n’a été enregistré : vérifiez les valeurs ci-dessous, puis enregistrez à nouveau.",valeurs,modifieesAilleurs:Object.fromEntries(ailleurs.map(nom=>[nom,enregistrees[nom]??""]))};
   const resultat = lireEtapeBail(etape,form,bail,{meuble:lot.meuble===true,surface:lot.surface_m2 == null ? null : Number(lot.surface_m2)});
-  if (resultat.erreur || !resultat.patch) return {erreur:resultat.erreur,valeurs};
+  if (resultat.erreur || !resultat.patch) return {erreur:resultat.erreur,champErreur:resultat.champErreur,valeurs};
   let modification = supabase.from("baux").update(resultat.patch).eq("id",bailId).eq("organization_id",orgId).eq("etat","brouillon");
   // Recontrôler les valeurs financières liées à la validation, sans comparer
   // des horodatages dont certains adaptateurs réduisent la précision.

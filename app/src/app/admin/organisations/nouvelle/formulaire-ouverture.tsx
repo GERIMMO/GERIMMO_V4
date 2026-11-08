@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { ouvrirOrganisation, type EtatOuverture } from "@/app/actions/organisations-admin";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { AdresseOuverture } from "@/components/adresse-ouverture";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { dureeEssai } from "@/lib/tarifs";
@@ -42,6 +43,7 @@ export function FormulaireOuverture({
         </p>
       </div>
 
+      <AdresseOuverture prefixe={base} valeurs={etat.valeurs} />
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">Type</legend>
         {(
@@ -82,7 +84,7 @@ export function FormulaireOuverture({
           placeholder="contact@cabinet-martin.fr"
         />
         <p className="text-xs text-muted-foreground">
-          Il recevra un lien pour définir son mot de passe. S&apos;il a déjà un
+          Cette adresse servira de contact sur les courriers. Le responsable recevra un lien pour définir son mot de passe. S&apos;il a déjà un
           compte Gerimmo (autre agence, ou espace locataire), c&apos;est
           celui-là qui est rattaché — on n&apos;en crée pas un second.
         </p>

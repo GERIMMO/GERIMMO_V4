@@ -210,3 +210,13 @@ describe("carte rouge : une pulsation brève, jamais sans fin (audit du 27/10, T
     expect(extremes?.slice(1, 3)).toEqual(fixe?.slice(1, 3));
   });
 });
+
+it("montre tous les paliers sur la carte fermée, même en présence d’un incident prioritaire",()=>{
+  for (const critiques of [0,1]) {
+    const html = rendre({total:3+critiques,loyersAConfirmer:3,critiques,apercu:critiques?"Fuite d’eau":null,
+      paliersLoyers:"Recommandé · Deuxième relance · Première relance"});
+    expect(nomAccessible(html)).toContain("Étapes : Recommandé · Deuxième relance · Première relance");
+    if (critiques) expect(nomAccessible(html)).toContain("Fuite d’eau");
+    expect(html).not.toContain('role="dialog"');
+  }
+});

@@ -29,9 +29,9 @@ it("enregistre sans doublon et actualise le tableau de bord, les finances et le 
   expect(m.revalider).toHaveBeenCalledWith("/espace/org");expect(m.revalider).toHaveBeenCalledWith("/agence/org/baux/bail");
   expect(m.revalider).toHaveBeenCalledWith("/espace/org/alertes");
 });
-it("pas encore reçu n'émet aucun document de paiement et ne solde pas la notification",async()=>{
+it("pas encore reçu n'émet aucun document de paiement et garde la ligne impayée dans la fenêtre",async()=>{
   const f=form();f.set("reponse","non_recu");m.rpc.mockResolvedValue({data:{statut:"non_recu",bail_id:"bail"},error:null});
-  const r=await declarerReceptionLoyer("org","appel",{},f);expect(r.succes).toContain("reste visible");expect(r.termine).not.toBe(true);expect(m.emission).not.toHaveBeenCalled();
+  const r=await declarerReceptionLoyer("org","appel",{},f);expect(r.succes).toContain("est enregistrée");expect(r.bilan).toEqual({statut:"non_recu"});expect(r.termine).not.toBe(true);expect(m.emission).not.toHaveBeenCalled();
   expect(m.rpc).toHaveBeenCalledWith("declarer_reception_loyer",expect.objectContaining({p_montant:null,p_date:null,p_mode:null}));
 });
 it("ne confirme pas un résultat SQL inconnu ou refusé",async()=>{

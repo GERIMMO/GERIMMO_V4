@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { lireToutesLesPages } from "@/lib/lecture-complete";
 import { occupationLot } from "@/lib/occupation-lot";
+import { coordonneesCourrierIncompletes } from "@/lib/coordonnees-courrier";
 import type { ReglagesEnvoi } from "@/lib/envois-automatiques";
 
 export type LotPilotage = { id: string; nom: string; etat: string; bien_id: string };
@@ -65,7 +66,7 @@ export async function chargerPilotageProprietaire(db: SupabaseClient, orgId: str
     lireToutesLesPages<ChambrePilotage>((debut, fin) => db.from("lot_chambres").select("id,lot_id", { count: "exact" }).eq("organization_id", orgId).order("id").range(debut, fin), l => l.id),
     lireToutesLesPages<{ id: string; montant: number | string }>((debut, fin) => db.from("encaissements").select("id,montant", { count: "exact" }).eq("organization_id", orgId).gte("date_paiement", `${aujourdHui.slice(0, 7)}-01`).lte("date_paiement", aujourdHui).order("id").range(debut, fin), l => l.id),
     lireToutesLesPages<DiagnosticPilotage>((debut, fin) => db.from("diagnostics").select("id,lot_id,classe_dpe,date_realisation,created_at", { count: "exact" }).eq("organization_id", orgId).eq("type", "dpe").is("archived_at", null).order("id").range(debut, fin), l => l.id),
-    db.from("organizations").select("quittances_envoi_auto,appels_envoi_auto,relances_envoi_auto").eq("id", orgId).maybeSingle(),
+    db.from("organizations").select("quittances_envoi_auto,appels_envoi_auto,relances_envoi_auto,address_line1,postal_code,city,email_contact").eq("id", orgId).maybeSingle(),
   ]);
   const patrimoineIllisible = Boolean(biens.echec || lots.echec || baux.echec || chambres.echec);
   const lotsAffichables = lots.echec || biens.echec ? null : resumerPilotage(biens.lignes, lots.lignes, [], []).lots;
@@ -73,6 +74,7 @@ export async function chargerPilotageProprietaire(db: SupabaseClient, orgId: str
     patrimoine: patrimoineIllisible ? null : resumerPilotage(biens.lignes!, lots.lignes!, baux.lignes!, chambres.lignes!),
     encaisse: encaissements.echec ? null : totalEncaissements(encaissements.lignes),
     diagnostics: diagnostics.echec || lotsAffichables === null ? null : diagnosticsASurveiller(diagnostics.lignes, lotsAffichables),
+    coordonneesACompleter: !reglages.error && !!reglages.data && coordonneesCourrierIncompletes(reglages.data),
     reglages: reglages.error ? null : reglages.data as ReglagesEnvoi | null,
   };
 }

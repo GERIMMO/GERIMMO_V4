@@ -172,7 +172,7 @@ export function LignesDiagnostics({
           {!lectureSeule && type === "dpe" && lotId && niveau === "lot" && <div hidden={!classeOuverte}><FormulaireClasseDpeLot orgId={orgId} lotId={lotId} diagnosticId={d.id} classe={d.classe_dpe ?? null} /></div>}
         </details>}
         {/* Ne pas démonter un dépôt commencé en refermant sa rubrique. */}
-        {!lectureSeule && commences.has(type) && <div hidden={ouvert !== type} className={styles.depot}><FormulaireDiagnostic orgId={orgId} bienId={bienId} lotId={lotId} niveau={niveau} typeInitial={type} onDepotConfirmeAction={message => confirmerDepot(type, message)} /></div>}
+        {!lectureSeule && commences.has(type) && <div hidden={ouvert !== type} className={styles.depot} role="region" aria-label={`Déposer le rapport : ${nom}`}><h4 className="mb-3 text-sm font-semibold">Déposer le rapport — {nom}</h4><FormulaireDiagnostic orgId={orgId} bienId={bienId} lotId={lotId} niveau={niveau} typeInitial={type} onDepotConfirmeAction={message => confirmerDepot(type, message)} /></div>}
       </li>;
   }
 

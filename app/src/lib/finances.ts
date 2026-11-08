@@ -7,12 +7,14 @@ export type EcritureFinances = {
 };
 
 /** Lire toutes les pages : un total ne doit pas dépendre de la limite API. */
-export async function lireLivreFinances(supabase: SupabaseClient, orgId: string) {
+export async function lireLivreFinances(supabase: SupabaseClient, orgId: string, lotId?: string) {
   const lignes: EcritureFinances[] = [];
   for (let debut = 0; ; debut += 500) {
-    const { data, error } = await supabase.from("ecritures")
+    let lecture = supabase.from("ecritures")
       .select("id, categorie, sens, montant, date_imputation, libelle, lot_id, contre_ecriture_de")
-      .eq("organization_id", orgId).order("date_imputation", { ascending: false }).order("id")
+      .eq("organization_id", orgId);
+    if (lotId) lecture = lecture.eq("lot_id", lotId);
+    const { data, error } = await lecture.order("date_imputation", { ascending: false }).order("id")
       .range(debut, debut + 499);
     if (error) return { lignes: [], error };
     lignes.push(...(data ?? []) as EcritureFinances[]);

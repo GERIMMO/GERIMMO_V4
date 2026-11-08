@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { documentRegularisationFournitures, type BrouillonRegularisationFourniture } from "../src/lib/regularisation-fournitures";
-const d: BrouillonRegularisationFourniture = { id: "test", bail_id: "bail", annee: 2026, empreinte: "hash", regularisation_id: null, source: { annee: 2026, locataire: "Locataire test", logement: "Studio", adresse: "1 rue test, Lyon", provisions: 120, charges_reelles: 180.01, ecart: -60.01, factures: [{ repartition_id: "r", document_id: "doc", facture_id: "f", reference: "Eau <script>alert(1)</script>", fournisseur: "Fournisseur test", debut: "2026-01-01", fin: "2026-12-31", montant_cents: 18001 }] } };
+const d: BrouillonRegularisationFourniture = { id: "test", bail_id: "bail", annee: 2026, empreinte: "hash", regularisation_id: null, source: { bailleur: "SCI des Trois Lots", annee: 2026, locataire: "Locataire test", logement: "Studio", adresse: "1 rue test, Lyon", provisions: 120, charges_reelles: 180.01, ecart: -60.01, factures: [{ repartition_id: "r", document_id: "doc", facture_id: "f", reference: "Eau <script>alert(1)</script>", fournisseur: "Fournisseur test", debut: "2026-01-01", fin: "2026-12-31", montant_cents: 18001 }] } };
 describe("décompte annuel depuis les factures", () => {
   it("reprend les montants, sans confondre provision appelée et encaissement", () => {
     const doc = documentRegularisationFournitures(d, false);

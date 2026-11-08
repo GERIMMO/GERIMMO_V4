@@ -41,6 +41,7 @@ function base(tables: Record<string, unknown[]>, uniques: Record<string, unknown
       return requete;
     },
     async rpc(fn: string, args?: Record<string, unknown>) {
+      if (fn === "releves_a_rappeler") return {data:tables.releves_attendus ?? [],error:null};
       if (fn === "org_ecriture_ouverte") return { data: true, error: null };
       if (fn === "log_tech") journal.push({ evenement: String(args?.evenement), details: args?.details as Record<string, unknown> });
       return { data: null, error: null };
@@ -54,6 +55,20 @@ const MAINTENANT = new Date("2026-10-14T06:00:00Z");
 beforeEach(() => envoyerEmail.mockReset());
 
 describe("rappels de gestes : clé anti-doublon", () => {
+  it("un relevé a une seule relance par palier et n’est plus rappelé après réception",async()=>{
+    envoyerEmail.mockResolvedValue({id:"envoi-fictif"});
+    const d={id:"demande-1",organization_id:"org-1",personne_id:"personne-1",created_at:"2026-10-10T06:00:00Z",libelle:"Eau"};
+    const t={releves_attendus:[d]}; const u={persons:{email:"locataire@example.invalid",prenom:"Démo"}};
+    const p1=base(t,u); await envoyerRappelsGestes(p1.client,MAINTENANT);
+    expect(envoyerEmail).toHaveBeenCalledTimes(1);
+    expect(envoyerEmail.mock.calls[0][0]).toMatchObject({to:"locataire@example.invalid",cleIdempotence:"rappel-geste/releve_attendu:demande-1:j3"});
+    const traces=p1.journal.filter(j=>j.evenement==="notification_rappel").map(j=>({details:j.details}));
+    await envoyerRappelsGestes(base({...t,tech_log:traces},u).client,MAINTENANT);
+    expect(envoyerEmail).toHaveBeenCalledTimes(1);
+    await envoyerRappelsGestes(base({releves_attendus:[]},u).client,new Date("2026-10-18T06:00:00Z"));
+    expect(envoyerEmail).toHaveBeenCalledTimes(1);
+  });
+
   it("une mission non acceptée est envoyée avec la clé « rappel-geste/mission_non_acceptee:<id> »", async () => {
     const { client, journal } = base(
       { incident_interventions: [{ id: "iv-9", organization_id: "org-1", incident_id: "inc-1", artisan_id: "art-1", confiee_le: "2026-10-10T06:00:00Z" }] },

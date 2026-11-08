@@ -45,6 +45,6 @@ export function proposerPartsOccupation(lots: LotRepartition[], baux: Occupation
   return [...groupes.values()].map(p => { const poids = p.poids / diviseur; if (!Number.isSafeInteger(poids) || poids > 1_000_000_000) throw new Error("La clé exige une période plus courte."); return { ...p, poids, poids_fixe: poids }; });
 }
 export type RepartitionFourniture = { id: string; facture_id: string; empreinte: string; statut: "brouillon" | "validee"; motif: string;
-  lignes: { lot_id: string; bail_id: string | null; poids: number; poids_fixe?: number; variable_cents?: number; fixe_cents?: number; periode_debut?: string; periode_fin?: string; montant_cents: number; recuperable: boolean }[];
-  source?: { facture?: { reference?: string; periode_debut?: string; periode_fin?: string; total_cents?: number }; contrat?: { fournisseur?: string }; ecart_non_reparti_cents?: number; frais_gestion_cents?: number; mode?: string; reglages?: { mode_interface?: string; colocation?: string | null } };
+  lignes: { compteur_id?:string; lot_id: string; bail_id: string | null; poids: number; poids_fixe?: number; variable_cents?: number; fixe_cents?: number; periode_debut?: string; periode_fin?: string; montant_cents: number; recuperable: boolean }[];
+  source?: { compteurs?: {id:string; debut:number; fin:number; unite:string; periode_debut:string; periode_fin:string}[]; facture?: { reference?: string; periode_debut?: string; periode_fin?: string; total_cents?: number }; contrat?: { fournisseur?: string }; ecart_non_reparti_cents?: number; frais_gestion_cents?: number; mode?: string; reglages?: { mode_interface?: string; colocation?: string | null } };
   total_recuperable_cents: number; total_proprietaire_cents: number; validee_le: string | null };

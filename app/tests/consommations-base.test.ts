@@ -70,6 +70,53 @@ describe.skipIf(!url)("consommations : isolation réelle, collecte et répartiti
   beforeEach(async () => { await db.query("savepoint cas"); });
   afterEach(async () => { await db.query("rollback to savepoint cas"); await db.query("reset role"); });
 
+  it("rattache la demande à la facture sans doublon et reprend l’index du locataire", async () => {
+    await session(gerant);
+    await db.query("select public.demander_index_facture($1,$2,$3,'2026-10-01')",[org,facture,compteurA]);
+    await db.query("select public.demander_index_facture($1,$2,$3,'2026-10-01')",[org,facture,compteurA]);
+    expect((await db.query("select count(*)::int as n from public.factures_demandes_releves where facture_id=$1",[facture])).rows[0].n).toBe(1);
+    await session(compteB);
+    expect((await db.query("select * from public.factures_demandes_releves where facture_id=$1",[facture])).rowCount).toBe(0);
+    await refus("select public.demander_index_facture($1,$2,$3,'2026-10-01')",[org,facture,compteurA]);
+    await postgres();
+    expect((await db.query("select * from public.releves_a_rappeler($1)",[demandeA])).rowCount).toBe(1);
+    await db.query("savepoint depart_test");
+    await db.query("update public.memberships set status='inactive' where account_id=$1 and organization_id=$2",[compteA,org]);
+    expect((await db.query("select * from public.releves_a_rappeler($1)",[demandeA])).rowCount).toBe(0);
+    await db.query("rollback to savepoint depart_test");
+    await session(compteA); await soumettre(125);
+    await session(gerant);
+    expect((await db.query("select index_releve::float as n from public.releves_consommation where compteur_id=$1",[compteurA])).rows[0].n).toBe(125);
+    await postgres();
+    expect((await db.query("select * from public.releves_a_rappeler($1)",[demandeA])).rowCount).toBe(0);
+  });
+  it("déduit le seul locataire autorisé du bail si le compteur n’a pas de responsable", async () => {
+    await session(gerant);
+    const m=await id("insert into public.compteurs_consommation(organization_id,bien_id,lot_id,type,unite,libelle,index_initial,date_index_initial,prochaine_demande) values($1,$2,$3,'eau_froide','m3','Compteur sans responsable',100,'2026-09-01','2027-01-01') returning id",[org,bien,lotA]);
+    await db.query("select public.demander_index_facture($1,$2,$3,'2026-10-01')",[org,facture,m]);
+    expect((await db.query("select bail_referent,personne_referente from public.compteurs_consommation where id=$1",[m])).rows[0]).toEqual({bail_referent:bailA,personne_referente:personneA});
+    await session(compteA);
+    expect((await db.query("select * from public.mes_releves_consommation($1) where compteur_id=$2",[org,m])).rows[0].peut_repondre).toBe(true);
+  });
+  it("automatise seulement la facture autorisée et interdit les encaissements",async()=>{
+    await session(gerant);
+    await db.query("select public.regler_facture_automatique($1,true)",[facture]);
+    await refus("select public.geste_facture_automatique($1,'controle')",[facture]);
+    await session(compteB);
+    await refus("select public.regler_facture_automatique($1,true)",[facture]);
+    expect((await db.query("select * from public.factures_automatiques where id=$1",[facture])).rowCount).toBe(0);
+    await postgres(); await db.query("set local role service_role");
+    expect((await db.query("select public.geste_facture_automatique($1,'controle') as ok",[facture])).rows[0].ok).toBe(true);
+    await refus("select public.geste_facture_automatique($1,'payer_facture_fourniture')",[facture],/interdit/);
+    const r=await db.query("select public.geste_facture_automatique($1,'preparer_repartition_fourniture',$2::jsonb) as id",[facture,JSON.stringify({p_facture:facture,p_parts:JSON.parse(parts()),p_motif:"Clé de test confirmée pour la facture",p_mode:"cle",p_reglages:{mode_interface:"cle"}})]);
+    const rep=r.rows[0].id;
+    await postgres(); const empreinte=(await db.query("select empreinte from public.repartitions_fourniture where id=$1",[rep])).rows[0].empreinte;
+    await db.query("set local role service_role");
+    await db.query("select public.geste_facture_automatique($1,'valider_repartition_fourniture',$2::jsonb)",[facture,JSON.stringify({p_repartition:rep,p_empreinte_attendue:empreinte})]);
+    await session(gerant);await db.query("select public.regler_facture_automatique($1,false)",[facture]);
+    await postgres();await db.query("set local role service_role");
+    await refus("select public.geste_facture_automatique($1,'controle')",[facture],/désactivée/);
+  });
   it("l’abonnement fermé interdit les gestes de gestion et préserve les relevés du locataire", async () => {
     await db.query("select public.tache_systeme()");
     await db.query("update public.organizations set status='suspendue' where id=$1", [org]);
@@ -101,6 +148,15 @@ describe.skipIf(!url)("consommations : isolation réelle, collecte et répartiti
     await session(gerant);
     expect((await db.query("select public.synchroniser_demandes_releves($1) as n", [org])).rows[0].n).toBe(0);
     expect((await db.query("select count(*)::int as n from public.demandes_releves where organization_id=$1", [org])).rows[0].n).toBe(2);
+  });
+  it("demande seulement l’index de facture manquant au locataire autorisé, une seule fois",async()=>{
+    await db.query("delete from public.demandes_releves where id=$1",[demandeA]);
+    await session(gerant);
+    const demande="select public.demander_index_facture($1,$2,$3,'2026-10-01')";
+    await db.query(demande,[org,facture,compteurA]);await db.query(demande,[org,facture,compteurA]);
+    await session(compteA);expect((await db.query("select * from public.mes_releves_consommation($1) where compteur_id=$2",[org,compteurA])).rowCount).toBe(1);
+    await session(compteB);expect((await db.query("select * from public.mes_releves_consommation($1) where compteur_id=$2",[org,compteurA])).rowCount).toBe(0);
+    await refus(demande,[org,facture,compteurA]);
   });
   it("le locataire ne voit que sa demande, pas les compteurs ni factures de l'immeuble", async () => {
     await session(compteA);
@@ -272,6 +328,18 @@ describe.skipIf(!url)("consommations : isolation réelle, collecte et répartiti
     expect(Number(valeur.total_proprietaire_cents)).toBe(3201);
     expect(valeur.source.ecart_non_reparti_cents).toBe(3200);
     expect(valeur.lignes.find((l: { lot_id: string }) => l.lot_id === lotA)).toMatchObject({ poids: 10000, variable_cents: 1600, fixe_cents: 1000, montant_cents: 2600 });
+  });
+  it("recontrôle un général lié avant de valider les divisionnaires",async()=>{
+    await session(compteA);await soumettre(110);await session(gerant);
+    const general=await id("insert into public.compteurs_consommation(organization_id,bien_id,type,unite,libelle,index_initial,date_index_initial,prochaine_demande) values($1,$2,'eau_froide','m3','Général',0,'2026-09-01','2026-11-01') returning id",[org,bien]);
+    await db.query("update public.compteurs_consommation set compteur_principal_id=$2 where id=$1",[compteurA,general]);
+    const args=[facture,JSON.stringify([{lot_id:lotA,bail_id:bailA,poids:1,compteur_id:compteurA,recuperable:true}])];
+    const calcul="select public.preparer_repartition_fourniture($1,$2,'Compteur du logement relié au général','consommations') as id";
+    await refus(calcul,args,/principal/);
+    await db.query("select public.enregistrer_releve_compteur($1,$2,20,'2026-10-01')",[org,general]);
+    const r=await id(calcul,args);
+    await db.query("update public.compteurs_consommation set compteur_principal_id=null where id=$1",[compteurA]);
+    await refus("select public.valider_repartition_fourniture($1,(select empreinte from public.repartitions_fourniture where id=$1))",[r],/rattachement/);
   });
   it("refuse d'imputer une consommation sans relevés aux dates exactes", async () => {
     await session(gerant);

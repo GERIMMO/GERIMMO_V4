@@ -4,6 +4,7 @@ import { CATALOGUE_DOCUMENTS } from "../catalogue";
 import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte } from "./communs";
 import { modeSignatureDocument } from "@/lib/politique-signature";
 import type { Assemblage } from "./index";
+import { verifierCourrierDuBail } from "@/lib/rappels-loyers";
 import { aujourdhuiParis } from "@/lib/ged";
 import { echeanceReglementaire } from "@/lib/documents-bail";
 
@@ -39,7 +40,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     const meta = CATALOGUE_DOCUMENTS.find(m => m.id === code)!;
     // Le jour à Paris (audit du 27/09) : toISOString donnait la veille entre 0 h et 2 h.
     const f = new Fusion(), exp = expediteur(ctx), aujourdhui = aujourdhuiParis();
-    let contenu = "", signatures = false, avertissement: string | undefined;
+    let contenu = "", signatures = false;
     const opt = (cle: string, libelle: string) => f.champ(options[cle]?.trim() || null, libelle);
     if (["attestation_loyer", "attestation_caf"].includes(code) && !["actif","preavis"].includes(ctx.bail.etat)) return { erreur: "Cette attestation concerne un contrat actuellement en cours." };
     if (["attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "protocole_apurement"].includes(code) && ctx.bail.etat === "brouillon") return { erreur: "Ce document se prépare pour un bail engagé, après la signature du contrat." };
@@ -98,17 +99,12 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         ${lignesTableau(f,code === "situation_dette" ? termes : echus,[["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"]])}
         <p><strong>${plan ? `Dette arrêtée au ${f.date(plan.date_arrete)} : ${eur(plan.dette_initiale)}.` : `Solde échu au ${f.date(aujourdhui)} : ${eur(detteCentimes/100)}.`}</strong> Les échéances à venir sont exclues de ce solde.</p>`;
       if (code === "relance_simple") contenu += `<p>Sauf règlement intervenu depuis l’établissement de ce décompte, nous vous invitons à régulariser les sommes échues. En cas de difficulté ou de désaccord, contactez votre gestionnaire afin d’examiner votre situation.</p>`;
-      if (code === "seconde_relance") {
-        const relances = await lireLignes(supabase.from("relances").select("date_envoi").eq("organization_id",orgId).eq("bail_id",bailId).order("date_envoi",{ascending:false}).limit(1));
-        if (!relances.length) return { erreur: "Enregistrez la première relance avant de préparer une seconde relance." };
-        contenu += `<p>Notre précédent courrier du ${f.date(texte(relances[0].date_envoi))} reste sans régularisation complète à ce jour. Merci de régler ce solde ou de prendre contact avec votre gestionnaire.</p>`;
-      }
       if (code === "mise_en_demeure" && (!/^\d+$/.test(options.delai ?? "") || Number(options.delai) < 1 || Number(options.delai) > 90)) return { erreur: "Indiquez un délai de règlement de 1 à 90 jours." };
-      // Wiki « Relances et mise en demeure » : mise en demeure sans relance
-      // préalable = alerte (non bloquante) au gérant.
-      if (code === "mise_en_demeure") {
-        const relancesPrealables = await lireLignes(supabase.from("relances").select("id").eq("organization_id",orgId).eq("bail_id",bailId).in("niveau",["relance_1","relance_2"]).limit(1));
-        if (!relancesPrealables.length) avertissement = "aucune relance n’a été enregistrée avant cette mise en demeure.";
+      if (code === "relance_simple" || code === "seconde_relance" || code === "mise_en_demeure") {
+        const niveau = code === "relance_simple" ? "relance_1" : code === "seconde_relance" ? "relance_2" : "recommande";
+        const suivi = await verifierCourrierDuBail(supabase, orgId, bailId, echus, aujourdhui, niveau);
+        if (suivi.erreur) return { erreur: suivi.erreur };
+        if (code === "seconde_relance") contenu += `<p>Notre précédent courrier du ${f.date(suivi.precedente)} reste sans régularisation complète à ce jour. Merci de régler ce solde ou de prendre contact avec votre gestionnaire.</p>`;
       }
       if (code === "mise_en_demeure") contenu += `<p>Par le présent courrier, nous vous mettons en demeure de régler les sommes échues détaillées ci-dessus dans un délai de ${opt("delai","délai de règlement à compter de la réception")} jours à compter de sa réception, sous réserve des règlements intervenus depuis son établissement.</p><p>Ce courrier est à notifier avec preuve de réception. Il ne constitue ni un commandement de payer ni une décision de résiliation du bail.</p>`;
       if (code !== "situation_dette") contenu += `<p>Modalités de règlement : ${f.champ(ctx.bail.lieu_paiement,"modalités de règlement")} ; référence à rappeler : ${referenceCourte("BAIL",bailId)}.</p>`;
@@ -185,6 +181,6 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     const corps = `${enTete(f,exp,{libelle:"Dossier",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,"Dossier de location",[])}
       ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],["Locataire",nomsLocataires(f,ctx.locataires)],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",referenceCourte("BAIL",bailId)]])}
       ${contenu}${faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature("Le bailleur / mandataire",nomsBailleurs(f,ctx.bailleurs))}${cadreSignature("Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`;
-    return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)],...(avertissement ? { avertissement } : {}) };
+    return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)] };
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }
 }

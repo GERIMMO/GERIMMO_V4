@@ -16,7 +16,7 @@ export function consigneIncident(etat: string, decisionRequise: boolean, contest
 type Mission = { id: string; statut: string; debut_prevu: string | null };
 export function consigneMission(mission: Mission, propositions: { propose_par: string }[], communs: boolean, indisponible: boolean): ConsigneIncident {
   if (indisponible) return { titre: "Suivi à vérifier", texte: "Certaines informations de rendez-vous ou de compte rendu sont indisponibles. Rechargez la page avant de décider." };
-  if (mission.statut === "confiee") return { titre: "L’artisan doit répondre", texte: "La mission a été confiée. Sa réponse apparaîtra dans ce dossier.", attente: true };
+  if (["proposee", "confiee"].includes(mission.statut)) return { titre: "L’artisan doit répondre", texte: "La mission a été confiée. Sa réponse apparaîtra dans ce dossier.", attente: true };
   if (["refusee", "annulee"].includes(mission.statut)) return { titre: "Choisir un autre artisan", texte: "Cette mission ne se poursuit pas. Retrouvez les possibilités de nouvelle recherche dans le dossier." };
   if (mission.statut === "terminee") return { titre: "Vérifier le compte rendu", texte: "L’artisan a terminé. Consultez le travail déclaré et les photos avant la suite." };
   if (mission.statut === "en_cours") return { titre: "L’intervention est en cours", texte: "Le compte rendu de l’artisan apparaîtra ici. Vous pouvez le contacter depuis les messages.", attente: true, liens: [{ titre: "Échanger avec les participants", cible: `messages-${mission.id}` }] };

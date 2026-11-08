@@ -42,6 +42,7 @@ export async function modifierProfilOrganisation(
   if (!adresse || !codePostal || !ville || !emailContact) {
     return { erreur: "L'adresse complète et l'email de contact sont obligatoires pour les documents.", valeurs };
   }
+  if (!emailValide(emailContact)) return { erreur: "Renseignez un e-mail de contact valide pour vos courriers.", valeurs };
   const estAgence = role === "admin_agence";
   const siret = champ("siret");
   const cartePro = champ("carte_pro");

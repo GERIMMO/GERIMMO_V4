@@ -44,7 +44,7 @@ export function saisieContrat(f: FormData) {
   if (!(categorie in CATEGORIES_FOURNITURE) || !fournisseur) throw new Error("Indiquez le fournisseur et le type de contrat.");
   const preavis = Number(texteConso(f, "preavis_jours") || 30);
   if (!Number.isInteger(preavis) || preavis < 0 || preavis > 366) throw new Error("Le préavis doit être compris entre 0 et 366 jours.");
-  return { fournisseur, categorie, reference: texteConso(f, "reference") || null, montant_cents: centsConso(f, "montant"),
+  return { fournisseur, categorie, souscripteur: texteConso(f, "souscripteur") || null, payeur: texteConso(f, "payeur") || null, reference: texteConso(f, "reference") || null, montant_cents: centsConso(f, "montant"),
     periodicite_mois: frequenceConso(f), echeance: dateConso(texteConso(f, "echeance"), false), preavis_jours: preavis };
 }
 export function saisieFacture(f: FormData) {

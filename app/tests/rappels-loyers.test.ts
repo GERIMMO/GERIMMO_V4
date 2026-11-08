@@ -63,7 +63,8 @@ describe("rappels contractuels de réception des loyers", () => {
     expect((await lireDerniereRelanceReception(supabase, "org", ligne())).data).toBeNull();
     const propre = idRelanceReception("org", "octobre");
     expect(filtres.find(f => f.niveau === "relance_1")?.or).toEqual([`id.eq.${propre},note.is.null,note.not.like.${NOTE_RELANCE_TABLEAU}*`]);
-    expect(filtres.filter(f => f.niveau !== "relance_1").every(f => f.or.length === 0)).toBe(true);
+    expect(filtres.find(f => f.niveau === "relance_2")?.or[0]).toContain(idRelanceReception("org", "octobre", "relance_2"));
+    expect(filtres.find(f => f.niveau === "mise_en_demeure")?.or).toEqual([]);
     // Identifiant stable : la relance déjà tracée pour cette échéance reste reconnue après la mise à jour.
     expect(propre).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-a[0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(idRelanceReception("org", "septembre")).not.toBe(propre);

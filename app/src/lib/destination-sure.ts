@@ -1,3 +1,5 @@
+import { baseEspace, lireCheminDeGestion } from "@/lib/racine-espace";
+
 /**
  * Garde anti « open redirect » : ne suivre qu'un chemin INTERNE.
  *
@@ -15,4 +17,15 @@ export function destinationSure(brut: string | null | undefined, repli = "/espac
   if (!brut.startsWith("/")) return repli;
   if (brut.startsWith("//") || /[\\\x00-\x20\x7f]/.test(brut)) return repli;
   return brut;
+}
+
+/** Après identification, la liste générale des incidents laisse place à l’accueil propriétaire.
+ * Un lien vers un incident précis, une déclaration ou une action conserve sa destination. */
+export function destinationApresConnexion(suite: string | null): string {
+  const destination = destinationSure(suite);
+  const espace = lireCheminDeGestion(destination);
+  if (espace?.racine === "espace" && /^\/incidents\/?$/.test(espace.suite)) {
+    return baseEspace(espace.orgId, true);
+  }
+  return destination;
 }

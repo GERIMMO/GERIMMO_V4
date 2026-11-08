@@ -8,16 +8,32 @@ import { documentRegularisationFournitures, type BrouillonRegularisationFournitu
 import { rendrePdf } from "@/lib/documents/rendu";
 import { preparerFichierGed, abandonnerPieceGed } from "@/lib/ged-depot";
 
-export type EtatRegularisationFournitures = { erreur?: string; succes?: string; brouillon?: BrouillonRegularisationFourniture; documentId?: string; regularisationId?: string };
+export type EtatRegularisationFournitures = { erreur?: string; succes?: string; brouillon?: BrouillonRegularisationFourniture; automatique?: boolean; avisLe?: string | null; consulteLe?: string | null; documentId?: string; regularisationId?: string };
 export async function preparerRegularisationFournitures(orgId: string, bailId: string, _etat: EtatRegularisationFournitures, f: FormData): Promise<EtatRegularisationFournitures> {
   const { supabase, user } = await verifierGerant(orgId, { geste: "regularisation_charges", cible: bailId });
   const annee = lireAnneeExercice(f.get("annee"));
   if (!user || !estUuid(bailId) || annee === null) return { erreur: "Vérifiez le bail et l’exercice." };
+  const [reglage, precedent] = await Promise.all([
+    supabase.from("reglages_avis_decompte").select("automatique").eq("organization_id",orgId).eq("bail_id",bailId).maybeSingle(),
+    supabase.from("brouillons_regularisation_fourniture").select("*").eq("organization_id",orgId).eq("bail_id",bailId).eq("annee",annee).maybeSingle(),
+  ]);
+  if (reglage.error || precedent.error) return { erreur:"Impossible de vérifier cet exercice." };
+  const factureDemandee = String(f.get("facture_id") ?? "");
+  if (factureDemandee && !estUuid(factureDemandee)) return {erreur:"Vérifiez la facture concernée."};
+  const facturePresente = !factureDemandee || precedent.data?.source?.factures?.some((x: {facture_id:string})=>x.facture_id===factureDemandee);
+  if (precedent.data?.regularisation_id && !facturePresente) return {erreur:"Cet exercice est déjà clôturé. Cette facture supplémentaire nécessite une correction de la régularisation existante."};
+  if (precedent.data?.regularisation_id) {
+    const doc = await supabase.from("regularisations_charges").select("justificatif_document").eq("organization_id",orgId).eq("id",precedent.data.regularisation_id).single();
+    if (doc.error) return { erreur:"Décompte validé indisponible." };
+    return { brouillon:precedent.data, succes:"Décompte annuel validé.", documentId:doc.data.justificatif_document, regularisationId:precedent.data.regularisation_id, avisLe:precedent.data.avis_le, consulteLe:precedent.data.consulte_le, automatique:reglage.data?.automatique ?? false };
+  }
+  if (f.get("ligne") === "oui" && precedent.data && facturePresente) return { brouillon: precedent.data, automatique: reglage.data?.automatique ?? false };
   const { data: id, error } = await supabase.rpc("preparer_regularisation_fourniture", { p_org: orgId, p_bail: bailId, p_annee: annee });
   if (error || !id) return { erreur: sansJargon(error?.message ?? "Le brouillon n’a pas pu être préparé.") };
   const { data, error: lecture } = await supabase.from("brouillons_regularisation_fourniture").select("*").eq("id", id).eq("organization_id", orgId).single();
   if (lecture || !data) return { erreur: "Le brouillon est conservé, mais sa lecture a échoué. Réessayez." };
-  return { brouillon: data as BrouillonRegularisationFourniture };
+  revalidatePath(`/espace/${orgId}`, "layout");
+  return { automatique:reglage.data?.automatique ?? false, brouillon: data as BrouillonRegularisationFourniture };
 }
 export async function emettreRegularisationFournitures(orgId: string, bailId: string, id: string, _etat: EtatRegularisationFournitures, f: FormData): Promise<EtatRegularisationFournitures> {
   const { supabase, user } = await verifierGerant(orgId, { geste: "regularisation_charges", cible: bailId });
@@ -42,6 +58,24 @@ export async function emettreRegularisationFournitures(orgId: string, bailId: st
     const lie = lecture.data?.documents as unknown as { storage_path?: string } | null;
     if (lie?.storage_path && lie.storage_path !== piece.chemin) await abandonnerPieceGed(supabase, piece);
     revalidatePath(`/espace/${orgId}`, "layout"); revalidatePath(`/agence/${orgId}`, "layout"); revalidatePath(`/locataire/${orgId}`, "layout");
-    return { succes: "Régularisation enregistrée. Le décompte est disponible dans les documents du bail et du locataire.", regularisationId: r.data, documentId: lecture.data?.justificatif_document ?? undefined };
+    const avis = await supabase.from("brouillons_regularisation_fourniture").select("avis_le").eq("organization_id",orgId).eq("id",id).single();
+    return { avisLe:avis.data?.avis_le, succes: "Régularisation enregistrée. Le décompte est disponible dans les documents du bail et du locataire.", regularisationId: r.data, documentId: lecture.data?.justificatif_document ?? undefined };
   } catch (e) { return { erreur: sansJargon(e instanceof Error ? e.message : "Le décompte n’a pas pu être préparé. Réessayez.") }; }
+}
+
+export async function notifierDecompte(org: string, id: string): Promise<EtatRegularisationFournitures> {
+  const {supabase,user} = await verifierGerant(org,{geste:"regularisation_charges",cible:id});
+  if (!user || !estUuid(id)) return {erreur:"Accès refusé."};
+  const r = await supabase.rpc("notifier_decompte",{p_org:org,p_id:id});
+  if (r.error) return {erreur:sansJargon(r.error.message)};
+  revalidatePath(`/locataire/${org}`,"layout");
+  revalidatePath(`/espace/${org}`, "layout");
+  return {avisLe:r.data};
+}
+
+export async function reglerAvisDecompte(org:string,bail:string,actif:boolean): Promise<EtatRegularisationFournitures> {
+  const {supabase,user} = await verifierGerant(org,{geste:"regularisation_charges",cible:bail});
+  if (!user || !estUuid(bail) || typeof actif !== "boolean") return {erreur:"Accès refusé."};
+  const r = await supabase.rpc("regler_avis_decompte",{p_org:org,p_bail:bail,p_actif:actif});
+  return r.error ? {erreur:sansJargon(r.error.message)} : {automatique:r.data};
 }

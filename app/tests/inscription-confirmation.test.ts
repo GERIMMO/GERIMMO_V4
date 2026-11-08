@@ -37,6 +37,8 @@ function formulaire(extra: Record<string, string> = {}) {
     cgu: "on",
     telephone: "0600000000",
     ville: "Lyon",
+    adresse: "3 rue du Test",
+    code_postal: "69003",
     ...extra,
   };
   for (const [k, v] of Object.entries(valeurs)) f.set(k, v);
@@ -117,6 +119,12 @@ describe("inscrireProprietaire", () => {
     expect(await inscrireProprietaire({}, formulaire())).toEqual({ message: MESSAGE_BOITE_MAIL });
     expect(mocks.createClient).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it.each(["adresse", "code_postal", "ville"])("bloque l’ouverture si %s est vide, avant tout envoi", async champ => {
+    const r = await inscrireProprietaire({}, formulaire({ [champ]: "   " }));
+    expect(r.erreur).toMatch(/pour vos courriers/);
+    expect(mocks.inscrire).not.toHaveBeenCalled();
   });
 
   it("garde ses contrôles de formulaire avant tout appel", async () => {

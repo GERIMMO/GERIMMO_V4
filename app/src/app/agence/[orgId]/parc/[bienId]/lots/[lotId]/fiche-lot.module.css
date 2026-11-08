@@ -262,7 +262,7 @@
 .titreSection { display:flex; align-items:center; gap:10px; color:var(--encre); }
 .fiche .titreSection h2 { font-family:var(--font-interface),sans-serif; font-size:17px; font-weight:650; }
 .titreSection > svg { color:var(--texte-secondaire); }
-.suiviFiche .outilsLot { margin:0; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; }
+.suiviFiche .outilsLot { margin:0; grid-template-columns:minmax(0,1fr); align-items:start; }
 .ficheProprietaire :global(.suivi-lot-proprietaire > h3) { font-size:16px; font-weight:650; }
 .ficheProprietaire .infosApercu > div { border-color:var(--trait); }
 .ficheProprietaire .travailLocations { gap:12px; }
@@ -353,7 +353,7 @@
 .videCarte p { font-size:14px; font-weight:550; }
 .videCarte small { display:block; max-width:45ch; margin-top:8px; color:var(--texte-secondaire); font-size:13px; line-height:1.65; }
 .lienArtisan { display:inline-flex; align-items:center; gap:6px; min-height:44px; color:var(--texte-secondaire); font-size:12px; margin-top:8px; }
-.sixCartes .diagnosticsGrille { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:18px; }
+.sixCartes .diagnosticsGrille { grid-template-columns:minmax(0,1fr); align-items:start; gap:18px; }
 .autresDocuments { margin-top:18px; padding-top:18px; border-top:1px solid var(--trait); }
 @media(max-width:900px) { .ficheProprietaire.sixCartes, .sixCartes .diagnosticsGrille { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:639px) {
@@ -411,3 +411,38 @@
 .ficheProprietaire .videCarte { padding:0; }
 .fiche[data-proprietaire="true"] .entete { padding:14px 20px; }
 .fiche[data-proprietaire="true"] .entete h1 { font-size:clamp(23px,2.4vw,30px); }
+
+.reperesLot {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr));
+  gap: 12px 20px;
+  padding: 14px 18px;
+  border: 1px solid #d7e1e8;
+  border-radius: 12px;
+  background: #f2f6f8;
+  color: #18354b;
+}
+.reperesLot dt, .reperesLot small { color: #526677; font-size: .78rem; }
+.reperesLot dd { margin: 3px 0 0; font-weight: 650; overflow-wrap: anywhere; }
+@media (max-width: 540px) {
+  .reperesLot { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 12px; }
+}
+
+.ficheProprietaire.sixCartes { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:14px; align-items:start; }
+.ficheProprietaire.sixCartes > [data-rubrique-dossier] { order:0; grid-column:auto; min-width:0; }
+.ficheProprietaire.sixCartes > section:empty { display:none; }
+.ficheProprietaire .carteIncidents { background:#fff5f4; border:1px solid #edcfcc; }
+.ficheProprietaire .carteIncidents .panneauIcone { background:#fbe3e0; color:#943d36; }
+.ficheProprietaire.sixCartes > [data-rubrique-dossier="suivi-lot"] { grid-column:1/-1; }
+@media(max-width:880px){ .ficheProprietaire.sixCartes { grid-template-columns:minmax(0,1fr); } }
+
+.raccourcisDiagnostics { display:grid; gap:3px; }
+.raccourcisDiagnostics a { padding:8px 10px; border-radius:6px; background:#f4f7f5; color:#284c3a; font-size:.84rem; }
+.sixCartes [data-rubrique-dossier="finances-lot"] { display:grid; gap:14px; }
+
+@media (min-width: 881px) {
+  .ficheProprietaire.sixCartes > [data-rubrique-dossier="personnes-lot"]:not(:empty) { grid-column: 1 / -1; }
+  .ficheProprietaire.sixCartes > [data-rubrique-dossier="logement-lot"] { grid-column: 1; grid-row: span 2; }
+  .ficheProprietaire.sixCartes > [data-rubrique-dossier="proprietaires-lot"],
+  .ficheProprietaire.sixCartes > [data-rubrique-dossier="batiment-lot"] { grid-column: 2; }
+}

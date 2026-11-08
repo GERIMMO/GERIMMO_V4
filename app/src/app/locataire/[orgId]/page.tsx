@@ -39,6 +39,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   const { orgId } = await props.params;
   const { supabase, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
+  const avisCharges = await supabase.rpc("mes_avis_decompte",{p_org:orgId});
   const [
     { data: baux, error: eBaux },
     { data: echeancier, error: eEcheancier },
@@ -313,6 +314,12 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
 
   return (
     <div className="space-y-4">
+      {avisCharges.error ? <p role="alert">Les avis de charges sont momentanément indisponibles.</p> :
+        (avisCharges.data ?? []).map((avis:{document_id:string;annee:number;avis_le:string}) =>
+          <section className="loc-carte" key={avis.document_id}><h2>Décompte de charges {avis.annee}</h2>
+            <p>Mis à disposition le {formaterDate(avis.avis_le.slice(0,10))}</p>
+            <ConsultationDocument titre={`Décompte de charges ${avis.annee}`} cible={{fichier:`/locataire/${orgId}/documents/${avis.document_id}/fichier`,mime:"application/pdf"}} className="lien-discret">Voir le PDF</ConsultationDocument>
+          </section>)}
       <SuiviEcheanciersCharges org={orgId} proprietaire={false} base={`/locataire/${orgId}`} rappelsSeulement />
       <div className="portail-hero portail-hero-accueil loc-bienvenue">
         <p className="portail-surtitre">{aujourdhui}</p>

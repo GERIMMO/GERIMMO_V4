@@ -5,6 +5,7 @@ import Link from "next/link";
 import { inscrireProprietaire, type EtatInscription } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { AdresseOuverture } from "@/components/adresse-ouverture";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -79,23 +80,7 @@ export function FormulaireInscription({
               />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="ins-adresse">Adresse postale (facultatif)</Label>
-            <Input id="ins-adresse" name="adresse" maxLength={200} autoComplete="street-address" defaultValue={etat.valeurs?.adresse} placeholder="ex. 12 rue des Lilas" />
-            <p className="text-xs text-muted-foreground">
-              Elle signera vos documents (baux, quittances…).
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="ins-cp">Code postal (facultatif)</Label>
-              <Input id="ins-cp" name="code_postal" maxLength={10} inputMode="numeric" autoComplete="postal-code" defaultValue={etat.valeurs?.code_postal} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ins-ville">Ville (facultatif)</Label>
-              <Input id="ins-ville" name="ville" maxLength={100} autoComplete="address-level2" defaultValue={etat.valeurs?.ville} />
-            </div>
-          </div>
+          <AdresseOuverture prefixe="ins" valeurs={etat.valeurs} />
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="ins-tel">Téléphone (facultatif)</Label>
@@ -124,6 +109,7 @@ export function FormulaireInscription({
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Adresse e-mail</Label>
+            <p className="text-xs text-muted-foreground">Cette adresse sert aussi de contact sur vos courriers.</p>
             <Input
               id="email"
               name="email"

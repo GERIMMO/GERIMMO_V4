@@ -89,7 +89,7 @@ export function construireEdl(d: DonneesEdl) {
         [{ libelle: "Élément" }, { libelle: "État" }, { libelle: "Observations" }],
         lignes.map((l) => [
           echapper(l.libelle),
-          l.etat ? echapper(ETATS[l.etat] ?? l.etat) : f.champ(null, "neuf, bon, usagé, mauvais"),
+          l.etat ? echapper(ETATS[l.etat] ?? l.etat) : f.champ(null, `État de ${l.libelle} — ${piece}`),
           l.commentaire ? echapper(l.commentaire) : "—",
         ])
       )}`

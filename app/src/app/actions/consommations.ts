@@ -39,9 +39,9 @@ export async function enregistrerConsommation(orgId: string, bienId: string, lot
       if (l.error || !l.data) return { erreur: "Ce logement n’est pas accessible depuis cette fiche." };
     }
     // Vérifier le contexte avant toute mutation ou RPC, même si un autre identifiant du portefeuille est forgé.
-    if (cible && ["compteur", "releve", "archiver_compteur", "contrat", "archiver_contrat", "facture_payee"].includes(action)) {
+    if (cible && ["compteur", "releve", "archiver_compteur", "contrat", "archiver_contrat", "facture_payee", "modifier_facture"].includes(action)) {
       let contratCible = cible;
-      if (action === "facture_payee") {
+      if (action === "facture_payee" || action === "modifier_facture") {
         const facture = await supabase.from("factures_fourniture").select("contrat_id").eq("organization_id", orgId).eq("id", cible).maybeSingle();
         if (facture.error || !facture.data) return { erreur: "Cette facture n’est pas accessible." };
         contratCible = facture.data.contrat_id;
@@ -62,7 +62,14 @@ export async function enregistrerConsommation(orgId: string, bienId: string, lot
         if (!data?.locataire_principal) return { erreur: "Choisissez un bail en cours pour demander les relevés au locataire." };
         personne = data.locataire_principal;
       }
-      const row = { ...saisie, organization_id: orgId, bien_id: bienId, lot_id: scopeLot, bail_referent: bail, personne_referente: personne };
+      const principal = id(f, "compteur_principal_id", true);
+      if (principal) {
+        const lecture = await supabase.from("compteurs_consommation").select("id").eq("id", principal)
+          .eq("organization_id", orgId).eq("bien_id", bienId).is("lot_id", null)
+          .eq("type", saisie.type).eq("unite", saisie.unite).maybeSingle();
+        if (!scopeLot || lecture.error || !lecture.data) return { erreur: "Choisissez un compteur principal du bâtiment avec le même fluide et la même unité." };
+      }
+      const row = { ...saisie, compteur_principal_id: principal, organization_id: orgId, bien_id: bienId, lot_id: scopeLot, bail_referent: bail, personne_referente: personne };
       const q = cible ? supabase.from("compteurs_consommation").update(row).eq("id", cible).eq("organization_id", orgId).eq("bien_id", bienId) : supabase.from("compteurs_consommation").insert(row);
       const r = await q.select("id").single(); erreur = r.error;
       if (!erreur) {
@@ -76,6 +83,9 @@ export async function enregistrerConsommation(orgId: string, bienId: string, lot
       const row = { ...saisieContrat(f), organization_id: orgId, bien_id: bienId, lot_id: scopeLot };
       const q = cible ? supabase.from("contrats_fourniture").update(row).eq("id", cible).eq("organization_id", orgId).eq("bien_id", bienId) : supabase.from("contrats_fourniture").insert(row);
       erreur = (await q.select("id").single()).error;
+    } else if (action === "modifier_facture" && cible) {
+      const saisie=saisieFacture(f);
+      erreur=(await supabase.from("factures_fourniture").update(saisie).eq("id",cible).eq("organization_id",orgId).select("id").single()).error;
     } else if (action === "facture") {
       const saisie = saisieFacture(f);
       const contrat = id(f, "contrat_id")!;
@@ -102,8 +112,10 @@ export async function enregistrerConsommation(orgId: string, bienId: string, lot
       }
       const { data: factureCreee, error } = await supabase.from("factures_fourniture").insert({ ...saisie, organization_id: orgId, contrat_id: contrat, document_id: docId }).select("id").single();
       if (error || !factureCreee) return { erreur: sansJargon(error?.message ?? "La facture n’a pas pu être conservée."), ...reprise };
+      const automatique=f.get("automatique")==="on" && f.get("suite")!=="conserver";
+      const auto=automatique ? await supabase.rpc("regler_facture_automatique",{p_facture:factureCreee.id,p_actif:true}) : null;
       actualiser(orgId);
-      return { succes: "Facture enregistrée. Vérifiez maintenant sa répartition.", factureId: factureCreee.id };
+      return { succes: auto?.error ? "Facture enregistrée. Activez la gestion automatique depuis son suivi." : automatique ? "Facture enregistrée. Gerimmo prend en charge la suite ; vous confirmerez les sommes reçues." : "Facture enregistrée. Vérifiez maintenant sa répartition.", factureId: factureCreee.id };
     } else if (action === "taxe_fonciere") {
       // Avis de taxe foncière (02/11/2026) : une saisie, deux usages. La ligne TEOM (et ses frais de gestion)
       // devient une facture du contrat « TEOM » du bâtiment, répartissable entre les locataires comme les autres

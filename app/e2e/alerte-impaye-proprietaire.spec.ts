@@ -62,7 +62,7 @@ for (const largeur of [390, 1440]) test(`impayé de deux mois à ${largeur}px : 
 
     for (const mois of [1, 2]) {
       await ligne.getByRole("button", { name: "J’ai reçu le loyer", exact: true }).click();
-      await ligne.getByRole("button", { name: "Confirmer la réception", exact: true }).click();
+      await ligne.getByRole("button", { name: "Confirmer et envoyer la quittance", exact: true }).click();
       await expect(fenetre.getByRole("status").filter({ hasText: "520,00" }).first()).toBeVisible();
       if (mois === 1) await expect(ligne).not.toContainText("Prioritaire");
     }

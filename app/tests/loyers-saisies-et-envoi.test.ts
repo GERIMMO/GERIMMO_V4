@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { declarerReceptionLoyer } from "@/app/actions/reception-loyer";
 import { quittanceDocumentComplete } from "./fixtures/quittance-document";
 
 const banc = vi.hoisted(() => ({
@@ -12,6 +13,7 @@ const banc = vi.hoisted(() => ({
   erreurMemo: null as { message: string } | null,
   erreurLectureQuittance: null as { message: string } | null,
   quittanceVisible: true,
+  envoyeLe: null as string | null,
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -31,19 +33,21 @@ vi.mock("@/lib/email", () => ({ envoyerEmail: banc.email }));
 vi.mock("@/lib/ged-acces", () => ({
   verifierGerant: async () => ({
     user: banc.autorise ? { id: "gerant-test" } : null,
+    role: "proprietaire_direct",
     supabase: {
       rpc: banc.rpc,
       from: (table: string) => {
         const filtres: Record<string, string> = {};
         const requete = {
           select: () => requete,
+          limit: () => requete,
           eq: (colonne: string, valeur: string) => {
             filtres[colonne] = valeur;
             return requete;
           },
           maybeSingle: async () => {
             if (table === "quittances") {
-              const quittance = { id: "quittance-test", bail_id: "bail-test", organization_id: "org-test" };
+              const quittance = { email_envoye_at: banc.envoyeLe, est_quittance: true, montant: 500, appel_id: "appel-test", id: "quittance-test", bail_id: "bail-test", organization_id: "org-test" };
               const correspond = Object.entries(filtres).every(([colonne, valeur]) =>
                 quittance[colonne as keyof typeof quittance] === valeur);
               return {
@@ -51,6 +55,7 @@ vi.mock("@/lib/ged-acces", () => ({
                 error: banc.erreurLectureQuittance,
               };
             }
+            if (table === "encaissements" || table === "ecritures") return { data: { id: "versement-test" }, error: null };
             return {
               data: table === "baux"
                 ? { locataire_principal: "locataire-test" }
@@ -63,8 +68,9 @@ vi.mock("@/lib/ged-acces", () => ({
             banc.update(valeurs);
             const miseAJour = {
               eq: () => miseAJour,
-              then: (resoudre: (resultat: { error: typeof banc.erreurMemo }) => unknown) =>
-                Promise.resolve({ error: banc.erreurMemo }).then(resoudre),
+              is: () => miseAJour,
+              select: () => miseAJour,
+              maybeSingle: async () => ({ data: banc.erreurMemo ? null : valeurs, error: banc.erreurMemo }),
             };
             return miseAJour;
           },
@@ -86,6 +92,7 @@ beforeEach(() => {
   banc.erreurMemo = null;
   banc.erreurLectureQuittance = null;
   banc.quittanceVisible = true;
+  banc.envoyeLe = null;
   banc.rpc.mockResolvedValue({ data: 250, error: null });
   banc.insert.mockResolvedValue({ error: null });
   banc.depot.mockResolvedValue({
@@ -264,7 +271,52 @@ describe("Email de quittance : distinguer un envoi refusé d'un envoi déjà par
     expect(resultat.succes).toContain("envoyée à locataire@recette.test");
     expect(banc.email).toHaveBeenCalledOnce();
     expect(banc.update).toHaveBeenCalledOnce();
+    expect(resultat.envoyeLe).toBe(banc.update.mock.calls[0][0].email_envoye_at);
     expect(String(banc.email.mock.calls[0]?.[0]?.html)).toContain("https://www.gerimmo.app/quittance/quittance-test");
+  });
+
+  it("confirmer le solde déclenche l’envoi immédiat, date la ligne et conserve la même date au rejeu", async () => {
+    const saisie = new FormData();
+    for (const [champ, valeur] of Object.entries({
+      reponse: "recu", montant: "500", reste_attendu: "500", mode: "virement",
+      date_paiement: "2026-01-01", cle_envoi: "bdb1cf28-4a5d-45dd-9235-68cfe916cc50",
+    })) saisie.set(champ, valeur);
+    let dejaRegle = false;
+    conforme = { data: quittanceDocumentComplete({ montant: 500 }), error: null };
+    banc.rpc.mockImplementation(async (nom: string) => {
+      switch (nom) {
+        case "declarer_reception_loyer": return { data: { statut: dejaRegle ? "deja_enregistre" : "enregistre", bail_id: "bail-test", montant: 500 } };
+        case "emettre_quittances": return { data: [{ nb_quittances: dejaRegle ? 0 : 1, nb_recus: 0 }] };
+        case "quittance_envoi_autorise": return { data: true };
+        case "quittance_document": return conforme;
+        case "quittance_detail": return detail;
+        default: throw new Error(nom);
+      }
+    });
+    banc.email.mockImplementation(async ({ avantEnvoi }) => { await avantEnvoi(); return { id: "email-fictif" }; });
+    const confirmer = () => declarerReceptionLoyer("org-test", "appel-test", {}, saisie);
+    // Un refus du service laisse l'encaissement acquis et explique l'échec dans le bilan.
+    banc.email.mockResolvedValueOnce({ erreur: "Le service d’e-mail est indisponible." });
+    const refuse = await confirmer();
+    expect(refuse.bilan).toMatchObject({ statut: "regle", comptabilise: true, informationEnvoi: "Le service d’e-mail est indisponible.", document: { envoyeLe: null } });
+    expect(banc.update).not.toHaveBeenCalled();
+    dejaRegle = true;
+    const accepte = await confirmer();
+    const date = banc.update.mock.calls[0][0].email_envoye_at;
+    expect(date).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(accepte.bilan).toMatchObject({ statut: "regle", comptabilise: true, document: { id: "quittance-test", envoyeLe: date, disponibilite: "disponible" } });
+    expect(banc.email).toHaveBeenLastCalledWith(expect.objectContaining({ to: "locataire@recette.test", html: expect.stringContaining("/quittance/quittance-test") }));
+    banc.envoyeLe = date;
+    const rejeu = await confirmer();
+    expect(rejeu.bilan?.document?.envoyeLe).toBe(date);
+    expect(banc.email).toHaveBeenCalledTimes(2); // Un refus et un seul envoi accepté.
+    expect(banc.update).toHaveBeenCalledOnce();
+  });
+
+  it("une confirmation de solde ne peut jamais envoyer un reçu partiel même en cas de modification du document", async () => {
+    detail = { data: [{ ...(detail.data as object[])[0], est_quittance: false, montant: 300 }], error: null };
+    expect((await envoyerQuittance("org-test", "bail-test", "quittance-test", true)).erreur).toContain("document a changé");
+    expect(banc.email).not.toHaveBeenCalled();
   });
 
   it("l'envoi manuel porte la même clé anti-doublon que la tâche (D47) : un clic répété après un envoi non mémorisé ne double pas le courrier", async () => {

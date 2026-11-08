@@ -1,3 +1,4 @@
+import { consigneIncident, consigneMission } from "@/lib/consigne-incident";
 import Link from "next/link";
 import { ArrowUpRight, CheckCircle2, Mail, Phone, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -23,6 +24,9 @@ type IncidentLot = {
   categorie: string;
   piece: string | null;
   description: string;
+  imputation: string | null; imputation_contestation: string | null;
+  mission_id: string | null; mission_statut: string | null; debut_prevu: string | null;
+  artisan: string | null; propose_par: string | null;
   urgence: string;
   etat: string;
   created_at: string;
@@ -128,7 +132,7 @@ export async function PersonnesLot({ orgId, lotId, base, lectureSeule, baux, err
   </div>;
 }
 
-const COLONNES_INCIDENT = "id, numero, categorie, piece, description, urgence, etat, created_at";
+const COLONNES_INCIDENT = "id, numero, categorie, piece, description, urgence, etat, created_at, imputation, imputation_contestation, mission_id, mission_statut, debut_prevu, artisan, propose_par";
 
 export async function IncidentsLot({ orgId, lotId, base, lectureSeule }: PropsLot) {
   const supabase = await createClient();
@@ -136,7 +140,7 @@ export async function IncidentsLot({ orgId, lotId, base, lectureSeule }: PropsLo
     const incidents: IncidentLot[] = [];
     // Pagination explicite : les incidents anciens ne disparaissent pas derrière le plafond de l'API.
     for (let debut = 0; ; debut += 500) {
-      const lecture = await supabase.from("incidents").select(COLONNES_INCIDENT)
+      const lecture = await supabase.from("incidents_resume_lot").select(COLONNES_INCIDENT)
         .eq("organization_id", orgId).eq("lot_id", lotId).neq("etat", "clos")
         .order("created_at").order("id").range(debut, debut + 499);
       if (lecture.error) return { data: null, error: lecture.error };
@@ -147,23 +151,33 @@ export async function IncidentsLot({ orgId, lotId, base, lectureSeule }: PropsLo
   };
   const [ouverts, clos] = await Promise.all([
     lireOuverts(),
-    supabase.from("incidents").select(COLONNES_INCIDENT, { count: "exact" })
+    supabase.from("incidents_resume_lot").select(COLONNES_INCIDENT, { count: "exact" })
       .eq("organization_id", orgId).eq("lot_id", lotId).eq("etat", "clos")
       .order("created_at", { ascending: false }).order("id").limit(8),
   ]);
   const enCours = [...(ouverts.data ?? [])].sort((a, b) => Number(b.urgence === "urgente") - Number(a.urgence === "urgente"));
   const clotures = (clos.data ?? []) as IncidentLot[];
-  const ligne = (incident: IncidentLot) => <li key={incident.id}>
+  const ligne = (incident: IncidentLot) => {
+    const decision = ["declare", "rouvert"].includes(incident.etat) || !incident.imputation || !!incident.imputation_contestation;
+    const dossier = consigneIncident(incident.etat, decision, !!incident.imputation_contestation, false);
+    const mission = incident.mission_id && incident.mission_statut ? consigneMission({
+      id: incident.mission_id, statut: incident.mission_statut, debut_prevu: incident.debut_prevu,
+    }, incident.propose_par ? [{ propose_par: incident.propose_par }] : [], false, false) : null;
+    const suite = incident.etat === "clos" || incident.etat === "termine" || (decision && dossier) ? dossier : mission ?? dossier;
+    return <li key={incident.id}>
     <Link href={`${base}/incidents?${incident.etat === "clos" ? "vue=clos&" : ""}sel=${incident.id}`} className={styles.incident}>
-      <div className={styles.incidentEntete}><strong>{titreIncident(incident.categorie)}</strong><ArrowUpRight size={16} aria-hidden="true" /></div>
-      <p className={styles.description}>{incident.description}</p>
+      <div className={styles.incidentEntete}><strong>{incident.description || titreIncident(incident.categorie)}</strong><ArrowUpRight size={16} aria-hidden="true" /></div>
+      <p className={styles.description}>{titreIncident(incident.categorie)}</p>
       <div className={styles.precisionsIncident}><span>{incident.numero}</span>{incident.piece && <span>{incident.piece}</span>}<span>{formaterDate(incident.created_at.slice(0, 10))}</span></div>
+      <p className={styles.description}>{["annulee", "refusee"].includes(incident.mission_statut ?? "") ? "Dernier artisan sollicité" : "Artisan"} · {incident.artisan ?? (incident.mission_id ? "Nom indisponible" : "Aucun artisan attribué")}</p>
+      {incident.etat !== "clos" && <p className={styles.description}><strong>Prochaine étape</strong> · {suite?.titre ?? "Consulter le suivi de l’intervention"}</p>}
       <div className={styles.etats}>
         <span className={COULEURS_ETAT_INCIDENT[incident.etat] ?? "puce puce-grise"}>{ETATS_INCIDENT[incident.etat] ?? incident.etat}</span>
         {incident.etat !== "clos" && <span className={incident.urgence === "urgente" ? "puce puce-rouge" : styles.precision}>{incident.urgence === "urgente" ? "Urgent" : "Priorité normale"}</span>}
       </div>
     </Link>
   </li>;
+  };
   return <div className={styles.contenu} data-incidents-vides={!ouverts.error && !enCours.length && !clos.error && !clotures.length}>
     {ouverts.error ? <LectureIndisponible>Les incidents en cours n’ont pas pu être chargés.</LectureIndisponible> : enCours.length ? <ul className={styles.incidents}>{enCours.map(ligne)}</ul> : <p className={styles.serein}><CheckCircle2 size={18} aria-hidden="true" />Aucun incident en cours.</p>}
     {!lectureSeule && <Link href={`${base}/incidents/nouveau?lot=${lotId}`} className={buttonVariants({ variant: "outline", size: "sm" })}><Plus size={14} aria-hidden="true" />Signaler un incident</Link>}

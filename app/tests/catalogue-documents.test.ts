@@ -13,13 +13,13 @@ vi.mock("@/lib/documents/modeles/communs",async importOriginal=>({...await impor
 type Row=Record<string,unknown>;
 let ctx=contexte();
 function fixture():Record<string,Row[]> {return {
-  organizations:[{id:"org",...ctx.organisation,type:"agence"}], lots:[{id:"lot",nom:"Appartement Jardin",bien_id:"bien",meuble:false}],biens:[{id:"bien",address_line1:"12 rue du Parc",postal_code:"75012",city:"Paris"}],
+  organizations:[{id:"org",relance_1_jours:5,relance_2_jours:15,...ctx.organisation,type:"agence"}], lots:[{id:"lot",nom:"Appartement Jardin",bien_id:"bien",meuble:false}],biens:[{id:"bien",address_line1:"12 rue du Parc",postal_code:"75012",city:"Paris"}],
   baux:[{id:"bail",lot_id:"lot",locataire_principal:"p",loyer_hc:650,charges:90}],persons:[{id:"p",nom:"Leblanc",prenom:"Julie"}],
   diagnostics:[{type:"DPE",date_realisation:"2025-01-01",date_expiration:"2035-01-01",diagnostiqueur:"Diagnostiqueur test",document_id:"doc"}],
   inventaire_lignes:[{piece:"Chambre",designation:"Lit double",quantite:1,etat:"bon",observation:"Conforme"}],
   pieces_demandees:[{libelle:"Identité",document_id:"doc",satisfaite_le:"2026-01-01"}],
-  etat_loyers_bail:[{periode:"2025-01-01",date_echeance:"2025-01-05",montant_du:100.01,montant_couvert:0},{periode:"2099-01-01",date_echeance:"2099-01-05",montant_du:300,montant_couvert:0}],
-  relances:[{date_envoi:"2025-02-01"}],conges:[{date_premiere_presentation:"2026-01-01",date_effet:"2026-04-01",preavis_mois:3,par:"locataire"}],
+  etat_loyers_bail:[{appel_id:"appel",periode:"2025-01-01",date_echeance:"2025-01-05",montant_du:100.01,montant_couvert:0},{periode:"2099-01-01",date_echeance:"2099-01-05",montant_du:300,montant_couvert:0}],
+  relances:[],conges:[{date_premiere_presentation:"2026-01-01",date_effet:"2026-04-01",preavis_mois:3,par:"locataire"}],
   restitutions:[{id:"restitution",statut:"finalise"}],retenues:[{libelle:"Mur",cout:100,duree_vie_ans:10,age_ans:5,montant_retenu:50,justificatif_document:"doc"}],
   regularisations_charges:[{id:"reg",bail_id:"bail",annee:2025,provisions:1000,charges_reelles:1200,ecart:200,note:"Eau : relevé individuel",justificatif_document:"doc",date_emission:"2026-01-01"}],
   etats_des_lieux:[{id:"edl",bail_id:"bail",type:"sortie",etat:"signe",date_edl:"2026-04-01"}],edl_cles:[{libelle:"Porte",nombre:2,reference:"A1"}],
@@ -37,6 +37,12 @@ function fixture():Record<string,Row[]> {return {
   fiscal_qualifications_ecritures:[{ecriture_id:"origine",lot_id:"lot",nature:"deductible",rubrique:"224",justification:"Réparation admissible",version:1}],
   fiscal_encaissements_composantes:[],
 };}
+function fixtureCourrier(code: string) {
+  const t=fixture();
+  if (code==="seconde_relance" || code==="mise_en_demeure") t.relances.push({niveau:"relance_1",date_envoi:"2025-01-15"});
+  if (code==="mise_en_demeure") t.relances.push({niveau:"relance_2",date_envoi:"2025-02-01"});
+  return t;
+}
 function mockDb(tables=fixture(),failure?:string) {
   tables=avecDetenteursAuReel(tables);
   const calls:{table:string;ops:[string,...unknown[]][]}[]=[];
@@ -44,6 +50,10 @@ function mockDb(tables=fixture(),failure?:string) {
     const call={table,ops:[] as [string,...unknown[]][]};calls.push(call);
     const q:Record<string,unknown>={then:(resolve:(x:unknown)=>unknown)=>Promise.resolve({data:tables[table]??[],error:table===failure?{message:"indisponible"}:null}).then(resolve)};
     for(const op of ["select","eq","is","in","not","or","order","limit","range","gte","lt","lte"]) q[op]=(...args:unknown[])=>{call.ops.push([op,...args]);return q;};
+    q.maybeSingle=async()=>{
+      const filtre=call.ops.find(op=>op[0]==="eq" && op[1]==="niveau");
+      return { data: (tables[table]??[]).find(row=>!filtre || row.niveau===filtre[2])??null, error:table===failure?{message:"indisponible"}:null };
+    };
     return q;
   };
   return {db:{from:query,rpc:(nom:string,args:unknown)=>{const q=query(nom);calls[calls.length-1].ops.push(["rpc",args]);return q;}} as unknown as SupabaseClient,calls};
@@ -52,6 +62,12 @@ const options={annee:"2026",interets_emprunt:"0",mois:"2026-01",delai:"15",mensu
 function succes(r:Assemblage) {expect(r).not.toHaveProperty("erreur");if("erreur" in r) throw new Error(r.erreur);return r;}
 beforeEach(()=>{ctx=contexte();ctx.bail.etat="actif";vi.mocked(chargerContexteBail).mockImplementation(async()=>ctx);vi.mocked(signatureOrganisation).mockReset().mockResolvedValue(null);});
 describe("Catalogue — documents issus des dossiers",()=>{
+  it("refuse le PDF recommandé avec zéro ou une seule relance, y compris une seconde isolée",async()=>{
+    for(const niveaux of [[],["relance_1"],["relance_2"]]){
+      const t=fixture();t.relances=niveaux.map(niveau=>({niveau,date_envoi:"2025-02-01"}));
+      expect(await assemblerComplementBail("mise_en_demeure",mockDb(t).db,"org","bail",options)).toHaveProperty("erreur");
+    }
+  });
   it("appose la signature enregistrée sur une attestation, jamais sur l’accord des parties",async()=>{
     const image="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB";
     vi.mocked(signatureOrganisation).mockResolvedValue(image);
@@ -75,10 +91,10 @@ describe("Catalogue — documents issus des dossiers",()=>{
     if(code==="inventaire_sortie") ctx.bail.etat="preavis";
     if(code==="attestation_fin_bail") ctx.bail.etat="termine";
     if(code==="avenant_remplacement") ctx.bail.type="colocation";
-    const {db,calls}=mockDb();const r=succes(await assemblerComplementBail(code,db,"org","bail",options));
+    const {db,calls}=mockDb(fixtureCourrier(code));const r=succes(await assemblerComplementBail(code,db,"org","bail",options));
     expect(r.document.html).toContain(CATALOGUE_DOCUMENTS.find(m=>m.id===code)!.nom);
     expect(r.liens).toContainEqual({entite:"bail",entiteId:"bail"});
-    for(const c of calls.filter(c=>c.table!=="etat_loyers_bail")) expect(c.ops).toContainEqual(["eq","organization_id","org"]);
+    for(const c of calls.filter(c=>c.table!=="etat_loyers_bail")) expect(c.ops).toContainEqual(["eq",c.table==="organizations"?"id":"organization_id","org"]);
     expect(r.document.html).not.toContain("NaN");
   });
   it.each(CODES_COMPLEMENTS_GESTION)("assemble %s sans données d’une autre organisation",async code=>{
@@ -202,7 +218,7 @@ it.skipIf(!process.env.GERIMMO_CATALOGUE_PDF_DIR || !process.env.GERIMMO_CHROME)
     if(code==="inventaire_sortie") ctx.bail.etat="preavis";
     if(code==="attestation_fin_bail") ctx.bail.etat="termine";
     if(code==="avenant_remplacement") ctx.bail.type="colocation";
-    const r=succes(await assemblerComplementBail(code,mockDb().db,"org","bail",options));
+    const r=succes(await assemblerComplementBail(code,mockDb(fixtureCourrier(code)).db,"org","bail",options));
     const pdf=await rendrePdf(r.document);expect(pdf.length).toBeGreaterThan(10000);writeFileSync(join(dir,`${code}.pdf`),pdf);
   }
   for(const code of CODES_COMPLEMENTS_GESTION){

@@ -81,7 +81,9 @@ export function EdlAnnexes({
   signe,
   entree,
   enregistrer,
+  enregistrementAuSuivant = false,
 }: {
+  enregistrementAuSuivant?: boolean;
   orgId: string;
   bailId: string;
   edlId: string;
@@ -316,16 +318,17 @@ export function EdlAnnexes({
       {aEnregistrer && (
         <form
           data-saisie-confirmee
+          data-etape-enregistrement
           id={idFormAnnexes}
           onSubmit={formAnnexes}
           onReset={(event) => event.preventDefault()}
           className="flex flex-wrap items-center gap-2 border-t border-border pt-4"
         >
-          <BoutonEnvoi enCours={enCoursA} enCoursTexte="Enregistrement…" size="sm" variant="outline">
+          {!enregistrementAuSuivant && <BoutonEnvoi enCours={enCoursA} enCoursTexte="Enregistrement…" size="sm" variant="outline">
             {entree ? "Enregistrer les relevés et les clés rendues" : "Enregistrer les relevés"}
-          </BoutonEnvoi>
+          </BoutonEnvoi>}
           <span className="text-xs text-muted-foreground">
-            Les index et les nombres saisis ci-dessus partent ensemble. Le type, le
+            {enregistrementAuSuivant ? "Suivant enregistre les index et les clés." : "Les index et les nombres saisis ci-dessus partent ensemble."} Le type, le
             numéro et la référence se corrigent en retirant la ligne.
           </span>
           {etatA.erreur && <span className="w-full text-sm text-destructive">{etatA.erreur}</span>}

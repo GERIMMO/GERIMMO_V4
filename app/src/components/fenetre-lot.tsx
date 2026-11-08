@@ -173,7 +173,7 @@ export function SuiviLotProprietaire({ orgId, lotId, rubrique, lectureSeule = fa
   const titreId = useId();
   const titre = rubrique === "documents" ? affichage === "direct" ? "Autres documents" : "Documents déposés" : rubrique === "compta" ? "Journal & dépenses" : "Historique du lot";
   const contenu = (affichage === "direct" || charge) && <div className="pt-4">
-    {rubrique === "documents" ? <OngletDocuments orgId={orgId} fiche={{ lot_id: lotId, portee: "gerant" }} fermer={() => {}} estProprietaire lectureSeule={lectureSeule} documentsDejaAffiches={documentsDejaAffiches} limite={limiteDocuments} autresDocuments={affichage === "direct" && !limiteDocuments} apercuIntegre={affichage === "direct"} /> : rubrique === "historique" ? <OngletHistorique lotId={lotId} /> : <OngletComptabilite orgId={orgId} fiche={{ lot_id: lotId, bail_id: null }} rafraichir={() => {}} estProprietaire lectureSeule={lectureSeule} saisieDepense={saisieDepense} />}
+    {rubrique === "documents" ? <OngletDocuments orgId={orgId} fiche={{ lot_id: lotId, portee: "gerant" }} fermer={() => {}} estProprietaire lectureSeule={lectureSeule} documentsDejaAffiches={documentsDejaAffiches} limite={limiteDocuments} autresDocuments={affichage === "direct" && !limiteDocuments} apercuIntegre={affichage === "direct"} depotDansEntete={affichage === "direct" && !!limiteDocuments} /> : rubrique === "historique" ? <OngletHistorique lotId={lotId} /> : <OngletComptabilite orgId={orgId} fiche={{ lot_id: lotId, bail_id: null }} rafraichir={() => {}} estProprietaire lectureSeule={lectureSeule} saisieDepense={saisieDepense} />}
   </div>;
   if (affichage === "direct") return <section className="suivi-lot-proprietaire" aria-labelledby={titreId}>
     <h3 id={titreId} className={limiteDocuments ? "sr-only" : "text-base font-semibold"}>{titre}</h3>
@@ -1023,25 +1023,27 @@ function EnAttente({ quoi }: { quoi: string }) {
 
 /* ── Onglet « Documents » ─────────────────────────────────────────────── */
 
-function OngletDocuments({ orgId, fiche, fermer, estProprietaire = false, lectureSeule = false, documentsDejaAffiches = [], autresDocuments = false, apercuIntegre = false, limite }: { orgId: string; fiche: Pick<FicheLot, "lot_id" | "portee">; fermer: () => void; estProprietaire?: boolean; lectureSeule?: boolean; documentsDejaAffiches?: string[]; autresDocuments?: boolean; apercuIntegre?: boolean; limite?: number }) {
+function OngletDocuments({ orgId, fiche, fermer, depotDansEntete = false, estProprietaire = false, lectureSeule = false, documentsDejaAffiches = [], autresDocuments = false, apercuIntegre = false, limite }: { orgId: string; fiche: Pick<FicheLot, "lot_id" | "portee">; fermer: () => void; estProprietaire?: boolean; lectureSeule?: boolean; documentsDejaAffiches?: string[]; autresDocuments?: boolean; apercuIntegre?: boolean; limite?: number; depotDansEntete?: boolean }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
   const locataire = fiche.portee === "locataire";
+  const [tentative, reessayer] = useState(0);
   const [docs, setDocs] = useState<DocumentDuLot[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [apercu, setApercu] = useState<Pick<DocumentDuLot, "document_id" | "titre"> | null>(null);
 
   useEffect(() => {
     let vivant = true;
+    const echec = () => { if (vivant) setErreur("Impossible de lire les documents du logement."); };
     chargerDocumentsDuLot(fiche.lot_id).then((r) => {
       if (!vivant) return;
       if (r.erreur) setErreur(r.erreur);
       else setDocs(regrouperDocumentsLot(r.donnees ?? []));
-    });
+    }).catch(echec);
     return () => {
       vivant = false;
     };
-  }, [fiche.lot_id]);
+  }, [fiche.lot_id, tentative]);
 
   // Filtre de présentation uniquement : les identifiants transmis par la page
   // peuvent évoluer sans relancer la lecture des documents du lot.
@@ -1053,7 +1055,7 @@ function OngletDocuments({ orgId, fiche, fermer, estProprietaire = false, lectur
     <div className="space-y-3">
       {erreur && (
         <p className="err mb-0" role="alert">
-          {erreur}
+          {erreur} <button type="button" onClick={() => { setErreur(null); reessayer(n => n + 1); }}>Réessayer</button>
         </p>
       )}
       {!docs && !erreur && <EnAttente quoi="Lecture des documents…" />}
@@ -1100,7 +1102,7 @@ function OngletDocuments({ orgId, fiche, fermer, estProprietaire = false, lectur
           })}
         </ul>
       )}
-      {!lectureSeule && <Link
+      {!lectureSeule && !depotDansEntete && <Link
         href={locataire ? `/locataire/${orgId}/documents` : `${base}/documents?sel=depot&lot=${encodeURIComponent(fiche.lot_id)}`}
         onNavigate={fermer}
         className={buttonVariants({ variant: "outline", size: "sm" })}

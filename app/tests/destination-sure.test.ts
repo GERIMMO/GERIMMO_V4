@@ -10,7 +10,7 @@
  * réussie sur le vrai site — le moment où il est le plus en confiance.
  */
 import { describe, expect, it } from "vitest";
-import { destinationSure } from "@/lib/destination-sure";
+import { destinationApresConnexion, destinationSure } from "@/lib/destination-sure";
 
 describe("destinationSure", () => {
   it("suit un chemin interne", () => {
@@ -45,5 +45,19 @@ describe("destinationSure", () => {
   it("accepte un repli propre à l'appelant", () => {
     expect(destinationSure(null, "/locataire/1")).toBe("/locataire/1");
     expect(destinationSure("https://ailleurs", "/locataire/1")).toBe("/locataire/1");
+  });
+});
+
+describe("destination après la connexion", () => {
+  const accueil = "/espace/3c1d1e95-3570-400b-8012-44530be145b1";
+  it("ouvre le tableau de bord depuis la liste générale des incidents", () => {
+    expect(destinationApresConnexion(accueil + "/incidents")).toBe(accueil);
+    expect(destinationApresConnexion(accueil + "/incidents/")).toBe(accueil);
+  });
+  it("conserve un incident sélectionné, une déclaration ou un autre espace", () => {
+    for (const cible of [accueil + "/incidents?sel=dossier", accueil + "/incidents/nouveau", accueil.replace("/espace/", "/agence/") + "/incidents"]) {
+      expect(destinationApresConnexion(cible)).toBe(cible);
+    }
+    expect(destinationApresConnexion("https://example.org")).toBe("/espaces");
   });
 });

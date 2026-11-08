@@ -10,6 +10,8 @@ import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { sansJargon } from "@/lib/erreurs";
 import { baseEspace } from "@/lib/racine-espace";
+import { adresseManquante } from "@/lib/coordonnees-courrier";
+import { normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 import { ChoixEspace } from "./choix-espace";
 
 export const metadata = { title: "Mes espaces — Gerimmo" };
@@ -146,13 +148,20 @@ export default async function PageEspaces() {
   // S9a — un propriétaire qui vient de s'inscrire (immédiatement, ou via le
   // lien de confirmation reçu par email) n'a pas encore d'espace : on l'ouvre
   // ici, une fois pour toutes (fonction idempotente), puis on y entre.
+  const meta = user.user_metadata ?? {};
+  const adresseInitiale = {
+    adresse: typeof meta.adresse === "string" ? meta.adresse : undefined,
+    code_postal: typeof meta.code_postal === "string" ? meta.code_postal : undefined,
+    ville: typeof meta.ville === "string" ? meta.ville : undefined,
+  };
+  const reprendreAdresse = meta.espace === "proprietaire_direct" && Boolean(adresseManquante(adresseInitiale));
   let erreurOuverture: string | null = null;
   if (
     !doitMontrerInvitations &&
     !accesIncomplets &&
     adhesions.length === 0 &&
     !estArtisan &&
-    user.user_metadata?.espace === "proprietaire_direct"
+    !reprendreAdresse && user.user_metadata?.espace === "proprietaire_direct"
   ) {
     const { data: orgId, error } = await supabase.rpc("initialiser_espace_proprietaire");
     if (orgId) {
@@ -230,7 +239,8 @@ export default async function PageEspaces() {
                 Votre espace propriétaire n&apos;a pas pu être ouvert : {erreurOuverture}
               </p>
             )}
-            <ChoixEspace
+            <ChoixEspace adresseInitiale={adresseInitiale} reprendre={reprendreAdresse}
+              qualiteInitiale={normaliserQualiteBailleur(typeof meta.qualite === "string" ? meta.qualite : null) ?? undefined}
               nomInitial={typeof user.user_metadata?.nom === "string" ? user.user_metadata.nom : undefined}
               prenomInitial={typeof user.user_metadata?.prenom === "string" ? user.user_metadata.prenom : undefined}
             />

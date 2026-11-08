@@ -558,23 +558,23 @@ describe("écrans : aucune adresse de gestion écrite en dur", () => {
     }, {
       fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "RappelsLoyersInteractifs", forme: '`/espace/${orgId}/loyers`', nombre: 1,
       raison: "rappel de réception réservé à l'accueil propriétaire, lien vers ses finances",
-      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],
     }, {
       fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "ReceptionLoyer", forme: '`/espace/${orgId}`', nombre: 1,
       raison: "retour de préparation d'une relance dans le rappel de réception du seul accueil propriétaire",
-      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],
     }, {
       fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "ReceptionLoyer", forme: '`/espace/${orgId}/baux/${ligne.bail_id}#relances`', nombre: 1,
       raison: "suivi de la relance du loyer présenté au seul propriétaire depuis son accueil",
-      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],
     }, {
       fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "ReceptionLoyer", forme: '`/espace/${orgId}/baux/${ligne.bail_id}#loyers`', nombre: 1,
       raison: "loyers du bail ouverts depuis le nom du lot, dans le rappel de réception du seul propriétaire (audit du 27/10, LAT-07)",
-      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],
     }, {
       fichier: "src/components/rappels-loyers-interactifs.tsx", fonction: "PreparationRecommande", forme: '`/espace/${orgId}`', nombre: 1,
       raison: "retour du PDF de recommandé vers le seul accueil propriétaire qui présente ce formulaire",
-      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} />"],
+      preuve: ["src/app/agence/[orgId]/accueil-proprietaire.tsx", "<RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />"],
     }, {
       fichier: "src/components/selecteur-patrimoine.tsx", fonction: "SelecteurPatrimoine", forme: '`/espace/${o.id}`', nombre: 1,
       raison: "sélecteur propre au propriétaire ; le layout ne fournit que ses adhésions actives de propriétaire_direct",

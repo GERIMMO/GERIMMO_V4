@@ -158,6 +158,7 @@ export async function proxy(request: NextRequest) {
     "/api/cron/equipes",
     "/api/cron/orchestrateur",
     "/api/cron/relais",
+    "/api/cron/factures",
     "/api/stripe/webhook",
     "/api/zoho-sign/webhook",
     "/api/resend/contact",

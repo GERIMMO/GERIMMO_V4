@@ -118,6 +118,23 @@ describe.skipIf(!url)("facture fournisseur : paiement et journal atomiques", () 
     expect(r.charges_reelles).toBe(49.5);expect(r.provisions).toBe(10);expect(r.ecart).toBe(-39.5);expect(r.factures).toHaveLength(1);
     expect((await db.query("select * from public.regularisations_charges where bail_id=$1",[bail])).rows).toEqual([]);
   });
+  it.each([false,true])("avis interne, option automatique %s : validation, destinataire et unicité",async(auto)=>{
+    await session(gerant);
+    if(auto) await db.query("select public.regler_avis_decompte($2,$1,true)",[bail,org]);
+    await repartitionLocataire();const d=await brouillon();
+    await refus("select public.notifier_decompte($1,$2)",[org,d],/inaccessible/);
+    await emettre(d);await session(locataire);
+    const lire=()=>db.query("select * from public.mes_avis_decompte($1)",[org]);
+    expect((await lire()).rows).toHaveLength(auto?1:0);
+    await session(gerant);
+    const notifier=()=>db.query("select public.notifier_decompte($1,$2) as horodatage",[org,d]);
+    expect((await notifier()).rows).toEqual((await notifier()).rows);
+    await session(locataire);const notifications=await lire();expect(notifications.rows).toHaveLength(1);
+    await db.query("select public.log_document_access($1,'consultation')",[notifications.rows[0].document_id]);
+    await session(gerant);expect((await db.query("select consulte_le from public.brouillons_regularisation_fourniture where id=$1",[d])).rows[0].consulte_le).toBeTruthy();
+    await session(autre);expect((await lire()).rows).toHaveLength(0);
+    await refus("select public.notifier_decompte($1,$2)",[org,d],/inaccessible/);
+  });
   it("émet une seule régularisation avec PDF lié et visible par le seul locataire concerné",async()=>{
     await session(gerant);await repartitionLocataire();const d=await brouillon();const r=await emettre(d);expect(await emettre(d)).toBe(r);
     const reg=(await db.query("select provisions,charges_reelles,ecart,justificatif_document from public.regularisations_charges where id=$1",[r])).rows[0];
@@ -200,6 +217,31 @@ describe.skipIf(!url)("facture fournisseur : paiement et journal atomiques", () 
     await session(gerant);await repartitionLocataire();const d=await brouillon();await postgres();
     await refus(readFileSync('supabase/retours-arriere/20261028155855_regularisations_depuis_fournitures.retour.sql','utf8'),[],/Retour refusé/);
     await session(gerant);expect(await brouillon()).toBe(d);
+  });
+
+  it("partage une facture sans clôture annuelle, sans créance ni double envoi et avec isolation locataire",async()=>{
+    await session(gerant);
+    const parts=JSON.stringify([{lot_id:lot,bail_id:bail,poids:1,recuperable:true},{lot_id:lotB,bail_id:null,poids:1,recuperable:false}]);
+    const r=await id("select public.preparer_repartition_fourniture($1,$2,'Clé test facture') as id",[facture,parts]);
+    await db.query("select public.valider_repartition_fourniture($1,(select empreinte from public.repartitions_fourniture where id=$1))",[r]);
+    await session(autre);await refus("select public.rouvrir_repartition_fourniture($1,$2)",[org,r]);
+    await session(gerant);await db.query("select public.rouvrir_repartition_fourniture($1,$2)",[org,r]);
+    expect((await db.query("select statut from repartitions_fourniture where id=$1",[r])).rows[0].statut).toBe('brouillon');
+    await db.query("select public.valider_repartition_fourniture($1,(select empreinte from public.repartitions_fourniture where id=$1))",[r]);
+    const enregistrer=()=>id("select public.enregistrer_pdf_repartition($1,$2,$3,(select empreinte from public.repartitions_fourniture where id=$2),$1::uuid::text||'/part.pdf',123,repeat('b',64)) as id",[org,r,bail]);
+    const pdf=await enregistrer();expect(await enregistrer()).toBe(pdf);
+    await refus("select public.rouvrir_repartition_fourniture($1,$2)",[org,r],/PDF/);
+    await session(locataire);expect((await db.query("select document_id from public.mes_pieces_locataire($1) where document_id=$2",[org,pdf])).rows).toHaveLength(0);
+    await refus("select public.diffuser_pdf_repartition($1,$2,$3)",[org,r,bail]);
+    await session(gerant);
+    const envoyer=async()=>(await db.query("select public.diffuser_pdf_repartition($1,$2,$3)::text t",[org,r,bail])).rows[0].t;
+    const date=await envoyer();expect(await envoyer()).toBe(date);
+    expect((await db.query("select id from public.regularisations_charges where bail_id=$1",[bail])).rows).toHaveLength(0);
+    expect((await db.query("select id from public.ecritures where organization_id=$1",[org])).rows).toHaveLength(0);
+    expect((await db.query("select id from public.documents_repartition_fourniture where repartition_id=$1",[r])).rows).toHaveLength(1);
+    await session(locataire);expect((await db.query("select document_id from public.mes_pieces_locataire($1) where document_id=$2",[org,pdf])).rows).toHaveLength(1);
+    await session(autre);expect((await db.query("select document_id from public.mes_pieces_locataire($1) where document_id=$2",[org,pdf])).rows).toHaveLength(0);
+    await refus("select public.diffuser_pdf_repartition($1,$2,$3)",[org,r,bail]);
   });
 
 });

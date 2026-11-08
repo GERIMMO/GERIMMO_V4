@@ -33,7 +33,7 @@ for (const largeur of [390, 1440]) test(`impayé de deux mois à ${largeur}px : 
     await db.query("begin");
     await db.query("insert into biens(id,organization_id,nom,type,address_line1,postal_code,city) values($1,$2,$3,'appartement','1 rue de recette','75001','Paris')", [bien, ORG, nom]);
     await db.query("insert into lots(id,organization_id,bien_id,nom,etat) values($1,$2,$3,$4,'loue')", [lot, ORG, bien, nom]);
-    await db.query("insert into persons(id,organization_id,nom,prenom,email) values($1,$2,'Fictif',$3,'locataire@example.invalid')", [personne, ORG, prenom]);
+    await db.query("insert into persons(id,organization_id,nom,prenom,email) values($1,$2,'Fictif',$3,$4)", [personne, ORG, prenom, `impaye-${personne}@example.invalid`]);
     await db.query("insert into baux(id,organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,jour_echeance) values($1,$2,$3,$4,'nu','actif',public.aujourdhui_paris()-70,500,20,5)", [bail, ORG, lot, personne]);
     await db.query(`insert into appels_loyer(organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values
       ($1,$2,date_trunc('month',public.aujourdhui_paris()-40),public.aujourdhui_paris()-40,500,20,520),
@@ -51,7 +51,8 @@ for (const largeur of [390, 1440]) test(`impayé de deux mois à ${largeur}px : 
     expect((await new AxeBuilder({ page }).include('[aria-label="Votre patrimoine en bref"]').withTags(TAGS).analyze()).violations).toEqual([]);
     await carte(page).click();
     const fenetre = page.getByRole("dialog"); await expect(fenetre).toBeVisible();
-    const ligne = fenetre.locator("li").filter({ hasText: nom });
+    const lignes = fenetre.locator("li").filter({ hasText: nom });
+    const ligne = lignes.and(fenetre.locator('li:not([data-reception="regle"])'));
     await expect(ligne).toContainText("Prioritaire");
     await expect(ligne).toContainText("1 autre mois à recevoir sur ce bail");
     await expect(ligne).toContainText(/1[\s ]040,00\s€ au total/);
@@ -63,10 +64,13 @@ for (const largeur of [390, 1440]) test(`impayé de deux mois à ${largeur}px : 
     for (const mois of [1, 2]) {
       await ligne.getByRole("button", { name: "J’ai reçu le loyer", exact: true }).click();
       await ligne.getByRole("button", { name: "Confirmer et envoyer la quittance", exact: true }).click();
-      await expect(fenetre.getByRole("status").filter({ hasText: "520,00" }).first()).toBeVisible();
+      await expect(fenetre.locator('li[data-reception="regle"]').filter({ hasText: nom })).toHaveCount(mois);
+      await expect(lignes.filter({ hasText: "Paiement inscrit dans vos comptes." })).toHaveCount(mois);
       if (mois === 1) await expect(ligne).not.toContainText("Prioritaire");
     }
     await expect(ligne).toHaveCount(0);
+    await expect(lignes).toHaveCount(2);
+    expect((await db.query("select sum(montant)::float montant from encaissements where bail_id=$1", [bail])).rows[0].montant).toBe(1040);
     // LAT-01 : l'alerte est fermée par la réception, une seule, sans attendre la tâche de nuit.
     expect(await alertes()).toEqual([{ statut: "fermee", criticite: "normale", closed_action: "Impayé soldé" }]);
     await page.reload();

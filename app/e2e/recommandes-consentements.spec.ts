@@ -59,7 +59,10 @@ for(const largeur of [390,1440]) test.describe(`${largeur}px`,()=>{
   await connecter(page,'proprietaire@example.com',`/espace/${ORG}`);
   await page.getByRole('region',{name:'Votre patrimoine en bref'}).getByRole('button',{name:/^(?:\d+ actions? prioritaires?|\d+ loyers? à confirmer|À vérifier) /}).click();
   const bloc=page.getByRole('region',{name:'Avez-vous reçu vos loyers ?'});const ligne=bloc.locator('li').filter({has:page.getByRole('link',{name:nom,exact:true})});
-  await ligne.getByRole('button',{name:'Préparer l’envoi AR24',exact:true}).click();
+  await expect(ligne.getByRole('button',{name:'Préparer l’envoi du recommandé AR24',exact:true})).toHaveCount(0);
+  await ligne.getByRole('button',{name:'Pas encore reçu',exact:true}).click();
+  await ligne.getByRole('button',{name:'Confirmer : pas encore reçu',exact:true}).click();
+  await ligne.getByRole('button',{name:'Préparer l’envoi du recommandé AR24',exact:true}).click();
   await expect(ligne.getByRole('alert')).toContainText('L’envoi AR24 n’est pas encore activé');
   await expect(ligne.getByRole('button',{name:/Confirmer l’envoi/})).toHaveCount(0);
   expect((await db.query('select 1 from recommandes_ar24 where bail_id=$1',[bail])).rowCount).toBe(0);

@@ -109,3 +109,10 @@
   .pageDecompte .choixMethodes label{min-height:0}
   .releveLigne{grid-template-columns:1fr}
 }
+
+/* Le tableau défile dans sa zone sans élargir le formulaire sur téléphone. */
+.form,.list,.invoice,.pageDecompte { grid-template-columns:minmax(0,1fr); }
+.form > *,.pageDecompte > * { min-width:0; }
+@media(max-width:640px){
+  .piedParcours > button { max-width:100%; white-space:normal; height:auto; min-height:44px; }
+}

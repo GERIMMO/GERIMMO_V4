@@ -73,10 +73,10 @@ export function FicheContinue({ rubriques, className, afficherNavigation = true 
     data-rubrique-dossier={rubrique.id} aria-label={rubrique.titre} className={styles.rubrique}>
     <summary>{rubrique.resume ?? rubrique.titre}</summary>
     {rubrique.contenu}
-  </details> : <section key={rubrique.id} id={rubrique.id}
+  </details> : <div role="group" key={rubrique.id} id={rubrique.id}
     data-rubrique-dossier={rubrique.id} aria-label={rubrique.titre} className={styles.rubrique} tabIndex={-1}>
     {rubrique.contenu}
-  </section>;
+  </div>;
   const colonnes = (["principale", "secondaire"] as const)
     .map(id => ({ id, rubriques: rubriques.filter(rubrique => rubrique.colonne === id) }))
     .filter(colonne => colonne.rubriques.length > 0);

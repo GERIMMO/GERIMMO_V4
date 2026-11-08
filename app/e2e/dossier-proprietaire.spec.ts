@@ -20,14 +20,13 @@ for (const largeur of [390, 1440]) {
     await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByRole('tablist')).toHaveCount(0);
-    for (const nom of ['Logement et propriété', 'Bâtiment', 'Le bail', 'Incidents', 'Documents récents']) {
+    for (const nom of ['Caractéristiques', 'Caractéristiques du bâtiment', 'Bail et occupation', 'Incidents', 'Documents et diagnostics']) {
       await expect(page.getByRole('heading', { name: nom, exact: true })).toBeVisible();
     }
     // Un logement vacant n'affiche plus de carte occupants vide.
     await expect(page.getByRole('heading', { name: 'Locataires & garants', exact: true })).toHaveCount(0);
     const documents = page.locator('#documents-lot');
     await expect(documents).toBeVisible();
-    await page.locator('details#logement-lot > summary').click();
     await expect(page.getByRole('heading', { name: 'Propriétaires', exact: true })).toBeVisible();
     await expect(documents.getByRole('link', { name: 'Ouvrir la bibliothèque', exact: true })).toBeVisible();
     const rubrique = page.locator('details#pieces');
@@ -43,7 +42,7 @@ for (const largeur of [390, 1440]) {
     await page.goto(page.url().split('#')[0]);
     await page.reload();
     await expect(documents).toBeVisible();
-    await expect(page.locator('details#logement-lot')).not.toHaveAttribute('open', '');
+    await expect(page.locator('#logement-lot')).toBeVisible();
     await page.screenshot({ path: `e2e/.results/dossier-${largeur}.png`, fullPage: true });
   });
 }

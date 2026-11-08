@@ -57,7 +57,7 @@ test.describe("Couverture du réseau, côté supervision", () => {
     await sansSyntheseAlertes(page);
     await page.goto("/admin/couverture?departement=91&metier=electricite");
     await expect(page.getByRole("heading", { name: "Réseau d’artisans", exact: true })).toBeVisible();
-    await expect(page.getByText(/Aucune ouverture n’est à décider/)).toBeVisible();
+    await expect(page.getByRole("main").getByText(/Aucune ouverture n’est à décider/)).toBeVisible();
     await page.getByLabel("Rechercher une commune").fill("Massy");
     await expect(page.getByRole("row").filter({ has: page.getByRole("link", { name: "Massy", exact: true }) })).toBeVisible();
     await expect(page.getByRole("checkbox")).toHaveCount(0);

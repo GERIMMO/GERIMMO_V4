@@ -58,8 +58,15 @@ for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : éc
     expect(violations).toEqual([]);
     await page.screenshot({path:info.outputPath(`reception-${largeur}.png`),fullPage:true});
     await expect(ligne.getByText("Gérer la première relance",{exact:true})).toHaveCount(0);
-    await expect(bloc.getByText(/La première relance sera disponible au délai prévu/)).toBeVisible();
+    await expect(ligne.getByRole("button", { name: /Générer le recommandé/ })).toHaveCount(0);
     await expect(ligne.getByRole("button",{name:"Envoyer la première relance par e-mail",exact:true})).toHaveCount(0);
+    await ligne.getByRole("button",{name:"Reçu en partie",exact:true}).click();
+    await ligne.getByLabel("Montant reçu (€)",{exact:true}).fill("200");
+    await fenetreDemandes(page).getByRole("button",{name:"Fermer",exact:true}).click();
+    await expect(demandes(page)).toBeFocused();
+    await ouvrirDemandes(page);
+    await expect(ligne.getByLabel("Montant reçu (€)",{exact:true})).toHaveValue("200");
+    await ligne.getByRole("button",{name:"Annuler",exact:true}).click();
     await ligne.getByRole("button",{name:"Pas encore reçu",exact:true}).click();await ligne.getByRole("button",{name:"Confirmer : pas encore reçu",exact:true}).click();
     await expect(ligne.getByText(/Pas encore reçu · signalé le/)).toBeVisible();
     await expect(ligne).toHaveAttribute("data-reception","non_recu");
@@ -73,28 +80,27 @@ for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : éc
     await page.reload(); await expect(carteLoyer).toHaveCount(0);
     await vieillir(4); await expect(carteLoyer).toHaveCount(0);
     await vieillir(1); await expect(carteLoyer).toContainText("Première relance"); await ouvrirDemandes(page);
-    await ligne.getByText("Gérer la première relance",{exact:true}).click();
-    await expect(ligne.getByRole("button",{name:"Envoyer la première relance par e-mail",exact:true})).toBeVisible();
-    await expect(ligne.getByText("Préparer le recommandé",{exact:true})).toHaveCount(0);
+    await expect(ligne.getByText("Gérer la première relance",{exact:true})).toHaveCount(0);
     await expect(ligne.getByRole("link",{name:"Suivre les relances dans le bail",exact:true})).toHaveAttribute("href",`/espace/${ORG}/baux/${bail}#relances`);
 
     for(const [niveau,suivant] of [["relance_1","Deuxième relance"],["relance_2","Recommandé"]] as const){
       await ligne.getByRole("button",{name:"Pas encore reçu",exact:true}).click();
       await ligne.getByRole("button",{name:"Confirmer : pas encore reçu",exact:true}).click();
       await expect(ligne).toContainText("Confirmation enregistrée");
+      await ligne.getByText(niveau === "relance_1" ? "Gérer la première relance" : "Gérer la deuxième relance", {exact:true}).click();
+      await expect(ligne.getByRole("button",{name:niveau === "relance_1" ? "Envoyer la première relance par e-mail" : "Envoyer la deuxième relance par e-mail", exact:true})).toBeVisible();
+      await expect(ligne.getByRole("button",{name:/Générer le recommandé/})).toHaveCount(0);
       await page.reload();await expect(carteLoyer).toHaveCount(0);
       // Expédition fictive consignée, indépendante de la réponse du propriétaire : aucun courrier réel.
       await db.query("insert into relances(organization_id,bail_id,niveau,date_envoi) values($1,$2,$3,public.aujourdhui_paris())",[ORG,bail,niveau]);
       await vieillir(9); await expect(carteLoyer).toHaveCount(0);
       await vieillir(1); await expect(carteLoyer).toContainText(suivant);
       await carteLoyer.screenshot({path:info.outputPath(`palier-${niveau}-${largeur}.png`)});
-      await ouvrirDemandes(page); await expect(ligne).toContainText(suivant);
-      if (niveau === "relance_1") {
-        await expect(ligne.getByText("Préparer le recommandé",{exact:true})).toHaveCount(0);
-        await ligne.getByText("Gérer la deuxième relance",{exact:true}).click();
-        await expect(ligne.getByRole("button",{name:"Envoyer la deuxième relance par e-mail"})).toBeVisible();
-      }
+      await ouvrirDemandes(page);
+      await expect(ligne.getByRole("button",{name:/Envoyer la.*relance|Générer le recommandé/})).toHaveCount(0);
     }
+    await ligne.getByRole("button",{name:"Pas encore reçu",exact:true}).click();
+    await ligne.getByRole("button",{name:"Confirmer : pas encore reçu",exact:true}).click();
 
     await ligne.locator("summary").filter({hasText:"Délai de règlement"}).click();
     await expect(ligne.getByLabel("Délai de règlement (jours)",{exact:true})).toHaveValue("15");
@@ -107,10 +113,6 @@ for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : éc
     await ligne.getByRole("button",{name:"Reçu en partie",exact:true}).click();
     await ligne.getByLabel("Montant reçu (€)",{exact:true}).fill("200");
     await expect(ligne.getByRole("status").filter({hasText:"Restera à recevoir après confirmation"})).toContainText("600,00");
-    await fenetreDemandes(page).getByRole("button",{name:"Fermer",exact:true}).click();
-    await expect(demandes(page)).toBeFocused();
-    await ouvrirDemandes(page);
-    await expect(ligne.getByLabel("Montant reçu (€)",{exact:true})).toHaveValue("200");
     await ligne.getByRole("button",{name:"Confirmer et envoyer le reçu",exact:true}).click();
     await expect(ligne).toHaveAttribute("data-reception","partiel");
     await expect(ligne.getByRole("link",{name:"Reçu partiel créé"})).toBeVisible();

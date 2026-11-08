@@ -146,6 +146,10 @@ const MISSION_OCTOBRE = [
   "20261105141000_coordonnees_courriers_ouverture.sql",
   "20261105201338_fiche_lot_rattachements.sql",
   "20261105210810_avis_decompte_locataire.sql",
+  "20261106090000_partage_repartition_facture.sql",
+  "20261107193000_reouverture_repartition_fourniture.sql",
+  "20261108090000_suivi_releves_facture.sql",
+  "20261108100000_factures_automatiques.sql",
 
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */

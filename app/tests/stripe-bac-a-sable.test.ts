@@ -1,6 +1,8 @@
 // Stripe réel en mode TEST + règles Gerimmo dans PostgreSQL local.
 // Le transport du webhook est simulé et signé ; il n'est pas présenté comme
 // une livraison de Stripe vers un site public ni comme une recette visuelle.
+import { createServer } from "node:http";
+import { spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import { Client } from "pg";
 import Stripe from "stripe";
@@ -408,6 +410,75 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
     expect(apercu.subtotal).toBe(49000);
     expect(apercu.total).toBe(58800);
   }, 60000);
+
+  it("renouvelle une échéance réelle de TEST et reçoit son webhook signé via le relais local", async () => {
+    const stripe = nouvelle.stripe!;
+    const clock = await stripe.testHelpers.testClocks.create({ frozen_time: Math.floor(Date.now()/1000), name: "Gerimmo — renouvellement fictif" });
+    let client = "", signature = "", sortie = "";
+    const recus: { type: string; statut: number }[] = [];
+    let chaine = Promise.resolve();
+    const serveur = createServer((req,res) => {
+      const morceaux: Buffer[]=[];
+      req.on("data", b=>morceaux.push(Buffer.from(b)));
+      req.on("end",()=>{
+        chaine=chaine.then(async()=>{
+          try {
+            const corps=Buffer.concat(morceaux).toString("utf8");
+            const entete=String(req.headers["stripe-signature"]??"");
+            const evenement=stripe.webhooks.constructEvent(corps,entete,signature);
+            if(evenement.livemode) { res.writeHead(403).end(); return; }
+            const objet=evenement.data.object as unknown as {customer?:string};
+            if(!client||objet.customer!==client) { res.writeHead(200).end(); return; }
+            const reponse=await POST(new Request("http://127.0.0.1/api/stripe/webhook",{method:"POST",body:corps,headers:{"stripe-signature":entete}}));
+            recus.push({type:evenement.type,statut:reponse.status});
+            res.writeHead(reponse.status).end();
+          } catch { res.writeHead(400).end(); }
+        });
+      });
+    });
+    await new Promise<void>(r=>serveur.listen(0,"127.0.0.1",r));
+    const adresse=serveur.address(); if(!adresse||typeof adresse==="string")throw new Error("Récepteur local indisponible");
+    const relais=spawn(process.env.GERIMMO_STRIPE_CLI??"stripe",["listen","--events","customer.subscription.updated,invoice.paid","--forward-to",`http://127.0.0.1:${adresse.port}`],{env:{...process.env,STRIPE_API_KEY:cle,STRIPE_DEVICE_NAME:"gerimmo-ci-isole"},stdio:["ignore","pipe","pipe"]});
+    let erreurRelais=false;
+    relais.on("error",()=>{erreurRelais=true;});
+    const lire=(b:Buffer)=>{sortie=(sortie+b.toString()).slice(-12000);signature=sortie.match(/whsec_[A-Za-z0-9]+/)?.[0]??signature;};
+    relais.stdout.on("data",lire);relais.stderr.on("data",lire);
+    const attendre=async(condition:()=>Promise<boolean>,message:string)=>{
+      const fin=Date.now()+120000;
+      while(Date.now()<fin){if(erreurRelais)throw new Error("Relais Stripe TEST indisponible");if(await condition())return;await new Promise(r=>setTimeout(r,1000));}
+      throw new Error(message);
+    };
+    try {
+      await attendre(async()=>Boolean(signature),"Le relais Stripe TEST n’est pas prêt");
+      vi.stubEnv("STRIPE_WEBHOOK_SECRET",signature);
+      const org=(await nouvelle.db!.query("insert into public.organizations(name,type,status,essai_fin) values('Horloge Stripe fictive','proprietaire_direct','essai',current_date-1) returning id")).rows[0].id;
+      const c=await stripe.customers.create({name:"Gerimmo — horloge fictive",test_clock:clock.id,metadata:{gerimmo_org:org}});client=c.id;expect(c.livemode).toBe(false);
+      await chaine;
+      await nouvelle.db!.query("insert into public.abonnements(organization_id,stripe_customer_id) values($1,$2)",[org,client]);
+      const pm=await stripe.paymentMethods.attach("pm_card_visa",{customer:client});
+      await stripe.customers.update(client,{invoice_settings:{default_payment_method:pm.id}});
+      const offre=offreParticulier(1,"mensuel");const lignes=await lignesStripe(stripe,offre,FRANCHISE);
+      const souscription=await stripe.subscriptions.create({customer:client,items:lignes.map(l=>({price_data:l.prix,quantity:l.quantite})),metadata:metadonneesOffre(org,offre)});
+      const echeance=souscription.items.data[0].current_period_end;
+      await stripe.testHelpers.testClocks.advance(clock.id,{frozen_time:echeance+7200});
+      await attendre(async()=>(await stripe.testHelpers.testClocks.retrieve(clock.id)).status==="ready","Horloge Stripe non finalisée");
+      await attendre(async()=>{
+        const factures=await stripe.invoices.list({customer:client,subscription:souscription.id});
+        return factures.data.some(f=>f.billing_reason==="subscription_cycle"&&f.status==="paid"&&f.amount_paid===599);
+      },"Renouvellement de TEST non payé");
+      await attendre(async()=>recus.some(e=>e.type==="invoice.paid"&&e.statut===200)&&recus.some(e=>e.type==="customer.subscription.updated"&&e.statut===200),"Webhooks de renouvellement non reçus par Gerimmo local");
+      await chaine;
+      expect(recus.every(e=>e.statut===200)).toBe(true);
+      const miroir=(await nouvelle.db!.query("select a.montant_periode_cents::int montant,o.status from public.abonnements a join public.organizations o on o.id=a.organization_id where a.organization_id=$1",[org])).rows[0];
+      expect(miroir).toMatchObject({montant:599,status:"active"});
+    } finally {
+      relais.kill("SIGTERM");await chaine;
+      await new Promise<void>(r=>serveur.close(()=>r()));
+      await stripe.testHelpers.testClocks.del(clock.id);
+      vi.stubEnv("STRIPE_WEBHOOK_SECRET",secret);
+      sortie="";signature="";
+    }
+  }, 420000);
 
   it("portail client : aucune résiliation (plan du 23/10, R04), aucun changement de formule, toujours la configuration Gerimmo", async () => {
     const r = await ouvrirPortailFacturation(nouvelle.stripe!, { customer: nouvelle.client!, retour: "https://www.gerimmo.app/agence/x/abonnement" });

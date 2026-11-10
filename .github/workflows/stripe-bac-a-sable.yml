@@ -47,6 +47,16 @@ jobs:
         env:
           GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}
         run: node -e 'const k=process.env.GERIMMO_STRIPE_TEST_KEY||"";if(!/^(sk|rk)_test_/.test(k)){console.error("Une connexion Stripe de TEST est requise.");process.exit(1)}'
+      - name: Installer le relais officiel Stripe TEST
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSL https://github.com/stripe/stripe-cli/releases/download/v1.55.9/stripe_1.55.9_linux_x86_64.tar.gz -o stripe_1.55.9_linux_x86_64.tar.gz
+          curl -fsSL https://github.com/stripe/stripe-cli/releases/download/v1.55.9/stripe-linux-checksums.txt -o stripe-linux-checksums.txt
+          grep 'stripe_1.55.9_linux_x86_64.tar.gz$' stripe-linux-checksums.txt | sha256sum -c -
+          mkdir stripe-cli
+          tar -xzf stripe_1.55.9_linux_x86_64.tar.gz -C stripe-cli stripe
+          echo "GERIMMO_STRIPE_CLI=$RUNNER_TEMP/stripe-cli/stripe" >> "$GITHUB_ENV"
       - name: Tester les cas de paiement et leur application dans Gerimmo
         env:
           GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}
@@ -61,7 +71,7 @@ jobs:
           const r=JSON.parse(fs.readFileSync(p));
           const b={reussi:r.success,tests_reussis:r.numPassedTests,tests_echoues:r.numFailedTests,
             tests_ignores:r.numPendingTests,argent_reel:false,
-            portee:'API Stripe de test et règles SQL locales ; webhook signé simulé, interface de paiement non parcourue'};
+            portee:'API Stripe de test et règles SQL locales ; webhooks simulés et relais Stripe TEST vers récepteur local ; interface de paiement non parcourue'};
           fs.writeFileSync('/tmp/bilan-stripe-test.json',JSON.stringify(b,null,2));
           console.log(JSON.stringify(b));
           NODE

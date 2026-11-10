@@ -6,7 +6,7 @@ import { preuveEmailRecente } from "../src/lib/autorisation-nouveau-mot-de-passe
 
 const endpoint = process.env.GERIMMO_AUTH_REEL_URL;
 const connexion = process.env.GERIMMO_AUTH_REEL_DB;
-if (endpoint && (!/^http:\/\/127\.0\.0\.1:\d+$/.test(endpoint) || !connexion || !/^postgres(?:ql)?:\/\/postgres@127\.0\.0\.1:\d+\/gerimmo_ci_auth_[a-z]+$/.test(connexion))) {
+if (endpoint && (!/^http:\/\/127\.0\.0\.1:\d+$/.test(endpoint) || !connexion || !/^postgres(?:ql)?:\/\/postgres(?::gerimmo-ci-local)?@127\.0\.0\.1:\d+\/gerimmo_ci_auth_[a-z]+$/.test(connexion))) {
   throw new Error("Ce banc exige un service Auth et une base fictive locaux.");
 }
 

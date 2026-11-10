@@ -36,8 +36,8 @@ for (const largeur of [390, 1440]) test(`impayé de deux mois à ${largeur}px : 
     await db.query("insert into persons(id,organization_id,nom,prenom,email) values($1,$2,'Fictif',$3,$4)", [personne, ORG, prenom, `impaye-${personne}@example.invalid`]);
     await db.query("insert into baux(id,organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,jour_echeance) values($1,$2,$3,$4,'nu','actif',public.aujourdhui_paris()-70,500,20,5)", [bail, ORG, lot, personne]);
     await db.query(`insert into appels_loyer(organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values
-      ($1,$2,date_trunc('month',public.aujourdhui_paris()-40),public.aujourdhui_paris()-40,500,20,520),
-      ($1,$2,date_trunc('month',public.aujourdhui_paris()-10),public.aujourdhui_paris()-10,500,20,520)`, [ORG, bail]);
+      ($1,$2,date_trunc('month',public.aujourdhui_paris())-interval '2 months',date_trunc('month',public.aujourdhui_paris())-interval '2 months'+interval '4 days',500,20,520),
+      ($1,$2,date_trunc('month',public.aujourdhui_paris())-interval '1 month',date_trunc('month',public.aujourdhui_paris())-interval '1 month'+interval '4 days',500,20,520)`, [ORG, bail]);
     await db.query("commit");
     // Le passage de nuit pose l'alerte critique (deux termes échus).
     await db.query("select public.suivre_impayes_bail($1)", [bail]);

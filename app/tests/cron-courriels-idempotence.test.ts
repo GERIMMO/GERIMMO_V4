@@ -467,3 +467,7 @@ describe("rappels de rendez-vous", () => {
     expect(fournisseur.acceptes).toHaveLength(2);
   });
 });
+
+// Banc historique du transport uniquement : la suspension V1 réelle est vérifiée
+// séparément dans perimetre-pilote-controles et livraison-protections. Aucun fournisseur réel.
+vi.mock("@/lib/perimetre-pilote",async(importOriginal)=>({...await importOriginal<typeof import("@/lib/perimetre-pilote")>(),piloteLimite:()=>false,circuitAdmisPilote:()=>true}));

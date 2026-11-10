@@ -1398,3 +1398,7 @@ describe("/mot-de-passe-oublie après une confirmation faite ailleurs que la ses
     expect(texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ raison: "autre" }) })))).not.toContain("est confirmée");
   });
 });
+
+// Banc historique du transport uniquement : la suspension V1 réelle est vérifiée
+// séparément dans perimetre-pilote-controles et livraison-protections. Aucun fournisseur réel.
+vi.mock("@/lib/perimetre-pilote",async(importOriginal)=>({...await importOriginal<typeof import("@/lib/perimetre-pilote")>(),piloteLimite:()=>false,circuitAdmisPilote:()=>true}));

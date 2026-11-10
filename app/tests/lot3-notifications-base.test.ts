@@ -10,8 +10,8 @@ vi.mock('../src/lib/controle-effets',async original=>({...await original<typeof 
 import {traiterNotificationCapturee} from '../src/lib/notifications-transactionnelles';
 import {reprendreCourriels} from '../src/lib/reprise-courriels';
 import {envoyerEmailTransport} from '../src/lib/email';
-const url=process.env.SUPABASE_DB_URL;
-if(!url||new URL(url).hostname!=='127.0.0.1'||new URL(url).pathname!=='/gerimmo_ci_lottrois')throw Error('Base Lot3 fictive obligatoire');
+const url=process.env.GERIMMO_PILOTE_DB ?? process.env.SUPABASE_DB_URL;
+if(!url||new URL(url).hostname!=='127.0.0.1'||!['/gerimmo_ci_lottrois','/gerimmo_ci_vun_pilote'].includes(new URL(url).pathname))throw Error('Base Lot3 fictive obligatoire');
 const db=new Client({connectionString:url});
 const service=clientSurPg(db,{transactionnel:true}) as unknown as SupabaseClient;
 const q=async(sql:string,p:unknown[]=[]) =>(await db.query(sql,p)).rows;

@@ -1,3 +1,5 @@
+// Test unitaire du transport : admission métier exercée par les suites intégrées.
+vi.mock('../src/lib/perimetre-pilote',async original=>({...await original<typeof import('../src/lib/perimetre-pilote')>(),circuitAdmisPilote:()=>true}));
 /**
  * L'adresse d'expédition des e-mails (11/09).
  *

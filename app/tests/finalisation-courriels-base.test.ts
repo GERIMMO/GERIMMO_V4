@@ -7,15 +7,18 @@ import { conserverCourriel,reprendreCourriels,identiteCourriel,type ChargeCourri
 import { envoyerCourrielDurable } from '../src/lib/courriels-durables';
 import { reprendreFinalisationsCourriels } from '../src/lib/finalisation-courriels';
 const url=process.env.SUPABASE_DB_URL;
-if(!url||new URL(url).hostname!=='127.0.0.1'||new URL(url).pathname!=='/gerimmo_ci_priorites1')throw new Error('Base fictive isolée obligatoire');
+if(!url||new URL(url).hostname!=='127.0.0.1'||!['/gerimmo_ci_priorites1','/gerimmo_ci_sql','/gerimmo_ci_vun'].includes(new URL(url).pathname))throw new Error('Base fictive isolée obligatoire');
 const db=new Client({connectionString:url});const service=clientSurPg(db,{transactionnel:false}) as unknown as SupabaseClient;
 const id=async(s:string,p:unknown[]=[]) =>(await db.query(s,p)).rows[0].id as string;
+let acteur:string;
 let org:string,bail:string,personne:string,document:string,quittance:string,lot:string;
 async function etat(e:string){await db.query("begin");await db.query("update baux set etat=$2::bail_etat where id=$1",[bail,e]);await db.query("update lots set etat=$2::lot_etat where id=$1",[lot,e==='actif'?'loue':'disponible']);await db.query("commit");}
 beforeAll(async()=>{
  await db.connect();vi.stubEnv('GERIMMO_PILOTE_LIMITE','false');vi.stubEnv('COURRIELS_CHIFFREMENT_CLE','ab'.repeat(32));
  await db.query(`select set_config('request.jwt.claims','{"role":"service_role"}',false)`);
  org=await id("insert into organizations(name,status,type,quittances_envoi_auto) values('Finalisation fictive','active','agence',true) returning id");
+ acteur=await id("insert into auth.users(id,email,raw_app_meta_data,raw_user_meta_data) values(gen_random_uuid(),$1,'{}','{}') returning id",[randomUUID()+'@example.invalid']);
+ await db.query("insert into memberships(organization_id,account_id,role) values($1,$2,'admin_agence')",[org,acteur]);
  personne=await id("insert into persons(organization_id,nom,email) values($1,'Locataire fictif','finalisation@example.invalid') returning id",[org]);
  const bien=await id("insert into biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'Test finalisation','maison','1 rue fictive','69001','Lyon') returning id",[org]);
  lot=await id("insert into lots(organization_id,bien_id,nom,etat,surface_m2,pieces,meuble) values($1,$2,'Lot test','disponible',25,1,true) returning id",[org,bien]);
@@ -28,7 +31,7 @@ beforeAll(async()=>{
  await db.query("insert into consentements_documents_locataire(organization_id,person_id,quittances_electroniques,adresse_email) values($1,$2,true,'finalisation@example.invalid')",[org,personne]);
 });
 afterAll(async()=>{await db.end();vi.unstubAllEnvs();});
-const message=(q=false):ChargeCourriel=>({to:'finalisation@example.invalid',subject:'Fictif',html:'<p>Test sans réseau</p>',cleIdempotence:randomUUID(),organisationId:org,contexteMetier:q?{type:'quittance',id:quittance,montant:550,est_quittance:true}:{type:'bail_signe',id:bail,document}});
+const message=(q=false):ChargeCourriel=>({to:'finalisation@example.invalid',subject:'Fictif',html:'<p>Test sans réseau</p>',cleIdempotence:randomUUID(),organisationId:org,contexteMetier:q?{type:'quittance',id:quittance,montant:550,est_quittance:true,automatique:true}:{type:'bail_signe',id:bail,document,acteur}});
 const ligne=async(p:ChargeCourriel)=>(await db.query('select * from courriels_durables where id=$1',[identiteCourriel(p).id])).rows[0];
 const envoyer=async(p:ChargeCourriel,transport=async()=>({id:randomUUID()}))=>{const k=identiteCourriel(p);return envoyerCourrielDurable(service,{cle:k.key,contenu:k.contenu,destinataire:p.to,organisation:org},transport);};
 it('bloque un bail redevenu brouillon avant émission différée',async()=>{

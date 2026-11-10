@@ -5,7 +5,7 @@ import {connecterVers,sansSyntheseAlertes} from './aides';
 const org='3c1d1e95-3570-400b-8012-44530be145b1';
 test('locataire : documents et déclaration avec photo, puis suivi',async({page,context,browser},info)=>{
  const cible=process.env.SUPALOCAL_DB;
- if(!cible||!/^postgres(?:ql)?:\/\/[^@]*@127\.0\.0\.1:[0-9]+\/gerimmo_ci_(?:lotdeux|lottrois)_api$/.test(cible))throw Error('Base fictive locale requise');
+ if(!cible||!/^postgres(?:ql)?:\/\/[^@]*@127\.0\.0\.1:[0-9]+\/gerimmo_ci_(?:lotdeux|lottrois|vun)_api$/.test(cible))throw Error('Base fictive locale requise');
  let personne:string;
  const db=new Client({connectionString:cible});await db.connect();
  try {

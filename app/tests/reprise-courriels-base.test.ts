@@ -6,7 +6,7 @@ import { clientSurPg } from './fixtures/supabase-sur-pg';
 import { conserverCourriel,reprendreCourriels,identiteCourriel,chiffrerCourriel,dechiffrerCourriel } from '../src/lib/reprise-courriels';
 import { envoyerCourrielDurable } from '../src/lib/courriels-durables';
 const url=process.env.SUPABASE_DB_URL;
-if(!url||new URL(url).hostname!=='127.0.0.1'||new URL(url).pathname!=='/gerimmo_ci_priorites1')throw new Error('Base fictive isolée obligatoire');
+if(!url||new URL(url).hostname!=='127.0.0.1'||!['/gerimmo_ci_priorites1','/gerimmo_ci_sql','/gerimmo_ci_vun'].includes(new URL(url).pathname))throw new Error('Base fictive isolée obligatoire');
 const db=new Client({connectionString:url});const service=clientSurPg(db,{transactionnel:false}) as unknown as SupabaseClient;
 beforeAll(async()=>{await db.connect();vi.stubEnv('COURRIELS_CHIFFREMENT_CLE','ab'.repeat(32));});
 afterAll(async()=>{await db.end();vi.unstubAllEnvs();});

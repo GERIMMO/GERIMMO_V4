@@ -1,3 +1,5 @@
+// Test unitaire du transport : admission métier exercée par les suites intégrées.
+vi.mock('../src/lib/perimetre-pilote',async original=>({...await original<typeof import('../src/lib/perimetre-pilote')>(),circuitAdmisPilote:()=>true}));
 /**
  * Délai maximal d'appel au service d'e-mail et clé anti-doublon, LIVRÉS
  * ENSEMBLE (décision D47, fiches IA-04 et IA-05).

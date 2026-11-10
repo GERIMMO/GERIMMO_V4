@@ -6,6 +6,9 @@ export function verifierEnvironnement(env = process.env) {
   const suspendre = (motif) => { throw new Error(`Construction suspendue : ${motif}`); };
   if (cible === "production") {
     if (isole) suspendre("le réglage de préproduction ne doit pas être posé en production.");
+    if (env.GERIMMO_MODE !== 'commercial' || env.VERCEL !== '1' || env.NEXT_PUBLIC_SITE_URL !== 'https://www.gerimmo.app'
+      || env.GERIMMO_PILOTE_LIMITE === 'true' || env.GERIMMO_PAIEMENTS_DESACTIVES === '1') suspendre('configuration commerciale incohérente : publication refusée avant remplacement du site.');
+    if (!/^[a-f0-9]{64}$/i.test(env.COURRIELS_CHIFFREMENT_CLE ?? '')) suspendre('clé de conservation des courriels requise.');
     return;
   }
   if (!isole) {

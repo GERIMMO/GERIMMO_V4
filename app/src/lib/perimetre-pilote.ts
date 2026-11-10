@@ -1,8 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { empreinteCourriel, type ResultatCourriel } from './courriels-durables';
 import { identiteCourriel, type ChargeCourriel } from './reprise-courriels';
-/** Restriction serveur active par défaut. Aucun formulaire ou paramètre HTTP ne la désactive. */
-export function piloteLimite():boolean {return process.env.GERIMMO_PILOTE_LIMITE!=='false';}
+/** Liste V1 fermée, indépendante des paiements. Une variable ne peut rouvrir un circuit non validé. */
+export function piloteLimite():boolean {return true;}
 export const MESSAGE_PILOTE='Envoi suspendu dans le pilote limité : intervention humaine requise. Aucun nouvel e-mail envoyé. La tâche reste à traiter.';
 export function circuitAdmisPilote(p:ChargeCourriel):boolean {
  const c=p.contexteMetier;

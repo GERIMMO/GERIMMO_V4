@@ -1,3 +1,4 @@
+import {bloquerPendantTransition,MESSAGE_TRANSITION} from "@/lib/transition-livraison";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { doitVerifierSecondFacteur, estSuperviseurActif } from "@/lib/mfa";
@@ -138,6 +139,7 @@ function adresseInconnue(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  if(bloquerPendantTransition(request.nextUrl.pathname,request.method,request.nextUrl.searchParams.get("mission")))return NextResponse.json({erreur:MESSAGE_TRANSITION},{status:503,headers:{"Retry-After":"120"}});
   // L'adresse (sans paramètres) et la méthode de la requête décrivent la ligne d'audit quand un
   // super-administrateur entre dans un espace client (D08, audit du 13/10, SA-01). Posés ici, avant
   // tout retour : toujours écrasés, jamais repris d'une valeur envoyée par le navigateur. Ils ne

@@ -1,3 +1,4 @@
+import {maintenanceLivraison,MESSAGE_TRANSITION} from "./transition-livraison";
 import { circuitAdmisPilote, piloteLimite, suspendreCourrielPilote, MESSAGE_PILOTE } from "./perimetre-pilote";
 import { exigerContexteCourriel, RefusContexteCourriel, type ContexteCourriel } from './finalisation-courriels';
 import { conserverCourriel } from "./reprise-courriels";
@@ -102,6 +103,7 @@ export async function envoyerEmailTransport(params: {
   organisation?: { db: SupabaseClient; id: string };
 }): Promise<ResultatCourriel> {
   if(piloteLimite()&&!circuitAdmisPilote({...params,organisationId:params.organisation?.id}))return {erreur:MESSAGE_PILOTE,interventionRequise:true};
+  if(maintenanceLivraison())return {erreur:MESSAGE_TRANSITION};
   const cle = process.env.RESEND_API_KEY;
   if (!cle) return { erreur: "Envoi des e-mails non configuré. Contactez l’administrateur." };
   let appelCommence = false;
@@ -167,6 +169,7 @@ export async function envoyerEmail(params:Parameters<typeof envoyerEmailTranspor
  if(!db)return {erreur:"Suivi durable des e-mails indisponible. Aucun envoi effectué."};
  const charge={to:params.to,subject:params.subject,html:params.html,piecesJointes:params.piecesJointes,cleIdempotence:params.cleIdempotence,organisationId:params.organisation?.id,contexteMetier:params.contexteMetier};
  if(piloteLimite()&&!circuitAdmisPilote(charge))return suspendreCourrielPilote(db,charge,params.circuit);
+ if(maintenanceLivraison())return {erreur:MESSAGE_TRANSITION};
  if(!process.env.RESEND_API_KEY)return {erreur:"Envoi des e-mails non configuré. Contactez l’administrateur."};
  // Les contrôles métier fournis par l'appelant ne sont jamais sérialisés ou contournés.
  // Leur mission d'origine conserve la responsabilité de la reprise.

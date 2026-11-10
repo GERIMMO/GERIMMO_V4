@@ -8,7 +8,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { clientSurPg } from './fixtures/supabase-sur-pg';
 import { envoyerCourrielDurable,empreinteCourriel } from '../src/lib/courriels-durables';
 const url=process.env.SUPABASE_DB_URL;
-if(!url||new URL(url).hostname!=='127.0.0.1'||new URL(url).pathname!=='/gerimmo_ci_priorites1')throw new Error('Base isolée priorites1 obligatoire');
+if(!url||new URL(url).hostname!=='127.0.0.1'||!['/gerimmo_ci_priorites1','/gerimmo_ci_sql','/gerimmo_ci_vun'].includes(new URL(url).pathname))throw new Error('Base isolée priorites1 obligatoire');
 let db:Client;const ouverts:Client[]=[];
 const ouvrir=async()=>{const c=new Client({connectionString:url});await c.connect();ouverts.push(c);return c;};
 beforeAll(async()=>{db=await ouvrir();});afterAll(async()=>{await Promise.all(ouverts.map(c=>c.end()));});
@@ -57,7 +57,7 @@ it('les utilisateurs ne peuvent ni réserver ni lire le journal privilégié',as
 });
 it('100 factures concurrentes : réservation unique, équité, attente, reprise et fencing',async()=>{
  // Nouvelles factures fictives sans effet externe ; règles de charges testées séparément.
- const source=(await db.query('select f.*,a.autorise_par from factures_fourniture f join factures_automatiques a on a.id=f.id limit 1')).rows[0];expect(source).toBeTruthy();
+ const autorise=(await db.query("insert into auth.users(id,email,encrypted_password,raw_app_meta_data,raw_user_meta_data) values(gen_random_uuid(),$1,'fictif','{}','{}') returning id",[cle()+'@example.invalid'])).rows[0].id;
  await db.query("update factures_automatiques set disponible_le=now()+interval '1 day'");
  const ids:string[]=[];const orgs:string[]=[];
  for(let o=0;o<5;o++){
@@ -72,7 +72,7 @@ it('100 factures concurrentes : réservation unique, équité, attente, reprise 
   const doc=(await db.query("insert into documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'justificatif','Facture fictive',$2,'application/pdf',123,$3) returning id",[org,org+'/'+cle()+'.pdf',empreinteCourriel(cle())])).rows[0].id;
 
    const id=(await db.query("insert into factures_fourniture(organization_id,contrat_id,document_id,reference,periode_debut,periode_fin,total_cents) values($1,$2,$3,$4,'2026-10-01','2026-10-31',18000) returning id",[org,contrat,doc,cle()])).rows[0].id;ids.push(id);
-   await db.query('insert into factures_automatiques(id,organization_id,autorise_par) values($1,$2,$3)',[id,org,source.autorise_par]);
+   await db.query('insert into factures_automatiques(id,organization_id,autorise_par) values($1,$2,$3)',[id,org,autorise]);
   }
  }
  const avecPdf=process.env.GERIMMO_BENCH_PDF==='1';const pdfs=new Set<string>();const latences:number[]=[];

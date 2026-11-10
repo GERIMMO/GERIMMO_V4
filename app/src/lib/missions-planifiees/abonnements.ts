@@ -1,4 +1,4 @@
-import { piloteLimite, MESSAGE_PILOTE } from "@/lib/perimetre-pilote";
+import { paiementsInterdits, MESSAGE_PAIEMENT_PILOTE as MESSAGE_PILOTE } from "@/lib/verrou-pilote";
 import { reprendreEvenementsStripe } from "@/lib/stripe-file";
 import { inventorierSouscriptionsStripe } from "@/lib/stripe-inventaire";
 import { rapprocherAbonnementsStripe } from "@/lib/stripe-rapprochement";
@@ -135,7 +135,7 @@ export async function traiterAbonnements(request: Request) {
       { status: 503 }
     );
   }
-  if(piloteLimite()){
+  if(paiementsInterdits()){
     await consignerTache(supabase,"abonnements",{suspendue:true,intervention_requise:true,motif:"pilote_limite"});
     return Response.json({suspendue:true,erreur:MESSAGE_PILOTE},{status:409});
   }

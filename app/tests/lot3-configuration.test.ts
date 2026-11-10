@@ -6,4 +6,4 @@ it.each(['STRIPE_SECRET_KEY','AR24_TOKEN','ZOHO_SIGN_CLIENT_SECRET','RESEND_API_
 it('refuse un autre projet Supabase',()=>expect(()=>verifierEnvironnement({...base,NEXT_PUBLIC_SUPABASE_URL:'https://autre-fictif.supabase.co'})).toThrow('isolée'));
 it('refuse une origine qui pourrait renvoyer hors recette',()=>expect(()=>verifierEnvironnement({...base,NEXT_PUBLIC_SITE_URL:'https://ailleurs.invalid'})).toThrow('adresse'));
 it('refuse le drapeau recette sur une cible production',()=>expect(()=>verifierEnvironnement({...base,VERCEL_ENV:'production'})).toThrow('production'));
-it('ne modifie pas la configuration d’une production existante hors recette',()=>expect(verifierEnvironnement({VERCEL_ENV:'production'})).toBeUndefined());
+it('ne modifie pas la configuration d’une production existante hors recette',()=>expect(verifierEnvironnement({VERCEL_ENV:'production',VERCEL:'1',GERIMMO_MODE:'commercial',NEXT_PUBLIC_SITE_URL:'https://www.gerimmo.app',COURRIELS_CHIFFREMENT_CLE:'ab'.repeat(32)})).toBeUndefined());

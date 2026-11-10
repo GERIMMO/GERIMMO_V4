@@ -34,6 +34,8 @@ jobs:
       NEXT_PUBLIC_SITE_URL: http://localhost:3100
       SUPABASE_DB_URL: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_sql
       SUPALOCAL_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_sql_api
+      GERIMMO_PILOTE_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_lottrois
+      NODE_OPTIONS: --max-old-space-size=4096
       GERIMMO_ARTISAN_CLIENTS_LOCAUX: "1"
       GERIMMO_ARTISAN_REGLEMENTS_LOCAUX: "1"
       PLANNING_CONFLITS_CONCURRENCE: "1"
@@ -45,7 +47,7 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - name: Tester les contrôles de publication sans connexion externe
-        run: node --test scripts/deploiement/controle.test.mjs scripts/deploiement/verifier-environnement.test.mjs scripts/surveillance/disponibilite.test.mjs scripts/surveillance/sauvegarde.test.mjs scripts/atelier/controle.test.mjs scripts/sauvegarde/fichiers.test.mjs
+        run: node --test scripts/deploiement/conditionner-migration.test.mjs scripts/deploiement/controle.test.mjs scripts/deploiement/verifier-environnement.test.mjs scripts/surveillance/disponibilite.test.mjs scripts/surveillance/sauvegarde.test.mjs scripts/atelier/controle.test.mjs scripts/sauvegarde/fichiers.test.mjs
       - run: npm ci
       # 03/10 (décision du porteur) : seules les dépendances livrées comptent.
       # Les outils de développement (CLI shadcn, greffon ESLint) tirent des
@@ -69,7 +71,9 @@ jobs:
           /usr/lib/postgresql/18/bin/pg_dump --version
           /usr/lib/postgresql/18/bin/pg_restore --version
       - name: Préparer les bases de test isolées
-        run: node e2e/local/preparer-ci.mjs
+        run: |
+          node e2e/local/preparer-ci.mjs
+          node scripts/deploiement/preparer-pilote-local.mjs
       - name: Vérifier les jointures et l'isolation avec 300 lots fictifs
         env:
           GERIMMO_CHARGE_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_charge_automatique

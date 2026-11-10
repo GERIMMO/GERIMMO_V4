@@ -11,7 +11,7 @@ vi.mock('@/lib/supabase/service',()=>({clientDeService:()=>shared.service}));
 vi.mock('@/lib/marque-organisation-serveur',()=>({chargerMarque:async()=>null}));
 import {envoyerEmail,envoyerEmailTransport} from '../src/lib/email';
 const url=process.env.SUPABASE_DB_URL;
-if(!url||new URL(url).hostname!=='127.0.0.1'||new URL(url).pathname!=='/gerimmo_ci_priorites1')throw Error('Base fictive locale obligatoire');
+if(!url||new URL(url).hostname!=='127.0.0.1'||!['/gerimmo_ci_priorites1','/gerimmo_ci_sql','/gerimmo_ci_vun'].includes(new URL(url).pathname))throw Error('Base fictive locale obligatoire');
 const db=new Client({connectionString:url});
 const service=clientSurPg(db,{transactionnel:true}) as unknown as SupabaseClient;
 let org:string,owner:string,tenant:string,person:string,inv:string,artisanInv:string,token:string,email:string;

@@ -403,6 +403,8 @@ async function traiterFinEssai(supabase: Service, stripe: Stripe, evenement: Str
     return { reponse: { organisation: suivi.organization_id, ignore: "essai_non_suivi" } };
   }
   const details = lireDetails(s);
+  // Le contrôle d’arrêt reste prioritaire même si le transport est suspendu.
+  await avantEffet?.();
   let echec: string | null;
   try {
     echec = await envoyerAvisFinEssai({

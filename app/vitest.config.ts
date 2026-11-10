@@ -215,6 +215,7 @@ export default defineConfig({
     },
   },
   test: {
+    setupFiles: ["tests/fixtures/effets-fictifs.ts"],
     testTimeout: 30_000,
     hookTimeout: 30_000,
     // `include` se pose dans chaque projet, jamais ici : un `include` de la racine s'ajouterait à celui des projets

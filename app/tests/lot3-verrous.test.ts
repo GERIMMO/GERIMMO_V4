@@ -9,7 +9,7 @@ import {POST as stripe} from '../src/app/api/stripe/webhook/route';
 import {POST as signature} from '../src/app/api/zoho-sign/webhook/route';
 afterEach(()=>{vi.unstubAllEnvs();vi.unstubAllGlobals();});
 it.each([{}, {GERIMMO_PILOTE_LIMITE:'true'},{GERIMMO_PILOTE_LIMITE:'false',GERIMMO_PAIEMENTS_DESACTIVES:'1'},{GERIMMO_PILOTE_LIMITE:'false',GERIMMO_PREPRODUCTION_VALIDEE:'1'}])('verrou serveur fermé : %j',env=>{expect(paiementsInterdits(env)).toBe(true);});
-it('mode hors pilote explicite inchangé',()=>expect(paiementsInterdits({GERIMMO_PILOTE_LIMITE:'false'})).toBe(false));
+it('mode hors pilote explicite inchangé',()=>expect(paiementsInterdits({GERIMMO_MODE:'simulation',NODE_ENV:'test'})).toBe(false));
 it('même avec une configuration Stripe complète, aucune création de client',()=>{
  vi.stubEnv('GERIMMO_PILOTE_LIMITE','true');vi.stubEnv('STRIPE_SECRET_KEY','sk_test_fictif');expect(configurationStripe()).toMatchObject({pret:false});expect(()=>clientStripe({cle:'sk_test_fictif',secretWebhook:'fictif',prix:{}})).toThrow('suspendue');
 });

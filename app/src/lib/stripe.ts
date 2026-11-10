@@ -116,6 +116,7 @@ export const NOUVELLES_TENTATIVES_STRIPE = 2;
 
 export function clientStripe(config: ConfigStripe): Stripe {
   exigerOperationsPayantesAutorisees();
+  if (process.env.GERIMMO_MODE === "simulation" && /^(?:sk|rk)_live_/.test(config.cle)) throw new Error("Clé Stripe réelle interdite en simulation.");
   // Un client par clé, gardé entre les requêtes : la construction ouvre un
   // agent HTTP, et en refaire un à chaque appel gaspille une poignée de main
   // TLS par paiement.

@@ -1,3 +1,4 @@
+import {maintenanceLivraison,MESSAGE_TRANSITION} from "@/lib/transition-livraison";
 import {reprendreNotificationsCapturees} from "@/lib/notifications-transactionnelles";
 import { exigerContexteCourriel, reprendreFinalisationsCourriels } from "@/lib/finalisation-courriels";
 import { transporterContact } from "@/lib/courriel-contact-durable";
@@ -12,6 +13,7 @@ export const runtime="nodejs";
 export const maxDuration=60;
 let enCours=false;
 export async function GET(request:Request) {
+ if(maintenanceLivraison())return Response.json({erreur:MESSAGE_TRANSITION},{status:503});
 
  if(!porteurDuSecret(request,process.env.CRON_SECRET))return Response.json({erreur:"Non autorisé"},{status:401});
  if(enCours)return Response.json({enCours:true});

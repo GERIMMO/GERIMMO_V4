@@ -33,6 +33,9 @@ describe.skipIf(!chrome)("Navigation du bail : entrer dans une étape sans l’e
       : { contentType: "text/html; charset=utf-8", body: '<!doctype html><html lang="fr"><body><div id="racine"></div><script src="/banc.js"></script></body></html>' }));
     await page.goto("http://localhost/banc#etape-bail-3");
     await page.getByRole("heading", { name: "Le logement", exact: true }).waitFor();
+    // La navigation initiale focalise le titre au prochain frame. Attendre ce
+    // signal avant de donner le focus clavier à Suivant (sinon il est repris).
+    await page.waitForFunction(() => document.activeElement?.id === "assistant-bail-titre");
   });
   afterEach(async () => { await contexte?.close(); expect(erreurs).toEqual([]); });
   it.each(["clic", "clavier"])("Suivant (%s) ouvre le loyer sans erreur prématurée ; le bouton d’enregistrement le valide", async geste => {

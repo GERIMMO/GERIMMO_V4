@@ -81,3 +81,13 @@ test("santé d’une autre révision ou SHA abrégé ne suffit pas", () => {
   assert.equal(santeConforme({ ok: true, base: true, commit: nouveauSha.slice(0, 7) }, nouveauSha), false);
   assert.equal(santeConforme({ ok: true, base: true, revision: ancienSha }, nouveauSha), false);
 });
+
+import { approbationGerimmoConforme } from "./controle.mjs";
+test("politique administrateur unique : approbateur exact, CI protégée et aucun bypass", () => {
+ const e={can_admins_bypass:false,deployment_branch_policy:{protected_branches:true,custom_branch_policies:false},protection_rules:[{type:"required_reviewers",prevent_self_review:false,reviewers:[{type:"User",reviewer:{id:283692152,login:"GERIMMO"}}]}]};
+ assert.equal(approbationGerimmoConforme(e),true);
+ for(const modifier of [x=>{x.can_admins_bypass=true},x=>{delete x.can_admins_bypass},x=>{x.deployment_branch_policy.protected_branches=false},x=>{x.protection_rules=[]},x=>{x.protection_rules[0].reviewers=[]},x=>{x.protection_rules[0].reviewers[0].reviewer.id=1},x=>{x.protection_rules[0].reviewers.push(x.protection_rules[0].reviewers[0])},x=>{x.protection_rules[0].prevent_self_review=true}]) {
+  const copie=structuredClone(e);modifier(copie);assert.equal(approbationGerimmoConforme(copie),false);
+ }
+ assert.equal(approbationGerimmoConforme(null),false);
+});

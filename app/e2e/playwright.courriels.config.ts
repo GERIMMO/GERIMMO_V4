@@ -22,7 +22,7 @@ export default defineConfig({
       env: {
         RESEND_API_KEY: 'fictif-sans-service',
         COURRIELS_CHIFFREMENT_CLE: 'cd'.repeat(32),
-        NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --require=${JSON.stringify(path.resolve(__dirname, 'local/reseau-fictif.cjs'))}`,
+        NODE_OPTIONS: `--max-old-space-size=4096 --require=${JSON.stringify(path.resolve(__dirname, 'local/reseau-fictif.cjs'))}`,
       },
     },
   ],

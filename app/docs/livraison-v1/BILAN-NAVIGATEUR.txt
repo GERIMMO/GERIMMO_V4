@@ -1,0 +1,16 @@
+PASSAGE FINAL — 10 novembre 2026 — 20/20 réussis, 1,8 minute
+Build du code 6778eb26842894cacd2fc1bed3f6fa1bf81f682d, bases et fournisseurs fictifs locaux.
+
+Ordinateur et téléphone :
+- Création du bien/lot : fermeture/reprise de brouillon, panne d’écriture, réponse perdue, absence de doublon et conservation des champs (390 et 1440 px).
+- Artisan : invitation, inscription, justificatifs, attente de validation humaine, mission depuis le carnet et réponse.
+- Invitations locataires : acceptation, refus et expiration.
+- Locataire : documents autorisés, incident avec photo et suivi.
+- Propriétaire : inscription, confirmation, récupération et changement du mot de passe.
+- Trois profils : refus des documents et API d’un autre patrimoine/SCI.
+- Loyer confirmé, encaissement vérifié et PDF fictif de facture déposé une seule fois.
+
+Les patrimoines et missions de certaines étapes sont préparés par fixtures SQL pour isoler le contrôle ; le dépôt, l’inscription, l’invitation, les accès et les actions indiquées sont exécutés dans le navigateur. Ce n’est pas un test de chaque bouton du logiciel ni du Supabase Auth hébergé réel. L’API locale simule Supabase et applique les droits SQL ; boîte e-mail locale sans destinataire réel.
+
+Les premières erreurs de sélection (« Suivant » au lieu du bouton de création existant) et la dépendance du test d’isolation à un document d’un autre scénario ont été corrigées dans les tests. Aucun formulaire produit changé pour les contourner. Les logs des échecs initiaux sont conservés.
+Preuve finale : app/output/livraison-v1/navigateur-final.log ; captures dans app/output/lot3/navigateur.

@@ -1,0 +1,9 @@
+BRANCHE DE LIVRAISON codex/livraison-v1-lots-1-3
+041af07ab228be29748ea2aac1c077a5c108c362 Conserver les lots 1 à 3 isolés des retouches préexistantes
+84139b44c05dc5ce9bb46c390605abe275e273bc Séparer le périmètre commercial et sécuriser la livraison transactionnelle V1
+479253fe9e19a4096fc0b947245c37252f9998ac Clarifier la suspension des courriels sans annoncer un blocage des abonnements
+6778eb26842894cacd2fc1bed3f6fa1bf81f682d Contrôler la bascule incompatible sans retour arrière automatique
+
+TRANSITION PRÉALABLE codex/transition-v1
+221ba55cc5d6776087e9091cde9b3fa05a4b009f Préparer la transition contrôlée vers les lots 1 à 3
+589006f44f23c1a60369b5941e4303dc7ee68cf9 Exposer la maintenance ciblée au contrôle de transition

@@ -182,7 +182,7 @@ const nouvelle: { stripe?: Stripe; db?: Client; org?: string; client?: string; a
 const FRANCHISE = { nature: "franchise" } as const;
 const TVA20 = { nature: "assujetti", tauxPourcent: 20 } as const;
 
-describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
+describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)", () => {
   beforeAll(async () => {
     if (!cle?.startsWith("sk_test_") && !cle?.startsWith("rk_test_")) throw new Error("Une clé Stripe de TEST est obligatoire.");
     const url = new URL(process.env.SUPABASE_DB_URL ?? "");
@@ -278,7 +278,7 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     )).rows[0];
   }
 
-  it("la page de paiement annuelle porte 299,90 € + 5 × 10 € et préserve l'essai", async () => {
+  it("la page de paiement annuelle porte 1 180 € + 5 × 59 € et préserve l'essai", async () => {
     const r = await creerSessionOffre(nouvelle.stripe!, {
       offre: offreParticulier(25, "annuel"), regime: FRANCHISE, customer: nouvelle.client!, orgId: nouvelle.org!,
       retourOk: "http://localhost:3100/ok", retourAnnule: "http://localhost:3100/annule",
@@ -290,12 +290,12 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     nouvelle.sessions.push(s.id);
     expect(s.livemode).toBe(false);
     // L'essai est préservé : rien n'est dû aujourd'hui, le premier
-    // prélèvement (349,90 €) partira à la fin de l'essai.
+    // prélèvement (1 475 €) partira à la fin de l'essai.
     expect(s.amount_total).toBe(0);
     const lignes = (await nouvelle.stripe!.checkout.sessions.listLineItems(s.id)).data;
     expect(lignes.map((l) => [l.price?.unit_amount, l.quantity, l.price?.recurring?.interval])).toEqual([
-      [29990, 1, "year"],
-      [1000, 5, "year"],
+      [118000, 1, "year"],
+      [5900, 5, "year"],
     ]);
     // Sans essai à préserver : le montant annuel est dû à la validation.
     const r2 = await creerSessionOffre(nouvelle.stripe!, {
@@ -306,7 +306,7 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     expect(r2.ok).toBe(true);
     const s2 = (await nouvelle.stripe!.checkout.sessions.list({ customer: nouvelle.client, limit: 1 })).data[0];
     nouvelle.sessions.push(s2.id);
-    expect(s2.amount_total).toBe(34990);
+    expect(s2.amount_total).toBe(147500);
   }, 60000);
 
   it("souscription Bailleur mensuelle, puis hausse vers Investisseur : prorata aperçu = prorata prélevé ; miroir à jour", async () => {
@@ -321,19 +321,19 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     nouvelle.abonnements.push(s.id);
     expect(s.status).toBe("active");
     await webhook(s, "customer.subscription.created");
-    expect(await miroir()).toMatchObject({ status: "active", periodicite: "mensuel", formule: "bailleur", unites_souscrites: 3, montant: 999 });
+    expect(await miroir()).toMatchObject({ status: "active", periodicite: "mensuel", formule: "bailleur", unites_souscrites: 3, montant: 1770 });
 
     const investisseur = offreFormule(FORMULES_PARTICULIER[2], 4, "mensuel")!;
     const apercu = await apercuChangement(nouvelle.stripe!, { subscription: s.id, offre: investisseur, regime: FRANCHISE });
     if (!apercu.ok) throw new Error(apercu.erreur);
     expect(apercu.immediatCents).toBeGreaterThan(0);
-    expect(apercu.immediatCents).toBeLessThanOrEqual(1000);
+    expect(apercu.immediatCents).toBeLessThanOrEqual(4130);
     const h = await appliquerHausse(nouvelle.stripe!, { subscription: s.id, offre: investisseur, regime: FRANCHISE, orgId: nouvelle.org!, prorationDate: apercu.prorationDate });
     if (!h.ok) throw new Error(h.erreur);
     const facture = await nouvelle.stripe!.invoices.retrieve(h.souscription.latest_invoice as string);
     expect(facture.amount_paid).toBe(apercu.immediatCents);
     await webhook(h.souscription);
-    expect(await miroir()).toMatchObject({ formule: "investisseur", unites_souscrites: 10, montant: 1999 });
+    expect(await miroir()).toMatchObject({ formule: "investisseur", unites_souscrites: 10, montant: 5900 });
   }, 120000);
 
   it("une carte refusée au prorata : la hausse n'est pas appliquée, la formule reste", async () => {
@@ -367,7 +367,7 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     const s1 = await nouvelle.stripe!.subscriptions.retrieve(s0.id);
     expect(s1.metadata.gerimmo_formule).toBe("investisseur");
     await webhook(s1);
-    expect(await miroir()).toMatchObject({ formule: "investisseur", unites_souscrites: 10, montant: 1999 });
+    expect(await miroir()).toMatchObject({ formule: "investisseur", unites_souscrites: 10, montant: 5900 });
   }, 120000);
 
   it("passage à l'annuel programmé à l'échéance, jamais en cours de période", async () => {
@@ -405,8 +405,8 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
       customer: nouvelle.client!,
       subscription_details: { items: lignes.map((l) => ({ price_data: l.prix, quantity: l.quantite, tax_rates: l.tax_rates })) },
     });
-    expect(apercu.subtotal).toBe(19400);
-    expect(apercu.total).toBe(23280);
+    expect(apercu.subtotal).toBe(49000);
+    expect(apercu.total).toBe(58800);
   }, 60000);
 
   it("portail client : aucune résiliation (plan du 23/10, R04), aucun changement de formule, toujours la configuration Gerimmo", async () => {

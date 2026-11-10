@@ -85,10 +85,9 @@ jobs:
           node e2e/local/serveur-supabase-local.mjs > /tmp/gerimmo-api.log 2>&1 &
           for tentative in {1..30}; do
             if curl --silent --fail http://127.0.0.1:54321/health > /dev/null; then
-              # La clé de service du banc (liens de mot de passe et inscription,
-              # 30/09) : l'émulateur l'affiche au démarrage, les étapes suivantes
-              # la reçoivent.
-              grep '^SUPABASE_SERVICE_ROLE_KEY=' /tmp/gerimmo-api.log >> "$GITHUB_ENV"
+              # Clé purement fictive du banc : même signature que l'émulateur,
+              # transmise directement à GitHub Env, jamais extraite d'un journal.
+              node -e 'const fs=require("node:fs"),c=require("node:crypto");const b=v=>Buffer.from(JSON.stringify(v)).toString("base64url");const h=b({alg:"HS256",typ:"JWT"})+"."+b({role:"service_role",exp:Math.floor(Date.now()/1000)+7200});const t=h+"."+c.createHmac("sha256","gerimmo-local-secret").update(h).digest("base64url");fs.appendFileSync(process.env.GITHUB_ENV,"SUPABASE_SERVICE_ROLE_KEY="+t+"\n");'
               exit 0
             fi
             sleep 1

@@ -1,3 +1,4 @@
+import {maintenanceLivraison} from "@/lib/transition-livraison";
 // Le point de santé : la base répond-elle, et les tâches sont-elles passées ?
 //
 // LE TROISIÈME CAPTEUR (wiki : « Gerimmo en autonomie », 19/09). Deux niveaux
@@ -22,6 +23,7 @@ export async function GET(request: Request) {
   // Une variable présente mais vide n'est pas un commit : `""` dirait « quelque
   // chose », alors qu'on ne sait rien.
   const sha = process.env.VERCEL_GIT_COMMIT_SHA;
+  const maintenance = maintenanceLivraison();
   const revision = sha && /^[0-9a-f]{40}$/i.test(sha) ? sha.toLowerCase() : null;
   const commit = sha ? sha.slice(0, 7) : null;
 
@@ -50,7 +52,7 @@ export async function GET(request: Request) {
   }
 
   if (!porteurDuSecret(request, process.env.CRON_SECRET)) {
-    return Response.json({ ok: true, base: true, commit, revision });
+    return Response.json({ ok: true, base: true, commit, revision, maintenance });
   }
 
   const depuis = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
@@ -75,6 +77,7 @@ export async function GET(request: Request) {
     base: true,
     commit,
     revision,
+    maintenance,
     taches: dernieresTaches((passes.data ?? []) as PasseConsignee[]),
     erreurs_ecran_24h: erreurs.error ? null : (erreurs.count ?? 0),
     lectures_en_echec: [passes.error, erreurs.error].filter(Boolean).length,

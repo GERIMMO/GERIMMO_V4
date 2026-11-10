@@ -151,6 +151,16 @@ const MISSION_OCTOBRE = [
   "20261108090000_suivi_releves_facture.sql",
   "20261108100000_factures_automatiques.sql",
   "20261108113000_gardes_factures_publication.sql",
+  // Lots V1 puis correction bornée de la supervision ; historique conservé.
+  "20261109202743_file_factures_fiable.sql",
+  "20261109202744_courriels_durables.sql",
+  "20261109210237_reprise_courriels_ponctuels.sql",
+  "20261109212416_finalisation_metier_courriels.sql",
+  "20261109215935_perimetre_pilote_courriels.sql",
+  "20261109222550_acces_notifications_pilote.sql",
+  "20261110052302_securisation_pilote_notifications.sql",
+  "20261110181422_supervision_v1_lecture_bornee.sql",
+
 
 ];
 /** Appliquées en production avant ce lot, dans cet ordre (messages des PR #189 et #190). */

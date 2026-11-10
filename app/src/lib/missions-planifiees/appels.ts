@@ -6,19 +6,11 @@ import { verifierAvantEffet } from "@/lib/controle-effets";
 // ont donné leur accord permanent (`organizations.appels_envoi_auto`, faux par
 // défaut).
 //
-// Elle suit trait pour trait la route des quittances, mêmes verrous et même
-// ordre des opérations — on envoie, PUIS on marque, parce qu'un avis marqué
-// parti mais jamais reçu ne serait plus jamais repris, alors qu'un double envoi
-// n'est que désagréable — et il est borné : chaque envoi porte une clé
-// d'idempotence stable (par avis, par destinataire et par montants annoncés,
-// lib/cles-idempotence-courriels.ts), de sorte que le service d'e-mail, revoyant
-// la même clé, rend la réponse du premier envoi au lieu d'en émettre un second
-// (décision D47). Un règlement entre deux passes change les montants de l'avis,
-// donc sa clé : c'est un autre courrier, il part. Le service ne retient la clé que
-// 24 h (hypothèse, voir lib/email.ts) et cette tâche ne passe qu'une fois par
-// jour : la reprise du lendemain n'est pas garantie. L'appel a aussi un délai
-// maximal (15 s) : les deux vont ENSEMBLE, un délai seul ferait reprendre à la
-// passe suivante un avis que le service avait pourtant accepté.
+// Chaque destinataire possède une réservation durable avant tout envoi.
+// Une acceptation fournisseur est réutilisée lors des reprises, même après 24 h.
+// Un résultat incertain attend une preuve fournisseur, sans réémission aveugle.
+// Un avis n'est marqué complet qu'après acceptation de tous ses destinataires.
+// Accepté ne signifie pas livré : le webhook suit cette distinction.
 //
 // TROIS VERROUS, parce que la route porte la clé de service.
 //  1. `CRON_SECRET` : sans elle, la route s'arrête — elle ne passe pas en mode
@@ -143,7 +135,7 @@ export async function traiterAppels(request: Request) {
     const cle = (destinataire: string) =>
       cleAvisEcheance({ appelId: l.appel_id, destinataire, resteDu: l.reste_du, arriere: l.arriere });
     await verifierAvantEffet(supabase, "appels");
-    const envoi = await envoyerEmail({
+    const envoi = await envoyerEmail({ circuit:"lib/missions-planifiees/appels",
       avantEnvoi: () => verifierAvantEffet(supabase, "appels"),
       organisation: { db: supabase, id: l.organization_id },
       to: l.destinataire,
@@ -152,29 +144,31 @@ export async function traiterAppels(request: Request) {
     });
     if (envoi.erreur) {
       echecs.push({ appel_id: l.appel_id, organization_id: l.organization_id, motif: envoi.erreur });
-      continue;
     }
     // Colocation : chaque colocataire titulaire reçoit l'avis (wiki
     // « Relances et mise en demeure » — la colocation solidaire vise tous les
     // colocataires). Un échec vers un colocataire se dit au bilan.
+    let destinatairesComplets = !envoi.erreur;
     for (const autre of l.autres_destinataires ?? []) {
       await verifierAvantEffet(supabase, "appels");
-      const copie = await envoyerEmail({
+      const copie = await envoyerEmail({ circuit:"lib/missions-planifiees/appels",
       avantEnvoi: () => verifierAvantEffet(supabase, "appels"),
         organisation: { db: supabase, id: l.organization_id },
         to: autre,
         cleIdempotence: cle(autre),
         ...avis(null),
       });
-      if (copie.erreur)
+      if (copie.erreur) {
+        destinatairesComplets = false;
         echecs.push({ appel_id: l.appel_id, organization_id: l.organization_id, motif: `colocataire : ${copie.erreur}` });
+      }
     }
+    if (!destinatairesComplets) continue;
     const { error: erreurMarque } = await supabase.rpc("marquer_appel_envoye", {
       p_appel: l.appel_id,
     });
     if (erreurMarque) {
-      // L'e-mail est parti mais la date n'est pas posée : la prochaine passe le
-      // renverra. On le dit au bilan plutôt que de le taire.
+      // La prochaine passe réutilisera l'acceptation durable sans réémettre.
       marquageEchecs.push({ appel_id: l.appel_id, organization_id: l.organization_id, motif: erreurMarque.message.slice(0, 200) });
     }
     envoyes += 1;
@@ -182,7 +176,7 @@ export async function traiterAppels(request: Request) {
 
   const bilan = {
     envoyes,
-    // Un avis parti mais non marqué compte comme échec : il repartira demain.
+    // Le marquage métier reste à reprendre ; aucun nouvel envoi aveugle.
     echecs: echecs.length + marquageEchecs.length,
     ...(echecs.length ? { echecs_detail: echecs.slice(0, LIMITE_DETAIL) } : {}),
     ...(marquageEchecs.length ? { marquage_echecs: marquageEchecs.slice(0, LIMITE_DETAIL) } : {}),

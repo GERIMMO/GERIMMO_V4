@@ -15,7 +15,7 @@ describe.skipIf(!url)("LOC008 - accès accordé uniquement après consentement",
  const reply = async (yes=true) => (await db.query("select public.repondre_invitation_locataire($1,$2) r",[invite,yes])).rows[0].r;
  const fail = async (sql: string,args: unknown[]=[]) => { await db.query("savepoint refusal");try {await db.query(sql,args);return "";}catch(e){await db.query("rollback to savepoint refusal");return (e as Error).message;}finally{await db.query("release savepoint refusal");}};
  beforeAll(async()=>{
-  if(!url || !/^postgres(?:ql)?:\/\/[^@]*@(?:127\.0\.0\.1|localhost):[0-9]{1,5}\/gerimmo_ci_[a-z_]+$/.test(url)) throw Error("Base locale dédiée requise");
+  if(!url || !/^postgres(?:ql)?:\/\/[^@]*@(?:127\.0\.0\.1|localhost):[0-9]{1,5}\/gerimmo_ci_[a-z0-9_]+$/.test(url)) throw Error("Base locale dédiée requise");
   db=new Client({connectionString:url});await db.connect();await db.query("begin");
   if(process.env.INVITATIONS_PREVIEW==="1") { await db.query(readFileSync("supabase/migrations/20261013101000_invitations_locataire_cycle.sql","utf8")); await db.query(readFileSync("supabase/migrations/20261013104000_gardes_reprises_invitations.sql","utf8")); }
   if(process.env.INVITATIONS_PREVIEW==="1" || process.env.INVITATIONS_ANNULATION_PREVIEW==="1") await db.query(readFileSync("supabase/migrations/20261013106000_invitation_annulation_confirmee.sql","utf8"));

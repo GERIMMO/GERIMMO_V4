@@ -200,73 +200,30 @@ describe("l'e-mail de relance : le gabarit et le lien de l'invitation", () => {
   });
   const ID = "11111111-2222-4333-8444-555555555555";
 
-  it("objet « Rappel : … », même destination que l'invitation, date d'expiration et refus qui arrête les rappels", async () => {
-    const { envoyerRappelInvitationLocataire, construireLien, sujetCourrier } = await import("@/lib/lien-mot-de-passe");
-    const { suiteInvitationLocataire } = await import("@/lib/invitations-locataire");
-    const r = await envoyerRappelInvitationLocataire({ email: " Locataire@Exemple.fr ", invitationId: ID, expireLe: "2026-12-02T08:00:00Z" });
-    expect(r).toEqual({ envoye: true });
-    expect(m.generateLink).toHaveBeenCalledWith({ type: "recovery", email: "locataire@exemple.fr" });
-    const [envoi] = m.envoyerEmail.mock.calls[0];
-    expect(envoi.subject).toBe(`Rappel : ${sujetCourrier("invitation_locataire")}`);
-    expect(envoi.subject).toBe("Rappel : Votre invitation locataire Gerimmo");
-    expect(envoi.to).toBe("locataire@exemple.fr");
-    // Le lien : celui que bâtit l'invitation (même page de réponse, même invitation).
-    const attendu = construireLien("https://www.gerimmo.app", "a".repeat(56), suiteInvitationLocataire(ID));
-    expect(envoi.html).toContain(attendu.replace(/&/g, "&amp;"));
-    expect(suiteInvitationLocataire(ID)).toBe(`/nouveau-mot-de-passe?suite=%2Finvitations%2F${ID}`);
-    expect(envoi.html).toContain("valable jusqu’au 2 décembre 2026");
-    expect(envoi.html).toContain("Si vous la refusez, vous ne recevrez plus de rappel.");
-    expect(envoi.html).toContain("Vous êtes invité sur Gerimmo");
-    expect(envoi.html).not.toContain("valable 30 jours");
-  });
-
-  it("délai dépassé : relance incertaine (jamais renvoyée) ; refus : échec certain", async () => {
-    const { envoyerRappelInvitationLocataire } = await import("@/lib/lien-mot-de-passe");
-    m.envoyerEmail.mockResolvedValueOnce({ erreur: "délai", incertain: true });
-    expect(await envoyerRappelInvitationLocataire({ email: "a@exemple.fr", invitationId: ID, expireLe: "2026-12-02T08:00:00Z" }))
-      .toMatchObject({ envoye: false, incertain: true });
-    m.envoyerEmail.mockResolvedValueOnce({ erreur: "refus" });
-    expect(await envoyerRappelInvitationLocataire({ email: "a@exemple.fr", invitationId: ID, expireLe: "2026-12-02T08:00:00Z" }))
-      .toMatchObject({ envoye: false, incertain: false });
-  });
-
-  it("arrêt d'urgence : ni jeton fabriqué, ni e-mail", async () => {
-    const { envoyerRappelInvitationLocataire } = await import("@/lib/lien-mot-de-passe");
-    const arret = new ArretSupervision();
-    await expect(envoyerRappelInvitationLocataire({ email: "a@exemple.fr", invitationId: ID, expireLe: "2026-12-02T08:00:00Z", avantEnvoi: async () => { throw arret; } }))
-      .rejects.toBe(arret);
-    expect(m.generateLink).not.toHaveBeenCalled();
-    expect(m.envoyerEmail).not.toHaveBeenCalled();
-  });
-
-  it("arrêt d'urgence posé après la fabrication du jeton : le service d'e-mail reçoit le contrôle et s'arrête avant l'appel", async () => {
-    const { envoyerRappelInvitationLocataire } = await import("@/lib/lien-mot-de-passe");
-    const arret = new ArretSupervision();
-    // Le premier contrôle (avant le jeton) passe ; l'arrêt est posé ensuite.
-    const avantEnvoi = vi.fn<() => Promise<void>>().mockResolvedValueOnce(undefined).mockRejectedValue(arret);
-    // Comme lib/email.ts : le contrôle reçu est lu avant tout appel au service.
-    m.envoyerEmail.mockImplementation(async (p: { avantEnvoi?: () => Promise<void> }) => {
-      await p.avantEnvoi?.();
-      return { id: "email_test" };
+  it.each(["réussite fournisseur", "refus fournisseur", "réponse perdue", "arrêt demandé"])(
+    "relance suspendue : %s ne crée ni lien ni envoi", async (cas) => {
+      const { envoyerRappelInvitationLocataire } = await import("@/lib/lien-mot-de-passe");
+      if(cas==="refus fournisseur")m.envoyerEmail.mockResolvedValue({erreur:"refus"});
+      if(cas==="réponse perdue")m.envoyerEmail.mockResolvedValue({erreur:"délai",incertain:true});
+      const avantEnvoi=vi.fn(async()=>{if(cas==="arrêt demandé")throw new ArretSupervision();});
+      const resultat=await envoyerRappelInvitationLocataire({email:"a@example.invalid",invitationId:ID,expireLe:"2026-12-02T08:00:00Z",avantEnvoi});
+      expect(resultat).toMatchObject({envoye:false,incertain:false,erreur:expect.stringContaining("suspendu")});
+      expect(m.generateLink).not.toHaveBeenCalled();
+      expect(m.envoyerEmail).not.toHaveBeenCalled();
+      expect(avantEnvoi).not.toHaveBeenCalled();
     });
-    await expect(envoyerRappelInvitationLocataire({ email: "a@exemple.fr", invitationId: ID, expireLe: "2026-12-02T08:00:00Z", avantEnvoi }))
-      .rejects.toBe(arret);
-    expect(m.generateLink).toHaveBeenCalledTimes(1);
-    expect(m.envoyerEmail).toHaveBeenCalledTimes(1);
-    expect(typeof m.envoyerEmail.mock.calls[0][0].avantEnvoi).toBe("function");
-    expect(avantEnvoi).toHaveBeenCalledTimes(2);
-  });
+
 });
 
 describe("le service d'e-mail dit quand un envoi est incertain", () => {
   afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
   it("délai dépassé → incertain ; refus → pas incertain", async () => {
     vi.stubEnv("RESEND_API_KEY", "cle-de-test");
-    const { envoyerEmail } = await vi.importActual<typeof import("@/lib/email")>("@/lib/email");
+    const { envoyerEmailTransport: envoyerEmail } = await vi.importActual<typeof import("@/lib/email")>("@/lib/email");
     vi.stubGlobal("fetch", async () => { const e = new Error("délai"); e.name = "TimeoutError"; throw e; });
-    expect(await envoyerEmail({ to: "a@exemple.fr", subject: "S", html: "<p>x</p>" })).toMatchObject({ incertain: true });
+    expect(await envoyerEmail({ contexteMetier:{type:"notification",id:"incident-test",evenement:"incident_urgent",role:"agence"},to: "a@exemple.fr", subject: "S", html: "<p>x</p>" })).toMatchObject({ incertain: true });
     vi.stubGlobal("fetch", async () => new Response("non", { status: 422 }));
-    const refus = await envoyerEmail({ to: "a@exemple.fr", subject: "S", html: "<p>x</p>" });
+    const refus = await envoyerEmail({ contexteMetier:{type:"notification",id:"incident-test",evenement:"incident_urgent",role:"agence"},to: "a@exemple.fr", subject: "S", html: "<p>x</p>" });
     expect(refus.erreur).toBeTruthy();
     expect(refus.incertain).toBeUndefined();
   });
@@ -327,7 +284,7 @@ describe("la fiche personne dit « Relancé le … »", () => {
     const avec = rendu({ historique: [invitation], relances: [relance, { ...relance, invitation_id: "ancienne", jour: "2026-10-01" }] });
     expect(avec).toContain("Relancé le 05/11/2026");
     expect(avec).not.toContain("01/10/2026");
-    expect(avec).toContain("un rappel lui est envoyé par e-mail 3 jours puis 10 jours après l’envoi");
+    expect(avec).toContain("Les rappels automatiques restent suspendus");
     expect(avec).not.toContain("aucun rappel ne partira");
     const ancienne = rendu({ historique: [{ ...invitation, relances_prevues: false }], relances: [] });
     expect(ancienne).toContain("aucun rappel ne partira pour elle");

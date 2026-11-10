@@ -159,6 +159,7 @@ export async function traiterQuittances(request: Request) {
     }
     await verifierAvantEffet(supabase, "quittances");
     const envoi = await envoyerEmail({
+      contexteMetier: {type:"quittance",id:l.quittance_id,montant:Number(l.montant),est_quittance:l.est_quittance,automatique:true},
       avantEnvoi: async () => {
         await verifierAvantEffet(supabase, "quittances");
         await verifierAccordQuittance(supabase, l.organization_id, l.bail_id, l.destinataire);
@@ -186,6 +187,10 @@ export async function traiterQuittances(request: Request) {
     });
     if (envoi.erreur) {
       echecs.push({ quittance_id: l.quittance_id, organization_id: l.organization_id, motif: envoi.erreur });
+      continue;
+    }
+    if(envoi.finalisationEnAttente){
+      marquageEchecs.push({quittance_id:l.quittance_id,organization_id:l.organization_id,motif:"Accepté ; finalisation métier en attente, aucun renvoi"});
       continue;
     }
     const { error: erreurMarque } = await supabase.rpc("marquer_quittance_envoyee", {

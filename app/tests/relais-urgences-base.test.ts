@@ -1,3 +1,9 @@
+// Intégration des réservations SQL et de l’orchestration ; fournisseur simulé.
+// La fermeture effective des circuits V1 est vérifiée dans courriels-circuits-suspendus-v1.test.ts.
+vi.mock("@/lib/email", async (importer) => ({
+  ...(await importer<typeof import("@/lib/email")>()),
+  envoyerEmail: (await import("./fixtures/transport-email-orchestration")).transportEmailOrchestration,
+}));
 /**
  * D46-B, suite (décision du dirigeant du 15/10/2026, « envoi immédiat pour les urgences ») — la base.
  *

@@ -249,10 +249,11 @@ jobs:
               exit 1
             fi
           done
+          node ../../scripts/deploiement/conditionner-migration.mjs lot $LISTE
           echo "— à appliquer, dans cet ordre :"
           for f in $LISTE; do
             [ -f "$f" ] || { echo "✗ fichier introuvable : $f" >&2; exit 1; }
-            node ../../scripts/verifier-transactions-migration.mjs "$f"
+            node ../../scripts/deploiement/conditionner-migration.mjs verifier "$f"
             echo "   · $f"
           done
 
@@ -268,10 +269,11 @@ jobs:
               v="${f%%_*}"
               nom="${f#*_}"; nom="${nom%.sql}"
               echo "\\echo '── $f'"
-              cat "$f"
+              node ../../scripts/deploiement/conditionner-migration.mjs afficher "$f"
               echo ";"
               echo "insert into supabase_migrations.schema_migrations (version, name, statements)"
-              echo "values ('$v', '$nom', array[\$gerimmo\$appliquée par le chantier GitHub\$gerimmo\$])"
+              source_base64="$(base64 -w0 < "$f")"
+              echo "values ('$v', '$nom', array[convert_from(decode('$source_base64', 'base64'), 'UTF8')])"
               echo "on conflict do nothing;"
             done
             if [ "$SIMULATION" = "true" ]; then echo "rollback;"; else echo "commit;"; fi

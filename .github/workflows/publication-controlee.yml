@@ -26,6 +26,15 @@ on:
         type: boolean
         default: false
 
+      correction_en_avant:
+        description: "Schéma incompatible : deux versions en maintenance, aucun retour automatique"
+        type: boolean
+        default: false
+      revision_transition:
+        description: "SHA complet de la version de transition actuellement publiée (mode correction en avant)"
+        type: string
+        default: ""
+
 permissions:
   contents: read
   actions: read
@@ -59,6 +68,8 @@ jobs:
           RELEASE_CI_RUN_ID: ${{ inputs.tests }}
           RELEASE_PUBLISH: ${{ inputs.publier }}
           RELEASE_DATABASE_COMPATIBLE: ${{ inputs.base_compatible }}
+          RELEASE_FORWARD_ONLY: ${{ inputs.correction_en_avant }}
+          RELEASE_TRANSITION_SHA: ${{ inputs.revision_transition }}
           GERIMMO_RELEASE_ENABLED: ${{ vars.GERIMMO_RELEASE_ENABLED }}
           GERIMMO_PRODUCTION_ORIGIN: https://www.gerimmo.app
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}

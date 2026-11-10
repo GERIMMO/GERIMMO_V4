@@ -25,7 +25,11 @@ function Envoyer() {
 }
 
 // L'ancre de l'adresse (#adresse=…) ne se lit que dans le navigateur : le serveur rend le champ vide.
-const sAbonnerAucun = () => () => {};
+const suivreAncre = (actualiser: () => void) => {
+  window.addEventListener("hashchange", actualiser);
+  window.addEventListener("popstate", actualiser);
+  return () => { window.removeEventListener("hashchange", actualiser); window.removeEventListener("popstate", actualiser); };
+};
 const ancreDuNavigateur = () => window.location.hash;
 const ancreDuServeur = () => "";
 
@@ -36,7 +40,7 @@ const ancreDuServeur = () => "";
  */
 export function FormulaireCompteArtisan({ invitationId }: { invitationId?: string } = {}) {
   const [etat, action] = useActionState<EtatInscription, FormData>(creerCompteArtisan, {});
-  const ancre = useSyncExternalStore(sAbonnerAucun, ancreDuNavigateur, ancreDuServeur);
+  const ancre = useSyncExternalStore(suivreAncre, ancreDuNavigateur, ancreDuServeur);
   const prerempli = invitationId ? adresseDepuisAncre(ancre) : "";
   const suite = invitationId ? cheminInvitationArtisan(invitationId) : "/artisan/inscription";
   const idEmail = useId();

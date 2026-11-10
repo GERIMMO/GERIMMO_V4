@@ -1,3 +1,4 @@
+import { rendreServeur } from "./fixtures/rendu-serveur";
 /**
  * Relecture du 23/10 (pages légales et console) : la console dit au dirigeant l'état réel de l'identité de l'éditeur
  * et du blocage des abonnements, depuis que le médiateur ne bloque plus rien (décision du 23/10).
@@ -59,7 +60,7 @@ describe("/admin/sante : documents légaux", () => {
   it("lecture de l'identité en échec : le médiateur n'est pas affiché « fourni »", async () => {
     // lireEditeur rend l'identité du code, tout à null, et `indisponible` vrai.
     etat.identite = { editeur: { ...TOUT_NUL }, indisponible: true };
-    const html = renderToStaticMarkup(await PageSante());
+    const html = await rendreServeur(await PageSante());
     for (const fait of ["Le médiateur de la consommation", "L'adresse du médiateur", "Le site du médiateur"]) {
       const puce = puceSante(html, fait.replace("'", "&#x27;"));
       expect(puce, fait).toBeDefined();
@@ -70,7 +71,7 @@ describe("/admin/sante : documents légaux", () => {
 
   it("lecture réussie, médiateur fourni : il s'affiche « fourni »", async () => {
     etat.identite = { editeur: { ...REQUIS, ...MEDIATEUR, telephone: null }, indisponible: false };
-    const html = renderToStaticMarkup(await PageSante());
+    const html = await rendreServeur(await PageSante());
     expect(puceSante(html, "Le médiateur de la consommation")).toBe("fourni");
     expect(puceSante(html, "Le téléphone de contact")).toBe("manquant");
     expect(texte(html)).not.toContain("n’a pas pu être lue");
@@ -78,7 +79,7 @@ describe("/admin/sante : documents légaux", () => {
 
   it("règle de blocage active et fait requis manquant : le paiement en ligne reste fermé", async () => {
     etat.identite = { editeur: { ...REQUIS, telephone: null }, indisponible: false };
-    const t = texte(renderToStaticMarkup(await PageSante()));
+    const t = texte(await rendreServeur(await PageSante()));
     expect(t).toContain("le paiement en ligne reste fermé");
     expect(t).not.toContain("Le blocage des abonnements est levé");
   });
@@ -86,7 +87,7 @@ describe("/admin/sante : documents légaux", () => {
   it("règle de blocage levée et fait requis manquant : la page ne dit plus le paiement fermé", async () => {
     etat.identite = { editeur: { ...REQUIS, telephone: null }, indisponible: false };
     etat.reglage = { blocageIdentiteActif: false, revision: 2, indisponible: false };
-    const t = texte(renderToStaticMarkup(await PageSante()));
+    const t = texte(await rendreServeur(await PageSante()));
     expect(t).not.toContain("le paiement en ligne reste fermé");
     // Exact : la règle levée ne ferme plus rien, mais d'autres gardes (Stripe, TVA) peuvent encore fermer le paiement.
     expect(t).toContain(

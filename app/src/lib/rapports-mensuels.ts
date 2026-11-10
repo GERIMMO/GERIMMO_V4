@@ -93,7 +93,7 @@ export async function remettreRapportMensuel(
     if (erreurLiens) return { erreur: "Le PDF est conservé, mais son rattachement a échoué. Aucun e-mail envoyé ; réessayez.", documentId };
 
     const mois = rapport.mois.slice(0, 7);
-    const resultat = await envoyerEmail({
+    const resultat = await envoyerEmail({ circuit:"lib/rapports-mensuels",
       organisation: { db, id: orgId },
       to: email,
       subject: `Votre compte rendu de gestion — ${mois}`,

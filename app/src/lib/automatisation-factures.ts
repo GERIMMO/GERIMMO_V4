@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { calculerFactureExistante } from "./calcul-facture-existant";
 import { preparerPdfFactureExistant } from "./pdf-facture-existant";
@@ -9,10 +10,10 @@ import type { CompteurConsommation, ReleveConsommation } from "./consommations";
 import { aujourdhuiParis } from "./ged";
 
 /** Aucun appel d’encaissement ou de régularisation annuelle dans ce traitement. */
-export async function traiterFactureAutomatique(service:SupabaseClient,org:string,id:string,avantEffet:()=>Promise<void>=async()=>{}) {
+export async function traiterFactureAutomatique(service:SupabaseClient,org:string,id:string,avantEffet:()=>Promise<void>=async()=>{}, jeton?:string) {
  const geste=async(nom:string,args:Record<string,unknown>={})=>{
   await avantEffet();
-  return service.rpc("geste_facture_automatique",{p_facture:id,p_geste:nom,p_args:args});
+  return service.rpc("geste_facture_automatique",{p_facture:id,p_geste:nom,p_args:{...args,_jeton:jeton}});
  };
  const db=new Proxy(service,{get(target,key){
   if(key==="rpc") return geste;
@@ -67,13 +68,29 @@ export async function traiterFactureAutomatique(service:SupabaseClient,org:strin
    const partage=await geste("diffuser_pdf_repartition",{p_org:org,p_repartition:r.id,p_bail:bail});if(partage.error)throw new Error(partage.error.message);
   }
   return suivi("terminee","Répartition validée et décomptes partagés. Aucun encaissement confirmé automatiquement. Les provisions restent déduites lors de la régularisation.");
- } catch(e) {return suivi("a_verifier",e instanceof Error?e.message:"Traitement interrompu : vérifiez la facture.");}
+ } catch(e) {
+ const detail=e instanceof Error?e.message:"Traitement interrompu";
+ // Les refus métier restent visibles ; une panne de lecture/transport est rejouable.
+ if(/indisponible|interrompu|fetch|network|timeout|ECONN|n’a pas pu être préparé/i.test(detail)) return {etat:"reprise",detail};
+ return suivi("a_verifier",detail);
+}
 }
 
-export async function traiterFileFactures(service:SupabaseClient,avantEffet:()=>Promise<void>=async()=>{}) {
- const r=await service.from("factures_automatiques").select("id,organization_id").eq("actif",true).in("etat",["a_traiter","releves_attendus"]).order("updated_at").limit(5);
- if(r.error)throw new Error("File des factures indisponible.");
- const bilan=[];
- for(const f of r.data??[])bilan.push(await traiterFactureAutomatique(service,f.organization_id,f.id,avantEffet));
- return {traitees:bilan.length,terminees:bilan.filter(b=>b.etat==="terminee").length,a_verifier:bilan.filter(b=>b.etat==="a_verifier").length};
+export async function traiterFileFactures(service:SupabaseClient,avantEffet:()=>Promise<void>=async()=>{}, budgetMs=45_000) {
+ const debut=Date.now(); const bilan:{etat:string}[]=[];
+ // Chaque réservation est atomique en base, y compris entre plusieurs serveurs.
+ while(Date.now()-debut<budgetMs && bilan.length<100) {
+  await avantEffet(); const jeton=randomUUID();
+  const prise=await service.rpc("prendre_facture_automatique",{p_jeton:jeton});
+  if(prise.error)throw new Error("File des factures indisponible.");
+  if(!prise.data)break;
+  const f=prise.data;let etat="reprise";
+  try { etat=(await traiterFactureAutomatique(service,f.organization_id,f.id,avantEffet,jeton)).etat; }
+  finally {
+   const fin=await service.rpc("finir_facture_automatique",{p_facture:f.id,p_jeton:jeton,p_resultat:etat});
+   if(fin.error||fin.data!==true)throw new Error("Fin de traitement non confirmée ; reprise sécurisée nécessaire.");
+  }
+  bilan.push({etat});
+ }
+ return {traitees:bilan.length,terminees:bilan.filter(b=>b.etat==="terminee").length,a_verifier:bilan.filter(b=>b.etat==="a_verifier").length,reprises:bilan.filter(b=>b.etat==="reprise").length};
 }

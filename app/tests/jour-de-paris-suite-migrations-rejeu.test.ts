@@ -25,8 +25,9 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { verifierBaseDeTest } from "./garde-base";
 
 config({ path: ".env.local" });
-const DB_URL = process.env.SUPABASE_DB_URL;
+const DB_URL = (process.env.GERIMMO_HISTORIQUE_DB ?? process.env.SUPABASE_DB_URL);
 verifierBaseDeTest(DB_URL);
+// Les retours historiques sont testés sur le schéma pré-lots ; V1 utilise la correction en avant.
 
 type Famille = {
   nom: string;

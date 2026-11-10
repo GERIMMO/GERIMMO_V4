@@ -1,0 +1,43 @@
+GERIMMO V1 — CORRECTION DES QUATRE BLOCAGES
+10 novembre 2026 — préparation locale, aucune publication
+
+ÉTAT ET PÉRIMÈTRE
+Production et main reconfirmés en lecture seule : 35b2a1258eca30dde66d31bceb5f77748a8f9ab0.
+Code de livraison : 6778eb26842894cacd2fc1bed3f6fa1bf81f682d, branche codex/livraison-v1-lots-1-3.
+Transition préalable : 589006f4 (SHA complet dans COMMITS.txt), branche codex/transition-v1.
+Original work/corrections-prioritaires-1-20261109 conservé ; les 107 sources importées sont restées inchangées dans l’original. Les retouches préexistantes hors lots ne sont pas embarquées. Aucun tarif ni client réel modifié ; aucun push, fusion, envoi, paiement, migration réelle ou déploiement.
+
+1. QUATRE BLOCAGES ET CORRECTIONS
+Paiements/e-mails — Protections séparées. Le mode commercial exige une configuration cohérente et refuse les drapeaux pilote contradictoires. La liste fermée des communications V1 reste indépendante et ne peut pas être ouverte par une variable. Stripe, essais, droits et adaptateurs conservent leurs règles ; transport réel interdit dans le banc. Le contrôle d’arrêt de supervision est aussi revérifié après lecture Stripe, avant l’avis de fin d’essai.
+Migrations — Sept sources originales inchangées, empreintes vérifiées et ordre indivisible. Leur enveloppe externe est conditionnée pour la transaction du workflow, sans contourner son analyse syntaxique. L’historique conserve désormais la source exacte. Le SQL pilote est déplacé, octet pour octet, hors supabase/migrations vers supabase/profils-locaux ; son nom ET son contenu sont refusés par le conditionneur commercial.
+Transition — Version intermédiaire issue du code publié, maintenance ciblée, gel SQL rejouable et correction en avant. L’ancien worker est refusé après migration : aucun retour à 35b2a12 présenté comme compatible. Le contrôleur de publication conserve CI/approbation/SHA et n’autorise le mode correction en avant que sur deux versions en maintenance, avec SHA de transition exact ; il interdit alors le rollback automatique.
+CI — Ligne vide retirée, inventaire cohérent, bases commerciale et pilote séparées, noms locaux explicites, réseau des tests fermé aux prestataires, fixtures autonomes. Tests de transport historique conservés avec admission simulée, en plus des tests réels du verrou V1. Aucun test supprimé. L’erreur ESLint de tests/espace-parc.test.ts appartenait aux retouches préexistantes hors livraison : ce fichier, absent du main de référence, est conservé dans l’original et non importé. ESLint est vert sur les sources de livraison.
+
+2. PREUVES REJOUÉES PENDANT CETTE MISSION
+- 1 109 tests ciblés réussis, 67 fichiers ; 14 tests Stripe chez le prestataire non exécutés faute d’accès de test autorisé. Les simulations locales Stripe/webhooks ont bien tourné. Log : tests-commit-final.log.
+- 39 tests du conditionnement/configuration/contrôleur réussis, dont promotion incertaine, maintenance absente, concurrence, panne de santé et absence de rollback en mode correction en avant. Log : conditionnement-final.log.
+- Santé, protections et garde sauvegarde : 61 réussis au premier passage, 2 dépendants de la base non exécutés dans ce passage ; le fichier garde sauvegarde a ensuite été rejoué avec la base locale, 32/32 réussis. Ces nombres se recouvrent et ne sont pas additionnés.
+- Reconstruction depuis les migrations historiques précédant les lots, puis sept migrations transactionnelles : 13 contrôles SQL réussis, dont erreur/rollback intégral, droits, huit triggers, absence du verrou pilote, refus de l’ancien worker et conservation d’un message incertain. Fermeture/ouverture de maintenance chacune rejouée deux fois avec succès.
+- Coexistence HTTP : les deux versions compilées annoncent maintenance=true et bloquent les écritures métier. Les webhooks atteignent leurs propres gardes et non le refus de maintenance ; les paiements du banc restent volontairement désactivés. Aucune certification du prestataire réel n’en est déduite.
+- TypeScript, ESLint et syntaxe des trois workflows : réussis. Build standard Next/Turbopack réussi sur le checkout propre de livraison ; build production Webpack réussi sur le checkout propre de transition. Les premières tentatives bloquées restent conservées dans les logs, sans être comptées comme succès.
+- Navigateur final : 20/20 réussis sur ordinateur et téléphone, 1,8 minute ; détail et limites dans BILAN-NAVIGATEUR.txt.
+Preuves locales : app/output/livraison-v1. Les 316/330/403/853 tests et les 100 PDF des missions antérieures ne sont pas présentés comme de nouveaux résultats ici.
+
+3. LIVRAISON EXACTE
+COMMITS.txt : quatre commits applicatifs de livraison et deux commits de transition.
+FICHIERS.txt : inventaire exact des fichiers de code et de procédure à intégrer.
+MIGRATIONS.txt : sept noms et SHA256, dans leur ordre obligatoire.
+PROCEDURE.txt : configuration, approbations, maintenance, migration, bascule, surveillance, arrêt et correction en avant.
+Le dossier documentaire est committé séparément ; il ne change pas le code compilé 6778eb26.
+
+4. RISQUES ET OPÉRATIONS HUMAINES AVANT PUBLICATION
+Aucune garantie absolue de livraison d’e-mail ou de débit hébergé. États incertains conservés ; circuits contractuels non qualifiés et relances collectives toujours suspendus, intervention humaine nécessaire. Aucun tarif changé.
+Dernière sauvegarde vérifiée en lecture seule : 10/11 à 08:33:27 UTC, zéro échec, préfixe 20261110-0829. Une nouvelle sauvegarde de moins de 90 minutes sera exigée par le workflow. Accès aux archives/clé et couverture réelle Auth+stockage/restauration restent à démontrer par l’opérateur ; aucune restauration réelle effectuée.
+Configuration administrative Vercel NON validée : l’accès disponible au contrôle précédent retournait 403. Restent à vérifier les variables commerciales, les déploiements/alias, la désactivation de promotion automatique, les déclencheurs, leur drainage et la cadence/capacité cron. CI complète hébergée obligatoire sur le SHA main exact après autorisation ; les validations locales ne remplacent pas cette garde.
+Confirmer la reprise des webhooks signature pendant le bref gel SQL, ou choisir une fenêtre sans signature en cours. Les simulations ne prouvent pas cette reprise chez le fournisseur. Ne pas ouvrir la fenêtre sans cette condition.
+Ces contrôles sont des conditions de la future exécution, pas des réglages déjà appliqués. Si l’une échoue, la publication doit s’arrêter. Pas de nouveau service ni coût engagé.
+
+VERDICT
+Les quatre blocages de code et de préparation sont corrigés et testés localement. L’autorisation doit porter sur la livraison exacte et la procédure jointe ; elle ne dispense pas des contrôles hébergés ci-dessus.
+PRÊT POUR AUTORISATION DE PUBLICATION
+Rien n’est publié. Attendre la validation humaine explicite ; aucun autre chantier à démarrer.

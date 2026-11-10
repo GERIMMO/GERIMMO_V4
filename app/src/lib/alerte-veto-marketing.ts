@@ -57,7 +57,7 @@ export async function alerterSuperviseurDuPost(db: SupabaseClient, post: ApercuP
     const site = adresseDuSite() ?? "https://www.gerimmo.app";
     const lien = `${site}/admin/marketing#veto`;
     await avantEffet?.();
-    const res = await envoyerEmail({
+    const res = await envoyerEmail({ circuit:"lib/alerte-veto-marketing",
       avantEnvoi: avantEffet,
       to: email,
       subject: `À relire avant parution : ${post.titre.slice(0, 90)}`,

@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { repondreInvitationArtisan, type EtatInvitationArtisan } from "@/app/actions/invitations-artisan";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Erreur, Succes } from "../../ui";
@@ -11,6 +12,9 @@ import { Erreur, Succes } from "../../ui";
  */
 export function ReponseInvitationArtisan({ invitationId, accepter }: { invitationId: string; accepter: boolean }) {
   const [etat, action] = useActionState<EtatInvitationArtisan, FormData>(repondreInvitationArtisan.bind(null, invitationId), {});
+  const router = useRouter();
+  useEffect(() => { if (etat.succes) router.refresh(); }, [etat.succes, router]);
+  if (etat.succes) return <Succes>{etat.succes}</Succes>;
   return (
     <form data-saisie-libre action={action} className="space-y-3">
       <div className="flex flex-wrap gap-3">

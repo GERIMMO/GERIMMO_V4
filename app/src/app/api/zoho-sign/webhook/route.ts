@@ -1,3 +1,4 @@
+import {paiementsInterdits,MESSAGE_PAIEMENT_PILOTE} from "@/lib/verrou-pilote";
 import { configurationSuiviSignatureBail } from "@/lib/signature-bail";
 import { synchroniserCircuitSignatureBail } from "@/lib/signature-bail-worker";
 import { clientDeService } from "@/lib/supabase/service";
@@ -14,6 +15,7 @@ function refuser(motif: MotifRefus, erreur: string) {
   return Response.json({ erreur }, { status: 400 });
 }
 export async function POST(request: Request) {
+  if(paiementsInterdits())return Response.json({erreur:MESSAGE_PAIEMENT_PILOTE},{status:403});
   const secret = process.env.ZOHO_SIGN_WEBHOOK_SECRET?.trim();
   if (!secret) return Response.json({ erreur: "Réception non configurée." }, { status: 503 });
   if (Number(request.headers.get("content-length")) > 1_048_576) return Response.json({ erreur: "Corps trop volumineux." }, { status: 413 });

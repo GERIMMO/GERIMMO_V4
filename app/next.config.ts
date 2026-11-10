@@ -138,6 +138,8 @@ export function environnementPourLeNavigateur(env: Record<string, string | undef
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Les liens de confirmation contiennent un secret utilisable : jamais dans les logs de développement.
+  logging: { incomingRequests: { ignore: [/\/auth\/confirm(?:er)?(?:[/?]|$)/] }, fetches: { fullUrl: false } },
   ...(process.env.GERIMMO_REVUE_LOCALE === "1" ? { distDir: process.env.GERIMMO_REVUE_CANDIDATE === "1" ? ".next-revue-candidate" : ".next-revue-locale" } : {}),
   env: {
     NEXT_PUBLIC_VERCEL_ENV: environnementPourLeNavigateur(),

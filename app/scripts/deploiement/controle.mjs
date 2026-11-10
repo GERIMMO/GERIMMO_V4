@@ -12,7 +12,11 @@ export function optionsValides(o) {
   const u = new URL(o.productionOrigin);
   exiger(u.protocol === "https:" && !u.username && !u.password && !u.port && u.pathname === "/" && !u.search && !u.hash && /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(u.hostname), "L’adresse de production est invalide.");
   exiger(typeof o.publish === "boolean" && typeof o.databaseCompatible === "boolean", "Le mode de publication est invalide.");
-  exiger(!o.publish || o.databaseCompatible, "Vérifiez que la base reste compatible avec la version précédente avant de publier.");
+  exiger(o.forwardOnly === undefined || typeof o.forwardOnly === "boolean", "Stratégie de correction invalide.");
+  if(o.forwardOnly){
+    exiger(!o.databaseCompatible && SHA.test(o.transitionSha), "La correction en avant exige la révision de transition exacte, sans fausse compatibilité de base.");
+  }
+  exiger(!o.publish || o.databaseCompatible || o.forwardOnly, "Vérifiez que la base reste compatible avec la version précédente avant de publier.");
   return o;
 }
 export function verifierCI(run, workflow, o) {
@@ -54,7 +58,11 @@ export async function controlerPublication(o, ports) {
     rapport.revisionPrecedente = ancienneRevision;
     exiger(santeConforme(await ports.health(`https://${initial.url}`, false), ancienneRevision), "La version de retour n’est pas saine : publication suspendue.");
     exiger(santeConforme(await ports.health(`https://${cible.url}`, false), o.sha), "La version préparée ne passe pas le contrôle de santé.");
-    noter("La version préparée et la version de retour répondent correctement.");
+    if(o.forwardOnly){
+      exiger(ancienneRevision===o.transitionSha,"La version de transition attendue n’est pas celle actuellement publiée.");
+      exiger((await ports.health(`https://${initial.url}`,false))?.maintenance===true && (await ports.health(`https://${cible.url}`,false))?.maintenance===true,"La correction en avant exige les deux versions en maintenance ciblée.");
+      noter("Maintenance vérifiée sur les deux versions. Retour automatique interdit ; correction en avant uniquement.");
+    } else noter("La version préparée et la version de retour répondent correctement.");
     if (!o.publish) { rapport.etat = "prete_a_valider"; return rapport; }
     exiger(await ports.approvalConfigured(), "La validation du responsable n’est pas configurée dans GitHub.");
     exiger(await ports.current() === initial.id, "La production a changé pendant les vérifications. Recommencez sur son nouvel état.");
@@ -80,6 +88,11 @@ export async function controlerPublication(o, ports) {
     if (await ports.current() !== cible.id) {
       rapport.etat = "intervention_requise";
       noter("La nouvelle version n’a pas été confirmée en production. Aucun retour appliqué.");
+      return rapport;
+    }
+    if(o.forwardOnly){
+      rapport.etat="intervention_requise";
+      noter("Échec après bascule : aucun retour à l’ancien code. Maintenir le gel SQL et la maintenance, puis corriger en avant.");
       return rapport;
     }
     // Recheck the old version against the CURRENT database before switching back.

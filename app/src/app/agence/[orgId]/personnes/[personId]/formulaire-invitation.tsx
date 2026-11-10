@@ -26,11 +26,11 @@ export function FormulaireInvitation({ orgId, personId, email, dejaInvite, acces
       <p className="text-sm text-muted-foreground">Ajoutez un email à cette fiche pour pouvoir l’inviter comme locataire.</p>
       <Link href={`${base}/personnes/${personId}?modifier=1#identite`} className="lien-discret text-sm">Ajouter un email</Link>
     </div> : <>
-      <p className="text-sm text-muted-foreground">{email} recevra une invitation valable 30 jours. La personne choisira de l’accepter ou de la refuser avant d’accéder à son espace. Sans réponse de sa part, un rappel lui est envoyé par e-mail 3 jours puis 10 jours après l’envoi.</p>
+      <p className="text-sm text-muted-foreground">{email} recevra une invitation valable 30 jours. La personne choisira de l’accepter ou de la refuser avant d’accéder à son espace. Suivez sa réponse et l’état de l’envoi ici. Les rappels automatiques restent suspendus dans le pilote.</p>
       {derniere && <div className="rounded-xl border border-border bg-muted/40 p-3 text-sm">
         <strong>{LIBELLES_INVITATION[statut!] ?? statut}</strong>
         <p className="mt-1 text-muted-foreground">{statut === "en_attente" ? "Valable jusqu’au" : "Échéance :"} {new Date(derniere.expire_le).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}</p>
-        {statut === "en_attente" && (!derniere.envoye_le || derniere.erreur_envoi) && <p className="mt-1 text-destructive">L’envoi de l’e-mail reste à confirmer. Vous pouvez le renvoyer.</p>}
+        {statut === "en_attente" && (!derniere.envoye_le || derniere.erreur_envoi) && <p className="mt-1 text-destructive">L’envoi de l’e-mail reste à confirmer. Vérifiez son suivi avant de demander un nouveau lien.</p>}
         {relancesDerniere.map(phrase => <p key={phrase} className="mt-1 text-muted-foreground">{phrase}</p>)}
         {statut === "en_attente" && derniere.relances_prevues === false && <p className="mt-1 text-muted-foreground">Invitation envoyée avant la mise en place des rappels automatiques : aucun rappel ne partira pour elle.</p>}
       </div>}

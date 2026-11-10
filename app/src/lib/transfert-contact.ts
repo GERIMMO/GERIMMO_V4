@@ -1,3 +1,4 @@
+import { envoyerContactDurable } from "./courriel-contact-durable";
 import PostalMime, { type Email } from "postal-mime";
 import { Resend } from "resend";
 
@@ -111,17 +112,9 @@ export async function traiterTransfertContact(request: Request, env: Record<stri
     const contenu = await lireCorpsBorne(raw.body, 40 * 1024 * 1024);
     const parsed = await PostalMime.parse(contenu, { attachmentEncoding: "base64", maxNestingDepth: 30, maxHeadersSize: 262_144, maxRfc822NestingDepth: 4 });
     if (parsed.headers.some((h) => h.key.toLowerCase() === MARQUEUR.toLowerCase())) return { statut: 200, etat: "boucle_ignoree" };
-    const envoi = await fetch("https://api.resend.com/emails", {
-      method: "POST", signal, redirect: "error",
-      headers: { ...headers, "Content-Type": "application/json", "Idempotency-Key": `contact-transfert-v1/${id}` },
-      body: JSON.stringify(preparerTransfert(parsed, config.destination)),
-    });
-    // 429 : débit ou quota du prestataire. Le journal le dit (le transfert n'a pas eu lieu, il n'est pas « non
-    // confirmé ») ; le statut reste 503 pour que le webhook soit rejoué, comme pour tout autre refus.
-    if (envoi.status === 429) return { statut: 503, etat: "transfert_limite_prestataire" };
-    if (!envoi.ok) return { statut: 503, etat: "transfert_non_confirme" };
-    const resultat = await envoi.json();
-    if (typeof resultat?.id !== "string" || !resultat.id) return { statut: 503, etat: "transfert_non_confirme" };
+    const envoi = await envoyerContactDurable(preparerTransfert(parsed,config.destination),`contact-transfert-v1/${id}`,env);
+    if(envoi.recuperable)return {statut:503,etat:"transfert_limite_prestataire"};
+    if(envoi.erreur||!envoi.id)return {statut:503,etat:"transfert_non_confirme"};
     return { statut: 200, etat: "transfere" };
   } catch { return { statut: 503, etat: "transfert_non_confirme" }; }
 }

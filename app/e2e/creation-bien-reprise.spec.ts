@@ -16,7 +16,7 @@ for (const largeur of [390, 1440]) test(`creation bien : panne, reponse perdue e
   try {
     // Compte et organisation jetables complets : aucun attribut du seed changé.
     compte = (await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current) values('00000000-0000-0000-0000-000000000000',gen_random_uuid(),'authenticated','authenticated',$1,extensions.crypt($2,extensions.gen_salt('bf')),now(),'{}','{}',now(),now(),'','','','','') returning id`, [email, motDePasse])).rows[0].id;
-    org = (await db.query("insert into organizations(name,type,status,address_line1,postal_code,city,email_contact) values($1,'proprietaire_direct','active','1 rue TEST','75001','Paris','test@example.invalid') returning id", [nom])).rows[0].id;
+    org = (await db.query("insert into organizations(name,type,status,address_line1,postal_code,city,email_contact) values($1,'proprietaire_direct','essai','1 rue TEST','75001','Paris','test@example.invalid') returning id", [nom])).rows[0].id;
     await db.query("insert into memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct')", [compte, org]);
     await sansSyntheseAlertes(page);
     await page.route('https://api-adresse.data.gouv.fr/**', route => route.fulfill({ json: { features: [] } }));

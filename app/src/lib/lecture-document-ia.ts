@@ -1,3 +1,4 @@
+import {exigerOperationsPayantesAutorisees} from "./verrou-pilote";
 import "server-only";
 import { CATEGORIES_FOURNITURE } from "./consommations";
 import { detecterMimeReel, pdfComplet } from "./file-type";
@@ -20,6 +21,7 @@ export async function lireDocumentIA(fichier: File, nature: "facture" | "compteu
   if (!cle) throw new Error("La lecture assistée n’est pas activée ici. Vous pouvez renseigner les informations directement.");
   await avantAppel();
   const data = `data:${mime};base64,${Buffer.from(octets).toString("base64")}`;
+  exigerOperationsPayantesAutorisees();
   const reponse = await fetch("https://api.openai.com/v1/responses", {
     method: "POST", redirect: "error", signal: AbortSignal.timeout(30000),
     headers: { Authorization: `Bearer ${cle}`, "Content-Type": "application/json" },

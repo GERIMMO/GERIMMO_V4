@@ -21,7 +21,7 @@ const banc = vi.hoisted(() => ({
   invitationsAValider: [] as Record<string, unknown>[],
 }));
 
-vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("NOT_FOUND"); }, redirect: vi.fn() }));
+vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("NOT_FOUND"); }, redirect: vi.fn(), useRouter: () => ({ refresh: vi.fn(), push: vi.fn(), replace: vi.fn() }) }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/app/actions/auth", () => ({ seDeconnecter: vi.fn(), creerCompteArtisan: vi.fn() }));
 vi.mock("@/app/actions/invitations-artisan", () => ({ repondreInvitationArtisan: vi.fn() }));

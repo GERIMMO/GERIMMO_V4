@@ -158,40 +158,42 @@ export async function traiterRelances(request: Request) {
         totalDu: l.total_du,
       });
     await verifierAvantEffet(supabase, "relances");
-    const envoi = await envoyerEmail({
+    const envoi = await envoyerEmail({ circuit:"lib/missions-planifiees/relances",
       avantEnvoi: verifierSolde,
       organisation: { db: supabase, id: l.organization_id },
       to: l.destinataire,
       cleIdempotence: cle(l.destinataire, "locataire"),
       ...courrier(l.prenom),
     });
+    let destinatairesComplets = !envoi.erreur;
     if (envoi.erreur) {
       echecs.push({ bail_id: l.bail_id, organization_id: l.organization_id, niveau: l.niveau, etape: "envoi", motif: envoi.erreur });
-      continue;
     }
     // Colocation solidaire : chaque colocataire titulaire reçoit la relance
     // (wiki « Relances et mise en demeure »). Un échec vers un colocataire se
-    // consigne sans empêcher la trace de la relance, partie au principal.
+    // consigne et reporte le marquage global jusqu’à acceptation de tous.
     for (const autre of l.autres_destinataires ?? []) {
       await verifierAvantEffet(supabase, "relances");
-      const copie = await envoyerEmail({
+      const copie = await envoyerEmail({ circuit:"lib/missions-planifiees/relances",
       avantEnvoi: verifierSolde,
         organisation: { db: supabase, id: l.organization_id },
         to: autre,
         cleIdempotence: cle(autre, "locataire"),
         ...courrier(null),
       });
-      if (copie.erreur)
+      if (copie.erreur) {
+        destinatairesComplets=false;
         echecs.push({ bail_id: l.bail_id, organization_id: l.organization_id, niveau: l.niveau, etape: "envoi", motif: `colocataire : ${copie.erreur}` });
+      }
     }
     // Audit gestion du 29/09 : au niveau 2, la caution est informée de la
     // défaillance (art. 2303 C. civ.). Un échec se consigne sans empêcher la
-    // trace de la relance, partie au locataire.
+    // trace globale : elle attend tous les destinataires.
     const cautionsInformees: string[] = [];
     if (l.niveau === "relance_2") {
       for (const caution of l.garants ?? []) {
         await verifierAvantEffet(supabase, "relances");
-        const info = await envoyerEmail({
+        const info = await envoyerEmail({ circuit:"lib/missions-planifiees/relances",
       avantEnvoi: verifierSolde,
           organisation: { db: supabase, id: l.organization_id },
           to: caution,
@@ -206,12 +208,14 @@ export async function traiterRelances(request: Request) {
             totalDu: Number(l.total_du ?? l.reste),
           }),
         });
-        if (info.erreur)
+        if (info.erreur) {
+          destinatairesComplets=false;
           echecs.push({ bail_id: l.bail_id, organization_id: l.organization_id, niveau: l.niveau, etape: "envoi", motif: `caution : ${info.erreur}` });
-        else cautionsInformees.push(caution);
+        } else cautionsInformees.push(caution);
       }
     }
-    // Envoyé : on consigne. Un échec ici laisse la relance sans trace — le
+    if(!destinatairesComplets)continue;
+    // Tous acceptés : on consigne. Un échec ici laisse la relance sans trace — le
     // pire cas est un second envoi demain, que le journal de la tâche signale.
     const { error: erreurTrace } = await supabase.rpc("relance_loyer_consigner", {
       p_bail: l.bail_id,

@@ -6,6 +6,9 @@ export function verifierEnvironnement(env = process.env) {
   const suspendre = (motif) => { throw new Error(`Construction suspendue : ${motif}`); };
   if (cible === "production") {
     if (isole) suspendre("le réglage de préproduction ne doit pas être posé en production.");
+    if (env.GERIMMO_MODE !== 'commercial' || env.VERCEL !== '1' || env.NEXT_PUBLIC_SITE_URL !== 'https://www.gerimmo.app'
+      || env.GERIMMO_PILOTE_LIMITE === 'true' || env.GERIMMO_PAIEMENTS_DESACTIVES === '1') suspendre('configuration commerciale incohérente : publication refusée avant remplacement du site.');
+    if (!/^[a-f0-9]{64}$/i.test(env.COURRIELS_CHIFFREMENT_CLE ?? '')) suspendre('clé de conservation des courriels requise.');
     return;
   }
   if (!isole) {
@@ -29,7 +32,7 @@ export function verifierEnvironnement(env = process.env) {
     suspendre("l'adresse du site doit être celle de ce déploiement de préproduction.");
   }
   const interdites = Object.entries(env).filter(([nom, valeur]) => valeur && (
-    /^(STRIPE_|ZOHO_|YOUTRUST_|RESEND_|META_|OPENAI_|OPEN_AI_)/.test(nom)
+    /^(STRIPE_|ZOHO_|YOUTRUST_|AR24_|RESEND_|META_|OPENAI_|OPEN_AI_)/.test(nom)
     || ["GITHUB_AGENT_TOKEN", "VERCEL_TOKEN", "CRON_SECRET", "SUPABASE_DB_URL", "SUPABASE_SERVICE_ROLE_KEY"].includes(nom)
     || (["GERIMMO_CODEX_ENABLED", "GERIMMO_RELAIS_EMAILS"].includes(nom) && !["0", "false"].includes(valeur))
   ));

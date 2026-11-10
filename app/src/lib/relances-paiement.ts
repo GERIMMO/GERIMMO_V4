@@ -112,7 +112,7 @@ export async function envoyerRelancesDues(
       resiliableLe: r.resiliable_le ?? null,
     };
     await options.avantEffet?.();
-    const { erreur, id: message } = await envoyerEmail({
+    const { erreur, id: message } = await envoyerEmail({ circuit:"lib/relances-paiement",
       avantEnvoi: options.avantEffet,
       to: r.destinataire,
       cleIdempotence: cleRelanceAbonnement({
@@ -134,12 +134,13 @@ export async function envoyerRelancesDues(
     }
     // Plan du 23/10 (R06) : marquer la relance ET inscrire la preuve de la mise en demeure au journal d'audit (palier,
     // date, identifiant du message ; jamais l'adresse) — `abonnement_relance_consigner` fait les deux, une fois par jour.
-    await supabase.rpc("abonnement_relance_consigner", {
+    const suivi=await supabase.rpc("abonnement_relance_consigner", {
       p_org: r.organization_id,
       p_palier: relance.palier,
       p_message: message ?? null,
       p_premier_prelevement: relance.premierPrelevement,
     });
+    if(suivi.error){echecs.push(`${r.organisation} : acceptation fournisseur enregistrée, finalisation à vérifier. Ne pas renvoyer.`);continue;}
     envoyees += 1;
   }
   return { envoyees, sans_adresse: sansAdresse, echecs };

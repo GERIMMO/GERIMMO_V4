@@ -1,3 +1,5 @@
+// Test unitaire du transport : admission métier exercée par les suites intégrées.
+vi.mock('../src/lib/perimetre-pilote',async original=>({...await original<typeof import('../src/lib/perimetre-pilote')>(),circuitAdmisPilote:()=>true}));
 /**
  * L'adresse d'expédition des e-mails (11/09).
  *
@@ -9,6 +11,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 async function chargerEmail() {
+  vi.stubEnv("GERIMMO_PILOTE_LIMITE", "false");
   vi.resetModules();
   return import("../src/lib/email");
 }
@@ -28,7 +31,7 @@ describe("l'expéditeur", () => {
       envoye = JSON.parse(String(init.body));
       return new Response("{}", { status: 200 });
     });
-    const { envoyerEmail } = await chargerEmail();
+    const { envoyerEmailTransport: envoyerEmail } = await chargerEmail();
     await envoyerEmail({ to: "a@b.fr", subject: "S", html: "<p>x</p>" });
     expect(envoye!.from).toBe("Gerimmo <no-reply@gerimmo.app>");
   });
@@ -41,7 +44,7 @@ describe("l'expéditeur", () => {
       envoye = JSON.parse(String(init.body));
       return new Response("{}", { status: 200 });
     });
-    const { envoyerEmail } = await chargerEmail();
+    const { envoyerEmailTransport: envoyerEmail } = await chargerEmail();
     await envoyerEmail({ to: "a@b.fr", subject: "S", html: "<p>x</p>" });
     expect(envoye!.from).toBe("Gerimmo <onboarding@resend.dev>");
   });
@@ -56,7 +59,7 @@ describe("l'expéditeur", () => {
         { status: 403 }
       )
     );
-    const { envoyerEmail } = await chargerEmail();
+    const { envoyerEmailTransport: envoyerEmail } = await chargerEmail();
     const r = await envoyerEmail({ to: "a@b.fr", subject: "S", html: "<p>x</p>" });
     expect(r.erreur).toMatch(/adresse d’envoi doit encore être vérifiée/);
     expect(r.erreur).not.toMatch(/RESEND_EXPEDITEUR/);
@@ -72,9 +75,9 @@ describe("l'expéditeur", () => {
     vi.stubEnv("RESEND_API_KEY", "cle-de-test");
     const fetch = vi.fn(async () => new Response(corps ? JSON.stringify({ statusCode: 429, ...corps }) : "", { status: 429 }));
     vi.stubGlobal("fetch", fetch);
-    const { envoyerEmail } = await chargerEmail();
+    const { envoyerEmailTransport: envoyerEmail } = await chargerEmail();
     const r = await envoyerEmail({ to: "a@b.fr", subject: "S", html: "<p>x</p>", cleIdempotence: "quittance/q-1" });
-    expect(r).toEqual({ erreur: attendu });
+    expect(r).toEqual({ erreur: attendu, recuperable:true });
     expect(r.erreur).not.toMatch(/adresse du destinataire/);
     // Un refus, pas un envoi incertain ; et aucun réessai caché dans l'enveloppe : la reprise reste celle de l'appelant.
     expect(r.incertain).toBeUndefined();
@@ -84,14 +87,14 @@ describe("l'expéditeur", () => {
   it("un autre refus garde le message générique", async () => {
     vi.stubEnv("RESEND_API_KEY", "cle-de-test");
     vi.stubGlobal("fetch", async () => new Response(JSON.stringify({ name: "validation_error", message: "Invalid `to` field." }), { status: 422 }));
-    const { envoyerEmail } = await chargerEmail();
+    const { envoyerEmailTransport: envoyerEmail } = await chargerEmail();
     const r = await envoyerEmail({ to: "a@b.fr", subject: "S", html: "<p>x</p>" });
     expect(r.erreur).toBe("Le service d’e-mail a refusé l’envoi. Vérifiez l’adresse du destinataire puis réessayez.");
   });
 
   it("sans clé, ne prétend pas avoir envoyé", async () => {
     vi.stubEnv("RESEND_API_KEY", "");
-    const { envoyerEmail } = await chargerEmail();
+    const { envoyerEmailTransport: envoyerEmail } = await chargerEmail();
     const r = await envoyerEmail({ to: "a@b.fr", subject: "S", html: "<p>x</p>" });
     expect(r.erreur).toMatch(/non configuré/);
   });
@@ -101,7 +104,7 @@ it("transmet une pièce jointe et la clé anti-doublon, et conserve la référen
   vi.stubEnv("RESEND_API_KEY", "cle-de-test");
   const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "message-test" }), { status: 200 }));
   vi.stubGlobal("fetch", fetch);
-  const { envoyerEmail } = await chargerEmail();
+  const { envoyerEmailTransport: envoyerEmail } = await chargerEmail();
   expect(await envoyerEmail({ to: "a@b.fr", subject: "Rapport", html: "<p>Votre PDF</p>", piecesJointes: [{ nom: "rapport.pdf", contenuBase64: "cGRm" }], cleIdempotence: "rapport/test" })).toEqual({ id: "message-test" });
   const requete = fetch.mock.calls[0][1];
   expect(requete.headers["Idempotency-Key"]).toBe("rapport/test");
@@ -116,7 +119,7 @@ async function emailAvecMarque(marque: Record<string, unknown>) {
   vi.stubGlobal("fetch", fetch);
   const query = { select: () => query, eq: () => query, maybeSingle: async () => ({ data: marque, error: null }) };
   const db = { from: () => query } as unknown as import("@supabase/supabase-js").SupabaseClient;
-  const { envoyerEmail } = await chargerEmail();
+  const { envoyerEmailTransport: envoyerEmail } = await chargerEmail();
   await envoyerEmail({ to: "locataire@exemple.fr", subject: "Avis", html: "<p>Loyer</p>", organisation: { db, id: "agence" } });
   return JSON.parse(fetch.mock.calls[0][1].body);
 }
@@ -134,7 +137,7 @@ it("une adresse vérifiée porte la marque agence sans injection d’en-tête", 
 it("les messages plateforme reçoivent une adresse de réponse professionnelle configurée", async () => {
   vi.stubEnv("RESEND_API_KEY", "test"); vi.stubEnv("RESEND_REPONDRE_A", "contact@gerimmo.app");
   const fetch=vi.fn().mockResolvedValue(new Response('{"id":"mail"}',{status:200})); vi.stubGlobal("fetch",fetch);
-  const {envoyerEmail}=await chargerEmail(); await envoyerEmail({to:"test@exemple.invalid",subject:"Test",html:"Test"});
+  const {envoyerEmailTransport:envoyerEmail}=await chargerEmail(); await envoyerEmail({to:"test@exemple.invalid",subject:"Test",html:"Test"});
   expect(JSON.parse(fetch.mock.calls[0][1].body).reply_to).toBe("contact@gerimmo.app");
 });
 it("la réponse au gestionnaire reste prioritaire", async () => {
@@ -149,6 +152,6 @@ it("aucune boîte inexistante ni injection n’est choisie par défaut", async (
 });
 it("une coupure réseau après le POST est un état incertain, pas une invitation à renvoyer", async () => {
   vi.stubEnv("RESEND_API_KEY","test"); vi.stubGlobal("fetch",vi.fn().mockRejectedValue(new TypeError("fetch failed")));
-  const {envoyerEmail}=await chargerEmail(); const r=await envoyerEmail({to:"test@exemple.invalid",subject:"Test",html:"Test"});
+  const {envoyerEmailTransport:envoyerEmail}=await chargerEmail(); const r=await envoyerEmail({to:"test@exemple.invalid",subject:"Test",html:"Test"});
   expect(r.incertain).toBe(true); expect(r.erreur).toMatch(/vérifiez avant/);
 });

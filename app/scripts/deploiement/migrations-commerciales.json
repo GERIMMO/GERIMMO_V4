@@ -1,0 +1,34 @@
+[
+  {
+    "fichier": "20261109202743_file_factures_fiable.sql",
+    "sha256": "1924f1b43e187c05ccc99c30b55aa759b880040970c6b815b458e7861ddbe168"
+  },
+  {
+    "fichier": "20261109202744_courriels_durables.sql",
+    "sha256": "5bfc584f34d3f7e88066bc0f920b5481b7e9f3ab8a42e1af822972ab2860482f"
+  },
+  {
+    "fichier": "20261109210237_reprise_courriels_ponctuels.sql",
+    "sha256": "7a59f329814fab54f424036b8bc993e03ec0afbea9c62714f8a1357e84281b6c"
+  },
+  {
+    "fichier": "20261109212416_finalisation_metier_courriels.sql",
+    "sha256": "508f75bb06806fab6b8972774e3231191bbd52190a08eb45ae1e8c5e4e5e865c"
+  },
+  {
+    "fichier": "20261109215935_perimetre_pilote_courriels.sql",
+    "sha256": "c15c1adf9565bfa69749fb54d8126a71e3dfc280220820ce27636fe4c616712e"
+  },
+  {
+    "fichier": "20261109222550_acces_notifications_pilote.sql",
+    "sha256": "26477cc4549cc761fd2f8fa8db5b5330a67e327ad5abbe92eef6479bb14130f4"
+  },
+  {
+    "fichier": "20261110052302_securisation_pilote_notifications.sql",
+    "sha256": "5d1158fe523986e5a880ff8e0eff0d7865f901ce30c67efff3cb00e346c7a19f"
+  },
+  {
+    "fichier": "20261110181422_supervision_v1_lecture_bornee.sql",
+    "sha256": "b61df4663f4e9d2ec4700993776c5ca33d85617015e0fa7e4668f7442ddb9abc"
+  }
+]

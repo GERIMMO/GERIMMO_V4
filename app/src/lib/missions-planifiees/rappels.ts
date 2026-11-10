@@ -1,3 +1,4 @@
+import { verifierCourrielsAcceptes } from "@/lib/rapprochement-courriels";
 import { traiterFileFactures } from "@/lib/automatisation-factures";
 import { ArretSupervision, verifierAvantEffet } from "@/lib/controle-effets";
 // Tâche planifiée : rappeler le rendez-vous à ceux qui doivent s'y trouver
@@ -167,6 +168,7 @@ export async function traiterRappels(request: Request) {
     // Un échec des charges ne bloque pas les rappels de rendez-vous et invitations.
   }
   const releves_compteurs = await planifierReleves(supabase);
+  await verifierCourrielsAcceptes(supabase).catch(() => consignerTache(supabase,"rappels",{erreur:"Rapprochement des courriels indisponible"}));
   await traiterFileFactures(supabase,()=>verifierAvantEffet(supabase,"rappels")).catch(async e=>{
     if(e instanceof ArretSupervision)throw e;
     await consignerTache(supabase,"factures",{erreur:"Traitement automatique à reprendre"});
@@ -221,7 +223,7 @@ export async function traiterRappels(request: Request) {
     await verifierAvantEffet(supabase, "rappels");
     if (Date.now() >= echeanceMs) break;
     let delaiDepasse = false;
-    const envoi = await envoyerEmail({
+    const envoi = await envoyerEmail({ circuit:"lib/missions-planifiees/rappels",
       get delaiMaxMs() { return Math.max(1, Math.floor(Math.min(15_000, echeanceMs - Date.now()))); },
       avantEnvoi: async () => {
         await verifierAvantEffet(supabase, "rappels");

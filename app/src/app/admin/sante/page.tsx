@@ -1,3 +1,4 @@
+import TraitementsDurables from "./traitements-durables";
 import { ConsoleSection } from "@/components/console-section";
 import { SuiviStripe, type ControleStripe } from "./controle-stripe";
 import { BudgetSignatures, type BudgetSignature } from "./budget-signatures";
@@ -441,6 +442,6 @@ export default async function PageSante() {
           {" "}<Link href="/admin/clients" className="lien-discret">Voir les organisations →</Link>
         </p>
       </ConsoleSection>
-    <SuiviStripe controle={controleStripe.error ? null : controleStripe.data as ControleStripe}/><BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} ouverture={ouverture}/></main>
+    <TraitementsDurables /><SuiviStripe controle={controleStripe.error ? null : controleStripe.data as ControleStripe}/><BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} ouverture={ouverture}/></main>
   );
 }

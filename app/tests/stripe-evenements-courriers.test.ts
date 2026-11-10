@@ -1,3 +1,6 @@
+// Gabarits et historique du circuit suspendu : transport et admission sont simulés ici.
+// L'interdiction réelle en commercial est testée par livraison-protections.test.ts.
+vi.mock('../src/lib/perimetre-pilote',async original=>({...await original<typeof import('../src/lib/perimetre-pilote')>(),piloteLimite:()=>false}));
 /**
  * Les courriers du contrat déclenchés par le webhook Stripe (plan de conformité du 23/10/2026), sans Stripe, base ni
  * prestataire d'e-mail réels :

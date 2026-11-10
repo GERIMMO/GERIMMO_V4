@@ -1,3 +1,4 @@
+import {exigerOperationsPayantesAutorisees} from "./verrou-pilote";
 import {expliquerRefusIA} from './erreur-ia';
 import {createHash} from 'node:crypto';
 import type {AvantAppelIA} from './plafond-ia';
@@ -10,6 +11,7 @@ export function consigneVisuel(id:string,titre:string){
 export async function creerVisuelMarketing(id:string,titre:string,avantAppel:AvantAppelIA){
  const cle=process.env.OPENAI_API_KEY?.trim()||process.env.OPEN_AI_KEY?.trim();if(!cle)throw new Error('La création des images attend la connexion de l’IA.');
  await avantAppel();
+  exigerOperationsPayantesAutorisees();
  const r=await fetch('https://api.openai.com/v1/images/generations',{method:'POST',headers:{Authorization:`Bearer ${cle}`,'Content-Type':'application/json'},redirect:'error',signal:AbortSignal.timeout(110000),body:JSON.stringify({model:process.env.OPENAI_MARKETING_IMAGE_MODEL?.trim()||'gpt-image-2',prompt:consigneVisuel(id,titre),n:1,size:'1536x1024',quality:'low',output_format:'jpeg'})});
  if(!r.ok)throw await expliquerRefusIA(r);
  const donnees=await r.json();const b64=donnees?.data?.[0]?.b64_json;

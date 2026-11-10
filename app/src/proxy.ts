@@ -164,6 +164,7 @@ export async function proxy(request: NextRequest) {
     "/api/stripe/webhook",
     "/api/zoho-sign/webhook",
     "/api/resend/contact",
+    "/api/resend/suivi",
     "/api/sante",
   ].includes(request.nextUrl.pathname)) {
     return NextResponse.next({ request });

@@ -34,3 +34,15 @@ it("une prestation ambiguë ou un calcul refusé ne produit aucun partage",async
 it("un PDF indisponible laisse une action au propriétaire sans faux succès d’envoi",async()=>{
  pdf.mockResolvedValue({erreur:"Identité à compléter"});const {db,appels}=base();expect((await traiterFactureAutomatique(db,"org","f")).etat).toBe("a_verifier");expect(appels.some(a=>a.geste==="diffuser_pdf_repartition")).toBe(false);
 });
+it('100 factures fictives : dossiers complets et index tardifs, calcul et PDF une fois par traitement',async()=>{
+ const debut=performance.now();let terminees=0,attentes=0;
+ for(let i=0;i<100;i++){
+  const manquant=i%10===0;const {db}=base('eau',manquant);
+  const r=await traiterFactureAutomatique(db,`proprietaire-${i%5}`,`facture-${i}`,async()=>{},`jeton-${i}`);
+  if(r.etat==='terminee')terminees++;else if(r.etat==='releves_attendus')attentes++;
+ }
+ expect([terminees,attentes]).toEqual([90,10]);expect(calcul).toHaveBeenCalledTimes(90);expect(pdf).toHaveBeenCalledTimes(90);
+ for(let i=0;i<10;i++)expect((await traiterFactureAutomatique(base().db,`proprietaire-${i%5}`,`attente-${i}`,async()=>{},`jeton-reprise-${i}`)).etat).toBe('terminee');
+ expect(calcul).toHaveBeenCalledTimes(100);expect(pdf).toHaveBeenCalledTimes(100);
+ expect(performance.now()-debut).toBeLessThan(300000);
+});

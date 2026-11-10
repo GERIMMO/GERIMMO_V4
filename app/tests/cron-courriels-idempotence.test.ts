@@ -21,17 +21,23 @@
  * LA LIMITE DE 24 H. La clé n'est retenue que 24 h (hypothèse, voir le faux
  * fournisseur), et ces tâches tournent une fois par jour : une reprise « le
  * lendemain » tombe au bord de la fenêtre. Les tests « dans les 24 h » et
- * « au-delà de 24 h » montrent les deux côtés ; le second est un DOUBLON
- * ATTENDU, risque résiduel connu de la décision D47, pas un comportement voulu.
+ * « au-delà de 24 h » montrent les deux côtés ; le journal durable interdit maintenant ce doublon, même après expiration.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { quittanceDocumentComplete } from "./fixtures/quittance-document";
 import { fauxFournisseurEmail } from "./fixtures/faux-fournisseur-email";
 
 const rpc = vi.fn();
+const journal=vi.hoisted(()=>new Map<string,{etat:string;id?:string}>());
+const durable=vi.hoisted(()=>({rpc:async(n:string,p:Record<string,string>)=>{
+ if(['conserver_courriel','attacher_contexte_courriel','verifier_contexte_courriel','finaliser_courriel_metier'].includes(n))return {data:true,error:null};
+ if(n==='prendre_courriel'){const m=journal.get(p.p_id);if(m)return {data:m,error:null};journal.set(p.p_id,{etat:'en_cours'});return {data:{etat:'pris'},error:null};}
+ if(n==='finir_courriel'){journal.set(p.p_id,{etat:p.p_etat,id:p.p_fournisseur});return {data:true,error:null};}
+ return null;
+}}));
 vi.mock("@/lib/supabase/service", () => ({
   clientDeService: () => ({
-    rpc: (...a: unknown[]) => (["verifier_arret_supervision", "relance_loyer_envoi_confirme"].includes(String(a[0])) ? Promise.resolve({ data: true, error: null }) : rpc(...a)),
+    rpc: (...a: unknown[]) => (String(a[0]).includes("courriel") ? durable.rpc(String(a[0]),a[1] as Record<string,string>) : ["verifier_arret_supervision", "relance_loyer_envoi_confirme"].includes(String(a[0])) ? Promise.resolve({ data: true, error: null }) : rpc(...a)),
   }),
 }));
 // Pas de marque d'agence à lire : l'envoi part avec l'expéditeur par défaut.
@@ -58,10 +64,13 @@ const appelsDe = (fn: string) => rpc.mock.calls.filter(([nom]) => nom === fn);
 let fournisseur = fauxFournisseurEmail();
 
 beforeEach(() => {
+  vi.stubEnv("GERIMMO_PILOTE_LIMITE", "false");
+  vi.stubEnv("COURRIELS_CHIFFREMENT_CLE", "ab".repeat(32));
   vi.stubEnv("CRON_SECRET", SECRET);
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app");
   vi.stubEnv("RESEND_API_KEY", "cle-de-test");
   rpc.mockReset();
+  journal.clear();
   fournisseur = fauxFournisseurEmail();
   vi.stubGlobal("fetch", fournisseur.fetch);
   // Le délai de 15 s est ramené à 25 ms : le test ne l'attend pas.
@@ -122,7 +131,7 @@ describe("quittances", () => {
     expect(premiere[0]).not.toContain("@");
     fournisseur.avancer(23 * 3_600_000);
     await GET(appel("quittances"));
-    expect(fournisseur.cles()).toEqual([premiere[0], premiere[0]]);
+    expect(fournisseur.cles()).toEqual([premiere[0]]);
     expect(fournisseur.acceptes).toHaveLength(1);
     expect(fournisseur.appels.every((a) => a.avecDelai)).toBe(true);
   });
@@ -137,7 +146,7 @@ describe("quittances", () => {
     expect(fournisseur.acceptes).toHaveLength(1);
   });
 
-  it("RISQUE RÉSIDUEL DE D47 : un peu après les 24 h, la clé est oubliée et la reprise renvoie la quittance", async () => {
+  it("après les 24 h, la clé fournisseur est oubliée mais le journal empêche le renvoi", async () => {
     const { traiterQuittances: GET } = await import("../src/lib/missions-planifiees/quittances");
     banc({ erreur: true });
     await GET(appel("quittances"));
@@ -145,8 +154,8 @@ describe("quittances", () => {
     // d'une tâche quotidienne suffit à passer de l'autre côté de la limite.
     fournisseur.avancer(24 * 3_600_000 + 2_000);
     await GET(appel("quittances"));
-    expect(fournisseur.acceptes).toHaveLength(2);
-    expect(fournisseur.acceptes.map((m) => m.to[0])).toEqual(["locataire@exemple.fr", "locataire@exemple.fr"]);
+    expect(fournisseur.acceptes).toHaveLength(1);
+    expect(fournisseur.acceptes.map((m) => m.to[0])).toEqual(["locataire@exemple.fr"]);
   });
 
   it("un reçu partiel envoyé, puis la MÊME ligne promue en quittance : la quittance part à la passe suivante, sans refus du service", async () => {
@@ -197,6 +206,15 @@ describe("quittances", () => {
     expect(appelsDe("marquer_quittance_envoyee")).toHaveLength(0);
 
     fournisseur.definirMode("normal");
+    // Sans preuve, la reprise doit rester bloquée ; la preuve simulée ci-dessous
+    // représente le webhook signé, testé séparément avec les vraies fonctions SQL.
+    const nAvant=fournisseur.acceptes.length;
+    for(const [id,m] of journal) if(m.etat==='inconnu') {
+      const refuse=await durable.rpc('prendre_courriel',{p_id:id});
+      expect(refuse?.data).toMatchObject({etat:'inconnu'});
+      journal.set(id,{etat:'accepte',id:`preuve-${id}`});
+    }
+    expect(fournisseur.acceptes).toHaveLength(nAvant);
     await GET(appel("quittances"));
     expect(bilanConsigne()).toMatchObject({ envoyees: 1, echecs: 0 });
     expect(appelsDe("marquer_quittance_envoyee")).toHaveLength(1);
@@ -230,7 +248,7 @@ describe("avis d'échéance", () => {
       expect(cle).not.toContain("@");
     }
     await GET(appel("appels"));
-    expect(fournisseur.cles().slice(2)).toEqual(premiere);
+    expect(fournisseur.cles()).toEqual(premiere);
     expect(fournisseur.acceptes.map((m) => m.to[0]).sort()).toEqual(["colocataire@exemple.fr", "locataire@exemple.fr"]);
   });
 
@@ -273,13 +291,22 @@ describe("avis d'échéance", () => {
     banc({ erreur: false });
     fournisseur.definirMode("accepte-puis-muet");
     await GET(appel("appels"));
-    expect(bilanConsigne()).toMatchObject({ envoyes: 0, echecs: 1 });
+    expect(bilanConsigne()).toMatchObject({ envoyes: 0, echecs: 2 });
     expect((bilanConsigne().echecs_detail as { motif: string }[])[0].motif).toMatch(MOTIF_DELAI);
     expect(appelsDe("marquer_appel_envoye")).toHaveLength(0);
-    // Le principal n'a pas été confirmé : le colocataire n'a pas été écrit non plus.
-    expect(fournisseur.acceptes).toHaveLength(1);
+    // Les deux destinataires ont été tentés indépendamment et restent incertains.
+    expect(fournisseur.acceptes).toHaveLength(2);
 
     fournisseur.definirMode("normal");
+    // Sans preuve, la reprise doit rester bloquée ; la preuve simulée ci-dessous
+    // représente le webhook signé, testé séparément avec les vraies fonctions SQL.
+    const nAvant=fournisseur.acceptes.length;
+    for(const [id,m] of journal) if(m.etat==='inconnu') {
+      const refuse=await durable.rpc('prendre_courriel',{p_id:id});
+      expect(refuse?.data).toMatchObject({etat:'inconnu'});
+      journal.set(id,{etat:'accepte',id:`preuve-${id}`});
+    }
+    expect(fournisseur.acceptes).toHaveLength(nAvant);
     await GET(appel("appels"));
     expect(bilanConsigne()).toMatchObject({ envoyes: 1, echecs: 0 });
     expect(appelsDe("marquer_appel_envoye")).toHaveLength(1);
@@ -314,7 +341,7 @@ describe("relances de loyer", () => {
     }
     expect(premiere.filter((c) => c.includes("/caution/"))).toHaveLength(1);
     await GET(appel("relances"));
-    expect(fournisseur.cles().slice(3)).toEqual(premiere);
+    expect(fournisseur.cles()).toEqual(premiere);
     expect(fournisseur.acceptes).toHaveLength(3);
   });
 
@@ -362,11 +389,20 @@ describe("relances de loyer", () => {
     banc({ erreur: false });
     fournisseur.definirMode("accepte-puis-muet");
     await GET(appel("relances"));
-    expect(bilanConsigne()).toMatchObject({ envoyees: 0, echecs: 1 });
+    expect(bilanConsigne()).toMatchObject({ envoyees: 0, echecs: 3 });
     expect((bilanConsigne().echecs_detail as { motif: string }[])[0].motif).toMatch(MOTIF_DELAI);
     expect(appelsDe("relance_loyer_consigner")).toHaveLength(0);
 
     fournisseur.definirMode("normal");
+    // Sans preuve, la reprise doit rester bloquée ; la preuve simulée ci-dessous
+    // représente le webhook signé, testé séparément avec les vraies fonctions SQL.
+    const nAvant=fournisseur.acceptes.length;
+    for(const [id,m] of journal) if(m.etat==='inconnu') {
+      const refuse=await durable.rpc('prendre_courriel',{p_id:id});
+      expect(refuse?.data).toMatchObject({etat:'inconnu'});
+      journal.set(id,{etat:'accepte',id:`preuve-${id}`});
+    }
+    expect(fournisseur.acceptes).toHaveLength(nAvant);
     await GET(appel("relances"));
     expect(bilanConsigne()).toMatchObject({ envoyees: 1, echecs: 0 });
     expect(appelsDe("relance_loyer_consigner")).toHaveLength(1);
@@ -402,7 +438,7 @@ describe("rappels de rendez-vous", () => {
       "rappel/iv-1/veille/artisan/2026-10-20T08:00:00.000Z",
     ]);
     await GET(appel("rappels"));
-    expect(fournisseur.cles().slice(2)).toEqual(premiere);
+    expect(fournisseur.cles()).toEqual(premiere);
     expect(fournisseur.acceptes).toHaveLength(2);
   });
 
@@ -416,9 +452,22 @@ describe("rappels de rendez-vous", () => {
     expect(fournisseur.acceptes).toHaveLength(2);
 
     fournisseur.definirMode("normal");
+    // Sans preuve, la reprise doit rester bloquée ; la preuve simulée ci-dessous
+    // représente le webhook signé, testé séparément avec les vraies fonctions SQL.
+    const nAvant=fournisseur.acceptes.length;
+    for(const [id,m] of journal) if(m.etat==='inconnu') {
+      const refuse=await durable.rpc('prendre_courriel',{p_id:id});
+      expect(refuse?.data).toMatchObject({etat:'inconnu'});
+      journal.set(id,{etat:'accepte',id:`preuve-${id}`});
+    }
+    expect(fournisseur.acceptes).toHaveLength(nAvant);
     await GET(appel("rappels"));
     expect(bilanConsigne()).toMatchObject({ rappeles: 2, echecs: 0 });
     expect(appelsDe("marquer_rappel_envoye")).toHaveLength(2);
     expect(fournisseur.acceptes).toHaveLength(2);
   });
 });
+
+// Banc historique du transport uniquement : la suspension V1 réelle est vérifiée
+// séparément dans perimetre-pilote-controles et livraison-protections. Aucun fournisseur réel.
+vi.mock("@/lib/perimetre-pilote",async(importOriginal)=>({...await importOriginal<typeof import("@/lib/perimetre-pilote")>(),piloteLimite:()=>false,circuitAdmisPilote:()=>true}));

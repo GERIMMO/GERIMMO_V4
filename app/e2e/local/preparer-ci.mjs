@@ -15,6 +15,7 @@ const fichiers = (await readdir(new URL('supabase/migrations/', app))).filter((f
 if (new Set(manifeste).size !== manifeste.length || fichiers.length !== manifeste.length || fichiers.some((f) => !manifeste.includes(f))) {
   throw new Error('Le manifeste doit contenir chaque migration exactement une fois.');
 }
+const selection=manifeste.filter(f=>!(process.env.GERIMMO_BASE_AVANT_LOTS==='1' && /^(20261109|20261110)/.test(f)));
 const db = new Client({ connectionString: url.href });
 await db.connect();
 try {
@@ -31,7 +32,7 @@ try {
       on conflict(jobname) do update set schedule=excluded.schedule,command=excluded.command returning jobid $$;
     create schema e2e_local;
     create table e2e_local.migrations(name text primary key,applied_at timestamptz default now());`);
-  for (const fichier of manifeste) {
+  for (const fichier of selection) {
     const sql = (await readFile(new URL('supabase/migrations/' + fichier, app), 'utf8')).replace(/^create extension if not exists pg_cron;/m, '');
     await db.query(sql);
     await db.query('insert into e2e_local.migrations(name) values($1)', [fichier]);
@@ -56,4 +57,4 @@ const api = new Client({ connectionString: apiUrl.href });
 await api.connect();
 try { await api.query(await readFile(new URL('supabase/seed.sql', app), 'utf8')); }
 finally { await api.end(); }
-console.log(`${manifeste.length} migrations appliquées. Bases SQL et API séparées, fixtures fictives prêtes.`);
+console.log(`${selection.length} migrations appliquées. Bases SQL et API séparées, fixtures fictives prêtes.`);

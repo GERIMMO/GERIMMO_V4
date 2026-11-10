@@ -411,11 +411,29 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
                               'abonnements', 'abonnement_evenements', 'intentions_souscription', 'verrous_facturation', 'mois_offerts',
                               'retractations_abonnement',
                               'retours_utilisateurs', 'retours_soutiens',
-                              'automation_events', 'orchestration_cases', 'orchestration_history')
+                              'automation_events', 'orchestration_cases', 'orchestration_history',
+                              'courriels_durables', 'factures_automatiques_evenements', 'notification_intentions')
         and not exists (select 1 from pg_trigger t
                         where t.tgrelid = c.oid and t.tgname like 'abonnement\\_%')
       order by c.relname`);
     expect(rows.map((r) => r.relname)).toEqual([]);
+  });
+
+  it("les journaux de reprise restent internes et inscriptibles seulement par le service", async () => {
+    // Conserver une preuve ou finaliser un envoi accepté doit rester possible
+    // même après suspension. Cette exception n'autorise aucune saisie utilisateur.
+    for (const table of ["courriels_durables", "factures_automatiques_evenements", "notification_intentions"]) {
+      for (const role of ["anon", "authenticated"]) {
+        const { rows: [droits] } = await db.query(
+          `select has_table_privilege($1,$2,'INSERT') as insertion,
+                  has_table_privilege($1,$2,'UPDATE') as modification,
+                  has_table_privilege($1,$2,'DELETE') as suppression`, [role, `public.${table}`]);
+        expect(droits, `${role} sur ${table}`).toEqual({ insertion: false, modification: false, suppression: false });
+      }
+      const { rows: [securite] } = await db.query(
+        "select relrowsecurity as rls from pg_class where oid=$1::regclass", [`public.${table}`]);
+      expect(securite.rls).toBe(true);
+    }
   });
 
   it("les tables d'abonnement restent hors garde, sinon le compte fermé ne se rouvre jamais", async () => {

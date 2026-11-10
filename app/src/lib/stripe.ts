@@ -1,3 +1,4 @@
+import {paiementsInterdits, MESSAGE_PAIEMENT_PILOTE, exigerOperationsPayantesAutorisees} from "./verrou-pilote";
 import { ArretSupervision } from "./controle-effets";
 // L'adaptateur Stripe — et rien d'autre que l'adaptateur.
 //
@@ -58,6 +59,7 @@ export function variablePrix(pour: PublicTarif): string {
  * signale au moment où quelqu'un veut souscrire, en nommant SA variable.
  */
 export function configurationStripe(): Prete | Manque {
+  if(paiementsInterdits())return {pret:false,motif:MESSAGE_PAIEMENT_PILOTE};
   const cle = process.env.STRIPE_SECRET_KEY?.trim();
   const secretWebhook = process.env.STRIPE_WEBHOOK_SECRET?.trim();
   const manquantes = [
@@ -113,6 +115,8 @@ export const DELAI_APPEL_STRIPE_MS = 30_000;
 export const NOUVELLES_TENTATIVES_STRIPE = 2;
 
 export function clientStripe(config: ConfigStripe): Stripe {
+  exigerOperationsPayantesAutorisees();
+  if (process.env.GERIMMO_MODE === "simulation" && /^(?:sk|rk)_live_/.test(config.cle)) throw new Error("Clé Stripe réelle interdite en simulation.");
   // Un client par clé, gardé entre les requêtes : la construction ouvre un
   // agent HTTP, et en refaire un à chaque appel gaspille une poignée de main
   // TLS par paiement.

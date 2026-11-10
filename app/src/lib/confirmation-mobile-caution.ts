@@ -195,7 +195,7 @@ export async function demanderConfirmationMobileCaution(p: { service: SupabaseCl
   if (demande.error || typeof demande.data !== "string") throw new Error(sansJargon(demande.error?.message ?? "Le lien n’a pas pu être préparé."));
   const expireLe = demande.data;
   const message = messageConfirmationMobileCaution({ ...infos, lien: `${origine}${cheminConfirmationCaution(jeton)}`, expireLe, confidentialite: lienConfidentialite() });
-  const envoi = await envoyerEmail({ to: cible.email, subject: message.sujet, html: message.html, organisation: { db: service, id: org } });
+  const envoi = await envoyerEmail({ circuit:"lib/confirmation-mobile-caution", to: cible.email, subject: message.sujet, html: message.html, organisation: { db: service, id: org } });
   if (envoi.erreur) throw new Error(`Le lien est prêt, mais l’e-mail n’est pas parti : ${envoi.erreur} Vous pouvez renvoyer le lien.`);
   return { expireLe, email: cible.email };
 }

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { verifierEnvironnement } from "./verifier-environnement.mjs";
 
 test("la production Vercel et les bancs locaux restent constructibles", () => {
-  for (const env of [{}, { NODE_ENV: "production" }, { CI: "true" }, { VERCEL: "1", VERCEL_ENV: "production" }]) {
+  for (const env of [{}, { NODE_ENV: "production" }, { CI: "true" }, { VERCEL: "1", VERCEL_ENV: "production", GERIMMO_MODE:"commercial", NEXT_PUBLIC_SITE_URL:"https://www.gerimmo.app", COURRIELS_CHIFFREMENT_CLE:"a".repeat(64) }]) {
     assert.doesNotThrow(() => verifierEnvironnement(env));
   }
 });
@@ -50,3 +50,5 @@ test("le premier déploiement dérive son origine sans dépendre du domaine de p
     assert.throws(() => verifierEnvironnement({ ...env, VERCEL_URL: hote }), /Construction suspendue/);
   }
 });
+
+test("la production sans configuration commerciale explicite est refusée",()=>{assert.throws(()=>verifierEnvironnement({VERCEL:"1",VERCEL_ENV:"production"}),/Construction suspendue/);});

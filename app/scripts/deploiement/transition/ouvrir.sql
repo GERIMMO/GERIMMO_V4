@@ -1,0 +1,14 @@
+begin;
+drop trigger if exists aaa_maintenance_transition_v1 on public.incidents;
+drop trigger if exists aaa_maintenance_transition_v1 on public.incident_interventions;
+drop trigger if exists aaa_maintenance_transition_v1 on public.incident_sollicitations;
+drop trigger if exists aaa_maintenance_transition_v1 on public.incident_devis;
+drop trigger if exists aaa_maintenance_transition_v1 on public.messages;
+drop trigger if exists aaa_maintenance_transition_v1 on public.pieces_demandees;
+drop trigger if exists aaa_maintenance_transition_v1 on public.demandes_signature;
+drop trigger if exists aaa_maintenance_transition_v1 on public.intervention_creneaux;
+drop trigger if exists aaa_maintenance_transition_v1 on public.factures_automatiques;
+drop trigger if exists aaa_maintenance_transition_v1 on public.factures_fourniture;
+drop trigger if exists aaa_maintenance_transition_v1 on public.repartitions_fourniture;
+drop trigger if exists aaa_maintenance_transition_v1 on public.releves_consommation;
+commit;

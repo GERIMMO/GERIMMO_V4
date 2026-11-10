@@ -1,3 +1,4 @@
+import {exigerOperationsPayantesAutorisees} from "./verrou-pilote";
 // LA RÉDACTION D'UN ARTICLE DE VEILLE, ANCRÉE DANS LA SOURCE (06/10/2026).
 //
 // Jusqu'ici `sujetDeVeille()` produisait un gabarit fixe sans information
@@ -117,6 +118,7 @@ export async function redigerArticleVeille(info: InfoVeille, texteSource: string
   const cle = env.OPENAI_API_KEY?.trim() || env.OPEN_AI_KEY?.trim();
   if (!cle) throw new ErreurIA("La rédaction attend la connexion de l’IA.");
   await avantAppel();
+  exigerOperationsPayantesAutorisees();
   const r = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { Authorization: `Bearer ${cle}`, "Content-Type": "application/json" },

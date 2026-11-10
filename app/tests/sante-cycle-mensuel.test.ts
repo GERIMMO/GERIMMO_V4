@@ -1,3 +1,4 @@
+import { rendreServeur } from "./fixtures/rendu-serveur";
 /**
  * D07 (AUD-C-02) : l'écran Santé lit le dernier passage du cycle mensuel et alerte au-delà de 32 jours.
  *
@@ -7,7 +8,6 @@
  * généré sans aucun signal. Ces tests gardent la lecture, le seuil, le décompte et l'écran.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
 import {
   chargerCycleMensuel,
   chargerSante,
@@ -158,7 +158,7 @@ describe("l'écran Santé", () => {
   const passageReel = (jours: number) => ({ evenement: "cycle_mensuel", details: bilan, created_at: new Date(maintenantReel() - jours * JOUR).toISOString() });
   async function rendre(tables: Tables, erreurs: Record<string, unknown> = {}) {
     mocks.createClient.mockResolvedValue(client({ organizations: [], ...tables }, erreurs).db);
-    return renderToStaticMarkup(await PageSante());
+    return await rendreServeur(await PageSante());
   }
   beforeEach(() => { mocks.createClient.mockReset(); });
 

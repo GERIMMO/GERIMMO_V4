@@ -38,7 +38,7 @@ async function ouvrirPieces(page: import("@playwright/test").Page) {
 async function ouvrirGrille(page: import("@playwright/test").Page) {
   await page.goto(cheminGrille());
   await ouvrirPieces(page);
-  await expect(page.getByRole("status")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("status").filter({ hasText: /Synchronisé|à synchroniser|Hors ligne|Synchronisation/ })).toBeVisible({ timeout: 20_000 });
   // La synthèse d'alertes peut recouvrir la grille à la connexion : on la ferme
   const fermer = page.getByRole("button", { name: "Fermer" });
   if (await fermer.count()) {
@@ -53,18 +53,18 @@ test("saisie → brouillon local → rechargement → la saisie est toujours là
   const commentaire = page.locator('input[name^="commentaire_"]').first();
   await commentaire.fill("Testé hors ligne — rayure d'angle");
   // L'indicateur permanent passe en « à synchroniser »
-  await expect(page.getByRole("status")).toContainText(/à synchroniser/);
+  await expect(page.getByRole("status").filter({ hasText: /Synchronisé|à synchroniser|Hors ligne|Synchronisation/ })).toContainText(/à synchroniser/);
   // Le brouillon part en localStorage (débobinage 400 ms)
   await page.waitForTimeout(700);
 
   await page.reload();
   await ouvrirPieces(page);
-  await expect(page.getByRole("status")).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: /Synchronisé|à synchroniser|Hors ligne|Synchronisation/ })).toBeVisible();
   await expect(page.locator('select[name^="etat_"]').first()).toHaveValue("bon");
   await expect(page.locator('input[name^="commentaire_"]').first()).toHaveValue(
     "Testé hors ligne — rayure d'angle"
   );
-  await expect(page.getByRole("status")).toContainText(/à synchroniser/);
+  await expect(page.getByRole("status").filter({ hasText: /Synchronisé|à synchroniser|Hors ligne|Synchronisation/ })).toContainText(/à synchroniser/);
 });
 
 // CE TEST TIENT AUSSI LA SAISIE D'AVANT L'HYDRATATION (12/09). En coupant le
@@ -86,15 +86,15 @@ test("hors ligne : l'indicateur l'annonce ; au retour du réseau la grille se sy
   await page.waitForTimeout(700);
   // Tenter d'enregistrer hors ligne : l'app ne casse pas, elle l'annonce
   await page.getByRole("button", { name: "Enregistrer la grille" }).click();
-  await expect(page.getByRole("status")).toContainText(/Hors ligne/);
+  await expect(page.getByRole("status").filter({ hasText: /Synchronisé|à synchroniser|Hors ligne|Synchronisation/ })).toContainText(/Hors ligne/);
 
   await context.setOffline(false);
   // L'événement online déclenche la synchronisation silencieuse
-  await expect(page.getByRole("status")).toContainText(/Synchronisé/, { timeout: 20_000 });
+  await expect(page.getByRole("status").filter({ hasText: /Synchronisé|à synchroniser|Hors ligne|Synchronisation/ })).toContainText(/Synchronisé/, { timeout: 20_000 });
 
   // La base a bien la valeur : un rechargement la montre sans brouillon
   await page.reload();
   await ouvrirPieces(page);
   await expect(page.locator('select[name^="etat_"]').nth(1)).toHaveValue("usage");
-  await expect(page.getByRole("status")).toContainText(/Synchronisé/);
+  await expect(page.getByRole("status").filter({ hasText: /Synchronisé|à synchroniser|Hors ligne|Synchronisation/ })).toContainText(/Synchronisé/);
 });

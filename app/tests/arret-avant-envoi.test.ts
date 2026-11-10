@@ -1,12 +1,19 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import { envoyerEmail } from '../src/lib/email';
+import { envoyerEmail, envoyerEmailTransport } from '../src/lib/email';
 import { envoyerSurFacebook } from '../src/lib/facebook';
 import { ArretSupervision } from '../src/lib/controle-effets';
 afterEach(()=>{vi.unstubAllGlobals();vi.unstubAllEnvs();});
 it('un arrêt empêche l’appel au service d’e-mail',async()=>{
   vi.stubEnv('RESEND_API_KEY','cle-fictive-sans-service');
   const reseau=vi.fn();vi.stubGlobal('fetch',reseau);
-  await expect(envoyerEmail({to:'test@example.invalid',subject:'TEST',html:'TEST',avantEnvoi:async()=>{throw new ArretSupervision();}})).rejects.toBeInstanceOf(ArretSupervision);
+  await expect(envoyerEmailTransport({contexteMetier:{type:'notification',id:'incident-test',evenement:'incident_urgent',role:'agence'},to:'test@example.invalid',subject:'TEST',html:'TEST',avantEnvoi:async()=>{throw new ArretSupervision();}})).rejects.toBeInstanceOf(ArretSupervision);
+  expect(reseau).not.toHaveBeenCalled();
+});
+it('sans suivi durable aucun e-mail ne part même avec une clé configurée',async()=>{
+  vi.stubEnv('RESEND_API_KEY','cle-fictive-sans-service');
+  vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY','');
+  const reseau=vi.fn();vi.stubGlobal('fetch',reseau);
+  expect(await envoyerEmail({to:'test@example.invalid',subject:'TEST',html:'TEST'})).toMatchObject({erreur:expect.stringContaining('indisponible')});
   expect(reseau).not.toHaveBeenCalled();
 });
 it('un arrêt après lecture du jeton Facebook interdit encore la publication',async()=>{

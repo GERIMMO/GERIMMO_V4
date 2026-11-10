@@ -17,6 +17,14 @@ import { cleRelanceAbonnement } from "../src/lib/cles-idempotence-courriels";
 import { corpsRelance, type Palier } from "../src/lib/relance-paiement-email";
 import type { Periodicite } from "../src/lib/tarifs";
 
+// Le circuit historique reste testé hors pilote, avec un journal durable fictif.
+const messages=vi.hoisted(()=>new Map<string,{etat:string;id?:string}>());
+vi.mock('@/lib/supabase/service',()=>({clientDeService:()=>({rpc:async(n:string,p:Record<string,string>)=>{
+ if(n==='prendre_courriel'){const m=messages.get(p.p_id);if(m)return {data:m,error:null};messages.set(p.p_id,{etat:'en_cours'});return {data:{etat:'pris'},error:null};}
+ if(n==='finir_courriel'){messages.set(p.p_id,{etat:p.p_etat,id:p.p_fournisseur});return {data:true,error:null};}
+ return {data:false,error:null};
+}})}));
+vi.mock('@/lib/marque-organisation-serveur',()=>({chargerMarque:async()=>null}));
 type Due = {
   organization_id: string; organisation: string; destinataire: string | null; palier: number;
   jours_ecoules: number; jours_restants: number; lecture_seule_le: string; montant_mensuel: number;
@@ -47,6 +55,7 @@ function banc(lignes: () => Due[], marquage: { erreur: boolean } = { erreur: fal
 let fournisseur = fauxFournisseurEmail();
 
 beforeEach(() => {
+  vi.stubEnv("GERIMMO_PILOTE_LIMITE", "false");messages.clear();
   vi.stubEnv("RESEND_API_KEY", "cle-de-test");
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app");
   fournisseur = fauxFournisseurEmail();
@@ -81,12 +90,13 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
     expect(webhook.echecs[0]).toMatch(/n’a pas répondu à temps/);
     expect(marques).toHaveLength(0);
 
-    // La tâche de nuit rattrape l'alerte : même clé, même texte.
+    // La tâche de nuit conserve désormais l’incertitude sans réémission aveugle.
     fournisseur.definirMode("normal");
     fournisseur.avancer(20 * 3_600_000);
     const nuit = await envoyerRelancesDues(supabase);
-    expect(nuit).toMatchObject({ envoyees: 1, echecs: [] });
-    expect(marques).toEqual(["org-1"]);
+    expect(nuit.envoyees).toBe(0);
+    expect(nuit.echecs[0]).toMatch(/non confirmé/);
+    expect(marques).toEqual([]);
     expect(fournisseur.acceptes).toHaveLength(1);
   });
 
@@ -117,7 +127,8 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
     restants = 4;
     fournisseur.avancer(24 * 3_600_000 - 2_000);
     const bilan = await envoyerRelancesDues(supabase);
-    expect(bilan.echecs).toEqual([]);
+    expect(bilan.envoyees).toBe(0);
+    expect(bilan.echecs[0]).toMatch(/finalisation à vérifier/);
     expect(fournisseur.acceptes).toHaveLength(2);
     expect(new Set(fournisseur.cles()).size).toBe(2);
   });
@@ -200,3 +211,7 @@ describe("la clé de la relance d'abonnement suit exactement ce que le courrier 
     }
   }
 });
+
+// Banc historique du transport uniquement : la suspension V1 réelle est vérifiée
+// séparément dans perimetre-pilote-controles et livraison-protections. Aucun fournisseur réel.
+vi.mock("@/lib/perimetre-pilote",async(importOriginal)=>({...await importOriginal<typeof import("@/lib/perimetre-pilote")>(),piloteLimite:()=>false,circuitAdmisPilote:()=>true}));

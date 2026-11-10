@@ -44,7 +44,7 @@ describe("X04 — une seule porte pour les missions", () => {
     expect(routes().sort()).toEqual(["equipes/route.ts", "factures/route.ts", "orchestrateur/route.ts", "relais/route.ts"]);
     expect(Object.keys(MISSIONS)).not.toContain("relais");
     // Point de test local : ne doit jamais exécuter de traitement en production.
-    expect(readFileSync(join(CRON, "factures/route.ts"), "utf8")).toContain('process.env.NODE_ENV==="production"');
+    expect(readFileSync(join(CRON, "factures/route.ts"), "utf8")).toContain('porteurDuSecret(request,process.env.CRON_SECRET)');
   });
 
   it("aucune route directe ne subsiste pour une mission", () => {
@@ -76,7 +76,7 @@ describe("X04 — une seule porte pour les missions", () => {
   it("chaque chemin de vercel.json passe par la route d'équipes, celle du suivi des dossiers ou celle du relais", () => {
     for (const c of vercel.crons) {
       const chemin = new URL(`https://gerimmo.test${c.path}`).pathname;
-      expect(["/api/cron/equipes", "/api/cron/orchestrateur", "/api/cron/relais"], c.path).toContain(chemin);
+      expect(["/api/cron/equipes", "/api/cron/orchestrateur", "/api/cron/relais", "/api/cron/factures"], c.path).toContain(chemin);
     }
   });
 
@@ -88,7 +88,7 @@ describe("X04 — une seule porte pour les missions", () => {
   });
 
   it("le proxy laisse toujours passer les trois routes qui existent (elles vérifient leur secret)", async () => {
-    for (const chemin of ["/api/cron/equipes", "/api/cron/orchestrateur", "/api/cron/relais"]) {
+    for (const chemin of ["/api/cron/equipes", "/api/cron/orchestrateur", "/api/cron/relais", "/api/cron/factures"]) {
       const r = await proxy(new NextRequest(`https://gerimmo.test${chemin}`));
       expect(r.headers.get("location"), chemin).toBeNull();
       expect(r.headers.get("x-middleware-next"), chemin).toBe("1");

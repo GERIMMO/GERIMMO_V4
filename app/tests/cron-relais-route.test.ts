@@ -1,3 +1,9 @@
+// Tests de l’orchestration historique avec une frontière fournisseur simulée.
+// Les circuits suspendus ne sont PAS activés : voir courriels-circuits-suspendus-v1.test.ts.
+vi.mock("@/lib/email", async (importer) => ({
+  ...(await importer<typeof import("@/lib/email")>()),
+  envoyerEmail: (await import("./fixtures/transport-email-orchestration")).transportEmailOrchestration,
+}));
 /**
  * D46-B — la route /api/cron/relais (alerte e-mail quotidienne du relais).
  *

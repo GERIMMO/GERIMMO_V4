@@ -14,7 +14,7 @@ test('invitation : envoi non configuré honnête, refus, expiration, acceptation
   await db.query("insert into persons(id,organization_id,nom,prenom,email) values($1,$2,'TEST Invitation','Camille',$3)",[person,org,email]);
   await login(p,'proprietaire@example.com');await p.goto(`/espace/${org}/personnes/${person}#acces-locataire`);
   const card=p.locator('#acces-locataire');await card.getByRole('button',{name:'Inviter comme locataire',exact:true}).click();
-  await expect(card.getByRole('alert')).toContainText('n’a pas été envoyé');
+  await expect(card.getByRole('alert')).toContainText('Envoi non confirmé');
   await expect(card.getByText('En attente d’acceptation',{exact:true})).toBeVisible();
   expect((await db.query('select account_id from persons where id=$1',[person])).rows[0].account_id).toBeNull();
   expect((await db.query('select * from memberships where account_id=$1 and organization_id=$2',[target,org])).rows).toHaveLength(0);
@@ -25,10 +25,10 @@ test('invitation : envoi non configuré honnête, refus, expiration, acceptation
   await t.screenshot({path:info.outputPath('invitation-locataire.png'),fullPage:true});
   await t.getByRole('button',{name:'Refuser',exact:true}).click();await expect(t.getByText('Refusée',{exact:true})).toBeVisible();
   await t.reload();await expect(t.getByRole('button',{name:'Accepter l’invitation'})).toHaveCount(0);
-  await p.reload();await card.getByRole('button',{name:'Envoyer une nouvelle invitation'}).click();await expect(card.getByRole('alert')).toContainText('n’a pas été envoyé');id=await latest();
+  await p.reload();await card.getByRole('button',{name:'Envoyer une nouvelle invitation'}).click();await expect(card.getByRole('alert')).toContainText('Envoi non confirmé');id=await latest();
   await db.query("update invitations_locataires set expire_le=now()-interval '1 second' where id=$1",[id]);
   await t.goto(`/invitations/${id}`);await expect(t.getByText('Expirée',{exact:true})).toBeVisible();await expect(t.getByRole('button',{name:'Accepter l’invitation'})).toHaveCount(0);
-  await p.reload();await expect(card.getByText('Expirée',{exact:true})).toBeVisible();await card.getByRole('button',{name:'Envoyer une nouvelle invitation'}).click();await expect(card.getByRole('alert')).toContainText('n’a pas été envoyé');id=await latest();
+  await p.reload();await expect(card.getByText('Expirée',{exact:true})).toBeVisible();await card.getByRole('button',{name:'Envoyer une nouvelle invitation'}).click();await expect(card.getByRole('alert')).toContainText('Envoi non confirmé');id=await latest();
   await t.goto(`/invitations/${id}`);await t.getByRole('button',{name:'Accepter l’invitation',exact:true}).click();await t.waitForURL(`/locataire/${org}`);
   expect((await db.query('select account_id from persons where id=$1',[person])).rows[0].account_id).toBe(target);
   await p.reload();await expect(card.getByText(/Compte locataire actif/)).toBeVisible();await card.getByText('Historique des invitations',{exact:true}).click();await expect(card.locator('li')).toHaveCount(3);

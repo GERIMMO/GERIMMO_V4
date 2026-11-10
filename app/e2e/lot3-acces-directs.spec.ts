@@ -1,11 +1,14 @@
+import { baseApiFictive } from './local/base-api-fictive';
 import {test,expect} from '@playwright/test';
 import {Client} from 'pg';
 import {randomUUID,createHmac} from 'node:crypto';
 import {connecterVers,sansSyntheseAlertes} from './aides';
-const api='http://127.0.0.1:54331';
+const api=process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:54321';
+const cibleApi=new URL(api);
+if(cibleApi.protocol!=='http:'||!['127.0.0.1','localhost'].includes(cibleApi.hostname))throw Error('API fictive locale obligatoire');
 function clePublique(){const a=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url'),b=Buffer.from(JSON.stringify({role:'anon',exp:Math.floor(Date.now()/1000)+3600})).toString('base64url');return a+'.'+b+'.'+createHmac('sha256','gerimmo-local-secret').update(a+'.'+b).digest('base64url');}
 for(const role of ['proprietaire_direct','locataire','artisan'] as const)test(`accès directs refusés : ${role} d’un autre patrimoine SCI`,async({page},info)=>{
- const url=process.env.SUPALOCAL_DB;if(!['postgresql://postgres@127.0.0.1:55449/gerimmo_ci_lottrois_api','postgresql://postgres@127.0.0.1:55449/gerimmo_ci_vun_api'].includes(url??''))throw Error('Base locale fictive requise');
+ const url=process.env.SUPALOCAL_DB;baseApiFictive(url);
  const db=new Client({connectionString:url});await db.connect();
  const id=randomUUID(),email=`controle-${id}@example.invalid`,password='Fictif-'+randomUUID();
  try{
@@ -22,7 +25,7 @@ for(const role of ['proprietaire_direct','locataire','artisan'] as const)test(`a
   const fichier=await page.request.post(api+`/storage/v1/object/sign/documents/${doc.storage_path}`,{headers,data:{expiresIn:60}});expect(fichier.status()).toBeGreaterThanOrEqual(400);
   const reprise=await page.request.post(api+'/rest/v1/rpc/prendre_notification',{headers,data:{p_id:randomUUID(),p_jeton:randomUUID()}});expect(reprise.status()).toBeGreaterThanOrEqual(400);
   await sansSyntheseAlertes(page);await connecterVers(page,email,password,'/espaces');
-  const route=role==='locataire'?'locataire':'agence';const reponse=await page.request.get(`http://localhost:3579/${route}/${doc.organization_id}/documents/${doc.id}/fichier`);expect(reponse.status()).toBe(403);
+  const route=role==='locataire'?'locataire':'agence';const reponse=await page.request.get(`/${route}/${doc.organization_id}/documents/${doc.id}/fichier`);expect(reponse.status()).toBe(403);
   await page.goto(`/${route}/${doc.organization_id}/documents/${doc.id}/fichier`);await expect(page.getByText('Accès refusé',{exact:true})).toBeVisible();await page.screenshot({path:info.outputPath('acces-refuse.png'),fullPage:true});
  }finally{await db.end();}
 });

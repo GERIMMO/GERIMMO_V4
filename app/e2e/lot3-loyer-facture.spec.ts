@@ -1,3 +1,4 @@
+import { baseApiFictive } from './local/base-api-fictive';
 import { test, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
 import { randomUUID } from "node:crypto";
@@ -18,7 +19,7 @@ async function ouvrirDemandes(page: Page, facultatif = false) {
 }
 test('propriétaire : loyer confirmé et dépôt de facture conservé',async({page,browser},info)=>{
  const largeur=info.project.use.viewport?.width??1440;
- const url=process.env.SUPALOCAL_DB;if(!url||!/^postgresql:\/\/postgres@127\.0\.0\.1:55449\/gerimmo_ci_(?:lottrois|vun)_api$/.test(url))throw Error('Base Lot3 fictive obligatoire');
+ const url=process.env.SUPALOCAL_DB;baseApiFictive(url);
   const db=new Client({connectionString:url});await db.connect();
   const [ORG,bien,lot,personne,bailleur,bail,appel,futur]=Array.from({length:8},()=>randomUUID());
   const compte = randomUUID();

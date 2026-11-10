@@ -96,10 +96,10 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await p.getByLabel("Nom dans votre carnet").fill("M. Invité");
     await p.getByLabel("Métier", {exact:true}).selectOption("plomberie");
     await p.getByRole("button", { name: "Envoyer l’invitation", exact: true }).click();
-    await expect(p.getByRole("alert").filter({ hasText: "n’a pas été envoyé" })).toBeVisible();
+    await expect(p.getByRole("alert").filter({ hasText: "Envoi non confirmé" })).toBeVisible();
     await p.reload();
     const ligneInvitation = p.locator("li").filter({ hasText: email });
-    await expect(ligneInvitation).toContainText("e-mail non envoyé");
+    await expect(ligneInvitation).toContainText("envoi non confirmé");
     await expect(ligneInvitation.getByRole("button", { name: "Renvoyer" })).toBeVisible();
     await expect(ligneInvitation.getByRole("button", { name: "Annuler l’invitation" })).toBeVisible();
     expect(await debordementHorizontal(p)).toBeLessThanOrEqual(1);
@@ -114,10 +114,10 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await expect(annulee).toBeFocused();
     await expect(ligneInvitation).toContainText("Annulée");
     await ligneInvitation.getByRole("button", { name: "Inviter de nouveau" }).click();
-    const reinvitee = p.getByRole("alert").filter({ hasText: "n’a pas été envoyé" });
+    const reinvitee = p.getByRole("alert").filter({ hasText: "Envoi non confirmé" });
     await expect(reinvitee).toBeVisible();
     await expect(reinvitee).toBeFocused();
-    await expect(ligneInvitation).toContainText("e-mail non envoyé");
+    await expect(ligneInvitation).toContainText("envoi non confirmé");
     await expect(ligneInvitation.getByRole("button", { name: "Annuler l’invitation" })).toBeVisible();
     await p.screenshot({ path: info.outputPath("1b-carnet-reinvitation.png"), fullPage: true });
     const { rows: [{ id: invitation }] } = await db.query("select id from public.invitations_artisans where email=$1 and etat='en_attente'", [email]);

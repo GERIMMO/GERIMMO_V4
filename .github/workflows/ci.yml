@@ -142,6 +142,12 @@ jobs:
           # Même hôte que le site : Chromium accepte les cookies Secure du build local sur localhost.
           E2E_BASE_URL: http://localhost:3100
         run: npm run test:e2e
+      - name: Vérifier les envois admis avec boîte fictive et réseau extérieur bloqué
+        env:
+          E2E_CI: "1"
+          E2E_USE_BUILD: "1"
+          E2E_BASE_URL: http://localhost:3100
+        run: npx playwright test --config e2e/playwright.courriels.config.ts
       - name: Vérifier les parcours essentiels sur WebKit mobile
         env:
           E2E_CI: "1"
@@ -155,6 +161,7 @@ jobs:
           name: essais-interactifs
           path: |
             app/e2e/.results
+            app/e2e/.results-courriels
             app/e2e/.results-webkit
             app/e2e/.audit
             app/tmp/charge

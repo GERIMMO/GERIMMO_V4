@@ -131,16 +131,17 @@ export async function envoyerRelanceReception(orgId: string, appelId: string, _e
   }
   const site = adresseDuSite();
   if (!site || !/^https?:\/\//.test(site)) return { erreur: "L’adresse du site doit être configurée avant d’envoyer une relance." };
-  let envoyes = 0;
+  let envoyes = 0;const erreursEnvoi:string[]=[];
   for (const destinataire of destinataires.values()) {
     const message: RelanceLoyer = { niveau, prenom: destinataire.prenom, emetteur: organisation.name, lot: ligne.lot_nom, periode: ligne.periode, dateEcheance: ligne.date_echeance, reste, totalDu, lien: `${site}/locataire/${orgId}/loyers` };
-    const envoi = await envoyerEmail({ organisation: { db: supabase, id: orgId }, to: destinataire.email,
+    const envoi = await envoyerEmail({ circuit:"app/actions/reception-loyer", repriseAutonome: false, organisation: { db: supabase, id: orgId }, to: destinataire.email,
       subject: sujetRelanceLoyer(message), html: corpsRelanceLoyer(message),
       cleIdempotence: cleRelanceLoyer({ bailId: ligne.bail_id, niveau, dateEcheance: ligne.date_echeance, destinataire: destinataire.email, role: "locataire", reste, totalDu }),
     });
-    if (envoi.erreur) return { erreur: envoyes ? `La relance a été envoyée à ${envoyes} destinataire${envoyes > 1 ? "s" : ""}, mais un autre envoi reste à terminer. ${envoi.erreur} La relance n’est pas marquée comme terminée dans le bail.` : envoi.erreur };
+    if(envoi.erreur){erreursEnvoi.push(envoi.erreur);continue;}
     envoyes += 1;
   }
+  if(erreursEnvoi.length)return {erreur:`${envoyes} destinataire(s) accepté(s), ${erreursEnvoi.length} envoi(s) à terminer. La relance n’est pas marquée complète. ${erreursEnvoi[0]}`};
   const { error: erreurTrace } = await supabase.from("relances").upsert({ id, organization_id: orgId, bail_id: ligne.bail_id,
     niveau, date_envoi: aujourdhuiParis(), note: `${NOTE_RELANCE_TABLEAU} · échéance ${ligne.periode} · ${envoyes} destinataire${envoyes > 1 ? "s" : ""}`,
   }, { onConflict: "id", ignoreDuplicates: true });

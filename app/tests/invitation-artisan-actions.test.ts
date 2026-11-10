@@ -89,18 +89,18 @@ describe("inviter un artisan (propriétaire)", () => {
     });
     const courriel = m.courriel.mock.calls[0][0];
     expect(courriel.to).toBe("artisan@example.invalid");
-    expect(courriel).not.toHaveProperty("organisation"); // marque Gerimmo, pas celle de l'organisation
+    expect(courriel.organisation.id).toBe(org); expect(courriel.contexteMetier).toEqual({type:"invitation_artisan",id:inv,acteur:"proprietaire"}); // marque Gerimmo, pas celle de l'organisation
     expect(courriel.html).toContain(`https://www.gerimmo.app/artisan/invitation/${inv}#adresse=artisan%40example.invalid`);
-    expect(m.rpc).toHaveBeenNthCalledWith(2, "noter_envoi_invitation_artisan", { p_id: inv, p_envoye: true });
+    expect(m.rpc).not.toHaveBeenCalledWith("noter_envoi_invitation_artisan",expect.anything());
   });
 
   it("e-mail non configuré : l'écran le dit honnêtement et la base garde « non envoyé »", async () => {
     m.courriel.mockResolvedValue({ erreur: "Envoi des e-mails non configuré. Contactez l’administrateur." });
     const r = await inviterArtisan(org, {}, formulaire({ email: "artisan@example.invalid" }));
     expect(r.succes).toBeUndefined();
-    expect(r.erreur).toContain("Invitation à artisan@example.invalid enregistrée, mais l’e-mail n’a pas été envoyé");
-    expect(r.erreur).toContain("renvoyer");
-    expect(m.rpc).toHaveBeenCalledWith("noter_envoi_invitation_artisan", { p_id: inv, p_envoye: false });
+    expect(r.erreur).toContain("Invitation à artisan@example.invalid enregistrée. Envoi non confirmé");
+    expect(r.erreur).toContain("suivi");
+    expect(m.rpc).not.toHaveBeenCalledWith("noter_envoi_invitation_artisan",expect.anything());
   });
 
   it("le refus de la base (doublon, limite) est rendu tel quel, sans e-mail", async () => {
@@ -110,14 +110,14 @@ describe("inviter un artisan (propriétaire)", () => {
   });
 
   it("renvoyer : même lien, nouvelle trace ; une invitation expirée le dit sans e-mail", async () => {
-    expect((await renvoyerInvitationArtisan(org, inv, {}, new FormData())).succes).toContain("renvoyée");
+    expect((await renvoyerInvitationArtisan(org, inv, {}, new FormData())).succes).toContain("traitée");
     expect(m.rpc).toHaveBeenNthCalledWith(1, "renvoyer_invitation_artisan", { p_id: inv });
     // Même lien que la première fois (même invitation, même ancre), et l'envoi est noté comme pour une invitation.
     expect(m.courriel).toHaveBeenCalledTimes(1);
     expect(m.courriel.mock.calls[0][0].to).toBe("artisan@example.invalid");
     expect(m.courriel.mock.calls[0][0].html).toContain(`href="https://www.gerimmo.app/artisan/invitation/${inv}#adresse=artisan%40example.invalid"`);
-    expect(m.rpc).toHaveBeenNthCalledWith(2, "noter_envoi_invitation_artisan", { p_id: inv, p_envoye: true });
-    expect(m.rpc).toHaveBeenCalledTimes(2);
+    expect(m.rpc).not.toHaveBeenCalledWith("noter_envoi_invitation_artisan",expect.anything());
+    expect(m.rpc).toHaveBeenCalledTimes(1);
     m.courriel.mockClear();
     m.rpc.mockResolvedValue({ data: { etat: "expiree", erreur: "Cette invitation a expiré. Invitez de nouveau cet artisan." }, error: null });
     expect((await renvoyerInvitationArtisan(org, inv, {}, new FormData())).erreur).toContain("expiré");
@@ -149,7 +149,7 @@ describe("les gestes d'une ligne du carnet", () => {
   });
 
   it("renvoyer et inviter de nouveau passent par les mêmes contrôles que les gestes seuls", async () => {
-    expect((await geste({ geste: "renvoyer", invitation: inv })).succes).toContain("renvoyée");
+    expect((await geste({ geste: "renvoyer", invitation: inv })).succes).toContain("traitée");
     expect(m.rpc).toHaveBeenNthCalledWith(1, "renvoyer_invitation_artisan", { p_id: inv });
     m.rpc.mockClear();
     const r = await geste({ geste: "reinviter", email: "Artisan@Example.invalid", nom: "M. Martin", metier: "plomberie" });

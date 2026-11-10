@@ -1,3 +1,4 @@
+import { piloteLimite, MESSAGE_PILOTE } from "@/lib/perimetre-pilote";
 import { reprendreEvenementsStripe } from "@/lib/stripe-file";
 import { inventorierSouscriptionsStripe } from "@/lib/stripe-inventaire";
 import { rapprocherAbonnementsStripe } from "@/lib/stripe-rapprochement";
@@ -133,6 +134,10 @@ export async function traiterAbonnements(request: Request) {
       { erreur: "SUPABASE_SERVICE_ROLE_KEY absente : la synchronisation est désactivée." },
       { status: 503 }
     );
+  }
+  if(piloteLimite()){
+    await consignerTache(supabase,"abonnements",{suspendue:true,intervention_requise:true,motif:"pilote_limite"});
+    return Response.json({suspendue:true,erreur:MESSAGE_PILOTE},{status:409});
   }
   const reglages = configurationStripe();
   if (!reglages.pret) {

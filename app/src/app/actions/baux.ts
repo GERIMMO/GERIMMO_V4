@@ -594,15 +594,21 @@ export async function envoyerBailSigne(orgId: string, bailId: string): Promise<E
       <p>Votre bail${lot ? ` pour <strong>${echapperHtml(lot.nom)}</strong>` : ""} est signé : vous pouvez le consulter et le télécharger à tout moment depuis votre espace, rubrique « Mes documents ».</p>
       <p><a href="${origine}/locataire/${orgId}/documents">Ouvrir mes documents</a></p>
     </div>`;
-  const envoi = await envoyerEmail({ organisation: { db: supabase, id: orgId }, to: loc.email, subject: "Votre bail signé est disponible", html });
+  const envoi = await envoyerEmail({
+    contexteMetier: {type:'bail_signe',acteur:user.id,id:bailId,document:bail.document_signe},
+    cleIdempotence: `bail-signe/${bailId}/${bail.document_signe}`,
+    organisation: { db: supabase, id: orgId }, to: loc.email, subject: "Votre bail signé est disponible", html });
   if (envoi.erreur) {
     return {
       erreur: `${envoi.erreur} Le bail reste disponible dans « Mes documents » du locataire.`,
     };
   }
+  if(envoi.finalisationEnAttente)return {succes:"Envoi accepté. Enregistrement métier en attente de vérification ; aucun renvoi nécessaire."};
   const { error: erreurMemo } = await supabase
     .from("baux")
     .update({ signe_envoye_le: new Date().toISOString() })
+    .is("signe_envoye_le", null)
+    .eq("document_signe", bail.document_signe)
     .eq("id", bailId)
     .eq("organization_id", orgId);
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);

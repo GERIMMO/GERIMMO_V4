@@ -1,3 +1,4 @@
+import { piloteLimite, MESSAGE_PILOTE } from "./perimetre-pilote";
 // LES ENVOIS DES COURRIERS DU CONTRAT (plan de conformité du 23/10/2026, lots 1B et 1C).
 //
 // Client de service seulement (webhook Stripe, tâche de nuit, actions serveur APRÈS la vérification des droits du
@@ -104,7 +105,7 @@ export async function alerterRelaisContrat(
   let envoyees = 0;
   for (const to of adresses) {
     await options.avantEffet?.();
-    const r = await envoyerEmail({ avantEnvoi: options.avantEffet, to, subject: a.sujet, html, cleIdempotence: `${a.cle}-${to}` }).catch(
+    const r = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi", avantEnvoi: options.avantEffet, to, subject: a.sujet, html, cleIdempotence: `${a.cle}-${to}` }).catch(
       (e: unknown) => {
         if (e instanceof ArretSupervision) throw e;
         return { erreur: "envoi interrompu" };
@@ -200,7 +201,7 @@ export async function envoyerConfirmationSouscription(
     lienConditions: lien,
   });
   await options.avantEffet?.();
-  const { erreur, id } = await envoyerEmail({
+  const { erreur, id } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
     avantEnvoi: options.avantEffet,
     to: c.destinataire,
     subject: courrier.sujet,
@@ -209,12 +210,13 @@ export async function envoyerConfirmationSouscription(
     ...(pdf ? { piecesJointes: [pdf] } : {}),
   });
   if (erreur) return { envoye: false, motif: erreur };
-  await service.rpc("abonnement_confirmation_envoyee", {
+  const suivi = await service.rpc("abonnement_confirmation_envoyee", {
     p_org: c.organization_id,
     p_subscription: p.subscription,
     p_message: id ?? null,
     p_piece_jointe: Boolean(pdf),
   });
+  if(suivi.error)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
   return { envoye: true };
 }
 
@@ -298,7 +300,7 @@ export async function envoyerAccuseResiliation(
   });
   const rang = Number(c.resiliations_accusees ?? 0);
   await options.avantEffet?.();
-  const { erreur, id } = await envoyerEmail({
+  const { erreur, id } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
     avantEnvoi: options.avantEffet,
     to,
     subject: courrier.sujet,
@@ -306,13 +308,14 @@ export async function envoyerAccuseResiliation(
     cleIdempotence: `resiliation-${p.subscription}-${dateParis(p.periodeFin)}${rang > 0 ? `-${rang + 1}` : ""}`,
   });
   if (erreur) return { envoye: false, motif: erreur };
-  await service.rpc("abonnement_resiliation_accusee", {
+  const suivi = await service.rpc("abonnement_resiliation_accusee", {
     p_org: c.organization_id,
     p_subscription: p.subscription,
     p_periode_fin: p.periodeFin.toISOString(),
     p_message: id ?? null,
     p_chemin: p.chemin,
   });
+  if(suivi.error)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
   return { envoye: true };
 }
 
@@ -377,6 +380,10 @@ export async function notifierResiliationImpaye(
   },
   options: { avantEffet?: () => Promise<void> } = {}
 ): Promise<ResultatEnvoi & { factures?: FacturesAnnulees }> {
+  if(piloteLimite()){
+    await tracer(service,"pilote_contrat_intervention_requise",{organisation:p.orgId,souscription:p.subscription});
+    return {envoye:false,motif:MESSAGE_PILOTE};
+  }
   const factures = await annulerFacturesOuvertes(stripe, p.subscription);
   if (factures.echecs.length > 0) {
     await tracer(service, "resiliation_impaye_facture_non_annulee", { organisation: p.orgId, souscription: p.subscription, factures: factures.echecs });
@@ -430,7 +437,7 @@ export async function notifierResiliationImpaye(
     apresMiseEnDemeure,
   });
   await options.avantEffet?.();
-  const { erreur, id } = await envoyerEmail({
+  const { erreur, id } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
     avantEnvoi: options.avantEffet,
     to: p.destinataire,
     subject: courrier.sujet,
@@ -438,12 +445,13 @@ export async function notifierResiliationImpaye(
     cleIdempotence: `resiliation-impaye-${p.subscription}`,
   });
   if (erreur) return { envoye: false, motif: erreur, factures: factures.sort };
-  await service.rpc("abonnement_resiliation_impaye_notifiee", {
+  const suivi = await service.rpc("abonnement_resiliation_impaye_notifiee", {
     p_org: p.orgId,
     p_subscription: p.subscription,
     p_message: id ?? null,
     p_factures_annulees: factures.annulees,
   });
+  if(suivi.error)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
   return { envoye: true, factures: factures.sort };
 }
 
@@ -460,7 +468,7 @@ export async function envoyerReceptionRetractation(
 ): Promise<ResultatEnvoi> {
   const courrier = courrierReceptionRetractation(p);
   await options.avantEffet?.();
-  const { erreur, id } = await envoyerEmail({
+  const { erreur, id } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
     avantEnvoi: options.avantEffet,
     to: p.destinataire,
     subject: courrier.sujet,
@@ -484,7 +492,7 @@ export async function envoyerAccuseRetractation(
 ): Promise<ResultatEnvoi> {
   const courrier = courrierAccuseRetractation(p);
   await options.avantEffet?.();
-  const { erreur, id } = await envoyerEmail({
+  const { erreur, id } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
     avantEnvoi: options.avantEffet,
     to: p.destinataire,
     subject: courrier.sujet,
@@ -492,6 +500,9 @@ export async function envoyerAccuseRetractation(
     cleIdempotence: p.copie ? `${p.cle}-copie-${p.copie}` : p.cle,
   });
   if (erreur) return { envoye: false, motif: erreur };
-  if (!p.copie) await service.rpc("retractation_accuse_envoye", { p_id: p.retractationId, p_message: id ?? null });
+  if (!p.copie) {
+    const suivi=await service.rpc("retractation_accuse_envoye", { p_id: p.retractationId, p_message: id ?? null });
+    if(suivi.error)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
+  }
   return { envoye: true };
 }

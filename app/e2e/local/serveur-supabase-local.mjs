@@ -720,10 +720,10 @@ async function routerAuth(methode, chemin, url, corps, claims) {
         return { statut: 422, corps: { code: "email_exists", msg: "A user with this email address has already been registered" } };
       }
       if (!u) u = await creerUtilisateur(email, corps.password, corps.data ?? {});
-      await admin((c) => c.query("update auth.users set confirmation_token = $1 where id = $2", [jeton, u.id]));
+      await admin((c) => c.query("update auth.users set confirmation_token = $1, confirmation_sent_at=now() where id = $2", [jeton, u.id]));
     } else if (["recovery", "magiclink", "invite"].includes(corps.type)) {
       if (!u) return { statut: 404, corps: { code: "user_not_found", msg: "User with this email not found" } };
-      await admin((c) => c.query("update auth.users set recovery_token = $1 where id = $2", [jeton, u.id]));
+      await admin((c) => c.query("update auth.users set recovery_token = $1, recovery_sent_at=now() where id = $2", [jeton, u.id]));
     } else {
       return { statut: 400, corps: { msg: `generate_link type ${corps.type} non géré en mode local` } };
     }
@@ -793,7 +793,7 @@ async function routerAuth(methode, chemin, url, corps, claims) {
          and created_at>now()-interval '1 hour' returning user_id, token_type`, [corps.token_hash, types]
       );
       if (!rows[0]) return null;
-      await c.query("update auth.users set email_confirmed_at=coalesce(email_confirmed_at,now()), raw_user_meta_data=raw_user_meta_data || '{\"email_verified\":true}'::jsonb where id=$1", [rows[0].user_id]);
+      await c.query("update auth.users set confirmation_token='', recovery_token='', email_confirmed_at=coalesce(email_confirmed_at,now()), raw_user_meta_data=raw_user_meta_data || '{\"email_verified\":true}'::jsonb where id=$1", [rows[0].user_id]);
       await c.query("delete from auth.one_time_tokens where user_id=$1", [rows[0].user_id]);
       return rows[0];
     });
@@ -1096,9 +1096,8 @@ fs.mkdirSync(STOCKAGE, { recursive: true });
 // La clé de service du banc : un JWT `service_role` signé du secret local. À
 // poser dans SUPABASE_SERVICE_ROLE_KEY du serveur Next pour que les liens de
 // connexion (inscription, mot de passe oublié, invitations) se fabriquent.
-const CLE_SERVICE = signer({ role: "service_role", iss: "supabase-local" });
 
 serveur.listen(PORT, "127.0.0.1", () => {
   console.log(`Émulateur Supabase local prêt : http://127.0.0.1:${PORT} → ${DB_URL}`);
-  console.log(`SUPABASE_SERVICE_ROLE_KEY=${CLE_SERVICE}`);
+  console.log("Clé fictive configurée ; valeur non journalisée.");
 });

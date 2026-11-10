@@ -1,3 +1,4 @@
+import {paiementsInterdits,MESSAGE_PAIEMENT_PILOTE} from "@/lib/verrou-pilote";
 // Réception signée, conservation durable des références et verrou de traitement.
 // Un traitement interrompu reste rejouable ; une livraison concurrente n'est
 // jamais déclarée terminée tant que la première n'a pas abouti.
@@ -26,6 +27,7 @@ const SUIVIS = new Set([
 ]);
 
 export async function POST(request: Request) {
+  if(paiementsInterdits())return Response.json({erreur:MESSAGE_PAIEMENT_PILOTE},{status:403});
   const reglages = configurationStripe();
   if (!reglages.pret) {
     // 503 et non 200 : si quelqu'un a branché le webhook sans poser les clés,

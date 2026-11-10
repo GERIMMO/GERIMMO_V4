@@ -1,3 +1,4 @@
+import {exigerOperationsPayantesAutorisees} from "./verrou-pilote";
 import { randomUUID } from "node:crypto";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -14,6 +15,7 @@ export function referenceEvenementStripe(e: Stripe.Event): ReferenceStripe {
 }
 
 export async function executerEvenementStripe(db: SupabaseClient, stripe: Stripe, evenement: Stripe.Event, effetsExternes = true, avantEffet?: () => Promise<void>) {
+  exigerOperationsPayantesAutorisees();
   const jeton = randomUUID();
   const prise = await db.rpc("stripe_evenement_prendre", {
     p_event_id: evenement.id, p_type: evenement.type, p_reference: referenceEvenementStripe(evenement), p_jeton: jeton,

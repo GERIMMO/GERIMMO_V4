@@ -29,6 +29,7 @@ import {
   notifierCreneauxAChoisir,
   notifierEnCoulisses,
   notifierMissionRefusee,
+  notifierMissionAcceptee,
   notifierReponseReportRdv,
 } from "@/lib/notifications";
 import type { DemandeRdvArtisan } from "@/lib/rendez-vous-locataire";
@@ -399,6 +400,9 @@ export async function accepterMaMission(
   });
   if (error) return { erreur: sansJargon(error.message) };
 
+  const missionAcceptee = await maMission(supabase, interventionId);
+  if (missionAcceptee) await notifierEnCoulisses(supabase,{evenement:"mission_acceptee",objet:interventionId,org:missionAcceptee.organization_id},
+    service=>notifierMissionAcceptee(service,missionAcceptee.organization_id,interventionId));
   rafraichirMission(interventionId);
   // RM-10.1.1 : l'artisan propose EN PREMIER, et c'est le geste qui suit
   // immédiatement l'acceptation. On l'y conduit plutôt que de le laisser

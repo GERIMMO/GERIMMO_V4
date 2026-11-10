@@ -883,6 +883,12 @@ async function expedier(
   const fin = p.echeanceMs ?? Infinity;
   if (horloge() >= fin) return { envoyee: false, motif: "delai_depasse" };
   const trace = { evenement: p.evenement, objet: p.objet, org: p.orgId, role: p.role };
+  const serviceCapture=clientDeService();
+  if(serviceCapture){
+    const capture=await serviceCapture.rpc('notification_courante',{p_org:p.orgId,p_evenement:p.evenement,p_objet:p.objet,p_role:p.role});
+    if(capture.error)return {envoyee:false,motif:'echec_envoi'};
+    if(capture.data){const {traiterNotificationCapturee}=await import('./notifications-transactionnelles');const r=await traiterNotificationCapturee(serviceCapture,capture.data);return {envoyee:r.envoyee,...(!r.envoyee?{motif:'echec_envoi' as const}:{})};}
+  }
   const to = (p.to ?? "").trim();
   if (!to || !emailValide(to)) {
     await journaliser(db, "notification_sans_adresse", trace);
@@ -892,7 +898,7 @@ async function expedier(
   if (horloge() >= fin) return { envoyee: false, motif: "delai_depasse" };
   let delaiDepasse = false;
   try {
-    const envoi = await envoyerEmail({
+    const envoi = await envoyerEmail({ circuit:"lib/notifications",
       avantEnvoi: async () => {
         await p.avantEffet?.();
         if (horloge() >= fin) {
@@ -901,6 +907,7 @@ async function expedier(
         }
       },
       get delaiMaxMs() { return Math.max(1, Math.floor(Math.min(15_000, fin - horloge()))); },
+      contexteMetier: {type:"notification",id:p.objet,evenement:p.evenement,role:p.role},
       organisation: { db, id: p.orgId },
       to,
       subject: p.message.sujet,
@@ -1035,8 +1042,6 @@ async function destinataireAgence(db: SupabaseClient, orgId: string, responsable
   }
   const responsable = responsableAccountId ? liste.find((m) => m.account_id === responsableAccountId) : undefined;
   if (responsable?.email) return responsable.email;
-  const marque = await chargerMarque(db, orgId);
-  if (marque?.email_contact && emailValide(marque.email_contact)) return marque.email_contact;
   return liste.find((m) => m.role === "admin_agence" || m.role === "proprietaire_direct")?.email ?? liste[0]?.email ?? null;
 }
 
@@ -1237,8 +1242,10 @@ export async function notifierReponseGestionnaire(db: SupabaseClient, orgId: str
   try {
     const [personne, nom] = await Promise.all([lirePersonne(db, orgId, personId), emetteur(db, orgId)]);
     if (!personne) return { envoyee: false, motif: "introuvable" };
+    const {data: dernier} = await db.from("messages").select("id").eq("organization_id",orgId).eq("person_id",personId).eq("auteur","gerant").is("lu_le",null).order("created_at",{ascending:false}).limit(1).maybeSingle();
+    if (!dernier) return {envoyee:false,motif:"introuvable"};
     return expedier(db, {
-      orgId, to: personne.email, role: "locataire", evenement: "reponse_gestionnaire", objet: personId,
+      orgId, to: personne.email, role: "locataire", evenement: "reponse_gestionnaire", objet: dernier.id,
       message: messageReponseGestionnaire({ emetteur: nom, prenom: personne.prenom, lien: lien(`/locataire/${orgId}/contact`) }),
     });
   } catch (e) {
@@ -1306,8 +1313,13 @@ export async function notifierIncidentUrgentDeclare(
     ]);
     const g = ((gestion ?? []) as { agence: string; email_contact: string | null; agent_email: string | null }[])[0];
     const moi = ((mesIncidents ?? []) as { id: string; numero: string; lot_nom: string | null }[]).find((i) => i.id === incidentId);
+    if (!moi) return {envoyee:false,motif:"introuvable"};
+    const service = clientDeService();
+    if (!service) return NON;
+    const actuel = await lireIncident(service,orgId,incidentId);
+    const to = await destinataireAgence(service,orgId,actuel?.responsable_account_id??null);
     return expedier(db, {
-      orgId, to: g?.agent_email ?? g?.email_contact, role: "agence", evenement: "incident_urgent", objet: incidentId,
+      orgId, to, role: "agence", evenement: "incident_urgent", objet: incidentId,
       message: messageIncidentUrgent({
         emetteur: g?.agence ?? "Votre espace de gestion",
         numero: moi?.numero ?? "—",
@@ -1363,6 +1375,14 @@ export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devis
     console.error("[notifications] devis_recu :", e instanceof Error ? e.message : e);
     return NON;
   }
+}
+
+/** L’acceptation informe le propriétaire sans dévoiler de données dans l’e-mail. */
+export async function notifierMissionAcceptee(db:SupabaseClient,orgId:string,interventionId:string):Promise<ResultatNotification> {
+ const iv=await lireIntervention(db,orgId,interventionId); if(!iv)return NON;
+ const inc=await lireIncident(db,orgId,iv.incident_id); if(!inc)return NON;
+ return expedier(db,{orgId,to:await destinataireAgence(db,orgId,inc.responsable_account_id),role:"agence",evenement:"mission_acceptee",objet:iv.id,cleIdempotence:`mission_acceptee:${iv.id}`,
+ message:{sujet:"Intervention acceptée",html:"<p>L’artisan a accepté l’intervention. Connectez-vous à votre espace Gerimmo pour consulter la suite.</p>"}});
 }
 
 /** Mission refusée par l'artisan (`refuser_mission`) → l'agence. Même client que ci-dessus. */

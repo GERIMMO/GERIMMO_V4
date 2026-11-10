@@ -1,3 +1,4 @@
+import {exigerOperationsPayantesAutorisees} from "./verrou-pilote";
 import "server-only";
 import { ErreurIA } from "./erreur-ia";
 import type { AvantAppelIA } from "./plafond-ia";
@@ -8,6 +9,7 @@ export async function repondreConversationPrivee(demande: DemandeAssistant, role
   const cle = process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim();
   if (!cle) throw new ErreurIA("L’assistant Gerimmo n’est pas connecté pour le moment. Votre message n’a pas été envoyé.");
   await avantAppel();
+  exigerOperationsPayantesAutorisees();
   const reponse = await fetch("https://api.openai.com/v1/responses", {
     method: "POST", redirect: "error", signal: AbortSignal.timeout(30000),
     headers: { Authorization: `Bearer ${cle}`, "Content-Type": "application/json" },

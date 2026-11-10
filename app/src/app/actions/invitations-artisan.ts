@@ -41,7 +41,8 @@ async function envoyerEtNoter(
   supabase: Awaited<ReturnType<typeof createClient>>,
   orgId: string,
   invitation: Preparee,
-  succes: string
+  succes: string,
+  acteur: string
 ): Promise<EtatInvitationArtisan> {
   const origine = adresseDuSite();
   const message = origine
@@ -52,21 +53,16 @@ async function envoyerEtNoter(
       })
     : null;
   const envoi = message
-    ? await envoyerEmail({ to: invitation.email, subject: message.sujet, html: message.html })
+    ? await envoyerEmail({ circuit:"app/actions/invitations-artisan", organisation:{db:supabase,id:orgId}, contexteMetier:{type:"invitation_artisan",id:invitation.id,acteur}, cleIdempotence:`invitation-artisan-${invitation.id}`, to: invitation.email, subject: message.sujet, html: message.html })
     : { erreur: "L’adresse du site n’est pas configurée. Contactez l’administrateur." };
-  const { error: erreurTrace } = await supabase.rpc("noter_envoi_invitation_artisan", {
-    p_id: invitation.id,
-    p_envoye: !envoi.erreur,
-  });
+
   revalidatePath(`/agence/${orgId}/artisans`);
   if (envoi.erreur) {
     return {
-      erreur: `Invitation à ${invitation.email} enregistrée, mais l’e-mail n’a pas été envoyé : ${envoi.erreur} Vous pouvez la renvoyer depuis « Mes artisans ».`,
+      erreur: `Invitation à ${invitation.email} enregistrée. Envoi non confirmé : ${envoi.erreur} Consultez le suivi avant de recommencer.`,
     };
   }
-  if (erreurTrace) {
-    return { erreur: "L’e-mail a été envoyé, mais son suivi n’a pas pu être enregistré. Rechargez la page avant de le renvoyer." };
-  }
+  if ("finalisationEnAttente" in envoi && envoi.finalisationEnAttente) return {erreur:"E-mail accepté par le prestataire ; suivi en cours de finalisation. Ne le renvoyez pas."};
   return { succes };
 }
 
@@ -104,7 +100,8 @@ export async function inviterArtisan(
     supabase,
     orgId,
     invitation,
-    `Invitation envoyée à ${invitation.email}, valable jusqu’au ${valableJusquAu(invitation.expire_le)} inclus. L’artisan crée son compte et inscrit son entreprise ; Gerimmo vérifie son inscription avant que vous puissiez le solliciter.`
+    `Invitation envoyée à ${invitation.email}, valable jusqu’au ${valableJusquAu(invitation.expire_le)} inclus. L’artisan crée son compte et inscrit son entreprise ; Gerimmo vérifie son inscription avant que vous puissiez le solliciter.`,
+    user.id
   );
 }
 
@@ -124,7 +121,7 @@ export async function renvoyerInvitationArtisan(
   }
   const invitation = data as Preparee | null;
   if (!invitation?.id || !invitation.email) return { erreur: "L’invitation n’a pas pu être renvoyée. Réessayez." };
-  return envoyerEtNoter(supabase, orgId, invitation, `Invitation renvoyée à ${invitation.email}.`);
+  return envoyerEtNoter(supabase, orgId, invitation, `Invitation traitée pour ${invitation.email}.`, user.id);
 }
 
 export async function annulerInvitationArtisan(

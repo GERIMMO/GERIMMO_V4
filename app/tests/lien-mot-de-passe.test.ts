@@ -78,7 +78,7 @@ function admin(opts: { erreurLien?: string; codeErreur?: string; autorise?: bool
           error: null,
         }
   );
-  const rpc = vi.fn(async () => ({ data: opts.autorise ?? true, error: opts.erreurRpc ? { message: opts.erreurRpc } : null }));
+  const rpc = vi.fn(async (nom:string) => ({ data: nom==="contexte_acces_courriel"?{type:"acces",id:"u1",usage:"recovery",jeton_empreinte:"f".repeat(64)}:opts.autorise ?? true, error: opts.erreurRpc ? { message: opts.erreurRpc } : null }));
   // Doublure de `auth.admin.updateUserById` : le repli « fermé par défaut » de la confirmation faite ailleurs. Jamais
   // appelée sur le chemin ordinaire (contre-relecture finale du 15/10/2026 : elle fermerait la session du bouton).
   const updateUserById = vi.fn(
@@ -93,6 +93,8 @@ const jarre = { set: vi.fn(), get: vi.fn(), delete: vi.fn() };
 
 beforeEach(() => {
   vi.resetAllMocks();
+  // Recette historique des gabarits ; admission pilote et droits SQL éprouvés dans lot2-acces-notifications-base.
+  vi.stubEnv("GERIMMO_PILOTE_LIMITE","false");
   mocks.cookies.mockResolvedValue(jarre);
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app");
   mocks.envoyerEmail.mockResolvedValue({ id: "courriel" });
@@ -133,7 +135,7 @@ describe("envoyerLienMotDePasse — invitations", () => {
     expect(generateLink).toHaveBeenCalledWith({ type: "recovery", email: "resp@agence.fr" });
     // Une invitation vient d'un geste autorisé : pas de limite anonyme ; sans
     // organisation désignée, pas de limite par organisation non plus.
-    expect(rpc).not.toHaveBeenCalled();
+    expect(rpc.mock.calls.filter(([nom])=>nom!=="contexte_acces_courriel")).toHaveLength(0);
     const courrier = mocks.envoyerEmail.mock.calls[0][0];
     expect(courrier.to).toBe("resp@agence.fr");
     expect(courrier.subject).toBe("Votre espace Gerimmo est prêt — créez votre mot de passe");
@@ -168,7 +170,7 @@ describe("envoyerLienMotDePasse — limite par organisation (audit 30/09, M4)", 
   it("compte l'invitation dans la limite de l'organisation : 30 par heure", async () => {
     const { rpc, generateLink } = admin();
     expect(await envoyerLienMotDePasse({ email: "agent@agence.fr", motif: "invitation_agent", organisation: ORG })).toEqual({});
-    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc.mock.calls.filter(([nom])=>nom!=="contexte_acces_courriel")).toHaveLength(1);
     expect(rpc).toHaveBeenCalledWith("autoriser_lien_mot_de_passe_cle", { p_cle: `organisation:${ORG}`, p_max: LIMITE_INVITATIONS_PAR_ORGANISATION });
     expect(LIMITE_INVITATIONS_PAR_ORGANISATION).toBe(30);
     expect(generateLink).toHaveBeenCalled();
@@ -193,7 +195,7 @@ describe("envoyerLienMotDePasse — mot de passe oublié (anonyme)", () => {
   it("passe d'abord par la limite, avec l'adresse et l'IP du visiteur", async () => {
     const { rpc, generateLink } = admin();
     expect(await envoyerLienMotDePasse({ email: "moi@exemple.fr", motif: "mot_de_passe_oublie" })).toEqual({});
-    expect(rpc).toHaveBeenCalledWith("autoriser_lien_mot_de_passe", { p_email: "moi@exemple.fr", p_ip: "203.0.113.7" });
+    expect(rpc).toHaveBeenCalledWith("autoriser_lien_mot_de_passe", { p_email: "moi@exemple.fr", p_ip: "0.0.0.0" });
     expect(generateLink).toHaveBeenCalled();
     expect(mocks.envoyerEmail).toHaveBeenCalledTimes(1);
   });
@@ -253,7 +255,7 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2 ; 
       const user = compte === "aucun" ? { id: "u-neuf", email_confirmed_at: null, ...CREE_PAR_L_APPEL } : { ...existant, ...EXISTAIT_DEJA };
       return { data: { properties: { hashed_token: EMPREINTE, action_link: "x" }, user }, error: null };
     });
-    const rpc = vi.fn(async () => ({ data: opts.autorise ?? true, error: null }));
+    const rpc = vi.fn(async (nom:string) => ({ data: nom==="contexte_acces_courriel"?{type:"acces",id:"u1",usage:"recovery",jeton_empreinte:"f".repeat(64)}:opts.autorise ?? true, error: null }));
     const updateUserById = vi.fn(
       async (id: string, _attributs: Record<string, unknown>): Promise<{ data: { user: Record<string, unknown> | null }; error: Erreur | null }> =>
         ({ data: { user: { id } }, error: null })
@@ -267,7 +269,7 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2 ; 
     const { generateLink, rpc, updateUserById } = auth();
     expect(await inscrire()).toEqual({ etat: "confirmation_envoyee" });
     // Demande anonyme : la limite d'abord.
-    expect(rpc).toHaveBeenCalledWith("autoriser_lien_mot_de_passe", { p_email: "camille@exemple.fr", p_ip: "203.0.113.7" });
+    expect(rpc).toHaveBeenCalledWith("autoriser_lien_mot_de_passe", { p_email: "camille@exemple.fr", p_ip: "0.0.0.0" });
     expect(generateLink).toHaveBeenCalledTimes(2);
     expect(generateLink.mock.calls[0]).toEqual([{ type: "recovery", email: "camille@exemple.fr" }]);
     const creation = generateLink.mock.calls[1][0] as unknown as { type: string; email: string; password: string; options: { data: Record<string, unknown> } };
@@ -292,7 +294,7 @@ describe("inscrireEtEnvoyerConfirmation — l'inscription (audit 30/09, H1/H2 ; 
   it("adresse déjà confirmée : le lien de la recherche part à son titulaire (reconnexion), sans création ; la limite n'est comptée qu'une fois", async () => {
     const { generateLink, rpc, updateUserById } = auth({ compte: "confirme" });
     expect(await inscrire()).toEqual({ etat: "compte_existant" });
-    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc.mock.calls.filter(([nom])=>nom!=="contexte_acces_courriel")).toHaveLength(1);
     expect(generateLink).toHaveBeenCalledTimes(1);
     expect(generateLink).toHaveBeenCalledWith({ type: "recovery", email: "camille@exemple.fr" });
     expect(updateUserById).not.toHaveBeenCalled();

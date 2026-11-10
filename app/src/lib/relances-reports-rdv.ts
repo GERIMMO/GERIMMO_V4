@@ -46,7 +46,7 @@ export async function envoyerRelancesReportsRdv(db: SupabaseClient, options: {ec
     let nonPartie = false;
     let envoyee = false;
     try {
-      const r = await envoyerEmail({
+      const r = await envoyerEmail({ circuit:"lib/relances-reports-rdv",
         avantEnvoi: async () => {
           try {
             await verifierAvantEffet(db, 'rappels');
@@ -60,6 +60,7 @@ export async function envoyerRelancesReportsRdv(db: SupabaseClient, options: {ec
         subject:'Un report de rendez-vous attend votre réponse',
         html:`<p>Le locataire vous a demandé de reporter son rendez-vous. Répondez avant ${echapperMarque(instantRdv(relance.expire_le))}.</p><p>Le rendez-vous actuel reste valable tant que vous n’avez pas accepté une nouvelle date.</p><p><a href="${echapperMarque(`${adresseDuSite()}/artisan/missions/${relance.intervention_id}`)}">Voir la demande de report</a></p>`,
       });
+      if(r.interventionRequise&&!r.incertain){await rendre();bilan.echecs++;return;}
       if(nonPartie && !r.incertain) { await rendre();compterNonPartie();return; }
       if (r.incertain) bilan.incertaines++;
       else if (r.erreur) bilan.echecs++;

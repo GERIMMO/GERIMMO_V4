@@ -1,3 +1,4 @@
+import {exigerOperationsPayantesAutorisees} from "./verrou-pilote";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { parsePhoneNumberFromString } from "libphonenumber-js/max";
 import type { DemandeSignatureLue, SignataireSignature } from "./signature-types";
@@ -25,6 +26,7 @@ export function configurationZohoSign(env: Record<string, string | undefined> = 
 const BASE = "https://sign.zoho.eu/api/v1";
 let cache: { cle: string; valeur?: string; expiration?: number; attente?: Promise<string> } | undefined;
 async function jeton(config: ConfigurationZohoSign): Promise<string> {
+  exigerOperationsPayantesAutorisees();
   const cle = createHash("sha256").update(JSON.stringify([config.clientId, config.clientSecret, config.refreshToken])).digest("hex");
   if (cache?.cle === cle && cache.valeur && (cache.expiration ?? 0) > Date.now() + 60_000) return cache.valeur;
   if (cache?.cle === cle && cache.attente) return cache.attente;

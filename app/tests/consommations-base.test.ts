@@ -105,17 +105,20 @@ describe.skipIf(!url)("consommations : isolation réelle, collecte et répartiti
     await session(compteB);
     await refus("select public.regler_facture_automatique($1,true)",[facture]);
     expect((await db.query("select * from public.factures_automatiques where id=$1",[facture])).rowCount).toBe(0);
-    await postgres(); await db.query("set local role service_role");
-    expect((await db.query("select public.geste_facture_automatique($1,'controle') as ok",[facture])).rows[0].ok).toBe(true);
-    await refus("select public.geste_facture_automatique($1,'payer_facture_fourniture')",[facture],/interdit/);
-    const r=await db.query("select public.geste_facture_automatique($1,'preparer_repartition_fourniture',$2::jsonb) as id",[facture,JSON.stringify({p_facture:facture,p_parts:JSON.parse(parts()),p_motif:"Clé de test confirmée pour la facture",p_mode:"cle",p_reglages:{mode_interface:"cle"}})]);
+    await postgres();
+    const jeton="11111111-1111-4111-8111-111111111111";
+    await db.query("update factures_automatiques set jeton=$2,verrou_jusqua=now()+interval '3 minutes' where id=$1",[facture,jeton]);
+    await db.query("set local role service_role");
+    expect((await db.query("select public.geste_facture_automatique($1,'controle',$2::jsonb) as ok",[facture,JSON.stringify({_jeton:jeton})])).rows[0].ok).toBe(true);
+    await refus("select public.geste_facture_automatique($1,'payer_facture_fourniture',$2::jsonb)",[facture,JSON.stringify({_jeton:jeton})],/interdit/);
+    const r=await db.query("select public.geste_facture_automatique($1,'preparer_repartition_fourniture',$2::jsonb) as id",[facture,JSON.stringify({_jeton:jeton,p_facture:facture,p_parts:JSON.parse(parts()),p_motif:"Clé de test confirmée pour la facture",p_mode:"cle",p_reglages:{mode_interface:"cle"}})]);
     const rep=r.rows[0].id;
     await postgres(); const empreinte=(await db.query("select empreinte from public.repartitions_fourniture where id=$1",[rep])).rows[0].empreinte;
     await db.query("set local role service_role");
-    await db.query("select public.geste_facture_automatique($1,'valider_repartition_fourniture',$2::jsonb)",[facture,JSON.stringify({p_repartition:rep,p_empreinte_attendue:empreinte})]);
+    await db.query("select public.geste_facture_automatique($1,'valider_repartition_fourniture',$2::jsonb)",[facture,JSON.stringify({_jeton:jeton,p_repartition:rep,p_empreinte_attendue:empreinte})]);
     await session(gerant);await db.query("select public.regler_facture_automatique($1,false)",[facture]);
     await postgres();await db.query("set local role service_role");
-    await refus("select public.geste_facture_automatique($1,'controle')",[facture],/désactivée/);
+    await refus("select public.geste_facture_automatique($1,'controle',$2::jsonb)",[facture,JSON.stringify({_jeton:jeton})],/désactivée/);
   });
   it("l’abonnement fermé interdit les gestes de gestion et préserve les relevés du locataire", async () => {
     await db.query("select public.tache_systeme()");

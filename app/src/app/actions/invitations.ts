@@ -20,13 +20,13 @@ export async function inviterLocataire(orgId: string, personId: string, _etat: E
   if (!data?.id || !data?.email) return { erreur: "L’invitation n’a pas pu être préparée. Réessayez." };
   // Le même chemin que les relances automatiques (X16) : un seul lien par invitation.
   const { erreur: erreurMail } = await envoyerLienMotDePasse({
-    email: data.email, motif: "invitation_locataire", organisation: orgId,
+    email: data.email, motif: "invitation_locataire", organisation: orgId, invitation: data.id, acteur: user.id,
     next: suiteInvitationLocataire(data.id),
   });
-  const { error: erreurTrace } = await supabase.rpc("noter_envoi_invitation_locataire", { p_id: data.id, p_envoye: !erreurMail });
+
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
-  if (erreurMail) return { erreur: `Invitation enregistrée, mais l’e-mail n’a pas été envoyé : ${erreurMail} L’accès n’est pas encore accordé. Vous pouvez réessayer.` };
-  if (erreurTrace) return { erreur: "L’e-mail a été envoyé, mais son suivi n’a pas pu être confirmé. Rechargez la fiche avant de le renvoyer." };
+  if (erreurMail) return { erreur: `Invitation enregistrée. Envoi non confirmé : ${erreurMail} L’accès n’est pas encore accordé. Consultez le suivi avant de recommencer.` };
+
   return { succes: `Invitation envoyée à ${data.email}. L’accès sera accordé après son acceptation, dans les 30 jours.` };
 }
 

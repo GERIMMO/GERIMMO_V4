@@ -1,3 +1,4 @@
+import {exigerOperationsPayantesAutorisees} from "./verrou-pilote";
 import {
   appliquerPiedDeFacture,
   finDePeriode,
@@ -31,6 +32,7 @@ function identifiantClient(s: Stripe.Subscription): string | null {
 }
 
 export async function traiterEvenementStripe(supabase: Service, stripe: Stripe, evenement: Stripe.Event, effetsExternes = true, avantEffet?: () => Promise<void>): Promise<Resultat> {
+  exigerOperationsPayantesAutorisees();
   if (evenement.type === "invoice.paid") return traiterFacturePayee(supabase, evenement);
   if (evenement.type === "customer.subscription.trial_will_end") {
     return traiterFinEssai(supabase, stripe, evenement, avantEffet);

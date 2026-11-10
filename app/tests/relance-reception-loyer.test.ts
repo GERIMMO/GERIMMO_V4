@@ -88,7 +88,7 @@ it("relance aussi les colocataires engagés et dédoublonne les adresses",async(
 it("un refus partiel ne clôt pas la relance et la reprise garde les clés des destinataires déjà servis",async()=>{
   m.tables.bail_personnes=[{person_id:"coloc",date_solidarite_fin:null}];m.tables.colocataires=[{email:"coloc@example.invalid"}];
   m.envoyer.mockResolvedValueOnce({}).mockResolvedValueOnce({erreur:"Refus temporaire."});
-  expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toContain("envoyée à 1 destinataire");expect(m.trace).not.toHaveBeenCalled();
+  expect((await envoyerRelanceReception("org","appel",{},f())).erreur).toContain("1 destinataire(s) accepté(s)");expect(m.trace).not.toHaveBeenCalled();
   const clePrincipale=m.envoyer.mock.calls[0][0].cleIdempotence,cleColocataire=m.envoyer.mock.calls[1][0].cleIdempotence;
   expect((await envoyerRelanceReception("org","appel",{},f())).succes).toContain("enregistrée");
   expect(m.envoyer.mock.calls[2][0].cleIdempotence).toBe(clePrincipale);expect(m.envoyer.mock.calls[3][0].cleIdempotence).toBe(cleColocataire);expect(cleColocataire).not.toBe(clePrincipale);

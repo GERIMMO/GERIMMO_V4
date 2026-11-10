@@ -1,3 +1,8 @@
+import { circuitAdmisPilote, piloteLimite, suspendreCourrielPilote, MESSAGE_PILOTE } from "./perimetre-pilote";
+import { exigerContexteCourriel, RefusContexteCourriel, type ContexteCourriel } from './finalisation-courriels';
+import { conserverCourriel } from "./reprise-courriels";
+import { clientDeService } from "./supabase/service";
+import { envoyerCourrielDurable, empreinteCourriel, type ResultatCourriel } from "./courriels-durables";
 import { ArretSupervision } from "./controle-effets";
 import { adresseDuSite } from "./site";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -54,17 +59,8 @@ export function adresseReponsePlateforme(env: Record<string, string | undefined>
  * Le service, revoyant la même clé, rend la réponse du premier envoi sans en
  * émettre un second — tant qu'il la retient.
  *
- * LA LIMITE, À NE PAS OUBLIER. On suppose que le service retient une clé 24 h :
- * c'est l'hypothèse d'un commentaire de `lib/rapports-mensuels.ts`, la
- * documentation du prestataire n'a pas été consultée ici et le refus (409) d'une
- * clé réutilisée avec un autre contenu n'a pas été rejoué. Or les tâches
- * tournent UNE FOIS PAR JOUR (`vercel.json`) : la reprise d'un envoi non marqué
- * arrive à environ 24 h du premier, au bord de cette fenêtre, et selon la gigue
- * de lancement la clé est encore valide (pas de doublon) ou oubliée (doublon).
- * La garantie vaut donc pour les reprises rapprochées (relance manuelle, seconde
- * passe le même jour), pas pour celle du lendemain. La supprimer demanderait un
- * marqueur posé en base AVANT l'envoi, ou une reprise dans la même passe :
- * option différée de D47, hors de ce lot.
+ * La réservation durable est maintenant effectuée avant émission. Une reprise
+ * ne réémet jamais un résultat inconnu, même après expiration de la clé fournisseur.
  */
 export const DELAI_MAX_FOURNISSEUR_MS = 15_000;
 
@@ -88,7 +84,12 @@ function delaiDepasse(e: unknown): boolean {
   return e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
 }
 
-export async function envoyerEmail(params: {
+export async function envoyerEmailTransport(params: {
+  referenceInterne?: string;
+  circuit?: string;
+  contexteMetier?: ContexteCourriel;
+  /** Désactivée pour les messages qui doivent recalculer leur contexte métier. */
+  repriseAutonome?: boolean;
   to: string;
   subject: string;
   html: string;
@@ -99,12 +100,13 @@ export async function envoyerEmail(params: {
   delaiMaxMs?: number;
   avantEnvoi?: () => Promise<void>;
   organisation?: { db: SupabaseClient; id: string };
-}): Promise<{ erreur?: string; id?: string; /** Délai dépassé ou connexion interrompue : l'envoi a peut-être eu lieu. */ incertain?: true }> {
+}): Promise<ResultatCourriel> {
+  if(piloteLimite()&&!circuitAdmisPilote({...params,organisationId:params.organisation?.id}))return {erreur:MESSAGE_PILOTE,interventionRequise:true};
   const cle = process.env.RESEND_API_KEY;
   if (!cle) return { erreur: "Envoi des e-mails non configuré. Contactez l’administrateur." };
   let appelCommence = false;
   try {
-    const marque = params.organisation ? await chargerMarque(params.organisation.db, params.organisation.id) : null;
+    const marque = params.organisation && !["acces","invitation_artisan"].includes(params.contexteMetier?.type??"") ? await chargerMarque(params.organisation.db, params.organisation.id) : null;
     // Verification fields are server-controlled in the database, never accepted from a form.
     const adresseVerifiee = marque?.email_expediteur_verifie_le && marque.email_expediteur && emailValide(marque.email_expediteur) ? marque.email_expediteur : null;
     const nom = marque ? nomMarque(marque).replace(/[<>"\r\n]/g, "").trim() : null;
@@ -124,6 +126,7 @@ export async function envoyerEmail(params: {
       },
       body: JSON.stringify({
         from: expediteur,
+        ...(params.referenceInterne ? {tags:[{name:"gerimmo_message",value:params.referenceInterne}]} : {}),
         ...(repondreA ? { reply_to: repondreA } : {}),
         to: [params.to],
         subject: params.subject,
@@ -143,15 +146,39 @@ export async function envoyerEmail(params: {
           erreur: "L’adresse d’envoi doit encore être vérifiée auprès du service d’e-mail. Contactez le responsable Gerimmo pour terminer sa connexion.",
         };
       }
-      if (reponse.status === 429) return { erreur: /quota/i.test(txt) ? ERREUR_QUOTA_ATTEINT : ERREUR_LIMITE_DEBIT };
+      if (reponse.status >= 500 || reponse.status === 409) return {erreur:"Résultat fournisseur incertain.",incertain:true};
+      if (reponse.status === 429) return { recuperable:true, erreur: /quota/i.test(txt) ? ERREUR_QUOTA_ATTEINT : ERREUR_LIMITE_DEBIT };
       return { erreur: "Le service d’e-mail a refusé l’envoi. Vérifiez l’adresse du destinataire puis réessayez." };
     }
     const resultat = await reponse.json().catch(() => null);
     return { ...(typeof resultat?.id === "string" ? { id: resultat.id } : {}) };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
+    if (e instanceof RefusContexteCourriel) return {erreur:e.message,recuperable:e.recuperable};
     if (delaiDepasse(e)) return { erreur: ERREUR_DELAI, incertain: true };
     if (appelCommence) return { erreur: "La connexion au service d’e-mail a été interrompue. L’envoi n’est pas confirmé et a peut-être eu lieu : vérifiez avant de le renvoyer.", incertain: true };
-    return { erreur: "L’e-mail n’a pas pu partir car le service est momentanément indisponible. Réessayez dans un instant." };
+    return { recuperable:true, erreur: "L’e-mail n’a pas pu partir car le service est momentanément indisponible. Réessayez dans un instant." };
   }
+}
+
+/** Point d’entrée unique : la réservation durable précède tout appel au fournisseur. */
+export async function envoyerEmail(params:Parameters<typeof envoyerEmailTransport>[0]):Promise<ResultatCourriel> {
+ const db=clientDeService();
+ if(!db)return {erreur:"Suivi durable des e-mails indisponible. Aucun envoi effectué."};
+ const charge={to:params.to,subject:params.subject,html:params.html,piecesJointes:params.piecesJointes,cleIdempotence:params.cleIdempotence,organisationId:params.organisation?.id,contexteMetier:params.contexteMetier};
+ if(piloteLimite()&&!circuitAdmisPilote(charge))return suspendreCourrielPilote(db,charge,params.circuit);
+ if(!process.env.RESEND_API_KEY)return {erreur:"Envoi des e-mails non configuré. Contactez l’administrateur."};
+ // Les contrôles métier fournis par l'appelant ne sont jamais sérialisés ou contournés.
+ // Leur mission d'origine conserve la responsabilité de la reprise.
+ if(params.contexteMetier && params.repriseAutonome!==false) {
+  try {await conserverCourriel(db,{to:params.to,subject:params.subject,html:params.html,piecesJointes:params.piecesJointes,cleIdempotence:params.cleIdempotence,organisationId:params.organisation?.id,contexteMetier:params.contexteMetier});}
+  catch {return {erreur:"Conservation sécurisée indisponible. Aucun envoi effectué."};}
+ }
+ const contenu=JSON.stringify([params.subject,params.html,params.piecesJointes??[]]);
+ return envoyerCourrielDurable(db,{cle:params.cleIdempotence??empreinteCourriel(contenu),destinataire:params.to,organisation:params.organisation?.id??null,contenu},
+ async reference=>{
+  return envoyerEmailTransport({...params,cleIdempotence:params.cleIdempotence??reference,referenceInterne:reference,
+   avantEnvoi:async()=>{await params.avantEnvoi?.();if(params.contexteMetier)await exigerContexteCourriel(db,reference);}
+  });
+ });
 }

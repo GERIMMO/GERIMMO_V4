@@ -181,7 +181,7 @@ describe.skipIf(!DB_URL)("Incidents dans le portefeuille de l'agent", () => {
     await db.query("select public.supprimer_detention($1)", [detention]);
     await postgres();
     expect((await db.query("select id from public.detentions where id=$1", [detention])).rows).toHaveLength(0);
-    const { rows } = await db.query("select account_id, organization_id, details from public.audit_log where action='detention_supprimee'");
+    const { rows } = await db.query("select account_id, organization_id, details from public.audit_log where action='detention_supprimee' and organization_id=$1", [org]);
     expect(rows).toHaveLength(1);
     expect(rows[0].account_id).toBe(admin);
     expect(rows[0].organization_id).toBe(org);
@@ -206,7 +206,7 @@ describe.skipIf(!DB_URL)("Incidents dans le portefeuille de l'agent", () => {
     await db.query("select public.supprimer_detention($1)", [detention]);
     await postgres();
     expect((await db.query("select id from public.detentions where id=$1", [detention])).rows).toHaveLength(1);
-    expect((await db.query("select id from public.audit_log where action='detention_supprimee'")).rows).toHaveLength(0);
+    expect((await db.query("select id from public.audit_log where action='detention_supprimee' and organization_id=$1", [org])).rows).toHaveLength(0);
   });
 
   it("l’administrateur de l’agence conserve la qualification sans mandat personnel", async () => {

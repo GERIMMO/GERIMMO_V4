@@ -1,3 +1,7 @@
+import {adresseIpFiable} from "./ip-fiable";
+import { empreinteCourriel } from "./courriels-durables";
+import type { ContexteCourriel } from "./finalisation-courriels";
+import { piloteLimite, MESSAGE_PILOTE } from "./perimetre-pilote";
 // LES LIENS « CRÉER / CHOISIR MON MOT DE PASSE » — une seule fabrique.
 //
 // POURQUOI CE FICHIER EXISTE (30/09/2026, incident de production). Toutes les
@@ -164,10 +168,9 @@ const COURRIERS: Record<MotifLien, Courrier> = {
 export async function ipDeLaRequete(): Promise<string | null> {
   try {
     const h = await headers();
-    const transmise = h.get("x-forwarded-for")?.split(",")[0]?.trim();
-    return transmise || h.get("x-real-ip")?.trim() || null;
+    return adresseIpFiable(h);
   } catch {
-    return null;
+    return '0.0.0.0';
   }
 }
 
@@ -269,6 +272,7 @@ export async function envoyerRappelInvitationLocataire(params: {
   echeanceMs?: number;
   horloge?: () => number;
 }): Promise<ResultatRappelInvitation> {
+  if(piloteLimite())return {envoye:false,erreur:MESSAGE_PILOTE,incertain:false};
   const maintenant = params.horloge ?? Date.now;
   const reste = () => params.echeanceMs === undefined ? Infinity : params.echeanceMs - maintenant();
   const delaiEcoule = (): ResultatRappelInvitation => ({ envoye: false, erreur: "Le délai de cette relance est écoulé.", incertain: false });
@@ -290,7 +294,7 @@ export async function envoyerRappelInvitationLocataire(params: {
   const lien = construireLien(origine, jeton, suiteInvitationLocataire(params.invitationId), "recovery", email);
   const delaiMaxMs = Math.min(15_000, reste());
   if (delaiMaxMs <= 0) return delaiEcoule();
-  const envoi = await envoyerEmail({
+  const envoi = await envoyerEmail({ circuit:"lib/lien-mot-de-passe",
     to: email,
     subject: SUJET_RAPPEL_INVITATION_LOCATAIRE,
     html: corpsRappelInvitationLocataire(lien, origine, params.expireLe),
@@ -340,15 +344,30 @@ async function envoyerCourrier(params: {
   jeton: string;
   next: string;
   type: TypeLien;
+  organisation?: string;
+  invitation?: string;
+  acteur?: string;
 }): Promise<string | null> {
   const lien = construireLien(params.origine, params.jeton, params.next, params.type, params.email);
+  const service = clientDeService();
+  if (!service) return INDISPONIBLE;
+  const {data: contexte, error} = await service.rpc('contexte_acces_courriel', {
+    p_email: empreinteCourriel(params.email.trim().toLowerCase()),
+    p_jeton: empreinteCourriel(params.jeton), p_usage: params.type,
+    p_org: params.organisation ?? null, p_invitation: params.invitation ?? null, p_acteur: params.acteur ?? null,
+  });
+  if (error || !contexte) return 'Lien devenu invalide ou autorisation retirée. Demandez un nouveau lien.';
   const envoi = await envoyerEmail({
+    contexteMetier: contexte as ContexteCourriel,
+    cleIdempotence: `acces-${empreinteCourriel(params.jeton)}`,
+    ...(params.organisation ? {organisation:{db:service,id:params.organisation}} : {}),
+    circuit:"lib/lien-mot-de-passe",
     to: params.email,
     subject: sujetCourrier(params.motif),
     html: corpsCourrier(params.motif, lien, params.origine),
   });
   if (envoi.erreur) {
-    console.error("[lien-mot-de-passe] e-mail non parti :", params.motif, envoi.erreur);
+    console.error("[lien-mot-de-passe] e-mail non confirmé :", params.motif);
     return envoi.erreur;
   }
   return null;
@@ -368,7 +387,10 @@ export async function envoyerLienMotDePasse(params: {
   motif: MotifLien;
   next?: string;
   organisation?: string;
+  invitation?: string;
+  acteur?: string;
 }): Promise<{ erreur?: string; limite?: true }> {
+  if(piloteLimite()&&!MOTIFS_ANONYMES.has(params.motif)&&!(params.motif==='invitation_locataire'&&params.invitation&&params.acteur&&params.organisation))return {erreur:MESSAGE_PILOTE};
   const email = params.email.trim().toLowerCase();
   const anonyme = MOTIFS_ANONYMES.has(params.motif);
   if (!email) return { erreur: "Adresse e-mail manquante." };
@@ -401,6 +423,7 @@ export async function envoyerLienMotDePasse(params: {
     jeton,
     next: params.next ?? "/nouveau-mot-de-passe",
     type: "recovery",
+    organisation: params.organisation, invitation: params.invitation, acteur: params.acteur,
   });
   if (erreurEnvoi) return anonyme ? {} : { erreur: erreurEnvoi };
   return {};

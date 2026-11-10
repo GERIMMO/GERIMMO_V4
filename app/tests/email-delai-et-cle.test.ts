@@ -20,10 +20,11 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ArretSupervision } from "../src/lib/controle-effets";
-import { DELAI_MAX_FOURNISSEUR_MS, envoyerEmail } from "../src/lib/email";
+import { DELAI_MAX_FOURNISSEUR_MS, envoyerEmailTransport as envoyerEmail } from "../src/lib/email";
 import { CONSERVATION_CLE_MS, fauxFournisseurEmail } from "./fixtures/faux-fournisseur-email";
 
 beforeEach(() => {
+  vi.stubEnv("GERIMMO_PILOTE_LIMITE", "false");
   vi.stubEnv("RESEND_API_KEY", "cle-de-test");
 });
 afterEach(() => {
@@ -139,7 +140,8 @@ describe("la clé et le délai, ensemble (IA-04 + IA-05)", () => {
     await envoyerEmail({ ...courrier, cleIdempotence: "relance/b-1" });
     const r = await envoyerEmail({ ...courrier, html: "<p>Montant corrigé</p>", cleIdempotence: "relance/b-1" });
     expect(r.id).toBeUndefined();
-    expect(r.erreur).toMatch(/refusé l’envoi/);
+    expect(r.erreur).toMatch(/incertain/);
+    expect(r.incertain).toBe(true);
     expect(fournisseur.acceptes).toHaveLength(1);
   });
 

@@ -181,7 +181,7 @@ export async function inviterAgent(
     if (!origine) {
       erreurMail = MESSAGE_SITE_NON_CONFIGURE;
     } else {
-      const envoi = await envoyerEmail({
+      const envoi = await envoyerEmail({ circuit:"app/actions/organisation",
         organisation: { db: supabase, id: orgId },
         to: ligne.email,
         subject: "Vous rejoignez l’équipe de l’agence sur Gerimmo",

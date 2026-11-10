@@ -1,3 +1,4 @@
+import {exigerOperationsPayantesAutorisees} from "./verrou-pilote";
 import "server-only";
 import { prixPropose, REFERENCES_TRAVAUX, type RepereHistorique } from "./references-prix-travaux";
 import { ArretSupervision } from "./controle-effets";
@@ -38,6 +39,7 @@ export async function proposerDevis(categorie: string, description: string | nul
   if (cle) {
     try {
       await avantAppel();
+  exigerOperationsPayantesAutorisees();
       const reponse = await fetch("https://api.openai.com/v1/responses", {
         method: "POST", redirect: "error", signal: AbortSignal.timeout(30000),
         headers: { Authorization: `Bearer ${cle}`, "Content-Type": "application/json" },

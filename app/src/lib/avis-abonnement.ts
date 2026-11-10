@@ -218,7 +218,7 @@ export async function envoyerAvisFinEssai(
 ): Promise<string | null> {
   if (!p.destinataire) return "sans adresse";
   const c = courrierFinEssai({ ...p, lien: lienAbonnement(p.orgId, p.base) });
-  const { erreur } = await envoyerEmail({ to: p.destinataire, subject: c.sujet, html: c.html, cleIdempotence: p.cle, avantEnvoi: avantEffet });
+  const { erreur } = await envoyerEmail({ circuit:"lib/avis-abonnement", to: p.destinataire, subject: c.sujet, html: c.html, cleIdempotence: p.cle, avantEnvoi: avantEffet });
   return erreur ?? null;
 }
 
@@ -232,7 +232,7 @@ export async function envoyerAvisCapaciteDepassee(
   if (!a) return "sans adresse";
   const c = courrierCapaciteDepassee({ ...p, lien: lienAbonnement(p.orgId, baseEspace(p.orgId, !p.estAgence)) });
   await avantEffet?.();
-  const { erreur } = await envoyerEmail({
+  const { erreur } = await envoyerEmail({ circuit:"lib/avis-abonnement",
     avantEnvoi: avantEffet,
     to: a,
     subject: c.sujet,
@@ -291,7 +291,7 @@ export async function envoyerAvisReconduction(supabase: SupabaseClient, avantEff
       lien: lienAbonnement(a.organization_id, await baseDeLOrganisation(supabase, a.organization_id)),
     });
     await avantEffet?.();
-    const { erreur } = await envoyerEmail({
+    const { erreur } = await envoyerEmail({ circuit:"lib/avis-abonnement",
       avantEnvoi: avantEffet,
       to: a.destinataire,
       subject: c.sujet,

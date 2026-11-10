@@ -146,6 +146,7 @@ export async function envoyerQuittance(
   // reprendrait la quittance non marquée non plus — tant que le service retient
   // la clé (24 h, voir lib/email.ts).
   const envoi = await envoyerEmail({
+    contexteMetier: {type:"quittance",acteur:user.id,id:quittanceId,montant:Number(q.montant),est_quittance:q.est_quittance},
     avantEnvoi: () => verifierAccordQuittance(supabase, orgId, bailId, loc.email),
     organisation: { db: supabase, id: orgId },
     to: loc.email,
@@ -157,6 +158,8 @@ export async function envoyerQuittance(
     console.error("[quittance email] échec:", envoi.erreur);
     return { erreur: envoi.erreur };
   }
+
+  if(envoi.finalisationEnAttente)return {succes:"Envoi accepté par le prestataire. Enregistrement métier en attente de vérification ; ne renvoyez pas le document."};
 
   // L'email est parti : si la mémorisation échoue, on le dit (le bouton
   // « Envoyer » réapparaîtrait, avec un double envoi possible).

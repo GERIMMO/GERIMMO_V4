@@ -29,7 +29,7 @@ export function verifierEnvironnement(env = process.env) {
     suspendre("l'adresse du site doit être celle de ce déploiement de préproduction.");
   }
   const interdites = Object.entries(env).filter(([nom, valeur]) => valeur && (
-    /^(STRIPE_|ZOHO_|YOUTRUST_|RESEND_|META_|OPENAI_|OPEN_AI_)/.test(nom)
+    /^(STRIPE_|ZOHO_|YOUTRUST_|AR24_|RESEND_|META_|OPENAI_|OPEN_AI_)/.test(nom)
     || ["GITHUB_AGENT_TOKEN", "VERCEL_TOKEN", "CRON_SECRET", "SUPABASE_DB_URL", "SUPABASE_SERVICE_ROLE_KEY"].includes(nom)
     || (["GERIMMO_CODEX_ENABLED", "GERIMMO_RELAIS_EMAILS"].includes(nom) && !["0", "false"].includes(valeur))
   ));

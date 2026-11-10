@@ -1,3 +1,4 @@
+import {exigerOperationsPayantesAutorisees} from "./verrou-pilote";
 import { createCipheriv, createDecipheriv, createHash } from "node:crypto";
 
 /** Contrat officiel vérifié le 28/10/2026 : https://developers.ar24.fr/doc/ .
@@ -29,6 +30,7 @@ export class EnvoiAr24Incertain extends Error {
 }
 type ReponseAr24 = { status?: string; result?: Record<string,unknown>; slug?: string };
 async function appelAr24(config: ConfigurationAr24, methode: "GET" | "POST", route: "/mail" | "/user/mail", valeurs: Record<string,string>, transport: typeof fetch = fetch): Promise<Record<string,unknown>> {
+  exigerOperationsPayantesAutorisees();
   if (!["https://sandbox.ar24.fr/api","https://app.ar24.fr/api"].includes(config.baseUrl)) throw new Error("Adresse AR24 non autorisée.");
   const date = dateAr24();
   const donnees = new URLSearchParams({ ...valeurs, token:config.token, date });

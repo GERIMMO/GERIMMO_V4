@@ -2,6 +2,13 @@ import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { configurationTransfert, lireCorpsBorne, traiterTransfertContact } from "../src/lib/transfert-contact";
 
+const registre=vi.hoisted(()=>new Map<string,{etat:string;id?:string}>());
+vi.mock('../src/lib/supabase/service',()=>({clientDeService:()=>({rpc:async(n:string,p:Record<string,string>)=>{
+ if(n==='conserver_courriel')return {data:true,error:null};
+ if(n==='prendre_courriel'){const m=registre.get(p.p_id);if(m)return {data:m,error:null};registre.set(p.p_id,{etat:'en_cours'});return {data:{etat:'pris'},error:null};}
+ if(n==='finir_courriel'){registre.set(p.p_id,{etat:p.p_etat,id:p.p_fournisseur});return {data:true,error:null};}
+ return {data:null,error:null};
+}})}));
 const NOW = Date.parse("2026-10-22T10:00:00Z");
 const ID = "11111111-2222-4333-8444-555555555555";
 const SECRET = Buffer.alloc(32, 7);
@@ -40,8 +47,8 @@ function fournisseur(metadata: Record<string, unknown> = {}, mime = MIME, envoiS
   return { envois, fetchMock };
 }
 
-beforeEach(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(NOW); });
-afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+beforeEach(() => { registre.clear();vi.stubEnv('COURRIELS_CHIFFREMENT_CLE','ab'.repeat(32)); vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(NOW); });
+afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("configuration fermée par défaut", () => {
   it.each([
@@ -95,7 +102,7 @@ it("les reprises rapprochées transmettent exactement le même corps et la même
   const { envois } = fournisseur();
   await traiterTransfertContact(requete(), ENV, NOW);
   await traiterTransfertContact(requete(), ENV, NOW);
-  expect(envois[0]).toEqual(envois[1]);
+  expect(envois).toHaveLength(1);
   expect(envois[0].headers["Idempotency-Key"]).toBe(`contact-transfert-v1/${ID}`);
 });
 it.each(["evenement", "message"])("après 23 h, l'ancien %s exige une reprise contrôlée", async (cible) => {

@@ -1,3 +1,4 @@
+import {maintenanceLivraison,MESSAGE_TRANSITION} from "./transition-livraison";
 import { ArretSupervision } from "./controle-effets";
 import { adresseDuSite } from "./site";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -100,6 +101,7 @@ export async function envoyerEmail(params: {
   avantEnvoi?: () => Promise<void>;
   organisation?: { db: SupabaseClient; id: string };
 }): Promise<{ erreur?: string; id?: string; /** Délai dépassé ou connexion interrompue : l'envoi a peut-être eu lieu. */ incertain?: true }> {
+  if(maintenanceLivraison())return {erreur:MESSAGE_TRANSITION};
   const cle = process.env.RESEND_API_KEY;
   if (!cle) return { erreur: "Envoi des e-mails non configuré. Contactez l’administrateur." };
   let appelCommence = false;

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 const m=vi.hoisted(()=>({email:vi.fn()}));
+vi.mock("@/lib/supabase/service",()=>({clientDeService:()=>null}));
 vi.mock("@/lib/email",()=>({envoyerEmail:m.email}));
 vi.mock("@/lib/marque-organisation-serveur",()=>({chargerMarque:vi.fn(async()=>({name:"Organisation test"}))}));
 import { notifierDevisRecu } from "../src/lib/notifications";

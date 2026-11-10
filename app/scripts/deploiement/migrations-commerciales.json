@@ -26,5 +26,9 @@
   {
     "fichier": "20261110052302_securisation_pilote_notifications.sql",
     "sha256": "5d1158fe523986e5a880ff8e0eff0d7865f901ce30c67efff3cb00e346c7a19f"
+  },
+  {
+    "fichier": "20261110181422_supervision_v1_lecture_bornee.sql",
+    "sha256": "b61df4663f4e9d2ec4700993776c5ca33d85617015e0fa7e4668f7442ddb9abc"
   }
 ]

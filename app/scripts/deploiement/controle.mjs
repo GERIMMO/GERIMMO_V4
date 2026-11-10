@@ -128,3 +128,15 @@ export async function controlerPublication(o, ports) {
     return rapport;
   } finally { ports.report?.(rapport); }
 }
+
+/** Politique approuvée le 10/11/2026 : un administrateur, approbation humaine obligatoire. */
+export function approbationGerimmoConforme(environnement) {
+  const regle = environnement?.protection_rules?.find(r => r.type === "required_reviewers");
+  return environnement?.can_admins_bypass === false &&
+    environnement?.deployment_branch_policy?.protected_branches === true &&
+    environnement?.deployment_branch_policy?.custom_branch_policies === false &&
+    regle?.prevent_self_review === false && regle.reviewers?.length === 1 &&
+    regle.reviewers[0].type === "User" &&
+    regle.reviewers[0].reviewer?.id === 283692152 &&
+    regle.reviewers[0].reviewer?.login === "GERIMMO";
+}

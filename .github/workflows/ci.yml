@@ -35,6 +35,9 @@ jobs:
       SUPABASE_DB_URL: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_sql
       SUPALOCAL_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_sql_api
       GERIMMO_PILOTE_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_lottrois
+      GERIMMO_HISTORIQUE_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_historique
+      GERIMMO_AUTH_REEL_URL: http://127.0.0.1:55519
+      GERIMMO_AUTH_REEL_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_auth_reprise
       NODE_OPTIONS: --max-old-space-size=4096
       GERIMMO_ARTISAN_CLIENTS_LOCAUX: "1"
       GERIMMO_ARTISAN_REGLEMENTS_LOCAUX: "1"
@@ -74,6 +77,8 @@ jobs:
         run: |
           node e2e/local/preparer-ci.mjs
           node scripts/deploiement/preparer-pilote-local.mjs
+          node --input-type=module -e 'import {Client} from "pg";const c=new Client({connectionString:process.env.SUPABASE_DB_URL});await c.connect();await c.query("create database gerimmo_ci_historique");await c.end();'
+          SUPABASE_DB_URL="$GERIMMO_HISTORIQUE_DB" GERIMMO_BASE_AVANT_LOTS=1 node e2e/local/preparer-ci.mjs
       - name: Vérifier les jointures et l'isolation avec 300 lots fictifs
         env:
           GERIMMO_CHARGE_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_charge_automatique
@@ -93,6 +98,25 @@ jobs:
             sleep 1
           done
           cat /tmp/gerimmo-api.log
+          exit 1
+      - name: Démarrer Auth isolé sans messagerie externe
+        run: |
+          node --input-type=module -e 'import {Client} from "pg"; const c=new Client({connectionString:process.env.SUPABASE_DB_URL});await c.connect();await c.query("create database gerimmo_ci_auth_reprise");await c.query("alter database gerimmo_ci_auth_reprise set search_path=auth,public");await c.end();const a=new Client({connectionString:process.env.GERIMMO_AUTH_REEL_DB});await a.connect();await a.query("create schema auth; create extension if not exists pgcrypto");await a.end();'
+          docker run -d --name gerimmo-auth-test --network host \
+            -e DATABASE_URL="$GERIMMO_AUTH_REEL_DB" -e GOTRUE_DB_DRIVER=postgres -e DB_NAMESPACE=auth \
+            -e API_EXTERNAL_URL=http://127.0.0.1:55519 -e PORT=55519 -e GOTRUE_API_HOST=127.0.0.1 \
+            -e GOTRUE_SITE_URL=http://localhost:3100 -e GOTRUE_JWT_SECRET=gerimmo-auth-local-fictif-sans-production \
+            -e GOTRUE_JWT_ADMIN_ROLES=service_role -e GOTRUE_MAILER_AUTOCONFIRM=false \
+            -e GOTRUE_SMTP_HOST=127.0.0.1 -e GOTRUE_SMTP_PORT=1 -e GOTRUE_SMTP_ADMIN_EMAIL=auth@example.invalid \
+            supabase/gotrue:v2.197.0
+          for tentative in {1..60}; do
+            if curl --silent --fail http://127.0.0.1:55519/health > /dev/null; then
+              node -e 'const fs=require("node:fs"),c=require("node:crypto");const b=v=>Buffer.from(JSON.stringify(v)).toString("base64url");const h=b({alg:"HS256",typ:"JWT"})+"."+b({role:"service_role",exp:Math.floor(Date.now()/1000)+7200});fs.appendFileSync(process.env.GITHUB_ENV,"GERIMMO_AUTH_REEL_SERVICE="+h+"."+c.createHmac("sha256","gerimmo-auth-local-fictif-sans-production").update(h).digest("base64url")+"\n");'
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs --tail 30 gerimmo-auth-test
           exit 1
       - run: npm run lint
       - run: npm run build

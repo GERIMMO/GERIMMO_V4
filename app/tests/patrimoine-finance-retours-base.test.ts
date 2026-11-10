@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
-const url=process.env.SUPABASE_DB_URL; verifierBaseDeTest(url);
+const url=(process.env.GERIMMO_HISTORIQUE_DB ?? process.env.SUPABASE_DB_URL); verifierBaseDeTest(url);
+// Les retours historiques sont testés sur le schéma pré-lots ; V1 utilise la correction en avant.
 const noms=['20261028143735_patrimoine_consommations_releves','20261028154615_factures_fourniture_journal_atomique','20261028155855_regularisations_depuis_fournitures','20261028171201_historique_contrats_fourniture','20261105210810_avis_decompte_locataire','20261106090000_partage_repartition_facture','20261107193000_reouverture_repartition_fourniture','20261108090000_suivi_releves_facture','20261108100000_factures_automatiques'];
 const lire=(nom:string,retour=false)=>readFileSync(`supabase/${retour?'retours-arriere':'migrations'}/${nom}${retour?'.retour':''}.sql`,'utf8');
 describe.skipIf(!url)("retours des fournitures et finances, sans perte de preuves",()=>{

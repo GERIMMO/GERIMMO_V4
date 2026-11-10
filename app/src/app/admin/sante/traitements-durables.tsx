@@ -1,10 +1,9 @@
 import { piloteLimite } from "@/lib/perimetre-pilote";
-import { clientDeService } from '@/lib/supabase/service';
 import { createClient } from '@/lib/supabase/server';
 export default async function TraitementsDurables(){
  const session=await createClient();const autorisation=await session.rpc('is_super_admin');
  if(autorisation.error||autorisation.data!==true)return null;
- const db=clientDeService();if(!db)return null;
+ const db=session;
  const [factures,courriels,intentions]=await Promise.all([
   db.from('factures_automatiques').select('id,organization_id,etat,dernier_resultat,tentatives,disponible_le').eq('actif',true).neq('etat','terminee').order('disponible_le').limit(50),
   db.from('courriels_durables').select('id,organization_id,etat,tentatives,updated_at,motif,reprise_autonome,expire_le,finalisation_etat,circuit').or('etat.in.(inconnu,echec,en_cours,en_attente),finalisation_etat.neq.terminee').order('updated_at').limit(50),

@@ -19,7 +19,7 @@ export function conditionner(source,nom){
 export function verifierLot(noms){
  if(noms.some(n=>n==='20261110053019_verrou_paiements_pilote.sql'))throw Error('Verrou pilote interdit');
  const selection=noms.filter(n=>commerciales.some(c=>c.fichier===n));
- if(selection.length&&JSON.stringify(noms)!==JSON.stringify(commerciales.map(c=>c.fichier)))throw Error('Le lot commercial doit contenir les sept migrations exactes dans leur ordre');
+ if(selection.length&&JSON.stringify(noms)!==JSON.stringify(commerciales.map(c=>c.fichier)))throw Error('Le lot commercial doit contenir les migrations exactes du manifeste validé dans leur ordre');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
  try{

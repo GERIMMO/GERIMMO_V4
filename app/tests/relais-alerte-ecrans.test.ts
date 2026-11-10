@@ -1,3 +1,4 @@
+import { rendreServeur } from "./fixtures/rendu-serveur";
 /**
  * D46-B (15/10/2026) — la console dit la vérité sur l'alerte e-mail du relais :
  *  — « Alerte e-mail quotidienne à 5 h (heure de Paris) vers N adresses », adresses MASQUÉES ; ou « Relais non
@@ -135,7 +136,7 @@ describe("l'écran Santé et l'alerte e-mail du relais", () => {
   it("relais non configuré : les trois e-mails d'alerte sont nommés, et les deux du relais disent qu'ils ne partent pas", async () => {
     vi.stubEnv("GERIMMO_RELAIS_EMAILS", "");
     mocks.createClient.mockResolvedValue(client());
-    const html = renderToStaticMarkup(await PageSante());
+    const html = await rendreServeur(await PageSante());
     expect(html).toContain("Cet écran ne prévient personne");
     expect(html).toContain("Gerimmo envoie trois e-mails d’alerte : le veto d’une publication marketing, au superviseur, avant sa parution ; l’alerte quotidienne du relais, à 5 h (heure de Paris), et l’e-mail immédiat des urgences du mode vacances, qui ne partent pas : le relais n’est pas configuré, aucune tâche en échec n’est signalée par e-mail.");
     expect(html).not.toContain("Le seul e-mail d’alerte de Gerimmo");
@@ -145,7 +146,7 @@ describe("l'écran Santé et l'alerte e-mail du relais", () => {
   it("relais configuré : les trois envois, 5 h (heure de Paris), le délai de l'e-mail immédiat, le nombre d'adresses, masquées", async () => {
     vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.com,second@example.org");
     mocks.createClient.mockResolvedValue(client());
-    const html = renderToStaticMarkup(await PageSante());
+    const html = await rendreServeur(await PageSante());
     expect(html).toContain("Gerimmo envoie trois e-mails d’alerte : le veto d’une publication marketing, au superviseur, avant sa parution ; l’alerte quotidienne du relais, à 5 h (heure de Paris), qui signale aussi les tâches en échec ou absentes sur les dernières 24 h ; et l’e-mail immédiat des urgences du mode vacances, au plus 11 minutes après l’événement. Ces deux derniers partent vers 2 adresses : re•••is@example.com, se•••nd@example.org.");
     expect(html).not.toContain("L’autre e-mail d’alerte");
     expect(html).not.toContain("relais@example.com");

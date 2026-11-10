@@ -89,3 +89,13 @@ test('correction en avant : conserve approbation et révision exacte',async()=>{
 test('correction en avant : succès sous maintenance',async()=>{const s=scenarioAvant();assert.equal((await controlerPublication(avant,s.p)).etat,'publiee_verifiee');assert.deepEqual(s.appels,[['promote',o.deploymentId]]);});
 test('correction en avant : échec de santé sans retour automatique',async()=>{const s=scenarioAvant(),health=s.p.health;s.p.health=async(u,publicSite)=>publicSite?{ok:false}:health(u);assert.equal((await controlerPublication(avant,s.p)).etat,'intervention_requise');assert.deepEqual(s.appels,[['promote',o.deploymentId]]);});
 test('correction en avant : réponse de promotion perdue, aucune seconde émission',async()=>{const s=scenarioAvant(),promote=s.p.promote;s.p.promote=async id=>{await promote(id);throw Error('réponse perdue');};assert.equal((await controlerPublication(avant,s.p)).etat,'publiee_verifiee');assert.equal(s.appels.length,1);});
+
+import { approbationGerimmoConforme } from "./controle.mjs";
+test("politique administrateur unique : approbateur exact, CI protégée et aucun bypass", () => {
+ const e={can_admins_bypass:false,deployment_branch_policy:{protected_branches:true,custom_branch_policies:false},protection_rules:[{type:"required_reviewers",prevent_self_review:false,reviewers:[{type:"User",reviewer:{id:283692152,login:"GERIMMO"}}]}]};
+ assert.equal(approbationGerimmoConforme(e),true);
+ for(const modifier of [x=>{x.can_admins_bypass=true},x=>{delete x.can_admins_bypass},x=>{x.deployment_branch_policy.protected_branches=false},x=>{x.protection_rules=[]},x=>{x.protection_rules[0].reviewers=[]},x=>{x.protection_rules[0].reviewers[0].reviewer.id=1},x=>{x.protection_rules[0].reviewers.push(x.protection_rules[0].reviewers[0])},x=>{x.protection_rules[0].prevent_self_review=true}]) {
+  const copie=structuredClone(e);modifier(copie);assert.equal(approbationGerimmoConforme(copie),false);
+ }
+ assert.equal(approbationGerimmoConforme(null),false);
+});

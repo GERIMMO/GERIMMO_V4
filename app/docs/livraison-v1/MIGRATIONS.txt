@@ -7,3 +7,6 @@
 7. 20261110052302_securisation_pilote_notifications.sql — SHA256 5d1158fe523986e5a880ff8e0eff0d7865f901ce30c67efff3cb00e346c7a19f
 
 Verrou pilote déplacé, sans changement de contenu, dans supabase/profils-locaux. Aucun historique appliqué réécrit.
+
+8. 20261110181422_supervision_v1_lecture_bornee.sql — SHA256 b61df4663f4e9d2ec4700993776c5ca33d85617015e0fa7e4668f7442ddb9abc
+Correctif additionnel de supervision : lecture par session administrateur avec MFA, aucun droit d’écriture ni accès au contenu des courriels ; index de relations. Testé uniquement en local.

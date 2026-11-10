@@ -73,6 +73,7 @@ const envoisAuGestionnaire = () =>
   sim.envoyer.mock.calls.map(([p]) => p as { to: string; html: string }).filter((p) => p.to === "gerant@example.invalid");
 
 beforeEach(() => {
+  sim.service = null;
   sim.envoyer.mockReset();
   sim.envoyer.mockResolvedValue({ id: "courriel-1" });
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", SITE);
@@ -129,6 +130,8 @@ describe("incident URGENT déclaré par le locataire : le courrier au gestionnai
         mon_gestionnaire_locataire: [{ agence: "Organisation TEST", email_contact: null, agent_email: "gerant@example.invalid" }],
         mes_incidents_locataire: [{ id: "inc-1", numero: "INC-1", lot_nom: "Lot TEST" }],
       });
+      // Le destinataire est revérifié par le service, pas repris depuis le locataire.
+      sim.service = service(p.type);
       const r = await notifierIncidentUrgentDeclare(db as never, ORG, "inc-1", { categorie: "plomberie_canalisation", piece: null, description: "Fuite TEST" });
       expect(r).toEqual({ envoyee: true });
       const courrier = seulCourrier();

@@ -1,5 +1,5 @@
 import { writeFile, appendFile, mkdir } from "node:fs/promises";
-import { controlerPublication, optionsValides } from "./controle.mjs";
+import { controlerPublication, optionsValides, approbationGerimmoConforme } from "./controle.mjs";
 
 const env = process.env;
 const o = optionsValides({ sha: env.RELEASE_SHA || "", deploymentId: env.RELEASE_DEPLOYMENT_ID || "", ciRunId: env.RELEASE_CI_RUN_ID || "", repository: env.GITHUB_REPOSITORY || "", projectId: env.VERCEL_PROJECT_ID || "", productionOrigin: env.GERIMMO_PRODUCTION_ORIGIN || "https://www.gerimmo.app", publish: env.RELEASE_PUBLISH === "true", databaseCompatible: env.RELEASE_DATABASE_COMPATIBLE === "true", forwardOnly: env.RELEASE_FORWARD_ONLY === "true", transitionSha: env.RELEASE_TRANSITION_SHA || "" });
@@ -33,7 +33,7 @@ const ports = {
   },
   approvalConfigured: async () => {
     const e = await gh("environments/gerimmo-production");
-    return e.protection_rules?.some(r => r.type === "required_reviewers" && r.reviewers?.length > 0 && r.prevent_self_review === true) && e.deployment_branch_policy?.protected_branches === true;
+    return approbationGerimmoConforme(e);
   },
   health: async (origin, publicSite) => {
     try {

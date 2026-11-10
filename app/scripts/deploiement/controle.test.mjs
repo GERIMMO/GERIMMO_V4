@@ -81,3 +81,11 @@ test("santé d’une autre révision ou SHA abrégé ne suffit pas", () => {
   assert.equal(santeConforme({ ok: true, base: true, commit: nouveauSha.slice(0, 7) }, nouveauSha), false);
   assert.equal(santeConforme({ ok: true, base: true, revision: ancienSha }, nouveauSha), false);
 });
+const avant={...o,databaseCompatible:false,forwardOnly:true,transitionSha:ancienSha};
+function scenarioAvant(){const s=scenario(),health=s.p.health;s.p.health=async(...a)=>({...await health(...a),maintenance:true});return s;}
+test('correction en avant : refuse un ancien SHA inconnu et une fausse compatibilité',()=>{for(const p of [{transitionSha:''},{databaseCompatible:true}])assert.throws(()=>optionsValides({...avant,...p}));});
+test('correction en avant : pas de promotion sans maintenance des deux versions',async()=>{const s=scenario();assert.equal((await controlerPublication(avant,s.p)).etat,'bloquee');assert.deepEqual(s.appels,[]);});
+test('correction en avant : conserve approbation et révision exacte',async()=>{for(const param of [{transitionSha:'c'.repeat(40)},{}]){const s=scenarioAvant();if(!param.transitionSha)s.p.approvalConfigured=async()=>false;assert.equal((await controlerPublication({...avant,...param},s.p)).etat,'bloquee');assert.deepEqual(s.appels,[]);}});
+test('correction en avant : succès sous maintenance',async()=>{const s=scenarioAvant();assert.equal((await controlerPublication(avant,s.p)).etat,'publiee_verifiee');assert.deepEqual(s.appels,[['promote',o.deploymentId]]);});
+test('correction en avant : échec de santé sans retour automatique',async()=>{const s=scenarioAvant(),health=s.p.health;s.p.health=async(u,publicSite)=>publicSite?{ok:false}:health(u);assert.equal((await controlerPublication(avant,s.p)).etat,'intervention_requise');assert.deepEqual(s.appels,[['promote',o.deploymentId]]);});
+test('correction en avant : réponse de promotion perdue, aucune seconde émission',async()=>{const s=scenarioAvant(),promote=s.p.promote;s.p.promote=async id=>{await promote(id);throw Error('réponse perdue');};assert.equal((await controlerPublication(avant,s.p)).etat,'publiee_verifiee');assert.equal(s.appels.length,1);});

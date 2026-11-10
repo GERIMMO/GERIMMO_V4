@@ -2,7 +2,7 @@ import { writeFile, appendFile, mkdir } from "node:fs/promises";
 import { controlerPublication, optionsValides } from "./controle.mjs";
 
 const env = process.env;
-const o = optionsValides({ sha: env.RELEASE_SHA || "", deploymentId: env.RELEASE_DEPLOYMENT_ID || "", ciRunId: env.RELEASE_CI_RUN_ID || "", repository: env.GITHUB_REPOSITORY || "", projectId: env.VERCEL_PROJECT_ID || "", productionOrigin: env.GERIMMO_PRODUCTION_ORIGIN || "https://www.gerimmo.app", publish: env.RELEASE_PUBLISH === "true", databaseCompatible: env.RELEASE_DATABASE_COMPATIBLE === "true" });
+const o = optionsValides({ sha: env.RELEASE_SHA || "", deploymentId: env.RELEASE_DEPLOYMENT_ID || "", ciRunId: env.RELEASE_CI_RUN_ID || "", repository: env.GITHUB_REPOSITORY || "", projectId: env.VERCEL_PROJECT_ID || "", productionOrigin: env.GERIMMO_PRODUCTION_ORIGIN || "https://www.gerimmo.app", publish: env.RELEASE_PUBLISH === "true", databaseCompatible: env.RELEASE_DATABASE_COMPATIBLE === "true", forwardOnly: env.RELEASE_FORWARD_ONLY === "true", transitionSha: env.RELEASE_TRANSITION_SHA || "" });
 if (env.GITHUB_REF !== "refs/heads/main" || env.GITHUB_EVENT_NAME !== "workflow_dispatch") throw new Error("Ce contrôle doit être lancé manuellement depuis la branche principale.");
 if (!env.VERCEL_TOKEN || !env.GITHUB_TOKEN || env.GERIMMO_RELEASE_ENABLED !== "true") throw new Error("La connexion du contrôle de publication n’est pas activée.");
 const team = env.VERCEL_TEAM_ID || "";

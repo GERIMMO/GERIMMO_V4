@@ -12,11 +12,12 @@
  * service refuse (409) une clé réutilisée avec un autre contenu : un rappel qui
  * écrivait « depuis N jours » avec N recalculé chaque matin n'était donc pas
  * repris le lendemain d'un envoi accepté mais non tracé. Les tests de la
- * seconde partie font tourner le VRAI `envoyerEmail` contre le faux fournisseur
+ * seconde partie font tourner le double fournisseur contre le faux fournisseur
  * (le premier groupe le remplace par un simulacre et ne voit pas la dérive).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { transportEmailOrchestration } from "./fixtures/transport-email-orchestration";
 import { fauxFournisseurEmail } from "./fixtures/faux-fournisseur-email";
 
 const envoyerEmail = vi.fn();
@@ -52,7 +53,7 @@ function base(tables: Record<string, unknown[]>, uniques: Record<string, unknown
 
 const MAINTENANT = new Date("2026-10-14T06:00:00Z");
 
-beforeEach(() => envoyerEmail.mockReset());
+beforeEach(() => { envoyerEmail.mockReset(); });
 
 describe("rappels de gestes : clé anti-doublon", () => {
   it("un relevé a une seule relance par palier et n’est plus rappelé après réception",async()=>{
@@ -104,7 +105,7 @@ describe("rappels de gestes : clé anti-doublon", () => {
   });
 });
 
-// ── Le VRAI envoyerEmail, le faux fournisseur : ce que le service voit d'une passe à l'autre ─────────
+// ── Le double fournisseur, le faux fournisseur : ce que le service voit d'une passe à l'autre ─────────
 
 describe("rappels de gestes : la reprise du lendemain porte le même texte", () => {
   const tables = { incident_interventions: [{ id: "iv-9", organization_id: "org-1", incident_id: "inc-1", artisan_id: "art-1", confiee_le: "2026-10-10T06:00:00Z" }] };
@@ -116,11 +117,11 @@ describe("rappels de gestes : la reprise du lendemain porte le même texte", () 
   let fournisseur = fauxFournisseurEmail();
 
   beforeEach(async () => {
-    const reel = await vi.importActual<typeof import("@/lib/email")>("@/lib/email");
-    envoyerEmail.mockImplementation((p: Parameters<typeof reel.envoyerEmail>[0]) => reel.envoyerEmail(p));
+    const reel = { envoyerEmail: transportEmailOrchestration };
     vi.stubEnv("RESEND_API_KEY", "cle-de-test");
     fournisseur = fauxFournisseurEmail();
     vi.stubGlobal("fetch", fournisseur.fetch);
+    envoyerEmail.mockImplementation((p: Parameters<typeof reel.envoyerEmail>[0]) => reel.envoyerEmail(p));
   });
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -172,7 +173,7 @@ describe("rappels de gestes : la reprise du lendemain porte le même texte", () 
     expect(tard).toBe(juste);
   });
 
-  it("RISQUE RÉSIDUEL DE D47 : si la reprise tombe après les 24 h de la clé, le rappel repart (texte identique, deux messages)", async () => {
+  it("Limite du fournisseur seul (la réservation durable V1 est testée séparément) : si la reprise tombe après les 24 h de la clé, le rappel repart (texte identique, deux messages)", async () => {
     // 14/10 06:00:05, puis 15/10 06:00:09 : 24 h et 4 s.
     const { b2 } = await deuxPassesSansTrace(matin(14, 5), matin(15, 9));
     expect(b2).toMatchObject({ envoyes: 1, echecs: 0 });

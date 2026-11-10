@@ -74,6 +74,7 @@ export function fauxFournisseurEmail(options: { conservationMs?: number } = {}) 
     return new Response(JSON.stringify({ id }), { status: 200 });
   }
 
+  Object.defineProperty(appeler, "gerimmoFournisseurFictif", { value: true });
   return {
     fetch: appeler,
     acceptes,

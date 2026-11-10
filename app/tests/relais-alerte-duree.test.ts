@@ -1,3 +1,9 @@
+// Tests de l’orchestration historique avec une frontière fournisseur simulée.
+// Les circuits suspendus ne sont PAS activés : voir courriels-circuits-suspendus-v1.test.ts.
+vi.mock("@/lib/email", async (importer) => ({
+  ...(await importer<typeof import("@/lib/email")>()),
+  envoyerEmail: (await import("./fixtures/transport-email-orchestration")).transportEmailOrchestration,
+}));
 /**
  * Relais de 5 h : le passage finit toujours avant la coupure de la route (tour final de vérification du 16/10/2026).
  *
@@ -15,7 +21,7 @@
  *    5 h est borné au temps restant avant les trois quarts de la durée (45 s), jamais en dessous d'une seconde ;
  *  — `envoyerUrgencesRelais` seul, avec une échéance : aucun tour commencé à moins d'une seconde, chaque appel borné au
  *    temps restant ;
- *  — en temps réel, par le vrai `envoyerEmail` et un faux `fetch` lent : la durée réelle reste sous la durée donnée.
+ *  — en temps réel, par le double fournisseur et un faux `fetch` lent : la durée réelle reste sous la durée donnée.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { lireAdressesRelais } from "../src/lib/relais-alerte";
@@ -199,7 +205,7 @@ describe("relais de 5 h : le passage finit avant la coupure de la route", () => 
     expect(terminaison(b.appels)).toMatchObject({ p_jour: JOUR, p_statut: "envoye", p_envoyes: 2 });
   });
 
-  it("en temps réel, par le vrai envoi : un service lent n'empêche pas de finir sous la durée donnée", async () => {
+  it("en temps réel, par le double fournisseur : un service lent n'empêche pas de finir sous la durée donnée", async () => {
     // Un faux service qui répond en 450 ms (réellement), ou échoue quand le délai maximal de l'appelant expire avant.
     const recus: { avecDelai: boolean }[] = [];
     vi.stubGlobal("fetch", (_url: unknown, init: RequestInit = {}) => new Promise<Response>((ok, ko) => {

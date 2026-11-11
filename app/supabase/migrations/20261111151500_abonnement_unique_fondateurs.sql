@@ -29,6 +29,7 @@ create table public.avantages_fondateurs (
  attribue_par uuid not null references public.accounts(id),
  debut date not null, fin_incluse date not null check(fin_incluse >= debut)
 );
+create index avantages_fondateurs_attribue_par_idx on public.avantages_fondateurs(attribue_par);
 alter table public.avantages_fondateurs enable row level security;
 revoke all on public.avantages_fondateurs from public,anon,authenticated,service_role;
 

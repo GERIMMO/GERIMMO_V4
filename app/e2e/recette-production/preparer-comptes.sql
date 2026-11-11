@@ -77,7 +77,7 @@ declare
   v_nom_agence text := btrim(current_setting('recette.nom_agence'));
   -- La version EN VIGUEUR des conditions (V1 du 24/10/2026) : les comptes de recette l'acceptent, comme une vraie
   -- inscription d'aujourd'hui (document « conditions_clients », valeur par défaut de acceptations_cgu.document).
-  v_version_cgu constant text := '2026-10-24'; -- CONDITIONS_VERSION (src/lib/editeur.ts)
+  v_version_cgu constant text := '2026-11-11'; -- CONDITIONS_VERSION (src/lib/editeur.ts)
   -- Les conditions de l'espace artisan, publiées le même jour : sans leur acceptation, la garde de l'espace artisan
   -- (src/app/artisan/layout.tsx) remplace chaque page par leur case.
   v_version_cgu_artisans constant text := '2026-10-24'; -- CONDITIONS_ARTISANS_VERSION (src/lib/editeur.ts)

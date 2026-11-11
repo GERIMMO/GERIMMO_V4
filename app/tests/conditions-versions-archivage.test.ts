@@ -233,7 +233,7 @@ describe("archiverConditionsPubliees", () => {
   });
 
   it("B1 et I1 sur les pages réellement servies par next start : la page normale s'archive entière, la page dégradée est refusée", async () => {
-    // Pages relevées le 24/10/2026 sur le build de cette branche : base du banc joignable (identité fictive), puis
+    // Pages relevées le 11/11/2026 sur le build de cette branche : base du banc joignable (identité fictive), puis
     // base coupée (statut 200, mentions « à venir »).
     const banc = {
       denomination: "Éditeur fictif du banc EI", forme: "Entrepreneur individuel (EI)", siege: "1 rue de l'Exemple, 75000 Paris",

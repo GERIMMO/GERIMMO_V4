@@ -11,7 +11,7 @@
  * (baseDeLOrganisation) ; une adresse /espace mise en dur y enverrait l'agence sur « introuvable ».
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { offreAgence, offreParticulier } from "@/lib/tarifs";
+import { offreAgence, offreParticulier, offreAbonnementUnique } from "@/lib/tarifs";
 
 const m = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -135,11 +135,11 @@ describe("demarrerAbonnement : les adresses de retour de la page de paiement", (
   for (const p of PROFILS) {
     it(`${p.nom} → ${p.attendu}/abonnement?paiement=…`, async () => {
       etat(p.publicTarif, false);
-      const offre = p.publicTarif === "agence" ? offreAgence(1) : offreParticulier(1, "mensuel");
+      const offre = p.publicTarif === "agence" ? offreAgence(1) : offreAbonnementUnique(1, "mensuel");
       const f = new FormData();
       f.set("confirmation", "oui");
       f.set("periodicite", "mensuel");
-      if (p.publicTarif !== "agence") f.set("formule", offreParticulier(1, "mensuel").formule.code);
+      if (p.publicTarif !== "agence") f.set("formule", offreAbonnementUnique(1, "mensuel").formule.code);
       f.set("montant_attendu_cents", String(offre.montantCents));
       await expect(demarrerAbonnement("org-1", {}, f)).rejects.toMatchObject({ url: "https://checkout.stripe.test/session" });
       const { retourOk, retourAnnule } = m.creerSession.mock.calls[0][1] as { retourOk: string; retourAnnule: string };

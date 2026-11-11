@@ -27,7 +27,7 @@ describe("règle d'inactivité et calculs", () => {
   it("la règle s'active avec la V1 : VERSION_MIN_INACTIVITE est la version de la V1 (24/10/2026)", () => {
     // Intégration des textes du 24/10 : la règle était inactive (null) jusqu'à la publication de la V1, qui l'annonce.
     expect(VERSION_MIN_INACTIVITE).toBe("2026-10-24");
-    expect(VERSION_MIN_INACTIVITE).toBe(CONDITIONS_VERSION);
+    expect(CONDITIONS_VERSION >= VERSION_MIN_INACTIVITE!).toBe(true);
     expect(versionInactiviteValide(VERSION_MIN_INACTIVITE)).toBe(true);
     expect(versionInactiviteValide(null)).toBe(false);
     expect(versionInactiviteValide("2026-11-15")).toBe(true);

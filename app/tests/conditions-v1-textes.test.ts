@@ -68,12 +68,12 @@ const article = (page: string, titre: string, suivant: string) => {
 };
 
 describe("V1 des conditions clients : articles clés", () => {
-  it("version et date du 24 octobre 2026, affichées en tête et à l'article 16", async () => {
-    expect(CONDITIONS_VERSION).toBe("2026-10-24");
-    expect(CONDITIONS_DATE).toBe("24 octobre 2026");
+  it("version et date du 11 novembre 2026, affichées en tête et à l'article 16", async () => {
+    expect(CONDITIONS_VERSION).toBe("2026-11-11");
+    expect(CONDITIONS_DATE).toBe("11 novembre 2026");
     const page = await conditions();
-    expect(page).toContain("Version du 24 octobre 2026, en vigueur depuis cette date.");
-    expect(page).toContain("La version en vigueur est la version du 24 octobre 2026.");
+    expect(page).toContain("Version du 11 novembre 2026, en vigueur depuis cette date.");
+    expect(page).toContain("La version en vigueur est la version du 11 novembre 2026.");
   });
 
   it("contient la rétractation en ligne, le formulaire « Commandé le », 14 bis, 15.5 et l'annexe L. 215", async () => {
@@ -125,7 +125,7 @@ describe("V1 des conditions clients : articles clés", () => {
 
   it("8.10 : rétractation ouverte à toutes les formules, remboursement intégral, nouveau délai au passage à l'annuel", async () => {
     const art = article(await conditions(), "8.10 — Rétractation.", "8.11 — Parrainage.");
-    expect(art).toContain("tout Client titulaire d'une formule Solo, Bailleur, Investisseur ou Patrimoine");
+    expect(art).toContain("tout Client propriétaire titulaire d'un abonnement Gerimmo, y compris d'une ancienne formule");
     expect(art).toContain("le jour de la conclusion n'est pas compté");
     expect(art).toContain("à 23 h 59, heure de Paris");
     expect(art).toContain("sans retenue pour la période déjà fournie");

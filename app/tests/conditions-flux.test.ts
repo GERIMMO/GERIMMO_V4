@@ -6,9 +6,8 @@
  * un texte troué : relevé sur un vrai `next start`, 17 marques vides, dont l'article 8.7 et le délai de la L. 215-1.
  *
  * Ce fichier vérifie, sans base :
- *  - la page réellement servie par `next start` (tests/fixtures/conditions-next-start.html, relevée le 24/10/2026 sur
- *    le build de cette branche, base du banc à l'identité fictive ; relevée de nouveau le même jour sur la V1 du 24/10,
- *    25 marques vides) : texte complet après
+ *  - la page réellement servie par next start le 11/11/2026 avec une identité fictive :
+ *    texte complet après
  *    reconstitution, identique au caractère près au rendu d'un seul tenant ;
  *  - un vrai flux de React (renderToReadableStream), passages imbriqués et frontière d'attente compris, sur une page
  *    simple puis sur la page /conditions elle-même, chaque article arrivant en retard : le texte reconstitué est,

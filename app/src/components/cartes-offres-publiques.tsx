@@ -14,7 +14,7 @@ export function CartesOffresPubliques() {
     <section className="offre-publique mx-auto max-w-2xl" aria-label="Simuler mon abonnement">
       <label htmlFor={id} className="offre-nom">Nombre de biens <strong>{biens}</strong></label>
       <input id={id} className="my-4 block w-full" type="range" min={1} max={100} value={biens}
-        onChange={(e) => setBiens(Number(e.target.value))} />
+        onChange={(e) => setBiens(e.currentTarget.valueAsNumber)} />
       <div className="offres-choix" role="group" aria-label="Rythme de paiement">
         <button type="button" aria-pressed={periode === "mensuel"} onClick={() => setPeriode("mensuel")}>Mensuel</button>
         <button type="button" aria-pressed={periode === "annuel"} onClick={() => setPeriode("annuel")}>Annuel</button>

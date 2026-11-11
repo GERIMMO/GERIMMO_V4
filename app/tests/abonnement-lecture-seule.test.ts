@@ -409,7 +409,7 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
         -- retractations_abonnement (plan du 23/10, R01) : la rétractation reste ouverte à un compte gelé.
         and c.relname not in ('acces_pieces_log', 'audit_log',
                               'abonnements', 'abonnement_evenements', 'intentions_souscription', 'verrous_facturation', 'mois_offerts',
-                              'retractations_abonnement',
+                              'retractations_abonnement', 'avantages_fondateurs',
                               'retours_utilisateurs', 'retours_soutiens',
                               'automation_events', 'orchestration_cases', 'orchestration_history',
                               'courriels_durables', 'factures_automatiques_evenements', 'notification_intentions')
@@ -422,7 +422,7 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
   it("les journaux de reprise restent internes et inscriptibles seulement par le service", async () => {
     // Conserver une preuve ou finaliser un envoi accepté doit rester possible
     // même après suspension. Cette exception n'autorise aucune saisie utilisateur.
-    for (const table of ["courriels_durables", "factures_automatiques_evenements", "notification_intentions"]) {
+    for (const table of ["courriels_durables", "factures_automatiques_evenements", "notification_intentions", "avantages_fondateurs"]) {
       for (const role of ["anon", "authenticated"]) {
         const { rows: [droits] } = await db.query(
           `select has_table_privilege($1,$2,'INSERT') as insertion,

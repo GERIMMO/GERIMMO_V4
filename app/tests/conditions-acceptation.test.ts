@@ -28,7 +28,7 @@ import {
   versionArtisansPubliee,
 } from "../src/lib/conditions-acceptation";
 import { conditionsArtisansAAccepter } from "../src/lib/conditions-acceptation-serveur";
-import { CONDITIONS_ARTISANS_DATE, CONDITIONS_ARTISANS_VERSION, CONDITIONS_DATE, CONDITIONS_VERSION } from "../src/lib/editeur";
+import { CONDITIONS_ARTISANS_DATE, CONDITIONS_ARTISANS_VERSION, CONDITIONS_VERSION } from "../src/lib/editeur";
 import {
   VERSIONS_SANS_ACCORD_EXPRES,
   accordExpresRequis,
@@ -174,8 +174,8 @@ describe("la garde de l'espace artisan (R10)", () => {
 });
 
 describe("l'écran « Nos conditions générales évoluent » (R19)", () => {
-  it("il ne s'affiche ni sur la version en vigueur (V1 du 24/10/2026) ni sans acceptation", () => {
-    expect(CONDITIONS_VERSION).toBe("2026-10-24");
+  it("il ne s'affiche ni sur la version en vigueur ni sans acceptation", () => {
+    expect(CONDITIONS_VERSION).toBe("2026-11-11");
     expect(nouvelleVersionAAccepter({ derniereVersionAcceptee: CONDITIONS_VERSION })).toBeNull();
     expect(nouvelleVersionAAccepter({ derniereVersionAcceptee: null })).toBeNull();
     expect(nouvelleVersionAAccepter({ derniereVersionAcceptee: CONDITIONS_VERSION, abonnement: { souscrit: true, periode_fin: "2026-12-01T00:00:00Z", annulation_demandee: false } })).toBeNull();
@@ -184,17 +184,17 @@ describe("l'écran « Nos conditions générales évoluent » (R19)", () => {
   it("la V1 exige l'accord exprès (son article 16) ; la version du 30/09, publiée avant la règle, jamais", () => {
     expect(VERSIONS_SANS_ACCORD_EXPRES).toEqual(["2026-09-30"]);
     expect(accordExpresRequis("2026-09-30", versionDeclaree("conditions_clients", "2026-09-30"))).toBe(false);
-    const v1 = versionDeclaree("conditions_clients", CONDITIONS_VERSION);
+    const v1 = versionDeclaree("conditions_clients", "2026-10-24");
     expect(v1?.nature).toBe("substantielle");
-    expect(accordExpresRequis(CONDITIONS_VERSION, v1)).toBe(true);
+    expect(accordExpresRequis("2026-10-24", v1)).toBe(true);
     // Qui n'a accepté que la version du 30/09 voit l'écran ; abonné, avec la phrase de non-reconduction.
-    const sansAbonnement = nouvelleVersionAAccepter({ derniereVersionAcceptee: "2026-09-30" });
+    const sansAbonnement = nouvelleVersionAAccepter({ version:"2026-10-24", dateVersion:"24 octobre 2026", derniereVersionAcceptee: "2026-09-30" });
     expect(sansAbonnement?.accordExpres).toBe(true);
     expect(sansAbonnement?.paragraphes).toEqual([
       `Une nouvelle version des conditions générales d’utilisation et de vente s’applique à compter du 24 octobre 2026. Résumé des changements : ${v1?.resume_modifications.replace(/[.\s]+$/u, "")}.`,
     ]);
-    expect(sansAbonnement?.dateVersion).toBe(CONDITIONS_DATE);
-    const abonne = nouvelleVersionAAccepter({ derniereVersionAcceptee: "2026-09-30", abonnement: { souscrit: true, periode_fin: "2026-12-01T00:00:00Z", annulation_demandee: false } });
+    expect(sansAbonnement?.dateVersion).toBe("24 octobre 2026");
+    const abonne = nouvelleVersionAAccepter({ version:"2026-10-24", dateVersion:"24 octobre 2026", derniereVersionAcceptee: "2026-09-30", abonnement: { souscrit: true, periode_fin: "2026-12-01T00:00:00Z", annulation_demandee: false } });
     expect(abonne?.paragraphes).toHaveLength(2);
     expect(abonne?.paragraphes[1]).toBe(
       "Sans votre accord à cette date, la version précédente continue de s’appliquer jusqu’au 1 décembre 2026, puis votre abonnement n’est pas reconduit ; vos données restent consultables et exportables."
@@ -260,12 +260,19 @@ describe("la non-reconduction faute d'accord (R19)", () => {
   it("jamais pour une version publiée sans la règle (30/09) ; jamais avant la date d'effet ; jamais pour une version technique ou non déclarée", () => {
     expect(motifSansObjet("2026-09-30", versionDeclaree("conditions_clients", "2026-09-30"), "2027-01-01")).toBe("sans_accord_expres");
     // La V1 (24/10/2026) : à partir de sa date d'effet (le préavis d'un mois après l'archivage est vérifié ensuite).
-    expect(motifSansObjet(CONDITIONS_VERSION, versionDeclaree("conditions_clients", CONDITIONS_VERSION), "2026-10-23")).toBe("avant_date_effet");
-    expect(motifSansObjet(CONDITIONS_VERSION, versionDeclaree("conditions_clients", CONDITIONS_VERSION), "2026-10-24")).toBeNull();
+    expect(motifSansObjet("2026-10-24", versionDeclaree("conditions_clients", "2026-10-24"), "2026-10-23")).toBe("avant_date_effet");
+    expect(motifSansObjet("2026-10-24", versionDeclaree("conditions_clients", "2026-10-24"), "2026-10-24")).toBeNull();
     expect(motifSansObjet("2026-11-15", V1, "2026-11-14")).toBe("avant_date_effet");
     expect(motifSansObjet("2026-11-15", V1, "2026-11-15")).toBeNull();
     expect(motifSansObjet("2026-11-15", { ...V1, nature: "technique" }, "2027-01-01")).toBe("sans_accord_expres");
     expect(motifSansObjet("2026-11-15", null, "2027-01-01")).toBe("version_non_declaree");
+  });
+
+  it("le nouveau tarif ne programme jamais la résiliation d’un ancien contrat sans acceptation", async () => {
+    const b=banc();
+    expect((await poserNonReconductionsConditions(b.supabase,b.stripe,{aujourdhui:"2027-03-01"})).motif).toBe("sans_accord_expres");
+    expect(b.appels).toEqual([]);
+    expect(b.update).not.toHaveBeenCalled();
   });
 
   type Appel = [string, Record<string, unknown> | undefined];
@@ -311,11 +318,11 @@ describe("la non-reconduction faute d'accord (R19)", () => {
     expect(ancienne.lectures).toEqual([]);
     // V1 (version par défaut depuis le 24/10/2026) : la veille de sa date d'effet, rien n'est lu.
     const veille = banc();
-    expect((await poserNonReconductionsConditions(veille.supabase, veille.stripe, { aujourdhui: "2026-10-23" })).motif).toBe("avant_date_effet");
+    expect((await poserNonReconductionsConditions(veille.supabase, veille.stripe, { version: "2026-10-24", aujourdhui: "2026-10-23" })).motif).toBe("avant_date_effet");
     expect(veille.lectures).toEqual([]);
     // Archivée le 24/10 : le préavis d'un mois court jusqu'au 23 novembre inclus ; rien n'est écrit chez Stripe.
     const preavis = banc({ archive: "2026-10-24T08:00:00Z" });
-    expect((await poserNonReconductionsConditions(preavis.supabase, preavis.stripe, { aujourdhui: "2026-11-23" })).motif).toBe("preavis_en_cours");
+    expect((await poserNonReconductionsConditions(preavis.supabase, preavis.stripe, { version: "2026-10-24", aujourdhui: "2026-11-23" })).motif).toBe("preavis_en_cours");
     expect(preavis.lectures).toEqual(["versions_conditions", "document=conditions_clients", "version=2026-10-24"]);
     expect(preavis.appels).toEqual([]);
     expect(preavis.update).not.toHaveBeenCalled();

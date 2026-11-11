@@ -31,7 +31,7 @@ export const VERSIONS_SANS_ACCORD_EXPRES: readonly string[] = ["2026-09-30"];
 
 /** La version exige-t-elle l'accord exprès du Client, faute de quoi l'abonnement n'est pas reconduit ? */
 export function accordExpresRequis(version: string, declaree: VersionDeclaree | null): boolean {
-  return declaree?.nature === "substantielle" && !VERSIONS_SANS_ACCORD_EXPRES.includes(version);
+  return declaree?.nature === "substantielle" && !declaree.nouvelles_souscriptions_uniquement && !VERSIONS_SANS_ACCORD_EXPRES.includes(version);
 }
 
 /**
@@ -92,7 +92,7 @@ export function nouvelleVersionAAccepter(params: {
   const { derniereVersionAcceptee } = params;
   if (derniereVersionAcceptee === null || derniereVersionAcceptee === version) return null;
   const declaree = params.declaree === undefined ? versionDeclaree("conditions_clients", version) : params.declaree;
-  if (!declaree) return null;
+  if (!declaree || (params.abonnement?.souscrit && declaree.nouvelles_souscriptions_uniquement)) return null;
   const dateEffet = dateEnLettres(declaree.date_effet);
   const paragraphes = [
     `Une nouvelle version des conditions générales d’utilisation et de vente s’applique à compter du ${dateEffet}. ` +

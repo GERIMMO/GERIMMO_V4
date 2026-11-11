@@ -21,7 +21,8 @@
       "date_effet": "2026-11-11",
       "nature": "substantielle",
       "resume_modifications": "Abonnement unique pour les nouvelles souscriptions propriétaires et SCI, calcul par unité locative active et deux mois offerts en annuel. Les conditions des contrats précédents sont conservées.",
-      "empreinte_reference": "99c758140cbe9d5dea8df8ee9caeff3f3d31e54290ac0fca482f37ab8e36d47f"
+      "empreinte_reference": "99c758140cbe9d5dea8df8ee9caeff3f3d31e54290ac0fca482f37ab8e36d47f",
+      "nouvelles_souscriptions_uniquement": true
     }
   },
   "conditions_artisans": {

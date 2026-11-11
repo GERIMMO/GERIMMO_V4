@@ -44,6 +44,7 @@ begin
    or exists(select 1 from public.intentions_souscription where organization_id=p_org)
  then raise exception 'Réservé à un propriétaire en essai avant toute souscription'; end if;
  select account_id into strict personne from public.memberships where organization_id=p_org and role='proprietaire_direct' and status='active';
+ if exists(select from public.fermetures_comptes where account_id=personne and statut='programmee') then raise exception 'Fermeture de compte programmée'; end if;
  lock table public.avantages_fondateurs in exclusive mode;
  select i into place_libre from generate_series(1,10) i where not exists(select from public.avantages_fondateurs f where f.place=i) order by i limit 1;
  if place_libre is null then raise exception 'Les dix places ont déjà été attribuées'; end if;
@@ -53,22 +54,15 @@ begin
  insert into support_interne.controles_organisation values(txid_current(),auth.uid(),p_org);
  update public.organizations set essai_fin=fin where id=p_org;
  delete from support_interne.controles_organisation where transaction_id=txid_current() and auteur=auth.uid() and organization_id=p_org;
+ insert into public.mois_offerts(id,organization_id,compte,auteur,mois,motif,nature,fin,applique_le)
+ values(gen_random_uuid(),p_org,personne,auth.uid(),6,'Offre fondateur','acces',fin,now());
  insert into public.audit_log(account_id,organization_id,action,details) values(auth.uid(),p_org,'avantage_fondateur_accorde',jsonb_build_object('place',place_libre,'fin',fin));
  return fin;
 end $$;
 revoke all on function public.accorder_avantage_fondateur(uuid) from public,anon,service_role;
 grant execute on function public.accorder_avantage_fondateur(uuid) to authenticated;
 
--- Empêche une commande concurrente préparée avant la prolongation de conserver l’ancien trial_end.
--- La souscription devient possible à la fin, uniquement par confirmation explicite du propriétaire.
-create function public.proteger_essai_fondateur() returns trigger language plpgsql security definer set search_path='' as $$
-begin
- if exists(select from public.avantages_fondateurs f where f.organization_id=new.organization_id and f.fin_incluse >= (now() at time zone 'Europe/Paris')::date)
- then raise exception 'Votre période fondateur est offerte. Vous pourrez souscrire après sa date de fin.'; end if;
- return new;
-end $$;
-revoke all on function public.proteger_essai_fondateur() from public,anon,authenticated,service_role;
-create trigger proteger_essai_fondateur before insert on public.intentions_souscription for each row execute function public.proteger_essai_fondateur();
+-- Le registre mois_offerts alimente la vue client et le verrou de souscription existants.
 
 -- Conserver les gardes, les droits et le calendrier de Paris de la fonction en place.
 do $tarif$

@@ -165,8 +165,9 @@ async function lireEtat(orgId: string) {
  * réserve). La tâche de nuit ne la rabaisse pas d'elle-même à l'échéance.
  */
 function choixDe(offre: Offre, unitesACouvrir: number): ChoixOffre {
+  if (offre.public === "particulier" && offre.formule.code === "gerimmo") return "auto";
   const couvrante =
-    offre.public === "agence" ? offreAgence(unitesACouvrir) : offre.formule.code === "gerimmo" ? offreAbonnementUnique(unitesACouvrir, offre.periodicite) : offreParticulier(unitesACouvrir, offre.periodicite);
+    offre.public === "agence" ? offreAgence(unitesACouvrir) : offreParticulier(unitesACouvrir, offre.periodicite);
   return offre.montantCents > couvrante.montantCents || offre.capacite > Math.max(couvrante.capacite, unitesACouvrir)
     ? "explicite"
     : "auto";

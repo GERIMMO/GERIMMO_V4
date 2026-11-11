@@ -223,7 +223,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         : tarifDuContrat(baseEcheance, periodiciteSuivante)
       : null;
   const baisseProgrammee =
-    aEcheance && actuelle && (aEcheance.montantCents < actuelle.montantCents || aEcheance.periodicite !== actuelle.periodicite)
+    aEcheance && actuelle && (aEcheance.montantCents < actuelle.montantCents || (paiement.formule === "gerimmo" && aEcheance.capacite < actuelle.capacite) || aEcheance.periodicite !== actuelle.periodicite)
       ? aEcheance
       : null;
 

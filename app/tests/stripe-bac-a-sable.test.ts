@@ -504,6 +504,21 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
     nouvelle.echeanciers.push(baisse.echeancier);
     const phases=(await stripe.subscriptionSchedules.retrieve(baisse.echeancier)).phases;
     expect(phases[1].metadata).toMatchObject({gerimmo_unites:"20",gerimmo_montant_cents:"1990"});
+    for(const [n,periode,prix] of [[20,"annuel","19900"],[0,"mensuel","0"]] as const){
+      const choix=await programmerPeriodicite(stripe,{subscription:s.id,offre:offreAbonnementUnique(n,periode),regime:FRANCHISE,orgId:nouvelle.org!});
+      if(!choix.ok) throw new Error(choix.erreur);
+      const sc=await stripe.subscriptionSchedules.retrieve(choix.echeancier);
+      expect(sc.phases[1].metadata).toMatchObject({gerimmo_unites:String(n),gerimmo_periodicite:periode,gerimmo_montant_cents:prix});
+      expect(sc.end_behavior).toBe("release");
+    }
+    const offreAn=offreAbonnementUnique(3,"annuel");
+    const [ligneAn]=await lignesStripe(stripe,offreAn,FRANCHISE);
+    const annuel=await stripe.subscriptions.create({customer:nouvelle.client!,default_payment_method:carte.id,items:[{price_data:ligneAn.prix,quantity:1}],metadata:metadonneesOffre(nouvelle.org!,offreAn),payment_behavior:"error_if_incomplete"});
+    nouvelle.abonnements.push(annuel.id);
+    const mensuel=await programmerPeriodicite(stripe,{subscription:annuel.id,offre:offreAbonnementUnique(3,"mensuel"),regime:FRANCHISE,orgId:nouvelle.org!});
+    if(!mensuel.ok)throw new Error(mensuel.erreur);
+    nouvelle.echeanciers.push(mensuel.echeancier);
+    expect((await stripe.subscriptionSchedules.retrieve(mensuel.echeancier)).phases[1].metadata).toMatchObject({gerimmo_unites:"3",gerimmo_periodicite:"mensuel",gerimmo_montant_cents:"997"});
   }, 240000);
 
   it("portail client : aucune résiliation (plan du 23/10, R04), aucun changement de formule, toujours la configuration Gerimmo", async () => {

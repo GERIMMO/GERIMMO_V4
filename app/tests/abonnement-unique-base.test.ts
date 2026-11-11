@@ -38,7 +38,7 @@ describe.skipIf(!url)("nouveau tarif et avantage fondateur — base isolée",()=
       await db.query("savepoint dix");await expect(grant(orgs[10])).rejects.toThrow(/dix places/);await db.query("rollback to dix;reset role");
       const stats=await db.query("select count(*)::int n, bool_and(fin_incluse=(debut+interval '6 months')::date-1) dates from public.avantages_fondateurs");
       expect(stats.rows[0]).toEqual({n:10,dates:true});
-      await expect(db.query("select * from public.intention_souscription_reserver($1,repeat('a',64),60,120)",[orgs[0]])).rejects.toThrow(/période fondateur/);
+      await expect(db.query("select * from public.intention_souscription_reserver($1,repeat('a',64),60,120)",[orgs[0]])).rejects.toThrow(/accès est offert/);
     } finally {await db.query("rollback");await db.end();}
   });
 });

@@ -33,6 +33,7 @@ import {
   montantsOffre,
   offreAgence,
   offreFormule,
+  offreAbonnementUnique,
   offreParticulier,
   parPeriode,
   type Offre,
@@ -171,6 +172,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
 
   // ── La hausse à présenter : nécessaire (portefeuille au-delà de la capacité)
   // ou demandée (?capacite= pour une agence, ?formule= pour un particulier).
+  const tarifDuContrat = paiement.formule === "gerimmo" ? offreAbonnementUnique : offreParticulier;
   let cible: Offre | null = null;
   if (souscrit && actuelle) {
     const demandeLots = Number.parseInt(String(recherche.capacite ?? ""), 10);
@@ -180,11 +182,11 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
       const lots = Math.max(enGestion, Number.isFinite(demandeLots) ? demandeLots : 0);
       if (lots > (capacite ?? 0)) cible = offreAgence(lots);
     } else if (Number.isFinite(demandeBiens) && demandeBiens > (capacite ?? 0)) {
-      cible = offreParticulier(Math.max(enGestion, demandeBiens), paiement.periodicite);
-    } else if (demandeFormule) {
+      cible = tarifDuContrat(Math.max(enGestion, demandeBiens), paiement.periodicite);
+    } else if (demandeFormule && paiement.formule !== "gerimmo" && demandeFormule.code !== "gerimmo") {
       cible = offreFormule(demandeFormule, Math.max(enGestion, demandeFormule.biens), paiement.periodicite);
     } else if (enGestion > (capacite ?? 0)) {
-      cible = offreParticulier(enGestion, paiement.periodicite);
+      cible = tarifDuContrat(enGestion, paiement.periodicite);
     }
     // Audit 29/09, point 3 : une hausse de CAPACITÉ au même prix (agence
     // passée de 5 à 6 lots dans le socle) reste nécessaire — la garde refuse
@@ -218,7 +220,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
     souscrit && actuelle && !paiement.annulation_demandee
       ? publicTarif === "agence"
         ? offreAgence(baseEcheance)
-        : offreParticulier(baseEcheance, periodiciteSuivante)
+        : tarifDuContrat(baseEcheance, periodiciteSuivante)
       : null;
   const baisseProgrammee =
     aEcheance && actuelle && (aEcheance.montantCents < actuelle.montantCents || aEcheance.periodicite !== actuelle.periodicite)
@@ -597,7 +599,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           <div className="entete-carte">
             <h2>Gérer mon abonnement</h2>
           </div>
-          {!estAgence && actuelle?.public === "particulier" && (
+          {!estAgence && actuelle?.public === "particulier" && actuelle.formule.code !== "gerimmo" && (
             <div>
               <p className="libelle-champ mb-1">Formules supérieures</p>
               <ul className="space-y-1 text-sm">
@@ -636,8 +638,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
                 <>
                   <p className="text-sm text-muted-foreground">
                     {paiement.periodicite === "mensuel"
-                      ? `En annuel : ${avecTaxe(euros(offreParticulier(enGestion, "annuel").montantCents), TTC)} prélevés en une fois pour douze mois (deux mois offerts), à partir de la prochaine échéance. La demande de passage à l'annuel ouvre un nouveau délai de rétractation de quatorze jours.`
-                      : `En mensuel : ${avecTaxe(euros(offreParticulier(enGestion, "mensuel").montantCents), TTC)} par mois, sans engagement, à partir de la fin de l'année payée.`}{" "}
+                      ? `En annuel : ${avecTaxe(euros(tarifDuContrat(enGestion, "annuel").montantCents), TTC)} prélevés en une fois pour douze mois (deux mois offerts), à partir de la prochaine échéance. La demande de passage à l'annuel ouvre un nouveau délai de rétractation de quatorze jours.`
+                      : `En mensuel : ${avecTaxe(euros(tarifDuContrat(enGestion, "mensuel").montantCents), TTC)} par mois, sans engagement, à partir de la fin de l'année payée.`}{" "}
                     La période en cours n&apos;est jamais convertie.
                   </p>
                   <FormulairePeriodicite

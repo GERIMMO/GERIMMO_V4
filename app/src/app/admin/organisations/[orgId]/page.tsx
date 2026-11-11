@@ -374,6 +374,10 @@ export default async function PageAdminOrganisation(
           organisation suspendue ou archivée garde ses données ; elle se réactive d’ici. Ces actions modifient les accès Gerimmo. Elles ne résilient pas l’abonnement Stripe et n’arrêtent pas ses prélèvements.
         </p>
         <div className="grid gap-2">
+          {organisation.status === "essai" && organisation.type === "proprietaire_direct" && (
+            <GesteControle action={controlerOrganisation.bind(null, orgId)} geste="fondateur" titre="Propriétaire fondateur" bouton="Accorder six mois"
+              confirmation="J’attribue à ce propriétaire une des dix places. Aucun prélèvement pendant six mois ; il choisira ensuite s’il souhaite souscrire." />
+          )}
           {(organisation.status === "essai" || organisation.status === "active") && (
             <GesteControle action={controlerOrganisation.bind(null, orgId)} geste="suspendre" titre="Suspendre l’organisation" bouton="Suspendre" motif destructif
               confirmation="Je suspends cette organisation : l’écriture est fermée pour ses utilisateurs jusqu’à sa réactivation. Son abonnement Stripe et ses prélèvements restent inchangés." />

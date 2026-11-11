@@ -18,7 +18,7 @@ export const revalidate = 3600;
 export function generateMetadata() {
   return metadonneesPubliques({
     titre: "Tarifs — Gerimmo",
-    description: `Particuliers et SCI : de Solo (1 bien, 5,99 €${avec(TTC)}/mois) à Patrimoine (20 biens), mensuel ou annuel.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, art. 293 B du CGI." : ""} Essai gratuit de ${dureeEssai()}.`,
+    description: `Un abonnement Gerimmo pour les particuliers et SCI, dès 5,99 €${avec(TTC)}/mois.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, art. 293 B du CGI." : ""} Essai gratuit de ${dureeEssai()}.`,
     chemin: "/tarifs",
   });
 }
@@ -36,9 +36,8 @@ export default function PageTarifs() {
       <EnTetePublic />
       <main className="flex-1">
         <header className="public-page-intro"><div className="public-conteneur">
-          <p className="eyebrow">Des prix clairs, selon votre parc</p>
-          <h1>Tarifs</h1>
-          <p>Les mêmes fonctions de gestion, quelle que soit votre formule. Choisissez le rythme qui vous convient, après votre essai gratuit de {duree}, sans carte bancaire.</p>
+          <h1>Un seul abonnement. Tout votre immobilier.</h1>
+          <p>Dès 5,99 €/mois pour toutes les fonctions de gestion. Choisissez le rythme qui vous convient, après votre essai gratuit de {duree}, sans carte bancaire.</p>
           <p className="public-essai mt-4" title={offre ?? undefined}>{badgeEssai()}</p>
         </div></header>
         <div className="public-conteneur public-section">
@@ -47,7 +46,7 @@ export default function PageTarifs() {
           <div className="public-tarifs-details">
         <Article titre="Particuliers et SCI gérant leurs propres biens">
           <ul className="list-disc space-y-1 pl-5">
-            <li>La formule la moins chère qui couvre votre parc vous est proposée d&apos;office ; une formule plus grande ne se souscrit que si vous la choisissez, montant affiché.</li>
+            <li>Le prix dépend du nombre d’unités locatives indépendantes activement gérées dans votre abonnement.</li>
             <li>Mensuel : sans engagement, résiliable à tout moment pour la prochaine échéance.</li>
             <li>Annuel : payé en une fois pour douze mois (deux mois offerts), renouvelé à sa date anniversaire ; résiliable pour la prochaine échéance annuelle. Le montant annuel prélevé est affiché avant paiement.</li>
             <li>Sont comptés les biens activement gérés, occupés ou vacants. Un logement et ses annexes louées au même bail comptent pour un bien ; un parking loué séparément compte pour un bien. Un bien archivé n&apos;est plus compté et reste consultable.</li>
@@ -78,7 +77,7 @@ export default function PageTarifs() {
             dans Gerimmo et restent dans la liste (article 4.7 des conditions générales). */}
         <Article titre="Ce qui est dans l'abonnement">
           <ul className="list-disc space-y-1 pl-5">
-            <li>Toutes les fonctions de gestion et l&apos;espace locataire, quelle que soit votre formule.</li>
+            <li>Toutes les fonctions de gestion et l&apos;espace locataire, quelle que soit la taille de votre patrimoine.</li>
             <li>La signature électronique du bail et de ses avenants, des accords d&apos;échelonnement et de travaux, de l&apos;acceptation des devis, de l&apos;acte de cautionnement et de l&apos;état des lieux, depuis l&apos;application, avec un code envoyé par SMS à chaque signataire. Elle est comprise dans l&apos;abonnement et dans l&apos;essai, sans supplément pour vous ni pour les signataires. Elle n&apos;est pas illimitée : elle dépend d&apos;un volume mensuel commun et peut être momentanément suspendue.</li>
           </ul>
         </Article>

@@ -3,13 +3,11 @@
 // facturer.
 
 import {
-  FORMULES_PARTICULIER,
-  SUPPLEMENT_BIEN_CENTS,
+  montantAbonnementUnique,
   TRANCHES_AGENCE,
   etiquetteTaxes,
   euros,
   offreAgence,
-  offreParticulier,
 } from "@/lib/tarifs";
 import { REGIME_TVA } from "@/lib/editeur";
 
@@ -24,36 +22,17 @@ export function TableauParticuliers() {
     <div>
       <div className="grille-tarifaire-defilante" role="region" aria-label="Tableau des tarifs" tabIndex={0}>
       <table className="w-full text-left text-[14px]">
-        <caption className="sr-only">Formules pour les particuliers et SCI gérant leurs propres biens{t ? `, prix${t}` : ""}</caption>
-        <thead>
-          <tr className="border-b border-[var(--filet)] text-[var(--texte-secondaire)]">
-            <th scope="col" className="py-2 pr-3 font-medium">Formule</th>
-            <th scope="col" className="py-2 pr-3 font-medium">Biens</th>
-            <th scope="col" className="py-2 pr-3 text-right font-medium">Par mois{t}</th>
-            <th scope="col" className="py-2 text-right font-medium">Par an{t}</th>
-          </tr>
-        </thead>
+        <caption className="sr-only">Abonnement des propriétaires et SCI{t}</caption>
+        <thead><tr><th scope="col">Biens actifs</th><th scope="col">Par mois</th><th scope="col">Par an</th></tr></thead>
         <tbody>
-          {FORMULES_PARTICULIER.map((f) => (
-            <tr key={f.code} className="border-b border-[var(--filet)]">
-              <th scope="row" className="py-2 pr-3 font-semibold text-[var(--encre)]">{f.nom}</th>
-              <td className="py-2 pr-3">{f.biens === 1 ? "1 bien" : `Jusqu'à ${f.biens}`}</td>
-              <td className="montant py-2 pr-3 text-right whitespace-nowrap">{euros(f.mensuelCents)}</td>
-              <td className="montant py-2 text-right whitespace-nowrap">{euros(f.annuelCents)}</td>
-            </tr>
-          ))}
-          <tr>
-            <th scope="row" className="py-2 pr-3 font-semibold text-[var(--encre)]">Au-delà de 20</th>
-            <td className="py-2 pr-3">Patrimoine + par bien</td>
-            <td className="montant py-2 pr-3 text-right whitespace-nowrap">+{euros(SUPPLEMENT_BIEN_CENTS.mensuel)}</td>
-            <td className="montant py-2 text-right whitespace-nowrap">+{euros(SUPPLEMENT_BIEN_CENTS.annuel)}</td>
-          </tr>
+          {[1, 2, 7, 8, 20, 21, 30].map(n => <tr key={n}><th scope="row">{n}</th>
+            <td>{euros(montantAbonnementUnique(n, "mensuel"))}</td><td>{euros(montantAbonnementUnique(n, "annuel"))}</td></tr>)}
         </tbody>
       </table>
       </div>
       <p className="mt-2 text-[13px] text-[var(--texte-secondaire)]">
-        Exemple : 25 biens = {euros(offreParticulier(25, "mensuel").montantCents)}{t} par mois, ou{" "}
-        {euros(offreParticulier(25, "annuel").montantCents)}{t} par an prélevés en une fois. L&apos;annuel équivaut à
+        Exemple : 25 biens = {euros(montantAbonnementUnique(25, "mensuel"))}{t} par mois, ou{" "}
+        {euros(montantAbonnementUnique(25, "annuel"))}{t} par an prélevés en une fois. L&apos;annuel équivaut à
         deux mois offerts.
       </p>
     </div>

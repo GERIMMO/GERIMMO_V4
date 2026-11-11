@@ -103,7 +103,7 @@ function souscrire(): FormData {
   const fd = new FormData();
   fd.set("confirmation", "oui");
   fd.set("periodicite", "mensuel");
-  fd.set("formule", "solo");
+  fd.set("formule", "gerimmo");
   fd.set("montant_attendu_cents", "599");
   return fd;
 }

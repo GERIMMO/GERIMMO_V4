@@ -464,7 +464,7 @@ function etatOrganisation(souscrit: boolean) {
   });
 }
 
-function souscrire(formule = "solo", montant = 599): FormData {
+function souscrire(formule = "gerimmo", montant = 599): FormData {
   const fd = new FormData();
   fd.set("confirmation", "oui");
   fd.set("periodicite", "mensuel");
@@ -543,10 +543,12 @@ describe("A01 — une seule page de paiement par organisation", () => {
     expect(ouvertes()).toHaveLength(1);
   });
 
-  it("une autre formule pendant qu'une page est ouverte : l'ancienne page est expirée chez Stripe avant la nouvelle", async () => {
+  it("une autre périodicité pendant qu'une page est ouverte : l'ancienne page est expirée chez Stripe avant la nouvelle", async () => {
     etatOrganisation(false);
-    const a = await issue(demarrerAbonnement(ORG, {}, souscrire("solo", 599)));
-    const b = await issue(demarrerAbonnement(ORG, {}, souscrire("bailleur", 1770)));
+    const a = await issue(demarrerAbonnement(ORG, {}, souscrire()));
+    const annuelle = souscrire("gerimmo", 5990);
+    annuelle.set("periodicite", "annuel");
+    const b = await issue(demarrerAbonnement(ORG, {}, annuelle));
     expect(b.url).toBeDefined();
     expect(b.url).not.toBe(a.url);
     expect(ouvertes().map((s) => s.url)).toEqual([b.url]);

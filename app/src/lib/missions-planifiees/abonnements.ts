@@ -46,6 +46,7 @@ import {
   offreAgence,
   offreFormule,
   offreParticulier,
+  offreAbonnementUnique,
   type Offre,
   type Periodicite,
 } from "@/lib/tarifs";
@@ -408,7 +409,7 @@ async function preparerEcheances(
     const changePeriodicite = !estAgence && periodicite !== l.periodicite;
     // Jamais au-delà de ce qui est payé : la hausse attend une confirmation.
     const base = Math.min(l.unites_a_couvrir, capacite);
-    let cible: Offre = estAgence ? offreAgence(base) : offreParticulier(base, periodicite);
+    let cible: Offre = estAgence ? offreAgence(base) : l.formule === "gerimmo" ? offreAbonnementUnique(base, periodicite) : offreParticulier(base, periodicite);
 
     let r: { ok: true } | { ok: false; erreur: string } = { ok: true };
     const baisse = Boolean(actuelle && cible.periodicite === actuelle.periodicite && cible.montantCents < actuelle.montantCents);

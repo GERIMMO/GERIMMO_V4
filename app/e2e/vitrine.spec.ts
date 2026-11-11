@@ -1,22 +1,26 @@
 import { test, expect } from "@playwright/test";
 import { debordementHorizontal } from "./aides";
-import { FORMULES_PARTICULIER } from "../src/lib/tarifs";
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
 for (const chemin of ["/", "/tarifs"]) {
   test(`vitrine ${chemin} : les tarifs changent sans ambiguïté entre mois et année`, async ({ page }) => {
     await page.goto(chemin);
-    const offres = page.locator(".offres-grille");
-    const montants = () => offres.locator(".offre-prix").allTextContents();
-    expect((await montants()).map(t => Number(t.split("€")[0].replace(/\s/g, "").replace(",", ".")))).toEqual(FORMULES_PARTICULIER.map(f => f.mensuelCents / 100));
-    await page.getByRole("button", { name: /Annuel/ }).click();
-    await expect(page.getByRole("button", { name: /Annuel/ })).toHaveAttribute("aria-pressed", "true");
-    await expect(offres.locator(".offre-periode").first()).toHaveText("Prélevé en une fois pour 12 mois");
-    expect((await montants()).map(t => Number(t.split("€")[0].replace(/\s/g, "").replace(",", ".")))).toEqual(FORMULES_PARTICULIER.map(f => f.annuelCents / 100));
-    for (const lien of await offres.getByRole("link", { name: "Créer mon compte" }).all()) await expect(lien).toHaveAttribute("href", "/inscription");
-    await page.getByRole("button", { name: "Mensuel", exact: true }).click();
-    await expect(offres.locator(".offre-periode").first()).toHaveText("Sans engagement");
+    const simulateur = page.getByRole("region", { name: "Simuler mon abonnement" });
+    const prix = simulateur.locator(".offre-prix");
+    const biens = simulateur.getByRole("slider");
+    await expect(prix).toHaveText(/5,99\s*€ par mois/);
+    await biens.press("Home");
+    for (let n = 1; n < 8; n++) await biens.press("ArrowRight");
+    await expect(prix).toHaveText(/19,90\s*€ par mois/);
+    await simulateur.getByRole("button", { name: "Annuel" }).click();
+    await expect(simulateur.getByRole("button", { name: "Annuel" })).toHaveAttribute("aria-pressed", "true");
+    await expect(prix).toHaveText(/199,00\s*€ en une fois par an/);
+    await biens.press("End");
+    await expect(prix).toHaveText(/991,00\s*€ en une fois par an/);
+    await simulateur.getByRole("button", { name: "Mensuel" }).click();
+    await expect(prix).toHaveText(/99,10\s*€ par mois/);
+    await expect(simulateur.getByRole("link", { name: "Commencer mon essai gratuit" })).toHaveAttribute("href", "/inscription");
     expect(await debordementHorizontal(page)).toBe(0);
   });
 }
@@ -37,6 +41,6 @@ test("vitrine mobile : navigation, fermeture du menu et questions fréquentes", 
   await expect(question.locator("p")).toBeVisible();
   await menu.locator("summary").click();
   await menu.getByRole("link", { name: "Tarifs", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Tarifs", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Un seul abonnement. Tout votre immobilier.", exact: true })).toBeVisible();
   expect(await debordementHorizontal(page)).toBe(0);
 });

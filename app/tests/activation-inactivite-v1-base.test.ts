@@ -54,7 +54,7 @@ function corps130000(nom: string): string {
 
 describe("activation de l'inactivité — fichiers (sans base)", () => {
   it("la V1 et la règle d'inactivité partent ensemble : VERSION_MIN_INACTIVITE est la version de la V1", () => {
-    expect(VERSION_MIN_INACTIVITE).toBe(CONDITIONS_VERSION);
+    expect(CONDITIONS_VERSION >= VERSION_MIN_INACTIVITE!).toBe(true);
     expect(VERSION_MIN_INACTIVITE).toBe("2026-10-24");
   });
 

@@ -4,7 +4,7 @@
 // ici est recalculé par l'action serveur avec le même module (lib/tarifs.ts) :
 // un montant qui aurait changé entre l'affichage et la validation est refusé.
 
-import { useId, useMemo, useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import Link from "next/link";
 import { Check, LockKeyhole, MessageCircle } from "lucide-react";
@@ -18,7 +18,7 @@ import { AIDE_BOUTON_EN_ATTENTE, useHydrate } from "@/lib/use-hydrate";
 import {
   etiquetteTaxes,
   euros,
-  formulesCouvrant,
+  offreAbonnementUnique,
   montantsOffre,
   offreAgence,
   offreFormule,
@@ -202,11 +202,7 @@ export function FormulaireSouscription({
   const [conditionsAcceptees, setConditionsAcceptees] = useState(!conditionsAAccepter);
   const estAgence = publicTarif === "agence";
   const [periodicite, setPeriodicite] = useState<Periodicite>("mensuel");
-  const offres = useMemo(() => formulesCouvrant(unites, periodicite), [unites, periodicite]);
-  const [code, setCode] = useState<string | null>(null);
-  const choisie = estAgence
-    ? offreAgence(unites)
-    : (offres.find((o) => o.formule.code === code) ?? offres[0]);
+  const choisie = estAgence ? offreAgence(unites) : offreAbonnementUnique(unites, periodicite);
   const idConfirmation = useId();
   const [confirme, setConfirme] = useState(false);
   const dateDebit = premierPrelevement
@@ -225,6 +221,7 @@ export function FormulaireSouscription({
       : `${euros(choisie.montantCents)}${ttc ? ` ${ttc}` : ""}`;
   const periodeEnLettres = choisie.periodicite === "annuel" ? "par an" : "par mois";
 
+  if (!estAgence && unites === 0) return <p>Aucun bien actif à facturer. Le montant sera indiqué dès l’ajout de votre premier logement.</p>;
   return (
     <form data-saisie-confirmee action={action} className={estAgence ? "space-y-4" : styles.formulaire}>
       {!estAgence && (
@@ -253,29 +250,10 @@ export function FormulaireSouscription({
       {estAgence && <input type="hidden" name="periodicite" value="mensuel" />}
 
       {!estAgence && (
-        <fieldset className={styles.formules}>
-          <legend>Les formules adaptées à vos {unites} bien{unites > 1 ? "s" : ""}</legend>
-          <div className={styles.grilleFormules}>
-            {offres.map((o, i) => {
-              const selectionnee = choisie.public === "particulier" && choisie.formule.code === o.formule.code;
-              const surcout = o.montantCents - offres[0].montantCents;
-              return (
-                <label key={o.formule.code} className={styles.formule} data-selectionnee={selectionnee}>
-                  <span className={styles.formuleEntete}>
-                    <span>{i === 0 ? "Adaptée à votre parc" : "Pour voir plus grand"}</span>
-                    <input type="radio" name="formule" value={o.formule.code} checked={selectionnee}
-                      onChange={() => { setCode(o.formule.code); setConfirme(false); }} />
-                  </span>
-                  <strong className={styles.nomFormule}>{o.formule.nom}</strong>
-                  <span className={styles.capacite}>{o.capacite > 20 ? `${o.capacite} biens` : `Jusqu’à ${o.formule.biens} bien${o.formule.biens > 1 ? "s" : ""}`}</span>
-                  <span className={styles.prix}>{euros(o.montantCents)}<small>{ttc ? `${ttc} ` : ""}{parPeriode(periodicite)}</small></span>
-                  <span className={styles.noteFormule}>{i === 0 ? "La formule la plus économique pour votre parc." : `+${euros(surcout)} ${parPeriode(periodicite)} par rapport à la formule adaptée.`}</span>
-                  <span className={styles.selectionFormule}>{selectionnee ? <><Check size={15} aria-hidden="true" /> Formule sélectionnée</> : "Choisir cette formule"}</span>
-                </label>
-              );
-            })}
-          </div>
-        </fieldset>
+        <div>
+          <input type="hidden" name="formule" value="gerimmo" />
+          <strong>Abonnement Gerimmo</strong> · {unites} bien{unites > 1 ? "s" : ""} en gestion
+        </div>
       )}
 
       <div role="region" aria-label="Récapitulatif avant paiement" className={estAgence ? "rounded-lg border border-border p-3" : styles.recapitulatif}>

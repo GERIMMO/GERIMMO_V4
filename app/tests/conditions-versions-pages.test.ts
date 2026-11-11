@@ -92,10 +92,10 @@ describe("I2 : relevé après la date d'effet", () => {
   });
 
   it("Santé prévient avant le premier archivage d'une version déjà en vigueur", () => {
-    // V1 (24/10/2026) : les conditions clients et celles de l'espace artisan sont en vigueur depuis le 24 octobre.
-    const html = renderToStaticMarkup(ArchiveConditions({ versions: [], sansArchive: [], autorise: true, aujourdhui: "2026-10-25" }));
+    // Les documents client et artisan ont des dates d’effet différentes.
+    const html = renderToStaticMarkup(ArchiveConditions({ versions: [], sansArchive: [], autorise: true, aujourdhui: "2026-11-12" }));
     expect(html).toContain("en vigueur depuis le 24 octobre 2026");
-    expect(html.match(/en vigueur depuis le 24 octobre 2026/g)).toHaveLength(2);
+    expect(html).toContain("en vigueur depuis le 11 novembre 2026");
     expect(html).toContain("relevé aujourd’hui");
     expect(html).toContain("à trancher par le dirigeant avant le premier archivage");
     // Le jour de l'effet, ou une fois archivées, rien à signaler.
@@ -104,7 +104,7 @@ describe("I2 : relevé après la date d'effet", () => {
     const v1 = (document: "conditions_clients" | "conditions_artisans") => ({
       ...version("2026-10-25T09:00:00Z", "2026-10-24"),
       document,
-      version: "2026-10-24",
+      version: document === "conditions_clients" ? "2026-11-11" : "2026-10-24",
     });
     expect(renderToStaticMarkup(ArchiveConditions({ versions: [v1("conditions_clients"), v1("conditions_artisans")], sansArchive: [], autorise: true, aujourdhui: "2026-10-26" })))
       .not.toContain("à trancher par le dirigeant");

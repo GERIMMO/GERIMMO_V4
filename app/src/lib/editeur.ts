@@ -411,10 +411,10 @@ export function reservesLegales(editeur: Record<string, FaitEditeur> = EDITEUR):
 // (même date). La règle d'inactivité (VERSION_MIN_INACTIVITE,
 // lib/comptes-fermeture.ts) et la règle de conservation compte:inactif
 // (migration 20261024150000) s'activent avec elle.
-export const CONDITIONS_VERSION = "2026-10-24";
+export const CONDITIONS_VERSION = "2026-11-11";
 
 /** Date d'entrée en vigueur affichée en tête des conditions. */
-export const CONDITIONS_DATE = "24 octobre 2026";
+export const CONDITIONS_DATE = "11 novembre 2026";
 
 // ── Version des conditions de l'espace artisan ─────────────────────────────
 //

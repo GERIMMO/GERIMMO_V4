@@ -5,7 +5,7 @@ import styles from "@/components/presentation-parcours.module.css";
 import { verifierAccesEspace } from "@/lib/espace";
 import { elementsManquantsDuBailleur } from "@/lib/profil-bailleur";
 import { FormulaireAvecBrouillon } from "./formulaire-avec-brouillon";
-import { euros, offreParticulier, parPeriode, type Periodicite } from "@/lib/tarifs";
+import { euros, offreAbonnementUnique, offreParticulier, parPeriode, type Periodicite } from "@/lib/tarifs";
 import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Ajouter un bien — Gerimmo" };
@@ -32,10 +32,11 @@ export default async function PageNouveauBien(
       supabase.rpc("mon_abonnement", { p_org: orgId }),
     ]);
     const cap = ((etatBrut ?? []) as { unites_a_couvrir: number | null; unites_souscrites: number | null }[])[0];
-    const per = ((paiementBrut ?? []) as { periodicite: Periodicite }[])[0]?.periodicite ?? "mensuel";
+    const contrat = ((paiementBrut ?? []) as { periodicite: Periodicite; formule: string | null }[])[0];
+    const per = contrat?.periodicite ?? "mensuel";
     if (cap && cap.unites_souscrites !== null && (cap.unites_a_couvrir ?? 0) + 1 > cap.unites_souscrites) {
       const apres = (cap.unites_a_couvrir ?? 0) + 1;
-      depassement = { capacite: cap.unites_souscrites, apres, offre: offreParticulier(apres, per), periodicite: per };
+      depassement = { capacite: cap.unites_souscrites, apres, offre: (contrat?.formule === "gerimmo" ? offreAbonnementUnique : offreParticulier)(apres, per), periodicite: per };
     }
     const { data: profil } = await supabase.from("organizations")
       .select("address_line1,postal_code,city,email_contact")

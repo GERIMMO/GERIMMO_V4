@@ -27,7 +27,7 @@ const avec = (e: string | null) => (e ? ` ${e}` : "");
 const faq = (duree: string): [string, string][] => [
   [
     "Combien coûte Gerimmo pour un particulier ?",
-    `Le prix dépend du nombre de biens, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 17,70 €, Investisseur (jusqu'à 10) 59 €, Patrimoine (jusqu'à 20) 118 €${avec(TTC)} par mois — ou dix mensualités par an en paiement annuel. Au-delà de 20 biens, 5,90 € par bien et par mois. Même avec le paiement annuel, le tarif reste supérieur à 4,90 € par bien et par mois. Essai gratuit de ${duree}, sans carte ; aucune formule n'est gratuite ensuite.`,
+    `Un abonnement pour les propriétaires et SCI : 5,99 € pour le premier bien, puis 1,99 € par bien jusqu’au septième. De 8 à 20 biens, le total est de 19,90 €${avec(TTC)} par mois. À partir du 21ᵉ, chaque bien ajoute 0,99 €. En annuel, dix mensualités sont prélevées en une fois. Essai gratuit de ${duree}, sans carte. Aucun abonnement ne démarre sans votre accord.`,
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",
@@ -142,7 +142,7 @@ export default async function PageVitrine() {
         </section>
 
         <section id="tarifs" className="public-section public-conteneur">
-          <div className="public-titre-section"><div><p className="eyebrow">Particuliers & SCI</p><h2>Un tarif à la taille<br />de votre patrimoine.</h2></div><p>Les mêmes fonctions dans chaque formule. Seul le nombre de biens change. Commencez par {duree} d’essai gratuit, sans carte bancaire.</p></div>
+          <div className="public-titre-section"><div><p className="eyebrow">Particuliers & SCI</p><h2>Un tarif à la taille<br />de votre patrimoine.</h2></div><p>Un abonnement, les mêmes fonctions de gestion pour tous. Le prix suit votre nombre de biens. Commencez par {duree} d’essai gratuit, sans carte bancaire.</p></div>
           <CartesOffresPubliques />
           <p className="public-note">{mentionTaxesPubliques(REGIME_TVA)} Travaux et interventions sur devis, facturés séparément.</p>
         </section>

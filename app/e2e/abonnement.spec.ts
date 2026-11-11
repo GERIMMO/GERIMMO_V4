@@ -36,13 +36,13 @@ test.describe("Côté propriétaire bailleur", () => {
     ).toBeVisible();
   });
 
-  test("les deux lots de démonstration recommandent Bailleur avec le montant affiché", async ({
+  test("les deux lots de démonstration coûtent 7,98 € sur l’abonnement unique", async ({
     page,
   }) => {
     const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
-    await expect(page.getByRole("radio", { name: /Adaptée à votre parc Bailleur/ })).toBeChecked();
-    await expect(recap).toContainText("Formule Bailleur");
-    await expect(recap).toContainText("17,70");
+    await expect(page.getByRole("radio", { name: /Mensuel/ })).toBeChecked();
+    await expect(recap).toContainText("Abonnement Gerimmo");
+    await expect(recap).toContainText("7,98");
     // Plan du 23/10 (R55) : en franchise de TVA, « Total à payer » sans « TTC ».
     await expect(recap).toContainText("Total à payer");
     await expect(page.locator("main")).not.toContainText("offert, à vie");
@@ -51,7 +51,7 @@ test.describe("Côté propriétaire bailleur", () => {
   test("en annuel, le montant prélevé en une fois est affiché", async ({ page }) => {
     await page.locator("label").filter({ has: page.getByRole("radio", { name: /Annuel/ }) }).click();
     const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
-    await expect(recap).toContainText("177,00");
+    await expect(recap).toContainText("79,80");
     await expect(recap).toContainText("prélevés en une fois pour douze mois");
   });
 

@@ -100,7 +100,7 @@ describe("présentation de l’abonnement propriétaire", () => {
     expect(html).toContain("25 octobre 2099");
     expect(html).toContain("Zoho Sign");
     expect(html).not.toContain("signature électronique n’est pas encore proposée");
-    expect(html).toContain("Choisir ma formule");
+    expect(html).toContain("Souscrire à Gerimmo");
     expect(html).toContain("Sans souscription, aucun prélèvement");
     expect(html).not.toContain("Abonnement actif");
   });
@@ -110,7 +110,7 @@ describe("présentation de l’abonnement propriétaire", () => {
     expect(html).toContain("7,49");
     expect(html).toContain("votre avantage ou ancienne condition est conservé");
     expect(html).toContain("Abonnement actif");
-    expect(html).not.toContain("Choisir ma formule");
+    expect(html).not.toContain("Souscrire à Gerimmo");
   });
   it("distingue le prélèvement annuel des mensualités", async () => {
     abonner({ periodicite: "annuel", montant_periode_cents: 9990 });
@@ -152,7 +152,7 @@ describe("présentation de l’abonnement propriétaire", () => {
     mocks.rpc.mockResolvedValue({ data: null, error: { message: "indisponible" } });
     const html = await rendre();
     expect(html).toContain("Lecture impossible");
-    expect(html).not.toContain("Choisir ma formule");
+    expect(html).not.toContain("Souscrire à Gerimmo");
     expect(html).not.toContain("Aucun prélèvement");
   });
 });

@@ -227,7 +227,7 @@ export default async function PageConditions() {
         <p>
           <b className="font-semibold">3.2 — Souscription d&apos;un abonnement
           payant.</b> Le Client souscrit depuis « Mon abonnement » : (1) il
-          choisit la périodicité et la formule ; (2) il vérifie le récapitulatif
+          choisit la périodicité ; (2) il vérifie le récapitulatif
           (formule, prix, date du premier prélèvement, durée, reconduction,
           droit de rétractation) et peut revenir modifier ses choix ; (3) il
           coche la case de confirmation ; (4) il saisit sa carte sur la page
@@ -497,18 +497,17 @@ export default async function PageConditions() {
 
       <Article titre="8. Prix, essai et facturation">
         <p>
-          <b className="font-semibold">8.1 — Formules.</b> Le prix dépend du
-          nombre de biens gérés ; les fonctions de gestion sont les mêmes quelle
-          que soit la formule. Les formules sont Solo (1 bien), Bailleur
-          (jusqu&apos;à 3), Investisseur (jusqu&apos;à 10) et Patrimoine
-          (jusqu&apos;à 20, puis un supplément par bien), en paiement mensuel ou
-          annuel{FRANCHISE ? "" : ", prix toutes taxes comprises"}.
+          <b className="font-semibold">8.1 — Abonnement Gerimmo.</b> Les propriétaires et les SCI qui gèrent leurs propres biens disposent des mêmes fonctions de gestion. Une unité locative indépendante active compte pour un bien, même vacante. Les immeubles conteneurs et les annexes incluses dans le bail ne comptent pas en plus.
+          Le premier bien coûte 5,99 € par mois ; du deuxième au septième, chaque bien ajoute 1,99 €.
+          De huit à vingt biens, le total est de 19,90 € par mois. Au-delà, chaque bien ajoute 0,99 €.
+          Le paiement annuel correspond à dix mensualités, prélevées en une fois.
+          Les abonnements déjà souscrits restent régis par leurs conditions acceptées. {FRANCHISE ? "" : " Les prix sont toutes taxes comprises."}
           {FRANCHISE
             ? " L'Éditeur ne facturant pas de TVA (article 8.4), les prix publiés sont les montants payés."
             : ""}{" "}
           Les montants en vigueur sont publiés sur la page{" "}
           <a href="/tarifs" className="underline">Tarifs</a> et rappelés avant
-          toute souscription. Aucune formule n&apos;est gratuite en permanence.
+          toute souscription. L’avantage fondateur est accordé individuellement à dix propriétaires au maximum, pour six mois. Il ne déclenche aucun prélèvement et ne vaut pas souscription payante. Aucune formule n&apos;est gratuite en permanence.
         </p>
         <p>
           <b className="font-semibold">8.2 — Essai.</b> L&apos;ouverture
@@ -535,7 +534,7 @@ export default async function PageConditions() {
         </p>
         <p>
           <b className="font-semibold">8.5 — Changements.</b> Toute
-          augmentation du montant (formule supérieure, biens ou lots
+          augmentation du montant (biens ou lots
           supplémentaires) n&apos;est appliquée qu&apos;après que le nouveau
           montant, sa date d&apos;effet et l&apos;éventuel prorata ont été
           présentés au Client et confirmés par lui. Une diminution
@@ -633,8 +632,7 @@ export default async function PageConditions() {
           samedi, un dimanche ou un jour férié ou chômé, il est prolongé
           jusqu&apos;au premier jour ouvrable suivant, à la même heure.
           L&apos;Éditeur accorde ce droit, dans les mêmes conditions, à tout
-          Client titulaire d&apos;une formule Solo, Bailleur, Investisseur ou
-          Patrimoine. Le passage d&apos;un abonnement mensuel à un abonnement
+          Client propriétaire titulaire d&apos;un abonnement Gerimmo, y compris d&apos;une ancienne formule. Le passage d&apos;un abonnement mensuel à un abonnement
           annuel ouvre un nouveau délai de quatorze jours à compter de la
           demande de passage.
         </p>

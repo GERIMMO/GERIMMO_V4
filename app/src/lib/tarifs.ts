@@ -23,7 +23,7 @@ export type Centimes = number;
 export type Periodicite = "mensuel" | "annuel";
 export const PERIODICITES: readonly Periodicite[] = ["mensuel", "annuel"];
 
-export type CodeFormule = "solo" | "bailleur" | "investisseur" | "patrimoine";
+export type CodeFormule = "gerimmo" | "solo" | "bailleur" | "investisseur" | "patrimoine";
 
 /** Minimum mensuel par bien couvert, y compris après la remise annuelle. */
 export const PLANCHER_MENSUEL_BIEN_CENTS = 490;
@@ -144,6 +144,7 @@ export function prixFormule(f: Formule, periodicite: Periodicite): Centimes {
 }
 
 export function formuleParCode(code: string | null | undefined): Formule | null {
+  if (code === "gerimmo") return offreAbonnementUnique(1, "mensuel").formule;
   return FORMULES_PARTICULIER.find((f) => f.code === code) ?? null;
 }
 
@@ -175,8 +176,40 @@ export type OffreAgence = {
 
 export type Offre = OffreParticulier | OffreAgence;
 
+/** Tarif public des unités indépendantes actives, à l’intérieur d’un abonnement. */
+export function montantAbonnementUnique(biens: number, periodicite: Periodicite): Centimes {
+  if (!Number.isSafeInteger(biens) || biens < 0) {
+    throw new RangeError("Le nombre de biens doit être un entier positif ou nul.");
+  }
+  if (biens === 0) return 0;
+  const mensuel = biens <= 7 ? 599 + (biens - 1) * 199 : 1990 + Math.max(0, biens - 20) * 99;
+  const montant = periodicite === "annuel" ? mensuel * 10 : mensuel;
+  if (!Number.isSafeInteger(montant)) throw new RangeError("Montant hors limites.");
+  return montant;
+}
+
+/** Une ligne au prix exact du portefeuille, jamais une quantité Stripe taxée deux fois. */
+export function offreAbonnementUnique(biens: number, periodicite: Periodicite): OffreParticulier {
+  const montantCents = montantAbonnementUnique(biens, periodicite);
+  return {
+    public: "particulier", periodicite, capacite: biens, biensSupplementaires: 0, montantCents,
+    formule: { code: "gerimmo", nom: "Gerimmo", biens, mensuelCents: montantAbonnementUnique(biens, "mensuel"),
+      annuelCents: montantAbonnementUnique(biens, "annuel") },
+    lignes: [{ produit: "gerimmo_abonnement_proprietaire_v1", libelle: "Abonnement Gerimmo",
+      quantite: 1, prixUnitaireCents: montantCents, totalCents: montantCents }],
+  };
+}
+
 /** Comparaison entière : aucun arrondi ne permet de passer sous le plancher. */
 export function respectePlancherOffre(offre: Offre): boolean {
+  if (offre.public === "particulier" && offre.formule.code === "gerimmo") {
+    if (!Number.isSafeInteger(offre.capacite) || offre.capacite < 0) return false;
+    const attendu = offreAbonnementUnique(offre.capacite, offre.periodicite);
+    const ligne = offre.lignes[0];
+    return offre.montantCents === attendu.montantCents && offre.lignes.length === 1 &&
+      ligne.produit === attendu.lignes[0].produit && ligne.quantite === 1 &&
+      ligne.totalCents === attendu.montantCents && ligne.prixUnitaireCents === attendu.montantCents;
+  }
   const mois = offre.periodicite === "annuel" ? 12 : 1;
   return Number.isSafeInteger(offre.montantCents) && offre.capacite > 0 &&
     offre.montantCents >= offre.capacite * PLANCHER_MENSUEL_BIEN_CENTS * mois;
@@ -202,6 +235,7 @@ export function offreFormule(
   biens: number,
   periodicite: Periodicite
 ): OffreParticulier | null {
+  if (formule.code === "gerimmo") return offreAbonnementUnique(biens, periodicite);
   const n = entierPositif(biens);
   const supplementaires =
     formule.code === PATRIMOINE.code ? Math.max(0, n - PATRIMOINE.biens) : 0;

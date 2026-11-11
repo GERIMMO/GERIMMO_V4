@@ -33,6 +33,7 @@ import {
   montantsOffre,
   offreAgence,
   offreFormule,
+  offreAbonnementUnique,
   offreParticulier,
   parPeriode,
   type Offre,
@@ -171,6 +172,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
 
   // ── La hausse à présenter : nécessaire (portefeuille au-delà de la capacité)
   // ou demandée (?capacite= pour une agence, ?formule= pour un particulier).
+  const tarifDuContrat = paiement.formule === "gerimmo" ? offreAbonnementUnique : offreParticulier;
   let cible: Offre | null = null;
   if (souscrit && actuelle) {
     const demandeLots = Number.parseInt(String(recherche.capacite ?? ""), 10);
@@ -180,11 +182,11 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
       const lots = Math.max(enGestion, Number.isFinite(demandeLots) ? demandeLots : 0);
       if (lots > (capacite ?? 0)) cible = offreAgence(lots);
     } else if (Number.isFinite(demandeBiens) && demandeBiens > (capacite ?? 0)) {
-      cible = offreParticulier(Math.max(enGestion, demandeBiens), paiement.periodicite);
-    } else if (demandeFormule) {
+      cible = tarifDuContrat(Math.max(enGestion, demandeBiens), paiement.periodicite);
+    } else if (demandeFormule && paiement.formule !== "gerimmo" && demandeFormule.code !== "gerimmo") {
       cible = offreFormule(demandeFormule, Math.max(enGestion, demandeFormule.biens), paiement.periodicite);
     } else if (enGestion > (capacite ?? 0)) {
-      cible = offreParticulier(enGestion, paiement.periodicite);
+      cible = tarifDuContrat(enGestion, paiement.periodicite);
     }
     // Audit 29/09, point 3 : une hausse de CAPACITÉ au même prix (agence
     // passée de 5 à 6 lots dans le socle) reste nécessaire — la garde refuse
@@ -218,10 +220,10 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
     souscrit && actuelle && !paiement.annulation_demandee
       ? publicTarif === "agence"
         ? offreAgence(baseEcheance)
-        : offreParticulier(baseEcheance, periodiciteSuivante)
+        : tarifDuContrat(baseEcheance, periodiciteSuivante)
       : null;
   const baisseProgrammee =
-    aEcheance && actuelle && (aEcheance.montantCents < actuelle.montantCents || aEcheance.periodicite !== actuelle.periodicite)
+    aEcheance && actuelle && (aEcheance.montantCents < actuelle.montantCents || (paiement.formule === "gerimmo" && aEcheance.capacite < actuelle.capacite) || aEcheance.periodicite !== actuelle.periodicite)
       ? aEcheance
       : null;
 
@@ -430,6 +432,13 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
                 <small>{souscrit ? (TTC ? `${TTC} ${parPeriode(paiement.periodicite)}` : parPeriode(paiement.periodicite)) : "Sans souscription, aucun prélèvement"}</small>
               </div>
             </div>
+            {actuelle?.public === "particulier" && actuelle.formule.code === "gerimmo" && (
+              <p className="mt-2 text-sm">{actuelle.capacite === 0 ? "Aucun bien actif à facturer." :
+                actuelle.capacite <= 7 ? `Premier bien : 5,99 €${actuelle.capacite > 1 ? ` + ${actuelle.capacite - 1} × 1,99 €` : ""} par mois.` :
+                actuelle.capacite <= 20 ? "De 8 à 20 biens : 19,90 € par mois au total." :
+                `19,90 € pour les 20 premiers biens + ${actuelle.capacite - 20} × 0,99 € par mois.`}
+                {paiement.periodicite === "annuel" && " En annuel, dix mensualités prélevées en une fois."}</p>
+            )}
             {!ferme && enEssai && !souscrit && !accesOffert && (
               <div className={styles.noteEssai}>
                 <Check size={17} aria-hidden="true" />
@@ -518,7 +527,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
       {!souscrit && !accesOffert && (
         <section className={estAgence ? "loc-carte" : styles.choix} aria-labelledby="choisir-abonnement">
           <div className={estAgence ? "entete-carte" : styles.titreSection}>
-            <h2 id="choisir-abonnement">{ferme ? "Reprendre avec un abonnement" : "Choisir ma formule"}</h2>
+            <h2 id="choisir-abonnement">{ferme ? "Reprendre avec un abonnement" : "Souscrire à Gerimmo"}</h2>
             {!estAgence && <p>Toutes les fonctionnalités sont incluses. Choisissez simplement la capacité qui vous convient.</p>}
           </div>
           <FormulaireSouscription
@@ -597,7 +606,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           <div className="entete-carte">
             <h2>Gérer mon abonnement</h2>
           </div>
-          {!estAgence && actuelle?.public === "particulier" && (
+          {!estAgence && actuelle?.public === "particulier" && actuelle.formule.code !== "gerimmo" && (
             <div>
               <p className="libelle-champ mb-1">Formules supérieures</p>
               <ul className="space-y-1 text-sm">
@@ -636,8 +645,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
                 <>
                   <p className="text-sm text-muted-foreground">
                     {paiement.periodicite === "mensuel"
-                      ? `En annuel : ${avecTaxe(euros(offreParticulier(enGestion, "annuel").montantCents), TTC)} prélevés en une fois pour douze mois (deux mois offerts), à partir de la prochaine échéance. La demande de passage à l'annuel ouvre un nouveau délai de rétractation de quatorze jours.`
-                      : `En mensuel : ${avecTaxe(euros(offreParticulier(enGestion, "mensuel").montantCents), TTC)} par mois, sans engagement, à partir de la fin de l'année payée.`}{" "}
+                      ? `En annuel : ${avecTaxe(euros(tarifDuContrat(enGestion, "annuel").montantCents), TTC)} prélevés en une fois pour douze mois (deux mois offerts), à partir de la prochaine échéance. La demande de passage à l'annuel ouvre un nouveau délai de rétractation de quatorze jours.`
+                      : `En mensuel : ${avecTaxe(euros(tarifDuContrat(enGestion, "mensuel").montantCents), TTC)} par mois, sans engagement, à partir de la fin de l'année payée.`}{" "}
                     La période en cours n&apos;est jamais convertie.
                   </p>
                   <FormulairePeriodicite
@@ -682,7 +691,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
 
       {!estAgence ? (
         <section className={styles.inclus} aria-labelledby="services-inclus">
-          <div className={styles.titreSection}><h2 id="services-inclus">Inclus dans chaque formule</h2><p>La même qualité de service, quel que soit votre nombre de biens.</p></div>
+          <div className={styles.titreSection}><h2 id="services-inclus">Inclus dans votre abonnement</h2><p>La même qualité de service, quel que soit votre nombre de biens.</p></div>
           <div className={styles.services}>
             <div><Building2 size={20} aria-hidden="true" /><strong>Votre gestion au complet</strong><p>Toutes les fonctions disponibles pour votre profil.</p></div>
             <div><Users size={20} aria-hidden="true" /><strong>L’espace de vos locataires</strong><p>Leurs accès sont inclus, sans supplément.</p></div>
@@ -703,7 +712,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         </div>
         <ul className="mesure-lecture list-disc space-y-1 pl-5 text-sm text-muted-foreground">
           <li>
-            Toutes les fonctions de gestion disponibles pour votre profil, quelle que soit la formule : seul le nombre de{" "}
+            Toutes les fonctions de gestion disponibles pour votre profil : seul le nombre de{" "}
             {estAgence ? "lots sous mandat" : "biens"} change le prix.
           </li>
           <li>

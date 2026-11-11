@@ -46,6 +46,7 @@ import {
   offreAgence,
   offreFormule,
   offreParticulier,
+  offreAbonnementUnique,
   type Offre,
   type Periodicite,
 } from "@/lib/tarifs";
@@ -408,10 +409,10 @@ async function preparerEcheances(
     const changePeriodicite = !estAgence && periodicite !== l.periodicite;
     // Jamais au-delà de ce qui est payé : la hausse attend une confirmation.
     const base = Math.min(l.unites_a_couvrir, capacite);
-    let cible: Offre = estAgence ? offreAgence(base) : offreParticulier(base, periodicite);
+    let cible: Offre = estAgence ? offreAgence(base) : l.formule === "gerimmo" ? offreAbonnementUnique(base, periodicite) : offreParticulier(base, periodicite);
 
     let r: { ok: true } | { ok: false; erreur: string } = { ok: true };
-    const baisse = Boolean(actuelle && cible.periodicite === actuelle.periodicite && cible.montantCents < actuelle.montantCents);
+    const baisse = Boolean(actuelle && cible.periodicite === actuelle.periodicite && (cible.montantCents < actuelle.montantCents || (l.formule === "gerimmo" && cible.capacite < actuelle.capacite)));
     if (changePeriodicite || baisse) {
       // Seconde relecture adverse du 23/10 (A02). La programmation lit la souscription, crée un échéancier, puis réécrit
       // la phase en cours sans prorata, avec les métadonnées lues : une hausse confirmée entre ces étapes était défaite.
@@ -429,7 +430,7 @@ async function preparerEcheances(
             const s = await sous.subscriptions.retrieve(l.stripe_subscription_id);
             if (!ligneAJour(s, l)) {
               r = { ok: false, erreur: ECHEANCE_ABONNEMENT_CHANGE };
-            } else if (choixExplicite(s)) {
+            } else if (l.formule !== "gerimmo" && choixExplicite(s)) {
               // Même offre, seule la périodicité demandée change (le cas échéant).
               const gardee = estAgence ? offreAgence(capacite) : formule ? offreFormule(formule, capacite, periodicite) : null;
               if (gardee) cible = gardee;
@@ -446,7 +447,7 @@ async function preparerEcheances(
               orgId: l.organization_id,
             });
             if (r.ok) bilan.periodicites += 1;
-          } else if (r.ok && actuelle && cible.periodicite === actuelle.periodicite && cible.montantCents < actuelle.montantCents) {
+          } else if (r.ok && actuelle && cible.periodicite === actuelle.periodicite && (cible.montantCents < actuelle.montantCents || (l.formule === "gerimmo" && cible.capacite < actuelle.capacite))) {
             r = await appliquerBaisseAEcheance(sous, {
               subscription: l.stripe_subscription_id,
               offre: cible,

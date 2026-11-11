@@ -194,7 +194,7 @@ describe("conditions générales d'utilisation et de vente (29/09)", () => {
   });
 
   it("n'annoncent pas de prix TTC ou HT sous la franchise en base", () => {
-    expect(cgu).toContain('{FRANCHISE ? "" : ", prix toutes taxes comprises"}');
+    expect(cgu).toContain('{FRANCHISE ? "" : " Les prix sont toutes taxes comprises."}');
     // V1 (24/10) : plus de tarif « agences » hors taxes ; la branche assujettie dit « toutes taxes comprises ».
     expect(cgu).not.toContain("hors taxes");
   });

@@ -41,7 +41,7 @@ import {
 import { ouvrirPageDePaiementUnique, registreDeService } from "@/lib/souscription-unique";
 import { prendreVerrouFacturation } from "@/lib/verrou-facturation";
 import { clientDeService } from "@/lib/supabase/service";
-import { offreAgence, offreParticulier, type Offre, type Periodicite } from "@/lib/tarifs";
+import { offreAbonnementUnique, offreAgence, offreParticulier, type Offre, type Periodicite } from "@/lib/tarifs";
 import { baseEspace } from "@/lib/racine-espace";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 
@@ -165,6 +165,7 @@ async function lireEtat(orgId: string) {
  * réserve). La tâche de nuit ne la rabaisse pas d'elle-même à l'échéance.
  */
 function choixDe(offre: Offre, unitesACouvrir: number): ChoixOffre {
+  if (offre.public === "particulier" && offre.formule.code === "gerimmo") return "auto";
   const couvrante =
     offre.public === "agence" ? offreAgence(unitesACouvrir) : offreParticulier(unitesACouvrir, offre.periodicite);
   return offre.montantCents > couvrante.montantCents || offre.capacite > Math.max(couvrante.capacite, unitesACouvrir)
@@ -277,9 +278,11 @@ export async function demarrerAbonnement(
   const estAgence = etat.public_tarif === "agence";
   const periodicite: Periodicite = estAgence ? "mensuel" : (lirePeriodicite(formData.get("periodicite")) ?? "mensuel");
   const unites = etat.unites_a_couvrir ?? 0;
-  const offre = estAgence
-    ? offreAgence(unites)
-    : offrePour("proprietaire_direct", unites, periodicite, String(formData.get("formule") ?? "") || offreParticulier(unites, periodicite).formule.code);
+  if (!estAgence && unites === 0) return { erreur: "Aucun bien actif à facturer." };
+  if (!estAgence && formData.get("formule") !== "gerimmo") {
+    return { erreur: "Cette offre n’est plus commercialisée. Rechargez votre récapitulatif." };
+  }
+  const offre = estAgence ? offreAgence(unites) : offreAbonnementUnique(unites, periodicite);
   if (!offre) {
     return { erreur: `Cette formule ne couvre pas vos ${unites} biens : choisissez une formule qui les couvre.` };
   }
@@ -413,6 +416,7 @@ export async function confirmerHausse(
   if (unites === null || unites < Math.max(1, etat.unites_a_couvrir ?? 0)) {
     return { erreur: "La capacité demandée doit couvrir au moins votre portefeuille actuel." };
   }
+  if (etat.public_tarif !== "agence" && (paiement.formule === "gerimmo") !== (formData.get("formule") === "gerimmo")) return { erreur: "Le changement doit respecter la grille de votre contrat." };
   const offre = offrePour(etat.public_tarif, unites, paiement.periodicite, String(formData.get("formule") ?? ""));
   if (!offre) return { erreur: "Cette formule ne couvre pas le nombre de biens demandé." };
   // Une hausse de CAPACITÉ au même prix reste une hausse à confirmer (une

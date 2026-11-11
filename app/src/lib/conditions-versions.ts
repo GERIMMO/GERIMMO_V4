@@ -96,6 +96,7 @@ export const ATTRIBUT_IDENTITE_EMPREINTE = "data-identite-empreinte";
 
 /** Une version telle que le code la déclare (conditions-versions.json). */
 export type VersionDeclaree = {
+  nouvelles_souscriptions_uniquement?: boolean;
   date_effet: string;
   nature: "substantielle" | "technique";
   resume_modifications: string;

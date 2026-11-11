@@ -46,6 +46,7 @@ import {
 export const GRILLE = "2026-09-28";
 
 const NOMS_PRODUITS: Record<string, string> = {
+  gerimmo_abonnement_proprietaire_v1: "Gerimmo — abonnement propriétaire",
   gerimmo_formule_solo: "Gerimmo — formule Solo",
   gerimmo_formule_bailleur: "Gerimmo — formule Bailleur",
   gerimmo_formule_investisseur: "Gerimmo — formule Investisseur",
@@ -128,7 +129,7 @@ export async function lignesStripe(
   offre: Offre,
   regime: RegimeTva
 ): Promise<LigneStripe[]> {
-  if (!respectePlancherOffre(offre)) throw new Error("Le tarif après remise doit rester au moins égal à 4,90 € par bien et par mois.");
+  if (!respectePlancherOffre(offre)) throw new Error("Le montant ou les lignes de facturation ne correspondent pas au tarif applicable.");
   const inclusive = offre.public === "particulier";
   const taux =
     regime.nature === "assujetti" ? [await assurerTauxTva(stripe, regime.tauxPourcent, inclusive)] : undefined;
@@ -776,7 +777,8 @@ export async function programmerEcheance(
     const payee = lireDetails(s);
     const reference = offrePour(params.offre.public === "agence" ? "agence" : "proprietaire_direct",
       payee.unites ?? 0, payee.periodicite, payee.formule);
-    if (payee.montantPeriodeCents <= 0 ||
+    const sansBien = payee.formule === "gerimmo" && payee.unites === 0 && payee.montantPeriodeCents === 0;
+    if ((!sansBien && payee.montantPeriodeCents <= 0) ||
       (params.offre.periodicite === payee.periodicite
         ? params.offre.montantCents > payee.montantPeriodeCents
         : !reference || reference.montantCents !== payee.montantPeriodeCents)) {

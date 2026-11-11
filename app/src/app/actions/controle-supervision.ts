@@ -69,12 +69,13 @@ export async function renvoyerInvitation(orgId: string, _etat: EtatControle, for
 }
 
 // ── L'organisation (majeur 8) ───────────────────────────────────────────────
-const GESTES_ORGANISATION = ["suspendre", "reactiver", "prolonger_essai", "archiver"] as const;
+const GESTES_ORGANISATION = ["suspendre", "reactiver", "prolonger_essai", "fondateur", "archiver"] as const;
 type GesteOrganisation = (typeof GESTES_ORGANISATION)[number];
 const MESSAGES_ORGANISATION: Record<GesteOrganisation, string> = {
   suspendre: "Organisation suspendue : ses utilisateurs gardent la lecture, l’écriture est fermée.",
   reactiver: "Organisation réactivée.",
   prolonger_essai: "Essai prolongé.",
+  fondateur: "Six mois offerts. La date de fin est inscrite au dossier.",
   archiver: "Organisation archivée : elle n’est pas supprimée et peut être réactivée.",
 };
 
@@ -90,7 +91,7 @@ export async function controlerOrganisation(orgId: string, _etat: EtatControle, 
   const { supabase, ok } = await superviseurPermanent();
   if (!ok) return { erreur: REFUS_ACCES };
   // La fonction relit l'état sous verrou, applique et journalise dans la même transaction.
-  const { error } = await supabase.rpc("controler_organisation", { p_org: orgId, p_geste: geste, p_jours: jours, p_motif: motif || null });
+  const { error } = geste === "fondateur" ? await supabase.rpc("accorder_avantage_fondateur", { p_org: orgId }) : await supabase.rpc("controler_organisation", { p_org: orgId, p_geste: geste, p_jours: jours, p_motif: motif || null });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/admin/organisations/${orgId}`);
   revalidatePath("/admin/clients");

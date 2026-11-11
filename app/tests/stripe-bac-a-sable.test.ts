@@ -484,7 +484,8 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
     const stripe = nouvelle.stripe!;
     const initiale = offreAbonnementUnique(1, "mensuel");
     const [ligne] = await lignesStripe(stripe, initiale, FRANCHISE);
-    const s = await stripe.subscriptions.create({customer:nouvelle.client!,items:[{price_data:ligne.prix,quantity:1}],
+    const carte=await stripe.paymentMethods.attach("pm_card_visa",{customer:nouvelle.client!});
+    const s = await stripe.subscriptions.create({customer:nouvelle.client!,default_payment_method:carte.id,items:[{price_data:ligne.prix,quantity:1}],
       metadata:metadonneesOffre(nouvelle.org!,initiale),payment_behavior:"error_if_incomplete"});
     nouvelle.abonnements.push(s.id);
     expect(s.livemode).toBe(false);

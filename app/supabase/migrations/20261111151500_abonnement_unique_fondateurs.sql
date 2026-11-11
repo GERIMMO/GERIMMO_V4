@@ -50,7 +50,9 @@ begin
  fin := (jour + interval '6 months')::date - 1;
  if v.essai_fin > fin then raise exception 'Cet avantage raccourcirait un droit existant'; end if;
  insert into public.avantages_fondateurs values(place_libre,p_org,personne,auth.uid(),jour,fin);
+ insert into support_interne.controles_organisation values(txid_current(),auth.uid(),p_org);
  update public.organizations set essai_fin=fin where id=p_org;
+ delete from support_interne.controles_organisation where transaction_id=txid_current() and auteur=auth.uid() and organization_id=p_org;
  insert into public.audit_log(account_id,organization_id,action,details) values(auth.uid(),p_org,'avantage_fondateur_accorde',jsonb_build_object('place',place_libre,'fin',fin));
  return fin;
 end $$;

@@ -227,7 +227,7 @@ export default async function PageConditions() {
         <p>
           <b className="font-semibold">3.2 — Souscription d&apos;un abonnement
           payant.</b> Le Client souscrit depuis « Mon abonnement » : (1) il
-          choisit la périodicité et la formule ; (2) il vérifie le récapitulatif
+          choisit la périodicité ; (2) il vérifie le récapitulatif
           (formule, prix, date du premier prélèvement, durée, reconduction,
           droit de rétractation) et peut revenir modifier ses choix ; (3) il
           coche la case de confirmation ; (4) il saisit sa carte sur la page
@@ -507,7 +507,7 @@ export default async function PageConditions() {
             : ""}{" "}
           Les montants en vigueur sont publiés sur la page{" "}
           <a href="/tarifs" className="underline">Tarifs</a> et rappelés avant
-          toute souscription. Aucune formule n&apos;est gratuite en permanence.
+          toute souscription. L’avantage fondateur est accordé individuellement à dix propriétaires au maximum, pour six mois. Il ne déclenche aucun prélèvement et ne vaut pas souscription payante. Aucune formule n&apos;est gratuite en permanence.
         </p>
         <p>
           <b className="font-semibold">8.2 — Essai.</b> L&apos;ouverture
@@ -534,7 +534,7 @@ export default async function PageConditions() {
         </p>
         <p>
           <b className="font-semibold">8.5 — Changements.</b> Toute
-          augmentation du montant (formule supérieure, biens ou lots
+          augmentation du montant (biens ou lots
           supplémentaires) n&apos;est appliquée qu&apos;après que le nouveau
           montant, sa date d&apos;effet et l&apos;éventuel prorata ont été
           présentés au Client et confirmés par lui. Une diminution

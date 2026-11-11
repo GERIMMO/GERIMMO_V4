@@ -432,6 +432,13 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
                 <small>{souscrit ? (TTC ? `${TTC} ${parPeriode(paiement.periodicite)}` : parPeriode(paiement.periodicite)) : "Sans souscription, aucun prélèvement"}</small>
               </div>
             </div>
+            {actuelle?.public === "particulier" && actuelle.formule.code === "gerimmo" && (
+              <p className="mt-2 text-sm">{actuelle.capacite === 0 ? "Aucun bien actif à facturer." :
+                actuelle.capacite <= 7 ? `Premier bien : 5,99 €${actuelle.capacite > 1 ? ` + ${actuelle.capacite - 1} × 1,99 €` : ""} par mois.` :
+                actuelle.capacite <= 20 ? "De 8 à 20 biens : 19,90 € par mois au total." :
+                `19,90 € pour les 20 premiers biens + ${actuelle.capacite - 20} × 0,99 € par mois.`}
+                {paiement.periodicite === "annuel" && " En annuel, dix mensualités prélevées en une fois."}</p>
+            )}
             {!ferme && enEssai && !souscrit && !accesOffert && (
               <div className={styles.noteEssai}>
                 <Check size={17} aria-hidden="true" />
@@ -520,7 +527,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
       {!souscrit && !accesOffert && (
         <section className={estAgence ? "loc-carte" : styles.choix} aria-labelledby="choisir-abonnement">
           <div className={estAgence ? "entete-carte" : styles.titreSection}>
-            <h2 id="choisir-abonnement">{ferme ? "Reprendre avec un abonnement" : "Choisir ma formule"}</h2>
+            <h2 id="choisir-abonnement">{ferme ? "Reprendre avec un abonnement" : "Souscrire à Gerimmo"}</h2>
             {!estAgence && <p>Toutes les fonctionnalités sont incluses. Choisissez simplement la capacité qui vous convient.</p>}
           </div>
           <FormulaireSouscription
@@ -684,7 +691,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
 
       {!estAgence ? (
         <section className={styles.inclus} aria-labelledby="services-inclus">
-          <div className={styles.titreSection}><h2 id="services-inclus">Inclus dans chaque formule</h2><p>La même qualité de service, quel que soit votre nombre de biens.</p></div>
+          <div className={styles.titreSection}><h2 id="services-inclus">Inclus dans votre abonnement</h2><p>La même qualité de service, quel que soit votre nombre de biens.</p></div>
           <div className={styles.services}>
             <div><Building2 size={20} aria-hidden="true" /><strong>Votre gestion au complet</strong><p>Toutes les fonctions disponibles pour votre profil.</p></div>
             <div><Users size={20} aria-hidden="true" /><strong>L’espace de vos locataires</strong><p>Leurs accès sont inclus, sans supplément.</p></div>
@@ -705,7 +712,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         </div>
         <ul className="mesure-lecture list-disc space-y-1 pl-5 text-sm text-muted-foreground">
           <li>
-            Toutes les fonctions de gestion disponibles pour votre profil, quelle que soit la formule : seul le nombre de{" "}
+            Toutes les fonctions de gestion disponibles pour votre profil : seul le nombre de{" "}
             {estAgence ? "lots sous mandat" : "biens"} change le prix.
           </li>
           <li>

@@ -5,8 +5,8 @@ alter table public.ecritures add column bien_source_id uuid,
   add foreign key (avis_fiscal_id, organization_id) references public.documents(id, organization_id),
   add check (avis_fiscal_id is null or (bien_source_id is not null and lot_id is null and categorie='Taxe foncière'));
 create unique index ecritures_avis_bien_unique on public.ecritures(organization_id,bien_source_id,avis_fiscal_id) where avis_fiscal_id is not null;
-create index ecritures_bien_source on public.ecritures(bien_source_id) where bien_source_id is not null;
-create index ecritures_avis_document on public.ecritures(avis_fiscal_id) where avis_fiscal_id is not null;
+create index ecritures_bien_source on public.ecritures(bien_source_id,organization_id);
+create index ecritures_avis_document on public.ecritures(avis_fiscal_id,organization_id);
 
 -- Même contrôle sur les inserts directs et sur la RPC. Les montants et les
 -- colonnes système gardent les permissions du journal en vigueur.
@@ -27,7 +27,8 @@ grant insert(bien_source_id,avis_fiscal_id) on public.ecritures to authenticated
 
 -- Les paiements existants ont déjà une provenance durable. Une seule ligne par écriture.
 create view public.journal_par_bien with (security_invoker=true) as
-select e.*,coalesce(e.bien_source_id,p.bien_id,l.bien_id) as bien_id
+select e.id,e.organization_id,e.categorie,e.sens,e.montant,e.date_piece,e.date_imputation,
+  e.avis_fiscal_id,e.libelle,e.lot_id,e.bail_id,e.encaissement_id,e.contre_ecriture_de,coalesce(e.bien_source_id,p.bien_id,l.bien_id) as bien_id
 from public.ecritures e
 left join public.ecritures_factures_fourniture f on f.ecriture_id=e.id
 left join public.paiements_factures_fourniture p on p.id=f.paiement_id and p.organization_id=e.organization_id

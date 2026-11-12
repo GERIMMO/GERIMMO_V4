@@ -329,7 +329,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
               {ferme
                 ? // Plan du 23/10 (R26) : ce qui est vrai en lecture seule, envois automatiques compris.
                   "Dès que le paiement aboutit, tout rouvre. Rien n'est supprimé du fait de l'impayé : vos données restent consultables et exportables. Les envois automatiques à vos locataires (appels de loyer, quittances, relances) sont interrompus jusque-là, sans rattrapage complet."
-                : `Votre compte reste ouvert${paiement.lecture_seule_le ? ` jusqu'au ${formaterDate(paiement.lecture_seule_le)}` : ""}. Mettez votre moyen de paiement à jour ci-dessous.`}
+                : "Vous pouvez toujours saisir vos opérations. Mettez votre moyen de paiement à jour ci-dessous."}
             </span>
           </p>
         </div>

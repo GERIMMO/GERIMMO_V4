@@ -13,7 +13,7 @@ import { indicesDuCode } from "./indices-jointure";
  * - l'émulateur du banc local (NEXT_PUBLIC_SUPABASE_URL sur 127.0.0.1) ;
  * - un VRAI PostgREST, de la version de production (14.5), branché sur la même base que l'émulateur :
  *   POSTGREST_REEL_URL (ex. http://127.0.0.1:3901) et POSTGREST_REEL_JWT_SECRET (son « jwt-secret »).
- *   Sans ces variables, la partie « PostgREST réel » est sautée : la CI n'a pas encore ce binaire.
+ *   La CI impose les deux moteurs.
  * Les documents fictifs sont écrits puis effacés dans la base de l'émulateur (SUPALOCAL_DB).
  */
 const emulateur = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,6 +21,16 @@ const local = Boolean(emulateur && ["127.0.0.1", "localhost"].includes(new URL(e
 const baseApi = process.env.SUPALOCAL_DB;
 const reel = process.env.POSTGREST_REEL_URL;
 const secretReel = process.env.POSTGREST_REEL_JWT_SECRET;
+if (process.env.CI && (!local || !baseApi || !reel || !secretReel)) {
+  throw new Error("La CI exige une base API fictive et un véritable serveur PostgREST.");
+}
+if (baseApi && (!["127.0.0.1", "localhost"].includes(new URL(baseApi).hostname)
+    || !/^\/gerimmo_ci_[a-z_]+_api$/.test(new URL(baseApi).pathname))) {
+  throw new Error("Base API fictive locale obligatoire.");
+}
+if (reel && !["127.0.0.1", "localhost"].includes(new URL(reel).hostname)) {
+  throw new Error("PostgREST local obligatoire.");
+}
 const DEMO = { email: "proprietaire@example.com", motDePasse: "Gerimmo-Demo-2026" };
 
 type Ligne = { id: string; versions: { id: string }[] };
@@ -93,5 +103,41 @@ describe.skipIf(!local || !baseApi)("auto-relation des versions de documents", (
       }
     }
     expect(ecarts).toEqual([]);
+  });
+});
+
+describe.skipIf(!reel || !baseApi || !secretReel)("dépôt par un artisan sur PostgREST", () => {
+  it("conserve la pièce acceptée jusqu’à aujourd’hui après le refus d’un remplacement expiré", async () => {
+    const db = new Client({ connectionString: baseApi });
+    await db.connect();
+    const racine = randomUUID();
+    const compte = randomUUID(), artisan = randomUUID();
+    const chemin = `artisans/${artisan}/${racine}`;
+    try {
+      await db.query("insert into auth.users(id,email,aud,role,email_confirmed_at) values ($1,$2,'authenticated','authenticated',now())", [compte, `${compte}@example.invalid`]);
+      await db.query("insert into public.artisans(id,account_id,raison_sociale,siret,telephone) values ($1,$2,'Artisan fictif G40',$3,'0600000000')",
+        [artisan, compte, BigInt("0x" + artisan.replaceAll("-", "").slice(0, 11)).toString().padStart(14, "0")]);
+      const { rows: [{jour}] } = await db.query("select to_char(statement_timestamp() at time zone 'Europe/Paris','YYYY-MM-DD') jour");
+      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${jwt({ role: "authenticated", sub: compte })}` };
+      const deposer = (fin: string, fichier: string) => fetch(`${reel}/rpc/deposer_ma_piece_artisan`, {
+        method: "POST", headers, body: JSON.stringify({ p_type: "certification", p_storage_path: chemin + "/" + fichier,
+          p_mime: "application/pdf", p_taille: 100, p_empreinte: racine, p_emise_le: null, p_expire_le: fin }),
+      });
+      const valide = await deposer(jour, "valable.pdf");
+      expect(valide.ok).toBe(true);
+      const id = await valide.json();
+      const refuse = await deposer("2000-01-01", "expire.pdf");
+      expect(refuse.ok).toBe(false);
+      expect((await refuse.json()).message).toContain("Attestation expirée");
+      const { rows } = await db.query("select id, retiree_le from public.artisan_pieces where storage_path like $1", [chemin + "/%"]);
+      expect(rows).toEqual([{ id, retiree_le: null }]);
+    } finally {
+      try {
+        await db.query("delete from public.artisan_pieces where artisan_id=$1", [artisan]);
+        await db.query("delete from public.artisans where id=$1", [artisan]);
+        await db.query("delete from auth.users where id=$1", [compte]);
+      }
+      finally { await db.end(); }
+    }
   });
 });

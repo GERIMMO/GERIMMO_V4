@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { corrigerBail, envoyerBailSigne } from "@/app/actions/baux";
+import { activerBailPapierExistant, corrigerBail, envoyerBailSigne } from "@/app/actions/baux";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
 import { Spinner } from "@/components/ui/spinner";
@@ -67,11 +67,18 @@ export function CarteBailSigne({
   return (
     <div className="space-y-3">
       <p className="text-sm text-success-soft-foreground">
-        {actif ? "Bail signé déposé — le bail est actif." : "Un PDF signé est déposé, mais le bail est resté en brouillon : redéposez-le pour l'activer, ou corrigez le brouillon."}
+        {actif ? "Bail signé déposé — le bail est actif." : "Le PDF signé est enregistré. Vous pouvez vérifier le document puis activer la location."}
         {envoyeLe && (
           <span className="text-muted-foreground"> Envoyé au locataire le {formaterDateHeure(envoyeLe)}.</span>
         )}
       </p>
+      {!actif && <Button type="button" disabled={enCours} onClick={() => demarrer(async () => {
+        setErreur(null);
+        const res = await activerBailPapierExistant(orgId, bailId);
+        if (res.erreur) setErreur(res.erreur);
+        else afficherToast("Le bail est actif.");
+      })}>Activer la location</Button>}
+      {!ouverte && erreur && <p role="alert" className="text-sm text-destructive">{erreur}</p>}
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" onClick={() => setOuverte(true)}>
           Prévisualiser

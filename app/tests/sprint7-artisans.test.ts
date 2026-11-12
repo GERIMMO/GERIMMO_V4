@@ -251,6 +251,17 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
     expect(rows[0].args).not.toMatch(/boolean/);
   });
 
+  it("une pièce valable jusqu’aujourd’hui reste en place après un dépôt expiré", async () => {
+    await agir(cptArtisan);
+    const depot = `select public.deposer_ma_piece_artisan('certification',$1,'application/pdf',1000,
+      'empreinte-test',null,(statement_timestamp() at time zone 'Europe/Paris')::date + $2::int) as id`;
+    const chemin = `artisans/${artisan}/certificat.pdf`;
+    const valide = (await db.query(depot, [chemin, 0])).rows[0].id;
+    await expect(essai(depot, [chemin + ".nouveau", -1])).rejects.toThrow(/Attestation expirée/);
+    const pieces = await db.query("select piece_id from public.mes_pieces_artisan() where type='certification'");
+    expect(pieces.rows).toEqual([{ piece_id: valide }]);
+  });
+
   it("l'artisan dépose lui-même sa décennale (RM-8.2.1) et redevient affectable aussitôt (RM-8.2.2)", async () => {
     await agir(cptArtisan);
     // Pas dans le dossier d'un autre.

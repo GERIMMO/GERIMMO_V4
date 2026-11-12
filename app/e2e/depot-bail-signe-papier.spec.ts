@@ -30,6 +30,7 @@ async function nettoyer(db: Client, dossiers: { bail: string | null; lot: string
   for (const { bail, lot, bien } of dossiers) {
     try {
       await db.query("begin");
+      const diagnostics = (await db.query("select document_id from public.diagnostics where (lot_id=$1 or bien_id=$2) and organization_id=$3", [lot || null, bien || null, ORG])).rows;
       const signe: string | null = bail ? (await db.query("select document_signe from public.baux where id=$1", [bail])).rows[0]?.document_signe ?? null : null;
       if (bail) for (const sql of [
         "delete from public.appels_loyer where bail_id=$1", "delete from public.alerts where details->>'bail_id'=$1::text",
@@ -42,13 +43,15 @@ async function nettoyer(db: Client, dossiers: { bail: string | null; lot: string
         await db.query("delete from public.diagnostics where bien_id=$1", [bien]);
         await db.query("delete from public.biens where id=$1 and nom=$2", [bien, NOM]);
       }
+      for (const {document_id} of diagnostics) {
+        await db.query("delete from public.documents where id=$1 and organization_id=$2", [document_id, ORG]);
+      }
       await db.query("commit");
     } catch (e) {
       await db.query("rollback").catch(() => {});
-      console.warn(`Nettoyage incomplet du dossier fictif ${lot} : ${(e as Error).message}`);
+      throw e;
     }
   }
-  await db.query("delete from public.documents where titre in ('DPE fictif — essai','ERP fictif — essai') and not exists (select 1 from public.diagnostics d where d.document_id = documents.id)").catch(() => {});
 }
 
 async function ouvrirEtape(page: Page, url: string, numero: string) {
@@ -109,10 +112,22 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
     await ouvrirEtape(page, adresse, "07");
     await depot.locator("#depot-bail-signe").setInputFiles({ name: "bail-signe-fictif.pdf", mimeType: "application/pdf", buffer: PDF });
     await depot.getByRole("button", { name: "Déposer le bail signé" }).click();
-    await expect(depot.getByText(/Bail signé déposé — le contrat est actif/)).toBeVisible({ timeout: 30_000 });
+    await expect.poll(async () => (await db.query("select etat from public.baux where id=$1", [bail])).rows[0]?.etat,
+      { timeout: 30_000 }).toBe("actif");
     const apres = (await db.query("select b.etat, b.document_signe is not null as signe, l.etat as lot from public.baux b join public.lots l on l.id = b.lot_id where b.id=$1", [bail])).rows[0];
     expect(apres).toEqual({ etat: "actif", signe: true, lot: "loue" });
+    // Vérifier le document issu du vrai dépôt avec les droits du locataire du bail.
+    const signe = (await db.query("select document_signe from public.baux where id=$1", [bail])).rows[0].document_signe;
+    try {
+      await db.query("begin");
+      const { rows: [occupant] } = await db.query("select account_id from public.persons where id=$1", [locataire]);
+      await db.query("select set_config('request.jwt.claims',json_build_object('role','authenticated','sub',$1::text)::text,true)", [occupant.account_id]);
+      await db.query("set local role authenticated");
+      const meta = await db.query("select storage_path from public.mon_document_locataire($1,$2)", [ORG, signe]);
+      expect(meta.rows).toHaveLength(1);
+    } finally { await db.query("rollback"); }
     await page.reload();
+    await expect(page.getByText("Actif", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("Brouillon", { exact: true })).toHaveCount(0);
     expect(reponsesEnErreur).toEqual([]);
   } finally {

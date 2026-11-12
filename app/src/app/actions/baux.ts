@@ -484,27 +484,12 @@ async function deposerPieceBail(
   const res = await deposerFichierGed(supabase, user, orgId, fichier, piece.type, piece.titre, { reutiliserReglement: piece.colonne === "reglement_copropriete" });
   if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt." };
 
-  const { error } = await supabase
-    .from("baux")
-    .update({ [piece.colonne]: res.documentId })
-    .eq("id", bailId)
-    .eq("organization_id", orgId);
-  if (error) return { erreur: sansJargon(error.message) };
-
   let succes = piece.succes;
   if (activation) {
-    const { error: erreurActivation } = await supabase.rpc("activer_bail", { p_bail: bailId });
-    if (erreurActivation) {
-      // Les contrôles venaient de passer : un refus ici est une course (un
-      // autre bail activé entre-temps). Le PDF est détaché, rien n'est à
-      // moitié fait — le document reste en GED.
-      await supabase
-        .from("baux")
-        .update({ document_signe: null })
-        .eq("id", bailId)
-        .eq("organization_id", orgId);
-      return { erreur: sansJargon(erreurActivation.message) };
-    }
+    const { error } = await supabase.rpc("activer_bail_papier", {
+      p_org: orgId, p_bail: bailId, p_document: res.documentId,
+    });
+    if (error) return { erreur: sansJargon(error.message) };
     const { count } = await supabase
       .from("etats_des_lieux")
       .select("id", { count: "exact", head: true })
@@ -514,10 +499,29 @@ async function deposerPieceBail(
     succes =
       "Bail signé déposé — le contrat est actif, l’occupation du logement est actualisée." +
       (count ? "" : " L'état des lieux d'entrée reste à signer : une alerte le rappelle.");
+  } else {
+    const { error } = await supabase.from("baux").update({ [piece.colonne]: res.documentId })
+      .eq("id", bailId).eq("organization_id", orgId);
+    if (error) return { erreur: sansJargon(error.message) };
   }
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: res.avertissement ? `${succes} ${res.avertissement}` : succes };
+}
+
+export async function activerBailPapierExistant(orgId: string, bailId: string): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const { data } = await supabase.from("baux").select("document_signe")
+    .eq("id", bailId).eq("organization_id", orgId).eq("etat", "brouillon").maybeSingle();
+  if (!data?.document_signe) return { erreur: "Rechargez la fiche pour vérifier le bail signé." };
+  const { error } = await supabase.rpc("activer_bail_papier", {
+    p_org: orgId, p_bail: bailId, p_document: data.document_signe,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  revalidatePath(`/espace/${orgId}/baux/${bailId}`);
+  return { succes: "Le bail est actif." };
 }
 
 export async function deposerBailSigne(

@@ -24,7 +24,7 @@ test("G-19 : mettre fin à une détention exige une confirmation explicite", asy
   // La synthèse des alertes s'ouvre à l'arrivée si d'autres parcours ont laissé des alertes : à poser AVANT la navigation.
   await sansSyntheseAlertes(page);
   const nettoyer = async (id: string) => {
-    for (const sql of ["delete from public.detentions where lot_id=$1", "delete from public.lots where id=$1"]) await db.query(sql, [id]).catch(() => {});
+    for (const sql of ["delete from public.detentions where lot_id=$1", "delete from public.lots where id=$1"]) await db.query(sql, [id]);
   };
   try {
     // Rejouable : un passage interrompu (délai dépassé) a pu laisser son lot fictif.
@@ -49,7 +49,10 @@ test("G-19 : mettre fin à une détention exige une confirmation explicite", asy
     await expect(dialogue).toContainText("%");
     await dialogue.getByRole("button", { name: "Annuler" }).click();
     await expect(dialogue).toHaveCount(0);
-    await page.waitForTimeout(1000);
+    await expect(bouton).toBeFocused();
+    await bouton.click();
+    await page.keyboard.press("Escape");
+    await expect(dialogue).toHaveCount(0);
     expect(await fin()).toBeNull();
 
     // Confirmation explicite : la détention prend fin aujourd'hui et reste dans l'historique.

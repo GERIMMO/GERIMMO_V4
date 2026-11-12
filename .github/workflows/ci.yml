@@ -104,6 +104,15 @@ jobs:
         run: |
           node --input-type=module -e 'import {Client} from "pg"; const c=new Client({connectionString:process.env.SUPABASE_DB_URL}); await c.connect(); await c.query("create database gerimmo_ci_charge_automatique template gerimmo_ci_sql"); await c.end();'
           node scripts/recette/charge-300-lots.mjs
+      - name: Vérifier les accès au portail après un changement de rôle sur PostgREST 14.5
+        run: |
+          set -euo pipefail
+          export POSTGREST_REEL_JWT_SECRET="$(openssl rand -hex 32)"
+          export POSTGREST_REEL_URL=http://127.0.0.1:53923
+          docker run -d --name portail-g11 --network host -e PGRST_DB_URI="$SUPABASE_DB_URL" -e PGRST_DB_ANON_ROLE=anon -e PGRST_SERVER_HOST=127.0.0.1 -e PGRST_SERVER_PORT=53923 -e PGRST_JWT_SECRET="$POSTGREST_REEL_JWT_SECRET" postgrest/postgrest:v14.5
+          trap 'docker stop portail-g11 >/dev/null' EXIT
+          curl --fail --silent --show-error --retry 20 --retry-connrefused --retry-max-time 60 "$POSTGREST_REEL_URL/" -o /dev/null
+          node e2e/local/verifier-portail-postgrest.mjs
       - name: Démarrer l’API de test locale
         run: |
           node e2e/local/serveur-supabase-local.mjs > /tmp/gerimmo-api.log 2>&1 &

@@ -167,6 +167,7 @@ const MISSION_OCTOBRE = [
   "20261112120300_conge_ajuste_dernier_terme_et_depot_au_centime.sql",
   "20261112120400_cle_date_effet_et_tantiemes.sql",
   "20261112120500_organisation_portail_limite.sql",
+  "20261112195752_relances_apres_decompte.sql",
 
 
 ];

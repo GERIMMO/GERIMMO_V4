@@ -48,6 +48,8 @@ export const COULEURS_ETAT_EDL: Record<string, string> = {
 // Statuts d'un appel de loyer (échéancier agence et espace locataire)
 export const STATUTS_APPEL_LOYER: Record<string, string> = {
   paye: "Payé",
+  au_decompte: "Repris au décompte",
+  non_du: "Non dû",
   partiel: "Partiel",
   impaye: "Impayé",
   attendu: "À échoir",

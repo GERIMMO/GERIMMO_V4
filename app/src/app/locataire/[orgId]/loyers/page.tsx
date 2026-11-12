@@ -104,7 +104,7 @@ export default async function PagePaiementsLocataire(
 
   const moisLong = (d: string) =>
     new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
-  const prochaine = lignesLoyer.find((l) => l.statut !== "paye");
+  const prochaine = lignesLoyer.find((l) => ["impaye", "partiel", "attendu"].includes(l.statut));
   const forfait = bail?.charges_mode === "forfait";
   // Seuls les mois SOLDÉS ont une quittance ; un paiement partiel n'a qu'un
   // reçu, et la mention le comptait comme une quittance (24/09).
@@ -116,7 +116,7 @@ export default async function PagePaiementsLocataire(
   // Les pastilles ne parlent qu'au survol (title) : au tactile, les mois
   // restant à régler sont nommés en clair sous la frise.
   const aRegler = douzeDerniers.filter(
-    (l) => l.statut !== "paye" && l.statut !== "attendu"
+    (l) => ["impaye", "partiel"].includes(l.statut)
   );
   // Bail actif et tout soldé (audit 09/09) : la prochaine échéance réelle —
   // le jour d'échéance du bail, au mois suivant
@@ -252,6 +252,8 @@ export default async function PagePaiementsLocataire(
                 </div>}
                 {pastilles}
               </>
+            ) : restitution?.statut === "finalise" ? (
+              <p className="text-sm">Le solde de votre ancien bail figure dans le décompte de départ ci-dessous.</p>
             ) : (
               <p className="text-sm text-muted-foreground">
                 Rien à régler pour l&apos;instant — votre échéancier apparaîtra ici

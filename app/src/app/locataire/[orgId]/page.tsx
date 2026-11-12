@@ -87,7 +87,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   }[];
   const retards = lignes.filter(l => ["impaye", "partiel"].includes(l.statut));
   const totalRetard = retards.reduce((s, l) => s + Math.max(0, Math.round(Number(l.montant_du) * 100) - Math.round(Number(l.montant_couvert) * 100)), 0) / 100;
-  const prochaine = lignes.find((l) => l.statut !== "paye");
+  const prochaine = lignes.find((l) => ["impaye", "partiel", "attendu"].includes(l.statut));
   const mesPieces = (pieces ?? []) as {
     type: string;
     depose_le: string;

@@ -115,7 +115,10 @@ describe.skipIf(!url)("consommations : isolation réelle, collecte et répartiti
     const rep=r.rows[0].id;
     await postgres(); const empreinte=(await db.query("select empreinte from public.repartitions_fourniture where id=$1",[rep])).rows[0].empreinte;
     await db.query("set local role service_role");
-    await db.query("select public.geste_facture_automatique($1,'valider_repartition_fourniture',$2::jsonb)",[facture,JSON.stringify({_jeton:jeton,p_repartition:rep,p_empreinte_attendue:empreinte})]);
+    for (const geste of ["valider_repartition_fourniture","diffuser_pdf_repartition"])
+      await refus("select public.geste_facture_automatique($1,$2,$3::jsonb)",[facture,geste,JSON.stringify({_jeton:jeton,p_repartition:rep,p_empreinte_attendue:empreinte})],/Confirmation du propriétaire/);
+    await session(gerant);
+    await db.query("select public.valider_repartition_fourniture($1,$2)",[rep,empreinte]);
     await session(gerant);await db.query("select public.regler_facture_automatique($1,false)",[facture]);
     await postgres();await db.query("set local role service_role");
     await refus("select public.geste_facture_automatique($1,'controle',$2::jsonb)",[facture,JSON.stringify({_jeton:jeton})],/désactivée/);

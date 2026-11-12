@@ -115,7 +115,7 @@ export async function enregistrerConsommation(orgId: string, bienId: string, lot
       const automatique=f.get("automatique")==="on" && f.get("suite")!=="conserver";
       const auto=automatique ? await supabase.rpc("regler_facture_automatique",{p_facture:factureCreee.id,p_actif:true}) : null;
       actualiser(orgId);
-      return { succes: auto?.error ? "Facture enregistrée. Activez la gestion automatique depuis son suivi." : automatique ? "Facture enregistrée. Gerimmo prend en charge la suite ; vous confirmerez les sommes reçues." : "Facture enregistrée. Vérifiez maintenant sa répartition.", factureId: factureCreee.id };
+      return { succes: auto?.error ? "Facture enregistrée. Activez la gestion automatique depuis son suivi." : automatique ? "Facture enregistrée. Gerimmo prépare les calculs. Vous pourrez vérifier les montants avant de partager les décomptes." : "Facture enregistrée. Vérifiez maintenant sa répartition.", factureId: factureCreee.id };
     } else if (action === "taxe_fonciere") {
       // Avis de taxe foncière (02/11/2026) : une saisie, deux usages. La ligne TEOM (et ses frais de gestion)
       // devient une facture du contrat « TEOM » du bâtiment, répartissable entre les locataires comme les autres

@@ -289,6 +289,18 @@ describe.skipIf(!DB_URL)("Restitution — instantané des impayés, daté et ré
     );
   });
 
+  it("un paiement reçu après la préparation exige une nouvelle vérification avant toute écriture", async () => {
+    const bail = await bailPret();
+    await arriereDe300(bail);
+    const { rows: [{ id }] } = await db.query("select public.demarrer_restitution($1,current_date,true) id", [bail]);
+    await reglerLeSolde(bail, 300);
+    await attendreEchec(db, /Actualisez le décompte/, "select public.finaliser_decompte($1)", [id]);
+    expect((await db.query("select statut from public.restitutions where id=$1", [id])).rows[0].statut).toBe("en_cours");
+    expect((await db.query("select count(*)::int n from public.ecritures where bail_id=$1 and categorie='depot_garantie' and sens='depense'", [bail])).rows[0].n).toBe(0);
+    await db.query("select public.rafraichir_montants_restitution($1)", [id]);
+    expect(Number((await db.query("select public.finaliser_decompte($1) solde", [id])).rows[0].solde)).toBe(900);
+  });
+
   it("décompte figé : le réarrêté est refusé (RM-2.7.3, la correction est un rectificatif)", async () => {
     const bail = await bailPret();
     await arriereDe300(bail);
@@ -525,10 +537,12 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
     })();
     expect(bloque, "le réarrêté aurait dû attendre le verrou de la ligne").toBe(true);
 
+    // Le paiement déjà validé doit être inclus avant que B confirme le décompte.
+    await sessionB.query("select public.rafraichir_montants_restitution($1)", [restitution]);
     const {
       rows: [{ solde }],
     } = await sessionB.query(`select public.finaliser_decompte($1) as solde`, [restitution]);
-    expect(Number(solde)).toBe(600);
+    expect(Number(solde)).toBe(900);
     await sessionB.query("commit");
 
     const a = await reponseA;
@@ -545,7 +559,7 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
       [restitution]
     );
     expect(fin.statut).toBe("finalise");
-    expect(Number(fin.impayes)).toBe(300);
+    expect(Number(fin.impayes)).toBe(0);
     // Un décompte figé s'additionne : dépôt − impayés − retenues = solde.
     expect(Number(fin.depot) - Number(fin.impayes)).toBe(Number(fin.solde));
   }, 20000);

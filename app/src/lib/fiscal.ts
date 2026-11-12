@@ -81,6 +81,18 @@ export function recapitulatifFiscal(ecritures:EcritureFiscale[],annee:number,opt
   if(sens==='depense'&&estFondsTravauxAlur(e.categorie)){fondsTravauxAlur+=montant;if(id)fondsTravauxAlurIds.add(id);continue;}
   if(q?.nature==='non_deductible'){nonDeductible+=montant;continue;}
   if(q?.nature==='hors_2044'){if(sens==='recette')chargesRecuperees+=montant;else teomExclue+=montant;continue;}
+  // Sixième relecture du 28/10 (migration 20261028100100) : la restitution d'un trop-perçu porte la part de loyer et de
+  // charges ventilée en trop à l'encaissement (dernier terme recalculé, terme après la fin du bail) ; elle se retranche
+  // de la ligne 211 et des charges récupérées l'année où l'argent est rendu. Le reste (un simple versement en plus)
+  // demeure à qualifier, comme avant.
+  if(!q&&capture&&normaliser(e.categorie)==='trop_percu_restitue'){
+   const hc=Number(capture.loyer_hc),ch=Number(capture.charges),reste=Number(capture.non_ventile);
+   if([hc,ch,reste].every(Number.isFinite)&&hc>=0&&ch>=0&&reste>=0&&Math.abs(hc+ch+reste-brut)<=.005){
+    ajouter('211',-hc*signe,quote,e.categorie);nbRetenues++;chargesRecuperees-=ch*signe;
+    if(reste)inconnue(e,reste*signe,'Des pièces attendent une qualification fiscale justifiée.');
+    continue;
+   }
+  }
   const loyer=sens==='recette'&&(e.encaissement_id!=null||normaliser(e.categorie).includes('loyer'));
   if(loyer&&(capture||q?.nature==='recette'&&q.rubrique==='211')){
    const manuel=q?.loyer_hc!=null&&q?.charges!=null&&(!capture||Number(capture.non_ventile)>0);

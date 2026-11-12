@@ -388,6 +388,7 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
   let semeur: Client;
   let sessionA: Client;
   let sessionB: Client;
+  let secondeFinalisation: Client;
   let org: string | null = null;
   let compte: string | null = null;
   let restitution: string;
@@ -409,6 +410,8 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
     await semeur.connect();
     await sessionA.connect();
     await sessionB.connect();
+    secondeFinalisation = new Client({ connectionString: DB_URL });
+    await secondeFinalisation.connect();
 
     const {
       rows: [o],
@@ -470,6 +473,8 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
     );
     await porterLesClaims(sessionA, compte!);
     await porterLesClaims(sessionB, compte!);
+    await porterLesClaims(secondeFinalisation, compte!);
+    await secondeFinalisation.query("set role authenticated");
   });
 
   afterAll(async () => {
@@ -500,6 +505,7 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
     await semeur?.end();
     await sessionA?.end();
     await sessionB?.end();
+    await secondeFinalisation?.end();
   });
 
   it("une finalisation qui passe pendant un réarrêté laisse le décompte figé intact (RM-2.7.3)", async () => {
@@ -543,7 +549,19 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
       rows: [{ solde }],
     } = await sessionB.query(`select public.finaliser_decompte($1) as solde`, [restitution]);
     expect(Number(solde)).toBe(900);
+    const pidConcurrent = (await secondeFinalisation.query("select pg_backend_pid() pid")).rows[0].pid;
+    const concurrent = secondeFinalisation.query("select public.finaliser_decompte($1)", [restitution])
+      .then(() => "accepté", (error: Error) => error.message);
+    let attendLeVerrou = false;
+    for (let essai = 0; essai < 100 && !attendLeVerrou; essai++) {
+      attendLeVerrou = (await semeur.query("select wait_event_type = 'Lock' attente from pg_stat_activity where pid=$1", [pidConcurrent])).rows[0]?.attente;
+      if (!attendLeVerrou) await new Promise((resolve) => setTimeout(resolve, 25));
+    }
     await sessionB.query("commit");
+    expect(attendLeVerrou).toBe(true);
+    expect(await concurrent).toMatch(/déjà finalisé/);
+    const sorties = await semeur.query("select count(*)::int n, sum(e.montant)::float8 total from public.ecritures e join public.restitutions r on r.bail_id=e.bail_id where r.id=$1 and e.sens='depense' and e.categorie='depot_garantie'", [restitution]);
+    expect(sorties.rows[0]).toEqual({ n: 1, total: 900 });
 
     const a = await reponseA;
     await sessionA.query("rollback");

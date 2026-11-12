@@ -195,20 +195,7 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
                 </>
               ) : (
                 <>
-                  Votre banque a peut-être refusé, ou la carte a expiré. Votre
-                  compte reste entièrement ouvert
-                  {paiement.lecture_seule_le
-                    ? ` jusqu’au ${formaterDate(paiement.lecture_seule_le)}`
-                    : ""}
-                  {paiement.jours_avant_lecture_seule !== null
-                    ? paiement.jours_avant_lecture_seule === 0
-                      ? " — dernier jour"
-                      : ` — ${paiement.jours_avant_lecture_seule} jour${
-                          paiement.jours_avant_lecture_seule > 1 ? "s" : ""
-                        } restant${paiement.jours_avant_lecture_seule > 1 ? "s" : ""}`
-                    : ""}
-                  . Passé cette date et sans règlement, la saisie de nouvelles
-                  données est suspendue — tout reste consultable et exportable.
+                  Vous pouvez toujours saisir vos opérations.{" "}
                   Mettez votre moyen de paiement à jour ci-dessous.
                 </>
               )}

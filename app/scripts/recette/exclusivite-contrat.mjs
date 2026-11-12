@@ -82,6 +82,9 @@ try {
   const linked=await document();
   await root.query("insert into document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'bail',$3)",[org,linked,left]);
   await denied(right,linked);
+  const personal=await document();
+  await root.query("insert into document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'personne',$3)",[org,personal,first.id]);
+  await denied(right,personal);
   const original=await document();
   await root.query("insert into bail_signature_circuits(organization_id,bail_id,created_by,document_id,environnement,empreinte,pdf_hash,signataires) values($1,$2,$3,$4,'sandbox',repeat('a',64),repeat('b',64),'[{},{}]')",[org,left,owner.account,original]);
   await denied(right,original);
@@ -108,6 +111,7 @@ try {
   }
   assert.equal((await root.query("select etat from lots where id=(select lot_id from baux where id=$1)",[right])).rows[0].etat,"disponible");
   await assert.rejects(root.query("insert into document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'bail',$3)",[org,pdf,right]),{code:"23505"});
+  await assert.rejects(root.query("insert into demandes_signature(organization_id,document_id,person_id) values($1,$2,$3)",[org,pdf,second.id]),/ne figure pas sur le bail/);
   assert.deepEqual(await view(second,pdf),[]);
   assert.equal((await view(first,pdf))[0].document_id,pdf);
   await ownerSession(b,owner.account);

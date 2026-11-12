@@ -162,6 +162,7 @@ const MISSION_OCTOBRE = [
   "20261110181422_supervision_v1_lecture_bornee.sql",
   "20261111151500_abonnement_unique_fondateurs.sql",
   "20261112120500_organisation_portail_limite.sql",
+  "20261112202241_fermer_fiche_interne_apres_bascule.sql",
 
 
 ];

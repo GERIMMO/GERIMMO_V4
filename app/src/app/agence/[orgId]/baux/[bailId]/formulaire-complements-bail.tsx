@@ -1,4 +1,5 @@
 "use client";
+import { AvertissementClauses } from "./avertissement-clauses";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
 import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
@@ -287,6 +288,7 @@ export function FormulaireComplementsBail({
           <Label htmlFor="comp-clauses">Clauses particulières — Facultatif</Label>
           <textarea
             id="comp-clauses"
+            aria-describedby="comp-clauses-aide"
             name="clauses_particulieres"
             rows={3}
             maxLength={4000}
@@ -294,6 +296,7 @@ export function FormulaireComplementsBail({
             defaultValue={d("clauses_particulieres", defauts.clauses_particulieres)}
             className={classeTextarea}
           />
+          <AvertissementClauses id="comp-clauses-aide" />
         </div>
         {(
           <>

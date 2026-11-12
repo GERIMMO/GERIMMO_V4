@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
-import { useFormStatus } from "react-dom";
+import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import {
   deposerPhotoChantier,
   type EtatArtisanAction,
@@ -28,8 +27,7 @@ import { Avertissement, Erreur, Succes } from "../../../ui";
  *    bloc et fait tout ressaisir au second écran.
  */
 
-function Etat({ dejaEnvoyee }: { dejaEnvoyee: boolean }) {
-  const { pending } = useFormStatus();
+function Etat({ dejaEnvoyee, pending }: { dejaEnvoyee: boolean; pending: boolean }) {
   if (pending) {
     return (
       <p className="flex items-center justify-center gap-2.5 text-[0.9375rem] text-[var(--texte-secondaire)]">
@@ -59,9 +57,8 @@ export function PhotoChantier({
   titre: string;
   aide?: string;
 }) {
-  const [etat, action] = useActionState<EtatArtisanAction, FormData>(
-    deposerPhotoChantier.bind(null, interventionId),
-    {}
+  const { etat, soumettre, enCours } = useActionFormulaire<EtatArtisanAction>(
+    deposerPhotoChantier.bind(null, interventionId)
   );
   const formulaire = useRef<HTMLFormElement>(null);
   const idChamp = useId();
@@ -77,7 +74,7 @@ export function PhotoChantier({
   const envoyee = dejaEnvoyee || Boolean(etat.succes);
 
   return (
-    <form data-saisie-confirmee action={action} ref={formulaire} className="space-y-3">
+    <form data-saisie-confirmee onSubmit={soumettre} ref={formulaire} className="space-y-3">
       <input type="hidden" name="moment" value={moment} />
 
       <label
@@ -113,6 +110,7 @@ export function PhotoChantier({
       <input
         id={idChamp}
         name="photo"
+        disabled={enCours}
         type="file"
         accept="image/jpeg,image/png"
         capture="environment"
@@ -148,7 +146,7 @@ export function PhotoChantier({
         />
       )}
 
-      <Etat dejaEnvoyee={envoyee} />
+      <Etat dejaEnvoyee={envoyee} pending={enCours} />
       {erreurPhoto && <Erreur>{erreurPhoto}</Erreur>}
       {etat.succes && <Succes>{etat.succes}</Succes>}
       {etat.avertissement && <Avertissement>{etat.avertissement}</Avertissement>}

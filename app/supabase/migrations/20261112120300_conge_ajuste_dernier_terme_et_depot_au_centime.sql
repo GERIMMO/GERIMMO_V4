@@ -1171,6 +1171,8 @@ create or replace function public.verifier_arrete_avant_finalisation()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare actuel record;
 begin
+  -- Les encaissements et appels verrouillent cette même ligne avant écriture.
+  perform 1 from public.baux where id=new.bail_id for update;
   select * into strict actuel from public.montants_reels_bail(new.bail_id);
   if (new.depot, new.impayes, new.trop_percu) is distinct from
      (actuel.depot, actuel.impayes, actuel.trop_percu) then

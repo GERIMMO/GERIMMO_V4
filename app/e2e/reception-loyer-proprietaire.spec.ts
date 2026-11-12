@@ -174,6 +174,7 @@ for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : éc
       await db.query("delete from memberships where organization_id=$1",[ORG]);
       await db.query("delete from persons where id=$1",[bailleur]);
       await db.query("delete from audit_log where organization_id=$1 or account_id=$2",[ORG,compte]);
+      await db.query("delete from alerts where organization_id=$1",[ORG]);
       await db.query("delete from organizations where id=$1",[ORG]);
       await db.query("delete from auth.users where id=$1",[compte]);
       await db.query("commit");

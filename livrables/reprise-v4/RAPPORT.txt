@@ -1,0 +1,60 @@
+GERIMMO — Point de reprise du 12 novembre 2026
+Décision : NO GO. Dix propriétaires réels : ouverture non validée.
+
+Production vérifiée en lecture seule : cce58ab8edd2047df6e17a980fd46d58967dfaf4.
+Lot 1 : PR 289, b1a52d6398d93f1ee14785f9c53658a3d9595a18 ; historique 287 et 288 conservé.
+Correctifs complémentaires : PR 290, branche codex/depart-g107-20261112,
+commit 07bc66f131d428be89c57f59cf8d54012682cbe9.
+CI hébergée : https://github.com/GERIMMO/GERIMMO_V4/actions/runs/43280193269
+Aucune fusion, migration de production, promotion, communication ou opération financière réelle.
+
+G-107 : reproduction SI-06. Ancien solde −238 €. Nouveau solde +188,67 €.
+600 € encaissés en dépôt, 198 € de retenue, 213,33 € de dernier terme (10/30 × 640 €).
+Le congé est saisi après émission de novembre. Le test suit bail, congé, restitution et écritures.
+Travail antérieur récupéré sélectivement depuis 33807ae7b97d515e66ea8a3f0dcfd871f0cddaa3.
+Nouvelle vérification PostgreSQL des montants à la clôture. Si un encaissement change le solde
+depuis la préparation, la finalisation est refusée avant écriture et l'arrêté doit être revu.
+Les remboursements ventilés sont pris en compte dans le calcul fiscal concerné.
+G-06 : le statut du contrat résilié ne prouve pas l'annulation de la facture. Le texte de
+l'espace propriétaire invite désormais à vérifier la facture. Aucun changement de tarif ou de dette.
+
+Production : PostgreSQL 17.6 ; RPC de finalisation accessible au rôle authentifié sous contrôles
+métier, correctif absent. Zéro restitution en cours ou finalisée et zéro dernier terme répondant
+au critère vérifié à l'instant du contrôle. Ce constat agrégé ne protège pas un futur dossier.
+
+Local : bases PostgreSQL fictives. Échec témoin avant correction. 160/160 tests ciblés de départ,
+fiscalité et manifestes ; 272/272 sur les fichiers sollicitant la clôture et la répétition historique ;
+22/22 sur l'écran abonnement. Ces sélections se recoupent. Aucun test ignoré dans ces trois passages.
+TypeScript après génération des types Next, lint ciblé : succès.
+Base historique distincte construite avec la procédure du dépôt (466 migrations).
+Les deux premiers échecs de répétition ont identifié un ordre de retour incomplet et l'emploi
+de la mauvaise base historique ; les deux ont été corrigés et le parcours rejoué.
+Reproduction détaillée : app/tests/depart-si06-base.test.ts ; tests de dépôt, régularisation,
+fiscalité et concurrence dans conge-dernier-terme-base et restitution-impayes.
+Sur le cas G-107, la seconde finalisation est refusée ; le réarrêté concurrent attend le verrou.
+La concurrence exacte d'un versement pendant la clôture reste à qualifier.
+Les résultats passés de la PR 289 ne valent pas pour cette révision.
+
+Séquence candidate : migrations 20261112120000, 20261112120100, 20261112120200, puis
+20261112120300. Le script de retour est réservé au banc isolé. Si des opérations financières
+réelles sont intervenues, préserver les écritures et procéder par correction en avant.
+Avant toute migration réelle : sauvegarde fraîche et récupération vérifiée, contrôle des contrats
+signés et des arrêtés, répétition représentative, CI sur le SHA de livraison, protection G-108.
+Aucune recette de production ou sauvegarde nouvelle exécutée à ce stade.
+
+Le fichier SUIVI.tsv conserve les 118 entrées du registre, dont 11 P1, 41 P2, 66 P3.
+Le statut de reprise est distinct du diagnostic historique. Les rapports sources de la reprise
+sont registre-anomalies.md, backlog-codex.md et rapport-final.md du dossier Téléchargements.
+En premier : finir la vérification G-108 (aucune double réclamation après imputation sur le dépôt),
+G-08 et G-09 (finances par SCI et date des clés), G-03 (SCI/signatures), G-04/G-07 (notifications et
+droits), puis contrôles documentaires, rôles et recette des trois utilisateurs. Les communications
+suspendues restent suspendues. Pour G-05, demander les coordonnées officielles du médiateur ;
+ne pas établir de convention ni ouvrir la vente aux particuliers sans décision du dirigeant.
+Les 10 alertes de dépendances signalées par GitHub sur main (7 modérées, 3 faibles) restent à qualifier.
+
+Deux sessions ont demandé la finalisation d'une même restitution. Attente du verrou observée dans
+pg_stat_activity, seconde finalisation refusée, une seule dépense de 900 €. Les 11 tests du fichier
+restitution-impayes passent avec ce contrôle supplémentaire. La course avec un nouvel encaissement
+est un cas différent et reste à vérifier.
+Sauvegarde et restauration historiques : workflows GitHub 43222627154 et 43223647006 réussis
+le 12 novembre ; ces preuves antérieures ne remplacent pas la sauvegarde fraîche avant livraison.

@@ -152,7 +152,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   const accesOffert = enEssai && !ferme && cadeaux.some(c => c.nature === "acces" && c.fin === etat.essai_fin);
   const souscrit = paiement.souscrit;
   // Relecture adverse du 24/10 (I2) : un défaut de paiement encore inscrit sur une souscription terminée. Résiliée pour
-  // impayé (ni résiliation demandée, ni rétractation), la facture est annulée : « tout rouvre au paiement » serait faux.
+  // impayé (ni résiliation demandée, ni rétractation), le statut du contrat ne prouve pas le règlement ou l’annulation de sa facture.
   const alerteRetard = paiement.paiement_en_retard && souscrit;
   const resilieeImpaye =
     paiement.paiement_en_retard && !souscrit && !paiement.annulation_demandee && !ligneRetractation?.retractation_abonnement_le;
@@ -313,8 +313,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">Votre abonnement a été résilié faute de règlement.</b>{" "}
             <span className="text-muted-foreground">
-              La facture restée impayée est annulée : vous n&apos;avez rien à régler. Rien n&apos;est supprimé : vos
-              données restent consultables et exportables. Souscrivez de nouveau ci-dessous pour reprendre la saisie.
+              Consultez votre dernière facture pour vérifier le montant restant à régler. Vos données restent consultables et exportables. Souscrivez de nouveau ci-dessous pour reprendre la saisie.
             </span>
           </p>
         </div>

@@ -1,0 +1,42 @@
+import { randomUUID } from "node:crypto";
+import { Client } from "pg";
+import { describe, expect, it } from "vitest";
+import { verifierBaseDeTest } from "./garde-base";
+
+const url = process.env.SUPABASE_DB_URL;
+verifierBaseDeTest(url);
+
+describe.skipIf(!url)("Départ SI-06 — congé saisi après le dernier appel", () => {
+  it("rend 188,67 € sur les 600 € de dépôt après 198 € de retenue et 213,33 € de dernier loyer", async () => {
+    const db = new Client({ connectionString: url });
+    await db.connect();
+    try {
+      await db.query("begin");
+      const id = async (query: string, args: unknown[] = []): Promise<string> => (await db.query(query,args)).rows[0].id;
+      const compte = await id("insert into auth.users(id,email,raw_user_meta_data,raw_app_meta_data) values(gen_random_uuid(),$1,'{}','{}') returning id",[randomUUID()+"@example.invalid"]);
+      const org = await id("insert into organizations(name,type,status) values('SCI SI-06 fictive','proprietaire_direct','active') returning id");
+      await db.query("insert into memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct')",[compte,org]);
+      const bien = await id("insert into biens(organization_id,nom,type,address_line1,postal_code,city,zone_tendue) values($1,'Immeuble test','immeuble','Rue fictive','45000','Orléans',false) returning id",[org]);
+      const lot = await id("insert into lots(organization_id,bien_id,nom,etat) values($1,$2,'Appartement','loue') returning id",[org,bien]);
+      const personne = await id("insert into persons(organization_id,nom) values($1,'Locataire fictif') returning id",[org]);
+      const bail = await id("insert into baux(organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,depot_garantie,jour_echeance,zone_tendue) values($1,$2,$3,'nu','actif','2026-08-01',600,40,600,1,false) returning id",[org,lot,personne]);
+      await db.query("insert into appels_loyer(organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) select $1,$2,m,m,600,40,640 from generate_series('2026-08-01'::date,'2026-11-01'::date,interval '1 month') m",[org,bail]);
+      await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) select organization_id,bail_id,montant_du,periode,'virement' from appels_loyer where bail_id=$1 and periode<'2026-11-01'",[bail]);
+      await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:compte,role:"authenticated",aal:"aal2"})]);
+      await db.query("set local role authenticated");
+      await db.query("select public.encaisser_depot($1,600,'2026-08-01','virement',null,null)",[bail]);
+      const edl=await id("insert into etats_des_lieux(organization_id,bail_id,type) values($1,$2,'entree') returning id",[org,bail]);
+      await db.query("select generer_grille_edl($1)",[edl]);
+      await db.query("update edl_lignes set etat='bon' where edl_id=$1",[edl]);
+      await db.query("select signer_edl_avec_preuve($1,'pdf_signe',$2,'application/pdf',1000,gen_random_uuid()::text)",[edl,org+"/edl-test.pdf"]);
+      await db.query("select enregistrer_conge($1,'locataire','2026-08-10',3::smallint)",[bail]);
+      const restitution=await id("select demarrer_restitution($1,'2026-11-10',false) id",[bail]);
+      await db.query("select ajouter_retenue($1,'Retenue fictive',198,10,0,null)",[restitution]);
+      const solde=(await db.query("select finaliser_decompte($1) solde",[restitution])).rows[0].solde;
+      expect(Number(solde)).toBe(188.67);
+      expect(Number((await db.query("select montant_du from appels_loyer where bail_id=$1 and periode='2026-11-01'",[bail])).rows[0].montant_du)).toBe(213.33);
+      expect(Number((await db.query("select sum(montant) total from ecritures where bail_id=$1 and categorie='depot_garantie' and sens='depense'",[bail])).rows[0].total)).toBe(188.67);
+      await expect(db.query("select finaliser_decompte($1)",[restitution])).rejects.toThrow(/déjà finalisé/);
+    } finally { await db.query("rollback"); await db.end(); }
+  });
+});

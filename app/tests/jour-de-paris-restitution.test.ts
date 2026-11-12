@@ -152,6 +152,9 @@ async function monter(jour: string): Promise<Monde> {
      values ($1,$2,$3,700,50,700,'termine', ($4::date - interval '2 years')::date, 1, 'meuble') returning id`,
     [org, lot, locataire, jour]
   );
+  // L'arrêté correspond aux mouvements enregistrés, quelle que soit la date simulée.
+  await db.query("insert into public.depot_encaissements (organization_id,bail_id,montant,date_encaissement,moyen) values ($1,$2,700,$3,'virement')", [org,bail,jour]);
+  await db.query("insert into public.encaissements (organization_id,bail_id,montant,date_paiement,mode) values ($1,$2,50,$3,'virement')", [org,bail,jour]);
   const {
     rows: [{ id: restitution }],
   } = await db.query<{ id: string }>(

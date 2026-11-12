@@ -96,7 +96,7 @@ export async function lireRecapitulatifPiecesBail(
     ...circuits.lignes.flatMap(c => [c.document_id, c.document_signe]),
   ].filter((id): id is string => Boolean(id)))];
   const fichiersR = ids.length && ids.length < LIMITE
-    ? await db.from("documents").select("id,titre,type,purged_at,created_at,expire_le,mime_type,storage_path,empreinte,versions:documents!documents_remplace_id_fkey(id)")
+    ? await db.from("documents").select("id,titre,type,purged_at,created_at,expire_le,mime_type,storage_path,empreinte,versions:documents!remplace_id(id)")
       .eq("organization_id", orgId).in("id", ids).limit(LIMITE)
     : { data: [], error: ids.length >= LIMITE ? true : null };
   const fichiers = liste<Fichier>(fichiersR as unknown as Lecture<Fichier[]>);

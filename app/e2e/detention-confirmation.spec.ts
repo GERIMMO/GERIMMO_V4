@@ -9,6 +9,7 @@ import { sansSyntheseAlertes } from "./aides";
  * « Annuler » ne change rien.
  */
 const ORG = "3c1d1e95-3570-400b-8012-44530be145b1";
+const NOM = "Détention — essai local";
 test.use({ storageState: path.join(__dirname, ".auth", "proprietaire.json") });
 
 test("G-19 : mettre fin à une détention exige une confirmation explicite", async ({ page }) => {
@@ -20,15 +21,21 @@ test("G-19 : mettre fin à une détention exige une confirmation explicite", asy
   const db = new Client({ connectionString: cible });
   await db.connect();
   let lot = "";
+  // La synthèse des alertes s'ouvre à l'arrivée si d'autres parcours ont laissé des alertes : à poser AVANT la navigation.
+  await sansSyntheseAlertes(page);
+  const nettoyer = async (id: string) => {
+    for (const sql of ["delete from public.detentions where lot_id=$1", "delete from public.lots where id=$1"]) await db.query(sql, [id]).catch(() => {});
+  };
   try {
+    // Rejouable : un passage interrompu (délai dépassé) a pu laisser son lot fictif.
+    for (const { id } of (await db.query("select id from public.lots where organization_id=$1 and nom=$2", [ORG, NOM])).rows) await nettoyer(id);
     const source = (await db.query("select id, bien_id from public.lots where organization_id=$1 and nom='Appartement T2 — 12 rue des Lilas'", [ORG])).rows[0];
-    lot = (await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots, to_jsonb(l) || jsonb_build_object('id', gen_random_uuid()::text, 'nom', 'Détention — essai local', 'etat', 'disponible'))).* from public.lots l where l.id=$1 returning id`, [source.id])).rows[0].id;
+    lot = (await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots, to_jsonb(l) || jsonb_build_object('id', gen_random_uuid()::text, 'nom', $2::text, 'etat', 'disponible'))).* from public.lots l where l.id=$1 returning id`, [source.id, NOM])).rows[0].id;
     // Une détention commencée hier : la clore aujourd'hui est possible (une détention future se supprime).
     const detention = (await db.query("insert into public.detentions(organization_id, lot_id, person_id, quote_part, date_debut) select organization_id, $2, person_id, quote_part, current_date - 1 from public.detentions where lot_id=$1 and date_fin is null limit 1 returning id", [source.id, lot])).rows[0].id;
     const fin = async () => (await db.query("select date_fin from public.detentions where id=$1", [detention])).rows[0].date_fin;
 
     await page.goto(`/espace/${ORG}/parc/${source.bien_id}/lots/${lot}?parcours=1&etape=proprietaires`);
-    await sansSyntheseAlertes(page);
     await page.getByText("Gérer cette détention").click();
     await expect(page.getByRole("button", { name: "Fermer", exact: true })).toHaveCount(0);
     const bouton = page.getByRole("button", { name: "Mettre fin à la détention…" });
@@ -52,7 +59,7 @@ test("G-19 : mettre fin à une détention exige une confirmation explicite", asy
     await page.reload();
     await expect(page.getByText("Anciens propriétaires")).toBeVisible();
   } finally {
-    if (lot) for (const sql of ["delete from public.detentions where lot_id=$1", "delete from public.lots where id=$1"]) await db.query(sql, [lot]).catch(() => {});
+    if (lot) await nettoyer(lot);
     await db.end();
   }
 });

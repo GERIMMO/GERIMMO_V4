@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { sansSyntheseAlertes } from "./aides";
 
 /**
@@ -15,12 +16,43 @@ import { sansSyntheseAlertes } from "./aides";
  * /rest/v1 à PostgREST 14.5 (version de production) et le reste à l'émulateur.
  */
 const ORG = "3c1d1e95-3570-400b-8012-44530be145b1";
-const PDF = Buffer.from("%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n");
+// Contenu propre à chaque passage : la GED refuse, à raison, un fichier identique à une pièce déjà enregistrée.
+const PDF = Buffer.from(`%PDF-1.4\n% essai ${randomUUID()}\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n`);
 test.use({ storageState: path.join(__dirname, ".auth", "proprietaire.json") });
+
+const NOM = "Bail papier — essai local";
+
+/**
+ * Supprime les seules données fictives posées par ce parcours (bail, bail signé en GED, diagnostics, détentions, lot,
+ * bien copié). Une seule transaction par dossier : la base refuse, à la validation, un lot « loué » sans bail.
+ */
+async function nettoyer(db: Client, dossiers: { bail: string | null; lot: string | null; bien: string | null }[]) {
+  for (const { bail, lot, bien } of dossiers) {
+    try {
+      await db.query("begin");
+      const signe: string | null = bail ? (await db.query("select document_signe from public.baux where id=$1", [bail])).rows[0]?.document_signe ?? null : null;
+      if (bail) for (const sql of [
+        "delete from public.appels_loyer where bail_id=$1", "delete from public.alerts where details->>'bail_id'=$1::text",
+        "update public.baux set document_signe=null where id=$1", "delete from public.baux where id=$1",
+      ]) await db.query(sql, [bail]);
+      if (signe) for (const sql of ["delete from public.document_liens where document_id=$1", "delete from public.acces_pieces_log where document_id=$1", "delete from public.documents where id=$1"])
+        await db.query(sql, [signe]);
+      if (lot) for (const sql of ["delete from public.diagnostics where lot_id=$1", "delete from public.detentions where lot_id=$1", "delete from public.lots where id=$1"]) await db.query(sql, [lot]);
+      if (bien) {
+        await db.query("delete from public.diagnostics where bien_id=$1", [bien]);
+        await db.query("delete from public.biens where id=$1 and nom=$2", [bien, NOM]);
+      }
+      await db.query("commit");
+    } catch (e) {
+      await db.query("rollback").catch(() => {});
+      console.warn(`Nettoyage incomplet du dossier fictif ${lot} : ${(e as Error).message}`);
+    }
+  }
+  await db.query("delete from public.documents where titre in ('DPE fictif — essai','ERP fictif — essai') and not exists (select 1 from public.diagnostics d where d.document_id = documents.id)").catch(() => {});
+}
 
 async function ouvrirEtape(page: Page, url: string, numero: string) {
   await page.goto(url);
-  await sansSyntheseAlertes(page);
   await page.getByRole("button", { name: new RegExp(`^Étape ${numero} `) }).click();
 }
 
@@ -33,12 +65,16 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
   const db = new Client({ connectionString: cible });
   await db.connect();
   let lot = "", bail = "", bien = "";
+  // La synthèse des alertes s'ouvre à l'arrivée si d'autres parcours ont laissé des alertes : à poser AVANT la navigation.
+  await sansSyntheseAlertes(page);
   try {
+    // Rejouable : un passage interrompu (délai dépassé) a pu laisser son dossier fictif.
+    await nettoyer(db, (await db.query("select b.id bail, l.id lot, l.bien_id bien from public.lots l left join public.baux b on b.lot_id = l.id where l.organization_id=$1 and l.nom=$2", [ORG, NOM])).rows);
     const source = (await db.query("select id, bien_id from public.lots where organization_id=$1 and nom='Appartement T2 — 12 rue des Lilas'", [ORG])).rows[0];
     // Un bien à lot unique (copie fictive du bien de démonstration) : un second lot dans le même immeuble exigerait,
     // à raison, de revalider la clé de répartition des charges avant toute mise en location.
-    bien = (await db.query(`insert into public.biens select (jsonb_populate_record(null::public.biens, to_jsonb(b) || jsonb_build_object('id', gen_random_uuid()::text, 'nom', 'Bail papier — essai local'))).* from public.biens b where b.id=$1 returning id`, [source.bien_id])).rows[0].id;
-    lot = (await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots, to_jsonb(l) || jsonb_build_object('id', gen_random_uuid()::text, 'bien_id', $2::text, 'nom', 'Bail papier — essai local', 'etat', 'disponible'))).* from public.lots l where l.id=$1 returning id`, [source.id, bien])).rows[0].id;
+    bien = (await db.query(`insert into public.biens select (jsonb_populate_record(null::public.biens, to_jsonb(b) || jsonb_build_object('id', gen_random_uuid()::text, 'nom', $2::text))).* from public.biens b where b.id=$1 returning id`, [source.bien_id, NOM])).rows[0].id;
+    lot = (await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots, to_jsonb(l) || jsonb_build_object('id', gen_random_uuid()::text, 'bien_id', $2::text, 'nom', $3::text, 'etat', 'disponible'))).* from public.lots l where l.id=$1 returning id`, [source.id, bien, NOM])).rows[0].id;
     await db.query("insert into public.detentions(organization_id, lot_id, person_id, quote_part, date_debut) select organization_id, $2, person_id, quote_part, date_debut from public.detentions where lot_id=$1 and date_fin is null", [source.id, lot]);
     const locataire = (await db.query("select id from public.persons where organization_id=$1 and email='locataire.pd@example.com'", [ORG])).rows[0].id;
     bail = (await db.query("insert into public.baux(organization_id, lot_id, etat, type, date_debut, loyer_hc, charges, depot_garantie, locataire_principal) values ($1,$2,'brouillon','nu',current_date+7,700,50,700,$3) returning id", [ORG, lot, locataire])).rows[0].id;
@@ -80,14 +116,7 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
     await expect(page.getByText("Brouillon", { exact: true })).toHaveCount(0);
     expect(reponsesEnErreur).toEqual([]);
   } finally {
-    // Nettoyage best effort des seules données posées par ce test.
-    if (bail) for (const sql of [
-      "delete from public.appels_loyer where bail_id=$1", "delete from public.alerts where details->>'bail_id'=$1::text",
-      "update public.baux set document_signe=null where id=$1", "delete from public.baux where id=$1",
-    ]) await db.query(sql, [bail]).catch(() => {});
-    if (lot) for (const sql of ["delete from public.diagnostics where lot_id=$1", "delete from public.detentions where lot_id=$1", "delete from public.lots where id=$1"]) await db.query(sql, [lot]).catch(() => {});
-    if (bien) for (const sql of ["delete from public.diagnostics where bien_id=$1", "delete from public.biens where id=$1"]) await db.query(sql, [bien]).catch(() => {});
-    await db.query("delete from public.documents where titre in ('DPE fictif — essai','ERP fictif — essai')").catch(() => {});
+    await nettoyer(db, [{ bail, lot, bien }]);
     await db.end();
   }
 });

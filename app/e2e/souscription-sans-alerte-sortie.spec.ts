@@ -17,8 +17,8 @@ for (const periode of ["Mensuel", "Annuel"]) {
   test(`G-25 : souscription ${periode.toLowerCase()} — aucun « Quitter le site ? » en partant vers le paiement`, async ({ page }) => {
     const dialogues: string[] = [];
     page.on("dialog", async d => { dialogues.push(d.type()); await d.dismiss(); });
-    await page.goto(`/espace/${ORG}/abonnement`);
     await sansSyntheseAlertes(page);
+    await page.goto(`/espace/${ORG}/abonnement`);
     const bouton = page.getByRole("button", { name: /Continuer vers le paiement sécurisé/ });
     const proposee = await bouton.waitFor({ state: "visible", timeout: 15_000 }).then(() => true, () => false);
     test.skip(!proposee, "Paiement non configuré sur ce banc : souscription non proposée.");

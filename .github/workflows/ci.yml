@@ -127,6 +127,17 @@ jobs:
             -e PGRST_JWT_SECRET="$POSTGREST_REEL_JWT_SECRET" postgrest/postgrest:v14.5
           curl --fail --silent --retry 20 --retry-connrefused "$POSTGREST_REEL_URL/" -o /dev/null
           npx vitest run tests/auto-relation-documents-postgrest.test.ts
+      - name: Vérifier deux activations concurrentes sur une base dédiée
+        run: |
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c 'create database gerimmo_ci_contrats_api template gerimmo_ci_sql'
+          export SUPALOCAL_DB="${SUPABASE_DB_URL%/*}/gerimmo_ci_contrats_api"
+          export POSTGREST_REEL_URL=http://127.0.0.1:53902
+          docker run -d --name postgrest-contrats --network host \
+            -e PGRST_DB_URI="$SUPALOCAL_DB" -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_SERVER_HOST=127.0.0.1 -e PGRST_SERVER_PORT=53902 \
+            -e PGRST_JWT_SECRET="$POSTGREST_REEL_JWT_SECRET" postgrest/postgrest:v14.5
+          curl --fail --silent --retry 20 --retry-connrefused "$POSTGREST_REEL_URL/" -o /dev/null
+          node scripts/recette/exclusivite-contrat.mjs
       - name: Démarrer Auth isolé sans messagerie externe
         run: |
           node --input-type=module -e 'import {Client} from "pg"; const c=new Client({connectionString:process.env.SUPABASE_DB_URL});await c.connect();await c.query("create database gerimmo_ci_auth_reprise");await c.query("alter database gerimmo_ci_auth_reprise set search_path=auth,public");await c.end();const a=new Client({connectionString:process.env.GERIMMO_AUTH_REEL_DB});await a.connect();await a.query("create schema auth; create extension if not exists pgcrypto");await a.end();'

@@ -163,6 +163,7 @@ const MISSION_OCTOBRE = [
   "20261111151500_abonnement_unique_fondateurs.sql",
   "20261112120000_validite_piece_artisan.sql",
   "20261112120100_activation_bail_papier.sql",
+  "20261112120200_exclusivite_document_bail.sql",
 
 
 ];

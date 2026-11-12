@@ -55,7 +55,8 @@ export async function preparerFichierGed(
   orgId: string,
   fichier: File,
   reutiliserReglement = false,
-  genereServeur = false
+  genereServeur = false,
+  bailPapier?: string
 ): Promise<ResultatPreparationGed> {
   if (fichier.size > (genereServeur ? TAILLE_MAX_OCTETS : limiteFichierDepose(fichier))) {
     return { erreur: `Fichier trop volumineux (${genereServeur ? 10 : limiteFichierDepose(fichier) / 1024 / 1024} Mo maximum).` };
@@ -110,7 +111,8 @@ export async function preparerFichierGed(
   }
 
   // Chemin : <org>/<uuid>.<ext> — le 1er segment porte l'isolation Storage
-  const chemin = `${orgId}/${crypto.randomUUID()}.${EXTENSIONS[mime]}`;
+  const dossier = bailPapier ? `${orgId}/baux-papier/${bailPapier}` : orgId;
+  const chemin = `${dossier}/${crypto.randomUUID()}.${EXTENSIONS[mime]}`;
   const { error: erreurUpload } = await supabase.storage
     .from("documents")
     .upload(chemin, octets, { contentType: mime });
@@ -151,10 +153,10 @@ export async function deposerFichierGed(
   titre: string,
   // La fiche document est immuable (update révoqué en base) : le versionnage
   // (remplace_id) et l'expiration se posent À L'INSERTION, jamais après coup.
-  options?: { remplaceId?: string; expireLe?: string; reutiliserReglement?: boolean; genereServeur?: boolean }
+  options?: { remplaceId?: string; expireLe?: string; reutiliserReglement?: boolean; genereServeur?: boolean; bailPapier?: string }
 ): Promise<ResultatDepotGed> {
   const prepare = await preparerFichierGed(supabase, orgId, fichier,
-    options?.reutiliserReglement === true && type === "reglement_copropriete" && !options.remplaceId, options?.genereServeur === true);
+    options?.reutiliserReglement === true && type === "reglement_copropriete" && !options.remplaceId, options?.genereServeur === true, options?.bailPapier);
   if (prepare.documentExistantId) return { documentId: prepare.documentExistantId, avertissement: prepare.avertissement };
   if (prepare.erreur || !prepare.fichier) {
     return { erreur: prepare.erreur ?? "Échec du dépôt du fichier.", doublonId: prepare.doublonId };

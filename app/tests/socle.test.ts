@@ -170,7 +170,7 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
       expect(Number(isolation.rows[0].personnes_a)).toBe(1);
       expect(Number(isolation.rows[0].personnes_b)).toBe(0);
 
-      // Un locataire membre de A voit son agence mais aucune fiche personne
+      // Le locataire de A voit les coordonnées de son portail ; la fiche interne reste privée.
       await db.query("reset role");
       const {
         rows: [{ id: compte_locataire }],
@@ -201,11 +201,19 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
       await db.query("set local role authenticated");
       const locataire = await db.query(
         `select
-           (select count(*) from public.organizations where id = $1) as org_visible,
+           (select count(*) from public.organizations where id = $1) as fiches_internes,
+           (select count(*) from public.organisations_portail where id = $1) as org_visible,
+           (select count(*) from public.organisations_portail where id = $2) as autre_portail,
            (select count(*) from public.persons where organization_id = $1) as personnes`,
-        [org_a]
+        [org_a,org_b]
       );
+      expect(Number(locataire.rows[0].fiches_internes)).toBe(0);
+      expect(Number(locataire.rows[0].autre_portail)).toBe(0);
       expect(Number(locataire.rows[0].org_visible)).toBe(1);
+      const colonnes = await db.query("select column_name from information_schema.columns where table_schema='public' and table_name='organisations_portail' order by ordinal_position");
+      expect(colonnes.rows.map(c => c.column_name)).toEqual(["id","name","type","logo_url","couleur_primaire","couleur_secondaire","nom_portail","iban"]);
+      const menu = await db.query("select organization->>'name' as name from public.mes_adhesions_navigation()");
+      expect(menu.rows).toEqual([{name:"Test Isolation A"}]);
       expect(Number(locataire.rows[0].personnes)).toBe(0);
 
       // Un anonyme est carrément refusé : le rôle anon est révoqué au

@@ -30,7 +30,7 @@ export default async function PageContactLocataire(
     supabase.rpc("mes_messages_locataire", { p_org: orgId }),
     // Le type de l'organisation ajuste le libellé du bailleur (audit 09/09) :
     // chez un propriétaire direct, il n'y a pas d'« agence de gestion »
-    supabase.from("organizations").select("type").eq("id", orgId).maybeSingle(),
+    supabase.from("organisations_portail").select("type").eq("id", orgId).maybeSingle(),
   ]);
   const g = ((gestionnaires ?? []) as Gestionnaire[])[0];
   const messages = (fil ?? []) as MessageFil[];

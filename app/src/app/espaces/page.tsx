@@ -74,11 +74,7 @@ export default async function PageEspaces() {
   // première demande de devis. Sans cette lecture, il arrivait sur « Aucun
   // accès actif » alors que sa fiche existe et attend d'être validée.
   const [{ data, error: erreurAdhesions }, { data: artisan, error: erreurArtisan }] = await Promise.all([
-    supabase
-      .from("memberships")
-      .select("id, role, organization:organizations(id, name)")
-      .eq("account_id", user.id)
-      .eq("status", "active"),
+    supabase.rpc("mes_adhesions_navigation"),
     supabase.rpc("mon_artisan"),
   ]);
 

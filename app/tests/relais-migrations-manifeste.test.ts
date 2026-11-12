@@ -165,6 +165,7 @@ const MISSION_OCTOBRE = [
   "20261112120100_activation_bail_papier.sql",
   "20261112120200_exclusivite_document_bail.sql",
   "20261112120300_conge_ajuste_dernier_terme_et_depot_au_centime.sql",
+  "20261112120400_cle_date_effet_et_tantiemes.sql",
 
 
 ];

@@ -58,3 +58,12 @@ restitution-impayes passent avec ce contrôle supplémentaire. La course avec un
 est un cas différent et reste à vérifier.
 Sauvegarde et restauration historiques : workflows GitHub 43222627154 et 43223647006 réussis
 le 12 novembre ; ces preuves antérieures ne remplacent pas la sauvegarde fraîche avant livraison.
+
+Branche suivante codex/charges-cles-20261112, basée sur 6e7b5cce5918ee4023a622ebdde5bf56b5a6943c (PR 290).
+G-09 et G-27 : la première clé peut être datée pour une facture passée. Un remplacement garde
+l’historique. Une date future ou un antidatage après la première clé sont refusés. La proposition
+ne transforme plus des surfaces ou tantièmes manquants en parts égales. Le refus des tantièmes
+manquants est aussi vérifié côté base. La RPC existante reste disponible avec trois paramètres.
+Migration supplémentaire 20261112120400, testée uniquement sur copie isolée. 35 tests ciblés
+réussis (3 fichiers), dont clé datée, historique et refus de tantièmes manquants.
+Vérification TypeScript et ESLint sur les fichiers concernés réussie.

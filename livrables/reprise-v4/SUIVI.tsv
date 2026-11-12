@@ -8,7 +8,7 @@ G-05	P1	confirmé	Aucun médiateur de la consommation alors que la vente aux par
 G-06	P1	confirmé (banc isolé + code)	Après résiliation pour impayé, l'écran affirme « facture annulée, rien à régler » alors qu'elle reste ouverte	message corrigé en PR 290, recette locale réussie
 G-07	P1	confirmé (banc isolé + code)	Un abonné en impayé de renouvellement n'est jamais mis en lecture seule ; l'écran affiche une date passée	à requalifier sur le candidat
 G-08	P1	confirmé	Écritures nées du bâtiment (taxe foncière, paiement de facture) sans bien ni lot : finances et fiscalité par bien/SCI faussées	à requalifier sur le candidat
-G-09	P1	confirmé	Clé de répartition toujours datée du jour de validation : aucune facture antérieure ne peut être répartie selon la clé	à requalifier sur le candidat
+G-09	P1	confirmé	Clé de répartition toujours datée du jour de validation : aucune facture antérieure ne peut être répartie selon la clé	correctif en recette isolée sur la branche des clés de répartition
 G-10	P1	confirmé	Téléphone de l'hébergeur absent des mentions légales (obligation LCEN)	à requalifier sur le candidat
 G-11	P2	confirmé	Le locataire lit par l'API toute la fiche de l'organisation du bailleur (parrainage, essai, abonnement, seuils de relance, SIRET, chemin de signature…)	à requalifier sur le candidat
 G-12	P2	confirmé	Jeton d'une session fermée encore accepté par l'API REST et Storage jusqu'à 60 min (y compris signature d'URL de documents)	à requalifier sur le candidat
@@ -28,7 +28,7 @@ G-23	P2	confirmé	Aucune détection de bien en double (même nom, même adresse)
 G-24	P2	suspecté	« Un seul abonnement » mais facturation par organisation (nom propre + SCI ouverte en espace séparé = deux abonnements)	à requalifier sur le candidat
 G-25	P2	confirmé (banc isolé)	Souscription annuelle : avertissement « Quitter le site ? » avant la page de paiement	inclus PR 289, en attente de publication
 G-26	P2	confirmé	Changement de compteur non chaîné : la répartition réclame l'index de l'ancien compteur ; compteur arrêté invisible	à requalifier sur le candidat
-G-27	P2	confirmé	Clé « tantièmes » sans tantièmes saisis = parts égales étiquetées « tantièmes » ; erreur périmée affichée	à requalifier sur le candidat
+G-27	P2	confirmé	Clé « tantièmes » sans tantièmes saisis = parts égales étiquetées « tantièmes » ; erreur périmée affichée	correctif en recette isolée sur la branche des clés de répartition
 G-28	P2	confirmé	Annulation d'écriture : aucun retour à l'écran, origine non marquée « annulée », message générique au 2e essai	à requalifier sur le candidat
 G-29	P2	confirmé	Exports CSV comptables difficiles à exploiter (ligne de titre, colonne « annule » instable, SCI vide, lots en UUID)	à requalifier sur le candidat
 G-30	P2	confirmé	Message à un locataire sans compte : « il la verra dans son espace » (faux succès)	à requalifier sur le candidat

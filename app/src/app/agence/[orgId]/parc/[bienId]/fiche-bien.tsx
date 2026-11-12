@@ -568,6 +568,8 @@ export async function FicheBien({ orgId, bienId, decompte, lotFacture, integree 
                 {!traverseeLectureSeule && <FormulaireCle
                   // Remonté à neuf quand la structure des lots change (découpage)
                   key={lotsActifs.map((l) => l.id).join("-")}
+                  aujourdHui={aujourdhuiParis()}
+                  proposerDate={!cle}
                   orgId={orgId}
                   bienId={bienId}
                   lots={lotsActifs.map((l) => ({

@@ -190,10 +190,7 @@ export function proposerCle(
     return l.surface_m2 ?? 0;
   });
   const total = valeurs.reduce((s, v) => s + v, 0);
-  if (total === 0) {
-    // Répartition impossible sur ces données : parts égales en repli
-    return proposerCle("parts_egales", lots);
-  }
+  if (total === 0 || valeurs.some(v => !Number.isFinite(v) || v <= 0)) return [];
   const parts = valeurs.map((v) => Math.round((v / total) * 10000) / 100);
   const somme = Math.round(parts.reduce((s, p) => s + p, 0) * 100) / 100;
   const ecart = Math.round((100 - somme) * 100) / 100;

@@ -39,12 +39,14 @@ describe("proposerCle", () => {
     expect(parts.map((p) => p.pourcentage)).toEqual([30, 50, 20]);
   });
 
-  it("retombe sur les parts égales quand les données manquent", () => {
-    const parts = proposerCle("surface", [
+  it.each(["surface","tantiemes"] as const)("aucune proposition %s si les données manquent", (mode) => {
+    const parts = proposerCle(mode, [
       { id: "a", surface_m2: null, tantieme: null },
       { id: "b", surface_m2: null, tantieme: null },
     ]);
-    expect(parts.map((p) => p.pourcentage)).toEqual([50, 50]);
+    expect(parts).toEqual([]);
+    expect(proposerCle(mode, [])).toEqual([]);
+    expect(proposerCle("parts_egales", lots.slice(0,2)).map(p => p.pourcentage)).toEqual([50,50]);
   });
 });
 

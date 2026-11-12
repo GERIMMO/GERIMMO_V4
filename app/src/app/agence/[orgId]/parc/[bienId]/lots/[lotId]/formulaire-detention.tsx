@@ -358,20 +358,61 @@ export function BoutonCloreDetention({
   bienId,
   lotId,
   detentionId,
+  proprietaire,
+  quotePart,
 }: {
   orgId: string;
   bienId: string;
   lotId: string;
   detentionId: string;
+  /** Nommés dans la confirmation : on sait quelle propriété prend fin. */
+  proprietaire: string;
+  quotePart: number;
 }) {
   const actionLiee = cloreDetention.bind(null, orgId, bienId, lotId, detentionId);
-  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+  // G-19 (recette du 11/11/2026) : « Fermer », dans un panneau, se lisait « fermer le panneau » et mettait fin
+  // à la propriété au premier clic. Le libellé dit maintenant ce qu'il fait et rien ne change sans confirmation.
+  const [confirme, setConfirme] = useState(false);
+  const formulaire = useRef<HTMLFormElement>(null);
   return (
-    <form data-saisie-confirmee action={action} className="shrink-0">
-      <BoutonEnvoi size="sm" variant="ghost" enCoursTexte="…">
-        Fermer
-      </BoutonEnvoi>
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+    <form data-saisie-confirmee ref={formulaire} action={action} className="shrink-0">
+      <Button type="button" size="sm" variant="ghost" onClick={() => setConfirme(true)} aria-haspopup="dialog" disabled={enCours}>
+        Mettre fin à la détention…
+      </Button>
+      {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
+      {confirme && (
+        <Modale
+          titre="Mettre fin à cette détention"
+          surtitre="Propriété du lot"
+          variante="critique"
+          fermer={() => setConfirme(false)}
+          pied={
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setConfirme(false)}>
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  setConfirme(false);
+                  formulaire.current?.requestSubmit();
+                }}
+              >
+                Mettre fin à la détention
+              </Button>
+            </div>
+          }
+        >
+          <p className="text-sm">
+            <b>{proprietaire}</b> ({quotePart} %) cessera d&apos;être propriétaire de ce lot à la date du jour. La
+            détention reste dans l&apos;historique « Anciens propriétaires » et peut être rouverte en cas d&apos;erreur.
+            Tant que la propriété n&apos;est pas de nouveau répartie à 100 %, le lot ne peut pas être mis en location.
+          </p>
+        </Modale>
+      )}
     </form>
   );
 }
@@ -395,7 +436,7 @@ export function BoutonSupprimerDetention({
 }) {
   const actionLiee = supprimerDetention.bind(null, orgId, bienId, lotId, detentionId);
   const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
-  // Ce bouton SUPPRIME la ligne (à la différence de « Fermer » qui la clôt en
+  // Ce bouton SUPPRIME la ligne (à la différence de « Mettre fin à la détention », qui la clôt en
   // gardant l'historique) : il le dit dans son libellé — « Corriger » ne
   // l'annonçait pas. Au doigt, un tap raté ne doit pas effacer une
   // détention — confirmation d'abord (audit mobile 10/09).
@@ -436,7 +477,7 @@ export function BoutonSupprimerDetention({
             Supprimer la détention de <b>{proprietaire}</b> ({quotePart} %) ? La
             ligne est effacée comme si elle n&apos;avait jamais existé —
             réservé aux erreurs de saisie. Pour une détention réelle qui prend
-            fin, utilisez « Fermer » : l&apos;historique reste juste.
+            fin, utilisez « Mettre fin à la détention » : l&apos;historique reste juste.
           </p>
         </Modale>
       )}

@@ -312,6 +312,8 @@ describe("relecture adverse du 24/10 (I2) : après une résiliation pour impayé
     const html = await rendre();
     expect(html).not.toContain("Dès que le paiement aboutit, tout rouvre");
     expect(html).toContain("Votre abonnement a été résilié faute de règlement");
+    expect(html).toContain("Consultez votre dernière facture");
+    expect(html).not.toContain("La facture restée impayée est annulée");
     expect(html).toContain("Souscrivez de nouveau ci-dessous pour reprendre la saisie");
   });
   it("un abonnement encore en cours garde le texte de l'impayé (tout rouvre au paiement)", async () => {

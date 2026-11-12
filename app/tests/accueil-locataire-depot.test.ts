@@ -112,7 +112,7 @@ describe("D36 (B) — la carte « Votre dépôt de garantie »", () => {
   it("décompte établi avec une créance : le montant restant dû est dit, jamais « Rien à régler »", () => {
     const html = carte(etabliCreance);
     expect(html).toContain("561,43");
-    expect(html).toContain("restant dû");
+    expect(html).toContain("à régler par vos soins");
     expect(html).toContain("Décompte établi le 14/10/2026");
     expect(html).toContain("ambre");
     expect(html).toContain("Voir le décompte");
@@ -124,7 +124,7 @@ describe("D36 (B) — la carte « Votre dépôt de garantie »", () => {
     expect(html).toContain("650,00");
     expect(html).toContain("à vous restituer");
     expect(html).toContain("vert");
-    expect(html).not.toContain("restant dû");
+    expect(html).not.toContain("à régler par vos soins");
   });
 });
 

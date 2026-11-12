@@ -13,5 +13,11 @@ export function erreurDatesAttestation(emise: string, expiration: string, mainte
   }
   if (emise && emise > jourAttestation(maintenant)) return "La date d’émission ne peut pas être dans le futur.";
   if (emise && expiration && expiration < emise) return "La fin de validité ne peut pas précéder la date d’émission.";
+  // G-40 (recette du 11/11/2026) : une attestation déjà expirée remplaçait la version encore valable du même type.
+  // Valable jusqu'au jour indiqué inclus : seule une fin de validité antérieure à aujourd'hui (jour de Paris) est refusée.
+  if (expiration && expiration < jourAttestation(maintenant)) {
+    const fin = new Date(`${expiration}T12:00:00Z`).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" });
+    return `Cette attestation n’est plus valable depuis le ${fin}. Déposez l’attestation en cours de validité : la précédente reste en place.`;
+  }
   return null;
 }

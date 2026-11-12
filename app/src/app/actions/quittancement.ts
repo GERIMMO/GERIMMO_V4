@@ -35,6 +35,8 @@ export async function encaisserReste(
   for (const chemin of ["comptabilite", "loyers", `baux/${bailId}`])
     revalidatePath(`/agence/${orgId}/${chemin}`);
   if (!resultat) return { erreur: "Le résultat doit être vérifié dans les loyers avant de réessayer." };
+  if (resultat.statut === "au_decompte")
+    return { erreur: "Ce loyer a déjà été pris en compte dans le décompte de départ.", commandeTerminee: true };
   if (resultat.statut === "deja_couvert")
     return { succes: "Cet appel est déjà couvert. Aucun nouvel encaissement ajouté.", commandeTerminee: true };
   if (resultat.statut === "solde_modifie")

@@ -1,3 +1,13 @@
+État du 12 novembre 2026, 22 h 27 (Paris) — NO GO production et dix pilotes
+Production vérifiée sur /api/sante à 22 h 18 : cce58ab8edd2047df6e17a980fd46d58967dfaf4, hors maintenance. Aucune fusion, migration de production ou promotion lors de cette intervention.
+G-11 : correctif isolé PR 293, d44a2b34df096d8dcafebc0a724c597dcbd4dba9. Le contrôle de production en lecture seule confirme deux adhésions potentiellement concernées. Il ne permet pas d'établir une consultation effective. PostgreSQL 17.6 et PostgREST 14.5 vérifiés en base fictive. Correction du retour après photo artisan et isolation des sessions de recette. WebKit : 5/5 puis 29/29 sur les trois rôles, sans nouvelle tentative. CI exacte 43309169591 et 43309178604 en cours au relevé. BASCULE-G11.txt décrit les deux migrations séparées par la promotion. Recette nominative en production en attente des trois accès de test renouvelés. Le mandat de validation personnelle GitHub reste applicable.
+G-107/G-108 : PR 294 ; scénario du dernier terme : restitution 188,67 EUR. Encaissement et finalisation attendent le verrou dans les deux ordres. Deux baux distincts, AR24 préparé avant la clôture puis bloqué, effets financiers vérifiés. 11 tests de restitution et 13 AR24 réussis ; ces groupes ne constituent pas une suite exhaustive.
+G-08 : PR 295, 132 tests locaux et CI 43303771961 réussie. Ancienne écriture de taxe sans justificatif univoque laissée à rapprocher. G-16 : PR 296, 70 tests locaux et CI 43303776785 réussie. G-07 : PR 297, 64 tests locaux ; protection contractuelle de suspension encore ouverte. G-18 : PR 298, 20 tests locaux. G-17 : PR 299, titulaires réels et cadres de signature dans les baux, empreintes archivées compatibles ; 59 tests, TypeScript validé. Devis à qualifier séparément.
+CI historiques sur les révisions exactes des PR 289 à 292 réussies. Les tests locaux cités se recoupent ; pas de total unique dédupliqué. La recette de production des corrections demeure à réaliser.
+Sauvegarde 43300985697, restauration isolée 43302072343 : 261 tables, 47 143 lignes, 79 fichiers, zéro pièce manquante. Renouveler la preuve de fraîcheur au moment de migrer. Aucune restauration de production.
+Les risques ouverts comprennent G-03 (représentation de SCI), G-04/G-07 (courriers et effets d’impayé), G-05 (médiateur effectivement conventionné), G-10 (coordonnées de l'entité d'hébergement). Aucun mandat, contrat ou téléphone supposé. Aucun pilote créé.
+Les 118 entrées historiques sont suivies dans SUIVI.tsv ; leur inventaire ne vaut pas résolution.
+--- Historique du premier point d'étape ---
 GERIMMO — Point de reprise du 12 novembre 2026
 Décision : NO GO. Dix propriétaires réels : ouverture non validée.
 

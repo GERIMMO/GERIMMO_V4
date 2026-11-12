@@ -18,7 +18,7 @@ G-109	P2	confirmé (copie isolée)	Quittance retirée sans trace pour le locatai
 G-14	P2	confirmé	Acceptation d'un devis uniquement par signature électronique Zoho payante (aucun « Retenir ce devis »)	à requalifier sur le candidat
 G-15	P2	confirmé	Sans bail actif, le locataire ne peut rien signaler, même une fuite	à requalifier sur le candidat
 G-16	P2	confirmé	Décompte de charges validé et « partagé » automatiquement (≈ 1 min) sans validation du propriétaire	PR 296 : préparation automatique, confirmation humaine des montants et choix explicite du partage ; ancienne route machine bridée en base, tests locaux
-G-17	P2	confirmé	Documents générés : le bailleur réel est remplacé par l'organisation (en-tête, « Fait à », destinataire du devis) et l'indivisaire n'a pas de case de signature	à requalifier sur le candidat
+G-17	P2	confirmé	Documents générés : le bailleur réel est remplacé par l'organisation (en-tête, « Fait à », destinataire du devis) et l'indivisaire n'a pas de case de signature	PR 299 : bailleurs réels et signatures individuelles sur les modèles de bail, empreintes archivées préservées ; 59 tests locaux, devis à vérifier.
 G-18	P2	confirmé	Clause illicite (frais d'envoi de quittance) acceptée et imprimée dans le bail sans avertissement	PR 298. Avertissement de rédaction dans les deux formulaires, article 4 lié. Vingt tests ciblés passés ; aucun contrat signé réécrit.
 G-19	P2	confirmé	« Fermer » dans « Gérer cette détention » met fin à la propriété du lot sans confirmation	inclus PR 289, en attente de publication
 G-20	P2	confirmé	Indivision presque impossible à déclarer (quote-part non modifiable, messages contradictoires 0 % / 150 %)	à requalifier sur le candidat

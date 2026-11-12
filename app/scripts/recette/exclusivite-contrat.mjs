@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { createHmac, randomUUID } from "node:crypto";
 import { setTimeout as pause } from "node:timers/promises";
 import pg from "pg";
+import { pdfFictif } from "../../e2e/pdf-fictif.ts";
 
 const dbUrl = new URL(process.env.SUPALOCAL_DB);
 const rest = new URL(process.env.POSTGREST_REEL_URL);
@@ -19,10 +20,13 @@ async function connect() {
   return db;
 }
 async function id(db, sql, args=[]) { return (await db.query(sql,args)).rows[0].id; }
-async function rpc(name, account, payload) {
+function bearer(account,key) {
   const encode = value => Buffer.from(JSON.stringify(value)).toString("base64url");
   const head = encode({alg:"HS256",typ:"JWT"})+"."+encode({role:"authenticated",sub:account,exp:Math.floor(Date.now()/1000)+300});
-  const token = head+"."+createHmac("sha256",secret).update(head).digest("base64url");
+  return head+"."+createHmac("sha256",key).update(head).digest("base64url");
+}
+async function rpc(name, account, payload) {
+  const token=bearer(account,secret);
   const res = await fetch(new URL("/rpc/"+name,rest), {method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify(payload)});
   return {status:res.status, body:await res.text()};
 }
@@ -114,6 +118,20 @@ try {
   await assert.rejects(root.query("insert into demandes_signature(organization_id,document_id,person_id) values($1,$2,$3)",[org,pdf,second.id]),/ne figure pas sur le bail/);
   assert.deepEqual(await view(second,pdf),[]);
   assert.equal((await view(first,pdf))[0].document_id,pdf);
+  const storage = new URL(process.env.STORAGE_CONTRATS_URL);
+  assert.equal(storage.hostname,"127.0.0.1");
+  const path = (await view(first,pdf))[0].storage_path;
+  const bytes=pdfFictif();
+  const headers=account=>({Authorization:"Bearer "+bearer(account,"gerimmo-local-secret")});
+  const upload=await fetch(new URL("/storage/v1/object/documents/"+path,storage),{method:"POST",headers:{...headers(owner.account),"Content-Type":"application/pdf"},body:bytes});
+  assert.equal(upload.status,200,await upload.text());
+  const link=account=>fetch(new URL("/storage/v1/object/sign/documents/"+path,storage),{method:"POST",headers:{...headers(account),"Content-Type":"application/json"},body:JSON.stringify({expiresIn:30})});
+  const allowed=await link(first.account);
+  assert.equal(allowed.status,200);
+  const download=await fetch(new URL("/storage/v1"+(await allowed.json()).signedURL,storage));
+  assert.equal(download.status,200);
+  assert.deepEqual(Buffer.from(await download.arrayBuffer()),bytes);
+  assert.equal((await link(second.account)).status,404);
   await ownerSession(b,owner.account);
   await assert.rejects(b.query("update baux set document_signe=$1 where id=$2",[pdf,right]),{code:"23505"});
   await b.query("rollback");

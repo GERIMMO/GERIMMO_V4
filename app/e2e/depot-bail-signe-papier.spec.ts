@@ -35,8 +35,10 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
   let lot = "", bail = "", bien = "";
   try {
     const source = (await db.query("select id, bien_id from public.lots where organization_id=$1 and nom='Appartement T2 — 12 rue des Lilas'", [ORG])).rows[0];
-    bien = source.bien_id;
-    lot = (await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots, to_jsonb(l) || jsonb_build_object('id', gen_random_uuid()::text, 'nom', 'Bail papier — essai local', 'etat', 'disponible'))).* from public.lots l where l.id=$1 returning id`, [source.id])).rows[0].id;
+    // Un bien à lot unique (copie fictive du bien de démonstration) : un second lot dans le même immeuble exigerait,
+    // à raison, de revalider la clé de répartition des charges avant toute mise en location.
+    bien = (await db.query(`insert into public.biens select (jsonb_populate_record(null::public.biens, to_jsonb(b) || jsonb_build_object('id', gen_random_uuid()::text, 'nom', 'Bail papier — essai local'))).* from public.biens b where b.id=$1 returning id`, [source.bien_id])).rows[0].id;
+    lot = (await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots, to_jsonb(l) || jsonb_build_object('id', gen_random_uuid()::text, 'bien_id', $2::text, 'nom', 'Bail papier — essai local', 'etat', 'disponible'))).* from public.lots l where l.id=$1 returning id`, [source.id, bien])).rows[0].id;
     await db.query("insert into public.detentions(organization_id, lot_id, person_id, quote_part, date_debut) select organization_id, $2, person_id, quote_part, date_debut from public.detentions where lot_id=$1 and date_fin is null", [source.id, lot]);
     const locataire = (await db.query("select id from public.persons where organization_id=$1 and email='locataire.pd@example.com'", [ORG])).rows[0].id;
     bail = (await db.query("insert into public.baux(organization_id, lot_id, etat, type, date_debut, loyer_hc, charges, depot_garantie, locataire_principal) values ($1,$2,'brouillon','nu',current_date+7,700,50,700,$3) returning id", [ORG, lot, locataire])).rows[0].id;
@@ -47,7 +49,7 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
     page.on("response", r => { if (r.status() >= 400 && /\/rest\/v1\//.test(r.url())) reponsesEnErreur.push(`${r.status()} ${r.url()}`); });
     await ouvrirEtape(page, adresse, "05");
     await expect(page.getByRole("heading", { name: "Documents", level: 2 }).first()).toBeVisible();
-    await expect(page.getByText("Assurance du locataire")).toBeVisible();
+    await expect(page.getByText("Assurance du locataire").first()).toBeVisible();
     await expect(page.locator("main")).not.toContainText("Indisponible");
     await expect(page.getByRole("button", { name: /Ajouter l’attestation/ }).first()).toBeEnabled();
 
@@ -64,7 +66,7 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
 
     // Diagnostics présents (rapports fictifs) : la même action active la location.
     for (const [type, niveau] of [["dpe", "lot"], ["erp", "bien"]] as const) {
-      const doc = (await db.query("insert into public.documents(organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte) values ($1,'diagnostic',$2,$3,'application/pdf',123,repeat('c',64)) returning id", [ORG, `${type.toUpperCase()} fictif — essai`, `essai/${type}-${bail}.pdf`])).rows[0].id;
+      const doc = (await db.query("insert into public.documents(organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte) values ($1,'diagnostic',$2,$3,'application/pdf',123,encode(sha256(gen_random_uuid()::text::bytea),'hex')) returning id", [ORG, `${type.toUpperCase()} fictif — essai`, `essai/${type}-${bail}.pdf`])).rows[0].id;
       await db.query("insert into public.diagnostics(organization_id, lot_id, bien_id, type, date_realisation, date_expiration, document_id, classe_dpe) values ($1,$2,$3,$4,current_date - 10, current_date + 150, $5, $6)",
         [ORG, niveau === "lot" ? lot : null, niveau === "bien" ? bien : null, type, doc, type === "dpe" ? "C" : null]);
     }
@@ -84,7 +86,7 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
       "update public.baux set document_signe=null where id=$1", "delete from public.baux where id=$1",
     ]) await db.query(sql, [bail]).catch(() => {});
     if (lot) for (const sql of ["delete from public.diagnostics where lot_id=$1", "delete from public.detentions where lot_id=$1", "delete from public.lots where id=$1"]) await db.query(sql, [lot]).catch(() => {});
-    await db.query("delete from public.diagnostics where bien_id=$1 and type='erp' and document_id in (select id from public.documents where titre='ERP fictif — essai')", [bien]).catch(() => {});
+    if (bien) for (const sql of ["delete from public.diagnostics where bien_id=$1", "delete from public.biens where id=$1"]) await db.query(sql, [bien]).catch(() => {});
     await db.query("delete from public.documents where titre in ('DPE fictif — essai','ERP fictif — essai')").catch(() => {});
     await db.end();
   }

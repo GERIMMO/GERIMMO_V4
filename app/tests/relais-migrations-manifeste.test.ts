@@ -168,6 +168,7 @@ const MISSION_OCTOBRE = [
   "20261112120400_cle_date_effet_et_tantiemes.sql",
   "20261112120500_organisation_portail_limite.sql",
   "20261112195752_relances_apres_decompte.sql",
+  "20261112202241_fermer_fiche_interne_apres_bascule.sql",
 
 
 ];

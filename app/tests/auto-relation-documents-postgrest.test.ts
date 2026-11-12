@@ -111,22 +111,19 @@ describe.skipIf(!reel || !baseApi || !secretReel)("dépôt par un artisan sur Po
     const db = new Client({ connectionString: baseApi });
     await db.connect();
     const racine = randomUUID();
-    let chemin = "";
+    const compte = randomUUID(), artisan = randomUUID();
+    const chemin = `artisans/${artisan}/${racine}`;
     try {
-      const { rows: [artisan] } = await db.query(
-        `select a.id, a.account_id, to_char(statement_timestamp() at time zone 'Europe/Paris','YYYY-MM-DD') jour
-         from public.artisans a join auth.users u on u.id=a.account_id where u.email='artisan.alpha@example.com'`
-      );
-      chemin = `artisans/${artisan.id}/${racine}`;
-      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${jwt({ role: "authenticated", sub: artisan.account_id })}` };
-      // La fixture de certification doit être libre. Une autre fixture ne doit jamais être remplacée.
-      const { rows: actives } = await db.query("select id from public.artisan_pieces where artisan_id=$1 and type='certification' and retiree_le is null", [artisan.id]);
-      expect(actives).toHaveLength(0);
+      await db.query("insert into auth.users(id,email,aud,role,email_confirmed_at) values ($1,$2,'authenticated','authenticated',now())", [compte, `${compte}@example.invalid`]);
+      await db.query("insert into public.artisans(id,account_id,raison_sociale,siret,telephone) values ($1,$2,'Artisan fictif G40',$3,'0600000000')",
+        [artisan, compte, BigInt("0x" + artisan.replaceAll("-", "").slice(0, 11)).toString().padStart(14, "0")]);
+      const { rows: [{jour}] } = await db.query("select to_char(statement_timestamp() at time zone 'Europe/Paris','YYYY-MM-DD') jour");
+      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${jwt({ role: "authenticated", sub: compte })}` };
       const deposer = (fin: string, fichier: string) => fetch(`${reel}/rpc/deposer_ma_piece_artisan`, {
         method: "POST", headers, body: JSON.stringify({ p_type: "certification", p_storage_path: chemin + "/" + fichier,
           p_mime: "application/pdf", p_taille: 100, p_empreinte: racine, p_emise_le: null, p_expire_le: fin }),
       });
-      const valide = await deposer(artisan.jour, "valable.pdf");
+      const valide = await deposer(jour, "valable.pdf");
       expect(valide.ok).toBe(true);
       const id = await valide.json();
       const refuse = await deposer("2000-01-01", "expire.pdf");
@@ -135,7 +132,11 @@ describe.skipIf(!reel || !baseApi || !secretReel)("dépôt par un artisan sur Po
       const { rows } = await db.query("select id, retiree_le from public.artisan_pieces where storage_path like $1", [chemin + "/%"]);
       expect(rows).toEqual([{ id, retiree_le: null }]);
     } finally {
-      try { if (chemin) await db.query("delete from public.artisan_pieces where storage_path like $1", [chemin + "/%"]); }
+      try {
+        await db.query("delete from public.artisan_pieces where artisan_id=$1", [artisan]);
+        await db.query("delete from public.artisans where id=$1", [artisan]);
+        await db.query("delete from auth.users where id=$1", [compte]);
+      }
       finally { await db.end(); }
     }
   });

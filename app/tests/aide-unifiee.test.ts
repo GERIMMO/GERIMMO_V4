@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ContenuAssistance, type ParametresAssistance } from "@/app/assistance/contenu-assistance";
 
-const mocks = vi.hoisted(() => ({ from: vi.fn(), auth: vi.fn(), redirect: vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); }) }));
-vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ from: mocks.from, auth: { getUser: mocks.auth } }) }));
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), from: vi.fn(), auth: vi.fn(), redirect: vi.fn((url: string) => { throw new Error(`REDIRECT:${url}`); }) }));
+vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ rpc: mocks.rpc, from: mocks.from, auth: { getUser: mocks.auth } }) }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect, useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("@/app/actions/retours", () => ({ envoyerRetour: vi.fn(), soutenirRetour: vi.fn() }));
 
@@ -17,11 +17,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   requetes = []; role = "proprietaire_direct"; erreurDemandes = false; compteDemandes = 0;
   mocks.auth.mockResolvedValue({ data: { user: { id: "compte-proprietaire" } } });
+  mocks.rpc.mockImplementation(async (nom: string) => {
+    if (nom !== "mes_adhesions_navigation") throw new Error("RPC inattendue");
+    return { data: [{ role, organization: { id: "org-1", name: "Mon parc" } }], error: null };
+  });
   mocks.from.mockImplementation((table: string) => {
     const r: Requete = { table, filtres: [] }; requetes.push(r);
-    const resoudre = () => table === "memberships"
-      ? { data: [{ organization_id: "org-1", role, organizations: { name: "Mon parc" } }], error: null }
-      : table === "artisans" ? { data: null, error: null }
+    const resoudre = () => table === "artisans" ? { data: null, error: null }
       : { data: [], error: erreurDemandes && table === "retours_utilisateurs" ? { message: "indisponible" } : null, count: table === "retours_utilisateurs" ? compteDemandes : 0 };
     const q = { select: () => q, order: () => q, eq: (champ: string, valeur: unknown) => { r.filtres.push([champ, valeur]); return q; }, in: (champ: string, valeur: unknown) => { r.filtres.push([champ, valeur]); return q; }, range: (de: number, a: number) => { r.plage = [de, a]; return q; }, maybeSingle: async () => resoudre(), then: (ok: (r: unknown) => unknown) => Promise.resolve(resoudre()).then(ok) };
     return q;
@@ -66,6 +68,16 @@ describe("aide propriétaire regroupée en sections", () => {
     const html = await rendre({ retour: "/agence/org-1/parc" }, false);
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(html).toContain('aria-label="Suivi des demandes"');
+  });
+  it("distingue deux bailleurs dans le formulaire du locataire avec la projection du portail", async () => {
+    mocks.rpc.mockResolvedValue({ data: ["Pins","Ormes"].map(nom => ({
+      role: "locataire", organization: { id: nom.toLowerCase(), name: nom },
+    })), error: null });
+    const html = await rendre({}, false);
+    for (const nom of ["Pins", "Ormes"]) expect(html).toContain(nom);
+    expect(mocks.rpc).toHaveBeenCalledWith("mes_adhesions_navigation");
+    expect(mocks.from).not.toHaveBeenCalledWith("organizations");
+    expect(mocks.from).not.toHaveBeenCalledWith("memberships");
   });
   it("ne présente pas un échec de lecture comme un suivi vide", async () => {
     erreurDemandes = true;

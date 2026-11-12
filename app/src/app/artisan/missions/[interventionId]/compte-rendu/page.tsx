@@ -110,12 +110,12 @@ export default async function PageComptePhoto(
           />
 
           {mission.photo_apres_deposee ? (
-            <Link
+            <a
               href={`/artisan/missions/${interventionId}/compte-rendu/bilan`}
               className={CLASSE_BOUTON_PRINCIPAL}
             >
               Continuer — le bilan
-            </Link>
+            </a>
           ) : (
             <Vide>Une fois la photo envoyée, touchez « Continuer — le bilan ».</Vide>
           )}

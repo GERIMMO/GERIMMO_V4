@@ -922,6 +922,7 @@ export async function validerCle(
     p_bien: bienId,
     p_mode: mode,
     p_lignes: lignes,
+    p_date_effet: String(formData.get("date_effet") || aujourdhuiParis()),
   });
   if (error) return { erreur: `Validation impossible : ${sansJargon(error.message)}` };
 

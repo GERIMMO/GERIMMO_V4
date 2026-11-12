@@ -1,4 +1,5 @@
 "use client";
+import { AvertissementClauses } from "./avertissement-clauses";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
 import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import { useContext, useEffect, useRef, useState } from "react";
@@ -250,11 +251,12 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,agenc
      return <div key={c.nom} hidden={!affiche} className={c.type==="textarea"?"space-y-1.5 sm:col-span-2":"space-y-1.5"}>
       <Label htmlFor={id} champ={`bail.${c.nom}`} renseigne={Boolean(valeurs[c.nom]?.trim())}>{c.titre}{c.requis?" *":""}</Label>
       {opts?<select id={id} name={c.nom} value={valeurs[c.nom]??""} required={c.requis&&affiche} disabled={!affiche} aria-invalid={Boolean(erreurChamp)} aria-describedby={[erreurChamp ? `${id}-erreur` : "", c.aide ? `${id}-aide` : ""].filter(Boolean).join(" ") || undefined} onChange={e=>modifierValeur(c.nom,e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{opts.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
-       :c.type==="textarea"?<textarea id={id} name={c.nom} value={valeurs[c.nom]??""} disabled={!affiche} aria-invalid={Boolean(erreurChamp)} aria-describedby={[erreurChamp ? `${id}-erreur` : "", c.aide ? `${id}-aide` : ""].filter(Boolean).join(" ") || undefined} rows={3} maxLength={c.nom==="clauses_particulieres"?4000:2000} onChange={e=>modifierValeur(c.nom,e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"/>
+       :c.type==="textarea"?<textarea id={id} name={c.nom} value={valeurs[c.nom]??""} disabled={!affiche} aria-invalid={Boolean(erreurChamp)} aria-describedby={[erreurChamp ? `${id}-erreur` : "", c.aide || c.nom === "clauses_particulieres" ? `${id}-aide` : ""].filter(Boolean).join(" ") || undefined} rows={3} maxLength={c.nom==="clauses_particulieres"?4000:2000} onChange={e=>modifierValeur(c.nom,e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"/>
        :<Input id={id} name={c.nom} type={c.type==="montant"?"text":(c.type??"text")} inputMode={c.type==="montant"?"decimal":undefined} disabled={!affiche} value={valeurs[c.nom]??""} required={c.requis&&affiche} aria-invalid={Boolean(erreurChamp)} aria-describedby={[erreurChamp ? `${id}-erreur` : "", c.aide ? `${id}-aide` : ""].filter(Boolean).join(" ") || undefined} min={c.type==="number"?(c.min??0):undefined} max={c.max} step={c.type==="number"?(c.entier?1:"0.01"):undefined} maxLength={c.nom==="dpe_annees_reference"?100:500} onChange={e=>modifierValeur(c.nom,e.target.value)}/>}
       {erreurChamp && <p id={`${id}-erreur`} role="alert" className="text-sm text-destructive">{erreurChamp}</p>}
       {c.nom==="date_conclusion_prevue"&&valeurs.date_debut&&!valeurs.date_conclusion_prevue&&<button type="button" className="inline-flex min-h-9 items-center text-xs underline" onClick={()=>{modifierValeur("date_conclusion_prevue",valeurs.date_debut);setModifie(true);}}>Même date que l’entrée</button>}
       {c.nom==="chambre_id"&&lienChambres&&<Link href={lienChambres} className="text-xs underline">{chambres.length?"Modifier les chambres du lot":"Ajouter une chambre au lot"}</Link>}
+      {c.nom === "clauses_particulieres" && <AvertissementClauses id={`${id}-aide`} />}
       {c.aide&&<p id={`${id}-aide`} className="text-xs text-muted-foreground">{c.aide}</p>}
      </div>;
     })}</div>

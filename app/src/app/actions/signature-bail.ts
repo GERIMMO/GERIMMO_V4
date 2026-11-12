@@ -307,10 +307,15 @@ export async function activerBailApresSignature(org:string,bail:string,id:string
     if (circuit.modele && circuit.modele !== "bail") throw new Error("Seul le bail signé permet la mise en location.");
     const actuel = await assemblerSignatureDocument(supabase,org,selectionDuCircuit(circuit));
     let empreinte = actuel.empreinte;
+    // Les anciennes présentations restent vérifiables uniquement par correspondance
+    // exacte avec l’empreinte conservée au moment de la signature.
+    if (empreinte !== circuit.empreinte) {
+      empreinte = (await assemblerSignatureBail(supabase, org, circuit.bail_id ?? bail, { presentationAncienne: true })).empreinte;
+    }
     // Décision du 24/10 : un bail préparé avant elle, dont le garant a signé avec le numéro de sa fiche (aucun numéro
     // confirmé par lui), garde l'ancien calcul de l'empreinte, qui comprenait ce numéro.
     if (empreinte !== circuit.empreinte && circuit.signataires.some(s=>s.qualite==="Garant"&&!s.telephoneConfirmeLe)) {
-      empreinte = (await assemblerSignatureBail(supabase,org,circuit.bail_id ?? bail,{ telephoneGarantDuDossier: true })).empreinte;
+      empreinte = (await assemblerSignatureBail(supabase,org,circuit.bail_id ?? bail,{ telephoneGarantDuDossier: true, presentationAncienne: true })).empreinte;
     }
     if (empreinte !== circuit.empreinte) throw new Error("Les informations du dossier ont changé après la préparation du contrat. Vérifiez le PDF signé avant toute activation auprès de l’assistance.");
     const result = await supabase.rpc("activer_bail_signature_electronique",{p_circuit:id});

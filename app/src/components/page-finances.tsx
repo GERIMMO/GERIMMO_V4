@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { QuittancementMois, type LigneQuittancement } from "@/app/agence/[orgId]/comptabilite/quittancement-mois";
 import { RecapitulatifFiscal } from "@/components/recapitulatif-fiscal";
-import { lireLivreFinances, resumerLivre } from "@/lib/finances";
+import { biensDuPerimetre, lireLivreFinances, resumerLivre } from "@/lib/finances";
 import { baseEspace } from "@/lib/racine-espace";
 
 export async function PageFinances({ orgId, recherche }: {
@@ -37,11 +37,11 @@ export async function PageFinances({ orgId, recherche }: {
   const base = baseEspace(orgId, true);
   const href = (a: number, m = numeroMois, anchor = "") => `${base}/loyers?${new URLSearchParams({ annee: String(a), mois: String(m), ...(bien ? { bien } : {}), ...(entiteId ? {entite:entiteId} : {}) })}${anchor}`;
   const perimetre = bien || entiteId ? new Set((lots ?? []).filter(l => (!bien || l.bien_id === bien) && (!entiteId || !!entite?.lots.includes(l.id))).map(l => l.id)) : null;
-  const erreurPerimetre = erreurBiens || erreurLots || patrimoine.erreur || (entiteId && !entite) || (bien && !(biens ?? []).some(b => b.id === bien));
+  const erreurPerimetre = (!!perimetre && (lots?.length ?? 0) >= 1000) || erreurBiens || erreurLots || patrimoine.erreur || (entiteId && !entite) || (bien && !(biens ?? []).some(b => b.id === bien));
   const lignes = ((quittancement.data ?? []) as LigneQuittancement[]).filter(l => !perimetre || perimetre.has(l.lot_id));
   const appele = lignes.reduce((s, l) => s + Number(l.montant_du), 0);
   const regle = lignes.reduce((s, l) => s + Math.min(Number(l.montant_du), Number(l.montant_couvert)), 0);
-  const resume = resumerLivre(livre.lignes, annee, perimetre);
+  const resume = resumerLivre(livre.lignes, annee, perimetre, bien && !entiteId ? new Set([bien]) : biensDuPerimetre(lots ?? [], perimetre, bien));
   const bouton = buttonVariants({ variant: "outline", size: "sm" });
   return <main className="mx-auto w-full max-w-5xl space-y-4 p-4 sm:p-7">
     <div className="entete-page"><TitreEcran rubrique="finances">Finances</TitreEcran><span className="mono-discret">Loyers · Recettes et dépenses · Déclaration</span></div>
@@ -52,6 +52,7 @@ export async function PageFinances({ orgId, recherche }: {
       <input type="hidden" name="mois" value={numeroMois} /><button className={bouton} type="submit">Afficher</button>
     </form>
     {entite && <p className="text-sm text-muted-foreground">Biens rattachés à {entite.nom} · flux complets des biens, avant répartition entre associés ou indivisaires.</p>}
+    {perimetre && !livre.error && livre.lignes.some(e => e.date_imputation.startsWith(annee+"-") && e.categorie==="Taxe foncière" && !e.lot_id && !e.bien_id) && <p role="status" className="text-sm">Une taxe foncière du patrimoine reste à rattacher à un bien. Vérifiez le journal complet avant d’utiliser ce total.</p>}
     {erreurPerimetre ? <p className="err" role="alert">Impossible de lire le bien sélectionné. Rechargez la page ou choisissez un autre bien.</p> : <>
     <section id="loyers" aria-labelledby="titre-loyers" data-ton="bleu" className="carte-rubrique p-4 sm:p-5 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="titre-loyers" className="titre-rubrique text-lg font-semibold"><Banknote size={22} aria-hidden="true" />Loyers et charges</h2><span className="text-sm text-muted-foreground">Échéances {deElide(moisEnFrancais(mois))}</span></div>

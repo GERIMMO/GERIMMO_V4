@@ -1,3 +1,4 @@
+import { biensDuPerimetre, dansPerimetreFinancier } from "@/lib/finances";
 import { lireEntitesPatrimoine } from "@/lib/entites-patrimoine";
 import { estUuid } from "@/lib/identifiants";
 import { lireAnneeExercice } from "@/lib/annee-exercice";
@@ -28,15 +29,22 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   }
   const entite=new URL(req.url).searchParams.get("entite");
   if(entite){if(!estUuid(entite))return new Response("Propriétaire invalide.",{status:400,headers:entetes});const patrimoine=await lireEntitesPatrimoine(supabase,orgId,annee);const e=patrimoine.entites.find(e=>e.id===entite);if(patrimoine.erreur||!e)return new Response("Propriétaire inaccessible.",{status:404,headers:entetes});perimetre=new Set(e.lots.filter(id=>!perimetre||perimetre.has(id)));}
+  let biensInclus = bien && !entite ? new Set([bien]) : new Set<string>();
+  if (entite) {
+    const lectureLots = await lireToutesLesPages<{id:string; bien_id:string}>((debut,fin)=>supabase.from("lots").select("id,bien_id",{count:"exact"}).eq("organization_id",orgId).order("id").range(debut,fin), l=>l.id);
+    if (lectureLots.echec) return new Response("Les logements du patrimoine n’ont pas pu être vérifiés.",{status:503,headers:entetes});
+    biensInclus = biensDuPerimetre(lectureLots.lignes, perimetre ?? null, bien ?? undefined);
+  }
   const cadre = await lireCadreFiscal(supabase, orgId, annee, perimetre);
   if (cadre.erreur) return new Response(cadre.erreur, { status: 503, headers: entetes });
   type Ecriture = Parameters<typeof csvPreparationFiscale>[3][number];
-  const lecture = await lireToutesLesPages<Ecriture>((debut, fin) => supabase.from("ecritures")
-    .select("id,date_piece,lot_id,categorie,sens,montant,libelle,contre_ecriture_de", { count: "exact" })
+  const lecture = await lireToutesLesPages<Ecriture>((debut, fin) => supabase.from("journal_par_bien")
+    .select("id,date_piece,lot_id,bien_id,categorie,sens,montant,libelle,contre_ecriture_de", { count: "exact" })
     .eq("organization_id", orgId).gte("date_piece", `${annee}-01-01`).lte("date_piece", `${annee}-12-31`)
     .order("date_piece").order("id").range(debut, fin), e => e.id);
   if (lecture.echec) return new Response("Le journal complet n’a pas pu être lu. Aucun fichier partiel n’est produit ; réessayez.", { status: 503, headers: entetes });
-  return new Response(csvPreparationFiscale(annee, cadre.detenteurs, cadre.profils, lecture.lignes.filter(e=>!perimetre||!!e.lot_id&&perimetre.has(e.lot_id))), { headers: {
+  if (perimetre && lecture.lignes.some(e=>e.categorie==="Taxe foncière" && !e.lot_id && !e.bien_id)) return new Response("Un avis fiscal du patrimoine reste à rattacher. Vérifiez son justificatif avant d’exporter le journal par bien.", {status:409,headers:entetes});
+  return new Response(csvPreparationFiscale(annee, cadre.detenteurs, cadre.profils, lecture.lignes.filter(e=>dansPerimetreFinancier(e.lot_id,e.bien_id,perimetre ?? null,biensInclus))), { headers: {
     ...entetes, "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="preparation-fiscale-${annee}.csv"`,
   } });
 }

@@ -82,8 +82,8 @@ function Saisie({p,fermer,guide=false}:{p:Props;fermer:(id?:string)=>void;guide?
     <p className={styles.aide}>Les dates de la facture servent à calculer la part de chaque location. Les informations incertaines restent à compléter.</p>
     <details><summary>Référence, abonnement et frais non récupérables</summary><div className={styles.champs}><label>Référence<input name="reference" maxLength={150} placeholder="Reprise du nom du fichier si vide"/></label><label>Abonnement compris dans le total<input name="frais_fixes" inputMode="decimal" placeholder="0,00 €"/></label><label>Frais de gestion non récupérables<input name="frais_gestion" inputMode="decimal" placeholder="0,00 €"/></label></div></details>
     {etat.erreur && <p role="alert" className={styles.erreur}>{etat.erreur}</p>}
-    <label><input type="checkbox" name="automatique" defaultChecked/> Gerimmo gère la suite automatiquement</label>
-    <p className={styles.aide}>Relevés, répartition et partage des décomptes. Vous intervenez en cas d’anomalie et confirmez vous-même les sommes reçues.</p>
+    <label><input type="checkbox" name="automatique" defaultChecked/> Préparer automatiquement les relevés et la répartition</label>
+    <p className={styles.aide}>Vérifiez les montants proposés avant de valider la répartition et de partager les décomptes.</p>
     <div className={consoStyles.piedParcours}>
       {guide && <BoutonEnvoi name="suite" value="conserver" variant="outline" enCours={pending} disabled={lecture}>Enregistrer pour plus tard</BoutonEnvoi>}
       <BoutonEnvoi name="suite" value="repartir" enCours={pending} disabled={lecture} enCoursTexte="Enregistrement…">{guide ? "Enregistrer la facture" : "Enregistrer la dépense"}</BoutonEnvoi></div>

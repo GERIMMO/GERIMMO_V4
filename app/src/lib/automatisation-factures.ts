@@ -28,7 +28,7 @@ export async function traiterFactureAutomatique(service:SupabaseClient,org:strin
   if(cr.error||!cr.data)throw new Error("Contrat indisponible."); const c=cr.data;
   const rep=await db.from("repartitions_fourniture").select("*").eq("organization_id",org).eq("facture_id",id).maybeSingle();
   if(rep.error)throw new Error("Répartition indisponible.");
-  let r=rep.data;
+  const r=rep.data;
   if(r?.statut!=="validee") {
    const lr=await lireCollectionConsommations<{id:string;nom:string}>((a,b)=>db.from("lots").select("id,nom",{count:"exact"}).eq("organization_id",org).eq("bien_id",c.bien_id).order("id").range(a,b));
    if(lr.error)throw new Error("Logements indisponibles.");const lots=lr.data.filter(l=>!c.lot_id||l.id===c.lot_id);
@@ -60,14 +60,14 @@ export async function traiterFactureAutomatique(service:SupabaseClient,org:strin
     if(attente)return suivi("releves_attendus","Les relevés sont demandés aux locataires. Gerimmo reprendra automatiquement après réception.");
    }
    const form=new FormData();form.set("mode",mode);if(conseil.coche)form.set("recuperable","on");if(reg?.colocation)form.set("colocation",reg.colocation);
-   const calc=await calculerFactureExistante(db,org,id,form);if(calc.erreur||!calc.repartition)throw new Error(calc.erreur??"Calcul indisponible.");r=calc.repartition;
-   const valide=await geste("valider_repartition_fourniture",{p_repartition:r.id,p_empreinte_attendue:r.empreinte});if(valide.error)throw new Error(valide.error.message);
+   const calc=await calculerFactureExistante(db,org,id,form);if(calc.erreur||!calc.repartition)throw new Error(calc.erreur??"Calcul indisponible.");
+   return suivi("a_verifier","Vérifiez les montants par logement puis validez la répartition.");
   }
   for(const bail of new Set<string>(r.lignes.filter((l:{bail_id:string|null;recuperable:boolean})=>l.bail_id&&l.recuperable).map((l:{bail_id:string})=>l.bail_id))) {
    await avantEffet();const pdf=await preparerPdfFactureExistant(db,org,r.id,bail);if(pdf.erreur)throw new Error(pdf.erreur);
-   const partage=await geste("diffuser_pdf_repartition",{p_org:org,p_repartition:r.id,p_bail:bail});if(partage.error)throw new Error(partage.error.message);
+
   }
-  return suivi("terminee","Répartition validée et décomptes partagés. Aucun encaissement confirmé automatiquement. Les provisions restent déduites lors de la régularisation.");
+  return suivi("terminee","Répartition validée. Les décomptes sont prêts à être consultés et partagés.");
  } catch(e) {
  const detail=e instanceof Error?e.message:"Traitement interrompu";
  // Les refus métier restent visibles ; une panne de lecture/transport est rejouable.

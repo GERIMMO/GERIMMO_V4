@@ -76,7 +76,7 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     await expect(bloc.getByText("EAU TEST", { exact: true })).toBeVisible();
     await bloc.getByRole("button", { name: "Ajouter une facture" }).click();
     const facture = bloc.locator('form:has(input[name="action"][value="facture"])');
-    await facture.getByRole("checkbox", { name: /Gerimmo gère la suite automatiquement/ }).uncheck();
+    await facture.getByRole("checkbox", { name: /Préparer automatiquement les relevés et la répartition/ }).uncheck();
     await facture.locator('input[type="file"]').setInputFiles({ name: "facture-test.pdf", mimeType: "application/pdf", buffer: pdfFictif() });
     await facture.getByLabel("Référence de la facture").fill("EAU-TEST-01"); await facture.getByLabel("Total TTC (€)", { exact: true }).fill("100,01");
     await facture.getByLabel("Période du", { exact: true }).fill(dates.debut); await facture.getByLabel("Au", { exact: true }).fill(dates.aujourd);

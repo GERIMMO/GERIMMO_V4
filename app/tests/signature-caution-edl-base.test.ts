@@ -595,7 +595,8 @@ describe.skipIf(!url)("confirmation du mobile de la caution et de l'état des li
       await proprietaireBase();
       await poserSurSignataire("locataire", { telephone: MOBILE_LOCATAIRE });
       const autreBail = await id("insert into public.baux(organization_id,lot_id,locataire_principal,etat,type,date_debut,loyer_hc,charges) select organization_id,lot_id,locataire_principal,'brouillon','nu',current_date,500,20 from public.baux where id = $1 returning id", [bail]);
-      await db.query("update public.bail_signature_circuits set bail_id = $2, cible_id = $2 where id = $1", [circuitBail, autreBail]);
+      const autreContrat = await id("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'bail','Contrat du second bail',gen_random_uuid()::text,'application/pdf',100,gen_random_uuid()::text) returning id", [org]);
+      await db.query("update public.bail_signature_circuits set bail_id = $2, cible_id = $2, document_id = $3 where id = $1", [circuitBail, autreBail, autreContrat]);
       await serviceRole();
       expect((await reprendre()).find((s) => s.personId === "garant")!.telephone).toBe("");
     });

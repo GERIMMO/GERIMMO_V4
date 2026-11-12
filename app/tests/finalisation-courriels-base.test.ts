@@ -22,7 +22,7 @@ beforeAll(async()=>{
  personne=await id("insert into persons(organization_id,nom,email) values($1,'Locataire fictif','finalisation@example.invalid') returning id",[org]);
  const bien=await id("insert into biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'Test finalisation','maison','1 rue fictive','69001','Lyon') returning id",[org]);
  lot=await id("insert into lots(organization_id,bien_id,nom,etat,surface_m2,pieces,meuble) values($1,$2,'Lot test','disponible',25,1,true) returning id",[org,bien]);
- document=await id("insert into documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'justificatif','Fictif',$1::uuid::text||'/test.pdf','application/pdf',123,repeat('f',64)) returning id",[org]);
+ document=await id("insert into documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'bail','Bail signé fictif',$1::uuid::text||'/test.pdf','application/pdf',123,repeat('f',64)) returning id",[org]);
  bail=await id("insert into baux(organization_id,lot_id,type,locataire_principal,date_debut,loyer_hc,charges,depot_garantie,charges_mode) values($1,$2,'meuble',$3,'2026-01-01',500,50,500,'provision') returning id",[org,lot,personne]);
  await etat("actif");
  await db.query("update baux set document_signe=$2 where id=$1",[bail,document]);

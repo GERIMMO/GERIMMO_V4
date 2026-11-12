@@ -1,31 +1,31 @@
 Ticket	Priorité audit	Conclusion de l’audit source	Description	État de reprise
 G-01	P1	confirmé	Bail déjà signé sur papier impossible à activer : le dépôt du PDF signé n'est plus affiché dans l'assistant	inclus PR 289, en attente de publication
 G-02	P1	confirmé	Étape « Documents » et récapitulatif du bail en panne (PGRST200 sur l'auto-jointure documents → documents)	inclus PR 289, en attente de publication
-G-03	P1	confirmé	SCI (personne morale) : aucun représentant légal ni SIREN → signature électronique impossible (bail, devis) et bail incomplet	à requalifier sur le candidat
-G-107	P1	confirmé (copie isolée + code)	Solde de tout compte faux : le dernier terme n'est pas proratisé quand le congé est enregistré après l'appel du mois de fin	correctif local en recette
-G-04	P1	confirmé (banc isolé + code)	Tous les courriers du contrat d'abonnement suspendus par le « périmètre pilote » (confirmation, impayé, rappels, résiliation, rétractation, reconduction)	à requalifier sur le candidat
+G-03	P1	confirmé	SCI (personne morale) : aucun représentant légal ni SIREN → signature électronique impossible (bail, devis) et bail incomplet	signature SCI bloquée ; vérifier preuve du mandat du signataire avant activation
+G-107	P1	confirmé (copie isolée + code)	Solde de tout compte faux : le dernier terme n'est pas proratisé quand le congé est enregistré après l'appel du mois de fin	PR 290 ; SI-06 et course encaissement/finalisation vérifiés en base fictive ; CI verte
+G-04	P1	confirmé (banc isolé + code)	Tous les courriers du contrat d'abonnement suspendus par le « périmètre pilote » (confirmation, impayé, rappels, résiliation, rétractation, reconduction)	communications contractuelles suspendues ; reprise et preuve de remise à qualifier
 G-05	P1	confirmé	Aucun médiateur de la consommation alors que la vente aux particuliers est ouverte	coordonnées du médiateur à confirmer par le dirigeant
 G-06	P1	confirmé (banc isolé + code)	Après résiliation pour impayé, l'écran affirme « facture annulée, rien à régler » alors qu'elle reste ouverte	message corrigé en PR 290, recette locale réussie
-G-07	P1	confirmé (banc isolé + code)	Un abonné en impayé de renouvellement n'est jamais mis en lecture seule ; l'écran affiche une date passée	à requalifier sur le candidat
-G-08	P1	confirmé	Écritures nées du bâtiment (taxe foncière, paiement de facture) sans bien ni lot : finances et fiscalité par bien/SCI faussées	à requalifier sur le candidat
-G-09	P1	confirmé	Clé de répartition toujours datée du jour de validation : aucune facture antérieure ne peut être répartie selon la clé	correctif en recette isolée sur la branche des clés de répartition
+G-07	P1	confirmé (banc isolé + code)	Un abonné en impayé de renouvellement n'est jamais mis en lecture seule ; l'écran affiche une date passée	bce6c706 : date trompeuse supprimée des deux écrans ; 64 tests de droits et impayés réussis ; envoi préalable dépend de G-04
+G-08	P1	confirmé	Écritures nées du bâtiment (taxe foncière, paiement de facture) sans bien ni lot : finances et fiscalité par bien/SCI faussées	PR 295 ; rattachement au bâtiment, ancien paiement identifiable et écriture fiscale sans pièce à rapprocher ; recette globale en attente
+G-09	P1	confirmé	Clé de répartition toujours datée du jour de validation : aucune facture antérieure ne peut être répartie selon la clé	PR 291, deux contrôles GitHub verts sur 659f0d6d
 G-10	P1	confirmé	Téléphone de l'hébergeur absent des mentions légales (obligation LCEN)	à requalifier sur le candidat
-G-11	P2	confirmé	Le locataire lit par l'API toute la fiche de l'organisation du bailleur (parrainage, essai, abonnement, seuils de relance, SIRET, chemin de signature…)	portée de la règle confirmée en production ; protection et tests locaux
+G-11	P2	confirmé	Le locataire lit par l'API toute la fiche de l'organisation du bailleur (parrainage, essai, abonnement, seuils de relance, SIRET, chemin de signature…)	PR 293 indépendante ; accès API vérifiés sur PostgREST 14.5, transition SQL en deux temps ; production encore exposée
 G-12	P2	confirmé	Jeton d'une session fermée encore accepté par l'API REST et Storage jusqu'à 60 min (y compris signature d'URL de documents)	à requalifier sur le candidat
 G-13	P2	confirmé (code + copie isolée)	Périmètre pilote : relances de loyer (automatiques ET manuelles), avis d'échéance, information et confirmation de la caution, rappels et plusieurs notifications d'intervention suspendus ; bandeau inexact	à requalifier sur le candidat
-G-108	P2	confirmé (copie isolée)	Après la fin du bail : trois montants différents pour la même dette, relance proposée pour un terme déjà retenu sur le dépôt	à requalifier sur le candidat
+G-108	P2	confirmé (copie isolée)	Après la fin du bail : trois montants différents pour la même dette, relance proposée pour un terme déjà retenu sur le dépôt	PR 294 ; relance préparée, deux baux, confirmation tardive du quittancement et décompte vérifiés ; recette à poursuivre
 G-109	P2	confirmé (copie isolée)	Quittance retirée sans trace pour le locataire après le retrait d'un encaissement	à requalifier sur le candidat
 G-14	P2	confirmé	Acceptation d'un devis uniquement par signature électronique Zoho payante (aucun « Retenir ce devis »)	à requalifier sur le candidat
 G-15	P2	confirmé	Sans bail actif, le locataire ne peut rien signaler, même une fuite	à requalifier sur le candidat
-G-16	P2	confirmé	Décompte de charges validé et « partagé » automatiquement (≈ 1 min) sans validation du propriétaire	à requalifier sur le candidat
+G-16	P2	confirmé	Décompte de charges validé et « partagé » automatiquement (≈ 1 min) sans validation du propriétaire	PR 296 : préparation automatique, confirmation humaine des montants et choix explicite du partage ; ancienne route machine bridée en base, tests locaux
 G-17	P2	confirmé	Documents générés : le bailleur réel est remplacé par l'organisation (en-tête, « Fait à », destinataire du devis) et l'indivisaire n'a pas de case de signature	à requalifier sur le candidat
-G-18	P2	confirmé	Clause illicite (frais d'envoi de quittance) acceptée et imprimée dans le bail sans avertissement	à requalifier sur le candidat
+G-18	P2	confirmé	Clause illicite (frais d'envoi de quittance) acceptée et imprimée dans le bail sans avertissement	risque qualifié, saisie libre et deux modèles de bail ; avertir avant saisie et traiter la clause prohibée avant impression
 G-19	P2	confirmé	« Fermer » dans « Gérer cette détention » met fin à la propriété du lot sans confirmation	inclus PR 289, en attente de publication
 G-20	P2	confirmé	Indivision presque impossible à déclarer (quote-part non modifiable, messages contradictoires 0 % / 150 %)	à requalifier sur le candidat
-G-21	P2	confirmé	Annexes (cave, parking) créées en lots facturées comme des logements, contrairement à l'article 8.1 des CG	à requalifier sur le candidat
-G-22	P2	confirmé	Unité facturée mal nommée : « biens en gestion » = lots, brouillons compris	à requalifier sur le candidat
+G-21	P2	confirmé	Annexes (cave, parking) créées en lots facturées comme des logements, contrairement à l'article 8.1 des CG	contrôler le décompte des locaux accessoires avant de proposer un abonnement payant
+G-22	P2	confirmé	Unité facturée mal nommée : « biens en gestion » = lots, brouillons compris	à vérifier avec G-21 sur unités brouillon, prix affiché et montant Stripe TEST
 G-23	P2	confirmé	Aucune détection de bien en double (même nom, même adresse) ; le doublon est facturé	à requalifier sur le candidat
-G-24	P2	suspecté	« Un seul abonnement » mais facturation par organisation (nom propre + SCI ouverte en espace séparé = deux abonnements)	à requalifier sur le candidat
+G-24	P2	suspecté	« Un seul abonnement » mais facturation par organisation (nom propre + SCI ouverte en espace séparé = deux abonnements)	suspicion de double facturation entre deux organisations ; requiert recette souscription multi-organisations
 G-25	P2	confirmé (banc isolé)	Souscription annuelle : avertissement « Quitter le site ? » avant la page de paiement	inclus PR 289, en attente de publication
 G-26	P2	confirmé	Changement de compteur non chaîné : la répartition réclame l'index de l'ancien compteur ; compteur arrêté invisible	à requalifier sur le candidat
 G-27	P2	confirmé	Clé « tantièmes » sans tantièmes saisis = parts égales étiquetées « tantièmes » ; erreur périmée affichée	correctif en recette isolée sur la branche des clés de répartition

@@ -80,3 +80,28 @@ liste des champs confrontée à une liste fermée. 322/322 tests ciblés (25 fic
 Avant promotion, vérifier les pages servies par PostgREST, le sélecteur pour les trois rôles et
 la continuité de navigation en transition. En cas de souci, conserver la politique restrictive.
 Les tests d’interface et la restauration d’un environnement hébergé restent à distinguer du banc.
+
+Décision de livraison — point d’arrêt en lecture seule, 12 novembre 2026
+NO GO. Aucune fusion, migration ou promotion effectuée dans cette mission.
+Production relevée : cce58ab8edd2047df6e17a980fd46d58967dfaf4.
+#289 b1a52d6398d93f1ee14785f9c53658a3d9595a18 reste la base.
+#290 a5c228fc3964fc0cd3cde8bb5bb6f27c8e2fd05b (départ, information abonnement).
+#291 ee77be5023cc920edfd9a877756240c89cf73b95 (clés de charges).
+#292 b9d556458401865822bfa1922f7aa85799f6938f (confidentialité du portail).
+Les versions empilées incluent le correctif de compatibilité des fixtures historiques au centime.
+Contrôles GitHub en cours au dernier relevé : 43282923181, 43282922899, 43282922839.
+Le run antérieur 43280193269 a échoué sur deux tests historiques corrigés (63/63 localement).
+Le run antérieur 43281570042 a échoué pendant la récupération de la clé publique PGDG.
+Le nombre global de tests ignorés, échoués ou réussis des trois nouveaux SHA reste à relever.
+G-108 reste ouvert : le tableau de bord appelle rappels_loyers_proprietaire pour des baux
+terminés ; les RPC de relance et de recommandé calculent les termes indépendamment du
+décompte. Les paiements locataires choisissent tout statut différent de « paye » comme
+prochaine échéance. Ne pas ouvrir le pilote avant vérification de SI-07, y compris
+une demande de relance déjà préparée avant la clôture et deux baux distincts d'un locataire.
+G-08, G-03 et les autres P1 du registre demandent encore une qualification de bout en bout.
+G-05 : obtenir les coordonnées publiques du médiateur effectivement conventionné.
+Pas de comptes pilotes créés. Aucune recette de production applicable à ces corrections.
+Ordre de reprise : résultats CI aux SHA ci-dessus ; confidentialité via PostgREST et les
+trois portails ; G-108 et course encaissement/finalisation sur données fictives ; G-08 ;
+reste des P1 ; recette multi-profils ; sauvegarde fraîche et restauration vérifiée ;
+migrations approuvées puis promotion contrôlée si l’ensemble satisfait les critères.

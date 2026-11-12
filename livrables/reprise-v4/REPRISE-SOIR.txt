@@ -1,0 +1,35 @@
+GERIMMO — 12 novembre 2026, point de reprise technique
+PR #289 b1a52d6398d93f1ee14785f9c53658a3d9595a18
+PR #290 67f4b68f12fe6126d49a1022262aca068b5206c6
+PR #291 659f0d6dcc5d73f08256801ea4564510100669c2
+PR #292 1685badb323192fe487b58dd3dfe1066c784ca45
+PR #293 53adbce294c29af9b8dc4081603d454ae15f8c56
+PR #294 9bc72aab6525ce82abff84a423ade270dd4b33be
+PR #295 47168d35bc63d0cbb627811a483da69e1bc1484f
+Production relevée : cce58ab8edd2047df6e17a980fd46d58967dfaf4. Aucune migration ni promotion de ces corrections à cette heure.
+G-11 : deux adhésions portail actives. La politique actuelle permet la lecture de la fiche interne ; aucune preuve de consultation indue. PR #293 indépendante sur main. BASCULE-G11.txt décrit les deux phases et les contrôles. PostgREST 14.5 testé avec changement de rôle et révocation. 470 migrations historiques sur base vide, 27 contrôles du portail après fermeture. Les deux phases doivent conserver le même contenu sur les branches empilées.
+G-107 : 188,67 € attendus et obtenus (ancien résultat -238 €). Encaissement concurrent : le décompte attend le verrou, refuse un total devenu périmé ; deux finalisations ne créent pas deux écritures. Onze tests ciblés.
+G-108 : deux baux du même locataire ; 213,33 € intégrés dans le décompte, autre bail à 410 € conservé. Relance auparavant autorisée refusée après finalisation. Deux tentatives de quittancement tardif sans écriture. Neuf tests ciblés de départ et d’encaissement passés après cette dernière correction.
+G-08 : taxe et TEOM dans une seule transaction, frais communs comptabilisés au bâtiment ; annulation complète en cas de période fermée. Une écriture fiscale historique sans lot reste à rapprocher au justificatif. Aucune attribution par libellé.
+Recette cumulée antérieure à la séparation des deux phases G-11 : 486 réussites, 1 ignoré. Ne pas additionner les suites qui se recouvrent. Rejouer la recette complète sur la révision de livraison.
+Sauvegarde et restauration antérieures : workflows 43222627154 et 43223647006 réussis. Pour migrer, impérativement vérifier une nouvelle sauvegarde de moins de 90 minutes et sa récupération. Réaliser la recette des trois portails, y compris assistance et changements de rôles, avant toute ouverture.
+Décisions en attente : justificatif du médiateur effectivement conventionné ; aucune ouverture commerciale autorisée par cette recette. Continuer G-03, G-04, G-07, G-10 et les P2 ayant un impact financier ou documentaire. Ne modifier aucune écriture réelle pour faire passer la recette.
+
+Suite — PR 296 (G-16) : 480 migrations sur gerimmo_ci_confirmation_charges. 70/70 tests de charges, loyers, décompte, quittancement et manifeste sur cette base. Avant partage des décomptes, le gestionnaire doit valider la répartition. L'ancien automate ne peut ni valider ni diffuser, même avec une réservation valide. Une validation manuelle réveille la préparation des PDF. Les décomptes antérieurement partagés ne sont pas retirés.
+G-07 : correctif d’information sur la branche codex/abonnement-impaye-information (bce6c706), 64/64 tests sur la même base. Les deux écrans suivent l’accès effectif et cessent d’annoncer un gel à une date passée. La difficulté d’envoi des avis G-04 reste ouverte.
+PR 291 : deux contrôles hébergés réussis sur 659f0d6dcc5d73f08256801ea4564510100669c2.
+Sauvegarde fraîche de production 43300985697 réussie ; exercice indépendant de restauration lancé sur banc PostgreSQL 17 (43302072343).
+
+État du 12 novembre à 22 h (France) — les indications ci-dessous remplacent les anciens SHA.
+PR 289 : b1a52d6398d93f1ee14785f9c53658a3d9595a18
+PR 290 : 67f4b68f12fe6126d49a1022262aca068b5206c6
+PR 291 : 659f0d6dcc5d73f08256801ea4564510100669c2
+PR 292 : 1685badb323192fe487b58dd3dfe1066c784ca45
+PR 293 : 71eeb77f116e8005f33f46558702c265331ba8a4
+PR 294 : c6b1a944c34dc32cbd827f7d847a13dbc4d3097d
+PR 295 : f71de32f62babcbf98d883fd5a08c656c6af0439
+PR 296 : 1d93808815f778e5d43dfb9418bd33bad7fd676f
+Sauvegarde 43300985697 et restauration isolée 43302072343 réussies. Archive 20261112-2031, 261 tables, 47143 lignes, 79 fichiers, zéro pièce manquante. Douze tâches contrôlées. Renouveler la sauvegarde avant migration après 23 h 04 (heure de Paris).
+G-11 : la politique de production autorise encore les adhérents actifs à lire la fiche interne. La vue supervision_utilisateurs est invoker. Vérification Vercel en lecture seule : branche main, « Auto-assign Custom Production Domains » Disabled. Préparer uniquement le correctif G-11, conserver promotion manuelle. Transition répétée sous PostgreSQL 17.6 et PostgREST 14.5. Le locataire lié à deux organisations voit leurs vrais noms dans l’assistance ; 24 tests d’assistance et liens réussis. CI GitHub 43305557592 sur la branche et 43305488842 sur la PR.
+G-108 : verrou effectivement observé dans les deux sens. Le paiement demandé sur le terme pendant que le départ est finalisé attend sa transaction, retourne au_decompte, et ne crée aucun encaissement ; suite 11/11. 28/28 sur le rejeu des circuits, sur la révision précédente. G-08 : 132/132 tests locaux du périmètre, dont retour arrière et données anciennes. Suites qui se recoupent.
+G-18 : rappel des clauses interdites dans les deux formulaires avec accès à l’article 4 ; branche locale codex/clauses-bail-g18 (60acc3b5), 19 tests liés aux étapes du bail réussis. Aucun contrat existant retouché.

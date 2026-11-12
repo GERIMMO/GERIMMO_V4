@@ -51,7 +51,7 @@ export function gardeAide2044(detenteurs: DetenteurFiscal[], profils: ProfilFisc
 }
 
 /** Export de préparation : régimes et écritures brutes, sans faux résultat taxable ni partage inventé entre associés. */
-export function csvPreparationFiscale(annee: number, detenteurs: DetenteurFiscal[], profils: ProfilFiscalDetenteur[], ecritures: { id: string; date_piece: string; lot_id: string | null; categorie: string; sens: string; montant: number | string; libelle: string | null; contre_ecriture_de: string | null }[]) {
+export function csvPreparationFiscale(annee: number, detenteurs: DetenteurFiscal[], profils: ProfilFiscalDetenteur[], ecritures: { id: string; date_piece: string; lot_id: string | null; bien_id?: string | null; categorie: string; sens: string; montant: number | string; libelle: string | null; contre_ecriture_de: string | null }[]) {
   const lignes: unknown[][] = [
     ["Dossier de préparation fiscale", annee],
     ["Portée", "Journal de gestion de cet espace. Montants bruts, avant affectation fiscale et répartition entre propriétaires ou associés."],
@@ -59,7 +59,7 @@ export function csvPreparationFiscale(annee: number, detenteurs: DetenteurFiscal
     ["Propriétaire", "Qualité", "Année", "Version du profil", "Déclarations à préparer", "Points à vérifier"],
     ...detenteurs.map(p => { const profil = dernierProfilFiscal(profils, p.id, annee), orientation = orientationFiscale(profil); return [[p.prenom, p.nom].filter(Boolean).join(" "), profil?.qualite ?? p.qualite, annee, profil?.version ?? "À confirmer", orientation.formulaires.join(" ; "), orientation.aVerifier.join(" ")]; }),
     [], ["Écriture", "Date", "Lot", "Catégorie", "Sens", "Montant brut EUR", "Libellé", "Contre-écriture de"],
-    ...ecritures.map(e => [e.id, e.date_piece, e.lot_id ?? "À attribuer", e.categorie, e.sens, Number(e.montant).toFixed(2).replace(".", ","), e.libelle, e.contre_ecriture_de]),
+    ...ecritures.map(e => [e.id, e.date_piece, e.lot_id ?? (e.bien_id ? "Bien : "+e.bien_id : "À attribuer"), e.categorie, e.sens, Number(e.montant).toFixed(2).replace(".", ","), e.libelle, e.contre_ecriture_de]),
   ];
   return "\uFEFF" + lignes.map(ligne => ligne.map(v => `"${neutraliserFormule(String(v ?? "")).replaceAll('"', '""')}"`).join(";")).join("\r\n");
 }

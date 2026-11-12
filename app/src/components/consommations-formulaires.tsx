@@ -185,6 +185,7 @@ function AvisTaxeFonciere({ p, fini }: { p: Props; fini: (message: string) => vo
       setLus(precedentes => ({ ...precedentes, ...(valeurs.total ? { total_avis: valeurs.total } : {}), ...(valeurs.frais_gestion ? { frais_gestion: valeurs.frais_gestion } : {}) }));
     }} />
     <div className={styles.fields}>
+      <Champ titre="Date de l’avis"><input name="date_avis" type="date" required max={p.aujourdHui} {...champ("date_avis")} /></Champ>
       <Champ titre="Année"><input name="annee" type="number" min={2000} max={anneeParis} required {...champ("annee")} /></Champ>
       <Champ titre="Total de l’avis (€)"><input name="total_avis" inputMode="decimal" required {...champ("total_avis")} /></Champ>
       <Champ titre="Dont TEOM (€)"><input name="teom" inputMode="decimal" {...champ("teom")} /></Champ>

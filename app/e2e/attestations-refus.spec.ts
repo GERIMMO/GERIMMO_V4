@@ -26,13 +26,15 @@ test('attestation : date future refusée et fichier conservé après un rejet', 
 test('attestation : fin de validité passée refusée par le formulaire ET par le serveur, la pièce en place reste', async ({ page }) => {
   const cible = process.env.SUPALOCAL_DB;
   const pieces = async () => {
-    if (!cible) return null;
+    if (!cible || new URL(cible).hostname !== '127.0.0.1' || !/^\/gerimmo_ci_[a-z_]+_api$/.test(new URL(cible).pathname)) {
+      throw new Error('Base API fictive locale obligatoire.');
+    }
     const { Client } = await import('pg');
     const db = new Client({ connectionString: cible }); await db.connect();
     try {
       // Pièces de l'artisan de démonstration (artisan.alpha) : aucune ne doit être ajoutée ni retirée par un dépôt refusé.
       return (await db.query("select count(*)::int as total, count(*) filter (where ap.retiree_le is null)::int as en_place from public.artisan_pieces ap join public.artisans a on a.id = ap.artisan_id join auth.users u on u.id = a.account_id where u.email = 'artisan.alpha@example.com'")).rows[0];
-    } catch { return null; } finally { await db.end(); }
+    } finally { await db.end(); }
   };
   const avant = await pieces();
   await page.goto('/artisan/attestations');
@@ -50,5 +52,5 @@ test('attestation : fin de validité passée refusée par le formulaire ET par l
   await formulaire.getByRole('button', { name: "Déposer l'attestation", exact: true }).click();
   await expect(formulaire.getByRole('alert')).toContainText('n’est plus valable depuis le');
   await expect(formulaire.getByRole('alert')).toContainText('la précédente reste en place');
-  if (avant) expect(await pieces()).toEqual(avant);
+  expect(await pieces()).toEqual(avant);
 });

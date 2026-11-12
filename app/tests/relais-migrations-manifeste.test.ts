@@ -161,6 +161,7 @@ const MISSION_OCTOBRE = [
   "20261110052302_securisation_pilote_notifications.sql",
   "20261110181422_supervision_v1_lecture_bornee.sql",
   "20261111151500_abonnement_unique_fondateurs.sql",
+  "20261112120000_validite_piece_artisan.sql",
 
 
 ];

@@ -30,6 +30,7 @@ async function nettoyer(db: Client, dossiers: { bail: string | null; lot: string
   for (const { bail, lot, bien } of dossiers) {
     try {
       await db.query("begin");
+      const diagnostics = (await db.query("select document_id from public.diagnostics where (lot_id=$1 or bien_id=$2) and organization_id=$3", [lot || null, bien || null, ORG])).rows;
       const signe: string | null = bail ? (await db.query("select document_signe from public.baux where id=$1", [bail])).rows[0]?.document_signe ?? null : null;
       if (bail) for (const sql of [
         "delete from public.appels_loyer where bail_id=$1", "delete from public.alerts where details->>'bail_id'=$1::text",
@@ -42,13 +43,15 @@ async function nettoyer(db: Client, dossiers: { bail: string | null; lot: string
         await db.query("delete from public.diagnostics where bien_id=$1", [bien]);
         await db.query("delete from public.biens where id=$1 and nom=$2", [bien, NOM]);
       }
+      for (const {document_id} of diagnostics) {
+        await db.query("delete from public.documents where id=$1 and organization_id=$2", [document_id, ORG]);
+      }
       await db.query("commit");
     } catch (e) {
       await db.query("rollback").catch(() => {});
-      console.warn(`Nettoyage incomplet du dossier fictif ${lot} : ${(e as Error).message}`);
+      throw e;
     }
   }
-  await db.query("delete from public.documents where titre in ('DPE fictif — essai','ERP fictif — essai') and not exists (select 1 from public.diagnostics d where d.document_id = documents.id)").catch(() => {});
 }
 
 async function ouvrirEtape(page: Page, url: string, numero: string) {

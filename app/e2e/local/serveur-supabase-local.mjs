@@ -42,6 +42,13 @@ const DB_URL = process.env.SUPALOCAL_DB ?? "postgres://postgres@127.0.0.1:55432/
 const SECRET = "gerimmo-local-secret";
 const STOCKAGE = process.env.SUPALOCAL_STORAGE ?? "/tmp/gerimmo-storage";
 
+// Mode de recette : Auth et Storage restent fictifs ; REST est servi par PostgREST.
+const restReel = process.env.SUPALOCAL_RELAIS_POSTGREST;
+if (restReel && (new URL(restReel).hostname !== "127.0.0.1" || !process.env.POSTGREST_REEL_JWT_SECRET
+  || new URL(DB_URL).hostname !== "127.0.0.1" || !/^\/gerimmo_ci_[a-z_]+_api$/.test(new URL(DB_URL).pathname))) {
+  throw new Error("Le relais exige PostgREST et une base API fictive locaux.");
+}
+
 const pool = new Pool({ connectionString: DB_URL, max: 8 });
 
 // ── JWT HS256 minimal ──────────────────────────────────────────────────────
@@ -1012,6 +1019,28 @@ const serveur = http.createServer(async (req, res) => {
       const corps = brut.length ? JSON.parse(brut.toString()) : {};
       const r = await routerAuth(req.method, segments.slice(2).join("/"), url, corps, claims);
       return repondreJson(r.statut, r.corps);
+    }
+    if (restReel && segments[0] === "rest" && segments[1] === "v1") {
+      const destination = new URL(restReel);
+      destination.pathname = url.pathname.slice("/rest/v1".length);
+      destination.search = url.search;
+      const headers = new Headers();
+      for (const nom of ["content-type", "accept", "prefer", "range", "range-unit", "accept-profile", "content-profile"]) {
+        if (entetes[nom]) headers.set(nom, entetes[nom]);
+      }
+      if (claims) {
+        const corps = b64u(JSON.stringify({ alg: "HS256", typ: "JWT" })) + "." + b64u(JSON.stringify(claims));
+        headers.set("Authorization", "Bearer " + corps + "." + crypto.createHmac("sha256", process.env.POSTGREST_REEL_JWT_SECRET).update(corps).digest("base64url"));
+      } else if (bearer && bearer !== "cle-locale") {
+        return repondreJson(401, { message: "Session de test invalide" });
+      }
+      const r = await fetch(destination, { method: req.method, headers, body: brut.length ? brut : undefined, redirect: "error" });
+      const retour = { ...CORS };
+      for (const nom of ["content-type", "content-range", "preference-applied"]) {
+        if (r.headers.has(nom)) retour[nom] = r.headers.get(nom);
+      }
+      res.writeHead(r.status, retour);
+      return res.end(Buffer.from(await r.arrayBuffer()));
     }
     // /rest/v1/rpc/:fn
     if (segments[0] === "rest" && segments[1] === "v1" && segments[2] === "rpc") {

@@ -11,6 +11,7 @@ export default defineConfig({
   // ses comptes réels et sa cible : elle ne tourne jamais dans cette suite.
   testIgnore: [
     /recette-production\//,
+    ...(process.env.E2E_INVITATION_ISOLEE === "0" ? [/^.*\/invitation-artisan\.spec\.ts$/] : []),
     // Ces trois parcours exigent un fournisseur fictif, lancé dans la passe dédiée.
     /lot2-(?:pilote|artisan|invitations)\.spec\.ts/,
     ...(process.env.E2E_CI === "1" ? [/visuel\.spec\.ts/] : []),

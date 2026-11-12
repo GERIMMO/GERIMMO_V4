@@ -370,17 +370,17 @@ export function BoutonCloreDetention({
   quotePart: number;
 }) {
   const actionLiee = cloreDetention.bind(null, orgId, bienId, lotId, detentionId);
-  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
   // G-19 (recette du 11/11/2026) : « Fermer », dans un panneau, se lisait « fermer le panneau » et mettait fin
   // à la propriété au premier clic. Le libellé dit maintenant ce qu'il fait et rien ne change sans confirmation.
   const [confirme, setConfirme] = useState(false);
   const formulaire = useRef<HTMLFormElement>(null);
   return (
     <form data-saisie-confirmee ref={formulaire} action={action} className="shrink-0">
-      <Button type="button" size="sm" variant="ghost" onClick={() => setConfirme(true)} aria-haspopup="dialog">
+      <Button type="button" size="sm" variant="ghost" onClick={() => setConfirme(true)} aria-haspopup="dialog" disabled={enCours}>
         Mettre fin à la détention…
       </Button>
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
       {confirme && (
         <Modale
           titre="Mettre fin à cette détention"

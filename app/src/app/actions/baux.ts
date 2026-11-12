@@ -484,12 +484,13 @@ async function deposerPieceBail(
   const res = await deposerFichierGed(supabase, user, orgId, fichier, piece.type, piece.titre, { reutiliserReglement: piece.colonne === "reglement_copropriete" });
   if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt." };
 
-  const { error } = await supabase
-    .from("baux")
-    .update({ [piece.colonne]: res.documentId })
-    .eq("id", bailId)
-    .eq("organization_id", orgId);
+  const rattachement = supabase.from("baux").update({ [piece.colonne]: res.documentId })
+    .eq("id", bailId).eq("organization_id", orgId);
+  // Un dépôt dans un autre onglet peut avoir signé ou activé le bail entre-temps.
+  const cible = activation ? rattachement.eq("etat", "brouillon").is("document_signe", null) : rattachement;
+  const { data: rattache, error } = await cible.select("id").maybeSingle();
   if (error) return { erreur: sansJargon(error.message) };
+  if (!rattache) return { erreur: "Le bail a changé. Rechargez sa fiche pour vérifier le document enregistré." };
 
   let succes = piece.succes;
   if (activation) {
@@ -501,6 +502,8 @@ async function deposerPieceBail(
       await supabase
         .from("baux")
         .update({ document_signe: null })
+        .eq("etat", "brouillon")
+        .eq("document_signe", res.documentId)
         .eq("id", bailId)
         .eq("organization_id", orgId);
       return { erreur: sansJargon(erreurActivation.message) };

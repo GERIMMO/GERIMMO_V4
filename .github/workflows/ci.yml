@@ -36,6 +36,8 @@ jobs:
       SUPALOCAL_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_sql_api
       GERIMMO_PILOTE_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_lottrois
       GERIMMO_HISTORIQUE_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_historique
+      POSTGREST_REEL_URL: http://127.0.0.1:53901
+      POSTGREST_REEL_JWT_SECRET: gerimmo-revue-local-fictif-sans-production
       GERIMMO_AUTH_REEL_URL: http://127.0.0.1:55519
       GERIMMO_AUTH_REEL_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_auth_reprise
       NODE_OPTIONS: --max-old-space-size=4096
@@ -92,6 +94,7 @@ jobs:
       - name: Préparer les bases de test isolées
         run: |
           node e2e/local/preparer-ci.mjs
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -c "create database gerimmo_ci_invitation_api template gerimmo_ci_sql"
           node scripts/deploiement/preparer-pilote-local.mjs
           node --input-type=module -e 'import {Client} from "pg";const c=new Client({connectionString:process.env.SUPABASE_DB_URL});await c.connect();await c.query("create database gerimmo_ci_historique");await c.end();'
           SUPABASE_DB_URL="$GERIMMO_HISTORIQUE_DB" GERIMMO_BASE_AVANT_LOTS=1 node e2e/local/preparer-ci.mjs
@@ -104,6 +107,7 @@ jobs:
       - name: Démarrer l’API de test locale
         run: |
           node e2e/local/serveur-supabase-local.mjs > /tmp/gerimmo-api.log 2>&1 &
+          echo $! > /tmp/gerimmo-api.pid
           for tentative in {1..30}; do
             if curl --silent --fail http://127.0.0.1:54321/health > /dev/null; then
               # Clé purement fictive du banc : même signature que l'émulateur,
@@ -115,6 +119,14 @@ jobs:
           done
           cat /tmp/gerimmo-api.log
           exit 1
+      - name: Vérifier PostgREST 14.5 sur la base fictive migrée
+        run: |
+          docker run -d --name postgrest-revue --network host \
+            -e PGRST_DB_URI="$SUPALOCAL_DB" -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_SERVER_HOST=127.0.0.1 -e PGRST_SERVER_PORT=53901 \
+            -e PGRST_JWT_SECRET="$POSTGREST_REEL_JWT_SECRET" postgrest/postgrest:v14.5
+          curl --fail --silent --retry 20 --retry-connrefused "$POSTGREST_REEL_URL/" -o /dev/null
+          npx vitest run tests/auto-relation-documents-postgrest.test.ts
       - name: Démarrer Auth isolé sans messagerie externe
         run: |
           node --input-type=module -e 'import {Client} from "pg"; const c=new Client({connectionString:process.env.SUPABASE_DB_URL});await c.connect();await c.query("create database gerimmo_ci_auth_reprise");await c.query("alter database gerimmo_ci_auth_reprise set search_path=auth,public");await c.end();const a=new Client({connectionString:process.env.GERIMMO_AUTH_REEL_DB});await a.connect();await a.query("create schema auth; create extension if not exists pgcrypto");await a.end();'
@@ -157,6 +169,7 @@ jobs:
           E2E_USE_BUILD: "1"
           # Même hôte que le site : Chromium accepte les cookies Secure du build local sur localhost.
           E2E_BASE_URL: http://localhost:3100
+          E2E_INVITATION_ISOLEE: "0"
         run: npm run test:e2e
       - name: Vérifier les envois admis avec boîte fictive et réseau extérieur bloqué
         env:
@@ -170,6 +183,38 @@ jobs:
           E2E_USE_BUILD: "1"
           E2E_BASE_URL: http://localhost:3100
         run: npm run test:e2e:webkit
+      - name: Vérifier le dépôt et l’activation du bail sur le véritable PostgREST
+        env:
+          E2E_CI: "1"
+          E2E_USE_BUILD: "1"
+          E2E_BASE_URL: http://localhost:3100
+        run: |
+          kill "$(cat /tmp/gerimmo-api.pid)"
+          for attente in {1..20}; do
+            if ! curl -fsS "$NEXT_PUBLIC_SUPABASE_URL/health" >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          SUPALOCAL_RELAIS_POSTGREST="$POSTGREST_REEL_URL" node e2e/local/serveur-supabase-local.mjs > /tmp/gerimmo-api-reelle.log 2>&1 &
+          relais=$!
+          echo "$relais" > /tmp/gerimmo-relais.pid
+          curl --fail --silent --retry 20 --retry-connrefused "$NEXT_PUBLIC_SUPABASE_URL/health"
+          kill -0 "$relais"
+          npx playwright test --config e2e/playwright.revue-lot.config.ts depot-bail-signe-papier.spec.ts detention-confirmation.spec.ts attestations-refus.spec.ts
+      - name: Vérifier l’invitation artisan dans une base jetable indépendante
+        env:
+          E2E_CI: "1"
+          E2E_USE_BUILD: "1"
+          E2E_BASE_URL: http://localhost:3100
+          SUPALOCAL_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_invitation_api
+        run: |
+          kill "$(cat /tmp/gerimmo-relais.pid)"
+          psql "$SUPALOCAL_DB" -v ON_ERROR_STOP=1 -f supabase/seed.sql >/dev/null
+          SUPALOCAL_STORAGE="$RUNNER_TEMP/stockage-invitation" node e2e/local/serveur-supabase-local.mjs >/tmp/gerimmo-api-invitation.log 2>&1 &
+          api=$!
+          trap 'kill "$api" || true' EXIT
+          curl --fail --silent --retry 20 --retry-connrefused "$NEXT_PUBLIC_SUPABASE_URL/health"
+          kill -0 "$api"
+          npx playwright test --config e2e/playwright.config.ts invitation-artisan.spec.ts --workers=1
       - name: Conserver les résultats du navigateur
         if: always()
         uses: actions/upload-artifact@v7

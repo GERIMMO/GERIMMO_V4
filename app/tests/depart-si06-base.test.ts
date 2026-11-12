@@ -52,6 +52,14 @@ describe.skipIf(!url)("Départ SI-06 — congé saisi après le dernier appel", 
       expect(Number(solde)).toBe(188.67);
       expect(Number((await db.query("select montant_du from appels_loyer where bail_id=$1 and periode='2026-11-01'",[bail])).rows[0].montant_du)).toBe(213.33);
       expect(Number((await db.query("select sum(montant) total from ecritures where bail_id=$1 and categorie='depot_garantie' and sens='depense'",[bail])).rows[0].total)).toBe(188.67);
+      const demande = randomUUID();
+      const nombreEncaissements = async () => (await db.query("select count(*) from encaissements where bail_id=$1",[bail])).rows[0].count;
+      const encaissementsAvant = await nombreEncaissements();
+      for (let tentative = 0; tentative < 2; tentative++) {
+        const quittancement = await db.query("select public.encaisser_reste_atomique($1,$2,$3,$4,213.33,0) resultat",[org,bail,appel,demande]);
+        expect(quittancement.rows[0].resultat.statut).toBe("au_decompte");
+      }
+      expect(await nombreEncaissements()).toBe(encaissementsAvant);
       expect(await dette(bail)).toEqual({total_centimes:0,echeances:[]});
       expect((await dette(secondBail)).total_centimes).toBe(41000);
       expect((await db.query("select bail_id from public.rappels_loyers_proprietaire($1)",[org])).rows).toEqual([{bail_id:secondBail}]);

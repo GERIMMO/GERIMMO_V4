@@ -465,12 +465,6 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
       rows: [r],
     } = await semeur.query(`select public.demarrer_restitution($1,current_date,true) as id`, [bail]);
     restitution = r.id;
-    // Le locataire solde ses 300 € : la réalité dit désormais 0 € d'impayés
-    await semeur.query(
-      `insert into public.encaissements (organization_id, bail_id, montant, date_paiement)
-       values ($1,$2,300,current_date)`,
-      [org, bail]
-    );
     await porterLesClaims(sessionA, compte!);
     await porterLesClaims(sessionB, compte!);
     await porterLesClaims(secondeFinalisation, compte!);
@@ -512,6 +506,26 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
     const {
       rows: [{ pg_backend_pid: pidA }],
     } = await sessionA.query(`select pg_backend_pid()`);
+
+    // Un encaissement non encore validé arrive avant la confirmation du solde.
+    await sessionA.query("begin");
+    await sessionA.query(`insert into public.encaissements (organization_id,bail_id,montant,date_paiement)
+      select organization_id,bail_id,300,current_date from public.restitutions where id=$1`, [restitution]);
+    const pidFinalisation = (await secondeFinalisation.query("select pg_backend_pid() pid")).rows[0].pid;
+    const tentative = secondeFinalisation.query("select public.finaliser_decompte($1)", [restitution])
+      .then(() => "accepté", (e: Error) => e.message);
+    let attendEncaissement = false;
+    try {
+      for (let i = 0; i < 100 && !attendEncaissement; i++) {
+        attendEncaissement = (await semeur.query("select wait_event_type = 'Lock' attente from pg_stat_activity where pid=$1", [pidFinalisation])).rows[0]?.attente;
+        if (!attendEncaissement) await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+    } finally {
+      await sessionA.query("commit");
+    }
+    expect(attendEncaissement).toBe(true);
+    expect(await tentative).toMatch(/Actualisez le décompte/);
+    expect((await semeur.query("select statut from public.restitutions where id=$1", [restitution])).rows[0].statut).toBe("en_cours");
 
     // B tient la ligne sans rien décider encore : c'est le créneau pendant
     // lequel A lisait « en_cours » puis écrivait quand même.

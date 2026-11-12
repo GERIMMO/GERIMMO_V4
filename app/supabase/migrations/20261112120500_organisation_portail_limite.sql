@@ -23,8 +23,4 @@ $$;
 revoke all on function public.mes_adhesions_navigation() from public, anon;
 grant execute on function public.mes_adhesions_navigation() to authenticated;
 
-alter policy organizations_select on public.organizations using (
-  id in (select public.org_ids_avec_roles(array['admin_agence','agent','proprietaire_direct']::public.membership_role[]))
-  or (select public.is_super_admin())
-);
 notify pgrst, 'reload schema';

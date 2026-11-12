@@ -216,6 +216,17 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
       expect(menu.rows).toEqual([{name:"Test Isolation A"}]);
       expect(Number(locataire.rows[0].personnes)).toBe(0);
 
+      // La même session conserve son identité mais ses droits changent immédiatement.
+      await db.query("reset role");
+      await db.query("update public.memberships set role='artisan' where account_id=$1 and organization_id=$2", [compte_locataire, org_a]);
+      await db.query("set local role authenticated");
+      expect((await db.query("select id,iban from public.organisations_portail where id=$1", [org_a])).rows).toEqual([{id:org_a,iban:null}]);
+      await db.query("reset role");
+      await db.query("update public.memberships set status='inactive' where account_id=$1 and organization_id=$2", [compte_locataire, org_a]);
+      await db.query("set local role authenticated");
+      expect((await db.query("select id from public.organisations_portail")).rows).toEqual([]);
+      expect((await db.query("select id from public.mes_adhesions_navigation()")).rows).toEqual([]);
+
       // Un anonyme est carrément refusé : le rôle anon est révoqué au
       // durcissement (défense en profondeur au-dessus de la RLS — il ne peut
       // même pas lire la table). Voir wiki/regles-metier/Isolation multi-organisation.

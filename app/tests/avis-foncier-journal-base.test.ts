@@ -1,4 +1,5 @@
 import {randomUUID} from "node:crypto";
+import {readFileSync} from "node:fs";
 import {Client} from "pg";
 import {describe, expect, it} from "vitest";
 import {verifierBaseDeTest} from "./garde-base";
@@ -35,6 +36,11 @@ describe.skipIf(!url)("Avis et écritures au niveau du bien",()=>{
       const e=await db.query("select bien_id,lot_id,montant::float8,date_piece::text from journal_par_bien where avis_fiscal_id=$1",[doc]);
       expect(e.rows).toEqual([{bien_id:bien,lot_id:null,montant:1552,date_piece:"2025-09-05"}]);
       expect((await db.query("select total_cents::int total from factures_fourniture where document_id=$1",[doc])).rows).toEqual([{total:24800}]);
+      await db.query("reset role");
+      await db.query("savepoint retour");
+      await expect(db.query(readFileSync("supabase/retours-arriere/20261112200752_ecritures_batiment_source.retour.sql","utf8"))).rejects.toThrow(/Conserver leurs preuves/);
+      await db.query("rollback to retour");
+      expect((await db.query("select count(*)::int n from ecritures where avis_fiscal_id=$1",[doc])).rows[0].n).toBe(1);
     } finally {await db.query("rollback");await db.end();}
   });
 });

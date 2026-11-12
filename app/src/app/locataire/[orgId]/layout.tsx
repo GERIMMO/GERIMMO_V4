@@ -15,7 +15,7 @@ import { aEchoue } from "./panne-lecture";
 const lireApparence = cache(async function lireApparence(orgId: string) {
   const { supabase } = await verifierAccesEspaceLocataire(orgId);
   const { data } = await supabase
-    .from("organizations")
+    .from("organisations_portail")
     .select("logo_url, couleur_primaire, couleur_secondaire, nom_portail")
     .eq("id", orgId)
     .maybeSingle();

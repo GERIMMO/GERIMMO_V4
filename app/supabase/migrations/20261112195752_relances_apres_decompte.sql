@@ -15,6 +15,13 @@ begin
   if exists (select 1 from public.plans_apurement'),
     ('declarer_reception_loyer', 'if p_reponse=''non_recu'' then', 'if exists (select from public.restitutions r where r.bail_id=b.id and r.statut=''finalise'') then raise exception ''Cette échéance figure déjà dans le décompte de départ.''; end if;
   if p_reponse=''non_recu'' then'),
+    -- Le verrou du bail est acquis et une commande déjà réussie a pu être rejouée.
+    ('encaisser_reste_atomique', 'select coalesce(jsonb_agg(to_jsonb(e) order by e.periode),''[]''::jsonb)
+ into v_avant', 'if exists (select from public.restitutions r where r.bail_id=p_bail and r.statut=''finalise'') then
+   return jsonb_build_object(''statut'',''au_decompte'',''montant'',0,''rejoue'',false);
+ end if;
+ select coalesce(jsonb_agg(to_jsonb(e) order by e.periode),''[]''::jsonb)
+ into v_avant'),
     ('mon_echeancier_locataire', 'e.montant_couvert, e.statut,', 'e.montant_couvert, case when e.montant_du>e.montant_couvert and exists (select from public.restitutions r where r.bail_id=b.id and r.statut=''finalise'') then ''au_decompte'' else e.statut end,')
   ) as modifications(nom, ancien, nouveau)
   loop

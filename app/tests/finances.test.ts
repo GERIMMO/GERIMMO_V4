@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { resumerLivre, lireLivreFinances, type EcritureFinances } from "@/lib/finances";
+import { biensDuPerimetre, resumerLivre, lireLivreFinances, type EcritureFinances } from "@/lib/finances";
 import type { SupabaseClient } from "@supabase/supabase-js";
 const ligne = (id: string, extra: Partial<EcritureFinances> = {}): EcritureFinances => ({ id, categorie:"loyer", sens:"recette", montant:100, date_imputation:"2026-10-01", libelle:null, lot_id:"lot-a", contre_ecriture_de:null, ...extra });
 describe("Résumé Finances", () => {
@@ -12,6 +12,13 @@ describe("Résumé Finances", () => {
     expect(resumerLivre(lignes,2026,new Set(["lot-a"])).recettes).toBe(100);
     expect(resumerLivre(lignes,2026,new Set()).recettes).toBe(0);
     expect(resumerLivre(lignes,2026,null).recettes).toBe(300);
+  });
+  it("retrouve les 5 626,50 € du bien, sans doubler les dépenses ni imputer tout le bâtiment à un seul lot",()=>{
+    const lots=[{id:"A",bien_id:"IM"},{id:"B",bien_id:"IM"}];
+    const flux=[ligne("lots",{lot_id:"A",montant:3634.5,sens:"depense"}),ligne("avis",{lot_id:null,bien_id:"IM",montant:1552,sens:"depense"}),ligne("eau",{lot_id:null,bien_id:"IM",montant:440,sens:"depense"})];
+    const tous=new Set(["A","B"]), un=new Set(["A"]);
+    expect(resumerLivre(flux,2026,tous,biensDuPerimetre(lots,tous)).depenses).toBe(5626.5);
+    expect(resumerLivre(flux,2026,un,biensDuPerimetre(lots,un)).depenses).toBe(3634.5);
   });
   it("lit au-delà de la première page et refuse un total partiel en cas d’erreur", async () => {
     const range=vi.fn().mockResolvedValueOnce({data:Array.from({length:500},(_,i)=>ligne(String(i))),error:null}).mockResolvedValueOnce({data:[ligne("dernier")],error:null});

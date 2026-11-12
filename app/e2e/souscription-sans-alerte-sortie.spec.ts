@@ -36,7 +36,7 @@ for (const periode of ["Mensuel", "Annuel"]) {
     // La case de confirmation et la périodicité modifient le formulaire : c'est ce qui déclenchait l'avertissement.
     await page.getByLabel(/J'ai vérifié le montant de/).check();
     await expect(page.getByText(new RegExp(`J'ai vérifié le montant de .* ${periode === "Annuel" ? "par an" : "par mois"}`))).toBeVisible();
-    await page.route(/^https:\/\/[^/]+\//, route => route.fulfill({ contentType: "text/html", body: "<h1>Paiement simulé</h1>" }));
+    await page.route(/^https:\/\/[^/]+\//, route => route.fulfill({ contentType: "text/html; charset=utf-8", body: "<h1>Paiement simulé</h1>" }));
     const depart = page.waitForRequest(r => r.isNavigationRequest() && !new URL(r.url()).hostname.match(/^(localhost|127\.0\.0\.1)$/), { timeout: 20_000 });
     await bouton.click();
     const requete = await depart;

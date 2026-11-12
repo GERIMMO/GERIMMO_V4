@@ -64,7 +64,7 @@ test.describe("Côté propriétaire bailleur", () => {
     await page.locator("label").filter({ has: page.getByRole("radio", { name: /Annuel/ }) }).click();
     await expect(page.getByRole("radio", { name: /^Annuel/ })).toBeChecked();
     const destination = "https://paiement.example.invalid/gerimmo";
-    await page.route(destination, route => route.fulfill({ contentType: "text/html", body: "<h1>Paiement simulé</h1>" }));
+    await page.route(destination, route => route.fulfill({ contentType: "text/html; charset=utf-8", body: "<h1>Paiement simulé</h1>" }));
     // La redirection est simulée ; le formulaire et sa garde de sortie sont ceux du site.
     await page.evaluate(url => window.location.assign(url), destination);
     await expect(page.getByRole("heading", { name: "Paiement simulé" })).toBeVisible();

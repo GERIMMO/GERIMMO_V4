@@ -31,15 +31,16 @@ export async function ContenuAssistance({searchParams, orgIdIntegre}:{searchPara
  const contexte=new URLSearchParams();if(params.ecran)contexte.set('ecran',ecranSansDonnees(params.ecran));if(params.action)contexte.set('action',actionSansDonnees(params.action));if(retour)contexte.set('retour',retour);
  const lien=(extra:Record<string,string>,ancre:string)=>{const q=new URLSearchParams(extra);contexte.forEach((v,k)=>q.set(k,v));const s=q.toString();return `${cheminAssistance}${s?`?${s}`:''}${ancre}`;};
  const onglet=(v:string)=>`${styles.onglet} ${vue===v?styles.actif:""}`;
- const [adhesions,fiche]=await Promise.all([c.from('memberships').select('organization_id,role,organizations(name)').eq('account_id',user.id).eq('status','active'),c.from('artisans').select('id').eq('account_id',user.id).maybeSingle()]);
- const organisations=(adhesions.data??[]).filter(m=>m.organization_id).map(m=>({id:m.organization_id as string,nom:(m.organizations as unknown as {name:string}|null)?.name??'Mon organisation'}));
- const orgAdmin=(adhesions.data??[]).filter(m=>m.role==='admin_agence').map(m=>m.organization_id as string);
- const espacesProprietaire=(adhesions.data??[]).filter(m=>m.role==='proprietaire_direct');
+ const [navigation,fiche]=await Promise.all([c.rpc('mes_adhesions_navigation'),c.from('artisans').select('id').eq('account_id',user.id).maybeSingle()]);
+ const adhesions=(navigation.data??[]) as {role:string;organization:{id:string;name:string}|null}[];
+ const organisations=[...new Map(adhesions.flatMap(({organization})=>organization?[[organization.id,{id:organization.id,nom:organization.name}] as const]:[])).values()];
+ const orgAdmin=adhesions.filter(m=>m.role==='admin_agence').flatMap(m=>m.organization?[m.organization.id]:[]);
+ const espacesProprietaire=adhesions.flatMap(m=>m.role==='proprietaire_direct' && m.organization ? [m.organization] : []);
  // La page d'où l'aide a été ouverte peut porter l'une ou l'autre racine (/espace/<id> aujourd'hui, /agence/<id> pour un ancien lien) : on la compare sous la racine des dossiers.
  const retourRoute=versRouteAgence(retour);
- const espaceAide=espacesProprietaire.find(m=>retourRoute.startsWith(`/agence/${m.organization_id}/`)||retourRoute===`/agence/${m.organization_id}`)??(espacesProprietaire.length===1?espacesProprietaire[0]:null);
- const aide=espaceAide?`${baseEspace(espaceAide.organization_id as string,true)}/faq`:null;
- if(!orgIdIntegre&&aide&&params.type!=='contestation'&&(retourRoute.startsWith(`/agence/${espaceAide!.organization_id}`)||(!retour&&!fiche.data&&(adhesions.data??[]).every(m=>m.role==='proprietaire_direct')))){
+ const espaceAide=espacesProprietaire.find(m=>retourRoute.startsWith(`/agence/${m.id}/`)||retourRoute===`/agence/${m.id}`)??(espacesProprietaire.length===1?espacesProprietaire[0]:null);
+ const aide=espaceAide?`${baseEspace(espaceAide.id,true)}/faq`:null;
+ if(!orgIdIntegre&&aide&&params.type!=='contestation'&&(retourRoute.startsWith(`/agence/${espaceAide!.id}`)||(!retour&&!fiche.data&&adhesions.every(m=>m.role==='proprietaire_direct')))){
   const q=new URLSearchParams(contexte);for(const cle of ['type','sel','page','pageIdees'] as const)if(params[cle])q.set(cle,params[cle]!);if(params.vue==='idees'&&params.page){q.delete('page');q.set('pageIdees',params.page);}
   redirect(`${aide}${q.size?`?${q}`:''}${params.vue==='idees'?'#idees':params.sel?'#mes-demandes':'#nouvelle'}`);
  }
@@ -77,8 +78,8 @@ export async function ContenuAssistance({searchParams, orgIdIntegre}:{searchPara
     <div className={styles.colonneSuivi}>
     <section id="mes-demandes" className={styles.suivi} aria-labelledby="suivi-titre">
      <div className={styles.titreSuivi}><h2 id="suivi-titre">{orgIdIntegre&&<Inbox size={20} aria-hidden="true"/>}{vue==='idees'?'Idées à soutenir':vue==='agence'?'Demandes de mon agence':'Mes demandes et réponses'}</h2>{!error&&<span aria-label={`${count??retours.length} demandes`}>{count??retours.length}</span>}</div>
-     {(error||traces.error||adhesions.error)&&<p role="alert" className={styles.erreur}>Le suivi n’a pas pu être chargé complètement. Rechargez avant de conclure qu’une demande est absente.</p>}
-     {!error&&!traces.error&&!adhesions.error&&retours.length===0&&<div className={styles.vide}><span><Inbox size={27} aria-hidden="true"/></span><h3>{page>1?'Aucune demande sur cette page':vue==='idees'?'Vos idées ont leur place ici':vue==='agence'?'Aucune demande pour le moment':'Vous n’avez pas encore de demande'}</h3><p>{page>1?'Revenez à la page précédente pour retrouver vos demandes.':vue==='idees'?'Une amélioration faciliterait votre quotidien ? Partagez-la avec votre espace.':vue==='agence'?'Les nouvelles demandes de votre équipe apparaîtront ici.':'Après l’envoi, retrouvez ici le statut de votre demande et toutes les réponses de Gerimmo.'}</p>{vue==='idees'&&<Link href={lien({type:'idee'},'#nouvelle')}>Proposer une idée <ArrowRight size={14} aria-hidden="true"/></Link>}</div>}
+     {(error||traces.error||navigation.error)&&<p role="alert" className={styles.erreur}>Le suivi n’a pas pu être chargé complètement. Rechargez avant de conclure qu’une demande est absente.</p>}
+     {!error&&!traces.error&&!navigation.error&&retours.length===0&&<div className={styles.vide}><span><Inbox size={27} aria-hidden="true"/></span><h3>{page>1?'Aucune demande sur cette page':vue==='idees'?'Vos idées ont leur place ici':vue==='agence'?'Aucune demande pour le moment':'Vous n’avez pas encore de demande'}</h3><p>{page>1?'Revenez à la page précédente pour retrouver vos demandes.':vue==='idees'?'Une amélioration faciliterait votre quotidien ? Partagez-la avec votre espace.':vue==='agence'?'Les nouvelles demandes de votre équipe apparaîtront ici.':'Après l’envoi, retrouvez ici le statut de votre demande et toutes les réponses de Gerimmo.'}</p>{vue==='idees'&&<Link href={lien({type:'idee'},'#nouvelle')}>Proposer une idée <ArrowRight size={14} aria-hidden="true"/></Link>}</div>}
      {afficherDemandes(retours)}
      {((count??0)>20||page>1)&&<nav aria-label="Pages des demandes" className={styles.pagination}>{page>1?<Link href={lien({...(orgIdIntegre?{pageIdees:String(pageIdees)}:{vue}),page:String(page-1)},'#mes-demandes')}>Précédente</Link>:<span/>}<span>Page {page}</span>{page*20<(count??0)?<Link href={lien({...(orgIdIntegre?{pageIdees:String(pageIdees)}:{vue}),page:String(page+1)},'#mes-demandes')}>Suivante</Link>:<span/>}</nav>}
      {!orgIdIntegre&&vue==='suivi'&&aide&&<Link className={styles.aideLien} href={aide}><BookOpen size={18} aria-hidden="true"/><span><strong>Une réponse immédiate ?</strong><small>Consultez les questions fréquentes</small></span><ArrowRight size={16} aria-hidden="true"/></Link>}

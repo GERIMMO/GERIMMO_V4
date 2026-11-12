@@ -571,7 +571,37 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
       attendLeVerrou = (await semeur.query("select wait_event_type = 'Lock' attente from pg_stat_activity where pid=$1", [pidConcurrent])).rows[0]?.attente;
       if (!attendLeVerrou) await new Promise((resolve) => setTimeout(resolve, 25));
     }
-    await sessionB.query("commit");
+    // Un propriétaire confirme un ancien solde pendant que B termine le départ.
+    const caisse = new Client({ connectionString: DB_URL });
+    await caisse.connect();
+    try {
+      await porterLesClaims(caisse, compte!);
+      await caisse.query("set role authenticated");
+      const { rows: [appel] } = await semeur.query(
+        "select a.id, a.bail_id from public.appels_loyer a join public.restitutions r on r.bail_id=a.bail_id where r.id=$1", [restitution]
+      );
+      const pidDepart = (await sessionB.query("select pg_backend_pid() pid")).rows[0].pid;
+      const pidCaisse = (await caisse.query("select pg_backend_pid() pid")).rows[0].pid;
+      const avant = (await semeur.query("select count(*) from public.encaissements where bail_id=$1", [appel.bail_id])).rows[0].count;
+      const paiement = caisse.query(
+        "select public.encaisser_reste_atomique($1,$2,$3,$4,300,0) resultat",
+        [org, appel.bail_id, appel.id, crypto.randomUUID()]
+      );
+      let bloqueParLeDepart = false;
+      try {
+        for (let i = 0; i < 100 && !bloqueParLeDepart; i++) {
+          bloqueParLeDepart = (await semeur.query("select $1::int = any(pg_blocking_pids($2::int)) bloque", [pidDepart, pidCaisse])).rows[0].bloque;
+          if (!bloqueParLeDepart) await new Promise(resolve => setTimeout(resolve, 25));
+        }
+      } finally {
+        await sessionB.query("commit");
+      }
+      expect((await paiement).rows[0].resultat.statut).toBe("au_decompte");
+      expect(bloqueParLeDepart).toBe(true);
+      expect((await semeur.query("select count(*) from public.encaissements where bail_id=$1", [appel.bail_id])).rows[0].count).toBe(avant);
+    } finally {
+      await caisse.end();
+    }
     expect(attendLeVerrou).toBe(true);
     expect(await concurrent).toMatch(/déjà finalisé/);
     const sorties = await semeur.query("select count(*)::int n, sum(e.montant)::float8 total from public.ecritures e join public.restitutions r on r.bail_id=e.bail_id where r.id=$1 and e.sens='depense' and e.categorie='depot_garantie'", [restitution]);

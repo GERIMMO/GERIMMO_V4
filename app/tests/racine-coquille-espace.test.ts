@@ -215,8 +215,8 @@ describe("« Mes espaces » : l'entrée directe d'un compte à une seule adhési
   function compte(role: string) {
     return client(
       // Pas de relais de supervision (`has_supervision_power` faux), pas d'invitation, pas d'artisan, pas d'ancien bail.
-      (table, filtres) => table === "has_supervision_power" ? false
-        : table === "memberships" && filtres.status === "active" ? [{ id: "m-1", role, organization: { id: ORG, name: "Organisation TEST" } }] : [],
+      (table) => table === "has_supervision_power" ? false
+        : table === "mes_adhesions_navigation" ? [{ id: "m-1", role, organization: { id: ORG, name: "Organisation TEST" } }] : [],
       { auth: { getUser: async () => ({ data: { user: { id: "compte", user_metadata: {} } } }) } },
     );
   }

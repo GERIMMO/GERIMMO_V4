@@ -67,3 +67,16 @@ manquants est aussi vérifié côté base. La RPC existante reste disponible ave
 Migration supplémentaire 20261112120400, testée uniquement sur copie isolée. 35 tests ciblés
 réussis (3 fichiers), dont clé datée, historique et refus de tantièmes manquants.
 Vérification TypeScript et ESLint sur les fichiers concernés réussie.
+
+G-11 : en production, la règle de lecture de la fiche d’organisation accepte toute adhésion
+active de l’organisation sans distinction de rôle. Les privilèges couvrent des colonnes internes.
+Preuve : définition de la politique et privilèges lus au catalogue ; aucune donnée personnelle extraite.
+Sur la branche corrective, la table complète est réservée à la gestion/supervision. Le portail
+utilise une projection de huit champs, filtrée par adhésion ; seul un locataire actif de
+l’organisation y reçoit l’IBAN. Le sélecteur utilise les propres adhésions du compte.
+Migration 20261112120500. Test de 2 organisations sur PostgreSQL, gestionnaire puis locataire
+authentifié : portail de A accessible, portail de B invisible, fiche interne inaccessible,
+liste des champs confrontée à une liste fermée. 322/322 tests ciblés (25 fichiers).
+Avant promotion, vérifier les pages servies par PostgREST, le sélecteur pour les trois rôles et
+la continuité de navigation en transition. En cas de souci, conserver la politique restrictive.
+Les tests d’interface et la restauration d’un environnement hébergé restent à distinguer du banc.

@@ -1,0 +1,8 @@
+G-11 — livraison isolée depuis cce58ab8, sans les migrations financières
+1. Vérifier les CI de la révision intégrée, la promotion manuelle, les comptes fictifs autorisés et la récupérabilité d’une sauvegarde fraîche.
+2. Installer uniquement 20261112120500_organisation_portail_limite.sql avec le workflow protégé. Les anciens lecteurs continuent à fonctionner. Vérifier la projection et la RPC de navigation sur la base et à travers PostgREST.
+3. Promouvoir l’application qui lit organisations_portail et mes_adhesions_navigation. Vérifier le propriétaire, le locataire et l’artisan, y compris la sélection d’espace sur mobile.
+4. Appliquer 20261112202241_fermer_fiche_interne_apres_bascule.sql. Vérifier les droits avec les comptes autorisés, la navigation et les journaux. Seule cette dernière opération ferme l’accès indu.
+5. Si la première phase échoue, arrêter avant la promotion. Après restriction, garder la politique restrictive en place. Corriger les lecteurs en avant en cas d’erreur. Ne pas remettre l’ancienne politique pour restaurer un écran.
+6. Les branches empilées #292, #294 et #295 doivent reprendre ces mêmes fichiers avant toute fusion ultérieure. Ne pas rejouer la migration ni accepter une empreinte différente sous le même numéro.
+Répétition locale : base neuve sur main, 470 migrations. Après le premier SQL, ancienne politique et nouvelle projection coexistent. Après le second SQL, 27 tests de socle, navigation et manifeste réussis. Recette PostgREST 14.5 effectuée avec deux organisations, trois rôles et perte d’accès lors de la révocation.

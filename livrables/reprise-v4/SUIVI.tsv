@@ -10,7 +10,7 @@ G-07	P1	confirmé (banc isolé + code)	Un abonné en impayé de renouvellement n
 G-08	P1	confirmé	Écritures nées du bâtiment (taxe foncière, paiement de facture) sans bien ni lot : finances et fiscalité par bien/SCI faussées	à requalifier sur le candidat
 G-09	P1	confirmé	Clé de répartition toujours datée du jour de validation : aucune facture antérieure ne peut être répartie selon la clé	correctif en recette isolée sur la branche des clés de répartition
 G-10	P1	confirmé	Téléphone de l'hébergeur absent des mentions légales (obligation LCEN)	à requalifier sur le candidat
-G-11	P2	confirmé	Le locataire lit par l'API toute la fiche de l'organisation du bailleur (parrainage, essai, abonnement, seuils de relance, SIRET, chemin de signature…)	à requalifier sur le candidat
+G-11	P2	confirmé	Le locataire lit par l'API toute la fiche de l'organisation du bailleur (parrainage, essai, abonnement, seuils de relance, SIRET, chemin de signature…)	portée de la règle confirmée en production ; protection et tests locaux
 G-12	P2	confirmé	Jeton d'une session fermée encore accepté par l'API REST et Storage jusqu'à 60 min (y compris signature d'URL de documents)	à requalifier sur le candidat
 G-13	P2	confirmé (code + copie isolée)	Périmètre pilote : relances de loyer (automatiques ET manuelles), avis d'échéance, information et confirmation de la caution, rappels et plusieurs notifications d'intervention suspendus ; bandeau inexact	à requalifier sur le candidat
 G-108	P2	confirmé (copie isolée)	Après la fin du bail : trois montants différents pour la même dette, relance proposée pour un terme déjà retenu sur le dépôt	à requalifier sur le candidat

@@ -45,7 +45,7 @@ export default async function PagePaiementsLocataire(
     // saisi dans son profil et que le bail imprime déjà (modalités de
     // paiement) ; même lecture que la marque du layout. Lecture ratée : on
     // retombe sur le lien vers le gestionnaire, rien de plus.
-    supabase.from("organizations").select("name, nom_portail, iban").eq("id", orgId).maybeSingle(),
+    supabase.from("organisations_portail").select("name, nom_portail, iban").eq("id", orgId).maybeSingle(),
     // Plan d'apurement (02/11) : le plan vivant ou le dernier, et la demande en attente.
     supabase.rpc("mon_plan_apurement", { p_org: orgId }),
     supabase.rpc("ma_demande_plan_apurement", { p_org: orgId }),

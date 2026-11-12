@@ -1,3 +1,4 @@
+import { presentationArchivee, type OptionsContrat } from "./communs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion } from "../gabarit";
 import { chargerContexteBail, liensLocataires, referenceCourte } from "./communs";
@@ -5,7 +6,7 @@ import { construireBailNu } from "./bail-nu";
 import { construireBailMeuble, type LigneInventaire } from "./bail-meuble";
 import type { Assemblage } from "./index";
 
-export async function assemblerBailIndividuel(supabase: SupabaseClient, orgId: string, bailId: string): Promise<Assemblage> {
+export async function assemblerBailIndividuel(supabase: SupabaseClient, orgId: string, bailId: string, format: OptionsContrat = {}): Promise<Assemblage> {
   const ctx = await chargerContexteBail(supabase, orgId, bailId);
   if ("erreur" in ctx) return ctx;
   if (ctx.bail.type !== "colocation" || !ctx.bail.chambre_id || !ctx.chambre) return { erreur: "Choisissez un contrat individuel rattaché à une chambre." };
@@ -19,7 +20,7 @@ export async function assemblerBailIndividuel(supabase: SupabaseClient, orgId: s
     if (error) return { erreur: "L’inventaire de ce contrat ne peut pas être chargé." };
     inventaire = data ?? [];
   }
-  const options = { f: new Fusion(), dpeClasse: dpe?.classe_dpe ?? null, inventaire };
+  const options = { presentationAncienne: format[presentationArchivee], f: new Fusion(), dpeClasse: dpe?.classe_dpe ?? null, inventaire };
   return {
     document: ctx.lot.meuble ? construireBailMeuble(ctx, options) : construireBailNu(ctx, options),
     titreGed: `Contrat individuel ${ctx.lot.meuble ? "meublé" : "nu"} — ${ctx.chambre.nom} (à faire signer)`,

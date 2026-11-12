@@ -7,6 +7,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { Fusion, type EnTeteExpediteur } from "../gabarit";
 
+// Réservé au recalcul de l’empreinte d’un circuit de signature déjà enregistré.
+export const presentationArchivee = Symbol("presentationArchivee");
+export type OptionsContrat = Record<string, string> & { [presentationArchivee]?: true };
+
 export type PersonneDocument = {
   id: string;
   nom: string;

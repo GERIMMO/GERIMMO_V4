@@ -1,3 +1,4 @@
+import { presentationArchivee, type OptionsContrat } from "./communs";
 // 02 — Contrat de location, logement meublé, résidence principale.
 // Fidèle à l'épreuve (sections I → XII, contrat type de l'annexe 2 du décret
 // 2015-587 ; régime du titre Ier bis de la loi de 1989, art. 25-3 à 25-11).
@@ -81,12 +82,10 @@ function montantPremiereEcheance(f: Fusion, bail: ContexteBail["bail"]): string 
 
 export function construireBailMeuble(
   ctx: ContexteBail,
-  options: { dpeClasse: string | null; inventaire: LigneInventaire[]; f: Fusion }
+  options: { dpeClasse: string | null; inventaire: LigneInventaire[]; f: Fusion; presentationAncienne?: boolean }
 ) {
   const f = options.f;
-  // En-tête contractuel figé pour les circuits de signature déjà ouverts.
-  // Les bailleurs réels figurent dans la désignation des parties.
-  const exp = expediteur({ organisation: ctx.organisation });
+  const exp = expediteur(options.presentationAncienne ? { organisation: ctx.organisation } : ctx);
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
   const indivision = ctx.bailleurs.length > 1;
@@ -306,7 +305,9 @@ export function construireBailMeuble(
     <p>Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>, en autant
     d'exemplaires originaux que de parties.</p>
     <div class="signatures">
-      ${cadreSignature("Le bailleur", f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination"))}
+      ${options.presentationAncienne || !indivision
+        ? cadreSignature("Le bailleur", f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination"))
+        : ctx.bailleurs.map((p, i) => cadreSignature(`Bailleur ${i + 1}`, f.champ(nomPersonne(p), "nom et prénom(s), ou dénomination"))).join("")}
       ${colocation ? ctx.locataires.map((l, i) => cadreSignature(`Colocataire ${i + 1}`, f.champ(nomPersonne(l), `nom du colocataire ${i + 1}`))).join("") : cadreSignature(
         plusieursLocataires ? "Les locataires" : "Le locataire",
         ctx.locataires.map((l) => echapper(nomPersonne(l) ?? "")).join("<br/>") ||
@@ -342,7 +343,8 @@ export function construireBailMeuble(
 export async function assemblerBailMeuble(
   supabase: SupabaseClient,
   orgId: string,
-  bailId: string
+  bailId: string,
+  format: OptionsContrat = {}
 ): Promise<Assemblage> {
   const ctx = await chargerContexteBail(supabase, orgId, bailId);
   if ("erreur" in ctx) return ctx;
@@ -374,6 +376,7 @@ export async function assemblerBailMeuble(
   if (erreurDpe || erreurInventaire) return { erreur: "Le diagnostic ou l’inventaire n’a pas pu être chargé. Réessayez avant de générer le contrat." };
   const f = new Fusion();
   const document = construireBailMeuble(ctx, {
+    presentationAncienne: format[presentationArchivee],
     dpeClasse: dpe?.classe_dpe ?? null,
     inventaire: (lignesInventaire ?? []) as LigneInventaire[],
     f,

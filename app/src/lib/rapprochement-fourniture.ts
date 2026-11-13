@@ -1,4 +1,5 @@
 import { rapprocherConsommations, type FactureFourniture, type ContratFourniture, type CompteurConsommation, type ReleveConsommation } from "./consommations";
+import { consommationMesuree } from "./controle-compteur-general";
 import { compteursPourFacture } from "./compteurs-facture";
 
 const ENERGIES = ["eau", "electricite_commune", "electricite_privative", "gaz", "chauffage"];
@@ -32,6 +33,11 @@ export function comparerFactureReleves(f: FactureFourniture, c: ContratFournitur
     const debut = releves.find(r => r.compteur_id === m.id && r.date_releve === f.periode_debut)?.index_releve ?? (m.date_index_initial === f.periode_debut ? m.index_initial : null);
     const fin = releves.find(r => r.compteur_id === m.id && r.date_releve === f.periode_fin)?.index_releve;
     if (debut == null || fin == null) return manque("Il manque des relevés aux dates exactes de la facture. Aucun total partiel n’est présenté comme une comparaison complète.");
+    try {
+      consommationMesuree(m, releves, f.periode_debut, f.periode_fin);
+    } catch (erreur) {
+      return manque(erreur instanceof Error ? erreur.message : "Vérifiez les relevés de ce compteur.");
+    }
     couples.push({ id: m.id, indexDebut: debut, indexFin: fin, dateDebut: f.periode_debut, dateFin: f.periode_fin });
   }
   try { return { bilan: rapprocherConsommations({ consommationFacturee: f.consommation, periodeDebut: f.periode_debut, periodeFin: f.periode_fin, logements: couples }), unite: unite === "m3" ? "m³" : "kWh" }; }

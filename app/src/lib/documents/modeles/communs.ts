@@ -23,6 +23,7 @@ export type PersonneDocument = {
   postal_code: string | null;
   city: string | null;
   qualite: string | null;
+  siren?: string | null;
 };
 
 export type ChambreDocument = { id: string; nom: string; surface_m2: number; volume_m3: number; description: string; espaces_partages: string; equipements: string | null };
@@ -122,7 +123,7 @@ export async function chargerContexteBail(
   bailId: string
 ): Promise<ContexteBail | { erreur: string }> {
   const CHAMPS_PERSONNE =
-    "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite";
+    "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite, siren";
 
   const [{ data: organisation, error: erreurOrganisation }, { data: bail, error: erreurBail }] = await Promise.all([
     supabase

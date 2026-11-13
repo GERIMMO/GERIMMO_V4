@@ -7,7 +7,7 @@ import { formaterDate } from "@/lib/ged";
 import styles from "./presentation-personne.module.css";
 
 type Identite = {
-  nom: string; prenom: string | null; qualite: string | null; email: string | null; telephone: string | null;
+  siren?: string | null; nom: string; prenom: string | null; qualite: string | null; email: string | null; telephone: string | null;
   address_line1: string | null; postal_code: string | null; city: string | null;
   date_naissance: string | null; commune_naissance: string | null;
 };
@@ -38,6 +38,7 @@ export function PresentationPersonne({ personne, roles, sansRole, retour, editio
           {personne.commune_naissance && <span className={styles.secondeLigne}>À {personne.commune_naissance}</span>}
           {(!personne.date_naissance || !personne.commune_naissance) && <a className={styles.completer} href={lienModifier}>Compléter l’état civil</a>}
         </> : <a href={lienModifier} className={styles.manquant}>Compléter l’état civil</a>}</dd></div>}
+        {!physique && <div><dt>SIREN</dt><dd>{personne.siren || <a href={lienModifier} className={styles.manquant}>Renseigner le SIREN</a>}</dd></div>}
       </dl>
       <div id="identite" className={styles.edition}>{edition}</div>
     </section>

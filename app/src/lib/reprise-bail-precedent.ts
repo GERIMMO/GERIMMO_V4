@@ -34,6 +34,19 @@ export function bailPrecedentDuLot<T extends BailPrecedent>(baux: readonly T[], 
     .sort((a, b) => finOccupation(b).localeCompare(finOccupation(a)) || b.id.localeCompare(a.id))[0] ?? null;
 }
 
+export type SortieDeLocation = Pick<BailPrecedent, "chambre_id" | "date_fin" | "date_sortie_reelle">;
+
+/** Même périmètre que controler_mise_en_location : un bail du logement entier occupe toutes les chambres. */
+export function premiereEntreePossible(sorties: readonly SortieDeLocation[], chambreId: string | null) {
+  let minimum: string | undefined;
+  for (const sortie of sorties) {
+    if (chambreId && sortie.chambre_id && sortie.chambre_id !== chambreId) continue;
+    const date = sortie.date_sortie_reelle ?? sortie.date_fin;
+    if (date && (!minimum || date > minimum)) minimum = date;
+  }
+  return minimum;
+}
+
 /** Valeurs proposées au nouveau brouillon. Le type n’est repris que s’il est nu ou meublé ; un bail nu garde des
  * provisions sur charges, le forfait n’étant ouvert qu’à la colocation ou au meublé (contrat type, section IV.B). */
 export function valeursReprisesDuBail(precedent: BailPrecedent, typeParDefaut: "nu" | "meuble"): ValeursParcoursBail {

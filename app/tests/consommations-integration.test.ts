@@ -183,6 +183,12 @@ describe("comparaison et décompte lisible", () => {
     expect(comparerFactureReleves(facture, contrat, [compteur, { ...compteur, id: "chaude", type: "eau_chaude" }], [releve, { ...releve, compteur_id: "chaude" }], ["lot"]).erreur).toMatch(/Plusieurs compteurs/);
     expect(comparerFactureReleves(facture, contrat, [compteur, { ...compteur, id: "ancien", actif: false }], [releve], ["lot"]).bilan?.consommationRelevee).toBe(10);
   });
+  it("ne qualifie pas d’exact un total qui masque une baisse d’index intermédiaire", () => {
+    const baisse = { ...releve, date_releve: "2026-09-15", index_releve: 95 };
+    const resultat = comparerFactureReleves(facture, contrat, [compteur], [releve, baisse], ["lot"]);
+    expect(resultat.bilan).toBeNull();
+    expect(resultat.erreur).toMatch(/décroissant/);
+  });
   it("ne mélange pas le gaz en m³ et les kWh de la facture", () => {
     const gaz = { ...contrat, categorie: "gaz" as const }, m = { ...compteur, type: "gaz" as const };
     expect(comparerFactureReleves(facture, gaz, [m], [releve], ["lot"]).erreur).toMatch(/unité/);

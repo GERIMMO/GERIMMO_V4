@@ -18,8 +18,11 @@ describe.skipIf(!url)("Départ SI-06 — congé saisi après le dernier appel", 
       await db.query("insert into memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct')",[compte,org]);
       const bien = await id("insert into biens(organization_id,nom,type,address_line1,postal_code,city,zone_tendue) values($1,'Immeuble test','immeuble','Rue fictive','45000','Orléans',false) returning id",[org]);
       const lot = await id("insert into lots(organization_id,bien_id,nom,etat) values($1,$2,'Appartement','loue') returning id",[org,bien]);
+      // La personne morale est le bailleur juridique du lot, distinct du compte gestionnaire.
+      const sci = await id("insert into persons(organization_id,nom,qualite,siren) values($1,'SCI SI-06','SCI','012345678') returning id",[org]);
+      await db.query("insert into detentions(organization_id,lot_id,person_id,quote_part,date_debut) values($1,$2,$3,100,'2026-01-01')",[org,lot,sci]);
       const personne = await id("insert into persons(organization_id,nom) values($1,'Locataire fictif') returning id",[org]);
-      const bail = await id("insert into baux(organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,depot_garantie,jour_echeance,zone_tendue) values($1,$2,$3,'nu','actif','2026-08-01',600,40,600,1,false) returning id",[org,lot,personne]);
+      const bail = await id("insert into baux(organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,depot_garantie,jour_echeance,zone_tendue,charges_mode) values($1,$2,$3,'nu','actif','2026-08-01',600,40,600,1,false,'provision') returning id",[org,lot,personne]);
       await db.query("insert into appels_loyer(organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) select $1,$2,m,m,600,40,640 from generate_series('2026-08-01'::date,'2026-11-01'::date,interval '1 month') m",[org,bail]);
       await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) select organization_id,bail_id,montant_du,periode,'virement' from appels_loyer where bail_id=$1 and periode<'2026-11-01'",[bail]);
       const compteLocataire = await id("insert into auth.users(id,email,raw_user_meta_data,raw_app_meta_data) values(gen_random_uuid(),$1,'{}','{}') returning id",[randomUUID()+"@example.invalid"]);
@@ -30,6 +33,22 @@ describe.skipIf(!url)("Départ SI-06 — congé saisi après le dernier appel", 
       await db.query("insert into appels_loyer(organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values($1,$2,date_trunc('month',current_date-31),current_date-31,410,0,410)",[org,secondBail]);
       await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:compte,role:"authenticated",aal:"aal2"})]);
       await db.query("set local role authenticated");
+      // Actions du gestionnaire sur le même immeuble avant le congé.
+      const incident = await id("select declarer_incident_bien_simple($1,$2,null,'Fuite des parties communes',current_date,'Essai local',gen_random_uuid()) id",[org,bien]);
+      expect((await db.query("select bien_id from incidents where id=$1",[incident])).rows[0].bien_id).toBe(bien);
+      const compteur = await id("insert into compteurs_consommation(organization_id,bien_id,lot_id,type,unite,libelle,index_initial,date_index_initial,prochaine_demande) values($1,$2,$3,'eau_froide','m3','Eau SI-06',100,'2026-08-01','2026-09-01') returning id",[org,bien,lot]);
+      await db.query("select enregistrer_releve_compteur($1,$2,125,'2026-09-01')",[org,compteur]);
+      expect(Number((await db.query("select index_releve from releves_consommation where compteur_id=$1",[compteur])).rows[0].index_releve)).toBe(125);
+      const contrat = await id("insert into contrats_fourniture(organization_id,bien_id,lot_id,fournisseur,categorie) values($1,$2,$3,'Eau fictive SI-06','eau') returning id",[org,bien,lot]);
+      const justificatif = await id("insert into documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'justificatif','Facture SI-06',$1::uuid::text||'/si06.pdf','application/pdf',123,repeat('a',64)) returning id",[org]);
+      const facture = await id("insert into factures_fourniture(organization_id,contrat_id,document_id,reference,periode_debut,periode_fin,total_cents,consommation,unite_consommation) values($1,$2,$3,'EAU-SI06','2026-08-01','2026-09-01',6000,25,'m3') returning id",[org,contrat,justificatif]);
+      const repartition = await id("select preparer_repartition_fourniture($1,$2,'Consommation relevée du lot SI-06','consommations') id", [facture, JSON.stringify([{lot_id:lot,bail_id:bail,compteur_id:compteur,poids:1,poids_fixe:1,recuperable:true}])]);
+      const calcul = (await db.query("select statut,empreinte,total_recuperable_cents from repartitions_fourniture where id=$1",[repartition])).rows[0];
+      expect(Number(calcul.total_recuperable_cents)).toBe(6000);
+      expect(calcul.statut).not.toBe("validee");
+      await db.query("select valider_repartition_fourniture($1,$2)",[repartition,calcul.empreinte]);
+      const paiement = await id("select payer_facture_fourniture($1,$2,'2026-09-05') id",[org,facture]);
+      expect(await id("select payer_facture_fourniture($1,$2,'2026-09-05') id",[org,facture])).toBe(paiement);
       await db.query("select public.encaisser_depot($1,600,'2026-08-01','virement',null,null)",[bail]);
       const edl=await id("insert into etats_des_lieux(organization_id,bail_id,type) values($1,$2,'entree') returning id",[org,bail]);
       await db.query("select generer_grille_edl($1)",[edl]);

@@ -29,6 +29,7 @@ export function BoutonGenererDocument({
   // Les choix du geste (motif d'un congé, garant d'un cautionnement…)
   options,
   completionSurPlace = false,
+  proposerSignature = true,
 }: {
   orgId: string;
   code: CodeModele;
@@ -39,6 +40,7 @@ export function BoutonGenererDocument({
   size?: "sm" | "default";
   options?: Record<string, string>;
   completionSurPlace?: boolean;
+  proposerSignature?: boolean;
 }) {
   const LienCompletion = completionSurPlace ? "a" : Link;
   // Décision D27 : les liens de cet espace vivent sous /espace/<id> chez le propriétaire direct.
@@ -70,7 +72,7 @@ export function BoutonGenererDocument({
       <Button type="button" size={size} variant={variant} disabled={enCours} onClick={generer}>
         {enCours ? <><Spinner /> Génération…</> : libelle}
       </Button>
-      {Object.hasOwn(DOCUMENTS_ZOHO,code) && <OuvrirSignatureDocument orgId={orgId} selection={{code:code as ModeleSignature,cibleId,options}}/>}
+      {proposerSignature && Object.hasOwn(DOCUMENTS_ZOHO,code) && <OuvrirSignatureDocument orgId={orgId} selection={{code:code as ModeleSignature,cibleId,options}}/>}
       {affichage?.documentId && (
         <a
           href={`${base}/documents/${affichage.documentId}/fichier`}

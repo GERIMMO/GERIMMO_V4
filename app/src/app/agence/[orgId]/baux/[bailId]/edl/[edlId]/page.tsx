@@ -207,6 +207,7 @@ export default async function PageEdl(
             {/* Documents-0 : le PDF (14/15) depuis la grille réelle */}
             {signe && !traverseeLectureSeule && <BoutonGenererDocument
               orgId={orgId}
+              proposerSignature={false}
               code="edl"
               cibleId={edlId}
               cheminRetour={`${base}/baux/${bailId}/edl/${edlId}`}

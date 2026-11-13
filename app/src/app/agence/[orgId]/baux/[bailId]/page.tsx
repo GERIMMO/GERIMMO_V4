@@ -1276,6 +1276,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             signature={<FinaliserParcoursBail recapitulatifStructure key={JSON.stringify([bail,lignesColoc,inventaire])} orgId={orgId} bailId={bailId}
               code={bail.chambre_id?"bail_individuel":bail.type==="colocation"?"bail_colocation":bail.type==="meuble"?"bail_meuble":"bail_nu"}
               signataires={[...(bail.locataire_principal ? [{id:bail.locataire_principal,nom:locataire?nomComplet(locataire):"Locataire principal"}]:[]),...lignesColoc.filter(p=>p.role==="colocataire"&&!p.date_depart).map(p=>({id:p.person_id,nom:p.person_nom}))]}
+              edlSigne={edlEntreeSigne}
               edlId={(edls??[]).find(e=>e.type==="entree")?.id??null}
               preparationEdl={erreurEdls?<p role="alert">Les états des lieux n’ont pas pu être chargés.</p>:<FormulaireCreerEdl orgId={orgId} bailId={bailId} bailEtat={bail.etat} typesExistants={(edls??[]).map(e=>e.type)}/>}
               signatureManuelle={depotSigne} proprietaireDirect={estProprietaire} documentSigne={documentSigne} lectureSeule={traverseeLectureSeule}/>} /></div>

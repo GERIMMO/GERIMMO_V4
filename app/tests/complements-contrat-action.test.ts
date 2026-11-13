@@ -41,4 +41,5 @@ it('X08 : enregistre les montants inchangés et renvoie un avertissement après 
   expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({loyer_reference:20,loyer_reference_majore:24,complement_loyer:100}));
   expect(mocks.update.mock.calls[0][0]).not.toHaveProperty('loyer_hc');
   expect(mocks.revalider).toHaveBeenCalledWith('/agence/org/parc/bien/lots/lot');
+  expect(mocks.revalider).toHaveBeenCalledWith('/espace/org/baux/bail');
 });

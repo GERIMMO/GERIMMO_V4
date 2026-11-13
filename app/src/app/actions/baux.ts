@@ -284,6 +284,7 @@ export async function modifierBail(
   }
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  revalidatePath(`/espace/${orgId}/baux/${bailId}`);
   return { succes: "Brouillon corrigé." };
 }
 
@@ -380,7 +381,11 @@ export async function modifierComplementsBail(
   }
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  if (logement?.bien_id) revalidatePath(`/agence/${orgId}/parc/${logement.bien_id}/lots/${contrat.lot_id}`);
+  revalidatePath(`/espace/${orgId}/baux/${bailId}`);
+  if (logement?.bien_id) {
+    revalidatePath(`/agence/${orgId}/parc/${logement.bien_id}/lots/${contrat.lot_id}`);
+    revalidatePath(`/espace/${orgId}/parc/${logement.bien_id}/lots/${contrat.lot_id}`);
+  }
   return { succes: "Compléments enregistrés.", valeurs, avertissements: avertissementsCoherenceLoyer({
     ...contrat, ...mentions, loyer_reference: nombre("loyer_reference"), loyer_reference_majore: nombre("loyer_reference_majore"),
     complement_loyer: nombre("complement_loyer"), complement_justification: texte("complement_justification"),

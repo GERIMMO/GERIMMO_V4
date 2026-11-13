@@ -150,10 +150,10 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     await page.goto(`/espace/${org}/parc/${bien}?decompte=nouvelle&lot=${lot}`);
     const depot = page.locator("#facture-etape-1 form");
     await depot.locator('input[type="file"]').setInputFiles({ name: "deuxieme-eau.pdf", mimeType: "application/pdf", buffer: pdfFictif() });
-    await depot.getByLabel("Nature", { exact: true }).selectOption("eau");
+    await depot.getByRole("combobox", { name: "Nature", exact: true }).selectOption("eau");
     await depot.locator('[name="consommation"]').fill("15");
-    await depot.getByLabel("Fournisseur", { exact: true }).fill("Eau du secteur fictif");
-    await expect(depot.getByLabel("Nature", { exact: true })).toHaveValue("eau");
+    await depot.getByRole("combobox", { name: "Fournisseur", exact: true }).fill("Eau du secteur fictif");
+    await expect(depot.getByRole("combobox", { name: "Nature", exact: true })).toHaveValue("eau");
     await expect(depot.locator('[name="consommation"]')).toHaveValue("15");
     await depot.getByLabel("Montant total", { exact: true }).fill("39,50");
     await depot.getByLabel("Début de la période", { exact: true }).fill(dates.debut);

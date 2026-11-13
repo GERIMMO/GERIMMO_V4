@@ -22,7 +22,7 @@ describe.skipIf(!DB_URL)("Incidents dans le portefeuille de l'agent", () => {
   const id = async (sql: string, args: unknown[] = []) => (await db.query<{ id: string }>(sql, args)).rows[0].id;
   const devenir = async (compte: string) => {
     await db.query("reset role");
-    await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated','aal','aal2')::text,true)", [compte]);
+    await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated','aal','aal2','session_id',$1::text)::text,true)", [compte]);
     await db.query("set local role authenticated");
   };
   const postgres = async () => {
@@ -46,6 +46,7 @@ describe.skipIf(!DB_URL)("Incidents dans le portefeuille de l'agent", () => {
       await compte("admin"), await compte("agentA"), await compte("agentB"),
       await compte("sa"), await compte("locataire"), await compte("artisan"),
     ];
+    await db.query("insert into auth.sessions(id,user_id) select x,x from unnest($1::uuid[]) x", [[admin,agentA,agentB,sa,locataireCompte,artisanCompte]]);
     await db.query(`insert into public.memberships(account_id,organization_id,role) values
       ($1,$2,'admin_agence'),($3,$2,'agent'),($4,$2,'agent'),($5,null,'super_admin'),
       ($6,$2,'locataire'),($7,$2,'artisan')`, [admin, org, agentA, agentB, sa, locataireCompte, artisanCompte]);

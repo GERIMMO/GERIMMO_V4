@@ -45,7 +45,7 @@ test("G-19 : mettre fin à une détention exige une confirmation explicite", asy
     await bouton.click();
     const dialogue = page.getByRole("dialog", { name: "Mettre fin à cette détention" });
     await expect(dialogue).toBeVisible();
-    await expect(dialogue).toContainText("cessera d’être propriétaire de ce lot".replace("’", "'"));
+    await expect(dialogue).toContainText("reste propriétaire de ce lot jusqu’à la fin de la journée");
     await expect(dialogue).toContainText("%");
     await dialogue.getByRole("button", { name: "Annuler" }).click();
     await expect(dialogue).toHaveCount(0);
@@ -60,7 +60,10 @@ test("G-19 : mettre fin à une détention exige une confirmation explicite", asy
     await page.getByRole("dialog", { name: "Mettre fin à cette détention" }).getByRole("button", { name: "Mettre fin à la détention" }).click();
     await expect.poll(fin, { timeout: 20_000 }).not.toBeNull();
     await page.reload();
-    await expect(page.getByText("Anciens propriétaires")).toBeVisible();
+    await expect(page.getByText(/Propriétaire depuis le .*jusqu’au .* inclus/)).toBeVisible();
+    await page.getByText("Gérer cette détention").click();
+    await expect(page.getByRole("button", { name: /rouvrir/i })).toBeVisible();
+    await expect(bouton).toHaveCount(0);
   } finally {
     if (lot) await nettoyer(lot);
     await db.end();

@@ -1,3 +1,10 @@
+DERNIER ÉTAT — 13 novembre, 03 h 55 (Paris)
+Production et main : 6661689e51884e465056449727e9f0dee7446387, G-11. PR 302 en brouillon, CI verte et Stripe TEST vert sur 668d22b6. Aucune nouvelle publication.
+Candidat consolidé actuel : PR 309, 38f38801d9003ac963f7bc4ddedf24e05d67b134, CI 43355208482, Stripe TEST 43355202423. Le SHA 582e978b mentionné plus bas est antérieur. L’installation sur base neuve des 485 migrations de la révision actuelle a réussi. 143 contrôles ciblés sur ce schéma ont réussi. L’ancien SHA a passé Stripe TEST 16/16 ainsi que 88 tests de signatures et de consommation sur la base combinée. Attendre les résultats de la révision actuelle.
+G-12 : l’ancienne CI rapportait huit échecs en lien avec le hook du schéma public, la dépendance au retour historique de la fonction et une session fictive sans identifiant pour les documents Zoho. Les contrôles sont dans un schéma privé et la recette de signature conserve les sessions des deux utilisateurs. 131 tests réussis, 4 ignorés dans la sélection locale sur la nouvelle révision de 307 (5864c26a). CI 43355203426.
+G-20 : PR 310, fe07850ec4844c689d4917646dfa11950c2c6f89, incorporée à 309. L’écran affichait 0 % le dernier jour d’une détention encore à 100 % en base ; les bornes sont désormais celles du contrôle SQL et une détention future apparaît séparément. Test du dernier jour et du lendemain réussi. L’édition des quotes-parts avec conservation de leur historique reste à traiter.
+Décision : NO GO sur la livraison combinée, le pilote et l’ouverture payante à ce point de contrôle. Aucune action GitHub personnelle en attente. Les références ci-dessous consignent les étapes successives.
+
 GERIMMO V4 — bilan et reprise du 13 novembre 2026
 Publication au dernier contrôle : G-11 seul, SHA 6661689e51884e465056449727e9f0dee7446387, santé application et base OK, maintenance désactivée. Aucune migration ni promotion réalisée pour les travaux ci-dessous.
 

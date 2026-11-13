@@ -137,12 +137,12 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
         <p className="text-xs text-muted-foreground">La date, votre confirmation, son heure et son auteur sont conservées avec ce circuit de signature et affichées dans le suivi de ce circuit.</p>
       </div>}
       {attente&&!mobileCautionConfirme&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm">{attente.etat==="expire"
-        ?<>Le lien envoyé à la caution le {instant(attente.envoyeLe)} a expiré sans confirmation. Envoyez-lui un nouveau lien.</>
-        :<><strong>En attente de la caution.</strong> Un lien lui a été envoyé le {instant(attente.envoyeLe)} ; il expire le {instant(attente.expireLe)}. Dès qu’elle aura confirmé son numéro de mobile, l’acte lui sera envoyé en signature.</>}</p>}
+        ?<>Le lien de confirmation préparé le {instant(attente.envoyeLe)} a expiré sans confirmation. Envoyez-lui un nouveau lien.</>
+        :<><strong>En attente de la caution.</strong> Lien de confirmation préparé le {instant(attente.envoyeLe)} ; il expire le {instant(attente.expireLe)}. Sa confirmation du mobile est nécessaire avant l’envoi en signature.</>}</p>}
       {garantsEnAttente.filter(p=>liensGarants.has(p.personId)).map(p=>{const lien=liensGarants.get(p.personId)!;return <div key={p.personId} role="status" className="space-y-2 rounded-xl bg-warning-soft p-3 text-sm">
         <p>{lien.etat==="expire"
-          ?<>Le lien envoyé à {p.prenom} {p.nom} le {instant(lien.envoyeLe)} a expiré sans confirmation. Envoyez-lui un nouveau lien.</>
-          :<><strong>En attente du garant {p.prenom} {p.nom}.</strong> Un lien lui a été envoyé le {instant(lien.envoyeLe)} ; il expire le {instant(lien.expireLe)}. Dès que tous les garants auront confirmé leur numéro de mobile, le bail partira en signature.</>}</p>
+          ?<>Le lien de confirmation de {p.prenom} {p.nom}, préparé le {instant(lien.envoyeLe)} a expiré sans confirmation. Envoyez-lui un nouveau lien.</>
+          :<><strong>En attente du garant {p.prenom} {p.nom}.</strong> Lien de confirmation préparé le {instant(lien.envoyeLe)} ; il expire le {instant(lien.expireLe)}. Chaque garant doit confirmer son mobile avant l’envoi du bail en signature.</>}</p>
         <Button variant="outline" disabled={occupe||vue?.versionDepassee||vue?.mode==="indisponible"} onClick={()=>agir(()=>envoyerSignatureBail(orgId,contratId,c.id,{garant:p.personId}))}>{lien.etat==="expire"?"Envoyer un nouveau lien":"Renvoyer le lien"}<span className="sr-only"> à {p.prenom} {p.nom}</span></Button>
       </div>;})}
       <Button disabled={occupe||!relu||!edlConfirme||vue?.versionDepassee||vue?.mode==="indisponible"} onClick={()=>agir(()=>envoyerSignatureBail(orgId,contratId,c.id,code==="edl"?{visiteLe:visite,surPlace}:undefined))}><Mail size={16}/>{occupe?"Traitement…":code==="cautionnement"&&!mobileCautionConfirme?(attente?"2. Renvoyer le lien à la caution":"2. Envoyer le lien de confirmation à la caution"):garantsEnAttente.length&&liensGarantsEnvoyes?"2. Renvoyer le lien aux garants en attente":"2. Envoyer ce document pour signature"}</Button>

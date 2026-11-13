@@ -14,6 +14,7 @@
 // Usage : node e2e/local/serveur-supabase-local.mjs   (port 54321)
 // Puis : NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run dev
 
+import { projectionColonne } from "./projection-colonne.mjs";
 import http from "node:http";
 import { facteursPour, oublierFacteurs, routerMfaLocal } from "./mfa-local.mjs";
 import crypto from "node:crypto";
@@ -376,7 +377,7 @@ async function chargerEmbeds(client, tableParent, lignes, arbre, filtresEmbeds, 
         ? "*"
         : [...new Set([...colsDemandees, cleEmbed, ...noeud.enfants.filter((n) => n.type === "embed").flatMap((n) => {
             try { return resoudreRelation(noeud.table, n.table, n.fk).colsParent; } catch { return []; }
-          })])].map((c) => `"${c}"`).join(", ");
+          })])].map(projectionColonne).join(", ");
       const sql = `select ${colsSql} from "${noeud.table}" where "${cleEmbed}" = any($1)${filtres.length ? " and " + filtres.join(" and ") : ""}`;
       const r = await client.query(sql, params);
       lignesEmbed = r.rows;
@@ -465,7 +466,7 @@ async function lireTable(claims, table, url, entetes) {
       ? "*"
       : [...new Set([...colsDemandees, ...arbre.filter((n) => n.type === "embed").flatMap((n) => {
           try { return resoudreRelation(table, n.table, n.fk).colsParent; } catch { return []; }
-        })])].map((c) => `"${c}"`).join(", ");
+        })])].map(projectionColonne).join(", ");
     let sql = `select ${colsSql} from "${table}"${where}`;
     if (ordre) sql += ` order by ${ordre}`;
     if (!inner && limite !== null) sql += ` limit ${limite}`;

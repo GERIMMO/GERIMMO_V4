@@ -180,6 +180,7 @@ const MISSION_OCTOBRE = [
   "20261113041455_historique_bail_brouillon.sql",
   "20261113113325_remplacement_compteur_mesure.sql",
   "20261113141000_representation_bail_sci.sql",
+  "20261113143200_index_pouvoir_bail.sql",
 
 
 ];

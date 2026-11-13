@@ -65,6 +65,12 @@ describe("finalisation du bail : contrôle avant génération et consultation su
     const html = rendre({ manquants: [] }, { edlId: "edl" });
     expect(html).toContain("Grille disponible"); expect(html).toContain("Compléter la grille"); expect(html).toContain("Signature de l’état des lieux");
   });
+  it("un état des lieux signé conserve son PDF et sa consultation, sans seconde signature", () => {
+    const html = rendre(null, { edlId: "edl", edlSigne: true });
+    expect(html).toContain("Consulter la grille");
+    expect(html).toContain("Générer le PDF de l’état des lieux");
+    expect(html).not.toContain("Signature de l’état des lieux");
+  });
   it("une grille absente reste honnête en consultation", () => {
     const html = rendre(null, { lectureSeule: true }); expect(html).toContain("Aucune grille disponible."); expect(html).not.toContain("Préparer la grille</button>");
   });

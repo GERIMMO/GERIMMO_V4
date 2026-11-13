@@ -5,6 +5,9 @@
 
 -- ── Rôles PostgREST ────────────────────────────────────────────────────────
 do $$ begin
+  if not exists (select from pg_roles where rolname = 'authenticator') then
+    create role authenticator nologin;
+  end if;
   if not exists (select from pg_roles where rolname = 'anon') then
     create role anon nologin;
   end if;

@@ -10,8 +10,9 @@ assert.equal(api.hostname,'127.0.0.1');
 assert.equal(api.protocol,'http:');
 const db = new Client({connectionString:dbUrl.href});
 const [org,other,account]=Array.from({length:3},()=>randomUUID());
+const session=randomUUID();
 const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
-const payload = encode({alg:'HS256',typ:'JWT'})+'.'+encode({sub:account,role:'authenticated',exp:Math.floor(Date.now()/1000)+300});
+const payload = encode({alg:'HS256',typ:'JWT'})+'.'+encode({sub:account,session_id:session,role:'authenticated',exp:Math.floor(Date.now()/1000)+300});
 const authorization = 'Bearer '+payload+'.'+createHmac('sha256',process.env.POSTGREST_REEL_JWT_SECRET).update(payload).digest('base64url');
 async function read(path) {
   const result=await fetch(new URL(path,api),{headers:{authorization}});
@@ -23,6 +24,7 @@ try {
   await db.query('begin');
   await db.query("insert into organizations(id,name,status,iban) values($1,'Test portail','active','FR7612345678901234567890123'),($2,'Test voisin','active',null)",[org,other]);
   await db.query("insert into auth.users(id,email,raw_user_meta_data,raw_app_meta_data) values($1,$2,'{}','{}')",[account,account+'@example.invalid']);
+  await db.query('insert into auth.sessions(id,user_id) values($1,$2)',[session,account]);
   await db.query("insert into memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct')",[account,org]);
   await db.query('commit');
   const base='/organizations?select=id&id=in.('+org+','+other+')';
@@ -38,6 +40,8 @@ try {
   await db.query("update memberships set status='inactive' where account_id=$1",[account]);
   assert.deepEqual(await read(portail),[]);
   assert.deepEqual(await read('/rpc/mes_adhesions_navigation'),[]);
+  await db.query('delete from auth.sessions where id=$1',[session]);
+  assert.equal((await fetch(new URL('/rpc/mes_adhesions_navigation',api),{headers:{authorization}})).status,401);
   console.log('PostgREST : propriétaire, locataire, artisan, organisation voisine et révocation vérifiés.');
 } finally {
   await db.query('rollback');

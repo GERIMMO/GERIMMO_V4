@@ -199,8 +199,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const { data: bauxPrecedents } = bail.etat === "brouillon"
     ? await supabase.from("baux").select("id, chambre_id, etat, type, date_debut, date_fin, date_sortie_reelle, loyer_hc, charges, charges_mode, jour_echeance, paiement_echeance, revision_irl, irl_trimestre, irl_valeur").eq("organization_id", orgId).eq("lot_id", bail.lot_id).in("etat", ["termine", "preavis"])
     : { data: null };
-  const bailPrecedent = bailPrecedentDuLot(bauxPrecedents ?? [], bail.chambre_id);
-  const sorties = (bauxPrecedents ?? []).filter(b => b.etat === "termine").map(({ chambre_id, date_sortie_reelle, date_fin }) => ({ chambre_id, date_sortie_reelle, date_fin }));
+  const precedents = Array.isArray(bauxPrecedents) ? bauxPrecedents : [];
+  const bailPrecedent = bailPrecedentDuLot(precedents, bail.chambre_id);
+  const sorties = precedents.filter(b => b.etat === "termine").map(({ chambre_id, date_sortie_reelle, date_fin }) => ({ chambre_id, date_sortie_reelle, date_fin }));
 
   // Résolution des noms pour la colocation (colocataires + garants nominatifs)
   const nomsPersonnes = new Map(

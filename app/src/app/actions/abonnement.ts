@@ -304,8 +304,7 @@ export async function demarrerAbonnement(
   const service = clientDeService();
   if (!service) return { erreur: "Le service de paiement est momentanément indisponible. Réessayez plus tard." };
   // Plan du 23/10 (R16) : la case cochée vaut demande expresse d'un abonnement payant qui commence pendant le délai de
-  // rétractation ; son horodatage entre dans la preuve (journal d'audit, sans coordonnée). Un échec d'écriture ne bloque
-  // pas la souscription : il reste au journal serveur.
+  // rétractation ; son horodatage entre dans la preuve (journal d'audit, sans coordonnée). Sans cette preuve, aucune page de paiement ne doit être ouverte.
   const { error: erreurCommande } = await service.rpc("abonnement_geste_consigner", {
     p_org: orgId,
     p_account: user.id,
@@ -315,10 +314,11 @@ export async function demarrerAbonnement(
       periodicite: offre.periodicite,
       formule: offre.public === "particulier" ? offre.formule.code : "agence",
       case_confirmation: "2026-10-24",
+      conditions_acceptees: CONDITIONS_VERSION,
       premier_prelevement_differe: etat.statut === "essai" && Boolean(etat.essai_fin),
     },
   });
-  if (erreurCommande) console.error("[souscription] case de confirmation non consignée :", erreurCommande.message.slice(0, 200));
+  if (erreurCommande) return { erreur: "Votre confirmation n’a pas pu être enregistrée. Aucune page de paiement n’a été ouverte. Réessayez dans un instant." };
   const session = await ouvrirPageDePaiementUnique(stripe, registreDeService(service), {
     offre,
     regime: REGIME_TVA,

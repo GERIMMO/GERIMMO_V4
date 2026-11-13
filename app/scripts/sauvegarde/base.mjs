@@ -26,7 +26,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chiffrer, dechiffrer, lireCle } from './fichiers.mjs';
-import { exporterTachesPlanifiees, FICHIER_REJEU, FICHIER_TACHES, FICHIER_TACHES_CLAIR, genererRejeu } from './taches-planifiees.mjs';
+import { lancerPsql, exporterTachesPlanifiees, FICHIER_REJEU, FICHIER_TACHES, FICHIER_TACHES_CLAIR, genererRejeu } from './taches-planifiees.mjs';
 
 /** Données, droits et historique des migrations, nécessaires à une reprise sans réappliquer les migrations. */
 export const SCHEMAS = ['public', 'auth', 'storage', 'support_interne', 'consommations_interne', 'gerimmo_session_interne', 'supabase_migrations'];
@@ -71,6 +71,17 @@ export function lancerPgDump({ args, env }, commande = 'pg_dump', schemas = SCHE
   });
 }
 
+// Le workflow de sauvegarde peut précéder les migrations lors de la bascule.
+export async function schemasSource(connexion, psql) {
+  const resultat = await lancerPsql(connexion, `select
+    exists(select 1 from supabase_migrations.schema_migrations
+      where split_part(version, '_', 1) = '20261113022327')::int || ':' ||
+    (to_regnamespace('gerimmo_session_interne') is not null)::int`, psql);
+  if (resultat === '1:1') return SCHEMAS;
+  if (resultat === '0:0') return SCHEMAS.filter(s => s !== 'gerimmo_session_interne');
+  throw new Error('Le schéma privé des sessions et l’historique des migrations divergent. Sauvegarde interrompue.');
+}
+
 export async function exporter(dossier, cle, connexion, options = {}) {
   await fs.mkdir(dossier, { mode: 0o700 });
   let octets;
@@ -79,9 +90,14 @@ export async function exporter(dossier, cle, connexion, options = {}) {
   const extras = options.snapshot ? [`--snapshot=${options.snapshot}`] : [];
   // D07 (AUD-C-02) : les tâches planifiées (`cron.job`, schéma `cron`) ne font pas partie des schémas sauvegardés par pg_dump.
   // Elles sont lues avec le dump et avant toute écriture : si la lecture échoue, rien n'est laissé à moitié.
-  let taches;
+  let taches, schemas;
   try {
-    octets = await lancerPgDump(argumentsConnexion(connexion), options.commande, options.schemas, extras);
+    const source = argumentsConnexion(connexion);
+    schemas = options.schemas ?? await schemasSource(source, options.psql);
+    octets = await lancerPgDump(source, options.commande, schemas, extras);
+    if (!options.schemas && (await schemasSource(source, options.psql)).length !== schemas.length) {
+      throw new Error('Les migrations ont changé pendant la sauvegarde. Recommencez après la bascule.');
+    }
     taches = await exporterTachesPlanifiees(argumentsConnexion(connexion), { psql: options.psql });
   }
   catch (e) { await fs.rmdir(dossier).catch(() => {}); throw e; }
@@ -90,7 +106,7 @@ export async function exporter(dossier, cle, connexion, options = {}) {
   const clairTaches = Buffer.from(JSON.stringify({ version: 1, nature: 'taches-pg-cron', date, pg_cron: taches.pg_cron, taches: taches.taches }));
   await fs.writeFile(path.join(dossier, 'base.dump.gcm'), chiffrer(octets, cle), { mode: 0o600, flag: 'wx' });
   await fs.writeFile(path.join(dossier, FICHIER_TACHES), chiffrer(clairTaches, cle), { mode: 0o600, flag: 'wx' });
-  const manifeste = { version: 1, nature: 'base', date, schemas: options.schemas ?? SCHEMAS, taille: octets.length, sha256: empreinte(octets), hote: argumentsConnexion(connexion).args[1],
+  const manifeste = { version: 1, nature: 'base', date, schemas, taille: octets.length, sha256: empreinte(octets), hote: argumentsConnexion(connexion).args[1],
     taches_planifiees: { fichier: FICHIER_TACHES, pg_cron: taches.pg_cron, nombre: taches.taches.length, sha256: empreinte(clairTaches) } };
   await fs.writeFile(path.join(dossier, 'manifeste-base.gcm'), chiffrer(Buffer.from(JSON.stringify(manifeste)), cle), { mode: 0o600, flag: 'wx' });
   return { octets: octets.length, sha256: manifeste.sha256, taches_planifiees: taches.taches.length };

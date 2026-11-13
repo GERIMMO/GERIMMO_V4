@@ -110,6 +110,7 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
               id={idExpire}
               name="expire_le"
               type="date"
+              min={aujourdhui}
               required={dateExigee}
               defaultValue={etat.valeurs?.expire_le}
               className={CLASSE_CHAMP}

@@ -85,13 +85,14 @@ describe.skipIf(!url)("X09 et X14 : centime et plancher d'un encaissement", () =
   }
 
   describe("X09 (FIN-03) : un encaissement s'exprime au centime près", () => {
-    it("la contrainte existe, posée NOT VALID, sur les encaissements seulement", async () => {
+    it("la garde historique reste NOT VALID et le journal permet les contre-écritures anciennes", async () => {
       const { rows } = await db.query(
         "select conrelid::regclass::text as table_, convalidated, pg_get_constraintdef(oid) as def from pg_constraint where conname='encaissements_montant_centime_check'"
       );
       expect(rows).toEqual([{ table_: "encaissements", convalidated: false, def: "CHECK ((montant = round(montant, 2))) NOT VALID" }]);
-      const ecritures = await db.query("select conname from pg_constraint where conrelid='public.ecritures'::regclass and conname like '%centime%'");
-      expect(ecritures.rows).toEqual([]);
+      const journal = await db.query("select pg_get_constraintdef(oid) def from pg_constraint where conrelid='public.ecritures'::regclass and conname='ecritures_montant_centime_check'");
+      expect(journal.rows).toHaveLength(1);
+      expect(journal.rows[0].def).toMatch(/contre_ecriture_de IS NOT NULL.*montant = round/i);
     });
 
     it.each(["100.005", "0.001", "12.345", "840.0001"])("refuse %s € : trois décimales ou plus", async (montant) => {
@@ -150,6 +151,8 @@ describe.skipIf(!url)("X09 et X14 : centime et plancher d'un encaissement", () =
     it("NOT VALID : un encaissement ancien hors centime est laissé tel quel quand la migration se rejoue", async () => {
       // État d'avant la décision : pas de contrainte, un paiement à trois décimales déjà enregistré.
       await db.query("alter table public.encaissements drop constraint encaissements_montant_centime_check");
+      // Le journal de cette époque précédait aussi la garde posée par G-107.
+      await db.query("alter table public.ecritures drop constraint ecritures_montant_centime_check");
       const { rows: [{ id }] } = await encaisser("100.005");
       await db.query(MIGRATION_CENTIME);
       expect((await db.query("select montant::text as m from public.encaissements where id=$1", [id])).rows).toEqual([{ m: "100.005" }]);

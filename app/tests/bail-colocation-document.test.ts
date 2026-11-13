@@ -31,6 +31,28 @@ function client(erreur = "", inventaire = true) {
 }
 beforeEach(() => { vi.clearAllMocks(); mocks.charger.mockResolvedValue(colocation()); });
 describe("contrat commun de colocation", () => {
+  it.each([false,true])("sépare l’espace de gestion des deux bailleurs et préserve la présentation archivée (meublé=%s)", meuble => {
+    const c = colocation(meuble);
+    c.organisation.name = "Parc administratif";
+    c.organisation.city = "Ville du gestionnaire";
+    c.bailleurs[0].quote_part = 50;
+    c.bailleurs[0].city = "Ville du bailleur";
+    c.bailleurs.push({ ...personne({ id: "co", nom: "Rivière", prenom: "Alice" }), quote_part: 50 });
+    const construire = (presentationAncienne: boolean) => {
+      const options = { f: new Fusion(), dpeClasse: "C", inventaire: [], presentationAncienne };
+      return (meuble ? construireBailMeuble(c, options) : construireBailNu(c, options)).html;
+    };
+    const actuel = construire(false);
+    expect(actuel).toContain("Bailleur 1");
+    expect(actuel).toContain("Bailleur 2");
+    expect(actuel).toContain("Rivière");
+    expect(actuel).not.toContain("Parc administratif");
+    expect(actuel).not.toContain("Ville du gestionnaire");
+    const ancien = construire(true);
+    expect(ancien).toContain("Parc administratif");
+    expect(ancien).toContain("Ville du gestionnaire");
+    expect(ancien).not.toContain("Bailleur 2");
+  });
   it.each([false, true])("choisit le régime enregistré, garde le loyer total et rattache chaque colocataire : meublé=%s", async meuble => {
     mocks.charger.mockResolvedValue(colocation(meuble));
     const c = client(); const r = await assemblerBailColocation(c.supabase, "org", "b1");

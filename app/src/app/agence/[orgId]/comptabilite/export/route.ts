@@ -27,6 +27,8 @@ type LigneBrute = {
   id: string;
   contre_ecriture_de: string | null;
   lot_id: string | null;
+  bien_source?: UnOuPlusieurs<{nom:string}>;
+  lien_fourniture?: UnOuPlusieurs<{paiement: UnOuPlusieurs<{bien: UnOuPlusieurs<{nom:string}>}>}>;
   lot: UnOuPlusieurs<{ nom: string; bien: UnOuPlusieurs<{ nom: string | null }> }>;
   mandat: UnOuPlusieurs<{ person: UnOuPlusieurs<{ nom: string; prenom: string | null }> }>;
 };
@@ -168,6 +170,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
         .select(
           "id, lot_id, date_piece, date_imputation, categorie, sens, montant, libelle, systeme," +
             " contre_ecriture_de," +
+            " bien_source:biens!ecritures_bien_source_id_organization_id_fkey(nom)," +
+            " lien_fourniture:ecritures_factures_fourniture(paiement:paiements_factures_fourniture(bien:biens(nom)))," +
             // Deux clés étrangères relient lots à biens (dont une composite qui garde
             // l'agence cohérente) : il faut nommer celle qu'on suit.
             " lot:lots!ecritures_lot_id_fkey(nom, bien:biens!lots_bien_id_fkey(nom))," +
@@ -282,7 +286,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
     return [
       e.date_piece,
       e.date_imputation,
-      champ(premier(lot?.bien)?.nom),
+      champ(premier(lot?.bien)?.nom ?? premier(e.bien_source)?.nom ?? premier(premier(premier(e.lien_fourniture)?.paiement)?.bien)?.nom),
       champ(lot?.nom),
       champ(mandant),
       champ(e.categorie),

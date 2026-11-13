@@ -380,11 +380,13 @@ export default async function PageLot(
                           bienId={bienId}
                           lotId={lotId}
                           detentionId={d.id}
+                          proprietaire={nomPersonne(d.person as unknown as { nom: string; prenom: string | null })}
+                          quotePart={Number(d.quote_part)}
                         />
                       )}
                       {!traverseeLectureSeule && !d.date_fin && (baux ?? []).length === 0 && (
                         /* Ce bouton SUPPRIME : au doigt, on l'écarte de
-                           « Fermer » pour éviter le tap voisin. */
+                           « Mettre fin à la détention » pour éviter le tap voisin. */
                         <span className="pointer-coarse:ml-2">
                           <BoutonSupprimerDetention
                             orgId={orgId}
@@ -788,7 +790,7 @@ export default async function PageLot(
                 <div className="ml-auto text-right"><strong className="block text-2xl text-[var(--encre)]">{Number(d.quote_part)} %</strong><span className="text-xs text-muted-foreground">du lot</span></div>
               </div>
               {vous && <p className="mt-3 text-sm text-muted-foreground">Vous êtes déjà rattaché à ce lot en tant que propriétaire.</p>}
-              <details className="mt-3 border-t border-[var(--or-filet)] pt-2"><summary className="cursor-pointer py-1 text-xs text-muted-foreground">Gérer cette détention</summary><div className="mt-2 flex flex-wrap gap-2"><BoutonCloreDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} />{(baux ?? []).length === 0 && <BoutonSupprimerDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} proprietaire={nomPersonne(personne)} quotePart={Number(d.quote_part)} />}</div></details>
+              <details className="mt-3 border-t border-[var(--or-filet)] pt-2"><summary className="cursor-pointer py-1 text-xs text-muted-foreground">Gérer cette détention</summary><div className="mt-2 flex flex-wrap gap-2"><BoutonCloreDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} proprietaire={nomPersonne(personne)} quotePart={Number(d.quote_part)} />{(baux ?? []).length === 0 && <BoutonSupprimerDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} proprietaire={nomPersonne(personne)} quotePart={Number(d.quote_part)} />}</div></details>
             </li>;
           })}</ul> : <p className="rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm text-warning-soft-foreground">Aucun propriétaire n’est encore rattaché. Ajoutez-le ci-dessous pour compléter le lot.</p>}
           {(detentions ?? []).some(d => d.date_fin) && <details className="rounded-xl border border-border p-4"><summary className="cursor-pointer text-sm">Anciens propriétaires</summary><ul className="mt-3 space-y-3">{(detentions ?? []).filter(d => d.date_fin).map(d => <li key={d.id} className="flex flex-wrap items-center gap-3 text-sm"><span className="min-w-0 flex-1">{nomPersonne(d.person as unknown as { nom: string; prenom: string | null })} · {Number(d.quote_part)} %<small className="block text-muted-foreground">Du {formaterDate(d.date_debut)} au {formaterDate(d.date_fin)}</small></span><BoutonRouvrirDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} /></li>)}</ul></details>}

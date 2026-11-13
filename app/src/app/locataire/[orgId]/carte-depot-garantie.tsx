@@ -57,7 +57,7 @@ export function CarteDepotGarantie({
           <p className="v montant">{eur(Math.abs(solde))}</p>
           <p className="text-xs text-muted-foreground">
             {restantDu
-              ? "restant dû, solde de votre décompte"
+              ? "à régler par vos soins selon le décompte de départ"
               : "à vous restituer, solde de votre décompte"}
           </p>
           <span className={`loc-tag mt-2.5 ${restantDu ? "ambre" : "vert"}`}>

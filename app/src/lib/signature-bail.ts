@@ -1,3 +1,4 @@
+import { presentationArchivee } from "./documents/modeles/communs";
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { chargerContexteBail, type ContexteBail, type PersonneDocument } from "@/lib/documents/modeles/communs";
@@ -159,7 +160,7 @@ export function empreinteSignatureBail(html: string, signataires: SignataireBail
   return createHash("sha256").update(JSON.stringify({ html: stable, signataires })).digest("hex");
 }
 
-export async function assemblerSignatureBail(db: SupabaseClient, org: string, bail: string, options: { telephoneGarantDuDossier?: boolean } = {}) {
+export async function assemblerSignatureBail(db: SupabaseClient, org: string, bail: string, options: { telephoneGarantDuDossier?: boolean; presentationAncienne?: boolean } = {}) {
   const ctx = await chargerContexteBail(db, org, bail);
   if ("erreur" in ctx) throw new Error(ctx.erreur);
   if (ctx.bail.etat !== "brouillon") throw new Error("Seul un bail brouillon peut être envoyé pour signature.");
@@ -179,7 +180,7 @@ export async function assemblerSignatureBail(db: SupabaseClient, org: string, ba
   const pieces = await annexesSignatureBail(db,org,bail,ctx);
   manquants.push(...pieces.manquants);
   const code = ctx.bail.chambre_id ? "bail_individuel" : ctx.bail.type === "colocation" ? "bail_colocation" : ctx.bail.type === "meuble" ? "bail_meuble" : "bail_nu";
-  const modele = await MODELES[code].assembler(db, org, bail);
+  const modele = await MODELES[code].assembler(db, org, bail, options.presentationAncienne ? { [presentationArchivee]: true } : undefined);
   if ("erreur" in modele) throw new Error(modele.erreur);
   const incomplet = refusDocumentIncomplet(modele.document);
   if (incomplet) manquants.push(...incomplet.manquants);

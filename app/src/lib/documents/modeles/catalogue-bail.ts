@@ -79,6 +79,8 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         <p>Le formulaire officiel Cerfa 10842*07 reste à compléter et signer par le bailleur. Ce récapitulatif prépare la saisie ; il ne vaut pas formulaire CAF/MSA homologué.</p>`;
       signatures = true;
     } else if (["relance_simple","seconde_relance","mise_en_demeure","situation_dette","protocole_apurement"].includes(code)) {
+      const restitutions = await lireLignes(supabase.from("restitutions").select("id").eq("organization_id", orgId).eq("bail_id", bailId).eq("statut", "finalise"));
+      if (restitutions.length) return { erreur: "Le solde de ce bail figure dans le décompte de départ. Consultez ce document avant toute demande de règlement." };
       const termes = await lireLignes(supabase.rpc("etat_loyers_bail", { p_bail: bailId }));
       const echus = termes.filter(l => texte(l.date_echeance).slice(0,10) < aujourdhui && montant(l.montant_du) > montant(l.montant_couvert));
       let detteCentimes = echus.reduce((s,l)=>s+Math.round((montant(l.montant_du)-montant(l.montant_couvert))*100),0);

@@ -1,3 +1,4 @@
+import { biensDuPerimetre, dansPerimetreFinancier } from "@/lib/finances";
 import { lireEntitesPatrimoine } from "@/lib/entites-patrimoine";
 import Link from "next/link";
 import { csvRecapitulatifFiscal } from "@/lib/fiscal-export";
@@ -79,9 +80,11 @@ export async function RecapitulatifFiscal(props: {
     {data:exercicesRows,error:erreurExercices},
     {data:lotsRows,error:erreurLots},
   ]=await Promise.all([
-    supabase.from("ecritures").select("id,categorie,sens,montant,date_piece,contre_ecriture_de,lot_id,bail_id,encaissement_id,libelle").eq("organization_id",orgId).gte("date_piece",`${annee}-01-01`).lte("date_piece",`${annee}-12-31`),
+    (bien || entite
+      ? supabase.from("journal_par_bien").select("bien_id,id,categorie,sens,montant,date_piece,contre_ecriture_de,lot_id,bail_id,encaissement_id,libelle")
+      : supabase.from("ecritures").select("bien_id:bien_source_id,id,categorie,sens,montant,date_piece,contre_ecriture_de,lot_id,bail_id,encaissement_id,libelle")).eq("organization_id",orgId).gte("date_piece",`${annee}-01-01`).lte("date_piece",`${annee}-12-31`),
     supabase.from("fiscal_exercices_lots").select("*").eq("organization_id",orgId).eq("annee",annee).order("version",{ascending:false}),
-    supabase.from("lots").select("id,nom").eq("organization_id",orgId).order("nom"),
+    supabase.from("lots").select("id,nom,bien_id").eq("organization_id",orgId).order("nom"),
   ]);
   const ecrituresTronquees=lectureTronquee(ecritures);
   const identifiants=erreurEcritures||ecrituresTronquees?[]:identifiantsDesEcritures(ecritures??[]);
@@ -194,10 +197,14 @@ export async function RecapitulatifFiscal(props: {
   const exercices=new Map<string,ExerciceFiscalLot>();
   for(const x of (exercicesRows??[]) as ExerciceFiscalLot[])if((!perimetre||perimetre.has(x.lot_id))&&!exercices.has(x.lot_id))exercices.set(x.lot_id,x);
   const lots=((lotsRows??[]) as {id:string;nom:string}[]).filter(l=>!perimetre||perimetre.has(l.id));
-  const pieces=((ecritures??[]) as EcritureFiscale[]).filter(e=>{
+  const biensInclus = bien && !entite ? new Set([bien]) : biensDuPerimetre(lotsRows ?? [], perimetre, bien);
+  const pieces=((ecritures??[]) as (EcritureFiscale & {bien_id?:string|null})[]).filter(e=>{
     const lot=e.lot_id??qualifications.get(e.contre_ecriture_de??e.id??'')?.lot_id;
-    return !perimetre||(lot!=null&&perimetre.has(lot));
+    return dansPerimetreFinancier(lot,e.bien_id,perimetre,biensInclus);
   });
+  if (perimetre && (ecritures ?? []).some(e => e.categorie === "Taxe foncière" && !e.lot_id && !e.bien_id && !qualifications.get(e.contre_ecriture_de ?? e.id)?.lot_id)) {
+    return <p role="alert" className="err">Un avis de taxe foncière du patrimoine reste à rattacher. Vérifiez son justificatif avant de retenir un résultat fiscal par bien.</p>;
+  }
   const recap=recapitulatifFiscal(pieces,annee,{qualifications,composantes,exercices,exigerPerimetre:true});
   // D02 : le nombre de pièces à qualifier, dit en clair. D03 : les pièces rangées d'office en fonds de travaux ALUR dont le choix est ignoré.
   const phrasePieces = phrasePiecesAQualifier(recap);

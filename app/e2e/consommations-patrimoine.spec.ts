@@ -76,7 +76,7 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     await expect(bloc.getByText("EAU TEST", { exact: true })).toBeVisible();
     await bloc.getByRole("button", { name: "Ajouter une facture" }).click();
     const facture = bloc.locator('form:has(input[name="action"][value="facture"])');
-    await facture.getByRole("checkbox", { name: /Gerimmo gère la suite automatiquement/ }).uncheck();
+    await facture.getByRole("checkbox", { name: /Préparer automatiquement les relevés et la répartition/ }).uncheck();
     await facture.locator('input[type="file"]').setInputFiles({ name: "facture-test.pdf", mimeType: "application/pdf", buffer: pdfFictif() });
     await facture.getByLabel("Référence de la facture").fill("EAU-TEST-01"); await facture.getByLabel("Total TTC (€)", { exact: true }).fill("100,01");
     await facture.getByLabel("Période du", { exact: true }).fill(dates.debut); await facture.getByLabel("Au", { exact: true }).fill(dates.aujourd);
@@ -144,6 +144,26 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     expect(fichierLocataire.status()).toBe(200);
     expect(fichierLocataire.headers()["content-type"]).toContain("application/pdf");
     expect((await fichierLocataire.body()).subarray(0, 5).toString()).toBe("%PDF-");
+
+    // G-32 : la correction du nom du fournisseur ne doit pas effacer la nature
+    // ni démonter le champ de consommation avant le premier enregistrement.
+    await page.goto(`/espace/${org}/parc/${bien}?decompte=nouvelle&lot=${lot}`);
+    const depot = page.locator("#facture-etape-1 form");
+    await depot.locator('input[type="file"]').setInputFiles({ name: "deuxieme-eau.pdf", mimeType: "application/pdf", buffer: pdfFictif() });
+    await depot.getByRole("combobox", { name: "Nature", exact: true }).selectOption("eau");
+    await depot.locator('[name="consommation"]').fill("15");
+    await depot.getByRole("combobox", { name: "Fournisseur", exact: true }).fill("Eau du secteur fictif");
+    await expect(depot.getByRole("combobox", { name: "Nature", exact: true })).toHaveValue("eau");
+    await expect(depot.locator('[name="consommation"]')).toHaveValue("15");
+    await depot.getByLabel("Montant total", { exact: true }).fill("39,50");
+    await depot.getByLabel("Début de la période", { exact: true }).fill(dates.debut);
+    await depot.getByLabel("Fin de la période", { exact: true }).fill(dates.aujourd);
+    await depot.getByRole("checkbox", { name: /Préparer automatiquement/ }).uncheck();
+    await depot.getByRole("button", { name: "Enregistrer la facture", exact: true }).click();
+    await expect.poll(async () => (await db.query(
+      "select c.categorie, f.total_cents::int total, f.consommation::int volume from factures_fourniture f join contrats_fourniture c on c.id=f.contrat_id where c.lot_id=$1 and c.fournisseur=$2",
+      [lot, "Eau du secteur fictif"]
+    )).rows).toEqual([{ categorie: "eau", total: 3950, volume: 15 }]);
   } finally {
     await db.query("rollback");
     await tenant.close(); await owner.close();

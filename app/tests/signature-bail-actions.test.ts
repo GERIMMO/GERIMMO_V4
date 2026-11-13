@@ -75,6 +75,12 @@ describe('Activation d’un bail préparé avant la confirmation du mobile par l
   Object.assign(m.circuit,{modele:'bail',etat:'termine',empreinte:'ancienne'});
   m.assembler.mockImplementation(async(_db:unknown,_org:string,_bail:string,options?:{telephoneGarantDuDossier?:boolean})=>({empreinte:options?.telephoneGarantDuDossier?'ancienne':'nouvelle',manquants:[]}));
  });
+ it("reconnaît une ancienne présentation si son empreinte correspond exactement au circuit signé",async()=>{
+  m.circuit.signataires=[];
+  m.assembler.mockImplementation(async(_db:unknown,_org:string,_bail:string,opts?:{presentationAncienne?:boolean})=>({empreinte:opts?.presentationAncienne?"ancienne":"moderne",manquants:[]}));
+  expect((await activerBailApresSignature("org","11111111-1111-4111-8111-111111111111","circuit")).erreur).toBeUndefined();
+  expect(m.rpc).toHaveBeenCalledWith("activer_bail_signature_electronique",{p_circuit:"circuit"});
+ });
  it('l’ancien calcul (numéro de la fiche) vaut pour un garant qui n’a pas confirmé son numéro',async()=>{
   m.circuit.signataires=[garant(false)];
   expect((await activerBailApresSignature('org','11111111-1111-4111-8111-111111111111','circuit')).erreur).toBeUndefined();

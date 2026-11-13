@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { calculerFactureExistante } from "./calcul-facture-existant";
 import { preparerPdfFactureExistant } from "./pdf-facture-existant";
 import { methodeConseillee, recuperationConseillee } from "./conseil-repartition";
-import { fluideCompatible } from "./compteurs-facture";
+import { compteursPourFacture, fluideCompatible } from "./compteurs-facture";
 import { indexDate } from "./controle-compteur-general";
 import { lireCollectionConsommations, lireLiensConsommations } from "./lecture-consommations";
 import type { CompteurConsommation, ReleveConsommation } from "./consommations";
@@ -28,7 +28,7 @@ export async function traiterFactureAutomatique(service:SupabaseClient,org:strin
   if(cr.error||!cr.data)throw new Error("Contrat indisponible."); const c=cr.data;
   const rep=await db.from("repartitions_fourniture").select("*").eq("organization_id",org).eq("facture_id",id).maybeSingle();
   if(rep.error)throw new Error("Répartition indisponible.");
-  let r=rep.data;
+  const r=rep.data;
   if(r?.statut!=="validee") {
    const lr=await lireCollectionConsommations<{id:string;nom:string}>((a,b)=>db.from("lots").select("id,nom",{count:"exact"}).eq("organization_id",org).eq("bien_id",c.bien_id).order("id").range(a,b));
    if(lr.error)throw new Error("Logements indisponibles.");const lots=lr.data.filter(l=>!c.lot_id||l.id===c.lot_id);
@@ -40,12 +40,19 @@ export async function traiterFactureAutomatique(service:SupabaseClient,org:strin
    const mode=methodeConseillee(c.categorie,lots,mr.data,f.periode_debut,reg?.mode_interface);
    const conseil=recuperationConseillee(c.categorie,lots,br.data.map(b=>({...b,mode_charges:b.charges_mode})),f.periode_debut,f.periode_fin);
    if(conseil.inconnus)throw new Error("Complétez le mode de charges des baux concernés.");
-   if(br.data.some(b=>b.chambre_id) && !reg?.colocation)throw new Error("Confirmez une fois la clé entre les chambres de la colocation.");
+   if(br.data.some(b=>b.chambre_id && b.date_debut <= f.periode_fin && (!b.date_fin || b.date_fin >= f.periode_debut)) && !reg?.colocation)throw new Error("Confirmez une fois la clé entre les chambres de la colocation.");
    if(mode==="consommations") {
     const rr=await lireLiensConsommations<ReleveConsommation>(mr.data.map(m=>m.id),(ids,a,b)=>db.from("releves_consommation").select("*",{count:"exact"}).eq("organization_id",org).in("compteur_id",ids).order("id").range(a,b));
     if(rr.error)throw new Error("Relevés indisponibles.");
     let attente=false; const problemes:string[]=[];
     for(const lot of lots) {
+     // Un compteur arrêté peut documenter intégralement une facture ancienne.
+     const documentes = compteursPourFacture(mr.data, rr.data, f, c.categorie, lot.id);
+     if (documentes.length === 1) continue;
+     if (documentes.length > 1) {
+       problemes.push(`Choisissez le compteur facturé de ${lot.nom}.`);
+       continue;
+     }
      const possibles=mr.data.filter(m=>m.lot_id===lot.id && m.actif && m.date_index_initial<=f.periode_debut && fluideCompatible(m.type,c.categorie));
      if(possibles.length!==1){problemes.push(`Vérifiez le compteur de ${lot.nom}.`);continue;}
      const m=possibles[0];
@@ -60,14 +67,14 @@ export async function traiterFactureAutomatique(service:SupabaseClient,org:strin
     if(attente)return suivi("releves_attendus","Les relevés sont demandés aux locataires. Gerimmo reprendra automatiquement après réception.");
    }
    const form=new FormData();form.set("mode",mode);if(conseil.coche)form.set("recuperable","on");if(reg?.colocation)form.set("colocation",reg.colocation);
-   const calc=await calculerFactureExistante(db,org,id,form);if(calc.erreur||!calc.repartition)throw new Error(calc.erreur??"Calcul indisponible.");r=calc.repartition;
-   const valide=await geste("valider_repartition_fourniture",{p_repartition:r.id,p_empreinte_attendue:r.empreinte});if(valide.error)throw new Error(valide.error.message);
+   const calc=await calculerFactureExistante(db,org,id,form);if(calc.erreur||!calc.repartition)throw new Error(calc.erreur??"Calcul indisponible.");
+   return suivi("a_verifier","Vérifiez les montants par logement puis validez la répartition.");
   }
   for(const bail of new Set<string>(r.lignes.filter((l:{bail_id:string|null;recuperable:boolean})=>l.bail_id&&l.recuperable).map((l:{bail_id:string})=>l.bail_id))) {
    await avantEffet();const pdf=await preparerPdfFactureExistant(db,org,r.id,bail);if(pdf.erreur)throw new Error(pdf.erreur);
-   const partage=await geste("diffuser_pdf_repartition",{p_org:org,p_repartition:r.id,p_bail:bail});if(partage.error)throw new Error(partage.error.message);
+
   }
-  return suivi("terminee","Répartition validée et décomptes partagés. Aucun encaissement confirmé automatiquement. Les provisions restent déduites lors de la régularisation.");
+  return suivi("terminee","Répartition validée. Les décomptes sont prêts à être consultés et partagés.");
  } catch(e) {
  const detail=e instanceof Error?e.message:"Traitement interrompu";
  // Les refus métier restent visibles ; une panne de lecture/transport est rejouable.

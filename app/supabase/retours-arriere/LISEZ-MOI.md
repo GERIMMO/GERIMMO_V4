@@ -645,6 +645,9 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261112200752` (uniquement en l’absence de rattachements fiscaux ; sinon préserver le journal et corriger en avant), puis
+`20261112120400` (répétition isolée), puis
+`20261112120300` (répétition isolée uniquement), puis
 `20261108100000` (refuse si des preuves sont conservées), puis
 `20261108090000` (refuse si des preuves sont conservées), puis
 `20261107193000` (refuse si des preuves sont conservées), puis
@@ -1043,3 +1046,7 @@ Remettre le code précédent avant `20261027100100_incident_gerant_bail_explicit
 ### 20261029115616 — Plancher tarifaire
 
 La grille du 29 octobre et ses contraintes protègent le minimum de 4,90 par bien/mois après remise. Aucun abonnement existant n’est réécrit. Le retour fourni refuse un rétablissement automatique des anciens prix : préparer explicitement la grille de remplacement et les preuves de consentement avant tout autre prix.
+
+| `20261112120300_conge_ajuste_dernier_terme_et_depot_au_centime.retour.sql` | `20261112120300_conge_ajuste_dernier_terme_et_depot_au_centime.sql` | Réservé à la répétition locale G-107. En production, conserver les écritures et corriger en avant. |
+
+20261112120400_cle_date_effet_et_tantiemes.retour.sql : conserve les clés historiques, restaure la RPC à trois arguments.

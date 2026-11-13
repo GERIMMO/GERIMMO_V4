@@ -471,6 +471,12 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
         ]),
       ]
     );
+    const parts = JSON.stringify([{lot_id: lot, pourcentage: 60}, {lot_id: nouveau.id, pourcentage: 40}]);
+    await attendreEchec(db, /tantièmes/, "select public.valider_cle_repartition($1,'tantiemes',$2::jsonb,public.aujourdhui_paris())", [bien,parts]);
+    await attendreEchec(db, /date/, "select public.valider_cle_repartition($1,'surface',$2::jsonb,public.aujourdhui_paris()+1)", [bien,parts]);
+    const premier = await db.query("select public.valider_cle_repartition($1,'surface',$2::jsonb,public.aujourdhui_paris()-90) id", [bien,parts]);
+    expect((await db.query("select date_effet=public.aujourdhui_paris()-90 ok from public.cles_repartition where id=$1", [premier.rows[0].id])).rows[0].ok).toBe(true);
+    await attendreEchec(db, /historique/, "select public.valider_cle_repartition($1,'surface',$2::jsonb,public.aujourdhui_paris()-50)", [bien,parts]);
     const {
       rows: [{ valider_cle_repartition: cle }],
     } = await db.query(`select public.valider_cle_repartition($1, 'surface', $2::jsonb)`, [

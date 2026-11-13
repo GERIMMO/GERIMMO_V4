@@ -159,7 +159,7 @@ function NouvelleFacture({ p, c, derniere, fini }: { p: Props; c: ContratFournit
       setLus(precedentes => ({ ...precedentes, ...valeurs }));
       setLectureAppliquee(true);
     }} />
-    <label><input type="checkbox" name="automatique" defaultChecked/> Gerimmo gère la suite automatiquement ; je confirme les sommes reçues.</label>
+    <label><input type="checkbox" name="automatique" defaultChecked/> Préparer automatiquement les relevés et la répartition. Je valide les montants avant le partage.</label>
     {c.categorie === "teom" && <p className={styles.caption}>Recopiez uniquement la ligne « taxe d’enlèvement des ordures ménagères » et ses frais de gestion. Le total de l’avis foncier ne sera pas repris automatiquement.</p>}
     <div className={styles.fields}><Champ titre="Référence de la facture"><input name="reference" required maxLength={150} {...champ("reference")} /></Champ><Champ titre={c.categorie === "teom" ? "Montant TEOM (€), hors autres taxes" : "Total TTC (€)"}><input name="total" inputMode="decimal" required {...champ("total")} /></Champ><Champ titre="Période du"><input type="date" name="periode_debut" required {...champ("periode_debut")} /></Champ><Champ titre="Au"><input type="date" name="periode_fin" required {...champ("periode_fin")} /></Champ></div>
     <details open={lectureAppliquee}><summary>Consommation, abonnement et paiement</summary><div className={styles.fields}>{c.categorie === "gaz" && <Champ titre="Unité indiquée sur la facture"><select name="unite_consommation" {...champ("unite_consommation")}><option value="">À vérifier sur la facture</option><option value="m3">m³</option><option value="kwh">kWh</option></select></Champ>}<Champ titre="Consommation facturée (unité du compteur)"><input name="consommation" inputMode="decimal" {...champ("consommation")} /></Champ><Champ titre="Dont abonnement / frais fixes (€)"><input name="frais_fixes" inputMode="decimal" {...champ("frais_fixes")} /></Champ>{c.categorie === "teom" && <Champ titre="Dont frais de gestion (€)"><input name="frais_gestion" inputMode="decimal" {...champ("frais_gestion")} /></Champ>}<Champ titre="À payer avant le"><input name="date_echeance" type="date" {...champ("date_echeance")} /></Champ></div></details>
@@ -185,6 +185,7 @@ function AvisTaxeFonciere({ p, fini }: { p: Props; fini: (message: string) => vo
       setLus(precedentes => ({ ...precedentes, ...(valeurs.total ? { total_avis: valeurs.total } : {}), ...(valeurs.frais_gestion ? { frais_gestion: valeurs.frais_gestion } : {}) }));
     }} />
     <div className={styles.fields}>
+      <Champ titre="Date de l’avis"><input name="date_avis" type="date" required max={p.aujourdHui} {...champ("date_avis")} /></Champ>
       <Champ titre="Année"><input name="annee" type="number" min={2000} max={anneeParis} required {...champ("annee")} /></Champ>
       <Champ titre="Total de l’avis (€)"><input name="total_avis" inputMode="decimal" required {...champ("total_avis")} /></Champ>
       <Champ titre="Dont TEOM (€)"><input name="teom" inputMode="decimal" {...champ("teom")} /></Champ>

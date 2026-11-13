@@ -55,6 +55,22 @@ test.describe("Côté propriétaire bailleur", () => {
     await expect(recap).toContainText("prélevés en une fois pour douze mois");
   });
 
+  test("quitter le formulaire annuel vers un paiement simulé ne demande pas de confirmer la sortie", async ({ page }) => {
+    const dialogues: string[] = [];
+    page.on("dialog", async dialogue => {
+      dialogues.push(dialogue.type());
+      await dialogue.dismiss();
+    });
+    await page.locator("label").filter({ has: page.getByRole("radio", { name: /Annuel/ }) }).click();
+    await expect(page.getByRole("radio", { name: /^Annuel/ })).toBeChecked();
+    const destination = "https://paiement.example.invalid/gerimmo";
+    await page.route(destination, route => route.fulfill({ contentType: "text/html; charset=utf-8", body: "<h1>Paiement simulé</h1>" }));
+    // La redirection est simulée ; le formulaire et sa garde de sortie sont ceux du site.
+    await page.evaluate(url => window.location.assign(url), destination);
+    await expect(page.getByRole("heading", { name: "Paiement simulé" })).toBeVisible();
+    expect(dialogues).toEqual([]);
+  });
+
   test("sans paiement en ligne ouvert, le refus est une phrase, pas une erreur d'API", async ({
     page,
   }) => {

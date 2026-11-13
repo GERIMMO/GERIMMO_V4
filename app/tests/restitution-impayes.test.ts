@@ -289,6 +289,18 @@ describe.skipIf(!DB_URL)("Restitution — instantané des impayés, daté et ré
     );
   });
 
+  it("un paiement reçu après la préparation exige une nouvelle vérification avant toute écriture", async () => {
+    const bail = await bailPret();
+    await arriereDe300(bail);
+    const { rows: [{ id }] } = await db.query("select public.demarrer_restitution($1,current_date,true) id", [bail]);
+    await reglerLeSolde(bail, 300);
+    await attendreEchec(db, /Actualisez le décompte/, "select public.finaliser_decompte($1)", [id]);
+    expect((await db.query("select statut from public.restitutions where id=$1", [id])).rows[0].statut).toBe("en_cours");
+    expect((await db.query("select count(*)::int n from public.ecritures where bail_id=$1 and categorie='depot_garantie' and sens='depense'", [bail])).rows[0].n).toBe(0);
+    await db.query("select public.rafraichir_montants_restitution($1)", [id]);
+    expect(Number((await db.query("select public.finaliser_decompte($1) solde", [id])).rows[0].solde)).toBe(900);
+  });
+
   it("décompte figé : le réarrêté est refusé (RM-2.7.3, la correction est un rectificatif)", async () => {
     const bail = await bailPret();
     await arriereDe300(bail);
@@ -376,6 +388,7 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
   let semeur: Client;
   let sessionA: Client;
   let sessionB: Client;
+  let secondeFinalisation: Client;
   let org: string | null = null;
   let compte: string | null = null;
   let restitution: string;
@@ -397,6 +410,8 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
     await semeur.connect();
     await sessionA.connect();
     await sessionB.connect();
+    secondeFinalisation = new Client({ connectionString: DB_URL });
+    await secondeFinalisation.connect();
 
     const {
       rows: [o],
@@ -450,14 +465,10 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
       rows: [r],
     } = await semeur.query(`select public.demarrer_restitution($1,current_date,true) as id`, [bail]);
     restitution = r.id;
-    // Le locataire solde ses 300 € : la réalité dit désormais 0 € d'impayés
-    await semeur.query(
-      `insert into public.encaissements (organization_id, bail_id, montant, date_paiement)
-       values ($1,$2,300,current_date)`,
-      [org, bail]
-    );
     await porterLesClaims(sessionA, compte!);
     await porterLesClaims(sessionB, compte!);
+    await porterLesClaims(secondeFinalisation, compte!);
+    await secondeFinalisation.query("set role authenticated");
   });
 
   afterAll(async () => {
@@ -488,12 +499,33 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
     await semeur?.end();
     await sessionA?.end();
     await sessionB?.end();
+    await secondeFinalisation?.end();
   });
 
   it("une finalisation qui passe pendant un réarrêté laisse le décompte figé intact (RM-2.7.3)", async () => {
     const {
       rows: [{ pg_backend_pid: pidA }],
     } = await sessionA.query(`select pg_backend_pid()`);
+
+    // Un encaissement non encore validé arrive avant la confirmation du solde.
+    await sessionA.query("begin");
+    await sessionA.query(`insert into public.encaissements (organization_id,bail_id,montant,date_paiement)
+      select organization_id,bail_id,300,current_date from public.restitutions where id=$1`, [restitution]);
+    const pidFinalisation = (await secondeFinalisation.query("select pg_backend_pid() pid")).rows[0].pid;
+    const tentative = secondeFinalisation.query("select public.finaliser_decompte($1)", [restitution])
+      .then(() => "accepté", (e: Error) => e.message);
+    let attendEncaissement = false;
+    try {
+      for (let i = 0; i < 100 && !attendEncaissement; i++) {
+        attendEncaissement = (await semeur.query("select wait_event_type = 'Lock' attente from pg_stat_activity where pid=$1", [pidFinalisation])).rows[0]?.attente;
+        if (!attendEncaissement) await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+    } finally {
+      await sessionA.query("commit");
+    }
+    expect(attendEncaissement).toBe(true);
+    expect(await tentative).toMatch(/Actualisez le décompte/);
+    expect((await semeur.query("select statut from public.restitutions where id=$1", [restitution])).rows[0].statut).toBe("en_cours");
 
     // B tient la ligne sans rien décider encore : c'est le créneau pendant
     // lequel A lisait « en_cours » puis écrivait quand même.
@@ -525,11 +557,55 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
     })();
     expect(bloque, "le réarrêté aurait dû attendre le verrou de la ligne").toBe(true);
 
+    // Le paiement déjà validé doit être inclus avant que B confirme le décompte.
+    await sessionB.query("select public.rafraichir_montants_restitution($1)", [restitution]);
     const {
       rows: [{ solde }],
     } = await sessionB.query(`select public.finaliser_decompte($1) as solde`, [restitution]);
-    expect(Number(solde)).toBe(600);
-    await sessionB.query("commit");
+    expect(Number(solde)).toBe(900);
+    const pidConcurrent = (await secondeFinalisation.query("select pg_backend_pid() pid")).rows[0].pid;
+    const concurrent = secondeFinalisation.query("select public.finaliser_decompte($1)", [restitution])
+      .then(() => "accepté", (error: Error) => error.message);
+    let attendLeVerrou = false;
+    for (let essai = 0; essai < 100 && !attendLeVerrou; essai++) {
+      attendLeVerrou = (await semeur.query("select wait_event_type = 'Lock' attente from pg_stat_activity where pid=$1", [pidConcurrent])).rows[0]?.attente;
+      if (!attendLeVerrou) await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    // Un propriétaire confirme un ancien solde pendant que B termine le départ.
+    const caisse = new Client({ connectionString: DB_URL });
+    await caisse.connect();
+    try {
+      await porterLesClaims(caisse, compte!);
+      await caisse.query("set role authenticated");
+      const { rows: [appel] } = await semeur.query(
+        "select a.id, a.bail_id from public.appels_loyer a join public.restitutions r on r.bail_id=a.bail_id where r.id=$1", [restitution]
+      );
+      const pidDepart = (await sessionB.query("select pg_backend_pid() pid")).rows[0].pid;
+      const pidCaisse = (await caisse.query("select pg_backend_pid() pid")).rows[0].pid;
+      const avant = (await semeur.query("select count(*) from public.encaissements where bail_id=$1", [appel.bail_id])).rows[0].count;
+      const paiement = caisse.query(
+        "select public.encaisser_reste_atomique($1,$2,$3,$4,300,0) resultat",
+        [org, appel.bail_id, appel.id, crypto.randomUUID()]
+      );
+      let bloqueParLeDepart = false;
+      try {
+        for (let i = 0; i < 100 && !bloqueParLeDepart; i++) {
+          bloqueParLeDepart = (await semeur.query("select $1::int = any(pg_blocking_pids($2::int)) bloque", [pidDepart, pidCaisse])).rows[0].bloque;
+          if (!bloqueParLeDepart) await new Promise(resolve => setTimeout(resolve, 25));
+        }
+      } finally {
+        await sessionB.query("commit");
+      }
+      expect((await paiement).rows[0].resultat.statut).toBe("au_decompte");
+      expect(bloqueParLeDepart).toBe(true);
+      expect((await semeur.query("select count(*) from public.encaissements where bail_id=$1", [appel.bail_id])).rows[0].count).toBe(avant);
+    } finally {
+      await caisse.end();
+    }
+    expect(attendLeVerrou).toBe(true);
+    expect(await concurrent).toMatch(/déjà finalisé/);
+    const sorties = await semeur.query("select count(*)::int n, sum(e.montant)::float8 total from public.ecritures e join public.restitutions r on r.bail_id=e.bail_id where r.id=$1 and e.sens='depense' and e.categorie='depot_garantie'", [restitution]);
+    expect(sorties.rows[0]).toEqual({ n: 1, total: 900 });
 
     const a = await reponseA;
     await sessionA.query("rollback");
@@ -545,7 +621,7 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
       [restitution]
     );
     expect(fin.statut).toBe("finalise");
-    expect(Number(fin.impayes)).toBe(300);
+    expect(Number(fin.impayes)).toBe(0);
     // Un décompte figé s'additionne : dépôt − impayés − retenues = solde.
     expect(Number(fin.depot) - Number(fin.impayes)).toBe(Number(fin.solde));
   }, 20000);

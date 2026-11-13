@@ -50,7 +50,7 @@ export async function corrigerClasseDpeBail(orgId:string,bailId:string,diagnosti
 export async function deposerDiagnosticBail(orgId:string,bailId:string,etat:EtatParc,form:FormData):Promise<EtatParc>{
  const {supabase,user}=await verifierGerant(orgId);
  if(!user)return {erreur:"Accès refusé."};
- const {data:bail,error}=await supabase.from("baux").select("etat,lot_id,lot:lots!baux_lot_id_fkey(bien_id)").eq("id",bailId).eq("organization_id",orgId).maybeSingle();
+ const {data:bail,error}=await supabase.from("baux").select("etat,lot_id,lot:lots!baux_lot_meme_org_fk(bien_id)").eq("id",bailId).eq("organization_id",orgId).maybeSingle();
  const bienId=premier(bail?.lot??null)?.bien_id;
  if(error||bail?.etat!=="brouillon"||!bienId)return {erreur:"Le bail doit être un brouillon accessible avec son logement."};
  const erreur=erreurDiagnosticBail(form,aujourdhuiParis());

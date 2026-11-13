@@ -15,7 +15,12 @@ const fichiers = (await readdir(new URL('supabase/migrations/', app))).filter((f
 if (new Set(manifeste).size !== manifeste.length || fichiers.length !== manifeste.length || fichiers.some((f) => !manifeste.includes(f))) {
   throw new Error('Le manifeste doit contenir chaque migration exactement une fois.');
 }
-const selection=manifeste.filter(f=>!(process.env.GERIMMO_BASE_AVANT_LOTS==='1' && /^(20261109|20261110)/.test(f)));
+// Le banc historique rejoue aussi les deux correctifs rétroportés dont la
+// procédure de retour au schéma d’octobre teste explicitement le retrait.
+const retoursRetroportes = new Set(['20261112120300', '20261112120400']);
+const selection = process.env.GERIMMO_BASE_AVANT_LOTS === '1'
+  ? manifeste.filter(f => f.slice(0, 8) < '20261109' || retoursRetroportes.has(f.slice(0, 14)))
+  : manifeste;
 const db = new Client({ connectionString: url.href });
 await db.connect();
 try {

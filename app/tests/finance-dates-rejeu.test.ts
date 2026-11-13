@@ -30,6 +30,7 @@ const LOT = [
 const migration = (nom: string) => readFileSync(`supabase/migrations/${nom}.sql`, "utf8");
 const retour = (nom: string) => readFileSync(`supabase/retours-arriere/${nom}.retour.sql`, "utf8");
 const [M410, M412, M413, M414, M415, M416] = LOT.map(migration);
+const gardeDecompteFinalise = migration("20261112195752_relances_apres_decompte");
 const [R410, R412, R413, R414, R415, R416] = LOT.map(retour);
 
 const MARQUE_X13 = "Décision X13 du 15/10 (FIN-13)";
@@ -265,6 +266,8 @@ describe.skipIf(!DB_URL)("Lot finance-dates — rejeu sur une base déjà migré
     await db.query("alter table public.quittances alter column date_emission set default current_date");
     for (const signature of FONCTIONS) expect(await definition(signature), signature).not.toMatch(/Décision X(1[34]|09)/);
     for (const sql of [M410, M413, M415, M416]) await db.query(sansFermetureAnon(sql));
+    // Reposer la garde financière postérieure avant la comparaison exacte du schéma actuel.
+    await db.query(gardeDecompteFinalise);
     for (const signature of FONCTIONS) expect(await definition(signature), signature).toBe(migreDefs[signature]);
     expect(await empreinte()).toEqual(migre);
   });
@@ -282,6 +285,8 @@ describe.skipIf(!DB_URL)("Lot finance-dates — rejeu sur une base déjà migré
     expect(await empreinte()).toEqual(apres);
     // Marche avant.
     for (const sql of [M410, M412, M413, M414, M415, M416]) await db.query(sansFermetureAnon(sql));
+    // Reposer la garde financière postérieure avant la comparaison exacte du schéma actuel.
+    await db.query(gardeDecompteFinalise);
     expect(await empreinte()).toEqual(migre);
   });
 

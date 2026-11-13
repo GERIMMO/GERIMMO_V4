@@ -1,0 +1,119 @@
+Ticket	Priorité audit	Conclusion de l’audit source	Description	État de reprise
+G-01	P1	confirmé	Bail déjà signé sur papier impossible à activer : le dépôt du PDF signé n'est plus affiché dans l'assistant	inclus PR 289, en attente de publication
+G-02	P1	confirmé	Étape « Documents » et récapitulatif du bail en panne (PGRST200 sur l'auto-jointure documents → documents)	inclus PR 289, en attente de publication
+G-03	P1	confirmé	SCI (personne morale) : aucun représentant légal ni SIREN → signature électronique impossible (bail, devis) et bail incomplet	à requalifier sur le candidat
+G-107	P1	confirmé (copie isolée + code)	Solde de tout compte faux : le dernier terme n'est pas proratisé quand le congé est enregistré après l'appel du mois de fin	correctif local en recette
+G-04	P1	confirmé (banc isolé + code)	Tous les courriers du contrat d'abonnement suspendus par le « périmètre pilote » (confirmation, impayé, rappels, résiliation, rétractation, reconduction)	à requalifier sur le candidat
+G-05	P1	confirmé	Aucun médiateur de la consommation alors que la vente aux particuliers est ouverte	coordonnées du médiateur à confirmer par le dirigeant
+G-06	P1	confirmé (banc isolé + code)	Après résiliation pour impayé, l'écran affirme « facture annulée, rien à régler » alors qu'elle reste ouverte	message corrigé en PR 290, recette locale réussie
+G-07	P1	confirmé (banc isolé + code)	Un abonné en impayé de renouvellement n'est jamais mis en lecture seule ; l'écran affiche une date passée	à requalifier sur le candidat
+G-08	P1	confirmé	Écritures nées du bâtiment (taxe foncière, paiement de facture) sans bien ni lot : finances et fiscalité par bien/SCI faussées	à requalifier sur le candidat
+G-09	P1	confirmé	Clé de répartition toujours datée du jour de validation : aucune facture antérieure ne peut être répartie selon la clé	correctif en recette isolée sur la branche des clés de répartition
+G-10	P1	confirmé	Téléphone de l'hébergeur absent des mentions légales (obligation LCEN)	à requalifier sur le candidat
+G-11	P2	confirmé	Le locataire lit par l'API toute la fiche de l'organisation du bailleur (parrainage, essai, abonnement, seuils de relance, SIRET, chemin de signature…)	portée de la règle confirmée en production ; protection et tests locaux
+G-12	P2	confirmé	Jeton d'une session fermée encore accepté par l'API REST et Storage jusqu'à 60 min (y compris signature d'URL de documents)	à requalifier sur le candidat
+G-13	P2	confirmé (code + copie isolée)	Périmètre pilote : relances de loyer (automatiques ET manuelles), avis d'échéance, information et confirmation de la caution, rappels et plusieurs notifications d'intervention suspendus ; bandeau inexact	à requalifier sur le candidat
+G-108	P2	confirmé (copie isolée)	Après la fin du bail : trois montants différents pour la même dette, relance proposée pour un terme déjà retenu sur le dépôt	à requalifier sur le candidat
+G-109	P2	confirmé (copie isolée)	Quittance retirée sans trace pour le locataire après le retrait d'un encaissement	à requalifier sur le candidat
+G-14	P2	confirmé	Acceptation d'un devis uniquement par signature électronique Zoho payante (aucun « Retenir ce devis »)	à requalifier sur le candidat
+G-15	P2	confirmé	Sans bail actif, le locataire ne peut rien signaler, même une fuite	à requalifier sur le candidat
+G-16	P2	confirmé	Décompte de charges validé et « partagé » automatiquement (≈ 1 min) sans validation du propriétaire	à requalifier sur le candidat
+G-17	P2	confirmé	Documents générés : le bailleur réel est remplacé par l'organisation (en-tête, « Fait à », destinataire du devis) et l'indivisaire n'a pas de case de signature	à requalifier sur le candidat
+G-18	P2	confirmé	Clause illicite (frais d'envoi de quittance) acceptée et imprimée dans le bail sans avertissement	à requalifier sur le candidat
+G-19	P2	confirmé	« Fermer » dans « Gérer cette détention » met fin à la propriété du lot sans confirmation	inclus PR 289, en attente de publication
+G-20	P2	confirmé	Indivision presque impossible à déclarer (quote-part non modifiable, messages contradictoires 0 % / 150 %)	à requalifier sur le candidat
+G-21	P2	confirmé	Annexes (cave, parking) créées en lots facturées comme des logements, contrairement à l'article 8.1 des CG	à requalifier sur le candidat
+G-22	P2	confirmé	Unité facturée mal nommée : « biens en gestion » = lots, brouillons compris	à requalifier sur le candidat
+G-23	P2	confirmé	Aucune détection de bien en double (même nom, même adresse) ; le doublon est facturé	à requalifier sur le candidat
+G-24	P2	suspecté	« Un seul abonnement » mais facturation par organisation (nom propre + SCI ouverte en espace séparé = deux abonnements)	à requalifier sur le candidat
+G-25	P2	confirmé (banc isolé)	Souscription annuelle : avertissement « Quitter le site ? » avant la page de paiement	inclus PR 289, en attente de publication
+G-26	P2	confirmé	Changement de compteur non chaîné : la répartition réclame l'index de l'ancien compteur ; compteur arrêté invisible	à requalifier sur le candidat
+G-27	P2	confirmé	Clé « tantièmes » sans tantièmes saisis = parts égales étiquetées « tantièmes » ; erreur périmée affichée	correctif en recette isolée sur la branche des clés de répartition
+G-28	P2	confirmé	Annulation d'écriture : aucun retour à l'écran, origine non marquée « annulée », message générique au 2e essai	à requalifier sur le candidat
+G-29	P2	confirmé	Exports CSV comptables difficiles à exploiter (ligne de titre, colonne « annule » instable, SCI vide, lots en UUID)	à requalifier sur le candidat
+G-30	P2	confirmé	Message à un locataire sans compte : « il la verra dans son espace » (faux succès)	à requalifier sur le candidat
+G-31	P2	confirmé	Tableau de bord « 18 demandes » ≠ « Toutes les demandes » (5)	à requalifier sur le candidat
+G-32	P2	confirmé	Facture préremplie par l'IA : le premier « Enregistrer » n'enregistre rien et vide « Nature », sans message	à requalifier sur le candidat
+G-33	P2	confirmé	Libellés trompeurs des charges (« Aucune dépense pour ce bien », gestion automatique opaque, « les demandes suivront »)	à requalifier sur le candidat
+G-34	P2	confirmé	Assistant de bail : écrans périmés après enregistrement (locataire, colocataire, récapitulatif)	à requalifier sur le candidat
+G-110	P2	confirmé (copie isolée)	Lot resté « brouillon » non signalé dans le bail : l'activation est refusée sans explication à l'écran	à requalifier sur le candidat
+G-111	P2	confirmé (copie isolée)	Historique du lot : « Bail nu pris d'effet » pour un bail encore en brouillon	à requalifier sur le candidat
+G-35	P2	confirmé	EDL : après « Enregistrer les mentions », les listes se vident et « Suivant » est bloqué jusqu'au rechargement	à requalifier sur le candidat
+G-36	P2	confirmé	Génération des PDF lente (68 à > 120 s), état non mémorisé, doublons à chaque régénération	à requalifier sur le candidat
+G-37	P2	confirmé	Bibliothèque : impossible de supprimer un dépôt ou de le rattacher à un bien/lot ; 5 types au dépôt contre 14 au filtre	à requalifier sur le candidat
+G-38	P2	confirmé	Panneau « N alertes à traiter » ouvert en surimpression au chargement, qui intercepte les clics	à requalifier sur le candidat
+G-39	P2	confirmé	Débordement horizontal à 390 px sur le volet incident (bloc réseau indisponible : 446 px)	à requalifier sur le candidat
+G-112	P2	confirmé (copie isolée)	Débordement horizontal à 390 px sur l'onglet « Départ » d'un bail terminé (442 px)	à requalifier sur le candidat
+G-40	P2	confirmé	Attestation déjà expirée acceptée et substituée à la version valide ; « échéance à anticiper » pour une pièce expirée	inclus PR 289, en attente de publication
+G-41	P2	confirmé	Artisan au téléphone et à la tablette : 4 entrées seulement, pas de menu ; facturation, clients, attestations cachés	à requalifier sur le candidat
+G-42	P2	confirmé	« Exporter mon registre » produit un JSON technique inutilisable par l'artisan ou son comptable	à requalifier sur le candidat
+G-43	P2	confirmé	« Les règles à connaître » : notes internes de l'équipe produit et sujets hors public affichés aux clients	à requalifier sur le candidat
+G-44	P2	confirmé	Accessibilité de l'espace propriétaire : contrastes insuffisants (y compris boutons principaux), noms accessibles incohérents, tableau défilant non focalisable	à requalifier sur le candidat
+G-45	P2	suspecté	Autocomplétion d'adresse inopérante : api-adresse.data.gouv.fr redirige vers sorry.data.gouv.fr (erreur CORS)	à requalifier sur le candidat
+G-46	P2	confirmé	Images cassées dans le Journal (public et espace propriétaire) : 400 INVALID_IMAGE_OPTIMIZE_REQUEST	à requalifier sur le candidat
+G-47	P3	confirmé	Devis externe de l'artisan : TVA 20 % présélectionnée et montants au format « 79.75 »	à requalifier sur le candidat
+G-48	P3	confirmé	La case d'acceptation des CG enregistre l'acceptation dès qu'on la coche (avant toute validation)	à requalifier sur le candidat
+G-113	P3	confirmé (copie isolée)	Retenue sur dépôt sans justificatif acceptée sans avertissement à la finalisation du décompte	à requalifier sur le candidat
+G-114	P3	confirmé (copie isolée)	Bail de relocation : date d'entrée antérieure à la sortie du locataire précédent acceptée jusqu'au contrôle d'activation	à requalifier sur le candidat
+G-49	P3	confirmé	Conditions artisan proposées ou affichées à des comptes non artisans (locataire, propriétaire)	à requalifier sur le candidat
+G-50	P3	confirmé	Cookie de session lisible par JavaScript (400 jours) et CSP « unsafe-inline »	à requalifier sur le candidat
+G-51	P3	suspecté	Politique de session (inactivité, durée maximale) appliquée par le site seulement, pas par Supabase Auth	à requalifier sur le candidat
+G-52	P3	suspecté	Artisan soumis à la politique de session « agent » (4 h / 12 h) au lieu de la politique artisan	à requalifier sur le candidat
+G-53	P3	confirmé (code)	« Se déconnecter » ferme toutes les sessions sur tous les appareils, sans le dire	à requalifier sur le candidat
+G-54	P3	suspecté	Badge « SIRET vérifié » sur un SIRET manifestement fictif (vérification manuelle sans contrôle Sirene)	à requalifier sur le candidat
+G-55	P3	confirmé	Identifiant fiscal du logement non contrôlé (« 12AB » accepté et imprimé dans le bail)	à requalifier sur le candidat
+G-56	P3	suspecté	PDF du devis externe : ni adresse du client, ni zone d'acceptation, ni conditions de paiement	à requalifier sur le candidat
+G-57	P3	suspecté	Adresses de contact en @gmail.com ; adresse de rétractation différente entre les versions du 24/10 et du 11/11	à requalifier sur le candidat
+G-58	P3	suspecté	Anciennes grilles tarifaires plus consultables publiquement	à requalifier sur le candidat
+G-59	P3	suspecté	Palier forfaitaire 8–20 biens : chaque nouveau lot exige une confirmation de « hausse » au même montant	à requalifier sur le candidat
+G-60	P3	confirmé (banc isolé)	« Remettre ce bien au parc » promet un comptage qui n'a pas lieu (lots restés archivés)	à requalifier sur le candidat
+G-61	P3	confirmé (banc isolé)	En lecture seule, « Ajouter un bien » laisse remplir deux étapes avant de refuser	à requalifier sur le candidat
+G-62	P3	confirmé (banc isolé)	États d'abonnement intermédiaires trompeurs (essai non signalé après souscription ; écran contradictoire avant confirmation du prestataire)	à requalifier sur le candidat
+G-63	P3	confirmé	Écart compteur général / divisionnaires toujours laissé au propriétaire, sans option de répartition par la clé	à requalifier sur le candidat
+G-115	P3	confirmé (copie isolée)	Relance difficile à retrouver après « Pas encore reçu » ; arriéré absent de Finances	à requalifier sur le candidat
+G-116	P3	confirmé (copie isolée)	Bouton « Signature Zoho · SMS » encore affiché sur un état des lieux signé et figé	à requalifier sur le candidat
+G-64	P3	suspecté	Finances du bien : « Dépenses 0,00 € » alors qu'une facture de 600 € est enregistrée et répartie	à requalifier sur le candidat
+G-65	P3	confirmé	Le paiement d'une facture d'eau crée une écriture de catégorie « Autre »	à requalifier sur le candidat
+G-66	P3	confirmé	Chantier externe démarré et terminé avant la date du rendez-vous, sans avertissement	à requalifier sur le candidat
+G-117	P3	confirmé (copie isolée)	Créneaux d'intervention : le jour même accepté par le champ mais refusé sans explication par le formulaire	à requalifier sur le candidat
+G-118	P3	confirmé (copie isolée)	Compte rendu artisan : photo refusée comme doublon puis alerte « Quitter la page ? » au moment de continuer	à requalifier sur le candidat
+G-67	P3	confirmé	Rendez-vous de chantiers externes absents de la grille hebdomadaire de l'agenda artisan	à requalifier sur le candidat
+G-68	P3	confirmé	Facturation artisan : « 0 factures déposées » malgré deux factures externes ; mode d'emploi orienté Gerimmo	à requalifier sur le candidat
+G-69	P3	confirmé	Parcours incident : compteur de photos faux, messages et libellés en retard ou inexacts (« 4 photos » pour 2, « aucun artisan disponible » après devis, « Artisan sollicité » pour une mission confiée…)	à requalifier sur le candidat
+G-70	P3	confirmé	IRL de référence non prérempli après le choix du trimestre	à requalifier sur le candidat
+G-71	P3	confirmé	Saisie des montants et écritures : « 1 250 » refusé, message inadapté pour 0 ou négatif, imputation hors exercice sans avertissement, catégorie en texte libre	à requalifier sur le candidat
+G-72	P3	confirmé	Listes de choix non filtrées par rôle (SCI et garants proposés comme locataires, locataires comme propriétaires) ; co-titulaires impossibles hors colocation	à requalifier sur le candidat
+G-73	P3	confirmé	Typographie et mise en forme non françaises dans les PDF, messages et libellés (« 95.5 m² », « 32.73 % », espaces avant ponctuation, période « 2026-10-01 »)	à requalifier sur le candidat
+G-74	P3	confirmé	Export CSV du journal de gestion servi sans Cache-Control privé	à requalifier sur le candidat
+G-75	P3	confirmé	Webhook de suivi des e-mails (/api/resend/suivi) non configuré en production (503)	à requalifier sur le candidat
+G-76	P3	confirmé	Adresses racine « pointées » (/.env, /.git/config…) → /connexion au lieu de 404 ; pas de security.txt	à requalifier sur le candidat
+G-77	P3	confirmé	/api/sante public révèle le commit déployé	à requalifier sur le candidat
+G-78	P3	confirmé	Erreurs PostgREST verbeuses pour un anonyme (indices de schéma)	à requalifier sur le candidat
+G-79	P3	confirmé	HSTS du domaine nu sans includeSubDomains ni preload	à requalifier sur le candidat
+G-80	P3	confirmé	/relais (supervision) ouvert à tout compte, message de délégation incompréhensible	à requalifier sur le candidat
+G-81	P3	confirmé	Pages « introuvable » servies en HTTP 200 (faux 404) dans le journal, les versions des CG, l'espace propriétaire et l'espace artisan	à requalifier sur le candidat
+G-82	P3	confirmé	Agenda propriétaire : ≈ 35 préchargements serveur par visite ; échéances de contrats et relevés absents	à requalifier sur le candidat
+G-83	P3	confirmé	Contrat ou charge créé deux fois à l'identique sans avertissement (tâches en double)	à requalifier sur le candidat
+G-84	P3	confirmé	Vocabulaire d'agence dans l'espace du propriétaire direct (incidents, reprise des comptes)	à requalifier sur le candidat
+G-85	P3	confirmé (banc isolé + code)	Libellés du parcours d'abonnement (« abonnement Gerimmo Gerimmo », « TTC » en franchise, « Choisir ma formule » pour un impayé…)	à requalifier sur le candidat
+G-86	P3	confirmé (code)	Dette tarifaire : commentaires et textes périmés (plancher 4,90 €, supplément), wiki obsolète, code mort grilles-tarifaires.tsx	à requalifier sur le candidat
+G-87	P3	confirmé	Inscription mobile : code postal sans clavier numérique ni contrôle ; adresse postale obligatoire non expliquée	à requalifier sur le candidat
+G-88	P3	confirmé	Article 3.1 des CG en décalage avec le formulaire d'inscription	à requalifier sur le candidat
+G-89	P3	confirmé	Date de mise à jour inexacte de la politique de confidentialité	à requalifier sur le candidat
+G-90	P3	confirmé	Badge d'offre ambigu (« 2 mois gratuits jusqu'au 31/12/2026 »)	à requalifier sur le candidat
+G-91	P3	confirmé	Simulateur de prix difficile à régler au doigt (3 px par bien)	à requalifier sur le candidat
+G-92	P3	confirmé	Assistant IA du locataire : exemple de bailleur, ne renvoie pas vers « Signaler un problème »	à requalifier sur le candidat
+G-93	P3	confirmé	Espace locataire : accords et compteurs fautifs (« 2 vos attestations », « … et 1 autre mois sera soldés »)	à requalifier sur le candidat
+G-94	P3	confirmé	Lien « ← Mon logement » de Mes relevés menant à l'accueil	à requalifier sur le candidat
+G-95	P3	confirmé	« Mes espaces » sans effet pour un compte à un seul espace	à requalifier sur le candidat
+G-96	P3	confirmé	Tuiles de l'accueil artisan menant toutes à l'agenda général, sans filtre	à requalifier sur le candidat
+G-97	P3	confirmé	Recherche de client sans résultat : aucun message	à requalifier sur le candidat
+G-98	P3	confirmé	Moyen de règlement affiché en valeur brute (« cheque »)	à requalifier sur le candidat
+G-99	P3	confirmé	Fichier d'un type refusé : « Transfert non terminé — fichier conservé » puis message de format (double message)	à requalifier sur le candidat
+G-100	P3	confirmé	Fichier téléchargé nommé « download », sans extension ni titre	à requalifier sur le candidat
+G-101	P3	confirmé	Libellés et formats divers incohérents (« Mes lots », ordre nom/prénom, bail rangé dans les justificatifs, amiante parties communes pour une maison…)	à requalifier sur le candidat
+G-102	P3	confirmé	Cibles tactiles sous le minimum (20 px, 40 px, 18 px) au téléphone	à requalifier sur le candidat
+G-103	P3	confirmé	Structure accessible : repères dupliqués (journal, Mes relevés) et absence de lien d'évitement (locataire, artisan)	à requalifier sur le candidat
+G-104	P3	proposition	Conversion mobile : prix absent du premier écran, bouton secondaire, mot de passe non affichable, 404 inadaptée	à requalifier sur le candidat
+G-105	P3	proposition	Mesure de l'acquisition (utm/fbclid perdus) et aperçu de partage Facebook inadapté	à requalifier sur le candidat
+G-106	P3	proposition	Pictogramme « feuille » sans signification à côté du logo	à requalifier sur le candidat

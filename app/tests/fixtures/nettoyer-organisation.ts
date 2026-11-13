@@ -23,6 +23,10 @@ export async function supprimerOrganisationDeTest(admin: Client, org: string | u
          join information_schema.tables t on t.table_schema = c.table_schema and t.table_name = c.table_name
         where c.table_schema = 'public' and c.column_name = 'organization_id' and t.table_type = 'BASE TABLE'`
     );
+    // Cette table de liaison hérite de l’organisation de la quittance.
+    // Les suppressions en cascade sont suspendues pendant ce nettoyage de fixture.
+    await admin.query(`delete from public.destinataires_rectifications_quittance d
+      using public.quittances q where q.id = d.quittance_id and q.organization_id = $1`, [org]);
     for (const { table_name } of rows) await admin.query(`delete from public."${table_name}" where organization_id = $1`, [org]);
     await admin.query("delete from public.organizations where id = $1", [org]);
     if (comptes.length) await admin.query("delete from public.audit_log where account_id = any($1::uuid[])", [comptes]);

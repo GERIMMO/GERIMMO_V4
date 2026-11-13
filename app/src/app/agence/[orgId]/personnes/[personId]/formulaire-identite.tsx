@@ -66,6 +66,7 @@ export function FormulaireIdentite({
   codePostal,
   ville,
   qualite,
+  siren,
   // Arrivée par « Ajouter un email » (?modifier=1) : le formulaire est déjà
   // ouvert — la consigne sans geste renvoyait chercher le bouton en haut de
   // page, hors écran au téléphone (24/09).
@@ -84,12 +85,14 @@ export function FormulaireIdentite({
   codePostal: string | null;
   ville: string | null;
   qualite: string | null;
+  siren?: string | null;
   ouvertInitial?: boolean;
   integre?: boolean;
 }) {
   const action = modifierPersonne.bind(null, orgId, personId);
   const [etat, formAction] = useActionStateSuivi<EtatPersonne, FormData>(action, {});
   const [ouvert, setOuvert] = useState(ouvertInitial);
+  const [qualiteChoisie, setQualiteChoisie] = useState(normaliserQualiteBailleur(qualite) ?? "");
 
   // Fiche mise à jour : le formulaire se replie, la page se recharge d'elle-même.
   // Repli piloté par la réponse du serveur, pas un état dérivé du rendu.
@@ -204,6 +207,10 @@ export function FormulaireIdentite({
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
+          {(siren || ["SCI", "SCI familiale", "Personne morale"].includes(qualiteChoisie)) && <div className="space-y-1.5">
+            <Label htmlFor={`ident-siren-${personId}`}>SIREN de la société</Label>
+            <Input id={`ident-siren-${personId}`} name="siren" inputMode="numeric" maxLength={16} defaultValue={etat.valeurs?.siren ?? siren ?? ""} />
+          </div>}
           <Label htmlFor={`ident-qualite-${personId}`}>Qualité (bail)</Label>
           {/* Liste fermée (audit 29/09) : la durée du bail nu en dépend —
               3 ans pour une personne physique, une indivision de personnes
@@ -212,7 +219,8 @@ export function FormulaireIdentite({
           <select
             id={`ident-qualite-${personId}`}
             name="qualite"
-            defaultValue={etat.valeurs?.qualite ?? normaliserQualiteBailleur(qualite) ?? ""}
+            value={qualiteChoisie}
+            onChange={event => setQualiteChoisie(event.target.value)}
             className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
           >
             <option value="">Non précisée</option>
@@ -227,7 +235,7 @@ export function FormulaireIdentite({
       {integre && etat.succes && <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       <div className="flex items-center gap-2">
-        {!integre && <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
+        {!integre && <Button type="button" variant="ghost" size="sm" onClick={() => { setQualiteChoisie(normaliserQualiteBailleur(qualite) ?? ""); setOuvert(false); }}>
           Annuler
         </Button>}
         <BoutonEnvoi size="sm" enCoursTexte="Enregistrement…">

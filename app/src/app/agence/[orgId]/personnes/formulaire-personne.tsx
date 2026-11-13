@@ -40,7 +40,7 @@ const ETAPES = [
   { titre: "Justificatifs", detail: "Déposer les pièces ou préparer une demande — Facultatif", icone: Files },
   { titre: "Récapitulatif", detail: "Relire les informations avant de créer la fiche", icone: ClipboardCheck },
 ];
-const VIDE = { nom:"", prenom:"", date_naissance:"", commune_naissance:"", email:"", telephone:"", address_line1:"", postal_code:"", city:"" };
+const VIDE = { siren:"", nom:"", prenom:"", date_naissance:"", commune_naissance:"", email:"", telephone:"", address_line1:"", postal_code:"", city:"" };
 type Champ = keyof typeof VIDE;
 
 type Props = { orgId: string; compteId: string; lots: LotRattachable[]; estBailleurDirect?: boolean; dansParcours?: boolean };
@@ -61,7 +61,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
   const [etape, setEtape] = useState(initial?.etape ?? 0);
   const [morale, setMorale] = useState(initial?.morale ?? false);
   const [qualiteSociete, setQualiteSociete] = useState<BrouillonPersonne["qualiteSociete"]>(initial?.qualiteSociete ?? "SCI");
-  const [valeurs, setValeurs] = useState(initial?.valeurs ?? VIDE);
+  const [valeurs, setValeurs] = useState({ ...VIDE, ...initial?.valeurs, siren: initial?.valeurs.siren ?? "" });
   const [emailCorrect, setEmailCorrect] = useState(Boolean(initial?.valeurs.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(initial.valeurs.email)));
   const [lotId, setLotId] = useState(initial?.lotId ?? "");
   const [lotResume, setLotResume] = useState("");
@@ -173,6 +173,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
           {estProprio && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={morale} onChange={e=>setMorale(e.target.checked)} />Personne morale (SCI, société…)</label>}
           {personneMorale && <label className="block space-y-1 text-sm">Type de société<select name="qualite" value={qualiteSociete} onChange={e => setQualiteSociete(e.target.value as BrouillonPersonne["qualiteSociete"])} className="min-h-11 w-full rounded-lg border border-border bg-background px-3"><option value="SCI">SCI</option><option value="SCI familiale">SCI familiale</option><option value="Personne morale">Autre société</option></select></label>}
           <div className={styles.grille}>
+            {personneMorale && champ("siren", "SIREN", { facultatif:true, max:16, aide:"Les neuf chiffres qui identifient la société." })}
             {champ("nom",personneMorale ? "Raison sociale" : "Nom",{autoComplete:personneMorale ? "organization" : "family-name",large:personneMorale})}
             <fieldset hidden={personneMorale} disabled={personneMorale} className="contents">{champ("prenom","Prénom",{autoComplete:"given-name"})}{champ("date_naissance","Date de naissance",{type:"date",autoComplete:"bday"})}{champ("commune_naissance","Commune de naissance")}</fieldset>
           </div>
@@ -198,7 +199,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
           <div className={styles.recap}>
             <section><header><h3>Identité</h3><button type="button" onClick={()=>changer(1)}><Pencil size={13} aria-hidden="true" />Modifier</button></header><dl>
               <div><dt>Rôle</dt><dd>{roles.find(r=>r.cle===role)?.libelle}</dd></div><div><dt>{personneMorale ? "Raison sociale" : "Nom et prénom"}</dt><dd>{personneMorale ? valeurs.nom : [valeurs.prenom,valeurs.nom].filter(Boolean).join(" ")}</dd></div>
-              {personneMorale && <div><dt>Type de société</dt><dd>{qualiteSociete}</dd></div>}
+              {personneMorale && <div><dt>Type de société</dt><dd>{qualiteSociete}{valeurs.siren && ` · SIREN ${valeurs.siren}`}</dd></div>}
               {!personneMorale && <div><dt>Naissance</dt><dd>{valeurs.date_naissance ? formaterDate(valeurs.date_naissance) : "À compléter"} · {valeurs.commune_naissance}</dd></div>}
             </dl></section>
             <section><header><h3>Coordonnées</h3><button type="button" onClick={()=>changer(2)}><Pencil size={13} aria-hidden="true" />Modifier</button></header><dl>

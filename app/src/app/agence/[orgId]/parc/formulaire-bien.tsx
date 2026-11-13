@@ -280,6 +280,7 @@ export function FormulaireBien({
       {!bien && <input type="hidden" name="creation_id" value={creationId ?? ""} />}
       {etat.erreur && <p ref={erreurRef} role="alert" tabIndex={-1} className="scroll-mt-24 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{etat.erreur}</p>}
       {etat.repriseHref && <Link href={etat.repriseHref} className="btn-secondaire">Ouvrir le dossier déjà enregistré</Link>}
+      {etat.doublonBien && <label className="flex items-center gap-2 text-sm"><input key={etat.doublonBien} type="checkbox" name="distinct_de" value={etat.doublonBien} />Je confirme qu’il s’agit d’un autre bien à gérer séparément.</label>}
       {guideActif && <><input type="hidden" name="parcours" value="1" /><p className={styles.aide}><span className={styles.legendePastille} aria-hidden="true" /> Pastille rouge : information obligatoire à compléter. Les champs indiqués « facultatif » peuvent rester vides.</p></>}
       <div data-bien-groupes data-etape-creation="0" ref={groupeBien} hidden={guideActif && etapeCreation !== 0} className="space-y-6">
       <div hidden={["nom", "type", "address_line1", "address_line2", "postal_code", "city", "commune_insee"].every(masquer)} data-bien-section="adresse" className="space-y-6">

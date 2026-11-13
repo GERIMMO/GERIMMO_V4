@@ -109,6 +109,7 @@ describe("export du journal de gestion : au-delà de 1 000 lignes (A04)", () => 
   it("1 001 écritures et 1 001 lignes de mandat : les 1 001 lignes sortent, la dernière avec son mandant", async () => {
     const { res, donnees } = await exporter();
     expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
     expect(res.headers.get("Content-Disposition")).toContain("journal-de-gestion-complet.csv");
     expect(donnees).toHaveLength(1001);
     // La 1 001e écriture, et son mandant, qui ne se lit que sur la 1 001e ligne de mandat.
@@ -152,6 +153,7 @@ describe("export du journal de gestion : au-delà de 1 000 lignes (A04)", () => 
     banc.compteMenteur = { ecritures: 1 };
     const { res, corps } = await exporter();
     expect(res.status).toBe(500);
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
     expect(res.headers.get("Content-Type")).toContain("text/plain");
     expect(res.headers.get("Content-Disposition")).toBeNull();
     expect(corps).toMatch(/^Export impossible/);

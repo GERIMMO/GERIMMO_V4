@@ -109,7 +109,7 @@ jobs:
           set -euo pipefail
           export POSTGREST_REEL_JWT_SECRET="$(openssl rand -hex 32)"
           export POSTGREST_REEL_URL=http://127.0.0.1:53923
-          docker run -d --name portail-g11 --network host -e PGRST_DB_URI="$SUPABASE_DB_URL" -e PGRST_DB_ANON_ROLE=anon -e PGRST_SERVER_HOST=127.0.0.1 -e PGRST_SERVER_PORT=53923 -e PGRST_JWT_SECRET="$POSTGREST_REEL_JWT_SECRET" postgrest/postgrest:v14.5
+          docker run -d --name portail-g11 --network host -e PGRST_DB_URI="$SUPABASE_DB_URL" -e PGRST_DB_PRE_REQUEST=public.verifier_session_api -e PGRST_DB_ANON_ROLE=anon -e PGRST_SERVER_HOST=127.0.0.1 -e PGRST_SERVER_PORT=53923 -e PGRST_JWT_SECRET="$POSTGREST_REEL_JWT_SECRET" postgrest/postgrest:v14.5
           trap 'docker stop portail-g11 >/dev/null' EXIT
           curl --fail --silent --show-error --retry 20 --retry-connrefused --retry-max-time 60 "$POSTGREST_REEL_URL/" -o /dev/null
           node e2e/local/verifier-portail-postgrest.mjs
@@ -131,7 +131,7 @@ jobs:
       - name: Vérifier PostgREST 14.5 sur la base fictive migrée
         run: |
           docker run -d --name postgrest-revue --network host \
-            -e PGRST_DB_URI="$SUPALOCAL_DB" -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_DB_URI="$SUPALOCAL_DB" -e PGRST_DB_PRE_REQUEST=public.verifier_session_api -e PGRST_DB_ANON_ROLE=anon \
             -e PGRST_SERVER_HOST=127.0.0.1 -e PGRST_SERVER_PORT=53901 \
             -e PGRST_JWT_SECRET="$POSTGREST_REEL_JWT_SECRET" postgrest/postgrest:v14.5
           curl --fail --silent --retry 20 --retry-connrefused "$POSTGREST_REEL_URL/" -o /dev/null
@@ -142,7 +142,7 @@ jobs:
           export SUPALOCAL_DB="${SUPABASE_DB_URL%/*}/gerimmo_ci_contrats_api"
           export POSTGREST_REEL_URL=http://127.0.0.1:53902
           docker run -d --name postgrest-contrats --network host \
-            -e PGRST_DB_URI="$SUPALOCAL_DB" -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_DB_URI="$SUPALOCAL_DB" -e PGRST_DB_PRE_REQUEST=public.verifier_session_api -e PGRST_DB_ANON_ROLE=anon \
             -e PGRST_SERVER_HOST=127.0.0.1 -e PGRST_SERVER_PORT=53902 \
             -e PGRST_JWT_SECRET="$POSTGREST_REEL_JWT_SECRET" postgrest/postgrest:v14.5
           curl --fail --silent --retry 20 --retry-connrefused "$POSTGREST_REEL_URL/" -o /dev/null

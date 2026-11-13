@@ -1139,6 +1139,6 @@ fs.mkdirSync(STOCKAGE, { recursive: true });
 // connexion (inscription, mot de passe oublié, invitations) se fabriquent.
 
 serveur.listen(PORT, "127.0.0.1", () => {
-  console.log(`Émulateur Supabase local prêt : http://127.0.0.1:${PORT} → ${DB_URL}`);
+  console.log(`Émulateur Supabase local prêt : http://127.0.0.1:${PORT}`);
   console.log("Clé fictive configurée ; valeur non journalisée.");
 });

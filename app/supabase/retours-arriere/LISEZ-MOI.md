@@ -645,6 +645,7 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261113113325` (uniquement avant le premier remplacement de compteur ; ensuite conserver les relevés et corriger en avant), puis
 `20261112200752` (uniquement en l’absence de rattachements fiscaux ; sinon préserver le journal et corriger en avant), puis
 `20261112120400` (répétition isolée), puis
 `20261112120300` (répétition isolée uniquement), puis

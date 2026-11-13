@@ -80,6 +80,34 @@ $apres$;
 begin
  if strpos(definition,ancien)=0 then raise exception 'Version de calcul de départ inattendue'; end if;
  execute replace(definition,ancien,nouveau);
+ definition := pg_get_functiondef('consommations_interne.verifier_compteurs_principaux()'::regprocedure);
+ if strpos(definition,$debut$   select distinct (v->>'compteur_id')::uuid id from jsonb_array_elements(new.lignes) v
+  ), groupes as (
+   select enfant.compteur_principal_id id, array_agg(enfant.id order by enfant.id) enfants,
+    sum(rf.index_releve-coalesce(rd.index_releve,case when enfant.date_index_initial=debut then enfant.index_initial end)) quantite
+   from compteurs x join public.compteurs_consommation enfant on enfant.id=x.id and enfant.organization_id=new.organization_id
+   left join public.releves_consommation rd on rd.compteur_id=x.id and rd.date_releve=debut
+   left join public.releves_consommation rf on rf.compteur_id=x.id and rf.date_releve=fin
+   where enfant.compteur_principal_id is not null group by enfant.compteur_principal_id
+$debut$)=0 then raise exception 'Version du contrôle des compteurs principaux inattendue'; end if;
+ execute replace(definition,$debut$   select distinct (v->>'compteur_id')::uuid id from jsonb_array_elements(new.lignes) v
+  ), groupes as (
+   select enfant.compteur_principal_id id, array_agg(enfant.id order by enfant.id) enfants,
+    sum(rf.index_releve-coalesce(rd.index_releve,case when enfant.date_index_initial=debut then enfant.index_initial end)) quantite
+   from compteurs x join public.compteurs_consommation enfant on enfant.id=x.id and enfant.organization_id=new.organization_id
+   left join public.releves_consommation rd on rd.compteur_id=x.id and rd.date_releve=debut
+   left join public.releves_consommation rf on rf.compteur_id=x.id and rf.date_releve=fin
+   where enfant.compteur_principal_id is not null group by enfant.compteur_principal_id
+$debut$,$fin$   select (v->>'compteur_id')::uuid id, min(coalesce((v->>'periode_debut')::date,debut)) premier, max(coalesce((v->>'periode_fin')::date,fin)) dernier from jsonb_array_elements(new.lignes) v group by 1
+  ), groupes as (
+   select enfant.compteur_principal_id id, array_agg(enfant.id order by enfant.id) enfants,
+    sum(rf.index_releve-coalesce(rd.index_releve,case when enfant.date_index_initial=x.premier then enfant.index_initial end)) quantite
+   from compteurs x join public.compteurs_consommation enfant on enfant.id=x.id and enfant.organization_id=new.organization_id
+   left join public.releves_consommation rd on rd.compteur_id=x.id and rd.date_releve=x.premier
+   left join public.releves_consommation rf on rf.compteur_id=x.id and rf.date_releve=x.dernier
+   where enfant.compteur_principal_id is not null group by enfant.compteur_principal_id
+$fin$);
+
 end $migration$;
 
 -- Un réglage ultérieur ne peut ni réactiver l'ancien compteur ni déplacer une frontière déjà documentée.

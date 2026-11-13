@@ -14,7 +14,7 @@ describe.skipIf(!DB_URL)("Documents — pas d'appropriation hors portefeuille", 
   const id = async (sql: string, params: unknown[] = []) => (await db.query(sql, params)).rows[0].id as string;
   const devenir = async (compte: string) => {
     await db.query("reset role");
-    await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated')::text,true)", [compte]);
+    await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated','session_id',$1::text)::text,true)", [compte]);
     await db.query("set local role authenticated");
   };
   const nouveauDocument = (chemin: string, empreinte: string, auteur = agentB) => id(`
@@ -46,6 +46,7 @@ describe.skipIf(!DB_URL)("Documents — pas d'appropriation hors portefeuille", 
       values('00000000-0000-0000-0000-000000000000',gen_random_uuid(),'authenticated','authenticated',
       $1||gen_random_uuid()||'@test.local','x',now(),'{}','{}',now(),now(),'','','','','') returning id`, [prefixe]);
     [agentA, agentB, admin] = [await compte("agent-a"), await compte("agent-b"), await compte("admin")];
+    await db.query("insert into auth.sessions(id,user_id) select x,x from unnest($1::uuid[]) x", [[agentA,agentB,admin]]);
     await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'agent'),($3,$2,'agent'),($4,$2,'admin_agence')", [agentA, org, agentB, admin]);
     const bien = await id(`insert into public.biens(organization_id,nom,type,address_line1,postal_code,city)
       values($1,'Bien de recette','immeuble','1 rue de la Recette','75001','Paris') returning id`, [org]);

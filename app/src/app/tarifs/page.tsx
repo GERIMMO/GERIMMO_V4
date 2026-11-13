@@ -36,7 +36,7 @@ export default function PageTarifs() {
       <EnTetePublic />
       <main className="flex-1">
         <header className="public-page-intro"><div className="public-conteneur">
-          <h1>Un seul abonnement. Tout votre immobilier.</h1>
+          <h1>L’abonnement Gerimmo pour votre espace propriétaire.</h1>
           <p>Dès 5,99 €/mois pour toutes les fonctions de gestion. Choisissez le rythme qui vous convient, après votre essai gratuit de {duree}, sans carte bancaire.</p>
           <p className="public-essai mt-4" title={offre ?? undefined}>{badgeEssai()}</p>
         </div></header>
@@ -46,7 +46,7 @@ export default function PageTarifs() {
           <div className="public-tarifs-details">
         <Article titre="Particuliers et SCI gérant leurs propres biens">
           <ul className="list-disc space-y-1 pl-5">
-            <li>Le prix dépend du nombre d’unités locatives indépendantes activement gérées dans votre abonnement.</li>
+            <li>Le prix dépend des unités locatives indépendantes gérées dans l’espace choisi. Vous pouvez y réunir vos logements en nom propre et ceux de votre SCI. Ajouter la SCI dans cet espace ne crée pas de deuxième abonnement.</li>
             <li>Mensuel : sans engagement, résiliable à tout moment pour la prochaine échéance.</li>
             <li>Annuel : payé en une fois pour douze mois (deux mois offerts), renouvelé à sa date anniversaire ; résiliable pour la prochaine échéance annuelle. Le montant annuel prélevé est affiché avant paiement.</li>
             <li>Sont comptés les biens activement gérés, occupés ou vacants. Un logement et ses annexes louées au même bail comptent pour un bien ; un parking loué séparément compte pour un bien. Un bien archivé n&apos;est plus compté et reste consultable.</li>

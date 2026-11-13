@@ -133,7 +133,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: bailPersonnes, error: erreurBailPersonnes },
     { data: intentions, error: erreurIntentions },
   ] = await Promise.all([
-      supabase.from("lots").select("id, nom, bien_id, meuble, surface_m2, colocation_loyer_reference, bien:biens!lots_bien_id_fkey(zone_tendue, copropriete)").eq("id", bail.lot_id).maybeSingle(),
+      supabase.from("lots").select("id, nom, bien_id, etat, meuble, surface_m2, colocation_loyer_reference, bien:biens!lots_bien_id_fkey(zone_tendue, copropriete)").eq("id", bail.lot_id).maybeSingle(),
       // Les pièces déclarées du lot : leur absence rend l'état des lieux générique.
       supabase
         .from("lot_pieces")
@@ -197,9 +197,11 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // Relocation (décision du 27/10, CB-08) : le bail précédent du lot dont le brouillon a repris les conditions
   // à sa création ; l’étape Loyer signale les valeurs encore identiques et propose de les effacer.
   const { data: bauxPrecedents } = bail.etat === "brouillon"
-    ? await supabase.from("baux").select("id, chambre_id, type, date_debut, date_fin, date_sortie_reelle, loyer_hc, charges, charges_mode, jour_echeance, paiement_echeance, revision_irl, irl_trimestre, irl_valeur").eq("organization_id", orgId).eq("lot_id", bail.lot_id).in("etat", ["termine", "preavis"])
+    ? await supabase.from("baux").select("id, chambre_id, etat, type, date_debut, date_fin, date_sortie_reelle, loyer_hc, charges, charges_mode, jour_echeance, paiement_echeance, revision_irl, irl_trimestre, irl_valeur").eq("organization_id", orgId).eq("lot_id", bail.lot_id).in("etat", ["termine", "preavis"])
     : { data: null };
-  const bailPrecedent = bailPrecedentDuLot(Array.isArray(bauxPrecedents) ? bauxPrecedents : []);
+  const precedents = Array.isArray(bauxPrecedents) ? bauxPrecedents : [];
+  const bailPrecedent = bailPrecedentDuLot(precedents, bail.chambre_id);
+  const sorties = precedents.filter(b => b.etat === "termine").map(({ chambre_id, date_sortie_reelle, date_fin }) => ({ chambre_id, date_sortie_reelle, date_fin }));
 
   // Résolution des noms pour la colocation (colocataires + garants nominatifs)
   const nomsPersonnes = new Map(
@@ -316,7 +318,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       ? supabase
           .from("restitutions")
           .select(
-            "id, date_remise_cles, delai_mois, depot, impayes, trop_percu, montants_arretes_le, sans_edl_entree, statut, solde, date_emission, envoye_le, retenues(id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, created_at)"
+            "id, date_remise_cles, delai_mois, depot, impayes, trop_percu, montants_arretes_le, sans_edl_entree, statut, solde, date_emission, envoye_le, retenues(id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, justificatif_document, created_at)"
           )
           .eq("bail_id", bailId)
           .maybeSingle()
@@ -539,6 +541,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       )}
 
 </div>);
+  const lotEnPreparation = bail.etat === "brouillon" && lot?.etat === "brouillon";
   const depotSigne = (<div>      {/* Cycle du bail */}
       {(bail.etat === "brouillon" || bail.document_signe) && (
         <Card id="bail-signe" className="scroll-mt-20">
@@ -551,6 +554,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {lotEnPreparation && <p className="text-sm">
+              Le logement est encore en préparation. Ouvrez sa fiche et choisissez « Mettre en location » avant d’activer le bail.{" "}
+              <Link className="underline" href={`${base}/parc/${lot.bien_id}/lots/${bail.lot_id}`}>Ouvrir la fiche du logement</Link>
+            </p>}
             {bail.document_signe ? (
               <CarteBailSigne
                 orgId={orgId}
@@ -563,9 +570,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 corrigeable={
                   bail.etat === "actif" && (echeancier ?? []).length === 0 && !restitution
                 }
-                actif={bail.etat !== "brouillon"}
+                etat={bail.etat}
+                activationDisponible={!lotEnPreparation}
               />
-            ) : mentions.length > 0 ? (
+            ) : lotEnPreparation ? null : mentions.length > 0 ? (
               // Le dépôt active le bail : ne pas le proposer quand la base le
               // refusera de toute façon — on dit pourquoi et où corriger.
               <div className="space-y-2">
@@ -935,7 +943,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               decompteSortie={etatDecompteSortie(restitution, erreurRestitution)}
             />
             <HistoriqueRecommandes orgId={orgId} bailId={bailId} />
-            <PlanApurementBail orgId={orgId} bailId={bailId} base={base} />
+            <PlanApurementBail orgId={orgId} bailId={bailId} base={base} decompte={etatDecompteSortie(restitution, erreurRestitution)} />
           </div>
         </RubriqueDossier>
       )}
@@ -1255,7 +1263,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </HistoriqueBailLecture>
           </>} /> },
       ]} /> : bail.etat === "brouillon" ? <AssistantBail
-        formulaire={<FormulaireParcoursBail lienChambres={lot?lienLotDepuisBail(orgId,lot.bien_id,bail.lot_id,bailId,"equipements",1,racineEspace(estProprietaire)):undefined} surfaceHabitable={lot?.surface_m2} orgId={orgId} bailId={bailId} defauts={bail} bailPrecedent={bailPrecedent} agence={agence} meuble={Boolean(lot?.meuble)} chambres={chambres ?? []} />}
+        formulaire={<FormulaireParcoursBail lienChambres={lot?lienLotDepuisBail(orgId,lot.bien_id,bail.lot_id,bailId,"equipements",1,racineEspace(estProprietaire)):undefined} surfaceHabitable={lot?.surface_m2} orgId={orgId} bailId={bailId} defauts={bail} bailPrecedent={bailPrecedent} sorties={sorties} agence={agence} meuble={Boolean(lot?.meuble)} chambres={chambres ?? []} />}
         orgId={orgId} bailId={bailId} controleInitial={await verifierDossierBail(orgId, bailId)}
         contenus={[
           null,
@@ -1270,6 +1278,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             signature={<FinaliserParcoursBail recapitulatifStructure key={JSON.stringify([bail,lignesColoc,inventaire])} orgId={orgId} bailId={bailId}
               code={bail.chambre_id?"bail_individuel":bail.type==="colocation"?"bail_colocation":bail.type==="meuble"?"bail_meuble":"bail_nu"}
               signataires={[...(bail.locataire_principal ? [{id:bail.locataire_principal,nom:locataire?nomComplet(locataire):"Locataire principal"}]:[]),...lignesColoc.filter(p=>p.role==="colocataire"&&!p.date_depart).map(p=>({id:p.person_id,nom:p.person_nom}))]}
+              edlSigne={edlEntreeSigne}
               edlId={(edls??[]).find(e=>e.type==="entree")?.id??null}
               preparationEdl={erreurEdls?<p role="alert">Les états des lieux n’ont pas pu être chargés.</p>:<FormulaireCreerEdl orgId={orgId} bailId={bailId} bailEtat={bail.etat} typesExistants={(edls??[]).map(e=>e.type)}/>}
               signatureManuelle={depotSigne} proprietaireDirect={estProprietaire} documentSigne={documentSigne} lectureSeule={traverseeLectureSeule}/>} /></div>

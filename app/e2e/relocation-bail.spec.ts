@@ -37,10 +37,22 @@ for (const largeur of [390, 1440]) {
       await db.query(`insert into public.detentions(id,lot_id,organization_id,person_id,quote_part,date_debut,date_fin)
         select gen_random_uuid(),$1,organization_id,person_id,quote_part,date_debut,date_fin from public.detentions
         where lot_id=$3 and organization_id=$2`, [lotId, ORG, sources[0].id]);
-      await db.query(`insert into public.baux(organization_id,lot_id,type,etat,date_debut,date_fin,date_sortie_reelle,loyer_hc,charges,depot_garantie,jour_echeance,revision_irl,irl_trimestre,irl_valeur,charges_mode,paiement_echeance)
-        values($1,$2,'nu','termine','2023-09-01','2026-08-31','2026-08-31',930,65,900,5,true,'T2',140.59,'provision','echoir')`, [ORG, lotId]);
+      const ancienBail = await db.query(`insert into public.baux(organization_id,lot_id,type,etat,date_debut,date_fin,date_sortie_reelle,loyer_hc,charges,depot_garantie,jour_echeance,revision_irl,irl_trimestre,irl_valeur,charges_mode,paiement_echeance)
+        values($1,$2,'nu','termine','2023-09-01','2026-08-31','2026-08-31',930,65,900,5,true,'T2',140.59,'provision','echoir') returning id`, [ORG, lotId]);
+      const bailTermine = ancienBail.rows[0].id;
+      const {rows: [restitution]} = await db.query(
+        `insert into public.restitutions(organization_id,bail_id,date_remise_cles,delai_mois,depot,impayes,statut,solde,date_emission)
+         values($1,$2,'2026-08-31',2,900,100,'finalise',602,'2026-09-04') returning id`, [ORG, bailTermine]);
+      await db.query(
+        `insert into public.retenues(organization_id,restitution_id,libelle,cout,montant_retenu)
+         values($1,$2,'Remplacement du mitigeur de salle de bain',198,198)`, [ORG, restitution.id]);
       await page.setViewportSize({ width: largeur, height: largeur === 390 ? 844 : 900 });
       await connecter(page);
+
+      await page.goto(`/espace/${ORG}/baux/${bailTermine}`);
+      await page.getByRole('tab', {name: 'Départ', exact: true}).click();
+      await expect(page.getByText('Remplacement du mitigeur de salle de bain', {exact: true})).toBeVisible();
+      expect(await debordementHorizontal(page)).toBe(0);
 
       // Depuis la fiche du lot : « Commencer un bail » ouvre le parcours du nouveau brouillon.
       await page.goto(`/espace/${ORG}/parc/${sources[0].bien_id}/lots/${lotId}`);

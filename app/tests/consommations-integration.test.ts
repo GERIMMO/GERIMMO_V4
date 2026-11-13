@@ -183,6 +183,21 @@ describe("comparaison et décompte lisible", () => {
     expect(comparerFactureReleves(facture, contrat, [compteur, { ...compteur, id: "chaude", type: "eau_chaude" }], [releve, { ...releve, compteur_id: "chaude" }], ["lot"]).erreur).toMatch(/Plusieurs compteurs/);
     expect(comparerFactureReleves(facture, contrat, [compteur, { ...compteur, id: "ancien", actif: false }], [releve], ["lot"]).bilan?.consommationRelevee).toBe(10);
   });
+  it("ne qualifie pas d’exact un total qui masque une baisse d’index intermédiaire", () => {
+    const baisse = { ...releve, date_releve: "2026-09-15", index_releve: 95 };
+    const resultat = comparerFactureReleves(facture, contrat, [compteur], [releve, baisse], ["lot"]);
+    expect(resultat.bilan).toBeNull();
+    expect(resultat.erreur).toMatch(/décroissant/);
+  });
+  it("additionne seulement les consommations des deux appareils explicitement reliés", () => {
+    const pose = "2026-09-15";
+    const ancien = { ...compteur, remplacement: {ancien_id:"c", nouveau_id:"neuf",date_pose:pose} };
+    const neuf = { ...compteur, id:"neuf", date_index_initial:pose, index_initial:850 };
+    const releves = [{ ...releve,date_releve:pose,index_releve:104 },{ ...releve,compteur_id:"neuf",index_releve:856 }];
+    expect(comparerFactureReleves(facture,contrat,[ancien,neuf],releves,["lot"]).bilan).toMatchObject({exacte:true,consommationRelevee:10,ecart:0});
+    expect(comparerFactureReleves(facture,contrat,[compteur,neuf],releves,["lot"]).bilan).toBeNull();
+    expect(comparerFactureReleves(facture,contrat,[ancien,neuf],releves.slice(1),["lot"]).bilan).toBeNull();
+  });
   it("ne mélange pas le gaz en m³ et les kWh de la facture", () => {
     const gaz = { ...contrat, categorie: "gaz" as const }, m = { ...compteur, type: "gaz" as const };
     expect(comparerFactureReleves(facture, gaz, [m], [releve], ["lot"]).erreur).toMatch(/unité/);

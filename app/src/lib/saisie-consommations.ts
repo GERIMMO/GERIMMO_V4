@@ -74,5 +74,5 @@ export function saisieTaxeFonciere(f: FormData, anneeParis: number) {
   if (total <= 0) throw new Error("Le total de l’avis doit être positif.");
   if (teom + gestion > total) throw new Error("La TEOM et ses frais de gestion ne peuvent pas dépasser le total de l’avis.");
   const reference = texteConso(f, "reference") || `Taxe foncière ${annee}`;
-  return { annee, total_cents: total, teom_cents: teom, frais_gestion_cents: gestion, reference, proprietaire_cents: total - teom - gestion };
+  return { annee, date_avis: dateConso(texteConso(f, "date_avis")), total_cents: total, teom_cents: teom, frais_gestion_cents: gestion, reference, proprietaire_cents: total - teom - gestion };
 }

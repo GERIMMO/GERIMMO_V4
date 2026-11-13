@@ -39,6 +39,7 @@ function fixture():Record<string,Row[]> {return {
 };}
 function fixtureCourrier(code: string) {
   const t=fixture();
+  if (["relance_simple","seconde_relance","mise_en_demeure","situation_dette","protocole_apurement"].includes(code)) t.restitutions=[];
   if (code==="seconde_relance" || code==="mise_en_demeure") t.relances.push({niveau:"relance_1",date_envoi:"2025-01-15"});
   if (code==="mise_en_demeure") t.relances.push({niveau:"relance_2",date_envoi:"2025-02-01"});
   return t;
@@ -110,16 +111,19 @@ describe("Catalogue — documents issus des dossiers",()=>{
     await expect(lireLignes(Promise.resolve({data:Array(1000).fill({}),error:null}))).rejects.toThrow("trop de lignes");
   });
   it("exclut les termes futurs de la dette et répartit les centimes sans perte",async()=>{
-    const r=succes(await assemblerComplementBail("protocole_apurement",mockDb().db,"org","bail",options));
+    const r=succes(await assemblerComplementBail("protocole_apurement",mockDb(fixtureCourrier("protocole_apurement")).db,"org","bail",options));
     expect(r.document.html).toContain("100,01");expect(r.document.html).toContain("33,33");expect(r.document.html.match(/33,34/g)).toHaveLength(2);
     expect(r.document.html).toContain("28/02/2026");expect(r.document.html).toContain("31/03/2026");expect(r.document.html).not.toContain("2099");
   });
+  it.each(["relance_simple","seconde_relance","mise_en_demeure","situation_dette","protocole_apurement"] as const)("refuse %s lorsque la dette figure au décompte final",async code=>{
+    expect(await assemblerComplementBail(code,mockDb().db,"org","bail",options)).toHaveProperty("erreur",expect.stringContaining("décompte de départ"));
+  });
   it("refuse une relance sans dette, une seconde sans première et un délai incorrect",async()=>{
-    const t=fixture();t.etat_loyers_bail=[];
+    const t=fixtureCourrier("relance_simple");t.etat_loyers_bail=[];
     expect(await assemblerComplementBail("relance_simple",mockDb(t).db,"org","bail")).toHaveProperty("erreur");
     t.etat_loyers_bail=fixture().etat_loyers_bail;t.relances=[];
     expect(await assemblerComplementBail("seconde_relance",mockDb(t).db,"org","bail")).toHaveProperty("erreur");
-    expect(await assemblerComplementBail("mise_en_demeure",mockDb().db,"org","bail",{delai:"0"})).toHaveProperty("erreur");
+    expect(await assemblerComplementBail("mise_en_demeure",mockDb(fixtureCourrier("mise_en_demeure")).db,"org","bail",{delai:"0"})).toHaveProperty("erreur");
   });
   it("refuse les documents qui attesteraient un état inexistant",async()=>{
     const {db}=mockDb();expect(await assemblerComplementBail("attestation_fin_bail",db,"org","bail")).toHaveProperty("erreur");

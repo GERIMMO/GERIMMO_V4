@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { corrigerBail, envoyerBailSigne } from "@/app/actions/baux";
+import { activerBailPapierExistant, corrigerBail, envoyerBailSigne } from "@/app/actions/baux";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
 import { Spinner } from "@/components/ui/spinner";
@@ -20,7 +20,8 @@ export function CarteBailSigne({
   envoyeLe,
   locataireEmail,
   corrigeable,
-  actif = true,
+  etat,
+  activationDisponible,
 }: {
   orgId: string;
   bailId: string;
@@ -30,7 +31,8 @@ export function CarteBailSigne({
   corrigeable: boolean;
   // Un vieux brouillon peut porter un PDF sans être actif (données d'avant le
   // 30/08) : le texte ne doit pas mentir sur l'état du bail.
-  actif?: boolean;
+  etat: string;
+  activationDisponible: boolean;
 }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
@@ -67,11 +69,18 @@ export function CarteBailSigne({
   return (
     <div className="space-y-3">
       <p className="text-sm text-success-soft-foreground">
-        {actif ? "Bail signé déposé — le bail est actif." : "Un PDF signé est déposé, mais le bail est resté en brouillon : redéposez-le pour l'activer, ou corrigez le brouillon."}
+        {etat === "actif" ? "Bail signé déposé — le bail est actif." : etat === "preavis" ? "Le bail signé est conservé pendant le préavis." : etat === "termine" ? "Le contrat signé de cette location terminée reste consultable." : "Le PDF signé est enregistré."}
         {envoyeLe && (
           <span className="text-muted-foreground"> Envoyé au locataire le {formaterDateHeure(envoyeLe)}.</span>
         )}
       </p>
+      {etat === "brouillon" && activationDisponible && <Button type="button" disabled={enCours} onClick={() => demarrer(async () => {
+        setErreur(null);
+        const res = await activerBailPapierExistant(orgId, bailId);
+        if (res.erreur) setErreur(res.erreur);
+        else afficherToast("Le bail est actif.");
+      })}>Activer la location</Button>}
+      {!ouverte && erreur && <p role="alert" className="text-sm text-destructive">{erreur}</p>}
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" onClick={() => setOuverte(true)}>
           Prévisualiser

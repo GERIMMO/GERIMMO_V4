@@ -16,6 +16,16 @@ export function natureFournisseur(contrats: Contrat[], fournisseur: string): Con
   return natures.size === 1 ? [...natures][0] : "";
 }
 
+/** Le contrat suggère une valeur uniquement si la facture et le propriétaire sont muets. */
+export function naturePourFacture(
+  saisie: Contrat["categorie"] | "",
+  lue: Contrat["categorie"] | "",
+  contrats: Contrat[],
+  fournisseur: string,
+) {
+  return saisie || lue || natureFournisseur(contrats, fournisseur);
+}
+
 /** Les montants d'un avis fiscal entier ne décrivent pas nécessairement sa ligne TEOM. */
 export function valeursLectureFacture(lecture: Record<string, unknown>, categorie: string) {
   const champs = ["reference", "periode_debut", "periode_fin", "total", "frais_fixes", "frais_gestion", "consommation", "unite_consommation"];

@@ -1,3 +1,4 @@
+import { presentationArchivee, type OptionsContrat } from "./communs";
 // Contrat commun : le régime dépend du logement, jamais d'une option du navigateur.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion } from "../gabarit";
@@ -6,7 +7,7 @@ import { construireBailNu } from "./bail-nu";
 import { construireBailMeuble, type LigneInventaire } from "./bail-meuble";
 import type { Assemblage } from "./index";
 
-export async function assemblerBailColocation(supabase: SupabaseClient, orgId: string, bailId: string): Promise<Assemblage> {
+export async function assemblerBailColocation(supabase: SupabaseClient, orgId: string, bailId: string, format: OptionsContrat = {}): Promise<Assemblage> {
   const ctx = await chargerContexteBail(supabase, orgId, bailId);
   if ("erreur" in ctx) return ctx;
   if (ctx.bail.type !== "colocation" || ctx.bail.chambre_id) return { erreur: "Ce modèle est réservé au contrat commun de colocation." };
@@ -28,7 +29,7 @@ export async function assemblerBailColocation(supabase: SupabaseClient, orgId: s
     if (error) return { erreur: "L'inventaire ne peut pas être lu. Réessayez avant de générer le contrat." };
     inventaire = data ?? [];
   }
-  const options = { dpeClasse: dpe?.classe_dpe ?? null, f: new Fusion(), inventaire };
+  const options = { presentationAncienne: format[presentationArchivee], dpeClasse: dpe?.classe_dpe ?? null, f: new Fusion(), inventaire };
   const document = ctx.lot.meuble ? construireBailMeuble(ctx, options) : construireBailNu(ctx, options);
   const regime = ctx.lot.meuble ? "meublé" : "nu";
   return {

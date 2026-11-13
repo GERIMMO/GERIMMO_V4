@@ -83,6 +83,9 @@ export const FICHIERS_EN_SERIE = [
   // Fixture validée qui encaisse un dépôt (encaisser_depot) : une ligne de depot_encaissements visible ~160 ms de toutes
   // les sessions, mesurée le 14/10 ; même effet sur reprise-comptable.test.ts que les fixtures du lot « encaissement ».
   "tests/restitution-impayes.test.ts",
+  "tests/conge-dernier-terme-base.test.ts",
+  // Le retour fiscal prend un verrou exclusif NOWAIT sur les écritures.
+  "tests/avis-foncier-journal-base.test.ts",
   // Lot « finance-dates » (X09, X13, X14) : `alter table public.encaissements` (retirer puis reposer la contrainte de centime, pour essayer
   // un encaissement ancien hors centime) et rejeu des migrations dans la transaction du test : verrou de table sur les encaissements,
   // qui se croiserait avec les écritures des autres fichiers.

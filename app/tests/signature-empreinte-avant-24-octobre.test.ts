@@ -37,13 +37,13 @@ function ctxDe(avecGarant: boolean) {
 }
 
 const MODELES: [string, (c: never) => DocumentAssemble][] = [
-  ["nu", (c) => construireBailNu(c, { dpeClasse: "D", f: new Fusion() })],
-  ["meuble", (c) => construireBailMeuble(c, { dpeClasse: "D", inventaire: [], f: new Fusion() })],
+  ["nu", (c) => construireBailNu(c, { presentationAncienne: true, dpeClasse: "D", f: new Fusion() })],
+  ["meuble", (c) => construireBailMeuble(c, { presentationAncienne: true, dpeClasse: "D", inventaire: [], f: new Fusion() })],
 ];
 
 describe("empreinte d'un bail préparé avant la mise en ligne (relecture transverse 3, I1)", () => {
   for (const [nom, construire] of MODELES) {
-    it(`bail ${nom} sans garant : le calcul d'aujourd'hui rend l'empreinte de la production`, () => {
+    it(`bail ${nom} sans garant : la relecture du modèle archivé rend l'empreinte de la production`, () => {
       const ctx = ctxDe(false);
       const { signataires } = partiesSignatureBail(ctx as never);
       const { empreinte } = documentSignatureBail(construire(ctx as never), signataires, [], 0);

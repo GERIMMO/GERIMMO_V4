@@ -55,6 +55,8 @@ import { demarrerRestitution } from "@/app/actions/restitution";
 import {
   FormulaireRestitution,
   type Restitution,
+  type Retenue,
+  type MontantsReels,
 } from "@/app/agence/[orgId]/baux/[bailId]/formulaire-restitution";
 import { REGLE_ECART_EDL } from "@/lib/regle-ecart-edl";
 
@@ -80,14 +82,14 @@ const restitution = (surcharge: Partial<Restitution> = {}): Restitution => ({
   ...surcharge,
 });
 
-function ecran(r: Restitution | null, ecarts: { piece: string | null; libelle: string }[] = []) {
+function ecran(r: Restitution | null, ecarts: { piece: string | null; libelle: string }[] = [], retenues: Retenue[] = [], montantsReels: MontantsReels | null = null) {
   return renderToStaticMarkup(
     createElement(FormulaireRestitution, {
       orgId: "org-test",
       bailId: "bail-test",
       restitution: r,
-      retenues: [],
-      montantsReels: null,
+      retenues,
+      montantsReels,
       ecarts,
       comparatifDisponible: true,
     })
@@ -206,4 +208,19 @@ describe("D36 — l'envoi du décompte ne promet aucune mise à disposition (opt
     expect(html).not.toContain("Mes documents");
     expect(html).not.toContain("mis à disposition");
   });
+});
+
+it("signale avant finalisation le montant des retenues sans pièce, y compris avec un ancien indicateur incomplet", () => {
+  const ligne = { id:"r1", libelle:"Peinture", cout:150, montant_retenu:90, duree_vie_ans:10, age_ans:4, sans_justificatif:false, justificatif_document:null };
+  expect(ecran(restitution(), [], [ligne])).toContain("Justificatif manquant pour Peinture");
+  expect(ecran(restitution(), [], [{ ...ligne, justificatif_document:"piece-fictive" }])).not.toContain("Justificatif manquant pour");
+  expect(ecran(restitution(), [], [{ ...ligne, montant_retenu:0 }])).not.toContain("Justificatif manquant pour");
+});
+
+it("un paiement reçu depuis le dernier arrêté propose de revoir le solde avant toute finalisation", () => {
+  const rs = restitution({ impayes: 150 });
+  const html = ecran(rs, [], [], { depot:650, impayes:0 });
+  expect(html).toContain("Actualiser les montants");
+  expect(html).not.toContain("Finaliser le décompte");
+  expect(ecran(rs, [], [], { depot:650, impayes:150 })).toContain("Finaliser le décompte");
 });

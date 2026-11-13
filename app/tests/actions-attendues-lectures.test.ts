@@ -55,7 +55,7 @@ describe("Actions attendues : ne rien déduire d'une lecture défaillante", () =
   });
 
   it.each([
-    ["baux", "baux"], ["etats_des_lieux", "edls"], ["appels_loyer", "appels"],
+    ["restitutions", "appels"], ["baux", "baux"], ["etats_des_lieux", "edls"], ["appels_loyer", "appels"],
     ["encaissements", "encaissements"], ["diagnostics", "diagnostics"], ["documents_a_renouveler", "pieces"],
   ] as const)("signale l'échec de %s sans fabriquer d'action", async (table, erreur) => {
     const resultat = await lireActionsAttendues(client(base(), { [table]: "erreur" }).db, "org");
@@ -81,6 +81,16 @@ describe("Actions attendues : ne rien déduire d'une lecture défaillante", () =
     const resultat = await lireActionsAttendues(db, "org");
     expect(resultat.erreurs.baux).toBe(true); expect(cles(resultat)).toEqual(["piece-piece"]);
     expect(lectures.map(l => l.table)).toEqual(["baux", "documents_a_renouveler"]);
+  });
+
+  it("ne réclame que le second bail lorsque le premier figure au décompte de départ", async () => {
+    const tables = base();
+    tables.encaissements = [];
+    tables.baux.push({ ...tables.baux[0], id: "second" });
+    tables.appels_loyer.push({ ...tables.appels_loyer[0], id: "second-appel", bail_id: "second" });
+    tables.restitutions = [ligne({ id: "sortie", bail_id: "bail", statut: "finalise" })];
+    const actions = cles(await lireActionsAttendues(client(tables).db, "org"));
+    expect(actions.filter(cle => cle.startsWith("impaye-"))).toEqual(["impaye-second"]);
   });
 
   it("continue à montrer une dette réelle seulement lorsque les appels et règlements sont fiables", async () => {

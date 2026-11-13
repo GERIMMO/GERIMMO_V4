@@ -94,6 +94,12 @@ const LIBRE_DANS_FICHIER_A_HOOK: Exception[] = [
     raison: "Seul un fichier à rechoisir ; EtatImport n'a pas de `succes`, le formulaire ne se confirmerait jamais "
       + "et la boîte « Quitter la page ? » s'ouvrirait après chaque import réussi.",
   },
+  {
+    fichier: "app/agence/[orgId]/abonnement/formulaire-souscription.tsx",
+    balise: "<form action={action} className={estAgence",
+    raison: "G-25 (recette du 11/11/2026) : l'envoi quitte Gerimmo pour la page de paiement (redirection serveur) avant "
+      + "toute confirmation ; « Quitter le site ? » s'ouvrait et « Rester » bloquait la souscription. Deux choix, rien à perdre.",
+  },
 ];
 // Les marqueurs sont retirés avant la comparaison : l'exception décrit la balise, pas le choix qu'on y a posé.
 const sansMarqueurs = (texte: string) => texte.replace(/ data-saisie-(libre|confirmee)\b/g, "");

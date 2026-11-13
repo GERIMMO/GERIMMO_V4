@@ -110,7 +110,15 @@ function Compteur({ p, c }: { p: Props; c: CompteurConsommation }) {
     {destinataireTermine && <p className={styles.warning}>Le bail du précédent destinataire est terminé. Choisissez qui recevra les prochains relevés.</p>}
     {!p.lectureSeule && <div className={styles.actions}><Button size="sm" variant="outline" type="button" onClick={() => setSaisie(!saisie)}>Renseigner un relevé</Button><Button size="sm" variant="ghost" type="button" onClick={() => setEdit(!edit)}>{destinataireTermine ? "Choisir le destinataire" : "Réglages"}</Button></div>}
     {saisie && !p.lectureSeule && <Form p={p} action="releve" id={c.id} fini={() => setSaisie(false)}><div className={styles.fields}><Champ titre={`Index (${unite})`}><input name="index" inputMode="decimal" required /></Champ><Champ titre="Date du relevé"><input name="date" type="date" defaultValue={p.aujourdHui} min={new Date(Date.parse(`${c.date_index_initial}T12:00:00Z`) + 86400000).toISOString().slice(0, 10)} max={p.aujourdHui} required /></Champ></div><p className={styles.caption}>Vous pouvez aussi ajouter un ancien relevé manquant pour une facture. Son index sera vérifié entre les relevés connus.</p></Form>}
-    {edit && !p.lectureSeule && <><Form p={p} action="compteur" id={c.id} fini={() => setEdit(false)}><ChampsCompteur p={p} c={c} /></Form><details><summary className={styles.muted}>Compteur remplacé ou suivi terminé</summary><p className={styles.muted}>Arrêtez ce suivi puis ajoutez le nouveau compteur. Les anciens relevés sont conservés.</p><Form p={p} action="archiver_compteur" id={c.id} titre="Arrêter ce suivi" fini={() => setEdit(false)} /></details></>}
+    {edit && !p.lectureSeule && <><Form p={p} action="compteur" id={c.id} fini={() => setEdit(false)}><ChampsCompteur p={p} c={c} /></Form><details><summary className={styles.muted}>Compteur remplacé ou suivi terminé</summary>{c.actif && <Form p={p} action="remplacer_compteur" id={c.id} titre="Confirmer le remplacement" fini={() => setEdit(false)}>
+      <div className={styles.fields}>
+        <Champ titre="Date du remplacement"><input name="date" type="date" required max={p.aujourdHui} /></Champ>
+        <Champ titre={`Dernier index de l’ancien compteur (${unite})`}><input name="index_fin" inputMode="decimal" required /></Champ>
+        <Champ titre="Numéro du nouveau compteur"><input name="numero" maxLength={120} required /></Champ>
+        <Champ titre={`Index à la pose (${unite})`}><input name="index_debut" inputMode="decimal" required /></Champ>
+      </div>
+      <p className={styles.caption}>Les deux relevés sont conservés. Les prochaines demandes de relevé sont à votre charge jusqu’au choix du destinataire sur le nouveau compteur.</p>
+    </Form>}<Form p={p} action="archiver_compteur" id={c.id} titre="Arrêter ce suivi" fini={() => setEdit(false)} /></details></>}
     {lignes.length > 0 && <details><summary className={styles.muted}>{lignes.length === 1 ? "Voir le relevé" : `Voir les ${lignes.length} relevés`}</summary><ul className={styles.history}>{lignes.map(l => <li key={l.id}><span>{formaterDate(l.date_releve)} · {Number(l.index_releve).toLocaleString("fr-FR")} {unite} </span>{l.photo_document_id && <ApercuDocumentEspace fichier={`${p.base}/documents/${l.photo_document_id}/fichier`} titre={`Photo du compteur ${c.libelle}`} />}</li>)}</ul></details>}
   </div>;
 }
@@ -159,7 +167,7 @@ function NouvelleFacture({ p, c, derniere, fini }: { p: Props; c: ContratFournit
       setLus(precedentes => ({ ...precedentes, ...valeurs }));
       setLectureAppliquee(true);
     }} />
-    <label><input type="checkbox" name="automatique" defaultChecked/> Gerimmo gère la suite automatiquement ; je confirme les sommes reçues.</label>
+    <label><input type="checkbox" name="automatique" defaultChecked/> Préparer automatiquement les relevés et la répartition. Je valide les montants avant le partage.</label>
     {c.categorie === "teom" && <p className={styles.caption}>Recopiez uniquement la ligne « taxe d’enlèvement des ordures ménagères » et ses frais de gestion. Le total de l’avis foncier ne sera pas repris automatiquement.</p>}
     <div className={styles.fields}><Champ titre="Référence de la facture"><input name="reference" required maxLength={150} {...champ("reference")} /></Champ><Champ titre={c.categorie === "teom" ? "Montant TEOM (€), hors autres taxes" : "Total TTC (€)"}><input name="total" inputMode="decimal" required {...champ("total")} /></Champ><Champ titre="Période du"><input type="date" name="periode_debut" required {...champ("periode_debut")} /></Champ><Champ titre="Au"><input type="date" name="periode_fin" required {...champ("periode_fin")} /></Champ></div>
     <details open={lectureAppliquee}><summary>Consommation, abonnement et paiement</summary><div className={styles.fields}>{c.categorie === "gaz" && <Champ titre="Unité indiquée sur la facture"><select name="unite_consommation" {...champ("unite_consommation")}><option value="">À vérifier sur la facture</option><option value="m3">m³</option><option value="kwh">kWh</option></select></Champ>}<Champ titre="Consommation facturée (unité du compteur)"><input name="consommation" inputMode="decimal" {...champ("consommation")} /></Champ><Champ titre="Dont abonnement / frais fixes (€)"><input name="frais_fixes" inputMode="decimal" {...champ("frais_fixes")} /></Champ>{c.categorie === "teom" && <Champ titre="Dont frais de gestion (€)"><input name="frais_gestion" inputMode="decimal" {...champ("frais_gestion")} /></Champ>}<Champ titre="À payer avant le"><input name="date_echeance" type="date" {...champ("date_echeance")} /></Champ></div></details>
@@ -185,6 +193,7 @@ function AvisTaxeFonciere({ p, fini }: { p: Props; fini: (message: string) => vo
       setLus(precedentes => ({ ...precedentes, ...(valeurs.total ? { total_avis: valeurs.total } : {}), ...(valeurs.frais_gestion ? { frais_gestion: valeurs.frais_gestion } : {}) }));
     }} />
     <div className={styles.fields}>
+      <Champ titre="Date de l’avis"><input name="date_avis" type="date" required max={p.aujourdHui} {...champ("date_avis")} /></Champ>
       <Champ titre="Année"><input name="annee" type="number" min={2000} max={anneeParis} required {...champ("annee")} /></Champ>
       <Champ titre="Total de l’avis (€)"><input name="total_avis" inputMode="decimal" required {...champ("total_avis")} /></Champ>
       <Champ titre="Dont TEOM (€)"><input name="teom" inputMode="decimal" {...champ("teom")} /></Champ>

@@ -128,6 +128,7 @@ export async function lireActionsAttendues(
     { data: diagnostics, error: erreurDiagnostics },
     { data: piecesARenouveler, error: erreurPieces },
     { data: chambres },
+    { data: decompte, error: erreurDecompte },
   ] = await Promise.all([
     lirePourLesBaux<{ id: string; bail_id: string }>(bailIds, (ids, debut, fin) => supabase
           .from("etats_des_lieux")
@@ -169,17 +170,22 @@ export async function lireActionsAttendues(
           .select("id,nom", { count: "exact" })
           .eq("organization_id", orgId)
           .in("id", ids).order("id").range(debut, fin)),
+    lirePourLesBaux<{ id: string; bail_id: string }>(bailIds, (ids, debut, fin) => supabase
+      .from("restitutions").select("id,bail_id", { count: "exact" })
+      .eq("organization_id", orgId).eq("statut", "finalise")
+      .in("bail_id", ids).order("id").range(debut, fin)),
   ]);
 
   const erreurs: LectureActionsAttendues["erreurs"] = {
     baux: bauxIllisibles,
     edls: Boolean(erreurEdls) || !Array.isArray(edlsSignes),
-    appels: Boolean(erreurAppels) || !Array.isArray(appels),
+    appels: Boolean(erreurDecompte || erreurAppels) || !Array.isArray(appels),
     encaissements: Boolean(erreurEncaissements) || !Array.isArray(encaissements),
     diagnostics: Boolean(erreurDiagnostics) || !Array.isArray(diagnostics),
     pieces: Boolean(erreurPieces) || !Array.isArray(piecesARenouveler),
   };
 
+  const bauxAuDecompte = new Set((decompte ?? []).map(r => r.bail_id));
   const nomsChambres = new Map(((chambres ?? []) as { id: string; nom: string }[]).map((c) => [c.id, c.nom]));
   const bailsAvecEdl = new Set(
     ((edlsSignes ?? []) as { bail_id: string }[]).map((e) => e.bail_id)
@@ -242,7 +248,7 @@ export async function lireActionsAttendues(
       .reduce((s, a) => s + Number(a.montant_du), 0);
     if (!Number.isSafeInteger(duEchu)) erreurs.appels = true;
     const reste = (duEchu - (encaisseParBail.get(bail.id) ?? 0)) / 100;
-    if (!erreurs.appels && !erreurs.encaissements && reste > 0) {
+    if (!erreurs.appels && !erreurs.encaissements && !bauxAuDecompte.has(bail.id) && reste > 0) {
       impayes.push({
         cle: `impaye-${bail.id}`,
         titre: `Loyer impayé${surLeBail}`,

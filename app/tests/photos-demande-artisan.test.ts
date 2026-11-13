@@ -34,7 +34,7 @@ describe.skipIf(!DB_URL)("D16 — photos du locataire visibles de l'artisan : la
   const postgres = async () => { await db.query("reset role"); await db.query("select set_config('request.jwt.claims','',true)"); };
   const agir = async (compte: string | null, role = "authenticated", aal = "aal2") => {
     await db.query("reset role");
-    await db.query("select set_config('request.jwt.claims',$1,true)", [JSON.stringify({ sub: compte, role, aal })]);
+    await db.query("select set_config('request.jwt.claims',$1,true)", [JSON.stringify({ sub: compte, session_id: compte, role, aal })]);
     await db.query(`set local role ${role}`);
   };
   const refus = async (sql: string, args: unknown[] = []) => {
@@ -57,6 +57,7 @@ describe.skipIf(!DB_URL)("D16 — photos du locataire visibles de l'artisan : la
     db = new Client({ connectionString: DB_URL }); await db.connect(); await db.query("begin");
     org = await id("insert into public.organizations(name,status,type) values('Agence D16','active','agence') returning id");
     [compteArtisan, compteAutreArtisan, compteLocataire, compteProprietaire, compteSa] = [await utilisateur(), await utilisateur(), await utilisateur(), await utilisateur(), await utilisateur()];
+    await db.query("insert into auth.sessions(id,user_id) select x,x from unnest($1::uuid[]) x", [[compteArtisan,compteAutreArtisan,compteLocataire,compteProprietaire,compteSa]]);
     await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'locataire'),($3,$2,'admin_agence'),($4,null,'super_admin')", [compteLocataire, org, compteProprietaire, compteSa]);
     const locataire = await id("insert into public.persons(organization_id,nom,prenom,account_id) values($1,'TESTD16','Locataire',$2) returning id", [org, compteLocataire]);
     const bien = await id("insert into public.biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'Bien D16','appartement','1 rue du Test','75001','Paris') returning id", [org]);

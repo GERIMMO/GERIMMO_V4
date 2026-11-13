@@ -27,6 +27,15 @@ describe.skipIf(!url)("commande AR24 durable, sans envoi externe",()=>{
   await agir(compte);dette=(await db.query("select dette_recommande_ar24($1) r",[bail])).rows[0].r;id=randomUUID();
  });
  afterEach(async()=>{await db.query("rollback");});afterAll(async()=>{await db?.end();});
+ it("refuse le courrier déjà préparé si le propriétaire a confirmé le décompte de ce bail",async()=>{
+  const prepareAvant=await prepare();
+  expect(prepareAvant.dette.total_centimes).toBe(80000);
+  const restitution=(await db.query("select demarrer_restitution($1,public.aujourdhui_paris(),true) id",[bail])).rows[0].id;
+  await db.query("select finaliser_decompte($1)",[restitution]);
+  expect(await refus(()=>reserve())).toMatch(/règlements ont changé/);
+  const courrier=(await db.query("select statut,ar24_id,confirme_le from recommandes_ar24 where id=$1",[id])).rows[0];
+  expect(courrier).toEqual({statut:"prepare",ar24_id:null,confirme_le:null});
+ });
  it("réserve une seule fois et fige le destinataire, le coût et le solde",async()=>{
   const p=await prepare();expect(p.destinataire).toEqual({email:"test@example.test",prenom:"Léa",nom:"Test"});expect(p.dette.total_centimes).toBe(80000);
   expect((await reserve()).reserve).toBe(true);expect((await reserve()).reserve).toBe(false);

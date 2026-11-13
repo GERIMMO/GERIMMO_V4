@@ -22,7 +22,7 @@ export async function ConsommationsBien({ orgId, bienId, lotId = null, bienNom, 
 }) {
   const db = await createClient();
   const results = await Promise.all([
-    lireCollectionConsommations<CompteurConsommation>((debut, fin) => db.from("compteurs_consommation").select("*", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", bienId).order("created_at").order("id").range(debut, fin)),
+    lireCollectionConsommations<CompteurConsommation>((debut, fin) => db.from("compteurs_consommation").select("*,remplacement:remplacements_compteur!ancien_id(ancien_id,nouveau_id,date_pose)", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", bienId).order("created_at").order("id").range(debut, fin)),
     lireCollectionConsommations<ContratFourniture>((debut, fin) => db.from("contrats_fourniture").select("*", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", bienId).order("created_at").order("id").range(debut, fin)),
     lireCollectionConsommations<{ id: string; nom: string; etat: string }>((debut, fin) => db.from("lots").select("id,nom,etat", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", bienId).order("nom").order("id").range(debut, fin)),
   ]);
@@ -59,7 +59,7 @@ export async function ConsommationsBien({ orgId, bienId, lotId = null, bienNom, 
     }
   }
   const cles = await lireCollectionConsommations((debut, fin) => db.from("cles_repartition")
-    .select("id,date_effet,cle_repartition_lignes(lot_id,pourcentage)", { count: "exact" })
+    .select("id,date_effet,invalidated_at,cle_repartition_lignes(lot_id,pourcentage)", { count: "exact" })
     .eq("organization_id", orgId).eq("bien_id", bienId).order("date_effet").order("id").range(debut, fin));
   const liensReleves = await lireLiensConsommations<{id:string;facture_id:string;demande_id:string}>(facturesR.data.map(f=>f.id),(ids,debut,fin)=>db.from("factures_demandes_releves").select("id,facture_id,demande_id",{count:"exact"}).eq("organization_id",orgId).in("facture_id",ids).order("facture_id").order("demande_id").range(debut,fin));
   if(liensReleves.error) return <p role="alert">Le suivi des demandes de relevés est indisponible. Rechargez la page.</p>;

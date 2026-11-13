@@ -167,6 +167,7 @@ function AcceptationConditions({ estAgence, onAcceptee }: { estAgence: boolean; 
 export function FormulaireSouscription({
   orgId,
   publicTarif,
+  nomEspace,
   unites,
   regime,
   premierPrelevement,
@@ -177,6 +178,7 @@ export function FormulaireSouscription({
 }: {
   orgId: string;
   publicTarif: "agence" | "proprietaire_direct";
+  nomEspace: string;
   /** Biens ou lots sous mandat actuellement en gestion. */
   unites: number;
   regime: RegimeTva | null;
@@ -222,8 +224,11 @@ export function FormulaireSouscription({
   const periodeEnLettres = choisie.periodicite === "annuel" ? "par an" : "par mois";
 
   if (!estAgence && unites === 0) return <p>Aucun bien actif à facturer. Le montant sera indiqué dès l’ajout de votre premier logement.</p>;
+  // G-25 (recette du 11/11/2026) : l'envoi quitte Gerimmo pour la page de paiement (redirection serveur) avant que
+  // l'envoi puisse être « confirmé » ; la périodicité choisie déclenchait alors « Quitter le site ? » et « Rester »
+  // bloquait la souscription. Rien n'est perdu en partant (deux choix, aucune saisie libre) : formulaire non suivi.
   return (
-    <form data-saisie-confirmee action={action} className={estAgence ? "space-y-4" : styles.formulaire}>
+    <form data-saisie-libre action={action} className={estAgence ? "space-y-4" : styles.formulaire}>
       {!estAgence && (
         <fieldset className={styles.periodicite}>
           <legend>Choisir la périodicité</legend>
@@ -252,7 +257,7 @@ export function FormulaireSouscription({
       {!estAgence && (
         <div>
           <input type="hidden" name="formule" value="gerimmo" />
-          <strong>Abonnement Gerimmo</strong> · {unites} bien{unites > 1 ? "s" : ""} en gestion
+          <strong>Abonnement de l’espace {nomEspace}</strong> · {unites} bien{unites > 1 ? "s" : ""} en gestion
         </div>
       )}
 
@@ -260,6 +265,7 @@ export function FormulaireSouscription({
         <div className={estAgence ? undefined : styles.total}>
           <p className={estAgence ? "libelle-champ mb-2" : styles.recapTitre}><LockKeyhole size={17} aria-hidden="true" /> Récapitulatif avant paiement</p>
           <DetailMontants offre={choisie} regime={regime} />
+          {!estAgence && <p>Les logements en nom propre et en SCI gérés dans cet espace sont comptés ensemble.</p>}
         </div>
         <ul className={estAgence ? "mesure-lecture mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground" : styles.conditions}>
           {choisie.public === "particulier" && choisie.periodicite === "annuel" && (

@@ -1,11 +1,12 @@
 "use client";
+import { AvertissementClauses } from "./avertissement-clauses";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
 import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import { useContext, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, CheckCheck, History } from "lucide-react";
 import { initialiserParcoursBail } from "@/lib/initialiser-parcours-bail";
-import { CHAMPS_LOYER_REPRIS, periodeBailPrecedent, type BailPrecedent } from "@/lib/reprise-bail-precedent";
+import { CHAMPS_LOYER_REPRIS, periodeBailPrecedent, premiereEntreePossible, type SortieDeLocation, type BailPrecedent } from "@/lib/reprise-bail-precedent";
 import { CompletudeBail } from "@/lib/suivi-enregistrement";
 import { champBailManquant } from "@/lib/reperes-bail";
 import { eur, formaterDate } from "@/lib/ged";
@@ -97,13 +98,14 @@ const champsParNom=new Map(groupes.flatMap(g=>g.champs).map(c=>[c.nom,c]));
 const ETAPES_SAISIE=["bail","loyer","documents","clauses"] as const;
 const libelleChamp=(nom:string)=>champsParNom.get(nom)?.titre.replace(/\s*\([^)]*\)$/,"")??nom;
 
-export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,agence,meuble,chambres,surfaceHabitable,lienChambres}:{orgId:string;bailId:string;defauts:ValeursParcoursBail;bailPrecedent?:BailPrecedent|null;agence:boolean;meuble:boolean;chambres:{id:string;nom:string}[];surfaceHabitable?:number|null;lienChambres?:string}) {
+export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,sorties = [],agence,meuble,chambres,surfaceHabitable,lienChambres}:{orgId:string;bailId:string;defauts:ValeursParcoursBail;bailPrecedent?:BailPrecedent|null;sorties?:SortieDeLocation[];agence:boolean;meuble:boolean;chambres:{id:string;nom:string}[];surfaceHabitable?:number|null;lienChambres?:string}) {
  const parcours=useContext(EtapeComplementsBail);
  const etape=parcours?.etape??"bail";
  const controle=useContext(CompletudeBail);
  const formulaireRef=useRef<HTMLFormElement>(null);
  const envoiRef=useRef(false);
  const [valeurs,setValeurs]=useState<Record<string,string>>(()=>initialiserParcoursBail(defauts,meuble));
+ const entreeMin = premiereEntreePossible(sorties, valeurs.type === "colocation_individuelle" ? valeurs.chambre_id : null);
  // Dernières valeurs enregistrées connues de cette fenêtre. Envoyées avec la saisie, elles
  // permettent au serveur de refuser d’écraser une étape enregistrée entre-temps ailleurs (CB-01).
  const [lues,setLues]=useState<Record<string,string>>(()=>initialiserParcoursBail(defauts,meuble));
@@ -246,15 +248,18 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,agenc
     <div className={`grid gap-4 ${g.etapes[0]==="documents"?"sm:grid-cols-3":"sm:grid-cols-2"}`}>{g.champs.map(c=>{
      const erreurChamp = erreursNatives[c.nom] || (retourEtape === etape && etat.champErreur === c.nom && valeurs[c.nom] === etat.valeurs?.[c.nom] ? etat.erreur : undefined);
      const id=`parcours-${c.nom}`,affiche=!c.visible||c.visible(contexte);
+     const dateMinimum = c.nom === "date_debut" ? entreeMin : undefined;
      const opts=c.nom==="chambre_id"?[["","Choisir une chambre"],...chambres.map(ch=>[ch.id,ch.nom])] as [string,string][]:c.options;
      return <div key={c.nom} hidden={!affiche} className={c.type==="textarea"?"space-y-1.5 sm:col-span-2":"space-y-1.5"}>
       <Label htmlFor={id} champ={`bail.${c.nom}`} renseigne={Boolean(valeurs[c.nom]?.trim())}>{c.titre}{c.requis?" *":""}</Label>
       {opts?<select id={id} name={c.nom} value={valeurs[c.nom]??""} required={c.requis&&affiche} disabled={!affiche} aria-invalid={Boolean(erreurChamp)} aria-describedby={[erreurChamp ? `${id}-erreur` : "", c.aide ? `${id}-aide` : ""].filter(Boolean).join(" ") || undefined} onChange={e=>modifierValeur(c.nom,e.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">{opts.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select>
-       :c.type==="textarea"?<textarea id={id} name={c.nom} value={valeurs[c.nom]??""} disabled={!affiche} aria-invalid={Boolean(erreurChamp)} aria-describedby={[erreurChamp ? `${id}-erreur` : "", c.aide ? `${id}-aide` : ""].filter(Boolean).join(" ") || undefined} rows={3} maxLength={c.nom==="clauses_particulieres"?4000:2000} onChange={e=>modifierValeur(c.nom,e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"/>
-       :<Input id={id} name={c.nom} type={c.type==="montant"?"text":(c.type??"text")} inputMode={c.type==="montant"?"decimal":undefined} disabled={!affiche} value={valeurs[c.nom]??""} required={c.requis&&affiche} aria-invalid={Boolean(erreurChamp)} aria-describedby={[erreurChamp ? `${id}-erreur` : "", c.aide ? `${id}-aide` : ""].filter(Boolean).join(" ") || undefined} min={c.type==="number"?(c.min??0):undefined} max={c.max} step={c.type==="number"?(c.entier?1:"0.01"):undefined} maxLength={c.nom==="dpe_annees_reference"?100:500} onChange={e=>modifierValeur(c.nom,e.target.value)}/>}
+       :c.type==="textarea"?<textarea id={id} name={c.nom} value={valeurs[c.nom]??""} disabled={!affiche} aria-invalid={Boolean(erreurChamp)} aria-describedby={[erreurChamp ? `${id}-erreur` : "", c.aide || c.nom === "clauses_particulieres" ? `${id}-aide` : ""].filter(Boolean).join(" ") || undefined} rows={3} maxLength={c.nom==="clauses_particulieres"?4000:2000} onChange={e=>modifierValeur(c.nom,e.target.value)} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"/>
+       :<Input id={id} name={c.nom} type={c.type==="montant"?"text":(c.type??"text")} inputMode={c.type==="montant"?"decimal":undefined} disabled={!affiche} value={valeurs[c.nom]??""} required={c.requis&&affiche} aria-invalid={Boolean(erreurChamp)} aria-describedby={[erreurChamp ? `${id}-erreur` : "", c.aide || dateMinimum ? `${id}-aide` : ""].filter(Boolean).join(" ") || undefined} min={dateMinimum ?? (c.type==="number"?(c.min??0):undefined)} max={c.max} step={c.type==="number"?(c.entier?1:"0.01"):undefined} maxLength={c.nom==="dpe_annees_reference"?100:500} onChange={e=>modifierValeur(c.nom,e.target.value)}/>}
+      {dateMinimum && <p id={`${id}-aide`} className="text-xs text-muted-foreground">Entrée possible à partir du {formaterDate(dateMinimum)}, date de fin de l’occupation précédente.</p>}
       {erreurChamp && <p id={`${id}-erreur`} role="alert" className="text-sm text-destructive">{erreurChamp}</p>}
       {c.nom==="date_conclusion_prevue"&&valeurs.date_debut&&!valeurs.date_conclusion_prevue&&<button type="button" className="inline-flex min-h-9 items-center text-xs underline" onClick={()=>{modifierValeur("date_conclusion_prevue",valeurs.date_debut);setModifie(true);}}>Même date que l’entrée</button>}
       {c.nom==="chambre_id"&&lienChambres&&<Link href={lienChambres} className="text-xs underline">{chambres.length?"Modifier les chambres du lot":"Ajouter une chambre au lot"}</Link>}
+      {c.nom === "clauses_particulieres" && <AvertissementClauses id={`${id}-aide`} />}
       {c.aide&&<p id={`${id}-aide`} className="text-xs text-muted-foreground">{c.aide}</p>}
      </div>;
     })}</div>

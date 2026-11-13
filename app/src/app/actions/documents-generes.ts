@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
@@ -19,6 +20,19 @@ export type EtatGeneration = {
   // Les rattachements du document — le résolveur « où renseigner » s'en sert
   liens?: { entite: "bail" | "personne" | "lot" | "mandat"; entiteId: string }[];
 };
+
+// Les droits et l’assemblage sont vérifiés à chaque demande. Seul le rendu
+// simultané d'un contenu identique pour le même dossier peut être partagé.
+const rendusEnCours = new Map<string, Promise<Uint8Array>>();
+
+function rendrePourDossier(orgId: string, code: CodeModele, cibleId: string, doc: Parameters<typeof rendrePdf>[0]) {
+  const cle = createHash("sha256").update(JSON.stringify([orgId, code, cibleId, doc.html, doc.piedHtml])).digest("hex");
+  const enCours = rendusEnCours.get(cle);
+  if (enCours) return enCours;
+  const rendu = rendrePdf(doc).finally(() => rendusEnCours.delete(cle));
+  rendusEnCours.set(cle, rendu);
+  return rendu;
+}
 
 // Générer un document PDF (sprint « Documents-0 ») : assembler le HTML depuis
 // la base, contrôler que chaque champ obligatoire est alimenté, puis seulement
@@ -56,7 +70,7 @@ export async function genererDocument(
     }
 
     const documentMarque = appliquerMarqueDocument(assemblage.document, await chargerMarque(supabase, orgId));
-    const octets = await rendrePdf(documentMarque);
+    const octets = await rendrePourDossier(orgId, code, cibleId, documentMarque);
     copieDeTravail(`${code}-${cibleId.slice(0, 8)}.pdf`, octets);
 
     const fichier = new File([octets as BlobPart], `${assemblage.nomFichier}.pdf`, {

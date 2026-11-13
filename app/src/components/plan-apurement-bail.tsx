@@ -1,13 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
+import type { EtatDecompteSortie } from "@/lib/baux";
 import { aujourdhuiParis } from "@/lib/ged";
 import { PlanApurementFormulaires, type PlanApurementLu } from "./plan-apurement-formulaires";
 
 // Plan d'apurement du bail (02/11/2026) : lecture serveur, gestes dans le composant client.
-export async function PlanApurementBail({ orgId, bailId, base }: { orgId: string; bailId: string; base: string }) {
+export async function PlanApurementBail({ orgId, bailId, base, decompte }: { orgId: string; bailId: string; base: string; decompte: EtatDecompteSortie }) {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("plan_apurement_bail", { p_org: orgId, p_bail: bailId });
   if (error) return <p role="status" className="text-sm text-muted-foreground">Le plan d’apurement n’a pas pu être chargé.</p>;
   const plan = ((data ?? []) as PlanApurementLu[])[0] ?? null;
+  if (decompte !== "non_finalise") {
+    return <div id="plan-apurement"><p>{decompte === "finalise" ? "Le solde du bail figure dans le décompte de départ." : "Vérifiez le décompte avant de proposer un plan."}</p>
+      {plan && <p>Plan enregistré le {plan.date_arrete} · {plan.nombre_tranches} échéances.</p>}</div>;
+  }
   // Sans plan vivant, la dette échue se lit sur les termes : c'est elle que la proposition va geler.
   let detteEchue = plan?.dette_restante != null ? Number(plan.dette_restante) : 0;
   if (plan?.dette_restante == null) {

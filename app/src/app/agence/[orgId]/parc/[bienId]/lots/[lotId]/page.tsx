@@ -31,7 +31,8 @@ import {
   formaterSurface,
 } from "@/lib/parc";
 import { diagnosticsExigibles } from "@/lib/diagnostics";
-import { formaterDate, eur } from "@/lib/ged";
+import { situerDetention } from "@/lib/dates-detention";
+import { aujourdhuiParis, formaterDate, eur } from "@/lib/ged";
 import { ETATS_BAIL, COULEURS_ETAT_BAIL, TYPES_BAIL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
 import { LignesDiagnostics, type DiagnosticDepose } from "../../lignes-diagnostics";
@@ -192,17 +193,16 @@ export default async function PageLot(
     postes: [...(a.postes ?? [])].sort((x, y) => x.libelle.localeCompare(y.libelle)),
   }));
 
-  const detentionsActives = (detentions ?? []).filter((d) => !d.date_fin);
+  const jourPropriete = aujourdhuiParis();
+  const detentionsActives = (detentions ?? []).filter(d => situerDetention(d, jourPropriete) === "actuelle");
+  const autresDetentions = (detentions ?? []).filter(d => situerDetention(d, jourPropriete) !== "actuelle");
   const nbChambres = chambres?.length ?? 0;
   const colocationPertinente =
     !["parking", "local", "terrain"].includes(bien.type ?? "") ||
     nbChambres > 0 ||
     lot.colocation_loyer_reference != null ||
     Boolean(erreurChambres);
-  const totalQuoteParts = detentionsActives.reduce(
-    (s, d) => s + Number(d.quote_part),
-    0
-  );
+  const totalQuoteParts = detentionsActives.reduce((s, d) => s + Math.round(Number(d.quote_part) * 100), 0) / 100;
   // Diagnostics exigibles, par niveau de rattachement — calcul centralisé
   // (lib/diagnostics, audit 09/09). Les deux niveaux sont rendus ici : ceux du
   // lot, et ceux de l'immeuble (ils restent portés par le bien en base).
@@ -365,7 +365,7 @@ export default async function PageLot(
                   {(detentions ?? []).map((d) => (
                     <li key={d.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
                       <span
-                        className={`min-w-0 flex-1 truncate ${d.date_fin ? "text-muted-foreground line-through" : ""}`}
+                        className={`min-w-0 flex-1 truncate ${situerDetention(d, jourPropriete) === "terminee" ? "text-muted-foreground line-through" : ""}`}
                       >
                         {nomPersonne(d.person as unknown as { nom: string; prenom: string | null })}
                       </span>
@@ -380,11 +380,13 @@ export default async function PageLot(
                           bienId={bienId}
                           lotId={lotId}
                           detentionId={d.id}
+                          proprietaire={nomPersonne(d.person as unknown as { nom: string; prenom: string | null })}
+                          quotePart={Number(d.quote_part)}
                         />
                       )}
                       {!traverseeLectureSeule && !d.date_fin && (baux ?? []).length === 0 && (
                         /* Ce bouton SUPPRIME : au doigt, on l'écarte de
-                           « Fermer » pour éviter le tap voisin. */
+                           « Mettre fin à la détention » pour éviter le tap voisin. */
                         <span className="pointer-coarse:ml-2">
                           <BoutonSupprimerDetention
                             orgId={orgId}
@@ -784,14 +786,14 @@ export default async function PageLot(
             return <li key={d.id} className="rounded-xl border border-[var(--or-filet)] border-l-4 border-l-[var(--or)] bg-[var(--or-clair)] p-4 sm:p-5">
               <div className="flex flex-wrap items-center gap-3">
                 <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--marque)] text-sm font-semibold text-[var(--sur-marque)]">{personne ? [personne.prenom?.[0], personne.nom[0]].filter(Boolean).join("").toUpperCase() : "—"}</span>
-                <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><strong className="break-words text-base">{nomPersonne(personne)}</strong>{vous && <span className="puce puce-encre">Vous</span>}</div><p className="mt-1 text-xs text-muted-foreground">Propriétaire depuis le {formaterDate(d.date_debut)}</p></div>
+                <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><strong className="break-words text-base">{nomPersonne(personne)}</strong>{vous && <span className="puce puce-encre">Vous</span>}</div><p className="mt-1 text-xs text-muted-foreground">Propriétaire depuis le {formaterDate(d.date_debut)}{d.date_fin && ` · jusqu’au ${formaterDate(d.date_fin)} inclus`}</p></div>
                 <div className="ml-auto text-right"><strong className="block text-2xl text-[var(--encre)]">{Number(d.quote_part)} %</strong><span className="text-xs text-muted-foreground">du lot</span></div>
               </div>
               {vous && <p className="mt-3 text-sm text-muted-foreground">Vous êtes déjà rattaché à ce lot en tant que propriétaire.</p>}
-              <details className="mt-3 border-t border-[var(--or-filet)] pt-2"><summary className="cursor-pointer py-1 text-xs text-muted-foreground">Gérer cette détention</summary><div className="mt-2 flex flex-wrap gap-2"><BoutonCloreDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} />{(baux ?? []).length === 0 && <BoutonSupprimerDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} proprietaire={nomPersonne(personne)} quotePart={Number(d.quote_part)} />}</div></details>
+              <details className="mt-3 border-t border-[var(--or-filet)] pt-2"><summary className="cursor-pointer py-1 text-xs text-muted-foreground">Gérer cette détention</summary><div className="mt-2 flex flex-wrap gap-2">{d.date_fin ? <BoutonRouvrirDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} /> : <BoutonCloreDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} proprietaire={nomPersonne(personne)} quotePart={Number(d.quote_part)} />}{!d.date_fin && (baux ?? []).length === 0 && <BoutonSupprimerDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} proprietaire={nomPersonne(personne)} quotePart={Number(d.quote_part)} />}</div></details>
             </li>;
           })}</ul> : <p className="rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm text-warning-soft-foreground">Aucun propriétaire n’est encore rattaché. Ajoutez-le ci-dessous pour compléter le lot.</p>}
-          {(detentions ?? []).some(d => d.date_fin) && <details className="rounded-xl border border-border p-4"><summary className="cursor-pointer text-sm">Anciens propriétaires</summary><ul className="mt-3 space-y-3">{(detentions ?? []).filter(d => d.date_fin).map(d => <li key={d.id} className="flex flex-wrap items-center gap-3 text-sm"><span className="min-w-0 flex-1">{nomPersonne(d.person as unknown as { nom: string; prenom: string | null })} · {Number(d.quote_part)} %<small className="block text-muted-foreground">Du {formaterDate(d.date_debut)} au {formaterDate(d.date_fin)}</small></span><BoutonRouvrirDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} /></li>)}</ul></details>}
+          {autresDetentions.length > 0 && <details className="rounded-xl border border-border p-4"><summary className="cursor-pointer text-sm">Détentions passées et à venir</summary><ul className="mt-3 space-y-3">{autresDetentions.map(d => <li key={d.id} className="flex flex-wrap items-center gap-3 text-sm"><span className="min-w-0 flex-1">{nomPersonne(d.person as unknown as { nom: string; prenom: string | null })} · {Number(d.quote_part)} %<small className="block text-muted-foreground">À compter du {formaterDate(d.date_debut)}{d.date_fin && ` · jusqu’au ${formaterDate(d.date_fin)} inclus`}</small></span>{d.date_fin && <BoutonRouvrirDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} />}</li>)}</ul></details>}
           <details open={detentionsActives.length === 0} className="rounded-xl border border-border bg-card p-4"><summary className="cursor-pointer py-1 text-sm font-semibold">+ {detentionsActives.length ? "Ajouter un propriétaire (indivision)" : "Ajouter le propriétaire"}</summary><div className="mt-3"><FormulaireDetention orgId={orgId} bienId={bienId} lotId={lotId} personnes={personnes ?? []} proprietairesIds={[...new Set((proprietaires ?? []).map(d => d.person_id))]} premierProprietaire={detentionsActives.length === 0} estProprietaire={estProprietaire} /></div></details>
         </>}
       </section> : rubriqueDetention}</div>,

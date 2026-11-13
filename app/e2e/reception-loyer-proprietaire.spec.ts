@@ -88,7 +88,9 @@ for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : éc
       await ligne.getByRole("button",{name:"Confirmer : pas encore reçu",exact:true}).click();
       await expect(ligne).toContainText("Confirmation enregistrée");
       await ligne.getByText(niveau === "relance_1" ? "Gérer la première relance" : "Gérer la deuxième relance", {exact:true}).click();
-      await expect(ligne.getByRole("button",{name:niveau === "relance_1" ? "Envoyer la première relance par e-mail" : "Envoyer la deuxième relance par e-mail", exact:true})).toBeVisible();
+      await expect(ligne.getByRole("button",{name:niveau === "relance_1" ? "Envoyer la première relance par e-mail" : "Envoyer la deuxième relance par e-mail", exact:true})).toHaveCount(0);
+      await expect(ligne.getByText(/L’envoi de relances par e-mail est suspendu/)).toBeVisible();
+      await expect(ligne.getByRole("button",{name:/Préparer la .* relance en PDF/})).toBeVisible();
       await expect(ligne.getByRole("button",{name:/Générer le recommandé/})).toHaveCount(0);
       await page.reload();await expect(carteLoyer).toHaveCount(0);
       // Expédition fictive consignée, indépendante de la réponse du propriétaire : aucun courrier réel.
@@ -174,6 +176,7 @@ for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : éc
       await db.query("delete from memberships where organization_id=$1",[ORG]);
       await db.query("delete from persons where id=$1",[bailleur]);
       await db.query("delete from audit_log where organization_id=$1 or account_id=$2",[ORG,compte]);
+      await db.query("delete from alerts where organization_id=$1",[ORG]);
       await db.query("delete from organizations where id=$1",[ORG]);
       await db.query("delete from auth.users where id=$1",[compte]);
       await db.query("commit");

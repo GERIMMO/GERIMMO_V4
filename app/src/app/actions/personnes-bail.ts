@@ -17,9 +17,11 @@ async function contexte(orgId: string, bailId: string) {
   return { ...acces, bail: data };
 }
 function actualiser(orgId: string, bailId: string) {
-  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  revalidatePath(`/agence/${orgId}/parc`, "layout");
-  revalidatePath(`/agence/${orgId}/personnes`);
+  for (const espace of ["agence", "espace"]) {
+    revalidatePath(`/${espace}/${orgId}/baux/${bailId}`);
+    revalidatePath(`/${espace}/${orgId}/parc`, "layout");
+    revalidatePath(`/${espace}/${orgId}/personnes`);
+  }
 }
 
 export async function choisirPersonneBail(orgId: string, bailId: string, _etat: EtatPersonnesBail, form: FormData): Promise<EtatPersonnesBail> {
@@ -75,4 +77,15 @@ export async function enregistrerProprietairesBail(orgId: string, bailId: string
   if (error) return { erreur: sansJargon(error.message) };
   actualiser(orgId, bailId);
   return { succes: "Propriétaires enregistrés." };
+}
+
+export async function designerRepresentantBail(org:string,bail:string,societe:string,_etat:EtatPersonnesBail,form:FormData):Promise<EtatPersonnesBail>{
+  const ctx=await contexte(org,bail);
+  if(!ctx) return {erreur:"Ce brouillon n’est plus accessible."};
+  const retrait=form.get("operation")==="retirer";
+  if(!retrait && (!form.has("verifie") || !form.get("personne") || !form.get("justificatif"))) return {erreur:"Choisissez la personne et son justificatif, puis confirmez la vérification."};
+  const {error}=await ctx.supabase.rpc("designer_representant_bail",{p_bail:bail,p_societe:societe,p_personne:retrait?null:form.get("personne"),p_justificatif:retrait?null:form.get("justificatif"),p_fin:retrait?null:form.get("fin")||null});
+  if(error)return {erreur:sansJargon(error.message)};
+  actualiser(org,bail);
+  return {succes:retrait?"Pouvoir retiré.":"Pouvoir enregistré pour ce bail."};
 }

@@ -58,7 +58,7 @@ export async function chargerTachesConsommations(db: SupabaseClient, orgId: stri
   const liensDemandes = await lireLiensConsommations<{id:string;facture_id:string;demande_id:string}>(aRepartir.map(f=>f.id),(ids,debut,fin)=>db.from("factures_demandes_releves").select("id,facture_id,demande_id",{count:"exact"}).eq("organization_id",orgId).in("facture_id",ids).order("facture_id").order("demande_id").range(debut,fin));
   if(liensDemandes.error) return {taches,indisponible:true};
   const biensSuivis=[...new Set(aRepartir.filter(f=>liensDemandes.data.some(d=>d.facture_id===f.id)).flatMap(f=>contrats.filter(c=>c.id===f.contrat_id).map(c=>c.bien_id)))];
-  const suiviCompteurs=await lireLiensConsommations<CompteurConsommation>(biensSuivis,(ids,debut,fin)=>db.from("compteurs_consommation").select("*",{count:"exact"}).eq("organization_id",orgId).in("bien_id",ids).order("id").range(debut,fin));
+  const suiviCompteurs=await lireLiensConsommations<CompteurConsommation>(biensSuivis,(ids,debut,fin)=>db.from("compteurs_consommation").select("*,remplacement:remplacements_compteur!ancien_id(ancien_id,nouveau_id,date_pose)",{count:"exact"}).eq("organization_id",orgId).in("bien_id",ids).order("id").range(debut,fin));
   const suiviIndex=await lireLiensConsommations<ReleveConsommation>(suiviCompteurs.data.map(m=>m.id),(ids,debut,fin)=>db.from("releves_consommation").select("*",{count:"exact"}).eq("organization_id",orgId).in("compteur_id",ids).order("id").range(debut,fin));
   if(suiviCompteurs.error||suiviIndex.error) return {taches,indisponible:true};
   for (const f of aRepartir) {

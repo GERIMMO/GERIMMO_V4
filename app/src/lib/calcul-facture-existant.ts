@@ -1,12 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { partsEgalesEnregistrees } from "@/lib/cle-facture";
-import { controleCompteurGeneral } from "@/lib/controle-compteur-general";
+import { cleApplicableAuDebut, partsEgalesEnregistrees } from "@/lib/cle-facture";
+import { consommationMesuree, controleCompteurGeneral } from "@/lib/controle-compteur-general";
 import { segmentsConsommation } from "@/lib/segments-consommation";
 import { sansJargon } from "@/lib/erreurs";
 import { proposerPartsOccupation, type RepartitionFourniture, type OccupationRepartition, type ChambreRepartition } from "@/lib/proposition-repartition";
 import type { ContratFourniture } from "@/lib/consommations";
 import { lireCollectionConsommations, lireLiensConsommations } from "@/lib/lecture-consommations";
-import { compteursPourFacture } from "@/lib/compteurs-facture";
+import { periodesCompteurs, compteursPourFacture } from "@/lib/compteurs-facture";
 
 import type { EtatRepartition } from "@/app/actions/repartition-fourniture";
 export async function calculerFactureExistante(supabase:SupabaseClient,orgId:string,factureId:string,f:FormData):Promise<EtatRepartition> {
@@ -29,10 +29,10 @@ export async function calculerFactureExistante(supabase:SupabaseClient,orgId:str
     let motif = "Parts égales entre logements, puis prorata des jours d’occupation. La vacance et les baux au forfait restent au propriétaire.";
     if (c.lot_id) motif = "Facture du logement, répartie suivant les jours d’occupation. La vacance et les baux au forfait restent au propriétaire.";
     else if (mode !== "consommations" || facture.frais_fixes_cents > 0) {
-      const { data: cles, error } = await lireCollectionConsommations((debut, fin) => supabase.from("cles_repartition").select("id,date_effet,cle_repartition_lignes(lot_id,pourcentage)", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", c.bien_id).lte("date_effet", facture.periode_fin).order("date_effet", { ascending: false }).order("id").range(debut, fin));
+      const { data: cles, error } = await lireCollectionConsommations((debut, fin) => supabase.from("cles_repartition").select("id,date_effet,invalidated_at,cle_repartition_lignes(lot_id,pourcentage)", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", c.bien_id).lte("date_effet", facture.periode_fin).order("date_effet", { ascending: false }).order("id").range(debut, fin));
       if (error) return { erreur: "La clé du bâtiment n’a pas pu être chargée." };
       if ((cles ?? []).some(k => k.date_effet > facture.periode_debut)) return { erreur: "La clé a changé pendant la période facturée. Séparez les périodes avant la répartition." };
-      const cle = cles?.find(k => k.date_effet <= facture.periode_debut);
+      const cle = cleApplicableAuDebut(cles ?? [], facture.periode_debut);
       if (!cle) return { erreur: "Enregistrez la clé applicable à cette période dans la fiche du bâtiment." };
       if (mode === "egales" && !partsEgalesEnregistrees(cles ?? [], lots, facture.periode_debut, facture.periode_fin)) return { erreur: "Les parts égales doivent correspondre à la clé enregistrée pour ces logements." };
       poids = new Map(cle.cle_repartition_lignes.map(l => [l.lot_id, Math.round(Number(l.pourcentage) * 100)]));
@@ -46,21 +46,38 @@ export async function calculerFactureExistante(supabase:SupabaseClient,orgId:str
     if (colocation) motif += colocation.mode === "egales" ? " Colocation : parts égales par chambre, chambres vacantes comprises." : " Colocation : parts suivant les surfaces des chambres, vacance conservée au propriétaire.";
     let parts = proposerPartsOccupation(lots.map(l => ({ ...l, poids: poids.get(l.id) ?? 0 })), baux, facture.periode_debut, facture.periode_fin, c.categorie, f.get("recuperable") === "on", colocation);
     if (mode === "consommations") {
-      const { data: compteurs, error } = await lireCollectionConsommations((debut, fin) => supabase.from("compteurs_consommation").select("id,lot_id,type,date_index_initial,index_initial,unite,compteur_principal_id", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", c.bien_id).lte("date_index_initial", facture.periode_debut).order("id").range(debut, fin));
+      const { data: compteurs, error } = await lireCollectionConsommations((debut, fin) => supabase.from("compteurs_consommation").select("id,lot_id,type,date_index_initial,index_initial,unite,compteur_principal_id,remplacement:remplacements_compteur!ancien_id(ancien_id,nouveau_id,date_pose)", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", c.bien_id).lte("date_index_initial", facture.periode_fin).order("id").range(debut, fin));
       if (error) return { erreur: "Les compteurs n’ont pas pu être chargés." };
       const cr = await lireLiensConsommations((compteurs ?? []).map(c => c.id), (ids, debut, fin) => supabase.from("releves_consommation").select("id,compteur_id,date_releve,index_releve", { count: "exact" }).eq("organization_id", orgId).in("compteur_id", ids).order("id").range(debut, fin));
       if (cr.error) return { erreur: "Les dates des relevés n’ont pas pu être chargées." };
+      const liens = compteurs.flatMap(m => m.remplacement ?? []);
+      const periodesMesurees = new Map<string,{debut:string;fin:string}>();
       const avant = parts;
       parts = [];
       for (const lot of lots) {
         const choix = String(f.get(`compteur_${lot.id}`) ?? "");
-        const possibles = compteursPourFacture(compteurs, cr.data, facture, c.categorie, lot.id).filter(m => !choix || m.id === choix);
-        if (possibles.length !== 1) return { erreur: possibles.length ? `Plusieurs compteurs couvrent cette période pour ${lot.nom}. Vérifiez le compteur concerné avant de répartir.` : `Il manque un relevé au début ou à la fin de la facture pour ${lot.nom}. Ajoutez les index correspondants avant de répartir.` };
-        const m = possibles[0];
-        parts.push(...segmentsConsommation({ lotId: lot.id, compteurId: m.id, datesRelevees: [m.date_index_initial, ...(cr.data ?? []).filter(r => r.compteur_id === m.id).map(r => r.date_releve)], debut: facture.periode_debut, fin: facture.periode_fin,
-          baux, partsFixes: avant, categorie: c.categorie, recuperable: f.get("recuperable") === "on", colocation }));
+        const chaines = periodesCompteurs(compteurs, liens, facture.periode_debut, facture.periode_fin, c.categorie, lot.id, choix);
+        const completes = chaines.filter(chaine => chaine.every(p =>
+          compteursPourFacture([p.compteur], cr.data, {periode_debut:p.debut, periode_fin:p.fin}, c.categorie, lot.id).length === 1));
+        if (completes.length !== 1) return { erreur: completes.length ? `Plusieurs compteurs couvrent cette période pour ${lot.nom}. Vérifiez le compteur concerné avant de répartir.` : `Il manque un relevé au début ou à la fin de la facture pour ${lot.nom}. Vérifiez aussi les index du remplacement.` };
+        const chaine = completes[0];
+        const dates: string[] = [];
+        for (const p of chaine) {
+          const m = p.compteur;
+          if (facture.unite_consommation && m.unite !== facture.unite_consommation) return {erreur: `Le compteur de ${lot.nom} et la facture doivent utiliser la même unité.`};
+          consommationMesuree(m, cr.data, p.debut, p.fin);
+          dates.push(p.debut, p.fin, ...cr.data.filter(r => r.compteur_id === m.id && r.date_releve > p.debut && r.date_releve < p.fin).map(r => r.date_releve));
+          periodesMesurees.set(m.id,{debut:p.debut,fin:p.fin});
+        }
+        const segments = segmentsConsommation({ lotId: lot.id, compteurId: chaine[0].compteur.id, datesRelevees: dates, debut: facture.periode_debut, fin: facture.periode_fin,
+          baux, partsFixes: avant, categorie: c.categorie, recuperable: f.get("recuperable") === "on", colocation });
+        for (const segment of segments) {
+          const p = chaine.find(p => p.debut <= segment.periode_debut! && p.fin >= segment.periode_fin!);
+          if (!p) throw new Error("Le segment ne correspond à aucun compteur.");
+          parts.push({...segment, compteur_id:p.compteur.id});
+        }
       }
-      const bilans = controleCompteurGeneral(compteurs, cr.data, parts.flatMap(p => p.compteur_id ? [p.compteur_id] : []), facture.periode_debut, facture.periode_fin);
+      const bilans = controleCompteurGeneral(compteurs, cr.data, [...periodesMesurees.keys()], facture.periode_debut, facture.periode_fin, periodesMesurees);
       if (!Number(facture.frais_fixes_cents)) motif = "Répartition de la part variable aux consommations réelles.";
       motif += " Consommations vérifiées aux dates exactes de la facture ; frais fixes suivant la clé ; écart du compteur général conservé au propriétaire.";
       for (const b of bilans) motif += ` Compteur principal : ${b.general} ${b.unite}, divisionnaires retenus : ${b.divisionnaires} ${b.unite}, écart : ${b.ecart} ${b.unite}.`;

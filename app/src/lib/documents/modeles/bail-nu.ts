@@ -1,3 +1,4 @@
+import { presentationArchivee, type OptionsContrat } from "./communs";
 // 01 — Contrat de location, logement nu, résidence principale.
 // Fidèle à l'épreuve (sections I → XII, contrat type du décret 2015-587).
 // Blocs conditionnels pilotés par les données réelles (indivision, zone
@@ -65,11 +66,9 @@ function blocLocataire(f: Fusion, p: PersonneDocument): string {
   ${facultatif(p.telephone)}.</p>`;
 }
 
-export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string | null; f: Fusion }) {
+export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string | null; f: Fusion; presentationAncienne?: boolean }) {
   const f = options.f;
-  // En-tête contractuel figé pour les circuits de signature déjà ouverts.
-  // Les bailleurs réels figurent dans la désignation des parties.
-  const exp = expediteur({ organisation: ctx.organisation });
+  const exp = expediteur(options.presentationAncienne ? { organisation: ctx.organisation } : ctx);
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
   const indivision = ctx.bailleurs.length > 1;
@@ -98,7 +97,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     ${sousSection("Le bailleur")}
     <p>Nom et prénom(s) ou dénomination : ${f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination")}
     — Qualité : ${f.champ(bailleurPrincipal?.qualite, "personne physique, indivision, SCI familiale, SCI, personne morale")}<br/>
-    Domicile ou siège social : ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")}<br/>
+    ${!options.presentationAncienne && bailleurPrincipal?.siren ? `SIREN : ${echapper(bailleurPrincipal.siren)}<br/>` : ""}Domicile ou siège social : ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")}<br/>
     Adresse électronique : ${f.champ(bailleurPrincipal?.email, "adresse électronique")} — Numéro de
     téléphone portable : ${facultatif(bailleurPrincipal?.telephone)}</p>
     ${
@@ -106,7 +105,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
         ? `<p>Le logement étant détenu en indivision, sont également parties au présent contrat :
            ${ctx.bailleurs
              .slice(1)
-             .map((b) => `${echapper(nomPersonne(b) ?? "")} (${b.quote_part.toLocaleString("fr-FR")} %)`)
+             .map((b) => `${echapper(nomPersonne(b) ?? "")}${!options.presentationAncienne && b.siren ? ` · SIREN ${echapper(b.siren)}` : ""} (${b.quote_part.toLocaleString("fr-FR")} %)`)
              .join(" ; ")}.</p>`
         : ""
     }
@@ -265,7 +264,9 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     <p>Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>, en autant
     d'exemplaires originaux que de parties.</p>
     <div class="signatures">
-      ${cadreSignature("Le bailleur", f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination"))}
+      ${options.presentationAncienne || !indivision
+        ? cadreSignature("Le bailleur", f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination"))
+        : ctx.bailleurs.map((p, i) => cadreSignature(`Bailleur ${i + 1}`, f.champ(nomPersonne(p), "nom et prénom(s), ou dénomination"))).join("")}
       ${colocation ? ctx.locataires.map((l, i) => cadreSignature(`Colocataire ${i + 1}`, f.champ(nomPersonne(l), `nom du colocataire ${i + 1}`))).join("") : cadreSignature(
         plusieursLocataires ? "Les locataires" : "Le locataire",
         ctx.locataires.map((l) => echapper(nomPersonne(l) ?? "")).join("<br/>") ||
@@ -288,7 +289,8 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
 export async function assemblerBailNu(
   supabase: SupabaseClient,
   orgId: string,
-  bailId: string
+  bailId: string,
+  format: OptionsContrat = {}
 ): Promise<Assemblage> {
   const ctx = await chargerContexteBail(supabase, orgId, bailId);
   if ("erreur" in ctx) return ctx;
@@ -312,7 +314,7 @@ export async function assemblerBailNu(
 
   if (erreurDpe) return { erreur: "Le diagnostic du logement n’a pas pu être chargé. Réessayez avant de générer le contrat." };
   const f = new Fusion();
-  const document = construireBailNu(ctx, { dpeClasse: dpe?.classe_dpe ?? null, f });
+  const document = construireBailNu(ctx, { presentationAncienne: format[presentationArchivee], dpeClasse: dpe?.classe_dpe ?? null, f });
 
   return {
     document,

@@ -34,6 +34,19 @@ describe.skipIf(!url)("Circuit de signature : droits, concurrence et archives",(
   await db.query("select set_config('gerimmo.systeme','',true)");
  }
  function archives(){return ['contrat','preuve-1','preuve-2'].map((n,i)=>({path:`${org}/signature-bail/${circuit}/${n}.pdf`,size:100,hash:String(i+1).repeat(64)}));}
+ it("contrôle le pouvoir de la SCI en base et bloque une préparation antérieure à sa révocation",async()=>{
+  const soc=await id("insert into public.persons(organization_id,nom,qualite,siren) values($1,'SCI de test','SCI','012345678') returning id",[org]);
+  const rep=await id("insert into public.persons(organization_id,nom,prenom,email) values($1,'Martin','Camille','camille@example.test') returning id",[org]);
+  await db.query("insert into public.detentions(organization_id,lot_id,person_id,quote_part) values($1,$2,$3,100)",[org,lot,soc]);
+  const preuve=await id("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'justificatif','Pouvoir',$1::uuid::text||'/pouvoir.pdf','application/pdf',100,repeat('b',64)) returning id",[org]);
+  await db.query("insert into public.document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'personne',$3)",[org,preuve,soc]);
+  await role(owner); await db.query("select public.designer_representant_bail($1,$2,$3,$4,null)",[bail,soc,rep,preuve]);
+  const r=(await db.query("select * from public.representants_actifs_bail($1)",[bail])).rows[0]; expect(r.personne_id).toBe(rep);
+  await role(autre);expect((await db.query("select * from public.representants_actifs_bail($1)",[bail])).rowCount).toBe(0);
+  await role(owner);await db.query("select public.designer_representant_bail($1,$2,null,null,null)",[bail,soc]);
+  expect((await db.query("select * from public.representants_actifs_bail($1)",[bail])).rowCount).toBe(0);
+  await role(null,'service_role');await expect(reserver()).rejects.toThrow(/Pouvoir modifié/);
+ });
  it('conserve le prestataire historique et interdit un prestataire inconnu',async()=>{
   expect((await db.query('select prestataire from public.bail_signature_circuits where id=$1',[circuit])).rows[0].prestataire).toBe('youtrust');
   await expect(db.query("update public.bail_signature_circuits set prestataire='inconnu' where id=$1",[circuit])).rejects.toThrow(/check constraint/);

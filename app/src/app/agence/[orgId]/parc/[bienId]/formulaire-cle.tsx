@@ -33,10 +33,14 @@ export function FormulaireCle({
   orgId,
   bienId,
   lots,
+  aujourdHui,
+  proposerDate,
 }: {
   orgId: string;
   bienId: string;
   lots: LotCle[];
+  aujourdHui?: string;
+  proposerDate?: boolean;
 }) {
   const actionLiee = validerCle.bind(null, orgId, bienId);
   const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
@@ -47,6 +51,8 @@ export function FormulaireCle({
   // casserait, il n'existe donc que pour la synthèse vocale. Identifiants
   // tirés de useId(), un par lot — jamais de chaîne en dur.
   const idPart = useId();
+  const [saisieModifiee, setSaisieModifiee] = useState(false);
+  const tantiemesManquants = mode === "tantiemes" && lots.some(l => !l.tantieme || l.tantieme <= 0);
   const [parts, setParts] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       proposerCle("surface", lots).map((l) => [l.lot_id, String(l.pourcentage)])
@@ -55,6 +61,7 @@ export function FormulaireCle({
 
   const proposer = (nouveau: "surface" | "tantiemes" | "parts_egales") => {
     setMode(nouveau);
+    setSaisieModifiee(true);
     setParts(
       Object.fromEntries(
         proposerCle(nouveau, lots).map((l) => [l.lot_id, String(l.pourcentage)])
@@ -73,7 +80,7 @@ export function FormulaireCle({
 
   if (etat.succes && !nouvelleCle) return <div role="status" className="space-y-2"><p>Clé de répartition validée.</p><Button type="button" variant="outline" onClick={() => {setNouvelleCle(true); setModifier(true);}}>Préparer une nouvelle répartition</Button></div>;
   return (
-    <form data-saisie-confirmee action={async (data) => {setNouvelleCle(false); action(data);}} className="space-y-3 border-t border-border pt-4">
+    <form data-saisie-confirmee action={async (data) => {setNouvelleCle(false); setSaisieModifiee(false); action(data);}} className="space-y-3 border-t border-border pt-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm font-medium">
           {modifier ? "Ajuster la clé" : "Clé proposée"}
@@ -85,13 +92,21 @@ export function FormulaireCle({
           type="button"
           size="sm"
           variant="ghost"
-          onClick={() => setModifier((m) => !m)}
+          onClick={() => { if (modifier) proposer("surface"); setModifier(!modifier); }}
         >
           {modifier ? "Revenir à la proposition" : "Modifier"}
         </Button>
       </div>
 
-      {!surfacesConnues && !modifier && (
+      {proposerDate && (
+        <div className="space-y-1">
+          <Label htmlFor={idPart + "-effet"}>Clé applicable à partir du</Label>
+          <Input className="max-w-xs" id={idPart + "-effet"} type="date" name="date_effet" max={aujourdHui} defaultValue={aujourdHui} required onChange={() => setSaisieModifiee(true)} />
+          <p className="text-xs text-muted-foreground">Pour répartir une facture passée, indiquez depuis quand cette clé s’applique au bien.</p>
+        </div>
+      )}
+      {tantiemesManquants && <p role="status" className="text-sm">Renseignez les tantièmes de chaque lot pour utiliser cette méthode.</p>}
+      {mode === "surface" && !surfacesConnues && !modifier && (
         <p className="text-sm text-warning-soft-foreground">
           Certains lots n&apos;ont pas de surface : la répartition par surface est
           incomplète. Renseignez les surfaces, ou ajustez la clé à la main.
@@ -140,9 +155,7 @@ export function FormulaireCle({
                   inputMode="decimal"
                   required
                   value={parts[lot.id] ?? ""}
-                  onChange={(e) =>
-                    setParts((p) => ({ ...p, [lot.id]: e.target.value }))
-                  }
+                  onChange={(e) => { setSaisieModifiee(true); setParts((p) => ({ ...p, [lot.id]: e.target.value })); }}
                   className="w-28"
                 />
                 <span className="text-sm text-muted-foreground">%</span>
@@ -164,11 +177,11 @@ export function FormulaireCle({
       >
         Total : {totalArrondi} % {totalArrondi !== 100 && "— il faut exactement 100 %"}
       </p>
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {!saisieModifiee && etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
-      <BoutonEnvoi size="sm" enCoursTexte="Validation…">
+      <BoutonEnvoi size="sm" disabled={totalArrondi !== 100 || tantiemesManquants} enCoursTexte="Validation…">
         {modifier ? "Valider la clé ajustée" : LIBELLE_BOUTON[mode]}
       </BoutonEnvoi>
     </form>

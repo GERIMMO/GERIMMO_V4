@@ -71,3 +71,10 @@ export function estPersonnePhysique(qualite: string | null | undefined, prenom?:
   if (n === null) return Boolean(prenom?.trim());
   return n === "Personne physique" || n === "Indivision (personnes physiques)";
 }
+
+/** Ne déduit jamais le SIREN du nom de la société. Les espaces de présentation sont facultatifs. */
+export function lireSirenSociete(brut: FormDataEntryValue | null): string | null {
+  const siren = String(brut ?? "").replace(/\s/g, "");
+  if (siren && !/^\d{9}$/.test(siren)) throw new Error("Le SIREN doit comporter neuf chiffres.");
+  return siren || null;
+}

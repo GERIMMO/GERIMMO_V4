@@ -28,6 +28,7 @@ export type EtatParc = {
   erreur?: string;
   succes?: string;
   repriseHref?: string;
+  doublonBien?: string;
   creationConfirmeeHref?: string;
   // Création de fiche réussie, mais détention refusée : reprendre cette
   // fiche précise sans en créer une seconde lors de la correction.
@@ -137,7 +138,8 @@ export async function creerBien(
   valeurs.creation_id = creation;
   let resultat: { bien_id: string; lot_unique_id: string | null; saisie_differente: boolean };
   try {
-    const { data, error } = await supabase.rpc("creer_bien_complet", {
+    const { data, error } = await supabase.rpc("creer_bien_verifie", {
+      p_distinct_de: formData.get("distinct_de") || null,
       p_org: orgId, p_creation: creation,
       p_saisie: {
         nom, type, address_line1: adresse1, address_line2: adresse2 || null,
@@ -147,6 +149,10 @@ export async function creerBien(
         lots: lotsAValider.map((l, i) => ({ nom: l.nom?.trim() || null, surface_m2: surfaces[i], pieces: Number(l.pieces) })),
       },
     });
+    if (!error && data?.doublon_id) {
+      return { erreur: "Un bien de même nom existe déjà à cette adresse dans votre espace.", valeurs,
+        repriseHref: `${base}/parc/${data.doublon_id}`, doublonBien: data.doublon_id };
+    }
     if (error || !data?.bien_id) {
       return { erreur: `La création n’a pas pu être confirmée : ${sansJargon(error?.message ?? "réponse indisponible")}. Vos saisies sont conservées. Réessayez pour reprendre la même demande.`, valeurs };
     }
@@ -922,6 +928,7 @@ export async function validerCle(
     p_bien: bienId,
     p_mode: mode,
     p_lignes: lignes,
+    p_date_effet: String(formData.get("date_effet") || aujourdhuiParis()),
   });
   if (error) return { erreur: `Validation impossible : ${sansJargon(error.message)}` };
 

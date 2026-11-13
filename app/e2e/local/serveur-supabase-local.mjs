@@ -14,6 +14,7 @@
 // Usage : node e2e/local/serveur-supabase-local.mjs   (port 54321)
 // Puis : NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run dev
 
+import { projectionColonne } from "./projection-colonne.mjs";
 import http from "node:http";
 import { facteursPour, oublierFacteurs, routerMfaLocal } from "./mfa-local.mjs";
 import crypto from "node:crypto";
@@ -41,6 +42,13 @@ const PORT = Number(process.env.SUPALOCAL_PORT ?? 54321);
 const DB_URL = process.env.SUPALOCAL_DB ?? "postgres://postgres@127.0.0.1:55432/gerimmo_local";
 const SECRET = "gerimmo-local-secret";
 const STOCKAGE = process.env.SUPALOCAL_STORAGE ?? "/tmp/gerimmo-storage";
+
+// Mode de recette : Auth et Storage restent fictifs ; REST est servi par PostgREST.
+const restReel = process.env.SUPALOCAL_RELAIS_POSTGREST;
+if (restReel && (new URL(restReel).hostname !== "127.0.0.1" || !process.env.POSTGREST_REEL_JWT_SECRET
+  || new URL(DB_URL).hostname !== "127.0.0.1" || !/^\/gerimmo_ci_[a-z_]+_api$/.test(new URL(DB_URL).pathname))) {
+  throw new Error("Le relais exige PostgREST et une base API fictive locaux.");
+}
 
 const pool = new Pool({ connectionString: DB_URL, max: 8 });
 
@@ -115,14 +123,26 @@ async function chargerCatalogue() {
 // Rend { direction: 'un' (parent porte la FK → objet) | 'plusieurs' (la table
 // embarquée porte la FK → tableau), colsParent, colsEmbed }.
 function resoudreRelation(tableParent, tableEmbed, fkNom) {
-  const candidats = fkNom
-    ? [catalogue.fkParNom.get(fkNom)].filter(Boolean)
-    : catalogue.fks.filter(
-        (f) =>
-          (f.table_source === tableParent && f.table_cible === tableEmbed) ||
-          (f.table_source === tableEmbed && f.table_cible === tableParent),
-      );
+  const entreLesDeux = (f) =>
+    (f.table_source === tableParent && f.table_cible === tableEmbed) ||
+    (f.table_source === tableEmbed && f.table_cible === tableParent);
+  // Comme PostgREST 14 (vérifié sur la 14.5 de production) : l'indice nomme une contrainte reliant
+  // les deux tables, ou une colonne d'une de ces contraintes. Sur une auto-relation (table reliée à
+  // elle-même), le nom de contrainte est refusé (PGRST200) et l'indice par colonne rend les lignes
+  // qui pointent vers la ligne parente (un-à-plusieurs) — l'émulateur rendait l'inverse.
+  const autoRelation = tableParent === tableEmbed;
+  const parNom = fkNom ? catalogue.fkParNom.get(fkNom) : null;
+  const parColonne = fkNom && !parNom
+    ? catalogue.fks.filter((f) => entreLesDeux(f) && f.cols_source.length === 1 && f.cols_source[0] === fkNom)
+    : [];
+  const candidats = !fkNom ? catalogue.fks.filter(entreLesDeux)
+    : parNom ? [parNom].filter((f) => entreLesDeux(f) && !autoRelation)
+    : parColonne;
   if (!candidats.length) throw erreurRest(400, "PGRST200", `Relation introuvable entre ${tableParent} et ${tableEmbed}${fkNom ? ` via ${fkNom}` : ""}`);
+  if (autoRelation && candidats.length === 1) {
+    const fk = candidats[0];
+    return { direction: "plusieurs", colsParent: fk.cols_cible, colsEmbed: fk.cols_source };
+  }
   if (!fkNom && candidats.length > 1) {
     // Plusieurs FK : PostgREST exige la désambiguïsation — comme lui, on refuse.
     throw erreurRest(400, "PGRST201", `Relation ambiguë entre ${tableParent} et ${tableEmbed} : préciser !fk`);
@@ -357,7 +377,7 @@ async function chargerEmbeds(client, tableParent, lignes, arbre, filtresEmbeds, 
         ? "*"
         : [...new Set([...colsDemandees, cleEmbed, ...noeud.enfants.filter((n) => n.type === "embed").flatMap((n) => {
             try { return resoudreRelation(noeud.table, n.table, n.fk).colsParent; } catch { return []; }
-          })])].map((c) => `"${c}"`).join(", ");
+          })])].map(projectionColonne).join(", ");
       const sql = `select ${colsSql} from "${noeud.table}" where "${cleEmbed}" = any($1)${filtres.length ? " and " + filtres.join(" and ") : ""}`;
       const r = await client.query(sql, params);
       lignesEmbed = r.rows;
@@ -446,7 +466,7 @@ async function lireTable(claims, table, url, entetes) {
       ? "*"
       : [...new Set([...colsDemandees, ...arbre.filter((n) => n.type === "embed").flatMap((n) => {
           try { return resoudreRelation(table, n.table, n.fk).colsParent; } catch { return []; }
-        })])].map((c) => `"${c}"`).join(", ");
+        })])].map(projectionColonne).join(", ");
     let sql = `select ${colsSql} from "${table}"${where}`;
     if (ordre) sql += ` order by ${ordre}`;
     if (!inner && limite !== null) sql += ` limit ${limite}`;
@@ -1001,6 +1021,28 @@ const serveur = http.createServer(async (req, res) => {
       const r = await routerAuth(req.method, segments.slice(2).join("/"), url, corps, claims);
       return repondreJson(r.statut, r.corps);
     }
+    if (restReel && segments[0] === "rest" && segments[1] === "v1") {
+      const destination = new URL(restReel);
+      destination.pathname = url.pathname.slice("/rest/v1".length);
+      destination.search = url.search;
+      const headers = new Headers();
+      for (const nom of ["content-type", "accept", "prefer", "range", "range-unit", "accept-profile", "content-profile"]) {
+        if (entetes[nom]) headers.set(nom, entetes[nom]);
+      }
+      if (claims) {
+        const corps = b64u(JSON.stringify({ alg: "HS256", typ: "JWT" })) + "." + b64u(JSON.stringify(claims));
+        headers.set("Authorization", "Bearer " + corps + "." + crypto.createHmac("sha256", process.env.POSTGREST_REEL_JWT_SECRET).update(corps).digest("base64url"));
+      } else if (bearer && bearer !== "cle-locale") {
+        return repondreJson(401, { message: "Session de test invalide" });
+      }
+      const r = await fetch(destination, { method: req.method, headers, body: brut.length ? brut : undefined, redirect: "error" });
+      const retour = { ...CORS };
+      for (const nom of ["content-type", "content-range", "preference-applied"]) {
+        if (r.headers.has(nom)) retour[nom] = r.headers.get(nom);
+      }
+      res.writeHead(r.status, retour);
+      return res.end(Buffer.from(await r.arrayBuffer()));
+    }
     // /rest/v1/rpc/:fn
     if (segments[0] === "rest" && segments[1] === "v1" && segments[2] === "rpc") {
       const corps = brut.length ? JSON.parse(brut.toString()) : {};
@@ -1098,6 +1140,6 @@ fs.mkdirSync(STOCKAGE, { recursive: true });
 // connexion (inscription, mot de passe oublié, invitations) se fabriquent.
 
 serveur.listen(PORT, "127.0.0.1", () => {
-  console.log(`Émulateur Supabase local prêt : http://127.0.0.1:${PORT} → ${DB_URL}`);
+  console.log(`Émulateur Supabase local prêt : http://127.0.0.1:${PORT}`);
   console.log("Clé fictive configurée ; valeur non journalisée.");
 });

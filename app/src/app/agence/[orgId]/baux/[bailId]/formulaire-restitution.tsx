@@ -56,6 +56,7 @@ export type Retenue = {
   age_ans: number | null;
   montant_retenu: number;
   sans_justificatif: boolean;
+  justificatif_document: string | null;
 };
 
 // Durées de vie indicatives — aide à la saisie, recopiée de la grille par
@@ -216,7 +217,7 @@ export function FormulaireRestitution({
           se dit, toujours — y compris sur un décompte déjà finalisé. */}
       <p className="mono-discret">
         Dépôt et impayés arrêtés le {formaterDateHeure(restitution.montants_arretes_le)}
-        {finalise ? "." : " — ils ne suivent pas la réalité tant qu'ils ne sont pas réarrêtés."}
+        {finalise ? "." : " — vérifiés à nouveau avant la clôture."}
       </p>
 
       {ecartMontants && montantsReels && !finalise && (
@@ -230,7 +231,7 @@ export function FormulaireRestitution({
             {Number(montantsReels.depot) !== Number(restitution.depot) && (
               <> et <span className="font-medium">{eur(montantsReels.depot)}</span> de dépôt encaissé</>
             )}
-            . Le décompte, lui, retient toujours les montants ci-dessus.
+            . Actualisez les montants, puis vérifiez le nouveau solde avant de finaliser.
           </p>
           <FormRafraichirMontants
             orgId={orgId}
@@ -262,7 +263,7 @@ export function FormulaireRestitution({
               </span>
               <span className="w-24 text-right font-medium">{eur(r.montant_retenu)}</span>
               {!finalise && <BoutonSupprimerRetenue orgId={orgId} bailId={bailId} retenueId={r.id} />}
-              {r.sans_justificatif && (
+              {!r.justificatif_document && (
                 <FormJustifierRetenue orgId={orgId} bailId={bailId} retenue={r} />
               )}
             </li>
@@ -331,7 +332,7 @@ export function FormulaireRestitution({
               />
             </div>
           </details>
-          <BoutonFinaliser
+          {!ecartMontants && <BoutonFinaliser
             orgId={orgId}
             bailId={bailId}
             restitutionId={restitution.id}
@@ -339,8 +340,8 @@ export function FormulaireRestitution({
             impayes={Number(restitution.impayes)}
             arretesLe={restitution.montants_arretes_le}
             nbRetenues={retenues.length}
-            ecartMontants={ecartMontants}
-          />
+            retenuesSansPiece={retenues.filter(r => Number(r.montant_retenu) > 0 && (r.sans_justificatif || !r.justificatif_document))}
+          />}
         </>
       )}
     </div>
@@ -662,7 +663,7 @@ function FormRafraichirMontants({
   return (
     <form data-saisie-confirmee action={action} className="flex flex-wrap items-center gap-2">
       <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Mise à jour…">
-        Réarrêter les montants à aujourd&apos;hui
+        Actualiser les montants
       </BoutonEnvoi>
       {etat.erreur && <span className="w-full text-sm text-destructive">{etat.erreur}</span>}
       {etat.succes && <span className="w-full text-sm">{etat.succes}</span>}
@@ -758,7 +759,7 @@ function BoutonFinaliser({
   impayes,
   arretesLe,
   nbRetenues,
-  ecartMontants,
+  retenuesSansPiece,
 }: {
   orgId: string;
   bailId: string;
@@ -767,7 +768,7 @@ function BoutonFinaliser({
   impayes: number;
   arretesLe: string;
   nbRetenues: number;
-  ecartMontants: boolean;
+  retenuesSansPiece: Retenue[];
 }) {
   const [etat, action] = useActionState<EtatRestit, FormData>(
     async () => finaliserDecompte(orgId, bailId, restitutionId),
@@ -781,6 +782,12 @@ function BoutonFinaliser({
         Finaliser le décompte
       </Button>
       <button type="submit" ref={boutonEnvoyer} hidden />
+      {retenuesSansPiece.length > 0 && (
+        <p className="w-full text-sm text-warning-soft-foreground">
+          Justificatif manquant pour {retenuesSansPiece.map(r => r.libelle + " (" + eur(r.montant_retenu) + ")").join(", ")}.
+          Vérifiez ces retenues avant de figer le solde.
+        </p>
+      )}
       <span className="text-xs text-muted-foreground">
         Fige le solde de tout compte et crée l&apos;alerte d&apos;envoi.
       </span>
@@ -820,12 +827,12 @@ function BoutonFinaliser({
               ? `, et ${nbRetenues} retenue${nbRetenues > 1 ? "s" : ""} pour dégradation.`
               : ", sans aucune retenue pour dégradation."}
           </p>
-          {ecartMontants && (
-            <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
-              Les comptes du bail ont bougé depuis cet arrêté. Fermez cette fenêtre
-              pour réarrêter les montants d&apos;abord si le décompte doit en tenir
-              compte.
-            </p>
+          {retenuesSansPiece.length > 0 && (
+            <div className="border-l-[3px] border-warning bg-warning-soft px-3 py-2 text-sm">
+              <strong>Retenues sans justificatif au dossier</strong>
+              <ul>{retenuesSansPiece.map(r => <li key={r.id}>{r.libelle} · {eur(r.montant_retenu)}</li>)}</ul>
+              <p>Choisissez « Annuler » pour joindre une pièce ou corriger les retenues avant de figer le solde.</p>
+            </div>
           )}
           <p className="text-sm">
             Une fois finalisé, le décompte est figé : aucune retenue ne peut plus

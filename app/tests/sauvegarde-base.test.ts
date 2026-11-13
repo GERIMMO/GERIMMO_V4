@@ -10,7 +10,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
-import { argumentsConnexion, exporter, extraire, verifier } from "../scripts/sauvegarde/base.mjs";
+import { argumentsConnexion, exporter, extraire, verifier, schemasSource } from "../scripts/sauvegarde/base.mjs";
 
 let racine: string;
 let fauxPgDump: string;
@@ -46,6 +46,17 @@ describe("argumentsConnexion", () => {
   });
 });
 
+describe("sauvegarder pendant la transition du contrôle de session", () => {
+  it.each(["0:0", "1:1", "1:0", "0:1"])("compare version et schéma (%s)", async etat => {
+    const psql = path.join(racine, "psql-" + etat.replace(":", "-"));
+    await fs.writeFile(psql, `#!/bin/sh\necho '${etat}'\n`, {mode: 0o700});
+    const lecture = schemasSource(argumentsConnexion(CONNEXION), psql);
+    if (etat === "1:1") expect(await lecture).toContain("gerimmo_session_interne");
+    else if (etat === "0:0") expect(await lecture).not.toContain("gerimmo_session_interne");
+    else await expect(lecture).rejects.toThrow(/divergent/);
+  });
+});
+
 describe("exporter / verifier / extraire", () => {
   it("chiffre le dump, le vérifie et le restitue octet pour octet", async () => {
     const archive = path.join(racine, "archive");
@@ -56,7 +67,7 @@ describe("exporter / verifier / extraire", () => {
     // D07 : l'export lit aussi les tâches pg_cron (cron.job) avec psql ; ici un psql de substitution qui répond « aucune tâche »
     // (le détail des tâches est gardé par sauvegarde-taches-planifiees.test.ts).
     const fauxPsql = path.join(racine, "psql");
-    await fs.writeFile(fauxPsql, `#!/bin/sh\ncase "$*" in *m0t-de-passe*) exit 2;; esac\n[ -n "$PGPASSWORD" ] || exit 3\ncase "$*" in *to_regclass*) echo true;; *) echo '[]';; esac\n`, { mode: 0o700 });
+    await fs.writeFile(fauxPsql, `#!/bin/sh\ncase "$*" in *m0t-de-passe*) exit 2;; esac\n[ -n "$PGPASSWORD" ] || exit 3\ncase "$*" in *to_regnamespace*) echo 1:1;; *to_regclass*) echo true;; *) echo '[]';; esac\n`, { mode: 0o700 });
     const bilan = await exporter(archive, cle, CONNEXION, { commande: enrobage, psql: fauxPsql });
     expect(bilan.octets).toBeGreaterThan(200);
     const m = await verifier(archive, cle);
@@ -92,7 +103,7 @@ describe("exporter / verifier / extraire", () => {
 
   it("un pg_dump qui échoue ne laisse ni archive ni message avec le mot de passe", async () => {
     const dossier = path.join(racine, "echec");
-    await expect(exporter(dossier, cle, CONNEXION, { commande: path.join(racine, "inexistant") })).rejects.toThrow(/introuvable/);
+    await expect(exporter(dossier, cle, CONNEXION, { commande: path.join(racine, "inexistant"), schemas: ["public"] })).rejects.toThrow(/introuvable/);
     await expect(fs.stat(dossier)).rejects.toThrow(/ENOENT/);
   });
 });

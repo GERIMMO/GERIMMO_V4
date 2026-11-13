@@ -59,6 +59,31 @@ test('confirmation partielle, deuxième formulaire et modifications pendant la r
  expect(await page.evaluate(compte)).toBe(2);await page.locator('#a [name="nom"]').fill('envoyé');expect(await page.evaluate(compte)).toBe(2);
  await page.evaluate(()=>{document.querySelector<HTMLFieldSetElement>('#inactif')!.disabled=false;});await page.locator('#a [name="autre"]').fill('ancien');expect(await page.evaluate(compte)).toBe(1);
 });
+test('fichier confirmé puis remplacé par un autre de mêmes métadonnées', async ({page}) => {
+ await banc(page);
+ const etats = await page.evaluate(() => {
+  const form = document.querySelector<HTMLFormElement>('#a')!;
+  const champ = form.querySelector<HTMLInputElement>('[type="file"]')!;
+  const garde = (window as unknown as {garde: {
+   preparerSoumission(f: HTMLFormElement, d: FormData): void;
+   confirmerSoumission(d: FormData): boolean;
+   saisiesModifiees(): HTMLFormElement[];
+  }}).garde;
+  function choisir(contenu: string) {
+   const transfert = new DataTransfer();
+   transfert.items.add(new File([contenu], 'preuve.txt', {lastModified: 1, type: 'text/plain'}));
+   champ.files = transfert.files;
+   champ.dispatchEvent(new Event('change', {bubbles:true}));
+  }
+  choisir('aaa');
+  const donnees = new FormData(form);
+  garde.preparerSoumission(form, donnees);
+  const confirme = garde.confirmerSoumission(donnees);
+  choisir('bbb');
+  return [confirme, garde.saisiesModifiees().includes(form)];
+ });
+ expect(etats).toEqual([true, true]);
+});
 test('un reset automatique après erreur conserve texte et vrais octets du fichier',async({page})=>{
  await banc(page);await page.locator('#a [name="texte"]').fill('mon texte');await page.locator('#a [type="file"]').setInputFiles({name:'preuve.txt',mimeType:'text/plain',buffer:Buffer.from('octets conservés')});
  await page.locator('#a').evaluate((f:HTMLFormElement)=>f.reset());await expect(page.locator('#a textarea')).toHaveValue('mon texte');

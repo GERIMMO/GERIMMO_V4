@@ -24,6 +24,8 @@ it("compare le général aux seuls divisionnaires liés, sans estimer une borne 
   const releves=compteurs.map((c,i)=>({compteur_id:c.id,date_releve:fin,index_releve:[60,15,20,30][i]}));
   const bilan=(r:typeof releves)=>controleCompteurGeneral(compteurs,r,["A","B","C"],debut,fin);
   expect(bilan(releves)[0]).toMatchObject({general:55,divisionnaires:50,ecart:5});
+  expect(()=>bilan([...releves, { compteur_id:"principal", date_releve:"2026-09-15", index_releve:75 }])).toThrow(/décroissant/);
+  expect(bilan([...releves, { compteur_id:"principal", date_releve:"2026-09-15", index_releve:55 }])[0].general).toBe(55);
   expect(()=>bilan(releves.slice(1))).toThrow(/manquant/);
   expect(()=>bilan(releves.map(r=>({...r,index_releve:r.compteur_id==="principal"?10:r.index_releve})))).toThrow(/dépassent/);
 });

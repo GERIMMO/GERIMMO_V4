@@ -20,7 +20,8 @@ export function CarteBailSigne({
   envoyeLe,
   locataireEmail,
   corrigeable,
-  actif = true,
+  etat,
+  activationDisponible,
 }: {
   orgId: string;
   bailId: string;
@@ -30,7 +31,8 @@ export function CarteBailSigne({
   corrigeable: boolean;
   // Un vieux brouillon peut porter un PDF sans être actif (données d'avant le
   // 30/08) : le texte ne doit pas mentir sur l'état du bail.
-  actif?: boolean;
+  etat: string;
+  activationDisponible: boolean;
 }) {
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
@@ -67,12 +69,12 @@ export function CarteBailSigne({
   return (
     <div className="space-y-3">
       <p className="text-sm text-success-soft-foreground">
-        {actif ? "Bail signé déposé — le bail est actif." : "Le PDF signé est enregistré. Vous pouvez vérifier le document puis activer la location."}
+        {etat === "actif" ? "Bail signé déposé — le bail est actif." : etat === "preavis" ? "Le bail signé est conservé pendant le préavis." : etat === "termine" ? "Le contrat signé de cette location terminée reste consultable." : "Le PDF signé est enregistré."}
         {envoyeLe && (
           <span className="text-muted-foreground"> Envoyé au locataire le {formaterDateHeure(envoyeLe)}.</span>
         )}
       </p>
-      {!actif && <Button type="button" disabled={enCours} onClick={() => demarrer(async () => {
+      {etat === "brouillon" && activationDisponible && <Button type="button" disabled={enCours} onClick={() => demarrer(async () => {
         setErreur(null);
         const res = await activerBailPapierExistant(orgId, bailId);
         if (res.erreur) setErreur(res.erreur);

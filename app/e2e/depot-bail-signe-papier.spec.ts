@@ -77,7 +77,7 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
     // Un bien à lot unique (copie fictive du bien de démonstration) : un second lot dans le même immeuble exigerait,
     // à raison, de revalider la clé de répartition des charges avant toute mise en location.
     bien = (await db.query(`insert into public.biens select (jsonb_populate_record(null::public.biens, to_jsonb(b) || jsonb_build_object('id', gen_random_uuid()::text, 'nom', $2::text))).* from public.biens b where b.id=$1 returning id`, [source.bien_id, NOM])).rows[0].id;
-    lot = (await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots, to_jsonb(l) || jsonb_build_object('id', gen_random_uuid()::text, 'bien_id', $2::text, 'nom', $3::text, 'etat', 'disponible'))).* from public.lots l where l.id=$1 returning id`, [source.id, bien, NOM])).rows[0].id;
+    lot = (await db.query(`insert into public.lots select (jsonb_populate_record(null::public.lots, to_jsonb(l) || jsonb_build_object('id', gen_random_uuid()::text, 'bien_id', $2::text, 'nom', $3::text, 'etat', 'brouillon'))).* from public.lots l where l.id=$1 returning id`, [source.id, bien, NOM])).rows[0].id;
     await db.query("insert into public.detentions(organization_id, lot_id, person_id, quote_part, date_debut) select organization_id, $2, person_id, quote_part, date_debut from public.detentions where lot_id=$1 and date_fin is null", [source.id, lot]);
     const locataire = (await db.query("select id from public.persons where organization_id=$1 and email='locataire.pd@example.com'", [ORG])).rows[0].id;
     bail = (await db.query("insert into public.baux(organization_id, lot_id, etat, type, date_debut, loyer_hc, charges, depot_garantie, locataire_principal) values ($1,$2,'brouillon','nu',current_date+7,700,50,700,$3) returning id", [ORG, lot, locataire])).rows[0].id;
@@ -96,6 +96,19 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
     await ouvrirEtape(page, adresse, "07");
     const depot = page.locator("#bail-signe");
     await expect(depot.getByText("Bail signé", { exact: true })).toBeVisible();
+    await expect(depot.getByRole("link", {name: "Ouvrir la fiche du logement"})).toHaveAttribute("href", `/espace/${ORG}/parc/${bien}/lots/${lot}`);
+    await expect(depot.locator("#depot-bail-signe")).toHaveCount(0);
+    await expect(db.query("update public.lots set etat='disponible' where id=$1", [lot])).rejects.toThrow(/DPE absent ou expiré/);
+    // Un bien ne peut devenir disponible qu’avec les diagnostics valides.
+    for (const [type, niveau] of [["dpe", "lot"], ["erp", "bien"]] as const) {
+      const doc = (await db.query("insert into public.documents(organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte) values ($1,'diagnostic',$2,$3,'application/pdf',123,encode(sha256(gen_random_uuid()::text::bytea),'hex')) returning id", [ORG, `${type.toUpperCase()} fictif — essai`, `essai/${type}-${bail}.pdf`])).rows[0].id;
+      await db.query("insert into public.diagnostics(organization_id, lot_id, bien_id, type, date_realisation, date_expiration, document_id, classe_dpe) values ($1,$2,$3,$4,current_date - 10, current_date + 150, $5, $6)",
+        [ORG, niveau === "lot" ? lot : null, niveau === "bien" ? bien : null, type, doc, type === "dpe" ? "C" : null]);
+    }
+    await db.query("update public.lots set etat='disponible' where id=$1", [lot]);
+    // Simuler leur expiration entre la mise en disponibilité et la signature du bail.
+    await db.query("update public.diagnostics set date_expiration=current_date-1 where organization_id=$1 and (lot_id=$2 or bien_id=$3)", [ORG, lot, bien]);
+    await ouvrirEtape(page, adresse, "07");
     await depot.locator("#depot-bail-signe").setInputFiles({ name: "bail-signe-fictif.pdf", mimeType: "application/pdf", buffer: PDF });
     await depot.getByRole("button", { name: "Déposer le bail signé" }).click();
     await expect(depot.getByText("Mise en location bloquée — à corriger :")).toBeVisible({ timeout: 30_000 });
@@ -103,12 +116,8 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
     await expect(depot).toContainText("ERP absent ou expiré");
     expect((await db.query("select etat, document_signe from public.baux where id=$1", [bail])).rows[0]).toEqual({ etat: "brouillon", document_signe: null });
 
-    // Diagnostics présents (rapports fictifs) : la même action active la location.
-    for (const [type, niveau] of [["dpe", "lot"], ["erp", "bien"]] as const) {
-      const doc = (await db.query("insert into public.documents(organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte) values ($1,'diagnostic',$2,$3,'application/pdf',123,encode(sha256(gen_random_uuid()::text::bytea),'hex')) returning id", [ORG, `${type.toUpperCase()} fictif — essai`, `essai/${type}-${bail}.pdf`])).rows[0].id;
-      await db.query("insert into public.diagnostics(organization_id, lot_id, bien_id, type, date_realisation, date_expiration, document_id, classe_dpe) values ($1,$2,$3,$4,current_date - 10, current_date + 150, $5, $6)",
-        [ORG, niveau === "lot" ? lot : null, niveau === "bien" ? bien : null, type, doc, type === "dpe" ? "C" : null]);
-    }
+    // Renouveler les deux diagnostics fictifs du dossier avant le nouvel essai.
+    await db.query("update public.diagnostics set date_expiration=current_date+150 where organization_id=$1 and (lot_id=$2 or bien_id=$3)", [ORG, lot, bien]);
     await ouvrirEtape(page, adresse, "07");
     await depot.locator("#depot-bail-signe").setInputFiles({ name: "bail-signe-fictif.pdf", mimeType: "application/pdf", buffer: PDF });
     await depot.getByRole("button", { name: "Déposer le bail signé" }).click();

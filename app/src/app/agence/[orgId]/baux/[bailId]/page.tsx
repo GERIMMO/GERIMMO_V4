@@ -133,7 +133,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: bailPersonnes, error: erreurBailPersonnes },
     { data: intentions, error: erreurIntentions },
   ] = await Promise.all([
-      supabase.from("lots").select("id, nom, bien_id, meuble, surface_m2, colocation_loyer_reference, bien:biens!lots_bien_id_fkey(zone_tendue, copropriete)").eq("id", bail.lot_id).maybeSingle(),
+      supabase.from("lots").select("id, nom, bien_id, etat, meuble, surface_m2, colocation_loyer_reference, bien:biens!lots_bien_id_fkey(zone_tendue, copropriete)").eq("id", bail.lot_id).maybeSingle(),
       // Les pièces déclarées du lot : leur absence rend l'état des lieux générique.
       supabase
         .from("lot_pieces")
@@ -539,6 +539,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       )}
 
 </div>);
+  const lotEnPreparation = bail.etat === "brouillon" && lot?.etat === "brouillon";
   const depotSigne = (<div>      {/* Cycle du bail */}
       {(bail.etat === "brouillon" || bail.document_signe) && (
         <Card id="bail-signe" className="scroll-mt-20">
@@ -551,6 +552,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {lotEnPreparation && <p className="text-sm">
+              Le logement est encore en préparation. Ouvrez sa fiche et choisissez « Mettre en location » avant d’activer le bail.{" "}
+              <Link className="underline" href={`${base}/parc/${lot.bien_id}/lots/${bail.lot_id}`}>Ouvrir la fiche du logement</Link>
+            </p>}
             {bail.document_signe ? (
               <CarteBailSigne
                 orgId={orgId}
@@ -563,9 +568,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 corrigeable={
                   bail.etat === "actif" && (echeancier ?? []).length === 0 && !restitution
                 }
-                actif={bail.etat !== "brouillon"}
+                etat={bail.etat}
+                activationDisponible={!lotEnPreparation}
               />
-            ) : mentions.length > 0 ? (
+            ) : lotEnPreparation ? null : mentions.length > 0 ? (
               // Le dépôt active le bail : ne pas le proposer quand la base le
               // refusera de toute façon — on dit pourquoi et où corriger.
               <div className="space-y-2">

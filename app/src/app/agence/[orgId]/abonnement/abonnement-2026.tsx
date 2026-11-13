@@ -533,6 +533,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           <FormulaireSouscription
             orgId={orgId}
             publicTarif={publicTarif}
+            nomEspace={organisation.name}
             unites={enGestion}
             regime={REGIME_TVA}
             premierPrelevement={premierPrelevement}

@@ -1,0 +1,21 @@
+Base : a4495c6efcd7f3b402d3106494c74e0b615265b7. PR #332. Aucune modification des prix.
+
+Avant publication : CI complète et Stripe TEST sur le SHA final. Workflow protégé :
+sauvegarde fraîche et restauration isolée vérifiées, puis migrations 20261113200000
+et 20261113200500, dans cet ordre, avant promotion. Pas de réécriture des paiements
+historiques. Une facture reçue avant le rattachement doit rester en reprise.
+Pour l'avis annuel : seuls les responsables actifs dont l'adresse confirmée est
+celle de facturation sont admissibles ; les autres cas exigent une vérification.
+Jamais de renvoi en cas de réponse incertaine. Pas d'annulation automatique en masse.
+
+En cas de problème : arrêter les traitements concernés, conserver les journaux
+et les références Stripe/Resend, rapprocher les résultats, corriger en avant.
+Ne pas redéployer aveuglément l'ancien finaliseur de courriels ni rejouer une facture.
+La confirmation de commande, les relances, résiliations et rétractations ne
+deviennent pas des courriers autorisés par la qualification du seul avis annuel.
+Les demandes hors périmètre restent à traiter. Une notification fournisseur
+acceptée ne prouve pas sa livraison ; un résultat 'livré' ne prouve pas la lecture.
+
+Avant ouverture payante : qualifier les autres courriers et l'escalade jusqu'à
+un responsable, obtenir la convention du médiateur puis une décision d'ouverture.
+Ne pas traiter les propriétaires du pilote gratuit comme des clients payants.

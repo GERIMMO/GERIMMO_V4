@@ -428,7 +428,7 @@ export async function notifierResiliationImpaye(
         sujet: "Gerimmo — résiliation pour impayé avant la fin de la mise en demeure",
         lignes: [
           `La souscription ${p.subscription} (organisation ${p.orgId}) a été résiliée par Stripe le ${resilieLe} sans preuve de trente jours révolus depuis l'envoi de la mise en demeure (défaut depuis le ${p.enDefautDepuis ?? "?"}, première date annoncée : ${resiliableLe ?? "inconnue"}).`,
-          "Le courrier envoyé au client ne cite pas l'article 15.4 et la facture restée ouverte est annulée. Vérifiez le réglage Stripe « statut après échec des relances » (« marquer l'abonnement comme impayé ») et voyez s'il faut proposer au client une nouvelle souscription.",
+          "Le courrier prévu ne cite pas l'article 15.4. Vérifiez le résultat de l’annulation des factures dans le dossier ainsi que le réglage Stripe « statut après échec des relances » (« marquer l'abonnement comme impayé ») et voyez s'il faut proposer au client une nouvelle souscription.",
         ],
         cle: `resiliation-impaye-avant-${p.subscription}`,
         details: { organisation: p.orgId, souscription: p.subscription, resilie_le: resilieLe, resiliable_le: resiliableLe },

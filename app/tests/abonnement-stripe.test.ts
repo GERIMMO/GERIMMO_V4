@@ -102,6 +102,18 @@ beforeEach(async () => {
 });
 
 describe("Ce que Stripe dit, et ce que ça fait au compte", () => {
+  it("attend le rattachement puis crédite uniquement la souscription suivie, une fois", async () => {
+    const payer = (sub: string | null) => db.query("select public.abonnement_facture_payee($1,$2) as org", [client,sub]);
+    await db.query("savepoint reception");
+    await expect(payer("sub_suivie")).rejects.toMatchObject({code:"40001"});
+    await db.query("rollback to savepoint reception");
+    await appliquer(client,"active",{souscription:"sub_suivie"});
+    for (const autre of [null,"sub_autre"]) expect((await payer(autre)).rows[0].org).toBeNull();
+    expect((await db.query("select premiere_facture_payee from public.abonnements where organization_id=$1",[org])).rows[0].premiere_facture_payee).toBe(false);
+    for (let i=0;i<2;i++) expect((await payer("sub_suivie")).rows[0].org).toBe(org);
+    expect((await db.query("select count(*)::int n from public.audit_log where organization_id=$1 and action='abonnement_premiere_facture_payee'",[org])).rows[0].n).toBe(1);
+  });
+
   it("« active » ouvre le compte", async () => {
     expect(await appliquer(client, "active")).toBe("active");
   });
@@ -113,7 +125,7 @@ describe("Ce que Stripe dit, et ce que ça fait au compte", () => {
   it("« past_due » NE FERME RIEN — Stripe relance, une carte expirée n'est pas un impayé", async () => {
     await appliquer(client, "active");
     // Ce client a déjà payé une facture (webhook invoice.paid).
-    await db.query("select public.abonnement_facture_payee($1, null)", [client]);
+    await db.query("select public.abonnement_facture_payee($1, stripe_subscription_id) from public.abonnements where stripe_customer_id=$1", [client]);
     // Le prélèvement échoue. Couper ici ferait perdre sa journée à une agence
     // pour une raison qu'elle ignore encore : sa banque a refusé.
     expect(await appliquer(client, "past_due")).toBe("active");
@@ -130,7 +142,7 @@ describe("Ce que Stripe dit, et ce que ça fait au compte", () => {
     const { rows } = await db.query<{ o: boolean }>("select public.org_ecriture_ouverte($1) as o", [org]);
     expect(rows[0].o).toBe(false);
     // Le paiement passe : tout rouvre.
-    await db.query("select public.abonnement_facture_payee($1, null)", [client]);
+    await db.query("select public.abonnement_facture_payee($1, stripe_subscription_id) from public.abonnements where stripe_customer_id=$1", [client]);
     expect(await appliquer(client, "active")).toBe("active");
   });
 

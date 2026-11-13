@@ -8,6 +8,7 @@
  * les quittances partent, l'encaissement est supprimé — les quittances doivent
  * disparaître avec lui. Transaction annulée à la fin.
  */
+import {randomUUID} from "node:crypto";
 import { verifierBaseDeTest } from "./garde-base";
 import { config } from "dotenv";
 import { Client } from "pg";
@@ -119,6 +120,27 @@ describe.skipIf(!DB_URL)("Quittances — le document suit l'argent (RM-3.4.1/2)"
       apresSuppression.filter((l) => l.est_quittance !== null),
       "aucune quittance ne survit à la disparition de son encaissement"
     ).toHaveLength(0);
+  });
+
+  it("conserve la trace du retrait seulement pour le locataire concerné, sans reçu payable", async () => {
+    const compte = randomUUID(), voisin = randomUUID();
+    for (const id of [compte, voisin]) {
+      await db.query("insert into auth.users(id,email,raw_user_meta_data,raw_app_meta_data) values($1,$2,'{}','{}')", [id,id+"@example.invalid"]);
+      await db.query("insert into memberships(account_id,organization_id,role) values($1,$2,'locataire')", [id,org]);
+    }
+    await db.query("update persons set account_id=$1 where id=(select locataire_principal from baux where id=$2)", [compte,bail]);
+    await db.query("insert into persons(organization_id,account_id,nom,prenom) values($1,$2,'Voisin','Fictif')", [org,voisin]);
+    const paiement = (await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,500,current_date,'virement') returning id", [org,bail])).rows[0].id;
+    await db.query("delete from encaissements where id=$1", [paiement]);
+    await db.query("select resynchroniser_quittances($1)", [bail]);
+    const trace = async (id: string) => {
+      await db.query("select set_config('request.jwt.claims',$1,true)", [JSON.stringify({sub:id,role:"authenticated"})]);
+      return (await db.query("select montant_precedent::float8,etait_quittance,retire from mes_rectifications_quittances($1)", [org])).rows;
+    };
+    await db.query("set local role authenticated");
+    expect(await trace(compte)).toEqual([{montant_precedent:500,etait_quittance:true,retire:true}]);
+    expect(await trace(voisin)).toEqual([]);
+    expect((await db.query("select has_table_privilege(current_user,'rectifications_quittances','SELECT') allowed")).rows[0].allowed).toBe(false);
   });
 
   it("un paiement partiel produit un reçu, jamais une quittance", async () => {

@@ -89,11 +89,13 @@ export default async function PageDocumentsLocataire(
     { data: echeancier, error: eEcheancier },
     { data: demandesBrutes, error: eDemandes },
     { data: signaturesBrutes, error: eSignatures },
+    rectifications,
   ] = await Promise.all([
     supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
     supabase.rpc("mes_demandes_signature", { p_org: orgId }),
+    supabase.rpc("mes_rectifications_quittances", { p_org: orgId }),
   ]);
   const aSigner = ((signaturesBrutes ?? []) as {
     id: string;
@@ -304,6 +306,15 @@ export default async function PageDocumentsLocataire(
             })}
           </ul>
         )}
+        {rectifications.error ? <LectureImpossible quoi="les corrections de vos justificatifs de loyer" /> :
+          !!rectifications.data?.length && <section className="mt-4">
+            <h3 className="font-medium">Justificatifs de loyer rectifiés</h3>
+            <ul className="divide-y divide-border">{rectifications.data.map((r: { id: string; periode: string; montant_precedent: number; etait_quittance: boolean; retire: boolean; rectifie_le: string }) =>
+              <li key={r.id} className="py-2 text-sm">
+                <b>{r.etait_quittance ? "Quittance" : "Reçu de paiement"} — {moisLong(r.periode)}</b>
+                <p>Ancien montant de {Number(r.montant_precedent).toLocaleString("fr-FR", { style: "currency", currency: "EUR" })}. Document {r.retire ? "retiré" : "remplacé"} le {new Date(r.rectifie_le).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}.</p>
+              </li>)}</ul>
+          </section>}
         {/* Une seule promesse de conservation, la même que « Mes paiements »
             (27/09) : « rien à archiver » contredisait la matrice RGPD, qui
             prévoit un archivage puis une anonymisation. */}

@@ -41,6 +41,6 @@ test("vitrine mobile : navigation, fermeture du menu et questions fréquentes", 
   await expect(question.locator("p")).toBeVisible();
   await menu.locator("summary").click();
   await menu.getByRole("link", { name: "Tarifs", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Un seul abonnement. Tout votre immobilier.", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "L’abonnement Gerimmo pour votre espace propriétaire.", exact: true })).toBeVisible();
   expect(await debordementHorizontal(page)).toBe(0);
 });

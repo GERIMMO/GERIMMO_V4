@@ -26,6 +26,25 @@ beforeEach(() => {
 });
 
 describe("reprise d'un PDF déjà rangé", () => {
+  it("partage le rendu simultané du même dossier, en gardant le contrôle des droits par appel", async () => {
+    let terminer!: (valeur: Uint8Array) => void;
+    m.rendre.mockImplementationOnce(() => new Promise<Uint8Array>(resolve => { terminer = resolve; }));
+    const premiere = generer();
+    const seconde = generer();
+    await vi.waitFor(() => expect(m.assembler).toHaveBeenCalledTimes(2));
+    expect(m.rendre).toHaveBeenCalledTimes(1);
+    terminer(new Uint8Array([1]));
+    expect((await Promise.all([premiere, seconde])).every(r => r.documentId === "doc-1")).toBe(true);
+    expect(m.verifier).toHaveBeenCalledTimes(2);
+  });
+  it("sépare les dossiers et libère un rendu échoué pour une nouvelle tentative", async () => {
+    m.rendre.mockRejectedValueOnce(new Error("panne fictive du moteur"));
+    const [premier, autre] = await Promise.all([generer(), genererDocument("org-2", "notice", "bail-1", "/agence/org-2/documents")]);
+    expect(premier.erreur).toMatch(/génération/);
+    expect(autre.documentId).toBe("doc-1");
+    expect((await generer()).documentId).toBe("doc-1");
+    expect(m.rendre).toHaveBeenCalledTimes(3);
+  });
   it("répare le rattachement après un premier échec sans créer un autre document", async () => {
     m.liens.mockResolvedValueOnce({ error: { message: "indisponible" } });
     expect((await generer()).erreur).toMatch(/rattachement/);

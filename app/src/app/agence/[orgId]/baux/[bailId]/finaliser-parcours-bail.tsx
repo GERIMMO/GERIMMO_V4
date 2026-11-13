@@ -44,7 +44,7 @@ export function PointsManquantsFinalisation({ manquants, manquantsRecap, recapit
   </div>;
 }
 
-function PdfEtatDesLieux({ orgId, edlId, retour, revision, lectureSeule }: { orgId: string; edlId: string; retour: string; revision: number; lectureSeule: boolean }) {
+function PdfEtatDesLieux({ orgId, edlId, retour, revision, lectureSeule, signe }: { orgId: string; edlId: string; retour: string; revision: number; lectureSeule: boolean; signe: boolean }) {
   const base = useBaseEspace(orgId);
   const [generation, setGeneration] = useState<Generation | null>(null);
   const [enCours, demarrer] = useTransition();
@@ -66,13 +66,13 @@ function PdfEtatDesLieux({ orgId, edlId, retour, revision, lectureSeule }: { org
     {courant && generation?.resultat.erreur && <p className={styles.erreur} role="alert">{generation.resultat.erreur}</p>}
     {courant && Boolean(generation?.resultat.manquants?.length) && <p className={styles.message}>À compléter dans la grille : {generation!.resultat.manquants!.join(" · ")}.</p>}
     {generation?.resultat.documentId && !courant && <p className={styles.message} role="status">Le dossier a changé. Actualisez le PDF de l’état des lieux.</p>}
-    <a className={styles.lien} href={`${retour}/edl/${edlId}`}>{lectureSeule ? "Consulter la grille" : "Compléter la grille"} →</a>
-    {!lectureSeule && <div className={styles.signatureEdl}><OuvrirSignatureDocument orgId={orgId} selection={{ code: "edl", cibleId: edlId }}/></div>}
+    <a className={styles.lien} href={`${retour}/edl/${edlId}`}>{lectureSeule || signe ? "Consulter la grille" : "Compléter la grille"} →</a>
+    {!lectureSeule && !signe && <div className={styles.signatureEdl}><OuvrirSignatureDocument orgId={orgId} selection={{ code: "edl", cibleId: edlId }}/></div>}
   </>;
 }
 
-export function FinaliserParcoursBail({ orgId, bailId, code, edlId, preparationEdl, signatureManuelle, proprietaireDirect = false, documentSigne = null, lectureSeule = false, recapitulatifStructure = false }: {
-  orgId: string; bailId: string; code: CodeModele; signataires: { id: string; nom: string }[]; edlId: string | null;
+export function FinaliserParcoursBail({ orgId, bailId, code, edlId, edlSigne = false, preparationEdl, signatureManuelle, proprietaireDirect = false, documentSigne = null, lectureSeule = false, recapitulatifStructure = false }: {
+  orgId: string; bailId: string; code: CodeModele; signataires: { id: string; nom: string }[]; edlId: string | null; edlSigne?: boolean;
   preparationEdl: ReactNode; signatureManuelle: ReactNode; proprietaireDirect?: boolean; documentSigne?: string | null;
   lectureSeule?: boolean; recapitulatifStructure?: boolean;
 }) {
@@ -120,8 +120,8 @@ export function FinaliserParcoursBail({ orgId, bailId, code, edlId, preparationE
         </>}
       </section>
       <section className={styles.carte} id="edl" aria-labelledby={`${titreId}-edl`}>
-        <header><ClipboardCheck size={20} aria-hidden="true"/><h4 id={`${titreId}-edl`}>État des lieux d’entrée</h4><span className={styles.statut}>{edlId ? "Grille disponible" : "À préparer"}</span></header>
-        {edlId ? <PdfEtatDesLieux key={edlId} orgId={orgId} edlId={edlId} retour={retour} revision={revision} lectureSeule={lectureSeule}/> : <>
+        <header><ClipboardCheck size={20} aria-hidden="true"/><h4 id={`${titreId}-edl`}>État des lieux d’entrée</h4><span className={styles.statut}>{edlSigne ? "Signé" : edlId ? "Grille disponible" : "À préparer"}</span></header>
+        {edlId ? <PdfEtatDesLieux key={edlId} orgId={orgId} edlId={edlId} retour={retour} revision={revision} lectureSeule={lectureSeule} signe={edlSigne}/> : <>
           <p className={styles.message}>{lectureSeule ? "Aucune grille disponible." : "Préparez la grille pour la visite : pièces, compteurs et clés."}</p>{!lectureSeule && preparationEdl}
         </>}
         <p className={styles.precision}>À compléter et signer avec les parties lors de la remise des clés.</p>

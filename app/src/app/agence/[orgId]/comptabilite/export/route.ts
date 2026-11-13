@@ -74,7 +74,7 @@ function preferer(a: PeriodeMandant, b: PeriodeMandant): number {
 function refus(message: string): Response {
   return new Response(message, {
     status: 500,
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
+    headers: { "Cache-Control": "private, no-store", "Content-Type": "text/plain; charset=utf-8" },
   });
 }
 
@@ -317,6 +317,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   const csv = [periode, entete, ...lignes].join("\r\n");
   return new Response("﻿" + csv, {
     headers: {
+      "Cache-Control": "private, no-store",
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="journal-de-gestion${suffixe}.csv"`,
     },

@@ -56,6 +56,7 @@ import {
   FormulaireRestitution,
   type Restitution,
   type Retenue,
+  type MontantsReels,
 } from "@/app/agence/[orgId]/baux/[bailId]/formulaire-restitution";
 import { REGLE_ECART_EDL } from "@/lib/regle-ecart-edl";
 
@@ -81,14 +82,14 @@ const restitution = (surcharge: Partial<Restitution> = {}): Restitution => ({
   ...surcharge,
 });
 
-function ecran(r: Restitution | null, ecarts: { piece: string | null; libelle: string }[] = [], retenues: Retenue[] = []) {
+function ecran(r: Restitution | null, ecarts: { piece: string | null; libelle: string }[] = [], retenues: Retenue[] = [], montantsReels: MontantsReels | null = null) {
   return renderToStaticMarkup(
     createElement(FormulaireRestitution, {
       orgId: "org-test",
       bailId: "bail-test",
       restitution: r,
       retenues,
-      montantsReels: null,
+      montantsReels,
       ecarts,
       comparatifDisponible: true,
     })
@@ -214,4 +215,12 @@ it("signale avant finalisation le montant des retenues sans pièce, y compris av
   expect(ecran(restitution(), [], [ligne])).toContain("Justificatif manquant pour Peinture");
   expect(ecran(restitution(), [], [{ ...ligne, justificatif_document:"piece-fictive" }])).not.toContain("Justificatif manquant pour");
   expect(ecran(restitution(), [], [{ ...ligne, montant_retenu:0 }])).not.toContain("Justificatif manquant pour");
+});
+
+it("un paiement reçu depuis le dernier arrêté propose de revoir le solde avant toute finalisation", () => {
+  const rs = restitution({ impayes: 150 });
+  const html = ecran(rs, [], [], { depot:650, impayes:0 });
+  expect(html).toContain("Actualiser les montants");
+  expect(html).not.toContain("Finaliser le décompte");
+  expect(ecran(rs, [], [], { depot:650, impayes:150 })).toContain("Finaliser le décompte");
 });

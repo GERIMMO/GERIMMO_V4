@@ -75,3 +75,6 @@ end $$;
 revoke all on function public.tracer_rectification_quittance() from public,anon,authenticated,service_role;
 create trigger tracer_rectification_quittance before update of est_quittance,montant or delete on public.quittances
 for each row execute function public.tracer_rectification_quittance();
+
+create index rectifications_quittances_personne on public.rectifications_quittances(personne_id);
+select public.poser_gardes_abonnement();

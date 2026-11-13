@@ -308,7 +308,7 @@ export default async function PageDocumentsLocataire(
         )}
         {rectifications.error ? <LectureImpossible quoi="les corrections de vos justificatifs de loyer" /> :
           !!rectifications.data?.length && <section className="mt-4">
-            <h3 className="font-medium">Justificatifs de loyer rectifiés</h3>
+            <h2 className="font-medium">Justificatifs de loyer rectifiés</h2>
             <ul className="divide-y divide-border">{rectifications.data.map((r: { id: string; periode: string; montant_precedent: number; etait_quittance: boolean; retire: boolean; rectifie_le: string }) =>
               <li key={r.id} className="py-2 text-sm">
                 <b>{r.etait_quittance ? "Quittance" : "Reçu de paiement"} — {moisLong(r.periode)}</b>

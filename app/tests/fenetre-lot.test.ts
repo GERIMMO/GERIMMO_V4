@@ -651,6 +651,16 @@ describe.skipIf(!DB_URL)("La fenêtre du lot", () => {
       expect(natures).toContain("relance");
     });
 
+    it("ne présente pas les dates prévisionnelles du brouillon comme un début ou une fin de bail", async () => {
+      await db.query(`insert into public.baux (organization_id,lot_id,type,etat,date_debut,date_fin,loyer_hc,charges)
+        values ($1,$2,'nu','brouillon', current_date-20, current_date-2, 600, 50)`, [org,lotVoisin]);
+      await devenir(patron);
+      const historique = await db.query("select titre from public.historique_du_lot($1,40) where nature='bail'", [lotVoisin]);
+      expect(historique.rows).toEqual([]);
+      const actif = await db.query("select titre from public.historique_du_lot($1,40) where nature='bail'", [lotConfie]);
+      expect(actif.rows).toContainEqual({titre: "Bail nu pris d'effet"});
+    });
+
     it("le montant sort NU — la mise en forme française est l'affaire de l'écran", async () => {
       await db.query(
         `insert into public.encaissements (organization_id, bail_id, montant, date_paiement, mode)

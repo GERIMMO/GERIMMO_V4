@@ -80,3 +80,33 @@ describe("CB-08 — mention « Repris du bail précédent » à l’étape Loyer
     colocation.demonter();
   });
 });
+
+describe("G-114 — date de relocation", () => {
+  it("affiche la première date permise et recalcule la limite lorsque la chambre change", async () => {
+    m.etape = "bail";
+    const i = monter(FormulaireParcoursBail, {
+      ...props, defauts: { ...defauts, type: "colocation_individuelle", chambre_id: "a" },
+      chambres: [{ id: "a", nom: "A" }, { id: "b", nom: "B" }],
+      sorties: [
+        { chambre_id: "a", date_sortie_reelle: "2026-10-10", date_fin: "2027-01-01" },
+        { chambre_id: "b", date_sortie_reelle: null, date_fin: "2026-10-15" },
+        { chambre_id: null, date_sortie_reelle: null, date_fin: "2026-10-12" },
+      ],
+    });
+    i.stabiliser();
+    const debut = () => trouver(i.rendu, e => e.props.name === "date_debut")[0];
+    expect(debut().props.min).toBe("2026-10-12");
+    expect(debut().props["aria-describedby"]).toContain("parcours-date_debut-aide");
+    expect(texte(trouver(i.rendu, e => e.props.id === "parcours-date_debut-aide")[0])).toContain("12/10/2026");
+    const choisir = async (nom: string, valeur: string) => {
+      const champ = trouver(i.rendu, e => e.props.name === nom)[0];
+      (champ.props.onChange as (e: unknown) => void)({ target: { value: valeur } });
+      await i.vider();
+    };
+    await choisir("chambre_id", "b");
+    expect(debut().props.min).toBe("2026-10-15");
+    await choisir("type", "nu");
+    expect(debut().props.min).toBe("2026-10-15");
+    i.demonter();
+  });
+});

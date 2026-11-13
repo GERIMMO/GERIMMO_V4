@@ -10,7 +10,7 @@ function saisie(){const f=new FormData();for(const [k,v] of Object.entries({crea
 beforeEach(()=>{vi.resetAllMocks();m.verifier.mockResolvedValue({supabase:{rpc:m.rpc,from:m.from},user:{id:'user-test'},role:'admin_agence'});m.redirect.mockImplementation((url)=>{throw Error('REDIRECT:'+url);});});
 it('un refus apres insertion conserve toutes les saisies et la cle, sans ecriture complementaire separee',async()=>{
  m.rpc.mockResolvedValue({data:null,error:{message:'Panne TEST apres insertion'}});const f=saisie();const retour=await creerBien('org-test',{},f);
- expect(retour.erreur).toContain('même demande');expect(retour.valeurs).toEqual(Object.fromEntries(f));expect(m.from).not.toHaveBeenCalled();expect(m.rpc).toHaveBeenCalledOnce();expect(m.rpc.mock.calls[0][0]).toBe('creer_bien_complet');
+ expect(retour.erreur).toContain('même demande');expect(retour.valeurs).toEqual(Object.fromEntries(f));expect(m.from).not.toHaveBeenCalled();expect(m.rpc).toHaveBeenCalledOnce();expect(m.rpc.mock.calls[0][0]).toBe('creer_bien_verifie');
 });
 it.each(['erreur','exception'])('confirmation perdue (%s) : reprise du meme identifiant de demande',async(mode)=>{
  const biens=new Map<string,string>();let appel=0;
@@ -35,4 +35,11 @@ it('le brouillon reçoit une confirmation uniquement après création réussie',
  expect((await creerBien('org-test',{},f)).creationConfirmeeHref).toBeUndefined();
  m.rpc.mockResolvedValue({data:{bien_id:'bien-unique',lot_unique_id:'lot-unique',saisie_differente:true},error:null});
  expect((await creerBien('org-test',{},f)).creationConfirmeeHref).toBeUndefined();
+});
+
+it('propose la fiche existante avant une seconde création', async()=>{
+ const f=saisie();m.rpc.mockResolvedValue({data:{doublon_id:cle},error:null});
+ const r=await creerBien('org-test',{},f);
+ expect(r.repriseHref).toBe('/agence/org-test/parc/'+cle);expect(r.doublonBien).toBe(cle);
+ expect(r.creationConfirmeeHref).toBeUndefined();expect(r.valeurs?.nom).toBe('TEST Reprise');
 });

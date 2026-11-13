@@ -90,7 +90,7 @@ beforeEach(() => {
   banc.etat.lectures = {};
   banc.etat.listes = {};
   // La base répond « bien créé » : l'action va jusqu'à sa confirmation (drapeau `confirmation_creation`).
-  banc.etat.reponsesRpc = { creer_bien_complet: { bien_id: "bien-1", lot_unique_id: null, saisie_differente: false } };
+  banc.etat.reponsesRpc = { creer_bien_verifie: { bien_id: "bien-1", lot_unique_id: null, saisie_differente: false } };
 });
 
 const FORMAT_MONTANT = /montant invalide : écrivez 1234,50, sans espace ni point de milliers/i;
@@ -232,7 +232,7 @@ const CAS: Cas[] = [
     champ: "surface_m2 (lot unique)",
     jouer: async (saisie) => {
       const resultat = await creerBien(ORG, {}, formulaire({ ...BIEN, type: "appartement", surface_m2: saisie, confirmation_creation: "1" }));
-      const args = rpcDe("creer_bien_complet");
+      const args = rpcDe("creer_bien_verifie");
       const lots = (args?.p_saisie as { lots?: { surface_m2: number }[] } | undefined)?.lots;
       return observer(resultat, lots?.[0]?.surface_m2, Boolean(args));
     },
@@ -248,7 +248,7 @@ const CAS: Cas[] = [
     jouer: async (saisie) => {
       const lots = JSON.stringify([{ nom: "Lot A", surface: saisie, pieces: "2" }, { nom: "Lot B", surface: "30", pieces: "1" }]);
       const resultat = await creerBien(ORG, {}, formulaire({ ...BIEN, lots, confirmation_creation: "1" }));
-      const args = rpcDe("creer_bien_complet");
+      const args = rpcDe("creer_bien_verifie");
       const lus = (args?.p_saisie as { lots?: { surface_m2: number }[] } | undefined)?.lots;
       return observer(resultat, lus?.[0]?.surface_m2, Boolean(args));
     },

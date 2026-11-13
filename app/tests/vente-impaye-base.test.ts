@@ -237,6 +237,30 @@ describe.skipIf(!url)("vente au consommateur et impayé (avec base)", () => {
     expect(await echec("select public.abonnement_relance_consigner($1, 0, 'a@b.c', false)", [o.id])).toMatch(/Identifiant de message invalide/);
   });
 
+  it("reconduction : droits et montant relus, acceptation finalisée sans deuxième courrier", async () => {
+    const titulaire = await compte("reconduction");
+    const o = await organisation({titulaire});
+    await db.query("update organizations set email_contact=(select email from auth.users where id=$1) where id=$2",[titulaire,o.id]);
+    await db.query("update abonnements set periodicite='annuel',periode_fin=now()+interval '2 months' where organization_id=$1",[o.id]);
+    const {rows:[{c}]}=await db.query(`select jsonb_build_object('type','reconduction','id',periode_fin,'organisation',organisation,'montant',montant_periode_cents,'formule',formule,'unites',unites_souscrites,'suivante',periodicite_suivante,'destinataire',encode(sha256(convert_to(lower(destinataire),'UTF8')),'hex')) c from abonnements_avis_reconduction_dus(500) where organization_id=$1`,[o.id]);
+    const id="a".repeat(64);
+    await db.query("insert into courriels_durables(id,organization_id,empreinte,etat) values($1,$2,repeat('a',64),'en_attente')",[id,o.id]);
+    const rpc=async (sql:string,params:unknown[]) => (await db.query("select "+sql+" as v",params)).rows[0].v;
+    expect(await rpc("attacher_contexte_courriel($1,$2,$3)",[id,o.id,c])).toBe(true);
+    expect(await rpc("verifier_contexte_courriel($1)",[id])).toBe(true);
+    await db.query("savepoint modif");
+    await db.query("update abonnements set montant_periode_cents=12345 where organization_id=$1",[o.id]);
+    expect(await rpc("verifier_contexte_courriel($1)",[id])).toBe(false);
+    await db.query("rollback to savepoint modif");
+    await db.query("update auth.users set banned_until=now()+interval '1 day' where id=$1",[titulaire]);
+    expect(await rpc("verifier_contexte_courriel($1)",[id])).toBe(false);
+    await db.query("rollback to savepoint modif");
+    expect(await rpc("finaliser_courriel_metier($1)",[id])).toBe(false);
+    await db.query("update courriels_durables set etat='accepte',fournisseur_id='msg_recette' where id=$1",[id]);
+    for(let i=0;i<2;i++)expect(await rpc("finaliser_courriel_metier($1)",[id])).toBe(true);
+    expect((await db.query("select count(*)::int n from audit_log where organization_id=$1 and action='abonnement_avis_reconduction'",[o.id])).rows[0].n).toBe(1);
+  });
+
   it("R54 : la fenêtre de l'avis de reconduction se compte en mois, en dates de Paris (31 août et 1er mai)", async () => {
     const o = await organisation({ paye: true });
     await db.query("update public.abonnements set periodicite = 'annuel', montant_periode_cents = 5990 where organization_id = $1", [o.id]);

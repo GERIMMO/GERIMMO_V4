@@ -291,23 +291,20 @@ export async function envoyerAvisReconduction(supabase: SupabaseClient, avantEff
       lien: lienAbonnement(a.organization_id, await baseDeLOrganisation(supabase, a.organization_id)),
     });
     await avantEffet?.();
-    const { erreur } = await envoyerEmail({ circuit:"lib/avis-abonnement",
-      avantEnvoi: avantEffet,
-      to: a.destinataire,
-      subject: c.sujet,
-      html: c.html,
-      cleIdempotence: `reconduction-${a.organization_id}-${a.periode_fin.slice(0, 10)}`,
-    });
-    if (erreur) {
-      bilan.echecs.push(`${a.organisation} : ${erreur}`);
+    const montant = a.montant_periode_cents === null ? null : Number(a.montant_periode_cents);
+    if (montant === null || !Number.isSafeInteger(montant) || montant < 0 || suivante.montantCents === null) {
+      bilan.echecs.push(`${a.organisation} : montant de reconduction à vérifier.`);
       continue;
     }
-    const suivi = await supabase.rpc("abonnement_avis_reconduction_envoye", {
-      p_org: a.organization_id,
-      p_periode_fin: a.periode_fin,
+    const resultat = await envoyerEmail({ circuit:"abonnement-reconduction",
+      organisation:{db:supabase,id:a.organization_id},
+      contexteMetier:{type:"reconduction",id:new Date(a.periode_fin).toISOString(),organisation:a.organisation,montant,
+        formule:a.formule,unites:a.unites_souscrites??null,suivante:a.periodicite_suivante??null},
+      avantEnvoi: avantEffet, to:a.destinataire, subject:c.sujet, html:c.html,
+      cleIdempotence:`reconduction-${a.organization_id}-${a.periode_fin.slice(0,10)}`,
     });
-    if (suivi.error) {
-      bilan.echecs.push(`${a.organisation} : acceptation fournisseur enregistrée, suivi de la reconduction à vérifier.`);
+    if (resultat.erreur || resultat.finalisationEnAttente || !resultat.id) {
+      bilan.echecs.push(`${a.organisation} : ${resultat.erreur ?? "suivi de la reconduction à vérifier ; ne pas renvoyer."}`);
       continue;
     }
     bilan.envoyes += 1;

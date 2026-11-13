@@ -6,6 +6,7 @@ export function piloteLimite():boolean {return true;}
 export const MESSAGE_PILOTE='Envoi suspendu dans le périmètre validé : intervention humaine requise. Aucun nouvel e-mail envoyé. La tâche reste à traiter.';
 export function circuitAdmisPilote(p:ChargeCourriel):boolean {
  const c=p.contexteMetier;
+ if(c?.type==='reconduction')return !!p.organisationId && Number.isSafeInteger(c.montant) && c.montant>=0 && !p.piecesJointes?.length;
  if(c?.type==='acces')return ['signup','recovery'].includes(c.usage)&&!!c.jeton_empreinte;
  if(c?.type==='invitation_artisan')return !!c.acteur;
  if(c?.type==='notification')return ['incident_urgent','mission_confiee','mission_refusee','mission_acceptee','devis_demande','devis_recu','reponse_gestionnaire','piece_demandee','signature_demandee','rendez_vous_fixe','creneaux_proposes'].includes(c.evenement);

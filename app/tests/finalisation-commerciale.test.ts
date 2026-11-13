@@ -2,6 +2,7 @@ import { expect, it, vi } from "vitest";
 import type Stripe from "stripe";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { annulerFacturesOuvertes } from "@/lib/courriers-contrat-envoi";
+import { envoyerEmail } from "@/lib/email";
 import { envoyerAvisReconduction } from "@/lib/avis-abonnement";
 vi.mock("@/lib/email", () => ({ envoyerEmail: vi.fn(async () => ({ id: "message-fictif" })) }));
 
@@ -23,6 +24,7 @@ it("ne compte pas une reconduction terminée si sa consignation échoue après a
     organization_id: "org-test", organisation: "SCI fictive", destinataire: "test@example.invalid",
     periode_fin: "2026-12-01T00:00:00Z", montant_periode_cents: 999, formule: null,
   }]}).mockResolvedValueOnce({error: {message: "indisponible"}});
+  vi.mocked(envoyerEmail).mockResolvedValueOnce({id:"message-fictif",finalisationEnAttente:true});
   const bilan = await envoyerAvisReconduction({rpc} as unknown as SupabaseClient);
   expect(bilan.envoyes).toBe(0);
   expect(bilan.echecs).toEqual([expect.stringContaining("suivi de la reconduction à vérifier")]);

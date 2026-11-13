@@ -19,6 +19,12 @@ describe("collecte des index de facture",()=>{
  it("attend aussi l’index d’un changement d’occupant",()=>{
   expect(relevesFactureComplets(f,"eau",[{id:"lot"}],[m],[r],[{lot_id:"lot",date_debut:"2026-10-15",date_fin:null}])).toBe(false);
  });
+ it("vérifie chaque relevé intermédiaire avant d’annoncer que le calcul est prêt",()=>{
+  const miPeriode={...r,date_releve:"2026-10-15",index_releve:150};
+  expect(relevesFactureComplets(f,"eau",[{id:"lot"}],[m],[r,miPeriode])).toBe(false);
+  expect(relevesFactureComplets(f,"eau",[{id:"lot"}],[m],[r,{...miPeriode,index_releve:110}])).toBe(true);
+  expect(relevesFactureComplets(f,"eau",[{id:"lot"}],[m],[r,{...miPeriode,index_releve:""}])).toBe(false);
+ });
  it("rappelle à J3, J7 et J14 depuis la demande, sans nouveau palier quotidien",()=>{
   const date="2026-11-01T10:00:00Z";
   expect(palierRappelReleve(date,new Date("2026-11-03T10:00:00Z"))).toBeNull();

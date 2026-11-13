@@ -77,4 +77,11 @@ create trigger tracer_rectification_quittance before update of est_quittance,mon
 for each row execute function public.tracer_rectification_quittance();
 
 create index rectifications_quittances_personne on public.rectifications_quittances(personne_id);
-select public.poser_gardes_abonnement();
+-- Poser les trois gardes sur la nouvelle table uniquement. Une réinstallation
+-- globale changerait aussi les droits des opérations commerciales existantes.
+create trigger abonnement_rectifications_quittances before insert or update or delete on public.rectifications_quittances
+for each row execute function public.refuser_ecriture_si_fermee();
+create trigger traversee_lecture_seule before insert or update or delete on public.rectifications_quittances
+for each row execute function support_interne.garder_ecriture_traversee();
+create trigger diagnostic_artisan_lecture before insert or update or delete on public.rectifications_quittances
+for each row execute function public.refuser_mutation_diagnostic_artisan();

@@ -1,7 +1,7 @@
 Ticket	Priorité audit	Conclusion de l’audit source	Description	État de reprise
 G-01	P1	confirmé	Bail déjà signé sur papier impossible à activer : le dépôt du PDF signé n'est plus affiché dans l'assistant	inclus PR 289, en attente de publication
 G-02	P1	confirmé	Étape « Documents » et récapitulatif du bail en panne (PGRST200 sur l'auto-jointure documents → documents)	inclus PR 289, en attente de publication
-G-03	P1	confirmé	SCI (personne morale) : aucun représentant légal ni SIREN → signature électronique impossible (bail, devis) et bail incomplet	PR 313 : le brouillon conserve SCI familiale et le type déclaré (39 tests). Le SIREN, le mandat du représentant et le passage complet bail/devis restent ouverts.
+G-03	P1	confirmé	SCI (personne morale) : aucun représentant légal ni SIREN → signature électronique impossible (bail, devis) et bail incomplet	PR 313 et 315. Type de SCI conservé au retour ; SIREN sur fiche, bail nu et meublé. Première CI SIREN : manifeste incomplet, corrigé en aea2569c et 17 tests locaux réussis. Mandat réel du représentant habilité et signature bail/devis encore ouverts.
 G-107	P1	confirmé (copie isolée + code)	Solde de tout compte faux : le dernier terme n'est pas proratisé quand le congé est enregistré après l'appel du mois de fin	PR 290 ; SI-06 et course encaissement/finalisation vérifiés en base fictive ; CI verte
 G-04	P1	confirmé (banc isolé + code)	Tous les courriers du contrat d'abonnement suspendus par le « périmètre pilote » (confirmation, impayé, rappels, résiliation, rétractation, reconduction)	communications contractuelles suspendues ; reprise et preuve de remise à qualifier
 G-05	P1	confirmé	Aucun médiateur de la consommation alors que la vente aux particuliers est ouverte	coordonnées du médiateur à confirmer par le dirigeant
@@ -25,7 +25,7 @@ G-20	P2	confirmé	Indivision presque impossible à déclarer (quote-part non mod
 G-21	P2	confirmé	Annexes (cave, parking) créées en lots facturées comme des logements, contrairement à l'article 8.1 des CG	PR 305 12fb240f : consigne avant création, annexe au même bail dans Locaux privatifs. Lots annexes déjà saisis à examiner individuellement.
 G-22	P2	confirmé	Unité facturée mal nommée : « biens en gestion » = lots, brouillons compris	PR 305 12fb240f : le compteur décrit les lots actifs ou en préparation du seul espace. Aucun tarif changé. Décision sur brouillons et multi-organisations ouverte.
 G-23	P2	confirmé	Aucune détection de bien en double (même nom, même adresse) ; le doublon est facturé	PR 306 2bd6b83d : avertissement et lien avant prochaine création du même bien par le formulaire ; confirmation explicite pour deux biens distincts. API historique et import à qualifier.
-G-24	P2	suspecté	« Un seul abonnement » mais facturation par organisation (nom propre + SCI ouverte en espace séparé = deux abonnements)	suspicion de double facturation entre deux organisations ; requiert recette souscription multi-organisations
+G-24	P2	suspecté	« Un seul abonnement » mais facturation par organisation (nom propre + SCI ouverte en espace séparé = deux abonnements)	PR 316, 57ab1ef2. PostgreSQL refuse une seconde adhésion propriétaire direct active du même compte. Test à deux bailleurs et deux lots dans le même espace : deux unités, une seule intention à la reprise. 29 tests réussis. Comptes distincts et abonnements historiques non rapprochés.
 G-25	P2	confirmé (banc isolé)	Souscription annuelle : avertissement « Quitter le site ? » avant la page de paiement	PR 311, 857e85a8 : vrai clic mensuel et annuel vers le paiement local simulé, 2/2. Aucun paiement réel.
 G-26	P2	confirmé	Changement de compteur non chaîné : la répartition réclame l'index de l'ancien compteur ; compteur arrêté invisible	PR 302 corrige les périodes des compteurs arrêtés ; PR 312 bloque le faux statut prêt si un index intermédiaire décroît (5/5). Le chaînage explicite ancien/nouveau en cours de période reste ouvert.
 G-27	P2	confirmé	Clé « tantièmes » sans tantièmes saisis = parts égales étiquetées « tantièmes » ; erreur périmée affichée	correctif en recette isolée sur la branche des clés de répartition
@@ -53,7 +53,7 @@ G-45	P2	suspecté	Autocomplétion d'adresse inopérante : api-adresse.data.gouv.
 G-46	P2	confirmé	Images cassées dans le Journal (public et espace propriétaire) : 400 INVALID_IMAGE_OPTIMIZE_REQUEST	à requalifier sur le candidat
 G-47	P3	confirmé	Devis externe de l'artisan : TVA 20 % présélectionnée et montants au format « 79.75 »	à requalifier sur le candidat
 G-48	P3	confirmé	La case d'acceptation des CG enregistre l'acceptation dès qu'on la coche (avant toute validation)	à requalifier sur le candidat
-G-113	P3	confirmé (copie isolée)	Retenue sur dépôt sans justificatif acceptée sans avertissement à la finalisation du décompte	à requalifier sur le candidat
+G-113	P3	confirmé (copie isolée)	Retenue sur dépôt sans justificatif acceptée sans avertissement à la finalisation du décompte	PR 317, 49c782db. Retenues sans document chiffrées et nommées avant et dans la confirmation. Montants périmés : actualisation demandée avant finalisation. 27 tests puis 13 tests d’écran avec recouvrement. Non publié.
 G-114	P3	confirmé (copie isolée)	Bail de relocation : date d'entrée antérieure à la sortie du locataire précédent acceptée jusqu'au contrôle d'activation	à requalifier sur le candidat
 G-49	P3	confirmé	Conditions artisan proposées ou affichées à des comptes non artisans (locataire, propriétaire)	à requalifier sur le candidat
 G-50	P3	confirmé	Cookie de session lisible par JavaScript (400 jours) et CSP « unsafe-inline »	à requalifier sur le candidat
@@ -84,7 +84,7 @@ G-70	P3	confirmé	IRL de référence non prérempli après le choix du trimestre
 G-71	P3	confirmé	Saisie des montants et écritures : « 1 250 » refusé, message inadapté pour 0 ou négatif, imputation hors exercice sans avertissement, catégorie en texte libre	à requalifier sur le candidat
 G-72	P3	confirmé	Listes de choix non filtrées par rôle (SCI et garants proposés comme locataires, locataires comme propriétaires) ; co-titulaires impossibles hors colocation	à requalifier sur le candidat
 G-73	P3	confirmé	Typographie et mise en forme non françaises dans les PDF, messages et libellés (« 95.5 m² », « 32.73 % », espaces avant ponctuation, période « 2026-10-01 »)	à requalifier sur le candidat
-G-74	P3	confirmé	Export CSV du journal de gestion servi sans Cache-Control privé	à requalifier sur le candidat
+G-74	P3	confirmé	Export CSV du journal de gestion servi sans Cache-Control privé	PR 318, 749556e2. Export du journal et refus : private, no-store. Deux échecs reproduits avant, 36 tests réussis après. Non publié.
 G-75	P3	confirmé	Webhook de suivi des e-mails (/api/resend/suivi) non configuré en production (503)	à requalifier sur le candidat
 G-76	P3	confirmé	Adresses racine « pointées » (/.env, /.git/config…) → /connexion au lieu de 404 ; pas de security.txt	à requalifier sur le candidat
 G-77	P3	confirmé	/api/sante public révèle le commit déployé	à requalifier sur le candidat

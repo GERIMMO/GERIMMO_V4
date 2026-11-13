@@ -113,14 +113,15 @@ describe.skipIf(!reel || !baseApi || !secretReel)("dépôt par un artisan sur Po
     const db = new Client({ connectionString: baseApi });
     await db.connect();
     const racine = randomUUID();
-    const compte = randomUUID(), artisan = randomUUID();
+    const compte = randomUUID(), artisan = randomUUID(), session = randomUUID();
     const chemin = `artisans/${artisan}/${racine}`;
     try {
       await db.query("insert into auth.users(id,email,aud,role,email_confirmed_at) values ($1,$2,'authenticated','authenticated',now())", [compte, `${compte}@example.invalid`]);
+      await db.query("insert into auth.sessions(id,user_id) values($1,$2)", [session, compte]);
       await db.query("insert into public.artisans(id,account_id,raison_sociale,siret,telephone) values ($1,$2,'Artisan fictif G40',$3,'0600000000')",
         [artisan, compte, BigInt("0x" + artisan.replaceAll("-", "").slice(0, 11)).toString().padStart(14, "0")]);
       const { rows: [{jour}] } = await db.query("select to_char(statement_timestamp() at time zone 'Europe/Paris','YYYY-MM-DD') jour");
-      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${jwt({ role: "authenticated", sub: compte })}` };
+      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${jwt({ role: "authenticated", sub: compte, session_id: session })}` };
       const deposer = (fin: string, fichier: string) => fetch(`${reel}/rpc/deposer_ma_piece_artisan`, {
         method: "POST", headers, body: JSON.stringify({ p_type: "certification", p_storage_path: chemin + "/" + fichier,
           p_mime: "application/pdf", p_taille: 100, p_empreinte: racine, p_emise_le: null, p_expire_le: fin }),
@@ -137,6 +138,7 @@ describe.skipIf(!reel || !baseApi || !secretReel)("dépôt par un artisan sur Po
       try {
         await db.query("delete from public.artisan_pieces where artisan_id=$1", [artisan]);
         await db.query("delete from public.artisans where id=$1", [artisan]);
+        await db.query("delete from auth.sessions where id=$1", [session]);
         await db.query("delete from auth.users where id=$1", [compte]);
       }
       finally { await db.end(); }

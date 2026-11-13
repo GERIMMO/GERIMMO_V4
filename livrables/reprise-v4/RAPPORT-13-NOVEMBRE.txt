@@ -2,6 +2,13 @@ GERIMMO — Recette, publication et reprise du 13 novembre 2026
 Décision : maintenir G-11 en production. Aucune migration, fusion vers main, promotion, dépense, signature réelle ni inscription de pilote pendant cette passe. La production répond sur /api/sante avec application et base disponibles, maintenance désactivée, SHA 6661689e51884e465056449727e9f0dee7446387.
 L'application candidate, le pilote gratuit de dix propriétaires et l'ouverture payante sont trois décisions encore suspendues. Les corrections financières ont été vérifiées sur données fictives. Elles restent absentes du site public. Le registre SUIVI.tsv contient les 118 constats avec leur degré de validation.
 
+État de livraison à 05 h 51, heure de Paris
+Production confirmée sur /api/sante : application et base disponibles. Aucune nouvelle livraison. PR 302 ouverte, en brouillon, fusion possible selon GitHub. Sa propre CI est verte ; voir plus bas les résultats distincts des branches suivantes.
+Candidat complémentaire 326 : 9ec90d0a130acd6005d4fbe0a691d2dd937b8ade. Stripe TEST réussi (43367177911) ; CI complète 43367181702 en cours au relevé. Sur 309, CI 43367179489 en cours. PR 328 : 3a94014ded01ad3fd3f5344e026dc8d3124dc840, plusieurs miroirs signés conservés pour l’installation des navigateurs, workflow 43367403615. Ne pas fusionner séparément les branches déjà incorporées.
+PR 320 avait été intégrée à 309, jamais à main. Son ancien workflow 43362430867 a échoué sur une assertion cherchant un ancien titre après un clic Tarifs. L’assertion du titre à jour figure déjà dans 309 et 326 ; commit d0496e00 sur la branche de sauvegarde, sans changement de l’archive.
+PR 329 : G-114, premier jour possible d’entrée affiché et contrôlé dès le brouillon, au changement de chambre aussi. 14 tests locaux et ESLint réussis. Aucune migration. Workflow 43368096573 sur 4001f545.
+G-05 : le dirigeant devra fournir la convention effective et les coordonnées du médiateur avant l’ouverture payante. Aucune demande d’approbation de déploiement en attente pour cette mission.
+
 Anomalie | Intervention et preuve | Révision | État
 G-11 | Propriétaire autorisé, portails séparés, anonymes exclus selon la recette antérieure. Protection conservée dans le candidat. | 6661689e | Publié avant cette mission.
 G-107/G-108 | Dernier loyer proratisé ; 188,67 € à restituer dans le décompte et les écritures. Collision encaissement/clôture, répétition, recommandé préparé, compensation de 213,33 € et deuxième bail du même locataire à 410 € contrôlés. | 302, 668d22b6 | CI verte, brouillon.

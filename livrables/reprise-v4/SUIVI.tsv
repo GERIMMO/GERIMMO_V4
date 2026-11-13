@@ -54,7 +54,7 @@ G-46	P2	confirmé	Images cassées dans le Journal (public et espace propriétair
 G-47	P3	confirmé	Devis externe de l'artisan : TVA 20 % présélectionnée et montants au format « 79.75 »	à requalifier sur le candidat
 G-48	P3	confirmé	La case d'acceptation des CG enregistre l'acceptation dès qu'on la coche (avant toute validation)	à requalifier sur le candidat
 G-113	P3	confirmé (copie isolée)	Retenue sur dépôt sans justificatif acceptée sans avertissement à la finalisation du décompte	PR 317, 49c782db. Retenues sans document chiffrées et nommées avant et dans la confirmation. Montants périmés : actualisation demandée avant finalisation. 27 tests puis 13 tests d’écran avec recouvrement. Non publié.
-G-114	P3	confirmé (copie isolée)	Bail de relocation : date d'entrée antérieure à la sortie du locataire précédent acceptée jusqu'au contrôle d'activation	à requalifier sur le candidat
+G-114	P3	confirmé (copie isolée)	Bail de relocation : date d'entrée antérieure à la sortie du locataire précédent acceptée jusqu'au contrôle d'activation	PR 329, 4001f545 : date minimale indiquée dès le brouillon, ajustée à la chambre ou au lot entier ; sortie réelle prioritaire et activation SQL conservée. 14/14 tests ciblés et ESLint ; CI 43368096573.
 G-49	P3	confirmé	Conditions artisan proposées ou affichées à des comptes non artisans (locataire, propriétaire)	à requalifier sur le candidat
 G-50	P3	confirmé	Cookie de session lisible par JavaScript (400 jours) et CSP « unsafe-inline »	à requalifier sur le candidat
 G-51	P3	suspecté	Politique de session (inactivité, durée maximale) appliquée par le site seulement, pas par Supabase Auth	à requalifier sur le candidat

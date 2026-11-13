@@ -1,0 +1,7 @@
+G-11 publié et vérifié le 13 novembre 2026 (heure de Paris).
+SHA public 6661689e51884e465056449727e9f0dee7446387. Santé OK, base OK, maintenance désactivée après restriction.
+PR 293 ; CI main 43330910729 ; promotion 43334412178 ; migration additive 43334296778 ; restriction 43345385941. Deux versions présentes dans l’historique de production : 20261112120500 et 20261112202241.
+Dernière sauvegarde 43344633354, archive 20261113-0124 ; restauration isolée 43345209856 : 261 tables, 47152 lignes, 79 fichiers, zéro manquant, protections validées.
+Contrôle comparatif en lecture seule sur la base de production, sous le rôle PostgreSQL authenticated avec le contexte de chacun des trois comptes fictifs : avant restriction chacun pouvait lire une fiche interne ; après restriction propriétaire 1, locataire 0, artisan 0. Pour chacun : un seul portail autorisé, zéro portail hors dossier, navigation présente. Les accès anonymes à la vue et à la fonction de navigation sont interdits. Aucun contenu de fiche privée extrait. Le navigateur de l’artisan connecté a de nouveau chargé son accueil après restriction. Les autres rôles ont été rejoués en base, pas reconnectés dans le navigateur après cette dernière étape.
+La recette PostgREST 14.5, le test de révocation et les 33 parcours WebKit ont été réalisés sur données fictives isolées. Le contrôle ne permet pas de conclure sur d’éventuelles consultations passées.
+La livraison est limitée à G-11 ; aucune migration financière. En cas de régression, conserver la politique restrictive et corriger les lecteurs en avant.

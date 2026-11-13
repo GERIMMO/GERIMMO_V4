@@ -91,6 +91,13 @@ describe("D31 : la clé suit la copie locale", () => {
     pieces: [], bilan: { creationIncertaine: true }, ...extra,
   });
 
+  it("conserve la qualité déclarée par la société même après une création incertaine", () => {
+    for (const qualiteSociete of ["SCI familiale", "Personne morale"]) {
+      expect(validerBrouillonPersonne(copie({ role: "proprietaire_mandant", morale: true, qualiteSociete }))?.qualiteSociete).toBe(qualiteSociete);
+    }
+    expect(validerBrouillonPersonne(copie())?.qualiteSociete).toBeUndefined();
+  });
+
   it("garde la clé de la demande à la relecture", () => {
     expect(validerBrouillonPersonne(copie({ creationId: CLE }))?.creationId).toBe(CLE);
   });
@@ -121,7 +128,7 @@ describe("D31 : l'écran", () => {
 
   it("envoie la clé avec la demande et la conserve dans la copie locale", () => {
     expect(source).toMatch(/name="creation_id" value=\{creationId\}/);
-    expect(source).toMatch(/useMemo\(\(\) => \(\{ role: role as BrouillonPersonne\["role"\], morale, etape, valeurs, pieces, lotId, creationId \}\)/);
+    expect(source).toMatch(/useMemo\(\(\) => \(\{ role: role as BrouillonPersonne\["role"\], morale, qualiteSociete, etape, valeurs, pieces, lotId, creationId \}\)/);
   });
 
   it("une copie d'avant la décision, déjà marquée incertaine, ne reçoit pas de clé neuve", () => {

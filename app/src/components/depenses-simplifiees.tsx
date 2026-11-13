@@ -11,7 +11,7 @@ import { ajouterDepenseSimple } from "@/app/actions/depense-simple";
 import { proposerLectureDocument } from "@/app/actions/lecture-document";
 import type { EtatConsommations } from "@/app/actions/consommations";
 import { CATEGORIES_FOURNITURE } from "@/lib/consommations";
-import { contexteDepenseSimple, natureFournisseur, valeursLectureFacture } from "@/lib/contexte-depense-simple";
+import { contexteDepenseSimple, naturePourFacture, valeursLectureFacture } from "@/lib/contexte-depense-simple";
 import { FormulairesConsommations, FicheFactureFourniture, type Props } from "./consommations-formulaires";
 import { BoutonEnvoi } from "./ui/bouton-envoi";
 import styles from "./depenses-simplifiees.module.css";
@@ -44,8 +44,11 @@ function Saisie({p,fermer,guide=false}:{p:Props;fermer:(id?:string)=>void;guide?
   const [lotId,setLotId]=useState(p.lotId ?? "");
   const initial=contexteDepenseSimple(p.contrats,lotId||null);
   const [fournisseur,setFournisseur]=useState(initial.fournisseur);
-  const [categorie,setCategorie]=useState<keyof typeof CATEGORIES_FOURNITURE|"">(initial.categorie);
+  const [natureSaisie, setNatureSaisie] = useState<keyof typeof CATEGORIES_FOURNITURE | "">("");
+  const [natureLue, setNatureLue] = useState<keyof typeof CATEGORIES_FOURNITURE | "">("");
   const contexte=contexteDepenseSimple(p.contrats,lotId||null);
+  const contrats = p.contrats.filter(c => c.lot_id === (lotId || null));
+  const categorie = naturePourFacture(natureSaisie, natureLue, contrats, fournisseur);
   async function lire(){
     if(lecture)return;
     const doc=fichier.current?.files?.[0];if(!doc){setMessage("Choisissez d’abord votre facture.");fichier.current?.focus();return;}
@@ -55,8 +58,9 @@ function Saisie({p,fermer,guide=false}:{p:Props;fermer:(id?:string)=>void;guide?
       if(r.lecture){
         const proposition=r.lecture;
         const nom=fournisseur || proposition.fournisseur || "";
-        const nature=categorie || natureFournisseur(p.contrats.filter(c=>c.lot_id===(lotId||null)),nom) || proposition.categorie || "";
-        flushSync(()=>{setFournisseur(nom);setCategorie(nature);});
+        const lue = proposition.categorie || "";
+        const nature = naturePourFacture(natureSaisie, lue, contrats, nom);
+        flushSync(() => { setFournisseur(nom); setNatureLue(lue); });
         for(const [cle,valeur] of Object.entries(valeursLectureFacture(proposition,nature || "teom"))){const champ=form.current?.elements.namedItem(cle);if((champ instanceof HTMLInputElement || champ instanceof HTMLSelectElement) && !champ.value)champ.value=valeur;}
         setMessage(["Informations proposées : vérifiez les montants et la période.",...r.lecture.avertissements].join(" "));
       }
@@ -65,17 +69,17 @@ function Saisie({p,fermer,guide=false}:{p:Props;fermer:(id?:string)=>void;guide?
   }
   return <form ref={form} action={action} onReset={e=>e.preventDefault()} data-saisie-confirmee className={styles.formulaire} aria-busy={pending||lecture}>
     <div className={styles.entete}><h4>{guide ? "Facture et informations" : "Ajouter une facture"}</h4><button type="button" disabled={pending||lecture} onClick={()=>fermer()}>Annuler</button></div>
-    <label className={styles.depot}><Upload size={22} aria-hidden="true"/><span>Facture ou justificatif</span><input ref={fichier} name="document" type="file" accept="application/pdf,image/jpeg,image/png" required disabled={pending||lecture} onChange={()=>setMessage("")}/></label>
+    <label className={styles.depot}><Upload size={22} aria-hidden="true"/><span>Facture ou justificatif</span><input ref={fichier} name="document" type="file" accept="application/pdf,image/jpeg,image/png" required disabled={pending||lecture} onChange={()=>{setMessage("");setNatureLue("");}}/></label>
     <button type="button" onClick={lire} disabled={pending||lecture} className={styles.lire}>{lecture ? "Lecture…" : "Préremplir depuis la facture"}</button>
     {message && <p role="status" className={styles.message}>{message}</p>}
     <div className={styles.champs}>
-      <label>Fournisseur<input list={listeFournisseurs} name="fournisseur" required maxLength={150} value={fournisseur} placeholder="Nom indiqué sur la facture" onChange={e=>{setMessage("");setFournisseur(e.target.value);setCategorie(natureFournisseur(p.contrats.filter(c=>c.lot_id===(lotId||null)),e.target.value));}} autoComplete="off"/><datalist id={listeFournisseurs}>{contexte.fournisseurs.map(n=><option key={n} value={n}/>)}</datalist></label>
-      <label>Nature<select name="categorie" required value={categorie} onChange={e=>{setMessage("");setCategorie(e.target.value as typeof categorie);}}><option value="">Choisir la nature de la dépense</option>{Object.entries(CATEGORIES_FOURNITURE).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
+      <label>Fournisseur<input list={listeFournisseurs} name="fournisseur" required maxLength={150} value={fournisseur} placeholder="Nom indiqué sur la facture" onChange={e=>{setMessage("");setFournisseur(e.target.value);}} autoComplete="off"/><datalist id={listeFournisseurs}>{contexte.fournisseurs.map(n=><option key={n} value={n}/>)}</datalist></label>
+      <label>Nature<select name="categorie" required value={categorie} onChange={e=>{setMessage("");setNatureSaisie(e.target.value as typeof categorie);}}><option value="">Choisir la nature de la dépense</option>{Object.entries(CATEGORIES_FOURNITURE).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>
       <label>Montant total<input name="total" inputMode="decimal" required placeholder="0,00 €"/></label>
       {["eau","electricite_commune","electricite_privative","gaz","chauffage"].includes(categorie) && <label>Consommation facturée {categorie==="gaz"?"":categorie==="eau"?"(m³)":"(kWh)"}<input name="consommation" inputMode="decimal" placeholder="Si indiquée sur la facture"/></label>}
       {categorie==="gaz"?<label>Unité de consommation<select name="unite_consommation" defaultValue=""><option value="">À vérifier sur la facture</option><option value="m3">m³</option><option value="kwh">kWh</option></select></label>:<input name="unite_consommation" type="hidden" value={categorie==="eau"?"m3":"kwh"}/>}
 
-      {!p.lotId && lots.length > 0 ? <label>Concerne<select name="lot_id" value={lotId} onChange={e=>{const id=e.target.value;setLotId(id);setCategorie(natureFournisseur(p.contrats.filter(c=>c.lot_id===(id||null)),fournisseur));}}><option value="">Tout le bien / parties communes</option>{lots.map(l=><option key={l.id} value={l.id}>{l.nom}</option>)}</select></label>:<input name="lot_id" type="hidden" value={lotId}/>}
+      {!p.lotId && lots.length > 0 ? <label>Concerne<select name="lot_id" value={lotId} onChange={e=>{const id=e.target.value;setLotId(id);}}><option value="">Tout le bien / parties communes</option>{lots.map(l=><option key={l.id} value={l.id}>{l.nom}</option>)}</select></label>:<input name="lot_id" type="hidden" value={lotId}/>}
       <label>Début de la période<input name="periode_debut" type="date" required/></label><label>Fin de la période<input name="periode_fin" type="date" required/></label>
     </div>
     {categorie==="teom" && <p className={styles.aide}>Recopiez uniquement le montant de la ligne « taxe d’enlèvement des ordures ménagères » et ses frais de gestion. Le total de l’avis fiscal n’est pas repris automatiquement.</p>}

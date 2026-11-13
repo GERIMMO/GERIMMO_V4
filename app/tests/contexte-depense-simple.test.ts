@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contexteDepenseSimple, natureFournisseur, valeursLectureFacture } from "../src/lib/contexte-depense-simple";
+import { contexteDepenseSimple, natureFournisseur, naturePourFacture, valeursLectureFacture } from "../src/lib/contexte-depense-simple";
 
 const eau = { fournisseur: "Eau de Lyon", categorie: "eau" as const, lot_id: null, actif: true };
 const electricite = { fournisseur: "Engie", categorie: "electricite_commune" as const, lot_id: null, actif: true };
@@ -22,6 +22,15 @@ describe("préremplissage d'une dépense dans le bon périmètre", () => {
   });
   it("ne garde pas la nature précédente pour un fournisseur inconnu", () => {
     expect(natureFournisseur([eau], "SFR")).toBe("");
+  });
+  it("conserve la nature lue quand le propriétaire corrige le fournisseur après lecture", () => {
+    expect(naturePourFacture("", "eau", [electricite], "Fournisseur corrigé")).toBe("eau");
+    expect(naturePourFacture("", "eau", [electricite], "Engie")).toBe("eau");
+  });
+  it("respecte une correction explicite et recalcule une simple suggestion de contrat", () => {
+    expect(naturePourFacture("gaz", "eau", [electricite], "Engie")).toBe("gaz");
+    expect(naturePourFacture("", "", [electricite], "Engie")).toBe("electricite_commune");
+    expect(naturePourFacture("", "", [electricite], "Inconnu")).toBe("");
   });
   it("ne confond pas le total d'un avis fiscal avec la ligne de taxe à vérifier", () => {
     expect(valeursLectureFacture({ total: "3500", frais_fixes: "100", frais_gestion: "40", reference: "Avis 2026", periode_debut: "2026-01-01" }, "teom")).toEqual({ reference: "Avis 2026", periode_debut: "2026-01-01" });

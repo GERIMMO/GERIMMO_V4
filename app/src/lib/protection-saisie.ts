@@ -18,8 +18,9 @@ export function relierSoumission(donnees: FormData) {
     donnees.delete(CLE_CLIENT);
   }
 }
-const identitesFichiers = new WeakMap<File, number>();
-let numeroFichier = 0;
+// Une nouvelle sélection peut avoir le même nom, la même taille et la même date.
+// Son numéro appartient au champ : WebKit peut recréer les objets File à la lecture.
+const selectionsFichiers = new WeakMap<HTMLInputElement, number>();
 /** Aussi dit par le garde de la copie locale (lib/garde-copie-locale.ts) : un seul texte pour « quitter cette page ». */
 export const MESSAGE_QUITTER = "Des modifications ne sont pas encore enregistrées. Quitter cette page et les abandonner ?";
 /** Le même avertissement lorsqu'un clic sur le voile refermerait une fenêtre et sa saisie (lib/use-fenetre-modale.ts). */
@@ -56,8 +57,7 @@ function champs(formulaire: HTMLFormElement): Champ[] {
 function valeur(champ: Champ): string {
   if (champ instanceof HTMLInputElement) {
     if (champ.type === "file") return JSON.stringify(Array.from(champ.files ?? []).map(f => {
-      if (!identitesFichiers.has(f)) identitesFichiers.set(f, ++numeroFichier);
-      return [identitesFichiers.get(f), f.name, f.size, f.lastModified, f.type];
+      return [selectionsFichiers.get(champ) ?? 0, f.name, f.size, f.lastModified, f.type];
     }));
     if (["checkbox", "radio"].includes(champ.type)) return String(champ.checked);
   }
@@ -148,6 +148,9 @@ export function installerProtectionSaisie(): () => void {
     if (!estChamp(cible) || !cible.form || !eligible(cible.form)) return;
     // focus/pointer/keydown capturent la valeur avant le premier geste. Un champ
     // ajouté dynamiquement est suivi dès sa première interaction.
+    if (cible instanceof HTMLInputElement && cible.type === "file" && event.type === "change") {
+      selectionsFichiers.set(cible, (selectionsFichiers.get(cible) ?? 0) + 1);
+    }
     const dejaSuivi = suivis.has(cible.form);
     suivre(cible.form);
     const suivi = suivis.get(cible.form)!;

@@ -943,7 +943,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               decompteSortie={etatDecompteSortie(restitution, erreurRestitution)}
             />
             <HistoriqueRecommandes orgId={orgId} bailId={bailId} />
-            <PlanApurementBail orgId={orgId} bailId={bailId} base={base} />
+            <PlanApurementBail orgId={orgId} bailId={bailId} base={base} decompte={etatDecompteSortie(restitution, erreurRestitution)} />
           </div>
         </RubriqueDossier>
       )}

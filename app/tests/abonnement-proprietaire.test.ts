@@ -241,15 +241,23 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
   });
-  it("blocage levé : l’identité incomplète permet le paiement mais les conditions restent requises", async () => {
+  it("simulation : même si le réglage général est levé, sans médiateur le paiement reste fermé", async () => {
     mocks.stripePret = true;
     mocks.editeur = { editeur: EDITEUR_VIDE, indisponible: false };
     mocks.blocageIdentiteActif = false;
     mocks.conditionsAcceptees = false;
     const html = await rendre();
-    expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
-    expect(html).toContain("Continuer vers le paiement sécurisé");
-    expect(html).toContain(INFOBULLE_CONDITIONS);
+    expect(html).toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
+    expect(html).not.toContain("Continuer vers le paiement sécurisé");
+  });
+  it("pilote gratuit : même avec Stripe prêt, médiateur et conditions acceptées, aucune commande", async () => {
+    vi.stubEnv("GERIMMO_MODE", "commercial");
+    try {
+      mocks.stripePret = true;
+      const html = await rendre();
+      expect(html).toContain("Les nouvelles souscriptions payantes sont fermées pendant le pilote gratuit.");
+      expect(html).not.toContain("Continuer vers le paiement sécurisé");
+    } finally { vi.unstubAllEnvs(); }
   });
   it("blocage levé : une configuration Stripe absente ferme toujours le paiement", async () => {
     mocks.blocageIdentiteActif = false;

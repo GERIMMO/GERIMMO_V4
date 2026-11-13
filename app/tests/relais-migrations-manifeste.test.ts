@@ -181,6 +181,8 @@ const MISSION_OCTOBRE = [
   "20261113113325_remplacement_compteur_mesure.sql",
   "20261113141000_representation_bail_sci.sql",
   "20261113143200_index_pouvoir_bail.sql",
+  "20261113200000_premiere_facture_abonnement.sql",
+  "20261113200500_courriel_reconduction.sql",
 
 
 ];

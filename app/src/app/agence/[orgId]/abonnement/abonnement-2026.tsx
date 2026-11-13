@@ -14,6 +14,7 @@ import { notFound } from "next/navigation";
 import { BoutonPortail, BoutonResiliation, FormulaireHausse, FormulairePeriodicite } from "./boutons-abonnement";
 import { DetailMontants, FormulaireSouscription } from "./formulaire-souscription";
 import { REGIME_TVA } from "@/lib/editeur";
+import { nouvellesSouscriptionsFermees, MESSAGE_SOUSCRIPTIONS_FERMEES } from "@/lib/verrou-pilote";
 import { motifIdentiteEditeur } from "@/lib/garde-souscription";
 import { lireGardeSouscription } from "@/lib/garde-souscription-serveur";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -163,7 +164,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   // l'action (lib/garde-souscription.ts), bouton indisponible, pas de case.
   // « Votre essai continue » seulement si l'essai court encore : un essai
   // arrivé à son terme garde le statut « essai » mais ferme l'écriture.
-  const motifIdentite = motifIdentiteEditeur(garde.editeur, { enEssai: enEssai && !ferme, blocageIdentiteActif: garde.blocageIdentiteActif });
+  const motifIdentite = motifIdentiteEditeur(garde.editeur, { enEssai: enEssai && !ferme, blocageIdentiteActif: garde.blocageIdentiteActif, nouvelleSouscriptionParticulier: !souscrit && publicTarif === "proprietaire_direct" });
   const motifIndisponible = !reglages.pret
     ? "Le paiement en ligne n'est pas encore ouvert. Écrivez-nous : nous prolongeons votre essai le temps de l'ouvrir."
     : !REGIME_TVA
@@ -538,7 +539,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             regime={REGIME_TVA}
             premierPrelevement={premierPrelevement}
             ferme={ferme}
-            motifIndisponible={motifIndisponible}
+            motifIndisponible={!souscrit && reglages.pret && nouvellesSouscriptionsFermees() ? MESSAGE_SOUSCRIPTIONS_FERMEES : motifIndisponible}
             conditionsAAccepter={!garde.conditionsAcceptees}
             dateLimiteRetractation={jourEnLettres(dernierJourRetractation(new Date()))}
           />

@@ -8,3 +8,11 @@ export const MESSAGE_PAIEMENT_PILOTE='Opération payante suspendue dans cet envi
 export function exigerOperationsPayantesAutorisees():void {
  if(paiementsInterdits())throw new Error(MESSAGE_PAIEMENT_PILOTE);
 }
+
+/** Le pilote gratuit ne crée aucune nouvelle souscription. Seul le banc de
+ * simulation isolé peut parcourir Checkout, sans clé LIVE. Les webhooks et
+ * abonnements existants continuent à utiliser leur propre garde. */
+export function nouvellesSouscriptionsFermees(env:Record<string,string|undefined>=process.env):boolean {
+ return env.GERIMMO_MODE!=='simulation' || !!env.VERCEL_ENV || paiementsInterdits(env);
+}
+export const MESSAGE_SOUSCRIPTIONS_FERMEES="Les nouvelles souscriptions payantes sont fermées pendant le pilote gratuit.";

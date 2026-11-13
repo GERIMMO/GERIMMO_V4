@@ -103,12 +103,13 @@ export async function envoyerEmailTransport(params: {
   organisation?: { db: SupabaseClient; id: string };
 }): Promise<ResultatCourriel> {
   if(piloteLimite()&&!circuitAdmisPilote({...params,organisationId:params.organisation?.id}))return {erreur:MESSAGE_PILOTE,interventionRequise:true};
+  if(params.contexteMetier?.type==="reconduction" && (!params.referenceInterne || !params.avantEnvoi)) return {erreur:"Contrôle de la reconduction indisponible. Aucun envoi effectué."};
   if(maintenanceLivraison())return {erreur:MESSAGE_TRANSITION};
   const cle = process.env.RESEND_API_KEY;
   if (!cle) return { erreur: "Envoi des e-mails non configuré. Contactez l’administrateur." };
   let appelCommence = false;
   try {
-    const marque = params.organisation && !["acces","invitation_artisan"].includes(params.contexteMetier?.type??"") ? await chargerMarque(params.organisation.db, params.organisation.id) : null;
+    const marque = params.organisation && !["acces","invitation_artisan","reconduction"].includes(params.contexteMetier?.type??"") ? await chargerMarque(params.organisation.db, params.organisation.id) : null;
     // Verification fields are server-controlled in the database, never accepted from a form.
     const adresseVerifiee = marque?.email_expediteur_verifie_le && marque.email_expediteur && emailValide(marque.email_expediteur) ? marque.email_expediteur : null;
     const nom = marque ? nomMarque(marque).replace(/[<>"\r\n]/g, "").trim() : null;

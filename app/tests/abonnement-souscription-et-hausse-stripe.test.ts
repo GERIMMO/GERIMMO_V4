@@ -371,6 +371,10 @@ function fauxRegistre() {
     await tour();
     // Date.now() (et non `new Date()`) : les essais qui simulent un Stripe très lent avancent l'horloge de Date.now.
     const maintenant = new Date(Date.now());
+    if (nom === "abonnement_geste_consigner") {
+      if (p.p_action === "abonnement_commande_confirmee") expect(p.p_details).toMatchObject({ conditions_acceptees: expect.stringMatching(/^20\d\d-\d\d-\d\d$/) });
+      return {data:null,error:null};
+    }
     if (nom === "abonnement_client_pose") return { data: null, error: null };
     if (nom === "intention_souscription_reserver") {
       // Corps synchrone : il tient lieu du verrou consultatif par organisation.
@@ -506,6 +510,15 @@ beforeEach(() => {
 });
 
 describe("A01 — une seule page de paiement par organisation", () => {
+  it("refuse d’ouvrir le paiement si la preuve de commande ne peut pas être conservée", async () => {
+    etatOrganisation(false);
+    m.serviceRpc.mockImplementation(async (nom, args) => nom === "abonnement_geste_consigner"
+      ? {data:null,error:{message:"indisponible"}} : registre.rpc(nom,args));
+    expect(await issue(demarrerAbonnement(ORG, {}, souscrire()))).toMatchObject({erreur: expect.stringContaining("Aucune page de paiement")});
+    expect(faux.etat.sessions).toHaveLength(0);
+    expect(registre.lignes).toHaveLength(0);
+  });
+
   it("deux onglets en même temps : une seule page Stripe est créée, les deux reçoivent la même adresse", async () => {
     etatOrganisation(false);
     const [a, b] = await Promise.all([

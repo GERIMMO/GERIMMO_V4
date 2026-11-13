@@ -416,6 +416,7 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
     const clock = await stripe.testHelpers.testClocks.create({ frozen_time: Math.floor(Date.now()/1000), name: "Gerimmo — renouvellement fictif" });
     let client = "", signature = "", sortie = "";
     const recus: { type: string; statut: number }[] = [];
+    const differes = new Map<string,{corps:string;entete:string}>();
     let chaine = Promise.resolve();
     const serveur = createServer((req,res) => {
       const morceaux: Buffer[]=[];
@@ -430,6 +431,8 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
             const objet=evenement.data.object as unknown as {customer?:string};
             if(!client||objet.customer!==client) { res.writeHead(200).end(); return; }
             const reponse=await POST(new Request("http://127.0.0.1/api/stripe/webhook",{method:"POST",body:corps,headers:{"stripe-signature":entete}}));
+            if ([500,503].includes(reponse.status)) differes.set(evenement.id,{corps,entete});
+            else differes.delete(evenement.id);
             recus.push({type:evenement.type,statut:reponse.status});
             res.writeHead(reponse.status).end();
           } catch { res.writeHead(400).end(); }
@@ -438,7 +441,7 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
     });
     await new Promise<void>(r=>serveur.listen(0,"127.0.0.1",r));
     const adresse=serveur.address(); if(!adresse||typeof adresse==="string")throw new Error("Récepteur local indisponible");
-    const relais=spawn(process.env.GERIMMO_STRIPE_CLI??"stripe",["listen","--events","customer.subscription.updated,invoice.paid","--forward-to",`http://127.0.0.1:${adresse.port}`],{env:{...process.env,STRIPE_API_KEY:cle,STRIPE_DEVICE_NAME:"gerimmo-ci-isole"},stdio:["ignore","pipe","pipe"]});
+    const relais=spawn(process.env.GERIMMO_STRIPE_CLI??"stripe",["listen","--events","customer.subscription.created,customer.subscription.updated,invoice.paid","--forward-to",`http://127.0.0.1:${adresse.port}`],{env:{...process.env,STRIPE_API_KEY:cle,STRIPE_DEVICE_NAME:"gerimmo-ci-isole"},stdio:["ignore","pipe","pipe"]});
     let erreurRelais=false;
     relais.on("error",()=>{erreurRelais=true;});
     const lire=(b:Buffer)=>{sortie=(sortie+b.toString()).slice(-12000);signature=sortie.match(/whsec_[A-Za-z0-9]+/)?.[0]??signature;};
@@ -468,7 +471,18 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
       },"Renouvellement de TEST non payé");
       await attendre(async()=>recus.some(e=>e.type==="invoice.paid"&&e.statut===200)&&recus.some(e=>e.type==="customer.subscription.updated"&&e.statut===200),"Webhooks de renouvellement non reçus par Gerimmo local");
       await chaine;
-      expect(recus.every(e=>e.statut===200)).toBe(true);
+      // Une facture peut précéder le webhook de création. Le refus temporaire doit
+      // rester en file et le même événement signé doit ensuite aboutir, sans doublon.
+      expect(recus.every(e=>[200,500,503].includes(e.statut))).toBe(true);
+      for (const [id, message] of differes) {
+        expect((await nouvelle.db!.query("select traite_le from public.abonnement_evenements where stripe_event_id=$1",[id])).rows).toHaveLength(1);
+        await attendre(async()=>{
+          const res=await POST(new Request("http://127.0.0.1/api/stripe/webhook",{method:"POST",body:message.corps,headers:{"stripe-signature":message.entete}}));
+          return res.status===200;
+        },"La réception Stripe différée n’a pas abouti");
+        expect((await nouvelle.db!.query("select traite_le from public.abonnement_evenements where stripe_event_id=$1",[id])).rows[0].traite_le).toBeTruthy();
+      }
+      expect((await nouvelle.db!.query("select count(*)::int n from public.audit_log where organization_id=$1 and action='abonnement_premiere_facture_payee'",[org])).rows[0].n).toBe(1);
       const miroir=(await nouvelle.db!.query("select a.montant_periode_cents::int montant,o.status from public.abonnements a join public.organizations o on o.id=a.organization_id where a.organization_id=$1",[org])).rows[0];
       expect(miroir).toMatchObject({montant:599,status:"active"});
     } finally {

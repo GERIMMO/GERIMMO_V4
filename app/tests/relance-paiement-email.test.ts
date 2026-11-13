@@ -96,7 +96,7 @@ describe("Plan du 23/10 : mise en demeure, premier prélèvement, envois interro
     expect(texte).toContain("Faute de règlement, votre abonnement Gerimmo est résilié depuis le 12 novembre 2026, en application de l'article 15.4 des conditions générales. La facture restée impayée est annulée.");
     expect(texte).toContain("Vos données restent consultables et exportables en lecture seule ; rien n'est supprimé du fait de cette résiliation. Pour reprendre la saisie, souscrivez de nouveau depuis « Mon abonnement ».");
     expect(courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-12", factures: "aucune", lien: null, apresMiseEnDemeure: true }).html).not.toContain("facture");
-    expect(courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-12", factures: "a_annuler", lien: null, apresMiseEnDemeure: true }).html).toContain("sera annulée : vous n'avez rien à régler");
+    expect(courrierResiliationImpaye({ organisation: "X", resilieLe: "2026-11-12", factures: "a_annuler", lien: null, apresMiseEnDemeure: true }).html).toContain("L’annulation des factures ouvertes reste à vérifier.");
   });
 
   it("relecture adverse du 24/10 (M2) : « 1er » dans la mise en demeure et le courrier de résiliation", () => {

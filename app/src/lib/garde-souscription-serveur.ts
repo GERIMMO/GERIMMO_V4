@@ -34,9 +34,9 @@ export type GardeSouscription = {
  * l'identité du code — vide à ce jour — donc le motif : fermeture par défaut,
  * et rien n'est prélevé entre-temps. `enEssai` : voir ContexteGarde.
  */
-export async function lireMotifIdentiteEditeur(enEssai: boolean): Promise<string | null> {
+export async function lireMotifIdentiteEditeur(enEssai: boolean, nouvelleSouscriptionParticulier = false): Promise<string | null> {
   const [{ editeur }, { blocageIdentiteActif }] = await Promise.all([lireEditeur(), lireReglageSouscription()]);
-  const contexte: ContexteGarde = { enEssai, blocageIdentiteActif };
+  const contexte: ContexteGarde = { enEssai, blocageIdentiteActif, nouvelleSouscriptionParticulier };
   return motifIdentiteEditeur(editeur, contexte);
 }
 

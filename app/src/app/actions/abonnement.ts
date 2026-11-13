@@ -1,5 +1,6 @@
 "use server";
 
+import { nouvellesSouscriptionsFermees, MESSAGE_SOUSCRIPTIONS_FERMEES } from "@/lib/verrou-pilote";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -244,6 +245,7 @@ export async function demarrerAbonnement(
   const { supabase, org, etat, paiement, erreur } = await lireEtat(orgId);
   if (erreur) return { erreur: sansJargon(erreur) };
   if (!org || !etat) return { erreur: "Votre organisation n'a pas pu être lue. Rechargez la page." };
+  if (nouvellesSouscriptionsFermees()) return { erreur: MESSAGE_SOUSCRIPTIONS_FERMEES };
   if (etat.grille !== GRILLE) return basculerVersGrilleActuelle(orgId, paiement);
 
   if (paiement?.souscrit) {
@@ -264,7 +266,7 @@ export async function demarrerAbonnement(
   //    légales complètes, pas de paiement — même phrase qu'à l'écran. Une
   //    lecture en échec ferme aussi. « Votre essai continue » seulement si
   //    l'essai court encore (un essai gelé garde le statut « essai »).
-  const motifIdentite = await lireMotifIdentiteEditeur(essaiEnCours(etat));
+  const motifIdentite = await lireMotifIdentiteEditeur(essaiEnCours(etat), etat.public_tarif === "proprietaire_direct");
   if (motifIdentite) return { erreur: motifIdentite };
   // 2. La version en vigueur des conditions, acceptée par LE COMPTE qui clique.
   //    L'écran propose la case qui l'enregistre (accepterConditionsGenerales) ;
@@ -304,8 +306,7 @@ export async function demarrerAbonnement(
   const service = clientDeService();
   if (!service) return { erreur: "Le service de paiement est momentanément indisponible. Réessayez plus tard." };
   // Plan du 23/10 (R16) : la case cochée vaut demande expresse d'un abonnement payant qui commence pendant le délai de
-  // rétractation ; son horodatage entre dans la preuve (journal d'audit, sans coordonnée). Un échec d'écriture ne bloque
-  // pas la souscription : il reste au journal serveur.
+  // rétractation ; son horodatage entre dans la preuve (journal d'audit, sans coordonnée). Sans cette preuve, aucune page de paiement ne doit être ouverte.
   const { error: erreurCommande } = await service.rpc("abonnement_geste_consigner", {
     p_org: orgId,
     p_account: user.id,
@@ -315,10 +316,11 @@ export async function demarrerAbonnement(
       periodicite: offre.periodicite,
       formule: offre.public === "particulier" ? offre.formule.code : "agence",
       case_confirmation: "2026-10-24",
+      conditions_acceptees: CONDITIONS_VERSION,
       premier_prelevement_differe: etat.statut === "essai" && Boolean(etat.essai_fin),
     },
   });
-  if (erreurCommande) console.error("[souscription] case de confirmation non consignée :", erreurCommande.message.slice(0, 200));
+  if (erreurCommande) return { erreur: "Votre confirmation n’a pas pu être enregistrée. Aucune page de paiement n’a été ouverte. Réessayez dans un instant." };
   const session = await ouvrirPageDePaiementUnique(stripe, registreDeService(service), {
     offre,
     regime: REGIME_TVA,

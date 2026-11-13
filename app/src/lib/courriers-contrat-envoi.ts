@@ -216,7 +216,7 @@ export async function envoyerConfirmationSouscription(
     p_message: id ?? null,
     p_piece_jointe: Boolean(pdf),
   });
-  if(suivi.error)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
+  if(suivi.error || suivi.data !== true)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
   return { envoye: true };
 }
 
@@ -315,7 +315,7 @@ export async function envoyerAccuseResiliation(
     p_message: id ?? null,
     p_chemin: p.chemin,
   });
-  if(suivi.error)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
+  if(suivi.error || suivi.data !== true)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
   return { envoye: true };
 }
 
@@ -329,20 +329,31 @@ export async function annulerFacturesOuvertes(
   const annulees: string[] = [];
   const echecs: string[] = [];
   try {
-    const ouvertes = await stripe.invoices.list({ subscription, status: "open", limit: 20 });
-    for (const f of ouvertes.data) {
-      if (!f.id) continue;
-      try {
-        await stripe.invoices.voidInvoice(f.id, {}, { idempotencyKey: `annulation-impaye-${f.id}` });
-        annulees.push(f.id);
-      } catch (e) {
-        if (e instanceof ArretSupervision) throw e;
-        echecs.push(f.id);
+    let curseur: string | undefined;
+    do {
+      const page: Stripe.ApiList<Stripe.Invoice> = await stripe.invoices.list({
+        subscription, status: "open", limit: 20, ...(curseur ? { starting_after: curseur } : {}),
+      });
+      const dernier = page.data.at(-1)?.id;
+      if (page.has_more && (!dernier || dernier === curseur)) {
+        echecs.push("pagination des factures incomplète");
+        break;
       }
-    }
+      for (const facture of page.data) {
+        try {
+          await stripe.invoices.voidInvoice(facture.id, {}, { idempotencyKey: `annulation-impaye-${facture.id}` });
+          annulees.push(facture.id);
+        } catch (e) {
+          if (e instanceof ArretSupervision) throw e;
+          echecs.push(facture.id);
+        }
+      }
+      curseur = page.has_more ? dernier : undefined;
+    } while (curseur);
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
-    return { sort: "a_annuler", annulees, echecs: ["lecture des factures impossible"] };
+    echecs.push("lecture des factures impossible");
+    return { sort: "a_annuler", annulees, echecs };
   }
   return { sort: echecs.length > 0 ? "a_annuler" : annulees.length > 0 ? "annulees" : "aucune", annulees, echecs };
 }
@@ -417,7 +428,7 @@ export async function notifierResiliationImpaye(
         sujet: "Gerimmo — résiliation pour impayé avant la fin de la mise en demeure",
         lignes: [
           `La souscription ${p.subscription} (organisation ${p.orgId}) a été résiliée par Stripe le ${resilieLe} sans preuve de trente jours révolus depuis l'envoi de la mise en demeure (défaut depuis le ${p.enDefautDepuis ?? "?"}, première date annoncée : ${resiliableLe ?? "inconnue"}).`,
-          "Le courrier envoyé au client ne cite pas l'article 15.4 et la facture restée ouverte est annulée. Vérifiez le réglage Stripe « statut après échec des relances » (« marquer l'abonnement comme impayé ») et voyez s'il faut proposer au client une nouvelle souscription.",
+          "Le courrier prévu ne cite pas l'article 15.4. Vérifiez le résultat de l’annulation des factures dans le dossier ainsi que le réglage Stripe « statut après échec des relances » (« marquer l'abonnement comme impayé ») et voyez s'il faut proposer au client une nouvelle souscription.",
         ],
         cle: `resiliation-impaye-avant-${p.subscription}`,
         details: { organisation: p.orgId, souscription: p.subscription, resilie_le: resilieLe, resiliable_le: resiliableLe },
@@ -451,7 +462,7 @@ export async function notifierResiliationImpaye(
     p_message: id ?? null,
     p_factures_annulees: factures.annulees,
   });
-  if(suivi.error)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
+  if(suivi.error || suivi.data !== true)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
   return { envoye: true, factures: factures.sort };
 }
 
@@ -502,7 +513,7 @@ export async function envoyerAccuseRetractation(
   if (erreur) return { envoye: false, motif: erreur };
   if (!p.copie) {
     const suivi=await service.rpc("retractation_accuse_envoye", { p_id: p.retractationId, p_message: id ?? null });
-    if(suivi.error)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
+    if(suivi.error || suivi.data !== true)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
   }
   return { envoye: true };
 }

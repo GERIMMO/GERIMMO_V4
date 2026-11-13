@@ -185,7 +185,7 @@ export function courrierResiliationImpaye(p: {
     p.factures === "annulees"
       ? " La facture restée impayée est annulée."
       : p.factures === "a_annuler"
-        ? " La facture restée impayée sera annulée : vous n'avez rien à régler."
+        ? " L’annulation des factures ouvertes reste à vérifier. Vous pouvez consulter leur état dans votre espace de facturation."
         : "";
   const geste = "Souscrire de nouveau";
   return {

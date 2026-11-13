@@ -56,7 +56,7 @@ export const ERREUR_ACCEPTATION_CONDITIONS =
  * sans changement de statut) : il n'est plus « en essai » au sens de cette
  * phrase.
  */
-export type ContexteGarde = { enEssai: boolean; blocageIdentiteActif?: boolean };
+export type ContexteGarde = { enEssai: boolean; blocageIdentiteActif?: boolean; nouvelleSouscriptionParticulier?: boolean };
 
 /**
  * Le motif qui ferme le paiement, ou `null` si l'identité est complète ou la règle levée. Le
@@ -64,9 +64,11 @@ export type ContexteGarde = { enEssai: boolean; blocageIdentiteActif?: boolean }
  * dirigeant (/admin/sante, /admin/parametres). Pendant l'essai, la phrase
  * ajoute « Votre essai continue. » ; gelé ou abonné, elle s'arrête avant.
  */
-export function motifIdentiteEditeur(editeur: Record<string, FaitEditeur>, { enEssai, blocageIdentiteActif }: ContexteGarde): string | null {
+export function motifIdentiteEditeur(editeur: Record<string, FaitEditeur>, { enEssai, blocageIdentiteActif, nouvelleSouscriptionParticulier }: ContexteGarde): string | null {
   // Seul un false explicite lu par le serveur lève la règle. Une valeur
   // absente (ancien déploiement, lecture impossible) conserve le contrôle.
+  if (nouvelleSouscriptionParticulier && ["mediateurNom","mediateurAdresse","mediateurSite"].some(cle => !editeur[cle]?.trim()))
+    return enEssai ? MOTIF_IDENTITE_EDITEUR_ESSAI : MOTIF_IDENTITE_EDITEUR;
   if (blocageIdentiteActif === false) return null;
   if (faitsManquants(editeur).length === 0) return null;
   return enEssai ? MOTIF_IDENTITE_EDITEUR_ESSAI : MOTIF_IDENTITE_EDITEUR;

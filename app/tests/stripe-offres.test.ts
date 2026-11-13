@@ -687,6 +687,8 @@ describe("le miroir du webhook", () => {
     });
     expect((await POST(evenement("evt_f0", "invoice.paid", facture(0)))).status).toBe(200);
     expect(appelsA("abonnement_facture_payee")).toHaveLength(0);
+    expect((await POST(evenement("evt_hors_abonnement", "invoice.paid", { ...facture(999), parent: null }))).status).toBe(200);
+    expect(appelsA("abonnement_facture_payee")).toHaveLength(0);
     expect((await POST(evenement("evt_f1", "invoice.paid", facture(999)))).status).toBe(200);
     expect(appelsA("abonnement_facture_payee")[0][1]).toEqual({ p_customer: "cus_w", p_subscription: "sub_w" });
   });

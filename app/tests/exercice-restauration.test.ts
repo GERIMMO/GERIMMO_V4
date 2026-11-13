@@ -58,6 +58,7 @@ describe("exercice de restauration", () => {
       expect(bilan.historique_migrations.present).toBe(true);
       expect(bilan.historique_migrations.versions).toBeGreaterThan(0);
       expect(bilan.objets_compares.historique_migrations).toBe(bilan.historique_migrations.versions);
+      expect(bilan.controle_session).toEqual({ present: true, reglage: "vérifié" });
       expect(bilan.reussi).toBe(true);
     },
     180_000

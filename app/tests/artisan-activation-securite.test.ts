@@ -11,7 +11,7 @@ describe.skipIf(!url)("Activation artisan — identité réelle et politique Sto
   let db: Client, artisan: string, compteArtisan: string, sansArtisan: string;
   async function identite(id: string | null) {
     await db.query("reset role");
-    await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated','aal','aal2')::text,true)", [id]);
+    await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated','aal','aal2','session_id',$1::text)::text,true)", [id]);
     await db.query("set local role authenticated");
   }
   async function actif(code = "clients") {
@@ -24,6 +24,7 @@ describe.skipIf(!url)("Activation artisan — identité réelle et politique Sto
     await db.query("update public.artisan_modules_locaux set actif=true");
     compteArtisan = randomUUID(); sansArtisan = randomUUID();
     for (const id of [compteArtisan, sansArtisan]) await db.query("insert into auth.users(id,email,encrypted_password,email_confirmed_at) values($1,$2,'x',now())", [id, `activation-${id}@example.invalid`]);
+    await db.query("insert into auth.sessions(id,user_id) select x,x from unnest($1::uuid[]) x", [[compteArtisan,sansArtisan]]);
     artisan = (await db.query("insert into public.artisans(account_id,raison_sociale,siret,telephone) values($1,'TEST activation',$2,'0600000000') returning id", [compteArtisan, String(randomInt(10000000000000,99999999999999))])).rows[0].id;
   });
   beforeEach(async () => { await db.query("savepoint cas"); });

@@ -302,10 +302,14 @@ export async function envoyerAvisReconduction(supabase: SupabaseClient, avantEff
       bilan.echecs.push(`${a.organisation} : ${erreur}`);
       continue;
     }
-    await supabase.rpc("abonnement_avis_reconduction_envoye", {
+    const suivi = await supabase.rpc("abonnement_avis_reconduction_envoye", {
       p_org: a.organization_id,
       p_periode_fin: a.periode_fin,
     });
+    if (suivi.error) {
+      bilan.echecs.push(`${a.organisation} : acceptation fournisseur enregistrée, suivi de la reconduction à vérifier.`);
+      continue;
+    }
     bilan.envoyes += 1;
   }
   return bilan;

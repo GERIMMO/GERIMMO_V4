@@ -376,9 +376,11 @@ async function traiterFacturePayee(supabase: Service, evenement: Stripe.Event): 
   if (!customer) return { motif: "Facture sans client", reponse: { organisation: null } };
   if (!(f.amount_paid > 0)) return { reponse: { ignore: "facture_nulle" } };
   const sub = f.parent?.subscription_details?.subscription ?? null;
+  const subscription = typeof sub === "string" ? sub : sub?.id;
+  if (!subscription) return { reponse: { ignore: "facture_hors_abonnement" } };
   const { data: org, error } = await supabase.rpc("abonnement_facture_payee", {
     p_customer: customer,
-    p_subscription: typeof sub === "string" ? sub : (sub?.id ?? null),
+    p_subscription: subscription,
   });
   if (error) throw new Error(error.message);
   return {

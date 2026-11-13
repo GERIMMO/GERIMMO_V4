@@ -264,7 +264,7 @@ export async function demarrerAbonnement(
   //    légales complètes, pas de paiement — même phrase qu'à l'écran. Une
   //    lecture en échec ferme aussi. « Votre essai continue » seulement si
   //    l'essai court encore (un essai gelé garde le statut « essai »).
-  const motifIdentite = await lireMotifIdentiteEditeur(essaiEnCours(etat));
+  const motifIdentite = await lireMotifIdentiteEditeur(essaiEnCours(etat), etat.public_tarif === "proprietaire_direct");
   if (motifIdentite) return { erreur: motifIdentite };
   // 2. La version en vigueur des conditions, acceptée par LE COMPTE qui clique.
   //    L'écran propose la case qui l'enregistre (accepterConditionsGenerales) ;

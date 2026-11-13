@@ -231,21 +231,21 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
-  // Décision du dirigeant du 23/10/2026 : le médiateur se complète plus tard
-  // et ne ferme plus le paiement (lib/editeur.ts, A_COMPLETER), règle active.
-  it.each(["mediateurNom", "mediateurAdresse", "mediateurSite"])("ouvre le parcours Stripe quand seul %s manque, règle active", async (cle) => {
+  // Nouvelle souscription particulière : pas de vente avant la désignation du médiateur.
+  it.each(["mediateurNom", "mediateurAdresse", "mediateurSite"])("ferme le parcours Stripe quand seul %s manque, règle active", async (cle) => {
     etat(GRILLE);
     identite({ ...EDITEUR_COMPLET, [cle]: null });
     const r = await demarrerAbonnement("org-1", {}, souscrire());
-    expect(r.erreur).not.toBe(MOTIF_IDENTITE);
-    expect(mocks.retrieve).toHaveBeenCalled();
+    expect(r.erreur).toBe(MOTIF_IDENTITE);
+    expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
-  it("ouvre le parcours Stripe sans aucun fait de médiation, règle active", async () => {
+  it("refuse le paiement même si le verrou facultatif est levé, sans médiateur", async () => {
     etat(GRILLE);
     identite({ ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null });
+    mocks.reglage = {data:{blocage_souscription_identite:false,revision:1},error:null};
     await demarrerAbonnement("org-1", {}, souscrire());
-    expect(mocks.retrieve).toHaveBeenCalled();
+    expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
   it("essai arrivé à son terme (gelé en lecture seule, statut encore « essai ») : la phrase sans « Votre essai continue »", async () => {
@@ -286,7 +286,7 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
 
 describe("levée du blocage par le superadmin", () => {
   function lever() {
-    identite(EDITEUR_VIDE);
+    identite({ ...EDITEUR_VIDE, mediateurNom: EDITEUR_COMPLET.mediateurNom, mediateurAdresse: EDITEUR_COMPLET.mediateurAdresse, mediateurSite: EDITEUR_COMPLET.mediateurSite });
     mocks.reglage = { data: { blocage_souscription_identite: false, revision: 1 }, error: null };
   }
 

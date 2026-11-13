@@ -14,6 +14,7 @@ import { notFound } from "next/navigation";
 import { BoutonPortail, BoutonResiliation, FormulaireHausse, FormulairePeriodicite } from "./boutons-abonnement";
 import { DetailMontants, FormulaireSouscription } from "./formulaire-souscription";
 import { REGIME_TVA } from "@/lib/editeur";
+import { nouvellesSouscriptionsFermees, MESSAGE_SOUSCRIPTIONS_FERMEES } from "@/lib/verrou-pilote";
 import { motifIdentiteEditeur } from "@/lib/garde-souscription";
 import { lireGardeSouscription } from "@/lib/garde-souscription-serveur";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -538,7 +539,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             regime={REGIME_TVA}
             premierPrelevement={premierPrelevement}
             ferme={ferme}
-            motifIndisponible={motifIndisponible}
+            motifIndisponible={!souscrit && reglages.pret && nouvellesSouscriptionsFermees() ? MESSAGE_SOUSCRIPTIONS_FERMEES : motifIndisponible}
             conditionsAAccepter={!garde.conditionsAcceptees}
             dateLimiteRetractation={jourEnLettres(dernierJourRetractation(new Date()))}
           />

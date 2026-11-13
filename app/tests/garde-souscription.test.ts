@@ -232,6 +232,16 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
   });
 
   // Nouvelle souscription particulière : pas de vente avant la désignation du médiateur.
+  it("en commercial, même un dossier complet ne peut ouvrir un nouvel abonnement pendant le pilote", async () => {
+    etat(GRILLE);
+    vi.stubEnv("GERIMMO_MODE","commercial");
+    try {
+      const r = await demarrerAbonnement("org-1", {}, souscrire());
+      expect(r.erreur).toContain("pilote gratuit");
+      expect(mocks.retrieve).not.toHaveBeenCalled();
+    } finally { vi.unstubAllEnvs(); }
+  });
+
   it.each(["mediateurNom", "mediateurAdresse", "mediateurSite"])("ferme le parcours Stripe quand seul %s manque, règle active", async (cle) => {
     etat(GRILLE);
     identite({ ...EDITEUR_COMPLET, [cle]: null });

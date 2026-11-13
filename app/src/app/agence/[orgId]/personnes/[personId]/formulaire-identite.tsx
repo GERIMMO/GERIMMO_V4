@@ -66,6 +66,7 @@ export function FormulaireIdentite({
   codePostal,
   ville,
   qualite,
+  siren,
   // Arrivée par « Ajouter un email » (?modifier=1) : le formulaire est déjà
   // ouvert — la consigne sans geste renvoyait chercher le bouton en haut de
   // page, hors écran au téléphone (24/09).
@@ -84,6 +85,7 @@ export function FormulaireIdentite({
   codePostal: string | null;
   ville: string | null;
   qualite: string | null;
+  siren?: string | null;
   ouvertInitial?: boolean;
   integre?: boolean;
 }) {
@@ -204,6 +206,10 @@ export function FormulaireIdentite({
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
+          {["SCI","SCI familiale","Personne morale"].includes(qualite ?? "") && <div className="space-y-1.5">
+            <Label htmlFor={`ident-siren-${personId}`}>SIREN de la société</Label>
+            <Input id={`ident-siren-${personId}`} name="siren" inputMode="numeric" maxLength={16} defaultValue={etat.valeurs?.siren ?? siren ?? ""} />
+          </div>}
           <Label htmlFor={`ident-qualite-${personId}`}>Qualité (bail)</Label>
           {/* Liste fermée (audit 29/09) : la durée du bail nu en dépend —
               3 ans pour une personne physique, une indivision de personnes

@@ -109,7 +109,7 @@ export default async function PagePersonne(
   const { data: personne, error: erreurPersonne } = await supabase
     .from("persons")
     .select(
-      "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite, account_id"
+      "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite, siren, account_id"
     )
     .eq("id", personId)
     .eq("organization_id", orgId)
@@ -458,6 +458,7 @@ export default async function PagePersonne(
             codePostal={personne.postal_code}
             ville={personne.city}
             qualite={personne.qualite}
+            siren={personne.siren}
           />
         } />
       <nav className={styles.navigation} aria-label="Dans cette fiche">

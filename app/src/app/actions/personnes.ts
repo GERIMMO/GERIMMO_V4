@@ -8,7 +8,7 @@ import { deLEspaceDeGestion } from "@/lib/libelles";
 import { aujourdhuiParis, motifLitteral } from "@/lib/ged";
 import { verifierCodePostalPersonne, verifierDateNaissance, verifierTelephone } from "@/lib/validation-fiches";
 import { valeursDuFormulaire } from "@/lib/formulaires";
-import { QUALITES_BAILLEUR, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
+import { QUALITES_BAILLEUR, lireSirenSociete, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 import { baseEspace } from "@/lib/racine-espace";
 
 export type EtatPersonne = {
@@ -58,8 +58,9 @@ type LigneFiche = {
   postal_code: string;
   city: string;
   qualite: string;
+  siren?: string | null;
 };
-const COLONNES_FICHE = "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite";
+const COLONNES_FICHE = "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite, siren";
 
 // Décision D31 (PR178-A-03) : la fiche déjà créée par la demande de cette clé, s'il y en a une. La lecture passe par
 // la RLS de l'appelant : un agent restreint ne retrouve pas une fiche hors de son portefeuille.
@@ -149,7 +150,11 @@ export async function creerPersonne(
   if (cle && !UUID.test(cle)) {
     return { erreur: "La référence de cette demande est illisible. Rechargez le formulaire avant de créer la fiche.", valeurs };
   }
+  let siren: string | null = null;
+  try { if (morale) siren = lireSirenSociete(formData.get("siren")); }
+  catch { return { erreur: "Le SIREN doit comporter neuf chiffres.", valeurs }; }
   const ligne: LigneFiche = {
+    ...(morale ? { siren } : {}),
     nom,
     prenom: morale ? null : prenom,
     email,
@@ -435,6 +440,11 @@ export async function modifierPersonne(
     };
   }
 
+  let modificationSiren: { siren?: string | null } = {};
+  if (formData.has("siren")) {
+    try { modificationSiren = { siren: lireSirenSociete(formData.get("siren")) }; }
+    catch { return { erreur: "Le SIREN doit comporter neuf chiffres.", valeurs }; }
+  }
   const { error } = await supabase
     .from("persons")
     .update({
@@ -448,6 +458,7 @@ export async function modifierPersonne(
       postal_code: codePostal || null,
       city: ville || null,
       qualite: qualite || null,
+      ...modificationSiren,
     })
     .eq("id", personId)
     .eq("organization_id", orgId);

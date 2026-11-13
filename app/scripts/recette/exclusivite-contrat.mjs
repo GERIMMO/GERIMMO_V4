@@ -22,7 +22,7 @@ async function connect() {
 async function id(db, sql, args=[]) { return (await db.query(sql,args)).rows[0].id; }
 function bearer(account,key) {
   const encode = value => Buffer.from(JSON.stringify(value)).toString("base64url");
-  const head = encode({alg:"HS256",typ:"JWT"})+"."+encode({role:"authenticated",sub:account,exp:Math.floor(Date.now()/1000)+300});
+  const head = encode({alg:"HS256",typ:"JWT"})+"."+encode({role:"authenticated",sub:account,session_id:account,exp:Math.floor(Date.now()/1000)+300});
   return head+"."+createHmac("sha256",key).update(head).digest("base64url");
 }
 async function rpc(name, account, payload) {
@@ -40,6 +40,7 @@ try {
   const org=await id(root,"insert into organizations(name,status) values ('Recette exclusivité','active') returning id");
   async function person(role) {
     const account=await id(root,"insert into auth.users(id,email,raw_app_meta_data,raw_user_meta_data) values(gen_random_uuid(),$1,'{}','{}') returning id",[randomUUID()+"@example.invalid"]);
+    await root.query("insert into auth.sessions(id,user_id) values($1,$1)",[account]);
     await root.query("insert into memberships(account_id,organization_id,role) values($1,$2,$3)",[account,org,role]);
     return {account,id:await id(root,"insert into persons(organization_id,account_id,nom) values($1,$2,'Recette') returning id",[org,account])};
   }

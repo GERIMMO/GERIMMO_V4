@@ -140,7 +140,7 @@ export function construireBailMeuble(
     ${sousSection("Le bailleur")}
     <p>Nom et prénom(s) ou dénomination : ${f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination")}
     — Qualité : ${f.champ(bailleurPrincipal?.qualite, "personne physique, SCI, indivision…")}<br/>
-    Domicile ou siège social : ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")}<br/>
+    ${!options.presentationAncienne && bailleurPrincipal?.siren ? `SIREN : ${echapper(bailleurPrincipal.siren)}<br/>` : ""}Domicile ou siège social : ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")}<br/>
     Adresse électronique : ${f.champ(bailleurPrincipal?.email, "adresse électronique")} — Numéro de
     téléphone portable : ${facultatif(bailleurPrincipal?.telephone)}</p>
     ${
@@ -148,7 +148,7 @@ export function construireBailMeuble(
         ? `<p>Le logement étant détenu en indivision, sont également parties au présent contrat :
            ${ctx.bailleurs
              .slice(1)
-             .map((b) => `${echapper(nomPersonne(b) ?? "")} (${b.quote_part.toLocaleString("fr-FR")} %)`)
+             .map((b) => `${echapper(nomPersonne(b) ?? "")}${!options.presentationAncienne && b.siren ? ` · SIREN ${echapper(b.siren)}` : ""} (${b.quote_part.toLocaleString("fr-FR")} %)`)
              .join(" ; ")}.</p>`
         : ""
     }

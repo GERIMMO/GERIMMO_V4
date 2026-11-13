@@ -26,7 +26,10 @@ for (const periode of ["Mensuel", "Annuel"]) {
     const conditions = page.getByRole("checkbox", { name: /J’ai lu et j’accepte la version du/ });
     if (await conditions.isVisible().catch(() => false)) {
       await conditions.check();
-      await expect(page.getByText(/des conditions générales est enregistrée/)).toBeVisible({ timeout: 20_000 });
+      await expect(conditions).toHaveCount(0, { timeout: 20_000 });
+      await page.reload();
+      await expect(bouton).toBeVisible();
+      await expect(conditions).toHaveCount(0);
     }
     if (periode === "Annuel") {
       // La carte « Annuel » (libellé visible) porte le bouton radio natif, masqué : on clique comme l'utilisateur.
@@ -41,6 +44,7 @@ for (const periode of ["Mensuel", "Annuel"]) {
     await bouton.click();
     const requete = await depart;
     expect(new URL(requete.url()).protocol).toBe("https:");
+    await expect(page.getByRole("heading", { name: "Paiement simulé" })).toBeVisible();
     expect(dialogues).toEqual([]);
   });
 }

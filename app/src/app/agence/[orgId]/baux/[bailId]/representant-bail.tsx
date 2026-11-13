@@ -1,4 +1,5 @@
 "use client";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import {useActionState} from "react";
 import {designerRepresentantBail} from "@/app/actions/personnes-bail";
 type Choix={id:string;libelle:string};
@@ -11,6 +12,6 @@ export function RepresentantBail({org,bail,societe,personnes,pieces,actuel,fiche
  <p><a className="underline" href={fiche}>Ajouter un justificatif sur la fiche de la société</a></p>
  <label>Fin du pouvoir, si prévue <input type="date" name="fin" defaultValue={actuel?.fin_validite??""}/></label>
  <label className="block"><input type="checkbox" required name="verifie"/> J’ai vérifié que cette personne peut signer ce bail pour la société.</label>
- <button disabled={pending||!pieces.length}>Confirmer le représentant</button>{actuel && <button name="operation" value="retirer" formNoValidate disabled={pending}>Retirer le pouvoir</button>}
+ <BoutonEnvoi disabled={pending||!pieces.length}>Confirmer le représentant</BoutonEnvoi>{actuel && <BoutonEnvoi name="operation" value="retirer" formNoValidate disabled={pending}>Retirer le pouvoir</BoutonEnvoi>}
  {etat.erreur && <p role="alert">{etat.erreur}</p>}{etat.succes && <p role="status">{etat.succes}</p>}</form>;
 }

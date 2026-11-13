@@ -32,18 +32,46 @@ $$;
 revoke all on function public.mes_rectifications_quittances(uuid) from public,anon;
 grant execute on function public.mes_rectifications_quittances(uuid) to authenticated;
 
+-- Figer les bénéficiaires lors de la première émission. Pour un document antérieur
+-- à cette migration, aucun historique personnel n'est déduit de la composition actuelle.
+create table public.destinataires_rectifications_quittance (
+  quittance_id uuid not null references public.quittances(id) on delete cascade,
+  personne_id uuid not null references public.persons(id) on delete cascade,
+  primary key (quittance_id, personne_id)
+);
+create index destinataires_rectifications_personne on public.destinataires_rectifications_quittance(personne_id);
+alter table public.destinataires_rectifications_quittance enable row level security;
+revoke all on public.destinataires_rectifications_quittance from public,anon,authenticated;
+
+create function public.figer_destinataires_rectification() returns trigger
+language plpgsql security definer set search_path='' as $$
+begin
+  insert into public.destinataires_rectifications_quittance(quittance_id,personne_id)
+  select new.id,p.id from public.baux b join public.persons p on p.organization_id=b.organization_id
+  where b.id=new.bail_id and b.organization_id=new.organization_id and
+    (p.id=b.locataire_principal or exists (
+      select from public.bail_personnes bp where bp.bail_id=b.id and bp.person_id=p.id
+        and bp.role='colocataire' and (bp.date_depart is null or bp.date_depart >= new.date_emission)
+    ));
+  return null;
+end $$;
+revoke all on function public.figer_destinataires_rectification() from public,anon,authenticated,service_role;
+create trigger figer_destinataires_rectification after insert on public.quittances
+for each row execute function public.figer_destinataires_rectification();
+
 create function public.tracer_rectification_quittance() returns trigger
 language plpgsql security definer set search_path='' as $$
 begin
-  if tg_op='UPDATE' and (old.est_quittance,old.montant) is not distinct from (new.est_quittance,new.montant) then return null; end if;
+  if tg_op='UPDATE' and (old.est_quittance,old.montant) is not distinct from (new.est_quittance,new.montant) then return new; end if;
   insert into public.rectifications_quittances(organization_id,bail_id,personne_id,document_origine,periode,montant_precedent,etait_quittance,retire)
   select b.organization_id,b.id,p.id,old.id,a.periode,old.montant,old.est_quittance,tg_op='DELETE'
   from public.baux b join public.appels_loyer a on a.bail_id=b.id and a.organization_id=b.organization_id
-  join public.persons p on p.organization_id=b.organization_id
-    and (p.id=b.locataire_principal or exists(select from public.bail_personnes bp where bp.bail_id=b.id and bp.person_id=p.id and bp.role='colocataire'))
+  join public.destinataires_rectifications_quittance dr on dr.quittance_id=old.id
+  join public.persons p on p.id=dr.personne_id and p.organization_id=b.organization_id
   where b.id=old.bail_id and b.organization_id=old.organization_id and a.id=old.appel_id;
-  return null;
+  if tg_op='DELETE' then return old; end if;
+  return new;
 end $$;
 revoke all on function public.tracer_rectification_quittance() from public,anon,authenticated,service_role;
-create trigger tracer_rectification_quittance after update of est_quittance,montant or delete on public.quittances
+create trigger tracer_rectification_quittance before update of est_quittance,montant or delete on public.quittances
 for each row execute function public.tracer_rectification_quittance();

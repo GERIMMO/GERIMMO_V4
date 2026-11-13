@@ -131,6 +131,8 @@ describe.skipIf(!DB_URL)("Quittances — le document suit l'argent (RM-3.4.1/2)"
     await db.query("update persons set account_id=$1 where id=(select locataire_principal from baux where id=$2)", [compte,bail]);
     await db.query("insert into persons(organization_id,account_id,nom,prenom) values($1,$2,'Voisin','Fictif')", [org,voisin]);
     const paiement = (await db.query("insert into encaissements(organization_id,bail_id,montant,date_paiement,mode) values($1,$2,500,current_date,'virement') returning id", [org,bail])).rows[0].id;
+    // Ce colocataire rejoint le même bail après émission du document d’origine.
+    await db.query("insert into bail_personnes(organization_id,bail_id,person_id,role) select $1,$2,id,'colocataire' from persons where account_id=$3", [org,bail,voisin]);
     await db.query("delete from encaissements where id=$1", [paiement]);
     await db.query("select resynchroniser_quittances($1)", [bail]);
     const trace = async (id: string) => {

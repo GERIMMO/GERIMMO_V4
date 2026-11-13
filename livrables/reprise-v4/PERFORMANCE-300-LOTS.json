@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-13T02:47:49.430Z",
+  "environnement": "PostgreSQL local isolé ; aucun service externe",
+  "lots": 300,
+  "baux": 300,
+  "appels": 3600,
+  "ecritures": 3600,
+  "incidents": 300,
+  "lecteurs_simultanes": 10,
+  "requetes": 400,
+  "duree_ms": 8183,
+  "isolation_verifiee": true,
+  "statistiques": {
+    "baux_et_lots": {
+      "requetes": 100,
+      "p50_ms": 81.36,
+      "p95_ms": 104.07,
+      "max_ms": 113.56
+    },
+    "comptabilite": {
+      "requetes": 100,
+      "p50_ms": 85.29,
+      "p95_ms": 102.45,
+      "max_ms": 113.33
+    },
+    "incidents": {
+      "requetes": 100,
+      "p50_ms": 77.86,
+      "p95_ms": 105.68,
+      "max_ms": 116.29
+    },
+    "loyers": {
+      "requetes": 100,
+      "p50_ms": 528.53,
+      "p95_ms": 583.49,
+      "max_ms": 589.77
+    }
+  },
+  "limite": "Mesure SQL avec les droits réels et jointures principales ; ne mesure pas le réseau, Vercel ni 300 visiteurs simultanés."
+}

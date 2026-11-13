@@ -44,7 +44,9 @@ export async function traiterFactureAutomatique(service:SupabaseClient,org:strin
    if(mode==="consommations") {
     const rr=await lireLiensConsommations<ReleveConsommation>(mr.data.map(m=>m.id),(ids,a,b)=>db.from("releves_consommation").select("*",{count:"exact"}).eq("organization_id",org).in("compteur_id",ids).order("id").range(a,b));
     if(rr.error)throw new Error("Relevés indisponibles.");
-    let attente=false; const problemes:string[]=[];
+    let demandeEnregistree = false;
+    const datesFutures: string[] = [];
+    const problemes: string[] = [];
     for(const lot of lots) {
      // Un compteur arrêté peut documenter intégralement une facture ancienne.
      const documentes = compteursPourFacture(mr.data, rr.data, f, c.categorie, lot.id);
@@ -59,12 +61,20 @@ export async function traiterFactureAutomatique(service:SupabaseClient,org:strin
      const dates=[f.periode_debut,f.periode_fin].filter(j=>indexDate(m,rr.data,j)==null).sort();
      // Les index sont demandés dans l’ordre chronologique, sans inventer d’historique.
      const jour=dates[0];if(!jour)continue;
-     if(jour>aujourdhuiParis()){attente=true;continue;}
+     if (jour > aujourdhuiParis()) { datesFutures.push(jour); continue; }
      const demande=await geste("demander_index_facture",{p_org:org,p_facture:id,p_compteur:m.id,p_jour:jour});
-     if(demande.error)problemes.push(`${lot.nom} : ${demande.error.message}`);else attente=true;
+     if(demande.error)problemes.push(`${lot.nom} : ${demande.error.message}`);else demandeEnregistree = true;
     }
     if(problemes.length)throw new Error(problemes.join(" "));
-    if(attente)return suivi("releves_attendus","Les relevés sont demandés aux locataires. Gerimmo reprendra automatiquement après réception.");
+    if (demandeEnregistree || datesFutures.length) {
+      const prochaineDate = datesFutures.sort()[0];
+      const detail = [
+        demandeEnregistree && "Demande de relevé enregistrée.",
+        prochaineDate && `Prochain relevé attendu le ${prochaineDate.split("-").reverse().join("/")}.`,
+        "Gerimmo reprendra le calcul après réception des index.",
+      ].filter(Boolean).join(" ");
+      return suivi("releves_attendus", detail);
+    }
    }
    const form=new FormData();form.set("mode",mode);if(conseil.coche)form.set("recuperable","on");if(reg?.colocation)form.set("colocation",reg.colocation);
    const calc=await calculerFactureExistante(db,org,id,form);if(calc.erreur||!calc.repartition)throw new Error(calc.erreur??"Calcul indisponible.");

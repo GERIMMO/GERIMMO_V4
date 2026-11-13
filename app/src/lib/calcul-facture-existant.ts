@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cleApplicableAuDebut, partsEgalesEnregistrees } from "@/lib/cle-facture";
-import { controleCompteurGeneral } from "@/lib/controle-compteur-general";
+import { consommationMesuree, controleCompteurGeneral } from "@/lib/controle-compteur-general";
 import { segmentsConsommation } from "@/lib/segments-consommation";
 import { sansJargon } from "@/lib/erreurs";
 import { proposerPartsOccupation, type RepartitionFourniture, type OccupationRepartition, type ChambreRepartition } from "@/lib/proposition-repartition";
@@ -57,6 +57,11 @@ export async function calculerFactureExistante(supabase:SupabaseClient,orgId:str
         const possibles = compteursPourFacture(compteurs, cr.data, facture, c.categorie, lot.id).filter(m => !choix || m.id === choix);
         if (possibles.length !== 1) return { erreur: possibles.length ? `Plusieurs compteurs couvrent cette période pour ${lot.nom}. Vérifiez le compteur concerné avant de répartir.` : `Il manque un relevé au début ou à la fin de la facture pour ${lot.nom}. Ajoutez les index correspondants avant de répartir.` };
         const m = possibles[0];
+        if (facture.unite_consommation && m.unite !== facture.unite_consommation) {
+          return { erreur: `Le compteur de ${lot.nom} et la facture doivent utiliser la même unité. Vérifiez les relevés.` };
+        }
+        // Les compteurs autonomes exigent les mêmes contrôles que les divisionnaires.
+        consommationMesuree(m, cr.data, facture.periode_debut, facture.periode_fin);
         parts.push(...segmentsConsommation({ lotId: lot.id, compteurId: m.id, datesRelevees: [m.date_index_initial, ...(cr.data ?? []).filter(r => r.compteur_id === m.id).map(r => r.date_releve)], debut: facture.periode_debut, fin: facture.periode_fin,
           baux, partsFixes: avant, categorie: c.categorie, recuperable: f.get("recuperable") === "on", colocation }));
       }

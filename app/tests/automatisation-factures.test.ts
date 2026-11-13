@@ -74,3 +74,18 @@ it("attend la date du relevé futur sans annoncer une demande déjà transmise",
   expect(appels.some(a => a.geste === "demander_index_facture")).toBe(false);
   expect(calcul).not.toHaveBeenCalled();
 });
+
+it.each([
+  ["baisse intermédiaire", "m3", 130, /décroissant/i],
+  ["unité de facture différente", "kwh", 110, /unité/i],
+] as const)("refuse le calcul manuel avant toute écriture pour un compteur autonome : %s", async (_cas, unite, index, message) => {
+  const { calculerFactureExistante } = await vi.importActual<typeof import("../src/lib/calcul-facture-existant")>("../src/lib/calcul-facture-existant");
+  const { db, tables, appels } = base();
+  tables.factures_fourniture = [{ id: "f", contrat_id: "c", periode_debut: "2026-10-01", periode_fin: "2026-10-31", unite_consommation: unite, frais_fixes_cents: 0 }];
+  tables.releves_consommation.push({ id: "intermediaire", compteur_id: "a", date_releve: "2026-10-15", index_releve: index });
+  const formulaire = new FormData();
+  formulaire.set("mode", "consommations");
+  const resultat = await calculerFactureExistante(db, "org", "f", formulaire);
+  expect(resultat.erreur).toMatch(message);
+  expect(appels).toHaveLength(0);
+});

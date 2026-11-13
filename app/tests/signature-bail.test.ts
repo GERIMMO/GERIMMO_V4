@@ -50,3 +50,20 @@ describe("version du PDF",()=>{
   expect(rendu).toContain("{{s4|signature|190|80}}");expect(rendu).not.toContain("<script>");expect(rendu).toContain("SHA-256 : abc");
  });
 });
+
+describe("pouvoir de signature limité au bail de la SCI",()=>{
+ const pouvoir={societe_id:"bailleur",personne_id:"camille",nom:"Test",prenom:"Camille",email:"camille@example.invalid",telephone:"0612345678",justificatif_id:"preuve",empreinte:"preuve-version-1",confirme_le:"2026-11-13T09:00:00Z"};
+ const sci=()=>{const ctx=contexte();Object.assign(ctx.bailleurs[0],{nom:"SCI du Tilleul",qualite:"SCI",prenom:null,telephone:null});return ctx;};
+ it("utilise le contact physique, nomme la société sur le contrat et lie l’empreinte au pouvoir",()=>{
+ const r=partiesSignatureBail(sci(),true,{pouvoirs:[pouvoir]});expect(r.manquants).toEqual([]);
+ const s=r.signataires.at(-1)!;expect(s.personId).toBe("camille");expect(s.email).toBe(pouvoir.email);
+ const html=ajouterPagesSignature({html:"<body></body>",reference:"SCI"} as DocumentAssemble,r.signataires).html;
+ expect(html).toContain("Camille Test — représentant habilité de SCI du Tilleul");expect(html).not.toContain(pouvoir.empreinte);
+ const change=partiesSignatureBail(sci(),true,{pouvoirs:[{...pouvoir,empreinte:"preuve-version-2"}]});
+ expect(empreinteSignatureBail(html,r.signataires)).not.toBe(empreinteSignatureBail(html,change.signataires));
+ });
+ it("refuse le pouvoir d’une autre SCI et le cumul avec le rôle de locataire",()=>{
+ expect(partiesSignatureBail(sci(),true,{pouvoirs:[{...pouvoir,societe_id:"autre"}]}).manquants.join()).toContain("représentant");
+ expect(partiesSignatureBail(sci(),true,{pouvoirs:[{...pouvoir,personne_id:"locataire"}]}).manquants.join()).toContain("plusieurs rôles");
+ });
+});

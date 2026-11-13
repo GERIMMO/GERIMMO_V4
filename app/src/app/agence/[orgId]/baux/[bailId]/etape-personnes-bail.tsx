@@ -1,3 +1,4 @@
+import { RepresentantBail } from "./representant-bail";
 import { lienLotDepuisBail } from "@/lib/parcours-lot";
 import { verifierAccesEspace } from "@/lib/espace";
 import { ConseilsChoixLocataire } from "@/components/conseils-choix-locataire";
@@ -21,8 +22,21 @@ export async function EtapePersonnesBail({ orgId, bailId, lotId, principalId, co
   if (annuaire.error || detentions.error || participants.error || lot.error || !lot.data) return <p role="alert" className="err">Les personnes n’ont pas pu être chargées. Rechargez le dossier avant de modifier le bail.</p>;
   const moi = estProprietaire ? annuaire.data?.find(p => p.account_id === user.id && !p.archived_at)?.id ?? null : null;
   const personnes: PersonneBail[] = (annuaire.data ?? []).map(({ account_id: _compte, ...p }) => p);
-  return <PersonnesBail orgId={orgId} bailId={bailId} personnes={personnes} detentions={(detentions.data as DetentionBail[]).map(d => ({ ...d, quote_part: Number(d.quote_part) }))}
+  const societes=personnes.filter(p=>estProprietaire && !p.archived_at && /sci|morale|soci[eé]t[eé]/i.test(p.qualite??"") && detentions.data?.some(d=>d.person_id===p.id));
+  const formulaires=await Promise.all(societes.map(async s=>{
+    const [liens,pouvoir]=await Promise.all([
+      supabase.from("document_liens").select("document_id").eq("organization_id",orgId).eq("entite","personne").eq("entite_id",s.id),
+      supabase.from("representations_bail").select("personne_id,justificatif_id,fin_validite").eq("bail_id",bailId).eq("societe_id",s.id).maybeSingle()
+    ]);
+    const ids=(liens.data??[]).map(l=>l.document_id);
+    const pieces=ids.length?await supabase.from("documents").select("id,titre").eq("organization_id",orgId).in("id",ids).in("type",["justificatif","mandat"]).eq("mime_type","application/pdf").is("purged_at",null):{data:[],error:null};
+    if(liens.error||pouvoir.error||pieces.error) return <p key={s.id} role="alert">Le pouvoir de signature de {s.nom} ne peut pas être chargé.</p>;
+    return <RepresentantBail key={s.id} org={orgId} bail={bailId} societe={{id:s.id,libelle:s.nom}} actuel={pouvoir.data??undefined}
+      personnes={personnes.filter(p=>!p.archived_at && (p.qualite??"Personne physique")==="Personne physique" && p.id!==principalId && !participants.data?.some(x=>x.person_id===p.id)).map(p=>({id:p.id,libelle:[p.prenom,p.nom].filter(Boolean).join(" ")}))}
+      pieces={(pieces.data??[]).map(p=>({id:p.id,libelle:p.titre??"PDF"}))} fiche={`${racineEspace(estProprietaire)}/${orgId}/personnes/${s.id}#pieces`}/>;
+  }));
+  return <><PersonnesBail orgId={orgId} bailId={bailId} personnes={personnes} detentions={(detentions.data as DetentionBail[]).map(d => ({ ...d, quote_part: Number(d.quote_part) }))}
     participants={participants.data as ParticipantBail[]} principalId={principalId} personneConnecteeId={moi} colocation={colocation} proprietairesHref={lienLotDepuisBail(orgId, lot.data.bien_id, lotId, bailId, "proprietaires", 2, racineEspace(estProprietaire))}
     // Les conseils pour choisir son locataire s'adressent au propriétaire en gestion directe ; l'agence ne les voit pas (V1 publique).
-    conseils={estProprietaire && CONSEILS_LOCATAIRE_VALIDES ? <ConseilsChoixLocataire emplacement="creation-bail" /> : null} />;
+    conseils={estProprietaire && CONSEILS_LOCATAIRE_VALIDES ? <ConseilsChoixLocataire emplacement="creation-bail" /> : null} />{formulaires}</>;
 }

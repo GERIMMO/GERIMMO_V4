@@ -45,6 +45,17 @@ describe.skipIf(!url)('Creation bien complete : atomicite, reprise et droits, tr
  it('saisie differente avec cle deja reussie : signale le dossier sans remplacer son contenu',async()=>{
   await as(owner);const cle=randomUUID(),premier=await creer(cle),second=await creer(cle,{...entree,nom:'Autre nom'});expect(second).toEqual({...premier,rejoue:true,saisie_differente:true});expect((await db.query('select nom,address_line2,zone_tendue,parties_communes from biens where id=$1',[premier.bien_id])).rows[0]).toEqual({nom:entree.nom,address_line2:'Batiment B',zone_tendue:null,parties_communes:'Hall'});
  });
+ it('doublon du formulaire : aucun lot supplémentaire avant confirmation explicite',async()=>{
+   await as(owner);
+   const demander=async (cle:string,distinct:string|null=null)=> (await db.query('select public.creer_bien_verifie($1,$2,$3,$4) r',[org,cle,entree,distinct])).rows[0].r;
+   const cle=randomUUID(), seconde=randomUUID(), premier=await demander(cle);
+   expect((await demander(cle)).rejoue).toBe(true);
+   expect(await demander(seconde)).toEqual({doublon_id:premier.bien_id});
+   expect(await demander(seconde,randomUUID())).toEqual({doublon_id:premier.bien_id});
+   expect((await nombres()).lots).toBe(1);
+   await as(owner);expect((await demander(seconde,premier.bien_id)).bien_id).not.toBe(premier.bien_id);
+   expect((await nombres()).lots).toBe(2);
+ });
  it('deux demandes distinctes du proprietaire reutilisent sa fiche',async()=>{await as(owner);await creer();await creer();expect(await nombres()).toEqual({biens:2,lots:2,persons:1,detentions:2});});
  it('agent : le nouveau dossier lui appartient, son collegue ne le lit pas',async()=>{await as(agent);const r=await creer(randomUUID(),entree,agence);expect((await db.query('select created_by from biens where id=$1',[r.bien_id])).rows).toEqual([{created_by:agent}]);await as(collegue);expect((await db.query('select id from biens where id=$1',[r.bien_id])).rows).toHaveLength(0);});
  it.each(['autre','locataire'])('refuse le role %s dans le dossier proprietaire',async(role)=>{await as(role==='autre'?autre:locataire);expect(await refuse()).toMatch(/Accès refusé/);expect(await nombres()).toEqual({biens:0,lots:0,persons:0,detentions:0});});

@@ -407,8 +407,8 @@ export function BoutonCloreDetention({
           }
         >
           <p className="text-sm">
-            <b>{proprietaire}</b> ({quotePart} %) cessera d&apos;être propriétaire de ce lot à la date du jour. La
-            détention reste dans l&apos;historique « Anciens propriétaires » et peut être rouverte en cas d&apos;erreur.
+            <b>{proprietaire}</b> ({quotePart} %) reste propriétaire de ce lot jusqu’à la fin de la journée. Dès demain, la
+            détention figurera dans « Détentions passées et à venir ». Elle peut être rouverte en cas d&apos;erreur.
             Tant que la propriété n&apos;est pas de nouveau répartie à 100 %, le lot ne peut pas être mis en location.
           </p>
         </Modale>

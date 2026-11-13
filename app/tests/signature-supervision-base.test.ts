@@ -10,6 +10,7 @@ describe.skipIf(!url)('Signature : les droits de supervision ne valent pas rôle
   await db.query('begin');
   const users=(await db.query("insert into auth.users(id,email) select gen_random_uuid(),gen_random_uuid()||'@test.local' from generate_series(1,3) returning id")).rows;
   [sa,admin,agent]=users.map(x=>x.id);
+    await db.query("insert into auth.sessions(id,user_id) select x,x from unnest($1::uuid[]) x", [[sa,admin,agent]]);
   org=(await db.query("insert into public.organizations(name,status) values('Recette signature','active') returning id")).rows[0].id;
   await db.query("insert into public.memberships(account_id,organization_id,role) values($1,null,'super_admin'),($2,$4,'admin_agence'),($3,$4,'agent')",[sa,admin,agent,org]);
   chemin=org+'/signature-recette.png';
@@ -18,7 +19,7 @@ describe.skipIf(!url)('Signature : les droits de supervision ne valent pas rôle
  });
  afterEach(async()=>{await db.query('rollback');});
  async function agir(id:string|null,role='authenticated'){
-  await db.query('reset role');await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:id,role,aal:'aal2'})]);
+  await db.query('reset role');await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:id,session_id:id,role,aal:'aal2'})]);
   await db.query('set local role '+role);
  }
  it('le super administrateur garde la lecture de l’organisation mais ne peut utiliser ni télécharger son image de signature',async()=>{

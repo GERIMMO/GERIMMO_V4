@@ -280,6 +280,7 @@ export function FormulaireBien({
       {!bien && <input type="hidden" name="creation_id" value={creationId ?? ""} />}
       {etat.erreur && <p ref={erreurRef} role="alert" tabIndex={-1} className="scroll-mt-24 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{etat.erreur}</p>}
       {etat.repriseHref && <Link href={etat.repriseHref} className="btn-secondaire">Ouvrir le dossier déjà enregistré</Link>}
+      {etat.doublonBien && <label className="flex items-center gap-2 text-sm"><input key={etat.doublonBien} type="checkbox" name="distinct_de" value={etat.doublonBien} />Je confirme qu’il s’agit d’un autre bien à gérer séparément.</label>}
       {guideActif && <><input type="hidden" name="parcours" value="1" /><p className={styles.aide}><span className={styles.legendePastille} aria-hidden="true" /> Pastille rouge : information obligatoire à compléter. Les champs indiqués « facultatif » peuvent rester vides.</p></>}
       <div data-bien-groupes data-etape-creation="0" ref={groupeBien} hidden={guideActif && etapeCreation !== 0} className="space-y-6">
       <div hidden={["nom", "type", "address_line1", "address_line2", "postal_code", "city", "commune_insee"].every(masquer)} data-bien-section="adresse" className="space-y-6">
@@ -509,7 +510,7 @@ export function FormulaireBien({
       <div data-etape-creation="1" hidden={guideActif && etapeCreation !== 1}>
       {!bien && (
         <div data-lots-section className="space-y-6 border-t border-border pt-6">
-          <div className="saisie-repere"><span>{guideActif ? 2 : 3}</span><div><h2>{multiLots ? "Les lots à gérer" : "Le lot à louer"}</h2><p>Renseignez chaque unité que vous louez séparément.</p></div></div>
+          <div className="saisie-repere"><span>{guideActif ? 2 : 3}</span><div><h2>{multiLots ? "Les lots à gérer" : "Le lot à louer"}</h2><p>Créez un lot par location indépendante. Pour une cave ou un parking loué avec le logement, indiquez-le dans « Locaux privatifs » sur la fiche du logement. Une annexe louée séparément compte comme un lot.</p></div></div>
           {/* Types divisibles hors immeuble : la question précède la suite */}
           {!nonDecoupable && type !== "immeuble" && (
             <label className="flex items-center gap-2 text-sm">

@@ -94,7 +94,7 @@ for(const largeur of [390,1440]) test.describe(`${largeur}px`,()=>{
   expect((await db.query('select statut,ar24_id from recommandes_ar24 where id=$1',[courrier])).rows[0]).toEqual({statut:'a_verifier',ar24_id:null});
   expect(await debordementHorizontal(page)).toBe(0);await fiche.screenshot({path:info.outputPath(`ar24-suivi-${largeur}.png`)});expect(erreurs).toEqual([]);
   // L'attestation ci-dessous est une donnée fictive de recette, jamais une réponse fournisseur réelle.
-  await db.query("update recommandes_ar24 set statut='echec',ar24_id=$2 where id=$1",[courrier,largeur]);
+  await db.query("update recommandes_ar24 set statut='echec',ar24_id=$2 where id=$1",[courrier,parseInt(courrier.replaceAll("-","").slice(0,13),16)]);
   await rechargerApresFixture(page);await historique.locator('summary').click();await historique.getByRole('button',{name:'Voir le courrier et son suivi'}).click();
   // Une absence de bouton ne prouve pas que la fiche a fini de charger.
   // Attendre l'échec lu du serveur avant de contrôler le droit de réessayer.
@@ -106,13 +106,14 @@ for(const largeur of [390,1440]) test.describe(`${largeur}px`,()=>{
   await expect(historique.getByRole('alert')).toContainText('L’envoi AR24 n’est pas encore activé');
   expect((await db.query('select id from recommandes_ar24 where bail_id=$1',[bail])).rowCount).toBe(1);expect(erreurs).toEqual([]);
  } finally {
-  await contexteProprietaire?.close();
+  try { await contexteProprietaire?.close(); } finally {
   await db.query('rollback');
   try{
    await db.query('begin');await db.query('delete from recommandes_ar24 where bail_id=$1',[bail]);await db.query('delete from consentements_documents_locataire where person_id=$1',[personne]);await db.query('delete from appels_loyer where bail_id=$1',[bail]);await db.query('delete from automation_events where organization_id=$1 and dossier_id=$2',[ORG,bail]);await db.query('delete from baux where id=$1',[bail]);await db.query('delete from lots where id=$1',[lot]);await db.query('delete from biens where id=$1',[bien]);await db.query('delete from persons where id=$1',[personne]);
    if(compte&&adhesionCreee)await db.query("delete from memberships where account_id=$1 and organization_id=$2 and role='locataire'",[compte,ORG]);await db.query("delete from audit_log where organization_id=$1 and (details->>'bail_id'=$2 or details->>'lot_id'=$3 or details->>'bien_id'=$4 or details->>'person_id'=$5 or details->>'courrier_id'=$6)",[ORG,bail,lot,bien,personne,courrier]);if(compte&&adhesionCreee) await db.query('delete from auth.users where id=$1 and email=$2',[compte,email]);
    await db.query('commit');
   }catch(e){await db.query('rollback');throw e;}finally{await db.end();}
+  }
  }
 });
 

@@ -42,6 +42,7 @@ const jwt = (claims: Record<string, unknown>) => {
 
 describe.skipIf(!local || !baseApi)("auto-relation des versions de documents", () => {
   const ids = { v1: randomUUID(), v2: randomUUID() };
+  const session = randomUUID();
   let compte = "", organisation = "";
   beforeAll(async () => {
     const db = new Client({ connectionString: baseApi });
@@ -49,6 +50,7 @@ describe.skipIf(!local || !baseApi)("auto-relation des versions de documents", (
     try {
       const r = await db.query("select u.id, m.organization_id from auth.users u join public.memberships m on m.account_id = u.id where u.email = $1 and m.organization_id is not null limit 1", [DEMO.email]);
       [compte, organisation] = [r.rows[0].id, r.rows[0].organization_id];
+      await db.query("insert into auth.sessions(id,user_id) values($1,$2)",[session,compte]);
       const fichier = (n: string) => [`audit-g02/${n}.pdf`, "application/pdf", 10, n.repeat(64).slice(0, 64)];
       await db.query("insert into public.documents(id, organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte) values ($1, $2, 'autre', 'G-02 version 1', $3, $4, $5, $6)", [ids.v1, organisation, ...fichier("a")]);
       await db.query("insert into public.documents(id, organization_id, type, titre, remplace_id, storage_path, mime_type, taille_octets, empreinte) values ($1, $2, 'autre', 'G-02 version 2', $3, $4, $5, $6, $7)", [ids.v2, organisation, ids.v1, ...fichier("b")]);
@@ -57,7 +59,7 @@ describe.skipIf(!local || !baseApi)("auto-relation des versions de documents", (
   afterAll(async () => {
     const db = new Client({ connectionString: baseApi });
     await db.connect();
-    try { await db.query("delete from public.documents where id = any($1)", [[ids.v2, ids.v1]]); } finally { await db.end(); }
+    try { await db.query("delete from auth.sessions where id=$1",[session]); await db.query("delete from public.documents where id = any($1)", [[ids.v2, ids.v1]]); } finally { await db.end(); }
   });
 
   const verifier = (lire: (select: string) => Promise<{ data: Ligne[] | null; error: { code?: string } | null }>) => async () => {
@@ -78,7 +80,7 @@ describe.skipIf(!local || !baseApi)("auto-relation des versions de documents", (
 
   it.skipIf(!reel || !secretReel)("PostgREST réel : mêmes résultats", verifier(async select => {
     const reponse = await fetch(`${reel}/documents?select=${encodeURIComponent(select)}&id=in.(${ids.v1},${ids.v2})`,
-      { headers: { Authorization: `Bearer ${jwt({ role: "authenticated", aud: "authenticated", sub: compte })}` } });
+      { headers: { Authorization: `Bearer ${jwt({ role: "authenticated", aud: "authenticated", session_id: session, sub: compte })}` } });
     const corps = await reponse.json();
     return reponse.ok ? { data: corps, error: null } : { data: null, error: corps };
   }));
@@ -111,14 +113,15 @@ describe.skipIf(!reel || !baseApi || !secretReel)("dépôt par un artisan sur Po
     const db = new Client({ connectionString: baseApi });
     await db.connect();
     const racine = randomUUID();
-    const compte = randomUUID(), artisan = randomUUID();
+    const compte = randomUUID(), artisan = randomUUID(), session = randomUUID();
     const chemin = `artisans/${artisan}/${racine}`;
     try {
       await db.query("insert into auth.users(id,email,aud,role,email_confirmed_at) values ($1,$2,'authenticated','authenticated',now())", [compte, `${compte}@example.invalid`]);
+      await db.query("insert into auth.sessions(id,user_id) values($1,$2)", [session, compte]);
       await db.query("insert into public.artisans(id,account_id,raison_sociale,siret,telephone) values ($1,$2,'Artisan fictif G40',$3,'0600000000')",
         [artisan, compte, BigInt("0x" + artisan.replaceAll("-", "").slice(0, 11)).toString().padStart(14, "0")]);
       const { rows: [{jour}] } = await db.query("select to_char(statement_timestamp() at time zone 'Europe/Paris','YYYY-MM-DD') jour");
-      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${jwt({ role: "authenticated", sub: compte })}` };
+      const headers = { "Content-Type": "application/json", Authorization: `Bearer ${jwt({ role: "authenticated", sub: compte, session_id: session })}` };
       const deposer = (fin: string, fichier: string) => fetch(`${reel}/rpc/deposer_ma_piece_artisan`, {
         method: "POST", headers, body: JSON.stringify({ p_type: "certification", p_storage_path: chemin + "/" + fichier,
           p_mime: "application/pdf", p_taille: 100, p_empreinte: racine, p_emise_le: null, p_expire_le: fin }),
@@ -135,6 +138,7 @@ describe.skipIf(!reel || !baseApi || !secretReel)("dépôt par un artisan sur Po
       try {
         await db.query("delete from public.artisan_pieces where artisan_id=$1", [artisan]);
         await db.query("delete from public.artisans where id=$1", [artisan]);
+        await db.query("delete from auth.sessions where id=$1", [session]);
         await db.query("delete from auth.users where id=$1", [compte]);
       }
       finally { await db.end(); }

@@ -10,6 +10,7 @@ import { emettreRecusQuittances } from "@/lib/quittances";
 import { bilanApresPaiement, type BilanReception } from "@/lib/bilan-reception-loyer";
 import { eur } from "@/lib/ged";
 import { envoyerEmail } from "@/lib/email";
+import { piloteLimite } from "@/lib/perimetre-pilote";
 import { adresseDuSite } from "@/lib/site";
 import { aujourdhuiParis } from "@/lib/ged";
 import { cleRelanceLoyer } from "@/lib/cles-idempotence-courriels";
@@ -51,7 +52,7 @@ export async function declarerReceptionLoyer(orgId: string, appelId: string, _et
     revalidatePath(`/agence/${orgId}${suffixe}`);
     revalidatePath(`/espace/${orgId}${suffixe}`);
   }
-  if (resultat.statut === "non_recu") return { bilan: { statut: "non_recu" }, succes: "Votre réponse « Pas encore reçu » est enregistrée. Si les relances automatiques sont activées et leur délai atteint, cette confirmation autorise le prochain envoi. Le paiement sera revérifié avant toute relance." };
+  if (resultat.statut === "non_recu") return { bilan: { statut: "non_recu" }, succes: piloteLimite() ? "Votre réponse « Pas encore reçu » est enregistrée. L’envoi de relances par e-mail est suspendu." : "Votre réponse « Pas encore reçu » est enregistrée. Si les relances automatiques sont activées et leur délai atteint, cette confirmation autorise le prochain envoi. Le paiement sera revérifié avant toute relance." };
   if (resultat.statut === "annule") return { succes: "Ce règlement a été annulé dans le bail. Aucun règlement ajouté ; vérifiez votre compte bancaire avant une nouvelle déclaration." };
   if (resultat.statut === "deja_solde") return {
     succes: "Cette échéance est déjà soldée.", termine: true,

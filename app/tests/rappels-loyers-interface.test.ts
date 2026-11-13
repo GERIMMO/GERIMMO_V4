@@ -10,7 +10,7 @@ import { RappelsLoyersInteractifs } from "@/components/rappels-loyers-interactif
 import { RappelsLoyers } from "@/components/rappels-loyers";
 
 const ligne:RappelLoyer={appel_id:"appel",bail_id:"bail",lot_nom:"Appartement",locataire:"Camille",periode:"2026-10-01",date_echeance:"2026-10-05",montant_du:800,montant_couvert:200,non_recu_signale_le:null,relances_automatiques:{active:false,premierDelai:5,secondDelai:15},historique_relances_disponible:true};
-const rendre=(patch:Partial<RappelLoyer>={},lectureSeule=false)=>renderToStaticMarkup(createElement(RappelsLoyersInteractifs,{orgId:"org",aujourdHui:"2026-10-26",dus:[{...ligne,non_recu_signale_le:"2026-10-26T09:00:00Z",...patch}],prochaine:null,totalEcheancesDues:1,lectureSeule}));
+const rendre=(patch:Partial<RappelLoyer>={},lectureSeule=false,envoiRelanceDisponible=true)=>renderToStaticMarkup(createElement(RappelsLoyersInteractifs,{orgId:"org",aujourdHui:"2026-10-26",dus:[{...ligne,non_recu_signale_le:"2026-10-26T09:00:00Z",...patch}],prochaine:null,totalEcheancesDues:1,lectureSeule,envoiRelanceDisponible}));
 
 describe("rappels de loyers : étapes de la relance",()=>{
   it("le composant serveur expose le titre et les actions en mode page, tout en gardant le mode fenêtre par défaut", async () => {
@@ -89,6 +89,13 @@ describe("rappels de loyers : étapes de la relance",()=>{
   });
   it("mène à la fiche du bail depuis le nom du lot, hors du repli de relance (audit du 27/10, LAT-07)",()=>{
     for(const lectureSeule of [false,true]){const html=rendre({},lectureSeule);expect(html).toContain('<b><a href="/espace/org/baux/bail#loyers">Appartement</a></b>');}
+  });
+  it("explique la suspension avant tout geste et conserve le PDF de relance",()=>{
+    const html=rendre({},false,false);
+    expect(html).toContain("L’envoi de relances par e-mail est suspendu");
+    expect(html).toContain('data-modele="relance_simple"');
+    expect(html).not.toContain("Envoyer la première relance par e-mail");
+    expect(html).not.toContain('name="confirmer"');
   });
   it("garde lisible le bouton d'envoi de la relance (texte blanc sur fond blanc avant le 27/10)",()=>{
     const bouton=/<button[^>]*>Envoyer la première relance par e-mail<\/button>/.exec(rendre())?.[0]??"";

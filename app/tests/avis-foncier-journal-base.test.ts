@@ -36,6 +36,10 @@ describe.skipIf(!url)("Avis et écritures au niveau du bien",()=>{
       const e=await db.query("select bien_id,lot_id,montant::float8,date_piece::text from journal_par_bien where avis_fiscal_id=$1",[doc]);
       expect(e.rows).toEqual([{bien_id:bien,lot_id:null,montant:1552,date_piece:"2025-09-05"}]);
       expect((await db.query("select total_cents::int total from factures_fourniture where document_id=$1",[doc])).rows).toEqual([{total:24800}]);
+      const origine = (await db.query("select id from journal_par_bien where avis_fiscal_id=$1", [doc])).rows[0].id;
+      const annulation = (await db.query("select contre_ecriture($1,$2) id", [origine, "Correction de la taxe fictive"])).rows[0].id;
+      expect((await db.query("select bien_id,lot_id,sens,montant::float8,contre_ecriture_de from journal_par_bien where id=$1", [annulation])).rows)
+        .toEqual([{ bien_id: bien, lot_id: null, sens: "recette", montant: 1552, contre_ecriture_de: origine }]);
       await db.query("reset role");
       await db.query("savepoint retour");
       await expect(db.query(readFileSync("supabase/retours-arriere/20261112200752_ecritures_batiment_source.retour.sql","utf8"))).rejects.toThrow(/Conserver leurs preuves/);

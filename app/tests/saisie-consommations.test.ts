@@ -54,3 +54,18 @@ it("exige une clé égale couvrant chaque logement et toute la période",()=>{
   expect(applicable([cle,{...cle,date_effet:"2026-02-12"}])).toBe(false);
   expect(applicable([{...cle,cle_repartition_lignes:[cle.cle_repartition_lignes[0]]}])).toBe(false);
 });
+
+it("retient la dernière clé validée le même jour, même pour une ancienne facture", () => {
+  const lots = [{ id: "a" }, { id: "b" }];
+  const cle = (a: number, fin: string | null) => ({
+    date_effet: "2026-01-01", invalidated_at: fin,
+    cle_repartition_lignes: [{ lot_id: "a", pourcentage: a }, { lot_id: "b", pourcentage: 100 - a }],
+  });
+  const ancienne = cle(50, "2026-01-01T10:00:00+00:00");
+  for (const nouvelle of [cle(70, null), cle(70, "2026-04-01T10:00:00+00:00")]) {
+    for (const cles of [[ancienne, nouvelle], [nouvelle, ancienne]]) {
+      expect(partsEgalesEnregistrees(cles, lots, "2026-02-01", "2026-02-28")).toBe(false);
+    }
+  }
+  expect(partsEgalesEnregistrees([ancienne, cle(50, ancienne.invalidated_at)], lots, "2026-02-01", "2026-02-28")).toBe(false);
+});

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { partsEgalesEnregistrees } from "@/lib/cle-facture";
+import { cleApplicableAuDebut, partsEgalesEnregistrees } from "@/lib/cle-facture";
 import { controleCompteurGeneral } from "@/lib/controle-compteur-general";
 import { segmentsConsommation } from "@/lib/segments-consommation";
 import { sansJargon } from "@/lib/erreurs";
@@ -29,10 +29,10 @@ export async function calculerFactureExistante(supabase:SupabaseClient,orgId:str
     let motif = "Parts égales entre logements, puis prorata des jours d’occupation. La vacance et les baux au forfait restent au propriétaire.";
     if (c.lot_id) motif = "Facture du logement, répartie suivant les jours d’occupation. La vacance et les baux au forfait restent au propriétaire.";
     else if (mode !== "consommations" || facture.frais_fixes_cents > 0) {
-      const { data: cles, error } = await lireCollectionConsommations((debut, fin) => supabase.from("cles_repartition").select("id,date_effet,cle_repartition_lignes(lot_id,pourcentage)", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", c.bien_id).lte("date_effet", facture.periode_fin).order("date_effet", { ascending: false }).order("id").range(debut, fin));
+      const { data: cles, error } = await lireCollectionConsommations((debut, fin) => supabase.from("cles_repartition").select("id,date_effet,invalidated_at,cle_repartition_lignes(lot_id,pourcentage)", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", c.bien_id).lte("date_effet", facture.periode_fin).order("date_effet", { ascending: false }).order("id").range(debut, fin));
       if (error) return { erreur: "La clé du bâtiment n’a pas pu être chargée." };
       if ((cles ?? []).some(k => k.date_effet > facture.periode_debut)) return { erreur: "La clé a changé pendant la période facturée. Séparez les périodes avant la répartition." };
-      const cle = cles?.find(k => k.date_effet <= facture.periode_debut);
+      const cle = cleApplicableAuDebut(cles ?? [], facture.periode_debut);
       if (!cle) return { erreur: "Enregistrez la clé applicable à cette période dans la fiche du bâtiment." };
       if (mode === "egales" && !partsEgalesEnregistrees(cles ?? [], lots, facture.periode_debut, facture.periode_fin)) return { erreur: "Les parts égales doivent correspondre à la clé enregistrée pour ces logements." };
       poids = new Map(cle.cle_repartition_lignes.map(l => [l.lot_id, Math.round(Number(l.pourcentage) * 100)]));

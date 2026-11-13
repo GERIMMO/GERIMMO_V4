@@ -4,7 +4,7 @@ import { conseilFacture, methodeConseillee, recuperationConseillee, type BailPou
 import { EnvoiDecomptesFacture, type DestinataireDecompte } from "./envoi-decomptes-facture";
 import { EtapesFacture } from "./etapes-facture";
 import { SaisieIndexFacture } from "./saisie-index-facture";
-import { partsEgalesEnregistrees, type CleFacture } from "@/lib/cle-facture";
+import { cleApplicableAuDebut, partsEgalesEnregistrees, type CleFacture } from "@/lib/cle-facture";
 import { useEffect, useState, useTransition } from "react";
 import { useActionStateProtegee } from "@/lib/use-action-state-protegee";
 import { rouvrirRepartitionFourniture, demanderIndexFacture, preparerRepartitionFourniture, validerRepartitionFourniture, type EtatRepartition } from "@/app/actions/repartition-fourniture";
@@ -47,7 +47,8 @@ export function RepartitionFacture({ pleinePage = false, cles = [], bienId, orgI
   const relevesManquants = mode === "consommations" && !!facture && lots.some(l=>compteursPourFacture(compteurs,releves,facture,categorie,l.id).length===0);
   const proposition = recuperationConseillee(categorie,lots,baux,facture?.periode_debut ?? aujourdhui,facture?.periode_fin ?? aujourdhui);
   const choixRecuperable = r && r.lignes.some(l=>l.bail_id) && proposition.eligibles>0 ? r.lignes.some(l=>l.recuperable) : proposition.coche;
-  const cleApplicable = !facture || lots.length<=1 || cles.some(c=>c.date_effet<=facture.periode_debut && lots.every(l=>c.cle_repartition_lignes.some(v=>v.lot_id===l.id && Number(v.pourcentage)>0)));
+  const cle = facture && cleApplicableAuDebut(cles, facture.periode_debut);
+  const cleApplicable = !facture || lots.length<=1 || (cle && lots.every(l => cle.cle_repartition_lignes.some(v => v.lot_id === l.id && Number(v.pourcentage) > 0)));
   const cleManquante = mode !== "consommations" && !cleApplicable;
   const colocationConcernee=baux.some(b=>b.chambre_id && lots.some(l=>l.id===b.lot_id) && !!b.date_debut && b.date_debut<=(facture?.periode_fin ?? aujourdhui) && (!b.date_fin||b.date_fin>=(facture?.periode_debut ?? aujourdhui)));
   const [modifie, modifier] = useState(false);

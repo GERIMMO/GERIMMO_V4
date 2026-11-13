@@ -509,7 +509,7 @@ export function FormulaireBien({
       <div data-etape-creation="1" hidden={guideActif && etapeCreation !== 1}>
       {!bien && (
         <div data-lots-section className="space-y-6 border-t border-border pt-6">
-          <div className="saisie-repere"><span>{guideActif ? 2 : 3}</span><div><h2>{multiLots ? "Les lots à gérer" : "Le lot à louer"}</h2><p>Renseignez chaque unité que vous louez séparément.</p></div></div>
+          <div className="saisie-repere"><span>{guideActif ? 2 : 3}</span><div><h2>{multiLots ? "Les lots à gérer" : "Le lot à louer"}</h2><p>Créez un lot par location indépendante. Pour une cave ou un parking loué avec le logement, indiquez-le dans « Locaux privatifs » sur la fiche du logement. Une annexe louée séparément compte comme un lot.</p></div></div>
           {/* Types divisibles hors immeuble : la question précède la suite */}
           {!nonDecoupable && type !== "immeuble" && (
             <label className="flex items-center gap-2 text-sm">

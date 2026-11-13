@@ -25,6 +25,7 @@ describe("étape Personnes du bail", () => {
   });
   it("transmet le locataire attendu et le garant couvert à la mutation atomique", async () => {
     expect(await choisirPersonneBail("org", "bail", {}, form({ person_id: "g", role: "garant", garant_de: "l", principal_attendu: "l" }))).toHaveProperty("succes");
+    expect(m.revalidate).toHaveBeenCalledWith("/espace/org/baux/bail");
     expect(m.rpc).toHaveBeenCalledWith("choisir_personne_bail", { p_bail: "bail", p_person: "g", p_role: "garant", p_garant_de: "l", p_principal_attendu: "l" });
   });
   it("réutilise la création de l’annuaire, sans redirection ni détention cachée", async () => {
@@ -34,6 +35,7 @@ describe("étape Personnes du bail", () => {
     expect(f.get("rester_dans_parcours")).toBe("1"); expect(f.has("role")).toBe(false); expect(f.has("lot_id")).toBe(false);
     expect(m.creer.mock.calls[0][2].get("creation_id")).toBe("67360dd2-c21d-4d8e-9b5a-ed389c3448d3");
     expect(m.revalidate).toHaveBeenCalledWith("/agence/org/baux/bail");
+    expect(m.revalidate).toHaveBeenCalledWith("/espace/org/baux/bail");
   });
   it("conserve l’erreur et la saisie renvoyées par la création", async () => {
     const retour = { erreur: "Adresse déjà utilisée.", valeurs: { nom: "Test" } }; m.creer.mockResolvedValue(retour);

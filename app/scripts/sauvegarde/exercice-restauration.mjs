@@ -42,7 +42,7 @@ import { pathToFileURL } from 'node:url';
 import pg from 'pg';
 import { exporter, extraire, SCHEMAS, verifier } from './base.mjs';
 import { verifierHistoriqueMigrations } from './historique-migrations.mjs';
-import { verifierConsommationsInterne, verifierSupportInterne } from './restaurer-archive.mjs';
+import { restaurerControleSession, verifierConsommationsInterne, verifierSupportInterne } from './restaurer-archive.mjs';
 
 const PRODUCTION = 'rddlxunppddzpsaatdaz';
 const LOCAUX = ['127.0.0.1', 'localhost', '::1'];
@@ -171,6 +171,7 @@ export async function exercer({ source, cible = 'gerimmo_restauration', garder =
     const ouvertesAnon = Number((await lireCible(`select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
       where n.nspname='public' and p.prokind='f' and has_function_privilege('anon',p.oid,'EXECUTE')`))[0]);
     bilan.historique_migrations = await verifierHistoriqueMigrations(cibleClient, true);
+    bilan.controle_session = await restaurerControleSession(cibleClient, SCHEMAS.includes('gerimmo_session_interne'));
     bilan.support_interne = await verifierSupportInterne(cibleClient, SCHEMAS.includes('support_interne'));
     bilan.consommations_interne = await verifierConsommationsInterne(cibleClient, SCHEMAS.includes('consommations_interne'));
     // D07 : les tâches pg_cron de la source (`cron.job`, hors des schémas sauvegardés) doivent se retrouver dans l'archive.

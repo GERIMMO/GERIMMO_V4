@@ -16,7 +16,7 @@ function base(categorie="eau",manquant=false,validee=false){
   releves_consommation:manquant?[]:["a","b"].map(id=>({id,compteur_id:id,date_releve:"2026-10-31",index_releve:120})),
  };
  const db={from(nom:string){const lignes=tables[nom]??[];const q:unknown=new Proxy({}, {get(_t,k){if(k==="then")return (f:(v:unknown)=>unknown)=>Promise.resolve({data:lignes,count:lignes.length,error:null}).then(f);if(k==="single"||k==="maybeSingle")return async()=>({data:lignes[0]??null,error:null});return ()=>q;}});return q;},async rpc(_n:string,p:{p_geste:string;p_args:Record<string,unknown>}){appels.push({geste:p.p_geste,args:p.p_args});return {data:true,error:null};}} as unknown as SupabaseClient;
- return {db,appels};
+ return {db,appels,tables};
 }
 beforeEach(()=>{calcul.mockReset();pdf.mockReset();calcul.mockResolvedValue({repartition:{id:"rep",empreinte:"hash",lignes:[{bail_id:"bail",recuperable:true},{bail_id:null,recuperable:false}]}});pdf.mockResolvedValue({documentId:"doc"});});
 it("prépare les montants et attend la décision explicite avant validation ou partage",async()=>{
@@ -47,4 +47,19 @@ it('100 factures fictives : dossiers complets et index tardifs, calcul et PDF un
  for(let i=0;i<100;i++){const {db,appels}=base('eau',false,true);expect((await traiterFactureAutomatique(db,'org','f')).etat).toBe('terminee');expect(appels.some(a=>a.geste==='diffuser_pdf_repartition')).toBe(false);}
  expect(calcul).toHaveBeenCalledTimes(100);expect(pdf).toHaveBeenCalledTimes(100);
  expect(performance.now()-debut).toBeLessThan(300000);
+});
+
+it("calcule une facture ancienne avec les index de son compteur arrêté", async () => {
+  const { db, tables, appels } = base();
+  tables.compteurs_consommation = tables.compteurs_consommation.map(m => ({ ...(m as object), actif: false }));
+  await traiterFactureAutomatique(db, "org", "f");
+  expect(calcul).toHaveBeenCalledOnce();
+  expect(appels.some(a => a.geste === "demander_index_facture")).toBe(false);
+});
+
+it("une ancienne colocation terminée avant la facture ne demande pas de clé entre chambres", async () => {
+  const { db, tables } = base();
+  tables.baux.push({ id: "ancien", lot_id: "a", chambre_id: "ancienne-chambre", date_debut: "2024-01-01", date_fin: "2024-10-01", charges_mode: "provision", etat: "termine" });
+  await traiterFactureAutomatique(db, "org", "f");
+  expect(calcul).toHaveBeenCalledOnce();
 });

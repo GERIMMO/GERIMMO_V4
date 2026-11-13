@@ -125,6 +125,31 @@ export async function verifierConsommationsInterne(cible, attendu = false) {
   return { present: true, protections: 'validées' };
 }
 
+/** Les droits et fonctions se restaurent par pg_restore. Le réglage du rôle
+ * par base est hors du dump ; le rétablir uniquement sur la cible vierge. */
+export async function restaurerControleSession(cible, attendu) {
+  const { rows: [etat] } = await cible.query(`select current_database() as base,
+    to_regprocedure('gerimmo_session_interne.verifier_session_api()') is not null as present`);
+  if (!etat.present && !attendu) return { present: false };
+  if (!etat.present || !/^gerimmo_restauration[a-z0-9_]*$/.test(etat.base)) {
+    throw new Error('La restauration du contrôle de session nécessite sa fonction et une base de reprise.');
+  }
+  const reglage = 'pgrst.db_pre_request=gerimmo_session_interne.verifier_session_api';
+  const parametres = await cible.query(`select v from pg_db_role_setting s cross join unnest(s.setconfig) v
+    where s.setrole in (0, 'authenticator'::regrole::oid)
+      and s.setdatabase in (0,(select oid from pg_database where datname=current_database()))
+      and split_part(v,'=',1)='pgrst.db_pre_request'`);
+  if (parametres.rows.some(({v}) => v !== reglage && v !== 'pgrst.db_pre_request=')) {
+    throw new Error('Un autre contrôle de session est configuré sur la destination.');
+  }
+  await cible.query(`alter role authenticator in database "${etat.base}" set pgrst.db_pre_request = 'gerimmo_session_interne.verifier_session_api'`);
+  const confirmation = await cible.query(`select 1 from pg_db_role_setting
+    where setrole='authenticator'::regrole and setdatabase=(select oid from pg_database where datname=current_database())
+      and $1=any(setconfig)`, [reglage]);
+  if (confirmation.rowCount !== 1) throw new Error('Le contrôle de session restauré est indisponible.');
+  return { present: true, reglage: 'vérifié' };
+}
+
 export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
   verifierPrefixe(prefixe);
   const url = verifierDestination(destination);
@@ -194,6 +219,7 @@ export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
     const historiqueMigrations = await verifierHistoriqueMigrations(cible, manifesteBase.schemas?.includes('supabase_migrations'));
     const supportInterne = await verifierSupportInterne(cible, manifesteBase.schemas?.includes('support_interne'));
     const consommationsInterne = await verifierConsommationsInterne(cible, manifesteBase.schemas?.includes('consommations_interne'));
+    const controleSession = await restaurerControleSession(cible, manifesteBase.schemas?.includes('gerimmo_session_interne'));
     const objets = (await cible.query('select bucket_id,name from storage.objects')).rows;
     const dansArchive = new Set(manifeste.objets.map(f => `${f.bucket}/${f.nom}`));
     const dansBase = new Set(objets.map(f => `${f.bucket_id}/${f.name}`));
@@ -207,7 +233,7 @@ export async function restaurerArchive({ dossier, prefixe, cle, destination }) {
       const taches = JSON.parse(await fs.readFile(path.join(travail, 'base', FICHIER_TACHES_CLAIR), 'utf8')).taches;
       tachesPlanifiees = await verifierRejeuTaches(cible, taches);
     }
-    return { reussi: true, date: new Date().toISOString(), sauvegarde: prefixe, date_sauvegarde: infoBase.date,
+    return { reussi: true, controle_session: controleSession, date: new Date().toISOString(), sauvegarde: prefixe, date_sauvegarde: infoBase.date,
       tables: tables.length, lignes, fichiers: manifeste.objets.length, fichiers_manquants: manquants,
       octets_base: infoBase.octets, protections: 'validées', historique_migrations: historiqueMigrations, support_interne: supportInterne, consommations_interne: consommationsInterne, taches_planifiees: tachesPlanifiees, duree_secondes: Math.ceil((Date.now() - debut) / 1000),
       portee: 'Base PostgreSQL et fichiers restaurés localement ; bascule des services Supabase non effectuée. Tâches pg_cron : liste et script de rejeu contrôlés sur un planificateur de façade ; pg_cron et pg_net non activés.' };

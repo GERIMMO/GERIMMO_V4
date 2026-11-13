@@ -63,3 +63,14 @@ it("une ancienne colocation terminée avant la facture ne demande pas de clé en
   await traiterFactureAutomatique(db, "org", "f");
   expect(calcul).toHaveBeenCalledOnce();
 });
+
+it("attend la date du relevé futur sans annoncer une demande déjà transmise", async () => {
+  const { db, tables, appels } = base("eau", true);
+  tables.factures_fourniture = [{ id: "f", contrat_id: "c", periode_debut: "2026-10-01", periode_fin: "2099-10-31" }];
+  const resultat = await traiterFactureAutomatique(db, "org", "f");
+  expect(resultat.etat).toBe("releves_attendus");
+  expect(resultat.detail).toContain("31/10/2099");
+  expect(resultat.detail).not.toContain("aux locataires");
+  expect(appels.some(a => a.geste === "demander_index_facture")).toBe(false);
+  expect(calcul).not.toHaveBeenCalled();
+});

@@ -21,9 +21,9 @@ if (apiUrl && (!dbUrl || !["localhost","127.0.0.1"].includes(new URL(apiUrl).hos
   || !["localhost","127.0.0.1"].includes(new URL(dbUrl).hostname)
   || !new URL(dbUrl).pathname.includes("ci_"))) throw new Error("Banc de signature CI local obligatoire.");
 
-function jeton(role: string, sub?: string) {
+function jeton(role: string, sub?: string, session_id?: string) {
   const h = Buffer.from(JSON.stringify({alg:"HS256",typ:"JWT"})).toString("base64url");
-  const p = Buffer.from(JSON.stringify({role,sub,aal:"aal2",iss:"supabase-local"})).toString("base64url");
+  const p = Buffer.from(JSON.stringify({role,sub,session_id,aal:"aal2",iss:"supabase-local"})).toString("base64url");
   return `${h}.${p}.${createHmac("sha256","gerimmo-local-secret").update(`${h}.${p}`).digest("base64url")}`;
 }
 const secret = "secret-webhook-du-banc-fictif";
@@ -105,6 +105,7 @@ describe.skipIf(!apiUrl)("Retour Zoho → vraie base et stockage fictifs locaux"
     }
     if(users.length) {
       await db.query("delete from public.audit_log where account_id=any($1::uuid[])",[users]);
+      await db.query("delete from auth.sessions where user_id=any($1::uuid[])",[users]);
       await db.query("delete from auth.users where id=any($1::uuid[])",[users]);
     }
   });
@@ -124,8 +125,9 @@ describe.skipIf(!apiUrl)("Retour Zoho → vraie base et stockage fictifs locaux"
     expect((await db.query("select count(*)::int n from public.documents where organization_id=$1",[org])).rows[0].n).toBe(3);
     expect(c.signataires[0].preuveDocumentId).toBe(c.signataires[1].preuveDocumentId);
     const chemin=`${org}/signature-bail/${circuit}/contrat.pdf`;
-    const owner=createClient(apiUrl!,jeton("authenticated",users[0]),{auth:{persistSession:false}});
-    const stranger=createClient(apiUrl!,jeton("authenticated",users[1]),{auth:{persistSession:false}});
+    const sessions = await Promise.all(users.map(user => id("insert into auth.sessions(id,user_id) values(gen_random_uuid(),$1) returning id",[user])));
+    const owner=createClient(apiUrl!,jeton("authenticated",users[0],sessions[0]),{auth:{persistSession:false}});
+    const stranger=createClient(apiUrl!,jeton("authenticated",users[1],sessions[1]),{auth:{persistSession:false}});
     const recu=await owner.storage.from("documents").download(chemin);
     expect(recu.error).toBeNull(); expect(createHash("sha256").update(Buffer.from(await recu.data!.arrayBuffer())).digest("hex")).toBe(createHash("sha256").update(pdf).digest("hex"));
     expect((await stranger.storage.from("documents").download(chemin)).error).not.toBeNull();

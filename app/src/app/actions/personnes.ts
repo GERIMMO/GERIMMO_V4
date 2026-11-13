@@ -413,7 +413,7 @@ export async function modifierPersonne(
   // qu'à la création ; seule une raison sociale (sans prénom) s'en passe.
   const { data: actuelle } = await supabase
     .from("persons")
-    .select("prenom")
+    .select("prenom, siren")
     .eq("id", personId)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -444,6 +444,10 @@ export async function modifierPersonne(
   if (formData.has("siren")) {
     try { modificationSiren = { siren: lireSirenSociete(formData.get("siren")) }; }
     catch { return { erreur: "Le SIREN doit comporter neuf chiffres.", valeurs }; }
+  }
+  const sirenApresModification = formData.has("siren") ? modificationSiren.siren : actuelle.siren;
+  if (sirenApresModification && !["SCI", "SCI familiale", "Personne morale"].includes(qualite ?? "")) {
+    return { erreur: "Le SIREN est réservé à une société. Effacez-le pour enregistrer cette autre qualité.", valeurs };
   }
   const { error } = await supabase
     .from("persons")

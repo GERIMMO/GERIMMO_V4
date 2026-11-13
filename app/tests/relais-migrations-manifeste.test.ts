@@ -176,6 +176,7 @@ const MISSION_OCTOBRE = [
   "20261113021755_prevenir_double_creation_bien.sql",
   "20261113022327_session_active_stockage_prive.sql",
   "20261113022742_session_active_api.sql",
+  "20261113032825_siren_societe_bailleur.sql",
 
 
 ];

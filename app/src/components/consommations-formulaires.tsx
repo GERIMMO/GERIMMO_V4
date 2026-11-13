@@ -110,7 +110,15 @@ function Compteur({ p, c }: { p: Props; c: CompteurConsommation }) {
     {destinataireTermine && <p className={styles.warning}>Le bail du précédent destinataire est terminé. Choisissez qui recevra les prochains relevés.</p>}
     {!p.lectureSeule && <div className={styles.actions}><Button size="sm" variant="outline" type="button" onClick={() => setSaisie(!saisie)}>Renseigner un relevé</Button><Button size="sm" variant="ghost" type="button" onClick={() => setEdit(!edit)}>{destinataireTermine ? "Choisir le destinataire" : "Réglages"}</Button></div>}
     {saisie && !p.lectureSeule && <Form p={p} action="releve" id={c.id} fini={() => setSaisie(false)}><div className={styles.fields}><Champ titre={`Index (${unite})`}><input name="index" inputMode="decimal" required /></Champ><Champ titre="Date du relevé"><input name="date" type="date" defaultValue={p.aujourdHui} min={new Date(Date.parse(`${c.date_index_initial}T12:00:00Z`) + 86400000).toISOString().slice(0, 10)} max={p.aujourdHui} required /></Champ></div><p className={styles.caption}>Vous pouvez aussi ajouter un ancien relevé manquant pour une facture. Son index sera vérifié entre les relevés connus.</p></Form>}
-    {edit && !p.lectureSeule && <><Form p={p} action="compteur" id={c.id} fini={() => setEdit(false)}><ChampsCompteur p={p} c={c} /></Form><details><summary className={styles.muted}>Compteur remplacé ou suivi terminé</summary><p className={styles.muted}>Arrêtez ce suivi puis ajoutez le nouveau compteur. Les anciens relevés sont conservés.</p><Form p={p} action="archiver_compteur" id={c.id} titre="Arrêter ce suivi" fini={() => setEdit(false)} /></details></>}
+    {edit && !p.lectureSeule && <><Form p={p} action="compteur" id={c.id} fini={() => setEdit(false)}><ChampsCompteur p={p} c={c} /></Form><details><summary className={styles.muted}>Compteur remplacé ou suivi terminé</summary>{c.actif && <Form p={p} action="remplacer_compteur" id={c.id} titre="Confirmer le remplacement" fini={() => setEdit(false)}>
+      <div className={styles.fields}>
+        <Champ titre="Date du remplacement"><input name="date" type="date" required max={p.aujourdHui} /></Champ>
+        <Champ titre={`Dernier index de l’ancien compteur (${unite})`}><input name="index_fin" inputMode="decimal" required /></Champ>
+        <Champ titre="Numéro du nouveau compteur"><input name="numero" maxLength={120} required /></Champ>
+        <Champ titre={`Index à la pose (${unite})`}><input name="index_debut" inputMode="decimal" required /></Champ>
+      </div>
+      <p className={styles.caption}>Les deux relevés sont conservés. Les prochaines demandes de relevé sont à votre charge jusqu’au choix du destinataire sur le nouveau compteur.</p>
+    </Form>}<Form p={p} action="archiver_compteur" id={c.id} titre="Arrêter ce suivi" fini={() => setEdit(false)} /></details></>}
     {lignes.length > 0 && <details><summary className={styles.muted}>{lignes.length === 1 ? "Voir le relevé" : `Voir les ${lignes.length} relevés`}</summary><ul className={styles.history}>{lignes.map(l => <li key={l.id}><span>{formaterDate(l.date_releve)} · {Number(l.index_releve).toLocaleString("fr-FR")} {unite} </span>{l.photo_document_id && <ApercuDocumentEspace fichier={`${p.base}/documents/${l.photo_document_id}/fichier`} titre={`Photo du compteur ${c.libelle}`} />}</li>)}</ul></details>}
   </div>;
 }

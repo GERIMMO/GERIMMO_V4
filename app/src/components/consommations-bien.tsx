@@ -22,7 +22,7 @@ export async function ConsommationsBien({ orgId, bienId, lotId = null, bienNom, 
 }) {
   const db = await createClient();
   const results = await Promise.all([
-    lireCollectionConsommations<CompteurConsommation>((debut, fin) => db.from("compteurs_consommation").select("*", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", bienId).order("created_at").order("id").range(debut, fin)),
+    lireCollectionConsommations<CompteurConsommation>((debut, fin) => db.from("compteurs_consommation").select("*,remplacement:remplacements_compteur!ancien_id(ancien_id,nouveau_id,date_pose)", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", bienId).order("created_at").order("id").range(debut, fin)),
     lireCollectionConsommations<ContratFourniture>((debut, fin) => db.from("contrats_fourniture").select("*", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", bienId).order("created_at").order("id").range(debut, fin)),
     lireCollectionConsommations<{ id: string; nom: string; etat: string }>((debut, fin) => db.from("lots").select("id,nom,etat", { count: "exact" }).eq("organization_id", orgId).eq("bien_id", bienId).order("nom").order("id").range(debut, fin)),
   ]);

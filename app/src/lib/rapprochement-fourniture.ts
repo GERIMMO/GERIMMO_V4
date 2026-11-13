@@ -1,6 +1,6 @@
 import { rapprocherConsommations, type FactureFourniture, type ContratFourniture, type CompteurConsommation, type ReleveConsommation } from "./consommations";
 import { consommationMesuree } from "./controle-compteur-general";
-import { compteursPourFacture } from "./compteurs-facture";
+import { chainesDocumentees } from "./compteurs-facture";
 
 const ENERGIES = ["eau", "electricite_commune", "electricite_privative", "gaz", "chauffage"];
 /** Deux périodes de consommation partagent le même index de frontière. */
@@ -23,23 +23,21 @@ export function comparerFactureReleves(f: FactureFourniture, c: ContratFournitur
   if (!unite) return manque("Vérifiez l’unité indiquée sur la facture de gaz. Les m³ ne sont pas des kWh.");
   const lots = c.lot_id ? [c.lot_id] : [...new Set(idsLots)];
   if (!lots.length) return manque("Aucun logement n’est rattaché à cette facture.");
-  const couples = [];
+  let total = BigInt(0);
+  try {
   for (const lot of lots) {
-    const possibles = compteursPourFacture(compteurs, releves, f, c.categorie, lot);
+    const possibles = chainesDocumentees(compteurs, releves, f, c.categorie, lot);
     if (!possibles.length) return manque("Il manque un compteur ou un relevé aux dates exactes de la facture. Aucun total partiel n’est présenté comme une comparaison complète.");
     if (possibles.length !== 1) return manque("Plusieurs compteurs correspondent à un logement. Précisez les compteurs concernés par cette facture avant de comparer ; leurs consommations ne sont pas additionnées automatiquement.");
-    const m = possibles[0];
-    if (m.unite !== unite) return manque("Les unités de la facture et des compteurs diffèrent. Aucune conversion entre m³ et kWh n’est appliquée automatiquement.");
-    const debut = releves.find(r => r.compteur_id === m.id && r.date_releve === f.periode_debut)?.index_releve ?? (m.date_index_initial === f.periode_debut ? m.index_initial : null);
-    const fin = releves.find(r => r.compteur_id === m.id && r.date_releve === f.periode_fin)?.index_releve;
-    if (debut == null || fin == null) return manque("Il manque des relevés aux dates exactes de la facture. Aucun total partiel n’est présenté comme une comparaison complète.");
-    try {
-      consommationMesuree(m, releves, f.periode_debut, f.periode_fin);
-    } catch (erreur) {
-      return manque(erreur instanceof Error ? erreur.message : "Vérifiez les relevés de ce compteur.");
+    for (const {compteur,debut,fin} of possibles[0]) {
+      if (compteur.unite !== unite) return manque("Les unités de la facture et des compteurs diffèrent. Aucune conversion entre m³ et kWh n’est appliquée automatiquement.");
+      total += consommationMesuree(compteur, releves, debut, fin);
     }
-    couples.push({ id: m.id, indexDebut: debut, indexFin: fin, dateDebut: f.periode_debut, dateFin: f.periode_fin });
   }
-  try { return { bilan: rapprocherConsommations({ consommationFacturee: f.consommation, periodeDebut: f.periode_debut, periodeFin: f.periode_fin, logements: couples }), unite: unite === "m3" ? "m³" : "kWh" }; }
-  catch { return manque("Les index de cette période doivent être vérifiés avant de comparer les consommations."); }
+  const mesure = Number(total) / 1000;
+  const bilan = rapprocherConsommations({consommationFacturee:f.consommation,periodeDebut:f.periode_debut,periodeFin:f.periode_fin,
+    logements:[{id:"total",indexDebut:0,indexFin:mesure,dateDebut:f.periode_debut,dateFin:f.periode_fin}]});
+  return {bilan,unite:unite === "m3" ? "m³" : "kWh"};
+  }
+  catch (e) { return manque(e instanceof Error ? e.message : "Vérifiez les relevés de cette période."); }
 }

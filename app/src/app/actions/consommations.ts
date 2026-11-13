@@ -39,14 +39,14 @@ export async function enregistrerConsommation(orgId: string, bienId: string, lot
       if (l.error || !l.data) return { erreur: "Ce logement n’est pas accessible depuis cette fiche." };
     }
     // Vérifier le contexte avant toute mutation ou RPC, même si un autre identifiant du portefeuille est forgé.
-    if (cible && ["compteur", "releve", "archiver_compteur", "contrat", "archiver_contrat", "facture_payee", "modifier_facture"].includes(action)) {
+    if (cible && ["compteur", "releve", "remplacer_compteur", "archiver_compteur", "contrat", "archiver_contrat", "facture_payee", "modifier_facture"].includes(action)) {
       let contratCible = cible;
       if (action === "facture_payee" || action === "modifier_facture") {
         const facture = await supabase.from("factures_fourniture").select("contrat_id").eq("organization_id", orgId).eq("id", cible).maybeSingle();
         if (facture.error || !facture.data) return { erreur: "Cette facture n’est pas accessible." };
         contratCible = facture.data.contrat_id;
       }
-      const table = ["compteur", "releve", "archiver_compteur"].includes(action) ? "compteurs_consommation" : "contrats_fourniture";
+      const table = ["compteur", "releve", "remplacer_compteur", "archiver_compteur"].includes(action) ? "compteurs_consommation" : "contrats_fourniture";
       let q = supabase.from(table).select("id,lot_id").eq("organization_id", orgId).eq("bien_id", bienId).eq("id", contratCible);
       if (lotId) q = q.eq("lot_id", lotId);
       const r = await q.maybeSingle();
@@ -147,6 +147,15 @@ export async function enregistrerConsommation(orgId: string, bienId: string, lot
       return { succes: saisie.teom_cents + saisie.frais_gestion_cents > 0
         ? `Avis enregistré : ${(saisie.teom_cents / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" })} de TEOM à répartir entre les locataires, le reste en charge déductible du propriétaire.`
         : "Avis enregistré en charge déductible du propriétaire (aucune TEOM à répercuter)." };
+    } else if (action === "remplacer_compteur" && cible) {
+      const fin = texteConso(f, "index_fin").replace(",", ".");
+      const debut = texteConso(f, "index_debut").replace(",", ".");
+      indexEnMillUnites(fin);
+      indexEnMillUnites(debut);
+      erreur = (await supabase.rpc("remplacer_compteur", {
+        p_org: orgId, p_ancien: cible, p_date: dateConso(texteConso(f, "date")),
+        p_fin: fin, p_debut: debut, p_numero: texteConso(f, "numero", 120),
+      })).error;
     } else if (action === "releve" && cible) {
       const valeur = texteConso(f, "index").replace(",", "."); indexEnMillUnites(valeur);
       erreur = (await supabase.rpc("enregistrer_releve_compteur", { p_org: orgId, p_compteur: cible, p_index: valeur, p_date: dateConso(texteConso(f, "date")) })).error;

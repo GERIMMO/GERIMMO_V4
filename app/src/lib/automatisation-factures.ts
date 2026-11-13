@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { calculerFactureExistante } from "./calcul-facture-existant";
 import { preparerPdfFactureExistant } from "./pdf-facture-existant";
 import { methodeConseillee, recuperationConseillee } from "./conseil-repartition";
-import { compteursPourFacture, fluideCompatible } from "./compteurs-facture";
+import { periodesCompteurs, compteursPourFacture, fluideCompatible } from "./compteurs-facture";
 import { indexDate } from "./controle-compteur-general";
 import { lireCollectionConsommations, lireLiensConsommations } from "./lecture-consommations";
 import type { CompteurConsommation, ReleveConsommation } from "./consommations";
@@ -33,7 +33,7 @@ export async function traiterFactureAutomatique(service:SupabaseClient,org:strin
    const lr=await lireCollectionConsommations<{id:string;nom:string}>((a,b)=>db.from("lots").select("id,nom",{count:"exact"}).eq("organization_id",org).eq("bien_id",c.bien_id).order("id").range(a,b));
    if(lr.error)throw new Error("Logements indisponibles.");const lots=lr.data.filter(l=>!c.lot_id||l.id===c.lot_id);
    const br=await lireLiensConsommations<{id:string;lot_id:string;chambre_id:string|null;charges_mode:string;date_debut:string;date_fin:string|null;etat:string}>(lots.map(l=>l.id),(ids,a,b)=>db.from("baux").select("id,lot_id,chambre_id,charges_mode,date_debut,date_fin,etat",{count:"exact"}).eq("organization_id",org).in("lot_id",ids).in("etat",["actif","preavis","termine"]).order("id").range(a,b));
-   const mr=await lireCollectionConsommations<CompteurConsommation>((a,b)=>db.from("compteurs_consommation").select("*",{count:"exact"}).eq("organization_id",org).eq("bien_id",c.bien_id).order("id").range(a,b));
+   const mr=await lireCollectionConsommations<CompteurConsommation>((a,b)=>db.from("compteurs_consommation").select("*,remplacement:remplacements_compteur!ancien_id(ancien_id,nouveau_id,date_pose)",{count:"exact"}).eq("organization_id",org).eq("bien_id",c.bien_id).order("id").range(a,b));
    if(br.error||mr.error)throw new Error("Baux ou compteurs indisponibles.");
    if(["entretien","autre"].includes(c.categorie))throw new Error("Précisez la part récupérable de cette prestation avant de poursuivre.");
    const reg=r?.source?.reglages;
@@ -49,6 +49,17 @@ export async function traiterFactureAutomatique(service:SupabaseClient,org:strin
     const problemes: string[] = [];
     for(const lot of lots) {
      // Un compteur arrêté peut documenter intégralement une facture ancienne.
+     const chaines = periodesCompteurs(mr.data, mr.data.flatMap(m => m.remplacement ?? []), f.periode_debut, f.periode_fin, c.categorie, lot.id);
+     if (chaines.some(ch => ch.length > 1)) {
+       if (chaines.length !== 1) { problemes.push(`Choisissez le compteur facturé de ${lot.nom}.`); continue; }
+       const manque = chaines[0].flatMap(p => [p.debut,p.fin].filter(j => indexDate(p.compteur,rr.data,j)==null).map(j => ({m:p.compteur,j}))).at(0);
+       if (!manque) continue;
+       if (!manque.m.actif) { problemes.push(`Vérifiez le dernier relevé du compteur remplacé de ${lot.nom}.`); continue; }
+       if (manque.j > aujourdhuiParis()) { datesFutures.push(manque.j); continue; }
+       const demande = await geste("demander_index_facture",{p_org:org,p_facture:id,p_compteur:manque.m.id,p_jour:manque.j});
+       if (demande.error) problemes.push(`${lot.nom} : ${demande.error.message}`); else demandeEnregistree = true;
+       continue;
+     }
      const documentes = compteursPourFacture(mr.data, rr.data, f, c.categorie, lot.id);
      if (documentes.length === 1) continue;
      if (documentes.length > 1) {

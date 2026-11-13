@@ -24,7 +24,7 @@ export function consommationMesuree(m: Compteur, releves: Releve[], debut: strin
   }
   return indexEnMillUnites(dernier) - base;
 }
-export function controleCompteurGeneral(compteurs:Compteur[], releves:Releve[], idsEnfants:string[], debut:string, fin:string) {
+export function controleCompteurGeneral(compteurs:Compteur[], releves:Releve[], idsEnfants:string[], debut:string, fin:string, periodes?:ReadonlyMap<string,{debut:string;fin:string}>) {
   const groupes = new Map<string,Compteur[]>();
   for (const id of new Set(idsEnfants)) {
     const enfant = compteurs.find(m=>m.id===id);
@@ -40,7 +40,8 @@ export function controleCompteurGeneral(compteurs:Compteur[], releves:Releve[], 
     let somme=BigInt(0);
     for(const enfant of enfants) {
       if(enfant.unite!==principal.unite || enfant.type!==principal.type) throw new Error("Le compteur principal et ses divisionnaires doivent mesurer le même fluide dans la même unité.");
-      somme+=consommationMesuree(enfant, releves, debut, fin);
+      const periode = periodes?.get(enfant.id);
+      somme+=consommationMesuree(enfant, releves, periode?.debut ?? debut, periode?.fin ?? fin);
     }
     if(somme>general) throw new Error("Les divisionnaires dépassent le compteur principal. Vérifiez les index.");
     bilans.push({id,unite:principal.unite,general:Number(general)/1000,divisionnaires:Number(somme)/1000,ecart:Number(general-somme)/1000});

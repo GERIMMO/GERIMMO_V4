@@ -37,12 +37,15 @@ describe.skipIf(!url)("Départ SI-06 — congé saisi après le dernier appel", 
       const incident = await id("select declarer_incident_bien_simple($1,$2,null,'Fuite des parties communes',current_date,'Essai local',gen_random_uuid()) id",[org,bien]);
       expect((await db.query("select bien_id from incidents where id=$1",[incident])).rows[0].bien_id).toBe(bien);
       const compteur = await id("insert into compteurs_consommation(organization_id,bien_id,lot_id,type,unite,libelle,index_initial,date_index_initial,prochaine_demande) values($1,$2,$3,'eau_froide','m3','Eau SI-06',100,'2026-08-01','2026-09-01') returning id",[org,bien,lot]);
-      await db.query("select enregistrer_releve_compteur($1,$2,125,'2026-09-01')",[org,compteur]);
-      expect(Number((await db.query("select index_releve from releves_consommation where compteur_id=$1",[compteur])).rows[0].index_releve)).toBe(125);
+      const remplacer = () => id("select remplacer_compteur($1,$2,'2026-08-15',110,300,'NEUF-06') id",[org,compteur]);
+      const neuf = await remplacer();
+      expect(await remplacer()).toBe(neuf);
+      await db.query("select enregistrer_releve_compteur($1,$2,315,'2026-09-01')",[org,neuf]);
+      expect((await db.query("select ancien_id,nouveau_id from remplacements_compteur where ancien_id=$1",[compteur])).rows).toEqual([{ancien_id:compteur,nouveau_id:neuf}]);
       const contrat = await id("insert into contrats_fourniture(organization_id,bien_id,lot_id,fournisseur,categorie) values($1,$2,$3,'Eau fictive SI-06','eau') returning id",[org,bien,lot]);
       const justificatif = await id("insert into documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'justificatif','Facture SI-06',$1::uuid::text||'/si06.pdf','application/pdf',123,repeat('a',64)) returning id",[org]);
       const facture = await id("insert into factures_fourniture(organization_id,contrat_id,document_id,reference,periode_debut,periode_fin,total_cents,consommation,unite_consommation) values($1,$2,$3,'EAU-SI06','2026-08-01','2026-09-01',6000,25,'m3') returning id",[org,contrat,justificatif]);
-      const repartition = await id("select preparer_repartition_fourniture($1,$2,'Consommation relevée du lot SI-06','consommations') id", [facture, JSON.stringify([{lot_id:lot,bail_id:bail,compteur_id:compteur,poids:1,poids_fixe:1,recuperable:true}])]);
+      const repartition = await id("select preparer_repartition_fourniture($1,$2,'Consommation relevée du lot SI-06','consommations') id", [facture, JSON.stringify([[compteur,"2026-08-01","2026-08-15"],[neuf,"2026-08-15","2026-09-01"]].map(([compteur_id,periode_debut,periode_fin])=>({lot_id:lot,bail_id:bail,compteur_id,periode_debut,periode_fin,poids:1,poids_fixe:1,recuperable:true})))]);
       const calcul = (await db.query("select statut,empreinte,total_recuperable_cents from repartitions_fourniture where id=$1",[repartition])).rows[0];
       expect(Number(calcul.total_recuperable_cents)).toBe(6000);
       expect(calcul.statut).not.toBe("validee");

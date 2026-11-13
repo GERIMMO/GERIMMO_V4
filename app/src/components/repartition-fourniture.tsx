@@ -14,7 +14,7 @@ import { csvRepartitionFourniture } from "@/lib/export-repartition-fourniture";
 import { Button } from "./ui/button";
 import { BoutonEnvoi } from "./ui/bouton-envoi";
 import { indexDate } from "@/lib/controle-compteur-general";
-import { compteursPourFacture, fluideCompatible } from "@/lib/compteurs-facture";
+import { chainesDocumentees, fluideCompatible } from "@/lib/compteurs-facture";
 import { CATEGORIES_FOURNITURE, type DemandeReleve, type CompteurConsommation, type ReleveConsommation, type FactureFourniture } from "@/lib/consommations";
 import { CircleCheck, ClipboardList, House, Droplets, Coins } from "lucide-react";
 import styles from "./consommations.module.css";
@@ -44,7 +44,7 @@ export function RepartitionFacture({ pleinePage = false, cles = [], bienId, orgI
   const mesure = ["eau","electricite_commune","gaz","chauffage"].includes(categorie);
   const egales = !!facture && partsEgalesEnregistrees(cles, lots, facture.periode_debut, facture.periode_fin);
   const [mode, changerMode] = useState(reglages?.mode_interface === "egales" && egales ? "egales" : methodeConseillee(categorie,lots,compteurs,facture?.periode_debut ?? aujourdhui,reglages?.mode_interface));
-  const relevesManquants = mode === "consommations" && !!facture && lots.some(l=>compteursPourFacture(compteurs,releves,facture,categorie,l.id).length===0);
+  const relevesManquants = mode === "consommations" && !!facture && lots.some(l=>chainesDocumentees(compteurs,releves,facture,categorie,l.id).length===0);
   const proposition = recuperationConseillee(categorie,lots,baux,facture?.periode_debut ?? aujourdhui,facture?.periode_fin ?? aujourdhui);
   const choixRecuperable = r && r.lignes.some(l=>l.bail_id) && proposition.eligibles>0 ? r.lignes.some(l=>l.recuperable) : proposition.coche;
   const cle = facture && cleApplicableAuDebut(cles, facture.periode_debut);
@@ -84,7 +84,12 @@ export function RepartitionFacture({ pleinePage = false, cles = [], bienId, orgI
         {mode === "consommations" && facture && <section><h3>Relevés des compteurs</h3><p>Le calcul réel exige les index aux dates de la facture. Sans ces relevés, la facture reste enregistrée : saisissez les index manquants ou demandez-les au locataire.</p>
           <div className={styles.tableDefile}><table className={styles.tableCalcul}><thead><tr><th>Logement</th><th>Index début<small>{formaterDate(facture.periode_debut)}</small></th><th>Index fin<small>{formaterDate(facture.periode_fin)}</small></th><th>Consommation</th></tr></thead>
           <tbody>{lots.map(lot => {
-            const disponibles = compteursPourFacture(compteurs, releves, facture, categorie, lot.id);
+            const chaines = chainesDocumentees(compteurs,releves,facture,categorie,lot.id);
+            const disponibles = chaines.map(c => c[0].compteur);
+            if (chaines.length === 1 && chaines[0].length > 1) return chaines[0].map(p => {
+              const debut = Number(indexDate(p.compteur,releves,p.debut)), fin = Number(indexDate(p.compteur,releves,p.fin));
+              return <tr key={p.compteur.id}><th scope="row">{lot.nom}<small>{p.compteur.numero ?? p.compteur.libelle} · {formaterDate(p.debut)} au {formaterDate(p.fin)}</small></th><td>{debut}</td><td>{fin}</td><td>{fin >= debut ? quantite(fin-debut,p.compteur.unite) : "Index à vérifier"}</td></tr>;
+            });
             const compteur = disponibles.length === 1 ? disponibles[0] : undefined;
             const debut = compteur ? indexDate(compteur, releves, facture.periode_debut) : null;
             const fin = compteur ? indexDate(compteur, releves, facture.periode_fin) : null;

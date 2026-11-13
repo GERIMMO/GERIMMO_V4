@@ -28,7 +28,7 @@ export async function DocumentsParcoursBail({ orgId, bailId, lotId, bienId, anne
   const aujourd = aujourdhuiParis();
   const referenceDate = dateDebut && dateDebut > aujourd ? dateDebut : aujourd;
   const champs = "id,type,date_realisation,date_expiration,document_id,classe_dpe,document:documents!diagnostics_document_meme_org_fk(id,purged_at)";
-  const champsDocument = "id,titre,type,purged_at,created_at,expire_le,mime_type,versions:documents!documents_remplace_id_fkey(id,purged_at)";
+  const champsDocument = "id,titre,type,purged_at,created_at,expire_le,mime_type,versions:documents!remplace_id(id,purged_at)";
   const [lot, bien, docsBail, docsLot, batiment, qualifications, pieces, reglement, assurancesDisponibles] = await Promise.all([
     db.from("diagnostics").select(champs).eq("organization_id", orgId).eq("lot_id", lotId).is("archived_at", null).order("date_realisation", { ascending: false }),
     db.from("diagnostics").select(champs).eq("organization_id", orgId).eq("bien_id", bienId).is("lot_id", null).is("archived_at", null).order("date_realisation", { ascending: false }),

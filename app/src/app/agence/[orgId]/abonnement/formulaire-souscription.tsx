@@ -222,8 +222,11 @@ export function FormulaireSouscription({
   const periodeEnLettres = choisie.periodicite === "annuel" ? "par an" : "par mois";
 
   if (!estAgence && unites === 0) return <p>Aucun bien actif à facturer. Le montant sera indiqué dès l’ajout de votre premier logement.</p>;
+  // G-25 (recette du 11/11/2026) : l'envoi quitte Gerimmo pour la page de paiement (redirection serveur) avant que
+  // l'envoi puisse être « confirmé » ; la périodicité choisie déclenchait alors « Quitter le site ? » et « Rester »
+  // bloquait la souscription. Rien n'est perdu en partant (deux choix, aucune saisie libre) : formulaire non suivi.
   return (
-    <form data-saisie-confirmee action={action} className={estAgence ? "space-y-4" : styles.formulaire}>
+    <form data-saisie-libre action={action} className={estAgence ? "space-y-4" : styles.formulaire}>
       {!estAgence && (
         <fieldset className={styles.periodicite}>
           <legend>Choisir la périodicité</legend>

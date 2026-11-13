@@ -115,14 +115,26 @@ async function chargerCatalogue() {
 // Rend { direction: 'un' (parent porte la FK → objet) | 'plusieurs' (la table
 // embarquée porte la FK → tableau), colsParent, colsEmbed }.
 function resoudreRelation(tableParent, tableEmbed, fkNom) {
-  const candidats = fkNom
-    ? [catalogue.fkParNom.get(fkNom)].filter(Boolean)
-    : catalogue.fks.filter(
-        (f) =>
-          (f.table_source === tableParent && f.table_cible === tableEmbed) ||
-          (f.table_source === tableEmbed && f.table_cible === tableParent),
-      );
+  const entreLesDeux = (f) =>
+    (f.table_source === tableParent && f.table_cible === tableEmbed) ||
+    (f.table_source === tableEmbed && f.table_cible === tableParent);
+  // Comme PostgREST 14 (vérifié sur la 14.5 de production) : l'indice nomme une contrainte reliant
+  // les deux tables, ou une colonne d'une de ces contraintes. Sur une auto-relation (table reliée à
+  // elle-même), le nom de contrainte est refusé (PGRST200) et l'indice par colonne rend les lignes
+  // qui pointent vers la ligne parente (un-à-plusieurs) — l'émulateur rendait l'inverse.
+  const autoRelation = tableParent === tableEmbed;
+  const parNom = fkNom ? catalogue.fkParNom.get(fkNom) : null;
+  const parColonne = fkNom && !parNom
+    ? catalogue.fks.filter((f) => entreLesDeux(f) && f.cols_source.length === 1 && f.cols_source[0] === fkNom)
+    : [];
+  const candidats = !fkNom ? catalogue.fks.filter(entreLesDeux)
+    : parNom ? [parNom].filter((f) => entreLesDeux(f) && !autoRelation)
+    : parColonne;
   if (!candidats.length) throw erreurRest(400, "PGRST200", `Relation introuvable entre ${tableParent} et ${tableEmbed}${fkNom ? ` via ${fkNom}` : ""}`);
+  if (autoRelation && candidats.length === 1) {
+    const fk = candidats[0];
+    return { direction: "plusieurs", colsParent: fk.cols_cible, colsEmbed: fk.cols_source };
+  }
   if (!fkNom && candidats.length > 1) {
     // Plusieurs FK : PostgREST exige la désambiguïsation — comme lui, on refuse.
     throw erreurRest(400, "PGRST201", `Relation ambiguë entre ${tableParent} et ${tableEmbed} : préciser !fk`);

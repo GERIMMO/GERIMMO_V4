@@ -71,7 +71,7 @@ function PdfEtatDesLieux({ orgId, edlId, retour, revision, lectureSeule }: { org
   </>;
 }
 
-export function FinaliserParcoursBail({ orgId, bailId, code, edlId, preparationEdl, proprietaireDirect = false, documentSigne = null, lectureSeule = false, recapitulatifStructure = false }: {
+export function FinaliserParcoursBail({ orgId, bailId, code, edlId, preparationEdl, signatureManuelle, proprietaireDirect = false, documentSigne = null, lectureSeule = false, recapitulatifStructure = false }: {
   orgId: string; bailId: string; code: CodeModele; signataires: { id: string; nom: string }[]; edlId: string | null;
   preparationEdl: ReactNode; signatureManuelle: ReactNode; proprietaireDirect?: boolean; documentSigne?: string | null;
   lectureSeule?: boolean; recapitulatifStructure?: boolean;
@@ -129,5 +129,8 @@ export function FinaliserParcoursBail({ orgId, bailId, code, edlId, preparationE
     </div>
     {lectureSeule && <p className={styles.message}>Consultation uniquement. Le propriétaire gère la signature et l’activation depuis son espace.</p>}
     {proprietaireDirect && !lectureSeule && <SignatureElectroniqueBail orgId={orgId} bailId={bailId} manquantsDejaAffiches={recapitulatifStructure ? controle?.manquants : undefined}/>}
+    {/* G-01 : un bail signé hors de Gerimmo (papier, autre prestataire) se dépose ici ; c'est aussi là que s'active
+        un bail déjà signé. Les contrôles restent côté serveur (mentions obligatoires, dépôt PDF, activation). */}
+    {!lectureSeule && signatureManuelle}
   </section>;
 }

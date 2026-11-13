@@ -65,22 +65,23 @@ jobs:
       - name: Client PostgreSQL 18 (même version que le serveur)
         run: |
           set -euo pipefail
-          # Le runner Noble utilise une liste de miroirs. Vérifier un miroir HTTPS
-          # joignable pour les quatre suites ; APT contrôle les signatures Ubuntu.
+          # Garder les miroirs disponibles : un miroir qui sert InRelease peut
+          # devenir inaccessible pendant le téléchargement des navigateurs.
           if [ -f /etc/apt/apt-mirrors.txt ]; then
-            disponible=0
-            for miroir in https://mirrors.edge.kernel.org/ubuntu https://mirror.math.princeton.edu/pub/ubuntu https://archive.ubuntu.com/ubuntu; do
+            miroirs=$(mktemp)
+            for miroir in https://archive.ubuntu.com/ubuntu https://mirror.math.princeton.edu/pub/ubuntu https://mirrors.edge.kernel.org/ubuntu; do
               disponible=1
               for suite in noble noble-updates noble-backports noble-security; do
                 curl --fail --silent --show-error --max-time 10 -o /dev/null "$miroir/dists/$suite/InRelease" || { disponible=0; break; }
               done
               if [ "$disponible" = 1 ]; then
-                echo "$miroir" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
-                break
+                echo "$miroir" >> "$miroirs"
               fi
             done
-            test "$disponible" = 1
+            test -s "$miroirs"
+            sudo install -m 0644 "$miroirs" /etc/apt/apt-mirrors.txt
           fi
+          echo 'Acquire::Retries "3";' | sudo tee /etc/apt/apt.conf.d/85-gerimmo-retries >/dev/null
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSL --retry 3 --retry-all-errors --connect-timeout 10 --max-time 45 -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null

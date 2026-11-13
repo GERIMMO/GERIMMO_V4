@@ -17,9 +17,11 @@ async function contexte(orgId: string, bailId: string) {
   return { ...acces, bail: data };
 }
 function actualiser(orgId: string, bailId: string) {
-  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  revalidatePath(`/agence/${orgId}/parc`, "layout");
-  revalidatePath(`/agence/${orgId}/personnes`);
+  for (const espace of ["agence", "espace"]) {
+    revalidatePath(`/${espace}/${orgId}/baux/${bailId}`);
+    revalidatePath(`/${espace}/${orgId}/parc`, "layout");
+    revalidatePath(`/${espace}/${orgId}/personnes`);
+  }
 }
 
 export async function choisirPersonneBail(orgId: string, bailId: string, _etat: EtatPersonnesBail, form: FormData): Promise<EtatPersonnesBail> {

@@ -285,7 +285,8 @@ export function FormulaireLoyers({
     {}
   );
   const idNumeroRecommande = useId();
-  const impaye = echeancier.some((l) => l.statut === "impaye");
+  const recouvrementOuvert = decompteSortie === "non_finalise";
+  const impaye = recouvrementOuvert && echeancier.some((l) => l.statut === "impaye");
   // Audit du 27/09 : l'exercice proposé est couvert par le bail.
   const anneeDefaut = exerciceRegularisationParDefaut(dateDebut, dateFin, aujourdhui);
   // D38 : l'année choisie pilote l'avertissement « exercice non terminé » et la case de confirmation (le serveur revérifie).
@@ -335,10 +336,10 @@ export function FormulaireLoyers({
             l'écran Loyers & charges ; « En avance » quand le locataire a
             versé plus que dû (24/09). */}
         <div className={`kpi ${solde > 0 ? "rouge" : "vert"}`}>
-          <span className="eyebrow">{solde < 0 ? "En avance" : "Reste dû"}</span>
+          <span className="eyebrow">{!recouvrementOuvert ? "Écart appels / encaissements" : solde < 0 ? "En avance" : "Reste dû"}</span>
           <span className="chiffre block">{eur(Math.abs(solde))}</span>
           <span className="block text-xs text-muted-foreground">
-            {solde > 0
+            {!recouvrementOuvert ? (decompteSortie === "finalise" ? "Consulter le décompte de départ" : "Décompte à vérifier") : solde > 0
               ? "à régler par le locataire"
               : solde < 0
                 ? "versé d'avance par le locataire"
@@ -366,7 +367,7 @@ export function FormulaireLoyers({
 
       {/* Saisir un encaissement.
           En erreur, la saisie est reposée via etatEnc.valeurs (recette 22/08) */}
-      <div className="space-y-2">
+      {recouvrementOuvert && <div className="space-y-2">
         <p className="text-sm font-medium">Saisir un encaissement</p>
         <form data-saisie-confirmee action={formEnc} className="flex flex-wrap items-end gap-2">
           {/* D05 : la clé de CET envoi, rejouée telle quelle tant que le serveur n'a pas confirmé l'enregistrement. */}
@@ -420,7 +421,7 @@ export function FormulaireLoyers({
             <p className="w-full text-sm text-success-soft-foreground">{etatEnc.succes}</p>
           )}
         </form>
-      </div>
+      </div>}
 
       {/* Échéancier */}
       {echeancier.length > 0 && (
@@ -450,7 +451,7 @@ export function FormulaireLoyers({
                 <span
                   className={`shrink-0 ${COULEURS_STATUT_APPEL_LOYER[l.statut] ?? COULEURS_STATUT_APPEL_LOYER.attendu}`}
                 >
-                  {STATUTS_APPEL_LOYER[l.statut] ?? "État du paiement à vérifier"}
+                  {decompteSortie === "finalise" && l.montant_couvert < l.montant_du ? "Au décompte de départ" : STATUTS_APPEL_LOYER[l.statut] ?? "État du paiement à vérifier"}
                 </span>
                 {(() => {
                   const q = quittanceParAppel.get(l.appel_id);
@@ -683,7 +684,7 @@ export function FormulaireLoyers({
           </ul>
         )}
         {/* En erreur, la saisie est reposée via etatRel.valeurs (recette 22/08) */}
-        <form data-saisie-confirmee action={formRel} className="flex flex-wrap items-end gap-2">
+        {recouvrementOuvert && <form data-saisie-confirmee action={formRel} className="flex flex-wrap items-end gap-2">
           <select name="niveau" aria-label="Niveau de relance" defaultValue={etatRel.valeurs?.niveau ?? "relance_1"} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
             <option value="relance_1">Relance 1</option>
             <option value="relance_2">Relance 2</option>
@@ -711,7 +712,7 @@ export function FormulaireLoyers({
           </BoutonEnvoi>
           {etatRel.erreur && <p className="w-full text-sm text-destructive">{etatRel.erreur}</p>}
           {etatRel.succes && <p className="w-full text-sm text-success-soft-foreground" role="status">{etatRel.succes}</p>}
-        </form>
+        </form>}
         <p className="text-sm text-muted-foreground">
           La mise en demeure part en lettre recommandée avec accusé de réception, hors de la plateforme ; saisissez la date de première présentation
           (le délai court de là).

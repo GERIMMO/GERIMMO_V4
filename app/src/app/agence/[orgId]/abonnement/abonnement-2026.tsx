@@ -109,7 +109,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   const base = baseEspace(orgId, estProprietaire);
   if (!["admin_agence", "proprietaire_direct"].includes(role)) notFound();
   const estAgence = organisation.type === "agence";
-  const unite = estAgence ? "lot sous mandat" : "bien";
+  const unite = estAgence ? "lot sous mandat" : "lot";
 
   const [{ data: etatBrut, error: erreurEtat }, { data: paiementBrut, error: erreurPaiement }, garde, ligneRetractation, { data: fermetureBrute }] = await Promise.all([
     supabase.rpc("etat_abonnement", { p_org: orgId }),
@@ -414,8 +414,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             </div>
             <div className={styles.indicateurs}>
               <div>
-                <span><Building2 size={16} aria-hidden="true" /> Biens en gestion</span>
+                <span><Building2 size={16} aria-hidden="true" /> Lots comptés dans cet espace</span>
                 <strong>{enGestion}{souscrit && capacite !== null && <small> / {capacite} inclus</small>}</strong>
+                <small>Les lots en préparation sont inclus. Les lots archivés et les biens retirés sont exclus.</small>
                 <Link href={`${base}/parc`}>Voir mes lots <ArrowRight size={13} aria-hidden="true" /></Link>
               </div>
               <div>
@@ -456,7 +457,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
         </div>
         <div className="ligne-info">
-          <span>{estAgence ? "Lots sous mandat actif" : "Biens en gestion"}</span>
+          <span>{estAgence ? "Lots sous mandat actif" : "Lots comptés dans cet espace"}</span>
           <span className="montant font-medium">{enGestion}</span>
         </div>
         {souscrit && (

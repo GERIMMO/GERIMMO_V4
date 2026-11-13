@@ -43,7 +43,7 @@ G-36	P2	confirmé	Génération des PDF lente (68 à > 120 s), état non mémoris
 G-37	P2	confirmé	Bibliothèque : impossible de supprimer un dépôt ou de le rattacher à un bien/lot ; 5 types au dépôt contre 14 au filtre	à requalifier sur le candidat
 G-38	P2	confirmé	Panneau « N alertes à traiter » ouvert en surimpression au chargement, qui intercepte les clics	à requalifier sur le candidat
 G-39	P2	confirmé	Débordement horizontal à 390 px sur le volet incident (bloc réseau indisponible : 446 px)	à requalifier sur le candidat
-G-112	P2	confirmé (copie isolée)	Débordement horizontal à 390 px sur l'onglet « Départ » d'un bail terminé (442 px)	Bail terminé minimal sur 67cd1226 : 390/390 px, aucun dépassement. Rejouer avec toutes les lignes historiques du décompte.
+G-112	P2	confirmé (copie isolée)	Débordement horizontal à 390 px sur l'onglet « Départ » d'un bail terminé (442 px)	PR 323, 37f7cfa4 : bail terminé, solde, retenue et relocation sur lot fictif à 390 et 1 440 px. 2/2 Chromium ; WebKit 390 px : contenu et écran de 390 px.
 G-40	P2	confirmé	Attestation déjà expirée acceptée et substituée à la version valide ; « échéance à anticiper » pour une pièce expirée	inclus PR 289, en attente de publication
 G-41	P2	confirmé	Artisan au téléphone et à la tablette : 4 entrées seulement, pas de menu ; facturation, clients, attestations cachés	à requalifier sur le candidat
 G-42	P2	confirmé	« Exporter mon registre » produit un JSON technique inutilisable par l'artisan ou son comptable	à requalifier sur le candidat
@@ -71,7 +71,7 @@ G-61	P3	confirmé (banc isolé)	En lecture seule, « Ajouter un bien » laisse r
 G-62	P3	confirmé (banc isolé)	États d'abonnement intermédiaires trompeurs (essai non signalé après souscription ; écran contradictoire avant confirmation du prestataire)	à requalifier sur le candidat
 G-63	P3	confirmé	Écart compteur général / divisionnaires toujours laissé au propriétaire, sans option de répartition par la clé	à requalifier sur le candidat
 G-115	P3	confirmé (copie isolée)	Relance difficile à retrouver après « Pas encore reçu » ; arriéré absent de Finances	à requalifier sur le candidat
-G-116	P3	confirmé (copie isolée)	Bouton « Signature Zoho · SMS » encore affiché sur un état des lieux signé et figé	à requalifier sur le candidat
+G-116	P3	confirmé (copie isolée)	Bouton « Signature Zoho · SMS » encore affiché sur un état des lieux signé et figé	PR 327, 9597b2e5 : en-tête de la grille et résumé du bail corrigés. PDF consultable ; aucun nouveau geste de signature depuis l’EDL signé. 1 régression reproduite, 26/26 réussis ; CI à confirmer.
 G-64	P3	suspecté	Finances du bien : « Dépenses 0,00 € » alors qu'une facture de 600 € est enregistrée et répartie	à requalifier sur le candidat
 G-65	P3	confirmé	Le paiement d'une facture d'eau crée une écriture de catégorie « Autre »	à requalifier sur le candidat
 G-66	P3	confirmé	Chantier externe démarré et terminé avant la date du rendez-vous, sans avertissement	à requalifier sur le candidat

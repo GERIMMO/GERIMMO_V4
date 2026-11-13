@@ -309,7 +309,7 @@ export default async function LayoutAgence({
           </p>
         )}
         {estProprietaire && <span id="contenu-espace" tabIndex={-1} className="sr-only" />}
-        {piloteLimite()&&<p role="status" className="mx-4 my-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">Envois sous contrôle : les relances collectives et courriers d’abonnement restent suspendus. Vos dossiers restent disponibles ; contactez l’assistance pour ces envois.</p>}
+        {piloteLimite()&&<p role="status" className="mx-4 my-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">Les relances de loyer par e-mail, les avis d’échéance et les courriers d’abonnement sont suspendus. Vous pouvez préparer vos relances en PDF.</p>}
         {children}
         <BarreBasse espace={espace} navigation={navigation} orgId={orgId} racine={racine} organisations={estProprietaire ? [] : organisations} />
       </div>

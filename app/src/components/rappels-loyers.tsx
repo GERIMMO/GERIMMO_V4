@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { aujourdhuiParis } from "@/lib/ged";
 import { enrichirRappelsLoyers, lireRappelsLoyers, organiserRappelsLoyers } from "@/lib/rappels-loyers";
+import { piloteLimite } from "@/lib/perimetre-pilote";
 import { courrierDisponible } from "@/lib/paliers-reception-loyer";
 import { preparerMoteurPdfLocal } from "@/lib/documents/rendu";
 import { RappelsLoyersInteractifs } from "./rappels-loyers-interactifs";
@@ -14,5 +15,5 @@ export async function RappelsLoyers({ supabase, orgId, lectureSeule = false, dan
   const rappels = rappelsLus ?? organiserRappelsLoyers(lignes, aujourdHui);
   const dus = rappelsLus ? rappelsLus.dus : await enrichirRappelsLoyers(supabase, orgId, rappels.dus, aujourdHui);
   if (!lectureSeule && dus.some(ligne => courrierDisponible(ligne, aujourdHui))) preparerMoteurPdfLocal();
-  return <RappelsLoyersInteractifs key={orgId} orgId={orgId} aujourdHui={aujourdHui} lectureSeule={lectureSeule} {...rappels} dus={dus} dansFenetre={dansFenetre} />;
+  return <RappelsLoyersInteractifs envoiRelanceDisponible={!piloteLimite()} key={orgId} orgId={orgId} aujourdHui={aujourdHui} lectureSeule={lectureSeule} {...rappels} dus={dus} dansFenetre={dansFenetre} />;
 }

@@ -7,7 +7,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => {
   mocks.update.mockReturnValue(q); mocks.eq.mockReturnValue(q);
   return { rpc: mocks.rpc, from: () => q };
 } }));
-import { reglerBlocageSouscription } from "@/app/actions/reglage-souscription";
+import { reglerBlocageSouscription, reglerOuvertureVentes } from "@/app/actions/reglage-souscription";
 
 function form(blocage = "lever", revision = "4") {
   const f = new FormData(); f.set("blocage", blocage); f.set("revision", revision); return f;
@@ -56,4 +56,18 @@ describe("réglage du blocage des souscriptions", () => {
     expect(r.erreur).toBeTruthy(); expect(r.succes).toBeUndefined();
     expect(mocks.revalidate).not.toHaveBeenCalled();
   });
+});
+
+it("demande confirmation pour ouvrir, permet de refermer, sans changer la règle d’identité", async () => {
+  const f = form();
+  f.set("ventes", "ouvrir");
+  expect((await reglerOuvertureVentes({}, f)).erreur).toBeTruthy();
+  expect(mocks.update).not.toHaveBeenCalled();
+  f.set("confirmation", "oui");
+  expect((await reglerOuvertureVentes({}, f)).succes).toBeTruthy();
+  expect(mocks.update).toHaveBeenCalledWith({ souscriptions_payantes_ouvertes: true, revision: 5 });
+  f.delete("confirmation");
+  f.set("ventes", "fermer");
+  expect((await reglerOuvertureVentes({}, f)).succes).toBeTruthy();
+  expect(mocks.update).toHaveBeenCalledWith({ souscriptions_payantes_ouvertes: false, revision: 5 });
 });

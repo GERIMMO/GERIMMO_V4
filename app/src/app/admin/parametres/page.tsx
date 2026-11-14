@@ -6,7 +6,7 @@ import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { faitsACompleter, faitsManquants } from "@/lib/editeur";
 import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
-import { BlocageSouscription } from "./blocage-souscription";
+import { BlocageSouscription, OuvertureVentes } from "./blocage-souscription";
 
 export const metadata = { title: "Paramètres généraux" };
 
@@ -53,6 +53,7 @@ export default async function PageParametres() {
       </section>
 
       <ConsoleSection id="souscriptions" titre="Ouverture des abonnements" description="Règle de blocage si l’identité de Gerimmo est incomplète." icone="securite" ton="ambre" statut={indisponible || regle.revision === null ? "Lecture indisponible" : manquants.size ? `${manquants.size} à fournir` : 'Identité requise complète'}>
+        <OuvertureVentes ouvertes={regle.ventesOuvertes} revision={regle.revision} />
         <BlocageSouscription actif={regle.blocageIdentiteActif} revision={regle.revision} manquants={[...manquants]} aCompleter={[...aCompleter]} />
       </ConsoleSection>
 

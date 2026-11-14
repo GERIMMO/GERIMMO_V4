@@ -539,7 +539,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             regime={REGIME_TVA}
             premierPrelevement={premierPrelevement}
             ferme={ferme}
-            motifIndisponible={!souscrit && reglages.pret && nouvellesSouscriptionsFermees() ? MESSAGE_SOUSCRIPTIONS_FERMEES : motifIndisponible}
+            motifIndisponible={!souscrit && reglages.pret && nouvellesSouscriptionsFermees(garde.ventesOuvertes) ? MESSAGE_SOUSCRIPTIONS_FERMEES : motifIndisponible}
             conditionsAAccepter={!garde.conditionsAcceptees}
             dateLimiteRetractation={jourEnLettres(dernierJourRetractation(new Date()))}
           />

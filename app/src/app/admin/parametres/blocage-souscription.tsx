@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
-import { reglerBlocageSouscription } from "@/app/actions/reglage-souscription";
+import { reglerBlocageSouscription, reglerOuvertureVentes } from "@/app/actions/reglage-souscription";
 
 /**
  * `manquants` : les faits REQUIS absents, seuls à fermer le paiement ; `aCompleter` : ceux du médiateur, qui ne
@@ -24,13 +24,13 @@ export function BlocageSouscription({ actif, revision, manquants, aCompleter }: 
       </div>
       <p className="text-sm">
         {actif
-          ? "Les informations légales requises manquantes bloquent les nouvelles souscriptions et les augmentations payantes. Le médiateur de la consommation, même absent, ne bloque rien."
+          ? "Les informations légales requises manquantes bloquent les nouvelles souscriptions et les augmentations payantes. Pour un particulier, les coordonnées du médiateur restent requises avant une première commande."
           : "Les souscriptions et augmentations payantes peuvent continuer même si des informations légales manquent."}
       </p>
       {manquants.length > 0
         ? <p className="text-sm text-[var(--texte-secondaire)]">À compléter : {manquants.join(", ")}. Lever ce blocage ne complète pas les mentions légales.</p>
         : aCompleter.length > 0
-          ? <p className="text-sm text-[var(--texte-secondaire)]">L’identité requise est complète ; reste à compléter, sans rien bloquer : {aCompleter.join(", ")}. Cette règle ne bloque actuellement aucune souscription.</p>
+          ? <p className="text-sm text-[var(--texte-secondaire)]">L’identité requise est complète ; reste à compléter pour une première souscription particulière : {aCompleter.join(", ")}.</p>
           : <p className="text-sm text-[var(--texte-secondaire)]">L’identité est complète : cette règle ne bloque actuellement aucune souscription.</p>}
       <p className="text-sm text-[var(--texte-secondaire)]">Les contrôles Stripe, les montants, la confirmation du client et l’acceptation des conditions restent obligatoires. Aucun paiement n’est déclenché par ce bouton.</p>
       {revision === null
@@ -47,4 +47,20 @@ export function BlocageSouscription({ actif, revision, manquants, aCompleter }: 
       <Link className="lien-discret inline-block" href="/admin/journaux?registre=supervision_identite">Historique des changements →</Link>
     </section>
   );
+}
+
+export function OuvertureVentes({ ouvertes, revision }: { ouvertes: boolean; revision: number | null }) {
+  const [etat, action, pending] = useActionState(reglerOuvertureVentes, {});
+  return <section className="loc-carte space-y-3">
+    <h3>Nouvelles souscriptions payantes · {revision === null ? "État indisponible" : ouvertes ? "Ouvertes" : "Fermées"}</h3>
+    <p>Les propriétaires du pilote gardent leur accès gratuit. Les abonnements en cours continuent normalement.</p>
+    {revision !== null && <form key={revision} action={action} className="space-y-3" data-saisie-confirmee>
+      <input type="hidden" name="revision" value={revision} />
+      <input type="hidden" name="ventes" value={ouvertes ? "fermer" : "ouvrir"} />
+      {!ouvertes && <label className="block"><input type="checkbox" name="confirmation" value="oui" required /> J’autorise les nouvelles souscriptions payantes.</label>}
+      <BoutonEnvoi enCours={pending} enCoursTexte="Enregistrement…">{ouvertes ? "Fermer les souscriptions" : "Ouvrir les souscriptions"}</BoutonEnvoi>
+    </form>}
+    {etat.erreur && <p role="alert">{etat.erreur}</p>}
+    {etat.succes && <p role="status">{etat.succes}</p>}
+  </section>;
 }

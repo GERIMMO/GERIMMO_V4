@@ -51,6 +51,7 @@ export async function santeFacebook(): Promise<SanteFacebook> {
     const page = await lireMeta<{ name: string; followers_count?: number; link?: string }>(pageId, {
       fields: "name,followers_count,link",
     }, jeton);
+    if (!page?.name?.trim()) return { configure: true, erreur: "Meta ne confirme pas l’identité de la Page." };
     return { configure: true, nom: page.name, abonnes: page.followers_count, lien: page.link };
   } catch (erreur) {
     return { configure: true, erreur: messageMetaLisible(erreur, "Connexion Facebook momentanément indisponible.") };

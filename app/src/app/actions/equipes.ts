@@ -81,9 +81,9 @@ export async function demanderCorrection(_etat:RetourMission,form:FormData):Prom
   if(prise.error||!prise.data)return {erreur:'Cette proposition est déjà en préparation ou a changé. Actualisez le suivi.'};
   p=prise.data;statutPrecedent=avant.data.statut;
  }else{
- const {data:creee,error:creation}=await db.from('development_proposals').insert({source:'supervision',titre:demande.slice(0,100),probleme:demande,statut:'a_etudier',risque:'moyen',autorisation_requise:true}).select('id').single();
+ const {data:creee,error:creation}=await db.from('development_proposals').insert({source:'supervision',titre:demande.slice(0,100),probleme:demande,statut:'en_developpement',risque:'moyen',autorisation_requise:true}).select('id').single();
  if(creation||!creee)return {erreur:'La demande n’a pas pu être enregistrée.'};
- p=creee;
+ p=creee;statutPrecedent='a_etudier';
  }
  const restaurer=async()=>{
   if(!statutPrecedent)return;
@@ -97,8 +97,9 @@ export async function demanderCorrection(_etat:RetourMission,form:FormData):Prom
  catch(e){await restaurer();return {erreur:`La demande est conservée, mais l’atelier n’a pas été lancé. ${messageGardeIA(e)??MESSAGE_CONTROLE_IA_INDISPONIBLE}`};}
  try{
   const r=await fetch('https://api.github.com/repos/GERIMMO/GERIMMO_V4/actions/workflows/atelier-code.yml/dispatches',{method:'POST',headers:{Authorization:`Bearer ${process.env.GITHUB_AGENT_TOKEN}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({ref:'main',inputs:{proposition:p.id,demande}}),redirect:'error',signal:AbortSignal.timeout(15000)});
-  if(!r.ok){await restaurer();return {erreur:'La demande est conservée mais l’atelier n’a pas confirmé son lancement. Vérifiez sa connexion, puis réessayez.'};}
-  await db.from('development_proposals').update({statut:'en_developpement'}).eq('id',p.id);
+  if(!r.ok){
+   if (r.status >= 500 || r.status === 408) return {erreur:"Résultat du lancement inconnu. Vérifiez l’historique de l’atelier avant toute reprise."};
+   await restaurer();return {erreur:'La demande est conservée mais l’atelier n’a pas confirmé son lancement. Vérifiez sa connexion, puis réessayez.'};}
   revalidatePath('/admin/autonomie');revalidatePath('/admin/equipes');return {succes:'L’atelier a accepté la demande. Retrouvez sa préparation, ses contrôles et sa démonstration dans le pilotage. Votre accord sera demandé avant publication.'};
- }catch{await restaurer();return {erreur:'La demande est conservée. Le lancement n’est pas confirmé : vérifiez l’atelier, puis réessayez.'};}
+ }catch{return {erreur:'Résultat du lancement inconnu. La demande reste en préparation. Vérifiez l’historique de l’atelier avant toute reprise.'};}
 }

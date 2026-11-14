@@ -33,6 +33,10 @@ describe('connexions Facebook et publicité séparées', () => {
     requete.mockResolvedValue(reponse({ data: [{ id: "campagne", name: "Exemple", insights: { data: [{ clicks: "0" }] } }] }));
     expect((await campagnesFacebook()).campagnes[0]).toMatchObject({ clics: 0, portee: null, impressions: null, depense: null });
   });
+  it("une réponse HTTP réussie sans Page identifiable demande une vérification", async () => {
+    requete.mockResolvedValue(reponse({}));
+    expect(await santeFacebook()).toMatchObject({ configure: true, erreur: expect.any(String) });
+  });
   it('lit la publicité sans exiger une clé de Page', async () => {
     vi.stubEnv('META_FACEBOOK_PAGE_ACCESS_TOKEN', '');
     requete.mockResolvedValue(reponse({ data: [] }));

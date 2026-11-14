@@ -73,20 +73,23 @@ afterEach(() => {
 });
 
 describe("l'atelier et la proposition (B3, B13)", () => {
-  it("remet la proposition à l'étude quand l'atelier ne confirme pas", async () => {
+  it("remet la proposition à l'étude quand GitHub refuse la demande", async () => {
     const b = base("detectee");
-    mocks.fetch.mockResolvedValue({ ok: false });
+    mocks.fetch.mockResolvedValue({ ok: false, status: 422 });
     const r = await demanderCorrection({}, form({ proposition: "11111111-1111-1111-1111-111111111111", demande: "Corriger le libellé du bouton" }));
     expect(r.erreur).toMatch(/réessayez/);
     expect(b.statut()).toBe("detectee");
   });
 
-  it("remet la proposition à l'étude quand l'appel à l'atelier lève", async () => {
+  it("interdit une seconde préparation après perte de la réponse GitHub", async () => {
     const b = base("a_etudier");
     mocks.fetch.mockRejectedValue(new Error("réseau"));
     const r = await demanderCorrection({}, form({ proposition: "11111111-1111-1111-1111-111111111111", demande: "Corriger le libellé du bouton" }));
-    expect(r.erreur).toMatch(/réessayez/);
-    expect(b.statut()).toBe("a_etudier");
+    expect(r.erreur).toMatch(/inconnu/);
+    expect(b.statut()).toBe("en_developpement");
+    const reprise = await demanderCorrection({}, form({ proposition: "11111111-1111-1111-1111-111111111111", demande: "Corriger le libellé du bouton" }));
+    expect(reprise.erreur).toBeTruthy();
+    expect(mocks.fetch).toHaveBeenCalledTimes(1);
   });
 
   it("laisse la proposition en préparation quand l'atelier a accepté", async () => {

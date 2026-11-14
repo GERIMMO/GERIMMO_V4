@@ -88,8 +88,9 @@ beforeEach(() => {
     m.ordre.push("stripe");
     return { ok: true, echeancierLibere: false, souscription: { id: "sub_test", items: { data: [{ current_period_end: FIN_S }] } } };
   });
-  m.envoyerEmail.mockImplementation(async () => {
+  m.envoyerEmail.mockImplementation(async ({contexteMetier}) => {
     m.ordre.push("courriel");
+    if(contexteMetier?.type==="accuse_resiliation") await m.serviceRpc("abonnement_resiliation_accusee",{p_subscription:contexteMetier.id,p_periode_fin:contexteMetier.fin,p_message:"msg_1",p_chemin:contexteMetier.chemin});
     return { erreur: null, id: "msg_1" };
   });
 });

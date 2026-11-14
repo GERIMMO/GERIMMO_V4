@@ -148,18 +148,18 @@ describe("R03 — la confirmation de la souscription", () => {
     expect(m.envois).toHaveLength(1);
     expect(m.envois[0]).toMatchObject({ to: "titulaire@example.invalid", subject: "Confirmation de votre abonnement Gerimmo", cleIdempotence: "souscription-sub_1" });
     expect(m.envois[0].html).toContain("adhésion en cours");
-    expect(appels.find((a) => a.nom === "abonnement_confirmation_envoyee")?.args).toMatchObject({ p_org: "org-1", p_subscription: "sub_1", p_message: "message-1" });
+    expect(m.envois[0]).toMatchObject({organisation:{id:"org-1"},contexteMetier:{type:"confirmation_abonnement",id:"sub_1",montant:599}});
     expect((r.reponse as { courriers?: Record<string, unknown> }).courriers).toEqual({ confirmation: "envoye" });
   });
 
   it("version archivée : le PDF de la version acceptée est joint", async () => {
     const s = souscription({});
-    const { supabase, appels, traces } = banc(RIEN, { archivee: true });
+    const { supabase, traces } = banc(RIEN, { archivee: true });
     await traiterEvenementStripe(supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.created", s));
     expect(m.envois).toHaveLength(1);
     expect(m.envois[0].piecesJointes).toEqual([{ nom: "conditions-generales-2026-09-30.pdf", contenuBase64: Buffer.from("%PDF").toString("base64") }]);
     expect(m.envois[0].html).toContain("sont jointes au format PDF");
-    expect(appels.find((a) => a.nom === "abonnement_confirmation_envoyee")?.args).toMatchObject({ p_piece_jointe: true });
+    expect(m.envois[0]).toMatchObject({contexteMetier:{document:true,version:"2026-09-30"}});
     expect(traces).toEqual([]);
   });
 
@@ -193,7 +193,7 @@ describe("R03 — la confirmation de la souscription", () => {
       await traiterEvenementStripe(supabase as never, stripeFictif(active).stripe, evenement("customer.subscription.updated", active));
       expect(m.envois).toHaveLength(1);
       expect(m.envois[0]).toMatchObject({ subject: "Confirmation de votre abonnement Gerimmo", cleIdempotence: "souscription-sub_1" });
-      expect(appels.some((a) => a.nom === "abonnement_confirmation_envoyee")).toBe(true);
+      expect(appels.some((a) => a.nom === "abonnement_confirmation_envoyee")).toBe(false); // La finalisation appartient au transport durable.
       // Déjà confirmée : une mise à jour ne renvoie rien.
       await traiterEvenementStripe(banc({ ...RIEN, confirmation_envoyee_le: "2026-10-26T09:05:00Z" }).supabase as never, stripeFictif(active).stripe, evenement("customer.subscription.updated", active));
       expect(m.envois).toHaveLength(1);
@@ -231,7 +231,8 @@ describe("R04 — l'accusé d'une résiliation notifiée hors de la page", () =>
     expect(m.envois).toHaveLength(1);
     expect(m.envois[0]).toMatchObject({ subject: "Votre résiliation Gerimmo est enregistrée", cleIdempotence: "resiliation-sub_1-2026-11-26" });
     expect(m.envois[0].html).toContain("3 novembre 2026 à 14 h 05");
-    expect(appels.find((a) => a.nom === "abonnement_resiliation_accusee")?.args).toMatchObject({ p_chemin: "webhook", p_periode_fin: "2026-11-26T09:00:00.000Z" });
+    expect(m.envois[0]).toMatchObject({contexteMetier:{type:"accuse_resiliation",chemin:"webhook",fin:"2026-11-26T09:00:00.000Z"}});
+    expect(appels.some(a=>a.nom==="abonnement_resiliation_accusee")).toBe(false);
   });
 
   it("déjà demandée avant l'événement, ou déjà accusée pour cette échéance : aucun second accusé", async () => {

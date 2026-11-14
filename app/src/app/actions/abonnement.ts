@@ -15,6 +15,7 @@ import {
   ouvrirPortailFacturation,
   verifierClientDeLOrganisation,
 } from "@/lib/stripe";
+import { createHash } from "node:crypto";
 import { envoyerAccuseResiliation } from "@/lib/courriers-contrat-envoi";
 import { ArretSupervision } from "@/lib/controle-effets";
 import { origineDeRetour } from "@/lib/site";
@@ -656,7 +657,7 @@ export async function resilierAbonnement(
       p_org: orgId,
       p_account: user?.id ?? null,
       p_action: resilier ? "abonnement_resiliation_notifiee" : "abonnement_resiliation_levee",
-      p_details: { souscription: souscription as string, chemin: "page", notifiee_le: notifieeLe.toISOString(), ...(resilier && nom ? { nom } : {}) },
+      p_details: { souscription: souscription as string, chemin: "page", notifiee_le: notifieeLe.toISOString(), ...(resilier && adresse ? { destinataire_empreinte:createHash("sha256").update(adresse.toLowerCase()).digest("hex") } : {}), ...(resilier && nom ? { nom } : {}) },
     });
     const r = await resilierAEcheance(verrou.proteger(clientStripe(reglages.config)), {
       subscription: souscription as string,

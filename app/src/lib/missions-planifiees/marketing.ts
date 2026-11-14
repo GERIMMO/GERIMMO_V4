@@ -9,7 +9,7 @@ import {redigerArticleVeille} from '@/lib/redaction-veille';
 import {couperAuMot} from '@/lib/utils';
 import {lireSourceEtude} from '@/lib/analyse-veille';
 import {creerVisuelMarketing} from '@/lib/visuel-marketing';
-import {envoyerSurFacebook} from '@/lib/facebook';
+import {envoyerSurFacebook,RefusFacebookCertain,retrouverPostFacebook} from '@/lib/facebook';
 import {alerterSuperviseurDuPost} from '@/lib/alerte-veto-marketing';
 import {composantesParis,dateParis} from '@/lib/heure-paris-calcul';
 import {PlafondIAAtteint,reserverAppelIA} from '@/lib/plafond-ia';
@@ -65,7 +65,13 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   const {data:article}=await db.from('publications').select(CHAMPS).eq('id',id).maybeSingle();
   if(!article)continue;
   const a=article as Article;
-  if(a.facebook_envoi_demarre_le){erreurs.push(`${a.id} : un envoi a déjà été engagé, à vérifier sur Facebook.`);continue;}
+  if(a.facebook_envoi_demarre_le){
+   const preuve=await retrouverPostFacebook({titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},a.facebook_envoi_demarre_le).catch(()=>null);
+   if(preuve){
+    const trace=await db.from('publications').update({facebook_post_id:preuve,facebook_publie_le:new Date().toISOString(),facebook_erreur:null}).eq('id',a.id).is('facebook_post_id',null);
+    if(!trace.error){await db.from('marketing_campagnes').update({statut:'terminee',fin_le:new Date().toISOString()}).eq('publication_id',a.id);diffuses.push(a.id);continue;}
+   }
+   erreurs.push(`${a.id} : un envoi a déjà été engagé, à vérifier sur Facebook.`);continue;}
   if(a.veille_source_id){
    const source=await db.from('regulatory_watch').select('titre').eq('id',a.veille_source_id).maybeSingle();
    if(source.error||!source.data){erreurs.push(`${a.id} : source de veille impossible à vérifier, diffusion suspendue.`);continue;}
@@ -73,9 +79,11 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   }
   // Parution sur le site : la base relit tout (accord, validation, texte complet, veille écartée).
   await verifierAvantEffet(db,'marketing');
-  const parution=await db.rpc('publier_article_automatique',{p_id:a.id,p_manuel:options.manuel===true});
-  if(parution.error){erreurs.push(`${a.id} : ${parution.error.message}`);continue;}
-  if(parution.data!==true){attentes.push(a.id);continue;}
+  if(a.statut!=='publiee'){
+   const parution=await db.rpc('publier_article_automatique',{p_id:a.id,p_manuel:options.manuel===true});
+   if(parution.error){erreurs.push(`${a.id} : ${parution.error.message}`);continue;}
+   if(parution.data!==true){attentes.push(a.id);continue;}
+  }
   const campagne=await db.from('marketing_campagnes').upsert({publication_id:a.id,nom:a.titre.slice(0,160),description:a.facebook_texte,canal:'facebook',nature:'organique',objectif:objectifEditorial(a.titre),statut:'idee',publication_prevue_le:null,budget_cents:0},{onConflict:'publication_id'});
   if(campagne.error){erreurs.push(`${a.id} : fiche de suivi indisponible, Facebook non tenté.`);continue;}
   const reservation=await db.rpc('reserver_diffusion_facebook',{p_id:a.id,p_automatique:true});
@@ -89,6 +97,11 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
    diffuses.push(a.id);
   }catch(e){
    if(e instanceof ArretSupervision)throw e;
+   if(e instanceof RefusFacebookCertain){
+    const reprise=await db.from('publications').update({facebook_envoi_demarre_le:null,facebook_erreur:'Refus confirmé. Reprise au prochain passage autorisé.'}).eq('id',a.id).is('facebook_post_id',null);
+    erreurs.push(reprise.error ? a.id+' : refus confirmé, suivi à vérifier.' : a.id+' : Facebook a refusé la publication.');
+    continue;
+   }
    await db.from('publications').update({facebook_erreur:'La confirmation Facebook manque. Vérifiez la Page avant de renvoyer pour éviter un doublon.'}).eq('id',a.id);
    erreurs.push(`${a.id} : confirmation Facebook manquante.`);
   }

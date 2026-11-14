@@ -30,7 +30,7 @@ export async function conserverCourriel(db:SupabaseClient,p:ChargeCourriel) {
  const {id,contenu}=identiteCourriel(p);
  // Les liens d’accès gardent 15 minutes. Une notification générique capturée dispose
  // de 12 heures, avec relecture obligatoire de sa source et des droits avant émission.
- const duree=p.contexteMetier?.type==='notification'&&p.contexteMetier.source?12*60*60_000:15*60_000;
+ const duree=['confirmation_abonnement','accuse_resiliation'].includes(p.contexteMetier?.type??'') ? 23*60*60_000 : p.contexteMetier?.type==='notification'&&p.contexteMetier.source?12*60*60_000:15*60_000;
  const r=await db.rpc('conserver_courriel',{p_id:id,p_org:p.organisationId??null,p_empreinte:empreinteCourriel(contenu),p_charge:chiffrerCourriel(id,p),p_expire:new Date(Date.now()+duree).toISOString()});
  if(r.error||r.data!==true)throw new Error('Conservation du courriel indisponible');
  if(p.contexteMetier){

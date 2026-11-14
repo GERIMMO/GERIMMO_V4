@@ -94,6 +94,26 @@ describe.skipIf(!DB_URL)("Marketing — fenêtre de veto", () => {
     expect((await db.query(`select public.reserver_diffusion_facebook($1, true) as ok`, [id])).rows[0].ok).toBe(true);
   });
 
+  it("reprend après parution sur le site, jamais après une tentative externe incertaine",async()=>{
+    const id=await brouillon();
+    await enService();
+    await db.query("select public.programmer_publication_marketing($1,now()-interval '1 minute')",[id]);
+    await db.query("select public.publier_article_automatique($1)",[id]);
+    const attendus=async()=> (await db.query("select count(*)::int as n from public.publications_marketing_echues() t(id) where id=$1",[id])).rows[0].n;
+    expect(await attendus()).toBe(1);
+    await db.query("reset role");
+    await db.query("update public.marketing_reglages set validation_obligatoire=true where singleton");
+    await enService();
+    const reserver=async()=> (await db.query("select public.reserver_diffusion_facebook($1,true) ok",[id])).rows[0].ok;
+    expect(await reserver()).toBe(false);
+    await db.query("reset role");
+    await db.query("update public.marketing_reglages set validation_obligatoire=false where singleton");
+    await enService();
+    expect(await reserver()).toBe(true);
+    expect(await attendus()).toBe(1); // Seul le rapprochement en lecture reste possible.
+    expect(await reserver()).toBe(false);
+  });
+
   it("un post sans visuel ne se programme pas", async () => {
     const id = await brouillon({ image: false });
     await enService();

@@ -1,5 +1,7 @@
 import { adresseDuSite } from "@/lib/site";
 
+export class RefusFacebookCertain extends Error {}
+
 export type PublicationFacebook = {
   id?: string;
   post_id?: string;
@@ -77,7 +79,7 @@ export async function envoyerSurFacebook(article: ArticleFacebook, avantEffet?: 
   const pageId = process.env.META_FACEBOOK_PAGE_ID?.trim();
   const jeton = process.env.META_FACEBOOK_PAGE_ACCESS_TOKEN?.trim();
   if (!pageId || !jeton) {
-    throw new Error("La connexion Facebook de Gerimmo n’est pas encore configurée.");
+    throw new RefusFacebookCertain("La connexion Facebook de Gerimmo n’est pas encore configurée.");
   }
 
   const jetonPage = await jetonPourLaPage(pageId, jeton);
@@ -103,8 +105,31 @@ export async function envoyerSurFacebook(article: ArticleFacebook, avantEffet?: 
     signal: AbortSignal.timeout(30_000),
   });
   const resultat = (await reponse.json().catch(() => null)) as PublicationFacebook | null;
+  // Seul un refus explicite avec une erreur Graph reconnue libère la réservation.
+  // Un timeout, une réponse de proxy ou une absence d’identifiant reste incertaine.
+  const code = (resultat as {error?:{code?:number}} | null)?.error?.code;
+  if (!reponse.ok && reponse.status < 500 && [4,17,32,190,200,613].includes(code ?? -1)) {
+    throw new RefusFacebookCertain(messageMeta(resultat));
+  }
   if (!reponse.ok || !resultat) throw new Error(messageMeta(resultat));
   const identifiant = resultat.post_id || resultat.id;
   if (!identifiant) throw new Error("Meta a répondu sans identifiant de publication.");
   return { ...resultat, post_id: identifiant };
+}
+
+/** Le flux de la Page ne donne qu'une preuve positive. Une absence ne libère jamais un envoi. */
+export async function retrouverPostFacebook(article: ArticleFacebook, depuis: string): Promise<string | null> {
+  const page = process.env.META_FACEBOOK_PAGE_ID?.trim();
+  const secret = process.env.META_FACEBOOK_PAGE_ACCESS_TOKEN?.trim();
+  if (!page || !secret || !Number.isFinite(Date.parse(depuis))) return null;
+  const url = new URL(baseGraph() + "/" + encodeURIComponent(page) + "/published_posts");
+  url.searchParams.set("fields", "id,message");
+  url.searchParams.set("since", String(Math.floor(Date.parse(depuis) / 1000) - 1));
+  url.searchParams.set("limit", "100");
+  const response = await fetch(url, {headers:{Authorization:"Bearer "+await jetonPourLaPage(page,secret)},cache:"no-store",signal:AbortSignal.timeout(15000)});
+  if (!response.ok) return null;
+  const feed = await response.json() as {data?:{id:string;message?:string}[];paging?:{next?:string}};
+  const message = texteFacebook(article);
+  const correspondances = feed.data?.filter(post=>post.message===message && post.id.startsWith(page+"_"));
+  return !feed.paging?.next && correspondances?.length===1 ? correspondances[0].id : null;
 }

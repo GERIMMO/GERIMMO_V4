@@ -201,7 +201,11 @@ export async function envoyerConfirmationSouscription(
     lienConditions: lien,
   });
   await options.avantEffet?.();
-  const { erreur, id } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
+  const { erreur, id, finalisationEnAttente } = await envoyerEmail({ circuit:"confirmation-abonnement",
+    organisation:{db:service,id:c.organization_id},
+    contexteMetier:{type:"confirmation_abonnement",id:p.subscription,montant:Number(c.montant_periode_cents),
+      version,acceptee:c.cgu_acceptee_le,formule:c.formule,unites:c.unites_souscrites,periodicite:c.periodicite,
+      souscrit:c.souscrit_le,organisation:c.organisation,document:Boolean(pdf)},
     avantEnvoi: options.avantEffet,
     to: c.destinataire,
     subject: courrier.sujet,
@@ -210,13 +214,7 @@ export async function envoyerConfirmationSouscription(
     ...(pdf ? { piecesJointes: [pdf] } : {}),
   });
   if (erreur) return { envoye: false, motif: erreur };
-  const suivi = await service.rpc("abonnement_confirmation_envoyee", {
-    p_org: c.organization_id,
-    p_subscription: p.subscription,
-    p_message: id ?? null,
-    p_piece_jointe: Boolean(pdf),
-  });
-  if(suivi.error || suivi.data !== true)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
+  if (!id || finalisationEnAttente) return {envoye:false,motif:"Acceptation ou finalisation à vérifier. Ne pas renvoyer."};
   return { envoye: true };
 }
 
@@ -300,7 +298,10 @@ export async function envoyerAccuseResiliation(
   });
   const rang = Number(c.resiliations_accusees ?? 0);
   await options.avantEffet?.();
-  const { erreur, id } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
+  const { erreur, id, finalisationEnAttente } = await envoyerEmail({ circuit:"accuse-resiliation",
+    organisation:{db:service,id:c.organization_id},
+    contexteMetier:{type:"accuse_resiliation",id:p.subscription,fin:p.periodeFin.toISOString(),rang,
+      chemin:p.chemin,notification:p.notifieeLe.toISOString(),organisation:c.organisation,formule:c.formule},
     avantEnvoi: options.avantEffet,
     to,
     subject: courrier.sujet,
@@ -308,14 +309,7 @@ export async function envoyerAccuseResiliation(
     cleIdempotence: `resiliation-${p.subscription}-${dateParis(p.periodeFin)}${rang > 0 ? `-${rang + 1}` : ""}`,
   });
   if (erreur) return { envoye: false, motif: erreur };
-  const suivi = await service.rpc("abonnement_resiliation_accusee", {
-    p_org: c.organization_id,
-    p_subscription: p.subscription,
-    p_periode_fin: p.periodeFin.toISOString(),
-    p_message: id ?? null,
-    p_chemin: p.chemin,
-  });
-  if(suivi.error || suivi.data !== true)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
+  if (!id || finalisationEnAttente) return {envoye:false,motif:"Acceptation ou finalisation à vérifier. Ne pas renvoyer."};
   return { envoye: true };
 }
 

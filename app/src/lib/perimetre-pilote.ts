@@ -1,3 +1,4 @@
+import { paiementsInterdits } from './verrou-pilote';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { empreinteCourriel, type ResultatCourriel } from './courriels-durables';
 import { identiteCourriel, type ChargeCourriel } from './reprise-courriels';
@@ -6,6 +7,10 @@ export function piloteLimite():boolean {return true;}
 export const MESSAGE_PILOTE='Envoi suspendu dans le périmètre validé : intervention humaine requise. Aucun nouvel e-mail envoyé. La tâche reste à traiter.';
 export function circuitAdmisPilote(p:ChargeCourriel):boolean {
  const c=p.contexteMetier;
+ if(c?.type==='confirmation_abonnement'||c?.type==='accuse_resiliation') {
+  return !paiementsInterdits() && !!p.organisationId && !!c.id &&
+    (c.type==='confirmation_abonnement' ? !!c.version && !!c.acceptee && Number.isSafeInteger(c.montant) && c.montant>=0 : !!c.fin && !p.piecesJointes?.length);
+ }
  if(c?.type==='reconduction')return !!p.organisationId && Number.isSafeInteger(c.montant) && c.montant>=0 && !p.piecesJointes?.length;
  if(c?.type==='acces')return ['signup','recovery'].includes(c.usage)&&!!c.jeton_empreinte;
  if(c?.type==='invitation_artisan')return !!c.acteur;

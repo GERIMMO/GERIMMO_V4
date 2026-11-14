@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { messageMetaLisible, texteFacebook } from "@/lib/facebook";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { envoyerSurFacebook, retrouverPostFacebook, RefusFacebookCertain, messageMetaLisible, texteFacebook } from "@/lib/facebook";
 
 describe("publication Facebook Gerimmo", () => {
   beforeEach(() => vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app"));
@@ -22,5 +22,28 @@ describe("publication Facebook Gerimmo", () => {
       .toBe("Le compte est relié, mais les autorisations Meta Ads restent à accorder à Gerimmo dans Meta Business.");
     expect(messageMetaLisible(new Error("Invalid OAuth access token")))
       .toContain("Renouvelez la connexion");
+  });
+});
+
+describe("reprise avec une Page et un transport fictifs",()=>{
+  const article={titre:"Lancement",chapo:null,slug:"lancement",facebookTexte:"Bienvenue",facebookImageUrl:null};
+  beforeEach(()=>{
+    vi.stubEnv("META_FACEBOOK_PAGE_ID","123");vi.stubEnv("META_FACEBOOK_PAGE_ACCESS_TOKEN","fictif");vi.stubEnv("VERCEL_ENV","production");
+  });
+  afterEach(()=>{vi.unstubAllGlobals();vi.unstubAllEnvs()});
+  it.each([4,190])("un refus Graph explicite (%i) est reprenable après rétablissement",async(code)=>{
+    const fetchTest=vi.fn().mockResolvedValueOnce(Response.json({data:[]})).mockResolvedValueOnce(Response.json({error:{code}},{status:400}))
+      .mockResolvedValueOnce(Response.json({data:[]})).mockResolvedValueOnce(Response.json({id:"123_9"}));
+    vi.stubGlobal("fetch",fetchTest);
+    await expect(envoyerSurFacebook(article)).rejects.toBeInstanceOf(RefusFacebookCertain);
+    await expect(envoyerSurFacebook(article)).resolves.toMatchObject({post_id:"123_9"});
+  });
+  it("une réponse perdue est rapprochée en lecture seule sur la Page exacte",async()=>{
+    const fetchTest=vi.fn().mockResolvedValueOnce(Response.json({data:[]})).mockRejectedValueOnce(new Error("connexion interrompue"))
+      .mockResolvedValueOnce(Response.json({data:[]})).mockResolvedValueOnce(Response.json({data:[{id:"123_9",message:texteFacebook(article)}]}));
+    vi.stubGlobal("fetch",fetchTest);
+    await expect(envoyerSurFacebook(article)).rejects.not.toBeInstanceOf(RefusFacebookCertain);
+    expect(await retrouverPostFacebook(article,new Date().toISOString())).toBe("123_9");
+    expect(fetchTest.mock.calls.filter(([,options])=>options?.method==="POST")).toHaveLength(1);
   });
 });

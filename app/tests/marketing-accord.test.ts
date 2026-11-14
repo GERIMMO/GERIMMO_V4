@@ -14,7 +14,7 @@ import {MESSAGE_LIMITE_IA} from '@/lib/plafond-ia';
 import {sujetMarketing} from '@/lib/contenu-marketing';
 const mocks=vi.hoisted(()=>({client:vi.fn(),facebook:vi.fn(),image:vi.fn(),source:vi.fn(),redaction:vi.fn(),email:vi.fn()}));
 vi.mock('@/lib/supabase/service',()=>({clientDeService:mocks.client}));
-vi.mock('@/lib/facebook',()=>({envoyerSurFacebook:mocks.facebook}));
+vi.mock('@/lib/facebook',()=>({envoyerSurFacebook:mocks.facebook,retrouverPostFacebook:async()=>null,RefusFacebookCertain:class extends Error{}}));
 vi.mock('@/lib/visuel-marketing',()=>({creerVisuelMarketing:mocks.image}));
 vi.mock('@/lib/analyse-veille',()=>({lireSourceEtude:mocks.source}));
 vi.mock('@/lib/redaction-veille',()=>({redigerArticleVeille:mocks.redaction}));

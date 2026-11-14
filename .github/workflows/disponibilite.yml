@@ -51,7 +51,7 @@ jobs:
           retention-days: 7
   signaler:
     needs: verifier
-    if: failure() && github.ref == 'refs/heads/main' && needs.verifier.result == 'failure'
+    if: failure() && github.event_name == 'schedule' && github.ref == 'refs/heads/main' && needs.verifier.result == 'failure'
     runs-on: ubuntu-24.04
     permissions:
       actions: read

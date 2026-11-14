@@ -1,4 +1,4 @@
-import { phaseValide, prochainAngle, objectifEditorial, type Phase } from "@/lib/phases-marketing";
+import { phaseValide, prochainAngle, rendezVousEditorial, objectifEditorial, type Phase } from "@/lib/phases-marketing";
 import {LIMITE_ARTICLES,sujetDansPerimetre} from "@/lib/cadre-editorial";
 import { verifierAvantEffet, ArretSupervision } from "@/lib/controle-effets";
 import {clientDeService} from '@/lib/supabase/service';
@@ -104,7 +104,16 @@ async function choisirSujet(db:Db,r:Reglages,cible:Cible):Promise<{sujet:SujetMa
   if (!phaseValide(r.phase_editoriale)) return {erreur:"Phase éditoriale inconnue : vérifiez les réglages."};
   const historique = await db.from('publications').select('titre').not('marketing_jour','is',null).order('updated_at',{ascending:false}).limit(100);
   if (historique.error) return {erreur:"Impossible de vérifier les sujets déjà proposés."};
-  const angle = prochainAngle(r.phase_editoriale, new Set((historique.data ?? []).map(p => p.titre)));
+  const titres = new Set((historique.data ?? []).map(p => p.titre));
+  let angle = prochainAngle(r.phase_editoriale, titres);
+  if (!angle) {
+   // Les mesures organiques uniquement : aucune dépense publicitaire, aucun résultat inventé.
+   const mesures = await db.from('marketing_mesures').select('clics,impressions,marketing_campagnes!inner(objectif,nature,canal)').eq('marketing_campagnes.nature','organique').eq('marketing_campagnes.canal','facebook').gt('impressions',0).gte('mesure_le',new Date(Date.parse(cible.jour)-90*86400000).toISOString()).order('mesure_le',{ascending:false}).limit(100);
+   if(mesures.error)return {erreur:"Impossible de lire les résultats éditoriaux."};
+   const campagne = [...(mesures.data??[])].filter(m=>m.clics>0).sort((a,b)=>b.clics/b.impressions-a.clics/a.impressions)[0]?.marketing_campagnes;
+   const meilleur = (Array.isArray(campagne)?campagne[0]:campagne as {objectif?:string}|undefined)?.objectif;
+   angle = rendezVousEditorial(r.phase_editoriale,cible.jour,titres,meilleur==="trafic"||meilleur==="conversion"||meilleur==="notoriete"?meilleur:undefined);
+  }
   if (!angle) return {erreur:"Les sujets de cette phase ont déjà été proposés. Préparez un nouvel angle dans Marketing et contenus."};
   const sujet:SujetMarketing = {cle:angle.cle,audience:'particuliers',titre:angle.titre,chapo:angle.texte,
    corps:angle.texte+'\n\n'+angle.action,facebook:angle.texte+'\n\n'+angle.action};

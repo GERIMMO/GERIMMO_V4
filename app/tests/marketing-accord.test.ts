@@ -19,7 +19,7 @@ vi.mock('@/lib/visuel-marketing',()=>({creerVisuelMarketing:mocks.image}));
 vi.mock('@/lib/analyse-veille',()=>({lireSourceEtude:mocks.source}));
 vi.mock('@/lib/redaction-veille',()=>({redigerArticleVeille:mocks.redaction}));
 vi.mock('@/lib/email',()=>({envoyerEmail:mocks.email}));
-beforeEach(()=>{vi.resetAllMocks();vi.stubEnv('CRON_SECRET','test-secret');vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-08T16:05:00Z'));mocks.facebook.mockResolvedValue({post_id:'page_post'});mocks.image.mockResolvedValue({octets:Buffer.from('image de recette'),empreinte:'a'.repeat(64)});mocks.source.mockResolvedValue('Texte officiel de recette');mocks.email.mockResolvedValue({id:'mail'});
+beforeEach(()=>{vi.resetAllMocks();vi.stubEnv('CRON_SECRET','test-secret');vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-08T16:05:00Z'));mocks.facebook.mockImplementation(async(_article:unknown,avantEffet:()=>Promise<void>)=>{await avantEffet();return {post_id:'page_post'}});mocks.image.mockResolvedValue({octets:Buffer.from('image de recette'),empreinte:'a'.repeat(64)});mocks.source.mockResolvedValue('Texte officiel de recette');mocks.email.mockResolvedValue({id:'mail'});
  mocks.redaction.mockResolvedValue({cle:'veille-source',audience:'particuliers',titre:'Trêve hivernale : ce qui change',chapo:'Chapo rédigé.',corps:'## Ce qui change\n\nTexte.',facebook:'Texte Facebook rédigé.'});});
 afterEach(()=>{vi.useRealTimers();vi.unstubAllEnvs();});
 
@@ -97,7 +97,7 @@ describe('mission marketing : diffusion de l’échu',()=>{
  });
  it('paru sur le site mais Facebook non réservé (plafond) : pas d’envoi, bilan en erreur',async()=>{
   contexte({echus:[{id:'p1',titre:'Un post'}],reservationRefusee:true});
-  const r=await GET(requete());expect(r.status).toBe(503);expect(mocks.facebook).not.toHaveBeenCalled();
+  const r=await GET(requete());expect(r.status).toBe(503);expect((await r.json()).publiees).toBe(0);
  });
  it('un envoi déjà engagé n’est jamais renvoyé ; une réponse perdue laisse une alerte',async()=>{
   contexte({echus:[{id:'p1',titre:'Un post',facebook_envoi_demarre_le:'2026-10-08'}]});

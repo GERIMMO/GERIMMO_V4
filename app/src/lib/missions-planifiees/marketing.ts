@@ -57,6 +57,8 @@ export async function appelAutorise(request:Request,db:Db){
 }
 
 // ── Diffusion ──────────────────────────────────────────────────────────────
+class ReservationFacebookRefusee extends Error {}
+
 export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boolean}={}){
  const {data:ids,error}=await db.rpc('publications_marketing_echues');
  if(error)return {erreur:'Les posts à diffuser ne peuvent pas être lus.',diffuses:[] as string[],attentes:[] as string[],erreurs:[] as string[]};
@@ -86,18 +88,24 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   }
   const campagne=await db.from('marketing_campagnes').upsert({publication_id:a.id,nom:a.titre.slice(0,160),description:a.facebook_texte,canal:'facebook',nature:'organique',objectif:objectifEditorial(a.titre),statut:'idee',publication_prevue_le:null,budget_cents:0},{onConflict:'publication_id'});
   if(campagne.error){erreurs.push(`${a.id} : fiche de suivi indisponible, Facebook non tenté.`);continue;}
-  const reservation=await db.rpc('reserver_diffusion_facebook',{p_id:a.id,p_automatique:true});
-  if(reservation.error||reservation.data!==true){erreurs.push(`${a.id} : paru sur le site, diffusion Facebook non réservée (plafond hebdomadaire ou pause).`);continue;}
-  try{
+  let reserve=false;
+  const reserverAvantPublication=async()=>{
    await verifierAvantEffet(db,'marketing');
-   const resultat=await envoyerSurFacebook({titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},()=>verifierAvantEffet(db,'marketing'));
+   const reservation=await db.rpc('reserver_diffusion_facebook',{p_id:a.id,p_automatique:true});
+   if(reservation.error||reservation.data!==true)throw new ReservationFacebookRefusee();
+   reserve=true;
+  };
+  try{
+   const resultat=await envoyerSurFacebook({titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},reserverAvantPublication);
    const trace=await db.from('publications').update({facebook_post_id:resultat.post_id,facebook_publie_le:new Date().toISOString(),facebook_erreur:null}).eq('id',a.id);
    if(trace.error){erreurs.push(`${a.id} : Facebook a répondu, confirmation non conservée. Ne pas renvoyer.`);continue;}
    await db.from('marketing_campagnes').update({statut:'terminee',fin_le:new Date().toISOString()}).eq('publication_id',a.id);
    diffuses.push(a.id);
   }catch(e){
    if(e instanceof ArretSupervision)throw e;
+   if(e instanceof ReservationFacebookRefusee){erreurs.push(a.id+" : Facebook non réservé (validation, pause ou plafond).");continue;}
    if(e instanceof RefusFacebookCertain){
+    if(!reserve){erreurs.push(a.id+" : connexion Facebook à rétablir.");continue;}
     const reprise=await db.from('publications').update({facebook_envoi_demarre_le:null,facebook_erreur:'Refus confirmé. Reprise au prochain passage autorisé.'}).eq('id',a.id).is('facebook_post_id',null);
     erreurs.push(reprise.error ? a.id+' : refus confirmé, suivi à vérifier.' : a.id+' : Facebook a refusé la publication.');
     continue;

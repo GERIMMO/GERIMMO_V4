@@ -1,8 +1,13 @@
 import { Client } from "pg";
 import { createHash, randomUUID } from "node:crypto";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
 
+import { clientSurPg } from "./fixtures/supabase-sur-pg";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { envoyerAccuseResiliation, envoyerConfirmationSouscription } from "../src/lib/courriers-contrat-envoi";
+const banc=vi.hoisted(()=>({service:null as SupabaseClient|null}));
+vi.mock("../src/lib/supabase/service",()=>({clientDeService:()=>banc.service}));
 const url = process.env.SUPABASE_DB_URL;
 verifierBaseDeTest(url);
 const empreinte = (texte:string)=>createHash("sha256").update(texte).digest("hex");
@@ -22,7 +27,27 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
     await db.query("insert into abonnements(organization_id,stripe_customer_id,stripe_subscription_id,stripe_statut,souscrit_le,formule,unites_souscrites,montant_periode_cents,periode_fin,annulation_demandee) values($1,$2,$3,'active',now(),'solo',1,599,now()+interval '1 month',true)",[org,'cus_'+sub,sub]);
     await db.query("insert into acceptations_cgu(account_id,version,document,source) values($1,'v1','conditions_clients','inscription')",[acteur]);
   });
-  afterEach(()=>db.query("rollback").then(()=>{}));
+  afterEach(async()=>{await db.query("rollback");vi.unstubAllGlobals();vi.unstubAllEnvs();});
+  it("de l’action métier jusqu’à la boîte fictive et au journal, une seule fois par épisode",async()=>{
+    vi.stubEnv("GERIMMO_MODE","simulation");vi.stubEnv("COURRIELS_CHIFFREMENT_CLE","ab".repeat(32));vi.stubEnv("RESEND_API_KEY","fictive");
+    const boite=vi.fn(async()=>Response.json({id:"msg_"+randomUUID()}));vi.stubGlobal("fetch",boite);
+    await db.query("select set_config('request.jwt.claims','{\"role\":\"service_role\"}',true)");
+    // PostgREST conserve la précision des dates SQL. Le pilote pg transforme normalement les dates en Date JS.
+    const service=clientSurPg(db,{transactionnel:true});
+    banc.service={...service,rpc:async(n:string,args:Record<string,unknown>)=>n==="abonnement_courrier_contexte"
+      ? {data:(await db.query("select to_jsonb(a) ligne from abonnement_courrier_contexte($1) a",[org])).rows.map(r=>r.ligne),error:null}
+      : service.rpc(n,args)} as unknown as SupabaseClient;
+    const fin=new Date(Date.now()+3600000);
+    await db.query("update abonnements set periode_fin=$1 where organization_id=$2",[fin,org]);
+    const confirmer=()=>envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null});
+    const resilier=()=>envoyerAccuseResiliation(banc.service!,{orgId:org,subscription:sub,periodeFin:fin,notifieeLe:new Date(),chemin:"webhook"});
+    for(const envoyer of [confirmer,resilier]){
+      expect(await envoyer()).toMatchObject({envoye:true});
+      expect((await envoyer()).envoye).toBe(false);
+    }
+    expect(boite).toHaveBeenCalledTimes(2);
+    expect((await db.query("select count(*)::int n from courriels_durables where organization_id=$1 and finalisation_etat='terminee'",[org])).rows[0].n).toBe(2);
+  });
   for(const type of ["confirmation_abonnement","accuse_resiliation"]){
     it(type+" : contrôle du destinataire, finalisation après acceptation puis rejeu",async()=>{
       const a=(await db.query("select * from abonnement_courrier_contexte($1)",[org])).rows[0];

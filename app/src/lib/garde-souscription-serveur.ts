@@ -26,6 +26,7 @@ export type GardeSouscription = {
   /** Vrai si le compte a une acceptation enregistrée pour la version en vigueur des conditions. */
   conditionsAcceptees: boolean;
   blocageIdentiteActif: boolean;
+  ventesOuvertes: boolean;
 };
 
 /**
@@ -65,10 +66,10 @@ export async function conditionsEnVigueurAccepteesPar(supabase: Client, accountI
 
 /** Les deux lectures en parallèle, pour l'écran « Mon abonnement ». */
 export async function lireGardeSouscription(supabase: Client, accountId: string): Promise<GardeSouscription> {
-  const [{ editeur }, conditionsAcceptees, { blocageIdentiteActif }] = await Promise.all([
+  const [{ editeur }, conditionsAcceptees, { blocageIdentiteActif, ventesOuvertes }] = await Promise.all([
     lireEditeur(),
     conditionsEnVigueurAccepteesPar(supabase, accountId),
     lireReglageSouscription(),
   ]);
-  return { editeur, conditionsAcceptees, blocageIdentiteActif };
+  return { editeur, conditionsAcceptees, blocageIdentiteActif, ventesOuvertes };
 }

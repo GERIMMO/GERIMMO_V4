@@ -33,7 +33,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 vi.mock("@/app/admin/sante/lancer-mission", () => ({ LancerMission: () => null }));
 vi.mock("@/app/admin/parametres/identite", () => ({ IdentiteEditeur: () => null }));
-vi.mock("@/app/actions/reglage-souscription", () => ({ reglerBlocageSouscription: async () => ({}) }));
+vi.mock("@/app/actions/reglage-souscription", () => ({ reglerOuvertureVentes: async () => ({}), reglerBlocageSouscription: async () => ({}) }));
 import PageSante from "../src/app/admin/sante/page";
 import PageParametres from "../src/app/admin/parametres/page";
 import { BlocageSouscription } from "../src/app/admin/parametres/blocage-souscription";
@@ -101,7 +101,7 @@ describe("/admin/parametres : carte « Blocage des abonnements »", () => {
     const t = texte(renderToStaticMarkup(await PageParametres()));
     expect(t).not.toContain("L’identité est complète");
     expect(t).toContain(
-      "L’identité requise est complète ; reste à compléter, sans rien bloquer : le médiateur de la consommation, l'adresse du médiateur, le site du médiateur.",
+      "L’identité requise est complète ; reste à compléter pour une première souscription particulière : le médiateur de la consommation, l'adresse du médiateur, le site du médiateur.",
     );
     expect(t).toContain("8 / 11 fournis");
   });
@@ -113,16 +113,16 @@ describe("/admin/parametres : carte « Blocage des abonnements »", () => {
     expect(t).not.toContain("reste à compléter");
     // Seconde relecture du 23/10 : la règle active disait « Le médiateur, à compléter, ne bloque rien » même complet.
     expect(t).not.toContain("Le médiateur, à compléter");
-    expect(t).toContain("Le médiateur de la consommation, même absent, ne bloque rien.");
+    expect(t).toContain("Pour un particulier, les coordonnées du médiateur restent requises avant une première commande.");
   });
 
   it("seul le site du médiateur manque : la carte le nomme, sans dire le médiateur entier à compléter", () => {
     const t = texte(renderToStaticMarkup(createElement(BlocageSouscription, {
       actif: true, revision: 1, manquants: [], aCompleter: ["le site du médiateur"],
     })));
-    expect(t).toContain("L’identité requise est complète ; reste à compléter, sans rien bloquer : le site du médiateur.");
+    expect(t).toContain("L’identité requise est complète ; reste à compléter pour une première souscription particulière : le site du médiateur.");
     expect(t).not.toContain("le médiateur reste à compléter");
-    expect(t).toContain("Le médiateur de la consommation, même absent, ne bloque rien.");
+    expect(t).toContain("Pour un particulier, les coordonnées du médiateur restent requises avant une première commande.");
   });
 
   it("un fait requis manque : la liste des faits requis, sans parler d'identité complète", () => {

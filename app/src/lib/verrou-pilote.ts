@@ -9,10 +9,10 @@ export function exigerOperationsPayantesAutorisees():void {
  if(paiementsInterdits())throw new Error(MESSAGE_PAIEMENT_PILOTE);
 }
 
-/** Le pilote gratuit ne crée aucune nouvelle souscription. Seul le banc de
- * simulation isolé peut parcourir Checkout, sans clé LIVE. Les webhooks et
- * abonnements existants continuent à utiliser leur propre garde. */
-export function nouvellesSouscriptionsFermees(env:Record<string,string|undefined>=process.env):boolean {
- return env.GERIMMO_MODE!=='simulation' || !!env.VERCEL_ENV || paiementsInterdits(env);
+/** Le banc Stripe TEST isolé peut tester la souscription indépendamment de la décision commerciale. */
+export function nouvellesSouscriptionsFermees(ventesOuvertes: boolean, env: Record<string, string | undefined> = process.env): boolean {
+  if (paiementsInterdits(env)) return true;
+  if (env.GERIMMO_MODE === "simulation") return Boolean(env.VERCEL_ENV);
+  return !ventesOuvertes;
 }
 export const MESSAGE_SOUSCRIPTIONS_FERMEES="Les nouvelles souscriptions payantes sont fermées pendant le pilote gratuit.";

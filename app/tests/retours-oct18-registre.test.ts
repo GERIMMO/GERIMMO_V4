@@ -455,6 +455,8 @@ describe.skipIf(!url)('les huit retours du lot « supervision et signatures » :
     await db.query(sql('20261024120000_signature_caution_mobile_et_edl_sur_place'));
     // Et la table des prospects ses colonnes, sa liste d'origines et ses droits du 24/10 (plan de conformité, R45).
     await db.query(sql('20261024140000_conservation_et_prospection'));
+    // Rétablir également la colonne commerciale et ses privilèges sur le singleton recréé.
+    await db.query(sql('20261114001320_ouverture_souscriptions_payantes'));
     expect(await etat()).toEqual(avant);
     expect(await versionsPresentes()).toEqual([...TOUTES_VERSIONS, SENTINELLE].sort());
     expect(await ouvertesAnon()).toBe(0);

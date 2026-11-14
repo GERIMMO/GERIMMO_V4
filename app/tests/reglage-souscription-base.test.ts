@@ -35,6 +35,16 @@ describe.skipIf(!url)("blocage souscription : droits réels et historique", () =
   const changer = (actif: boolean, revision: number) => db.query(
     "update public.supervision_identite set blocage_souscription_identite=$1,revision=revision+1 where singleton and revision=$2 returning revision", [actif,revision]);
 
+  it("le pilote démarre fermé ; seule la supervision avec second facteur peut rouvrir puis refermer", async () => {
+    const etat = async () => (await db.query("select souscriptions_payantes_ouvertes from public.supervision_identite where singleton")).rows[0].souscriptions_payantes_ouvertes;
+    const choisir = (ouvert: boolean) => db.query("update public.supervision_identite set souscriptions_payantes_ouvertes=$1, revision=revision+1 where singleton", [ouvert]);
+    expect(await etat()).toBe(false);
+    await session(compte); expect((await choisir(true)).rowCount).toBe(0);
+    await session(admin, "aal1"); expect((await choisir(true)).rowCount).toBe(0);
+    await session(admin); expect((await choisir(true)).rowCount).toBe(1);
+    expect(await etat()).toBe(true);
+    await choisir(false); expect(await etat()).toBe(false);
+  });
   it("conserve la règle active par défaut et protège la table par RLS", async () => {
     expect((await lire()).blocage_souscription_identite).toBe(true);
     expect((await db.query("select relrowsecurity from pg_class where oid='public.supervision_identite'::regclass")).rows[0].relrowsecurity).toBe(true);

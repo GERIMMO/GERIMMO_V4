@@ -183,6 +183,7 @@ const MISSION_OCTOBRE = [
   "20261113143200_index_pouvoir_bail.sql",
   "20261113200000_premiere_facture_abonnement.sql",
   "20261113200500_courriel_reconduction.sql",
+  "20261114001320_ouverture_souscriptions_payantes.sql",
 
 
 ];

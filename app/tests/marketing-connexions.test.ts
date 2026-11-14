@@ -29,6 +29,10 @@ describe('connexions Facebook et publicité séparées', () => {
       .toEqual(['Bearer jeton-page', 'Bearer jeton-publicite', 'Bearer jeton-publicite']);
     for (const [url] of requete.mock.calls) expect(new URL(url).searchParams.has('access_token')).toBe(false);
   });
+  it("distingue un zéro mesuré et une donnée absente", async () => {
+    requete.mockResolvedValue(reponse({ data: [{ id: "campagne", name: "Exemple", insights: { data: [{ clicks: "0" }] } }] }));
+    expect((await campagnesFacebook()).campagnes[0]).toMatchObject({ clics: 0, portee: null, impressions: null, depense: null });
+  });
   it('lit la publicité sans exiger une clé de Page', async () => {
     vi.stubEnv('META_FACEBOOK_PAGE_ACCESS_TOKEN', '');
     requete.mockResolvedValue(reponse({ data: [] }));

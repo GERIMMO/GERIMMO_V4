@@ -1,3 +1,4 @@
+import { phaseValide, prochainAngle, objectifEditorial, type Phase } from "@/lib/phases-marketing";
 import {LIMITE_ARTICLES,sujetDansPerimetre} from "@/lib/cadre-editorial";
 import { verifierAvantEffet, ArretSupervision } from "@/lib/controle-effets";
 import {clientDeService} from '@/lib/supabase/service';
@@ -37,7 +38,7 @@ export function maintenantParis(date=new Date()){
 }
 const CHAMPS='id,titre,slug,chapo,statut,facebook_texte,facebook_image_url,facebook_post_id,facebook_envoi_demarre_le,image_empreinte,image_essais,image_en_cours_le,updated_at,programmee_pour,veille_source_id,marketing_jour';
 type Article={id:string;titre:string;slug:string;chapo:string|null;statut:string;facebook_texte:string|null;facebook_image_url:string|null;facebook_post_id:string|null;facebook_envoi_demarre_le:string|null;image_empreinte:string|null;image_essais:number;image_en_cours_le:string|null;updated_at:string;programmee_pour:string|null;veille_source_id:string|null;marketing_jour:string|null};
-type Reglages={actif:boolean;publication_automatique:boolean;diffusion_version:number;jours_semaine:number[];heure_paris:number;heure_preparation_paris:number;validation_obligatoire:boolean;veille_mots_inclus:string[];veille_mots_exclus:string[]};
+type Reglages={phase_editoriale?:Phase;actif:boolean;publication_automatique:boolean;diffusion_version:number;jours_semaine:number[];heure_paris:number;heure_preparation_paris:number;validation_obligatoire:boolean;veille_mots_inclus:string[];veille_mots_exclus:string[]};
 type Db=NonNullable<ReturnType<typeof clientDeService>>;
 
 // Reprise d'un visuel bloqué (audit 25/09, R2) : deux essais, puis une heure de pause.
@@ -75,7 +76,7 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   const parution=await db.rpc('publier_article_automatique',{p_id:a.id,p_manuel:options.manuel===true});
   if(parution.error){erreurs.push(`${a.id} : ${parution.error.message}`);continue;}
   if(parution.data!==true){attentes.push(a.id);continue;}
-  const campagne=await db.from('marketing_campagnes').upsert({publication_id:a.id,nom:a.titre.slice(0,160),description:a.facebook_texte,canal:'facebook',nature:'organique',objectif:'notoriete',statut:'idee',publication_prevue_le:null,budget_cents:0},{onConflict:'publication_id'});
+  const campagne=await db.from('marketing_campagnes').upsert({publication_id:a.id,nom:a.titre.slice(0,160),description:a.facebook_texte,canal:'facebook',nature:'organique',objectif:objectifEditorial(a.titre),statut:'idee',publication_prevue_le:null,budget_cents:0},{onConflict:'publication_id'});
   if(campagne.error){erreurs.push(`${a.id} : fiche de suivi indisponible, Facebook non tenté.`);continue;}
   const reservation=await db.rpc('reserver_diffusion_facebook',{p_id:a.id,p_automatique:true});
   if(reservation.error||reservation.data!==true){erreurs.push(`${a.id} : paru sur le site, diffusion Facebook non réservée (plafond hebdomadaire ou pause).`);continue;}
@@ -99,6 +100,16 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
 type Cible={jour:string;rang:number;parution:string;rattrapage:boolean};
 
 async function choisirSujet(db:Db,r:Reglages,cible:Cible):Promise<{sujet:SujetMarketing;source:string|null;motifs:string[]}|{erreur:string}>{
+ if (r.phase_editoriale !== undefined && !(cible.rang === 0 && ['communaute','fidelisation'].includes(r.phase_editoriale))) {
+  if (!phaseValide(r.phase_editoriale)) return {erreur:"Phase éditoriale inconnue : vérifiez les réglages."};
+  const historique = await db.from('publications').select('titre').not('marketing_jour','is',null).order('updated_at',{ascending:false}).limit(100);
+  if (historique.error) return {erreur:"Impossible de vérifier les sujets déjà proposés."};
+  const angle = prochainAngle(r.phase_editoriale, new Set((historique.data ?? []).map(p => p.titre)));
+  if (!angle) return {erreur:"Les sujets de cette phase ont déjà été proposés. Préparez un nouvel angle dans Marketing et contenus."};
+  const sujet:SujetMarketing = {cle:angle.cle,audience:'particuliers',titre:angle.titre,chapo:angle.texte,
+   corps:angle.texte+'\n\n'+angle.action,facebook:angle.texte+'\n\n'+angle.action};
+  return {sujet,source:null,motifs:[]};
+ }
  const objet=new Date(`${cible.jour}T12:00:00Z`);
  const editorial=sujetMarketing(objet,Math.max(0,cible.rang));
  const motifs:string[]=[];
@@ -154,7 +165,7 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
   if(creation.error||!creation.data)return {erreur:'La préparation n’a pas été enregistrée. Aucun envoi effectué.'};
   article=creation.data as Article;
  }
- const campagne=await db.from('marketing_campagnes').upsert({publication_id:article.id,nom:article.titre.slice(0,160),description:article.facebook_texte,canal:'facebook',nature:'organique',objectif:'notoriete',statut:'idee',publication_prevue_le:cible.parution,budget_cents:0},{onConflict:'publication_id'});
+ const campagne=await db.from('marketing_campagnes').upsert({publication_id:article.id,nom:article.titre.slice(0,160),description:article.facebook_texte,canal:'facebook',nature:'organique',objectif:objectifEditorial(article.titre),statut:'idee',publication_prevue_le:cible.parution,budget_cents:0},{onConflict:'publication_id'});
  if(campagne.error)return {erreur:'La fiche de suivi n’a pas pu être préparée.',article:article.id};
  if(!article.image_empreinte){
   let reprise=false;
@@ -219,6 +230,7 @@ export async function traiterMarketing(request:Request){
  const resultat:Record<string,unknown>={agi:diffusion.diffuses.length>0||Boolean(preparation&&'agi'in preparation&&preparation.agi),publiees:diffusion.diffuses.length,facebook:diffusion.diffuses.length>0,
   ...(diffusion.diffuses.length?{diffusees:diffusion.diffuses}:{}),...(diffusion.attentes.length?{en_attente:diffusion.attentes}:{}),...(diffusion.erreurs.length||diffusion.erreur?{erreurs:[...(diffusion.erreur?[diffusion.erreur]:[]),...diffusion.erreurs]}:{}),
   ...(preparation?{preparation}:{raison_preparation:'Rien à préparer pour l’instant.'})};
+ if(preparation && 'erreur' in preparation)resultat.erreur=preparation.erreur;
  if(preparation && 'file_pleine' in preparation)resultat.action_marketing='traiter_file';
  else if(diffusion.attentes.length)resultat.action_marketing='examiner_publications';
  if(!resultat.agi&&!erreur&&!cible&&!diffusion.attentes.length)resultat.raison='Rien d’échu, rien à préparer.';

@@ -1,5 +1,6 @@
 "use server";
 
+import { phaseValide } from "@/lib/phases-marketing";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { journaliserSupervision, JOURNAL_A_VERIFIER } from "@/lib/journal-supervision";
@@ -14,6 +15,8 @@ export async function enregistrerReglagesMarketing(_etat: EtatCampagne, donnees:
   const supabase = await createClient();
   const { data: autorise } = await supabase.rpc("is_permanent_super_admin");
   if (autorise !== true) return { erreur: "Accès refusé." };
+  const phase = donnees.get("phase_editoriale");
+  if (phase !== null && !phaseValide(phase)) return { erreur: "Choisissez une phase éditoriale proposée." };
   const jour1 = Number(donnees.get("jour_1"));
   const jour2 = Number(donnees.get("jour_2"));
   const heure = Number(donnees.get("heure_paris"));
@@ -34,6 +37,7 @@ export async function enregistrerReglagesMarketing(_etat: EtatCampagne, donnees:
   // le règle, il garde sa valeur en base. Le montant saisi est un seuil
   // d'alerte sur les dépenses Meta constatées, pas un budget qu'on engage.
   const { error } = await supabase.from("marketing_reglages").update({
+    ...(phase ? {phase_editoriale: phase} : {}),
     actif: donnees.get("actif") === "on",
     publication_automatique: donnees.get("publication_automatique") === "on",
     diffusion_version: 1,
@@ -50,6 +54,7 @@ export async function enregistrerReglagesMarketing(_etat: EtatCampagne, donnees:
   if (error) return { erreur: "Les réglages n’ont pas pu être enregistrés." };
   // Audit console 27/09 : les réglages marketing se journalisent.
   const journal = await journaliserSupervision(supabase, "reglages_marketing_modifies", {
+    ...(phase ? {phase_editoriale: phase} : {}),
     actif: donnees.get("actif") === "on", publication_automatique: donnees.get("publication_automatique") === "on",
     heure_paris: heure, seuil_mensuel_cents: Math.round(budget * 100),
     validation_obligatoire: donnees.get("validation_obligatoire") === "on", mots_inclus: motsInclus.length, mots_exclus: motsExclus.length,

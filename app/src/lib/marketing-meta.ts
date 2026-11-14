@@ -17,11 +17,17 @@ export type CampagneMeta = {
   statut: string;
   debut: string | null;
   fin: string | null;
-  portee: number;
-  impressions: number;
-  clics: number;
-  depense: number;
+  portee: number | null;
+  impressions: number | null;
+  clics: number | null;
+  depense: number | null;
 };
+
+function mesureDisponible(valeur: string | undefined): number | null {
+  if (!valeur?.trim()) return null;
+  const mesure = Number(valeur);
+  return Number.isFinite(mesure) && mesure >= 0 ? mesure : null;
+}
 
 function baseGraph() {
   const version = process.env.META_GRAPH_API_VERSION?.trim();
@@ -45,6 +51,7 @@ export async function santeFacebook(): Promise<SanteFacebook> {
     const page = await lireMeta<{ name: string; followers_count?: number; link?: string }>(pageId, {
       fields: "name,followers_count,link",
     }, jeton);
+    if (!page?.name?.trim()) return { configure: true, erreur: "Meta ne confirme pas l’identité de la Page." };
     return { configure: true, nom: page.name, abonnes: page.followers_count, lien: page.link };
   } catch (erreur) {
     return { configure: true, erreur: messageMetaLisible(erreur, "Connexion Facebook momentanément indisponible.") };
@@ -73,10 +80,10 @@ export async function campagnesFacebook(): Promise<{ configure: boolean; campagn
           statut: campagne.effective_status,
           debut: campagne.start_time ?? null,
           fin: campagne.stop_time ?? null,
-          portee: Number(mesure?.reach ?? 0),
-          impressions: Number(mesure?.impressions ?? 0),
-          clics: Number(mesure?.clicks ?? 0),
-          depense: Number(mesure?.spend ?? 0),
+          portee: mesureDisponible(mesure?.reach),
+          impressions: mesureDisponible(mesure?.impressions),
+          clics: mesureDisponible(mesure?.clicks),
+          depense: mesureDisponible(mesure?.spend),
         };
       }),
     };

@@ -49,3 +49,24 @@ jobs:
           path: ${{ runner.temp }}/sauvegarde.json
           if-no-files-found: error
           retention-days: 7
+  signaler:
+    needs: verifier
+    if: failure() && github.event_name == 'schedule' && github.ref == 'refs/heads/main' && needs.verifier.result == 'failure'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      issues: write
+    timeout-minutes: 2
+    steps:
+      - name: Ouvrir un seul incident après deux contrôles planifiés en échec
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          previous=$(gh api "repos/$GH_REPO/actions/workflows/disponibilite.yml/runs?branch=main&event=schedule&per_page=10" --jq "[.workflow_runs[] | select(.id < $GITHUB_RUN_ID)] | first | .conclusion")
+          if [[ "$previous" != "failure" ]]; then exit 0; fi
+          title="Disponibilité Gerimmo : deux contrôles en échec"
+          existing=$(gh api --paginate "repos/$GH_REPO/issues?state=open&per_page=100" --jq '.[] | select(.title == "Disponibilité Gerimmo : deux contrôles en échec" and (has("pull_request") | not)) | .number')
+          if [[ -n "$existing" ]]; then exit 0; fi
+          gh issue create --repo "$GH_REPO" --title "$title" --body "La surveillance a échoué à deux reprises. Le rapport de cette exécution détaille les contrôles du site, de la base et de la sauvegarde : $GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID. Identifier le contrôle en échec avant toute reprise. Clore après vérification du rétablissement."

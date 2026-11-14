@@ -1,9 +1,10 @@
 "use client";
 
+import { PHASES, type Phase } from "@/lib/phases-marketing";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { enregistrerReglagesMarketing, type EtatCampagne } from "./actions";
 
-type Reglages = { actif: boolean; publication_automatique: boolean; publicite_active: boolean; jours_semaine: number[]; heure_paris: number; budget_mensuel_cents: number; validation_obligatoire: boolean; veille_mots_inclus: string[]; veille_mots_exclus: string[] };
+type Reglages = { phase_editoriale?: Phase; actif: boolean; publication_automatique: boolean; publicite_active: boolean; jours_semaine: number[]; heure_paris: number; budget_mensuel_cents: number; validation_obligatoire: boolean; veille_mots_inclus: string[]; veille_mots_exclus: string[] };
 const JOURS = [[1,"Lundi"],[2,"Mardi"],[3,"Mercredi"],[4,"Jeudi"],[5,"Vendredi"],[6,"Samedi"],[7,"Dimanche"]] as const;
 
 // Une seule façon d'habiller un champ sur la rangée (24/09) : sélecteurs nus,
@@ -20,6 +21,7 @@ const caseACocher = "flex items-start gap-2 rounded-xl border border-[var(--file
 export function ReglagesAutomatiques({ reglages, comptePublicitaire, pageReliee = true }: { reglages: Reglages; comptePublicitaire: boolean; pageReliee?: boolean }) {
   const [etat, action, attente] = useActionState(enregistrerReglagesMarketing, {} as EtatCampagne);
   return <form data-saisie-confirmee action={action} className="space-y-4">
+    <label className="grid gap-1"><span className="libelle-champ">Phase éditoriale</span><select name="phase_editoriale" defaultValue={reglages.phase_editoriale} className={champ}>{Object.entries(PHASES).map(([valeur, libelle]) => <option key={valeur} value={valeur}>{libelle}</option>)}</select></label>
     <div className="grid gap-3 sm:grid-cols-3">
       <label className={caseACocher}><input type="checkbox" name="actif" defaultChecked={reglages.actif} className="mt-1" /><span><b>Agent actif</b><small className="mt-1 block text-[var(--texte-secondaire)]">Prépare deux sujets par semaine et crée un visuel original pour chacun.</small></span></label>
       <label className={`${caseACocher}${pageReliee ? "" : " opacity-70"}`}><input type="checkbox" name="publication_automatique" defaultChecked={reglages.publication_automatique && pageReliee} disabled={!pageReliee} className="mt-1"/><span><b>Publier automatiquement</b><small className="mt-1 block text-[var(--texte-secondaire)]">{pageReliee ? "Journal et Facebook. Décochez pour conserver les prochains contenus en brouillon." : "Indisponible : la Page Facebook n’est pas reliée (voir « Canaux et contrôle »). Les contenus restent en brouillon."}</small></span></label>

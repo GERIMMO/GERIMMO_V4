@@ -242,6 +242,21 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     } finally { vi.unstubAllEnvs(); }
   });
 
+  it("en production commerciale, relit le choix du dirigeant à chaque tentative", async () => {
+    etat(GRILLE);
+    vi.stubEnv("GERIMMO_MODE", "commercial");
+    vi.stubEnv("VERCEL", "1"); vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app");
+    try {
+      mocks.reglage = { data: { souscriptions_payantes_ouvertes: true, blocage_souscription_identite: true, revision: 1 }, error: null };
+      mocks.versionsAcceptees = [];
+      expect((await demarrerAbonnement("org-1", {}, souscrire())).erreur).toBe(MOTIF_CONDITIONS);
+      mocks.reglage = { data: { souscriptions_payantes_ouvertes: false, blocage_souscription_identite: true, revision: 2 }, error: null };
+      expect((await demarrerAbonnement("org-1", {}, souscrire())).erreur).toContain("pilote gratuit");
+      expect(mocks.retrieve).not.toHaveBeenCalled();
+    } finally { vi.unstubAllEnvs(); }
+  });
+
   it.each(["mediateurNom", "mediateurAdresse", "mediateurSite"])("ferme le parcours Stripe quand seul %s manque, règle active", async (cle) => {
     etat(GRILLE);
     identite({ ...EDITEUR_COMPLET, [cle]: null });

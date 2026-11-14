@@ -1,5 +1,6 @@
 "use server";
 
+import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
 import { nouvellesSouscriptionsFermees, MESSAGE_SOUSCRIPTIONS_FERMEES } from "@/lib/verrou-pilote";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -245,7 +246,7 @@ export async function demarrerAbonnement(
   const { supabase, org, etat, paiement, erreur } = await lireEtat(orgId);
   if (erreur) return { erreur: sansJargon(erreur) };
   if (!org || !etat) return { erreur: "Votre organisation n'a pas pu être lue. Rechargez la page." };
-  if (nouvellesSouscriptionsFermees()) return { erreur: MESSAGE_SOUSCRIPTIONS_FERMEES };
+  if (nouvellesSouscriptionsFermees(process.env.GERIMMO_MODE === "commercial" && (await lireReglageSouscription()).ventesOuvertes)) return { erreur: MESSAGE_SOUSCRIPTIONS_FERMEES };
   if (etat.grille !== GRILLE) return basculerVersGrilleActuelle(orgId, paiement);
 
   if (paiement?.souscrit) {

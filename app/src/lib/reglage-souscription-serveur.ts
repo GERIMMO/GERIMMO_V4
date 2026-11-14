@@ -5,12 +5,13 @@ import { createClient } from "@/lib/supabase/server";
 export async function lireReglageSouscription() {
   const db = await createClient();
   const { data, error } = await db.from("supervision_identite")
-    .select("blocage_souscription_identite,revision")
+    .select("blocage_souscription_identite,souscriptions_payantes_ouvertes,revision")
     .eq("singleton", true).maybeSingle();
   const indisponible = Boolean(error) || typeof data?.blocage_souscription_identite !== "boolean"
     || !Number.isSafeInteger(data?.revision);
   return {
     blocageIdentiteActif: indisponible || data.blocage_souscription_identite !== false,
+    ventesOuvertes: !indisponible && data?.souscriptions_payantes_ouvertes === true,
     revision: indisponible ? null : data.revision as number,
     indisponible,
   };

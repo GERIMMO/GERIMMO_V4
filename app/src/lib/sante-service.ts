@@ -459,6 +459,10 @@ export function etatTaches(
       return { ...t, etat: "echec", le: d.le, bilan: `${d.expire ? "passage resté en cours, à vérifier" : d.etatPassage === "interrompu" ? "passage interrompu" : "passage à vérifier"} — ${d.texte ?? resumerBilan(d.bilan, t.nom)}` };
     }
     const bilan = d.bilan as Record<string, unknown> | null;
+    if (t.nom === "marketing" && bilan && !bilan.erreur && !(Array.isArray(bilan.erreurs) && bilan.erreurs.length)) {
+      if (bilan.action_marketing === "traiter_file") return { ...t, etat: "retard", le: d.le, bilan: "La file éditoriale est pleine. Traitez les articles dans Marketing et contenus pour reprendre la préparation." };
+      if (bilan.action_marketing === "examiner_publications") return { ...t, etat: "retard", le: d.le, bilan: "Une publication arrivée à échéance attend une décision. Ouvrez Marketing et contenus pour la relire." };
+    }
     const enEchec = Boolean(bilan && typeof bilan === "object" && Object.entries(bilan).some(([cle, valeur]) => {
       if (!/(^|_)(erreur|echec)s?$/.test(cle)) return false;
       if (Array.isArray(valeur)) return valeur.length > 0;

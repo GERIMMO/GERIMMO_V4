@@ -93,7 +93,7 @@ describe('mission marketing : diffusion de l’échu',()=>{
  });
  it('n’envoie rien quand la base refuse la parution (validation obligatoire, pause, veille écartée)',async()=>{
   contexte({echus:[{id:'p1',titre:'Un post'}],parutionRefusee:true});
-  const r=await GET(requete());expect(await r.json()).toMatchObject({publiees:0,en_attente:['p1']});expect(mocks.facebook).not.toHaveBeenCalled();
+  const r=await GET(requete());expect(await r.json()).toMatchObject({publiees:0,en_attente:['p1'],action_marketing:'examiner_publications'});expect(mocks.facebook).not.toHaveBeenCalled();
  });
  it('paru sur le site mais Facebook non réservé (plafond) : pas d’envoi, bilan en erreur',async()=>{
   contexte({echus:[{id:'p1',titre:'Un post'}],reservationRefusee:true});

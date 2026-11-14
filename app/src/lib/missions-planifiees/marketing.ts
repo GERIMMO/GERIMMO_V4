@@ -138,7 +138,7 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
   // même ceux hors périmètre, pour arrêter réellement l'accumulation.
   const file=await db.from('publications').select('id',{count:'exact',head:true}).in('statut',['proposition','brouillon','planifiee','programmee']);
   if(file.error||file.count==null)return {erreur:'Impossible de vérifier la file des articles. Aucun nouveau post préparé.'};
-  if(file.count>=LIMITE_ARTICLES)return {agi:false,raison:`La file atteint la limite de ${LIMITE_ARTICLES} articles. La préparation reprendra après leur traitement.`};
+  if(file.count>=LIMITE_ARTICLES)return {agi:false,file_pleine:true,raison:`La file atteint la limite de ${LIMITE_ARTICLES} articles. La préparation reprendra après leur traitement.`};
   const choix=await choisirSujet(db,r,cible);
   if('erreur'in choix)return {erreur:choix.erreur};
   motifs.push(...choix.motifs);
@@ -219,6 +219,8 @@ export async function traiterMarketing(request:Request){
  const resultat:Record<string,unknown>={agi:diffusion.diffuses.length>0||Boolean(preparation&&'agi'in preparation&&preparation.agi),publiees:diffusion.diffuses.length,facebook:diffusion.diffuses.length>0,
   ...(diffusion.diffuses.length?{diffusees:diffusion.diffuses}:{}),...(diffusion.attentes.length?{en_attente:diffusion.attentes}:{}),...(diffusion.erreurs.length||diffusion.erreur?{erreurs:[...(diffusion.erreur?[diffusion.erreur]:[]),...diffusion.erreurs]}:{}),
   ...(preparation?{preparation}:{raison_preparation:'Rien à préparer pour l’instant.'})};
- if(!resultat.agi&&!erreur&&!cible)resultat.raison='Rien d’échu, rien à préparer.';
+ if(preparation && 'file_pleine' in preparation)resultat.action_marketing='traiter_file';
+ else if(diffusion.attentes.length)resultat.action_marketing='examiner_publications';
+ if(!resultat.agi&&!erreur&&!cible&&!diffusion.attentes.length)resultat.raison='Rien d’échu, rien à préparer.';
  return bilan(resultat,erreur?503:200);
 }

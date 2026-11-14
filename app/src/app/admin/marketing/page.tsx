@@ -47,11 +47,12 @@ const ETATS_PUBLICITE: Record<string, string> = {
   DISAPPROVED: "Refusée",
 };
 
+import { LIMITE_ARTICLES } from "@/lib/cadre-editorial";
 import base from "../repertoires.module.css";
 import styles from "../pilotage.module.css";
 export default async function PageAgentMarketing() {
   const supabase = await createClient();
-  const [campagnesResultat, publicationsResultat, reglagesResultat, depenses, facebook, meta, programmesResultat] = await Promise.all([
+  const [campagnesResultat, publicationsResultat, reglagesResultat, depenses, facebook, meta, programmesResultat, fileResultat] = await Promise.all([
     supabase.from("marketing_campagnes").select("id,nom,description,canal,nature,objectif,statut,publication_prevue_le,budget_cents,cree_le").order("publication_prevue_le", { ascending: true, nullsFirst: false }),
     supabase.from("publications").select("id,titre,statut,slug,propose_le,publie_le,facebook_post_id,facebook_publie_le,facebook_erreur,facebook_image_url").order("propose_le", { ascending: false }).limit(100),
     supabase.from("marketing_reglages").select("actif,publication_automatique,publicite_active,jours_semaine,heure_paris,heure_preparation_paris,budget_mensuel_cents,validation_obligatoire,veille_mots_inclus,veille_mots_exclus").eq("singleton", true).single(),
@@ -60,6 +61,7 @@ export default async function PageAgentMarketing() {
     campagnesFacebook(),
     // 06/10 : les posts en fenêtre de veto, du plus proche au plus lointain.
     supabase.from("publications").select("id,titre,chapo,facebook_texte,facebook_image_url,programmee_pour,valide_le,veille_source_id,slug", { count: "exact" }).eq("statut", "programmee").order("programmee_pour", { ascending: true }).limit(5),
+    supabase.from("publications").select("id", { count: "exact", head: true }).in("statut", ["proposition", "brouillon", "planifiee", "programmee"]),
   ]);
   const programmes = (programmesResultat.data ?? []) as PostProgramme[];
   const campagnes = (campagnesResultat.data ?? []) as Campagne[];
@@ -80,7 +82,8 @@ export default async function PageAgentMarketing() {
 
   const iaConfiguree = Boolean(process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim());
   const fileIndisponible = Boolean(publicationsResultat.error);
-  const preparation = reglagesResultat.error ? "État indisponible" : !reglages.actif ? "Préparation en pause" : !iaConfiguree ? "Connexion IA à terminer" : "Préparation activée";
+  const filePleine = fileResultat.count != null && fileResultat.count >= LIMITE_ARTICLES;
+  const preparation = reglagesResultat.error ? "État indisponible" : !reglages.actif ? "Préparation en pause" : !iaConfiguree ? "Connexion IA à terminer" : fileResultat.error ? "File à vérifier" : filePleine ? "File pleine" : "Préparation activée";
   const prochainsVides = reglagesResultat.error ? "Les réglages ne sont pas disponibles. Actualisez avant de vérifier la programmation." : !reglages.actif ? "La préparation automatique est en pause. Vous pouvez créer un article ou reprendre la préparation dans les réglages." : !iaConfiguree ? "La préparation attend la connexion du service d’IA. Les contenus déjà créés restent accessibles." : `La préparation est prévue la veille des jours choisis (${jours}), à ${reglages.heure_preparation_paris} h, sous réserve des limites et des contrôles du service.`;
   const counts = (n:number) => fileIndisponible ? "—" : n;
   const columns = [
@@ -92,6 +95,7 @@ export default async function PageAgentMarketing() {
   return <main className={base.page}>
     <header className={base.header}><div><p className={base.eyebrow}>FAIRE CONNAÎTRE GERIMMO</p><TitreEcran rubrique="journal">Marketing et contenus</TitreEcran><p className={base.subtitle}>Vos contenus à relire, les prochaines publications et leurs résultats, au même endroit.</p></div><div className={styles.actions}><Link href="/admin/publications" className="btn-secondaire">Tous les articles <ArrowUpRight size={15} aria-hidden="true"/></Link><Link href="/admin/publications/nouvelle" className="btn-or"><PenLine size={16} aria-hidden="true"/>Créer un article</Link></div></header>
     {(campagnesResultat.error||publicationsResultat.error||reglagesResultat.error||programmesResultat.error)&&<p role="alert" className={styles.notice}>Une partie des informations est indisponible. <a href="/admin/marketing" className="underline">Actualiser la page</a></p>}
+    {filePleine && <p className={styles.notice}>{fileResultat.count} articles en attente. La préparation reprend sous le seuil de {LIMITE_ARTICLES}. <Link className="underline" href="/admin/publications">Examiner les articles</Link></p>}
     <div className={base.stats}>
       <a href="#publications" className={base.stat} data-tone="ambre"><span className={base.statIcon}><FilePenLine size={19} aria-hidden="true"/></span><strong>{counts(aRelire.length)}</strong><span>Contenus à relire</span><small>Dans les 100 derniers articles</small></a>
       <a href="#veto" className={base.stat} data-tone="bleu"><span className={base.statIcon}><CalendarDays size={19} aria-hidden="true"/></span><strong>{programmesResultat.error?"—":programmesResultat.count??programmes.length}</strong><span>Posts programmés</span><small>À venir dans le calendrier</small></a>

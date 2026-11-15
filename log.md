@@ -7282,3 +7282,13 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   et dans « Mes paiements » du locataire (demander, suivre) ; relances automatiques suspendues pendant un plan
   respecté ; avis de taxe foncière saisi sur le bien (TEOM répartissable, reste déductible) ; rappels taxe foncière
   (15 septembre) et régularisation N-1 (février) sur le tableau de bord du propriétaire.
+
+## [2026-11-15] audit | Audit final indépendant de la PR 335 (SHA cbf31679)
+- Page : [[Audit final indépendant — PR 335 — 15 novembre 2026]].
+- Verdicts : publication technique **GO** ; exploitation autonome **NO GO** ; souscriptions payantes **NO GO**.
+- Preuves : CI et Stripe TEST verts sur le SHA exact (journaux bruts relus) ; 498 migrations sur base vide ; 127 tests ciblés rejoués ;
+  code en ligne (`b470bf1b`) vérifié sur le schéma migré ; production lue en SELECT seulement (aucune écriture).
+- Bloquants pour Codex : B1 accusé de résiliation perdu si un échéancier est libéré (rejoué en base), B2 confirmation non envoyée
+  quand l'adresse de facturation diffère de la connexion (1 organisation sur 5), R1 suivi de l'atelier rompu, A1-A3 états Facebook
+  sans issue applicative. Quatorze défauts non bloquants (N1 à N14).
+- Décisions du dirigeant : médiateur de la consommation, ouverture des ventes ou prolongation des essais avant le 24/12/2026.

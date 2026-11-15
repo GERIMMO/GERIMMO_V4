@@ -155,6 +155,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 
 ## Synthèses
 
+- [[Audit final indépendant — PR 335 — 15 novembre 2026]] — **15/11, SHA `cbf31679`** : publication technique **GO** (migrations puis code, depuis `main`) ; exploitation autonome **NO GO** (régression du suivi de l'atelier, états Facebook bloqués sans outil, essais figés le 24/12) ; souscriptions payantes **NO GO** (accusé de résiliation perdu, confirmation à une adresse distincte, médiateur, archivage des conditions) ; score d'autonomie indépendant 56/100.
 - [[Bilan de l'audit de la refonte #264 — 27 octobre 2026]] — **27/10, publié en deux temps** (corrections de l'audit à 15 h 12, cinq décisions à 21 h 05 via PR #269) : audit de la refonte propriétaire (`555c5282`) ; 70 défauts confirmés (2 critiques, 20 majeurs), 53 corrigés, 12 partiels, 5 décisions produit ; PR #267 fusionnée (`79a7aadd`) après les 5 migrations `20261027100000` → `100500` (run 40526954680) ; rapport complet `app/docs/audit-refonte-264-20261027.md`, preuves `app/docs/preuves-audit-264/`.
 - [[Informations manquantes — 23 octobre 2026]] — ce qui manque encore (médiateur seul côté identité, désormais non bloquant ; avis du juriste, du DPO et de l'expert-comptable ; décisions ; prestataires et continuité), relevé en production sans valeur recopiée.
 - [[Prompt de passation à Codex — conformité V1, 24 octobre 2026]] — ce qui est en production, la branche prête (conditions V1, confidentialité, inactivité, wiki) et les étapes de publication laissées à Codex le 24/10.

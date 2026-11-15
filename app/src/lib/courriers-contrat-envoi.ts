@@ -170,7 +170,10 @@ export async function envoyerConfirmationSouscription(
   if (!c || c.stripe_subscription_id !== p.subscription) return { envoye: false, motif: "souscription non suivie" };
   if (c.confirmation_envoyee_le) return { envoye: false, motif: "déjà envoyée" };
   if (!c.souscrit_le) return { envoye: false, motif: "souscription non datée" };
-  if (!c.destinataire) return { envoye: false, motif: "Identité du souscripteur et preuve de commande à vérifier." };
+  if (!c.destinataire) {
+    await tracer(service,"confirmation_destinataire_a_verifier",{organisation:p.orgId,souscription:p.subscription});
+    return { envoye: false, motif: "Identité du souscripteur et preuve de commande à vérifier." };
+  }
   if (c.montant_periode_cents === null) return { envoye: false, motif: "montant inconnu" };
   const version = c.cgu_version;
   if (!version || !c.cgu_acceptee_le) {

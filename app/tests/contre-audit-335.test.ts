@@ -60,6 +60,21 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
     await envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null});
     expect(boite.map(m=>m.to)).toEqual([[adr]]);
   });
+  it("retrouve le geste de résiliation daté et le nom exact après interruption",async()=>{
+    const {fin,adr}=await preparer(),jour=new Date().toISOString();
+    await db.query("select abonnement_geste_consigner($1,$2,'abonnement_resiliation_notifiee',$3::jsonb)",[org,acteur,JSON.stringify({souscription:sub,notifiee_le:jour,nom:"Camille Exemple",destinataire_empreinte:empreinte(adr)})]);
+    const geste=()=>db.query("select * from resiliation_page_a_reprendre($1,$2,$3)",[org,sub,fin]);
+    expect((await geste()).rows[0]).toMatchObject({destinataire:adr,nom:"Camille Exemple",notifiee_le:new Date(jour)});
+    await db.query("update abonnements set annulation_demandee=false where organization_id=$1",[org]);
+    expect((await geste()).rows).toHaveLength(0);
+  });
+  it("une référence de commande étrangère est consignée sans modifier la preuve du contrat",async()=>{
+    await preparer();await lierCommandeFictive(db,org,acteur,sub,"2026-10-01");
+    const avant=(await db.query("select * from preuves_commandes_abonnement where subscription=$1",[sub])).rows;
+    await db.query("select lier_preuve_commande($1,$2,$3,$4)",[org,sub,randomUUID(),randomUUID()]);
+    expect((await db.query("select * from preuves_commandes_abonnement where subscription=$1",[sub])).rows).toEqual(avant);
+    expect((await db.query("select 1 from tech_log where evenement='preuve_commande_a_verifier' and details->>'organisation'=$1",[org])).rowCount).toBe(1);
+  });
   it("boîte isolée : un exemplaire de chaque courrier, bon destinataire et montant",async()=>{
     const {boite,fin,adr}=await preparer();
     await lierCommandeFictive(db,org,acteur,sub,"2026-10-01");

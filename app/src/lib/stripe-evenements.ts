@@ -336,7 +336,7 @@ async function courriersDuContrat(
     if (error) throw new Error("Reprise de la résiliation indisponible.");
     const geste=data?.[0];
     if (geste) await essayer("accuse_resiliation",()=>envoyerAccuseResiliation(supabase,{
-      orgId:org,subscription:s.id,periodeFin:new Date(fin),notifieeLe:new Date(geste.notifiee_le),chemin:"action",destinataire:geste.destinataire,
+      orgId:org,subscription:s.id,periodeFin:new Date(fin),notifieeLe:new Date(geste.notifiee_le),chemin:"action",destinataire:geste.destinataire,nom:geste.nom,
     }));
   }
   if (

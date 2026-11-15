@@ -8,11 +8,12 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ createClient: vi.fn(), revalidate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ createClient: vi.fn(), revalidate: vi.fn(), facebook: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
-vi.mock("@/lib/facebook", () => ({ envoyerSurFacebook: vi.fn() }));
-import { publierPublication, retirerPublication } from "../src/app/actions/publications";
+vi.mock("@/lib/facebook", () => ({ envoyerSurFacebook: mocks.facebook, RefusFacebookCertain: class extends Error {} }));
+import { RefusFacebookCertain } from "@/lib/facebook";
+import { publierPublicationFacebook, publierPublication, retirerPublication } from "../src/app/actions/publications";
 
 /** Un client : l'article `id-1` porte le slug donné (ou aucun), chaque écriture réussit. */
 function client(slug: string | null, titre = "Réviser un loyer") {
@@ -22,6 +23,7 @@ function client(slug: string | null, titre = "Réviser un loyer") {
     const q: Record<string, unknown> = {};
     q.select = () => q;
     q.eq = () => q;
+    q.is = () => q;
     q.update = (valeurs: Record<string, unknown>) => {
       ecritures.push(valeurs);
       return q;
@@ -74,5 +76,15 @@ describe("retirer un article le fait disparaître tout de suite", () => {
     await publierPublication("id-1");
     expect(ecritures[0]).toMatchObject({ statut: "publiee", slug: "reviser-un-loyer-en-2026" });
     expect(chemins()).toContain("/journal/reviser-un-loyer-en-2026");
+  });
+});
+
+describe("diffusion manuelle et réservation",()=>{
+  it.each([["jeton expiré",true],["réponse perdue",false]] as const)("conserve la bonne issue après %s",async(message,refus)=>{
+    const {ecritures}=client("article");
+    mocks.facebook.mockImplementationOnce(async (_article,avantEffet)=>{await avantEffet();throw refus?new RefusFacebookCertain(message):new Error(message);});
+    expect(await publierPublicationFacebook("id-1")).toMatchObject({erreur:message});
+    if(refus) expect(ecritures).toContainEqual({facebook_erreur:message,facebook_envoi_demarre_le:null});
+    else expect(ecritures).toContainEqual({facebook_erreur:message});
   });
 });

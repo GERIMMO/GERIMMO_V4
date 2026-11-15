@@ -117,7 +117,7 @@ export function FormulaireOuverture({
               className="max-w-32"
             />
             <p className="text-xs text-muted-foreground">
-              Laissé vide, l&apos;essai standard s&apos;applique : 2 mois calendaires.
+              Un propriétaire bénéficie d’au moins deux mois calendaires. Une durée plus longue peut être accordée. Pour une agence, laissez le champ vide pour appliquer l’essai standard.
               À son terme, le compte passe en lecture seule : l&apos;agence garde
               l&apos;accès à tout et à ses exports, mais ne saisit plus rien.
             </p>

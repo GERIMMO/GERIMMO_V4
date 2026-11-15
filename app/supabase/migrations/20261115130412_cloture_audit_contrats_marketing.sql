@@ -141,7 +141,7 @@ grant execute on function public.resoudre_tentative_facebook(uuid,timestamptz,te
 
 -- Reprise après une interruption entre la confirmation Stripe et la préparation de l'accusé.
 create function public.resiliation_page_a_reprendre(p_org uuid,p_subscription text,p_fin timestamptz)
-returns table(destinataire text,notifiee_le timestamptz)
+returns table(destinataire text,notifiee_le timestamptz,nom text)
 language sql stable security definer set search_path='' as $$
  with dernier as (
    select l.* from public.audit_log l where l.organization_id=p_org
@@ -149,7 +149,7 @@ language sql stable security definer set search_path='' as $$
    and l.action in ('abonnement_resiliation_notifiee','abonnement_resiliation_levee')
    order by l.created_at desc,l.id desc limit 1
  )
- select u.email::text,(l.details->>'notifiee_le')::timestamptz
+ select u.email::text,(l.details->>'notifiee_le')::timestamptz,l.details->>'nom'
  from dernier l join public.abonnements a on a.organization_id=l.organization_id
  join auth.users u on u.id=l.account_id
  where l.action='abonnement_resiliation_notifiee' and l.created_at>=now()-interval '23 hours'
@@ -178,3 +178,116 @@ begin
 end $$;
 create trigger initialiser_intention_facebook before insert on public.publications
 for each row execute function public.suivre_parution_facebook();
+
+-- Plancher contractuel pour les nouvelles ouvertures propriétaires, y compris en supervision.
+create or replace function public.ouvrir_organisation(
+  p_nom text,
+  p_type public.organization_type,
+  p_email_responsable text,
+  p_essai_jours integer default null,
+  p_active_immediatement boolean default false,
+  p_adresse text default null, p_code_postal text default null, p_ville text default null
+)
+returns table (organization_id uuid, email_responsable text, compte_deja_existant boolean)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_email text := lower(btrim(coalesce(p_email_responsable, '')));
+  v_nom text := btrim(coalesce(p_nom, ''));
+  v_org uuid;
+  v_uid uuid;
+  v_existant boolean;
+  v_role public.membership_role;
+  v_essai_fin date;
+  v_adresse text := btrim(p_adresse);
+  v_cp text := btrim(p_code_postal);
+  v_ville text := btrim(p_ville);
+begin
+  if not public.is_super_admin() then
+    raise exception 'Réservé au super admin : l''ouverture d''une organisation suit la signature du contrat (RM-16.1.1)';
+  end if;
+  if length(v_nom) = 0 then
+    raise exception 'Le nom de l''organisation est obligatoire';
+  end if;
+  if length(v_nom) < 2 then
+    raise exception 'Le nom de l''organisation doit faire au moins deux caractères : %', p_nom;
+  end if;
+  -- Contrôle volontairement sommaire : c'est l'adresse à laquelle part
+  -- l'invitation, une faute de frappe se voit à l'envoi, pas ici.
+  if v_email !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$' then
+    raise exception 'L''adresse du responsable est invalide : %', p_email_responsable;
+  end if;
+  if p_essai_jours < 0 or p_essai_jours > 365 then
+    raise exception 'La durée d''essai doit tenir entre 0 et 365 jours';
+  end if;
+
+  -- Le rôle découle du type : une agence a un administrateur, un parc a son
+  -- propriétaire. Il n'y a pas de troisième cas.
+  v_role := case p_type
+    when 'agence' then 'admin_agence'::public.membership_role
+    else 'proprietaire_direct'::public.membership_role
+  end;
+
+  -- Sans durée précisée : l'essai ordinaire, 2 mois calendaires (30/09/2026).
+  v_essai_fin := case
+    when p_active_immediatement then null
+    when p_essai_jours is null then public.essai_ordinaire_fin()
+    when p_type='proprietaire_direct' then greatest(public.essai_ordinaire_fin(),current_date+p_essai_jours)
+    else current_date + p_essai_jours
+  end;
+
+  if coalesce(v_adresse, '') !~ '[^[:space:]]' or coalesce(v_cp, '') !~ '[^[:space:]]' or coalesce(v_ville, '') !~ '[^[:space:]]' then
+    raise exception 'Renseignez une adresse postale complète (adresse, code postal et ville) pour vos courriers.';
+  end if;
+  if length(v_adresse) > 200 or length(v_cp) > 10 or length(v_ville) > 100 then
+    raise exception 'Vérifiez la longueur de l’adresse postale.';
+  end if;
+
+  insert into public.organizations (name, type, status, essai_fin, address_line1, postal_code, city, email_contact)
+  values (
+    v_nom, p_type,
+    case when p_active_immediatement then 'active' else 'essai' end::public.organization_status,
+    v_essai_fin, v_adresse, v_cp, v_ville, v_email
+  )
+  returning id into v_org;
+
+  -- Le compte du responsable : réutilisé s'il existe (il peut gérer une autre
+  -- agence, ou être locataire ailleurs), créé sinon avec un mot de passe
+  -- aléatoire que personne ne connaît — il le définira par le lien reçu.
+  select id into v_uid from auth.users where lower(email) = v_email;
+  v_existant := v_uid is not null;
+  if not v_existant then
+    insert into auth.users (
+      instance_id, id, aud, role, email, encrypted_password,
+      email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+      created_at, updated_at, confirmation_token, recovery_token,
+      email_change, email_change_token_new, email_change_token_current
+    ) values (
+      '00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
+      v_email, extensions.crypt(gen_random_uuid()::text, extensions.gen_salt('bf')),
+      now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
+      now(), now(), '', '', '', '', ''
+    );
+  end if;
+  -- `accounts` est alimentée par déclencheur sur auth.users.
+  select id into v_uid from public.accounts where lower(email) = v_email;
+  if v_uid is null then
+    raise exception 'Le compte de % n''a pas pu être préparé', v_email;
+  end if;
+
+  insert into public.memberships (account_id, organization_id, role)
+  values (v_uid, v_org, v_role);
+
+  insert into public.audit_log (organization_id, action, details)
+  values (v_org, 'organisation_ouverte',
+          jsonb_build_object('nom', v_nom, 'type', p_type, 'role', v_role,
+                             'responsable', v_email, 'compte_existant', v_existant,
+                             'essai_jours', case when p_active_immediatement then null else v_essai_fin - current_date end,
+                             'essai_fin', v_essai_fin));
+
+  return query select v_org, v_email, v_existant;
+end;
+$$;
+notify pgrst,'reload schema';

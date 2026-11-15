@@ -49,6 +49,14 @@ jobs:
           path: ${{ runner.temp }}/sauvegarde.json
           if-no-files-found: error
           retention-days: 7
+      - name: Signaler le passage planifié à la surveillance indépendante
+        if: always() && github.event_name == 'schedule' && github.ref == 'refs/heads/main'
+        env:
+          VERCEL_ENV: production
+          GERIMMO_SIGNAL_DISPONIBILITE: ${{ secrets.GERIMMO_SIGNAL_DISPONIBILITE }}
+          RESULTAT: ${{ job.status }}
+        run: node --input-type=module -e "import {signalerPassage} from './app/src/lib/signal-passage.mjs'; await signalerPassage('disponibilite', process.env.RESULTAT === 'success')"
+
   signaler:
     needs: verifier
     if: failure() && github.event_name == 'schedule' && github.ref == 'refs/heads/main' && needs.verifier.result == 'failure'

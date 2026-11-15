@@ -9,6 +9,7 @@ import { porteurDuSecret } from "@/lib/tache";
 import { clientDeService } from "@/lib/supabase/service";
 import { traiterFileFactures } from "@/lib/automatisation-factures";
 import { verifierAvantEffet } from "@/lib/controle-effets";
+import {signalerPassage} from "@/lib/signal-passage.mjs";
 export const runtime="nodejs";
 export const maxDuration=60;
 let enCours=false;
@@ -30,8 +31,9 @@ export async function GET(request:Request) {
   let finalisationsDisponibles=true;
   try {await reprendreFinalisationsCourriels(db);}catch{finalisationsDisponibles=false;}
   const bilan=await traiterFileFactures(db,()=>verifierAvantEffet(db,"rappels"),15_000);
+  await signalerPassage("factures",notifications.erreurs===0 && suiviCourriels && reprisesDisponibles && finalisationsDisponibles);
   return Response.json({...bilan,notifications,suivi_courriels:suiviCourriels,finalisations_disponibles:finalisationsDisponibles,reprises_courriels:reprises.traites,reprises_disponibles:reprisesDisponibles});
  }
- catch{return Response.json({erreur:"Traitement suspendu. Aucun encaissement automatique."},{status:503});}
+ catch{await signalerPassage("factures",false);return Response.json({erreur:"Traitement suspendu. Aucun encaissement automatique."},{status:503});}
  finally{enCours=false;}
 }

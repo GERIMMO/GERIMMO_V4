@@ -1,8 +1,16 @@
 # Candidat de reprise des confirmations contractuelles et de Facebook
 
-PR [335](https://github.com/GERIMMO/GERIMMO_V4/pull/335), base publique b470bf1b5878607584503e45b7f88388cca00e78. SHA exact du candidat applicatif : **7b107588913a8175a43270c85e80a8b90db55ea9**. Le commit qui ajoute cette fiche est documentaire ; la différence depuis ce SHA doit se limiter à cette fiche. Le SHA complet de tête et ses contrôles sont disponibles sur la PR. Un fichier Git ne peut contenir par avance le SHA du commit dont il détermine le contenu.
+PR [335](https://github.com/GERIMMO/GERIMMO_V4/pull/335), base publique b470bf1b5878607584503e45b7f88388cca00e78. SHA exact du candidat applicatif : **b40f710fc074d625ec22ddd8ef9df44bdd31ffc3**. Le commit qui ajoute cette fiche est documentaire ; la différence depuis ce SHA doit se limiter à cette fiche. Le SHA complet de tête et ses contrôles sont disponibles sur la PR. Un fichier Git ne peut contenir par avance le SHA du commit dont il détermine le contenu.
 
-## Fonctionnement et preuves
+## Contre-audit et corrections du 15 novembre
+
+Le rejeu sur la tête auditée 7278468e a produit trois échecs et une réussite. La seconde migration, `20261115081330_preuves_contrat_et_facebook.sql`, s’applique après celle du 14 novembre. Installation locale en transaction sur un clone fictif réussie. L’index unique refuse toute attribution du même identifiant Facebook à deux articles. Un doublon historique interrompt la migration et demande une vérification humaine.
+
+Le retour de Stripe et le webhook utilisent le contrat suivi. Chaque reprise d’accusé vérifie que la résiliation est toujours programmée. La confirmation cite l’acceptation enregistrée à la commande et reliée à la souscription par l’intention Checkout. Un contrat historique dépourvu de cette preuve nécessite un rapprochement humain. Le récit de commande a été ajouté aux données fictives du contre-audit pour tester le cas prouvé et le cas sans preuve séparément. Le lien propre à chaque article est conservé même après troncature du texte Facebook. Un ancien message sans cette référence reste à vérifier.
+
+Recette ciblée sur PostgreSQL fictif : 634 réussites, 0 échec, 16 tests sautés sur 650. Ce comptage inclut les contrôles métier voisins et exclut les exécutions précédentes. Le statut des contrôles hébergés se lit sur le SHA de tête de la PR. Le non-déclenchement d’un effet externe reste la règle en cas de doute. Aucun test local ne démontre une livraison réelle ou une publication Meta.
+
+## Fonctionnement et preuves du premier candidat
 
 - Les confirmations de souscription et accusés de résiliation utilisent le contexte métier durable, la réservation par destinataire et une unicité par épisode. L'identité du contrat, les conditions acceptées, le montant, la période, l'adresse et les droits sont vérifiés en base suivant le type du courrier. La confirmation exige une adresse de responsable vérifiée ; une adresse de facturation différente nécessite une intervention. La résiliation depuis l'espace peut utiliser l'adresse demandée par le responsable habilité. L'adresse est reliée à son geste par empreinte. Les autres circuits suspendus et le réglage des ventes conservent leur politique.
 - Le fournisseur est appelé après réservation ; l'état accepté déclenche la finalisation en base sans second transport. La reprise d'une charge contractuelle est limitée à 23 heures. Une charge expirée, un changement de contrat ou une confirmation fournisseur indéterminée nécessitent vérification. L'acceptation fournisseur ne garantit pas la remise en boîte.
@@ -12,6 +20,6 @@ PR [335](https://github.com/GERIMMO/GERIMMO_V4/pull/335), base publique b470bf1b
 
 ## Livraison et limites
 
-Une migration additive : `app/supabase/migrations/20261114210623_reprise_contrats_et_facebook.sql`. Appliquer via le workflow protégé après sauvegarde et restauration vérifiées, puis promouvoir le code. En cas d'échec, suspendre les deux traitements et conserver intentions, réservations, preuves et marques d'acceptation pour correction en avant. Ne pas restaurer une base ancienne ni remettre arbitrairement un envoi en attente.
+Première migration additive : `app/supabase/migrations/20261114210623_reprise_contrats_et_facebook.sql`. Appliquer via le workflow protégé après sauvegarde et restauration vérifiées, puis promouvoir le code. En cas d'échec, suspendre les deux traitements et conserver intentions, réservations, preuves et marques d'acceptation pour correction en avant. Ne pas restaurer une base ancienne ni remettre arbitrairement un envoi en attente.
 
 Avancement des deux corrections, hors autonomie globale : **3 jalons sur 5 (60 %) au dépôt du candidat** : causes identifiées, corrections intégrées, recette locale réussie. Restent les validations hébergées et la contre-vérification indépendante. Le feu vert de publication et l'ouverture des ventes sont des décisions distinctes. Une nouvelle sauvegarde de production reste à vérifier à la bascule ; aucune exportation nouvelle n'a été faite pour la préparation de cette PR.

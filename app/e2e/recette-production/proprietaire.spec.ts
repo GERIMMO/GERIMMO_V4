@@ -16,23 +16,9 @@ import {
   test,
 } from "./outils";
 
-// RECETTE — LE PROPRIÉTAIRE DIRECT.
-//
-// Grille du 28/09 : « Mon abonnement » affiche un récapitulatif avant paiement
-// et le bouton « Continuer vers le paiement sécurisé » — que la recette regarde
-// et ne touche JAMAIS (aucun paiement). Lot B3 (19/10) : le bouton n'apparaît
-// que si l'identité de l'éditeur est renseignée (supervision_identite, écran
-// /admin/parametres, hors dépôt) ; sinon l'écran dit pourquoi, par la phrase
-// MOTIF_IDENTITE ci-dessous (= lib/garde-souscription.ts).
-
-/**
- * Le motif exact affiché tant que les mentions légales de l'éditeur manquent
- * (lib/garde-souscription.ts, MOTIF_IDENTITE_EDITEUR_ESSAI) : le compte de
- * recette est en essai, la phrase se termine par « Votre essai continue. »
- * (un compte gelé ou abonné lit la même phrase sans cette fin).
- */
 const MOTIF_IDENTITE =
   "Le paiement en ligne n'est pas encore ouvert : les mentions légales de l'éditeur sont en cours de publication. Votre essai continue.";
+const MOTIF_PILOTE = "Les nouvelles souscriptions payantes sont fermées pendant le pilote gratuit.";
 
 test.describe("propriétaire direct", () => {
   test("se connecte et voit le parcours de démarrage", SANS_TRACE, async ({ page, context }) => {
@@ -94,28 +80,18 @@ test.describe("propriétaire direct", () => {
       // Plan du 23/10 (R55) : en franchise de TVA, « Total à payer » sans « TTC » (forme compatible avec l'ancien libellé).
       await expect(recap).toContainText("Total à payer");
       await expect(recap).toContainText(/\d.*€/);
-      // Lot B3 (19/10) : DEUX ÉTATS, et exactement un des deux est prouvé.
-      // L'identité de l'éditeur se renseigne hors dépôt (/admin/parametres) et
-      // fait basculer l'écran sans déploiement : tant qu'elle est incomplète
-      // (c'est le cas en production le 19/10), le bouton est absent et le motif
-      // exact est affiché ; une fois renseignée, le bouton est visible et le
-      // motif a disparu. L'état constaté est consigné dans le rapport.
       const bouton = page.getByRole("button", { name: /Continuer vers le paiement sécurisé/ });
-      const motif = page.locator("main").getByText(MOTIF_IDENTITE, { exact: true });
-      const ouvert = (await bouton.count()) > 0;
-      if (ouvert) {
-        await expect(bouton).toBeVisible();
-        await expect(motif).toHaveCount(0);
-      } else {
-        await expect(motif).toBeVisible();
+      const pilote = page.getByText(MOTIF_PILOTE, { exact: true });
+      const identite = page.getByText(MOTIF_IDENTITE, { exact: true });
+      if (process.env.RECETTE_SOUSCRIPTIONS_FERMEES === "1") {
+        await expect(pilote).toBeVisible();
         await expect(bouton).toHaveCount(0);
+      } else if (await bouton.count()) {
+        await expect(bouton).toBeVisible();
+        await expect(pilote.or(identite)).toHaveCount(0);
+      } else {
+        await expect(pilote.or(identite)).toBeVisible();
       }
-      test.info().annotations.push({
-        type: "paiement en ligne",
-        description: ouvert
-          ? "ouvert : identité de l'éditeur renseignée, bouton visible (non cliqué)"
-          : "fermé : identité de l'éditeur à renseigner dans /admin/parametres, motif affiché",
-      });
       // Aucun clic, dans aucun des deux états : le bouton part vers le paiement Stripe.
       expect(await debordementHorizontal(page)).toBeLessThanOrEqual(0);
     });

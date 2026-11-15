@@ -74,11 +74,12 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
     db = new Client(configurationBase(comptes.suffixe));
     await db.connect();
     // Le parc éphémère, et lui seul : celui que preparer-comptes.sql a ouvert pour ce suffixe, au propriétaire de ce passage.
-    const { rows: [parc] } = await db.query<{ id: string; compte: string }>(
-      `select o.id, m.account_id as compte
+    const { rows: [parc] } = await db.query<{ id: string; compte: string; detenteur: string }>(
+      `select o.id, m.account_id as compte, p.id as detenteur
          from public.organizations o
          join public.memberships m on m.organization_id = o.id and m.role = 'proprietaire_direct'
          join public.accounts a on a.id = m.account_id
+         join public.persons p on p.organization_id = o.id and p.account_id = a.id and p.qualite = 'Personne physique'
         where o.id = $1 and o.type = 'proprietaire_direct' and o.name = 'Parc de Paul Recette-' || $2 and lower(a.email) = $3`,
       [comptes.orgProprietaire, comptes.suffixe, comptes.emails.proprietaire]
     );
@@ -97,6 +98,11 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
         `insert into public.lots (bien_id, organization_id, nom, surface_m2, pieces, etat, created_by)
          values ($1, $2, $3, 30, 1, 'loue', $4) returning id`,
         [bien, parc.id, nomLot, parc.compte]
+      );
+      await db.query(
+        `insert into public.detentions (organization_id, lot_id, person_id, quote_part, date_debut)
+         values ($1, $2, $3, 100, make_date($4, 1, 1))`,
+        [parc.id, lot, parc.detenteur, annee]
       );
       // Sans adresse e-mail : ni avis d'échéance, ni quittance, ni relance ne peut partir vers qui que ce soit.
       const { rows: [{ id: locataire }] } = await db.query<{ id: string }>(
@@ -220,6 +226,16 @@ test.describe("P1 « montant faux » (Q3/Q5) : D04, D05, D37, D38", MONTANTS, ()
 
   test("D37 : la ligne 250 vaut le montant qualifié, à l'écran et dans le champ du récapitulatif 2044", async ({ page }) => {
     await page.goto(`${espaceDe("proprietaire")}/comptabilite/fiscal?annee=${d.annee}&bien=${d.bien}`);
+    const detenteur = page.getByRole("region", { name: "La bonne déclaration pour chaque propriétaire" })
+      .locator("details").filter({ hasText: `Paul Recette-${lireComptes().suffixe}` });
+    await expect(detenteur).toHaveCount(1);
+    const nue = detenteur.locator('[name="location_nue"]');
+    if (!(await nue.isVisible())) await detenteur.locator("summary").click();
+    await nue.selectOption("reel");
+    await detenteur.locator('[name="location_meublee"]').selectOption("non_concerne");
+    await detenteur.locator('[name="justification"]').fill("Recette : location nue au réel");
+    await detenteur.locator('[name="confirme"]').check();
+    await cliquer(detenteur.getByRole("button", { name: "Enregistrer", exact: true }));
     // L'exercice du lot : location nue, 100 %, l'année entière (valeurs proposées), confirmé avec sa justification.
     const resumeExercice = page.locator("summary").filter({ hasText: `${d.nomLot} — exercice ${d.annee}` });
     const exercice = resumeExercice.locator("xpath=..");

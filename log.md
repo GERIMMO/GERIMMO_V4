@@ -7292,3 +7292,12 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   quand l'adresse de facturation diffère de la connexion (1 organisation sur 5), R1 suivi de l'atelier rompu, A1-A3 états Facebook
   sans issue applicative. Quatorze défauts non bloquants (N1 à N14).
 - Décisions du dirigeant : médiateur de la consommation, ouverture des ventes ou prolongation des essais avant le 24/12/2026.
+
+## [2026-11-15] audit | Contre-vérification ciblée de la PR 335 (SHA 962f2c76)
+- Page : [[Contre-vérification ciblée — PR 335 — candidat 962f2c76]] ; référence précédente cbf31679.
+- Verdict : publication technique **GO**. B1, B2, R1, A1 à A3, N1 à N3 corrigés (rejeux en base : annulation enregistrée
+  après échéancier libéré, confirmation au signataire vérifié, résolution Facebook réservée au superviseur AAL2, preuve sans exception).
+- Preuves : CI verte sur le SHA exact (12 534 tests, 274 parcours + 1 instable hors périmètre, 73 WebKit), Stripe TEST 16/16,
+  499 migrations sur base vide, 193 tests ciblés, code en ligne vérifié sur le schéma migré (147 + 23).
+- N10 : migrations limitées à `main` et à l'environnement approuvé ; le mot de passe Supabase reste un secret de dépôt
+  partagé avec la sauvegarde et la recette (risque antérieur, non étendu par la PR, à isoler séparément).

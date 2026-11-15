@@ -156,3 +156,24 @@ begin
 end $$;
 revoke all on function public.confirmer_geste_resiliation(uuid,text,timestamptz,timestamptz,boolean) from public,anon,authenticated;
 grant execute on function public.confirmer_geste_resiliation(uuid,text,timestamptz,timestamptz,boolean) to service_role;
+
+-- La page et la campagne partagent la même preuve de diffusion organique.
+create function public.terminer_campagne_facebook() returns trigger
+language plpgsql set search_path='' as $$
+begin
+  update public.marketing_campagnes set statut='terminee',fin_le=coalesce(new.facebook_publie_le,now())
+  where publication_id=new.id and nature='organique' and canal='facebook' and statut<>'terminee';
+  return new;
+end $$;
+revoke all on function public.terminer_campagne_facebook() from public,anon,authenticated;
+create trigger terminer_campagne_facebook after update of facebook_post_id on public.publications
+ for each row when (old.facebook_post_id is null and new.facebook_post_id is not null)
+ execute function public.terminer_campagne_facebook();
+
+-- Le nombre de titres candidats est borné par le catalogue de la phase et du mois.
+create function public.titres_editoriaux_utilises(p_titres text[])
+returns setof text language sql stable set search_path='' as $$
+  select distinct p.titre from public.publications p where p.titre=any(p_titres);
+$$;
+revoke all on function public.titres_editoriaux_utilises(text[]) from public,anon,authenticated;
+grant execute on function public.titres_editoriaux_utilises(text[]) to service_role;

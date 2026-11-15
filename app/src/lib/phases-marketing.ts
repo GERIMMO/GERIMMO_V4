@@ -64,12 +64,19 @@ const RENDEZ_VOUS = [
   ["garants", "Dossiers des garants", "pour les nouveaux baux du mois, vérifiez à quel locataire chaque garant est rattaché.", "conversion"],
 ] as const;
 
+function titreDuMois(nom: string, jour: string) {
+  const mois = new Date(jour+"T12:00:00Z").toLocaleDateString("fr-FR",{month:"long",year:"numeric",timeZone:"Europe/Paris"});
+  return { titre: nom+" : votre point de "+mois, mois };
+}
+
+export function titresEditoriauxCandidats(phase: Phase, jour: string): string[] {
+  return [...ANGLES[phase].map(angle => angle.titre), ...RENDEZ_VOUS.map(([,nom]) => titreDuMois(nom,jour).titre)];
+}
+
 export function rendezVousEditorial(phase:Phase, jour:string, deja:ReadonlySet<string>, objectif?:Objectif):Angle|undefined {
-  const date = new Date(jour+"T12:00:00Z");
-  const mois = date.toLocaleDateString("fr-FR",{month:"long",year:"numeric",timeZone:"Europe/Paris"});
   const sujets = [...RENDEZ_VOUS].sort((a,b)=>Number(b[3]===objectif)-Number(a[3]===objectif));
   for(const [cle,nom,consigne,but] of sujets){
-    const titre = nom+" : votre point de "+mois;
+    const {titre,mois} = titreDuMois(nom,jour);
     if(deja.has(titre)) continue;
     const action = phase === "lancement" ? "Pour faire ce premier point avec votre logement, essayez Gerimmo sans carte bancaire : www.gerimmo.app/inscription." : ANGLES[phase][0].action;
     return {cle:cle+"-"+jour.slice(0,7),titre,texte:"Pour votre suivi de "+mois+", "+consigne,action,objectif:but};

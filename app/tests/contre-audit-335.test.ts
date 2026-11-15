@@ -81,6 +81,20 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
       from unnest(array['anon','authenticated']) role`);
     for (const ligne of droits.rows) expect(ligne).toMatchObject({ecriture:false,liaison:false});
   });
+  it("un identifiant Facebook conservé termine la campagne organique dans la même écriture",async()=>{
+    const {rows:[article]}=await db.query("insert into publications(titre,slug,statut,periode) values('Campagne fictive',$1,'brouillon','audit') returning id",[randomUUID()]);
+    await db.query("insert into marketing_campagnes(nom,publication_id,nature,canal,statut) values('Campagne fictive',$1,'organique','facebook','idee')",[article.id]);
+    await db.query("update publications set facebook_post_id=$2,facebook_publie_le=now() where id=$1",[article.id,randomUUID()]);
+    const {rows:[campagne]}=await db.query("select statut,fin_le from marketing_campagnes where publication_id=$1",[article.id]);
+    expect(campagne.statut).toBe("terminee"); expect(campagne.fin_le).toBeTruthy();
+  });
+  it("retrouve un titre refusé au-delà des cent publications les plus récentes",async()=>{
+    const titre="Ancien sujet "+randomUUID();
+    await db.query("insert into publications(titre,slug,statut,periode,updated_at) values($1,$2,'refusee','audit',now()-interval '1 year')",[titre,randomUUID()]);
+    await db.query("insert into publications(titre,slug,statut,periode) select 'Sujet suivant',gen_random_uuid()::text,'brouillon','audit' from generate_series(1,101)");
+    const h=await db.query("select public.titres_editoriaux_utilises($1) as titre",[[titre,"Sujet inédit"]]);
+    expect(h.rows).toEqual([{titre}]);
+  });
   it("PostgreSQL refuse le même identifiant Meta pour un second article",async()=>{
     const post="fictif_"+randomUUID();
     const inserer=()=>db.query("insert into publications(titre,slug,statut,periode,facebook_post_id) values('Fictif',$1,'brouillon','audit',$2)",[randomUUID(),post]);

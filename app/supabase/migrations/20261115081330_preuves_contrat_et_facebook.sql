@@ -6,6 +6,8 @@ create table public.preuves_commandes_abonnement (
   commande uuid not null unique,
   acceptation uuid not null references public.acceptations_cgu(id) on delete cascade
 );
+create index preuves_commandes_organisation on public.preuves_commandes_abonnement(organization_id);
+create index preuves_commandes_acceptation on public.preuves_commandes_abonnement(acceptation);
 alter table public.preuves_commandes_abonnement enable row level security;
 revoke all on public.preuves_commandes_abonnement from public, anon, authenticated, service_role;
 create function public.lier_preuve_commande(p_org uuid, p_subscription text, p_commande uuid, p_acceptation uuid)

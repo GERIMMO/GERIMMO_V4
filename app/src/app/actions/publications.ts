@@ -152,6 +152,7 @@ export async function publierPublicationFacebook(id: string): Promise<EtatPublic
 
   try {
     const resultat = await envoyerSurFacebook({
+      id,
       titre: article.titre,
       chapo: article.chapo,
       slug: article.slug,

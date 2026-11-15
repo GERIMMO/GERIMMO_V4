@@ -26,7 +26,7 @@ describe("publication Facebook Gerimmo", () => {
 });
 
 describe("reprise avec une Page et un transport fictifs",()=>{
-  const article={titre:"Lancement",chapo:null,slug:"lancement",facebookTexte:"Bienvenue",facebookImageUrl:null};
+  const article={id:"21ccaef0-e528-4e7f-84e2-e2fbce7e0d49",titre:"Lancement",chapo:null,slug:"lancement",facebookTexte:"Bienvenue",facebookImageUrl:null};
   beforeEach(()=>{
     vi.stubEnv("META_FACEBOOK_PAGE_ID","123");vi.stubEnv("META_FACEBOOK_PAGE_ACCESS_TOKEN","fictif");vi.stubEnv("VERCEL_ENV","production");
   });

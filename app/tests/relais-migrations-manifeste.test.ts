@@ -186,6 +186,7 @@ const MISSION_OCTOBRE = [
   "20261114001320_ouverture_souscriptions_payantes.sql",
   "20261114090412_phase_editoriale_marketing.sql",
   "20261114210623_reprise_contrats_et_facebook.sql",
+  "20261115081330_preuves_contrat_et_facebook.sql",
 
 
 ];

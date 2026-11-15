@@ -68,7 +68,7 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   if(!article)continue;
   const a=article as Article;
   if(a.facebook_envoi_demarre_le){
-   const preuve=await retrouverPostFacebook({titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},a.facebook_envoi_demarre_le).catch(()=>null);
+   const preuve=await retrouverPostFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},a.facebook_envoi_demarre_le).catch(()=>null);
    if(preuve){
     const trace=await db.from('publications').update({facebook_post_id:preuve,facebook_publie_le:new Date().toISOString(),facebook_erreur:null}).eq('id',a.id).is('facebook_post_id',null);
     if(!trace.error){await db.from('marketing_campagnes').update({statut:'terminee',fin_le:new Date().toISOString()}).eq('publication_id',a.id);diffuses.push(a.id);continue;}
@@ -96,7 +96,7 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
    reserve=true;
   };
   try{
-   const resultat=await envoyerSurFacebook({titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},reserverAvantPublication);
+   const resultat=await envoyerSurFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},reserverAvantPublication);
    const trace=await db.from('publications').update({facebook_post_id:resultat.post_id,facebook_publie_le:new Date().toISOString(),facebook_erreur:null}).eq('id',a.id);
    if(trace.error){erreurs.push(`${a.id} : Facebook a répondu, confirmation non conservée. Ne pas renvoyer.`);continue;}
    await db.from('marketing_campagnes').update({statut:'terminee',fin_le:new Date().toISOString()}).eq('publication_id',a.id);

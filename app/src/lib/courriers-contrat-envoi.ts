@@ -24,7 +24,7 @@ import {
   type AccuseRetractation,
 } from "@/lib/courriers-contrat";
 import { envoyerEmail } from "@/lib/email";
-import { CONDITIONS_VERSION, REGIME_TVA } from "@/lib/editeur";
+import { REGIME_TVA } from "@/lib/editeur";
 import { identiteDepuisValeurs } from "@/lib/identite-editeur";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
 import { courrierResiliationImpaye, type FacturesAnnulees } from "@/lib/relance-paiement-email";
@@ -172,15 +172,17 @@ export async function envoyerConfirmationSouscription(
   if (!c.souscrit_le) return { envoye: false, motif: "souscription non datée" };
   if (!c.destinataire) return { envoye: false, motif: "sans adresse" };
   if (c.montant_periode_cents === null) return { envoye: false, motif: "montant inconnu" };
+  const version = c.cgu_version;
+  if (!version || !c.cgu_acceptee_le) {
+    await tracer(service, "confirmation_preuve_commande_manquante", { organisation: p.orgId, souscription: p.subscription });
+    return { envoye: false, motif: "Conditions acceptées à la souscription à vérifier." };
+  }
   const editeur = await lireEditeurService(service);
-  const version = c.cgu_version ?? null;
   const pdf = version ? await pdfDesConditions(service, version, { rendu: options.rendu, delaiMs: options.delaiPdfMs }) : null;
   const site = adresseDuSite();
   const lien = !site
     ? null
-    : version && version !== CONDITIONS_VERSION
-      ? `${site}/conditions/versions/conditions_clients/${encodeURIComponent(version)}`
-      : `${site}/conditions`;
+    : `${site}/conditions/versions/conditions_clients/${encodeURIComponent(version)}`;
   if (!pdf) await tracer(service, "confirmation_sans_pdf", { organisation: c.organization_id, souscription: p.subscription, version });
   const souscritLe = new Date(c.souscrit_le);
   const biens = c.unites_souscrites ?? formuleParCode(c.formule)?.biens ?? null;

@@ -232,6 +232,7 @@ export function messageBoutonPaiement(offre: Offre, finEssaiSecondes: number | n
 export async function creerSessionOffre(
   stripe: Stripe,
   params: {
+    acceptation?: string;
     offre: Offre;
     regime: RegimeTva;
     customer: string;
@@ -283,7 +284,7 @@ export async function creerSessionOffre(
       // Le formulaire fait lire au client le montant exact avant validation ;
       // Stripe l'affiche encore, TTC, taxes détaillées, avant la carte.
       subscription_data: {
-        metadata: metadonneesOffre(params.orgId, params.offre, params.choix),
+        metadata: { ...metadonneesOffre(params.orgId, params.offre, params.choix), ...(params.acceptation && { gerimmo_commande: params.intention.id, gerimmo_acceptation: params.acceptation }) },
         ...(trialEnd ? { trial_end: trialEnd } : {}),
       },
       // La page meurt avec la réservation (Stripe : 30 min à 24 h ; 24 h par

@@ -28,7 +28,7 @@ import {
   MOTIF_CONDITIONS_A_ACCEPTER,
   estLaVersionEnVigueur,
 } from "@/lib/garde-souscription";
-import { conditionsEnVigueurAccepteesPar, lireMotifIdentiteEditeur } from "@/lib/garde-souscription-serveur";
+import { preuveConditionsEnVigueur, conditionsEnVigueurAccepteesPar, lireMotifIdentiteEditeur } from "@/lib/garde-souscription-serveur";
 import { MESSAGE_SESSION_EXPIREE } from "@/lib/session-expiree";
 import {
   GRILLE,
@@ -277,7 +277,8 @@ export async function demarrerAbonnement(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { erreur: MESSAGE_SESSION_EXPIREE };
-  if (!(await conditionsEnVigueurAccepteesPar(supabase, user.id))) return { erreur: MOTIF_CONDITIONS_A_ACCEPTER };
+  const acceptation = await preuveConditionsEnVigueur(supabase, user.id);
+  if (!acceptation) return { erreur: MOTIF_CONDITIONS_A_ACCEPTER };
 
   const estAgence = etat.public_tarif === "agence";
   const periodicite: Periodicite = estAgence ? "mensuel" : (lirePeriodicite(formData.get("periodicite")) ?? "mensuel");
@@ -319,11 +320,13 @@ export async function demarrerAbonnement(
       formule: offre.public === "particulier" ? offre.formule.code : "agence",
       case_confirmation: "2026-10-24",
       conditions_acceptees: CONDITIONS_VERSION,
+      acceptation,
       premier_prelevement_differe: etat.statut === "essai" && Boolean(etat.essai_fin),
     },
   });
   if (erreurCommande) return { erreur: "Votre confirmation n’a pas pu être enregistrée. Aucune page de paiement n’a été ouverte. Réessayez dans un instant." };
   const session = await ouvrirPageDePaiementUnique(stripe, registreDeService(service), {
+    acceptation,
     offre,
     regime: REGIME_TVA,
     customer: client.customer,
@@ -670,6 +673,16 @@ export async function resilierAbonnement(
     // 23/10 : aussi quand la résiliation elle-même a échoué après la libération.
     if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
     if (!r.ok) return { erreur: r.erreur };
+    if (service && r.souscription?.id === souscription && r.souscription.cancel_at_period_end === resilier) {
+      const fin = finDePeriode(r.souscription);
+      if (fin) {
+        const { error } = await service.rpc("confirmer_geste_resiliation", {
+          p_org: orgId, p_subscription: souscription, p_notifiee: notifieeLe.toISOString(),
+          p_fin: new Date(fin).toISOString(), p_annulation: resilier,
+        });
+        if (error) console.error("[résiliation] État du contrat à rapprocher avec le webhook.");
+      }
+    }
     // Relecture adverse du 24/10 (I3) : la levée efface la marque de l'accusé ; une nouvelle notification de la même
     // échéance sera accusée de nouveau. Un échec ne défait pas la levée (le webhook l'efface aussi).
     if (!resilier && service) {

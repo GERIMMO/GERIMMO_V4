@@ -179,6 +179,13 @@ async function traiterSouscription(supabase: Service, stripe: Stripe, evenement:
       p_souscrit_le: new Date(s.start_date * 1000).toISOString(),
     });
     if (erreurDate) throw new Error(erreurDate.message);
+    if (s.metadata?.gerimmo_commande) {
+      const { error } = await supabase.rpc("lier_preuve_commande", {
+        p_org: org, p_subscription: s.id, p_commande: s.metadata.gerimmo_commande,
+        p_acceptation: s.metadata.gerimmo_acceptation,
+      });
+      if (error) throw new Error(error.message);
+    }
   }
 
   // Relecture adverse du 24/10 (I3) : une résiliation levée (page, tableau de bord) efface la marque de son accusé ;

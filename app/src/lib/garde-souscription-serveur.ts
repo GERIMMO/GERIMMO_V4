@@ -48,7 +48,7 @@ export async function lireMotifIdentiteEditeur(enEssai: boolean, nouvelleSouscri
  * ne compte pas. Une lecture en échec vaut « non acceptée » : la case est
  * redemandée, et une ligne de plus est sans conséquence (ajout seul).
  */
-export async function conditionsEnVigueurAccepteesPar(supabase: Client, accountId: string): Promise<boolean> {
+export async function preuveConditionsEnVigueur(supabase: Client, accountId: string): Promise<string | null> {
   const lire = (parDocument: boolean) => {
     let requete = supabase.from("acceptations_cgu").select("id").eq("account_id", accountId);
     // 24/10 : une acceptation porte sur un document (conditions clients, conditions de l'espace artisan, règles des
@@ -61,7 +61,11 @@ export async function conditionsEnVigueurAccepteesPar(supabase: Client, accountI
   // (42703) ; toutes les acceptations sont alors des conditions clients. Sans ce repli, la garde échouait à chaque
   // essai et plus personne ne pouvait payer. Toute autre erreur ferme par défaut.
   if (error?.code === "42703") ({ data, error } = await lire(false));
-  return !error && data !== null;
+  return error ? null : data?.id ?? null;
+}
+
+export async function conditionsEnVigueurAccepteesPar(supabase: Client, accountId: string): Promise<boolean> {
+  return Boolean(await preuveConditionsEnVigueur(supabase, accountId));
 }
 
 /** Les deux lectures en parallèle, pour l'écran « Mon abonnement ». */

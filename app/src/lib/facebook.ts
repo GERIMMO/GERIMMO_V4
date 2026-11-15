@@ -8,6 +8,7 @@ export type PublicationFacebook = {
 };
 
 export type ArticleFacebook = {
+  id?: string;
   titre: string;
   chapo: string | null;
   slug: string;
@@ -17,10 +18,12 @@ export type ArticleFacebook = {
 
 export function texteFacebook(article: ArticleFacebook): string {
   const site = adresseDuSite() ?? "https://www.gerimmo.app";
-  const url = `${site}/journal/${article.slug}`;
+  const url = `${site}/journal/${article.slug}${article.id ? "#gerimmo-" + encodeURIComponent(article.id) : ""}`;
   const introduction = article.facebookTexte?.trim() ||
     `${article.titre}\n\n${article.chapo?.trim() || "Un nouvel article du Journal Gerimmo."}`;
-  return `${introduction}\n\nLire l’article : ${url}`.slice(0, 5000);
+  const pied = `\n\nLire l’article : ${url}`;
+  if (pied.length > 5000) throw new Error("Lien de publication trop long.");
+  return introduction.slice(0, 5000 - pied.length).replace(/[\uD800-\uDBFF]$/, "") + pied;
 }
 
 function baseGraph(): string {
@@ -131,5 +134,5 @@ export async function retrouverPostFacebook(article: ArticleFacebook, depuis: st
   const feed = await response.json() as {data?:{id:string;message?:string}[];paging?:{next?:string}};
   const message = texteFacebook(article);
   const correspondances = feed.data?.filter(post=>post.message===message && post.id.startsWith(page+"_"));
-  return !feed.paging?.next && correspondances?.length===1 ? correspondances[0].id : null;
+  return article.id && !feed.paging?.next && correspondances?.length===1 ? correspondances[0].id : null;
 }

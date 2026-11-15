@@ -1,3 +1,4 @@
+import { lierCommandeFictive } from "./fixtures/preuve-commande";
 import { Client } from "pg";
 import { createHash, randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -26,6 +27,7 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
     sub="sub_"+randomUUID().replaceAll("-","");
     await db.query("insert into abonnements(organization_id,stripe_customer_id,stripe_subscription_id,stripe_statut,souscrit_le,formule,unites_souscrites,montant_periode_cents,periode_fin,annulation_demandee) values($1,$2,$3,'active',now(),'solo',1,599,now()+interval '1 month',true)",[org,'cus_'+sub,sub]);
     await db.query("insert into acceptations_cgu(account_id,version,document,source) values($1,'v1','conditions_clients','inscription')",[acteur]);
+    await lierCommandeFictive(db,org,acteur,sub,"v1");
   });
   afterEach(async()=>{await db.query("rollback");vi.unstubAllGlobals();vi.unstubAllEnvs();});
   it("de l’action métier jusqu’à la boîte fictive et au journal, une seule fois par épisode",async()=>{

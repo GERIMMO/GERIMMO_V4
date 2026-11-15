@@ -9,7 +9,7 @@ import { libelleRole, libelleStatutAdhesion, LIBELLES_STATUT_ORGANISATION } from
 import { formaterDate } from "@/lib/ged";
 import { familleOrganisation, initiales } from "@/lib/clients-supervision";
 import { GesteControle } from "@/components/geste-controle";
-import { controlerOrganisation, renvoyerInvitation } from "@/app/actions/controle-supervision";
+import { controlerOrganisation, reprendreConfirmationClient, renvoyerInvitation } from "@/app/actions/controle-supervision";
 import { baseEspace } from "@/lib/racine-espace";
 
 export const metadata = { title: "Client" };
@@ -274,6 +274,9 @@ export default async function PageAdminOrganisation(
         </dl>
       </ConsoleSection>
 
+      {abo && <GesteControle action={reprendreConfirmationClient.bind(null,orgId)}
+        titre="Vérifier la confirmation de souscription" bouton="Vérifier et reprendre"
+        confirmation="Je demande la vérification du contrat et la reprise du courrier si son envoi est autorisé." />}
       {(lots.error || baux.error || personnes.error || parrainages.error) && <LectureIndisponible sujet="Parc ou parrainage" retour={`/admin/organisations/${orgId}`} />}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <ConsoleSection titre="Parc immobilier" description="Biens et lots de cette organisation." icone="documents" ton="vert" ouverte>

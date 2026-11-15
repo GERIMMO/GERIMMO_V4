@@ -11,6 +11,14 @@ function preuves(){return {
 function tester(p=preuves()){return recueillirCorrection(id,async path=>path.startsWith('git/')?p.branches:path.startsWith('actions/runs/')?p.run:path.startsWith('pulls?')?p.prs:p.ci,async()=>p.vercel,'prj_test');}
 describe('Suivi vérifiable des corrections',()=>{
  it('ne demande un accord que pour les contrôles et la démonstration de la même version',async()=>{expect(await tester()).toMatchObject({statut:'autorisation',revision,rapport:{resultat:'reussi',tests:456,demonstration:'https://gerimmo-test.vercel.app'}});});
+ it('retrouve la nouvelle branche stable et vérifie son exécution de préparation',async()=>{
+  const p=preuves(),stable=`gerimmo/proposition-${id}`,parent='a'.repeat(40);
+  p.branches[0].ref='refs/heads/'+stable;p.prs[0].head.ref=stable;
+  p.ci.workflow_runs[0].head_branch=stable;p.vercel.deployments[0].meta.githubCommitRef=stable;
+  const gh=async(path:string)=>path.startsWith('git/commits/')?{message:`Proposition Gerimmo ${id}\n\nAtelier-GitHub: 123`,parents:[{sha:parent}]}:
+    path.startsWith('git/matching-refs/')?p.branches:path==='actions/runs/123'?{...p.run,head_sha:parent}:path.startsWith('pulls?')?p.prs:p.ci;
+  expect(await recueillirCorrection(id,gh,async()=>p.vercel,'prj_test')).toMatchObject({branche:stable,statut:'autorisation',rapport:{preparation:123}});
+ });
  it('ne masque pas un contrôle récent en échec derrière un ancien succès',async()=>{const p=preuves();p.ci.workflow_runs.push({...p.ci.workflow_runs[0],id:457,conclusion:'failure'});expect((await tester(p)).rapport.resultat).toBe('echec');});
  it('ne réutilise pas une ancienne démonstration après un nouvel échec',async()=>{const p=preuves();p.vercel.deployments.push({...p.vercel.deployments[0],created:101,state:'ERROR'});expect((await tester(p)).statut).toBe('en_test');});
  it('refuse un atelier non terminé ou une origine étrangère',async()=>{const p=preuves();p.run.repository={full_name:'autre/projet'};await expect(tester(p)).rejects.toThrow(/origine/);});

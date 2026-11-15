@@ -38,7 +38,7 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
     await db.query("select set_config('request.jwt.claims','{\"role\":\"service_role\"}',true)");
     const service=clientSurPg(db,{transactionnel:true});
     banc.service={...service,rpc:async(n:string,args:Record<string,unknown>)=>n==="abonnement_courrier_contexte"
-      ? {data:(await db.query("select to_jsonb(a) ligne from abonnement_courrier_contexte($1) a",[args.p_org])).rows.map(r=>r.ligne),error:null}
+      ? {data:(await db.query((args.p_confirmation ? "select to_jsonb(a) ligne from abonnement_courrier_contexte($1,true) a" : "select to_jsonb(a) ligne from abonnement_courrier_contexte($1) a"),[args.p_org])).rows.map(r=>r.ligne),error:null}
       : service.rpc(n,args)} as unknown as SupabaseClient;
     const boite:{to:string[];html:string;subject:string}[]=[];
     let refus=false;
@@ -53,6 +53,13 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
     const adr=(await db.query("select email from auth.users where id=$1",[acteur])).rows[0].email;
     return {boite,fin,adr,refuser:()=>{refus=true}};
   }
+  it("confirme au signataire vérifié même si le contact comptable est différent", async () => {
+    const {boite,adr} = await preparer();
+    await db.query("update organizations set email_contact='facturation@example.invalid' where id=$1",[org]);
+    await lierCommandeFictive(db,org,acteur,sub,"2026-10-01");
+    await envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null});
+    expect(boite.map(m=>m.to)).toEqual([[adr]]);
+  });
   it("boîte isolée : un exemplaire de chaque courrier, bon destinataire et montant",async()=>{
     const {boite,fin,adr}=await preparer();
     await lierCommandeFictive(db,org,acteur,sub,"2026-10-01");

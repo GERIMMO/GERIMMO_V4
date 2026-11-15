@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
-import { envoyerSurFacebook } from "@/lib/facebook";
+import { envoyerSurFacebook, RefusFacebookCertain, retrouverPostFacebook } from "@/lib/facebook";
 import { journaliserSupervision, JOURNAL_A_VERIFIER } from "@/lib/journal-supervision";
 import { TACHES_SQL } from "@/lib/nom-arret-supervision";
 
@@ -138,17 +138,21 @@ export async function publierPublicationFacebook(id: string): Promise<EtatPublic
 
   const { data: article, error: erreurLecture } = await supabase
     .from("publications")
-    .select("titre, chapo, slug, statut, facebook_texte, facebook_image_url, facebook_post_id")
+    .select("titre, chapo, slug, statut, marketing_jour, image_empreinte, facebook_texte, facebook_image_url, facebook_post_id")
     .eq("id", id)
     .maybeSingle();
   if (erreurLecture || !article) return { erreur: "Article introuvable." };
   if (article.statut !== "publiee" || !article.slug) return { erreur: "Faites d’abord paraître l’article dans le Journal Gerimmo." };
   if (article.facebook_post_id) return { succes: "Cet article est déjà publié sur Facebook." };
 
-  const reservation = await supabase.rpc('reserver_diffusion_facebook', {p_id:id,p_automatique:false});
-  if(reservation.error || reservation.data !== true) return {erreur:'Un envoi est déjà engagé ou ne peut pas être confirmé. Vérifiez Facebook avant une nouvelle tentative.'};
-  // La diffusion est journalisée avant l'envoi : un message public parti sans trace n'est pas acceptable.
+  let reserve = false;
+  const reserver = async () => {
+    const reservation = await supabase.rpc('reserver_diffusion_facebook', {p_id:id,p_automatique:false});
+    if (reservation.error || reservation.data !== true) throw new Error('La diffusion est déjà engagée ou suspendue. Vérifiez son état.');
+    reserve = true;
+  };
   const journal = await journaliserSupervision(supabase, "publication_facebook", { publication: id });
+  if (!journal) return { erreur: "La diffusion doit être consignée avant son envoi." };
 
   try {
     const resultat = await envoyerSurFacebook({
@@ -158,7 +162,8 @@ export async function publierPublicationFacebook(id: string): Promise<EtatPublic
       slug: article.slug,
       facebookTexte: article.facebook_texte,
       facebookImageUrl: article.facebook_image_url,
-    });
+      ...(article.marketing_jour ? {afficheMarketing:{empreinte:article.image_empreinte}} : {}),
+    }, reserver);
     const { error } = await supabase.from("publications").update({
       facebook_post_id: resultat.post_id,
       facebook_publie_le: new Date().toISOString(),
@@ -167,12 +172,35 @@ export async function publierPublicationFacebook(id: string): Promise<EtatPublic
     if (error) return { erreur: "Facebook a publié, mais Gerimmo n’a pas pu enregistrer son identifiant. N’appuyez pas une seconde fois." };
   } catch (erreur) {
     const message = erreur instanceof Error ? erreur.message.slice(0, 500) : "La publication Facebook a échoué.";
-    await supabase.from("publications").update({ facebook_erreur: message }).eq("id", id);
+    if (reserve) {
+      const suivi = await supabase.from("publications").update({
+        facebook_erreur: message,
+        ...(erreur instanceof RefusFacebookCertain ? { facebook_envoi_demarre_le: null } : {}),
+      }).eq("id", id).is("facebook_post_id", null);
+      if (suivi.error) return { erreur: "Le statut de diffusion doit être vérifié sur la Page." };
+    }
     return { erreur: message };
   }
 
   revalidatePath(`/admin/publications/${id}`);
   return { succes: "Gerimmo a publié l’article sur sa Page Facebook." + trace(journal) };
+}
+
+export async function resoudreDiffusionFacebook(id: string, tentative: string, formulaire: FormData): Promise<EtatPublication> {
+  const {supabase, autorise} = await garderSuperAdmin();
+  if (!autorise) return {erreur:"Accès refusé."};
+  const {data:a,error} = await supabase.from("publications").select("titre,chapo,slug,facebook_texte,facebook_image_url,facebook_envoi_demarre_le").eq("id",id).maybeSingle();
+  if (error || !a || !a.slug || a.facebook_envoi_demarre_le !== tentative) return {erreur:"La tentative a changé. Rechargez la fiche."};
+  let preuve: string | null;
+  try {
+    preuve = await retrouverPostFacebook({id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},tentative);
+  } catch { return {erreur:"La Page Facebook est inaccessible. La tentative reste en vérification."}; }
+  const absence = formulaire.get("absence") === "on";
+  if (!preuve && !absence) return {erreur:"Aucune preuve certaine trouvée. Vérifiez la publication sur la Page Gerimmo."};
+  const r = await supabase.rpc("resoudre_tentative_facebook",{p_id:id,p_tentative:tentative,p_post:preuve,p_constat:String(formulaire.get("constat") ?? "").trim()});
+  if (r.error || r.data !== true) return {erreur:"Résolution impossible. Vérifiez le constat, le délai de dix minutes et votre authentification."};
+  revalidatePath(`/admin/publications/${id}`);
+  return {succes:preuve ? "Publication confirmée sur Facebook." : "Absence consignée. Une nouvelle diffusion demande votre accord."};
 }
 
 /**

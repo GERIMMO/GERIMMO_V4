@@ -168,3 +168,27 @@ export async function controlerCompte(accountId: string, _etat: EtatControle, fo
           : "Second facteur réinitialisé : le compte devra en enregistrer un nouveau à sa prochaine connexion.",
   };
 }
+
+/** Même preuve de commande, destinataire et réservation que le traitement contractuel. */
+export async function reprendreConfirmationClient(orgId: string, _etat: EtatControle, form: FormData): Promise<EtatControle> {
+  const {supabase,ok}=await superviseurPermanent();
+  if (!ok || !UUID.test(orgId) || form.get('confirmation')!=='oui') return {erreur:REFUS_ACCES};
+  const service=clientDeService();
+  if (!service) return {erreur:"Vérification du contrat indisponible."};
+  const {lireContexteCourrier,envoyerConfirmationSouscription,premierPrelevement}=await import('@/lib/courriers-contrat-envoi');
+  const {configurationStripe,clientStripe}=await import('@/lib/stripe');
+  const {verifierAvantEffet}=await import('@/lib/controle-effets');
+  const c=await lireContexteCourrier(service,orgId,true);
+  if (!c?.stripe_subscription_id || !c.cgu_version || !c.destinataire) return {erreur:"Vérifiez la commande historique, le compte confirmé du signataire et son rôle actif dans cette organisation."};
+  if (c.confirmation_envoyee_le) return {succes:"La confirmation a déjà été enregistrée."};
+  const config=configurationStripe();
+  if (!config.pret) return {erreur:"La vérification de la souscription est indisponible."};
+  if (!await journaliserSupervision(supabase,'verification_confirmation_client',{},orgId)) return {erreur:"Journal indisponible."};
+  try {
+    const sub=await clientStripe(config.config).subscriptions.retrieve(c.stripe_subscription_id);
+    if (!['active','trialing','past_due'].includes(sub.status)) return {erreur:"La souscription a changé. Vérifiez le contrat."};
+    const r=await envoyerConfirmationSouscription(service,{orgId,subscription:sub.id,premierPrelevementLe:premierPrelevement(sub)},
+      {avantEffet:()=>verifierAvantEffet(service,'abonnements')});
+    return r.envoye ? {succes:"La confirmation a été acceptée par le prestataire."} : {erreur:r.motif};
+  } catch {return {erreur:"La vérification n’a pas abouti. Consultez le suivi des courriers avant de reprendre."};}
+}

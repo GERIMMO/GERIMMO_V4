@@ -1,5 +1,5 @@
 /** Une proposition conserve sa branche en cas de réponse perdue ou de relance du workflow. */
-export async function assurerProposition(gh, { id, base, fichiers, resume }) {
+export async function assurerProposition(gh, { id, base, fichiers, resume, execution }) {
   let branche = `gerimmo/proposition-${id}`;
   const existante = async () => (await gh(`pulls?state=all&base=main&head=GERIMMO:${branche}`))[0];
   const pr = await existante();
@@ -26,7 +26,7 @@ export async function assurerProposition(gh, { id, base, fichiers, resume }) {
   const ref = `git/ref/heads/${branche}`;
   let tete = await gh(ref, undefined, { absent: true });
   if (!tete) {
-    const commit = await gh("git/commits", { message: `Proposition Gerimmo ${id}`, tree: arbre.sha, parents: [base] });
+    const commit = await gh("git/commits", { message: `Proposition Gerimmo ${id}${execution ? "\n\nAtelier-GitHub: " + execution : ""}`, tree: arbre.sha, parents: [base] });
     try {
       await gh("git/refs", { ref: `refs/heads/${branche}`, sha: commit.sha });
     } catch (erreur) {

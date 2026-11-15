@@ -14,6 +14,7 @@ import {
   refuserPublication,
   retirerPublication,
   publierPublicationFacebook,
+  resoudreDiffusionFacebook,
   type EtatPublication,
 } from "@/app/actions/publications";
 
@@ -28,6 +29,7 @@ type Props = {
   sources: string[];
   facebookTexte: string | null;
   facebookImageUrl: string | null;
+  tentativeFacebook: string | null;
   facebookPostId: string | null;
   facebookPublieLe: string | null;
   facebookErreur: string | null;
@@ -91,7 +93,7 @@ export function EditeurPublication(p: Props) {
     {}
   );
   const [etatFacebook, actionFacebook] = useActionState<EtatPublication, FormData>(
-    async () => publierPublicationFacebook(p.id),
+    async (_, fd) => p.tentativeFacebook ? resoudreDiffusionFacebook(p.id,p.tentativeFacebook,fd) : publierPublicationFacebook(p.id),
     {}
   );
 
@@ -350,7 +352,12 @@ export function EditeurPublication(p: Props) {
               <p className="mt-1.5 text-[13px] text-[var(--success)]">Publié par Gerimmo{p.facebookPublieLe ? ` le ${new Date(p.facebookPublieLe).toLocaleDateString("fr-FR")}` : ""}.</p>
             ) : (
               <form data-saisie-confirmee action={actionFacebook} className="mt-2 space-y-2">
-                <Soumettre classe="btn-secondaire">Publier sur Facebook</Soumettre>
+                {p.tentativeFacebook && <>
+                  <p>Vérifiez le post sur la Page Gerimmo. Une tentative incertaine suspend la diffusion.</p>
+                  <label><input type="checkbox" name="absence" /> J’ai vérifié la Page et constaté l’absence du post.</label>
+                  <label>Éléments vérifiés en cas d’absence<Input name="constat" maxLength={300} /></label>
+                </>}
+                <Soumettre classe="btn-secondaire">{p.tentativeFacebook ? "Vérifier et consigner le résultat" : "Publier sur Facebook"}</Soumettre>
                 <p className="text-[11.5px] text-[var(--texte-secondaire)]">Enregistrez d’abord le texte et le visuel si vous les modifiez.</p>
               </form>
             )}

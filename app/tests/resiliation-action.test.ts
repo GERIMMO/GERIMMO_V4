@@ -96,6 +96,15 @@ beforeEach(() => {
 });
 
 describe("R04 — notifier la résiliation depuis la page", () => {
+  it("confirme la résiliation avant de recalculer un échéancier libéré", async () => {
+    m.resilier.mockResolvedValueOnce({ok:true,echeancierLibere:true,souscription:{id:"sub_test",cancel_at_period_end:true,items:{data:[{current_period_end:FIN_S}]}}});
+    await redirection(resilierAbonnement("org-1",{},formulaire("oui")));
+    const confirmation=m.serviceRpc.mock.calls.findIndex(([nom])=>nom==="confirmer_geste_resiliation");
+    const recalcul=m.rpc.mock.calls.findIndex(([nom])=>nom==="abonnement_changements_a_recalculer");
+    expect(confirmation).toBeGreaterThanOrEqual(0);
+    expect(recalcul).toBeGreaterThanOrEqual(0);
+    expect(m.serviceRpc.mock.invocationCallOrder[confirmation]).toBeLessThan(m.rpc.mock.invocationCallOrder[recalcul]);
+  });
   it("audit, puis Stripe, puis un accusé à l'adresse choisie, sous la clé partagée, marqué « action »", async () => {
     const url = await redirection(resilierAbonnement("org-1", {}, formulaire("oui")));
     expect(url).toBe("/espace/org-1/abonnement?resiliation=programmee");

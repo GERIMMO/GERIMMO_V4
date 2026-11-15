@@ -31,6 +31,12 @@ describe("reprise avec une Page et un transport fictifs",()=>{
     vi.stubEnv("META_FACEBOOK_PAGE_ID","123");vi.stubEnv("META_FACEBOOK_PAGE_ACCESS_TOKEN","fictif");vi.stubEnv("VERCEL_ENV","production");
   });
   afterEach(()=>{vi.unstubAllGlobals();vi.unstubAllEnvs()});
+  it("refuse une affiche marketing externe avant la réservation et tout appel à Meta",async()=>{
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL","https://stockage.test");
+    const fetchTest=vi.fn(),reservation=vi.fn();vi.stubGlobal("fetch",fetchTest);
+    await expect(envoyerSurFacebook({...article,facebookImageUrl:"https://tiers.test/image.jpg",afficheMarketing:{empreinte:"a".repeat(64)}},reservation)).rejects.toThrow(/affiche/);
+    expect(reservation).not.toHaveBeenCalled();expect(fetchTest).not.toHaveBeenCalled();
+  });
   it.each([4,190])("un refus Graph explicite (%i) est reprenable après rétablissement",async(code)=>{
     const fetchTest=vi.fn().mockResolvedValueOnce(Response.json({data:[]})).mockResolvedValueOnce(Response.json({error:{code}},{status:400}))
       .mockResolvedValueOnce(Response.json({data:[]})).mockResolvedValueOnce(Response.json({id:"123_9"}));

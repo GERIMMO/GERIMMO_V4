@@ -516,7 +516,13 @@ describe("A01 — une seule page de paiement par organisation", () => {
       ? {data:null,error:{message:"indisponible"}} : registre.rpc(nom,args));
     expect(await issue(demarrerAbonnement(ORG, {}, souscrire()))).toMatchObject({erreur: expect.stringContaining("Aucune page de paiement")});
     expect(faux.etat.sessions).toHaveLength(0);
-    expect(registre.lignes).toHaveLength(0);
+    expect(registre.lignes).toHaveLength(1);
+    expect(registre.lignes[0].session).toBeNull();
+    m.serviceRpc.mockImplementation(registre.rpc);
+    expect((await issue(demarrerAbonnement(ORG,{},souscrire()))).url).toBeTruthy();
+    expect(registre.lignes).toHaveLength(1);
+    const journaux=m.serviceRpc.mock.calls.filter(([nom])=>nom==="abonnement_geste_consigner");
+    expect(journaux.at(-1)?.[1]).toMatchObject({p_details:{commande:registre.lignes[0].id}});
   });
 
   it("deux onglets en même temps : une seule page Stripe est créée, les deux reçoivent la même adresse", async () => {

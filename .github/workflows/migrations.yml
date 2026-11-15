@@ -77,6 +77,8 @@ concurrency:
 
 jobs:
   appliquer:
+    if: github.ref == 'refs/heads/main'
+    environment: gerimmo-production
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -265,6 +267,7 @@ jobs:
           #    qu'un échec net : le code trouve des tables et pas les fonctions.
           {
             echo "begin;"
+            echo "set local lock_timeout = '5s';"
             for f in $LISTE; do
               v="${f%%_*}"
               nom="${f#*_}"; nom="${nom%.sql}"

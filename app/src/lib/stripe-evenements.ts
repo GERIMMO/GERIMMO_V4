@@ -59,6 +59,10 @@ async function lireSuivi(supabase: Service, customer: string): Promise<Suivi | n
   return ((data ?? []) as Suivi[])[0] ?? null;
 }
 
+function identifiantPreuve(valeur?: string): string | null {
+  return valeur && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(valeur) ? valeur : null;
+}
+
 function introuvable(e: unknown): boolean {
   return (e as { code?: string }).code === "resource_missing";
 }
@@ -181,8 +185,8 @@ async function traiterSouscription(supabase: Service, stripe: Stripe, evenement:
     if (erreurDate) throw new Error(erreurDate.message);
     if (s.metadata?.gerimmo_commande) {
       const { error } = await supabase.rpc("lier_preuve_commande", {
-        p_org: org, p_subscription: s.id, p_commande: s.metadata.gerimmo_commande,
-        p_acceptation: s.metadata.gerimmo_acceptation,
+        p_org: org, p_subscription: s.id, p_commande: identifiantPreuve(s.metadata.gerimmo_commande),
+        p_acceptation: identifiantPreuve(s.metadata.gerimmo_acceptation),
       });
       if (error) throw new Error(error.message);
     }
@@ -326,6 +330,15 @@ async function courriersDuContrat(
   const fermeture = Boolean(s.metadata?.[MARQUE_FERMETURE_STRIPE]);
   // De même, la non-reconduction faute d'accord (R19) : le client n'a rien notifié (relecture transverse 3, M1).
   const nonReconduction = Boolean(s.metadata?.[MARQUE_NON_RECONDUCTION_STRIPE]);
+  if (avant.resiliation_par_la_page && evenement.type === "customer.subscription.updated" &&
+      s.cancel_at_period_end && !fermeture && !nonReconduction && !SOUSCRIPTION_TERMINEE.has(s.status) && suivi.grille===GRILLE && fin) {
+    const {data,error}=await supabase.rpc("resiliation_page_a_reprendre",{p_org:org,p_subscription:s.id,p_fin:fin});
+    if (error) throw new Error("Reprise de la résiliation indisponible.");
+    const geste=data?.[0];
+    if (geste) await essayer("accuse_resiliation",()=>envoyerAccuseResiliation(supabase,{
+      orgId:org,subscription:s.id,periodeFin:new Date(fin),notifieeLe:new Date(geste.notifiee_le),chemin:"action",destinataire:geste.destinataire,
+    }));
+  }
   if (
     evenement.type === "customer.subscription.updated" &&
     s.cancel_at_period_end &&

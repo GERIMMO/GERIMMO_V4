@@ -176,7 +176,7 @@ export async function envoyerEmail(params:Parameters<typeof envoyerEmailTranspor
  // Leur mission d'origine conserve la responsabilité de la reprise.
  if(params.contexteMetier && params.repriseAutonome!==false) {
   try {await conserverCourriel(db,{to:params.to,subject:params.subject,html:params.html,piecesJointes:params.piecesJointes,cleIdempotence:params.cleIdempotence,organisationId:params.organisation?.id,contexteMetier:params.contexteMetier});}
-  catch {return {erreur:"Conservation sécurisée indisponible. Aucun envoi effectué."};}
+  catch (e) {if(e instanceof RefusContexteCourriel)return {erreur:e.message};return {erreur:"Conservation sécurisée indisponible. Aucun envoi effectué."};}
  }
  const contenu=JSON.stringify([params.subject,params.html,params.piecesJointes??[]]);
  return envoyerCourrielDurable(db,{cle:params.cleIdempotence??empreinteCourriel(contenu),destinataire:params.to,organisation:params.organisation?.id??null,contenu},

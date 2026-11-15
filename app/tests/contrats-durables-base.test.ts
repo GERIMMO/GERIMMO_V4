@@ -37,7 +37,7 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
     // PostgREST conserve la précision des dates SQL. Le pilote pg transforme normalement les dates en Date JS.
     const service=clientSurPg(db,{transactionnel:true});
     banc.service={...service,rpc:async(n:string,args:Record<string,unknown>)=>n==="abonnement_courrier_contexte"
-      ? {data:(await db.query("select to_jsonb(a) ligne from abonnement_courrier_contexte($1) a",[org])).rows.map(r=>r.ligne),error:null}
+      ? {data:(await db.query((args.p_confirmation ? "select to_jsonb(a) ligne from abonnement_courrier_contexte($1,true) a" : "select to_jsonb(a) ligne from abonnement_courrier_contexte($1) a"),[org])).rows.map(r=>r.ligne),error:null}
       : service.rpc(n,args)} as unknown as SupabaseClient;
     const fin=new Date(Date.now()+3600000);
     await db.query("update abonnements set periode_fin=$1 where organization_id=$2",[fin,org]);

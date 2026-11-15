@@ -95,14 +95,14 @@ describe('mission marketing : diffusion de l’échu',()=>{
   contexte({echus:[{id:'p1',titre:'Un post'}],parutionRefusee:true});
   const r=await GET(requete());expect(await r.json()).toMatchObject({publiees:0,en_attente:['p1'],action_marketing:'examiner_publications'});expect(mocks.facebook).not.toHaveBeenCalled();
  });
- it('paru sur le site mais Facebook non réservé (plafond) : pas d’envoi, bilan en erreur',async()=>{
+ it('article paru dont la diffusion attend un accord ou un créneau : pas d’envoi, attente visible',async()=>{
   contexte({echus:[{id:'p1',titre:'Un post'}],reservationRefusee:true});
-  const r=await GET(requete());expect(r.status).toBe(503);expect((await r.json()).publiees).toBe(0);
+  const r=await GET(requete());expect(r.status).toBe(200);expect(await r.json()).toMatchObject({publiees:0,en_attente:['p1']});
  });
  it('un envoi déjà engagé n’est jamais renvoyé ; une réponse perdue laisse une alerte',async()=>{
   contexte({echus:[{id:'p1',titre:'Un post',facebook_envoi_demarre_le:'2026-10-08'}]});
   expect((await GET(requete())).status).toBe(503);expect(mocks.facebook).not.toHaveBeenCalled();
-  const c=contexte({echus:[{id:'p2',titre:'Un autre'}]});mocks.facebook.mockRejectedValueOnce(new Error('Délai dépassé'));
+  const c=contexte({echus:[{id:'p2',titre:'Un autre'}]});mocks.facebook.mockImplementationOnce(async(_article,avantEffet)=>{await avantEffet();throw new Error('Délai dépassé');});
   expect((await GET(requete())).status).toBe(503);expect(c.modifications.some(m=>typeof m.facebook_erreur==='string'&&m.facebook_erreur.includes('confirmation Facebook'))).toBe(true);
  });
 });

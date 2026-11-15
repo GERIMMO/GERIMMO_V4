@@ -287,7 +287,9 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         <div role="status" className="loc-carte">
           <p className="mesure-lecture text-sm text-muted-foreground">
             {retour("resiliation") === "programmee"
-              ? retour("accuse") === "echec"
+              ? retour("accuse") === "verification"
+                ? "Résiliation enregistrée pour la prochaine échéance. L’envoi de votre accusé est en cours de vérification."
+                : retour("accuse") === "echec"
                 ? "Résiliation enregistrée pour la prochaine échéance : votre accès payé reste entier jusque-là. L'accusé de réception n'a pas pu partir pour le moment : écrivez-nous si vous ne le recevez pas."
                 : retour("accuse") === "deja"
                   ? "Résiliation enregistrée pour la prochaine échéance : votre accès payé reste entier jusque-là. L'accusé de réception de cette résiliation vous a déjà été envoyé par courriel."

@@ -92,23 +92,25 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   const reserverAvantPublication=async()=>{
    await verifierAvantEffet(db,'marketing');
    const reservation=await db.rpc('reserver_diffusion_facebook',{p_id:a.id,p_automatique:true});
-   if(reservation.error||reservation.data!==true)throw new ReservationFacebookRefusee();
+   if(reservation.error)throw new Error('Réservation Facebook indisponible.');
+   if(reservation.data!==true)throw new ReservationFacebookRefusee();
    reserve=true;
   };
   try{
-   const resultat=await envoyerSurFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},reserverAvantPublication);
+   const resultat=await envoyerSurFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url,afficheMarketing:{empreinte:a.image_empreinte}},reserverAvantPublication);
    const trace=await db.from('publications').update({facebook_post_id:resultat.post_id,facebook_publie_le:new Date().toISOString(),facebook_erreur:null}).eq('id',a.id);
    if(trace.error){erreurs.push(`${a.id} : Facebook a répondu, confirmation non conservée. Ne pas renvoyer.`);continue;}
    diffuses.push(a.id);
   }catch(e){
    if(e instanceof ArretSupervision)throw e;
-   if(e instanceof ReservationFacebookRefusee){erreurs.push(a.id+" : Facebook non réservé (validation, pause ou plafond).");continue;}
+   if(e instanceof ReservationFacebookRefusee){attentes.push(a.id);continue;}
    if(e instanceof RefusFacebookCertain){
-    if(!reserve){erreurs.push(a.id+" : connexion Facebook à rétablir.");continue;}
+    if(!reserve){erreurs.push(a.id+" : "+e.message);continue;}
     const reprise=await db.from('publications').update({facebook_envoi_demarre_le:null,facebook_erreur:'Refus confirmé. Reprise au prochain passage autorisé.'}).eq('id',a.id).is('facebook_post_id',null).select('id').maybeSingle();
     erreurs.push(reprise.error ? a.id+' : refus confirmé, suivi à vérifier.' : a.id+' : Facebook a refusé la publication.');
     continue;
    }
+   if (!reserve){erreurs.push(a.id+' : préparation interrompue avant la réservation.');continue;}
    await db.from('publications').update({facebook_erreur:'La confirmation Facebook manque. Vérifiez la Page avant de renvoyer pour éviter un doublon.'}).eq('id',a.id);
    erreurs.push(`${a.id} : confirmation Facebook manquante.`);
   }

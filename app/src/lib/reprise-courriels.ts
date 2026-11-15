@@ -1,5 +1,5 @@
 import { piloteLimite, circuitAdmisPilote, suspendreCourrielPilote } from "./perimetre-pilote";
-import { verifierContexteCourriel, type ContexteCourriel } from './finalisation-courriels';
+import { RefusContexteCourriel, verifierContexteCourriel, type ContexteCourriel } from './finalisation-courriels';
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { empreinteCourriel, envoyerCourrielDurable, type ResultatCourriel } from './courriels-durables';
@@ -36,7 +36,8 @@ export async function conserverCourriel(db:SupabaseClient,p:ChargeCourriel) {
  if(p.contexteMetier){
   const contexte={...p.contexteMetier,destinataire:empreinteCourriel(p.to.trim().toLowerCase())};
   const a=await db.rpc('attacher_contexte_courriel',{p_id:id,p_org:p.organisationId??null,p_contexte:contexte});
-  if(a.error||a.data!==true)throw new Error('Validation métier indisponible');
+  if(a.error)throw new Error('Validation métier indisponible');
+  if(a.data!==true)throw new RefusContexteCourriel('Les droits ou les informations du contrat doivent être vérifiés.');
  }
 }
 export async function reprendreCourriels(db:SupabaseClient,envoyer:(p:ChargeCourriel,reference:string)=>Promise<ResultatCourriel>,avantEffet:()=>Promise<void>,budgetMs=10_000) {

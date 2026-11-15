@@ -64,6 +64,17 @@ describe.skipIf(!DB_URL)("Marketing — fenêtre de veto", () => {
     return id as string;
   }
 
+  it("une absence constatée en double authentification solde seulement la tentative examinée",async()=>{
+    const id=await brouillon();
+    const tentative=(await db.query("update public.publications set statut='publiee',facebook_envoi_demarre_le=now()-interval '11 minutes' where id=$1 returning facebook_envoi_demarre_le::text as date",[id])).rows[0].date;
+    await enSuperAdmin();
+    const args=[id,tentative,null,"Historique de la Page et publications programmées vérifiés."];
+    const rpc="select public.resoudre_tentative_facebook($1,$2,$3,$4) ok";
+    expect((await db.query(rpc,[id,new Date().toISOString(),null,args[3]])).rows[0].ok).toBe(false);
+    expect((await db.query(rpc,args)).rows[0].ok).toBe(true);
+    expect((await db.query(rpc,args)).rows[0].ok).toBe(false);
+    expect((await db.query("select facebook_envoi_demarre_le,facebook_a_diffuser from public.publications where id=$1",[id])).rows[0]).toEqual({facebook_envoi_demarre_le:null,facebook_a_diffuser:false});
+  });
   it("calcule l'heure de Paris en base, hiver comme été", async () => {
     const { rows: [r] } = await db.query(`select (public.instant_paris('2026-10-23'::date, 9) at time zone 'UTC')::text as ete, (public.instant_paris('2026-10-26'::date, 9) at time zone 'UTC')::text as hiver`);
     expect(r.ete).toMatch(/^2026-10-23 07:00:00/);

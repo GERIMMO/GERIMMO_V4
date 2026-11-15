@@ -14,6 +14,7 @@ export type ArticleFacebook = {
   slug: string;
   facebookTexte: string | null;
   facebookImageUrl: string | null;
+  afficheMarketing?: {empreinte:string|null};
 };
 
 export function texteFacebook(article: ArticleFacebook): string {
@@ -85,6 +86,14 @@ export async function envoyerSurFacebook(article: ArticleFacebook, avantEffet?: 
     throw new RefusFacebookCertain("La connexion Facebook de Gerimmo n’est pas encore configurée.");
   }
 
+  if (article.afficheMarketing) {
+    const empreinte=article.afficheMarketing.empreinte;
+    const origine=process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/,"");
+    const url=origine && `${origine}/storage/v1/object/public/marketing-visuels/${article.id}/${empreinte}.jpg`;
+    if (!origine || !empreinte || !/^[a-f0-9]{64}$/.test(empreinte) || !article.id || article.facebookImageUrl !== url) {
+      throw new RefusFacebookCertain("L’affiche doit être conservée dans Gerimmo et correspondre à la version validée.");
+    }
+  }
   const jetonPage = await jetonPourLaPage(pageId, jeton);
   const message = texteFacebook(article);
   const image = article.facebookImageUrl?.trim();

@@ -61,8 +61,8 @@ export type ContexteCourrier = {
   resiliations_accusees?: number | null;
 };
 
-export async function lireContexteCourrier(service: Service, orgId: string): Promise<ContexteCourrier | null> {
-  const { data, error } = await service.rpc("abonnement_courrier_contexte", { p_org: orgId });
+export async function lireContexteCourrier(service: Service, orgId: string, confirmation = false): Promise<ContexteCourrier | null> {
+  const { data, error } = await service.rpc("abonnement_courrier_contexte", { p_org: orgId, ...(confirmation ? { p_confirmation: true } : {}) });
   if (error) throw new Error("Le contexte du courrier n'a pas pu être lu.");
   return ((data ?? []) as ContexteCourrier[])[0] ?? null;
 }
@@ -154,7 +154,7 @@ ${archivee.texte_html}</body></html>`;
   }
 }
 
-export type ResultatEnvoi = { envoye: boolean; motif?: string };
+export type ResultatEnvoi = { envoye: boolean; motif?: string; verification?: boolean };
 
 /**
  * R03 : la confirmation de la souscription, avec le PDF de la version acceptée (ou, à défaut, son adresse et une trace
@@ -166,11 +166,11 @@ export async function envoyerConfirmationSouscription(
   p: { orgId: string; subscription: string; premierPrelevementLe: Date | null },
   options: { avantEffet?: () => Promise<void>; rendu?: RenduPdf; delaiPdfMs?: number } = {}
 ): Promise<ResultatEnvoi> {
-  const c = await lireContexteCourrier(service, p.orgId);
+  const c = await lireContexteCourrier(service, p.orgId, true);
   if (!c || c.stripe_subscription_id !== p.subscription) return { envoye: false, motif: "souscription non suivie" };
   if (c.confirmation_envoyee_le) return { envoye: false, motif: "déjà envoyée" };
   if (!c.souscrit_le) return { envoye: false, motif: "souscription non datée" };
-  if (!c.destinataire) return { envoye: false, motif: "sans adresse" };
+  if (!c.destinataire) return { envoye: false, motif: "Identité du souscripteur et preuve de commande à vérifier." };
   if (c.montant_periode_cents === null) return { envoye: false, motif: "montant inconnu" };
   const version = c.cgu_version;
   if (!version || !c.cgu_acceptee_le) {
@@ -203,7 +203,7 @@ export async function envoyerConfirmationSouscription(
     lienConditions: lien,
   });
   await options.avantEffet?.();
-  const { erreur, id, finalisationEnAttente } = await envoyerEmail({ circuit:"confirmation-abonnement",
+  const { erreur, id, incertain, finalisationEnAttente } = await envoyerEmail({ circuit:"confirmation-abonnement",
     organisation:{db:service,id:c.organization_id},
     contexteMetier:{type:"confirmation_abonnement",id:p.subscription,montant:Number(c.montant_periode_cents),
       version,acceptee:c.cgu_acceptee_le,formule:c.formule,unites:c.unites_souscrites,periodicite:c.periodicite,
@@ -215,8 +215,9 @@ export async function envoyerConfirmationSouscription(
     cleIdempotence: `souscription-${p.subscription}`,
     ...(pdf ? { piecesJointes: [pdf] } : {}),
   });
+  if (incertain) return {envoye:false, verification:true, motif:"Envoi en cours de vérification."};
   if (erreur) return { envoye: false, motif: erreur };
-  if (!id || finalisationEnAttente) return {envoye:false,motif:"Acceptation ou finalisation à vérifier. Ne pas renvoyer."};
+  if (!id || finalisationEnAttente) return {envoye:false,verification:true,motif:"Acceptation ou finalisation à vérifier. Ne pas renvoyer."};
   return { envoye: true };
 }
 
@@ -300,7 +301,7 @@ export async function envoyerAccuseResiliation(
   });
   const rang = Number(c.resiliations_accusees ?? 0);
   await options.avantEffet?.();
-  const { erreur, id, finalisationEnAttente } = await envoyerEmail({ circuit:"accuse-resiliation",
+  const { erreur, id, incertain, finalisationEnAttente } = await envoyerEmail({ circuit:"accuse-resiliation",
     organisation:{db:service,id:c.organization_id},
     contexteMetier:{type:"accuse_resiliation",id:p.subscription,fin:p.periodeFin.toISOString(),rang,
       chemin:p.chemin,notification:p.notifieeLe.toISOString(),organisation:c.organisation,formule:c.formule},
@@ -310,8 +311,9 @@ export async function envoyerAccuseResiliation(
     html: courrier.html,
     cleIdempotence: `resiliation-${p.subscription}-${dateParis(p.periodeFin)}${rang > 0 ? `-${rang + 1}` : ""}`,
   });
+  if (incertain) return {envoye:false, verification:true, motif:"Envoi en cours de vérification."};
   if (erreur) return { envoye: false, motif: erreur };
-  if (!id || finalisationEnAttente) return {envoye:false,motif:"Acceptation ou finalisation à vérifier. Ne pas renvoyer."};
+  if (!id || finalisationEnAttente) return {envoye:false,verification:true,motif:"Acceptation ou finalisation à vérifier. Ne pas renvoyer."};
   return { envoye: true };
 }
 

@@ -5,7 +5,7 @@ import type {SupabaseClient} from '@supabase/supabase-js';
 import {clientSurPg} from './fixtures/supabase-sur-pg';
 import {empreinteCourriel} from '../src/lib/courriels-durables';
 import {conserverCourriel,identiteCourriel,reprendreCourriels,type ChargeCourriel} from '../src/lib/reprise-courriels';
-import {verifierContexteCourriel} from '../src/lib/finalisation-courriels';
+import {RefusContexteCourriel,verifierContexteCourriel} from '../src/lib/finalisation-courriels';
 const shared=vi.hoisted(()=>({service:null as unknown}));
 vi.mock('@/lib/supabase/service',()=>({clientDeService:()=>shared.service}));
 vi.mock('@/lib/marque-organisation-serveur',()=>({chargerMarque:async()=>null}));
@@ -64,7 +64,9 @@ it('revérifie les droits de celui qui invite',async()=>{
 });
 it('ne peut pas rattacher le message à une autre organisation',async()=>{
  const p=acces(true);p.organisationId=await id("insert into organizations(name,status) values('Autre fictive','active') returning id");
- await expect(conserverCourriel(service,p)).rejects.toThrow('Validation métier');expect(transport).not.toHaveBeenCalled();
+ await expect(conserverCourriel(service,p)).rejects.toBeInstanceOf(RefusContexteCourriel);
+ expect(await row(p)).toMatchObject({finalisation_etat:'a_verifier',reprise_autonome:false,tentatives:0,fournisseur_id:null});
+ expect(transport).not.toHaveBeenCalled();
 });
 it('finalise une invitation acceptée par le prestataire, même si le lien est déjà consommé, sans redonner accès',async()=>{
  const p=acces(true);await conserverCourriel(service,p);const k=identiteCourriel(p),lease=randomUUID();

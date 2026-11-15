@@ -64,6 +64,17 @@ describe.skipIf(!DB_URL)("Marketing — fenêtre de veto", () => {
     return id as string;
   }
 
+  it("une absence constatée en double authentification solde seulement la tentative examinée",async()=>{
+    const id=await brouillon();
+    const tentative=(await db.query("update public.publications set statut='publiee',facebook_envoi_demarre_le=now()-interval '11 minutes' where id=$1 returning facebook_envoi_demarre_le::text as date",[id])).rows[0].date;
+    await enSuperAdmin();
+    const args=[id,tentative,null,"Historique de la Page et publications programmées vérifiés."];
+    const rpc="select public.resoudre_tentative_facebook($1,$2,$3,$4) ok";
+    expect((await db.query(rpc,[id,new Date().toISOString(),null,args[3]])).rows[0].ok).toBe(false);
+    expect((await db.query(rpc,args)).rows[0].ok).toBe(true);
+    expect((await db.query(rpc,args)).rows[0].ok).toBe(false);
+    expect((await db.query("select facebook_envoi_demarre_le,facebook_a_diffuser from public.publications where id=$1",[id])).rows[0]).toEqual({facebook_envoi_demarre_le:null,facebook_a_diffuser:false});
+  });
   it("calcule l'heure de Paris en base, hiver comme été", async () => {
     const { rows: [r] } = await db.query(`select (public.instant_paris('2026-10-23'::date, 9) at time zone 'UTC')::text as ete, (public.instant_paris('2026-10-26'::date, 9) at time zone 'UTC')::text as hiver`);
     expect(r.ete).toMatch(/^2026-10-23 07:00:00/);
@@ -94,6 +105,26 @@ describe.skipIf(!DB_URL)("Marketing — fenêtre de veto", () => {
     expect((await db.query(`select public.reserver_diffusion_facebook($1, true) as ok`, [id])).rows[0].ok).toBe(true);
   });
 
+  it("reprend après parution sur le site, jamais après une tentative externe incertaine",async()=>{
+    const id=await brouillon();
+    await enService();
+    await db.query("select public.programmer_publication_marketing($1,now()-interval '1 minute')",[id]);
+    await db.query("select public.publier_article_automatique($1)",[id]);
+    const attendus=async()=> (await db.query("select count(*)::int as n from public.publications_marketing_echues() t(id) where id=$1",[id])).rows[0].n;
+    expect(await attendus()).toBe(1);
+    await db.query("reset role");
+    await db.query("update public.marketing_reglages set validation_obligatoire=true where singleton");
+    await enService();
+    const reserver=async()=> (await db.query("select public.reserver_diffusion_facebook($1,true) ok",[id])).rows[0].ok;
+    expect(await reserver()).toBe(false);
+    await db.query("reset role");
+    await db.query("update public.marketing_reglages set validation_obligatoire=false where singleton");
+    await enService();
+    expect(await reserver()).toBe(true);
+    expect(await attendus()).toBe(1); // Seul le rapprochement en lecture reste possible.
+    expect(await reserver()).toBe(false);
+  });
+
   it("un post sans visuel ne se programme pas", async () => {
     const id = await brouillon({ image: false });
     await enService();
@@ -120,6 +151,27 @@ describe.skipIf(!DB_URL)("Marketing — fenêtre de veto", () => {
     const journal = await db.query(`select action from public.audit_log where account_id = $1 and action like 'publication_marketing_%' order by created_at`, [superAdmin]);
     expect(journal.rows.map((r) => r.action)).toEqual(["publication_marketing_refuser", "publication_marketing_reporter"]);
     expect(Number((await db.query(`select count(*) from public.tech_log where evenement = 'decision_marketing'`)).rows[0].count)).toBe(2);
+  });
+
+  it("une affiche modifiée perd son accord et une tentative incertaine garde sa preuve", async () => {
+    await db.query("update public.marketing_reglages set validation_obligatoire = true where singleton");
+    const id = await brouillon();
+    await enService();
+    await db.query("select public.programmer_publication_marketing($1, now() - interval '1 minute')", [id]);
+    await enSuperAdmin();
+    await db.query("select public.decider_publication_marketing($1, 'valider')", [id]);
+    await db.query("reset role");
+    await db.query("update public.publications set facebook_image_url = 'https://stockage.test/revision.jpg' where id = $1", [id]);
+    expect((await db.query("select valide_par, valide_le from public.publications where id=$1", [id])).rows[0])
+      .toEqual({ valide_par: null, valide_le: null });
+    await enService();
+    expect((await db.query("select public.publier_article_automatique($1) ok", [id])).rows[0].ok).toBe(false);
+    await enSuperAdmin();
+    await db.query("select public.decider_publication_marketing($1, 'valider')", [id]);
+    await enService();
+    expect((await db.query("select public.publier_article_automatique($1) ok", [id])).rows[0].ok).toBe(true);
+    expect((await db.query("select public.reserver_diffusion_facebook($1,true) ok", [id])).rows[0].ok).toBe(true);
+    await doitEchouer("update public.publications set slug='autre-preuve' where id=$1", [id], /tentative Facebook/);
   });
 
   it("validation obligatoire : rien ne part sans accord ; « publier maintenant » avance l'heure", async () => {

@@ -1,3 +1,4 @@
+import { LienContenu } from "@/components/lien-contenu";
 import {lireEditeur} from '@/lib/editeur-serveur';
 import { PresenceSupervision } from "@/components/presence-supervision";
 import Link from "next/link";
@@ -57,6 +58,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
       {/* Ordinateur : colonne + corps. Téléphone : barre haute, puis le menu
           (seulement ouvert), puis le corps — un seul menu dans la page. */}
       <div className={`admin-coquille experience-unifiee ${styles.shell} min-[901px]:grid-rows-[auto_minmax(0,1fr)] max-[900px]:grid-rows-[auto_auto_minmax(0,1fr)]`}>
+        <LienContenu />
         <PresenceSupervision />
         <header className="bandeau-appli admin-bandeau min-[901px]:col-start-2 min-[901px]:row-start-1 max-[900px]:row-start-1">
           <div className="admin-bandeau-interieur">
@@ -102,7 +104,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           {/* Le bas de page passe au-dessus du bouton flottant « Aide et
               retours » (24/09) : sans cette réserve, la dernière ligne restait
               dessous. */}
-          <div className="portail-ecrans min-w-0 flex-1 pb-[calc(72px+env(safe-area-inset-bottom,0px))]">
+          <div id="contenu-espace" tabIndex={-1} className="portail-ecrans min-w-0 flex-1 pb-[calc(72px+env(safe-area-inset-bottom,0px))]">
             <BandeauArretSupervision arrets={arrets.error ? [] : (arrets.data ?? [])} relais={relais.error ? [] : (relais.data ?? [])} />
             {children}
           </div>

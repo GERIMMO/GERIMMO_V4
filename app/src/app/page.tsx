@@ -9,7 +9,7 @@ import { FormulaireDevisVitrine } from "./formulaire-devis-vitrine";
 import { AncreAuChargement } from "@/components/ancre-au-chargement";
 import { ApercuTableauDeBord, ApercuQuittance } from "./apercus-produit";
 import { REGIME_TVA } from "@/lib/editeur";
-import { badgeEssai, dureeEssai, etiquetteTaxes, libelleOffreLancement, mentionTaxesPubliques } from "@/lib/tarifs";
+import { badgeEssai, dureeEssai, etiquetteTaxes, mentionTaxesPubliques } from "@/lib/tarifs";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 import { TuileOutil, outilsPresentes } from "@/components/outils/icones-outils";
@@ -62,7 +62,6 @@ export default async function PageVitrine() {
     .select("id, titre, slug, chapo, publie_le, facebook_image_url")
     .eq("statut", "publiee").order("publie_le", { ascending: false }).limit(3);
   const duree = dureeEssai();
-  const offre = libelleOffreLancement();
   return (
     <div className="site-public">
       <EnTetePublic />
@@ -77,7 +76,7 @@ export default async function PageVitrine() {
                 <Link href="/inscription" className="btn-or">Créer mon compte <ArrowUpRight size={18} aria-hidden /></Link>
                 <a href="#fonctionnalites" className="btn-secondaire">Découvrir Gerimmo <ArrowRight size={17} aria-hidden /></a>
               </div>
-              <Link href="/tarifs" title={offre ?? undefined} className="public-essai"><span aria-hidden className="public-point" />{badgeEssai()}</Link>
+              <Link href="/tarifs" className="public-essai"><span aria-hidden className="public-point" />{badgeEssai()}</Link>
               <p className="public-note">Sans carte bancaire · Gestion locative partout en France</p>
             </div>
             <div className="public-hero-visuel">

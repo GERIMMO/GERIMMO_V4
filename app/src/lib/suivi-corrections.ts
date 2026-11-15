@@ -19,13 +19,21 @@ export function lireRapportCorrection(v:unknown):RapportCorrection|null{
 }
 export async function recueillirCorrection(id:string,gh:Lire,vercel:Lire,projet:string):Promise<SuiviCorrection>{
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)||!projet)throw new Error('La demande ou la connexion de démonstration doit être vérifiée.');
- const prefixe=`gerimmo/proposition-${id}-`;
- const branches=liste(await gh(`git/matching-refs/heads/${prefixe}`)).filter(b=>typeof b.ref==='string'&&b.ref.startsWith(`refs/heads/${prefixe}`));
+ const prefixe=`gerimmo/proposition-${id}`;
+ const branches=liste(await gh(`git/matching-refs/heads/${prefixe}`)).filter(b=>typeof b.ref==='string'&&new RegExp(`^refs/heads/${prefixe}(?:-[0-9]+)?$`).test(b.ref));
  if(branches.length!==1)throw new Error(branches.length?'Plusieurs préparations existent. Un responsable doit choisir la version à examiner.':'La préparation n’a pas encore produit de version. Consultez son avancement dans l’atelier.');
- const branche=String(branches[0].ref).slice('refs/heads/'.length),runId=branche.slice(prefixe.length),revision=objet(branches[0].object).sha;
+ const branche=String(branches[0].ref).slice('refs/heads/'.length),revision=objet(branches[0].object).sha;
+ let runId=branche.slice(prefixe.length+1), parent:unknown;
+ if(branche===prefixe && sha(revision)){
+  const commit=objet(await gh(`git/commits/${revision}`));
+  runId=new RegExp(`^Proposition Gerimmo ${id}\\n\\nAtelier-GitHub: ([0-9]+)$`).exec(String(commit.message))?.[1]??'';
+  const parents=liste(commit.parents);
+  if(parents.length!==1||!sha(parents[0].sha)) throw new Error('Origine du commit inconnue.');
+  parent=parents[0].sha;
+ }
  if(!/^\d+$/.test(runId)||!sha(revision))throw new Error('La version préparée n’a pas pu être vérifiée.');
  const run=objet(await gh(`actions/runs/${runId}`));
- if(run.event!=='workflow_dispatch'||run.head_branch!=='main'||run.path!=='.github/workflows/atelier-code.yml'||run.display_title!==`Amélioration ${id}`||objet(run.repository).full_name!==REPO||run.status!=='completed'||run.conclusion!=='success')throw new Error('La préparation n’est pas terminée ou son origine ne peut pas être confirmée.');
+ if((parent && run.head_sha!==parent)||run.event!=='workflow_dispatch'||run.head_branch!=='main'||run.path!=='.github/workflows/atelier-code.yml'||run.display_title!==`Amélioration ${id}`||objet(run.repository).full_name!==REPO||run.status!=='completed'||run.conclusion!=='success')throw new Error('La préparation n’est pas terminée ou son origine ne peut pas être confirmée.');
  const prs=liste(await gh(`pulls?state=all&base=main&head=GERIMMO:${encodeURIComponent(branche)}&per_page=100`));
  if(prs.length!==1)throw new Error('La proposition à examiner ne peut pas être identifiée.');
  const pr=prs[0],head=objet(pr.head),base=objet(pr.base);

@@ -23,6 +23,13 @@
       "resume_modifications": "Abonnement unique pour les nouvelles souscriptions propriétaires et SCI, calcul par unité locative active et deux mois offerts en annuel. Les conditions des contrats précédents sont conservées.",
       "empreinte_reference": "99c758140cbe9d5dea8df8ee9caeff3f3d31e54290ac0fca482f37ab8e36d47f",
       "nouvelles_souscriptions_uniquement": true
+    },
+    "2026-11-15": {
+      "date_effet": "2026-11-15",
+      "nature": "substantielle",
+      "resume_modifications": "Deux mois calendaires gratuits pour toute nouvelle inscription, sans échéance de lancement et sans souscription automatique (article 8.2).",
+      "empreinte_reference": "e50cd349f2bfe7acf4d703da24831c320b8e0cf02c6ddd5d6ce2309470f62713",
+      "nouvelles_souscriptions_uniquement": true
     }
   },
   "conditions_artisans": {

@@ -42,7 +42,7 @@ export async function ouvrirOrganisation(
   const email = String(formData.get("email") ?? "").trim();
   const active = formData.get("active") !== null;
   // Champ vide : l'essai standard, en mois calendaires, que la base calcule
-  // (2 mois jusqu'au 31/12/2026 — offre de lancement —, 1 mois ensuite). Un nombre : une durée négociée, en jours.
+  // (2 mois calendaires). Un nombre : une durée négociée, en jours.
   const joursSaisis = String(formData.get("essai_jours") ?? "").trim();
   const jours = joursSaisis === "" ? null : Number(joursSaisis);
   const demande = String(formData.get("demande_id") ?? "").trim();

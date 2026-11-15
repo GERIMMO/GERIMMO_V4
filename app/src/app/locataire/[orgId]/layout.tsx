@@ -1,3 +1,4 @@
+import { LienContenu } from "@/components/lien-contenu";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cache } from "react";
@@ -99,6 +100,7 @@ export default async function LayoutLocataire({
 
   return (
     <div className="loc-app gerimmo-prestige experience-unifiee" style={styleMarque(apparence)}>
+      <LienContenu />
       <aside className="loc-late">
         <div className="loc-logo min-w-0">
           <Link href={`/locataire/${orgId}`} className="block min-w-0 max-w-full overflow-hidden">
@@ -158,7 +160,7 @@ export default async function LayoutLocataire({
         )}
         {/* Plus de marge basse réservée au rond flottant (25/09, D40) : l'aide
             vit dans la barre latérale, le rond n'existe plus chez le locataire. */}
-        <main className="loc-corps mx-auto">{children}</main>
+        <main id="contenu-espace" tabIndex={-1} className="loc-corps mx-auto">{children}</main>
       </div>
     </div>
   );

@@ -38,6 +38,7 @@ export const ACTIONS_SUPERVISION = {
   etude_territoriale_enregistree: "Étude territoriale enregistrée",
   idees_regroupees: "Idées d’utilisateurs regroupées",
   revue_idees_close: "Revue mensuelle des idées close",
+  verification_confirmation_client: "Vérification de la confirmation de souscription",
   invitation_renvoyee: "Invitation du responsable renvoyée",
   organisation_suspendue: "Organisation suspendue",
   organisation_reactivee: "Organisation réactivée",

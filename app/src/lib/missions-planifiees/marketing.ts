@@ -1,4 +1,4 @@
-import { phaseValide, prochainAngle, rendezVousEditorial, objectifEditorial, type Phase } from "@/lib/phases-marketing";
+import { phaseValide, titresEditoriauxCandidats, prochainAngle, rendezVousEditorial, objectifEditorial, type Phase } from "@/lib/phases-marketing";
 import {LIMITE_ARTICLES,sujetDansPerimetre} from "@/lib/cadre-editorial";
 import { verifierAvantEffet, ArretSupervision } from "@/lib/controle-effets";
 import {clientDeService} from '@/lib/supabase/service';
@@ -9,7 +9,7 @@ import {redigerArticleVeille} from '@/lib/redaction-veille';
 import {couperAuMot} from '@/lib/utils';
 import {lireSourceEtude} from '@/lib/analyse-veille';
 import {creerVisuelMarketing} from '@/lib/visuel-marketing';
-import {envoyerSurFacebook} from '@/lib/facebook';
+import {envoyerSurFacebook,RefusFacebookCertain,retrouverPostFacebook} from '@/lib/facebook';
 import {alerterSuperviseurDuPost} from '@/lib/alerte-veto-marketing';
 import {composantesParis,dateParis} from '@/lib/heure-paris-calcul';
 import {PlafondIAAtteint,reserverAppelIA} from '@/lib/plafond-ia';
@@ -57,6 +57,8 @@ export async function appelAutorise(request:Request,db:Db){
 }
 
 // ── Diffusion ──────────────────────────────────────────────────────────────
+class ReservationFacebookRefusee extends Error {}
+
 export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boolean}={}){
  const {data:ids,error}=await db.rpc('publications_marketing_echues');
  if(error)return {erreur:'Les posts à diffuser ne peuvent pas être lus.',diffuses:[] as string[],attentes:[] as string[],erreurs:[] as string[]};
@@ -65,7 +67,13 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   const {data:article}=await db.from('publications').select(CHAMPS).eq('id',id).maybeSingle();
   if(!article)continue;
   const a=article as Article;
-  if(a.facebook_envoi_demarre_le){erreurs.push(`${a.id} : un envoi a déjà été engagé, à vérifier sur Facebook.`);continue;}
+  if(a.facebook_envoi_demarre_le){
+   const preuve=await retrouverPostFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},a.facebook_envoi_demarre_le).catch(()=>null);
+   if(preuve){
+    const trace=await db.from('publications').update({facebook_post_id:preuve,facebook_publie_le:new Date().toISOString(),facebook_erreur:null}).eq('id',a.id).is('facebook_post_id',null).select('id').maybeSingle();
+    if(!trace.error && trace.data){diffuses.push(a.id);continue;}
+   }
+   erreurs.push(`${a.id} : un envoi a déjà été engagé, à vérifier sur Facebook.`);continue;}
   if(a.veille_source_id){
    const source=await db.from('regulatory_watch').select('titre').eq('id',a.veille_source_id).maybeSingle();
    if(source.error||!source.data){erreurs.push(`${a.id} : source de veille impossible à vérifier, diffusion suspendue.`);continue;}
@@ -73,22 +81,36 @@ export async function diffuserPostsEchus(db:Db,r:Reglages,options:{manuel?:boole
   }
   // Parution sur le site : la base relit tout (accord, validation, texte complet, veille écartée).
   await verifierAvantEffet(db,'marketing');
-  const parution=await db.rpc('publier_article_automatique',{p_id:a.id,p_manuel:options.manuel===true});
-  if(parution.error){erreurs.push(`${a.id} : ${parution.error.message}`);continue;}
-  if(parution.data!==true){attentes.push(a.id);continue;}
-  const campagne=await db.from('marketing_campagnes').upsert({publication_id:a.id,nom:a.titre.slice(0,160),description:a.facebook_texte,canal:'facebook',nature:'organique',objectif:objectifEditorial(a.titre),statut:'idee',publication_prevue_le:null,budget_cents:0},{onConflict:'publication_id'});
+  if(a.statut!=='publiee'){
+   const parution=await db.rpc('publier_article_automatique',{p_id:a.id,p_manuel:options.manuel===true});
+   if(parution.error){erreurs.push(`${a.id} : ${parution.error.message}`);continue;}
+   if(parution.data!==true){attentes.push(a.id);continue;}
+  }
+  const campagne=await db.from('marketing_campagnes').upsert({publication_id:a.id,nom:a.titre.slice(0,160),description:a.facebook_texte,canal:'facebook',nature:'organique',objectif:objectifEditorial(a.titre),statut:'idee',publication_prevue_le:null,budget_cents:0},{onConflict:'publication_id',ignoreDuplicates:true});
   if(campagne.error){erreurs.push(`${a.id} : fiche de suivi indisponible, Facebook non tenté.`);continue;}
-  const reservation=await db.rpc('reserver_diffusion_facebook',{p_id:a.id,p_automatique:true});
-  if(reservation.error||reservation.data!==true){erreurs.push(`${a.id} : paru sur le site, diffusion Facebook non réservée (plafond hebdomadaire ou pause).`);continue;}
-  try{
+  let reserve=false;
+  const reserverAvantPublication=async()=>{
    await verifierAvantEffet(db,'marketing');
-   const resultat=await envoyerSurFacebook({titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url},()=>verifierAvantEffet(db,'marketing'));
+   const reservation=await db.rpc('reserver_diffusion_facebook',{p_id:a.id,p_automatique:true});
+   if(reservation.error)throw new Error('Réservation Facebook indisponible.');
+   if(reservation.data!==true)throw new ReservationFacebookRefusee();
+   reserve=true;
+  };
+  try{
+   const resultat=await envoyerSurFacebook({id:a.id,titre:a.titre,chapo:a.chapo,slug:a.slug,facebookTexte:a.facebook_texte,facebookImageUrl:a.facebook_image_url,afficheMarketing:{empreinte:a.image_empreinte}},reserverAvantPublication);
    const trace=await db.from('publications').update({facebook_post_id:resultat.post_id,facebook_publie_le:new Date().toISOString(),facebook_erreur:null}).eq('id',a.id);
    if(trace.error){erreurs.push(`${a.id} : Facebook a répondu, confirmation non conservée. Ne pas renvoyer.`);continue;}
-   await db.from('marketing_campagnes').update({statut:'terminee',fin_le:new Date().toISOString()}).eq('publication_id',a.id);
    diffuses.push(a.id);
   }catch(e){
    if(e instanceof ArretSupervision)throw e;
+   if(e instanceof ReservationFacebookRefusee){attentes.push(a.id);continue;}
+   if(e instanceof RefusFacebookCertain){
+    if(!reserve){erreurs.push(a.id+" : "+e.message);continue;}
+    const reprise=await db.from('publications').update({facebook_envoi_demarre_le:null,facebook_erreur:'Refus confirmé. Reprise au prochain passage autorisé.'}).eq('id',a.id).is('facebook_post_id',null).select('id').maybeSingle();
+    erreurs.push(reprise.error ? a.id+' : refus confirmé, suivi à vérifier.' : a.id+' : Facebook a refusé la publication.');
+    continue;
+   }
+   if (!reserve){erreurs.push(a.id+' : préparation interrompue avant la réservation.');continue;}
    await db.from('publications').update({facebook_erreur:'La confirmation Facebook manque. Vérifiez la Page avant de renvoyer pour éviter un doublon.'}).eq('id',a.id);
    erreurs.push(`${a.id} : confirmation Facebook manquante.`);
   }
@@ -102,9 +124,9 @@ type Cible={jour:string;rang:number;parution:string;rattrapage:boolean};
 async function choisirSujet(db:Db,r:Reglages,cible:Cible):Promise<{sujet:SujetMarketing;source:string|null;motifs:string[]}|{erreur:string}>{
  if (r.phase_editoriale !== undefined && !(cible.rang === 0 && ['communaute','fidelisation'].includes(r.phase_editoriale))) {
   if (!phaseValide(r.phase_editoriale)) return {erreur:"Phase éditoriale inconnue : vérifiez les réglages."};
-  const historique = await db.from('publications').select('titre').not('marketing_jour','is',null).order('updated_at',{ascending:false}).limit(100);
+  const historique = await db.rpc("titres_editoriaux_utilises", {p_titres:titresEditoriauxCandidats(r.phase_editoriale,cible.jour)});
   if (historique.error) return {erreur:"Impossible de vérifier les sujets déjà proposés."};
-  const titres = new Set((historique.data ?? []).map(p => p.titre));
+  const titres = new Set<string>(historique.data ?? []);
   let angle = prochainAngle(r.phase_editoriale, titres);
   if (!angle) {
    // Les mesures organiques uniquement : aucune dépense publicitaire, aucun résultat inventé.

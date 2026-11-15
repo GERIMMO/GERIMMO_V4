@@ -147,6 +147,7 @@ describe.skipIf(!DB_URL)("ouvrir une organisation depuis la console", () => {
       [r.organization_id]
     );
     expect(m.role).toBe("proprietaire_direct");
+    expect((await db.query("select essai_fin=public.essai_ordinaire_fin() as deux_mois from public.organizations where id=$1",[r.organization_id])).rows[0].deux_mois).toBe(true);
   });
 
   it("réutilise le compte d'un responsable déjà connu, au lieu d'en créer un second", async () => {

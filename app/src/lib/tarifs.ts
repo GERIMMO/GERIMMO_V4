@@ -15,7 +15,7 @@
 // CE QUI N'EXISTE PLUS. Le premier bien offert à vie (grille du 05/09) et le
 // plafond de 600 lots au-delà duquel une agence passait par un devis. Aucune
 // formule n'est gratuite en permanence : l'essai est la seule période sans
-// paiement (2 mois jusqu'au 31/12/2026, offre de lancement ; 1 mois ensuite).
+// paiement (2 mois calendaires).
 
 /** Toute somme de ce module est un nombre ENTIER de centimes. */
 export type Centimes = number;
@@ -72,21 +72,8 @@ export const TRANCHES_AGENCE: readonly Tranche[] = [
   { du: 201, au: null, prixLotCents: 490, forfaitCents: 0 },
 ];
 
-// L'ESSAI GRATUIT. Pour tous — particuliers, SCI et agences. Il se compte en
-// MOIS CALENDAIRES, comme en base (`essai_ordinaire_fin()`) : un nombre de
-// jours fixe dirait faux un mois sur deux.
-//
-// OFFRE DE LANCEMENT (décision du porteur du 30/09/2026) : toute inscription
-// (ou ouverture depuis la console) jusqu'au 31 décembre 2026 INCLUS reçoit
-// 2 mois d'essai ; à compter du 1er janvier 2027, l'essai ordinaire est d'un
-// mois. La date qui compte est la date CALENDAIRE à Paris : une inscription
-// le 31/12 à 23 h 30 (heure de Paris) a encore droit aux 2 mois. La base
-// applique la même bascule (migration 20260930110000_offre_lancement_essai).
-
-/** Dernier jour (inclus, heure de Paris) de l'offre de lancement. */
-export const FIN_OFFRE_LANCEMENT = "2026-12-31";
-export const MOIS_ESSAI_LANCEMENT = 2;
-export const MOIS_ESSAI_ORDINAIRE = 1;
+// Durée commune à toutes les nouvelles inscriptions, en mois calendaires.
+const MOIS_ESSAI = 2;
 
 const JOUR_PARIS = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Paris",
@@ -100,36 +87,12 @@ export function dateParis(date: Date = new Date()): string {
   return JOUR_PARIS.format(date);
 }
 
-/** L'offre de lancement est-elle ouverte à cette date (heure de Paris) ? */
-export function offreLancementActive(date: Date = new Date()): boolean {
-  return dateParis(date) <= FIN_OFFRE_LANCEMENT;
+export function dureeEssai(): string {
+  return `${MOIS_ESSAI} mois`;
 }
 
-/** La durée de l'essai, en mois, pour une inscription à cette date. */
-export function moisEssai(date: Date = new Date()): number {
-  return offreLancementActive(date) ? MOIS_ESSAI_LANCEMENT : MOIS_ESSAI_ORDINAIRE;
-}
-
-/** La durée de l'essai telle qu'on l'écrit : « 2 mois » ou « 1 mois ». */
-export function dureeEssai(date: Date = new Date()): string {
-  return `${moisEssai(date)} mois`;
-}
-
-/** Le libellé long de l'offre de lancement, ou null une fois close. */
-export function libelleOffreLancement(date: Date = new Date()): string | null {
-  return offreLancementActive(date)
-    ? "Offre de lancement : 2 mois gratuits pour toute inscription jusqu'au 31 décembre 2026"
-    : null;
-}
-
-/**
- * Le badge court des pages publiques : l'offre de lancement tant qu'elle
- * court, « 1 mois d'essai gratuit » ensuite.
- */
-export function badgeEssai(date: Date = new Date()): string {
-  return offreLancementActive(date)
-    ? "Offre de lancement — 2 mois gratuits jusqu'au 31/12/2026"
-    : `${dureeEssai(date)} d'essai gratuit`;
+export function badgeEssai(): string {
+  return `${dureeEssai()} d'essai gratuit`;
 }
 
 // ── Calculs ─────────────────────────────────────────────────────────────────

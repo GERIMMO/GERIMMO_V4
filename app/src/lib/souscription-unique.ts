@@ -38,6 +38,8 @@ export const DUREE_PAGE_PAIEMENT_MINUTES = 45;
 export const DELAI_PREPARATION_SECONDES = 120;
 
 export type DemandeSouscription = {
+  acceptation?: string;
+  consignerCommande?: (commande: string) => Promise<boolean>;
   offre: Offre;
   regime: RegimeTva;
   customer: string;
@@ -146,6 +148,7 @@ export function empreinteDemande(d: DemandeSouscription): string {
     d.essaiFin ?? null,
     d.retourOk,
     d.retourAnnule,
+    ...(d.acceptation ? [d.acceptation] : []),
   ]);
   return createHash("sha256").update(canon).digest("hex");
 }
@@ -248,6 +251,9 @@ export async function ouvrirPageDePaiementUnique(
       creeLeMs: Date.parse(r.cree_le),
       expireLeS: Math.floor(Date.parse(r.expire_le) / 1000),
     };
+    if (demande.consignerCommande && !await demande.consignerCommande(r.intention)) {
+      return { ok: false, erreur: "Votre confirmation n’a pas pu être enregistrée. Aucune page de paiement n’a été ouverte." };
+    }
     const page = await creerSessionOffre(stripe, { ...demande, intention });
     if (!page.ok) {
       if (page.vivante) {

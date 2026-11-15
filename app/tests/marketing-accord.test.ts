@@ -14,12 +14,12 @@ import {MESSAGE_LIMITE_IA} from '@/lib/plafond-ia';
 import {sujetMarketing} from '@/lib/contenu-marketing';
 const mocks=vi.hoisted(()=>({client:vi.fn(),facebook:vi.fn(),image:vi.fn(),source:vi.fn(),redaction:vi.fn(),email:vi.fn()}));
 vi.mock('@/lib/supabase/service',()=>({clientDeService:mocks.client}));
-vi.mock('@/lib/facebook',()=>({envoyerSurFacebook:mocks.facebook}));
+vi.mock('@/lib/facebook',()=>({envoyerSurFacebook:mocks.facebook,retrouverPostFacebook:async()=>null,RefusFacebookCertain:class extends Error{}}));
 vi.mock('@/lib/visuel-marketing',()=>({creerVisuelMarketing:mocks.image}));
 vi.mock('@/lib/analyse-veille',()=>({lireSourceEtude:mocks.source}));
 vi.mock('@/lib/redaction-veille',()=>({redigerArticleVeille:mocks.redaction}));
 vi.mock('@/lib/email',()=>({envoyerEmail:mocks.email}));
-beforeEach(()=>{vi.resetAllMocks();vi.stubEnv('CRON_SECRET','test-secret');vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-08T16:05:00Z'));mocks.facebook.mockResolvedValue({post_id:'page_post'});mocks.image.mockResolvedValue({octets:Buffer.from('image de recette'),empreinte:'a'.repeat(64)});mocks.source.mockResolvedValue('Texte officiel de recette');mocks.email.mockResolvedValue({id:'mail'});
+beforeEach(()=>{vi.resetAllMocks();vi.stubEnv('CRON_SECRET','test-secret');vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-08T16:05:00Z'));mocks.facebook.mockImplementation(async(_article:unknown,avantEffet:()=>Promise<void>)=>{await avantEffet();return {post_id:'page_post'}});mocks.image.mockResolvedValue({octets:Buffer.from('image de recette'),empreinte:'a'.repeat(64)});mocks.source.mockResolvedValue('Texte officiel de recette');mocks.email.mockResolvedValue({id:'mail'});
  mocks.redaction.mockResolvedValue({cle:'veille-source',audience:'particuliers',titre:'Trêve hivernale : ce qui change',chapo:'Chapo rédigé.',corps:'## Ce qui change\n\nTexte.',facebook:'Texte Facebook rédigé.'});});
 afterEach(()=>{vi.useRealTimers();vi.unstubAllEnvs();});
 
@@ -95,14 +95,14 @@ describe('mission marketing : diffusion de l’échu',()=>{
   contexte({echus:[{id:'p1',titre:'Un post'}],parutionRefusee:true});
   const r=await GET(requete());expect(await r.json()).toMatchObject({publiees:0,en_attente:['p1'],action_marketing:'examiner_publications'});expect(mocks.facebook).not.toHaveBeenCalled();
  });
- it('paru sur le site mais Facebook non réservé (plafond) : pas d’envoi, bilan en erreur',async()=>{
+ it('article paru dont la diffusion attend un accord ou un créneau : pas d’envoi, attente visible',async()=>{
   contexte({echus:[{id:'p1',titre:'Un post'}],reservationRefusee:true});
-  const r=await GET(requete());expect(r.status).toBe(503);expect(mocks.facebook).not.toHaveBeenCalled();
+  const r=await GET(requete());expect(r.status).toBe(200);expect(await r.json()).toMatchObject({publiees:0,en_attente:['p1']});
  });
  it('un envoi déjà engagé n’est jamais renvoyé ; une réponse perdue laisse une alerte',async()=>{
   contexte({echus:[{id:'p1',titre:'Un post',facebook_envoi_demarre_le:'2026-10-08'}]});
   expect((await GET(requete())).status).toBe(503);expect(mocks.facebook).not.toHaveBeenCalled();
-  const c=contexte({echus:[{id:'p2',titre:'Un autre'}]});mocks.facebook.mockRejectedValueOnce(new Error('Délai dépassé'));
+  const c=contexte({echus:[{id:'p2',titre:'Un autre'}]});mocks.facebook.mockImplementationOnce(async(_article,avantEffet)=>{await avantEffet();throw new Error('Délai dépassé');});
   expect((await GET(requete())).status).toBe(503);expect(c.modifications.some(m=>typeof m.facebook_erreur==='string'&&m.facebook_erreur.includes('confirmation Facebook'))).toBe(true);
  });
 });

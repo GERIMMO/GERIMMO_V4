@@ -15,6 +15,7 @@ import {
   ouvrirPortailFacturation,
   verifierClientDeLOrganisation,
 } from "@/lib/stripe";
+import { createHash } from "node:crypto";
 import { envoyerAccuseResiliation } from "@/lib/courriers-contrat-envoi";
 import { ArretSupervision } from "@/lib/controle-effets";
 import { origineDeRetour } from "@/lib/site";
@@ -27,7 +28,7 @@ import {
   MOTIF_CONDITIONS_A_ACCEPTER,
   estLaVersionEnVigueur,
 } from "@/lib/garde-souscription";
-import { conditionsEnVigueurAccepteesPar, lireMotifIdentiteEditeur } from "@/lib/garde-souscription-serveur";
+import { preuveConditionsEnVigueur, conditionsEnVigueurAccepteesPar, lireMotifIdentiteEditeur } from "@/lib/garde-souscription-serveur";
 import { MESSAGE_SESSION_EXPIREE } from "@/lib/session-expiree";
 import {
   GRILLE,
@@ -276,7 +277,8 @@ export async function demarrerAbonnement(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { erreur: MESSAGE_SESSION_EXPIREE };
-  if (!(await conditionsEnVigueurAccepteesPar(supabase, user.id))) return { erreur: MOTIF_CONDITIONS_A_ACCEPTER };
+  const acceptation = await preuveConditionsEnVigueur(supabase, user.id);
+  if (!acceptation) return { erreur: MOTIF_CONDITIONS_A_ACCEPTER };
 
   const estAgence = etat.public_tarif === "agence";
   const periodicite: Periodicite = estAgence ? "mensuel" : (lirePeriodicite(formData.get("periodicite")) ?? "mensuel");
@@ -308,21 +310,26 @@ export async function demarrerAbonnement(
   if (!service) return { erreur: "Le service de paiement est momentanément indisponible. Réessayez plus tard." };
   // Plan du 23/10 (R16) : la case cochée vaut demande expresse d'un abonnement payant qui commence pendant le délai de
   // rétractation ; son horodatage entre dans la preuve (journal d'audit, sans coordonnée). Sans cette preuve, aucune page de paiement ne doit être ouverte.
-  const { error: erreurCommande } = await service.rpc("abonnement_geste_consigner", {
-    p_org: orgId,
-    p_account: user.id,
-    p_action: "abonnement_commande_confirmee",
-    p_details: {
-      montant_cents: offre.montantCents,
-      periodicite: offre.periodicite,
-      formule: offre.public === "particulier" ? offre.formule.code : "agence",
-      case_confirmation: "2026-10-24",
-      conditions_acceptees: CONDITIONS_VERSION,
-      premier_prelevement_differe: etat.statut === "essai" && Boolean(etat.essai_fin),
-    },
-  });
-  if (erreurCommande) return { erreur: "Votre confirmation n’a pas pu être enregistrée. Aucune page de paiement n’a été ouverte. Réessayez dans un instant." };
   const session = await ouvrirPageDePaiementUnique(stripe, registreDeService(service), {
+    consignerCommande: async (commande) => {
+      const { error: erreurCommande } = await service.rpc("abonnement_geste_consigner", {
+        p_org: orgId,
+        p_account: user.id,
+        p_action: "abonnement_commande_confirmee",
+        p_details: {
+          commande,
+          montant_cents: offre.montantCents,
+          periodicite: offre.periodicite,
+          formule: offre.public === "particulier" ? offre.formule.code : "agence",
+          case_confirmation: "2026-10-24",
+          conditions_acceptees: CONDITIONS_VERSION,
+          acceptation,
+          premier_prelevement_differe: etat.statut === "essai" && Boolean(etat.essai_fin),
+        },
+      });
+      return !erreurCommande;
+    },
+    acceptation,
     offre,
     regime: REGIME_TVA,
     customer: client.customer,
@@ -652,12 +659,14 @@ export async function resilierAbonnement(
   const notifieeLe = new Date();
   let accuse = "";
   try {
-    await service?.rpc("abonnement_geste_consigner", {
+    if (!service || !user) return {erreur:"Votre identité et le journal du contrat doivent être disponibles pour enregistrer cette demande."};
+    const journalGeste = await service.rpc("abonnement_geste_consigner", {
       p_org: orgId,
-      p_account: user?.id ?? null,
+      p_account: user.id,
       p_action: resilier ? "abonnement_resiliation_notifiee" : "abonnement_resiliation_levee",
-      p_details: { souscription: souscription as string, chemin: "page", notifiee_le: notifieeLe.toISOString(), ...(resilier && nom ? { nom } : {}) },
+      p_details: { souscription: souscription as string, chemin: "page", notifiee_le: notifieeLe.toISOString(), ...(resilier && adresse ? { destinataire_empreinte:createHash("sha256").update(adresse.toLowerCase()).digest("hex") } : {}), ...(resilier && nom ? { nom } : {}) },
     });
+    if (journalGeste.error) return {erreur:"Votre demande n’a pas pu être consignée. Réessayez dans un instant."};
     const r = await resilierAEcheance(verrou.proteger(clientStripe(reglages.config)), {
       subscription: souscription as string,
       resilier,
@@ -667,8 +676,21 @@ export async function resilierAbonnement(
     // Un échéancier libéré (audit 29/09, point 5) : si la résiliation est levée,
     // la tâche de nuit doit pouvoir reprogrammer l'échéance. Seconde relecture du
     // 23/10 : aussi quand la résiliation elle-même a échoué après la libération.
+    if (!r.ok) {
+      if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
+      return { erreur: r.erreur };
+    }
+    if (service && r.souscription?.id === souscription && r.souscription.cancel_at_period_end === resilier) {
+      const fin = finDePeriode(r.souscription);
+      if (fin) {
+        const { error } = await service.rpc("confirmer_geste_resiliation", {
+          p_org: orgId, p_subscription: souscription, p_notifiee: notifieeLe.toISOString(),
+          p_fin: new Date(fin).toISOString(), p_annulation: resilier,
+        });
+        if (error) console.error("[résiliation] État du contrat à rapprocher avec le webhook.");
+      }
+    }
     if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
-    if (!r.ok) return { erreur: r.erreur };
     // Relecture adverse du 24/10 (I3) : la levée efface la marque de l'accusé ; une nouvelle notification de la même
     // échéance sera accusée de nouveau. Un échec ne défait pas la levée (le webhook l'efface aussi).
     if (!resilier && service) {
@@ -694,7 +716,7 @@ export async function resilierAbonnement(
           : { envoye: false, motif: "fin de période inconnue" };
       // Ne jamais laisser l'écran dire « vous est envoyé » quand rien n'est parti : déjà parti pour cette notification, ou
       // en échec (relecture adverse du 24/10, I3).
-      if (!envoi.envoye) accuse = envoi.motif === "déjà accusée" ? "&accuse=deja" : "&accuse=echec";
+      if (!envoi.envoye) accuse = "verification" in envoi && envoi.verification ? "&accuse=verification" : envoi.motif === "déjà accusée" ? "&accuse=deja" : "&accuse=echec";
     }
   } finally {
     await verrou.rendre();

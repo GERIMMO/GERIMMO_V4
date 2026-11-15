@@ -175,7 +175,7 @@ describe("la garde de l'espace artisan (R10)", () => {
 
 describe("l'écran « Nos conditions générales évoluent » (R19)", () => {
   it("il ne s'affiche ni sur la version en vigueur ni sans acceptation", () => {
-    expect(CONDITIONS_VERSION).toBe("2026-11-11");
+    expect(CONDITIONS_VERSION).toBe("2026-11-15");
     expect(nouvelleVersionAAccepter({ derniereVersionAcceptee: CONDITIONS_VERSION })).toBeNull();
     expect(nouvelleVersionAAccepter({ derniereVersionAcceptee: null })).toBeNull();
     expect(nouvelleVersionAAccepter({ derniereVersionAcceptee: CONDITIONS_VERSION, abonnement: { souscrit: true, periode_fin: "2026-12-01T00:00:00Z", annulation_demandee: false } })).toBeNull();
@@ -202,7 +202,7 @@ describe("l'écran « Nos conditions générales évoluent » (R19)", () => {
   });
 
   it("une version substantielle future : la phrase de non-reconduction, avec la fin de la période en cours à la date d'effet", () => {
-    const base = { derniereVersionAcceptee: CONDITIONS_VERSION, version: "2026-11-15", dateVersion: "15 novembre 2026", declaree: V1 };
+    const base = { derniereVersionAcceptee: "2026-11-11", version: "2026-11-15", dateVersion: "15 novembre 2026", declaree: V1 };
     const ecran = nouvelleVersionAAccepter({ ...base, abonnement: { souscrit: true, periode_fin: "2027-03-01T10:00:00Z", annulation_demandee: false } });
     expect(ecran?.accordExpres).toBe(true);
     expect(ecran?.paragraphes).toEqual([

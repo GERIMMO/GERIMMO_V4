@@ -68,12 +68,12 @@ const article = (page: string, titre: string, suivant: string) => {
 };
 
 describe("V1 des conditions clients : articles clés", () => {
-  it("version et date du 11 novembre 2026, affichées en tête et à l'article 16", async () => {
-    expect(CONDITIONS_VERSION).toBe("2026-11-11");
-    expect(CONDITIONS_DATE).toBe("11 novembre 2026");
+  it("version et date du 15 novembre 2026, affichées en tête et à l'article 16", async () => {
+    expect(CONDITIONS_VERSION).toBe("2026-11-15");
+    expect(CONDITIONS_DATE).toBe("15 novembre 2026");
     const page = await conditions();
-    expect(page).toContain("Version du 11 novembre 2026, en vigueur depuis cette date.");
-    expect(page).toContain("La version en vigueur est la version du 11 novembre 2026.");
+    expect(page).toContain("Version du 15 novembre 2026, en vigueur depuis cette date.");
+    expect(page).toContain("La version en vigueur est la version du 15 novembre 2026.");
   });
 
   it("contient la rétractation en ligne, le formulaire « Commandé le », 14 bis, 15.5 et l'annexe L. 215", async () => {

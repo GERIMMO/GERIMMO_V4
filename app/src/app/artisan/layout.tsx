@@ -1,3 +1,4 @@
+import { LienContenu } from "@/components/lien-contenu";
 import Link from "next/link";
 import { CircleHelp, Wrench } from "lucide-react";
 import { MenuCompte } from "@/components/menu-compte";
@@ -51,6 +52,7 @@ export default async function LayoutArtisan({
   if (!user) {
     return (
       <div className="artisan-app flex min-h-svh flex-col bg-[var(--creme)]">
+        <LienContenu />
         <header className="artisan-bandeau bandeau-appli">
           <div className="mx-auto flex w-full max-w-[960px] items-center justify-between gap-3 px-4 py-2.5">
             {/* La tuile bleu nuit est celle de la feuille de style (`tuile`), la même sur tous les fonds clairs (D28 A). */}
@@ -65,7 +67,7 @@ export default async function LayoutArtisan({
             </Link>
           </div>
         </header>
-        <main className="artisan-corps mx-auto w-full max-w-[960px] flex-1 px-4 pt-6 pb-16 sm:px-7 sm:pt-8">
+        <main id="contenu-espace" tabIndex={-1} className="artisan-corps mx-auto w-full max-w-[960px] flex-1 px-4 pt-6 pb-16 sm:px-7 sm:pt-8">
           {children}
         </main>
       </div>
@@ -146,6 +148,7 @@ export default async function LayoutArtisan({
 
   return (
     <div className={`artisan-app experience-unifiee ${styles.shell}`}>
+      <LienContenu />
       <BandeauSessionSupervision />
       <div className={fiche ? styles.workspace : styles.onboarding}>
         {fiche && (
@@ -190,7 +193,7 @@ export default async function LayoutArtisan({
               {fiche?.statut_motif ? ` Motif : ${fiche.statut_motif}` : ""}
             </p>
           )}
-          <main className={`artisan-corps ${styles.content}`}>
+          <main id="contenu-espace" tabIndex={-1} className={`artisan-corps ${styles.content}`}>
             {conditionsAAccepter ? <AcceptationConditionsArtisans version={conditionsAAccepter.version} date={conditionsAAccepter.date} /> : children}
           </main>
         </div>

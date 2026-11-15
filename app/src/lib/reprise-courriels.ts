@@ -37,7 +37,7 @@ export async function conserverCourriel(db:SupabaseClient,p:ChargeCourriel) {
   const contexte={...p.contexteMetier,destinataire:empreinteCourriel(p.to.trim().toLowerCase())};
   const a=await db.rpc('attacher_contexte_courriel',{p_id:id,p_org:p.organisationId??null,p_contexte:contexte});
   if(a.error)throw new Error('Validation métier indisponible');
-  if(a.data!==true)throw new RefusContexteCourriel('Les droits ou les informations du contrat doivent être vérifiés.');
+  if(a.data!==true)throw new RefusContexteCourriel('Les droits ou les informations de ce courrier doivent être vérifiés.');
  }
 }
 export async function reprendreCourriels(db:SupabaseClient,envoyer:(p:ChargeCourriel,reference:string)=>Promise<ResultatCourriel>,avantEffet:()=>Promise<void>,budgetMs=10_000) {

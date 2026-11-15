@@ -74,6 +74,19 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
     const contexte=(await db.query("select contexte_metier from courriels_durables where organization_id=$1",[org])).rows[0].contexte_metier;
     expect(contexte.version).toBe("2026-11-01");
   });
+  it("les rôles des portails ne peuvent écrire ni associer les preuves de commande",async()=>{
+    const droits=await db.query(`select role,
+      has_table_privilege(role,'public.preuves_commandes_abonnement','insert,update,delete') as ecriture,
+      has_function_privilege(role,'public.lier_preuve_commande(uuid,text,uuid,uuid)','execute') as liaison
+      from unnest(array['anon','authenticated']) role`);
+    for (const ligne of droits.rows) expect(ligne).toMatchObject({ecriture:false,liaison:false});
+  });
+  it("PostgreSQL refuse le même identifiant Meta pour un second article",async()=>{
+    const post="fictif_"+randomUUID();
+    const inserer=()=>db.query("insert into publications(titre,slug,statut,periode,facebook_post_id) values('Fictif',$1,'brouillon','audit',$2)",[randomUUID(),post]);
+    await inserer();
+    await expect(inserer()).rejects.toMatchObject({code:"23505",constraint:"publications_facebook_post_unique"});
+  });
   it("contrat historique sans preuve de commande : vérification humaine",async()=>{
     const {boite}=await preparer();
     const resultat=await envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null});
@@ -93,5 +106,10 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
     await db.query("update courriels_durables set reprendre_apres=now()-interval '1 minute' where organization_id=$1",[org]);
     await reprendreCourriels(banc.service!,async(p,id)=>envoyerEmailTransport({...p,organisation:{db:banc.service!,id:org},referenceInterne:id,avantEnvoi:()=>exigerContexteCourriel(banc.service!,id)}),async()=>{});
     expect(boite.map(m=>m.subject)).toEqual([]);
+    // Une nouvelle résiliation de la même échéance constitue une nouvelle demande.
+    await db.query("select abonnement_appliquer($1,$2,'active',1,$3,true)",['cus_'+sub,sub,fin]);
+    const nouvelAccuse=await envoyerAccuseResiliation(banc.service!,{orgId:org,subscription:sub,periodeFin:fin,notifieeLe:new Date(),chemin:"webhook"});
+    expect(nouvelAccuse.envoye).toBe(true);
+    expect(boite).toHaveLength(1);
   });
 });

@@ -32,6 +32,24 @@ end $$;
 revoke all on function public.lier_preuve_commande(uuid,text,uuid,uuid) from public,anon,authenticated;
 grant execute on function public.lier_preuve_commande(uuid,text,uuid,uuid) to service_role;
 
+-- Une levée avant le premier accusé clôt également un épisode. Son ancienne
+-- réservation ne doit jamais reprendre à la prochaine résiliation du même mois.
+alter table public.abonnements add column resiliations_sans_accuse integer not null default 0;
+create function public.compter_resiliation_sans_accuse() returns trigger
+language plpgsql set search_path='' as $$
+begin
+  if old.stripe_subscription_id is distinct from new.stripe_subscription_id then
+    new.resiliations_sans_accuse:=0;
+  elsif old.annulation_demandee and not new.annulation_demandee
+    and old.resiliation_accusee_pour is distinct from old.periode_fin then
+    new.resiliations_sans_accuse:=old.resiliations_sans_accuse+1;
+  end if;
+  return new;
+end $$;
+revoke all on function public.compter_resiliation_sans_accuse() from public,anon,authenticated;
+create trigger clore_episode_resiliation before update of stripe_subscription_id,annulation_demandee
+ on public.abonnements for each row execute function public.compter_resiliation_sans_accuse();
+
 create or replace function public.abonnement_courrier_contexte(p_org uuid)
 returns table (organization_id uuid, organisation text, public_tarif public.organization_type, grille text,
                destinataire text, nom_titulaire text, stripe_subscription_id text, stripe_statut text,
@@ -63,7 +81,7 @@ as $$
          a.unites_souscrites, coalesce(a.periodicite, 'mensuel'), a.montant_periode_cents, a.confirmation_envoyee_le,
          a.resiliation_accusee_pour,
          (select x.version from acceptation x), (select x.acceptee_le from acceptation x),
-         (select count(*)::integer from public.audit_log l
+         coalesce(a.resiliations_sans_accuse,0) + (select count(*)::integer from public.audit_log l
            where l.organization_id = o.id and l.action = 'abonnement_resiliation_accusee'
              and l.details->>'souscription' = a.stripe_subscription_id)
   from public.organizations o
@@ -117,7 +135,6 @@ begin
  return encode(sha256(convert_to(jsonb_build_array(to_jsonb(a),p_contexte,responsable)::text,'UTF8')),'hex');
 end $$;
 
-create unique index publications_identifiant_facebook_unique on public.publications(facebook_post_id) where facebook_post_id is not null;
 
 -- Le retour de Stripe peut précéder le webhook. Un événement reçu depuis le geste
 -- a priorité sur cette réponse HTTP qui pourrait alors être périmée.

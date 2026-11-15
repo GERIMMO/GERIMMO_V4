@@ -9,6 +9,11 @@
 name: Recette de production avec nettoyage
 on:
   workflow_dispatch:
+    inputs:
+      reserves_335:
+        description: "Contrôler uniquement Mon abonnement (ventes fermées), D37 et D38"
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -66,7 +71,13 @@ jobs:
           PGUSER: postgres.rddlxunppddzpsaatdaz
           PGDATABASE: postgres
           PGSSLMODE: require
-        run: npx playwright test --config e2e/recette-production/playwright.config.ts
+          RECETTE_SOUSCRIPTIONS_FERMEES: ${{ inputs.reserves_335 && '1' || '0' }}
+        run: |
+          selection=()
+          if [[ "$RECETTE_SOUSCRIPTIONS_FERMEES" == 1 ]]; then
+            selection=(--grep '« Mon abonnement »|D37 :|D38 :')
+          fi
+          npx playwright test --config e2e/recette-production/playwright.config.ts "${selection[@]}"
       - name: Supprimer les comptes éphémères, dossiers et supervision
         if: always()
         env:

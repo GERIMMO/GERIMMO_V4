@@ -494,3 +494,5 @@
 20261114090412_phase_editoriale_marketing.sql
 20261114210623_reprise_contrats_et_facebook.sql
 20261115081330_preuves_contrat_et_facebook.sql
+20261115094646_essai_deux_mois_permanent.sql
+20261115095339_revision_affiche_marketing.sql

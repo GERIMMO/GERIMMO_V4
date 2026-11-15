@@ -4,15 +4,12 @@ import { EncartOutils } from "@/components/outils/encart-outils";
 import { Article } from "@/components/coquille-legale";
 import { CartesOffresPubliques } from "@/components/cartes-offres-publiques";
 import { REGIME_TVA } from "@/lib/editeur";
-import { badgeEssai, dureeEssai, etiquetteTaxes, libelleOffreLancement, mentionTaxesPubliques } from "@/lib/tarifs";
+import { badgeEssai, dureeEssai, etiquetteTaxes, mentionTaxesPubliques } from "@/lib/tarifs";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 const TTC = etiquetteTaxes("ttc", REGIME_TVA);
 const avec = (e: string | null) => (e ? ` ${e}` : "");
 
-// La durée de l'essai dépend du jour (offre de lancement jusqu'au 31/12/2026,
-// 1 mois ensuite) : métadonnées calculées au rendu, page reconstruite au plus
-// tard toutes les heures.
 export const revalidate = 3600;
 
 export function generateMetadata() {
@@ -30,7 +27,6 @@ export function generateMetadata() {
 export default function PageTarifs() {
   const mentionTaxes = mentionTaxesPubliques(REGIME_TVA);
   const duree = dureeEssai();
-  const offre = libelleOffreLancement();
   return (
     <div className="site-public flex min-h-full flex-1 flex-col">
       <EnTetePublic />
@@ -38,7 +34,7 @@ export default function PageTarifs() {
         <header className="public-page-intro"><div className="public-conteneur">
           <h1>L’abonnement Gerimmo pour votre espace propriétaire.</h1>
           <p>Dès 5,99 €/mois pour toutes les fonctions de gestion. Choisissez le rythme qui vous convient, après votre essai gratuit de {duree}, sans carte bancaire.</p>
-          <p className="public-essai mt-4" title={offre ?? undefined}>{badgeEssai()}</p>
+          <p className="public-essai mt-4">{badgeEssai()}</p>
         </div></header>
         <div className="public-conteneur public-section">
           <CartesOffresPubliques />

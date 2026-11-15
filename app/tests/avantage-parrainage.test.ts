@@ -349,8 +349,8 @@ describe("la base et l'écran annoncent le même chiffre", () => {
     // conversion, l'essai ordinaire pour le filleul — jamais les trente jours.
     expect(PROMESSE_PARRAIN).toBe("1 mois offert à la conversion de chaque filleul");
     expect(PARRAINAGE_PROGRAMME).toContain("première facture");
-    expect(PARRAINAGE_PROGRAMME).toContain("2 mois pour toute inscription jusqu'au 31 décembre 2026");
-    expect(PARRAINAGE_PROGRAMME).toContain("1 mois ensuite");
+    expect(PARRAINAGE_PROGRAMME).toContain("2 mois pour toute inscription");
+    expect(PARRAINAGE_PROGRAMME).not.toContain("1 mois ensuite");
     expect(PARRAINAGE_PROGRAMME).not.toContain(String(JOURS_ESSAI_FILLEUL));
   });
 

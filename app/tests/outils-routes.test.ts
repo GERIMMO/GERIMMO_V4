@@ -64,8 +64,7 @@ describe("routes des outils gratuits", () => {
     expect(coquille).toContain("Créer mon compte — {duree} d&apos;essai");
     expect(coquille).toContain("const duree = dureeEssai();");
     expect(coquille).toContain("{badgeEssai()}");
-    expect(dureeEssai(new Date("2026-12-31T12:00:00+01:00"))).toBe("2 mois");
-    expect(dureeEssai(new Date("2027-01-01T12:00:00+01:00"))).toBe("1 mois");
+    expect(dureeEssai()).toBe("2 mois");
   });
 
   it("l'appel à l'essai ne promet pas l'envoi des quittances sans réglage : émises à chaque encaissement, envoyées si on l'active", () => {

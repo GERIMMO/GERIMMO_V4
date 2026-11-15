@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
-import { badgeEssai, dureeEssai, offreLancementActive } from "@/lib/tarifs";
+import { badgeEssai, dureeEssai } from "@/lib/tarifs";
 import { IconeTrait, PucesGratuit, TuileOutil, outilsPresentes } from "./icones-outils";
 
 // LA COQUILLE DES OUTILS GRATUITS (29/09, habillée le 30/09) : en-tête et
@@ -152,19 +152,14 @@ function CocheClaire() {
 
 /** L'invitation à créer un compte, sous chaque outil. */
 export function AppelEssai() {
-  // Lu au rendu (pages revalidées toutes les heures) : l'offre de lancement
-  // s'efface d'elle-même le 1er janvier 2027.
   const duree = dureeEssai();
-  const lancement = offreLancementActive();
   return (
     <section className="vitrine-bandeau outil-appel print:hidden" aria-labelledby="appel-essai">
       <div className="relative grid gap-8 lg:grid-cols-[1.25fr_1fr] lg:items-center">
         <div>
           <p className="eyebrow !text-[var(--sur-marque)]">Et chaque mois, sans y penser</p>
           <p
-            className={`mt-3 inline-flex rounded-full px-3 py-1 text-[12.5px] font-semibold ${
-              lancement ? "bg-[var(--ivoire)] text-[var(--encre)]" : "border border-white/30 text-[var(--sur-marque)]"
-            }`}
+            className="mt-3 inline-flex rounded-full px-3 py-1 text-[12.5px] font-semibold bg-[var(--ivoire)] text-[var(--encre)]"
           >
             {badgeEssai()}
           </p>

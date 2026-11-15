@@ -117,7 +117,7 @@ export function FormulaireOuverture({
               className="max-w-32"
             />
             <p className="text-xs text-muted-foreground">
-              Laissé vide, l&apos;essai standard s&apos;applique : 2 mois pour une ouverture jusqu&apos;au 31/12/2026 (offre de lancement), 1 mois ensuite.
+              Laissé vide, l&apos;essai standard s&apos;applique : 2 mois calendaires.
               À son terme, le compte passe en lecture seule : l&apos;agence garde
               l&apos;accès à tout et à ses exports, mais ne saisit plus rien.
             </p>

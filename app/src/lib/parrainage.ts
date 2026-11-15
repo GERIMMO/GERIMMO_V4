@@ -13,7 +13,7 @@
 // code. Le parrain déjà abonné reçoit un avoir de son mensuel courant (annuel
 // ÷ 12) déduit de sa prochaine facture ; encore en essai, un mois d'essai de
 // plus. Le filleul n'a pas d'avantage supplémentaire : il garde l'essai
-// ordinaire (2 mois jusqu'au 31/12/2026 — offre de lancement —, puis 1 mois).
+// ordinaire (2 mois calendaires).
 // La grille historique garde sa mécanique d'origine (trente jours).
 //
 // Les durées historiques vivent aussi en base (`parrainage_jours_filleul`,
@@ -56,8 +56,7 @@ export function codeDeLaRecherche(recherche: URLSearchParams | Record<string, st
 // ── L'avantage, tel qu'on l'annonce ────────────────────────────────────────
 
 /** L'essai du filleul de la grille historique, code entré : trente jours AU
- * TOTAL — jamais moins que l'essai ordinaire (`dureeEssai()`, 2 mois pendant
- * l'offre de lancement), que la base garde s'il est plus long. Sans objet sur
+ * TOTAL — jamais moins que l'essai ordinaire (`dureeEssai()`, 2 mois calendaires), que la base garde s'il est plus long. Sans objet sur
  * la grille du 28/09/2026. */
 export const JOURS_ESSAI_FILLEUL = 30;
 /** Grille historique : ce que gagne le parrain encore en essai, trente jours. */
@@ -111,9 +110,7 @@ export const PROMESSE_PARRAIN = "1 mois offert à la conversion de chaque filleu
 
 /**
  * Le programme, tel qu'on l'explique à chaque organisation (décision du
- * 30/09/2026). Texte fixe, vrai avant comme après la fin de l'offre de
- * lancement (FIN_OFFRE_LANCEMENT dans tarifs.ts) : il ne dépend pas du jour
- * du rendu.
+ * 30/09/2026). L’essai ordinaire du filleul reste indépendant de la récompense du parrain.
  */
 export const PARRAINAGE_PROGRAMME =
-  "Partagez votre code : quand une organisation inscrite avec lui paie sa première facture, vous recevez un mois offert — un avoir égal à votre mensuel courant (un douzième de l'annuel), déduit de votre prochaine facture, ou un mois d'essai de plus si vous êtes encore en essai. Une récompense par filleul. Votre filleul garde l'essai ordinaire — 2 mois pour toute inscription jusqu'au 31 décembre 2026 (offre de lancement), 1 mois ensuite —, sans avantage supplémentaire.";
+  "Partagez votre code : quand une organisation inscrite avec lui paie sa première facture, vous recevez un mois offert — un avoir égal à votre mensuel courant (un douzième de l'annuel), déduit de votre prochaine facture, ou un mois d'essai de plus si vous êtes encore en essai. Une récompense par filleul. Votre filleul garde l'essai ordinaire — 2 mois pour toute inscription —, sans avantage supplémentaire.";

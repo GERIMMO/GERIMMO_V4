@@ -2,10 +2,8 @@ import { CoquilleAuth } from "@/components/coquille-auth";
 import { codeDeLaRecherche } from "@/lib/parrainage";
 import { FormulaireInscription } from "./formulaire-inscription";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
-import { badgeEssai, dureeEssai, offreLancementActive } from "@/lib/tarifs";
+import { badgeEssai, dureeEssai } from "@/lib/tarifs";
 
-// La durée de l'essai dépend du jour de l'inscription (offre de lancement :
-// 2 mois jusqu'au 31/12/2026, 1 mois ensuite) : tout est calculé au rendu.
 export const revalidate = 3600;
 
 export function generateMetadata() {
@@ -25,7 +23,6 @@ export function generateMetadata() {
 export default async function PageInscription(props: PageProps<"/inscription">) {
   const codeParrain = codeDeLaRecherche((await props.searchParams) as Record<string, string | string[] | undefined>);
   const duree = dureeEssai();
-  const lancement = offreLancementActive();
   return (
     <CoquilleAuth
       promesse="Gérez vos locations vous-même, au carré."
@@ -37,11 +34,7 @@ export default async function PageInscription(props: PageProps<"/inscription">) 
       chapo={
         <>
           <span
-            className={`mb-2 inline-flex rounded-full px-3 py-1 text-[12.5px] font-semibold ${
-              lancement
-                ? "border border-[var(--marque)] bg-[var(--marque-clair)] text-[var(--encre)]"
-                : "border border-border text-[var(--texte-secondaire)]"
-            }`}
+            className="mb-2 inline-flex rounded-full px-3 py-1 text-[12.5px] font-semibold border border-[var(--marque)] bg-[var(--marque-clair)] text-[var(--encre)]"
           >
             {badgeEssai()}
           </span>

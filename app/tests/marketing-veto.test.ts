@@ -142,6 +142,27 @@ describe.skipIf(!DB_URL)("Marketing — fenêtre de veto", () => {
     expect(Number((await db.query(`select count(*) from public.tech_log where evenement = 'decision_marketing'`)).rows[0].count)).toBe(2);
   });
 
+  it("une affiche modifiée perd son accord et une tentative incertaine garde sa preuve", async () => {
+    await db.query("update public.marketing_reglages set validation_obligatoire = true where singleton");
+    const id = await brouillon();
+    await enService();
+    await db.query("select public.programmer_publication_marketing($1, now() - interval '1 minute')", [id]);
+    await enSuperAdmin();
+    await db.query("select public.decider_publication_marketing($1, 'valider')", [id]);
+    await db.query("reset role");
+    await db.query("update public.publications set facebook_image_url = 'https://stockage.test/revision.jpg' where id = $1", [id]);
+    expect((await db.query("select valide_par, valide_le from public.publications where id=$1", [id])).rows[0])
+      .toEqual({ valide_par: null, valide_le: null });
+    await enService();
+    expect((await db.query("select public.publier_article_automatique($1) ok", [id])).rows[0].ok).toBe(false);
+    await enSuperAdmin();
+    await db.query("select public.decider_publication_marketing($1, 'valider')", [id]);
+    await enService();
+    expect((await db.query("select public.publier_article_automatique($1) ok", [id])).rows[0].ok).toBe(true);
+    expect((await db.query("select public.reserver_diffusion_facebook($1,true) ok", [id])).rows[0].ok).toBe(true);
+    await doitEchouer("update public.publications set slug='autre-preuve' where id=$1", [id], /tentative Facebook/);
+  });
+
   it("validation obligatoire : rien ne part sans accord ; « publier maintenant » avance l'heure", async () => {
     await db.query(`update public.marketing_reglages set validation_obligatoire = true where singleton`);
     const id = await brouillon();

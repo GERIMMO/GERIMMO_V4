@@ -1,24 +1,3 @@
-/**
- * L'essai gratuit passe de 14 jours à 2 mois (décision du porteur, 30/09/2026),
- * puis, le même jour, ces 2 mois deviennent une OFFRE DE LANCEMENT : toute
- * inscription jusqu'au 31/12/2026 inclus (date de Paris) reçoit 2 mois ; à
- * compter du 1er janvier 2027, l'essai ordinaire est d'un mois.
- *
- * La bascule du 1er janvier ne se simule pas en base (now() est l'heure de la
- * transaction) : la base de test est au 30/09/2026, on y vérifie les 2 mois et
- * on lit la règle dans la définition de la fonction. Côté TypeScript, les
- * fonctions prennent la date en paramètre : les deux côtés de la bascule sont
- * testés.
- *
- * Deux moitiés :
- *  — la base APPLIQUE : une inscription en ligne et une ouverture depuis la
- *    console posent `essai_fin = aujourd'hui + 2 mois` (calendaires) ;
- *  — les écrans ANNONCENT « 2 mois », et seul l'essai a changé : le délai de
- *    rétractation du consommateur (art. L. 221-18 du code de la consommation)
- *    reste de quatorze jours.
- *
- * La moitié base nécessite SUPABASE_DB_URL (transaction annulée à la fin).
- */
 import { verifierBaseDeTest } from "./garde-base";
 import { QUESTIONS } from "@/app/agence/[orgId]/faq/questions";
 import { config } from "dotenv";
@@ -26,17 +5,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import {
-  FIN_OFFRE_LANCEMENT,
-  MOIS_ESSAI_LANCEMENT,
-  MOIS_ESSAI_ORDINAIRE,
-  badgeEssai,
-  dateParis,
-  dureeEssai,
-  libelleOffreLancement,
-  moisEssai,
-  offreLancementActive,
-} from "../src/lib/tarifs";
+import { badgeEssai, dureeEssai } from "../src/lib/tarifs";
 import { PARRAINAGE_PROGRAMME } from "../src/lib/parrainage";
 import { CONDITIONS_DATE, CONDITIONS_VERSION } from "../src/lib/editeur";
 import { versionDeclaree } from "../src/lib/conditions-versions";
@@ -47,58 +16,12 @@ verifierBaseDeTest(DB_URL);
 
 const lire = (relatif: string) => readFileSync(path.resolve(__dirname, "../src", relatif), "utf8");
 
-describe("offre de lancement : 2 mois jusqu'au 31/12/2026, puis 1 mois", () => {
-  it("une seule source, dans tarifs.ts", () => {
-    expect(FIN_OFFRE_LANCEMENT).toBe("2026-12-31");
-    expect(MOIS_ESSAI_LANCEMENT).toBe(2);
-    expect(MOIS_ESSAI_ORDINAIRE).toBe(1);
+describe("deux mois gratuits pour toute nouvelle inscription", () => {
+  it("annonce la durée permanente", () => {
+    expect(dureeEssai()).toBe("2 mois");
+    expect(badgeEssai()).toBe("2 mois d'essai gratuit");
+    expect(PARRAINAGE_PROGRAMME).toContain("2 mois pour toute inscription");
   });
-
-  it("le 31/12/2026 : 2 mois ; le 01/01/2027 : 1 mois", () => {
-    const dernierJour = new Date("2026-12-31T12:00:00+01:00");
-    const premierJour = new Date("2027-01-01T12:00:00+01:00");
-    expect(offreLancementActive(dernierJour)).toBe(true);
-    expect(moisEssai(dernierJour)).toBe(2);
-    expect(dureeEssai(dernierJour)).toBe("2 mois");
-    expect(offreLancementActive(premierJour)).toBe(false);
-    expect(moisEssai(premierJour)).toBe(1);
-    expect(dureeEssai(premierJour)).toBe("1 mois");
-  });
-
-  it("la date qui compte est celle de Paris, pas celle d'UTC", () => {
-    // 31/12 à 23 h 30 à Paris = 22 h 30 UTC : encore dans l'offre.
-    const tard = new Date("2026-12-31T22:30:00Z");
-    expect(dateParis(tard)).toBe("2026-12-31");
-    expect(moisEssai(tard)).toBe(2);
-    // 1er janvier à 0 h 30 à Paris = 31/12 à 23 h 30 UTC : l'offre est close.
-    const minuit = new Date("2026-12-31T23:30:00Z");
-    expect(dateParis(minuit)).toBe("2027-01-01");
-    expect(moisEssai(minuit)).toBe(1);
-  });
-
-  it("aujourd'hui (30/09/2026) : l'offre est active, 2 mois", () => {
-    const aujourdHui = new Date("2026-09-30T10:00:00+02:00");
-    expect(moisEssai(aujourdHui)).toBe(2);
-    expect(libelleOffreLancement(aujourdHui)).toBe(
-      "Offre de lancement : 2 mois gratuits pour toute inscription jusqu'au 31 décembre 2026"
-    );
-    expect(badgeEssai(aujourdHui)).toBe("Offre de lancement — 2 mois gratuits jusqu'au 31/12/2026");
-  });
-
-  it("après l'échéance, plus d'offre : « 1 mois d'essai gratuit »", () => {
-    const apres = new Date("2027-03-15T10:00:00+01:00");
-    expect(libelleOffreLancement(apres)).toBeNull();
-    expect(badgeEssai(apres)).toBe("1 mois d'essai gratuit");
-  });
-
-  it("le parrainage dit les deux durées, sans dépendre du jour", () => {
-    expect(PARRAINAGE_PROGRAMME).toContain(
-      "2 mois pour toute inscription jusqu'au 31 décembre 2026 (offre de lancement), 1 mois ensuite"
-    );
-  });
-});
-
-describe("les écrans annoncent l'essai du jour, et l'offre de lancement", () => {
 
   const pages = [
     "app/page.tsx",
@@ -151,17 +74,15 @@ describe("les écrans annoncent l'essai du jour, et l'offre de lancement", () =>
     expect(lire(f)).toMatch(/^export const revalidate = 3600;$/m);
   });
 
-  it("les conditions (art. 8.2) couvrent les deux périodes, en texte fixe", () => {
+  it("les conditions (art. 8.2) annoncent deux mois sans reconduction, en texte fixe", () => {
     const cgu = lire("app/conditions/page.tsx").replace(/\s+/g, " ");
-    expect(cgu).toContain(
-      "essai gratuit de deux mois pour toute inscription jusqu&apos;au 31 décembre 2026 inclus</b> (offre de lancement)"
-    );
-    expect(cgu).toContain("d&apos;un mois pour toute inscription à compter du 1er janvier 2027</b>");
+    expect(cgu).toContain("essai gratuit de deux mois pour toute nouvelle inscription</b>");
+    expect(cgu).toContain("Aucun abonnement ne démarre sans souscription explicite.");
   });
 
-  it("la FAQ du propriétaire dit les deux durées", () => {
+  it("la FAQ du propriétaire annonce deux mois", () => {
     expect(QUESTIONS.find((question) => question.question === "Combien ça coûte ?")?.reponse).toContain(
-      "L'essai gratuit est sans carte — 2 mois pour toute inscription jusqu'au 31 décembre 2026 (offre de lancement), 1 mois ensuite"
+      "L'essai gratuit est sans carte — 2 mois pour toute inscription"
     );
   });
 
@@ -178,15 +99,15 @@ describe("les écrans annoncent l'essai du jour, et l'offre de lancement", () =>
   it("le changement des conditions est daté : V1 du 24 octobre 2026, la version du 30 septembre 2026 gardée dans l'historique", () => {
     // L'essai de deux mois (article 8.2) est entré dans la version du 30 septembre 2026 ; la V1 (plan de conformité du
     // 23/10) le reprend tel quel. La version du 30/09 reste déclarée dans l'historique de la garde d'empreinte.
-    expect(CONDITIONS_VERSION).toBe("2026-11-11");
-    expect(CONDITIONS_DATE).toBe("11 novembre 2026");
+    expect(CONDITIONS_VERSION).toBe("2026-11-15");
+    expect(CONDITIONS_DATE).toBe("15 novembre 2026");
     const v = versionDeclaree("conditions_clients", "2026-09-30");
     expect(v?.date_effet).toBe("2026-09-30");
     expect(v?.resume_modifications).toContain("2 mois");
   });
 });
 
-describe.skipIf(!DB_URL)("la base applique l'essai du jour : 2 mois pendant l'offre de lancement", () => {
+describe.skipIf(!DB_URL)("la base applique l'essai permanent de deux mois", () => {
   let db: Client;
 
   beforeAll(async () => {
@@ -241,7 +162,7 @@ describe.skipIf(!DB_URL)("la base applique l'essai du jour : 2 mois pendant l'of
     return r;
   }
 
-  it("la fin de l'essai ordinaire est aujourd'hui (Paris) + 2 mois calendaires, tant que l'offre court", async () => {
+  it("la fin de l'essai ordinaire est aujourd'hui (Paris) + 2 mois calendaires", async () => {
     const {
       rows: [r],
     } = await db.query<{ ok: boolean; paris: string }>(
@@ -249,12 +170,10 @@ describe.skipIf(!DB_URL)("la base applique l'essai du jour : 2 mois pendant l'of
                 = (((now() at time zone 'Europe/Paris')::date) + interval '2 months')::date as ok,
               ((now() at time zone 'Europe/Paris')::date)::text as paris`
     );
-    // La base de test vit en 2026 : l'offre de lancement s'applique.
-    expect(r.paris <= "2026-12-31").toBe(true);
     expect(r.ok).toBe(true);
   });
 
-  it("la bascule du 1er janvier 2027 est écrite dans la fonction, sur la date de Paris", async () => {
+  it("la fonction conserve la date de Paris, sa stabilité et ses droits", async () => {
     const {
       rows: [r],
     } = await db.query<{ def: string; volatilite: string; securite: boolean }>(
@@ -265,9 +184,7 @@ describe.skipIf(!DB_URL)("la base applique l'essai du jour : 2 mois pendant l'of
     const def = r.def.replace(/\s+/g, " ");
     expect(def).toContain("RETURNS date");
     // Fonction SQL : Postgres garde le texte tel qu'écrit dans la migration.
-    expect(def).toContain("<= date '2026-12-31'");
     expect(def).toContain("interval '2 months'");
-    expect(def).toContain("interval '1 month'");
     expect(def).toContain("(now() at time zone 'Europe/Paris')::date");
     expect(def).not.toMatch(/current_date/i);
     expect(r.volatilite).toBe("s");
@@ -281,19 +198,20 @@ describe.skipIf(!DB_URL)("la base applique l'essai du jour : 2 mois pendant l'of
     expect(d).toEqual({ anon: false, auth: true });
   });
 
-  it("la même règle que moisEssai() : même bascule, même base de date", async () => {
-    // Rejoue le CASE de la fonction sur deux dates figées, de part et d'autre.
-    const {
-      rows: [r],
-    } = await db.query<{ avant: string; apres: string }>(
-      `select (case when d1 <= date '2026-12-31' then d1 + interval '2 months' else d1 + interval '1 month' end)::date::text as avant,
-              (case when d2 <= date '2026-12-31' then d2 + interval '2 months' else d2 + interval '1 month' end)::date::text as apres
-         from (select date '2026-12-31' as d1, date '2027-01-01' as d2) x`
+  it.each([
+    ["2026-12-31T22:30:00Z", "2027-02-28"],
+    ["2026-12-31T23:30:00Z", "2027-03-01"],
+    ["2027-12-31T12:00:00Z", "2028-02-29"],
+    ["2030-01-31T12:00:00Z", "2030-03-31"],
+  ])("calcule l’échéance au jour de Paris pour %s", async (instant, fin) => {
+    const { rows: [fonction] } = await db.query<{ prosrc: string }>(
+      "select prosrc from pg_proc where oid = 'public.essai_ordinaire_fin()'::regprocedure"
     );
-    expect(r.avant).toBe("2027-02-28");
-    expect(r.apres).toBe("2027-02-01");
-    expect(moisEssai(new Date("2026-12-31T12:00:00+01:00"))).toBe(2);
-    expect(moisEssai(new Date("2027-01-01T12:00:00+01:00"))).toBe(1);
+    const calcul = fonction.prosrc.replace("now()", "$1::timestamptz");
+    const { rows: [resultat] } = await db.query(
+      `select (${calcul})::text as fin`, [instant]
+    );
+    expect(resultat.fin).toBe(fin);
   });
 
   it("une inscription en ligne (propriétaire direct) ouvre un essai de 2 mois", async () => {
@@ -312,6 +230,23 @@ describe.skipIf(!DB_URL)("la base applique l'essai du jour : 2 mois pendant l'of
       [org]
     );
     expect(journal.essai_fin).toBe(attendu);
+  });
+
+  it("ouvre onze espaces distincts sans souscription ni client Stripe", async () => {
+    const organisations: string[] = [];
+    for (let rang = 1; rang <= 11; rang++) {
+      await agir(await compte({ nom: "Fictif", prenom: `Pilote ${rang}` }));
+      const { rows: [espace] } = await db.query("select public.initialiser_espace_proprietaire() as id");
+      organisations.push(espace.id);
+      const { fin, attendu } = await essai(espace.id);
+      expect(fin).toBe(attendu);
+    }
+    expect(new Set(organisations).size).toBe(11);
+    const contrats = await db.query(
+      "select organization_id from public.abonnements where organization_id = any($1::uuid[]) and (stripe_customer_id is not null or stripe_subscription_id is not null)",
+      [organisations]
+    );
+    expect(contrats.rows).toHaveLength(0);
   });
 
   it("une agence ouverte depuis la console, sans durée précisée, a aussi 2 mois", async () => {

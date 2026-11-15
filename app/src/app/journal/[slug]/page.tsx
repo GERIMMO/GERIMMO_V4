@@ -9,9 +9,6 @@ import { ImageJournal, imageArticle } from "@/components/image-journal";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 import { dureeEssai } from "@/lib/tarifs";
 
-// L'essai annoncé suit le jour (offre de lancement : 2 mois jusqu'au
-// 31/12/2026, 1 mois ensuite) : la page se reconstruit au plus tard toutes
-// les heures.
 export const revalidate = 3600;
 
 async function charger(slug: string) {

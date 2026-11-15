@@ -124,24 +124,6 @@ body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) :is(a, button, select
   body:has(.espace-proprietaire) [data-ui="modale-entete"] { padding: 16px; }
   body:has(.espace-proprietaire) [data-ui="modale-corps"] { padding: 16px; }
 }
-.espace-proprietaire .lien-contenu {
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 1000;
-  padding: 12px 18px;
-  border-radius: 10px;
-  background: #14263d;
-  color: #fff;
-  font-weight: 650;
-  transform: translateY(calc(-100% - 20px));
-}
-
-.espace-proprietaire .lien-contenu:focus {
-  transform: translateY(0);
-}
-
-
 /* Le patrimoine actif reste identifiable, même avec une seule structure. */
 .espace-proprietaire .patrimoine-contexte { position: relative; z-index: 20; display: flex; align-items: center; gap: 9px; min-height: 46px; padding: 6px 32px; border-bottom: 1px solid #dfe5eb; background: #f9fafb; color: #43566d; font-size: 12px; }
 .patrimoine-contexte > svg { flex-shrink: 0; }

@@ -7,7 +7,7 @@ export function LienContenu() {
       href="#contenu-espace"
       className="lien-contenu"
       onClick={(event) => {
-        const contenu = document.querySelector<HTMLElement>(".coquille-corps main");
+        const contenu = document.querySelector<HTMLElement>(".coquille-corps main") ?? document.getElementById("contenu-espace");
         if (!contenu) return;
         event.preventDefault();
         const ancienTabIndex = contenu.getAttribute("tabindex");

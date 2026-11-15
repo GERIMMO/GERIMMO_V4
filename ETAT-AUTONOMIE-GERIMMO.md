@@ -1,6 +1,6 @@
 # Candidat de reprise des confirmations contractuelles et de Facebook
 
-PR [335](https://github.com/GERIMMO/GERIMMO_V4/pull/335), base publique b470bf1b5878607584503e45b7f88388cca00e78. SHA exact du candidat applicatif : **d88e05f2a7fa2c176579dafdfbe896c35f77baf0**. Le commit qui ajoute cette fiche est documentaire ; la différence depuis ce SHA doit se limiter à cette fiche. Le SHA complet de tête et ses contrôles sont disponibles sur la PR. Un fichier Git ne peut contenir par avance le SHA du commit dont il détermine le contenu.
+PR [335](https://github.com/GERIMMO/GERIMMO_V4/pull/335), base publique b470bf1b5878607584503e45b7f88388cca00e78. SHA exact du candidat applicatif : **ffb45495c798a6b947dd2bdee7d6ea7365f47b13**. Le commit qui ajoute cette fiche est documentaire ; la différence depuis ce SHA doit se limiter à cette fiche. Le SHA complet de tête et ses contrôles sont disponibles sur la PR. Un fichier Git ne peut contenir par avance le SHA du commit dont il détermine le contenu.
 
 ## Contre-audit et corrections du 15 novembre
 
@@ -8,7 +8,7 @@ Le rejeu sur la tête auditée 7278468e a produit trois échecs et une réussite
 
 Le retour de Stripe et le webhook utilisent le contrat suivi. Une levée sans accusé clôt aussi l’épisode : une nouvelle demande de même échéance obtient sa propre réservation. Chaque reprise d’accusé vérifie que la résiliation est toujours programmée. La confirmation cite l’acceptation enregistrée à la commande et reliée à la souscription par l’intention Checkout. Un contrat historique dépourvu de cette preuve nécessite un rapprochement humain. Le récit de commande a été ajouté aux données fictives du contre-audit pour tester le cas prouvé et le cas sans preuve séparément. Le lien propre à chaque article est conservé même après troncature du texte Facebook. Un ancien message sans cette référence reste à vérifier.
 
-Recette ciblée sur PostgreSQL fictif : 638 réussites, 0 échec, 16 tests sautés sur 654. Ce comptage inclut les contrôles métier voisins et exclut les exécutions précédentes. Le statut des contrôles hébergés se lit sur le SHA de tête de la PR. Le non-déclenchement d’un effet externe reste la règle en cas de doute. Aucun test local ne démontre une livraison réelle ou une publication Meta.
+Recette ciblée sur PostgreSQL fictif : 643 réussites, 0 échec, 16 tests sautés sur 659. Ce comptage inclut les contrôles métier voisins et exclut les exécutions précédentes. Le statut des contrôles hébergés se lit sur le SHA de tête de la PR. Le non-déclenchement d’un effet externe reste la règle en cas de doute. Aucun test local ne démontre une livraison réelle ou une publication Meta.
 
 ## Fonctionnement et preuves du premier candidat
 
@@ -32,3 +32,5 @@ Grille inchangée de l’audit initial, dix domaines de dix points. Production d
 L’essai accordé à l’inscription pendant le lancement est de deux mois calendaires, jusqu’au 31 décembre 2026 inclus. La règle existante prévoit ensuite un mois. La conversion reste volontaire. Les affiches et changements de code conservent la validation humaine. Avant le prochain audit global : contrôler les CI exactes, la surveillance, l’atelier de propositions et les parcours connectés des quatre portails. La sélection locale exclut le banc Stripe hébergé.
 
 Le traitement éditorial vérifie les titres candidats sur tout l’historique. Le scénario de refus suivi de 101 articles a été rejoué. La confirmation Meta et la clôture de la campagne organique sont désormais transactionnelles. Les 15 contrôles distincts de surveillance, sauvegarde et atelier ont réussi avec des données fictives.
+
+La CI intermédiaire a relevé deux clés étrangères sans index couvrant. Les deux index ont été ajoutés à la migration candidate puis la suite de sécurité du schéma a réussi sur un nouveau clone. Sur le code d’interface identique, la version compilée a passé la recette locale à 390 et 1 440 pixels : 27 observations propriétaire, 15 locataire, 20 artisan et 39 administration à chaque largeur. Deux liens artisan ont redirigé vers la mission. Aucun débordement horizontal mesuré sur ordinateur. Le premier essai du serveur de développement avait expiré à la connexion. Deux connexions PostgreSQL indépendantes ont aussi réservé en concurrence le même courriel et le même post : un seul traitement admis dans chaque cas.

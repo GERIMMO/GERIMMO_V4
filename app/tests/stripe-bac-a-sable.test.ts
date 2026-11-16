@@ -160,6 +160,23 @@ describe.skipIf(!cle)("Paiements simulés chez Stripe et application dans Gerimm
     const r = await suivi.stripe!.refunds.create({ payment_intent: p.id }); expect(r.status).toBe("succeeded");
   });
 
+  it("un avoir TEST rembourse la bonne facture acquittée et le rejeu conserve un seul avoir", async () => {
+    const stripe = suivi.stripe!;
+    const subscription = await stripe.subscriptions.retrieve(suivi.abonnement!);
+    const invoice = typeof subscription.latest_invoice === "string" ? subscription.latest_invoice : subscription.latest_invoice?.id;
+    if (!invoice) throw new Error("Facture TEST absente");
+    const facture = await stripe.invoices.retrieve(invoice);
+    expect(facture).toMatchObject({livemode:false, customer:suivi.client, status:"paid", amount_paid:200});
+    const demande = {invoice, amount:50, refund_amount:50, reason:"order_change" as const};
+    const cleAvoir = {idempotencyKey:`gerimmo-test-avoir-${invoice}`};
+    const avoir = await stripe.creditNotes.create(demande, cleAvoir);
+    const rejeu = await stripe.creditNotes.create(demande, cleAvoir);
+    expect(rejeu.id).toBe(avoir.id);
+    expect(avoir).toMatchObject({livemode:false, status:"issued", invoice, customer:suivi.client, amount:50, currency:"eur"});
+    expect((await stripe.invoices.retrieve(invoice)).post_payment_credit_notes_amount).toBe(50);
+    expect((await stripe.creditNotes.list({invoice})).data.map(n => n.id)).toEqual([avoir.id]);
+  }, 60000);
+
   it("ajuste la quantité puis résilie, et Gerimmo retrouve l'état final", async () => {
     expect(await synchroniserQuantite(suivi.stripe!, { subscription: suivi.abonnement!, quantite: 3 })).toMatchObject({ ok: true, quantite: 3 });
     expect(await synchroniserQuantite(suivi.stripe!, { subscription: suivi.abonnement!, quantite: 0 })).toMatchObject({ ok: true, resiliee: true });
@@ -463,12 +480,26 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
       const offre=offreAbonnementUnique(1,"mensuel");const lignes=await lignesStripe(stripe,offre,FRANCHISE);
       const souscription=await stripe.subscriptions.create({customer:client,items:lignes.map(l=>({price_data:l.prix,quantity:l.quantite})),metadata:metadonneesOffre(org,offre)});
       const echeance=souscription.items.data[0].current_period_end;
-      await stripe.testHelpers.testClocks.advance(clock.id,{frozen_time:echeance+7200});
-      await attendre(async()=>(await stripe.testHelpers.testClocks.retrieve(clock.id)).status==="ready","Horloge Stripe non finalisée");
-      await attendre(async()=>{
-        const factures=await stripe.invoices.list({customer:client,subscription:souscription.id});
-        return factures.data.some(f=>f.billing_reason==="subscription_cycle"&&f.status==="paid"&&f.amount_paid===599);
-      },"Renouvellement de TEST non payé");
+      async function avancer(instant: number) {
+        await stripe.testHelpers.testClocks.advance(clock.id, {frozen_time:instant});
+        await attendre(async () => (await stripe.testHelpers.testClocks.retrieve(clock.id)).status === "ready", "L’horloge Stripe TEST n’a pas terminé son avance");
+      }
+      // Stripe crée d'abord la facture de cycle, puis la finalise à une heure distincte
+      // dans son horloge simulée. Attendre du temps réel ne fait pas avancer cette horloge.
+      await avancer(echeance);
+      let cycle: Stripe.Invoice | undefined;
+      await attendre(async () => {
+        cycle = (await stripe.invoices.list({customer:client, subscription:souscription.id})).data.find(f => f.billing_reason === "subscription_cycle");
+        return !!cycle;
+      }, "Aucune facture de renouvellement émise à l’échéance dans Stripe TEST");
+      if (!cycle?.id) throw new Error("Facture de renouvellement sans référence");
+      const factureCycle = cycle.id;
+      const finalisation = Math.max(echeance + 7200, (cycle.automatically_finalizes_at ?? echeance) + 3600);
+      await avancer(finalisation);
+      await attendre(async () => {
+        const facture = await stripe.invoices.retrieve(factureCycle);
+        return facture.status === "paid" && facture.amount_paid === 599 && facture.amount_remaining === 0;
+      }, "Renouvellement de TEST non payé");
       await attendre(async()=>recus.some(e=>e.type==="invoice.paid"&&e.statut===200)&&recus.some(e=>e.type==="customer.subscription.updated"&&e.statut===200),"Webhooks de renouvellement non reçus par Gerimmo local");
       await chaine;
       // Une facture peut précéder le webhook de création. Le refus temporaire doit

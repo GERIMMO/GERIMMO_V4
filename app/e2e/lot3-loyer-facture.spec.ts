@@ -57,5 +57,25 @@ test('propriétaire : loyer confirmé et dépôt de facture conservé',async({pa
     await page.getByRole('button',{name:'Enregistrer pour plus tard',exact:true}).click();
     await expect.poll(async()=>Number((await db.query('select count(*) n from factures_fourniture f join contrats_fourniture c on c.id=f.contrat_id where c.bien_id=$1',[bien])).rows[0].n)).toBe(1);
     await expect(page).not.toHaveURL(/decompte=nouvelle/);expect(await debordementHorizontal(page)).toBe(0);await page.screenshot({path:info.outputPath('facture-deposee.png'),fullPage:true});
+    const {rows:[facture]}=await db.query('select f.id,f.document_id,f.payee_le from factures_fourniture f join contrats_fourniture c on c.id=f.contrat_id where c.bien_id=$1',[bien]);
+    expect(facture.payee_le).toBeNull();
+    await page.goto(`/espace/${ORG}/parc/${bien}#consommations`);
+    const payer=page.getByRole('button',{name:'Indiquer le paiement',exact:true}).first();
+    // La fiche du bien regroupe les commandes de la facture dans un détail natif.
+    const parents=await page.locator('button').filter({hasText:'Indiquer le paiement'}).first().evaluate(el=>{
+      const titres:string[]=[];let parent=el.parentElement;
+      while(parent){if(parent.tagName==='DETAILS' && !parent.hasAttribute('open')) titres.unshift(parent.querySelector(':scope > summary')?.textContent?.trim()??'');parent=parent.parentElement;}
+      return titres;
+    });
+    for (const titre of parents) await page.locator('summary').filter({hasText:titre}).first().click();
+    await payer.click();
+    const date=page.getByLabel('Payée le',{exact:true}).first();
+    await date.fill('2026-10-31');
+    await date.locator('xpath=ancestor::form').getByRole('button',{name:'Enregistrer',exact:true}).click();
+    const journal = async () => (await db.query("select e.lot_id,p.document_id,e.organization_id,e.sens,e.montant from ecritures e join ecritures_factures_fourniture ef on ef.ecriture_id=e.id join paiements_factures_fourniture p on p.id=ef.paiement_id where p.facture_id=$1",[facture.id])).rows;
+    await expect.poll(async()=>(await journal()).reduce((t,l)=>t+Number(l.montant),0)).toBe(180);
+    expect((await journal()).every(l=>l.lot_id===lot && l.document_id===facture.document_id && l.organization_id===ORG && l.sens==='depense')).toBe(true);
+    const justificatif=await page.request.get(`/espace/${ORG}/documents/${facture.document_id}/fichier`);
+    expect(justificatif.status()).toBe(200);
   } finally {await db.end();}
 });

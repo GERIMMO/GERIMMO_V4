@@ -10,10 +10,11 @@ for (const url of [site, api]) {
   }
 }
 const profils = [
-  "dossier-proprietaire.spec.ts", "lot3-loyer-facture.spec.ts", "parcours-locataire.spec.ts",
+  "depot-bail-signe-papier.spec.ts", "creation-bien-reprise.spec.ts", "dossier-proprietaire.spec.ts", "lot3-loyer-facture.spec.ts", "parcours-locataire.spec.ts",
   "parcours-artisan.spec.ts", "compte-supervision.spec.ts", "incidents-reprise.spec.ts",
   "artisan-fin-mission.spec.ts", "devis-reprise.spec.ts", "comptabilite-vues.spec.ts",
-  "supervision-consignes.spec.ts", "support-bailleur.spec.ts",
+  "reception-loyer-proprietaire.spec.ts", "incident-gerant-colocation.spec.ts", "fiscalite-qualifiee.spec.ts",
+  "contre-audit-proprietaire.spec.ts", "supervision-consignes.spec.ts", "support-bailleur.spec.ts",
 ];
 export default defineConfig({
   testDir: "..", testIgnore: ["**/recette-production/**"], workers: 1, retries: 0,

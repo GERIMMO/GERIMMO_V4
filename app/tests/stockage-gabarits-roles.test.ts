@@ -43,12 +43,24 @@ describe.skipIf(!url)("Dépôts par rôle : parcours et cloisonnement",()=>{
   await expect(depot(`${org}/${uuid()}.jpg`)).rejects.toThrow(/row-level/);
  });
  it('la reprise de photo exige sa réservation propre et encore en attente',async()=>{
-  const reservation=uuid(),path=`${org}/incidents-reprise/${locataire}/${reservation}.jpg`;
-  await db.query("insert into depots_photos_incident(id,organization_id,account_id,incident_id,empreinte,mime,taille,storage_path) values($1,$2,$3,$4,$5,'image/jpeg',10,$6)",[reservation,org,locataire,incident,'c'.repeat(64),path]);
+  const personne=await id("insert into persons(organization_id,account_id,nom,prenom) values($1,$2,'Rivière','Sam') returning id",[org,locataire]);
+  await db.query(`insert into baux(organization_id,lot_id,locataire_principal,etat,date_debut,loyer_hc,charges)
+    select $1,lot_id,$2,'actif',current_date-30,600,40 from incidents where id=$3`,[org,personne,incident]);
+  await agir(locataire);
+  const declaration=await essai("select public.declarer_mon_incident_reprise($1,$2,'plomberie_canalisation','Fuite dans la cuisine','Cuisine',null,'normale') r",[org,uuid()]);
+  const reservation=await essai("select public.preparer_photo_incident($1,$2,$3,'image/jpeg',10) r",[org,declaration.rows[0].r.incident_id,'c'.repeat(64)]);
+  const {id:reservationId,storage_path:path}=reservation.rows[0].r;
   await agir(autre);await expect(depot(path)).rejects.toThrow(/row-level/);
   await agir(locataire);await depot(path);
   await expect(depot(`${org}/incidents-reprise/${locataire}/${uuid()}.jpg`)).rejects.toThrow(/row-level/);
-  await db.query('reset role');await db.query("delete from storage.objects where name=$1",[path]);await db.query("update depots_photos_incident set etat='abandonne' where id=$1",[reservation]);await agir(locataire);await expect(depot(path)).rejects.toThrow(/row-level/);
+  await db.query('reset role');await db.query("delete from storage.objects where name=$1",[path]);await db.query("update depots_photos_incident set etat='abandonne' where id=$1",[reservationId]);await agir(locataire);await expect(depot(path)).rejects.toThrow(/row-level/);
+ });
+ it('une réservation historique sans bail ni déclarant ne donne aucun droit de déposer',async()=>{
+  const reservation=uuid(), path=`${org}/incidents-reprise/${locataire}/${reservation}.jpg`;
+  await db.query("insert into depots_photos_incident(id,organization_id,account_id,incident_id,empreinte,mime,taille,storage_path) values($1,$2,$3,$4,$5,'image/jpeg',10,$6)",[reservation,org,locataire,incident,'c'.repeat(64),path]);
+  await agir(locataire);
+  await expect(essai("select public.preparer_photo_incident($1,$2,$3,'image/jpeg',10)",[org,incident,'c'.repeat(64)])).rejects.toThrow(/Accès refusé/);
+  await expect(depot(path)).rejects.toThrow(/row-level/);
  });
  it.each(['compte','locataire'])('refuse les autres organisations et chemins inattendus (%s)',async(role)=>{
   await agir(role==='compte'?compte:locataire);

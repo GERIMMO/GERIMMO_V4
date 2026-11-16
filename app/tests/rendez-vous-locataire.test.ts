@@ -555,6 +555,14 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     expect((await demandes()).length).toBe(1);
   });
 
+  it("un retour historique refuse de rouvrir les accès après départ du colocataire", async () => {
+    await postgres();
+    const retour = readFileSync(new URL("../supabase/retours-arriere/20261116141850_droits_incidents_apres_depart_colocataire.retour.sql", import.meta.url), "utf8");
+    await expect(essai(() => db.query(retour))).rejects.toThrow(/conserver les droits après départ/);
+    const { rows: [controle] } = await db.query("select to_regprocedure('public.occupant_bail_incident(uuid,uuid,date,boolean)') is not null as present");
+    expect(controle.present).toBe(true);
+  });
+
   it("A1-a : le départ individuel retire les droits sur ce logement dans la session déjà ouverte", async () => {
     await postgres();
     const { rows: [logement] } = await db.query(

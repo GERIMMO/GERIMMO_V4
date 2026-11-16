@@ -72,7 +72,6 @@ jobs:
           GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}
         run: npm test -- tests/stripe-bac-a-sable.test.ts --reporter=default --reporter=json --outputFile=/tmp/gerimmo-stripe-test.json
       - name: Vérifier le clic client dans Gerimmo et sa page hébergée Stripe TEST
-        if: success() || failure()
         env:
           GERIMMO_RECETTE_COMMANDE: stripe-test
           GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}

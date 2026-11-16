@@ -1,3 +1,4 @@
+import { aucuneAutreFactureEnSouffrance } from "./impaye-preuve-stripe";
 import {exigerOperationsPayantesAutorisees} from "./verrou-pilote";
 import {
   appliquerPiedDeFacture,
@@ -426,6 +427,7 @@ async function traiterFacturePayee(supabase: Service, stripe: Stripe, evenement:
           actuelle.status!=="active" || actuelle.pause_collection || i.status!=="paid" || i.amount_remaining!==0 || i.currency!=="eur" || i.amount_paid!==f.amount_paid) {
           throw new Error("Règlement signé, état Stripe en cours de rapprochement.");
         }
+        if (!await aucuneAutreFactureEnSouffrance(stripe,customer,subscription)) throw new Error("Autre facture du contrat en souffrance, régularisation à vérifier.");
         const reglee=await supabase.rpc("abonnement_regulariser_facture",{...params,p_version:lecture.data,p_montant:i.amount_paid});
         if (reglee.error) throw new Error("La régularisation doit être reprise.");
       }

@@ -172,37 +172,20 @@ grant execute on function public.dossiers_impayes_a_decider() to service_role;
 
 -- invoice.paid peut parvenir sans customer.subscription.updated. Seul l'événement réservé autorise la
 -- régularisation, après vérification Stripe de la dernière facture et de la souscription toujours active.
-alter function public.stripe_evenement_appliquer(text,uuid,text,jsonb) rename to stripe_evenement_appliquer_avant_regularisation;
-create function public.stripe_evenement_appliquer(p_event_id text,p_jeton uuid,p_action text,p_params jsonb)
+-- Point d'écriture commun au webhook et au rapprochement serveur. Les deux observations
+-- verrouillent le même abonnement. Une réponse tardive ne remplace jamais une version plus récente.
+create function public.regulariser_facture_prouvee(p_org uuid,p_customer text,p_subscription text,
+ p_facture text,p_version text,p_montant bigint,p_event_id text)
 returns jsonb language plpgsql security definer set search_path='' as $$
-declare e public.abonnement_evenements; a public.abonnements; version text; o public.organizations;
+declare a public.abonnements; version text; o public.organizations;
 begin
- -- Sérialiser les deux sources d'une même régularisation : deux événements distincts ont deux réservations.
- if p_action='abonnement_appliquer' then
-  perform 1 from public.abonnement_evenements where stripe_event_id=p_event_id and verrou_jeton=p_jeton for update;
-  if found then
-   select * into a from public.abonnements where stripe_customer_id=p_params->>'p_customer' for update;
-   if found and p_params->>'p_statut' in ('past_due','unpaid') and p_params->>'p_facture_en_defaut' is not null
-   and exists(select from public.audit_log j where j.organization_id=a.organization_id and j.action='regularisation_facture_confirmee'
-    and j.details->>'facture'=p_params->>'p_facture_en_defaut' and j.details->>'souscription'=p_params->>'p_subscription')
-   then raise exception 'État Stripe antérieur au règlement vérifié, relire la souscription' using errcode='40001'; end if;
-  end if;
- end if;
- if p_action not in ('abonnement_defaut_a_regulariser','abonnement_regulariser_facture') or p_action is null then
-  return public.stripe_evenement_appliquer_avant_regularisation(p_event_id,p_jeton,p_action,p_params);
- end if;
- select * into e from public.abonnement_evenements where stripe_event_id=p_event_id for update;
- if not found or p_jeton is null or e.verrou_jeton is distinct from p_jeton or e.traite_le is not null
- or e.verrou_jusqua is null or e.verrou_jusqua<=clock_timestamp() or e.type<>'invoice.paid'
- or p_params->>'p_facture' is distinct from e.charge->>'objet'
- or p_params->>'p_customer' is distinct from e.charge->>'client' then raise exception 'Preuve de règlement invalide'; end if;
- select * into a from public.abonnements where stripe_customer_id=p_params->>'p_customer'
- and stripe_subscription_id=p_params->>'p_subscription' for update;
+ select * into a from public.abonnements where stripe_customer_id=p_customer and stripe_subscription_id=p_subscription
+ and (p_org is null or organization_id=p_org) for update;
  if not found or a.paiement_en_defaut_depuis is null or a.stripe_statut not in ('past_due','unpaid') then return null; end if;
  select xmin::text into version from public.abonnements where organization_id=a.organization_id;
- if p_action='abonnement_defaut_a_regulariser' then return to_jsonb(version); end if;
- if version is distinct from p_params->>'p_version' then raise exception 'Le dossier a changé, relire le règlement' using errcode='40001'; end if;
- if coalesce((p_params->>'p_montant')::bigint,0)<=0 then raise exception 'Montant réglé invalide'; end if;
+ if p_version is null then return to_jsonb(version); end if;
+ if version is distinct from p_version then raise exception 'Le dossier a changé, relire le règlement' using errcode='40001'; end if;
+ if coalesce(p_montant,0)<=0 or coalesce(p_facture,'') !~ '^in_[A-Za-z0-9_]{1,200}$' then raise exception 'Montant réglé invalide'; end if;
  select * into strict o from public.organizations where id=a.organization_id for update;
  -- Conserver un archivage ou une suspension administrative : le règlement rétablit seulement l'accès commercial.
  if o.status='suspendue' and not exists(select from public.audit_log l where l.id=(
@@ -217,8 +200,55 @@ begin
    perform public.abonnement_appliquer(a.stripe_customer_id,a.stripe_subscription_id,'active',a.quantite,a.periode_fin,a.annulation_demandee);
  end if;
  insert into public.audit_log(organization_id,action,details) values(o.id,'regularisation_facture_confirmee',
-   jsonb_build_object('evenement',p_event_id,'facture',e.charge->>'objet','souscription',a.stripe_subscription_id,'montant_cents',(p_params->>'p_montant')::bigint));
+   jsonb_strip_nulls(jsonb_build_object('source',case when p_event_id is null then 'api_stripe' else 'evenement_stripe' end,
+   'evenement',p_event_id,'facture',p_facture,'souscription',a.stripe_subscription_id,'montant_cents',p_montant)));
  return to_jsonb(o.id);
+end $$;
+revoke all on function public.regulariser_facture_prouvee(uuid,text,text,text,text,bigint,text) from public,anon,authenticated,service_role;
+
+-- Lecture par l'API Stripe avec la clé serveur ; aucun identifiant d'événement webhook n'est fabriqué.
+create function public.stripe_rapprocher_facture_payee(p_org uuid,p_customer text,p_subscription text,
+ p_facture text,p_version text,p_montant bigint)
+returns jsonb language sql security definer set search_path='' as $$
+ select public.regulariser_facture_prouvee(p_org,p_customer,p_subscription,p_facture,p_version,p_montant,null)
+ where p_org is not null and p_customer is not null and p_subscription is not null;
+$$;
+revoke all on function public.stripe_rapprocher_facture_payee(uuid,text,text,text,text,bigint) from public,anon,authenticated;
+grant execute on function public.stripe_rapprocher_facture_payee(uuid,text,text,text,text,bigint) to service_role;
+
+alter function public.stripe_evenement_appliquer(text,uuid,text,jsonb) rename to stripe_evenement_appliquer_avant_regularisation;
+create function public.stripe_evenement_appliquer(p_event_id text,p_jeton uuid,p_action text,p_params jsonb)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare e public.abonnement_evenements; a public.abonnements;
+begin
+ -- Sérialiser les deux sources d'une même régularisation : deux événements distincts ont deux réservations.
+ if p_action='abonnement_appliquer' then
+  perform 1 from public.abonnement_evenements where stripe_event_id=p_event_id and verrou_jeton=p_jeton for update;
+  if found then
+   select * into a from public.abonnements where stripe_customer_id=p_params->>'p_customer' for update;
+   -- Un statut actif seul ne démontre pas que les factures antérieures sont réglées.
+   -- Le règlement vérifié par le webhook de facture ou le contrôle périodique lèvera l'impayé.
+   if found and a.paiement_en_defaut_depuis is not null and a.stripe_subscription_id=p_params->>'p_subscription'
+     and p_params->>'p_statut' in ('active','trialing') then
+     raise exception 'La régularisation exige une preuve de règlement du contrat' using errcode='40001';
+   end if;
+   if found and p_params->>'p_statut' in ('past_due','unpaid') and p_params->>'p_facture_en_defaut' is not null
+   and exists(select from public.audit_log j where j.organization_id=a.organization_id and j.action='regularisation_facture_confirmee'
+    and j.details->>'facture'=p_params->>'p_facture_en_defaut' and j.details->>'souscription'=p_params->>'p_subscription')
+   then raise exception 'État Stripe antérieur au règlement vérifié, relire la souscription' using errcode='40001'; end if;
+  end if;
+ end if;
+ if p_action not in ('abonnement_defaut_a_regulariser','abonnement_regulariser_facture') or p_action is null then
+  return public.stripe_evenement_appliquer_avant_regularisation(p_event_id,p_jeton,p_action,p_params);
+ end if;
+ select * into e from public.abonnement_evenements where stripe_event_id=p_event_id for update;
+ if not found or p_jeton is null or e.verrou_jeton is distinct from p_jeton or e.traite_le is not null
+ or e.verrou_jusqua is null or e.verrou_jusqua<=clock_timestamp() or e.type<>'invoice.paid'
+ or p_params->>'p_facture' is distinct from e.charge->>'objet'
+ or p_params->>'p_customer' is distinct from e.charge->>'client' then raise exception 'Preuve de règlement invalide'; end if;
+ if p_action='abonnement_regulariser_facture' and nullif(p_params->>'p_version','') is null then raise exception 'Version du règlement absente'; end if;
+ return public.regulariser_facture_prouvee(null,p_params->>'p_customer',p_params->>'p_subscription',e.charge->>'objet',
+   case when p_action='abonnement_regulariser_facture' then p_params->>'p_version' end,(p_params->>'p_montant')::bigint,p_event_id);
 end $$;
 revoke all on function public.stripe_evenement_appliquer_avant_regularisation(text,uuid,text,jsonb),
  public.stripe_evenement_appliquer(text,uuid,text,jsonb) from public,anon,authenticated,service_role;

@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { rapprocherAbonnementsStripe } from "@/lib/stripe-rapprochement";
 import { factureImpayee } from "@/lib/impaye-preuve-stripe";
 // Stripe réel en mode TEST + règles Gerimmo dans PostgreSQL local.
 // Le transport du webhook est simulé et signé ; il n'est pas présenté comme
@@ -33,6 +35,8 @@ const cle = process.env.GERIMMO_STRIPE_TEST_KEY;
 const FONCTIONS_TABLE = new Set(["abonnement_par_client", "abonnement_contexte_evenement", "abonnement_courrier_contexte"]);
 /** Plan du 23/10 (migration 20261024110000) : les fonctions des courriers du contrat que le webhook appelle aussi. */
 const RPC_COURRIERS: Record<string, string[]> = {
+  stripe_rapprocher_facture_payee: ["p_org","p_customer","p_subscription","p_facture","p_version","p_montant"],
+  stripe_controle_enregistrer: ["p_org","p_ecarts"],
   abonnement_contexte_evenement: ["p_customer"],
   abonnement_souscription_datee: ["p_customer", "p_subscription", "p_souscrit_le"],
   abonnement_courrier_contexte: ["p_org"],
@@ -483,6 +487,7 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
     const stripe = nouvelle.stripe!;
     const clock = await stripe.testHelpers.testClocks.create({ frozen_time: Math.floor(Date.now()/1000), name: "Gerimmo — renouvellement fictif" });
     let client = "", signature = "", sortie = "";
+    let liaisonInterrompue=false;
     type Livraison = {id:string; type:string; objet:string; corps:string; entete:string; statut:number};
     const livraisons = new Map<string,Livraison>();
     const erreursReception: string[] = [];
@@ -508,6 +513,9 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
             if(evenement.livemode) { res.writeHead(403).end(); return; }
             const objet=evenement.data.object as unknown as {id:string; customer?:string};
             if(!client||objet.customer!==client) { res.writeHead(200).end(); return; }
+            // Après le défaut observé et avant le paiement de régularisation, simuler la perte complète
+            // du transport vers Gerimmo pour ce seul client. Aucun de ces événements ne touche la base.
+            if (liaisonInterrompue) { res.writeHead(503).end(); return; }
             const livraison={id:evenement.id,type:evenement.type,objet:objet.id,corps,entete,statut:0};
             livraisons.set(evenement.id,livraison);
             const reponse=await transmettre(livraison);
@@ -604,7 +612,10 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
         const facture = await stripe.invoices.retrieve(factureCycle);
         return facture.status === "paid" && facture.amount_paid === 599 && facture.amount_remaining === 0;
       }, "Renouvellement de TEST non payé");
-      await attendreLivraison("invoice.paid",factureCycle);
+      const renouvellement = await attendreLivraison("invoice.paid",factureCycle);
+      const doublon = await transmettre(renouvellement);
+      expect(doublon.status).toBe(200);
+      expect(await doublon.json()).toMatchObject({deja_traite:renouvellement.id});
       expect(erreursReception).toEqual([]);
       expect([...livraisons.values()].every(l=>[200,500,503].includes(l.statut))).toBe(true);
       expect((await nouvelle.db!.query("select count(*)::int n from public.audit_log where organization_id=$1 and action='abonnement_premiere_facture_payee'",[org])).rows[0].n).toBe(1);
@@ -631,19 +642,31 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
         await reprendreLivraisons();
         return Boolean((await nouvelle.db!.query("select paiement_en_defaut_depuis from public.abonnements where organization_id=$1",[org])).rows[0].paiement_en_defaut_depuis);
       },"Gerimmo n’a pas enregistré le défaut du renouvellement");
+      liaisonInterrompue=true;
+      await chaine;
       const payee=await stripe.invoices.pay(impayee,{payment_method:pm.id},{idempotencyKey:`recette-regularisation-${impayee}`});
       expect(payee).toMatchObject({livemode:false,status:"paid",amount_paid:599,amount_remaining:0});
       await attendre(async()=>(await stripe.subscriptions.retrieve(souscription.id)).status==="active","La régularisation de TEST n’a pas rouvert la souscription");
       await expect(factureImpayee(souscription.id,599,stripe)).rejects.toThrow();
-      const reglement=await attendreLivraison("invoice.paid",impayee);
-      await attendre(async()=>{
-        await reprendreLivraisons();
-        const etat=await nouvelle.db!.query("select paiement_en_defaut_depuis is null and stripe_statut='active' as regularise from abonnements where organization_id=$1",[org]);
-        return etat.rows[0]?.regularise===true;
-      },"Gerimmo n’a pas rapproché le webhook signé de la facture régularisée");
-      const doublon=await transmettre(reglement);
-      expect(doublon.status).toBe(200);
-      expect(await doublon.json()).toMatchObject({deja_traite:reglement.id});
+      const dette=await nouvelle.db!.query("select paiement_en_defaut_depuis from abonnements where organization_id=$1",[org]);
+      expect(dette.rows[0].paiement_en_defaut_depuis).toBeTruthy();
+      // Le contrôle de nuit de production, avec le transport SQL local restreint à l'organisation fictive
+      // de cette horloge. Les lectures du contrat et des factures sont faites auprès de Stripe TEST.
+      const service={rpc:async(nom:string,params:Record<string,unknown>)=>{
+        if (nom==="stripe_controles_a_faire") {
+          const r=await nouvelle.db!.query("select to_jsonb(a) as ligne from public.stripe_controles_a_faire($1) a where organization_id=$2",[params.p_limite,org]);
+          return {data:r.rows.map(v=>v.ligne),error:null};
+        }
+        return transport.rpc(nom,params);
+      }} as unknown as SupabaseClient;
+      const bilan=await rapprocherAbonnementsStripe(service,stripe,async()=>{});
+      expect(bilan).toMatchObject({controles:1,echecs:0});
+      const etat=await nouvelle.db!.query("select paiement_en_defaut_depuis is null and stripe_statut='active' as regularise,stripe_controle_ecarts from abonnements where organization_id=$1",[org]);
+      expect(etat.rows[0], "La preuve API du règlement doit solder exactement cet impayé").toMatchObject({regularise:true});
+      const preuve=await nouvelle.db!.query("select details from audit_log where organization_id=$1 and action='regularisation_facture_confirmee'",[org]);
+      expect(preuve.rows).toEqual([{details:{source:"api_stripe",facture:impayee,souscription:souscription.id,montant_cents:599}}]);
+      expect((await nouvelle.db!.query("select 1 from abonnement_evenements where type='invoice.paid' and charge->>'objet'=$1",[impayee])).rowCount).toBe(0);
+      expect((await rapprocherAbonnementsStripe(service,stripe,async()=>{})).controles).toBe(0);
       expect((await nouvelle.db!.query("select count(*)::int n from audit_log where organization_id=$1 and action='paiement_regularise'",[org])).rows[0].n).toBe(1);
 
     } finally {

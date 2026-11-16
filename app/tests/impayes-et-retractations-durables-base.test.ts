@@ -9,6 +9,7 @@ import { envoyerRelancesDues } from "../src/lib/relances-paiement";
 import { envoyerAccuseRetractation,envoyerReceptionRetractation, notifierResiliationImpaye } from "../src/lib/courriers-contrat-envoi";
 import { factureImpayee } from "../src/lib/impaye-preuve-stripe";
 import Stripe from "stripe";
+import { rapprocherFactureImpayee } from "../src/lib/stripe-rapprochement";
 import { executerEvenementStripe } from "../src/lib/stripe-file";
 
 const banc = vi.hoisted(()=>({service:null as SupabaseClient|null, stripe:null as Stripe|null}));
@@ -81,7 +82,7 @@ describe.skipIf(!url)("Incidents contractuels — vrais droits, preuves et final
   };
   let statut="past_due";
   const stripe={subscriptions:{retrieve:async()=>({id:sub,customer,status:statut,latest_invoice:facture})},
-    invoices:{retrieve:async()=>facture}} as unknown as Stripe;
+    invoices:{retrieve:async()=>facture,list:async()=>({data:[],has_more:false})}} as unknown as Stripe;
   const ancien=payee("evt_ancien_"+sub,{...facture,id:"in_anterieure"});
   expect((await executerEvenementStripe(banc.service!,stripe,ancien)).etat).toBe("traite");
   expect((await db.query("select paiement_en_defaut_depuis from abonnements where organization_id=$1",[org])).rows[0].paiement_en_defaut_depuis).toBeTruthy();
@@ -107,6 +108,36 @@ describe.skipIf(!url)("Incidents contractuels — vrais droits, preuves et final
     {p_customer:customer,p_subscription:sub,p_statut:"past_due",p_facture_en_defaut:facture.id,p_quantite:1,p_annulation:false}])).rejects.toThrow("antérieur au règlement");
   await db.query("rollback to savepoint ancien_statut");
 
+ });
+ it("un webhook entièrement perdu est récupéré par lecture serveur du bon contrat, sans créer de reçu webhook",async()=>{
+  const customer="cus_"+sub;
+  const d={organization_id:org,stripe_customer_id:customer,stripe_subscription_id:sub};
+  const f={id:"in_reglee",customer,parent:{subscription_details:{subscription:sub}},currency:"eur",status:"paid",amount_paid:599,amount_remaining:0};
+  const abonnement={id:sub,customer,status:"active",latest_invoice:f};
+  const ouverte={subscription:sub,status:"open"};
+  const autreContrat={subscription:"sub_autre_du_meme_client",status:"open"};
+  const dettes=[ouverte,autreContrat];
+  const stripe={subscriptions:{retrieve:vi.fn(async()=>abonnement)},invoices:{list:vi.fn(async(q:{customer:string;subscription:string;status:string})=>{
+    expect(q.customer).toBe(customer);
+    return {data:dettes.filter(i=>i.subscription===q.subscription&&i.status===q.status),has_more:false};
+  })}} as unknown as Stripe;
+  const reprise=()=>rapprocherFactureImpayee(banc.service!,stripe,d,async()=>{});
+  expect(await reprise()).toBe(false); // Une facture antérieure encore ouverte sur le même contrat.
+  expect((await db.query("select paiement_en_defaut_depuis from abonnements where organization_id=$1",[org])).rows[0].paiement_en_defaut_depuis).toBeTruthy();
+  // Même un webhook de statut ne doit pas contredire la créance antérieure.
+  const retard="evt_statut_"+sub, jeton=randomUUID();
+  await db.query("select stripe_evenement_prendre($1,'customer.subscription.updated',$2,$3)",[retard,{objet:sub,client:customer},jeton]);
+  await db.query("savepoint statut_seul");
+  await expect(db.query("select stripe_evenement_appliquer($1,$2,'abonnement_appliquer',$3)",[retard,jeton,
+    {p_customer:customer,p_subscription:sub,p_statut:"active",p_quantite:1,p_annulation:false}])).rejects.toThrow("preuve de règlement");
+  await db.query("rollback to savepoint statut_seul");
+  dettes.splice(0,1);
+  expect(await reprise()).toBe(true);expect(await reprise()).toBe(false);
+  expect((await db.query("select details from audit_log where organization_id=$1 and action='regularisation_facture_confirmee'",[org])).rows)
+    .toEqual([{details:{source:"api_stripe",facture:f.id,souscription:sub,montant_cents:599}}]);
+  expect((await db.query("select 1 from abonnement_evenements where charge->>'objet'=$1",[f.id])).rowCount).toBe(0);
+  expect((await db.query("select stripe_statut,paiement_en_defaut_depuis from abonnements where organization_id=$1",[org])).rows[0])
+    .toMatchObject({stripe_statut:"active",paiement_en_defaut_depuis:null});
  });
  it("une facture régularisée chez Stripe avant le webhook empêche toute relance",async()=>{
   paiement.facture="paid";paiement.solde=0;expect((await attente()).echecs.length).toBe(1);expect(boite).not.toHaveBeenCalled();

@@ -34,8 +34,11 @@ export async function executerEvenementStripe(db: SupabaseClient, stripe: Stripe
       const valeur = Reflect.get(cible, cle); return typeof valeur === "function" ? valeur.bind(cible) : valeur;
     } });
     if (!effetsExternes && evenement.type === "invoice.paid") {
-      const facture = await stripe.invoices.retrieve(referenceEvenementStripe(evenement).objet);
-      if (facture.status !== "paid") throw new Error("La facture n’est pas confirmée payée.");
+      const ref=referenceEvenementStripe(evenement);
+      const facture = await stripe.invoices.retrieve(ref.objet);
+      const client=typeof facture.customer==="string"?facture.customer:facture.customer?.id ?? null;
+      if (facture.id!==ref.objet || client!==ref.client || facture.status !== "paid" || !Number.isSafeInteger(facture.amount_paid))
+        throw new Error("La facture du client n’est pas confirmée payée.");
       evenement = { ...evenement, data: { object: facture } } as Stripe.Event;
     }
     const resultat = await traiterEvenementStripe(metier, stripe, evenement, effetsExternes, avantEffet);

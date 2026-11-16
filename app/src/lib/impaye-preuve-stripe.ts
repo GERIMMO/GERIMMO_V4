@@ -28,3 +28,13 @@ export async function factureImpayee(subscription: string, montant: number, stri
   }
   return f.id;
 }
+
+/** Lecture limitée à cette souscription, y compris si le client en possède une autre. */
+export async function aucuneAutreFactureEnSouffrance(stripe:Stripe, customer:string, subscription:string, avant?:()=>Promise<void>) {
+  for (const status of ["open","uncollectible"] as const) {
+    await avant?.();
+    const autres=await stripe.invoices.list({customer,subscription,status,limit:1});
+    if (autres.has_more || autres.data.length) return false;
+  }
+  return true;
+}

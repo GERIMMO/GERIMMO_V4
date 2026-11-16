@@ -181,6 +181,37 @@ describe.skipIf(!DB_URL)("Un agent enregistre un bien", () => {
     });
   });
 
+  it("une adhésion retirée cesse de révéler les identifiants de lots à la même session", async () => {
+    await devenir(agentA);
+    expect((await db.query("select * from public.lots_de_mon_portefeuille($1)", [org])).rowCount).toBe(1);
+    await redevenirService();
+    await db.query("update public.memberships set status='inactive' where account_id=$1 and organization_id=$2", [agentA, org]);
+    await devenir(agentA);
+    expect((await db.query("select * from public.lots_de_mon_portefeuille($1)", [org])).rows).toEqual([]);
+    expect((await db.query("select id from public.lots where id=$1", [lotDeA])).rows).toEqual([]);
+  });
+
+  it("le responsable transfère le mandat et retire l’accès, avec une trace", async () => {
+    await devenir(patron);
+    await db.query("select public.gerer_collaborateur_agence($1,$2,'retirer',$3)", [org,agentA,agentB]);
+    await devenir(agentA);
+    expect((await db.query("select * from public.lots_de_mon_portefeuille($1)", [org])).rows).toEqual([]);
+    await devenir(agentB);
+    expect((await db.query("select id from public.lots where id=$1", [lotDeA])).rowCount).toBe(1);
+    await redevenirService();
+    expect((await db.query("select id from public.audit_log where organization_id=$1 and action='mandat_reattribue' and details->>'ancien'=$2", [org,agentA])).rowCount).toBe(1);
+  });
+
+  it("un agent ne peut pas s’accorder les droits du responsable", async () => {
+    await devenir(agentA);
+    await expect(db.query("select public.gerer_collaborateur_agence($1,$2,'admin_agence')", [org,agentA])).rejects.toThrow(/responsable/);
+  });
+
+  it("le dernier responsable ne peut pas retirer son propre accès", async () => {
+    await devenir(patron);
+    await expect(db.query("select public.gerer_collaborateur_agence($1,$2,'retirer',$3)", [org,patron,agentB])).rejects.toThrow(/responsable/);
+  });
+
   describe("Ce qui est réparé", () => {
     it("l'agent crée un bien, et le relit aussitôt", async () => {
       await devenir(agentB);

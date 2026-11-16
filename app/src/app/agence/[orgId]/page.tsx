@@ -6,7 +6,8 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { resumerBlocage } from "@/lib/echeances";
 import { cibleBlocage } from "@/lib/parc";
 import { chargerActionsDuJour, type ActionDuJour } from "@/lib/actions-du-jour";
-import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
+import { chargerQuittancementDuMois } from "@/lib/quittancement-du-mois";
+import { resumerLoyersParcMois } from "@/lib/loyers-parc-mois";
 import { lotsDuPortefeuille, PortefeuilleIndisponible } from "@/lib/portefeuille";
 import { totalMessagesNonLus } from "@/lib/messagerie";
 import { ROLES_RESPONSABLES, eur, aujourdhuiParis } from "@/lib/ged";
@@ -98,8 +99,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
 
   const [
     { data: lots, error: erreurLots },
-    { data: appelsMois, error: erreurAppels },
-    { data: encaissementsMois, error: erreurEncaissements },
+    quittancement,
     { data: ecrituresSixMois, error: erreurEcritures },
     { data: blocagesParc, error: erreurBlocages },
     { data: incidentsEnCours, error: erreurIncidents },
@@ -114,18 +114,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     { data: etapesDemarrage },
   ] = await Promise.all([
     supabase.from("lots").select("id, nom, etat, bien_id").eq("organization_id", orgId),
-    // KPI « Encaissé » (maquette) : le quittancement du mois en cours —
-    // le lot du bail embarqué pour le filtre « mon portefeuille »
-    supabase
-      .from("appels_loyer")
-      .select("montant_du, bail:baux!appels_loyer_bail_id_fkey(lot_id)")
-      .eq("organization_id", orgId)
-      .eq("periode", moisCourant),
-    supabase
-      .from("encaissements")
-      .select("montant, bail:baux!encaissements_bail_id_fkey(lot_id)")
-      .eq("organization_id", orgId)
-      .gte("date_paiement", moisCourant),
+    chargerQuittancementDuMois(supabase, orgId, dansPortefeuille),
     // Carte « Encaissements et dépenses » (maquette) : 6 mois d'écritures
     supabase
       .from("ecritures")
@@ -160,29 +149,22 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   }[];
   // Le bandeau nomme ce qui manque : un écran incomplet le dit en tête, puis
   // chaque bloc concerné le répète là où le vide se verrait.
+  const loyers = quittancement.error || portefeuille instanceof PortefeuilleIndisponible
+    ? null : resumerLoyersParcMois(quittancement.lignes);
   const lecturesEnEchec = [
     erreurLots && "le parc",
     portefeuille instanceof PortefeuilleIndisponible && "votre portefeuille",
     messagesNonLus === null && "les messages non lus",
     erreurAlertes && "les alertes",
     erreurRapports && "les rapports de gestion",
-    (erreurAppels || erreurEncaissements) && "le quittancement du mois",
+    !loyers && "le quittancement du mois",
     erreurEcritures && "les écritures des six derniers mois",
     erreurBlocages && "les blocages de mise en location",
     erreurIncidents && "les incidents",
     erreurMembres && "la liste des gérants",
   ].filter((x): x is string => typeof x === "string");
 
-  // Tout se lit à travers le portefeuille : sans mandat confié, rien ne change
-  type LigneAvecBail = { bail: UnOuPlusieurs<{ lot_id: string }> };
-  const lotDuBail = (l: LigneAvecBail) => premier(l.bail)?.lot_id ?? null;
-  const totalAppele = (appelsMois ?? [])
-    .filter((a) => dansPortefeuille(lotDuBail(a as LigneAvecBail)))
-    .reduce((s, a) => s + Number(a.montant_du), 0);
-  const totalEncaisse = (encaissementsMois ?? [])
-    .filter((e) => dansPortefeuille(lotDuBail(e as LigneAvecBail)))
-    .reduce((s, e) => s + Number(e.montant), 0);
-  const nomMois = new Date().toLocaleDateString("fr-FR", {
+  const nomMois = new Date(`${quittancement.mois}-01T12:00:00Z`).toLocaleDateString("fr-FR", {
     month: "long",
     timeZone: "Europe/Paris",
   });
@@ -349,8 +331,8 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const elementsEnAttente = nbActions + (messagesNonLus && messagesNonLus > 0 ? 1 : 0);
   const toutEnOrdre = !planIllisible && elementsEnAttente === 0 && aQualifier === 0;
   const tauxQuittancement =
-    !erreurAppels && !erreurEncaissements && totalAppele > 0
-      ? Math.round((totalEncaisse / totalAppele) * 100)
+    loyers && loyers.attendu > 0
+      ? Math.round((loyers.encaisse / loyers.attendu) * 100)
       : null;
   // Au-delà de SEUIL_PLAN_OUVERT, les groupes restent REPLIÉS à l'arrivée
   // (demande du 12/09 : « des listes déroulantes par défaut repliées ») : la
@@ -473,7 +455,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         <Link
           href={`/agence/${orgId}/loyers`}
           className={`tuile ${
-            erreurAppels || erreurEncaissements
+            !loyers
               ? ""
               : tauxQuittancement === null
                 ? "neutre"
@@ -485,14 +467,14 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           <span className="ico"><IconeTrait nom="euro" /></span>
           <span className="lib">Loyers {deElide(nomMois)}</span>
           <span className="val montant whitespace-nowrap">
-            {erreurEncaissements ? "—" : eur(totalEncaisse)}
+            {loyers ? eur(loyers.encaisse) : "—"}
           </span>
           <span className="sous">
-            {erreurAppels || erreurEncaissements
+            {!loyers
               ? "Lecture impossible"
               : tauxQuittancement === null
-                ? "Aucun appel émis ce mois"
-                : `${tauxQuittancement} % des ${eur(totalAppele)} appelés`}
+                ? "Aucune échéance sur cette période"
+                : `${tauxQuittancement} % des ${eur(loyers.attendu)} appelés`}
           </span>
         </Link>
 
@@ -562,7 +544,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
               part sans votre accord — il se donne une fois, dans les réglages.
             </p>
             <Link
-              href={`/agence/${orgId}/profil#relances`}
+              href={`/agence/${orgId}/profil#quittances`}
               className={buttonVariants({ variant: "outline", size: "sm", className: "pointer-coarse:min-h-10" })}
             >
               Activer

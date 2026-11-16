@@ -8,7 +8,7 @@ import { cibleChampBail } from "@/lib/documents/champs-bail-parcours";
 import { EtapeComplementsBail } from "@/lib/etape-complements-bail";
 import { actualiserSignatureBail, annulerSignatureBail, envoyerSignatureBail, lireSignatureBail, preparerSignatureBail, activerBailApresSignature, type VueSignatureBail } from "@/app/actions/signature-bail";
 
-import { DOCUMENTS_ZOHO, estimationSignature, type SelectionSignature } from "@/lib/politique-signature";
+import { DOCUMENTS_ZOHO, type SelectionSignature } from "@/lib/politique-signature";
 import { formaterDate } from "@/lib/ged";
 import { confirmationEdlSurPlace, dateVisiteFr } from "@/lib/textes-signature-actes";
 
@@ -106,7 +106,6 @@ export function SignatureElectroniqueBail({orgId,bailId,selection,apresSignature
     {vue?.mode==="indisponible"&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm">{vue.fermeture ?? <><strong>Signature en ligne en préparation.</strong> Vous pouvez vérifier les personnes et préparer le PDF. L’envoi sera disponible après la connexion et les essais du prestataire. Aucun e-mail ne part pendant cette préparation.</>}</p>}
     {vue?.mode==="sandbox"&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm font-medium">Environnement d’essai : documents fictifs uniquement.</p>}
     {vue?.essai&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm font-medium">Essai sans engagement · le document et les invitations sont fictifs. Cet essai ne met aucun logement en location.</p>}
-    {!!parties.length&&parties.length<=25&&!vue?.fermeture&&<p className="text-xs text-muted-foreground">Estimation : {estimationSignature(parties.length).credits.toLocaleString("fr-FR")} crédits Zoho pour cet envoi et un premier SMS par signataire. Les renvois de SMS peuvent s’ajouter.</p>}
     {code==="cautionnement"&&!cautionSansConfirmation&&<p className="rounded-xl bg-primary/5 p-3 text-sm">Avant l’envoi, la caution confirme elle-même son numéro de mobile, par un lien reçu par e-mail : le numéro de sa fiche n’est pas utilisé. Elle renseigne ensuite elle-même la mention de caution dans Zoho ; le bailleur la vérifie avant de signer à son tour. Une copie du bail est jointe.</p>}
     {cautionSansConfirmation&&<p role="status" className="rounded-xl bg-warning-soft p-3 text-sm">Cet acte a été envoyé avant que la caution confirme elle-même son numéro de mobile : son code de signature part au numéro saisi sur sa fiche. Annulez ce circuit, puis préparez et envoyez de nouveau l’acte : la caution recevra un lien pour confirmer son numéro.</p>}
     {estBail&&garantsBail.length>0&&!garantSansConfirmation&&<p className="rounded-xl bg-primary/5 p-3 text-sm">Avant l’envoi, chaque garant confirme lui-même son numéro de mobile, par un lien reçu par e-mail : le numéro de sa fiche n’est pas utilisé. S’il l’a déjà confirmé pour son acte de cautionnement, ce numéro est repris sans nouveau lien. Le bail part en signature dès que tous les garants ont confirmé.</p>}

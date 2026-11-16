@@ -192,6 +192,9 @@ const MISSION_OCTOBRE = [
   "20261115130412_cloture_audit_contrats_marketing.sql",
   "20261116035047_disponibilites_et_droits_rendez_vous.sql",
   "20261116041536_numeros_factures_emises_intervention.sql",
+  "20261116083100_demarrage_encaissement.sql",
+  "20261116083200_gestion_collaborateurs_agence.sql",
+  "20261116084000_destinataire_facture_sci.sql",
 
 
 ];

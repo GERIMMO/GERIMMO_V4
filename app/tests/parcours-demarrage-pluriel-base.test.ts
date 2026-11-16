@@ -104,4 +104,13 @@ describe.skipIf(!DB_URL)("parcours de démarrage — pluriel de « bail » (base
     await ajouterBail(lots[1], "Second");
     expect(await etapeBail()).toMatchObject({ faite: true, detail: "2 baux en cours" });
   });
+  it("reconnaît les 850 € reçus avant le premier appel sans inventer de quittance", async () => {
+    await db.query("reset role");
+    const { rows: [bail] } = await db.query("select id from public.baux where lot_id=$1", [lots[0]]);
+    await db.query("insert into public.encaissements(organization_id,bail_id,date_paiement,montant) values ($1,$2,current_date,850)", [org,bail.id]);
+    await agir();
+    const { rows: [etape] } = await db.query("select faite, detail from public.parcours_demarrage($1) where etape='loyer'", [org]);
+    expect(etape).toEqual({ faite: true, detail: "Premier encaissement enregistré." });
+  });
+
 });

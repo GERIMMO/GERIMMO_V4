@@ -703,7 +703,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             {/* Plan de conformité du 23/10 (lot 4, constat R13) et décisions du dirigeant du 23/10 : la signature passe
                 dans ce qui est compris, sans supplément, essai compris, dans la limite du volume mensuel commun ; l'acte
                 de cautionnement et l'état des lieux se signent dans Gerimmo (article 4.7 des conditions générales). */}
-            <div><PenLine size={20} aria-hidden="true" /><strong>La signature électronique</strong><p>Bail et avenants, accords, devis, actes de cautionnement et états des lieux, avec Zoho Sign et un code par SMS : sans supplément, essai compris, dans la limite d’un volume mensuel commun ; elle peut être momentanément suspendue.</p></div>
+            <div><PenLine size={20} aria-hidden="true" /><strong>La signature électronique</strong><p>Vous pouvez déposer votre bail signé sur papier. La signature électronique est proposée uniquement lorsque le service est ouvert pour le document concerné. Sa disponibilité est indiquée avant l’envoi.</p></div>
           </div>
           <details className={styles.precisions}>
             <summary>Services facturés à part ou non inclus</summary>
@@ -725,9 +725,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
               : "Sans supplément : les accès de vos locataires."}
           </li>
           <li>
-            Sans supplément, essai compris : la signature électronique du bail et de ses avenants, des accords, des devis,
-            des actes de cautionnement et des états des lieux, avec Zoho Sign et un code par SMS, dans la limite d&apos;un
-            volume mensuel commun ; elle peut être momentanément suspendue.
+            Lorsqu’elle est disponible, la signature électronique est sans supplément et soumise au volume mensuel commun.
           </li>
           <li>
             Non compris : les travaux et interventions d&apos;artisans, toujours sur devis et facturés à part ; le réseau

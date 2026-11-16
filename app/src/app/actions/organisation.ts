@@ -117,8 +117,7 @@ export async function modifierProfilOrganisation(
       // Accord permanent d'envoi des quittances : une case décochée n'apparaît
       // pas dans le formulaire, d'où la lecture par présence et non par valeur.
       quittances_envoi_auto: formData.get("quittances_envoi_auto") !== null,
-      appels_envoi_auto: formData.get("appels_envoi_auto") !== null,
-      relances_envoi_auto: formData.get("relances_envoi_auto") !== null,
+      // Les préférences historiques des deux circuits suspendus restent en base.
       relance_1_jours: relance1,
       relance_2_jours: relance2,
       relance_seuil_montant: Math.round(seuil * 100) / 100,
@@ -215,4 +214,18 @@ export async function inviterAgent(
       ? `${ligne.email} fait partie de l’équipe : il retrouve l’agence dans ses espaces.`
       : `Invitation envoyée à ${ligne.email} : il reçoit un lien pour définir son mot de passe.`,
   };
+}
+
+export async function modifierCollaborateur(orgId: string, compte: string, _etat: EtatProfilOrganisation, form: FormData): Promise<EtatProfilOrganisation> {
+  const { supabase, user, role } = await verifierGerant(orgId);
+  if (!user || role !== "admin_agence" || user.id === compte) return { erreur: "Accès refusé." };
+  if (form.get("confirme") !== "oui") return { erreur: "Confirmez la modification de cet accès." };
+  const action = String(form.get("operation"));
+  const { error } = await supabase.rpc("gerer_collaborateur_agence", {
+    p_org: orgId, p_compte: compte, p_action: action,
+    p_repreneur: action === "retirer" ? String(form.get("repreneur") || "") : null,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath(`/agence/${orgId}/administration`);
+  return { succes: action === "retirer" ? "Accès retiré et mandats en cours réattribués." : "Rôle mis à jour." };
 }

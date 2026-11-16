@@ -106,8 +106,13 @@ export default async function PageRepondreDevis(
   const enRevision = demande.statut === "revision_demandee";
   const versionSuivante = (demande.version ?? 1) + 1;
   let preparation: Awaited<ReturnType<typeof chargerPreparationDevis>>["preparation"] = null;
+  let adresseManquante = false;
   let erreurPreparation: string | undefined;
-  try { preparation = (await chargerPreparationDevis(sollicitationId)).preparation; }
+  try {
+    const lecture = await chargerPreparationDevis(sollicitationId);
+    preparation = lecture.preparation;
+    adresseManquante = !lecture.profil.adresse?.trim();
+  }
   catch { erreurPreparation = "Le service de préparation est momentanément indisponible. Vos devis déjà envoyés restent consultables."; }
 
   // Trente jours : la validité par défaut du module 9, celle que la base
@@ -224,6 +229,14 @@ export default async function PageRepondreDevis(
             </Avertissement>
           )}
 
+          {adresseManquante && (
+            <Avertissement>
+              Votre adresse d’entreprise manque sur le devis.{" "}
+              <Link href="/artisan/entreprise#entreprise-devis" className="font-semibold underline underline-offset-4">
+                Compléter mon adresse
+              </Link>{" "}avant de chiffrer les travaux. Votre brouillon reste disponible ici.
+            </Avertissement>
+          )}
           <FormulaireAvecReprise
             key={`${user.id}:${sollicitationId}`}
             compteId={user.id}

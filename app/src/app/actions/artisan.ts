@@ -644,7 +644,8 @@ export async function deposerMaFacture(
   const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
   if (erreurDepotDirect) return { erreur: erreurDepotDirect };
   let fichier = formData.get("fichier");
-  const creation = formData.get("mode_facture") === "particulier";
+  const modeFacture = formData.get("mode_facture");
+  const creation = modeFacture === "particulier" || modeFacture === "sci";
 
   if (!numero) return { erreur: "Indiquez le numéro de votre facture.", valeurs };
   if (numero.length > 60) return { erreur: "Le numéro de facture est trop long.", valeurs };
@@ -660,8 +661,17 @@ export async function deposerMaFacture(
   if (creation) {
     let facture;
     try {
-      const { factureInterventionParticulier } = await import("@/lib/documents/facture-intervention");
-      facture = factureInterventionParticulier(formData, fiche, mission.incident_numero);
+      const { factureIntervention } = await import("@/lib/documents/facture-intervention");
+      let sci;
+      if (modeFacture === "sci") {
+        const { lireSirenSociete } = await import("@/lib/qualite-bailleur");
+        const siren = lireSirenSociete(formData.get("siren_client"));
+        if (!siren) return { erreur: "Indiquez le SIREN de la SCI qui a commandé les travaux.", valeurs };
+        const identite = await supabase.rpc("sci_facturable_intervention", {p_intervention: interventionId, p_siren: siren}).maybeSingle();
+        if (identite.error || !identite.data) return { erreur: "La SCI facturée n’a pas pu être confirmée pour cette mission. Vérifiez le SIREN et les coordonnées avec le propriétaire.", valeurs };
+        sci = identite.data as import("@/lib/documents/facture-intervention").SciFacturee;
+      }
+      facture = factureIntervention(formData, fiche, mission.incident_numero, sci);
     } catch (erreur) {
       return { erreur: erreur instanceof Error ? erreur.message : "Vérifiez les champs de votre facture.", valeurs };
     }

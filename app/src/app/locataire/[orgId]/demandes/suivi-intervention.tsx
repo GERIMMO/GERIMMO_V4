@@ -312,6 +312,7 @@ function ChoixDuCreneau({
           action={actionChoix}
           onReset={() => setCreneauCoche(false)}
         >
+          <input type="hidden" name="intervention" value={interventionId ?? ""}/>
           <fieldset className="border-0 p-0">
             <legend className="text-sm font-medium">
               Quel créneau vous arrange&nbsp;?

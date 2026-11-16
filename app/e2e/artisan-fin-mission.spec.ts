@@ -23,7 +23,7 @@ for (const mode of ['depot', 'creation'] as const) test(`intervention acceptée 
   if (mode === 'creation') {
     const dossier = await preparerEtPlanifierFuite(db, browser, page, lot.organization_id, a.id);
     incident=dossier.incidentId; mission=dossier.mission;
-    Object.assign(preuve,{mission,fixture:'Déclaration avec photo et choix du créneau en navigateur ; qualification, devis et accord par les RPC métier de chaque rôle.'});
+    Object.assign(preuve,{mission,fixture:'Déclaration avec photo et choix du créneau en navigateur ; accord sur le devis dans le portail de gestion ; qualification et préparation du devis par les fonctions métier authentifiées.'});
   } else {
   await db.query("insert into incidents(id,organization_id,lot_id,numero,canal,categorie,description,etat,imputation,imputation_justification) values($1,$2,$3,$4,'agence','plomberie_canalisation','ESSAI fin de mission fictive','affecte','proprietaire','ESSAI : réparation fictive à la charge du propriétaire')",[incident,lot.organization_id,lot.lot_id,numero]);
   await db.query("insert into incident_interventions(id,organization_id,incident_id,artisan_id,nature_travaux,statut,acceptee_le) values($1,$2,$3,$4,'entretien_courant','acceptee',now())",[mission,lot.organization_id,incident,a.id]);

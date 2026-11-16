@@ -57,7 +57,8 @@ export function FormulaireFacture({
   const saisi = montantEnCentimes(montant);
   const ecart = plafondCents !== null && saisi !== null && saisi !== plafondCents;
 
-  const [creation, setCreation] = useState(false);
+  const [mode, setMode] = useState<"depot" | "particulier" | "sci">("depot");
+  const creation = mode !== "depot";
   const suggestions: Record<string, string | undefined> = { adresse_entreprise: adresseEntreprise, lieu_travaux: lieuTravaux };
   const idNumero = useId();
   const idMontant = useId();
@@ -68,8 +69,9 @@ export function FormulaireFacture({
     <form data-saisie-confirmee action={action} className="space-y-5">
       <fieldset>
         <legend className={CLASSE_LIBELLE}>Comment souhaitez-vous facturer ?</legend>
-        <label className="flex min-h-11 items-center gap-2"><input type="radio" name="mode_facture" value="depot" checked={!creation} onChange={() => setCreation(false)} />Déposer une facture existante</label>
-        <label className="flex min-h-11 items-center gap-2"><input type="radio" name="mode_facture" value="particulier" checked={creation} onChange={() => setCreation(true)} />Créer une facture de travaux pour un particulier</label>
+        <label className="flex min-h-11 items-center gap-2"><input type="radio" name="mode_facture" value="depot" checked={!creation} onChange={() => setMode("depot")} />Déposer une facture existante</label>
+        <label className="flex min-h-11 items-center gap-2"><input type="radio" name="mode_facture" value="particulier" checked={mode === "particulier"} onChange={() => setMode("particulier")} />Créer une facture de travaux pour un particulier</label>
+        <label className="flex min-h-11 items-center gap-2"><input type="radio" name="mode_facture" value="sci" checked={mode === "sci"} onChange={() => setMode("sci")}/>Créer une facture pour une SCI</label>
       </fieldset>
       <div className="space-y-1.5">
         <label htmlFor={idNumero} className={CLASSE_LIBELLE}>
@@ -124,8 +126,16 @@ export function FormulaireFacture({
       )}
 
       {creation ? <fieldset className="space-y-4">
-        <legend className={CLASSE_LIBELLE}>Facture au propriétaire particulier</legend>
-        <p className={CLASSE_AIDE}>Utilisez le prochain numéro de votre série. Pour une SCI ou un autre client professionnel, déposez votre facture existante.</p>
+        <legend className={CLASSE_LIBELLE}>{mode === "sci" ? "Facture à la SCI propriétaire" : "Facture au propriétaire particulier"}</legend>
+        <p className={CLASSE_AIDE}>Utilisez le prochain numéro de votre série. Vérifiez les mentions et les conditions convenues avec votre client.</p>
+        {mode === "sci" && <>
+          <label className="block">SIREN de la SCI cliente<input className={CLASSE_CHAMP} name="siren_client" required inputMode="numeric" pattern="[0-9]{9}" maxLength={9}/></label>
+          <p className={CLASSE_AIDE}>Le nom et le siège social proviennent du dossier du logement à la date de commande.</p>
+          <label className="block">Adresse de facturation si différente du siège<input className={CLASSE_CHAMP} name="adresse_client" maxLength={500}/></label>
+          <label className="block">Numéro du bon de commande, si établi<input className={CLASSE_CHAMP} name="commande" maxLength={80}/></label>
+          <label className="block">Conditions d’escompte pour paiement anticipé<input className={CLASSE_CHAMP} name="escompte" required maxLength={500}/></label>
+          <label className="block">Pénalités de retard et indemnité de recouvrement applicables<textarea className={CLASSE_ZONE_TEXTE} name="retard" required maxLength={1000}/></label>
+        </>}
         {([
           ["adresse_entreprise", "Adresse de votre entreprise", "text", 500],
           ["client_facture", "Nom du propriétaire à facturer", "text", 250],
@@ -134,7 +144,7 @@ export function FormulaireFacture({
           ["date_travaux", "Date de réalisation des travaux", "date", 10],
           ["date_echeance", "Date limite de règlement", "date", 10],
           ["conditions_facture", "Conditions de règlement", "text", 1000],
-        ] as const).map(([nom, libelle, type, max]) => <label key={nom} className="block space-y-1"><span className={CLASSE_LIBELLE}>{libelle}</span><input name={nom} type={type} required maxLength={max} defaultValue={etat.valeurs?.[nom] ?? suggestions[nom]} className={CLASSE_CHAMP}/></label>)}
+        ] as const).filter(([nom]) => mode !== "sci" || (nom !== "client_facture" && nom !== "adresse_client")).map(([nom, libelle, type, max]) => <label key={nom} className="block space-y-1"><span className={CLASSE_LIBELLE}>{libelle}</span><input name={nom} type={type} required maxLength={max} defaultValue={etat.valeurs?.[nom] ?? suggestions[nom]} className={CLASSE_CHAMP}/></label>)}
         <label className="block space-y-1"><span className={CLASSE_LIBELLE}>Mentions de votre entreprise et de TVA</span><textarea required maxLength={3000} className={CLASSE_ZONE_TEXTE} name="mentions_facture" defaultValue={etat.valeurs?.mentions_facture ?? mentionsEntreprise}/><span className={CLASSE_AIDE}>Indiquez vos mentions professionnelles, votre numéro de TVA ou le motif d’exonération applicable et, si nécessaire, votre assurance.</span></label>
         <LignesDevis titre="Prestations facturées"/>
         {plafondCents !== null && <label className="block space-y-1"><span className={CLASSE_LIBELLE}>Justification si le total diffère du devis accepté</span><textarea name="justification" maxLength={4000} className={CLASSE_ZONE_TEXTE} defaultValue={etat.valeurs?.justification}/></label>}

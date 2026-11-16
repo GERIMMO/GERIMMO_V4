@@ -19,11 +19,12 @@ function jour(form: FormData, cle: string, libelle: string) {
   return valeur;
 }
 
-/** Note de travaux au particulier. Le formulaire de dépôt reste disponible pour les factures établies ailleurs. */
-export function factureInterventionParticulier(form: FormData, artisan: {raison_sociale: string; siret: string}, incident: string) {
+export type SciFacturee = { nom: string; siren: string; siege: string };
+export function factureIntervention(form: FormData, artisan: {raison_sociale: string; siret: string}, incident: string, sci?: SciFacturee) {
   const numero = texte(form, "numero", "Numéro de facture", 60);
-  const client = texte(form, "client_facture", "Nom du client", 250);
-  const adresse = texte(form, "adresse_client", "Adresse de facturation", 500);
+  const client = sci?.nom ?? texte(form, "client_facture", "Nom du client", 250);
+  const adresse = sci ? (String(form.get("adresse_client") ?? "").trim() || sci.siege) : texte(form, "adresse_client", "Adresse de facturation", 500);
+  if (adresse.length > 500) throw new Error("Vérifiez l’adresse de facturation.");
   const adresseArtisan = texte(form, "adresse_entreprise", "Adresse de l’entreprise", 500);
   const lieu = texte(form, "lieu_travaux", "Adresse des travaux", 500);
   const mentions = texte(form, "mentions_facture", "Mentions de l’entreprise et de TVA", 3000);
@@ -38,7 +39,8 @@ export function factureInterventionParticulier(form: FormData, artisan: {raison_
   const f = new Fusion();
   const identites = cartouches([
     ["Entreprise", echapper(artisan.raison_sociale)], ["SIRET", echapper(artisan.siret)],
-    ["Adresse de l’entreprise", echapper(adresseArtisan)], ["Client particulier", echapper(client)],
+    ["Adresse de l’entreprise", echapper(adresseArtisan)], [sci ? "Client SCI" : "Client particulier", echapper(client)],
+    ...(sci ? [["SIREN du client", echapper(sci.siren)], ["Siège social", echapper(sci.siege)]] as [string,string][] : []),
     ["Adresse de facturation", echapper(adresse)], ["Lieu des travaux", echapper(lieu)],
     ["Émise le", f.date(emission)], ["Travaux réalisés le", f.date(dateTravaux)],
     ["Échéance", f.date(echeance)], ["Intervention", echapper(incident)],
@@ -52,5 +54,10 @@ export function factureInterventionParticulier(form: FormData, artisan: {raison_
   totaux.push(["Total TTC", eur(calcul.montant_ttc_cents / 100)]);
   const corps = titre("Facture de travaux", echapper(numero), []) + identites + lignes + cartouches(totaux)
     + "<p style='white-space:pre-line'>" + echapper(mentions) + "</p><p>Conditions de règlement : " + echapper(reglement) + "</p>";
-  return { montant: calcul.montant_ttc_cents, document: assemblerPage({f, titreDocument:"Facture de travaux", reference:numero, nomPied:artisan.raison_sociale, corps}) };
+  const mentionsSci = sci ? cartouches([
+    ["Conditions d’escompte", echapper(texte(form, "escompte", "Escompte pour paiement anticipé", 500))],
+    ["Pénalités et indemnité de recouvrement applicables", echapper(texte(form, "retard", "Conditions applicables en cas de retard", 1000))],
+    ...(form.get("commande") ? [["Bon de commande", echapper(texte(form, "commande", "Bon de commande", 80))]] as [string,string][] : []),
+  ]) : "";
+  return { montant: calcul.montant_ttc_cents, document: assemblerPage({f, titreDocument:"Facture de travaux", reference:numero, nomPied:artisan.raison_sociale, corps:corps + mentionsSci}) };
 }

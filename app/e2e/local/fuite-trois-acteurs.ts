@@ -35,7 +35,7 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
       await db.query("set local role authenticated");
     };
     await db.query("begin");
-    let mission: string;
+    let devis: string;
     try {
       await role("admin.alpha@example.com");
       await db.query("select qualifier_incident($1,$2,'proprietaire','Vétusté du joint sur le réseau')",[organisation,incident.id]);
@@ -44,11 +44,19 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
       await role("artisan.alpha@example.com");
       const lignes=JSON.stringify([{libelle:"Travaux de plomberie",quantite:1,prix_unitaire_ht_cents:10000,tva_bps:0}]);
       const {rows:[d]}=await db.query("select deposer_devis_structure($1,$2::jsonb,'Joint usé','Remplacer le joint','Sous sept jours','Une heure',null,null,current_date+30) id",[s.id,lignes]);
-      await role("admin.alpha@example.com");
-      const {rows:[m]}=await db.query("select retenir_devis($1,$2) id",[organisation,d.id]);
-      mission=m.id;
+      devis=d.id;
       await db.query("commit");
     } catch (err) { await db.query("rollback"); throw err; }
+    const responsable=await browser.newContext({storageState:"e2e/.auth/admin.json", viewport:artisan.viewportSize()});
+    try {
+      const gestion=await responsable.newPage();
+      await sansSyntheseAlertes(gestion);
+      await gestion.goto(`/agence/${organisation}/incidents/${incident.id}#intervention`);
+      await gestion.getByRole("button",{name:/Retenir ce devis/}).click();
+      await expect.poll(async () => (await db.query("select count(*)::int n from incident_interventions where organization_id=$1 and incident_id=$2 and devis_id=$3", [organisation,incident.id,devis])).rows[0].n).toBe(1);
+    } finally { await responsable.close(); }
+    const {rows:[intervention]} = await db.query("select id from incident_interventions where organization_id=$1 and incident_id=$2 and devis_id=$3", [organisation,incident.id,devis]);
+    const mission = intervention.id as string;
     await artisan.goto(`/artisan/missions/${mission}`);
     await artisan.getByRole("button",{name:"Accepter la mission"}).click();
     await expect(artisan).toHaveURL(new RegExp(mission+"/creneaux"));
@@ -67,6 +75,7 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
     await dossier.locator("input[type=radio] + label").first().click({timeout:12000});
     await dossier.getByRole("button",{name:"Confirmer ce rendez-vous"}).click();
     await expect.poll(async()=>(await db.query("select statut from incident_interventions where id=$1",[mission])).rows[0].statut).toBe("planifiee");
+    await expect(page.getByRole("region",{name:"Rendez-vous confirmé"})).toBeVisible();
     await page.reload();
     await expect(dossier.getByRole("radio")).toHaveCount(0);
     expect((await db.query("select count(*)::int n from intervention_creneaux where intervention_id=$1 and statut='retenu'",[mission])).rows[0].n).toBe(1);

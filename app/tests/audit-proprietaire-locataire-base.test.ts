@@ -391,7 +391,7 @@ describe.skipIf(!DB_URL)("audit propriétaire et locataire (27/09) — base", ()
       const loyer = rows.find((r) => r.etape === "loyer");
       expect(rows.map((r) => r.etape).at(-1)).toBe("loyer");
       // La quittance du bloc 2 existe : l'étape est faite.
-      expect(loyer).toMatchObject({ faite: true, detail: "Loyer encaissé, quittance émise." });
+      expect(loyer).toMatchObject({ faite: true, detail: "Premier encaissement enregistré." });
     });
 
     it("sans quittance, l'étape dit le geste à faire", async () => {

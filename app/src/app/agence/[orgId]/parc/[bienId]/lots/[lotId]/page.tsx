@@ -857,7 +857,7 @@ export default async function PageLot(
               />
             </SectionLot>
           )}</>;
-  const statutLot = <>{!traverseeLectureSeule && <details className={styles.gestionStatut}><summary>Gérer le statut du lot <ChevronDown size={16} aria-hidden="true" /></summary><div>
+  const statutLot = <>{!traverseeLectureSeule && <details id="statut-lot" className={styles.gestionStatut}><summary>Gérer le statut du lot <ChevronDown size={16} aria-hidden="true" /></summary><div>
       {lot.etat === "brouillon" && !erreurBlocages && <BlocagesLocation motifs={(blocages ?? []) as string[]} ctx={{orgId,bienId,lotId,racine:racineEspace(estProprietaire)}} pageCourante={`${base}/parc/${bienId}/lots/${lotId}`} titre="Ce qui empêche la mise en location" />}
       <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} estBailleurDirect={role === "proprietaire_direct"} bailHref={bailEnCours ? `${base}/baux/${bailEnCours.id}` : undefined} />
     </div></details>}</>;

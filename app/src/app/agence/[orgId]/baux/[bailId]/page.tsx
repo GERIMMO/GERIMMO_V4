@@ -556,7 +556,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           <CardContent className="space-y-4">
             {lotEnPreparation && <p className="text-sm">
               Le logement est encore en préparation. Ouvrez sa fiche et choisissez « Mettre en location » avant d’activer le bail.{" "}
-              <Link className="underline" href={`${base}/parc/${lot.bien_id}/lots/${bail.lot_id}`}>Ouvrir la fiche du logement</Link>
+              <Link className="underline" href={`${base}/parc/${lot.bien_id}/lots/${bail.lot_id}#statut-lot`}>Ouvrir la mise en location du logement</Link>
             </p>}
             {bail.document_signe ? (
               <CarteBailSigne

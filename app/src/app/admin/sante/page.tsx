@@ -435,9 +435,8 @@ export default async function PageSante() {
           </div>
         )}
         <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
-          Chaque organisation active ses envois dans son profil ; l&apos;assistant
-          et le parcours de démarrage le lui proposent. Une organisation « tout à
-          la main » clique là où Gerimmo pourrait faire seul.
+          Les préférences de chaque organisation sont consultables sur sa fiche.
+          Un envoi suspendu par Gerimmo reste bloqué, même si sa préférence est activée.
           {/* La commande de la section (audit C36) : les organisations, pas un chiffre seul. */}
           {" "}<Link href="/admin/clients" className="lien-discret">Voir les organisations →</Link>
         </p>

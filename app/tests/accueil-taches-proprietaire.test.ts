@@ -114,7 +114,8 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
   it("le montant des échéances du mois mène au suivi des loyers", async () => {
     const html = await rendre();
     expect(html).toContain('href="/espace/org/loyers"');
-    expect(html).toContain("Loyers encaissés");
+    expect(html).toContain("Loyers du mois");
+    expect(html).toContain("toutes échéances confondues");
   });
 
   it("garde les tâches fiables sans annoncer un repos quand une source échoue", async () => {

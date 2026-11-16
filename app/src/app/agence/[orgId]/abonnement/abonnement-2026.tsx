@@ -703,7 +703,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             {/* Plan de conformité du 23/10 (lot 4, constat R13) et décisions du dirigeant du 23/10 : la signature passe
                 dans ce qui est compris, sans supplément, essai compris, dans la limite du volume mensuel commun ; l'acte
                 de cautionnement et l'état des lieux se signent dans Gerimmo (article 4.7 des conditions générales). */}
-            <div><PenLine size={20} aria-hidden="true" /><strong>La signature électronique</strong><p>Vous pouvez déposer votre bail signé sur papier. La signature électronique est proposée uniquement lorsque le service est ouvert pour le document concerné. Baux, accords, devis, actes de cautionnement et états des lieux sont concernés selon le dossier. Lorsqu’elle est ouverte, elle est sans supplément, essai compris. Selon le volume mensuel commun, elle peut être momentanément suspendue.</p></div>
+            <div><PenLine size={20} aria-hidden="true" /><strong>La signature électronique</strong><p>Vous pouvez déposer votre bail signé sur papier. Zoho Sign assure la signature électronique lorsque le service est ouvert pour le document concerné. Baux, accords, devis, actes de cautionnement et états des lieux sont concernés selon le dossier. Lorsqu’elle est ouverte, elle est sans supplément, essai compris. Selon le volume mensuel commun, elle peut être momentanément suspendue.</p></div>
           </div>
           <details className={styles.precisions}>
             <summary>Services facturés à part ou non inclus</summary>

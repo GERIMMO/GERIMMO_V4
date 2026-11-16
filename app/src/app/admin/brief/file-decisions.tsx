@@ -32,7 +32,7 @@ export function FileDecisions({ decisions, signaux, cartes, vue, categorie, rese
   const [page, setPage] = useState(1);
   const resultat = useRef<HTMLParagraphElement>(null);
   const groupes = CATEGORIES_DECISIONS.map(c => ({ ...c, nombre: entrees.filter(e => e.categorie === c.id).length }));
-  const incidents = entrees.filter(e => e.categorie === "incidents");
+  const prioritaires = entrees.slice(0, 3);
   const retenues = rechercherDecisions(entrees, filtre, recherche);
   const pages = Math.max(1, Math.ceil(retenues.length / PAR_PAGE));
   const courante = Math.min(page, pages);
@@ -50,6 +50,10 @@ export function FileDecisions({ decisions, signaux, cartes, vue, categorie, rese
   </div>;
 
   if (vue === "bureau") return <div className={styles.overview}>
+    {prioritaires.length > 0 ? <div className={styles.priorities}>
+      <h3>À examiner en premier</h3>
+      <ul>{prioritaires.map(e => <li key={e.cle}><LienDossier entree={e} /></li>)}</ul>
+    </div> : !indisponible && <p className={styles.calm}><CheckCheck size={18} aria-hidden="true" />Aucune décision en attente.</p>}
     <nav aria-label="Demandes par catégorie" className={styles.groups}>
       {groupes.map(g => {
         const Icone = ICONES[g.id];
@@ -60,11 +64,6 @@ export function FileDecisions({ decisions, signaux, cartes, vue, categorie, rese
         </Link>;
       })}
     </nav>
-    {incidents.length > 0 ? <div className={styles.priorities}>
-      <h3>À regarder en premier</h3>
-      <ul>{incidents.slice(0, 3).map(e => <li key={e.cle}><LienDossier entree={e} /></li>)}</ul>
-      {incidents.length > 3 && <Link className={styles.more} href={lienFile("incidents")}>Voir les {incidents.length} problèmes <ArrowRight size={15} aria-hidden="true" /></Link>}
-    </div> : !indisponible && <p className={styles.calm}><CheckCheck size={18} aria-hidden="true" />Aucun problème à examiner dans cette file.</p>}
     {secondaires}
     <Link href={lienFile("tout")} className={styles.more}>Examiner toutes les demandes <ArrowRight size={15} aria-hidden="true" /></Link>
   </div>;

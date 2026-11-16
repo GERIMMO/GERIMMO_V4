@@ -96,7 +96,7 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
     await ouvrirEtape(page, adresse, "07");
     const depot = page.locator("#bail-signe");
     await expect(depot.getByText("Bail signé", { exact: true })).toBeVisible();
-    await expect(depot.getByRole("link", {name: "Ouvrir la fiche du logement"})).toHaveAttribute("href", `/espace/${ORG}/parc/${bien}/lots/${lot}`);
+    await expect(depot.getByRole("link", {name: "Ouvrir la mise en location du logement"})).toHaveAttribute("href", `/espace/${ORG}/parc/${bien}/lots/${lot}#statut-lot`);
     await expect(depot.locator("#depot-bail-signe")).toHaveCount(0);
     await expect(db.query("update public.lots set etat='disponible' where id=$1", [lot])).rejects.toThrow(/DPE absent ou expiré/);
     // Un bien ne peut devenir disponible qu’avec les diagnostics valides.

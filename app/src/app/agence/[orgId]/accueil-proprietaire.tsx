@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import { chargerTachesConsommations } from "@/lib/taches-consommations";
 import { SuiviEcheanciersCharges } from "@/components/suivi-echeanciers-charges";
 import Link from "next/link";
@@ -102,7 +103,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
     <section className={styles.indicateurs} aria-label="Votre patrimoine en bref">
       <Link href={`${base}/loyers`} className={styles.indicateur}>
         <span><Banknote size={22} aria-hidden="true"/>Loyers du mois</span>
-        <small>Échéances de {nomMois}</small>
+        <small>Échéances {deElide(nomMois)}</small>
         <div className={styles.montantLoyer}><strong>{loyersMois ? eur(loyersMois.encaisse) : "—"}</strong>{loyersMois && loyersMois.attendu > 0 && <em>sur {eur(loyersMois.attendu)}</em>}</div>
         {pourcentage !== null ? <div className={styles.progressionLoyer}><span role="progressbar" aria-label={`Part des échéances couvertes en ${nomMois}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pourcentage}><i style={{width:`${pourcentage}%`}}/></span><small>{pourcentage} %</small></div> : <small>{loyersMois ? "Aucun loyer attendu ce mois-ci" : "Montants indisponibles"}</small>}
         <small>{pilotage.encaisse === null ? "Encaissements du mois indisponibles" : `${eur(pilotage.encaisse)} reçus en ${nomMois}, toutes échéances confondues`}</small>

@@ -136,9 +136,8 @@ describe("la coquille de l'espace (layout) : contexte, barres, recherche, menu d
       expect(html).toContain(`data-barre="${p.racine}"`);
       expect(html).toContain(`data-barre-basse="${p.racine}"`);
       expect(html).toContain(`data-recherche="${p.racine}"`);
-      // Le plan du jour (pastille « Alertes ») compose ses liens sous la même racine. Le menu du propriétaire direct n'a
-      // pas cette pastille : le layout ne calcule pas ses vérifications (audit du 27/10, LAT-08).
-      if (p.proprietaire) expect(m.charger).not.toHaveBeenCalled();
+      // Le plan du jour (pastille « Alertes ») compose ses liens sous la même racine. La fenêtre du propriétaire reprend les demandes de son accueil.
+      if (p.proprietaire) expect(m.charger).toHaveBeenCalledWith(db, ORG, expect.objectContaining({ racine: p.racine }));
       else expect(m.compter).toHaveBeenCalledWith(db, ORG, expect.objectContaining({ racine: p.racine }));
       // Menu du compte (profil), lien de l'essai (responsables seulement), entrées de navigation.
       expect(html).toContain(`href="${base}/profil"`);
@@ -166,9 +165,9 @@ it("le menu propriétaire ne duplique plus les tâches du tableau de bord", asyn
     principales: expect.not.arrayContaining([expect.objectContaining({ libelle: "À faire" })]),
   }));
   expect(m.compter).not.toHaveBeenCalled();
-  // Ni plan du jour ni rappels de loyers : aucune pastille ne les affiche dans ce menu (audit du 27/10, LAT-08).
-  expect(m.charger).not.toHaveBeenCalled();
-  expect(lues).not.toContain("rappels_loyers_proprietaire");
+  // Une seule lecture pour la synthèse ; le menu ne rajoute aucun second compteur.
+  expect(m.charger).toHaveBeenCalledTimes(1);
+  expect(lues.filter(table => table === "rappels_loyers_proprietaire")).toHaveLength(1);
 });
 
 it("la consultation superadmin ne reçoit pas les alertes ni l'identité du propriétaire", async () => {
@@ -198,8 +197,8 @@ describe("l'accueil du propriétaire direct (servi au seul propriétaire direct)
     const db = client((table) => table === "biens" ? [{ id: "bien-1" }] : table === "lots" ? [{ id: "lot-1", nom: "Lot TEST", etat: "disponible", bien_id: "bien-1" }] : []);
     const html = renderToStaticMarkup((await AccueilProprietaire({ supabase: db as never, orgId: ORG, organisation: { name: "Parc TEST", status: "active", essai_fin: null }, userId: "compte" })) as never);
     expect(m.charger).toHaveBeenCalledWith(db, ORG, expect.objectContaining({ racine: "/espace" }));
-    // Audit du 27/10 (LAT-05) : la carte annonce le chiffre de « Mes tâches » (l'alerte et le lot sans bail).
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ base: `/espace/${ORG}`, total: 2, loyersAConfirmer: 0, indisponible: false }));
+    // La demande et le lot à configurer restent deux actions distinctes, le lot est accessible depuis le parcours de démarrage.
+    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ base: `/espace/${ORG}`, total: 1, loyersAConfirmer: 0, indisponible: false }));
     const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((x) => x[1]).filter((h) => h.startsWith("/agence") || h.startsWith("/espace"));
     // Encaissé, lots, récapitulatif fiscal, alertes, rang « Traiter », lots sans bail et réglages.
     expect(hrefs).toEqual(expect.arrayContaining([
@@ -270,7 +269,7 @@ describe("accueil : un seul geste pour chaque loyer à confirmer", () => {
     expect(avant).toBeGreaterThanOrEqual(0);
     expect(loyers).toBeGreaterThan(avant);
     expect(apres).toBeGreaterThan(loyers);
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ total: 2, loyersAConfirmer: 1, critiques: 1, apercu: "Urgence TEST" }));
+    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ total: 3, loyersAConfirmer: 1, critiques: 1, apercu: "Urgence TEST" }));
   });
   it.each([{ date_echeance: "2099-01-05" }, { montant_couvert: 800 }])("ne masque pas un blocage absent des confirmations : %j", async patch => {
     expect(await rendre(patch)).toContain("Loyer en retard TEST");

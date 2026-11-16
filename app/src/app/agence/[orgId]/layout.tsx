@@ -241,7 +241,7 @@ export default async function LayoutAgence({
           <span className="ambiance-repere" aria-hidden="true" />
           {!traverseeLectureSeule && <SyntheseAlertes
             alertes={actionsDuJour.alertes ? alertes.filter(a => actionsDuJour.alertes?.has(a.id)) : alertes}
-            demandes={actionsDuJour.incomplet !== null ? { total: actionsDuJour.total, incomplet: actionsDuJour.incomplet, href: `/espace/${orgId}/alertes` } : undefined}
+            demandes={actionsDuJour.incomplet !== null ? { total: actionsDuJour.total, incomplet: actionsDuJour.incomplet, href: `${base}/alertes` } : undefined}
             membres={membres}
             estResponsable={estResponsable}
             aujourdhui={aujourdhuiParis()}

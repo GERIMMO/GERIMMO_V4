@@ -6,7 +6,7 @@ import { baseApiFictive } from "./base-api-fictive";
 
 // Les décisions sont prises dans trois sessions séparées. Les lectures SQL
 // vérifient le résultat sur les données synthétiques, sans créer de mission.
-export async function preparerEtPlanifierFuite(db: Client, browser: Browser, artisan: Page, organisation: string, artisanId: string, loc: {email:string;mot:string}) {
+export async function preparerEtPlanifierFuite(db: Client, browser: Browser, artisan: Page, organisation: string, artisanId: string, loc: {email:string;mot:string;description?:string}) {
   baseApiFictive(process.env.SUPALOCAL_DB);
   const locataire = await browser.newContext({storageState:{cookies:[],origins:[]}, viewport:artisan.viewportSize()});
   try {
@@ -16,7 +16,7 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
     await sansSyntheseAlertes(page);
     await connecterVers(page,loc.email,loc.mot,`/locataire/${organisation}/incident`);
     await page.waitForLoadState("networkidle");
-    const description = "Fuite sous évier · dossier " + randomUUID().slice(0,8);
+    const description = loc.description ?? "Fuite sous évier · dossier " + randomUUID().slice(0,8);
     await page.locator("#categorie").selectOption("plomberie_joint");
     await page.locator("textarea").first().fill(description);
     const image = await page.evaluate(texte => {

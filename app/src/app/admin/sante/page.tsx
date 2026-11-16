@@ -42,7 +42,7 @@ export const metadata = { title: "Santé et connexions" };
 // pour une tâche, ou l'aveu qu'aucun écran ne règle encore le point.
 
 const PUCE_ETAT: Record<Etat, { classe: string; libelle: string }> = {
-  ok: { classe: "puce-loue", libelle: "posée" },
+  ok: { classe: "puce-loue", libelle: "Configuré" },
   attention: { classe: "puce-prep", libelle: "à vérifier" },
   manque: { classe: "puce-rouge", libelle: "manque" },
 };
@@ -117,18 +117,17 @@ export default async function PageSante() {
     : adoptionAutomatique((orgs.data ?? []) as OrganisationPourAdoption[]);
   const cronPose = configuration.find((v) => v.cle === "CRON_SECRET")?.etat === "ok";
 
-  const nbManque = configuration.filter((v) => v.etat === "manque").length;
-  const nbAttention = configuration.filter((v) => v.etat === "attention").length;
+  const absentes = new Set(configuration.filter(v => v.etat === "manque").map(v => v.cle));
+  const nbManque = absentes.size;
+  const nbAttention = new Set(configuration.filter(v => v.etat === "attention" && !absentes.has(v.cle)).map(v => v.cle)).size;
   const nbPoints = taches === null ? null : sante.bloquants;
   const nbJamais = taches?.filter((t) => t.etat === "jamais").length ?? 0;
   const nbEchec = taches?.filter((t) => t.etat === "echec").length ?? 0;
   const nbRetard = taches?.filter((t) => t.etat === "retard").length ?? 0;
   const nbPause = taches?.filter((t) => t.etat === "pause").length ?? 0;
-  // Une variable manquante ne compte qu'une fois, comme dans pointsBloquants.
-  const nbManqueUniques = new Set(configuration.filter((v) => v.etat === "manque").map((v) => v.cle)).size;
   const nbNonConfigurees = taches?.filter((t) => t.etat === "non_configuree").length ?? 0;
   const detailPoints = [
-    nbManqueUniques > 0 && `${nbManqueUniques} connexion${nbManqueUniques > 1 ? "s" : ""} manquante${nbManqueUniques > 1 ? "s" : ""}`,
+    nbManque > 0 && `${nbManque} connexion${nbManque > 1 ? "s" : ""} manquante${nbManque > 1 ? "s" : ""}`,
     nbJamais > 0 && `${nbJamais} tâche${nbJamais > 1 ? "s" : ""} sans passage enregistré`,
     nbEchec > 0 && `${nbEchec} tâche${nbEchec > 1 ? "s" : ""} en échec`,
     nbRetard > 0 && `${nbRetard} tâche${nbRetard > 1 ? "s" : ""} en retard`,
@@ -165,7 +164,7 @@ export default async function PageSante() {
 
       <nav aria-label="Accès aux contrôles" className="mb-5 flex flex-wrap gap-3"><a className="btn-secondaire" href="#connexions">Connexions</a><a className="btn-secondaire" href="#taches">Tâches et sauvegarde</a><a className="btn-secondaire" href="#budget-signatures">Signatures</a></nav>
       {/* ── Configuration ─────────────────────────────────────────────── */}
-      <ConsoleSection id="connexions" titre="Connexions des services" description="Présence des réglages nécessaires aux services." icone="sante" statut={nbManque+nbAttention ? `${nbManque+nbAttention} à vérifier` : "Réglages présents"}>
+      <ConsoleSection id="connexions" titre="Connexions des services" description="Présence des réglages nécessaires aux services." icone="sante" ton={nbManque + nbAttention ? "ambre" : "vert"} statut={nbManque+nbAttention ? `${nbManque+nbAttention} à vérifier` : "Réglages présents"}>
         <div className="entete-carte mb-3">
 
           <span className="mono-discret">{configuration.filter((v) => v.estConnexion !== false).length}</span>
@@ -184,14 +183,14 @@ export default async function PageSante() {
                 )}
                 {v.etat !== "ok" && (
                   // La commande de la ligne : la variable et où la trouver, ou le geste quand ce n'est pas une variable (crédit IA).
-                  <span className="mt-1.5 block text-sm text-[var(--encre)]">
+                  <details className="mt-1.5 text-sm text-[var(--encre)]"><summary className="cursor-pointer">Comment intervenir</summary>
                     {v.commande ?? (v.etat === "attention" && !v.absente
                       ? <>Posée. Pour passer en production : remplacer la valeur de <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.</>
                       : <>À poser : <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.</>)}
-                  </span>
+                  </details>
                 )}
               </span>
-              <span className={`puce ${PUCE_ETAT[v.etat].classe}`}>{PUCE_ETAT[v.etat].libelle}</span>
+              <span className={`puce ${v.information ? "puce-grise" : PUCE_ETAT[v.etat].classe}`}>{v.information ?? PUCE_ETAT[v.etat].libelle}</span>
             </li>
           ))}
         </ul>
@@ -203,7 +202,7 @@ export default async function PageSante() {
       </ConsoleSection>
 
       {/* ── Tâches planifiées ─────────────────────────────────────────── */}
-      <ConsoleSection id="taches" titre="Tâches automatiques" description="Derniers passages, retards et sauvegarde." icone="historique" ton="vert" statut={taches === null ? "Lecture indisponible" : nbEchec+nbRetard+nbJamais ? `${nbEchec+nbRetard+nbJamais} à vérifier` : "Passages consultables"}>
+      <ConsoleSection id="taches" titre="Tâches automatiques" description="Derniers passages, retards et sauvegarde." icone="historique" ton={taches === null || nbEchec + nbRetard + nbJamais ? "ambre" : "vert"} statut={taches === null ? "Lecture indisponible" : nbEchec+nbRetard+nbJamais ? `${nbEchec+nbRetard+nbJamais} à vérifier` : "Passages consultables"}>
         <div className="entete-carte mb-3">
 
           <Link href="/admin/journaux#historique-service" className="lien-discret text-sm">

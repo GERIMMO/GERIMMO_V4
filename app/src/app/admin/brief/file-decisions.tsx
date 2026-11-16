@@ -14,9 +14,9 @@ const PAR_PAGE = 6;
 const ICONES = { incidents: TriangleAlert, accords: ShieldCheck, contenus: Newspaper };
 const lienFile = (categorie: FiltreDecision) => `/admin/brief?vue=decisions${categorie === "tout" ? "" : `&categorie=${categorie}`}`;
 
-function LienDossier({ entree }: { entree: EntreeDecision }) {
+function LienDossier({ entree, avecDetail = false }: { entree: EntreeDecision; avecDetail?: boolean }) {
   const href = entree.type === "signal" ? entree.signal.href : entree.decision.lien;
-  const contenu = <><span>{entree.titre}</span><ArrowRight size={16} aria-hidden="true" /></>;
+  const contenu = <><span>{entree.titre}{avecDetail && entree.type === "signal" && <small className="mt-1 block font-normal text-muted-foreground">{entree.signal.detail}</small>}</span><ArrowRight size={16} aria-hidden="true" /></>;
   return href ? <Link href={href} className={styles.priorityLink}>{contenu}</Link>
     : <OuvrirAlertes className={styles.priorityLink}>{contenu}</OuvrirAlertes>;
 }
@@ -52,7 +52,7 @@ export function FileDecisions({ decisions, signaux, cartes, vue, categorie, rese
   if (vue === "bureau") return <div className={styles.overview}>
     {prioritaires.length > 0 ? <div className={styles.priorities}>
       <h3>À examiner en premier</h3>
-      <ul>{prioritaires.map(e => <li key={e.cle}><LienDossier entree={e} /></li>)}</ul>
+      <ul>{prioritaires.map(e => <li key={e.cle}><LienDossier entree={e} avecDetail /></li>)}</ul>
     </div> : !indisponible && <p className={styles.calm}><CheckCheck size={18} aria-hidden="true" />Aucune décision en attente.</p>}
     <nav aria-label="Demandes par catégorie" className={styles.groups}>
       {groupes.map(g => {

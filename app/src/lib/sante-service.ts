@@ -32,6 +32,7 @@ export type Etat = "ok" | "attention" | "manque";
 export type Prestataire = "Stripe" | "Resend" | "Yousign" | "Zoho Sign" | "Vercel" | "Supabase" | "OpenAI";
 
 export type Verification = {
+  information?: "Facultatif" | "Désactivé" | "Activé" | "Suspendu";
   /** Le nom de la variable, tel qu'il se lit dans Vercel. */
   cle: string;
   /** Ce qu'elle sert, en français. */
@@ -186,6 +187,7 @@ export function etatConfiguration(env: Env, regimeTva: RegimeTva | null = REGIME
       cle,
       usage,
       etat: "ok",
+      information: valeur(env, cle) ? undefined : "Facultatif",
       detail: valeur(env, cle) ? "posée" : "non posée : inutile à la nouvelle grille",
     });
   }
@@ -242,6 +244,7 @@ export function etatConfiguration(env: Env, regimeTva: RegimeTva | null = REGIME
   {
     const zohoPret = zohoCles.every(c => Boolean(valeur(env,c))) && valeur(env,"ZOHO_SIGN_ENV") === "production";
     verifications.push({cle:"ZOHO_SIGN_CLIENT_ID",usage:"Signature des baux avec Zoho Sign (Europe)",etat:zohoDemande && !zohoPret ? "attention" : "ok",
+      information:zohoDemande ? undefined : "Désactivé",
       detail:zohoDemande ? zohoPret ? "envoi réel activé — la connexion et la recette doivent être vérifiées séparément" : "activation demandée : vérifier l’environnement, l’autorisation Zoho et le retour sécurisé" : "envoi désactivé — compte Zoho européen et recette nécessaires"});
     if (zohoDemande) for (const cle of zohoCles.slice(1)) verifications.push({cle,usage:cle.endsWith("WEBHOOK_SECRET")?"Réception sécurisée Zoho Sign":"Autorisation serveur Zoho Sign",etat:valeur(env,cle)?"ok":"attention",detail:valeur(env,cle)?null:"à renseigner dans la configuration sécurisée"});
   }
@@ -259,11 +262,13 @@ export function etatConfiguration(env: Env, regimeTva: RegimeTva | null = REGIME
       cle === "ZOHO_SIGN_RELANCES_ACTIVES" ? "les échéances et plafonds restent applicables" :
       "les autres interrupteurs et contrôles du document restent applicables";
     verifications.push({ cle, usage, etat: "ok", estConnexion: false,
+      information: actif ? "Activé" : "Désactivé",
       detail: actif ? `interrupteur activé — ${attendu}` : "interrupteur désactivé" });
   }
   const cautionFermee = Boolean(fermetureModeleSignature("cautionnement", env));
   verifications.push({ cle: "ZOHO_SIGN_CAUTIONNEMENT_FERME", usage: "Envoi du cautionnement", estConnexion: false,
     etat: "ok",
+    information: cautionFermee ? "Suspendu" : "Activé",
     detail: cautionFermee ? "suspendu, y compris pour les essais — PDF et suivi existant conservés" :
       "interrupteur ouvert — la configuration Zoho et les contrôles du document restent applicables" });
   const essais = (env.SIGNATURE_BAIL_ORGS_ESSAI ?? "").split(",").map(v => v.trim()).filter(Boolean);

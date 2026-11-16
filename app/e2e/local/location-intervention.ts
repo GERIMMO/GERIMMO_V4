@@ -13,6 +13,15 @@ export async function locationIntervention(db: Client, artisan: string, sci: boo
     const demonstration = new URL(process.env.SUPALOCAL_DB!).pathname === "/gerimmo_ci_demo_vente_api";
     const email = demonstration ? (sci ? "sam.riviere" : "jeanne.martin") + "@example.invalid" : "sam.riviere+"+randomUUID()+"@example.invalid";
     const mot=demonstration ? "Gerimmo-Demo-2026" : randomUUID()+"!A";
+    if (demonstration) {
+      const precedent = await db.query(`select b.organization_id, b.lot_id, b.id as bail_id from baux b
+        join persons p on p.id=b.locataire_principal and p.organization_id=b.organization_id
+        join auth.users u on u.id=p.account_id where u.email=$1 and b.etat='actif'`,[email]);
+      if (precedent.rowCount === 1) {
+        await db.query("commit");
+        return {...precedent.rows[0],email,mot};
+      }
+    }
     const occupant=await id(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,
       raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current)
       values('00000000-0000-0000-0000-000000000000',gen_random_uuid(),'authenticated','authenticated',$1,

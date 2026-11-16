@@ -158,7 +158,6 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,sorti
    }
    if(res.erreur) {
      setOuverts(v=>({...v,...Object.fromEntries(groupes.filter(g=>g.etapes.includes(active)&&g.repliable).map(g=>[g.titre,true]))}));
-     requestAnimationFrame(()=>formulaireRef.current?.querySelector<HTMLElement>('[role="alert"]')?.focus());
    }
    if(res.succes){
      setModifie(false);
@@ -169,6 +168,18 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,sorti
    }
    return res;
  });
+ // Le retour serveur et le dépliage doivent être rendus avant de guider la correction.
+ useEffect(()=>{
+   if(!etat.erreur || enCours || etape!==retourEtape)return;
+   const form=formulaireRef.current;
+   const champ=etat.champErreur ? form?.elements.namedItem(etat.champErreur) : null;
+   const cible=champ instanceof HTMLElement && champ.getClientRects().length && !champ.matches(":disabled")
+     ? champ : form?.querySelector<HTMLElement>('[role="alert"][tabindex="-1"]');
+   if(cible){
+     cible.focus({preventScroll:true});
+     cible.scrollIntoView({block:"center"});
+   }
+ },[etat,enCours,etape,retourEtape]);
  // Étapes dont un champ affiché diffère de la valeur enregistrée : signalées dans le fil
  // et au récapitulatif, et retenues le temps de proposer de les enregistrer (CB-05).
  const contexteAffichage={...valeurs,logement_meuble:String(meuble)};

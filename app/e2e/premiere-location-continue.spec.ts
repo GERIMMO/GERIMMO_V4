@@ -78,12 +78,20 @@ test("Résidence des Acacias : de la première inscription à la quittance du m�
   await page.getByRole("button",{name:"Utiliser ce locataire",exact:true}).click();
   await expect(choix).toBeHidden();
   await etape(page,"04");
-  for(const [nom,v] of Object.entries({loyer_hc:"600",charges:"40",depot_garantie:"600",jour_echeance:"1"})) await page.locator("[name="+nom+"]:visible").fill(v);
+  for(const [nom,v] of Object.entries({loyer_hc:"600",charges:"40",depot_garantie:"2400",jour_echeance:"1"})) await page.locator("[name="+nom+"]:visible").fill(v);
   await page.locator("[name=precedente_location]:visible").selectOption("premiere");
   const fixation=page.locator("[name=fixation_loyer]");
   if (!await fixation.isVisible()) await fixation.locator("xpath=ancestor::details/summary").click();
   await fixation.selectOption("libre");
   await page.locator("[name=revision_irl]:visible").selectOption("false");
+  await continuer();
+  const champDepot = page.locator("#parcours-depot_garantie");
+  const messageDepot = page.locator("#parcours-depot_garantie-erreur");
+  await expect(messageDepot).toContainText(/plafond de 600/);
+  await page.screenshot({path:info.outputPath("validation-depot.png")});
+  await expect(champDepot).toBeFocused();
+  await expect(messageDepot).toBeInViewport();
+  await champDepot.fill("600");
   await continuer(); await expect(page.getByText("Étape 5 sur 7",{exact:true})).toBeVisible();
 
   await page.goto(lot+"?parcours=1&etape=diagnostics");

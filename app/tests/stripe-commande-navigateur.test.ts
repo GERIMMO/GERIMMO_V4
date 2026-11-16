@@ -3,6 +3,7 @@ import { createHmac, randomUUID } from "node:crypto";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createInterface } from "node:readline";
 import { setTimeout as attendre } from "node:timers/promises";
 import { chromium, type Browser } from "playwright";
 import { Client } from "pg";
@@ -137,25 +138,43 @@ describe.skipIf(!mode)("Commande volontaire depuis l’espace Gerimmo", () => {
             STRIPE_SECRET_KEY: stripe ? cle : "sk_test_factice_locale_aucun_clic_stripe",
             STRIPE_WEBHOOK_SECRET: "whsec_simulation_locale",
           },
-          stdio: "ignore",
+          stdio: ["ignore", "ignore", "pipe"],
         },
       );
+      let refusStripe = "";
+      // Le serveur peut connaître un motif plus précis que le texte public. Aucun message
+      // fournisseur, identifiant, secret ou lien Checkout n'est conservé dans la preuve.
+      if (app.stderr) {
+        createInterface({ input: app.stderr }).on("line", ligne => {
+          const connu = ligne.match(/\[stripe paiement\]\s+(\{.*\})/);
+          if (!connu) return;
+          try {
+            const { type, code, param } = JSON.parse(connu[1]);
+            refusStripe = [type, code, param].filter(v => typeof v === "string" && /^[a-zA-Z0-9_.[\]]{1,75}$/.test(v)).join(" / ");
+          } catch { /* Une ligne qui ne correspond pas au diagnostic prévu reste privée. */ }
+        });
+      }
       processus.push(app);
       await disponible(site + "/connexion", app);
       browser = await chromium.launch();
       const page = await browser.newPage();
-      await page.route("**/*", (route) => {
+      let etapeNavigation = "aucune demande externe";
+      await page.route("**/*", async (route) => {
         const u = new URL(route.request().url());
         if (u.origin === site || u.origin === api) return route.continue();
-        // Seule la navigation initiale GET vers la page TEST créée est autorisée. Aucune saisie
-        // de carte, ressource de suivi, soumission de formulaire, ni automatisation du défi 3DS.
-        return stripe &&
-          route.request().method() === "GET" &&
-          route.request().isNavigationRequest() &&
-          u.origin === "https://checkout.stripe.com" &&
-          /^\/c\/pay\/cs_test_[A-Za-z0-9]+$/.test(u.pathname)
-          ? route.continue()
-          : route.abort();
+        if (!stripe || !route.request().isNavigationRequest() || route.request().method() !== "GET" || u.origin !== "https://checkout.stripe.com") return route.abort();
+        // Autoriser uniquement l'adresse enregistrée pour la commande fictive ; le format
+        // interne des liens Checkout ne nous appartient pas. Le fragment ne part pas en HTTP.
+        const { rows: [intention] } = await db.query(
+          "select url, stripe_session_id from public.intentions_souscription where organization_id=$1 and statut='en_cours'", [org],
+        );
+        const attendue = intention?.url ? new URL(intention.url) : null;
+        if (!attendue || !intention.stripe_session_id?.startsWith("cs_test_") || attendue.origin !== u.origin || attendue.pathname !== u.pathname || attendue.search !== u.search) {
+          etapeNavigation = "adresse absente ou différente de la session TEST enregistrée";
+          return route.abort();
+        }
+        etapeNavigation = "GET de la session TEST transmis";
+        return route.continue();
       });
       await page.goto(site + "/connexion");
       await page.locator("#email").fill(courriel);
@@ -228,13 +247,32 @@ describe.skipIf(!mode)("Commande volontaire depuis l’espace Gerimmo", () => {
         const accepte = await lireAcceptation();
         expect(accepte.rows.length).toBeGreaterThan(0);
         if (!stripe || !customer) continue;
+        etapeNavigation = "aucune demande externe";
+        refusStripe = "";
         const navigation = page.waitForResponse(
           (r) => r.request().isNavigationRequest() && new URL(r.url()).origin === "https://checkout.stripe.com",
           { timeout: 45000 },
         );
-        // Ne jamais inclure de lien Checkout dans un message d’échec ou un artefact.
-        const [http] = await Promise.all([navigation, payer.click({ noWaitAfter: true })]);
-        expect(http.ok()).toBe(true);
+        const formulaire = page.locator("form").filter({ has: payer });
+        const alerte = formulaire.getByRole("alert");
+        const resultat = Promise.race([
+          navigation,
+          alerte.waitFor({ state: "visible", timeout: 46000 }).then(() => null),
+        ]);
+        // La réponse HTTP peut précéder la prise en compte de la navigation par Chromium.
+        // Ne pas repartir vers le formulaire annuel tant que l'adresse TEST n'est pas engagée.
+        const [http] = await Promise.all([resultat, payer.click({ noWaitAfter: true })]).catch(() => [null]);
+        if (!http) {
+          const texte = (await alerte.allTextContents()).join(" ").replace(/https?:\/\/\S+|(?:cs|cus|sub|pi|sk|rk|whsec)_[a-zA-Z0-9_]+/g, "[masqué]").slice(0, 230);
+          const progression = await db.query(
+            `select statut, stripe_session_id is not null as session from public.intentions_souscription where organization_id=$1 order by cree_le`, [org],
+          );
+          throw Error(`Commande ${periodicite} : ${texte || "aucune réponse de navigation vers Checkout"}. Navigation : ${etapeNavigation}. Intentions : ${JSON.stringify(progression.rows)}. Diagnostic Stripe : ${refusStripe || "aucun"}.`);
+        }
+        expect(http.status(), `Réponse Checkout TEST ${periodicite}`).toBe(200);
+        await page.waitForURL(u => u.origin === "https://checkout.stripe.com", { waitUntil: "commit", timeout: 15000 }).catch(() => {
+          throw Error(`La navigation vers Checkout TEST ${periodicite} n’a pas été engagée.`);
+        });
         const commandes = await db.query(
           `select i.stripe_session_id, i.id, l.details from public.intentions_souscription i
           join public.audit_log l on l.organization_id=i.organization_id and l.details->>'commande'=i.id::text

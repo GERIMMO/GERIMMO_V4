@@ -1,7 +1,7 @@
 ---
 type: synthesis
 tags: [audit, livraison, v1, pr-341, migrations, securite, finances, ergonomie, demonstration]
-status: in-progress
+status: stable
 created: 2026-11-16
 updated: 2026-11-16
 sources: []
@@ -20,7 +20,35 @@ aucun envoi réel. Toutes les écritures ont eu lieu sur des bases locales ficti
 
 ## 1. Verdicts
 
-<!-- VERDICTS -->
+| Question | Verdict |
+|---|---|
+| **Publication technique de la PR #341** | **GO.** Codex peut procéder à la livraison protégée selon le § 12. |
+| **Pilote gratuit auprès de deux vrais propriétaires** | **GO**, à une condition : livrer le correctif minimal du P1 **B6-a** (finances filtrées par titulaire, § 6) avant la première séance d'accompagnement, ou au plus tard avant que le gérant de SCI saisisse des opérations antérieures à la création de ses biens. |
+| **Qualité fonctionnelle, intuitive et esthétique de la V1** | **Bonne et premium sur les écrans clés.** Les quatre parcours aboutissent sur ordinateur et téléphone, et la plupart des défauts du 16/11 sont corrigés. Notes : propriétaire 8/7/7, agence 7/6,5/7, locataire 7,5/7/7, artisan 8/7/7,5, console 7/5/5,5 (§ 7). Les restes sont des P2, sans effet sur la livraison. |
+| **Vente payante** | **Non ouverte.** Obligations externes restant à satisfaire : voir la liste ci-dessous. |
+
+**P0 : aucun.**
+
+**P1 restants :**
+1. **B6-a — régression introduite par la PR.** Avec le filtre « Propriétaire / société », Finances sous-estime les recettes et les dépenses, et peut afficher « Aucune opération ». Reproduit sur le banc (§ 6). Aucune donnée de production n'est concernée aujourd'hui (0 écriture sur 20).
+2. **A1-a — défaut antérieur, non aggravé par la PR.** Un colocataire parti dont l'adhésion reste active peut encore déclarer un incident, ainsi que choisir, contre-proposer ou annuler un rendez-vous sur le logement quitté. Reproduit sur le banc (§ 5). La PR ne crée pas ce risque : il existe déjà en production. À corriger avant d'étendre le pilote au-delà des deux volontaires, et avant toute vente.
+3. **Démonstration seulement.** L'adresse technique `acacias-<identifiant>@example.invalid` s'imprime sur la quittance (§ 8). Sans effet sur la livraison.
+
+**Pourquoi la publication est GO malgré B6-a.**
+- La vue par défaut (« Tout mon patrimoine ») est juste, et l'écran rappelle la règle appliquée.
+- Le filtre est facultatif, et aucune donnée de production n'est touchée.
+- Le candidat corrige des défauts plus graves de la version servie : retrait d'un collaborateur, droits d'un ancien locataire sur les rendez-vous, chiffres de loyers, erreur cachée du bail, confirmation de rendez-vous.
+- Le correctif est petit et indépendant des migrations.
+
+**Vente payante : obligations externes restant à satisfaire** (reprises de [[Audit final indépendant — PR 335 — 15 novembre 2026]] et vérifiées le 16/11) :
+1. Convention avec un médiateur de la consommation, et publication de ses coordonnées : les champs `mediateurNom`, `mediateurAdresse` et `mediateurSite` sont vides, et les mentions légales disent « adhésion à venir ».
+2. Décision d'ouverture par le dirigeant (`souscriptions_payantes_ouvertes = false` aujourd'hui) et levée du blocage d'identité.
+3. Régime de TVA de l'éditeur renseigné : l'application refuse le paiement sans lui (`actions/abonnement.ts:128`).
+4. Configuration Stripe réelle (clés, webhook) et une recette TEST rejouée sur la version servie.
+5. Délivrabilité des courriels prouvée, sur un domaine vérifié, avec une adresse de contact sur `gerimmo.app` au lieu de Gmail.
+6. Archivage des conditions générales applicables le jour de l'ouverture.
+7. Promesses de la vitrine alignées sur les services ouverts : `components/outils/coquille-outil.tsx:186` promet encore « Relances et échéances qui vous trouvent », alors que relances et avis sont suspendus.
+8. Décision sur la fin des 5 essais en cours (du 24 au 29/12/2026) : prolongation ou ouverture des ventes.
 
 ## 2. Ce qui a été vérifié, et comment
 
@@ -77,13 +105,75 @@ Une fois ces deux conditions remplies, les 11 cas rejoués passent. Les 5 autres
 | Collaborateur retiré, session déjà ouverte | Agent connecté → retrait par le responsable → mêmes jeton et cookies | Accès coupé immédiatement : portefeuille, lots, personnes, baux, documents, encaissements et incidents reviennent vides ; les pages ne montrent plus que le choix d'espace |
 | Qui peut retirer | Appels directs | Refusé pour un agent, pour un responsable sur une autre agence et pour un responsable sur lui-même |
 | Ancien locataire | Bail passé à `termine`, puis appels directs avec la session du locataire | Plus aucun créneau proposé ; `choisir_creneau` et `contre_proposer_creneaux` répondent « Accès refusé ». La lecture de l'historique des demandes reste possible, comme prévu. Après rétablissement du bail, le créneau est intact. |
-| Isolation des organisations | Fonctions nouvelles relues ; appels croisés | <!-- ISOLATION --> |
+| Isolation des organisations | Fonctions nouvelles relues ; appels croisés | Aucune lecture ni écriture hors de l'organisation de l'appelant (relecture complète des nouvelles fonctions et actions). Un responsable ne peut pas agir sur une autre agence : refus vérifié en direct. `sci_facturable_intervention` ne révèle rien sans le SIREN exact et reste limitée aux missions de l'artisan appelant. |
 
-<!-- SECURITE-CODE -->
+**P1 A1-a — colocataire parti (défaut antérieur à la PR, reproduit).**
+- **Reproduction sur le banc :**
+  - Sam est colocataire du bail actif de Jeanne, avec `bail_personnes.date_depart = 2026-10-31`. Son adhésion reste active, puisque seul `terminer_bail` la désactive.
+  - Le 16/11, avec sa session, il appelle `rpc('declarer_mon_incident', {p_org, p_categorie:'plomberie_joint', p_description:…, p_piece:'Cuisine', p_urgence:'normale'})`.
+  - **L'incident INC-2026-0004 est créé sur le bail et le lot quittés.** Attendu : « Accès refusé ».
+- **Même cause, relevée dans le code :**
+  - `choisir_creneau`, `contre_proposer_creneaux` et `mes_creneaux_locataire` (migration `20261116035047`, lignes 56, 131 et 270) ;
+  - `intervention_du_locataire` et `mes_rendez_vous_locataire` (`20261014620000`, lignes 245 et 660), donc aussi le report et l'annulation ;
+  - `declarer_mon_incident` (`20260821093624`, ligne 226).
+- **Correction minimale.** Une migration qui ajoute `and (bp.date_depart is null or bp.date_depart >= public.aujourdhui_paris())` aux 6 sous-requêtes `bp.role = 'colocataire'`. C'est la règle déjà appliquée par `role_echange_intervention` (`20261101190943`). Ajouter un test : départ au 31/10, déclaration et choix de créneau refusés le 16/11.
+
+**P2 relevés par la revue de code** (non bloquants) :
+- **A1-b.** « Le problème persiste », la contestation et la note restent possibles sur l'incident d'un ancien bail, si l'adhésion est maintenue par un autre bail. Il faut exiger un bail actif ou en préavis.
+- **A2-a.** Un responsable peut toujours modifier `memberships` directement (`grant update (role, status)`, migration `20260927145000:71`), et ainsi contourner les règles de la nouvelle fonction : dernier responsable, réattribution, journal. Ce n'est pas une élévation de privilège. Retirer cet UPDATE à `authenticated`, ou ajouter un déclencheur.
+- **A2-b.** Les alertes et les incidents suivis par l'agent retiré ne sont pas réattribués au repreneur.
+- **A2-c.** Si aucun repreneur n'est choisi, une erreur brute d'uuid s'affiche au lieu d'un message.
+- **Marqueur `emises/`.** Il ne prouve pas l'émission dans Gerimmo : un artisan peut le poser sur son propre PDF par appel direct. Le seul effet est une réservation plus stricte de son numéro.
 
 ## 6. Cohérence financière
 
-<!-- FINANCES -->
+**Encaissé et arriérés : cohérent.**
+- Le tableau de bord de l'agence, la page Loyers, l'accueil du propriétaire et Finances s'appuient sur la même source (`quittancement_mois`) et la même somme, plafonnée échéance par échéance.
+- Un pourcentage au-dessus de 100 % ne peut plus apparaître : le cas du 16/11 (700 € appelés, 1 000 € reçus) donne désormais « 300 € — 43 % » des deux côtés.
+- Sur la démonstration : « 640,00 € sur 640,00 € — 100 % ».
+- Restes P2 :
+  - un arrondi peut afficher « 100 % » en vert alors qu'il reste dû (`Math.round` au lieu de `Math.floor`) ;
+  - le grand chiffre de l'accueil reste à 0 € tant que l'appel du mois n'existe pas ;
+  - un portefeuille d'agent illisible donne un mois vide sur Loyers (défaut antérieur).
+
+**Factures d'artisan : sûres.**
+- Numérotation : un numéro émis dans Gerimmo ne peut être ni repris ni réutilisé. L'unicité arbitre les envois concurrents, et en cas d'échec aucun numéro n'est consommé.
+- Une seule facture par intervention.
+- HT et TVA sont arrondis par ligne, et le TTC est recalculé côté serveur.
+- Pour une SCI, l'identité est imposée depuis la base : détention unique à 100 % à la date de commande.
+- La validation ne crée ni règlement ni écriture. Le règlement exige une facture validée et un montant au plus égal au reste dû, puis crée une dépense « travaux » sur le lot.
+- P2 :
+  - en mode particulier, le destinataire est libre (aucun rapprochement avec le détenteur du lot) ;
+  - le PDF est téléversé avant les contrôles, d'où des fichiers orphelins possibles en cas de refus ;
+  - les mentions de TVA saisies ne sont pas comparées aux taux des lignes.
+
+**Charges : inchangées.** Aucune migration ne touche les appels, les régularisations ou les répartitions. Les tâches d'avis et de relances consignent « suspendu » chaque jour pour les anciens réglages restés à vrai (P2).
+
+**Séparation des patrimoines : ce que couvre réellement la « synthèse multi-patrimoine ».**
+- **Une organisation à la fois** (propriétaire direct). Dans cette organisation, les titulaires (nom propre, SCI, indivisaires) sont regroupés d'après leurs détentions.
+- **Sans filtre**, le bloc « Détail par propriétaire et SCI » donne recettes, dépenses et solde par titulaire. Chaque écriture compte une seule fois, attribuée à la détention unique à 100 % active à sa date comptable ; sinon elle va dans « Rattachement à vérifier ». La somme des groupes égale le total. C'est vérifié sur la démonstration : 180 € pour la SCI des Amandiers, 75 € pour Élise Morel.
+- **Pas démontré, et donc à ne pas promettre :**
+  - aucune consolidation entre plusieurs organisations ou plusieurs comptes ;
+  - aucune répartition par quote-part : une indivision va dans « à vérifier » ;
+  - aucun calcul d'impôt ;
+  - aucun test de lecture en base ni du rendu de la page (le seul test porte sur la fonction pure, avec 3 écritures) ;
+  - les blocs « Loyers et charges » et « Déclaration fiscale » de la même page suivent d'autres règles (P2 d'explication).
+
+**P1 B6-a — Finances filtrées par titulaire (régression de la PR, reproduite).**
+- **Reproduction sur la copie « visite » de la démonstration :**
+  - Parc de Claire Moreau. La détention de la SCI des Amandiers commence le 16/11, jour de saisie du bien.
+  - La facture d'eau de la SCI (180 €) est datée du 05/11.
+  - `/espace/<org>/loyers?annee=2026&mois=11` affiche « Dépenses 255,00 € ».
+  - Avec `&entite=<SCI>`, on lit « **Dépenses 0,00 € — Aucune opération pour 2026** ». Avant la PR, le filtre montrait les « flux complets des biens ».
+- **Cause.**
+  - `components/page-finances.tsx:49-52` ne garde, sous filtre, que le groupe attribué au titulaire. Les écritures non rattachées des biens de ce titulaire disparaissent sans compteur.
+  - Les biens créés dans l'application ont une détention datée du jour de saisie (`date_debut default current_date`, notamment via `creer_bien_complet`). Toute dépense ou recette antérieure de l'année est donc concernée.
+- **Correction minimale.**
+  - Sous filtre, ajouter le groupe « non rattaché » restreint aux lots du titulaire, et afficher « N opérations de ces biens restent à rattacher : X € ».
+  - Ne jamais afficher « Aucune opération » s'il y en a.
+  - Ajouter un test de rendu avec une écriture antérieure à la détention.
+  - Ensuite : demander la date d'acquisition à la création du bien.
+- **Production (lecture du 16/11).** Aucune des 20 écritures portant un lot n'est antérieure à sa détention ; une seule organisation a plusieurs titulaires.
 
 ## 7. Ergonomie et esthétique
 
@@ -179,8 +269,46 @@ sans effet sur la livraison) :
 - La copie « production simulée » reproduit le schéma de `main` et des cas historiques choisis, pas les données réelles. Les données réelles concernées par les migrations ont été comptées en lecture seule.
 - Protections de branche et d'environnement GitHub non relues (API inaccessible depuis ce poste) ; les chantiers `migrations.yml` et `publication-controlee.yml` ne sont pas modifiés par la PR.
 
+## 12. Livraison protégée : ce que Codex doit faire
+
+Reprend `LIVRAISON.txt`, avec les contrôles ajoutés par cette revue.
+
+1. **Fusionner** #341 dans `main` après approbation. Attendre la CI verte sur le SHA fusionné exact. Ne pas inclure #339 ni #340.
+2. **Sauvegarde.** Vérifier une sauvegarde quotidienne réussie depuis moins de 90 min (`migrations.yml` l'exige) et la dernière restauration vérifiée.
+3. **Migrations par `migrations.yml`.** D'abord en **simulation**, puis pour de bon, avec les 5 fichiers dans cet ordre, en un seul lot :
+   - `20261116035047_disponibilites_et_droits_rendez_vous.sql`
+   - `20261116041536_numeros_factures_emises_intervention.sql`
+   - `20261116083100_demarrage_encaissement.sql`
+   - `20261116083200_gestion_collaborateurs_agence.sql`
+   - `20261116084000_destinataire_facture_sci.sql`
+
+   Durée attendue : quelques dizaines de millisecondes. Le verrou est bref, sur deux tables quasi vides.
+4. **Contrôles après migration** (`SELECT` seulement) :
+   - registre des migrations à 20261116084000 ;
+   - `artisan_numeros_factures` contient les 2 numéros des factures externes ;
+   - les droits de `gerer_collaborateur_agence` et de `sci_facturable_intervention` (`authenticated` seulement) ;
+   - `plage_artisan_occupee` et `reserver_numero_facture_artisan` sont fermées à `authenticated` ;
+   - aucune fonction n'est ouverte à `anon` ;
+   - le cache PostgREST est rechargé (les migrations envoient `notify pgrst`).
+5. **Promotion par `publication-controlee.yml`.** Puis lire `/api/sante` : le SHA servi doit être celui fusionné, la base disponible et la maintenance inactive.
+6. **Recette sur la version servie, avec les comptes autorisés :**
+   - les 4 espaces s'ouvrent ;
+   - un ancien locataire est refusé sur les créneaux ;
+   - un retrait de collaborateur est possible, sur une organisation de test ;
+   - les ventes restent fermées ;
+   - la signature est annoncée « en préparation » si Zoho reste fermé.
+7. **En cas d'incident :** suspendre la promotion, garder les numéros de facture, les documents, les décisions et les écritures, puis corriger en avant. Le code de `main` reste compatible avec la base migrée.
+8. **Avant le pilote :** livrer le correctif **B6-a**, puis, dans le lot suivant, le correctif **A1-a**. Corriger l'adresse de démonstration avant de figer le modèle présenté aux prospects.
+
 ## Liens
 
 - [[Audit avant vente — ergonomie, visuel et fonctions — 16 novembre 2026]]
 - [[Audit final indépendant — PR 335 — 15 novembre 2026]]
 - [[Contre-vérification ciblée — PR 335 — candidat 962f2c76]]
+
+> [!warning] Points à trancher / contradictions
+> - **Filtre par titulaire** : la PR a remplacé les « flux complets des biens » par une attribution
+>   à la détention à 100 % à la date comptable, sans montrer ce qui n'est pas rattaché (B6-a).
+> - **Colocataire parti** : la règle `date_depart` est appliquée aux échanges d'intervention
+>   mais pas aux déclarations ni aux rendez-vous (A1-a).
+> - **Version servie** : bd4cdfbe et non a6538f71 ; le rapport du 16/11 est corrigé.

@@ -7315,3 +7315,16 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   d'un collaborateur impossible ; confirmation de rendez-vous, prérequis du devis et erreur du bail invisibles ; données
   de démonstration « E2E » ; console interne (page Santé, tour du matin, retards en vert).
 - Aucune donnée de production modifiée ; écritures fictives sur le banc local seulement.
+
+## [2026-11-16] audit | Contre-vérification de la PR 341 (candidat V1, SHA 06d8e8fd)
+- Page : [[Contre-vérification de la PR 341 — candidat V1 06d8e8fd — 16 novembre 2026]].
+- Verdicts : publication technique **GO** ; pilote gratuit **GO** sous condition du correctif B6-a ; qualité bonne et
+  premium sur les écrans clés ; vente payante non ouverte (obligations externes listées).
+- Preuves : CI verte du SHA exact relue ; production = `main` (bd4cdfbe servi, registre identique) ; 5 migrations jouées
+  comme `migrations.yml` sur copie historique (46 ms) ; 313 tests SQL sur base mise à niveau ; 16/16 parcours v1-bailleurs
+  sur 1440 et 390 ; retrait d'un collaborateur avec session ouverte et ancien locataire éprouvés ; démonstration
+  reconstruite, figée et restaurée (32 fichiers SHA-256).
+- P1 : B6-a (régression, filtre titulaire de Finances) ; A1-a (antérieur, colocataire parti) ; adresse technique sur la
+  quittance de démonstration. Aucun P0.
+- Correction : le rapport du 16/11 indiquait à tort a6538f71 comme version servie (bd4cdfbe, 4 fichiers de recette d'écart).
+- Lecture seule en production ; aucune fusion ; écritures sur bases locales fictives seulement.

@@ -7328,3 +7328,22 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   quittance de démonstration. Aucun P0.
 - Correction : le rapport du 16/11 indiquait à tort a6538f71 comme version servie (bd4cdfbe, 4 fichiers de recette d'écart).
 - Lecture seule en production ; aucune fusion ; écritures sur bases locales fictives seulement.
+
+## [2026-11-16] audit | Audit de qualité commerciale V1 (version servie a776ed43)
+- Page : [[Audit de qualité commerciale V1 — a776ed43 — 16 novembre 2026]].
+- Verdicts :
+  - pilote gratuit **GO sous trois conditions** : rétablir les alertes du dirigeant, aligner la vitrine, décider de la fin des essais ;
+  - abonnements payants **NO GO** ;
+  - exploitation **GO accompagné** ; console **NO GO en autonomie**.
+- Preuves :
+  - production : version, registre des migrations, chaîne de livraison du 16/11, 12 tâches pg_cron, alertes du relais en échec du 12 au 16/11, 6 courriels « intervention requise », essais de 61–62 jours, 0 bail actif ;
+  - banc fictif : recette 136/139, compléments 42/47 (échecs dépendant des données ou hors périmètre), invitation du locataire de bout en bout, isolation, révocation, finances SCI ;
+  - captures : 369 sur le banc et 69 de la vitrine en production, à 390, 768 et 1440 px ;
+  - quatre relectures UX indépendantes et un audit de la promesse commerciale, dont les points majeurs ont été revérifiés.
+- P0 :
+  - V1-01 alertes du dirigeant bloquées par le périmètre pilote ;
+  - V1-02 promesses de la vitrine (relances, IRL, « Gerimmo le fait pour vous ») ;
+  - V1-03 médiateur absent ;
+  - V1-04 courriers contractuels bloqués et impayé jamais en lecture seule.
+- Limites : téléphone simulé ; aucun utilisateur réel observé ; l'émulateur du banc renvoie les grands entiers en texte (V1-21).
+- Lecture seule en production ; aucune modification de code, aucune PR, aucune fusion.

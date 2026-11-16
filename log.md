@@ -7301,3 +7301,17 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   499 migrations sur base vide, 193 tests ciblés, code en ligne vérifié sur le schéma migré (147 + 23).
 - N10 : migrations limitées à `main` et à l'environnement approuvé ; le mot de passe Supabase reste un secret de dépôt
   partagé avec la sauvegarde et la recette (risque antérieur, non étendu par la PR, à isoler séparément).
+
+## [2026-11-16] audit | Audit avant vente — ergonomie, visuel et fonctions
+- Page : [[Audit avant vente — ergonomie, visuel et fonctions — 16 novembre 2026]].
+- Version : `main` à `a6538f71` (#336), identique au déploiement de production `dpl_7ogEZxcvfmRwwhcHNfz3gr2WqSb5`.
+- Couverture : 182 écrans du banc fictif et 24 pages publiques de production, à 390 et 1440 px (412 captures) ; 21 écrans
+  principaux à 768, 1024 et 1366 px ; robot de mesure (erreurs, débordements, images, petits textes, cibles, axe) puis
+  cinq revues avec parcours réels (vitrine, propriétaire, agence, locataire et artisan, super-administrateur).
+- Verdict : prêt à être montré, pas encore prêt à être vendu sans accompagnement. Aucune erreur JavaScript, aucune page
+  en erreur, aucun débordement ; 6 écrans avec un défaut de contraste.
+- P1 : bandeau « envois suspendus » permanent et signature électronique promise mais en préparation ; médiateur de la
+  consommation absent et contact Gmail ; chiffres de loyers et de tâches contradictoires (agence, propriétaire) ; retrait
+  d'un collaborateur impossible ; confirmation de rendez-vous, prérequis du devis et erreur du bail invisibles ; données
+  de démonstration « E2E » ; console interne (page Santé, tour du matin, retards en vert).
+- Aucune donnée de production modifiée ; écritures fictives sur le banc local seulement.

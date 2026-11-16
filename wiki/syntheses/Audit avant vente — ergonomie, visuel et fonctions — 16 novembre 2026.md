@@ -1,7 +1,7 @@
 ---
 type: synthesis
 tags: [audit, avant-vente, ergonomie, ux, ui, accessibilite, vitrine, proprietaire, agence, locataire, artisan, super-admin]
-status: in-progress
+status: stable
 created: 2026-11-16
 updated: 2026-11-16
 sources: []
@@ -34,13 +34,20 @@ accompagnement.**
   - La séparation des droits entre agent et responsable d'agence a tenu sur 18 accès
     directs tentés.
 - **Ce qui bloque une vente.**
-  1. Un **bandeau jaune permanent** annonce, dans tous les espaces, que les relances,
-     avis d'échéance et courriers sont « suspendus ». Il contredit la vitrine, qui vend
-     justement ces relances, et le bouton « Activer » placé juste en dessous.
+  1. **Des promesses que l'application dément.**
+     - Un bandeau jaune permanent annonce, dans les espaces propriétaire et agence, que
+       les relances, avis d'échéance et courriers sont « suspendus ». Il contredit la
+       vitrine, qui vend justement ces relances, et les boutons « Activer » proposés
+       juste en dessous.
+     - La page Abonnement vend la signature électronique « sans supplément », mais le
+       bail affiche « Signature en ligne en préparation ».
   2. **Aucun médiateur de la consommation n'est désigné.** C'est obligatoire pour
      vendre un abonnement à des particuliers. Le contact affiché est une adresse Gmail.
-  3. **Les chiffres de loyers se contredisent** entre le tableau de bord de l'agence
-     (1 000 € encaissés, « 143 % ») et la page Loyers (300 € encaissés, 400 € dus).
+  3. **Les chiffres se contredisent.**
+     - Côté agence : le tableau de bord affiche 1 000 € encaissés (« 143 % »), la page
+       Loyers 300 € encaissés et 400 € dus.
+     - Côté propriétaire : l'accueil affiche 0,00 € encaissé après un encaissement de
+       850 €, et des nombres de tâches différents sur trois vues (4, 5 et 7).
   4. Un responsable d'agence **ne peut pas retirer l'accès** d'un collaborateur parti.
   5. Plusieurs **gestes clés restent sans retour visible** :
      - le locataire confirme un rendez-vous et rien ne s'affiche ;
@@ -62,7 +69,7 @@ une démonstration commerciale guidée est possible dès la fin de la phase 0.
 | Espace | Agréable à voir | Facile à utiliser | Bien présenté | En une phrase |
 |---|---|---|---|---|
 | Vitrine et inscription | 7,5 | 7 | 7 | Accueil convaincant et outils justes ; confiance à 5,5 (Gmail, pas de médiateur, aucune preuve), inscription longue, Tarifs en paragraphe. |
-| Espace propriétaire | 7,5 | 6,5 | 7 | *Voir § 5.2.* |
+| Espace propriétaire | 8 | 6 | 7 | Haut de gamme, garde-fous juridiques et quittance en un clic ; une première location demande une longue chaîne de prérequis, et les chiffres se contredisent. |
 | Espace agence (responsable et agent) | 7 | 6 | 7 | Assistants exemplaires et droits solides ; chiffres de loyers contradictoires, Administration cachée, parc sans filtre. |
 | Portail locataire | 7,5 | 6 | 7 | Élégant et aux couleurs de l'agence ; la confirmation de rendez-vous ne donne aucun retour, plusieurs pages sortent du cadre. |
 | Portail artisan | 8 | 7 | 7,5 | Compte rendu mobile exemplaire et devis PDF professionnel ; le devis bloque à la dernière étape, le total HT affiche 0 €. |
@@ -118,7 +125,7 @@ constaté** · **bloqué** (non éprouvable sur le banc) · **non testé**.
 | Espace | Écrans | Captures | Vérifiés | Avec défaut | Bloqués (portée) | Non testé |
 |---|---|---|---|---|---|---|
 | Vitrine (production + banc) | 24 | 96 | 13 | 11 | 0 | Liens externes (réseau du banc) |
-| Propriétaire | 28 | 56 | *§ 5.2* | *§ 5.2* | *§ 5.2* | — |
+| Propriétaire | 28 | 56 | 16 | 12 | 0 | Parcours : état des lieux, sollicitation d'un artisan, import du parc |
 | Agence — responsable | 29 | 58 | 15 | 14 | 0 | — |
 | Agence — agent | 31 | 62 | 21 | 10 | 0 (7 pages refusées, conforme) | — |
 | Locataire | 14 | 28 | 6 | 6 | 2 (relevés de compteurs, reçu et quittance : données) | — |
@@ -145,7 +152,7 @@ sont pas réévaluées ici.
 | Textes suspects | « Attestation indisponible » (locataire), « Indisponibles 0 » et « lecture indisponible » (super-admin) | Le premier est normal (impayés) ; les deux autres sont qualifiés au § 5.6. |
 | Chargement (banc chargé, indicatif) | médiane 1,4 s, 90ᵉ centile 1,9 s | Les 6 pages à 12 s (mission artisan) attendent la photo bloquée du banc ; affichage réel en 0,2 s. |
 | Chargement en production (pages publiques) | DOMContentLoaded 0,15 à 0,7 s, page complète en moins d'1 s | Très rapide. |
-| Textes de moins de 12 px au téléphone | plus de 5 éléments sur 111 écrans | **Surestimé** : le robot compte les textes réservés aux lecteurs d'écran. Le vrai sujet est la barre du bas (10,5 px) et des surtitres à 11 px (P3-T3). |
+| Textes de moins de 12 px au téléphone | plus de 5 éléments sur 111 écrans | **Surestimé** : le robot compte les textes réservés aux lecteurs d'écran. Le vrai sujet est la barre du bas (10,5 px) et des surtitres à 11 px (P2-T2). |
 | Cibles tactiles de moins de 32 px | Pages légales (liens dans le texte, acceptable) ; `/admin` (liens de 18 px) | P3. |
 
 ## 5. Constats par espace
@@ -153,7 +160,8 @@ sont pas réévaluées ici.
 Chaque constat indique l'écran, ce qui a été observé face à ce qui était attendu, la
 preuve, l'impact, la correction proposée et le critère de réussite. Les preuves
 (`production/017-1440` = capture robot ; autres noms = captures de parcours) sont
-listées en annexe B. Les plus parlantes sont réunies sur la page visuelle de l'audit.
+listées en annexe B. Les plus parlantes sont réunies sur la page visuelle de l'audit
+(artefact privé : https://claude.ai/artifact/P77fhXzUQj7k5NbDX8J1qK).
 
 **Priorités.**
 - **P1** : bloque la vente, une tâche clé ou la confiance.
@@ -228,7 +236,104 @@ listées en annexe B. Les plus parlantes sont réunies sur la page visuelle de l
 
 ### 5.2 Espace propriétaire
 
-*Section complétée à la réception de la revue dédiée.*
+**Notes** : agréable 8 · facile 6 · bien présenté 7.
+
+**Points forts.**
+- **Garde-fous juridiques intégrés** :
+  - plafond du dépôt de garantie, avec un message précis ;
+  - DPE et ERP exigés avant la mise en location, avec un bouton pour corriger ;
+  - repère réglementaire pour savoir qui paie un incident ;
+  - consentement du locataire avant toute quittance électronique.
+- **Quittance conforme et élégante**, obtenue en un clic après l'encaissement (HTML et
+  PDF).
+- **« Avez-vous reçu vos loyers ? »** avec les réponses J'ai reçu / Reçu en partie /
+  Pas encore reçu, et le suivi des relances.
+- **Abonnement transparent** : prix par lot (11,96 € par mois pour 4 lots, cohérent avec
+  Tarifs), essai sans carte, droit de rétractation expliqué, message rassurant sur le
+  paiement non encore ouvert (« nous prolongeons votre essai »).
+- L'encart « Terminer votre première location » oriente bien.
+
+**P1-P1 — Bandeau « suspendus » et options inutilisables.** C'est le constat
+transverse P1-T1. Côté propriétaire, les Préférences proposent en plus d'activer les
+avis d'échéance et les relances automatiques (preuve : `p2-profil-enregistre-1440`).
+
+**P1-P2 — Des chiffres qui se contredisent.**
+- **Écran** : accueil, À faire, fenêtre d'arrivée, Finances ; 1440 px.
+- **Observé** :
+  - au départ, l'accueil indique « À vérifier : 2 demandes », mais « Toutes les
+    demandes » mène à « Rien à traiter » ;
+  - après activité, la fenêtre d'arrivée annonce 4 alertes, l'accueil 7, la page
+    À faire 5 ;
+  - 850 € reçus le 16/11 pour un bail qui commence le 01/12 sont bien comptés en
+    recettes dans Finances, mais l'accueil affiche « Loyers encaissés en novembre :
+    0,00 € — Aucun loyer attendu ce mois-ci ». L'étape « Le premier loyer encaissé —
+    Déclarer l'encaissement » reste proposée.
+- **Attendu** : le même nombre de tâches partout, et un encaissement qui fait avancer
+  l'accueil.
+- **Preuve** : `proprietaire/006-1440`, `proprietaire/014-1440`,
+  `al1-synthese-arrivee-1440`, `loyer4-accueil-apres-1440` (vérifiée).
+- **Impact** : le propriétaire vient de déclarer son premier loyer, et l'écran d'accueil
+  lui dit le contraire.
+- **Correction** :
+  - une seule source « À faire » pour les trois vues ;
+  - l'étape « premier loyer encaissé » validée par tout encaissement sur le bail ;
+  - la tuile qui affiche « dont 850 € reçus d'avance ».
+- **Critère** : mêmes compteurs sur les trois vues ; après un encaissement, l'étape est
+  cochée et le montant apparaît.
+
+**P1-P3 — Signature électronique vendue mais indisponible.**
+- **Écran** : Abonnement face à l'assistant de bail, étape 7.
+- **Observé** : l'abonnement vend la signature électronique « sans supplément, essai
+  compris ». Le bail affiche « Signature en ligne en préparation » et « 6 crédits
+  Zoho ».
+- **Preuve** : `proprietaire/000-1440`, `bail-etape7-1440`.
+- **Production** : la disponibilité dépend de la configuration Zoho
+  (`src/app/actions/signature-bail.ts`, fonction `lireSignatureBail`). Au 19/10, les
+  envois aux clients étaient désactivés en production et le wiki recommandait de ne
+  pas promettre la signature ([[Prêt à démarcher]]). L'état actuel est **à confirmer**.
+- **Correction** : aligner la promesse sur la réalité, et ne jamais montrer « crédits
+  Zoho » au client.
+- **Critère** : aucune fonction vendue sur Tarifs ou Abonnement n'est annoncée « en
+  préparation » dans l'application.
+
+**P2 — propriétaire**
+
+| Réf. | Écran | Observé (au lieu de l'attendu) | Preuve | Correction | Critère |
+|---|---|---|---|---|---|
+| P2-P1 | Fiche du logement, bail | « Mettre en location » est caché dans un repli « Gérer le statut du lot », tout en bas. Le bail renvoie vers la fiche, et le retour dit « passé en Disponible ». | `lot-audit-mise-en-location-1440` | Bouton « Mettre en location » dans le récapitulatif du bail, avec ce qui manque | Mise en location possible sans quitter le bail |
+| P2-P2 | Profil, bail | E-mail de contact non pré-rempli ; adresse du propriétaire redemandée dans le bail juste après le profil | `018-1440`, `bail-etape2-1440` | Pré-remplir depuis le compte et le profil | Aucune information saisie deux fois |
+| P2-P3 | Fiche du lot, profil | « Identifiant fiscal » obligatoire pour continuer, sans « je ne sais pas » ni aide ; erreur brute du navigateur, loin du champ | `p2g-continuer-vide-1440`, `p2-profil-suivant-vide-1440` | Champ facultatif jusqu'à la génération du bail ; messages en français sous le champ (voir P2-T1) | — |
+| P2-P4 | Quittance PDF | Deux pages, dont la seconde ne contient que la signature | `quittance.pdf` | Mise en page sur une page | Une page |
+| P2-P5 | Documents | Baux signés rangés dans « Documents généraux » ; un dépôt fait depuis le filtre d'un bien n'y est pas rattaché ; chaque régénération crée un doublon de quittance | `d1-documents-1440` | Rattachement au bien, champ « bien » dans le formulaire, remplacement au lieu d'un doublon | — |
+| P2-P6 | Export fiscal | Colonne « Lot » en identifiants techniques ; catégorie d'écriture en texte libre | `preparation-fiscale-2026.csv` | Nom du bien ; catégories alignées sur la déclaration 2044 | CSV lisible dans un tableur sans retouche |
+| P2-P7 | Loyers, incidents | « Générer l'échéancier » répond « 0 appel(s) » puis réaffiche « générez l'échéancier », sans expliquer qu'un bail au 01/12 n'a pas encore d'échéance ; pas de confirmation après un encaissement ou une décision d'incident | `loyer2-apres-echeancier-1440` | Message explicite (« Première échéance le 01/12 ») et confirmation après chaque geste | — |
+| P2-P8 | Finances, fiches | Jargon : « Clôturer un mois », « NOVEMBRE 2026 OUVERT », « imputation », « Qualité à compléter », « Au parc ». Une même action porte trois noms (« Ajouter une opération », « …une recette ou dépense », « …une écriture »). | `010-1440`, `011-1440`, `026-1440` | Vocabulaire de bailleur, un seul nom par action | — |
+| P2-P9 | Fenêtre d'arrivée | « Zone tendue non renseignée » deux fois, sans le nom du bien ; le loyer impayé n'y figure pas | `al1-synthese-arrivee-1440` | Nommer le bien ; ordonner par gravité | — |
+
+**P3 — propriétaire.**
+- **Résiliation** : le texte d'introduction contredit « rien à résilier ».
+- **Aide fiscale** : sélecteur d'année en double.
+- **FAQ** : un « ? » seul sur sa ligne à 390 px.
+- **Règles bailleurs, Données personnelles** : pages hors du cadre de l'espace ; le
+  texte des Données personnelles est écrit pour un locataire.
+- **Mes lots** : « 2 lots » au-dessus d'une liste de biens.
+- **Carnet d'artisans** : bouton principal pâle, on le croit désactivé.
+- **Alignements** :
+  - « Voir le bâtiment » collé au bord de sa carte ;
+  - « ← Finances » au milieu de l'en-tête ;
+  - en-têtes de page de styles différents.
+- **Typographie** : « 1 décembre », « 52.50 », « pièce(s) », « de Appartement », ordre
+  Nom/Prénom variable.
+- **Incohérences** :
+  - bail actif « Fin non renseignée » alors que son récapitulatif indique 30/11/2029 ;
+  - étapes du profil encore « À vérifier » après l'enregistrement ;
+  - le propriétaire lui-même proposé comme garant.
+- **Mobile** :
+  - le bouton « Envoyer » des messages passe sous la barre du bas ;
+  - les jours d'essai restants ne sont visibles qu'à l'ordinateur ;
+  - la recherche montre deux fois « Bail — Bernard Lucas » sans le bien.
+- **Statistiques et Agenda** ne parlent que des incidents. Proposition : rendement,
+  occupation, échéances, fins de bail, révisions IRL.
 
 ### 5.3 Espace agence (responsable d'agence et agent)
 
@@ -504,7 +609,11 @@ listées en annexe B. Les plus parlantes sont réunies sur la page visuelle de l
   - À 768 et 1024 px, sur le tableau de bord de l'agence, la carte « Gerimmo peut
     faire seul : envoyer les avis d'échéance, les quittances, les relances
     d'impayé… [Activer] » est placée juste en dessous.
+  - Côté propriétaire, les Préférences proposent d'activer les avis d'échéance et les
+    relances automatiques.
   - Le bandeau prend environ 100 px au téléphone.
+  - La signature électronique vendue sur Abonnement est « en préparation » dans le
+    bail (P1-P3) : c'est le même écart entre promesse et produit.
 - **Cause** : `piloteLimite()` renvoie toujours `true` (`src/lib/perimetre-pilote.ts`).
   Le bandeau est donc présent en production pour tous les comptes.
 - **Attendu** : aucune promesse de la vitrine démentie dans l'application, et aucun
@@ -519,7 +628,7 @@ listées en annexe B. Les plus parlantes sont réunies sur la page visuelle de l
     le réglage des relances et sur la page Loyers (« Relances : à préparer en PDF pour
     le moment »), et masquer « Activer » tant que la fonction est fermée.
 - **Critère** : aucun bandeau sur le tableau de bord, Parc, Incidents ni Agenda ; pas
-  de contradiction entre la vitrine et l'application.
+  de contradiction entre la vitrine ou l'abonnement et l'application.
 
 **P1-T2 — Identité commerciale incomplète** (regroupe P1-V2 et P2-V1).
 - **Constat** : médiateur absent, contact Gmail, paiement en ligne fermé.
@@ -550,7 +659,7 @@ listées en annexe B. Les plus parlantes sont réunies sur la page visuelle de l
 **P2-T1 — Formulaires : validation native, un champ à la fois.** Les bulles du
 navigateur et les erreurs en bas de formulaire (inscription, assistants) cassent le
 rythme. Il faudrait un modèle commun : erreur sous le champ, résumé près du bouton,
-curseur placé sur le premier champ en erreur, en lien avec P1-A3.
+curseur placé sur le premier champ en erreur, en lien avec P1-A3, P2-V4 et P2-P3.
 
 **P3 — transverses.**
 - **P3-T1 — Feuille saisonnière** dans l'en-tête de tous les espaces et de la
@@ -562,18 +671,23 @@ curseur placé sur le premier champ en erreur, en lien avec P1-A3.
     inutilisée pour les titres.
   - Georgia est absente d'Android et de Linux : les titres y changent de dessin. Les
     captures du banc, sous Linux, montrent cette police de remplacement.
-  - L'agence relève aussi un mélange sans règle de titres avec et sans empattements.
+  - L'agence et le propriétaire relèvent aussi un mélange sans règle de titres avec et
+    sans empattements : sous 640 px, les titres de section repassent en police sans
+    empattement (`prestige.css`, ligne 598), et les titres de carte varient
+    sur une même fiche.
   - Correction : auto-héberger une police de titres (comme Manrope et Figtree le
     sont), puis fixer une règle (titres de page à empattements, titres de carte sans).
   - Risque à confirmer sur un Android réel.
-- **P3-T3 — Petits textes.**
+- **P2-T2 — Petits textes** (relevé P3 pour l'agence, P2 pour un public de bailleurs).
+  - Jusqu'à 25 textes de moins de 12 px par écran au téléphone côté propriétaire (FAQ,
+    Agenda, Abonnement).
   - Les libellés de la barre du bas sont en 10,5 px, et des informations utiles en
     11 px (« 650 € hors charges + 50 € de charges », heures de la chronologie des
     incidents, « 2/5 rubriques renseignées »).
   - Correction : 12 px au minimum pour toute information utile ; les surtitres en
     majuscules peuvent rester à 11 px.
-- **P3-T4 — Contraste.** 6 écrans, listés au § 4.
-- **P3-T5 — Navigateur de test en anglais.** Les dates « mm/dd/yyyy » et les bulles
+- **P3-T3 — Contraste.** 6 écrans, listés au § 4.
+- **P3-T4 — Navigateur de test en anglais.** Les dates « mm/dd/yyyy » et les bulles
   « Please fill out this field » viennent du navigateur du banc, pas de
   l'application. À confirmer sur un Chrome français et un iPhone.
 
@@ -584,6 +698,12 @@ curseur placé sur le premier champ en erreur, en lien avec P1-A3.
 | Inscription jusqu'au premier écran (390, 1440) | Réussi en 17 s | Premier écran coiffé du bandeau P1-T1 |
 | Mauvais mot de passe, puis mot de passe oublié et réinitialisation | Réussi | Message neutre, nouveau mot de passe accepté |
 | 5 outils gratuits | Réussis, valeurs vérifiées à la main | Cas limites : DPE F, saisie invalide, prix nul |
+| Propriétaire : arrivée sur le tableau de bord | Partiel | L'encart « première location » oriente bien ; bandeau en premier ; « 2 demandes » contre « Rien à traiter » |
+| Propriétaire : ajout d'un bien et d'un lot | Réussi après un détour | Bloqué tant que le profil est incomplet ; profil persistant après rechargement ; bien créé en 2 s, visible dans le parc |
+| Propriétaire : bail, dépôt du bail signé, échéancier | Réussi, avec réserves | Notice générée en 10 s ; bail actif au dépôt du PDF signé ; signature en ligne indisponible (P1-P3) |
+| Propriétaire : encaissement, quittance, retrait | Réussi | Échéance « Payé », quittance HTML et PDF ; retrait avec motif obligatoire ; l'accueil n'avance pas (P1-P2) |
+| Propriétaire : incident, messages, écriture, export | Réussis | Décision d'incident persistante ; message persistant ; CSV obtenu mais peu lisible (P2-P6) |
+| Propriétaire : état des lieux, sollicitation d'un artisan, import du parc | Non testés | — |
 | Agence : création d'un bien et d'un lot | Réussi | « Détention enregistrée », lot créé en 4 s |
 | Agence : mandat | Réussi | Brouillon, lot ajouté à 7 % |
 | Agence : bail en 7 étapes | Réussi | Plafond du dépôt contrôlé, mais erreur cachée (P1-A3) |
@@ -610,9 +730,9 @@ Effort estimé : **S** = moins d'une journée, **M** = 1 à 3 jours, **L** = plu
 
 | # | Action | Constats | Effort | Dépendance |
 |---|---|---|---|---|
-| 1 | Décider : ouvrir les envois ou retirer les promesses ; retirer le bandeau global et masquer « Activer » | P1-T1, P1-V1 | S (retrait) à L (ouverture) | Décision du porteur |
+| 1 | Décider : ouvrir les envois ou retirer les promesses ; retirer le bandeau global, masquer « Activer » et les cases d'envoi automatique ; aligner la promesse de signature électronique | P1-T1, P1-V1, P1-P1, P1-P3 | S (retrait) à L (ouverture) | Décision du porteur |
 | 2 | Adhérer à un médiateur et renseigner ses coordonnées ; passer à `contact@gerimmo.app` | P1-V2, P2-V1 | S (technique) | Démarche administrative |
-| 3 | Aligner le chiffre « Loyers du mois » entre tableau de bord et Loyers, côté agence et côté propriétaire | P1-A1 | M | — |
+| 3 | Aligner les chiffres : « Loyers du mois » entre tableau de bord et Loyers (agence et propriétaire), une seule source pour les tâches à faire, étape « premier loyer » validée par l'encaissement | P1-A1, P1-P2 | M | — |
 | 4 | Retirer un collaborateur, changer son rôle, relancer une invitation | P1-A2 | M | Migration (chantier « Migrations Supabase ») |
 | 5 | Modèle commun d'erreur de formulaire (marge sous l'en-tête, curseur sur le champ, résumé) | P1-A3, P2-V4, P2-T1 | M | — |
 | 6 | Confirmation du rendez-vous et carte « Prochain rendez-vous » | P1-L1 | S | — |
@@ -632,6 +752,14 @@ Effort estimé : **S** = moins d'une journée, **M** = 1 à 3 jours, **L** = plu
   - parc filtrable (P2-A3) ;
   - encaissement confirmé et annulable (P2-A4) ;
   - incidents titrés et comptés juste (P2-A5).
+- **Propriétaire** :
+  - « Mettre en location » dans le récapitulatif du bail (P2-P1) ;
+  - pré-remplissage depuis le compte et le profil, identifiant fiscal facultatif
+    (P2-P2, P2-P3) ;
+  - quittance sur une page, documents rattachés à leur bien, export fiscal lisible
+    (P2-P4 à P2-P6) ;
+  - retours d'action, vocabulaire de bailleur, alertes qui nomment le bien (P2-P7 à
+    P2-P9).
 - **Locataire** : discussions rangées dans leur demande, préavis déduit de la commune,
   cadre conservé sur toutes les pages, relecture des textes (P2-L1 à P2-L4).
 - **Artisan** : créneaux proposés visibles dans l'agenda, statut des pièces calculé
@@ -647,7 +775,9 @@ Effort estimé : **S** = moins d'une journée, **M** = 1 à 3 jours, **L** = plu
 - **Agence** : statistiques complètes (P2-A6), tableau de bord mobile en grille
   (P2-A7), vocabulaire unifié (P2-A8), Profil en onglets (P2-A9).
 - **Typographie** : police de titres auto-hébergée, règle d'usage, 12 px au minimum
-  pour les informations utiles, contrastes (P3-T2 à P3-T4).
+  pour les informations utiles, contrastes (P3-T2, P2-T2, P3-T3).
+- **Propriétaire** : statistiques et agenda élargis aux loyers, échéances, fins de bail
+  et révisions.
 - **Toutes les finitions P3** listées par espace.
 
 **Prochaine étape recommandée.** Trancher le point 1 (ouvrir les envois ou retirer les
@@ -671,8 +801,9 @@ régression.
   Fictive », un encaissement, des incidents, un devis, une facture, une invitation).
   Certaines captures prises tard montrent donc des chiffres différents des premières.
 - **Preuves.** Les captures sont dans le dossier de travail de la session, qui n'est
-  pas conservé. Les preuves clés sont reprises sur la page visuelle de l'audit ; les
-  autres se régénèrent avec le robot (`robot.cjs`, annexe B).
+  pas conservé. Les 17 preuves clés sont reprises sur la page visuelle de l'audit
+  (https://claude.ai/artifact/P77fhXzUQj7k5NbDX8J1qK) ; les autres se régénèrent avec le
+  robot (`robot.cjs`, annexe B).
 
 ## 9. Contre-vérifications faites par l'auditeur principal
 
@@ -681,6 +812,8 @@ régression.
 | P1-T1 bandeau | `piloteLimite()` lu dans le code ; bandeau vu à 390, 768, 1024, 1366 et 1440 px côté propriétaire et agence |
 | P1-V2, P2-V1 | `curl` des 3 pages légales en production : adresse Gmail présente ; champs du médiateur vides en base de production (lecture du 15/11) |
 | P1-A1 | Captures `k01` et `k02` comparées : 1 000,00 € (143 %) contre 300,00 € encaissés |
+| P1-P2 | Capture `loyer4-accueil-apres-1440` : « Loyers encaissés en novembre 0,00 € » et « Déclarer l'encaissement » après un encaissement de 850 € |
+| P1-P3 | `lireSignatureBail` lu dans `src/app/actions/signature-bail.ts` (mode dépendant de la configuration Zoho) ; état de production au 19/10 dans [[Prêt à démarcher]] |
 | P1-A2 | Aucune action serveur ni fonction SQL de retrait de membre dans `src/` et `supabase/migrations/` |
 | P1-A3 | Capture `c07b` : aucun message d'erreur dans la fenêtre visible |
 | P1-L1 | Captures `L6-selection-390` puis `L6-apres-1s-390` : la carte disparaît sans message |
@@ -982,4 +1115,7 @@ non dans le dépôt : les captures d'audit sont exclues par `.gitignore`.
 >   (RM-3.3.2, voir [[Plan d'apurement]]) justifie le chiffre de Loyers. La définition
 >   de l'indicateur reste à fixer dans [[Quittancement des loyers]] et
 >   [[Comptabilité]].
+> - **Signature électronique** : vendue « sans supplément » sur Abonnement, « en
+>   préparation » dans le bail. L'état de la configuration Zoho en production est à
+>   confirmer ; [[Prêt à démarcher]] recommandait de ne pas la promettre.
 > - **Taux de TVA 2,1 % proposé aux artisans** : à valider par un expert-comptable.

@@ -14,10 +14,17 @@ utiliser et bien présentées, et leurs fonctions marchent-elles, avant de vendr
 produit ?*
 
 Version examinée : `main` à **a6538f71** (« Recette de production : abonnement fermé,
-fiscalité 2044 et régularisation », #336). C'est aussi la version publiée en production
-(déploiement Vercel `dpl_7ogEZxcvfmRwwhcHNfz3gr2WqSb5`, prêt le 16/11/2026). Le banc et
-la production sont donc identiques ; les seules différences viennent des données
-(fictives sur le banc) et de l'environnement (voir § 8).
+fiscalité 2044 et régularisation », #336).
+
+> [!note] Correction du 16/11/2026 (contre-vérification de la PR #341)
+> Ce paragraphe affirmait que a6538f71 était la version publiée. C'était faux : un
+> déploiement Vercel de a6538f71 était prêt (`dpl_7ogEZxcvfmRwwhcHNfz3gr2WqSb5`), mais
+> le domaine sert **bd4cdfbe** (#335), lu sur `/api/sante`. Les deux révisions ne
+> diffèrent que par 4 fichiers de recette (aucun code applicatif, aucune migration) :
+> les constats de cet audit valent donc pour la version servie.
+
+Les seules différences entre le banc et la production viennent des données (fictives
+sur le banc) et de l'environnement (voir § 8).
 
 ## 1. En bref, pour décider
 

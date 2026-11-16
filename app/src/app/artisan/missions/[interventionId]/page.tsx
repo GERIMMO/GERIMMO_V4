@@ -196,12 +196,16 @@ export default async function PageMission(
           fallait faire quelque chose. */}
       {mission.statut === "acceptee" && attendLocataire && (
         <Carte className="border-l-4 border-l-[var(--warning)]">
-          <TitreSection>Rien à faire pour l&apos;instant : le locataire choisit</TitreSection>
-          <p className="text-base text-[var(--corps)]">
-            {mission.creneaux_en_attente} date{mission.creneaux_en_attente > 1 ? "s" : ""}{" "}
-            proposée{mission.creneaux_en_attente > 1 ? "s" : ""} au locataire. Vous serez
-            prévenu de son choix ; gardez-les libres d&apos;ici là.
-          </p>
+          <TitreSection>
+            {creneaux.erreur ? "Disponibilité à vérifier" : mesDates.length ? "Le locataire choisit un créneau" : "Proposez de nouvelles dates"}
+          </TitreSection>
+          {!creneaux.erreur && (
+            <p className="text-base text-[var(--corps)]">
+              {mesDates.length
+                ? "Le locataire peut choisir parmi les dates ci-dessous. Gardez-les libres jusqu’à sa réponse."
+                : "Aucun des créneaux proposés n’est encore disponible dans votre agenda."}
+            </p>
+          )}
           {mesDates.length > 0 && (
             <ul className="mt-2 space-y-1">
               {mesDates.map((c) => (

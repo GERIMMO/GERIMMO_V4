@@ -194,7 +194,7 @@ describe.skipIf(!url)("D08-C — lecture seule en base et support borné", () =>
     const agence=(await db.query("insert into public.organizations(name,type,status) values('TEST agence T10','agence','active') returning id")).rows[0].id;
     await db.query("insert into public.memberships(account_id,organization_id,role,status) values($1,$2,'agent','inactive')",[sa,agence]);
     await agir(sa);
-    await expect(essai("update public.memberships set status='active' where account_id=$1 and organization_id=$2",[sa,agence])).rejects.toThrow(/contourner la lecture seule/);
+    await expect(essai("update public.memberships set status='active' where account_id=$1 and organization_id=$2",[sa,agence])).rejects.toMatchObject({code:"42501"});
     await expect(essai("select * from public.inviter_agent($1,$2)",[agence,`${sa}@test.local`])).rejects.toThrow(/contourner la lecture seule/);
   });
   it("couvre les nouvelles tables métier avec l'installateur existant",async()=>{

@@ -455,3 +455,10 @@ describe("Configuration Zoho Sign",()=>{
   expect(res.find(v=>v.cle==="ZOHO_SIGN_REFRESH_TOKEN")!.etat).toBe("attention");
  });
 });
+
+it("distingue un réglage facultatif ou désactivé d’un service configuré", () => {
+  const config = etatConfiguration({});
+  expect(config.find(v => v.cle === "STRIPE_PRIX_BIEN")?.information).toBe("Facultatif");
+  expect(config.some(v => v.information === "Désactivé")).toBe(true);
+  expect(config.find(v => v.cle === "STRIPE_WEBHOOK_SECRET")).toMatchObject({ etat:"manque" });
+});

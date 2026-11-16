@@ -639,21 +639,16 @@ export async function deposerMaFacture(
 
   const valeurs = valeursDuFormulaire(formData);
   const numero = String(formData.get("numero") ?? "").trim();
-  const montant = centimes(String(formData.get("montant") ?? ""));
+  let montant = centimes(String(formData.get("montant") ?? ""));
   const justification = String(formData.get("justification") ?? "").trim();
   const erreurDepotDirect = await resoudreDepotsFormulaire(supabase, formData);
   if (erreurDepotDirect) return { erreur: erreurDepotDirect };
-  const fichier = formData.get("fichier");
+  let fichier = formData.get("fichier");
+  const modeFacture = formData.get("mode_facture");
+  const creation = modeFacture === "particulier" || modeFacture === "sci";
 
   if (!numero) return { erreur: "Indiquez le numéro de votre facture.", valeurs };
   if (numero.length > 60) return { erreur: "Le numéro de facture est trop long.", valeurs };
-  if (montant === null || montant <= 0) {
-    return { erreur: "Indiquez le montant TTC de la facture.", valeurs };
-  }
-  if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: "Joignez votre facture (PDF ou photo).", valeurs };
-  }
-
   // L'agence et l'état viennent de l'agenda, jamais du formulaire.
   const mission = await maMission(supabase, interventionId);
   if (!mission) return { erreur: "Cette intervention ne vous est pas confiée.", valeurs };
@@ -663,6 +658,39 @@ export async function deposerMaFacture(
   if (mission.facture_deposee) {
     return { erreur: "La facture de cette intervention a déjà été déposée.", valeurs };
   }
+  if (creation) {
+    let facture;
+    try {
+      const { factureIntervention } = await import("@/lib/documents/facture-intervention");
+      let sci;
+      if (modeFacture === "sci") {
+        const { lireSirenSociete } = await import("@/lib/qualite-bailleur");
+        const siren = lireSirenSociete(formData.get("siren_client"));
+        if (!siren) return { erreur: "Indiquez le SIREN de la SCI qui a commandé les travaux.", valeurs };
+        const identite = await supabase.rpc("sci_facturable_intervention", {p_intervention: interventionId, p_siren: siren}).maybeSingle();
+        if (identite.error || !identite.data) return { erreur: "La SCI facturée n’a pas pu être confirmée pour cette mission. Vérifiez le SIREN et les coordonnées avec le propriétaire.", valeurs };
+        sci = identite.data as import("@/lib/documents/facture-intervention").SciFacturee;
+      }
+      facture = factureIntervention(formData, fiche, mission.incident_numero, sci);
+    } catch (erreur) {
+      return { erreur: erreur instanceof Error ? erreur.message : "Vérifiez les champs de votre facture.", valeurs };
+    }
+    montant = facture.montant;
+    try {
+      const { rendrePdf } = await import("@/lib/documents/rendu");
+      const pdf = await rendrePdf(facture.document);
+      fichier = new File([new Uint8Array(pdf)], "facture-travaux.pdf", {type:"application/pdf"});
+    } catch {
+      return { erreur: "Le PDF n’a pas pu être préparé. La facture n’a pas été transmise.", valeurs };
+    }
+  }
+  if (montant === null || montant <= 0) {
+    return { erreur: "Indiquez le montant TTC de la facture.", valeurs };
+  }
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return { erreur: "Joignez votre facture (PDF ou photo).", valeurs };
+  }
+
   const plafond = mission.montant_plafond_cents;
   if (plafond !== null && montant !== plafond && !justification) {
     return {
@@ -673,7 +701,7 @@ export async function deposerMaFacture(
 
   const piece = await preparerFichierArtisan(
     supabase,
-    `${mission.organization_id}/factures-artisan/${interventionId}`,
+    `${mission.organization_id}/factures-artisan/${interventionId}${creation ? "/emises" : ""}`,
     fichier,
     ["application/pdf", "image/jpeg", "image/png"]
   );

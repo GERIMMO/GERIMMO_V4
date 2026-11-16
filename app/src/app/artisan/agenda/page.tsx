@@ -78,24 +78,24 @@ export default async function PageAgendaArtisan() {
   const sansDate = agenda.lignes.filter(
     (l) => !l.debut_prevu && l.statut !== "terminee"
   );
+  const maintenant = new Date();
+  const aujourdhui = jourCivil(maintenant);
   const datees = agenda.lignes.filter((l) => l.debut_prevu);
 
   // Regroupement par jour, dans l'ordre où ils arrivent (la base trie déjà par
   // début, les créneaux non posés d'abord).
   const jours = new Map<string, LigneAgenda[]>();
+  const historique = new Map<string, LigneAgenda[]>();
   for (const ligne of datees) {
     const cle = jourCivil(ligne.debut_prevu!);
-    const liste = jours.get(cle);
+    const calendrier = cle < aujourdhui || ligne.statut === "terminee" ? historique : jours;
+    const liste = calendrier.get(cle);
     if (liste) liste.push(ligne);
-    else jours.set(cle, [ligne]);
+    else calendrier.set(cle, [ligne]);
   }
 
-  const maintenant = new Date();
-  const aujourdhui = jourCivil(maintenant);
-  // Les journées passées (interventions terminées, ou dont le rendez-vous est
-  // derrière) se lisent après celles qui viennent : on regarde devant soi.
-  const joursAVenir = [...jours.entries()].filter(([cle]) => cle >= aujourdhui);
-  const joursPasses = [...jours.entries()].filter(([cle]) => cle < aujourdhui);
+  const joursAVenir = [...jours];
+  const joursPasses = [...historique];
   const semaine = semaineAVenir(aujourdhui);
 
   return (
@@ -193,7 +193,7 @@ export default async function PageAgendaArtisan() {
         // Un état vide qui mène quelque part (24/09) : ce sont les
         // attestations qui ouvrent les affectations.
         <Vide action={{ href: "/artisan/attestations", libelle: "Mes attestations" }}>
-          Aucune intervention à votre agenda. Les missions que vos clients vous confient apparaissent ici.
+          Aucune intervention à venir. Les missions que vos clients vous confient apparaissent ici.
           {fiche.statut_plateforme === "en_attente"
             ? " Votre inscription est encore en cours de validation : vous pourrez recevoir de nouvelles demandes après validation."
             : ""}
@@ -218,10 +218,10 @@ export default async function PageAgendaArtisan() {
 
       {joursPasses.length > 0 && (
         <section>
-          <TitreSection>Journées passées</TitreSection>
+          <TitreSection>Historique des rendez-vous</TitreSection>
           <div className="space-y-6">
             {joursPasses.map(([cle, lignes]) => (
-              <div key={cle} id={`jour-${cle}`} className="scroll-mt-28">
+              <div key={cle} id={`historique-${cle}`} className="scroll-mt-28">
                 <p className="mb-3 text-[0.9375rem] font-medium text-[var(--texte-secondaire)]">
                   {jourLong(lignes[0].debut_prevu)}
                 </p>

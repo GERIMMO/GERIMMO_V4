@@ -11,17 +11,11 @@ export type ReglagesEnvoi = {
   relances_envoi_auto: boolean | null;
 };
 
-/** Les envois encore manuels, dans l'ordre où ils arrivent dans un mois. */
+/** Seules les quittances disposent d’un envoi automatique autorisé. */
 export function envoisEteints(reglages: ReglagesEnvoi | null | undefined): string[] {
-  if (!reglages) return [];
-  return [
-    !reglages.appels_envoi_auto && "les avis d'échéance",
-    !reglages.quittances_envoi_auto && "les quittances",
-    !reglages.relances_envoi_auto && "les relances d'impayé",
-  ].filter((x): x is string => Boolean(x));
+  return reglages?.quittances_envoi_auto === false ? ["les quittances"] : [];
 }
 
-/** Vrai quand aucun des trois n'est activé : l'organisation fait tout à la main. */
 export function toutManuel(reglages: ReglagesEnvoi | null | undefined): boolean {
-  return envoisEteints(reglages).length === 3;
+  return envoisEteints(reglages).length > 0;
 }

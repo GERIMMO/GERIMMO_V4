@@ -51,7 +51,7 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     m.consommations.mockResolvedValue({ taches: [{ cle: "repartition:f", type: "facture_repartition", titre: "Répartir la facture EAU-TEST", detail: null, contexte: "Eau", lieu: null, echeance: null, href: "/espace/org/parc/bien#consommations", geste: "Préparer", nature: "demande" }], indisponible: false });
     const html = await rendre();
     expect(html).toContain("Répartir la facture EAU-TEST");
-    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 1 }));
+    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 0 }));
     m.consommations.mockResolvedValue({ taches: [], indisponible: true });
     expect(await rendre()).toContain("La liste peut être incomplète");
     expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ indisponible: true }));
@@ -82,10 +82,10 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     expect(html).toContain("Montants indisponibles");
     expect(html).not.toContain('aria-label="Loyers encaissés');
   });
-  it("compte uniquement les urgences et loyers dans la carte rouge, sans répéter les tâches", async () => {
+  it("compte toutes les demandes du même espace et affiche les urgences en premier", async () => {
     m.verifications.mockResolvedValue(lecture([action("Urgence TEST", true), action("Demande courante TEST")], true));
     const html = await rendre();
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ total: 2, critiques: 1, loyersAConfirmer: 1 }));
+    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ total: 3, critiques: 1, loyersAConfirmer: 1 }));
     const carteTaches = html.split('id="taches-proprietaire"')[1];
     expect(carteTaches).toContain("Demande courante TEST");
     expect(carteTaches).not.toContain("Urgence TEST");
@@ -95,26 +95,27 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
   it("oriente les demandes courantes vers la liste visible, puis revient au patrimoine une fois traitées", async () => {
     m.verifications.mockResolvedValue(lecture([action("Demande TEST")]));
     await rendre();
-    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 1, critiques: 0, hrefTaches: "#taches-proprietaire" }));
+    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 1, critiques: 0, hrefTaches: "/espace/org/alertes" }));
     m.verifications.mockResolvedValue(lecture()); await rendre();
     expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 0, critiques: 0, patrimoine: { biens: 1, lots: 1 }, indisponible: false }));
   });
 
-  it("la carte « À vérifier » annonce le chiffre de « Mes tâches » vers laquelle elle mène (audit du 27/10, LAT-05)", async () => {
+  it("garde le total d’À faire sur la carte et compte séparément la préparation des lots dans Mes tâches", async () => {
     const donnees = pilotage();
     const loue = { ...lot, id: "loue", nom: "T2 loué", etat: "loue" };
     m.pilotage.mockResolvedValue({ ...donnees, patrimoine: { ...donnees.patrimoine, lots: [lot, loue], lotsSansBail: [lot] },
       diagnostics: [{ id: "dpe", lot_id: "loue", classe_dpe: "F", date_realisation: "2020-01-01", lot: loue }] });
     m.verifications.mockResolvedValue(lecture([action("Demande TEST")]));
     const html = await rendre();
-    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 3, critiques: 0, hrefTaches: "#taches-proprietaire" }));
+    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 1, critiques: 0, hrefTaches: "/espace/org/alertes" }));
     expect(html).toContain('aria-label="3 tâches"');
   });
 
   it("le montant des échéances du mois mène au suivi des loyers", async () => {
     const html = await rendre();
     expect(html).toContain('href="/espace/org/loyers"');
-    expect(html).toContain("Loyers encaissés");
+    expect(html).toContain("Loyers du mois");
+    expect(html).toContain("toutes échéances confondues");
   });
 
   it("garde les tâches fiables sans annoncer un repos quand une source échoue", async () => {
@@ -123,7 +124,7 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     expect(html).toContain("Demande connue");
     expect(html).toContain("La liste peut être incomplète");
     expect(html).not.toContain("Aucune tâche");
-    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 0, indisponible: true }));
+    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 1, indisponible: true }));
   });
 
   it("garde la préparation accessible après une rupture de transport du contrôle", async () => {

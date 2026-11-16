@@ -162,11 +162,11 @@ describe("D06 / D46 : l'écran « Arrêt avant les prochains effets » et le mod
     expect(html).toContain("Si l’arrêt a couvert un 1er du mois");
     expect(html).toContain("l’avis d’échéance et une relance pour le même loyer");
     expect(html).toContain("gardez « Relances de loyers » arrêtée jusqu’à l’envoi des avis du rattrapage");
-    expect(html).toContain("décocher « Relancer automatiquement les loyers impayés par e-mail » (rubrique Profil) le temps du rattrapage");
+    expect(html).toContain("Les relances automatiques par courriel restent suspendues dans le profil des organisations.");
     // Les deux noms sont ceux des missions affichées partout ailleurs, et la case citée est celle du profil de l'agence.
     expect(html).toContain(`« ${nomArret("appels")} »`);
     expect(html).toContain(`« ${nomArret("relances")} »`);
-    expect(readFileSync("src/app/agence/[orgId]/profil/formulaire-profil.tsx", "utf8")).toContain("Relancer automatiquement les loyers impayés par e-mail");
+    expect(readFileSync("src/app/agence/[orgId]/profil/formulaire-profil.tsx", "utf8")).not.toMatch(/<input[^>]*name="relances_loyer_auto"/);
   });
 
   it("la documentation de reprise donne la même consigne que l'écran", () => {
@@ -174,7 +174,7 @@ describe("D06 / D46 : l'écran « Arrêt avant les prochains effets » et le mod
     expect(doc).toContain("Si l'arrêt a couvert un 1er du mois");
     expect(doc).toContain("l'avis d'échéance et une relance pour le même loyer");
     expect(doc).toContain("garder la mission « Relances de loyers » arrêtée jusqu'à l'envoi des avis du rattrapage");
-    expect(doc).toContain("décocher « Relancer automatiquement les loyers impayés par e-mail » (rubrique Profil) le temps du rattrapage");
+    expect(doc).toContain("Les relances automatiques par courriel restent suspendues dans le profil des organisations.");
   });
 
   // D46-B (15/10/2026) : le texte de D46-A (« alerte interne seulement ») dit désormais la vérité de l'alerte e-mail

@@ -89,6 +89,7 @@ export function DatesLocataire({
 
   return (
     <div className="space-y-3">
+      {dates.length === 0 && <p>Aucune date proposée par le locataire n’est encore disponible dans votre agenda.</p>}
       <ul className="space-y-2">
         {dates.map((d) => (
           <RetenirDate key={d.creneau_id} interventionId={interventionId} creneau={d} />

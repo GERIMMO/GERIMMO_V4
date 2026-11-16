@@ -19,6 +19,8 @@
 .card[data-source="loyers"] .measures { flex: 1; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
 .card[data-source="loyers"] .measures > div { flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px; border: 0; border-radius: 9px; background: #f1f7f4; }
 .card[data-source="loyers"] .measures dd { font-size: 19px; color: #366650; }
+.card[data-source="loyers"] .measures > div[data-retard="oui"] { background: #faeae4; }
+.card[data-source="loyers"] [data-retard="oui"] dd { color: #893f2a; }
 .details { margin-top: 8px; }
 .details summary { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; color: var(--marque); cursor: pointer; list-style: none; min-height: 32px; }
 .details ul { display: grid; gap: 8px; margin-top: 10px; font-size: 12px; }

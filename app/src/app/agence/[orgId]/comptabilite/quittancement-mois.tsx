@@ -210,7 +210,7 @@ export function QuittancementMois({
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-3">
-        {!envoiGroupe && nonEnvoyes.length > 0 && <p className="text-xs text-muted-foreground">Pour envoyer les quittances du mois en groupe, sélectionnez « Tous les biens ».</p>}
+        {!envoiGroupe && nonEnvoyes.length > 0 && <p className="text-xs text-muted-foreground">L’envoi groupé est disponible dans la vue de tout le patrimoine, sans filtre.</p>}
         {(etatEnvoi.succes || etatEnvoi.erreur) && (
           <p className={`text-sm ${etatEnvoi.erreur ? "text-destructive" : "text-success-soft-foreground"}`}>
             {etatEnvoi.succes ?? etatEnvoi.erreur}

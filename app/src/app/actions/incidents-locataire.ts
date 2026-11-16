@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { sansJargon } from "@/lib/erreurs";
 import { verifierLocataire } from "@/lib/ged-acces";
@@ -74,14 +75,12 @@ export async function choisirMonCreneau(
   );
 
   revaliderSuivi(orgId);
-  // Pas de « rappel la veille » annoncé ici : RM-10.5 le prévoit, le produit
-  // ne l'a pas encore (aucune tâche, aucune table ne le porte — vérifié le
-  // 11/09). Promettre un rappel, c'est inviter le locataire à ne pas noter la
-  // date — et lui faire manquer le rendez-vous.
-  return {
-    succes:
-      "Rendez-vous confirmé — l'artisan est prévenu. Notez la date : vous la retrouvez ici, dans « Mes demandes ».",
-  };
+  const intervention = formData.get("intervention");
+  if (typeof intervention === "string" && /^[0-9a-f-]{36}$/i.test(intervention)) {
+    redirect(`/locataire/${orgId}/demandes?rendezvous=${intervention}`);
+  }
+  return { succes: "Rendez-vous confirmé. Retrouvez la date dans Mes demandes." };
+
 }
 
 // ── Aucun ne convient : en proposer trois à son tour (RM-10.2.2) ───────────

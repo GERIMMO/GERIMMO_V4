@@ -40,6 +40,15 @@ try {
   await db.query("update memberships set status='inactive' where account_id=$1",[account]);
   assert.deepEqual(await read(portail),[]);
   assert.deepEqual(await read('/rpc/mes_adhesions_navigation'),[]);
+  const tentative = await fetch(new URL('/memberships?account_id=eq.'+account+'&organization_id=eq.'+org,api), {
+    method:'PATCH', headers:{authorization,'content-type':'application/json'},
+    body:JSON.stringify({status:'active',role:'admin_agence'}),
+  });
+  assert.equal(tentative.status,403);
+  assert.equal((await tentative.json()).code,'42501');
+  assert.deepEqual((await db.query('select status,role from memberships where account_id=$1 and organization_id=$2',[account,org])).rows,
+    [{status:'inactive',role:'artisan'}]);
+  assert.deepEqual(await read(portail),[]);
   await db.query('delete from auth.sessions where id=$1',[session]);
   assert.equal((await fetch(new URL('/rpc/mes_adhesions_navigation',api),{headers:{authorization}})).status,401);
   console.log('PostgREST : propriétaire, locataire, artisan, organisation voisine et révocation vérifiés.');

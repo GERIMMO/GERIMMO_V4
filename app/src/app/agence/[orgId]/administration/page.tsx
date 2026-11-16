@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { nomComplet } from "@/lib/roles-personnes";
+import { GestionCollaborateur } from "./gestion-collaborateur";
 import { FormulaireInvitationAgent } from "./formulaire-invitation-agent";
 import {
   EncadreLectureImpossible,
@@ -34,7 +35,7 @@ export default async function PageAdministration(
   props: PageProps<"/agence/[orgId]/administration">
 ) {
   const { orgId } = await props.params;
-  const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, role, estProprietaire, user, traverseeLectureSeule } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
   if (estProprietaire || role !== "admin_agence") notFound();
@@ -225,6 +226,7 @@ export default async function PageAdministration(
                       {nbLots} lot{nbLots > 1 ? "s" : ""} en portefeuille
                     </span>
                   )}
+                  {!traverseeLectureSeule && m.account_id !== user.id && <GestionCollaborateur orgId={orgId} membre={m} equipe={equipe} />}
                 </li>
               );
             })}

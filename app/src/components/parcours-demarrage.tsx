@@ -195,11 +195,10 @@ export async function ParcoursDemarrage({
             Une fois le bail actif, le loyer du mois est calculé seul le 1ᵉʳ ;
             vous déclarez l&apos;encaissement, la quittance s&apos;établit
             d&apos;elle-même.{" "}
-            <b>Gerimmo peut aussi envoyer avis et quittances seul</b>, avec les
-            relances d&apos;impayé : rien ne part sans votre accord, donné une fois.
+            Vous pouvez autoriser l’envoi des quittances aux locataires qui ont accepté de les recevoir par e-mail.
           </p>
-          <Link href={`${base}/profil#relances`} className="lien-discret whitespace-nowrap">
-            Activer les envois automatiques →
+          <Link href={`${base}/profil#quittances`} className="lien-discret whitespace-nowrap">
+            Régler l’envoi des quittances →
           </Link>
         </div>
       ) : (
@@ -207,7 +206,7 @@ export async function ParcoursDemarrage({
         // encaissement se déclare. On dit ce qui reste à faire, et seulement ça.
         <p className="mt-3 text-[13px] text-muted-foreground">
           Une fois le bail actif, le loyer du mois est calculé seul le 1ᵉʳ
-          {envois.appels_envoi_auto ? " et l'avis part au locataire" : ""}. Il vous
+          . Il vous
           reste un geste&nbsp;: déclarer chaque encaissement — la quittance
           s&apos;établit alors d&apos;elle-même
           {envois.quittances_envoi_auto

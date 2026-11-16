@@ -1,3 +1,4 @@
+import { deElide } from "@/lib/elision";
 import { chargerTachesConsommations } from "@/lib/taches-consommations";
 import { SuiviEcheanciersCharges } from "@/components/suivi-echeanciers-charges";
 import Link from "next/link";
@@ -91,9 +92,9 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   const loyersAConfirmer = rappels.dus.reduce((n, ligne, i) => n + (points[i]?.aConfirmer ? ligne.dette_bail.echeances : 0), 0);
   const totalPrioritaire = critiques.length + loyersAConfirmer;
   const automatisations = [
-    { nom: "Avis d’échéance", active: reglages?.appels_envoi_auto },
+    { nom: "Avis d’échéance", suspendu: true },
     { nom: "Envoi des quittances", active: reglages?.quittances_envoi_auto },
-    { nom: "Relances d’impayés", active: reglages?.relances_envoi_auto },
+    { nom: "Relances d’impayés", suspendu: true },
   ];
 
   return <main className={styles.page}>
@@ -101,16 +102,17 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
 
     <section className={styles.indicateurs} aria-label="Votre patrimoine en bref">
       <Link href={`${base}/loyers`} className={styles.indicateur}>
-        <span><Banknote size={22} aria-hidden="true"/>Loyers encaissés</span>
-        <small>En {nomMois}</small>
+        <span><Banknote size={22} aria-hidden="true"/>Loyers du mois</span>
+        <small>Échéances {deElide(nomMois)}</small>
         <div className={styles.montantLoyer}><strong>{loyersMois ? eur(loyersMois.encaisse) : "—"}</strong>{loyersMois && loyersMois.attendu > 0 && <em>sur {eur(loyersMois.attendu)}</em>}</div>
-        {pourcentage !== null ? <div className={styles.progressionLoyer}><span role="progressbar" aria-label={`Loyers encaissés en ${nomMois}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pourcentage}><i style={{width:`${pourcentage}%`}}/></span><small>{pourcentage} %</small></div> : <small>{loyersMois ? "Aucun loyer attendu ce mois-ci" : "Montants indisponibles"}</small>}
+        {pourcentage !== null ? <div className={styles.progressionLoyer}><span role="progressbar" aria-label={`Part des échéances couvertes en ${nomMois}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pourcentage}><i style={{width:`${pourcentage}%`}}/></span><small>{pourcentage} %</small></div> : <small>{loyersMois ? "Aucun loyer attendu ce mois-ci" : "Montants indisponibles"}</small>}
+        <small>{pilotage.encaisse === null ? "Encaissements du mois indisponibles" : `${eur(pilotage.encaisse)} reçus en ${nomMois}, toutes échéances confondues`}</small>
         <ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true"/>
       </Link>
       <CarteVerifications base={base} patrimoine={patrimoine ? { biens: patrimoine.biens, lots: patrimoine.lots.length } : null}
         loyersAConfirmer={loyersAConfirmer} paliersLoyers={libellesPoints(points)}
-        total={totalPrioritaire || (incertain ? 0 : taches.length)} critiques={verifications.critiques} apercu={verifications.premiere?.titre ?? null}
-        hrefTaches="#taches-proprietaire"
+        total={verifications.total} critiques={verifications.critiques} apercu={verifications.premiere?.titre ?? null}
+        hrefTaches={`${base}/alertes`}
         indisponible={incertain} className={styles.indicateur}>
         {Object.values(erreurs).some(Boolean) && <p className="err" role="alert">Certaines demandes sont indisponibles. La liste peut être incomplète.</p>}
         {suiviIncomplet && <p className={styles.note}>Le palier de certains loyers n’a pas pu être vérifié. <Link href={`${base}/loyers`}>Voir les finances</Link></p>}
@@ -142,7 +144,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
       <summary><Settings2 size={17} aria-hidden="true"/>Mes automatismes et outils</summary>
       <div className={styles.outilsSecondaires}>
         <section aria-label="Envois automatiques">
-          {reglages ? <dl className={styles.automatismes}>{automatisations.map(a => <div key={a.nom}><dt>{a.nom}</dt><dd data-actif={a.active === true}>{a.active ? "Activé" : "Manuel"}</dd></div>)}</dl> : <p className="err" role="alert">Réglages d’envoi indisponibles.</p>}
+          {reglages ? <dl className={styles.automatismes}>{automatisations.map(a => <div key={a.nom}><dt>{a.nom}</dt><dd data-actif={a.active === true}>{a.suspendu ? "Envoi suspendu" : a.active ? "Activé" : "Manuel"}</dd></div>)}</dl> : <p className="err" role="alert">Réglages d’envoi indisponibles.</p>}
           <Link className={styles.lienPied} href={`${base}/profil#envois`}>Régler les envois<ArrowRight size={15} aria-hidden="true"/></Link>
         </section>
         <nav className={styles.outils} aria-label="Outils du propriétaire">

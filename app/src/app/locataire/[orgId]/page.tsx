@@ -1,3 +1,4 @@
+import { RendezVousLocataireConfirme } from "@/components/rendez-vous-locataire-confirme";
 import { lireToutesLesPages } from "@/lib/lecture-complete";
 import type { MonReleveConsommation } from "@/lib/consommations";
 import { SuiviEcheanciersCharges } from "@/components/suivi-echeanciers-charges";
@@ -49,6 +50,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     { data: annonces, error: eAnnonces },
     { data: piecesDemandees, error: eDemandes },
     { data: signatures, error: eSignatures },
+    rendezVous,
     { data: creneaux, error: eCreneaux },
     { data: restitutions, error: eRestitution },
   ] = await Promise.all([
@@ -67,6 +69,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     // au locataire, et il n'apparaissait que dans « Mes demandes ». Celui qui
     // n'ouvre pas cet écran ne sait pas qu'on attend sa disponibilité, et le
     // dossier s'arrête là (RM-19.2.3, constat du 11/09).
+    adhesionActive ? supabase.rpc("mes_rendez_vous_locataire", { p_org: orgId }) : Promise.resolve({data:[], error:null}),
     supabase.rpc("mes_creneaux_locataire", { p_org: orgId }),
     // Décision D36 : le dépôt de garantie en cours de restitution, ou son décompte
     // établi, se lit dès l'accueil — la page « Mes paiements » le portait seule.
@@ -314,6 +317,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
 
   return (
     <div className="space-y-4">
+      {!rendezVous.error && <RendezVousLocataireConfirme orgId={orgId} lignes={rendezVous.data ?? []}/>}
       {avisCharges.error ? <p role="alert">Les avis de charges sont momentanément indisponibles.</p> :
         (avisCharges.data ?? []).map((avis:{document_id:string;annee:number;avis_le:string}) =>
           <section className="loc-carte" key={avis.document_id}><h2>Décompte de charges {avis.annee}</h2>

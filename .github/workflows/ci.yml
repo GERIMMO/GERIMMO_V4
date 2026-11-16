@@ -176,10 +176,11 @@ jobs:
       - run: npm run build
       - run: npm run typecheck
       - name: Installer Chromium et WebKit pour les PDF et les essais interactifs
-        run: npx playwright install --with-deps chromium webkit
+        run: |
+          npx playwright install --with-deps chromium webkit
+          node -e 'require("node:fs").appendFileSync(process.env.GITHUB_ENV,"GERIMMO_CHROME="+require("@playwright/test").chromium.executablePath()+"\n")'
       - name: Tester la logique et produire les documents PDF
         run: |
-          export GERIMMO_CHROME="$(node -p "require('@playwright/test').chromium.executablePath()")"
           export GERIMMO_CATALOGUE_PDF_DIR="$RUNNER_TEMP/gerimmo-pdfs"
           export GERIMMO_TEST_PDF=1
           export SIGNATURE_TEST_API_URL=http://127.0.0.1:54321

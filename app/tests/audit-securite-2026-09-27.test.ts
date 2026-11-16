@@ -290,7 +290,9 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
       .toMatch(/permission denied/);
     expect(await echec(`update public.memberships set account_id=$1 where account_id=$2 and organization_id=$3`, [adminB, agentA, orgA]))
       .toMatch(/permission denied/);
-    await db.query(`update public.memberships set role='admin_agence' where account_id=$1 and organization_id=$2`, [agentA, orgA]);
+    expect(await echec(`update public.memberships set role='admin_agence' where account_id=$1 and organization_id=$2`, [agentA, orgA]))
+      .toMatch(/permission denied/);
+    await db.query("select public.gerer_collaborateur_agence($1,$2,'admin_agence')", [orgA, agentA]);
     await postgres();
     const t = await un<{ account_id: string; details: Record<string, string> }>(
       `select account_id, details from public.audit_log where action='role_modifie' and organization_id=$1`, [orgA]);

@@ -52,6 +52,35 @@ describe.skipIf(!url)("ART004 — confirmation sans chevauchement silencieux", (
   afterEach(async()=>{await db.query("rollback to savepoint cas");await postgres();});
   afterAll(async()=>{await db?.query("rollback");await db?.end();});
 
+  it("propose seulement les créneaux encore libres, même si l'autre dossier est privé", async () => {
+    const chantier = await prive();
+    await planningPrive(chantier);
+    const libre = await slot(mission, 2, 4);
+    await agir(loc);
+    const liste = await db.query("select creneau_id from public.mes_creneaux_locataire($1) where intervention_id=$2", [org, mission]);
+    expect(liste.rows.map(r => r.creneau_id)).toEqual([libre]);
+  });
+  it("masque à l’artisan une contre-proposition devenue incompatible", async () => {
+    await confirmerAutre();
+    const indisponible = await slot(mission, 1, 2, "locataire");
+    const libre = await slot(mission, 3, 4, "locataire");
+    await agir(compte);
+    const liste = await db.query("select creneau_id from public.mes_creneaux_artisan($1)", [mission]);
+    expect(liste.rows.map(r => r.creneau_id)).toContain(libre);
+    expect(liste.rows.map(r => r.creneau_id)).not.toContain(indisponible);
+  });
+  it.each(["choix", "contre-proposition"])("un ancien bail reste en lecture seule par appel direct : %s", async geste => {
+    await postgres();
+    await db.query(`update public.baux set etat='termine' where id=(
+      select i.bail_id from public.incidents i join public.incident_interventions iv on i.id=iv.incident_id where iv.id=$1)`, [mission]);
+    await agir(loc);
+    const appel = () => geste === "choix"
+      ? db.query("select public.choisir_creneau($1,$2)", [org, creneau])
+      : db.query("select public.contre_proposer_creneaux($1,$2,$3)", [org, mission,
+          JSON.stringify([4, 6, 8].map(h => ({debut:date(h), fin:date(h+1)})))]);
+    await expect(essai(appel)).rejects.toThrow(/Accès refusé/);
+    expect((await etat()).statut).toBe("acceptee");
+  });
   it("retient normalement un rendez-vous libre",async()=>{await choisir();expect((await etat()).statut).toBe("planifiee");});
   it.each([[1,3],[-1,1],[-1,3],[0,2]])("refuse le chevauchement confirmé [%i,%i] sans toucher les alternatives",async(d,f)=>{await confirmerAutre(d,f);await expect(essai(()=>choisir())).rejects.toThrow(/chevauche/);expect((await etat()).statut).toBe("acceptee");expect((await db.query("select statut from public.intervention_creneaux where id=$1",[creneau])).rows[0].statut).toBe("propose");});
   it.each([[-2,0],[2,4]])("permet deux rendez-vous adjacents [%i,%i]",async(d,f)=>{await confirmerAutre(d,f);await choisir();expect((await etat()).statut).toBe("planifiee");});

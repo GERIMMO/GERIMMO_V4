@@ -1,13 +1,15 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const agenda = vi.hoisted(() => vi.fn(async (): Promise<{ lignes: Record<string, string>[]; erreur: boolean }> => ({ lignes: [], erreur: false })));
+
 vi.mock("@/app/artisan/acces", () => ({
   verifierAccesArtisan: async () => ({ fiche: { statut_plateforme: "valide" } }),
-  chargerAgenda: async () => ({ lignes: [], erreur: false }),
+  chargerAgenda: agenda,
   chargerDemandesRdv: async () => ({ lignes: [], erreur: false }),
 }));
 vi.mock("@/app/artisan/clients/resumes", () => ({ ChantiersDansAgenda: () => null }));
-vi.mock("@/app/artisan/carte-mission", () => ({ CarteMission: () => null }));
+vi.mock("@/app/artisan/carte-mission", () => ({ CarteMission: ({ligne}: {ligne: {intervention_id:string}}) => ligne.intervention_id }));
 
 import PageAgendaArtisan from "@/app/artisan/agenda/page";
 
@@ -39,4 +41,21 @@ describe("les sept jours de l’agenda commencent aujourd’hui à Paris", () =>
     expect(cases[0]).toContain("bg-[var(--marque-clair)]");
     expect(cases.slice(1).every((c) => !c.includes("bg-[var(--marque-clair)]"))).toBe(true);
   });
+});
+
+it("retire un travail déjà terminé du nombre de rendez-vous à venir et préserve son historique", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-16T12:00:00Z"));
+  const debut_prevu = "2026-11-21T08:00:00Z";
+  agenda.mockResolvedValueOnce({ erreur: false, lignes: [
+    { debut_prevu, statut: "planifiee", intervention_id: "mission-attendue" },
+    { debut_prevu, statut: "terminee", intervention_id: "mission-deja-terminee" },
+  ] });
+  const html = renderToStaticMarkup(await PageAgendaArtisan());
+  expect(html).toContain('aria-label="1 rendez-vous"');
+  expect(html).not.toContain('aria-label="2 rendez-vous"');
+  const [calendrier, historique] = html.split("Historique des rendez-vous");
+  expect(calendrier).toContain("mission-attendue");
+  expect(calendrier).not.toContain("mission-deja-terminee");
+  expect(historique).toContain("mission-deja-terminee");
 });

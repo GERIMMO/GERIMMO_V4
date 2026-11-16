@@ -1,3 +1,4 @@
+import { resumerLoyersParcMois } from "@/lib/loyers-parc-mois";
 import { PageFinances } from "@/components/page-finances";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -39,9 +40,10 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
     !portefeuille || (lotId != null && portefeuille.has(lotId));
   const { mois, lignes, error } = await chargerQuittancementDuMois(supabase, orgId, dansPortefeuille);
 
-  const appele = lignes.reduce((t, l) => t + Number(l.montant_du), 0);
-  const encaisse = lignes.reduce((t, l) => t + Math.min(Number(l.montant_couvert), Number(l.montant_du)), 0);
-  const reste = Math.max(0, appele - encaisse);
+  const loyers = resumerLoyersParcMois(lignes);
+  const appele = loyers?.attendu ?? 0;
+  const encaisse = loyers?.encaisse ?? 0;
+  const reste = (Math.round(appele * 100) - Math.round(encaisse * 100)) / 100;
   const impayes = lignes.filter((l) => Number(l.montant_couvert) < Number(l.montant_du));
   const nbRegles = lignes.length - impayes.length;
   // Un mois sans appel n'est pas un mois réussi : rien n'était dû. Les tuiles
@@ -109,7 +111,7 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
         </p>
       </div>
 
-      {error ? (
+      {error || !loyers ? (
         <Card>
           <CardContent className="pt-5">
             <p className="err mb-0" role="alert">
@@ -139,7 +141,7 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
               </span>
             </div>
             <div className={`kpi ${moisVide ? "" : "vert"}`}>
-              <span className="eyebrow">Encaissé</span>
+              <span className="eyebrow">Couvert sur la période</span>
               <span className="chiffre montant mt-1 block">{eur(encaisse)}</span>
               <span className="block text-xs text-muted-foreground">
                 {moisVide

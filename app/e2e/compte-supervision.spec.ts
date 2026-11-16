@@ -1,7 +1,7 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import path from "node:path";
 import { Client } from "pg";
-import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
+import { debordementHorizontal, sansSyntheseAlertes, ouvrirRecherche } from "./aides";
 
 /**
  * LA FICHE DE DÉBOGAGE D'UN COMPTE (25/09).
@@ -48,29 +48,6 @@ test("depuis une organisation, la fiche d'un compte dit son état, ses rôles et
   await entrer.click();
   await expect(page).toHaveURL(/\/agence\//);
 });
-
-const CHAMP_RECHERCHE = "Nom, ville, email, SIRET ou référence";
-
-/** Ouvre la fenêtre de recherche de la console depuis le point du matin et rend son champ. */
-async function ouvrirRecherche(page: Page) {
-  await page.goto("/admin/brief");
-  // Au téléphone (une seule barre, 25/09), la recherche vit dans le menu.
-  // Sur la construction de production, un clic parti avant l'hydratation est
-  // rejoué par React une fois la page vivante : le menu peut se refermer juste
-  // après s'être ouvert. On rejoue donc toute la séquence — ouvrir le menu si
-  // besoin, puis « Rechercher » — jusqu'à ce que le champ soit réellement là.
-  // Le bouton du menu change de nom une fois ouvert (« Fermer le menu ») : on
-  // le vise par ce qu'il commande.
-  const menu = page.locator('button[aria-controls="menu-supervision"]');
-  const champ = page.getByLabel(CHAMP_RECHERCHE);
-  await expect(async () => {
-    if ((await menu.isVisible()) && (await menu.getAttribute("aria-expanded")) !== "true") await menu.click();
-    // Deux boutons portent ce nom (barre haute masquée au téléphone, entrée du menu) : le visible.
-    await page.locator("button:visible", { hasText: /Rechercher/ }).first().click({ timeout: 1_000 });
-    await expect(champ).toBeVisible({ timeout: 1_000 });
-  }).toPass({ timeout: 30_000 });
-  return champ;
-}
 
 test("la recherche de la console trouve un compte par son adresse", async ({ page }) => {
   const champ = await ouvrirRecherche(page);

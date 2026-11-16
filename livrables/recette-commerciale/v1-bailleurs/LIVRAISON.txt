@@ -1,0 +1,48 @@
+GERIMMO V1 — LIVRAISON POUR LES BAILLEURS PARTICULIERS ET SCI
+
+Branche codex/v1-parcours-bailleurs, PR https://github.com/GERIMMO/GERIMMO_V4/pull/341.
+Le candidat fonctionnel 88e41f9d est conservé dans son historique. ETAT.txt et PREUVES.json décrivent cette première campagne. Ce bilan tient aussi compte de l’évaluation indépendante du 16 novembre sur a6538f71. Les résultats de CI et la révision courante sont consultables dans l’onglet Checks de la PR. Aucune fusion des PR 339 et 340.
+
+RECETTE LOCALE À REJOUER
+
+Depuis app, e2e/local/v1-bailleurs.config.ts lance deux formats Chromium, 1440 × 1000 et 390 × 844 tactile simulé. Les tests utilisent les écrans de l’application, des sessions distinctes et des services locaux. Les entrées initiales des scénarios suivants sont précisées. Aucune transaction ou signature chez un prestataire.
+
+1. Première location — premiere-location-continue.spec.ts. Inscription neuve, confirmation dans la boîte fictive, bien et lot, locataire, même bail, contrôles du dépôt et des pièces, dépôt du bail papier, activation, premier appel de 640 €, confirmation par le propriétaire et consultation de la quittance PDF. Aucun bail préparé en SQL. Sur les deux formats, un dépôt de 2 400 € pour 600 € de loyer nu est refusé. Le curseur revient au champ, le message est visible et la correction permet de poursuivre.
+
+2. Finances — lot3-loyer-facture.spec.ts. Cas nom propre et SCI, chacun sur les deux formats. Le test prépare la situation de départ. Le bailleur dépose le justificatif depuis son écran, l’affecte et déclare ensuite explicitement son paiement. Rapprochement avec l’écriture, le lot et le fichier. La vue annuelle distingue les titulaires et les opérations d’attribution incertaine. La démonstration présente notamment 180 € pour la SCI et 75 € en nom propre. La synthèse porte sur l’espace de gestion sélectionné ; les organisations indépendantes gardent leurs propres journaux. La fiscalité fournie reste une aide à la préparation.
+
+3. Intervention — artisan-fin-mission.spec.ts avec local/fuite-trois-acteurs.ts. Location et habilitations fictives préparées. Depuis les trois portails : fuite avec photo, qualification, devis, décision du propriétaire sur le devis, trois créneaux, choix par le locataire puis report, acceptation de la nouvelle date par l’artisan, compte rendu et facture PDF de 100 €. Le bailleur la retrouve sans paiement automatique ; le locataire confirme la résolution puis le propriétaire clôture. Cas particulier et SCI sur les deux formats. Les coordonnées de la SCI viennent de la détention du lot. Une détention ambiguë exige de vérifier le destinataire. Les notifications des tests utilisent des services fictifs.
+
+4. Assistance — support-bailleur.spec.ts. Demande du propriétaire, recherche de son compte par le superadministrateur habilité, consultation en lecture seule, traitement de la demande, relecture dans l’historique et vérification de la réponse par le bailleur. Deux formats. L’accueil présente jusqu’à trois décisions prioritaires. Les paramètres facultatifs ou suspendus ont leur propre état. Les approbations de publication restent externes.
+
+CORRECTIONS ISSUES DU RAPPROCHEMENT
+
+P0. Fin des droits d’un occupant pour la modification des rendez-vous et d’un agent retiré pour l’accès au portefeuille. Retrait, réattribution et historique sont protégés. Les rendez-vous incompatibles sont écartés. Les couvertures d’échéance du mois et les versements effectivement reçus durant ce mois sont expliqués et rapprochés de leurs sources. Les écritures de structures distinctes restent séparées.
+P1. Demandes comptées avec le même périmètre, quittance après encaissement, formulaire de bail guidé après refus, rendez-vous et reports visibles, contrôle des coordonnées avant le devis, génération et numéro de facture particulier ou SCI, facture conservée avec sa pièce. Un travail terminé figure dans l’historique de l’agenda et libère le compteur des rendez-vous à venir. Les actions de courriel suspendues et les promesses de signature ont été alignées sur les services disponibles. Les coordonnées officielles du médiateur restent à fournir par le dirigeant.
+P2 reportés. Refonte typographique générale, statistiques complémentaires, perfectionnements décoratifs et nouvelles automatisations marketing.
+
+DÉMONSTRATION ET PREUVES
+
+Les captures de loyers, du bureau et du refus d’un dépôt montrent l’avant et l’après. Les vues de quittance, de ventilation des finances, de demande locataire et d’agenda artisan montrent le résultat sur ordinateur et téléphone simulé. L’accompagnement initial fera aussi vérifier lisibilité et gestes sur de vrais téléphones.
+
+La démonstration locale est servie sur localhost:3610, API sur 127.0.0.1:54409. Le banc dispose de sa propre base et de son propre stockage. Aucun secret fournisseur. Après préparation du schéma via e2e/local/preparer-ci.mjs, utiliser seed-parcours.mjs --demonstration, les scénarios première location, intervention et support, puis local/agenda.presentation.ts et local/illustrer-depenses.mjs. Le répertoire des objets appartient exclusivement à cette démonstration. Les comptes et adresses sont fictifs ; les PDF ne constituent aucun contrat réel.
+
+Pour figer le modèle, arrêter les services de présentation, puis, depuis app avec SUPALOCAL_DB sur la seule base locale gerimmo_ci_demo_vente_api, exécuter node e2e/local/instantane-demonstration.mjs figer premium. Pour préparer une visite, exécuter node e2e/local/instantane-demonstration.mjs restaurer pilote premium (ou choisir un autre nom alphabétique de copie). Rebrancher l’émulateur local sur cette copie et son répertoire d’objets. Les éditions précédentes restent conservées.
+
+Le modèle premium restauré le 16 novembre contient 12 comptes fictifs, 4 organisations, 4 baux, 17 documents, 2 factures de fourniture réglées, 1 rendez-vous planifié et 27 fichiers identiques par SHA-256. Empreinte commune des inventaires source et restauré : e6a31eb1d82d9e95d68ab8b50ba193d3528a6fd97ac9d19139b44c6eb672d2fb. Dans la copie restaurée, le dossier « Parc d’Élise Morel » et son contact de présentation ont été relus depuis le portail du propriétaire. La même quittance des Acacias a été consultée à 1440 et 390 pixels et réimprimée en un PDF d’une page. Le contact fictif d’Élise, le loyer de 600 €, les provisions de 40 € et le total de 640 € sont lisibles. Preuves : captures/premiere-quittance-1440.png, captures/premiere-quittance-390.png et quittance-acacias-presentation.pdf. Cette restauration vérifie le modèle de démonstration local.
+
+LIVRAISON CONTRÔLÉE
+
+1. Vérifier la CI complète du SHA exact, la base de la PR, le domaine et les protections de promotion. Recueillir les approbations requises sur la PR et l’environnement de production.
+2. Vérifier avant migration une sauvegarde fraîche de production et sa restauration isolée selon la procédure autorisée ; rapprocher le registre des migrations de la base réellement servie et examiner les données historiques. Répéter l’ordre sur clone représentatif. La démonstration est séparée de cette opération.
+3. Sur le SHA fusionné et validé, comparer le registre de production à ces sept migrations. Simuler le lot manquant, puis l’appliquer par migrations.yml dans cet ordre :
+   20261116035047_disponibilites_et_droits_rendez_vous.sql
+   20261116041536_numeros_factures_emises_intervention.sql
+   20261116083100_demarrage_encaissement.sql
+   20261116083200_gestion_collaborateurs_agence.sql
+   20261116084000_destinataire_facture_sci.sql
+   20261116141850_droits_incidents_apres_depart_colocataire.sql
+   20261116141945_adhesions_ecriture_par_actions.sql
+4. Contrôler fonctions, permissions, justificatifs et cache PostgREST ; promouvoir par publication-controlee.yml. Relire le SHA du domaine et la santé de la base. Tester les quatre portails avec les comptes autorisés, l’accès refusé aux anciennes relations et le maintien de la fermeture des ventes.
+5. En cas d’erreur, arrêter la promotion ou isoler l’opération concernée. Préserver les numéros de facture émis, les documents, les décisions et les écritures ; corriger en avant après validation.
+6. Après déploiement vérifié, accompagner deux volontaires gratuits (nom propre et SCI) sur leurs véritables appareils. Observer sans guider la première quittance, le justificatif et le report d’un rendez-vous. Étendre aux huit suivants si les opérations aboutissent et que les droits et les montants concordent. La convention du médiateur et la décision d’ouverture payante restent du ressort du dirigeant.

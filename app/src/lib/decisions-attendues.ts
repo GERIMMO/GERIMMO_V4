@@ -54,9 +54,15 @@ export type Compteurs = { bugsN1: number | null; devis: number | null; contestat
  * Les rangs « hors équipes » : ceux que la page liste sous « À décider ». Une
  * lecture en échec produit un rang qui le dit (« indisponible »), jamais un zéro.
  */
-export function signauxHorsEquipes(c: Compteurs, sante: { bloquants: number; tachesIllisibles: boolean }): Signal[] {
+export function signauxHorsEquipes(c: Compteurs, sante: { bloquants: number; tachesIllisibles: boolean; configuration?: { etat:string; usage:string }[] }): Signal[] {
   const s: Signal[] = [];
-  if (sante.bloquants > 0 || sante.tachesIllisibles) s.push({ cle: "sante", titre: "Rétablir la santé du service", detail: sante.tachesIllisibles ? "L’historique des tâches est indisponible : l’état du travail automatique est inconnu." : `${pluriel(sante.bloquants, "point")} bloque${sante.bloquants > 1 ? "nt" : ""} : chaque ligne porte la commande qui le règle.`, href: "/admin/sante", action: "Ouvrir la santé" });
+  if (sante.bloquants > 0 || sante.tachesIllisibles) {
+    const connexion = sante.configuration?.find(element => element.etat === "manque");
+    const detail = sante.tachesIllisibles ? "L’historique des tâches ne peut pas être lu."
+      : connexion ? `Connexion à vérifier : ${connexion.usage}.`
+      : `${pluriel(sante.bloquants, "point")} à vérifier dans Santé et connexions.`;
+    s.push({ cle: "sante", titre: "Vérifier les services en difficulté", detail, href: "/admin/sante", action: "Ouvrir la santé" });
+  }
   if (c.alertesCritiques === null || c.alertesCritiques > 0) s.push({ cle: "alertes", titre: "Examiner les alertes critiques", detail: c.alertesCritiques === null ? "Le nombre d’alertes critiques est indisponible." : `${pluriel(c.alertesCritiques, "alerte")} critique${c.alertesCritiques > 1 ? "s" : ""} ouverte${c.alertesCritiques > 1 ? "s" : ""}, toutes organisations confondues.`, action: "Ouvrir les alertes" });
   if (c.bugsN1 === null || c.bugsN1 > 0) s.push({ cle: "bugs", titre: "Suivre les problèmes bloquants", detail: c.bugsN1 === null ? "Le nombre de problèmes bloquants est indisponible." : `${pluriel(c.bugsN1, "problème")} bloquant${c.bugsN1 > 1 ? "s" : ""} pris en charge, pas encore résolu${c.bugsN1 > 1 ? "s" : ""}.`, href: "/admin/retours?nature=bug", action: "Examiner" });
   if (c.contestations === null || c.contestations > 0) s.push({ cle: "contestations", titre: "Répondre aux contestations d’artisans", detail: c.contestations === null ? "Le nombre de contestations est indisponible." : `${pluriel(c.contestations, "contestation")} de note en cours.`, href: "/admin/retours?nature=contestation", action: "Examiner" });

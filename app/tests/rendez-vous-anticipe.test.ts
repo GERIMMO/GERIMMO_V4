@@ -37,7 +37,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 vi.mock("@/app/artisan/acces", () => ({
-  verifierAccesArtisan: async () => ({}),
+  verifierAccesArtisan: async () => ({fiche:{artisan_id:"artisan-fictif",raison_sociale:"Atelier du Parc"}}),
   chargerAgenda: async () => ({ lignes: etat.agenda }),
   chargerCreneauxMission: async () => ({ lignes: [], erreur: false }),
   chargerPhotosDemande: async () => ({ photos: [], erreur: false }),

@@ -331,34 +331,11 @@ function Formulaire({
       )}
       </div>,
       <div key="preferences" id={estProprietaire ? "envois" : undefined} className="space-y-4 scroll-mt-24">
-      {estProprietaire && <p className="text-sm font-medium">En enregistrant, vous autorisez l’envoi automatique des e-mails cochés jusqu’à désactivation. Les options décochées restent en envoi manuel.</p>}
+
       <SousSection titre="Avis d'échéance">
-        <label
-          htmlFor="pr-avis-auto"
-          className="flex min-h-12 items-center gap-3 text-sm"
-        >
-          <input
-            id="pr-avis-auto"
-            type="checkbox"
-            name="appels_envoi_auto"
-            defaultChecked={organisation.appels_envoi_auto}
-            className={CASE}
-          />
-          Annoncer chaque échéance au locataire par e-mail
-        </label>
-        {estProprietaire ? <>
-          <p className="text-sm text-muted-foreground">Le locataire reçoit le montant et la date de chaque échéance. Vérifiez son adresse e-mail.</p>
-          <Fonctionnement titre="avis d’échéance"><p>Les échéances déjà réglées ne sont pas réclamées. Seuls les appels créés depuis moins de 45 jours sont envoyés, avec le solde antérieur éventuel. Activer l’option n’envoie pas tout l’historique.</p></Fonctionnement>
-        </> : <p className="text-sm text-muted-foreground">
-          À la création de l&apos;appel, le locataire reçoit le détail de son
-          terme et sa date d&apos;échéance, avec son solde antérieur s&apos;il en
-          a un. Un terme déjà réglé n&apos;est jamais réclamé, et cocher la case
-          n&apos;envoie pas l&apos;historique : seuls les appels de moins de 45
-          jours partent. Vérifiez les adresses de vos locataires avant de
-          cocher.
-        </p>}
+        <p className="text-sm text-muted-foreground">L’envoi automatique des avis est suspendu. Les échéances restent consultables dans Loyers.</p>
       </SousSection>
-      <SousSection titre="Envoi des quittances">
+      <SousSection titre="Envoi des quittances" id="quittances">
         <label
           htmlFor="pr-envoi-auto"
           className="flex min-h-12 items-center gap-3 text-sm"
@@ -384,20 +361,7 @@ function Formulaire({
         </p>}
       </SousSection>
       <SousSection titre="Relances d'impayé" id="relances">
-        <label
-          htmlFor="pr-relances-auto"
-          className="flex min-h-12 items-center gap-3 text-sm"
-        >
-          <input
-            id="pr-relances-auto"
-            type="checkbox"
-            name="relances_envoi_auto"
-            defaultChecked={organisation.relances_envoi_auto}
-            className={CASE}
-          />
-          Relancer automatiquement les loyers impayés par e-mail
-        </label>
-        {estProprietaire && <p className="text-sm text-muted-foreground">Votre confirmation est demandée avant chaque palier. Si la première relance part plus tard, l’écart entre les deux seuils est conservé. À la seconde relance, le garant est aussi informé si son e-mail est connu. Le recommandé reste à votre initiative.</p>}
+        <p className="text-sm text-muted-foreground">Les courriers de relance automatiques sont suspendus. Vos seuils de suivi restent enregistrés.</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <label htmlFor="pr-relance-1" className="text-sm">
             <span className="block text-xs text-muted-foreground">Première relance, jours après l&apos;échéance</span>
@@ -560,13 +524,13 @@ function FicheProfil({
         <h4 className="eyebrow">Envois automatiques</h4>
         <dl>
           <Ligne libelle="Avis d'échéance par e-mail">
-            {o.appels_envoi_auto ? "Activés" : "Désactivés"}
+            Envoi suspendu
           </Ligne>
           <Ligne libelle="Envoi des quittances">
             {o.quittances_envoi_auto ? "Automatique" : "Manuel"}
           </Ligne>
           <Ligne libelle="Relances d'impayé par e-mail">
-            {o.relances_envoi_auto ? "Activées" : "Désactivées"}
+            Envoi suspendu
             {o.relances_envoi_auto && (
               <Precision>
                 à {o.relance_1_jours} puis {o.relance_2_jours} jours après

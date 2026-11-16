@@ -65,16 +65,18 @@ describe("Composant de signature : cautionnement fermé par réglage serveur", (
     expect(html).toContain("Garant");
   });
 
-  it("le mode indisponible générique (prestataire non connecté) garde son texte et son estimation", () => {
+  it("le mode indisponible explique la suspension et garde ses signataires sans estimation interne", () => {
     const html = rendre({ bailId: BAIL, selection: SELECTION, circuit: null, signataires: PARTIES, manquants: [], annexes: [], mode: "indisponible" });
     expect(html).toContain(GENERIQUE);
     expect(html).not.toContain(MESSAGE_CAUTIONNEMENT_FERME);
-    expect(html).toContain("Estimation");
+    expect(html).toContain("Camille");
+    expect(html).not.toContain("crédits Zoho");
   });
 
-  it("ouvert : estimation affichée, aucun message de suspension", () => {
+  it("ouvert : les signataires sont visibles et le document peut être préparé, sans coût interne", () => {
     const html = rendre({ bailId: BAIL, selection: SELECTION, circuit: null, signataires: PARTIES, manquants: [], annexes: [], mode: "production" });
-    expect(html).toContain("Estimation");
+    expect(html).toContain("Camille");
+    expect(html).not.toContain("crédits Zoho");
     expect(html).not.toContain(MESSAGE_CAUTIONNEMENT_FERME);
     expect(html).not.toContain(GENERIQUE);
   });

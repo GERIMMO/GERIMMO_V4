@@ -1,3 +1,4 @@
+import { RendezVousLocataireConfirme } from "@/components/rendez-vous-locataire-confirme";
 import { EchangesIntervention } from "@/components/echanges-intervention";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
@@ -57,6 +58,7 @@ export default async function PageDemandesLocataire(
   const incidents = (incidentsBruts ?? []) as IncidentLocataire[];
   const suivis = (suivisBruts ?? []) as SuiviIntervention[];
   const creneaux = (creneauxBruts ?? []) as CreneauPropose[];
+  const { rendezvous: selection } = await props.searchParams;
   const rendezVous = (rendezVousBruts ?? []) as RendezVousLocataire[];
   const enCours = incidents.filter((i) => i.etat !== "clos");
   // Un créneau qui attend son choix est la seule chose qu'on lui demande de
@@ -97,6 +99,7 @@ export default async function PageDemandesLocataire(
         )}
       </div>
 
+      {!eRendezVous && <RendezVousLocataireConfirme orgId={orgId} lignes={rendezVous} selection={typeof selection === "string" ? selection : undefined}/>}
       {aEchoue(eIncidents) && <PanneLecture quoi="vos demandes" />}
       {/* Le suivi tombé ne doit pas faire croire qu'il ne se passe rien : sans
           lui, la carte n'affiche que l'état de l'incident, muet sur l'artisan. */}

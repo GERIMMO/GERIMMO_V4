@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { baseApiFictive } from "./local/base-api-fictive";
 import AxeBuilder from "@axe-core/playwright";
 import path from "node:path";
 import { sansSyntheseAlertes, debordementHorizontal, lienLotProprietaire } from "./aides";
@@ -134,7 +135,19 @@ test("les automatismes ouvrent directement les préférences du profil", async (
 for (const largeur of [390, 1440]) test(`incident : décider puis consulter l’historique à ${largeur}px`, async ({ page }, info) => {
   await page.setViewportSize({ width: largeur, height: 950 });
   await page.goto(`${base}/incidents`, { waitUntil: "networkidle" });
-  await page.locator('a[href*="/incidents?sel="]').first().click();
+  const lienDossier = page.locator('a[href*="/incidents?sel="]').first();
+  if (process.env.SUPALOCAL_DB && !await lienDossier.count()) {
+    baseApiFictive(process.env.SUPALOCAL_DB);
+    if (!["localhost", "127.0.0.1"].includes(new URL(page.url()).hostname)) throw new Error("Site fictif local requis.");
+    await page.goto(`${base}/incidents/nouveau`);
+    await page.getByLabel("Logement concerné").selectOption({index: 1});
+    await page.getByLabel("Catégorie", {exact:true}).selectOption("plomberie_canalisation");
+    await page.getByLabel("Description", {exact:true}).fill("Essai fictif — une fuite est visible sous l’évier.");
+    await page.getByRole("button", {name:"Déclarer l'incident"}).click();
+    await expect(page).not.toHaveURL(/incidents\/nouveau/);
+    await page.goto(`${base}/incidents`);
+  }
+  await lienDossier.click();
   const dossier = page.locator('.incident-dossier');
   await expect(dossier.locator('#qualification')).toBeVisible();
   await expect(dossier.getByRole('link', { name: 'Prendre une décision', exact: true })).toHaveCount(0);

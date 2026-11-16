@@ -3,23 +3,34 @@ import { Client } from 'pg';
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { sansSyntheseAlertes, debordementHorizontal } from './aides';
+import { locationIntervention } from "./local/location-intervention";
+import { preparerEtPlanifierFuite } from "./local/fuite-trois-acteurs";
 import { pdfFictif } from './pdf-fictif';
 
 test.use({ storageState: 'e2e/.auth/artisan.json' });
-test('intervention acceptée : démarrage, photo, bilan, facture et réception gestionnaire', async ({page,browser},info)=>{
+for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acceptée : démarrage, photo, bilan, facture (${mode}) et réception gestionnaire`, async ({page,browser},info)=>{
  test.setTimeout(120000);
  const cible=process.env.SUPALOCAL_DB;
  test.skip(!cible||!/^postgres(?:ql)?:\/\/[^@]*@(?:127\.0\.0\.1|localhost):\d{1,5}\/gerimmo_ci_[a-z_]+_api$/.test(cible),'Base API fictive locale requise');
  const db=new Client({connectionString:cible});await db.connect();
- const incident=randomUUID(),mission=randomUUID(),numero=`E2E-FIN-${randomUUID().slice(0,8)}`;
- const bilan=`Joint remplacé et étanchéité vérifiée — ESSAI ${mission}`;
+ let sessionLocataire: Awaited<ReturnType<ReturnType<typeof page.context>['storageState']>> | undefined;
+ let incident=randomUUID() as string,mission=randomUUID() as string;
+ const numero=`FA-${new Date().getFullYear()}-${randomUUID().slice(0,8)}`;
+ const bilan="Joint du siphon remplacé. Essai d’écoulement effectué, aucune fuite constatée.";
  const preuve:Record<string,unknown>={mission,statut:'en cours',fixture:'Mission acceptée sans devis ; tous les gestes suivants sont faits dans le navigateur'};
- const gestion=await browser.newContext({storageState:'e2e/.auth/admin.json'});
+ const gestion=await browser.newContext({storageState:mode==='depot'?'e2e/.auth/admin.json':'e2e/.auth/proprietaire.json'});
  try {
   const {rows:[a]}=await db.query("select a.id from artisans a join auth.users u on u.id=a.account_id where u.email='artisan.alpha@example.com'");
-  const {rows:[lot]}=await db.query("select i.organization_id,i.lot_id from incidents i join organizations o on o.id=i.organization_id where o.name='Agence Alpha' and i.id in (select incident_id from incident_interventions where artisan_id=$1) order by i.id limit 1",[a.id]);
+  const {rows:[existant]}=await db.query("select i.organization_id,i.lot_id from incidents i join organizations o on o.id=i.organization_id where o.name='Agence Alpha' and i.id in (select incident_id from incident_interventions where artisan_id=$1) order by i.id limit 1",[a.id]);
+  const lot=mode==='depot'?existant:await locationIntervention(db,a.id,mode==='sci');
+  if (mode !== 'depot') {
+    const dossier = await preparerEtPlanifierFuite(db, browser, page, lot.organization_id, a.id, lot);
+    incident=dossier.incidentId; mission=dossier.mission; sessionLocataire=dossier.sessionLocataire;
+    Object.assign(preuve,{mission,fixture:'Déclaration avec photo et choix du créneau en navigateur ; accord sur le devis dans le portail de gestion ; qualification, préparation du devis et décision depuis les portails.'});
+  } else {
   await db.query("insert into incidents(id,organization_id,lot_id,numero,canal,categorie,description,etat,imputation,imputation_justification) values($1,$2,$3,$4,'agence','plomberie_canalisation','ESSAI fin de mission fictive','affecte','proprietaire','ESSAI : réparation fictive à la charge du propriétaire')",[incident,lot.organization_id,lot.lot_id,numero]);
   await db.query("insert into incident_interventions(id,organization_id,incident_id,artisan_id,nature_travaux,statut,acceptee_le) values($1,$2,$3,$4,'entretien_courant','acceptee',now())",[mission,lot.organization_id,incident,a.id]);
+  }
   await sansSyntheseAlertes(page);
   await page.goto(`/artisan/missions/${mission}/compte-rendu/bilan`);
   await expect(page).toHaveURL(url => url.pathname === `/artisan/missions/${mission}` && url.searchParams.get('raison') === 'demarrer');
@@ -45,24 +56,74 @@ test('intervention acceptée : démarrage, photo, bilan, facture et réception g
   await page.getByRole('link',{name:'Déposer ma facture',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Déposer ma facture',exact:true})).toBeVisible();
   await page.getByLabel('Numéro de la facture',{exact:true}).fill(numero);
-  await page.getByLabel('Montant TTC (€)',{exact:true}).fill('100,00');
-  await page.getByLabel('Votre facture',{exact:true}).setInputFiles({name:'facture-fictive.pdf',mimeType:'application/pdf',buffer:pdfFictif()});
+  if (mode === 'depot') {
+    await page.getByLabel('Montant TTC (€)',{exact:true}).fill('100,00');
+    await page.getByLabel('Votre facture',{exact:true}).setInputFiles({name:'facture-fictive.pdf',mimeType:'application/pdf',buffer:pdfFictif()});
+  } else {
+    await page.getByLabel(mode === 'sci' ? 'Créer une facture pour une SCI' : 'Créer une facture de travaux pour un particulier').check();
+    await page.getByLabel('Adresse de votre entreprise').fill('8 rue des Tilleuls, 75012 Paris');
+    if (mode === 'sci') {
+      await page.getByLabel('SIREN de la SCI cliente').fill('123456789');
+      await page.getByLabel('Conditions d’escompte pour paiement anticipé').fill('Aucun escompte.');
+      await page.getByLabel('Pénalités de retard et indemnité de recouvrement applicables').fill('Conditions de règlement convenues dans le devis fictif.');
+    } else {
+      await page.getByLabel('Nom du propriétaire à facturer').fill('Camille Fictive');
+      await page.getByLabel('Adresse de facturation du propriétaire').fill('4 rue du Test, 75012 Paris');
+    }
+    await page.getByLabel('Adresse des travaux').fill('1 rue du Test, 75012 Paris');
+    await page.getByLabel('Date de réalisation des travaux').fill('2026-01-01');
+    await page.getByLabel('Date limite de règlement').fill('2099-12-31');
+    await page.getByLabel('Conditions de règlement').fill('Par virement fictif.');
+    await page.getByLabel(/Mentions de votre entreprise et de TVA/).fill('Entreprise individuelle. TVA non applicable, art. 293 B du CGI.');
+    await page.getByLabel('Ligne 1 : prestation').fill('Remplacement du joint et contrôle');
+    await page.getByLabel('Ligne 1 : prix unitaire HT').fill('100');
+    await page.getByLabel('Ligne 1 : TVA').selectOption('0');
+    await page.getByLabel('Je confirme le destinataire', {exact:false}).check();
+  }
   await page.screenshot({path:info.outputPath('facture-avant-depot.png'),fullPage:true});
   expect(await debordementHorizontal(page)).toBe(0);
-  await page.getByRole('button',{name:'Déposer ma facture',exact:true}).click();
+  await page.getByRole('button',{name:mode === 'depot' ? 'Déposer ma facture' : 'Créer et transmettre ma facture',exact:true}).click();
   await expect(page).toHaveURL(/\/artisan\/facturation\?facture=[0-9a-f-]{36}/);
   const {rows:[f]}=await db.query('select id,document_id,montant_ttc_cents from intervention_factures where intervention_id=$1',[mission]);
   expect(f.montant_ttc_cents).toBe('10000');
   expect((await db.query('select travaux_realises from intervention_comptes_rendus where intervention_id=$1',[mission])).rows[0].travaux_realises).toBe(bilan);
   const {rows:[p]}=await db.query("select document_id from intervention_photos where intervention_id=$1 and moment='apres'",[mission]);expect(p.document_id).toBeTruthy();
   const gerant=await gestion.newPage();await sansSyntheseAlertes(gerant);
-  await gerant.goto(`/agence/${lot.organization_id}/incidents/${incident}`);
+  await gerant.goto(`/${mode === "depot" ? "agence" : "espace"}/${lot.organization_id}/incidents/${incident}`);
   await expect(gerant.getByRole('heading',{name:`Facture ${numero} — 100,00 € TTC`,exact:true})).toBeVisible();
   await expect(gerant.getByText(`« ${bilan} »`,{exact:true})).toBeVisible();
   const lien=gerant.getByRole('link',{name:'Consulter la facture avant de décider',exact:true});await expect(lien).toBeVisible();
   const lecture=await gerant.request.get((await lien.getAttribute('href'))!);expect(lecture.status()).toBe(200);expect(await lecture.text()).toContain('URL.createObjectURL');
   expect(await debordementHorizontal(gerant)).toBe(0);
   await gerant.screenshot({path:info.outputPath('reception-gestionnaire.png'),fullPage:true});
+  if (mode !== 'depot') {
+    await gerant.getByLabel('Résultat du contrôle de la facture').fill('Intervention réalisée, facture et justificatif vérifiés.');
+    await gerant.getByRole('button',{name:'Valider cette facture'}).click();
+    await expect.poll(async()=>(await db.query('select validee_le is not null and reglee_le is null ok from intervention_factures where intervention_id=$1',[mission])).rows[0].ok).toBe(true);
+    const avisLocataire = await browser.newContext({storageState:sessionLocataire, viewport:page.viewportSize()});
+    try {
+      const suivi = await avisLocataire.newPage();
+      await sansSyntheseAlertes(suivi);
+      await suivi.goto(`/locataire/${lot.organization_id}/demandes`);
+      const avis = suivi.locator("#demande-"+incident).getByRole("group",{name:"Votre avis sur l'intervention"});
+      await avis.locator("label").filter({hasText:/^5$/}).click();
+      await avis.getByLabel(/Un mot sur l.intervention/).fill("L’évier ne fuit plus depuis le remplacement du joint.");
+      await suivi.locator("#demande-"+incident).getByRole("button",{name:"Envoyer mon avis"}).click();
+      await expect(suivi.locator("#demande-"+incident)).toContainText(/votre avis.*enregistré/i);
+    } finally { await avisLocataire.close(); }
+    const cloture=gerant.locator('#cloture');
+    await cloture.locator('select[name=motif]').selectOption('resolu');
+    await cloture.getByLabel('Ce qui a été fait').fill('Fuite réparée et justificatifs vérifiés.');
+    await cloture.getByRole('button',{name:"Clôturer l'incident"}).click();
+    await expect.poll(async()=>(await db.query('select etat from incidents where id=$1',[incident])).rows[0].etat).toBe('clos');
+    const locataire=await browser.newContext({storageState:sessionLocataire,viewport:page.viewportSize()});
+    try {
+      const suivi=await locataire.newPage();
+      await suivi.goto(`/locataire/${lot.organization_id}/demandes`);
+      await expect(suivi.locator('#demande-'+incident).getByRole('button',{name:'Le problème persiste'})).toBeVisible();
+    } finally { await locataire.close(); }
+    Object.assign(preuve,{incidentClos:true,resolutionConfirmeeParLocataire:true,factureValideeSansReglement:true,locatairePeutSignalerUnePersistance:true});
+  }
   preuve.statut='réussi';preuve.demarrage=true;preuve.photoDeposee=true;preuve.compteRenduTransmis=true;preuve.factureDeposee=true;preuve.factureLueParGerant=true;
  } finally {writeFileSync(info.outputPath('preuve-fin-mission.json'),JSON.stringify(preuve,null,2)+'\n');await gestion.close();await db.end();}
  // Données uniquement dans la base CI éphémère, supprimée avec le conteneur.

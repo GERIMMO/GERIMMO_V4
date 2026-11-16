@@ -109,6 +109,39 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
   beforeEach(async () => { await db.query("savepoint cas"); });
   afterEach(async () => { await db.query("rollback to savepoint cas"); await db.query("release savepoint cas"); });
 
+  it("réserve l’identité de facturation de la SCI à son artisan et à la détention intégrale prouvée", async () => {
+    await postgres();
+    await db.query(`update public.persons set nom='SCI des Acacias', qualite='SCI', siren='123456789',
+      address_line1='3 rue des Acacias', postal_code='69003', city='Lyon'
+      where id=(select person_id from public.detentions where lot_id=$1)`, [lot]);
+    const lire = async (siren = "123456789") =>
+      (await db.query("select * from public.sci_facturable_intervention($1,$2)", [intervention,siren])).rows;
+    for (const tiers of [autreArtisanCompte, locataireCompte, autreOrgAdmin]) {
+      await devenir(tiers);
+      expect(await lire()).toEqual([]);
+    }
+    await devenir(artisanCompte);
+    expect(await lire("987654321")).toEqual([]);
+    expect(await lire()).toEqual([{ nom:"SCI des Acacias", siren:"123456789", siege:"3 rue des Acacias, 69003 Lyon" }]);
+    await postgres();
+    await db.query("update public.detentions set quote_part=50 where lot_id=$1", [lot]);
+    await devenir(artisanCompte);
+    expect(await lire()).toEqual([]);
+  });
+
+  it("une facture émise ne peut reprendre le numéro d’une autre mission, même après un double clic", async () => {
+    await postgres();
+    const mission = await id("insert into public.incident_interventions(organization_id,incident_id,artisan_id,nature_travaux,statut) values($1,$2,$3,'entretien_courant','acceptee') returning id",[org,incident,artisan]);
+    const piece = await id("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'facture_artisan','Facture test',$2,'application/pdf',10,$3) returning id",[org,`${org}/factures-artisan/${mission}/emises/test.pdf`,randomUUID()]);
+    const inserer = (numero: string) => essai(() => db.query("insert into public.intervention_factures(organization_id,intervention_id,artisan_id,numero,montant_ttc_cents,document_id) values($1,$2,$3,$4,100,$5)",[org,mission,artisan,numero,piece]));
+    await expect(inserer(" f-2026-17 ")).rejects.toThrow(/déjà été utilisé/);
+    await inserer("F-2026-18");
+    await expect(inserer("f-2026-18")).rejects.toThrow(/déjà été utilisé/);
+    expect((await db.query("select count(*)::int n from public.intervention_factures where intervention_id=$1",[mission])).rows[0].n).toBe(1);
+    await devenir(locataireCompte);
+    await expect(essai(() => db.query("select * from public.artisan_numeros_factures"))).rejects.toThrow(/permission denied/);
+  });
+
   // ── B.12-1 : règlement total ─────────────────────────────────────────────────────────────────────────────────────
   it("une facture validée se règle en une fois : un règlement, une dépense « travaux » du bon lot à la bonne date, état « réglée »", async () => {
     await valider();

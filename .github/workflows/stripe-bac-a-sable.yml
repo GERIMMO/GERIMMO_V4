@@ -68,10 +68,14 @@ jobs:
       - name: Installer Chromium pour la commande volontaire
         run: npx --no-install playwright install --with-deps chromium
       - name: Tester les cas de paiement et leur application dans Gerimmo
+        id: scenarios_stripe
         env:
           GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}
         run: npm test -- tests/stripe-bac-a-sable.test.ts --reporter=default --reporter=json --outputFile=/tmp/gerimmo-stripe-test.json
       - name: Vérifier le clic client dans Gerimmo et sa page hébergée Stripe TEST
+        # Si les préparatifs de sécurité ont échoué, les scénarios n'ont pas été lancés.
+        # Un échec métier des scénarios laisse le contrôle indépendant du navigateur s'exécuter.
+        if: ${{ !cancelled() && (steps.scenarios_stripe.outcome == 'success' || steps.scenarios_stripe.outcome == 'failure') }}
         env:
           GERIMMO_RECETTE_COMMANDE: stripe-test
           GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}

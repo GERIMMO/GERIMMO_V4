@@ -1,9 +1,12 @@
-import { lierCommandeFictive } from "./fixtures/preuve-commande";
+import { pdfFictif } from "../e2e/pdf-fictif";
+import { archiverConditionsFictives, lierCommandeFictive } from "./fixtures/preuve-commande";
 import { Client } from "pg";
 import { createHash, randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
 
+import { circuitAdmisPilote } from "../src/lib/perimetre-pilote";
+import { chiffrerCourriel, identiteCourriel, reprendreCourriels, type ChargeCourriel } from "../src/lib/reprise-courriels";
 import { clientSurPg } from "./fixtures/supabase-sur-pg";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { envoyerAccuseResiliation, envoyerConfirmationSouscription } from "../src/lib/courriers-contrat-envoi";
@@ -32,7 +35,11 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
   afterEach(async()=>{await db.query("rollback");vi.unstubAllGlobals();vi.unstubAllEnvs();});
   it("de l’action métier jusqu’à la boîte fictive et au journal, une seule fois par épisode",async()=>{
     vi.stubEnv("GERIMMO_MODE","simulation");vi.stubEnv("COURRIELS_CHIFFREMENT_CLE","ab".repeat(32));vi.stubEnv("RESEND_API_KEY","fictive");
-    const boite=vi.fn(async()=>Response.json({id:"msg_"+randomUUID()}));vi.stubGlobal("fetch",boite);
+    const boite=vi.fn(async(url:string,requete:RequestInit)=>{
+      if(url!=="https://api.resend.com/emails" || requete.method!=="POST") throw Error("Destination externe interdite");
+      return Response.json({id:"msg_"+randomUUID()});
+    });
+    vi.stubGlobal("fetch",boite);
     await db.query("select set_config('request.jwt.claims','{\"role\":\"service_role\"}',true)");
     // PostgREST conserve la précision des dates SQL. Le pilote pg transforme normalement les dates en Date JS.
     const service=clientSurPg(db,{transactionnel:true});
@@ -42,14 +49,57 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
     const fin=new Date(Date.now()+3600000);
     await db.query("update abonnements set periode_fin=$1 where organization_id=$2",[fin,org]);
     const confirmer=()=>envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null});
+    expect(await confirmer()).toMatchObject({envoye:false,verification:true});
+    expect(boite).not.toHaveBeenCalled();
+    expect((await db.query("select confirmation_envoyee_le from abonnements where organization_id=$1",[org])).rows[0].confirmation_envoyee_le).toBeNull();
+    expect((await db.query("select id from courriels_durables where organization_id=$1",[org])).rowCount).toBe(0);
+    await archiverConditionsFictives(db, "v1");
     const resilier=()=>envoyerAccuseResiliation(banc.service!,{orgId:org,subscription:sub,periodeFin:fin,notifieeLe:new Date(),chemin:"webhook"});
     for(const envoyer of [confirmer,resilier]){
       expect(await envoyer()).toMatchObject({envoye:true});
       expect((await envoyer()).envoye).toBe(false);
     }
     expect(boite).toHaveBeenCalledTimes(2);
+    const confirmation=JSON.parse(String(boite.mock.calls[0][1].body));
+    expect(confirmation.html).toContain("formulaire");
+    expect(confirmation.attachments.map((p:{filename:string})=>p.filename)).toEqual(["conditions-generales-v1.pdf"]);
+    // La boîte fictive ouvre l'octet remis au transport et retrouve la clause de l'archive PostgreSQL.
+    const {getDocument}=await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const chargement=getDocument({data:new Uint8Array(Buffer.from(confirmation.attachments[0].content,"base64")),useSystemFonts:false});
+    const pdf=await chargement.promise;
+    try {
+      const page=await pdf.getPage(1);
+      const texte=await page.getTextContent();
+      expect(texte.items.map(item=>"str" in item ? item.str:"").join(" ")).toContain("Conditions du contrat fictif, version v1.");
+    } finally { await chargement.destroy(); }
     expect((await db.query("select count(*)::int n from courriels_durables where organization_id=$1 and finalisation_etat='terminee'",[org])).rows[0].n).toBe(2);
   });
+  it("une ancienne confirmation sans les bonnes conditions ne quitte pas sa file lors d’une reprise", async () => {
+    vi.stubEnv("GERIMMO_MODE","simulation");
+    vi.stubEnv("COURRIELS_CHIFFREMENT_CLE","ab".repeat(32));
+    const service = clientSurPg(db,{transactionnel:true}) as unknown as SupabaseClient;
+    const contexte = {type:"confirmation_abonnement" as const,id:sub,montant:599,
+      version:"v1",acceptee:"2026-11-01",formule:"solo",unites:1,periodicite:"mensuel",souscrit:"2026-11-01",
+      organisation:"SCI fictive",document:false};
+    const charge:ChargeCourriel = {
+      to:"titulaire@example.invalid", subject:"Votre contrat", html:"<p>Confirmation fictive</p>", organisationId:org,
+      cleIdempotence:"souscription-"+sub, contexteMetier:contexte,
+    };
+    const k=identiteCourriel(charge);
+    await db.query("select conserver_courriel($1,$2,$3,$4,now()+interval '1 hour')",
+      [k.id,org,empreinte(k.contenu),chiffrerCourriel(k.id,charge)]);
+    const expedier=vi.fn();
+    await reprendreCourriels(service,expedier,async()=>{});
+    expect(expedier).not.toHaveBeenCalled();
+    const ancien=(await db.query("select etat,tentatives,reprise_autonome from courriels_durables where id=$1",[k.id])).rows[0];
+    expect(ancien).toMatchObject({etat:"en_attente",tentatives:0,reprise_autonome:false});
+    const piece={nom:"conditions-generales-v1.pdf",contenuBase64:pdfFictif().toString("base64")};
+    const exacte:ChargeCourriel={...charge,contexteMetier:{...contexte,document:true},piecesJointes:[piece]};
+    expect(circuitAdmisPilote(exacte)).toBe(true);
+    expect(circuitAdmisPilote({...exacte,piecesJointes:[{...piece,nom:"conditions-generales-v2.pdf"}]})).toBe(false);
+    expect(circuitAdmisPilote({...exacte,piecesJointes:[{...piece,contenuBase64:Buffer.from("%PDF-1.7 document coupé").toString("base64")}]})).toBe(false);
+  });
+
   for(const type of ["confirmation_abonnement","accuse_resiliation"]){
     it(type+" : contrôle du destinataire, finalisation après acceptation puis rejeu",async()=>{
       const a=(await db.query("select * from abonnement_courrier_contexte($1)",[org])).rows[0];

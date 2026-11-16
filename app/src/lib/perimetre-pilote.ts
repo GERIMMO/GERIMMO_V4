@@ -1,3 +1,4 @@
+import { estDocumentPdfComplet } from "./file-type";
 import { incidentContractuel } from "./contrat-incidents-contexte";
 import { lireAdressesRelais } from './relais-alerte';
 import { paiementsInterdits } from './verrou-pilote';
@@ -24,10 +25,14 @@ export function circuitAdmisPilote(p:ChargeCourriel):boolean {
  if(c?.type==='notification' && ['rdv_report_demande','rdv_report_accepte'].includes(c.evenement))
   return !!p.organisationId && !!c.source && !p.piecesJointes?.length && c.role===(c.evenement==='rdv_report_demande'?'artisan':'locataire');
  if(incidentContractuel(c?.type)) return !paiementsInterdits() && !!p.organisationId && !!c?.id && !p.piecesJointes?.length;
- if(c?.type==='confirmation_abonnement'||c?.type==='accuse_resiliation') {
-  return !paiementsInterdits() && !!p.organisationId && !!c.id &&
-    (c.type==='confirmation_abonnement' ? !!c.version && !!c.acceptee && Number.isSafeInteger(c.montant) && c.montant>=0 : !!c.fin && !p.piecesJointes?.length);
+ if(c?.type==='confirmation_abonnement') {
+  const piece=p.piecesJointes?.[0];
+  return !paiementsInterdits() && !!p.organisationId && !!c.id && !!c.version && !!c.acceptee &&
+   Number.isSafeInteger(c.montant) && c.montant>=0 && c.document===true &&
+   p.piecesJointes?.length===1 && !!piece && piece.nom===`conditions-generales-${c.version}.pdf` &&
+   typeof piece.contenuBase64==="string" && estDocumentPdfComplet(Buffer.from(piece.contenuBase64,"base64"));
  }
+ if(c?.type==='accuse_resiliation') return !paiementsInterdits() && !!p.organisationId && !!c.id && !!c.fin && !p.piecesJointes?.length;
  if(c?.type==='reconduction')return !!p.organisationId && Number.isSafeInteger(c.montant) && c.montant>=0 && !p.piecesJointes?.length;
  if(c?.type==='acces')return ['signup','recovery'].includes(c.usage)&&!!c.jeton_empreinte;
  if(c?.type==='invitation_artisan')return !!c.acteur;

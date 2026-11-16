@@ -45,7 +45,7 @@ const faq = (duree: string): [string, string][] => [
   // biens (conditions générales, articles 1 et 2) ; « le bien d'un proche » en sortait.
   [
     "Puis-je gérer une SCI ou une indivision ?",
-    "Oui. Vous pouvez réunir ces biens dans le même espace en précisant qui les détient. Si vous gérez plusieurs espaces, vous pouvez passer de l’un à l’autre avec le même compte.",
+    "Oui, pour vos propres biens : en nom propre, en SCI ou en indivision. Vous pouvez préciser qui détient chaque bien et passer d’un espace à l’autre avec le même compte.",
   ],
   // La liste d'attente des agences (20/10/2026) : l'offre agences est hors du site public depuis le 13/10 ; la question
   // revient, la réponse renvoie à /agences (section #agences ci-dessous) sans prix ni date.

@@ -33,7 +33,7 @@ function identifiantClient(s: Stripe.Subscription): string | null {
 
 export async function traiterEvenementStripe(supabase: Service, stripe: Stripe, evenement: Stripe.Event, effetsExternes = true, avantEffet?: () => Promise<void>): Promise<Resultat> {
   exigerOperationsPayantesAutorisees();
-  if (evenement.type === "invoice.paid") return traiterFacturePayee(supabase, evenement);
+  if (evenement.type === "invoice.paid") return traiterFacturePayee(supabase, stripe, evenement);
   if (evenement.type === "customer.subscription.trial_will_end") {
     return traiterFinEssai(supabase, stripe, evenement, avantEffet);
   }
@@ -147,6 +147,8 @@ async function traiterSouscription(supabase: Service, stripe: Stripe, evenement:
     p_customer: customer,
     p_subscription: s.id,
     p_statut: statut,
+    ...((statut === "past_due" || statut === "unpaid") && s.latest_invoice
+      ? {p_facture_en_defaut: typeof s.latest_invoice === "string" ? s.latest_invoice : s.latest_invoice.id} : {}),
     p_quantite: quantiteFacturee(s),
     p_periode_fin: finDePeriode(s),
     // Finitions du 24/10 (I1) : une date d'arrêt (`cancel_at`) est une fin programmée, comme une résiliation à l'échéance.
@@ -390,7 +392,7 @@ async function courriersDuContrat(
  * la facture à 0 € qui ouvre un essai Stripe n'est pas un paiement. Tant
  * qu'aucune ne l'est, un prélèvement refusé gèle le compte sans délai.
  */
-async function traiterFacturePayee(supabase: Service, evenement: Stripe.Event): Promise<Resultat> {
+async function traiterFacturePayee(supabase: Service, stripe: Stripe, evenement: Stripe.Event): Promise<Resultat> {
   const f = evenement.data.object as Stripe.Invoice;
   const customer = typeof f.customer === "string" ? f.customer : (f.customer?.id ?? null);
   if (!customer) return { motif: "Facture sans client", reponse: { organisation: null } };
@@ -403,6 +405,32 @@ async function traiterFacturePayee(supabase: Service, evenement: Stripe.Event): 
     p_subscription: subscription,
   });
   if (error) throw new Error(error.message);
+  if (org && f.status === "paid" && f.amount_remaining === 0 && f.currency === "eur") {
+    const params = {p_customer:customer,p_subscription:subscription,p_facture:f.id};
+    const lecture = await supabase.rpc("abonnement_defaut_a_regulariser",params);
+    if (lecture.error) throw new Error("Défaut de paiement à vérifier.");
+    if (lecture.data) {
+      const actuelle = await stripe.subscriptions.retrieve(subscription,{expand:["latest_invoice"]});
+      const i = actuelle.latest_invoice;
+      if (actuelle.id !== subscription || identifiantClient(actuelle) !== customer || !i || typeof i === "string") {
+        throw new Error("Le règlement doit être rapproché de sa souscription Stripe.");
+      }
+      // Régler une facture ancienne ne régularise jamais un impayé ultérieur.
+      if (i.id !== f.id && typeof f.created === "number" && i.created <= f.created &&
+        ["past_due","unpaid"].includes(actuelle.status)) {
+        throw new Error("Ordre des factures Stripe en attente de confirmation.");
+      }
+      if (i.id === f.id && ["past_due","unpaid","active"].includes(actuelle.status)) {
+        const liee=i.parent?.subscription_details?.subscription;
+        if ((typeof liee === "string" ? liee : liee?.id)!==subscription || (typeof i.customer==="string" ? i.customer : i.customer?.id)!==customer ||
+          actuelle.status!=="active" || actuelle.pause_collection || i.status!=="paid" || i.amount_remaining!==0 || i.currency!=="eur" || i.amount_paid!==f.amount_paid) {
+          throw new Error("Règlement signé, état Stripe en cours de rapprochement.");
+        }
+        const reglee=await supabase.rpc("abonnement_regulariser_facture",{...params,p_version:lecture.data,p_montant:i.amount_paid});
+        if (reglee.error) throw new Error("La régularisation doit être reprise.");
+      }
+    }
+  }
   return {
     motif: org ? undefined : "Client Stripe inconnu de Gerimmo",
     reponse: { organisation: org ?? null },

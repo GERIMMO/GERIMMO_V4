@@ -169,3 +169,57 @@ language sql stable security definer set search_path='' as $$
 $$;
 revoke all on function public.dossiers_impayes_a_decider() from public,anon,authenticated;
 grant execute on function public.dossiers_impayes_a_decider() to service_role;
+
+-- invoice.paid peut parvenir sans customer.subscription.updated. Seul l'événement réservé autorise la
+-- régularisation, après vérification Stripe de la dernière facture et de la souscription toujours active.
+alter function public.stripe_evenement_appliquer(text,uuid,text,jsonb) rename to stripe_evenement_appliquer_avant_regularisation;
+create function public.stripe_evenement_appliquer(p_event_id text,p_jeton uuid,p_action text,p_params jsonb)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare e public.abonnement_evenements; a public.abonnements; version text; o public.organizations;
+begin
+ -- Sérialiser les deux sources d'une même régularisation : deux événements distincts ont deux réservations.
+ if p_action='abonnement_appliquer' then
+  perform 1 from public.abonnement_evenements where stripe_event_id=p_event_id and verrou_jeton=p_jeton for update;
+  if found then
+   select * into a from public.abonnements where stripe_customer_id=p_params->>'p_customer' for update;
+   if found and p_params->>'p_statut' in ('past_due','unpaid') and p_params->>'p_facture_en_defaut' is not null
+   and exists(select from public.audit_log j where j.organization_id=a.organization_id and j.action='regularisation_facture_confirmee'
+    and j.details->>'facture'=p_params->>'p_facture_en_defaut' and j.details->>'souscription'=p_params->>'p_subscription')
+   then raise exception 'État Stripe antérieur au règlement vérifié, relire la souscription' using errcode='40001'; end if;
+  end if;
+ end if;
+ if p_action not in ('abonnement_defaut_a_regulariser','abonnement_regulariser_facture') or p_action is null then
+  return public.stripe_evenement_appliquer_avant_regularisation(p_event_id,p_jeton,p_action,p_params);
+ end if;
+ select * into e from public.abonnement_evenements where stripe_event_id=p_event_id for update;
+ if not found or p_jeton is null or e.verrou_jeton is distinct from p_jeton or e.traite_le is not null
+ or e.verrou_jusqua is null or e.verrou_jusqua<=clock_timestamp() or e.type<>'invoice.paid'
+ or p_params->>'p_facture' is distinct from e.charge->>'objet'
+ or p_params->>'p_customer' is distinct from e.charge->>'client' then raise exception 'Preuve de règlement invalide'; end if;
+ select * into a from public.abonnements where stripe_customer_id=p_params->>'p_customer'
+ and stripe_subscription_id=p_params->>'p_subscription' for update;
+ if not found or a.paiement_en_defaut_depuis is null or a.stripe_statut not in ('past_due','unpaid') then return null; end if;
+ select xmin::text into version from public.abonnements where organization_id=a.organization_id;
+ if p_action='abonnement_defaut_a_regulariser' then return to_jsonb(version); end if;
+ if version is distinct from p_params->>'p_version' then raise exception 'Le dossier a changé, relire le règlement' using errcode='40001'; end if;
+ if coalesce((p_params->>'p_montant')::bigint,0)<=0 then raise exception 'Montant réglé invalide'; end if;
+ select * into strict o from public.organizations where id=a.organization_id for update;
+ -- Conserver un archivage ou une suspension administrative : le règlement rétablit seulement l'accès commercial.
+ if o.status='suspendue' and not exists(select from public.audit_log l where l.id=(
+   select j.id from public.audit_log j where j.organization_id=o.id and j.action in ('abonnement_statut','organisation_suspendue','organisation_archivee','organisation_reactivee')
+   order by j.created_at desc,j.id desc limit 1) and l.action='abonnement_statut' and l.details->>'souscription'=a.stripe_subscription_id
+   and l.details->>'stripe' in ('past_due','unpaid') and l.details->>'apres'='suspendue') then
+   update public.abonnements set stripe_statut='active',paiement_en_defaut_depuis=null,relances_paiement=0,derniere_relance_le=null,updated_at=now()
+    where organization_id=o.id;
+   insert into public.audit_log(organization_id,action,details) values(o.id,'paiement_regularise',
+    jsonb_build_object('en_defaut_depuis',a.paiement_en_defaut_depuis,'suspension_conservee',true));
+ else
+   perform public.abonnement_appliquer(a.stripe_customer_id,a.stripe_subscription_id,'active',a.quantite,a.periode_fin,a.annulation_demandee);
+ end if;
+ insert into public.audit_log(organization_id,action,details) values(o.id,'regularisation_facture_confirmee',
+   jsonb_build_object('evenement',p_event_id,'facture',e.charge->>'objet','souscription',a.stripe_subscription_id,'montant_cents',(p_params->>'p_montant')::bigint));
+ return to_jsonb(o.id);
+end $$;
+revoke all on function public.stripe_evenement_appliquer_avant_regularisation(text,uuid,text,jsonb),
+ public.stripe_evenement_appliquer(text,uuid,text,jsonb) from public,anon,authenticated,service_role;
+grant execute on function public.stripe_evenement_appliquer(text,uuid,text,jsonb) to service_role;

@@ -28,7 +28,7 @@ export async function executerEvenementStripe(db: SupabaseClient, stripe: Stripe
   try {
     const metier = new Proxy(db, { get(cible, cle) {
       if (cle === "rpc") return (nom: string, params: Record<string, unknown>) =>
-        ["abonnement_appliquer", "abonnement_details", "abonnement_facture_payee"].includes(nom)
+        ["abonnement_appliquer", "abonnement_details", "abonnement_facture_payee", "abonnement_defaut_a_regulariser", "abonnement_regulariser_facture"].includes(nom)
           ? cible.rpc("stripe_evenement_appliquer", { p_event_id: evenement.id, p_jeton: jeton, p_action: nom, p_params: params })
           : cible.rpc(nom, params);
       const valeur = Reflect.get(cible, cle); return typeof valeur === "function" ? valeur.bind(cible) : valeur;

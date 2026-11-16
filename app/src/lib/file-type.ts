@@ -54,6 +54,11 @@ export function pdfComplet(octets: Uint8Array): boolean {
   return false;
 }
 
+/** Exige le type PDF et la marque de fin lors de la remise d’une pièce contractuelle. */
+export function estDocumentPdfComplet(octets: Uint8Array): boolean {
+  return detecterMimeReel(octets) === "application/pdf" && pdfComplet(octets);
+}
+
 export const TAILLE_MAX_OCTETS = 10 * 1024 * 1024; // Lecture des archives déjà conservées.
 export const TAILLE_MAX_DEPOT_OCTETS = 4 * 1024 * 1024; // Marge avant le plafond de transport de 4,5 Mo.
 

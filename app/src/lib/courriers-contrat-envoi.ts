@@ -17,7 +17,7 @@ import { MESSAGE_PILOTE } from "./perimetre-pilote";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
 import { ArretSupervision } from "@/lib/controle-effets";
-import { balisageAdmis, lireVersionArchivee } from "@/lib/conditions-versions";
+import { balisageAdmis, jourDeParis, lireVersionArchivee } from "@/lib/conditions-versions";
 import {
   courrierAccuseResiliation,
   courrierAccuseRetractation,
@@ -26,6 +26,7 @@ import {
   type AccuseRetractation,
 } from "@/lib/courriers-contrat";
 import { envoyerEmail } from "@/lib/email";
+import { estDocumentPdfComplet } from "@/lib/file-type";
 import { REGIME_TVA } from "@/lib/editeur";
 import { identiteDepuisValeurs } from "@/lib/identite-editeur";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
@@ -131,32 +132,38 @@ export async function pdfDesConditions(
 ): Promise<{ nom: string; contenuBase64: string } | null> {
   const archivee = await lireVersionArchivee(service, "conditions_clients", version);
   // Socle, relecture adverse du 24/10 (M1) : le texte rangé n'est rendu que si son balisage est dans la liste blanche,
-  // comme sur la page publique de la version ; sinon, pas de PDF (la confirmation part avec l'adresse de la version).
+  // comme sur la page publique de la version ; sinon la confirmation attend une vérification.
   if (!archivee || !balisageAdmis(archivee.texte_html)) return null;
+  const jourArchive = jourDeParis(archivee.publiee_le);
+  if (!jourArchive) return null;
   const titre = `Conditions générales d'utilisation et de vente — version du ${version}`;
   const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"/><title>${titre}</title>
 <style>body{font-family:Georgia,'Times New Roman',serif;font-size:10.5pt;line-height:1.5;color:#111;padding:36pt 48pt}
 h1,h2,h3{font-family:Arial,sans-serif;color:#12263f}a{color:#12263f}</style></head>
-<body><p style="font-size:8pt;color:#555">Version archivée le ${archivee.publiee_le.slice(0, 10)} — empreinte SHA-256 ${archivee.empreinte_sha256}</p>
+<body><p style="font-size:8pt;color:#555">Version archivée le ${jourArchive} — empreinte SHA-256 ${archivee.empreinte_sha256}</p>
 ${archivee.texte_html}</body></html>`;
   const delai = options.delaiMs ?? 10_000;
+  let minuterie: ReturnType<typeof setTimeout> | undefined;
   try {
     const octets = await Promise.race([
       (options.rendu ?? renduParDefaut)(html, titre),
-      new Promise<never>((_, refuser) => setTimeout(() => refuser(new Error("délai dépassé")), delai)),
+      new Promise<never>((_, refuser) => { minuterie = setTimeout(() => refuser(new Error("délai dépassé")), delai); }),
     ]);
+    if (!estDocumentPdfComplet(octets)) return null;
     return { nom: `conditions-generales-${version}.pdf`, contenuBase64: Buffer.from(octets).toString("base64") };
   } catch (e) {
     if (e instanceof ArretSupervision) throw e;
     return null;
+  } finally {
+    clearTimeout(minuterie);
   }
 }
 
 export type ResultatEnvoi = { envoye: boolean; motif?: string; verification?: boolean };
 
 /**
- * R03 : la confirmation de la souscription, avec le PDF de la version acceptée (ou, à défaut, son adresse et une trace
- * au journal technique). Décision du dirigeant du 23/10 : elle part même sans médiateur saisi.
+ * Article 3.2 : la confirmation remet le PDF accepté et le formulaire de rétractation.
+ * Sans la pièce, la souscription reste à confirmer par la tâche de reprise.
  * `premierPrelevementLe` : la fin de l'essai Stripe si elle existe, sinon la souscription elle-même.
  */
 export async function envoyerConfirmationSouscription(
@@ -178,13 +185,16 @@ export async function envoyerConfirmationSouscription(
     await tracer(service, "confirmation_preuve_commande_manquante", { organisation: p.orgId, souscription: p.subscription });
     return { envoye: false, motif: "Conditions acceptées à la souscription à vérifier." };
   }
+  const pdf = await pdfDesConditions(service, version, { rendu: options.rendu, delaiMs: options.delaiPdfMs });
+  if (!pdf) {
+    await tracer(service, "confirmation_sans_pdf", { organisation: c.organization_id, souscription: p.subscription, version });
+    return { envoye: false, verification: true, motif: "Confirmation en attente du PDF des conditions acceptées. Vérifier l’archive et son rendu." };
+  }
   const editeur = await lireEditeurService(service);
-  const pdf = version ? await pdfDesConditions(service, version, { rendu: options.rendu, delaiMs: options.delaiPdfMs }) : null;
   const site = adresseDuSite();
   const lien = !site
     ? null
     : `${site}/conditions/versions/conditions_clients/${encodeURIComponent(version)}`;
-  if (!pdf) await tracer(service, "confirmation_sans_pdf", { organisation: c.organization_id, souscription: p.subscription, version });
   const souscritLe = new Date(c.souscrit_le);
   const biens = c.unites_souscrites ?? formuleParCode(c.formule)?.biens ?? null;
   const courrier = courrierConfirmationSouscription({
@@ -199,8 +209,8 @@ export async function envoyerConfirmationSouscription(
     regime: REGIME_TVA,
     premierPrelevementLe: p.premierPrelevementLe ?? souscritLe,
     editeur,
-    conditions: version && c.cgu_acceptee_le ? { version, accepteeLe: new Date(c.cgu_acceptee_le) } : null,
-    pdfJoint: Boolean(pdf),
+    conditions: { version, accepteeLe: new Date(c.cgu_acceptee_le) },
+    pdfJoint: true,
     lienConditions: lien,
   });
   await options.avantEffet?.();
@@ -208,13 +218,13 @@ export async function envoyerConfirmationSouscription(
     organisation:{db:service,id:c.organization_id},
     contexteMetier:{type:"confirmation_abonnement",id:p.subscription,montant:Number(c.montant_periode_cents),
       version,acceptee:c.cgu_acceptee_le,formule:c.formule,unites:c.unites_souscrites,periodicite:c.periodicite,
-      souscrit:c.souscrit_le,organisation:c.organisation,document:Boolean(pdf)},
+      souscrit:c.souscrit_le,organisation:c.organisation,document:true},
     avantEnvoi: options.avantEffet,
     to: c.destinataire,
     subject: courrier.sujet,
     html: courrier.html,
     cleIdempotence: `souscription-${p.subscription}`,
-    ...(pdf ? { piecesJointes: [pdf] } : {}),
+    piecesJointes: [pdf],
   });
   if (incertain) return {envoye:false, verification:true, motif:"Envoi en cours de vérification."};
   if (erreur) return { envoye: false, motif: erreur };

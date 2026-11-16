@@ -4,8 +4,7 @@ vi.mock('../src/lib/perimetre-pilote',async original=>({...await original<typeof
 /**
  * Les courriers du contrat déclenchés par le webhook Stripe (plan de conformité du 23/10/2026), sans Stripe, base ni
  * prestataire d'e-mail réels :
- *  · R03 : la confirmation part à la naissance de la souscription, une fois, avec le PDF de la version acceptée (ou son
- *    adresse et une trace), même sans médiateur saisi ; la souscription est datée ;
+ *  · R03 : la confirmation exige le PDF de la version acceptée. Une indisponibilité du document reste en supervision ;
  *  · R04 : une résiliation notifiée hors de la page reçoit l'accusé, une fois (même clé que l'action) ;
  *  · R07 : sur `customer.subscription.deleted`, le courrier de résiliation pour impayé et l'annulation de la facture
  *    ouverte, SEULEMENT si un défaut était en cours et qu'aucune résiliation n'avait été demandée (ni rétractation) ;
@@ -18,7 +17,9 @@ vi.mock('../src/lib/perimetre-pilote',async original=>({...await original<typeof
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type Stripe from "stripe";
+import { pdfFictif } from "../e2e/pdf-fictif";
 
+const pieceFictive = pdfFictif();
 const m = vi.hoisted(() => ({ envois: [] as { to: string; subject: string; html: string; cleIdempotence?: string; piecesJointes?: unknown[] }[], echec: null as string | null }));
 vi.mock("@/lib/email", () => ({
   envoyerEmail: async (p: { to: string; subject: string; html: string; cleIdempotence?: string; piecesJointes?: unknown[] }) => {
@@ -28,9 +29,10 @@ vi.mock("@/lib/email", () => ({
   },
 }));
 vi.mock("@/lib/relances-paiement", () => ({ envoyerRelancesDues: async () => ({ envoyees: 0, sans_adresse: [], echecs: [] }) }));
-// Le rendu Chromium est remplacé par un PDF fictif (« %PDF ») : le test porte sur la pièce jointe, pas sur le rendu.
-vi.mock("@/lib/documents/rendu", () => ({ rendrePdf: async () => new Uint8Array([37, 80, 68, 70]) }));
+// Une pièce PDF fictive complète. Les cas d’incident injectent leur propre rendu.
+vi.mock("@/lib/documents/rendu", () => ({ rendrePdf: async () => pieceFictive }));
 
+import { envoyerConfirmationSouscription } from "@/lib/courriers-contrat-envoi";
 import { traiterEvenementStripe } from "@/lib/stripe-evenements";
 
 type Avant = {
@@ -72,7 +74,7 @@ function banc(avant: Avant, options: { archivee?: boolean; texteArchive?: string
     const q: Record<string, unknown> = {};
     const fin = async () =>
       table === "versions_conditions"
-        ? { data: options.archivee ? { document: "conditions_clients", version: "2026-09-30", texte_html: options.texteArchive ?? "<p>Texte</p>", publiee_le: "2026-10-24T10:00:00Z", empreinte_sha256: "a".repeat(64), date_effet: "2026-09-30", nature: "substantielle", resume_modifications: "x" } : null, error: null }
+        ? { data: options.archivee !== false ? { document: "conditions_clients", version: "2026-09-30", texte_html: options.texteArchive ?? "<p>Texte</p>", publiee_le: "2026-10-24T10:00:00Z", empreinte_sha256: "a".repeat(64), date_effet: "2026-09-30", nature: "substantielle", resume_modifications: "x" } : null, error: null }
         : table === "audit_log"
           ? { data: options.miseEnDemeure === null ? null : { details: { envoyee_le: options.miseEnDemeure ?? "2026-10-04T13:00:00Z" } }, error: options.preuveErreur ? { message: "indisponible" } : null }
         : table === "organizations"
@@ -164,7 +166,7 @@ describe("R03 — la confirmation de la souscription", () => {
     const { supabase, traces } = banc(RIEN, { archivee: true });
     await traiterEvenementStripe(supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.created", s));
     expect(m.envois).toHaveLength(1);
-    expect(m.envois[0].piecesJointes).toEqual([{ nom: "conditions-generales-2026-09-30.pdf", contenuBase64: Buffer.from("%PDF").toString("base64") }]);
+    expect(m.envois[0].piecesJointes).toEqual([{ nom: "conditions-generales-2026-09-30.pdf", contenuBase64: pieceFictive.toString("base64") }]);
     expect(m.envois[0].html).toContain("sont jointes au format PDF");
     expect(m.envois[0]).toMatchObject({contexteMetier:{document:true,version:"2026-09-30"}});
     expect(traces).toEqual([]);
@@ -174,18 +176,34 @@ describe("R03 — la confirmation de la souscription", () => {
     const s = souscription({});
     const { supabase, traces } = banc(RIEN, { archivee: true, texteArchive: '<p>Texte</p><img src="x" onerror="alert(1)">' });
     await traiterEvenementStripe(supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.created", s));
-    expect(m.envois).toHaveLength(1);
-    expect(m.envois[0].piecesJointes).toBeUndefined();
-    expect(m.envois[0].html).toContain("https://gerimmo.example.invalid/conditions");
+    expect(m.envois).toHaveLength(0);
     expect(traces).toContainEqual(expect.objectContaining({ evenement: "confirmation_sans_pdf" }));
   });
 
-  it("une version non archivée : l'adresse des conditions et une trace au journal technique", async () => {
-    const s = souscription({});
-    const { supabase, traces } = banc(RIEN);
-    await traiterEvenementStripe(supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.created", s));
-    expect(m.envois[0].piecesJointes).toBeUndefined();
-    expect(m.envois[0].html).toContain("https://gerimmo.example.invalid/conditions");
+  it("diffère une confirmation sans archive, puis joint la version acceptée à la reprise", async () => {
+    const options = { archivee: false };
+    const { supabase, traces } = banc(RIEN, options);
+    const confirmer = () => envoyerConfirmationSouscription(supabase as never, {orgId: "org-1", subscription: "sub_1", premierPrelevementLe: null});
+    expect(await confirmer()).toMatchObject({envoye:false, verification:true});
+    expect(m.envois).toHaveLength(0);
+    expect(traces).toContainEqual(expect.objectContaining({ evenement: "confirmation_sans_pdf" }));
+    options.archivee = true;
+    expect(await confirmer()).toMatchObject({envoye:true});
+    expect(m.envois).toHaveLength(1);
+    expect(m.envois[0].piecesJointes).toEqual([{nom:"conditions-generales-2026-09-30.pdf",contenuBase64:pieceFictive.toString("base64")}]);
+  });
+
+  it.each(["exception", "delai", "vide", "tronque"])("diffère un rendu %s au lieu de valider une confirmation incomplète", async panne => {
+    const {supabase, traces} = banc(RIEN);
+    const rendu = async () => {
+      if (panne === "exception") throw Error("Rendu indisponible");
+      if (panne === "delai") return new Promise<Uint8Array>(() => {});
+      return Buffer.from(panne === "tronque" ? "%PDF-1.4 document incomplet" : "");
+    };
+    const r = await envoyerConfirmationSouscription(supabase as never,
+      {orgId:"org-1",subscription:"sub_1",premierPrelevementLe:null}, {rendu,delaiPdfMs:5});
+    expect(r).toMatchObject({envoye:false, verification:true});
+    expect(m.envois).toHaveLength(0);
     expect(traces).toContainEqual(expect.objectContaining({ evenement: "confirmation_sans_pdf" }));
   });
 

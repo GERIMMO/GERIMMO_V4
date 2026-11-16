@@ -2,7 +2,6 @@ import "server-only";
 import Link from "next/link";
 import type Stripe from "stripe";
 import { createClient } from "@/lib/supabase/server";
-import { clientDeService } from "@/lib/supabase/service";
 import { clientStripe, configurationStripe } from "@/lib/stripe";
 import { euros } from "@/lib/tarifs";
 import { formaterDateHeureParis } from "@/lib/heure-paris";
@@ -24,13 +23,13 @@ export async function FacturesAbonnement({ organisation }: { organisation: strin
 
   let factures: Stripe.ApiList<Stripe.Invoice> | null = null;
   try {
-    const service = clientDeService();
-    if (!service) return indisponible;
-    const contrat = await service.from("abonnements").select("stripe_customer_id,stripe_subscription_id")
-      .eq("organization_id", organisation).maybeSingle();
-    if (contrat.error) return indisponible;
-    const client = contrat.data?.stripe_customer_id;
-    const abonnement = contrat.data?.stripe_subscription_id;
+    const [clientRattache, souscriptionRattachee] = await Promise.all([
+      db.rpc("mon_client_stripe", { p_org: organisation }),
+      db.rpc("ma_souscription_stripe", { p_org: organisation }),
+    ]);
+    if (clientRattache.error || souscriptionRattachee.error) return indisponible;
+    const client = clientRattache.data;
+    const abonnement = souscriptionRattachee.data;
     if (abonnement) {
       const config = configurationStripe();
       if (!client || !config.pret) return indisponible;

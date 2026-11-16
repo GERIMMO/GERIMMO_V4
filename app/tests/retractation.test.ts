@@ -176,7 +176,7 @@ function doublure(o: { statut?: string; intervalle?: "month" | "year"; payees?: 
         deja.add(cible);
         appels.refunds.push({ params, cle: opts.idempotencyKey });
         const f = (o.payees ?? []).find((x) => (x.payments?.data?.[0]?.payment as { payment_intent?: string } | undefined)?.payment_intent === cible);
-        return { id: `re_${cible}`, amount: f?.amount_paid ?? 0 };
+        return { id: `re_${cible}`, amount: f?.amount_paid ?? 0, status: "succeeded" };
       }),
       list: vi.fn(async (p: { payment_intent?: string }) => ({ data: (o.remboursements ?? []).filter((r) => r.payment_intent === p.payment_intent) })),
     },
@@ -223,6 +223,20 @@ describe("R01 — la rétractation de l'abonnement chez Stripe", () => {
     expect(await retracterSouscription(stripe, { subscription: "sub_1", cle: "k" })).toEqual({ montantCents: 0, refunds: [] });
     expect(appels.refunds).toHaveLength(0);
     await expect(rembourserFactures(stripe, [facture("in_9", 599, null) as Stripe.Invoice], "k")).rejects.toThrow(/Paiement introuvable/);
+  });
+
+  it.each(["pending", "requires_action", "failed", "canceled"])("ne confirme pas le remboursement Stripe %s et ne le redéclenche pas au rejeu", async (status) => {
+    const f = facture("in_1", 599, "pi_1") as Stripe.Invoice;
+    const { stripe } = doublure();
+    const operation = { id: "re_1", amount: 599, status, metadata: { gerimmo_retractation: "k", facture: "in_1" } };
+    vi.mocked(stripe.refunds.create).mockResolvedValueOnce(operation as unknown as Awaited<ReturnType<typeof stripe.refunds.create>>);
+    await expect(rembourserFactures(stripe, [f], "k")).rejects.toThrow(/remboursement/i);
+    vi.mocked(stripe.refunds.list).mockResolvedValue({ data: [operation], has_more: false } as unknown as Awaited<ReturnType<typeof stripe.refunds.list>>);
+    await expect(rembourserFactures(stripe, [f], "k")).rejects.toThrow(/remboursement/i);
+    expect(stripe.refunds.create).toHaveBeenCalledTimes(1);
+    operation.status = "succeeded";
+    await expect(rembourserFactures(stripe, [f], "k")).resolves.toMatchObject({ montantCents: 599 });
+    expect(stripe.refunds.create).toHaveBeenCalledTimes(1);
   });
 });
 

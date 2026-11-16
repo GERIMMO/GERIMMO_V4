@@ -1,0 +1,56 @@
+GERIMMO — PRÉPARATION À LA VENTE — 16 NOVEMBRE 2026
+
+Verdict : non prêt à la commercialisation dans l’intégralité du périmètre demandé.
+Démonstration locale possible. Les nouveaux comportements ne sont pas publiés.
+Base Git : a6538f711356bc3fe16d932a7fa1f08e0ff8c39e
+Version fonctionnelle et tests : b25adf416301a0bfbc0e1efb325c842afe0176e5
+Branche : codex/v1-parcours-bailleurs. Aucune fusion de #339 ou #340.
+Production lue sur https://www.gerimmo.app/api/sante : bd4cdfbe0c328df9273bb12be58d8b4d88941b0b, application et base disponibles, maintenance inactive.
+
+CORRECTIONS
+
+P0 — Rendez-vous. Un locataire dont le bail avait pris fin pouvait encore choisir ou contre-proposer une date par appel direct. Les deux opérations vérifient désormais le lien au bail, à l’organisation et à l’occupant ainsi que l’état du bail. La confirmation revérifie le planning sous verrou. Les tests portent aussi sur deux demandes concurrentes. La lecture historique reste disponible.
+P1 — Disponibilités trompeuses. Les créneaux expirés ou occupés par une autre mission, y compris un chantier privé de l’artisan, sont filtrés. Le locataire peut proposer ses disponibilités. Si aucune date du locataire ne peut être retenue, l’artisan peut reprendre la coordination. Aucun détail d’un chantier tiers n’est transmis au locataire.
+P1 — Facture artisan. Le dépôt d’un PDF établi ailleurs était le seul geste disponible pour une intervention. L’artisan peut désormais créer le PDF d’une facture de travaux destinée à un particulier. Gerimmo calcule les montants et la TVA par ligne. L’artisan confirme le destinataire, ses mentions et le prochain numéro de sa série. Un numéro déjà employé ne peut pas être repris pour cette création. Le propriétaire ou gestionnaire peut consulter et valider la facture. Cette validation laisse le règlement à enregistrer. Pour une SCI, une facture existante reste nécessaire.
+P1 — Assistance. Le parcours existant fonctionne. Ajout d’une preuve de bout en bout, de la demande du bailleur jusqu’à sa lecture de la réponse. Le superadministrateur retrouve la décision dans l’historique après rechargement.
+
+RECETTE PAR ESPACE
+
+Propriétaire. Création et reprise d’un bien sans double création, navigation vers le lot et le bail, création et relecture du locataire, activation d’un bail papier en présence de ses diagnostics, refus lorsque ceux-ci manquent. Loyer de 800 € confirmé par le bailleur. Parcours d’encaissement nul, partiel et complet contrôlé séparément. Les vérifications du document de quittance incluent le solde du bail. Une facture d’eau fictive de 180 € a été déposée sur son lot ; elle n’était pas payée au dépôt. L’action « Indiquer le paiement » a ensuite enregistré la dépense. La somme de 180 €, le lot, l’organisation et le lien du justificatif ont été contrôlés sur les écritures. Accès au justificatif par le compte du bailleur. Qualification fiscale et relecture de l’export exercées. L’export constitue une aide à la préparation.
+Locataire. Signalement d’une fuite avec photo, reprise après une perte de réponse, absence de double création, lecture de ses documents et de son loyer. Sur le même incident, choix d’une date proposée par l’artisan et vérification d’un seul rendez-vous retenu. Après clôture, « Le problème persiste » est accessible au déclarant. Les refus, reports, arbitrages, droits et doubles appels ont également été exercés en tests ciblés.
+Artisan. Consultation du dossier, devis, acceptation de la mission, trois propositions, démarrage, photo, bilan et facture jusqu’à sa lecture par le gestionnaire. Un parcours de devis privé a aussi été exercé avec conservation des saisies. La facture d’intervention de 100 € est validée sur le même incident sans déclaration automatique d’encaissement. Le dépôt classique d’un PDF existant reste couvert.
+Superadministrateur. Recherche de compte, consultation des rôles et journaux. Un bailleur envoie une demande depuis son espace. La supervision enregistre sa réponse et sa décision, qui restent visibles après rechargement. Le bailleur lit la réponse dans son propre espace. Les contrôles sur les consignes et leur suspension ont également été exercés. Les réglages sensibles des prestataires restent soumis aux protections existantes.
+
+PORTÉE DES QUATRE SCÉNARIOS
+
+A. Inscription, confirmation de courriel et récupération réussies sur les deux formats avec une boîte fictive. Création du bien, bail, premier loyer et quittance contrôlés par séquences. Le test de bail papier prépare le lot, le bail et les diagnostics fictifs en base. Cette livraison ne démontre pas A depuis une inscription neuve jusqu’à la quittance sur un même dossier.
+B. Même facture et même lot, depuis le dépôt jusqu’au règlement déclaré, aux écritures et à la récupération du justificatif. Les actions de dépôt et de règlement ont été faites à l’écran ; l’imputation et le montant ont été contrôlés en base. La navigation du journal financier et l’export ont été exercés séparément.
+C. Même incident jusqu’à la clôture, sur ordinateur et téléphone. Le locataire déclare la fuite avec photo, le gestionnaire qualifie et consulte, l’artisan chiffre, le gestionnaire retient le devis, l’artisan accepte et propose trois créneaux, le locataire en choisit un, l’artisan réalise, documente et facture. Le gestionnaire lit la facture, la valide et clôt ; le locataire peut signaler la persistance. La consultation, le dépôt du devis structuré et son acceptation ont utilisé les fonctions métier authentifiées sous les rôles de chaque participant. La suite a été parcourue à l’écran. Ce gestionnaire de test appartient à une organisation de type agence. La déclaration, la décision et l’historique ont été exercés séparément comme propriétaire direct. Le trajet intégral de C depuis une SCI sans intermédiaire reste à valider, ainsi que la remise des notifications aux destinataires en conditions hébergées.
+D. Recherche et fiche du compte testées. Demande → traitement → historique → réponse au bailleur vérifiés sur la même demande, dans deux sessions indépendantes.
+
+PREUVES
+
+PREUVES.json détaille les noms des scénarios et leurs résultats. Chromium local : 125 exécutions réussies dans la recette des quatre espaces, puis six pour création/reprise du bien et bail papier et deux pour inscription/récupération. Dans ces trois passages de validation, aucun échec ni saut. Ordinateur 1440 px et téléphone simulé 390 px ; quelques tests réexercent les mêmes gestes à d’autres largeurs. Le rendu tactile sur un téléphone physique reste à observer.
+Tests ciblés : 449 validations sur les interventions, rôles, documents, finances et support ; 115 sur le périmètre complémentaire ; deux sur schéma historique reconstitué. Zéro échec et zéro saut sur les passages retenus. Les groupes ne sont pas additionnés. TypeScript, compilation de production locale et ESLint ciblé réussis. Aucune CI hébergée de cette branche n’est annoncée.
+Les premiers passages ont notamment reproduit le rejet du PDF généré par la protection de stockage. L’autorisation finale accepte uniquement un PDF dans le répertoire d’émission de la mission déjà autorisée pour cet artisan. Une répétition de campagne a aussi atteint la limite réelle de 20 dépôts par heure sur les comptes fictifs partagés. La campagne finale a démarré avec les réservations des essais précédents antidatées sur ces deux comptes locaux. La limite applicative est restée active.
+PostgreSQL local, comptes synthétiques, confirmations de courriel par boîte fictive. Aucun appel à un prestataire de signature, aucune transaction financière réelle.
+
+CE QUI CONDITIONNE LA PROMESSE COMMERCIALE
+
+P0 externe — Convention du médiateur et décision d’ouverture par le dirigeant. Les nouvelles ventes restent fermées. L’essai gratuit de deux mois est conservé.
+P1 — Confirmer le parcours direct A et la décision de travaux C avec le propriétaire particulier et la SCI sur un même dossier de chaque type. Vérifier sur le téléphone du locataire la réception d’un report et le prochain responsable. Les essais actuels montrent la coordination et le contrôle des accès ; ils n’attestent pas de la remise par un fournisseur réel.
+P1 — La création de facture intégrée vise le client particulier. Une SCI peut recevoir un PDF existant dans Gerimmo. La promesse d’émettre dans Gerimmo pour tous les clients reste trop large.
+P1 — La séparation comptable est testée. Une vue consolidée à l’écran réunissant patrimoine personnel et plusieurs SCI avec des totaux réconciliés n’est pas démontrée. Ne pas la présenter commercialement avant cette vérification.
+P2 — Refonte esthétique, enrichissements marketing et autonomie supplémentaire. Hors de cette livraison.
+
+LIVRAISON
+
+1. Valider les P1 du périmètre annoncé. Soumettre la branche isolée et obtenir la CI hébergée sur le SHA retenu. Protéger les branches déjà en cours.
+2. Comparer main, le SHA réellement servi et le registre des migrations. Répéter les deux migrations sur une copie représentative. Mesurer la durée du verrou sur les tables de factures et vérifier les autorisations de stockage avant/après. Vérifier une sauvegarde fraîche et restaurable selon la procédure autorisée.
+3. Après approbation et CI de la révision à promouvoir, appliquer par migrations.yml, dans l’ordre : 20261116035047_disponibilites_et_droits_rendez_vous.sql puis 20261116041536_numeros_factures_emises_intervention.sql. Contrôler les fonctions, accès, déclencheurs, cache de schéma et les données historiques.
+4. Promouvoir par publication-controlee.yml. Lire le SHA et l’état de la base sur /api/sante ; contrôler les quatre espaces avec les comptes autorisés. Vérifier les refus d’accès d’un ancien occupant et d’un tiers, le calendrier, la facture, le justificatif et l’état des ventes.
+5. En cas d’incident, suspendre la promotion ou l’action concernée. Maintenir les protections sur les baux et les numéros déjà réservés. Garder les factures émises, PDF, journaux et écritures. Corriger en avant. Une restauration aveugle effacerait des opérations réalisées après la sauvegarde.
+
+PREMIERS UTILISATEURS
+
+Inviter d’abord deux volontaires gratuits, un particulier en nom propre et un gérant de SCI. Leur faire retrouver leur logement, un loyer et un justificatif, puis organiser une intervention avec un locataire et un artisan de test. Observer qui comprend la prochaine action, où une aide est nécessaire et si les montants concordent. Vérifier sur leur téléphone l’accès au document et la date du rendez-vous. Étendre à huit autres après correction des impasses, sans conversion automatique. L’ouverture du payant appartient au dirigeant.

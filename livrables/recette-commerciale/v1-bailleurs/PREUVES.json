@@ -1,0 +1,3056 @@
+{
+  "revision_code_et_recette": "b25adf416301a0bfbc0e1efb325c842afe0176e5",
+  "site": "local",
+  "donnees": "fictives",
+  "navigateurs": [
+    {
+      "lot": "validation",
+      "reussis": 125,
+      "echecs": 0,
+      "sautes": 0,
+      "duree": "5.6m",
+      "controles": [
+        {
+          "profil": "sessions",
+          "scenario": "e2e/auth.setup.ts:54:6 › sessions des personas"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/artisan-fin-mission.spec.ts:10:56 › intervention acceptée : démarrage, photo, bilan, facture (depot) et réception gestionnaire"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/artisan-fin-mission.spec.ts:10:56 › intervention acceptée : démarrage, photo, bilan, facture (creation) et réception gestionnaire"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/artisan-fin-mission.spec.ts:112:5 › devis privé : compléter son identité puis reprendre sans ressaisir ni altérer la version validée"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/comptabilite-vues.spec.ts:7:5 › comptabilité mobile : journal, saisie, clôture, rapports et retour"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/compte-supervision.spec.ts:21:5 › depuis une organisation, la fiche d'un compte dit son état, ses rôles et ses journaux"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/compte-supervision.spec.ts:75:5 › la recherche de la console trouve un compte par son adresse"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/compte-supervision.spec.ts:93:5 › la recherche de la console retrouve un incident par son numéro et ouvre la fiche de son organisation"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:11:5 › clavier : accès direct au contenu sans traverser le menu"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:20:5 › une seule aide dans le menu conserve l’adresse propriétaire"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:36:7 › fiche de lot : accès direct, clavier et retour à 390px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:36:7 › fiche de lot : accès direct, clavier et retour à 768px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:36:7 › fiche de lot : accès direct, clavier et retour à 1440px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:72:5 › tablette : chaque libellé du rail reste lisible sans césure"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:85:45 › dépôt : formulaire et retour directement accessibles à 390px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:85:45 › dépôt : formulaire et retour directement accessibles à 768px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:85:45 › dépôt : formulaire et retour directement accessibles à 1440px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:101:5 › la fiche conserve les dépenses, les documents et l’historique sans modale"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:126:5 › les automatismes ouvrent directement les préférences du profil"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:135:40 › incident : décider puis consulter l’historique à 390px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:135:40 › incident : décider puis consulter l’historique à 1440px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/devis-reprise.spec.ts:13:40 › devis : reprise, sauvegarde lente et conflit à 390px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/devis-reprise.spec.ts:13:40 › devis : reprise, sauvegarde lente et conflit à 1440px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:16:7 › propriétaire : repères et rubriques accessibles à 390px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:16:7 › propriétaire : repères et rubriques accessibles à 1440px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:50:5 › propriétaire : un refus d’enregistrement reste visible sans perdre la saisie"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:73:7 › propriétaire : parcours guidé et saisies conservées à 390px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:73:7 › propriétaire : parcours guidé et saisies conservées à 1440px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:97:5 › propriétaire : le bail reprend le lot et permet de créer puis retrouver le locataire"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:191:5 › propriétaire : fiches et liste des personnes d’un bail de chambre en préparation"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:243:5 › propriétaire : un bail commencé se reprend partout, sans brouillon vierge en double"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/fiscalite-qualifiee.spec.ts:7:5 › fiscalité : qualifier copro, terrain et 230, puis retrouver le même export"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/incident-gerant-colocation.spec.ts:15:7 › incident en colocation : la chambre est demandée, la cuisine reste proposée (390px)"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/incident-gerant-colocation.spec.ts:15:7 › incident en colocation : la chambre est demandée, la cuisine reste proposée (1440px)"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/incidents-reprise.spec.ts:28:5 › LOC003 : réponse perdue après création puis reprise sans double incident ni photo"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/incidents-reprise.spec.ts:68:5 › LOC002 : photo refusée nettoyée puis reprise sur le même incident"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/lot3-loyer-facture.spec.ts:20:5 › propriétaire : loyer confirmé et dépôt de facture conservé"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:25:5 › le portail s'ouvre sans organisation dans l'adresse"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/agenda s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/devis s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/attestations s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/entreprise s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/note s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/facturation s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/clients s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:64:5 › l'agenda montre la mission acceptée, avec l'adresse du chantier"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:73:5 › chaque cible tactile de l'accueil fait au moins 44 px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:92:5 › le registre privé se télécharge seulement au clic, depuis la facturation et les clients"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:135:5 › un client externe et son devis brouillon restent enregistrés après rechargement"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-artisan.spec.ts:169:7 › visiteur sans compte › « Inscrire mon entreprise » ouvre la création de compte, sans détour par /connexion"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-locataire.spec.ts:20:5 › l'accueil locataire montre le statut de l'incident déclaré"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-locataire.spec.ts:28:5 › déclarer un incident : la photo est le premier champ, l'envoi aboutit"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-locataire.spec.ts:101:5 › mes loyers : échéancier lisible à 390px, quittance/reçu accessible"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-locataire.spec.ts:182:5 › mes documents : le titre ouvre l'aperçu en fenêtre, un seul geste pour toutes les pièces"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-locataire.spec.ts:188:7 › ordinateur 1440×900 › mes documents : le même geste de consultation à l'ordinateur"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/parcours-locataire.spec.ts:193:5 › une photo refusée conserve la catégorie, la pièce, le texte et le fichier sélectionné"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/reception-loyer-proprietaire.spec.ts:19:38 › réception du loyer à 390px : échéance, pas reçu, partiel puis solde"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/reception-loyer-proprietaire.spec.ts:19:38 › réception du loyer à 1440px : échéance, pas reçu, partiel puis solde"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/supervision-consignes.spec.ts:9:5 › une consigne exige une version activée, conserve sa preuve et reste suspendable"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/supervision-consignes.spec.ts:64:7 › présentation mobile › consignes et relais restent lisibles sans débordement"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/supervision-consignes.spec.ts:64:7 › présentation ordinateur › consignes et relais restent lisibles sans débordement"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/support-bailleur.spec.ts:9:5 › le bailleur retrouve la réponse apportée à sa demande par la supervision"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/artisan-fin-mission.spec.ts:10:56 › intervention acceptée : démarrage, photo, bilan, facture (depot) et réception gestionnaire"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/artisan-fin-mission.spec.ts:10:56 › intervention acceptée : démarrage, photo, bilan, facture (creation) et réception gestionnaire"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/artisan-fin-mission.spec.ts:112:5 › devis privé : compléter son identité puis reprendre sans ressaisir ni altérer la version validée"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/comptabilite-vues.spec.ts:7:5 › comptabilité mobile : journal, saisie, clôture, rapports et retour"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/compte-supervision.spec.ts:21:5 › depuis une organisation, la fiche d'un compte dit son état, ses rôles et ses journaux"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/compte-supervision.spec.ts:75:5 › la recherche de la console trouve un compte par son adresse"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/compte-supervision.spec.ts:93:5 › la recherche de la console retrouve un incident par son numéro et ouvre la fiche de son organisation"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:11:5 › clavier : accès direct au contenu sans traverser le menu"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:20:5 › une seule aide dans le menu conserve l’adresse propriétaire"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:36:7 › fiche de lot : accès direct, clavier et retour à 390px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:36:7 › fiche de lot : accès direct, clavier et retour à 768px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:36:7 › fiche de lot : accès direct, clavier et retour à 1440px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:72:5 › tablette : chaque libellé du rail reste lisible sans césure"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:85:45 › dépôt : formulaire et retour directement accessibles à 390px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:85:45 › dépôt : formulaire et retour directement accessibles à 768px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:85:45 › dépôt : formulaire et retour directement accessibles à 1440px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:101:5 › la fiche conserve les dépenses, les documents et l’historique sans modale"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:126:5 › les automatismes ouvrent directement les préférences du profil"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:135:40 › incident : décider puis consulter l’historique à 390px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/contre-audit-proprietaire.spec.ts:135:40 › incident : décider puis consulter l’historique à 1440px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/devis-reprise.spec.ts:13:40 › devis : reprise, sauvegarde lente et conflit à 390px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/devis-reprise.spec.ts:13:40 › devis : reprise, sauvegarde lente et conflit à 1440px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:16:7 › propriétaire : repères et rubriques accessibles à 390px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:16:7 › propriétaire : repères et rubriques accessibles à 1440px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:50:5 › propriétaire : un refus d’enregistrement reste visible sans perdre la saisie"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:73:7 › propriétaire : parcours guidé et saisies conservées à 390px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:73:7 › propriétaire : parcours guidé et saisies conservées à 1440px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:97:5 › propriétaire : le bail reprend le lot et permet de créer puis retrouver le locataire"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:191:5 › propriétaire : fiches et liste des personnes d’un bail de chambre en préparation"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/dossier-proprietaire.spec.ts:243:5 › propriétaire : un bail commencé se reprend partout, sans brouillon vierge en double"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/fiscalite-qualifiee.spec.ts:7:5 › fiscalité : qualifier copro, terrain et 230, puis retrouver le même export"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/incident-gerant-colocation.spec.ts:15:7 › incident en colocation : la chambre est demandée, la cuisine reste proposée (390px)"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/incident-gerant-colocation.spec.ts:15:7 › incident en colocation : la chambre est demandée, la cuisine reste proposée (1440px)"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/incidents-reprise.spec.ts:28:5 › LOC003 : réponse perdue après création puis reprise sans double incident ni photo"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/incidents-reprise.spec.ts:68:5 › LOC002 : photo refusée nettoyée puis reprise sur le même incident"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/lot3-loyer-facture.spec.ts:20:5 › propriétaire : loyer confirmé et dépôt de facture conservé"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:25:5 › le portail s'ouvre sans organisation dans l'adresse"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/agenda s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/devis s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/attestations s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/entreprise s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/note s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/facturation s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:41:7 › /artisan/clients s'affiche, tient dans 390 px et ne tombe pas"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:64:5 › l'agenda montre la mission acceptée, avec l'adresse du chantier"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:73:5 › chaque cible tactile de l'accueil fait au moins 44 px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:92:5 › le registre privé se télécharge seulement au clic, depuis la facturation et les clients"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:135:5 › un client externe et son devis brouillon restent enregistrés après rechargement"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-artisan.spec.ts:169:7 › visiteur sans compte › « Inscrire mon entreprise » ouvre la création de compte, sans détour par /connexion"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-locataire.spec.ts:20:5 › l'accueil locataire montre le statut de l'incident déclaré"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-locataire.spec.ts:28:5 › déclarer un incident : la photo est le premier champ, l'envoi aboutit"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-locataire.spec.ts:101:5 › mes loyers : échéancier lisible à 390px, quittance/reçu accessible"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-locataire.spec.ts:182:5 › mes documents : le titre ouvre l'aperçu en fenêtre, un seul geste pour toutes les pièces"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-locataire.spec.ts:188:7 › ordinateur 1440×900 › mes documents : le même geste de consultation à l'ordinateur"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/parcours-locataire.spec.ts:193:5 › une photo refusée conserve la catégorie, la pièce, le texte et le fichier sélectionné"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/reception-loyer-proprietaire.spec.ts:19:38 › réception du loyer à 390px : échéance, pas reçu, partiel puis solde"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/reception-loyer-proprietaire.spec.ts:19:38 › réception du loyer à 1440px : échéance, pas reçu, partiel puis solde"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/supervision-consignes.spec.ts:9:5 › une consigne exige une version activée, conserve sa preuve et reste suspendable"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/supervision-consignes.spec.ts:64:7 › présentation mobile › consignes et relais restent lisibles sans débordement"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/supervision-consignes.spec.ts:64:7 › présentation ordinateur › consignes et relais restent lisibles sans débordement"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/support-bailleur.spec.ts:9:5 › le bailleur retrouve la réponse apportée à sa demande par la supervision"
+        }
+      ]
+    },
+    {
+      "lot": "a",
+      "reussis": 6,
+      "echecs": 0,
+      "sautes": 0,
+      "duree": "24.5s",
+      "controles": [
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/creation-bien-reprise.spec.ts:7:40 › creation bien : panne, reponse perdue et reprise a 390px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/creation-bien-reprise.spec.ts:7:40 › creation bien : panne, reponse perdue et reprise a 1440px"
+        },
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/depot-bail-signe-papier.spec.ts:62:5 › G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, puis la location s'active"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/creation-bien-reprise.spec.ts:7:40 › creation bien : panne, reponse perdue et reprise a 390px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/creation-bien-reprise.spec.ts:7:40 › creation bien : panne, reponse perdue et reprise a 1440px"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/depot-bail-signe-papier.spec.ts:62:5 › G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, puis la location s'active"
+        }
+      ]
+    },
+    {
+      "lot": "inscription-livraison",
+      "reussis": 2,
+      "echecs": 0,
+      "sautes": 0,
+      "duree": "8.4s",
+      "controles": [
+        {
+          "profil": "ordinateur",
+          "scenario": "e2e/lot2-pilote.spec.ts:3:5 › inscription et récupération avec boîte fictive locale"
+        },
+        {
+          "profil": "telephone",
+          "scenario": "e2e/lot2-pilote.spec.ts:3:5 › inscription et récupération avec boîte fictive locale"
+        }
+      ]
+    }
+  ],
+  "suites": [
+    {
+      "lot": "fin",
+      "reussis": 449,
+      "echecs": 0,
+      "sautes": 0,
+      "fichiers": [
+        {
+          "nom": "planning-conflits-concurrence.test.ts",
+          "tests": [
+            {
+              "nom": "ART004 — concurrence réelle entre confirmations deux locataires ne confirment pas simultanément deux missions incompatibles",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — concurrence réelle entre confirmations deux confirmations du même créneau ne produisent qu'un rendez-vous (la seconde est un succès silencieux, D22)",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — concurrence réelle entre confirmations un chantier privé confirmé pendant l'attente bloque la mission Gerimmo",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — concurrence réelle entre confirmations une mission Gerimmo confirmée pendant l'attente bloque le chantier privé",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — concurrence réelle entre confirmations les confirmations de deux artisans distincts restent indépendantes",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "rendez-vous-locataire-rejeu.test.ts",
+          "tests": [
+            {
+              "nom": "D22 — rejeu de la migration du report et de l'annulation par le locataire deux rejeus de suite laissent les fonctions, leurs droits et les contraintes à l'identique",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — rejeu de la migration du report et de l'annulation par le locataire un type d'événement ajouté par une autre migration reste admis après le passage de celle-ci",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — rejeu de la migration du report et de l'annulation par le locataire une définition sans l'ancre attendue arrête la migration et dit laquelle",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "retours-atomicite.test.ts",
+          "tests": [
+            {
+              "nom": "Retours historiques : atomicité du fichier exact recense les 71 anciens retours et les sept nouveaux",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261013110000_marketing_preparation_…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261013120000_correctifs_audit_13_oc…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014100000_cle_envoi_encaissement…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014101000_cle_envoi_depot_garant…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014102000_cle_envoi_ecriture_lib…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014120000_premier_terme_apres_en…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014121000_sortie_reelle_bail.ret…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014122000_restitution_remise_cle…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014123000_restitution_alerte_apr…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014200000_arret_urgence_taches_p…' : 'refus métier attendu, annulation cons…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014210000_maintenance_artisans_e…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014211000_maintenance_artisans_a…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014220000_traversee_trace_precis…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014221000_alerte_relais_destinat…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014222000_consigne_activation_ap…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014223000_alerte_relais_reprise_…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014230000_faits_direction_sans_n…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014231000_retention_registres_ex…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014232000_effacement_instantanes…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014233000_photos_demande_devis_a…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014300000_devis_a_decider_alerte…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014301000_ecart_rendez_vous_chro…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014302000_creneaux_non_retenus_c…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014310000_artisan_facture_numero…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014311000_artisan_exclusion_ecri…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014330000_creation_fiche_personn…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014400000_devis_vitrine_par_acti…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014401000_incident_urgent_notifi…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014410000_encaissement_reste_jou…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014412000_encaissements_montant_…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014413000_encaissement_plancher_…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014414000_encaissements_montant_…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014415000_reprise_soldes_au_cent…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014416000_quittance_jour_de_pari…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014420000_capture_fiscale_ordre_…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014500000_jour_de_paris_fonction…' : 'refus métier attendu, annulation cons…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014501000_jour_de_paris_etat_loy…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014502000_jour_de_paris_lot_et_c…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014503000_jour_de_paris_appels_e…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014504000_jour_de_paris_encaisse…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014600000_devis_refus_motive.ret…' : 'refus métier attendu, annulation cons…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014601000_devis_revision_version…' : 'refus métier attendu, annulation cons…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014602000_devis_revision_verrous…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014610000_reglement_facture_inte…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014620000_rendez_vous_locataire_…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014710000_artisan_avoir_facture_…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014720000_recherche_reference_su…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014730000_plafond_appels_ia.reto…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014810000_relais_alerte_quotidie…' : 'refus métier attendu, annulation cons…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014811000_relais_urgences_immedi…' : 'refus métier attendu, annulation cons…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014812000_relais_urgences_passag…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014820000_jour_de_paris_depot_et…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014821000_jour_de_paris_irl_term…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014830000_relances_invitations_l…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014840000_invitation_artisan_pro…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014841000_metiers_zones_sans_pro…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014842000_artisans_colonnes_inte…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014843000_liste_noire_locale_rel…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014844000_invitation_artisan_bud…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014845000_invitation_artisan_soi…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014846000_invitation_artisan_ann…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014847000_invitation_artisan_ech…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014848000_carnet_artisans_bien.r…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014849000_liste_noire_levee_sans…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014850000_retention_registres_re…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261014851000_jour_de_paris_restitut…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261016150000_confirmation_auth.reto…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261016172453_traversee_lecture_seul…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261016210000_retour_adresse_confirm…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261019120500_relance_abonnement_per…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261019121000_droits_anon_contact_ar…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261020010000_abonnement_client_serv…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261020011000_session_origine_verifi…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261020011556_signature_preparation_…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261020020000_stripe_reprises_durabl…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261020030000_stockage_gabarits_role…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261020120000_liste_attente_agences.…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours historiques : atomicité du fichier exact sur base fictive '20261021140836_ouverture_activite_art…' : 'retour entièrement exécuté, puis annu…'",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "retours-utilisateurs.test.ts",
+          "tests": [
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence refuse les écritures directes et ne donne aucun TRUNCATE client",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence conserve un seul envoi et une seule trace quand la demande est rejouée",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence refuse une organisation injectée et un résultat attendu absent",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence rend un bug visible à son auteur, à son administrateur et à la supervision seulement",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence garde la demande de données du compte privée, historique compris",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence réserve les contestations au compte artisan et les cache aux agences",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence partage les idées dans leur organisation et déduplique les soutiens",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence ne laisse pas une agence décider ; trace la réponse SA et bloque une version périmée",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence exige motif et réexamen futur pour une idée non retenue, sans suppression",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence regroupe les idées sans ouvrir les textes aux autres organisations",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence classe sur tout l’historique avant pagination et réserve le filtre agence à la supervision",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence prépare un seul brouillon pour une idée retenue sans copier son texte privé",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence enregistre une revue mensuelle une seule fois, avec un bilan et une garde SA",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours utilisateurs : droits, traçabilité et idempotence reste accessible en abonnement suspendu, après la pose des gardes métier par la migration",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "artisan-externe-numero-et-exclusion.test.ts",
+          "tests": [
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D24-B — le numéro de facture est unique sans tenir compte de la casse refuse « art-2026-0001 » quand « ART-2026-0001 » existe déjà, avec un message qui dit pourquoi",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D24-B — le numéro de facture est unique sans tenir compte de la casse refuse aussi le même numéro entouré d'espaces, et la casse mêlée",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D24-B — le numéro de facture est unique sans tenir compte de la casse garde le numéro tel que l'artisan l'a écrit (aucune donnée réécrite), espaces de bord retirés",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D24-B — le numéro de facture est unique sans tenir compte de la casse accepte un numéro différent",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D24-B — le numéro de facture est unique sans tenir compte de la casse l'unicité est par artisan : le même numéro, même en casse différente, est accepté chez un autre artisan, dans les deux sens",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D24-B — le numéro de facture est unique sans tenir compte de la casse chez l'autre artisan, la règle s'applique aussi : son propre doublon (casse ou espaces) est refusé",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D24-B — le numéro de facture est unique sans tenir compte de la casse l'index unique tient même sans passer par la fonction (filet de sécurité)",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D24-B — le numéro de facture est unique sans tenir compte de la casse refuse le numéro d'une facture que Gerimmo a déjà reçue de ce même artisan",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D24-B — le numéro de facture est unique sans tenir compte de la casse le numéro d'une autre fiche artisan ne bloque pas",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D24-B — le numéro de facture est unique sans tenir compte de la casse rejouée avec la même clé, la même demande rend la même facture (pas de faux doublon)",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D24-B — le numéro de facture est unique sans tenir compte de la casse un second dépôt sur le même chantier reste refusé (une seule facture par chantier)",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D25-B — un artisan refusé ou sur liste noire n'écrit plus, lit et exporte encore refuse : toutes les écritures sont refusées avec le message du cas, rien n'est écrit",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D25-B — un artisan refusé ou sur liste noire n'écrit plus, lit et exporte encore liste_noire : toutes les écritures sont refusées avec le message du cas, rien n'est écrit",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D25-B — un artisan refusé ou sur liste noire n'écrit plus, lit et exporte encore refusé ET sur liste noire : le message de la liste noire (la plus lourde) s'applique",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D25-B — un artisan refusé ou sur liste noire n'écrit plus, lit et exporte encore la lecture et l'export restent ouverts, et disent pourquoi la saisie est fermée",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D25-B — un artisan refusé ou sur liste noire n'écrit plus, lit et exporte encore un artisan « en attente » garde l'outil (adoption), comme un artisan validé",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D25-B — un artisan refusé ou sur liste noire n'écrit plus, lit et exporte encore c'est réversible : une fois relevé, l'artisan écrit de nouveau",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D25-B — un artisan refusé ou sur liste noire n'écrit plus, lit et exporte encore une demande déjà enregistrée n'est pas rejouée par un artisan exclu entre-temps",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D25-B — un artisan refusé ou sur liste noire n'écrit plus, lit et exporte encore l'exclusion d'un artisan ne touche pas un autre artisan",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D25-B — un artisan refusé ou sur liste noire n'écrit plus, lit et exporte encore la décision ne vise que client, devis et facture : les règlements déclarés restent ouverts (à confirmer par le dirigeant)",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D25-B — un artisan refusé ou sur liste noire n'écrit plus, lit et exporte encore la fonction de contrôle n'est ouverte ni à anon ni à un compte sans fiche artisan",
+              "statut": "passed"
+            },
+            {
+              "nom": "Clients externes — numéro de facture unique (D24-B) et artisans exclus (D25-B) D25-B — un artisan refusé ou sur liste noire n'écrit plus, lit et exporte encore le message de la base est celui que l'écran affiche (une seule rédaction)",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "chronologie-ecart-rendez-vous.test.ts",
+          "tests": [
+            {
+              "nom": "la chronologie du dossier écrit l'écart avec le rendez-vous (D20) démarrage : « 2 h avant le rendez-vous prévu le … »",
+              "statut": "passed"
+            },
+            {
+              "nom": "la chronologie du dossier écrit l'écart avec le rendez-vous (D20) compte rendu : la cause constatée, puis l'écart (2 jours)",
+              "statut": "passed"
+            },
+            {
+              "nom": "la chronologie du dossier écrit l'écart avec le rendez-vous (D20) facture : le numéro et le montant, puis l'écart (4 jours)",
+              "statut": "passed"
+            },
+            {
+              "nom": "la chronologie du dossier écrit l'écart avec le rendez-vous (D20) sans écart, rien n'est ajouté : le montant de la facture et la cause du compte rendu restent seuls",
+              "statut": "passed"
+            },
+            {
+              "nom": "la chronologie du dossier écrit l'écart avec le rendez-vous (D20) un geste fait à l'heure (avant_rendez_vous faux) n'écrit aucune mention",
+              "statut": "passed"
+            },
+            {
+              "nom": "la section « Clôturer l'incident » est la cible des liens #cloture (D17, D20) dossier declare : la section de clôture existe, repliable, avec son titre",
+              "statut": "passed"
+            },
+            {
+              "nom": "la section « Clôturer l'incident » est la cible des liens #cloture (D17, D20) dossier qualifie : la section de clôture existe, repliable, avec son titre",
+              "statut": "passed"
+            },
+            {
+              "nom": "la section « Clôturer l'incident » est la cible des liens #cloture (D17, D20) dossier affecte : la section de clôture existe, repliable, avec son titre",
+              "statut": "passed"
+            },
+            {
+              "nom": "la section « Clôturer l'incident » est la cible des liens #cloture (D17, D20) dossier en_cours : la section de clôture existe, repliable, avec son titre",
+              "statut": "passed"
+            },
+            {
+              "nom": "la section « Clôturer l'incident » est la cible des liens #cloture (D17, D20) dossier termine : la section de clôture existe, repliable, avec son titre",
+              "statut": "passed"
+            },
+            {
+              "nom": "la section « Clôturer l'incident » est la cible des liens #cloture (D17, D20) dossier clos : la section de clôture existe, repliable, avec son titre",
+              "statut": "passed"
+            },
+            {
+              "nom": "la section « Clôturer l'incident » est la cible des liens #cloture (D17, D20) le lien « Passer à la clôture » de la carte de prise en charge mène à cette section",
+              "statut": "passed"
+            },
+            {
+              "nom": "la section « Clôturer l'incident » est la cible des liens #cloture (D17, D20) dossier declare : chaque lien d'ancre de la fiche a sa cible dans la fiche",
+              "statut": "passed"
+            },
+            {
+              "nom": "la section « Clôturer l'incident » est la cible des liens #cloture (D17, D20) dossier qualifie : chaque lien d'ancre de la fiche a sa cible dans la fiche",
+              "statut": "passed"
+            },
+            {
+              "nom": "la section « Clôturer l'incident » est la cible des liens #cloture (D17, D20) dossier termine : chaque lien d'ancre de la fiche a sa cible dans la fiche",
+              "statut": "passed"
+            },
+            {
+              "nom": "la section « Clôturer l'incident » est la cible des liens #cloture (D17, D20) dossier clos : chaque lien d'ancre de la fiche a sa cible dans la fiche",
+              "statut": "passed"
+            },
+            {
+              "nom": "la section « Clôturer l'incident » est la cible des liens #cloture (D17, D20) la voie de sortie du réseau (propriétaire sans artisan) renvoie à une ancre qui existe dans la fiche",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "comptabilite-vues.test.ts",
+          "tests": [
+            {
+              "nom": "comptabilité par action ouvre le journal sans imposer les formulaires et limite sa première page",
+              "statut": "passed"
+            },
+            {
+              "nom": "comptabilité par action permet de lire les écritures suivantes sans perdre les totaux",
+              "statut": "passed"
+            },
+            {
+              "nom": "comptabilité par action ramène une page invalide (NaN) au début",
+              "statut": "passed"
+            },
+            {
+              "nom": "comptabilité par action ramène une page invalide (-8) au début",
+              "statut": "passed"
+            },
+            {
+              "nom": "comptabilité par action ramène une page invalide (1.5) au début",
+              "statut": "passed"
+            },
+            {
+              "nom": "comptabilité par action borne une page trop grande sans masquer les dernières écritures",
+              "statut": "passed"
+            },
+            {
+              "nom": "comptabilité par action sépare la saisie du journal et conserve la ventilation",
+              "statut": "passed"
+            },
+            {
+              "nom": "comptabilité par action conserve l'avertissement irréversible au moment de clôturer",
+              "statut": "passed"
+            },
+            {
+              "nom": "comptabilité par action ne propose pas de rapports aux propriétaires directs",
+              "statut": "passed"
+            },
+            {
+              "nom": "comptabilité par action préserve les restrictions de l'agent, y compris par URL directe",
+              "statut": "passed"
+            },
+            {
+              "nom": "comptabilité par action rend les rapports seuls lorsqu'ils sont demandés",
+              "statut": "passed"
+            },
+            {
+              "nom": "comptabilité par action D23 : l'écriture née d'un règlement de facture le dit, et renvoie à la fiche de l'incident au lieu d'« Annuler »",
+              "statut": "passed"
+            },
+            {
+              "nom": "comptabilité par action ne transforme pas un échec de lecture en journal vide",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "contre-proposition-locataire-action.test.ts",
+          "tests": [
+            {
+              "nom": "proposerMesCreneaux — 'heure d\\'hiver — régression CI783, Pa…' un premier envoi enregistre trois créneaux et prévient l'artisan",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'heure d\\'hiver — régression CI783, Pa…' un second envoi identique reste un succès mais ne prévient pas l'artisan une deuxième fois",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'heure d\\'hiver — régression CI783, Pa…' une réponse sans compte lisible prévient quand même l'artisan (jamais de silence par défaut)",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'heure d\\'hiver — régression CI783, Pa…' un refus de la base ne prévient personne",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'heure d\\'été — aucun jour sauté' un premier envoi enregistre trois créneaux et prévient l'artisan",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'heure d\\'été — aucun jour sauté' un second envoi identique reste un succès mais ne prévient pas l'artisan une deuxième fois",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'heure d\\'été — aucun jour sauté' une réponse sans compte lisible prévient quand même l'artisan (jamais de silence par défaut)",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'heure d\\'été — aucun jour sauté' un refus de la base ne prévient personne",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'changement d\\'année' un premier envoi enregistre trois créneaux et prévient l'artisan",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'changement d\\'année' un second envoi identique reste un succès mais ne prévient pas l'artisan une deuxième fois",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'changement d\\'année' une réponse sans compte lisible prévient quand même l'artisan (jamais de silence par défaut)",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'changement d\\'année' un refus de la base ne prévient personne",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'année bissextile' un premier envoi enregistre trois créneaux et prévient l'artisan",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'année bissextile' un second envoi identique reste un succès mais ne prévient pas l'artisan une deuxième fois",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'année bissextile' une réponse sans compte lisible prévient quand même l'artisan (jamais de silence par défaut)",
+              "statut": "passed"
+            },
+            {
+              "nom": "proposerMesCreneaux — 'année bissextile' un refus de la base ne prévient personne",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "ecart-rendez-vous-chronologie.test.ts",
+          "tests": [
+            {
+              "nom": "Écart avec le rendez-vous écrit à la chronologie (ART-21, D20-B) démarrer cinq jours avant le rendez-vous n'est pas bloqué, et l'écart est écrit à la chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Écart avec le rendez-vous écrit à la chronologie (ART-21, D20-B) démarrer moins de deux heures avant le rendez-vous : aucun écart écrit",
+              "statut": "passed"
+            },
+            {
+              "nom": "Écart avec le rendez-vous écrit à la chronologie (ART-21, D20-B) la limite est à deux heures : à 2 h 30 du rendez-vous, c'est un écart",
+              "statut": "passed"
+            },
+            {
+              "nom": "Écart avec le rendez-vous écrit à la chronologie (ART-21, D20-B) la limite est à deux heures : à 1 h 50 du rendez-vous, ce n'est pas un écart",
+              "statut": "passed"
+            },
+            {
+              "nom": "Écart avec le rendez-vous écrit à la chronologie (ART-21, D20-B) démarrer une mission sans rendez-vous confirmé (dépannage) : rien à comparer, aucun écart",
+              "statut": "passed"
+            },
+            {
+              "nom": "Écart avec le rendez-vous écrit à la chronologie (ART-21, D20-B) démarrer après l'heure du rendez-vous : aucun écart",
+              "statut": "passed"
+            },
+            {
+              "nom": "Écart avec le rendez-vous écrit à la chronologie (ART-21, D20-B) terminer (compte rendu) puis facturer avant le rendez-vous : l'écart est écrit, rien n'est bloqué, le détail d'origine reste",
+              "statut": "passed"
+            },
+            {
+              "nom": "Écart avec le rendez-vous écrit à la chronologie (ART-21, D20-B) une mission menée à l'heure ne laisse aucun écart sur ses trois événements",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "facture-intervention-particulier.test.ts",
+          "tests": [
+            {
+              "nom": "facture de travaux émise pour un particulier recalcule chaque ligne et les deux taux de TVA, sans déclarer d’encaissement",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture de travaux émise pour un particulier refuse confirmation_facture invalide avant émission",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture de travaux émise pour un particulier refuse date_travaux invalide avant émission",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture de travaux émise pour un particulier refuse date_travaux invalide avant émission",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture de travaux émise pour un particulier refuse date_echeance invalide avant émission",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture de travaux émise pour un particulier refuse numero invalide avant émission",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture de travaux émise pour un particulier refuse client_facture invalide avant émission",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture de travaux émise pour un particulier refuse mentions_facture invalide avant émission",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture de travaux émise pour un particulier refuse lignes_devis invalide avant émission",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "planning-conflits-action.test.ts",
+          "tests": [
+            {
+              "nom": "ART004 — maintien explicitement demandé ignore une justification isolée si la case de maintien n'est pas cochée",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — maintien explicitement demandé transmet un maintien coché avec une justification valable",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — maintien explicitement demandé rejette un maintien sans justification de10à1000caractères",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — maintien explicitement demandé rejette un maintien sans justification de10à1000caractères",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — maintien explicitement demandé rejette un maintien sans justification de10à1000caractères",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — maintien explicitement demandé affiche le conflit SQL et conserve la saisie sans notifier",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — maintien explicitement demandé ne donne pas accès à l'arbitrage sans rôle existant",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "planning-conflits.test.ts",
+          "tests": [
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux propose seulement les créneaux encore libres, même si l'autre dossier est privé",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux masque à l’artisan une contre-proposition devenue incompatible",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux un ancien bail reste en lecture seule par appel direct : choix",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux un ancien bail reste en lecture seule par appel direct : contre-proposition",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux retient normalement un rendez-vous libre",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux refuse le chevauchement confirmé [1,3] sans toucher les alternatives",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux refuse le chevauchement confirmé [-1,1] sans toucher les alternatives",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux refuse le chevauchement confirmé [-1,3] sans toucher les alternatives",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux refuse le chevauchement confirmé [0,2] sans toucher les alternatives",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux permet deux rendez-vous adjacents [-2,0]",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux permet deux rendez-vous adjacents [2,4]",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux ne réserve pas les simples propositions d'une autre mission",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux la confirmation laisse choisir une autre proposition libre",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux permet de proposer trois alternatives qui chevauchent un rendez-vous",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux bloque également une contre-proposition confirmée par l'artisan",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux ne confond pas deux artisans",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux voit un conflit inter-agences sans révéler l'autre dossier",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux une annulation libère la plage",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux une mission annulée ne peut pas être confirmée via un ancien créneau",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux le locataire d'une autre agence ne choisit pas une date du dossier",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux l'autre artisan ne confirme pas le créneau",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux le helper interne n'est pas exposé aux comptes ni anonymes",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux l'arbitrage ordinaire ne contourne pas le conflit",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux un maintien sans vraie justification échoue (null)",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux un maintien sans vraie justification échoue (court)",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux un maintien sans vraie justification échoue ( )",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux l'arbitrage motivé autorisé conserve auteur, motif et conflit dans l'historique",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux la dérogation ne donne aucun nouveau droit au locataire",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux la dérogation ne donne aucun nouveau droit au artisan",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux la dérogation ne donne aucun nouveau droit au autre agence",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux le report arbitré conserve le créneau précédent caduc",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux un chantier privé confirmé bloque le choix Gerimmo",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux une mission Gerimmo confirmée bloque le chantier privé sans maintien",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux un chantier privé annulé ou terminé ne réserve plus la plage",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux l'agent sans mandat sur le lot ne peut pas utiliser la dérogation",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux l'arbitrage refuse une date passée ou absente",
+              "statut": "passed"
+            },
+            {
+              "nom": "ART004 — confirmation sans chevauchement silencieux l'arbitrage refuse une date passée ou absente",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "quittance-solde.test.ts",
+          "tests": [
+            {
+              "nom": "Quittance — le solde suit le terme dû sur un mois AU PRORATA, le solde est celui du terme réduit, pas d'un loyer plein",
+              "statut": "passed"
+            },
+            {
+              "nom": "Quittance — le solde suit le terme dû sur un mois plein, les deux calculs coïncident (aucune régression)",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "quittances-suivent-encaissements.test.ts",
+          "tests": [
+            {
+              "nom": "Quittances — le document suit l'argent (RM-3.4.1/2) un encaissement intégral produit des quittances ; sa suppression les retire",
+              "statut": "passed"
+            },
+            {
+              "nom": "Quittances — le document suit l'argent (RM-3.4.1/2) conserve la trace du retrait seulement pour le locataire concerné, sans reçu payable",
+              "statut": "passed"
+            },
+            {
+              "nom": "Quittances — le document suit l'argent (RM-3.4.1/2) un paiement partiel produit un reçu, jamais une quittance",
+              "statut": "passed"
+            },
+            {
+              "nom": "Quittances — le document suit l'argent (RM-3.4.1/2) un complément solde le mois : le reçu devient quittance du montant appelé",
+              "statut": "passed"
+            },
+            {
+              "nom": "Quittances — le document suit l'argent (RM-3.4.1/2) une quittance ne peut jamais attester plus que l'encaissé du bail",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "rappel-rendez-vous.test.ts",
+          "tests": [
+            {
+              "nom": "qui est rappelé, et quand rappelle les DEUX : celui qui doit être là et celui qui doit venir",
+              "statut": "passed"
+            },
+            {
+              "nom": "qui est rappelé, et quand rappelle aussi à sept jours, quand le rendez-vous est posé assez tôt",
+              "statut": "passed"
+            },
+            {
+              "nom": "qui est rappelé, et quand ne dit rien les autres jours : ce sont des dates, pas des fenêtres",
+              "statut": "passed"
+            },
+            {
+              "nom": "qui est rappelé, et quand ne rappelle pas un rendez-vous annulé ou refusé",
+              "statut": "passed"
+            },
+            {
+              "nom": "qui est rappelé, et quand ne rappelle pas une intervention déjà terminée",
+              "statut": "passed"
+            },
+            {
+              "nom": "qui est rappelé, et quand ne rappelle pas une mission sans date",
+              "statut": "passed"
+            },
+            {
+              "nom": "qui est rappelé, et quand n'écrit plus rien pour une agence suspendue",
+              "statut": "passed"
+            },
+            {
+              "nom": "qui est rappelé, et quand saute le destinataire sans adresse sans priver l'autre du sien",
+              "statut": "passed"
+            },
+            {
+              "nom": "un rappel, une fois une fois tracé, le destinataire sort de la liste — l'autre y reste",
+              "statut": "passed"
+            },
+            {
+              "nom": "un rappel, une fois deux passes qui se chevauchent ne doublent pas la trace",
+              "statut": "passed"
+            },
+            {
+              "nom": "un rappel, une fois le rappel de la veille reste dû quand celui de J-7 est déjà parti",
+              "statut": "passed"
+            },
+            {
+              "nom": "la liste est réservée à la tâche même le gérant de l'agence ne peut pas la lire",
+              "statut": "passed"
+            },
+            {
+              "nom": "la liste est réservée à la tâche ni tracer un rappel à la place de la tâche",
+              "statut": "passed"
+            },
+            {
+              "nom": "la liste est réservée à la tâche le gérant voit en revanche la trace de ses propres rappels",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "reglement-facture-intervention.test.ts",
+          "tests": [
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention une facture émise ne peut reprendre le numéro d’une autre mission, même après un double clic",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention une facture validée se règle en une fois : un règlement, une dépense « travaux » du bon lot à la bonne date, état « réglée »",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention partiel puis solde : « partiellement réglée » puis « réglée » ; le total ne dépasse jamais la facture",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention la règle d'état de l'écran (lib/reglement-facture.ts) et celle de la base disent la même chose",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention facture non validée : refus « validez d'abord », aucune écriture",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention date future (au jour de Paris), montant nul ou négatif, moyen inconnu, référence trop longue : refus clair, rien d'écrit",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention le jour de Paris est accepté même quand la session est ailleurs : aujourd'hui à Paris n'est jamais « dans le futur »",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention mois comptable clos : le message du journal est repris, rien n'est écrit",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention abonnement suspendu : le message d'abonnement, comme toute écriture",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention imputation « locataire » : le règlement est permis (le propriétaire règle l'artisan) et n'ouvre aucune créance sur le bail",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention même clé d'envoi rejouée : un seul règlement, refus reconnu comme un rejeu (23505, « cle_envoi ») ; clé différente : deux règlements",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention retrait motivé : contre-écriture datée du jour de Paris, état recalculé, événement tracé ; un retrait déjà fait est refusé ; une contre-écriture ne se contre-passe pas",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention après le retrait d'un règlement (virement rejeté), la facture se règle de nouveau : le règlement retiré ne compte plus",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention l'écriture d'un règlement ne s'annule pas seule depuis le journal : la base dit où agir",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention locataire, artisan, agent hors portefeuille, administrateur d'une autre organisation : refus en appel direct, rien d'écrit",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention la table se lit par les gérants de l'organisation (portefeuille compris), jamais par l'artisan ni le locataire, et ne s'écrit que par fonction",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention l'artisan voit l'état et, pour chaque règlement, la date et le moyen de SES factures seulement ; jamais la référence ni le détail des montants",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention la validation, le règlement et le retrait laissent chacun un événement au fil ET une ligne d'audit avec leur auteur",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention le libellé de la dépense n'est pas classé « fonds de travaux » ; la dépense apparaît « à qualifier » au récapitulatif fiscal",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention un règlement du propriétaire ne modifie pas le registre privé de l'artisan",
+              "statut": "passed"
+            },
+            {
+              "nom": "D23 — règlement déclaratif de la facture d'intervention une facture d'une autre organisation ne se règle pas en passant son identifiant d'organisation à soi",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "rendez-vous-anticipe.test.ts",
+          "tests": [
+            {
+              "nom": "avantRendezVous : la marge de deux heures avertit plus de deux heures avant le début du rendez-vous",
+              "statut": "passed"
+            },
+            {
+              "nom": "avantRendezVous : la marge de deux heures n'avertit plus à deux heures pile, ni après",
+              "statut": "passed"
+            },
+            {
+              "nom": "avantRendezVous : la marge de deux heures n'avertit pas sans rendez-vous confirmé (dépannage) ni avec une date illisible",
+              "statut": "passed"
+            },
+            {
+              "nom": "avantRendezVous : la marge de deux heures la marge est celle de la base : deux heures, écrites dans ecart_rendez_vous",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'avertissement de l'artisan avant le geste s'affiche pour « demarrer » trois jours avant le rendez-vous, et dit que rien n'est bloqué",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'avertissement de l'artisan avant le geste s'affiche pour « terminer » trois jours avant le rendez-vous, et dit que rien n'est bloqué",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'avertissement de l'artisan avant le geste s'affiche pour « facturer » trois jours avant le rendez-vous, et dit que rien n'est bloqué",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'avertissement de l'artisan avant le geste ne s'affiche pas à moins de deux heures du rendez-vous",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'avertissement de l'artisan avant le geste ne s'affiche pas une fois le rendez-vous passé",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'avertissement de l'artisan avant le geste ne s'affiche pas sans rendez-vous confirmé",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'avertissement de l'artisan avant le geste la phrase de chaque geste ne parle jamais d'interdiction",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'écart écrit à la chronologie se lit en jours quand l'écart dépasse une journée",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'écart écrit à la chronologie se lit en heures sous une journée",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'écart écrit à la chronologie ne dit rien d'un événement sans écart",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'écart écrit à la chronologie ecartEnMots : 2 h, 23 h, 1 jour, 5 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement la mission planifiée, trois jours avant : l'avertissement « démarrer » précède le bouton, qui reste là",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement la mission planifiée : le rendez-vous de l'avertissement est le début prévu, pas la fin",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement la mission en cours, trois jours avant : l'avertissement « rendre compte » précède le lien, qui reste là",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement la mission à moins de deux heures du rendez-vous : aucun avertissement, le geste reste",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement la mission sans rendez-vous confirmé (dépannage) : aucun avertissement",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement la mission mission acceptée, sans rendez-vous encore calé : aucun avertissement",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement le compte rendu pas encore démarrée : l'avertissement « démarrer » précède le bouton de démarrage",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement le compte rendu démarrée : l'avertissement « rendre compte » précède la photo du travail",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement le compte rendu sans rendez-vous confirmé : aucun avertissement, ni avant ni après le démarrage",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement le compte rendu à moins de deux heures du rendez-vous : aucun avertissement, la photo reste",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement la facture l'avertissement « facturer » précède le formulaire de dépôt, qui reste là",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement la facture sans rendez-vous confirmé : aucun avertissement",
+              "statut": "passed"
+            },
+            {
+              "nom": "les écrans de l'artisan portent l'avertissement la facture à moins de deux heures du rendez-vous : aucun avertissement",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'écran de validation de la facture : rendez-vous prévu / intervention terminée écrit le rendez-vous prévu et la fin de l'intervention, chacun à sa place",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'écran de validation de la facture : rendez-vous prévu / intervention terminée prévient quand l'artisan a terminé plus de deux heures avant le rendez-vous, sans bloquer la validation",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'écran de validation de la facture : rendez-vous prévu / intervention terminée ne prévient pas quand l'intervention est terminée à moins de deux heures du rendez-vous",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'écran de validation de la facture : rendez-vous prévu / intervention terminée rendez-vous prévu mais intervention pas terminée : ne dit que le rendez-vous, sans avertir (pas de 1970)",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'écran de validation de la facture : rendez-vous prévu / intervention terminée sans rendez-vous confirmé, ne dit que la fin de l'intervention",
+              "statut": "passed"
+            },
+            {
+              "nom": "l'écran de validation de la facture : rendez-vous prévu / intervention terminée n'affiche que les factures de cet incident et de cette agence",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "rendez-vous-locataire-courriers.test.ts",
+          "tests": [
+            {
+              "nom": "refuserDatesLocataire — refus d'une demande de report (D22) une demande attend : « Report refusé… », et le locataire reçoit le refus avec le motif, une seule clé par demande",
+              "statut": "passed"
+            },
+            {
+              "nom": "refuserDatesLocataire — refus d'une demande de report (D22) une demande d'une AUTRE mission, ou déjà traitée : refus ordinaire, aucun courrier au locataire",
+              "statut": "passed"
+            },
+            {
+              "nom": "refuserDatesLocataire — refus d'une demande de report (D22) un refus de la base ne prévient personne",
+              "statut": "passed"
+            },
+            {
+              "nom": "accepterDateLocataire — accord sur une date de report (D22) la date répond à une demande : le locataire reçoit son nouveau rendez-vous",
+              "statut": "passed"
+            },
+            {
+              "nom": "accepterDateLocataire — accord sur une date de report (D22) une date sans demande (contre-proposition ordinaire) : aucun courrier de report",
+              "statut": "passed"
+            },
+            {
+              "nom": "accepterDateLocataire — accord sur une date de report (D22) la mission est d'une autre organisation que la demande : rien ne part (garde et lecture par organisation)",
+              "statut": "passed"
+            },
+            {
+              "nom": "accepterDateLocataire — accord sur une date de report (D22) sans client de service : la trace « notification_sans_service » est journalisée, rien ne part",
+              "statut": "passed"
+            },
+            {
+              "nom": "les trois courriers, lus en base par le client de service demande de report → l'artisan : motif en mots, échéance, clé par demande ; une annulation n'est pas un report",
+              "statut": "passed"
+            },
+            {
+              "nom": "les trois courriers, lus en base par le client de service annulation tardive → l'artisan (sans un mot de délai) et le gestionnaire (« moins de 24 heures »)",
+              "statut": "passed"
+            },
+            {
+              "nom": "les trois courriers, lus en base par le client de service réponse au locataire : rien tant que la demande n'est ni acceptée ni refusée",
+              "statut": "passed"
+            },
+            {
+              "nom": "les trois courriers, lus en base par le client de service demandeDuCreneau : la demande d'une date du locataire, rien pour une autre date",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "rendez-vous-locataire-ecrans.test.ts",
+          "tests": [
+            {
+              "nom": "libellés, motifs et alertes chaque type d'événement de la migration a un libellé lisible",
+              "statut": "passed"
+            },
+            {
+              "nom": "libellés, motifs et alertes la liste des motifs est celle de la contrainte de la table, et un code inconnu ne s'affiche jamais brut",
+              "statut": "passed"
+            },
+            {
+              "nom": "libellés, motifs et alertes les trois nombres affichés sont ceux de la décision, tels que la base les applique",
+              "statut": "passed"
+            },
+            {
+              "nom": "libellés, motifs et alertes l'alerte « rdv_annule_locataire » mène au dossier de l'incident et se ferme d'elle-même",
+              "statut": "passed"
+            },
+            {
+              "nom": "libellés, motifs et alertes l'alerte « rdv_annule_tardif » mène au dossier de l'incident et se ferme d'elle-même",
+              "statut": "passed"
+            },
+            {
+              "nom": "libellés, motifs et alertes l'alerte « rdv_demande_sans_reponse » mène au dossier de l'incident et se ferme d'elle-même",
+              "statut": "passed"
+            },
+            {
+              "nom": "ce que le locataire lit de sa demande en attente : le rendez-vous actuel reste valable, avec l'échéance",
+              "statut": "passed"
+            },
+            {
+              "nom": "ce que le locataire lit de sa demande acceptée : la nouvelle date ; refusée : le motif de l'artisan et le rendez-vous maintenu",
+              "statut": "passed"
+            },
+            {
+              "nom": "ce que le locataire lit de sa demande expirée : le rendez-vous est maintenu ; retirée : rien à dire",
+              "statut": "passed"
+            },
+            {
+              "nom": "ce que le locataire lit de sa demande annulation : dite tant qu'aucun nouveau rendez-vous n'est fixé, sans un mot de sanction",
+              "statut": "passed"
+            },
+            {
+              "nom": "ce que le locataire lit de sa demande report impossible : on dit pourquoi (plafond, ou moins de 24 h), jamais un bouton qui échouerait",
+              "statut": "passed"
+            },
+            {
+              "nom": "les courriers la demande de report à l'artisan dit le motif en mots, que le rendez-vous tient, et l'échéance",
+              "statut": "passed"
+            },
+            {
+              "nom": "les courriers l'annulation tardive est dite au gestionnaire, jamais présentée à l'artisan comme un déplacement perdu",
+              "statut": "passed"
+            },
+            {
+              "nom": "les courriers la réponse au locataire : la nouvelle date, ou le refus avec le motif et le rendez-vous maintenu",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'heure d\\'hiver — régression CI783, Pa…' report : la fonction de base reçoit le motif, la précision, trois dates et la clé ; l'artisan est prévenu",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'heure d\\'hiver — régression CI783, Pa…' report : sans clé, sans motif, avec deux dates identiques ou une date passée, rien n'est écrit",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'heure d\\'hiver — régression CI783, Pa…' report refusé par la base (moins de 24 h) : le message de la base, et personne n'est prévenu",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'heure d\\'hiver — régression CI783, Pa…' annulation : exige la confirmation cochée ; confirmée, l'artisan et le gestionnaire sont prévenus",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'heure d\\'hiver — régression CI783, Pa…' retrait : la fonction de base tranche ; « déjà traitée » se dit tel quel",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'heure d\\'été — aucun jour sauté' report : la fonction de base reçoit le motif, la précision, trois dates et la clé ; l'artisan est prévenu",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'heure d\\'été — aucun jour sauté' report : sans clé, sans motif, avec deux dates identiques ou une date passée, rien n'est écrit",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'heure d\\'été — aucun jour sauté' report refusé par la base (moins de 24 h) : le message de la base, et personne n'est prévenu",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'heure d\\'été — aucun jour sauté' annulation : exige la confirmation cochée ; confirmée, l'artisan et le gestionnaire sont prévenus",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'heure d\\'été — aucun jour sauté' retrait : la fonction de base tranche ; « déjà traitée » se dit tel quel",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'changement d\\'année' report : la fonction de base reçoit le motif, la précision, trois dates et la clé ; l'artisan est prévenu",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'changement d\\'année' report : sans clé, sans motif, avec deux dates identiques ou une date passée, rien n'est écrit",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'changement d\\'année' report refusé par la base (moins de 24 h) : le message de la base, et personne n'est prévenu",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'changement d\\'année' annulation : exige la confirmation cochée ; confirmée, l'artisan et le gestionnaire sont prévenus",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'changement d\\'année' retrait : la fonction de base tranche ; « déjà traitée » se dit tel quel",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'année bissextile' report : la fonction de base reçoit le motif, la précision, trois dates et la clé ; l'artisan est prévenu",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'année bissextile' report : sans clé, sans motif, avec deux dates identiques ou une date passée, rien n'est écrit",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'année bissextile' report refusé par la base (moins de 24 h) : le message de la base, et personne n'est prévenu",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'année bissextile' annulation : exige la confirmation cochée ; confirmée, l'artisan et le gestionnaire sont prévenus",
+              "statut": "passed"
+            },
+            {
+              "nom": "les actions du locataire — 'année bissextile' retrait : la fonction de base tranche ; « déjà traitée » se dit tel quel",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "rendez-vous-locataire-gestes.test.ts",
+          "tests": [
+            {
+              "nom": "GestesRendezVous — ce qui est montré rendez-vous confirmé, aucune demande : le bouton « Je ne peux plus être là »",
+              "statut": "passed"
+            },
+            {
+              "nom": "GestesRendezVous — ce qui est montré une demande de report attend : pas de nouveau geste, mais « Retirer ma demande »",
+              "statut": "passed"
+            },
+            {
+              "nom": "GestesRendezVous — ce qui est montré annulation plus possible (rendez-vous passé ou commencé), ou locataire sans droit d'agir : aucun geste",
+              "statut": "passed"
+            },
+            {
+              "nom": "GestesRendezVous — ce qui est montré demande expirée : pas de « Retirer ma demande », le locataire lit que son rendez-vous est maintenu",
+              "statut": "passed"
+            },
+            {
+              "nom": "GestesRendezVous — le choix et ses raisons report possible : les deux chemins",
+              "statut": "passed"
+            },
+            {
+              "nom": "GestesRendezVous — le choix et ses raisons plafond atteint : pas de report, la raison est dite",
+              "statut": "passed"
+            },
+            {
+              "nom": "GestesRendezVous — le choix et ses raisons moins de 24 h (la base le dit) : pas de report, la raison du délai",
+              "statut": "passed"
+            },
+            {
+              "nom": "GestesRendezVous — l'annulation « tardive » seulement quand la base le dit : une demande échue n'en fait pas une annulation tardive",
+              "statut": "passed"
+            },
+            {
+              "nom": "GestesRendezVous — l'annulation la case de confirmation active l'envoi",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "rendez-vous-locataire.test.ts",
+          "tests": [
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-1 : la demande est en attente, les trois dates sont proposées, le rendez-vous confirmé est inchangé",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.7 : moins de trois dates, doublons ou dates passées sont refusés comme pour la contre-proposition",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.7 : une demande déjà en attente refuse la seconde ; le locataire peut retirer la sienne",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-2 : l'artisan retient une date — ancien créneau caduc, nouveau retenu, mission planifiée aux nouvelles dates",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-2 : le rendez-vous reporté a droit à son rappel même si l'ancienne date a déjà été rappelée",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-3 : l'artisan refuse avec motif — rendez-vous maintenu, demande refusée, alerte d'arbitrage au gérant",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire l'arbitrage du gérant tranche une demande encore en attente (arbitree) et ferme les alertes du locataire",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-4 : sans réponse dans le délai, la demande expire, le rendez-vous reste, le gérant est alerté",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-4 : une organisation dont l'écriture est fermée ne voit pas ses demandes échues expirées par la tâche",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire l'expiration est réservée à la tâche planifiée : un compte connecté est refusé",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire demande échue avant le passage de la tâche : le locataire n'est pas bloqué, la demande expire avec son alerte",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire demande échue avant le passage de la tâche : l'annulation l'expire (alerte « sans réponse ») au lieu de la retirer",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-5 : l'annulation rend le créneau caduc, la mission revient à fixer, le gérant est alerté ; aucune sanction",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-5 : à moins de 24 h, l'annulation reste possible, elle est tracée « tardive » et l'alerte le dit",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire une annulation retire la demande de report en attente, qui tombait avec le rendez-vous",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-6 : deux reports acceptés n'ouvrent pas l'arbitrage « six refus » ; le troisième renvoie au gestionnaire",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-7 : la même clé d'envoi rend la même demande, sans doublon de dates ni d'événement",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire REP-04 : le clic répété de l'artisan sur « Accepter », ou du locataire sur « Confirmer », est un succès silencieux",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-8 : une date de report en conflit avec un autre rendez-vous confirmé de l'artisan est refusée ; une autre passe",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-9 : un autre locataire, un ancien locataire, un autre artisan, une autre agence échouent en appel direct",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.12-10 : un rendez-vous passé ou une intervention démarrée ne se reporte ni ne s'annule par ce circuit",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire la mission annulée par le gérant close la demande en attente et ses dates",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire pendant une demande de report, l'artisan ne « déplace » pas le rendez-vous de son côté : il répond à la demande",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire C.7 : l'échéance de réponse est de 48 h, ou la veille du rendez-vous si elle est plus proche",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire le locataire ne lit aucune table du module en direct, et la liste des trois nombres est celle de la décision",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire D22 complément : une réservation durable au plus, uniquement avant échéance et réservée au service",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire D22 complément : un report expiré ou retiré n’est jamais relancé",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire D22 complément : prendre acte est idempotent, réservé à son artisan, ne change ni mission ni alerte",
+              "statut": "passed"
+            },
+            {
+              "nom": "D22 — report ou annulation d'un rendez-vous par le locataire D22 complément : proposer de nouveaux créneaux reste possible sans prendre acte",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "retours-actions.test.ts",
+          "tests": [
+            {
+              "nom": "Retours : données minimales et confirmations honnêtes retire noms, emails, identifiants, paramètres et fragments du contexte",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours : données minimales et confirmations honnêtes refuse une session absente avant toute écriture",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours : données minimales et confirmations honnêtes assainit aussi côté serveur le contexte envoyé",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours : données minimales et confirmations honnêtes exige la confirmation de visibilité d’une idée",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours : données minimales et confirmations honnêtes ne confirme pas un enregistrement sans identifiant retourné",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours : données minimales et confirmations honnêtes ne permet pas une décision avec un accès SA faux ou défaillant",
+              "statut": "passed"
+            },
+            {
+              "nom": "Retours : données minimales et confirmations honnêtes déclenche la nouvelle revue au début du mois français et borne la pagination",
+              "statut": "passed"
+            },
+            {
+              "nom": "plan du 23/10 (R05) : la réclamation et le médiateur de la consommation « Faire une réclamation » est une nature admise",
+              "statut": "passed"
+            },
+            {
+              "nom": "plan du 23/10 (R05) : la réclamation et le médiateur de la consommation une réclamation résolue renvoie au médiateur saisi",
+              "statut": "passed"
+            },
+            {
+              "nom": "plan du 23/10 (R05) : la réclamation et le médiateur de la consommation sans médiateur saisi (décision du 23/10, non bloquant) : la phrase de l'adhésion en cours",
+              "statut": "passed"
+            },
+            {
+              "nom": "plan du 23/10 (R05) : la réclamation et le médiateur de la consommation seulement à la clôture d'une réclamation : ni en cours, ni pour une autre nature",
+              "statut": "passed"
+            },
+            {
+              "nom": "plan du 23/10 (R05) : la réclamation et le médiateur de la consommation une réponse trop longue pour y ajouter la phrase est refusée avant l'écriture",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "validation-creneaux.test.ts",
+          "tests": [
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse SQL NULL sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse JSON null sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse objet sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse scalaire sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse deux propositions sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse entrée null sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse entrée tableau sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse début manquant sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse début numérique sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse fin null sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse date impossible sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse date vide sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse infini sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse moins infini sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse fin avant début sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse durée nulle sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse passé sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse doublon sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 artisan refuse doublon autre fuseau sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse SQL NULL sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse JSON null sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse objet sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse scalaire sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse deux propositions sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse entrée null sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse entrée tableau sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse début manquant sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse début numérique sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse fin null sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse date impossible sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse date vide sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse infini sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse moins infini sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse fin avant début sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse durée nulle sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse passé sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse doublon sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 locataire refuse doublon autre fuseau sans modifier les créneaux, la mission ni sa chronologie",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 le nominal locataire accepte aussi plus de trois créneaux puis artisan confirme",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 un second envoi de la même contre-proposition ne change rien : ni refus fantôme, ni arbitrage",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 une liste corrigée remplace la précédente : l’ancienne devient caduque, elle n’est pas comptée comme refusée",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 report artisan : un rendez-vous planifié redevient accepté avec trois nouvelles dates",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 contre-proposition refusée sur mission annulée, même avec trois dates valides",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 contre-proposition refusée quand le rendez-vous est déjà retenu",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 les refus conduisent toujours à l’arbitrage puis au rendez-vous fixé par le gérant",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 une mission terminée refuse toute nouvelle négociation, côté locataire et artisan",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 des fuseaux différents restent acceptés quand les instants proposés diffèrent",
+              "statut": "passed"
+            },
+            {
+              "nom": "Validation SQL des créneaux — mission du12/10 les comptes voisins restent refusés dans les deux RPC",
+              "statut": "passed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lot": "metiers",
+      "reussis": 115,
+      "echecs": 0,
+      "sautes": 0,
+      "fichiers": [
+        {
+          "nom": "alerte-impaye-encaissement-base.test.ts",
+          "tests": [
+            {
+              "nom": "alerte d'impayé et encaissements — manifeste et retour (sans base) la migration est au manifeste une seule fois, avec son retour listé au LISEZ-MOI",
+              "statut": "passed"
+            },
+            {
+              "nom": "alerte d'impayé et encaissements — manifeste et retour (sans base) suivre_impayes_bail garde une seule lecture du jour de Paris (le retour de 20261014501000 en compte une)",
+              "statut": "passed"
+            },
+            {
+              "nom": "alerte d'impayé et encaissements (avec base) la nuit pose une alerte critique ; la lire, lire les rappels ou l'état du bail ne la ferme pas",
+              "statut": "passed"
+            },
+            {
+              "nom": "alerte d'impayé et encaissements (avec base) deux réceptions depuis le tableau de bord : l'alerte suit le premier terme, puis se ferme « Impayé soldé »",
+              "statut": "passed"
+            },
+            {
+              "nom": "alerte d'impayé et encaissements (avec base) un règlement partiel au même nombre de termes met le montant de l'alerte à jour",
+              "statut": "passed"
+            },
+            {
+              "nom": "alerte d'impayé et encaissements (avec base) l'annulation du règlement rouvre la même alerte, sans doublon, autant de fois qu'elle se répète",
+              "statut": "passed"
+            },
+            {
+              "nom": "alerte d'impayé et encaissements (avec base) l'encaissement depuis le bail ferme aussi l'alerte",
+              "statut": "passed"
+            },
+            {
+              "nom": "alerte d'impayé et encaissements (avec base) un nouveau terme impayé après un solde rouvre l'alerte fermée d'elle-même, à la date du nouveau terme",
+              "statut": "passed"
+            },
+            {
+              "nom": "alerte d'impayé et encaissements (avec base) une alerte fermée à la main reste fermée après un encaissement partiel ou la nuit",
+              "statut": "passed"
+            },
+            {
+              "nom": "alerte d'impayé et encaissements (avec base) une fermeture à la main écrite « Impayé soldé » garde son auteur et reste fermée tant que la dette demeure",
+              "statut": "passed"
+            },
+            {
+              "nom": "alerte d'impayé et encaissements (avec base) une fermeture de la tâche de nuit, sans auteur, se rouvre quand la dette revient",
+              "statut": "passed"
+            },
+            {
+              "nom": "alerte d'impayé et encaissements (avec base) un encaissement saisi ou retiré sur un bail sans alerte n'en pose aucune : la nuit reste seule à les poser",
+              "statut": "passed"
+            },
+            {
+              "nom": "alerte d'impayé et encaissements (avec base) la migration se rejoue sans erreur et sans second déclencheur",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "factures-fourniture-journal-base.test.ts",
+          "tests": [
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques enregistre la date et la dépense entière, conserve le justificatif et rejoue sans doublon",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques rattache immédiatement la facture d'un lot et sépare la TEOM de ses frais",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques une répartition déjà validée ventile le paiement sans doubler la part propriétaire",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques une validation tardive reclasse l'attente par contre-écritures sans changer le total payé",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques refuse locataire, compte étranger et agent hors portefeuille, sans écriture partielle",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques refuse date future, date infinie, montant nul et mois clos atomiquement",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques interdit les mutations directes de paiement, les liens forgés et les changements après paiement",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques refuse une adhésion devenue inactive et un dossier dont les écritures sont fermées",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques conserve la date du paiement quand une dépense d'un mois clos est ventilée ensuite",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques prépare sans ressaisie, sans second prorata ni émission immédiate",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques avis interne, option automatique false : validation, destinataire et unicité",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques avis interne, option automatique true : validation, destinataire et unicité",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques émet une seule régularisation avec PDF lié et visible par le seul locataire concerné",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques refuse les données ou confirmations périmées sans document orphelin",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques respecte forfait, année, décompte validé, portefeuille et unicité avec le parcours manuel",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques affecte intégralement à décembre un relevé du 1er décembre au 1er janvier exclusif",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques une facture décembre-février avec index au 1er janvier alimente deux exercices sans double compte",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques bloque aussi un ancien décompte validé dont le segment traversait janvier sans ventilation",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques la clé forfaitaire conserve sa fin inclusive au 1er janvier et ne devine pas un prorata",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques un retour financier avec des paiements refuse atomiquement sans perdre droits ni preuve",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques un retour annuel conserve les brouillons et refuse sans désactiver leur préparation",
+              "statut": "passed"
+            },
+            {
+              "nom": "facture fournisseur : paiement et journal atomiques partage une facture sans clôture annuelle, sans créance ni double envoi et avec isolation locataire",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "profil-fiscal-base.test.ts",
+          "tests": [
+            {
+              "nom": "Profils fiscaux : persistance, historique et séparation des comptes enregistre le détenteur et sa qualité, sans créer un régime par lot",
+              "statut": "passed"
+            },
+            {
+              "nom": "Profils fiscaux : persistance, historique et séparation des comptes double envoi identique idempotent, correction dans une nouvelle version",
+              "statut": "passed"
+            },
+            {
+              "nom": "Profils fiscaux : persistance, historique et séparation des comptes SCI IS n’accepte pas le micro et conserve un profil commun à tous ses biens",
+              "statut": "passed"
+            },
+            {
+              "nom": "Profils fiscaux : persistance, historique et séparation des comptes refuse IS pour un particulier et profil d’une année sans détention",
+              "statut": "passed"
+            },
+            {
+              "nom": "Profils fiscaux : persistance, historique et séparation des comptes un propriétaire sorti reste identifiable pour son année passée",
+              "statut": "passed"
+            },
+            {
+              "nom": "Profils fiscaux : persistance, historique et séparation des comptes aucune lecture croisée ni mutation directe ni écriture pour un autre espace",
+              "statut": "passed"
+            },
+            {
+              "nom": "Profils fiscaux : persistance, historique et séparation des comptes abonnement fermé interdit une nouvelle version mais garde l’historique lisible",
+              "statut": "passed"
+            },
+            {
+              "nom": "Profils fiscaux : persistance, historique et séparation des comptes adhésion inactive et appel anonyme ne peuvent pas enregistrer un profil",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "reglage-souscription-base.test.ts",
+          "tests": [
+            {
+              "nom": "blocage souscription : droits réels et historique le pilote démarre fermé ; seule la supervision avec second facteur peut rouvrir puis refermer",
+              "statut": "passed"
+            },
+            {
+              "nom": "blocage souscription : droits réels et historique conserve la règle active par défaut et protège la table par RLS",
+              "statut": "passed"
+            },
+            {
+              "nom": "blocage souscription : droits réels et historique autorise les clients à lire le réglage mais pas à le modifier",
+              "statut": "passed"
+            },
+            {
+              "nom": "blocage souscription : droits réels et historique refuse un superadmin sans second facteur",
+              "statut": "passed"
+            },
+            {
+              "nom": "blocage souscription : droits réels et historique ne donne aucun droit nouveau aux visiteurs anonymes",
+              "statut": "passed"
+            },
+            {
+              "nom": "blocage souscription : droits réels et historique lève puis réactive la règle en conservant l'auteur et les deux états",
+              "statut": "passed"
+            },
+            {
+              "nom": "blocage souscription : droits réels et historique une page périmée ne peut pas écraser un changement plus récent",
+              "statut": "passed"
+            },
+            {
+              "nom": "blocage souscription : droits réels et historique le rejeu, le retour et la réapplication préservent la décision et sa trace",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "confidentialite-v1.test.ts",
+          "tests": [
+            {
+              "nom": "/confidentialite (lot 4) ne cite plus gerimmo_inscription ni Yousign, et nomme les trois témoins déposés (R63)",
+              "statut": "passed"
+            },
+            {
+              "nom": "/confidentialite (lot 4) dit qu'aucun DPO n'est désigné et que le dirigeant est le référent",
+              "statut": "passed"
+            },
+            {
+              "nom": "/confidentialite (lot 4) donne les bases légales du plan : preuve du contrat (L. 213-1), suivi commercial (deux régimes), artisans",
+              "statut": "passed"
+            },
+            {
+              "nom": "/confidentialite (lot 4) factures de Gerimmo six ans au moins (L. 102 B), jamais dix ; preuve du contrat dix ans après le dernier abonnement payé",
+              "statut": "passed"
+            },
+            {
+              "nom": "/confidentialite (lot 4) décrit la fermeture du compte et la suppression après vingt-quatre mois sans connexion ni abonnement",
+              "statut": "passed"
+            },
+            {
+              "nom": "/confidentialite (lot 4) préavis : seulement ceux que le code prévoit (J-30 par bail, J-15 par personne sans bail, article 9 de la V1)",
+              "statut": "passed"
+            },
+            {
+              "nom": "/confidentialite (lot 4) listes d'attente : aucune purge « à l'ouverture » promise ; la liste des propriétaires a sa base et sa description",
+              "statut": "passed"
+            },
+            {
+              "nom": "/confidentialite (lot 4) suivi commercial : la recommandation est un canal de la demande, pas une demande",
+              "statut": "passed"
+            },
+            {
+              "nom": "/confidentialite (lot 4) transferts hors UE : ne se prévaut d'aucune certification d'OpenAI ni de GitHub",
+              "statut": "passed"
+            },
+            {
+              "nom": "/confidentialite (lot 4) violation de données : « dans les meilleurs délais », sans engagement de 48 heures",
+              "statut": "passed"
+            },
+            {
+              "nom": "/confidentialite (lot 4) la signature : Zoho Sign garde le cautionnement et l'état des lieux ; la caution saisit elle-même son mobile",
+              "statut": "passed"
+            },
+            {
+              "nom": "/confidentialite (lot 4) l'offre est réservée aux propriétaires : plus d'agence cliente ni de gestionnaire dans les rôles",
+              "statut": "passed"
+            },
+            {
+              "nom": "/confidentialite (lot 4) est datée comme la V1 des conditions (date provisoire jusqu'à la publication)",
+              "statut": "passed"
+            },
+            {
+              "nom": "mentions légales (lot 4 : aucun changement de texte) le médiateur manquant s'y dit « Adhésion à venir », sans fermer la vente",
+              "statut": "passed"
+            },
+            {
+              "nom": "pages publiques (lot 4) l'accueil réserve l'offre à vos propres biens (V1, articles 1 et 2)",
+              "statut": "passed"
+            },
+            {
+              "nom": "pages publiques (lot 4) l'accueil et /tarifs disent la suppression après vingt-quatre mois et le renvoi à la confidentialité",
+              "statut": "passed"
+            },
+            {
+              "nom": "pages publiques (lot 4) /tarifs : l'impayé (article 15) et la signature comprise, cautionnement et état des lieux gardés",
+              "statut": "passed"
+            },
+            {
+              "nom": "pages publiques (lot 4) « Mon abonnement » : lecture seule après la résiliation, signature dans ce qui est compris (abonnement-2026.tsx)",
+              "statut": "passed"
+            },
+            {
+              "nom": "pages publiques (lot 4) liste d'attente des agences : opposition, trois ans après l'inscription, retrait dans le mois (R44)",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "essai-deux-mois.test.ts",
+          "tests": [
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription annonce la durée permanente",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/page.tsx ne parle plus d'un essai de 14 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/tarifs/page.tsx ne parle plus d'un essai de 14 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/inscription/page.tsx ne parle plus d'un essai de 14 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/inscription/formulaire-inscription.tsx ne parle plus d'un essai de 14 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/espaces/choix-espace.tsx ne parle plus d'un essai de 14 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/agence/[orgId]/faq/page.tsx ne parle plus d'un essai de 14 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/journal/[slug]/page.tsx ne parle plus d'un essai de 14 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/admin/page.tsx ne parle plus d'un essai de 14 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/conditions/page.tsx ne parle plus d'un essai de 14 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription components/outils/coquille-outil.tsx ne parle plus d'un essai de 14 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription lib/parrainage.ts ne parle plus d'un essai de 14 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription lib/sante-service.ts ne parle plus d'un essai de 14 jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription l'accueil, l'inscription et les tarifs lisent la durée au rendu, badge compris",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/page.tsx ne fige pas la durée au build (revalidate = 3600)",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/tarifs/page.tsx ne fige pas la durée au build (revalidate = 3600)",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/inscription/page.tsx ne fige pas la durée au build (revalidate = 3600)",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/journal/[slug]/page.tsx ne fige pas la durée au build (revalidate = 3600)",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/outils/page.tsx ne fige pas la durée au build (revalidate = 3600)",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/outils/calcul-irl/page.tsx ne fige pas la durée au build (revalidate = 3600)",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/outils/comparateur-gli-visale/page.tsx ne fige pas la durée au build (revalidate = 3600)",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/outils/quittance-de-loyer/page.tsx ne fige pas la durée au build (revalidate = 3600)",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/outils/rentabilite-locative/page.tsx ne fige pas la durée au build (revalidate = 3600)",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription app/outils/simulateur-lmnp/page.tsx ne fige pas la durée au build (revalidate = 3600)",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription les conditions (art. 8.2) annoncent deux mois sans reconduction, en texte fixe",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription la FAQ du propriétaire annonce deux mois",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription la rétractation du consommateur reste de quatorze jours",
+              "statut": "passed"
+            },
+            {
+              "nom": "deux mois gratuits pour toute nouvelle inscription le changement des conditions est daté : V1 du 24 octobre 2026, la version du 30 septembre 2026 gardée dans l'historique",
+              "statut": "passed"
+            },
+            {
+              "nom": "la base applique l'essai permanent de deux mois la fin de l'essai ordinaire est aujourd'hui (Paris) + 2 mois calendaires",
+              "statut": "passed"
+            },
+            {
+              "nom": "la base applique l'essai permanent de deux mois la fonction conserve la date de Paris, sa stabilité et ses droits",
+              "statut": "passed"
+            },
+            {
+              "nom": "la base applique l'essai permanent de deux mois calcule l’échéance au jour de Paris pour 2026-12-31T22:30:00Z",
+              "statut": "passed"
+            },
+            {
+              "nom": "la base applique l'essai permanent de deux mois calcule l’échéance au jour de Paris pour 2026-12-31T23:30:00Z",
+              "statut": "passed"
+            },
+            {
+              "nom": "la base applique l'essai permanent de deux mois calcule l’échéance au jour de Paris pour 2027-12-31T12:00:00Z",
+              "statut": "passed"
+            },
+            {
+              "nom": "la base applique l'essai permanent de deux mois calcule l’échéance au jour de Paris pour 2030-01-31T12:00:00Z",
+              "statut": "passed"
+            },
+            {
+              "nom": "la base applique l'essai permanent de deux mois une inscription en ligne (propriétaire direct) ouvre un essai de 2 mois",
+              "statut": "passed"
+            },
+            {
+              "nom": "la base applique l'essai permanent de deux mois ouvre onze espaces distincts sans souscription ni client Stripe",
+              "statut": "passed"
+            },
+            {
+              "nom": "la base applique l'essai permanent de deux mois une agence ouverte depuis la console, sans durée précisée, a aussi 2 mois",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "fiscal-export.test.ts",
+          "tests": [
+            {
+              "nom": "exporte la quote-part affichée et laisse les rubriques à compléter vides",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "identite-siren-societe.test.ts",
+          "tests": [
+            {
+              "nom": "conserve le zéro initial, accepte les espaces et refuse un numéro tronqué",
+              "statut": "passed"
+            },
+            {
+              "nom": "identifie le bailleur société et conserve la présentation historique",
+              "statut": "passed"
+            },
+            {
+              "nom": "identifie le bailleur société et conserve la présentation historique",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "relais-migrations-manifeste.test.ts",
+          "tests": [
+            {
+              "nom": "lot relais-alertes — manifeste et procédure de retour (sans base) les trois migrations du lot se suivent dans leur ordre, une seule fois chacune ; seules celles des lots postérieurs les suivent",
+              "statut": "passed"
+            },
+            {
+              "nom": "lot relais-alertes — manifeste et procédure de retour (sans base) les migrations déjà appliquées en production (820000, 821000, puis celles de la PR #190) restent devant celles du lot",
+              "statut": "passed"
+            },
+            {
+              "nom": "lot relais-alertes — manifeste et procédure de retour (sans base) le LISEZ-MOI ne donne qu'une chaîne complète : les retours des lots postérieurs, puis 812000, 811000 et 810000",
+              "statut": "passed"
+            }
+          ]
+        },
+        {
+          "nom": "souscription-patrimoine-mixte-base.test.ts",
+          "tests": [
+            {
+              "nom": "un propriétaire gère ses deux patrimoines dans un espace et retrouve la même intention de souscription",
+              "statut": "passed"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lot": "historique-neuf",
+      "reussis": 2,
+      "echecs": 0,
+      "sautes": 0,
+      "fichiers": [
+        {
+          "nom": "patrimoine-finance-retours-base.test.ts",
+          "tests": [
+            {
+              "nom": "retours des fournitures et finances, sans perte de preuves défait deux fois les modules vides dans leur ordre inverse, sans dépendance résiduelle",
+              "statut": "passed"
+            },
+            {
+              "nom": "retours des fournitures et finances, sans perte de preuves réinstalle les fonctions, droits et gardes après le retour complet vide",
+              "statut": "passed"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "fuites": [
+    {
+      "mission": "401ed82c-9438-40bb-890e-547a434484b0",
+      "statut": "réussi",
+      "fixture": "Déclaration avec photo et choix du créneau en navigateur ; qualification, devis et accord par les RPC métier de chaque rôle.",
+      "incidentClos": true,
+      "factureValideeSansReglement": true,
+      "locatairePeutSignalerUnePersistance": true,
+      "demarrage": true,
+      "photoDeposee": true,
+      "compteRenduTransmis": true,
+      "factureDeposee": true,
+      "factureLueParGerant": true,
+      "format": "ordinateur"
+    },
+    {
+      "mission": "48a7dabe-1d10-40c9-af04-eea4585ead26",
+      "statut": "réussi",
+      "fixture": "Déclaration avec photo et choix du créneau en navigateur ; qualification, devis et accord par les RPC métier de chaque rôle.",
+      "incidentClos": true,
+      "factureValideeSansReglement": true,
+      "locatairePeutSignalerUnePersistance": true,
+      "demarrage": true,
+      "photoDeposee": true,
+      "compteRenduTransmis": true,
+      "factureDeposee": true,
+      "factureLueParGerant": true,
+      "format": "telephone"
+    }
+  ]
+}

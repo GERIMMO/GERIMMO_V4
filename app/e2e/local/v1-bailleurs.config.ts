@@ -10,7 +10,7 @@ for (const url of [site, api]) {
   }
 }
 const profils = [
-  "depot-bail-signe-papier.spec.ts", "creation-bien-reprise.spec.ts", "dossier-proprietaire.spec.ts", "lot3-loyer-facture.spec.ts", "parcours-locataire.spec.ts",
+  "lot2-pilote.spec.ts", "depot-bail-signe-papier.spec.ts", "creation-bien-reprise.spec.ts", "dossier-proprietaire.spec.ts", "lot3-loyer-facture.spec.ts", "parcours-locataire.spec.ts",
   "parcours-artisan.spec.ts", "compte-supervision.spec.ts", "incidents-reprise.spec.ts",
   "artisan-fin-mission.spec.ts", "devis-reprise.spec.ts", "comptabilite-vues.spec.ts",
   "reception-loyer-proprietaire.spec.ts", "incident-gerant-colocation.spec.ts", "fiscalite-qualifiee.spec.ts",

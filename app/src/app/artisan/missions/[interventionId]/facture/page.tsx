@@ -1,3 +1,4 @@
+import { clientDeService } from "@/lib/supabase/service";
 import { LectureImpossibleArtisan } from "../../../ui";
 import { notFound, redirect } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
@@ -21,7 +22,7 @@ export const metadata = { title: "Déposer ma facture" };
 export default async function PageFacture(
   props: PageProps<"/artisan/missions/[interventionId]/facture">
 ) {
-  await verifierAccesArtisan();
+  const { fiche } = await verifierAccesArtisan();
   const { interventionId } = await props.params;
   const agenda = await chargerAgenda();
   if (agenda.erreur) return <LectureImpossibleArtisan href={`/artisan/missions/${interventionId}/facture`} />;
@@ -35,6 +36,9 @@ export default async function PageFacture(
   ) {
     redirect(`/artisan/missions/${interventionId}`);
   }
+
+  const profil = await clientDeService()?.from("artisan_profils_documents")
+    .select("adresse,mentions").eq("artisan_id", fiche.artisan_id).maybeSingle();
 
   return (
     <div className="space-y-5">
@@ -68,6 +72,9 @@ export default async function PageFacture(
       <FormulaireFacture
         interventionId={interventionId}
         plafondCents={mission.montant_plafond_cents}
+        adresseEntreprise={profil?.data?.adresse ?? ""}
+        mentionsEntreprise={profil?.data?.mentions ?? ""}
+        lieuTravaux={[mission.adresse, mission.code_postal, mission.ville].filter(Boolean).join(" ")}
       />
     </div>
   );

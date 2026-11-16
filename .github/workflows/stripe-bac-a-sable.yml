@@ -18,7 +18,7 @@ jobs:
     # de fork n'y accède (workflow_dispatch réservé aux collaborateurs).
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/') || startsWith(github.ref, 'refs/heads/codex/')
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     services:
       postgres:
         image: postgres:18
@@ -57,10 +57,26 @@ jobs:
           mkdir stripe-cli
           tar -xzf stripe_1.55.9_linux_x86_64.tar.gz -C stripe-cli stripe
           echo "GERIMMO_STRIPE_CLI=$RUNNER_TEMP/stripe-cli/stripe" >> "$GITHUB_ENV"
+      - name: Construire Gerimmo avec les adresses du banc fictif
+        env:
+          NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3483
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54183
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: cle-locale
+          NEXT_TELEMETRY_DISABLED: '1'
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: npm run build
+      - name: Installer Chromium pour la commande volontaire
+        run: npx --no-install playwright install --with-deps chromium
       - name: Tester les cas de paiement et leur application dans Gerimmo
         env:
           GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}
         run: npm test -- tests/stripe-bac-a-sable.test.ts --reporter=default --reporter=json --outputFile=/tmp/gerimmo-stripe-test.json
+      - name: Vérifier le clic client dans Gerimmo et sa page hébergée Stripe TEST
+        if: success() || failure()
+        env:
+          GERIMMO_RECETTE_COMMANDE: stripe-test
+          GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}
+        run: npm test -- tests/stripe-commande-navigateur.test.ts --reporter=default --reporter=json --outputFile=/tmp/gerimmo-stripe-navigateur.json
       - name: Conserver le résultat synthétique
         if: always()
         run: |
@@ -72,6 +88,11 @@ jobs:
           const b={reussi:r.success,tests_reussis:r.numPassedTests,tests_echoues:r.numFailedTests,
             tests_ignores:r.numPendingTests,argent_reel:false,
             portee:'API Stripe de test et règles SQL locales ; webhooks simulés et relais Stripe TEST vers récepteur local ; interface de paiement non parcourue'};
+          const pn='/tmp/gerimmo-stripe-navigateur.json';
+          const navigateur=fs.existsSync(pn)?JSON.parse(fs.readFileSync(pn)):null;
+          b.commande_navigateur=navigateur?.success && navigateur.numPassedTests===1?'Archive, accords, mensuel et annuel jusqu’à Checkout TEST confirmés':'Parcours navigateur incomplet';
+          b.defi_3ds_navigateur='Validation interactive distincte ; aucune carte saisie par le navigateur automatisé.';
+          b.reussi=Boolean(b.reussi && navigateur?.success && navigateur.numPassedTests===1);
           fs.writeFileSync('/tmp/bilan-stripe-test.json',JSON.stringify(b,null,2));
           console.log(JSON.stringify(b));
           NODE

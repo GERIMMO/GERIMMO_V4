@@ -19,8 +19,25 @@ language sql stable security definer set search_path='' as $$
  and c.destinataire is not null and c.cgu_version is not null and m.etat='livre' and m.finalisation_etat='terminee'
  and m.contexte_metier->>'type'='relance_abonnement' and m.contexte_metier->>'id'=p_subscription
  and m.contexte_metier->>'palier'='0' and m.contexte_metier->>'episode'=p_episode::text
+ and (p_fin at time zone 'Europe/Paris')::date >= (m.contexte_metier->>'resiliable')::date
  and p_fin>=(l.details->>'envoyee_le')::timestamptz+interval '720 hours' and p_fin<=now();
 $$;
+
+-- La mise en demeure peut être préparée plusieurs jours après le défaut. Conserver sa première date annoncée
+-- pour les reprises ; le délai effectif reste au moins trente jours après sa livraison attestée.
+create function public.echeance_mise_en_demeure(p_org uuid,p_subscription text,p_episode date) returns date
+language sql stable security definer set search_path='' as $$
+ select coalesce(
+   (select (m.contexte_metier->>'resiliable')::date from public.courriels_durables m
+    where m.organization_id=p_org and m.contexte_metier->>'type'='relance_abonnement'
+    and m.contexte_metier->>'id'=p_subscription and m.contexte_metier->>'episode'=p_episode::text
+    and m.contexte_metier->>'palier'='0'),
+   greatest(public.aujourdhui_paris(),p_episode)+30)
+ from public.abonnements a where a.organization_id=p_org and a.stripe_subscription_id=p_subscription
+ and a.paiement_en_defaut_depuis=p_episode and a.stripe_statut in ('past_due','unpaid');
+$$;
+revoke all on function public.echeance_mise_en_demeure(uuid,text,date) from public,anon,authenticated;
+grant execute on function public.echeance_mise_en_demeure(uuid,text,date) to service_role;
 
 alter function public.empreinte_metier_courriel(uuid,jsonb) rename to empreinte_avant_incident_contrat;
 create function public.empreinte_metier_courriel(p_org uuid,p_contexte jsonb) returns text
@@ -36,16 +53,20 @@ begin
  if c->>'type'='retractation_abonnement' then
   select * into r from public.retractations_abonnement where id=(c->>'id')::uuid and organization_id=p_org;
   if not found or r.nature is distinct from c->>'nature'
+    or not exists(select from public.organizations o where o.id=p_org and o.name=c->>'organisation')
     or date_trunc('milliseconds',r.declaree_le) is distinct from (c->>'declaree')::timestamptz
     or encode(sha256(convert_to(r.texte_declaration,'UTF8')),'hex') is distinct from c->>'declaration' then return null; end if;
   select u.email into adresse from auth.users u join public.memberships m on m.account_id=u.id
    where u.id=r.declaree_par and u.email_confirmed_at is not null and u.deleted_at is null and (u.banned_until is null or u.banned_until<=now())
    and m.organization_id=p_org and m.status='active' and m.role in ('admin_agence','proprietaire_direct')
-   and lower(btrim(u.email))=lower(btrim(r.adresse_accuse));
+   ; -- Seule l'adresse vérifiée du déclarant encore habilité autorise l'envoi.
   if c->>'etape'='reception' then
     if r.executee_le is not null then return null; end if;
   elsif c->>'etape' in ('copie','execution') then
     if r.executee_le is null or r.montant_rembourse_cents is distinct from (c->>'montant')::bigint
+     or (c->>'essaiFin' is not null and not exists(select from public.organizations o where o.id=p_org and o.essai_fin=(c->>'essaiFin')::date and o.essai_fin>=public.aujourdhui_paris()))
+     or ((c->>'passage')::boolean is true and not exists(select from public.abonnements b where b.organization_id=p_org
+       and b.stripe_subscription_id=r.subscription_id and b.periodicite='mensuel' and b.montant_periode_cents=(c->>'mensualite')::bigint))
      or coalesce(r.passage_effectue,false) is distinct from coalesce((c->>'passage')::boolean,false)
      or (c->>'etape'='copie') is distinct from (r.accuse_envoye_le is not null)
      or (c->>'etape'='copie') is distinct from (nullif(c->>'copie','') is not null) then return null; end if;
@@ -60,6 +81,7 @@ begin
     or (c->>'facture') !~ '^in_[A-Za-z0-9_]+$' or c->>'facture' is null
     or (c->>'montant')::bigint<=0 or contrat.montant_periode_cents is distinct from (c->>'montant')::bigint
     or a.periodicite is distinct from c->>'periodicite' or a.relances_paiement is distinct from (c->>'palier')::smallint
+    or (a.relances_paiement=0 and public.echeance_mise_en_demeure(p_org,a.stripe_subscription_id,a.paiement_en_defaut_depuis) is distinct from (c->>'resiliable')::date)
     or (not a.premiere_facture_payee) is distinct from (c->>'premier')::boolean then return null; end if;
    if not exists(select from public.abonnements_a_relancer(500) d where d.organization_id=p_org and d.palier=a.relances_paiement) then return null; end if;
    adresse:=contrat.destinataire;
@@ -129,3 +151,21 @@ language sql stable security definer set search_path='' as $$
 $$;
 revoke all on function public.resiliations_impaye_a_rapprocher() from public,anon,authenticated;
 grant execute on function public.resiliations_impaye_a_rapprocher() to service_role;
+
+-- Les dossiers qui sortent de la fenêtre d'envoi ou arrivent au terme de la mise en demeure exigent une décision.
+create function public.dossiers_impayes_a_decider()
+returns table(organization_id uuid,subscription text,episode date,motif text)
+language sql stable security definer set search_path='' as $$
+ select a.organization_id,a.stripe_subscription_id,a.paiement_en_defaut_depuis,
+ case when a.relances_paiement=0 then 'premier_avis_absent' else 'decision_apres_mise_en_demeure' end
+ from public.abonnements a where a.stripe_statut in ('unpaid','past_due') and a.stripe_subscription_id is not null and
+ ((not a.premiere_facture_payee and a.relances_paiement=0 and a.paiement_en_defaut_depuis<public.aujourdhui_paris()-2)
+ or exists(select from public.courriels_durables m join public.audit_log l on l.organization_id=m.organization_id
+ and l.action='relance_paiement_envoyee' and l.details->>'message'=m.fournisseur_id
+ where m.organization_id=a.organization_id and m.etat='livre' and m.finalisation_etat='terminee'
+ and m.contexte_metier->>'type'='relance_abonnement' and m.contexte_metier->>'id'=a.stripe_subscription_id
+ and m.contexte_metier->>'palier'='0' and m.contexte_metier->>'episode'=a.paiement_en_defaut_depuis::text
+ and (l.details->>'envoyee_le')::timestamptz<=now()-interval '720 hours'));
+$$;
+revoke all on function public.dossiers_impayes_a_decider() from public,anon,authenticated;
+grant execute on function public.dossiers_impayes_a_decider() to service_role;

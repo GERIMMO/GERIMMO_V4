@@ -40,6 +40,7 @@ describe.skipIf(!url)("Incidents contractuels — vrais droits, preuves et final
     const fonction=n==="abonnements_a_relancer"?"abonnements_a_relancer(200)":"abonnement_courrier_contexte($1,true)";
     return {data:(await db.query(`select to_jsonb(a) x from ${fonction} a where organization_id=$1`,[org])).rows.map(r=>r.x),error:null};
    }
+   if(n==="echeance_mise_en_demeure") return {data:(await db.query("select echeance_mise_en_demeure($1,$2,$3)::text jour",[args.p_org,args.p_subscription,args.p_episode])).rows[0].jour,error:null};
    return service.rpc(n,args);
   }} as unknown as SupabaseClient;
   Object.assign(paiement,{status:"past_due",facture:"open",solde:599});
@@ -92,6 +93,33 @@ describe.skipIf(!url)("Incidents contractuels — vrais droits, preuves et final
   expect((await envoyerAccuseRetractation(banc.service!,r)).envoye).toBe(true);
   expect((await db.query("select accuse_envoye_le from retractations_abonnement where id=$1",[row.id])).rows[0].accuse_envoye_le).toBeTruthy();
   expect(boite).toHaveBeenCalledTimes(2);
+ });
+ it("résiliation prouvée : une seule facture annulée, courrier du bon contrat, reprise après interruption du fournisseur",async()=>{
+  // Le courrier a été effectivement livré et marqué par le même circuit que dans le premier scénario.
+  await db.query("update abonnements set paiement_en_defaut_depuis=aujourdhui_paris()-45 where organization_id=$1",[org]);
+  const episodeLong=(await db.query("select paiement_en_defaut_depuis::text jour from abonnements where organization_id=$1",[org])).rows[0].jour;
+  await attente();
+  const m=(await db.query("select id,fournisseur_id from courriels_durables where organization_id=$1",[org])).rows[0];
+  await db.query("select rapprocher_courriel($1,$2,'livre')",[m.id,m.fournisseur_id]);
+  expect((await db.query("select finaliser_courriel_metier($1) ok",[m.id])).rows[0].ok).toBe(true);
+  // L’horloge de l’exercice place la preuve il y a 31 jours, uniquement dans cette transaction locale.
+  await db.query("update audit_log set details=jsonb_set(details,'{envoyee_le}',to_jsonb(now()-interval '31 days')) where organization_id=$1 and action='relance_paiement_envoyee'",[org]);
+  await db.query("update courriels_durables set contexte_metier=jsonb_set(contexte_metier,'{resiliable}',to_jsonb(aujourdhui_paris()-1)) where id=$1",[m.id]);
+  const fin=Math.floor(Date.now()/1000)-60;
+  await db.query("select abonnement_appliquer($1,$2,'canceled',1,now(),false)",["cus_"+sub,sub]);
+  const p={orgId:org,subscription:sub,enDefautDepuis:episodeLong,resilieLe:new Date(fin*1000),destinataire:to,organisation:"SCI fictive"};
+  const f={id:"in_123",currency:"eur",status:"open",amount_remaining:montant,customer:"cus_"+sub,parent:{subscription_details:{subscription:sub}}};
+  const annuler=vi.fn(async()=>{
+    f.status="void"; // Opération enregistrée chez Stripe, puis réponse perdue.
+    throw new Error("Réponse interrompue");
+  });
+  const stripe={subscriptions:{retrieve:async()=>({id:sub,status:"canceled",ended_at:fin,customer:"cus_"+sub,cancellation_details:{reason:"payment_failed"}})},
+    invoices:{retrieve:async()=>f,list:async()=>({data:f.status==="open"?[f]:[],has_more:false}),voidInvoice:annuler}} as unknown as Stripe;
+  await expect(notifierResiliationImpaye(banc.service!,stripe,p)).rejects.toThrow("interrompue");
+  expect(await notifierResiliationImpaye(banc.service!,stripe,p)).toMatchObject({envoye:true,factures:"annulees"});
+  expect(annuler).toHaveBeenCalledTimes(1);expect(boite).toHaveBeenCalledTimes(2);
+  const journal=await db.query("select details from audit_log where organization_id=$1 and action='abonnement_resiliation_impaye_notifiee'",[org]);
+  expect(journal.rows).toHaveLength(1);expect(journal.rows[0].details.factures_annulees).toEqual(["in_123"]);
  });
  it("aucune annulation de facture ni courrier de clôture sans trente jours de notification prouvée",async()=>{
   const annul=vi.fn();

@@ -357,18 +357,7 @@ export async function annulerFacturesOuvertes(
   return { sort: echecs.length > 0 ? "a_annuler" : annulees.length > 0 ? "annulees" : "aucune", annulees, echecs };
 }
 
-export const DELAI_MISE_EN_DEMEURE_JOURS = 30;
-
-/**
- * R07 : sur `customer.subscription.deleted`, seulement quand un défaut de paiement était en cours et que le client
- * n'avait demandé aucune résiliation (lu en base AVANT l'événement) : la facture restée ouverte est annulée, puis le
- * courrier part, une fois.
- *
- * Relecture adverse du 24/10 (I1) : l'article 15.4 n'est cité que si la mise en demeure est restée sans effet trente
- * jours depuis l'envoi consigné du courrier, et jamais avant J+30 du défaut. Plus tôt — réglage Stripe qui résilie de lui-même
- * avant le terme annoncé par la mise en demeure —, le courrier dit les faits sans invoquer l'article, la facture est
- * annulée de même, et le relais est alerté pour corriger le réglage.
- */
+/** Uniquement après clôture Stripe confirmée et mise en demeure délivrée depuis trente jours. */
 export async function notifierResiliationImpaye(
   service: Service,
   stripe: Stripe,
@@ -459,6 +448,16 @@ export async function reprendreFinsImpayees(service: Service, stripe: Stripe, av
       },{avantEffet});
     }
   }
+  const decisions = await service.rpc("dossiers_impayes_a_decider");
+  if (decisions.error) throw new Error("Décisions d’impayé indisponibles.");
+  for (const d of decisions.data ?? []) {
+    await alerterRelaisContrat(service, {
+      evenement:"abonnement_impaye_decision_requise",sujet:"Décision sur un défaut de paiement",
+      cle:`impaye-decision-${d.subscription}-${d.episode}-${d.motif}`,lignes:[],
+      details:{organisation:d.organization_id,souscription:d.subscription,episode:d.episode,motif:d.motif},
+    }, {avantEffet});
+    aVerifier++;
+  }
   return {envoyees,aVerifier};
 }
 
@@ -478,7 +477,7 @@ export async function envoyerReceptionRetractation(
   const { erreur, id, finalisationEnAttente } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
     avantEnvoi: options.avantEffet,
     organisation:{db:service,id:p.organisationId},
-    contexteMetier:{type:"retractation_abonnement",etape:"reception",id:p.retractationId,nature:p.nature,declaree:p.declareeLe.toISOString(),declaration:empreinteCourriel(p.declaration)},
+    contexteMetier:{type:"retractation_abonnement",etape:"reception",id:p.retractationId,nature:p.nature,organisation:p.organisation,declaree:p.declareeLe.toISOString(),declaration:empreinteCourriel(p.declaration)},
     to: p.destinataire,
     subject: courrier.sujet,
     html: courrier.html,
@@ -505,8 +504,8 @@ export async function envoyerAccuseRetractation(
     avantEnvoi: options.avantEffet,
     organisation:{db:service,id:p.organisationId},
     contexteMetier:{type:"retractation_abonnement",etape:p.copie?"copie":"execution",id:p.retractationId,copie:p.copie,
-      nature:p.nature,declaree:p.declareeLe.toISOString(),declaration:empreinteCourriel(p.declaration),
-      montant:p.montantRembourseCents,passage:p.passageEffectue},
+      nature:p.nature,organisation:p.organisation,declaree:p.declareeLe.toISOString(),declaration:empreinteCourriel(p.declaration),
+      montant:p.montantRembourseCents,passage:p.passageEffectue,essaiFin:p.essaiFin,mensualite:p.mensualiteCents},
     to: p.destinataire,
     subject: courrier.sujet,
     html: courrier.html,

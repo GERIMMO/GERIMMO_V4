@@ -47,6 +47,7 @@ function banc(lignes: () => Due[], marquage: { erreur: boolean } = { erreur: fal
   bancFinalisation.erreur = marquage.erreur;
   const supabase = {
     rpc: async (fn: string, args?: { p_org?: string }) => {
+      if (fn === "echeance_mise_en_demeure") return { data:"2026-11-12",error:null };
       if (fn === "abonnements_a_relancer") return { data: lignes(), error: null };
       // Plan du 23/10 (R06) : le marquage passe par abonnement_relance_consigner (marque et preuve d'audit).
       if (fn === "abonnement_relance_consigner") {
@@ -156,7 +157,8 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
     const consignes: Record<string, unknown>[] = [];
     const supabase = {
       rpc: async (fn: string, args?: Record<string, unknown>) => {
-        if (fn === "abonnements_a_relancer")
+        if (fn === "echeance_mise_en_demeure") return { data:"2026-11-12",error:null };
+      if (fn === "abonnements_a_relancer")
           return { data: [due({ premier_prelevement: true, en_defaut_depuis: "2026-10-13", resiliable_le: "2026-11-12" } as Partial<Due>)], error: null };
         if (fn === "abonnement_relance_consigner") consignes.push(args ?? {});
         return { data: true, error: null };

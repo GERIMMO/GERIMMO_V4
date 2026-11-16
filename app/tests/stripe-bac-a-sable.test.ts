@@ -1,3 +1,4 @@
+import { factureImpayee } from "@/lib/impaye-preuve-stripe";
 // Stripe réel en mode TEST + règles Gerimmo dans PostgreSQL local.
 // Le transport du webhook est simulé et signé ; il n'est pas présenté comme
 // une livraison de Stripe vers un site public ni comme une recette visuelle.
@@ -535,6 +536,29 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
       expect((await nouvelle.db!.query("select count(*)::int n from public.audit_log where organization_id=$1 and action='abonnement_premiere_facture_payee'",[org])).rows[0].n).toBe(1);
       const miroir=(await nouvelle.db!.query("select a.montant_periode_cents::int montant,o.status from public.abonnements a join public.organizations o on o.id=a.organization_id where a.organization_id=$1",[org])).rows[0];
       expect(miroir).toMatchObject({montant:599,status:"active"});
+
+      // Même client et même abonnement : une échéance suivante est refusée, puis régularisée.
+      const refus = await stripe.paymentMethods.attach("pm_card_chargeCustomerFail", {customer:client});
+      const prochaine = await stripe.subscriptions.update(souscription.id, {default_payment_method:refus.id});
+      const terme = prochaine.items.data[0].current_period_end;
+      await avancer(terme);
+      let suivante: Stripe.Invoice | undefined;
+      await attendre(async()=>{
+        suivante=(await stripe.invoices.list({customer:client,subscription:souscription.id})).data
+          .find(f=>f.billing_reason==="subscription_cycle" && f.created>=terme && f.id!==factureCycle);
+        return !!suivante;
+      },"Aucune facture TEST pour l’échéance en impayé");
+      if (!suivante) throw new Error("La facture de TEST attendue est absente.");
+      const impayee=suivante.id;
+      await avancer(Math.max(terme+7200,(suivante.automatically_finalizes_at??terme)+3600));
+      await attendre(async()=>(await stripe.subscriptions.retrieve(souscription.id)).status==="past_due","Stripe TEST n’a pas constaté le paiement refusé");
+      expect(await factureImpayee(souscription.id,599,stripe)).toBe(impayee);
+      await attendre(async()=>Boolean((await nouvelle.db!.query("select paiement_en_defaut_depuis from public.abonnements where organization_id=$1",[org])).rows[0].paiement_en_defaut_depuis),"Gerimmo n’a pas enregistré le défaut du renouvellement");
+      const payee=await stripe.invoices.pay(impayee,{payment_method:pm.id},{idempotencyKey:`recette-regularisation-${impayee}`});
+      expect(payee).toMatchObject({livemode:false,status:"paid",amount_paid:599,amount_remaining:0});
+      await attendre(async()=>(await stripe.subscriptions.retrieve(souscription.id)).status==="active","La régularisation de TEST n’a pas rouvert la souscription");
+      await expect(factureImpayee(souscription.id,599,stripe)).rejects.toThrow();
+      await attendre(async()=>(await nouvelle.db!.query("select paiement_en_defaut_depuis is null as regularise from public.abonnements where organization_id=$1",[org])).rows[0].regularise,"Gerimmo n’a pas rapproché la régularisation signée");
     } finally {
       relais.kill("SIGTERM");await chaine;
       await new Promise<void>(r=>serveur.close(()=>r()));

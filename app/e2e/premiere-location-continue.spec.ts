@@ -40,6 +40,17 @@ test("Résidence des Acacias : de la première inscription à la quittance du m�
   await page.getByRole("button",{name:/Changer le mot de passe|Créer mon mot de passe|Valider/}).click();
   await page.waitForURL(/\/espace\/[a-f0-9-]{36}/);
   const espace = new URL(page.url()).pathname;
+  // L’adresse aléatoire sert à isoler les inscriptions simultanées. Le contact
+  // du bailleur imprimé sur les quittances est celui de son profil public.
+  await page.goto(espace + "/profil");
+  const profil = page.locator("form").filter({ has: page.getByLabel("Nom de votre espace") });
+  await profil.getByLabel("Nom de votre espace").fill("Parc d’Élise Morel");
+  await profil.getByLabel("Email de contact").fill("elise.morel@example.invalid");
+  await profil.getByLabel("Téléphone", { exact: true }).fill("04 65 71 02 14");
+  await profil.getByRole("button", { name: /^Suivant/ }).click();
+  await profil.getByRole("button", { name: /^Suivant/ }).click();
+  await profil.getByRole("button", { name: "Enregistrer mon profil" }).click();
+  await expect(profil.getByText("Vos modifications ont bien été sauvegardées.")).toBeVisible();
   await page.goto(espace+"/parc/nouveau");
   for (const [nom,valeur] of [["Nom du bien","Résidence des Acacias"],["Adresse","9 rue des Acacias"],["Code postal","69003"],["Ville","Lyon"],["Année de construction","1998"],["Parties communes","Hall"],["Accès internet","Fibre"]]) {
     await page.getByLabel(nom,{exact:["Nom du bien","Adresse"].includes(nom)}).fill(valeur);
@@ -129,10 +140,14 @@ test("Résidence des Acacias : de la première inscription à la quittance du m�
   const [document]=await Promise.all([context.waitForEvent("page"), lien.click()]);
   const cadre=document.frameLocator("iframe").last().locator("body");
   await expect(cadre).toContainText("640,00");
+  await expect(cadre).toContainText("elise.morel@example.invalid");
+  await expect(cadre).toContainText("04 65 71 02 14");
+  await expect(cadre).not.toContainText(email);
   for (const mention of ["Morel","Rivière","Résidence des Acacias","600,00","40,00",bail.split("/").at(-1)!.slice(0,8).toUpperCase()]) await expect(cadre).toContainText(mention);
-  await expect(document.getByRole("button",{name:/Imprimer ou enregistrer en PDF/})).toBeVisible();
+  await document.getByRole("button",{name:/Imprimer ou enregistrer en PDF/}).click({trial:true});
+  await document.waitForLoadState("networkidle");
   expect(await debordementHorizontal(page)).toBe(0);
-  await document.screenshot({path:info.outputPath("quittance-acacias.png"),fullPage:true});
+  await document.screenshot({path:info.outputPath("quittance-acacias.png"),fullPage:true,animations:"disabled"});
   const impression=await context.newPage();
   await impression.setContent(await cadre.locator("..").evaluate(e=>e.outerHTML));
   const pdf=await impression.pdf({path:info.outputPath("quittance-acacias.pdf"),format:"A4"});

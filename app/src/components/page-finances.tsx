@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { QuittancementMois, type LigneQuittancement } from "@/app/agence/[orgId]/comptabilite/quittancement-mois";
 import { RecapitulatifFiscal } from "@/components/recapitulatif-fiscal";
-import { biensDuPerimetre, lireLivreFinances, resumerLivre } from "@/lib/finances";
+import { lireLivreFinances, resumerLivre, type EcritureFinances } from "@/lib/finances";
 import { baseEspace } from "@/lib/racine-espace";
 
 export async function PageFinances({ orgId, recherche }: {
@@ -45,10 +45,16 @@ export async function PageFinances({ orgId, recherche }: {
     ? await supabase.from("baux").select("id").eq("organization_id",orgId).eq("etat","actif").limit(2) : null;
   const appele = lignes.reduce((s, l) => s + Number(l.montant_du), 0);
   const regle = lignes.reduce((s, l) => s + Math.min(Number(l.montant_du), Number(l.montant_couvert)), 0);
-  const livreDuPerimetre = resumerLivre(livre.lignes, annee, perimetre, bien && !entiteId ? new Set([bien]) : biensDuPerimetre(lots ?? [], perimetre, bien));
+  // Une dépense commune d’un bâtiment mixte peut devoir être vérifiée. La
+  // ventilation contrôle ensuite la détention de TOUS ses lots à la date de l’écriture.
+  const biensDuLivre = entite
+    ? new Set((lots ?? []).filter(lot => perimetre?.has(lot.id)).map(lot => lot.bien_id))
+    : new Set(bien ? [bien] : []);
+  const livreDuPerimetre = resumerLivre(livre.lignes, annee, perimetre, biensDuLivre);
   const groupes = !livre.error && !erreurPerimetre && (entiteId || patrimoine.entites.length > 1) && (lots?.length ?? 0) < 1000
     ? ventilerParTitulaire(livreDuPerimetre.lignes, patrimoine.periodes, lots ?? []) : null;
   const titulaire = groupes?.get(entiteId);
+  const aRattacher = entite ? groupes?.get(null) : undefined;
   const resume = entiteId ? { lignes: titulaire?.ecritures ?? [], recettes: (titulaire?.recettes ?? 0)/100, depenses: (titulaire?.depenses ?? 0)/100 } : livreDuPerimetre;
   const ventilation = !entiteId && !bien ? groupes : null;
   const bouton = buttonVariants({ variant: "outline", size: "sm" });
@@ -76,16 +82,24 @@ export async function PageFinances({ orgId, recherche }: {
       {livre.error ? <p className="err" role="alert">Impossible de lire le livre. Les totaux ne sont pas affichés.</p> : <>
         <Chiffres valeurs={[["Recettes",resume.recettes],["Dépenses",resume.depenses],["Solde",resume.recettes-resume.depenses]]} />
         <p className="text-xs text-muted-foreground">Date comptable · hors dépôts de garantie et écritures annulées.</p>
+        {aRattacher && <section aria-labelledby="titre-a-rattacher" className="space-y-2 rounded-lg border border-border p-3">
+          <h3 id="titre-a-rattacher" className="font-semibold">{aRattacher.ecritures.length} opération{aRattacher.ecritures.length > 1 ? "s" : ""} à rattacher</h3>
+          <p className="text-sm text-muted-foreground">Le titulaire de ces opérations reste à vérifier à leur date comptable. Leurs montants sont exclus des totaux de {entite?.nom}.</p>
+          <Chiffres valeurs={[["Recettes à rattacher", aRattacher.recettes / 100], ["Dépenses à rattacher", aRattacher.depenses / 100], ["Solde à rattacher", (aRattacher.recettes - aRattacher.depenses) / 100]]} />
+          <details><summary className="cursor-pointer text-sm font-medium">Voir les opérations à rattacher</summary>
+            <ListeOperations lignes={aRattacher.ecritures} />
+          </details>
+        </section>}
         {ventilation && ventilation.size > 0 && <details className="rounded-lg border border-border p-3">
           <summary className="cursor-pointer font-semibold">Détail par propriétaire et SCI</summary>
           <p className="mt-2 text-sm text-muted-foreground">Chaque opération figure une seule fois, selon la détention à sa date comptable. Les opérations partagées ou sans rattachement certain restent à vérifier.</p>
           {[...ventilation].map(([id, groupe]) => <details key={id ?? "sans-titulaire"} className="border-b py-3 last:border-0">
             <summary className="cursor-pointer text-sm font-medium">{patrimoine.entites.find(e => e.id === id)?.nom ?? "Rattachement à vérifier"} · {groupe.ecritures.length} opération{groupe.ecritures.length > 1 ? "s" : ""}</summary>
             <Chiffres valeurs={[["Recettes",groupe.recettes/100],["Dépenses",groupe.depenses/100],["Solde",(groupe.recettes-groupe.depenses)/100]]}/>
-            <ul>{groupe.ecritures.map(e => <li key={e.id} className="flex justify-between gap-3 py-1 text-sm"><span>{formaterDate(e.date_imputation)} · {e.libelle || e.categorie}</span><span>{e.sens === "depense" ? "−" : "+"}{eur(Number(e.montant))}</span></li>)}</ul>
+            <ListeOperations lignes={groupe.ecritures} />
           </details>)}
         </details>}
-        {resume.lignes.length ? <ul className="divide-y divide-border">{resume.lignes.slice(0,3).map(e => <li key={e.id} className="flex items-start justify-between gap-3 py-2 text-sm"><div className="min-w-0"><p className="break-words">{e.libelle || e.categorie.replaceAll("_", " ")}</p><p className="text-xs text-muted-foreground">{formaterDate(e.date_imputation)}</p></div><span className="shrink-0 montant">{e.sens === "recette" ? "+" : "−"}{eur(Number(e.montant))}</span></li>)}</ul> : <p className="text-sm text-muted-foreground">Aucune opération pour {annee}.</p>}
+        {resume.lignes.length ? <ul className="divide-y divide-border">{resume.lignes.slice(0,3).map(e => <li key={e.id} className="flex items-start justify-between gap-3 py-2 text-sm"><div className="min-w-0"><p className="break-words">{e.libelle || e.categorie.replaceAll("_", " ")}</p><p className="text-xs text-muted-foreground">{formaterDate(e.date_imputation)}</p></div><span className="shrink-0 montant">{e.sens === "recette" ? "+" : "−"}{eur(Number(e.montant))}</span></li>)}</ul> : !aRattacher && <p className="text-sm text-muted-foreground">Aucune opération pour {annee}.</p>}
       </>}
       <div className="flex flex-wrap gap-2"><Link className={bouton} href={`${base}/comptabilite?vue=saisie`}>Ajouter une recette ou dépense</Link><Link className={bouton} href={`${base}/comptabilite?vue=cloture`}>Clôturer un mois</Link></div>
       <details><summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium">Historique des opérations <span aria-hidden>⌄</span></summary><div className="mt-3 space-y-3">{!livre.error && <ul className="max-h-72 overflow-y-auto divide-y divide-border">{resume.lignes.map(e => <li className="flex justify-between gap-3 py-2 text-sm" key={e.id}><span>{formaterDate(e.date_imputation)} · {e.libelle || e.categorie.replaceAll("_", " ")}</span><span className="shrink-0 montant">{e.sens === "recette" ? "+" : "−"}{eur(Number(e.montant))}</span></li>)}</ul>}<Link className="lien-discret inline-flex min-h-11 items-center" href={`${base}/comptabilite`}>Ouvrir le livre complet et les exports →</Link></div></details>
@@ -101,4 +115,11 @@ export async function PageFinances({ orgId, recherche }: {
 
 function Chiffres({ valeurs }: { valeurs: [string, number][] }) {
   return <dl className="chiffres-finances grid grid-cols-3 gap-3">{valeurs.map(([label,valeur])=><div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-base sm:text-xl font-semibold montant">{eur(valeur)}</dd></div>)}</dl>;
+}
+
+function ListeOperations({ lignes }: { lignes: EcritureFinances[] }) {
+  return <ul>{lignes.map(e => <li key={e.id} className="flex justify-between gap-3 py-1 text-sm">
+    <span className="min-w-0 break-words">{formaterDate(e.date_imputation)} · {e.libelle || e.categorie}</span>
+    <span className="shrink-0 montant">{e.sens === "depense" ? "−" : "+"}{eur(Number(e.montant))}</span>
+  </li>)}</ul>;
 }

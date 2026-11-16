@@ -11,15 +11,20 @@ const stockage = "/private/tmp/gerimmo-v1-vitrine-objets";
 if (url.protocol !== "postgres:" || url.hostname !== "127.0.0.1" || url.pathname !== "/" + base + "_api" || url.search || !url.port) {
   throw new Error("La base locale de démonstration est obligatoire.");
 }
-const [action, nom] = process.argv.slice(2);
-if (action !== "figer" && !(action === "restaurer" && /^[a-z]{1,14}$/.test(nom ?? "") && nom !== "modele")) {
-  throw new Error("Utiliser figer ou restaurer suivi du nom d’une nouvelle copie locale.");
-}
+const [action, nom, modele, ...autres] = process.argv.slice(2);
 const creation = action === "figer";
-const source = base + (creation ? "_api" : "_reference");
-const destination = base + (creation ? "_reference" : "_" + nom + "_api");
-const fichiersSource = stockage + (creation ? "" : "-reference");
-const fichiersDestination = stockage + (creation ? "-reference" : "-" + nom);
+const edition = creation ? nom : modele;
+const nomValide = valeur => /^[a-z]{1,14}$/.test(valeur ?? "");
+if (autres.length || (creation ? modele !== undefined : action !== "restaurer" || !nomValide(nom) || nom === "modele")
+    || (edition !== undefined && !nomValide(edition))) {
+  throw new Error("Utiliser figer [édition] ou restaurer <copie> [édition], avec des noms alphabétiques.");
+}
+const modeleBase = edition ? "_reference_" + edition : "_reference";
+const modeleFichiers = edition ? "-reference-" + edition : "-reference";
+const source = base + (creation ? "_api" : modeleBase);
+const destination = base + (creation ? modeleBase : "_" + nom + "_api");
+const fichiersSource = stockage + (creation ? "" : modeleFichiers);
+const fichiersDestination = stockage + (creation ? modeleFichiers : "-" + nom);
 
 async function connexion(nomBase) {
   const cible = new URL(url);
@@ -31,6 +36,18 @@ async function connexion(nomBase) {
 async function inventaireBase(nomBase) {
   const db = await connexion(nomBase);
   try {
+    if (creation || edition) {
+      const profil = await db.query(`select o.name,o.email_contact,o.telephone
+        from public.organizations o where exists (
+          select from public.quittances q join public.baux b on b.id=q.bail_id
+          join public.persons p on p.id=b.locataire_principal
+          where q.organization_id=o.id and p.email='sam@example.invalid'
+        )`);
+      if (profil.rowCount !== 1 || profil.rows[0].name !== "Parc d’Élise Morel"
+          || profil.rows[0].email_contact !== "elise.morel@example.invalid" || profil.rows[0].telephone !== "04 65 71 02 14") {
+        throw new Error("Vérifier le profil d’Élise Morel et sa quittance avant la présentation.");
+      }
+    }
     const { rows: [ligne] } = await db.query(`select
       (select count(*) from auth.users) comptes,
       (select count(*) from auth.users where email is null or split_part(email,'@',2) not in ('example.com','example.invalid')) autres,

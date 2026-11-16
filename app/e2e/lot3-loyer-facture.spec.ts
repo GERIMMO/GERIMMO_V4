@@ -97,5 +97,19 @@ for (const sci of [false,true]) test(`propriétaire : loyer confirmé et dépôt
     await expect(autre).toContainText("75,00");
     await expect(autre).not.toContainText("180,00");
     await page.screenshot({path:info.outputPath("finances-par-titulaire.png"),fullPage:true});
+    if (sci) {
+      // Le règlement de la facture (31 octobre) précède la détention établie.
+      await db.query("update detentions set date_debut='2026-11-01' where lot_id=$1 and person_id=$2", [lot, bailleur]);
+      await page.goto(`/espace/${ORG}/loyers?annee=2026&entite=${bailleur}`);
+      const operations = page.getByRole("region", { name: "Recettes et dépenses" });
+      const depenses = operations.getByText("Dépenses", { exact: true }).locator("..");
+      await expect(depenses).toContainText("0,00");
+      const aRattacher = operations.getByRole("region", { name: /opération.*à rattacher/ });
+      await expect(aRattacher).toContainText("180,00");
+      await aRattacher.locator("summary").click();
+      await expect(aRattacher.getByRole("listitem").filter({ hasText: "180,00" })).toBeVisible();
+      await expect(operations).not.toContainText("Entretien de la maison du Parc");
+      expect(await debordementHorizontal(page)).toBe(0);
+    }
   } finally {await db.end();}
 });

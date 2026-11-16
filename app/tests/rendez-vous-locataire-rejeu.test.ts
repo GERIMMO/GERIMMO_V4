@@ -64,8 +64,14 @@ describe.skipIf(!url)("D22 — rejeu de la migration du report et de l'annulatio
     const avant = await empreinte();
     const marquesAvant = await Promise.all(FONCTIONS.slice(0, 7).map(marques));
     expect(marquesAvant.every((n) => n >= 1)).toBe(true);
+    // Le schéma courant renforce la lecture du planning après le départ individuel.
+    // Revenir une fois à la définition D22, tester son rejeu, puis vérifier que
+    // le lot complet restaure exactement les fonctions et permissions courantes.
     await db.query(migration);
+    const historique = await empreinte();
     await db.query(migration);
+    expect(await empreinte()).toBe(historique);
+    await db.query(readFileSync(new URL("../supabase/migrations/20261116141850_droits_incidents_apres_depart_colocataire.sql", import.meta.url), "utf8"));
     expect(await empreinte()).toBe(avant);
     expect(await Promise.all(FONCTIONS.slice(0, 7).map(marques))).toEqual(marquesAvant);
     // choisir_creneau porte UNE marque (le rejeu ne recopie plus sa ligne).

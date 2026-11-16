@@ -207,6 +207,34 @@ describe.skipIf(!DB_URL)("Un agent enregistre un bien", () => {
     await expect(db.query("select public.gerer_collaborateur_agence($1,$2,'admin_agence')", [org,agentA])).rejects.toThrow(/responsable/);
   });
 
+  it("le retrait direct sans transfert est interdit, même au responsable", async () => {
+    await devenir(patron);
+    await db.query("savepoint tentative");
+    await expect(db.query("update public.memberships set status='inactive' where account_id=$1 and organization_id=$2", [agentA,org]))
+      .rejects.toMatchObject({ code: "42501" });
+    await db.query("rollback to savepoint tentative");
+    await devenir(agentA);
+    expect((await db.query("select * from public.lots_de_mon_portefeuille($1)", [org])).rowCount).toBe(1);
+  });
+
+  it("le même compte retiré ne peut ni réactiver son adhésion ni se promouvoir", async () => {
+    await devenir(agentA);
+    expect((await db.query("select id from public.lots where id=$1", [lotDeA])).rowCount).toBe(1);
+    await devenir(patron);
+    await db.query("select public.gerer_collaborateur_agence($1,$2,'retirer',$3)", [org,agentA,agentB]);
+    await devenir(agentA);
+    await db.query("savepoint tentative");
+    await expect(db.query("update public.memberships set status='active', role='admin_agence' where account_id=$1 and organization_id=$2", [agentA,org]))
+      .rejects.toMatchObject({ code: "42501" });
+    await db.query("rollback to savepoint tentative");
+    await expect(db.query("select public.gerer_collaborateur_agence($1,$2,'admin_agence')", [org,agentB])).rejects.toThrow(/responsable/);
+    await db.query("rollback to savepoint tentative");
+    expect((await db.query("select id from public.lots where id=$1", [lotDeA])).rows).toEqual([]);
+    await redevenirService();
+    expect((await db.query("select role,status from public.memberships where account_id=$1 and organization_id=$2", [agentA,org])).rows)
+      .toEqual([{role:"agent", status:"inactive"}]);
+  });
+
   it("le dernier responsable ne peut pas retirer son propre accès", async () => {
     await devenir(patron);
     await expect(db.query("select public.gerer_collaborateur_agence($1,$2,'retirer',$3)", [org,patron,agentB])).rejects.toThrow(/responsable/);

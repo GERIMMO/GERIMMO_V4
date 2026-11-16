@@ -555,6 +555,97 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     expect((await demandes()).length).toBe(1);
   });
 
+  it("A1-a : le départ individuel retire les droits sur ce logement dans la session déjà ouverte", async () => {
+    await postgres();
+    const { rows: [logement] } = await db.query(
+      "select i.id incident, i.bail_id bail from public.incident_interventions v join public.incidents i on i.id=v.incident_id where v.id=$1", [mission]);
+    const personne = await id("insert into public.persons(organization_id,account_id,nom,prenom,email) values($1,$2,'Colocation','Sam',$3) returning id",
+      [org, locColoc, `sam-${randomUUID()}@example.invalid`]);
+    const ligne = await id("insert into public.bail_personnes(organization_id,bail_id,person_id,role,date_depart) values($1,$2,$3,'colocataire',public.aujourdhui_paris()) returning id",
+      [org, logement.bail, personne]);
+    const chemin = `${org}/apres/${randomUUID()}.png`;
+    const justificatif = await id("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'photo_incident','Travaux',$2,'image/png',120,$3) returning id",
+      [org,chemin,"d".repeat(64)]);
+    await db.query("insert into public.intervention_photos(organization_id,intervention_id,document_id,moment) values($1,$2,$3,'apres')",[org,mission,justificatif]);
+    await db.query("insert into public.document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'incident',$3)",[org,justificatif,logement.incident]);
+    await db.query("insert into storage.objects(bucket_id,name) values('documents',$1)",[chemin]);
+    const sessionAuth = await id("insert into auth.sessions(id,user_id) values(gen_random_uuid(),$1) returning id",[locColoc]);
+    const proposition = await slot(mission, 72, 74);
+    await agir(locColoc);
+    await db.query("select set_config('request.jwt.claims',(current_setting('request.jwt.claims')::jsonb || jsonb_build_object('session_id',$1::text))::text,true)",[sessionAuth]);
+    const session = () => db.query("select current_user, pg_backend_pid(), current_setting('request.jwt.claims') jeton").then(r => r.rows[0]);
+    const identite = await session();
+    const liste = async (rpc: string) => (await db.query(`select * from public.${rpc}($1)`, [org])).rows;
+    expect(await liste("mes_creneaux_locataire")).toContainEqual(expect.objectContaining({ creneau_id: proposition }));
+    expect(await liste("mes_rendez_vous_locataire")).toContainEqual(expect.objectContaining({ intervention_id: mission }));
+    const lireFichier = () => db.query("select name from storage.objects where bucket_id='documents' and name=$1",[chemin]);
+    const lirePhoto = () => db.query("select document_id from public.mon_document_locataire($1,$2)",[org,justificatif]);
+    expect((await lireFichier()).rows).toHaveLength(1);
+    expect((await lirePhoto()).rows).toHaveLength(1);
+    const cmd = randomUUID();
+    const creer = (cle: string) => db.query(
+      "select public.declarer_mon_incident_reprise($1,$2,'plomberie_joint','Fuite sous le lavabo','Cuisine',null,'normale') as resultat", [org,cle]);
+    const { rows: [creation] } = await creer(cmd);
+    const incidentSam = creation.resultat.incident_id;
+    const {rows: [photo]} = await db.query(
+      "select public.preparer_photo_incident($1,$2,repeat('c',64),'image/png',120) as depot", [org,incidentSam]);
+    // Le banc change uniquement la donnée métier. Le même jeton et la même connexion
+    // restent ouverts. L’adhésion n'est ni supprimée ni désactivée.
+    await db.query("reset role");
+    await db.query("update public.bail_personnes set date_depart=public.aujourdhui_paris()-1 where id=$1", [ligne]);
+    await db.query("set local role authenticated");
+    expect(await session()).toEqual(identite);
+    expect(await liste("mes_creneaux_locataire")).toEqual([]);
+    expect(await liste("mes_rendez_vous_locataire")).toEqual([]);
+    expect(await liste("mon_bail_locataire")).toEqual([]);
+    expect(await liste("mes_incidents_locataire")).toEqual([]);
+    expect(await liste("mon_suivi_intervention")).toEqual([]);
+    expect((await db.query("select public.ged_depot_locataire_autorise($1) ok",[photo.depot.storage_path])).rows[0].ok).toBe(false);
+    expect((await lireFichier()).rows).toEqual([]);
+    expect((await lirePhoto()).rows).toEqual([]);
+    for (const [relation, idRessource] of [
+      ["incidents",logement.incident], ["incidents_resume_lot",logement.incident],
+      ["incident_interventions",mission], ["intervention_creneaux",proposition], ["documents",justificatif],
+    ]) {
+      expect((await db.query(`select id from public.${relation} where id=$1`, [idRessource])).rows).toEqual([]);
+    }
+    const refus = (sql: string, args: unknown[]) => expect(essai(() => db.query(sql, args))).rejects.toThrow(/Accès refusé|bail actif|Incident introuvable/);
+    await refus("select public.declarer_mon_incident($1,'plomberie_joint','Autre fuite',null,null,'normale')",[org]);
+    await expect(essai(() => creer(randomUUID()))).rejects.toThrow(/bail actif/);
+    await expect(essai(() => creer(cmd))).rejects.toThrow(/Accès refusé/);
+    await refus("select public.choisir_creneau($1,$2)",[org,proposition]);
+    await refus("select public.contre_proposer_creneaux($1,$2,$3)",[org,mission,JSON.stringify(troisDates())]);
+    await refus("select public.demander_report_rdv($1,$2,'empechement',null,$3,$4)",[org,mission,JSON.stringify(troisDates()),randomUUID()]);
+    await refus("select public.annuler_rdv_locataire($1,$2,'empechement',null,$3)",[org,mission,randomUUID()]);
+    await refus("select public.finaliser_photo_incident($1)",[photo.depot.id]);
+    await refus("select public.rouvrir_incident($1,$2,'La fuite persiste')",[org,incidentSam]);
+    await refus("select public.contester_imputation($1,$2,'Contestée')",[org,incidentSam]);
+    expect((await db.query("select public.marquer_incident_urgent_notifie($1,$2) ok",[org,cmd])).rows[0].ok).toBe(false);
+    expect(await session()).toEqual(identite);
+    await agir(loc);
+    expect(await liste("mes_rendez_vous_locataire")).toContainEqual(expect.objectContaining({ intervention_id: mission, statut_mission:"planifiee" }));
+    expect(await liste("mes_incidents_locataire")).toContainEqual(expect.objectContaining({ id:incidentSam }));
+    await postgres();
+    expect((await db.query("select status from public.memberships where account_id=$1 and organization_id=$2",[locColoc,org])).rows[0].status).toBe("active");
+    expect((await db.query("select count(*)::int n from public.incident_evenements where details->>'intervention_id'=$1 and type in ('rdv_report_demande','rdv_annule_par_locataire')",[mission])).rows[0].n).toBe(0);
+    // Appel direct de l'avis utilisé par le locataire pour confirmer la réparation.
+    await db.query("insert into public.intervention_comptes_rendus(organization_id,intervention_id,artisan_id,travaux_realises,montant_final_cents) values($1,$2,$3,'Joint remplacé',1200)", [org,mission,artisan]);
+    await db.query("update public.incident_interventions set statut='terminee', terminee_le=now() where id=$1", [mission]);
+    await agir(locColoc);
+    await refus("select public.noter_artisan_locataire($1,$2,5::smallint,'Réparé')",[org,mission]);
+    await agir(loc);
+    await db.query("select public.noter_artisan_locataire($1,$2,5::smallint,'Réparé')",[org,mission]);
+    // Le colocataire parti conserve son autre logement dans la même organisation.
+    const autreMission = await creerMission(artisan,org,locColoc);
+    const autreCreneau = await slot(autreMission,144,146);
+    await agir(locColoc);
+    expect((await liste("mes_creneaux_locataire")).map(r => r.creneau_id)).toEqual([autreCreneau]);
+    await db.query("select public.choisir_creneau($1,$2)",[org,autreCreneau]);
+    expect((await liste("mes_rendez_vous_locataire")).map(r => r.intervention_id)).toEqual([autreMission]);
+    expect(await liste("mes_incidents_locataire")).not.toContainEqual(expect.objectContaining({id:logement.incident}));
+
+  });
+
   // ── 10. Passé ou démarré ──────────────────────────────────────────────────────────────────────────────────────────
   it("C.12-10 : un rendez-vous passé ou une intervention démarrée ne se reporte ni ne s'annule par ce circuit", async () => {
     await rendezVousDans(-1);

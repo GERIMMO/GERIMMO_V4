@@ -55,6 +55,10 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
       await expect.poll(demande).toBeTruthy();
       const devis = "/artisan/devis/" + await demande();
       await artisan.goto(devis);
+      // Le chargement peut encore montrer le squelette après goto. L’absence
+      // du lien d’adresse n’est significative qu’une fois le formulaire affiché.
+      const diagnostic = artisan.getByRole("textbox", {name:"Votre diagnostic", exact:true});
+      await expect(diagnostic).toBeVisible();
       const completer = artisan.getByRole("link", {name:"Compléter mon adresse"});
       if (await completer.isVisible()) {
         await completer.click();
@@ -62,6 +66,8 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
         await artisan.getByRole("button", {name:"Enregistrer mes informations de devis",exact:true}).click();
         await expect(artisan.getByText(/Informations enregistrées pour vos nouveaux devis/)).toBeVisible();
         await artisan.goto(devis);
+        await expect(diagnostic).toBeVisible();
+        await expect(completer).toHaveCount(0);
       }
       await artisan.getByLabel("Ligne 1 : prestation",{exact:true}).fill("Réparation du joint de l’évier");
       await artisan.getByLabel("Ligne 1 : prix unitaire HT",{exact:true}).fill("100");
@@ -71,7 +77,7 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
         if (await menu.isVisible()) await menu.selectOption(String(n-1));
         else await artisan.getByRole("button",{name:new RegExp("^Étape "+String(n).padStart(2,"0")+" ")}).click();
       }
-      await artisan.getByRole("textbox",{name:"Votre diagnostic",exact:true}).fill("Joint usé");
+      await diagnostic.fill("Joint usé");
       await etape(2);
       for(const [champ,valeur] of Object.entries({delai:"Sous sept jours",duree:"Une heure",valide_jusqu_au:new Date(Date.now()+30*86400000).toISOString().slice(0,10)})) {
         await artisan.locator("[name="+champ+"]:visible").fill(valeur);

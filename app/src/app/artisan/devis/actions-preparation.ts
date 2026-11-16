@@ -111,9 +111,7 @@ export async function envoyerDevisValide(id: string, _etat: { erreur?: string },
     if(error||typeof devisId!=="string") throw new Error(error?.message??"Votre profil ne permet plus de déposer cette révision. Le gestionnaire a été prévenu ; votre devis est conservé.");
     if(preparation.email_statut==="envoye") email="envoye";
     else {
-      const notification=await notifierDevisRecu(service,demande.organization_id,devisId,{
-        nom:`DEV-${preparation.reference_id.slice(0,8).toUpperCase()}.pdf`,contenuBase64:octets.toString("base64"),
-      });
+      const notification=await notifierDevisRecu(service,demande.organization_id,devisId);
       email=notification.envoyee?"envoye":"echec";
       await service.from("artisan_devis_preparations").update({email_statut:email,updated_at:new Date().toISOString()})
         .eq("sollicitation_id",id).eq("artisan_id",fiche.artisan_id).eq("devis_id",devisId).eq("statut","envoye");

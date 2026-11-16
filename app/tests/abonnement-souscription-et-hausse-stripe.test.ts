@@ -75,7 +75,9 @@ vi.mock("@/lib/supabase/server", () => ({
         order: () => q,
         limit: () => q,
         maybeSingle: async () =>
-          table === "acceptations_cgu"
+          table === "versions_conditions"
+            ? { data: { identite_editeur: (await (await import("@/lib/editeur-serveur")).lireEditeur()).editeur }, error: null }
+            : table === "acceptations_cgu"
             ? { data: { id: "acceptation-1" }, error: null }
             : { data: { id: ORG, name: "Org", type: "proprietaire_direct", email_contact: null }, error: null },
       };

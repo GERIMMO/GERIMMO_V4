@@ -27,6 +27,22 @@ export async function lireEntitesPatrimoine(db: SupabaseClient, org: string, ann
   return { entites:[...groupes.values()].sort((a,b)=>a.nom.localeCompare(b.nom,"fr")), periodes, erreur:false };
 }
 
+/**
+ * Un filtre de titulaire ne donne accès au geste « Encaisser » que pour les
+ * termes attribuables. Une cession pendant le mois ne permet pas d’en déduire
+ * à qui revient la totalité du terme, même si sa date d’échéance est connue.
+ */
+export function titulaireDuLoyer(periodesDuLot: PeriodeDetention[], mois: string, echeance?: string) {
+  if (!echeance || echeance.slice(0, 7) !== mois) return null;
+  const debut = mois + "-01";
+  const fin = mois + "-31";
+  const moisDuLot = periodesDuLot.filter(p => p.date_debut <= fin && (!p.date_fin || p.date_fin >= debut));
+  const actifs = moisDuLot.filter(p => p.date_debut <= echeance && (!p.date_fin || p.date_fin >= echeance));
+  if (actifs.length !== 1 || Number(actifs[0].quote_part) !== 100) return null;
+  return moisDuLot.every(p => p.titulaire === actifs[0].titulaire && Number(p.quote_part) === 100)
+    ? actifs[0].titulaire : null;
+}
+
 /** Classe les flux déjà filtrés du livre une seule fois. Aucun calcul de quote-part ou d’impôt. */
 export function ventilerParTitulaire(lignes: EcritureFinances[], periodes: PeriodeDetention[], lots: {id:string; bien_id:string}[]) {
   const parLot = new Map<string, PeriodeDetention[]>();

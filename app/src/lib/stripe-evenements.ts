@@ -230,7 +230,7 @@ async function traiterSouscription(supabase: Service, stripe: Stripe, evenement:
   let alerte: unknown = null;
   if (effetsExternes && org && (statut === "past_due" || statut === "unpaid")) {
     try {
-      alerte = await envoyerRelancesDues(supabase, { org: org as string });
+      alerte = await envoyerRelancesDues(supabase, { org: org as string, stripe });
     } catch (e) {
       alerte = { echecs: [e instanceof Error ? e.message : "envoi impossible"] };
     }
@@ -429,13 +429,22 @@ async function traiterFinEssai(supabase: Service, stripe: Stripe, evenement: Str
   await avantEffet?.();
   let echec: string | null;
   try {
-    echec = await envoyerAvisFinEssai({
+    if (s.cancel_at_period_end || s.cancel_at || s.pause_collection || s.collection_method === "send_invoice") {
+      return {reponse: {organisation: suivi.organization_id, ignore: "prelevement_non_prevu"}};
+    }
+    const {data, error} = await supabase.rpc("abonnement_courrier_contexte", { p_org: suivi.organization_id, p_confirmation: true });
+    const contrat = data?.[0];
+    if (error || !contrat?.destinataire || !contrat.cgu_version || !contrat.cgu_acceptee_le ||
+        contrat.stripe_subscription_id !== s.id || !details.montantPeriodeCents) {
+      throw new Error("Preuve de commande ou échéance indisponible.");
+    }
+    echec = await envoyerAvisFinEssai(supabase, {
       orgId: suivi.organization_id,
-      organisation: suivi.organisation,
-      destinataire: suivi.destinataire,
+      organisation: contrat.organisation,
+      destinataire: contrat.destinataire,
       premierPrelevementLe: new Date(s.trial_end * 1000).toISOString(),
-      montantCents: details.montantPeriodeCents || null,
-      cle: `fin-essai-${evenement.id}`,
+      montantCents: details.montantPeriodeCents,
+      abonnement: s.id, client: customer,
       // Décision D27 : le lien du courrier mène à /espace/<id> chez un propriétaire direct.
       base: await baseDeLOrganisation(supabase, suivi.organization_id),
     }, avantEffet);

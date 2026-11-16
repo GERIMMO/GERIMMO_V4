@@ -180,7 +180,7 @@ export default async function PageRepondreDevis(
           <TitreSection>Ma réponse</TitreSection>
           {preparation?.statut === "envoye" && <div className="mb-4 rounded-xl border border-[var(--filet)] p-4">
             <p className="font-semibold">Devis enregistré dans les deux espaces Gerimmo</p>
-            {preparation.email_statut === "envoye" ? <p className="mt-1 text-sm text-emerald-800">E-mail avec le PDF transmis au demandeur.</p> : <><p className="mt-1 text-sm text-amber-900">Le devis est disponible sur Gerimmo, mais l’e-mail n’a pas pu être envoyé.</p><RenvoyerEmail id={sollicitationId} revision={preparation.revision}/></>}
+            {preparation.email_statut === "envoye" ? <p className="mt-1 text-sm text-emerald-800">L’avis de disponibilité a été pris en charge. Le demandeur peut consulter le PDF dans son dossier.</p> : <><p className="mt-1 text-sm text-amber-900">Le devis est disponible sur Gerimmo, mais l’envoi de l’avis reste à confirmer.</p><RenvoyerEmail id={sollicitationId} revision={preparation.revision}/></>}
           </div>}
           {/* D18 (livraison 1) : le client a refusé ce devis ; son motif est transmis tel quel, il n'y a rien d'autre à faire. */}
           {demande.statut === "refusee" && (

@@ -46,7 +46,7 @@ vi.mock("@/lib/espace", () => ({
           order: () => q,
           limit: () => q,
           maybeSingle: async () => ({
-            data: table === "acceptations_cgu" && mocks.conditionsAcceptees ? { id: "acceptation-1" } : null,
+            data: table === "versions_conditions" ? { identite_editeur: EDITEUR_COMPLET } : table === "acceptations_cgu" && mocks.conditionsAcceptees ? { id: "acceptation-1" } : null,
             error: null,
           }),
         };
@@ -210,6 +210,8 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     const html = await rendre();
     expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
     expect(html).toContain(CASE_CONDITIONS);
+    expect(html).toContain("Médiateur de test");
+    expect(html).toContain("https://example.test/mediateur");
     expect(html).toContain(`version du ${CONDITIONS_DATE} des conditions générales`);
     expect(html).toContain('href="/conditions"');
     expect(html).toContain("Continuer vers le paiement sécurisé");
@@ -247,7 +249,7 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     mocks.blocageIdentiteActif = false;
     mocks.conditionsAcceptees = false;
     const html = await rendre();
-    expect(html).toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
+    expect(html).toContain("coordonnées du médiateur de la consommation");
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
   });
   it("pilote gratuit : même avec Stripe prêt, médiateur et conditions acceptées, aucune commande", async () => {

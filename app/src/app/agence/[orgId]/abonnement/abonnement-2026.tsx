@@ -16,7 +16,7 @@ import { DetailMontants, FormulaireSouscription } from "./formulaire-souscriptio
 import { REGIME_TVA } from "@/lib/editeur";
 import { nouvellesSouscriptionsFermees, MESSAGE_SOUSCRIPTIONS_FERMEES } from "@/lib/verrou-pilote";
 import { motifIdentiteEditeur } from "@/lib/garde-souscription";
-import { lireGardeSouscription } from "@/lib/garde-souscription-serveur";
+import { lireGardeSouscription, motifArchiveCommande } from "@/lib/garde-souscription-serveur";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate } from "@/lib/ged";
 import { nuitDu } from "@/lib/comptes-fermeture";
@@ -169,7 +169,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
     ? "Le paiement en ligne n'est pas encore ouvert. Écrivez-nous : nous prolongeons votre essai le temps de l'ouvrir."
     : !REGIME_TVA
       ? "Le paiement en ligne n'est pas encore ouvert : le régime de TVA de l'éditeur doit d'abord être renseigné pour afficher les taxes exactes. Écrivez-nous : nous prolongeons votre essai le temps de l'ouvrir."
-      : motifIdentite;
+      : motifIdentite ?? (!souscrit && publicTarif === "proprietaire_direct" && !nouvellesSouscriptionsFermees(garde.ventesOuvertes)
+          ? await motifArchiveCommande(supabase, garde.editeur) : null);
 
   // ── La hausse à présenter : nécessaire (portefeuille au-delà de la capacité)
   // ou demandée (?capacite= pour une agence, ?formule= pour un particulier).
@@ -531,8 +532,11 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         <section className={estAgence ? "loc-carte" : styles.choix} aria-labelledby="choisir-abonnement">
           <div className={estAgence ? "entete-carte" : styles.titreSection}>
             <h2 id="choisir-abonnement">{ferme ? "Reprendre avec un abonnement" : "Souscrire à Gerimmo"}</h2>
-            {!estAgence && <p>Toutes les fonctionnalités sont incluses. Choisissez simplement la capacité qui vous convient.</p>}
+            {!estAgence && <p>Le montant dépend du nombre de biens que vous gérez dans cet espace et de la périodicité choisie.</p>}
           </div>
+          {!estAgence && garde.editeur.mediateurNom && garde.editeur.mediateurAdresse && garde.editeur.mediateurSite && (
+            <p className="text-sm">Médiateur de la consommation : {garde.editeur.mediateurNom}, {garde.editeur.mediateurAdresse}. Site : {garde.editeur.mediateurSite}. <Link href="/conditions" className="lien-texte">Consulter les modalités de recours</Link>.</p>
+          )}
           <FormulaireSouscription
             orgId={orgId}
             publicTarif={publicTarif}

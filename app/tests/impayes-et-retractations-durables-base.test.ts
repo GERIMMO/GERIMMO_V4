@@ -1,0 +1,101 @@
+import { Client } from "pg";
+import { createHash,randomUUID } from "node:crypto";
+import { beforeAll, beforeEach, afterAll, afterEach, describe, expect, it, vi } from "vitest";
+import { verifierBaseDeTest } from "./garde-base";
+import { lierCommandeFictive } from "./fixtures/preuve-commande";
+import { clientSurPg } from "./fixtures/supabase-sur-pg";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { envoyerRelancesDues } from "../src/lib/relances-paiement";
+import { envoyerAccuseRetractation,envoyerReceptionRetractation, notifierResiliationImpaye } from "../src/lib/courriers-contrat-envoi";
+import { factureImpayee } from "../src/lib/impaye-preuve-stripe";
+import type Stripe from "stripe";
+
+const banc = vi.hoisted(()=>({service:null as SupabaseClient|null, stripe:null as Stripe|null}));
+vi.mock("../src/lib/supabase/service",()=>({clientDeService:()=>banc.service}));
+vi.mock("../src/lib/stripe",()=>({configurationStripe:()=>({pret:true,config:{}}),clientStripe:()=>banc.stripe}));
+const url=process.env.SUPABASE_DB_URL;
+verifierBaseDeTest(url);
+const h=(v:string)=>createHash("sha256").update(v).digest("hex");
+
+describe.skipIf(!url)("Incidents contractuels — vrais droits, preuves et finalisation PostgreSQL",()=>{
+ const db=new Client({connectionString:url});
+ const paiement = {status:"past_due",facture:"open",solde:599};
+ let org:string,acteur:string,sub:string,to:string,episode:string,jour:string;
+ const boite=vi.fn(async(_url:URL|string, init:RequestInit)=>Response.json({id:"msg_"+h(String(init.body)).slice(0,20)}));
+ const montant = 599;
+ beforeAll(()=>db.connect());afterAll(()=>db.end());
+ beforeEach(async()=>{
+  await db.query("begin");await db.query("select tache_systeme(),set_config('request.jwt.claims','{\"role\":\"service_role\"}',true)");
+  to=randomUUID()+"@example.invalid";sub="sub_"+randomUUID().replaceAll("-","");
+  acteur=(await db.query("insert into auth.users(id,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data) values(gen_random_uuid(),$1,now(),'{}','{}') returning id",[to])).rows[0].id;
+  org=(await db.query("insert into organizations(name,type,status,grille_tarifaire,email_contact) values('SCI fictive','proprietaire_direct','active','2026-09-28','ancienne-adresse@example.invalid') returning id")).rows[0].id;
+  await db.query("insert into memberships(account_id,organization_id,role,status) values($1,$2,'proprietaire_direct','active')",[acteur,org]);
+  await db.query("insert into abonnements(organization_id,stripe_customer_id,stripe_subscription_id,stripe_statut,souscrit_le,formule,unites_souscrites,montant_periode_cents,montant_mensuel_cents,premiere_facture_payee,paiement_en_defaut_depuis) values($1,$2,$3,'past_due',now(),'solo',1,599,599,true,aujourdhui_paris()-16)",[org,'cus_'+sub,sub]);
+  await db.query("insert into acceptations_cgu(account_id,version,document,source) values($1,'2026-11-15','conditions_clients','inscription')",[acteur]);
+  await lierCommandeFictive(db,org,acteur,sub,"2026-11-15");
+  ({episode,jour}=(await db.query("select (aujourdhui_paris()-16)::text as episode,aujourdhui_paris()::text as jour")).rows[0]);
+  const service=clientSurPg(db,{transactionnel:true});
+  banc.service={...service,rpc:async(n:string,args:Record<string,unknown>)=>{
+   if(n==="abonnement_courrier_contexte" || n==="abonnements_a_relancer"){
+    const fonction=n==="abonnements_a_relancer"?"abonnements_a_relancer(200)":"abonnement_courrier_contexte($1,true)";
+    return {data:(await db.query(`select to_jsonb(a) x from ${fonction} a where organization_id=$1`,[org])).rows.map(r=>r.x),error:null};
+   }
+   return service.rpc(n,args);
+  }} as unknown as SupabaseClient;
+  Object.assign(paiement,{status:"past_due",facture:"open",solde:599});
+  banc.stripe={subscriptions:{retrieve:async()=>({id:sub,customer:"cus_"+sub,status:paiement.status,latest_invoice:{id:"in_123",customer:"cus_"+sub,parent:{subscription_details:{subscription:sub}},status:paiement.facture,currency:"eur",amount_remaining:paiement.solde}})}} as unknown as Stripe;
+  vi.stubEnv("GERIMMO_MODE","simulation");vi.stubEnv("GERIMMO_RELAIS_EMAILS","");vi.stubEnv("COURRIELS_CHIFFREMENT_CLE","cd".repeat(32));vi.stubEnv("RESEND_API_KEY","fictive");
+  boite.mockClear();vi.stubGlobal("fetch",boite);
+ });
+ afterEach(async()=>{await db.query("rollback");vi.unstubAllGlobals();vi.unstubAllEnvs();});
+ const etat=async()=> (await db.query("select org_ecriture_ouverte($1) ouverte,relances_paiement palier from abonnements where organization_id=$1",[org])).rows[0];
+ const attente=()=>envoyerRelancesDues(banc.service!,{org,stripe:banc.stripe!});
+ it("facture due → destinataire signataire → réception → lecture seule → régularisation",async()=>{
+  expect(await etat()).toMatchObject({ouverte:true,palier:0});
+  expect((await attente()).envoyees).toBe(0);
+  expect(boite).toHaveBeenCalledTimes(1);
+  const corps=JSON.parse(String(boite.mock.calls[0][1].body));
+  expect(corps.to).toEqual([to]);expect(corps.html).toMatch(/mise en demeure|article 15.4/i);
+  const m=(await db.query("select * from courriels_durables where organization_id=$1",[org])).rows[0];
+  expect(m.etat).toBe("accepte");expect(await etat()).toMatchObject({ouverte:true,palier:0});
+  await attente();expect(boite).toHaveBeenCalledTimes(1);
+  await db.query("select rapprocher_courriel($1,$2,'livre')",[m.id,m.fournisseur_id]);
+  for(let i=0;i<2;i++)expect((await db.query("select finaliser_courriel_metier($1) ok",[m.id])).rows[0].ok).toBe(true);
+  expect(await etat()).toMatchObject({ouverte:false,palier:1});
+  expect((await db.query("select count(*)::int n from audit_log where organization_id=$1 and action='relance_paiement_envoyee'",[org])).rows[0].n).toBe(1);
+  await db.query("select abonnement_appliquer($1,$2,'active',1,now()+interval '1 month',false)",["cus_"+sub,sub]);
+  expect(await etat()).toMatchObject({ouverte:true,palier:0});
+ });
+ it("une facture régularisée chez Stripe avant le webhook empêche toute relance",async()=>{
+  paiement.facture="paid";paiement.solde=0;expect((await attente()).echecs.length).toBe(1);expect(boite).not.toHaveBeenCalled();
+  await expect(factureImpayee(sub,montant,banc.stripe!)).rejects.toThrow();
+ });
+ it("la révocation et une autre organisation refusent le contexte du même courrier",async()=>{
+  await attente();
+  const m=(await db.query("select contexte_metier from courriels_durables where organization_id=$1",[org])).rows[0].contexte_metier;
+  const verifier=async(o:string,c:unknown)=>(await db.query("select empreinte_metier_courriel($1,$2) e",[o,c])).rows[0].e;
+  expect(await verifier(org,m)).toBeTruthy();expect(await verifier(randomUUID(),m)).toBeNull();
+  await db.query("update memberships set status='inactive' where organization_id=$1 and account_id=$2",[org,acteur]);
+  expect(await verifier(org,m)).toBeNull();
+ });
+ it("rétractation reçue, exécutée avec montant exact et accusée une seule fois",async()=>{
+  const declaration="Je déclare ma rétractation de cet abonnement de démonstration.";
+  const declaree=new Date();
+  const cle="retractation-"+randomUUID();
+  const row=(await db.query("insert into retractations_abonnement(organization_id,subscription_id,nature,cle,texte_declaration,declaree_le,declaree_par,canal,adresse_accuse) values($1,$2,'abonnement',$3,$4,$5,$6,'en_ligne',$7) returning id",[org,sub,cle,declaration,declaree,acteur,to])).rows[0];
+  const p={organisationId:org,retractationId:row.id,cle,declaration,declareeLe:declaree,destinataire:to,nature:"abonnement" as const,organisation:"SCI fictive"};
+  expect((await envoyerReceptionRetractation(banc.service!,{...p,destinataire:"tiers@example.invalid"})).envoye).toBe(false);
+  expect((await envoyerReceptionRetractation(banc.service!,p)).envoye).toBe(true);
+  await db.query("update retractations_abonnement set executee_le=now(),montant_rembourse_cents=599 where id=$1",[row.id]);
+  const r={...p,essaiFin:null,montantRembourseCents:599,mensualiteCents:null,passageEffectue:false};
+  expect((await envoyerAccuseRetractation(banc.service!,r)).envoye).toBe(true);
+  expect((await envoyerAccuseRetractation(banc.service!,r)).envoye).toBe(true);
+  expect((await db.query("select accuse_envoye_le from retractations_abonnement where id=$1",[row.id])).rows[0].accuse_envoye_le).toBeTruthy();
+  expect(boite).toHaveBeenCalledTimes(2);
+ });
+ it("aucune annulation de facture ni courrier de clôture sans trente jours de notification prouvée",async()=>{
+  const annul=vi.fn();
+  expect((await notifierResiliationImpaye(banc.service!,{invoices:{voidInvoice:annul}} as never,{orgId:org,subscription:sub,resilieLe:new Date(),destinataire:to,organisation:"SCI fictive",enDefautDepuis:episode})).verification).toBe(true);
+  expect(annul).not.toHaveBeenCalled();expect(boite).not.toHaveBeenCalled();expect(jour).toMatch(/^\d{4}/);
+ });
+});

@@ -197,6 +197,9 @@ const MISSION_OCTOBRE = [
   "20261116084000_destinataire_facture_sci.sql",
   "20261116141850_droits_incidents_apres_depart_colocataire.sql",
   "20261116141945_adhesions_ecriture_par_actions.sql",
+  "20261116201034_courriers_incidents_abonnement.sql",
+  "20261116201223_alertes_direction_et_reports.sql",
+  "20261116201423_avis_essai_et_inactivite.sql",
 
 
 ];

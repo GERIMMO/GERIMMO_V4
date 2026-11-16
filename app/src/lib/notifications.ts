@@ -1341,7 +1341,7 @@ export async function notifierIncidentUrgentDeclare(
  * Le client de l'artisan ne lit ni l'organisation ni ses membres : appelée
  * depuis actions/artisan.ts via `notifierEnCoulisses`.
  */
-export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devisId: string, pieceJointe?: { nom: string; contenuBase64: string }): Promise<ResultatNotification> {
+export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devisId: string): Promise<ResultatNotification> {
   try {
     const { data: devis } = await db
       .from("incident_devis")
@@ -1363,7 +1363,7 @@ export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devis
     } else to = await destinataireAgence(db, orgId, inc.responsable_account_id);
     return expedier(db, {
       orgId, to, role: "agence", evenement: "devis_recu", objet: devis.id,
-      pieceJointe, cleIdempotence: `devis-gerimmo-${devis.id}`,
+      cleIdempotence: `devis-gerimmo-${devis.id}`,
       message: messageDevisRecu({
         emetteur: nom, artisan: artisan.raison_sociale, montantCents: Number(devis.montant_ttc_cents), numero: inc.numero, categorie: inc.categorie,
         // D18 (livraison 2) : la version et « ce qui change » sont lus en base, jamais du formulaire.

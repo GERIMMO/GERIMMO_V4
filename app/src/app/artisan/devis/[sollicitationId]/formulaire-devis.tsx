@@ -15,7 +15,7 @@ import { ApercuDevis } from "./apercu-devis";
 import styles from "./devis.module.css";
 import { CLASSE_AIDE, CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SOBRE, CLASSE_CHAMP, CLASSE_LIBELLE, CLASSE_ZONE_TEXTE, Erreur } from "../../ui";
 // D18 (livraison 2) : en révision, le bouton nomme la version qui part (« Envoyer la version 2 »).
-function Envoyer({valide, versionSuivante}: {valide:boolean; versionSuivante?: number}) {const {pending}=useFormStatus();return <button type="submit" disabled={!valide||pending} className={`${CLASSE_BOUTON_PRINCIPAL} ${styles.boutonEnvoi}`}><Send size={17} aria-hidden/>{pending?"Envoi…":versionSuivante?`Envoyer la version ${versionSuivante}`:"Envoyer le devis par e-mail"}</button>;}
+function Envoyer({valide, versionSuivante}: {valide:boolean; versionSuivante?: number}) {const {pending}=useFormStatus();return <button type="submit" disabled={!valide||pending} className={`${CLASSE_BOUTON_PRINCIPAL} ${styles.boutonEnvoi}`}><Send size={17} aria-hidden/>{pending?"Envoi…":versionSuivante?`Envoyer la version ${versionSuivante}`:"Transmettre le devis et prévenir le demandeur"}</button>;}
 
 // Le sélecteur d’étape mobile n’est pas une modification du devis.
 function estSaisieDevis(cible: EventTarget) {
@@ -146,7 +146,7 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
         </div>,
         <div key="validation" className={styles.validation}><ResumeDevis/><div className={styles.validationAction}><ApercuDevis sollicitationId={sollicitationId} valide={valide} bloque={enregistrement||chargement} onGeneration={actif=>{occupation.current=actif;setEnregistrement(actif);if(actif)conserver();}} onValide={r=>{revisionRecue(Math.abs(r),r>0);setValide(r>0);setSauvegarde(r>0?"PDF validé et enregistré":"Modifications à valider");}}/><p className={CLASSE_AIDE}>Vos coordonnées et votre logo proviennent de <Link href="/artisan/entreprise#entreprise-devis" target="_blank" className="underline">Ma fiche entreprise</Link>.</p></div></div>,
         <div key="envoi" className={`${styles.envoi} space-y-4`}>
-          {valide?<><div className={styles.envoiPret}><h3><CheckCircle2 size={24} aria-hidden/>Votre devis est prêt</h3><p>Le PDF validé sera joint à l’e-mail et restera disponible dans votre espace et celui du demandeur.</p></div><a href={`/api/devis/${sollicitationId}/pdf?preparation=1`} target="_blank" rel="noreferrer" className={`${CLASSE_BOUTON_SOBRE} gap-2`}><FileDown size={18} aria-hidden/>Ouvrir mon devis PDF</a><p className={CLASSE_AIDE}>L’envoi sera effectué uniquement après votre clic ci-dessous.</p></>:<p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-950">Validez le devis à l’étape 3 pour générer le PDF avant de l’envoyer.</p>}
+          {valide?<><div className={styles.envoiPret}><h3><CheckCircle2 size={24} aria-hidden/>Votre devis est prêt</h3><p>Le demandeur recevra un lien vers le dossier où il pourra consulter le PDF validé.</p></div><a href={`/api/devis/${sollicitationId}/pdf?preparation=1`} target="_blank" rel="noreferrer" className={`${CLASSE_BOUTON_SOBRE} gap-2`}><FileDown size={18} aria-hidden/>Ouvrir mon devis PDF</a><p className={CLASSE_AIDE}>L’envoi sera effectué uniquement après votre clic ci-dessous.</p></>:<p className="rounded-xl bg-amber-50 p-4 text-sm text-amber-950">Validez le devis à l’étape 3 pour générer le PDF avant de l’envoyer.</p>}
           {etat.erreur&&<Erreur>{etat.erreur}</Erreur>}
         </div>,
       ]}/>

@@ -1,4 +1,6 @@
-import { piloteLimite, MESSAGE_PILOTE } from "./perimetre-pilote";
+import { empreinteCourriel } from "./courriels-durables";
+import { paiementsInterdits } from "./verrou-pilote";
+import { MESSAGE_PILOTE } from "./perimetre-pilote";
 // LES ENVOIS DES COURRIERS DU CONTRAT (plan de conformité du 23/10/2026, lots 1B et 1C).
 //
 // Client de service seulement (webhook Stripe, tâche de nuit, actions serveur APRÈS la vérification des droits du
@@ -97,15 +99,11 @@ export async function alerterRelaisContrat(
   await tracer(service, a.evenement, a.details);
   const adresses = options.adresses ?? adressesRelaisDuServeur().valides;
   if (adresses.length === 0) return 0;
-  const html = `
-<div style="font-family:sans-serif;font-size:14px;color:#111;line-height:1.5">
-  <h2 style="font-size:17px">${echapperMarque(a.sujet)}</h2>
-  ${a.lignes.map((l) => `<p>${echapperMarque(l)}</p>`).join("\n  ")}
-</div>`;
+  const html = `<p>Un dossier d’abonnement nécessite une vérification. Consultez le journal de supervision dans votre <a href="${echapperMarque(adresseDuSite() || "")}/admin">espace administrateur Gerimmo</a>.</p>`;
   let envoyees = 0;
   for (const to of adresses) {
     await options.avantEffet?.();
-    const r = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi", avantEnvoi: options.avantEffet, to, subject: a.sujet, html, cleIdempotence: `${a.cle}-${to}` }).catch(
+    const r = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi", avantEnvoi: options.avantEffet, to, subject: "Gerimmo — vérification d’un dossier d’abonnement", html, contexteMetier:{type:"alerte_direction",categorie:"contrat",id:empreinteCourriel(a.cle)}, cleIdempotence: `${a.cle}-${to}` }).catch(
       (e: unknown) => {
         if (e instanceof ArretSupervision) throw e;
         return { erreur: "envoi interrompu" };
@@ -359,13 +357,6 @@ export async function annulerFacturesOuvertes(
   return { sort: echecs.length > 0 ? "a_annuler" : annulees.length > 0 ? "annulees" : "aucune", annulees, echecs };
 }
 
-/** Le jour AAAA-MM-JJ, n jours plus tard (dates civiles). */
-function plusJours(jour: string, n: number): string {
-  const [a, m, j] = jour.slice(0, 10).split("-").map(Number);
-  return new Date(Date.UTC(a, m - 1, j + n)).toISOString().slice(0, 10);
-}
-
-/** Délai de la mise en demeure avant une résiliation par l'Éditeur (article 15.4 des conditions en vigueur : trente jours). */
 export const DELAI_MISE_EN_DEMEURE_JOURS = 30;
 
 /**
@@ -392,79 +383,83 @@ export async function notifierResiliationImpaye(
   },
   options: { avantEffet?: () => Promise<void> } = {}
 ): Promise<ResultatEnvoi & { factures?: FacturesAnnulees }> {
-  if(piloteLimite()){
+  if(paiementsInterdits()){
     await tracer(service,"pilote_contrat_intervention_requise",{organisation:p.orgId,souscription:p.subscription});
     return {envoye:false,motif:MESSAGE_PILOTE};
   }
-  const factures = await annulerFacturesOuvertes(stripe, p.subscription);
-  if (factures.echecs.length > 0) {
-    await tracer(service, "resiliation_impaye_facture_non_annulee", { organisation: p.orgId, souscription: p.subscription, factures: factures.echecs });
+  async function enVerification(motif: string): Promise<ResultatEnvoi> {
+    await alerterRelaisContrat(service, {
+      evenement: "resiliation_impaye_a_verifier", sujet: "Résiliation pour impayé à vérifier", lignes: [],
+      cle: `resiliation-impaye-controle-${p.subscription}`,
+      details: {organisation:p.orgId, souscription:p.subscription, motif},
+    }, options);
+    return {envoye:false, verification:true, motif};
   }
-  const resilieLe = dateParis(p.resilieLe);
-  const resiliableLe = p.enDefautDepuis ? plusJours(p.enDefautDepuis, DELAI_MISE_EN_DEMEURE_JOURS) : null;
-  // Un incident d'e-mail peut retarder le premier courrier : le défaut seul ne prouve pas la mise en demeure.
-  // En l'absence de preuve lisible, le courrier reste factuel et le relais est alerté.
-  let miseEnDemeureEnvoyeeLe: number | null = null;
-  if (p.enDefautDepuis) {
+  if (!p.enDefautDepuis) return enVerification("Épisode d’impayé non identifié.");
+  const {data, error} = await service.rpc("preuve_fin_impaye", {
+    p_org:p.orgId, p_subscription:p.subscription, p_episode:p.enDefautDepuis, p_fin:p.resilieLe.toISOString(),
+  });
+  const preuve = data?.[0];
+  if (error || !preuve?.facture || !preuve.destinataire) return enVerification("Vérifier le destinataire, la mise en demeure délivrée et le délai de trente jours.");
+  await options.avantEffet?.();
+  const souscription = await stripe.subscriptions.retrieve(p.subscription);
+  if (souscription.id !== p.subscription || souscription.status !== "canceled"
+    || souscription.ended_at !== Math.floor(p.resilieLe.getTime() / 1000)
+    || !(souscription.cancellation_details?.reason === "payment_failed" || souscription.metadata?.gerimmo_resiliation_motif === "impaye")) {
+    return enVerification("Motif ou date de fin non confirmé par Stripe.");
+  }
+  const f = await stripe.invoices.retrieve(preuve.facture);
+  const sub = f.parent?.subscription_details?.subscription;
+  const client = (v: string | {id: string} | null) => typeof v === "string" ? v : v?.id;
+  if (f.id !== preuve.facture || (typeof sub === "string" ? sub : sub?.id) !== p.subscription
+    || !client(f.customer) || client(f.customer) !== client(souscription.customer) || f.currency !== "eur"
+    || !["open","void"].includes(f.status ?? "") || (f.status === "open" && f.amount_remaining !== Number(preuve.montant))) {
+    return enVerification("Facture courante incompatible avec la mise en demeure.");
+  }
+  const ouvertes = await stripe.invoices.list({subscription:p.subscription,status:"open",limit:2});
+  if (ouvertes.has_more || ouvertes.data.some(i=>i.id!==f.id)) return enVerification("Plusieurs factures à rapprocher de la décision de résiliation.");
+  if (f.status === "open") {
+    await options.avantEffet?.();
+    const annulee = await stripe.invoices.voidInvoice(f.id, {}, {idempotencyKey:`annulation-impaye-${f.id}`});
+    if (annulee.id!==f.id || annulee.status!=="void") return enVerification("Annulation de la facture à rapprocher avec Stripe.");
+  }
+  const courrier = courrierResiliationImpaye({
+    organisation:preuve.organisation, resilieLe:dateParis(p.resilieLe), factures:"annulees", apresMiseEnDemeure:true,
+    lien:lienAbonnement(await baseDeLOrganisation(service,p.orgId)),
+  });
+  const r = await envoyerEmail({circuit:"lib/courriers-contrat-envoi", avantEnvoi:options.avantEffet,
+    organisation:{db:service,id:p.orgId}, to:preuve.destinataire, subject:courrier.sujet,html:courrier.html,
+    contexteMetier:{type:"resiliation_impaye",id:p.subscription,episode:p.enDefautDepuis,fin:p.resilieLe.toISOString(),facture:f.id,annulees:[f.id]},
+    cleIdempotence:`resiliation-impaye-${p.subscription}`});
+  if (r.erreur || !r.id || r.finalisationEnAttente) return enVerification(r.erreur ?? "Finalisation du courrier à vérifier.");
+  return {envoye:true, factures:"annulees"};
+}
+
+/** Une coupure après la résiliation Stripe, y compris après une annulation de facture, est rattrapée à partir du contrat existant. */
+export async function reprendreFinsImpayees(service: Service, stripe: Stripe, avantEffet: () => Promise<void>) {
+  const {data, error} = await service.rpc("resiliations_impaye_a_rapprocher");
+  if (error) throw new Error("Lecture des résiliations pour impayé indisponible.");
+  let envoyees = 0, aVerifier = 0;
+  for (const ligne of data ?? []) {
     try {
-      const { data, error } = await service.from("audit_log").select("details")
-        .eq("organization_id", p.orgId).eq("action", "relance_paiement_envoyee")
-        .eq("details->>palier", "0").eq("details->>en_defaut_depuis", p.enDefautDepuis)
-        .order("created_at", { ascending: true }).limit(1).maybeSingle();
-      const envoyeeLe = data?.details?.envoyee_le;
-      const instant = typeof envoyeeLe === "string" ? Date.parse(envoyeeLe) : NaN;
-      if (!error && Number.isFinite(instant)) miseEnDemeureEnvoyeeLe = instant;
-    } catch {
-      // Une preuve inaccessible n'autorise pas à présenter la résiliation comme contractuellement régulière.
+      await avantEffet();
+      const s = await stripe.subscriptions.retrieve(ligne.subscription);
+      if (!s.ended_at) throw new Error("Fin de souscription non confirmée");
+      const r = await notifierResiliationImpaye(service, stripe, {
+        orgId:ligne.organization_id, subscription:ligne.subscription,enDefautDepuis:ligne.episode,
+        resilieLe:new Date(s.ended_at*1000), destinataire:null, organisation:"",
+      }, {avantEffet});
+      if (r.envoye) envoyees++; else aVerifier++;
+    } catch (e) {
+      if (e instanceof ArretSupervision) throw e;
+      aVerifier++;
+      await alerterRelaisContrat(service,{
+        evenement:"resiliation_impaye_rapprochement_interrompu",sujet:"Clôture d’abonnement en attente",
+        lignes:[],cle:`rapprochement-impaye-${ligne.subscription}`,details:{organisation:ligne.organization_id,souscription:ligne.subscription},
+      },{avantEffet});
     }
   }
-  const apresMiseEnDemeure = resiliableLe !== null && resilieLe >= resiliableLe
-    && miseEnDemeureEnvoyeeLe !== null
-    && p.resilieLe.getTime() >= miseEnDemeureEnvoyeeLe + DELAI_MISE_EN_DEMEURE_JOURS * 86_400_000;
-  if (!apresMiseEnDemeure) {
-    await alerterRelaisContrat(
-      service,
-      {
-        evenement: "resiliation_impaye_avant_mise_en_demeure",
-        sujet: "Gerimmo — résiliation pour impayé avant la fin de la mise en demeure",
-        lignes: [
-          `La souscription ${p.subscription} (organisation ${p.orgId}) a été résiliée par Stripe le ${resilieLe} sans preuve de trente jours révolus depuis l'envoi de la mise en demeure (défaut depuis le ${p.enDefautDepuis ?? "?"}, première date annoncée : ${resiliableLe ?? "inconnue"}).`,
-          "Le courrier prévu ne cite pas l'article 15.4. Vérifiez le résultat de l’annulation des factures dans le dossier ainsi que le réglage Stripe « statut après échec des relances » (« marquer l'abonnement comme impayé ») et voyez s'il faut proposer au client une nouvelle souscription.",
-        ],
-        cle: `resiliation-impaye-avant-${p.subscription}`,
-        details: { organisation: p.orgId, souscription: p.subscription, resilie_le: resilieLe, resiliable_le: resiliableLe },
-      },
-      { avantEffet: options.avantEffet }
-    ).catch((e: unknown) => {
-      if (e instanceof ArretSupervision) throw e;
-      return 0;
-    });
-  }
-  if (!p.destinataire) return { envoye: false, motif: "sans adresse", factures: factures.sort };
-  const courrier = courrierResiliationImpaye({
-    organisation: p.organisation,
-    resilieLe,
-    factures: factures.sort,
-    lien: lienAbonnement(await baseDeLOrganisation(service, p.orgId)),
-    apresMiseEnDemeure,
-  });
-  await options.avantEffet?.();
-  const { erreur, id } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
-    avantEnvoi: options.avantEffet,
-    to: p.destinataire,
-    subject: courrier.sujet,
-    html: courrier.html,
-    cleIdempotence: `resiliation-impaye-${p.subscription}`,
-  });
-  if (erreur) return { envoye: false, motif: erreur, factures: factures.sort };
-  const suivi = await service.rpc("abonnement_resiliation_impaye_notifiee", {
-    p_org: p.orgId,
-    p_subscription: p.subscription,
-    p_message: id ?? null,
-    p_factures_annulees: factures.annulees,
-  });
-  if(suivi.error || suivi.data !== true)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
-  return { envoye: true, factures: factures.sort };
+  return {envoyees,aVerifier};
 }
 
 // ── R01, R37 : l'accusé de la rétractation ────────────────────────────────────────────────────────────────────
@@ -475,20 +470,22 @@ export async function notifierResiliationImpaye(
  */
 export async function envoyerReceptionRetractation(
   service: Service,
-  p: { retractationId: string; cle: string; destinataire: string } & Pick<AccuseRetractation, "nature" | "organisation" | "declaration" | "declareeLe">,
+  p: { organisationId: string; retractationId: string; cle: string; destinataire: string } & Pick<AccuseRetractation, "nature" | "organisation" | "declaration" | "declareeLe">,
   options: { avantEffet?: () => Promise<void> } = {}
 ): Promise<ResultatEnvoi> {
   const courrier = courrierReceptionRetractation(p);
   await options.avantEffet?.();
-  const { erreur, id } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
+  const { erreur, id, finalisationEnAttente } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
     avantEnvoi: options.avantEffet,
+    organisation:{db:service,id:p.organisationId},
+    contexteMetier:{type:"retractation_abonnement",etape:"reception",id:p.retractationId,nature:p.nature,declaree:p.declareeLe.toISOString(),declaration:empreinteCourriel(p.declaration)},
     to: p.destinataire,
     subject: courrier.sujet,
     html: courrier.html,
     cleIdempotence: `${p.cle}-reception`,
   });
   if (erreur) return { envoye: false, motif: erreur };
-  await tracer(service, "retractation_reception_envoyee", { retractation: p.retractationId, message: id ?? null });
+  if (!id || finalisationEnAttente) return { envoye:false, verification:true, motif:"Accusé en attente de confirmation." };
   return { envoye: true };
 }
 
@@ -499,22 +496,23 @@ export async function envoyerReceptionRetractation(
  */
 export async function envoyerAccuseRetractation(
   service: Service,
-  p: { retractationId: string; cle: string; destinataire: string; copie?: string } & AccuseRetractation,
+  p: { organisationId: string; retractationId: string; cle: string; destinataire: string; copie?: string } & AccuseRetractation,
   options: { avantEffet?: () => Promise<void> } = {}
 ): Promise<ResultatEnvoi> {
   const courrier = courrierAccuseRetractation(p);
   await options.avantEffet?.();
-  const { erreur, id } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
+  const { erreur, id, finalisationEnAttente } = await envoyerEmail({ circuit:"lib/courriers-contrat-envoi",
     avantEnvoi: options.avantEffet,
+    organisation:{db:service,id:p.organisationId},
+    contexteMetier:{type:"retractation_abonnement",etape:p.copie?"copie":"execution",id:p.retractationId,copie:p.copie,
+      nature:p.nature,declaree:p.declareeLe.toISOString(),declaration:empreinteCourriel(p.declaration),
+      montant:p.montantRembourseCents,passage:p.passageEffectue},
     to: p.destinataire,
     subject: courrier.sujet,
     html: courrier.html,
     cleIdempotence: p.copie ? `${p.cle}-copie-${p.copie}` : p.cle,
   });
   if (erreur) return { envoye: false, motif: erreur };
-  if (!p.copie) {
-    const suivi=await service.rpc("retractation_accuse_envoye", { p_id: p.retractationId, p_message: id ?? null });
-    if(suivi.error || suivi.data !== true)return {envoye:false,motif:"Acceptation fournisseur enregistrée ; finalisation métier à vérifier. Ne pas renvoyer."};
-  }
+  if (!id || finalisationEnAttente) return {envoye:false,verification:true,motif:"Accusé en attente de confirmation."};
   return { envoye: true };
 }

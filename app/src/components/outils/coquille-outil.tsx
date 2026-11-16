@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
+import { OUTILS } from "@/lib/outils/catalogue";
 import { badgeEssai, dureeEssai } from "@/lib/tarifs";
 import { IconeTrait, PucesGratuit, TuileOutil, outilsPresentes } from "./icones-outils";
 
@@ -101,7 +102,7 @@ export function CoquilleOutil({
           </div>
 
           <AutresOutils sauf={chemin} />
-          <AppelEssai />
+          <AppelEssai chemin={chemin} />
         </div>
       </main>
       <div className="contents print:hidden">
@@ -151,25 +152,24 @@ function CocheClaire() {
 }
 
 /** L'invitation à créer un compte, sous chaque outil. */
-export function AppelEssai() {
+export function AppelEssai({ chemin }: { chemin?: string }) {
+  const outil = OUTILS.find((o) => o.chemin === chemin);
   const duree = dureeEssai();
   return (
     <section className="vitrine-bandeau outil-appel print:hidden" aria-labelledby="appel-essai">
       <div className="relative grid gap-8 lg:grid-cols-[1.25fr_1fr] lg:items-center">
         <div>
-          <p className="eyebrow !text-[var(--sur-marque)]">Et chaque mois, sans y penser</p>
+          <p className="eyebrow !text-[var(--sur-marque)]">Votre espace propriétaire</p>
           <p
             className="mt-3 inline-flex rounded-full px-3 py-1 text-[12.5px] font-semibold bg-[var(--ivoire)] text-[var(--encre)]"
           >
             {badgeEssai()}
           </p>
           <h2 id="appel-essai" className="mt-2 max-w-[26ch] text-balance font-heading font-bold leading-[1.18] text-[var(--sur-marque)]">
-            Ce calcul, Gerimmo le fait chaque mois pour vous
+            Retrouvez vos locations et vos justificatifs
           </h2>
           <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--sur-marque)]/85">
-            Quittances établies à chaque encaissement, envoyées au locataire si vous l&apos;activez&nbsp;; révisions
-            de loyer préparées à la date anniversaire, relances d&apos;impayés, aide à la déclaration : la gestion
-            locative tenue au carré. Essai gratuit de {duree}, sans carte bancaire.
+            {outil?.suite ?? "Réunissez vos baux, vos loyers et les pièces de votre patrimoine dans votre espace propriétaire."} Essai gratuit de {duree}, sans carte bancaire.
           </p>
           <Link
             href="/inscription"
@@ -181,10 +181,10 @@ export function AppelEssai() {
         </div>
         <ul className="space-y-3 rounded-2xl border border-white/20 bg-white/10 p-5 text-[14px] leading-snug text-[var(--sur-marque)] sm:p-6">
           {[
-            "Quittance émise à chaque encaissement",
-            "Révision IRL proposée à la date anniversaire",
-            "Relances et échéances qui vous trouvent",
-            "Récapitulatif fiscal prêt à recopier",
+            "Quittances et reçus selon les montants encaissés",
+            "Échéances visibles dans le tableau de bord",
+            "Relances de loyer à préparer en PDF",
+            "Aide à la 2044 pour la location nue au réel",
           ].map((l) => (
             <li key={l} className="flex gap-2.5">
               <CocheClaire />

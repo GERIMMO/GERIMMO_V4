@@ -37,6 +37,7 @@ export type Palier = 0 | 1 | 2 | 3;
 
 export type RelancePaiement = {
   palier: Palier;
+  datesAbsolues?: boolean;
   organisation: string;
   // Ce que le prélèvement demandait : le montant de la période, en centimes, et sa périodicité. Pour un abonnement
   // annuel, l'équivalent mensuel (un douzième) n'est pas la somme que la banque a refusée — la dire « par mois »
@@ -66,15 +67,16 @@ export function parPeriodeEnLettres(p: Periodicite): string {
   return p === "annuel" ? "par an" : "par mois";
 }
 
-export function sujetRelance(r: Pick<RelancePaiement, "palier" | "joursRestants" | "premierPrelevement">): string {
+export function sujetRelance(r: Pick<RelancePaiement, "palier" | "joursRestants" | "premierPrelevement" | "datesAbsolues">): string {
   if (r.premierPrelevement && r.palier === 0) return "Votre premier prélèvement Gerimmo n'est pas passé";
+  if (r.datesAbsolues && (r.palier === 1 || r.palier === 2)) return "Gerimmo — rappel concernant votre prélèvement impayé";
   switch (r.palier) {
     case 0:
       return "Votre prélèvement Gerimmo n'est pas passé";
     case 1:
       return `Prélèvement Gerimmo : il vous reste ${r.joursRestants} jour${r.joursRestants > 1 ? "s" : ""}`;
     case 2:
-      return "Prélèvement Gerimmo : votre saisie s'arrête demain";
+      return r.joursRestants === 1 ? "Prélèvement Gerimmo : votre saisie s'arrête demain" : "Gerimmo — vérifiez l’accès en écriture de votre compte";
     default:
       return "Votre compte Gerimmo est en lecture seule";
   }
@@ -101,6 +103,9 @@ function message(r: RelancePaiement): string {
         Vos données restent entières, consultables et exportables.</p>
         <p>Dès que le paiement aboutit, la saisie et les envois reprennent pour l'avenir.</p>
         ${miseEnDemeure(r, ".")}`;
+  }
+  if (r.datesAbsolues && r.palier < 3) {
+    return `<p>Le prélèvement de votre abonnement (${montant}) reste impayé. Le délai habituel de régularisation arrive à échéance le ${le}. À compter de cette date et après notification, l’accès en écriture est suspendu tant que le défaut persiste. Vos données restent consultables et exportables.</p>${r.palier === 0 ? miseEnDemeure(r, ".") : ""}`;
   }
   switch (r.palier) {
     case 0:

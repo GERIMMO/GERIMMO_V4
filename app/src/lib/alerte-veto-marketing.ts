@@ -1,3 +1,4 @@
+import { empreinteCourriel } from "./courriels-durables";
 import { ArretSupervision } from "./controle-effets";
 // L'ALERTE DE VETO (06/10/2026) : le superviseur voit le post la veille.
 //
@@ -58,6 +59,8 @@ export async function alerterSuperviseurDuPost(db: SupabaseClient, post: ApercuP
     const lien = `${site}/admin/marketing#veto`;
     await avantEffet?.();
     const res = await envoyerEmail({ circuit:"lib/alerte-veto-marketing",
+      contexteMetier:{type:"alerte_direction",categorie:"veto",id:post.id,parution:post.programmee_pour,
+        validation:post.validation_obligatoire,apercu:empreinteCourriel([post.titre,post.chapo,post.facebook_texte,post.facebook_image_url].map(t=>t??"").join("\u001f"))},
       avantEnvoi: avantEffet,
       to: email,
       subject: `À relire avant parution : ${post.titre.slice(0, 90)}`,

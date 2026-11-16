@@ -87,7 +87,7 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
       await artisan.getByRole("button",{name:"Valider et générer le PDF",exact:true}).click();
       await expect(artisan.getByText(/^PDF validé et enregistré\. Passez/)).toBeVisible();
       await etape(4);
-      await artisan.getByRole("button",{name:"Envoyer le devis par e-mail",exact:true}).click();
+      await artisan.getByRole("button",{name:"Transmettre le devis et prévenir le demandeur",exact:true}).click();
       await expect(artisan).toHaveURL(/envoye=1/);
       await gestion.reload();
       await gestion.getByRole("button",{name:/Retenir ce devis/}).click();

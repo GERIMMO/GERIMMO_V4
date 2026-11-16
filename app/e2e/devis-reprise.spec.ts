@@ -48,7 +48,7 @@ for (const largeur of [390, 1440]) test(`devis : reprise, sauvegarde lente et co
     await expect(page.getByRole('status').filter({hasText:'Modifications non enregistrées'})).toBeVisible();
     await etape(page,2); await expect(page.getByLabel('Contraintes et accès',{exact:false})).toHaveValue('Accès TEST conservé'); await expect(page.getByLabel('Valable jusqu’au',{exact:true})).toHaveValue('');
     await etape(page,3); await expect(page.locator('[name="validation_artisan"]')).not.toBeChecked();
-    await etape(page,4); await expect(page.getByRole('button',{name:'Envoyer le devis par e-mail',exact:true})).toBeDisabled();
+    await etape(page,4); await expect(page.getByRole('button',{name:'Transmettre le devis et prévenir le demandeur',exact:true})).toBeDisabled();
     await etape(page,1);
     // Le vrai serveur enregistre, mais sa réponse arrive après une nouvelle saisie.
     let interceptee=false; let reponseRecue:()=>void=()=>{};

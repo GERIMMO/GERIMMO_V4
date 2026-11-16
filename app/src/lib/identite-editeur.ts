@@ -9,6 +9,8 @@ export function validerIdentite(f:FormData){const valeurs:Record<string,string|n
  if(valeurs.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valeurs.email))return {erreur:'Vérifiez l’adresse e-mail.'};
  if(valeurs.siret&&!/^\d{14}$/.test(valeurs.siret.replace(/\s/g,'')))return {erreur:'Le SIRET doit comporter 14 chiffres.'};
  if(valeurs.mediateurSite){try{const u=new URL(valeurs.mediateurSite);if(u.protocol!=='https:'||u.username||u.password)throw new Error();}catch{return {erreur:'Le site du médiateur doit être une adresse HTTPS.'};}}
+ const coordonneesMediateur=[valeurs.mediateurNom,valeurs.mediateurAdresse,valeurs.mediateurSite];
+ if(coordonneesMediateur.some(Boolean)&&!coordonneesMediateur.every(Boolean))return {erreur:'Renseignez ensemble le nom, l’adresse postale et le site du médiateur désigné, ou laissez les trois champs vides.'};
  return {valeurs};}
 /**
  * L'identité telle que les pages légales l'affichent : les faits du code, recouverts par les valeurs saisies pour les

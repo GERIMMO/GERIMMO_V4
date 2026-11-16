@@ -167,7 +167,7 @@ export async function retracterAbonnement(
     // Relecture adverse du 24/10 (I4) : l'accusé de réception de la déclaration part sans délai (L. 221-21), même si
     // son exécution attend ; l'accusé complet suivra (nouvel essai, ou reprise de nuit).
     const reception = await envoyerReceptionRetractation(service, {
-      retractationId: r.id,
+      organisationId:orgId, retractationId: r.id,
       cle: r.cle,
       destinataire: adresse,
       nature,
@@ -193,7 +193,7 @@ export async function retracterAbonnement(
   if (issue.accuseDejaEnvoye && !r.nouvelle) {
     const aujourdhui = dateParis(new Date());
     const copie = await envoyerAccuseRetractation(service, {
-      retractationId: r.id,
+      organisationId:orgId, retractationId: r.id,
       cle: r.cle,
       copie: `${Math.floor(Date.now() / 600_000)}-${empreinteCourte(adresse.toLowerCase())}`,
       destinataire: adresse,

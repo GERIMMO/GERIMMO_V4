@@ -135,7 +135,7 @@ export async function envoyerUrgencesRelais(options: {
       const sujet = sujetUrgencesRelais(urgences.length);
       // Les adresses en parallèle : le délai d'un service lent ne s'additionne pas d'une adresse à l'autre.
       const resultats = await Promise.all(adresses.valides.map((to) =>
-        envoyer({ to, subject: sujet, html, cleIdempotence: cleEnvoi(envoi, to), ...(delaiMaxMs ? { delaiMaxMs } : {}) })
+        envoyer({ to, subject: sujet, html, contexteMetier:{type:"alerte_direction",categorie:"urgence",id:envoi}, cleIdempotence: cleEnvoi(envoi, to), ...(delaiMaxMs ? { delaiMaxMs } : {}) })
           .catch(() => ({ erreur: "envoi interrompu" }))
       ));
       const envoyes = resultats.filter((r) => !r.erreur).length;

@@ -69,11 +69,10 @@ export function courrierFinEssai(p: {
     html: enveloppe(
       titre,
       `<p>Votre période d'essai arrive à son terme. Le premier prélèvement${montant}
-       aura lieu le <strong>${jour(p.premierPrelevementLe)}</strong>, sur le moyen de
+       est prévu le <strong>${jour(p.premierPrelevementLe)}</strong>, sur le moyen de
        paiement que vous avez enregistré.</p>
        <p>Vous pouvez vérifier votre formule, changer de carte ou résilier avant
-       cette date depuis « Mon abonnement ». Sans geste de votre part,
-       l'abonnement démarre normalement.</p>`,
+       cette date depuis « Mon abonnement ». Cet avis concerne l’abonnement que vous avez commandé.</p>`,
       p.lien,
       "Vérifier mon abonnement",
       p.organisation
@@ -213,13 +212,19 @@ async function destinataire(supabase: SupabaseClient, orgId: string): Promise<st
 
 /** L'avis de fin d'essai. Rend un motif d'échec, ou `null` si envoyé. */
 export async function envoyerAvisFinEssai(
-  p: { orgId: string; organisation: string; destinataire: string | null; premierPrelevementLe: string; montantCents: number | null; cle: string; base?: string },
+  db: SupabaseClient,
+  p: { orgId: string; organisation: string; destinataire: string; abonnement: string; client: string; premierPrelevementLe: string; montantCents: number; base?: string },
   avantEffet?: () => Promise<void>
 ): Promise<string | null> {
   if (!p.destinataire) return "sans adresse";
   const c = courrierFinEssai({ ...p, lien: lienAbonnement(p.orgId, p.base) });
-  const { erreur } = await envoyerEmail({ circuit:"lib/avis-abonnement", to: p.destinataire, subject: c.sujet, html: c.html, cleIdempotence: p.cle, avantEnvoi: avantEffet });
-  return erreur ?? null;
+  const resultat = await envoyerEmail({
+    circuit: "lib/avis-abonnement", to: p.destinataire, subject: c.sujet, html: c.html,
+    cleIdempotence: `fin-essai-${p.abonnement}-${p.premierPrelevementLe}`, avantEnvoi: avantEffet,
+    organisation: {db, id: p.orgId},
+    contexteMetier: {type: "fin_essai_choisi", id: p.abonnement, client: p.client, fin: p.premierPrelevementLe, montant: p.montantCents, organisation: p.organisation},
+  });
+  return resultat.erreur ?? (resultat.id ? null : "Accusé fournisseur manquant");
 }
 
 /** L'avis de capacité dépassée à l'échéance. Rend un motif d'échec, ou `null`. */

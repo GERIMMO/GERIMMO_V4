@@ -157,12 +157,13 @@ describe("relance d'un paiement d'abonnement refusé", () => {
   for (const p of PROFILS_COURRIER) {
     it(`${p.nom} : ${p.attendu}/abonnement`, async () => {
       const db = client(base(p.type), {
+        abonnement_courrier_contexte:[{destinataire:"facturation@example.invalid",stripe_subscription_id:"sub_1",cgu_version:"2026-11-15"}],
         abonnements_a_relancer: [{
           organization_id: ORG, organisation: "Organisation TEST", destinataire: "facturation@example.invalid", palier: 1,
-          jours_ecoules: 3, jours_restants: 12, lecture_seule_le: "2026-10-30", montant_mensuel: "12.00", periodicite: "mensuel", montant_periode_cents: 1200,
+          en_defaut_depuis:"2026-10-12",resiliable_le:"2026-11-11",jours_ecoules: 3, jours_restants: 12, lecture_seule_le: "2026-10-30", montant_mensuel: "12.00", periodicite: "mensuel", montant_periode_cents: 1200,
         }],
       });
-      expect(await envoyerRelancesDues(db as never)).toEqual({ envoyees: 1, sans_adresse: [], echecs: [] });
+      expect(await envoyerRelancesDues(db as never,{ stripe:{subscriptions:{retrieve:async()=>({id:"sub_1",status:"past_due",customer:"cus_1",latest_invoice:{id:"in_1",status:"open",currency:"eur",amount_remaining:1200,customer:"cus_1",parent:{subscription_details:{subscription:"sub_1"}}}})}} as never })).toEqual({ envoyees: 1, sans_adresse: [], echecs: [] });
       const courrier = seulCourrier();
       expect(courrier.html).toContain(`${p.attendu}/abonnement`);
       expect(courrier.html).not.toContain(p.interdit);
@@ -204,6 +205,7 @@ describe("avis de fin d'essai (webhook Stripe « trial_will_end »)", () => {
       };
       sim.service = client(base(p.type), {
         stripe_evenement_prendre: "pris", stripe_evenement_finir: true,
+        abonnement_courrier_contexte: [{organisation: "Organisation TEST", destinataire: "signataire@example.invalid", cgu_version: "2026-11-15", cgu_acceptee_le: "2026-11-15", stripe_subscription_id: "sub_test"}],
         abonnement_par_client: [{
           organization_id: ORG, organisation: "Organisation TEST", public_tarif: p.type, grille: "2026-09-28",
           stripe_subscription_id: "sub_test", stripe_statut: "trialing", destinataire: "facturation@example.invalid",
@@ -214,6 +216,7 @@ describe("avis de fin d'essai (webhook Stripe « trial_will_end »)", () => {
       }));
       expect(await reponse.json()).toMatchObject({ traite: "customer.subscription.trial_will_end", organisation: ORG, avis: "envoye" });
       const courrier = seulCourrier();
+      expect(sim.envoyer).toHaveBeenCalledWith(expect.objectContaining({to:"signataire@example.invalid"}));
       expect(courrier.html).toContain(`${p.attendu}/abonnement`);
       expect(courrier.html).not.toContain(p.interdit);
     });

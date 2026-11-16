@@ -113,3 +113,41 @@ for (const sci of [false,true]) test(`propriétaire : loyer confirmé et dépôt
     }
   } finally {await db.end();}
 });
+
+test("une échéance de 640 € après cession apparaît uniquement chez le titulaire à la date du loyer", async ({page}) => {
+  const url=process.env.SUPALOCAL_DB;
+  baseApiFictive(url);
+  const db=new Client({connectionString:url});
+  await db.connect();
+  const [org,compte,part,sci,bien,lot,loc,bail,appel]=Array.from({length:9},()=>randomUUID());
+  const pass=randomUUID(), mail="mutation-"+compte+"@example.invalid";
+  try {
+    await db.query('begin');
+    await db.query("insert into organizations(id,name,type,status,essai_fin,address_line1,postal_code,city) values($1,'Parc des Ormes','proprietaire_direct','essai',current_date+14,'2 rue des Ormes','69000','Lyon')",[org]);
+    await db.query("insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data) values($1,'authenticated','authenticated',$2,extensions.crypt($3,extensions.gen_salt('bf')),now(),'{}','{}')",[compte,mail,pass]);
+    await db.query("insert into memberships(organization_id,account_id,role) values($1,$2,'proprietaire_direct')",[org,compte]);
+    await db.query("insert into persons(id,organization_id,nom,prenom,qualite) values($1,$4,'Martin','André','Personne physique'),($2,$4,'SCI Les Ormes',null,'SCI'),($3,$4,'Lefèvre','Alice','Personne physique')",[part,sci,loc,org]);
+    await db.query("insert into biens(id,organization_id,nom,type,address_line1,postal_code,city) values($1,$2,'Résidence des Ormes','appartement','2 rue des Ormes','69000','Lyon')",[bien,org]);
+    await db.query("insert into lots(id,organization_id,bien_id,nom,etat) values($1,$2,$3,'Appartement sur cour','loue')",[lot,org,bien]);
+    await db.query("insert into detentions(organization_id,lot_id,person_id,quote_part,date_debut,date_fin) values($1,$2,$3,100,'2026-01-01','2026-06-30'),($1,$2,$4,100,'2026-07-01',null)",[org,lot,part,sci]);
+    await db.query("insert into baux(id,organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,jour_echeance) values($1,$2,$3,$4,'nu','actif','2026-10-01',600,40,5)",[bail,org,lot,loc]);
+    await db.query("insert into appels_loyer(id,organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values($1,$2,$3,'2026-11-01','2026-11-05',600,40,640)",[appel,org,bail]);
+    await db.query('commit');
+
+    const destination="/espace/"+org+"/loyers";
+    await connecterVers(page,mail,pass,destination);
+    async function ouvrir(titulaire:string) {
+      await page.goto(destination+"?annee=2026&mois=11&entite="+titulaire);
+      const section=page.locator("#loyers");
+      await expect(section.getByRole("heading",{name:"Loyers et charges"})).toBeVisible();
+      return section;
+    }
+    const ancienne=await ouvrir(part);
+    await expect(ancienne.locator("dl")).toContainText(/Demandé\s*0,00/);
+    await expect(ancienne.getByText(/Gérer les .*loyers/)).toHaveCount(0);
+    const actuelle=await ouvrir(sci);
+    await expect(actuelle.locator("dl")).toContainText(/Demandé\s*640,00/);
+    await expect(actuelle.locator("dl")).toContainText(/Reste dû\s*640,00/);
+    expect((await db.query("select count(*)::int n from encaissements where bail_id=$1",[bail])).rows[0].n).toBe(0);
+  } finally { await db.end(); }
+});

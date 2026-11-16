@@ -62,6 +62,9 @@
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées
 // au seul `service_role`, et chacune ne rend que ce dont la tâche a besoin.
 
+// Factures d’abonnement en supervision : après is_permanent_super_admin() et log_sa_access(),
+// lecture de deux références Stripe sur le seul contrat demandé. Le serveur compare le client,
+// l’organisation et l’abonnement chez Stripe avant de rendre les montants, sans lien porteur.
 // Mois offerts : après is_permanent_super_admin() et confirmation atomique,
 // verrou de facturation et enregistrement de la preuve Stripe du seul cadeau confirmé.
 // Et le suivi AR24 (actions/recommandes.ts) : APRÈS verifierGerant et lecture sous RLS,

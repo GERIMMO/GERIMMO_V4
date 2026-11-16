@@ -27,7 +27,7 @@ import { protegerClientAutomatique } from "@/lib/client-automatique";
 
 import { envoyerAvisCapaciteDepassee, envoyerAvisReconduction } from "@/lib/avis-abonnement";
 import { envoyerRelancesDues } from "@/lib/relances-paiement";
-import { envoyerConfirmationsDues } from "@/lib/courriers-contrat-envoi";
+import { envoyerConfirmationsDues, reprendreFinsImpayees } from "@/lib/courriers-contrat-envoi";
 import { reprendreRetractations } from "@/lib/retractation-execution";
 import {
   clientStripe,
@@ -159,15 +159,17 @@ export async function traiterAbonnements(request: Request) {
   // un courrier de la veille du quinzième jour envoyé le seizième ne sert à
   // rien. L'alignement des quantités, lui, peut attendre une journée de plus.
   // Si Stripe tombe entre les deux, les courriers sont partis.
-  const relances = await envoyerRelancesDues(supabase, { avantEffet: () => verifierAvantEffet(supabase, "abonnements") });
+  const stripe = protegerClientAutomatique(clientStripe(reglages.config), () => verifierAvantEffet(supabase, "abonnements"));
+  const relances = await envoyerRelancesDues(supabase, { stripe, avantEffet: () => verifierAvantEffet(supabase, "abonnements") });
 
+  const finsImpayees = await reprendreFinsImpayees(supabase, stripe, () => verifierAvantEffet(supabase,"abonnements"));
   const { data, error } = await supabase.rpc("abonnements_a_synchroniser", { p_limite: 200 });
   if (error) {
     await consignerTache(supabase, "abonnements", { erreur: "lecture impossible", relances });
     return Response.json({ erreur: error.message }, { status: 500 });
   }
   const lignes = (data ?? []) as Ligne[];
-  const stripe = protegerClientAutomatique(clientStripe(reglages.config), () => verifierAvantEffet(supabase, "abonnements"));
+
 
   let alignes = 0;
   let resiliees = 0;
@@ -334,11 +336,13 @@ export async function traiterAbonnements(request: Request) {
     non_reconductions_conditions_en_echec: nonReconduction.echecs.length,
     confirmations: confirmations.envoyees,
     confirmations_en_echec: confirmations.echecs.length,
+    resiliations_impaye_a_verifier: finsImpayees.aVerifier,
     retractations_terminees: retractations.terminees,
     retractations_en_echec: retractations.echecs.length,
   });
   return Response.json({
     relances,
+    finsImpayees,
     confirmations,
     retractations,
     examinees: lignes.length,

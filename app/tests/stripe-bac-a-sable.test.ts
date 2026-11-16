@@ -1,6 +1,7 @@
 // Stripe réel en mode TEST + règles Gerimmo dans PostgreSQL local.
 // Le transport du webhook est simulé et signé ; il n'est pas présenté comme
 // une livraison de Stripe vers un site public ni comme une recette visuelle.
+import { verifierPrelevementPrevu } from "@/lib/essai-souscrit-preuve";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -426,6 +427,24 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
     });
     expect(apercu.subtotal).toBe(49000);
     expect(apercu.total).toBe(58800);
+  }, 60000);
+
+  it("vérifie le montant du premier prélèvement choisi puis exclut le même avis après résiliation", async () => {
+    const stripe = nouvelle.stripe!;
+    const offre = offreAbonnementUnique(1, "mensuel");
+    const lignes = await lignesStripe(stripe, offre, FRANCHISE);
+    const contrat = await stripe.subscriptions.create({
+      customer: nouvelle.client!, trial_period_days: 3, metadata: metadonneesOffre(nouvelle.org!, offre),
+      items: lignes.map(l => ({price_data:l.prix, quantity:l.quantite})),
+    });
+    nouvelle.abonnements.push(contrat.id);
+    expect(contrat).toMatchObject({status:"trialing", livemode:false});
+    const c = {type:"fin_essai_choisi" as const, id:contrat.id, client:nouvelle.client!,
+      fin:new Date(contrat.trial_end! * 1000).toISOString(), montant:599, organisation:"Dossier fictif"};
+    await verifierPrelevementPrevu(c, stripe);
+    await expect(verifierPrelevementPrevu({...c,montant:699}, stripe)).rejects.toThrow("montant");
+    await stripe.subscriptions.update(contrat.id, {cancel_at_period_end:true});
+    await expect(verifierPrelevementPrevu(c, stripe)).rejects.toThrow("plus prévu");
   }, 60000);
 
   it("renouvelle une échéance réelle de TEST et reçoit son webhook signé via le relais local", async () => {

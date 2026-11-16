@@ -74,18 +74,8 @@ const REQUIS = [
   ["telephone", "le téléphone de contact"],
 ] as const satisfies readonly (readonly [keyof typeof EDITEUR, string])[];
 
-/**
- * Les faits À COMPLÉTER, qui ne ferment rien (décision du dirigeant du
- * 23/10/2026 : « les infos importantes manquantes seront remplies plus tard
- * mais ne doivent pas être bloquantes », médiateur cité en exemple).
- *
- * Le médiateur de la consommation reste une obligation envers les clients
- * particuliers (art. L. 616-1 du code de la consommation ; un nom seul ne
- * suffit pas) : tant qu'il manque, les mentions légales le disent à sa place
- * (« Adhésion à venir »), la console le rappelle au dirigeant, mais ni le
- * paiement en ligne ni l'encadré « Document en cours de finalisation » n'en
- * dépendent plus.
- */
+/** Les coordonnées du médiateur sont requises pour la première souscription
+ * d’un particulier. Elles restent facultatives pour l’inscription gratuite. */
 const A_COMPLETER = [
   ["mediateurNom", "le médiateur de la consommation"],
   ["mediateurAdresse", "l'adresse du médiateur"],
@@ -93,9 +83,8 @@ const A_COMPLETER = [
 ] as const satisfies readonly (readonly [keyof typeof EDITEUR, string])[];
 
 /**
- * Ce qu'il manque encore des faits REQUIS, en français. Seuls ceux-là ferment
- * le paiement (lib/garde-souscription.ts) et affichent l'encadré des pages
- * légales.
+ * Ce qu'il manque encore des faits REQUIS, en français. Ils déterminent l'encadré des pages légales et la garde générale
+ * d'identité de l'éditeur.
  *
  * Le paramètre existe pour que le test puisse vérifier la mécanique sur un
  * éditeur complet — sans lui, il ne pourrait qu'observer l'état du jour et ne
@@ -105,7 +94,7 @@ export function faitsManquants(editeur: Record<string, FaitEditeur> = EDITEUR): 
   return REQUIS.filter(([cle]) => !editeur[cle]).map(([, libelle]) => libelle);
 }
 
-/** Ce qu'il reste à compléter sans que rien n'en dépende : rappelé au dirigeant seulement. */
+/** Coordonnées du médiateur restant à renseigner avant les ventes aux particuliers. */
 export function faitsACompleter(editeur: Record<string, FaitEditeur> = EDITEUR): string[] {
   return A_COMPLETER.filter(([cle]) => !editeur[cle]).map(([, libelle]) => libelle);
 }

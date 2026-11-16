@@ -6,6 +6,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { AppelEssai } from "../src/components/outils/coquille-outil";
 import { NextRequest } from "next/server";
 import { OUTILS } from "../src/lib/outils/catalogue";
 import { dureeEssai } from "../src/lib/tarifs";
@@ -67,12 +70,18 @@ describe("routes des outils gratuits", () => {
     expect(dureeEssai()).toBe("2 mois");
   });
 
-  it("l'appel à l'essai ne promet pas l'envoi des quittances sans réglage : émises à chaque encaissement, envoyées si on l'active", () => {
-    // Audit du 19/10 (lot mineurs, c) : `organizations.quittances_envoi_auto` est faux par défaut ; la quittance
-    // s'établit à l'encaissement et part d'elle-même seulement si l'organisation l'a activé.
-    const coquille = lire("components/outils/coquille-outil.tsx");
-    expect(coquille).not.toContain("envoyées d&apos;elles-mêmes");
-    expect(coquille).toContain("Quittances établies à chaque encaissement, envoyées au locataire si vous l&apos;activez");
+  it.each([
+    ["/outils/calcul-irl", "vérifiez la clause et les indices"],
+    ["/outils/quittance-de-loyer", "ou un reçu partiel"],
+    ["/outils/comparateur-gli-visale", "estime le coût d’une garantie"],
+    ["/outils/simulateur-lmnp", "simulation du meublé repose sur vos hypothèses"],
+    ["/outils/rentabilite-locative", "estimation dépend de vos hypothèses"],
+  ])("%s décrit son propre résultat et les fonctions réellement disponibles", (chemin, attendu) => {
+    const contenu = renderToStaticMarkup(createElement(AppelEssai, { chemin }));
+    expect(contenu).toContain(attendu);
+    expect(contenu).toContain("Relances de loyer à préparer en PDF");
+    expect(contenu).toContain("Aide à la 2044 pour la location nue au réel");
+    expect(contenu).not.toMatch(/chaque mois pour vous|envoyées au locataire si|proposée à la date anniversaire/);
   });
 
   it("le pied de page public et l'accueil y renvoient", () => {

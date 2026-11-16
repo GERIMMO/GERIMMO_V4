@@ -150,7 +150,7 @@ S'y ajoutent les obligations déjà connues : Stripe réel, TVA de l'éditeur, d
 | Espace | Verdict | Raison |
 |---|---|---|
 | Propriétaire | **GO accompagné** | Fonctionne ; premier usage trop complexe pour être fait seul (V1-10, V1-11) |
-| Locataire | **GO** | Gestes essentiels présents ; droits coupés au départ ; montant « à régler » à unifier (V1-25) |
+| Locataire | **GO** | Gestes essentiels présents ; droits coupés au départ |
 | Artisan | **GO** | Devis, créneaux, compte rendu, facture ; reprise et conflits gérés ; module « clients externes » à finir (V1-26) |
 | Super-admin | **NO GO en autonomie** | Alertes coupées (V1-01), gestes Stripe et rôles hors console (V1-09, V1-24) |
 
@@ -233,7 +233,7 @@ indépendants, et non plus seulement les parcours modifiés.
 **Fiabilité 7.**
 - Un ancien colocataire, même avec une session encore ouverte, ne voit plus rien et ne peut plus agir. Prouvé sur 17 fonctions.
 - Les documents d'un autre logement sont refusés (403).
-- Mais le même titre « Loyer restant à régler » affiche deux montants différents selon l'écran (V1-25).
+- Mais le même titre « Loyer restant à régler » désigne deux montants selon l'écran, même si le total est toujours affiché (V1-25).
 - Le reçu est refusé si l'identité du bailleur est incomplète, et le locataire voit cette lacune.
 
 ### Artisan
@@ -354,7 +354,6 @@ L'échéance est précisée dans la colonne Priorité.
 | V1-10 | **P1** | Propriétaire | Un bail activé n'appelle pas ses loyers tant que le propriétaire n'a pas cliqué « Générer l'échéancier » ; d'ici là l'écran affiche « 0 terme appelé — Reste dû 0,00 € — à jour » en vert. La tâche du 1er du mois rattrape les mois manquants, donc jusqu'à un mois de retard. | **PROUVÉ** — premier usage `1440/093-goto-goto.jpeg` ; script `premiere-location-continue.spec.ts:134` ; code : `generer_appels_loyer_interne` | Le propriétaire croit tout à jour et oublie son premier loyer et sa première quittance. | Générer l'échéancier à l'activation ; ne jamais afficher « à jour » sans échéancier. |
 | V1-11 | **P1** | Propriétaire | Premier usage trop long pour un propriétaire seul : trois assistants (6 + 5 + 7 étapes), inscription redemandée à la création du mot de passe, lot saisi en deux passes, « Mettre en location » caché dans un repli en bas de fiche, champs obligatoires dans un panneau replié. | **PROUVÉ** (captures `premier-usage/1440/012`, `031`, `034`, `057`, `066`) ; difficulté réelle **NON VÉRIFIÉE** (aucun utilisateur observé) | Abandon au moment le plus fragile. | Résumé d'inscription modifiable ; changement de statut automatique ; panneaux ouverts tant qu'il reste des champs. |
 | V1-12 | **P1** | Propriétaire | Coordonnées du bailleur différentes selon l'écran : le profil dit « pour les baux et quittances » ; la fiche personne et l'étape « Personnes » du bail montrent l'e-mail de connexion et « téléphone non renseigné » ; la quittance reprend le profil. | **PROUVÉ** à l'écran (premier usage `1440/019`, `042`, `061`, `098`) ; PDF du bail **NON VÉRIFIÉ** | Le bailleur ne sait pas quelle adresse figurera sur le bail. | Une seule source d'identité du bailleur, la même partout. |
-| V1-25 | **P1** | Locataire | Le même titre « Loyer restant à régler » affiche 1 100 € sur l'accueil (tous les retards) et 400 € dans « Mes paiements » (seulement la plus ancienne échéance) ; la tâche « Loyer d'octobre » ne mentionne pas novembre, qui est aussi impayé. | **PROUVÉ** — captures `locataire/002-390.jpg`, `010-390.jpg` ; code : `locataire/[orgId]/page.tsx:467-474` (total des retards) contre `loyers/page.tsx:176` (échéance suivante) | Le locataire ne sait pas combien virer : virement partiel, litige. | Afficher partout « Total à régler » et le détail par mois. |
 | V1-26 | **P1** | Artisan | Le module « clients externes », d'aspect inachevé (liens encadrés, formulaires natifs, boutons pleine largeur, recherche sans libellé), est le premier bloc de « Mon agenda » et de « Ma facturation ». | **PROUVÉ** — `artisan/001-1440.jpg`, `017-1440.jpg` | Impression de prototype sur deux écrans quotidiens. | Reprendre les composants de l'espace ; placer ce bloc sous la semaine et les compteurs. |
 | V1-13 | P2 | Propriétaire | Vocabulaire et finition : un objet à cinq noms (bien, lot, logement, bâtiment, parc) ; « À vérifier » à quatre sens ; jargon (écriture, clôture, terme appelé, IRL, quittancement) ; alertes « DPE absent » sans nom de lot ; accordéons imbriqués ; titres en deux polices ; bouton principal or ou marine ; « Contrat n° BAIL-6F002A01 » sur la quittance ; « Morel Élise , bailleur ». | **PROUVÉ** — `proprietaire/014`, `025`, `027` ; premier usage `098` | Effort de compréhension, aspect inégal. | Lexique unique, libellés avec lot et locataire, un composant de titre et un de bouton, référence lisible. |
 | V1-14 | P2 | Propriétaire | Finances : 0 € de dépenses alors que 4 factures d'artisan sont validées et non réglées (c'est voulu : le règlement est déclaratif depuis l'incident), sans aucun signal « factures à régler ». Opération SCI hors période : « à rattacher » visible mais sans geste direct. | **PROUVÉ** — `proprietaire/010-1440.jpg`, `019-1440.jpg` ; captures `securite/finances-*.png` | Doute sur les chiffres. | Ligne « N factures validées non réglées » avec lien ; bouton « Rattacher ». |
@@ -368,10 +367,11 @@ L'échéance est précisée dans la colonne Priorité.
 | V1-22 | P2 | Démonstration | Démonstration commerciale uniquement locale (poste préparé du dirigeant), réinitialisable et isolée (prouvé sur 06d8e8fd), non rejouée sur a776ed43 (écart relu : courriel et quittance de présentation). Pas de démonstration en ligne isolée. | **PROUVÉ** (scripts `instantane-demonstration.mjs`) | La démo dépend d'un poste et d'une préparation technique. | Garder la procédure ; envisager une démo en ligne isolée plus tard. |
 | V1-23 | P2 | Légal | Confidentialité : 16 catégories affichées avec « nettoyage automatique désactivé » ; contact sur une messagerie grand public non listée parmi les destinataires ; téléphone de l'hébergeur non publié ; transferts hors UE à préciser ; taux de prélèvements sociaux du simulateur LMNP (17,2 %) et plafonds Visale 2026 à vérifier. | **PROUVÉ** / **NON VÉRIFIÉ** (taux) | Conformité à faire confirmer. | Revue par un juriste et un fiscaliste. |
 | V1-24 | P2 | Exploitation | Un dépassement de 60 s sur `/api/cron/factures` (15/11). | **PROUVÉ** (journaux Vercel) | Aucun constaté ; à surveiller. | Surveiller la durée ; découper si récurrent. |
+| V1-25 | P2 | Locataire | Le même titre « Loyer restant à régler » désigne 1 100 € sur l'accueil (tous les retards) et 400 € dans « Mes paiements » (la plus ancienne échéance ; le total de 1 100 € est affiché juste en dessous, dans la même carte). La tâche « Loyer d'octobre » ne mentionne pas novembre. Formats « 1100,00 € » et « 1 100,00 € » mélangés. | **PROUVÉ** — captures `locataire/002-390.jpg`, `010-390.jpg` ; code : `locataire/[orgId]/page.tsx:467-474` contre `loyers/page.tsx:176` | Petite hésitation sur le montant à virer. | Titre « Total à régler » en premier, puis le détail par mois ; un seul format monétaire. |
 | V1-27 | P2 | Locataire | Plusieurs défauts de vocabulaire et de finition :<br>• « Mon gestionnaire » partout, même chez un propriétaire particulier (libellé fixe du menu) ;<br>• reçu refusé tant que l'identité du bailleur est incomplète, avec un message qui expose cette lacune au locataire ;<br>• aucune coordonnée de virement si le bailleur n'a pas saisi d'IBAN ;<br>• 5 écrans hors de l'habillage de l'espace ;<br>• assistant IA placé avant le contact humain, sans mention « IA » ;<br>• discussion d'intervention qui ne nomme pas la réparation ;<br>• page « Règles » vide ;<br>• préavis « 1 ou 3 mois (zone en cours de vérification) » pour Paris ;<br>• « sera soldés ». | **PROUVÉ** — `nav-locataire.tsx:68` ; captures `locataire/003`, `005`, `009`, `011`, `012` | Le locataire d'un particulier cherche « son propriétaire » ; doutes ponctuels. | « Mon propriétaire » selon le type de bailleur ; identité et IBAN exigés avant activation du bail ; habillage unique. |
 | V1-28 | P2 | Artisan | Plusieurs défauts d'usage et de cohérence :<br>• devis : « Total TTC 0,00 € » avec une ligne à 65 € HT tant que la TVA n'est pas choisie, et 4 étapes pour une ligne ;<br>• deux éditeurs de devis différents (TVA par défaut, séparateur décimal) ;<br>• même référence INC-2026-0001 pour deux clients ;<br>• facturation listée deux fois (5 150 px au téléphone) ;<br>• barre basse sans Facturation ;<br>• formulaire de créneaux accessible sur une mission terminée ;<br>• « Pièces conformes » affiché sans attestation déposée. | **PROUVÉ** — `artisan/004-1440.jpg`, `006-1440.jpg`, `001-1440.jpg`, `005-1440.jpg` ; `nav-artisan.tsx` | Doute sur le calcul, temps perdu sur chantier. | Calculer le HT dès la saisie ; un seul éditeur ; référence préfixée par le client ; onglet Factures ; garde de statut. |
 
-**P0 : 4. P1 : 10. P2 : 14.**
+**P0 : 4. P1 : 9. P2 : 15.**
 
 ## E. Parcours complets
 
@@ -406,7 +406,7 @@ L'échéance est précisée dans la colonne Priorité.
 1. **Promesse trompeuse** (V1-02, V1-07) : le site vend des relances automatiques, une révision IRL proposée et des calculs que l'application ne fait pas. C'est un risque juridique et un risque de réputation dès les premiers avis.
 2. **Exploitation à l'aveugle** (V1-01) : depuis le 12/11, le dirigeant ne reçoit plus l'alerte quotidienne. Avec de vrais clients, un incident passerait inaperçu.
 3. **Noël des pilotes** (V1-05) : les 5 essais finissent du 24 au 29/12 sans moyen de payer.
-4. **Premier usage** (V1-10, V1-11, V1-12, V1-25) : sans accompagnement, risque d'abandon, de premier loyer non appelé, ou d'un locataire qui ne sait pas combien virer.
+4. **Premier usage** (V1-10, V1-11, V1-12) : sans accompagnement, risque d'abandon ou de premier loyer non appelé.
 5. **Confiance visuelle** (V1-06, V1-08) : bandeau « suspendus » permanent, images cassées sur le site public.
 6. **Vente payante** (V1-03, V1-04, V1-09) : médiateur, courriers contractuels, impayés et gestes Stripe. Ouvrir les paiements aujourd'hui exposerait à des impayés non recouvrables et à des manquements au Code de la consommation.
 7. **Aucune preuve d'usage réel** : 0 bail actif en production, aucun utilisateur observé. Toutes les conclusions de fonctionnement reposent sur le code et le banc.
@@ -418,14 +418,14 @@ Classement des risques :
 
 ## G. Décision de livraison
 
-**Avant le premier nouveau pilote** (environ une journée) :
-- V1-01 : alertes du dirigeant ;
-- V1-02 : textes de la vitrine et des CGU ;
-- V1-06 : formulation du bandeau ;
-- V1-08 : images du journal ;
-- V1-10 : échéancier généré à l'activation ;
-- V1-25 : un seul montant « à régler » côté locataire ;
-- prévenir les pilotes par écrit du périmètre, et assurer un **accompagnement de la première séance** (V1-11, V1-12).
+**Avant le premier nouveau pilote** (environ une journée) — les trois conditions du verdict :
+1. **V1-01** : alertes du dirigeant.
+2. **V1-02** : textes de la vitrine et des CGU, avec V1-06 (formulation du bandeau) et V1-08 (images du journal), qui relèvent de la même confiance.
+3. **V1-05** : décision sur la fin des essais, et information écrite des pilotes sur le périmètre (relances en PDF, pas de paiement).
+
+S'y ajoutent :
+- un **accompagnement de la première séance** (V1-11, V1-12) ;
+- **V1-10**, échéancier généré à l'activation : souhaitable avant ; à défaut, montrer le geste « Générer l'échéancier » pendant l'accompagnement.
 - V1-26 (module « clients externes » de l'artisan) : peut suivre de peu si les premiers artisans sont accompagnés.
 
 **Avant les paiements :**
@@ -437,7 +437,7 @@ Classement des risques :
 
 S'y ajoutent les obligations externes : Stripe réel, TVA de l'éditeur, délivrabilité. Puis un parcours complet de souscription, d'impayé, de rétractation et de résiliation en bac à sable Stripe.
 
-**Ce qui peut attendre** : les P2 (V1-13 à V1-24, V1-27, V1-28).
+**Ce qui peut attendre** : les P2 (V1-13 à V1-25, V1-27, V1-28).
 
 **Actions propres au dirigeant** (aucun développement nécessaire) :
 - choisir et adhérer à un médiateur ;

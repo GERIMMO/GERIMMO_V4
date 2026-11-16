@@ -178,11 +178,11 @@ function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detai
       if (s.creneaux_a_choisir === 0) {
         return peutAgir
           ? {
-              titre: "Les créneaux proposés sont passés",
+              titre: "Aucun créneau proposé n’est encore disponible",
               detail: `Proposez vos disponibilités : ${artisan} en retiendra une.`,
             }
           : {
-              titre: "Les créneaux proposés sont passés",
+              titre: "Aucun créneau proposé n’est encore disponible",
               detail: "Voyez avec votre gestionnaire pour fixer le rendez-vous.",
             };
       }
@@ -589,7 +589,7 @@ export function SuiviInterventionLocataire({
   rendezVous?: RendezVousLocataire;
 }) {
   const rail = RAIL_DE_L_ETAPE[suivi.etape] ?? 0;
-  const { titre, detail } = enMots(suivi, peutAgir);
+  const { titre, detail } = enMots({ ...suivi, creneaux_a_choisir: creneaux.length }, peutAgir);
 
   return (
     <div className="mt-1 border-t border-[var(--filet-leger)] pt-2.5">

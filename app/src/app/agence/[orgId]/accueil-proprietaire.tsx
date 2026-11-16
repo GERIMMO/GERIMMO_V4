@@ -111,8 +111,8 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
       </Link>
       <CarteVerifications base={base} patrimoine={patrimoine ? { biens: patrimoine.biens, lots: patrimoine.lots.length } : null}
         loyersAConfirmer={loyersAConfirmer} paliersLoyers={libellesPoints(points)}
-        total={totalPrioritaire || (incertain ? 0 : taches.length)} critiques={verifications.critiques} apercu={verifications.premiere?.titre ?? null}
-        hrefTaches="#taches-proprietaire"
+        total={verifications.total} critiques={verifications.critiques} apercu={verifications.premiere?.titre ?? null}
+        hrefTaches={`${base}/alertes`}
         indisponible={incertain} className={styles.indicateur}>
         {Object.values(erreurs).some(Boolean) && <p className="err" role="alert">Certaines demandes sont indisponibles. La liste peut être incomplète.</p>}
         {suiviIncomplet && <p className={styles.note}>Le palier de certains loyers n’a pas pu être vérifié. <Link href={`${base}/loyers`}>Voir les finances</Link></p>}

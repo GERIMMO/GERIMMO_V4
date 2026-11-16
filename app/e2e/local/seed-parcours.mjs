@@ -29,6 +29,12 @@ import { totp } from "./mfa-local.mjs";
 const URL_LOCALE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const cibleLocale = new URL(URL_LOCALE);
 if (cibleLocale.protocol !== "http:" || !["127.0.0.1", "localhost"].includes(cibleLocale.hostname)) throw new Error("Le seed exige l’émulateur local.");
+// Ce mode est réservé à la démonstration sur une base distincte des recettes.
+const vente = process.argv.includes("--demonstration");
+if (vente && (cibleLocale.origin !== "http://127.0.0.1:54409" || new URL(process.env.SUPALOCAL_DB ?? "").pathname !== "/gerimmo_ci_demo_vente_api")) {
+  throw new Error("La démonstration nécessite son API et sa base locales dédiées.");
+}
+const piecesDemo = vente ? await (await import("./pieces-demonstration.mjs")).piecesDemonstration() : null;
 const CLE_ANON = "cle-locale";
 const MDP = "Gerimmo-Demo-2026";
 
@@ -199,7 +205,7 @@ if (!orgId) echec("organisation", "Agence Alpha introuvable dans les adhésions 
 //    (parc.ts / creerBien → rpc creer_bien_avec_lot, puis modifierLot)
 // ------------------------------------------------------------
 
-const NOM_BIEN = "E2E Résidence des Tests";
+const NOM_BIEN = (vente ? "Résidence des Acacias" : "E2E Résidence des Tests");
 let bien = ok(
   "recherche bien E2E",
   await admin
@@ -248,11 +254,11 @@ if (lot.nom === "Lot unique") {
     "renommage lot E2E",
     await admin
       .from("lots")
-      .update({ nom: "E2E Lot 1" })
+      .update({ nom: (vente ? "Appartement côté cour" : "E2E Lot 1") })
       .eq("id", lot.id)
       .eq("organization_id", orgId)
   );
-  lot.nom = "E2E Lot 1";
+  lot.nom = (vente ? "Appartement côté cour" : "E2E Lot 1");
 }
 
 // ------------------------------------------------------------
@@ -285,20 +291,20 @@ if (!ficheLocataire) {
       .insert({
         organization_id: orgId,
         account_id: locataireUid,
-        nom: "Locataire",
-        prenom: "E2E",
+        nom: vente ? "Leblanc" : "Locataire",
+        prenom: vente ? "Julie" : "E2E",
         email: "locataire.alpha@example.com",
       })
       .select("id, nom, prenom, email")
       .single()
   );
   console.log(`· fiche locataire créée : ${ficheLocataire.id}`);
-} else if (ficheLocataire.nom !== "Locataire" || ficheLocataire.prenom !== "E2E") {
+} else if (ficheLocataire.nom !== (vente ? "Leblanc" : "Locataire") || ficheLocataire.prenom !== (vente ? "Julie" : "E2E")) {
   ok(
     "renommage fiche locataire en « E2E Locataire »",
     await admin
       .from("persons")
-      .update({ nom: "Locataire", prenom: "E2E" })
+      .update({ nom: vente ? "Leblanc" : "Locataire", prenom: vente ? "Julie" : "E2E" })
       .eq("id", ficheLocataire.id)
       .eq("organization_id", orgId)
   );
@@ -309,7 +315,7 @@ if (!ficheLocataire) {
 
 // Propriétaire mandant « E2E Mandant », sans compte — personnes.ts /
 // creerPersonne (email obligatoire et unique par agence).
-const EMAIL_MANDANT = "e2e.mandant@example.com";
+const EMAIL_MANDANT = (vente ? "claire.morel@example.invalid" : "e2e.mandant@example.com");
 let mandant = ok(
   "recherche E2E Mandant",
   await admin
@@ -327,8 +333,8 @@ if (!mandant) {
       .from("persons")
       .insert({
         organization_id: orgId,
-        nom: "Mandant",
-        prenom: "E2E",
+        nom: vente ? "Morel" : "Mandant",
+        prenom: vente ? "Claire" : "E2E",
         email: EMAIL_MANDANT,
         telephone: null,
         date_naissance: null,
@@ -491,7 +497,7 @@ if (!dpe) {
     admin,
     adminId,
     orgId,
-    pdfMinimal("Rapport DPE — E2E Residence des Tests"),
+    piecesDemo?.diagnostic ?? pdfMinimal("Rapport DPE — E2E Residence des Tests"),
     "application/pdf",
     "pdf",
     "diagnostic",
@@ -506,7 +512,7 @@ if (!dpe) {
       type: "dpe",
       date_realisation: dateJour,
       date_expiration: plusMois(120),
-      diagnostiqueur: "E2E Diagnostics",
+      diagnostiqueur: (vente ? "Atelier des diagnostics" : "E2E Diagnostics"),
       document_id: docDpe,
       classe_dpe: "C",
     })
@@ -531,7 +537,7 @@ if (!erp || (erp.date_expiration && erp.date_expiration < dateJour)) {
     admin,
     adminId,
     orgId,
-    pdfMinimal(`Etat des risques et pollutions — E2E ${dateJour.slice(0, 7)}`),
+    piecesDemo?.risques ?? pdfMinimal(`Etat des risques et pollutions — E2E ${dateJour.slice(0, 7)}`),
     "application/pdf",
     "pdf",
     "diagnostic",
@@ -546,7 +552,7 @@ if (!erp || (erp.date_expiration && erp.date_expiration < dateJour)) {
       type: "erp",
       date_realisation: dateJour,
       date_expiration: plusMois(6),
-      diagnostiqueur: "E2E Diagnostics",
+      diagnostiqueur: (vente ? "Atelier des diagnostics" : "E2E Diagnostics"),
       document_id: docErp,
       classe_dpe: null,
     })
@@ -661,7 +667,7 @@ if (bail.etat === "brouillon") {
     admin,
     adminId,
     orgId,
-    pdfMinimal("Bail signe — E2E Lot 1 — locataire E2E"),
+    piecesDemo?.bail ?? pdfMinimal("Bail signe — E2E Lot 1 — locataire E2E"),
     "application/pdf",
     "pdf",
     "bail",
@@ -735,7 +741,7 @@ const appel = ok(
 );
 if (!appel) echec("appel du mois courant", "aucun appel de loyer pour " + premierDuMois);
 
-const NOTE_ENC = "E2E encaissement partiel";
+const NOTE_ENC = (vente ? "Virement du loyer de novembre" : "E2E encaissement partiel");
 let encaissement = ok(
   "recherche encaissement E2E",
   await admin
@@ -776,7 +782,7 @@ if (!encaissement) {
 //    upload storage locataire + rpc joindre_photo_incident).
 // ------------------------------------------------------------
 
-const DESC_INCIDENT = "E2E Fuite sous l'évier";
+const DESC_INCIDENT = (vente ? "Goutte à goutte sous le siphon de la cuisine" : "E2E Fuite sous l'évier");
 let incident = ok(
   "recherche incident E2E",
   await admin
@@ -924,7 +930,7 @@ if (!ficheArtisan) {
     "artisan_creer_ou_rattacher",
     await admin.rpc("artisan_creer_ou_rattacher", {
       p_org: orgId,
-      p_raison_sociale: "E2E Plomberie Dubois",
+      p_raison_sociale: (vente ? "Atelier Dubois Plomberie" : "E2E Plomberie Dubois"),
       p_siret: SIRET_ARTISAN,
       p_telephone: "0601020304",
       p_email: "artisan.alpha@example.com",
@@ -945,7 +951,7 @@ if (!ficheArtisan.account_id) {
   ok(
     "inscrire_mon_entreprise_artisan",
     await artisan.rpc("inscrire_mon_entreprise_artisan", {
-      p_raison_sociale: "E2E Plomberie Dubois",
+      p_raison_sociale: (vente ? "Atelier Dubois Plomberie" : "E2E Plomberie Dubois"),
       p_siret: SIRET_ARTISAN,
       p_telephone: "0601020304",
       p_email: "artisan.alpha@example.com",
@@ -1114,7 +1120,7 @@ if ((creneauxPoses ?? []).length === 0) {
 // Trois fiches profondes restaient absentes de l'audit des 82 routes : un
 // article publié, son éditeur et une sollicitation encore ouverte. Ces données
 // vivent uniquement dans la base éphémère du parcours E2E.
-const SLUG_ARTICLE_E2E = "e2e-gerer-une-location";
+const SLUG_ARTICLE_E2E = (vente ? "gerer-une-location" : "e2e-gerer-une-location");
 const article = ok(
   "recherche article E2E",
   await superadmin.from("publications").select("id").eq("slug", SLUG_ARTICLE_E2E).maybeSingle()
@@ -1123,7 +1129,7 @@ if (!article) {
   ok(
     "publication article E2E",
     await superadmin.from("publications").insert({
-      periode: "2026-E2E",
+      periode: (vente ? "2026-11" : "2026-E2E"),
       statut: "publiee",
       titre: "Gérer une location, étape par étape",
       slug: SLUG_ARTICLE_E2E,
@@ -1137,7 +1143,7 @@ if (!article) {
   );
 }
 
-const DESC_DEVIS_OUVERT = "E2E Demande de devis encore ouverte";
+const DESC_DEVIS_OUVERT = (vente ? "Remplacement du mitigeur du séjour" : "E2E Demande de devis encore ouverte");
 let incidentDevis = ok(
   "recherche incident pour devis ouvert",
   await admin.from("incidents").select("id, etat").eq("organization_id", orgId)

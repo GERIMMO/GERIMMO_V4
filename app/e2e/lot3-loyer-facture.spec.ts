@@ -17,7 +17,7 @@ async function ouvrirDemandes(page: Page, facultatif = false) {
   await bouton.click();
   await expect(fenetreDemandes(page)).toBeVisible();
 }
-test('propriétaire : loyer confirmé et dépôt de facture conservé',async({page,browser},info)=>{
+for (const sci of [false,true]) test(`propriétaire : loyer confirmé et dépôt de facture conservé (${sci?'SCI':'nom propre'})`,async({page,browser},info)=>{
  const largeur=info.project.use.viewport?.width??1440;
  const url=process.env.SUPALOCAL_DB;baseApiFictive(url);
   const db=new Client({connectionString:url});await db.connect();
@@ -36,7 +36,14 @@ test('propriétaire : loyer confirmé et dépôt de facture conservé',async({pa
     await db.query("insert into biens(id,organization_id,nom,type,address_line1,postal_code,city) values($1,$2,$3,'appartement','1 rue de recette','75001','Paris')",[bien,ORG,nom]);
     await db.query("insert into lots(id,organization_id,bien_id,nom,etat) values($1,$2,$3,$4,'loue')",[lot,ORG,bien,nom]);
     await db.query("insert into persons(id,organization_id,nom,prenom,email) values($1,$2,'Fictif','Camille','locataire@example.invalid')",[personne,ORG]);
-    await db.query("insert into detentions(organization_id,lot_id,person_id,quote_part) values($1,$2,$3,100)",[ORG,lot,bailleur]);
+    await db.query("insert into detentions(organization_id,lot_id,person_id,quote_part,date_debut) values($1,$2,$3,100,current_date-365)",[ORG,lot,bailleur]);
+    const autreTitulaire=randomUUID(), autreLot=randomUUID(), autreBien=randomUUID();
+    if (sci) await db.query("update persons set nom='SCI des Amandiers',prenom=null,qualite='SCI',siren='123456789' where id=$1",[bailleur]);
+    await db.query("insert into persons(id,organization_id,nom,qualite) values($1,$2,$3,$4)",[autreTitulaire,ORG,sci?"Élise Morel":"SCI des Amandiers",sci?"Personne physique":"SCI"]);
+    await db.query("insert into biens(id,organization_id,nom,type,address_line1,postal_code,city) values($1,$2,'Maison du Parc','maison','5 rue du Parc','75012','Paris')",[autreBien,ORG]);
+    await db.query("insert into lots(id,organization_id,bien_id,nom,etat) values($1,$2,$3,'Maison du Parc','brouillon')",[autreLot,ORG,autreBien]);
+    await db.query("insert into detentions(organization_id,lot_id,person_id,quote_part,date_debut) values($1,$2,$3,100,current_date-365)",[ORG,autreLot,autreTitulaire]);
+    await db.query("insert into ecritures(organization_id,lot_id,categorie,sens,montant,date_piece,date_imputation,libelle) values($1,$2,'travaux','depense',75,current_date,current_date,'Entretien de la maison du Parc')",[ORG,autreLot]);
     await db.query("insert into baux(id,organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,jour_echeance) values($1,$2,$3,$4,'nu','actif',public.aujourdhui_paris()-40,750,50,5)",[bail,ORG,lot,personne]);
     await db.query("insert into appels_loyer(id,organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values($1,$3,$4,date_trunc('month',public.aujourdhui_paris()),public.aujourdhui_paris(),750,50,800),($2,$3,$4,date_trunc('month',public.aujourdhui_paris())+interval '1 month',public.aujourdhui_paris()+30,750,50,800)",[appel,futur,ORG,bail]);
     await db.query("commit");
@@ -77,5 +84,18 @@ test('propriétaire : loyer confirmé et dépôt de facture conservé',async({pa
     expect((await journal()).every(l=>l.lot_id===lot && l.document_id===facture.document_id && l.organization_id===ORG && l.sens==='depense')).toBe(true);
     const justificatif=await page.request.get(`/espace/${ORG}/documents/${facture.document_id}/fichier`);
     expect(justificatif.status()).toBe(200);
+    await page.goto(`/espace/${ORG}/loyers`);
+    const detail=page.locator("details").filter({has:page.locator("summary").filter({hasText:"Détail par propriétaire et SCI"})}).first();
+    await detail.locator("summary").first().click();
+    const compteDu=(nom:string)=>detail.locator("details").filter({has:page.locator("summary").filter({hasText:nom})});
+    const principal=compteDu(sci?"SCI des Amandiers":"Exemple");
+    const autre=compteDu(sci?"Élise Morel":"SCI des Amandiers");
+    await principal.locator("summary").click();
+    await expect(principal).toContainText("180,00");
+    await expect(principal).not.toContainText("75,00");
+    await autre.locator("summary").click();
+    await expect(autre).toContainText("75,00");
+    await expect(autre).not.toContainText("180,00");
+    await page.screenshot({path:info.outputPath("finances-par-titulaire.png"),fullPage:true});
   } finally {await db.end();}
 });

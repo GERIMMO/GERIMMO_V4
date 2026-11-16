@@ -57,6 +57,7 @@ export function SyntheseAlertes({
   membres,
   estResponsable = false,
   rappel = false,
+  demandes,
   aujourdhui,
 }: {
   alertes: AlerteSynthese[];
@@ -65,6 +66,7 @@ export function SyntheseAlertes({
   // Lien texte « Alertes (n) » qui rouvre la synthèse — pour les écrans sans
   // menu Alertes ; dans l'espace agence, l'onglet du menu suffit.
   rappel?: boolean;
+  demandes?: { total: number; incomplet: boolean; href: string };
   // Console SA : le détail renvoie vers la fiche agence de la console,
   // pas vers l'espace agence (dont le SA n'est pas membre)
   modeAdmin?: boolean;
@@ -86,14 +88,15 @@ export function SyntheseAlertes({
   // se pose à la FERMETURE, pas à l'ouverture : la page-relais /espaces monte
   // ce composant puis redirige aussitôt — poser le drapeau à l'ouverture y
   // « consommait » la synthèse sans que personne ne l'ait vue.
+  const nombre = demandes?.total ?? alertes.length;
   useEffect(() => {
     if (ouvertureExaminee.current) return;
     ouvertureExaminee.current = true;
-    if (modeAdmin || alertes.length === 0 || lireSession(CLE_SESSION_ALERTES)) return;
+    if (modeAdmin || nombre === 0 || lireSession(CLE_SESSION_ALERTES)) return;
     // Ouverture différée d'un tick : évite un re-rendu en cascade à l'hydratation
     const minuterie = setTimeout(() => setOuverte(true), 0);
     return () => clearTimeout(minuterie);
-  }, [alertes.length, modeAdmin]);
+  }, [nombre, modeAdmin]);
 
   // Le brief de supervision ouvre cette même synthèse depuis sa priorité
   // « alertes critiques » : un seul détail à maintenir, et un clic utile.
@@ -147,7 +150,7 @@ export function SyntheseAlertes({
            par le bouton Fermer en pied (revue 08/08), Échap et voile aussi */
         <Modale
           titre={
-            modeAdmin ? "Alertes critiques des clients" : alertes.length === 0
+            modeAdmin ? "Alertes critiques des clients" : demandes ? (demandes.incomplet ? "Demandes · liste incomplète" : `${nombre} demande${nombre > 1 ? "s" : ""} à traiter`) : alertes.length === 0
               ? "Aucune alerte ne vous attend"
               : `${alertes.length} alerte${alertes.length > 1 ? "s" : ""} à traiter`
           }
@@ -163,13 +166,13 @@ export function SyntheseAlertes({
             <div className="flex w-full items-center justify-between gap-3">
               {/* Une seule agence concernée : raccourci vers sa page Alertes
                   (historique et alertes fermées comprises) */}
-              {!modeAdmin && !multiAgences && alertes.length > 0 ? (
+              {!modeAdmin && (demandes || (!multiAgences && alertes.length > 0)) ? (
                 <Link
-                  href={`${racineAlerte(alertes[0])}/${[...parAgence.keys()][0]}/alertes`}
+                  href={demandes?.href ?? `${racineAlerte(alertes[0])}/${[...parAgence.keys()][0]}/alertes`}
                   onClick={fermer}
                   className="lien-discret"
                 >
-                  Toutes les alertes&nbsp;→
+                  {demandes ? "Toutes les demandes" : "Toutes les alertes"}&nbsp;→
                 </Link>
               ) : (
                 <span />
@@ -189,7 +192,7 @@ export function SyntheseAlertes({
               {!toutAfficher && alertes.length > 5 && <p className="mb-3 text-sm text-muted-foreground">Les 5 priorités sur {alertes.length} alertes. <button type="button" className="lien-discret" onClick={() => setToutAfficher(true)}>Afficher toutes les alertes</button></p>}
               {alertes.length === 0 ? (
                 <p className="py-4 text-sm text-muted-foreground">
-                  {modeAdmin ? "Aucune alerte critique ouverte chez les clients." : "Rien ne vous est confié — tout est traité."}
+                  {modeAdmin ? "Aucune alerte critique ouverte chez les clients." : demandes ? "Retrouvez vos échéances et vos actions sur les dossiers dans Toutes les demandes." : "Rien ne vous est confié — tout est traité."}
                 </p>
               ) : (
                 [...parAgence.entries()].map(([agenceId, groupe]) => (

@@ -14,6 +14,7 @@ export default defineConfig({
     ...(process.env.E2E_INVITATION_ISOLEE === "0" ? [/^.*\/invitation-artisan\.spec\.ts$/] : []),
     // Ces trois parcours exigent un fournisseur fictif, lancé dans la passe dédiée.
     /lot2-(?:pilote|artisan|invitations)\.spec\.ts/,
+    /premiere-location-continue\.spec\.ts/,
     ...(process.env.E2E_CI === "1" ? [/visuel\.spec\.ts/] : []),
   ],
   outputDir: "./.results",

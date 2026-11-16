@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 // La synthèse d'alertes s'ouvre à la première page de chaque session (le
 // storageState ne porte pas le sessionStorage) et recouvrirait les gestes
@@ -54,4 +54,27 @@ export async function lienLotProprietaire(page: Page, lot: string | RegExp = /Ap
   const liens = page.locator('#fiche-bien a[href*="/lots/"]');
   const lien = typeof lot === "string" ? liens.and(page.locator(`a[href$="/lots/${lot}"]`)) : liens.filter({ hasText: lot });
   return lien.first();
+}
+
+const CHAMP_RECHERCHE = "Nom, ville, email, SIRET ou référence";
+
+/** Ouvre la fenêtre de recherche de la console depuis le point du matin et rend son champ. */
+export async function ouvrirRecherche(page: Page) {
+  await page.goto("/admin/brief");
+  // Au téléphone (une seule barre, 25/09), la recherche vit dans le menu.
+  // Sur la construction de production, un clic parti avant l'hydratation est
+  // rejoué par React une fois la page vivante : le menu peut se refermer juste
+  // après s'être ouvert. On rejoue donc toute la séquence — ouvrir le menu si
+  // besoin, puis « Rechercher » — jusqu'à ce que le champ soit réellement là.
+  // Le bouton du menu change de nom une fois ouvert (« Fermer le menu ») : on
+  // le vise par ce qu'il commande.
+  const menu = page.locator('button[aria-controls="menu-supervision"]');
+  const champ = page.getByLabel(CHAMP_RECHERCHE);
+  await expect(async () => {
+    if ((await menu.isVisible()) && (await menu.getAttribute("aria-expanded")) !== "true") await menu.click();
+    // Deux boutons portent ce nom (barre haute masquée au téléphone, entrée du menu) : le visible.
+    await page.locator("button:visible", { hasText: /Rechercher/ }).first().click({ timeout: 1_000 });
+    await expect(champ).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
+  return champ;
 }

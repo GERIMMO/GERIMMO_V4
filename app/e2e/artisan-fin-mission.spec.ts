@@ -3,6 +3,7 @@ import { Client } from 'pg';
 import { randomUUID } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { sansSyntheseAlertes, debordementHorizontal } from './aides';
+import { locationIntervention } from "./local/location-intervention";
 import { preparerEtPlanifierFuite } from "./local/fuite-trois-acteurs";
 import { pdfFictif } from './pdf-fictif';
 
@@ -12,27 +13,21 @@ for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acc
  const cible=process.env.SUPALOCAL_DB;
  test.skip(!cible||!/^postgres(?:ql)?:\/\/[^@]*@(?:127\.0\.0\.1|localhost):\d{1,5}\/gerimmo_ci_[a-z_]+_api$/.test(cible),'Base API fictive locale requise');
  const db=new Client({connectionString:cible});await db.connect();
+ let sessionLocataire: Awaited<ReturnType<ReturnType<typeof page.context>['storageState']>> | undefined;
  let incident=randomUUID() as string,mission=randomUUID() as string;
- const numero=`E2E-FIN-${randomUUID().slice(0,8)}`;
- const bilan=`Joint remplacé et étanchéité vérifiée — ESSAI ${mission}`;
+ const numero=`FA-${new Date().getFullYear()}-${randomUUID().slice(0,8)}`;
+ const bilan="Joint du siphon remplacé. Essai d’écoulement effectué, aucune fuite constatée.";
  const preuve:Record<string,unknown>={mission,statut:'en cours',fixture:'Mission acceptée sans devis ; tous les gestes suivants sont faits dans le navigateur'};
- const gestion=await browser.newContext({storageState:'e2e/.auth/admin.json'});
+ const gestion=await browser.newContext({storageState:mode==='depot'?'e2e/.auth/admin.json':'e2e/.auth/proprietaire.json'});
  try {
   const {rows:[a]}=await db.query("select a.id from artisans a join auth.users u on u.id=a.account_id where u.email='artisan.alpha@example.com'");
-  const {rows:[lot]}=await db.query("select i.organization_id,i.lot_id from incidents i join organizations o on o.id=i.organization_id where o.name='Agence Alpha' and i.id in (select incident_id from incident_interventions where artisan_id=$1) order by i.id limit 1",[a.id]);
-  if (mode === 'creation') {
-    const dossier = await preparerEtPlanifierFuite(db, browser, page, lot.organization_id, a.id);
-    incident=dossier.incidentId; mission=dossier.mission;
-    Object.assign(preuve,{mission,fixture:'Déclaration avec photo et choix du créneau en navigateur ; accord sur le devis dans le portail de gestion ; qualification et préparation du devis par les fonctions métier authentifiées.'});
+  const {rows:[existant]}=await db.query("select i.organization_id,i.lot_id from incidents i join organizations o on o.id=i.organization_id where o.name='Agence Alpha' and i.id in (select incident_id from incident_interventions where artisan_id=$1) order by i.id limit 1",[a.id]);
+  const lot=mode==='depot'?existant:await locationIntervention(db,a.id,mode==='sci');
+  if (mode !== 'depot') {
+    const dossier = await preparerEtPlanifierFuite(db, browser, page, lot.organization_id, a.id, lot);
+    incident=dossier.incidentId; mission=dossier.mission; sessionLocataire=dossier.sessionLocataire;
+    Object.assign(preuve,{mission,fixture:'Déclaration avec photo et choix du créneau en navigateur ; accord sur le devis dans le portail de gestion ; qualification, préparation du devis et décision depuis les portails.'});
   } else {
-  if (mode === 'sci') {
-    // Dossier indépendant : ne change jamais la détention du lot utilisé par les autres scénarios.
-    const {rows:[bien]} = await db.query("insert into biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'Maison des Amandiers','maison','6 rue des Amandiers','75012','Paris') returning id", [lot.organization_id]);
-    const {rows:[logement]} = await db.query("insert into lots(organization_id,bien_id,nom,etat) values($1,$2,'Maison','brouillon') returning id", [lot.organization_id,bien.id]);
-    const {rows:[sci]} = await db.query("insert into persons(organization_id,nom,qualite,siren,address_line1,postal_code,city) values($1,'SCI des Amandiers','SCI','123456789','6 rue des Amandiers','75012','Paris') returning id", [lot.organization_id]);
-    await db.query("insert into detentions(organization_id,lot_id,person_id,quote_part) values($1,$2,$3,100)", [lot.organization_id,logement.id,sci.id]);
-    lot.lot_id = logement.id;
-  }
   await db.query("insert into incidents(id,organization_id,lot_id,numero,canal,categorie,description,etat,imputation,imputation_justification) values($1,$2,$3,$4,'agence','plomberie_canalisation','ESSAI fin de mission fictive','affecte','proprietaire','ESSAI : réparation fictive à la charge du propriétaire')",[incident,lot.organization_id,lot.lot_id,numero]);
   await db.query("insert into incident_interventions(id,organization_id,incident_id,artisan_id,nature_travaux,statut,acceptee_le) values($1,$2,$3,$4,'entretien_courant','acceptee',now())",[mission,lot.organization_id,incident,a.id]);
   }
@@ -66,7 +61,7 @@ for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acc
     await page.getByLabel('Votre facture',{exact:true}).setInputFiles({name:'facture-fictive.pdf',mimeType:'application/pdf',buffer:pdfFictif()});
   } else {
     await page.getByLabel(mode === 'sci' ? 'Créer une facture pour une SCI' : 'Créer une facture de travaux pour un particulier').check();
-    await page.getByLabel('Adresse de votre entreprise').fill('2 rue du Test, 75012 Paris');
+    await page.getByLabel('Adresse de votre entreprise').fill('8 rue des Tilleuls, 75012 Paris');
     if (mode === 'sci') {
       await page.getByLabel('SIREN de la SCI cliente').fill('123456789');
       await page.getByLabel('Conditions d’escompte pour paiement anticipé').fill('Aucun escompte.');
@@ -94,29 +89,40 @@ for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acc
   expect((await db.query('select travaux_realises from intervention_comptes_rendus where intervention_id=$1',[mission])).rows[0].travaux_realises).toBe(bilan);
   const {rows:[p]}=await db.query("select document_id from intervention_photos where intervention_id=$1 and moment='apres'",[mission]);expect(p.document_id).toBeTruthy();
   const gerant=await gestion.newPage();await sansSyntheseAlertes(gerant);
-  await gerant.goto(`/agence/${lot.organization_id}/incidents/${incident}`);
+  await gerant.goto(`/${mode === "depot" ? "agence" : "espace"}/${lot.organization_id}/incidents/${incident}`);
   await expect(gerant.getByRole('heading',{name:`Facture ${numero} — 100,00 € TTC`,exact:true})).toBeVisible();
   await expect(gerant.getByText(`« ${bilan} »`,{exact:true})).toBeVisible();
   const lien=gerant.getByRole('link',{name:'Consulter la facture avant de décider',exact:true});await expect(lien).toBeVisible();
   const lecture=await gerant.request.get((await lien.getAttribute('href'))!);expect(lecture.status()).toBe(200);expect(await lecture.text()).toContain('URL.createObjectURL');
   expect(await debordementHorizontal(gerant)).toBe(0);
   await gerant.screenshot({path:info.outputPath('reception-gestionnaire.png'),fullPage:true});
-  if (mode === 'creation') {
+  if (mode !== 'depot') {
     await gerant.getByLabel('Résultat du contrôle de la facture').fill('Intervention réalisée, facture et justificatif vérifiés.');
     await gerant.getByRole('button',{name:'Valider cette facture'}).click();
     await expect.poll(async()=>(await db.query('select validee_le is not null and reglee_le is null ok from intervention_factures where intervention_id=$1',[mission])).rows[0].ok).toBe(true);
+    const avisLocataire = await browser.newContext({storageState:sessionLocataire, viewport:page.viewportSize()});
+    try {
+      const suivi = await avisLocataire.newPage();
+      await sansSyntheseAlertes(suivi);
+      await suivi.goto(`/locataire/${lot.organization_id}/demandes`);
+      const avis = suivi.locator("#demande-"+incident).getByRole("group",{name:"Votre avis sur l'intervention"});
+      await avis.locator("label").filter({hasText:/^5$/}).click();
+      await avis.getByLabel(/Un mot sur l.intervention/).fill("L’évier ne fuit plus depuis le remplacement du joint.");
+      await suivi.locator("#demande-"+incident).getByRole("button",{name:"Envoyer mon avis"}).click();
+      await expect(suivi.locator("#demande-"+incident)).toContainText(/votre avis.*enregistré/i);
+    } finally { await avisLocataire.close(); }
     const cloture=gerant.locator('#cloture');
     await cloture.locator('select[name=motif]').selectOption('resolu');
     await cloture.getByLabel('Ce qui a été fait').fill('Fuite réparée et justificatifs vérifiés.');
     await cloture.getByRole('button',{name:"Clôturer l'incident"}).click();
     await expect.poll(async()=>(await db.query('select etat from incidents where id=$1',[incident])).rows[0].etat).toBe('clos');
-    const locataire=await browser.newContext({storageState:'e2e/.auth/locataire.json',viewport:page.viewportSize()});
+    const locataire=await browser.newContext({storageState:sessionLocataire,viewport:page.viewportSize()});
     try {
       const suivi=await locataire.newPage();
       await suivi.goto(`/locataire/${lot.organization_id}/demandes`);
       await expect(suivi.locator('#demande-'+incident).getByRole('button',{name:'Le problème persiste'})).toBeVisible();
     } finally { await locataire.close(); }
-    Object.assign(preuve,{incidentClos:true,factureValideeSansReglement:true,locatairePeutSignalerUnePersistance:true});
+    Object.assign(preuve,{incidentClos:true,resolutionConfirmeeParLocataire:true,factureValideeSansReglement:true,locatairePeutSignalerUnePersistance:true});
   }
   preuve.statut='réussi';preuve.demarrage=true;preuve.photoDeposee=true;preuve.compteRenduTransmis=true;preuve.factureDeposee=true;preuve.factureLueParGerant=true;
  } finally {writeFileSync(info.outputPath('preuve-fin-mission.json'),JSON.stringify(preuve,null,2)+'\n');await gestion.close();await db.end();}

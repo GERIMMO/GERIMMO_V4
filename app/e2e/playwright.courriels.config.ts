@@ -10,7 +10,7 @@ export default defineConfig({
   outputDir: './.results-courriels',
   workers: 1,
   timeout: 180_000,
-  projects: [{name: 'mobile-courriels', testMatch: /lot2-(?:pilote|artisan|invitations)\.spec\.ts/}],
+  projects: [{name: 'mobile-courriels', testMatch: /(?:lot2-(?:pilote|artisan|invitations)|premiere-location-continue)\.spec\.ts/}],
   webServer: [
     {cwd: path.resolve(__dirname, '..'), command: 'node e2e/local/boite-fictive.mjs', url: 'http://127.0.0.1:55520/messages', reuseExistingServer: false},
     {

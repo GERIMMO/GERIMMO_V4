@@ -5,6 +5,7 @@ import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { identiteDuCompte, initialesDe } from "@/lib/identite-compte";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
+import { chargerVerificationsProprietaire } from "@/lib/lecture-verifications-proprietaire";
 import { compterActionsDuJour } from "@/lib/actions-du-jour";
 import { totalMessagesNonLus } from "@/lib/messagerie";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
@@ -101,16 +102,14 @@ export default async function LayoutAgence({
     supabase.rpc("org_membres_gerants", { org: orgId }),
     // Badge Messages — même appel (mis en cache) que le tableau de bord
     totalMessagesNonLus(supabase, orgId),
-    // La pastille « Alertes » compte ce que la tuile « À faire » compte, et ce
-    // que /alertes montre (relevé du 24/09 : « on lit “2 à faire”, on clique,
-    // on n'en trouve qu'un ») : baux bloqués, mes alertes dédoublonnées,
-    // rapports à valider. Un seul calcul, mémorisé par requête — la page qui
-    // suit le relit sans nouvel aller-retour. Le menu du propriétaire direct n'a
-    // pas d'entrée « Alertes » : rien à compter pour lui à chaque page (audit du
-    // 27/10, LAT-08) ; l'accueil et « À faire » calculent leurs vérifications.
+    // Même lecture des actions sur l’accueil, dans la fenêtre et dans À faire.
     estProprietaire
-      ? Promise.resolve({ total: 0, critiques: 0 })
-      : compterActionsDuJour(supabase, orgId, { userId: user.id, portefeuille, racine: racineEspace(estProprietaire) }),
+      ? chargerVerificationsProprietaire(supabase, orgId, { userId: user.id, portefeuille }).then(({ verifications, lectureLoyers, erreurs }) => ({
+          total: verifications.total, critiques: verifications.critiques,
+          incomplet: Boolean(lectureLoyers.error || Object.values(erreurs).some(Boolean)),
+          alertes: new Set(verifications.actions.flatMap(action => action.source === "alerte" ? [action.alerte.id] : [])),
+        }))
+      : compterActionsDuJour(supabase, orgId, { userId: user.id, portefeuille, racine: racineEspace(estProprietaire) }).then(compte => ({ ...compte, alertes: null, incomplet: null })),
     // Lu pour TOUTE organisation (audit 29/09) : l'écriture se ferme aussi
     // hors essai — souscription résiliée, prélèvement en défaut —, et l'écran
     // doit le dire au lieu de laisser chaque bouton échouer un à un.
@@ -241,7 +240,8 @@ export default async function LayoutAgence({
           <RechercheEspace orgId={orgId} racine={racine} />
           <span className="ambiance-repere" aria-hidden="true" />
           {!traverseeLectureSeule && <SyntheseAlertes
-            alertes={alertes}
+            alertes={actionsDuJour.alertes ? alertes.filter(a => actionsDuJour.alertes?.has(a.id)) : alertes}
+            demandes={actionsDuJour.incomplet !== null ? { total: actionsDuJour.total, incomplet: actionsDuJour.incomplet, href: `/espace/${orgId}/alertes` } : undefined}
             membres={membres}
             estResponsable={estResponsable}
             aujourdhui={aujourdhuiParis()}

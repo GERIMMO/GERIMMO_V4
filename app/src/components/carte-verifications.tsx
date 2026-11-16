@@ -49,7 +49,7 @@ export function CarteVerifications(props: Props) {
   if (lienTaches) carte = <Link ref={lienPatrimoine} href={lienTaches} className={`${props.className} ${styles.carte} ${styles.lienTaches}`}>
     <span><ListChecks size={18} aria-hidden="true" />À vérifier</span>
     <strong>{props.total} <em>demande{props.total > 1 ? "s" : ""}</em></strong>
-    <small className={styles.apercu}>Voir mes tâches</small>
+    <small className={styles.apercu}>{lienTaches.startsWith("#") ? "Voir mes tâches" : "Voir toutes les demandes"}</small>
     <ArrowRight size={18} className={styles.fleche} aria-hidden="true" />
   </Link>;
   else if (aVerifier) carte = <Demandes {...props} ouverte={ouverte} ouvrir={voirDemandes} />;

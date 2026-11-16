@@ -13,7 +13,7 @@ test("Résidence des Acacias : de la première inscription à la quittance du m�
   const origine = new URL(baseURL!).origin;
   expect(origine).toMatch(/^http:\/\/(?:localhost|127\.0\.0\.1):\d+$/);
   await context.route("**/*", route => ["localhost","127.0.0.1"].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
-  const rappel = page.getByRole("dialog").filter({has:page.getByRole("link",{name:/Toutes les alertes/})});
+  const rappel = page.getByRole("dialog").filter({has:page.getByRole("link",{name:/Toutes les (?:alertes|demandes)/})});
   await page.addLocatorHandler(rappel, () => rappel.getByRole("button",{name:"Fermer",exact:true}).first().click());
   const email = "acacias-" + randomUUID() + "@example.invalid";
   const date = new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Paris"});

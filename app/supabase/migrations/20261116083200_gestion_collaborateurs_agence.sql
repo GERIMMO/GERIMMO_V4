@@ -80,3 +80,5 @@ begin
 end $$;
 revoke all on function public.gerer_collaborateur_agence(uuid,uuid,text,uuid) from public, anon, service_role;
 grant execute on function public.gerer_collaborateur_agence(uuid,uuid,text,uuid) to authenticated;
+
+notify pgrst, 'reload schema';

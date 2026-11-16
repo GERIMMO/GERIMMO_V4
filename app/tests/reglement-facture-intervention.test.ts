@@ -109,6 +109,26 @@ describe.skipIf(!DB_URL)("D23 — règlement déclaratif de la facture d'interve
   beforeEach(async () => { await db.query("savepoint cas"); });
   afterEach(async () => { await db.query("rollback to savepoint cas"); await db.query("release savepoint cas"); });
 
+  it("réserve l’identité de facturation de la SCI à son artisan et à la détention intégrale prouvée", async () => {
+    await postgres();
+    await db.query(`update public.persons set nom='SCI des Acacias', qualite='SCI', siren='123456789',
+      address_line1='3 rue des Acacias', postal_code='69003', city='Lyon'
+      where id=(select person_id from public.detentions where lot_id=$1)`, [lot]);
+    const lire = async (siren = "123456789") =>
+      (await db.query("select * from public.sci_facturable_intervention($1,$2)", [intervention,siren])).rows;
+    for (const tiers of [autreArtisanCompte, locataireCompte, autreOrgAdmin]) {
+      await devenir(tiers);
+      expect(await lire()).toEqual([]);
+    }
+    await devenir(artisanCompte);
+    expect(await lire("987654321")).toEqual([]);
+    expect(await lire()).toEqual([{ nom:"SCI des Acacias", siren:"123456789", siege:"3 rue des Acacias, 69003 Lyon" }]);
+    await postgres();
+    await db.query("update public.detentions set quote_part=50 where lot_id=$1", [lot]);
+    await devenir(artisanCompte);
+    expect(await lire()).toEqual([]);
+  });
+
   it("une facture émise ne peut reprendre le numéro d’une autre mission, même après un double clic", async () => {
     await postgres();
     const mission = await id("insert into public.incident_interventions(organization_id,incident_id,artisan_id,nature_travaux,statut) values($1,$2,$3,'entretien_courant','acceptee') returning id",[org,incident,artisan]);

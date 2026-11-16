@@ -7,7 +7,7 @@ import { preparerEtPlanifierFuite } from "./local/fuite-trois-acteurs";
 import { pdfFictif } from './pdf-fictif';
 
 test.use({ storageState: 'e2e/.auth/artisan.json' });
-for (const mode of ['depot', 'creation'] as const) test(`intervention acceptée : démarrage, photo, bilan, facture (${mode}) et réception gestionnaire`, async ({page,browser},info)=>{
+for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acceptée : démarrage, photo, bilan, facture (${mode}) et réception gestionnaire`, async ({page,browser},info)=>{
  test.setTimeout(120000);
  const cible=process.env.SUPALOCAL_DB;
  test.skip(!cible||!/^postgres(?:ql)?:\/\/[^@]*@(?:127\.0\.0\.1|localhost):\d{1,5}\/gerimmo_ci_[a-z_]+_api$/.test(cible),'Base API fictive locale requise');
@@ -25,6 +25,14 @@ for (const mode of ['depot', 'creation'] as const) test(`intervention acceptée 
     incident=dossier.incidentId; mission=dossier.mission;
     Object.assign(preuve,{mission,fixture:'Déclaration avec photo et choix du créneau en navigateur ; accord sur le devis dans le portail de gestion ; qualification et préparation du devis par les fonctions métier authentifiées.'});
   } else {
+  if (mode === 'sci') {
+    // Dossier indépendant : ne change jamais la détention du lot utilisé par les autres scénarios.
+    const {rows:[bien]} = await db.query("insert into biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'Maison des Amandiers','maison','6 rue des Amandiers','75012','Paris') returning id", [lot.organization_id]);
+    const {rows:[logement]} = await db.query("insert into lots(organization_id,bien_id,nom,etat) values($1,$2,'Maison','brouillon') returning id", [lot.organization_id,bien.id]);
+    const {rows:[sci]} = await db.query("insert into persons(organization_id,nom,qualite,siren,address_line1,postal_code,city) values($1,'SCI des Amandiers','SCI','123456789','6 rue des Amandiers','75012','Paris') returning id", [lot.organization_id]);
+    await db.query("insert into detentions(organization_id,lot_id,person_id,quote_part) values($1,$2,$3,100)", [lot.organization_id,logement.id,sci.id]);
+    lot.lot_id = logement.id;
+  }
   await db.query("insert into incidents(id,organization_id,lot_id,numero,canal,categorie,description,etat,imputation,imputation_justification) values($1,$2,$3,$4,'agence','plomberie_canalisation','ESSAI fin de mission fictive','affecte','proprietaire','ESSAI : réparation fictive à la charge du propriétaire')",[incident,lot.organization_id,lot.lot_id,numero]);
   await db.query("insert into incident_interventions(id,organization_id,incident_id,artisan_id,nature_travaux,statut,acceptee_le) values($1,$2,$3,$4,'entretien_courant','acceptee',now())",[mission,lot.organization_id,incident,a.id]);
   }
@@ -57,10 +65,16 @@ for (const mode of ['depot', 'creation'] as const) test(`intervention acceptée 
     await page.getByLabel('Montant TTC (€)',{exact:true}).fill('100,00');
     await page.getByLabel('Votre facture',{exact:true}).setInputFiles({name:'facture-fictive.pdf',mimeType:'application/pdf',buffer:pdfFictif()});
   } else {
-    await page.getByLabel('Créer une facture de travaux pour un particulier').check();
+    await page.getByLabel(mode === 'sci' ? 'Créer une facture pour une SCI' : 'Créer une facture de travaux pour un particulier').check();
     await page.getByLabel('Adresse de votre entreprise').fill('2 rue du Test, 75012 Paris');
-    await page.getByLabel('Nom du propriétaire à facturer').fill('Camille Fictive');
-    await page.getByLabel('Adresse de facturation du propriétaire').fill('4 rue du Test, 75012 Paris');
+    if (mode === 'sci') {
+      await page.getByLabel('SIREN de la SCI cliente').fill('123456789');
+      await page.getByLabel('Conditions d’escompte pour paiement anticipé').fill('Aucun escompte.');
+      await page.getByLabel('Pénalités de retard et indemnité de recouvrement applicables').fill('Conditions de règlement convenues dans le devis fictif.');
+    } else {
+      await page.getByLabel('Nom du propriétaire à facturer').fill('Camille Fictive');
+      await page.getByLabel('Adresse de facturation du propriétaire').fill('4 rue du Test, 75012 Paris');
+    }
     await page.getByLabel('Adresse des travaux').fill('1 rue du Test, 75012 Paris');
     await page.getByLabel('Date de réalisation des travaux').fill('2026-01-01');
     await page.getByLabel('Date limite de règlement').fill('2099-12-31');

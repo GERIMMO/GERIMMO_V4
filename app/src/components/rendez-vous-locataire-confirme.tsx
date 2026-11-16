@@ -6,7 +6,7 @@ import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
 export function RendezVousLocataireConfirme({ lignes, orgId, selection }: {
   lignes: RendezVousLocataire[]; orgId: string; selection?: string;
 }) {
-  const maintenant = Date.now();
+  const maintenant = new Date().getTime();
   const rv = lignes.filter(r => r.statut_mission === "planifiee" && r.rdv_debut && r.rdv_fin &&
     Date.parse(r.rdv_fin) > maintenant && (!selection || r.intervention_id === selection))
     .sort((a, b) => Date.parse(a.rdv_debut!) - Date.parse(b.rdv_debut!))[0];

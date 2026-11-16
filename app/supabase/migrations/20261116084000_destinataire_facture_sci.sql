@@ -24,3 +24,5 @@ language sql stable security definer set search_path = '' as $$
 $$;
 revoke all on function public.sci_facturable_intervention(uuid,text) from public, anon, service_role;
 grant execute on function public.sci_facturable_intervention(uuid,text) to authenticated;
+
+notify pgrst, 'reload schema';

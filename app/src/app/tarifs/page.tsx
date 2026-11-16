@@ -74,7 +74,7 @@ export default function PageTarifs() {
         <Article titre="Ce qui est dans l'abonnement">
           <ul className="list-disc space-y-1 pl-5">
             <li>Toutes les fonctions de gestion et l&apos;espace locataire, quelle que soit la taille de votre patrimoine.</li>
-            <li>Vous pouvez déposer votre bail signé sur papier. La signature électronique est proposée uniquement lorsque le service est ouvert pour le document concerné. Sa disponibilité est indiquée avant l’envoi.</li>
+            <li>Vous pouvez déposer votre bail signé sur papier. Si le service est ouvert pour votre dossier, vous pouvez demander la signature électronique du bail et de ses avenants, des accords d&apos;échelonnement et de travaux, de l&apos;acceptation des devis, de l&apos;acte de cautionnement et de l&apos;état des lieux, avec un code envoyé par SMS à chaque signataire. Elle est comprise dans l&apos;abonnement et dans l&apos;essai, sans supplément pour vous ni pour les signataires. Elle n&apos;est pas illimitée : elle dépend d&apos;un volume mensuel commun et peut être momentanément suspendue.</li>
           </ul>
         </Article>
 

@@ -41,7 +41,7 @@ export default async function PageEntreprise() {
         <Etiquette ton={fiche.siret_etat === "verifie" ? "ok" : fiche.siret_etat === "invalide" ? "alerte" : "attente"}>{ETATS_SIRET[fiche.siret_etat] ?? "SIRET à vérifier"}</Etiquette>
         <Etiquette ton={fiche.statut_plateforme === "valide" ? "ok" : fiche.statut_plateforme === "refuse" ? "alerte" : "attente"}>{ETATS_PLATEFORME[fiche.statut_plateforme] ?? "Statut à vérifier"}</Etiquette>
       </div></div>
-      <Link href="#documents" className={styles.boutonDevis}><FilePenLine size={17} aria-hidden/>Personnaliser mes devis</Link>
+      <Link href="#entreprise-devis" className={styles.boutonDevis}><FilePenLine size={17} aria-hidden/>Personnaliser mes devis</Link>
     </section>
     {aucunePiece && <p className={styles.alerteAttestation}><FileCheck2 size={17} aria-hidden/><span>Déposez votre décennale pour être proposé sur les {"travaux qui l'exigent"}. <Link href="/artisan/attestations">Ajouter une attestation <ArrowUpRight size={13} aria-hidden/></Link></span></p>}
     <OngletsDossier libelle="Rubriques de mon entreprise" rubriques={[

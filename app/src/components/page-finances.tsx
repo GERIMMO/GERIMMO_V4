@@ -1,4 +1,4 @@
-import { lireEntitesPatrimoine } from "@/lib/entites-patrimoine";
+import { lireEntitesPatrimoine, ventilerParTitulaire } from "@/lib/entites-patrimoine";
 import { deElide } from "@/lib/elision";
 import Link from "next/link";
 import { Banknote, ArrowLeftRight, FileCheck2 } from "lucide-react";
@@ -42,6 +42,8 @@ export async function PageFinances({ orgId, recherche }: {
   const appele = lignes.reduce((s, l) => s + Number(l.montant_du), 0);
   const regle = lignes.reduce((s, l) => s + Math.min(Number(l.montant_du), Number(l.montant_couvert)), 0);
   const resume = resumerLivre(livre.lignes, annee, perimetre, bien && !entiteId ? new Set([bien]) : biensDuPerimetre(lots ?? [], perimetre, bien));
+  const ventilation = !livre.error && !erreurPerimetre && !entiteId && !bien && patrimoine.entites.length > 1 && (lots?.length ?? 0) < 1000
+    ? ventilerParTitulaire(resume.lignes, patrimoine.periodes, lots ?? []) : null;
   const bouton = buttonVariants({ variant: "outline", size: "sm" });
   return <main className="mx-auto w-full max-w-5xl space-y-4 p-4 sm:p-7">
     <div className="entete-page"><TitreEcran rubrique="finances">Finances</TitreEcran><span className="mono-discret">Loyers · Recettes et dépenses · Déclaration</span></div>
@@ -67,6 +69,15 @@ export async function PageFinances({ orgId, recherche }: {
       {livre.error ? <p className="err" role="alert">Impossible de lire le livre. Les totaux ne sont pas affichés.</p> : <>
         <Chiffres valeurs={[["Recettes",resume.recettes],["Dépenses",resume.depenses],["Solde",resume.recettes-resume.depenses]]} />
         <p className="text-xs text-muted-foreground">Date comptable · hors dépôts de garantie et écritures annulées.</p>
+        {ventilation && ventilation.size > 0 && <details className="rounded-lg border border-border p-3">
+          <summary className="cursor-pointer font-semibold">Détail par propriétaire et SCI</summary>
+          <p className="mt-2 text-sm text-muted-foreground">Chaque opération figure une seule fois, selon la détention à sa date comptable. Les opérations partagées ou sans rattachement certain restent à vérifier.</p>
+          {[...ventilation].map(([id, groupe]) => <details key={id ?? "sans-titulaire"} className="border-b py-3 last:border-0">
+            <summary className="cursor-pointer text-sm font-medium">{patrimoine.entites.find(e => e.id === id)?.nom ?? "Rattachement à vérifier"} · {groupe.ecritures.length} opération{groupe.ecritures.length > 1 ? "s" : ""}</summary>
+            <Chiffres valeurs={[["Recettes",groupe.recettes/100],["Dépenses",groupe.depenses/100],["Solde",(groupe.recettes-groupe.depenses)/100]]}/>
+            <ul>{groupe.ecritures.map(e => <li key={e.id} className="flex justify-between gap-3 py-1 text-sm"><span>{formaterDate(e.date_imputation)} · {e.libelle || e.categorie}</span><span>{e.sens === "depense" ? "−" : "+"}{eur(Number(e.montant))}</span></li>)}</ul>
+          </details>)}
+        </details>}
         {resume.lignes.length ? <ul className="divide-y divide-border">{resume.lignes.slice(0,3).map(e => <li key={e.id} className="flex items-start justify-between gap-3 py-2 text-sm"><div className="min-w-0"><p className="break-words">{e.libelle || e.categorie.replaceAll("_", " ")}</p><p className="text-xs text-muted-foreground">{formaterDate(e.date_imputation)}</p></div><span className="shrink-0 montant">{e.sens === "recette" ? "+" : "−"}{eur(Number(e.montant))}</span></li>)}</ul> : <p className="text-sm text-muted-foreground">Aucune opération pour {annee}.</p>}
       </>}
       <div className="flex flex-wrap gap-2"><Link className={bouton} href={`${base}/comptabilite?vue=saisie`}>Ajouter une recette ou dépense</Link><Link className={bouton} href={`${base}/comptabilite?vue=cloture`}>Clôturer un mois</Link></div>

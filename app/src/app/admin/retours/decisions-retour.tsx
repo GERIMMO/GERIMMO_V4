@@ -1,16 +1,18 @@
 "use client";
 import { useState } from "react";
 import { cloreRevue, deciderRetour, regrouperRetours } from "@/app/actions/retours";
+import { AIDE_BOUTON_EN_ATTENTE, useHydrate } from "@/lib/use-hydrate";
 import { useActionRetour } from "@/lib/use-action-retour";
 import { ETATS_RETOUR, GRAVITES_RETOUR, type RetourUtilisateur } from "@/lib/retours";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 const champ="w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
 export function DecisionRetour({retour,donneesPersonnelles=false}:{retour:RetourUtilisateur;donneesPersonnelles?:boolean}){
+ const pret=useHydrate();
  const [decision,setDecision]=useState('en_examen');
  const {etat,soumettre,enCours}=useActionRetour(deciderRetour.bind(null,retour.id,retour.version));
  const etats=retour.nature==='idee'?['en_examen','retenue','non_retenue','deja_couverte']:['en_examen','en_cours','resolu'];
  return <form data-saisie-confirmee onSubmit={soumettre} className="mt-5 space-y-3 border-t border-[var(--filet)] pt-4">
-  <div className="grid gap-3 sm:grid-cols-2"><label className="space-y-1 text-sm"><span>Décision</span><select name="etat" className={champ} value={decision} onChange={e=>setDecision(e.target.value)}>{etats.map(e=><option key={e} value={e}>{ETATS_RETOUR[e]}</option>)}</select></label>
+  <div className="grid gap-3 sm:grid-cols-2"><label className="space-y-1 text-sm"><span>Décision</span><select name="etat" className={champ} disabled={!pret} title={pret ? undefined : AIDE_BOUTON_EN_ATTENTE} value={decision} onChange={e=>setDecision(e.target.value)}>{etats.map(e=><option key={e} value={e}>{ETATS_RETOUR[e]}</option>)}</select></label>
    {donneesPersonnelles?<input type="hidden" name="gravite" value={retour.gravite}/>:<label className="space-y-1 text-sm"><span>Gravité</span><select name="gravite" className={champ} defaultValue={retour.gravite}>{Object.entries(GRAVITES_RETOUR).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>}</div>
   <label className="block space-y-1 text-sm"><span>Réponse visible dans le suivi</span><textarea name="reponse" className={champ} rows={3} required minLength={5} maxLength={6000}/></label>
   {decision==='non_retenue'&&<label className="block space-y-1 text-sm"><span>Date de réexamen</span><input name="reexaminer_le" type="date" required className={champ}/></label>}

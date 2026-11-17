@@ -100,9 +100,8 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
           <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--texte-secondaire)]">
             {a.veine ? (
               <>
-                Ces règles ne sont pas qu&apos;un article : elles sont tenues par
-                l&apos;application. Quittances émises à l&apos;encaissement, échéances qui
-                vous trouvent, retenues justifiées ligne par ligne.
+                Depuis le dossier du logement, vous pouvez préparer une quittance
+                à partir des encaissements enregistrés et retrouver les documents du bail.
               </>
             ) : (
               <>

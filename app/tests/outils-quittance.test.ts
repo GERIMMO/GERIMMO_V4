@@ -19,8 +19,20 @@ import {
 import { formaterEuros } from "../src/lib/outils/nombres";
 
 describe("quittance ou reçu partiel", () => {
+  it.each([
+    [null, 0, 0], [850, 120, 0], [-850, 120, 1], [850, -1, 100],
+    [850, 120, null], [850, 120, -1], [0, 0, 1], [850, 120, 0.001],
+  ])("refuse de certifier un terme ou un paiement invalide (%s, %s, %s)", (loyerHc, charges, montantRecu) => {
+    expect(calculerQuittance({ loyerHc, charges, montantRecu })).toBeNull();
+  });
+  it("limite la quittance au terme et distingue l’excédent du versement", () => {
+    expect(calculerQuittance({ loyerHc: 850, charges: 120, montantRecu: 1200 })).toMatchObject({
+      total: 970, recu: 1200, affecteAuTerme: 970, excedent: 230, resteDu: 0, estQuittance: true,
+    });
+  });
   it("850 + 120 = 970 ; reçu 500 → reçu de paiement partiel, reste dû 470,00 €", () => {
     const r = calculerQuittance({ loyerHc: 850, charges: 120, montantRecu: 500 });
+    if (!r) throw new Error("Le paiement saisi doit produire un document");
     expect(r.total).toBe(970);
     expect(r.estQuittance).toBe(false);
     expect(r.titre).toBe("Reçu de paiement partiel");
@@ -29,6 +41,7 @@ describe("quittance ou reçu partiel", () => {
 
   it("payé en entier → quittance, rien de dû", () => {
     const r = calculerQuittance({ loyerHc: 850, charges: 120, montantRecu: 970 });
+    if (!r) throw new Error("Le paiement saisi doit produire un document");
     expect(r.estQuittance).toBe(true);
     expect(r.titre).toBe("Quittance de loyer");
     expect(r.resteDu).toBe(0);

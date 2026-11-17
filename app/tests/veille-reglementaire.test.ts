@@ -51,9 +51,10 @@ describe('Journal : ce que la veille y relaie',()=>{
   expect(route).toContain('evaluerPertinence(');
   expect(route).toContain('seo_description:couperAuMot(');
  });
- it('l\'encadré « Ces règles… » ne suit qu\'un article de règle (veine éditoriale)',()=>{
+ it('l\'article de règle décrit la préparation des quittances depuis les encaissements',()=>{
   const page=readFileSync(path.resolve(__dirname,'../src/app/journal/[slug]/page.tsx'),'utf8');
-  expect(page).toMatch(/\{a\.veine \? \(\s*<>\s*Ces règles ne sont pas qu&apos;un article/);
+  expect(page).not.toContain('Quittances émises à l&apos;encaissement');
+  expect(page).toMatch(/\{a\.veine \? \(\s*<>\s*Depuis le dossier du logement, vous pouvez préparer une quittance/);
  });
  it('la description du journal ne promet pas de sujets précis',()=>{
   const page=readFileSync(path.resolve(__dirname,'../src/app/journal/page.tsx'),'utf8');

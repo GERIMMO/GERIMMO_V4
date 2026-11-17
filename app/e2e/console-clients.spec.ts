@@ -95,7 +95,8 @@ test("les faits de direction se préparent manuellement avec cinq sources datée
 
 test("« Utilisateurs » ouvre les personnes et conserve les trois familles d’espaces", async ({ page }) => {
   await page.goto("/admin");
-  await page.getByRole("button", { name: "Menu supervision", exact: true }).click();
+  const menuCompact = page.getByRole("button", { name: "Menu supervision", exact: true });
+  if (await menuCompact.isVisible()) await menuCompact.click();
   // Annuaire individuel, puis espaces clients depuis son lien explicite.
   await page.getByRole("navigation", { name: "Navigation de la supervision" }).getByRole("link", { name: /^Utilisateurs/ }).click();
   await page.waitForURL(/\/admin\/clients/);

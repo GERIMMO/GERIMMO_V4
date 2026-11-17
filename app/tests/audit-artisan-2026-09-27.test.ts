@@ -35,7 +35,7 @@ describe.skipIf(!DB_URL)("Audit du 27/09 — artisan, pages publiques", () => {
     await role("reset");
     await db.query(
       `select set_config('request.jwt.claims',
-         json_build_object('sub', $1::text, 'role','authenticated')::text, true)`,
+         json_build_object('sub', $1::text, 'session_id', $1::text, 'role','authenticated')::text, true)`,
       [compte]
     );
     await role("authenticated");
@@ -66,6 +66,7 @@ describe.skipIf(!DB_URL)("Audit du 27/09 — artisan, pages publiques", () => {
        returning id`,
       [email, confirme]
     );
+    await db.query("insert into auth.sessions(id,user_id) values($1,$1)", [rows[0].id]);
     return rows[0].id as string;
   }
   const unique = () => Math.random().toString(36).slice(2, 10);

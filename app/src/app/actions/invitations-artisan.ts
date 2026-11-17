@@ -34,7 +34,7 @@ export type EtatInvitationArtisan = { erreur?: string; succes?: string; valeurs?
 
 const REFUS_PROPRIETAIRE = "L’invitation d’un artisan est réservée au propriétaire de cet espace.";
 
-type Preparee = { id: string; email: string; organisation: string; expire_le: string };
+type Preparee = { id: string; email: string; organisation: string; expire_le: string; envoi_precedent?: string | null };
 
 /** Envoie l'e-mail d'une invitation préparée, note l'issue, et rend le message de l'écran. */
 async function envoyerEtNoter(
@@ -44,6 +44,8 @@ async function envoyerEtNoter(
   succes: string,
   acteur: string
 ): Promise<EtatInvitationArtisan> {
+  const cleInitiale = `invitation-artisan-${invitation.id}`;
+  const cleEnvoi = invitation.envoi_precedent ? `${cleInitiale}-apres-${invitation.envoi_precedent}` : cleInitiale;
   const origine = adresseDuSite();
   const message = origine
     ? messageInvitationArtisan({
@@ -53,7 +55,7 @@ async function envoyerEtNoter(
       })
     : null;
   const envoi = message
-    ? await envoyerEmail({ circuit:"app/actions/invitations-artisan", organisation:{db:supabase,id:orgId}, contexteMetier:{type:"invitation_artisan",id:invitation.id,acteur}, cleIdempotence:`invitation-artisan-${invitation.id}`, to: invitation.email, subject: message.sujet, html: message.html })
+    ? await envoyerEmail({ circuit:"app/actions/invitations-artisan", organisation:{db:supabase,id:orgId}, contexteMetier:{type:"invitation_artisan",id:invitation.id,acteur}, cleIdempotence:cleEnvoi, to: invitation.email, subject: message.sujet, html: message.html })
     : { erreur: "L’adresse du site n’est pas configurée. Contactez l’administrateur." };
 
   revalidatePath(`/agence/${orgId}/artisans`);
@@ -109,11 +111,13 @@ export async function renvoyerInvitationArtisan(
   orgId: string,
   invitationId: string,
   _etat: EtatInvitationArtisan,
-  _formData: FormData
+  formData: FormData
 ): Promise<EtatInvitationArtisan> {
   const { supabase, user, role } = await verifierGerant(orgId);
   if (!user || role !== "proprietaire_direct" || !estUuid(invitationId)) return { erreur: REFUS_PROPRIETAIRE };
-  const { data, error } = await supabase.rpc("renvoyer_invitation_artisan", { p_id: invitationId });
+  const { data, error } = await supabase.rpc("preparer_renvoi_invitation_artisan", {
+    p_org: orgId, p_id: invitationId, p_dernier_envoi: String(formData.get("dernier_envoi") ?? "") || null,
+  });
   if (error) return { erreur: sansJargon(error.message) };
   if (data?.erreur) {
     revalidatePath(`/agence/${orgId}/artisans`);

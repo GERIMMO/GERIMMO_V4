@@ -344,6 +344,41 @@ describe.skipIf(!DB)("Invitation d'un artisan par un propriétaire direct", () =
       expect(ligne.envoye_le).not.toBeNull();
     });
 
+    it("borne le renvoi à la décision du propriétaire, à la dernière confirmation et au bon dossier", async () => {
+      const r = await inviter();
+      const preparer = async (organisation: string, vu: string | null) =>
+        (await db.query("select public.preparer_renvoi_invitation_artisan($1,$2,$3) r", [organisation, r.id, vu])).rows[0].r;
+      expect((await preparer(org, null)).envoi_precedent).toBeNull();
+      await devenir(autreProprietaire);
+      expect(await echec("select public.preparer_renvoi_invitation_artisan($1,$2,null)", [autreOrg, r.id])).toMatch(/refusé/);
+      await postgres();
+      const idCourriel = "c".repeat(64);
+      const contexte = { type: "invitation_artisan", id: r.id, acteur: proprietaire };
+      await db.query(`insert into public.courriels_durables(id,organization_id,empreinte,etat,contexte_metier)
+        values($1,$2,'fictif','inconnu',$3::jsonb || jsonb_build_object('destinataire',encode(sha256(convert_to($4,'UTF8')),'hex')))`,
+        [idCourriel,org,JSON.stringify(contexte),emailInvite]);
+      await devenir(proprietaire);
+      expect((await preparer(org, null)).erreur).toMatch(/vérification/);
+      await postgres();
+      await db.query("update public.courriels_durables set etat='accepte', fournisseur_id='fictif-premiere-confirmation' where id=$1", [idCourriel]);
+      expect((await db.query("select public.finaliser_courriel_metier($1) ok", [idCourriel])).rows[0].ok).toBe(true);
+      // Le rendu de PostgREST conserve la précision complète de l'instant en base.
+      const lecture=async ()=>(await db.query("select envoye_le::text t from public.invitations_artisans where id=$1",[r.id])).rows[0].t;
+      const confirme=await lecture();
+      await devenir(proprietaire);
+      expect((await preparer(org, null)).erreur).toMatch(/suivi.*changé/);
+      const renvoi=await preparer(org, confirme);
+      expect(renvoi.envoi_precedent).toMatch(/^\d{16,}$/);
+      await postgres();
+      await db.query(`insert into public.courriels_durables(id,organization_id,empreinte,etat,contexte_metier,accepte_le)
+        select $2,organization_id,'deuxieme','accepte',contexte_metier,accepte_le + interval '1 second'
+        from public.courriels_durables where id=$1`, [idCourriel, "d".repeat(64)]);
+      expect((await db.query("select public.finaliser_courriel_metier($1) ok", ["d".repeat(64)])).rows[0].ok).toBe(true);
+      expect(await lecture()).not.toBe(confirme);
+      await devenir(proprietaire);
+      expect((await preparer(org, confirme)).erreur).toMatch(/suivi.*changé/);
+    });
+
     it("limite anti-abus : trois envois par adresse et par heure", async () => {
       const r = await inviter();
       await devenir(proprietaire);

@@ -36,6 +36,13 @@ it('lien expiré et compte suspendu refusés par Auth local',async()=>{
  await db.query("update auth.users set recovery_sent_at=now()-interval '25 hours' where id=$1",[created.data.user!.id]);
  await db.query("update auth.one_time_tokens set created_at=now()-interval '25 hours',updated_at=now()-interval '25 hours' where user_id=$1",[created.data.user!.id]);
  expect((await client().auth.verifyOtp({type:'recovery',token_hash:lien.data.properties!.hashed_token})).error).not.toBeNull();
- await admin.auth.admin.updateUserById(created.data.user!.id,{ban_duration:'24h'});
+ const session=client();
+ const avant=await session.auth.signInWithPassword({email,password});
+ expect(avant.error).toBeNull();
+ const ancienne=avant.data.session!.refresh_token;
+ expect((await admin.auth.admin.updateUserById(created.data.user!.id,{ban_duration:'876000h'})).error).toBeNull();
+ expect((await session.auth.refreshSession({refresh_token:ancienne})).error).not.toBeNull();
  expect((await client().auth.signInWithPassword({email,password})).error).not.toBeNull();
+ expect((await admin.auth.admin.updateUserById(created.data.user!.id,{ban_duration:'none'})).error).toBeNull();
+ expect((await client().auth.signInWithPassword({email,password})).error).toBeNull();
 });

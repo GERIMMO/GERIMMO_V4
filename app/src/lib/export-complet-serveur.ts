@@ -5,11 +5,11 @@ import "server-only";
 // (`demander_export_complet`, migration 20261024130000). Préparée ensuite, hors de la réponse à sa demande : un fichier
 // CSV par table de l'organisation, le compte et ses acceptations des conditions en JSON, tous les fichiers de l'espace
 // (documents signés et certificats compris), dans une archive ZIP déposée dans le compartiment privé
-// `exports-complets`. Le titulaire la télécharge par un lien signé valable 24 heures ; elle est supprimée après sept
+// `exports-complets`. Le titulaire la télécharge par le lien de son espace, valable 24 heures ; elle est supprimée après sept
 // jours (mission « purge »). Chaque demande, préparation et téléchargement est inscrit au journal d'audit ; chaque pièce
 // sensible contenue (pièces d'identité, justificatifs) l'est au journal des accès aux pièces.
 
-import { createHash } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ArretSupervision } from "@/lib/controle-effets";
 import { neutraliserFormule } from "@/lib/csv-sur";
@@ -18,8 +18,38 @@ import { creerZip, type EntreeZip } from "@/lib/zip";
 export const COMPARTIMENT_EXPORTS = "exports-complets";
 /** Au-delà, l'archive n'est pas préparée : la demande échoue avec un message, sans rien déposer. */
 export const TAILLE_MAX_EXPORT_OCTETS = 400 * 1024 * 1024;
-/** Durée du lien signé de téléchargement. */
-export const DUREE_LIEN_EXPORT_SECONDES = 24 * 3600;
+/** La redirection technique est émise après contrôle de session et valable une minute. */
+export const DUREE_LIEN_EXPORT_SECONDES = 60;
+const DUREE_LIEN_ESPACE_MS = 24 * 60 * 60 * 1000;
+
+type PorteeLien = { orgId: string; accountId: string; exportId: string };
+
+/** Preuve limitée à cette opération. Une rotation de la clé de service invalide les liens
+ * d’espace précédents. Le titulaire peut en obtenir de nouveaux tant que l’archive existe. */
+function preuveLienArchive(p: PorteeLien, echeance: string): string | null {
+  const cle = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!cle) return null;
+  return createHmac("sha256", cle)
+    .update(JSON.stringify(["gerimmo/export-complet/v1", p.orgId, p.accountId, p.exportId, echeance]))
+    .digest("base64url");
+}
+
+export function lienArchiveEspace(route: string, p: PorteeLien, maintenant = Date.now()): string | null {
+  const jusquau = String(maintenant + DUREE_LIEN_ESPACE_MS);
+  const preuve = preuveLienArchive(p, jusquau);
+  if (!preuve) return null;
+  return `${route}?${new URLSearchParams({ archive: p.exportId, jusquau, preuve })}`;
+}
+
+export function verifierLienArchiveEspace(p: PorteeLien, query: URLSearchParams, maintenant = Date.now()): boolean {
+  const echeance = query.get("jusquau") ?? "";
+  const preuve = query.get("preuve") ?? "";
+  if (!/^\d{13}$/.test(echeance) || !/^[A-Za-z0-9_-]{43}$/.test(preuve)) return false;
+  if (+echeance <= maintenant || +echeance > maintenant + DUREE_LIEN_ESPACE_MS) return false;
+  const attendue = preuveLienArchive(p, echeance);
+  return attendue !== null && timingSafeEqual(Buffer.from(preuve), Buffer.from(attendue));
+}
+
 const TYPES_SENSIBLES = new Set(["piece_identite", "justificatif"]);
 
 /** Une valeur JSON en cellule CSV : texte protégé contre les formules, nombres et booléens tels quels, objets en JSON. */
@@ -182,7 +212,7 @@ export async function supprimerExportsExpires(db: SupabaseClient, avant: () => P
   return { supprimes, echecs };
 }
 
-/** Le lien signé (24 h) d'une archive prête, pour celui qui l'a demandée ; le téléchargement est journalisé d'abord. */
+/** La redirection signée temporaire d'une archive prête, pour celui qui l'a demandée ; le téléchargement est journalisé d'abord. */
 export async function lienExportComplet(
   db: SupabaseClient,
   p: { exportId: string; accountId: string; orgId: string }
@@ -203,7 +233,9 @@ export async function lienExportComplet(
   if (droits || !adhesion) return { erreur: "Réservé au titulaire de l'espace." };
   const { error: trace } = await db.rpc("export_complet_telecharge", { p_export: exportId, p_account: accountId });
   if (trace) return { erreur: "Le téléchargement n'a pas pu être enregistré : réessayez." };
-  const { data: signe, error: signature } = await db.storage.from(COMPARTIMENT_EXPORTS).createSignedUrl(x.chemin, DUREE_LIEN_EXPORT_SECONDES, {
+  const reste = Math.floor((Date.parse(x.expire_le) - Date.now()) / 1000);
+  if (!Number.isFinite(reste) || reste < 1) return { erreur: "Cette archive a expiré." };
+  const { data: signe, error: signature } = await db.storage.from(COMPARTIMENT_EXPORTS).createSignedUrl(x.chemin, Math.min(reste, DUREE_LIEN_EXPORT_SECONDES), {
     download: `gerimmo-archive-${exportId.slice(0, 8)}.zip`,
   });
   if (signature || !signe?.signedUrl) return { erreur: "Le lien de téléchargement n'a pas pu être créé : réessayez." };

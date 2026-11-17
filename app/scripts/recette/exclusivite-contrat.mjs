@@ -152,6 +152,14 @@ try {
   assert.equal(signed.status,204,signed.body);
   assert.equal((await view(first,archive))[0].document_id,archive);
   assert.deepEqual(await view(second,archive),[]);
+  // Même JWT et vraie Data API : le compte perd aussi l'accès au PDF déjà identifié.
+  await root.query("update auth.users set banned_until=now()+interval '1 day' where id=$1", [first.account]);
+  const ancienAcces = () => rpc("mon_document_locataire", first.account, {p_org:org, p_doc:pdf});
+  assert.equal((await ancienAcces()).status, 401);
+  assert.ok([401,403,404].includes((await link(first.account)).status));
+  await root.query("update auth.users set banned_until=null where id=$1", [first.account]);
+  assert.equal((await ancienAcces()).status, 401);
+  assert.equal((await view(second,replacement))[0].document_id, replacement);
   console.log("Deux transactions concurrentes observées, un seul bail activé. Refus SQL 23505, brouillon conservé. PDF visible uniquement du bon locataire via PostgREST. Reprise avec un PDF distinct réussie.");
 } finally {
   await Promise.all(connections.map(db=>db.end()));

@@ -4,7 +4,7 @@
 // facteur validé ou mot de passe saisi depuis moins de quinze minutes ; une demande à la fois, trois par jour au plus
 // (`demander_export_complet`, qui contrôle tout en base et l'inscrit au journal d'audit). La préparation commence
 // après la réponse (`after`) ; la mission « purge » de la nuit reprend celle qu'une coupure aurait interrompue.
-// GET ?archive=<id> : redirige vers le lien signé (24 h) de l'archive prête, pour celui qui l'a demandée, mêmes
+// GET ?archive=<id> : redirige vers le stockage privé (lien technique d’une minute) de l'archive prête, pour celui qui l'a demandée, mêmes
 // conditions d'identité ; chaque téléchargement est inscrit au journal d'audit et, pour chaque pièce sensible
 // contenue, au journal des accès aux pièces.
 // Relectures du 24/10 (R2-7, R2-8) : identité à confirmer, retour à la page avec les gestes pour le faire (jamais une
@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { clientDeService } from "@/lib/supabase/service";
 import { sansJargon } from "@/lib/erreurs";
 import { identiteRecenteConfirmee } from "@/lib/export-complet";
-import { construireExportComplet, exportBloque, lienExportComplet } from "@/lib/export-complet-serveur";
+import { construireExportComplet, exportBloque, lienExportComplet, verifierLienArchiveEspace } from "@/lib/export-complet-serveur";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -66,14 +66,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ org
 
 export async function GET(request: Request, { params }: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await params;
-  const archive = new URL(request.url).searchParams.get("archive") ?? "";
+  const { searchParams } = new URL(request.url);
+  const archive = searchParams.get("archive") ?? "";
   if (!UUID.test(orgId) || !UUID.test(archive)) return retour(request, "introuvable");
-  const { claims } = await identite();
+  const { supabase, claims } = await identite();
   if (!claims?.sub) return Response.redirect(new URL(`/connexion?suite=${encodeURIComponent("/compte/donnees#archive")}`, request.url), 303);
   if (!identiteRecenteConfirmee(claims)) return retour(request, "identite");
+  // Le client de service peut lire les archives malgré la RLS. Avant de l’utiliser,
+  // vérifier la session Auth en base : la signature du JWT seule persiste après un blocage.
+  const session = await supabase.rpc("ma_session_active");
+  if (session.error || !Array.isArray(session.data) || !session.data.length) return retour(request, "identite");
+  const portee = { exportId: archive, accountId: claims.sub, orgId };
+  if (!verifierLienArchiveEspace(portee, searchParams)) return retour(request, "lien_expire");
   const service = clientDeService();
   if (!service) return retour(request, "indisponible");
-  const lien = await lienExportComplet(service, { exportId: archive, accountId: claims.sub, orgId });
+  const lien = await lienExportComplet(service, portee);
   if ("erreur" in lien) return retour(request, "introuvable");
   return new Response(null, { status: 303, headers: { Location: lien.url, "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" } });
 }

@@ -48,6 +48,19 @@ describe.skipIf(!url)("lecture de la session courante", () => {
     await db.query("delete from auth.sessions where id=$1", [session]);
     expect(await lire(compte)).toEqual([]);
   });
+  it("un blocage coupe la session ouverte et le déblocage exige une nouvelle connexion", async () => {
+    expect(await lire(compte)).toHaveLength(1);
+    await db.query("update auth.users set banned_until=now()+interval '1 day' where id=$1", [compte]);
+    expect(await lire(compte)).toEqual([]);
+    await db.query("update auth.users set banned_until=null where id=$1", [compte]);
+    expect(await lire(compte)).toEqual([]);
+    const nouvelle = randomUUID();
+    await db.query("insert into auth.sessions(id,user_id,created_at) values($1,$2,clock_timestamp())", [nouvelle, compte]);
+    expect(await lire(compte, nouvelle)).toHaveLength(1);
+    expect(await lire(autre, nouvelle)).toEqual([]);
+    const droits = await db.query("select has_table_privilege('authenticated','gerimmo_session_interne.reconnexions_requises','update') modifiable");
+    expect(droits.rows[0].modifiable).toBe(false);
+  });
   it("n'ouvre ni le registre Auth ni la fonction aux visiteurs", async () => {
     const { rows: [r] } = await db.query(`select
       has_function_privilege('anon','public.ma_session_active()','execute') as anonyme,

@@ -111,12 +111,13 @@ export function GestesDuCarnet({ orgId, children }: { orgId: string; children: R
   );
 }
 
-export function GestesInvitationEnAttente({ invitationId, email }: { invitationId: string; email: string | null }) {
+export function GestesInvitationEnAttente({ invitationId, email, dernierEnvoi }: { invitationId: string; email: string | null; dernierEnvoi: string | null }) {
   const agir = useActionDesGestes();
   return (
     <div className="flex flex-wrap gap-2">
       <form data-saisie-confirmee action={agir}>
         <input type="hidden" name="geste" value="renvoyer" />
+        <input type="hidden" name="dernier_envoi" value={dernierEnvoi ?? ""} />
         <input type="hidden" name="invitation" value={invitationId} />
         <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Envoi…">
           Renvoyer

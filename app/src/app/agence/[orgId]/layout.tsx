@@ -287,13 +287,13 @@ export default async function LayoutAgence({
             —{" "}
             {estResponsable ? (
               <>
-                activez l&apos;abonnement pour continuer à saisir.{" "}
+                Vos données restent consultables.{" "}
                 <Link href={`${base}/abonnement`} className="font-semibold underline underline-offset-2">
-                  Choisir ma formule →
+                  Consulter mon abonnement →
                 </Link>
               </>
             ) : (
-              "votre administrateur doit activer l'abonnement pour que la saisie reprenne."
+              "Contactez le responsable de votre espace pour connaître les modalités de reprise."
             )}
           </p>
         )}

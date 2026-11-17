@@ -153,11 +153,17 @@ describe("préparation de l'archive", () => {
 describe("lien de téléchargement", () => {
   const prete = { chemin: `${ORG}/${EXPORT}.zip`, statut: "pret", demande_par: COMPTE, organisation_id_export: ORG, expire_le: new Date(Date.now() + 86_400_000).toISOString() };
 
-  it("pour le seul demandeur, toujours titulaire de l'espace : journalisé, puis lien signé de 24 h", async () => {
+  it("arrête la redirection de stockage au plus tard à l’expiration des sept jours", async () => {
+    const b = fausseBase({ ligne: { ...prete, expire_le: new Date(Date.now() + 11_000).toISOString() } });
+    expect(await lienExportComplet(b.db, { exportId: EXPORT, accountId: COMPTE, orgId: ORG })).toHaveProperty("url");
+    expect(b.signatures[0].duree).toBeGreaterThan(0);
+    expect(b.signatures[0].duree).toBeLessThanOrEqual(11);
+  });
+  it("pour le seul demandeur, toujours titulaire de l'espace : journalisé, puis redirection technique signée d’une minute", async () => {
     const b = fausseBase({ ligne: prete });
     expect(await lienExportComplet(b.db, { exportId: EXPORT, accountId: COMPTE, orgId: ORG })).toEqual({ url: "https://stockage.example.invalid/signe" });
     expect(b.rpc.find((r) => r.nom === "export_complet_telecharge")!.args).toEqual({ p_export: EXPORT, p_account: COMPTE });
-    expect(b.signatures).toEqual([{ chemin: `${ORG}/${EXPORT}.zip`, duree: 86_400 }]);
+    expect(b.signatures).toEqual([{ chemin: `${ORG}/${EXPORT}.zip`, duree: 60 }]);
   });
 
   it("refus : autre compte, autre espace, plus titulaire, archive expirée — et rien n'est journalisé ni signé", async () => {

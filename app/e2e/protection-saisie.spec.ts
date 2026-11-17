@@ -38,7 +38,14 @@ test('artisan : erreur de dépôt garde le fichier et empêche une sortie accide
 test('superadmin : texte préparé protégé sans programmer de publication',async({browser})=>{
  const context=await browser.newContext({storageState:'e2e/.auth/superadmin.json'});const page=await context.newPage();
  try{await sansSyntheseAlertes(page);await page.goto('/admin/marketing');await page.getByText('Noter une intention éditoriale', {exact:true}).click();const texte=page.locator('textarea[name="description"]');await expect(texte).toBeVisible();await texte.fill('TEST intention locale non publiée');
- const d=page.waitForEvent('dialog');const quitter=page.goto('/admin/brief',{timeout:1500});await(await d).dismiss();await quitter.catch(()=>{});await expect(texte).toHaveValue('TEST intention locale non publiée');
+ const demande = page.waitForEvent('dialog');
+ const navigation = page.goto('/admin/brief').then(() => 'navigation aboutie', (erreur: Error) => erreur.message);
+ const dialogue = await demande;
+ expect(dialogue.type()).toBe('beforeunload');
+ await dialogue.dismiss();
+ expect(await navigation).toMatch(/ERR_ABORTED|navigation.*(cancel|abort)|NS_BINDING_ABORTED|Timeout/i);
+ await expect(page).toHaveURL(/\/admin\/marketing$/);
+ await expect(texte).toHaveValue('TEST intention locale non publiée');
  }finally{await context.close();}
 });
 

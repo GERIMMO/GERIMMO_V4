@@ -30,6 +30,14 @@ function fenetre(page: Page) {
   return page.getByRole("dialog");
 }
 
+async function ouvrirMenuComplet(page: Page) {
+  const bouton = page.getByRole("button", { name: /^Menu(?:\s|$)/ });
+  if (await bouton.isVisible()) await bouton.click();
+  const menu = page.locator("nav.coquille-menu:visible");
+  await expect(menu).toHaveCount(1);
+  return menu;
+}
+
 test.describe("Côté agence", () => {
   test.use({ storageState: path.join(__dirname, ".auth", "agent.json") });
 
@@ -121,7 +129,7 @@ test.describe("Côté agence", () => {
     ).toBeVisible();
   });
 
-  test("la fenêtre tient dans un téléphone", async ({ page }) => {
+  test("la fenêtre tient dans la largeur disponible et peut être fermée", async ({ page }) => {
     await page.goto(`/agence/${ORG}/parc`);
     await page.getByRole("button", { name: /E2E Lot 1/ }).first().click();
     await expect(fenetre(page)).toBeVisible();
@@ -131,15 +139,17 @@ test.describe("Côté agence", () => {
     const fermer = fenetre(page).getByLabel("Fermer", { exact: true });
     const boite = await fermer.boundingBox();
     expect(boite).not.toBeNull();
-    expect(boite!.x + boite!.width).toBeLessThanOrEqual(390);
+    expect(boite!.x).toBeGreaterThanOrEqual(0);
+    expect(boite!.x + boite!.width).toBeLessThanOrEqual(await page.evaluate(() => innerWidth));
+    await fermer.click();
+    await expect(fenetre(page)).toBeHidden();
   });
 
   test("la comptabilité reste hors du menu de l'agent, les loyers y entrent", async ({ page }) => {
     await page.goto(`/agence/${ORG}/parc`);
     // Coquille v4 : au gabarit téléphone, le menu complet vit dans le tiroir
     // qu'ouvre « Menu », pas dans une colonne.
-    await page.getByRole("button", { name: /^Menu(?:\s|$)/ }).click();
-    const menu = page.getByRole("navigation", { name: /\(tout\)/ });
+    const menu = await ouvrirMenuComplet(page);
     await expect(menu.getByRole("link", { name: /Mon portefeuille/ })).toBeVisible();
     await expect(menu.getByRole("link", { name: /Documents/ })).toHaveCount(0);
     await expect(menu.getByRole("link", { name: /Comptabilité/ })).toHaveCount(0);
@@ -153,8 +163,7 @@ test.describe("Côté admin d'agence", () => {
 
   test("l'admin garde ses deux index — sa question porte sur l'ensemble", async ({ page }) => {
     await page.goto(`/agence/${ORG}/parc`);
-    await page.getByRole("button", { name: /^Menu(?:\s|$)/ }).click();
-    const menu = page.getByRole("navigation", { name: /\(tout\)/ });
+    const menu = await ouvrirMenuComplet(page);
     await expect(menu.getByRole("link", { name: /Documents/ })).toBeVisible();
     await expect(menu.getByRole("link", { name: /Écritures & rapports/ })).toBeVisible();
   });

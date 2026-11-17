@@ -19,7 +19,7 @@ async function simuler(db: Client, accountId: string | null, role = "authenticat
   if (accountId) {
     await db.query(
       `select set_config('request.jwt.claims',
-         json_build_object('sub', $1::text, 'role', 'authenticated')::text, true)`,
+         json_build_object('sub', $1::text, 'session_id', $1::text, 'role', 'authenticated')::text, true)`,
       [accountId]
     );
   } else {
@@ -39,6 +39,7 @@ async function creerCompte(db: Client, org: string, role: string, nom: string) {
       'test-docs-'||gen_random_uuid()||'@test.local','x', now(),
       '{"provider":"email","providers":["email"]}'::jsonb,'{}'::jsonb, now(), now(),'','','','','')
     returning id`);
+  await db.query("insert into auth.sessions(id,user_id) values($1,$1)", [uid]);
   await db.query(
     `insert into public.memberships (account_id, organization_id, role) values ($1,$2,$3)`,
     [uid, org, role]

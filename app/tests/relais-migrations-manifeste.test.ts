@@ -201,6 +201,8 @@ const MISSION_OCTOBRE = [
   "20261116201223_alertes_direction_et_reports.sql",
   "20261116201423_avis_essai_et_inactivite.sql",
   "20261117092314_import_parc_identite_bien.sql",
+  "20261117094310_blocage_sessions_compte.sql",
+  "20261117095320_renvoi_invitation_artisan_confirme.sql",
 
 
 ];

@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
+import { AIDE_BOUTON_EN_ATTENTE, useHydrate } from "@/lib/use-hydrate";
 import { envoyerMessageLocataire, type EtatMessage } from "@/app/actions/messages";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
@@ -45,6 +46,7 @@ export function FilMessages({
     {}
   );
   const champ = useRef<HTMLTextAreaElement>(null);
+  const pret = useHydrate();
 
   const quand = (ts: string) =>
     new Date(ts).toLocaleDateString("fr-FR", {
@@ -112,6 +114,8 @@ export function FilMessages({
           <button
             key={s}
             type="button"
+            disabled={!pret}
+            title={pret ? undefined : AIDE_BOUTON_EN_ATTENTE}
             // La phrase entière, qui est celle insérée (24/09) : coupée à 42
             // caractères, elle ne se lisait qu'au survol du title, donc
             // jamais au doigt. La pastille passe à la ligne au besoin.

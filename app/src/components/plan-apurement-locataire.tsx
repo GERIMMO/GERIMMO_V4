@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useActionStateProtegee } from "@/lib/use-action-state-protegee";
+import { AIDE_BOUTON_EN_ATTENTE, useHydrate } from "@/lib/use-hydrate";
 import { demanderPlanApurement, type EtatPlanApurement } from "@/app/actions/plan-apurement";
 import { eur, formaterDate } from "@/lib/ged";
 import { BoutonEnvoi } from "./ui/bouton-envoi";
@@ -62,12 +63,14 @@ function Plan({ plan }: { plan: MonPlanApurement }) {
 }
 
 function Demande({ orgId, demandeEnCours, detteEchue }: { orgId: string; demandeEnCours: boolean; detteEchue: number }) {
+  const pret = useHydrate();
   const [ouvert, setOuvert] = useState(false);
   const [etat, submit, pending] = useActionStateProtegee(demanderPlanApurement.bind(null, orgId), {} as EtatPlanApurement);
   if (demandeEnCours || etat.succes) return <p className="text-sm text-muted-foreground" role="status">{etat.succes ?? "Votre demande de plan de paiement est transmise à votre gestionnaire. Sa réponse arrivera dans votre messagerie."}</p>;
   return <div className="space-y-2 text-sm">
     <p>Des loyers restent dus ({eur(detteEchue)}). Si vous traversez une période difficile, vous pouvez proposer de régler cette somme en plusieurs fois, en plus de votre loyer courant.</p>
-    {!ouvert ? <Button type="button" size="sm" variant="outline" onClick={() => setOuvert(true)}>Demander un plan de paiement</Button>
+    {!ouvert ? <Button type="button" size="sm" variant="outline" disabled={!pret}
+      title={pret ? undefined : AIDE_BOUTON_EN_ATTENTE} onClick={() => setOuvert(true)}>Demander un plan de paiement</Button>
       : <form data-saisie-confirmee action={submit} className="space-y-2">
         <label className="block text-xs text-muted-foreground" htmlFor="pa-message">Expliquez votre situation et ce que vous pouvez régler chaque mois (facultatif)</label>
         <textarea id="pa-message" name="message" rows={3} maxLength={2000} defaultValue={etat.valeurs?.message} className="w-full rounded-md border border-input bg-background p-2 text-sm" />

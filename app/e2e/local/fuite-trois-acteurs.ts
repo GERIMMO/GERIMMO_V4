@@ -81,11 +81,16 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
         const menu=artisan.getByLabel("Aller à une étape",{exact:true});
         if (await menu.isVisible()) await menu.selectOption(String(n-1));
         else await artisan.getByRole("button",{name:new RegExp("^Étape "+String(n).padStart(2,"0")+" ")}).click();
+        // La navigation place le focus au prochain rendu. Attendre ce geste
+        // évite qu’il interrompe la saisie immédiate du navigateur automatisé.
+        await expect(artisan.locator("[data-corps-etapes] > h2")).toBeFocused();
       }
       await diagnostic.fill("Joint usé");
       await etape(2);
       for(const [champ,valeur] of Object.entries({delai:"Sous sept jours",duree:"Une heure",valide_jusqu_au:new Date(Date.now()+30*86400000).toISOString().slice(0,10)})) {
-        await artisan.locator("[name="+champ+"]:visible").fill(valeur);
+        const saisie = artisan.locator("[name="+champ+"]:visible");
+        await saisie.fill(valeur);
+        await expect(saisie).toHaveValue(valeur);
       }
       await etape(3);
       await artisan.locator("input[name=validation_artisan]").check();

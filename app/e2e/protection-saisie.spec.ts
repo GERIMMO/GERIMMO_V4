@@ -39,7 +39,9 @@ test('superadmin : texte préparé protégé sans programmer de publication',asy
  const context=await browser.newContext({storageState:'e2e/.auth/superadmin.json'});const page=await context.newPage();
  try{await sansSyntheseAlertes(page);await page.goto('/admin/marketing');await page.getByText('Noter une intention éditoriale', {exact:true}).click();const texte=page.locator('textarea[name="description"]');await expect(texte).toBeVisible();await texte.fill('TEST intention locale non publiée');
  const demande = page.waitForEvent('dialog');
- const navigation = page.goto('/admin/brief').then(() => 'navigation aboutie', (erreur: Error) => erreur.message);
+ // WebKit peut garder la navigation annulée en attente. Borner cet appel laisse
+ // les assertions suivantes vérifier l’URL et le texte conservés après le refus.
+ const navigation = page.goto('/admin/brief', {timeout:1500}).then(() => 'navigation aboutie', (erreur: Error) => erreur.message);
  const dialogue = await demande;
  expect(dialogue.type()).toBe('beforeunload');
  await dialogue.dismiss();

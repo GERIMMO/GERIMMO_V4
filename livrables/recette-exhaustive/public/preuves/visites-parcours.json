@@ -1,0 +1,68 @@
+[
+ {
+  "role": "nouveau propriétaire",
+  "largeur": 390,
+  "route": "/nouveau-mot-de-passe",
+  "modele": "/nouveau-mot-de-passe",
+  "scenario": "Ouvrir le lien fictif de création puis le lien de récupération, voir le formulaire de choix de mot de passe à leur URL, lui donner un nouveau secret et se reconnecter",
+  "observe": "Formulaire rempli et confirmé sur les deux visites, portail de la même organisation conservé après reconnexion et rechargement.",
+  "destination": "/nouveau-mot-de-passe",
+  "rendu": true,
+  "preuve": "public/preuves/inscription-390.json"
+ },
+ {
+  "role": "nouveau propriétaire",
+  "largeur": 768,
+  "route": "/nouveau-mot-de-passe",
+  "modele": "/nouveau-mot-de-passe",
+  "scenario": "Ouvrir le lien fictif de création puis le lien de récupération, voir le formulaire de choix de mot de passe à leur URL, lui donner un nouveau secret et se reconnecter",
+  "observe": "Formulaire rempli et confirmé sur les deux visites, portail de la même organisation conservé après reconnexion et rechargement.",
+  "destination": "/nouveau-mot-de-passe",
+  "rendu": true,
+  "preuve": "public/preuves/inscription-768.json"
+ },
+ {
+  "role": "nouveau propriétaire",
+  "largeur": 1440,
+  "route": "/nouveau-mot-de-passe",
+  "modele": "/nouveau-mot-de-passe",
+  "scenario": "Ouvrir le lien fictif de création puis le lien de récupération, voir le formulaire de choix de mot de passe à leur URL, lui donner un nouveau secret et se reconnecter",
+  "observe": "Formulaire rempli et confirmé sur les deux visites, portail de la même organisation conservé après reconnexion et rechargement.",
+  "destination": "/nouveau-mot-de-passe",
+  "rendu": true,
+  "preuve": "public/preuves/inscription-1440.json"
+ },
+ {
+  "role": "locataire invité",
+  "largeur": 390,
+  "route": "/invitations/[invitationId]",
+  "modele": "/invitations/[invitationId]",
+  "scenario": "Ouvrir l’invitation depuis Mes espaces, refuser, rouvrir après refus, contrôler une échéance dépassée, accepter le nouvel envoi et rouvrir le lien accepté.",
+  "observe": "Sept contrôles réussis. Invitation invisible pour un autre compte, refus et expiration sans droit, acceptation unique et historique conservé.",
+  "destination": "/invitations/[invitationId]",
+  "rendu": true,
+  "preuve": "public/preuves/invitation-390.json"
+ },
+ {
+  "role": "locataire invité",
+  "largeur": 768,
+  "route": "/invitations/[invitationId]",
+  "modele": "/invitations/[invitationId]",
+  "scenario": "Ouvrir l’invitation depuis Mes espaces, refuser, rouvrir après refus, contrôler une échéance dépassée, accepter le nouvel envoi et rouvrir le lien accepté.",
+  "observe": "Sept contrôles réussis. Invitation invisible pour un autre compte, refus et expiration sans droit, acceptation unique et historique conservé.",
+  "destination": "/invitations/[invitationId]",
+  "rendu": true,
+  "preuve": "public/preuves/invitation-768.json"
+ },
+ {
+  "role": "locataire invité",
+  "largeur": 1440,
+  "route": "/invitations/[invitationId]",
+  "modele": "/invitations/[invitationId]",
+  "scenario": "Ouvrir l’invitation depuis Mes espaces, refuser, rouvrir après refus, contrôler une échéance dépassée, accepter le nouvel envoi et rouvrir le lien accepté.",
+  "observe": "Sept contrôles réussis. Invitation invisible pour un autre compte, refus et expiration sans droit, acceptation unique et historique conservé.",
+  "destination": "/invitations/[invitationId]",
+  "rendu": true,
+  "preuve": "public/preuves/invitation-1440.json"
+ }
+]

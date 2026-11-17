@@ -1,0 +1,79 @@
+[
+ {
+  "id": "01",
+  "acteur": "propriétaire",
+  "route": "/espace/[dossier]/abonnement",
+  "largeur": 768,
+  "observe": "Essai visible au propriétaire, aucune souscription en base.",
+  "statut": "réussi"
+ },
+ {
+  "id": "02",
+  "acteur": "propriétaire",
+  "route": "/espace/[dossier]/abonnement/resiliation",
+  "largeur": 768,
+  "observe": "La page explique que rien n’est à résilier et aucun prélèvement n’est créé.",
+  "statut": "réussi"
+ },
+ {
+  "id": "03",
+  "acteur": "propriétaire",
+  "route": "/espace/[dossier]/abonnement",
+  "largeur": 768,
+  "observe": "Essai expiré en lecture seule, aucune souscription enregistrée.",
+  "statut": "réussi"
+ },
+ {
+  "id": "04",
+  "acteur": "propriétaire",
+  "route": "/espace/[dossier]/abonnement",
+  "largeur": 768,
+  "observe": "Contrat mensuel fictif actif à 5,99 € et lien de résiliation disponible.",
+  "statut": "réussi"
+ },
+ {
+  "id": "05",
+  "acteur": "superadministrateur",
+  "route": "/admin/organisations/[dossier]",
+  "largeur": 768,
+  "observe": "Facture fictive du bon contrat ouverte, 5,99 € affectés, 0 € restant ; lectures du fournisseur simulé 1 ; traces constatées 1",
+  "statut": "réussi"
+ },
+ {
+  "id": "06",
+  "acteur": "superadministrateur",
+  "route": "/admin/organisations/[dossier]",
+  "largeur": 768,
+  "observe": "La procédure distingue l’avoir, le remboursement, la rétractation et les doublons. Le support s’ouvre sur cette organisation ; l’émission exceptionnelle reste chez Stripe.",
+  "statut": "réussi"
+ },
+ {
+  "id": "07",
+  "acteur": "propriétaire",
+  "route": "/espace/[dossier]/abonnement/resiliation",
+  "largeur": 768,
+  "observe": "Adresse erronée bloquée ; résiliation volontaire reçue par le Stripe simulé, annulation en fin de période confirmée et écran rechargé. Marque d’accusé présente : true.",
+  "statut": "réussi"
+ },
+ {
+  "id": "08",
+  "acteur": "propriétaire",
+  "route": "/espace/[dossier]/abonnement/retractation",
+  "largeur": 768,
+  "statut": "à vérifier",
+  "erreur": "Accusé de rétractation marqué : false ; courriels reçus : 1",
+  "chemin": "/espace/[dossier]/abonnement/retractation",
+  "messages": [
+   "Votre rétractation est enregistrée depuis le 17 novembre 2026. Si l'accusé de réception ne vous est pas parvenu, confirmez de nouveau ci-dessous : rien n'est fait deux fois."
+  ],
+  "titre": "Renoncer au contrat"
+ },
+ {
+  "id": "09",
+  "acteur": "propriétaire",
+  "route": "/admin/organisations/[dossier]",
+  "largeur": 768,
+  "observe": "La session du propriétaire est écartée du détail de supervision.",
+  "statut": "réussi"
+ }
+]

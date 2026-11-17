@@ -1,0 +1,56 @@
+[
+ {
+  "viewport": 390,
+  "document": "quittance",
+  "route": "/outils/quittance-de-loyer",
+  "statut": "produit",
+  "fichier": "quittance-390.pdf",
+  "promesse": "Ouverture de l’impression locale",
+  "appelsNatifs": 1
+ },
+ {
+  "viewport": 390,
+  "document": "lettre",
+  "route": "/outils/calcul-irl",
+  "statut": "produit",
+  "fichier": "lettre-390.pdf",
+  "promesse": "Ouverture de l’impression locale",
+  "appelsNatifs": 1
+ },
+ {
+  "viewport": 768,
+  "document": "quittance",
+  "route": "/outils/quittance-de-loyer",
+  "statut": "produit",
+  "fichier": "quittance-768.pdf",
+  "promesse": "Ouverture de l’impression locale",
+  "appelsNatifs": 1
+ },
+ {
+  "viewport": 768,
+  "document": "lettre",
+  "route": "/outils/calcul-irl",
+  "statut": "produit",
+  "fichier": "lettre-768.pdf",
+  "promesse": "Ouverture de l’impression locale",
+  "appelsNatifs": 1
+ },
+ {
+  "viewport": 1440,
+  "document": "quittance",
+  "route": "/outils/quittance-de-loyer",
+  "statut": "produit",
+  "fichier": "quittance-1440.pdf",
+  "promesse": "Ouverture de l’impression locale",
+  "appelsNatifs": 1
+ },
+ {
+  "viewport": 1440,
+  "document": "lettre",
+  "route": "/outils/calcul-irl",
+  "statut": "produit",
+  "fichier": "lettre-1440.pdf",
+  "promesse": "Ouverture de l’impression locale",
+  "appelsNatifs": 1
+ }
+]

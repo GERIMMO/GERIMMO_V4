@@ -1,0 +1,426 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config=/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/invitations.config.cjs"
+    ],
+    "configFile": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/invitations.config.cjs",
+    "rootDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/invitations",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "390",
+        "name": "390",
+        "testDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "lot2-invitations.spec.ts"
+        ],
+        "timeout": 480000
+      },
+      {
+        "outputDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/invitations",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "768",
+        "name": "768",
+        "testDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "lot2-invitations.spec.ts"
+        ],
+        "timeout": 480000
+      },
+      {
+        "outputDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/invitations",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "1440",
+        "name": "1440",
+        "testDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "lot2-invitations.spec.ts"
+        ],
+        "timeout": 480000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/invitations",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "390",
+        "testDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "snapshotDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "testIgnore": [],
+        "testMatch": "lot2-invitations.spec.ts",
+        "timeout": 480000,
+        "use": {
+          "baseURL": "http://localhost:3483",
+          "locale": "fr-FR",
+          "timezoneId": "Europe/Paris",
+          "trace": "off",
+          "screenshot": "off",
+          "launchOptions": {
+            "args": [
+              "--proxy-server=http://127.0.0.1:9",
+              "--proxy-bypass-list=localhost;127.0.0.1;[::1]",
+              "--disable-background-networking"
+            ]
+          },
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "hasTouch": true
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "390"
+      },
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/invitations",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "768",
+        "testDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "snapshotDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "testIgnore": [],
+        "testMatch": "lot2-invitations.spec.ts",
+        "timeout": 480000,
+        "use": {
+          "baseURL": "http://localhost:3483",
+          "locale": "fr-FR",
+          "timezoneId": "Europe/Paris",
+          "trace": "off",
+          "screenshot": "off",
+          "launchOptions": {
+            "args": [
+              "--proxy-server=http://127.0.0.1:9",
+              "--proxy-bypass-list=localhost;127.0.0.1;[::1]",
+              "--disable-background-networking"
+            ]
+          },
+          "viewport": {
+            "width": 768,
+            "height": 844
+          },
+          "hasTouch": true
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "768"
+      },
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/invitations",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "1440",
+        "testDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "snapshotDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "testIgnore": [],
+        "testMatch": "lot2-invitations.spec.ts",
+        "timeout": 480000,
+        "use": {
+          "baseURL": "http://localhost:3483",
+          "locale": "fr-FR",
+          "timezoneId": "Europe/Paris",
+          "trace": "off",
+          "screenshot": "off",
+          "launchOptions": {
+            "args": [
+              "--proxy-server=http://127.0.0.1:9",
+              "--proxy-bypass-list=localhost;127.0.0.1;[::1]",
+              "--disable-background-networking"
+            ]
+          },
+          "viewport": {
+            "width": 1440,
+            "height": 960
+          },
+          "hasTouch": false
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "1440"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/invitations-locataire.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "lot2-invitations.spec.ts",
+      "file": "lot2-invitations.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "invitation locale : acceptation fournisseur fictif, refus, expiration et acceptation",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 480000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "390",
+              "projectName": "390",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 22803,
+                  "error": {
+                    "message": "TimeoutError: page.goto: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3483/connexion\", waiting until \"load\"\u001b[22m\n",
+                    "stack": "TimeoutError: page.goto: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3483/connexion\", waiting until \"load\"\u001b[22m\n\n    at login (/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts:6:80)\n    at /Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts:15:3",
+                    "location": {
+                      "file": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts",
+                      "column": 80,
+                      "line": 6
+                    },
+                    "snippet": "  4 | import { sansSyntheseAlertes, debordementHorizontal } from './aides';\n  5 | const org='3c1d1e95-3570-400b-8012-44530be145b1';\n> 6 | async function login(p:Page,email:string){await sansSyntheseAlertes(p);await p.goto('/connexion');await p.locator('#email').fill(email);await p.locator('#mot-de-passe').fill('Gerimmo-Demo-2026');await p.getByRole('button',{name:'Se connecter',exact:true}).click();await p.waitForURL(/\\/(espaces|espace|agence|locataire)(\\/|$)/);}\n    |                                                                                ^\n  7 | test('invitation locale : acceptation fournisseur fictif, refus, expiration et acceptation',async({browser},info)=>{\n  8 |  const url=process.env.SUPALOCAL_DB;test.skip(!url||!/^postgres(?:ql)?:\\/\\/[^@]*@127\\.0\\.0\\.1:[0-9]{1,5}\\/gerimmo_ci_[a-z_]+_api$/.test(url),'Base API fictive locale seulement');\n  9 |  const db=new Client({connectionString:url});await db.connect();"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts",
+                        "column": 80,
+                        "line": 6
+                      },
+                      "message": "TimeoutError: page.goto: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3483/connexion\", waiting until \"load\"\u001b[22m\n\n\n  4 | import { sansSyntheseAlertes, debordementHorizontal } from './aides';\n  5 | const org='3c1d1e95-3570-400b-8012-44530be145b1';\n> 6 | async function login(p:Page,email:string){await sansSyntheseAlertes(p);await p.goto('/connexion');await p.locator('#email').fill(email);await p.locator('#mot-de-passe').fill('Gerimmo-Demo-2026');await p.getByRole('button',{name:'Se connecter',exact:true}).click();await p.waitForURL(/\\/(espaces|espace|agence|locataire)(\\/|$)/);}\n    |                                                                                ^\n  7 | test('invitation locale : acceptation fournisseur fictif, refus, expiration et acceptation',async({browser},info)=>{\n  8 |  const url=process.env.SUPALOCAL_DB;test.skip(!url||!/^postgres(?:ql)?:\\/\\/[^@]*@127\\.0\\.0\\.1:[0-9]{1,5}\\/gerimmo_ci_[a-z_]+_api$/.test(url),'Base API fictive locale seulement');\n  9 |  const db=new Client({connectionString:url});await db.connect();\n    at login (/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts:6:80)\n    at /Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts:15:3"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T08:04:44.471Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/invitations/lot2-invitations-invitatio-1d02a-s-expiration-et-acceptation-390/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts",
+                    "column": 80,
+                    "line": 6
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "009cae1594b41b1b9236-101d4240bab0fba18dea",
+          "file": "lot2-invitations.spec.ts",
+          "line": 7,
+          "column": 5
+        },
+        {
+          "title": "invitation locale : acceptation fournisseur fictif, refus, expiration et acceptation",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 480000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "768",
+              "projectName": "768",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 46610,
+                  "error": {
+                    "message": "TimeoutError: page.goto: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3483/espace/3c1d1e95-3570-400b-8012-44530be145b1/personnes/bbc07914-4d95-4a31-8221-4bc0675a1cc3#acces-locataire\", waiting until \"load\"\u001b[22m\n",
+                    "stack": "TimeoutError: page.goto: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3483/espace/3c1d1e95-3570-400b-8012-44530be145b1/personnes/bbc07914-4d95-4a31-8221-4bc0675a1cc3#acces-locataire\", waiting until \"load\"\u001b[22m\n\n    at /Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts:15:53",
+                    "location": {
+                      "file": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts",
+                      "column": 53,
+                      "line": 15
+                    },
+                    "snippet": "  13 |   await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current) values('00000000-0000-0000-0000-000000000000',$1,'authenticated','authenticated',$2,extensions.crypt('Gerimmo-Demo-2026',extensions.gen_salt('bf')),now(),'{\"provider\":\"email\",\"providers\":[\"email\"]}','{}',now(),now(),'','','','','')`,[target,email]);\n  14 |   await db.query(\"insert into persons(id,organization_id,nom,prenom,email) values($1,$2,'TEST Invitation','Camille',$3)\",[person,org,email]);\n> 15 |   await login(p,'proprietaire@example.com');await p.goto(`/espace/${org}/personnes/${person}#acces-locataire`);\n     |                                                     ^\n  16 |   let card=p.locator('#acces-locataire');await card.getByRole('button',{name:'Inviter comme locataire',exact:true}).click();\n  17 |   await expect.poll(async()=>(await db.query(\"select envoye_le from invitations_locataires where person_id=$1 and etat='en_attente' and expire_le>now()\",[person])).rows[0]?.envoye_le).toBeTruthy();\n  18 |   await expect(card.getByText('En attente d’acceptation',{exact:true})).toBeVisible();"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts",
+                        "column": 53,
+                        "line": 15
+                      },
+                      "message": "TimeoutError: page.goto: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3483/espace/3c1d1e95-3570-400b-8012-44530be145b1/personnes/bbc07914-4d95-4a31-8221-4bc0675a1cc3#acces-locataire\", waiting until \"load\"\u001b[22m\n\n\n  13 |   await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current) values('00000000-0000-0000-0000-000000000000',$1,'authenticated','authenticated',$2,extensions.crypt('Gerimmo-Demo-2026',extensions.gen_salt('bf')),now(),'{\"provider\":\"email\",\"providers\":[\"email\"]}','{}',now(),now(),'','','','','')`,[target,email]);\n  14 |   await db.query(\"insert into persons(id,organization_id,nom,prenom,email) values($1,$2,'TEST Invitation','Camille',$3)\",[person,org,email]);\n> 15 |   await login(p,'proprietaire@example.com');await p.goto(`/espace/${org}/personnes/${person}#acces-locataire`);\n     |                                                     ^\n  16 |   let card=p.locator('#acces-locataire');await card.getByRole('button',{name:'Inviter comme locataire',exact:true}).click();\n  17 |   await expect.poll(async()=>(await db.query(\"select envoye_le from invitations_locataires where person_id=$1 and etat='en_attente' and expire_le>now()\",[person])).rows[0]?.envoye_le).toBeTruthy();\n  18 |   await expect(card.getByText('En attente d’acceptation',{exact:true})).toBeVisible();\n    at /Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts:15:53"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T08:05:13.043Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/invitations/lot2-invitations-invitatio-1d02a-s-expiration-et-acceptation-768/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts",
+                    "column": 53,
+                    "line": 15
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "009cae1594b41b1b9236-1dc84a058879f14eb826",
+          "file": "lot2-invitations.spec.ts",
+          "line": 7,
+          "column": 5
+        },
+        {
+          "title": "invitation locale : acceptation fournisseur fictif, refus, expiration et acceptation",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 480000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "1440",
+              "projectName": "1440",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 44743,
+                  "error": {
+                    "message": "TimeoutError: page.goto: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3483/espace/3c1d1e95-3570-400b-8012-44530be145b1/personnes/d6bf4eba-7195-4661-93af-5e396b4792df#acces-locataire\", waiting until \"load\"\u001b[22m\n",
+                    "stack": "TimeoutError: page.goto: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3483/espace/3c1d1e95-3570-400b-8012-44530be145b1/personnes/d6bf4eba-7195-4661-93af-5e396b4792df#acces-locataire\", waiting until \"load\"\u001b[22m\n\n    at /Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts:15:53",
+                    "location": {
+                      "file": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts",
+                      "column": 53,
+                      "line": 15
+                    },
+                    "snippet": "  13 |   await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current) values('00000000-0000-0000-0000-000000000000',$1,'authenticated','authenticated',$2,extensions.crypt('Gerimmo-Demo-2026',extensions.gen_salt('bf')),now(),'{\"provider\":\"email\",\"providers\":[\"email\"]}','{}',now(),now(),'','','','','')`,[target,email]);\n  14 |   await db.query(\"insert into persons(id,organization_id,nom,prenom,email) values($1,$2,'TEST Invitation','Camille',$3)\",[person,org,email]);\n> 15 |   await login(p,'proprietaire@example.com');await p.goto(`/espace/${org}/personnes/${person}#acces-locataire`);\n     |                                                     ^\n  16 |   let card=p.locator('#acces-locataire');await card.getByRole('button',{name:'Inviter comme locataire',exact:true}).click();\n  17 |   await expect.poll(async()=>(await db.query(\"select envoye_le from invitations_locataires where person_id=$1 and etat='en_attente' and expire_le>now()\",[person])).rows[0]?.envoye_le).toBeTruthy();\n  18 |   await expect(card.getByText('En attente d’acceptation',{exact:true})).toBeVisible();"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts",
+                        "column": 53,
+                        "line": 15
+                      },
+                      "message": "TimeoutError: page.goto: Timeout 20000ms exceeded.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3483/espace/3c1d1e95-3570-400b-8012-44530be145b1/personnes/d6bf4eba-7195-4661-93af-5e396b4792df#acces-locataire\", waiting until \"load\"\u001b[22m\n\n\n  13 |   await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current) values('00000000-0000-0000-0000-000000000000',$1,'authenticated','authenticated',$2,extensions.crypt('Gerimmo-Demo-2026',extensions.gen_salt('bf')),now(),'{\"provider\":\"email\",\"providers\":[\"email\"]}','{}',now(),now(),'','','','','')`,[target,email]);\n  14 |   await db.query(\"insert into persons(id,organization_id,nom,prenom,email) values($1,$2,'TEST Invitation','Camille',$3)\",[person,org,email]);\n> 15 |   await login(p,'proprietaire@example.com');await p.goto(`/espace/${org}/personnes/${person}#acces-locataire`);\n     |                                                     ^\n  16 |   let card=p.locator('#acces-locataire');await card.getByRole('button',{name:'Inviter comme locataire',exact:true}).click();\n  17 |   await expect.poll(async()=>(await db.query(\"select envoye_le from invitations_locataires where person_id=$1 and etat='en_attente' and expire_le>now()\",[person])).rows[0]?.envoye_le).toBeTruthy();\n  18 |   await expect(card.getByText('En attente d’acceptation',{exact:true})).toBeVisible();\n    at /Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts:15:53"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T08:06:07.244Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/invitations/lot2-invitations-invitatio-1d02a-s-expiration-et-acceptation-1440/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-invitations.spec.ts",
+                    "column": 53,
+                    "line": 15
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "009cae1594b41b1b9236-f9eb067b2f6d10f1ca9f",
+          "file": "lot2-invitations.spec.ts",
+          "line": 7,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-17T08:04:38.381Z",
+    "duration": 141280.493,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 3,
+    "flaky": 0
+  }
+}

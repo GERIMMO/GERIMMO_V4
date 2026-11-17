@@ -1,0 +1,36 @@
+{
+ "largeur": 1440,
+ "etapes": [
+  {
+   "action": "Inviter comme locataire",
+   "observe": "Courrier arrivé à la seule adresse fictive correspondante, invitation en attente"
+  },
+  {
+   "action": "Contrôler la confidentialité",
+   "observe": "Le propriétaire qui connaît le lien ne peut pas le consulter comme destinataire"
+  },
+  {
+   "action": "Consulter la demande reçue",
+   "observe": "Votre invitation locataire"
+  },
+  {
+   "action": "Refuser puis rouvrir le même lien",
+   "observe": "Refus persistant, aucun bouton d’acceptation et aucun droit accordé"
+  },
+  {
+   "action": "Ouvrir une invitation échue",
+   "observe": "Échéance simulée en base fictive, refus d’acceptation à l’écran"
+  },
+  {
+   "action": "Accepter et consulter son portail",
+   "observe": "Espace locataire ouvert et rattachement du compte constaté en base"
+  },
+  {
+   "action": "Rouvrir le lien accepté et consulter son historique",
+   "observe": "Aucune seconde acceptation, un seul droit et trois invitations dans l’historique du propriétaire"
+  }
+ ],
+ "statut": "réussi",
+ "modele": "/invitations/[invitationId]",
+ "titre": "Votre invitation locataire"
+}

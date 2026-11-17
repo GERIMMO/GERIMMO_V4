@@ -1,0 +1,85 @@
+[
+ {
+  "id": "01",
+  "acteur": "propriétaire",
+  "route": "/espace/[dossier]/abonnement",
+  "largeur": 390,
+  "observe": "Essai visible au propriétaire, aucune souscription en base.",
+  "statut": "réussi"
+ },
+ {
+  "id": "02",
+  "acteur": "propriétaire",
+  "route": "/espace/[dossier]/abonnement/resiliation",
+  "largeur": 390,
+  "observe": "La page explique que rien n’est à résilier et aucun prélèvement n’est créé.",
+  "statut": "réussi"
+ },
+ {
+  "id": "03",
+  "acteur": "propriétaire",
+  "route": "/espace/[dossier]/abonnement",
+  "largeur": 390,
+  "observe": "Essai expiré en lecture seule, aucune souscription enregistrée.",
+  "statut": "réussi"
+ },
+ {
+  "id": "04",
+  "acteur": "propriétaire",
+  "route": "/espace/[dossier]/abonnement",
+  "largeur": 390,
+  "statut": "à vérifier",
+  "erreur": "expect(locator).toBeVisible() failed Locator: getByRole('heading', { name: 'Mon abonnement' }) Expected: visible Error: strict mode violation: getByRole('heading', { name: 'Mon abonnement' }) resolved to 2 elements: 1) <h1>Mon abonnement</h1> aka getByRole('heading', { name: 'Mon abonnement', exact: true }) 2) <h2>Gérer mon abonnement</h2> aka getByRole('heading', { name: 'Gérer mon abonnement' }) Call log: - Expect \"toBeVisible\" getByRole('heading', { name: 'Mon abonnement' }) with timeout 30000ms - waiting for getByRole('heading', { name: 'Mo",
+  "chemin": "/espace/[dossier]/abonnement",
+  "messages": [],
+  "titre": "Mon abonnement"
+ },
+ {
+  "id": "05",
+  "acteur": "superadministrateur",
+  "route": "/admin/organisations/[dossier]",
+  "largeur": 390,
+  "statut": "à vérifier",
+  "erreur": "expect(locator).toContainText(expected) failed Locator: locator('main') Expected substring: \"Parc des Ormes 8e3d60\" Error: strict mode violation: locator('main') resolved to 2 elements: 1) <main aria-busy=\"true\" aria-label=\"Chargement de la page\" class=\"mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7\">…</main> aka getByLabel('Chargement de la page') 2) <main class=\"mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7\">…</main> aka getByText('← Tous les clientsSOParc des') Call log: - Expect \"toContainText\" locator('main') with timeout 30000ms - waiting for lo",
+  "chemin": "/admin/organisations/[dossier]",
+  "messages": [],
+  "titre": "Parc des Ormes 8e3d60"
+ },
+ {
+  "id": "06",
+  "acteur": "superadministrateur",
+  "route": "/admin/organisations/[dossier]",
+  "largeur": 390,
+  "observe": "La procédure distingue l’avoir, le remboursement, la rétractation et les doublons. Le support s’ouvre sur cette organisation ; l’émission exceptionnelle reste chez Stripe.",
+  "statut": "réussi"
+ },
+ {
+  "id": "07",
+  "acteur": "propriétaire",
+  "route": "/espace/[dossier]/abonnement/resiliation",
+  "largeur": 390,
+  "observe": "Adresse erronée bloquée ; résiliation volontaire reçue par le Stripe simulé, annulation en fin de période confirmée et écran rechargé. Marque d’accusé présente : true.",
+  "statut": "réussi"
+ },
+ {
+  "id": "08",
+  "acteur": "propriétaire",
+  "route": "/espace/[dossier]/abonnement/retractation",
+  "largeur": 390,
+  "statut": "à vérifier",
+  "erreur": "expect(locator).toHaveCount(expected) failed Locator: getByRole('button', { name: 'Confirmer la rétractation' }) Expected: 0 Received: 1 Timeout: 30000ms Call log: - Expect \"toHaveCount\" getByRole('button', { name: 'Confirmer la rétractation' }) with timeout 30000ms - waiting for getByRole('button', { name: 'Confirmer la rétractation' }) 60 × locator resolved to 1 element - unexpected value \"1\" ",
+  "chemin": "/espace/[dossier]/abonnement/retractation",
+  "messages": [
+   "Votre rétractation est enregistrée depuis le 17 novembre 2026. Si l'accusé de réception ne vous est pas parvenu, confirmez de nouveau ci-dessous : rien n'est fait deux fois."
+  ],
+  "titre": "Renoncer au contrat"
+ },
+ {
+  "id": "09",
+  "acteur": "propriétaire",
+  "route": "/admin/organisations/[dossier]",
+  "largeur": 390,
+  "observe": "La session du propriétaire est écartée du détail de supervision.",
+  "statut": "réussi"
+ }
+]

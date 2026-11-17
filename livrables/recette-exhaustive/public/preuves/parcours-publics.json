@@ -1,0 +1,1241 @@
+{
+  "config": {
+    "argv": [
+      "/usr/local/bin/node",
+      "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/node_modules/@playwright/test/cli.js",
+      "test",
+      "--config",
+      "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/parcours.config.cjs",
+      "lot2-pilote.spec.ts",
+      "outils.spec.ts",
+      "agences.spec.ts"
+    ],
+    "configFile": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/parcours.config.cjs",
+    "rootDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/parcours",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "390",
+        "name": "390",
+        "testDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "outils.spec.ts",
+          "agences.spec.ts",
+          "lot2-pilote.spec.ts",
+          "lot2-artisan.spec.ts"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/parcours",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "768",
+        "name": "768",
+        "testDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "outils.spec.ts",
+          "agences.spec.ts",
+          "lot2-pilote.spec.ts",
+          "lot2-artisan.spec.ts"
+        ],
+        "timeout": 120000
+      },
+      {
+        "outputDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/parcours",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "1440",
+        "name": "1440",
+        "testDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "outils.spec.ts",
+          "agences.spec.ts",
+          "lot2-pilote.spec.ts",
+          "lot2-artisan.spec.ts"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/parcours",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "390",
+        "testDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "snapshotDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "outils.spec.ts",
+          "agences.spec.ts",
+          "lot2-pilote.spec.ts",
+          "lot2-artisan.spec.ts"
+        ],
+        "timeout": 120000,
+        "use": {
+          "baseURL": "http://127.0.0.1:3483",
+          "locale": "fr-FR",
+          "timezoneId": "Europe/Paris",
+          "trace": "off",
+          "screenshot": "off",
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "hasTouch": true
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "390"
+      },
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/parcours",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "768",
+        "testDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "snapshotDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "outils.spec.ts",
+          "agences.spec.ts",
+          "lot2-pilote.spec.ts",
+          "lot2-artisan.spec.ts"
+        ],
+        "timeout": 120000,
+        "use": {
+          "baseURL": "http://127.0.0.1:3483",
+          "locale": "fr-FR",
+          "timezoneId": "Europe/Paris",
+          "trace": "off",
+          "screenshot": "off",
+          "viewport": {
+            "width": 768,
+            "height": 844
+          },
+          "hasTouch": true
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "768"
+      },
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/parcours",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "1440",
+        "testDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "snapshotDir": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "outils.spec.ts",
+          "agences.spec.ts",
+          "lot2-pilote.spec.ts",
+          "lot2-artisan.spec.ts"
+        ],
+        "timeout": 120000,
+        "use": {
+          "baseURL": "http://127.0.0.1:3483",
+          "locale": "fr-FR",
+          "timezoneId": "Europe/Paris",
+          "trace": "off",
+          "screenshot": "off",
+          "viewport": {
+            "width": 1440,
+            "height": 960
+          },
+          "hasTouch": false
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": "1440"
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/parcours-publics.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "agences.spec.ts",
+      "file": "agences.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "agences : de l'accueil à la liste d'attente, à 390px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "390",
+              "projectName": "390",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9347,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T06:58:16.448Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "55778ed747331fe74687-3378ec1f30b569be0853",
+          "file": "agences.spec.ts",
+          "line": 26,
+          "column": 7
+        },
+        {
+          "title": "agences : de l'accueil à la liste d'attente, à 1440px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "390",
+              "projectName": "390",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5842,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T06:58:27.838Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "55778ed747331fe74687-cda09bdb37ecfe6a4b66",
+          "file": "agences.spec.ts",
+          "line": 26,
+          "column": 7
+        },
+        {
+          "title": "agences : de l'accueil à la liste d'attente, à 390px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "768",
+              "projectName": "768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 21967,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:02:42.897Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "55778ed747331fe74687-77135346c6b1606ae807",
+          "file": "agences.spec.ts",
+          "line": 26,
+          "column": 7
+        },
+        {
+          "title": "agences : de l'accueil à la liste d'attente, à 1440px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "768",
+              "projectName": "768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 14943,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:03:08.715Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "55778ed747331fe74687-3eb3e40794d44f6ff80f",
+          "file": "agences.spec.ts",
+          "line": 26,
+          "column": 7
+        },
+        {
+          "title": "agences : de l'accueil à la liste d'attente, à 390px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "1440",
+              "projectName": "1440",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 46284,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:08:03.103Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "55778ed747331fe74687-ec0df2574e3e3c6f3e95",
+          "file": "agences.spec.ts",
+          "line": 26,
+          "column": 7
+        },
+        {
+          "title": "agences : de l'accueil à la liste d'attente, à 1440px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "1440",
+              "projectName": "1440",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 63757,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:08:55.098Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "55778ed747331fe74687-d022279e44db430d3d06",
+          "file": "agences.spec.ts",
+          "line": 26,
+          "column": 7
+        }
+      ]
+    },
+    {
+      "title": "lot2-pilote.spec.ts",
+      "file": "lot2-pilote.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "inscription et récupération avec boîte fictive locale",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "390",
+              "projectName": "390",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 121018,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 120000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 120000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 120000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-pilote.spec.ts",
+                        "column": 126,
+                        "line": 18
+                      },
+                      "message": "Error: locator.click: Test timeout of 120000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /Confirmer mon adresse|Choisir mon mot de passe/ })\u001b[22m\n\n\n  16 |   return link as string;\n  17 |  }\n> 18 |  await page.goto(await dernierLien());await page.getByRole('button',{name:/Confirmer mon adresse|Choisir mon mot de passe/}).click();await expect(page).toHaveURL(/nouveau-mot-de-passe/);\n     |                                                                                                                              ^\n  19 |  await page.getByLabel('Nouveau mot de passe',{exact:true}).fill(password);await page.getByLabel('Confirmation',{exact:true}).fill(password);\n  20 |  if(await page.getByRole('checkbox',{name:/accepte les conditions/}).count())await page.getByRole('checkbox',{name:/accepte les conditions/}).check();\n  21 |  await page.getByRole('button',{name:/Changer le mot de passe|Créer mon mot de passe|Valider/}).click();await expect(page).toHaveURL(/\\/espace\\/[a-f0-9-]{36}/);\n    at /Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-pilote.spec.ts:18:126"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T06:58:34.004Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/parcours/lot2-pilote-inscription-et-669f3-n-avec-boîte-fictive-locale-390/error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "2d3b6ec093d7b5fd28fc-514de64737ce4f70b1e6",
+          "file": "lot2-pilote.spec.ts",
+          "line": 3,
+          "column": 5
+        },
+        {
+          "title": "inscription et récupération avec boîte fictive locale",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "768",
+              "projectName": "768",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 120852,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 120000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 120000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 120000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-pilote.spec.ts",
+                        "column": 126,
+                        "line": 18
+                      },
+                      "message": "Error: locator.click: Test timeout of 120000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /Confirmer mon adresse|Choisir mon mot de passe/ })\u001b[22m\n\n\n  16 |   return link as string;\n  17 |  }\n> 18 |  await page.goto(await dernierLien());await page.getByRole('button',{name:/Confirmer mon adresse|Choisir mon mot de passe/}).click();await expect(page).toHaveURL(/nouveau-mot-de-passe/);\n     |                                                                                                                              ^\n  19 |  await page.getByLabel('Nouveau mot de passe',{exact:true}).fill(password);await page.getByLabel('Confirmation',{exact:true}).fill(password);\n  20 |  if(await page.getByRole('checkbox',{name:/accepte les conditions/}).count())await page.getByRole('checkbox',{name:/accepte les conditions/}).check();\n  21 |  await page.getByRole('button',{name:/Changer le mot de passe|Créer mon mot de passe|Valider/}).click();await expect(page).toHaveURL(/\\/espace\\/[a-f0-9-]{36}/);\n    at /Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-pilote.spec.ts:18:126"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:03:24.202Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/parcours/lot2-pilote-inscription-et-669f3-n-avec-boîte-fictive-locale-768/error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "2d3b6ec093d7b5fd28fc-da8145a037f4991e4ce3",
+          "file": "lot2-pilote.spec.ts",
+          "line": 3,
+          "column": 5
+        },
+        {
+          "title": "inscription et récupération avec boîte fictive locale",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "1440",
+              "projectName": "1440",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 122641,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 120000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 120000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 120000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-pilote.spec.ts",
+                        "column": 126,
+                        "line": 18
+                      },
+                      "message": "Error: locator.click: Test timeout of 120000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /Confirmer mon adresse|Choisir mon mot de passe/ })\u001b[22m\n\n\n  16 |   return link as string;\n  17 |  }\n> 18 |  await page.goto(await dernierLien());await page.getByRole('button',{name:/Confirmer mon adresse|Choisir mon mot de passe/}).click();await expect(page).toHaveURL(/nouveau-mot-de-passe/);\n     |                                                                                                                              ^\n  19 |  await page.getByLabel('Nouveau mot de passe',{exact:true}).fill(password);await page.getByLabel('Confirmation',{exact:true}).fill(password);\n  20 |  if(await page.getByRole('checkbox',{name:/accepte les conditions/}).count())await page.getByRole('checkbox',{name:/accepte les conditions/}).check();\n  21 |  await page.getByRole('button',{name:/Changer le mot de passe|Créer mon mot de passe|Valider/}).click();await expect(page).toHaveURL(/\\/espace\\/[a-f0-9-]{36}/);\n    at /Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/app/e2e/lot2-pilote.spec.ts:18:126"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:10:01.192Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/easycash/Documents/Gerimmo V3/work/premiers-clients-payants/livrables/recette-exhaustive/public/preuves/parcours/lot2-pilote-inscription-et-669f3-n-avec-boîte-fictive-locale-1440/error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "2d3b6ec093d7b5fd28fc-1bca1716444d1d99aef5",
+          "file": "lot2-pilote.spec.ts",
+          "line": 3,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "outils.spec.ts",
+      "file": "outils.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "index /outils : les cinq outils, sans débordement",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "390",
+              "projectName": "390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 18332,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:00:40.227Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-532f506320010c563ff3",
+          "file": "outils.spec.ts",
+          "line": 41,
+          "column": 5
+        },
+        {
+          "title": "calcul IRL : 850 € × 148,37 ÷ 146,68 = 859,79 €, alerte au-delà d'un an, DPE F bloque",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "390",
+              "projectName": "390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 23517,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:01:04.738Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-33a99d274f4c93050659",
+          "file": "outils.spec.ts",
+          "line": 57,
+          "column": 5
+        },
+        {
+          "title": "quittance : 850 + 120, reçu 500 → reçu de paiement partiel, reste dû 470,00 €",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "390",
+              "projectName": "390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 26829,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:01:28.406Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-2cf7b144e572bdf2a411",
+          "file": "outils.spec.ts",
+          "line": 103,
+          "column": 5
+        },
+        {
+          "title": "comparateur : GLI 314,28 € brut, 165,94 € net ; 30 ans et plus « Autre » → Visale exclue",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "390",
+              "projectName": "390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 16289,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:01:55.430Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-e3e9fa7c1e7c1aa4eec6",
+          "file": "outils.spec.ts",
+          "line": 138,
+          "column": 5
+        },
+        {
+          "title": "LMNP : réel 0,00 €, micro 2 265,60 €, amortissement reporté 554,29 €",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "390",
+              "projectName": "390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12839,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:02:11.817Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-5225c9857a8cbd53c221",
+          "file": "outils.spec.ts",
+          "line": 151,
+          "column": 5
+        },
+        {
+          "title": "rentabilité : brute 5,29 %, nette 4,08 %, cash-flow −350,44 €",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "390",
+              "projectName": "390",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12142,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:02:24.815Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-e068ffedc0013d06152d",
+          "file": "outils.spec.ts",
+          "line": 162,
+          "column": 5
+        },
+        {
+          "title": "index /outils : les cinq outils, sans débordement",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "768",
+              "projectName": "768",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9613,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:05:32.693Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-d58058c5b427547a5c00",
+          "file": "outils.spec.ts",
+          "line": 41,
+          "column": 5
+        },
+        {
+          "title": "calcul IRL : 850 € × 148,37 ÷ 146,68 = 859,79 €, alerte au-delà d'un an, DPE F bloque",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "768",
+              "projectName": "768",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 24032,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:05:48.753Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-0bfe3ac34f6c9047dcf2",
+          "file": "outils.spec.ts",
+          "line": 57,
+          "column": 5
+        },
+        {
+          "title": "quittance : 850 + 120, reçu 500 → reçu de paiement partiel, reste dû 470,00 €",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "768",
+              "projectName": "768",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 20208,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:06:12.927Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-43e1c8a39b5f06dce9ee",
+          "file": "outils.spec.ts",
+          "line": 103,
+          "column": 5
+        },
+        {
+          "title": "comparateur : GLI 314,28 € brut, 165,94 € net ; 30 ans et plus « Autre » → Visale exclue",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "768",
+              "projectName": "768",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 29091,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:06:33.351Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-ddbee93d181b1c8f89c8",
+          "file": "outils.spec.ts",
+          "line": 138,
+          "column": 5
+        },
+        {
+          "title": "LMNP : réel 0,00 €, micro 2 265,60 €, amortissement reporté 554,29 €",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "768",
+              "projectName": "768",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 33269,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:07:02.767Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-5eba237a1a54222fc8fa",
+          "file": "outils.spec.ts",
+          "line": 151,
+          "column": 5
+        },
+        {
+          "title": "rentabilité : brute 5,29 %, nette 4,08 %, cash-flow −350,44 €",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "768",
+              "projectName": "768",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 20903,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:07:36.243Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-54704125266f64d8345e",
+          "file": "outils.spec.ts",
+          "line": 162,
+          "column": 5
+        },
+        {
+          "title": "index /outils : les cinq outils, sans débordement",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "1440",
+              "projectName": "1440",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 31842,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:12:15.987Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-7c6e102027252f0729e0",
+          "file": "outils.spec.ts",
+          "line": 41,
+          "column": 5
+        },
+        {
+          "title": "calcul IRL : 850 € × 148,37 ÷ 146,68 = 859,79 €, alerte au-delà d'un an, DPE F bloque",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "1440",
+              "projectName": "1440",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 57491,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:13:05.870Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-6c9f17ba7d43856e52b4",
+          "file": "outils.spec.ts",
+          "line": 57,
+          "column": 5
+        },
+        {
+          "title": "quittance : 850 + 120, reçu 500 → reçu de paiement partiel, reste dû 470,00 €",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "1440",
+              "projectName": "1440",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 45971,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:14:03.524Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-21ef0db5d37ff01f466f",
+          "file": "outils.spec.ts",
+          "line": 103,
+          "column": 5
+        },
+        {
+          "title": "comparateur : GLI 314,28 € brut, 165,94 € net ; 30 ans et plus « Autre » → Visale exclue",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "1440",
+              "projectName": "1440",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 24403,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:14:49.864Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-efc20a730b99e1cf7ef9",
+          "file": "outils.spec.ts",
+          "line": 138,
+          "column": 5
+        },
+        {
+          "title": "LMNP : réel 0,00 €, micro 2 265,60 €, amortissement reporté 554,29 €",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "1440",
+              "projectName": "1440",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11697,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:15:14.352Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-ec2551d7078fd12de948",
+          "file": "outils.spec.ts",
+          "line": 151,
+          "column": 5
+        },
+        {
+          "title": "rentabilité : brute 5,29 %, nette 4,08 %, cash-flow −350,44 €",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "1440",
+              "projectName": "1440",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7683,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-17T07:15:26.589Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a047c1af5f92becdd168-67a02ca90767c3308e1c",
+          "file": "outils.spec.ts",
+          "line": 162,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-17T06:58:11.457Z",
+    "duration": 1044620.822,
+    "expected": 24,
+    "skipped": 0,
+    "unexpected": 3,
+    "flaky": 0
+  }
+}

@@ -34,8 +34,11 @@ function preuveLienArchive(p: PorteeLien, echeance: string): string | null {
     .digest("base64url");
 }
 
-export function lienArchiveEspace(route: string, p: PorteeLien, maintenant = Date.now()): string | null {
-  const jusquau = String(maintenant + DUREE_LIEN_ESPACE_MS);
+export function lienArchiveEspace(route: string, p: PorteeLien & { finConservation?: string }, maintenant = Date.now()): string | null {
+  const expiration = p.finConservation === undefined ? maintenant + DUREE_LIEN_ESPACE_MS
+    : Math.min(maintenant + DUREE_LIEN_ESPACE_MS, Date.parse(p.finConservation));
+  if (!Number.isFinite(expiration) || expiration <= maintenant) return null;
+  const jusquau = String(expiration);
   const preuve = preuveLienArchive(p, jusquau);
   if (!preuve) return null;
   return `${route}?${new URLSearchParams({ archive: p.exportId, jusquau, preuve })}`;

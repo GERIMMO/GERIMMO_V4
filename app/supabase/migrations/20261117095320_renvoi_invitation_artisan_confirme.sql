@@ -66,3 +66,5 @@ begin
  insert into public.courriels_evenements(courrier_id,etat) values(p_id,'finalisation_terminee');
  return true;
 end $$;
+
+notify pgrst, 'reload schema';

@@ -67,8 +67,8 @@ export async function ArchiveComplete({ etat }: { etat?: string }) {
     </li>)}</ul>}
     {exports.error ? <p role="alert" className="err">Le suivi des archives est indisponible.</p>
       : (exports.data ?? []).length > 0 && <ul className="divide-y text-sm">{((exports.data ?? []) as Export[]).map((x) => {
-        const lien = x.statut === "pret" && x.expire_le && Date.parse(x.expire_le) > Date.now()
-          ? lienArchiveEspace(route(x.organisation_id_export), { orgId: x.organisation_id_export, accountId: user.id, exportId: x.id }) : null;
+        const lien = x.statut === "pret" && x.expire_le
+          ? lienArchiveEspace(route(x.organisation_id_export), { orgId: x.organisation_id_export, accountId: user.id, exportId: x.id, finConservation: x.expire_le }) : null;
         return <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
         <span>{noms.get(x.organisation_id_export) ?? "Espace"} · demandée le {formaterDateHeureParis(x.demande_le)} · {ETATS_EXPORT[x.statut] ?? x.statut}{x.statut === "pret" && x.expire_le ? ` jusqu’au ${formaterDateHeureParis(x.expire_le)}` : ""}{x.statut === "echec" && x.erreur ? ` : ${x.erreur}` : ""}{enPlan(x) ? " — toujours pas prête après un quart d’heure : cliquez de nouveau sur « Préparer l’archive complète », la préparation reprend." : ""}</span>
         {lien && <a className="lien-texte" href={lien}>Télécharger</a>}

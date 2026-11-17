@@ -92,6 +92,10 @@ describe("route /agence/[orgId]/export-complet", () => {
     const route = `https://site.example.com/agence/${ORG}/export-complet`;
     r.claims = { sub: COMPTE, aal: "aal2" };
     const portee = { orgId: ORG, accountId: COMPTE, exportId: EXPORT };
+    const instant = Date.now(), fin = new Date(instant + 600_000).toISOString();
+    expect(lienArchiveEspace(route, { ...portee, finConservation: new Date(instant - 1).toISOString() }, instant)).toBeNull();
+    expect(lienArchiveEspace(route, { ...portee, finConservation: "invalide" }, instant)).toBeNull();
+    expect(new URL(lienArchiveEspace(route, { ...portee, finConservation: fin }, instant)!).searchParams.get("jusquau")).toBe(String(instant + 600_000));
     const valide = lienArchiveEspace(route, portee)!;
     expect(lieu(await GET(new Request(valide), contexte))).toBe("https://stockage.example.invalid/signe");
     expect(lieu(await GET(new Request(lienArchiveEspace(route, portee, Date.now()-86_400_001)!), contexte))).toContain("archive=lien_expire");

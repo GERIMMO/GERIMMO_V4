@@ -2,6 +2,20 @@ name: Vérifier les paiements Stripe sans argent réel
 
 on:
   workflow_dispatch:
+    inputs:
+      defi_action:
+        description: 'Recette automatique ou défi bancaire TEST pour un opérateur'
+        type: choice
+        default: automatique
+        options: [automatique, preparer, verifier, clore]
+      defi_cle_publique:
+        description: 'Clé publique X25519 de remise, seulement pour préparer deux défis'
+        required: false
+        type: string
+      defi_execution:
+        description: 'Numéro de la préparation TEST à vérifier ou clore'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -11,12 +25,43 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  defi_interactif:
+    name: Deux décisions bancaires fictives, sans capture
+    if: >-
+      ${{ inputs.defi_action != 'automatique' && inputs.defi_action != '' &&
+      github.repository == 'GERIMMO/GERIMMO_V4' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/codex/')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: app
+      - name: Exercer exclusivement le bac Stripe TEST
+        env:
+          GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}
+          DEFI_ACTION: ${{ inputs.defi_action }}
+          DEFI_CLE_PUBLIQUE: ${{ inputs.defi_cle_publique }}
+          DEFI_EXECUTION: ${{ inputs.defi_execution }}
+          DEFI_DOSSIER: ${{ runner.temp }}
+        run: node app/scripts/recette/defi-bancaire-test.mjs
+      - uses: actions/upload-artifact@v7
+        if: inputs.defi_action == 'preparer'
+        with:
+          name: defis-bancaires-test-chiffres
+          path: ${{ runner.temp }}/defis-chiffres.json
+          if-no-files-found: error
+          retention-days: 1
   paiements:
     # main, ou une branche de travail du dépôt avant sa fusion : une recette
     # Stripe doit pouvoir précéder la mise en production. La clé reste une clé
     # de TEST (étape « Refuser une clé réelle ou absente »), et aucune branche
     # de fork n'y accède (workflow_dispatch réservé aux collaborateurs).
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/') || startsWith(github.ref, 'refs/heads/codex/')
+    if: >-
+      ${{ (inputs.defi_action == '' || inputs.defi_action == 'automatique') &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/') || startsWith(github.ref, 'refs/heads/codex/')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     services:

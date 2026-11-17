@@ -511,6 +511,7 @@ async function deposerPieceBail(
   }
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  revalidatePath(`/espace/${orgId}/baux/${bailId}`);
   return { succes: res.avertissement ? `${succes} ${res.avertissement}` : succes };
 }
 

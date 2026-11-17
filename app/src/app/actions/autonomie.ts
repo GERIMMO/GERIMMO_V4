@@ -8,7 +8,7 @@ export type EtatAutonomie = { erreur?: string; succes?: string };
 async function verifier() {
   const supabase = await createClient();
   const { data: ok, error } = await supabase.rpc("is_permanent_super_admin");
-  return { supabase, ok: !error && ok === true };
+  return { supabase, ok: !error && ok === true, verificationIndisponible: Boolean(error) };
 }
 export async function actualiserDossiers(): Promise<EtatAutonomie> {
   const { supabase, ok } = await verifier();
@@ -88,9 +88,12 @@ export async function actualiserCorrection(id:string):Promise<EtatAutonomie>{
   return {succes:identique&&p.autorisee_le?'Votre accord reste enregistré pour cette version. La publication est une étape distincte.':s.rapport.message};
  }catch(e){return {erreur:e instanceof Error?e.message:'Le suivi est momentanément indisponible.'};}
 }
-export async function signalerPresence(): Promise<void> {
-  const {supabase,ok}=await verifier();
-  if(ok) await supabase.rpc('signaler_presence_supervision');
+export async function signalerPresence(): Promise<"confirmee" | "refusee" | "indisponible"> {
+  const { supabase, ok, verificationIndisponible } = await verifier();
+  if (verificationIndisponible) return "indisponible";
+  if (!ok) return "refusee";
+  const { error } = await supabase.rpc("signaler_presence_supervision");
+  return error ? "indisponible" : "confirmee";
 }
 export async function enregistrerBilanContact(orgId:string,incidentId:string,_etat:EtatAutonomie,form:FormData):Promise<EtatAutonomie>{
   const db=await createClient();

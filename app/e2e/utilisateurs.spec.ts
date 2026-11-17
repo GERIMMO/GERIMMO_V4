@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
-import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
+import { attendreRenduStable, debordementHorizontal, sansSyntheseAlertes } from "./aides";
 
 test.use({ storageState: path.join(__dirname, ".auth", "superadmin.json") });
 test("annuaire lisible, filtres cumulés et ouverture du bon compte", async ({ page }, info) => {
@@ -11,6 +11,7 @@ test("annuaire lisible, filtres cumulés et ouverture du bon compte", async ({ p
     await page.setViewportSize({ width, height: 844 });
     await expect(page.getByRole("list", { name: "Personnes trouvées" })).toBeVisible();
     expect(await debordementHorizontal(page)).toBe(0);
+    await attendreRenduStable(page);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.screenshot({ path: info.outputPath(`utilisateurs-${width}.png`), fullPage: true });
   }

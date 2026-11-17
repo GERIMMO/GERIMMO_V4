@@ -144,7 +144,21 @@ test("Résidence des Acacias : de la première inscription à la quittance du m�
   await expect(cadre).toContainText("04 65 71 02 14");
   await expect(cadre).not.toContainText(email);
   for (const mention of ["Morel","Rivière","Résidence des Acacias","600,00","40,00",bail.split("/").at(-1)!.slice(0,8).toUpperCase()]) await expect(cadre).toContainText(mention);
-  await document.getByRole("button",{name:/Imprimer ou enregistrer en PDF/}).click({trial:true});
+  // Le navigateur sans imprimante doit ouvrir l’impression du document contractuel lui-même.
+  const imprimer = document.getByRole("button", { name: /Imprimer ou enregistrer en PDF/ });
+  await expect(imprimer).toBeEnabled();
+  const cadreImprime = document.locator("iframe").last();
+  await cadreImprime.evaluate((element: HTMLIFrameElement) => {
+    const fenetre = element.contentWindow;
+    if (!fenetre) throw new Error("Le cadre de la quittance n’est pas disponible.");
+    const imprimerNatif = fenetre.print.bind(fenetre);
+    fenetre.print = () => {
+      element.dataset.appelsImpression = String(Number(element.dataset.appelsImpression || 0) + 1);
+      imprimerNatif();
+    };
+  });
+  await imprimer.click();
+  await expect(cadreImprime).toHaveAttribute("data-appels-impression", "1");
   await document.waitForLoadState("networkidle");
   expect(await debordementHorizontal(page)).toBe(0);
   await document.screenshot({path:info.outputPath("quittance-acacias.png"),fullPage:true,animations:"disabled"});

@@ -78,3 +78,33 @@ export async function ouvrirRecherche(page: Page) {
   }).toPass({ timeout: 30_000 });
   return champ;
 }
+
+/** Attend le rendu final sans neutraliser les animations ni les règles axe. */
+export async function attendreRenduStable(page: Page) {
+  await page.evaluate(async () => {
+    let garde: ReturnType<typeof setTimeout> | undefined;
+    const rendu = async () => {
+      await document.fonts.ready;
+      for (;;) {
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        // Les indicateurs continus (pouls, chargement) ne terminent jamais.
+        const finies = document.getAnimations().filter((animation) =>
+          animation.playState !== "finished" &&
+          Number.isFinite(animation.effect?.getComputedTiming().endTime),
+        );
+        if (!finies.length) return;
+        await Promise.all(finies.map((animation) => animation.finished.catch(() => {})));
+      }
+    };
+    try {
+      await Promise.race([
+        rendu(),
+        new Promise<never>((_, reject) => {
+          garde = setTimeout(() => reject(new Error("Rendu non stabilisé avant l’audit axe (5 s)")), 5_000);
+        }),
+      ]);
+    } finally {
+      clearTimeout(garde);
+    }
+  });
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 // Le document conforme (modèle PDF des quittances) affiché tel quel. Sa
@@ -10,17 +10,22 @@ import { Button } from "@/components/ui/button";
 // feuille d'impression s'ouvre d'elle-même, d'où « Enregistrer en PDF ».
 // Depuis le 27/10 (ED-04), « Mes documents » du locataire affiche ce même
 // cadre dans sa fenêtre d'aperçu, sans impression automatique.
-export function DocumentQuittance({
-  html,
-  titre,
-  imprimerAuChargement,
-}: {
+type PropsQuittance = {
   html: string;
   titre: string;
   imprimerAuChargement: boolean;
-}) {
+};
+
+export function DocumentQuittance(props: PropsQuittance) {
+  // Une autre pièce de l’aperçu locataire doit avoir son propre cadre, son
+  // état de chargement et son éventuelle impression au premier affichage.
+  return <CadreQuittance key={props.html} {...props} />;
+}
+
+function CadreQuittance({ html, titre, imprimerAuChargement }: PropsQuittance) {
   const cadre = useRef<HTMLIFrameElement>(null);
   const dejaImprime = useRef(false);
+  const [documentPret, setDocumentPret] = useState(false);
 
   const ajuster = useCallback(() => {
     const doc = cadre.current?.contentDocument;
@@ -39,7 +44,10 @@ export function DocumentQuittance({
   }, []);
 
   const auChargement = useCallback(() => {
+    const doc = cadre.current?.contentDocument;
+    if (doc?.readyState !== "complete" || !doc.body?.firstElementChild) return;
     ajuster();
+    setDocumentPret(true);
     if (imprimerAuChargement && !dejaImprime.current) {
       dejaImprime.current = true;
       imprimer();
@@ -56,7 +64,11 @@ export function DocumentQuittance({
   return (
     <div className="space-y-3">
       <div className="print:hidden">
-        <Button type="button" size="sm" variant="outline" onClick={imprimer}>
+        <Button
+          type="button" size="sm" variant="outline" onClick={imprimer}
+          disabled={!documentPret}
+          title={!documentPret ? "Le document se prépare pour l’impression." : undefined}
+        >
           Imprimer ou enregistrer en PDF
         </Button>
       </div>

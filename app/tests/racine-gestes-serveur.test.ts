@@ -46,6 +46,7 @@ import { archiverPersonne, creerPersonne } from "@/app/actions/personnes";
 import { creerEdl } from "@/app/actions/edl";
 import { rattacherDocument, remplacerDocument } from "@/app/actions/documents-ged";
 import { deposerBailSigne } from "@/app/actions/baux";
+import { deposerFichierGed } from "@/lib/ged-depot";
 
 const ORG = "org-test";
 const PROFILS = [
@@ -349,6 +350,13 @@ describe("deposerBailSigne : les liens « à corriger » d'une mise en location 
     return f;
   }
   for (const p of PROFILS) {
+    it(`${p.nom} : le dépôt réussi actualise la fiche de bail ouverte dans cet espace`, async () => {
+      gerant(p.role, base({}));
+      vi.mocked(deposerFichierGed).mockResolvedValueOnce({ documentId: "document-1" });
+      const retour = await deposerBailSigne(ORG, "bail-1", {}, depot());
+      expect(retour.succes).toContain("le contrat est actif");
+      expect(m.revalidate).toHaveBeenCalledWith(`${p.attendu}/baux/bail-1`);
+    });
     it(`${p.nom} : blocages du lot → ${p.attendu}/parc/<bien>/lots/<lot>#…`, async () => {
       gerant(p.role, scenario((nom) => {
         if (nom === "controler_mise_en_location") return { error: { message: "Mise en location bloquée : surface, DPE" } };

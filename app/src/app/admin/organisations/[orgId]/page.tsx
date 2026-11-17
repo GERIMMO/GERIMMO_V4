@@ -1,8 +1,10 @@
+import { FacturesAbonnement, ProcedureFacturation } from "./factures-abonnement";
+import { REGIME_TVA } from "@/lib/editeur";
 import { ConsoleSection } from "@/components/console-section";
 import { LectureIndisponible } from "../../lecture-indisponible";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
-import { euros, formuleParCode, parPeriode, type Periodicite } from "@/lib/tarifs";
+import { etiquetteTaxes, euros, formuleParCode, parPeriode, type Periodicite } from "@/lib/tarifs";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { libelleRole, libelleStatutAdhesion, LIBELLES_STATUT_ORGANISATION } from "@/lib/libelles";
@@ -118,6 +120,7 @@ export default async function PageAdminOrganisation(
     avantages_en_attente: number;
   }[])[0];
 
+  const mentionTaxe = etiquetteTaxes(abo?.public_tarif === "agence" ? "ht" : "ttc", REGIME_TVA);
   const adhesions = (adhesionsLues.data ?? []) as unknown as Adhesion[];
   const lignesParrainage = (parrainages.data ?? []) as unknown as {
     parrain_organization_id: string;
@@ -248,7 +251,7 @@ export default async function PageAdminOrganisation(
                   {abo.formule ? `Formule ${formuleParCode(abo.formule)?.nom ?? abo.formule}, ` : ""}
                   {abo.periodicite === "annuel" ? "annuelle" : "mensuelle"} —{" "}
                   {abo.montant_periode_cents !== null
-                    ? `${euros(abo.montant_periode_cents)} ${abo.public_tarif === "agence" ? "HT" : "TTC"} ${parPeriode(abo.periodicite ?? "mensuel")}`
+                    ? `${euros(abo.montant_periode_cents)}${mentionTaxe ? ` ${mentionTaxe}` : ""} ${parPeriode(abo.periodicite ?? "mensuel")}`
                     : "montant non reçu de Stripe"}{" "}
                   ({abo.stripe_statut})
                 </Info>
@@ -274,6 +277,11 @@ export default async function PageAdminOrganisation(
         </dl>
       </ConsoleSection>
 
+      {abo?.stripe_statut && <div id="historique-factures"><ConsoleSection titre="Historique de facturation" description="Factures rattachées au contrat de cette organisation." icone="documents" ton="bleu" ouverte>
+        {recherche.factures === "1" ? <FacturesAbonnement organisation={orgId} /> :
+          <Link href={`/admin/organisations/${orgId}?factures=1#historique-factures`} prefetch={false} className="btn-secondaire">Consulter les dernières factures</Link>}
+        <ProcedureFacturation organisation={orgId} />
+      </ConsoleSection></div>}
       {abo && <GesteControle action={reprendreConfirmationClient.bind(null,orgId)}
         titre="Vérifier la confirmation de souscription" bouton="Vérifier et reprendre"
         confirmation="Je demande la vérification du contrat et la reprise du courrier si son envoi est autorisé." />}

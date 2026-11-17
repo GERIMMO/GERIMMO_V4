@@ -517,9 +517,9 @@ describe("suites de nuit (doublures de la base, de Stripe et de l'envoi)", () =>
     const active = fausseBase({ aPrevenir: [a, { ...a, account_id: "a3", email: "artisan@example.invalid", nature: "artisan", titulaire: false, organisation: null }] });
     expect(await traiterSuitesComptes(active.db, { envoyer, site: "https://site.example.com", versionMin: "2026-11-15", exports: false })).toMatchObject({ avertissements: 2, echecs: 0 });
     expect(active.rpc.find((r) => r.nom === "comptes_inactifs_a_prevenir")?.args).toEqual({ p_version_min: "2026-11-15", p_limite: 100 });
-    expect(envoyer).toHaveBeenCalledWith(expect.objectContaining({ to: "dormeur@example.invalid", subject: "Votre compte Gerimmo sera supprimé le 23 décembre 2026", cleIdempotence: "inactivite-a2-j60-2026-12-23" }));
+    expect(envoyer).toHaveBeenCalledWith(expect.objectContaining({ to: "dormeur@example.invalid", subject: "Votre compte Gerimmo sera supprimé le 23 décembre 2026", cleIdempotence: "inactivite-a2-j60-2024-12-21T10:00:00Z" }));
     const artisan = lisible((envoyer.mock.calls[1] as unknown as [{ html: string }])[0].html);
     expect(artisan).toContain("https://site.example.com/api/artisan-prive/export");
-    expect(active.rpc.find((r) => r.nom === "avertissement_inactivite_envoye")?.args).toEqual({ p_account: "a2", p_etape: "j60", p_derniere_activite_le: "2024-12-21T10:00:00Z", p_suppression_le: "2026-12-23" });
+    expect(active.rpc.some((r) => r.nom === "avertissement_inactivite_envoye")).toBe(false);
   });
 });

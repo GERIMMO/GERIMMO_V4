@@ -1,0 +1,36 @@
+{
+  "contexte": "Deux adresses matérielles distinctes dans la même organisation fictive, un même nom de bien, deux lots et aucune personne en occupation.",
+  "attendu": "Un conflit d’adresse doit être signalé ou les deux immeubles distingués avant le rattachement des lots.",
+  "fichier": [
+    {
+      "lot": "Cour",
+      "adresse": "11 rue du Canal"
+    },
+    {
+      "lot": "Jardin",
+      "adresse": "84 rue du Quai"
+    }
+  ],
+  "apercu": "Passage des Iris 7b081747 · Cour\nLigne 1\nprête\nPassage des Iris 7b081747 · Jardin\nLigne 2\nprête",
+  "proposeDeuxLignes": true,
+  "resultat": "Passage des Iris 7b081747 · Cour\nLigne 1\ncréée\nPassage des Iris 7b081747 · Jardin\nLigne 2\ncréée",
+  "rattachements": [
+    {
+      "adresse": "11 rue du Canal",
+      "lot": "Cour"
+    },
+    {
+      "adresse": "11 rue du Canal",
+      "lot": "Jardin"
+    }
+  ],
+  "mauvaisRattachements": [
+    {
+      "adresse": "11 rue du Canal",
+      "lot": "Jardin"
+    }
+  ],
+  "statut": "échec",
+  "shaInterfaceCompilee": "46ad82644d5a9979f59d70fbb2c94799be4c74fe",
+  "migrationImport": "non appliquée lors de la reproduction"
+}

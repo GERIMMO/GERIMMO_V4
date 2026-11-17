@@ -23,6 +23,7 @@ async function creerUtilisateur(db: Client): Promise<string> {
       'test-s7-'||gen_random_uuid()||'@test.local','x', now(),
       '{"provider":"email","providers":["email"]}'::jsonb,'{}'::jsonb, now(), now(),'','','','','')
     returning id`);
+  await db.query("insert into auth.sessions(id,user_id) values($1,$1)", [id]);
   return id;
 }
 
@@ -31,7 +32,7 @@ async function simuler(db: Client, accountId: string | null, role = "authenticat
   if (accountId) {
     await db.query(
       `select set_config('request.jwt.claims',
-         json_build_object('sub', $1::text, 'role', 'authenticated')::text, true)`,
+         json_build_object('sub', $1::text, 'session_id', $1::text, 'role', 'authenticated')::text, true)`,
       [accountId]
     );
   } else {

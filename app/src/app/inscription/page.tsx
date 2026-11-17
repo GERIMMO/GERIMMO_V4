@@ -26,7 +26,7 @@ export default async function PageInscription(props: PageProps<"/inscription">) 
   return (
     <CoquilleAuth
       promesse="Gérez vos locations vous-même, au carré."
-      sousPromesse="Vos lots, vos baux, vos quittances, votre livre recettes-dépenses et l'aide à la déclaration des revenus fonciers — partout en France, sans agence, sans commission. Le réseau d’artisans dépend de la commune du bien et du métier disponible."
+      sousPromesse="Suivez vos lots, vos baux, vos quittances et vos recettes et dépenses. En location nue au réel, préparez votre récapitulatif 2044. Le réseau d’artisans dépend de la commune du bien et du métier disponible."
       mention={`${duree} d'essai, sans carte bancaire`}
       titre="Ouvrir mon espace propriétaire"
       // La réassurance « sans carte bancaire » passe dans le chapo (24/09) : la

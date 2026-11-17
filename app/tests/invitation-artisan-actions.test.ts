@@ -109,9 +109,24 @@ describe("inviter un artisan (propriétaire)", () => {
     expect(m.courriel).not.toHaveBeenCalled();
   });
 
+  it("le même renvoi volontaire garde sa clé ; un envoi déjà accepté permet une nouvelle décision", async () => {
+    const vu = "2026-11-17T09:15:30.000000+00:00";
+    await inviterArtisan(org, {}, formulaire({ email: preparee.email }));
+    const initiale = m.courriel.mock.calls[0][0].cleIdempotence;
+    m.rpc.mockResolvedValue({ data: { ...preparee, envoi_precedent: "1794906930000000" }, error: null });
+    for (const appel of [1, 2]) {
+      await renvoyerInvitationArtisan(org, inv, {}, formulaire({ dernier_envoi: vu }));
+      expect(m.courriel.mock.calls[appel][0].cleIdempotence).toBe(initiale + "-apres-1794906930000000");
+      expect(m.rpc).toHaveBeenLastCalledWith("preparer_renvoi_invitation_artisan", { p_org: org, p_id: inv, p_dernier_envoi: vu });
+    }
+    m.rpc.mockResolvedValue({ data: { erreur: "Le suivi de cette invitation a changé." }, error: null });
+    expect((await renvoyerInvitationArtisan(org, inv, {}, formulaire({ dernier_envoi: vu }))).erreur).toContain("changé");
+    expect(m.courriel).toHaveBeenCalledTimes(3);
+  });
+
   it("renvoyer : même lien, nouvelle trace ; une invitation expirée le dit sans e-mail", async () => {
     expect((await renvoyerInvitationArtisan(org, inv, {}, new FormData())).succes).toContain("traitée");
-    expect(m.rpc).toHaveBeenNthCalledWith(1, "renvoyer_invitation_artisan", { p_id: inv });
+    expect(m.rpc).toHaveBeenNthCalledWith(1, "preparer_renvoi_invitation_artisan", { p_org: org, p_id: inv, p_dernier_envoi: null });
     // Même lien que la première fois (même invitation, même ancre), et l'envoi est noté comme pour une invitation.
     expect(m.courriel).toHaveBeenCalledTimes(1);
     expect(m.courriel.mock.calls[0][0].to).toBe("artisan@example.invalid");
@@ -150,7 +165,7 @@ describe("les gestes d'une ligne du carnet", () => {
 
   it("renvoyer et inviter de nouveau passent par les mêmes contrôles que les gestes seuls", async () => {
     expect((await geste({ geste: "renvoyer", invitation: inv })).succes).toContain("traitée");
-    expect(m.rpc).toHaveBeenNthCalledWith(1, "renvoyer_invitation_artisan", { p_id: inv });
+    expect(m.rpc).toHaveBeenNthCalledWith(1, "preparer_renvoi_invitation_artisan", { p_org: org, p_id: inv, p_dernier_envoi: null });
     m.rpc.mockClear();
     const r = await geste({ geste: "reinviter", email: "Artisan@Example.invalid", nom: "M. Martin", metier: "plomberie" });
     expect(r.succes).toContain("Invitation envoyée à artisan@example.invalid");

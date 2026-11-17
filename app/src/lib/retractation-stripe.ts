@@ -64,17 +64,25 @@ export async function rembourserFactures(stripe: Stripe, factures: Stripe.Invoic
     const paiements = paiementsDe(f);
     if (paiements.length === 0) throw new Error(`Paiement introuvable pour la facture ${f.id}.`);
     for (const [i, p] of paiements.entries()) {
+      const dejaRembourse = await remboursementConnu(stripe, p, cle);
+      if (dejaRembourse !== null) {
+        refunds.push({ facture: f.id, refund: null, montant_cents: dejaRembourse, deja: true });
+        montantCents += dejaRembourse;
+        continue;
+      }
       try {
         const r = await stripe.refunds.create(
           { ...p, reason: "requested_by_customer", metadata: { gerimmo_retractation: cle, facture: f.id } },
           { idempotencyKey: `${cle}-${f.id}-${i}` }
         );
+        if (r.status !== "succeeded") throw new Error("Remboursement à vérifier chez Stripe avant confirmation.");
         refunds.push({ facture: f.id, refund: r.id, montant_cents: r.amount });
         montantCents += r.amount;
       } catch (e) {
         if (e instanceof ArretSupervision) throw e;
         if ((e as { code?: string }).code === "charge_already_refunded") {
-          const deja = await rembourseParLaRetractation(stripe, p, cle);
+          const deja = await remboursementConnu(stripe, p, cle, true);
+          if (deja === null) throw new Error("Preuve du remboursement indisponible.");
           refunds.push({ facture: f.id, refund: null, montant_cents: deja, deja: true });
           montantCents += deja;
           continue;
@@ -86,12 +94,17 @@ export async function rembourserFactures(stripe: Stripe, factures: Stripe.Invoic
   return { montantCents, refunds };
 }
 
-/** Ce que les remboursements de CETTE rétractation (métadonnée `gerimmo_retractation`) ont rendu sur ce paiement. */
-async function rembourseParLaRetractation(stripe: Stripe, p: { payment_intent?: string; charge?: string }, cle: string): Promise<number> {
+/** Rapproche le paiement avant une nouvelle demande, même après expiration de la clé d’idempotence Stripe. */
+async function remboursementConnu(stripe: Stripe, p: { payment_intent?: string; charge?: string }, cle: string, entierementRembourse = false): Promise<number | null> {
   const liste = await stripe.refunds.list({ ...p, limit: 100 });
-  return liste.data
-    .filter((r) => r.metadata?.gerimmo_retractation === cle && r.status !== "failed" && r.status !== "canceled")
-    .reduce((total, r) => total + r.amount, 0);
+  const propres = liste.data.filter(r => r.metadata?.gerimmo_retractation === cle);
+  if (liste.has_more || propres.some(r => r.status !== "succeeded") ||
+      liste.data.some(r => r.status === "pending" || r.status === "requires_action")) {
+    throw new Error("Remboursement à vérifier chez Stripe avant confirmation.");
+  }
+  if (propres.length) return propres.reduce((total, r) => total + r.amount, 0);
+  // Seul un paiement que Stripe déclare intégralement remboursé peut avoir été réglé par un autre geste.
+  return entierementRembourse && liste.data.some(r => r.status === "succeeded") ? 0 : null;
 }
 
 /** Les factures de la souscription émises depuis cet instant, quel que soit leur état (payée, ouverte, annulée). */

@@ -1,4 +1,5 @@
-import { lireEntitesPatrimoine, ventilerParTitulaire } from "@/lib/entites-patrimoine";
+import { lireToutesLesPages } from "@/lib/lecture-complete";
+import { lireEntitesPatrimoine, titulaireDuLoyer, ventilerParTitulaire } from "@/lib/entites-patrimoine";
 import { deElide } from "@/lib/elision";
 import Link from "next/link";
 import { Banknote, ArrowLeftRight, FileCheck2 } from "lucide-react";
@@ -27,18 +28,27 @@ export async function PageFinances({ orgId, recherche }: {
   const entiteId = typeof recherche.entite === "string" ? recherche.entite : "";
   const patrimoine=await lireEntitesPatrimoine(supabase,orgId,annee);
   const entite=patrimoine.entites.find(e=>e.id===entiteId);
-  const [{ data: biens, error: erreurBiens }, { data: lots, error: erreurLots }, quittancement, livre] = await Promise.all([
+  const [{ data: biens, error: erreurBiens }, { data: lots, error: erreurLots }, quittancement, livre, datesAppels] = await Promise.all([
     supabase.from("biens").select("id, nom, archived_at").eq("organization_id", orgId).order("nom"),
     supabase.from("lots").select("id, bien_id").eq("organization_id", orgId),
     supabase.rpc("quittancement_mois", { p_org: orgId, p_mois: `${mois}-01` }),
     lireLivreFinances(supabase, orgId),
+    entiteId ? lireToutesLesPages<{ id: string; date_echeance: string }>((debut, fin) =>
+      supabase.from("appels_loyer").select("id,date_echeance", { count: "exact" })
+        .eq("organization_id", orgId).eq("periode", mois + "-01").order("id").range(debut, fin),
+      appel => appel.id) : null,
   ]);
   // Décision D27 : « Finances » n'existe que chez le propriétaire direct (/espace/<id>).
   const base = baseEspace(orgId, true);
   const href = (a: number, m = numeroMois, anchor = "") => `${base}/loyers?${new URLSearchParams({ annee: String(a), mois: String(m), ...(bien ? { bien } : {}), ...(entiteId ? {entite:entiteId} : {}) })}${anchor}`;
   const perimetre = bien || entiteId ? new Set((lots ?? []).filter(l => (!bien || l.bien_id === bien) && (!entiteId || !!entite?.lots.includes(l.id))).map(l => l.id)) : null;
   const erreurPerimetre = (!!perimetre && (lots?.length ?? 0) >= 1000) || erreurBiens || erreurLots || patrimoine.erreur || (entiteId && !entite) || (bien && !(biens ?? []).some(b => b.id === bien));
-  const lignes = ((quittancement.data ?? []) as LigneQuittancement[]).filter(l => !perimetre || perimetre.has(l.lot_id));
+  const lignesDuParc = ((quittancement.data ?? []) as LigneQuittancement[]).filter(l => !perimetre || perimetre.has(l.lot_id));
+  const dates = new Map(datesAppels?.lignes?.map(a => [a.id, a.date_echeance]));
+  const periodesParLot = Map.groupBy(patrimoine.periodes, p => p.lot_id);
+  const attribution = (l: LigneQuittancement) => titulaireDuLoyer(periodesParLot.get(l.lot_id) ?? [], mois, dates.get(l.appel_id));
+  const lignes = entiteId ? lignesDuParc.filter(l => attribution(l) === entiteId) : lignesDuParc;
+  const incertaines = entiteId ? lignesDuParc.filter(l => attribution(l) === null) : [];
   // Pour un premier bail, l’appel peut encore manquer. Rejoindre son échéancier
   // depuis ce même écran, sans créer de revenu et sans ouvrir un autre patrimoine.
   const premierBail = !erreurPerimetre && !quittancement.error && !lignes.length && !bien && !entiteId && mois === actuel.slice(0,7)
@@ -66,13 +76,18 @@ export async function PageFinances({ orgId, recherche }: {
       <label className="text-sm">Année<input name="annee" type="number" min="1970" max={anneeCourante + 1} defaultValue={annee} className="mt-1 block min-h-11 w-24 rounded-lg border border-border bg-background px-3" /></label>
       <input type="hidden" name="mois" value={numeroMois} /><button className={bouton} type="submit">Afficher</button>
     </form>
-    {entite && <p className="text-sm text-muted-foreground">Locations des biens rattachés à {entite.nom} durant l’année. Le livre retient les écritures dont la détention intégrale est établie à la date comptable.</p>}
+    {entite && <p className="text-sm text-muted-foreground">Loyers attribuables à {entite.nom} à leur échéance. Le livre retient les écritures dont la détention intégrale est établie à la date comptable.</p>}
     {perimetre && !livre.error && livre.lignes.some(e => e.date_imputation.startsWith(annee+"-") && e.categorie==="Taxe foncière" && !e.lot_id && !e.bien_id) && <p role="status" className="text-sm">Une taxe foncière du patrimoine reste à rattacher à un bien. Vérifiez le journal complet avant d’utiliser ce total.</p>}
     {erreurPerimetre ? <p className="err" role="alert">Impossible de lire le bien sélectionné. Rechargez la page ou choisissez un autre bien.</p> : <>
     <section id="loyers" aria-labelledby="titre-loyers" data-ton="bleu" className="carte-rubrique p-4 sm:p-5 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2"><h2 id="titre-loyers" className="titre-rubrique text-lg font-semibold"><Banknote size={22} aria-hidden="true" />Loyers et charges</h2><span className="text-sm text-muted-foreground">Échéances {deElide(moisEnFrancais(mois))}</span></div>
-      {quittancement.error ? <p role="alert" className="err">Impossible de lire les loyers de cette période.</p> : <>
+      {quittancement.error || datesAppels?.echec ? <p role="alert" className="err">Impossible de lire les loyers de cette période.</p> : <>
         <Chiffres valeurs={[["Demandé", appele], ["Réglé sur ces échéances", regle], ["Reste dû", Math.max(0, appele - regle)]]} />
+        {incertaines.length > 0 && <div className="rounded-lg border p-3" role="status">
+          <p className="font-medium">Loyers à rattacher</p>
+          <p className="text-sm">Vérifiez la détention de ces lots pour la période. Ces sommes sont exclues du total de {entite?.nom}.</p>
+          <ul>{incertaines.map(l => <li key={l.appel_id}>{l.lot_nom} · {eur(Number(l.montant_du))} demandé</li>)}</ul>
+        </div>}
         {lignes.length ? <details className="rounded-lg border border-border p-3"><summary className="cursor-pointer text-sm font-medium">Gérer les {lignes.length} loyers {deElide(moisEnFrancais(mois))}</summary>{mois === actuel.slice(0, 7) ? <Card size="sm" className="mt-3"><QuittancementMois orgId={orgId} mois={mois} moisLabel={moisEnFrancais(mois)} lignes={lignes} proprietaire envoiGroupe={!bien && !entiteId} /></Card> : <ul className="mt-3 divide-y divide-border">{lignes.map(l => <li key={l.appel_id}><Link className="flex flex-wrap justify-between gap-2 py-3 text-sm" href={`${base}/baux/${l.bail_id}#loyers`}><span>{l.locataire ?? "Locataire non renseigné"} · {l.lot_nom}</span><span>{eur(Number(l.montant_du))} demandé · {eur(Number(l.montant_couvert))} réglé →</span></Link></li>)}</ul>}</details> : <p className="text-sm text-muted-foreground">Aucun loyer demandé sur cette période.{premierBail?.data?.length === 1 && <> <Link className="underline" href={`${base}/baux/${premierBail.data[0].id}#loyers`}>Vérifier l’échéancier du bail</Link></>}</p>}
       </>}
       <details><summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium">Historique des loyers <span aria-hidden>⌄</span></summary><nav aria-label="Mois des loyers" className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{Array.from({length:12},(_,i) => <Link key={i} href={href(annee,i+1,"#loyers")} aria-current={i+1 === numeroMois ? "date" : undefined} className={`rounded-lg px-3 py-2 text-sm ${i+1 === numeroMois ? "bg-primary text-primary-foreground" : "bg-muted hover:underline"}`}>{moisEnFrancais(`${annee}-${String(i+1).padStart(2,"0")}`)}</Link>)}</nav></details>

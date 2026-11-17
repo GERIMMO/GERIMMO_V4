@@ -1,0 +1,18 @@
+[
+ {
+  "largeur": 768,
+  "chemin": "/mot-de-passe-oublie",
+  "observe": [
+   "Trop de demandes de lien pour cette adresse ou depuis ce réseau. Réessayez dans une heure."
+  ],
+  "banque": "boucle locale sans frontière Vercel, 20 demandes par heure sur la même adresse"
+ },
+ {
+  "largeur": 1440,
+  "chemin": "/inscription",
+  "observe": [
+   "Trop de demandes de lien pour cette adresse ou depuis ce réseau. Réessayez dans une heure."
+  ],
+  "banque": "boucle locale sans frontière Vercel, 20 demandes par heure sur la même adresse"
+ }
+]

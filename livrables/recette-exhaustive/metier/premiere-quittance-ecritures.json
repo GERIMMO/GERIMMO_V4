@@ -1,0 +1,32 @@
+[
+  {
+    "largeur": 1440,
+    "bail_fictif": "3B7E313F",
+    "appels": 1,
+    "encaissements": 1,
+    "quittances": 1,
+    "montant_appele": 640,
+    "montant_encaisse": 640,
+    "statut": "réussi"
+  },
+  {
+    "largeur": 390,
+    "bail_fictif": "7EA363BE",
+    "appels": 1,
+    "encaissements": 1,
+    "quittances": 1,
+    "montant_appele": 640,
+    "montant_encaisse": 640,
+    "statut": "réussi"
+  },
+  {
+    "largeur": 768,
+    "bail_fictif": "DF05F6D2",
+    "appels": 1,
+    "encaissements": 1,
+    "quittances": 1,
+    "montant_appele": 640,
+    "montant_encaisse": 640,
+    "statut": "réussi"
+  }
+]

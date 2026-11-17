@@ -1,0 +1,125 @@
+[
+ {
+  "viewport": 390,
+  "fichier": "quittance-390.pdf",
+  "pages": 1,
+  "montant": "970,00 €",
+  "champsAttendus": [
+   "Camille des Tilleuls",
+   "Alix des Lilas",
+   "7 rue du Tilleul",
+   "3 rue du Tilleul",
+   "Quittance de loyer",
+   "970,00 €",
+   "900,00 €",
+   "70,00 €"
+  ],
+  "manquants": [],
+  "reserveOuNavigation": false,
+  "sha256": "4c7ec183a02dba0af6d5b7f4a2efc0268a1c20c783821e886605541ef5f83041",
+  "statut": "réussi"
+ },
+ {
+  "viewport": 390,
+  "fichier": "lettre-390.pdf",
+  "pages": 1,
+  "montant": "863,35 €",
+  "champsAttendus": [
+   "Camille des Tilleuls",
+   "Alix des Lilas",
+   "7 rue du Tilleul",
+   "3 rue du Tilleul",
+   "révision annuelle du loyer",
+   "01/12/2026",
+   "863,35 €",
+   "145,77",
+   "148,06"
+  ],
+  "manquants": [],
+  "reserveOuNavigation": false,
+  "sha256": "ef2481bfb98dc099d049df3de837f6b014d18fc51318cf61b692f70c74936fc5",
+  "statut": "réussi"
+ },
+ {
+  "viewport": 768,
+  "fichier": "quittance-768.pdf",
+  "pages": 1,
+  "montant": "970,00 €",
+  "champsAttendus": [
+   "Camille des Tilleuls",
+   "Alix des Lilas",
+   "7 rue du Tilleul",
+   "3 rue du Tilleul",
+   "Quittance de loyer",
+   "970,00 €",
+   "900,00 €",
+   "70,00 €"
+  ],
+  "manquants": [],
+  "reserveOuNavigation": false,
+  "sha256": "3f1326341269a8129c5cd6c9d1abd8ed9944a159708ff310fa167fa8c51290b9",
+  "statut": "réussi"
+ },
+ {
+  "viewport": 768,
+  "fichier": "lettre-768.pdf",
+  "pages": 1,
+  "montant": "863,35 €",
+  "champsAttendus": [
+   "Camille des Tilleuls",
+   "Alix des Lilas",
+   "7 rue du Tilleul",
+   "3 rue du Tilleul",
+   "révision annuelle du loyer",
+   "01/12/2026",
+   "863,35 €",
+   "145,77",
+   "148,06"
+  ],
+  "manquants": [],
+  "reserveOuNavigation": false,
+  "sha256": "1f2b458780b2776521a405a287393a53f285a28d5dc27e184caa92cd49f3faa0",
+  "statut": "réussi"
+ },
+ {
+  "viewport": 1440,
+  "fichier": "quittance-1440.pdf",
+  "pages": 1,
+  "montant": "970,00 €",
+  "champsAttendus": [
+   "Camille des Tilleuls",
+   "Alix des Lilas",
+   "7 rue du Tilleul",
+   "3 rue du Tilleul",
+   "Quittance de loyer",
+   "970,00 €",
+   "900,00 €",
+   "70,00 €"
+  ],
+  "manquants": [],
+  "reserveOuNavigation": false,
+  "sha256": "5065a80ff964a0c31fdf39c0b70e30040aff65d30d7c193ff0d4a3abf6bf817b",
+  "statut": "réussi"
+ },
+ {
+  "viewport": 1440,
+  "fichier": "lettre-1440.pdf",
+  "pages": 1,
+  "montant": "863,35 €",
+  "champsAttendus": [
+   "Camille des Tilleuls",
+   "Alix des Lilas",
+   "7 rue du Tilleul",
+   "3 rue du Tilleul",
+   "révision annuelle du loyer",
+   "01/12/2026",
+   "863,35 €",
+   "145,77",
+   "148,06"
+  ],
+  "manquants": [],
+  "reserveOuNavigation": false,
+  "sha256": "2abe0bcb6c1ff9b8043691e71ad07676df7906a8e93b1d237e8a194d40af5cd1",
+  "statut": "réussi"
+ }
+]

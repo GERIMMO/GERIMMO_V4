@@ -8,7 +8,7 @@ describe.skipIf(!url)("Dépôts par rôle : parcours et cloisonnement",()=>{
  let db:Client,org:string,orgAutre:string,artisan:string,compte:string,locataire:string,autre:string,incident:string,mission:string,demande:string;
  const uuid=randomUUID;
  const id=async(sql:string,args:unknown[]=[]) => (await db.query(sql,args)).rows[0].id as string;
- const agir=async(c:string)=>{await db.query('reset role');await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated')::text,true)",[c]);await db.query('set local role authenticated');};
+ const agir=async(c:string)=>{await db.query('reset role');await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text, 'session_id', $1::text,'role','authenticated')::text,true)",[c]);await db.query('set local role authenticated');};
  const essai=async(sql:string,args:unknown[]=[])=>{await db.query('savepoint essai');try{const r=await db.query(sql,args);await db.query('release savepoint essai');return r;}catch(e){await db.query('rollback to savepoint essai');throw e;}};
  const depot=(path:string)=>essai("insert into storage.objects(bucket_id,name,owner) values('documents',$1,auth.uid())",[path]);
  const preparation=async(path:string)=>{await db.query('reset role');await db.query("insert into artisan_devis_preparations(sollicitation_id,artisan_id,statut,entreprise,pdf_path,pdf_sha,pdf_taille,valide_le) values($1,$2,'valide','{}',$3,$4,10,now()) on conflict(sollicitation_id) do update set pdf_path=excluded.pdf_path,statut='valide'",[demande,artisan,path,'a'.repeat(64)]);await agir(compte);};
@@ -18,6 +18,7 @@ describe.skipIf(!url)("Dépôts par rôle : parcours et cloisonnement",()=>{
   orgAutre=await id("insert into organizations(name,status) values('TEST autre gabarits','active') returning id");
   compte=uuid();locataire=uuid();autre=uuid();
   for(const c of[compte,locataire,autre])await db.query("insert into auth.users(id,email,raw_app_meta_data,raw_user_meta_data) values($1::uuid,concat($1::text,'@','test.local'),'{}','{}')",[c]);
+  await db.query("insert into auth.sessions(id,user_id) select c,c from unnest($1::uuid[]) c", [[compte,locataire,autre]]);
   await db.query("insert into memberships(account_id,organization_id,role) values($1,$3,'locataire'),($2,$3,'locataire')",[locataire,autre,org]);
   artisan=await id("insert into artisans(account_id,raison_sociale,siret,telephone,statut_plateforme,siret_etat) values($1,'TEST gabarits','55555555500333','0600000000','valide','verifie') returning id",[compte]);
   const bien=await id("insert into biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'TEST','appartement','1 rue fictive','75001','Paris') returning id",[org]);

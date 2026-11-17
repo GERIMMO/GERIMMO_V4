@@ -4,8 +4,7 @@ vi.mock('../src/lib/perimetre-pilote',async original=>({...await original<typeof
 /**
  * Les courriers du contrat déclenchés par le webhook Stripe (plan de conformité du 23/10/2026), sans Stripe, base ni
  * prestataire d'e-mail réels :
- *  · R03 : la confirmation part à la naissance de la souscription, une fois, avec le PDF de la version acceptée (ou son
- *    adresse et une trace), même sans médiateur saisi ; la souscription est datée ;
+ *  · R03 : la confirmation exige le PDF de la version acceptée. Une indisponibilité du document reste en supervision ;
  *  · R04 : une résiliation notifiée hors de la page reçoit l'accusé, une fois (même clé que l'action) ;
  *  · R07 : sur `customer.subscription.deleted`, le courrier de résiliation pour impayé et l'annulation de la facture
  *    ouverte, SEULEMENT si un défaut était en cours et qu'aucune résiliation n'avait été demandée (ni rétractation) ;
@@ -18,7 +17,9 @@ vi.mock('../src/lib/perimetre-pilote',async original=>({...await original<typeof
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type Stripe from "stripe";
+import { pdfFictif } from "../e2e/pdf-fictif";
 
+const pieceFictive = pdfFictif();
 const m = vi.hoisted(() => ({ envois: [] as { to: string; subject: string; html: string; cleIdempotence?: string; piecesJointes?: unknown[] }[], echec: null as string | null }));
 vi.mock("@/lib/email", () => ({
   envoyerEmail: async (p: { to: string; subject: string; html: string; cleIdempotence?: string; piecesJointes?: unknown[] }) => {
@@ -28,9 +29,10 @@ vi.mock("@/lib/email", () => ({
   },
 }));
 vi.mock("@/lib/relances-paiement", () => ({ envoyerRelancesDues: async () => ({ envoyees: 0, sans_adresse: [], echecs: [] }) }));
-// Le rendu Chromium est remplacé par un PDF fictif (« %PDF ») : le test porte sur la pièce jointe, pas sur le rendu.
-vi.mock("@/lib/documents/rendu", () => ({ rendrePdf: async () => new Uint8Array([37, 80, 68, 70]) }));
+// Une pièce PDF fictive complète. Les cas d’incident injectent leur propre rendu.
+vi.mock("@/lib/documents/rendu", () => ({ rendrePdf: async () => pieceFictive }));
 
+import { envoyerConfirmationSouscription } from "@/lib/courriers-contrat-envoi";
 import { traiterEvenementStripe } from "@/lib/stripe-evenements";
 
 type Avant = {
@@ -72,7 +74,7 @@ function banc(avant: Avant, options: { archivee?: boolean; texteArchive?: string
     const q: Record<string, unknown> = {};
     const fin = async () =>
       table === "versions_conditions"
-        ? { data: options.archivee ? { document: "conditions_clients", version: "2026-09-30", texte_html: options.texteArchive ?? "<p>Texte</p>", publiee_le: "2026-10-24T10:00:00Z", empreinte_sha256: "a".repeat(64), date_effet: "2026-09-30", nature: "substantielle", resume_modifications: "x" } : null, error: null }
+        ? { data: options.archivee !== false ? { document: "conditions_clients", version: "2026-09-30", texte_html: options.texteArchive ?? "<p>Texte</p>", publiee_le: "2026-10-24T10:00:00Z", empreinte_sha256: "a".repeat(64), date_effet: "2026-09-30", nature: "substantielle", resume_modifications: "x" } : null, error: null }
         : table === "audit_log"
           ? { data: options.miseEnDemeure === null ? null : { details: { envoyee_le: options.miseEnDemeure ?? "2026-10-04T13:00:00Z" } }, error: options.preuveErreur ? { message: "indisponible" } : null }
         : table === "organizations"
@@ -87,6 +89,11 @@ function banc(avant: Avant, options: { archivee?: boolean; texteArchive?: string
       appels.push({ nom, args });
       if (nom === "abonnement_par_client")
         return { data: [{ organization_id: "org-1", organisation: "Espace fictif", public_tarif: "proprietaire_direct", grille: "2026-09-28", stripe_subscription_id: "sub_1", stripe_statut: "active", destinataire: "titulaire@example.invalid" }], error: null };
+      if (nom === "preuve_fin_impaye") {
+        const date = options.miseEnDemeure === undefined ? "2026-10-04T13:00:00Z" : options.miseEnDemeure;
+        const complete = date && Date.parse(String(args.p_fin)) - Date.parse(date) >= 30*86400000;
+        return {data:complete && !options.preuveErreur ? [{facture:"in_1",montant:599,destinataire:contexte.destinataire,organisation:contexte.organisation}] : [],error:null};
+      }
       if (nom === "abonnement_contexte_evenement") return { data: [{ organization_id: "org-1", stripe_statut: "active", periode_fin: null, souscrit_le: null, confirmation_envoyee_le: null, resiliation_accusee_pour: null, ...avant }], error: null };
       if (nom === "abonnement_appliquer") return { data: "org-1", error: null };
       if (nom === "abonnement_courrier_contexte") return { data: [contexte], error: null };
@@ -116,6 +123,7 @@ function stripeFictif(s: Stripe.Subscription, factures: string[] = []) {
     subscriptions: { retrieve: async () => s },
     customers: { retrieve: async () => ({ id: "cus_1", invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." } }), update: async () => ({}) },
     invoices: {
+      retrieve:async(id:string)=>({id,parent:{subscription_details:{subscription:s.id}},customer:s.customer,currency:"eur",amount_remaining:599,status:"open"}),
       list: async () => ({ data: factures.map((id) => ({ id })) }),
       voidInvoice: async (id: string) => {
         annulees.push(id);
@@ -134,6 +142,7 @@ const RIEN: Avant = { stripe_subscription_id: "sub_1", annulation_demandee: fals
 const CONFIRMEE: Avant = { ...RIEN, confirmation_envoyee_le: "2026-10-26T09:01:00Z" };
 
 beforeEach(() => {
+  vi.stubEnv("GERIMMO_MODE","simulation");
   m.envois.length = 0;
   m.echec = null;
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://gerimmo.example.invalid");
@@ -157,7 +166,7 @@ describe("R03 — la confirmation de la souscription", () => {
     const { supabase, traces } = banc(RIEN, { archivee: true });
     await traiterEvenementStripe(supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.created", s));
     expect(m.envois).toHaveLength(1);
-    expect(m.envois[0].piecesJointes).toEqual([{ nom: "conditions-generales-2026-09-30.pdf", contenuBase64: Buffer.from("%PDF").toString("base64") }]);
+    expect(m.envois[0].piecesJointes).toEqual([{ nom: "conditions-generales-2026-09-30.pdf", contenuBase64: pieceFictive.toString("base64") }]);
     expect(m.envois[0].html).toContain("sont jointes au format PDF");
     expect(m.envois[0]).toMatchObject({contexteMetier:{document:true,version:"2026-09-30"}});
     expect(traces).toEqual([]);
@@ -167,18 +176,34 @@ describe("R03 — la confirmation de la souscription", () => {
     const s = souscription({});
     const { supabase, traces } = banc(RIEN, { archivee: true, texteArchive: '<p>Texte</p><img src="x" onerror="alert(1)">' });
     await traiterEvenementStripe(supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.created", s));
-    expect(m.envois).toHaveLength(1);
-    expect(m.envois[0].piecesJointes).toBeUndefined();
-    expect(m.envois[0].html).toContain("https://gerimmo.example.invalid/conditions");
+    expect(m.envois).toHaveLength(0);
     expect(traces).toContainEqual(expect.objectContaining({ evenement: "confirmation_sans_pdf" }));
   });
 
-  it("une version non archivée : l'adresse des conditions et une trace au journal technique", async () => {
-    const s = souscription({});
-    const { supabase, traces } = banc(RIEN);
-    await traiterEvenementStripe(supabase as never, stripeFictif(s).stripe, evenement("customer.subscription.created", s));
-    expect(m.envois[0].piecesJointes).toBeUndefined();
-    expect(m.envois[0].html).toContain("https://gerimmo.example.invalid/conditions");
+  it("diffère une confirmation sans archive, puis joint la version acceptée à la reprise", async () => {
+    const options = { archivee: false };
+    const { supabase, traces } = banc(RIEN, options);
+    const confirmer = () => envoyerConfirmationSouscription(supabase as never, {orgId: "org-1", subscription: "sub_1", premierPrelevementLe: null});
+    expect(await confirmer()).toMatchObject({envoye:false, verification:true});
+    expect(m.envois).toHaveLength(0);
+    expect(traces).toContainEqual(expect.objectContaining({ evenement: "confirmation_sans_pdf" }));
+    options.archivee = true;
+    expect(await confirmer()).toMatchObject({envoye:true});
+    expect(m.envois).toHaveLength(1);
+    expect(m.envois[0].piecesJointes).toEqual([{nom:"conditions-generales-2026-09-30.pdf",contenuBase64:pieceFictive.toString("base64")}]);
+  });
+
+  it.each(["exception", "delai", "vide", "tronque"])("diffère un rendu %s au lieu de valider une confirmation incomplète", async panne => {
+    const {supabase, traces} = banc(RIEN);
+    const rendu = async () => {
+      if (panne === "exception") throw Error("Rendu indisponible");
+      if (panne === "delai") return new Promise<Uint8Array>(() => {});
+      return Buffer.from(panne === "tronque" ? "%PDF-1.4 document incomplet" : "");
+    };
+    const r = await envoyerConfirmationSouscription(supabase as never,
+      {orgId:"org-1",subscription:"sub_1",premierPrelevementLe:null}, {rendu,delaiPdfMs:5});
+    expect(r).toMatchObject({envoye:false, verification:true});
+    expect(m.envois).toHaveLength(0);
     expect(traces).toContainEqual(expect.objectContaining({ evenement: "confirmation_sans_pdf" }));
   });
 
@@ -265,36 +290,34 @@ describe("R07 — la résiliation pour impayé", () => {
   const ENDEFAUT: Avant = { ...RIEN, paiement_en_defaut_depuis: "2026-10-04" };
 
   it("défaut en cours, aucune résiliation demandée : facture ouverte annulée, courrier envoyé et marqué", async () => {
-    const s = souscription({ status: "canceled", ended_at: Date.parse("2026-11-03T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
+    const s = souscription({ status: "canceled", metadata:{gerimmo_grille:"2026-09-28",gerimmo_formule:"solo",gerimmo_unites:"1",gerimmo_resiliation_motif:"impaye"}, ended_at: Date.parse("2026-11-03T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
     const { stripe, annulees } = stripeFictif(s, ["in_1"]);
     const { supabase, appels } = banc(ENDEFAUT);
-    await traiterEvenementStripe(supabase as never, stripe, evenement("customer.subscription.deleted", s));
-    expect(annulees).toEqual(["in_1"]);
+    const bilan = await traiterEvenementStripe(supabase as never, stripe, evenement("customer.subscription.deleted", s));
+    expect(annulees,JSON.stringify(bilan)).toEqual(["in_1"]);
     expect(m.envois).toHaveLength(1);
     expect(m.envois[0]).toMatchObject({ subject: "Votre abonnement Gerimmo est résilié faute de règlement", cleIdempotence: "resiliation-impaye-sub_1" });
     expect(m.envois[0].html).toContain("La facture restée impayée est annulée.");
-    expect(appels.find((a) => a.nom === "abonnement_resiliation_impaye_notifiee")?.args).toMatchObject({ p_factures_annulees: ["in_1"] });
+    expect(m.envois[0]).toMatchObject({contexteMetier:{type:"resiliation_impaye",annulees:["in_1"]}});
+    expect(appels.some(a=>a.nom==="preuve_fin_impaye")).toBe(true);
   });
 
   it("I1 : résiliée AVANT trente jours de mise en demeure (réglage Stripe à corriger) — texte neutre, sans article 15, et alerte au relais", async () => {
     vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.invalid");
-    const s = souscription({ status: "canceled", ended_at: Date.parse("2026-10-18T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
+    const s = souscription({ status: "canceled", metadata:{gerimmo_grille:"2026-09-28",gerimmo_formule:"solo",gerimmo_unites:"1",gerimmo_resiliation_motif:"impaye"}, ended_at: Date.parse("2026-10-18T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
     const { stripe, annulees } = stripeFictif(s, ["in_1"]);
     const { supabase, traces } = banc(ENDEFAUT); // défaut le 4/10, résiliée le 18/10 : J+14
     await traiterEvenementStripe(supabase as never, stripe, evenement("customer.subscription.deleted", s));
-    expect(annulees).toEqual(["in_1"]);
-    const client = m.envois.find((e) => e.to === "titulaire@example.invalid")!;
-    expect(client.html).not.toContain("article 15");
-    expect(client.html).toContain("Faute de règlement, votre abonnement Gerimmo a été résilié le 18 octobre 2026.");
-    expect(client.html).toContain("La facture restée impayée est annulée.");
-    expect(traces).toContainEqual(expect.objectContaining({ evenement: "resiliation_impaye_avant_mise_en_demeure" }));
+    expect(annulees).toEqual([]);
+    expect(m.envois.some(e => e.to === "titulaire@example.invalid")).toBe(false);
+    expect(traces).toContainEqual(expect.objectContaining({ evenement: "resiliation_impaye_a_verifier" }));
     const alerte = m.envois.find((e) => e.to === "relais@example.invalid")!;
-    expect(alerte.subject).toMatch(/résiliation pour impayé avant/i);
+    expect(alerte.subject).toMatch(/vérification/i);
     expect(alerte.html).not.toContain("titulaire@example.invalid");
   });
 
   it("I1 : à J+30 ou après, l'article 15.4 est cité (la mise en demeure est restée sans effet trente jours)", async () => {
-    const s = souscription({ status: "canceled", ended_at: Date.parse("2026-11-03T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
+    const s = souscription({ status: "canceled", metadata:{gerimmo_grille:"2026-09-28",gerimmo_formule:"solo",gerimmo_unites:"1",gerimmo_resiliation_motif:"impaye"}, ended_at: Date.parse("2026-11-03T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
     await traiterEvenementStripe(banc(ENDEFAUT).supabase as never, stripeFictif(s, ["in_1"]).stripe, evenement("customer.subscription.deleted", s));
     expect(m.envois[0].html).toContain("est résilié depuis le 3 novembre 2026, en application de l'article 15.4 des conditions générales.");
   });
@@ -305,11 +328,11 @@ describe("R07 — la résiliation pour impayé", () => {
     { miseEnDemeure: "illisible" },
     { preuveErreur: true },
   ])("ne confond pas trente jours de défaut et trente jours de mise en demeure : %j", async (preuve) => {
-    const s = souscription({ status: "canceled", ended_at: Date.parse("2026-11-03T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
+    const s = souscription({ status: "canceled", metadata:{gerimmo_grille:"2026-09-28",gerimmo_formule:"solo",gerimmo_unites:"1",gerimmo_resiliation_motif:"impaye"}, ended_at: Date.parse("2026-11-03T13:00:00Z") / 1000 } as Partial<Stripe.Subscription>);
     const { supabase, traces } = banc(ENDEFAUT, preuve);
     await traiterEvenementStripe(supabase as never, stripeFictif(s, ["in_1"]).stripe, evenement("customer.subscription.deleted", s));
-    expect(m.envois.find((e) => e.to === "titulaire@example.invalid")?.html).not.toContain("article 15.4");
-    expect(traces).toContainEqual(expect.objectContaining({ evenement: "resiliation_impaye_avant_mise_en_demeure" }));
+    expect(m.envois.some((e) => e.to === "titulaire@example.invalid")).toBe(false);
+    expect(traces).toContainEqual(expect.objectContaining({ evenement: "resiliation_impaye_a_verifier" }));
   });
 
   it("seulement dans le cas prévu : pas sans défaut, pas après une résiliation demandée, pas pour une rétractation, pas deux fois", async () => {

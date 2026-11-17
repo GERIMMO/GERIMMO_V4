@@ -1,3 +1,4 @@
+import { incidentContractuel } from "./contrat-incidents-contexte";
 import {maintenanceLivraison,MESSAGE_TRANSITION} from "./transition-livraison";
 import { circuitAdmisPilote, piloteLimite, suspendreCourrielPilote, MESSAGE_PILOTE } from "./perimetre-pilote";
 import { exigerContexteCourriel, RefusContexteCourriel, type ContexteCourriel } from './finalisation-courriels';
@@ -103,19 +104,32 @@ export async function envoyerEmailTransport(params: {
   organisation?: { db: SupabaseClient; id: string };
 }): Promise<ResultatCourriel> {
   if(piloteLimite()&&!circuitAdmisPilote({...params,organisationId:params.organisation?.id}))return {erreur:MESSAGE_PILOTE,interventionRequise:true};
-  if(["reconduction","confirmation_abonnement","accuse_resiliation"].includes(params.contexteMetier?.type??"") && (!params.referenceInterne || !params.avantEnvoi)) return {erreur:"Contrôle de la reconduction indisponible. Aucun envoi effectué."};
+  if((incidentContractuel(params.contexteMetier?.type) || ["fin_essai_choisi","avertissement_inactivite","reconduction","confirmation_abonnement","accuse_resiliation"].includes(params.contexteMetier?.type??"")) && (!params.referenceInterne || !params.avantEnvoi)) return {erreur:"Contrôle de la reconduction indisponible. Aucun envoi effectué."};
+  const avisSupervise=params.contexteMetier?.type==='alerte_direction' ||
+    (params.contexteMetier?.type==='notification' && ['rdv_report_demande','rdv_report_accepte','devis_recu'].includes(params.contexteMetier.evenement));
+  if(avisSupervise && (!params.referenceInterne || !params.avantEnvoi))
+    return {erreur:"L’intention et le destinataire doivent être vérifiés avant l’envoi de cet avis."};
   if(maintenanceLivraison())return {erreur:MESSAGE_TRANSITION};
   const cle = process.env.RESEND_API_KEY;
   if (!cle) return { erreur: "Envoi des e-mails non configuré. Contactez l’administrateur." };
   let appelCommence = false;
   try {
-    const marque = params.organisation && !["acces","invitation_artisan","reconduction","confirmation_abonnement","accuse_resiliation"].includes(params.contexteMetier?.type??"") ? await chargerMarque(params.organisation.db, params.organisation.id) : null;
+    const marque = params.organisation && !incidentContractuel(params.contexteMetier?.type) && !["fin_essai_choisi","acces","invitation_artisan","reconduction","confirmation_abonnement","accuse_resiliation"].includes(params.contexteMetier?.type??"") ? await chargerMarque(params.organisation.db, params.organisation.id) : null;
     // Verification fields are server-controlled in the database, never accepted from a form.
     const adresseVerifiee = marque?.email_expediteur_verifie_le && marque.email_expediteur && emailValide(marque.email_expediteur) ? marque.email_expediteur : null;
     const nom = marque ? nomMarque(marque).replace(/[<>"\r\n]/g, "").trim() : null;
     const expediteur = adresseVerifiee ? `${nom} <${adresseVerifiee}>` : nom ? EXPEDITEUR.replace(/^[^<]+(?=\s*<)/, nom + " ") : EXPEDITEUR;
     const repondreA = marque?.email_contact && emailValide(marque.email_contact) ? marque.email_contact : adresseReponsePlateforme();
     const html = marque ? `${enteteMarqueHtml(marque)}${liensMarque(params.html, marque, adresseDuSite())}` : params.html;
+    if (params.contexteMetier?.type === "relance_abonnement") {
+      const c = params.contexteMetier;
+      const { factureImpayee } = await import("./impaye-preuve-stripe");
+      if (await factureImpayee(c.id, c.montant) !== c.facture) return { erreur: "La facture en défaut a changé. Vérifiez le dossier." };
+    }
+    if (params.contexteMetier?.type === "fin_essai_choisi") {
+      const { verifierPrelevementPrevu } = await import("./essai-souscrit-preuve");
+      await verifierPrelevementPrevu(params.contexteMetier);
+    }
     await params.avantEnvoi?.();
     appelCommence = true;
     const reponse = await fetch("https://api.resend.com/emails", {

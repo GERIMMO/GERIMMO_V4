@@ -108,7 +108,7 @@ async function chargerCatalogue() {
     where c.contype = 'p' and n.nspname = 'public'`);
   catalogue.pks = new Map(pks.map((p) => [p.table_nom, p.cols]));
   const { rows: fns } = await pool.query(`
-    select p.proname as nom, p.proretset as retourne_set,
+    select p.proname as nom, p.proretset as retourne_set, p.pronargs-p.pronargdefaults as requis,
            format_type(p.prorettype, null) as type_retour,
            coalesce(p.proargnames, '{}')::text[] as arg_noms,
            (select array_agg(format_type(t.t, null) order by t.ord)
@@ -116,7 +116,11 @@ async function chargerCatalogue() {
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'`);
   catalogue.fns = new Map();
-  for (const f of fns) if (!catalogue.fns.has(f.nom)) catalogue.fns.set(f.nom, f);
+  for (const fn of fns) {
+    const signatures = catalogue.fns.get(fn.nom) ?? [];
+    signatures.push(fn);
+    catalogue.fns.set(fn.nom, signatures);
+  }
 }
 
 // Trouve la relation entre deux tables (ou par nom explicite de contrainte).
@@ -287,6 +291,7 @@ function erreurRest(statut, code, message, details = null, hint = null) {
   return e;
 }
 function erreurDepuisPg(e) {
+  if (e.code === "PT401") return erreurRest(401, e.code, e.message);
   const statut = e.code === "42501" ? 403 : e.code === "23505" ? 409 : 400;
   return erreurRest(statut, e.code ?? "XX000", e.message, e.detail ?? null, e.hint ?? null);
 }
@@ -303,6 +308,7 @@ async function sousIdentite(claims, fn) {
       JSON.stringify(claims ?? { role: "anon" }),
     ]);
     await client.query(`set local role ${role}`);
+    await client.query("select gerimmo_session_interne.verifier_session_api()");
     const r = await fn(client);
     await client.query("commit");
     return r;
@@ -575,11 +581,22 @@ function preparerValeur(v, type) {
 
 // ── RPC ────────────────────────────────────────────────────────────────────
 async function appelerRpc(claims, nom, corps, url, methode, entetes) {
-  const fn = catalogue.fns.get(nom);
-  if (!fn) throw erreurRest(404, "PGRST202", `Fonction public.${nom} introuvable`);
-  const noms = (fn.arg_noms ?? []).slice(0, (fn.arg_types ?? []).length);
+  const signatures = catalogue.fns.get(nom) ?? [];
+  const argumentsEntree = (fn) => fn.arg_noms.slice(0, fn.arg_types?.length ?? 0);
   const lecture = methode === "HEAD" || methode === "GET";
-  const args = lecture ? Object.fromEntries([...url.searchParams].filter(([cle]) => noms.includes(cle))) : corps ?? {};
+  // Les paramètres de lecture restants sont des filtres de résultat. En POST, chaque clé
+  // fait partie de la signature : ignorer un paramètre peut sélectionner une autre RPC.
+  const tousNoms = new Set(signatures.flatMap(argumentsEntree));
+  const args = lecture ? Object.fromEntries([...url.searchParams].filter(([cle]) => tousNoms.has(cle))) : corps ?? {};
+  const cles = Object.keys(args);
+  const correspondances = signatures.filter((fn) => {
+    const noms = argumentsEntree(fn);
+    return cles.every((cle) => noms.includes(cle)) && noms.slice(0, fn.requis).every((cle) => cles.includes(cle));
+  });
+  if (!correspondances.length) throw erreurRest(404, "PGRST202", `Signature de public.${nom} introuvable`);
+  if (correspondances.length > 1) throw erreurRest(300, "PGRST203", `Signature de public.${nom} ambiguë`);
+  const fn = correspondances[0];
+  const noms = argumentsEntree(fn);
   const urlFiltres = new URL(url);
   if (lecture) for (const nom of noms) urlFiltres.searchParams.delete(nom);
   const fournis = noms
@@ -699,7 +716,7 @@ async function routerAuth(methode, chemin, url, corps, claims) {
     if (grant === "password") {
       const { rows } = await admin((c) =>
         c.query(
-          "select * from auth.users where email = $1 and encrypted_password = extensions.crypt($2, encrypted_password) and deleted_at is null",
+          "select * from auth.users where email = $1 and encrypted_password = extensions.crypt($2, encrypted_password) and deleted_at is null and (banned_until is null or banned_until <= now())",
           [corps.email, corps.password],
         ),
       );
@@ -714,7 +731,7 @@ async function routerAuth(methode, chemin, url, corps, claims) {
       const c2 = verifier(corps.refresh_token ?? "");
       if (!c2 || c2.type !== "refresh" || !await sessionLocaleActive(c2)) return { statut: 400, corps: { error: "invalid_grant", msg: "Invalid Refresh Token" } };
       const u = await utilisateurParId(c2.sub);
-      if (!u) return { statut: 400, corps: { error: "invalid_grant", msg: "Utilisateur disparu" } };
+      if (!u || u.deleted_at || (u.banned_until && new Date(u.banned_until) > new Date())) return { statut: 400, corps: { error: "invalid_grant", msg: "Compte indisponible" } };
       return { statut: 200, corps: await sessionPour(u, c2.aal === "aal2" ? "aal2" : "aal1", Array.isArray(c2.amr) ? c2.amr : null, c2.session_id) };
     }
     return { statut: 400, corps: { error: "unsupported_grant_type" } };
@@ -729,6 +746,20 @@ async function routerAuth(methode, chemin, url, corps, claims) {
     }
   }
   // Liens du banc UI seulement : GoTrue réel reste exigé pour les preuves Auth.
+  if (methode === "PUT" && /^admin\/users\/[a-fA-F0-9-]{36}$/.test(chemin)) {
+    if (claims?.role !== "service_role") return { statut: 403, corps: { code: "not_admin", msg: "Accès réservé" } };
+    // Deux gestes de la console locale. La CI vérifie aussi leur comportement sur GoTrue.
+    if (Object.keys(corps).length !== 1 || !["876000h", "none"].includes(corps.ban_duration)) {
+      return { statut: 400, corps: { msg: "Geste hors du périmètre de recette" } };
+    }
+    const id = chemin.split("/").at(-1);
+    const { rows } = await admin((c) => c.query(
+      "update auth.users set banned_until=case when $2 then now()+interval '876000 hours' else null end where id=$1 returning *",
+      [id, corps.ban_duration === "876000h"],
+    ));
+    return rows[0] ? { statut: 200, corps: utilisateurJson(rows[0]) }
+      : { statut: 404, corps: { code: "user_not_found", msg: "Compte absent" } };
+  }
   if (chemin === "admin/generate_link" && methode === "POST") {
     if (claims?.role !== "service_role") return { statut: 401, corps: { code: "not_admin", msg: "User not allowed" } };
     const email = String(corps.email ?? "").trim().toLowerCase();

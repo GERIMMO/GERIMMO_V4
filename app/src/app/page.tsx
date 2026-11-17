@@ -31,11 +31,11 @@ const faq = (duree: string): [string, string][] => [
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",
-    "Non, jamais. La comptabilité est déclarative : vous enregistrez l'encaissement en un clic, tout le reste s'écrit tout seul.",
+    "Vous enregistrez les sommes effectivement reçues. Gerimmo les reporte dans votre journal et prépare la quittance lorsque le loyer est intégralement réglé.",
   ],
   [
     "Mes données sont-elles cloisonnées ?",
-    "Chaque organisation (nom propre, SCI) a ses lots, son livre, sa fiscalité — étanches. Vos locataires ne voient que leur logement et leurs pièces.",
+    "Vous pouvez suivre vos biens en nom propre et ceux de votre SCI dans un même espace. Le journal distingue les titulaires des opérations. Vos locataires retrouvent les pièces auxquelles ils ont droit.",
   ],
   [
     "Que se passe-t-il si j'arrête ?",
@@ -45,7 +45,7 @@ const faq = (duree: string): [string, string][] => [
   // biens (conditions générales, articles 1 et 2) ; « le bien d'un proche » en sortait.
   [
     "Puis-je gérer une SCI ou une indivision ?",
-    "Oui, pour vos propres biens : en nom propre, en SCI ou en indivision. Chaque organisation est séparée, et vous passez de l'une à l'autre depuis le même compte.",
+    "Oui, pour vos propres biens : en nom propre, en SCI ou en indivision. Vous pouvez préciser qui détient chaque bien et passer d’un espace à l’autre avec le même compte.",
   ],
   // La liste d'attente des agences (20/10/2026) : l'offre agences est hors du site public depuis le 13/10 ; la question
   // revient, la réponse renvoie à /agences (section #agences ci-dessous) sans prix ni date.
@@ -150,7 +150,7 @@ export default async function PageVitrine() {
 
         <section className="public-section public-conteneur public-faq"><div><p className="eyebrow">On vous répond</p><h2>Avant de<br />vous lancer.</h2><p className="public-description">Les réponses aux questions les plus fréquentes.</p></div><div>{faq(duree).map(([q, r]) => <details key={q}><summary>{q}<ChevronDown size={18} aria-hidden /></summary><p>{r}</p></details>)}</div></section>
         <AncreAuChargement />
-        <section id="contact" className="public-conteneur scroll-mt-28 public-contact"><div className="public-contact-interieur"><div><p className="eyebrow">Une question ?</p><h2>Écrivez-nous,<br />on vous répond.</h2><p>Une question sur Gerimmo, sur vos données ou sur votre compte ? Dites-nous en quelques mots de quoi il s’agit. Nous répondons sous 48 h ouvrées.</p><ul className="public-liste"><li><Check aria-hidden /> Une réponse d’une personne, pas d’un robot.</li><li><Check aria-hidden /> Vos informations ne servent qu’à vous répondre.</li><li><Check aria-hidden /> Pour exercer vos droits sur vos données, indiquez-le dans votre message.</li></ul></div><FormulaireDevisVitrine /></div></section>
+        <section id="contact" className="public-conteneur scroll-mt-28 public-contact"><div className="public-contact-interieur"><div><p className="eyebrow">Une question ?</p><h2>Écrivez-nous,<br />on vous répond.</h2><p>Une question sur Gerimmo, sur vos données ou sur votre compte ? Dites-nous en quelques mots de quoi il s’agit. Notre équipe vous répond par écrit.</p><ul className="public-liste"><li><Check aria-hidden /> Une réponse d’une personne, pas d’un robot.</li><li><Check aria-hidden /> Vos informations ne servent qu’à vous répondre.</li><li><Check aria-hidden /> Pour exercer vos droits sur vos données, indiquez-le dans votre message.</li></ul></div><FormulaireDevisVitrine /></div></section>
       </main>
       <PiedPublic />
     </div>

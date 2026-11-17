@@ -2,10 +2,11 @@ import {randomUUID} from 'node:crypto';
 import type {SupabaseClient} from '@supabase/supabase-js';
 import {envoyerEmail} from './email';
 import {identiteCourriel,type ChargeCourriel} from './reprise-courriels';
+import {baseDeLOrganisation} from './racine-espace-serveur';
 import {adresseDuSite} from './site';
 import {verifierAvantEffet} from './controle-effets';
 import type {ContexteCourriel} from './finalisation-courriels';
-const TITRES:Record<string,string>={incident_urgent:'Incident urgent à examiner',mission_confiee:'Une mission vous est proposée',mission_acceptee:'Intervention acceptée',mission_refusee:'Intervention refusée',devis_demande:'Une demande de devis vous attend',devis_recu:'Un devis est disponible',reponse_gestionnaire:'Une réponse vous attend',piece_demandee:'Un document est demandé',signature_demandee:'Un document est à vérifier',rendez_vous_fixe:'Rendez-vous confirmé',creneaux_proposes:'Des créneaux sont à choisir'};
+const TITRES:Record<string,string>={rdv_report_demande:'Un report de rendez-vous est demandé',rdv_report_accepte:'Votre nouveau rendez-vous est confirmé',incident_urgent:'Incident urgent à examiner',mission_confiee:'Une mission vous est proposée',mission_acceptee:'Intervention acceptée',mission_refusee:'Intervention refusée',devis_demande:'Une demande de devis vous attend',devis_recu:'Un devis est disponible',reponse_gestionnaire:'Une réponse vous attend',piece_demandee:'Un document est demandé',signature_demandee:'Un document est à vérifier',rendez_vous_fixe:'Rendez-vous confirmé',creneaux_proposes:'Des créneaux sont à choisir'};
 /** Capture SQL et transport existant : ce module n'a pas de second mécanisme d'émission. */
 export async function traiterNotificationCapturee(db:SupabaseClient,id:string) {
  await verifierAvantEffet(db,'rappels');
@@ -16,11 +17,20 @@ export async function traiterNotificationCapturee(db:SupabaseClient,id:string) {
  let courrier:string|null=null;
  try {
   const origine=adresseDuSite();if(!origine)throw new Error('Origine absente');
-  const chemin=n.role==='agence'?`/espace/${n.organisation}`:n.role==='artisan'?'/artisan':`/locataire/${n.organisation}`;
+  let chemin=n.role==='agence'?`/espace/${n.organisation}`:n.role==='artisan'?'/artisan':`/locataire/${n.organisation}`;
+  let action='Ouvrir mon espace';
+  if(n.evenement==='devis_recu') {
+   const devis=await db.from('incident_devis').select('incident_id').eq('id',n.objet).eq('organization_id',n.organisation).maybeSingle();
+   if(devis.error || !devis.data?.incident_id) throw new Error('Dossier du devis indisponible');
+   chemin=(await baseDeLOrganisation(db,n.organisation))+'/incidents?sel='+encodeURIComponent(devis.data.incident_id);
+   action='Consulter le devis dans Gerimmo';
+  }
+  if(n.evenement==='rdv_report_demande') chemin='/artisan/agenda';
+  if(n.evenement==='rdv_report_accepte') chemin='/locataire/'+n.organisation+'/demandes';
   const titre=TITRES[n.evenement];if(!titre)throw new Error('Circuit suspendu');
   // Un lien vers l'espace autorisé, sans détail confidentiel dans le courrier.
   const url=new URL(chemin,origine).href.replaceAll('&','&amp;').replaceAll('"','&quot;');
-  const p:ChargeCourriel={to:n.destinataire,subject:titre,html:`<p>${titre}.</p><p>Consultez votre espace Gerimmo pour vérifier les informations et la prochaine action.</p><p><a href="${url}">Ouvrir mon espace</a></p>`,organisationId:n.organisation,cleIdempotence:`notification-source:${n.id}`,contexteMetier:n.contexte};
+  const p:ChargeCourriel={to:n.destinataire,subject:titre,html:`<p>${titre}.</p><p>Consultez votre espace Gerimmo pour vérifier les informations et la prochaine action.</p><p><a href="${url}">${action}</a></p>`,organisationId:n.organisation,cleIdempotence:`notification-source:${n.id}`,contexteMetier:n.contexte};
   const identite=identiteCourriel(p);
   const r=await envoyerEmail({...p,delaiMaxMs:2000,circuit:'notification-transactionnelle',organisation:{db,id:n.organisation},avantEnvoi:()=>verifierAvantEffet(db,'rappels')});
   const conserve=await db.from('courriels_durables').select('id,contexte_metier').eq('id',identite.id).maybeSingle();

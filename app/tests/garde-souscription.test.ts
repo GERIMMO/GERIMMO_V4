@@ -62,6 +62,7 @@ const mocks = vi.hoisted(() => ({
   apercu: vi.fn(),
   appliquerHausse: vi.fn(),
   stripePret: true,
+  archive: null as { identite_editeur: Record<string, string | null> } | null,
   reglage: { data: { blocage_souscription_identite: true, revision: 0 }, error: null } as { data: unknown; error: unknown },
   /** Les versions des conditions que la base tient pour acceptées par le compte « compte-1 ». */
   versionsAcceptees: [] as string[],
@@ -91,6 +92,10 @@ vi.mock("@/lib/supabase/server", () => ({
         limit: () => q,
         maybeSingle: async () => {
           if (table === "supervision_identite") return mocks.reglage;
+          if (table === "versions_conditions") {
+            expect(filtres).toEqual([["document", "conditions_clients"], ["version", VERSION_EN_VIGUEUR]]);
+            return { data: mocks.archive, error: null };
+          }
           if (table === "acceptations_cgu") {
             mocks.lecturesCgu.push(filtres);
             const version = filtres.find(([c]) => c === "version")?.[1];
@@ -193,6 +198,7 @@ const appelsRpc = () => mocks.rpc.mock.calls.map((c) => c[0] as string);
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.stripePret = true;
+  mocks.archive = { identite_editeur: EDITEUR_COMPLET };
   mocks.reglage = { data: { blocage_souscription_identite: true, revision: 0 }, error: null };
   mocks.versionsAcceptees = [VERSION_EN_VIGUEUR];
   mocks.lecturesCgu = [];
@@ -261,7 +267,8 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     etat(GRILLE);
     identite({ ...EDITEUR_COMPLET, [cle]: null });
     const r = await demarrerAbonnement("org-1", {}, souscrire());
-    expect(r.erreur).toBe(MOTIF_IDENTITE);
+    expect(r.erreur).toContain("coordonnées du médiateur de la consommation");
+    expect(r.erreur).toContain("Votre essai continue.");
     expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
@@ -269,7 +276,8 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
     etat(GRILLE);
     identite({ ...EDITEUR_COMPLET, mediateurNom: null, mediateurAdresse: null, mediateurSite: null });
     mocks.reglage = {data:{blocage_souscription_identite:false,revision:1},error:null};
-    await demarrerAbonnement("org-1", {}, souscrire());
+    const r = await demarrerAbonnement("org-1", {}, souscrire());
+    expect(r.erreur).toContain("coordonnées du médiateur de la consommation");
     expect(mocks.retrieve).not.toHaveBeenCalled();
   });
 
@@ -311,6 +319,7 @@ describe("souscription : l'identité de l'éditeur, lue en base par-dessus le co
 
 describe("levée du blocage par le superadmin", () => {
   function lever() {
+    mocks.archive = { identite_editeur: { ...EDITEUR_VIDE, mediateurNom: EDITEUR_COMPLET.mediateurNom, mediateurAdresse: EDITEUR_COMPLET.mediateurAdresse, mediateurSite: EDITEUR_COMPLET.mediateurSite } };
     identite({ ...EDITEUR_VIDE, mediateurNom: EDITEUR_COMPLET.mediateurNom, mediateurAdresse: EDITEUR_COMPLET.mediateurAdresse, mediateurSite: EDITEUR_COMPLET.mediateurSite });
     mocks.reglage = { data: { blocage_souscription_identite: false, revision: 1 }, error: null };
   }
@@ -400,6 +409,17 @@ describe("souscription : la version en vigueur des conditions générales, accep
     expect(appelsRpc()).not.toContain("mon_client_stripe");
     expect(mocks.retrieve).not.toHaveBeenCalled();
   });
+
+  it.each([null, { identite_editeur: {...EDITEUR_COMPLET, mediateurNom: null} }])(
+    "refuse la commande si l’archive manque ou si son médiateur est différent",
+    async archive => {
+      etat(GRILLE);
+      mocks.archive = archive;
+      const r = await demarrerAbonnement("org-1", {}, souscrire());
+      expect(r.erreur).toContain("version archivée des conditions");
+      expect(mocks.retrieve).not.toHaveBeenCalled();
+    }
+  );
 
   it("une acceptation d'une version antérieure ne suffit pas", async () => {
     etat(GRILLE);

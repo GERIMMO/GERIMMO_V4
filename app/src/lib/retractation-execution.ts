@@ -159,7 +159,7 @@ export async function terminerRetractation(
   const accuse = await envoyerAccuseRetractation(
     service,
     {
-      retractationId: d.id,
+      organisationId:d.organization_id, retractationId: d.id,
       cle: d.cle,
       destinataire: options.destinataire ?? d.adresse_accuse,
       nature: d.nature,

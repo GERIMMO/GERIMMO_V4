@@ -17,7 +17,7 @@ async function simuler(db: Client, accountId: string | null, role = "authenticat
   if (accountId) {
     await db.query(
       `select set_config('request.jwt.claims',
-         json_build_object('sub', $1::text, 'role', 'authenticated')::text, true)`,
+         json_build_object('sub', $1::text, 'session_id', $1::text, 'role', 'authenticated')::text, true)`,
       [accountId]
     );
   } else {
@@ -58,6 +58,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — dépôt LO (attestation)", () => {
         'test-lo-'||gen_random_uuid()||'@test.local','x', now(),
         '{"provider":"email","providers":["email"]}'::jsonb,'{}'::jsonb, now(), now(),'','','','','')
       returning id`);
+    await db.query("insert into auth.sessions(id,user_id) values($1,$1)", [uid]);
     compteLo = uid;
     await db.query(
       `insert into public.memberships (account_id, organization_id, role) values ($1,$2,'locataire')`,
@@ -122,6 +123,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — dépôt LO (attestation)", () => {
         'test-lo2-'||gen_random_uuid()||'@test.local','x', now(),
         '{"provider":"email","providers":["email"]}'::jsonb,'{}'::jsonb, now(), now(),'','','','','')
       returning id`);
+    await db.query("insert into auth.sessions(id,user_id) values($1,$1)", [autre]);
     await db.query(
       `insert into public.memberships (account_id, organization_id, role) values ($1,$2,'locataire')`,
       [autre, orgA]

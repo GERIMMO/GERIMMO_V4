@@ -27,16 +27,23 @@ describe.skipIf(!url)("audit octobre : migration, retour et rejeu", () => {
   });
   it("le retour de la lecture de session préserve tous les comptes et sessions", async () => {
     const f = "public.ma_session_active()";
-    const avant = await fonction(f);
+    const actuelle = await fonction(f);
     const comptes = async () => (await db.query("select (select count(*) from auth.users) as comptes,(select count(*) from auth.sessions) as sessions")).rows[0];
     const populations = await comptes();
+    // Reconstituer octobre dans la transaction de recette. Depuis novembre, la
+    // définition courante tient aussi compte des comptes bloqués et rétablis.
+    await db.query("savepoint exercice_historique");
     await db.query(source(noms[1]));
-    expect(await fonction(f)).toEqual(avant);
+    const octobre = await fonction(f);
+    expect(octobre.droits).toEqual(actuelle.droits);
     await db.query(retour(noms[1]));
     expect((await db.query("select to_regprocedure($1) as fonction", [f])).rows[0].fonction).toBeNull();
     expect(await comptes()).toEqual(populations);
     await db.query(source(noms[1]));
-    expect(await fonction(f)).toEqual(avant);
+    expect(await fonction(f)).toEqual(octobre);
+    await db.query("rollback to savepoint exercice_historique");
+    expect(await fonction(f)).toEqual(actuelle);
+    expect(await comptes()).toEqual(populations);
   });
   it("le retour Stripe conserve les reçus terminés et le bilan, puis permet le rejeu", async () => {
     const f = "public.stripe_evenement_prendre(text,text,jsonb,uuid)";

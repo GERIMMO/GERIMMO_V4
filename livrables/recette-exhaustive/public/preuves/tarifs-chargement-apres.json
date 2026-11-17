@@ -1,0 +1,44 @@
+[
+  {
+    "largeur": 390,
+    "pendantChargement": {
+      "actif": false,
+      "valeur": "1",
+      "unitesAffichees": "1",
+      "prix": "5,99 € par mois",
+      "boutonsInactifs": true
+    },
+    "apresChargement": {
+      "unites": "3",
+      "prix": "99,70 € en une fois par an"
+    }
+  },
+  {
+    "largeur": 768,
+    "pendantChargement": {
+      "actif": false,
+      "valeur": "1",
+      "unitesAffichees": "1",
+      "prix": "5,99 € par mois",
+      "boutonsInactifs": true
+    },
+    "apresChargement": {
+      "unites": "3",
+      "prix": "99,70 € en une fois par an"
+    }
+  },
+  {
+    "largeur": 1440,
+    "pendantChargement": {
+      "actif": false,
+      "valeur": "1",
+      "unitesAffichees": "1",
+      "prix": "5,99 € par mois",
+      "boutonsInactifs": true
+    },
+    "apresChargement": {
+      "unites": "3",
+      "prix": "99,70 € en une fois par an"
+    }
+  }
+]

@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useId, useState } from "react";
 import { euros, montantAbonnementUnique, type Periodicite } from "@/lib/tarifs";
+import { AIDE_BOUTON_EN_ATTENTE, useHydrate } from "@/lib/use-hydrate";
 
 export function CartesOffresPubliques() {
   const id = useId();
+  const pret = useHydrate();
   const [biens, setBiens] = useState(1);
   const [periode, setPeriode] = useState<Periodicite>("mensuel");
   const mensuel = montantAbonnementUnique(biens, "mensuel");
@@ -14,10 +16,11 @@ export function CartesOffresPubliques() {
     <section className="offre-publique mx-auto max-w-2xl" aria-label="Simuler mon abonnement">
       <label htmlFor={id} className="offre-nom">Nombre de biens <strong>{biens}</strong></label>
       <input id={id} className="my-4 block w-full" type="range" min={1} max={100} value={biens}
+        disabled={!pret} title={pret ? undefined : AIDE_BOUTON_EN_ATTENTE}
         onChange={(e) => setBiens(e.currentTarget.valueAsNumber)} />
       <div className="offres-choix" role="group" aria-label="Rythme de paiement">
-        <button type="button" aria-pressed={periode === "mensuel"} onClick={() => setPeriode("mensuel")}>Mensuel</button>
-        <button type="button" aria-pressed={periode === "annuel"} onClick={() => setPeriode("annuel")}>Annuel</button>
+        <button type="button" disabled={!pret} title={pret ? undefined : AIDE_BOUTON_EN_ATTENTE} aria-pressed={periode === "mensuel"} onClick={() => setPeriode("mensuel")}>Mensuel</button>
+        <button type="button" disabled={!pret} title={pret ? undefined : AIDE_BOUTON_EN_ATTENTE} aria-pressed={periode === "annuel"} onClick={() => setPeriode("annuel")}>Annuel</button>
       </div>
       <div aria-live="polite" aria-atomic="true">
         <p className="offre-prix">{euros(periode === "mensuel" ? mensuel : annuel)}

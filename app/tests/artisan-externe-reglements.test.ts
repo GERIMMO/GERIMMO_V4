@@ -10,8 +10,10 @@ describe.skipIf(!url)("Clients externes et règlements privés — domaine local
  // Le jour de Paris, celui que la base compare (ARC-10) : le jour d'UTC en diffère la veille au soir (22 h-minuit UTC l'été, 23 h-minuit l'hiver).
  const jour=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Paris"});const validite=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
  const lignes=[{libelle:"Réparation TEST",quantite:2,prix_unitaire_ht_cents:2500,tva_bps:1000}];
- async function identite(id:string){await db.query("reset role");await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated','aal','aal2')::text,true)",[id]);await db.query("set local role authenticated");}
- async function compte(){const id=randomUUID();await db.query("insert into auth.users(id,email,encrypted_password,email_confirmed_at) values($1,$2,'x',now())",[id,`prive-${id}@example.invalid`]);return id;}
+ async function identite(id:string){await db.query("reset role");await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text, 'session_id', $1::text,'role','authenticated','aal','aal2')::text,true)",[id]);await db.query("set local role authenticated");}
+ async function compte(){const id=randomUUID();await db.query("insert into auth.users(id,email,encrypted_password,email_confirmed_at) values($1,$2,'x',now())",[id,`prive-${id}@example.invalid`]);
+ await db.query("insert into auth.sessions(id,user_id) values($1,$1)", [id]);
+ return id;}
  async function fiche(id:string){return(await db.query("insert into public.artisans(account_id,raison_sociale,siret,telephone) values($1,'TEST Artisan externe',$2,'0600000000') returning id",[id,String(randomInt(10000000000000,99999999999999))])).rows[0].id as string;}
  async function piece(mime:string,a=artisan,owner=uid){return(await db.query("insert into public.artisan_pieces_privees(artisan_id,storage_path,nom,mime,taille,sha256,created_by) values($1,$2,'TEST', $3,100,$4,$5) returning id",[a,`${a}/${randomUUID()}.test`,mime,'a'.repeat(64),owner])).rows[0].id as string;}
  async function revision(){return(await db.query("select revision from public.artisan_chantiers where id=$1",[chantier])).rows[0].revision as number;}

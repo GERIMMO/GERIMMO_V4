@@ -179,6 +179,18 @@ export function GenerateurQuittance() {
     </CarteSaisie>
   );
 
+  if (!r || !bornes || !datePaiement) {
+    const consigne = !r
+      ? "Indiquez le loyer, les charges (0 si aucune) et le montant effectivement reçu. Le terme et le paiement doivent être supérieurs à zéro. Utilisez des montants non négatifs, en euros et centimes."
+      : "Renseignez le mois du terme et la date du paiement pour préparer le document.";
+    return (
+      <DispositionOutil
+        saisie={saisie}
+        resultat={<PanneauResultat id="q-resultat" titre="Document à compléter"><Alerte gravite="attention">{consigne}</Alerte></PanneauResultat>}
+      />
+    );
+  }
+
   const resultat = (
     <PanneauResultat
       id="q-resultat"
@@ -205,9 +217,9 @@ export function GenerateurQuittance() {
         max={r.total}
         barres={[
           {
-            libelle: "Montant reçu",
-            valeur: r.recu,
-            texte: formaterEuros(r.recu),
+            libelle: "Montant affecté au terme",
+            valeur: r.affecteAuTerme,
+            texte: formaterEuros(r.affecteAuTerme),
             ton: r.estQuittance ? "succes" : "attention",
           },
         ]}
@@ -216,6 +228,7 @@ export function GenerateurQuittance() {
         <LigneDetail libelle="Loyer hors charges" valeur={formaterEuros(loyer ?? 0)} />
         <LigneDetail libelle="Provision pour charges" valeur={formaterEuros(provision ?? 0)} />
         <LigneDetail libelle="Montant reçu" valeur={formaterEuros(r.recu)} />
+        {r.excedent > 0 && <LigneDetail libelle="Excédent hors de ce terme" valeur={formaterEuros(r.excedent)} />}
         <LigneDetail libelle="Reste dû" valeur={formaterEuros(r.resteDu)} testId="q-reste" fort />
       </ListeDetail>
       {!r.estQuittance && (
@@ -273,7 +286,7 @@ export function GenerateurQuittance() {
           </dl>
           <p>
             Je soussigné(e) {nomBailleur}, bailleur du logement désigné ci-dessus, déclare avoir reçu de {nomLocataire} la
-            somme de <b className="montant">{formaterEuros(r.recu)}</b>, au titre du loyer et des charges pour la période
+            somme de <b className="montant">{formaterEuros(r.affecteAuTerme)}</b>, au titre du loyer et des charges pour la période
             du {du} au {au}
             {r.estQuittance ? (
               <>
@@ -283,6 +296,9 @@ export function GenerateurQuittance() {
               ", à valoir sur le terme désigné ci-dessous."
             )}
           </p>
+          {r.excedent > 0 && (
+            <p>Le versement total est de {formaterEuros(r.recu)}. L’excédent de {formaterEuros(r.excedent)} ne fait pas partie du terme couvert par cette quittance.</p>
+          )}
           <table className="papier-montants">
             <tbody>
               {r.estQuittance ? (

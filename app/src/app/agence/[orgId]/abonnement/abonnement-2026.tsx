@@ -16,7 +16,7 @@ import { DetailMontants, FormulaireSouscription } from "./formulaire-souscriptio
 import { REGIME_TVA } from "@/lib/editeur";
 import { nouvellesSouscriptionsFermees, MESSAGE_SOUSCRIPTIONS_FERMEES } from "@/lib/verrou-pilote";
 import { motifIdentiteEditeur } from "@/lib/garde-souscription";
-import { lireGardeSouscription } from "@/lib/garde-souscription-serveur";
+import { lireGardeSouscription, motifArchiveCommande } from "@/lib/garde-souscription-serveur";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate } from "@/lib/ged";
 import { nuitDu } from "@/lib/comptes-fermeture";
@@ -165,11 +165,19 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   // « Votre essai continue » seulement si l'essai court encore : un essai
   // arrivé à son terme garde le statut « essai » mais ferme l'écriture.
   const motifIdentite = motifIdentiteEditeur(garde.editeur, { enEssai: enEssai && !ferme, blocageIdentiteActif: garde.blocageIdentiteActif, nouvelleSouscriptionParticulier: !souscrit && publicTarif === "proprietaire_direct" });
+  const contactPaiement = enEssai
+    ? "Écrivez-nous pour demander une prolongation de votre essai."
+    : "Contactez Gerimmo si vous avez besoin d’aide pour votre contrat.";
   const motifIndisponible = !reglages.pret
-    ? "Le paiement en ligne n'est pas encore ouvert. Écrivez-nous : nous prolongeons votre essai le temps de l'ouvrir."
+    ? `Le paiement en ligne n'est pas encore ouvert. ${contactPaiement}`
     : !REGIME_TVA
-      ? "Le paiement en ligne n'est pas encore ouvert : le régime de TVA de l'éditeur doit d'abord être renseigné pour afficher les taxes exactes. Écrivez-nous : nous prolongeons votre essai le temps de l'ouvrir."
-      : motifIdentite;
+      ? `Le paiement en ligne n'est pas encore ouvert : le régime de TVA de l'éditeur doit d'abord être renseigné pour afficher les taxes exactes. ${contactPaiement}`
+      : motifIdentite ?? (!souscrit && publicTarif === "proprietaire_direct" && !nouvellesSouscriptionsFermees(garde.ventesOuvertes)
+          ? await motifArchiveCommande(supabase, garde.editeur) : null);
+
+  const motifSouscription = !souscrit && reglages.pret && nouvellesSouscriptionsFermees(garde.ventesOuvertes)
+    ? MESSAGE_SOUSCRIPTIONS_FERMEES : motifIndisponible;
+  const peutSouscrire = !souscrit && !accesOffert && !motifSouscription && (estAgence || enGestion > 0);
 
   // ── La hausse à présenter : nécessaire (portefeuille au-delà de la capacité)
   // ou demandée (?capacite= pour une agence, ?formule= pour un particulier).
@@ -316,7 +324,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">Votre abonnement a été résilié faute de règlement.</b>{" "}
             <span className="text-muted-foreground">
-              Consultez votre dernière facture pour vérifier le montant restant à régler. Vos données restent consultables et exportables. Souscrivez de nouveau ci-dessous pour reprendre la saisie.
+              Consultez votre dernière facture pour vérifier le montant restant à régler. Vos données restent consultables et exportables.
+              {peutSouscrire && " Souscrivez de nouveau ci-dessous pour reprendre la saisie."}
             </span>
           </p>
         </div>
@@ -344,8 +353,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             <b className="font-semibold">Votre compte est en lecture seule.</b>{" "}
             <span className="text-muted-foreground">
               {enEssai ? "Votre essai gratuit est arrivé à son terme." : "Vos droits d'accès payés ont pris fin."} Rien
-              n&apos;a été supprimé : vous pouvez tout consulter et tout exporter. Souscrivez ci-dessous pour reprendre la
-              saisie exactement où vous l&apos;avez laissée.
+              n&apos;a été supprimé : vous pouvez tout consulter et tout exporter.
+              {peutSouscrire && " Souscrivez ci-dessous pour reprendre la saisie exactement où vous l’avez laissée."}
             </span>
           </p>
         </div>
@@ -531,8 +540,11 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         <section className={estAgence ? "loc-carte" : styles.choix} aria-labelledby="choisir-abonnement">
           <div className={estAgence ? "entete-carte" : styles.titreSection}>
             <h2 id="choisir-abonnement">{ferme ? "Reprendre avec un abonnement" : "Souscrire à Gerimmo"}</h2>
-            {!estAgence && <p>Toutes les fonctionnalités sont incluses. Choisissez simplement la capacité qui vous convient.</p>}
+            {!estAgence && <p>Le montant dépend du nombre de biens que vous gérez dans cet espace et de la périodicité choisie.</p>}
           </div>
+          {!estAgence && garde.editeur.mediateurNom && garde.editeur.mediateurAdresse && garde.editeur.mediateurSite && (
+            <p className="text-sm">Médiateur de la consommation : {garde.editeur.mediateurNom}, {garde.editeur.mediateurAdresse}. Site : {garde.editeur.mediateurSite}. <Link href="/conditions" className="lien-texte">Consulter les modalités de recours</Link>.</p>
+          )}
           <FormulaireSouscription
             orgId={orgId}
             publicTarif={publicTarif}
@@ -541,7 +553,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             regime={REGIME_TVA}
             premierPrelevement={premierPrelevement}
             ferme={ferme}
-            motifIndisponible={!souscrit && reglages.pret && nouvellesSouscriptionsFermees(garde.ventesOuvertes) ? MESSAGE_SOUSCRIPTIONS_FERMEES : motifIndisponible}
+            motifIndisponible={motifSouscription}
             conditionsAAccepter={!garde.conditionsAcceptees}
             dateLimiteRetractation={jourEnLettres(dernierJourRetractation(new Date()))}
           />

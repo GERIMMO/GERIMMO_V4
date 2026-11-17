@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formaterDateHeureParis } from "@/lib/heure-paris";
 import { ETATS_EXPORT, MESSAGE_IDENTITE_EXPORT } from "@/lib/export-complet";
+import { lienArchiveEspace } from "@/lib/export-complet-serveur";
 import { baseEspace } from "@/lib/racine-espace";
 import { seReconnecterPourArchive } from "@/app/actions/archive-identite";
 import { MessageArchive } from "./message-archive";
@@ -9,6 +10,7 @@ import { MessageArchive } from "./message-archive";
 // Relectures du 24/10 (R2-7, R2-8) : une demande déjà en préparation (double clic) est un état, pas une erreur ;
 // l'identité à confirmer vient avec ses deux gestes ; le message est annoncé au chargement (MessageArchive).
 const MESSAGES: Record<string, { texte: string; erreur?: true }> = {
+  lien_expire: { texte: "Ce lien a expiré. Si votre archive est toujours disponible, utilisez le lien Télécharger ci-dessous.", erreur: true },
   demandee: { texte: "Votre archive est en préparation. Revenez sur cette page dans quelques minutes pour la télécharger." },
   relancee: { texte: "La préparation interrompue reprend. Revenez sur cette page dans quelques minutes pour télécharger l’archive." },
   identite: { texte: MESSAGE_IDENTITE_EXPORT, erreur: true },
@@ -64,9 +66,12 @@ export async function ArchiveComplete({ etat }: { etat?: string }) {
       <form data-saisie-libre method="post" action={route(e.organization_id)}><button type="submit" className="btn-secondaire">Préparer l’archive complète</button></form>
     </li>)}</ul>}
     {exports.error ? <p role="alert" className="err">Le suivi des archives est indisponible.</p>
-      : (exports.data ?? []).length > 0 && <ul className="divide-y text-sm">{((exports.data ?? []) as Export[]).map((x) => <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+      : (exports.data ?? []).length > 0 && <ul className="divide-y text-sm">{((exports.data ?? []) as Export[]).map((x) => {
+        const lien = x.statut === "pret" && x.expire_le
+          ? lienArchiveEspace(route(x.organisation_id_export), { orgId: x.organisation_id_export, accountId: user.id, exportId: x.id, finConservation: x.expire_le }) : null;
+        return <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
         <span>{noms.get(x.organisation_id_export) ?? "Espace"} · demandée le {formaterDateHeureParis(x.demande_le)} · {ETATS_EXPORT[x.statut] ?? x.statut}{x.statut === "pret" && x.expire_le ? ` jusqu’au ${formaterDateHeureParis(x.expire_le)}` : ""}{x.statut === "echec" && x.erreur ? ` : ${x.erreur}` : ""}{enPlan(x) ? " — toujours pas prête après un quart d’heure : cliquez de nouveau sur « Préparer l’archive complète », la préparation reprend." : ""}</span>
-        {x.statut === "pret" && <a className="lien-texte" href={`${route(x.organisation_id_export)}?archive=${x.id}`}>Télécharger</a>}
-      </li>)}</ul>}
+        {lien && <a className="lien-texte" href={lien}>Télécharger</a>}
+      </li>; })}</ul>}
   </section>;
 }

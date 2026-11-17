@@ -23,17 +23,24 @@ export type ResultatQuittance = {
   /** Payé en entier (ou plus) : quittance ; sinon, reçu de paiement partiel. */
   estQuittance: boolean;
   resteDu: number;
+  affecteAuTerme: number;
+  excedent: number;
   titre: "Quittance de loyer" | "Reçu de paiement partiel";
 };
 
-export function calculerQuittance(e: EntreeQuittance): ResultatQuittance {
-  const total = arrondiCentime((e.loyerHc ?? 0) + (e.charges ?? 0));
-  const recu = arrondiCentime(e.montantRecu ?? 0);
+export function calculerQuittance({ loyerHc, charges, montantRecu }: EntreeQuittance): ResultatQuittance | null {
+  if (loyerHc === null || charges === null || montantRecu === null) return null;
+  if (![loyerHc, charges, montantRecu].every(n => Number.isFinite(n) && n >= 0 && arrondiCentime(n) === n)) return null;
+  const total = arrondiCentime(loyerHc + charges);
+  if (total <= 0 || montantRecu <= 0) return null;
+  const recu = montantRecu;
   const estQuittance = recu >= total;
   return {
     total,
     recu,
     estQuittance,
+    affecteAuTerme: Math.min(recu, total),
+    excedent: Math.max(0, arrondiCentime(recu - total)),
     resteDu: estQuittance ? 0 : arrondiCentime(total - recu),
     titre: estQuittance ? "Quittance de loyer" : "Reçu de paiement partiel",
   };

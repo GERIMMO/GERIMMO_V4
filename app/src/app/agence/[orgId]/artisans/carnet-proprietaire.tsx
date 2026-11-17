@@ -81,7 +81,7 @@ export async function CarnetProprietaire({ orgId }: { orgId: string }) {
             </div>
             <div className="flex min-w-0 max-w-full flex-col items-start gap-2 sm:items-end">
               <span className={`${PUCES[etat.ton]} max-w-full whitespace-normal`}>{etat.libelle}</span>
-              {etat.renvoyer && ligne.invitation_id && <GestesInvitationEnAttente invitationId={ligne.invitation_id} email={ligne.email} />}
+              {etat.renvoyer && ligne.invitation_id && <GestesInvitationEnAttente invitationId={ligne.invitation_id} email={ligne.email} dernierEnvoi={ligne.envoye_le} />}
               {etat.reinviter && ligne.email && <ReinviterArtisan email={ligne.email} nom={ligne.nom_memo} metier={ligne.metier_memo} />}
             </div>
           </li>;

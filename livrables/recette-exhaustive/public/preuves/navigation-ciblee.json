@@ -1,0 +1,72 @@
+[
+ {
+  "largeur": 390,
+  "route": "/agences",
+  "commande": "Menu du site — Entrée puis Échap",
+  "statut": "réussi",
+  "observe": "Ouverture, fermeture et retour du focus au sommaire"
+ },
+ {
+  "largeur": 390,
+  "route": "/agences",
+  "commande": "Les espaces Gerimmo — ancre depuis une autre page",
+  "statut": "réussi",
+  "observe": "Titre visible dans la section cible : Les bonnes informations.Pour la bonne personne."
+ },
+ {
+  "largeur": 390,
+  "route": "/artisan/inscription",
+  "commande": "Aller au contenu",
+  "statut": "réussi",
+  "observe": "Focus clavier constaté sur le contenu"
+ },
+ {
+  "largeur": 390,
+  "route": "/journal/guide-public-fictif-recette",
+  "commande": "Illustration de l’article",
+  "statut": "réussi",
+  "observe": "Image réellement décodée (1536 × 1024)"
+ },
+ {
+  "largeur": 768,
+  "route": "/agences",
+  "commande": "Menu du site — Entrée puis Échap",
+  "statut": "réussi",
+  "observe": "Ouverture, fermeture et retour du focus au sommaire"
+ },
+ {
+  "largeur": 768,
+  "route": "/agences",
+  "commande": "Les espaces Gerimmo — ancre depuis une autre page",
+  "statut": "réussi",
+  "observe": "Titre visible dans la section cible : Les bonnes informations.Pour la bonne personne."
+ },
+ {
+  "largeur": 768,
+  "route": "/artisan/inscription",
+  "commande": "Aller au contenu",
+  "statut": "réussi",
+  "observe": "Focus clavier constaté sur le contenu"
+ },
+ {
+  "largeur": 768,
+  "route": "/journal/guide-public-fictif-recette",
+  "commande": "Illustration de l’article",
+  "statut": "réussi",
+  "observe": "Image réellement décodée (1536 × 1024)"
+ },
+ {
+  "largeur": 1440,
+  "route": "/artisan/inscription",
+  "commande": "Aller au contenu",
+  "statut": "réussi",
+  "observe": "Focus clavier constaté sur le contenu"
+ },
+ {
+  "largeur": 1440,
+  "route": "/journal/guide-public-fictif-recette",
+  "commande": "Illustration de l’article",
+  "statut": "réussi",
+  "observe": "Image réellement décodée (1536 × 1024)"
+ }
+]

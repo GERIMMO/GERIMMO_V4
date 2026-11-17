@@ -1,0 +1,5706 @@
+{
+ "sha": "9e347fa243f87fe3a43bdb88ba9db4fd7e9993c9",
+ "ci": "https://github.com/GERIMMO/GERIMMO_V4/actions/runs/43961656751",
+ "artefact": "https://github.com/GERIMMO/GERIMMO_V4/actions/runs/43961656751/artifacts/14277186273",
+ "portee": "Une ligne de passage par écran ou onglet et par exécution Playwright ; les doubles passages et les préparations de sessions restent distincts. Les visites ne prouvent pas les mutations.",
+ "ecrans": [
+  {
+   "role": "admin",
+   "etiquette": "Administration (équipe, portefeuilles)",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/administration",
+   "routeObservee": "/agence/[orgId]/administration",
+   "etat": "page rendue",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#0"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Reprise comptable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/comptabilite/reprise",
+   "routeObservee": "/agence/[orgId]/comptabilite/reprise",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#1"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Mandats & versements",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/mandats",
+   "routeObservee": "/agence/[orgId]/mandats",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#2"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Importer un parc",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/import",
+   "routeObservee": "/agence/[orgId]/parc/import",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#3"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Règles pour les agences",
+   "largeur": 390,
+   "demande": "/veille",
+   "routeObservee": "/veille",
+   "etat": "redirection observée",
+   "commandesVisibles": 0,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#4"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Tableau de bord agence (partagé propriétaire) — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]",
+   "routeObservee": "/agence/[orgId]",
+   "etat": "page rendue",
+   "commandesVisibles": 7,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#5"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Agenda de l’agence — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/agenda",
+   "routeObservee": "/agence/[orgId]/agenda",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#6"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Alertes — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/alertes",
+   "routeObservee": "/agence/[orgId]/alertes",
+   "etat": "page rendue",
+   "commandesVisibles": 12,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#7"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Réseau d’artisans — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/artisans",
+   "routeObservee": "/agence/[orgId]/artisans",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#8"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Fiche d'un bail — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/baux/[bailId]",
+   "routeObservee": "/agence/[orgId]/baux/[bailId]",
+   "etat": "page rendue",
+   "commandesVisibles": 13,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#9"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Fiche d'un bail — responsable — Documents",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/baux/[bailId]",
+   "routeObservee": "/agence/[orgId]/baux/[bailId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 11,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#10"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Fiche d'un bail — responsable — Suivi",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/baux/[bailId]",
+   "routeObservee": "/agence/[orgId]/baux/[bailId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 28,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#11"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Fiche d'un bail — responsable — Départ",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/baux/[bailId]",
+   "routeObservee": "/agence/[orgId]/baux/[bailId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 10,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#12"
+  },
+  {
+   "role": "admin",
+   "etiquette": "État des lieux d'un bail — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/baux/[bailId]/edl/[edlId]",
+   "routeObservee": "/agence/[orgId]/baux/[bailId]/edl/[edlId]",
+   "etat": "page rendue",
+   "commandesVisibles": 9,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#13"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Comptabilité (quittancement, encaissements) — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/comptabilite",
+   "routeObservee": "/agence/[orgId]/comptabilite",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#14"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Diagnostic et alerte associée — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "etat": "redirection observée",
+   "commandesVisibles": 25,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#15"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Diagnostic et alerte associée — responsable — Résumé",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "routeObservee": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#16"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Diagnostic et alerte associée — responsable — Logement",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "routeObservee": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 14,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#17"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Diagnostic et alerte associée — responsable — Documents",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "routeObservee": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 25,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#18"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Diagnostic et alerte associée — responsable — Contrats",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "routeObservee": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 10,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#19"
+  },
+  {
+   "role": "admin",
+   "etiquette": "GED — documents de l'organisation — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/documents",
+   "routeObservee": "/agence/[orgId]/documents",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#20"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Catalogue documentaire — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/documents/catalogue",
+   "routeObservee": "/agence/[orgId]/documents/catalogue",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#21"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Liste des incidents — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/incidents",
+   "routeObservee": "/agence/[orgId]/incidents",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#22"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Détail d'un incident — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/incidents/[incidentId]",
+   "routeObservee": "/agence/[orgId]/incidents",
+   "etat": "redirection observée",
+   "commandesVisibles": 12,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#23"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Déclaration d'un incident — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/incidents/nouveau",
+   "routeObservee": "/agence/[orgId]/incidents/nouveau",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#24"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Loyers et charges — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/loyers",
+   "routeObservee": "/agence/[orgId]/loyers",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#25"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Messagerie — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/messages",
+   "routeObservee": "/agence/[orgId]/messages",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#26"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Parc / portefeuille de biens — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc",
+   "routeObservee": "/agence/[orgId]/parc",
+   "etat": "page rendue",
+   "commandesVisibles": 24,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#27"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Fiche d'un bien — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/[bienId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]",
+   "etat": "page rendue",
+   "commandesVisibles": 15,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#28"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Fiche d'un lot — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "etat": "page rendue",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#29"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Fiche d'un lot — responsable — Logement",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 14,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#30"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Fiche d'un lot — responsable — Documents",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 25,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#31"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Fiche d'un lot — responsable — Contrats",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 10,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#32"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Ajout d'un bien — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/nouveau",
+   "routeObservee": "/agence/[orgId]/parc/nouveau",
+   "etat": "page rendue",
+   "commandesVisibles": 10,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#33"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Annuaire des personnes — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/personnes",
+   "routeObservee": "/agence/[orgId]/personnes",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#34"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Fiche personne — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/personnes/[personId]",
+   "routeObservee": "/agence/[orgId]/personnes/[personId]",
+   "etat": "page rendue",
+   "commandesVisibles": 9,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#35"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Profil de l'agence / du propriétaire — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/profil",
+   "routeObservee": "/agence/[orgId]/profil",
+   "etat": "page rendue",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#36"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Statistiques — responsable",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/statistiques",
+   "routeObservee": "/agence/[orgId]/statistiques",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#37"
+  },
+  {
+   "role": "admin",
+   "etiquette": "Réseau disponible pour les biens",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/reseau",
+   "routeObservee": "/agence/[orgId]/reseau",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-admin.json#38"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Tableau de bord agence (partagé propriétaire)",
+   "largeur": 390,
+   "demande": "/agence/[orgId]",
+   "routeObservee": "/agence/[orgId]",
+   "etat": "page rendue",
+   "commandesVisibles": 7,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#0"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Agenda de l’agence",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/agenda",
+   "routeObservee": "/agence/[orgId]/agenda",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#1"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Alertes",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/alertes",
+   "routeObservee": "/agence/[orgId]/alertes",
+   "etat": "page rendue",
+   "commandesVisibles": 12,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#2"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Réseau d’artisans",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/artisans",
+   "routeObservee": "/agence/[orgId]/artisans",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#3"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Fiche d'un bail",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/baux/[bailId]",
+   "routeObservee": "/agence/[orgId]/baux/[bailId]",
+   "etat": "page rendue",
+   "commandesVisibles": 13,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#4"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Fiche d'un bail — Documents",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/baux/[bailId]",
+   "routeObservee": "/agence/[orgId]/baux/[bailId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 11,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#5"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Fiche d'un bail — Suivi",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/baux/[bailId]",
+   "routeObservee": "/agence/[orgId]/baux/[bailId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 28,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#6"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Fiche d'un bail — Départ",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/baux/[bailId]",
+   "routeObservee": "/agence/[orgId]/baux/[bailId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 10,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#7"
+  },
+  {
+   "role": "agent",
+   "etiquette": "État des lieux d'un bail",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/baux/[bailId]/edl/[edlId]",
+   "routeObservee": "/agence/[orgId]/baux/[bailId]/edl/[edlId]",
+   "etat": "page rendue",
+   "commandesVisibles": 9,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#8"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Comptabilité (quittancement, encaissements)",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/comptabilite",
+   "routeObservee": "/agence/[orgId]/comptabilite",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#9"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Diagnostic et alerte associée",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "etat": "redirection observée",
+   "commandesVisibles": 25,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#10"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Diagnostic et alerte associée — Résumé",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "routeObservee": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#11"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Diagnostic et alerte associée — Logement",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "routeObservee": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 14,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#12"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Diagnostic et alerte associée — Documents",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "routeObservee": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 25,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#13"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Diagnostic et alerte associée — Contrats",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "routeObservee": "/agence/[orgId]/diagnostics/[diagnosticId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 10,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#14"
+  },
+  {
+   "role": "agent",
+   "etiquette": "GED — documents de l'organisation",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/documents",
+   "routeObservee": "/agence/[orgId]/documents",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#15"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Catalogue documentaire",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/documents/catalogue",
+   "routeObservee": "/agence/[orgId]/documents/catalogue",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#16"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Liste des incidents",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/incidents",
+   "routeObservee": "/agence/[orgId]/incidents",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#17"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Détail d'un incident",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/incidents/[incidentId]",
+   "routeObservee": "/agence/[orgId]/incidents",
+   "etat": "redirection observée",
+   "commandesVisibles": 11,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#18"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Déclaration d'un incident",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/incidents/nouveau",
+   "routeObservee": "/agence/[orgId]/incidents/nouveau",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#19"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Loyers et charges",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/loyers",
+   "routeObservee": "/agence/[orgId]/loyers",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#20"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Messagerie",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/messages",
+   "routeObservee": "/agence/[orgId]/messages",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#21"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Parc / portefeuille de biens",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc",
+   "routeObservee": "/agence/[orgId]/parc",
+   "etat": "page rendue",
+   "commandesVisibles": 6,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#22"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Fiche d'un bien",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/[bienId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]",
+   "etat": "page rendue",
+   "commandesVisibles": 14,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#23"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Fiche d'un lot",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "etat": "page rendue",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#24"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Fiche d'un lot — Logement",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 14,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#25"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Fiche d'un lot — Documents",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 25,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#26"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Fiche d'un lot — Contrats",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 10,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#27"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Renvoi d'un lot vers sa fiche (liens « à renseigner » d'un document)",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "etat": "redirection observée",
+   "commandesVisibles": 14,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#28"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Renvoi d'un lot vers sa fiche (liens « à renseigner » d'un document) — Résumé",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/lots/[lotId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#29"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Renvoi d'un lot vers sa fiche (liens « à renseigner » d'un document) — Logement",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/lots/[lotId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 14,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#30"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Renvoi d'un lot vers sa fiche (liens « à renseigner » d'un document) — Documents",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/lots/[lotId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 25,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#31"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Renvoi d'un lot vers sa fiche (liens « à renseigner » d'un document) — Contrats",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/lots/[lotId]",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 10,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#32"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Ajout d'un bien",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/nouveau",
+   "routeObservee": "/agence/[orgId]/parc/nouveau",
+   "etat": "page rendue",
+   "commandesVisibles": 10,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#33"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Annuaire des personnes",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/personnes",
+   "routeObservee": "/agence/[orgId]/personnes",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#34"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Fiche personne",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/personnes/[personId]",
+   "routeObservee": "/agence/[orgId]/personnes/[personId]",
+   "etat": "page rendue",
+   "commandesVisibles": 9,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#35"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Profil de l'agence / du propriétaire",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/profil",
+   "routeObservee": "/agence/[orgId]/profil",
+   "etat": "page rendue",
+   "commandesVisibles": 6,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#36"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Statistiques",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/statistiques",
+   "routeObservee": "/agence/[orgId]/statistiques",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#37"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Inscription artisan",
+   "largeur": 390,
+   "demande": "/artisan/inscription",
+   "routeObservee": "/artisan/inscription",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#38"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Assistance",
+   "largeur": 390,
+   "demande": "/assistance",
+   "routeObservee": "/assistance",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#39"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Sécurité du compte (mot de passe, second facteur)",
+   "largeur": 390,
+   "demande": "/compte",
+   "routeObservee": "/compte",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#40"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Sélecteur d'espaces (tout utilisateur connecté)",
+   "largeur": 390,
+   "demande": "/espaces",
+   "routeObservee": "/agence/[orgId]",
+   "etat": "redirection observée",
+   "commandesVisibles": 7,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#41"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Règles pour les agents",
+   "largeur": 390,
+   "demande": "/veille",
+   "routeObservee": "/veille",
+   "etat": "redirection observée",
+   "commandesVisibles": 0,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#42"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Journal dans l’espace connecté",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/journal",
+   "routeObservee": "/agence/[orgId]/journal",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#43"
+  },
+  {
+   "role": "agent",
+   "etiquette": "Article dans l’espace connecté",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/journal/[slug]",
+   "routeObservee": "/agence/[orgId]/journal/[slug]",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-agent.json#44"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Accueil artisan",
+   "largeur": 390,
+   "demande": "/artisan",
+   "routeObservee": "/artisan",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#0"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Agenda artisan",
+   "largeur": 390,
+   "demande": "/artisan/agenda",
+   "routeObservee": "/artisan/agenda",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#1"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Attestations artisan",
+   "largeur": 390,
+   "demande": "/artisan/attestations",
+   "routeObservee": "/artisan/attestations",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#2"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Demandes de devis",
+   "largeur": 390,
+   "demande": "/artisan/devis",
+   "routeObservee": "/artisan/devis",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#3"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Répondre à une demande",
+   "largeur": 390,
+   "demande": "/artisan/devis/[sollicitationId]",
+   "routeObservee": "/artisan/devis/[sollicitationId]",
+   "etat": "page rendue",
+   "commandesVisibles": 10,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#4"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Mon entreprise",
+   "largeur": 390,
+   "demande": "/artisan/entreprise",
+   "routeObservee": "/artisan/entreprise",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#5"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Mon entreprise — Zone et métiers",
+   "largeur": 390,
+   "demande": "/artisan/entreprise",
+   "routeObservee": "/artisan/entreprise",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 6,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#6"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Mon entreprise — Mes devis",
+   "largeur": 390,
+   "demande": "/artisan/entreprise",
+   "routeObservee": "/artisan/entreprise",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#7"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Facturation artisan",
+   "largeur": 390,
+   "demande": "/artisan/facturation",
+   "routeObservee": "/artisan/facturation",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#8"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Fiche mission",
+   "largeur": 390,
+   "demande": "/artisan/missions/[interventionId]",
+   "routeObservee": "/artisan/missions/[interventionId]",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#9"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Compte rendu de mission",
+   "largeur": 390,
+   "demande": "/artisan/missions/[interventionId]/compte-rendu",
+   "routeObservee": "/artisan/missions/[interventionId]/compte-rendu",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#10"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Bilan de mission",
+   "largeur": 390,
+   "demande": "/artisan/missions/[interventionId]/compte-rendu/bilan",
+   "routeObservee": "/artisan/missions/[interventionId]",
+   "etat": "redirection observée",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#11"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Proposer des créneaux",
+   "largeur": 390,
+   "demande": "/artisan/missions/[interventionId]/creneaux",
+   "routeObservee": "/artisan/missions/[interventionId]/creneaux",
+   "etat": "page rendue",
+   "commandesVisibles": 10,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#12"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Déposer ma facture",
+   "largeur": 390,
+   "demande": "/artisan/missions/[interventionId]/facture",
+   "routeObservee": "/artisan/missions/[interventionId]",
+   "etat": "redirection observée",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#13"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Ma note artisan",
+   "largeur": 390,
+   "demande": "/artisan/note",
+   "routeObservee": "/artisan/note",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#14"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Aide en cas de panne",
+   "largeur": 390,
+   "demande": "/artisan/panne",
+   "routeObservee": "/artisan/panne",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#15"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Règles pour les artisans",
+   "largeur": 390,
+   "demande": "/artisan/regles",
+   "routeObservee": "/artisan/regles",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#16"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Clients externes",
+   "largeur": 390,
+   "demande": "/artisan/clients",
+   "routeObservee": "/artisan/clients",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#17"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Nouveau chantier et devis",
+   "largeur": 390,
+   "demande": "/artisan/devis/nouveau",
+   "routeObservee": "/artisan/devis/nouveau",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#18"
+  },
+  {
+   "role": "artisan",
+   "etiquette": "Données personnelles et demandes privées — artisan",
+   "largeur": 390,
+   "demande": "/compte/donnees",
+   "routeObservee": "/compte/donnees",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-artisan.json#19"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Attestation de bon paiement",
+   "largeur": 390,
+   "demande": "/attestation-loyer/[orgId]",
+   "routeObservee": "/attestation-loyer/[orgId]",
+   "etat": "page rendue",
+   "commandesVisibles": 0,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#0"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Sécurité du compte (locataire)",
+   "largeur": 390,
+   "demande": "/compte",
+   "routeObservee": "/compte",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#1"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Tableau de bord locataire",
+   "largeur": 390,
+   "demande": "/locataire/[orgId]",
+   "routeObservee": "/locataire/[orgId]",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#2"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Contacter la gérance",
+   "largeur": 390,
+   "demande": "/locataire/[orgId]/contact",
+   "routeObservee": "/locataire/[orgId]/contact",
+   "etat": "page rendue",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#3"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Mes demandes",
+   "largeur": 390,
+   "demande": "/locataire/[orgId]/demandes",
+   "routeObservee": "/locataire/[orgId]/demandes",
+   "etat": "page rendue",
+   "commandesVisibles": 6,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#4"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Mes documents",
+   "largeur": 390,
+   "demande": "/locataire/[orgId]/documents",
+   "routeObservee": "/locataire/[orgId]/documents",
+   "etat": "page rendue",
+   "commandesVisibles": 9,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#5"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Mes documents — Mes fichiers",
+   "largeur": 390,
+   "demande": "/locataire/[orgId]/documents",
+   "routeObservee": "/locataire/[orgId]/documents",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 9,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#6"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Relevés de compteurs",
+   "largeur": 390,
+   "demande": "/locataire/[orgId]/releves",
+   "routeObservee": "/locataire/[orgId]/releves",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#7"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "FAQ locataire",
+   "largeur": 390,
+   "demande": "/locataire/[orgId]/faq",
+   "routeObservee": "/locataire/[orgId]/faq",
+   "etat": "page rendue",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#8"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Signaler un incident",
+   "largeur": 390,
+   "demande": "/locataire/[orgId]/incident",
+   "routeObservee": "/locataire/[orgId]/incident",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#9"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Mon logement",
+   "largeur": 390,
+   "demande": "/locataire/[orgId]/logement",
+   "routeObservee": "/locataire/[orgId]/logement",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#10"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Mes loyers & quittances",
+   "largeur": 390,
+   "demande": "/locataire/[orgId]/loyers",
+   "routeObservee": "/locataire/[orgId]/loyers",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#11"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Quittance / reçu imprimable (aussi vue côté agence)",
+   "largeur": 390,
+   "demande": "/quittance/[quittanceId]",
+   "routeObservee": "/quittance/[quittanceId]",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#12"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Règles pour les locataires",
+   "largeur": 390,
+   "demande": "/veille",
+   "routeObservee": "/veille",
+   "etat": "redirection observée",
+   "commandesVisibles": 0,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#13"
+  },
+  {
+   "role": "locataire",
+   "etiquette": "Données personnelles et demandes privées — locataire",
+   "largeur": 390,
+   "demande": "/compte/donnees",
+   "routeObservee": "/compte/donnees",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-locataire.json#14"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Abonnement (propriétaire direct)",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/abonnement",
+   "routeObservee": "/agence/[orgId]/abonnement",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#0"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Renoncer au contrat (rétractation)",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/abonnement/retractation",
+   "routeObservee": "/agence/[orgId]/abonnement/retractation",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#1"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Résilier votre contrat",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/abonnement/resiliation",
+   "routeObservee": "/agence/[orgId]/abonnement/resiliation",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#2"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Aide fiscale (revenus fonciers)",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/comptabilite/fiscal",
+   "routeObservee": "/agence/[orgId]/comptabilite/fiscal",
+   "etat": "page rendue",
+   "commandesVisibles": 9,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#3"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "FAQ du propriétaire direct",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/faq",
+   "routeObservee": "/agence/[orgId]/faq",
+   "etat": "page rendue",
+   "commandesVisibles": 23,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#4"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Règles pour les bailleurs",
+   "largeur": 390,
+   "demande": "/veille",
+   "routeObservee": "/veille",
+   "etat": "redirection observée",
+   "commandesVisibles": 0,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#5"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Accueil du bailleur",
+   "largeur": 390,
+   "demande": "/agence/[orgId]",
+   "routeObservee": "/agence/[orgId]",
+   "etat": "page rendue",
+   "commandesVisibles": 7,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#6"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Mes lots",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc",
+   "routeObservee": "/agence/[orgId]/parc",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#7"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Ajouter un bien",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/nouveau",
+   "routeObservee": "/agence/[orgId]/parc/nouveau",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#8"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Locataires et garants",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/personnes",
+   "routeObservee": "/agence/[orgId]/personnes",
+   "etat": "page rendue",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#9"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Loyers du bailleur",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/loyers",
+   "routeObservee": "/agence/[orgId]/loyers",
+   "etat": "page rendue",
+   "commandesVisibles": 7,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#10"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Livre recettes-dépenses",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/comptabilite",
+   "routeObservee": "/agence/[orgId]/comptabilite",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#11"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Incidents du bailleur",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/incidents",
+   "routeObservee": "/agence/[orgId]/incidents",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#12"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Déclarer un incident",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/incidents/nouveau",
+   "routeObservee": "/agence/[orgId]/incidents/nouveau",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#13"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Alertes du bailleur",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/alertes",
+   "routeObservee": "/agence/[orgId]/alertes",
+   "etat": "page rendue",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#14"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Agenda du bailleur",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/agenda",
+   "routeObservee": "/agence/[orgId]/agenda",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#15"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Statistiques du bailleur",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/statistiques",
+   "routeObservee": "/agence/[orgId]/statistiques",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#16"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Messages du bailleur",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/messages",
+   "routeObservee": "/agence/[orgId]/messages",
+   "etat": "page rendue",
+   "commandesVisibles": 7,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#17"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Paramètres du bailleur",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/profil",
+   "routeObservee": "/agence/[orgId]/profil",
+   "etat": "page rendue",
+   "commandesVisibles": 11,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#18"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Documents du bailleur",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/documents",
+   "routeObservee": "/agence/[orgId]/documents",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#19"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Catalogue du bailleur",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/documents/catalogue",
+   "routeObservee": "/agence/[orgId]/documents/catalogue",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#20"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Carnet d’artisans du bailleur",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/artisans",
+   "routeObservee": "/agence/[orgId]/artisans",
+   "etat": "page rendue",
+   "commandesVisibles": 7,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#21"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Journal dans l’espace connecté",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/journal",
+   "routeObservee": "/agence/[orgId]/journal",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#22"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Article dans l’espace connecté",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/journal/[slug]",
+   "routeObservee": "/agence/[orgId]/journal/[slug]",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#23"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Données personnelles et demandes privées — proprietaire",
+   "largeur": 390,
+   "demande": "/compte/donnees",
+   "routeObservee": "/compte/donnees",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#24"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Fiche du logement propriétaire",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]/lots/[lotId]",
+   "etat": "page rendue",
+   "commandesVisibles": 40,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#25"
+  },
+  {
+   "role": "proprietaire",
+   "etiquette": "Fiche du bien propriétaire",
+   "largeur": 390,
+   "demande": "/agence/[orgId]/parc/[bienId]",
+   "routeObservee": "/agence/[orgId]/parc/[bienId]",
+   "etat": "page rendue",
+   "commandesVisibles": 19,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-proprietaire.json#26"
+  },
+  {
+   "role": "public",
+   "etiquette": "Site vitrine (accueil marketing)",
+   "largeur": 390,
+   "demande": "/",
+   "routeObservee": "/",
+   "etat": "page rendue",
+   "commandesVisibles": 11,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#0"
+  },
+  {
+   "role": "public",
+   "etiquette": "Conditions générales d’utilisation et de vente",
+   "largeur": 390,
+   "demande": "/conditions",
+   "routeObservee": "/conditions",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#1"
+  },
+  {
+   "role": "public",
+   "etiquette": "Conditions de l’espace artisan",
+   "largeur": 390,
+   "demande": "/conditions/artisans",
+   "routeObservee": "/conditions/artisans",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#2"
+  },
+  {
+   "role": "public",
+   "etiquette": "Versions archivées des conditions générales",
+   "largeur": 390,
+   "demande": "/conditions/versions",
+   "routeObservee": "/conditions/versions",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#3"
+  },
+  {
+   "role": "public",
+   "etiquette": "Politique de confidentialité",
+   "largeur": 390,
+   "demande": "/confidentialite",
+   "routeObservee": "/confidentialite",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#4"
+  },
+  {
+   "role": "public",
+   "etiquette": "Tarifs",
+   "largeur": 390,
+   "demande": "/tarifs",
+   "routeObservee": "/tarifs",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#5"
+  },
+  {
+   "role": "public",
+   "etiquette": "Agences de gestion — liste d’attente",
+   "largeur": 390,
+   "demande": "/agences",
+   "routeObservee": "/agences",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#6"
+  },
+  {
+   "role": "public",
+   "etiquette": "Outils gratuits (index)",
+   "largeur": 390,
+   "demande": "/outils",
+   "routeObservee": "/outils",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#7"
+  },
+  {
+   "role": "public",
+   "etiquette": "Outil gratuit — calcul de la révision IRL",
+   "largeur": 390,
+   "demande": "/outils/calcul-irl",
+   "routeObservee": "/outils/calcul-irl",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#8"
+  },
+  {
+   "role": "public",
+   "etiquette": "Outil gratuit — quittance de loyer",
+   "largeur": 390,
+   "demande": "/outils/quittance-de-loyer",
+   "routeObservee": "/outils/quittance-de-loyer",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#9"
+  },
+  {
+   "role": "public",
+   "etiquette": "Outil gratuit — comparateur GLI / Visale",
+   "largeur": 390,
+   "demande": "/outils/comparateur-gli-visale",
+   "routeObservee": "/outils/comparateur-gli-visale",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#10"
+  },
+  {
+   "role": "public",
+   "etiquette": "Outil gratuit — simulateur LMNP",
+   "largeur": 390,
+   "demande": "/outils/simulateur-lmnp",
+   "routeObservee": "/outils/simulateur-lmnp",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#11"
+  },
+  {
+   "role": "public",
+   "etiquette": "Outil gratuit — rentabilité locative",
+   "largeur": 390,
+   "demande": "/outils/rentabilite-locative",
+   "routeObservee": "/outils/rentabilite-locative",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#12"
+  },
+  {
+   "role": "public",
+   "etiquette": "Connexion",
+   "largeur": 390,
+   "demande": "/connexion",
+   "routeObservee": "/connexion",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#13"
+  },
+  {
+   "role": "public",
+   "etiquette": "Inscription (création de compte)",
+   "largeur": 390,
+   "demande": "/inscription",
+   "routeObservee": "/inscription",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#14"
+  },
+  {
+   "role": "public",
+   "etiquette": "Journal",
+   "largeur": 390,
+   "demande": "/journal",
+   "routeObservee": "/journal",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#15"
+  },
+  {
+   "role": "public",
+   "etiquette": "Article du journal",
+   "largeur": 390,
+   "demande": "/journal/[slug]",
+   "routeObservee": "/journal/[slug]",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#16"
+  },
+  {
+   "role": "public",
+   "etiquette": "Mentions légales",
+   "largeur": 390,
+   "demande": "/mentions-legales",
+   "routeObservee": "/mentions-legales",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#17"
+  },
+  {
+   "role": "public",
+   "etiquette": "Mot de passe oublié",
+   "largeur": 390,
+   "demande": "/mot-de-passe-oublie",
+   "routeObservee": "/mot-de-passe-oublie",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#18"
+  },
+  {
+   "role": "public",
+   "etiquette": "Réinitialisation du mot de passe",
+   "largeur": 390,
+   "demande": "/nouveau-mot-de-passe",
+   "routeObservee": "/connexion",
+   "etat": "redirection observée",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#19"
+  },
+  {
+   "role": "public",
+   "etiquette": "Lien reçu par e-mail — bouton de confirmation",
+   "largeur": 390,
+   "demande": "/auth/confirmer",
+   "routeObservee": "/auth/confirmer",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#20"
+  },
+  {
+   "role": "public",
+   "etiquette": "Acte de cautionnement — la caution confirme son mobile",
+   "largeur": 390,
+   "demande": "/signature/caution/[jeton]",
+   "routeObservee": "/signature/caution/[jeton]",
+   "etat": "page rendue",
+   "commandesVisibles": 0,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#21"
+  },
+  {
+   "role": "public",
+   "etiquette": "Invitation d’un propriétaire — l’artisan crée son compte",
+   "largeur": 390,
+   "demande": "/artisan/invitation/[invitationId]",
+   "routeObservee": "/artisan/invitation/[invitationId]",
+   "etat": "page rendue",
+   "commandesVisibles": 1,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-public.json#22"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Vue d’ensemble de la supervision",
+   "largeur": 390,
+   "demande": "/admin",
+   "routeObservee": "/admin",
+   "etat": "page rendue",
+   "commandesVisibles": 24,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#0"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Vue d’ensemble de la supervision — Encaissements et coûts",
+   "largeur": 390,
+   "demande": "/admin",
+   "routeObservee": "/admin",
+   "etat": "panneau activé puis rendu mesuré",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#1"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Artisans à valider",
+   "largeur": 390,
+   "demande": "/admin/artisans",
+   "routeObservee": "/admin/artisans",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#2"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Aujourd’hui — le point du matin",
+   "largeur": 390,
+   "demande": "/admin/brief",
+   "routeObservee": "/admin/brief",
+   "etat": "page rendue",
+   "commandesVisibles": 11,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#3"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Le point du matin — détail d’une équipe",
+   "largeur": 390,
+   "demande": "/admin/brief/[equipe]",
+   "routeObservee": "/admin/brief/[equipe]",
+   "etat": "page rendue",
+   "commandesVisibles": 6,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#4"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Clients (agences, propriétaires, artisans)",
+   "largeur": 390,
+   "demande": "/admin/clients",
+   "routeObservee": "/admin/clients",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#5"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Fiche de débogage d’un compte (état, rôles, journaux)",
+   "largeur": 390,
+   "demande": "/admin/comptes/[accountId]",
+   "routeObservee": "/admin/comptes/[accountId]",
+   "etat": "page rendue",
+   "commandesVisibles": 12,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#6"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Fiche artisan",
+   "largeur": 390,
+   "demande": "/admin/clients/artisans/[artisanId]",
+   "routeObservee": "/admin/clients/artisans/[artisanId]",
+   "etat": "page rendue",
+   "commandesVisibles": 12,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#7"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Demandes de devis du site vitrine",
+   "largeur": 390,
+   "demande": "/admin/devis",
+   "routeObservee": "/admin/devis",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#8"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Historique et conservation",
+   "largeur": 390,
+   "demande": "/admin/journaux",
+   "routeObservee": "/admin/journaux",
+   "etat": "page rendue",
+   "commandesVisibles": 14,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#9"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Liste d’attente des agences (inscriptions depuis /agences)",
+   "largeur": 390,
+   "demande": "/admin/liste-attente",
+   "routeObservee": "/admin/liste-attente",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#10"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Détail d'une organisation",
+   "largeur": 390,
+   "demande": "/admin/organisations/[orgId]",
+   "routeObservee": "/admin/organisations/[orgId]",
+   "etat": "page rendue",
+   "commandesVisibles": 17,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#11"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Assistance encadrée sur un encaissement",
+   "largeur": 390,
+   "demande": "/admin/organisations/[orgId]/support",
+   "routeObservee": "/admin/organisations/[orgId]/support",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#12"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Ouvrir une organisation",
+   "largeur": 390,
+   "demande": "/admin/organisations/nouvelle",
+   "routeObservee": "/admin/organisations/nouvelle",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#13"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Journal éditorial",
+   "largeur": 390,
+   "demande": "/admin/publications",
+   "routeObservee": "/admin/publications",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#14"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Éditer un article",
+   "largeur": 390,
+   "demande": "/admin/publications/[id]",
+   "routeObservee": "/admin/publications/[id]",
+   "etat": "page rendue",
+   "commandesVisibles": 7,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#15"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Créer un article",
+   "largeur": 390,
+   "demande": "/admin/publications/nouvelle",
+   "routeObservee": "/admin/publications/nouvelle",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#16"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Retours des utilisateurs",
+   "largeur": 390,
+   "demande": "/admin/retours",
+   "routeObservee": "/admin/retours",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#17"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Santé et connexions",
+   "largeur": 390,
+   "demande": "/admin/sante",
+   "routeObservee": "/admin/sante",
+   "etat": "page rendue",
+   "commandesVisibles": 22,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#18"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Développement territorial",
+   "largeur": 390,
+   "demande": "/admin/territoire",
+   "routeObservee": "/admin/territoire",
+   "etat": "page rendue",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#19"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Sécurité des données",
+   "largeur": 390,
+   "demande": "/securite",
+   "routeObservee": "/securite",
+   "etat": "page rendue",
+   "commandesVisibles": 2,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#20"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Veille à superviser",
+   "largeur": 390,
+   "demande": "/admin/veille",
+   "routeObservee": "/admin/veille",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#21"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Développement du site",
+   "largeur": 390,
+   "demande": "/admin/autonomie",
+   "routeObservee": "/admin/autonomie",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#22"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Travail des équipes",
+   "largeur": 390,
+   "demande": "/admin/equipes",
+   "routeObservee": "/admin/equipes",
+   "etat": "page rendue",
+   "commandesVisibles": 22,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#23"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Agent marketing",
+   "largeur": 390,
+   "demande": "/admin/marketing",
+   "routeObservee": "/admin/marketing",
+   "etat": "page rendue",
+   "commandesVisibles": 8,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#24"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Personnalisation des agences",
+   "largeur": 390,
+   "demande": "/admin/marque-blanche",
+   "routeObservee": "/admin/marque-blanche",
+   "etat": "page rendue",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#25"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Relais de supervision",
+   "largeur": 390,
+   "demande": "/relais",
+   "routeObservee": "/relais",
+   "etat": "page rendue",
+   "commandesVisibles": 0,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#26"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Relais en mon absence",
+   "largeur": 390,
+   "demande": "/admin/relais",
+   "routeObservee": "/admin/relais",
+   "etat": "page rendue",
+   "commandesVisibles": 26,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#27"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Paramètres",
+   "largeur": 390,
+   "demande": "/admin/parametres",
+   "routeObservee": "/admin/parametres",
+   "etat": "page rendue",
+   "commandesVisibles": 10,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#28"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Réseau d’artisans : couverture par commune et métier",
+   "largeur": 390,
+   "demande": "/admin/couverture",
+   "routeObservee": "/admin/couverture",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#29"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Consignes versionnées",
+   "largeur": 390,
+   "demande": "/admin/consignes",
+   "routeObservee": "/admin/consignes",
+   "etat": "page rendue",
+   "commandesVisibles": 6,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#30"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Sécurité et accès",
+   "largeur": 390,
+   "demande": "/admin/securite",
+   "routeObservee": "/admin/securite",
+   "etat": "page rendue",
+   "commandesVisibles": 7,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#31"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Fiche individuelle d’une personne",
+   "largeur": 390,
+   "demande": "/admin/clients/personnes/[personId]",
+   "routeObservee": "/admin/clients/personnes/[personId]",
+   "etat": "page rendue",
+   "commandesVisibles": 3,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#32"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Fiche prospect",
+   "largeur": 390,
+   "demande": "/admin/territoire/prospects/[id]",
+   "routeObservee": "/admin/territoire/prospects/[id]",
+   "etat": "page rendue",
+   "commandesVisibles": 5,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#33"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Décisions et exécution",
+   "largeur": 390,
+   "demande": "/admin/brief",
+   "routeObservee": "/admin/brief",
+   "etat": "redirection observée",
+   "commandesVisibles": 9,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#34"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Améliorations du produit",
+   "largeur": 390,
+   "demande": "/admin/autonomie",
+   "routeObservee": "/admin/autonomie",
+   "etat": "redirection observée",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#35"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Annuaire des espaces",
+   "largeur": 390,
+   "demande": "/admin/clients",
+   "routeObservee": "/admin/clients",
+   "etat": "redirection observée",
+   "commandesVisibles": 4,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#36"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Demandes privées de données et procédure de fermeture",
+   "largeur": 390,
+   "demande": "/admin/donnees",
+   "routeObservee": "/admin/donnees",
+   "etat": "page rendue",
+   "commandesVisibles": 9,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#37"
+  },
+  {
+   "role": "superadmin",
+   "etiquette": "Durées de conservation",
+   "largeur": 390,
+   "demande": "/admin/conservation",
+   "routeObservee": "/admin/conservation",
+   "etat": "page rendue",
+   "commandesVisibles": 12,
+   "sansNom": 0,
+   "depassement": 0,
+   "erreursConsole": 0,
+   "preuve": "e2e/.audit/rapport-superadmin.json#38"
+  }
+ ],
+ "executionsNavigateur": [
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "setup",
+   "source": "app/e2e/auth.setup.ts",
+   "ligne": 54,
+   "scenario": "sessions des personas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/abonnement.spec.ts",
+   "ligne": 39,
+   "scenario": "Côté propriétaire bailleur › les deux lots de démonstration coûtent 7,98 € sur l’abonnement unique",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/abonnement.spec.ts",
+   "ligne": 51,
+   "scenario": "Côté propriétaire bailleur › en annuel, le montant prélevé en une fois est affiché (844ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/abonnement.spec.ts",
+   "ligne": 58,
+   "scenario": "Côté propriétaire bailleur › quitter le formulaire annuel vers un paiement simulé ne demande pas de confirmer la sortie (710ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/abonnement.spec.ts",
+   "ligne": 74,
+   "scenario": "Côté propriétaire bailleur › sans paiement en ligne ouvert, le refus est une phrase, pas une erreur d'API (842ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/abonnement.spec.ts",
+   "ligne": 86,
+   "scenario": "Côté propriétaire bailleur › aucun identifiant Stripe ne descend jusqu'au navigateur (734ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/abonnement.spec.ts",
+   "ligne": 98,
+   "scenario": "Côté propriétaire bailleur › l'écran tient dans 390 px (709ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/abonnement.spec.ts",
+   "ligne": 121,
+   "scenario": "Côté agence › l'écran compte des LOTS SOUS MANDAT, pas des biens (673ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/abonnement.spec.ts",
+   "ligne": 132,
+   "scenario": "Côté agence › le barème est montré tranche par tranche avant paiement, sans HT ni TTC en franchise (712ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/abonnement.spec.ts",
+   "ligne": 148,
+   "scenario": "Côté agence › aucun identifiant Stripe ne descend jusqu'au navigateur (661ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/abonnement.spec.ts",
+   "ligne": 156,
+   "scenario": "Côté agence › l'écran tient dans 390 px (754ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/abonnement.spec.ts",
+   "ligne": 167,
+   "scenario": "Un agent ne voit pas la facture de son agence › l'écran est introuvable pour un agent (681ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/acces-clavier-portails.spec.ts",
+   "ligne": 13,
+   "scenario": "locataire › atteint le contenu au premier geste clavier (565ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/acces-clavier-portails.spec.ts",
+   "ligne": 13,
+   "scenario": "artisan › atteint le contenu au premier geste clavier (363ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/acces-clavier-portails.spec.ts",
+   "ligne": 13,
+   "scenario": "superadmin › atteint le contenu au premier geste clavier (713ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/agences.spec.ts",
+   "ligne": 26,
+   "scenario": "agences : de l'accueil à la liste d'attente, à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/agences.spec.ts",
+   "ligne": 26,
+   "scenario": "agences : de l'accueil à la liste d'attente, à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/agent-ajoute-un-bien.spec.ts",
+   "ligne": 22,
+   "scenario": "l'agent voit « Ajouter un bien » sur son portefeuille",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/agent-ajoute-un-bien.spec.ts",
+   "ligne": 31,
+   "scenario": "le formulaire lui répond — et le bien qu'il crée reste visible",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alerte-impaye-proprietaire.spec.ts",
+   "ligne": 16,
+   "scenario": "impayé de deux mois à 390px : total sur la ligne, alerte fermée à la réception complète",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alerte-impaye-proprietaire.spec.ts",
+   "ligne": 16,
+   "scenario": "impayé de deux mois à 1440px : total sur la ligne, alerte fermée à la réception complète",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 50,
+   "scenario": "Propriétaire direct : l'alias /espace › un ancien lien /agence est redirigé à vie (308) vers /espace, chemin et requête conservés (279ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 61,
+   "scenario": "Propriétaire direct : l'alias /espace › le lien ancien ouvre le même écran à l'adresse /espace, sans boucle (le fragment survit) (441ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 72,
+   "scenario": "Propriétaire direct : l'alias /espace › l'alias est servi tel quel (200) : l'adresse affichée reste /espace et le menu s'allume (734ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 82,
+   "scenario": "Propriétaire direct : l'alias /espace › il navigue dans tout son espace sous /espace : chaque écran s'ouvre, et aucun lien émis ne pointe vers /agence",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 98,
+   "scenario": "Propriétaire direct : l'alias /espace › le menu se parcourt au clic (navigation côté client) sans jamais quitter /espace",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 114,
+   "scenario": "Propriétaire direct : l'alias /espace › les fiches de lot, bail, personne et document restent sous /espace, ancien lien compris",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 199,
+   "scenario": "Propriétaire direct : l'alias /espace › une action serveur postée sous /espace aboutit et ramène sous /espace (déclarer un incident) (956ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 218,
+   "scenario": "Propriétaire direct : l'alias /espace › l'URL d'un autre profil n'est pas atteignable par l'alias",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 239,
+   "scenario": "Propriétaire direct : l'alias /espace › l'espace d'un AUTRE propriétaire direct n'est pas atteignable par /espace/<son id>",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 266,
+   "scenario": "Propriétaire direct : l'alias /espace › la porte de /admin reste fermée au propriétaire direct (inchangée) (149ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 277,
+   "scenario": "Autres profils : aucun accès par l'alias, aucune garde affaiblie › admin : /espace/<propriétaire> et /espace/<agence> sont introuvables (108ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 277,
+   "scenario": "Autres profils : aucun accès par l'alias, aucune garde affaiblie › agent : /espace/<propriétaire> et /espace/<agence> sont introuvables (99ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 277,
+   "scenario": "Autres profils : aucun accès par l'alias, aucune garde affaiblie › locataire : /espace/<propriétaire> et /espace/<agence> sont introuvables (96ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 285,
+   "scenario": "Autres profils : aucun accès par l'alias, aucune garde affaiblie › admin : son agence reste servie sous /agence, sans redirection, et ses liens restent sous /agence",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 316,
+   "scenario": "Autres profils : aucun accès par l'alias, aucune garde affaiblie › admin : l'ancienne adresse du propriétaire n'est pas redirigée vers /espace (rien n'y est révélé) (44ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/alias-espace.spec.ts",
+   "ligne": 322,
+   "scenario": "Autres profils : aucun accès par l'alias, aucune garde affaiblie › hors connexion : /espace mène à la connexion, avec la suite à reprendre (14ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/arrivee-alertes.spec.ts",
+   "ligne": 30,
+   "scenario": "la synthèse d'alertes qui s'ouvre à l'arrivée tient dans l'écran et se ferme au doigt",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/arrivee-alertes.spec.ts",
+   "ligne": 78,
+   "scenario": "une fois écartée, la synthèse ne revient pas à chaque écran",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/artisan-fin-mission.spec.ts",
+   "ligne": 11,
+   "scenario": "intervention acceptée : démarrage, photo, bilan, facture (depot) et réception gestionnaire",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/artisan-fin-mission.spec.ts",
+   "ligne": 11,
+   "scenario": "intervention acceptée : démarrage, photo, bilan, facture (creation) et réception gestionnaire",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/artisan-fin-mission.spec.ts",
+   "ligne": 11,
+   "scenario": "intervention acceptée : démarrage, photo, bilan, facture (sci) et réception gestionnaire",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/artisan-fin-mission.spec.ts",
+   "ligne": 132,
+   "scenario": "devis privé : compléter son identité puis reprendre sans ressaisir ni altérer la version validée",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/assistant-prive.spec.ts",
+   "ligne": 25,
+   "scenario": "assistant privé espace : entrée discrète et indisponibilité honnête sans fournisseur",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/assistant-prive.spec.ts",
+   "ligne": 25,
+   "scenario": "assistant privé locataire : entrée discrète et indisponibilité honnête sans fournisseur",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/attestations-refus.spec.ts",
+   "ligne": 5,
+   "scenario": "attestation : date future refusée et fichier conservé après un rejet",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/attestations-refus.spec.ts",
+   "ligne": 26,
+   "scenario": "attestation : fin de validité passée refusée par le formulaire ET par le serveur, la pièce en place reste",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/a11y.spec.ts",
+   "ligne": 214,
+   "scenario": "accessibilité › le parcours a bien vu des pages (sinon les assertions ne prouvent rien) (3ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/a11y.spec.ts",
+   "ligne": 218,
+   "scenario": "accessibilité › aucun contrôle sans nom accessible, ni nommé par son seul placeholder (1ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/a11y.spec.ts",
+   "ligne": 222,
+   "scenario": "accessibilité › axe-core : aucune violation sérieuse ou critique (WCAG 2.0/2.1 A et AA) (0ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/bail-signe-non-actif.spec.ts",
+   "ligne": 11,
+   "scenario": "proprietaire › bail signé et documents lisibles sans activation",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/bail-signe-non-actif.spec.ts",
+   "ligne": 11,
+   "scenario": "superadmin › bail signé et documents lisibles sans activation",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/blocage-souscription.spec.ts",
+   "ligne": 10,
+   "scenario": "le superadmin lève puis réactive le blocage, avec persistance et historique",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/bouton-envoi-hydratation.spec.ts",
+   "ligne": 38,
+   "scenario": "BoutonEnvoi commun : inerte jusqu'à l'hydratation, actif ensuite › script jamais chargé (HTML du serveur seul) : désactivé, avec l'infobulle qui dit pourquoi",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/bouton-envoi-hydratation.spec.ts",
+   "ligne": 52,
+   "scenario": "BoutonEnvoi commun : inerte jusqu'à l'hydratation, actif ensuite › script chargé : le même bouton est actif, sans infobulle d'attente (859ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/audit-ecrans.spec.ts",
+   "ligne": 23,
+   "scenario": "audit public (23 écrans)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/bouton-envoi-hydratation.spec.ts",
+   "ligne": 61,
+   "scenario": "BoutonEnvoi commun : inerte jusqu'à l'hydratation, actif ensuite › script retardé : inerte pendant le chargement, actif dès que la page est prête",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/bouton-envoi-hydratation.spec.ts",
+   "ligne": 82,
+   "scenario": "un formulaire que le navigateur envoie seul n'attend pas la page › « Envoyer le lien » (mot de passe oublié) est actif dès le HTML du serveur, sans script (239ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/brouillon-bail-saisie.spec.ts",
+   "ligne": 23,
+   "scenario": "brouillon de bail : saisies protégées entre onglets et entre étapes à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/brouillon-bail-saisie.spec.ts",
+   "ligne": 23,
+   "scenario": "brouillon de bail : saisies protégées entre onglets et entre étapes à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/chemins-proposes.spec.ts",
+   "ligne": 23,
+   "scenario": "Côté agent › « Reprendre un parc » ne lui est pas proposé — la page le refuserait (595ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/chemins-proposes.spec.ts",
+   "ligne": 30,
+   "scenario": "Côté agent › et la page d'import reste fermée s'il y va à la main (853ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/chemins-proposes.spec.ts",
+   "ligne": 41,
+   "scenario": "Côté admin d'agence › le responsable, lui, garde le lien ET la page",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/comptabilite-vues.spec.ts",
+   "ligne": 7,
+   "scenario": "comptabilité mobile : journal, saisie, clôture, rapports et retour",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/compte-securite.spec.ts",
+   "ligne": 45,
+   "scenario": "on change son mot de passe depuis son compte, et l'ancien ne vaut plus rien",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/compte-securite.spec.ts",
+   "ligne": 82,
+   "scenario": "on active puis on retire son second facteur sans l'aide de personne",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/compte-supervision.spec.ts",
+   "ligne": 21,
+   "scenario": "depuis une organisation, la fiche d'un compte dit son état, ses rôles et ses journaux",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/compte-supervision.spec.ts",
+   "ligne": 52,
+   "scenario": "la recherche de la console trouve un compte par son adresse",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/compte-supervision.spec.ts",
+   "ligne": 70,
+   "scenario": "la recherche de la console retrouve un incident par son numéro et ouvre la fiche de son organisation",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/conditions-flux.spec.ts",
+   "ligne": 12,
+   "scenario": "conditions : le texte extrait de la page servie est celui que le navigateur affiche, sans trou (416ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/conservation-reglages.spec.ts",
+   "ligne": 5,
+   "scenario": "le dirigeant modifie une durée, retrouve sa trace et la rétablit",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/conservation-signatures.spec.ts",
+   "ligne": 10,
+   "scenario": "le superadmin consulte les limites et simule la conservation sans supprimer",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/console-clients.spec.ts",
+   "ligne": 24,
+   "scenario": "la supervision arrive sur sa console, pas sur un sélecteur d'espaces (822ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/console-clients.spec.ts",
+   "ligne": 30,
+   "scenario": "les faits de direction se préparent manuellement avec cinq sources datées",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/console-clients.spec.ts",
+   "ligne": 96,
+   "scenario": "« Utilisateurs » ouvre les personnes et conserve les trois familles d’espaces",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/audit-ecrans.spec.ts",
+   "ligne": 23,
+   "scenario": "audit agent (31 écrans)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/console-clients.spec.ts",
+   "ligne": 122,
+   "scenario": "la fiche d'une agence est complète, et son bouton entre vraiment dans l'espace",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/console-clients.spec.ts",
+   "ligne": 148,
+   "scenario": "le diagnostic artisan exige un motif, reste en lecture seule et se ferme",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/console-liste-attente.spec.ts",
+   "ligne": 21,
+   "scenario": "la console liste l'agence inscrite, la marque contactée et exporte le CSV ; sans session, rien ne sort",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/consommations-patrimoine.spec.ts",
+   "ligne": 9,
+   "scenario": "consommations : relevé locataire, facture et décompte à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/consommations-patrimoine.spec.ts",
+   "ligne": 9,
+   "scenario": "consommations : relevé locataire, facture et décompte à 768px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/audit-ecrans.spec.ts",
+   "ligne": 23,
+   "scenario": "audit admin (29 écrans)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/consommations-patrimoine.spec.ts",
+   "ligne": 9,
+   "scenario": "consommations : relevé locataire, facture et décompte à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 11,
+   "scenario": "clavier : accès direct au contenu sans traverser le menu",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/audit-ecrans.spec.ts",
+   "ligne": 23,
+   "scenario": "audit locataire (14 écrans)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 20,
+   "scenario": "une seule aide dans le menu conserve l’adresse propriétaire",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 36,
+   "scenario": "fiche de lot : accès direct, clavier et retour à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 36,
+   "scenario": "fiche de lot : accès direct, clavier et retour à 768px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 36,
+   "scenario": "fiche de lot : accès direct, clavier et retour à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 72,
+   "scenario": "tablette : chaque libellé du rail reste lisible sans césure",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 85,
+   "scenario": "dépôt : formulaire et retour directement accessibles à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 85,
+   "scenario": "dépôt : formulaire et retour directement accessibles à 768px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 85,
+   "scenario": "dépôt : formulaire et retour directement accessibles à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 101,
+   "scenario": "la fiche conserve les dépenses, les documents et l’historique sans modale",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 126,
+   "scenario": "les automatismes ouvrent directement les préférences du profil",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/audit-ecrans.spec.ts",
+   "ligne": 23,
+   "scenario": "audit proprietaire (27 écrans)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 135,
+   "scenario": "incident : décider puis consulter l’historique à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/contre-audit-proprietaire.spec.ts",
+   "ligne": 135,
+   "scenario": "incident : décider puis consulter l’historique à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/creation-bien-reprise.spec.ts",
+   "ligne": 7,
+   "scenario": "creation bien : panne, reponse perdue et reprise a 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/creation-bien-reprise.spec.ts",
+   "ligne": 7,
+   "scenario": "creation bien : panne, reponse perdue et reprise a 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/demonstration.spec.ts",
+   "ligne": 7,
+   "scenario": "démonstration des trois espaces avec données fictives",
+   "statut": "ignoré"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/depot-bail-signe-papier.spec.ts",
+   "ligne": 62,
+   "scenario": "G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, puis la location s'active",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/depot-direct.spec.ts",
+   "ligne": 7,
+   "scenario": "document de 6 Mo : transfert privé puis enregistrement à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/depot-direct.spec.ts",
+   "ligne": 7,
+   "scenario": "document de 6 Mo : transfert privé puis enregistrement à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/depot-document-lot.spec.ts",
+   "ligne": 22,
+   "scenario": "propriétaire : un document déposé depuis la fiche du lot y apparaît à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/depot-document-lot.spec.ts",
+   "ligne": 22,
+   "scenario": "propriétaire : un document déposé depuis la fiche du lot y apparaît à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/audit-ecrans.spec.ts",
+   "ligne": 23,
+   "scenario": "audit superadmin (38 écrans)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/depot-document-lot.spec.ts",
+   "ligne": 55,
+   "scenario": "propriétaire : le lot d’un autre espace n’est pas proposé au dépôt",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/detention-confirmation.spec.ts",
+   "ligne": 15,
+   "scenario": "G-19 : mettre fin à une détention exige une confirmation explicite",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/devis-reprise.spec.ts",
+   "ligne": 13,
+   "scenario": "devis : reprise, sauvegarde lente et conflit à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/devis-reprise.spec.ts",
+   "ligne": 13,
+   "scenario": "devis : reprise, sauvegarde lente et conflit à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/diagnostic-rapport-range.spec.ts",
+   "ligne": 24,
+   "scenario": "un rapport rangé en « Autre » se déclare comme DPE du lot et lève le blocage",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/audit-ecrans.spec.ts",
+   "ligne": 23,
+   "scenario": "audit artisan (18 écrans)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/edl-brouillon.spec.ts",
+   "ligne": 49,
+   "scenario": "saisie → brouillon local → rechargement → la saisie est toujours là",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 16,
+   "scenario": "propriétaire : repères et rubriques accessibles à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/edl-brouillon.spec.ts",
+   "ligne": 81,
+   "scenario": "hors ligne : l'indicateur l'annonce ; au retour du réseau la grille se synchronise seule",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 16,
+   "scenario": "propriétaire : repères et rubriques accessibles à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/encaissement-reste.spec.ts",
+   "ligne": 8,
+   "scenario": "PAY01 : Encaisser le reste transmet sa commande et solde une seule fois le loyer",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/equipes.spec.ts",
+   "ligne": 6,
+   "scenario": "supervision : pause et reprise des passages sans exécution du traitement",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 50,
+   "scenario": "propriétaire : un refus d’enregistrement reste visible sans perdre la saisie",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/equipes.spec.ts",
+   "ligne": 16,
+   "scenario": "supervision : le plan d’absence peut être enregistré sans créer de nouveaux accès",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/equipes.spec.ts",
+   "ligne": 19,
+   "scenario": "supervision : la marque blanche donne des étapes lisibles (541ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fenetre-lot.spec.ts",
+   "ligne": 36,
+   "scenario": "Côté agence › cliquer un lot ouvre la fenêtre — sans quitter le Parc",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 73,
+   "scenario": "propriétaire : parcours guidé et saisies conservées à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fenetre-lot.spec.ts",
+   "ligne": 54,
+   "scenario": "Côté agence › l'impayé et ses gestes arrivent AVANT le reste",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fenetre-lot.spec.ts",
+   "ligne": 72,
+   "scenario": "Côté agence › l'échelle de relance montre les TROIS niveaux du produit",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fenetre-lot.spec.ts",
+   "ligne": 85,
+   "scenario": "Côté agence › les onglets ne chargent qu'à l'ouverture",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fenetre-lot.spec.ts",
+   "ligne": 100,
+   "scenario": "Côté agence › l'historique est reconstitué depuis les faits",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 73,
+   "scenario": "propriétaire : parcours guidé et saisies conservées à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fenetre-lot.spec.ts",
+   "ligne": 112,
+   "scenario": "Côté agence › le rapport annonce ce qu'il couvre AVANT le clic",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fenetre-lot.spec.ts",
+   "ligne": 124,
+   "scenario": "Côté agence › la fenêtre tient dans un téléphone",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fenetre-lot.spec.ts",
+   "ligne": 137,
+   "scenario": "Côté agence › la comptabilité reste hors du menu de l'agent, les loyers y entrent",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fenetre-lot.spec.ts",
+   "ligne": 154,
+   "scenario": "Côté admin d'agence › l'admin garde ses deux index — sa question porte sur l'ensemble",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fenetre-lot.spec.ts",
+   "ligne": 162,
+   "scenario": "Côté admin d'agence › il ouvre la MÊME fenêtre que l'agent",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fenetre-lot.spec.ts",
+   "ligne": 172,
+   "scenario": "Côté locataire › son logement s'ouvre dans la même fenêtre, à sa portée",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 97,
+   "scenario": "propriétaire : le bail reprend le lot et permet de créer puis retrouver le locataire",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fenetre-lot.spec.ts",
+   "ligne": 202,
+   "scenario": "Côté locataire › « Mes loyers » remplace la comptabilité de l'agence",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 191,
+   "scenario": "propriétaire : fiches et liste des personnes d’un bail de chambre en préparation",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fiches-parc.spec.ts",
+   "ligne": 45,
+   "scenario": "suivi du bail : choisir une action et retrouver les liens directs",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fiches-parc.spec.ts",
+   "ligne": 72,
+   "scenario": "fiche lot : la location passe avant les caractéristiques (946ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fiches-parc.spec.ts",
+   "ligne": 89,
+   "scenario": "fiche lot : l'état n'est dit qu'une fois de trop, pas quatre (954ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fiches-parc.spec.ts",
+   "ligne": 102,
+   "scenario": "fiche lot : les caractéristiques se consultent avant de modifier",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 243,
+   "scenario": "propriétaire : un bail commencé se reprend partout, sans brouillon vierge en double",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fiches-parc.spec.ts",
+   "ligne": 112,
+   "scenario": "fiche lot : une section se déplie en touchant sa rangée, pas un bouton lointain",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fiches-parc.spec.ts",
+   "ligne": 131,
+   "scenario": "fiche bien : les lots passent avant l'administratif (780ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fiches-parc.spec.ts",
+   "ligne": 142,
+   "scenario": "fiche bien : le rapport termites reste facultatif et replié parmi les compléments",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/finalisation.spec.ts",
+   "ligne": 23,
+   "scenario": "Études, validation et visibilité par profil › Gerimmo prépare l’étude ; le superviseur valide puis retire la diffusion",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fiches-parc.spec.ts",
+   "ligne": 160,
+   "scenario": "fiche bien : l'annonce aux locataires ne déploie plus son formulaire (914ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/finalisation.spec.ts",
+   "ligne": 50,
+   "scenario": "Études, validation et visibilité par profil › une étude territoriale conserve un résultat sourcé sans lancer de campagne",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fiches-parc.spec.ts",
+   "ligne": 169,
+   "scenario": "les deux fiches tiennent dans 390 px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/finalisation.spec.ts",
+   "ligne": 61,
+   "scenario": "Études, validation et visibilité par profil › la supervision contrôle le mode automatique, et l’artisan trouve la veille",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/incident-gerant-colocation.spec.ts",
+   "ligne": 15,
+   "scenario": "incident en colocation : la chambre est demandée, la cuisine reste proposée (390px)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/fiscalite-qualifiee.spec.ts",
+   "ligne": 7,
+   "scenario": "fiscalité : qualifier copro, terrain et 230, puis retrouver le même export",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/incident-gerant-colocation.spec.ts",
+   "ligne": 15,
+   "scenario": "incident en colocation : la chambre est demandée, la cuisine reste proposée (1440px)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/incidents-reprise.spec.ts",
+   "ligne": 28,
+   "scenario": "LOC003 : réponse perdue après création puis reprise sans double incident ni photo",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/inventaire-meuble.spec.ts",
+   "ligne": 21,
+   "scenario": "bail meublé : les 11 éléments du décret en un geste, sans doublon, puis complétés sur place à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/incidents-reprise.spec.ts",
+   "ligne": 68,
+   "scenario": "LOC002 : photo refusée nettoyée puis reprise sur le même incident",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/inventaire-meuble.spec.ts",
+   "ligne": 21,
+   "scenario": "bail meublé : les 11 éléments du décret en un geste, sans doublon, puis complétés sur place à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/invitations-cycle.spec.ts",
+   "ligne": 7,
+   "scenario": "invitation : envoi non configuré honnête, refus, expiration, acceptation et historique",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/lot2-locataire.spec.ts",
+   "ligne": 7,
+   "scenario": "locataire : documents et déclaration avec photo, puis suivi",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/lot3-acces-directs.spec.ts",
+   "ligne": 10,
+   "scenario": "accès directs refusés : proprietaire_direct d’un autre patrimoine SCI",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/lot3-acces-directs.spec.ts",
+   "ligne": 10,
+   "scenario": "accès directs refusés : locataire d’un autre patrimoine SCI (878ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/lot3-acces-directs.spec.ts",
+   "ligne": 10,
+   "scenario": "accès directs refusés : artisan d’un autre patrimoine SCI",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 46,
+   "scenario": "Côté agent › l'avatar ouvre le menu, et y met ce que ce rôle peut atteindre",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/lot3-loyer-facture.spec.ts",
+   "ligne": 20,
+   "scenario": "propriétaire : loyer confirmé et dépôt de facture conservé (nom propre)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 67,
+   "scenario": "Côté agent › la cible de l'avatar fait au moins 44 px, et le volet reste dans l'écran",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 85,
+   "scenario": "Côté agent › Échap referme le menu et rend le clavier à l'avatar",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 97,
+   "scenario": "Côté agent › se déconnecter depuis le menu sort vraiment de la session",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 114,
+   "scenario": "Côté agent › hors ligne, se déconnecter le dit sans quitter la page ni la session",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/lot3-loyer-facture.spec.ts",
+   "ligne": 20,
+   "scenario": "propriétaire : loyer confirmé et dépôt de facture conservé (SCI)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 46,
+   "scenario": "Côté admin › l'avatar ouvre le menu, et y met ce que ce rôle peut atteindre",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 67,
+   "scenario": "Côté admin › la cible de l'avatar fait au moins 44 px, et le volet reste dans l'écran",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/lot3-loyer-facture.spec.ts",
+   "ligne": 117,
+   "scenario": "une échéance de 640 € après cession apparaît uniquement chez le titulaire à la date du loyer",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 85,
+   "scenario": "Côté admin › Échap referme le menu et rend le clavier à l'avatar",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/messages-locataire-sans-espace.spec.ts",
+   "ligne": 14,
+   "scenario": "messages : la fiche d'un locataire en cours sans espace explique qu'il faut l'inviter (390px)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 97,
+   "scenario": "Côté admin › se déconnecter depuis le menu sort vraiment de la session",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 114,
+   "scenario": "Côté admin › hors ligne, se déconnecter le dit sans quitter la page ni la session",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 46,
+   "scenario": "Côté propriétaire › l'avatar ouvre le menu, et y met ce que ce rôle peut atteindre",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/messages-locataire-sans-espace.spec.ts",
+   "ligne": 14,
+   "scenario": "messages : la fiche d'un locataire en cours sans espace explique qu'il faut l'inviter (1440px)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 67,
+   "scenario": "Côté propriétaire › la cible de l'avatar fait au moins 44 px, et le volet reste dans l'écran",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 85,
+   "scenario": "Côté propriétaire › Échap referme le menu et rend le clavier à l'avatar (956ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/mois-offerts.spec.ts",
+   "ligne": 9,
+   "scenario": "offrir deux mois : aperçu sans effet, confirmation et preuve après rechargement",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 97,
+   "scenario": "Côté propriétaire › se déconnecter depuis le menu sort vraiment de la session",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/navigation-matin.spec.ts",
+   "ligne": 7,
+   "scenario": "Tour du matin de la supervision › arrive sur le bureau de direction et retrouve les destinations dans le menu mobile",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 114,
+   "scenario": "Côté propriétaire › hors ligne, se déconnecter le dit sans quitter la page ni la session",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 46,
+   "scenario": "Côté locataire › l'avatar ouvre le menu, et y met ce que ce rôle peut atteindre (924ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/navigation-matin.spec.ts",
+   "ligne": 22,
+   "scenario": "Tour du matin de la supervision › le menu complet est accessible sur ordinateur sans ouvrir le bouton mobile",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 67,
+   "scenario": "Côté locataire › la cible de l'avatar fait au moins 44 px, et le volet reste dans l'écran (971ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/navigation-matin.spec.ts",
+   "ligne": 31,
+   "scenario": "Tour du matin de la supervision › la santé conduit directement au résultat des traitements",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 85,
+   "scenario": "Côté locataire › Échap referme le menu et rend le clavier à l'avatar",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 97,
+   "scenario": "Côté locataire › se déconnecter depuis le menu sort vraiment de la session",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/navigation-matin.spec.ts",
+   "ligne": 41,
+   "scenario": "Tour du matin de la supervision › filtre l’historique avec des choix compréhensibles et conserve les dates",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 114,
+   "scenario": "Côté locataire › hors ligne, se déconnecter le dit sans quitter la page ni la session",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/menu-compte.spec.ts",
+   "ligne": 138,
+   "scenario": "Ce que le menu remplace › le pied de barre latérale et la sortie de secours mobile ont disparu (707ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/navigation-matin.spec.ts",
+   "ligne": 60,
+   "scenario": "Tour du matin de la supervision › préserve un ancien filtre partagé sans afficher son code interne",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/onboarding.spec.ts",
+   "ligne": 12,
+   "scenario": "côté console › « Ouvrir une organisation » s'atteint depuis la supervision",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/navigation-matin.spec.ts",
+   "ligne": 75,
+   "scenario": "Actualisation marketing depuis un autre fuseau horaire › affiche l’heure serveur sans erreur et actualise réellement les informations",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/onboarding.spec.ts",
+   "ligne": 22,
+   "scenario": "côté console › le formulaire porte ce qu'il faut, et tient dans 390 px (778ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/navigation-matin.spec.ts",
+   "ligne": 94,
+   "scenario": "Retour de veille — admin › revient directement à son espace et garde le retour après un filtre",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/navigation-matin.spec.ts",
+   "ligne": 94,
+   "scenario": "Retour de veille — agent › revient directement à son espace et garde le retour après un filtre (820ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/onboarding.spec.ts",
+   "ligne": 49,
+   "scenario": "côté client › le chemin du démarrage disparaît lorsque les cinq étapes sont terminées",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/onboarding.spec.ts",
+   "ligne": 69,
+   "scenario": "reprendre un parc › le gabarit se télécharge et se relit (81ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/navigation-matin.spec.ts",
+   "ligne": 94,
+   "scenario": "Retour de veille — proprietaire › revient directement à son espace et garde le retour après un filtre (791ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/navigation-matin.spec.ts",
+   "ligne": 94,
+   "scenario": "Retour de veille — locataire › revient directement à son espace et garde le retour après un filtre (823ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/outils.spec.ts",
+   "ligne": 41,
+   "scenario": "index /outils : les cinq outils, sans débordement (523ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/onboarding.spec.ts",
+   "ligne": 80,
+   "scenario": "reprendre un parc › le contrôle lit le fichier déposé et rend le verdict ligne par ligne",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/outils.spec.ts",
+   "ligne": 57,
+   "scenario": "calcul IRL : 850 € × 148,37 ÷ 146,68 = 859,79 €, alerte au-delà d'un an, DPE F bloque",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-agence.spec.ts",
+   "ligne": 14,
+   "scenario": "le tableau de bord s'ouvre sans débordement et la navigation porte ses libellés",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/outils.spec.ts",
+   "ligne": 103,
+   "scenario": "quittance : 850 + 120, reçu 500 → reçu de paiement partiel, reste dû 470,00 €",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/outils.spec.ts",
+   "ligne": 138,
+   "scenario": "comparateur : GLI 314,28 € brut, 165,94 € net ; 30 ans et plus « Autre » → Visale exclue (697ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-agence.spec.ts",
+   "ligne": 24,
+   "scenario": "créer un bien depuis le téléphone : formulaire → fiche du parc",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/outils.spec.ts",
+   "ligne": 151,
+   "scenario": "LMNP : réel 0,00 €, micro 2 265,60 €, amortissement reporté 554,29 € (515ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/outils.spec.ts",
+   "ligne": 162,
+   "scenario": "rentabilité : brute 5,29 %, nette 4,08 %, cash-flow −350,44 € (730ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 25,
+   "scenario": "le portail s'ouvre sans organisation dans l'adresse",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-agence.spec.ts",
+   "ligne": 53,
+   "scenario": "créer, ouvrir, fermer puis traiter une alerte au doigt",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/agenda s'affiche, tient dans 390 px et ne tombe pas (963ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-agence.spec.ts",
+   "ligne": 81,
+   "scenario": "le quittancement du mois s'affiche à 390px avec le bail E2E (860ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/devis s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-agence.spec.ts",
+   "ligne": 88,
+   "scenario": "le plan du jour : replié devant un mur, ouvert quand il tient à l'écran",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-locataire.spec.ts",
+   "ligne": 20,
+   "scenario": "l'accueil locataire montre le statut de l'incident déclaré (437ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/attestations s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/entreprise s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-locataire.spec.ts",
+   "ligne": 28,
+   "scenario": "déclarer un incident : la photo est le premier champ, l'envoi aboutit",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-locataire.spec.ts",
+   "ligne": 101,
+   "scenario": "mes loyers : échéancier lisible à 390px, quittance/reçu accessible",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/note s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/facturation s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/clients s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-locataire.spec.ts",
+   "ligne": 182,
+   "scenario": "mes documents : le titre ouvre l'aperçu en fenêtre, un seul geste pour toutes les pièces",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 64,
+   "scenario": "l'agenda montre la mission acceptée, avec l'adresse du chantier",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 73,
+   "scenario": "chaque cible tactile de l'accueil fait au moins 44 px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-locataire.spec.ts",
+   "ligne": 188,
+   "scenario": "ordinateur 1440×900 › mes documents : le même geste de consultation à l'ordinateur",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 92,
+   "scenario": "le registre privé se télécharge seulement au clic, depuis la facturation et les clients",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-locataire.spec.ts",
+   "ligne": 193,
+   "scenario": "une photo refusée conserve la catégorie, la pièce, le texte et le fichier sélectionné",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 135,
+   "scenario": "un client externe et son devis brouillon restent enregistrés après rechargement",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 169,
+   "scenario": "visiteur sans compte › « Inscrire mon entreprise » ouvre la création de compte, sans détour par /connexion (436ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/personne-reprise.spec.ts",
+   "ligne": 13,
+   "scenario": "fiche personne et justificatif : fermeture et création à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 14,
+   "scenario": "profil : avertissement avant sortie, annulation et retour à la valeur initiale à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 14,
+   "scenario": "profil : avertissement avant sortie, annulation et retour à la valeur initiale à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/personne-reprise.spec.ts",
+   "ligne": 13,
+   "scenario": "fiche personne et justificatif : fermeture et création à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 27,
+   "scenario": "artisan : erreur de dépôt garde le fichier et empêche une sortie accidentelle",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 38,
+   "scenario": "superadmin : texte préparé protégé sans programmer de publication",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 54,
+   "scenario": "confirmation partielle, deuxième formulaire et modifications pendant la réponse (296ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 62,
+   "scenario": "fichier confirmé puis remplacé par un autre de mêmes métadonnées (149ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 87,
+   "scenario": "un reset automatique après erreur conserve texte et vrais octets du fichier (158ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 94,
+   "scenario": "recherche et champs techniques ne déclenchent pas de faux avertissement (195ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 98,
+   "scenario": "un fichier choisi sans focus est suivi et une saisie abandonnée demande confirmation (210ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 104,
+   "scenario": "artisan : seule la confirmation réelle permet de quitter sans avertissement",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/personne-reprise.spec.ts",
+   "ligne": 46,
+   "scenario": "fiche personne : une autre fenêtre ne remplace pas la copie et le stockage refusé est expliqué",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 117,
+   "scenario": "artisan : réponse réseau perdue garde le formulaire et son texte",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/personne-reprise.spec.ts",
+   "ligne": 56,
+   "scenario": "fiche personne : réponse de création perdue puis reprise sans nouvelle création",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 126,
+   "scenario": "pièce trop volumineuse : refus avant envoi, saisie et fichier conservés",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/personne-reprise.spec.ts",
+   "ligne": 77,
+   "scenario": "fiche personne : copie refusée, un lien interne demande confirmation avant d’abandonner la saisie",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/reception-loyer-proprietaire.spec.ts",
+   "ligne": 19,
+   "scenario": "réception du loyer à 390px : échéance, pas reçu, partiel puis solde",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/recommandes-consentements.spec.ts",
+   "ligne": 26,
+   "scenario": "390px › consentements et recommandé à 390px : retrait, configuration absente et suivi durable",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/reception-loyer-proprietaire.spec.ts",
+   "ligne": 19,
+   "scenario": "réception du loyer à 1440px : échéance, pas reçu, partiel puis solde",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/relocation-bail.spec.ts",
+   "ligne": 22,
+   "scenario": "relocation : le nouveau brouillon reprend les conditions du bail précédent, signalées et effaçables, à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/recommandes-consentements.spec.ts",
+   "ligne": 26,
+   "scenario": "1440px › consentements et recommandé à 1440px : retrait, configuration absente et suivi durable",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 61,
+   "scenario": "hors ligne, le clic sur un lien est retenu › on reste sur la page, la carte « Connexion perdue » s'ouvre et le focus va sur « Réessayer » (612ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 81,
+   "scenario": "hors ligne, le clic sur un lien est retenu › « Réessayer » sans réseau le dit et laisse la carte ouverte (664ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/relocation-bail.spec.ts",
+   "ligne": 22,
+   "scenario": "relocation : le nouveau brouillon reprend les conditions du bail précédent, signalées et effaçables, à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 95,
+   "scenario": "hors ligne, le clic sur un lien est retenu › « Échap » ferme la carte sans naviguer, et un nouveau clic la rouvre (574ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 112,
+   "scenario": "hors ligne, le clic sur un lien est retenu › « Fermer » ferme la carte sans naviguer (525ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 124,
+   "scenario": "hors ligne, le clic sur un lien est retenu › quand le réseau revient, la carte l'annonce ; « Réessayer » ouvre alors la page demandée, dans l'application (576ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 142,
+   "scenario": "hors ligne, le clic sur un lien est retenu › la perte du réseau, carte ouverte, est suivie : le message revient à « plus connecté » (482ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 154,
+   "scenario": "hors ligne, le clic sur un lien est retenu › un lien vers un autre site est retenu aussi ; « Réessayer » le charge en entier une fois le réseau revenu (473ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 183,
+   "scenario": "tant que le réseau est là, ou quand le clic ne quitte pas la page, rien n'est retenu › en ligne, le lien s'ouvre comme avant, sans carte (439ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 193,
+   "scenario": "tant que le réseau est là, ou quand le clic ne quitte pas la page, rien n'est retenu › hors ligne, un lien d'ancre sur la même page n'est pas retenu (412ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/reseau-couverture.spec.ts",
+   "ligne": 8,
+   "scenario": "Couverture du réseau depuis le bien › un bien à Lyon reste gérable, puis intérêt sans intervention ni doublon",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/reseau-couverture.spec.ts",
+   "ligne": 56,
+   "scenario": "Couverture du réseau, côté supervision › la couverture se lit commune par commune, sans aucune décision d’ouverture ni de rattachement (687ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/supervision-consignes.spec.ts",
+   "ligne": 9,
+   "scenario": "une consigne exige une version activée, conserve sa preuve et reste suspendable",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/supervision-consignes.spec.ts",
+   "ligne": 64,
+   "scenario": "présentation mobile › consignes et relais restent lisibles sans débordement",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/supervision-consignes.spec.ts",
+   "ligne": 64,
+   "scenario": "présentation ordinateur › consignes et relais restent lisibles sans débordement",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/supervision-consultation.spec.ts",
+   "ligne": 9,
+   "scenario": "consultation superadmin › les commandes proposées correspondent au rôle connecté (692ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/supervision-consultation.spec.ts",
+   "ligne": 9,
+   "scenario": "consultation proprietaire › les commandes proposées correspondent au rôle connecté",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/souscription-sans-alerte-sortie.spec.ts",
+   "ligne": 17,
+   "scenario": "G-25 : souscription mensuel — aucun « Quitter le site ? » en partant vers le paiement",
+   "statut": "ignoré"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/support-bailleur.spec.ts",
+   "ligne": 9,
+   "scenario": "le bailleur retrouve la réponse apportée à sa demande par la supervision",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/utilisateurs.spec.ts",
+   "ligne": 7,
+   "scenario": "annuaire lisible, filtres cumulés et ouverture du bon compte",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/utilisateurs.spec.ts",
+   "ligne": 40,
+   "scenario": "les abonnements et la trésorerie restent deux lectures distinctes",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/vitrine.spec.ts",
+   "ligne": 7,
+   "scenario": "vitrine / : les tarifs changent sans ambiguïté entre mois et année (594ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/vitrine.spec.ts",
+   "ligne": 7,
+   "scenario": "vitrine /tarifs : les tarifs changent sans ambiguïté entre mois et année (783ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/vitrine.spec.ts",
+   "ligne": 28,
+   "scenario": "vitrine mobile : navigation, fermeture du menu et questions fréquentes",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Tester les parcours par profil et auditer les écrans mobiles",
+   "projet": "mobile",
+   "source": "app/e2e/souscription-sans-alerte-sortie.spec.ts",
+   "ligne": 17,
+   "scenario": "G-25 : souscription annuel — aucun « Quitter le site ? » en partant vers le paiement",
+   "statut": "ignoré"
+  },
+  {
+   "suite": "Vérifier les envois admis avec boîte fictive et réseau extérieur bloqué",
+   "projet": "mobile-courriels",
+   "source": "app/e2e/lot2-artisan.spec.ts",
+   "ligne": 60,
+   "scenario": "invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, solliciter par le carnet (resté privé, hors réseau)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les envois admis avec boîte fictive et réseau extérieur bloqué",
+   "projet": "mobile-courriels",
+   "source": "app/e2e/lot2-invitations.spec.ts",
+   "ligne": 7,
+   "scenario": "invitation locale : acceptation fournisseur fictif, refus, expiration et acceptation",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les envois admis avec boîte fictive et réseau extérieur bloqué",
+   "projet": "mobile-courriels",
+   "source": "app/e2e/lot2-pilote.spec.ts",
+   "ligne": 3,
+   "scenario": "inscription et récupération avec boîte fictive locale",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les envois admis avec boîte fictive et réseau extérieur bloqué",
+   "projet": "mobile-courriels",
+   "source": "app/e2e/premiere-location-continue.spec.ts",
+   "ligne": 10,
+   "scenario": "Résidence des Acacias : de la première inscription à la quittance du même logement",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "setup-webkit",
+   "source": "app/e2e/auth.setup.ts",
+   "ligne": 54,
+   "scenario": "sessions des personas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/artisan-fin-mission.spec.ts",
+   "ligne": 11,
+   "scenario": "intervention acceptée : démarrage, photo, bilan, facture (depot) et réception gestionnaire",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/artisan-fin-mission.spec.ts",
+   "ligne": 11,
+   "scenario": "intervention acceptée : démarrage, photo, bilan, facture (creation) et réception gestionnaire",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/artisan-fin-mission.spec.ts",
+   "ligne": 11,
+   "scenario": "intervention acceptée : démarrage, photo, bilan, facture (sci) et réception gestionnaire",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/artisan-fin-mission.spec.ts",
+   "ligne": 132,
+   "scenario": "devis privé : compléter son identité puis reprendre sans ressaisir ni altérer la version validée",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/assistant-prive.spec.ts",
+   "ligne": 25,
+   "scenario": "assistant privé espace : entrée discrète et indisponibilité honnête sans fournisseur",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/assistant-prive.spec.ts",
+   "ligne": 25,
+   "scenario": "assistant privé locataire : entrée discrète et indisponibilité honnête sans fournisseur",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/bail-signe-non-actif.spec.ts",
+   "ligne": 11,
+   "scenario": "proprietaire › bail signé et documents lisibles sans activation",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/bail-signe-non-actif.spec.ts",
+   "ligne": 11,
+   "scenario": "superadmin › bail signé et documents lisibles sans activation",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/bouton-envoi-hydratation.spec.ts",
+   "ligne": 38,
+   "scenario": "BoutonEnvoi commun : inerte jusqu'à l'hydratation, actif ensuite › script jamais chargé (HTML du serveur seul) : désactivé, avec l'infobulle qui dit pourquoi",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/bouton-envoi-hydratation.spec.ts",
+   "ligne": 52,
+   "scenario": "BoutonEnvoi commun : inerte jusqu'à l'hydratation, actif ensuite › script chargé : le même bouton est actif, sans infobulle d'attente",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/bouton-envoi-hydratation.spec.ts",
+   "ligne": 61,
+   "scenario": "BoutonEnvoi commun : inerte jusqu'à l'hydratation, actif ensuite › script retardé : inerte pendant le chargement, actif dès que la page est prête",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/bouton-envoi-hydratation.spec.ts",
+   "ligne": 82,
+   "scenario": "un formulaire que le navigateur envoie seul n'attend pas la page › « Envoyer le lien » (mot de passe oublié) est actif dès le HTML du serveur, sans script (521ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/consommations-patrimoine.spec.ts",
+   "ligne": 9,
+   "scenario": "consommations : relevé locataire, facture et décompte à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/consommations-patrimoine.spec.ts",
+   "ligne": 9,
+   "scenario": "consommations : relevé locataire, facture et décompte à 768px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/consommations-patrimoine.spec.ts",
+   "ligne": 9,
+   "scenario": "consommations : relevé locataire, facture et décompte à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/depot-direct.spec.ts",
+   "ligne": 7,
+   "scenario": "document de 6 Mo : transfert privé puis enregistrement à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/depot-direct.spec.ts",
+   "ligne": 7,
+   "scenario": "document de 6 Mo : transfert privé puis enregistrement à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 16,
+   "scenario": "propriétaire : repères et rubriques accessibles à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 16,
+   "scenario": "propriétaire : repères et rubriques accessibles à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 50,
+   "scenario": "propriétaire : un refus d’enregistrement reste visible sans perdre la saisie",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 73,
+   "scenario": "propriétaire : parcours guidé et saisies conservées à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 73,
+   "scenario": "propriétaire : parcours guidé et saisies conservées à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 97,
+   "scenario": "propriétaire : le bail reprend le lot et permet de créer puis retrouver le locataire",
+   "statut": "échec"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 97,
+   "scenario": "propriétaire : le bail reprend le lot et permet de créer puis retrouver le locataire (retry #1)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 191,
+   "scenario": "propriétaire : fiches et liste des personnes d’un bail de chambre en préparation",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/dossier-proprietaire.spec.ts",
+   "ligne": 243,
+   "scenario": "propriétaire : un bail commencé se reprend partout, sans brouillon vierge en double",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/fiscalite-qualifiee.spec.ts",
+   "ligne": 7,
+   "scenario": "fiscalité : qualifier copro, terrain et 230, puis retrouver le même export",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 25,
+   "scenario": "le portail s'ouvre sans organisation dans l'adresse",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/agenda s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/devis s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/attestations s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/entreprise s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/note s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/facturation s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 41,
+   "scenario": "/artisan/clients s'affiche, tient dans 390 px et ne tombe pas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 64,
+   "scenario": "l'agenda montre la mission acceptée, avec l'adresse du chantier",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 73,
+   "scenario": "chaque cible tactile de l'accueil fait au moins 44 px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 92,
+   "scenario": "le registre privé se télécharge seulement au clic, depuis la facturation et les clients",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 135,
+   "scenario": "un client externe et son devis brouillon restent enregistrés après rechargement",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-artisan.spec.ts",
+   "ligne": 169,
+   "scenario": "visiteur sans compte › « Inscrire mon entreprise » ouvre la création de compte, sans détour par /connexion (757ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-locataire.spec.ts",
+   "ligne": 20,
+   "scenario": "l'accueil locataire montre le statut de l'incident déclaré (811ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-locataire.spec.ts",
+   "ligne": 28,
+   "scenario": "déclarer un incident : la photo est le premier champ, l'envoi aboutit",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-locataire.spec.ts",
+   "ligne": 101,
+   "scenario": "mes loyers : échéancier lisible à 390px, quittance/reçu accessible",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-locataire.spec.ts",
+   "ligne": 182,
+   "scenario": "mes documents : le titre ouvre l'aperçu en fenêtre, un seul geste pour toutes les pièces",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-locataire.spec.ts",
+   "ligne": 188,
+   "scenario": "ordinateur 1440×900 › mes documents : le même geste de consultation à l'ordinateur",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/parcours-locataire.spec.ts",
+   "ligne": 193,
+   "scenario": "une photo refusée conserve la catégorie, la pièce, le texte et le fichier sélectionné",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 14,
+   "scenario": "profil : avertissement avant sortie, annulation et retour à la valeur initiale à 390px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 14,
+   "scenario": "profil : avertissement avant sortie, annulation et retour à la valeur initiale à 1440px",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 27,
+   "scenario": "artisan : erreur de dépôt garde le fichier et empêche une sortie accidentelle",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 38,
+   "scenario": "superadmin : texte préparé protégé sans programmer de publication",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 54,
+   "scenario": "confirmation partielle, deuxième formulaire et modifications pendant la réponse (347ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 62,
+   "scenario": "fichier confirmé puis remplacé par un autre de mêmes métadonnées (245ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 87,
+   "scenario": "un reset automatique après erreur conserve texte et vrais octets du fichier (314ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 94,
+   "scenario": "recherche et champs techniques ne déclenchent pas de faux avertissement (358ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 98,
+   "scenario": "un fichier choisi sans focus est suivi et une saisie abandonnée demande confirmation (372ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 104,
+   "scenario": "artisan : seule la confirmation réelle permet de quitter sans avertissement",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 117,
+   "scenario": "artisan : réponse réseau perdue garde le formulaire et son texte",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/protection-saisie.spec.ts",
+   "ligne": 126,
+   "scenario": "pièce trop volumineuse : refus avant envoi, saisie et fichier conservés",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/recommandes-consentements.spec.ts",
+   "ligne": 26,
+   "scenario": "390px › consentements et recommandé à 390px : retrait, configuration absente et suivi durable",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/recommandes-consentements.spec.ts",
+   "ligne": 26,
+   "scenario": "1440px › consentements et recommandé à 1440px : retrait, configuration absente et suivi durable",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 61,
+   "scenario": "hors ligne, le clic sur un lien est retenu › on reste sur la page, la carte « Connexion perdue » s'ouvre et le focus va sur « Réessayer » (731ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 81,
+   "scenario": "hors ligne, le clic sur un lien est retenu › « Réessayer » sans réseau le dit et laisse la carte ouverte (773ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 95,
+   "scenario": "hors ligne, le clic sur un lien est retenu › « Échap » ferme la carte sans naviguer, et un nouveau clic la rouvre (767ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 112,
+   "scenario": "hors ligne, le clic sur un lien est retenu › « Fermer » ferme la carte sans naviguer (789ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 124,
+   "scenario": "hors ligne, le clic sur un lien est retenu › quand le réseau revient, la carte l'annonce ; « Réessayer » ouvre alors la page demandée, dans l'application (777ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 142,
+   "scenario": "hors ligne, le clic sur un lien est retenu › la perte du réseau, carte ouverte, est suivie : le message revient à « plus connecté » (716ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 154,
+   "scenario": "hors ligne, le clic sur un lien est retenu › un lien vers un autre site est retenu aussi ; « Réessayer » le charge en entier une fois le réseau revenu (964ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 183,
+   "scenario": "tant que le réseau est là, ou quand le clic ne quitte pas la page, rien n'est retenu › en ligne, le lien s'ouvre comme avant, sans carte (656ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/repli-hors-ligne.spec.ts",
+   "ligne": 193,
+   "scenario": "tant que le réseau est là, ou quand le clic ne quitte pas la page, rien n'est retenu › hors ligne, un lien d'ancre sur la même page n'est pas retenu (686ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/utilisateurs.spec.ts",
+   "ligne": 7,
+   "scenario": "annuaire lisible, filtres cumulés et ouverture du bon compte",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/utilisateurs.spec.ts",
+   "ligne": 40,
+   "scenario": "les abonnements et la trésorerie restent deux lectures distinctes",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/vitrine.spec.ts",
+   "ligne": 7,
+   "scenario": "vitrine / : les tarifs changent sans ambiguïté entre mois et année",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/vitrine.spec.ts",
+   "ligne": 7,
+   "scenario": "vitrine /tarifs : les tarifs changent sans ambiguïté entre mois et année (999ms)",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier les parcours essentiels sur WebKit mobile",
+   "projet": "mobile-webkit",
+   "source": "app/e2e/vitrine.spec.ts",
+   "ligne": 28,
+   "scenario": "vitrine mobile : navigation, fermeture du menu et questions fréquentes",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier le dépôt et l’activation du bail sur le véritable PostgREST",
+   "projet": "setup",
+   "source": "app/e2e/auth.setup.ts",
+   "ligne": 54,
+   "scenario": "sessions des personas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier le dépôt et l’activation du bail sur le véritable PostgREST",
+   "projet": "telephone",
+   "source": "app/e2e/attestations-refus.spec.ts",
+   "ligne": 5,
+   "scenario": "attestation : date future refusée et fichier conservé après un rejet",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier le dépôt et l’activation du bail sur le véritable PostgREST",
+   "projet": "telephone",
+   "source": "app/e2e/attestations-refus.spec.ts",
+   "ligne": 26,
+   "scenario": "attestation : fin de validité passée refusée par le formulaire ET par le serveur, la pièce en place reste",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier le dépôt et l’activation du bail sur le véritable PostgREST",
+   "projet": "telephone",
+   "source": "app/e2e/depot-bail-signe-papier.spec.ts",
+   "ligne": 62,
+   "scenario": "G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, puis la location s'active",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier le dépôt et l’activation du bail sur le véritable PostgREST",
+   "projet": "telephone",
+   "source": "app/e2e/detention-confirmation.spec.ts",
+   "ligne": 15,
+   "scenario": "G-19 : mettre fin à une détention exige une confirmation explicite",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier le dépôt et l’activation du bail sur le véritable PostgREST",
+   "projet": "ordinateur",
+   "source": "app/e2e/attestations-refus.spec.ts",
+   "ligne": 5,
+   "scenario": "attestation : date future refusée et fichier conservé après un rejet",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier le dépôt et l’activation du bail sur le véritable PostgREST",
+   "projet": "ordinateur",
+   "source": "app/e2e/attestations-refus.spec.ts",
+   "ligne": 26,
+   "scenario": "attestation : fin de validité passée refusée par le formulaire ET par le serveur, la pièce en place reste",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier le dépôt et l’activation du bail sur le véritable PostgREST",
+   "projet": "ordinateur",
+   "source": "app/e2e/depot-bail-signe-papier.spec.ts",
+   "ligne": 62,
+   "scenario": "G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, puis la location s'active",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier le dépôt et l’activation du bail sur le véritable PostgREST",
+   "projet": "ordinateur",
+   "source": "app/e2e/detention-confirmation.spec.ts",
+   "ligne": 15,
+   "scenario": "G-19 : mettre fin à une détention exige une confirmation explicite",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier l’invitation artisan dans une base jetable indépendante",
+   "projet": "setup",
+   "source": "app/e2e/auth.setup.ts",
+   "ligne": 54,
+   "scenario": "sessions des personas",
+   "statut": "réussi"
+  },
+  {
+   "suite": "Vérifier l’invitation artisan dans une base jetable indépendante",
+   "projet": "mobile",
+   "source": "app/e2e/invitation-artisan.spec.ts",
+   "ligne": 45,
+   "scenario": "invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, solliciter par le carnet (resté privé, hors réseau)",
+   "statut": "réussi"
+  }
+ ]
+}

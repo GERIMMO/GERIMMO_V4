@@ -29,6 +29,11 @@ describe('Paramètres publics',()=>{
  it('ne sauvegarde aucun champ inconnu',()=>expect(validerIdentite(form({secret:'interdit',denomination:'Gerimmo'})).valeurs).not.toHaveProperty('secret'));
  it('ne fabrique pas une valeur pour un champ vide',()=>expect(validerIdentite(form({})).valeurs?.denomination).toBeNull());
  it('refuse les liens exécutables',()=>expect(validerIdentite(form({mediateurSite:'javascript:alert(1)'})).erreur).toBeTruthy());
+ it('refuse de publier des coordonnées partielles de médiation',()=>expect(validerIdentite(form({mediateurNom:'Médiateur fictif',mediateurSite:'https://example.test'})).erreur).toMatch(/ensemble/));
+ it('accepte les trois coordonnées du médiateur sans les altérer',()=>{
+   const coordonnees={mediateurNom:'Médiateur fictif',mediateurAdresse:'1 rue de Test',mediateurSite:'https://example.test'};
+   expect(validerIdentite(form(coordonnees)).valeurs).toMatchObject(coordonnees);
+ });
  it('refuse un SIRET incomplet',()=>expect(validerIdentite(form({siret:'123'})).erreur).toBeTruthy());
  // 19/10 : la localisation de la Base Adresse Nationale et les coordonnées des prestataires se saisissent ici aussi.
  it('écrit une clé par champ du formulaire, prestataires compris, et rien d’autre',()=>{expect(Object.keys(validerIdentite(form({})).valeurs!)).toEqual(Object.keys(CHAMPS_EDITEUR));expect(Object.keys(CHAMPS_EDITEUR)).toEqual(expect.arrayContaining(Object.keys(CHAMPS_PRESTATAIRES)));expect(Object.keys(CHAMPS_EDITEUR)).toHaveLength(25);});

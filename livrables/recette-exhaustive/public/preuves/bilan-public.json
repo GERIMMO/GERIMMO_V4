@@ -1,0 +1,74 @@
+{
+  "referenceBanc": "9e347fa243f87fe3a43bdb88ba9db4fd7e9993c9",
+  "publicVisuel": "25 modèles publics et un chemin inconnu. Les liens de création et récupération ouverts depuis la boîte fictive et les invitations sont instruits dans des parcours supplémentaires.",
+  "essais": [
+    {
+      "largeur": 390,
+      "routesObservees": 26,
+      "boutonsLiensChampsReperes": 699,
+      "statutsNavigationEtVolets": {
+        "réussi": 546,
+        "non testé": 124,
+        "bloqué": 29
+      },
+      "liensCliquesDestinationVerifiee": 516,
+      "liensExternesHorsBanc": 29,
+      "liensARetester": 0,
+      "debordements": 0,
+      "controlesAccessibiliteAutomatiques": 26,
+      "violationsSignalees": 0,
+      "gestesSpecifiquesOutils": {
+        "réussi": 77,
+        "attendu": 10,
+        "échec": 2
+      }
+    },
+    {
+      "largeur": 768,
+      "routesObservees": 26,
+      "boutonsLiensChampsReperes": 716,
+      "statutsNavigationEtVolets": {
+        "réussi": 563,
+        "non testé": 124,
+        "bloqué": 29
+      },
+      "liensCliquesDestinationVerifiee": 533,
+      "liensExternesHorsBanc": 29,
+      "liensARetester": 0,
+      "debordements": 0,
+      "controlesAccessibiliteAutomatiques": 25,
+      "violationsSignalees": 0,
+      "gestesSpecifiquesOutils": {
+        "réussi": 82,
+        "attendu": 8
+      }
+    },
+    {
+      "largeur": 1440,
+      "routesObservees": 26,
+      "boutonsLiensChampsReperes": 648,
+      "statutsNavigationEtVolets": {
+        "réussi": 495,
+        "non testé": 124,
+        "bloqué": 29
+      },
+      "liensCliquesDestinationVerifiee": 482,
+      "liensExternesHorsBanc": 29,
+      "liensARetester": 0,
+      "debordements": 0,
+      "controlesAccessibiliteAutomatiques": 25,
+      "violationsSignalees": 0,
+      "gestesSpecifiquesOutils": {
+        "réussi": 80,
+        "attendu": 8,
+        "échec": 2
+      }
+    }
+  ],
+  "inscription": true,
+  "invitations": true,
+  "impressions": {
+    "réussi": 6
+  },
+  "mesure": "Une observation DOM compte un contrôle avec sa position et son état. Les mêmes contrôles sont répétés aux différentes largeurs. Les totaux d’actions d’outils, gestes contractuels et navigation ne s’additionnent pas."
+}

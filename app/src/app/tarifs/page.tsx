@@ -33,7 +33,7 @@ export default function PageTarifs() {
       <main className="flex-1">
         <header className="public-page-intro"><div className="public-conteneur">
           <h1>L’abonnement Gerimmo pour votre espace propriétaire.</h1>
-          <p>Dès 5,99 €/mois pour toutes les fonctions de gestion. Choisissez le rythme qui vous convient, après votre essai gratuit de {duree}, sans carte bancaire.</p>
+          <p>L’inscription ouvre un essai gratuit de {duree}, sans carte bancaire. Les tarifs ci-dessous vous permettent d’estimer un futur abonnement. Lorsque les souscriptions sont ouvertes, vous choisissez votre formule dans « Mon abonnement ».</p>
           <p className="public-essai mt-4">{badgeEssai()}</p>
         </div></header>
         <div className="public-conteneur public-section">
@@ -73,7 +73,8 @@ export default function PageTarifs() {
             dans Gerimmo et restent dans la liste (article 4.7 des conditions générales). */}
         <Article titre="Ce qui est dans l'abonnement">
           <ul className="list-disc space-y-1 pl-5">
-            <li>Toutes les fonctions de gestion et l&apos;espace locataire, quelle que soit la taille de votre patrimoine.</li>
+            <li>Le suivi des baux, des loyers, des dépenses et des interventions, avec un espace pour vos locataires. Le tableau de bord signale les échéances. Vous pouvez préparer les relances de loyer en PDF.</li>
+            <li>La révision IRL se prépare à votre initiative. Pour la location nue au réel, vous pouvez vérifier les montants du récapitulatif 2044. Le simulateur LMNP propose une estimation distincte pour le meublé.</li>
             <li>Vous pouvez déposer votre bail signé sur papier. Si le service est ouvert pour votre dossier, vous pouvez demander la signature électronique du bail et de ses avenants, des accords d&apos;échelonnement et de travaux, de l&apos;acceptation des devis, de l&apos;acte de cautionnement et de l&apos;état des lieux, avec un code envoyé par SMS à chaque signataire. Elle est comprise dans l&apos;abonnement et dans l&apos;essai, sans supplément pour vous ni pour les signataires. Elle n&apos;est pas illimitée : elle dépend d&apos;un volume mensuel commun et peut être momentanément suspendue.</li>
           </ul>
         </Article>

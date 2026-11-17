@@ -12,7 +12,11 @@
 // client perd l'usage de son outil.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { cleRelanceAbonnement } from "@/lib/cles-idempotence-courriels";
+import type Stripe from "stripe";
+import { factureImpayee } from "./impaye-preuve-stripe";
+import { alerterRelaisContrat, lireContexteCourrier } from "./courriers-contrat-envoi";
+import { ArretSupervision } from "./controle-effets";
+
 import { envoyerEmail } from "@/lib/email";
 import { corpsRelance, sujetRelance, type Palier } from "@/lib/relance-paiement-email";
 import { adresseDuSite } from "@/lib/site";
@@ -43,33 +47,14 @@ export type BilanRelances = {
   envoyees: number;
   sans_adresse: string[];
   echecs: string[];
+  livraisonsEnAttente?: number;
 };
 
-/**
- * Envoie les courriers dus aujourd'hui, éventuellement pour une seule
- * organisation.
- *
- * L'ORDRE DES OPÉRATIONS COMPTE, comme pour les quittances : on envoie, PUIS on
- * marque. L'inverse brûlerait un palier au premier échec réseau — le client ne
- * recevrait jamais l'avis de la veille et découvrirait la lecture seule sans
- * avoir été prévenu. Dans ce sens-ci, le pire cas est un doublon, et la base
- * l'interdit déjà : jamais deux courriers le même jour.
- *
- * Mais ce « jamais le même jour » ne vaut qu'une fois le courrier marqué. L'appel
- * au service d'e-mail a un délai maximal (15 s, `lib/email.ts`) : s'il coupe
- * l'attente d'un envoi pourtant accepté, rien n'est marqué et l'autre chemin
- * (webhook ou tâche de nuit) reprend la relance. D'où la clé anti-doublon
- * (décision D47, relecture du 14/10) : le service, revoyant la même clé, rend la
- * réponse du premier envoi. Il la retient 24 h seulement (hypothèse, voir
- * `lib/email.ts`) : une reprise plus tardive renverrait le courrier.
- *
- * UNE ORGANISATION SANS ADRESSE N'EST PAS RELANCÉE EN SILENCE : elle est
- * rapportée. Fermer l'écriture de quelqu'un qu'on n'a pas pu prévenir serait le
- * pire des deux mondes.
- */
+/** La base programme chaque palier. Stripe confirme la facture. Le journal durable attend la preuve de livraison
+ * du premier courrier avant de faire avancer le palier et d'autoriser une restriction d'écriture. */
 export async function envoyerRelancesDues(
   supabase: SupabaseClient,
-  options: { org?: string; avantEffet?: () => Promise<void> } = {}
+  options: { stripe?: Stripe; org?: string; avantEffet?: () => Promise<void> } = {}
 ): Promise<BilanRelances> {
   const site = adresseDuSite();
   const { data, error } = await supabase.rpc("abonnements_a_relancer", { p_limite: 200 });
@@ -78,26 +63,51 @@ export async function envoyerRelancesDues(
   const dues = ((data ?? []) as Relance[]).filter(
     (r) => !options.org || r.organization_id === options.org
   );
-  let envoyees = 0;
+  let envoyees = 0, livraisonsEnAttente = 0;
   const sansAdresse: string[] = [];
   const echecs: string[] = [];
 
   for (const r of dues) {
-    if (!r.destinataire) {
+    async function signaler(motif: string) {
+      echecs.push(`${r.organisation} : ${motif}`);
+      await alerterRelaisContrat(supabase, {
+        evenement: "abonnement_impaye_a_verifier", sujet: "Courrier d’abonnement en attente",
+        lignes: [], cle: `impaye-${r.organization_id}-${r.en_defaut_depuis}-${r.palier}`,
+        details: { organisation: r.organization_id, episode: r.en_defaut_depuis, palier: r.palier, motif },
+      }, { avantEffet: options.avantEffet });
+    }
+    const contrat = await lireContexteCourrier(supabase, r.organization_id, true);
+    if (!contrat?.destinataire || !contrat.stripe_subscription_id || !["2026-11-15","2026-10-24"].includes(contrat.cgu_version ?? "") || !contrat.cgu_version || !r.en_defaut_depuis || !r.resiliable_le) {
       sansAdresse.push(r.organisation);
+      await signaler("Vérifier la commande, les conditions acceptées et le responsable habilité.");
       continue;
     }
-    // Le montant annoncé est celui du prélèvement (« 59,90 € par an » pour un abonnement annuel, pas un douzième
-    // « par mois »). Il arrive en centimes entiers ; sans lui — fonction SQL antérieure à la migration
-    // 20261019120500, ou abonnement annuel dont la base ne connaît pas le montant de la période —, on ne devine rien :
-    // la relance est rapportée en échec, et l'autre chemin la reprendra.
-    if (typeof r.montant_periode_cents !== "number" || !Number.isInteger(r.montant_periode_cents)) {
-      echecs.push(`${r.organisation} : montant du prélèvement illisible, courrier non envoyé`);
+    if (!Number.isSafeInteger(r.montant_periode_cents) || !r.montant_periode_cents || r.montant_periode_cents < 0) {
+      await signaler("Montant du prélèvement illisible, courrier non envoyé.");
       continue;
+    }
+    let facture: string;
+    try {
+      facture = await factureImpayee(contrat.stripe_subscription_id, r.montant_periode_cents, options.stripe);
+    } catch (e) {
+      if (e instanceof ArretSupervision) throw e;
+      await signaler("La facture et son montant doivent être vérifiés chez Stripe.");
+      continue;
+    }
+    let resiliableLe: string | null = null;
+    if (r.palier === 0) {
+      const echeance = await supabase.rpc("echeance_mise_en_demeure", {p_org:r.organization_id,
+        p_subscription:contrat.stripe_subscription_id, p_episode:r.en_defaut_depuis});
+      if (echeance.error || typeof echeance.data !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(echeance.data)) {
+        await signaler("La date de la mise en demeure reste à vérifier.");
+        continue;
+      }
+      resiliableLe = echeance.data;
     }
     const periodicite: Periodicite = r.periodicite === "annuel" ? "annuel" : "mensuel";
     const relance = {
       palier: Math.min(3, Math.max(0, r.palier)) as Palier,
+      datesAbsolues: true,
       organisation: r.organisation,
       periodicite,
       montantPeriodeCents: r.montant_periode_cents,
@@ -109,39 +119,33 @@ export async function envoyerRelancesDues(
       lien: site ? `${site}${await baseDeLOrganisation(supabase, r.organization_id)}/abonnement` : null,
       premierPrelevement: r.premier_prelevement === true,
       enDefautDepuis: r.en_defaut_depuis ?? null,
-      resiliableLe: r.resiliable_le ?? null,
+      resiliableLe,
     };
     await options.avantEffet?.();
-    const { erreur, id: message } = await envoyerEmail({ circuit:"lib/relances-paiement",
+    const { erreur, id: message, finalisationEnAttente } = await envoyerEmail({ circuit:"lib/relances-paiement",
       avantEnvoi: options.avantEffet,
-      to: r.destinataire,
-      cleIdempotence: cleRelanceAbonnement({
-        organisationId: r.organization_id,
-        palier: relance.palier,
-        lectureSeuleLe: relance.lectureSeuleLe,
-        joursRestants: relance.joursRestants,
-        periodicite,
-        montantPeriodeCents: relance.montantPeriodeCents,
-        destinataire: r.destinataire,
-        premierPrelevement: relance.premierPrelevement,
-      }),
+      to: contrat.destinataire,
+      organisation: {db: supabase, id: r.organization_id},
+      contexteMetier: {type: "relance_abonnement", id: contrat.stripe_subscription_id, episode: r.en_defaut_depuis,
+        montant: r.montant_periode_cents, premier: relance.premierPrelevement,
+        palier: relance.palier, periodicite, facture, resiliable:resiliableLe, version: contrat.cgu_version},
+      cleIdempotence: `relance-abonnement/${r.organization_id}/${contrat.stripe_subscription_id}/${r.en_defaut_depuis}/${relance.palier}`,
       subject: sujetRelance(relance),
       html: corpsRelance(relance),
     });
     if (erreur) {
-      echecs.push(`${r.organisation} : ${erreur}`);
+      await signaler(erreur);
       continue;
     }
-    // Plan du 23/10 (R06) : marquer la relance ET inscrire la preuve de la mise en demeure au journal d'audit (palier,
-    // date, identifiant du message ; jamais l'adresse) — `abonnement_relance_consigner` fait les deux, une fois par jour.
-    const suivi=await supabase.rpc("abonnement_relance_consigner", {
-      p_org: r.organization_id,
-      p_palier: relance.palier,
-      p_message: message ?? null,
-      p_premier_prelevement: relance.premierPrelevement,
-    });
-    if(suivi.error){echecs.push(`${r.organisation} : acceptation fournisseur enregistrée, finalisation à vérifier. Ne pas renvoyer.`);continue;}
+    if (message && finalisationEnAttente && relance.palier === 0 && r.jours_ecoules < 1) {
+      livraisonsEnAttente++;
+      continue;
+    }
+    if (!message || finalisationEnAttente) {
+      await signaler("Acceptation fournisseur et finalisation à vérifier. Ne pas renvoyer.");
+      continue;
+    }
     envoyees += 1;
   }
-  return { envoyees, sans_adresse: sansAdresse, echecs };
+  return { envoyees, sans_adresse: sansAdresse, echecs, ...(livraisonsEnAttente ? { livraisonsEnAttente } : {}) };
 }

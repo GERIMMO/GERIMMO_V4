@@ -278,7 +278,7 @@ export async function passerAlerteRelais(options: {
     const delai = Math.min(delaiAppel, restant);
     const resultats = await Promise.all(adresses.valides.map((to) =>
       // Aucun `avantEnvoi` : l'arrêt d'urgence ne retient pas cette alerte (voir l'en-tête).
-      envoyer({ to, subject: sujet, html, cleIdempotence: cleEnvoi(jour, to), delaiMaxMs: delai })
+      envoyer({ to, subject: sujet, html, contexteMetier:{type:"alerte_direction",categorie:"quotidienne",id:jour}, cleIdempotence: cleEnvoi(jour, to), delaiMaxMs: delai })
         .catch(() => ({ erreur: "envoi interrompu" }))
     ));
     const envoyes = resultats.filter((resultat) => !resultat.erreur).length;

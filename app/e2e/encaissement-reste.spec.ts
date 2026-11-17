@@ -37,7 +37,8 @@ test('PAY01 : Encaisser le reste transmet sa commande et solde une seule fois le
   await expect(reste).toHaveText(/840,00\s*€/);
   const ouvrir=()=>page.locator('#loyers summary').filter({hasText:/^Gérer les 1 loyers/}).click();
   await ouvrir();
-  const ligne=page.locator('#loyers li:visible').filter({has:page.getByText(nom,{exact:true})});
+  const ligne=page.locator('#loyers li:visible, #loyers tr:visible').filter({has:page.getByText(nom,{exact:true})});
+  await expect(ligne).toHaveCount(1);
   await expect(ligne.getByText('Impayé',{exact:true})).toBeVisible();
   await ligne.getByRole('button',{name:/^Encaisser 840,00/}).click();
   // Ce geste n'a pas de dialogue préalable ; son compte rendu positif confirme l'écriture.

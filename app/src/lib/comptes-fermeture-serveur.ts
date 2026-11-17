@@ -549,14 +549,15 @@ export async function traiterSuitesComptes(db: SupabaseClient, d: DependancesSui
             to: a.email,
             subject: sujetAvertissementInactivite({ etape: a.etape, suppressionLe: a.suppression_le }),
             html,
-            cleIdempotence: `inactivite-${a.account_id}-${a.etape}-${a.suppression_le}`,
+            cleIdempotence: `inactivite-${a.account_id}-${a.etape}-${a.derniere_activite_le}`,
+            circuit: "comptes/avertissement-inactivite",
+            contexteMetier: {type: "avertissement_inactivite", id: a.account_id, version, etape: a.etape, activite: a.derniere_activite_le,
+              suppression: a.suppression_le, nature: a.nature, organisation: a.organisation, titulaire: a.titulaire ?? null},
+            avantEnvoi: avant,
           });
           if (envoi.erreur) { bilan.echecs++; continue; }
-          const { error: trace } = await db.rpc("avertissement_inactivite_envoye", {
-            p_account: a.account_id, p_etape: a.etape, p_derniere_activite_le: a.derniere_activite_le, p_suppression_le: a.suppression_le,
-          });
-          if (trace) { bilan.echecs++; continue; }
-          bilan.avertissements++;
+          // Seule la finalisation SQL consigne le préavis après réception du webhook de livraison.
+          if (!envoi.finalisationEnAttente && envoi.id) bilan.avertissements++;
         } catch (e) {
           if (e instanceof ArretSupervision) throw e;
           bilan.echecs++;

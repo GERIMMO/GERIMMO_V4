@@ -36,6 +36,11 @@ describe.skipIf(!local)("RPC de l'émulateur — filtres et comptage PostgREST",
     expect(vide.error).toBeNull();
     expect(vide.count).toBe(0);
   });
+  it("refuse tout paramètre POST inconnu au lieu d'appeler silencieusement une autre signature", async () => {
+    const r = await client.rpc("documents_courants", { p_org: org, p_inconnu: true });
+    expect(r.error?.code).toBe("PGRST202");
+    expect(r.data).toBeNull();
+  });
   it("conserve l'isolation de l'organisation", async () => {
     const r = await client.rpc("documents_courants", { p_org: "00000000-0000-4000-8000-000000000001" }, { head: true, count: "exact" });
     expect(r.error).toBeNull();

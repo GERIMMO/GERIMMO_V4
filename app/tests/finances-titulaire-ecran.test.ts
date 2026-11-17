@@ -15,9 +15,10 @@ vi.mock("@/lib/entites-patrimoine", async (importOriginal) => ({
   lireEntitesPatrimoine: async () => ({
     entites: [
       { id: "sci", nom: "SCI des Amandiers", qualite: "SCI", lots: ["A"] },
-      { id: "perso", nom: "Claire", qualite: null, lots: ["B", "C"] },
+      { id: "perso", nom: "Claire", qualite: null, lots: ["A", "B", "C"] },
     ],
     periodes: [
+      { lot_id: "A", titulaire: "perso", quote_part: 100, date_debut: "2026-01-01", date_fin: "2026-06-30" },
       { lot_id: "A", titulaire: "sci", quote_part: 100, date_debut: "2026-11-16", date_fin: null },
       { lot_id: "B", titulaire: "perso", quote_part: 100, date_debut: "2026-11-16", date_fin: null },
       { lot_id: "C", titulaire: "perso", quote_part: 100, date_debut: "2026-01-01", date_fin: null },
@@ -75,4 +76,24 @@ it("sépare les écritures certaines, les écritures communes du bâtiment mixte
   expect(texte).toContain("210,00 €");
   expect(texte).toContain("Réparation commune");
   expect(texte).not.toContain("Opération annulée");
+});
+
+it("réserve la créance et son action au titulaire à l’échéance après une cession", async () => {
+  const ligne = { lot_id: "A", appel_id: "appel", bail_id: "bail", lot_nom: "Les Ormes",
+    montant_du: 640, montant_couvert: 0 };
+  banc.db = baseSimulee({
+    biens: [{ organization_id: "parc", id: "immeuble", nom: "Les Ormes" }],
+    lots: [{ organization_id: "parc", id: "A", bien_id: "immeuble" }],
+    appels_loyer: [{ organization_id: "parc", id: "appel", periode: "2026-12-01", date_echeance: "2026-12-05" }],
+    journal_par_bien: [],
+  }, { rpc: { quittancement_mois: () => ({ data: [ligne], error: null }) } });
+  async function loyers(entite: string) {
+    const html = renderToStaticMarkup(await PageFinances({ orgId: "parc", recherche: { annee: "2026", mois: "12", entite } }));
+    return html.split('id="loyers"')[1].split('id="operations"')[0].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  }
+  const ancien = await loyers("perso");
+  expect(ancien).toContain("Demandé 0,00 €");
+  expect(ancien).not.toContain("Gérer les 1 loyers");
+  expect(await loyers("sci")).toContain("Demandé 640,00 €");
+  expect(await loyers("")).toContain("Demandé 640,00 €");
 });

@@ -1,0 +1,191 @@
+[
+ {
+  "largeur": 390,
+  "role": "nouveau propriétaire",
+  "etapes": [
+   {
+    "route": "/inscription",
+    "action": "Envoyer le formulaire vide",
+    "observe": "Validation du navigateur : champ obligatoire manquant, formulaire conservé",
+    "statut": "réussi"
+   },
+   {
+    "route": "/inscription",
+    "action": "Ouvrir mon espace",
+    "observe": "Données saisies et message invitant à vérifier la boîte fictive, aucune carte demandée",
+    "statut": "réussi"
+   },
+   {
+    "route": "/auth/confirm",
+    "action": "Ouvrir le lien reçu pour signup",
+    "observe": "Message destiné à la seule boîte fictive du scénario, origine canonique locale",
+    "statut": "réussi"
+   },
+   {
+    "route": "/auth/confirmer",
+    "action": "Confirmer le lien de création",
+    "observe": "Formulaire de choix de mot de passe disponible",
+    "statut": "réussi"
+   },
+   {
+    "route": "/nouveau-mot-de-passe",
+    "action": "Choisir le mot de passe et accepter les conditions",
+    "observe": "Espace propriétaire ouvert ; deux mois calendaires vérifiés en base ; ni client ni abonnement Stripe au titre du scénario",
+    "statut": "réussi"
+   },
+   {
+    "route": "/mot-de-passe-oublie",
+    "action": "Envoyer le lien",
+    "observe": "Confirmation générique sans révéler l’existence du compte",
+    "statut": "réussi"
+   },
+   {
+    "route": "/auth/confirm",
+    "action": "Ouvrir le lien reçu pour recovery",
+    "observe": "Message destiné à la seule boîte fictive du scénario, origine canonique locale",
+    "statut": "réussi"
+   },
+   {
+    "route": "/nouveau-mot-de-passe",
+    "action": "Changer le mot de passe",
+    "observe": "Retour à la connexion après réinitialisation",
+    "statut": "réussi"
+   },
+   {
+    "route": "/connexion",
+    "action": "Se connecter",
+    "observe": "Session conservée après rechargement et même espace que lors de la création",
+    "statut": "réussi"
+   }
+  ],
+  "etat": "réussi"
+ },
+ {
+  "largeur": 768,
+  "revisionServie": null,
+  "buildId": "rxnzb_OOvXtaYP49SLQSg",
+  "portDuBanc": "3873",
+  "role": "nouveau propriétaire",
+  "etapes": [
+   {
+    "route": "/inscription",
+    "action": "Envoyer le formulaire vide",
+    "observe": "Validation du navigateur : champ obligatoire manquant, formulaire conservé",
+    "statut": "réussi"
+   },
+   {
+    "route": "/inscription",
+    "action": "Ouvrir mon espace",
+    "observe": "Données saisies et message invitant à vérifier la boîte fictive, aucune carte demandée",
+    "statut": "réussi"
+   },
+   {
+    "route": "/auth/confirm",
+    "action": "Ouvrir le lien reçu pour signup",
+    "observe": "Message destiné à la seule boîte fictive du scénario, origine canonique locale",
+    "statut": "réussi"
+   },
+   {
+    "route": "/auth/confirmer",
+    "action": "Confirmer le lien de création",
+    "observe": "Formulaire de choix de mot de passe disponible",
+    "statut": "réussi"
+   },
+   {
+    "route": "/nouveau-mot-de-passe",
+    "action": "Choisir le mot de passe et accepter les conditions",
+    "observe": "Espace propriétaire ouvert ; deux mois calendaires vérifiés en base ; ni client ni abonnement Stripe au titre du scénario",
+    "statut": "réussi"
+   },
+   {
+    "route": "/mot-de-passe-oublie",
+    "action": "Envoyer le lien",
+    "observe": "Confirmation générique sans révéler l’existence du compte",
+    "statut": "réussi"
+   },
+   {
+    "route": "/auth/confirm",
+    "action": "Ouvrir le lien reçu pour recovery",
+    "observe": "Message destiné à la seule boîte fictive du scénario, origine canonique locale",
+    "statut": "réussi"
+   },
+   {
+    "route": "/nouveau-mot-de-passe",
+    "action": "Changer le mot de passe",
+    "observe": "Retour à la connexion après réinitialisation",
+    "statut": "réussi"
+   },
+   {
+    "route": "/connexion",
+    "action": "Se connecter",
+    "observe": "Session conservée après rechargement et même espace que lors de la création",
+    "statut": "réussi"
+   }
+  ],
+  "etat": "réussi"
+ },
+ {
+  "largeur": 1440,
+  "revisionServie": null,
+  "buildId": "rxnzb_OOvXtaYP49SLQSg",
+  "portDuBanc": "3873",
+  "role": "nouveau propriétaire",
+  "etapes": [
+   {
+    "route": "/inscription",
+    "action": "Envoyer le formulaire vide",
+    "observe": "Validation du navigateur : champ obligatoire manquant, formulaire conservé",
+    "statut": "réussi"
+   },
+   {
+    "route": "/inscription",
+    "action": "Ouvrir mon espace",
+    "observe": "Données saisies et message invitant à vérifier la boîte fictive, aucune carte demandée",
+    "statut": "réussi"
+   },
+   {
+    "route": "/auth/confirm",
+    "action": "Ouvrir le lien reçu pour signup",
+    "observe": "Message destiné à la seule boîte fictive du scénario, origine canonique locale",
+    "statut": "réussi"
+   },
+   {
+    "route": "/auth/confirmer",
+    "action": "Confirmer le lien de création",
+    "observe": "Formulaire de choix de mot de passe disponible",
+    "statut": "réussi"
+   },
+   {
+    "route": "/nouveau-mot-de-passe",
+    "action": "Choisir le mot de passe et accepter les conditions",
+    "observe": "Espace propriétaire ouvert ; deux mois calendaires vérifiés en base ; ni client ni abonnement Stripe au titre du scénario",
+    "statut": "réussi"
+   },
+   {
+    "route": "/mot-de-passe-oublie",
+    "action": "Envoyer le lien",
+    "observe": "Confirmation générique sans révéler l’existence du compte",
+    "statut": "réussi"
+   },
+   {
+    "route": "/auth/confirm",
+    "action": "Ouvrir le lien reçu pour recovery",
+    "observe": "Message destiné à la seule boîte fictive du scénario, origine canonique locale",
+    "statut": "réussi"
+   },
+   {
+    "route": "/nouveau-mot-de-passe",
+    "action": "Changer le mot de passe",
+    "observe": "Retour à la connexion après réinitialisation",
+    "statut": "réussi"
+   },
+   {
+    "route": "/connexion",
+    "action": "Se connecter",
+    "observe": "Session conservée après rechargement et même espace que lors de la création",
+    "statut": "réussi"
+   }
+  ],
+  "etat": "réussi"
+ }
+]

@@ -159,6 +159,26 @@ describe.skipIf(!DB_URL)("Console de supervision — corrections en base (audit 
     expect(await audit(db, "mission_lancee", sa)).toEqual([{ mission: "veille" }]);
   });
 
+  it("la supervision lit les références du seul contrat demandé avec la session et le second facteur", async () => {
+    const { rows: [org] } = await db.query("insert into public.organizations(name) values ('Dossier fictif de facturation') returning id");
+    const client = "cus_" + org.id;
+    const abonnement = "sub_" + org.id;
+    await db.query("insert into public.abonnements(organization_id,stripe_customer_id,stripe_subscription_id) values($1,$2,$3)", [org.id, client, abonnement]);
+    const lire = async () => (await db.query(
+      "select public.is_permanent_super_admin() as supervision, public.mon_client_stripe($1) as client, public.ma_souscription_stripe($1) as abonnement", [org.id],
+    )).rows[0];
+    await agir(db, sa);
+    expect(await lire()).toEqual({ supervision: true, client, abonnement });
+    await agir(db, sa, "aal1");
+    expect(await lire()).toEqual({ supervision: false, client: null, abonnement: null });
+    await agir(db, autre);
+    expect(await lire()).toEqual({ supervision: false, client: null, abonnement: null });
+    await db.query("reset role");
+    await db.query("delete from public.memberships where account_id=$1 and role='super_admin'", [sa]);
+    await agir(db, sa);
+    expect(await lire()).toEqual({ supervision: false, client: null, abonnement: null });
+  });
+
   it("une visite de fiche organisation n'écrit qu'une ligne par minute", async () => {
     const { rows: [o] } = await db.query("insert into public.organizations (name) values ('Agence console') returning id");
     await agir(db, sa);

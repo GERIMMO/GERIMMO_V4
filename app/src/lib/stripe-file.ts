@@ -28,14 +28,17 @@ export async function executerEvenementStripe(db: SupabaseClient, stripe: Stripe
   try {
     const metier = new Proxy(db, { get(cible, cle) {
       if (cle === "rpc") return (nom: string, params: Record<string, unknown>) =>
-        ["abonnement_appliquer", "abonnement_details", "abonnement_facture_payee"].includes(nom)
+        ["abonnement_appliquer", "abonnement_details", "abonnement_facture_payee", "abonnement_defaut_a_regulariser", "abonnement_regulariser_facture"].includes(nom)
           ? cible.rpc("stripe_evenement_appliquer", { p_event_id: evenement.id, p_jeton: jeton, p_action: nom, p_params: params })
           : cible.rpc(nom, params);
       const valeur = Reflect.get(cible, cle); return typeof valeur === "function" ? valeur.bind(cible) : valeur;
     } });
     if (!effetsExternes && evenement.type === "invoice.paid") {
-      const facture = await stripe.invoices.retrieve(referenceEvenementStripe(evenement).objet);
-      if (facture.status !== "paid") throw new Error("La facture n’est pas confirmée payée.");
+      const ref=referenceEvenementStripe(evenement);
+      const facture = await stripe.invoices.retrieve(ref.objet);
+      const client=typeof facture.customer==="string"?facture.customer:facture.customer?.id ?? null;
+      if (facture.id!==ref.objet || client!==ref.client || facture.status !== "paid" || !Number.isSafeInteger(facture.amount_paid))
+        throw new Error("La facture du client n’est pas confirmée payée.");
       evenement = { ...evenement, data: { object: facture } } as Stripe.Event;
     }
     const resultat = await traiterEvenementStripe(metier, stripe, evenement, effetsExternes, avantEffet);

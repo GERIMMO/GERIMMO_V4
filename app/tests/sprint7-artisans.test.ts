@@ -31,7 +31,7 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
   const connecte = (id: string) =>
     db.query(
       `select set_config('request.jwt.claims',
-         json_build_object('sub', $1::text, 'role','authenticated','aal','aal2')::text, true)`,
+         json_build_object('sub', $1::text, 'session_id', $1::text, 'role','authenticated','aal','aal2')::text, true)`,
       [id]
     );
   const role = (r: string) =>
@@ -74,6 +74,7 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
        returning id`,
       [prefixe]
     );
+    await db.query("insert into auth.sessions(id,user_id) values($1,$1)", [rows[0].id]);
     return rows[0].id as string;
   }
 

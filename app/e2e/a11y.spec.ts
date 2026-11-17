@@ -1,4 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
+import { attendreRenduStable } from "./aides";
 import { test, expect, type Browser, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
@@ -99,36 +100,6 @@ const RELEVE = () => {
   const liens = [...document.querySelectorAll("a[href]")].map((a) => a.getAttribute("href"));
   return { manques, liens };
 };
-
-/** Attend le rendu final sans neutraliser les animations ni les règles axe. */
-async function attendreRenduStable(page: Page) {
-  await page.evaluate(async () => {
-    let garde: ReturnType<typeof setTimeout> | undefined;
-    const rendu = async () => {
-      await document.fonts.ready;
-      for (;;) {
-        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-        // Les indicateurs continus (pouls, chargement) ne terminent jamais.
-        const finies = document.getAnimations().filter((animation) =>
-          animation.playState !== "finished" &&
-          Number.isFinite(animation.effect?.getComputedTiming().endTime),
-        );
-        if (!finies.length) return;
-        await Promise.all(finies.map((animation) => animation.finished.catch(() => {})));
-      }
-    };
-    try {
-      await Promise.race([
-        rendu(),
-        new Promise<never>((_, reject) => {
-          garde = setTimeout(() => reject(new Error("Rendu non stabilisé avant l’audit axe (5 s)")), 5_000);
-        }),
-      ]);
-    } finally {
-      clearTimeout(garde);
-    }
-  });
-}
 
 async function parcourir(browser: Browser, persona: string | null, depart: string) {
   const context = await browser.newContext({

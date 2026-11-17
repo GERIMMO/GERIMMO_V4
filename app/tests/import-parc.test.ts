@@ -229,6 +229,89 @@ describe.skipIf(!DB_URL)("importer le parc", () => {
     expect(r[1].bail_id).toBeNull();
   });
 
+  it("distingue deux biens homonymes, conserve leur adresse et réutilise chacun au rejeu", async () => {
+    const lignes = [
+      { ...LIGNE, lot: "Cour", adresse: "11 rue du Canal" },
+      { ...LIGNE, lot: "Jardin", adresse: "84 rue du Quai" },
+    ];
+    const apercu = await importer(lignes);
+    expect(apercu.map((r) => r.statut)).toEqual(["ok", "ok"]);
+    expect(apercu[0].message).toContain("11 rue du Canal");
+    expect(apercu[1].message).toContain("84 rue du Quai");
+    const cree = await importer(lignes, true);
+    const rejoue = await importer([{ ...lignes[1], adresse: "  84   RUE DU QUAI" }, lignes[0]], true);
+    expect(rejoue.map((r) => r.lot_id)).toEqual([cree[1].lot_id, cree[0].lot_id]);
+    await db.query("reset role");
+    const liens = await db.query(
+      `select l.nom, b.address_line1 from public.lots l join public.biens b on b.id=l.bien_id
+       where l.organization_id=$1 and b.organization_id=$1 order by l.nom`, [org]
+    );
+    expect(liens.rows).toEqual([
+      { nom: "Cour", address_line1: "11 rue du Canal" },
+      { nom: "Jardin", address_line1: "84 rue du Quai" },
+    ]);
+  });
+
+  it("refuse une adresse historique incomplète, y compris si elle devient ambiguë après le contrôle", async () => {
+    const [avant] = await importer([LIGNE]);
+    expect(avant.statut).toBe("ok");
+    await db.query("reset role");
+    await db.query(`insert into public.biens (organization_id,nom,type,address_line1,postal_code,city)
+      values ($1,$2,'immeuble','',$3,$4)`, [org,LIGNE.bien,LIGNE.code_postal,LIGNE.ville]);
+    for (const bascule of [false, true]) {
+      const [ligne] = await importer([LIGNE], bascule);
+      expect(ligne).toMatchObject({ statut: "erreur", lot_id: null, bail_id: null });
+      expect(ligne.message).toMatch(/adresse.*incomplète/i);
+    }
+    await db.query("reset role");
+    expect((await db.query("select count(*)::int n from public.lots where organization_id=$1", [org])).rows[0].n).toBe(0);
+  });
+
+  it("refuse deux fiches existantes indiscernables et un complément manquant dans le fichier", async () => {
+    const confus = [LIGNE, { ...LIGNE, lot: "A13", adresse2: "Bâtiment A" }];
+    for (const bascule of [false, true]) {
+      const r = await importer(confus, bascule);
+      expect(r.map((l) => l.statut)).toEqual(["erreur", "erreur"]);
+      expect(r.every((l) => l.message.includes("complément"))).toBe(true);
+    }
+    await db.query("reset role");
+    await db.query(`insert into public.biens(organization_id,nom,type,address_line1,postal_code,city)
+      select $1,$2,'immeuble',$3,$4,$5 from generate_series(1,2)`, [org,LIGNE.bien,LIGNE.adresse,LIGNE.code_postal,LIGNE.ville]);
+    const [r] = await importer([LIGNE], true);
+    expect(r.statut).toBe("erreur");
+    expect(r.message).toMatch(/plusieurs biens/i);
+    expect(r.lot_id).toBeNull();
+  });
+
+  it("distingue le code postal, la ville et deux bâtiments explicitement identifiés", async () => {
+    const adresses = [
+      { ...LIGNE, ville: "Vernon", code_postal: "27200", adresse2: "Bâtiment A" },
+      { ...LIGNE, ville: "Vernon", code_postal: "27200", adresse2: "Bâtiment B" },
+      { ...LIGNE, ville: "Autreville", code_postal: "27200", adresse2: "Bâtiment A" },
+      { ...LIGNE, ville: "Vernon", code_postal: "27210", adresse2: "Bâtiment A" },
+    ];
+    const cree = await importer(adresses, true);
+    expect(cree.every((r) => r.statut === "ok")).toBe(true);
+    expect(new Set(cree.map((r) => r.lot_id)).size).toBe(4);
+    expect((await importer(adresses, true)).map((r) => r.lot_id)).toEqual(cree.map((r) => r.lot_id));
+    const [ambigu] = await importer([{ ...adresses[0], adresse2: "" }], true);
+    expect(ambigu.statut).toBe("erreur");
+    expect(ambigu.message).toMatch(/complément/i);
+    expect(ambigu.lot_id).toBeNull();
+  });
+
+  it("un homonyme d'une autre organisation ne révèle rien et ne reçoit pas le lot", async () => {
+    const autre = (await db.query(`insert into public.organizations(name,status) values('Structure distincte','essai') returning id`)).rows[0].id;
+    await db.query(`insert into public.biens(organization_id,nom,type,address_line1,postal_code,city)
+      values($1,$2,'immeuble',$3,$4,$5)`, [autre,LIGNE.bien,LIGNE.adresse,LIGNE.code_postal,LIGNE.ville]);
+    expect((await importer([LIGNE], true))[0].statut).toBe("ok");
+    await db.query("reset role");
+    const total = await db.query("select count(*)::int n from public.lots l join public.biens b on b.id=l.bien_id where b.organization_id=$1", [autre]);
+    expect(total.rows[0].n).toBe(0);
+    await agir(gerant);
+    await expect(db.query("select * from public.importer_parc($1,$2,true)", [autre,JSON.stringify([LIGNE])])).rejects.toThrow(/responsable/);
+  });
+
   it("rejouer le même fichier ne duplique rien", async () => {
     // On corrige une ligne, on réimporte le fichier entier : c'est le geste
     // naturel, il ne doit pas fabriquer un second parc.

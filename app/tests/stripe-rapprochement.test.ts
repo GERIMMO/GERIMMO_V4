@@ -13,6 +13,24 @@ describe("Rapprochement Stripe sans écriture chez le prestataire", () => {
   it("repère un statut divergent et une facture payée non reportée", async () => {
     expect(await comparerAbonnementStripe(stripe({ abonnement: { ...sub, status: "past_due" }, factures: [{ amount_paid: 599 }] }), { ...suivi, premiere_facture_payee: false })).toEqual(["statut", "facture_non_reportee"]);
   });
+  it.each([true,false])("la tâche de nuit rapproche le seul contrat attendu et conserve un impayé contradictoire (autre dette : %s)",async(autreDette)=>{
+    const a={...suivi,stripe_statut:"past_due",paiement_en_defaut_depuis:"2026-11-01"};
+    const f={id:"in_verifiee",customer:sub.customer,status:"paid",amount_remaining:0,amount_paid:599,currency:"eur",parent:{subscription_details:{subscription:sub.id}}};
+    const s=stripe();
+    vi.mocked(s.subscriptions.retrieve).mockResolvedValue({...sub,latest_invoice:f} as unknown as Awaited<ReturnType<typeof s.subscriptions.retrieve>>);
+    vi.mocked(s.invoices.list).mockImplementation((p)=>{
+      const q=p as Stripe.InvoiceListParams;
+      expect(q.customer).toBe(sub.customer);expect(q.subscription).toBe(sub.id);
+      return Promise.resolve({data:q.status==="paid"?[f]:q.status==="open"&&autreDette?[{id:"in_ancienne"}]:[],has_more:false}) as ReturnType<typeof s.invoices.list>;
+    });
+    const rpc=vi.fn(async(n:string,p:Record<string,unknown>)=>({error:null,data:n==="stripe_controles_a_faire"?[a]:
+      n==="stripe_rapprocher_facture_payee"?(p.p_version===null?"preuve-transaction":a.organization_id):null}));
+    const r=await rapprocherAbonnementsStripe({rpc} as unknown as SupabaseClient,s,async()=>{});
+    expect(r).toMatchObject({controles:1,echecs:0,ecarts:autreDette?1:0});
+    const applications=rpc.mock.calls.filter(([n,p])=>n==="stripe_rapprocher_facture_payee"&&p.p_facture===f.id);
+    expect(applications).toHaveLength(autreDette?0:1);
+    if (!autreDette) expect(applications[0][1]).toMatchObject({p_customer:sub.customer,p_subscription:sub.id,p_org:a.organization_id,p_montant:599});
+  });
   it("une facture nulle ne déclenche pas une correction du premier paiement", async () => {
     expect(await comparerAbonnementStripe(stripe({ factures: [{ amount_paid: 0 }] }), { ...suivi, premiere_facture_payee: false })).toEqual([]);
   });

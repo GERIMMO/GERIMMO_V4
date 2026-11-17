@@ -90,7 +90,7 @@ test('D18 : demande de révision, version 2 et PDF des deux versions conservés'
     const pdf1 = await validerVersion(page, dossier.sollicitation, '100,00', 1);
     // Le client ne doit pas voir la préparation avant l'envoi explicite.
     expect((await gerant.page.request.get(`/api/devis/${dossier.sollicitation}/pdf?version=1`)).status()).toBe(403);
-    await page.getByRole('button', { name: 'Envoyer le devis par e-mail', exact: true }).click();
+    await page.getByRole('button', { name: 'Transmettre le devis et prévenir le demandeur', exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/artisan/devis/${dossier.sollicitation}\\?envoye=1&email=`));
     const v1 = await avecBaseRecette(async ({ db }) => (await db.query('select id,version,statut from public.incident_devis where sollicitation_id=$1', [dossier.sollicitation])).rows);
     expect(v1).toHaveLength(1); expect(v1[0]).toMatchObject({ version: 1, statut: 'depose' });

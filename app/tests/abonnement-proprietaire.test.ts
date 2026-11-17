@@ -46,7 +46,7 @@ vi.mock("@/lib/espace", () => ({
           order: () => q,
           limit: () => q,
           maybeSingle: async () => ({
-            data: table === "acceptations_cgu" && mocks.conditionsAcceptees ? { id: "acceptation-1" } : null,
+            data: table === "versions_conditions" ? { identite_editeur: EDITEUR_COMPLET } : table === "acceptations_cgu" && mocks.conditionsAcceptees ? { id: "acceptation-1" } : null,
             error: null,
           }),
         };
@@ -210,6 +210,8 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     const html = await rendre();
     expect(html).not.toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
     expect(html).toContain(CASE_CONDITIONS);
+    expect(html).toContain("Médiateur de test");
+    expect(html).toContain("https://example.test/mediateur");
     expect(html).toContain(`version du ${CONDITIONS_DATE} des conditions générales`);
     expect(html).toContain('href="/conditions"');
     expect(html).toContain("Continuer vers le paiement sécurisé");
@@ -247,7 +249,7 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     mocks.blocageIdentiteActif = false;
     mocks.conditionsAcceptees = false;
     const html = await rendre();
-    expect(html).toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
+    expect(html).toContain("coordonnées du médiateur de la consommation");
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
   });
   it("pilote gratuit : même avec Stripe prêt, médiateur et conditions acceptées, aucune commande", async () => {
@@ -314,7 +316,7 @@ describe("plan du 23/10 (R01, R37) : le droit de rétractation sur « Mon abonne
 });
 
 describe("relecture adverse du 24/10 (I2) : après une résiliation pour impayé", () => {
-  it("l'écran ne promet plus que « tout rouvre » au paiement : il dit la résiliation et propose de souscrire de nouveau", async () => {
+  it("l'écran ne promet plus que « tout rouvre » au paiement : il dit la résiliation et conserve les données sans inviter à une vente indisponible", async () => {
     etat = { ...etat, statut: "suspendue", ecriture_ouverte: false };
     paiement = { ...paiement, souscrit: false, paiement_en_retard: true, stripe_statut: "canceled" };
     const html = await rendre();
@@ -322,7 +324,21 @@ describe("relecture adverse du 24/10 (I2) : après une résiliation pour impayé
     expect(html).toContain("Votre abonnement a été résilié faute de règlement");
     expect(html).toContain("Consultez votre dernière facture");
     expect(html).not.toContain("La facture restée impayée est annulée");
+    expect(html).not.toContain("Souscrivez de nouveau ci-dessous");
+    expect(html).not.toContain("prolongation de votre essai");
+    expect(html).toContain("Contactez Gerimmo");
+  });
+  it("propose la reprise au client résilié uniquement si le formulaire de commande est disponible", async () => {
+    etat = { ...etat, statut: "suspendue", ecriture_ouverte: false, unites_a_couvrir: 1 };
+    paiement = { ...paiement, souscrit: false, paiement_en_retard: true, stripe_statut: "canceled" };
+    mocks.stripePret = true;
+    const html = await rendre();
+    expect(html).toContain("Continuer vers le paiement sécurisé");
     expect(html).toContain("Souscrivez de nouveau ci-dessous pour reprendre la saisie");
+    etat.unites_a_couvrir = 0;
+    const sansBien = await rendre();
+    expect(sansBien).toContain("Aucun bien actif à facturer");
+    expect(sansBien).not.toContain("Souscrivez de nouveau ci-dessous");
   });
   it("un abonnement encore en cours garde le texte de l'impayé (tout rouvre au paiement)", async () => {
     abonner({ paiement_en_retard: true, paye: false });

@@ -1,0 +1,234 @@
+{
+  "avant": {
+    "reussis": 17,
+    "echoues": 4,
+    "ignores": 0,
+    "sha256PreuveBrute": "60c5529d9da70d83caeb577179b7fcc855aa40fe8c940509d0d7f394b9afd0e5",
+    "suites": [
+      {
+        "fichier": "creation-bien-concurrence.test.ts",
+        "tests": [
+          {
+            "nom": "deux imports de la même ligne qui se chevauchent ne dédoublent ni le bien ni la détention",
+            "etat": "failed"
+          },
+          {
+            "nom": "deux demandes simultanees identiques ne creent qu’un dossier",
+            "etat": "passed"
+          },
+          {
+            "nom": "deux demandes distinctes ne dedoublent pas la fiche du proprietaire",
+            "etat": "passed"
+          },
+          {
+            "nom": "la demande en attente reussit si la premiere transaction est annulee",
+            "etat": "passed"
+          }
+        ]
+      },
+      {
+        "fichier": "import-parc.test.ts",
+        "tests": [
+          {
+            "nom": "accepte le point-virgule d'Excel comme la virgule des exports",
+            "etat": "passed"
+          },
+          {
+            "nom": "reconnaît les en-têtes du gabarit, accents et casse compris",
+            "etat": "passed"
+          },
+          {
+            "nom": "honore les guillemets : un point-virgule dans un nom ne coupe pas la ligne",
+            "etat": "passed"
+          },
+          {
+            "nom": "dit quelles colonnes obligatoires manquent, et ignore celles qu'il ne connaît pas",
+            "etat": "passed"
+          },
+          {
+            "nom": "refuse un fichier dont l'en-tête n'a rien à voir",
+            "etat": "passed"
+          },
+          {
+            "nom": "le gabarit qu'on télécharge se relit lui-même",
+            "etat": "passed"
+          },
+          {
+            "nom": "le contrôle n'écrit rien, et dit ligne par ligne ce qui passera",
+            "etat": "passed"
+          },
+          {
+            "nom": "crée le bien, le lot, la détention et le bail — en brouillon",
+            "etat": "passed"
+          },
+          {
+            "nom": "deux lots du même immeuble ne font qu'un bien, et un propriétaire qu'une fiche",
+            "etat": "passed"
+          },
+          {
+            "nom": "distingue deux biens homonymes, conserve leur adresse et réutilise chacun au rejeu",
+            "etat": "failed"
+          },
+          {
+            "nom": "refuse une adresse historique incomplète, y compris si elle devient ambiguë après le contrôle",
+            "etat": "failed"
+          },
+          {
+            "nom": "refuse deux fiches existantes indiscernables et un complément manquant dans le fichier",
+            "etat": "failed"
+          },
+          {
+            "nom": "un homonyme d'une autre organisation ne révèle rien et ne reçoit pas le lot",
+            "etat": "passed"
+          },
+          {
+            "nom": "rejouer le même fichier ne duplique rien",
+            "etat": "passed"
+          },
+          {
+            "nom": "une ligne qui tombe n'emporte pas les autres, et dit pourquoi",
+            "etat": "passed"
+          },
+          {
+            "nom": "un locataire nommé sans date d'entrée est refusé, pas deviné",
+            "etat": "passed"
+          },
+          {
+            "nom": "réservé au responsable : un agent ne fait pas basculer le parc",
+            "etat": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "apres": {
+    "reussis": 25,
+    "echoues": 0,
+    "ignores": 0,
+    "sha256PreuveBrute": "afb7eb161ffc6513b78d0a7ba380f8306a223c25ed452fdaf073fe57a1c4f060",
+    "suites": [
+      {
+        "fichier": "creation-bien-concurrence.test.ts",
+        "tests": [
+          {
+            "nom": "deux imports de la même ligne qui se chevauchent ne dédoublent ni le bien ni la détention",
+            "etat": "passed"
+          },
+          {
+            "nom": "deux demandes simultanees identiques ne creent qu’un dossier",
+            "etat": "passed"
+          },
+          {
+            "nom": "deux demandes distinctes ne dedoublent pas la fiche du proprietaire",
+            "etat": "passed"
+          },
+          {
+            "nom": "la demande en attente reussit si la premiere transaction est annulee",
+            "etat": "passed"
+          }
+        ]
+      },
+      {
+        "fichier": "import-parc.test.ts",
+        "tests": [
+          {
+            "nom": "accepte le point-virgule d'Excel comme la virgule des exports",
+            "etat": "passed"
+          },
+          {
+            "nom": "reconnaît les en-têtes du gabarit, accents et casse compris",
+            "etat": "passed"
+          },
+          {
+            "nom": "honore les guillemets : un point-virgule dans un nom ne coupe pas la ligne",
+            "etat": "passed"
+          },
+          {
+            "nom": "dit quelles colonnes obligatoires manquent, et ignore celles qu'il ne connaît pas",
+            "etat": "passed"
+          },
+          {
+            "nom": "refuse un fichier dont l'en-tête n'a rien à voir",
+            "etat": "passed"
+          },
+          {
+            "nom": "le gabarit qu'on télécharge se relit lui-même",
+            "etat": "passed"
+          },
+          {
+            "nom": "le contrôle n'écrit rien, et dit ligne par ligne ce qui passera",
+            "etat": "passed"
+          },
+          {
+            "nom": "crée le bien, le lot, la détention et le bail — en brouillon",
+            "etat": "passed"
+          },
+          {
+            "nom": "deux lots du même immeuble ne font qu'un bien, et un propriétaire qu'une fiche",
+            "etat": "passed"
+          },
+          {
+            "nom": "distingue deux biens homonymes, conserve leur adresse et réutilise chacun au rejeu",
+            "etat": "passed"
+          },
+          {
+            "nom": "refuse une adresse historique incomplète, y compris si elle devient ambiguë après le contrôle",
+            "etat": "passed"
+          },
+          {
+            "nom": "refuse deux fiches existantes indiscernables et un complément manquant dans le fichier",
+            "etat": "passed"
+          },
+          {
+            "nom": "distingue le code postal, la ville et deux bâtiments explicitement identifiés",
+            "etat": "passed"
+          },
+          {
+            "nom": "un homonyme d'une autre organisation ne révèle rien et ne reçoit pas le lot",
+            "etat": "passed"
+          },
+          {
+            "nom": "rejouer le même fichier ne duplique rien",
+            "etat": "passed"
+          },
+          {
+            "nom": "une ligne qui tombe n'emporte pas les autres, et dit pourquoi",
+            "etat": "passed"
+          },
+          {
+            "nom": "un locataire nommé sans date d'entrée est refusé, pas deviné",
+            "etat": "passed"
+          },
+          {
+            "nom": "réservé au responsable : un agent ne fait pas basculer le parc",
+            "etat": "passed"
+          }
+        ]
+      },
+      {
+        "fichier": "relais-migrations-manifeste.test.ts",
+        "tests": [
+          {
+            "nom": "les trois migrations du lot se suivent dans leur ordre, une seule fois chacune ; seules celles des lots postérieurs les suivent",
+            "etat": "passed"
+          },
+          {
+            "nom": "les migrations déjà appliquées en production (820000, 821000, puis celles de la PR #190) restent devant celles du lot",
+            "etat": "passed"
+          },
+          {
+            "nom": "le LISEZ-MOI ne donne qu'une chaîne complète : les retours des lots postérieurs, puis 812000, 811000 et 810000",
+            "etat": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "migration": "20261117092314_import_parc_identite_bien.sql",
+  "sha256Migration": "9a8cf373b89a2c6272bc9eb531d288c7de449a272a57e12be0f5f54939ebe4a2",
+  "basesFictives": [
+    "gerimmo_ci_finalisation",
+    "gerimmo_ci_finalisation_api"
+  ],
+  "usage": "Suites PostgreSQL et manifeste officiels. Quatre défauts reproduits avant. Une vérification supplémentaire des compléments, codes postaux et villes et les trois contrôles du manifeste ont été joués après. Les suites se recouvrent."
+}

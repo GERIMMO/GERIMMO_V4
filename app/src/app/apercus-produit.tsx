@@ -129,8 +129,7 @@ export function ApercuQuittance() {
         </table>
       </div>
       <p className="mt-2 text-[11px] leading-relaxed text-[var(--texte-secondaire)]">
-        Émise automatiquement à l&apos;encaissement. Un paiement partiel produit un
-        reçu, promu en quittance une fois le mois soldé.
+        La quittance est disponible quand vous avez enregistré le règlement complet du mois. Un paiement partiel donne lieu à un reçu.
       </p>
       <p className="mt-2 text-[10px] text-[var(--libelle)]">Exemple — données fictives</p>
     </div>

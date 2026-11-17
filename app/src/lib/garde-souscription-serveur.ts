@@ -1,6 +1,7 @@
 import "server-only";
 import type { createClient } from "@/lib/supabase/server";
 import { CONDITIONS_VERSION, type FaitEditeur } from "@/lib/editeur";
+import { empreinteIdentite } from "@/lib/conditions-versions";
 import { lireEditeur } from "@/lib/editeur-serveur";
 import { motifIdentiteEditeur, type ContexteGarde } from "@/lib/garde-souscription";
 import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
@@ -35,10 +36,21 @@ export type GardeSouscription = {
  * l'identité du code — vide à ce jour — donc le motif : fermeture par défaut,
  * et rien n'est prélevé entre-temps. `enEssai` : voir ContexteGarde.
  */
-export async function lireMotifIdentiteEditeur(enEssai: boolean, nouvelleSouscriptionParticulier = false): Promise<string | null> {
+export async function lireMotifIdentiteEditeur(supabase: Client, enEssai: boolean, nouvelleSouscriptionParticulier = false): Promise<string | null> {
   const [{ editeur }, { blocageIdentiteActif }] = await Promise.all([lireEditeur(), lireReglageSouscription()]);
   const contexte: ContexteGarde = { enEssai, blocageIdentiteActif, nouvelleSouscriptionParticulier };
-  return motifIdentiteEditeur(editeur, contexte);
+  return motifIdentiteEditeur(editeur, contexte) ?? (nouvelleSouscriptionParticulier ? await motifArchiveCommande(supabase, editeur) : null);
+}
+
+/** L’identité publiée dans les conditions peut changer depuis leur archivage (par exemple lors de
+ * l’adhésion au médiateur). Une nouvelle commande attend alors la publication d’une version concordante. */
+export async function motifArchiveCommande(supabase: Client, editeur: Record<string, FaitEditeur>): Promise<string | null> {
+  const { data, error } = await supabase.from("versions_conditions").select("identite_editeur")
+    .eq("document", "conditions_clients").eq("version", CONDITIONS_VERSION).maybeSingle();
+  const archive = data?.identite_editeur;
+  if (!error && archive && typeof archive === "object" && !Array.isArray(archive) &&
+    empreinteIdentite(archive) === empreinteIdentite(editeur)) return null;
+  return "Les souscriptions sont en attente de la vérification de la version archivée des conditions générales.";
 }
 
 /**

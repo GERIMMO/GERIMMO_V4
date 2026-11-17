@@ -167,3 +167,24 @@ test("rentabilité : brute 5,29 %, nette 4,08 %, cash-flow −350,44 €", async
   await expect(page.getByTestId("rt-cashflow")).toHaveText(/-350,44\s€/);
   await verifierPage(page, erreurs);
 });
+
+test("quittance publique : aucun document sans paiement valide, excédent hors du terme", async ({ page }) => {
+  await page.goto("/outils/quittance-de-loyer");
+  const recu = page.getByLabel("Montant reçu");
+  const loyer = page.getByLabel("Loyer hors charges");
+  const document = page.locator("#quittance");
+  for (const [montantLoyer, paiement] of [["illisible", "500"], ["-1", "500"], ["850", "0"], ["850", ""]]) {
+    await loyer.fill(montantLoyer);
+    await recu.fill(paiement);
+    await expect(page.getByRole("heading", { name: "Document à compléter" })).toBeVisible();
+    await expect(document).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Imprimer (la quittance|le reçu)/ })).toHaveCount(0);
+  }
+
+  await recu.fill("1200");
+  await expect(document).toContainText(/somme de 970,00\s*€/);
+  await expect(document).toContainText(/versement total est de 1\s200,00\s*€/);
+  await expect(document).toContainText(/excédent de 230,00\s*€ ne fait pas partie du terme/);
+  await page.emulateMedia({ media: "print" });
+  await expect(document).toBeVisible();
+});

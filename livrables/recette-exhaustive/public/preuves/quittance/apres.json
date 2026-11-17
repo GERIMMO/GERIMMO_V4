@@ -1,0 +1,254 @@
+[
+ {
+  "width": 390,
+  "scenario": "illisible",
+  "loyer": "abc",
+  "charges": "0",
+  "recu": "0",
+  "observe": {
+   "document": "",
+   "impression": 0
+  },
+  "attendu": "Aucun document, aucune impression",
+  "reussi": true,
+  "capture": "apres-390-illisible.jpg"
+ },
+ {
+  "width": 390,
+  "scenario": "sans_paiement",
+  "loyer": "850",
+  "charges": "120",
+  "recu": "0",
+  "observe": {
+   "document": "",
+   "impression": 0
+  },
+  "attendu": "Aucun document, aucune impression",
+  "reussi": true,
+  "capture": "apres-390-sans_paiement.jpg"
+ },
+ {
+  "width": 390,
+  "scenario": "negatif",
+  "loyer": "-850",
+  "charges": "120",
+  "recu": "0",
+  "observe": {
+   "document": "",
+   "impression": 0
+  },
+  "attendu": "Aucun document, aucune impression",
+  "reussi": true,
+  "capture": "apres-390-negatif.jpg"
+ },
+ {
+  "width": 390,
+  "scenario": "trop_percu",
+  "loyer": "850",
+  "charges": "120",
+  "recu": "1200",
+  "observe": {
+   "document": "ARTICLE 21 DE LA LOI N° 89-462 DU 6 JUILLET 1989\n\nQuittance de loyer\n\nPériode du 01/11/2026 au 30/11/2026 (novembre 2026)\n\nBAILLEUR\n[Nom du bailleur]\n[Adresse du bailleur]\nLOCATAIRE\n[Nom du locataire]\nLOGEMENT LOUÉ\n[Adresse du logement]\n\nJe soussigné(e) [Nom du bailleur], bailleur du logement désigné ci-dessus, déclare avoir reçu de [Nom du locataire] la somme de 970,00 €, au titre du loyer et des charges pour la période du 01/11/2026 au 30/11/2026, et lui en donne quittance, sous réserve de tous mes droits.\n\nLe versement total est de 1 200,00 €. L’excédent de 230,00 € ne fait pas partie du terme couvert par cette quittance.\n\nLoyer hors charges\t850,00 €\nProvision pour charges\t120,00 €\nTotal du terme\t970,00 €\n\nRèglement reçu le 17/11/2026 par virement.\n\nLa présente quittance porte sur le seul terme désigné. Elle ne préjuge pas des sommes qui resteraient dues au titre de termes antérieurs.\n\nElle annule tout reçu pour solde partiel établi au titre de la même période.\n\nLa quittance est délivrée gratuitement au locataire qui en fait la demande, conformément à l'article 21 de la loi du 6 juillet 1989.\n\nCe document constitue un justificatif de domicile et de paiement : le locataire est invité à le conserver.\n\nFait le 17/11/2026.\n\n[Nom du bailleur]\nSignature",
+   "impression": 1
+  },
+  "attendu": "970 € affectés au terme, 230 € non affectés",
+  "reussi": true,
+  "capture": "apres-390-trop_percu.jpg"
+ },
+ {
+  "width": 390,
+  "scenario": "partiel",
+  "loyer": "850",
+  "charges": "120",
+  "recu": "500",
+  "observe": {
+   "document": "ARTICLE 21 DE LA LOI N° 89-462 DU 6 JUILLET 1989\n\nReçu de paiement partiel\n\nPériode du 01/11/2026 au 30/11/2026 (novembre 2026)\n\nBAILLEUR\n[Nom du bailleur]\n[Adresse du bailleur]\nLOCATAIRE\n[Nom du locataire]\nLOGEMENT LOUÉ\n[Adresse du logement]\n\nJe soussigné(e) [Nom du bailleur], bailleur du logement désigné ci-dessus, déclare avoir reçu de [Nom du locataire] la somme de 500,00 €, au titre du loyer et des charges pour la période du 01/11/2026 au 30/11/2026, à valoir sur le terme désigné ci-dessous.\n\nTotal du terme\t970,00 €\nMontant encaissé\t500,00 €\nSolde restant dû\t470,00 €\n\nRèglement reçu le 17/11/2026 par virement.\n\nLe présent reçu constate un paiement partiel : il ne vaut pas quittance. Le solde du terme reste exigible ; une quittance sera délivrée à l'encaissement intégral (article 21 de la loi du 6 juillet 1989).\n\nFait le 17/11/2026.\n\n[Nom du bailleur]\nSignature",
+   "impression": 1
+  },
+  "attendu": "Reçu de paiement partiel, reste 470 €",
+  "reussi": true,
+  "capture": "apres-390-partiel.jpg"
+ },
+ {
+  "width": 390,
+  "scenario": "solde",
+  "loyer": "850",
+  "charges": "120",
+  "recu": "970",
+  "observe": {
+   "document": "ARTICLE 21 DE LA LOI N° 89-462 DU 6 JUILLET 1989\n\nQuittance de loyer\n\nPériode du 01/11/2026 au 30/11/2026 (novembre 2026)\n\nBAILLEUR\n[Nom du bailleur]\n[Adresse du bailleur]\nLOCATAIRE\n[Nom du locataire]\nLOGEMENT LOUÉ\n[Adresse du logement]\n\nJe soussigné(e) [Nom du bailleur], bailleur du logement désigné ci-dessus, déclare avoir reçu de [Nom du locataire] la somme de 970,00 €, au titre du loyer et des charges pour la période du 01/11/2026 au 30/11/2026, et lui en donne quittance, sous réserve de tous mes droits.\n\nLoyer hors charges\t850,00 €\nProvision pour charges\t120,00 €\nTotal du terme\t970,00 €\n\nRèglement reçu le 17/11/2026 par virement.\n\nLa présente quittance porte sur le seul terme désigné. Elle ne préjuge pas des sommes qui resteraient dues au titre de termes antérieurs.\n\nElle annule tout reçu pour solde partiel établi au titre de la même période.\n\nLa quittance est délivrée gratuitement au locataire qui en fait la demande, conformément à l'article 21 de la loi du 6 juillet 1989.\n\nCe document constitue un justificatif de domicile et de paiement : le locataire est invité à le conserver.\n\nFait le 17/11/2026.\n\n[Nom du bailleur]\nSignature",
+   "impression": 1
+  },
+  "attendu": "Quittance du terme de 970 €",
+  "reussi": true,
+  "capture": "apres-390-solde.jpg"
+ },
+ {
+  "width": 768,
+  "scenario": "illisible",
+  "loyer": "abc",
+  "charges": "0",
+  "recu": "0",
+  "observe": {
+   "document": "",
+   "impression": 0
+  },
+  "attendu": "Aucun document, aucune impression",
+  "reussi": true,
+  "capture": "apres-768-illisible.jpg"
+ },
+ {
+  "width": 768,
+  "scenario": "sans_paiement",
+  "loyer": "850",
+  "charges": "120",
+  "recu": "0",
+  "observe": {
+   "document": "",
+   "impression": 0
+  },
+  "attendu": "Aucun document, aucune impression",
+  "reussi": true,
+  "capture": "apres-768-sans_paiement.jpg"
+ },
+ {
+  "width": 768,
+  "scenario": "negatif",
+  "loyer": "-850",
+  "charges": "120",
+  "recu": "0",
+  "observe": {
+   "document": "",
+   "impression": 0
+  },
+  "attendu": "Aucun document, aucune impression",
+  "reussi": true,
+  "capture": "apres-768-negatif.jpg"
+ },
+ {
+  "width": 768,
+  "scenario": "trop_percu",
+  "loyer": "850",
+  "charges": "120",
+  "recu": "1200",
+  "observe": {
+   "document": "ARTICLE 21 DE LA LOI N° 89-462 DU 6 JUILLET 1989\n\nQuittance de loyer\n\nPériode du 01/11/2026 au 30/11/2026 (novembre 2026)\n\nBAILLEUR\n[Nom du bailleur]\n[Adresse du bailleur]\nLOCATAIRE\n[Nom du locataire]\nLOGEMENT LOUÉ\n[Adresse du logement]\n\nJe soussigné(e) [Nom du bailleur], bailleur du logement désigné ci-dessus, déclare avoir reçu de [Nom du locataire] la somme de 970,00 €, au titre du loyer et des charges pour la période du 01/11/2026 au 30/11/2026, et lui en donne quittance, sous réserve de tous mes droits.\n\nLe versement total est de 1 200,00 €. L’excédent de 230,00 € ne fait pas partie du terme couvert par cette quittance.\n\nLoyer hors charges\t850,00 €\nProvision pour charges\t120,00 €\nTotal du terme\t970,00 €\n\nRèglement reçu le 17/11/2026 par virement.\n\nLa présente quittance porte sur le seul terme désigné. Elle ne préjuge pas des sommes qui resteraient dues au titre de termes antérieurs.\n\nElle annule tout reçu pour solde partiel établi au titre de la même période.\n\nLa quittance est délivrée gratuitement au locataire qui en fait la demande, conformément à l'article 21 de la loi du 6 juillet 1989.\n\nCe document constitue un justificatif de domicile et de paiement : le locataire est invité à le conserver.\n\nFait le 17/11/2026.\n\n[Nom du bailleur]\nSignature",
+   "impression": 1
+  },
+  "attendu": "970 € affectés au terme, 230 € non affectés",
+  "reussi": true,
+  "capture": "apres-768-trop_percu.jpg"
+ },
+ {
+  "width": 768,
+  "scenario": "partiel",
+  "loyer": "850",
+  "charges": "120",
+  "recu": "500",
+  "observe": {
+   "document": "ARTICLE 21 DE LA LOI N° 89-462 DU 6 JUILLET 1989\n\nReçu de paiement partiel\n\nPériode du 01/11/2026 au 30/11/2026 (novembre 2026)\n\nBAILLEUR\n[Nom du bailleur]\n[Adresse du bailleur]\nLOCATAIRE\n[Nom du locataire]\nLOGEMENT LOUÉ\n[Adresse du logement]\n\nJe soussigné(e) [Nom du bailleur], bailleur du logement désigné ci-dessus, déclare avoir reçu de [Nom du locataire] la somme de 500,00 €, au titre du loyer et des charges pour la période du 01/11/2026 au 30/11/2026, à valoir sur le terme désigné ci-dessous.\n\nTotal du terme\t970,00 €\nMontant encaissé\t500,00 €\nSolde restant dû\t470,00 €\n\nRèglement reçu le 17/11/2026 par virement.\n\nLe présent reçu constate un paiement partiel : il ne vaut pas quittance. Le solde du terme reste exigible ; une quittance sera délivrée à l'encaissement intégral (article 21 de la loi du 6 juillet 1989).\n\nFait le 17/11/2026.\n\n[Nom du bailleur]\nSignature",
+   "impression": 1
+  },
+  "attendu": "Reçu de paiement partiel, reste 470 €",
+  "reussi": true,
+  "capture": "apres-768-partiel.jpg"
+ },
+ {
+  "width": 768,
+  "scenario": "solde",
+  "loyer": "850",
+  "charges": "120",
+  "recu": "970",
+  "observe": {
+   "document": "ARTICLE 21 DE LA LOI N° 89-462 DU 6 JUILLET 1989\n\nQuittance de loyer\n\nPériode du 01/11/2026 au 30/11/2026 (novembre 2026)\n\nBAILLEUR\n[Nom du bailleur]\n[Adresse du bailleur]\nLOCATAIRE\n[Nom du locataire]\nLOGEMENT LOUÉ\n[Adresse du logement]\n\nJe soussigné(e) [Nom du bailleur], bailleur du logement désigné ci-dessus, déclare avoir reçu de [Nom du locataire] la somme de 970,00 €, au titre du loyer et des charges pour la période du 01/11/2026 au 30/11/2026, et lui en donne quittance, sous réserve de tous mes droits.\n\nLoyer hors charges\t850,00 €\nProvision pour charges\t120,00 €\nTotal du terme\t970,00 €\n\nRèglement reçu le 17/11/2026 par virement.\n\nLa présente quittance porte sur le seul terme désigné. Elle ne préjuge pas des sommes qui resteraient dues au titre de termes antérieurs.\n\nElle annule tout reçu pour solde partiel établi au titre de la même période.\n\nLa quittance est délivrée gratuitement au locataire qui en fait la demande, conformément à l'article 21 de la loi du 6 juillet 1989.\n\nCe document constitue un justificatif de domicile et de paiement : le locataire est invité à le conserver.\n\nFait le 17/11/2026.\n\n[Nom du bailleur]\nSignature",
+   "impression": 1
+  },
+  "attendu": "Quittance du terme de 970 €",
+  "reussi": true,
+  "capture": "apres-768-solde.jpg"
+ },
+ {
+  "width": 1440,
+  "scenario": "illisible",
+  "loyer": "abc",
+  "charges": "0",
+  "recu": "0",
+  "observe": {
+   "document": "",
+   "impression": 0
+  },
+  "attendu": "Aucun document, aucune impression",
+  "reussi": true,
+  "capture": "apres-1440-illisible.jpg"
+ },
+ {
+  "width": 1440,
+  "scenario": "sans_paiement",
+  "loyer": "850",
+  "charges": "120",
+  "recu": "0",
+  "observe": {
+   "document": "",
+   "impression": 0
+  },
+  "attendu": "Aucun document, aucune impression",
+  "reussi": true,
+  "capture": "apres-1440-sans_paiement.jpg"
+ },
+ {
+  "width": 1440,
+  "scenario": "negatif",
+  "loyer": "-850",
+  "charges": "120",
+  "recu": "0",
+  "observe": {
+   "document": "",
+   "impression": 0
+  },
+  "attendu": "Aucun document, aucune impression",
+  "reussi": true,
+  "capture": "apres-1440-negatif.jpg"
+ },
+ {
+  "width": 1440,
+  "scenario": "trop_percu",
+  "loyer": "850",
+  "charges": "120",
+  "recu": "1200",
+  "observe": {
+   "document": "ARTICLE 21 DE LA LOI N° 89-462 DU 6 JUILLET 1989\n\nQuittance de loyer\n\nPériode du 01/11/2026 au 30/11/2026 (novembre 2026)\n\nBAILLEUR\n[Nom du bailleur]\n[Adresse du bailleur]\nLOCATAIRE\n[Nom du locataire]\nLOGEMENT LOUÉ\n[Adresse du logement]\n\nJe soussigné(e) [Nom du bailleur], bailleur du logement désigné ci-dessus, déclare avoir reçu de [Nom du locataire] la somme de 970,00 €, au titre du loyer et des charges pour la période du 01/11/2026 au 30/11/2026, et lui en donne quittance, sous réserve de tous mes droits.\n\nLe versement total est de 1 200,00 €. L’excédent de 230,00 € ne fait pas partie du terme couvert par cette quittance.\n\nLoyer hors charges\t850,00 €\nProvision pour charges\t120,00 €\nTotal du terme\t970,00 €\n\nRèglement reçu le 17/11/2026 par virement.\n\nLa présente quittance porte sur le seul terme désigné. Elle ne préjuge pas des sommes qui resteraient dues au titre de termes antérieurs.\n\nElle annule tout reçu pour solde partiel établi au titre de la même période.\n\nLa quittance est délivrée gratuitement au locataire qui en fait la demande, conformément à l'article 21 de la loi du 6 juillet 1989.\n\nCe document constitue un justificatif de domicile et de paiement : le locataire est invité à le conserver.\n\nFait le 17/11/2026.\n\n[Nom du bailleur]\nSignature",
+   "impression": 1
+  },
+  "attendu": "970 € affectés au terme, 230 € non affectés",
+  "reussi": true,
+  "capture": "apres-1440-trop_percu.jpg"
+ },
+ {
+  "width": 1440,
+  "scenario": "partiel",
+  "loyer": "850",
+  "charges": "120",
+  "recu": "500",
+  "observe": {
+   "document": "ARTICLE 21 DE LA LOI N° 89-462 DU 6 JUILLET 1989\n\nReçu de paiement partiel\n\nPériode du 01/11/2026 au 30/11/2026 (novembre 2026)\n\nBAILLEUR\n[Nom du bailleur]\n[Adresse du bailleur]\nLOCATAIRE\n[Nom du locataire]\nLOGEMENT LOUÉ\n[Adresse du logement]\n\nJe soussigné(e) [Nom du bailleur], bailleur du logement désigné ci-dessus, déclare avoir reçu de [Nom du locataire] la somme de 500,00 €, au titre du loyer et des charges pour la période du 01/11/2026 au 30/11/2026, à valoir sur le terme désigné ci-dessous.\n\nTotal du terme\t970,00 €\nMontant encaissé\t500,00 €\nSolde restant dû\t470,00 €\n\nRèglement reçu le 17/11/2026 par virement.\n\nLe présent reçu constate un paiement partiel : il ne vaut pas quittance. Le solde du terme reste exigible ; une quittance sera délivrée à l'encaissement intégral (article 21 de la loi du 6 juillet 1989).\n\nFait le 17/11/2026.\n\n[Nom du bailleur]\nSignature",
+   "impression": 1
+  },
+  "attendu": "Reçu de paiement partiel, reste 470 €",
+  "reussi": true,
+  "capture": "apres-1440-partiel.jpg"
+ },
+ {
+  "width": 1440,
+  "scenario": "solde",
+  "loyer": "850",
+  "charges": "120",
+  "recu": "970",
+  "observe": {
+   "document": "ARTICLE 21 DE LA LOI N° 89-462 DU 6 JUILLET 1989\n\nQuittance de loyer\n\nPériode du 01/11/2026 au 30/11/2026 (novembre 2026)\n\nBAILLEUR\n[Nom du bailleur]\n[Adresse du bailleur]\nLOCATAIRE\n[Nom du locataire]\nLOGEMENT LOUÉ\n[Adresse du logement]\n\nJe soussigné(e) [Nom du bailleur], bailleur du logement désigné ci-dessus, déclare avoir reçu de [Nom du locataire] la somme de 970,00 €, au titre du loyer et des charges pour la période du 01/11/2026 au 30/11/2026, et lui en donne quittance, sous réserve de tous mes droits.\n\nLoyer hors charges\t850,00 €\nProvision pour charges\t120,00 €\nTotal du terme\t970,00 €\n\nRèglement reçu le 17/11/2026 par virement.\n\nLa présente quittance porte sur le seul terme désigné. Elle ne préjuge pas des sommes qui resteraient dues au titre de termes antérieurs.\n\nElle annule tout reçu pour solde partiel établi au titre de la même période.\n\nLa quittance est délivrée gratuitement au locataire qui en fait la demande, conformément à l'article 21 de la loi du 6 juillet 1989.\n\nCe document constitue un justificatif de domicile et de paiement : le locataire est invité à le conserver.\n\nFait le 17/11/2026.\n\n[Nom du bailleur]\nSignature",
+   "impression": 1
+  },
+  "attendu": "Quittance du terme de 970 €",
+  "reussi": true,
+  "capture": "apres-1440-solde.jpg"
+ }
+]

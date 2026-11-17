@@ -18,27 +18,36 @@ import { corpsRelance, type Palier } from "../src/lib/relance-paiement-email";
 import type { Periodicite } from "../src/lib/tarifs";
 
 // Le circuit historique reste testé hors pilote, avec un journal durable fictif.
+const bancFinalisation = vi.hoisted(() => ({erreur:false, preuves:[] as string[]}));
+vi.mock("../src/lib/impaye-preuve-stripe",()=>({factureImpayee:async()=>"in_fictive"}));
+vi.mock("../src/lib/courriers-contrat-envoi",()=>({
+  lireContexteCourrier:async(_db:unknown,id:string)=>({destinataire:"signataire@example.invalid",stripe_subscription_id:"sub_"+id,cgu_version:"2026-11-15"}),
+  alerterRelaisContrat:async()=>0,
+}));
 const messages=vi.hoisted(()=>new Map<string,{etat:string;id?:string}>());
 vi.mock('@/lib/supabase/service',()=>({clientDeService:()=>({rpc:async(n:string,p:Record<string,string>)=>{
  if(n==='prendre_courriel'){const m=messages.get(p.p_id);if(m)return {data:m,error:null};messages.set(p.p_id,{etat:'en_cours'});return {data:{etat:'pris'},error:null};}
  if(n==='finir_courriel'){messages.set(p.p_id,{etat:p.p_etat,id:p.p_fournisseur});return {data:true,error:null};}
- return {data:false,error:null};
+ if(n==="finaliser_courriel_metier"){if(bancFinalisation.erreur)return {data:false,error:null};bancFinalisation.preuves.push(p.p_id);return {data:true,error:null};}
+ return {data:["attacher_contexte_courriel","conserver_courriel","verifier_contexte_courriel"].includes(n),error:null};
 }})}));
 vi.mock('@/lib/marque-organisation-serveur',()=>({chargerMarque:async()=>null}));
 type Due = {
   organization_id: string; organisation: string; destinataire: string | null; palier: number;
-  jours_ecoules: number; jours_restants: number; lecture_seule_le: string; montant_mensuel: number;
+  en_defaut_depuis: string; resiliable_le: string; jours_ecoules: number; jours_restants: number; lecture_seule_le: string; montant_mensuel: number;
   periodicite: string; montant_periode_cents: number | null;
 };
 const due = (surcharge: Partial<Due> = {}): Due => ({
   organization_id: "org-1", organisation: "Agence Alpha", destinataire: "gerant@exemple.fr", palier: 0,
-  jours_ecoules: 0, jours_restants: 14, lecture_seule_le: "2026-10-28", montant_mensuel: 49, periodicite: "mensuel", montant_periode_cents: 4900, ...surcharge,
+  en_defaut_depuis:"2026-10-13",resiliable_le:"2026-11-12",jours_ecoules: 0, jours_restants: 14, lecture_seule_le: "2026-10-28", montant_mensuel: 49, periodicite: "mensuel", montant_periode_cents: 4900, ...surcharge,
 });
 
 function banc(lignes: () => Due[], marquage: { erreur: boolean } = { erreur: false }) {
-  const marques: string[] = [];
+  const marques = bancFinalisation.preuves;
+  bancFinalisation.erreur = marquage.erreur;
   const supabase = {
     rpc: async (fn: string, args?: { p_org?: string }) => {
+      if (fn === "echeance_mise_en_demeure") return { data:"2026-11-12",error:null };
       if (fn === "abonnements_a_relancer") return { data: lignes(), error: null };
       // Plan du 23/10 (R06) : le marquage passe par abonnement_relance_consigner (marque et preuve d'audit).
       if (fn === "abonnement_relance_consigner") {
@@ -55,7 +64,8 @@ function banc(lignes: () => Due[], marquage: { erreur: boolean } = { erreur: fal
 let fournisseur = fauxFournisseurEmail();
 
 beforeEach(() => {
-  vi.stubEnv("GERIMMO_PILOTE_LIMITE", "false");messages.clear();
+  vi.stubEnv("GERIMMO_PILOTE_LIMITE", "false");messages.clear(); bancFinalisation.erreur=false; bancFinalisation.preuves.length=0;
+  vi.stubEnv("GERIMMO_MODE","simulation"); vi.stubEnv("COURRIELS_CHIFFREMENT_CLE","bd".repeat(32));
   vi.stubEnv("RESEND_API_KEY", "cle-de-test");
   vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app");
   fournisseur = fauxFournisseurEmail();
@@ -76,7 +86,7 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
     const bilan = await envoyerRelancesDues(supabase);
     expect(bilan).toMatchObject({ envoyees: 1, echecs: [] });
     const [cle] = fournisseur.cles();
-    expect(cle).toMatch(/^relance-abonnement\/org-1\/0\/2026-10-28\//);
+    expect(cle).toBe("relance-abonnement/org-1/sub_org-1/2026-10-13/0");
     expect(cle).not.toMatch(/gerant|exemple|@/);
     expect(fournisseur.appels.every((a) => a.avecDelai)).toBe(true);
   });
@@ -108,7 +118,7 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
     expect(fournisseur.acceptes).toHaveLength(1);
   });
 
-  it("deux organisations, ou deux paliers, ou deux destinataires ne se confondent pas", async () => {
+  it("deux organisations et deux paliers sont distincts ; une adresse de contact différente ne double pas le courrier au signataire", async () => {
     const lignes = [
       due(),
       due({ organization_id: "org-2", organisation: "Agence Beta" }),
@@ -116,11 +126,11 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
       due({ destinataire: "autre@exemple.fr" }),
     ];
     await envoyerRelancesDues(banc(() => lignes).supabase);
-    expect(fournisseur.acceptes).toHaveLength(4);
-    expect(new Set(fournisseur.cles()).size).toBe(4);
+    expect(fournisseur.acceptes).toHaveLength(3);
+    expect(new Set(fournisseur.cles()).size).toBe(3);
   });
 
-  it("le palier 1 dit « il vous reste N jours » : le jour qui passe change le texte, donc la clé (pas de refus 409)", async () => {
+  it("la relance datée reste identique le lendemain après une finalisation interrompue", async () => {
     let restants = 5;
     const { supabase } = banc(() => [due({ palier: 1, jours_restants: restants })], { erreur: true });
     await envoyerRelancesDues(supabase);
@@ -129,26 +139,26 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
     const bilan = await envoyerRelancesDues(supabase);
     expect(bilan.envoyees).toBe(0);
     expect(bilan.echecs[0]).toMatch(/finalisation à vérifier/);
-    expect(fournisseur.acceptes).toHaveLength(2);
-    expect(new Set(fournisseur.cles()).size).toBe(2);
+    expect(fournisseur.acceptes).toHaveLength(1);
+    expect(new Set(fournisseur.cles()).size).toBe(1);
   });
 
-  it("un abonnement mensuel garde exactement la clé d'avant (centimes seuls) ; l'annuel la distingue, comme son courrier", async () => {
+  it("les montants mensuel et annuel restent associés à leur contrat et à leur période", async () => {
     // Lot mineurs du 19/10 (a) : le courrier dit désormais le montant de la période et sa périodicité. La clé le suit,
     // sans changer celle des abonnements mensuels : aucun doublon au déploiement.
     const { supabase } = banc(() => [due(), due({ organization_id: "org-2", periodicite: "annuel", montant_periode_cents: 5990, montant_mensuel: 4.99 })]);
     const bilan = await envoyerRelancesDues(supabase);
     expect(bilan).toMatchObject({ envoyees: 2, echecs: [] });
     const cles = fournisseur.cles();
-    expect(cles[0]).toMatch(/^relance-abonnement\/org-1\/0\/2026-10-28\/4900\//);
-    expect(cles[1]).toMatch(/^relance-abonnement\/org-2\/0\/2026-10-28\/5990an\//);
+    expect(cles).toEqual(["relance-abonnement/org-1/sub_org-1/2026-10-13/0","relance-abonnement/org-2/sub_org-2/2026-10-13/0"]);
   });
 
   it("plan du 23/10 (R23, R06) : le premier prélèvement a son courrier et sa clé ; la preuve est consignée avec l'identifiant du message", async () => {
     const consignes: Record<string, unknown>[] = [];
     const supabase = {
       rpc: async (fn: string, args?: Record<string, unknown>) => {
-        if (fn === "abonnements_a_relancer")
+        if (fn === "echeance_mise_en_demeure") return { data:"2026-11-12",error:null };
+      if (fn === "abonnements_a_relancer")
           return { data: [due({ premier_prelevement: true, en_defaut_depuis: "2026-10-13", resiliable_le: "2026-11-12" } as Partial<Due>)], error: null };
         if (fn === "abonnement_relance_consigner") consignes.push(args ?? {});
         return { data: true, error: null };
@@ -156,16 +166,16 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
     };
     const bilan = await envoyerRelancesDues(supabase as never);
     expect(bilan).toMatchObject({ envoyees: 1, echecs: [] });
-    expect(fournisseur.cles()[0]).toMatch(/^relance-abonnement\/org-1\/0\/2026-10-28\/4900p\//);
-    expect(consignes).toEqual([{ p_org: "org-1", p_palier: 0, p_message: expect.any(String), p_premier_prelevement: true }]);
-    expect(JSON.stringify(consignes)).not.toContain("@");
+    expect(fournisseur.cles()[0]).toBe("relance-abonnement/org-1/sub_org-1/2026-10-13/0");
+    expect(bancFinalisation.preuves).toHaveLength(1);
+    expect(consignes).toHaveLength(0); // Seule la finalisation PostgreSQL est autorisée à marquer un palier.
   });
 
   it("sans montant de période lisible (fonction SQL antérieure), la relance est rapportée en échec plutôt qu'envoyée fausse", async () => {
     const { supabase, marques } = banc(() => [{ ...due(), montant_periode_cents: undefined as unknown as number }]);
     const bilan = await envoyerRelancesDues(supabase);
     expect(bilan.envoyees).toBe(0);
-    expect(bilan.echecs[0]).toMatch(/montant du prélèvement illisible/);
+    expect(bilan.echecs[0]).toMatch(/montant du prélèvement illisible/i);
     expect(fournisseur.acceptes).toHaveLength(0);
     expect(marques).toHaveLength(0);
   });
@@ -174,7 +184,7 @@ describe("la relance d'abonnement porte une clé anti-doublon", () => {
     // Relecture du 19/10 : la base rend NULL plutôt que le douzième mensuel pour un annuel sans montant de période.
     const { supabase, marques } = banc(() => [due({ periodicite: "annuel", montant_periode_cents: null, montant_mensuel: 4.99 })]);
     const bilan = await envoyerRelancesDues(supabase);
-    expect(bilan).toMatchObject({ envoyees: 0, echecs: [expect.stringMatching(/montant du prélèvement illisible/)] });
+    expect(bilan).toMatchObject({ envoyees: 0, echecs: [expect.stringMatching(/montant du prélèvement illisible/i)] });
     expect(fournisseur.acceptes).toHaveLength(0);
     expect(marques).toHaveLength(0);
   });
@@ -211,7 +221,3 @@ describe("la clé de la relance d'abonnement suit exactement ce que le courrier 
     }
   }
 });
-
-// Banc historique du transport uniquement : la suspension V1 réelle est vérifiée
-// séparément dans perimetre-pilote-controles et livraison-protections. Aucun fournisseur réel.
-vi.mock("@/lib/perimetre-pilote",async(importOriginal)=>({...await importOriginal<typeof import("@/lib/perimetre-pilote")>(),piloteLimite:()=>false,circuitAdmisPilote:()=>true}));

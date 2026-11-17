@@ -132,8 +132,8 @@ export function FormulaireInscription({
             />
             <p className="text-xs text-muted-foreground">
               Si quelqu&apos;un vous a recommandé Gerimmo, indiquez son code
-              pour faire gagner un mois à la personne qui vous recommande, dès
-              votre premier paiement. Pour vous, l&apos;essai reste de{" "}
+              pour identifier votre parrain. Si vous choisissez un abonnement
+              après l’ouverture des souscriptions, votre premier paiement peut ouvrir un mois de parrainage. Pour vous, l&apos;essai reste de{" "}
               {dureeEssai}, sans carte, comme pour tous : le code ne vous
               ouvre pas d&apos;avantage supplémentaire. Sinon, laissez vide.
             </p>

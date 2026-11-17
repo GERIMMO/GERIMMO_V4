@@ -30,6 +30,21 @@ describe("Traitement durable des événements", () => {
     await executerEvenementStripe({ rpc } as unknown as SupabaseClient, {} as Stripe, evenement);
     expect(rpc).toHaveBeenCalledWith("stripe_evenement_appliquer", expect.objectContaining({ p_event_id: "evt_test", p_jeton: expect.any(String), p_action: "abonnement_appliquer", p_params: { p_customer: "cus_test" } }));
   });
+  it("la file relit le montant et la souscription de la facture originale lorsque seul son identifiant a été conservé",async()=>{
+    const ref={objet:"in_dure",client:"cus_proprietaire"};
+    const facture={id:ref.objet,customer:ref.client,status:"paid",amount_paid:599,parent:{subscription_details:{subscription:"sub_contrat"}}};
+    const retrieve=vi.fn(async()=>facture);
+    const q={select:()=>q,is:()=>q,lte:()=>q,lt:()=>q,order:()=>q,limit:async()=>({data:[{stripe_event_id:"evt_dure",type:"invoice.paid",charge:ref}],error:null})};
+    const rpc=vi.fn(async(n:string)=>({data:n==="stripe_evenement_prendre"?"pris":true,error:null}));
+    const db={from:()=>q,rpc} as unknown as SupabaseClient;
+    const stripe={invoices:{retrieve}} as unknown as Stripe;
+    expect(await reprendreEvenementsStripe(db,stripe,async()=>{})).toMatchObject({repris:1,echecs:0});
+    expect(retrieve).toHaveBeenCalledWith(ref.objet);
+    expect(m.traiter).toHaveBeenCalledWith(expect.anything(),stripe,expect.objectContaining({id:"evt_dure",data:{object:facture}}),false,expect.any(Function));
+    retrieve.mockResolvedValueOnce({...facture,customer:"cus_autre"});
+    expect(await reprendreEvenementsStripe(db,stripe,async()=>{})).toMatchObject({repris:0,echecs:1});
+    expect(m.traiter).toHaveBeenCalledTimes(1);
+  });
   it("dix anciennes références indisponibles ne bloquent pas la onzième à la passe suivante", async () => {
     const anciennes = Array.from({ length: 10 }, (_, i) => ({ stripe_event_id: `evt_ancien_${i}`, type: evenement.type, charge: null }));
     const reportees = new Set<string>(); let passages = 0;

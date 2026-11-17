@@ -1,6 +1,11 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { rapprocherAbonnementsStripe } from "@/lib/stripe-rapprochement";
+import { factureImpayee } from "@/lib/impaye-preuve-stripe";
 // Stripe réel en mode TEST + règles Gerimmo dans PostgreSQL local.
 // Le transport du webhook est simulé et signé ; il n'est pas présenté comme
 // une livraison de Stripe vers un site public ni comme une recette visuelle.
+import { verifierPrelevementPrevu } from "@/lib/essai-souscrit-preuve";
+import { COMMENTAIRE_RETRACTATION, retracterSouscription } from "@/lib/retractation-stripe";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -30,6 +35,8 @@ const cle = process.env.GERIMMO_STRIPE_TEST_KEY;
 const FONCTIONS_TABLE = new Set(["abonnement_par_client", "abonnement_contexte_evenement", "abonnement_courrier_contexte"]);
 /** Plan du 23/10 (migration 20261024110000) : les fonctions des courriers du contrat que le webhook appelle aussi. */
 const RPC_COURRIERS: Record<string, string[]> = {
+  stripe_rapprocher_facture_payee: ["p_org","p_customer","p_subscription","p_facture","p_version","p_montant"],
+  stripe_controle_enregistrer: ["p_org","p_ecarts"],
   abonnement_contexte_evenement: ["p_customer"],
   abonnement_souscription_datee: ["p_customer", "p_subscription", "p_souscrit_le"],
   abonnement_courrier_contexte: ["p_org"],
@@ -159,6 +166,23 @@ describe.skipIf(!cle)("Paiements simulés chez Stripe et application dans Gerimm
     expect(p.status).toBe("succeeded"); expect(p.livemode).toBe(false);
     const r = await suivi.stripe!.refunds.create({ payment_intent: p.id }); expect(r.status).toBe("succeeded");
   });
+
+  it("un avoir TEST rembourse la bonne facture acquittée et le rejeu conserve un seul avoir", async () => {
+    const stripe = suivi.stripe!;
+    const subscription = await stripe.subscriptions.retrieve(suivi.abonnement!);
+    const invoice = typeof subscription.latest_invoice === "string" ? subscription.latest_invoice : subscription.latest_invoice?.id;
+    if (!invoice) throw new Error("Facture TEST absente");
+    const facture = await stripe.invoices.retrieve(invoice);
+    expect(facture).toMatchObject({livemode:false, customer:suivi.client, status:"paid", amount_paid:200});
+    const demande = {invoice, amount:50, refund_amount:50, reason:"order_change" as const};
+    const cleAvoir = {idempotencyKey:`gerimmo-test-avoir-${invoice}`};
+    const avoir = await stripe.creditNotes.create(demande, cleAvoir);
+    const rejeu = await stripe.creditNotes.create(demande, cleAvoir);
+    expect(rejeu.id).toBe(avoir.id);
+    expect(avoir).toMatchObject({livemode:false, status:"issued", invoice, customer:suivi.client, amount:50, currency:"eur"});
+    expect((await stripe.invoices.retrieve(invoice)).post_payment_credit_notes_amount).toBe(50);
+    expect((await stripe.creditNotes.list({invoice})).data.map(n => n.id)).toEqual([avoir.id]);
+  }, 60000);
 
   it("ajuste la quantité puis résilie, et Gerimmo retrouve l'état final", async () => {
     expect(await synchroniserQuantite(suivi.stripe!, { subscription: suivi.abonnement!, quantite: 3 })).toMatchObject({ ok: true, quantite: 3 });
@@ -411,12 +435,71 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
     expect(apercu.total).toBe(58800);
   }, 60000);
 
+  it("rétracte un abonnement TEST payé, rembourse sa facture et conserve un seul remboursement au rejeu", async () => {
+    const stripe = nouvelle.stripe!;
+    const offre = offreAbonnementUnique(1, "mensuel");
+    const lignes = await lignesStripe(stripe, offre, FRANCHISE);
+    const carte = await stripe.paymentMethods.attach("pm_card_visa", { customer: nouvelle.client! });
+    const contrat = await stripe.subscriptions.create({
+      customer: nouvelle.client!,
+      default_payment_method: carte.id,
+      items: lignes.map(l => ({ price_data: l.prix, quantity: l.quantite })),
+      metadata: metadonneesOffre(nouvelle.org!, offre),
+      payment_behavior: "error_if_incomplete",
+    });
+    nouvelle.abonnements.push(contrat.id);
+    const facture = await stripe.invoices.retrieve(contrat.latest_invoice as string);
+    expect(facture).toMatchObject({ livemode: false, status: "paid", amount_paid: 599 });
+    const declaration = { subscription: contrat.id, cle: `retractation-test-${randomUUID()}` };
+    const premier = await retracterSouscription(stripe, declaration);
+    expect(premier.montantCents).toBe(facture.amount_paid);
+    expect(premier.refunds).toHaveLength(1);
+    const remboursement = await stripe.refunds.retrieve(premier.refunds[0].refund!);
+    expect(remboursement).toMatchObject({ status: "succeeded", amount: 599, metadata: { facture: facture.id } });
+    const rejeu = await retracterSouscription(stripe, declaration);
+    expect(rejeu.montantCents).toBe(599);
+    const surLePaiement = await stripe.refunds.list({ payment_intent: remboursement.payment_intent as string });
+    expect(surLePaiement.data.map(r => r.id)).toEqual([remboursement.id]);
+    expect(await stripe.subscriptions.retrieve(contrat.id)).toMatchObject({
+      status: "canceled", cancellation_details: { comment: COMMENTAIRE_RETRACTATION },
+    });
+  }, 60000);
+
+  it("vérifie le montant du premier prélèvement choisi puis exclut le même avis après résiliation", async () => {
+    const stripe = nouvelle.stripe!;
+    const offre = offreAbonnementUnique(1, "mensuel");
+    const lignes = await lignesStripe(stripe, offre, FRANCHISE);
+    const contrat = await stripe.subscriptions.create({
+      customer: nouvelle.client!, trial_period_days: 3, metadata: metadonneesOffre(nouvelle.org!, offre),
+      items: lignes.map(l => ({price_data:l.prix, quantity:l.quantite})),
+    });
+    nouvelle.abonnements.push(contrat.id);
+    expect(contrat).toMatchObject({status:"trialing", livemode:false});
+    const c = {type:"fin_essai_choisi" as const, id:contrat.id, client:nouvelle.client!,
+      fin:new Date(contrat.trial_end! * 1000).toISOString(), montant:599, organisation:"Dossier fictif"};
+    await verifierPrelevementPrevu(c, stripe);
+    await expect(verifierPrelevementPrevu({...c,montant:699}, stripe)).rejects.toThrow("montant");
+    await stripe.subscriptions.update(contrat.id, {cancel_at_period_end:true});
+    await expect(verifierPrelevementPrevu(c, stripe)).rejects.toThrow("plus prévu");
+  }, 60000);
+
   it("renouvelle une échéance réelle de TEST et reçoit son webhook signé via le relais local", async () => {
     const stripe = nouvelle.stripe!;
     const clock = await stripe.testHelpers.testClocks.create({ frozen_time: Math.floor(Date.now()/1000), name: "Gerimmo — renouvellement fictif" });
     let client = "", signature = "", sortie = "";
-    const recus: { type: string; statut: number }[] = [];
-    const differes = new Map<string,{corps:string;entete:string}>();
+    let liaisonInterrompue=false;
+    type Livraison = {id:string; type:string; objet:string; corps:string; entete:string; statut:number};
+    const livraisons = new Map<string,Livraison>();
+    const erreursReception: string[] = [];
+
+    async function transmettre(livraison: Livraison) {
+      const reponse=await POST(new Request("http://127.0.0.1/api/stripe/webhook", {
+        method:"POST", body:livraison.corps, headers:{"stripe-signature":livraison.entete},
+      }));
+      livraison.statut=reponse.status;
+      return reponse;
+    }
+
     let chaine = Promise.resolve();
     const serveur = createServer((req,res) => {
       const morceaux: Buffer[]=[];
@@ -428,14 +511,19 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
             const entete=String(req.headers["stripe-signature"]??"");
             const evenement=stripe.webhooks.constructEvent(corps,entete,signature);
             if(evenement.livemode) { res.writeHead(403).end(); return; }
-            const objet=evenement.data.object as unknown as {customer?:string};
+            const objet=evenement.data.object as unknown as {id:string; customer?:string};
             if(!client||objet.customer!==client) { res.writeHead(200).end(); return; }
-            const reponse=await POST(new Request("http://127.0.0.1/api/stripe/webhook",{method:"POST",body:corps,headers:{"stripe-signature":entete}}));
-            if ([500,503].includes(reponse.status)) differes.set(evenement.id,{corps,entete});
-            else differes.delete(evenement.id);
-            recus.push({type:evenement.type,statut:reponse.status});
+            // Après le défaut observé et avant le paiement de régularisation, simuler la perte complète
+            // du transport vers Gerimmo pour ce seul client. Aucun de ces événements ne touche la base.
+            if (liaisonInterrompue) { res.writeHead(503).end(); return; }
+            const livraison={id:evenement.id,type:evenement.type,objet:objet.id,corps,entete,statut:0};
+            livraisons.set(evenement.id,livraison);
+            const reponse=await transmettre(livraison);
             res.writeHead(reponse.status).end();
-          } catch { res.writeHead(400).end(); }
+          } catch (e) {
+            erreursReception.push(e instanceof Error ? e.name : "erreur");
+            res.writeHead(400).end();
+          }
         });
       });
     });
@@ -444,13 +532,51 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
     const relais=spawn(process.env.GERIMMO_STRIPE_CLI??"stripe",["listen","--events","customer.subscription.created,customer.subscription.updated,invoice.paid","--forward-to",`http://127.0.0.1:${adresse.port}`],{env:{...process.env,STRIPE_API_KEY:cle,STRIPE_DEVICE_NAME:"gerimmo-ci-isole"},stdio:["ignore","pipe","pipe"]});
     let erreurRelais=false;
     relais.on("error",()=>{erreurRelais=true;});
+    relais.on("exit",()=>{erreurRelais=true;});
     const lire=(b:Buffer)=>{sortie=(sortie+b.toString()).slice(-12000);signature=sortie.match(/whsec_[A-Za-z0-9]+/)?.[0]??signature;};
     relais.stdout.on("data",lire);relais.stderr.on("data",lire);
     const attendre=async(condition:()=>Promise<boolean>,message:string)=>{
       const fin=Date.now()+120000;
       while(Date.now()<fin){if(erreurRelais)throw new Error("Relais Stripe TEST indisponible");if(await condition())return;await new Promise(r=>setTimeout(r,1000));}
-      throw new Error(message);
+      const livraison=[...livraisons.values()].map(l=>l.type+"/"+l.objet+"/"+l.statut).join(", ") || "aucune";
+      throw new Error(message + " ; livraisons signées du client TEST (type/objet/HTTP) : " + livraison +
+        " ; erreurs du récepteur : " + (erreursReception.join(", ") || "aucune"));
     };
+
+    // Stripe CLI relaie le message une fois. Pendant l'attente, rejouer les octets réellement
+    // reçus seulement lorsqu'une réservation temporairement refusée est de nouveau disponible.
+    async function reprendreLivraisons() {
+      chaine=chaine.then(async()=>{
+        for (const l of livraisons.values()) {
+          if (![500,503].includes(l.statut)) continue;
+          const etat=await nouvelle.db!.query("select traite_le, reprendre_apres<=clock_timestamp() and coalesce(verrou_jusqua<=clock_timestamp(),true) as pret from abonnement_evenements where stripe_event_id=$1",[l.id]);
+          if (!etat.rows[0]) throw new Error("Événement signé non conservé en base : "+l.id);
+          if (etat.rows[0].pret || etat.rows[0].traite_le) await transmettre(l);
+        }
+      });
+      await chaine;
+    }
+
+    async function attendreLivraison(type:"customer.subscription.created"|"invoice.paid",objet:string) {
+      try {
+        await attendre(async()=>{
+          await reprendreLivraisons();
+          const livraison=[...livraisons.values()].find(l=>l.objet===objet&&l.type===type&&l.statut===200);
+          if (!livraison) return false;
+          return Boolean((await nouvelle.db!.query("select traite_le from abonnement_evenements where stripe_event_id=$1",[livraison.id])).rows[0]?.traite_le);
+        },"Webhook signé attendu : "+type+"/"+objet);
+      } catch (e) {
+        // L'API Events distingue une émission de sa réception. Elle ne remplace jamais
+        // la preuve de livraison signée par le vrai relais TEST.
+        const trouves:string[]=[];
+        for (const ev of await stripe.events.list({type,limit:100}).autoPagingToArray({limit:300})) {
+          const o=ev.data.object as {id:string;customer?:string};
+          if (!ev.livemode && o.id===objet && o.customer===client) trouves.push(ev.id);
+        }
+        throw new Error((e instanceof Error?e.message:String(e))+" ; événements correspondants dans les 300 derniers de Stripe TEST : "+(trouves.join(", ")||"aucun"));
+      }
+      return [...livraisons.values()].find(l=>l.objet===objet&&l.type===type&&l.statut===200)!;
+    }
     try {
       await attendre(async()=>Boolean(signature),"Le relais Stripe TEST n’est pas prêt");
       vi.stubEnv("STRIPE_WEBHOOK_SECRET",signature);
@@ -462,29 +588,87 @@ describe.skipIf(!cle)("Grille en vigueur du 29/10/2026 chez Stripe (mode test)",
       await stripe.customers.update(client,{invoice_settings:{default_payment_method:pm.id}});
       const offre=offreAbonnementUnique(1,"mensuel");const lignes=await lignesStripe(stripe,offre,FRANCHISE);
       const souscription=await stripe.subscriptions.create({customer:client,items:lignes.map(l=>({price_data:l.prix,quantity:l.quantite})),metadata:metadonneesOffre(org,offre)});
+      // Le prochain cycle n'avance qu'après l'enregistrement prouvé de ce client et de son
+      // abonnement. Une facture signée arrivée la première reste rejouable dans la file.
+      await attendreLivraison("customer.subscription.created",souscription.id);
       const echeance=souscription.items.data[0].current_period_end;
-      await stripe.testHelpers.testClocks.advance(clock.id,{frozen_time:echeance+7200});
-      await attendre(async()=>(await stripe.testHelpers.testClocks.retrieve(clock.id)).status==="ready","Horloge Stripe non finalisée");
-      await attendre(async()=>{
-        const factures=await stripe.invoices.list({customer:client,subscription:souscription.id});
-        return factures.data.some(f=>f.billing_reason==="subscription_cycle"&&f.status==="paid"&&f.amount_paid===599);
-      },"Renouvellement de TEST non payé");
-      await attendre(async()=>recus.some(e=>e.type==="invoice.paid"&&e.statut===200)&&recus.some(e=>e.type==="customer.subscription.updated"&&e.statut===200),"Webhooks de renouvellement non reçus par Gerimmo local");
-      await chaine;
-      // Une facture peut précéder le webhook de création. Le refus temporaire doit
-      // rester en file et le même événement signé doit ensuite aboutir, sans doublon.
-      expect(recus.every(e=>[200,500,503].includes(e.statut))).toBe(true);
-      for (const [id, message] of differes) {
-        expect((await nouvelle.db!.query("select traite_le from public.abonnement_evenements where stripe_event_id=$1",[id])).rows).toHaveLength(1);
-        await attendre(async()=>{
-          const res=await POST(new Request("http://127.0.0.1/api/stripe/webhook",{method:"POST",body:message.corps,headers:{"stripe-signature":message.entete}}));
-          return res.status===200;
-        },"La réception Stripe différée n’a pas abouti");
-        expect((await nouvelle.db!.query("select traite_le from public.abonnement_evenements where stripe_event_id=$1",[id])).rows[0].traite_le).toBeTruthy();
+      async function avancer(instant: number) {
+        await stripe.testHelpers.testClocks.advance(clock.id, {frozen_time:instant});
+        await attendre(async () => (await stripe.testHelpers.testClocks.retrieve(clock.id)).status === "ready", "L’horloge Stripe TEST n’a pas terminé son avance");
       }
+      // Stripe crée d'abord la facture de cycle, puis la finalise à une heure distincte
+      // dans son horloge simulée. Attendre du temps réel ne fait pas avancer cette horloge.
+      await avancer(echeance);
+      let cycle: Stripe.Invoice | undefined;
+      await attendre(async () => {
+        cycle = (await stripe.invoices.list({customer:client, subscription:souscription.id})).data.find(f => f.billing_reason === "subscription_cycle");
+        return !!cycle;
+      }, "Aucune facture de renouvellement émise à l’échéance dans Stripe TEST");
+      if (!cycle?.id) throw new Error("Facture de renouvellement sans référence");
+      const factureCycle = cycle.id;
+      const finalisation = Math.max(echeance + 7200, (cycle.automatically_finalizes_at ?? echeance) + 3600);
+      await avancer(finalisation);
+      await attendre(async () => {
+        const facture = await stripe.invoices.retrieve(factureCycle);
+        return facture.status === "paid" && facture.amount_paid === 599 && facture.amount_remaining === 0;
+      }, "Renouvellement de TEST non payé");
+      const renouvellement = await attendreLivraison("invoice.paid",factureCycle);
+      const doublon = await transmettre(renouvellement);
+      expect(doublon.status).toBe(200);
+      expect(await doublon.json()).toMatchObject({deja_traite:renouvellement.id});
+      expect(erreursReception).toEqual([]);
+      expect([...livraisons.values()].every(l=>[200,500,503].includes(l.statut))).toBe(true);
       expect((await nouvelle.db!.query("select count(*)::int n from public.audit_log where organization_id=$1 and action='abonnement_premiere_facture_payee'",[org])).rows[0].n).toBe(1);
       const miroir=(await nouvelle.db!.query("select a.montant_periode_cents::int montant,o.status from public.abonnements a join public.organizations o on o.id=a.organization_id where a.organization_id=$1",[org])).rows[0];
       expect(miroir).toMatchObject({montant:599,status:"active"});
+
+      // Même client et même abonnement : une échéance suivante est refusée, puis régularisée.
+      const refus = await stripe.paymentMethods.attach("pm_card_chargeCustomerFail", {customer:client});
+      const prochaine = await stripe.subscriptions.update(souscription.id, {default_payment_method:refus.id});
+      const terme = prochaine.items.data[0].current_period_end;
+      await avancer(terme);
+      let suivante: Stripe.Invoice | undefined;
+      await attendre(async()=>{
+        suivante=(await stripe.invoices.list({customer:client,subscription:souscription.id})).data
+          .find(f=>f.billing_reason==="subscription_cycle" && f.created>=terme && f.id!==factureCycle);
+        return !!suivante;
+      },"Aucune facture TEST pour l’échéance en impayé");
+      if (!suivante) throw new Error("La facture de TEST attendue est absente.");
+      const impayee=suivante.id;
+      await avancer(Math.max(terme+7200,(suivante.automatically_finalizes_at??terme)+3600));
+      await attendre(async()=>(await stripe.subscriptions.retrieve(souscription.id)).status==="past_due","Stripe TEST n’a pas constaté le paiement refusé");
+      expect(await factureImpayee(souscription.id,599,stripe)).toBe(impayee);
+      await attendre(async()=>{
+        await reprendreLivraisons();
+        return Boolean((await nouvelle.db!.query("select paiement_en_defaut_depuis from public.abonnements where organization_id=$1",[org])).rows[0].paiement_en_defaut_depuis);
+      },"Gerimmo n’a pas enregistré le défaut du renouvellement");
+      liaisonInterrompue=true;
+      await chaine;
+      const payee=await stripe.invoices.pay(impayee,{payment_method:pm.id},{idempotencyKey:`recette-regularisation-${impayee}`});
+      expect(payee).toMatchObject({livemode:false,status:"paid",amount_paid:599,amount_remaining:0});
+      await attendre(async()=>(await stripe.subscriptions.retrieve(souscription.id)).status==="active","La régularisation de TEST n’a pas rouvert la souscription");
+      await expect(factureImpayee(souscription.id,599,stripe)).rejects.toThrow();
+      const dette=await nouvelle.db!.query("select paiement_en_defaut_depuis from abonnements where organization_id=$1",[org]);
+      expect(dette.rows[0].paiement_en_defaut_depuis).toBeTruthy();
+      // Le contrôle de nuit de production, avec le transport SQL local restreint à l'organisation fictive
+      // de cette horloge. Les lectures du contrat et des factures sont faites auprès de Stripe TEST.
+      const service={rpc:async(nom:string,params:Record<string,unknown>)=>{
+        if (nom==="stripe_controles_a_faire") {
+          const r=await nouvelle.db!.query("select to_jsonb(a) as ligne from public.stripe_controles_a_faire($1) a where organization_id=$2",[params.p_limite,org]);
+          return {data:r.rows.map(v=>v.ligne),error:null};
+        }
+        return transport.rpc(nom,params);
+      }} as unknown as SupabaseClient;
+      const bilan=await rapprocherAbonnementsStripe(service,stripe,async()=>{});
+      expect(bilan).toMatchObject({controles:1,echecs:0});
+      const etat=await nouvelle.db!.query("select paiement_en_defaut_depuis is null and stripe_statut='active' as regularise,stripe_controle_ecarts from abonnements where organization_id=$1",[org]);
+      expect(etat.rows[0], "La preuve API du règlement doit solder exactement cet impayé").toMatchObject({regularise:true});
+      const preuve=await nouvelle.db!.query("select details from audit_log where organization_id=$1 and action='regularisation_facture_confirmee'",[org]);
+      expect(preuve.rows).toEqual([{details:{source:"api_stripe",facture:impayee,souscription:souscription.id,montant_cents:599}}]);
+      expect((await nouvelle.db!.query("select 1 from abonnement_evenements where type='invoice.paid' and charge->>'objet'=$1",[impayee])).rowCount).toBe(0);
+      expect((await rapprocherAbonnementsStripe(service,stripe,async()=>{})).controles).toBe(0);
+      expect((await nouvelle.db!.query("select count(*)::int n from audit_log where organization_id=$1 and action='paiement_regularise'",[org])).rows[0].n).toBe(1);
+
     } finally {
       relais.kill("SIGTERM");await chaine;
       await new Promise<void>(r=>serveur.close(()=>r()));

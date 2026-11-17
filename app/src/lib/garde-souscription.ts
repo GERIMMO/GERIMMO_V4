@@ -65,13 +65,14 @@ export type ContexteGarde = { enEssai: boolean; blocageIdentiteActif?: boolean; 
  * ajoute « Votre essai continue. » ; gelé ou abonné, elle s'arrête avant.
  */
 export function motifIdentiteEditeur(editeur: Record<string, FaitEditeur>, { enEssai, blocageIdentiteActif, nouvelleSouscriptionParticulier }: ContexteGarde): string | null {
-  // Seul un false explicite lu par le serveur lève la règle. Une valeur
-  // absente (ancien déploiement, lecture impossible) conserve le contrôle.
-  if (nouvelleSouscriptionParticulier && ["mediateurNom","mediateurAdresse","mediateurSite"].some(cle => !editeur[cle]?.trim()))
+  if (blocageIdentiteActif !== false && faitsManquants(editeur).length > 0) {
     return enEssai ? MOTIF_IDENTITE_EDITEUR_ESSAI : MOTIF_IDENTITE_EDITEUR;
-  if (blocageIdentiteActif === false) return null;
-  if (faitsManquants(editeur).length === 0) return null;
-  return enEssai ? MOTIF_IDENTITE_EDITEUR_ESSAI : MOTIF_IDENTITE_EDITEUR;
+  }
+  if (nouvelleSouscriptionParticulier && ["mediateurNom", "mediateurAdresse", "mediateurSite"].some(cle => !editeur[cle]?.trim())) {
+    const motif = "Le paiement en ligne n'est pas encore ouvert aux particuliers. Les coordonnées du médiateur de la consommation de Gerimmo doivent être publiées avant la première souscription.";
+    return enEssai ? `${motif} Votre essai continue.` : motif;
+  }
+  return null;
 }
 
 /** Vrai si la valeur est la version en vigueur — égalité stricte, jamais une comparaison d'ordre. */

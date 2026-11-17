@@ -122,14 +122,14 @@ export async function deciderPostProgramme(_etat: EtatCampagne, donnees: FormDat
   const { error } = await supabase.rpc("decider_publication_marketing", { p_id: id, p_action: action, p_motif: motif || null });
   if (error) return { erreur: sansJargon(error.message) };
   let suite = "";
-  if (action === "publier_maintenant") suite = await lancerDiffusionMaintenant();
+  if (action === "publier_maintenant") suite = await lancerDiffusionMaintenant(id);
   revalidatePath("/admin/marketing");
   revalidatePath("/admin/brief");
   revalidatePath("/admin/publications");
   revalidatePath("/journal");
   const messages: Record<string, string> = {
     valider: "Validé : le post partira à l’heure prévue.",
-    publier_maintenant: `Publication lancée.${suite}`,
+    publier_maintenant: `Demande de diffusion enregistrée.${suite}`,
     reporter: "Reporté : le post ne partira pas. Reprogrammez-le depuis l’éditeur si besoin.",
     refuser: "Refusé : le post ne partira jamais.",
   };
@@ -137,17 +137,20 @@ export async function deciderPostProgramme(_etat: EtatCampagne, donnees: FormDat
 }
 
 /** Appelle la mission marketing tout de suite ; à défaut, pg_cron la relance sous cinq minutes. */
-async function lancerDiffusionMaintenant(): Promise<string> {
+async function lancerDiffusionMaintenant(publicationId: string): Promise<string> {
+  const aVerifier = " La parution de cet article reste à vérifier dans sa fiche.";
   const secret = process.env.CRON_SECRET?.trim();
   const site = adresseDuSite();
-  if (!secret || !site) return " La diffusion suivra au prochain passage (moins de cinq minutes).";
+  if (!secret || !site) return aVerifier;
   try {
     const reponse = await fetch(`${site}/api/cron/equipes?mission=marketing`, { headers: { authorization: `Bearer ${secret}` }, cache: "no-store", signal: AbortSignal.timeout(90_000) });
-    const bilan = (await reponse.json().catch(() => null)) as { publiees?: number; erreurs?: string[] } | null;
-    if (bilan?.publiees) return " Le post est paru sur le journal et sur Facebook.";
-    if (bilan?.erreurs?.length) return ` Le site a publié ; Facebook : ${bilan.erreurs[0]}`;
-    return " La diffusion suivra au prochain passage (moins de cinq minutes).";
+    if (!reponse.ok) return aVerifier;
+    const bilan = (await reponse.json()) as { diffusees?: unknown } | null;
+    if (Array.isArray(bilan?.diffusees) && bilan.diffusees.includes(publicationId)) {
+      return " Le post est paru sur le journal et sur Facebook.";
+    }
+    return aVerifier;
   } catch {
-    return " La diffusion suivra au prochain passage (moins de cinq minutes).";
+    return aVerifier;
   }
 }

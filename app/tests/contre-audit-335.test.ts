@@ -1,4 +1,5 @@
-import { lierCommandeFictive } from "./fixtures/preuve-commande";
+import { pdfFictif } from "../e2e/pdf-fictif";
+import { archiverConditionsFictives, lierCommandeFictive } from "./fixtures/preuve-commande";
 import { Client } from "pg";
 import { createHash, randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -36,11 +37,13 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
   async function preparer() {
     vi.stubEnv("GERIMMO_MODE","simulation");vi.stubEnv("COURRIELS_CHIFFREMENT_CLE","ab".repeat(32));vi.stubEnv("RESEND_API_KEY","fictive");
     await db.query("select set_config('request.jwt.claims','{\"role\":\"service_role\"}',true)");
+    await archiverConditionsFictives(db, "2026-10-01");
+    await archiverConditionsFictives(db, "2026-11-01");
     const service=clientSurPg(db,{transactionnel:true});
     banc.service={...service,rpc:async(n:string,args:Record<string,unknown>)=>n==="abonnement_courrier_contexte"
       ? {data:(await db.query((args.p_confirmation ? "select to_jsonb(a) ligne from abonnement_courrier_contexte($1,true) a" : "select to_jsonb(a) ligne from abonnement_courrier_contexte($1) a"),[args.p_org])).rows.map(r=>r.ligne),error:null}
       : service.rpc(n,args)} as unknown as SupabaseClient;
-    const boite:{to:string[];html:string;subject:string}[]=[];
+    const boite:{to:string[];html:string;subject:string;attachments?:{filename:string;content:string}[]}[]=[];
     let refus=false;
     vi.stubGlobal("fetch",async(url:string,opts:RequestInit)=>{
       if(url!=="https://api.resend.com/emails"||opts.method!=="POST") throw Error("Réseau interdit");
@@ -57,7 +60,7 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
     const {boite,adr} = await preparer();
     await db.query("update organizations set email_contact='facturation@example.invalid' where id=$1",[org]);
     await lierCommandeFictive(db,org,acteur,sub,"2026-10-01");
-    await envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null});
+    await envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null},{rendu:async()=>pdfFictif()});
     expect(boite.map(m=>m.to)).toEqual([[adr]]);
   });
   it("retrouve le geste de résiliation daté et le nom exact après interruption",async()=>{
@@ -79,7 +82,7 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
     const {boite,fin,adr}=await preparer();
     await lierCommandeFictive(db,org,acteur,sub,"2026-10-01");
     for(let i=0;i<2;i++){
-      await envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null});
+      await envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null},{rendu:async()=>pdfFictif()});
       await envoyerAccuseResiliation(banc.service!,{orgId:org,subscription:sub,periodeFin:fin,notifieeLe:new Date(),chemin:"webhook"});
     }
     expect(boite.map(m=>m.to)).toEqual([[adr],[adr]]);
@@ -90,11 +93,12 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
     await db.query("update abonnements set souscrit_le='2026-11-10 12:00Z' where organization_id=$1",[org]);
     await db.query("insert into acceptations_cgu(account_id,version,document,source,acceptee_le) values($1,'2026-11-01','conditions_clients','inscription','2026-11-10 11:59Z'),($1,'2026-11-12','conditions_clients','compte','2026-11-13 12:00Z')",[acteur]);
     await lierCommandeFictive(db,org,acteur,sub,"2026-11-01");
-    const r=await envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null});
+    const r=await envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null},{rendu:async()=>pdfFictif()});
     expect(r.envoye).toBe(true);
     expect(boite).toHaveLength(1);
     const contexte=(await db.query("select contexte_metier from courriels_durables where organization_id=$1",[org])).rows[0].contexte_metier;
     expect(contexte.version).toBe("2026-11-01");
+    expect(boite[0].attachments?.map(p=>p.filename)).toEqual(["conditions-generales-2026-11-01.pdf"]);
   });
   it("les rôles des portails ne peuvent écrire ni associer les preuves de commande",async()=>{
     const droits=await db.query(`select role,
@@ -125,7 +129,7 @@ describe.skipIf(!url)("Confirmation et accusé sur PostgreSQL fictif",()=>{
   });
   it("contrat historique sans preuve de commande : vérification humaine",async()=>{
     const {boite}=await preparer();
-    const resultat=await envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null});
+    const resultat=await envoyerConfirmationSouscription(banc.service!,{orgId:org,subscription:sub,premierPrelevementLe:null},{rendu:async()=>pdfFictif()});
     expect(resultat.envoye).toBe(false); expect(boite).toHaveLength(0);
     expect(resultat.motif).toContain("vérifier");
   });

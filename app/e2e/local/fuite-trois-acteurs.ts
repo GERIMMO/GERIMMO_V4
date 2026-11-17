@@ -1,12 +1,14 @@
 import { expect, type Browser, type Page } from "@playwright/test";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Client } from "pg";
 import { connecterVers, sansSyntheseAlertes } from "../aides";
 import { baseApiFictive } from "./base-api-fictive";
 
 // Les décisions sont prises dans trois sessions séparées. Les lectures SQL
 // vérifient le résultat sur les données synthétiques, sans créer de mission.
-export async function preparerEtPlanifierFuite(db: Client, browser: Browser, artisan: Page, organisation: string, artisanId: string, loc: {email:string;mot:string;description?:string}) {
+export type MomentAvisFuite = { evenement: "devis_recu" | "rdv_report_demande" | "rdv_report_accepte"; incident: string; mission?: string; destinataire: Page };
+export async function preparerEtPlanifierFuite(db: Client, browser: Browser, artisan: Page, organisation: string, artisanId: string, loc: {email:string;mot:string;description?:string},
+  verifierAvis?: (moment: MomentAvisFuite) => Promise<void>) {
   baseApiFictive(process.env.SUPALOCAL_DB);
   const locataire = await browser.newContext({storageState:{cookies:[],origins:[]}, viewport:artisan.viewportSize()});
   try {
@@ -15,7 +17,7 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
     artisan.setDefaultTimeout(12_000);
     await sansSyntheseAlertes(page);
     await connecterVers(page,loc.email,loc.mot,`/locataire/${organisation}/incident`);
-    await page.waitForLoadState("networkidle");
+    await expect(page.getByRole("button",{name:"Envoyer le signalement",exact:true})).toBeEnabled();
     const description = loc.description ?? "Fuite sous évier · dossier " + randomUUID().slice(0,8);
     await page.locator("#categorie").selectOption("plomberie_joint");
     await page.locator("textarea").first().fill(description);
@@ -43,6 +45,9 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
       await expect.poll(async ()=>(await db.query("select imputation from incidents where id=$1",[incident.id])).rows[0].imputation).toBe("proprietaire");
       await gestion.goto(`/espace/${organisation}/incidents/${incident.id}#intervention`);
       const recherche=gestion.locator("form").filter({has:gestion.locator("select[name=metier]")});
+      // Les champs serveur précèdent parfois la prise en charge de React.
+      await expect(recherche.locator("select[name=metier]")).toBeVisible();
+      await expect(recherche.locator('button[title="La page finit de se charger."]')).toHaveCount(0);
       await recherche.locator("select[name=metier]").selectOption("plomberie");
       const nature=recherche.locator("select[name=nature]");
 
@@ -89,7 +94,35 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
       await etape(4);
       await artisan.getByRole("button",{name:"Transmettre le devis et prévenir le demandeur",exact:true}).click();
       await expect(artisan).toHaveURL(/envoye=1/);
+      await verifierAvis?.({evenement:"devis_recu",incident:incident.id,destinataire:gestion});
       await gestion.reload();
+      const telecharger = gestion.getByRole("link", {name:"Télécharger le détail du devis (PDF)",exact:true});
+      await expect(telecharger).toBeVisible();
+      const urlPdf = new URL((await telecharger.getAttribute("href"))!, gestion.url()).href;
+      const archive = await db.query(`select doc.empreinte from incident_devis d
+        join documents doc on doc.id=d.document_id and doc.organization_id=d.organization_id
+        where d.incident_id=$1 and d.organization_id=$2 and d.sollicitation_id=$3`, [incident.id,organisation,await demande()]);
+      expect(archive.rows).toHaveLength(1);
+      // Le clic ouvre une nouvelle fenêtre. Observer sa réponse au niveau du contexte
+      // permet aussi de vérifier le fichier sur les navigateurs qui le téléchargent.
+      let fichier: {statut:number;type:string;contenu:Buffer} | undefined;
+      await responsable.route(urlPdf, async route => {
+        const reponse = await route.fetch();
+        fichier = {statut:reponse.status(),type:reponse.headers()["content-type"] ?? "",contenu:await reponse.body()};
+        await route.fulfill({response:reponse});
+      });
+      try {
+        await telecharger.click({noWaitAfter:true});
+        await expect.poll(() => fichier?.statut).toBe(200);
+        expect(fichier!.type).toContain("application/pdf");
+        expect(fichier!.contenu.subarray(0,5).toString()).toBe("%PDF-");
+        expect(createHash("sha256").update(fichier!.contenu).digest("hex")).toBe(archive.rows[0].empreinte);
+      } finally {
+        await responsable.unroute(urlPdf);
+      }
+      const refus = await locataire.request.get(urlPdf, {maxRedirects:0});
+      expect(refus.status()).toBe(403);
+      expect(refus.headers()["content-type"]).not.toContain("application/pdf");
       await gestion.getByRole("button",{name:/Retenir ce devis/}).click();
       await expect.poll(async ()=>(await db.query("select count(*)::int n from incident_interventions where organization_id=$1 and incident_id=$2 and devis_id is not null",[organisation,incident.id])).rows[0].n).toBe(1);
     } finally { await responsable.close(); }
@@ -126,12 +159,14 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
     await dossier.getByRole("button",{name:"Envoyer à l'artisan",exact:true}).click();
     await expect.poll(async()=>(await db.query("select statut from intervention_demandes_rdv where intervention_id=$1 and type='report'",[mission])).rows[0]?.statut).toBe("en_attente");
     expect(await rendezVous()).toBe(premier);
+    await verifierAvis?.({evenement:"rdv_report_demande",incident:incident.id,mission,destinataire:artisan});
     await artisan.goto("/artisan/agenda");
     await expect(artisan.getByText("Report demandé · rendez-vous maintenu",{exact:true}).first()).toBeVisible();
     await artisan.goto("/artisan/missions/"+mission);
     await artisan.getByRole("button",{name:"Je retiens cette date",exact:true}).first().click();
     await expect.poll(rendezVous).not.toBe(premier);
     expect((await db.query("select statut from intervention_demandes_rdv where intervention_id=$1 and type='report'",[mission])).rows[0].statut).toBe("acceptee");
+    await verifierAvis?.({evenement:"rdv_report_accepte",incident:incident.id,mission,destinataire:page});
     return {incidentId:String(incident.id), mission,sessionLocataire:await locataire.storageState()};
   } finally { await locataire.close(); }
 }

@@ -58,6 +58,36 @@ describe.skipIf(!url)('Creation bien : concurrence reelle, fixtures locales nett
       await premier.query('rollback'); await attente.catch(() => undefined); await second.query('rollback');
     }
   };
+  it('deux imports de la même ligne qui se chevauchent ne dédoublent ni le bien ni la détention', async () => {
+    const bien = 'Résidence des Platanes ' + randomUUID();
+    const fichier = JSON.stringify([{ bien, lot: 'Cour', type: 'appartement', adresse: '4 avenue du Parc',
+      code_postal: '37000', ville: 'Tours', proprietaire_nom: 'Martin' }]);
+    const importer = (client: Client) => client.query(
+      'select statut, bien_id, lot_id from public.importer_parc($1,$2::jsonb,false)', [org, fichier]
+    );
+    await ouvrir(premier);
+    await ouvrir(second);
+    const a = (await importer(premier)).rows[0];
+    const pid = (await second.query('select pg_backend_pid() pid')).rows[0].pid;
+    const demande = importer(second);
+    try {
+      await expect.poll(async () => (await admin.query(
+        'select wait_event_type from pg_stat_activity where pid=$1', [pid]
+      )).rows[0]?.wait_event_type, { timeout: 3000, interval: 20 }).toBe('Lock');
+      await premier.query('commit');
+      expect(a.statut).toBe('ok');
+      expect((await demande).rows[0]).toEqual(a);
+      await second.query('commit');
+      const { rows } = await admin.query(`select b.id, l.id as lot_id, count(d.id)::int as detentions
+        from biens b join lots l on l.bien_id=b.id join detentions d on d.lot_id=l.id
+        where b.organization_id=$1 and b.nom=$2 group by b.id,l.id`, [org,bien]);
+      expect(rows).toEqual([{ id:a.bien_id, lot_id:a.lot_id, detentions:1 }]);
+    } finally {
+      await premier.query('rollback');
+      await demande.catch(() => undefined);
+      await second.query('rollback');
+    }
+  });
   it('deux demandes simultanees identiques ne creent qu’un dossier', () => scenario(true));
   it('deux demandes distinctes ne dedoublent pas la fiche du proprietaire', () => scenario(false));
   it('la demande en attente reussit si la premiere transaction est annulee', () => scenario(true, true));

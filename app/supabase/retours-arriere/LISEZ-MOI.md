@@ -645,6 +645,7 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261117092314` (conserver les rattachements de lots et corriger l’import en avant), puis
 `20261116201423` (arrêt si les préavis sont installés, conserver les preuves de livraison), puis
 `20261116201223` (arrêt si les alertes et reports sont installés, conserver les réservations et habilitations), puis
 `20261116201034` (arrêt si les courriers d’impayé sont installés, conserver leurs preuves et corriger en avant), puis

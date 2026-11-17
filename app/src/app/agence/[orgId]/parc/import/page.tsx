@@ -85,8 +85,8 @@ export default async function PageImportParc(
           </ul>
           <p className="mt-2 text-[13px] text-muted-foreground">
             Une ligne sans locataire crée le lot et sa détention, sans bail.
-            Deux lignes portant le même nom de bien atterrissent dans le même
-            immeuble ; deux fois le même propriétaire ne font qu&apos;une fiche.
+            Pour regrouper les lots d’un immeuble, utilisez le même nom et la même adresse complète.
+            Deux immeubles homonymes à des adresses différentes restent distincts.
           </p>
         </details>
       </section>

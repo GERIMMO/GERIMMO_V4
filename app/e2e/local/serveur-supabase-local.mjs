@@ -108,7 +108,7 @@ async function chargerCatalogue() {
     where c.contype = 'p' and n.nspname = 'public'`);
   catalogue.pks = new Map(pks.map((p) => [p.table_nom, p.cols]));
   const { rows: fns } = await pool.query(`
-    select p.proname as nom, p.proretset as retourne_set,
+    select p.proname as nom, p.proretset as retourne_set, p.pronargs-p.pronargdefaults as requis,
            format_type(p.prorettype, null) as type_retour,
            coalesce(p.proargnames, '{}')::text[] as arg_noms,
            (select array_agg(format_type(t.t, null) order by t.ord)
@@ -116,7 +116,11 @@ async function chargerCatalogue() {
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'`);
   catalogue.fns = new Map();
-  for (const f of fns) if (!catalogue.fns.has(f.nom)) catalogue.fns.set(f.nom, f);
+  for (const fn of fns) {
+    const signatures = catalogue.fns.get(fn.nom) ?? [];
+    signatures.push(fn);
+    catalogue.fns.set(fn.nom, signatures);
+  }
 }
 
 // Trouve la relation entre deux tables (ou par nom explicite de contrainte).
@@ -575,11 +579,22 @@ function preparerValeur(v, type) {
 
 // ── RPC ────────────────────────────────────────────────────────────────────
 async function appelerRpc(claims, nom, corps, url, methode, entetes) {
-  const fn = catalogue.fns.get(nom);
-  if (!fn) throw erreurRest(404, "PGRST202", `Fonction public.${nom} introuvable`);
-  const noms = (fn.arg_noms ?? []).slice(0, (fn.arg_types ?? []).length);
+  const signatures = catalogue.fns.get(nom) ?? [];
+  const argumentsEntree = (fn) => fn.arg_noms.slice(0, fn.arg_types?.length ?? 0);
   const lecture = methode === "HEAD" || methode === "GET";
-  const args = lecture ? Object.fromEntries([...url.searchParams].filter(([cle]) => noms.includes(cle))) : corps ?? {};
+  // Les paramètres de lecture restants sont des filtres de résultat. En POST, chaque clé
+  // fait partie de la signature : ignorer un paramètre peut sélectionner une autre RPC.
+  const tousNoms = new Set(signatures.flatMap(argumentsEntree));
+  const args = lecture ? Object.fromEntries([...url.searchParams].filter(([cle]) => tousNoms.has(cle))) : corps ?? {};
+  const cles = Object.keys(args);
+  const correspondances = signatures.filter((fn) => {
+    const noms = argumentsEntree(fn);
+    return cles.every((cle) => noms.includes(cle)) && noms.slice(0, fn.requis).every((cle) => cles.includes(cle));
+  });
+  if (!correspondances.length) throw erreurRest(404, "PGRST202", `Signature de public.${nom} introuvable`);
+  if (correspondances.length > 1) throw erreurRest(300, "PGRST203", `Signature de public.${nom} ambiguë`);
+  const fn = correspondances[0];
+  const noms = argumentsEntree(fn);
   const urlFiltres = new URL(url);
   if (lecture) for (const nom of noms) urlFiltres.searchParams.delete(nom);
   const fournis = noms

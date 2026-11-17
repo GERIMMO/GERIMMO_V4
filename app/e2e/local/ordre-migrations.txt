@@ -507,3 +507,4 @@
 20261116201034_courriers_incidents_abonnement.sql
 20261116201223_alertes_direction_et_reports.sql
 20261116201423_avis_essai_et_inactivite.sql
+20261117092314_import_parc_identite_bien.sql

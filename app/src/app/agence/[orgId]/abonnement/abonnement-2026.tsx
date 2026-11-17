@@ -165,12 +165,19 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   // « Votre essai continue » seulement si l'essai court encore : un essai
   // arrivé à son terme garde le statut « essai » mais ferme l'écriture.
   const motifIdentite = motifIdentiteEditeur(garde.editeur, { enEssai: enEssai && !ferme, blocageIdentiteActif: garde.blocageIdentiteActif, nouvelleSouscriptionParticulier: !souscrit && publicTarif === "proprietaire_direct" });
+  const contactPaiement = enEssai
+    ? "Écrivez-nous pour demander une prolongation de votre essai."
+    : "Contactez Gerimmo si vous avez besoin d’aide pour votre contrat.";
   const motifIndisponible = !reglages.pret
-    ? "Le paiement en ligne n'est pas encore ouvert. Écrivez-nous : nous prolongeons votre essai le temps de l'ouvrir."
+    ? `Le paiement en ligne n'est pas encore ouvert. ${contactPaiement}`
     : !REGIME_TVA
-      ? "Le paiement en ligne n'est pas encore ouvert : le régime de TVA de l'éditeur doit d'abord être renseigné pour afficher les taxes exactes. Écrivez-nous : nous prolongeons votre essai le temps de l'ouvrir."
+      ? `Le paiement en ligne n'est pas encore ouvert : le régime de TVA de l'éditeur doit d'abord être renseigné pour afficher les taxes exactes. ${contactPaiement}`
       : motifIdentite ?? (!souscrit && publicTarif === "proprietaire_direct" && !nouvellesSouscriptionsFermees(garde.ventesOuvertes)
           ? await motifArchiveCommande(supabase, garde.editeur) : null);
+
+  const motifSouscription = !souscrit && reglages.pret && nouvellesSouscriptionsFermees(garde.ventesOuvertes)
+    ? MESSAGE_SOUSCRIPTIONS_FERMEES : motifIndisponible;
+  const peutSouscrire = !souscrit && !accesOffert && !motifSouscription && (estAgence || enGestion > 0);
 
   // ── La hausse à présenter : nécessaire (portefeuille au-delà de la capacité)
   // ou demandée (?capacite= pour une agence, ?formule= pour un particulier).
@@ -317,7 +324,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">Votre abonnement a été résilié faute de règlement.</b>{" "}
             <span className="text-muted-foreground">
-              Consultez votre dernière facture pour vérifier le montant restant à régler. Vos données restent consultables et exportables. Souscrivez de nouveau ci-dessous pour reprendre la saisie.
+              Consultez votre dernière facture pour vérifier le montant restant à régler. Vos données restent consultables et exportables.
+              {peutSouscrire && " Souscrivez de nouveau ci-dessous pour reprendre la saisie."}
             </span>
           </p>
         </div>
@@ -345,8 +353,8 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             <b className="font-semibold">Votre compte est en lecture seule.</b>{" "}
             <span className="text-muted-foreground">
               {enEssai ? "Votre essai gratuit est arrivé à son terme." : "Vos droits d'accès payés ont pris fin."} Rien
-              n&apos;a été supprimé : vous pouvez tout consulter et tout exporter. Souscrivez ci-dessous pour reprendre la
-              saisie exactement où vous l&apos;avez laissée.
+              n&apos;a été supprimé : vous pouvez tout consulter et tout exporter.
+              {peutSouscrire && " Souscrivez ci-dessous pour reprendre la saisie exactement où vous l’avez laissée."}
             </span>
           </p>
         </div>
@@ -545,7 +553,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             regime={REGIME_TVA}
             premierPrelevement={premierPrelevement}
             ferme={ferme}
-            motifIndisponible={!souscrit && reglages.pret && nouvellesSouscriptionsFermees(garde.ventesOuvertes) ? MESSAGE_SOUSCRIPTIONS_FERMEES : motifIndisponible}
+            motifIndisponible={motifSouscription}
             conditionsAAccepter={!garde.conditionsAcceptees}
             dateLimiteRetractation={jourEnLettres(dernierJourRetractation(new Date()))}
           />

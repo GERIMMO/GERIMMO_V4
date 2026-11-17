@@ -32,8 +32,14 @@ function fenetre(page: Page) {
 
 async function ouvrirMenuComplet(page: Page) {
   const bouton = page.getByRole("button", { name: /^Menu(?:\s|$)/ });
-  if (await bouton.isVisible()) await bouton.click();
   const menu = page.locator("nav.coquille-menu:visible");
+  // La coquille arrive après le chargement initial : isVisible() seul
+  // n'attend pas son rendu et peut faire sauter le clic sur téléphone.
+  await expect(menu.or(bouton)).toBeVisible();
+  if (await bouton.isVisible()) {
+    await bouton.click();
+    await expect(bouton).toHaveAttribute("aria-expanded", "true");
+  }
   await expect(menu).toHaveCount(1);
   return menu;
 }

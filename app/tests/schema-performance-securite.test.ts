@@ -105,6 +105,7 @@ describe.skipIf(!DB_URL)("Schéma — performance et sécurité", () => {
         || '|ma_personne_espace\s*\('
         || '|ma_personne_locataire\s*\('
         || '|controler_mise_en_location\s*\('
+        || '|if\s+not\s+public\.invitation_artisan_par_proprietaire\s*\(p_org\)\s+then\s+raise\s+exception'
         || '|service_role'
         || '|current_setting\s*\('
       )

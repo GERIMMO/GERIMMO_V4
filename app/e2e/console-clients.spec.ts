@@ -95,10 +95,18 @@ test("les faits de direction se préparent manuellement avec cinq sources datée
 
 test("« Utilisateurs » ouvre les personnes et conserve les trois familles d’espaces", async ({ page }) => {
   await page.goto("/admin");
-  const menuCompact = page.getByRole("button", { name: "Menu supervision", exact: true });
-  if (await menuCompact.isVisible()) await menuCompact.click();
+  const menuCompact = page.getByRole("button", { name: /^(Menu supervision|Fermer le menu)$/ });
+  const navigation = page.getByRole("navigation", { name: "Navigation de la supervision" });
+  // Attendre la coquille avant de choisir le menu mobile ou la navigation déjà visible.
+  // Le bouton change de nom après l'ouverture ; le même contrôle reste vérifiable.
+  await expect(navigation.or(menuCompact)).toBeVisible();
+  if (await menuCompact.isVisible()) {
+    await menuCompact.click();
+    await expect(menuCompact).toHaveAttribute("aria-expanded", "true");
+  }
+  await expect(navigation).toBeVisible();
   // Annuaire individuel, puis espaces clients depuis son lien explicite.
-  await page.getByRole("navigation", { name: "Navigation de la supervision" }).getByRole("link", { name: /^Utilisateurs/ }).click();
+  await navigation.getByRole("link", { name: /^Utilisateurs/ }).click();
   await page.waitForURL(/\/admin\/clients/);
 
   await expect(page.getByRole("heading", { name: "Utilisateurs", level: 1 })).toBeVisible();

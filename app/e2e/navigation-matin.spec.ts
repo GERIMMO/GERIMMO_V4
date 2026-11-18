@@ -2,8 +2,8 @@ import { connecterSupervision } from "./session-supervision";
 import {test,expect} from '@playwright/test';
 import {sansSyntheseAlertes,entrerDansEspace} from './aides';
 
-test.beforeEach(async ({ page }) => { await connecterSupervision(page); });
 test.describe('Tour du matin de la supervision',()=>{
+ test.beforeEach(async ({ page }) => { await connecterSupervision(page); });
  test.use({storageState:'e2e/.auth/superadmin.json'});
  test.beforeEach(async({page})=>{await sansSyntheseAlertes(page);});
  test('arrive sur le bureau de direction et retrouve les destinations dans le menu mobile',async({page})=>{
@@ -78,6 +78,7 @@ test.describe('Tour du matin de la supervision',()=>{
  });
 });
 test.describe('Actualisation marketing depuis un autre fuseau horaire',()=>{
+ test.beforeEach(async ({ page }) => { await connecterSupervision(page); });
  test.use({storageState:'e2e/.auth/superadmin.json',timezoneId:'America/New_York'});
  test('affiche l’heure serveur sans erreur et actualise réellement les informations',async({page})=>{
   await sansSyntheseAlertes(page);

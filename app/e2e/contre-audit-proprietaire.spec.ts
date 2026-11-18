@@ -142,7 +142,9 @@ test("les automatismes ouvrent directement les préférences du profil", async (
 
 for (const largeur of [390, 1440]) test(`incident : décider puis consulter l’historique à ${largeur}px`, async ({ page }, info) => {
   await page.setViewportSize({ width: largeur, height: 950 });
-  await page.goto(`${base}/incidents`, { waitUntil: "networkidle" });
+  // Les préchargements de documents ne conditionnent pas la sélection du dossier.
+  await page.goto(`${base}/incidents`, { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Incidents", exact: true })).toBeVisible();
   const lienDossier = page.locator('a[href*="/incidents?sel="]').first();
   if (process.env.SUPALOCAL_DB && !await lienDossier.count()) {
     baseApiFictive(process.env.SUPALOCAL_DB);
@@ -155,7 +157,12 @@ for (const largeur of [390, 1440]) test(`incident : décider puis consulter l’
     await expect(page).not.toHaveURL(/incidents\/nouveau/);
     await page.goto(`${base}/incidents`);
   }
+  // La liste peut déjà montrer un dossier par défaut. Attendre sa sélection
+  // effective avant d’agir : sinon la réponse Next réinitialise les rubriques.
+  const destinationIncident = await lienDossier.getAttribute("href");
+  expect(destinationIncident).toMatch(/incidents\?sel=/);
   await lienDossier.click();
+  await expect(page).toHaveURL(new URL(destinationIncident!, page.url()).href);
   const dossier = page.locator('.incident-dossier');
   await expect(dossier.locator('#qualification')).toBeVisible();
   await expect(dossier.getByRole('link', { name: 'Prendre une décision', exact: true })).toHaveCount(0);
@@ -166,7 +173,9 @@ for (const largeur of [390, 1440]) test(`incident : décider puis consulter l’
   });
   expect(ordre).toBe(true);
   await expect(dossier.locator('.incident-historique')).not.toHaveAttribute('open', '');
-  await dossier.getByRole('link', { name: 'Historique', exact: true }).click();
+  const historique = dossier.getByRole('link', { name: 'Historique', exact: true });
+  await historique.click();
+  await expect(historique).toHaveAttribute('aria-current', 'page');
   await dossier.locator('.incident-historique > summary').click();
   await expect(dossier.locator('.incident-historique')).toHaveAttribute('open', '');
   expect(await debordementHorizontal(page)).toBe(0);

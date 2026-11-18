@@ -1,0 +1,11 @@
+import { createRoot } from "react-dom/client";
+import { AccueilDirigeant, type DonneesAccueil } from "../../../src/app/admin/brief/aujourdhui";
+import type { FinancialAccount } from "../../../src/lib/finances-supervision";
+import type { FaitsDirection } from "../../../src/lib/faits-direction";
+const sources:FaitsDirection["sources"]={incidents:{statut:"disponible",observe_le:"2026-11-18T10:00:00Z",donnees:{mesures:{urgents_ouverts:0},faits:[]}},interventions:{statut:"disponible",observe_le:"2026-11-18T10:00:00Z",donnees:{mesures:{},faits:[]}},loyers:{statut:"disponible",observe_le:"2026-11-18T10:00:00Z",donnees:{mesures:{},faits:[]}},echeances:{statut:"disponible",observe_le:"2026-11-18T10:00:00Z",donnees:{mesures:{alertes_critiques:0},faits:[]}},service:{statut:"disponible",observe_le:"2026-11-18T10:00:00Z",donnees:{mesures:{passages_en_echec_24h:0},faits:[]}}};
+const p:DonneesAccueil={aujourd:"2026-11-18",assistance:0,finance:{total:2,organisations:[{id:"fictif-1",name:"Élise Morel",type:"proprietaire_direct",status:"essai",stripe_statut:null,essai_fin:"2026-11-22"},{id:"fictif-2",name:"SCI des Amandiers",type:"proprietaire_direct",status:"active",stripe_statut:"active",essai_fin:null}] as FinancialAccount[]},decisions:{jour:"2026-11-18",pointPrepare:true,decisions:[],reserve:[],signaux:[],artisans:0,santeBloquants:0,tachesIllisibles:false,total:0,indisponibles:[]},faits:{id:"fictif",jour:"2026-11-18",genere_le:"2026-11-18T10:00:00Z",version_regles:1,sources,indisponibles:[]},erreurFaits:false,echecsEquipes:0};
+const etat=new URLSearchParams(location.search).get("etat");
+if(etat==="erreur"){p.finance=null;p.assistance=null;p.decisions.tachesIllisibles=true;p.decisions.indisponibles=["tâches"];p.erreurFaits=true;p.faits=null;}
+if(etat==="alertes"){p.decisions.signaux=[{cle:"alertes",titre:"Examiner les alertes critiques",detail:"2 alertes critiques ouvertes",action:"Ouvrir les alertes"}];p.decisions.total=1;}
+window.addEventListener("gerimmo:ouvrir-alertes",()=>{document.getElementById("resultat-alertes")!.textContent="Fenêtre d’alertes demandée";});
+createRoot(document.getElementById("racine")!).render(<main><p className="banc-note">Aperçu isolé — situations fictives de test</p><h1>Aujourd’hui</h1><AccueilDirigeant {...p}/><p id="resultat-alertes" role="status"/></main>);

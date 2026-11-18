@@ -1,0 +1,60 @@
+[
+  {
+    "width": 390,
+    "statut": "réussi",
+    "compteurs": {
+      "clients": "75",
+      "essais": "23",
+      "abonnements": "13",
+      "paiements": "24",
+      "assistance": "16"
+    },
+    "priorites": [
+      {
+        "href": "/admin/sante",
+        "texte": "Ouvrir la santé"
+      },
+      {
+        "href": "/admin/retours?nature=bug#retour-58d0cbd5-543b-41a3-b2ee-cb9366708dbd",
+        "texte": "Traiter le signalement"
+      },
+      {
+        "href": "/admin/retours?nature=bug#retour-d5408744-6863-4470-b823-a875a69303a7",
+        "texte": "Traiter le signalement"
+      }
+    ],
+    "details": "ouverts par ancre et clavier",
+    "navigation": "clients, finances, assistance, santé, dossiers, toutes les décisions",
+    "erreurs_js": [],
+    "debordement": 0
+  },
+  {
+    "width": 1440,
+    "statut": "réussi",
+    "compteurs": {
+      "clients": "75",
+      "essais": "23",
+      "abonnements": "13",
+      "paiements": "24",
+      "assistance": "16"
+    },
+    "priorites": [
+      {
+        "href": "/admin/sante",
+        "texte": "Ouvrir la santé"
+      },
+      {
+        "href": "/admin/retours?nature=bug#retour-58d0cbd5-543b-41a3-b2ee-cb9366708dbd",
+        "texte": "Traiter le signalement"
+      },
+      {
+        "href": "/admin/retours?nature=bug#retour-d5408744-6863-4470-b823-a875a69303a7",
+        "texte": "Traiter le signalement"
+      }
+    ],
+    "details": "ouverts par ancre et clavier",
+    "navigation": "clients, finances, assistance, santé, dossiers, toutes les décisions",
+    "erreurs_js": [],
+    "debordement": 0
+  }
+]

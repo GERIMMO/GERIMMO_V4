@@ -1,8 +1,10 @@
+import { connecterSupervision } from "./session-supervision";
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { attendreRenduStable, debordementHorizontal, sansSyntheseAlertes } from "./aides";
 
+test.beforeEach(async ({ page }) => { await connecterSupervision(page); });
 test.use({ storageState: path.join(__dirname, ".auth", "superadmin.json") });
 test("annuaire lisible, filtres cumulés et ouverture du bon compte", async ({ page }, info) => {
   await sansSyntheseAlertes(page);

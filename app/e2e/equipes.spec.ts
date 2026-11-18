@@ -11,7 +11,7 @@ test('supervision : pause et reprise des passages sans exécution du traitement'
  // Audit console 27/09 : sans CRON_SECRET, « Lancer maintenant » est masqué et expliqué, comme sur Santé.
  const sansSecret=await page.getByText('Le lancement manuel attend la connexion des traitements.',{exact:false}).isVisible();
  await expect(mission.getByRole('button',{name:'Lancer maintenant'})).toHaveCount(sansSecret?0:1);
- await expect(mission.getByText('Aucun passage enregistré dans l’historique disponible.')).toBeVisible();expect(await debordementHorizontal(page)).toBe(0);
+ await expect(mission.getByText('Aucune exécution enregistrée.')).toBeVisible();expect(await debordementHorizontal(page)).toBe(0);
 });
 test('supervision : le plan d’absence peut être enregistré sans créer de nouveaux accès',async({page})=>{
  await page.goto('/admin/relais#continuite');await page.getByText('Délai d’absence et consignes',{exact:true}).click();await page.getByLabel('Absence à signaler après combien de jours ?').fill('7');await page.getByLabel('Consignes en cas d’absence').fill('Continuer les traitements autorisés et conserver les décisions sensibles.');await page.getByRole('button',{name:'Enregistrer le plan'}).click();await expect(page.locator('#continuite').getByRole('status')).toContainText('plan de continuité est enregistré');

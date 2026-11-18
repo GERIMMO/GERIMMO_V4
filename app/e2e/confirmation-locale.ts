@@ -21,7 +21,7 @@ export async function terminerInscriptionLocale(page: Page, email: string, motDe
   await page.getByLabel("Nouveau mot de passe", { exact: true }).fill(motDePasse);
   await page.getByLabel("Confirmation", { exact: true }).fill(motDePasse);
   await page.getByRole("checkbox", { name: /accepte les conditions/ }).check();
-  await page.getByRole("button", { name: "Changer le mot de passe", exact: true }).click();
+  await page.getByRole("button", { name: /^(Créer mon espace|Choisir mon mot de passe)$/ }).click();
   // Relevé du 23/10 (PRO-5) : le premier choix après la confirmation garde la session ouverte et mène à l'espace ou à
   // l'étape suivante — plus d'écran de connexion ni de « Mot de passe modifié. Connectez-vous… ». L'appelant attend
   // ensuite sa propre destination.

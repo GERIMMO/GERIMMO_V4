@@ -63,16 +63,19 @@ for (const persona of ["proprietaire", "superadmin"]) {
           await expect(page.getByText("Consultation superadmin · lecture seule", { exact: true })).toBeVisible();
           await expect(page.locator('[role="dialog"]')).toHaveCount(0);
         }
+        await page.getByRole("tab", { name: "Location", exact: true }).click();
         const contrats = page.locator("#contrats-lot");
         await expect(contrats).toContainText("Bail signé");
         await expect(contrats.getByText("La location attend votre activation.", { exact: true })).toBeVisible();
         await expect(contrats.getByRole("link", { name: "Consulter et activer", exact: true })).toHaveAttribute("href", `/espace/${ORG}/baux/${bail}#etape-bail-7`);
-        await expect(page.getByRole("tablist")).toHaveCount(0);
+        await expect(page.getByRole("tablist", { name: "Fiche du logement" })).toHaveCount(1);
+        await page.getByRole("tab", { name: "Documents", exact: true }).click();
         const documents = page.locator("#documents-lot");
         await expect(documents).toBeVisible();
         expect(await debordementHorizontal(page)).toBe(0);
         await page.screenshot({ path: info.outputPath(`resume-${persona}.png`), fullPage: true });
         expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+        await page.getByRole("tab", { name: "Caractéristiques", exact: true }).click();
         await expect(page.getByRole("heading", { name: "Caractéristiques", exact: true })).toBeVisible();
         if (persona === "superadmin") {
           await expect(page.getByRole("link", { name: "Modifier le lot", exact: true })).toHaveCount(0);
@@ -81,6 +84,7 @@ for (const persona of ["proprietaire", "superadmin"]) {
           await expect(page.getByText("Gérer le statut du lot", {exact:true})).toHaveCount(0);
         } else await expect(page.getByRole("link", { name: "Modifier le lot", exact: true })).toBeVisible();
         await page.screenshot({ path: info.outputPath(`logement-${persona}.png`), fullPage: true });
+        await page.getByRole("tab", { name: "Documents", exact: true }).click();
         await documents.locator("summary").filter({ hasText: "Consulter les diagnostics" }).click();
         await expect(page.getByText("Expiré · à renouveler", { exact: true })).toBeVisible();
         if (persona === "superadmin") {
@@ -123,7 +127,8 @@ for (const persona of ["proprietaire", "superadmin"]) {
         await expect(archive).toContainText("Signé");
         await expect(archive).not.toContainText("à faire signer");
         await expect(page.getByRole("link").filter({ hasText: "Diagnostic expiré — essai" }).first()).toContainText("Expiré");
-        await expect(page.getByRole("link").filter({ hasText: "Pièce à vérifier — essai" }).first()).toContainText("À vérifier");
+        // Un document ordinaire sans échéance n’appelle aucune vérification ; le diagnostic expiré ci-dessus reste signalé.
+        await expect(page.getByRole("link").filter({ hasText: "Pièce à vérifier — essai" }).first()).toContainText("Disponible");
         expect(await debordementHorizontal(page)).toBe(0);
         if (persona === "superadmin") {
           await page.goto(`/espace/${ORG}/parc/${source.bien_id}`);

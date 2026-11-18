@@ -1,3 +1,4 @@
+import { connecterSupervision } from "./session-supervision";
 import { expect, test } from "@playwright/test";
 import path from "node:path";
 import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
@@ -55,6 +56,7 @@ test.describe("Couverture du réseau, côté supervision", () => {
   test.use({ storageState: path.join(__dirname, ".auth", "superadmin.json") });
   test("la couverture se lit commune par commune, sans aucune décision d’ouverture ni de rattachement", async ({ page }) => {
     await sansSyntheseAlertes(page);
+    await connecterSupervision(page);
     await page.goto("/admin/couverture?departement=91&metier=electricite");
     await expect(page.getByRole("heading", { name: "Réseau d’artisans", exact: true })).toBeVisible();
     await expect(page.getByRole("main").getByText(/Aucune ouverture n’est à décider/)).toBeVisible();

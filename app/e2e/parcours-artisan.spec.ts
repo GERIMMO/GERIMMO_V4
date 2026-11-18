@@ -102,6 +102,7 @@ test("le registre privé se télécharge seulement au clic, depuis la facturatio
     demandesExport.length = 0;
     telechargements.length = 0;
     await page.goto(chemin);
+    if (chemin === "/artisan/facturation") await page.getByRole("tab", { name: "Mon registre", exact: true }).click();
     const lien = page.getByRole("link", { name: /Exporter mon registre/ });
     await expect(lien).toBeVisible();
     await lien.hover();

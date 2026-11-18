@@ -1,3 +1,4 @@
+import { ouvrirSuiviLoyers } from "./aides";
 import { baseApiFictive } from './local/base-api-fictive';
 import { test, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
@@ -5,17 +6,8 @@ import { randomUUID } from "node:crypto";
 import { connecterVers, sansSyntheseAlertes, debordementHorizontal } from "./aides";
 
 
-const demandes = (page: Page) => page.getByRole("region", { name: "Votre patrimoine en bref" })
-  .getByRole("button", { name: /^(?:\d+ actions? prioritaires?|\d+ loyers? à confirmer|À vérifier) / });
-const fenetreDemandes = (page: Page) => page.getByRole("dialog", { name: /^(?:À traiter en priorité|Loyers à confirmer|À vérifier)$/ });
-async function ouvrirDemandes(page: Page, facultatif = false) {
-  // L'absence d'un rappel doit être contrôlée dans la fenêtre si d'autres demandes
-  // existent, pas simplement dans une fenêtre encore fermée après le rechargement.
-  await expect(page.getByRole("region", { name: "Votre patrimoine en bref" })).toBeVisible();
-  const bouton = demandes(page);
-  if (facultatif && await bouton.count() === 0) return;
-  await bouton.click();
-  await expect(fenetreDemandes(page)).toBeVisible();
+async function ouvrirDemandes(page: Page) {
+  await ouvrirSuiviLoyers(page);
 }
 for (const sci of [false,true]) test(`propriétaire : loyer confirmé et dépôt de facture conservé (${sci?'SCI':'nom propre'})`,async({page,browser},info)=>{
  const largeur=info.project.use.viewport?.width??1440;
@@ -85,7 +77,8 @@ for (const sci of [false,true]) test(`propriétaire : loyer confirmé et dépôt
     const justificatif=await page.request.get(`/espace/${ORG}/documents/${facture.document_id}/fichier`);
     expect(justificatif.status()).toBe(200);
     await page.goto(`/espace/${ORG}/loyers`);
-    const detail=page.locator("details").filter({has:page.locator("summary").filter({hasText:"Détail par propriétaire et SCI"})}).first();
+    await page.getByRole("link", {name:"Bilan de l’année",exact:true}).click();
+    const detail=page.locator("details").filter({has:page.locator("summary").filter({hasText:"Détail par propriétaire et SCI"})}).last();
     await detail.locator("summary").first().click();
     const compteDu=(nom:string)=>detail.locator("details").filter({has:page.locator("summary").filter({hasText:nom})});
     const principal=compteDu(sci?"SCI des Amandiers":"Exemple");
@@ -101,7 +94,8 @@ for (const sci of [false,true]) test(`propriétaire : loyer confirmé et dépôt
       // Le règlement de la facture (31 octobre) précède la détention établie.
       await db.query("update detentions set date_debut='2026-11-01' where lot_id=$1 and person_id=$2", [lot, bailleur]);
       await page.goto(`/espace/${ORG}/loyers?annee=2026&entite=${bailleur}`);
-      const operations = page.getByRole("region", { name: "Recettes et dépenses" });
+      await page.getByRole("link", {name:"Bilan de l’année",exact:true}).click();
+      const operations = page.getByRole("region", { name: "Bilan de l’année" });
       const depenses = operations.getByText("Dépenses", { exact: true }).locator("..");
       await expect(depenses).toContainText("0,00");
       const aRattacher = operations.getByRole("region", { name: /opération.*à rattacher/ });
@@ -143,11 +137,11 @@ test("une échéance de 640 € après cession apparaît uniquement chez le titu
       return section;
     }
     const ancienne=await ouvrir(part);
-    await expect(ancienne.locator("dl")).toContainText(/Demandé\s*0,00/);
-    await expect(ancienne.getByText(/Gérer les .*loyers/)).toHaveCount(0);
+    await expect(ancienne.locator("dl")).toContainText(/Attendu\s*0,00/);
+    await expect(ancienne.locator("summary").filter({hasText:/^Voir les? loyers? de/})).toHaveCount(0);
     const actuelle=await ouvrir(sci);
-    await expect(actuelle.locator("dl")).toContainText(/Demandé\s*640,00/);
-    await expect(actuelle.locator("dl")).toContainText(/Reste dû\s*640,00/);
+    await expect(actuelle.locator("dl")).toContainText(/Attendu\s*640,00/);
+    await expect(actuelle.locator("dl")).toContainText(/Restant dû\s*640,00/);
     expect((await db.query("select count(*)::int n from encaissements where bail_id=$1",[bail])).rows[0].n).toBe(0);
   } finally { await db.end(); }
 });

@@ -11,7 +11,7 @@ const ORG = "3c1d1e95-3570-400b-8012-44530be145b1";
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 const region = (page: Page) => page.getByRole("region", { name: "Votre patrimoine en bref" });
 // Le bouton de la carte est nommé par son texte visible : actions prioritaires, loyers à confirmer ou « À vérifier ».
-const carte = (page: Page) => region(page).getByRole("button", { name: /^(?:\d+ actions? prioritaires?|\d+ loyers? à confirmer|À vérifier) / });
+const carte = (page: Page) => page.locator("details").filter({ has: page.locator("#suivi-prioritaire") }).locator(":scope > summary");
 
 for (const largeur of [390, 1440]) test(`impayé de deux mois à ${largeur}px : total sur la ligne, alerte fermée à la réception complète`, async ({ page }, info) => {
   test.setTimeout(180000);
@@ -46,11 +46,11 @@ for (const largeur of [390, 1440]) test(`impayé de deux mois à ${largeur}px : 
 
     await page.reload();
     // TRV-06 : la même carte, devenue bouton « loyers à confirmer », garde son texte visible pour nom accessible.
-    await expect(carte(page)).toHaveAttribute("aria-haspopup", "dialog");
+    await expect(carte(page).locator("..")).not.toHaveAttribute("open", "");
     await expect(carte(page)).toHaveAccessibleName((await carte(page).innerText()).replace(/\s+/g, " ").trim());
     expect((await new AxeBuilder({ page }).include('[aria-label="Votre patrimoine en bref"]').withTags(TAGS).analyze()).violations).toEqual([]);
     await carte(page).click();
-    const fenetre = page.getByRole("dialog"); await expect(fenetre).toBeVisible();
+    const fenetre = page.locator("#suivi-prioritaire"); await expect(fenetre).toBeVisible();
     const lignes = fenetre.locator("li").filter({ hasText: nom });
     const ligne = lignes.and(fenetre.locator('li:not([data-reception="regle"])'));
     await expect(ligne).toContainText("Prioritaire");

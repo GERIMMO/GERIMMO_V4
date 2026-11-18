@@ -1,0 +1,114 @@
+{
+  "base": "235b5ed71b270d591f2f56d3606af97078847016",
+  "branche": "codex/ux-accueil-proprietaire-20261118",
+  "tests": {
+    "reussis": 193,
+    "echoues": 0,
+    "ignores": 0,
+    "suites": 10
+  },
+  "typescript": {
+    "exitCode": 0
+  },
+  "eslint": {
+    "exitCode": 0
+  },
+  "captures": 24,
+  "comparaisons": [
+    {
+      "profil": "particulier",
+      "ecran": "abonnement",
+      "largeur": 390,
+      "montantsPresentsIdentiques": true,
+      "debordement": 0
+    },
+    {
+      "profil": "particulier",
+      "ecran": "fiscal-2025",
+      "largeur": 390,
+      "montantsPresentsIdentiques": true,
+      "debordement": 0
+    },
+    {
+      "profil": "particulier",
+      "ecran": "fiscal-2026",
+      "largeur": 390,
+      "montantsPresentsIdentiques": true,
+      "debordement": 0
+    },
+    {
+      "profil": "particulier",
+      "ecran": "abonnement",
+      "largeur": 1440,
+      "montantsPresentsIdentiques": true,
+      "debordement": 0
+    },
+    {
+      "profil": "particulier",
+      "ecran": "fiscal-2025",
+      "largeur": 1440,
+      "montantsPresentsIdentiques": true,
+      "debordement": 0
+    },
+    {
+      "profil": "particulier",
+      "ecran": "fiscal-2026",
+      "largeur": 1440,
+      "montantsPresentsIdentiques": true,
+      "debordement": 0
+    },
+    {
+      "profil": "sci",
+      "ecran": "abonnement",
+      "largeur": 390,
+      "montantsPresentsIdentiques": true,
+      "debordement": 0
+    },
+    {
+      "profil": "sci",
+      "ecran": "fiscal-2025",
+      "largeur": 390,
+      "montantsPresentsIdentiques": true,
+      "debordement": 0
+    },
+    {
+      "profil": "sci",
+      "ecran": "fiscal-2026",
+      "largeur": 390,
+      "montantsPresentsIdentiques": true,
+      "debordement": 0
+    },
+    {
+      "profil": "sci",
+      "ecran": "abonnement",
+      "largeur": 1440,
+      "montantsPresentsIdentiques": true,
+      "debordement": 0
+    },
+    {
+      "profil": "sci",
+      "ecran": "fiscal-2025",
+      "largeur": 1440,
+      "montantsPresentsIdentiques": true,
+      "debordement": 0
+    },
+    {
+      "profil": "sci",
+      "ecran": "fiscal-2026",
+      "largeur": 1440,
+      "montantsPresentsIdentiques": true,
+      "debordement": 0
+    }
+  ],
+  "navigateurs": {
+    "moteur": "Chromium",
+    "largeurs": [
+      390,
+      1440
+    ],
+    "mobileReel": false
+  },
+  "prixCalculsActionsServeurDroitsMigrationsModifies": false,
+  "publication": false,
+  "push": false
+}

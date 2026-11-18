@@ -1,0 +1,9 @@
+     × revenus 2025 : année de déclaration distincte, filtre inchangé 7ms
+     × revenus 2026 : année de déclaration distincte, filtre inchangé 6ms
+     × revenus 2027 : année de déclaration distincte, filtre inchangé 4ms
+     × SCI : années explicites, préparation seule et pas de faux résultat 2044 3ms
+     × essai ouvert = true : tarif informatif, sans commande ni prolongation inventée 10ms
+     × essai ouvert = false : tarif informatif, sans commande ni prolongation inventée 6ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  2 failed (2)
+      Tests  6 failed | 37 passed (43)

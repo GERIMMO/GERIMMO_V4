@@ -1,0 +1,66 @@
+[
+  {
+    "profil": "particulier",
+    "width": 390,
+    "resultat": "réussi",
+    "controles": [
+      "absence de paiement disponible",
+      "détails signature ouvrables et repliables",
+      "revenus 2025 / déclaration 2026",
+      "filtre 2026 et déclaration 2027",
+      "lien export conserve année des revenus",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ],
+    "aucuneEcriture": true
+  },
+  {
+    "profil": "particulier",
+    "width": 1440,
+    "resultat": "réussi",
+    "controles": [
+      "absence de paiement disponible",
+      "détails signature ouvrables et repliables",
+      "revenus 2025 / déclaration 2026",
+      "filtre 2026 et déclaration 2027",
+      "lien export conserve année des revenus",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ],
+    "aucuneEcriture": true
+  },
+  {
+    "profil": "sci",
+    "width": 390,
+    "resultat": "réussi",
+    "controles": [
+      "absence de paiement disponible",
+      "détails signature ouvrables et repliables",
+      "conditions accessibles dans nouvel onglet",
+      "contact assistance fonctionnel",
+      "revenus 2025 / déclaration 2026",
+      "filtre 2026 et déclaration 2027",
+      "lien export conserve année des revenus",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ],
+    "aucuneEcriture": true
+  },
+  {
+    "profil": "sci",
+    "width": 1440,
+    "resultat": "réussi",
+    "controles": [
+      "absence de paiement disponible",
+      "détails signature ouvrables et repliables",
+      "conditions accessibles dans nouvel onglet",
+      "contact assistance fonctionnel",
+      "revenus 2025 / déclaration 2026",
+      "filtre 2026 et déclaration 2027",
+      "lien export conserve année des revenus",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ],
+    "aucuneEcriture": true
+  }
+]

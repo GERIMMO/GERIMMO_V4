@@ -1,0 +1,102 @@
+[
+  {
+    "profil": "particulier",
+    "ecran": "abonnement",
+    "width": 390,
+    "url": "http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/abonnement",
+    "montants": [
+      "177,00 €"
+    ],
+    "debordement": 0
+  },
+  {
+    "profil": "particulier",
+    "ecran": "fiscal-2025",
+    "width": 390,
+    "url": "http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/comptabilite/fiscal?annee=2025",
+    "montants": null,
+    "debordement": 0
+  },
+  {
+    "profil": "particulier",
+    "ecran": "fiscal-2026",
+    "width": 390,
+    "url": "http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/comptabilite/fiscal?annee=2026",
+    "montants": null,
+    "debordement": 0
+  },
+  {
+    "profil": "particulier",
+    "ecran": "abonnement",
+    "width": 1440,
+    "url": "http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/abonnement",
+    "montants": [
+      "177,00 €"
+    ],
+    "debordement": 0
+  },
+  {
+    "profil": "particulier",
+    "ecran": "fiscal-2025",
+    "width": 1440,
+    "url": "http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/comptabilite/fiscal?annee=2025",
+    "montants": null,
+    "debordement": 0
+  },
+  {
+    "profil": "particulier",
+    "ecran": "fiscal-2026",
+    "width": 1440,
+    "url": "http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/comptabilite/fiscal?annee=2026",
+    "montants": null,
+    "debordement": 0
+  },
+  {
+    "profil": "sci",
+    "ecran": "abonnement",
+    "width": 390,
+    "url": "http://localhost:3100/espace/cb6fe9f4-7bde-427a-b386-7ebfa656d331/abonnement",
+    "montants": null,
+    "debordement": 0
+  },
+  {
+    "profil": "sci",
+    "ecran": "fiscal-2025",
+    "width": 390,
+    "url": "http://localhost:3100/espace/cb6fe9f4-7bde-427a-b386-7ebfa656d331/comptabilite/fiscal?annee=2025",
+    "montants": null,
+    "debordement": 0
+  },
+  {
+    "profil": "sci",
+    "ecran": "fiscal-2026",
+    "width": 390,
+    "url": "http://localhost:3100/espace/cb6fe9f4-7bde-427a-b386-7ebfa656d331/comptabilite/fiscal?annee=2026",
+    "montants": null,
+    "debordement": 0
+  },
+  {
+    "profil": "sci",
+    "ecran": "abonnement",
+    "width": 1440,
+    "url": "http://localhost:3100/espace/cb6fe9f4-7bde-427a-b386-7ebfa656d331/abonnement",
+    "montants": null,
+    "debordement": 0
+  },
+  {
+    "profil": "sci",
+    "ecran": "fiscal-2025",
+    "width": 1440,
+    "url": "http://localhost:3100/espace/cb6fe9f4-7bde-427a-b386-7ebfa656d331/comptabilite/fiscal?annee=2025",
+    "montants": null,
+    "debordement": 0
+  },
+  {
+    "profil": "sci",
+    "ecran": "fiscal-2026",
+    "width": 1440,
+    "url": "http://localhost:3100/espace/cb6fe9f4-7bde-427a-b386-7ebfa656d331/comptabilite/fiscal?annee=2026",
+    "montants": null,
+    "debordement": 0
+  }
+]

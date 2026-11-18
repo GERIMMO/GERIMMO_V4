@@ -1,0 +1,112 @@
+[
+  {
+    "profil": "liste",
+    "width": 390,
+    "url": "http://localhost:3100/admin",
+    "montants": [
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "10,00 €"
+    ],
+    "debordement": 0
+  },
+  {
+    "profil": "essai",
+    "width": 390,
+    "url": "http://localhost:3100/admin/organisations/e5796289-d257-4bdb-8a84-f358f2345a5d",
+    "montants": null,
+    "debordement": 0
+  },
+  {
+    "profil": "actif",
+    "width": 390,
+    "url": "http://localhost:3100/admin/organisations/2f6978dd-5b1f-44ad-9830-9e4605e21092",
+    "montants": [
+      "5,99 €"
+    ],
+    "debordement": 0
+  },
+  {
+    "profil": "impaye",
+    "width": 390,
+    "url": "http://localhost:3100/admin/organisations/07e59bc1-29f5-440f-93dc-f90b09c51b69",
+    "montants": [
+      "5,99 €"
+    ],
+    "debordement": 0
+  },
+  {
+    "profil": "resilie",
+    "width": 390,
+    "url": "http://localhost:3100/admin/organisations/0779f35b-b9f9-4298-b113-5f719580c79c",
+    "montants": [
+      "5,99 €"
+    ],
+    "debordement": 0
+  },
+  {
+    "profil": "liste",
+    "width": 1440,
+    "url": "http://localhost:3100/admin",
+    "montants": [
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "5,99 €",
+      "10,00 €"
+    ],
+    "debordement": 0
+  },
+  {
+    "profil": "essai",
+    "width": 1440,
+    "url": "http://localhost:3100/admin/organisations/e5796289-d257-4bdb-8a84-f358f2345a5d",
+    "montants": null,
+    "debordement": 0
+  },
+  {
+    "profil": "actif",
+    "width": 1440,
+    "url": "http://localhost:3100/admin/organisations/2f6978dd-5b1f-44ad-9830-9e4605e21092",
+    "montants": [
+      "5,99 €"
+    ],
+    "debordement": 0
+  },
+  {
+    "profil": "impaye",
+    "width": 1440,
+    "url": "http://localhost:3100/admin/organisations/07e59bc1-29f5-440f-93dc-f90b09c51b69",
+    "montants": [
+      "5,99 €"
+    ],
+    "debordement": 0
+  },
+  {
+    "profil": "resilie",
+    "width": 1440,
+    "url": "http://localhost:3100/admin/organisations/0779f35b-b9f9-4298-b113-5f719580c79c",
+    "montants": [
+      "5,99 €"
+    ],
+    "debordement": 0
+  }
+]

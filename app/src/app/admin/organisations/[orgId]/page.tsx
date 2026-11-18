@@ -1,3 +1,4 @@
+import { ResumeAbonnementClient } from "../../presentation-abonnement";
 import { FacturesAbonnement, ProcedureFacturation } from "./factures-abonnement";
 import { REGIME_TVA } from "@/lib/editeur";
 import { ConsoleSection } from "@/components/console-section";
@@ -194,6 +195,13 @@ export default async function PageAdminOrganisation(
         </div>
       </div>
 
+      <ResumeAbonnementClient situation={{ status: organisation.status, essai_fin: organisation.essai_fin ?? null,
+        stripe_statut: abo?.stripe_statut ?? null, formule: abo?.formule ?? null, periodicite: abo?.periodicite ?? null,
+        montant_periode_cents: abo?.montant_periode_cents ?? null, periode_fin: abo?.periode_fin ?? null,
+        annulation_demandee: abo?.annulation_demandee ?? false, paiement_en_defaut_depuis: abo?.paiement_en_defaut_depuis ?? null }}
+        erreur={Boolean(supervisionAbonnement.error) || !abo} taxe={mentionTaxe}
+        facturesHref={abo?.stripe_statut ? `/admin/organisations/${orgId}?factures=1#historique-factures` : undefined} />
+
       {ouverte && (
         echecMail ? (
           <div role="alert" className="mb-6 border border-[var(--warning)] bg-[var(--warning-soft)] p-3.5 text-[13px] text-[var(--warning-soft-foreground)]">
@@ -214,7 +222,7 @@ export default async function PageAdminOrganisation(
         {/* RM-A1.11 */} — y compris l&apos;ouverture de cette fiche.
       </p>
 
-      <ConsoleSection titre="Identité de l’organisation" description="Coordonnées et informations principales." icone="personnes" ouverte>
+      <ConsoleSection titre="Identité de l’organisation" description="Coordonnées et informations principales." icone="personnes">
         <div className="entete-carte">
 
           <Link href={`${base}/profil`} className="lien-discret text-[12.5px]">
@@ -230,8 +238,12 @@ export default async function PageAdminOrganisation(
         {supervisionAbonnement.error && <LectureIndisponible sujet="Abonnement et facturation" retour={`/admin/organisations/${orgId}`} />}
         <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
           {renseignes.map(([libelle, valeur]) => <Info key={libelle} libelle={libelle}>{valeur}</Info>)}
-          {/* La ligne ne sert que pour un essai (24/09) : ailleurs, elle
-              répétait la puce de l'en-tête, au féminin sur « abonnement ». */}
+
+        </dl>
+      </ConsoleSection>
+
+      <ConsoleSection titre="Détails de l’abonnement" description="Contrat, données techniques et vérification des courriers." icone="reglages">
+        <dl className="grid gap-4 sm:grid-cols-2">
           {organisation.status === "essai" && organisation.essai_fin && (
             <Info libelle="Abonnement">
               Essai jusqu&apos;au {formaterDate(organisation.essai_fin)}
@@ -275,16 +287,17 @@ export default async function PageAdminOrganisation(
             </>
           )}
         </dl>
+        {abo && <GesteControle action={reprendreConfirmationClient.bind(null, orgId)}
+          titre="Vérifier la confirmation de souscription" bouton="Vérifier et reprendre"
+          confirmation="Je demande la vérification du contrat et la reprise du courrier si son envoi est autorisé." />}
       </ConsoleSection>
 
-      {abo?.stripe_statut && <div id="historique-factures"><ConsoleSection titre="Historique de facturation" description="Factures rattachées au contrat de cette organisation." icone="documents" ton="bleu" ouverte>
+      {abo?.stripe_statut && <div id="historique-factures"><ConsoleSection titre="Historique de facturation" description="Factures rattachées au contrat de cette organisation." icone="documents" ton="bleu" ouverte={recherche.factures === "1"}>
         {recherche.factures === "1" ? <FacturesAbonnement organisation={orgId} /> :
           <Link href={`/admin/organisations/${orgId}?factures=1#historique-factures`} prefetch={false} className="btn-secondaire">Consulter les dernières factures</Link>}
         <ProcedureFacturation organisation={orgId} />
       </ConsoleSection></div>}
-      {abo && <GesteControle action={reprendreConfirmationClient.bind(null,orgId)}
-        titre="Vérifier la confirmation de souscription" bouton="Vérifier et reprendre"
-        confirmation="Je demande la vérification du contrat et la reprise du courrier si son envoi est autorisé." />}
+
       {(lots.error || baux.error || personnes.error || parrainages.error) && <LectureIndisponible sujet="Parc ou parrainage" retour={`/admin/organisations/${orgId}`} />}
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <ConsoleSection titre="Parc immobilier" description="Biens et lots de cette organisation." icone="documents" ton="vert" ouverte>

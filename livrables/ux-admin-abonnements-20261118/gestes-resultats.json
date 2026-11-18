@@ -1,0 +1,98 @@
+[
+  {
+    "profil": "essai",
+    "width": 390,
+    "statut": "réussi",
+    "montantCents": null,
+    "details": true,
+    "lienFactures": false,
+    "actionRepriseVisibleNonExecutee": true
+  },
+  {
+    "profil": "actif",
+    "width": 390,
+    "statut": "réussi",
+    "montantCents": 599,
+    "details": true,
+    "lienFactures": true,
+    "actionRepriseVisibleNonExecutee": true
+  },
+  {
+    "profil": "impaye",
+    "width": 390,
+    "statut": "réussi",
+    "montantCents": 599,
+    "details": true,
+    "lienFactures": true,
+    "actionRepriseVisibleNonExecutee": true
+  },
+  {
+    "profil": "resilie",
+    "width": 390,
+    "statut": "réussi",
+    "montantCents": 599,
+    "details": true,
+    "lienFactures": true,
+    "actionRepriseVisibleNonExecutee": true
+  },
+  {
+    "width": 390,
+    "filtres": "13 actifs, 24 paiements à suivre ; pagination 20 + 4 ; réinitialisation",
+    "accueilPreserve": true,
+    "erreursJavaScript": []
+  },
+  {
+    "profil": "essai",
+    "width": 1440,
+    "statut": "réussi",
+    "montantCents": null,
+    "details": true,
+    "lienFactures": false,
+    "actionRepriseVisibleNonExecutee": true
+  },
+  {
+    "profil": "actif",
+    "width": 1440,
+    "statut": "réussi",
+    "montantCents": 599,
+    "details": true,
+    "lienFactures": true,
+    "actionRepriseVisibleNonExecutee": true
+  },
+  {
+    "profil": "impaye",
+    "width": 1440,
+    "statut": "réussi",
+    "montantCents": 599,
+    "details": true,
+    "lienFactures": true,
+    "actionRepriseVisibleNonExecutee": true
+  },
+  {
+    "profil": "resilie",
+    "width": 1440,
+    "statut": "réussi",
+    "montantCents": 599,
+    "details": true,
+    "lienFactures": true,
+    "actionRepriseVisibleNonExecutee": true
+  },
+  {
+    "width": 1440,
+    "filtres": "13 actifs, 24 paiements à suivre ; pagination 20 + 4 ; réinitialisation",
+    "accueilPreserve": true,
+    "erreursJavaScript": []
+  },
+  {
+    "anonyme": true,
+    "route": "/admin",
+    "resultat": "refusé",
+    "destination": "/connexion"
+  },
+  {
+    "anonyme": true,
+    "route": "/admin/organisations/2f6978dd-5b1f-44ad-9830-9e4605e21092",
+    "resultat": "refusé",
+    "destination": "/connexion"
+  }
+]

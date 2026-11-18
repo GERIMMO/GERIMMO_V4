@@ -4,17 +4,21 @@ Base du travail : `6234b3b037665e2670e63bca20c233e6f080500b`, branche `codex/ux-
 CI examinée : https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44395490692 (233 réussites, 49 échecs Playwright).
 Un seul agent. Créneau autorisé 21:48:42–22:18:42 UTC. Aucune fusion, migration en production, publication, ouverture des ventes ou envoi réel.
 
-## Résultat borné
+## Résultat de la finalisation
 
-46 des 49 scénarios initialement en échec ont un rejeu local réussi ; 3 restent non résolus. Les rejeux intermédiaires ne sont pas additionnés.
-Une consultation propriétaire supplémentaire partageant le titre du test superadmin a réussi ; elle est exclue de ce décompte.
-CI complète non lancée : les prérequis locaux demandés ne sont pas tous satisfaits. Aucun push pour ne pas déclencher cette CI prématurément. PR à conserver en brouillon, verdict NO GO publication.
+Les 46 corrections du commit `1c4a169be7349d6e7326bee645ee75f9cbe1fcca` sont conservées. Les trois derniers scénarios d’abonnement sont corrigés sans changer l’application : tarifs informatifs dans l’état fermé, conditions/contact accessibles, aucune commande proposée.
+Les 11 scénarios de `abonnement.spec.ts` passent (plus le setup des sessions). Les prix sont vérifiés sur le seed à deux biens : 7,98 € / mois et 79,80 € / an. Une copie locale propre `gerimmo_ci_ux_subscription_api` remplace, pour ce seul rejeu, le banc enrichi par les essais précédents (14 biens).
+
+Le précédent départ artificiel par `page.evaluate(window.location.assign)` est remplacé par deux tests navigateur obligatoires, mensuel et annuel, dans `tests/souscription-formulaire-navigateur.test.ts`. Ils montent le **vrai composant**, ses calculs et sa protection de saisie ; seule la frontière serveur/prestataire est simulée. Clic réel, acceptation des conditions, confirmation obligatoire du montant, commande unique (798 / 7980 centimes), page de paiement fictive atteinte, aucune boîte de sortie. Ces tests ne prétendent pas être un nouveau paiement Stripe TEST hébergé.
+
+Validation : **69 tests réussis, 0 échec, 0 ignoré** dans les trois fichiers formulaire navigateur, souscription/hausse Stripe et gardes de souscription. Les 67 contrôles serveur conservent les refus contractuels, l’unicité et les reprises. TypeScript et ESLint ciblé réussis. Journaux `abonnement-propre.log`, `validation-souscription.log`, `typescript-abonnement.log` dans le dossier de preuves local.
+La CI complète doit confirmer le nouveau SHA après push ; aucun résultat à venir n’est présenté comme acquis.
 
 ## Causes communes (49 échecs couverts par la classification)
 
 | Famille | Nombre | Cause observée / correction |
 |---|---:|---|
-| Abonnement | 3 | Formulaire mensuel/annuel recherché alors que la fermeture des ventes affiche des tarifs informatifs. Tests conservés, non déclarés réussis. |
+| Abonnement | 3 | Formulaire mensuel/annuel recherché alors que la fermeture des ventes affiche des tarifs informatifs. Assertions de tarifs fermés corrigées ; clics mensuel/annuel éprouvés sur le vrai composant avec fournisseur fictif. |
 | Réception des loyers et impayés | 6 | Ancienne modale remplacée par un détail natif. Gestes, repli/réouverture, saisie conservée, paliers, quittance et montants contrôlés. |
 | Artisan | 4 | Registre et devis dans des rubriques, informations validées repliées, nouvelles étiquettes de créneaux ; navigation adaptée, assertions PDF et financières maintenues. |
 | Dossiers logement / incident | 19 | Sections désormais dans des onglets, ancres et liens ; distinction « Disponible » / vraie action requise. Contrôles de lecture seule, documents, métrologie, accès clavier conservés. |
@@ -30,19 +34,17 @@ Build réussi. ESLint ciblé : voir `eslint-final.log`. TypeScript : premier pro
 Traces CI originales dans `output/ci-345-navigateurs-20261118/traces`. Journaux et traces locales conservés dans le même dossier de preuves (sous-dossiers résultats).
 Aucun test supprimé, ignoré ou délai augmenté. Aucune modification du code applicatif, de calcul, de droit ou de migration.
 
-## Reprise minimale nécessaire
+## Suite autorisée
 
-- Abonnement : préparer un scénario isolé de souscription réellement autorisée pour vérifier le formulaire et sa sortie ; garder aussi les assertions de prix dans l’état fermé. Ne pas ouvrir les ventes pour satisfaire les tests. L’ancien scénario `window.location.assign()` ne prouve pas un clic de souscription et n’a pas été déclaré valide.
-- Pour tout autre résultat non résolu ci-dessous, consulter la dernière trace indiquée avant de changer le code ; les parcours qui ont réussi ne sont pas à recommencer sans modification pertinente.
-- Une seule CI complète, sur le futur SHA exact, seulement après résolution locale de tous les scénarios restants.
+Une seule CI complète après push de ce candidat ; PR en brouillon jusqu’à sa réussite. Aucun merge, migration de production, déploiement ni ouverture des ventes. Aucun fichier applicatif ou SQL modifié par cette finalisation.
 
 ## Dernier résultat par scénario initial
 
 | Fichier / scénario | Dernier résultat | Preuve |
 |---|---|---|
-| `abonnement.spec.ts` — en annuel, le montant prélevé en une fois est affiché | Non résolu | `CI44395490692` |
-| `abonnement.spec.ts` — les deux lots de démonstration coûtent 7,98 € sur l’abonnement unique | Non résolu | `CI44395490692` |
-| `abonnement.spec.ts` — quitter le formulaire annuel vers un paiement simulé ne demande pas de confirmer la sortie | Non résolu | `CI44395490692` |
+| `abonnement.spec.ts` — en annuel, le montant prélevé en une fois est affiché | Réussi (état fermé + formulaire TEST) | `abonnement-propre.log`, `validation-souscription.log` |
+| `abonnement.spec.ts` — les deux lots de démonstration coûtent 7,98 € sur l’abonnement unique | Réussi (état fermé + formulaire TEST) | `abonnement-propre.log`, `validation-souscription.log` |
+| `abonnement.spec.ts` — quitter le formulaire annuel vers un paiement simulé ne demande pas de confirmer la sortie | Réussi (état fermé + formulaire TEST) | `abonnement-propre.log`, `validation-souscription.log` |
 | `alerte-impaye-proprietaire.spec.ts` — impayé de deux mois à 1440px : total sur la ligne, alerte fermée à la réception complète | Réussi | `replay.log` |
 | `alerte-impaye-proprietaire.spec.ts` — impayé de deux mois à 390px : total sur la ligne, alerte fermée à la réception complète | Réussi | `replay.log` |
 | `artisan-fin-mission.spec.ts` — devis privé : compléter son identité puis reprendre sans ressaisir ni altérer la version validée | Réussi | `replay-final.log` |

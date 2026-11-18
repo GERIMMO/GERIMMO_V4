@@ -1,0 +1,18 @@
+[
+  {
+    "base": "gerimmo_ci_ux_consolidation_20261118_api",
+    "definitionExacte": true,
+    "permissionsInchangees": true,
+    "comptesEtOrganisationsInchanges": true,
+    "rejeuInattenduRefuse": true,
+    "postgres": "17.6"
+  },
+  {
+    "base": "gerimmo_ci_ux_consolidation_20261118_sql",
+    "definitionExacte": true,
+    "permissionsInchangees": true,
+    "comptesEtOrganisationsInchanges": true,
+    "rejeuInattenduRefuse": true,
+    "postgres": "17.6"
+  }
+]

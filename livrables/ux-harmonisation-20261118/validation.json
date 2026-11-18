@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-18",
+  "base": "d2bffd4f140353348e104f7d9813e8e16f2f478f",
+  "branche": "codex/ux-accueil-proprietaire-20261118",
+  "testsDistinctsReussis": 39,
+  "testsEchouesFinaux": 0,
+  "testsHorsSelectionNonExecutes": 41,
+  "gestesComposantsReussis": 14,
+  "largeurs": [
+    390,
+    1440
+  ],
+  "captures": 24,
+  "typeScript": "réussi, mémoire locale 6144 Mo",
+  "eslint": "réussi",
+  "aucuneConnexionProduction": true,
+  "aucunPaiementOuEnvoi": true,
+  "nouvelleRecetteComplete": false
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { ChevronDown } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { signalerErreurEcran } from "@/app/actions/erreurs";
 
@@ -27,19 +28,22 @@ export default function Erreur({
   return (
     <main className="mx-auto w-full max-w-xl p-6 sm:p-10">
       <div className="vide-guide">
-        <p className="titre">Cette page n&apos;a pas pu s&apos;afficher</p>
+        <h1 className="titre">Cette page n&apos;a pas pu s&apos;afficher</h1>
         <p className="explication">
-          L&apos;incident est noté — la page, pas vos données. Vous pouvez
-          réessayer ; si cela se reproduit, signalez-le depuis « Aide et
-          retours » en indiquant la référence ci-dessous.
+          Réessayez dans un instant. Si le problème persiste, contactez
+          l&apos;assistance.
         </p>
-        <div className="geste">
-          <button type="button" onClick={reset} className="btn-or">
+        <div className="geste flex flex-wrap justify-center gap-3">
+          <button type="button" onClick={reset} className="btn-secondaire" style={{ background: "var(--marque)", color: "var(--sur-marque)", minHeight: 44 }}>
             Réessayer
           </button>
+          <a href="/assistance" className="btn-secondaire inline-flex min-h-11 items-center">Contacter l’assistance</a>
         </div>
         {error.digest && (
-          <p className="mono-discret sans-majuscules mt-3">réf. {error.digest}</p>
+          <details className="group mt-4 text-left text-sm">
+            <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3">Référence pour l’assistance<ChevronDown size={16} aria-hidden="true" className="shrink-0 group-open:rotate-180" /></summary>
+            <p className="mono-discret sans-majuscules break-all py-2">{error.digest}</p>
+          </details>
         )}
       </div>
     </main>

@@ -14,13 +14,14 @@
 export default function ChargementArtisan() {
   return (
     <div className="space-y-4" role="status" aria-busy="true" aria-label="Chargement de la page">
+      <p className="text-sm text-muted-foreground">Chargement de la page…</p>
       <div>
-        <div className="squelette h-3.5 w-40" />
-        <div className="squelette mt-2.5 h-8 w-60" />
+        <div aria-hidden="true" className="squelette h-3.5 w-40" />
+        <div aria-hidden="true" className="squelette mt-2.5 h-8 w-60" />
       </div>
-      <div className="squelette h-24 w-full !rounded-[14px]" />
-      <div className="squelette h-[132px] w-full !rounded-[14px]" />
-      <div className="squelette h-[132px] w-full !rounded-[14px]" />
+      <div aria-hidden="true" className="squelette h-24 w-full !rounded-[14px]" />
+      <div aria-hidden="true" className="squelette h-[132px] w-full !rounded-[14px]" />
+      <div aria-hidden="true" className="squelette h-[132px] w-full !rounded-[14px]" />
     </div>
   );
 }

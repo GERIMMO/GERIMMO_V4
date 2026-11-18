@@ -36,6 +36,7 @@ describe("les sept jours de l’agenda commencent aujourd’hui à Paris", () =>
     const semaine = html.match(/<ol[^>]+aria-label="Rendez-vous des sept prochains jours"[^>]*>([\s\S]*?)<\/ol>/)?.[1] ?? "";
     const cases = [...semaine.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/g)].map((m) => m[1]);
     expect(html).toContain(titre);
+    expect(html).toContain("Mes 7 prochains jours");
     expect(cases).toHaveLength(7);
     expect(cases.map((c) => Number(c.replace(/<[^>]+>/g, " ").match(/\b\d+\b/)?.[0]))).toEqual(numeros);
     expect(cases[0]).toContain("bg-[var(--marque-clair)]");

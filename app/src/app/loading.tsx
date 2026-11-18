@@ -3,9 +3,9 @@
 // qu'un écran figé qui fait douter du clic (recette 24/08).
 export default function Chargement() {
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-3">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-3" role="status" aria-busy="true">
       <span className="rond-attente" aria-hidden />
-      <p className="text-sm text-muted-foreground">Chargement…</p>
+      <p className="text-sm text-muted-foreground">Chargement de la page…</p>
     </div>
   );
 }

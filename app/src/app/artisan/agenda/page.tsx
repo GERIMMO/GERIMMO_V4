@@ -116,7 +116,7 @@ export default async function PageAgendaArtisan() {
           mène à sa journée ; les autres ne se cliquent pas (rien dessous). */}
       {!agenda.erreur && (
         <Carte>
-          <TitreSection>Gerimmo — les 7 prochains jours</TitreSection>
+          <TitreSection>Mes 7 prochains jours</TitreSection>
           <ol className="artisan-semaine grid grid-cols-7 gap-1.5 sm:gap-3" aria-label="Rendez-vous des sept prochains jours">
             {semaine.map((d) => {
               const cle = jourCivil(d);

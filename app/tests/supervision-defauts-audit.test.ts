@@ -185,3 +185,11 @@ describe('Articles et demandes de contact : actions et pages accessibles', () =>
     expect(rendu).toContain('Préparation activée'); expect(rendu).toContain('à 17 h, sous réserve');
   });
 });
+
+// UX 12B : les accès restent ceux lus, seul leur libellé est accordé.
+it.each([0, 1, 2])("UX 12B — %i rôle(s) dans la fiche du compte", async nombre => {
+  mock.resultats.dossier_compte_supervision = ok([{ email: 'fictif@example.test', est_super_admin: false, facteurs_mfa: 0 }]);
+  mock.resultats.memberships = ok(Array.from({ length: nombre }, (_, n) => ({ id: `adhesion-${n}`, role: 'proprietaire_direct', status: 'active', organization_id: `org-${n}`, organisation: { name: 'SCI fictive', type: 'proprietaire_direct' } })));
+  const rendu = html(await Compte(params('accountId')));
+  expect(rendu).toContain(`>${nombre} rôle${nombre > 1 ? 's' : ''}</span>`);
+});

@@ -1,0 +1,106 @@
+[
+  {
+    "role": "proprietaire",
+    "width": 390,
+    "etat": "chargement",
+    "resultat": "réussi"
+  },
+  {
+    "role": "locataire",
+    "width": 390,
+    "etat": "chargement",
+    "resultat": "réussi"
+  },
+  {
+    "role": "artisan",
+    "width": 390,
+    "etat": "chargement",
+    "resultat": "réussi"
+  },
+  {
+    "role": "admin",
+    "width": 390,
+    "etat": "chargement",
+    "resultat": "réussi"
+  },
+  {
+    "role": "racine",
+    "width": 390,
+    "etat": "chargement",
+    "resultat": "réussi"
+  },
+  {
+    "width": 390,
+    "etat": "erreur",
+    "resultat": "réussi",
+    "reessai": 1,
+    "referenceConservee": true,
+    "donneePriveeVisible": false
+  },
+  {
+    "width": 390,
+    "etat": "formulaire",
+    "resultat": "réussi",
+    "validationNative": true,
+    "envois": 1,
+    "doubleClicBloque": true,
+    "fermeture": {
+      "width": 44,
+      "height": 44
+    },
+    "fermetureClavier": true,
+    "expiration": 6000
+  },
+  {
+    "role": "proprietaire",
+    "width": 1440,
+    "etat": "chargement",
+    "resultat": "réussi"
+  },
+  {
+    "role": "locataire",
+    "width": 1440,
+    "etat": "chargement",
+    "resultat": "réussi"
+  },
+  {
+    "role": "artisan",
+    "width": 1440,
+    "etat": "chargement",
+    "resultat": "réussi"
+  },
+  {
+    "role": "admin",
+    "width": 1440,
+    "etat": "chargement",
+    "resultat": "réussi"
+  },
+  {
+    "role": "racine",
+    "width": 1440,
+    "etat": "chargement",
+    "resultat": "réussi"
+  },
+  {
+    "width": 1440,
+    "etat": "erreur",
+    "resultat": "réussi",
+    "reessai": 1,
+    "referenceConservee": true,
+    "donneePriveeVisible": false
+  },
+  {
+    "width": 1440,
+    "etat": "formulaire",
+    "resultat": "réussi",
+    "validationNative": true,
+    "envois": 1,
+    "doubleClicBloque": true,
+    "fermeture": {
+      "width": 44,
+      "height": 44
+    },
+    "fermetureClavier": true,
+    "expiration": 6000
+  }
+]

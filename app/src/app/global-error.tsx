@@ -37,8 +37,8 @@ export default function ErreurGlobale({
           <img src={CHARTE_GERIMMO.logo} alt="Gerimmo — L’immobilier en confiance" width={120} height={95} style={{ display: "block", marginBottom: 24 }} />
           <h1 style={{ fontFamily: "Georgia, serif", fontWeight: 400, fontSize: 30, margin: "0 0 12px" }}>Gerimmo n&apos;a pas pu s&apos;ouvrir</h1>
           <p style={{ margin: "0 0 20px", lineHeight: 1.5 }}>
-            L&apos;incident est noté. Réessayez dans un instant ; si cela persiste,
-            écrivez-nous en indiquant la référence ci-dessous.
+            Réessayez dans un instant. Si le problème persiste, contactez
+            l&apos;assistance.
           </p>
           <button
             type="button"
@@ -49,6 +49,7 @@ export default function ErreurGlobale({
               border: 0,
               borderRadius: 7,
               padding: "10px 18px",
+              minHeight: 44,
               fontSize: 14,
               fontWeight: 600,
               cursor: "pointer",
@@ -56,8 +57,12 @@ export default function ErreurGlobale({
           >
             Réessayer
           </button>
+          <a href="/assistance" style={{ display: "inline-flex", alignItems: "center", minHeight: 44, padding: "10px 18px", color: CHARTE_GERIMMO.marque }}>Contacter l’assistance</a>
           {error.digest && (
-            <p style={{ marginTop: 16, fontSize: 12, color: CHARTE_GERIMMO.texteSecondaire }}>réf. {error.digest}</p>
+            <details style={{ marginTop: 16, fontSize: 13, color: CHARTE_GERIMMO.texteSecondaire }}>
+              <summary style={{ minHeight: 44, alignContent: "center", cursor: "pointer" }}>Référence pour l’assistance</summary>
+              <p style={{ overflowWrap: "anywhere" }}>{error.digest}</p>
+            </details>
           )}
         </main>
       </body>

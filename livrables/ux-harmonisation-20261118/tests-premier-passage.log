@@ -1,0 +1,62 @@
+[33m[MIXED_EXPORTS] [0mEntry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[33m[MIXED_EXPORTS] [0mEntry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+[33m[MIXED_EXPORTS] [0mEntry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/easycash/Documents/Gerimmo V3/work/ux-accueil-proprietaire-20261118/app
+
+ ❯ |parallele| tests/ux-harmonisation.test.ts (11 tests | 2 failed) 21ms
+     × locataire : le chargement est lisible et accessible 5ms
+     × artisan : le chargement est lisible et accessible 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |parallele| tests/ux-harmonisation.test.ts > UX 12B — retours communs, sans faux succès > locataire : le chargement est lisible et accessible
+AssertionError: expected '<div class="space-y-4" role="status" …' to contain 'Chargement de la page…'
+
+Expected: "Chargement de la page…"
+Received: "<div class="space-y-4" role="status" aria-busy="true" aria-label="Chargement de la page"><div><div aria-hidden="true" class="squelette h-3.5 w-40"></div><div aria-hidden="true" class="squelette mt-2.5 h-8 w-60"></div></div><div aria-hidden="true" class="squelette h-[132px] w-full !rounded-[14px]"></div><div class="loc-grille"><div class="grille-kpi"><div aria-hidden="true" class="squelette h-[150px] !rounded-[14px]"></div><div aria-hidden="true" class="squelette h-[150px] !rounded-[14px]"></div><div aria-hidden="true" class="squelette h-[150px] !rounded-[14px]"></div></div><div class="space-y-4"><div aria-hidden="true" class="squelette h-[158px] !rounded-[14px]"></div><div aria-hidden="true" class="squelette h-[132px] !rounded-[14px]"></div></div></div></div>"
+
+ ❯ tests/ux-harmonisation.test.ts:22:15
+     20|     expect(h).toContain('role="status"');
+     21|     expect(h).toContain('aria-busy="true"');
+     22|     expect(h).toContain("Chargement de la page…");
+       |               ^
+     23|     expect(h).not.toContain("0,00");
+     24|     expect(h).not.toContain("Tout est en ordre");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  |parallele| tests/ux-harmonisation.test.ts > UX 12B — retours communs, sans faux succès > artisan : le chargement est lisible et accessible
+AssertionError: expected '<div class="space-y-4" role="status" …' to contain 'Chargement de la page…'
+
+Expected: "Chargement de la page…"
+Received: "<div class="space-y-4" role="status" aria-busy="true" aria-label="Chargement de la page"><div><div aria-hidden="true" class="squelette h-3.5 w-40"></div><div aria-hidden="true" class="squelette mt-2.5 h-8 w-60"></div></div><div aria-hidden="true" class="squelette h-24 w-full !rounded-[14px]"></div><div aria-hidden="true" class="squelette h-[132px] w-full !rounded-[14px]"></div><div aria-hidden="true" class="squelette h-[132px] w-full !rounded-[14px]"></div></div>"
+
+ ❯ tests/ux-harmonisation.test.ts:22:15
+     20|     expect(h).toContain('role="status"');
+     21|     expect(h).toContain('aria-busy="true"');
+     22|     expect(h).toContain("Chargement de la page…");
+       |               ^
+     23|     expect(h).not.toContain("0,00");
+     24|     expect(h).not.toContain("Tout est en ordre");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  2 failed | 34 passed (36)
+   Start at  20:32:24
+   Duration  353ms (transform 223ms, setup 72ms, import 512ms, tests 82ms, environment 0ms)
+

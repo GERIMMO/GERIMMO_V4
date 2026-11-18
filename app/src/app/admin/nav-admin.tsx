@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import styles from "./console-direction.module.css";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { RUBRIQUES, ongletActif, rubriqueActive } from "@/lib/rubriques-supervision";
+import { GROUPES_SUPERVISION, RUBRIQUES, ongletActif, rubriqueActive } from "@/lib/rubriques-supervision";
 import { LayoutDashboard, Users, ShieldCheck, Megaphone, PanelsTopLeft, History, Settings2, Menu, X, Search, ClipboardCheck, Files, Wrench, MessagesSquare, Wallet, TrendingUp, Workflow, CalendarClock, Activity, BookOpen } from "lucide-react";
 
 const ICONES = { bureau: LayoutDashboard, decisions: ClipboardCheck, "comptes-rendus": BookOpen, utilisateurs: Users, dossiers: Files, artisans: Wrench, assistance: MessagesSquare, finances: Wallet, marketing: Megaphone, commercial: TrendingUp, automatismes: Workflow, relais: CalendarClock, produit: PanelsTopLeft, sante: Activity, securite: ShieldCheck, historique: History, parametres: Settings2 };
@@ -47,9 +48,16 @@ function Groupes({ artisansEnAttente, decisions, auClic }: { artisansEnAttente: 
     if (position.top < cadre.top || position.bottom > cadre.bottom) navigation.scrollTop += position.top - cadre.top - 8;
   }, [active?.cle]);
   const compte = { artisans: artisansEnAttente, decisions };
-  // Toutes les destinations sont affichées sans groupes ni accordéons.
+  // Le groupe actif reste ouvert ; les compteurs restent visibles dans le titre du groupe.
   return <div ref={liste} className="admin-menu-groupes" key={`${chemin}?${recherche}`} onClick={(e) => { if ((e.target as HTMLElement).closest("a")) auClic?.(); }}>
-    {RUBRIQUES.map((r) => {
+    {GROUPES_SUPERVISION.map(groupe => {
+      const rubriques = groupe.cles.map(cle => RUBRIQUES.find(r => r.cle === cle)!);
+      const badges = rubriques.filter(r => r.badge).map(r => compte[r.badge!]);
+      const inconnu = badges.some(n => n === null);
+      const nombre = badges.reduce<number>((total, n) => total + (n ?? 0), 0);
+      return <details key={groupe.libelle} className={styles.groupe} open={rubriques.some(r => r.cle === active?.cle)}>
+        <summary>{groupe.libelle}{(inconnu || nombre > 0) && <span className="coquille-badge">{inconnu ? "À vérifier" : nombre}</span>}</summary>
+        {rubriques.map((r) => {
       const n = r.badge ? compte[r.badge] : 0;
       const Icone = ICONES[r.cle as keyof typeof ICONES] ?? LayoutDashboard;
       return <Link key={r.cle} href={r.href} prefetch={false} className="admin-nav-lien" aria-current={active?.cle === r.cle ? "page" : undefined}>
@@ -57,6 +65,7 @@ function Groupes({ artisansEnAttente, decisions, auClic }: { artisansEnAttente: 
         {n === null && <span className="coquille-badge ml-auto">À vérifier</span>}
         {n !== null && n > 0 && <span className="coquille-badge ml-auto" aria-label={r.badge === "artisans" ? `${n} artisan${n > 1 ? "s" : ""} à valider` : `${n} sujet${n > 1 ? "s" : ""} à traiter`}>{n}</span>}
       </Link>;
+    })}</details>;
     })}
   </div>;
 }

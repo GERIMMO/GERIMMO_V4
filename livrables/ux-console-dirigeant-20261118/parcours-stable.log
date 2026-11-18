@@ -1,0 +1,35 @@
+390 /admin/brief Aujourd’hui
+390 /admin/brief?vue=decisions Décisions à prendre
+390 /admin/brief?vue=equipes Équipes et comptes rendus
+390 /admin/clients Utilisateurs
+390 /admin Abonnements et finances
+390 /admin/artisans Réseau d’artisans
+390 /admin/autonomie?vue=dossiers Activité et dossiers
+390 /admin/retours Assistance clients
+390 /admin/marketing Marketing et contenus
+390 /admin/territoire Développement commercial
+390 /admin/sante Santé et connexions
+390 /admin/equipes Automatismes et consignes
+390 /admin/relais Vacances et relais
+390 /admin/autonomie?vue=ameliorations Améliorations du produit
+390 /admin/securite Sécurité et conformité
+390 /admin/journaux Historique et sauvegardes
+390 /admin/parametres Paramètres généraux
+390 onglet /admin/marque-blanche
+390 onglet /admin/couverture
+390 onglet /admin/publications
+390 onglet /admin/devis
+390 onglet /admin/liste-attente
+390 onglet /admin/consignes
+390 onglet /admin/donnees
+390 onglet /admin/conservation
+390 onglet /admin/veille
+page.goto: Target page, context or browser has been closed
+Call log:
+[2m  - navigating to "http://localhost:3100/admin/sante", waiting until "networkidle"[22m
+
+    at /Users/easycash/Documents/Gerimmo V3/output/ux-console-20261118/verifier-console.cjs:7:9 {
+  log: [
+    '  - navigating to "http://localhost:3100/admin/sante", waiting until "networkidle"'
+  ]
+}

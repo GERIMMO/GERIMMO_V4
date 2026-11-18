@@ -1,3 +1,4 @@
+import styles from "../console-direction.module.css";
 import TraitementsDurables from "./traitements-durables";
 import { ConsoleSection } from "@/components/console-section";
 import { SuiviStripe, type ControleStripe } from "./controle-stripe";
@@ -153,14 +154,15 @@ export default async function PageSante() {
             Vérifiez les points à traiter, puis ouvrez le contrôle concerné.
           </p>
         </div>
-        <span className="mono-discret sans-majuscules max-w-full whitespace-normal">
-          {nbPoints === null
-            ? `${nbManque} connexion${nbManque > 1 ? "s" : ""} manque${nbManque > 1 ? "nt" : ""} · travail automatique à vérifier${aVerifier}`
-            : nbPoints === 0
-              ? `Réglages présents · tâches suivies à jour${aVerifier}`
-              : `${nbPoints} point${nbPoints > 1 ? "s" : ""} à traiter : ${detailPoints}${aVerifier}`}
-        </span>
       </div>
+      <section className={styles.resume} aria-label="État des contrôles">
+        <h2>{nbPoints === null || sante.tachesIllisibles || cycle === null ? "L’état du service reste à vérifier" : nbPoints > 0 ? `${nbPoints} point${nbPoints > 1 ? "s" : ""} nécessite${nbPoints > 1 ? "nt" : ""} votre attention` : "Les contrôles suivis sont à jour"}</h2>
+        <p>{detailPoints || "Aucun blocage remonté par ces contrôles."}{aVerifier}</p>
+        {(taches === null || sante.tachesIllisibles || cycle === null) && <p role="alert">Certains résultats sont indisponibles. Actualisez avant de conclure au bon fonctionnement.</p>}
+        <p>Ce suivi ne remplace pas la vérification d’un envoi ou d’un paiement auprès du prestataire.</p>
+        <div className={styles.liens}><a href="#connexions">Vérifier les services</a><a href="#taches">Voir les traitements</a><a href="#traitements-durables">Suivre les courriels et factures</a></div>
+      </section>
+      <TraitementsDurables />
 
       <nav aria-label="Accès aux contrôles" className="mb-5 flex flex-wrap gap-3"><a className="btn-secondaire" href="#connexions">Connexions</a><a className="btn-secondaire" href="#taches">Tâches et sauvegarde</a><a className="btn-secondaire" href="#budget-signatures">Signatures</a></nav>
       {/* ── Configuration ─────────────────────────────────────────────── */}
@@ -176,19 +178,14 @@ export default async function PageSante() {
             <li key={`${v.cle}:${v.usage}`} className="rang w-full flex-wrap items-start gap-y-1">
               <span className="min-w-0 flex-1">
                 <span className="block font-medium text-[var(--encre)]">{v.usage}</span>
-                {v.detail && (
-                  <span className="mt-0.5 block text-sm text-[var(--texte-secondaire)]">
-                    {v.detail}
-                  </span>
-                )}
-                {v.etat !== "ok" && (
-                  // La commande de la ligne : la variable et où la trouver, ou le geste quand ce n'est pas une variable (crédit IA).
-                  <details className="mt-1.5 text-sm text-[var(--encre)]"><summary className="cursor-pointer">Comment intervenir</summary>
-                    {v.commande ?? (v.etat === "attention" && !v.absente
+                {v.etat !== "ok" && <span className="block text-sm">{v.etat === "manque" ? "Service à relier avec le responsable technique." : "Configuration à vérifier avant utilisation."}</span>}
+                <details className={styles.detail}><summary>Détails techniques</summary>
+                  {v.detail && <p>{v.detail}</p>}
+                  {v.etat !== "ok" && <p>{v.commande ?? (v.etat === "attention" && !v.absente
                       ? <>Posée. Pour passer en production : remplacer la valeur de <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.</>
                       : <>À poser : <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.</>)}
-                  </details>
-                )}
+                  </p>}
+                </details>
               </span>
               <span className={`puce ${v.information ? "puce-grise" : PUCE_ETAT[v.etat].classe}`}>{v.information ?? PUCE_ETAT[v.etat].libelle}</span>
             </li>
@@ -227,7 +224,7 @@ export default async function PageSante() {
                   <span className="mt-0.5 block text-sm text-[var(--texte-secondaire)]">
                     {t.le ? (
                       <>
-                        Dernière passe le{" "}
+                        Dernière exécution le{" "}
                         <time dateTime={t.le}>{formaterDateHeureParis(t.le)}</time> — {t.bilan}
                       </>
                     ) : (
@@ -238,7 +235,7 @@ export default async function PageSante() {
                   {(t.etat === "jamais" || t.etat === "echec" || t.etat === "retard") && (
                     <span className="mt-2 block">
                       {t.commandable ? (
-                        cronPose ? <LancerMission mission={t.nom} /> : <span className="text-sm text-[var(--encre)]">« Lancer maintenant » sera possible une fois <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">CRON_SECRET</code> posé (ci-dessus).</span>
+                        cronPose ? <LancerMission mission={t.nom} /> : <span className="text-sm text-[var(--encre)]">Le lancement manuel sera disponible une fois le service relié. Consultez les connexions ci-dessus.</span>
                       ) : t.nom === "sauvegarde" ? (
                         <a href="https://github.com/GERIMMO/GERIMMO_V4/actions/workflows/sauvegarde.yml" target="_blank" rel="noreferrer" className="lien-discret text-sm">Relancer la sauvegarde depuis GitHub (Run workflow) →</a>
                       ) : (
@@ -271,7 +268,7 @@ export default async function PageSante() {
                 <>
                   <span className="mt-0.5 block text-sm text-[var(--texte-secondaire)]">
                     {cycle.le ? (
-                      <>Dernière passe le <time dateTime={cycle.le}>{formaterDateHeureParis(cycle.le)}</time> — {cycle.bilan}</>
+                      <>Dernière exécution le <time dateTime={cycle.le}>{formaterDateHeureParis(cycle.le)}</time> — {cycle.bilan}</>
                     ) : (
                       "Aucun passage enregistré dans l’historique."
                     )}
@@ -279,9 +276,9 @@ export default async function PageSante() {
                   {cycle.etat === "retard" && (
                     <span className="mt-2 block text-sm text-[var(--encre)]">
                       Aucun passage depuis {cycle.joursDepuis} jours (seuil : 32). Les appels de loyer ne sont plus générés automatiquement tant que la tâche ne repart pas.
-                      Vérifier que la tâche planifiée « cycle-mensuel » existe dans la base de données et que les extensions <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">pg_cron</code> et{" "}
+                      <details className={styles.detail}><summary>Détails techniques</summary>Vérifier que la tâche planifiée « cycle-mensuel » existe dans la base de données et que les extensions <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">pg_cron</code> et{" "}
                       <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">pg_net</code> sont actives ; sinon la recréer en suivant la procédure de
-                      reprise (<code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">app/docs/sauvegarde-et-restauration.md</code>). En attendant, « Générer l’échéancier » rattrape un bail à la fois (page du bail).
+                      reprise (<code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">app/docs/sauvegarde-et-restauration.md</code>). En attendant, « Générer l’échéancier » rattrape un bail à la fois (page du bail).</details>
                     </span>
                   )}
                   {cycle.etat === "suspendu" && (
@@ -440,6 +437,6 @@ export default async function PageSante() {
           {" "}<Link href="/admin/clients" className="lien-discret">Voir les organisations →</Link>
         </p>
       </ConsoleSection>
-    <TraitementsDurables /><SuiviStripe controle={controleStripe.error ? null : controleStripe.data as ControleStripe}/><BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} ouverture={ouverture}/></main>
+    <SuiviStripe controle={controleStripe.error ? null : controleStripe.data as ControleStripe}/><BudgetSignatures budget={budgetSignature.error ? null : budgetSignature.data as BudgetSignature} ouverture={ouverture}/></main>
   );
 }

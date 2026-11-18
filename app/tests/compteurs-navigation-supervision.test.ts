@@ -6,7 +6,8 @@ import { NavAdmin } from "@/app/admin/nav-admin";
 describe("navigation : compteur inconnu distinct du zéro", () => {
   it("signale les deux sources indisponibles sans afficher 0", () => {
     const html=renderToStaticMarkup(createElement(NavAdmin,{artisansEnAttente:null,decisions:null}));
-    expect(html.match(/À vérifier/g)).toHaveLength(2);
+    // Deux sources : chacune reste annoncée dans son groupe replié et sur son lien.
+    expect(html.match(/À vérifier/g)).toHaveLength(4);
     expect(html).not.toMatch(/>0<|0 sujet|0 artisan/);
   });
   it("conserve les vrais nombres et ne transforme pas un zéro connu en panne", () => {

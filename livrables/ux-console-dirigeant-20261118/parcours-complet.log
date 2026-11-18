@@ -1,0 +1,55 @@
+390 /admin/brief Aujourd’hui
+390 /admin/brief?vue=decisions Décisions à prendre
+390 /admin/brief?vue=equipes Équipes et comptes rendus
+390 /admin/clients Utilisateurs
+390 /admin Abonnements et finances
+390 /admin/artisans Réseau d’artisans
+390 /admin/autonomie?vue=dossiers Activité et dossiers
+390 /admin/retours Assistance clients
+390 /admin/marketing Marketing et contenus
+390 /admin/territoire Développement commercial
+390 /admin/sante Santé et connexions
+ExpectError: expect(locator).toHaveCount(expected) failed
+
+Locator:  locator('h1')
+Expected: 1
+Received: 0
+Timeout:  5000ms
+
+Call log:
+  - Expect "toHaveCount" locator('h1') with timeout 5000ms
+  - waiting for locator('h1')
+    14 × locator resolved to 0 elements
+       - unexpected value "0"
+
+    at captureRawStack (/Users/easycash/Documents/Gerimmo V3/work/revue-pr287/app/node_modules/playwright-core/lib/coreBundle.js:9282:17)
+    at callMatcherAsStep (/Users/easycash/Documents/Gerimmo V3/work/revue-pr287/app/node_modules/playwright/lib/matchers/expect.js:13316:57)
+    at Object.toHaveCount (/Users/easycash/Documents/Gerimmo V3/work/revue-pr287/app/node_modules/playwright/lib/matchers/expect.js:13308:23)
+    at /Users/easycash/Documents/Gerimmo V3/output/ux-console-20261118/verifier-console.cjs:5:367 {
+  matcherResult: {
+    actual: 0,
+    expected: 1,
+    message: 'expect(locator).toHaveCount(expected) failed\n' +
+      '\n' +
+      "Locator:  locator('h1')\n" +
+      'Expected: 1\n' +
+      'Received: 0\n' +
+      'Timeout:  5000ms\n' +
+      '\n' +
+      'Call log:\n' +
+      `  - Expect "toHaveCount" locator('h1') with timeout 5000ms\n` +
+      "  - waiting for locator('h1')\n" +
+      '    14 × locator resolved to 0 elements\n' +
+      '       - unexpected value "0"\n',
+    name: 'toHaveCount',
+    pass: false,
+    log: [
+      `  - Expect "toHaveCount" locator('h1') with timeout 5000ms`,
+      "  - waiting for locator('h1')",
+      '    14 × locator resolved to 0 elements',
+      '       - unexpected value "0"'
+    ],
+    timeout: 5000,
+    ariaSnapshot: undefined
+  }
+}

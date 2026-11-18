@@ -1,0 +1,121 @@
+[
+  {
+    "width": 390,
+    "href": "/admin/brief",
+    "titre": "Aujourd’hui",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/brief?vue=decisions",
+    "titre": "Décisions à prendre",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/brief?vue=equipes",
+    "titre": "Équipes et comptes rendus",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/clients",
+    "titre": "Utilisateurs",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin",
+    "titre": "Abonnements et finances",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/artisans",
+    "titre": "Réseau d’artisans",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/autonomie?vue=dossiers",
+    "titre": "Activité et dossiers",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/retours",
+    "titre": "Assistance clients",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/marketing",
+    "titre": "Marketing et contenus",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/territoire",
+    "titre": "Développement commercial",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/sante",
+    "titre": "Santé et connexions",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/equipes",
+    "titre": "Automatismes et consignes",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/relais",
+    "titre": "Vacances et relais",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/autonomie?vue=ameliorations",
+    "titre": "Améliorations du produit",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/securite",
+    "titre": "Sécurité et conformité",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/journaux",
+    "titre": "Historique et sauvegardes",
+    "navigation": "clic réel",
+    "debordement": 0
+  },
+  {
+    "width": 390,
+    "href": "/admin/parametres",
+    "titre": "Paramètres généraux",
+    "navigation": "clic réel",
+    "debordement": 0
+  }
+]

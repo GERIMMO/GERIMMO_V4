@@ -1,7 +1,7 @@
 /**
  * Lot « avoir-facture-externe » — décision D24-C (fiches ARC-07, ARC-04) : les écrans et l'action serveur.
  *
- * Sur la fiche du chantier, la facture en vigueur porte une action « Annuler cette facture » (motif obligatoire,
+ * Sur la fiche du chantier, la facture en vigueur porte une action « Annuler la facture » (motif obligatoire,
  * confirmation en deux temps) ; une facture annulée reste affichée avec son avoir, et le dépôt d'une nouvelle facture
  * redevient possible. Le registre (facturation) et la fiche de suivi montrent la facture annulée ET son avoir.
  * Les pages sont des composants serveur : on les appelle comme Next le fait, puis on rend l'arbre obtenu.
@@ -135,15 +135,18 @@ describe("RelectureAnnulation — l'écran de confirmation", () => {
 });
 
 describe("fiche du chantier — annuler la facture en vigueur, puis déposer celle qui la remplace", () => {
-  it("facture en vigueur : l'action « Annuler cette facture » (motif, relecture en deux temps) ; plus de formulaire de dépôt", async () => {
+  it("facture en vigueur : l'action secondaire « Annuler la facture » conserve motif et relecture ; plus de formulaire de dépôt", async () => {
     sim.activite = activite({ factures: [{ ...FACTURE_ANNULEE, annulee_le: null }], avoirs: [] });
     const page = await chantier();
-    expect(page).toContain("Annuler cette facture");
+    expect(page).toContain("Autres actions");
+    expect(page).toMatch(/<button[^>]*type="button"[^>]*>Annuler la facture<\/button>/);
+    expect(page).toContain('data-action-chantier="annuler-facture"');
     const form = formulaireAvec(page, 'name="facture_id"')!;
     expect(form).toBeDefined();
     expect(form).toContain('value="annuler_facture"');
     expect(form).toContain('name="facture_id" value="f1"');
     expect(form).toContain('name="motif"');
+    expect(form).toMatch(/<textarea[^>]*name="motif"[^>]*required/);
     expect(form).toContain("Relire avant d’annuler");
     expect(form).not.toMatch(/<fieldset[^>]*disabled/);
     expect(page).not.toContain("Relire avant de déposer");
@@ -263,7 +266,10 @@ describe("l'avoir n'est pas une pièce à remettre au client : aucun texte ne le
     if (Array.isArray(noeud)) return noeud.flatMap((n) => elements(n, garder));
     if (!noeud || typeof noeud !== "object" || !("props" in noeud)) return [];
     const props = (noeud as { props: Record<string, unknown> }).props;
-    return [...(garder(props) ? [props] : []), ...elements(props.children, garder)];
+    // Le parcours progressif reçoit les formulaires dans les actions plutôt que dans children.
+    const actions = Array.isArray(props.actions) ? props.actions : [];
+    return [...(garder(props) ? [props] : []), ...elements(props.children, garder),
+      ...actions.flatMap((action: { contenu?: unknown }) => elements(action.contenu, garder))];
   }
 
   it("avant de confirmer, l'artisan lit que Gerimmo ne produit pas de document d'avoir et n'envoie rien à son client", () => {
@@ -278,8 +284,10 @@ describe("l'avoir n'est pas une pièce à remettre au client : aucun texte ne le
   it("le bouton de confirmation de la fiche du chantier « enregistre » l'avoir, il ne l'« émet » pas", async () => {
     sim.activite = activite({ factures: [{ ...FACTURE_ANNULEE, annulee_le: null }], avoirs: [] });
     const arbre = await PageChantier({ params: Promise.resolve({ chantierId: "h1" }) });
-    const [annulation] = elements(arbre, (p) => p.action === "annuler_facture");
-    expect(annulation?.libelle).toBe(LIBELLE_CONFIRMER_ANNULATION);
+    const annulations = elements(arbre, (p) => p.action === "annuler_facture");
+    expect(annulations).toHaveLength(1);
+    expect(annulations[0]).toMatchObject({ libelle: LIBELLE_CONFIRMER_ANNULATION,
+      desactive: false, id: "h1", revision: 7, relectureAnnulation: { numero: "ART-1", montantCents: 12000 } });
     expect(LIBELLE_CONFIRMER_ANNULATION).toBe("Confirmer l’annulation et enregistrer l’avoir");
   });
 

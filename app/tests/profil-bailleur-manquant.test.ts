@@ -3,8 +3,6 @@
  * « Mes lots » vide, quand il manque de quoi le désigner comme bailleur, le bouton annonce le détour au lieu de
  * promettre « Créer mon premier bien ». Le bouton reprend la même règle que la porte de « Créer un lot ».
  */
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,6 +13,7 @@ import { boutonPremierBien, doitLireLeProfilBailleur, elementsManquantsDuBailleu
 // une pastille : seul compte ici le choix entre la porte et le formulaire.
 const banc = vi.hoisted(() => ({ acces: vi.fn() }));
 vi.mock("@/lib/espace", () => ({ verifierAccesEspace: banc.acces }));
+vi.mock("@/app/actions/auth", () => ({ inscrireProprietaire: vi.fn() }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn(), prefetch: vi.fn(), back: vi.fn() }),
   usePathname: () => "/agence/org-1/parc",
@@ -27,8 +26,7 @@ vi.mock("@/app/agence/[orgId]/parc/nouveau/formulaire-avec-brouillon", () => ({
 }));
 import PageParc from "@/app/agence/[orgId]/parc/page";
 import PageNouveauBien from "@/app/agence/[orgId]/parc/nouveau/page";
-
-const lire = (chemin: string) => readFileSync(resolve(__dirname, "..", chemin), "utf8");
+import { FormulaireInscription } from "@/app/inscription/formulaire-inscription";
 
 describe("ce qui manque pour désigner le propriétaire comme bailleur", () => {
   const complet = { address_line1: "12 rue des Lilas", postal_code: "75011", city: "Paris", email_contact: "a@exemple.fr" };
@@ -284,12 +282,20 @@ describe("« Créer un lot » (D29 B) : la porte devant le formulaire", () => {
 });
 
 describe("l'inscription du propriétaire (D29 B)", () => {
-  const inscription = lire("src/app/inscription/formulaire-inscription.tsx");
-
-  it("demande les coordonnées nécessaires aux courriers dès l’inscription", () => {
-    for (const champ of ["Adresse postale", "Code postal", "Ville"]) {
-      expect(inscription).toContain("<AdresseOuverture");
-      expect(lire("src/components/adresse-ouverture.tsx")).toContain(champ);
-    }
+  it("diffère les coordonnées à la création du bien sans retirer le contrôle du profil bailleur", async () => {
+    const inscription = renderToStaticMarkup(createElement(FormulaireInscription, { dureeEssai: "deux mois", codeParrain: "ABCD1234" }));
+    const champ = (nom: string) => inscription.match(/<input\b[^>]*>/g)?.find(tag => tag.includes(`name="${nom}"`));
+    expect(champ("nom")).toContain('required=""');
+    expect(champ("email")).toContain('required=""');
+    expect(champ("email")).toContain('type="email"');
+    expect(inscription).toContain('name="qualite"');
+    expect(inscription).toContain('value="ABCD1234"');
+    expect(inscription).toContain('href="/conditions"');
+    expect(inscription).toContain("sans carte et sans abonnement automatique");
+    expect(inscription).not.toMatch(/name="(?:adresse|code_postal|ville|telephone)"/);
+    acces("proprietaire_direct", { organizations: OK({ ...COMPLET, address_line1: null }) });
+    const avantPremierBien = await rendreNouveau();
+    expect(avantPremierBien).toContain("Compléter mon profil");
+    expect(avantPremierBien).not.toContain("formulaire-de-creation");
   });
 });

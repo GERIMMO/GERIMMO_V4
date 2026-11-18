@@ -416,16 +416,16 @@ const TRANSMISSIONS_ADMISES: Exception[] = [
   {
     fichier: "src/components/fenetre-lot.tsx", fonction: "SuiviLotProprietaire", forme: "<OngletDocuments> estProprietaire", nombre: 1,
     raison: "outil de documents rendu uniquement dans la branche propriétaire de la fiche du lot",
-    preuve: ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx", 'estProprietaire ? <FicheContinue'],
+    preuve: ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx", 'estProprietaire ? <OngletsFicheLogement'],
   },
   {
     fichier: "src/components/fenetre-lot.tsx", fonction: "SuiviLotProprietaire", forme: "<OngletComptabilite> estProprietaire", nombre: 1,
-    raison: "journal du lot placé dans suiviLot, contenu de la fiche continue réservé au propriétaire ; l'agence conserve sa rubrique Résumé",
-    preuve: ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx", 'estProprietaire ? <FicheContinue'],
+    raison: "journal du lot dans les onglets réservés au propriétaire ; l'agence conserve sa rubrique Résumé",
+    preuve: ["src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx", 'estProprietaire ? <OngletsFicheLogement'],
   },
   {
-    fichier: "src/app/agence/[orgId]/accueil-proprietaire.tsx", fonction: "AccueilProprietaire", forme: "<ParcoursDemarrage> estProprietaire", nombre: 1,
-    raison: "accueil servi au seul propriétaire direct : vrai en dur",
+    fichier: "src/app/agence/[orgId]/accueil-proprietaire.tsx", fonction: "AccueilProprietaire", forme: "<ParcoursDemarrage> estProprietaire", nombre: 2,
+    raison: "accueil réservé au propriétaire direct ; branches compte neuf et compte existant mutuellement exclusives, vérifiées ci-dessous",
     preuve: ["src/app/agence/[orgId]/page.tsx", "if (estProprietaire) {\n    return (\n      <AccueilProprietaire"],
   },
   {
@@ -453,7 +453,13 @@ describe("chaque parent transmet le drapeau ou la racine, tels que la garde les 
       "src/components/consommations-bien.tsx › ConsommationsBien",
     ]);
     // Le journal déplacé reste réservé à la branche propriétaire du lot.
-    expect(lire("src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx")).toContain("estProprietaire ? <FicheContinue");
+    const choixLogement = noeuds(arbre("src/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/page.tsx"))
+      .filter(ts.isConditionalExpression)
+      .filter(n => ts.isJsxSelfClosingElement(n.whenTrue) && n.whenTrue.tagName.getText() === "OngletsFicheLogement");
+    expect(choixLogement).toHaveLength(1);
+    const choix = choixLogement[0];
+    expect(estLeDrapeau(choix.condition) && sourceDuDrapeau(choix.condition) !== null).toBe(true);
+    expect(ts.isJsxSelfClosingElement(choix.whenFalse) && choix.whenFalse.tagName.getText()).toBe("OngletsDossier");
     expect(lire("src/components/consommations-bien.tsx")).toContain("{lotId && <div id=\"journal-lot\"");
     expect(rendus.filter(r => r.balise === "RappelsLoyers").map(r => `${r.fichier} › ${fonctionEnglobante(r.el)}`).sort()).toEqual([
       "src/app/agence/[orgId]/accueil-proprietaire.tsx › AccueilProprietaire",
@@ -493,6 +499,25 @@ describe("chaque parent transmet le drapeau ou la racine, tels que la garde les 
       }));
     expect(confronter(ecarts, TRANSMISSIONS_ADMISES)).toEqual([]);
     exceptionsEncoreVraies(ecarts, TRANSMISSIONS_ADMISES);
+    // Deux emplacements d'accueil, mais jamais deux parcours simultanés ni une branche sans condition.
+    const demarrages = rendus.filter(r => r.fichier === "src/app/agence/[orgId]/accueil-proprietaire.tsx" && r.balise === "ParcoursDemarrage");
+    const polarite = (e: ts.Expression): boolean[] => {
+      if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken)
+        return [...polarite(e.left), ...polarite(e.right)];
+      if (ts.isIdentifier(e) && e.text === "compteNeuf") return [true];
+      if (ts.isPrefixUnaryExpression(e) && e.operator === ts.SyntaxKind.ExclamationToken && ts.isIdentifier(e.operand) && e.operand.text === "compteNeuf") return [false];
+      return [];
+    };
+    const gardes = demarrages.map(r => {
+      for (let parent: ts.Node | undefined = r.el.parent; parent; parent = parent.parent) {
+        if (ts.isJsxExpression(parent) && parent.expression) {
+          const conditions = polarite(parent.expression);
+          if (conditions.length) return conditions;
+        }
+      }
+      return [];
+    });
+    expect(gardes).toEqual([[true], [false]]);
   });
 
   it("une propriété `estProprietaire` vaut « agence » par défaut, une propriété `racine` vaut RACINE_AGENCE", () => {

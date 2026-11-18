@@ -30,8 +30,11 @@ describe("DES-A-03 : hiérarchie des titres", () => {
 
   it("les <h2> convertis portent la classe qui leur rend le dessin d'un <h3>", () => {
     const avecClasse = PERIMETRE.flatMap(f => (readFileSync(f, "utf8").match(/<h2[^>]*titre-carte[^>]*>/g) ?? []));
-    // 38 depuis le 24/10 : carte « Conditions générales » de « Sécurité du compte » (plan de conformité, lot 1A).
-    expect(avecClasse.length).toBe(38);
+    // 39 depuis UX 6 : l'accueil locataire distingue le bail en préparation des actions d'un bail actif.
+    expect(avecClasse.length).toBe(39);
+    const accueil = readFileSync("src/app/locataire/[orgId]/page.tsx", "utf8");
+    for (const titre of ["Votre bail n’est pas encore actif", "Ce qui vous attend"])
+      expect(accueil).toMatch(new RegExp(`<h2[^>]*titre-carte[^>]*>${titre}</h2>`));
   });
 
   it("prestige.css rend leur apparence aux <h2 class=titre-carte> malgré `.gerimmo-prestige h2`", () => {

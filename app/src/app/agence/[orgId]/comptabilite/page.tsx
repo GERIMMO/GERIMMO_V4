@@ -299,70 +299,7 @@ export default async function PageComptabilite(props: {
   const lignesQuittancement = quittancement.lignes;
   const erreurQuittancement = quittancement.error;
 
-  return (
-    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
-      <div>
-        {/* La marge sous l'en-tête est celle de `.entete-page`, commune à
-            l'espace : plus de mb-4 / mb-6 posés page par page (24/09). */}
-        <div className="entete-page">
-          <TitreEcran rubrique="finances">{titreComptabilite(role, estProprietaire)}</TitreEcran>
-          {estProprietaire && <Link href={`${base}/loyers#operations`} className="lien-discret">← Finances</Link>}
-          <span className="mono-discret">
-            {portefeuille ? "Mon portefeuille · " : ""}
-            {dernierCloture ? `${moisEnFrancais(dernierCloture)} clôturé · ` : ""}
-            {moisEnFrancais(moisCourant)} ouvert
-          </span>
-        </div>
-        {/* La reprise des comptes ne concerne qu'une agence qui arrive avec un
-            portefeuille : on la propose au responsable, et on ne l'affiche plus
-            une fois la balance d'ouverture passée — la mention la remplace. */}
-        {!estProprietaire && role === "admin_agence" &&
-          (repriseFaite ? (
-            <p className="mt-2 text-sm text-muted-foreground">
-              Balance d&apos;ouverture reprise le{" "}
-              {formaterDate(repriseFaite.basculee_le ?? repriseFaite.date_bascule ?? "")}.
-            </p>
-          ) : (
-            <p className="mt-2 text-sm">
-              <a
-                href={`${base}/comptabilite/reprise`}
-                className="lien-discret inline-block py-2 sm:py-0"
-              >
-                Reprendre mes comptes — balance d&apos;ouverture →
-              </a>
-            </p>
-          ))}
-        {/* S9a : seul le propriétaire direct bénéficie de l'aide fiscale */}
-        {estProprietaire && (
-          <p className="mt-2 text-sm">
-            <a
-              href={`${base}/comptabilite/fiscal`}
-              className="lien-discret inline-block py-2 sm:py-0"
-            >
-              Récapitulatif fiscal {anneeCourante} (déclaration 2044) →
-            </a>
-          </p>
-        )}
-      </div>
-
-      <nav aria-label="Comptabilité" className="flex flex-wrap gap-2 border-b border-border pb-3">
-        {vues.map((v) => (
-          <Link key={v.id} href={hrefVue(v.id)} aria-current={vue === v.id ? "page" : undefined}
-            className={`inline-flex min-h-11 items-center rounded-lg px-4 py-2 text-sm font-medium ${vue === v.id
-              ? "bg-primary text-primary-foreground" : "bg-muted/50 text-foreground hover:bg-muted"}`}>
-            {v.libelle}
-          </Link>
-        ))}
-      </nav>
-
-      {vue === "journal" && <>
-      {/* Solde en tuiles KPI (maquette) — même motif que le tableau de bord.
-          Ces trois chiffres portent TOUT le livre depuis son ouverture : lus
-          comme le mois en cours, ils faisaient croire à un mois énorme. La
-          portée se lit maintenant sous chaque chiffre. */}
-      {/* Recettes en vert, comme le « +montant » du journal ; dépenses en
-          neutre : `.kpi.or` et `.kpi.bleu` rendaient la même tuile pour deux
-          quantités opposées (24/09). */}
+  const resumeDuLivre = <>
       <div className="grille-kpi">
         <div className="kpi vert">
           <span className="eyebrow">Recettes</span>
@@ -442,6 +379,77 @@ export default async function PageComptabilite(props: {
           </Card>
         </Link>
       )}
+
+  </>;
+
+  return (
+    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
+      <div>
+        {/* La marge sous l'en-tête est celle de `.entete-page`, commune à
+            l'espace : plus de mb-4 / mb-6 posés page par page (24/09). */}
+        <div className="entete-page">
+          <TitreEcran rubrique="finances">{titreComptabilite(role, estProprietaire)}</TitreEcran>
+          {estProprietaire && <Link href={`${base}/loyers#operations`} className="lien-discret">← Finances</Link>}
+          <span className="mono-discret">
+            {portefeuille ? "Mon portefeuille · " : ""}
+            {dernierCloture ? `${moisEnFrancais(dernierCloture)} clôturé · ` : ""}
+            {moisEnFrancais(moisCourant)} ouvert
+          </span>
+        </div>
+        {/* La reprise des comptes ne concerne qu'une agence qui arrive avec un
+            portefeuille : on la propose au responsable, et on ne l'affiche plus
+            une fois la balance d'ouverture passée — la mention la remplace. */}
+        {!estProprietaire && role === "admin_agence" &&
+          (repriseFaite ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Balance d&apos;ouverture reprise le{" "}
+              {formaterDate(repriseFaite.basculee_le ?? repriseFaite.date_bascule ?? "")}.
+            </p>
+          ) : (
+            <p className="mt-2 text-sm">
+              <a
+                href={`${base}/comptabilite/reprise`}
+                className="lien-discret inline-block py-2 sm:py-0"
+              >
+                Reprendre mes comptes — balance d&apos;ouverture →
+              </a>
+            </p>
+          ))}
+        {/* S9a : seul le propriétaire direct bénéficie de l'aide fiscale */}
+        {estProprietaire && (
+          <p className="mt-2 text-sm">
+            <a
+              href={`${base}/comptabilite/fiscal`}
+              className="lien-discret inline-block py-2 sm:py-0"
+            >
+              Récapitulatif fiscal {anneeCourante} (déclaration 2044) →
+            </a>
+          </p>
+        )}
+      </div>
+
+      <nav aria-label="Comptabilité" className="flex flex-wrap gap-2 border-b border-border pb-3">
+        {vues.map((v) => (
+          <Link key={v.id} href={hrefVue(v.id)} aria-current={vue === v.id ? "page" : undefined}
+            className={`inline-flex min-h-11 items-center rounded-lg px-4 py-2 text-sm font-medium ${vue === v.id
+              ? "bg-primary text-primary-foreground" : "bg-muted/50 text-foreground hover:bg-muted"}`}>
+            {v.libelle}
+          </Link>
+        ))}
+      </nav>
+
+      {vue === "journal" && <>
+      {/* Solde en tuiles KPI (maquette) — même motif que le tableau de bord.
+          Ces trois chiffres portent TOUT le livre depuis son ouverture : lus
+          comme le mois en cours, ils faisaient croire à un mois énorme. La
+          portée se lit maintenant sous chaque chiffre. */}
+      {/* Recettes en vert, comme le « +montant » du journal ; dépenses en
+          neutre : `.kpi.or` et `.kpi.bleu` rendaient la même tuile pour deux
+          quantités opposées (24/09). */}
+      {estProprietaire ? <details className="rounded-lg border border-border p-4">
+        <summary className="min-h-11 cursor-pointer font-medium">Totaux du livre depuis l’origine et suivi des loyers</summary>
+        <div className="mt-4 space-y-4">{resumeDuLivre}</div>
+      </details> : resumeDuLivre}
 
       </>}
       {vue === "saisie" && (

@@ -1,0 +1,24 @@
+{
+  "vitest": {
+    "fichiers": 4,
+    "reussis": 29,
+    "echoues": 0,
+    "ignores": 0
+  },
+  "navigateur": {
+    "profils": 3,
+    "largeurs": [
+      390,
+      1440
+    ],
+    "parcours_reussis": 6,
+    "echec_final": 0,
+    "mode": "Chromium simulé, localhost uniquement"
+  },
+  "typescript": "réussi",
+  "eslint_cible": "réussi",
+  "diff_check": "réussi",
+  "base": "b45c43443d35fc51d399e3764e33c167b48d045c",
+  "modification_financiere": "aucune",
+  "migration_ajoutee": "aucune"
+}

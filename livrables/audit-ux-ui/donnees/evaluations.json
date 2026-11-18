@@ -1,0 +1,112 @@
+{
+ "E01": {
+  "profil": "Entrée",
+  "url": "/connexion",
+  "ecran": "Connexion",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 5,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Icône décorative (feuille) à côté du logo au téléphone, qui ressemble à un bouton ; accroche « rapports de gestion » (vocabulaire d'agence) ; à 1440 le formulaire est petit et décalé dans une colonne vide.",
+  "lot": 1
+ },
+ "E02": {
+  "profil": "Entrée",
+  "url": "/inscription",
+  "ecran": "Inscription propriétaire",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 2,
+  "esthetique": 3,
+  "coherence": 3,
+  "defauts": "9 champs avant tout essai, dont l'adresse postale ; paragraphe de parrainage de 8 lignes ; liste « Personne physiq » tronquée à 1440 ; accroche avec « récapitulatif 2044 » et une réserve sur le réseau d'artisans ; « Prénom (facultatif) » mais nom obligatoire.",
+  "lot": 1
+ },
+ "E03": {
+  "profil": "Entrée",
+  "url": "/mot-de-passe-oublie",
+  "ecran": "Mot de passe oublié",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 5,
+  "esthetique": 4,
+  "coherence": 5,
+  "defauts": "Rien de significatif (icône décorative au téléphone).",
+  "lot": 1
+ },
+ "E04": {
+  "profil": "Entrée",
+  "url": "/nouveau-mot-de-passe",
+  "ecran": "Choisir son mot de passe (lien valable)",
+  "statut": "Vu 390 (parcours d’invitation réel)",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 3,
+  "defauts": "Bouton « Changer le mot de passe » pour une première création ; aucune mention de qui invite ; après validation, retour forcé à la connexion (« Mot de passe modifié. Connectez-vous ») au lieu d’ouvrir directement l’invitation.",
+  "lot": 1
+ },
+ "E05": {
+  "profil": "Entrée",
+  "url": "/auth/confirmer",
+  "ecran": "Lien reçu par e-mail (bouton Continuer)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 3,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Message d'erreur technique (« cookie de sécurité qui manque… autorisez les cookies ») ; le bouton « Rouvrir le lien » ne dit pas quoi faire si l'e-mail est sur un autre appareil.",
+  "lot": 1
+ },
+ "E06": {
+  "profil": "Entrée",
+  "url": "/artisan/inscription",
+  "ecran": "Inscription artisan",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 3,
+  "coherence": 2,
+  "defauts": "Gabarit différent des autres pages d'entrée (barre haute et bandeau sombre au lieu de la photo) ; « Si un gestionnaire a déjà créé votre fiche » (mot d'agence) ; grand vide à 1440 ; « 1. Votre compte » sans dire combien d'étapes suivent.",
+  "lot": 1
+ },
+ "E07": {
+  "profil": "Entrée",
+  "url": "/artisan/invitation/…",
+  "ecran": "Invitation d'un artisan (lien non valable)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 3,
+  "esthetique": 3,
+  "coherence": 2,
+  "defauts": "Un lien faux affiche quand même « Vous avez reçu une invitation » et pousse à créer un compte.",
+  "lot": 1
+ },
+ "E08": {
+  "profil": "Entrée",
+  "url": "/signature/caution/…",
+  "ecran": "Signature de la caution (lien non valable)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 2,
+  "esthetique": 3,
+  "coherence": 3,
+  "defauts": "Le titre reste « Confirmer votre numéro de mobile » sur une erreur ; aucune issue (ni contact ni demande de nouveau lien).",
+  "lot": 1
+ },
+ "E09": {
+  "profil": "Entrée",
+  "url": "/connexion?raison=lien-invalide",
+  "ecran": "Connexion — lien expiré",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 3,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Explication de 6 lignes avec jargon (« ouvert dans un autre navigateur que celui de la demande (anciens liens) ») ; bon point : lien « Recevoir un nouveau lien ».",
+  "lot": 1
+ },
+ "L00": {
+  "profil": "Locataire",
+  "url": "/auth/confirmer → /nouveau-mot-de-passe → /connexion → /invitations/…",
+  "ecran": "Parcours d’invitation du locataire (5 écrans)",
+  "statut": "Vu 390, invitation aussi à 1440 ; parcours réel joué sur le banc",
+  "simplicite": 3,
+  "esthetique": 4,
+  "coherence": 3,
+  "defauts": "Le premier écran (« Accéder à votre compte ») ne dit ni qui invite ni pour quel logement ; reconnexion obligatoire après le choix du mot de passe ; « Changer le mot de passe » pour une création ; bon point : écran d’invitation clair (qui propose, validité, Accepter / Refuser).",
+  "lot": 3
+ }
+}

@@ -1,3 +1,4 @@
+import { RubriqueBail, situationDatesBail } from "./presentation-fiche-bail";
 import { HistoriqueRecommandes } from "@/components/historique-recommandes";
 import { PlanApurementBail } from "@/components/plan-apurement-bail";
 import { SuiviBailLecture, HistoriqueBailLecture } from "./suivi-bail-lecture";
@@ -655,7 +656,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       </Card>
 
 </div>);
-  const rubriqueContrat = (<RubriqueDossier id="contrat" ouverte titre={bail.etat === "brouillon" ? "Dates et montants" : "Informations du contrat"} resume={bail.etat === "brouillon" ? "Type de contrat, dates, loyer et charges" : "Vérifier le locataire, les montants, les conditions et les garants"}>
+  const rubriqueContrat = (<RubriqueBail proprietaire={estProprietaire} id="contrat" ouverte titre={bail.etat === "brouillon" ? "Dates et montants" : "Informations du contrat"} resume={bail.etat === "brouillon" ? "Type de contrat, dates, loyer et charges" : "Vérifier le locataire, les montants, les conditions et les garants"}>
 
 
       {/* Audit gestion du 29/09 : une zone tendue inconnue ne vaut plus « non ».
@@ -819,8 +820,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       )}
 
       {annexesContrat}
-      </RubriqueDossier>);
-  const rubriqueSignature = (<RubriqueDossier id="signature" ouverte titre={bail.etat === "brouillon" ? "Créer et faire signer le bail" : "Bail signé et documents"} resume={bail.document_signe ? "Retrouver le contrat signé et ses annexes" : "Créer le PDF, le faire signer aux parties, puis déposer le document signé"}>
+      </RubriqueBail>);
+  const rubriqueSignature = (<RubriqueBail proprietaire={estProprietaire} id="signature" ouverte titre={bail.etat === "brouillon" ? "Créer et faire signer le bail" : "Bail signé et documents"} resume={bail.document_signe ? "Retrouver le contrat signé et ses annexes" : "Créer le PDF, le faire signer aux parties, puis déposer le document signé"}>
       {/* Documents-0 : générer le contrat (nu 01 / meublé 02) depuis le
           brouillon — le PDF sert à imprimer et faire signer ; le dépôt du
           signé reste le seul déclencheur d'activation. */}
@@ -864,7 +865,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
       {depotSigne}
       {piecesAdministratives}
-      </RubriqueDossier>);
+      </RubriqueBail>);
   const rubriqueSuivi = (<section id="suivi-bail" className="space-y-4">
 
       {/* États des lieux */}
@@ -1164,9 +1165,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       </header>
       {bail.etat !== "brouillon" && <dl className={styles.chiffres}>
         <div><dt><Wallet size={17} aria-hidden="true" /> Loyer mensuel</dt><dd>{bail.loyer_hc == null || bail.charges == null ? "À compléter" : eur(Number(bail.loyer_hc) + Number(bail.charges))}</dd><dd className={styles.precision}>{bail.loyer_hc == null ? "Loyer à définir" : `${eur(Number(bail.loyer_hc))} hors charges`}{bail.charges != null && ` + ${eur(Number(bail.charges))} de charges`}</dd></div>
-        <div><dt><CalendarDays size={17} aria-hidden="true" /> Dates du bail</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "Entrée à renseigner"}</dd><dd className={styles.precision}>{bail.date_fin ? `Fin le ${formaterDate(bail.date_fin)}` : "Fin non renseignée"}{bail.date_sortie_reelle ? ` · sortie réelle le ${formaterDate(bail.date_sortie_reelle)}` : ""}</dd></div>
-        <div><dt><ShieldCheck size={17} aria-hidden="true" /> Dépôt de garantie</dt><dd>{bail.depot_garantie == null ? "À renseigner" : eur(Number(bail.depot_garantie))}</dd><dd className={styles.precision}>Montant prévu au contrat</dd></div>
-        <div><dt><CalendarDays size={17} aria-hidden="true" /> Échéance du loyer</dt><dd>{bail.jour_echeance == null ? "À renseigner" : `Le ${bail.jour_echeance} du mois`}</dd><dd className={styles.precision}>{bail.charges_mode === "forfait" ? "Charges au forfait" : bail.charges_mode === "provision" ? "Provisions sur charges" : "Conditions du contrat"}</dd></div>
+        <div><dt><CalendarDays size={17} aria-hidden="true" /> Dates du bail</dt><dd>{bail.date_debut ? formaterDate(bail.date_debut) : "Date d’entrée absente du dossier"}</dd><dd className={styles.precision}>{situationDatesBail(bail)}</dd></div>
+        <div><dt><ShieldCheck size={17} aria-hidden="true" /> Dépôt de garantie</dt><dd>{bail.depot_garantie == null ? "Montant contractuel non indiqué" : eur(Number(bail.depot_garantie))}</dd><dd className={styles.precision}>{bail.depot_garantie == null ? "À retrouver dans votre contrat" : "Montant prévu au contrat · versements dans Suivi"}</dd></div>
+        <div><dt><CalendarDays size={17} aria-hidden="true" /> Échéance du loyer</dt><dd>{bail.jour_echeance == null ? "Jour de paiement à confirmer" : `Le ${bail.jour_echeance} du mois`}</dd><dd className={styles.precision}>{bail.charges_mode === "forfait" ? "Charges au forfait" : bail.charges_mode === "provision" ? "Provisions sur charges" : "Conditions du contrat"}</dd></div>
       </dl>}
       {signeNonActif && <div className="rounded-xl border border-success/20 bg-success-soft p-4 text-sm"><strong>Le bail est signé. La location n’est pas encore activée.</strong><p className="mt-1">Le contrat signé est archivé ; l’activation reste une action séparée.</p><Link className="inline-flex min-h-11 items-center underline" href={`${base}/documents/${documentSigne}/fichier`}>Consulter le bail signé →</Link></div>}
       {suiviSignature.erreur && <p role="status" className="text-sm">Le suivi des signatures est indisponible. Réessayez pour connaître l’état du contrat.</p>}
@@ -1176,7 +1177,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       {!traverseeLectureSeule && bail.etat !== "brouillon" && aFaire.length > 0 && (
         <div className={styles.attention}>
           <div className="entete-carte">
-            <p className="text-sm font-semibold">À faire maintenant</p>
+            <p className="text-sm font-semibold">Prochaine action</p>
           </div>
           <ol className="space-y-1.5">
             {aFaire.slice(0, 3).map((a, i) => (
@@ -1254,7 +1255,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               {inventaire?.map(l => <p key={l.id}>{l.piece && `${l.piece} · `}{l.quantite} × {l.designation} · {l.etat ? ETATS_ELEMENT[l.etat] ?? l.etat : "État non renseigné"}{l.observation && ` · ${l.observation}`}</p>)}
             </HistoriqueBailLecture>
             <HistoriqueBailLecture titre="Dépôt de garantie et départ" erreur={Boolean(erreurDepot || erreurConges || erreurIntentions || erreurRestitution)}>
-              {!depotEncaissements?.length && <p>Aucun dépôt encaissé.</p>}
+              {!depotEncaissements?.length && <p>Aucun encaissement de dépôt enregistré dans Gerimmo.</p>}
               {depotEncaissements?.map(d => <p key={d.id}>Dépôt encaissé le {formaterDate(d.date_encaissement)} · {eur(d.montant)}{d.versant_libelle && ` · ${d.versant_libelle}`}</p>)}
               {intentions?.map((i,n) => <p key={`intention-${n}`}>Intention de départ le {formaterDate(i.created_at)} · {i.motif || "Motif non renseigné"}</p>)}
               {!conges?.length && <p>Aucun congé enregistré.</p>}

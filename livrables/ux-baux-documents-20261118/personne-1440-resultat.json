@@ -1,0 +1,10 @@
+{
+  "largeur": 1440,
+  "destination": "http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/personnes/db8b2cc3-395e-4203-bb15-f7d448a71ac3#pieces",
+  "titre": [
+    "Martin Jeanne"
+  ],
+  "annuaireAccessible": true,
+  "recherchePersonne": true,
+  "justificatifsAccessibles": true
+}

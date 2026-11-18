@@ -1,0 +1,24 @@
+[33m[MIXED_EXPORTS] [0mEntry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[33m[MIXED_EXPORTS] [0mEntry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+[33m[MIXED_EXPORTS] [0mEntry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /private/tmp/gerimmo-ux-accueil-20261118/app
+
+
+ Test Files  5 passed (5)
+      Tests  91 passed (91)
+   Start at  10:09:37
+   Duration  892ms (transform 828ms, setup 59ms, import 1.49s, tests 342ms, environment 0ms)
+

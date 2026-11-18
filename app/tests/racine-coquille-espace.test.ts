@@ -17,7 +17,6 @@ const m = vi.hoisted(() => ({
   alertes: vi.fn(async () => []),
   compter: vi.fn(),
   charger: vi.fn(),
-  carte: vi.fn(),
   rappels: vi.fn(),
   navigation: vi.fn(),
   client: null as unknown,
@@ -69,15 +68,6 @@ vi.mock("@/components/rappels-loyers", () => ({ RappelsLoyers: (p: { lectureSeul
   m.rappels(p);
   return createElement("div", { "data-rappels-loyers": true });
 } }));
-// La fenêtre est fermée au premier rendu réel. Ce témoin expose son contenu serveur
-// pour vérifier les destinations, et conserve les compteurs transmis à la carte.
-vi.mock("@/components/carte-verifications", () => ({
-  CarteVerifications: (p: { children: ReactNode }) => {
-    m.carte(p);
-    return createElement("div", { "data-demandes": true }, p.children);
-  },
-}));
-
 import LayoutAgence from "@/app/agence/[orgId]/layout";
 import { AccueilProprietaire } from "@/app/agence/[orgId]/accueil-proprietaire";
 import PageEspaces from "@/app/espaces/page";
@@ -136,7 +126,7 @@ describe("la coquille de l'espace (layout) : contexte, barres, recherche, menu d
       expect(html).toContain(`data-barre="${p.racine}"`);
       expect(html).toContain(`data-barre-basse="${p.racine}"`);
       expect(html).toContain(`data-recherche="${p.racine}"`);
-      // Le plan du jour (pastille « Alertes ») compose ses liens sous la même racine. La fenêtre du propriétaire reprend les demandes de son accueil.
+      // Le plan du jour compose ses liens sous la même racine ; les demandes du propriétaire restent dans son accueil.
       if (p.proprietaire) expect(m.charger).toHaveBeenCalledWith(db, ORG, expect.objectContaining({ racine: p.racine }));
       else expect(m.compter).toHaveBeenCalledWith(db, ORG, expect.objectContaining({ racine: p.racine }));
       // Menu du compte (profil), lien de l'essai (responsables seulement), entrées de navigation.
@@ -147,6 +137,13 @@ describe("la coquille de l'espace (layout) : contexte, barres, recherche, menu d
       for (const l of liens) expect(l.startsWith(`${base}`), l).toBe(true);
       if (p.proprietaire) expect(html).not.toContain("data-aide=");
       else expect(html).toContain('data-aide=""');
+      if (p.proprietaire) {
+        expect(html).not.toContain("data-alertes-client");
+        expect(html).not.toContain("Vos relances de loyer se préparent en PDF");
+      } else {
+        expect(html).toContain("data-alertes-client");
+        expect(html).toContain("Vos relances de loyer se préparent en PDF");
+      }
       expect(html).not.toContain(p.interdit);
     });
   }
@@ -198,7 +195,8 @@ describe("l'accueil du propriétaire direct (servi au seul propriétaire direct)
     const html = renderToStaticMarkup((await AccueilProprietaire({ supabase: db as never, orgId: ORG, organisation: { name: "Parc TEST", status: "active", essai_fin: null }, userId: "compte" })) as never);
     expect(m.charger).toHaveBeenCalledWith(db, ORG, expect.objectContaining({ racine: "/espace" }));
     // La demande et le lot à configurer restent deux actions distinctes, le lot est accessible depuis le parcours de démarrage.
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ base: `/espace/${ORG}`, total: 1, loyersAConfirmer: 0, indisponible: false }));
+    expect(html).toContain('id="taches-proprietaire"');
+    expect(html).toContain("Assurance TEST");
     const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((x) => x[1]).filter((h) => h.startsWith("/agence") || h.startsWith("/espace"));
     // Encaissé, lots, récapitulatif fiscal, alertes, rang « Traiter », lots sans bail et réglages.
     expect(hrefs).toEqual(expect.arrayContaining([
@@ -245,12 +243,14 @@ describe("accueil : un seul geste pour chaque loyer à confirmer", () => {
   it("compte une seule demande sans répéter un impayé présenté dans la confirmation", async () => {
     const html = await rendre();
     expect(html).not.toContain("Loyer en retard TEST");
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ total: 1, loyersAConfirmer: 1, critiques: 0, indisponible: false, apercu: "Réception du loyer à confirmer" }));
+    expect(html).toContain("1 échéance à vérifier");
+    expect(html.match(/Confirmer les loyers reçus/g)).toHaveLength(1);
   });
   it("conserve l’action si la lecture de la confirmation échoue", async () => {
     const html = await rendre({}, true);
     expect(html).toContain("Loyer en retard TEST");
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ total: 1, loyersAConfirmer: 0, critiques: 1, indisponible: true }));
+    expect(html).toContain("La liste peut être incomplète");
+    expect(html).not.toContain("Confirmer les loyers reçus");
   });
   it("place les demandes critiques avant les loyers, puis les autres vérifications", async () => {
     m.charger.mockResolvedValue({
@@ -264,31 +264,34 @@ describe("accueil : un seul geste pour chaque loyer à confirmer", () => {
     const db = client(table => table === "rappels_loyers_proprietaire" ? [rappel] : []);
     const html = renderToStaticMarkup(await AccueilProprietaire({ supabase: db as never, orgId: ORG, organisation: { name: "Parc", status: "active", essai_fin: null }, userId: "compte" }));
     const avant = html.indexOf("Urgence TEST");
-    const loyers = html.indexOf('data-rappels-loyers="true"');
+    const loyers = html.indexOf("Confirmer les loyers reçus");
     const apres = html.indexOf("Vérification TEST");
     expect(avant).toBeGreaterThanOrEqual(0);
     expect(loyers).toBeGreaterThan(avant);
     expect(apres).toBeGreaterThan(loyers);
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ total: 3, loyersAConfirmer: 1, critiques: 1, apercu: "Urgence TEST" }));
+    expect(html).toContain('aria-label="3 tâches connues"');
+    expect(html).toContain('data-rappels-loyers="true"');
   });
   it.each([{ date_echeance: "2099-01-05" }, { montant_couvert: 800 }])("ne masque pas un blocage absent des confirmations : %j", async patch => {
     expect(await rendre(patch)).toContain("Loyer en retard TEST");
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ loyersAConfirmer: 0 }));
+    expect(await rendre(patch)).not.toContain("Confirmer les loyers reçus");
   });
   it("compte chaque échéance due dans la carte, même si la fenêtre ne présente que la plus ancienne du bail", async () => {
     m.charger.mockResolvedValue({ plan: { surLesBaux: [], enRetard: [], aVenir: [], total: 0 }, erreurs: { alertes: false, rapports: false } });
     const db = client(table => table === "rappels_loyers_proprietaire" ? [rappel, {
       ...rappel, appel_id: "suivant", periode: "2020-02-01", date_echeance: "2020-02-05",
     }] : []);
-    renderToStaticMarkup(await AccueilProprietaire({ supabase: db as never, orgId: ORG, organisation: { name: "Parc", status: "active", essai_fin: null }, userId: "compte" }));
+    const html = renderToStaticMarkup(await AccueilProprietaire({ supabase: db as never, orgId: ORG, organisation: { name: "Parc", status: "active", essai_fin: null }, userId: "compte" }));
     // Audit du 27/10 (LAT-03) : « 2 loyers à confirmer » ; la ligne du bail annonce l'autre mois et le total.
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ total: 2, loyersAConfirmer: 2 }));
+    expect(html).toContain("2 échéances à vérifier");
+    expect(html.match(/Confirmer les loyers reçus/g)).toHaveLength(1);
   });
   it("revient à une carte sans demande après réception de tous les loyers", async () => {
     m.charger.mockResolvedValue({ plan: { surLesBaux: [], enRetard: [], aVenir: [], total: 0 }, erreurs: { alertes: false, rapports: false } });
     const db = client(table => table === "rappels_loyers_proprietaire" ? [{ ...rappel, montant_couvert: 800 }] : []);
-    renderToStaticMarkup(await AccueilProprietaire({ supabase: db as never, orgId: ORG, organisation: { name: "Parc", status: "active", essai_fin: null }, userId: "compte" }));
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ total: 0, loyersAConfirmer: 0, indisponible: false, apercu: null }));
+    const html = renderToStaticMarkup(await AccueilProprietaire({ supabase: db as never, orgId: ORG, organisation: { name: "Parc", status: "active", essai_fin: null }, userId: "compte" }));
+    expect(html).not.toContain("Confirmer les loyers reçus");
+    expect(html).not.toContain("Loyer en retard TEST");
   });
   it("conserve la lecture seule jusqu'au formulaire de réception", async () => {
     await rendre({}, false, true);

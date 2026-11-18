@@ -82,6 +82,13 @@
 :global(.espace-proprietaire) :global(.coquille-corps):has(> .page) { background:#fafaf8; }
 .rechercheLogement { display:grid; gap:6px; margin-bottom:12px; font-size:13px; color:#42566d; }.rechercheLogement input { min-height:44px; width:100%; padding:9px 12px; border:1px solid #dfe5eb; border-radius:7px; font-size:16px; background:#fff; }.choixLogements { max-height:360px; overflow-y:auto; }
 
+.demarrage :global(.loc-carte) { margin:0; padding:20px; border:1px solid #dac8a7; border-radius:9px; background:linear-gradient(110deg,#fffaf0,#fff); }
+.demarrage h2 { font-family:var(--font-display,Georgia),serif; font-size:24px; }
+.suiviPrioritaire { padding:0 16px; border:1px solid #e4e7ec; border-radius:8px; background:#fff; }
+.suiviPrioritaire > summary { padding:12px 0; min-height:44px; cursor:pointer; color:#294d72; font-size:13px; font-weight:600; }
+.suiviPrioritaire > div { padding-bottom:16px; scroll-margin-top:90px; }
+@media(max-width:600px) { .demarrage :global(.loc-carte) { padding:16px; }.demarrage h2 { font-size:22px; } }
+
 /* Accueil compact : même contenu, moins de hauteur et des accents plus discrets. */
 .page { gap:12px; }
 .indicateur { min-height:94px; padding:11px 21px 11px 61px; gap:2px; box-shadow:none; }

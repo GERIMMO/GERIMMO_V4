@@ -1,5 +1,5 @@
 import { LienSectionIncident } from "@/components/lien-section-incident";
-import { ConsigneIncidentProprietaire } from "@/components/repere-incident-proprietaire";
+import { PrioriteIncident, RubriqueIncident } from "@/components/navigation-incident";
 import { consigneMission } from "@/lib/consigne-incident";
 import { EchangesIntervention } from "@/components/echanges-intervention";
 import { MessageReseau, InteretReseau } from "@/components/disponibilite-reseau";
@@ -509,15 +509,26 @@ export async function VoletArtisan({
       ? compteRenduCourant.montant_final_cents - devisRetenu.montant_ttc_cents
       : null;
 
+  const devisAttendu = consultationOuverte && devis.find(d => d.statut === "depose" && d.valide_jusqu_au >= aujourdhui && sollicitations.some(sol => sol.id === d.sollicitation_id && sol.consultation_id === consultationOuverte.id));
+  const consigne = mission ? consigneMission(mission, creneauxEnAttente, !lotId, Boolean(erreurCreneaux || erreurComptesRendus)) : null;
+
   return (
     <div className="space-y-4">
       <EchecLecture quoi={lecturesManquees} />
+      {estProprietaire && <>
+        {lecturesManquees.length > 0 && <PrioriteIncident id="lecture" action={{ titre: "Vérifier les informations indisponibles", cible: "intervention", responsable: "Vous", priorite: 120, etat: "Suivi à vérifier" }}/>}
+        {revisionAttendue && <PrioriteIncident id="revision" action={{ titre: "Décider de la prise en charge après diagnostic", cible: "revision-imputation", responsable: "Vous", priorite: 110 }}/>}
+        {devisAttendu && <PrioriteIncident id="devis" action={{ titre: "Examiner les devis et choisir", cible: "devis-incident", responsable: "Vous", priorite: 85, etat: "Devis reçu", echeance: `Valable jusqu’au ${formaterDate(devisAttendu.valide_jusqu_au)}` }}/>}
+        {consultationOuverte && !devisAttendu && !mission && <PrioriteIncident id="attente-devis" action={{ titre: "Suivre les demandes de devis", cible: "devis-incident", responsable: "Artisans sollicités", priorite: 20, etat: "Devis attendu" }}/>}
+        {mission && consigne && !["terminee", "annulee", "refusee"].includes(mission.statut) && <PrioriteIncident id="mission" action={{ titre: consigne.liens?.[0]?.titre ?? consigne.titre, cible: consigne.liens?.[0]?.cible ?? `mission-${mission.id}`, responsable: mission.debut_prevu ? nom(mission.artisan_id) : creneauxEnAttente[0]?.propose_par === "artisan" && lotId ? "Locataire" : creneauxEnAttente[0]?.propose_par === "locataire" ? nom(mission.artisan_id) : consigne.attente ? nom(mission.artisan_id) : "Vous et les participants", priorite: 30, etat: mission.statut === "en_cours" ? "Intervention en cours" : ["proposee", "confiee"].includes(mission.statut) ? "Artisan sollicité" : mission.debut_prevu ? "Rendez-vous prévu" : "Rendez-vous à organiser", echeance: mission.debut_prevu ? `Prévu le ${formaterDateHeure(mission.debut_prevu)}` : undefined }}/>}
+        {mission?.statut === "terminee" && !noteDuGerant && !erreurEvaluations && <PrioriteIncident id="evaluation" action={{ titre: `Noter ${nom(mission.artisan_id)}`, cible: `notation-${mission.id}`, responsable: "Vous", priorite: 15, etat: "Intervention réalisée" }}/>}
+      </>}
 
       {/* ─── RM-7.5.3 : la révision d'imputation passe AVANT tout le reste ───
           L'artisan est le seul à avoir vu la cause réelle ; l'agent tranche, et
           il doit trancher avant la facture. */}
       {revisionAttendue && compteRenduCourant && (
-        <Card data-tone="critical">
+        <RubriqueIncident rubrique="suivi"><Card id="revision-imputation" data-tone="critical">
           <CardHeader>
             <p className="eyebrow" style={{ color: "var(--destructive)" }}>
               L&apos;artisan signale une autre cause — à trancher avant facturation
@@ -541,15 +552,14 @@ export async function VoletArtisan({
             </div>
             <FormulaireRevisionImputation orgId={orgId} incidentId={incidentId} />
           </CardContent>
-        </Card>
+        </Card></RubriqueIncident>
       )}
 
       {/* ─── La mission en cours, ou la dernière en date ─────────────────── */}
-      {estProprietaire && mission && ["affecte", "en_cours"].includes(etat) && <ConsigneIncidentProprietaire consigne={consigneMission(mission, creneauxEnAttente, !lotId, Boolean(erreurCreneaux || erreurComptesRendus))}/>}
 
       {mission && !estProprietaire && <EchangesIntervention intervention={mission.id} />}
       {mission && (
-        <Card className={estProprietaire ? "incident-carte-intervention" : undefined}>
+        <RubriqueIncident rubrique="suivi"><Card id={`mission-${mission.id}`} className={estProprietaire ? "incident-carte-intervention" : undefined}>
           <CardHeader>
             <div className="entete-carte !mb-0">
               <CardTitle className="text-base">
@@ -665,8 +675,8 @@ export async function VoletArtisan({
                 restent au dossier, un refus persistant est opposable
                 (RM-10.4.4). */}
             {creneaux.filter((c) => c.intervention_id === mission.id).length > 0 && (
-              <div>
-                <p className="libelle-champ mb-1">Créneaux</p>
+              <details open={!estProprietaire}>
+                <summary className="min-h-11 cursor-pointer content-center text-sm font-medium">Voir toutes les propositions de rendez-vous</summary>
                 {creneaux
                   .filter((c) => c.intervention_id === mission.id)
                   .map((c) => (
@@ -708,7 +718,7 @@ export async function VoletArtisan({
                       </span>
                     </div>
                   ))}
-              </div>
+              </details>
             )}
 
             {/* RM-10.4.1 : l'arbitrage. Ouvert dès que la mission est acceptée —
@@ -817,7 +827,7 @@ export async function VoletArtisan({
                 dès que l'intervention est terminée, sans attendre la clôture —
                 l'agent a le chantier en tête maintenant. */}
             {mission.statut === "terminee" && !noteDuGerant && (
-              <details className="border-t border-border pt-3" open>
+              <details id={`notation-${mission.id}`} className="border-t border-border pt-3" open={!estProprietaire}>
                 <summary className="cursor-pointer text-sm font-medium">
                   Noter {nom(mission.artisan_id)}
                 </summary>
@@ -859,14 +869,15 @@ export async function VoletArtisan({
               </details>
             )}
           </CardContent>
-        </Card>
+        </Card></RubriqueIncident>
       )}
 
-      {mission && estProprietaire && <details id={`messages-${mission.id}`} className="incident-messages"><summary>Échanges avec les participants</summary><EchangesIntervention intervention={mission.id}/></details>}
+      {mission && estProprietaire && <RubriqueIncident rubrique="echanges"><details open id={`messages-${mission.id}`} className="incident-messages"><summary>Échanges avec les participants</summary><EchangesIntervention intervention={mission.id}/></details></RubriqueIncident>}
 
       {/* ─── La mise en concurrence ouverte ──────────────────────────────── */}
+      {estProprietaire && devisRetenu && <RubriqueIncident rubrique="devis"><section className="rounded-xl border border-border bg-card p-4 space-y-2"><h3 className="font-semibold">Devis retenu — {montant(devisRetenu.montant_ttc_cents)}</h3><p className="text-sm">{nom(devisRetenu.artisan_id)}</p>{devisRetenu.document_id && <Link className="inline-flex min-h-11 items-center text-sm underline" href={`${base}/documents/${devisRetenu.document_id}/fichier`}>Consulter le devis retenu</Link>}</section></RubriqueIncident>}
       {consultationOuverte && (
-        <div className="space-y-3">
+        <RubriqueIncident rubrique="devis"><div id="devis-incident" className="space-y-3">
         {bienId && disponibiliteOuverte && <><MessageReseau orgId={orgId} bienId={bienId} disponibilite={disponibiliteOuverte} /><InteretReseau key={`${bienId}-${disponibiliteOuverte.metier}-${disponibiliteOuverte.nature}`} orgId={orgId} bienId={bienId} disponibilite={disponibiliteOuverte} /></>}
         <ConsultationOuverte
           orgId={orgId}
@@ -884,12 +895,12 @@ export async function VoletArtisan({
           carnetBien={carnetBien}
           estProprietaire={estProprietaire}
         />
-        </div>
+        </div></RubriqueIncident>
       )}
 
       {/* ─── Ouvrir une (nouvelle) mise en concurrence ───────────────────── */}
       {!consultationOuverte && etat === "qualifie" && (
-        <Card className="incident-recherche-artisan border-l-[3px] border-l-[var(--or)]">
+        <RubriqueIncident rubrique="suivi"><Card className="incident-recherche-artisan border-l-[3px] border-l-[var(--or)]">
           <CardHeader>
             {estProprietaire ? <CardTitle className="text-base">{consultations.length > 0 ? "Choisir un autre artisan" : "Faire intervenir un artisan"}</CardTitle> : <p className="eyebrow" style={{ color: "var(--or-texte)" }}>
               {consultations.length > 0 ? "Réaffecter" : "Confier à un artisan"}
@@ -914,13 +925,13 @@ export async function VoletArtisan({
             />
             {estProprietaire && <div className="incident-solution-alternative"><LienSectionIncident cible="cloture">Le problème est déjà réglé →</LienSectionIncident></div>}
           </CardContent>
-        </Card>
+        </Card></RubriqueIncident>
       )}
 
       {/* Les tours précédents restent au dossier : deux consultations sur un
           même incident racontent une réaffectation, pas un doublon. */}
       {consultations.filter((c) => c.statut !== "ouverte").length > 0 && (
-        <Card size="sm">
+        <RubriqueIncident rubrique="historique"><Card size="sm">
           <CardContent className="text-sm text-muted-foreground">
             {consultations.filter((c) => c.statut !== "ouverte").length} mise
             {consultations.filter((c) => c.statut !== "ouverte").length > 1 ? "s" : ""} en
@@ -928,7 +939,7 @@ export async function VoletArtisan({
             {consultations.filter((c) => c.statut !== "ouverte").length > 1 ? "s" : ""} sur
             ce dossier — le détail des devis et des refus est dans la chronologie.
           </CardContent>
-        </Card>
+        </Card></RubriqueIncident>
       )}
     </div>
   );

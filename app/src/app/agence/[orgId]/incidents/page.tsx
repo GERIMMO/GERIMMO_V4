@@ -70,13 +70,15 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
     vue?: string;
     sel?: string;
   };
-  const vue = VUES.some((v) => v.cle === vueBrute) ? vueBrute! : "en-cours";
+
   const sel = typeof selBrut === "string" && selBrut ? selBrut : null;
   // estProprietaire : en gestion directe, le « gestionnaire » c'est lui —
   // la page lui parle à la deuxième personne (tour du 24/09).
   const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
   // Décision D27 : les écrans du propriétaire direct vivent sous /espace/<id>, ceux des agences sous /agence/<id>.
   const base = baseEspace(orgId, estProprietaire);
+  const vueDefaut = estProprietaire ? "tous" : "en-cours";
+  const vue = VUES.some((v) => v.cle === vueBrute) ? vueBrute! : vueDefaut;
 
   // Revue 23/08 : un plafond global faisait sortir les plus VIEUX dossiers —
   // précisément ceux que la file « À traiter » ne doit jamais perdre. Les
@@ -197,7 +199,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
   // garde la sélection que si le dossier appartient encore à la vue cible.
   const lien = (vueCible: string, selCible: string | null) => {
     const params = new URLSearchParams();
-    if (vueCible !== "en-cours") params.set("vue", vueCible);
+    if (vueCible !== vueDefaut) params.set("vue", vueCible);
     if (selCible) params.set("sel", selCible);
     const q = params.toString();
     return `${base}/incidents${q ? `?${q}` : ""}`;
@@ -245,7 +247,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
       {/* La file de notation. Discrète — le module 11 insiste : la note ne
           bloque rien, elle se propose. Un lien par dossier, pas une modale :
           on note en rouvrant l'intervention, avec le chantier sous les yeux. */}
-      {aEvaluer.length > 0 && (
+      {aEvaluer.length > 0 && (!estProprietaire || !sel) && (
         <div className="mb-4 border-l-2 border-l-[var(--or)] bg-[var(--survol)] px-3.5 py-2.5 text-sm">
           <p className="font-medium">
             {aEvaluer.length} intervention{aEvaluer.length > 1 ? "s" : ""} terminée

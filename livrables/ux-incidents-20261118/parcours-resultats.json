@@ -1,0 +1,70 @@
+[
+  {
+    "profil": "nom-propre",
+    "width": 390,
+    "resultat": "réussi",
+    "checks": [
+      "notation accessible et facture sans paiement",
+      "quatre rubriques",
+      "devis 100 € et facture cohérents",
+      "saisie conservée entre onglets sans soumission",
+      "échanges fermés consultables",
+      "historique complet",
+      "ancienne ancre clôture",
+      "propositions repliées et accessibles",
+      "Tous par défaut",
+      "aucune erreur JavaScript"
+    ]
+  },
+  {
+    "profil": "nom-propre",
+    "width": 1440,
+    "resultat": "réussi",
+    "checks": [
+      "notation accessible et facture sans paiement",
+      "quatre rubriques",
+      "devis 100 € et facture cohérents",
+      "saisie conservée entre onglets sans soumission",
+      "échanges fermés consultables",
+      "historique complet",
+      "ancienne ancre clôture",
+      "propositions repliées et accessibles",
+      "Tous par défaut",
+      "aucune erreur JavaScript"
+    ]
+  },
+  {
+    "profil": "sci",
+    "width": 390,
+    "resultat": "réussi",
+    "checks": [
+      "notation accessible et facture sans paiement",
+      "quatre rubriques",
+      "devis 100 € et facture cohérents",
+      "saisie conservée entre onglets sans soumission",
+      "échanges fermés consultables",
+      "historique complet",
+      "ancienne ancre clôture",
+      "propositions repliées et accessibles",
+      "Tous par défaut",
+      "aucune erreur JavaScript"
+    ]
+  },
+  {
+    "profil": "sci",
+    "width": 1440,
+    "resultat": "réussi",
+    "checks": [
+      "notation accessible et facture sans paiement",
+      "quatre rubriques",
+      "devis 100 € et facture cohérents",
+      "saisie conservée entre onglets sans soumission",
+      "échanges fermés consultables",
+      "historique complet",
+      "ancienne ancre clôture",
+      "propositions repliées et accessibles",
+      "Tous par défaut",
+      "aucune erreur JavaScript"
+    ]
+  }
+]

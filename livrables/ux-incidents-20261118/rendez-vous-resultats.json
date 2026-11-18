@@ -1,0 +1,30 @@
+[
+  {
+    "profil": "nom-propre",
+    "width": 390,
+    "resultat": "réussi",
+    "action": "Ce qu’il vous reste à faire\nRendez-vous prévu\nLe rendez-vous est fixé →\n\nResponsable : E2E Plomberie Dubois · Prévu le 30/11/2026 08:00",
+    "aucune_ecriture": true
+  },
+  {
+    "profil": "nom-propre",
+    "width": 1440,
+    "resultat": "réussi",
+    "action": "Ce qu’il vous reste à faire\nRendez-vous prévu\nLe rendez-vous est fixé →\n\nResponsable : E2E Plomberie Dubois · Prévu le 30/11/2026 08:00",
+    "aucune_ecriture": true
+  },
+  {
+    "profil": "sci",
+    "width": 390,
+    "resultat": "réussi",
+    "action": "Ce qu’il vous reste à faire\nRendez-vous prévu\nLe rendez-vous est fixé →\n\nResponsable : E2E Plomberie Dubois · Prévu le 01/12/2026 08:00",
+    "aucune_ecriture": true
+  },
+  {
+    "profil": "sci",
+    "width": 1440,
+    "resultat": "réussi",
+    "action": "Ce qu’il vous reste à faire\nRendez-vous prévu\nLe rendez-vous est fixé →\n\nResponsable : E2E Plomberie Dubois · Prévu le 01/12/2026 08:00",
+    "aucune_ecriture": true
+  }
+]

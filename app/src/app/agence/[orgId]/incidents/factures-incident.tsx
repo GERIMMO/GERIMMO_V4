@@ -1,3 +1,4 @@
+import { PrioriteIncident } from "@/components/navigation-incident";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
@@ -33,6 +34,10 @@ type Reglement = {
   retrait_motif: string | null;
 };
 
+function FacturesIndisponibles({ quoi }: { quoi: string }) {
+  return <><PrioriteIncident id="lecture-factures" action={{ titre: "Vérifier les factures indisponibles", cible: "factures", responsable: "Vous", priorite: 120, etat: "Suivi à vérifier" }}/><EchecLecture quoi={[quoi]}/></>;
+}
+
 const COULEUR_ETAT: Record<string, string> = {
   deposee: "puce puce-rouge",
   validee: "puce puce-prep",
@@ -47,15 +52,15 @@ export async function FacturesIncident({orgId,incidentId,imputation,base=baseEsp
   // D20 (ART-21) : le rendez-vous prévu et la date de fin se lisent à côté de la facture, pour que le gérant voie
   // si le travail a été déclaré fait avant le rendez-vous confirmé avec le locataire.
   const {data: missions,error:em} = await supabase.from("incident_interventions").select("id,debut_prevu,terminee_le").eq("organization_id",orgId).eq("incident_id",incidentId);
-  if(em) return <EchecLecture quoi={["les factures de cette intervention"]}/>;
+  if(em) return <FacturesIndisponibles quoi="les factures de cette intervention"/>;
   if(!missions?.length) return null;
   const missionDe = new Map((missions as MissionFacturee[]).map(m=>[m.id,m]));
   const {data: factures,error} = await supabase.from("intervention_factures").select("id,intervention_id,numero,montant_ttc_cents,montant_reference_cents,ecart_justification,document_id,validee_le,decision_motif,imputation_validee,reglee_le").eq("organization_id",orgId).in("intervention_id",missions.map(m=>m.id));
-  if(error) return <EchecLecture quoi={["les factures de cette intervention"]}/>;
+  if(error) return <FacturesIndisponibles quoi="les factures de cette intervention"/>;
   if(!factures?.length) return null;
   // D23 : les règlements déclarés (lus par la politique de l'organisation ; l'écriture ne passe que par fonction).
   const {data: reglements,error:er} = await supabase.from("intervention_facture_reglements").select("id,facture_id,montant_cents,date_reglement,moyen,reference,created_at,retire_le,retrait_motif").eq("organization_id",orgId).in("facture_id",factures.map(f=>f.id)).order("date_reglement",{ascending:true}).order("created_at",{ascending:true});
-  if(er) return <EchecLecture quoi={["les factures de cette intervention et leurs règlements"]}/>;
+  if(er) return <FacturesIndisponibles quoi="les factures de cette intervention et leurs règlements"/>;
   const reglementsDe = (factureId:string) => ((reglements ?? []) as Reglement[]).filter(r=>r.facture_id===factureId);
   return <>{factures.map(f=>{
     const mission = missionDe.get(f.intervention_id);
@@ -63,7 +68,8 @@ export async function FacturesIncident({orgId,incidentId,imputation,base=baseEsp
     const termineAvant = termineLe !== null && avantRendezVous(mission?.debut_prevu, new Date(termineLe));
     const lignes = reglementsDe(f.id);
     const { etat, resteCents } = etatReglementFacture(f, lignes);
-    return <section key={f.id} className="incident-facture rounded-xl border border-[var(--filet)] bg-[var(--carte)] p-4 space-y-3">
+    return <section id={`facture-${f.id}`} key={f.id} className="incident-facture rounded-xl border border-[var(--filet)] bg-[var(--carte)] p-4 space-y-3">
+    {etat !== "reglee" && <PrioriteIncident id={`facture-${f.id}`} action={{ titre: etat === "deposee" ? "Vérifier la facture avant règlement" : "Déclarer un règlement déjà effectué", cible: `facture-${f.id}`, responsable: "Vous", priorite: etat === "deposee" ? 80 : 70, etat: "Facture à traiter" }}/>}
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="font-semibold">Facture {f.numero} — {eur(f.montant_ttc_cents / 100)} TTC</h3>
       <span className={COULEUR_ETAT[etat] ?? "puce puce-grise"}>{LIBELLES_ETAT_REGLEMENT[etat]}</span>

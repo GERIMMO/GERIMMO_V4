@@ -12,14 +12,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fauxClient, table, type BancFaux, type Ligne } from "./faux-postgrest";
 
-const etat = vi.hoisted(() => ({ supabase: null as unknown }));
+const etat = vi.hoisted(() => ({ supabase: null as unknown, proprietaire: false }));
 
 vi.mock("@/lib/espace", () => ({
   verifierAccesEspace: async () => ({
     supabase: etat.supabase,
     user: { id: "gerant-1" },
     role: "admin_agence",
-    estProprietaire: false,
+    estProprietaire: etat.proprietaire,
   }),
 }));
 // Le dossier ouvert à droite a ses propres lectures : il n'est pas l'objet de ce test.
@@ -85,6 +85,7 @@ function banc(): BancFaux {
 let donnees: BancFaux;
 
 beforeEach(() => {
+  etat.proprietaire = false;
   donnees = banc();
   etat.supabase = fauxClient(donnees, {
     org_membres_gerants: () => ({ data: [] }),
@@ -219,5 +220,28 @@ describe("sans échec de lecture", () => {
     expect(compte(html, "a-traiter")).toBe("0");
     expect(texte(html)).toContain("Rien dans cette vue");
     expect(html).not.toContain('role="alert"');
+  });
+});
+
+describe("entrée du propriétaire sur les incidents", () => {
+  it("ouvre Tous et retrouve un dossier clos même sans incident en cours", async () => {
+    etat.proprietaire = true;
+    donnees.incidents = table("incidents", [incident(8, "clos")]);
+    const html = await afficher("");
+    expect(html).toMatch(/aria-current="page"[^>]*data-vue="tous"/);
+    expect(rangs(html).map(([numero]) => numero)).toEqual(["INC-0008"]);
+  });
+  it("respecte un filtre En cours demandé explicitement", async () => {
+    etat.proprietaire = true;
+    donnees.incidents = table("incidents", [incident(8, "clos")]);
+    const html = await afficher("en-cours");
+    expect(html).toMatch(/aria-current="page"[^>]*data-vue="en-cours"/);
+    expect(rangs(html)).toEqual([]);
+    expect(html).toContain('href="/espace/org-a/incidents"');
+  });
+  it("conserve le filtre par défaut de l’agence", async () => {
+    const html = await afficher("");
+    expect(html).toMatch(/aria-current="page"[^>]*data-vue="en-cours"/);
+    expect(rangs(html)).toHaveLength(9);
   });
 });

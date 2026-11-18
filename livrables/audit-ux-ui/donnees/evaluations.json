@@ -944,5 +944,170 @@
   "coherence": null,
   "defauts": "Fenêtre non déclenchée sur le banc (aucune alerte confiée nominativement) : non évaluée.",
   "lot": 5
+ },
+ "P39": {
+  "profil": "Propriétaire débutant (un logement)",
+  "url": "/espace/…",
+  "ecran": "Tableau de bord (débutant)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Le meilleur état de l’accueil : « 640,00 € sur 640,00 € » avec barre de progression, 3 événements concrets ; restent le bandeau « suspendus » et le jargon « TEOM » ; échéance passée en rouge.",
+  "lot": 6
+ },
+ "P40": {
+  "profil": "Propriétaire débutant (un logement)",
+  "url": "/espace/…/parc",
+  "ecran": "Biens (un seul bien)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 3,
+  "defauts": "Avec un seul bien, la moitié droite reste « Sélectionnez un bien » au lieu d’ouvrir la fiche.",
+  "lot": 6
+ },
+ "P41": {
+  "profil": "Propriétaire débutant (un logement)",
+  "url": "/espace/…/loyers",
+  "ecran": "Finances (débutant)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 3,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Montants justes et cohérents (640 demandés, 640 réglés, 0 restant) ; chaque montant dans sa propre boîte, lourd au téléphone ; « Gérer les 1 loyers ».",
+  "lot": 6
+ },
+ "P42": {
+  "profil": "Propriétaire débutant (un logement)",
+  "url": "/espace/…/comptabilite",
+  "ecran": "Livre recettes-dépenses (débutant)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 3,
+  "esthetique": 4,
+  "coherence": 3,
+  "defauts": "Une écriture bien lisible ; vocabulaire comptable (« Clôture », « Quittancement », « Corriger une écriture »).",
+  "lot": 6
+ },
+ "P43": {
+  "profil": "Propriétaire débutant (un logement)",
+  "url": "/espace/…/personnes",
+  "ecran": "Personnes (débutant)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 3,
+  "defauts": "Clair ; adresse de connexion technique affichée (données du banc).",
+  "lot": 6
+ },
+ "P44": {
+  "profil": "Propriétaire — compte neuf (vide)",
+  "url": "/espace/…",
+  "ecran": "Tableau de bord (compte neuf)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Bon guidage « Terminer votre première location 1/6 — Ajouter un bien » ; mais tuiles à zéro et cinq actions rapides dont quatre impossibles sans bien ; bandeau « suspendus » dès le premier écran.",
+  "lot": 6
+ },
+ "P45": {
+  "profil": "Propriétaire — compte neuf (vide)",
+  "url": "/espace/…/parc",
+  "ecran": "Biens (compte neuf)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Bon état vide (« Votre parc est vide — Créer mon premier bien », reprise par tableur) ; petite carte dans un grand vide à 1440.",
+  "lot": 6
+ },
+ "P46": {
+  "profil": "Propriétaire — compte neuf (vide)",
+  "url": "/espace/…/loyers",
+  "ecran": "Finances (compte neuf)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 2,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Neuf boîtes à « 0,00 € », « Clôturer un mois » proposé sans aucune donnée ; aucun renvoi vers « Ajouter un bien ».",
+  "lot": 6
+ },
+ "P47": {
+  "profil": "Propriétaire — compte neuf (vide)",
+  "url": "/espace/…/comptabilite",
+  "ecran": "Livre recettes-dépenses (compte neuf)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 2,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Écran comptable vide (« Aucune écriture pour l’instant — Ajouter une écriture ») avant même le premier bien.",
+  "lot": 6
+ },
+ "P48": {
+  "profil": "Propriétaire — compte neuf (vide)",
+  "url": "/espace/…/documents",
+  "ecran": "Documents (compte neuf)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Bon état vide avec « Déposer un document ».",
+  "lot": 6
+ },
+ "P49": {
+  "profil": "Propriétaire — compte neuf (vide)",
+  "url": "/espace/…/incidents",
+  "ecran": "Incidents (compte neuf)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Bon état vide (« Aucun incident déclaré »), action claire.",
+  "lot": 6
+ },
+ "P50": {
+  "profil": "Propriétaire débutant (un logement)",
+  "url": "/espace/…/baux/…",
+  "ecran": "Bail actif (débutant)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 3,
+  "esthetique": 4,
+  "coherence": 3,
+  "defauts": "Bloc « À faire maintenant » utile (pièces, état des lieux, dépôt de garantie à encaisser) ; mêmes volets imbriqués que P28.",
+  "lot": 6
+ },
+ "P51": {
+  "profil": "Propriétaire débutant (un logement)",
+  "url": "/espace/…/baux/…/edl/…",
+  "ecran": "État des lieux d’entrée (étape 1)",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Assistant en 4 étapes clair, sélecteur d’étape au téléphone ; champs obligatoires nombreux dès l’étape 1 (détecteur de fumée, attestation, observations).",
+  "lot": 6
+ },
+ "P52": {
+  "profil": "Propriétaire débutant (un logement)",
+  "url": "/espace/…/diagnostics/… → fiche du logement",
+  "ecran": "Fiche du logement avec données réelles",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 3,
+  "esthetique": 4,
+  "coherence": 3,
+  "defauts": "La fiche diagnostic renvoie vers la fiche du logement ; contenu riche et juste (loyer, encaissements, diagnostics, historique) mais très long au téléphone.",
+  "lot": 6
+ },
+ "P53": {
+  "profil": "Propriétaire débutant (un logement)",
+  "url": "/espaces",
+  "ecran": "Choix de l’espace",
+  "statut": "Vu : redirection",
+  "simplicite": null,
+  "esthetique": null,
+  "coherence": null,
+  "defauts": "Avec un seul espace : redirige vers l’accueil.",
+  "lot": 6
  }
 }

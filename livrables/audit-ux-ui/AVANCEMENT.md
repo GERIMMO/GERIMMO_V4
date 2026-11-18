@@ -19,7 +19,7 @@ données de parcours et recette v1-bailleurs, comptes fictifs). Téléphone (390
 | 3 — Super-admin, partie 2 | S20–S38 | Fait |
 | 4 — Propriétaire, partie 1 | P01–P19 | Fait |
 | 5 — Propriétaire, partie 2 | P20–P38 | Fait |
-| 6 — Propriétaire débutant, compte vide, fiches | P39–P53 | En cours |
-| 7 — Locataire | L01–L17 | À faire |
+| 6 — Propriétaire débutant, compte vide, fiches | P39–P53 | Fait |
+| 7 — Locataire | L01–L17 | En cours |
 | 8 — Artisan | A01–A20 | À faire |
 | 9 — Synthèse, recommandations, plan, verdict | — | À faire |

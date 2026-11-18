@@ -5,7 +5,6 @@ import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { IncidentsLocataire, type IncidentLocataire } from "../incidents-locataire";
 import { aEchoue, PanneLecture } from "../panne-lecture";
-import { ReflexesUrgence } from "../reflexes-urgence";
 import type { CreneauPropose, SuiviIntervention } from "./suivi-intervention";
 import { signalementOuvert } from "../types";
 import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
@@ -127,13 +126,7 @@ export default async function PageDemandesLocataire(
         </a>
       )}
 
-      {/* La consigne de sécurité reste ici ET accompagne désormais le
-          formulaire sur /incident : une consigne d'urgence ne se déménage
-          pas, elle se trouve là où le locataire atterrit. */}
-      <ReflexesUrgence
-        hrefSignalement={peutSignaler ? `/locataire/${orgId}/incident` : undefined}
-      />
-
+      {/* L’accès Urgence reste visible dans l’en-tête commun. */}
       {/* Chaque signalement porte sa propre carte, avec son fil d'étapes */}
       <IncidentsLocataire
         orgId={orgId}

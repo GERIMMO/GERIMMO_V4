@@ -53,9 +53,9 @@ export default async function PageSignalerIncident(
         </p>
       )}
 
+      <ReflexesUrgence surFormulaire={bailActif} />
       {bailActif ? (
         <>
-          <ReflexesUrgence surFormulaire />
           <FormulaireIncidentLocataire compteId={user.id} orgId={orgId} />
         </>
       ) : (

@@ -1,3 +1,4 @@
+import type { IdentiteContactLocataire } from "@/lib/identite-contact-locataire";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -47,25 +48,28 @@ export function Interlocuteur({ gestionnaire }: { gestionnaire: Gestionnaire }) 
 export function CarteGestionnaire({
   orgId,
   gestionnaire,
+  identite,
 }: {
   orgId: string;
   gestionnaire: Gestionnaire | undefined;
+  identite?: IdentiteContactLocataire;
 }) {
   if (!gestionnaire) return null;
-  const initiales = gestionnaire.agence
+  const nom = identite?.nom ?? "Identité du bailleur à confirmer";
+  const initiales = (identite?.nom ?? "")
     .split(/\s+/)
     .slice(0, 2)
     .map((m) => m[0]?.toUpperCase() ?? "")
     .join("");
   return (
     <div className="loc-carte">
-      <h2 className="titre-carte text-base font-medium">Mon gestionnaire</h2>
+      <h2 className="titre-carte text-base font-medium">{identite?.titre ?? "Mon bailleur"}</h2>
       <div className="mt-3 flex items-center gap-3">
         <span className="loc-avat loc-avat--gestionnaire" aria-hidden>
           {initiales || "◇"}
         </span>
         <span className="min-w-0">
-          <b className="block text-sm font-semibold">{gestionnaire.agence}</b>
+          <b className="block text-sm font-semibold">{nom}</b>
           <Interlocuteur gestionnaire={gestionnaire} />
         </span>
       </div>
@@ -74,7 +78,7 @@ export function CarteGestionnaire({
           href={`/locataire/${orgId}/contact`}
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
-          Contacter
+          Écrire
         </Link>
         {gestionnaire.telephone && (
           <a

@@ -1,0 +1,110 @@
+[
+  {
+    "profil": "actif",
+    "width": 390,
+    "resultat": "réussi",
+    "checks": [
+      "identité sans nom interne",
+      "état du bail explicite",
+      "documents disponibles par défaut",
+      "pièces secondaires accessibles",
+      "saisie conservée entre onglets",
+      "contact avant assistant replié",
+      "urgence et numéros accessibles",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ],
+    "message_envoye": false,
+    "document_depose": false
+  },
+  {
+    "profil": "actif",
+    "width": 1440,
+    "resultat": "réussi",
+    "checks": [
+      "identité sans nom interne",
+      "état du bail explicite",
+      "documents disponibles par défaut",
+      "pièces secondaires accessibles",
+      "saisie conservée entre onglets",
+      "contact avant assistant replié",
+      "urgence et numéros accessibles",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ],
+    "message_envoye": false,
+    "document_depose": false
+  },
+  {
+    "profil": "sci",
+    "width": 390,
+    "resultat": "réussi",
+    "checks": [
+      "identité sans nom interne",
+      "état du bail explicite",
+      "documents disponibles par défaut",
+      "pièces secondaires accessibles",
+      "saisie conservée entre onglets",
+      "contact avant assistant replié",
+      "urgence et numéros accessibles",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ],
+    "message_envoye": false,
+    "document_depose": false
+  },
+  {
+    "profil": "sci",
+    "width": 1440,
+    "resultat": "réussi",
+    "checks": [
+      "identité sans nom interne",
+      "état du bail explicite",
+      "documents disponibles par défaut",
+      "pièces secondaires accessibles",
+      "saisie conservée entre onglets",
+      "contact avant assistant replié",
+      "urgence et numéros accessibles",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ],
+    "message_envoye": false,
+    "document_depose": false
+  },
+  {
+    "profil": "preparation",
+    "width": 390,
+    "resultat": "réussi",
+    "checks": [
+      "identité sans nom interne",
+      "état du bail explicite",
+      "documents disponibles par défaut",
+      "pièces secondaires accessibles",
+      "saisie conservée entre onglets",
+      "contact avant assistant replié",
+      "urgence et numéros accessibles",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ],
+    "message_envoye": false,
+    "document_depose": false
+  },
+  {
+    "profil": "preparation",
+    "width": 1440,
+    "resultat": "réussi",
+    "checks": [
+      "identité sans nom interne",
+      "état du bail explicite",
+      "documents disponibles par défaut",
+      "pièces secondaires accessibles",
+      "saisie conservée entre onglets",
+      "contact avant assistant replié",
+      "urgence et numéros accessibles",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ],
+    "message_envoye": false,
+    "document_depose": false
+  }
+]

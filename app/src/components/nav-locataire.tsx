@@ -37,11 +37,13 @@ function Icone({ nom }: { nom: string }) {
 
 export function SidebarLocataire({
   orgId,
+  libelleContact = "Mon gestionnaire",
   badgeDocuments = 0,
   badgeDemandes = 0,
   badgeMessages = 0,
 }: {
   orgId: string;
+  libelleContact?: string;
   // Une pièce à déposer ou à renouveler (assurance…) attend dans Documents
   badgeDocuments?: number;
   // Signalements en cours
@@ -65,7 +67,7 @@ export function SidebarLocataire({
       aussi: `${base}/incident`,
       badge: badgeDemandes,
     },
-    { href: `${base}/contact`, libelle: "Mon gestionnaire", icone: "bulle", badge: badgeMessages },
+    { href: `${base}/contact`, libelle: libelleContact, icone: "bulle", badge: badgeMessages },
     { href: `/veille?public=locataire&retour=${encodeURIComponent(base)}`, libelle: "Les règles à connaître", icone: "doc" },
     { href: `${base}/faq`, libelle: "Questions fréquentes", icone: "quest" },
   ];
@@ -73,7 +75,7 @@ export function SidebarLocataire({
   // Le téléphone : les quatre gestes les plus fréquents d'un locataire, le
   // reste dans le tiroir « Menu » — dans l'ORDRE du menu latéral (24/09 :
   // Paiements passait devant Documents, à l'inverse du bureau).
-  const courts = ["Accueil", "Logement", "Documents", "Paiements", "Demandes", "Gestionnaire", "Règles", "Aide"];
+  const courts = ["Accueil", "Logement", "Documents", "Paiements", "Demandes", "Contact", "Règles", "Aide"];
   const principales = entrees.map((e, i) => ({
     href: e.href,
     libelle: e.libelle,

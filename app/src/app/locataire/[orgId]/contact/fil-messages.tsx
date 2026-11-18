@@ -67,7 +67,7 @@ export function FilMessages({
       ) : messages.length === 0 ? (
         <p className="mt-2 text-sm text-muted-foreground">
           Posez votre question ici : elle arrive directement chez votre
-          gestionnaire, et sa réponse restera conservée dans ce fil.
+          contact, et sa réponse restera conservée dans ce fil.
         </p>
       ) : (
         <div className="mt-3 space-y-2.5">
@@ -147,7 +147,7 @@ export function FilMessages({
           rows={3}
           maxLength={4000}
           className="mt-1 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm"
-          placeholder="Écrire à votre gestionnaire…"
+          placeholder="Votre question ou votre message…"
         />
         {etat.erreur && (
           <p className="err mt-2 !mb-0" role="alert">

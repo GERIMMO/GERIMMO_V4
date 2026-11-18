@@ -1,0 +1,44 @@
+{
+  "base": "f0ee0720e88b78369b9a99eadc7309ff211df464",
+  "branche": "codex/ux-accueil-proprietaire-20261118",
+  "date": "2026-11-18",
+  "tests_cibles": {
+    "reussis": 60,
+    "echecs": 0,
+    "ignores": 0,
+    "fichiers": 6
+  },
+  "parcours_navigateur": {
+    "reussis": 6,
+    "profils": [
+      "actif",
+      "preparation",
+      "sci"
+    ],
+    "largeurs": [
+      390,
+      1440
+    ],
+    "telephone_reel": false
+  },
+  "lectures_identite_isolation": {
+    "reussies": 3,
+    "environnement": "API locale authentifiée adossée à PostgreSQL fictif"
+  },
+  "invariants": {
+    "comparaisons": 18,
+    "champs_et_formulaires_conserves": true,
+    "montants_affiches_conserves": true,
+    "debordement_horizontal": 0
+  },
+  "controle_document_supplementaire": {
+    "liste_et_fenetre": "vérifiées",
+    "contenu_pdf": "non validé : fichier fictif absent du stockage local (404)"
+  },
+  "typescript": "réussi",
+  "eslint_cible": "réussi",
+  "migration": false,
+  "push": false,
+  "production_modifiee": false,
+  "sessions_et_cles_committees": false
+}

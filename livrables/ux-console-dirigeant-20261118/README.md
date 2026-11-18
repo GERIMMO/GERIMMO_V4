@@ -1,5 +1,7 @@
 # Console du dirigeant — chantier UX 8B
 
+**Clôture ciblée du 18 novembre : navigation ordinateur validée ; voir [le résultat complémentaire](CLOTURE.md). Le compte rendu ci-dessous conserve l’état historique de la première intervention.**
+
 18 novembre 2026. Base `debd04abaa563f06360143617b6ed443d0b1803f`, branche `codex/ux-accueil-proprietaire-20261118`. Recommandations 11, 27 et 28 du rapport Claude, relues depuis `origin/claude/audit-final-pr335`. Un seul agent. Aucun push, fusion, migration ni déploiement.
 
 ## Livré localement

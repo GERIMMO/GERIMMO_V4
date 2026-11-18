@@ -1,0 +1,200 @@
+{
+  "sha": "81642c5b54c4351e210a8e239050b2ca227c5e26",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "principales": 17,
+  "secondaires": 9,
+  "verifiees": 26,
+  "echecs_restants": 0,
+  "erreurs_javascript": 0,
+  "scripts_invalides": 0,
+  "resultats": [
+    {
+      "href": "/admin/brief",
+      "kind": "principal",
+      "title": "Aujourd’hui",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/brief?vue=decisions",
+      "kind": "principal",
+      "title": "Décisions à prendre",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/brief?vue=equipes",
+      "kind": "principal",
+      "title": "Équipes et comptes rendus",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/clients",
+      "kind": "principal",
+      "title": "Utilisateurs",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin",
+      "kind": "principal",
+      "title": "Abonnements et finances",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/artisans",
+      "kind": "principal",
+      "title": "Réseau d’artisans",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/autonomie?vue=dossiers",
+      "kind": "principal",
+      "title": "Activité et dossiers",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/retours",
+      "kind": "principal",
+      "title": "Assistance clients",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/marketing",
+      "kind": "principal",
+      "title": "Marketing et contenus",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/territoire",
+      "kind": "principal",
+      "title": "Développement commercial",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/sante",
+      "kind": "principal",
+      "title": "Santé et connexions",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/equipes",
+      "kind": "principal",
+      "title": "Automatismes et consignes",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/relais",
+      "kind": "principal",
+      "title": "Vacances et relais",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/autonomie?vue=ameliorations",
+      "kind": "principal",
+      "title": "Améliorations du produit",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/securite",
+      "kind": "principal",
+      "title": "Sécurité et conformité",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/journaux",
+      "kind": "principal",
+      "title": "Historique et sauvegardes",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/parametres",
+      "kind": "principal",
+      "title": "Paramètres généraux",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/marque-blanche",
+      "kind": "secondaire",
+      "title": "Personnalisation des agences",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/couverture",
+      "kind": "secondaire",
+      "title": "Réseau d’artisans",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/publications",
+      "kind": "secondaire",
+      "title": "Articles du site",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/devis",
+      "status": "OK",
+      "titre": "Demandes de contact",
+      "declenchement": "clic onglet réel",
+      "kind": "secondaire",
+      "rejeu_apres_compilation": true
+    },
+    {
+      "href": "/admin/liste-attente",
+      "status": "OK",
+      "titre": "Liste d’attente des agences",
+      "declenchement": "clic onglet réel",
+      "kind": "secondaire",
+      "rejeu_apres_compilation": true
+    },
+    {
+      "href": "/admin/consignes",
+      "kind": "secondaire",
+      "title": "Consignes du dirigeant",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/donnees",
+      "kind": "secondaire",
+      "title": "Demandes sur les données",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/conservation",
+      "kind": "secondaire",
+      "title": "Durées de conservation",
+      "status": "OK",
+      "overflow": 0
+    },
+    {
+      "href": "/admin/veille",
+      "kind": "secondaire",
+      "title": "Veille réglementaire",
+      "status": "OK",
+      "overflow": 0
+    }
+  ],
+  "detail": "Les deux délais initiaux sur devis/liste-attente sont conservés dans le journal brut ; leurs seuls scénarios ont été rejoués après compilation."
+}

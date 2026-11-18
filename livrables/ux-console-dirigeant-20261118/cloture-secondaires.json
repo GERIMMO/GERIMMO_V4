@@ -1,0 +1,17 @@
+{
+  "rows": [
+    {
+      "href": "/admin/devis",
+      "status": "OK",
+      "titre": "Demandes de contact",
+      "declenchement": "clic onglet réel"
+    },
+    {
+      "href": "/admin/liste-attente",
+      "status": "OK",
+      "titre": "Liste d’attente des agences",
+      "declenchement": "clic onglet réel"
+    }
+  ],
+  "errors": []
+}

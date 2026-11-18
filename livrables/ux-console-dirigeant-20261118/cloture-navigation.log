@@ -1,0 +1,33 @@
+principal /admin/brief Aujourd’hui
+principal /admin/brief?vue=decisions Décisions à prendre
+principal /admin/brief?vue=equipes Équipes et comptes rendus
+principal /admin/clients Utilisateurs
+principal /admin Abonnements et finances
+principal /admin/artisans Réseau d’artisans
+principal /admin/autonomie?vue=dossiers Activité et dossiers
+principal /admin/retours Assistance clients
+principal /admin/marketing Marketing et contenus
+principal /admin/territoire Développement commercial
+principal /admin/sante Santé et connexions
+principal /admin/equipes Automatismes et consignes
+principal /admin/relais Vacances et relais
+principal /admin/autonomie?vue=ameliorations Améliorations du produit
+principal /admin/securite Sécurité et conformité
+principal /admin/journaux Historique et sauvegardes
+principal /admin/parametres Paramètres généraux
+secondaire /admin/marque-blanche Personnalisation des agences
+secondaire /admin/couverture Réseau d’artisans
+secondaire /admin/publications Articles du site
+KO /admin/devis page.goto: Timeout 7000ms exceeded.
+Call log:
+[2m  - navigating to "http://localhost:3100/admin/territoire", waiting until "networkidle"[22m
+
+KO /admin/liste-attente page.waitForURL: Timeout 7000ms exceeded.
+=========================== logs ===========================
+waiting for navigation until "load"
+=====================
+secondaire /admin/consignes Consignes du dirigeant
+secondaire /admin/donnees Demandes sur les données
+secondaire /admin/conservation Durées de conservation
+secondaire /admin/veille Veille réglementaire
+{"pages":28,"failed":2,"errors":0,"parses":0}

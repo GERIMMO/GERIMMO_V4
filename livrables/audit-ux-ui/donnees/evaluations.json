@@ -938,12 +938,12 @@
   "profil": "Propriétaire (SCI, plusieurs biens)",
   "url": "/espace/… (première visite)",
   "ecran": "Fenêtre de synthèse des alertes",
-  "statut": "Non visualisée — condition non réunie sur le banc",
-  "simplicite": null,
-  "esthetique": null,
-  "coherence": null,
-  "defauts": "Fenêtre non déclenchée sur le banc (aucune alerte confiée nominativement) : non évaluée.",
-  "lot": 5
+  "statut": "Vu 390 · 768 · 1440 (revu au lot 8 bis)",
+  "simplicite": 3,
+  "esthetique": 4,
+  "coherence": 3,
+  "defauts": "Fenêtre qui interrompt la première visite pour dire seulement « 6 demandes à traiter — Retrouvez vos échéances et vos actions sur les dossiers dans Toutes les demandes ». Elle ne nomme aucune demande ; le bouton principal est « Fermer », l’accès aux demandes un petit lien.",
+  "lot": "5 (corrigé au lot 8 bis)"
  },
  "P39": {
   "profil": "Propriétaire débutant (un logement)",
@@ -1648,5 +1648,148 @@
   "coherence": 4,
   "defauts": "Confirmation « Compte rendu enregistré » et un seul bouton « Déposer ma facture ».",
   "lot": 8
+ },
+ "P54": {
+  "profil": "Propriétaire (SCI, plusieurs biens)",
+  "url": "/espace/…/incidents/…",
+  "ecran": "Incident — adresse directe",
+  "statut": "Vu : redirection",
+  "simplicite": null,
+  "esthetique": null,
+  "coherence": null,
+  "defauts": "Redirige vers la liste des incidents avec le dossier sélectionné (même écran que P30).",
+  "lot": "8 bis"
+ },
+ "P55": {
+  "profil": "Propriétaire (SCI, plusieurs biens)",
+  "url": "/espace/…/incidents?vue=tous",
+  "ecran": "Incidents — onglet « Tous »",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 3,
+  "defauts": "Avec « Tous », la liste montre les deux incidents et, à 1440, le premier s’ouvre à côté : c’est la vue qui devrait s’ouvrir par défaut (voir P13). Bandeau utile « 2 interventions terminées attendent votre note ».",
+  "lot": "8 bis"
+ },
+ "P56": {
+  "profil": "Propriétaire (SCI, plusieurs biens)",
+  "url": "/espace/…/agenda?vue=a-planifier",
+  "ecran": "Agenda — « Dates à confirmer »",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "État vide clair (« Aucune date à confirmer »), retour au calendrier proposé.",
+  "lot": "8 bis"
+ },
+ "P57": {
+  "profil": "Propriétaire (SCI, plusieurs biens)",
+  "url": "/espace/…/agenda?vue=a-verifier",
+  "ecran": "Agenda — « À vérifier »",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "État vide clair, même construction que l’onglet précédent.",
+  "lot": "8 bis"
+ },
+ "P58": {
+  "profil": "Propriétaire (SCI, plusieurs biens)",
+  "url": "/espace/…/agenda?vue=mois",
+  "ecran": "Agenda — vue du mois",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Calendrier mensuel lisible, légende, détail du jour à droite (1440) ou dessous (390).",
+  "lot": "8 bis"
+ },
+ "P59": {
+  "profil": "Propriétaire (SCI, plusieurs biens)",
+  "url": "/espace/…/comptabilite?vue=saisie",
+  "ecran": "Livre — « Ajouter une écriture »",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 2,
+  "esthetique": 3,
+  "coherence": 3,
+  "defauts": "Formulaire comptable : « écriture », « date d’imputation », « son mois comptable », champ « dont enlèvement des ordures ménagères » dans un formulaire générique, volet « Répartir une dépense entre plusieurs lots ».",
+  "lot": "8 bis"
+ },
+ "P60": {
+  "profil": "Propriétaire (SCI, plusieurs biens)",
+  "url": "/espace/…/comptabilite?vue=cloture",
+  "ecran": "Livre — « Clôture »",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 3,
+  "esthetique": 3,
+  "coherence": 3,
+  "defauts": "« Clôturer un mois — Fige les écritures du dernier mois révolu ; irréversible. Recommandé, jamais imposé. » : vocabulaire comptable et mot « irréversible » sans explication de ce que cela change pour le bailleur.",
+  "lot": "8 bis"
+ },
+ "P61": {
+  "profil": "Propriétaire (SCI, plusieurs biens)",
+  "url": "/espace/…/comptabilite?vue=journal",
+  "ecran": "Livre — « Journal »",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 3,
+  "esthetique": 3,
+  "coherence": 3,
+  "defauts": "Trois totaux « depuis l’origine », volet « Ce que comptent ces totaux », « Quittancement de novembre 2026 », journal vide : mêmes remarques que P12.",
+  "lot": "8 bis"
+ },
+ "P62": {
+  "profil": "Propriétaire (SCI, plusieurs biens)",
+  "url": "/espace/…/messages?vue=interventions",
+  "ecran": "Messages — onglet « Interventions »",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 3,
+  "esthetique": 3,
+  "coherence": 3,
+  "defauts": "Liste de volets natifs titrés par référence (« INC-2026-0002 · E2E Plomberie Dubois · terminée ») ; onglet actif doré.",
+  "lot": "8 bis"
+ },
+ "S39": {
+  "profil": "Super-admin",
+  "url": "/admin/brief?vue=equipes",
+  "ecran": "Équipes et comptes rendus",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 3,
+  "esthetique": 4,
+  "coherence": 3,
+  "defauts": "« Le point de ce matin n’est pas encore préparé » et sept équipes en liste ; bouton doré « Donner une consigne ». Le libellé du menu ne correspond pas au renvoi « Travail des équipes » vu en S21.",
+  "lot": "8 bis"
+ },
+ "S40": {
+  "profil": "Super-admin",
+  "url": "/admin/autonomie?vue=dossiers",
+  "ecran": "Activité et dossiers",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "Trois compteurs, état vide clair (« Aucune prochaine action enregistrée »), bouton « Actualiser les prochaines étapes ».",
+  "lot": "8 bis"
+ },
+ "S41": {
+  "profil": "Super-admin",
+  "url": "/admin/brief/qualite",
+  "ecran": "Équipe « Qualité et corrections »",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 4,
+  "esthetique": 4,
+  "coherence": 4,
+  "defauts": "État vide clair avec « Préparer le point maintenant ».",
+  "lot": "8 bis"
+ },
+ "A26": {
+  "profil": "Artisan",
+  "url": "/artisan/facturation/…",
+  "ecran": "Détail d’une facture",
+  "statut": "Vu 390 · 768 · 1440",
+  "simplicite": 3,
+  "esthetique": 3,
+  "coherence": 3,
+  "defauts": "Titre « Facture FA-2026-da086839 » ; trois montants clairs (facturé, déclaré reçu, solde) ; mais vocabulaire juridique (« Registre privé et déclaratif… ni rapprochement bancaire, ni validation comptable », « Enregistrer ma déclaration avec sa preuve ») et cinq boutons-pastilles en tête.",
+  "lot": "8 bis"
  }
 }

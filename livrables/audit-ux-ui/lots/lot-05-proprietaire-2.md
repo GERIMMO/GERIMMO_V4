@@ -1,8 +1,9 @@
 # Lot 5 — Propriétaire, partie 2 (P20–P38) — documents, fiches, incident, compte
 
 Version dca39641 · banc fictif · 390 / 768 / 1440 px · 16 écrans vus. Deux adresses ne font que rediriger : `/espaces`
-vers l'accueil, `/assistance` vers l'Aide. Une fenêtre n'a pas pu être déclenchée sur le banc (synthèse des alertes,
-P38) : elle n'est pas évaluée.
+vers l'accueil, `/assistance` vers l'Aide. La fenêtre de synthèse des alertes (P38) avait été
+notée ici « non déclenchée » ; c'était une erreur de lecture de ma part : elle figure bien sur les captures, aux trois
+largeurs. Elle est évaluée au lot 8 bis.
 Planches : `../captures/P20.jpg` à `P36.jpg`.
 
 ## Ce qui fonctionne

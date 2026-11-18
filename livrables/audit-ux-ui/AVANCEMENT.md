@@ -22,4 +22,7 @@ données de parcours et recette v1-bailleurs, comptes fictifs). Téléphone (390
 | 6 — Propriétaire débutant, compte vide, fiches | P39–P53 | Fait |
 | 7 — Locataire | L01–L24 (sans bail actif L01–L13, bail actif L14–L24) | Fait |
 | 8 — Artisan | A01–A25 (dont A21–A25 : états de mission obtenus sur le banc local) | Fait |
-| 9 — Synthèse, recommandations, plan, verdict | — | En cours |
+| 8 bis — Compléments (navigation réelle, onglets, tablette, correction P38) | P54–P62, S39–S41, A26 + 768 px sur tout l'inventaire | Fait |
+| 9 — Synthèse, recommandations, plan, verdict | `inventaire.md`, `synthese.md`, `recommandations.md`, `plan.md` | Fait |
+
+**Audit terminé : 163 écrans sur 163 (100 %).** Point d'entrée : `README.md`.

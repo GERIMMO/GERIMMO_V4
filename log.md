@@ -7347,3 +7347,17 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   - V1-04 courriers contractuels bloqués et impayé jamais en lecture seule.
 - Limites : téléphone simulé ; aucun utilisateur réel observé ; l'émulateur du banc renvoie les grands entiers en texte (V1-21).
 - Lecture seule en production ; aucune modification de code, aucune PR, aucune fusion.
+
+## [2026-11-18] audit | Audit UX/UI complet et indépendant (version dca39641)
+- Page : [[Audit UX-UI complet — dca39641 — 18 novembre 2026]] ; rapport complet dans `livrables/audit-ux-ui/`.
+- Périmètre : propriétaire (particulier, SCI, débutant, compte neuf), locataire (avec et sans bail), artisan, super-admin, pages d'entrée ; agences hors périmètre.
+- Méthode :
+  - inventaire des routes du code, confronté à la navigation réelle ;
+  - 163 écrans, chacun regardé à 390, 768 et 1440 px sur banc local fictif ;
+  - test des 10 secondes et notes sur 5.
+- Constats :
+  - identité premium cohérente ;
+  - gestes courts excellents (quittance, mission artisan, signalement locataire) ;
+  - densité et vocabulaire à réduire (accueil propriétaire, bandeau « suspendus », Finances comptables, fiche incident, console de développeur, facturation artisan, « Mon gestionnaire — Parc de … »).
+- Livrables : inventaire, synthèse par espace, 41 recommandations P1/P2/P3, plan en 12 chantiers, verdict.
+- Audit uniquement : aucune correction ; écritures limitées à la base locale fictive (une mission avancée pour voir trois écrans artisan).

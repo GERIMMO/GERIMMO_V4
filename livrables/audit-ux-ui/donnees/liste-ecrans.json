@@ -600,6 +600,12 @@
   "ecran": "Choix de l’espace après connexion (propriétaire débutant)"
  },
  {
+  "id": "L00",
+  "profil": "locataire",
+  "adresse": "/invitations/… → /nouveau-mot-de-passe → /connexion",
+  "ecran": "Parcours d’invitation du locataire"
+ },
+ {
   "id": "L01",
   "profil": "locataire",
   "adresse": "/attestation-loyer/…",
@@ -892,5 +898,83 @@
   "profil": "artisan",
   "adresse": "/artisan/missions/…?termine=1",
   "ecran": "Fiche mission — terminée, facture à déposer"
+ },
+ {
+  "id": "P54",
+  "profil": "proprietaire",
+  "adresse": "/espace/…/incidents/…",
+  "ecran": "Incident — adresse directe"
+ },
+ {
+  "id": "P55",
+  "profil": "proprietaire",
+  "adresse": "/espace/…/incidents?vue=tous",
+  "ecran": "Incidents — onglet « Tous »"
+ },
+ {
+  "id": "P56",
+  "profil": "proprietaire",
+  "adresse": "/espace/…/agenda?vue=a-planifier",
+  "ecran": "Agenda — « Dates à confirmer »"
+ },
+ {
+  "id": "P57",
+  "profil": "proprietaire",
+  "adresse": "/espace/…/agenda?vue=a-verifier",
+  "ecran": "Agenda — « À vérifier »"
+ },
+ {
+  "id": "P58",
+  "profil": "proprietaire",
+  "adresse": "/espace/…/agenda?vue=mois",
+  "ecran": "Agenda — vue du mois"
+ },
+ {
+  "id": "P59",
+  "profil": "proprietaire",
+  "adresse": "/espace/…/comptabilite?vue=saisie",
+  "ecran": "Livre — « Ajouter une écriture »"
+ },
+ {
+  "id": "P60",
+  "profil": "proprietaire",
+  "adresse": "/espace/…/comptabilite?vue=cloture",
+  "ecran": "Livre — « Clôture »"
+ },
+ {
+  "id": "P61",
+  "profil": "proprietaire",
+  "adresse": "/espace/…/comptabilite?vue=journal",
+  "ecran": "Livre — « Journal »"
+ },
+ {
+  "id": "P62",
+  "profil": "proprietaire",
+  "adresse": "/espace/…/messages?vue=interventions",
+  "ecran": "Messages — onglet « Interventions »"
+ },
+ {
+  "id": "S39",
+  "profil": "superadmin",
+  "adresse": "/admin/brief?vue=equipes",
+  "ecran": "Équipes et comptes rendus"
+ },
+ {
+  "id": "S40",
+  "profil": "superadmin",
+  "adresse": "/admin/autonomie?vue=dossiers",
+  "ecran": "Activité et dossiers"
+ },
+ {
+  "id": "S41",
+  "profil": "superadmin",
+  "adresse": "/admin/brief/qualite",
+  "ecran": "Équipe « Qualité et corrections »"
+ },
+ {
+  "id": "A26",
+  "profil": "artisan",
+  "adresse": "/artisan/facturation/…",
+  "ecran": "Détail d’une facture"
  }
 ]

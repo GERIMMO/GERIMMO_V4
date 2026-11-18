@@ -155,6 +155,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 
 ## Synthèses
 
+- [[Audit UX-UI complet — dca39641 — 18 novembre 2026]] — **18/11, version `dca39641`, audit UX/UI seul** : 163 écrans des espaces propriétaire, locataire, artisan et super-admin, vus à 390, 768 et 1440 px sur banc fictif ; identité premium à garder, gestes courts excellents, densité et vocabulaire (comptable, développeur) à réduire ; notes sur 10 de 4 à 8 ; 41 recommandations, plan en 12 chantiers dont 7 avant l'acquisition ; rapport dans `livrables/audit-ux-ui/`.
 - [[Audit de qualité commerciale V1 — a776ed43 — 16 novembre 2026]] — **16/11, version servie `a776ed43`** :
   - **verdicts** : pilote gratuit **GO sous trois conditions** (alertes du dirigeant coupées depuis le 12/11, promesses de la vitrine non tenues, fin des 5 essais du 24 au 29/12) ; abonnements payants **NO GO** (médiateur absent, courriers contractuels bloqués, un impayé ne passerait jamais en lecture seule, gestes Stripe hors console) ; exploitation **GO accompagné**, console **NO GO en autonomie** ;
   - **notes** (fonctionnement / simplicité / esthétique / fiabilité) : propriétaire 7/4/6/6, locataire 8/6/7/7, artisan 7/6/6/6, super-admin 5/4/6/4 ;

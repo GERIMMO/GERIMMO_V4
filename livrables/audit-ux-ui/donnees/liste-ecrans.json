@@ -795,13 +795,13 @@
   "id": "A09",
   "profil": "artisan",
   "adresse": "/artisan/missions/…/compte-rendu",
-  "ecran": "Compte rendu de mission"
+  "ecran": "Compte rendu — avant démarrage"
  },
  {
   "id": "A10",
   "profil": "artisan",
   "adresse": "/artisan/missions/…/compte-rendu/bilan",
-  "ecran": "Bilan de mission"
+  "ecran": "Le bilan (étape 2 sur 2)"
  },
  {
   "id": "A11",
@@ -862,5 +862,35 @@
   "profil": "artisan",
   "adresse": "/compte/donnees",
   "ecran": "Données personnelles et demandes privées — artisan"
+ },
+ {
+  "id": "A21",
+  "profil": "artisan",
+  "adresse": "/artisan/missions/…",
+  "ecran": "Fiche mission — rendez-vous en attente"
+ },
+ {
+  "id": "A22",
+  "profil": "artisan",
+  "adresse": "/artisan/missions/…?raison=demarrer",
+  "ecran": "Bilan demandé avant démarrage (renvoi)"
+ },
+ {
+  "id": "A23",
+  "profil": "artisan",
+  "adresse": "/artisan/missions/…/compte-rendu",
+  "ecran": "Compte rendu — photo envoyée"
+ },
+ {
+  "id": "A24",
+  "profil": "artisan",
+  "adresse": "/artisan/missions/…",
+  "ecran": "Fiche mission — intervention en cours"
+ },
+ {
+  "id": "A25",
+  "profil": "artisan",
+  "adresse": "/artisan/missions/…?termine=1",
+  "ecran": "Fiche mission — terminée, facture à déposer"
  }
 ]

@@ -21,6 +21,15 @@ const sim = vi.hoisted(() => ({
   agenda: [] as Record<string, unknown>[],
   reglementsArtisan: { lignes: [] as Record<string, unknown>[], erreur: false },
 }));
+// La synthèse utilise la lecture privée existante ; ces cas portent sur le détail déclaré par le client.
+vi.mock("next/navigation", async () => ({
+  ...await vi.importActual<typeof import("next/navigation")>("next/navigation"),
+  usePathname: () => "/artisan/facturation", useSearchParams: () => new URLSearchParams(),
+}));
+vi.mock("@/lib/artisan-prive", async () => ({
+  ...await vi.importActual<typeof import("@/lib/artisan-prive")>("@/lib/artisan-prive"),
+  chargerActivitePrivee: async () => ({ data: { factures: [], reglements: [], avoirs: [], chantiers: [], activation: { reglements: false } } }),
+}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => sim.supabase }));
 vi.mock("@/lib/use-action-state-protegee", () => ({ useActionStateProtegee: () => [sim.etat, () => {}] }));
 vi.mock("@/app/actions/reglement-facture", () => ({ declarerReglementFacture: () => ({}), retirerReglementFacture: () => ({}) }));

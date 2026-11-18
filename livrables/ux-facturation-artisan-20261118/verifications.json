@@ -1,0 +1,73 @@
+{
+  "base": "7acc8064650575918907b7f04fbd0bb55d310c43",
+  "branche": "codex/ux-accueil-proprietaire-20261118",
+  "date": "2026-11-18",
+  "tests": {
+    "fichiers": 7,
+    "reussis": 100,
+    "echecs": 0,
+    "ignores": 0,
+    "relances_additionnees": false
+  },
+  "typescript": "réussi — sortie 0",
+  "eslint_cible": "réussi — sortie 0",
+  "navigateur": "Chromium local, mobile simulé, aucun téléphone physique",
+  "parcours_navigateur": 2,
+  "invariants_navigateur": 2,
+  "factures_initiales_comparees": 20,
+  "solde_initial_cents": 200000,
+  "total_avec_fixtures_cents": 225000,
+  "declarations_fictives_cents": 35000,
+  "migrations": 0,
+  "calcul_bilan_reglements_modifie": false,
+  "actions_serveur_modifiees": false,
+  "droits_modifies": false,
+  "envois_reels": 0,
+  "paiements_reels": 0,
+  "formulaires_de_reglement_soumis": 0,
+  "push": false,
+  "fusion": false,
+  "deploiement": false,
+  "captures": {
+    "avant-artisan-facturation-390.png": {
+      "largeur": 390,
+      "hauteur": 12169
+    },
+    "avant-artisan-facturation-1440.png": {
+      "largeur": 1440,
+      "hauteur": 8555
+    },
+    "apres-artisan-facturation-390.png": {
+      "largeur": 390,
+      "hauteur": 6126
+    },
+    "apres-artisan-facturation-1440.png": {
+      "largeur": 1440,
+      "hauteur": 3231
+    },
+    "apres-resume-390.png": {
+      "largeur": 390,
+      "hauteur": 1000
+    },
+    "apres-resume-1440.png": {
+      "largeur": 1440,
+      "hauteur": 1000
+    },
+    "apres-cas-fictifs-390.png": {
+      "largeur": 390,
+      "hauteur": 6872
+    },
+    "apres-cas-fictifs-1440.png": {
+      "largeur": 1440,
+      "hauteur": 3569
+    },
+    "apres-registre-390.png": {
+      "largeur": 390,
+      "hauteur": 3691
+    },
+    "apres-registre-1440.png": {
+      "largeur": 1440,
+      "hauteur": 2990
+    }
+  }
+}

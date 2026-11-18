@@ -6,6 +6,15 @@ import type { FactureVueParArtisan } from '@/lib/reglement-facture';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, expect, test, vi } from 'vitest';
 const b = vi.hoisted(() => ({ agenda: { lignes: [] as LigneAgenda[], erreur: false }, reglements: { lignes: [] as FactureVueParArtisan[], erreur: false }, demandes: { lignes: [] as DemandeRdvArtisan[], erreur: false }, lireDemandes: vi.fn() }));
+// La synthèse utilise la lecture privée existante ; ces cas portent sur le détail déclaré par le client.
+vi.mock("next/navigation", async () => ({
+  ...await vi.importActual<typeof import("next/navigation")>("next/navigation"),
+  usePathname: () => "/artisan/facturation", useSearchParams: () => new URLSearchParams(),
+}));
+vi.mock("@/lib/artisan-prive", async () => ({
+  ...await vi.importActual<typeof import("@/lib/artisan-prive")>("@/lib/artisan-prive"),
+  chargerActivitePrivee: async () => ({ data: { factures: [], reglements: [], avoirs: [], chantiers: [], activation: { reglements: false } } }),
+}));
 vi.mock('@/lib/use-action-state-protegee', () => ({ useActionStateProtegee: (_: unknown, initial: unknown) => [initial, () => {}] }));
 vi.mock('@/app/actions/incidents', () => ({ contesterImputation: vi.fn(), signalerProblemePersiste: vi.fn() }));
 vi.mock('@/app/locataire/[orgId]/demandes/suivi-intervention', () => ({ SuiviInterventionLocataire: () => null, etapeCourte: () => null }));
@@ -42,6 +51,13 @@ test('PROD-01 : le rendu inactif ne propose ni contester ni rouvrir', () => {
 test('PROD-03 : une panne agenda propose de réessayer, sans faux 404', async () => {
  b.agenda={lignes:[],erreur:true};
  const html=renderToStaticMarkup(await PageMission({ params:Promise.resolve({interventionId:'mission'}),searchParams:Promise.resolve({}) } as Parameters<typeof PageMission>[0])); expect(html).toContain('Réessayer');
+});
+test('UX-07 : la panne agenda reste visible dans la facturation simplifiée', async () => {
+ b.agenda={lignes:[],erreur:true};
+ const html=renderToStaticMarkup(await PageFacturation({params:Promise.resolve({}),searchParams:Promise.resolve({})} as Parameters<typeof PageFacturation>[0]));
+ expect(html).toContain('Interventions indisponibles — lecture à réessayer');
+ expect(html).toMatch(/<details[^>]*open=""[^>]*><summary>Interventions indisponibles/);
+ expect(html).toContain('Vos interventions n’ont pas pu être chargées.');
 });
 test('PROD-04 : facture réelle 800 EUR et référence devis 600 EUR distinctes', async () => {
  b.agenda.lignes=[mission()]; b.reglements.lignes=[{facture_id:'facture',intervention_id:'mission',organization_id:'org',numero:'F800',montant_ttc_cents:80000,validee_le:null,etat:'deposee',reglee_le:null,reglements:[]}];

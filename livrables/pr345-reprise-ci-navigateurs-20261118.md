@@ -91,3 +91,9 @@ Une seule CI complète après push de ce candidat ; PR en brouillon jusqu’à s
 | `support-bailleur.spec.ts` — le bailleur retrouve la réponse apportée à sa demande par la supervision | Réussi | `replay.log` |
 | `utilisateurs.spec.ts` — annuaire lisible, filtres cumulés et ouverture du bon compte | Réussi | `cloture.log` |
 | `utilisateurs.spec.ts` — les abonnements et la trésorerie restent deux lectures distinctes | Réussi | `replay.log` |
+
+## Blocage identifié dans la CI de finalisation
+
+La CI [44412339066](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44412339066), sur `7351683b114ea0ae724698e9449d7bc07b2e913d`, a validé les migrations, permissions, concurrence, lint, build et types. Suite principale : **12 812 réussites, 1 échec, 22 ignorés préexistants** (919 fichiers réussis, 1 en échec, 2 ignorés).
+L’unique échec est le nouveau scénario mensuel : `checkbox.check()` attend un état coché alors que React retire immédiatement la case après acceptation. Le clic avait eu lieu ; l’annuel a réussi. Correction limitée au test : clic utilisateur puis assertion sur le reçu d’acceptation durable et la disparition de la case, avant la confirmation du montant. Aucune assertion de consentement retirée, aucun délai augmenté. Rejeu ciblé : **2/2 réussis**, ESLint réussi (`acceptation-durable.log`).
+Les étapes E2E de cette CI n’ont pas été exécutées après cet échec. Un nouveau SHA est donc nécessaire ; la validation complète du correctif reste obligatoire avant de sortir la PR du brouillon.

@@ -72,8 +72,11 @@ describe("souscription TEST : vrai formulaire et clic vers le paiement simulé",
         if (periode === "Annuel") await voir(recap).toContainText("prélevés en une fois pour douze mois");
         const continuer = page.getByRole("button", { name: "Continuer vers le paiement sécurisé", exact: true });
         await voir(continuer).toBeDisabled();
-        await page.getByRole("checkbox", { name: /J’ai lu et j’accepte/ }).check();
+        // La case est remplacée par le reçu dès le retour serveur : check()
+        // attendrait l’état coché d’un élément déjà supprimé. On vérifie le reçu durable.
+        await page.getByRole("checkbox", { name: /J’ai lu et j’accepte/ }).click();
         await voir(page.getByRole("status")).toContainText("acceptation");
+        await voir(page.getByRole("checkbox", { name: /J’ai lu et j’accepte/ })).toHaveCount(0);
         await voir(continuer).toBeDisabled();
         await page.getByLabel(/J'ai vérifié le montant de/).check();
         await voir(continuer).toBeEnabled();

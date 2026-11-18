@@ -1,0 +1,9 @@
+{
+  "versionReference": "46b858a7f611d08ae18a7f0e8eeea86e27146e79",
+  "preparationEtEnvoiCreneauxInchanges": true,
+  "fichiersMetierInchanges": {
+    "app/src/lib/devis-structure.ts": "64fc972edc56a003622361e7727101ea332770c17dd0c2d46337e6bb07783bbf",
+    "app/src/app/actions/artisan.ts": "7778a1a5091b7d5483edaf38c1f88844cb9cfefa55be49b62451e4efa6f36397",
+    "app/src/lib/use-action-state-protegee.ts": "bb6a890773d31799304078ddb185a32134b968682587f8b1025e28cd7ce589eb"
+  }
+}

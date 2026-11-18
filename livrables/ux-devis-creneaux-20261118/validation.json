@@ -1,0 +1,19 @@
+{
+  "tests": {
+    "fichiers": 5,
+    "reussis": 96,
+    "echoues": 0,
+    "ignores": 0
+  },
+  "navigateur": {
+    "scenarios": 4,
+    "largeurs": [
+      390,
+      1440
+    ],
+    "erreursJavascript": 0,
+    "ecrituresEnvoyees": 0
+  },
+  "typescript": "reussi",
+  "eslint": "reussi"
+}

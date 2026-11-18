@@ -18,12 +18,18 @@ type Saisie = LigneDevisSaisie;
 // quel dans un devis que l'artisan n'avait pas relu ; le taux dépend de son
 // régime et des travaux, et lui seul le sait. Le choix est obligatoire.
 const vide = (): Saisie => ({ code: "", libelle: "", quantite: "1", prix: "", tva: "" });
-export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail des travaux" }: { saisieInitiale?: LigneDevisSaisie[]; initiales?: (Omit<LigneDevis, "tva_bps" | "prix_unitaire_ht_cents"> & {code?: string; tva_bps: number | null; prix_unitaire_ht_cents: number | null})[]; titre?: string }) {
+export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail des travaux", afficherHtIncomplet = false }: { afficherHtIncomplet?: boolean; saisieInitiale?: LigneDevisSaisie[]; initiales?: (Omit<LigneDevis, "tva_bps" | "prix_unitaire_ht_cents"> & {code?: string; tva_bps: number | null; prix_unitaire_ht_cents: number | null})[]; titre?: string }) {
   const id = useId();
   const [lignes, setLignes] = useState<Saisie[]>(() => saisieInitiale ?? (initiales.length ? initiales.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: String(l.quantite).replace(".", ","), prix: l.prix_unitaire_ht_cents === null ? "" : (l.prix_unitaire_ht_cents/100).toFixed(2).replace(".", ","), tva: l.tva_bps === null ? "" : String(l.tva_bps) })) : [vide()]));
   const donnees = lignes.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: lireQuantite(l.quantite) ?? Number.NaN, prix_unitaire_ht_cents: montantEnCentimes(l.prix), tva_bps: l.tva === "" ? Number.NaN : Number(l.tva) }));
   let total: ReturnType<typeof calculerDevis> | null = null;
   try { total = calculerDevis(donnees); } catch { /* Le formulaire et le serveur expliquent les champs invalides. */ }
+  // Aperçu HT uniquement : même moteur et mêmes arrondis, sans modifier les lignes soumises.
+  let totalHt: number | null = total?.montant_ht_cents ?? null;
+  if (afficherHtIncomplet && totalHt === null) {
+    try { totalHt = calculerDevis(donnees.map(l => ({ ...l, libelle: l.libelle || "Prestation", tva_bps: 0 }))).montant_ht_cents; } catch { /* Prix ou quantité incomplets : aucun montant inventé. */ }
+  }
+  const tvaManquante = lignes.some(l => l.tva === "");
   // ART-12 : une quantité ou un prix invalide laissait le total à 0,00 € sans
   // dire lequel des deux était en cause. Le message se pose sous la ligne ; un
   // champ vide n'est pas une erreur (le champ requis la signale à l'envoi).
@@ -49,7 +55,7 @@ export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail d
         <label className={CLASSE_CELLULE}><span className={CLASSE_LIBELLE}>Quantité</span><input required aria-label={`Ligne ${index+1} : quantité`} aria-invalid={erreur.quantite ? true : undefined} aria-describedby={erreur.quantite ? idQuantite : undefined} inputMode="decimal" className={`${CLASSE_CHAMP} ${CLASSE_CHAMP_INVALIDE}`} value={ligne.quantite} onChange={e => modifier(index,"quantite",e.target.value)} /></label>
         <label className={CLASSE_CELLULE}><span className={CLASSE_LIBELLE}>Prix unitaire HT (€)</span><input required aria-label={`Ligne ${index+1} : prix unitaire HT`} aria-invalid={erreur.prix ? true : undefined} aria-describedby={erreur.prix ? idPrix : undefined} inputMode="decimal" className={`${CLASSE_CHAMP} ${CLASSE_CHAMP_INVALIDE}`} value={ligne.prix} onChange={e => modifier(index,"prix",e.target.value)} placeholder="0,00" /></label>
         {/* Téléphone : la TVA prend toute la ligne, sinon « 0 % / non applicable » se tronque. */}
-        <label className={`${CLASSE_CELLULE} col-span-2 sm:col-span-1`}><span className={CLASSE_LIBELLE}>TVA</span><select required aria-label={`Ligne ${index+1} : TVA`} className={CLASSE_CHAMP} value={ligne.tva} onChange={e => modifier(index,"tva",e.target.value)}>
+        <label className={`${CLASSE_CELLULE} col-span-2 sm:col-span-1`}><span className={CLASSE_LIBELLE}>TVA</span><select required aria-label={`Ligne ${index+1} : TVA`} aria-describedby={afficherHtIncomplet && !ligne.tva ? `${id}-tva-aide` : undefined} className={`${CLASSE_CHAMP} ${afficherHtIncomplet && !ligne.tva ? "border-[var(--or)]" : ""}`} value={ligne.tva} onChange={e => modifier(index,"tva",e.target.value)}>
           <option value="" disabled>Choisir un taux</option><option value="0">0 % / non applicable</option><option value="210">2,1 %</option><option value="550">5,5 %</option><option value="1000">10 %</option><option value="2000">20 %</option>
         </select></label>
       </div>
@@ -60,12 +66,16 @@ export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail d
       {lignes.length>1 && <button data-retirer-ligne type="button" className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => ls.filter((_,i) => i!==index))}>Retirer cette ligne</button>}
     </div>; })}
     <button data-ajouter-ligne type="button" disabled={lignes.length>=100} className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => [...ls,vide()])}>Ajouter une prestation ou fourniture</button>
-    {/* Le total est du texte, pas une boîte : posé dans un cadre blanc, il passait pour un champ désactivé.
-        25/09 (A8) : il s'affiche à 0,00 € dès le départ — l'artisan voit le format attendu avant de saisir. */}
     <div data-totaux-devis aria-live="polite">
-      <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Total HT : {euros(total?.montant_ht_cents ?? 0)} · TVA : {euros(total?.montant_tva_cents ?? 0)}</p>
-      <p className="text-[1.0625rem] font-semibold text-[var(--encre)]">Total TTC : {euros(total?.montant_ttc_cents ?? 0)}</p>
-      {!total && <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">{aDesErreurs ? "Le total n’est pas calculé : corrigez les champs signalés ci-dessus." : "Le total se met à jour à mesure que les lignes se complètent (prestation, prix et taux de TVA)."}</p>}
+      {afficherHtIncomplet ? <>
+        <p className="text-[1.0625rem] text-[var(--encre)]"><strong>Total HT : {totalHt === null ? "À compléter" : euros(totalHt)}</strong><span className="block text-sm font-normal">{total ? `TVA : ${euros(total.montant_tva_cents)}` : tvaManquante ? "TVA : à préciser" : "TVA : calcul en attente"}</span></p>
+        <p className="text-[1.0625rem] font-semibold text-[var(--encre)]">Total TTC : {total ? euros(total.montant_ttc_cents) : "À compléter"}</p>
+        {!total && <p id={`${id}-tva-aide`} className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">{aDesErreurs ? "Corrigez les quantités ou prix signalés pour calculer le total." : tvaManquante ? "Choisissez la TVA de chaque prestation pour calculer le TTC, y compris 0 % si elle ne s’applique pas." : "Complétez la prestation, la quantité et le prix pour calculer le TTC."}</p>}
+      </> : <>
+        <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Total HT : {euros(total?.montant_ht_cents ?? 0)} · TVA : {euros(total?.montant_tva_cents ?? 0)}</p>
+        <p className="text-[1.0625rem] font-semibold text-[var(--encre)]">Total TTC : {euros(total?.montant_ttc_cents ?? 0)}</p>
+        {!total && <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">{aDesErreurs ? "Le total n’est pas calculé : corrigez les champs signalés ci-dessus." : "Le total se met à jour à mesure que les lignes se complètent (prestation, prix et taux de TVA)."}</p>}
+      </>}
     </div>
   </fieldset>;
 }

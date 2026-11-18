@@ -104,10 +104,10 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
 
       <div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4" role="status">
         <p className="font-semibold">{Math.min(prets.length,3)} / 3 propositions prêtes</p>
-        <p className="mt-1 text-sm text-muted-foreground">Choisissez trois horaires différents. Le locataire retiendra celui qui lui convient.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Choisissez trois dates et horaires possibles. Rien n’est confirmé avant l’accord du locataire.</p>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true"><div className="h-full bg-[var(--or)]" style={{width:`${Math.min(prets.length/3,1)*100}%`}} /></div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-3">
       {creneaux.map((c, i) => (
         // Le même habillage que les autres cartes de l'espace (24/09). La
         // légende reste, pour l'accessibilité, mais flotte dans la carte comme
@@ -122,7 +122,7 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
                 htmlFor={`${base}-jour-${i}`}
                 className="block text-[0.8125rem] font-medium text-[var(--texte-secondaire)]"
               >
-                Jour
+                Date
               </label>
               <input
                 id={`${base}-jour-${i}`}
@@ -134,11 +134,13 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
                 className={CLASSE_CHAMP}
               />
             </div>
-            <div className="flex flex-wrap gap-2">
-              {[{nom:"Matin",debut:"09:00",fin:"11:00"},{nom:"Après-midi",debut:"14:00",fin:"16:00"}].map(plage => <button key={plage.nom} type="button" className="rounded-lg border border-[var(--filet)] px-3 py-2 text-xs hover:bg-[var(--ivoire)]" onClick={() => setCreneaux(l => l.map((v,j)=>j===i?{...v,debut:plage.debut,fin:plage.fin}:v))}>{plage.nom}</button>)}
-              {i>0 && creneaux[i-1].debut && <button type="button" className="text-xs underline" onClick={() => setCreneaux(l => l.map((v,j)=>j===i?{...v,debut:l[i-1].debut,fin:l[i-1].fin}:v))}>Même horaire que le précédent</button>}
+            <div className="grid grid-cols-2 gap-2">
+              {[{nom:"Matin",debut:"09:00",fin:"11:00"},{nom:"Après-midi",debut:"14:00",fin:"16:00"}].map(plage => <button key={plage.nom} type="button" aria-pressed={c.debut===plage.debut && c.fin===plage.fin} className="min-h-14 rounded-lg border border-[var(--filet)] px-2 py-2 text-sm hover:bg-[var(--ivoire)] aria-pressed:bg-[var(--encre)] aria-pressed:text-white" onClick={() => setCreneaux(l => l.map((v,j)=>j===i?{...v,debut:plage.debut,fin:plage.fin}:v))}>{plage.nom}<span className="block text-xs">{plage.debut} – {plage.fin}</span></button>)}
+              {i>0 && creneaux[i-1].debut && <button type="button" className="col-span-2 min-h-11 text-sm underline" onClick={() => setCreneaux(l => l.map((v,j)=>j===i?{...v,debut:l[i-1].debut,fin:l[i-1].fin}:v))}>Même horaire que le précédent</button>}
             </div>
-            <div className="flex gap-3">
+            <details className="rounded-lg border border-[var(--filet)] px-3">
+              <summary className="flex min-h-11 cursor-pointer items-center text-sm font-medium">Préciser les heures{c.debut && c.fin ? ` · ${c.debut}–${c.fin}` : ""}</summary>
+            <div className="flex gap-3 pb-3">
               <div className="min-w-0 flex-1 space-y-1">
                 <label
                   htmlFor={`${base}-debut-${i}`}
@@ -172,8 +174,10 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
                 />
               </div>
             </div>
+            </details>
           </div>
           {c.debut && c.fin && c.fin <= c.debut && <p className="mt-2 text-sm text-destructive">L’heure de fin doit être après l’heure de début.</p>}
+          {(c.jour || c.debut || c.fin) && <button type="button" className="mt-2 min-h-11 text-sm underline underline-offset-4" onClick={() => setCreneaux(l => l.map((v,j) => j===i ? {...VIDE} : v))}>Effacer ce créneau</button>}
           {creneaux.length > 3 && (
             <button
               type="button"
@@ -194,6 +198,14 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
       >
         Ajouter un créneau
       </button>
+
+      <section aria-label="Récapitulatif des propositions" className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4">
+        <h2 className="font-semibold">Vos propositions avant envoi</h2>
+        <ol className="mt-2 space-y-2">{creneaux.map((c,i) => <li key={i}>
+          <span className="font-medium">{i+1}. </span>{c.jour && c.debut && c.fin ? `${new Date(`${c.jour}T12:00:00`).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})} · ${c.debut} – ${c.fin}` : "À compléter"}
+        </li>)}</ol>
+        {creneaux.some((c,i)=>c.jour && c.debut && c.fin && creneaux.findIndex(x=>x.jour===c.jour && x.debut===c.debut && x.fin===c.fin)!==i) && <p className="mt-2 text-sm text-destructive">Deux propositions sont identiques. Choisissez un autre créneau.</p>}
+      </section>
 
       {etat.succes && <Succes>{etat.succes}</Succes>}
       {etat.erreur && <Erreur>{etat.erreur}</Erreur>}

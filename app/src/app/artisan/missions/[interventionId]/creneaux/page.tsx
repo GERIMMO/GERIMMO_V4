@@ -98,19 +98,14 @@ export default async function PageCreneaux(
         </Avertissement>
       )}
 
-      {/* La règle en une ligne, au lieu d'un encart de trois phrases qui
-          repoussait le premier champ en bas de l'écran du téléphone ; le cas
-          rare se lit à la demande, sous le formulaire (tour du 24/09). */}
-      <p className="text-base text-[var(--corps)]">
-        Trois créneaux au minimum ; le locataire en retient un ou vous en
-        propose trois à son tour. Les propositions restent des alternatives :
-        un chevauchement avec un rendez-vous déjà confirmé sera signalé au
-        moment du choix. Votre interlocuteur peut arbitrer un maintien justifié.
-      </p>
-
       <FormulaireCreneaux interventionId={interventionId} />
 
       <DetailsInformation titre="Et si aucun créneau ne convient ?">
+        <p className="mb-3 text-[0.9375rem] text-[var(--corps)]">
+          Les propositions restent des alternatives : un chevauchement avec un
+          rendez-vous déjà confirmé sera signalé au moment du choix. Votre
+          interlocuteur peut arbitrer un maintien justifié.
+        </p>
         <p className="text-[0.9375rem] text-[var(--corps)]">
           Le locataire peut refuser tous vos créneaux, mais il doit alors vous en
           proposer trois à son tour. Au sixième refus, le rendez-vous se règle

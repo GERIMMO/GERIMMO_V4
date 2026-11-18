@@ -702,6 +702,48 @@
   "ecran": "Mes demandes — locataire qui vient d'arriver"
  },
  {
+  "id": "L18",
+  "profil": "locataire",
+  "adresse": "/locataire/…/logement",
+  "ecran": "Mon logement (bail actif)"
+ },
+ {
+  "id": "L19",
+  "profil": "locataire",
+  "adresse": "/locataire/…/contact",
+  "ecran": "Mon gestionnaire (bail actif)"
+ },
+ {
+  "id": "L20",
+  "profil": "locataire",
+  "adresse": "/locataire/…/incident",
+  "ecran": "Signaler un problème (bail actif)"
+ },
+ {
+  "id": "L21",
+  "profil": "locataire",
+  "adresse": "/locataire/…/releves",
+  "ecran": "Mes relevés (bail actif)"
+ },
+ {
+  "id": "L22",
+  "profil": "locataire",
+  "adresse": "/locataire/…/faq",
+  "ecran": "Questions fréquentes (bail actif)"
+ },
+ {
+  "id": "L23",
+  "profil": "locataire",
+  "adresse": "/attestation-loyer/…",
+  "ecran": "Attestation de bon paiement"
+ },
+ {
+  "id": "L24",
+  "profil": "locataire",
+  "adresse": "/quittance/…",
+  "ecran": "Quittance vue par le locataire"
+ },
+ {
   "id": "A01",
   "profil": "artisan",
   "adresse": "/artisan",

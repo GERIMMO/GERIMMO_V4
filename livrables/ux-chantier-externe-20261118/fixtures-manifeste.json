@@ -1,0 +1,56 @@
+[
+  {
+    "nom": "preparation",
+    "client": "56cac1a0-8a1a-48a2-94c6-6600998c6cd9",
+    "chantier": "623237b5-1f4f-449c-abea-21024c7ca519",
+    "devis": "5c812c3a-7ffd-40cb-a9be-3dccafecd709",
+    "rdv": null,
+    "statut": "brouillon",
+    "etatDevis": "brouillon"
+  },
+  {
+    "nom": "devis",
+    "client": "07440d08-78cb-4d9d-bdd7-2c7215b9798b",
+    "chantier": "f40f7308-4b0c-4c77-b85e-76b322dddbdc",
+    "devis": "84010cdb-8150-412f-aeef-f62658f2400d",
+    "rdv": null,
+    "statut": "brouillon",
+    "etatDevis": "valide"
+  },
+  {
+    "nom": "accord",
+    "client": "e2664284-da88-4935-bf12-65b03cc45c9a",
+    "chantier": "022e3e3b-7d11-4458-b43b-c80c0df6099c",
+    "devis": "7e636d50-828b-46a8-9b8f-396ed2df27b2",
+    "rdv": null,
+    "statut": "accepte",
+    "etatDevis": "accepte"
+  },
+  {
+    "nom": "rendezvous",
+    "client": "e5509a98-db02-4ea5-b53a-1be4a877da93",
+    "chantier": "32d2807a-92f6-406d-aa66-ba890b8fd93e",
+    "devis": "870f9c8e-d0c8-4874-9926-8f8b528b16e9",
+    "rdv": "29a007b7-efd5-41f2-aca3-19a4eb1093fc",
+    "statut": "planifie",
+    "etatDevis": "accepte"
+  },
+  {
+    "nom": "intervention",
+    "client": "5ec8e09f-914b-4a50-8bbd-d8379ba8b6fa",
+    "chantier": "3c9555aa-3012-410d-811c-435d4e49f871",
+    "devis": "08d478e4-e420-4201-a063-534063ad6ae2",
+    "rdv": "48fab627-e956-42a5-bcff-24cf37dd600a",
+    "statut": "en_cours",
+    "etatDevis": "accepte"
+  },
+  {
+    "nom": "facture",
+    "client": "a1d7c5d3-a795-453e-9676-02e3429aad44",
+    "chantier": "3b2386f6-1b52-4c43-be7e-3ea6d1539552",
+    "devis": "5c87166c-f40c-48e7-a67d-46c303159caf",
+    "rdv": "93614311-ba7a-445d-a081-96f4b21ff197",
+    "statut": "termine",
+    "etatDevis": "accepte"
+  }
+]

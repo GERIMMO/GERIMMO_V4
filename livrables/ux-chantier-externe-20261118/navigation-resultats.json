@@ -1,0 +1,114 @@
+{
+  "rows": [
+    {
+      "etat": "preparation",
+      "width": 390,
+      "action": "valider",
+      "unSeulFormulaire": true,
+      "saisiePreservee": false,
+      "historiqueAccessible": true,
+      "debordement": 0
+    },
+    {
+      "etat": "devis",
+      "width": 390,
+      "action": "accord",
+      "unSeulFormulaire": true,
+      "saisiePreservee": true,
+      "historiqueAccessible": true,
+      "debordement": 0
+    },
+    {
+      "etat": "accord",
+      "width": 390,
+      "action": "planning",
+      "unSeulFormulaire": true,
+      "saisiePreservee": true,
+      "historiqueAccessible": true,
+      "debordement": 0
+    },
+    {
+      "etat": "rendezvous",
+      "width": 390,
+      "action": "demarrer",
+      "unSeulFormulaire": true,
+      "saisiePreservee": false,
+      "historiqueAccessible": true,
+      "debordement": 0
+    },
+    {
+      "etat": "intervention",
+      "width": 390,
+      "action": "bilan",
+      "unSeulFormulaire": true,
+      "saisiePreservee": true,
+      "historiqueAccessible": true,
+      "debordement": 0
+    },
+    {
+      "etat": "facture",
+      "width": 390,
+      "action": "facture",
+      "unSeulFormulaire": true,
+      "saisiePreservee": true,
+      "historiqueAccessible": true,
+      "debordement": 0
+    },
+    {
+      "etat": "preparation",
+      "width": 1440,
+      "action": "valider",
+      "unSeulFormulaire": true,
+      "saisiePreservee": false,
+      "historiqueAccessible": true,
+      "debordement": 0
+    },
+    {
+      "etat": "devis",
+      "width": 1440,
+      "action": "accord",
+      "unSeulFormulaire": true,
+      "saisiePreservee": true,
+      "historiqueAccessible": true,
+      "debordement": 0
+    },
+    {
+      "etat": "accord",
+      "width": 1440,
+      "action": "planning",
+      "unSeulFormulaire": true,
+      "saisiePreservee": true,
+      "historiqueAccessible": true,
+      "debordement": 0
+    },
+    {
+      "etat": "rendezvous",
+      "width": 1440,
+      "action": "demarrer",
+      "unSeulFormulaire": true,
+      "saisiePreservee": false,
+      "historiqueAccessible": true,
+      "debordement": 0
+    },
+    {
+      "etat": "intervention",
+      "width": 1440,
+      "action": "bilan",
+      "unSeulFormulaire": true,
+      "saisiePreservee": true,
+      "historiqueAccessible": true,
+      "debordement": 0
+    },
+    {
+      "etat": "facture",
+      "width": 1440,
+      "action": "facture",
+      "unSeulFormulaire": true,
+      "saisiePreservee": true,
+      "historiqueAccessible": true,
+      "debordement": 0
+    }
+  ],
+  "errors": [],
+  "writes": []
+}

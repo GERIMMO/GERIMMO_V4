@@ -1,0 +1,115 @@
+{
+  "results": [
+    {
+      "profil": "occupe",
+      "width": 390,
+      "onglets": 5,
+      "formulairesConserves": true,
+      "modificationEtSaisieConservees": true,
+      "diagnosticEtActualisation": true,
+      "incidentsOuverts": "false",
+      "fond": "rgb(255, 255, 255)",
+      "debordement": 0
+    },
+    {
+      "profil": "occupe",
+      "width": 1440,
+      "onglets": 5,
+      "formulairesConserves": true,
+      "modificationEtSaisieConservees": true,
+      "diagnosticEtActualisation": true,
+      "incidentsOuverts": "false",
+      "fond": "rgb(255, 255, 255)",
+      "debordement": 0
+    },
+    {
+      "profil": "sci",
+      "width": 390,
+      "onglets": 5,
+      "formulairesConserves": true,
+      "modificationEtSaisieConservees": true,
+      "diagnosticEtActualisation": true,
+      "incidentsOuverts": "false",
+      "fond": "rgb(255, 255, 255)",
+      "debordement": 0
+    },
+    {
+      "profil": "sci",
+      "width": 1440,
+      "onglets": 5,
+      "formulairesConserves": true,
+      "modificationEtSaisieConservees": true,
+      "diagnosticEtActualisation": true,
+      "incidentsOuverts": "false",
+      "fond": "rgb(255, 255, 255)",
+      "debordement": 0
+    },
+    {
+      "profil": "vacant",
+      "width": 390,
+      "onglets": 5,
+      "formulairesConserves": true,
+      "modificationEtSaisieConservees": true,
+      "diagnosticEtActualisation": true,
+      "incidentsOuverts": "false",
+      "fond": "rgb(255, 255, 255)",
+      "debordement": 0
+    },
+    {
+      "profil": "vacant",
+      "width": 1440,
+      "onglets": 5,
+      "formulairesConserves": true,
+      "modificationEtSaisieConservees": true,
+      "diagnosticEtActualisation": true,
+      "incidentsOuverts": "false",
+      "fond": "rgb(255, 255, 255)",
+      "debordement": 0
+    },
+    {
+      "profil": "sans-incident",
+      "width": 390,
+      "onglets": 5,
+      "formulairesConserves": true,
+      "modificationEtSaisieConservees": true,
+      "diagnosticEtActualisation": true,
+      "incidentsOuverts": "false",
+      "fond": "rgb(255, 255, 255)",
+      "debordement": 0
+    },
+    {
+      "profil": "sans-incident",
+      "width": 1440,
+      "onglets": 5,
+      "formulairesConserves": true,
+      "modificationEtSaisieConservees": true,
+      "diagnosticEtActualisation": true,
+      "incidentsOuverts": "false",
+      "fond": "rgb(255, 255, 255)",
+      "debordement": 0
+    },
+    {
+      "profil": "incident-ouvert",
+      "width": 390,
+      "onglets": 5,
+      "formulairesConserves": true,
+      "modificationEtSaisieConservees": true,
+      "diagnosticEtActualisation": true,
+      "incidentsOuverts": "true",
+      "fond": "rgb(255, 245, 244)",
+      "debordement": 0
+    },
+    {
+      "profil": "incident-ouvert",
+      "width": 1440,
+      "onglets": 5,
+      "formulairesConserves": true,
+      "modificationEtSaisieConservees": true,
+      "diagnosticEtActualisation": true,
+      "incidentsOuverts": "true",
+      "fond": "rgb(255, 245, 244)",
+      "debordement": 0
+    }
+  ],
+  "erreursJavascript": []
+}

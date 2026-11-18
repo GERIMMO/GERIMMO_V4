@@ -377,8 +377,8 @@
 @media(max-width:639px) { .sixCartes .editionDiscrete > summary { min-height:44px; } }
 
 /* Le suivi courant précède les caractéristiques permanentes. */
-.ficheProprietaire .carteIncidents { border-top:3px solid #c27b52; background:#fffaf6; }
-.ficheProprietaire .carteIncidents .panneauIcone { background:#f8e8dc; color:#934d2a; }
+.ficheProprietaire .carteIncidents:has([data-incidents-ouverts="true"]) { border-top:3px solid #c27b52; background:#fffaf6; }
+.ficheProprietaire .carteIncidents:has([data-incidents-ouverts="true"]) .panneauIcone { background:#f8e8dc; color:#934d2a; }
 .ficheProprietaire .carteDocuments { border-top:3px solid #4d8b7b; background:#f6fbf9; }
 .ficheProprietaire .carteDocuments .panneauIcone { background:#deeee7; color:#326654; }
 .ficheProprietaire .carteBail { border-top:3px solid #57789b; }
@@ -431,8 +431,8 @@
 .ficheProprietaire.sixCartes { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:14px; align-items:start; }
 .ficheProprietaire.sixCartes > [data-rubrique-dossier] { order:0; grid-column:auto; min-width:0; }
 .ficheProprietaire.sixCartes > section:empty { display:none; }
-.ficheProprietaire .carteIncidents { background:#fff5f4; border:1px solid #edcfcc; }
-.ficheProprietaire .carteIncidents .panneauIcone { background:#fbe3e0; color:#943d36; }
+.ficheProprietaire .carteIncidents:has([data-incidents-ouverts="true"]) { background:#fff5f4; border:1px solid #edcfcc; }
+.ficheProprietaire .carteIncidents:has([data-incidents-ouverts="true"]) .panneauIcone { background:#fbe3e0; color:#943d36; }
 .ficheProprietaire.sixCartes > [data-rubrique-dossier="suivi-lot"] { grid-column:1/-1; }
 @media(max-width:880px){ .ficheProprietaire.sixCartes { grid-template-columns:minmax(0,1fr); } }
 
@@ -445,4 +445,17 @@
   .ficheProprietaire.sixCartes > [data-rubrique-dossier="logement-lot"] { grid-column: 1; grid-row: span 2; }
   .ficheProprietaire.sixCartes > [data-rubrique-dossier="proprietaires-lot"],
   .ficheProprietaire.sixCartes > [data-rubrique-dossier="batiment-lot"] { grid-column: 2; }
+}
+
+/* Fiche logement : cinq repères stables, sans carrousel horizontal sur téléphone. */
+.ficheProprietaire.sixCartes.ongletsLogement { display:block; }
+.ongletsLogement :global(#finances-lot) { display:grid; gap:14px; }
+.ongletsLogement [role="tablist"] { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); }
+.ongletsLogement [role="tabpanel"] > div { min-width:0; scroll-margin-top:100px; }
+.ongletsLogement [role="tabpanel"] { outline-offset:4px; }
+.ongletsLogement .reperesLot { margin:0; }
+@media(max-width:639px) {
+ .ongletsLogement [role="tablist"] { grid-template-columns:repeat(6,minmax(0,1fr)); }
+ .ongletsLogement [role="tab"] { grid-column:span 2; padding:11px 6px; }
+ .ongletsLogement [role="tab"]:nth-child(n+4) { grid-column:span 3; }
 }

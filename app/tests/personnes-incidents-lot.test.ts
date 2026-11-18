@@ -99,6 +99,7 @@ describe("Incidents de la fiche lot", () => {
   it("affiche les urgences avant les autres, avec leur lien direct et un historique replié", async () => {
     donnees.incidents_resume_lot = [incident("normal"), incident("urgent", "en_cours", "urgente"), incident("clos", "clos"), { ...incident("autre-lot"), lot_id: "autre" }];
     const html = await rendreIncidents(true);
+    expect(html).toContain('data-incidents-ouverts="true"');
     expect(html.indexOf("Dossier urgent")).toBeLessThan(html.indexOf("Dossier normal"));
     expect(html).toContain('href="/espace/org/incidents?sel=urgent"');
     expect(html).toContain('href="/espace/org/incidents?vue=clos&amp;sel=clos"');
@@ -126,10 +127,19 @@ describe("Incidents de la fiche lot", () => {
     expect(requetes.filter(q => q.debut !== undefined).map(q => q.debut)).toEqual([0, 500]);
   });
 
+  it("reste neutre sans incident ouvert, même si un historique existe", async () => {
+    donnees.incidents_resume_lot = [incident("clos", "clos")];
+    const html = await rendreIncidents();
+    expect(html).toContain('data-incidents-ouverts="false"');
+    expect(html).toContain("Aucun incident en cours");
+    expect(html).toContain("Historique · 1 clôturé");
+  });
+
   it("distingue une erreur des incidents ouverts d'un lot sans incident", async () => {
     echec = q => q.table === "incidents_resume_lot" && q.filtres.some(([operation]) => operation === "neq");
     const html = await rendreIncidents();
     expect(html).toContain("Les incidents en cours n’ont pas pu être chargés");
     expect(html).not.toContain("Aucun incident en cours");
+    expect(html).toContain('data-incidents-ouverts="false"');
   });
 });

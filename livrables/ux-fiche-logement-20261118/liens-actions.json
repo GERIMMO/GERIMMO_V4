@@ -1,0 +1,26 @@
+[
+  {
+    "profil": "particulier",
+    "action": "Ouvrir le bail",
+    "url": "http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/baux/d8e57491-d4d4-4aae-9133-f0ac190c1cf3",
+    "resultat": "réussi"
+  },
+  {
+    "profil": "particulier",
+    "action": "Déposer un document : ouverture du formulaire ciblé",
+    "url": "http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/documents?sel=depot&lot=8ddf3093-ef9f-44f6-898b-55eab886f698&bien=153404b7-6749-4bb5-9cad-a8c367f967eb",
+    "resultat": "réussi"
+  },
+  {
+    "profil": "sci",
+    "action": "Ouvrir le bail",
+    "url": "http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/baux/c3b7b1ac-f60b-41a7-930d-c36c8df19f9c",
+    "resultat": "réussi"
+  },
+  {
+    "profil": "sci",
+    "action": "Déposer un document : ouverture du formulaire ciblé",
+    "url": "http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/documents?sel=depot&lot=d4dad12d-e4be-4efb-8a2a-b1aae103f043&bien=95f91a01-00fd-4902-a3fe-d56270b242de",
+    "resultat": "réussi"
+  }
+]

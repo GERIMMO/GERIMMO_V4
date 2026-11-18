@@ -1,0 +1,226 @@
+[
+  {
+    "fichier": "captures/apres-incident-ouvert-1440.png",
+    "dimensions": [
+      1440,
+      1028
+    ],
+    "sha256": "8441f55c19d21b9cecda4b354caeadcdd0405e073d03bb546b8c0284c55e04cf"
+  },
+  {
+    "fichier": "captures/apres-incident-ouvert-390.png",
+    "dimensions": [
+      390,
+      1438
+    ],
+    "sha256": "285c17e2352561fa9094c206d16d4e12957f23cc92da2c711e1197ed04791505"
+  },
+  {
+    "fichier": "captures/apres-occupe-1440.png",
+    "dimensions": [
+      1440,
+      1000
+    ],
+    "sha256": "a11e0471db93b53b01de42c4df613c7d170c58f9dbfd5206b5ae45ee77139f9c"
+  },
+  {
+    "fichier": "captures/apres-occupe-390.png",
+    "dimensions": [
+      390,
+      1335
+    ],
+    "sha256": "5fa37e03b1e993154625f0ef6d206dd10ba5737502647aba9df958b3151100ba"
+  },
+  {
+    "fichier": "captures/apres-sans-incident-1440.png",
+    "dimensions": [
+      1440,
+      1000
+    ],
+    "sha256": "a11e0471db93b53b01de42c4df613c7d170c58f9dbfd5206b5ae45ee77139f9c"
+  },
+  {
+    "fichier": "captures/apres-sans-incident-390.png",
+    "dimensions": [
+      390,
+      1335
+    ],
+    "sha256": "5fa37e03b1e993154625f0ef6d206dd10ba5737502647aba9df958b3151100ba"
+  },
+  {
+    "fichier": "captures/apres-sci-1440.png",
+    "dimensions": [
+      1440,
+      1000
+    ],
+    "sha256": "740a37ced5582a87a10b60ce492399c28c1b44262020a3a791bff309d1c8adbf"
+  },
+  {
+    "fichier": "captures/apres-sci-390.png",
+    "dimensions": [
+      390,
+      1335
+    ],
+    "sha256": "a857f6031a1a8a29e12d290444d94ad31acb72a13a18cd98462101cb17d8f5d4"
+  },
+  {
+    "fichier": "captures/apres-vacant-1440.png",
+    "dimensions": [
+      1440,
+      1000
+    ],
+    "sha256": "935093817f4e93ef36dac388bddbef5ad157cba6757949b689ed8cb224b77286"
+  },
+  {
+    "fichier": "captures/apres-vacant-390.png",
+    "dimensions": [
+      390,
+      1208
+    ],
+    "sha256": "0f6c9e916e2f5ef7b52f6ba3fcbb12fce2db5e2c2394d849049b9cb204cf8e25"
+  },
+  {
+    "fichier": "captures/avant-occupe-1440.png",
+    "dimensions": [
+      1440,
+      3196
+    ],
+    "sha256": "2cb483d49d0f2302677eae36ce6e7c32ed5526784c9f25d6098293eb5fb519c3"
+  },
+  {
+    "fichier": "captures/avant-occupe-390.png",
+    "dimensions": [
+      390,
+      4663
+    ],
+    "sha256": "400908302e785e61b39224f9664cb9672b29759aabecd750207676e9d28cb4c1"
+  },
+  {
+    "fichier": "captures/avant-sans-incident-1440.png",
+    "dimensions": [
+      1440,
+      3196
+    ],
+    "sha256": "8aa1b043233ab0eb590d11f98594ecf0eb2b4528584d64659523f9650c299c5b"
+  },
+  {
+    "fichier": "captures/avant-sans-incident-390.png",
+    "dimensions": [
+      390,
+      4857
+    ],
+    "sha256": "2ca5cfc9356804cceb89d09d3a8870cd9ea90281556f06eaa962cfdba2a1067b"
+  },
+  {
+    "fichier": "captures/avant-sci-1440.png",
+    "dimensions": [
+      1440,
+      3196
+    ],
+    "sha256": "63785d650908aaeb1ed05299734c13d57995aea3c64f232315bf78646f1d8ec0"
+  },
+  {
+    "fichier": "captures/avant-sci-390.png",
+    "dimensions": [
+      390,
+      4857
+    ],
+    "sha256": "382a79f3a2c7abbb1b93c9126988a6d5c6f6c41633e9ae9a344747c0a3f890e6"
+  },
+  {
+    "fichier": "captures/avant-vacant-1440.png",
+    "dimensions": [
+      1440,
+      2185
+    ],
+    "sha256": "6101e15604bab08c47761754169ece750a007f42bce28c886da42f47837c0932"
+  },
+  {
+    "fichier": "captures/avant-vacant-390.png",
+    "dimensions": [
+      390,
+      3659
+    ],
+    "sha256": "cbe7f90c7179f7df4d9d50a44091c145281f50abc0ff1f2320a8615188c0f876"
+  },
+  {
+    "fichier": "captures/onglet-Argent-1440.png",
+    "dimensions": [
+      1440,
+      1059
+    ],
+    "sha256": "ac290900a07a2d246d0554136c97b2b8aa50d0f72de0a77c7ff4f90318342008"
+  },
+  {
+    "fichier": "captures/onglet-Argent-390.png",
+    "dimensions": [
+      390,
+      1454
+    ],
+    "sha256": "514d06ec4146adf1c897a2745e3a875820781446752acc2d3132819ed793ed61"
+  },
+  {
+    "fichier": "captures/onglet-Caractéristiques-1440.png",
+    "dimensions": [
+      1440,
+      1968
+    ],
+    "sha256": "0d58dd161cb0cd1db2dcd10fdcd17e5f9c19bab021f70bdceeedee3b95634d1c"
+  },
+  {
+    "fichier": "captures/onglet-Caractéristiques-390.png",
+    "dimensions": [
+      390,
+      2014
+    ],
+    "sha256": "65e5b5a439139fc58d203571204df5226b42539fd56bc74d101f06ff5c949379"
+  },
+  {
+    "fichier": "captures/onglet-Documents-1440.png",
+    "dimensions": [
+      1440,
+      1000
+    ],
+    "sha256": "129ce272d0687a8e7a9be191461fc35f870a381fe43c3a9a0a499b3f60dd2afe"
+  },
+  {
+    "fichier": "captures/onglet-Documents-390.png",
+    "dimensions": [
+      390,
+      1000
+    ],
+    "sha256": "9e530031cbfed104fac0775eaf51782b32dff7322f7afe7588d9cf84378a34b4"
+  },
+  {
+    "fichier": "captures/onglet-Location-1440.png",
+    "dimensions": [
+      1440,
+      1363
+    ],
+    "sha256": "1b1cadc6bb8a80ee11a05ff1bfaf2f1cadc1d46e14b4fe653dbfaa33b61d2da3"
+  },
+  {
+    "fichier": "captures/onglet-Location-390.png",
+    "dimensions": [
+      390,
+      1602
+    ],
+    "sha256": "f035787b8df634e1b48071716cd394cdfe4025ae4c8d78f1b3182aa638b5f877"
+  },
+  {
+    "fichier": "captures/onglet-Résumé-1440.png",
+    "dimensions": [
+      1440,
+      1000
+    ],
+    "sha256": "a11e0471db93b53b01de42c4df613c7d170c58f9dbfd5206b5ae45ee77139f9c"
+  },
+  {
+    "fichier": "captures/onglet-Résumé-390.png",
+    "dimensions": [
+      390,
+      1335
+    ],
+    "sha256": "5fa37e03b1e993154625f0ef6d206dd10ba5737502647aba9df958b3151100ba"
+  }
+]

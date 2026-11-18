@@ -1,0 +1,19 @@
+{
+  "invitation": [
+    {
+      "etat": "acceptee"
+    }
+  ],
+  "acces": [
+    {
+      "role": "locataire",
+      "status": "active"
+    }
+  ],
+  "invitationsLocatairesSupprimees": 3,
+  "invitationsArtisansSupprimees": 3,
+  "droitsSupprimes": 1,
+  "personnesSupprimees": 1,
+  "comptesSupprimes": 1,
+  "restant": 0
+}

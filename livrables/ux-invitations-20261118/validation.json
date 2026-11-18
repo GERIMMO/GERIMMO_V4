@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-18",
+  "tests": {
+    "reussis": 228,
+    "echoues": 0,
+    "ignores": 0,
+    "fichiers": [
+      "tests/ux-invitations-premiere-connexion.test.ts",
+      "tests/invitation-artisan-page.test.ts",
+      "tests/invitation-artisan-actions.test.ts",
+      "tests/invitations-actions.test.ts",
+      "tests/premier-mot-de-passe-inscription.test.ts",
+      "tests/signature-caution-mobile.test.ts",
+      "tests/proxy-invitation-artisan.test.ts",
+      "tests/proxy-confirmation-caution.test.ts",
+      "tests/premier-mot-de-passe-session-banc.test.ts",
+      "tests/premier-mot-de-passe-navigateur.test.ts",
+      "tests/invitations-cycle.test.ts"
+    ]
+  },
+  "typescript": "réussi",
+  "eslint": "réussi",
+  "scenarios_navigateur": 11,
+  "scenarios_aide": 2,
+  "captures": 28,
+  "mails_envoyes": 0,
+  "signature_reelle": false,
+  "production_modifiee": false,
+  "nettoyage": "vérifié sur les seuls identifiants fictifs créés"
+}

@@ -30,7 +30,7 @@ const CHAMPS_DU_PROFIL: ChampNouveauMotDePasse[] = ["espace", "cgu", ...CHAMPS_T
 const ID_ERREUR = "erreur-nouveau-mot-de-passe";
 const ID_AIDE_MOT_DE_PASSE = "aide-mot-de-passe";
 
-export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirmer }: { suite?: string; profilAConfirmer?: Record<string, string> }) {
+export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirmer, premiereActivation = !!profilAConfirmer }: { suite?: string; profilAConfirmer?: Record<string, string>; premiereActivation?: boolean }) {
   const [etat, action] = useActionState<EtatNouveauMotDePasse, FormData>(
     definirNouveauMotDePasse,
     {}
@@ -168,7 +168,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
           </div>
           {!champErreur && alerte}
           <BoutonEnvoi envoiNatif enCoursTexte="Enregistrement…" className="w-full">
-            {profilAConfirmer && espaceAffiche === "proprietaire_direct" ? "Créer mon espace" : "Changer le mot de passe"}
+            {profilAConfirmer && espaceAffiche === "proprietaire_direct" ? "Créer mon espace" : premiereActivation ? "Choisir mon mot de passe" : "Changer le mot de passe"}
           </BoutonEnvoi>
         </form>
       </CardContent>

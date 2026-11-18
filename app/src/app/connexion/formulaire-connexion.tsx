@@ -42,7 +42,7 @@ const MESSAGES: Record<string, Message> = {
     // le remède vaut aussi pour une invitation : le compte existe déjà, il
     // suffit d'un nouveau lien pour créer son mot de passe.
     texte:
-      "Ce lien n'est plus valable : il a expiré, a déjà été utilisé (un lien ne sert qu'une fois) ou a été ouvert dans un autre navigateur que celui de la demande (anciens liens). Invitation, inscription ou mot de passe oublié, un nouveau lien vous permet de continuer.",
+      "Ce lien de connexion n’est plus valable. Demandez-en un nouveau avec l’adresse e-mail de votre compte.",
     ton: "attention",
     lien: { href: "/mot-de-passe-oublie", libelle: "Recevoir un nouveau lien" },
   },
@@ -60,6 +60,12 @@ function messageDeSuite(suite: string | null) {
   if (destinationApresConnexion(destination) !== destination) {
     return { texte: "Connectez-vous pour ouvrir votre tableau de bord.", ton: "info" as const };
   }
+  if (/^\/invitations\/[0-9a-f-]{36}$/.test(destination)) return {
+    texte: "Vous êtes invité à votre espace locataire. Connectez-vous avec l’adresse qui a reçu le message pour vérifier l’invitation et connaître votre bailleur.", ton: "info" as const,
+  };
+  if (/^\/artisan\/invitation\/[0-9a-f-]{36}$/.test(destination)) return {
+    texte: "Connectez-vous avec l’adresse invitée pour vérifier l’invitation à votre espace artisan.", ton: "info" as const,
+  };
   return {
     texte: destination.startsWith("/assistance")
       ? "Connectez-vous pour accéder à l'aide et aux retours ; vous y serez ramené."

@@ -170,13 +170,6 @@ export async function definirNouveauMotDePasse(
       const sansCase = Object.fromEntries(Object.entries(saisie).filter(([champ]) => champ !== "cgu" && champ !== CHAMP_DOCUMENT_AFFICHE));
       return { erreur: MESSAGE_CASE_A_REVOIR, champ: "cgu", ...(Object.keys(sansCase).length > 0 ? { valeurs: sansCase } : {}) };
     }
-    if (champs.espace === "proprietaire_direct") {
-      const erreurAdresse = adresseManquante(champs);
-      if (erreurAdresse) {
-        const champ = (["adresse", "code_postal", "ville"] as const).find(cle => !champs[cle]);
-        return refus(erreurAdresse, champ);
-      }
-    }
     const code = champs.code_parrainage ? normaliserCode(champs.code_parrainage) : null;
     if (champs.code_parrainage && !code) return refus("Le code de parrainage doit compter huit lettres ou chiffres.", "code_parrainage");
     const { error: erreurCgu } = await supabase.rpc("accepter_cgu", {
@@ -282,8 +275,6 @@ export async function inscrireProprietaire(
   // Ces champs voyagent dans le jeton de session : une borne, dite en clair (audit du 13/10, AUD-B-02).
   const tropLong = champTropLong({ nom, prenom, email, telephone, adresse, code_postal: codePostal, ville });
   if (tropLong) return { erreur: tropLong, valeurs: valeursBornees(valeurs) };
-  const erreurAdresse = adresseManquante(coordonnees);
-  if (erreurAdresse) return { erreur: erreurAdresse, valeurs };
   if (!emailValide(email)) return { erreur: "Renseignez une adresse e-mail valide pour vos courriers.", valeurs };
   // Le code de parrainage (19/09) : facultatif, mais s'il est tapé il doit
   // avoir la bonne forme — un code qu'on laisserait passer de travers ne

@@ -1,0 +1,64 @@
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/easycash/Documents/Gerimmo V3/work/ux-accueil-proprietaire-20261118/app
+
+stdout | tests/essai-deux-mois.test.ts
+◇ injected env (0) from .env.local // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > annonce la durée permanente
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/page.tsx ne parle plus d'un essai de 14 jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/tarifs/page.tsx ne parle plus d'un essai de 14 jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/inscription/page.tsx ne parle plus d'un essai de 14 jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/inscription/formulaire-inscription.tsx ne parle plus d'un essai de 14 jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/espaces/choix-espace.tsx ne parle plus d'un essai de 14 jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/agence/[orgId]/faq/page.tsx ne parle plus d'un essai de 14 jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/journal/[slug]/page.tsx ne parle plus d'un essai de 14 jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/admin/page.tsx ne parle plus d'un essai de 14 jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/conditions/page.tsx ne parle plus d'un essai de 14 jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > components/outils/coquille-outil.tsx ne parle plus d'un essai de 14 jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > lib/parrainage.ts ne parle plus d'un essai de 14 jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > lib/sante-service.ts ne parle plus d'un essai de 14 jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > l'accueil, l'inscription et les tarifs lisent la durée au rendu, badge compris
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/page.tsx ne fige pas la durée au build (revalidate = 3600)
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/tarifs/page.tsx ne fige pas la durée au build (revalidate = 3600)
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/inscription/page.tsx ne fige pas la durée au build (revalidate = 3600)
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/journal/[slug]/page.tsx ne fige pas la durée au build (revalidate = 3600)
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/outils/page.tsx ne fige pas la durée au build (revalidate = 3600)
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/outils/calcul-irl/page.tsx ne fige pas la durée au build (revalidate = 3600)
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/outils/comparateur-gli-visale/page.tsx ne fige pas la durée au build (revalidate = 3600)
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/outils/quittance-de-loyer/page.tsx ne fige pas la durée au build (revalidate = 3600)
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/outils/rentabilite-locative/page.tsx ne fige pas la durée au build (revalidate = 3600)
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > app/outils/simulateur-lmnp/page.tsx ne fige pas la durée au build (revalidate = 3600)
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > les conditions (art. 8.2) annoncent deux mois sans reconduction, en texte fixe
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > la FAQ du propriétaire annonce deux mois
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > la rétractation du consommateur reste de quatorze jours
+ ↓  parallele  tests/essai-deux-mois.test.ts > deux mois gratuits pour toute nouvelle inscription > le changement des conditions est daté : V1 du 24 octobre 2026, la version du 30 septembre 2026 gardée dans l'historique
+ ✓  parallele  tests/essai-deux-mois.test.ts > la base applique l'essai permanent de deux mois > la fin de l'essai ordinaire est aujourd'hui (Paris) + 2 mois calendaires 2ms
+ ✓  parallele  tests/essai-deux-mois.test.ts > la base applique l'essai permanent de deux mois > la fonction conserve la date de Paris, sa stabilité et ses droits 2ms
+ ✓  parallele  tests/essai-deux-mois.test.ts > la base applique l'essai permanent de deux mois > calcule l’échéance au jour de Paris pour 2026-12-31T22:30:00Z 3ms
+ ✓  parallele  tests/essai-deux-mois.test.ts > la base applique l'essai permanent de deux mois > calcule l’échéance au jour de Paris pour 2026-12-31T23:30:00Z 1ms
+ ✓  parallele  tests/essai-deux-mois.test.ts > la base applique l'essai permanent de deux mois > calcule l’échéance au jour de Paris pour 2027-12-31T12:00:00Z 0ms
+ ✓  parallele  tests/essai-deux-mois.test.ts > la base applique l'essai permanent de deux mois > calcule l’échéance au jour de Paris pour 2030-01-31T12:00:00Z 0ms
+ ✓  parallele  tests/essai-deux-mois.test.ts > la base applique l'essai permanent de deux mois > une inscription en ligne (propriétaire direct) ouvre un essai de 2 mois 9ms
+ ✓  parallele  tests/essai-deux-mois.test.ts > la base applique l'essai permanent de deux mois > ouvre onze espaces distincts sans souscription ni client Stripe 26ms
+ ✓  parallele  tests/essai-deux-mois.test.ts > la base applique l'essai permanent de deux mois > une agence ouverte depuis la console, sans durée précisée, a aussi 2 mois 14ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed | 28 skipped (37)
+   Start at  10:32:25
+   Duration  248ms (transform 45ms, setup 12ms, import 88ms, tests 66ms, environment 0ms)
+

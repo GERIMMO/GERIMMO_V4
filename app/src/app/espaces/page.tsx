@@ -10,7 +10,6 @@ import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { sansJargon } from "@/lib/erreurs";
 import { baseEspace } from "@/lib/racine-espace";
-import { adresseManquante } from "@/lib/coordonnees-courrier";
 import { normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 import { ChoixEspace } from "./choix-espace";
 
@@ -150,14 +149,13 @@ export default async function PageEspaces() {
     code_postal: typeof meta.code_postal === "string" ? meta.code_postal : undefined,
     ville: typeof meta.ville === "string" ? meta.ville : undefined,
   };
-  const reprendreAdresse = meta.espace === "proprietaire_direct" && Boolean(adresseManquante(adresseInitiale));
   let erreurOuverture: string | null = null;
   if (
     !doitMontrerInvitations &&
     !accesIncomplets &&
     adhesions.length === 0 &&
     !estArtisan &&
-    !reprendreAdresse && user.user_metadata?.espace === "proprietaire_direct"
+    user.user_metadata?.espace === "proprietaire_direct"
   ) {
     const { data: orgId, error } = await supabase.rpc("initialiser_espace_proprietaire");
     if (orgId) {
@@ -235,7 +233,7 @@ export default async function PageEspaces() {
                 Votre espace propriétaire n&apos;a pas pu être ouvert : {erreurOuverture}
               </p>
             )}
-            <ChoixEspace adresseInitiale={adresseInitiale} reprendre={reprendreAdresse}
+            <ChoixEspace adresseInitiale={adresseInitiale}
               qualiteInitiale={normaliserQualiteBailleur(typeof meta.qualite === "string" ? meta.qualite : null) ?? undefined}
               nomInitial={typeof user.user_metadata?.nom === "string" ? user.user_metadata.nom : undefined}
               prenomInitial={typeof user.user_metadata?.prenom === "string" ? user.user_metadata.prenom : undefined}

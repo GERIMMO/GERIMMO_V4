@@ -19,6 +19,7 @@ import { MarqueGerimmo } from "@/components/marque-gerimmo";
 export function CoquilleAuth({
   promesse,
   sousPromesse,
+  benefices,
   mention,
   titre,
   chapo,
@@ -28,6 +29,7 @@ export function CoquilleAuth({
   /** La phrase du panneau encre — ce que le produit fait, pas ce que la page demande. */
   promesse: string;
   sousPromesse: string;
+  benefices?: readonly string[];
   /** Mention mono en bas de panneau. */
   mention: string;
   /** Titre du formulaire (le h1 de la page). */
@@ -50,9 +52,11 @@ export function CoquilleAuth({
           <p className="max-w-[14ch] font-heading text-[2.25rem] font-extrabold leading-[1.1] tracking-[-0.02em] text-[var(--sur-marque)] sm:max-w-[16ch]">
             {promesse}
           </p>
-          <p className="mt-3.5 max-w-[26em] text-[15px] leading-relaxed text-[var(--sur-marque)]/80">
-            {sousPromesse}
-          </p>
+          {benefices ? (
+            <ul className="mt-6 max-w-[26em] space-y-4 text-[15px] leading-relaxed text-[var(--sur-marque)]/90">
+              {benefices.map(benefice => <li key={benefice} className="flex gap-3"><span aria-hidden="true">✓</span><span>{benefice}</span></li>)}
+            </ul>
+          ) : <p className="mt-3.5 max-w-[26em] text-[15px] leading-relaxed text-[var(--sur-marque)]/80">{sousPromesse}</p>}
         </div>
         {/* Pleine opacité (24/09) : à 70 %, sur la zone claire de la photo,
             c'était le texte le moins lisible de la page. */}
@@ -73,6 +77,7 @@ export function CoquilleAuth({
           {chapo && (
             <p className="mt-1.5 mb-5 text-sm leading-relaxed text-muted-foreground">{chapo}</p>
           )}
+          {benefices && <ul className="mb-5 space-y-2 text-sm text-muted-foreground lg:hidden">{benefices.map(benefice => <li key={benefice} className="flex gap-2"><span aria-hidden="true" className="text-primary">✓</span><span>{benefice}</span></li>)}</ul>}
           {children}
         </div>
       </div>

@@ -82,6 +82,14 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
   // propriétaire tant que les conditions artisans ne sont pas publiées) garde la coche.
   const documentCoche = saisie.cgu === "on" ? documentAffiche(saisie[CHAMP_DOCUMENT_AFFICHE] ?? null) : null;
 
+  const champsProfil = (champs: readonly (typeof CHAMPS_TEXTE_PROFIL)[number][]) => champs.map(([champ, libelle]) => (
+                <div key={champ} className="space-y-1">
+                  <Label htmlFor={`confirmation-${champ}`}>{libelle}</Label>
+                  <Input id={`confirmation-${champ}`} name={champ} required={espaceAffiche === "proprietaire_direct" && champ === "nom"} defaultValue={valeur(champ)} maxLength={champ === "code_parrainage" ? 8 : LONGUEUR_MAX[champ]} {...marque(champ)} />
+                  {sous(champ)}
+                </div>
+              ));
+
   return (
     <Card>
       <CardContent className="pt-6">
@@ -90,7 +98,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
           {profilAConfirmer && (
             <fieldset className="space-y-3 rounded-md border p-4">
               <legend className="px-1 font-medium">Vérifiez vos informations</legend>
-              <p className="text-sm text-muted-foreground">Ces informations ont été saisies avant la confirmation de votre adresse. Corrigez-les et confirmez votre choix pour terminer l’inscription.</p>
+              <p className="text-sm text-muted-foreground">{espaceAffiche === "proprietaire_direct" ? "Vérifiez votre nom et l’usage de votre compte, puis choisissez votre mot de passe." : "Ces informations ont été saisies avant la confirmation de votre adresse. Corrigez-les et confirmez votre choix pour terminer l’inscription."}</p>
               <label className="block space-y-1 text-sm">
                 <span>Vous utilisez Gerimmo pour</span>
                 <select key={`espace-${espace}`} name="espace" required defaultValue={espace} onChange={(e) => setChoix({ pour: etat, espace: e.target.value })} {...marque("espace")} className="w-full rounded-md border bg-background px-3 py-2">
@@ -100,13 +108,14 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
                 </select>
               </label>
               {sous("espace")}
-              {CHAMPS_TEXTE_PROFIL.map(([champ, libelle]) => (
-                <div key={champ} className="space-y-1">
-                  <Label htmlFor={`confirmation-${champ}`}>{libelle}</Label>
-                  <Input id={`confirmation-${champ}`} name={champ} required={espaceAffiche === "proprietaire_direct" && ["nom", "adresse", "code_postal", "ville"].includes(champ)} defaultValue={valeur(champ)} maxLength={champ === "code_parrainage" ? 8 : LONGUEUR_MAX[champ]} {...marque(champ)} />
-                  {sous(champ)}
-                </div>
-              ))}
+              {espaceAffiche === "proprietaire_direct" ? <>
+                {champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => champ === "nom"))}
+                <details open={!!champErreur && !["nom", "cgu", "espace", "mot_de_passe", "confirmation"].includes(champErreur)} className="rounded-lg border px-3">
+                  <summary className="flex min-h-11 cursor-pointer items-center text-sm text-muted-foreground">Coordonnées et parrainage (facultatif)</summary>
+                  <p className="mb-3 text-xs text-muted-foreground">Vous pourrez compléter vos coordonnées dans votre espace avant de préparer vos documents.</p>
+                  <div className="space-y-3 pb-3">{champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => champ !== "nom"))}</div>
+                </details>
+              </> : champsProfil(CHAMPS_TEXTE_PROFIL)}
               <label className="block space-y-1 text-sm">
                 <span>Qualité du bailleur, si concerné</span>
                 <select key={`qualite-${qualite}`} name="qualite" defaultValue={qualite} className="w-full rounded-md border bg-background px-3 py-2">
@@ -159,7 +168,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
           </div>
           {!champErreur && alerte}
           <BoutonEnvoi envoiNatif enCoursTexte="Enregistrement…" className="w-full">
-            Changer le mot de passe
+            {profilAConfirmer && espaceAffiche === "proprietaire_direct" ? "Créer mon espace" : "Changer le mot de passe"}
           </BoutonEnvoi>
         </form>
       </CardContent>

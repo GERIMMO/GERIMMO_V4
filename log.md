@@ -7361,3 +7361,14 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   - densité et vocabulaire à réduire (accueil propriétaire, bandeau « suspendus », Finances comptables, fiche incident, console de développeur, facturation artisan, « Mon gestionnaire — Parc de … »).
 - Livrables : inventaire, synthèse par espace, 41 recommandations P1/P2/P3, plan en 12 chantiers, verdict.
 - Audit uniquement : aucune correction ; écritures limitées à la base locale fictive (une mission avancée pour voir trois écrans artisan).
+
+## [2026-11-19] audit | Audit fonctionnel en production (version 2928d63f, PR #345)
+- Page : [[Audit fonctionnel en production — 2928d63f — 19 novembre 2026]] ; rapport et preuves dans `livrables/audit-production-20261119/`.
+- Technique : version = candidat `f489641f` (0 ligne d'écart), CI verte, migration appliquée, ventes fermées, comptages de données inchangés, aucune erreur serveur pendant les tests ; relais du dirigeant en échec quotidien depuis le 12/11.
+- Parcours en production, avec comptes fictifs (`delivered+audit-…@resend.dev`) créés avec l'accord du dirigeant puis purgés :
+  - particulier complet, de l'inscription progressive à l'espace locataire ;
+  - SCI : nu, colocation, meublé partiel, paiement partiel, congé, clôture de mois.
+- Sécurité : isolement interface et API vérifié ; encaissement par le locataire refusé ; session révoquée à la déconnexion ; RLS sur 227 tables.
+- Recette n° 50 (44476817457) : 63 réussis, 4 échecs (tests non alignés sur la PR #345), purge vérifiée.
+- Verdict : **GO** pour les particuliers ; P1-1 SCI et P1-2 relais à corriger ; inscription réelle à vérifier avec une vraie boîte.
+- Purge : base revenue à l'identique ; 19 fichiers en file `purge_fichiers` (tâche de 03 h 40 UTC), contrôle programmé le 20/11.

@@ -1,0 +1,16 @@
+anonyme : lire persons                                           → 401 42501
+anonyme : lire baux                                              → 401 42501
+anonyme : lire encaissements                                     → 401 42501
+anonyme : lire quittances                                        → 401 42501
+anonyme : lire organizations                                     → 401 42501
+anonyme : lire documents                                         → 401 42501
+locataire P : lire les fiches de la SCI                          → 200 0 ligne(s)
+locataire P : lire les baux de la SCI                            → 200 0 ligne(s)
+locataire P : lire les fiches de son bailleur                    → 200 1 ligne(s)
+locataire P : lire les encaissements de son bailleur             → 200 0 ligne(s)
+locataire P : créer un encaissement de 640 € sur son bail        → 400 PGRST204
+particulier : lire les fiches de la SCI                          → 200 0 ligne(s)
+particulier : lire les baux de la SCI                            → 200 0 ligne(s)
+particulier : lire les quittances de la SCI                      → 200 0 ligne(s)
+particulier : modifier le nom de la SCI                          → 204 
+sci : lire ses propres baux (contrôle positif)                   → 200 3 ligne(s)

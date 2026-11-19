@@ -59,8 +59,11 @@ Le rapport complet est dans le dépôt, sous `livrables/audit-pr347-20261119/`.
 ## Liens
 
 - Audit précédent : [[Audit indépendant complet avant lancement — 341b770f — 19 novembre 2026]].
+- Suite : [[Corrections après l'audit PR 347 — 19 novembre 2026]] (SCI-2, SCI-3, SCI-4, UX-1, alerte, TEC ; branche
+  non publiée).
 
 > [!warning] Points à trancher / contradictions
 > - L'alerte du dirigeant et la purge des 33 fichiers d'audit ne pouvaient pas être constatées le 19/11 au soir.
 >   Passages prévus le 20/11 à 03 h 40 et 04 h 00 UTC ; contrôle programmé à 04 h 15 UTC.
-> - Le formulaire public SCI ne demande toujours pas le prénom : seul l'écran de confirmation l'exige.
+> - Le formulaire public SCI ne demande toujours pas le prénom en production : seul l'écran de confirmation l'exige.
+>   Corrigé sur la branche `claude/corrections-post-pr347`, non publiée.

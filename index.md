@@ -46,7 +46,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 
 ## Concepts
 - [[Organisation]] — l'entité cliente, racine de l'isolation multi-tenant.
-- [[Compte, personne et adhésion]] — identité V3 : compte global, adhésions par agence.
+- [[Compte, personne et adhésion]] — identité V3 : compte global, adhésions par agence ; e-mail d'une fiche unique par agence et par nature (société et gérant peuvent partager une adresse, décision du 19/11 à confirmer).
 - [[Dossier locataire]] — pièces versionnées rattachées à la personne ; purge à 5 ans.
 - [[Patrimoine et résidences]] — regroupements au-dessus du bien (code actuel).
 - [[Bien]] — l'unité physique (adresse, clé, diagnostics communs).
@@ -155,6 +155,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 
 ## Synthèses
 
+- [[Corrections après l'audit PR 347 — 19 novembre 2026]] — **19/11 au soir, branche `claude/corrections-post-pr347` (non publiée)** : SCI-2 (fiche de la société complète, e-mail partagé avec le gérant), SCI-3 (représentant sur la quittance, à valider juridiquement), SCI-4 (prénom au formulaire public), UX-1 (locataire invité connecté), bandeau d'alerte dans la console, Next 16.4.6, TEC-3/4/5 ; quatre migrations à appliquer par le circuit protégé ; liste de ce qui reste hors du code (médiateur, paiement réel, antivirus, réglages Auth…) ; rapport dans `livrables/corrections-post-pr347-20261119/`.
 - [[Audit après publication PR 347 — 8c0449c6 — 19 novembre 2026]] — **19/11 au soir, version `8c0449c6` (PR #347)** : SEC-1 (provenance des documents et purges), double authentification et représentant SCI vérifiés corrigés, sur banc isolé et en production avec comptes fictifs purgés ; recette n° 52 réussie ; aucun P0 ni P1 ; **GO particuliers, GO SCI avec accompagnement (SCI-2), NO GO abonnements payants** ; rapport dans `livrables/audit-pr347-20261119/`.
 - [[Audit indépendant complet avant lancement — 341b770f — 19 novembre 2026]] — **19/11, version `341b770f` (PR #346)** : audit complet (sécurité ASVS, fonctions, automatisations, services externes, commercial) ; recette n° 51 réussie, parcours SCI rejoué en production puis purgé, 419 fonctions de la base sondées sans contournement ; aucun P0, trois P1 (fichier d'un autre espace visé par chemin, représentant SCI refusé faute de prénom, alerte du dirigeant) ; **GO particuliers sous conditions, NO GO SCI avant correctif, NO GO vente payante** ; rapport dans `livrables/audit-complet-20261119/`.
 - [[Audit fonctionnel en production — 2928d63f — 19 novembre 2026]] — **19/11, version servie `2928d63f` (PR #345)** : parcours réels en production avec comptes fictifs purgés (particulier, SCI, locataire) et recette n° 50 ; aucun P0 ; isolement étanche ; montants, quittances, charges et plafonds justes ; **GO pour les particuliers**, sous deux corrections (P1-1 rattachement et signataire SCI, P1-2 alerte du dirigeant) et une inscription réelle à vérifier ; rapport dans `livrables/audit-production-20261119/`.

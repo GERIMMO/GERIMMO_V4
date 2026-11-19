@@ -7416,3 +7416,27 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   - [[Audit après publication PR 347 — 8c0449c6 — 19 novembre 2026]] ;
   - `index.md`.
 - **Rapport** : `livrables/audit-pr347-20261119/`.
+
+## [2026-11-19] maintenance | Corrections après l'audit de la PR #347 (branche non publiée)
+Le dirigeant a demandé de corriger ce qui pouvait l'être et de lister le reste. Il a choisi quatre lots : SCI,
+locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-mail partagée, il a délégué le choix
+(« fait au mieux »).
+- **Branche** : `claude/corrections-post-pr347`, partie de `8c0449c6`. Poussée sans PR, sans fusion, sans
+  publication.
+- **Corrigé** :
+  - SCI-2, SCI-3, SCI-4 ;
+  - UX-1 ;
+  - bandeau d'alerte dans la console ;
+  - Next 16.4.6 ;
+  - TEC-3, TEC-4, TEC-5.
+- **Migrations** : quatre, à appliquer par le circuit protégé.
+- **Règle métier modifiée sur délégation** : l'e-mail d'une fiche est unique par agence et par nature (une
+  société peut partager l'adresse de son gérant). À confirmer.
+- **Hors de portée du code** : médiateur, paiement réel, réception de l'alerte, antivirus, réglages Supabase Auth,
+  secret Resend, validation juridique de la quittance SCI, publication.
+- **Pages créées ou modifiées** :
+  - [[Corrections après l'audit PR 347 — 19 novembre 2026]] (créée) ;
+  - [[Compte, personne et adhésion]] ;
+  - [[Audit après publication PR 347 — 8c0449c6 — 19 novembre 2026]] ;
+  - `index.md`.
+- **Rapport** : `livrables/corrections-post-pr347-20261119/`.

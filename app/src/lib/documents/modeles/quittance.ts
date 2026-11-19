@@ -6,6 +6,7 @@ import {
   Fusion,
   assemblerPage,
   cartouches,
+  echapper,
   enTete,
   eur,
   faitA,
@@ -28,6 +29,7 @@ import {
   bornesTerme,
 } from "./communs";
 import type { Assemblage } from "./index";
+import { estBailleurSociete } from "@/lib/qualite-bailleur";
 
 export type DonneesQuittance = {
   estQuittance: boolean;
@@ -51,6 +53,13 @@ export type DonneesQuittance = {
   /** Les versements qui ont couvert CE terme (imputation du plus ancien au plus récent). */
   encaissements: { date: string; mode: string | null; montant: number }[];
   bailleurNom: string;
+  /**
+   * Qui déclare et qui signe, quand une société bailleresse a un représentant actif au bail (SCI-3,
+   * `signataireQuittance`) : la déclaration « Je soussigné(e) … » (HTML déjà échappé) et le nom sous la signature.
+   * Absents : le bailleur déclare (`bailleurNom`) et l'émetteur signe (`exp.nom`), comme avant.
+   */
+  soussigne?: string | null;
+  signataire?: string | null;
   locatairesNoms: string;
   logementAdresse: string;
   referenceBail: string;
@@ -60,6 +69,46 @@ export type DonneesQuittance = {
   signatureImg?: string | null;
   f: Fusion;
 };
+
+/** Un bailleur tel que la quittance le nomme, et la personne physique qui signe pour lui s'il est une société. */
+export type BailleurQuittance = {
+  nom: string;
+  prenom: string | null;
+  representant?: { nom: string; prenom: string | null } | null;
+};
+
+const prenomNom = (p: { nom: string; prenom: string | null }) => [p.prenom, p.nom].filter((v) => v?.trim()).join(" ").trim();
+const nomPrenom = (p: { nom: string; prenom: string | null }) => [p.nom, p.prenom].filter((v) => v?.trim()).join(" ").trim();
+const valeur = (texte: string) => `<span class="v">${echapper(texte)}</span>`;
+
+/**
+ * SCI-3 (audit du 19/11/2026) : une quittance de société disait « Je soussigné(e) SCI du Tilleul, bailleur du
+ * logement… » et se signait « SCI du Tilleul », sans nommer la personne qui signe. Quand la société a un représentant
+ * actif au bail (`representations_bail`, lu par `representants_actifs_bail`), il est nommé :
+ *   « Je soussigné(e) Camille Martin, agissant pour le compte de SCI du Tilleul, bailleur du logement… »
+ *   signature : « SCI du Tilleul, représentée par Camille Martin ».
+ * Sans représentant : `null`, le texte d'avant reste (« Je soussigné(e) SCI du Tilleul… »).
+ *
+ * FORMULATION À VALIDER JURIDIQUEMENT (« agissant pour le compte de », « représentée par », accord au féminin de
+ * « la société ») avant d'être tenue pour définitive.
+ *
+ * Les noms sont échappés ici et ne passent pas par la fusion : le représentant est facultatif, son absence ne fait
+ * jamais un champ obligatoire manquant ; l'identité du bailleur reste contrôlée par `bailleurNom`.
+ */
+export function signataireQuittance(bailleurs: BailleurQuittance[] | null | undefined): { soussigne: string; signature: string } | null {
+  const nommes = (bailleurs ?? []).filter((b) => nomPrenom(b));
+  const represente = (b: BailleurQuittance) => (b.representant && prenomNom(b.representant) ? b.representant : null);
+  if (!nommes.some(represente)) return null;
+  const soussigne = nommes.map((b) => {
+    const r = represente(b);
+    return r ? `${valeur(prenomNom(r))}, agissant pour le compte de ${valeur(nomPrenom(b))}` : valeur(nomPrenom(b));
+  });
+  const signature = nommes.map((b) => {
+    const r = represente(b);
+    return r ? `${nomPrenom(b)}, représentée par ${prenomNom(r)}` : nomPrenom(b);
+  });
+  return { soussigne: soussigne.join(", et "), signature: signature.join(" ; ") };
+}
 
 type AppelImpute = { id: string; periode: string; montant_du: number };
 type Versement = { date_paiement: string; mode: string | null; montant: number; created_at?: string | null };
@@ -129,6 +178,8 @@ export function construireQuittance(d: DonneesQuittance) {
           .map((e) => `${eur(e.montant)} le ${f.date(e.date)} par ${f.champ(e.mode, "virement, chèque, espèces…")}`)
           .join(" ; ")}`
       : `Règlement reçu le ${f.date(d.encaissements[0]?.date)} par ${f.champ(d.encaissements[0]?.mode, "virement, chèque, espèces…")}`;
+  // SCI-3 : la déclaration et la signature nomment le représentant d'une société bailleresse quand il y en a un
+  // (`signataireQuittance`) — formulation à valider juridiquement.
   const corps = `
     ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: d.dateEmission })}
     ${titre(titreDoc, `Période du ${du} au ${au}`, ["Article 21 de la loi n° 89-462 du 6 juillet 1989"])}
@@ -138,7 +189,7 @@ export function construireQuittance(d: DonneesQuittance) {
       ["Logement loué", `<div>${f.champ(d.logementAdresse, "adresse complète, étage, porte")}</div>`],
       ["Bail", `Réf. ${f.champ(d.referenceBail, "référence du bail")} prenant effet le ${f.date(d.dateBail)}`],
     ])}
-    <p>Je soussigné(e) ${d.bailleurNom}, bailleur du logement désigné ci-dessus, déclare avoir reçu de
+    <p>Je soussigné(e) ${d.soussigne ?? d.bailleurNom}, bailleur du logement désigné ci-dessus, déclare avoir reçu de
     ${d.locatairesNoms} la somme de <b>${eur(d.montant)}</b>, au titre du loyer et des charges pour la
     période du ${du} au ${au}${
       d.estQuittance
@@ -177,7 +228,7 @@ export function construireQuittance(d: DonneesQuittance) {
       }
     </div>
     ${faitA(f, d.exp.ville, d.dateEmission)}
-    ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
+    ${blocSignatureEmetteur(d.signataire ?? d.exp.nom, d.signatureImg ?? null)}
   `;
 
   return assemblerPage({
@@ -220,6 +271,20 @@ export async function assemblerQuittance(
   const appel = (appels ?? []).find((a) => a.id === q.appel_id);
   if (!appel) return { erreur: "Appel de loyer introuvable pour cette quittance." };
 
+  // SCI-3 : le même texte que la quittance délivrée au locataire (quittance-conforme.ts). Le propriétaire direct lit le
+  // pouvoir de sa société comme pour l'envoi en signature ; une agence émet en mandataire et n'en a pas.
+  let representants: { societe_id: string; nom: string; prenom: string | null }[] = [];
+  if (ctx.organisation.type !== "agence" && ctx.bailleurs.some((b) => estBailleurSociete(b.qualite))) {
+    const pouvoirs = await supabase.rpc("representants_actifs_bail", { p_bail: q.bail_id });
+    if (pouvoirs.error) return { erreur: "Le représentant de la société bailleresse n’a pas pu être vérifié. Réessayez." };
+    representants = pouvoirs.data ?? [];
+  }
+  const signataire = signataireQuittance(ctx.bailleurs.map((b) => ({
+    nom: b.nom,
+    prenom: b.prenom,
+    representant: representants.find((r) => r.societe_id === b.id) ?? null,
+  })));
+
   const f = new Fusion();
   const document = construireQuittance({
     estQuittance: q.est_quittance,
@@ -244,6 +309,8 @@ export async function assemblerQuittance(
       q.appel_id
     ),
     bailleurNom: nomsBailleurs(f, ctx.bailleurs),
+    soussigne: signataire?.soussigne,
+    signataire: signataire?.signature,
     locatairesNoms: nomsLocataires(f, ctx.locataires),
     logementAdresse: adresseLogement(ctx.lot, ctx.bien),
     referenceBail: referenceCourte("BAIL", ctx.bail.id),

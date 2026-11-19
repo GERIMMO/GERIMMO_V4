@@ -71,11 +71,32 @@ function preferer(a: PeriodeMandant, b: PeriodeMandant): number {
 }
 
 /** Un refus en clair : jamais un fichier qui aurait l'air complet sans l'être. */
-function refus(message: string): Response {
+function refus(message: string, status = 500): Response {
   return new Response(message, {
-    status: 500,
+    status,
     headers: { "Cache-Control": "private, no-store", "Content-Type": "text/plain; charset=utf-8" },
   });
+}
+
+/**
+ * TEC-5 (19/11/2026) : `du` et `au` venaient de l'URL sans contrôle, jusque dans les filtres de la lecture et le titre
+ * du fichier (« Invalid Date »). Une borne est un jour AAAA-MM-JJ qui existe ; un paramètre vide vaut absent, comme avant.
+ */
+const PERIODE_INVALIDE =
+  "Période invalide : les dates « du » et « au » s'écrivent AAAA-MM-JJ (par exemple 2026-01-31), et « du » ne peut pas suivre « au ».";
+
+function jourValide(v: string): boolean {
+  if (!/^[1-9]\d{3}-\d{2}-\d{2}$/.test(v)) return false;
+  const jour = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(jour.getTime()) && jour.toISOString().slice(0, 10) === v;
+}
+
+/**
+ * TEC-5 : le texte d'une erreur de l'API (nom de table, de contrainte, de colonne) n'est jamais montré : il va au journal
+ * du serveur, et la personne lit une phrase fixe.
+ */
+function journaliserEchec(lecture: string, echec: EchecLecture): void {
+  if (echec.motif === "erreur") console.error(`[export journal] lecture ${lecture} en erreur :`, echec.message.slice(0, 300));
 }
 
 const nombre = (n: number) => n.toLocaleString("fr-FR");
@@ -90,7 +111,7 @@ function pourquoiEcrituresIncompletes(echec: EchecLecture): string {
     " Réessayez dans un instant ; si le problème persiste, signalez-le depuis Aide et retours.";
   switch (echec.motif) {
     case "erreur":
-      return `Export impossible : ${echec.message}`;
+      return "Export impossible : le journal n'a pas pu être lu." + suite;
     case "sans-compte":
       return "Export impossible : le nombre d'écritures du journal n'a pas pu être vérifié." + suite;
     case "modifiee":
@@ -107,7 +128,7 @@ function pourquoiEcrituresIncompletes(echec: EchecLecture): string {
 function pourquoiMandatsIncomplets(echec: EchecLecture): string {
   const detail =
     echec.motif === "erreur"
-      ? echec.message
+      ? "la lecture des lignes de mandat a échoué"
       : echec.motif === "sans-compte"
         ? "le nombre de lignes de mandat n'a pas pu être vérifié"
         : echec.motif === "modifiee"
@@ -135,6 +156,13 @@ function champ(v: unknown): string {
 export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await ctx.params;
   const { supabase, user, role } = await verifierAccesEspace(orgId);
+
+  // Période facultative : ?du=2026-01-01&au=2026-12-31. Sans elle, tout le journal. Contrôlée avant toute lecture.
+  const url = new URL(req.url);
+  const du = url.searchParams.get("du") || null;
+  const au = url.searchParams.get("au") || null;
+  if ((du && !jourValide(du)) || (au && !jourValide(au)) || (du && au && du > au)) return refus(PERIODE_INVALIDE, 400);
+
   // « Mon portefeuille » : l'agent n'exporte que le journal de ses lots —
   // même règle que la page comptabilité (une écriture sans lot reste une
   // affaire d'agence, hors de son périmètre).
@@ -154,11 +182,6 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
         " et peut être incomplète. Le fichier n'est pas produit ; signalez-le depuis Aide et retours."
     );
   }
-
-  // Période facultative : ?du=2026-01-01&au=2026-12-31. Sans elle, tout le journal.
-  const url = new URL(req.url);
-  const du = url.searchParams.get("du");
-  const au = url.searchParams.get("au");
 
   // Toutes les pages, avec le compte exact (audit du 23/10, A04) : une seule lecture s'arrêtait à 1 000 écritures, et
   // le fichier se disait complet. L'identifiant ferme l'ordre : deux écritures du même jour, créées au même instant, ne
@@ -195,7 +218,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   // Sans ce garde-fou, une erreur produisait un fichier vide et silencieux :
   // l'agent croyait son journal vide alors que la lecture avait échoué. Il
   // refuse aussi, depuis le 23/10, une lecture INCOMPLÈTE.
-  if (lectureEcritures.echec) return refus(pourquoiEcrituresIncompletes(lectureEcritures.echec));
+  if (lectureEcritures.echec) {
+    journaliserEchec("des écritures", lectureEcritures.echec);
+    return refus(pourquoiEcrituresIncompletes(lectureEcritures.echec));
+  }
 
   // Seules les écritures d'honoraires portent le mandat. Pour les loyers, le
   // mandant se retrouve par le lot — sans quoi la colonne resterait vide sur la
@@ -222,7 +248,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   // complet en apparence, avec une colonne « mandant » VIDE sur la quasi-
   // totalité des lignes — un journal comptable inexploitable qui ne dit pas
   // qu'il lui manque quelque chose. Mieux vaut refuser l'export.
-  if (lectureMandats.echec) return refus(pourquoiMandatsIncomplets(lectureMandats.echec));
+  if (lectureMandats.echec) {
+    journaliserEchec("des lignes de mandat", lectureMandats.echec);
+    return refus(pourquoiMandatsIncomplets(lectureMandats.echec));
+  }
 
   const mandatsDuLot = new Map<string, PeriodeMandant[]>();
   for (const l of lectureMandats.lignes) {
@@ -294,9 +323,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
       montantFr(e.montant),
       champ(e.libelle),
       e.systeme ? "oui" : "non",
-      e.contre_ecriture_de
-        ? (repereParId.get(e.contre_ecriture_de) ?? e.contre_ecriture_de)
-        : "",
+      // TEC-5 : le repère reprend la catégorie de l'écriture annulée — du texte, échappé comme les autres colonnes.
+      champ(e.contre_ecriture_de ? (repereParId.get(e.contre_ecriture_de) ?? e.contre_ecriture_de) : ""),
     ].join(";");
   });
 
@@ -309,7 +337,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   // ressemblaient trait pour trait dans un dossier de téléchargements. La
   // portée passe désormais dans le nom — mais `du` et `au` viennent de l'URL
   // et finissent dans un en-tête HTTP, où un retour chariot injecté ouvrirait
-  // un en-tête arbitraire : on n'en garde que chiffres et tirets.
+  // un en-tête arbitraire : on n'en garde que chiffres et tirets (en plus du
+  // contrôle AAAA-MM-JJ fait à l'entrée).
   const jourSur = (v: string | null, defaut: string) =>
     v ? (v.replace(/[^0-9-]/g, "").slice(0, 10) || defaut) : defaut;
   const suffixe =

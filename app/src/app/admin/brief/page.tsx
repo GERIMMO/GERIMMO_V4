@@ -12,6 +12,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { faitsManquants } from "@/lib/editeur";
 import { chargerDecisionsAttendues } from "@/lib/decisions-attendues";
+import { lirePassagesRelais, suivreAlerteQuotidienne } from "@/lib/relais-alerte-suivi";
+import { BandeauAlerteQuotidienne } from "@/components/bandeau-alerte-quotidienne";
 import { EQUIPES, estEquipe, missionsDeLEquipe, type Equipe } from "@/lib/missions";
 import { jourDuPoint } from "@/lib/point-du-matin";
 import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
@@ -46,7 +48,7 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
   const supabase = await createClient();
   const depuis = new Date(`${aujourdhui}T12:00:00Z`); depuis.setDate(depuis.getDate() - 14);
   const identite=await lireEditeur();
-  const [duJour, historique, decisions, faits, finance, assistance] = await Promise.all([
+  const [duJour, historique, decisions, faits, finance, assistance, passagesRelais] = await Promise.all([
     lirePoints(supabase, { jour, limite: 20 }),
     lirePoints(supabase, { depuis: depuis.toISOString().slice(0, 10), equipe: filtreEquipe, limite: 120 }),
     // Le même calcul que la barre haute et l'accueil (lib/decisions-attendues.ts) :
@@ -55,6 +57,8 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
     chargerFaitsDirection(supabase, jour),
     vue === "bureau" ? supabase.rpc("supervision_finances") : Promise.resolve({ data: null, error: null }),
     vue === "bureau" ? supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).neq("nature", "idee").in("etat", ["nouveau", "en_examen", "en_cours"]) : Promise.resolve({ count: null, error: null }),
+    // Incident du 12 au 19/11 : l'alerte e-mail de 5 h n'est plus le seul signal de son propre échec.
+    lirePassagesRelais(supabase),
   ]);
 
   const lectureFinance = finance.data as FinancialSnapshot | null;
@@ -90,6 +94,7 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
           </div>
         </div>
       </header>
+      <BandeauAlerteQuotidienne suivi={suivreAlerteQuotidienne(passagesRelais)} />
       {duJour.erreur && <p role="alert" className="err mb-5">Le point du matin est indisponible. Aucun état ne peut être confirmé.</p>}
       {vue === "bureau" && historique.erreur && <p role="alert" className="err mb-5">L’historique des comptes rendus est indisponible. Les données du jour restent distinctes de cette erreur.</p>}
       {lecturesEnEchec > 0 && <p role="alert" className="err mb-5">{pluriel(lecturesEnEchec, "lecture")} de cette page {lecturesEnEchec > 1 ? "ont" : "a"} échoué : ce qui manque n’est pas un zéro.</p>}

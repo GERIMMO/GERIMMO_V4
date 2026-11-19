@@ -15,10 +15,15 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, type DocumentAssemble } from "@/lib/documents/gabarit";
-import { construireQuittance, versementsDuTerme } from "@/lib/documents/modeles/quittance";
+import { construireQuittance, signataireQuittance, versementsDuTerme } from "@/lib/documents/modeles/quittance";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
 
 type Nom = { nom: string; prenom: string | null };
+/**
+ * Un bailleur du document. `representant` (SCI-3, migration 20261119200200) : pour une société dotée d'un pouvoir
+ * actif au bail, le nom et le prénom de la personne physique qui signe pour elle ; clé absente sinon.
+ */
+export type BailleurQuittanceDocument = Nom & { representant?: Nom | null };
 
 export type DonneesQuittanceDocument = {
   quittance_id: string;
@@ -47,7 +52,7 @@ export type DonneesQuittanceDocument = {
     telephone: string | null;
     email: string | null;
   };
-  bailleurs: Nom[];
+  bailleurs: BailleurQuittanceDocument[];
   locataires: Nom[] | null;
   logement: {
     lot_nom: string;
@@ -155,6 +160,12 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
   const bailleurHtml =
     f.champ(bailleur, "nom et prénom(s), ou dénomination") +
     (mandataire ? `, représenté par ${f.champ(mandataire, "mandataire")}` : "");
+  // SCI-3 (audit du 19/11) : chez un propriétaire direct, une société bailleresse dotée d'un représentant actif au bail
+  // déclare et signe par lui (« Je soussigné(e) Camille Martin, agissant pour le compte de SCI du Tilleul… »,
+  // « SCI du Tilleul, représentée par Camille Martin ») — formulation à valider juridiquement. Le représentant vient
+  // de `quittance_document`, que le locataire peut appeler ; il est facultatif et ne compte jamais parmi les manquants.
+  // Une agence émet en mandataire : son texte ne change pas.
+  const signataire = estProprietaireDirect(d) ? signataireQuittance(d.bailleurs) : null;
 
   return construireQuittance({
     estQuittance: d.est_quittance,
@@ -181,6 +192,8 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
       d.appel_id
     ).map((e) => ({ ...e, mode: libelleMode(e.mode) })),
     bailleurNom: bailleurHtml,
+    soussigne: signataire?.soussigne,
+    signataire: signataire?.signature,
     locatairesNoms: f.champ(joindre(d.locataires), "nom et prénom(s) du ou des locataires"),
     logementAdresse: logement,
     referenceBail: `BAIL-${d.bail_id.slice(0, 8).toUpperCase()}`,

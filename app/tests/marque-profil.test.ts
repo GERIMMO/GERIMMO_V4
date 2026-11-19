@@ -44,7 +44,8 @@ describe("enregistrer la marque", () => {
     expect(mocks.update).not.toHaveBeenCalled();
   });
   it("la marque agence ne modifie pas le profil propriétaire", async () => {
-    mocks.verifier.mockResolvedValue({ user: { id: "proprietaire" }, role: "proprietaire_direct", supabase: { from: () => ({ update: mocks.update }) } });
+    // Le propriétaire direct complète ensuite la fiche de sa société (SCI-2) : rien à compléter ici.
+    mocks.verifier.mockResolvedValue({ user: { id: "proprietaire" }, role: "proprietaire_direct", supabase: { from: () => ({ update: mocks.update }), rpc: async () => ({ data: 0, error: null }) } });
     expect((await modifierProfilOrganisation("org", {}, formulaire())).succes).toBeTruthy();
     expect(mocks.update.mock.calls[0][0]).not.toHaveProperty("couleur_primaire");
   });

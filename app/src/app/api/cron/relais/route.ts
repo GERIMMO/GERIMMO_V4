@@ -17,7 +17,9 @@
 // le secret des tâches Vercel ne l'ouvre, ni ce jeton n'ouvre le passage de 5 h. Refus sans jeton (avant toute lecture),
 // comparaison à temps constant, jeton jamais écrit dans un journal ni renvoyé. Il ne fait que constater les urgences
 // (`traiter_vacances`) puis vider la file de l'e-mail immédiat : file vide, aucun appel au service d'e-mail. Jeton
-// absent en base (migration non appliquée) : « non configuré », rien ne se passe, l'e-mail de 5 h reste le filet.
+// absent en base (migration non appliquée) : rien ne se passe, l'e-mail de 5 h reste le filet. L'appelant reçoit alors
+// le même refus qu'avec un jeton faux (TEC-3, 19/11/2026) : dire « non configuré » à quiconque envoie un en-tête Bearer
+// renseignait sur l'état de la base ; la cause va au journal du serveur.
 import { attendreRelais } from "@/lib/delai-relais";
 import { clientDeService } from "@/lib/supabase/service";
 import { porteurDuSecret } from "@/lib/tache";
@@ -53,10 +55,10 @@ async function passageDesUrgences(request: Request, echeance: number): Promise<R
   let acces: Awaited<ReturnType<typeof accesPassageUrgences>>;
   try { acces = await attendreRelais(() => accesPassageUrgences(request, db), echeance); }
   catch { return Response.json({ erreur: "Le contrôle du passage est momentanément indisponible." }, { status: 503 }); }
-  if (acces === "non_configure") {
-    return Response.json({ erreur: "Le passage des urgences n’est pas configuré.", non_configure: true }, { status: 503 });
+  if (acces !== "autorise") {
+    if (acces === "non_configure") console.error("[cron relais] passage des urgences refusé : jeton absent ou illisible en base (non configuré).");
+    return Response.json({ erreur: "Non autorisé." }, { status: 401 });
   }
-  if (acces !== "autorise") return Response.json({ erreur: "Non autorisé." }, { status: 401 });
   const resultat = await passerUrgencesRelais({ db, echeance });
   // Des états et des nombres seulement : ni adresse, ni jeton. Constat impossible : 503 (la sentinelle le verra aussi).
   return Response.json(resultat, { status: resultat.constat === "fait" ? 200 : 503 });

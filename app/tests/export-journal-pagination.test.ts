@@ -7,7 +7,7 @@
  *
  * Le faux client ci-dessous joue l'API : au plus 1 000 lignes par réponse, `count` seulement si on le demande. Aucune base.
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type Ligne = Record<string, unknown> & { id: string };
 type Appel = {
@@ -29,6 +29,8 @@ const banc = vi.hoisted(() => ({
   compteMenteur: {} as Record<string, number>,
   /** Ce qui arrive à une table juste après qu'on a servi sa première page (écriture concurrente). */
   apresPremierePage: {} as Record<string, (lignes: Ligne[]) => void>,
+  /** Une erreur de l'API, par table, avec son texte technique (TEC-5). */
+  erreur: {} as Record<string, string>,
   appels: [] as Appel[],
 }));
 
@@ -44,7 +46,8 @@ function fauxClient() {
         lte(c: string, v: unknown) { appel.filtres.push(["lte", c, v]); return q; },
         order(c: string) { appel.ordres.push(c); return q; },
         range(a: number, b: number) { appel.plage = [a, b]; return q; },
-        then<R>(resolve: (r: { data: Ligne[]; error: null; count: number | null }) => R, reject?: (e: unknown) => R) {
+        then<R>(resolve: (r: { data: Ligne[] | null; error: { message: string } | null; count: number | null }) => R, reject?: (e: unknown) => R) {
+          if (banc.erreur[table]) return Promise.resolve({ data: null, error: { message: banc.erreur[table] }, count: null }).then(resolve, reject);
           const lignes = (banc.tables[table] ?? []).filter((l) => appel.filtres.every(([op, c, v]) =>
             op === "eq" ? c === "organization_id" || l[c] === v : op === "gte" ? String(l[c]) >= String(v) : String(l[c]) <= String(v)));
           const debut = appel.plage?.[0] ?? 0;
@@ -102,6 +105,7 @@ beforeEach(() => {
   banc.plafond = 1000;
   banc.compteMenteur = {};
   banc.apresPremierePage = {};
+  banc.erreur = {};
   banc.appels = [];
 });
 
@@ -322,5 +326,88 @@ describe("export du journal de gestion : le mandant à la date de l'écriture", 
     await exporter();
     const lecture = banc.appels.find((a) => a.table === "mandat_lignes");
     expect(lecture?.colonnes).toMatch(/mandat:mandats\(\s*etat,\s*date_fin,/);
+  });
+});
+
+/**
+ * TEC-5 (19/11/2026) — trois défauts de la route d'export : la période venait de l'URL sans contrôle ; le texte d'une
+ * erreur de l'API (table, contrainte, colonne) était rendu tel quel à la personne ; la colonne « annule » échappait à
+ * `champ()`, donc à la neutralisation des formules de tableur (audit du 13/10, CHF-04).
+ */
+describe("export du journal de gestion : entrées contrôlées, erreurs tues, colonne « annule » échappée (TEC-5)", () => {
+  const PERIODE_INVALIDE =
+    "Période invalide : les dates « du » et « au » s'écrivent AAAA-MM-JJ (par exemple 2026-01-31), et « du » ne peut pas suivre « au ».";
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it.each([
+    ["mois impossible", "?du=2026-13-01"],
+    ["jour impossible", "?au=2026-02-30"],
+    ["année sur deux chiffres", "?du=26-01-01"],
+    ["année zéro", "?du=0000-01-01"],
+    ["date et heure", "?du=2026-01-01T00:00"],
+    ["texte", "?au=demain"],
+    ["guillemet ajouté", "?du=2026-01-01%27"],
+    ["retour chariot injecté", "?du=2026-01-01%0D%0AX-Test:%201"],
+    ["opérateur PostgREST", "?au=2026-12-31,date_imputation.gt.2000-01-01"],
+    ["période inversée", "?du=2026-12-31&au=2026-01-01"],
+  ])("%s : 400, message fixe, aucune lecture", async (_cas, requete) => {
+    const { res, corps } = await exporter(requete);
+    expect(res.status).toBe(400);
+    expect(corps).toBe(PERIODE_INVALIDE);
+    expect(res.headers.get("Content-Type")).toContain("text/plain");
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(res.headers.get("Content-Disposition")).toBeNull();
+    expect(banc.appels).toEqual([]);
+  });
+
+  it.each([
+    ["paramètres vides (comme absents)", "?du=&au=", "journal-de-gestion-complet.csv", "Journal de gestion"],
+    ["borne de début seule", "?du=2026-01-01", "journal-de-gestion-2026-01-01-au-ce-jour.csv", "Journal de gestion du 01/01/2026 au ce jour"],
+    ["année bissextile", "?du=2024-02-29&au=2024-02-29", "journal-de-gestion-2024-02-29-au-2024-02-29.csv", "Journal de gestion du 29/02/2024 au 29/02/2024"],
+  ])("%s : le fichier sort", async (_cas, requete, fichier, titre) => {
+    banc.tables = { ecritures: [ecriture(0)], mandat_lignes: [ligneMandat(0)] };
+    const { res, corps } = await exporter(requete);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Content-Disposition")).toContain(fichier);
+    expect(corps.replace(/^\uFEFF/, "").split("\r\n")[0]).toBe(titre);
+  });
+
+  it.each([
+    ["écritures", "ecritures"],
+    ["lignes de mandat", "mandat_lignes"],
+  ])("erreur de l'API sur les %s : message fixe, le texte technique au journal du serveur seulement", async (_cas, table) => {
+    const journal = vi.spyOn(console, "error").mockImplementation(() => {});
+    banc.erreur = { [table]: 'relation "public.ecritures_privees" violates constraint ecritures_secret_fkey' };
+    const { res, corps } = await exporter();
+    expect(res.status).toBe(500);
+    expect(res.headers.get("Content-Disposition")).toBeNull();
+    expect(corps).toMatch(/^Export impossible/);
+    expect(corps).not.toMatch(/relation|constraint|ecritures_privees|fkey/);
+    expect(JSON.stringify(journal.mock.calls)).toContain("ecritures_secret_fkey");
+  });
+
+  it("la colonne « annule » passe par champ() : ni formule, ni séparateur, ni saut de ligne", async () => {
+    const piegee: Ligne = { ...ecriture(0), id: "e-piegee", categorie: "=HYPERLINK(\"http://exemple.invalid\";\"x\")", libelle: "piegee" };
+    const categorieSurDeuxLignes: Ligne = { ...ecriture(1), id: "e-lignes", categorie: "-loyer;\nsuite", libelle: "lignes" };
+    banc.tables = {
+      ecritures: [
+        piegee,
+        categorieSurDeuxLignes,
+        { ...ecriture(2), id: "e-annule-piegee", libelle: "annule-piegee", contre_ecriture_de: "e-piegee" },
+        { ...ecriture(3), id: "e-annule-lignes", libelle: "annule-lignes", contre_ecriture_de: "e-lignes" },
+        // L'écriture reprise n'est pas dans la lecture : la colonne retombe sur la référence brute, échappée aussi.
+        { ...ecriture(4), id: "e-annule-inconnue", libelle: "annule-inconnue", contre_ecriture_de: "@SOMME(A1)" },
+      ],
+      mandat_lignes: [],
+    };
+    const { res, donnees } = await exporter();
+    expect(res.status).toBe(200);
+    expect(donnees).toHaveLength(5);
+    const annule = (libelle: string) => donnees.find((l) => l.split(";")[8] === libelle)?.split(";");
+    expect(annule("annule-piegee")?.[10]).toBe(`'=HYPERLINK("http://exemple.invalid" "x") du 01/03/2026`);
+    expect(annule("annule-lignes")?.[10]).toBe("'-loyer  suite du 01/03/2026");
+    expect(annule("annule-inconnue")?.[10]).toBe("'@SOMME(A1)");
+    for (const l of donnees) expect(l.split(";")).toHaveLength(11);
+    expect(annule("piegee")?.[10]).toBe("");
   });
 });

@@ -1059,3 +1059,19 @@ La grille du 29 octobre et ses contraintes protègent le minimum de 4,90 par bie
 | `20261112120300_conge_ajuste_dernier_terme_et_depot_au_centime.retour.sql` | `20261112120300_conge_ajuste_dernier_terme_et_depot_au_centime.sql` | Réservé à la répétition locale G-107. En production, conserver les écritures et corriger en avant. |
 
 20261112120400_cle_date_effet_et_tantiemes.retour.sql : conserve les clés historiques, restaure la RPC à trois arguments.
+
+## SCI-2 et SCI-3 — 19 novembre 2026 (audit après publication de la PR #347)
+
+Hors de la chaîne « Ordre complet » : aucune de ces quatre migrations ne cite `aujourdhui_paris()`, comme celles de la
+PR #347. Si tout devait être défait, ces retours passent dans l’ordre du tableau, **avant** ceux de la PR #347
+(`20261119145246` et suivants). Ils supposent la base au niveau de la PR #347 : sur une base plus ancienne, le retour de
+`20261119200100` refuse (forme inattendue de `initialiser_espace_proprietaire()`) sans rien modifier.
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261119200300_recherche_email_par_nature.retour.sql` | `20261119200300_recherche_email_par_nature.sql` | À jouer en premier, en tout cas **avant** le retour de `20261119200000`. Rend à `public.import_personne` et `public.reprendre_soldes` leur recherche par e-mail sans départage (première fiche trouvée) ; remplacement exact inverse, rejouable. Aucune donnée touchée. |
+| `20261119200200_quittance_representant_societe.retour.sql` | `20261119200200_quittance_representant_societe.sql` | Après le précédent. Remet la liste des bailleurs de `public.quittance_document` sans la clé `representant` (remplacement exact inverse, rejouable). Aucune donnée touchée ; le code actuel lit la clé absente comme « pas de représentant ». |
+| `20261119200100_coordonnees_fiche_societe.retour.sql` | `20261119200100_coordonnees_fiche_societe.sql` | Après le précédent. Remet la création de la fiche titulaire d’une société sans e-mail dans `public.initialiser_espace_proprietaire()` et retire `public.completer_fiche_societe_depuis_profil(uuid)`. Les coordonnées déjà recopiées sur des fiches restent. Remettre le code d’avant de `app/actions/organisation.ts` (sinon le profil s’enregistre et signale seulement que la fiche n’a pas pu être complétée). |
+| `20261119200000_email_partage_societe_gerant.retour.sql` | `20261119200000_email_partage_societe_gerant.sql` | En dernier, et seulement si le retour de `20261119200100` est joué (garde). Rétablit l’index strict `persons_email_unique_par_agence`. Refusé dès que deux fiches vivantes d’un même espace partagent une adresse — c’est le cas de toute SCI ouverte depuis la migration (société et gérant) : conserver alors l’index par nature et corriger en avant. Aucune fiche n’est modifiée ni archivée. Remettre le code d’avant de `app/actions/personnes.ts` et `parc.ts`. |
+
+Essais du 19/11/2026 sur une base jetable PostgreSQL 16 (schéma réduit aux objets concernés, définitions réelles rejouées depuis les migrations) : migrations jouées deux fois (rejeu sans effet) ; retours dans l’ordre → définitions de `initialiser_espace_proprietaire()` et `quittance_document(uuid)` **identiques** (md5) à celles d’avant les migrations, index strict rétabli ; retours rejoués → « rien à faire » ; retour de `…200000` joué avant celui de `…200100` → refus ; adresse partagée → refus ; marche avant de nouveau → état migré retrouvé. Limites : base de banc réduite ; les tests `tests/fiche-societe-coordonnees-base.test.ts` et `tests/quittance-representant-base.test.ts` sont à jouer sur le banc complet.

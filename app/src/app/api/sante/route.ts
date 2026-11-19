@@ -5,7 +5,9 @@ import {maintenanceLivraison} from "@/lib/transition-livraison";
 // de réponse, parce que deux lecteurs :
 //  · sans secret — un moniteur externe, ou n'importe qui : `ok`, `base`, le
 //    commit déployé. Rien de plus : l'état des tâches dit ce que la plateforme
-//    envoie et quand, ce n'est pas public.
+//    envoie et quand, ce n'est pas public. Une panne s'y dit en termes
+//    généraux (TEC-3, 19/11/2026) : le nom d'une variable d'environnement
+//    absente renseigne sur la configuration, il va au journal du serveur.
 //  · avec le secret des tâches (`Authorization: Bearer CRON_SECRET`) — la ronde
 //    du matin : la dernière passe de chaque tâche avec son bilan, et le nombre
 //    d'écrans en erreur sur 24 h.
@@ -19,6 +21,12 @@ import { dernieresTaches, porteurDuSecret, type PasseConsignee } from "@/lib/tac
 
 export const dynamic = "force-dynamic";
 
+/** Le motif d'une panne, tel qu'un appelant sans secret le lit. Le détail est au journal du serveur. */
+const MOTIF_SANTE_PUBLIC = "Service momentanément indisponible.";
+
+// Les champs `ok`, `base`, `commit`, `revision` et `maintenance` sont lus par le contrôle de publication
+// (scripts/deploiement/controle.mjs) et la surveillance de disponibilité (scripts/surveillance/disponibilite.mjs) :
+// leurs noms et leur forme ne changent pas.
 export async function GET(request: Request) {
   // Une variable présente mais vide n'est pas un commit : `""` dirait « quelque
   // chose », alors qu'on ne sait rien.
@@ -27,10 +35,14 @@ export async function GET(request: Request) {
   const revision = sha && /^[0-9a-f]{40}$/i.test(sha) ? sha.toLowerCase() : null;
   const commit = sha ? sha.slice(0, 7) : null;
 
+  const avecSecret = porteurDuSecret(request, process.env.CRON_SECRET);
+
   const supabase = clientDeService();
   if (!supabase) {
+    const detail = "SUPABASE_SERVICE_ROLE_KEY absente.";
+    console.error("[sante] base non sondée :", detail);
     return Response.json(
-      { ok: false, base: false, commit, revision, motif: "SUPABASE_SERVICE_ROLE_KEY absente." },
+      { ok: false, base: false, commit, revision, motif: avecSecret ? detail : MOTIF_SANTE_PUBLIC },
       { status: 503 }
     );
   }
@@ -45,13 +57,14 @@ export async function GET(request: Request) {
     .select("id")
     .limit(1);
   if (erreurBase) {
+    console.error("[sante] la base ne répond pas :", erreurBase.code ?? "", String(erreurBase.message ?? "").slice(0, 200));
     return Response.json(
-      { ok: false, base: false, commit, revision, motif: "La base ne répond pas." },
+      { ok: false, base: false, commit, revision, motif: avecSecret ? "La base ne répond pas." : MOTIF_SANTE_PUBLIC },
       { status: 503 }
     );
   }
 
-  if (!porteurDuSecret(request, process.env.CRON_SECRET)) {
+  if (!avecSecret) {
     return Response.json({ ok: true, base: true, commit, revision, maintenance });
   }
 

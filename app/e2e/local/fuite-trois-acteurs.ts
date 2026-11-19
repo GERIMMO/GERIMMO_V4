@@ -55,6 +55,7 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
       await recherche.getByText("Options du devis", {exact:true}).click();
       await recherche.getByLabel("Demander un seul devis", {exact:false}).check();
       await recherche.getByRole("button",{name:/Ouvrir avec mon carnet|Chercher un artisan/}).click();
+      await gestion.getByRole("link", {name:"Devis et facture", exact:true}).click();
       await gestion.getByRole("button",{name:/Demander un devis/}).first().click();
       const demande=async ()=>(await db.query("select s.id from incident_sollicitations s join incident_consultations c on c.id=s.consultation_id where c.incident_id=$1 and s.artisan_id=$2",[incident.id,artisanId])).rows[0]?.id;
       await expect.poll(demande).toBeTruthy();
@@ -101,6 +102,7 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
       await expect(artisan).toHaveURL(/envoye=1/);
       await verifierAvis?.({evenement:"devis_recu",incident:incident.id,destinataire:gestion});
       await gestion.reload();
+      await gestion.getByRole("link", {name:"Devis et facture",exact:true}).click();
       const telecharger = gestion.getByRole("link", {name:"Télécharger le détail du devis (PDF)",exact:true});
       await expect(telecharger).toBeVisible();
       const urlPdf = new URL((await telecharger.getAttribute("href"))!, gestion.url()).href;
@@ -141,8 +143,8 @@ export async function preparerEtPlanifierFuite(db: Client, browser: Browser, art
     expect(jours).toHaveLength(6);
     for (const [i,{jour}] of jours.slice(0,3).entries()) {
       const proposition=artisan.locator("fieldset").nth(i);
-      await proposition.getByLabel("Jour",{exact:true}).fill(jour);
-      await proposition.getByRole("button",{name:"Matin",exact:true}).click();
+      await proposition.getByLabel("Date",{exact:true}).fill(jour);
+      await proposition.getByRole("button",{name:"Matin 09:00 – 11:00",exact:true}).click();
     }
     await artisan.getByRole("button",{name:"Envoyer les créneaux"}).click();
     await expect.poll(async()=>(await db.query("select count(*)::int n from intervention_creneaux where intervention_id=$1 and statut='propose'",[mission])).rows[0].n).toBe(3);

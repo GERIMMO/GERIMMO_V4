@@ -1,0 +1,62 @@
+[33m[MIXED_EXPORTS] [0mEntry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[33m[MIXED_EXPORTS] [0mEntry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+[33m[MIXED_EXPORTS] [0mEntry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/easycash/Documents/Gerimmo V3/work/ux-accueil-proprietaire-20261118/app
+
+ ❯ |parallele| tests/compteurs-navigation-supervision.test.ts (2 tests | 1 failed) 26ms
+     × signale les deux sources indisponibles sans afficher 0 17ms
+ ❯ |parallele| tests/ux-console-direction-navigateur.test.ts (3 tests | 3 failed) 90676ms
+     × normal : compteurs, alertes, détails et filtres à 390 et 1440 px 30007ms
+     × degrade : compteurs, alertes, détails et filtres à 390 et 1440 px 30006ms
+     × erreur : compteurs, alertes, détails et filtres à 390 et 1440 px 30002ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |parallele| tests/compteurs-navigation-supervision.test.ts > navigation : compteur inconnu distinct du zéro > signale les deux sources indisponibles sans afficher 0
+AssertionError: expected [ 'À vérifier', 'À vérifier', …(2) ] to have a length of 2 but got 4
+
+- Expected
++ Received
+
+- 2
++ 4
+
+ ❯ tests/compteurs-navigation-supervision.test.ts:9:39
+      7|   it("signale les deux sources indisponibles sans afficher 0", () => {
+      8|     const html=renderToStaticMarkup(createElement(NavAdmin,{artisansEn…
+      9|     expect(html.match(/À vérifier/g)).toHaveLength(2);
+       |                                       ^
+     10|     expect(html).not.toMatch(/>0<|0 sujet|0 artisan/);
+     11|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  |parallele| tests/ux-console-direction-navigateur.test.ts > Console dirigeant : navigation et suivi compréhensible > normal : compteurs, alertes, détails et filtres à 390 et 1440 px
+ FAIL  |parallele| tests/ux-console-direction-navigateur.test.ts > Console dirigeant : navigation et suivi compréhensible > degrade : compteurs, alertes, détails et filtres à 390 et 1440 px
+ FAIL  |parallele| tests/ux-console-direction-navigateur.test.ts > Console dirigeant : navigation et suivi compréhensible > erreur : compteurs, alertes, détails et filtres à 390 et 1440 px
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/ux-console-direction-navigateur.test.ts:18:40
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+
+ Test Files  2 failed | 3 passed (5)
+      Tests  4 failed | 58 passed (62)
+   Start at  13:30:34
+   Duration  91.14s (transform 349ms, setup 74ms, import 897ms, tests 90.79s, environment 0ms)
+

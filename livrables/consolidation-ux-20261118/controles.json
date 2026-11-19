@@ -1,0 +1,17 @@
+{
+  "source_applicative": "0a94046fc84efd12cde4b131618b95e2892dff3e",
+  "base_main_et_production": "dca396418053c9edb01351a6dd5b39dd9a087dc4",
+  "commits_ux_conserves": 17,
+  "typescript": {
+    "exit_code": 0
+  },
+  "eslint_fichiers_modifies": {
+    "exit_code": 0
+  },
+  "suites_ciblees": 27,
+  "tests_reussis": 348,
+  "tests_echoues": 0,
+  "tests_ignores": 0,
+  "ci_github": "à exécuter sur le commit portant ces preuves",
+  "production_modifiee": false
+}

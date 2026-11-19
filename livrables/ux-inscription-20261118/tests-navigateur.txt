@@ -1,0 +1,29 @@
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /Users/easycash/Documents/Gerimmo V3/work/ux-accueil-proprietaire-20261118/app
+
+ ✓  parallele  tests/formulaires-auth-focus-titres.test.ts (8 tests) 6ms
+ ✓  parallele  tests/inscription-navigateur.test.ts (4 tests) 4970ms
+     ✓ code de parrainage mal formé : la qualité choisie reste affichée, et l'envoi corrigé enregistre bien celle-là  1252ms
+     ✓ refus de la fabrique de liens (trop de demandes) : la liste garde aussi le choix, et le nouvel essai le porte  599ms
+     ✓ refus successifs avec d'autres choix, jusqu'au retour à « Personne physique » : la liste suit toujours le dernier envoi  877ms
+
+ Test Files  2 passed (2)
+      Tests  12 passed (12)
+   Start at  10:31:20
+   Duration  5.60s (transform 181ms, setup 27ms, import 568ms, tests 4.98s, environment 0ms)
+

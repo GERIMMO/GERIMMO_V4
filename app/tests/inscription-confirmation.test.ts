@@ -121,10 +121,18 @@ describe("inscrireProprietaire", () => {
     expect(mocks.redirect).not.toHaveBeenCalled();
   });
 
-  it.each(["adresse", "code_postal", "ville"])("bloque l’ouverture si %s est vide, avant tout envoi", async champ => {
+  it.each(["adresse", "code_postal", "ville"])("permet de compléter %s après l’inscription", async champ => {
     const r = await inscrireProprietaire({}, formulaire({ [champ]: "   " }));
-    expect(r.erreur).toMatch(/pour vos courriers/);
-    expect(mocks.inscrire).not.toHaveBeenCalled();
+    expect(r).toEqual({ message: MESSAGE_BOITE_MAIL });
+    expect(mocks.inscrire).toHaveBeenCalledOnce();
+  });
+
+  it("ouvre avec les seuls nom, e-mail et statut, sans accepter de conditions à la place de la personne", async () => {
+    const f = new FormData();
+    for (const [k,v] of Object.entries({ nom: "Martin", email: "martin@example.invalid", qualite: "SCI" })) f.set(k,v);
+    expect(await inscrireProprietaire({}, f)).toEqual({ message: MESSAGE_BOITE_MAIL });
+    expect(mocks.inscrire.mock.calls[0][0].metadonnees).toMatchObject({ nom: "Martin", qualite: "SCI", adresse: "", telephone: "" });
+    expect(mocks.inscrire.mock.calls[0][0].metadonnees.cgu_acceptee_le).toBeUndefined();
   });
 
   it("garde ses contrôles de formulaire avant tout appel", async () => {

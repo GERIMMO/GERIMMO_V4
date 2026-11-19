@@ -1,0 +1,34 @@
+{
+  "date_utc": "2026-11-18T10:45:42.197447+00:00",
+  "base": "52d475db1f492819c271f8ec42e8876fed79dfbc",
+  "branche": "codex/ux-accueil-proprietaire-20261118",
+  "tests_cibles": {
+    "reussis": 68,
+    "echecs": 0,
+    "ignores": 0
+  },
+  "navigateur": {
+    "reussis": 8,
+    "echecs": 0,
+    "largeurs": [
+      390,
+      1440
+    ],
+    "mobile": "Chromium simulé"
+  },
+  "typescript": "réussi",
+  "eslint_cible": "réussi",
+  "migration_ajoutee": false,
+  "action_serveur_modifiee": false,
+  "reglement_soumis": false,
+  "notification_envoyee": false,
+  "sha256_code": {
+    "app/src/app/agence/[orgId]/incidents/factures-incident.tsx": "56a43314b195f612a1ec6ae45fe48fe8ab11d4d4e564897361edf5d1306d3099",
+    "app/src/app/agence/[orgId]/incidents/page.tsx": "2eee24c1aedc0a3d393394050664334683dcdfeb65bd8be9dc052ea280614338",
+    "app/src/app/agence/[orgId]/incidents/pane-incident.tsx": "300d172a98bce2cc5d7c929043ee7816f8d5da6c88900d5b4a4424fff979eef3",
+    "app/src/app/agence/[orgId]/incidents/volet-artisan.tsx": "2359ef5118ff99fee99b2a34e27c8c2e76f4984584b170666719a923b30c3265",
+    "app/src/components/presentation-signalement-incident.tsx": "627cf5e352e3166855f10a45f3e34d50946c6adcc7790f4aea55cf18218d6789",
+    "app/tests/incidents-liste-a-traiter.test.ts": "4393816d3853f12368d081923fefbe483809fea89cc740dd3ea3893f68416ce3",
+    "app/src/components/navigation-incident.tsx": "37f561746d56b2107f6132ba7a5ff2bf11a4f007b66644a44ba9d78f1d0ce8a3"
+  }
+}

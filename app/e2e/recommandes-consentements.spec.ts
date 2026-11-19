@@ -1,3 +1,4 @@
+import { ouvrirSuiviLoyers } from "./aides";
 import { test,expect,type Page } from '@playwright/test';
 import {Client} from 'pg';
 import {randomUUID} from 'node:crypto';
@@ -69,7 +70,7 @@ for(const largeur of [390,1440]) test.describe(`${largeur}px`,()=>{
   suivreErreurs(page);
   await sansSyntheseAlertes(page);
   await connecter(page,'proprietaire@example.com',`/espace/${ORG}`);
-  await page.getByRole('region',{name:'Votre patrimoine en bref'}).getByRole('button',{name:/^(?:\d+ actions? prioritaires?|\d+ loyers? à confirmer|À vérifier) /}).click();
+  await ouvrirSuiviLoyers(page);
   const bloc=page.getByRole('region',{name:'Avez-vous reçu vos loyers ?'});const ligne=bloc.locator('li').filter({has:page.getByRole('link',{name:nom,exact:true})});
   await expect(ligne.getByRole('button',{name:'Préparer l’envoi du recommandé AR24',exact:true})).toHaveCount(0);
   await ligne.getByRole('button',{name:'Pas encore reçu',exact:true}).click();

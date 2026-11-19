@@ -178,7 +178,7 @@ export async function IncidentsLot({ orgId, lotId, base, lectureSeule }: PropsLo
     </Link>
   </li>;
   };
-  return <div className={styles.contenu} data-incidents-vides={!ouverts.error && !enCours.length && !clos.error && !clotures.length}>
+  return <div className={styles.contenu} data-incidents-ouverts={!ouverts.error && enCours.length > 0} data-incidents-vides={!ouverts.error && !enCours.length && !clos.error && !clotures.length}>
     {ouverts.error ? <LectureIndisponible>Les incidents en cours n’ont pas pu être chargés.</LectureIndisponible> : enCours.length ? <ul className={styles.incidents}>{enCours.map(ligne)}</ul> : <p className={styles.serein}><CheckCircle2 size={18} aria-hidden="true" />Aucun incident en cours.</p>}
     {!lectureSeule && <Link href={`${base}/incidents/nouveau?lot=${lotId}`} className={buttonVariants({ variant: "outline", size: "sm" })}><Plus size={14} aria-hidden="true" />Signaler un incident</Link>}
     {clos.error ? <LectureIndisponible>L’historique des incidents n’a pas pu être chargé.</LectureIndisponible> : clotures.length > 0 && <details className={styles.historique}>

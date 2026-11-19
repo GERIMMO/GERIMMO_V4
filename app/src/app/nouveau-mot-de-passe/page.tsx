@@ -33,12 +33,14 @@ export default async function PageNouveauMotDePasse({ searchParams }: { searchPa
   const brutProfil = user.user_metadata?.[CLE_PROFIL_A_CONFIRMER];
   const profilAConfirmer = brutProfil && typeof brutProfil === "object" ? informationsAConfirmer(brutProfil) : undefined;
 
+  const premiereActivation = apresConfirmation || !!profilAConfirmer || /^\/invitations\/[0-9a-f-]{36}$/.test(suite);
+
   return (
     <CoquilleAuth
       promesse="Un mot de passe, et rien d'autre à retenir."
       sousPromesse="Douze caractères au moins. Il est vérifié contre les fuites de données connues : un mot de passe déjà exposé ailleurs est refusé ici."
       mention="Un seul compte, tous vos espaces"
-      titre={apresConfirmation ? "Choisissez votre mot de passe" : "Nouveau mot de passe"}
+      titre={premiereActivation ? "Choisir mon mot de passe" : "Nouveau mot de passe"}
       chapo={
         apresInscription
           ? `Votre adresse ${user.email} est confirmée. Vérifiez vos informations puis choisissez le mot de passe de votre compte. Douze caractères au moins, vérifiés contre les fuites de données connues.`
@@ -47,7 +49,7 @@ export default async function PageNouveauMotDePasse({ searchParams }: { searchPa
             : `Compte : ${user.email}. Choisissez un mot de passe d'au moins 12 caractères — il sera vérifié contre les fuites de données connues.`
       }
     >
-      <FormulaireNouveauMotDePasse suite={suite} profilAConfirmer={profilAConfirmer} />
+      <FormulaireNouveauMotDePasse premiereActivation={premiereActivation} suite={suite} profilAConfirmer={profilAConfirmer} />
     </CoquilleAuth>
   );
 }

@@ -1,0 +1,15 @@
+{
+  "erreurs": [
+    {
+      "path": "/locataire/c14c3187-1258-4e58-8822-368c6007e3fa/documents/1f2c23a5-f56a-4e65-8cde-80f2c33e652d/fichier",
+      "erreur": "net::ERR_ABORTED"
+    },
+    {
+      "console": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "meta_status": 200,
+  "stockage_status": 404,
+  "taille": 38,
+  "pdf": false
+}

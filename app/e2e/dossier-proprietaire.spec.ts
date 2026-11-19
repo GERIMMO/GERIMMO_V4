@@ -19,16 +19,19 @@ for (const largeur of [390, 1440]) {
     await (await lienLotProprietaire(page)).click();
     await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
     await expect(page.getByRole('dialog')).toHaveCount(0);
-    await expect(page.getByRole('tablist')).toHaveCount(0);
-    for (const nom of ['Caractéristiques', 'Caractéristiques du bâtiment', 'Bail et occupation', 'Incidents', 'Documents et diagnostics']) {
-      await expect(page.getByRole('heading', { name: nom, exact: true })).toBeVisible();
+    await expect(page.getByRole('tablist', { name: 'Fiche du logement' })).toHaveCount(1);
+    await expect(page.getByRole('tab')).toHaveText(['Résumé', 'Location', 'Argent', 'Documents', 'Caractéristiques']);
+    for (const [onglet, noms] of [['Résumé', ['Incidents']], ['Location', ['Bail et occupation']], ['Documents', ['Documents et diagnostics']], ['Caractéristiques', ['Caractéristiques', 'Caractéristiques du bâtiment', 'Propriétaires']]] as const) {
+      await page.getByRole('tab', { name: onglet, exact: true }).click();
+      for (const nom of noms) await expect(page.getByRole('heading', { name: nom, exact: true })).toBeVisible();
     }
     // Un logement vacant n'affiche plus de carte occupants vide.
     await expect(page.getByRole('heading', { name: 'Locataires & garants', exact: true })).toHaveCount(0);
     const documents = page.locator('#documents-lot');
+    await page.getByRole('tab', { name: 'Documents', exact: true }).click();
     await expect(documents).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Propriétaires', exact: true })).toBeVisible();
     await expect(documents.getByRole('link', { name: 'Ouvrir la bibliothèque', exact: true })).toBeVisible();
+    await page.getByRole('tab', { name: 'Caractéristiques', exact: true }).click();
     const rubrique = page.locator('details#pieces');
     const ouvrir = rubrique.locator(':scope > summary');
     await ouvrir.click();
@@ -41,7 +44,9 @@ for (const largeur of [390, 1440]) {
     expect(await debordementHorizontal(page)).toBe(0);
     await page.goto(page.url().split('#')[0]);
     await page.reload();
+    await page.getByRole('tab', { name: 'Documents', exact: true }).click();
     await expect(documents).toBeVisible();
+    await page.getByRole('tab', { name: 'Caractéristiques', exact: true }).click();
     await expect(page.locator('#logement-lot')).toBeVisible();
     await page.screenshot({ path: `e2e/.results/dossier-${largeur}.png`, fullPage: true });
   });
@@ -270,6 +275,7 @@ test('propriétaire : un bail commencé se reprend partout, sans brouillon vierg
     await expect(entete.getByRole('button')).toHaveCount(0);
     await expect(entete.getByRole('link', { name: 'Reprendre le bail', exact: true })).toHaveAttribute('href', new RegExp(`/baux/${bailId}$`));
     // Le geste secondaire reste offert, mais un brouillon encore vierge est repris, pas doublé.
+    await page.getByRole('tab', { name: 'Location', exact: true }).click();
     await page.locator('summary').filter({ hasText: 'Préparer un autre contrat' }).click();
     await page.locator('#nouveau-contrat').getByRole('button', { name: 'Commencer le bail', exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/baux/${bailId}#etape-bail-1$`));

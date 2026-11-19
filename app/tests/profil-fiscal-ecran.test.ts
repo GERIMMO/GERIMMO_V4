@@ -68,3 +68,22 @@ describe("Déclaration adaptée : garde effective écran, export et document", (
     const html = await afficher(); expect(html).toContain("n’a pas pu être vérifiée"); expect(html).not.toContain("Exporter les montants (CSV)"); expect(html).not.toContain("Exporter le dossier de préparation");
   });
 });
+
+describe("UX 11B — années fiscales et justificatif compréhensibles", () => {
+  it.each([2025, 2026, 2027])("revenus %s : année de déclaration distincte, filtre inchangé", async (annee) => {
+    const html = renderToStaticMarkup(await RecapitulatifFiscal({ params: Promise.resolve({ orgId: "org" }), searchParams: Promise.resolve({ annee: String(annee) }) }));
+    expect(html).toContain(`Revenus ${annee} — déclaration en ${annee + 1}`);
+    expect(html).toContain(`value="${annee}"`);
+    expect(html).toContain("Sur quoi vous appuyez-vous ?");
+    expect(html).not.toContain("Référence de vérification");
+  });
+  it("SCI : années explicites, préparation seule et pas de faux résultat 2044", async () => {
+    const tables = dossier(); tables.persons[0].qualite = "SCI";
+    Object.assign(tables.fiscal_profils_detenteurs[0], { qualite: "SCI", imposition: "is" });
+    banc.base = baseSimulee(tables);
+    const html = await afficher();
+    expect(html).toContain("Revenus 2026 — déclaration en 2027");
+    expect(html).toContain("Exporter le dossier de préparation");
+    expect(html).not.toContain("Exporter les montants (CSV)");
+  });
+});

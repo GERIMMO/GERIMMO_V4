@@ -97,10 +97,11 @@ describe("présentation de l’abonnement propriétaire", () => {
     const html = await rendre();
     expect(html).toContain("Votre essai Gerimmo");
     expect(html).toContain("13 jours restants");
-    expect(html).toContain("25 octobre 2099");
+    expect(html).toContain("24/10/2099");
+    expect(html).not.toContain("Premier prélèvement");
     expect(html).toContain("Zoho Sign");
     expect(html).not.toContain("signature électronique n’est pas encore proposée");
-    expect(html).toContain("Souscrire à Gerimmo");
+    expect(html).toContain("Votre offre Gerimmo");
     expect(html).toContain("Sans souscription, aucun prélèvement");
     expect(html).not.toContain("Abonnement actif");
   });
@@ -167,10 +168,11 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     expect(html).toContain(MOTIF_IDENTITE_HTML);
     expect(html).not.toContain("Continuer vers le paiement sécurisé");
     expect(html).not.toContain(CASE_CONDITIONS);
-    // Le récapitulatif reste : le client lit le montant, même sans bouton.
-    expect(html).toContain("Récapitulatif avant paiement");
-    // Plan du 23/10 (R55) : en franchise de TVA, « Total à payer » sans « TTC » ; la mention de franchise suit.
-    expect(html).toContain("Total à payer");
+    // Le prix reste visible, sans présenter une commande impossible.
+    expect(html).toContain("Tarifs à titre d’information");
+    expect(html).toContain("9,97");
+    expect(html).not.toContain("Récapitulatif avant paiement");
+    expect(html).not.toContain("Total à payer");
     expect(html).not.toContain("Total à payer TTC");
     expect(html).toContain("TVA non applicable, art. 293 B du CGI.");
   });
@@ -186,7 +188,7 @@ describe("garde de souscription à l’écran « Mon abonnement »", () => {
     mocks.editeur = { editeur: EDITEUR_VIDE, indisponible: false };
     etat = { ...etat, ecriture_ouverte: false, essai_fin: "2099-10-01", jours_essai_restants: 0 };
     const html = await rendre();
-    expect(html).toContain("Reprendre avec un abonnement");
+    expect(html).toContain("Votre offre Gerimmo");
     expect(html).toContain("Votre essai gratuit est arrivé à son terme.");
     expect(html).toContain(MOTIF_IDENTITE_HORS_ESSAI_HTML);
     expect(html).not.toContain("Votre essai continue");
@@ -345,4 +347,68 @@ describe("relecture adverse du 24/10 (I2) : après une résiliation pour impayé
     etat = { ...etat, ecriture_ouverte: false };
     expect(await rendre()).toContain("Dès que le paiement aboutit, tout rouvre");
   });
+});
+
+describe("UX 11B — situation réelle et souscription fermée", () => {
+  it.each([true, false])("essai ouvert = %s : tarif informatif, sans commande ni prolongation inventée", async (ouvert) => {
+    etat.ecriture_ouverte = ouvert;
+    etat.essai_fin = ouvert ? "2099-10-24" : "2099-10-01";
+    const html = await rendre();
+    expect(html).toContain("Votre offre Gerimmo");
+    expect(html).toContain("Tarifs à titre d’information");
+    expect(html).not.toContain("Récapitulatif avant paiement");
+    expect(html).not.toContain('name="periodicite"');
+    expect(html).not.toContain('name="montant_attendu_cents"');
+    expect(html).not.toContain("Votre essai est prolongé");
+    expect(html).not.toContain("Votre abonnement est offert");
+    expect(html).toContain("9,97");
+    expect(html).toContain("99,70");
+    expect(html.indexOf('id="services-inclus"')).toBeLessThan(html.indexOf("Tarifs à titre d’information"));
+    if (!ouvert) expect(html).toContain("Votre essai gratuit est arrivé à son terme");
+  });
+  it("une prolongation offerte n'est affichée que sur la preuve retournée par la base", async () => {
+    mocks.rpc.mockImplementation(async (nom: string) => ({ data: nom === "lire_mois_offerts" ? [{ id: "cadeau", nature: "acces", fin: etat.essai_fin }] : [nom === "etat_abonnement" ? etat : paiement], error: null }));
+    expect(await rendre()).toContain("Votre abonnement est offert");
+    etat.ecriture_ouverte = false;
+    expect(await rendre()).not.toContain("Votre abonnement est offert");
+  });
+  it("ventes autorisées sur le banc : le véritable formulaire et ses consentements restent présents", async () => {
+    mocks.stripePret = true;
+    const html = await rendre();
+    expect(html).toContain("Récapitulatif avant paiement");
+    expect(html).toContain('name="montant_attendu_cents"');
+    expect(html).toContain("Continuer vers le paiement sécurisé");
+    expect(html).toContain("J&#x27;ai vérifié le montant");
+  });
+});
+
+
+it("ne présente pas comme essai un abonnement dont la formule est absente", async () => {
+  abonner({ formule: null, montant_periode_cents: null });
+  const html = await rendre();
+  expect(html).toContain("Votre abonnement Gerimmo");
+  expect(html).toContain("Abonnement actif");
+  expect(html).not.toContain("Votre essai Gerimmo");
+  expect(html).toContain("À confirmer");
+});
+
+
+it("fermeture commerciale : aucun faux paiement même avec Stripe disponible", async () => {
+  mocks.stripePret = true;
+  vi.stubEnv("GERIMMO_MODE", "commercial");
+  vi.stubEnv("VERCEL", "1");
+  vi.stubEnv("VERCEL_ENV", "production");
+  vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app");
+  try {
+    const html = await rendre();
+    expect(html).toContain("Les nouvelles souscriptions payantes sont fermées pendant le pilote gratuit.");
+    expect(html).toContain("Tarifs à titre d’information");
+    expect(html).not.toContain("Récapitulatif avant paiement");
+    expect(html).not.toContain("Continuer vers le paiement sécurisé");
+    expect(html).not.toContain("Souscrire maintenant");
+    expect(html).not.toContain("Votre essai est prolongé");
+    expect(html).toContain("24/10/2099");
+  } finally {
+    vi.unstubAllEnvs();
+  }
 });

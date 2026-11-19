@@ -1,18 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { Tiroir } from "@/components/ui/tiroir";
 import { usePathname } from "next/navigation";
 import { Banknote, BookOpen, Building2, CalendarDays, FileCheck2, FileText, LayoutDashboard, Star, Users, type LucideIcon } from "lucide-react";
 import styles from "@/app/artisan/portail-artisan.module.css";
 
-/** Sur bureau, toutes les rubriques sont visibles ; sur téléphone, quatre
- * accès restent à portée du pouce et les autres vivent dans Mon entreprise. */
+/** Sur téléphone : quatre accès directs, puis le menu des autres rubriques. */
 
 const IC: Record<string, string> = {
   jour: '<path d="M4 7h16M4 12h16M4 17h10"/>',
   agenda:
     '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',
   devis: '<path d="M6.5 3h7l4.5 4.5V21h-11.5z"/><path d="M13.5 3v5h4.5M9 13h6M9 17h4"/>',
+  factures: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   entreprise:
     '<path d="M4 20V9.5L12 4l8 5.5V20"/><path d="M9.5 20v-6h5v6"/>',
 };
@@ -51,6 +54,7 @@ export function NavArtisan({
   piecesAAJour?: boolean;
 }) {
   const pathname = usePathname();
+  const [menuOuvert, setMenuOuvert] = useState(false);
 
   const entrees = [
     { href: "/artisan", libelle: "Aujourd'hui", icone: "jour", exact: true, badge: aFaireMaintenant },
@@ -65,25 +69,7 @@ export function NavArtisan({
       badge: 0,
     },
     { href: "/artisan/devis", libelle: "Devis", icone: "devis", badge: devisAChiffrer },
-    {
-      href: "/artisan/entreprise",
-      libelle: "Mon entreprise",
-      icone: "entreprise",
-      // Les pages de l'entreprise sont trois adresses distinctes : l'onglet
-      // désigne la SECTION, sinon il s'éteint dès qu'on entre dans « Mes
-      // attestations » et le rail ne désigne plus rien.
-      // Audit 27/09 : « Les règles » et la page de panne (toutes deux sous
-      // « Mon entreprise ») n'allumaient aucun onglet.
-      aussi: [
-        "/artisan/attestations",
-        "/artisan/facturation",
-        "/artisan/note",
-        "/artisan/regles",
-        "/artisan/panne",
-      ],
-      badge: 0,
-      point: !piecesAAJour,
-    },
+    { href: "/artisan/facturation", libelle: "Factures", icone: "factures", badge: 0, point: false },
   ];
 
   if (presentation === "bureau") {
@@ -129,6 +115,7 @@ export function NavArtisan({
   }
 
   return (
+    <>
     <nav
       aria-label="Mon espace artisan"
       className={`artisan-navigation ${styles.mobileNav} fixed inset-x-0 bottom-0 z-30 border-t border-[var(--filet)] bg-[var(--ivoire)] pb-[env(safe-area-inset-bottom)]`}
@@ -181,7 +168,19 @@ export function NavArtisan({
             </li>
           );
         })}
+        <li className="min-w-0 flex-1"><button type="button" aria-haspopup="dialog" aria-expanded={menuOuvert} onClick={() => setMenuOuvert(true)} className="relative flex min-h-16 w-full flex-col items-center justify-center gap-1 px-1 py-2 text-[var(--encre)]"><Icone nom="menu" /><span className="text-[0.6875rem] font-medium">Menu</span>{!piecesAAJour && <span className="absolute right-3 top-2 size-2 rounded-full bg-[var(--warning)]"><span className="sr-only">Attestations à déposer ou à renouveler</span></span>}</button></li>
       </ul>
     </nav>
+    {menuOuvert && <Tiroir titre="Menu artisan" fermer={() => setMenuOuvert(false)}><nav aria-label="Autres rubriques artisan" className="grid gap-1">
+      {[
+        ["/artisan/entreprise", "Mon entreprise"],
+        ["/artisan/attestations", "Mes attestations"],
+        ...(clientsExternes ? [["/artisan/clients", "Clients externes"]] : []),
+        ["/artisan/note", "Mes évaluations"],
+        ["/artisan/regles", "Les règles à connaître"],
+        ["/artisan/panne", "Aide en cas de problème"],
+      ].map(([href, libelle]) => <Link key={href} href={href} aria-current={pathname.startsWith(href) ? "page" : undefined} onClick={() => setMenuOuvert(false)} className="flex min-h-12 items-center rounded-lg px-3 text-sm font-medium hover:bg-muted">{libelle}</Link>)}
+    </nav></Tiroir>}
+    </>
   );
 }

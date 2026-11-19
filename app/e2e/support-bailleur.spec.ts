@@ -1,3 +1,4 @@
+import { connecterSupervision } from "./session-supervision";
 import { test, expect } from "@playwright/test";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -29,6 +30,7 @@ test("le bailleur retrouve la réponse apportée à sa demande par la supervisio
     const supervision = await admin.newPage();
     supervision.setDefaultTimeout(12000);
     await sansSyntheseAlertes(supervision);
+    await connecterSupervision(supervision);
     const recherche = await ouvrirRecherche(supervision);
     await recherche.fill("proprietaire@example.com");
     await supervision.locator("[data-resultat]").filter({hasText:"proprietaire@example.com"}).filter({hasText:"Compte"}).first().click();

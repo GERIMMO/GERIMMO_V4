@@ -1,0 +1,56 @@
+[
+  {
+    "scenario": "Lien locataire expiré, copie simulée et assistance connectée",
+    "width": 390,
+    "resultat": "réussi"
+  },
+  {
+    "scenario": "Invitation locataire déjà acceptée",
+    "width": 390,
+    "resultat": "réussi"
+  },
+  {
+    "scenario": "Artisan : valide, expirée, déjà acceptée",
+    "width": 390,
+    "resultat": "réussi"
+  },
+  {
+    "scenario": "Artisan anonyme : création accessible et connexion ramenant au lien, identité masquée",
+    "width": 390,
+    "resultat": "réussi"
+  },
+  {
+    "scenario": "Garant : lien inconnu, aide et aucun accès au dossier",
+    "width": 390,
+    "resultat": "réussi"
+  },
+  {
+    "scenario": "Lien locataire expiré, copie simulée et assistance connectée",
+    "width": 1440,
+    "resultat": "réussi"
+  },
+  {
+    "scenario": "Invitation locataire déjà acceptée",
+    "width": 1440,
+    "resultat": "réussi"
+  },
+  {
+    "scenario": "Artisan : valide, expirée, déjà acceptée",
+    "width": 1440,
+    "resultat": "réussi"
+  },
+  {
+    "scenario": "Artisan anonyme : création accessible et connexion ramenant au lien, identité masquée",
+    "width": 1440,
+    "resultat": "réussi"
+  },
+  {
+    "scenario": "Garant : lien inconnu, aide et aucun accès au dossier",
+    "width": 1440,
+    "resultat": "réussi"
+  },
+  {
+    "scenario": "Locataire : choisir le mot de passe, connexion, acceptation, bon espace et rechargement",
+    "resultat": "réussi"
+  }
+]

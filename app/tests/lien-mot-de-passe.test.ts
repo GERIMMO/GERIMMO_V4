@@ -1346,15 +1346,16 @@ describe("/nouveau-mot-de-passe après une confirmation d'inscription", () => {
     const { default: Page } = await import("../src/app/nouveau-mot-de-passe/page");
     const texte = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").replace(/&#x27;/g, "'");
     const apres = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ motif: "inscription", suite: "/artisan/inscription" }) })));
-    expect(apres).toContain("Choisissez votre mot de passe");
+    expect(apres).toContain("Choisir mon mot de passe");
     expect(apres).toContain("Votre adresse artisan@entreprise.test est confirmée");
     expect(apres).toContain("Vérifiez vos informations puis choisissez le mot de passe de votre compte");
     expect(apres).not.toContain("autre navigateur");
     const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ motif: "inscription", suite: "/artisan/inscription" }) }));
     expect(html).toMatch(/name="suite" value="\/artisan\/inscription"/);
+    expect(html).toMatch(/<button[^>]*type="submit"[^>]*>Choisir mon mot de passe<\/button>/);
     // Quatrième relecture : tout autre lien qui vient de confirmer l'adresse (motif « confirmation »).
     const confirmation = texte(renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ motif: "confirmation", suite: "/invitations/x" }) })));
-    expect(confirmation).toContain("Choisissez votre mot de passe");
+    expect(confirmation).toContain("Choisir mon mot de passe");
     expect(confirmation).toContain("Votre adresse artisan@entreprise.test vient d'être confirmée par ce lien");
     expect(confirmation).toContain("Vérifiez vos informations puis choisissez le mot de passe de votre compte");
     expect(confirmation).not.toContain("autre navigateur");

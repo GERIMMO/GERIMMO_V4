@@ -1179,6 +1179,9 @@ p a {
   /* Cycle de vie complet en CSS : entrée, plateau, sortie — le JS n'a plus
      qu'à démonter à 6 s (Toasteur) */
   animation: toast-vie 6s ease forwards;
+  width: max-content;
+  max-width: min(560px, calc(100vw - 32px));
+  overflow-wrap: anywhere;
 }
 @keyframes toast-vie {
   0% { opacity: 0; transform: translate(-50%, 10px); }

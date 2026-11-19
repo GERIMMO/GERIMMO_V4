@@ -1,20 +1,14 @@
+import { ouvrirSuiviLoyers } from "./aides";
 import { test, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
 import { randomUUID } from "node:crypto";
 import { connecterVers, sansSyntheseAlertes, debordementHorizontal } from "./aides";
 import AxeBuilder from "@axe-core/playwright";
 
-const demandes = (page: Page) => page.getByRole("region", { name: "Votre patrimoine en bref" })
-  .getByRole("button", { name: /^(?:\d+ actions? prioritaires?|\d+ loyers? à confirmer|À vérifier) / });
-const fenetreDemandes = (page: Page) => page.getByRole("dialog", { name: /^(?:À traiter en priorité|Loyers à confirmer|À vérifier)$/ });
-async function ouvrirDemandes(page: Page, facultatif = false) {
-  // L'absence d'un rappel doit être contrôlée dans la fenêtre si d'autres demandes
-  // existent, pas simplement dans une fenêtre encore fermée après le rechargement.
-  await expect(page.getByRole("region", { name: "Votre patrimoine en bref" })).toBeVisible();
-  const bouton = demandes(page);
-  if (facultatif && await bouton.count() === 0) return;
-  await bouton.click();
-  await expect(fenetreDemandes(page)).toBeVisible();
+const demandes = (page: Page) => page.locator("details").filter({ has: page.locator("#suivi-prioritaire") }).locator(":scope > summary");
+const fenetreDemandes = (page: Page) => page.locator("#suivi-prioritaire");
+async function ouvrirDemandes(page: Page) {
+  await ouvrirSuiviLoyers(page);
 }
 for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : échéance, pas reçu, partiel puis solde`,async({page},info)=>{
   test.setTimeout(180000);
@@ -45,12 +39,12 @@ for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : éc
     await connecterVers(page,email,motDePasse,`/espace/${ORG}`);
     const bloc=page.getByRole("region",{name:"Avez-vous reçu vos loyers ?"});
     const ligne=bloc.locator("li").filter({has:page.getByRole("link",{name:nom,exact:true})});
-    await ouvrirDemandes(page, true);
+    await ouvrirDemandes(page);
     await expect(ligne).toHaveCount(0);
     // Le jour prévu est arrivé : la même échéance entre dans le tableau de bord.
     await db.query("update appels_loyer set date_echeance=public.aujourdhui_paris() where id=$1",[appel]);await page.reload();
-    await expect(ligne).toHaveCount(0);
-    await expect(demandes(page)).toContainText("Échéance du loyer");
+    await expect(ligne).toBeHidden();
+    await expect(demandes(page)).toHaveText("Réception des loyers et demandes prioritaires");
     await ouvrirDemandes(page);
     await expect(bloc).toBeVisible();await expect(ligne).toBeVisible();await expect(ligne).toContainText(nom);await expect(ligne).toContainText("800,00");
     expect(await debordementHorizontal(page)).toBe(0);
@@ -62,7 +56,8 @@ for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : éc
     await expect(ligne.getByRole("button",{name:"Envoyer la première relance par e-mail",exact:true})).toHaveCount(0);
     await ligne.getByRole("button",{name:"Reçu en partie",exact:true}).click();
     await ligne.getByLabel("Montant reçu (€)",{exact:true}).fill("200");
-    await fenetreDemandes(page).getByRole("button",{name:"Fermer",exact:true}).click();
+    await demandes(page).click();
+    await expect(fenetreDemandes(page)).toBeHidden();
     await expect(demandes(page)).toBeFocused();
     await ouvrirDemandes(page);
     await expect(ligne.getByLabel("Montant reçu (€)",{exact:true})).toHaveValue("200");
@@ -70,20 +65,20 @@ for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : éc
     await ligne.getByRole("button",{name:"Pas encore reçu",exact:true}).click();await ligne.getByRole("button",{name:"Confirmer : pas encore reçu",exact:true}).click();
     await expect(ligne.getByText(/Pas encore reçu · signalé le/)).toBeVisible();
     await expect(ligne).toHaveAttribute("data-reception","non_recu");
-    const carteLoyer=page.getByRole("region",{name:"Votre patrimoine en bref"}).getByRole("button",{name:/loyer[s]? à confirmer/});
+    const carteLoyer=page.locator('#suivi-prioritaire [aria-labelledby="reception-loyers-titre"]');
     const vieillir=async(jours:number)=>{
       await db.query("update appels_loyer set date_echeance=date_echeance-$2::int where id=$1",[appel,jours]);
       await db.query("update receptions_loyers_signalees set signale_le=signale_le-($2::int * interval '1 day') where appel_id=$1",[appel,jours]);
       await db.query("update relances set date_envoi=date_envoi-$2::int where bail_id=$1",[bail,jours]);
-      await page.reload();
+      await page.reload(); await ouvrirDemandes(page);
     };
     await page.reload(); await expect(carteLoyer).toHaveCount(0);
     await vieillir(4); await expect(carteLoyer).toHaveCount(0);
-    await vieillir(1); await expect(carteLoyer).toContainText("Première relance"); await ouvrirDemandes(page);
+    await vieillir(1); await expect(carteLoyer).toContainText("Relance 1"); await ouvrirDemandes(page);
     await expect(ligne.getByText("Gérer la première relance",{exact:true})).toHaveCount(0);
     await expect(ligne.getByRole("link",{name:"Suivre les relances dans le bail",exact:true})).toHaveAttribute("href",`/espace/${ORG}/baux/${bail}#relances`);
 
-    for(const [niveau,suivant] of [["relance_1","Deuxième relance"],["relance_2","Recommandé"]] as const){
+    for(const [niveau,suivant] of [["relance_1","Relance 2"],["relance_2","Recommandé"]] as const){
       await ligne.getByRole("button",{name:"Pas encore reçu",exact:true}).click();
       await ligne.getByRole("button",{name:"Confirmer : pas encore reçu",exact:true}).click();
       await expect(ligne).toContainText("Confirmation enregistrée");
@@ -135,9 +130,10 @@ for(const largeur of [390,1440]) test(`réception du loyer à ${largeur}px : éc
     expect(await debordementHorizontal(page)).toBe(0);
     const fin = fenetreDemandes(page);
     await fin.screenshot({path:info.outputPath(`loyer-regle-${largeur}.png`)});
-    await fin.getByRole("button",{name:"Fermer",exact:true}).click();
-    await ouvrirDemandes(page, true);await expect(ligne).toHaveCount(0);
-    await page.reload();await ouvrirDemandes(page, true);await expect(ligne).toHaveCount(0);
+    await demandes(page).click();
+    await expect(fin).toBeHidden();
+    await ouvrirDemandes(page);await expect(ligne).toHaveAttribute("data-reception","regle");
+    await page.reload();await ouvrirDemandes(page);await expect(ligne).toHaveCount(0);
     expect((await db.query("select sum(montant)::float montant from encaissements where bail_id=$1",[bail])).rows[0].montant).toBe(800);
     expect((await db.query("select est_quittance,email_envoye_at from quittances where appel_id=$1",[appel])).rows[0]).toEqual({est_quittance:true,email_envoye_at:null});
 

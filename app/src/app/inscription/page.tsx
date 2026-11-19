@@ -25,8 +25,13 @@ export default async function PageInscription(props: PageProps<"/inscription">) 
   const duree = dureeEssai();
   return (
     <CoquilleAuth
-      promesse="Gérez vos locations vous-même, au carré."
-      sousPromesse="Suivez vos lots, vos baux, vos quittances et vos recettes et dépenses. En location nue au réel, préparez votre récapitulatif 2044. Le réseau d’artisans dépend de la commune du bien et du métier disponible."
+      promesse="Vos locations, simplement."
+      sousPromesse="L’essentiel de votre gestion locative, au même endroit."
+      benefices={[
+        "Retrouvez vos biens et vos locataires.",
+        "Suivez vos loyers et vos dépenses.",
+        "Gardez vos baux et quittances à portée de main.",
+      ]}
       mention={`${duree} d'essai, sans carte bancaire`}
       titre="Ouvrir mon espace propriétaire"
       // La réassurance « sans carte bancaire » passe dans le chapo (24/09) : la
@@ -39,10 +44,10 @@ export default async function PageInscription(props: PageProps<"/inscription">) 
             {badgeEssai()}
           </span>
           <br />
-          {`Un compte, votre parc, ${duree} pour l'essayer — sans\u00a0carte\u00a0bancaire.`}
+          {`Sans carte bancaire ni abonnement automatique.`}
         </>
       }
-      largeur="380px"
+      largeur="420px"
     >
       <FormulaireInscription codeParrain={codeParrain} dureeEssai={duree} />
     </CoquilleAuth>

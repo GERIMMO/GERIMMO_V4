@@ -1,0 +1,13 @@
+{
+  "statutsFictifsInchanges": true,
+  "aucuneFactureCreee": true,
+  "supprimés": {
+    "artisan_rendez_vous": 3,
+    "artisan_devis_externes": 6,
+    "artisan_chantiers": 6,
+    "artisan_clients": 6
+  },
+  "chantiersTemporairesRestants": 0,
+  "chantiersPreexistantsConserves": 2,
+  "piecesPreexistantesNonSupprimees": true
+}

@@ -1,0 +1,61 @@
+{
+  "rows": [
+    {
+      "cas": "particulier",
+      "width": 390,
+      "onglets": 4,
+      "persistance": true,
+      "montant": "640,00 €"
+    },
+    {
+      "cas": "sci",
+      "width": 390,
+      "onglets": 4,
+      "persistance": true,
+      "montant": "640,00 €"
+    },
+    {
+      "cas": "document",
+      "width": 390,
+      "rechercheReference": true,
+      "originalAccessible": true,
+      "classementAccessible": true,
+      "pdfOctets": 59030,
+      "pdfDisponible": true
+    },
+    {
+      "cas": "filtre-devis",
+      "width": 390,
+      "ok": true
+    },
+    {
+      "cas": "particulier",
+      "width": 1440,
+      "onglets": 4,
+      "persistance": true,
+      "montant": "640,00 €"
+    },
+    {
+      "cas": "sci",
+      "width": 1440,
+      "onglets": 4,
+      "persistance": true,
+      "montant": "640,00 €"
+    },
+    {
+      "cas": "document",
+      "width": 1440,
+      "rechercheReference": true,
+      "originalAccessible": true,
+      "classementAccessible": true,
+      "pdfOctets": 59030,
+      "pdfDisponible": true
+    },
+    {
+      "cas": "filtre-devis",
+      "width": 1440,
+      "ok": true
+    }
+  ],
+  "errors": []
+}

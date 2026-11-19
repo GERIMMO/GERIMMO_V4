@@ -90,8 +90,11 @@ for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acc
   const {rows:[p]}=await db.query("select document_id from intervention_photos where intervention_id=$1 and moment='apres'",[mission]);expect(p.document_id).toBeTruthy();
   const gerant=await gestion.newPage();await sansSyntheseAlertes(gerant);
   await gerant.goto(`/${mode === "depot" ? "agence" : "espace"}/${lot.organization_id}/incidents/${incident}`);
+  if (mode !== 'depot') await gerant.getByRole('link', {name:'Devis et facture',exact:true}).click();
   await expect(gerant.getByRole('heading',{name:`Facture ${numero} — 100,00 € TTC`,exact:true})).toBeVisible();
+  if (mode !== 'depot') await gerant.getByRole('link', {name:'Suivi',exact:true}).click();
   await expect(gerant.getByText(`« ${bilan} »`,{exact:true})).toBeVisible();
+  if (mode !== 'depot') await gerant.getByRole('link', {name:'Devis et facture',exact:true}).click();
   const lien=gerant.getByRole('link',{name:'Consulter la facture avant de décider',exact:true});await expect(lien).toBeVisible();
   const lecture=await gerant.request.get((await lien.getAttribute('href'))!);expect(lecture.status()).toBe(200);expect(await lecture.text()).toContain('URL.createObjectURL');
   expect(await debordementHorizontal(gerant)).toBe(0);
@@ -111,7 +114,10 @@ for (const mode of ['depot', 'creation', 'sci'] as const) test(`intervention acc
       await suivi.locator("#demande-"+incident).getByRole("button",{name:"Envoyer mon avis"}).click();
       await expect(suivi.locator("#demande-"+incident)).toContainText(/votre avis.*enregistré/i);
     } finally { await avisLocataire.close(); }
+    await gerant.getByRole('link', {name:'Suivi',exact:true}).click();
     const cloture=gerant.locator('#cloture');
+    await expect(cloture.locator('summary')).toBeVisible();
+    if (await cloture.getAttribute('open') === null) await cloture.locator('summary').click();
     await cloture.locator('select[name=motif]').selectOption('resolu');
     await cloture.getByLabel('Ce qui a été fait').fill('Fuite réparée et justificatifs vérifiés.');
     await cloture.getByRole('button',{name:"Clôturer l'incident"}).click();
@@ -160,18 +166,22 @@ test('devis privé : compléter son identité puis reprendre sans ressaisir ni a
   await page.getByRole('button',{name:'Enregistrer mes informations de devis',exact:true}).click();
   await expect(page.getByText(/Informations enregistrées pour vos nouveaux devis/)).toBeVisible();
   await page.goto(href);await expect(page.getByText('Adresse absente de cette version',{exact:true})).toBeVisible();
+  await page.getByText('Autres actions',{exact:true}).click();
+  await page.getByRole('button',{name:'Actualiser mes coordonnées sur le devis',exact:true}).click();
   await page.getByRole('button',{name:'Reprendre avec mes coordonnées à jour',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Devis — version 2 · Brouillon',exact:true})).toBeVisible();
   await expect(page.getByText('25 rue de l’Essai, 75012 Paris',{exact:true})).toBeVisible();
   const {rows:[nouveau]}=await db.query('select * from artisan_devis_externes where chantier_id=$1 and version=2',[chantier]);
   expect(nouveau.lignes).toEqual(ancien.lignes);expect(nouveau.montant_ttc_cents).toBe(ancien.montant_ttc_cents);expect(nouveau.description).toBe(ancien.description);expect(nouveau.valide_jusqu_au).toEqual(ancien.valide_jusqu_au);
   await page.getByRole('button',{name:'Valider cette version et générer le PDF',exact:true}).click();
+  await page.locator('summary').filter({hasText:'Devis et justificatifs · version 2 · Validé'}).click();
   await expect(page.getByRole('heading',{name:'Devis — version 2 · Validé',exact:true})).toBeVisible({timeout:60000});
   await expect(page.getByRole('button',{name:'Reprendre avec mes coordonnées à jour',exact:true})).toHaveCount(0);
   const {rows:[valide]}=await db.query('select entreprise,pdf_id from artisan_devis_externes where id=$1',[nouveau.id]);
   expect(valide.entreprise.adresse).toBe('25 rue de l’Essai, 75012 Paris');expect(valide.pdf_id).toBeTruthy();
   const reponse=await page.request.get((await page.getByRole('link',{name:'Télécharger le PDF validé',exact:true}).getAttribute('href'))!);expect(reponse.status()).toBe(200);
   await page.reload();
+  await page.locator('summary').filter({hasText:'Devis et justificatifs · version 2 · Validé'}).click();
   await expect(page.getByRole('heading',{name:'Devis — version 2 · Validé',exact:true})).toBeVisible({timeout:60000});
   expect((await db.query('select entreprise,pdf_id from artisan_devis_externes where id=$1',[nouveau.id])).rows[0]).toEqual(valide);
   expect((await db.query('select entreprise from artisan_devis_externes where id=$1',[ancien.id])).rows[0].entreprise.adresse).toBe('');

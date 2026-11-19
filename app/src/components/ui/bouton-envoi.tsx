@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils";
 // <form action={…}>, il se désactive et affiche la roue pendant l'envoi —
 // useFormStatus lit le pending du formulaire englobant, aucun fil d'état à
 // tirer dans chaque formulaire. `enCoursTexte` remplace le libellé pendant
-// l'envoi (« Enregistrement… ») ; sans lui, le libellé reste et la roue
-// suffit.
+// l'envoi (« Enregistrement… ») ; sans lui, « Traitement en cours… »
+// explique l'attente, sans annoncer un succès prématuré.
 //
 // DÉSACTIVÉ TANT QUE LA PAGE N'EST PAS PRÊTE (décision D30 B, audit du 13/10,
 // PR178-B-04). Les formulaires protégés envoient par une fonction du
@@ -50,12 +50,13 @@ export function BoutonEnvoi({
     <Button
       type="submit"
       disabled={pending || disabled || !pret}
+      aria-busy={pending || undefined}
       title={pret ? title : (title ?? AIDE_BOUTON_EN_ATTENTE)}
       className={cn(TRANSITION_SANS_OPACITE, className)}
       {...props}
     >
       {pending && <Spinner />}
-      {pending && enCoursTexte ? enCoursTexte : children}
+      {pending ? enCoursTexte || "Traitement en cours…" : children}
     </Button>
   );
 }

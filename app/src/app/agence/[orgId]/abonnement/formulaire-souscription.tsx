@@ -223,6 +223,34 @@ export function FormulaireSouscription({
       : `${euros(choisie.montantCents)}${ttc ? ` ${ttc}` : ""}`;
   const periodeEnLettres = choisie.periodicite === "annuel" ? "par an" : "par mois";
 
+  // Vue de consultation uniquement : aucune commande ni consentement de paiement quand la garde ferme les ventes.
+  // Les prix utilisent exactement la grille existante ; aucune échéance ni prolongation n'est déduite ici.
+  if (!estAgence && motifIndisponible) return (
+    <div className={styles.formulaire}>
+      <div className={styles.indisponible} role="status">
+        <MessageCircle size={20} aria-hidden="true" />
+        <p>{motifIndisponible}</p>
+        <Link href={`/assistance?ecran=${encodeURIComponent(`${racine}/[dossier]/abonnement`)}&action=lien&retour=${encodeURIComponent(`${base}/abonnement`)}`}>Contacter Gerimmo</Link>
+      </div>
+      {unites > 0 ? <div className="loc-carte space-y-3">
+        <h3 className="font-semibold">Tarifs à titre d’information</h3>
+        <p className="text-sm">Abonnement Gerimmo · {unites} bien{unites > 1 ? "s" : ""} en gestion dans cet espace, en nom propre ou en SCI.</p>
+        <dl className="grid gap-4 sm:grid-cols-2">
+          {(["mensuel", "annuel"] as const).map(periode => <div key={periode}>
+            <dt className="text-sm text-muted-foreground">{periode === "mensuel" ? "Mensuel" : "Annuel"}</dt>
+            <dd className="montant text-xl font-semibold">{euros(offreAbonnementUnique(unites, periode).montantCents)}{ttc ? ` ${ttc}` : ""}<span className="text-sm font-normal"> {parPeriode(periode)}</span></dd>
+          </div>)}
+        </dl>
+        <p className="text-sm text-muted-foreground">{montantsOffre(choisie, regime).mention} Aucun abonnement ni prélèvement ne démarre automatiquement.</p>
+      </div> : <p>Aucun bien actif à facturer. Le montant sera indiqué dès l’ajout de votre premier logement.</p>}
+      <details className={styles.precisions}>
+        <summary>Conditions et détails du contrat</summary>
+        <p>Ces tarifs ne constituent pas une commande. Vous pourrez choisir volontairement votre abonnement lorsque la souscription sera disponible.</p>
+        <p><Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">Conditions générales d’utilisation et de vente, version du {CONDITIONS_DATE}<span className="sr-only"> (nouvel onglet)</span></Link></p>
+      </details>
+    </div>
+  );
+
   if (!estAgence && unites === 0) return <p>Aucun bien actif à facturer. Le montant sera indiqué dès l’ajout de votre premier logement.</p>;
   // G-25 (recette du 11/11/2026) : l'envoi quitte Gerimmo pour la page de paiement (redirection serveur) avant que
   // l'envoi puisse être « confirmé » ; la périodicité choisie déclenchait alors « Quitter le site ? » et « Rester »

@@ -1,0 +1,42 @@
+[
+  {
+    "width": 390,
+    "statut": "réussi",
+    "factures": 23,
+    "total_attendu_cents": 225000,
+    "declarations_fictives": 35000,
+    "cas": [
+      "particulier non réglé",
+      "SCI règlement partiel",
+      "client externe réglé",
+      "validation client en attente",
+      "formulaire de déclaration sans soumission",
+      "annulation accessible sans exécution",
+      "historique et export JSON",
+      "navigation Factures/Menu"
+    ],
+    "erreurs_js": [],
+    "debordement": 0,
+    "navigation_mobile_exercee": true
+  },
+  {
+    "width": 1440,
+    "statut": "réussi",
+    "factures": 23,
+    "total_attendu_cents": 225000,
+    "declarations_fictives": 35000,
+    "cas": [
+      "particulier non réglé",
+      "SCI règlement partiel",
+      "client externe réglé",
+      "validation client en attente",
+      "formulaire de déclaration sans soumission",
+      "annulation accessible sans exécution",
+      "historique et export JSON",
+      "navigation entre Mes factures et Mon registre"
+    ],
+    "erreurs_js": [],
+    "debordement": 0,
+    "navigation_mobile_exercee": false
+  }
+]

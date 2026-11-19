@@ -1,0 +1,74 @@
+{
+  "rows": [
+    {
+      "ecran": "devis",
+      "width": 390,
+      "ht": 14851,
+      "ttc": 17451,
+      "tvaVideSansFauxZero": true,
+      "saisiesConservees": true,
+      "boutonBleuNuit": true
+    },
+    {
+      "ecran": "creneaux",
+      "width": 390,
+      "troisPropositions": true,
+      "modification": true,
+      "effacement": true,
+      "doublonsRefuses": true,
+      "passeRefuse": true,
+      "ordreHeuresControle": true,
+      "instantsISO": [
+        {
+          "debut": "2026-11-19T09:15:00.000Z",
+          "fin": "2026-11-19T11:30:00.000Z"
+        },
+        {
+          "debut": "2026-11-20T13:00:00.000Z",
+          "fin": "2026-11-20T15:00:00.000Z"
+        },
+        {
+          "debut": "2026-11-21T08:00:00.000Z",
+          "fin": "2026-11-21T10:00:00.000Z"
+        }
+      ],
+      "aucunEnvoi": true
+    },
+    {
+      "ecran": "devis",
+      "width": 1440,
+      "ht": 14851,
+      "ttc": 17451,
+      "tvaVideSansFauxZero": true,
+      "saisiesConservees": true,
+      "boutonBleuNuit": true
+    },
+    {
+      "ecran": "creneaux",
+      "width": 1440,
+      "troisPropositions": true,
+      "modification": true,
+      "effacement": true,
+      "doublonsRefuses": true,
+      "passeRefuse": true,
+      "ordreHeuresControle": true,
+      "instantsISO": [
+        {
+          "debut": "2026-11-19T09:15:00.000Z",
+          "fin": "2026-11-19T11:30:00.000Z"
+        },
+        {
+          "debut": "2026-11-20T13:00:00.000Z",
+          "fin": "2026-11-20T15:00:00.000Z"
+        },
+        {
+          "debut": "2026-11-21T08:00:00.000Z",
+          "fin": "2026-11-21T10:00:00.000Z"
+        }
+      ],
+      "aucunEnvoi": true
+    }
+  ],
+  "errors": [],
+  "blocked": []
+}

@@ -1,3 +1,6 @@
+import { AideInvitation } from "@/components/aide-invitation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import type { Metadata } from "next";
 import { CoquilleAuth } from "@/components/coquille-auth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,21 +35,27 @@ export default async function PageMobileCaution(props: PageProps<"/signature/cau
     catch { indisponible = true; }
   }
 
+  // Ce choix de lien d’aide ne conditionne jamais la lecture ou la signature de l’acte.
+  let connecte = false;
+  if (lien?.etat !== "valide") {
+    try { connecte = !!(await (await createClient()).auth.getUser()).data.user; }
+    catch { /* L’aide publique reste disponible si la session ne peut pas être lue. */ }
+  }
   const bail = lien?.etat === "valide" && lien.acte === "bail";
   return (
     <CoquilleAuth
       promesse={bail ? "Un bail à signer en ligne, en qualité de garant." : "Un acte de cautionnement à signer en ligne."}
       sousPromesse="Vous confirmez vous-même le numéro de mobile qui recevra votre code de signature : aucun autre numéro n’est utilisé."
       mention="Lien personnel, à usage unique"
-      titre="Confirmer votre numéro de mobile"
+      titre={lien?.etat === "valide" ? "Confirmer votre numéro de mobile" : lien?.etat === "utilise" ? "Votre numéro est déjà confirmé" : "Vérifier votre lien de signature"}
       largeur="420px"
     >
       <Card>
         <CardContent className="space-y-4 pt-6 text-sm">
           {indisponible || !lien ? (
-            <p role="alert">Le lien n’a pas pu être vérifié. Rechargez la page dans un instant.</p>
+            <><p role="alert">Nous ne pouvons pas vérifier ce lien pour le moment.</p><Link href={`/signature/caution/${encodeURIComponent(jeton)}`} className="btn-secondaire">Réessayer</Link><AideInvitation suivi connecte={connecte}/></>
           ) : lien.etat !== "valide" ? (
-            <p role="status">{MESSAGES_LIEN_CAUTION_CLOS[lien.etat]}</p>
+            <><p role="status">{MESSAGES_LIEN_CAUTION_CLOS[lien.etat]}</p><AideInvitation connecte={connecte} suivi={lien.etat === "utilise" || lien.etat === "suspendu"}/></>
           ) : (
             <>
               {lien.essai && <p role="status" className="rounded-xl bg-warning-soft p-3 font-medium">Essai technique sans engagement : {bail ? "le bail" : "l’acte"} et les invitations sont fictifs.</p>}

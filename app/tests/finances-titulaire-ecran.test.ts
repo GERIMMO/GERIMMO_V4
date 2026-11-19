@@ -54,7 +54,7 @@ async function operations() {
 
 it("montre la facture de 180 € antérieure à la détention sans la compter dans les dépenses de la SCI", async () => {
   const texte = await operations();
-  expect(texte).toContain("Recettes 0,00 € Dépenses 0,00 € Solde 0,00 €");
+  expect(texte).toContain("Recettes 0,00 € Dépenses 0,00 € Recettes − dépenses 0,00 €");
   expect(texte).toContain("1 opération à rattacher");
   expect(texte).toContain("Facture eau avant acquisition");
   expect(texte).toContain("−180,00 €");
@@ -71,11 +71,16 @@ it("sépare les écritures certaines, les écritures communes du bâtiment mixte
     { ...org, ...depense("Annulation", "A", "immeuble", "2027-01-01", 10), contre_ecriture_de: "Opération annulée" },
   );
   const texte = await operations();
-  expect(texte).toContain("Recettes 0,00 € Dépenses 40,00 € Solde -40,00 €");
+  expect(texte).toContain("Recettes 0,00 € Dépenses 40,00 € Recettes − dépenses -40,00 €");
   expect(texte).toContain("2 opérations à rattacher");
   expect(texte).toContain("210,00 €");
   expect(texte).toContain("Réparation commune");
   expect(texte).not.toContain("Opération annulée");
+  const html = renderToStaticMarkup(await PageFinances({ orgId: "parc", recherche: { annee: "2026", entite: "sci" } }));
+  const depenses = html.split('id="depenses"')[1].split('id="operations"')[0].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+  expect(depenses).toContain("Dépenses enregistrées 40,00 €");
+  expect(depenses).toContain("210,00 € de dépenses restent à rattacher");
+  expect(depenses).not.toMatch(/Opération annulée|Confidentiel/);
 });
 
 it("réserve la créance et son action au titulaire à l’échéance après une cession", async () => {
@@ -92,8 +97,54 @@ it("réserve la créance et son action au titulaire à l’échéance après une
     return html.split('id="loyers"')[1].split('id="operations"')[0].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
   }
   const ancien = await loyers("perso");
-  expect(ancien).toContain("Demandé 0,00 €");
-  expect(ancien).not.toContain("Gérer les 1 loyers");
-  expect(await loyers("sci")).toContain("Demandé 640,00 €");
-  expect(await loyers("")).toContain("Demandé 640,00 €");
+  expect(ancien).toContain("Attendu 0,00 €");
+  expect(ancien).not.toContain("Voir le loyer");
+  expect(await loyers("sci")).toContain("Attendu 640,00 €");
+  expect(await loyers("")).toContain("Attendu 640,00 €");
+});
+
+it("regroupe les trois entrées et conserve tous les outils avancés sans modifier les totaux", async () => {
+  const html = renderToStaticMarkup(await PageFinances({orgId:"parc",recherche:{annee:"2026",entite:"sci"}}));
+  expect(html).toContain('aria-label="Rubriques des finances"');
+  for (const texte of ["Loyers", "Dépenses", "Bilan de l’année", "Ajouter une dépense", "Pour mon comptable", "Livre complet et exports", "Saisir une écriture", "Clôturer un mois", "Reprise des comptes"]) expect(html).toContain(texte);
+  expect(html).toContain('/espace/parc/comptabilite?vue=saisie');
+  const depenses = html.split('id="depenses"')[1].split('id="operations"')[0].replace(/<[^>]+>/g," ").replace(/\s+/g," ");
+  expect(depenses).toContain("Dépenses enregistrées 0,00 €");
+  expect(depenses).toContain("180,00 € de dépenses restent à rattacher");
+  expect(depenses).not.toContain("Confidentiel");
+});
+
+it("guide le compte neuf sans afficher des totaux à zéro ni perdre l’accès au livre", async () => {
+  banc.db = baseSimulee({biens:[],lots:[],journal_par_bien:[],baux:[]},{rpc:{quittancement_mois:()=>({data:[],error:null})}});
+  const html = renderToStaticMarkup(await PageFinances({orgId:"parc",recherche:{}}));
+  expect(html).toContain("Vos finances commencent avec votre premier bien");
+  expect(html).toContain('/espace/parc/parc/nouveau');
+  expect(html).not.toContain('class="chiffres-finances');
+  expect(html).toContain("Livre complet et exports");
+});
+
+it("ne présente pas un échec de lecture du livre comme une absence de dépenses", async () => {
+  banc.db = baseSimulee({biens:[],lots:[]},{lecturesEnErreur:{journal_par_bien:"indisponible"},rpc:{quittancement_mois:()=>({data:[],error:null})}});
+  const html = renderToStaticMarkup(await PageFinances({orgId:"parc",recherche:{}}));
+  expect(html).toContain("Impossible de lire les dépenses");
+  expect(html).not.toContain("Vos finances commencent avec votre premier bien");
+  expect(html).not.toContain("Dépenses enregistrées");
+});
+
+it("conserve les montants attendus, couverts et restant dus sans compter deux fois les avances", async () => {
+  banc.db = baseSimulee({biens:[{id:"b",nom:"Maison",organization_id:"parc"}],lots:[{id:"A",bien_id:"b",organization_id:"parc"}],journal_par_bien:[]}, {rpc:{quittancement_mois:()=>({data:[
+    {lot_id:"A",appel_id:"1",bail_id:"bail1",montant_du:1000,montant_couvert:750},
+    {lot_id:"A",appel_id:"2",bail_id:"bail2",montant_du:200,montant_couvert:400},
+  ],error:null})}});
+  const html=renderToStaticMarkup(await PageFinances({orgId:"parc",recherche:{annee:"2026",mois:"12"}}));
+  const texte=html.split('id="loyers"')[1].split('id="depenses"')[0].replace(/<[^>]+>/g," ").replace(/\s+/g," ");
+  expect(texte).toContain("Attendu 1 200,00 € Encaissé ou compensé 950,00 € Restant dû 250,00 €");
+  expect(texte).toContain("hors avances");
+});
+
+it("garde une sélection devenue indisponible explicite et refuse d’afficher un total trompeur", async () => {
+  const html=renderToStaticMarkup(await PageFinances({orgId:"parc",recherche:{annee:"2025",entite:"inconnue"}}));
+  expect(html).toContain("Sélection indisponible pour 2025");
+  expect(html).toContain("Ce patrimoine n’est pas disponible pour cette année");
+  expect(html).not.toContain('class="chiffres-finances');
 });

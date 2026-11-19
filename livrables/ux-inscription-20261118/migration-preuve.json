@@ -1,0 +1,8 @@
+{
+  "modificationUnique": true,
+  "permissions": {
+    "anonyme": false,
+    "authentifie": true
+  },
+  "baseFictive": true
+}

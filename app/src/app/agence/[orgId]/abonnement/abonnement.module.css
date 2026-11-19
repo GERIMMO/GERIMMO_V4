@@ -78,8 +78,8 @@
   .indicateurs > div:first-child { padding: 0; }
   .indicateurs strong { font-size: 20px; text-align: right; }
   .indicateurs > div > small, .indicateurs a { grid-column: 1 / -1; }
-  .noteEssai { flex-wrap: wrap; font-size: 12px; }
-  .noteEssai details { max-width: none; margin-left: 26px; }
+  .noteEssai { display: grid; grid-template-columns: 17px minmax(0, 1fr); font-size: 12px; }
+  .noteEssai details { grid-column: 2; max-width: none; }
   .noteEssai summary, .precisions summary { padding: 7px 0; }
   .periodiciteOptions { display: flex; }
   .periode { flex: 1; flex-direction: column; gap: 5px; padding: 10px; font-size: 13px; }
@@ -94,8 +94,8 @@
   .selectionFormule { grid-column: 1 / -1; min-height: 44px; font-size: 12px; }
   .recapitulatif { grid-template-columns: 1fr; gap: 18px; padding: 18px; }
   .conditions { padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--filet); font-size: 12px; }
-  .indisponible { flex-wrap: wrap; padding: 16px; align-items: flex-start; }
-  .indisponible a { margin-left: 34px; min-height: 44px; }
+  .indisponible { display: grid; grid-template-columns: 20px minmax(0, 1fr); padding: 16px; align-items: start; }
+  .indisponible a { grid-column: 2; justify-self: start; min-height: 44px; }
   .services { grid-template-columns: 1fr; gap: 10px; }
   .services strong, .services p, .precisions { font-size: 12px; }
 }

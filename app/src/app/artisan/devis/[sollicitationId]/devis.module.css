@@ -107,3 +107,11 @@
   .resumeCorps, .validationCarte { padding: 15px; }
   .boutonEnvoi { width: 100%; }
 }
+
+/* A05 uniquement : l’action de progression reprend le bleu nuit Gerimmo. */
+.editeur :global(.btn-or) { background: var(--encre); border-color: var(--encre); color: var(--sur-marque); }
+.editeur :global(.btn-or:hover) { background: var(--marque-sombre); border-color: var(--marque-sombre); }
+
+.editeur :global([data-totaux-devis]) > p:first-child strong { color: #fff; font-size: 20px; }
+
+.editeur :global([data-lignes-devis] select[aria-describedby]) { border-color: var(--or); }

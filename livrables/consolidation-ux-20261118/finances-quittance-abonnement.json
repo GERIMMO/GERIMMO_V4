@@ -1,0 +1,30 @@
+[
+  {
+    "width": 390,
+    "resultat": "réussi",
+    "source": "dossier fictif existant, lecture seule",
+    "attendu": 800,
+    "couvert": 800,
+    "reste": 0,
+    "recettes": 800,
+    "depenses": 255,
+    "bilan": 545,
+    "quittancePdfOctets": 161129,
+    "paiementDisponible": false,
+    "aucuneEcriture": true
+  },
+  {
+    "width": 1440,
+    "resultat": "réussi",
+    "source": "dossier fictif existant, lecture seule",
+    "attendu": 800,
+    "couvert": 800,
+    "reste": 0,
+    "recettes": 800,
+    "depenses": 255,
+    "bilan": 545,
+    "quittancePdfOctets": 161129,
+    "paiementDisponible": false,
+    "aucuneEcriture": true
+  }
+]

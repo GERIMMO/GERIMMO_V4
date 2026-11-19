@@ -1,0 +1,15 @@
+{
+  "statut": "réussi",
+  "retirees": {
+    "artisan_reglements": 2,
+    "artisan_factures_externes": 3,
+    "artisan_devis_externes": 3,
+    "artisan_chantiers": 3,
+    "artisan_clients": 3
+  },
+  "reglements_restants": 0,
+  "factures_externes_restantes": 0,
+  "comptes_modifies": 0,
+  "droits_modifies": 0,
+  "production": false
+}

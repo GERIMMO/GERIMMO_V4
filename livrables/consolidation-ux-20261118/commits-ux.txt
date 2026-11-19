@@ -1,0 +1,17 @@
+08ac5207c9368ed2db75b99c052098c005029b54 fix(ux): clarifier la prochaine action de l’accueil propriétaire
+b45c43443d35fc51d399e3764e33c167b48d045c fix(ux): simplifier l’inscription propriétaire et différer les coordonnées
+52d475db1f492819c271f8ec42e8876fed79dfbc fix(ux): clarifier les finances propriétaire sans modifier les calculs
+f0ee0720e88b78369b9a99eadc7309ff211df464 fix(ux): simplifier le suivi des incidents propriétaire
+7acc8064650575918907b7f04fbd0bb55d310c43 Simplifie les repères et documents de l’espace locataire
+228b0178b6d31846c4126e8062b4c29a12385db3 Simplifie la facturation artisan et son accès mobile
+debd04abaa563f06360143617b6ed443d0b1803f Clarifie l’accueil du dirigeant et ses priorités du jour
+81642c5b54c4351e210a8e239050b2ca227c5e26 Simplifie la navigation et le suivi de la console dirigeant (UX 8B)
+a68ea9a57224f70936cb96e06dee8d1c85e55b3f Clôture la navigation ordinateur UX 8B avec comparaison de référence
+23e06d9e24d7b7056af1a9b7ba62a1655b152011 Améliorer la fiche logement propriétaire en cinq onglets
+5dfe6b936a270ff9093def882b6dc26aff60e4af ux: clarifier les baux et documents du propriétaire (9B)
+46b858a7f611d08ae18a7f0e8eeea86e27146e79 ux: guider le chantier externe artisan (10A)
+7c64a9a21b60d4feace1900138002f92146f3537 ux: simplifier le devis et les créneaux artisan (10B)
+235b5ed71b270d591f2f56d3606af97078847016 ux: clarifier les invitations et la premiere connexion
+c0811456f535f757ba945b8f19b4e4920fd65e3a ux: clarifier abonnement et année fiscale propriétaire (11B)
+d2bffd4f140353348e104f7d9813e8e16f2f478f Améliore la lecture des abonnements dans la console dirigeant
+0a94046fc84efd12cde4b131618b95e2892dff3e Harmonise les retours de chargement, erreurs et confirmations

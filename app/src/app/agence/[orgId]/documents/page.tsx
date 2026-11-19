@@ -1,3 +1,4 @@
+import { titreDocumentProprietaire, presentationDocumentProprietaire } from "./presentation-proprietaire";
 import { lireParIdentifiants } from "@/lib/lectures-fiscales";
 import { lireToutesLesPages } from "@/lib/lecture-complete";
 import { NavigationBiens } from "@/components/navigation-biens";
@@ -234,7 +235,7 @@ export default async function PageDocuments(
   const idsInterventions=[...new Set(docs.flatMap(d=>(d.liens??[]).filter(l=>l.entite==="intervention").map(l=>l.entite_id)))];
   const interventionsDocs=estProprietaire?await lireParIdentifiants<{id:string;incident_id:string}>(idsInterventions,ids=>supabase.from("incident_interventions").select("id,incident_id").eq("organization_id",orgId).in("id",ids)):{data:[],error:null,tronquee:false};
   const incidentsIds=[...new Set([...docs.flatMap(d=>(d.liens??[]).filter(l=>l.entite==="incident").map(l=>l.entite_id)),...(interventionsDocs.data??[]).map(i=>i.incident_id)])];
-  const incidentsDocs=estProprietaire?await lireParIdentifiants<{id:string;lot_id:string|null;bien_id:string|null}>(incidentsIds,ids=>supabase.from("incidents").select("id,lot_id,bien_id").eq("organization_id",orgId).in("id",ids)):{data:[],error:null,tronquee:false};
+  const incidentsDocs=estProprietaire?await lireParIdentifiants<{id:string;lot_id:string|null;bien_id:string|null;description:string|null}>(incidentsIds,ids=>supabase.from("incidents").select("id,lot_id,bien_id,description").eq("organization_id",orgId).in("id",ids)):{data:[],error:null,tronquee:false};
   erreurClassement=erreurClassement||!!interventionsDocs.error||interventionsDocs.tronquee||!!incidentsDocs.error||incidentsDocs.tronquee;
   if(estProprietaire && !erreurClassement && lecturesClassement) {
     const lotsClasses=new Map((lecturesClassement[0].lignes ?? []).map(l=>[l.id,l as {id:string;nom:string;bien_id:string}]));
@@ -265,6 +266,27 @@ export default async function PageDocuments(
     }
     docs.sort((a,b)=>(nomsGroupes.get(a.id)??"").localeCompare(nomsGroupes.get(b.id)??"","fr")||b.created_at.localeCompare(a.created_at));
   }
+  // Le montant affiché vient uniquement de la facture explicitement liée à ce document.
+  const lectureFactures = estProprietaire
+    ? await lireParIdentifiants<{ document_id: string; montant_ttc_cents: number; validee_le: string | null; decision_motif: string | null }>(
+        docs.filter(d => d.type === "facture_artisan").map(d => d.id),
+        ids => supabase.from("intervention_factures")
+          .select("document_id,montant_ttc_cents,validee_le,decision_motif")
+          .eq("organization_id", orgId).in("document_id", ids))
+    : { data: [], error: null, tronquee: false };
+  const factureDuDocument = (id: string) => {
+    const factures = lectureFactures.data?.filter(f => f.document_id === id) ?? [];
+    return factures.length === 1 ? factures[0] : null;
+  };
+  const titreProprietaire = (d: DocRang) => {
+    const ids = new Set((d.liens ?? []).flatMap(l => l.entite === "incident" ? [l.entite_id]
+      : l.entite === "intervention" ? (interventionsDocs.data ?? []).filter(i => i.id === l.entite_id).map(i => i.incident_id) : []));
+    const incidents = (incidentsDocs.data ?? []).filter(i => ids.has(i.id));
+    return titreDocumentProprietaire(d.titre, {
+      incident: incidents.length === 1 ? incidents[0].description : null,
+      facture: factureDuDocument(d.id),
+    });
+  };
   const suiviSignatures = await lirePresentationSignatures(orgId, { documents: docs.filter(d => !d.purged_at).map(d => d.id) });
 
   const aRenouveler = [
@@ -288,6 +310,7 @@ export default async function PageDocuments(
     erreurPersonnes && "les personnes rattachées",
     erreurLot && "le lot d’où le dépôt a été ouvert",
     erreurClassement && "le classement par bien",
+    (lectureFactures.error || lectureFactures.tronquee) && "les informations des factures d’artisan",
     suiviSignatures.erreur && "le suivi des signatures",
   ].filter((q): q is string => Boolean(q));
 
@@ -427,7 +450,7 @@ export default async function PageDocuments(
         </div>
       ) : (
         <>
-          {estProprietaire ? <FiltresProprietaire recherche={recherche} lienEffacer={`${base}/documents`} /> : <form method="get" className="barre-filtres mb-4 flex flex-wrap items-end gap-2">
+          {estProprietaire ? <FiltresProprietaire recherche={recherche} lienEffacer={`${base}/documents`} lienPersonnes={`${base}/personnes`} /> : <form method="get" className="barre-filtres mb-4 flex flex-wrap items-end gap-2">
             <div className="w-full sm:w-auto">
               <label htmlFor="type" className="libelle-champ mb-1 block">
                 Type
@@ -602,7 +625,7 @@ export default async function PageDocuments(
                       >
                         <small className="min-w-0 flex-1 italic">
                           Document purgé le {formaterDate(d.purged_at)} —{" "}
-                          {TYPES_DOCUMENT[d.type] ?? d.type} (règle de conservation)
+                          {estProprietaire && d.type === "devis" ? "Devis" : TYPES_DOCUMENT[d.type] ?? d.type} (règle de conservation)
                         </small>
                         <IndicateurLien className="shrink-0" />
                       </Link>
@@ -613,7 +636,7 @@ export default async function PageDocuments(
                     .map((l) => nomsPersonnes.get(l.entite_id) ?? "Personne")
                     .join(", ");
                   const rapport = syntheseRapport(usages.get(d.id) ?? []);
-                  const presentation = presentationRapport(d, rapport, doc => presentationDocument(doc, etatSignatureDocument(suiviSignatures.circuits, d.id)));
+                  const presentation = presentationRapport(d, rapport, doc => estProprietaire ? presentationDocumentProprietaire(doc, etatSignatureDocument(suiviSignatures.circuits, d.id), false, factureDuDocument(d.id)) : presentationDocument(doc, etatSignatureDocument(suiviSignatures.circuits, d.id)));
                   const lieA = rapport?.rattachements.map(r => r.libelle).join(", ");
                   if (estProprietaire) {
                     const Icone = d.mime_type?.startsWith("image/") ? FileImage : FileText;
@@ -626,8 +649,8 @@ export default async function PageDocuments(
                     >
                       <span className={styles.iconeFichier} aria-hidden="true"><Icone size={19} strokeWidth={1.6} /></span>
                       <span className={styles.identiteDocument}>
-                        <span className={styles.titreLigne}>{titreAffiche(d.titre) ?? "Sans titre"}</span>
-                        <span className={styles.metaDocument}>{TYPES_DOCUMENT[d.type] ?? d.type}{lieA && ` · ${lieA}`}{rattachements && ` · ${rattachements}`}</span>
+                        <span className={styles.titreLigne}>{titreProprietaire(d)}</span>
+                        <span className={styles.metaDocument}>{estProprietaire && d.type === "devis" ? "Devis" : TYPES_DOCUMENT[d.type] ?? d.type}{lieA && ` · ${lieA}`}{rattachements && ` · ${rattachements}`}</span>
                       </span>
                       <time className={styles.dateDocument} dateTime={d.created_at} title="Date de dépôt">{formaterDate(d.created_at)}</time>
                       <span className={`${styles.statutDocument} puce ${presentation.classe}`} title={presentation.detail}>{presentation.libelle}</span>
@@ -646,7 +669,7 @@ export default async function PageDocuments(
                         {/* Le détail passe à la ligne au lieu d'être tronqué
                             (25/09 : « · 160… » à 1280 px comme à 390 px). */}
                         <small className="block">
-                          {TYPES_DOCUMENT[d.type] ?? d.type}
+                          {estProprietaire && d.type === "devis" ? "Devis" : TYPES_DOCUMENT[d.type] ?? d.type}
                           {" · "}
                           {formaterDate(d.created_at)}
                           {!estProprietaire && d.taille_octets ? ` · ${formaterTaille(d.taille_octets)}` : ""}

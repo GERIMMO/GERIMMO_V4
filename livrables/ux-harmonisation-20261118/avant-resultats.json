@@ -1,0 +1,96 @@
+[
+  {
+    "role": "proprietaire",
+    "width": 390,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nEspace propriétaire",
+    "debordement": 0
+  },
+  {
+    "role": "locataire",
+    "width": 390,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nEspace locataire",
+    "debordement": 0
+  },
+  {
+    "role": "artisan",
+    "width": 390,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nEspace artisan",
+    "debordement": 0
+  },
+  {
+    "role": "admin",
+    "width": 390,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nConsole du dirigeant",
+    "debordement": 0
+  },
+  {
+    "etat": "erreur",
+    "width": 390,
+    "texte": "GERIMMO\n\nEspace propriétaire\n\nCette page n'a pas pu s'afficher\n\nL'incident est noté — la page, pas vos données. Vous pouvez réessayer ; si cela se reproduit, signalez-le depuis « Aide et retours » en indiquant la référence ci-dessous.\n\nRéessayer\n\nréf. recette-12b\n\n0",
+    "fermer": null,
+    "debordement": 0
+  },
+  {
+    "etat": "formulaire",
+    "width": 390,
+    "texte": "GERIMMO\n\nEspace propriétaire\n\nEnvoyer un message\nMessage\nEnvoyer le message\nAfficher la confirmation fictive0\n◇\nMessage enregistré pour le dossier du logement des Amandiers. Vous pouvez le retrouver dans vos échanges.\n×",
+    "fermer": {
+      "x": 258.515625,
+      "y": 790.609375,
+      "width": 13.984375,
+      "height": 24
+    },
+    "debordement": 0
+  },
+  {
+    "role": "proprietaire",
+    "width": 1440,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nEspace propriétaire",
+    "debordement": 0
+  },
+  {
+    "role": "locataire",
+    "width": 1440,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nEspace locataire",
+    "debordement": 0
+  },
+  {
+    "role": "artisan",
+    "width": 1440,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nEspace artisan",
+    "debordement": 0
+  },
+  {
+    "role": "admin",
+    "width": 1440,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nConsole du dirigeant",
+    "debordement": 0
+  },
+  {
+    "etat": "erreur",
+    "width": 1440,
+    "texte": "GERIMMO\n\nEspace propriétaire\n\nCette page n'a pas pu s'afficher\n\nL'incident est noté — la page, pas vos données. Vous pouvez réessayer ; si cela se reproduit, signalez-le depuis « Aide et retours » en indiquant la référence ci-dessous.\n\nRéessayer\n\nréf. recette-12b\n\n0",
+    "fermer": null,
+    "debordement": 0
+  },
+  {
+    "etat": "formulaire",
+    "width": 1440,
+    "texte": "GERIMMO\n\nEspace propriétaire\n\nEnvoyer un message\nMessage\nEnvoyer le message\nAfficher la confirmation fictive0\n◇\nMessage enregistré pour le dossier du logement des Amandiers. Vous pouvez le retrouver dans vos échanges.\n×",
+    "fermer": {
+      "x": 1043.5,
+      "y": 841,
+      "width": 13.984375,
+      "height": 24
+    },
+    "debordement": 0
+  }
+]

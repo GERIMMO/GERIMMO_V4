@@ -1,0 +1,22 @@
+[
+  {
+    "width": 390,
+    "statut": "réussi",
+    "factures_comparees": 20,
+    "montants_inchanges": true,
+    "total": 200000,
+    "registre_rechargement": "conservé",
+    "ancienne_ancre": "conservée",
+    "debordement": 0
+  },
+  {
+    "width": 1440,
+    "statut": "réussi",
+    "factures_comparees": 20,
+    "montants_inchanges": true,
+    "total": 200000,
+    "registre_rechargement": "conservé",
+    "ancienne_ancre": "conservée",
+    "debordement": 0
+  }
+]

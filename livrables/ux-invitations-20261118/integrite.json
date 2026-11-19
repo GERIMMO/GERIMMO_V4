@@ -1,0 +1,19 @@
+{
+  "base": "7c64a9a21b60d4feace1900138002f92146f3537",
+  "fichiers_proteges_identiques": [
+    "app/src/app/actions/auth.ts",
+    "app/src/app/actions/invitations.ts",
+    "app/src/app/actions/invitations-artisan.ts",
+    "app/src/app/actions/confirmation-caution.ts",
+    "app/src/lib/confirmation-mobile-caution.ts",
+    "app/src/lib/autorisation-nouveau-mot-de-passe.ts",
+    "app/src/proxy.ts",
+    "app/supabase/migrations"
+  ],
+  "migration": false,
+  "envoi_reel": false,
+  "publication": false,
+  "captures": 28,
+  "mobile": "Chromium simulé, 390 px",
+  "ordinateur": "Chromium, 1440 px"
+}

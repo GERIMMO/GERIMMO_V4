@@ -1,3 +1,7 @@
+import type { ReactNode } from "react";
+import { ConsoleSection } from "@/components/console-section";
+import type { FinancialSnapshot } from "@/lib/finances-supervision";
+import { AccueilDirigeant } from "./aujourdhui";
 import {lireEditeur} from '@/lib/editeur-serveur';
 import { SuiviDecisions } from "./suivi-decisions";
 import { chargerFaitsDirection } from "@/lib/faits-direction";
@@ -21,7 +25,7 @@ import styles from "./accueil.module.css";
 // Trois vues partageant les mêmes sources et actions de supervision.
 export async function generateMetadata({ searchParams }: { searchParams: Promise<{ vue?: string; pageDecisions?:string; etatDecision?:string; categorie?:string }> }) {
   const { vue } = await searchParams;
-  return { title: vue === "decisions" ? "Décisions à prendre" : vue === "equipes" ? "Équipes et comptes rendus" : "Bureau de direction" };
+  return { title: vue === "decisions" ? "Décisions à prendre" : vue === "equipes" ? "Équipes et comptes rendus" : "Aujourd’hui" };
 }
 
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
@@ -35,22 +39,26 @@ const ICONES_EQUIPES = { exploitation: Building2, finance: Wallet, incidents: Wr
 export default async function PageBrief({ searchParams }: { searchParams: Promise<{ jour?: string; equipe?: string; vue?: string; pageDecisions?:string; etatDecision?:string; categorie?:string }> }) {
   const p = await searchParams;
   const vue = p.vue === "decisions" || p.vue === "equipes" ? p.vue : "bureau";
-  const titre = vue === "decisions" ? "Décisions à prendre" : vue === "equipes" ? "Équipes et comptes rendus" : "Bureau de direction";
+  const titre = vue === "decisions" ? "Décisions à prendre" : vue === "equipes" ? "Équipes et comptes rendus" : "Aujourd’hui";
   const aujourdhui = jourDuPoint();
   const jour = p.jour && /^\d{4}-\d{2}-\d{2}$/.test(p.jour) ? p.jour : aujourdhui;
   const filtreEquipe: Equipe | undefined = p.equipe && estEquipe(p.equipe) ? p.equipe : undefined;
   const supabase = await createClient();
   const depuis = new Date(`${aujourdhui}T12:00:00Z`); depuis.setDate(depuis.getDate() - 14);
   const identite=await lireEditeur();
-  const [duJour, historique, decisions, faits] = await Promise.all([
+  const [duJour, historique, decisions, faits, finance, assistance] = await Promise.all([
     lirePoints(supabase, { jour, limite: 20 }),
     lirePoints(supabase, { depuis: depuis.toISOString().slice(0, 10), equipe: filtreEquipe, limite: 120 }),
     // Le même calcul que la barre haute et l'accueil (lib/decisions-attendues.ts) :
     // il porte AUSSI la liste affichée sous « À décider » (audit console 27/09).
     chargerDecisionsAttendues(supabase, process.env, faitsManquants(identite.indisponible?{}:identite.editeur).length),
     chargerFaitsDirection(supabase, jour),
+    vue === "bureau" ? supabase.rpc("supervision_finances") : Promise.resolve({ data: null, error: null }),
+    vue === "bureau" ? supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).neq("nature", "idee").in("etat", ["nouveau", "en_examen", "en_cours"]) : Promise.resolve({ count: null, error: null }),
   ]);
 
+  const lectureFinance = finance.data as FinancialSnapshot | null;
+  const snapshotFinance = !finance.error && lectureFinance && Array.isArray(lectureFinance.organisations) && Number.isFinite(lectureFinance.total) ? lectureFinance : null;
   const points = duJour.points ?? [];
   const estAujourdhui = jour === aujourdhui;
   // Historique : les jours précédents, un rang par point ; le jour affiché est exclu.
@@ -71,8 +79,8 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
       <header className={styles.hero}>
         <div className={styles.heroIntro}>
           <p className={styles.eyebrow}>Gerimmo / Direction générale</p>
-          <TitreEcran rubrique="suivi">{titre}</TitreEcran>
-          <p className={styles.subtitle}>{vue === "decisions" ? "Les problèmes d’abord, puis les accords et les contenus." : vue === "equipes" ? "Les résultats de chaque équipe, les difficultés rencontrées et les décisions attendues." : "L’essentiel pour piloter Gerimmo."}</p>
+          <TitreEcran rubrique="suivi">{vue === "bureau" && !estAujourdhui ? "Bureau de direction" : titre}</TitreEcran>
+          <p className={styles.subtitle}>{vue === "decisions" ? "Les problèmes d’abord, puis les accords et les contenus." : vue === "equipes" ? "Les résultats de chaque équipe, les difficultés rencontrées et les décisions attendues." : "Le service, les clients et vos prochaines décisions."}</p>
         </div>
         <div className={styles.heroRight}>
           <span className={styles.date}><CalendarDays size={15} aria-hidden="true" />{dateLongue(jour)}</span>
@@ -83,7 +91,10 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
         </div>
       </header>
       {duJour.erreur && <p role="alert" className="err mb-5">Le point du matin est indisponible. Aucun état ne peut être confirmé.</p>}
+      {vue === "bureau" && historique.erreur && <p role="alert" className="err mb-5">L’historique des comptes rendus est indisponible. Les données du jour restent distinctes de cette erreur.</p>}
       {lecturesEnEchec > 0 && <p role="alert" className="err mb-5">{pluriel(lecturesEnEchec, "lecture")} de cette page {lecturesEnEchec > 1 ? "ont" : "a"} échoué : ce qui manque n’est pas un zéro.</p>}
+      {vue === "bureau" && estAujourdhui && <AccueilDirigeant finance={snapshotFinance} assistance={!assistance.error && typeof assistance.count === "number" ? assistance.count : null} decisions={decisions} aujourd={aujourdhui} faits={faits.snapshot} erreurFaits={faits.erreur} echecsEquipes={points.reduce((n, p) => n + p.contenu.echecs.length, 0)} />}
+      <DetailsAccueil actif={vue === "bureau" && estAujourdhui} ouverte={Boolean(p.jour || p.equipe)}>
       {vue === "bureau" && <nav className={styles.overview} aria-label="Repères du jour">
         <Link href="/admin/brief?vue=decisions" className={styles.metric} data-tone="ambre"><span className={styles.icon}><ClipboardCheck size={21} aria-hidden="true" /></span><span><strong>{lecturesEnEchec ? "À vérifier" : decisions.total}</strong><small>Sujets à traiter</small></span><ArrowRight size={17} aria-hidden="true" /></Link>
         <Link href="/admin/brief?vue=equipes" className={styles.metric} data-tone="bleu"><span className={styles.icon}><Users size={21} aria-hidden="true" /></span><span><strong>{Object.keys(EQUIPES).length}</strong><small>Équipes à votre service</small></span><ArrowRight size={17} aria-hidden="true" /></Link>
@@ -190,6 +201,11 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
       {vue === "bureau" && Boolean(process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim()) && (
         <section className="section-ecran"><BoutonBriefIA disponible /></section>
       )}
+      </DetailsAccueil>
     </main>
   );
+}
+
+function DetailsAccueil({ actif, ouverte, children }: { actif: boolean; ouverte: boolean; children: ReactNode }) {
+  return actif ? <ConsoleSection titre="Détails" description="Comptes rendus, indicateurs détaillés et outils de direction" icone="sante" ouverte={ouverte}>{children}</ConsoleSection> : <>{children}</>;
 }

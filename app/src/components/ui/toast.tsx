@@ -43,11 +43,11 @@ export function Toasteur() {
   return (
     <div key={toast.cle} className="toast" role="status" aria-live="polite">
       <span aria-hidden>◇</span>
-      <span className="flex-1">{toast.message}</span>
+      <span className="min-w-0 flex-1 break-words">{toast.message}</span>
       <button
         type="button"
         onClick={() => setToast(null)}
-        className="px-0.5 text-base text-[var(--sur-encre)]/70 hover:text-[var(--sur-encre)]"
+        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-base text-[var(--sur-encre)]/70 hover:text-[var(--sur-encre)]"
         aria-label="Fermer"
       >
         ×

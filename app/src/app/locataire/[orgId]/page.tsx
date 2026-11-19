@@ -1,3 +1,4 @@
+import { lireIdentiteContact } from "./identite-contact";
 import { RendezVousLocataireConfirme } from "@/components/rendez-vous-locataire-confirme";
 import { lireToutesLesPages } from "@/lib/lecture-complete";
 import type { MonReleveConsommation } from "@/lib/consommations";
@@ -16,7 +17,6 @@ import { CarteGestionnaire, type Gestionnaire } from "./cartes-laterales";
 import { CarteDepotGarantie, type RestitutionLocataire } from "./carte-depot-garantie";
 import { aEchoue, LectureImpossible, PanneLecture } from "./panne-lecture";
 import type { IncidentLocataire } from "./incidents-locataire";
-import { ReflexesUrgence } from "./reflexes-urgence";
 import { NOTE_SIGNALEMENT_FERME, signalementOuvert, type BailLocataire } from "./types";
 
 // Les cartes indicateurs se cliquent EN ENTIER (24/09), comme les tuiles
@@ -40,6 +40,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   const { orgId } = await props.params;
   const { supabase, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
+  const identiteContact = await lireIdentiteContact(orgId);
   const avisCharges = await supabase.rpc("mes_avis_decompte",{p_org:orgId});
   const [
     { data: baux, error: eBaux },
@@ -333,6 +334,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         <p className="text-sm text-muted-foreground">
           Vos prochaines actions, puis le suivi de votre logement et de vos paiements.
         </p>
+        <div className="mt-3 flex flex-wrap gap-2"><Link href={`/locataire/${orgId}/documents`} className={buttonVariants({ variant: "outline", size: "sm" })}>Mes documents</Link><Link href={`/locataire/${orgId}/contact`} className={buttonVariants({ variant: "outline", size: "sm" })}>Écrire à {identiteContact.agence ? "mon gestionnaire" : "mon bailleur"}</Link></div>
       </div>
 
       {aEchoue(
@@ -345,6 +347,13 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         eDemandes,
         eSignatures
       ) && <PanneLecture quoi="l'essentiel de votre logement" />}
+
+      {!eBaux && adhesionActive && (!bail || bail.etat === "brouillon") && !signalementOuvert(baux as BailLocataire[] | null) && <section className="loc-carte border-l-4 border-l-[var(--or)]" aria-label="Situation de votre bail">
+        <h2 className="titre-carte text-base font-medium">Votre bail n’est pas encore actif</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{bail ? (bail.document_signe ? "Un contrat signé est enregistré. Votre bailleur doit encore vérifier le dossier et activer le bail." : "Le contrat signé n’est pas encore disponible dans votre espace. Votre bailleur doit finaliser le dossier, puis activer le bail.") : "Aucun bail n’est encore rattaché à votre espace. Votre bailleur doit préparer ou vérifier ce rattachement."}</p>
+        <p className="mt-2 text-sm">Responsable de la prochaine étape : votre bailleur.{(nbPiecesDemandees > 0 || nbSignatures > 0) && " Des pièces ou signatures vous sont aussi demandées dans Mes documents."}</p>
+        <Link href={`/locataire/${orgId}/contact`} className="mt-2 inline-flex min-h-11 items-center font-medium underline">Écrire à mon bailleur →</Link>
+      </section>}
 
       {bail && (
         <div className="loc-hero">
@@ -571,7 +580,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
             ) : incidentsEnCours.length === 0 ? (
               <>
                 <p className="mt-1.5 font-heading text-xl text-[var(--encre)]">
-                  Tout est en ordre
+                  Aucune demande en cours
                 </p>
                 <span className="loc-tag vert mt-2.5">✓ Aucun incident en cours</span>
               </>
@@ -628,13 +637,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         </div>
 
         <div className="space-y-4">
-          <CarteGestionnaire orgId={orgId} gestionnaire={gestionnaire} />
-          {/* Une seule carte d'urgence dans l'espace (24/09) : la même que
-              sur « Mes demandes » et le signalement, numéros soulignés tous
-              les deux, et « signalez ici » qui mène au formulaire. */}
-          <ReflexesUrgence
-            hrefSignalement={peutSignaler ? `/locataire/${orgId}/incident` : undefined}
-          />
+          <CarteGestionnaire orgId={orgId} gestionnaire={gestionnaire} identite={identiteContact} />
         </div>
       </div>
     </div>

@@ -176,11 +176,9 @@ describe.skipIf(!CHROMIUM)("/inscription : « Vous louez en tant que » garde le
     expect(await qualite().inputValue()).toBe("Personne physique");
 
     await champ("nom").fill("Martin");
-    await champ("adresse").fill("3 rue du Test");
-    await champ("code_postal").fill("69003");
-    await champ("ville").fill("Lyon");
     await champ("email").fill(ADRESSE);
     await qualite().selectOption("SCI");
+    if (!(await champ("code_parrainage").isVisible())) await page.locator("summary").click();
     await champ("code_parrainage").fill("ABC");
     await envoyer();
     expect((await envois())[0]).toMatchObject({ qualite: "SCI", nom: "Martin", code_parrainage: "ABC" });
@@ -198,9 +196,6 @@ describe.skipIf(!CHROMIUM)("/inscription : « Vous louez en tant que » garde le
   it("refus de la fabrique de liens (trop de demandes) : la liste garde aussi le choix, et le nouvel essai le porte", async () => {
     await ouvrir(htmlDuServeur({}), { refus: [LIMITE, LIMITE] });
     await champ("nom").fill("Martin");
-    await champ("adresse").fill("3 rue du Test");
-    await champ("code_postal").fill("69003");
-    await champ("ville").fill("Lyon");
     await champ("email").fill(ADRESSE);
     await qualite().selectOption("SCI familiale");
     await envoyer();
@@ -215,13 +210,11 @@ describe.skipIf(!CHROMIUM)("/inscription : « Vous louez en tant que » garde le
   it("refus successifs avec d'autres choix, jusqu'au retour à « Personne physique » : la liste suit toujours le dernier envoi", async () => {
     await ouvrir(htmlDuServeur({}));
     await champ("nom").fill("Martin");
-    await champ("adresse").fill("3 rue du Test");
-    await champ("code_postal").fill("69003");
-    await champ("ville").fill("Lyon");
     await champ("email").fill(ADRESSE);
 
     // Chaque code est mal formé : l'action refuse sans rien appeler.
     await qualite().selectOption("SCI");
+    if (!(await champ("code_parrainage").isVisible())) await page.locator("summary").click();
     await champ("code_parrainage").fill("ABC");
     await envoyer();
     expect(await qualite().inputValue()).toBe("SCI");

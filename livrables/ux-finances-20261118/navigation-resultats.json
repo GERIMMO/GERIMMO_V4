@@ -1,0 +1,82 @@
+[
+  {
+    "profil": "particulier",
+    "width": 390,
+    "resultat": "réussi",
+    "checks": [
+      "3 entrées",
+      "filtres conservés",
+      "ancienne ancre fiscale",
+      "livre accessible et totaux repliés",
+      "dépense présélectionnée sans enregistrement",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ]
+  },
+  {
+    "profil": "particulier",
+    "width": 1440,
+    "resultat": "réussi",
+    "checks": [
+      "3 entrées",
+      "filtres conservés",
+      "ancienne ancre fiscale",
+      "livre accessible et totaux repliés",
+      "dépense présélectionnée sans enregistrement",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ]
+  },
+  {
+    "profil": "neuf",
+    "width": 390,
+    "resultat": "réussi",
+    "checks": [
+      "3 entrées",
+      "ancienne ancre fiscale",
+      "livre accessible et totaux repliés",
+      "dépense présélectionnée sans enregistrement",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ]
+  },
+  {
+    "profil": "neuf",
+    "width": 1440,
+    "resultat": "réussi",
+    "checks": [
+      "3 entrées",
+      "ancienne ancre fiscale",
+      "livre accessible et totaux repliés",
+      "dépense présélectionnée sans enregistrement",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ]
+  },
+  {
+    "profil": "sci",
+    "width": 390,
+    "resultat": "réussi",
+    "checks": [
+      "3 entrées",
+      "ancienne ancre fiscale",
+      "livre accessible et totaux repliés",
+      "dépense présélectionnée sans enregistrement",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ]
+  },
+  {
+    "profil": "sci",
+    "width": 1440,
+    "resultat": "réussi",
+    "checks": [
+      "3 entrées",
+      "ancienne ancre fiscale",
+      "livre accessible et totaux repliés",
+      "dépense présélectionnée sans enregistrement",
+      "aucun débordement",
+      "aucune erreur JavaScript"
+    ]
+  }
+]

@@ -1,0 +1,96 @@
+[
+  {
+    "role": "proprietaire",
+    "width": 390,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nEspace propriétaire\n\nChargement de la page…",
+    "debordement": 0
+  },
+  {
+    "role": "locataire",
+    "width": 390,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nEspace locataire\n\nChargement de la page…",
+    "debordement": 0
+  },
+  {
+    "role": "artisan",
+    "width": 390,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nEspace artisan\n\nChargement de la page…",
+    "debordement": 0
+  },
+  {
+    "role": "admin",
+    "width": 390,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nConsole du dirigeant\n\nChargement de la page…",
+    "debordement": 0
+  },
+  {
+    "etat": "erreur",
+    "width": 390,
+    "texte": "GERIMMO\n\nEspace propriétaire\n\nCette page n'a pas pu s'afficher\n\nRéessayez dans un instant. Si le problème persiste, contactez l'assistance.\n\nRéessayer\nContacter l’assistance\nRéférence pour l’assistance\n0",
+    "fermer": null,
+    "debordement": 0
+  },
+  {
+    "etat": "formulaire",
+    "width": 390,
+    "texte": "GERIMMO\n\nEspace propriétaire\n\nEnvoyer un message\nMessage\nEnvoyer le message\nAfficher la confirmation fictive0\n◇\nMessage enregistré pour le dossier du logement des Amandiers. Vous pouvez le retrouver dans vos échanges.\n×",
+    "fermer": {
+      "x": 310,
+      "y": 811.796875,
+      "width": 44,
+      "height": 44
+    },
+    "debordement": 0
+  },
+  {
+    "role": "proprietaire",
+    "width": 1440,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nEspace propriétaire\n\nChargement de la page…",
+    "debordement": 0
+  },
+  {
+    "role": "locataire",
+    "width": 1440,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nEspace locataire\n\nChargement de la page…",
+    "debordement": 0
+  },
+  {
+    "role": "artisan",
+    "width": 1440,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nEspace artisan\n\nChargement de la page…",
+    "debordement": 0
+  },
+  {
+    "role": "admin",
+    "width": 1440,
+    "etat": "chargement",
+    "texte": "GERIMMO\n\nConsole du dirigeant\n\nChargement de la page…",
+    "debordement": 0
+  },
+  {
+    "etat": "erreur",
+    "width": 1440,
+    "texte": "GERIMMO\n\nEspace propriétaire\n\nCette page n'a pas pu s'afficher\n\nRéessayez dans un instant. Si le problème persiste, contactez l'assistance.\n\nRéessayer\nContacter l’assistance\nRéférence pour l’assistance\n0",
+    "fermer": null,
+    "debordement": 0
+  },
+  {
+    "etat": "formulaire",
+    "width": 1440,
+    "texte": "GERIMMO\n\nEspace propriétaire\n\nEnvoyer un message\nMessage\nEnvoyer le message\nAfficher la confirmation fictive0\n◇\nMessage enregistré pour le dossier du logement des Amandiers. Vous pouvez le retrouver dans vos échanges.\n×",
+    "fermer": {
+      "x": 936,
+      "y": 821,
+      "width": 44,
+      "height": 44
+    },
+    "debordement": 0
+  }
+]

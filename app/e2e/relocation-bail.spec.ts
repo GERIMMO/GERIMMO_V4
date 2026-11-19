@@ -68,7 +68,8 @@ for (const largeur of [390, 1440]) {
       const brouillons = async () => (await db.query("select count(*)::int as n from public.baux where lot_id=$1 and etat='brouillon'", [lotId])).rows[0].n;
       await page.goto(`/espace/${ORG}/parc/${sources[0].bien_id}/lots/${lotId}`);
       await expect(page.locator('#nouvelle-location').getByRole('link', { name: 'Reprendre le bail', exact: true })).toHaveAttribute('href', new RegExp(`/baux/${bailId}$`));
-      await page.locator('summary').filter({ hasText: 'Préparer un autre contrat' }).click();
+      await page.getByRole('tab', { name: 'Location', exact: true }).click();
+    await page.locator('summary').filter({ hasText: 'Préparer un autre contrat' }).click();
       await page.locator('#nouveau-contrat').getByRole('button', { name: 'Commencer le bail', exact: true }).click();
       await expect(page).toHaveURL(new RegExp(`/baux/${bailId}#etape-bail-1$`));
       expect(await brouillons()).toBe(1);

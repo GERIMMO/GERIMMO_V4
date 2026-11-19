@@ -1,0 +1,27 @@
+{
+  "results": [
+    {
+      "profil": "multi-lots",
+      "width": 390,
+      "onglets": 5,
+      "formulairesConserves": true,
+      "modificationEtSaisieConservees": true,
+      "diagnosticEtActualisation": true,
+      "incidentsOuverts": "false",
+      "fond": "rgb(255, 255, 255)",
+      "debordement": 0
+    },
+    {
+      "profil": "multi-lots",
+      "width": 1440,
+      "onglets": 5,
+      "formulairesConserves": true,
+      "modificationEtSaisieConservees": true,
+      "diagnosticEtActualisation": true,
+      "incidentsOuverts": "false",
+      "fond": "rgb(255, 255, 255)",
+      "debordement": 0
+    }
+  ],
+  "erreursJavascript": []
+}

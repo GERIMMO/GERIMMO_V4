@@ -1,0 +1,152 @@
+[
+  {
+    "profil": "actif",
+    "vue": "accueil",
+    "largeur": 1440,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0,
+    "montants_affiches_conserves": true
+  },
+  {
+    "profil": "actif",
+    "vue": "accueil",
+    "largeur": 390,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0,
+    "montants_affiches_conserves": true
+  },
+  {
+    "profil": "actif",
+    "vue": "contact",
+    "largeur": 1440,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0
+  },
+  {
+    "profil": "actif",
+    "vue": "contact",
+    "largeur": 390,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0
+  },
+  {
+    "profil": "actif",
+    "vue": "documents",
+    "largeur": 1440,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0
+  },
+  {
+    "profil": "actif",
+    "vue": "documents",
+    "largeur": 390,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0
+  },
+  {
+    "profil": "preparation",
+    "vue": "accueil",
+    "largeur": 1440,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0,
+    "montants_affiches_conserves": true
+  },
+  {
+    "profil": "preparation",
+    "vue": "accueil",
+    "largeur": 390,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0,
+    "montants_affiches_conserves": true
+  },
+  {
+    "profil": "preparation",
+    "vue": "contact",
+    "largeur": 1440,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0
+  },
+  {
+    "profil": "preparation",
+    "vue": "contact",
+    "largeur": 390,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0
+  },
+  {
+    "profil": "preparation",
+    "vue": "documents",
+    "largeur": 1440,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0
+  },
+  {
+    "profil": "preparation",
+    "vue": "documents",
+    "largeur": 390,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0
+  },
+  {
+    "profil": "sci",
+    "vue": "accueil",
+    "largeur": 1440,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0,
+    "montants_affiches_conserves": true
+  },
+  {
+    "profil": "sci",
+    "vue": "accueil",
+    "largeur": 390,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0,
+    "montants_affiches_conserves": true
+  },
+  {
+    "profil": "sci",
+    "vue": "contact",
+    "largeur": 1440,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0
+  },
+  {
+    "profil": "sci",
+    "vue": "contact",
+    "largeur": 390,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0
+  },
+  {
+    "profil": "sci",
+    "vue": "documents",
+    "largeur": 1440,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0
+  },
+  {
+    "profil": "sci",
+    "vue": "documents",
+    "largeur": 390,
+    "formulaires_conserves": true,
+    "champs_conserves": true,
+    "debordement_apres": 0
+  }
+]

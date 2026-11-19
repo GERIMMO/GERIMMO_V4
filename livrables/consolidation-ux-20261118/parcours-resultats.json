@@ -1,0 +1,22 @@
+[
+  {
+    "width": 390,
+    "qualite": "Personne physique",
+    "email": "ux-inscription-390-1795032724817@example.invalid",
+    "url": "/espace/0bad7ba4-2b31-447b-aa76-1b648f637877",
+    "confirmationEmail": true,
+    "consentement": true,
+    "adresseDemandee": false,
+    "arriveeProprietaire": true
+  },
+  {
+    "width": 1440,
+    "qualite": "SCI",
+    "email": "ux-inscription-1440-1795032749358@example.invalid",
+    "url": "/espace/05a621ed-b08e-4143-ae08-7a22c481af22",
+    "confirmationEmail": true,
+    "consentement": true,
+    "adresseDemandee": false,
+    "arriveeProprietaire": true
+  }
+]

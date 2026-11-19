@@ -198,7 +198,7 @@ export default async function PageCompte({ params }: { params: Promise<{ account
         )}
       </ConsoleSection>
 
-      <ConsoleSection titre="Rôles et espaces" description="Retrouver les dossiers et les accès rattachés." icone="personnes" ton="vert" ouverte statut={adhesionsLues.error || personnesLues.error ? "Lecture indisponible" : `${adhesions.length} rôles`}>
+      <ConsoleSection titre="Rôles et espaces" description="Retrouver les dossiers et les accès rattachés." icone="personnes" ton="vert" ouverte statut={adhesionsLues.error || personnesLues.error ? "Lecture indisponible" : `${adhesions.length} rôle${adhesions.length > 1 ? "s" : ""}`}>
         <div className="entete-carte"><span className="puce puce-grise">{adhesionsLues.error ? "—" : adhesions.length}</span></div>
         {adhesionsLues.error || personnesLues.error ? <LectureIndisponible sujet="Rôles et dossiers rattachés" retour={retour} /> : adhesions.length === 0 && !dossier.artisan_id ? (
           <p className="text-sm text-[var(--texte-secondaire)]">Aucun rôle : ce compte n’a accès à aucun espace.</p>

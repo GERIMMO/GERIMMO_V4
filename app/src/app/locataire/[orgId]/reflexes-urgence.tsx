@@ -21,7 +21,7 @@ export function ReflexesUrgence({ hrefSignalement, surFormulaire = false }: { hr
   const suite =
     " — répondez « oui » à « Est-ce urgent ? » : votre gestionnaire est alors prévenu par e-mail.";
   return (
-    <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
+    <div id="consignes-urgence" className="loc-carte scroll-mt-24 border-l-4 border-l-[var(--destructive)]">
       <h2 className="titre-carte text-base font-medium">En cas d&apos;urgence</h2>
       <p className="mt-1.5 text-sm text-muted-foreground">
         Fuite importante : fermez d&apos;abord le robinet d&apos;arrêt d&apos;eau.

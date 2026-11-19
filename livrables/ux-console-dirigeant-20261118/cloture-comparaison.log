@@ -1,0 +1,27 @@
+principal /admin/brief Aujourd’hui
+principal /admin/brief?vue=decisions Décisions à prendre
+principal /admin/brief?vue=equipes Équipes et comptes rendus
+principal /admin/clients Utilisateurs
+principal /admin/autonomie?vue=dossiers Activité et dossiers
+principal /admin/artisans Réseau d’artisans
+principal /admin/retours Assistance clients
+principal /admin Abonnements et finances
+principal /admin/marketing Marketing et contenus
+principal /admin/territoire Développement commercial
+principal /admin/equipes Automatismes et consignes
+principal /admin/relais Vacances et relais
+principal /admin/autonomie?vue=ameliorations Améliorations du produit
+principal /admin/sante Santé et connexions
+principal /admin/securite Sécurité et conformité
+principal /admin/journaux Historique et sauvegardes
+principal /admin/parametres Paramètres généraux
+secondaire /admin/marque-blanche Personnalisation des agences
+secondaire /admin/couverture Réseau d’artisans
+secondaire /admin/publications Articles du site
+secondaire /admin/devis Demandes de contact
+secondaire /admin/liste-attente Liste d’attente des agences
+secondaire /admin/consignes Consignes du dirigeant
+secondaire /admin/donnees Demandes sur les données
+secondaire /admin/conservation Durées de conservation
+secondaire /admin/veille Veille réglementaire
+{"pages":28,"failed":0,"errors":0,"parses":0}

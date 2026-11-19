@@ -47,6 +47,7 @@ async function franchirLeSasMfa(page: Page) {
   // pas scanner une image.
   await page.getByText("Saisir une clé à la place du QR code").click();
   const secret = (await page.locator("details p").first().innerText()).trim();
+  fs.writeFileSync(path.join(DOSSIER, "superadmin-totp.json"), JSON.stringify({ secret }), { mode: 0o600 });
   await page.getByLabel("Code à six chiffres").fill(totp(secret));
   await page.getByRole("button", { name: "Activer et continuer" }).click();
 }

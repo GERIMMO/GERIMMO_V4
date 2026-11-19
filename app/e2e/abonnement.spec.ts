@@ -36,39 +36,34 @@ test.describe("Côté propriétaire bailleur", () => {
     ).toBeVisible();
   });
 
-  test("les deux lots de démonstration coûtent 7,98 € sur l’abonnement unique", async ({
-    page,
-  }) => {
-    const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
-    await expect(page.getByRole("radio", { name: /Mensuel/ })).toBeChecked();
-    await expect(recap).toContainText("Abonnement Gerimmo");
-    await expect(recap).toContainText("7,98");
-    // Plan du 23/10 (R55) : en franchise de TVA, « Total à payer » sans « TTC ».
-    await expect(recap).toContainText("Total à payer");
+  test("ventes fermées : les deux lots affichent le tarif mensuel de 7,98 € sans commande", async ({ page }) => {
+    const tarifs = page.locator(".loc-carte").filter({ has: page.getByRole("heading", { name: "Tarifs à titre d’information" }) });
+    await expect(tarifs).toContainText("Abonnement Gerimmo");
+    await expect(tarifs).toContainText("2 biens en gestion");
+    await expect(tarifs.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Mensuel$/ }) })).toContainText("7,98 € / mois");
+    await expect(tarifs).toContainText("TVA non applicable, art. 293 B du CGI");
     await expect(page.locator("main")).not.toContainText("offert, à vie");
+    await expect(page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true })).toHaveCount(0);
   });
 
-  test("en annuel, le montant prélevé en une fois est affiché", async ({ page }) => {
-    await page.locator("label").filter({ has: page.getByRole("radio", { name: /Annuel/ }) }).click();
-    const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
-    await expect(recap).toContainText("79,80");
-    await expect(recap).toContainText("prélevés en une fois pour douze mois");
+  test("ventes fermées : le tarif annuel de 79,80 € reste informatif, sans prélèvement automatique", async ({ page }) => {
+    const tarifs = page.locator(".loc-carte").filter({ has: page.getByRole("heading", { name: "Tarifs à titre d’information" }) });
+    await expect(tarifs.locator("dl > div").filter({ has: page.locator("dt", { hasText: /^Annuel$/ }) })).toContainText("79,80 € / an");
+    await expect(tarifs).toContainText("Aucun abonnement ni prélèvement ne démarre automatiquement");
+    await expect(page.getByRole("radio", { name: /Annuel|Mensuel/ })).toHaveCount(0);
   });
 
-  test("quitter le formulaire annuel vers un paiement simulé ne demande pas de confirmer la sortie", async ({ page }) => {
-    const dialogues: string[] = [];
-    page.on("dialog", async dialogue => {
-      dialogues.push(dialogue.type());
-      await dialogue.dismiss();
-    });
-    await page.locator("label").filter({ has: page.getByRole("radio", { name: /Annuel/ }) }).click();
-    await expect(page.getByRole("radio", { name: /^Annuel/ })).toBeChecked();
-    const destination = "https://paiement.example.invalid/gerimmo";
-    await page.route(destination, route => route.fulfill({ contentType: "text/html; charset=utf-8", body: "<h1>Paiement simulé</h1>" }));
-    // La redirection est simulée ; le formulaire et sa garde de sortie sont ceux du site.
-    await page.evaluate(url => window.location.assign(url), destination);
-    await expect(page.getByRole("heading", { name: "Paiement simulé" })).toBeVisible();
-    expect(dialogues).toEqual([]);
+  // Le vrai clic mensuel/annuel et sa garde de sortie sont exercés séparément,
+  // sans skip, dans souscription-formulaire-navigateur.test.ts (prestataire fictif).
+  test("ventes fermées : les conditions et le contact restent accessibles sans faux paiement", async ({ page }) => {
+    await page.getByText("Conditions et détails du contrat", { exact: true }).click();
+    const details = page.locator("details").filter({ has: page.getByText("Conditions et détails du contrat", { exact: true }) });
+    await expect(details).toContainText("Ces tarifs ne constituent pas une commande");
+    await expect(details.getByRole("link", { name: /Conditions générales/ })).toHaveAttribute("href", "/conditions");
+    await expect(page.getByRole("button", { name: /paiement sécurisé/ })).toHaveCount(0);
+    await page.getByRole("link", { name: "Contacter Gerimmo", exact: true }).click();
+    await expect(page).toHaveURL(/\/assistance\?/);
+    await expect(page.locator("main")).toBeVisible();
   });
 
   test("sans paiement en ligne ouvert, le refus est une phrase, pas une erreur d'API", async ({

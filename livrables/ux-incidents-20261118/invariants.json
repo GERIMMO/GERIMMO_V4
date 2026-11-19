@@ -1,0 +1,90 @@
+[
+  {
+    "profil": "nom-propre",
+    "largeur": 390,
+    "formulaires_avant": 4,
+    "formulaires_apres": 4,
+    "champs_identiques": true,
+    "debordement_apres": 0,
+    "montants": {
+      "devis": {
+        "avant": "100,00 €",
+        "apres": "100,00 €"
+      },
+      "facture": {
+        "avant": "100,00 €",
+        "apres": "100,00 €"
+      },
+      "reste": {
+        "avant": "100,00 €",
+        "apres": "100,00 €"
+      }
+    }
+  },
+  {
+    "profil": "nom-propre",
+    "largeur": 1440,
+    "formulaires_avant": 4,
+    "formulaires_apres": 4,
+    "champs_identiques": true,
+    "debordement_apres": 0,
+    "montants": {
+      "devis": {
+        "avant": "100,00 €",
+        "apres": "100,00 €"
+      },
+      "facture": {
+        "avant": "100,00 €",
+        "apres": "100,00 €"
+      },
+      "reste": {
+        "avant": "100,00 €",
+        "apres": "100,00 €"
+      }
+    }
+  },
+  {
+    "profil": "sci",
+    "largeur": 390,
+    "formulaires_avant": 4,
+    "formulaires_apres": 4,
+    "champs_identiques": true,
+    "debordement_apres": 0,
+    "montants": {
+      "devis": {
+        "avant": "100,00 €",
+        "apres": "100,00 €"
+      },
+      "facture": {
+        "avant": "100,00 €",
+        "apres": "100,00 €"
+      },
+      "reste": {
+        "avant": "100,00 €",
+        "apres": "100,00 €"
+      }
+    }
+  },
+  {
+    "profil": "sci",
+    "largeur": 1440,
+    "formulaires_avant": 4,
+    "formulaires_apres": 4,
+    "champs_identiques": true,
+    "debordement_apres": 0,
+    "montants": {
+      "devis": {
+        "avant": "100,00 €",
+        "apres": "100,00 €"
+      },
+      "facture": {
+        "avant": "100,00 €",
+        "apres": "100,00 €"
+      },
+      "reste": {
+        "avant": "100,00 €",
+        "apres": "100,00 €"
+      }
+    }
+  }
+]

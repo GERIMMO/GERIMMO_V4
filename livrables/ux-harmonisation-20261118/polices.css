@@ -1,0 +1,3 @@
+@font-face { font-family: FigtreeLocal; src: url('/@fs/Users/easycash/Documents/Gerimmo V3/work/ux-accueil-proprietaire-20261118/app/src/app/polices/figtree-latin-wght-normal.woff2'); font-weight:300 900; }
+@font-face { font-family: ManropeLocal; src: url('/@fs/Users/easycash/Documents/Gerimmo V3/work/ux-accueil-proprietaire-20261118/app/src/app/polices/manrope-latin-wght-normal.woff2'); font-weight:200 800; }
+:root { --font-interface:FigtreeLocal, sans-serif; --font-titres:ManropeLocal, sans-serif; }

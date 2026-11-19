@@ -1,0 +1,98 @@
+[
+  {
+    "page": "sante",
+    "largeur": 390,
+    "formulaires_avant": 12,
+    "formulaires_apres": 12,
+    "champs_metier_preserves": true,
+    "debordement_apres": 0,
+    "capture_avant": [
+      390,
+      7124
+    ],
+    "capture_apres": [
+      390,
+      2574
+    ]
+  },
+  {
+    "page": "sante",
+    "largeur": 1440,
+    "formulaires_avant": 12,
+    "formulaires_apres": 12,
+    "champs_metier_preserves": true,
+    "debordement_apres": 0,
+    "capture_avant": [
+      1440,
+      3793
+    ],
+    "capture_apres": [
+      1440,
+      1918
+    ]
+  },
+  {
+    "page": "automatismes",
+    "largeur": 390,
+    "formulaires_avant": 11,
+    "formulaires_apres": 11,
+    "champs_metier_preserves": true,
+    "debordement_apres": 0,
+    "capture_avant": [
+      390,
+      6082
+    ],
+    "capture_apres": [
+      390,
+      5141
+    ]
+  },
+  {
+    "page": "automatismes",
+    "largeur": 1440,
+    "formulaires_avant": 11,
+    "formulaires_apres": 11,
+    "champs_metier_preserves": true,
+    "debordement_apres": 0,
+    "capture_avant": [
+      1440,
+      3252
+    ],
+    "capture_apres": [
+      1440,
+      3079
+    ]
+  },
+  {
+    "page": "menu",
+    "largeur": 390,
+    "formulaires_avant": 0,
+    "formulaires_apres": 0,
+    "champs_metier_preserves": true,
+    "debordement_apres": 0,
+    "capture_avant": [
+      390,
+      2764
+    ],
+    "capture_apres": [
+      390,
+      2431
+    ]
+  },
+  {
+    "page": "menu",
+    "largeur": 1440,
+    "formulaires_avant": 0,
+    "formulaires_apres": 0,
+    "champs_metier_preserves": true,
+    "debordement_apres": 0,
+    "capture_avant": [
+      1440,
+      1402
+    ],
+    "capture_apres": [
+      1440,
+      1402
+    ]
+  }
+]

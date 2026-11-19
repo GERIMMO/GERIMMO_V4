@@ -1,5 +1,5 @@
 import { PresentationSignalementIncident } from "@/components/presentation-signalement-incident";
-import { RepereIncidentProprietaire } from "@/components/repere-incident-proprietaire";
+import { CadreIncident, NavigationIncident, RubriqueIncident } from "@/components/navigation-incident";
 import { consigneIncident, libelleEtatIncidentProprietaire } from "@/lib/consigne-incident";
 import { FacturesIncident } from "./factures-incident";
 import { BilanContactIncident } from "@/components/bilan-contact-incident";
@@ -377,11 +377,12 @@ export async function PaneIncident({
           ? { titre: "Dossier clos", texte: "Retrouvez les décisions et les échanges dans la chronologie.", cible: "chronologie", bouton: "Voir l’historique", ton: "termine" }
           : { titre: "Suivre l’intervention", texte: "Consultez l’avancement et les informations transmises par l’artisan.", cible: "intervention", bouton: "Voir le suivi", ton: "info" };
 
+  const actionPrincipale = { titre: prochaineAction.bouton, cible: prochaineAction.cible, responsable: "Vous", priorite: aQualifier && decisionRequise ? 100 : etatIncident === "termine" ? 45 : 0 };
   const decisionRepliee = estProprietaire && !(aQualifier && decisionRequise);
   const ConteneurDecision = decisionRepliee ? "details" : "div";
   const consigneDecision = consigneIncident(etatIncident, decisionRequise, Boolean(incident.imputation_contestation), false);
   const ConteneurChronologie = estProprietaire ? "details" : "div";
-  const chronologie = (<ConteneurChronologie id="chronologie" className={estProprietaire ? "incident-historique" : undefined}>
+  const chronologie = (<RubriqueIncident rubrique="historique"><ConteneurChronologie id="chronologie" className={estProprietaire ? "incident-historique" : undefined}>
           {estProprietaire && <summary><History size={16} aria-hidden="true" />Historique et commentaires · {(evenements ?? []).length}</summary>}
           <Card>
             {!estProprietaire && <CardHeader>
@@ -411,7 +412,7 @@ export async function PaneIncident({
               </div>
             </CardContent>
           </Card>
-          </ConteneurChronologie>);
+          </ConteneurChronologie></RubriqueIncident>);
   const galeriePhotos = photos.length > 0 ? (<div className="flex flex-wrap gap-2">
                   {photos.map((p) => (
                     // La route documents journalise chaque consultation
@@ -440,14 +441,14 @@ export async function PaneIncident({
     ? descriptionSignalement.slice(titreAffiche.length + 1).trim()
     : descriptionSignalement.toLocaleLowerCase("fr-FR") === titreAffiche.toLocaleLowerCase("fr-FR") ? "" : descriptionSignalement;
   const presentationSignalement = estProprietaire && <PresentationSignalementIncident
-    numero={incident.numero} titre={titreAffiche}
+    compact numero={incident.numero} titre={titreAffiche}
     statut={<>{incident.urgence === "urgente" && <span className="puce puce-rouge">Urgent</span>}<span className={`incident-statut ${COULEURS_ETAT_INCIDENT[incident.etat] ?? "puce puce-grise"}`}>{libelleEtatIncidentProprietaire(incident.etat)}</span></>}
     lieu={<div>{lot ? <Link href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <Link href={`${base}/parc?sel=bien:${incident.bien_id}`}>{bienConcerne?.nom ?? "Bien"} · Parties communes</Link>}{(chambre || incident.piece) && <span> · {[...new Set([chambre, incident.piece].filter(Boolean))].join(" · ")}</span>}{incident.anciennete && <small>Depuis : {incident.anciennete}</small>}</div>}
     informations={informationsSignalement} description={descriptionSansTitre || null}
     photos={galeriePhotos} nombrePhotos={photos.length} photosIndisponibles={Boolean(erreurLiens)}
     ajoutPhoto={incident.etat !== "clos" ? <FormulairePhotoIncident orgId={orgId} incidentId={incidentId}/> : null}
   />;
-  const blocDecision = (
+  const blocDecision = (<RubriqueIncident rubrique="suivi">
           <ConteneurDecision id="qualification" className={decisionRepliee ? "incident-decision-rangee" : undefined}>
           {decisionRepliee && <summary>Prise en charge{incident.imputation ? ` · ${IMPUTATIONS_INCIDENT[incident.imputation] ?? incident.imputation}` : " enregistrée"}</summary>}
           {aQualifier && decisionRequise ? (
@@ -599,13 +600,13 @@ export async function PaneIncident({
               </CardContent>
             </Card>
           )}
-          </ConteneurDecision>
+          </ConteneurDecision></RubriqueIncident>
   );
   if(!incident.lot_id && incident.bien_id){
     const bienIncident=premier(incident.bien as UnOuPlusieurs<{id:string;nom:string}>);
     const note=incident.description?.startsWith(incident.titre+"\n")?incident.description.slice(incident.titre.length+1):incident.description===incident.titre?null:incident.description;
     const decisionCommuns = (aQualifier && <details id="qualification" open={decisionRequise} className="incident-decision-communs rounded-lg border border-border p-4"><summary className="min-h-11 cursor-pointer content-center font-semibold">Prise en charge de l’intervention</summary><FormulaireQualification orgId={orgId} incidentId={incidentId} categorie={incident.categorie} estProprietaire={estProprietaire} informeLocataire={false} partiesCommunes imputation="proprietaire" justification={incident.imputation_justification??`Intervention sur les parties communes de ${bienIncident?.nom??"l’immeuble"}.`} /></details>);
-    return <div className="incident-dossier incident-communs min-w-0 space-y-3" data-proprietaire={estProprietaire || undefined}>
+    return <CadreIncident key={incidentId} actif={estProprietaire} action={actionPrincipale} etat={etatIncident}><div className="incident-dossier incident-communs min-w-0 space-y-3" data-proprietaire={estProprietaire || undefined}>
       {estProprietaire ? presentationSignalement : (
       <section className="incident-entete" aria-label="Résumé du signalement des parties communes">
         <div className="incident-entete-haut"><div><p className="incident-reference">{incident.numero}</p><h2>{incident.titre?.trim() || "Incident du bâtiment"}</h2></div><span className={`incident-statut ${COULEURS_ETAT_INCIDENT[incident.etat]??"puce puce-grise"}`}>{ETATS_INCIDENT[incident.etat]??incident.etat}</span></div>
@@ -614,19 +615,21 @@ export async function PaneIncident({
       </section>
       )}
       <EchecLecture quoi={lecturesManquees}/>
-      {estProprietaire && <RepereIncidentProprietaire etat={etatIncident} decisionRequise={decisionRequise} contestation={Boolean(incident.imputation_contestation)} communs/>}
-      {(!estProprietaire || decisionRequise) && decisionCommuns}
+      <NavigationIncident/>
+      {estProprietaire && <RubriqueIncident rubrique="devis"><p className="text-sm text-muted-foreground">Les devis et factures reçus pour cet incident apparaissent ici. Le dépôt d’une facture ne vaut pas règlement.</p></RubriqueIncident>}
+      {estProprietaire && <RubriqueIncident rubrique="echanges"><p className="text-sm text-muted-foreground">Les échanges avec les participants de l’intervention restent rattachés à ce dossier.</p>{declarant && <Link className="inline-flex min-h-11 items-center text-sm underline" href={`${base}/personnes/${declarant.id}#messages`}>Écrire au locataire</Link>}</RubriqueIncident>}
+      <RubriqueIncident rubrique="suivi">{(!estProprietaire || decisionRequise) && decisionCommuns}</RubriqueIncident>
       <div id="intervention"><VoletArtisan orgId={orgId} incidentId={incidentId} etat={incident.etat} categorie={incident.categorie} imputation={incident.imputation} lotId={null} estProprietaire={estProprietaire}/></div>
-      {estProprietaire && !decisionRequise && decisionCommuns}
-      <FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base}/>
+      <RubriqueIncident rubrique="suivi">{estProprietaire && !decisionRequise && decisionCommuns}</RubriqueIncident>
+      <RubriqueIncident rubrique="devis"><div id="factures"><FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base}/></div></RubriqueIncident>
       <Link href={`${base}/parc?sel=bien:${incident.bien_id}#consommations`} className={estProprietaire ? "incident-lien-depenses" : "btn-or"}>Dépenses et charges du bien →</Link>
-      {incident.etat==="clos"?<p id="cloture" className="text-sm">Incident clos{incident.clos_le?` le ${formaterDate(incident.clos_le)}`:""}.</p>:motifsCloture.length>0&&<details id="cloture"><summary className="cursor-pointer py-3 font-medium">Clôturer l’incident</summary><FormulaireCloture orgId={orgId} incidentId={incidentId} motifs={motifsCloture}/></details>}
+      <RubriqueIncident rubrique="suivi">{incident.etat==="clos"?<p id="cloture" className="text-sm">Incident clos{incident.clos_le?` le ${formaterDate(incident.clos_le)}`:""}.</p>:motifsCloture.length>0&&<details id="cloture"><summary className="cursor-pointer py-3 font-medium">Clôturer l’incident</summary><FormulaireCloture orgId={orgId} incidentId={incidentId} motifs={motifsCloture}/></details>}</RubriqueIncident>
       {chronologie}
-    </div>;
+    </div></CadreIncident>;
   }
   return (
-    <div className="incident-dossier min-w-0 space-y-4" data-proprietaire={estProprietaire || undefined}>
-      {incident.etat === "clos" && <BilanContactIncident orgId={orgId} incidentId={incidentId} />}
+    <CadreIncident key={incidentId} actif={estProprietaire} action={actionPrincipale} etat={etatIncident}><div className="incident-dossier min-w-0 space-y-4" data-proprietaire={estProprietaire || undefined}>
+      {incident.etat === "clos" && <RubriqueIncident rubrique="historique"><BilanContactIncident orgId={orgId} incidentId={incidentId} /></RubriqueIncident>}
       <EchecLecture quoi={lecturesManquees} />
       {estProprietaire ? presentationSignalement : (
       <section className="incident-entete" aria-label="Résumé du signalement">
@@ -667,7 +670,9 @@ export async function PaneIncident({
         </ol>}
       </section>
       )}
-      {estProprietaire && <RepereIncidentProprietaire etat={etatIncident} decisionRequise={decisionRequise} contestation={Boolean(incident.imputation_contestation)}/>}
+      <NavigationIncident/>
+      {estProprietaire && <RubriqueIncident rubrique="devis"><p className="text-sm text-muted-foreground">Les devis et factures reçus pour cet incident apparaissent ici. Le dépôt d’une facture ne vaut pas règlement.</p></RubriqueIncident>}
+      {estProprietaire && <RubriqueIncident rubrique="echanges"><p className="text-sm text-muted-foreground">Les échanges avec les participants de l’intervention restent rattachés à ce dossier.</p>{declarant && <Link className="inline-flex min-h-11 items-center text-sm underline" href={`${base}/personnes/${declarant.id}#messages`}>Écrire au locataire</Link>}</RubriqueIncident>}
       {!estProprietaire && <div className="incident-prochaine-action" data-ton={prochaineAction.ton}>
         <div>{!estProprietaire && <span>Prochaine étape</span>}<strong>{prochaineAction.titre}</strong>{!estProprietaire && <p>{prochaineAction.texte}</p>}</div>
         <a href={`#${prochaineAction.cible}`}>{prochaineAction.bouton}<ArrowRight size={16} aria-hidden="true" /></a>
@@ -732,8 +737,8 @@ export async function PaneIncident({
           </div>
 
           {decisionRepliee && blocDecision}
-          <FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base} />
-          {(!estProprietaire || motifsCloture.length > 0 || incident.etat === "clos") && <details id="cloture" open={!estProprietaire || incident.etat === "termine" || incident.etat === "clos"} className="rounded-xl border border-border bg-card p-4">
+          <RubriqueIncident rubrique="devis"><div id="factures"><FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base} /></div></RubriqueIncident>
+          <RubriqueIncident rubrique="suivi">{(!estProprietaire || motifsCloture.length > 0 || incident.etat === "clos") && <details id="cloture" open={!estProprietaire || incident.etat === "termine"} className="rounded-xl border border-border bg-card p-4">
             <summary className="cursor-pointer font-semibold">{incident.etat === "clos" ? "Incident clos · consulter" : "Clôturer l’incident"}</summary>
           <Card className="mt-3 border-0 shadow-none">
             <CardHeader>
@@ -782,7 +787,7 @@ export async function PaneIncident({
                 </p>
               )}
             </CardContent>
-          </Card></details>}
+          </Card></details>}</RubriqueIncident>
           {estProprietaire && chronologie}
         </div>
 
@@ -802,6 +807,6 @@ export async function PaneIncident({
           )}
         </div>
       </div>
-    </div>
+    </div></CadreIncident>
   );
 }

@@ -1,0 +1,30 @@
+[
+  {
+    "format": 390,
+    "id": "4394e35c-76dd-4098-912a-f70f6d2a6981",
+    "status": "essai",
+    "essai_fin": "2027-01-18",
+    "essai_deux_mois": true,
+    "sans_client_stripe": true,
+    "adresse_non_inventee": true,
+    "role": "proprietaire_direct",
+    "acces": "active",
+    "qualite": "Personne physique",
+    "email_confirme": true,
+    "consentement_archive": true
+  },
+  {
+    "format": 1440,
+    "id": "cb6fe9f4-7bde-427a-b386-7ebfa656d331",
+    "status": "essai",
+    "essai_fin": "2027-01-18",
+    "essai_deux_mois": true,
+    "sans_client_stripe": true,
+    "adresse_non_inventee": true,
+    "role": "proprietaire_direct",
+    "acces": "active",
+    "qualite": "SCI",
+    "email_confirme": true,
+    "consentement_archive": true
+  }
+]

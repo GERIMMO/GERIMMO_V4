@@ -1,0 +1,20 @@
+DIAGNOSTIC occupe 390 http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/153404b7-6749-4bb5-9cad-a8c367f967eb/lots/8ddf3093-ef9f-44f6-898b-55eab886f698?modifier=1#documents-logement [ 'Documents' ]
+OK occupe 390
+DIAGNOSTIC occupe 1440 http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/153404b7-6749-4bb5-9cad-a8c367f967eb/lots/8ddf3093-ef9f-44f6-898b-55eab886f698?modifier=1#documents-logement [ 'Documents' ]
+OK occupe 1440
+DIAGNOSTIC sci 390 http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/95f91a01-00fd-4902-a3fe-d56270b242de/lots/d4dad12d-e4be-4efb-8a2a-b1aae103f043?modifier=1#documents-logement [ 'Documents' ]
+OK sci 390
+DIAGNOSTIC sci 1440 http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/95f91a01-00fd-4902-a3fe-d56270b242de/lots/d4dad12d-e4be-4efb-8a2a-b1aae103f043?modifier=1#documents-logement [ 'Documents' ]
+OK sci 1440
+DIAGNOSTIC vacant 390 http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/ec0d4567-3aec-47bb-93cf-d361ec29591e/lots/26d866e7-4905-4d2b-85b3-b775ffc6eb64?modifier=1#documents-logement [ 'Documents' ]
+OK vacant 390
+DIAGNOSTIC vacant 1440 http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/ec0d4567-3aec-47bb-93cf-d361ec29591e/lots/26d866e7-4905-4d2b-85b3-b775ffc6eb64?modifier=1#documents-logement [ 'Documents' ]
+OK vacant 1440
+DIAGNOSTIC sans-incident 390 http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/1ef963d9-df23-46f1-afcd-316f87b93ddf/lots/3ceeeb90-1f98-4e28-a702-4255e68ff033?modifier=1#documents-logement [ 'Documents' ]
+OK sans-incident 390
+DIAGNOSTIC sans-incident 1440 http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/1ef963d9-df23-46f1-afcd-316f87b93ddf/lots/3ceeeb90-1f98-4e28-a702-4255e68ff033?modifier=1#documents-logement [ 'Documents' ]
+OK sans-incident 1440
+DIAGNOSTIC incident-ouvert 390 http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/0b615102-f664-45a9-b6cc-297c155abb36/lots/a8fc8980-4b88-4b7e-aeb7-f805e2c577f6?modifier=1#documents-logement [ 'Documents' ]
+OK incident-ouvert 390
+DIAGNOSTIC incident-ouvert 1440 http://localhost:3100/espace/3c1d1e95-3570-400b-8012-44530be145b1/parc/0b615102-f664-45a9-b6cc-297c155abb36/lots/a8fc8980-4b88-4b7e-aeb7-f805e2c577f6?modifier=1#documents-logement [ 'Documents' ]
+OK incident-ouvert 1440

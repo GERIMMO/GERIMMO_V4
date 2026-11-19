@@ -1,0 +1,86 @@
+[
+  {
+    "etat": "accord",
+    "largeur": 1440,
+    "champs_conserves": true,
+    "formulaires_conserves": true,
+    "debordement": 0
+  },
+  {
+    "etat": "accord",
+    "largeur": 390,
+    "champs_conserves": true,
+    "formulaires_conserves": true,
+    "debordement": 0
+  },
+  {
+    "etat": "devis",
+    "largeur": 1440,
+    "champs_conserves": true,
+    "formulaires_conserves": true,
+    "debordement": 0
+  },
+  {
+    "etat": "devis",
+    "largeur": 390,
+    "champs_conserves": true,
+    "formulaires_conserves": true,
+    "debordement": 0
+  },
+  {
+    "etat": "facture",
+    "largeur": 1440,
+    "champs_conserves": true,
+    "formulaires_conserves": true,
+    "debordement": 0
+  },
+  {
+    "etat": "facture",
+    "largeur": 390,
+    "champs_conserves": true,
+    "formulaires_conserves": true,
+    "debordement": 0
+  },
+  {
+    "etat": "intervention",
+    "largeur": 1440,
+    "champs_conserves": true,
+    "formulaires_conserves": true,
+    "debordement": 0
+  },
+  {
+    "etat": "intervention",
+    "largeur": 390,
+    "champs_conserves": true,
+    "formulaires_conserves": true,
+    "debordement": 0
+  },
+  {
+    "etat": "preparation",
+    "largeur": 1440,
+    "champs_conserves": true,
+    "formulaires_conserves": true,
+    "debordement": 0
+  },
+  {
+    "etat": "preparation",
+    "largeur": 390,
+    "champs_conserves": true,
+    "formulaires_conserves": true,
+    "debordement": 0
+  },
+  {
+    "etat": "rendezvous",
+    "largeur": 1440,
+    "champs_conserves": true,
+    "formulaires_conserves": true,
+    "debordement": 0
+  },
+  {
+    "etat": "rendezvous",
+    "largeur": 390,
+    "champs_conserves": true,
+    "formulaires_conserves": true,
+    "debordement": 0
+  }
+]

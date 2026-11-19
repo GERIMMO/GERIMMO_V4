@@ -77,6 +77,7 @@ export async function ParcoursDemarrage({
   orgId,
   automatiqueProposeAilleurs = false,
   estProprietaire = false,
+  premierBien = false,
 }: {
   supabase: SupabaseClient;
   orgId: string;
@@ -84,6 +85,8 @@ export async function ParcoursDemarrage({
   automatiqueProposeAilleurs?: boolean;
   /** Propriétaire direct : « bien » à l'écran, jamais « lot ». */
   estProprietaire?: boolean;
+  /** Présentation d’un compte propriétaire sans bien, sans changer l’ordre des prérequis. */
+  premierBien?: boolean;
 }) {
   const libelles = estProprietaire ? LIBELLES_PROPRIETAIRE : LIBELLES;
   const base = baseEspace(orgId, estProprietaire);
@@ -121,7 +124,8 @@ export async function ParcoursDemarrage({
     <section className={`loc-carte ${styles.carte}`} aria-labelledby="parcours-titre">
       <div className={styles.resume}>
         <div className={styles.principal}>
-          <h2 id="parcours-titre" className={styles.titre}>{estProprietaire ? "Terminer votre première location" : "Mettre votre premier lot en location"}</h2>
+          <h2 id="parcours-titre" className={styles.titre}>{premierBien ? "Commençons votre première location" : estProprietaire ? "Terminer votre première location" : "Mettre votre premier lot en location"}</h2>
+          {premierBien && <p className={styles.prochaine}>Un logement suffit pour commencer. Nous vous guidons jusqu’à votre première quittance.</p>}
           {suivante && <p className={styles.prochaine}>Prochaine étape : <strong>{libelles[suivante.etape]?.titre ?? suivante.etape}</strong></p>}
         </div>
         <div className={styles.actions}>

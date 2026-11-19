@@ -1,5 +1,5 @@
+import { AideInvitation } from "@/components/aide-invitation";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { seDeconnecter } from "@/app/actions/auth";
 import { estUuid } from "@/lib/identifiants";
 import { VISIBLE_APRES_ACCEPTATION, nomInvitant, valableJusquAu, type InvitationRecue } from "@/lib/invitations-artisan";
@@ -22,8 +22,8 @@ export const metadata = { title: "Invitation d’un propriétaire" };
  */
 export default async function PageInvitationArtisan(props: PageProps<"/artisan/invitation/[invitationId]">) {
   const { invitationId } = await props.params;
-  if (!estUuid(invitationId)) notFound();
   const { supabase, user, fiche } = await chargerFicheArtisan();
+  if (!estUuid(invitationId)) return <Carte><h1>Ce lien n’est pas valable</h1><p>Ouvrez le lien complet reçu par e-mail.</p><AideInvitation connecte={!!user}/></Carte>;
   if (!user) return <SansSession invitationId={invitationId} />;
 
   const { data, error } = await supabase.rpc("mon_invitation_artisan", { p_id: invitationId });
@@ -70,6 +70,7 @@ export default async function PageInvitationArtisan(props: PageProps<"/artisan/i
               </form>
             </>
           )}
+          <AideInvitation connecte={!!user}/>
         </Carte>
       ) : invitation.etat === "en_attente" ? (
         <EnAttente invitation={invitation} invitant={invitant} />
@@ -112,6 +113,7 @@ export default async function PageInvitationArtisan(props: PageProps<"/artisan/i
                 ? "Elle n’est plus valable. Si vous le souhaitez, demandez-en une nouvelle à la personne qui vous a invité."
                 : "La personne qui l’avait envoyée l’a annulée. Elle n’est plus valable."}
           </p>
+          <AideInvitation connecte={!!user}/>
           <Link href="/artisan" className={CLASSE_BOUTON_SECONDAIRE}>Aller à mon espace</Link>
         </Carte>
       )}
@@ -163,16 +165,20 @@ function SansSession({ invitationId }: { invitationId: string }) {
     <div className="space-y-6">
       <div className="portail-hero">
         <p className="portail-surtitre">Espace artisan</p>
-        <h1 className="mt-0.5">Vous avez reçu une invitation</h1>
+        <h1 className="mt-0.5">Vérifier votre invitation artisan</h1>
         <p className="mt-2 text-base text-[var(--corps)]">
-          Un propriétaire qui utilise Gerimmo souhaite vous ajouter à son carnet d’artisans. Pour la voir et y
-          répondre, créez votre compte artisan, ou connectez-vous si vous en avez déjà un.
+          Connectez-vous avec l’adresse qui a reçu le message. Vous verrez alors qui vous invite et si le lien est encore valable.
         </p>
       </div>
 
       <Carte>
-        <TitreSection>1. Votre compte</TitreSection>
-        <FormulaireCompteArtisan invitationId={invitationId} />
+        <TitreSection>Ouvrir mon invitation</TitreSection>
+        <Link href={`/connexion?suite=${encodeURIComponent(`/artisan/invitation/${invitationId}`)}`} className={CLASSE_BOUTON_PRINCIPAL}>Me connecter pour vérifier le lien</Link>
+        <details className="rounded-lg border border-[var(--filet)] p-3">
+          <summary className="flex min-h-11 cursor-pointer items-center font-medium">Première visite ? Créer mon compte artisan</summary>
+          <p className="my-3 text-sm">Utilisez l’adresse invitée. La confirmation de votre e-mail permettra de vérifier cette invitation ; aucun accès n’est accordé par la création du compte.</p>
+          <FormulaireCompteArtisan invitationId={invitationId} />
+        </details>
       </Carte>
 
       <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">

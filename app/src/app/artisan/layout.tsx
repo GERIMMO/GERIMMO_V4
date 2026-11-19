@@ -198,7 +198,7 @@ export default async function LayoutArtisan({
           </main>
         </div>
       </div>
-      {fiche && <NavArtisan {...navigation} />}
+      {fiche && <NavArtisan {...navigation} clientsExternes />}
     </div>
   );
 }

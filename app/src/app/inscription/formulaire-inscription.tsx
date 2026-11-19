@@ -5,7 +5,6 @@ import Link from "next/link";
 import { inscrireProprietaire, type EtatInscription } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
-import { AdresseOuverture } from "@/components/adresse-ouverture";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,65 +51,15 @@ export function FormulaireInscription({
   return (
     <Card>
       <CardContent className="pt-6">
-        {/* En erreur, la saisie est reposée via etat.valeurs (convention React 19).
-            24/09 : « (facultatif) » sur chaque champ optionnel, rien sur les
-            obligatoires — seul le code de parrainage le disait, et neuf champs
-            paraissaient requis quand cinq ne le sont pas. */}
         <form data-saisie-libre action={action} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="prenom">Prénom (facultatif)</Label>
-              <Input
-                id="prenom"
-                name="prenom"
-                maxLength={100}
-                autoComplete="given-name"
-                defaultValue={etat.valeurs?.prenom}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nom">Nom</Label>
-              <Input
-                id="nom"
-                name="nom"
-                maxLength={100}
-                autoComplete="family-name"
-                required
-                defaultValue={etat.valeurs?.nom}
-              />
-            </div>
-          </div>
-          <AdresseOuverture prefixe="ins" valeurs={etat.valeurs} />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="ins-tel">Téléphone (facultatif)</Label>
-              <Input id="ins-tel" name="telephone" maxLength={30} type="tel" autoComplete="tel" defaultValue={etat.valeurs?.telephone} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ins-qualite">Vous louez en tant que</Label>
-              {/* Le gabarit du composant Input (24/09) : à côté du téléphone,
-                  le menu faisait 5 px de plus, un autre arrondi, sans anneau
-                  de focus. */}
-              <select
-                key={`qualite-${qualite}`}
-                id="ins-qualite"
-                name="qualite"
-                defaultValue={qualite}
-                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
-              >
-                {/* Liste fermée (audit 29/09) : la durée du bail nu en dépend. */}
-                <option value="Personne physique">Personne physique</option>
-                <option value="Indivision (personnes physiques)">Indivision (personnes physiques)</option>
-                <option value="SCI familiale">SCI familiale (entre parents et alliés)</option>
-                <option value="SCI">SCI (non familiale)</option>
-                <option value="Personne morale">Autre personne morale (société…)</option>
-              </select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="nom">Votre nom</Label>
+            <Input id="nom" name="nom" maxLength={100} autoComplete="family-name" required defaultValue={etat.valeurs?.nom} className="min-h-11" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Adresse e-mail</Label>
-            <p className="text-xs text-muted-foreground">Cette adresse sert aussi de contact sur vos courriers.</p>
             <Input
+              className="min-h-11"
               id="email"
               name="email"
               type="email"
@@ -120,40 +69,38 @@ export function FormulaireInscription({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="code-parrainage">Code de parrainage (facultatif)</Label>
-            <Input
-              id="code-parrainage"
-              name="code_parrainage"
-              autoComplete="off"
-              autoCapitalize="characters"
-              placeholder="Ex. : ABCD1234"
-              maxLength={12}
-              defaultValue={etat.valeurs?.code_parrainage ?? codeParrain ?? ""}
-            />
-            <p className="text-xs text-muted-foreground">
-              Si quelqu&apos;un vous a recommandé Gerimmo, indiquez son code
-              pour identifier votre parrain. Si vous choisissez un abonnement
-              après l’ouverture des souscriptions, votre premier paiement peut ouvrir un mois de parrainage. Pour vous, l&apos;essai reste de{" "}
-              {dureeEssai}, sans carte, comme pour tous : le code ne vous
-              ouvre pas d&apos;avantage supplémentaire. Sinon, laissez vide.
-            </p>
+            <Label htmlFor="ins-qualite">Vous louez en tant que</Label>
+            <select key={`qualite-${qualite}`} id="ins-qualite" name="qualite" defaultValue={qualite} className="min-h-11 w-full rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm">
+              <option value="Personne physique">Particulier</option>
+              <option value="SCI">SCI</option>
+              <option value="SCI familiale">SCI familiale</option>
+              <option value="Indivision (personnes physiques)">Indivision entre particuliers</option>
+              <option value="Personne morale">Autre société</option>
+            </select>
           </div>
+          <details key={`parrain-${etat.valeurs?.code_parrainage ?? codeParrain ?? ""}`} open={!!(etat.valeurs?.code_parrainage ?? codeParrain)} className="rounded-lg border border-border/70 px-3 text-sm">
+            <summary className="flex min-h-11 cursor-pointer items-center text-muted-foreground">Vous avez un code de parrainage ?</summary>
+            <div className="space-y-2 pb-3">
+              <Label htmlFor="code-parrainage">Code de parrainage (facultatif)</Label>
+              <Input id="code-parrainage" name="code_parrainage" autoComplete="off" autoCapitalize="characters" placeholder="Ex. : ABCD1234" maxLength={12} className="min-h-11" defaultValue={etat.valeurs?.code_parrainage ?? codeParrain ?? ""} />
+              <p className="text-xs text-muted-foreground">Le code identifie votre parrain. Votre essai reste de {dureeEssai}, sans carte et sans abonnement automatique.</p>
+            </div>
+          </details>
           <p className="text-sm text-muted-foreground">
-            Vous recevrez un lien pour confirmer votre adresse, choisir votre mot de passe et accepter les{" "}
+            Confirmez votre e-mail, puis choisissez votre mot de passe et acceptez les{" "}
             <Link href="/conditions" target="_blank" rel="noopener" className="lien-texte">conditions générales d&apos;utilisation et de vente</Link>.
           </p>
           {etat.erreur && <AlerteFormulaire signal={etat}>{etat.erreur}</AlerteFormulaire>}
           {/* Information RGPD au moment de la collecte (art. 13) : une phrase
               et le lien, au plus près du bouton qui envoie les données. */}
           <p className="text-xs text-muted-foreground">
-            Vos données servent à créer et gérer votre compte et votre
-            abonnement. Pour en savoir plus et exercer vos droits, consultez la{" "}
+            Vos données servent à gérer votre compte. Vos droits : consultez la{" "}
             <Link href="/confidentialite" target="_blank" rel="noopener" className="lien-texte">
               page confidentialité
             </Link>
             .
           </p>
-          <BoutonEnvoi envoiNatif enCoursTexte="Ouverture…" className="w-full">
+          <BoutonEnvoi envoiNatif enCoursTexte="Ouverture…" className="min-h-11 w-full">
             Ouvrir mon espace
           </BoutonEnvoi>
           {/* Cible de 44 px au doigt (24/09), sans changer l'allure du texte. */}

@@ -1,3 +1,4 @@
+import { titreDocumentProprietaire, presentationDocumentProprietaire } from "./presentation-proprietaire";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LecteurDocument } from "@/components/lecteur-document";
@@ -243,14 +244,19 @@ export async function PaneDocument({
   // Les numéros des incidents rattachés, seulement s'il y en a
   const idsIncidents = doc.liens.filter((l) => l.entite === "incident").map((l) => l.entite_id);
   const nomsIncidents = new Map<string, string>();
+  const descriptionsIncidents: string[] = [];
   let erreurIncidents = false;
   if (idsIncidents.length > 0) {
     const { data: incidents, error: erreurNumeros } = await supabase
       .from("incidents")
-      .select("id, numero")
+      .select("id, numero, description")
+      .eq("organization_id", orgId)
       .in("id", idsIncidents);
     erreurIncidents = Boolean(erreurNumeros);
-    for (const i of incidents ?? []) nomsIncidents.set(i.id, `Incident ${i.numero}`);
+    for (const i of incidents ?? []) {
+      nomsIncidents.set(i.id, `Incident ${i.numero}`);
+      if (i.description) descriptionsIncidents.push(i.description);
+    }
   }
 
   // Chaque lecture d'appoint manquante retire quelque chose de la fiche sans
@@ -334,7 +340,19 @@ export async function PaneDocument({
   const fichier = `${base}/documents/${doc.id}/fichier`;
   const suiviSignature = await lirePresentationSignatures(orgId, { documents: [doc.id] });
   if (suiviSignature.erreur) lecturesManquees.push("le suivi des signatures");
-  const presentation = presentationRapport(doc, rapport, d => presentationDocument(d, etatSignatureDocument(suiviSignature.circuits, doc.id), Boolean(remplaceePar)));
+  const lectureFacture = estProprietaire && doc.type === "facture_artisan"
+    ? await supabase.from("intervention_factures")
+        .select("montant_ttc_cents,validee_le,decision_motif")
+        .eq("organization_id", orgId).eq("document_id", doc.id).maybeSingle()
+    : { data: null, error: null };
+  if (lectureFacture.error) lecturesManquees.push("les informations de la facture");
+  const titreLisible = estProprietaire ? titreDocumentProprietaire(doc.titre, {
+    incident: descriptionsIncidents.length === 1 ? descriptionsIncidents[0] : null,
+    facture: lectureFacture.data,
+  }) : titreAffiche(doc.titre) ?? "Sans titre";
+  const presentation = presentationRapport(doc, rapport, d => estProprietaire
+    ? presentationDocumentProprietaire(d, etatSignatureDocument(suiviSignature.circuits, doc.id), Boolean(remplaceePar), lectureFacture.data)
+    : presentationDocument(d, etatSignatureDocument(suiviSignature.circuits, doc.id), Boolean(remplaceePar)));
   const echeance = rapport?.expireLe ?? doc.expire_le;
 
   return (
@@ -360,10 +378,10 @@ export async function PaneDocument({
             {formaterDate(doc.created_at)}
           </span>}
           <h2 className="font-heading mt-0.5 text-xl font-semibold text-[var(--encre)]">
-            {titreAffiche(doc.titre) ?? "Sans titre"}
+            {titreLisible}
           </h2>
           {estProprietaire && <p className={styles.metaFiche}>
-            {TYPES_DOCUMENT[doc.type] ?? doc.type}
+            {estProprietaire && doc.type === "devis" ? "Devis" : TYPES_DOCUMENT[doc.type] ?? doc.type}
             {doc.taille_octets != null && ` · ${formaterTaille(doc.taille_octets)}`}
             {` · Déposé le ${formaterDate(doc.created_at)}`}
           </p>}
@@ -396,7 +414,7 @@ export async function PaneDocument({
       />}
 
       {/* Aperçu — servi par la route /fichier : droits revérifiés, accès tracé */}
-      {estProprietaire ? <LecteurDocument key={`lecteur-${doc.id}`} fichier={fichier} titre={titreAffiche(doc.titre) ?? "Document"} mime={doc.mime_type} presentation="fiche" /> : doc.mime_type?.startsWith("image/") ? (
+      {estProprietaire ? <LecteurDocument key={`lecteur-${doc.id}`} fichier={fichier} titre={titreLisible} mime={doc.mime_type} presentation="fiche" /> : doc.mime_type?.startsWith("image/") ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={`${fichier}?apercu=image`}
@@ -470,14 +488,15 @@ export async function PaneDocument({
         </Card>
         </DetailsDocument>}
 
-        <DetailsDocument proprietaire={estProprietaire} titre="Informations du document">
+        <DetailsDocument proprietaire={estProprietaire} titre={estProprietaire ? "Détails et références du document" : "Informations du document"}>
         <Card>
           <CardContent>
             {!estProprietaire && <h3 className="mb-2 text-base font-medium">Cycle de vie</h3>}
             {!estProprietaire && <div className="ligne-info">
               <span>Type</span>
-              <span>{TYPES_DOCUMENT[doc.type] ?? doc.type}</span>
+              <span>{estProprietaire && doc.type === "devis" ? "Devis" : TYPES_DOCUMENT[doc.type] ?? doc.type}</span>
             </div>}
+            {estProprietaire && <div className="ligne-info"><span>Titre d’origine</span><span className="break-words">{doc.titre ?? "Sans titre"}</span></div>}
             {estProprietaire && <div className="ligne-info">
               <span>État</span>
               <span>{presentation.detail}</span>

@@ -1,8 +1,10 @@
+import { connecterSupervision } from "./session-supervision";
 import {test,expect} from '@playwright/test';
 import path from 'node:path';
 import {sansSyntheseAlertes,debordementHorizontal} from './aides';
 import {champParis} from '../src/lib/dates-supervision';
 
+test.beforeEach(async ({ page }) => { await connecterSupervision(page); });
 test.use({storageState:path.join(__dirname,'.auth','superadmin.json')});
 test.beforeEach(async({page})=>sansSyntheseAlertes(page));
 

@@ -49,6 +49,7 @@ export async function RecapitulatifFiscal(props: {
     Number.isInteger(demandee) && demandee >= 1970 && demandee <= anneeCourante + 1
       ? demandee
       : anneeCourante;
+  const titreExercice = `Revenus ${annee} — déclaration en ${annee + 1}`;
   const patrimoine=entite?await lireEntitesPatrimoine(supabase,orgId,annee):null;
   const entiteChoisie=patrimoine?.entites.find(e=>e.id===entite);
   if(entite){if(patrimoine?.erreur || !entiteChoisie)return <p role="alert" className="err">Le propriétaire sélectionné n’a pas pu être vérifié.</p>;perimetre=new Set(entiteChoisie.lots.filter(id=>!perimetre||perimetre.has(id)));}
@@ -102,7 +103,7 @@ export async function RecapitulatifFiscal(props: {
   // doigt : c'était une rangée de liens soulignés de 36 px (14 px de haut sur
   // bureau), où logeait aussi le retour au livre (24/09).
   const navigation = (
-    <nav aria-label="Année du récapitulatif" className="mt-3 flex flex-wrap items-center gap-2">
+    <nav aria-label="Année des revenus" className="mt-3 flex flex-wrap items-center gap-2">
       {anneesProposees.map((a) => (
         <Link
           key={a}
@@ -134,7 +135,7 @@ export async function RecapitulatifFiscal(props: {
         <div>
           {retour}
           <div className="entete-page">
-            <h1>Récapitulatif fiscal {annee}</h1>
+            <h1>{titreExercice}</h1>
           </div>
           {navigation}
         </div>
@@ -165,7 +166,7 @@ export async function RecapitulatifFiscal(props: {
         <div>
           {retour}
           <div className="entete-page">
-            <h1>Récapitulatif fiscal {annee}</h1>
+            <h1>{titreExercice}</h1>
           </div>
           {navigation}
         </div>
@@ -179,7 +180,7 @@ export async function RecapitulatifFiscal(props: {
 
   const choixPerimetre = <form data-saisie-libre action={`${base}/comptabilite/fiscal`} className="grid items-end gap-3 sm:grid-cols-[1fr_2fr_auto]">
     {entite && <input name="entite" type="hidden" value={entite} />}
-    <label className="space-y-1 text-sm">Année<select name="annee" defaultValue={annee} className="min-h-11 w-full rounded-lg border border-input bg-background px-3">{anneesProposees.map(a => <option key={a} value={a}>{a}</option>)}</select></label>
+    <label className="space-y-1 text-sm">Année des revenus<select name="annee" defaultValue={annee} className="min-h-11 w-full rounded-lg border border-input bg-background px-3">{anneesProposees.map(a => <option key={a} value={a}>{a}</option>)}</select></label>
     <label className="space-y-1 text-sm">Biens<select name="bien" defaultValue={bien ?? ""} className="min-h-11 w-full rounded-lg border border-input bg-background px-3"><option value="">Tous mes biens</option>{(biensDisponibles ?? []).map(b => <option key={b.id} value={b.id}>{b.nom}</option>)}</select></label>
     <button type="submit" className="btn-or">Afficher</button>
   </form>;
@@ -187,8 +188,8 @@ export async function RecapitulatifFiscal(props: {
   const profilsFiscaux = <ProfilsFiscaux orgId={orgId} annee={annee} base={base} detenteurs={cadreFiscal.detenteurs} profils={cadreFiscal.profils} erreur={cadreFiscal.erreur} lectureSeule={traverseeLectureSeule} />;
   const preparation = <section className="loc-carte space-y-2"><h2 className="text-lg">Dossier pour votre déclaration ou votre comptable</h2><p className="text-sm text-muted-foreground">Les situations fiscales et le journal du 1er janvier au 31 décembre du périmètre sélectionné, sans calcul d’impôt ni liasse fiscale. Les montants restent à affecter au bon propriétaire et au bon régime.</p><a className="btn-secondaire inline-flex" href={`${base}/comptabilite/fiscal/preparation?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}`}>Exporter le dossier de préparation</a></section>;
   if (cadreFiscal.blocage2044) {
-    if (props.compact) return <div className="space-y-2"><p className="text-sm">{cadreFiscal.blocage2044}</p><Link href={`${base}/comptabilite/fiscal?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}`} className="lien-discret inline-flex min-h-11 items-center">Préparer ma déclaration {annee} →</Link></div>;
-    return <main className="mx-auto w-full max-w-4xl space-y-5 p-4 sm:p-7"><div>{retour}<div className="entete-page"><h1>Préparer ma déclaration {annee}</h1></div>{navigation}</div>{choixPerimetre}<p role="status" className="loc-carte text-sm">{cadreFiscal.blocage2044}</p>{profilsFiscaux}{!cadreFiscal.erreur && preparation}</main>;
+    if (props.compact) return <div className="space-y-2"><p className="text-sm">{cadreFiscal.blocage2044}</p><Link href={`${base}/comptabilite/fiscal?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}`} className="lien-discret inline-flex min-h-11 items-center">Préparer ma déclaration en {annee + 1} (revenus {annee}) →</Link></div>;
+    return <main className="mx-auto w-full max-w-4xl space-y-5 p-4 sm:p-7"><div>{retour}<div className="entete-page"><h1>{titreExercice}</h1></div>{navigation}</div>{choixPerimetre}<p role="status" className="loc-carte text-sm">{cadreFiscal.blocage2044}</p>{profilsFiscaux}{!cadreFiscal.erreur && preparation}</main>;
   }
 
   const qualifications=new Map<string,QualificationFiscale>();
@@ -238,7 +239,7 @@ export async function RecapitulatifFiscal(props: {
       {recap.meuble.nbEcritures > 0 && <p className="text-sm">Locations meublées, hors revenus fonciers : {eur(recap.meuble.recettes)} de recettes et {eur(recap.meuble.depenses)} de dépenses.</p>}
     </>}
     <p className="text-xs text-muted-foreground">Aide à la déclaration de revenus fonciers ; aucune déclaration n’est envoyée.</p>
-    <Link className="lien-discret inline-flex min-h-11 items-center" href={`${base}/comptabilite/fiscal?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}`}>Préparer ma déclaration {annee} →</Link>
+    <Link className="lien-discret inline-flex min-h-11 items-center" href={`${base}/comptabilite/fiscal?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}`}>Préparer ma déclaration en {annee + 1} (revenus {annee}) →</Link>
   </div>;
 
 
@@ -249,13 +250,13 @@ export async function RecapitulatifFiscal(props: {
         {/* La marge sous l'en-tête est celle de `.entete-page`, commune à
             l'espace : plus de mb-4 / mb-6 posés page par page (24/09). */}
         <div className="entete-page">
-          <h1>Récapitulatif fiscal {annee}</h1>
+          <h1>{titreExercice}</h1>
           {/* nbEcritures ne compte QUE les écritures rangées dans la 2044 :
               celles des lots meublés sont totalisées à part (BIC). Annoncer
               « n écritures » tout court laissait croire à l'année entière. */}
           <span className="mono-discret">
             {recap.nbEcritures} écriture{recap.nbEcritures > 1 ? "s" : ""} examinée
-            {recap.nbEcritures > 1 ? "s" : ""} · date de pièce
+            {recap.nbEcritures > 1 ? "s" : ""} · selon la date du justificatif
           </span>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -272,6 +273,11 @@ export async function RecapitulatifFiscal(props: {
       </section>
       {profilsFiscaux}
       <h2 className="text-lg">2. Vérifier les montants</h2>
+      <div className="loc-carte space-y-2 text-sm">
+        <p><strong>Calculé :</strong> les recettes et charges confirmées dans les opérations de l’année.</p>
+        <p><strong>À vérifier :</strong> les pièces non classées, votre situation fiscale et les informations absentes de Gerimmo. Elles ne sont pas ajoutées automatiquement aux totaux.</p>
+        <p className="text-muted-foreground">Ce récapitulatif ne calcule ni n’estime votre impôt. Il ne remplace pas votre déclaration.</p>
+      </div>
       {recap.incomplet&&<div role="status" className="loc-carte space-y-2"><p className="font-medium">À compléter — les totaux portent uniquement sur les montants confirmés.</p><ul className="list-disc pl-5 text-sm">{recap.alertes.map(a=><li key={a}>{a}</li>)}</ul>{phrasePieces&&<p className="text-sm font-medium">{phrasePieces}</p>}<p className="text-sm">Cumul des pièces ou parts à qualifier ({LIBELLE_CUMUL_A_QUALIFIER}) : {eur(recap.aQualifier)}. Ces montants ne sont pas inclus dans les totaux confirmés.</p></div>}
       <fieldset disabled={traverseeLectureSeule} className="min-w-0 space-y-3">{traverseeLectureSeule && <p className="text-sm text-muted-foreground">Consultation uniquement : les périodes et qualifications ci-dessous ne peuvent pas être modifiées.</p>}<section className="space-y-3"><h2 className="font-medium">Périodes fiscales et régularisation 230</h2>{lots.map(l=><ExerciceLot key={`${l.id}-${exercices.get(l.id)?.version??0}`} orgId={orgId} lot={l} annee={annee} exercice={exercices.get(l.id)}/>)}</section>
       <section className="space-y-3"><h2 className="font-medium">Qualifier les pièces</h2><p className="text-sm text-muted-foreground">Le choix est enregistré avec son auteur, sa date et sa justification. Les versions précédentes restent conservées. Les annulations reprennent la qualification de la pièce d’origine.</p>{pieces.filter(e=>e.id&&!e.contre_ecriture_de&&e.categorie!=='depot_garantie'&&(!composantes.has(e.id)||Number(composantes.get(e.id)?.non_ventile)>0)).map(e=><QualificationPiece key={`${e.id}-${qualifications.get(e.id!)?.version??0}`} orgId={orgId} ecriture={e} qualification={qualifications.get(e.id!)} lots={lots} capture={composantes.get(e.id!)}/>)}</section></fieldset>
@@ -443,6 +449,7 @@ export async function RecapitulatifFiscal(props: {
         <a className="btn-or inline-flex" download={`recapitulatif-fiscal-${annee}.csv`} href={`data:text/csv;charset=utf-8,${encodeURIComponent(csvRecapitulatifFiscal(recap, annee))}`}>Exporter les montants (CSV)</a>
       </section>}
       {preparation}
+      <details className="loc-carte space-y-3"><summary className="min-h-11 cursor-pointer font-medium">Références fiscales et limites de cette aide</summary>
       <p className="text-xs text-muted-foreground">Version des règles {recap.versionRegles}. Référence : <a className="underline" href="https://www.impots.gouv.fr/sites/default/files/formulaires/2044/2026/2044_5487.pdf">notice officielle 2044, millésime 2026 (revenus 2025)</a>. Les éditions futures, rubriques et régimes particuliers non couverts restent à vérifier. Les montants non déductibles confirmés ({eur(recap.nonDeductible)}) sont exclus.</p>
       <p className="text-xs text-muted-foreground">
         Régime micro-foncier : si vos recettes brutes n&apos;excèdent pas
@@ -450,6 +457,7 @@ export async function RecapitulatifFiscal(props: {
         de 30 %). Le meublé (BIC) et la SCI relèvent d&apos;autres déclarations,
         que ce récapitulatif ne couvre pas.
       </p>
+      </details>
     </main>
   );
 }

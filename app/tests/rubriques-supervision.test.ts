@@ -1,9 +1,16 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { RUBRIQUES, rubriqueActive, ongletActif } from '@/lib/rubriques-supervision';
+import { GROUPES_SUPERVISION, RUBRIQUES, rubriqueActive, ongletActif } from '@/lib/rubriques-supervision';
 
 describe('Destinations de supervision', () => {
+  it('range toutes les destinations une seule fois dans cinq groupes compréhensibles', () => {
+    expect(GROUPES_SUPERVISION.map(g => g.libelle)).toEqual(['Aujourd’hui','Clients et abonnements','Assistance','Croissance','Exploitation et sécurité']);
+    const cles=GROUPES_SUPERVISION.flatMap(g=>g.cles);
+    expect(new Set(cles).size).toBe(17);
+    expect(cles.toSorted()).toEqual(RUBRIQUES.map(r=>r.cle).toSorted());
+    expect(new Set(RUBRIQUES.map(r=>r.href)).size).toBe(17);
+  });
   it('chaque entrée ouvre sa propre rubrique, même lorsque le chemin est partagé', () => {
     expect(RUBRIQUES).toHaveLength(17);
     for (const rubrique of RUBRIQUES) {

@@ -1,0 +1,70 @@
+[
+  {
+    "compte": "neuf",
+    "largeur": 390,
+    "resultat": "réussi",
+    "controles": [
+      "prochaine action",
+      "navigation réelle",
+      "rendu sans débordement",
+      "6 étapes si compte neuf",
+      "aucune modale automatique",
+      "information honnête et unique",
+      "acquittement persistant",
+      "réouverture clavier",
+      "réglages accessibles",
+      "aucune erreur JavaScript"
+    ]
+  },
+  {
+    "compte": "neuf",
+    "largeur": 1440,
+    "resultat": "réussi",
+    "controles": [
+      "prochaine action",
+      "navigation réelle",
+      "rendu sans débordement",
+      "6 étapes si compte neuf",
+      "aucune modale automatique",
+      "information honnête et unique",
+      "acquittement persistant",
+      "réouverture clavier",
+      "réglages accessibles",
+      "aucune erreur JavaScript"
+    ]
+  },
+  {
+    "compte": "patrimoine",
+    "largeur": 390,
+    "resultat": "réussi",
+    "controles": [
+      "prochaine action",
+      "navigation réelle",
+      "rendu sans débordement",
+      "6 étapes si compte neuf",
+      "aucune modale automatique",
+      "information honnête et unique",
+      "acquittement persistant",
+      "réouverture clavier",
+      "réglages accessibles",
+      "aucune erreur JavaScript"
+    ]
+  },
+  {
+    "compte": "patrimoine",
+    "largeur": 1440,
+    "resultat": "réussi",
+    "controles": [
+      "prochaine action",
+      "navigation réelle",
+      "rendu sans débordement",
+      "6 étapes si compte neuf",
+      "aucune modale automatique",
+      "information honnête et unique",
+      "acquittement persistant",
+      "réouverture clavier",
+      "réglages accessibles",
+      "aucune erreur JavaScript"
+    ]
+  }
+]

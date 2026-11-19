@@ -1,3 +1,4 @@
+import { lireIdentiteContact } from "./identite-contact";
 import { LienContenu } from "@/components/lien-contenu";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -31,9 +32,9 @@ export async function generateMetadata({
   params,
 }: Pick<LayoutProps<"/locataire/[orgId]">, "params">): Promise<Metadata> {
   const { orgId } = await params;
-  const { organisation } = await verifierAccesEspaceLocataire(orgId);
+  const identite = await lireIdentiteContact(orgId);
   const apparence = await lireApparence(orgId);
-  const nom = apparence?.nom_portail?.trim() || organisation.name;
+  const nom = identite.agence ? apparence?.nom_portail?.trim() || identite.nom || "Mon espace locataire" : identite.nom || "Mon espace locataire";
   return { title: { template: `%s — ${nom}`, default: `Mon espace — ${nom}` } };
 }
 
@@ -46,8 +47,10 @@ export default async function LayoutLocataire({
   params,
 }: LayoutProps<"/locataire/[orgId]">) {
   const { orgId } = await params;
-  const { supabase, user, organisation, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, user, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
   const apparence = await lireApparence(orgId);
+  const identite = await lireIdentiteContact(orgId);
+  const nomPublic = identite.nom ?? "Mon espace locataire";
 
   const [
     { data: pieces, error: ePieces },
@@ -104,7 +107,7 @@ export default async function LayoutLocataire({
       <aside className="loc-late">
         <div className="loc-logo min-w-0">
           <Link href={`/locataire/${orgId}`} className="block min-w-0 max-w-full overflow-hidden">
-            <MarqueOrganisation marque={{ ...apparence, name: organisation.name }} /><span className="sr-only"> — Accueil de mon espace</span>
+            <MarqueOrganisation marque={{ ...apparence, name: nomPublic, nom_portail: identite.agence ? apparence?.nom_portail : nomPublic }} /><span className="sr-only"> — Accueil de mon espace</span>
           </Link>
           <span className="loc-logo-texte eyebrow">
             Espace locataire
@@ -112,6 +115,7 @@ export default async function LayoutLocataire({
         </div>
         <SidebarLocataire
           orgId={orgId}
+          libelleContact={identite.titre}
           badgeDocuments={
             (assuranceOk ? 0 : 1) +
             ((demandes ?? []) as unknown[]).length +
@@ -124,6 +128,7 @@ export default async function LayoutLocataire({
       <div className="min-w-0">
         <header className="loc-haut">
           <span className="ambiance-repere" aria-hidden="true" />
+          <Link href={`/locataire/${orgId}/incident#consignes-urgence`} className="inline-flex min-h-11 items-center rounded-lg border border-destructive/30 px-3 text-sm font-medium text-destructive">Urgence</Link>
           <MenuCompte
             initiales={
               personne
@@ -132,7 +137,7 @@ export default async function LayoutLocataire({
             }
             // Plus de « Locataire » sous le nom (25/09, D39) : la barre
             // latérale dit déjà « Espace locataire ».
-            titre={personne ? nomComplet(personne) : organisation.name}
+            titre={personne ? nomComplet(personne) : "Mon compte"}
             liens={[
               { href: "/compte", libelle: "Sécurité du compte" },
               // Audit du 27/09 : les droits RGPD étaient introuvables depuis

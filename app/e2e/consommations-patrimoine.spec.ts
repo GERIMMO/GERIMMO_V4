@@ -45,7 +45,9 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     await page.setViewportSize({ width: largeur, height: 900 }); await sansSyntheseAlertes(page);
     const chemin = `/espace/${org}/parc/${bien}/lots/${lot}`;
     await connecterVers(page, emailProprietaire, motDePasse, chemin);
+    await page.getByRole("tab", { name: "Location", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Locataires & garants", exact: true })).toBeVisible();
+    await page.getByRole("tab", { name: "Argent", exact: true }).click();
     const bloc = page.locator("section#compteurs-lot");
     await expect(bloc.getByRole("heading", { name: "Compteurs et abonnements" })).toBeVisible();
     await bloc.getByRole("button", { name: "Ajouter un compteur", exact: true }).click();
@@ -68,7 +70,7 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     await expect(releve.getByRole("button", { name: "Transmettre mon relevé" })).toHaveCount(0);
     await expect.poll(async () => (await db.query("select count(*)::int n from releves_consommation r join compteurs_consommation c on c.id=r.compteur_id where c.lot_id=$1 and r.index_releve=112.125", [lot])).rows[0].n).toBe(1);
     await tp.screenshot({ path: info.outputPath("releve-transmis.png"), fullPage: true });
-    await page.reload(); await expect(bloc.getByText(/112,125 m³ au/)).toBeVisible();
+    await page.reload(); await page.getByRole("tab", { name: "Argent", exact: true }).click(); await expect(bloc.getByText(/112,125 m³ au/)).toBeVisible();
     await bloc.getByRole("button", { name: "Ajouter un abonnement" }).click();
     const contrat = bloc.locator('form:has(input[name="action"][value="contrat"])');
     await contrat.getByLabel("Fournisseur ou organisme").fill("EAU TEST");
@@ -98,6 +100,7 @@ for (const largeur of [390, 768, 1440]) test(`consommations : relevé locataire,
     expect(accessibilite.violations.filter(v => v.impact === "critical" || v.impact === "serious")).toEqual([]);
     expect(await debordementHorizontal(page)).toBe(0); expect(await debordementHorizontal(tp)).toBe(0);
     await page.goto(chemin);
+    await page.getByRole("tab", { name: "Argent", exact: true }).click();
     await bloc.locator("summary").filter({ hasText: /^1 facture/ }).click();
     await article.getByRole("button", { name: "Indiquer le paiement" }).click();
     const paiement = article.locator('form:has(input[name="action"][value="facture_payee"])');

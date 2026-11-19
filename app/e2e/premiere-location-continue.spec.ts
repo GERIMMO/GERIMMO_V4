@@ -21,8 +21,8 @@ test("Résidence des Acacias : de la première inscription à la quittance du m�
   const suivant = () => page.getByRole("button",{name:"Suivant",exact:true}).click();
   const continuer = () => page.getByRole("button",{name:"Enregistrer et continuer",exact:true}).click();
   await page.goto("/inscription");
-  for (const [nom,valeur] of [["Prénom","Élise"],["Nom","Morel"],["Adresse e-mail",email],["Adresse postale","3 rue des Acacias"],["Code postal","69003"],["Ville","Lyon"]]) {
-    await page.getByLabel(nom,{exact:nom==="Nom"}).fill(valeur);
+  for (const [nom,valeur] of [["Votre nom","Morel"],["Adresse e-mail",email]]) {
+    await page.getByLabel(nom,{exact:true}).fill(valeur);
   }
   await page.getByRole("button",{name:"Ouvrir mon espace"}).click();
   await expect(page.getByText(/Vérifiez votre boîte mail/)).toBeVisible();
@@ -32,12 +32,17 @@ test("Résidence des Acacias : de la première inscription à la quittance du m�
   expect(confirmation.origin).toBe(origine);
   await page.goto(confirmation.href);
   await page.getByRole("button",{name:/Confirmer mon adresse|Choisir mon mot de passe/}).click();
+  // Les coordonnées utiles aux documents se complètent après vérification de l’e-mail.
+  await page.locator("summary").filter({hasText:"Coordonnées et parrainage (facultatif)"}).click();
+  for (const [nom,valeur] of [["Prénom","Élise"],["Adresse","3 rue des Acacias"],["Code postal","69003"],["Ville","Lyon"]]) {
+    await page.getByLabel(nom,{exact:true}).fill(valeur);
+  }
   const mot = randomUUID()+"!aA";
   await page.getByLabel("Nouveau mot de passe",{exact:true}).fill(mot);
   await page.getByLabel("Confirmation",{exact:true}).fill(mot);
   const acceptation = page.getByRole("checkbox",{name:/accepte les conditions/});
   if (await acceptation.count()) await acceptation.check();
-  await page.getByRole("button",{name:/Changer le mot de passe|Créer mon mot de passe|Valider/}).click();
+  await page.getByRole("button",{name:"Créer mon espace",exact:true}).click();
   await page.waitForURL(/\/espace\/[a-f0-9-]{36}/);
   const espace = new URL(page.url()).pathname;
   // L’adresse aléatoire sert à isoler les inscriptions simultanées. Le contact
@@ -119,6 +124,7 @@ test("Résidence des Acacias : de la première inscription à la quittance du m�
     await form.getByRole("button",{name:"Déposer",exact:true}).click();await expect(form).toBeHidden();
   }
   await page.goto(lot);
+  await page.getByRole("tab",{name:"Caractéristiques",exact:true}).click();
   await page.locator("summary").filter({hasText:"Gérer le statut du lot"}).click();
   await page.getByRole("button",{name:"Mettre en location",exact:true}).click();
   await expect(page.getByText(/Lot passé en « Disponible »/)).toBeVisible();
@@ -134,7 +140,7 @@ test("Résidence des Acacias : de la première inscription à la quittance du m�
   await page.getByRole("button",{name:"Générer l'échéancier",exact:true}).click();
   await expect(page.locator("#loyers")).toContainText("1 terme appelé");
   await page.goto(espace+"/loyers");
-  await page.locator("summary").filter({hasText:/Gérer les/}).click();
+  await page.locator("summary").filter({hasText:/^Voir le loyer /}).click();
   await page.getByRole("button",{name:/^Encaisser 640/}).click();
   const lien=page.locator('a[href^="/quittance/"]:visible').first();
   const [document]=await Promise.all([context.waitForEvent("page"), lien.click()]);

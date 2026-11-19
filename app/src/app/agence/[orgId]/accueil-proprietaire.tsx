@@ -2,7 +2,7 @@ import { deElide } from "@/lib/elision";
 import { chargerTachesConsommations } from "@/lib/taches-consommations";
 import { SuiviEcheanciersCharges } from "@/components/suivi-echeanciers-charges";
 import Link from "next/link";
-import { ArrowRight, Banknote, FileText, Settings2 } from "lucide-react";
+import { ArrowRight, Banknote, Building2, FileText, Settings2 } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { baseEspace } from "@/lib/racine-espace";
@@ -15,10 +15,11 @@ import { ActionsAccueilProprietaire } from "@/components/actions-accueil-proprie
 import { ConseilsAccueilProprietaire } from "@/components/conseils-accueil-proprietaire";
 import { resumerLoyersParcMois } from "@/lib/loyers-parc-mois";
 import { AccueilBienvenue } from "@/components/accueil-bienvenue";
-import { libellesPoints, pointReception } from "@/lib/paliers-reception-loyer";
-import { CarteVerifications } from "@/components/carte-verifications";
+import { pointReception } from "@/lib/paliers-reception-loyer";
+import { InformationEnvoisProprietaire } from "@/components/information-envois-proprietaire";
+import { piloteLimite } from "@/lib/perimetre-pilote";
 import { CarteTachesProprietaire } from "@/components/carte-taches-proprietaire";
-import { construireTachesAccueil } from "@/lib/taches-accueil-proprietaire";
+import { construireTachesAccueil, type TacheAccueil } from "@/lib/taches-accueil-proprietaire";
 import { ActionsRapidesIncident } from "@/components/actions-rapides-incident";
 import { chargerIncidentsVerifications } from "@/lib/incidents-verifications";
 import styles from "./accueil-proprietaire.module.css";
@@ -91,6 +92,21 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   const points = rappels.dus.map(ligne => ligne.point === undefined ? pointReception(ligne, aujourdHui) : ligne.point);
   const loyersAConfirmer = rappels.dus.reduce((n, ligne, i) => n + (points[i]?.aConfirmer ? ligne.dette_bail.echeances : 0), 0);
   const totalPrioritaire = critiques.length + loyersAConfirmer;
+  const compteNeuf = patrimoine !== null && patrimoine.biens === 0 && pilotage.encaisse === 0
+    && loyersMois !== null && loyersMois.attendu === 0 && !incertain;
+  // Une seule liste visible et un seul compteur, sans changer les calculs ni
+  // les commandes existantes de traitement des loyers et incidents.
+  const tachesPrioritaires: TacheAccueil[] = critiques.map(a => ({
+    cle: a.cle, type: "prioritaire", titre: a.titre, detail: a.detail,
+    contexte: contexteAction(a) ?? null, lieu: contexteAction(a) ?? null,
+    echeance: a.echeance ?? null, href: cible(a), geste: geste(a), nature: "demande",
+  }));
+  if (loyersAConfirmer > 0) tachesPrioritaires.push({
+    cle: "loyers-a-confirmer", type: "loyers", titre: "Confirmer les loyers reçus",
+    detail: `${loyersAConfirmer} échéance${loyersAConfirmer > 1 ? "s" : ""} à vérifier avant toute relance`,
+    contexte: null, lieu: null, echeance: null, href: `${base}/loyers`, geste: "Vérifier les loyers", nature: "demande",
+  });
+  const tachesAccueil = [...tachesPrioritaires, ...taches];
   const automatisations = [
     { nom: "Avis d’échéance", suspendu: true },
     { nom: "Envoi des quittances", active: reglages?.quittances_envoi_auto },
@@ -100,7 +116,15 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   return <main className={styles.page}>
     <AccueilBienvenue jourParis={aujourdHui} prenom={prenom} base={base} lectureSeule={lectureSeule} />
 
-    <section className={styles.indicateurs} aria-label="Votre patrimoine en bref">
+    {compteNeuf && <div className={styles.demarrage}>
+      <ParcoursDemarrage supabase={supabase} orgId={orgId} estProprietaire premierBien={compteNeuf} automatiqueProposeAilleurs />
+    </div>}
+
+    {(!compteNeuf || actions.length > 0 || loyersAConfirmer > 0 || lectureConsommations.taches.length > 0) && <CarteTachesProprietaire titre="À faire maintenant" limite={3}
+      taches={tachesAccueil} base={base} indisponible={incertain || patrimoine === null || diagnostics === null}
+      prioritesPresentes={false} chambresSansBail={patrimoine?.chambresSansBail ?? 0} />}
+
+    {!compteNeuf && <section className={styles.indicateurs} aria-label="Votre patrimoine en bref">
       <Link href={`${base}/loyers`} className={styles.indicateur}>
         <span><Banknote size={22} aria-hidden="true"/>Loyers du mois</span>
         <small>Échéances {deElide(nomMois)}</small>
@@ -109,33 +133,42 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
         <small>{pilotage.encaisse === null ? "Encaissements du mois indisponibles" : `${eur(pilotage.encaisse)} reçus en ${nomMois}, toutes échéances confondues`}</small>
         <ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true"/>
       </Link>
-      <CarteVerifications base={base} patrimoine={patrimoine ? { biens: patrimoine.biens, lots: patrimoine.lots.length } : null}
-        loyersAConfirmer={loyersAConfirmer} paliersLoyers={libellesPoints(points)}
-        total={verifications.total} critiques={verifications.critiques} apercu={verifications.premiere?.titre ?? null}
-        hrefTaches={`${base}/alertes`}
-        indisponible={incertain} className={styles.indicateur}>
+      <Link href={`${base}/parc`} className={styles.indicateur}>
+        <span><Building2 size={18} aria-hidden="true" />Patrimoine</span>
+        <strong>{patrimoine ? `${patrimoine.biens} bien${patrimoine.biens > 1 ? "s" : ""}` : "—"}</strong>
+        <small>{patrimoine ? `${patrimoine.lots.length} lot${patrimoine.lots.length > 1 ? "s" : ""}` : "Patrimoine indisponible"}</small>
+        <ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true" />
+      </Link>
+      <Link href={`${base}/parc`} className={styles.indicateur}><span><FileText size={18} aria-hidden="true" />Locations en cours</span><strong>{patrimoine ? patrimoine.contrats : "—"}</strong><small>{patrimoine ? `${patrimoine.lotsOccupes} lot${patrimoine.lotsOccupes > 1 ? "s" : ""} occupé${patrimoine.lotsOccupes > 1 ? "s" : ""}` : "Locations indisponibles"}</small><ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
+    </section>}
+    {(loyersMois === null || patrimoine === null) && <p className="err" role="alert">Certains chiffres n’ont pas pu être vérifiés. Rechargez la page.</p>}
+
+    {!compteNeuf && patrimoine?.contrats === 0 && <details className={styles.suiviPrioritaire}>
+      <summary>Les étapes de ma première location</summary>
+      <ParcoursDemarrage supabase={supabase} orgId={orgId} estProprietaire automatiqueProposeAilleurs />
+    </details>}
+
+    {(!compteNeuf || totalPrioritaire > 0 || incertain || lectureIncidents.indisponible) && <details className={styles.suiviPrioritaire}>
+      <summary>Réception des loyers et demandes prioritaires</summary>
+      <div id="suivi-prioritaire">
+        {totalPrioritaire === 0 && !incertain && <p className={styles.note}>Aucun loyer à confirmer ni demande prioritaire pour le moment.</p>}
         {Object.values(erreurs).some(Boolean) && <p className="err" role="alert">Certaines demandes sont indisponibles. La liste peut être incomplète.</p>}
         {suiviIncomplet && <p className={styles.note}>Le palier de certains loyers n’a pas pu être vérifié. <Link href={`${base}/loyers`}>Voir les finances</Link></p>}
         {lectureIncidents.indisponible && <p className={styles.note}>Certaines actions rapides sont indisponibles. Vous pouvez ouvrir la fiche de l’incident.</p>}
         {listeDemandes(critiques, "Prioritaires", "priorites-titre")}
         <RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />
         {(critiques.length > 0 || (actions.length > 0 && !loyersAConfirmer)) && <Link className={styles.toutesDemandes} href={`${base}/alertes`}>Voir toutes les demandes<ArrowRight size={15} aria-hidden="true" /></Link>}
-      </CarteVerifications>
-      <Link href={`${base}/parc`} className={styles.indicateur}><span><FileText size={18} aria-hidden="true" />Locations en cours</span><strong>{patrimoine ? patrimoine.contrats : "—"}</strong><small>{patrimoine ? `${patrimoine.lotsOccupes} lot${patrimoine.lotsOccupes > 1 ? "s" : ""} occupé${patrimoine.lotsOccupes > 1 ? "s" : ""}` : "Locations indisponibles"}</small><ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
-    </section>
-    {(loyersMois === null || patrimoine === null) && <p className="err" role="alert">Certains chiffres n’ont pas pu être vérifiés. Rechargez la page.</p>}
+      </div>
+    </details>}
 
-    <ActionsAccueilProprietaire base={base} lots={patrimoine?.lots ?? null} lectureSeule={lectureSeule}/>
+    {!compteNeuf && <ActionsAccueilProprietaire base={base} lots={patrimoine?.lots ?? null} lectureSeule={lectureSeule}/>}
 
     <SuiviEcheanciersCharges org={orgId} proprietaire base={base} rappelsSeulement />
 
     <div className={styles.grille}>
       <div className={styles.principal}>
-        <CarteTachesProprietaire titre="Mes événements" limite={3}
-          introduction={<ParcoursDemarrage supabase={supabase} orgId={orgId} estProprietaire automatiqueProposeAilleurs/>} taches={taches} base={base} indisponible={incertain || patrimoine === null || diagnostics === null || lectureConsommations.indisponible}
-          prioritesPresentes={totalPrioritaire > 0} chambresSansBail={patrimoine?.chambresSansBail ?? 0} />
+        {piloteLimite() && <InformationEnvoisProprietaire base={base} compte={userId} />}
       </div>
-
       <aside className={styles.secondaire} aria-label="Articles et outils du propriétaire">
         <ConseilsAccueilProprietaire db={supabase} base={base}/>
       </aside>

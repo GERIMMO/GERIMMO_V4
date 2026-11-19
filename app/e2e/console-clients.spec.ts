@@ -24,7 +24,7 @@ test.beforeEach(async ({ page }) => {
 test("la supervision arrive sur sa console, pas sur un sélecteur d'espaces", async ({ page }) => {
   await page.goto("/espaces");
   await page.waitForURL(/\/admin\/brief$/, { timeout: 20_000 });
-  await expect(page.getByRole("heading", { name: "Bureau de direction" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Aujourd’hui" })).toBeVisible();
 });
 
 test("les faits de direction se préparent manuellement avec cinq sources datées", async ({ page }, info) => {
@@ -48,6 +48,7 @@ test("les faits de direction se préparent manuellement avec cinq sources datée
        order by s.genere_le desc, s.id desc limit 1`
     )).rows[0];
     await page.goto("/admin/brief");
+    await page.getByRole("heading", { name: "Détails", exact: true }).click();
     await expect(page.getByRole("link", { name: /^Donner une consigne/ })).toHaveAttribute("href", "/admin/consignes");
     const avant = await lireDernier();
     const borne = (await db.query<{ instant: string }>("select clock_timestamp()::text instant")).rows[0].instant;
@@ -65,6 +66,7 @@ test("les faits de direction se préparent manuellement avec cinq sources datée
     // Après une relecture réelle de la page, chaque date et chaque montant doit
     // correspondre à l'instantané nouvellement enregistré, même dans la même minute.
     await page.reload();
+    await page.getByRole("heading", { name: "Détails", exact: true }).click();
     const faits = page.getByRole("region", { name: "Les points de vigilance" });
     await expect(faits.getByText(`Relevé du ${formaterDateHeureParis(nouveau!.genere_le)}`, { exact: true })).toBeVisible();
     await faits.getByText("Comprendre ces indicateurs", { exact: true }).click();

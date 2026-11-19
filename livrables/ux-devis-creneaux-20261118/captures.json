@@ -1,0 +1,62 @@
+[
+  {
+    "fichier": "captures/apres-creneaux-1440.png",
+    "largeur": 1440,
+    "hauteur": 1365
+  },
+  {
+    "fichier": "captures/apres-creneaux-390.png",
+    "largeur": 390,
+    "hauteur": 2214
+  },
+  {
+    "fichier": "captures/apres-creneaux-vides-1440.png",
+    "largeur": 1440,
+    "hauteur": 1305
+  },
+  {
+    "fichier": "captures/apres-creneaux-vides-390.png",
+    "largeur": 390,
+    "hauteur": 1998
+  },
+  {
+    "fichier": "captures/apres-devis-sans-tva-1440.png",
+    "largeur": 1440,
+    "hauteur": 1684
+  },
+  {
+    "fichier": "captures/apres-devis-sans-tva-390.png",
+    "largeur": 390,
+    "hauteur": 2171
+  },
+  {
+    "fichier": "captures/apres-devis-tva-1440.png",
+    "largeur": 1440,
+    "hauteur": 1893
+  },
+  {
+    "fichier": "captures/apres-devis-tva-390.png",
+    "largeur": 390,
+    "hauteur": 2553
+  },
+  {
+    "fichier": "captures/avant-creneaux-1440.png",
+    "largeur": 1440,
+    "hauteur": 1491
+  },
+  {
+    "fichier": "captures/avant-creneaux-390.png",
+    "largeur": 390,
+    "hauteur": 2006
+  },
+  {
+    "fichier": "captures/avant-devis-1440.png",
+    "largeur": 1440,
+    "hauteur": 1667
+  },
+  {
+    "fichier": "captures/avant-devis-390.png",
+    "largeur": 390,
+    "hauteur": 2140
+  }
+]

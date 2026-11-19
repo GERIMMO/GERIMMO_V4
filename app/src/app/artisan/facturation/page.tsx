@@ -1,3 +1,6 @@
+import { OngletsDossier } from "@/components/onglets-dossier";
+import { chargerActivitePrivee } from "@/lib/artisan-prive";
+import { VueFactures } from "./vue-factures";
 import { ReglementsDansFacturation } from "../clients/resumes";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Check, CheckCircle2, ClipboardList, FileCheck2, FileUp, Info, ReceiptText } from "lucide-react";
@@ -16,17 +19,23 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
   const { facture } = await props.searchParams;
   // D23 : l'état de règlement déclaré par le client, par intervention. Une lecture en échec se dit, elle ne se déguise
   // pas en « aucun règlement ».
-  const [agenda, reglements] = await Promise.all([chargerAgenda(), chargerReglementsFactures()]);
+  const [agenda, reglements, activite] = await Promise.all([chargerAgenda(), chargerReglementsFactures(), chargerActivitePrivee()]);
   const reglementDe = new Map(reglements.lignes.map((r) => [r.intervention_id, r]));
   const { aFacturer, aCompleter, deposees } = classerFacturation(agenda.lignes);
   const montantAFacturer = aFacturer.reduce((total, ligne) => total + (montantEngage(ligne) ?? 0), 0);
   const montantsIncomplets = aFacturer.some(l => montantEngage(l) === null);
 
   return <div className={styles.page}>
-    <EnteteSousPage rubrique="finances" titre="Ma facturation" mention="De l’intervention terminée à la facture transmise."
+    <EnteteSousPage rubrique="finances" titre="Ma facturation" mention="Vos factures, vos clients et vos règlements déclarés."
       action={<Link href="/artisan/agenda" className={styles.lienAgenda}><CalendarDays size={17} aria-hidden/>Mon agenda</Link>}/>
-    <ReglementsDansFacturation />
     {typeof facture === "string" && !reglements.erreur && reglementDe.has(facture) && <Succes>Facture n° {reglementDe.get(facture)!.numero} enregistrée. Son état de règlement est indiqué ci-dessous.</Succes>}
+    <OngletsDossier libelle="Rubriques de ma facturation" initiale="mes-factures" rubriques={[
+      { id: "mes-factures", titre: "Mes factures", contenu: <>
+        <VueFactures data={activite.data} erreur={activite.erreur} clients={reglements.lignes} erreurClients={reglements.erreur} agenda={agenda.lignes} actions={(aFacturer.length > 0 || aCompleter.length > 0) && <nav aria-label="Factures à préparer" className="flex flex-wrap gap-3">
+          {aFacturer.length > 0 && <a href="#a-facturer" className={styles.boutonPrincipal}>{aFacturer.length} intervention{aFacturer.length > 1 ? "s" : ""} à facturer</a>}
+          {aCompleter.length > 0 && <a href="#a-completer" className={styles.boutonSecondaire}>{aCompleter.length} dossier{aCompleter.length > 1 ? "s" : ""} à compléter</a>}
+        </nav>} />
+        <details className={styles.preparation} open={agenda.erreur}><summary>{agenda.erreur ? "Interventions indisponibles — lecture à réessayer" : <>Interventions à facturer et suivi détaillé · {aFacturer.length} à facturer · {aCompleter.length} à compléter</>}</summary>
     {agenda.erreur ? <Erreur>Vos interventions n’ont pas pu être chargées. Rechargez la page avant de conclure qu’aucune intervention n’est facturable.</Erreur> : <>
       <nav className={styles.indicateurs} aria-label="Résumé de la facturation">
         <Link href="#a-facturer" className={styles.indicateur} data-ton="bleu"><span className={styles.icone}><ReceiptText size={21} aria-hidden/></span><span><strong>{aFacturer.length}</strong><span>À facturer</span><small>Interventions prêtes</small></span><ArrowRight size={16} aria-hidden/></Link>
@@ -63,6 +72,10 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
         </aside>
       </div>
     </>}
+        </details>
+      </> },
+      { id: "mon-registre", titre: "Mon registre", contenu: await ReglementsDansFacturation({ lecture: activite }) },
+    ]} />
   </div>;
 }
 

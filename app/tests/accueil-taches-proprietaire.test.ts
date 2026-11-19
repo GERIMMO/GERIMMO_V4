@@ -1,10 +1,10 @@
-import { createElement, type ReactNode } from "react";
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ActionDuJour } from "@/lib/actions-du-jour";
 import { preparerVerificationsProprietaire } from "@/lib/verifications-proprietaire";
 
-const m = vi.hoisted(() => ({ pilotage: vi.fn(), verifications: vi.fn(), carte: vi.fn(), rpc: vi.fn(), consommations: vi.fn() }));
+const m = vi.hoisted(() => ({ pilotage: vi.fn(), verifications: vi.fn(), demarrage: vi.fn(), rpc: vi.fn(), consommations: vi.fn() }));
 vi.mock("@/lib/taches-consommations", () => ({ chargerTachesConsommations: m.consommations }));
 vi.mock("@/lib/pilotage-proprietaire", () => ({ chargerPilotageProprietaire: m.pilotage }));
 vi.mock("@/lib/lecture-verifications-proprietaire", () => ({ chargerVerificationsProprietaire: m.verifications }));
@@ -12,12 +12,9 @@ vi.mock("@/lib/incidents-verifications", () => ({ chargerIncidentsVerifications:
 vi.mock("@/components/suivi-echeanciers-charges", () => ({ SuiviEcheanciersCharges: () => null }));
 vi.mock("@/components/conseils-accueil-proprietaire", () => ({ ConseilsAccueilProprietaire: () => null }));
 vi.mock("@/components/accueil-bienvenue", () => ({ AccueilBienvenue: () => null }));
-vi.mock("@/components/parcours-demarrage", () => ({ ParcoursDemarrage: () => null }));
+vi.mock("@/components/parcours-demarrage", () => ({ ParcoursDemarrage: (props: { premierBien?: boolean }) => { m.demarrage(props); return createElement("p", null, "GUIDE PREMIÈRE LOCATION"); } }));
 vi.mock("@/components/actions-rapides-incident", () => ({ ActionsRapidesIncident: () => null }));
 vi.mock("@/components/rappels-loyers", () => ({ RappelsLoyers: () => null }));
-vi.mock("@/components/carte-verifications", () => ({ CarteVerifications: (props: { children: ReactNode }) => {
-  m.carte(props); return createElement("div", { "data-carte-verifications": true }, props.children);
-} }));
 import { AccueilProprietaire } from "@/app/agence/[orgId]/accueil-proprietaire";
 
 const lot = { id: "lot", bien_id: "bien", nom: "Studio des Lilas", etat: "disponible" };
@@ -51,10 +48,10 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     m.consommations.mockResolvedValue({ taches: [{ cle: "repartition:f", type: "facture_repartition", titre: "Répartir la facture EAU-TEST", detail: null, contexte: "Eau", lieu: null, echeance: null, href: "/espace/org/parc/bien#consommations", geste: "Préparer", nature: "demande" }], indisponible: false });
     const html = await rendre();
     expect(html).toContain("Répartir la facture EAU-TEST");
-    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 0 }));
+    expect(html).toContain('aria-label="1 tâche"');
     m.consommations.mockResolvedValue({ taches: [], indisponible: true });
     expect(await rendre()).toContain("La liste peut être incomplète");
-    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ indisponible: true }));
+    expect(await rendre()).not.toContain("Aucune tâche détectée");
   });
 
   it("compare les loyers du mois dans le même périmètre, sans inclure un autre bien", async () => {
@@ -67,7 +64,7 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     expect(html).toContain("400,00");
     expect(html).not.toContain("99999");
     expect(html).toContain("Actions rapides");
-    expect(html).toContain("Mes événements");
+    expect(html).toContain("À faire maintenant");
   });
 
   it("n'affiche pas une progression réussie si aucun loyer n'est attendu", async () => {
@@ -85,29 +82,35 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
   it("compte toutes les demandes du même espace et affiche les urgences en premier", async () => {
     m.verifications.mockResolvedValue(lecture([action("Urgence TEST", true), action("Demande courante TEST")], true));
     const html = await rendre();
-    expect(m.carte).toHaveBeenCalledWith(expect.objectContaining({ total: 3, critiques: 1, loyersAConfirmer: 1 }));
+    expect(html).toContain('aria-label="3 tâches"');
     const carteTaches = html.split('id="taches-proprietaire"')[1];
     expect(carteTaches).toContain("Demande courante TEST");
-    expect(carteTaches).not.toContain("Urgence TEST");
+    expect(carteTaches.indexOf("Urgence TEST")).toBeLessThan(carteTaches.indexOf("Confirmer les loyers reçus"));
+    expect(carteTaches.indexOf("Confirmer les loyers reçus")).toBeLessThan(carteTaches.indexOf("Demande courante TEST"));
     expect(html.split('id="taches-proprietaire"')[0]).not.toContain("Demande courante TEST");
   });
 
   it("oriente les demandes courantes vers la liste visible, puis revient au patrimoine une fois traitées", async () => {
     m.verifications.mockResolvedValue(lecture([action("Demande TEST")]));
-    await rendre();
-    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 1, critiques: 0, hrefTaches: "/espace/org/alertes" }));
-    m.verifications.mockResolvedValue(lecture()); await rendre();
-    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 0, critiques: 0, patrimoine: { biens: 1, lots: 1 }, indisponible: false }));
+    const html = await rendre();
+    expect(html).toContain('aria-label="1 tâche"');
+    expect(html).toContain('href="/espace/org/alertes"');
+    m.verifications.mockResolvedValue(lecture());
+    const apres = await rendre();
+    expect(apres).toContain("Aucune tâche détectée");
+    expect(apres).toContain("Patrimoine");
+    expect(apres).not.toContain('aria-label="1 tâche"');
   });
 
-  it("garde le total d’À faire sur la carte et compte séparément la préparation des lots dans Mes tâches", async () => {
+  it("réunit les demandes et préparations dans un seul compteur", async () => {
     const donnees = pilotage();
     const loue = { ...lot, id: "loue", nom: "T2 loué", etat: "loue" };
     m.pilotage.mockResolvedValue({ ...donnees, patrimoine: { ...donnees.patrimoine, lots: [lot, loue], lotsSansBail: [lot] },
       diagnostics: [{ id: "dpe", lot_id: "loue", classe_dpe: "F", date_realisation: "2020-01-01", lot: loue }] });
     m.verifications.mockResolvedValue(lecture([action("Demande TEST")]));
     const html = await rendre();
-    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 1, critiques: 0, hrefTaches: "/espace/org/alertes" }));
+    expect(html).toContain('href="/espace/org/alertes"');
+    expect(html).not.toContain("À vérifier</span>");
     expect(html).toContain('aria-label="3 tâches"');
   });
 
@@ -124,7 +127,7 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     expect(html).toContain("Demande connue");
     expect(html).toContain("La liste peut être incomplète");
     expect(html).not.toContain("Aucune tâche");
-    expect(m.carte).toHaveBeenLastCalledWith(expect.objectContaining({ total: 1, indisponible: true }));
+    expect(html).toContain('aria-label="1 tâche connue"');
   });
 
   it("garde la préparation accessible après une rupture de transport du contrôle", async () => {
@@ -144,5 +147,52 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     expect(html).toContain("Demande fiable");
     expect(html).toContain("La liste peut être incomplète");
     expect(html).not.toContain("Aucune tâche");
+  });
+});
+
+
+describe("accueil : compte neuf et fin du tutoriel", () => {
+  it("place les tâches avant les chiffres et conserve un accès aux actions", async () => {
+    m.verifications.mockResolvedValue(lecture([action("DPE Lilas")]));
+    const html = await rendre();
+    expect(html.indexOf("À faire maintenant")).toBeLessThan(html.indexOf("Loyers du mois"));
+    expect(html).toContain("Actions rapides");
+    expect(html).toContain("À savoir sur vos envois");
+    expect(html).toContain("Les relances locatives et les avis d’échéance par courriel restent suspendus");
+  });
+  it("compte neuf : guide sans faux indicateurs ni raccourcis prématurés", async () => {
+    const p = pilotage();
+    m.pilotage.mockResolvedValue({ ...p, patrimoine: { ...p.patrimoine, biens: 0, lots: [] } });
+    const html = await rendre();
+    expect(m.demarrage).toHaveBeenCalledWith(expect.objectContaining({ premierBien: true }));
+    expect(html).toContain("GUIDE PREMIÈRE LOCATION");
+    expect(html).not.toContain("Votre patrimoine en bref");
+    expect(html).not.toContain("Actions rapides");
+    expect(html).toContain("À savoir sur vos envois");
+  });
+  it.each([1, 2])("%i contrats actifs : aucun tutoriel de première location", async contrats => {
+    const p = pilotage();
+    m.pilotage.mockResolvedValue({ ...p, patrimoine: { ...p.patrimoine, contrats } });
+    expect(await rendre()).not.toContain("GUIDE PREMIÈRE LOCATION");
+    expect(m.demarrage).not.toHaveBeenCalled();
+  });
+  it("n’efface pas les encaissements quand le dernier bien est archivé", async () => {
+    const p = pilotage();
+    m.pilotage.mockResolvedValue({ ...p, encaisse: 700, patrimoine: { ...p.patrimoine, biens: 0, lots: [] } });
+    const html = await rendre();
+    expect(html).toContain("Votre patrimoine en bref");
+    expect(html).toContain("700,00");
+  });
+  it("montre trois tâches, puis les suivantes sur demande, sans les supprimer", async () => {
+    m.verifications.mockResolvedValue(lecture(Array.from({ length: 6 }, (_, i) => action(`Demande ${i + 1}`))));
+    const html = await rendre();
+    const avantDepliage = html.slice(0, html.indexOf("<details"));
+    for (const n of [1, 2, 3]) expect(avantDepliage).toContain(`Demande ${n}`);
+    for (const n of [4, 5, 6]) {
+      expect(avantDepliage).not.toContain(`Demande ${n}`);
+      expect(html).toContain(`Demande ${n}`);
+    }
+    expect(html).toContain('aria-label="6 tâches"');
+    expect(html).toContain("Voir les 3 autres tâches");
   });
 });

@@ -1,0 +1,24 @@
+[
+  {
+    "profil": "actif",
+    "bailleurs": [
+      "Élise Morel"
+    ],
+    "autre_organisation": "aucune donnée",
+    "resultat": "réussi"
+  },
+  {
+    "profil": "sci",
+    "bailleurs": [
+      "SCI des Amandiers"
+    ],
+    "autre_organisation": "aucune donnée",
+    "resultat": "réussi"
+  },
+  {
+    "profil": "preparation",
+    "bailleurs": [],
+    "autre_organisation": "aucune donnée",
+    "resultat": "réussi"
+  }
+]

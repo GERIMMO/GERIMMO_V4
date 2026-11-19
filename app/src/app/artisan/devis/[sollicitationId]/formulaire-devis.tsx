@@ -130,7 +130,7 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
             {proposition&&<details className="mt-3 text-sm"><summary className="cursor-pointer font-semibold">Origine des prix et points à vérifier</summary><ul className="mt-2 list-disc space-y-1 pl-5">{proposition.a_verifier.map((p,i)=><li key={i}>{p}</li>)}</ul>{proposition.sources.map((s,i)=><p key={i} className="mt-3"><strong>{s.origine==="gerimmo"?"Moyenne Gerimmo":"Référence de marché"} · {s.libelle}</strong><br/>{s.detail} {s.url&&<a href={s.url} target="_blank" rel="noreferrer" className="underline">Source consultée le 12/10/2026</a>}</p>)}</details>}
           </div>
           <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Votre diagnostic</span><textarea name="diagnostic" required maxLength={4000} rows={2} defaultValue={saisie?.diagnostic} placeholder="Décrivez le problème constaté et les travaux que vous proposez." className={CLASSE_ZONE_TEXTE}/></label>
-          <LignesDevis initiales={saisie?.lignes} saisieInitiale={copieInitiale?.contenu.lignes}/>
+          <LignesDevis afficherHtIncomplet initiales={saisie?.lignes} saisieInitiale={copieInitiale?.contenu.lignes}/>
         </div>,
         <div key={`conditions-${cle}`} className="space-y-5">
           <ResumeDevis compact/>

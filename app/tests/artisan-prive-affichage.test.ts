@@ -105,6 +105,17 @@ describe("état d'un chantier : un libellé, jamais le code interne (ARC-03)", (
   });
 });
 
+describe("fiche du chantier encore sans devis", () => {
+  it("reste consultable et propose le premier devis sans accès à une version absente", async () => {
+    const dossier = activite();
+    etat.activite = { ...dossier, chantiers: [{ ...dossier.chantiers[0], statut: "brouillon" }], devis: [], factures: [], rendez_vous: [] };
+    const page = await html(PageChantier({ params: Promise.resolve({ chantierId: "h1" }) }));
+    expect(page).toContain("Préparer le devis");
+    expect(page).toContain('name="action" value="devis"');
+    expect(page).not.toContain('name="action" value="decision"');
+  });
+});
+
 describe("date du jour : celle de Paris, pas celle d'UTC (ARC-10)", () => {
   it("règlement : date proposée et plafond = 14/10 à 01:47 à Paris", async () => {
     const page = await html(PageFacture({ params: Promise.resolve({ factureId: "f1" }) }));

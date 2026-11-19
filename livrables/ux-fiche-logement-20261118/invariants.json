@@ -1,0 +1,74 @@
+[
+  {
+    "profil": "occupe",
+    "largeur": 390,
+    "champs_identiques": true,
+    "formulaires_identiques": true,
+    "liens_identiques": true,
+    "montants_identiques": true,
+    "debordement": 0
+  },
+  {
+    "profil": "occupe",
+    "largeur": 1440,
+    "champs_identiques": true,
+    "formulaires_identiques": true,
+    "liens_identiques": true,
+    "montants_identiques": true,
+    "debordement": 0
+  },
+  {
+    "profil": "sci",
+    "largeur": 390,
+    "champs_identiques": true,
+    "formulaires_identiques": true,
+    "liens_identiques": true,
+    "montants_identiques": true,
+    "debordement": 0
+  },
+  {
+    "profil": "sci",
+    "largeur": 1440,
+    "champs_identiques": true,
+    "formulaires_identiques": true,
+    "liens_identiques": true,
+    "montants_identiques": true,
+    "debordement": 0
+  },
+  {
+    "profil": "vacant",
+    "largeur": 390,
+    "champs_identiques": true,
+    "formulaires_identiques": true,
+    "liens_identiques": true,
+    "montants_identiques": true,
+    "debordement": 0
+  },
+  {
+    "profil": "vacant",
+    "largeur": 1440,
+    "champs_identiques": true,
+    "formulaires_identiques": true,
+    "liens_identiques": true,
+    "montants_identiques": true,
+    "debordement": 0
+  },
+  {
+    "profil": "sans-incident",
+    "largeur": 390,
+    "champs_identiques": true,
+    "formulaires_identiques": true,
+    "liens_identiques": true,
+    "montants_identiques": true,
+    "debordement": 0
+  },
+  {
+    "profil": "sans-incident",
+    "largeur": 1440,
+    "champs_identiques": true,
+    "formulaires_identiques": true,
+    "liens_identiques": true,
+    "montants_identiques": true,
+    "debordement": 0
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "email": "assurance-da3d13bf-98b7-49ae-9320-e4714da0282b@example.invalid",
+  "url": "http://localhost:3100/artisan/chantiers/8d8bb918-7490-4395-ad14-235c799353f3",
+  "http": 200,
+  "titre": [
+    "Conditions de l’espace artisan"
+  ],
+  "chantierPriveAbsent": true,
+  "actionsAbsentes": true
+}

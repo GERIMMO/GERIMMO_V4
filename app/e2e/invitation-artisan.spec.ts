@@ -124,8 +124,9 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
 
     // 2. L'artisan ouvre le lien de l'e-mail : sans compte, l'adresse invitée est pré-remplie (ancre du lien).
     await a.goto(`/artisan/invitation/${invitation}#adresse=${encodeURIComponent(email)}`);
-    await expect(a.getByRole("heading", { name: "Vous avez reçu une invitation" })).toBeVisible();
+    await expect(a.getByRole("heading", { name: "Vérifier votre invitation artisan" })).toBeVisible();
     await expect(a.getByText("Parc de Claire Moreau")).toHaveCount(0); // rien de l'invitation sans session
+    await a.locator("summary").filter({hasText:"Première visite ? Créer mon compte artisan"}).click();
     await expect(a.getByLabel("Adresse e-mail", { exact: true })).toHaveValue(email);
     await expect(a.locator('input[type="password"]')).toHaveCount(0);
     await a.screenshot({ path: info.outputPath("2-artisan-creation-compte.png"), fullPage: true });
@@ -220,6 +221,8 @@ test("invitation d'un artisan : inviter, s'inscrire, attendre Gerimmo, sollicite
     await p.locator("summary").filter({hasText:"Options du devis"}).click();
     await p.getByRole("checkbox", { name: /Demander un seul devis/ }).check();
     await p.getByRole("button", { name: "Ouvrir avec mon carnet" }).click();
+    await expect(p.getByRole("link", { name: /^Suivre les demandes de devis/ })).toBeVisible();
+    await p.getByRole("link", { name: "Devis et facture", exact: true }).click();
     await p.getByRole("button", { name: `Demander un devis à ${raisonSociale}` }).click();
     await expect.poll(async () => (await db.query(
       "select origine_reseau from public.incident_sollicitations where incident_id=$1 and artisan_id=$2", [incident, fiche.id]

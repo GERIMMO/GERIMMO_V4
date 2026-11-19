@@ -93,18 +93,37 @@ export async function attendreRenduStable(page: Page) {
           Number.isFinite(animation.effect?.getComputedTiming().endTime),
         );
         if (!finies.length) return;
-        await Promise.all(finies.map((animation) => animation.finished.catch(() => {})));
+        // Après un changement de viewport, Chromium peut garder une ancienne
+        // promesse finished en attente alors que playState vaut déjà finished.
+        // Relire l’état à chaque frame conserve le contrôle des animations et la limite de 5 s.
       }
     };
     try {
       await Promise.race([
         rendu(),
         new Promise<never>((_, reject) => {
-          garde = setTimeout(() => reject(new Error("Rendu non stabilisé avant l’audit axe (5 s)")), 5_000);
+          garde = setTimeout(() => reject(new Error("Rendu non stabilisé avant l’audit axe (5 s) : " + JSON.stringify({
+            polices: document.fonts.status,
+            animations: document.getAnimations().map(animation => ({
+              etat: animation.playState,
+              attente: animation.pending,
+              nom: animation instanceof CSSAnimation ? animation.animationName : null,
+              temps: animation.currentTime,
+              fin: animation.effect?.getComputedTiming().endTime,
+            })),
+          }))), 5_000);
         }),
       ]);
     } finally {
       clearTimeout(garde);
     }
   });
+}
+
+/** Le suivi de réception reste accessible dans le détail natif de l'accueil UX. */
+export async function ouvrirSuiviLoyers(page: Page) {
+  const detail = page.locator("details").filter({ has: page.locator("#suivi-prioritaire") });
+  await expect(detail.locator(":scope > summary")).toBeVisible();
+  if (await detail.getAttribute("open") === null) await detail.locator(":scope > summary").click();
+  await expect(page.locator("#suivi-prioritaire")).toBeVisible();
 }

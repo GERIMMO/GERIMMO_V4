@@ -26,6 +26,7 @@ for (const largeur of [390, 1440]) {
     await (await lienLotProprietaire(page)).click();
     await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
     const adresseLot = new URL(page.url()).pathname;
+    await page.getByRole('tab', { name: 'Documents', exact: true }).click();
     const autres = page.locator('#documents-lot');
     await autres.getByRole('link', { name: 'Déposer un document', exact: true }).click();
 

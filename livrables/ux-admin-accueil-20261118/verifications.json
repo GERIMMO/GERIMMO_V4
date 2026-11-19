@@ -1,0 +1,89 @@
+{
+  "base": "228b0178b6d31846c4126e8062b4c29a12385db3",
+  "branche": "codex/ux-accueil-proprietaire-20261118",
+  "date": "2026-11-18",
+  "perimetre": "chantier 8A — accueil seulement",
+  "route": "/admin/brief",
+  "tests": {
+    "reussis": 32,
+    "echecs": 0,
+    "ignores": 0,
+    "fichiers": 6,
+    "nouveaux_tests_rendu": 9,
+    "nouveaux_tests_navigateur": 3,
+    "largeurs_par_test_navigateur": [
+      390,
+      1440
+    ]
+  },
+  "typescript": "réussi, sortie 0",
+  "eslint": "réussi, sortie 0",
+  "parcours_application_authentifies": 2,
+  "etat_sans_urgence": "composant réel, données de scénario fictives, navigateur isolé",
+  "etat_plusieurs_actions": "application réelle locale, compte fictif et MFA local",
+  "migrations": 0,
+  "droits_modifies": false,
+  "regles_financieres_modifiees": false,
+  "actions_serveur_modifiees": false,
+  "nouvelles_automatisations": 0,
+  "comptes_metier_crees": 0,
+  "production": "non consultée et non modifiée",
+  "captures": {
+    "apres-admin-accueil-390.png": {
+      "largeur": 390,
+      "hauteur": 1923
+    },
+    "apres-erreur-390.png": {
+      "largeur": 390,
+      "hauteur": 1186
+    },
+    "apres-details-1440.png": {
+      "largeur": 1440,
+      "hauteur": 3427
+    },
+    "apres-details-390.png": {
+      "largeur": 390,
+      "hauteur": 4946
+    },
+    "avant-admin-accueil-390.png": {
+      "largeur": 390,
+      "hauteur": 3332
+    },
+    "apres-calme-1440.png": {
+      "largeur": 1440,
+      "hauteur": 1000
+    },
+    "apres-alertes-390.png": {
+      "largeur": 390,
+      "hauteur": 1122
+    },
+    "avant-admin-accueil-1440.png": {
+      "largeur": 1440,
+      "hauteur": 2339
+    },
+    "apres-haut-1440.png": {
+      "largeur": 1440,
+      "hauteur": 1000
+    },
+    "apres-erreur-1440.png": {
+      "largeur": 1440,
+      "hauteur": 1000
+    },
+    "apres-alertes-1440.png": {
+      "largeur": 1440,
+      "hauteur": 1000
+    },
+    "apres-admin-accueil-1440.png": {
+      "largeur": 1440,
+      "hauteur": 1402
+    },
+    "apres-haut-390.png": {
+      "largeur": 390,
+      "hauteur": 1000
+    },
+    "apres-calme-390.png": {
+      "largeur": 390,
+      "hauteur": 1043
+    }
+  }
+}

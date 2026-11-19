@@ -1,15 +1,15 @@
+import { lireIdentiteContact } from "../identite-contact";
 import { AssistantPrive } from "@/components/assistant-prive";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { Interlocuteur, type Gestionnaire } from "../cartes-laterales";
 import { aEchoue, PanneLecture } from "../panne-lecture";
-import { ReflexesUrgence } from "../reflexes-urgence";
 import { FilMessages, type MessageFil } from "./fil-messages";
 
 // Le layout ajoute « — <agence> » (24/09 : plus « — Gerimmo » dans un espace
 // à la marque de l'agence).
-export const metadata = { title: "Mon gestionnaire" };
+export const metadata = { title: "Contact" };
 
 // « Mon gestionnaire » (maquette v10) : le fil de messages avec l'agence —
 // conservé, lu/non lu — et ses coordonnées à côté. Ouvrir la page marque les
@@ -20,34 +20,25 @@ export default async function PageContactLocataire(
   const { orgId } = await props.params;
   const { supabase, adhesionActive, user } = await verifierAccesEspaceLocataire(orgId);
 
+  const identiteContact = await lireIdentiteContact(orgId);
   const [
     { data: gestionnaires, error: eGestionnaire },
     { data: fil, error: eFil },
-    { data: org, error: eOrg },
   ] = await Promise.all([
     supabase.rpc("mon_gestionnaire_locataire", { p_org: orgId }),
     // Lire marque lu : les réponses du gérant cessent de compter au badge
     supabase.rpc("mes_messages_locataire", { p_org: orgId }),
-    // Le type de l'organisation ajuste le libellé du bailleur (audit 09/09) :
-    // chez un propriétaire direct, il n'y a pas d'« agence de gestion »
-    supabase.from("organisations_portail").select("type").eq("id", orgId).maybeSingle(),
   ]);
   const g = ((gestionnaires ?? []) as Gestionnaire[])[0];
   const messages = (fil ?? []) as MessageFil[];
-  // Faute d'avoir pu lire le type de l'organisation, on s'en tient au terme
-  // générique plutôt que d'affirmer une « agence de gestion » qui n'existe
-  // peut-être pas (lecture non consultée jusqu'ici).
-  const libelleBailleur =
-    eOrg || org?.type === "proprietaire_direct"
-      ? "Votre gestionnaire"
-      : "Votre agence de gestion";
+  const libelleBailleur = identiteContact.agence ? "Votre agence de gestion" : "Votre bailleur";
 
   return (
     <div className="space-y-4">
       {/* L'en-tête standard de l'espace (24/09) : le titre était posé nu sur
           le fond, seule page avec « Nouveau signalement » à s'en passer. */}
       <div className="entete-page">
-        <TitreEcran rubrique="messages">Mon gestionnaire</TitreEcran>
+        <TitreEcran rubrique="messages">{identiteContact.titre}</TitreEcran>
         {/* La puce ne redit pas l'état vide (25/09, D26) : un chiffre, ou rien */}
         {!aEchoue(eFil) && messages.length > 0 && (
           <span className="mono-discret">
@@ -55,8 +46,6 @@ export default async function PageContactLocataire(
           </span>
         )}
       </div>
-
-      <AssistantPrive key={`${orgId}:${user.id}`} orgId={orgId} compteId={user.id} lectureSeule={!adhesionActive} />
 
       {aEchoue(eGestionnaire, eFil) && (
         <PanneLecture quoi="votre fil de messages" />
@@ -66,14 +55,14 @@ export default async function PageContactLocataire(
         <FilMessages
           orgId={orgId}
           messages={messages}
-          agence={g?.agence ?? "votre gestionnaire"}
+          agence={identiteContact.nom ?? (identiteContact.agence ? "votre gestionnaire" : "votre bailleur")}
           lectureSeule={!adhesionActive}
           lectureEnEchec={aEchoue(eFil)}
         />
         <div className="space-y-4">
           {g && (
             <div className="loc-carte">
-              <h2 className="titre-carte text-base font-medium">{g.agence}</h2>
+              <h2 className="titre-carte text-base font-medium">{identiteContact.nom ?? "Identité à confirmer"}</h2>
               <p className="mt-1 text-[13px] text-muted-foreground">{libelleBailleur}</p>
               <div className="mt-2">
                 <Interlocuteur gestionnaire={g} />
@@ -113,11 +102,10 @@ export default async function PageContactLocataire(
               )}
             </div>
           )}
-          <ReflexesUrgence
-            hrefSignalement={adhesionActive ? `/locataire/${orgId}/incident` : undefined}
-          />
+
         </div>
       </div>
+      <AssistantPrive key={`${orgId}:${user.id}`} orgId={orgId} compteId={user.id} lectureSeule={!adhesionActive} />
     </div>
   );
 }

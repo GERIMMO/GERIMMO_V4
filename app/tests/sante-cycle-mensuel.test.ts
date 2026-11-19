@@ -163,10 +163,12 @@ describe("l'écran Santé", () => {
   beforeEach(() => { mocks.createClient.mockReset(); });
 
   it("montre le cycle mensuel à l'heure avec son dernier passage", async () => {
-    const html = await rendre({ tech_log: [passageReel(12)] });
+    const passage = passageReel(12);
+    const html = await rendre({ tech_log: [passage] });
     expect(html).toContain("Cycle mensuel des loyers");
     expect(html).toContain("12 baux examinés");
-    expect(html).toContain("Dernière passe le");
+    expect(html).toContain("Dernière exécution le");
+    expect(html).toContain(`<time dateTime="${passage.created_at}">`);
     expect(html).toContain("à l&#x27;heure");
     expect(html).not.toContain("Aucun passage depuis");
   });

@@ -22,11 +22,7 @@ const NOUVEAU = "recette-mot-de-passe-2";
 async function creerUnCompte(page: Page): Promise<string> {
   const email = `delivered+recette-compte-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@resend.dev`;
   await page.goto("/inscription");
-  await page.getByLabel("Prénom").fill("Camille");
-  await page.getByLabel("Nom", { exact: true }).fill("Recette");
-  await page.getByLabel("Adresse postale", { exact: true }).fill("1 rue des Tests");
-  await page.getByLabel("Code postal", { exact: true }).fill("75001");
-  await page.getByLabel("Ville", { exact: true }).fill("Paris");
+  await page.getByLabel("Votre nom", { exact: true }).fill("Camille Recette");
   await page.getByLabel("Adresse e-mail").fill(email);
   await expect(page.locator('input[type="password"]')).toHaveCount(0);
   await page.getByRole("button", { name: /créer|inscrire|ouvrir/i }).first().click();

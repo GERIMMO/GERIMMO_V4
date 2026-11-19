@@ -154,14 +154,13 @@ export default async function PageDocumentsLocataire(
         <PanneLecture quoi="vos documents" />
       )}
 
-      {personne && ((accord?.error || destinataire?.error) ? <p role="alert" className="err">Vos préférences de réception ne peuvent pas être chargées. Réessayez avant de les modifier.</p> : <ConsentementsDocuments key={adresseReception || "sans-email"} orgId={orgId} retraitSeulement={!adhesionActive} email={adresseReception} quittances={adresseAccordValide && accord?.data?.quittances_electroniques === true} recommandes={adresseAccordValide && accord?.data?.recommandes_electroniques === true} />)}
-
       {enPreparation > 0 && <p className="rounded-xl border border-[var(--filet)] bg-[var(--warning-soft)] p-4 text-sm" role="status">
         {enPreparation} justificatif{enPreparation > 1 ? "s" : ""} de loyer en préparation ou à vérifier. Ces justificatifs deviendront consultables dès que les informations nécessaires seront complètes. <Link href={`/locataire/${orgId}/contact`} className="underline">Contacter mon gestionnaire</Link>
       </p>}
 
+      {(aSigner.length > 0 || demandes.length > 0 || (adhesionActive && !lecturePiecesKO && !etatAssurance.nonExpiree)) && <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm"><b>À faire :</b> vérifiez les pièces ou signatures attendues. <a className="inline-flex min-h-11 items-center font-medium underline" href="#documents-a-transmettre">Voir les éléments à transmettre →</a></p>}
       <OngletsDossier libelle="Rubriques de mes documents"
-        initiale={aSigner.length || demandes.length || (adhesionActive && (!etatAssurance.nonExpiree)) ? "documents-a-transmettre" : "documents-disponibles"}
+        initiale="documents-disponibles"
         rubriques={[
           { id: "documents-a-transmettre", titre: "À transmettre", contenu: <>
       {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
@@ -322,7 +321,8 @@ export default async function PageDocumentsLocataire(
           {CONSERVATION_DOCUMENTS_LOCATAIRE}
         </p>
       </div></> },
-        ]} />
+        ].sort((a, b) => Number(b.id === "documents-disponibles") - Number(a.id === "documents-disponibles"))} />
+      {personne && ((accord?.error || destinataire?.error) ? <p role="alert" className="err">Vos préférences de réception ne peuvent pas être chargées. Réessayez avant de les modifier.</p> : <ConsentementsDocuments key={adresseReception || "sans-email"} orgId={orgId} retraitSeulement={!adhesionActive} email={adresseReception} quittances={adresseAccordValide && accord?.data?.quittances_electroniques === true} recommandes={adresseAccordValide && accord?.data?.recommandes_electroniques === true} />)}
 
     </div>
   );

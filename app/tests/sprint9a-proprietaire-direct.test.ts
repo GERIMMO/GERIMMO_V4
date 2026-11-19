@@ -80,12 +80,12 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     return org;
   }
 
-  it("bloque une adresse incomplète avant la création du parc", async () => {
-    const c = await creerCompte(db, { nom: "Essai", ville: "   " });
-    await simuler(db, c.id);
-    await attendreEchec(db, /adresse postale complète/, "select public.initialiser_espace_proprietaire()");
+  it("ouvre sans coordonnées et conserve une fiche à compléter, sans adresse inventée", async () => {
+    const c = await creerCompte(db, { nom: "Essai", adresse: "", code_postal: "", ville: "", qualite: "SCI" });
+    const org = await ouvrirEspace(c);
     await db.query("reset role");
-    expect((await db.query("select 1 from public.memberships where account_id=$1", [c.id])).rowCount).toBe(0);
+    expect((await db.query("select address_line1, postal_code, city, status from public.organizations where id=$1", [org])).rows[0]).toEqual({ address_line1: null, postal_code: null, city: null, status: "essai" });
+    expect((await db.query("select qualite from public.persons where organization_id=$1", [org])).rows[0].qualite).toBe("SCI");
   });
 
   it("inscription : organisation en essai de 2 mois, adhésion et fiche du propriétaire — idempotente", async () => {
@@ -107,7 +107,7 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
       `select essai_fin = public.essai_ordinaire_fin() as juste from public.organizations where id=$1`,
       [org]
     );
-    // L'essai ordinaire du jour (offre de lancement : 2 mois jusqu'au 31/12/2026, puis 1 mois).
+    // L'essai reste de deux mois calendaires, y compris après 2026.
     expect(juste).toBe(true);
 
     const { rows: adhesions } = await db.query(

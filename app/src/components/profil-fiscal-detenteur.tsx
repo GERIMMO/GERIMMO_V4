@@ -15,10 +15,10 @@ export function ProfilFiscalDetenteurForm({ orgId, personne, annee, profil, base
   return <details className="rounded-xl border border-border bg-card p-4" open={!profil || aRevoir || undefined}>
     <summary className="cursor-pointer text-sm font-semibold"><span>{nom}</span><span className="ml-2 font-normal text-muted-foreground">{profil && !aRevoir ? orientation.libelle : "À confirmer"}</span></summary>
     <div className="mt-3 space-y-3">
-      <p className="text-sm text-muted-foreground">{personne.qualite || "Qualité à compléter"} · {annee} · <Link href={`${base}/personnes/${personne.id}`} className="underline">Fiche du propriétaire</Link></p>
+      <p className="text-sm text-muted-foreground">{personne.qualite || "Qualité à compléter"} · Revenus {annee} · <Link href={`${base}/personnes/${personne.id}`} className="underline">Fiche du propriétaire</Link></p>
       {orientation.formulaires.length > 0 && <p className="text-sm"><strong>À préparer :</strong> {orientation.formulaires.join(" · ")}</p>}
       {profil && orientation.aVerifier.map(message => <p key={message} className="text-sm text-muted-foreground">{message}</p>)}
-      {lectureSeule ? <div className="space-y-2 text-sm"><p className="text-muted-foreground">Consultation uniquement. Les modifications sont réservées au propriétaire.</p>{profil ? <p><strong>Référence de vérification :</strong> {profil.justification}</p> : <p>Situation fiscale à confirmer par le propriétaire pour {annee}.</p>}</div> : !personne.qualite ? <p role="status" className="text-sm">Complétez d’abord la qualité dans la fiche du propriétaire.</p> : <form action={action} className="space-y-3" data-saisie-libre>
+      {lectureSeule ? <div className="space-y-2 text-sm"><p className="text-muted-foreground">Consultation uniquement. Les modifications sont réservées au propriétaire.</p>{profil ? <p><strong>Document ou conseil utilisé :</strong> {profil.justification}</p> : <p>Situation fiscale à confirmer par le propriétaire pour {annee}.</p>}</div> : !personne.qualite ? <p role="status" className="text-sm">Complétez d’abord la qualité dans la fiche du propriétaire.</p> : <form action={action} className="space-y-3" data-saisie-libre>
         {societe ? <label className="block space-y-1 text-sm"><span>Imposition de la société</span><select name="imposition" className={champ} defaultValue={profil?.imposition ?? "a_confirmer"}><option value="a_confirmer">À confirmer avec le comptable</option><option value="ir">Impôt sur le revenu (IR)</option><option value="is">Impôt sur les sociétés (IS)</option></select></label> : <>
           <input type="hidden" name="imposition" value="ir" />
           <div className="grid gap-3 sm:grid-cols-2">
@@ -27,8 +27,8 @@ export function ProfilFiscalDetenteurForm({ orgId, personne, annee, profil, base
           </div>
           <p className="text-xs text-muted-foreground">Le choix fiscal concerne aussi les biens gérés hors Gerimmo. Il ne se choisit pas appartement par appartement.</p>
         </>}
-        <label className="block space-y-1 text-sm"><span>Référence de vérification</span><input name="justification" required minLength={3} maxLength={1000} className={champ} defaultValue={profil?.justification ?? ""} placeholder="Ex. déclaration précédente ou confirmation du comptable" /></label>
-        <label className="flex min-h-11 items-start gap-2 text-sm"><input type="checkbox" name="confirme" value="oui" required className="mt-1" /><span>Je confirme cette situation pour {annee}.</span></label>
+        <label className="block space-y-1 text-sm"><span>Sur quoi vous appuyez-vous ?</span><input name="justification" required minLength={3} maxLength={1000} className={champ} defaultValue={profil?.justification ?? ""} placeholder="Ex. déclaration précédente ou confirmation du comptable" /><span className="block text-xs text-muted-foreground">Indiquez le document ou le conseil qui confirme votre choix fiscal.</span></label>
+        <label className="flex min-h-11 items-start gap-2 text-sm"><input type="checkbox" name="confirme" value="oui" required className="mt-1" /><span>Je confirme cette situation pour les revenus {annee}.</span></label>
         {etat.erreur && <p role="alert" className="err">{etat.erreur}</p>}
         {etat.succes && <p role="status" className="text-sm text-emerald-700 dark:text-emerald-300">{etat.succes}</p>}
         <BoutonEnvoi>Enregistrer</BoutonEnvoi>

@@ -1,0 +1,15 @@
+{
+  "tests": {
+    "reussis": 68,
+    "echecs": 0,
+    "ignores": 0,
+    "fichiers": 6
+  },
+  "typescript": "réussi",
+  "eslint_cible": "réussi",
+  "permissions": "3 refus au propriétaire fictif",
+  "navigation": "partielle : voir navigation.json et parcours-stable.log",
+  "production": "non contactée",
+  "migrations": 0,
+  "modifications_metier": 0
+}

@@ -1,3 +1,4 @@
+import { connecterSupervision } from "./session-supervision";
 import { expect, test } from "@playwright/test";
 import path from "node:path";
 import { sansSyntheseAlertes } from "./aides";
@@ -9,6 +10,7 @@ for (const persona of ["superadmin", "proprietaire"]) {
     test("les commandes proposées correspondent au rôle connecté", async ({ page }) => {
       if (persona === "proprietaire") await sansSyntheseAlertes(page);
       const supervision = persona === "superadmin";
+      if (supervision) await connecterSupervision(page);
       await page.goto(`/espace/${ORG}/alertes?traiter=00000000-0000-4000-8000-000000000000`);
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(supervision ? "Alertes du client" : "À faire");
       const creation = page.locator("#creer-alerte");

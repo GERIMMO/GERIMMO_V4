@@ -239,7 +239,7 @@ export default async function LayoutAgence({
           </span>
           <RechercheEspace orgId={orgId} racine={racine} />
           <span className="ambiance-repere" aria-hidden="true" />
-          {!traverseeLectureSeule && <SyntheseAlertes
+          {!traverseeLectureSeule && !estProprietaire && <SyntheseAlertes
             alertes={actionsDuJour.alertes ? alertes.filter(a => actionsDuJour.alertes?.has(a.id)) : alertes}
             demandes={actionsDuJour.incomplet !== null ? { total: actionsDuJour.total, incomplet: actionsDuJour.incomplet, href: `${base}/alertes` } : undefined}
             membres={membres}
@@ -309,7 +309,7 @@ export default async function LayoutAgence({
           </p>
         )}
         {estProprietaire && <span id="contenu-espace" tabIndex={-1} className="sr-only" />}
-        {piloteLimite()&&<p role="status" className="mx-4 my-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">Vos relances de loyer se préparent en PDF. Les relances locatives et les avis d’échéance par courriel restent suspendus.</p>}
+        {!estProprietaire && piloteLimite()&&<p role="status" className="mx-4 my-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">Vos relances de loyer se préparent en PDF. Les relances locatives et les avis d’échéance par courriel restent suspendus.</p>}
         {children}
         <BarreBasse espace={espace} navigation={navigation} orgId={orgId} racine={racine} organisations={estProprietaire ? [] : organisations} />
       </div>

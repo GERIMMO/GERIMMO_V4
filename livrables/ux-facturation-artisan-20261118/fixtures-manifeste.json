@@ -1,0 +1,38 @@
+[
+  {
+    "nom": "Élise Morel",
+    "type": "particulier",
+    "total": 10000,
+    "recu": 0,
+    "solde": 10000,
+    "client": "7cbc9b61-f81b-4698-8383-9a9eb04aca31",
+    "chantier": "498b0851-cd53-4b71-9bf1-8c624372b961",
+    "devis": "bdfeb297-6dc4-4162-8733-5f9e730d86a1",
+    "facture": "d19dc2a0-b4fe-418f-bbdc-4b04ee314fac",
+    "reglement": null
+  },
+  {
+    "nom": "SCI des Amandiers",
+    "type": "entreprise",
+    "total": 20000,
+    "recu": 5000,
+    "solde": 15000,
+    "client": "a477a879-bd3e-4b3b-b452-d6ea54bbcd8d",
+    "chantier": "11fde9fc-da06-4af1-bba8-6e7cc189961c",
+    "devis": "e87386b7-1e2b-4e0d-8f36-b0cdce2edf38",
+    "facture": "d2f60ef0-135b-4e92-82f0-89768261475f",
+    "reglement": "2e2296d9-07e9-434e-a5bd-455ecd58fe98"
+  },
+  {
+    "nom": "Atelier des Lilas",
+    "type": "entreprise",
+    "total": 30000,
+    "recu": 30000,
+    "solde": 0,
+    "client": "28fa0b60-03c4-4cc1-b2f7-1b175757a20f",
+    "chantier": "0673f008-b62a-46b4-ad0b-e58be5dea3fd",
+    "devis": "8795703b-e22b-4247-af17-63cdee4f5735",
+    "facture": "a8be656f-28da-4a7d-89b4-310443df0533",
+    "reglement": "4dd93c4a-31dd-4278-9a2a-690fda705757"
+  }
+]

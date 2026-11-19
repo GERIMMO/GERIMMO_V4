@@ -1,9 +1,9 @@
-// Menu du dirigeant : 17 destinations visibles, sans groupes ni accordéons.
+// Cinq repères, sans doublon : les 17 destinations et leurs sous-pages sont conservées.
 export type Onglet = { href: string; libelle: string; badge?: "artisans" | "decisions"; exact?: boolean };
 export type Rubrique = { cle: string; libelle: string; href: string; onglets: Onglet[]; aussi?: string[]; badge?: "artisans" | "decisions" };
 
 export const RUBRIQUES: Rubrique[] = [
-  { cle: "bureau", libelle: "Bureau de direction", href: "/admin/brief", onglets: [{ href: "/admin/brief", libelle: "Bureau de direction", exact: true }] },
+  { cle: "bureau", libelle: "Vue d’ensemble", href: "/admin/brief", onglets: [{ href: "/admin/brief", libelle: "Vue d’ensemble", exact: true }] },
   { cle: "decisions", libelle: "Décisions à prendre", href: "/admin/brief?vue=decisions", badge: "decisions", onglets: [{ href: "/admin/brief?vue=decisions", libelle: "Décisions à prendre", badge: "decisions" }] },
   { cle: "comptes-rendus", libelle: "Équipes et comptes rendus", href: "/admin/brief?vue=equipes", onglets: [{ href: "/admin/brief?vue=equipes", libelle: "Comptes rendus" }], aussi: ["/admin/brief"] },
   { cle: "utilisateurs", libelle: "Utilisateurs", href: "/admin/clients", onglets: [{ href: "/admin/clients", libelle: "Utilisateurs" }, { href: "/admin/marque-blanche", libelle: "Personnalisation des agences" }], aussi: ["/admin/organisations", "/admin/comptes"] },
@@ -21,6 +21,14 @@ export const RUBRIQUES: Rubrique[] = [
   { cle: "securite", libelle: "Sécurité et conformité", href: "/admin/securite", onglets: [{ href: "/admin/securite", libelle: "Accès et données" }, { href: "/admin/donnees", libelle: "Demandes sur les données" }, { href: "/admin/conservation", libelle: "Durées de conservation" }, { href: "/admin/veille", libelle: "Veille réglementaire" }] },
   { cle: "historique", libelle: "Historique et sauvegardes", href: "/admin/journaux", onglets: [{ href: "/admin/journaux", libelle: "Historique et sauvegardes" }] },
   { cle: "parametres", libelle: "Paramètres généraux", href: "/admin/parametres", onglets: [{ href: "/admin/parametres", libelle: "Paramètres généraux" }] },
+];
+
+export const GROUPES_SUPERVISION = [
+  { libelle: "Aujourd’hui", cles: ["bureau", "decisions", "comptes-rendus"] },
+  { libelle: "Clients et abonnements", cles: ["utilisateurs", "finances", "artisans", "dossiers"] },
+  { libelle: "Assistance", cles: ["assistance"] },
+  { libelle: "Croissance", cles: ["marketing", "commercial"] },
+  { libelle: "Exploitation et sécurité", cles: ["sante", "automatismes", "relais", "produit", "securite", "historique", "parametres"] },
 ];
 
 // Les vues ont priorité sur la page générique ; les filtres ne changent pas

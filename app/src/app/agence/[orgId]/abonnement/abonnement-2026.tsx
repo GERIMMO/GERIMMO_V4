@@ -419,7 +419,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
                 <span className={styles.iconeSynthese}><ShieldCheck size={22} aria-hidden="true" /></span>
                 <div>
                   <p className={styles.surtitre}>Votre situation actuelle</p>
-                  <h2>{souscrit && actuelle ? libelleOffre(actuelle) : accesOffert ? "Vos mois offerts" : enEssai && !ferme ? "Votre essai Gerimmo" : "Votre espace propriétaire"}</h2>
+                  <h2>{souscrit ? actuelle ? libelleOffre(actuelle) : "Votre abonnement Gerimmo" : accesOffert ? "Vos mois offerts" : enEssai && !ferme ? "Votre essai Gerimmo" : "Votre espace propriétaire"}</h2>
                 </div>
               </div>
               <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
@@ -454,7 +454,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
             {!ferme && enEssai && !souscrit && !accesOffert && (
               <div className={styles.noteEssai}>
                 <Check size={17} aria-hidden="true" />
-                <p><strong>Profitez de tous vos jours d’essai.</strong> Souscrire maintenant ne raccourcit pas l’essai. Aucune carte n’est demandée pendant l’essai, aucun paiement sans votre accord.</p>
+                <p><strong>Profitez de tous vos jours d’essai.</strong> {peutSouscrire ? "Souscrire maintenant ne raccourcit pas l’essai." : "Votre date de fin reste celle indiquée ci-dessus."} Aucune carte n’est demandée pendant l’essai, aucun paiement sans votre accord.</p>
                 <details><summary>À la fin de l’essai</summary><p>Sans souscription, la saisie se suspend. Vos données restent consultables et exportables.</p></details>
               </div>
             )}
@@ -535,11 +535,30 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         )}
       </div>
 
+      {!estAgence && (
+        <section className={styles.inclus} aria-labelledby="services-inclus">
+          <div className={styles.titreSection}><h2 id="services-inclus">Inclus dans votre abonnement</h2><p>La même qualité de service, quel que soit votre nombre de biens.</p></div>
+          <div className={styles.services}>
+            <div><Building2 size={20} aria-hidden="true" /><strong>Votre gestion au complet</strong><p>Toutes les fonctions disponibles pour votre profil.</p></div>
+            <div><Users size={20} aria-hidden="true" /><strong>L’espace de vos locataires</strong><p>Leurs accès sont inclus, sans supplément.</p></div>
+            <div><ShieldCheck size={20} aria-hidden="true" /><strong>Aucun frais d’installation</strong><p>Le tarif dépend du nombre de biens et de la périodicité.</p></div>
+            {/* Plan de conformité du 23/10 (lot 4, constat R13) et décisions du dirigeant du 23/10 : la signature passe
+                dans ce qui est compris, sans supplément, essai compris, dans la limite du volume mensuel commun ; l'acte
+                de cautionnement et l'état des lieux se signent dans Gerimmo (article 4.7 des conditions générales). */}
+            <div><PenLine size={20} aria-hidden="true" /><strong>La signature électronique</strong><details className={styles.precisions}><summary>Disponibilité et documents concernés</summary><p>Vous pouvez déposer votre bail signé sur papier. Zoho Sign assure la signature électronique lorsque le service est ouvert pour le document concerné. Baux, accords, devis, actes de cautionnement et états des lieux sont concernés selon le dossier. Lorsqu’elle est ouverte, elle est sans supplément, essai compris. Selon le volume mensuel commun, elle peut être momentanément suspendue.</p></details></div>
+          </div>
+          <details className={styles.precisions}>
+            <summary>Services facturés à part ou non inclus</summary>
+            <p>Les travaux et interventions d’artisans sont sur devis et facturés à part. Le réseau d’artisans dépend de la zone du bien et du métier. Aucun envoi de SMS en dehors du code de signature, aucun service bancaire n’est inclus.</p>
+          </details>
+        </section>
+      )}
+
       {/* SOUSCRIRE : récapitulatif avant paiement. */}
       {!souscrit && !accesOffert && (
         <section className={estAgence ? "loc-carte" : styles.choix} aria-labelledby="choisir-abonnement">
           <div className={estAgence ? "entete-carte" : styles.titreSection}>
-            <h2 id="choisir-abonnement">{ferme ? "Reprendre avec un abonnement" : "Souscrire à Gerimmo"}</h2>
+            <h2 id="choisir-abonnement">{!estAgence && motifSouscription ? "Votre offre Gerimmo" : ferme ? "Reprendre avec un abonnement" : "Souscrire à Gerimmo"}</h2>
             {!estAgence && <p>Le montant dépend du nombre de biens que vous gérez dans cet espace et de la périodicité choisie.</p>}
           </div>
           {!estAgence && garde.editeur.mediateurNom && garde.editeur.mediateurAdresse && garde.editeur.mediateurSite && (
@@ -705,24 +724,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         </div>
       )}
 
-      {!estAgence ? (
-        <section className={styles.inclus} aria-labelledby="services-inclus">
-          <div className={styles.titreSection}><h2 id="services-inclus">Inclus dans votre abonnement</h2><p>La même qualité de service, quel que soit votre nombre de biens.</p></div>
-          <div className={styles.services}>
-            <div><Building2 size={20} aria-hidden="true" /><strong>Votre gestion au complet</strong><p>Toutes les fonctions disponibles pour votre profil.</p></div>
-            <div><Users size={20} aria-hidden="true" /><strong>L’espace de vos locataires</strong><p>Leurs accès sont inclus, sans supplément.</p></div>
-            <div><ShieldCheck size={20} aria-hidden="true" /><strong>Aucun frais d’installation</strong><p>Le tarif dépend du nombre de biens et de la périodicité.</p></div>
-            {/* Plan de conformité du 23/10 (lot 4, constat R13) et décisions du dirigeant du 23/10 : la signature passe
-                dans ce qui est compris, sans supplément, essai compris, dans la limite du volume mensuel commun ; l'acte
-                de cautionnement et l'état des lieux se signent dans Gerimmo (article 4.7 des conditions générales). */}
-            <div><PenLine size={20} aria-hidden="true" /><strong>La signature électronique</strong><p>Vous pouvez déposer votre bail signé sur papier. Zoho Sign assure la signature électronique lorsque le service est ouvert pour le document concerné. Baux, accords, devis, actes de cautionnement et états des lieux sont concernés selon le dossier. Lorsqu’elle est ouverte, elle est sans supplément, essai compris. Selon le volume mensuel commun, elle peut être momentanément suspendue.</p></div>
-          </div>
-          <details className={styles.precisions}>
-            <summary>Services facturés à part ou non inclus</summary>
-            <p>Les travaux et interventions d’artisans sont sur devis et facturés à part. Le réseau d’artisans dépend de la zone du bien et du métier. Aucun envoi de SMS en dehors du code de signature, aucun service bancaire n’est inclus.</p>
-          </details>
-        </section>
-      ) : <div className="loc-carte">
+      {estAgence && <div className="loc-carte">
         <div className="entete-carte">
           <h3>Ce que comprend l&apos;abonnement</h3>
         </div>

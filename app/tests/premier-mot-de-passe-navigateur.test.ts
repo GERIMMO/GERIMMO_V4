@@ -160,7 +160,8 @@ describe.skipIf(!CHROMIUM)("Premier mot de passe : les listes gardent le choix a
     const deja = (await envois()).length;
     await champ("mot_de_passe").fill(motDePasse);
     await champ("confirmation").fill(confirmation);
-    await page.getByRole("button", { name: "Changer le mot de passe" }).click();
+    // Le profil initial propose une création ou un choix, jamais une modification.
+    await page.getByRole("button", { name: /^(Créer mon espace|Choisir mon mot de passe)$/ }).click();
     await page.waitForFunction((n) => window.__bancMotDePasse.envois.length === n, deja + 1);
     await page.waitForFunction(() => {
       const bouton = document.querySelector<HTMLButtonElement>('button[type="submit"]');

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { inscrireProprietaire, type EtatInscription } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,10 @@ export function FormulaireInscription({
   // déjà monté ne reprend pas un nouveau `defaultValue`. Après un refus, la liste revenait à « Personne physique » et un
   // second envoi enregistrait une autre qualité que celle choisie. La clé, égale à la valeur à reposer, remonte la
   // liste quand cette valeur change : elle part de la qualité envoyée. Sans script, le HTML du serveur la porte déjà.
-  const qualite = etat.valeurs?.qualite ?? "Personne physique";
+  const [choix, setChoix] = useState<{ pour: typeof etat; qualite: string } | null>(null);
+  const qualiteInitiale = etat.valeurs?.qualite ?? "Personne physique";
+  const qualite = choix?.pour === etat ? choix.qualite : qualiteInitiale;
+  const societe = ["SCI", "SCI familiale", "Personne morale"].includes(qualite);
 
   if (etat.message) {
     return (
@@ -70,7 +73,7 @@ export function FormulaireInscription({
           </div>
           <div className="space-y-2">
             <Label htmlFor="ins-qualite">Vous louez en tant que</Label>
-            <select key={`qualite-${qualite}`} id="ins-qualite" name="qualite" defaultValue={qualite} className="min-h-11 w-full rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm">
+            <select key={`qualite-${qualiteInitiale}`} id="ins-qualite" name="qualite" defaultValue={qualiteInitiale} onChange={e => setChoix({ pour: etat, qualite: e.target.value })} className="min-h-11 w-full rounded-lg border border-input bg-transparent px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm">
               <option value="Personne physique">Particulier</option>
               <option value="SCI">SCI</option>
               <option value="SCI familiale">SCI familiale</option>
@@ -78,6 +81,11 @@ export function FormulaireInscription({
               <option value="Personne morale">Autre société</option>
             </select>
           </div>
+          {societe && <div className="space-y-2">
+            <Label htmlFor="raison-sociale">Nom de la société</Label>
+            <Input id="raison-sociale" name="raison_sociale" required maxLength={100} autoComplete="organization" defaultValue={etat.valeurs?.raison_sociale} />
+            <p className="text-xs text-muted-foreground">La société détiendra les biens. Votre nom identifie la personne qui gère son espace ; le pouvoir de signer sera vérifié pour chaque bail.</p>
+          </div>}
           <details key={`parrain-${etat.valeurs?.code_parrainage ?? codeParrain ?? ""}`} open={!!(etat.valeurs?.code_parrainage ?? codeParrain)} className="rounded-lg border border-border/70 px-3 text-sm">
             <summary className="flex min-h-11 cursor-pointer items-center text-muted-foreground">Vous avez un code de parrainage ?</summary>
             <div className="space-y-2 pb-3">

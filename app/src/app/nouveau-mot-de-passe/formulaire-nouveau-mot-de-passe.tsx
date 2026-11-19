@@ -19,6 +19,7 @@ import { CHAMP_DOCUMENT_AFFICHE, caseConditions, documentAffiche } from "@/lib/c
 const CHAMPS_TEXTE_PROFIL = [
   ["prenom", "Prénom"],
   ["nom", "Nom"],
+  ["raison_sociale", "Nom de la société (si concerné)"],
   ["telephone", "Téléphone"],
   ["adresse", "Adresse"],
   ["code_postal", "Code postal"],
@@ -64,7 +65,9 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
   // enregistrait en silence (relecture du 23/10, PRO-4 incomplet). Remontée, la liste part de la valeur envoyée. Sans
   // script, la page est rendue par le serveur avec cette valeur : la clé n'y change rien.
   const espace = ["artisan", "proprietaire_direct"].includes(valeur("espace")) ? valeur("espace") : "invite";
-  const qualite = valeur("qualite");
+  const [choixQualite, setChoixQualite] = useState<{ pour: typeof etat; valeur: string } | null>(null);
+  const qualite = choixQualite?.pour === etat ? choixQualite.valeur : valeur("qualite");
+  const societe = ["SCI", "SCI familiale", "Personne morale"].includes(qualite);
   // Plan de conformité du 23/10 (R10, R60) : la case suit l'usage choisi dans la liste — conditions générales pour le
   // propriétaire, conditions de l'espace artisan dès leur publication, règles des espaces invités pour la personne
   // invitée. Le choix fait dans la liste vaut pour la réponse en cours (`pour`) ; une nouvelle réponse du serveur repart
@@ -85,7 +88,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
   const champsProfil = (champs: readonly (typeof CHAMPS_TEXTE_PROFIL)[number][]) => champs.map(([champ, libelle]) => (
                 <div key={champ} className="space-y-1">
                   <Label htmlFor={`confirmation-${champ}`}>{libelle}</Label>
-                  <Input id={`confirmation-${champ}`} name={champ} required={espaceAffiche === "proprietaire_direct" && champ === "nom"} defaultValue={valeur(champ)} maxLength={champ === "code_parrainage" ? 8 : LONGUEUR_MAX[champ]} {...marque(champ)} />
+                  <Input id={`confirmation-${champ}`} name={champ} required={espaceAffiche === "proprietaire_direct" && (champ === "nom" || (champ === "raison_sociale" && societe))} defaultValue={valeur(champ)} maxLength={champ === "code_parrainage" ? 8 : LONGUEUR_MAX[champ]} {...marque(champ)} />
                   {sous(champ)}
                 </div>
               ));
@@ -109,16 +112,16 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
               </label>
               {sous("espace")}
               {espaceAffiche === "proprietaire_direct" ? <>
-                {champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => champ === "nom"))}
+                {champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => champ === "nom" || (champ === "raison_sociale" && societe)))}
                 <details open={!!champErreur && !["nom", "cgu", "espace", "mot_de_passe", "confirmation"].includes(champErreur)} className="rounded-lg border px-3">
                   <summary className="flex min-h-11 cursor-pointer items-center text-sm text-muted-foreground">Coordonnées et parrainage (facultatif)</summary>
                   <p className="mb-3 text-xs text-muted-foreground">Vous pourrez compléter vos coordonnées dans votre espace avant de préparer vos documents.</p>
-                  <div className="space-y-3 pb-3">{champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => champ !== "nom"))}</div>
+                  <div className="space-y-3 pb-3">{champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => !["nom", "raison_sociale"].includes(champ)))}</div>
                 </details>
-              </> : champsProfil(CHAMPS_TEXTE_PROFIL)}
+              </> : champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => champ !== "raison_sociale"))}
               <label className="block space-y-1 text-sm">
                 <span>Qualité du bailleur, si concerné</span>
-                <select key={`qualite-${qualite}`} name="qualite" defaultValue={qualite} className="w-full rounded-md border bg-background px-3 py-2">
+                <select key={`qualite-${valeur("qualite")}`} name="qualite" defaultValue={valeur("qualite")} onChange={e => setChoixQualite({ pour: etat, valeur: e.target.value })} className="w-full rounded-md border bg-background px-3 py-2">
                   <option value="">Non renseignée</option>
                   {QUALITES_BAILLEUR.map((qualite) => <option key={qualite} value={qualite}>{qualite}</option>)}
                 </select>

@@ -89,6 +89,11 @@ export function ChoixEspace({
                 <option value="Personne morale">Autre personne morale (société…)</option>
               </select>
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="ouv-societe">Nom de la société (si concerné)</Label>
+              <Input id="ouv-societe" name="raison_sociale" maxLength={100} autoComplete="organization" defaultValue={v.raison_sociale} />
+              <p className="text-xs text-muted-foreground">Pour une SCI, indiquez sa raison sociale : les biens lui seront attribués, et non à son gérant.</p>
+            </div>
             <AdresseOuverture prefixe="ouv" valeurs={{ ...adresseInitiale, ...v }} />
             <p className="text-xs text-muted-foreground">L’e-mail de votre compte sert de contact sur vos courriers.</p>
             <label className="flex items-start gap-2 text-sm">

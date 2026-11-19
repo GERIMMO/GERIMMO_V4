@@ -1,0 +1,28 @@
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 [candidat local]/app
+
+ ✓  parallele  tests/inscription-navigateur.test.ts (4 tests) 2667ms
+     ✓ code de parrainage mal formé : la qualité choisie reste affichée, et l'envoi corrigé enregistre bien celle-là  650ms
+     ✓ refus de la fabrique de liens (trop de demandes) : la liste garde aussi le choix, et le nouvel essai le porte  559ms
+     ✓ refus successifs avec d'autres choix, jusqu'au retour à « Personne physique » : la liste suit toujours le dernier envoi  846ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  10:08:51
+   Duration  3.11s (transform 102ms, setup 11ms, import 359ms, tests 2.67s, environment 0ms)
+

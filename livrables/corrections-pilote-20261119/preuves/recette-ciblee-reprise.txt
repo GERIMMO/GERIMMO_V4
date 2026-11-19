@@ -1,0 +1,28 @@
+
+Running 2 tests using 1 worker
+
+  ✓  1 [recette-connexion] › e2e/recette-production/proprietaire.spec.ts:22:7 › propriétaire direct › se connecte et voit le parcours de démarrage @sans-trace (7.5s)
+  ✘  2 [recette-parcours-metier] › e2e/recette-production/reglement-facture.spec.ts:7:7 › règlement déclaré par le gérant et lu par l’artisan › D23 : déclaration, dépense unique et date/moyen visibles sans la référence privée @parcours-metier (17.2s)
+
+
+  1) [recette-parcours-metier] › e2e/recette-production/reglement-facture.spec.ts:7:7 › règlement déclaré par le gérant et lu par l’artisan › D23 : déclaration, dépense unique et date/moyen visibles sans la référence privée @parcours-metier 
+
+    Error: page.goto: net::ERR_ABORTED at http://localhost:3119/artisan/facturation
+    Call log:
+      - navigating to "http://localhost:3119/artisan/facturation", waiting until "load"
+
+
+      57 |       };
+      58 |       await verifier(artisan.locator('main'));
+    > 59 |       await artisan.goto('/artisan/facturation');
+         |                     ^
+      60 |       await artisan.getByText(/Interventions à facturer et suivi détaillé/).click();
+      61 |       const facture = artisan.locator('li').filter({ has: artisan.getByRole('link', { name: 'Voir la mission', exact: true }).and(artisan.locator(`a[href="/artisan/missions/${fixture.interventionId}"]`)) });
+      62 |       await expect(facture).toContainText(fixture.numero);
+        at [candidat local]/app/e2e/recette-production/reglement-facture.spec.ts:59:21
+
+    Error Context: e2e/recette-production/.resultats/essais/reglement-facture-règlemen-c4723-es-sans-la-référence-privée-recette-parcours-metier/error-context.md
+
+  1 failed
+    [recette-parcours-metier] › e2e/recette-production/reglement-facture.spec.ts:7:7 › règlement déclaré par le gérant et lu par l’artisan › D23 : déclaration, dépense unique et date/moyen visibles sans la référence privée @parcours-metier 
+  1 passed (26.5s)

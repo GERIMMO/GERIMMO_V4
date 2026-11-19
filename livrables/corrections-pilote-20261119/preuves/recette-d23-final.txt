@@ -1,0 +1,6 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 [recette-parcours-metier] › e2e/recette-production/reglement-facture.spec.ts:7:7 › règlement déclaré par le gérant et lu par l’artisan › D23 : déclaration, dépense unique et date/moyen visibles sans la référence privée @parcours-metier (7.6s)
+
+  1 passed (8.2s)

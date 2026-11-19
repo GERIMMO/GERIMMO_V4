@@ -1,0 +1,35 @@
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 [candidat local]/app
+
+ ✓  parallele  tests/premier-mot-de-passe-navigateur.test.ts (8 tests) 4630ms
+     ✓ saisies différentes : l'usage et la qualité choisis restent affichés, et le second envoi les porte  732ms
+     ✓ refus de Supabase Auth (mot de passe exposé) : les listes gardent aussi le choix  470ms
+     ✓ refus successifs avec d'autres choix, jusqu'au retour au choix d'origine : la liste suit toujours le dernier envoi  1046ms
+     ✓ personne invitée qui coche, puis choisit « Gérer mes propres biens » : la case revient décochée sous son nouveau texte  491ms
+     ✓ propriétaire qui coche, puis choisit l'espace invité, puis revient : la coche ne suit jamais un autre texte  401ms
+     ✓ après un refus, la case recochée par la réponse se décoche aussi quand l'usage change de texte  647ms
+ ✓  parallele  tests/profil-bailleur-manquant.test.ts (24 tests) 41ms
+ ✓  parallele  tests/ux-invitations-premiere-connexion.test.ts (16 tests) 47ms
+ ✓  parallele  tests/acceptation-conditions-actions.test.ts (20 tests) 47ms
+ ✓  parallele  tests/session-lien-email.test.ts (24 tests) 5ms
+
+ Test Files  5 passed (5)
+      Tests  92 passed (92)
+   Start at  10:09:46
+   Duration  7.12s (transform 972ms, setup 19ms, import 1.97s, tests 4.77s, environment 0ms)
+

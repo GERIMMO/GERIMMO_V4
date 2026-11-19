@@ -10,6 +10,7 @@
 
 export const LONGUEUR_MAX = {
   nom: 100,
+  raison_sociale: 100,
   prenom: 100,
   email: 254,
   telephone: 30,
@@ -23,6 +24,7 @@ export type ChampIdentite = keyof typeof LONGUEUR_MAX;
 // Le libellé s'accorde : « Le nom est trop long », « La ville est trop longue ».
 const LIBELLES: Record<ChampIdentite, string> = {
   nom: "Le nom est trop long",
+  raison_sociale: "Le nom de la société est trop long",
   prenom: "Le prénom est trop long",
   email: "L'adresse e-mail est trop longue",
   telephone: "Le numéro de téléphone est trop long",

@@ -81,11 +81,11 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
   }
 
   it("ouvre sans coordonnées et conserve une fiche à compléter, sans adresse inventée", async () => {
-    const c = await creerCompte(db, { nom: "Essai", adresse: "", code_postal: "", ville: "", qualite: "SCI" });
+    const c = await creerCompte(db, { nom: "Essai", raison_sociale: "SCI Essai", adresse: "", code_postal: "", ville: "", qualite: "SCI" });
     const org = await ouvrirEspace(c);
     await db.query("reset role");
     expect((await db.query("select address_line1, postal_code, city, status from public.organizations where id=$1", [org])).rows[0]).toEqual({ address_line1: null, postal_code: null, city: null, status: "essai" });
-    expect((await db.query("select qualite from public.persons where organization_id=$1", [org])).rows[0].qualite).toBe("SCI");
+    expect((await db.query("select nom,qualite from public.persons where organization_id=$1 and account_id=$2", [org,c.id])).rows).toEqual([{nom:"SCI Essai",qualite:"SCI"}]);
   });
 
   it("inscription : organisation en essai de 2 mois, adhésion et fiche du propriétaire — idempotente", async () => {

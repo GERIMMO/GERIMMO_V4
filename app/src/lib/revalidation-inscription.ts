@@ -2,7 +2,7 @@ import { LONGUEUR_MAX, valeursBornees } from "@/lib/limites-saisie";
 import { CHAMP_DOCUMENT_AFFICHE, documentAffiche } from "@/lib/conditions-acceptation";
 
 export const CLE_PROFIL_A_CONFIRMER = "profil_a_confirmer";
-export const CHAMPS_PROFIL_INSCRIPTION = ["nom", "prenom", "telephone", "adresse", "code_postal", "ville", "qualite", "code_parrainage", "espace"] as const;
+export const CHAMPS_PROFIL_INSCRIPTION = ["nom", "raison_sociale", "prenom", "telephone", "adresse", "code_postal", "ville", "qualite", "code_parrainage", "espace"] as const;
 
 export function informationsAConfirmer(metadonnees: Record<string, unknown> | null | undefined): Record<string, string> {
   const profil: Record<string, string> = {};

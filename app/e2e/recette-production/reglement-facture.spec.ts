@@ -19,13 +19,14 @@ test.describe('règlement déclaré par le gérant et lu par l’artisan', { tag
       await db.query("update public.incident_interventions set statut='terminee',terminee_le=now() where id=$1", [interventionId]);
       await db.query("update public.incidents set etat='termine' where id=$1", [incidentId]);
       const document = await id("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'facture_artisan','Facture fictive de recette',$2,'application/pdf',10,$3) returning id", [orgId, `${orgId}/recette/${interventionId}/facture.pdf`, `recette-facture-${interventionId}`]);
-      const factureId = await id("insert into public.intervention_factures(organization_id,intervention_id,artisan_id,numero,montant_ttc_cents,montant_reference_cents,document_id,deposee_par) values($1,$2,$3,'RECETTE-D23',23968,23968,$4,$5) returning id", [orgId, interventionId, artisanId, document, artisanCompteId]);
+      const numero = `RECETTE-D23-${interventionId}`;
+      const factureId = await id("insert into public.intervention_factures(organization_id,intervention_id,artisan_id,numero,montant_ttc_cents,montant_reference_cents,document_id,deposee_par) values($1,$2,$3,$6,23968,23968,$4,$5) returning id", [orgId, interventionId, artisanId, document, artisanCompteId, numero]);
       await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated')::text,true)", [gerantId]);
       await db.query('set local role authenticated');
       await db.query("select public.valider_facture_artisan($1,$2,'Facture fictive préparée pour la recette D23')", [orgId, factureId]);
       await db.query('reset role');
       const jour = (await db.query('select public.aujourdhui_paris()::text jour')).rows[0].jour as string;
-      return { ...dossier, interventionId, factureId, jour };
+      return { ...dossier, interventionId, factureId, jour, numero };
     });
     await page.goto(`/agence/${fixture.orgId}/incidents/${fixture.incidentId}`);
     await page.waitForLoadState('networkidle');
@@ -48,12 +49,19 @@ test.describe('règlement déclaré par le gérant et lu par l’artisan', { tag
     try {
       const artisan = await context.newPage();
       const dateLisible = fixture.jour.split('-').reverse().join('/');
-      for (const chemin of [`/artisan/missions/${fixture.interventionId}`, '/artisan/facturation']) {
-        await artisan.goto(chemin);
-        await expect(artisan.getByText(`Règlement déclaré le ${dateLisible} par virement`, { exact: true })).toBeVisible();
-        await expect(artisan.getByText(`Réglée le ${dateLisible} par virement (déclaré par votre client)`, { exact: true })).toBeVisible();
+      await artisan.goto(`/artisan/missions/${fixture.interventionId}`);
+      const verifier = async (zone: import('@playwright/test').Locator) => {
+        await expect(zone.getByText(`Règlement déclaré le ${dateLisible} par virement`, { exact: true })).toBeVisible();
+        await expect(zone.getByText(`Réglée le ${dateLisible} par virement (déclaré par votre client)`, { exact: true })).toBeVisible();
         await expect(artisan.locator('body')).not.toContainText(reference);
-      }
+      };
+      await verifier(artisan.locator('main'));
+      await artisan.goto('/artisan/facturation');
+      await artisan.getByText(/Interventions à facturer et suivi détaillé/).click();
+      const facture = artisan.locator('li').filter({ has: artisan.getByRole('link', { name: 'Voir la mission', exact: true }).and(artisan.locator(`a[href="/artisan/missions/${fixture.interventionId}"]`)) });
+      await expect(facture).toContainText(fixture.numero);
+      await verifier(facture);
+
     } finally { await context.close(); }
   });
 });

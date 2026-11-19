@@ -87,12 +87,6 @@ begin
  ancre:='where d.id = doc;';
  if position(ancre in definition)=0 then raise exception 'Journal documentaire inattendu'; end if;
  execute replace(definition,ancre,'where d.id = doc and (d.storage_path is null or ged_securite_interne.chemin_organisation(d.organization_id,d.storage_path));');
- -- La route des photos de demande de devis signe avec le client de service :
- -- son RPC doit donc contrôler lui-même la provenance avant de rendre le chemin.
- definition:=pg_get_functiondef('public.lire_photo_incident_artisan(uuid,uuid,uuid)'::regprocedure);
- ancre:='if v_chemin is null then';
- if position(ancre in definition)=0 then raise exception 'Lecture photo artisan inattendue'; end if;
- execute replace(definition,ancre,'if not ged_securite_interne.chemin_organisation(v_org,v_chemin) then');
  -- Le point commun de toutes les règles de conservation : ne pas vider la
  -- fiche étrangère et ne pas mettre son chemin en file. Trace sans chemin privé.
  definition:=pg_get_functiondef('public.purger_document_conservation(uuid,text,date)'::regprocedure);

@@ -81,7 +81,7 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
   }
 
   it("ouvre sans coordonnées et conserve une fiche à compléter, sans adresse inventée", async () => {
-    const c = await creerCompte(db, { nom: "Essai", raison_sociale: "SCI Essai", adresse: "", code_postal: "", ville: "", qualite: "SCI" });
+    const c = await creerCompte(db, { nom: "Essai", prenom: "Camille", raison_sociale: "SCI Essai", adresse: "", code_postal: "", ville: "", qualite: "SCI" });
     const org = await ouvrirEspace(c);
     await db.query("reset role");
     expect((await db.query("select address_line1, postal_code, city, status from public.organizations where id=$1", [org])).rows[0]).toEqual({ address_line1: null, postal_code: null, city: null, status: "essai" });

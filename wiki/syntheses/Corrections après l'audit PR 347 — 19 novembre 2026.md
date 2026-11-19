@@ -39,7 +39,7 @@ Sur le banc isolé, données fictives, dernier commit `bba781a2` :
 - suite navigateur complète : 281 réussis, 0 échec ;
 - suite unitaire : 12 941 réussis. Le seul échec dépend de l'ordre des essais sur le banc et passe sur base neuve.
 
-Les nouveaux tests échouent sans les corrections. Détail et limites dans le rapport.
+Le test des recherches par e-mail échoue sans sa migration et passe avec elle. Détail et limites dans le rapport.
 
 ## Règle métier modifiée sur délégation
 

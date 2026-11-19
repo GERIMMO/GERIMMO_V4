@@ -24,6 +24,8 @@ import {
 import { masquerAdresse } from "@/lib/relais-alerte";
 import { DELAI_URGENCE_MAX_MINUTES } from "@/lib/relais-urgences";
 import { adressesRelaisDuServeur } from "@/lib/relais-alerte-reglage";
+import { lirePassagesRelais, suivreAlerteQuotidienne } from "@/lib/relais-alerte-suivi";
+import { BandeauAlerteQuotidienne } from "@/components/bandeau-alerte-quotidienne";
 import { LancerMission } from "./lancer-mission";
 import { ArchiveConditions, type AcceptationsSansArchive } from "./archive-conditions";
 import { jourDeParis, listerVersionsArchivees } from "@/lib/conditions-versions";
@@ -105,11 +107,13 @@ export default async function PageSante() {
   const relais = adressesRelaisDuServeur();
   // Le même calcul que /admin et /admin/brief (25/09) : une seule requête du
   // journal, une seule fenêtre, un seul chiffre.
-  const [sante, orgs] = await Promise.all([
+  const [sante, orgs, passagesRelais] = await Promise.all([
     chargerSante(supabase, process.env, manquants.length),
     supabase
       .from("organizations")
       .select("status, quittances_envoi_auto, appels_envoi_auto, relances_envoi_auto"),
+    // Incident du 12 au 19/11 : l'alerte e-mail de 5 h n'est plus le seul signal de son propre échec.
+    lirePassagesRelais(supabase),
   ]);
 
   const { configuration, taches, cycleMensuel: cycle } = sante;
@@ -155,6 +159,7 @@ export default async function PageSante() {
           </p>
         </div>
       </div>
+      <BandeauAlerteQuotidienne suivi={suivreAlerteQuotidienne(passagesRelais)} />
       <section className={styles.resume} aria-label="État des contrôles">
         <h2>{nbPoints === null || sante.tachesIllisibles || cycle === null ? "L’état du service reste à vérifier" : nbPoints > 0 ? `${nbPoints} point${nbPoints > 1 ? "s" : ""} nécessite${nbPoints > 1 ? "nt" : ""} votre attention` : "Les contrôles suivis sont à jour"}</h2>
         <p>{detailPoints || "Aucun blocage remonté par ces contrôles."}{aVerifier}</p>

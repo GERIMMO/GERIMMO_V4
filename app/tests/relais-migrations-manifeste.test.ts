@@ -213,6 +213,7 @@ const MISSION_OCTOBRE = [
   "20261119200000_email_partage_societe_gerant.sql",
   "20261119200100_coordonnees_fiche_societe.sql",
   "20261119200200_quittance_representant_societe.sql",
+  "20261119200300_recherche_email_par_nature.sql",
 
 
 ];

@@ -234,7 +234,9 @@ export default async function PageEspaces() {
               </p>
             )}
             <ChoixEspace adresseInitiale={adresseInitiale}
+              reprendre={Boolean(erreurOuverture)}
               qualiteInitiale={normaliserQualiteBailleur(typeof meta.qualite === "string" ? meta.qualite : null) ?? undefined}
+              raisonSocialeInitiale={typeof meta.raison_sociale === "string" ? meta.raison_sociale : undefined}
               nomInitial={typeof user.user_metadata?.nom === "string" ? user.user_metadata.nom : undefined}
               prenomInitial={typeof user.user_metadata?.prenom === "string" ? user.user_metadata.prenom : undefined}
             />

@@ -75,11 +75,11 @@ test("on change son mot de passe depuis son compte, et l'ancien ne vaut plus rie
   await page.waitForURL(/\/(agence|espace|espaces)(\/|\?|$)/, { timeout: 30_000 });
 });
 
-test("on active puis on retire son second facteur sans l'aide de personne", async ({ page }) => {
+test("on active son second facteur, on le vérifie à la reconnexion puis on le retire", async ({ page }) => {
   // Le calcul TOTP standard, vérifié par Auth sur le banc réel comme sur l’émulateur.
   const { totp } = await import("./local/mfa-local.mjs");
 
-  await creerUnCompte(page);
+  const email = await creerUnCompte(page);
   await page.goto("/compte");
 
   const carte = page.locator(".loc-carte", { hasText: "Double authentification" });
@@ -97,9 +97,31 @@ test("on active puis on retire son second facteur sans l'aide de personne", asyn
   await expect(carte.getByText("active", { exact: true })).toBeVisible();
   await expect(carte.getByRole("status")).toContainText(/activée/i);
 
-  // 2. Retrait : possible parce que la session vient de monter en aal2 — c'est
-  //    tout l'ordre des gestes de cet écran. La confirmation est exigée : on ne
-  //    retire pas sa protection d'un clic distrait.
+  // 2. La session créée par le mot de passe seul ne rend ni le compte
+  //    ni les espaces. Le bon code restitue la destination d'origine.
+  await page.getByRole("button", { name: "Se déconnecter" }).click();
+  await page.waitForURL(/\/connexion/);
+  await page.goto("/compte");
+  await expect(page).toHaveURL(/\/connexion\?suite=%2Fcompte/);
+  await page.getByLabel("Adresse e-mail").fill(email);
+  await page.getByLabel("Mot de passe").fill(ANCIEN);
+  await page.getByRole("button", { name: "Se connecter" }).click();
+  await expect(page).toHaveURL(/\/securite\?suite=%2Fcompte/);
+  await page.goto("/espaces");
+  await expect(page).toHaveURL(/\/securite\?suite=%2Fespaces/);
+  await page.goto("/compte");
+  await expect(page).toHaveURL(/\/securite\?suite=%2Fcompte/);
+  const autreCode = String((Number(totp(secret)) + 12345) % 1_000_000).padStart(6, "0");
+  await page.getByLabel("Code à six chiffres").fill(autreCode);
+  await page.getByRole("button", { name: "Vérifier et continuer" }).click();
+  await expect(page.getByText(/Ce code est incorrect ou a expiré/)).toBeVisible();
+  await expect(page).toHaveURL(/\/securite\?suite=%2Fcompte/);
+  await page.getByLabel("Code à six chiffres").fill(totp(secret));
+  await page.getByRole("button", { name: "Vérifier et continuer" }).click();
+  await expect(page).toHaveURL(/\/compte$/);
+  await expect(carte.getByText("active", { exact: true })).toBeVisible();
+
+  // 3. Retrait confirmé, après vérification du code.
   await carte.getByRole("button", { name: "Retirer la double authentification" }).click();
   await carte.getByRole("button", { name: "Confirmer le retrait" }).click();
   await expect(carte.getByText("inactive")).toBeVisible();

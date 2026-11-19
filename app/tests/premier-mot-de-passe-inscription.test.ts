@@ -138,6 +138,21 @@ describe("PRO-4 — un refus garde la saisie du profil et la case des conditions
     expect(auth.updateUser).not.toHaveBeenCalled();
   });
 
+  it.each([null, "  "])("une SCI sans prénom ne peut ni confirmer les conditions ni créer son profil : %s", async prenom => {
+    const etat = await definirNouveauMotDePasse({}, formulaire({ prenom }));
+    expect(etat).toMatchObject({ champ: "prenom", erreur: expect.stringContaining("Indiquez votre prénom") });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(auth.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("une SCI voit son prénom obligatoire hors du volet des coordonnées facultatives", () => {
+    const html = renderToStaticMarkup(createElement(FormulaireNouveauMotDePasse, {
+      profilAConfirmer: { ...PROFIL_SAISI, prenom: "" },
+    }));
+    expect(html.match(/<input[^>]*name="prenom"[^>]*>/)?.[0]).toContain('required=""');
+    expect(html.indexOf('id="confirmation-prenom"')).toBeLessThan(html.indexOf("<details"));
+  });
+
   it("l'acceptation non enregistrée : l'erreur est à la case, qui reste cochée", async () => {
     rpc.mockResolvedValueOnce({ error: { message: "indisponible" } });
     const etat = await definirNouveauMotDePasse({}, formulaire());

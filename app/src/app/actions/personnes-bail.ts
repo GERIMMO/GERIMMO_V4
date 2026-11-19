@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { sansJargon } from "@/lib/erreurs";
+import { estUuid } from "@/lib/identifiants";
+import { LONGUEUR_MAX } from "@/lib/limites-saisie";
 import { creerPersonne, modifierPersonne, type EtatPersonne } from "./personnes";
 import { supprimerBailPersonne } from "./baux";
 
@@ -77,6 +79,36 @@ export async function enregistrerProprietairesBail(orgId: string, bailId: string
   if (error) return { erreur: sansJargon(error.message) };
   actualiser(orgId, bailId);
   return { succes: "Propriétaires enregistrés." };
+}
+
+/** Complète la fiche ancienne de la gérance depuis le bail, sans créer de pouvoir. */
+export async function completerPrenomRepresentantBail(org: string, bail: string, personne: string, _etat: EtatPersonnesBail, form: FormData): Promise<EtatPersonnesBail> {
+  const prenom = String(form.get("prenom") ?? "").trim();
+  if (!prenom || [...prenom].length > LONGUEUR_MAX.prenom) {
+    return { erreur: `Indiquez un prénom de ${LONGUEUR_MAX.prenom} caractères au plus.` };
+  }
+  if (!estUuid(personne)) return { erreur: "Fiche introuvable." };
+  const ctx = await contexte(org, bail);
+  if (!ctx || ctx.role !== "proprietaire_direct") return { erreur: "Ce brouillon n’est plus accessible." };
+
+  const { data: fiche, error: lecture } = await ctx.supabase.from("persons")
+    .select("prenom,qualite").eq("id", personne).eq("organization_id", org).is("archived_at", null).maybeSingle();
+  if (lecture || !fiche || (fiche.qualite ?? "Personne physique") !== "Personne physique") {
+    return { erreur: "La fiche de cette personne n’est plus disponible." };
+  }
+  if (fiche.prenom?.trim()) return { erreur: "Le prénom est déjà renseigné. Rechargez le bail pour sélectionner cette personne." };
+
+  // La RLS de l’annuaire s’applique aussi à cette mise à jour. La valeur lue
+  // empêche un deuxième envoi d’écraser un prénom renseigné entre-temps.
+  const modification = ctx.supabase.from("persons").update({ prenom })
+    .eq("id", personne).eq("organization_id", org).is("archived_at", null);
+  const qualite = fiche.qualite === null ? modification.is("qualite", null) : modification.eq("qualite", fiche.qualite);
+  const valeur = fiche.prenom === null ? qualite.is("prenom", null) : qualite.eq("prenom", fiche.prenom);
+  const { data, error } = await valeur.select("id").maybeSingle();
+  if (error || !data) return { erreur: "Le prénom n’a pas pu être enregistré. Rechargez le bail avant de réessayer." };
+  actualiser(org, bail);
+  for (const espace of ["agence", "espace"]) revalidatePath(`/${espace}/${org}/personnes/${personne}`);
+  return { succes: "Prénom enregistré." };
 }
 
 export async function designerRepresentantBail(org:string,bail:string,societe:string,_etat:EtatPersonnesBail,form:FormData):Promise<EtatPersonnesBail>{

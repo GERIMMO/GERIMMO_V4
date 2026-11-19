@@ -42,4 +42,26 @@ describe.skipIf(!url)('Supervision : second facteur imposé dans les autorisatio
     await agir(sa,'aal2');
     expect((await db.query('select public.is_super_admin() as autorise')).rows[0].autorise).toBe(false);
   });
+
+  it('le stockage exige le facteur vérifié même en dehors du contrôle PostgREST', async () => {
+    await db.query("insert into public.memberships(account_id,organization_id,role,status) values($1,$2,'proprietaire_direct','active')", [autre,org]);
+    const session = (await db.query('insert into auth.sessions(user_id) values($1) returning id',[autre])).rows[0].id;
+    const chemin = `${org}/mfa-storage-regression.pdf`;
+    await db.query("insert into storage.objects(bucket_id,name) values('documents',$1)", [chemin]);
+    await db.query("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'justificatif','MFA stockage',$2,'application/pdf',1000,gen_random_uuid()::text)", [org,chemin]);
+    async function utiliserSession(aal: 'aal1' | 'aal2') {
+      await db.query('reset role');
+      await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:autre,role:'authenticated',session_id:session,aal})]);
+      await db.query('set local role authenticated');
+    }
+    const visible = () => db.query("select name from storage.objects where bucket_id='documents' and name=$1",[chemin]);
+    await utiliserSession('aal1');
+    expect((await visible()).rows).toEqual([{name:chemin}]);
+    await db.query('reset role');
+    await db.query("insert into auth.mfa_factors(id,user_id,status) values(gen_random_uuid(),$1,'verified')",[autre]);
+    await utiliserSession('aal1');
+    expect((await visible()).rows).toEqual([]);
+    await utiliserSession('aal2');
+    expect((await visible()).rows).toEqual([{name:chemin}]);
+  });
 });

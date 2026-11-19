@@ -3,6 +3,7 @@
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { verifierAvantEffet } from "@/lib/controle-effets";
 
 export async function modifierDureeConservation(input: { categorie: string; mois: number; revision: number; motif: string; confirme: boolean }): Promise<{ erreur?: string }> {
   const db = await createClient();
@@ -73,21 +74,31 @@ export async function lancerPurge(): Promise<ResultatPurge> {
   const { data: enAttente } = await supabase
     .from("purge_fichiers")
     .select("id, storage_path")
-    .is("deleted_at", null);
+    .is("deleted_at", null)
+    .order("queued_at", { ascending: true })
+    .limit(500);
   if (enAttente && enAttente.length > 0) {
-    const { data: supprimes } = await supabase.storage
-      .from("documents")
-      .remove(enAttente.map((f) => f.storage_path));
+    const { data: autorises, error: erreurReservation } = await supabase.rpc("reserver_fichiers_purge", { p_ids: enAttente.map(f => f.id) });
+    if (erreurReservation || !Array.isArray(autorises)) return { erreur: "Aucun fichier supprimé : la vérification de ses références est indisponible." };
+    if (autorises.length === 0) return { erreur: "Les fichiers restent protégés : leurs références doivent être vérifiées. La file est conservée." };
+    const lignes = autorises as { id: string; storage_path: string; objet_present: boolean }[];
+    const presents = lignes.filter((f) => f.objet_present === true);
+    try {
+      await verifierAvantEffet(supabase, "purge");
+    } catch {
+      return { erreur: "La suppression des fichiers est suspendue. La file est conservée." };
+    }
+    const { data: supprimes } = presents.length
+      ? await supabase.storage.from("documents").remove(presents.map((f) => f.storage_path))
+      : { data: [] };
     const cheminsSupprimes = new Set((supprimes ?? []).map((o) => o.name));
-    const idsSupprimes = enAttente
-      .filter((f) => cheminsSupprimes.has(f.storage_path))
-      .map((f) => f.id);
+    const idsSupprimes = lignes.filter((f) => f.objet_present === false || cheminsSupprimes.has(f.storage_path)).map((f) => f.id);
     if (idsSupprimes.length > 0) {
-      await supabase
+      const { error: erreurMarque } = await supabase
         .from("purge_fichiers")
         .update({ deleted_at: new Date().toISOString() })
         .in("id", idsSupprimes);
-      fichiersSupprimes = idsSupprimes.length;
+      if (!erreurMarque) fichiersSupprimes = idsSupprimes.length;
     }
   }
 

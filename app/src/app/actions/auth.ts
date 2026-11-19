@@ -25,7 +25,7 @@ import { valeursDuFormulaire } from "@/lib/formulaires";
 import { classerErreurInscription, MESSAGE_BOITE_MAIL } from "@/lib/inscription";
 import { champTropLong, premierChampTropLong, valeursBornees } from "@/lib/limites-saisie";
 import { envoyerLienMotDePasse, inscrireEtEnvoyerConfirmation } from "@/lib/lien-mot-de-passe";
-import { estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
+import { estBailleurSociete, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 import { estUuid } from "@/lib/identifiants";
 import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
 import { baseEspace } from "@/lib/racine-espace";
@@ -159,7 +159,11 @@ export async function definirNouveauMotDePasse(
     if (tropLong) return refus(tropLong, CHAMPS_PROFIL_INSCRIPTION.find((champ) => champ === champLong));
     if (!estEspaceInscription(champs.espace)) return refus("Choisissez l’usage de votre compte.", "espace");
     if (champs.espace === "proprietaire_direct" && !champs.nom) return refus("Le nom est obligatoire.", "nom");
-    if (champs.espace === "proprietaire_direct" && ["SCI", "SCI familiale", "Personne morale"].includes(qualiteDeLaListe(formData.get("qualite"))) && !champs.raison_sociale) return refus("Renseignez le nom de votre société, distinct de votre nom.", "raison_sociale");
+    const qualite = qualiteDeLaListe(formData.get("qualite"));
+    if (champs.espace === "proprietaire_direct" && estBailleurSociete(qualite)) {
+      if (!champs.raison_sociale) return refus("Renseignez le nom de votre société, distinct de votre nom.", "raison_sociale");
+      if (!champs.prenom) return refus("Indiquez votre prénom pour créer votre fiche de représentant de la société.", "prenom");
+    }
     // Plan de conformité du 23/10 (R10, R60) : la case et le document accepté suivent l'usage choisi — conditions
     // clients pour le propriétaire, conditions de l'espace artisan dès leur publication, règles des espaces invités pour
     // la personne invitée (lib/conditions-acceptation.ts).
@@ -179,7 +183,7 @@ export async function definirNouveauMotDePasse(
       p_document: caseAcceptee.document,
     });
     if (erreurCgu) return refus("L’acceptation des conditions n’a pas pu être enregistrée. Réessayez.", "cgu");
-    profil = { ...champs, espace: champs.espace === "invite" ? null : champs.espace, qualite: qualiteDeLaListe(formData.get("qualite")), code_parrainage: code, cgu_version: caseAcceptee.version, cgu_document: caseAcceptee.document, cgu_acceptee_le: new Date().toISOString(), [CLE_PROFIL_A_CONFIRMER]: null };
+    profil = { ...champs, espace: champs.espace === "invite" ? null : champs.espace, qualite, code_parrainage: code, cgu_version: caseAcceptee.version, cgu_document: caseAcceptee.document, cgu_acceptee_le: new Date().toISOString(), [CLE_PROFIL_A_CONFIRMER]: null };
   }
 
   const { error } = await supabase.auth.updateUser({ password: motDePasse, ...(profil ? { data: profil } : {}) });
@@ -408,9 +412,13 @@ export async function ouvrirEspaceProprietaire(
   const valeurs = valeursDuFormulaire(formData);
   const nom = String(formData.get("nom") ?? "").trim();
   const raisonSociale = String(formData.get("raison_sociale") ?? "").trim();
-  if (["SCI", "SCI familiale", "Personne morale"].includes(qualiteDeLaListe(formData.get("qualite"))) && !raisonSociale) return { erreur: "Renseignez le nom de votre société, distinct de votre nom.", valeurs };
-  if ([...raisonSociale].length > 100) return { erreur: "Le nom de la société est limité à 100 caractères.", valeurs };
   const prenom = String(formData.get("prenom") ?? "").trim();
+  const qualite = qualiteDeLaListe(formData.get("qualite"));
+  if (estBailleurSociete(qualite)) {
+    if (!raisonSociale) return { erreur: "Renseignez le nom de votre société, distinct de votre nom.", valeurs };
+    if (!prenom) return { erreur: "Indiquez votre prénom pour créer votre fiche de représentant de la société.", valeurs };
+  }
+  if ([...raisonSociale].length > 100) return { erreur: "Le nom de la société est limité à 100 caractères.", valeurs };
   if (!nom) return { erreur: "Le nom est obligatoire.", valeurs };
   const coordonnees = adresseOuverture(formData);
   const tropLong = champTropLong({ nom, prenom, ...coordonnees });
@@ -429,7 +437,7 @@ export async function ouvrirEspaceProprietaire(
       raison_sociale: raisonSociale,
       ...coordonnees,
       espace: "proprietaire_direct",
-      qualite: qualiteDeLaListe(formData.get("qualite")),
+      qualite,
     },
   });
   if (erreurProfil) return { erreur: sansJargon(erreurProfil.message), valeurs };

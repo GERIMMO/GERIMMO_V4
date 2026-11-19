@@ -1,0 +1,22 @@
+Se déconnecter
+
+PROTECTION DU COMPTE
+
+Sécurité du compte
+
+Utilisez le code de votre application d’authentification pour accéder à votre espace.
+
+Entrez le code de votre application
+
+Ouvrez l’application utilisée lors de la configuration du compte.
+
+Code à six chiffres
+Vérifier et continuer
+
+Ce code est incorrect ou a expiré. Utilisez le code actuel de votre application.
+
+Recharger la protection
+
+En cas de perte de l’application, demandez au responsable technique de réinitialiser la double authentification de votre compte, après vérification de votre identité. Le mot de passe seul ne permet pas de contourner cette protection.
+
+Confidentialité

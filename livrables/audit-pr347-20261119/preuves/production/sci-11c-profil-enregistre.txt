@@ -1,0 +1,48 @@
+Paramètres
+
+Vos coordonnées pour les baux, quittances et états des lieux.
+
+MON PROFIL
+Étape 3 sur 3
+01
+Identité
+À vérifier
+02
+Paiement
+À vérifier
+03
+Préférences
+À vérifier
+Préférences
+
+Choisissez les e-mails à envoyer automatiquement.
+
+AVIS D'ÉCHÉANCE
+
+L’envoi automatique des avis est suspendu. Les échéances restent consultables dans Loyers.
+
+ENVOI DES QUITTANCES
+Envoyer automatiquement les quittances et reçus aux locataires
+
+Les quittances et reçus non envoyés partent une fois par jour, sans nouvelle validation.
+
+Fonctionnement
+RELANCES D'IMPAYÉ
+
+Les courriers de relance automatiques sont suspendus. Vos seuils de suivi restent enregistrés.
+
+Première relance, jours après l'échéance
+Seconde relance, jours après l'échéance
+Ne pas relancer une dette inférieure à (€)
+Fonctionnement
+Précédent
+
+Profil enregistré à 20:16
+Vos modifications ont bien été sauvegardées.
+
+Profil enregistré
+
+Vos saisies restent en place entre les étapes, pendant que cette page est ouverte.
+
+Parrainage — 0 filleul
+Signature préenregistrée — facultatif

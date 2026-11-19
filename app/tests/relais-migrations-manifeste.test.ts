@@ -205,6 +205,10 @@ const MISSION_OCTOBRE = [
   "20261117095320_renvoi_invitation_artisan_confirme.sql",
   "20261118093000_inscription_proprietaire_progressive.sql",
   "20261119085820_inscription_societe_et_representant.sql",
+  "20261119142934_securite_provenance_fichiers.sql",
+  "20261119143935_imposer_second_facteur_actif.sql",
+  "20261119143952_inscription_prenom_representant.sql",
+  "20261119145246_verifier_provenance_photos_artisan.sql",
 
 
 ];

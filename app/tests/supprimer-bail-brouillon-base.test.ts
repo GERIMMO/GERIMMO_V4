@@ -27,7 +27,7 @@ describe.skipIf(!url)("Suppression transactionnelle des brouillons", () => {
     await db.query("set local role authenticated");
   }
   async function supprimer(organisation = org) { return db.query("select public.supprimer_bail_brouillon($1,$2) as resultat",[organisation,bail]); }
-  async function document() { return id("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'bail','PDF brouillon','test/brouillon.pdf','application/pdf',1,gen_random_uuid()::text) returning id",[org]); }
+  async function document() { return id("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,'bail','PDF brouillon',$1::uuid::text||'/test/brouillon.pdf','application/pdf',1,gen_random_uuid()::text) returning id",[org]); }
   it("supprime la préparation et conserve logement, personnes, fichiers et trace", async () => {
     const doc = await document();
     await db.query("insert into public.document_liens(organization_id,document_id,entite,entite_id) values($1,$2,'bail',$3)",[org,doc,bail]);

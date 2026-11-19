@@ -239,6 +239,22 @@ export async function proxy(request: NextRequest) {
 
   const now = Date.now();
   const { data: sessions, error: erreurSession } = await supabase.rpc("ma_session_active");
+  // La Data API renvoie PT428 seulement après validation de la session Auth.
+  // À ce stade, seule la page qui vérifie le code peut rendre un écran connecté.
+  if (erreurSession?.code === "PT428") {
+    if (pathname === "/securite" || sansSessionRequise
+      || ["/auth/confirm", "/auth/confirmer", "/confidentialite", "/conditions", "/mentions-legales", "/robots.txt", "/sitemap.xml"].includes(pathname)) {
+      return response;
+    }
+    const url = request.nextUrl.clone();
+    const suite = pathname === "/connexion" ? request.nextUrl.searchParams.get("suite") ?? "/espaces"
+      : pathname === "/" ? "/espaces" : pathname + request.nextUrl.search;
+    url.pathname = "/securite";
+    url.search = `?suite=${encodeURIComponent(suite)}`;
+    const redirect = NextResponse.redirect(url, statutRedirection(request.method));
+    response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+    return redirect;
+  }
   if (erreurSession || erreurDroitsSession) {
     if (isPublic && (["GET", "HEAD"].includes(request.method) || sansSessionRequise)) return response;
     const indisponible = new NextResponse("La vérification de votre session est momentanément indisponible. Réessayez dans un instant.", {
@@ -304,7 +320,7 @@ export async function proxy(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/securite";
       url.search = `?suite=${encodeURIComponent(pathname + request.nextUrl.search)}`;
-      const redirect = NextResponse.redirect(url);
+      const redirect = NextResponse.redirect(url, statutRedirection(request.method));
       response.cookies.getAll().forEach(c => redirect.cookies.set(c));
       return redirect;
     }

@@ -13,12 +13,8 @@ export default async function PageSecurite({ searchParams }: PageProps<'/securit
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/connexion');
-  // Lire son propre rôle reste possible avant le second facteur ; aucune
-  // autorisation de supervision n'est accordée par cette lecture.
-  const { data: adhesion, error } = await supabase.from('memberships').select('id')
-    .eq('account_id', user.id).eq('role', 'super_admin').eq('status', 'active').limit(1).maybeSingle();
-  if (error) throw new Error('Impossible de vérifier les droits du compte.');
-  if (!adhesion) redirect('/espaces');
+  // Auth reste disponible avant la validation du second facteur. La Data API
+  // est alors fermée, y compris la lecture des adhésions du compte.
   const params = await searchParams;
   return <main className="mx-auto w-full max-w-xl px-5 py-10 sm:py-16">
     <div className="mb-10 flex items-center justify-between"><MarqueGerimmo tuile /><PurgerCopiesAutresComptes compteId={user.id} /><FormulaireDeconnexion className="lien-discret text-sm">Se déconnecter</FormulaireDeconnexion></div>
@@ -26,7 +22,7 @@ export default async function PageSecurite({ searchParams }: PageProps<'/securit
         déjà vérifiée (audit 25/09, C24) : la carte dessous dit l'état réel. */}
     <p className="eyebrow">Protection du compte</p>
     <h1 className="mt-2 text-3xl font-semibold">Sécurité du compte</h1>
-    <p className="mt-3 text-muted-foreground">L’accès de supervision donne accès aux organisations et aux données sensibles : il demande un code de votre application d’authentification en plus du mot de passe.</p>
+    <p className="mt-3 text-muted-foreground">Utilisez le code de votre application d’authentification pour accéder à votre espace.</p>
     <FormulaireMfa suite={destinationApresMfa(typeof params.suite === 'string' ? params.suite : null)} />
     <p className="mt-7 text-sm text-muted-foreground">En cas de perte de l’application, demandez au responsable technique de réinitialiser la double authentification de votre compte, après vérification de votre identité. Le mot de passe seul ne permet pas de contourner cette protection.</p>
     <Link href="/confidentialite" className="mt-4 inline-block lien-discret text-xs">Confidentialité</Link>

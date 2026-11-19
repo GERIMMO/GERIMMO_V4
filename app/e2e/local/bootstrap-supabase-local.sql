@@ -77,6 +77,16 @@ create table if not exists auth.sessions (
 );
 revoke all on auth.sessions from anon, authenticated;
 
+-- Le simulateur Auth garde les secrets TOTP en mémoire et inscrit uniquement
+-- le statut vérifié ici, pour que la Data API et Storage appliquent les mêmes
+-- garde-fous SQL que le projet chez Supabase.
+create table if not exists auth.mfa_factors (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  status text not null
+);
+revoke all on auth.mfa_factors from public, anon, authenticated;
+
 -- Sous-ensemble des jetons utilisé par le bouton de confirmation du banc UI.
 create table if not exists auth.one_time_tokens (
   id uuid primary key default gen_random_uuid(),

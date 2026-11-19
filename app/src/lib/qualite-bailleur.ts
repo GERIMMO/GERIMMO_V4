@@ -46,6 +46,10 @@ export function estQualiteBailleur(v: string | null | undefined): v is QualiteBa
   return (QUALITES_BAILLEUR as readonly string[]).includes(v ?? "");
 }
 
+export function estBailleurSociete(qualite: string | null | undefined): boolean {
+  return qualite === "SCI" || qualite === "SCI familiale" || qualite === "Personne morale";
+}
+
 /**
  * Durée d'un bail nu, en années, selon les qualités des bailleurs : 6 ans dès
  * qu'un bailleur est une personne morale autre qu'une SCI familiale ; 3 ans

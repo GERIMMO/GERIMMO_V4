@@ -82,7 +82,7 @@ describe.skipIf(!DB_URL)("Pilotage des dossiers et continuité",()=>{
   await db.query("reset role");await db.query("update public.automation_events set created_at=now()-interval '31 days' where cle_unique=$1",[`quittances:${auto}:premier_envoi`]);await agir(admin);expect((await mesurer()).clics_minimum).toBe(0);
  });
  it("mesure un document sans conserver son titre ou son chemin",async()=>{
-  await agir(null,"aal1","service_role");const doc=await id("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,(select enum_range(null::public.document_type))[1],'Contenu privé','chemin-prive','application/pdf',100,gen_random_uuid()::text) returning id",[org]);
+  await agir(null,"aal1","service_role");const doc=await id("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,(select enum_range(null::public.document_type))[1],'Contenu privé',$1::uuid::text||'/chemin-prive.pdf','application/pdf',100,gen_random_uuid()::text) returning id",[org]);
   const e=(await db.query("select origine,action,details from public.automation_events where cle_unique=$1",[`mesure:documents:${doc}:Document classé`])).rows;expect(e).toEqual([{origine:'automatique',action:'Document classé',details:{source:'resultat_metier'}}]);
  });
  it("prépare un rapport une seule fois après clôture, sans le valider ni l’envoyer",async()=>{

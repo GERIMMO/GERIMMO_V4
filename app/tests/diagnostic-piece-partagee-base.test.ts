@@ -83,7 +83,7 @@ describe.skipIf(!url)("X07 : une pièce de diagnostic partagée entre deux lots,
   it("le même fichier ne peut toujours pas être déposé deux fois (unicité par empreinte conservée)", async () => {
     const message = await echec(
       `insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte)
-       values($1,'diagnostic','Copie','copie.pdf','application/pdf',1234,$2)`, [orgA, "a".repeat(64)]);
+       values($1,'diagnostic','Copie',$1::uuid::text||'/copie.pdf','application/pdf',1234,$2)`, [orgA, "a".repeat(64)]);
     expect(message).toMatch(/documents_empreinte_unique|duplicate key/);
   });
 

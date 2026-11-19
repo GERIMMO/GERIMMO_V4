@@ -30,11 +30,22 @@ const appel = (secret = SECRET) =>
 
 type Ligne = { id: string; storage_path: string; queued_at: string };
 
-function faux(file: Ligne[], opts: { supprimes: string[]; presents?: string[]; bloques?: number; arrete?: boolean; panne?: boolean }) {
+function faux(file: Ligne[], opts: { supprimes: string[]; presents?: string[]; absents?: string[]; refuses?: string[]; erreurReservation?: boolean; bloques?: number; arrete?: boolean; panne?: boolean }) {
   const marques: string[][] = [];
   const retires: string[][] = [];
   const db = {
-    rpc: async (nom: string) => { expect(nom).toBe("verifier_arret_supervision"); return { data: !opts.arrete, error: opts.panne ? { message: "indisponible" } : null }; },
+    rpc: async (nom: string, args: { p_ids?: string[] }) => {
+      if (nom === "reserver_fichiers_purge") {
+        expect(args.p_ids).toEqual(file.map(ligne => ligne.id));
+        return {
+          data: file.filter(ligne => !opts.refuses?.includes(ligne.id))
+            .map(ligne => ({ ...ligne, objet_present: !opts.absents?.includes(ligne.id) })),
+          error: opts.erreurReservation ? { message: "indisponible" } : null,
+        };
+      }
+      expect(nom).toBe("verifier_arret_supervision");
+      return { data: !opts.arrete, error: opts.panne ? { message: "indisponible" } : null };
+    },
     from: (table: string) => {
       if(table === "depots_temporaires") { const q = {select: () => q, lt: () => q, order: () => q, limit: async () => ({data: [], error: null}), then: (resolve: (v: unknown) => void) => Promise.resolve({count: 0, error: null}).then(resolve)}; return q; }
       expect(table).toBe("purge_fichiers");
@@ -105,6 +116,30 @@ describe("tâche de suppression physique des fichiers purgés", () => {
     const bilan = await (await GET(appel())).json();
     expect(mocks.suites).toHaveBeenCalledWith(f.db, expect.objectContaining({ avantEffet: expect.any(Function), avantEffetStripe: expect.any(Function) }));
     expect(bilan).toMatchObject({ courriels_fermeture: 1, echecs: 2 });
+  });
+
+  it("préserve les chemins refusés et n'envoie pas les objets déjà absents à Storage", async () => {
+    vi.stubEnv("CRON_SECRET", SECRET);
+    const file = [
+      { id: "1", storage_path: "org/protege.pdf", queued_at: "2026-11-19T00:00:00Z" },
+      { id: "2", storage_path: "org/absent.pdf", queued_at: "2026-11-19T00:00:00Z" },
+      { id: "3", storage_path: "org/eligible.pdf", queued_at: "2026-11-19T00:00:00Z" },
+    ];
+    const f = faux(file, { supprimes: ["org/eligible.pdf"], refuses: ["1"], absents: ["2"] });
+    mocks.client.mockReturnValue(f.db);
+    expect(await (await GET(appel())).json()).toMatchObject({ traites: 2, refuses: 1, en_attente: 1 });
+    expect(f.retires).toEqual([["org/eligible.pdf"]]);
+    expect(f.marques).toEqual([["2", "3"]]);
+  });
+
+  it("ne touche pas au stockage lorsque la réservation échoue", async () => {
+    vi.stubEnv("CRON_SECRET", SECRET);
+    const f = faux([{ id: "1", storage_path: "org/a.pdf", queued_at: "2026-11-19T00:00:00Z" }],
+      { supprimes: [], erreurReservation: true });
+    mocks.client.mockReturnValue(f.db);
+    expect((await GET(appel())).status).toBe(503);
+    expect(f.retires).toEqual([]);
+    expect(f.marques).toEqual([]);
   });
 
   it("finitions du 24/10 (M1) : les gestes Stripe des suites s'arrêtent aussi avec l'arrêt « Abonnements »", async () => {

@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AlerteFormulaire } from "@/components/alerte-formulaire";
 import Link from "next/link";
 import { LONGUEUR_MAX } from "@/lib/limites-saisie";
-import { QUALITES_BAILLEUR } from "@/lib/qualite-bailleur";
+import { estBailleurSociete, QUALITES_BAILLEUR } from "@/lib/qualite-bailleur";
 import { CHAMP_DOCUMENT_AFFICHE, caseConditions, documentAffiche } from "@/lib/conditions-acceptation";
 
 const CHAMPS_TEXTE_PROFIL = [
@@ -67,7 +67,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
   const espace = ["artisan", "proprietaire_direct"].includes(valeur("espace")) ? valeur("espace") : "invite";
   const [choixQualite, setChoixQualite] = useState<{ pour: typeof etat; valeur: string } | null>(null);
   const qualite = choixQualite?.pour === etat ? choixQualite.valeur : valeur("qualite");
-  const societe = ["SCI", "SCI familiale", "Personne morale"].includes(qualite);
+  const societe = estBailleurSociete(qualite);
   // Plan de conformité du 23/10 (R10, R60) : la case suit l'usage choisi dans la liste — conditions générales pour le
   // propriétaire, conditions de l'espace artisan dès leur publication, règles des espaces invités pour la personne
   // invitée. Le choix fait dans la liste vaut pour la réponse en cours (`pour`) ; une nouvelle réponse du serveur repart
@@ -84,11 +84,13 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
   // de la saisie, lib/revalidation-inscription.ts), avec ou sans script. Un usage qui garde le même texte (artisan et
   // propriétaire tant que les conditions artisans ne sont pas publiées) garde la coche.
   const documentCoche = saisie.cgu === "on" ? documentAffiche(saisie[CHAMP_DOCUMENT_AFFICHE] ?? null) : null;
+  const prenomRequis = espaceAffiche === "proprietaire_direct" && societe;
+  const champsPrincipaux = prenomRequis ? ["nom", "prenom", "raison_sociale"] : ["nom"];
 
   const champsProfil = (champs: readonly (typeof CHAMPS_TEXTE_PROFIL)[number][]) => champs.map(([champ, libelle]) => (
                 <div key={champ} className="space-y-1">
                   <Label htmlFor={`confirmation-${champ}`}>{libelle}</Label>
-                  <Input id={`confirmation-${champ}`} name={champ} required={espaceAffiche === "proprietaire_direct" && (champ === "nom" || (champ === "raison_sociale" && societe))} defaultValue={valeur(champ)} maxLength={champ === "code_parrainage" ? 8 : LONGUEUR_MAX[champ]} {...marque(champ)} />
+                  <Input id={`confirmation-${champ}`} name={champ} required={espaceAffiche === "proprietaire_direct" && champsPrincipaux.includes(champ)} defaultValue={valeur(champ)} maxLength={champ === "code_parrainage" ? 8 : LONGUEUR_MAX[champ]} {...marque(champ)} />
                   {sous(champ)}
                 </div>
               ));
@@ -112,11 +114,12 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
               </label>
               {sous("espace")}
               {espaceAffiche === "proprietaire_direct" ? <>
-                {champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => champ === "nom" || (champ === "raison_sociale" && societe)))}
-                <details open={!!champErreur && !["nom", "cgu", "espace", "mot_de_passe", "confirmation"].includes(champErreur)} className="rounded-lg border px-3">
+                {champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => champsPrincipaux.includes(champ)))}
+                {prenomRequis && <p className="text-xs text-muted-foreground">Votre nom et votre prénom servent à créer votre fiche personnelle. Vous confirmerez votre pouvoir de signature dans chaque bail concerné.</p>}
+                <details open={!!champErreur && ![...champsPrincipaux, "cgu", "espace", "mot_de_passe", "confirmation"].includes(champErreur)} className="rounded-lg border px-3">
                   <summary className="flex min-h-11 cursor-pointer items-center text-sm text-muted-foreground">Coordonnées et parrainage (facultatif)</summary>
                   <p className="mb-3 text-xs text-muted-foreground">Vous pourrez compléter vos coordonnées dans votre espace avant de préparer vos documents.</p>
-                  <div className="space-y-3 pb-3">{champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => !["nom", "raison_sociale"].includes(champ)))}</div>
+                  <div className="space-y-3 pb-3">{champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => champ !== "raison_sociale" && !champsPrincipaux.includes(champ)))}</div>
                 </details>
               </> : champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => champ !== "raison_sociale"))}
               <label className="block space-y-1 text-sm">

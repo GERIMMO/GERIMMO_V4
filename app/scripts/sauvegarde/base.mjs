@@ -29,7 +29,7 @@ import { chiffrer, dechiffrer, lireCle } from './fichiers.mjs';
 import { lancerPsql, exporterTachesPlanifiees, FICHIER_REJEU, FICHIER_TACHES, FICHIER_TACHES_CLAIR, genererRejeu } from './taches-planifiees.mjs';
 
 /** Données, droits et historique des migrations, nécessaires à une reprise sans réappliquer les migrations. */
-export const SCHEMAS = ['public', 'auth', 'storage', 'support_interne', 'consommations_interne', 'gerimmo_session_interne', 'supabase_migrations'];
+export const SCHEMAS = ['public', 'auth', 'storage', 'support_interne', 'consommations_interne', 'gerimmo_session_interne', 'ged_securite_interne', 'supabase_migrations'];
 const LIMITE = 4 * 1024 * 1024 * 1024;
 const empreinte = b => createHash('sha256').update(b).digest('hex');
 
@@ -76,10 +76,14 @@ export async function schemasSource(connexion, psql) {
   const resultat = await lancerPsql(connexion, `select
     exists(select 1 from supabase_migrations.schema_migrations
       where split_part(version, '_', 1) = '20261113022327')::int || ':' ||
-    (to_regnamespace('gerimmo_session_interne') is not null)::int`, psql);
-  if (resultat === '1:1') return SCHEMAS;
-  if (resultat === '0:0') return SCHEMAS.filter(s => s !== 'gerimmo_session_interne');
-  throw new Error('Le schéma privé des sessions et l’historique des migrations divergent. Sauvegarde interrompue.');
+    (to_regnamespace('gerimmo_session_interne') is not null)::int || ':' ||
+    exists(select 1 from supabase_migrations.schema_migrations
+      where split_part(version, '_', 1) = '20261119142934')::int || ':' ||
+    (to_regnamespace('ged_securite_interne') is not null)::int`, psql);
+  const etat = /^([01]):\1:([01]):\2$/.exec(resultat);
+  if (!etat) throw new Error('Les schémas privés des sessions ou des documents divergent de l’historique des migrations. Sauvegarde interrompue.');
+  return SCHEMAS.filter(s => (s !== 'gerimmo_session_interne' || etat[1] === '1')
+    && (s !== 'ged_securite_interne' || etat[2] === '1'));
 }
 
 export async function exporter(dossier, cle, connexion, options = {}) {

@@ -292,6 +292,7 @@ function erreurRest(statut, code, message, details = null, hint = null) {
 }
 function erreurDepuisPg(e) {
   if (e.code === "PT401") return erreurRest(401, e.code, e.message);
+  if (e.code === "PT428") return erreurRest(428, e.code, e.message);
   const statut = e.code === "42501" ? 403 : e.code === "23505" ? 409 : 400;
   return erreurRest(statut, e.code ?? "XX000", e.message, e.detail ?? null, e.hint ?? null);
 }
@@ -705,9 +706,17 @@ async function routerAuth(methode, chemin, url, corps, claims) {
     if (!await sessionLocaleActive(claims)) return { statut: 401, corps: { msg: 'Session expirée' } };
     const resultat = routerMfaLocal(methode, chemin, corps, claims);
     if (resultat.valide) {
+      const id = chemin.split('/')[1];
+      await admin(c => c.query(
+        "insert into auth.mfa_factors(id,user_id,status) values($1,$2,'verified') on conflict(id) do nothing",
+        [id, claims.sub]
+      ));
       const u = await utilisateurParId(claims.sub);
       if (!u) return { statut: 401, corps: { msg: 'Utilisateur disparu' } };
       return { statut: 200, corps: await sessionPour(u, 'aal2', [...(claims.amr ?? []), { method: 'totp', timestamp: Math.floor(Date.now() / 1000) }], claims.session_id) };
+    }
+    if (methode === 'DELETE' && resultat.statut === 200) {
+      await admin(c => c.query('delete from auth.mfa_factors where id=$1 and user_id=$2', [chemin.split('/')[1], claims.sub]));
     }
     return resultat;
   }
@@ -1043,6 +1052,7 @@ const serveur = http.createServer(async (req, res) => {
     // infranchissable (le secret, lui, était perdu).
     if (req.method === "POST" && url.pathname === "/__banc/oublier-facteurs") {
       oublierFacteurs();
+      await admin(c => c.query("delete from auth.mfa_factors"));
       return repondreJson(200, { oublies: true });
     }
     const segments = url.pathname.split("/").filter(Boolean);

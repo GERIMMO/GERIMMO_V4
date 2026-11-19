@@ -344,7 +344,7 @@ describe.skipIf(!DB_URL)("La fenêtre du lot", () => {
         `insert into public.documents (organization_id, type, titre,
            storage_path, mime_type, taille_octets, empreinte)
          values ($1,'autre'::public.document_type,$2,
-           'test/'||gen_random_uuid()||'.pdf','application/pdf',1024,md5($2))
+           $1::uuid::text||'/test/'||gen_random_uuid()||'.pdf','application/pdf',1024,md5($2))
          returning id`,
         [org, titre]
       );
@@ -498,7 +498,7 @@ describe.skipIf(!DB_URL)("La fenêtre du lot", () => {
         `insert into public.documents (organization_id, type, titre,
            storage_path, mime_type, taille_octets, empreinte)
          values ($1,'autre'::public.document_type,'Mandat de gestion',
-           'test/mandat.pdf','application/pdf',1024,md5('m')) returning id`,
+           $1::uuid::text||'/test/mandat.pdf','application/pdf',1024,md5('m')) returning id`,
         [org]
       );
       await db.query(

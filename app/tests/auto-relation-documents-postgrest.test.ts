@@ -51,7 +51,7 @@ describe.skipIf(!local || !baseApi)("auto-relation des versions de documents", (
       const r = await db.query("select u.id, m.organization_id from auth.users u join public.memberships m on m.account_id = u.id where u.email = $1 and m.organization_id is not null limit 1", [DEMO.email]);
       [compte, organisation] = [r.rows[0].id, r.rows[0].organization_id];
       await db.query("insert into auth.sessions(id,user_id) values($1,$2)",[session,compte]);
-      const fichier = (n: string) => [`audit-g02/${n}.pdf`, "application/pdf", 10, n.repeat(64).slice(0, 64)];
+      const fichier = (n: string) => [`${organisation}/audit-g02/${session}/${n}.pdf`, "application/pdf", 10, n.repeat(64).slice(0, 64)];
       await db.query("insert into public.documents(id, organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte) values ($1, $2, 'autre', 'G-02 version 1', $3, $4, $5, $6)", [ids.v1, organisation, ...fichier("a")]);
       await db.query("insert into public.documents(id, organization_id, type, titre, remplace_id, storage_path, mime_type, taille_octets, empreinte) values ($1, $2, 'autre', 'G-02 version 2', $3, $4, $5, $6, $7)", [ids.v2, organisation, ids.v1, ...fichier("b")]);
     } finally { await db.end(); }

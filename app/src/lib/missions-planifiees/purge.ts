@@ -44,23 +44,35 @@ export async function traiterPurge(request: Request) {
     return Response.json({ erreur: "File de suppression illisible." }, { status: 500 });
   }
 
-  const lignes = (enAttente ?? []) as { id: string; storage_path: string; queued_at: string }[];
+  // Une ancienne entrée en file n'est pas une autorisation de suppression.
+  // La base revérifie les références vivantes et l'identité de l'objet, puis
+  // empêche son rattachement pendant l'appel externe et ses éventuelles reprises.
+  const { data: autorises, error: erreurReservation } = enAttente?.length
+    ? await db.rpc("reserver_fichiers_purge", { p_ids: enAttente.map((f) => f.id) })
+    : { data: [], error: null };
+  if (erreurReservation || !Array.isArray(autorises)) {
+    await consignerTache(db, "purge", { erreur: "vérification des fichiers impossible" });
+    return Response.json({ erreur: "Aucun fichier supprimé : vérification indisponible." }, { status: 503 });
+  }
+  const lignes = autorises as { id: string; storage_path: string; objet_present: boolean }[];
+  const refuses = (enAttente ?? []).length - lignes.length;
   let traites = 0;
   let echecs = 0;
   if (lignes.length > 0) {
     await verifierAvantEffet(db, "purge");
-    const { data: supprimes, error: erreurSuppression } = await db.storage
-      .from("documents")
-      .remove(lignes.map((l) => l.storage_path));
+    const presents = lignes.filter((l) => l.objet_present === true);
+    const { data: supprimes, error: erreurSuppression } = presents.length
+      ? await db.storage.from("documents").remove(presents.map((l) => l.storage_path))
+      : { data: [], error: null };
     // L'API ne rend que les objets qu'elle a trouvés et supprimés. Un chemin
     // déjà absent du compartiment n'a plus rien à supprimer : il est soldé
     // aussi, sinon il resterait en file pour toujours.
     const trouves = new Set((supprimes ?? []).map((o) => o.name));
-    const soldes = lignes.filter((l) => trouves.has(l.storage_path)).map((l) => l.id);
+    const soldes = lignes.filter((l) => l.objet_present === false || trouves.has(l.storage_path)).map((l) => l.id);
     if (!erreurSuppression) {
       // Vérifié un par un (et au plus 50 par passe) : seule une réponse sans
       // erreur et sans l'objet vaut « déjà absent ». Dans le doute, on garde.
-      const restants = lignes.filter((l) => !trouves.has(l.storage_path)).slice(0, 50);
+      const restants = presents.filter((l) => !trouves.has(l.storage_path)).slice(0, 50);
       for (const l of restants) {
         const coupe = l.storage_path.lastIndexOf("/");
         const dossier = coupe > 0 ? l.storage_path.slice(0, coupe) : "";
@@ -103,7 +115,7 @@ export async function traiterPurge(request: Request) {
     avantEffet: () => verifierAvantEffet(db, "purge"),
     avantEffetStripe: () => verifierAvantEffet(db, "abonnements"),
   });
-  const bilan = { ...transit, ...comptes, traites, echecs: echecs + (bloques ?? 0) + transit.echecs_transferts + (transit.transferts_bloques ?? 0) + comptes.echecs, bloques: bloques ?? 0, en_attente: lignes.length - traites };
+  const bilan = { ...transit, ...comptes, traites, refuses, echecs: refuses + echecs + (bloques ?? 0) + transit.echecs_transferts + (transit.transferts_bloques ?? 0) + comptes.echecs, bloques: bloques ?? 0, en_attente: (enAttente ?? []).length - traites };
   await consignerTache(db, "purge", bilan);
   return Response.json(bilan);
 }

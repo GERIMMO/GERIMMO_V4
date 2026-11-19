@@ -98,7 +98,7 @@ export function FormulaireMfa({ suite }: { suite: string }) {
         <details className="text-sm"><summary className="cursor-pointer lien-discret">Saisir une clé à la place du QR code</summary><p className="mt-2 break-all rounded bg-muted p-3 font-mono select-all">{inscription.secret}</p><p className="mt-2 text-muted-foreground">Conservez cette clé à l’abri des regards. Elle permet de générer vos codes.</p></details>
       </> : facteurs.length ? <><h2 className="text-lg font-semibold">Entrez le code de votre application</h2><p className="text-sm text-muted-foreground">Ouvrez l’application utilisée lors de la configuration du compte.</p></> : <>
         <h2 className="text-lg font-semibold">Configurer la double authentification</h2>
-        <p className="text-sm text-muted-foreground">Cette étape est nécessaire pour ouvrir la supervision. Elle se termine après validation d’un premier code.</p>
+        <p className="text-sm text-muted-foreground">Validez un premier code pour activer la protection de votre compte.</p>
         <Button type="button" onClick={configurer} disabled={enCours || Boolean(erreur)}>{enCours ? 'Préparation…' : 'Configurer mon application'}</Button>
       </>}
       {(inscription || facteurs.length > 0) && <form data-saisie-libre onSubmit={verifier} className="space-y-4">

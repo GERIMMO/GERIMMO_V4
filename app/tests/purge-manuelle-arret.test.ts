@@ -11,17 +11,26 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 import { lancerPurge } from "../src/app/actions/retention";
 
-function client(retention: unknown) {
+function client(retention: unknown, options: { eligible?: boolean; reprisePermise?: boolean } = {}) {
   const supprimes: string[][] = [];
   const from = vi.fn(() => {
     const q: Record<string, unknown> = {};
     q.select = () => q;
-    q.is = () => Promise.resolve({ data: [{ id: "f1", storage_path: "org/a.pdf" }], error: null });
+    q.is = () => q;
+    q.order = () => q;
+    q.limit = () => Promise.resolve({ data: [{ id: "f1", storage_path: "org/a.pdf" }], error: null });
     q.update = () => ({ in: () => Promise.resolve({ error: null }) });
     return q;
   });
   const storage = { from: () => ({ remove: async (chemins: string[]) => { supprimes.push(chemins); return { data: chemins.map((name) => ({ name })), error: null }; } }) };
-  const rpc = vi.fn(async (nom: string) => nom === "is_super_admin" ? { data: true, error: null } : { data: retention, error: null });
+  const rpc = vi.fn(async (nom: string) => {
+    if (nom === "is_super_admin") return { data: true, error: null };
+    if (nom === "verifier_arret_supervision") return { data: options.reprisePermise !== false, error: null };
+    if (nom === "reserver_fichiers_purge") return {
+      data: options.eligible === false ? [] : [{ id: "f1", storage_path: "org/a.pdf", objet_present: true }], error: null,
+    };
+    return { data: retention, error: null };
+  });
   mocks.createClient.mockResolvedValue({ from, rpc, storage });
   return { supprimes, rpc };
 }
@@ -44,5 +53,11 @@ describe("lancerPurge et l'arrêt d'urgence", () => {
     expect(resultat.erreur).toBeUndefined();
     expect(resultat).toMatchObject({ journaux: { tech_log: 3 }, documents_purges: 2, fichiers_supprimes: 1 });
     expect(c.supprimes).toEqual([["org/a.pdf"]]);
+  });
+
+  it.each([{ eligible: false }, { reprisePermise: false }])("préserve le fichier si la réservation ou le contrôle avant effet refuse %j", async (options) => {
+    const c = client({ documents_purges: 0 }, options);
+    expect((await lancerPurge()).erreur).toMatch(/file est conservée/);
+    expect(c.supprimes).toEqual([]);
   });
 });

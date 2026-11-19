@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { dureeEssai } from "@/lib/tarifs";
 import { CASE_CONDITIONS_CLIENTS } from "@/lib/conditions-acceptation";
+import { estBailleurSociete } from "@/lib/qualite-bailleur";
 
 /**
  * « Que voulez-vous faire ? » — l'écran d'un compte connecté sans aucun espace.
@@ -24,17 +25,22 @@ export function ChoixEspace({
   prenomInitial,
   adresseInitiale,
   qualiteInitiale,
+  raisonSocialeInitiale,
   reprendre = false,
 }: {
   nomInitial?: string;
   prenomInitial?: string;
   adresseInitiale?: { adresse?: string; code_postal?: string; ville?: string };
   qualiteInitiale?: string;
+  raisonSocialeInitiale?: string;
   reprendre?: boolean;
 }) {
   const [ouvert, setOuvert] = useState(reprendre);
   const [etat, action] = useActionState<EtatOuvertureEspace, FormData>(ouvrirEspaceProprietaire, {});
   const v = etat.valeurs ?? {};
+  const qualiteEnvoyee = v.qualite ?? qualiteInitiale ?? "Personne physique";
+  const [choix, setChoix] = useState<{ pour: typeof etat; qualite: string } | null>(null);
+  const societe = estBailleurSociete(choix?.pour === etat ? choix.qualite : qualiteEnvoyee);
 
   return (
     <div className="space-y-3">
@@ -65,8 +71,8 @@ export function ChoixEspace({
           <form data-saisie-libre action={action} className="space-y-3 border-t border-[var(--filet)] pt-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="ouv-prenom">Prénom</Label>
-                <Input id="ouv-prenom" name="prenom" maxLength={100} autoComplete="given-name" defaultValue={v.prenom ?? prenomInitial} />
+                <Label htmlFor="ouv-prenom">Prénom{societe ? " (obligatoire)" : ""}</Label>
+                <Input id="ouv-prenom" name="prenom" required={societe} maxLength={100} autoComplete="given-name" defaultValue={v.prenom ?? prenomInitial} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="ouv-nom">Nom</Label>
@@ -78,7 +84,9 @@ export function ChoixEspace({
               <select
                 id="ouv-qualite"
                 name="qualite"
-                defaultValue={v.qualite ?? qualiteInitiale ?? "Personne physique"}
+                key={qualiteEnvoyee}
+                defaultValue={qualiteEnvoyee}
+                onChange={event => setChoix({ pour: etat, qualite: event.target.value })}
                 className="h-11 w-full rounded-lg border border-input bg-transparent px-3 text-sm"
               >
                 {/* Liste fermée (audit 29/09) : la durée du bail nu en dépend. */}
@@ -90,8 +98,8 @@ export function ChoixEspace({
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="ouv-societe">Nom de la société (si concerné)</Label>
-              <Input id="ouv-societe" name="raison_sociale" maxLength={100} autoComplete="organization" defaultValue={v.raison_sociale} />
+              <Label htmlFor="ouv-societe">Nom de la société{societe ? " (obligatoire)" : " (si concerné)"}</Label>
+              <Input id="ouv-societe" name="raison_sociale" required={societe} maxLength={100} autoComplete="organization" defaultValue={v.raison_sociale ?? raisonSocialeInitiale} />
               <p className="text-xs text-muted-foreground">Pour une SCI, indiquez sa raison sociale : les biens lui seront attribués, et non à son gérant.</p>
             </div>
             <AdresseOuverture prefixe="ouv" valeurs={{ ...adresseInitiale, ...v }} />

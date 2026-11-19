@@ -4,10 +4,11 @@ import { proxy } from '@/proxy';
 const mocks=vi.hoisted(()=>({client:vi.fn()}));
 vi.mock('@supabase/ssr',()=>({createServerClient:mocks.client}));
 beforeEach(()=>vi.clearAllMocks());
-function session(roles=['super_admin'],niveau: string|null='aal1', erreur=false) {
-  const q={select:vi.fn(()=>q),eq:vi.fn(()=>q),then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data:roles.map(role=>({role})),error:null}).then(resolve)};
+function session(roles=['super_admin'],niveau: string|null='aal1', erreur=false, codeApi?: string) {
+  const erreurApi = codeApi ? { code: codeApi } : null;
+  const q={select:vi.fn(()=>q),eq:vi.fn(()=>q),then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data:erreurApi ? null : roles.map(role=>({role})),error:erreurApi}).then(resolve)};
   const mfa={getAuthenticatorAssuranceLevel:vi.fn(async()=>({data:{currentLevel:niveau},error:erreur?{message:'indisponible'}:null}))};
-  mocks.client.mockReturnValue({from:()=>q,rpc:async()=>({data:[{id:"session-fictive",cree_le:new Date().toISOString()}],error:null}),auth:{getUser:async()=>({data:{user:{id:'compte',last_sign_in_at:new Date().toISOString()}}}),mfa}});
+  mocks.client.mockReturnValue({from:()=>q,rpc:async()=>({data:erreurApi ? null : [{id:"session-fictive",cree_le:new Date().toISOString()}],error:erreurApi}),auth:{getUser:async()=>({data:{user:{id:'compte',last_sign_in_at:new Date().toISOString()}}}),mfa}});
   return mfa;
 }
 describe('Accès web à la supervision',()=>{
@@ -35,5 +36,35 @@ describe('Accès web à la supervision',()=>{
     const m=session(['admin_agence','proprietaire']);
     expect((await proxy(new NextRequest('https://gerimmo.test/espaces'))).headers.get('location')).toBeNull();
     expect(m.getAuthenticatorAssuranceLevel).not.toHaveBeenCalled();
+  });
+});
+
+describe('Compte avec un facteur vérifié', () => {
+  it.each(['/espace/proprietaire', '/agence/alpha', '/artisan/agenda', '/locataire/alpha/documents', '/compte'])(
+    'demande le code avant d’ouvrir %s lorsqu’Auth a validé seulement le mot de passe', async chemin => {
+      session([], 'aal1', false, 'PT428');
+      const r = await proxy(new NextRequest('https://gerimmo.test' + chemin));
+      const destination = new URL(r.headers.get('location')!);
+      expect(destination.pathname).toBe('/securite');
+      expect(destination.searchParams.get('suite')).toBe(chemin);
+    }
+  );
+  it('laisse vérifier le code sans lire les données du compte', async () => {
+    session([], 'aal1', false, 'PT428');
+    const r = await proxy(new NextRequest('https://gerimmo.test/securite?suite=/espaces'));
+    expect(r.headers.get('location')).toBeNull();
+    expect(r.status).toBe(200);
+  });
+  it('ne relaie pas une action protégée vers la page de vérification', async () => {
+    session([], 'aal1', false, 'PT428');
+    const r = await proxy(new NextRequest('https://gerimmo.test/compte', { method: 'POST' }));
+    expect(r.status).toBe(303);
+    expect(new URL(r.headers.get('location')!).pathname).toBe('/securite');
+  });
+  it('continue à refuser une session invalide ou expirée', async () => {
+    session([], 'aal1', false, 'PT401');
+    const r = await proxy(new NextRequest('https://gerimmo.test/securite'));
+    expect(r.status).toBe(503);
+    expect(r.headers.get('location')).toBeNull();
   });
 });

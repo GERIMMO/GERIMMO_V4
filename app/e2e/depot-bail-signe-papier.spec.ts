@@ -101,7 +101,7 @@ test("G-01/G-02 : bail signé sur papier — refusé tant que la base bloque, pu
     await expect(db.query("update public.lots set etat='disponible' where id=$1", [lot])).rejects.toThrow(/DPE absent ou expiré/);
     // Un bien ne peut devenir disponible qu’avec les diagnostics valides.
     for (const [type, niveau] of [["dpe", "lot"], ["erp", "bien"]] as const) {
-      const doc = (await db.query("insert into public.documents(organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte) values ($1,'diagnostic',$2,$3,'application/pdf',123,encode(sha256(gen_random_uuid()::text::bytea),'hex')) returning id", [ORG, `${type.toUpperCase()} fictif — essai`, `essai/${type}-${bail}.pdf`])).rows[0].id;
+      const doc = (await db.query("insert into public.documents(organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte) values ($1,'diagnostic',$2,$3,'application/pdf',123,encode(sha256(gen_random_uuid()::text::bytea),'hex')) returning id", [ORG, `${type.toUpperCase()} fictif — essai`, `${ORG}/essai/${type}-${bail}.pdf`])).rows[0].id;
       await db.query("insert into public.diagnostics(organization_id, lot_id, bien_id, type, date_realisation, date_expiration, document_id, classe_dpe) values ($1,$2,$3,$4,current_date - 10, current_date + 150, $5, $6)",
         [ORG, niveau === "lot" ? lot : null, niveau === "bien" ? bien : null, type, doc, type === "dpe" ? "C" : null]);
     }

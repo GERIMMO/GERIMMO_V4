@@ -12,6 +12,7 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET, POST } from "../src/app/api/stripe/webhook/route";
+import { MESSAGE_RECEPTION_STRIPE_INDISPONIBLE } from "../src/lib/stripe";
 
 function appel(corps: string, signature?: string): Request {
   return new Request("https://exemple.fr/api/stripe/webhook", {
@@ -31,31 +32,40 @@ function reglagesComplets() {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
 
 describe("la route refuse plutôt que de s'ouvrir", () => {
-  it("sans les clés Stripe, elle répond 503 — pas 200", async () => {
+  // TEC-3 (19/11/2026) : l'adresse est publique. La réponse ne nomme aucune variable d'environnement ; le motif exact
+  // (celui de `configurationStripe()`, écrit pour le super admin) va au journal du serveur.
+  it.each([
+    ["les deux clés Stripe", { STRIPE_SECRET_KEY: "", STRIPE_WEBHOOK_SECRET: "" }, ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"]],
+    ["le secret du webhook", { STRIPE_WEBHOOK_SECRET: "" }, ["STRIPE_WEBHOOK_SECRET"]],
+  ])("sans %s, elle répond 503 — pas 200 — sans nommer la variable", async (_cas, absentes, nommees) => {
     // 200 dirait à Stripe « c'est réglé ». Si quelqu'un a branché le webhook
     // sans poser les clés, il doit le voir dans son tableau de bord, pas le
     // découvrir au premier client qui paie sans que son compte s'ouvre.
-    vi.stubEnv("STRIPE_SECRET_KEY", "");
-    vi.stubEnv("STRIPE_PRIX_BIEN", "");
-    vi.stubEnv("STRIPE_WEBHOOK_SECRET", "");
+    const journal = vi.spyOn(console, "error").mockImplementation(() => {});
+    reglagesComplets();
+    for (const [nom, valeur] of Object.entries(absentes)) vi.stubEnv(nom, valeur);
     const r = await POST(appel("{}", "t=1,v1=x"));
     expect(r.status).toBe(503);
-    expect(await r.json()).toMatchObject({
-      erreur: expect.stringContaining("STRIPE_SECRET_KEY"),
-    });
+    const corps = await r.json();
+    expect(corps).toEqual({ erreur: MESSAGE_RECEPTION_STRIPE_INDISPONIBLE });
+    expect(JSON.stringify(corps)).not.toMatch(/STRIPE_|SUPABASE|absente|configur/i);
+    for (const nom of nommees) expect(JSON.stringify(journal.mock.calls)).toContain(nom);
   });
 
-  it("sans clé de service, elle répond 503 : elle ne pourrait rien enregistrer", async () => {
+  it("sans clé de service, elle répond 503 : elle ne pourrait rien enregistrer — sans nommer la variable", async () => {
+    const journal = vi.spyOn(console, "error").mockImplementation(() => {});
     reglagesComplets();
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     const r = await POST(appel("{}", "t=1,v1=x"));
     expect(r.status).toBe(503);
-    expect(await r.json()).toMatchObject({
-      erreur: expect.stringContaining("SUPABASE_SERVICE_ROLE_KEY"),
-    });
+    const corps = await r.json();
+    expect(corps).toEqual({ erreur: MESSAGE_RECEPTION_STRIPE_INDISPONIBLE });
+    expect(JSON.stringify(corps)).not.toMatch(/SUPABASE|SERVICE_ROLE|absente/i);
+    expect(JSON.stringify(journal.mock.calls)).toContain("SUPABASE_SERVICE_ROLE_KEY");
   });
 
   it("sans en-tête de signature : 400, et rien n'est lu", async () => {

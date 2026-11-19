@@ -212,18 +212,32 @@ describe("/api/cron/relais?mode=urgences (passage fréquent)", () => {
     expect(m.rpc).not.toHaveBeenCalled();
   });
 
-  it("jeton non configuré en base (migration absente, ligne vide) : « non configuré », rien n'est constaté ni envoyé", async () => {
-    for (const jeton of [null, "", "court"]) {
-      vi.clearAllMocks();
-      brancherPassage({ jeton, urgence: true });
-      vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.com");
-      const fournisseur = fauxFournisseurEmail();
-      vi.stubGlobal("fetch", fournisseur.fetch);
-      const r = await GET(passage(JETON));
-      expect(r.status).toBe(503);
-      expect(await r.json()).toEqual({ erreur: "Le passage des urgences n’est pas configuré.", non_configure: true });
-      expect(appelees()).toEqual(["jeton_declencheur_relais_urgences"]);
-      expect(fournisseur.appels).toEqual([]);
+  // TEC-3 (19/11/2026) : la réponse est celle d'un jeton faux. « Non configuré » se disait à quiconque envoyait un en-tête
+  // Bearer, et renseignait sur l'état de la base ; la cause va au journal du serveur.
+  it("jeton non configuré en base (migration absente, ligne vide) : le refus d'un jeton faux, la cause au journal, rien n'est constaté ni envoyé", async () => {
+    const journal = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      for (const jeton of [null, "", "court"]) {
+        vi.clearAllMocks();
+        brancherPassage({ jeton, urgence: true });
+        vi.stubEnv("GERIMMO_RELAIS_EMAILS", "relais@example.com");
+        const fournisseur = fauxFournisseurEmail();
+        vi.stubGlobal("fetch", fournisseur.fetch);
+        const r = await GET(passage(JETON));
+        brancherPassage({ urgence: true });
+        const faux = await GET(passage(AUTRE_JETON));
+        expect(r.status).toBe(401);
+        expect(r.status).toBe(faux.status);
+        const corps = await r.json();
+        expect(corps).toEqual({ erreur: "Non autorisé." });
+        expect(corps).toEqual(await faux.json());
+        expect(appelees()).toEqual(["jeton_declencheur_relais_urgences", "jeton_declencheur_relais_urgences"]);
+        expect(fournisseur.appels).toEqual([]);
+        expect(journal).toHaveBeenCalledWith(expect.stringContaining("non configuré"));
+        expect(JSON.stringify(journal.mock.calls)).not.toContain(JETON);
+      }
+    } finally {
+      journal.mockRestore();
     }
   });
 

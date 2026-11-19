@@ -2,7 +2,7 @@ import {paiementsInterdits,MESSAGE_PAIEMENT_PILOTE} from "@/lib/verrou-pilote";
 // Réception signée, conservation durable des références et verrou de traitement.
 // Un traitement interrompu reste rejouable ; une livraison concurrente n'est
 // jamais déclarée terminée tant que la première n'a pas abouti.
-import { clientStripe, configurationStripe, lireErreurStripe } from "@/lib/stripe";
+import { clientStripe, configurationStripe, lireErreurStripe, MESSAGE_RECEPTION_STRIPE_INDISPONIBLE } from "@/lib/stripe";
 import { clientDeService } from "@/lib/supabase/service";
 import { executerEvenementStripe } from "@/lib/stripe-file";
 import type Stripe from "stripe";
@@ -32,15 +32,16 @@ export async function POST(request: Request) {
   if (!reglages.pret) {
     // 503 et non 200 : si quelqu'un a branché le webhook sans poser les clés,
     // il doit le voir dans le tableau de bord Stripe, pas le découvrir au
-    // premier client qui paie sans que son compte s'ouvre.
-    return Response.json({ erreur: reglages.motif }, { status: 503 });
+    // premier client qui paie sans que son compte s'ouvre. TEC-3 (19/11/2026) :
+    // l'adresse est publique, la réponse ne nomme donc aucune variable
+    // d'environnement ; le motif exact va au journal du serveur.
+    console.error("[stripe webhook] réception impossible :", reglages.motif);
+    return Response.json({ erreur: MESSAGE_RECEPTION_STRIPE_INDISPONIBLE }, { status: 503 });
   }
   const supabase = clientDeService();
   if (!supabase) {
-    return Response.json(
-      { erreur: "SUPABASE_SERVICE_ROLE_KEY absente : le webhook ne peut rien enregistrer." },
-      { status: 503 }
-    );
+    console.error("[stripe webhook] réception impossible : SUPABASE_SERVICE_ROLE_KEY absente, le webhook ne peut rien enregistrer.");
+    return Response.json({ erreur: MESSAGE_RECEPTION_STRIPE_INDISPONIBLE }, { status: 503 });
   }
 
   const signature = request.headers.get("stripe-signature");

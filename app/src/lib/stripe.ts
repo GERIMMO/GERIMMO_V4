@@ -87,6 +87,13 @@ export function configurationStripe(): Prete | Manque {
   };
 }
 
+/**
+ * Ce que l'adresse PUBLIQUE de réception des événements (api/stripe/webhook) répond quand elle ne peut pas les recevoir
+ * (TEC-3, 19/11/2026). Le motif de `configurationStripe()` nomme les variables d'environnement absentes : il est écrit
+ * pour le super admin et le journal du serveur, jamais pour un appelant anonyme.
+ */
+export const MESSAGE_RECEPTION_STRIPE_INDISPONIBLE = "Réception des événements momentanément indisponible.";
+
 /** Le tarif de ce public, ou la variable qu'il faut poser. */
 export function prixPour(
   config: ConfigStripe,

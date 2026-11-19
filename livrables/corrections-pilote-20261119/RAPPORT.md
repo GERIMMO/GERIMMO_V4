@@ -22,11 +22,11 @@ Aucune fusion, migration de production, publication, ouverture commerciale ni mo
 - D23 : numéro fictif unique et ciblage de la facture dans le détail déplié. **239,68 €**, une seule dépense, date/moyen vus par l'artisan, référence privée non visible. Aucun paiement effectué.
 - SCI : quatre scénarios échouaient avant la migration ; six contrôles SQL réussissent après. Personne physique, SCI, SCI familiale, autre société, nom de société manquant et espace déjà existant couverts.
 
-Résultat local final : **257 tests ciblés distincts réussis** (12 fichiers initiaux : 204 ; 4 fichiers de compatibilité : 53). Les rejeux des mêmes tests ne sont pas additionnés.
+Résultat local final : **260 tests ciblés distincts réussis** (12 fichiers initiaux : 204 ; 4 fichiers de compatibilité : 53 ; manifeste : 3). Les rejeux des mêmes tests ne sont pas additionnés.
 Quatre scénarios Playwright de la recette réussis séparément : accueil, abonnement, D23 et conditions. Aucune assertion supprimée ni scénario désactivé.
 TypeScript et ESLint ciblé : réussis. Captures SCI 390/1440 px dans `preuves/` (Chromium simulé, pas téléphone physique).
 Le banc a subi une interruption locale puis a été rétabli ; les échecs intermédiaires et leurs reprises sont conservés. Une navigation D23 interrompue en développement a réussi au rejeu isolé, sans changer les règles de l'application.
-CI GitHub : résultat attaché à la PR sur le SHA exact ; ne pas assimiler ces validations locales à une CI déjà réussie.
+CI initiale [44505288138](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44505288138), SHA `3acf78163ef0a8fa2fe972c15c3de2df2be0f500` : migrations, PostgREST, concurrence, ESLint et compilation réussis ; suite logique/PDF : 12 818 réussis, 1 échec, 22 ignorés préexistants. Unique échec : la liste attendue de `relais-migrations-manifeste.test.ts` omettait la nouvelle migration SCI. Ajout explicite, sans retirer d'assertion ; les trois tests de ce fichier passent localement. Résultat de la nouvelle CI attaché à la PR sur le SHA exact ; les navigateurs de la première CI n'ont pas été exécutés.
 
 ## Migration et déploiement ultérieur
 

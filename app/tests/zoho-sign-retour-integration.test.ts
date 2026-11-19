@@ -38,8 +38,13 @@ describe.skipIf(!apiUrl)("Retour Zoho → vraie base et stockage fictifs locaux"
   const nativeFetch = globalThis.fetch;
   const id = async(sql:string,params:unknown[]=[])=>String((await db.query(sql,params)).rows[0].id);
   const lire = async()=> (await db.query("select * from public.bail_signature_circuits where id=$1",[circuit])).rows[0];
-  function evenement(operation="RequestCompleted",signatureValide=true) {
-    const body=JSON.stringify({notifications:{operation_type:operation,performed_by_email:"ne-pas-stocker@example.test"},requests:{request_id:requestId,request_status:"completed"}});
+  // Chaque événement de Zoho porte son instant (`performed_at`, en millisecondes) : deux livraisons distinctes n'ont jamais
+  // le même corps. Une livraison identique, elle, n'est traitée qu'une fois par heure (TEC-4) : la base de recette garde ces
+  // clés d'un essai à l'autre, d'où un instant propre à chaque corps fabriqué ici.
+  let instant = Date.now();
+  const corpsEvenement = (operation="RequestCompleted") =>
+    JSON.stringify({notifications:{operation_type:operation,performed_by_email:"ne-pas-stocker@example.test",performed_at:++instant},requests:{request_id:requestId,request_status:"completed"}});
+  function evenement(operation="RequestCompleted",signatureValide=true,body=corpsEvenement(operation)) {
     return new Request("https://example.test/api/zoho-sign/webhook",{method:"POST",body,headers:{"x-zs-webhook-signature":signatureValide?createHmac("sha256",secret).update(body).digest("base64"):"faux"}});
   }
   beforeAll(async()=>{
@@ -131,6 +136,17 @@ describe.skipIf(!apiUrl)("Retour Zoho → vraie base et stockage fictifs locaux"
     const recu=await owner.storage.from("documents").download(chemin);
     expect(recu.error).toBeNull(); expect(createHash("sha256").update(Buffer.from(await recu.data!.arrayBuffer())).digest("hex")).toBe(createHash("sha256").update(pdf).digest("hex"));
     expect((await stranger.storage.from("documents").download(chemin)).error).not.toBeNull();
+  });
+  it("une livraison rejouée à l'identique n'est traitée qu'une fois ; une nouvelle livraison l'est (TEC-4)",async()=>{
+    const body=corpsEvenement("RequestViewed");
+    expect((await recevoir(evenement("RequestViewed",true,body))).status,JSON.stringify(diagnostics)).toBe(200);
+    const lectures=()=>appels.filter(x=>x===`GET /api/v1/requests/${requestId}`).length;
+    expect(lectures()).toBe(1);
+    expect(await (await recevoir(evenement("RequestViewed",true,body))).json()).toEqual({recu:true});
+    expect(lectures()).toBe(1);
+    expect((await recevoir(evenement("RequestViewed"))).status).toBe(200);
+    expect(lectures()).toBe(2);
+    expect((await lire()).verrou_jeton).toBeNull();
   });
   it.each([["rejected","refuse"],["recalled","annule"],["expired","expire"]])("ignore un ancien signal de fin et relit l’état actuel %s",async(distant,local)=>{
     etat=distant; expect((await recevoir(evenement())).status).toBe(200);

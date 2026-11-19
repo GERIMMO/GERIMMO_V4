@@ -292,3 +292,14 @@ export function webhookZohoValide(corps: string, signature: string | null, secre
   const recu = Buffer.from(signature, "utf8"), attendu = Buffer.from(createHmac("sha256", secret).update(corps).digest("base64"));
   return recu.length === attendu.length && timingSafeEqual(recu, attendu);
 }
+
+/**
+ * La clé d'UNE livraison du webhook Zoho Sign (TEC-4, 19/11/2026) : la demande, l'opération et l'empreinte du corps
+ * signé. La signature HMAC prouve l'origine du corps, pas sa fraîcheur : un corps intercepté se rejoue tel quel. La route
+ * ignore une livraison dont la clé a déjà servi dans l'heure (`autoriser_lien_mot_de_passe_cle`, au plus une fois). Deux
+ * événements distincts d'une même demande (consultation, puis signature) n'ont pas le même corps : ils passent tous deux.
+ * Le corps lui-même n'entre pas dans la clé, seulement son empreinte ; la base n'en garde qu'une empreinte à son tour.
+ */
+export function cleLivraisonWebhookZoho(demandeId: string, operation: string, corps: string): string {
+  return `zoho-webhook:${demandeId}:${operation}:${createHash("sha256").update(corps).digest("hex")}`;
+}

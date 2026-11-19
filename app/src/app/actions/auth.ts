@@ -25,7 +25,7 @@ import { valeursDuFormulaire } from "@/lib/formulaires";
 import { classerErreurInscription, MESSAGE_BOITE_MAIL } from "@/lib/inscription";
 import { champTropLong, premierChampTropLong, valeursBornees } from "@/lib/limites-saisie";
 import { envoyerLienMotDePasse, inscrireEtEnvoyerConfirmation } from "@/lib/lien-mot-de-passe";
-import { estBailleurSociete, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
+import { estQualiteBailleur, normaliserQualiteBailleur, refusIdentiteSociete } from "@/lib/qualite-bailleur";
 import { estUuid } from "@/lib/identifiants";
 import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
 import { estPageInvitationLocataire } from "@/lib/invitations-locataire";
@@ -161,10 +161,8 @@ export async function definirNouveauMotDePasse(
     if (!estEspaceInscription(champs.espace)) return refus("Choisissez l’usage de votre compte.", "espace");
     if (champs.espace === "proprietaire_direct" && !champs.nom) return refus("Le nom est obligatoire.", "nom");
     const qualite = qualiteDeLaListe(formData.get("qualite"));
-    if (champs.espace === "proprietaire_direct" && estBailleurSociete(qualite)) {
-      if (!champs.raison_sociale) return refus("Renseignez le nom de votre société, distinct de votre nom.", "raison_sociale");
-      if (!champs.prenom) return refus("Indiquez votre prénom pour créer votre fiche de représentant de la société.", "prenom");
-    }
+    const refusSociete = champs.espace === "proprietaire_direct" ? refusIdentiteSociete(qualite, champs.raison_sociale, champs.prenom) : null;
+    if (refusSociete) return refus(refusSociete.erreur, refusSociete.champ);
     // Plan de conformité du 23/10 (R10, R60) : la case et le document accepté suivent l'usage choisi — conditions
     // clients pour le propriétaire, conditions de l'espace artisan dès leur publication, règles des espaces invités pour
     // la personne invitée (lib/conditions-acceptation.ts).
@@ -284,7 +282,10 @@ export async function inscrireProprietaire(
   const prenom = String(formData.get("prenom") ?? "").trim();
   const nom = String(formData.get("nom") ?? "").trim();
   const raisonSociale = String(formData.get("raison_sociale") ?? "").trim();
-  if (["SCI", "SCI familiale", "Personne morale"].includes(qualiteDeLaListe(formData.get("qualite"))) && !raisonSociale) return { erreur: "Renseignez le nom de votre société, distinct de votre nom.", valeurs };
+  // SCI-4 (audit du 19/11) : le prénom de la personne qui gère la société se demande dès ce formulaire, comme à l'écran
+  // de confirmation (PR #347) ; il n'arrivait qu'à la confirmation, par surprise. Un particulier n'a rien de plus à saisir.
+  const refusSociete = refusIdentiteSociete(qualiteDeLaListe(formData.get("qualite")), raisonSociale, prenom);
+  if (refusSociete) return { erreur: refusSociete.erreur, valeurs };
   if ([...raisonSociale].length > 100) return { erreur: "Le nom de la société est limité à 100 caractères.", valeurs };
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const telephone = String(formData.get("telephone") ?? "").trim();
@@ -427,10 +428,8 @@ export async function ouvrirEspaceProprietaire(
   const raisonSociale = String(formData.get("raison_sociale") ?? "").trim();
   const prenom = String(formData.get("prenom") ?? "").trim();
   const qualite = qualiteDeLaListe(formData.get("qualite"));
-  if (estBailleurSociete(qualite)) {
-    if (!raisonSociale) return { erreur: "Renseignez le nom de votre société, distinct de votre nom.", valeurs };
-    if (!prenom) return { erreur: "Indiquez votre prénom pour créer votre fiche de représentant de la société.", valeurs };
-  }
+  const refusSociete = refusIdentiteSociete(qualite, raisonSociale, prenom);
+  if (refusSociete) return { erreur: refusSociete.erreur, valeurs };
   if ([...raisonSociale].length > 100) return { erreur: "Le nom de la société est limité à 100 caractères.", valeurs };
   if (!nom) return { erreur: "Le nom est obligatoire.", valeurs };
   const coordonnees = adresseOuverture(formData);

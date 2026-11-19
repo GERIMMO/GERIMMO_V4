@@ -81,10 +81,18 @@ export function FormulaireInscription({
               <option value="Personne morale">Autre société</option>
             </select>
           </div>
-          {societe && <div className="space-y-2">
-            <Label htmlFor="raison-sociale">Nom de la société</Label>
-            <Input id="raison-sociale" name="raison_sociale" required maxLength={100} autoComplete="organization" defaultValue={etat.valeurs?.raison_sociale} />
-            <p className="text-xs text-muted-foreground">La société détiendra les biens. Votre nom identifie la personne qui gère son espace ; le pouvoir de signer sera vérifié pour chaque bail.</p>
+          {/* SCI-4 (audit du 19/11) : le prénom de la personne qui gère la société se demande ici, à côté du nom de la
+              société, comme à l'écran de confirmation ; un particulier ne le voit pas et n'a rien de plus à saisir. */}
+          {societe && <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="raison-sociale">Nom de la société</Label>
+              <Input id="raison-sociale" name="raison_sociale" required maxLength={100} autoComplete="organization" defaultValue={etat.valeurs?.raison_sociale} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="prenom">Votre prénom</Label>
+              <Input id="prenom" name="prenom" required maxLength={100} autoComplete="given-name" aria-describedby="aide-societe" defaultValue={etat.valeurs?.prenom} className="min-h-11" />
+            </div>
+            <p id="aide-societe" className="text-xs text-muted-foreground">La société détiendra les biens. Votre prénom et votre nom identifient la personne qui gère la société et son espace ; le pouvoir de signer sera vérifié pour chaque bail.</p>
           </div>}
           <details key={`parrain-${etat.valeurs?.code_parrainage ?? codeParrain ?? ""}`} open={!!(etat.valeurs?.code_parrainage ?? codeParrain)} className="rounded-lg border border-border/70 px-3 text-sm">
             <summary className="flex min-h-11 cursor-pointer items-center text-muted-foreground">Vous avez un code de parrainage ?</summary>

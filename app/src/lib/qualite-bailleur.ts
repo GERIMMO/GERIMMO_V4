@@ -50,6 +50,26 @@ export function estBailleurSociete(qualite: string | null | undefined): boolean 
   return qualite === "SCI" || qualite === "SCI familiale" || qualite === "Personne morale";
 }
 
+export const MESSAGE_RAISON_SOCIALE_REQUISE = "Renseignez le nom de votre société, distinct de votre nom.";
+export const MESSAGE_PRENOM_REPRESENTANT_REQUIS = "Indiquez votre prénom pour créer votre fiche de représentant de la société.";
+
+/**
+ * L'identité exigée pour ouvrir l'espace d'une société (SCI, SCI familiale, autre société) : son nom, et le prénom de la
+ * personne qui la gère — avec son nom, il crée sa fiche de représentant (initialiser_espace_proprietaire le refuse
+ * aussi). Une seule règle pour le formulaire public, l'écran de confirmation et l'ouverture depuis un compte connecté
+ * (audit du 19/11, SCI-4 : seul l'écran de confirmation demandait le prénom). Un particulier n'a rien de plus à saisir.
+ */
+export function refusIdentiteSociete(
+  qualite: string | null | undefined,
+  raisonSociale: string | null | undefined,
+  prenom: string | null | undefined
+): { erreur: string; champ: "raison_sociale" | "prenom" } | null {
+  if (!estBailleurSociete(qualite)) return null;
+  if (!raisonSociale?.trim()) return { erreur: MESSAGE_RAISON_SOCIALE_REQUISE, champ: "raison_sociale" };
+  if (!prenom?.trim()) return { erreur: MESSAGE_PRENOM_REPRESENTANT_REQUIS, champ: "prenom" };
+  return null;
+}
+
 /**
  * Durée d'un bail nu, en années, selon les qualités des bailleurs : 6 ans dès
  * qu'un bailleur est une personne morale autre qu'une SCI familiale ; 3 ans

@@ -127,11 +127,11 @@ describe("inscrireProprietaire", () => {
     expect(mocks.inscrire).toHaveBeenCalledOnce();
   });
 
-  it("ouvre avec les seuls nom, e-mail et statut, sans accepter de conditions à la place de la personne", async () => {
+  it("ouvre avec les seuls nom, prénom, e-mail et statut, sans accepter de conditions à la place de la personne", async () => {
     const f = new FormData();
-    for (const [k,v] of Object.entries({ nom: "Martin", email: "martin@example.invalid", qualite: "SCI", raison_sociale: "SCI du Tilleul" })) f.set(k,v);
+    for (const [k,v] of Object.entries({ nom: "Martin", prenom: "Camille", email: "martin@example.invalid", qualite: "SCI", raison_sociale: "SCI du Tilleul" })) f.set(k,v);
     expect(await inscrireProprietaire({}, f)).toEqual({ message: MESSAGE_BOITE_MAIL });
-    expect(mocks.inscrire.mock.calls[0][0].metadonnees).toMatchObject({ nom: "Martin", qualite: "SCI", raison_sociale: "SCI du Tilleul", adresse: "", telephone: "" });
+    expect(mocks.inscrire.mock.calls[0][0].metadonnees).toMatchObject({ nom: "Martin", prenom: "Camille", qualite: "SCI", raison_sociale: "SCI du Tilleul", adresse: "", telephone: "" });
     expect(mocks.inscrire.mock.calls[0][0].metadonnees.cgu_acceptee_le).toBeUndefined();
   });
 

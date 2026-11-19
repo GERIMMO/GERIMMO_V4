@@ -42,9 +42,8 @@ describe.skipIf(!disponible)('Cinq identités réutilisables : cycle réel en ba
     const preparation = spawnSync(process.execPath, ['e2e/local/preparer-ci.mjs'], { env: { ...process.env, SUPABASE_DB_URL: url.href }, encoding: 'utf8', timeout: 90_000 });
     expect(preparation.status, 'Préparation des seules bases fictives').toBe(0);
     db = new Client({ connectionString: url.href }); await db.connect();
-    // Le banc n'exécute pas GoTrue ni cron ; ces tables permettent de vérifier les retraits.
-    await db.query(`create table auth.mfa_factors(id uuid primary key default gen_random_uuid(), user_id uuid references auth.users(id) on delete cascade);
-      create function cron.unschedule(bigint) returns boolean language sql as $$ delete from cron.job where jobid=$1 returning true $$;
+    // Les facteurs fictifs sont déjà définis par le bootstrap commun.
+    await db.query(`create function cron.unschedule(bigint) returns boolean language sql as $$ delete from cron.job where jobid=$1 returning true $$;
       create function cron.unschedule(text) returns boolean language sql as $$ delete from cron.job where jobname=$1 returning true $$;`);
     const fichier = path.join(dossier, 'env-prive'); writeFileSync(fichier, '', { mode: 0o600 });
     env = { NODE_ENV: 'test', PATH: process.env.PATH, PGHOST: url.hostname, PGPORT: url.port || '5432', PGUSER: decodeURIComponent(url.username), PGPASSWORD: decodeURIComponent(url.password), PGDATABASE: nom,

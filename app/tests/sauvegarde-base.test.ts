@@ -46,14 +46,26 @@ describe("argumentsConnexion", () => {
   });
 });
 
-describe("sauvegarder pendant la transition du contrôle de session", () => {
-  it.each(["0:0", "1:1", "1:0", "0:1"])("compare version et schéma (%s)", async etat => {
-    const psql = path.join(racine, "psql-" + etat.replace(":", "-"));
+describe("sauvegarder avant et après les migrations de sécurité", () => {
+  it.each([
+    ["0:0:0:0", false, false],
+    ["1:1:0:0", true, false],
+    ["1:1:1:1", true, true],
+    ["1:0:0:0", null, null],
+    ["0:1:0:0", null, null],
+    ["1:1:1:0", null, null],
+    ["1:1:0:1", null, null],
+  ] as const)("compare versions et schémas (%s)", async (etat, sessions, documents) => {
+    const psql = path.join(racine, "psql-" + etat.replaceAll(":", "-"));
     await fs.writeFile(psql, `#!/bin/sh\necho '${etat}'\n`, {mode: 0o700});
     const lecture = schemasSource(argumentsConnexion(CONNEXION), psql);
-    if (etat === "1:1") expect(await lecture).toContain("gerimmo_session_interne");
-    else if (etat === "0:0") expect(await lecture).not.toContain("gerimmo_session_interne");
-    else await expect(lecture).rejects.toThrow(/divergent/);
+    if (sessions === null) {
+      await expect(lecture).rejects.toThrow(/divergent/);
+      return;
+    }
+    const schemas = await lecture;
+    expect(schemas.includes("gerimmo_session_interne")).toBe(sessions);
+    expect(schemas.includes("ged_securite_interne")).toBe(documents);
   });
 });
 
@@ -67,11 +79,11 @@ describe("exporter / verifier / extraire", () => {
     // D07 : l'export lit aussi les tâches pg_cron (cron.job) avec psql ; ici un psql de substitution qui répond « aucune tâche »
     // (le détail des tâches est gardé par sauvegarde-taches-planifiees.test.ts).
     const fauxPsql = path.join(racine, "psql");
-    await fs.writeFile(fauxPsql, `#!/bin/sh\ncase "$*" in *m0t-de-passe*) exit 2;; esac\n[ -n "$PGPASSWORD" ] || exit 3\ncase "$*" in *to_regnamespace*) echo 1:1;; *to_regclass*) echo true;; *) echo '[]';; esac\n`, { mode: 0o700 });
+    await fs.writeFile(fauxPsql, `#!/bin/sh\ncase "$*" in *m0t-de-passe*) exit 2;; esac\n[ -n "$PGPASSWORD" ] || exit 3\ncase "$*" in *to_regnamespace*) echo 1:1:1:1;; *to_regclass*) echo true;; *) echo '[]';; esac\n`, { mode: 0o700 });
     const bilan = await exporter(archive, cle, CONNEXION, { commande: enrobage, psql: fauxPsql });
     expect(bilan.octets).toBeGreaterThan(200);
     const m = await verifier(archive, cle);
-    expect(m).toMatchObject({ nature: "base", schemas: ["public", "auth", "storage", "support_interne", "consommations_interne", "gerimmo_session_interne", "supabase_migrations"], taille: bilan.octets, hote: "base.exemple.fr", taches_planifiees: { pg_cron: true, nombre: 0 } });
+    expect(m).toMatchObject({ nature: "base", schemas: ["public", "auth", "storage", "support_interne", "consommations_interne", "gerimmo_session_interne", "ged_securite_interne", "supabase_migrations"], taille: bilan.octets, hote: "base.exemple.fr", taches_planifiees: { pg_cron: true, nombre: 0 } });
     expect(JSON.stringify(m)).not.toMatch(/m0t-de-passe/);
     // Le fichier chiffré ne contient pas le dump en clair.
     const chiffre = await fs.readFile(path.join(archive, "base.dump.gcm"));
@@ -84,6 +96,7 @@ describe("exporter / verifier / extraire", () => {
     expect(dump).toContain('"--schema","supabase_migrations"');
     expect(dump).toContain('"--schema","support_interne"');
     expect(dump).toContain('"--schema","consommations_interne"');
+    expect(dump).toContain('"--schema","ged_securite_interne"');
     expect(dump).toContain('"--no-owner"');
     expect(dump).toContain('"--strict-names"');
     // 27/09 : les droits (GRANT/REVOKE) font partie de la défense et de la copie.

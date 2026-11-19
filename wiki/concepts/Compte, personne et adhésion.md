@@ -51,7 +51,7 @@ la personne physique qui la représente. En pratique, elles ont souvent la même
 de la société naissait donc **sans e-mail ni coordonnées** (constat SCI-2 de
 [[Audit après publication PR 347 — 8c0449c6 — 19 novembre 2026]]).
 
-La correction, préparée le 19/11 sur la branche `claude/corrections-post-pr347`, n'est pas encore publiée :
+La correction est **en production depuis le 19/11/2026 à 23 h 12 UTC** (PR #348) :
 - **Règle d'unicité par nature** : la société et la personne physique peuvent partager une adresse.
   Deux personnes physiques, ou deux sociétés, ne le peuvent toujours pas.
 - **Fiche de la société complète** : elle reçoit l'adresse du compte à la création, puis les coordonnées du profil.
@@ -150,5 +150,5 @@ pièces suivent la personne **dans** l'agence, jamais entre agences.
 >   L'agent a retenu l'unicité par nature décrite plus haut. Aucune source métier ne fonde cette règle : elle est à
 >   confirmer. L'autre voie, refusée, aurait laissé la fiche de la société sans adresse, ou imposé une seconde
 >   adresse à la création.
-> - Elle n'entre en vigueur qu'à la publication de la branche, après application des migrations `20261119200000`
->   à `20261119200300` par le circuit protégé.
+> - Elle est en vigueur depuis le 19/11 à 23 h 12 UTC (migrations `20261119200000` à `20261119200300`). Un retour
+>   arrière est refusé dès qu'une société et son gérant partagent une adresse : il faudra corriger en avant.

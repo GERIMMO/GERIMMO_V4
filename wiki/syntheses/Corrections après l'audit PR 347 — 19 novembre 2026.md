@@ -1,7 +1,7 @@
 ---
 type: synthesis
 tags: [corrections, sci, securite, alerte, locataire, audit]
-status: draft
+status: stable
 created: 2026-11-19
 updated: 2026-11-19
 sources: []
@@ -14,7 +14,8 @@ pouvait l'être et de lister ce qui ne le pouvait pas. Il a choisi quatre lots :
 techniques, alerte de secours.
 
 - **Branche :** `claude/corrections-post-pr347`, partie de la version en production (`8c0449c6`).
-- **État :** poussée **sans PR, sans fusion, sans publication**.
+- **État :** **en production depuis le 19/11 à 23 h 12 UTC** (PR #348, `main` = `be3bf5b0`). Les 4 migrations sont
+  appliquées et la recette n° 53 a réussi.
 - **Rapport complet :** `livrables/corrections-post-pr347-20261119/RAPPORT.md`.
 
 ## Ce qui est corrigé
@@ -68,5 +69,4 @@ Le détail est dans le rapport.
 > [!warning] Points à trancher / contradictions
 > - La règle d'unicité par nature a été choisie par l'agent sur délégation (« fait au mieux »). Elle est à confirmer.
 > - La formulation de la quittance d'une SCI est à valider par un juriste.
-> - Rien n'est en production tant que la branche n'est pas publiée et ses quatre migrations appliquées par le circuit
->   protégé.
+> - La purge des fichiers d'audit et l'alerte du 20/11 restent à constater : le contrôle programmé a été annulé.

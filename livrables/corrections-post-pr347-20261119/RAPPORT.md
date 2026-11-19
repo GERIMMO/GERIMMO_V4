@@ -1,7 +1,13 @@
 # Corrections après l'audit de la PR #347 — 19 novembre 2026
 
 - **Branche :** `claude/corrections-post-pr347`, partie de `main` à `8c0449c6` (la version en production).
-- **État :** poussée sur GitHub, **sans PR, sans fusion, sans publication**. Aucune migration appliquée en production.
+- **État (mise à jour du 19/11, 23 h 30 UTC) :** **publiée en production** par la PR #348, à la demande du dirigeant.
+  - `main` = `be3bf5b0` ;
+  - 4 migrations appliquées à 23 h 09 UTC ;
+  - publication contrôlée réussie à 23 h 12 UTC ;
+  - recette n° 53 réussie, avec nettoyage vérifié.
+
+  Détail en section 8.
 - **Aucune donnée réelle touchée.** Tous les essais ont tourné sur le banc isolé, avec des données fictives.
 
 Ce rapport fait suite à `livrables/audit-pr347-20261119/RAPPORT.md`. Il répond à deux questions : qu'est-ce qui a
@@ -148,3 +154,25 @@ Les captures à 390 px sont dans `captures/`.
 
 Aucun mot de passe, jeton ou secret dans ce rapport, les journaux ou les captures. Comptes et adresses du banc
 fictifs (domaine `example.invalid` ou `exemple.fr`). Aucune donnée personnelle réelle.
+
+---
+
+## 8. Publication (19/11/2026)
+
+| Étape | Résultat |
+|---|---|
+| PR #348, CI sur la tête `bba781a2` | ✅ run 44622626401 |
+| Lecture seule de la production avant fusion | ✅ Ancres des 4 migrations présentes, aucun doublon d'adresse par nature. |
+| Fusion squash au SHA exact | ✅ `main` = `be3bf5b0` |
+| CI de `main` | ✅ run 44628238250 |
+| Simulation des migrations | ❌ **sans effet** (run 44628266944). Elle a buté sur le verrou de la sauvegarde lancée au même moment (« lock timeout »), puis a tout annulé. Erreur d'ordonnancement, pas des migrations. |
+| Sauvegarde à la demande | ✅ run 44628477049, 22 h 31 UTC |
+| Application réelle des 4 migrations | ✅ run 44633587803, 23 h 09 UTC, vérifiée en lecture seule. |
+| Publication contrôlée | ✅ run 44635317531, 23 h 12 UTC. Version `be3bf5b0` servie, 0 erreur d'exécution. |
+| Recette de production avec nettoyage n° 53 | ✅ run 44635613659. 0 compte et 0 espace de recette restants. |
+
+Restent à constater :
+- la purge des 33 fichiers d'audit (20/11, 03 h 40 UTC) ;
+- l'envoi de l'alerte quotidienne (20/11, 04 h 00 UTC).
+
+Le contrôle programmé a été annulé à la demande du dirigeant.

@@ -7447,3 +7447,35 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   - rejeu du lot « finance-dates » ;
   - test du locataire invité.
 - **Rapport** : `livrables/corrections-post-pr347-20261119/`.
+
+## [2026-11-19] deploy | Corrections après l'audit de la PR #347 en production (PR #348)
+- Le dirigeant a demandé la PR, puis la publication (« surveille la PR, publie par la suite »). Il a approuvé dans GitHub
+  les trois passages de l'environnement `gerimmo-production`.
+- PR [#348](https://github.com/GERIMMO/GERIMMO_V4/pull/348) :
+  - CI verte sur la tête `bba781a2` (run 44622626401) ;
+  - avant fusion, lecture seule de la production : ancres des 4 migrations présentes une fois chacune, aucun doublon
+    d'adresse par nature ;
+  - fusion squash au SHA exact → `main` = `be3bf5b0` (22:23Z). CI de `main` verte (run 44628238250, 22:55Z).
+- **Simulation des migrations (run 44628266944) : échec sans effet**, « lock timeout ». La sauvegarde lancée en même
+  temps verrouillait la table `persons` pendant sa copie ; la simulation a tout annulé. Erreur d'ordonnancement de
+  l'agent, pas des migrations.
+- Sauvegarde à la demande réussie (run 44628477049, 22:31Z).
+- **Application réelle des 4 migrations** `20261119200000` → `200300` (run 44633587803), réussie à 23:09Z. Lecture
+  seule ensuite :
+  - 4 versions enregistrées ;
+  - index par nature en place, ancien index retiré ;
+  - `completer_fiche_societe_depuis_profil` présente ;
+  - quittance avec représentant ;
+  - deux recherches par e-mail départagées ;
+  - 0 fonction ouverte à `anon`, 12 tâches pg_cron actives.
+- **Publication contrôlée** (run 44635317531, `dpl_BgrANQM5G5dMrEfrAYu53Q35FTqM`, base compatible avec la version
+  précédente) réussie à 23:12Z :
+  - `/api/sante` sert `be3bf5b0`, base OK ;
+  - pages publiques en 200 ;
+  - 0 erreur d'exécution Vercel depuis 23:11Z.
+- **Recette de production avec nettoyage n° 53** (run 44635613659) réussie à 23:24Z. Purge vérifiée : 0 compte et 0
+  espace de recette restants.
+- Contrôle programmé du 20/11 à 04:15Z **annulé à la demande du dirigeant** : la purge des 33 fichiers d'audit et
+  l'envoi de l'alerte du 20/11 restent à constater.
+- Pause demandée par le dirigeant après la publication.
+

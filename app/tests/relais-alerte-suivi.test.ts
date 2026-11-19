@@ -216,7 +216,10 @@ describe("le bandeau", () => {
 
   it("en défaut : le titre, les précisions et le lien vers l'alerte e-mail du relais", () => {
     const html = rendre(suivre([passage("2026-11-11", "envoye")], paris("2026-11-19", "09:00")));
-    expect(html).toContain('role="alert"');
+    // Région nommée par son titre ; ni `alert` ni `status`, que ces pages réservent au résultat des gestes.
+    expect(html).toContain('aria-labelledby="alerte-quotidienne-titre"');
+    expect(html).toContain('<strong id="alerte-quotidienne-titre">');
+    expect(html).not.toMatch(/role="(alert|status)"/);
     expect(html).toContain('data-etat="en_defaut"');
     expect(html).toContain("L’alerte quotidienne n’est pas partie depuis le 12/11 (8 jours).");
     expect(html).toContain('href="/admin/relais#alerte-email"');

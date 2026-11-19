@@ -511,3 +511,4 @@
 20261117094310_blocage_sessions_compte.sql
 20261117095320_renvoi_invitation_artisan_confirme.sql
 20261118093000_inscription_proprietaire_progressive.sql
+20261119085820_inscription_societe_et_representant.sql

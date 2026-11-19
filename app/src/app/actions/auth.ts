@@ -159,6 +159,7 @@ export async function definirNouveauMotDePasse(
     if (tropLong) return refus(tropLong, CHAMPS_PROFIL_INSCRIPTION.find((champ) => champ === champLong));
     if (!estEspaceInscription(champs.espace)) return refus("Choisissez l’usage de votre compte.", "espace");
     if (champs.espace === "proprietaire_direct" && !champs.nom) return refus("Le nom est obligatoire.", "nom");
+    if (champs.espace === "proprietaire_direct" && ["SCI", "SCI familiale", "Personne morale"].includes(qualiteDeLaListe(formData.get("qualite"))) && !champs.raison_sociale) return refus("Renseignez le nom de votre société, distinct de votre nom.", "raison_sociale");
     // Plan de conformité du 23/10 (R10, R60) : la case et le document accepté suivent l'usage choisi — conditions
     // clients pour le propriétaire, conditions de l'espace artisan dès leur publication, règles des espaces invités pour
     // la personne invitée (lib/conditions-acceptation.ts).
@@ -265,6 +266,9 @@ export async function inscrireProprietaire(
   delete valeurs.confirmation;
   const prenom = String(formData.get("prenom") ?? "").trim();
   const nom = String(formData.get("nom") ?? "").trim();
+  const raisonSociale = String(formData.get("raison_sociale") ?? "").trim();
+  if (["SCI", "SCI familiale", "Personne morale"].includes(qualiteDeLaListe(formData.get("qualite"))) && !raisonSociale) return { erreur: "Renseignez le nom de votre société, distinct de votre nom.", valeurs };
+  if ([...raisonSociale].length > 100) return { erreur: "Le nom de la société est limité à 100 caractères.", valeurs };
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const telephone = String(formData.get("telephone") ?? "").trim();
   const coordonnees = adresseOuverture(formData);
@@ -299,6 +303,7 @@ export async function inscrireProprietaire(
     metadonnees: {
       nom,
       prenom,
+      raison_sociale: raisonSociale,
       espace: "proprietaire_direct",
       telephone,
       adresse,
@@ -402,6 +407,9 @@ export async function ouvrirEspaceProprietaire(
 ): Promise<EtatOuvertureEspace> {
   const valeurs = valeursDuFormulaire(formData);
   const nom = String(formData.get("nom") ?? "").trim();
+  const raisonSociale = String(formData.get("raison_sociale") ?? "").trim();
+  if (["SCI", "SCI familiale", "Personne morale"].includes(qualiteDeLaListe(formData.get("qualite"))) && !raisonSociale) return { erreur: "Renseignez le nom de votre société, distinct de votre nom.", valeurs };
+  if ([...raisonSociale].length > 100) return { erreur: "Le nom de la société est limité à 100 caractères.", valeurs };
   const prenom = String(formData.get("prenom") ?? "").trim();
   if (!nom) return { erreur: "Le nom est obligatoire.", valeurs };
   const coordonnees = adresseOuverture(formData);
@@ -418,6 +426,7 @@ export async function ouvrirEspaceProprietaire(
     data: {
       nom,
       prenom,
+      raison_sociale: raisonSociale,
       ...coordonnees,
       espace: "proprietaire_direct",
       qualite: qualiteDeLaListe(formData.get("qualite")),

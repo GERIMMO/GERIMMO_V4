@@ -178,6 +178,7 @@ describe.skipIf(!CHROMIUM)("/inscription : « Vous louez en tant que » garde le
     await champ("nom").fill("Martin");
     await champ("email").fill(ADRESSE);
     await qualite().selectOption("SCI");
+    await champ("raison_sociale").fill("SCI du Tilleul");
     if (!(await champ("code_parrainage").isVisible())) await page.locator("summary").click();
     await champ("code_parrainage").fill("ABC");
     await envoyer();
@@ -190,6 +191,7 @@ describe.skipIf(!CHROMIUM)("/inscription : « Vous louez en tant que » garde le
     await envoyer();
     expect((await envois())[1]).toMatchObject({ qualite: "SCI", nom: "Martin", code_parrainage: "3FA2B9C0" });
     expect(await qualitesEnregistrees()).toEqual(["SCI"]);
+    expect((await envois())[1].raison_sociale).toBe("SCI du Tilleul");
     expect(await ecran()).toEqual({ qualite: "SCI", nom: "Martin", email: ADRESSE, code: "3FA2B9C0", alerte: TROP_DE_DEMANDES });
   });
 
@@ -198,6 +200,7 @@ describe.skipIf(!CHROMIUM)("/inscription : « Vous louez en tant que » garde le
     await champ("nom").fill("Martin");
     await champ("email").fill(ADRESSE);
     await qualite().selectOption("SCI familiale");
+    await champ("raison_sociale").fill("SCI du Tilleul");
     await envoyer();
     expect(await ecran()).toMatchObject({ qualite: "SCI familiale", alerte: TROP_DE_DEMANDES });
 
@@ -214,12 +217,14 @@ describe.skipIf(!CHROMIUM)("/inscription : « Vous louez en tant que » garde le
 
     // Chaque code est mal formé : l'action refuse sans rien appeler.
     await qualite().selectOption("SCI");
+    await champ("raison_sociale").fill("SCI du Tilleul");
     if (!(await champ("code_parrainage").isVisible())) await page.locator("summary").click();
     await champ("code_parrainage").fill("ABC");
     await envoyer();
     expect(await qualite().inputValue()).toBe("SCI");
 
     await qualite().selectOption("Personne morale");
+    await champ("raison_sociale").fill("SCI du Tilleul");
     await champ("code_parrainage").fill("XYZ");
     await envoyer();
     expect(await qualite().inputValue()).toBe("Personne morale");
@@ -243,7 +248,7 @@ describe.skipIf(!CHROMIUM)("/inscription : « Vous louez en tant que » garde le
   it("sans script : la page rendue par le serveur après l'envoi natif affiche la qualité refusée, et la renverrait telle quelle", async () => {
     // Le vrai refus de l'action (code mal formé : aucun appel à la fabrique), tel que le serveur le rend à la page.
     const envoiNatif = new FormData();
-    const saisie = { nom: "Martin", email: ADRESSE, qualite: "SCI", code_parrainage: "ABC", prenom: "", telephone: "", adresse: "3 rue du Test", code_postal: "69003", ville: "Lyon" };
+    const saisie = { nom: "Martin", email: ADRESSE, qualite: "SCI", raison_sociale: "SCI du Tilleul", code_parrainage: "ABC", prenom: "", telephone: "", adresse: "3 rue du Test", code_postal: "69003", ville: "Lyon" };
     for (const [cle, valeur] of Object.entries(saisie)) envoiNatif.set(cle, valeur);
     const refus = await inscrireProprietaire({}, envoiNatif);
     expect(refus).toMatchObject({ erreur: CODE_MAL_FORME, valeurs: { qualite: "SCI", nom: "Martin" } });

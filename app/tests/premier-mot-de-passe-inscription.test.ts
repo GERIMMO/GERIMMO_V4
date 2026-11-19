@@ -51,7 +51,7 @@ const PROFIL_SAISI = {
   adresse: "3 rue du Test",
   code_postal: "69003",
   ville: "Lyon",
-  qualite: "SCI",
+  qualite: "SCI", raison_sociale: "SCI du Tilleul",
   code_parrainage: "",
 };
 
@@ -108,7 +108,7 @@ beforeEach(() => {
 });
 
 describe("PRO-4 — un refus garde la saisie du profil et la case des conditions, jamais un mot de passe", () => {
-  const SAISIE_RENDUE = { espace: "proprietaire_direct", prenom: "Camille", nom: "Corrigé", telephone: "01 00 00 00 00", adresse: "3 rue du Test", code_postal: "69003", ville: "Lyon", qualite: "SCI", code_parrainage: "", cgu: "on", cgu_document: "conditions_clients" };
+  const SAISIE_RENDUE = { espace: "proprietaire_direct", prenom: "Camille", nom: "Corrigé", telephone: "01 00 00 00 00", adresse: "3 rue du Test", code_postal: "69003", ville: "Lyon", qualite: "SCI", raison_sociale: "SCI du Tilleul", code_parrainage: "", cgu: "on", cgu_document: "conditions_clients" };
 
   it.each([
     ["mot de passe trop court", { mot_de_passe: "court", confirmation: "court" }, undefined, "mot_de_passe"],
@@ -175,7 +175,7 @@ describe("PRO-4 — le formulaire repose la saisie et dit l'erreur au bon champ"
   const refus: EtatNouveauMotDePasse = {
     erreur: "Les deux saisies ne correspondent pas.",
     champ: "confirmation",
-    valeurs: { espace: "artisan", prenom: "Camille", nom: "Corrigé", ville: "Lyon", qualite: "SCI", code_parrainage: "ABCD1234", cgu: "on", cgu_document: "conditions_artisans" },
+    valeurs: { espace: "artisan", prenom: "Camille", nom: "Corrigé", ville: "Lyon", qualite: "SCI", raison_sociale: "SCI du Tilleul", code_parrainage: "ABCD1234", cgu: "on", cgu_document: "conditions_artisans" },
   };
 
   it("avant tout envoi : le profil d'origine, la case jamais cochée d'avance", () => {

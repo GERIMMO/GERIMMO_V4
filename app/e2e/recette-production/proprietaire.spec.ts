@@ -16,8 +16,6 @@ import {
   test,
 } from "./outils";
 
-const MOTIF_IDENTITE =
-  "Le paiement en ligne n'est pas encore ouvert : les mentions légales de l'éditeur sont en cours de publication. Votre essai continue.";
 const MOTIF_PILOTE = "Les nouvelles souscriptions payantes sont fermées pendant le pilote gratuit.";
 
 test.describe("propriétaire direct", () => {
@@ -26,9 +24,10 @@ test.describe("propriétaire direct", () => {
     await page.goto("/espaces");
     await page.waitForURL(new RegExp(`${espaceDe("proprietaire")}(/|\\?|$)`), { timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 1, name: /Bonjour/ })).toBeVisible();
-    // Le chemin du démarrage : présent tant qu'aucun bail n'est actif. Depuis la refonte #264, le propriétaire
-    // lit « Terminer votre première location » ; l'agence garde « Mettre votre premier lot en location ».
-    await expect(page.getByRole("region", { name: /Terminer votre première location|Mettre votre premier (lot|bien) en location/ })).toBeVisible();
+    // Dès le premier bien créé, les étapes restent accessibles dans le volet dédié.
+    const etapes = page.locator('summary').filter({ hasText: 'Les étapes de ma première location' });
+    if (await etapes.count()) await etapes.click();
+    await expect(page.getByRole("region", { name: /Commençons votre première location|Terminer votre première location|Mettre votre premier (lot|bien) en location/ })).toBeVisible();
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(0);
     await retenirSession("proprietaire", context);
   });
@@ -72,25 +71,29 @@ test.describe("propriétaire direct", () => {
     test("« Mon abonnement » affiche le récapitulatif avant paiement et dit si le paiement est ouvert, sans le toucher", async ({ page, surveillance }) => {
       const chemin = `${espaceDe("proprietaire")}/abonnement`;
       expect(await jugerEcran(page, chemin, surveillance)).toEqual([]);
-      // Grille du 28/09 : le récapitulatif avant paiement remplace l'ancien
-      // « Total mensuel » (sans offre à vie ni second bien à créer). Il reste
-      // affiché que le paiement soit ouvert ou non.
+      // Fermé : tarifs informatifs, sans fausse commande. Ouvert : vrai récapitulatif.
       const recap = page.getByRole("region", { name: "Récapitulatif avant paiement", exact: true });
-      await expect(recap).toBeVisible();
-      // Plan du 23/10 (R55) : en franchise de TVA, « Total à payer » sans « TTC » (forme compatible avec l'ancien libellé).
-      await expect(recap).toContainText("Total à payer");
-      await expect(recap).toContainText(/\d.*€/);
+      const tarifs = page.locator(".loc-carte").filter({ has: page.getByRole("heading", { name: "Tarifs à titre d’information" }) });
       const bouton = page.getByRole("button", { name: /Continuer vers le paiement sécurisé/ });
       const pilote = page.getByText(MOTIF_PILOTE, { exact: true });
-      const identite = page.getByText(MOTIF_IDENTITE, { exact: true });
+      // Selon la configuration, la fermeture est expliquée par le pilote,
+      // l'absence du paiement en ligne ou les prérequis contractuels.
+      const indisponible = page.getByText(/^Le paiement en ligne n'est pas encore ouvert/);
       if (process.env.RECETTE_SOUSCRIPTIONS_FERMEES === "1") {
-        await expect(pilote).toBeVisible();
+        await expect(pilote.or(indisponible)).toBeVisible();
+        await expect(tarifs).toBeVisible();
+        await expect(tarifs).toContainText(/Mensuel/);
+        await expect(tarifs).toContainText(/Annuel/);
+        await expect(tarifs).toContainText(/\d.*€/);
+        await expect(recap).toHaveCount(0);
         await expect(bouton).toHaveCount(0);
       } else if (await bouton.count()) {
         await expect(bouton).toBeVisible();
-        await expect(pilote.or(identite)).toHaveCount(0);
+        await expect(recap).toContainText("Total à payer");
+        await expect(recap).toContainText(/\d.*€/);
+        await expect(pilote.or(indisponible)).toHaveCount(0);
       } else {
-        await expect(pilote.or(identite)).toBeVisible();
+        await expect(pilote.or(indisponible)).toBeVisible();
       }
       // Aucun clic, dans aucun des deux états : le bouton part vers le paiement Stripe.
       expect(await debordementHorizontal(page)).toBeLessThanOrEqual(0);

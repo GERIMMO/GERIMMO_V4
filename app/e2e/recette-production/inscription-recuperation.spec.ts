@@ -37,12 +37,8 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
   await db.connect();
   try {
     await page.goto("/inscription");
-    await saisir(page.getByLabel("Prénom", { exact: false }), "Camille");
-    await saisir(page.getByLabel("Nom", { exact: true }), nom);
+    await saisir(page.getByLabel("Votre nom", { exact: true }), nom);
     await saisir(page.getByLabel("Adresse e-mail"), email);
-    await saisir(page.getByLabel("Adresse postale", { exact: false }), "3 rue du Test");
-    await saisir(page.getByLabel("Code postal", { exact: false }), "69003");
-    await saisir(page.getByLabel("Ville", { exact: false }), "Lyon");
     // L'adresse est confirmée avant le choix du mot de passe et des conditions.
     await expect(page.locator('input[type="password"]')).toHaveCount(0);
     await expect(page.locator('input[name="cgu"]')).toHaveCount(0);
@@ -52,7 +48,7 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
     // Le jeton est l'empreinte que `generateLink` a posée en base : exactement
     // le `token_hash` que porte l'e-mail de Gerimmo. Un jeton `pkce_…` dirait
     // que l'ancien parcours (Supabase envoie) est revenu : refus.
-    const lien = async (colonne: "confirmation_token" | "recovery_token", type: "signup" | "recovery", next: string, bouton: string) => {
+    const lien = async (colonne: "confirmation_token" | "recovery_token", type: "signup" | "recovery", next: string, bouton: string | RegExp) => {
       let empreinte = "";
       await expect(async () => {
         const r = await db.query(`select ${colonne} as token from auth.users where email=$1 and coalesce(raw_user_meta_data->'profil_a_confirmer'->>'nom', raw_user_meta_data->>'nom')=$2`, [email, nom]);
@@ -64,15 +60,15 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
       // La page du bouton : le jeton n'a pas été consommé à l'ouverture.
       await cliquer(page.getByRole("button", { name: bouton, exact: true }));
     };
-    await lien("confirmation_token", "signup", "/espaces", "Confirmer mon adresse");
+    await lien("confirmation_token", "signup", "/espaces", /Confirmer mon adresse|Choisir mon mot de passe/);
     await expect(page).toHaveURL(/\/nouveau-mot-de-passe/);
     await expect(page.getByLabel("Vous utilisez Gerimmo pour")).toHaveValue("proprietaire_direct");
     await expect(page.getByLabel("Nom", { exact: true })).toHaveValue(nom);
-    await expect(page.getByLabel("Prénom", { exact: true })).toHaveValue("Camille");
+    await expect(page.getByLabel("Prénom", { exact: true })).toHaveValue("");
     await page.getByLabel("Nouveau mot de passe", { exact: true }).fill(c.motDePasse);
     await page.getByLabel("Confirmation", { exact: true }).fill(c.motDePasse);
     await page.getByRole("checkbox", { name: /accepte les conditions/ }).check();
-    await cliquer(page.getByRole("button", { name: "Changer le mot de passe", exact: true }));
+    await cliquer(page.getByRole("button", { name: "Créer mon espace", exact: true }));
     // Relevé du 23/10 (PRO-5) : le premier choix garde la session ouverte et mène droit à l'espace, sans repasser par
     // la connexion. Décision D27 : l'espace du propriétaire direct qui vient de s'inscrire est /espace/<id>.
     await page.waitForURL(/\/espace\/[a-f0-9-]{36}/, { timeout: 30_000 });

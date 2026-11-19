@@ -48,10 +48,14 @@ for (const chemin of PAGES_FACULTATIVES) {
     // connaît pas comme publique vers /connexion — ce n'est pas une page.
     const reponse = await request.get(chemin, { maxRedirects: 0 });
     const cible = reponse.headers()["location"] ?? "";
-    test.skip(
-      reponse.status() === 404 || (reponse.status() >= 300 && reponse.status() < 400 && cible.includes("/connexion")),
-      `${chemin} n'existe pas comme page publique sur ce site`,
-    );
+    if (reponse.status() === 404 || (reponse.status() >= 300 && reponse.status() < 400 && cible.includes("/connexion"))) {
+      // L'ancienne adresse n'est pas publiée : vérifier le vrai lien contractuel.
+      await page.goto('/inscription');
+      const conditions = page.getByRole('link', { name: /conditions générales/ });
+      await expect(conditions).toHaveAttribute('href', '/conditions');
+      expect(await jugerEcran(page, '/conditions', surveillance)).toEqual([]);
+      return;
+    }
     const defauts = await jugerEcran(page, chemin, surveillance);
     expect(defauts, `Défauts relevés sur ${chemin}`).toEqual([]);
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(0);

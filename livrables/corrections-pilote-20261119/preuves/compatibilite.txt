@@ -1,0 +1,58 @@
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 [candidat local]/app
+
+ ✓  parallele  tests/souscription-patrimoine-mixte-base.test.ts (1 test) 205ms
+stdout | tests/essai-deux-mois.test.ts
+◇ injected env (0) from .env.local // tip: ⌘ override existing { override: true }
+
+ ✓  parallele  tests/essai-deux-mois.test.ts (37 tests) 149ms
+stdout | tests/sprint9a-proprietaire-direct.test.ts
+◇ injected env (0) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+ ❯  parallele  tests/sprint9a-proprietaire-direct.test.ts (7 tests | 1 failed) 318ms
+     × ouvre sans coordonnées et conserve une fiche à compléter, sans adresse inventée 15ms
+     ✓ inscription : organisation en essai de 2 mois, adhésion et fiche du propriétaire — idempotente 18ms
+     ✓ inscription : refusée sans nom, et pour un anonyme 5ms
+     ✓ le type d'organisation reste « agence » par défaut ; seul le SA touche statut, type et essai 19ms
+     ✓ exclusivité PD/PM : un mandant d'agence ne s'inscrit pas en direct, et un PD ne devient pas mandant 34ms
+     ✓ bout en bout : bien → locataire → bail → loyer encaissé sans honoraires → clôture → récapitulatif fiscal 196ms
+     ✓ isolation : un propriétaire direct ne voit rien d'une agence, et réciproquement 13ms
+ ✓  parallele  tests/formulaires-auth-focus-titres.test.ts (8 tests) 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL   parallele  tests/sprint9a-proprietaire-direct.test.ts > Sprint 9a — propriétaire direct > ouvre sans coordonnées et conserve une fiche à compléter, sans adresse inventée
+error: Renseignez le nom de votre société (100 caractères au plus), distinct de votre nom.
+ ❯ ../../revue-pr287/app/node_modules/pg/lib/client.js:694:17
+ ❯ ouvrirEspace tests/sprint9a-proprietaire-direct.test.ts:79:9
+     77|     const {
+     78|       rows: [{ org }],
+     79|     } = await db.query(`select public.initialiser_espace_proprietaire(…
+       |         ^
+     80|     return org;
+     81|   }
+ ❯ tests/sprint9a-proprietaire-direct.test.ts:85:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  1 failed | 52 passed (53)
+   Start at  11:17:40
+   Duration  1.57s (transform 140ms, setup 33ms, import 324ms, tests 679ms, environment 0ms)
+

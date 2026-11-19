@@ -1,0 +1,61 @@
+
+Running 4 tests using 1 worker
+
+  ✓  1 [recette-mobile] › e2e/recette-production/proprietaire.spec.ts:70:9 › propriétaire direct › avec sa session › « Mon abonnement » affiche le récapitulatif avant paiement et dit si le paiement est ouvert, sans le toucher (8.1s)
+  ✓  2 [recette-mobile] › e2e/recette-production/public.spec.ts:46:7 › page publique facultative /cgu : recettée si elle existe (5.4s)
+  ✘  3 [recette-connexion] › e2e/recette-production/proprietaire.spec.ts:22:7 › propriétaire direct › se connecte et voit le parcours de démarrage @sans-trace (24.9s)
+  ✘  4 [recette-parcours-metier] › e2e/recette-production/reglement-facture.spec.ts:7:7 › règlement déclaré par le gérant et lu par l’artisan › D23 : déclaration, dépense unique et date/moyen visibles sans la référence privée @parcours-metier (24.4s)
+
+
+  1) [recette-connexion] › e2e/recette-production/proprietaire.spec.ts:22:7 › propriétaire direct › se connecte et voit le parcours de démarrage @sans-trace 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('region', { name: /Commençons votre première location|Terminer votre première location|Mettre votre premier (lot|bien) en location/ })
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('region', { name: /Commençons votre première location|Terminer votre première location|Mettre votre premier (lot|bien) en location/ }) with timeout 20000ms
+      - waiting for getByRole('region', { name: /Commençons votre première location|Terminer votre première location|Mettre votre premier (lot|bien) en location/ })
+
+
+      27 |     // Le chemin du démarrage : présent tant qu'aucun bail n'est actif. Depuis la refonte #264, le propriétaire
+      28 |     // lit « Terminer votre première location » ; l'agence garde « Mettre votre premier lot en location ».
+    > 29 |     await expect(page.getByRole("region", { name: /Commençons votre première location|Terminer votre première location|Mettre votre premier (lot|bien) en location/ })).toBeVisible();
+         |                                                                                                                                                                         ^
+      30 |     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(0);
+      31 |     await retenirSession("proprietaire", context);
+      32 |   });
+        at [candidat local]/app/e2e/recette-production/proprietaire.spec.ts:29:169
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    e2e/recette-production/.resultats/essais/proprietaire-propriétaire--e4def-it-le-parcours-de-démarrage-recette-connexion/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: e2e/recette-production/.resultats/essais/proprietaire-propriétaire--e4def-it-le-parcours-de-démarrage-recette-connexion/error-context.md
+
+  2) [recette-parcours-metier] › e2e/recette-production/reglement-facture.spec.ts:7:7 › règlement déclaré par le gérant et lu par l’artisan › D23 : déclaration, dépense unique et date/moyen visibles sans la référence privée @parcours-metier 
+
+    Error: Session éphémère du chantier autonome absente.
+
+       at outils.ts:163
+
+      161 |     // Préparée hors du test runner, sans enregistrement de mot de passe/MFA.
+      162 |     const brute = process.env[`RECETTE_SESSION_${persona.toUpperCase()}`];
+    > 163 |     if (!brute || process.env.RECETTE_AUTONOME !== "1") throw new Error("Session éphémère du chantier autonome absente.");
+          |                                                               ^
+      164 |     const session = JSON.parse(Buffer.from(brute, "base64").toString("utf8")) as EtatSession;
+      165 |     if (!Array.isArray(session.cookies) || !Array.isArray(session.origins)) throw new Error("Session de recette invalide.");
+      166 |     return session;
+        at ouvrirSession ([candidat local]/app/e2e/recette-production/outils.ts:163:63)
+        at contextePersona ([candidat local]/app/e2e/recette-production/outils.ts:194:74)
+        at [candidat local]/app/e2e/recette-production/reglement-facture.spec.ts:48:42
+
+    Error Context: e2e/recette-production/.resultats/essais/reglement-facture-règlemen-c4723-es-sans-la-référence-privée-recette-parcours-metier/error-context.md
+
+  2 failed
+    [recette-connexion] › e2e/recette-production/proprietaire.spec.ts:22:7 › propriétaire direct › se connecte et voit le parcours de démarrage @sans-trace 
+    [recette-parcours-metier] › e2e/recette-production/reglement-facture.spec.ts:7:7 › règlement déclaré par le gérant et lu par l’artisan › D23 : déclaration, dépense unique et date/moyen visibles sans la référence privée @parcours-metier 
+  2 passed (1.1m)

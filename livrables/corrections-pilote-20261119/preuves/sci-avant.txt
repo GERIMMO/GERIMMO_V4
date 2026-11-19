@@ -1,0 +1,76 @@
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+[MIXED_EXPORTS] Entry module "vitest.config.ts" is using named (including "FICHIERS_EN_SERIE", "default") and default exports together. Consumers of your bundle will have to use `chunk.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning.
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 [candidat local]/app
+
+ ❯  parallele  tests/inscription-societe-base.test.ts (6 tests | 4 failed) 256ms
+     ✓ conserve le particulier comme seul titulaire et deux mois calendaires 190ms
+     × SCI : société, gérant disponible, bien attribué à la société, aucun pouvoir inventé 10ms
+     × SCI familiale : société, gérant disponible, bien attribué à la société, aucun pouvoir inventé 4ms
+     × Personne morale : société, gérant disponible, bien attribué à la société, aucun pouvoir inventé 4ms
+     × refuse une société sans raison sociale, sans créer un patrimoine attribué au gérant 4ms
+     ✓ ne modifie aucune identité d’un espace déjà ouvert lorsque les métadonnées changent 11ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL   parallele  tests/inscription-societe-base.test.ts > Inscription : société titulaire et représentant distincts > SCI : société, gérant disponible, bien attribué à la société, aucun pouvoir inventé
+ FAIL   parallele  tests/inscription-societe-base.test.ts > Inscription : société titulaire et représentant distincts > SCI familiale : société, gérant disponible, bien attribué à la société, aucun pouvoir inventé
+ FAIL   parallele  tests/inscription-societe-base.test.ts > Inscription : société titulaire et représentant distincts > Personne morale : société, gérant disponible, bien attribué à la société, aucun pouvoir inventé
+AssertionError: expected [ { …(4) } ] to have a length of 2 but got 1
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ tests/inscription-societe-base.test.ts:34:23
+     32|     const uid=await inscription(qualite,'SCI du Tilleul');const org=aw…
+     33|     const personnes=(await db.query('select id,nom,qualite,account_id …
+     34|     expect(personnes).toHaveLength(2);
+       |                       ^
+     35|     const gerant=personnes.find(p=>p.nom==='Martin'),societe=personnes…
+     36|     expect(gerant).toMatchObject({qualite:'Personne physique',account_…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL   parallele  tests/inscription-societe-base.test.ts > Inscription : société titulaire et représentant distincts > refuse une société sans raison sociale, sans créer un patrimoine attribué au gérant
+AssertionError: promise resolved "'c102b13c-dea8-47aa-933d-39b8a0c0a76b'" instead of rejecting
+
+- Expected:
+Error {
+  "message": "rejected promise",
+}
+
++ Received:
+"c102b13c-dea8-47aa-933d-39b8a0c0a76b"
+
+ ❯ tests/inscription-societe-base.test.ts:47:52
+     45|   });
+     46|   it('refuse une société sans raison sociale, sans créer un patrimoine…
+     47|     await inscription('SCI');await expect(ouvrir()).rejects.toThrow(/n…
+       |                                                    ^
+     48|   });
+     49|   it('ne modifie aucune identité d’un espace déjà ouvert lorsque les m…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 2 passed (6)
+   Start at  10:03:43
+   Duration  445ms (transform 28ms, setup 19ms, import 50ms, tests 256ms, environment 0ms)
+

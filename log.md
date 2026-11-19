@@ -7391,3 +7391,28 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
   - `index.md`.
 - **Rapport** : `livrables/audit-complet-20261119/`.
 - **Reste à constater le 20/11** : purge des 26 fichiers à 03 h 40 UTC et envoi de l'alerte à 04 h 00 UTC.
+
+## [2026-11-19] audit | Audit après publication de la PR #347 (version 8c0449c6)
+- **Demandé par** : le dirigeant, après la publication de la PR #347. Ventes fermées.
+- **Corrections vérifiées** :
+  - **SEC-1** (provenance des documents, conservation, purge de nuit et purge manuelle) : banc isolé, sondes en
+    transactions annulées, et production (0 document hors de son organisation, téléchargements entre espaces
+    refusés) ;
+  - **double authentification** : production, vrai service d'authentification (mot de passe seul → `/securite` et
+    API 428 ; code faux refusé ; code juste ; déconnexion 401 ; locataire sans régression) ;
+  - **SCI** : production, de l'inscription à la quittance (prénom exigé, représentant enregistré avec son
+    justificatif).
+- **Autres vérifications** :
+  - recette n° 52 réussie ;
+  - suite navigateur 282/282 hors 3 tests ignorés ;
+  - sonde des 420 fonctions sans contournement ;
+  - aucune erreur serveur depuis la publication.
+- **Reste** :
+  - SCI-2 : fiche de la société sans coordonnées (P2) ;
+  - P2 commerciaux inchangés ;
+  - alerte du dirigeant et purge des 33 fichiers à constater le 20/11.
+- **Verdicts** : GO particuliers ; GO SCI avec accompagnement ; NO GO abonnements payants.
+- **Pages créées ou modifiées** :
+  - [[Audit après publication PR 347 — 8c0449c6 — 19 novembre 2026]] ;
+  - `index.md`.
+- **Rapport** : `livrables/audit-pr347-20261119/`.

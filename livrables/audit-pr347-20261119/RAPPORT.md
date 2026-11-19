@@ -177,8 +177,8 @@ rapport à jour.
 | Suite | Résultat |
 |---|---|
 | Tests de la PR (10 fichiers : SEC-1, purges, double authentification, inscription SCI…) | **97 réussis, 3 ignorés** (ils exigent un PostgREST réel, absent du banc), 0 échec |
-| Suite navigateur complète (banc fidèle à la CI) | _voir ci-dessous_ |
-| Sonde des fonctions SECURITY DEFINER (propriétaire étranger, locataire) | _voir ci-dessous_ |
+| Suite navigateur complète (banc fidèle à la CI) | **282 réussis, 0 échec, 3 ignorés**, en 10,3 min. Elle inclut le changement de mot de passe et le cycle du second facteur (activation, reconnexion, code faux, code juste, retrait). |
+| Sonde des 420 fonctions SECURITY DEFINER, sous deux profils : un propriétaire étranger visant Alpha, et un locataire visant la gestion d'Alpha | **Aucun contournement.** Les retours non vides sont tous les propres données de l'appelant ou des tarifs publics. Le locataire est refusé sur toutes les actions de gestion. La nouvelle fonction `reserver_fichiers_purge` refuse les deux profils. |
 
 ---
 

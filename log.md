@@ -7372,3 +7372,22 @@ Premiers contrôles : types et lint ciblé réussis ; 14 tests locaux réussis, 
 - Recette n° 50 (44476817457) : 63 réussis, 4 échecs (tests non alignés sur la PR #345), purge vérifiée.
 - Verdict : **GO** pour les particuliers ; P1-1 SCI et P1-2 relais à corriger ; inscription réelle à vérifier avec une vraie boîte.
 - Purge : base revenue à l'identique ; 19 fichiers en file `purge_fichiers` (tâche de 03 h 40 UTC), contrôle programmé le 20/11.
+
+## [2026-11-19] audit | Audit indépendant complet avant lancement (version 341b770f, PR #346)
+- **Demandé par** : le dirigeant, après la publication des PR #345 et #346. Ventes fermées.
+- **Vérifié** :
+  - version servie, CI, migrations, tâches et configuration (lecture seule) ;
+  - recette n° 51 réussie ;
+  - parcours SCI complet en production avec un compte fictif, purgé ensuite (7 fichiers en file de purge) ;
+  - bancs isolés à 341b770f : tests unitaires et navigateur, sonde des 419 fonctions SECURITY DEFINER, sondes de
+    chemin de fichier.
+- **Constats** :
+  - aucun P0 ;
+  - P1 : SEC-1 (fiche de document visant le fichier d'un autre espace), SCI-1 (représentant refusé faute de prénom),
+    OPS-1 (alerte du dirigeant en échec du 12/11 au 19/11, destinataire corrigé le 19/11).
+- **Verdicts** : GO particuliers sous conditions ; NO GO SCI avant correctif ; NO GO vente payante.
+- **Pages créées ou modifiées** :
+  - [[Audit indépendant complet avant lancement — 341b770f — 19 novembre 2026]] ;
+  - `index.md`.
+- **Rapport** : `livrables/audit-complet-20261119/`.
+- **Reste à constater le 20/11** : purge des 26 fichiers à 03 h 40 UTC et envoi de l'alerte à 04 h 00 UTC.

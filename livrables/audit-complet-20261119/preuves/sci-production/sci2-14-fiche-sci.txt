@@ -1,0 +1,41 @@
+Personnes
+
+Coordonnées, justificatifs et baux : retrouvez toutes vos fiches au même endroit.
+
+Créer une fiche
+Filtrer les fiches
+
+3 fiches enregistrées
+
+Toutes les fiches
+3
+Locataires
+0
+Garants
+0
+Propriétaires
+1
+Sans bail en cours
+2
+Toutes les fiches
+3 fiches
+G
+Gérante-Audit
+Sans bail en cours
+delivered+audit-sci-341b-20261119@resend.dev
+Téléphone non renseigné
+Voir la fiche
+LN
+Locataire-Audit Noé
+Sans bail en cours
+delivered+audit-sci341b-loc-20261119@resend.dev
+Téléphone non renseigné
+Voir la fiche
+S
+SCI Audit Tilleuls 341B
+Propriétaire
+Email non renseigné
+Téléphone non renseigné
+Voir la fiche
+
+Les rôles « Locataire » et « Garant » correspondent aux baux en cours. Vos autres fiches restent disponibles pour un prochain bail.

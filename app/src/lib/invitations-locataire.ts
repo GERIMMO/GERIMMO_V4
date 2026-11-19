@@ -20,6 +20,16 @@ export function suiteInvitationLocataire(invitationId: string): string {
   return `/nouveau-mot-de-passe?suite=${encodeURIComponent(`/invitations/${invitationId}`)}`;
 }
 
+const PAGE_INVITATION_LOCATAIRE = /^\/invitations\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Vrai pour la page de réponse d'une invitation de locataire (`/invitations/<uuid>`), destination du lien de l'e-mail
+ * d'invitation (`suiteInvitationLocataire`) : le mot de passe choisi depuis ce lien est un premier choix (UX-1, 19/11/2026).
+ */
+export function estPageInvitationLocataire(chemin: string): boolean {
+  return PAGE_INVITATION_LOCATAIRE.test(chemin);
+}
+
 /** Une relance automatique, telle que la fiche personne la lit (table `relances_invitations_locataires`). */
 export type RelanceInvitation = {
   invitation_id: string;

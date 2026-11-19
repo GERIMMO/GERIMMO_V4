@@ -41,6 +41,7 @@ import PageNouveauMotDePasse from "../src/app/nouveau-mot-de-passe/page";
 import { ACTIVITY_COOKIE } from "../src/lib/session-policy";
 import { autorisationNouveauMotDePasse } from "../src/lib/autorisation-nouveau-mot-de-passe";
 import { caseConditions } from "../src/lib/conditions-acceptation";
+import { estPageInvitationLocataire } from "../src/lib/invitations-locataire";
 
 const MOT_DE_PASSE = "recette-premier-choix-1";
 const PROFIL_SAISI = {
@@ -348,10 +349,10 @@ describe("PRO-5, suite — le premier choix referme la porte du lien : la sessio
    * ni à la session ni à son `amr` (comme GoTrue) ; `signInWithPassword` ouvre une session « password » qui devient celle
    * du navigateur (les cookies sont réécrits) ; `signOut` ferme selon sa portée.
    */
-  function authAvecSessions() {
+  function authAvecSessions(metadonneesInitiales: Record<string, unknown> = { profil_a_confirmer: { nom: "Initial", espace: "proprietaire_direct" } }) {
     const maintenant = () => Math.floor(Date.now() / 1000);
     const clic = maintenant() - 60;
-    let metadonnees: Record<string, unknown> = { profil_a_confirmer: { nom: "Initial", espace: "proprietaire_direct" } };
+    let metadonnees: Record<string, unknown> = { ...metadonneesInitiales };
     let motDePasseDuCompte = "provisoire-que-personne-ne-connait";
     type Session = { amr: { method: string; timestamp: number }[] };
     const sessions = new Map<string, Session>([["lien", { amr: [{ method: "otp", timestamp: clic }] }]]);
@@ -457,5 +458,97 @@ describe("PRO-5, suite — le premier choix referme la porte du lien : la sessio
     expect(auth.signInWithPassword).not.toHaveBeenCalled();
     expect(auth.signOut).toHaveBeenCalledWith();
     expect(mocks.supprimerCookie).toHaveBeenCalledWith(ACTIVITY_COOKIE);
+  });
+
+  /**
+   * UX-1 (relevé de production du 19/11/2026) — la personne invitée comme locataire. Le lien de l'e-mail d'invitation
+   * (type recovery, next=/nouveau-mot-de-passe?suite=/invitations/<id>) ouvrait le choix du mot de passe, puis renvoyait
+   * vers /connexion?raison=mot-de-passe-modifie&suite=/invitations/<id> : il fallait ressaisir le mot de passe qu'on
+   * venait de choisir avant de pouvoir accepter. Son compte n'a pas de profil à confirmer ; c'est la suite qui la
+   * reconnaît. Même issue que le premier choix après une inscription : session « mot de passe », celle du lien fermée.
+   */
+  describe("UX-1 — la personne invitée comme locataire arrive directement sur son invitation", () => {
+    const INVITATION = "/invitations/33333333-3333-4333-8333-333333333333";
+    /** Le compte du locataire invité : aucune trace d'inscription, aucun profil à confirmer. */
+    const COMPTE_INVITE = { espace: null };
+    const choixInvite = (valeurs: Record<string, string> = {}) => formulaireRecuperation({ suite: INVITATION, ...valeurs });
+    const sortiesGlobales = () => auth.signOut.mock.calls.filter(([options]) => !options || (options as { scope?: string }).scope !== "others");
+
+    it("le mot de passe choisi, elle arrive sur la page de son invitation, connectée par une session « mot de passe »", async () => {
+      const banc = authAvecSessions(COMPTE_INVITE);
+      await expect(definirNouveauMotDePasse({}, choixInvite())).rejects.toThrow(`REDIRECT ${INVITATION}`);
+      // Seul le mot de passe est enregistré : aucun profil n'est écrit dans le compte.
+      expect(auth.updateUser).toHaveBeenCalledExactlyOnceWith({ password: MOT_DE_PASSE });
+      expect(auth.signInWithPassword).toHaveBeenCalledExactlyOnceWith({ email: ADRESSE, password: MOT_DE_PASSE });
+      expect(auth.signInWithPassword.mock.invocationCallOrder[0]).toBeLessThan(auth.signOut.mock.invocationCallOrder[0]);
+      expect(auth.signOut).toHaveBeenCalledWith({ scope: "others" });
+      expect(sortiesGlobales()).toEqual([]);
+      expect(banc.presentee()).toBe("mot-de-passe");
+      expect([...banc.sessions.keys()]).toEqual(["mot-de-passe"]);
+      expect(mocks.supprimerCookie).not.toHaveBeenCalled();
+      expect(rpc).toHaveBeenCalledWith("log_tech", expect.objectContaining({ evenement: "changement_mot_de_passe" }));
+    });
+
+    it("dix minutes plus tard, dans le même navigateur : /nouveau-mot-de-passe exige de nouveau un lien", async () => {
+      authAvecSessions(COMPTE_INVITE);
+      await expect(definirNouveauMotDePasse({}, choixInvite())).rejects.toThrow(`REDIRECT ${INVITATION}`);
+      vi.useFakeTimers({ toFake: ["Date"], now: Date.now() + 10 * 60_000 });
+      try {
+        expect(await autorisationNouveauMotDePasse(await client(), "u1")).toBe("lien_requis");
+        expect(await definirNouveauMotDePasse({}, intrus())).toEqual({ erreur: RESERVE_AU_LIEN });
+        await expect(PageNouveauMotDePasse({ searchParams: Promise.resolve({ suite: INVITATION }) })).rejects.toThrow(/^REDIRECT \/compte$/);
+      } finally {
+        vi.useRealTimers();
+      }
+      expect(auth.updateUser).toHaveBeenCalledTimes(1);
+    });
+
+    it("tout de suite après, la session « mot de passe » ne rouvre pas le formulaire : il exige la preuve d'un lien", async () => {
+      authAvecSessions(COMPTE_INVITE);
+      await expect(definirNouveauMotDePasse({}, choixInvite())).rejects.toThrow(`REDIRECT ${INVITATION}`);
+      expect(await autorisationNouveauMotDePasse(await client(), "u1")).toBe("lien_requis");
+      expect(await definirNouveauMotDePasse({}, intrus())).toEqual({ erreur: RESERVE_AU_LIEN });
+      expect(auth.updateUser).toHaveBeenCalledTimes(1);
+    });
+
+    it("une copie du cookie de la session du lien ne rouvre rien : cette session est fermée côté Auth", async () => {
+      const banc = authAvecSessions(COMPTE_INVITE);
+      await expect(definirNouveauMotDePasse({}, choixInvite())).rejects.toThrow(`REDIRECT ${INVITATION}`);
+      banc.presenter("lien");
+      expect((await (await client()).auth.getUser()).data.user).toBeNull();
+      expect((await definirNouveauMotDePasse({}, intrus())).erreur).toBe("Session expirée ou lien invalide. Redemandez un e-mail de réinitialisation.");
+      await expect(PageNouveauMotDePasse({ searchParams: Promise.resolve({ suite: INVITATION }) })).rejects.toThrow(/^REDIRECT \/connexion\?raison=lien-invalide$/);
+      expect(auth.updateUser).toHaveBeenCalledTimes(1);
+    });
+
+    it("la connexion par le nouveau mot de passe échoue : le parcours d'avant, vers la connexion puis l'invitation", async () => {
+      const banc = authAvecSessions(COMPTE_INVITE);
+      auth.signInWithPassword.mockResolvedValueOnce({ data: { session: null, user: null }, error: { code: "over_request_rate_limit", message: "Request rate limit reached" } });
+      await expect(definirNouveauMotDePasse({}, choixInvite())).rejects.toThrow(`REDIRECT /connexion?raison=mot-de-passe-modifie&suite=${encodeURIComponent(INVITATION)}`);
+      expect(banc.sessions.size).toBe(0);
+      expect(mocks.supprimerCookie).toHaveBeenCalledWith(ACTIVITY_COOKIE);
+    });
+
+    it.each([
+      ["mot de passe oublié", "/espaces"],
+      ["identifiant d'invitation mal formé", "/invitations/pas-un-identifiant"],
+      ["sous-page d'une invitation", `${INVITATION}/autre`],
+      ["invitation d'artisan", "/artisan/invitation/11111111-1111-4111-8111-111111111111"],
+      ["destination externe", `https://exemple.invalid${INVITATION}`],
+    ])("%s, sans profil à confirmer : la récupération ordinaire (déconnexion, puis connexion)", async (_cas, suite) => {
+      compteExistant();
+      await expect(definirNouveauMotDePasse({}, formulaireRecuperation({ suite }))).rejects.toThrow(/^REDIRECT \/connexion\?raison=mot-de-passe-modifie/);
+      expect(auth.signInWithPassword).not.toHaveBeenCalled();
+      expect(sortiesGlobales()).toHaveLength(1);
+      expect(mocks.supprimerCookie).toHaveBeenCalledWith(ACTIVITY_COOKIE);
+    });
+
+    it("le libellé de premier choix de la page suit la même reconnaissance de l'invitation", () => {
+      expect(estPageInvitationLocataire(INVITATION)).toBe(true);
+      expect(estPageInvitationLocataire(INVITATION.toUpperCase().replace("/INVITATIONS/", "/invitations/"))).toBe(true);
+      for (const autre of ["/invitations/pas-un-identifiant", `${INVITATION}/autre`, `${INVITATION}?x=1`, `/x${INVITATION}`, "/invitations/33333333-3333-4333-8333-33333333333"]) {
+        expect(estPageInvitationLocataire(autre), autre).toBe(false);
+      }
+    });
   });
 });

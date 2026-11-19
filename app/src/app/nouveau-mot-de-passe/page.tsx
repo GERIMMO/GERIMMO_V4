@@ -6,6 +6,7 @@ import { FormulaireNouveauMotDePasse } from "./formulaire-nouveau-mot-de-passe";
 import { MOTIF_CONFIRMATION, MOTIF_INSCRIPTION } from "@/lib/temoin-inscription";
 import { CLE_PROFIL_A_CONFIRMER, informationsAConfirmer } from "@/lib/revalidation-inscription";
 import { autorisationNouveauMotDePasse } from "@/lib/autorisation-nouveau-mot-de-passe";
+import { estPageInvitationLocataire } from "@/lib/invitations-locataire";
 
 export const metadata = { title: "Nouveau mot de passe — Gerimmo" };
 
@@ -33,7 +34,7 @@ export default async function PageNouveauMotDePasse({ searchParams }: { searchPa
   const brutProfil = user.user_metadata?.[CLE_PROFIL_A_CONFIRMER];
   const profilAConfirmer = brutProfil && typeof brutProfil === "object" ? informationsAConfirmer(brutProfil) : undefined;
 
-  const premiereActivation = apresConfirmation || !!profilAConfirmer || /^\/invitations\/[0-9a-f-]{36}$/.test(suite);
+  const premiereActivation = apresConfirmation || !!profilAConfirmer || estPageInvitationLocataire(suite);
 
   return (
     <CoquilleAuth

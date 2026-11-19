@@ -28,6 +28,7 @@ import { envoyerLienMotDePasse, inscrireEtEnvoyerConfirmation } from "@/lib/lien
 import { estBailleurSociete, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 import { estUuid } from "@/lib/identifiants";
 import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
+import { estPageInvitationLocataire } from "@/lib/invitations-locataire";
 import { baseEspace } from "@/lib/racine-espace";
 import { CHAMPS_PROFIL_INSCRIPTION, CLE_PROFIL_A_CONFIRMER, saisieProfilARetenir } from "@/lib/revalidation-inscription";
 import { autorisationNouveauMotDePasse } from "@/lib/autorisation-nouveau-mot-de-passe";
@@ -207,8 +208,18 @@ export async function definirNouveauMotDePasse(
   // avec le mot de passe qui vient d'être choisi ouvre une nouvelle session (`amr` = password, cookies réécrits) ; la
   // fermeture des « autres » sessions ci-dessous emporte alors celle du lien. Un lien e-mail ne sert qu'à un seul choix,
   // comme avant PRO-5. Jamais une marque dans les métadonnées du compte : son titulaire peut les écrire lui-même.
+  //
+  // UX-1 (19/11/2026) : la personne invitée comme locataire est dans le même cas. Le lien de son e-mail d'invitation
+  // (lib/lien-mot-de-passe.ts, `suiteInvitationLocataire`) mène ici avec pour suite la page de CETTE invitation ; elle
+  // devait ressaisir sur /connexion le mot de passe qu'elle venait de choisir avant de pouvoir accepter. Son compte n'a
+  // pas de profil à confirmer : c'est la suite qui la reconnaît. Cette suite vient de l'envoi, mais elle ne décide que
+  // de l'issue d'après l'enregistrement : la session ouverte est celle que donnerait /connexion avec le mot de passe que
+  // l'auteur de l'envoi vient de choisir, et celle du lien se ferme de la même façon. La récupération ordinaire (« mot de
+  // passe oublié », suite /espaces) n'est pas concernée.
+  let suite = destinationSure(String(formData.get("suite") ?? ""));
+  const premierChoix = !!profil || estPageInvitationLocataire(suite);
   let sessionParMotDePasse = false;
-  if (profil && user.email) {
+  if (premierChoix && user.email) {
     const { error: erreurConnexion } = await supabase.auth.signInWithPassword({ email: user.email, password: motDePasse });
     sessionParMotDePasse = !erreurConnexion;
   }
@@ -223,7 +234,6 @@ export async function definirNouveauMotDePasse(
     details: {},
   });
 
-  let suite = destinationSure(String(formData.get("suite") ?? ""));
   if (profil?.espace === "proprietaire_direct") suite = "/espaces";
   else if (profil?.espace === "artisan" && suite === "/espaces") suite = "/artisan/inscription";
 
@@ -231,12 +241,15 @@ export async function definirNouveauMotDePasse(
   // Elle vient de prouver l'accès à sa boîte et de poser son mot de passe : la renvoyer vers la connexion
   // (« Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe. ») lui faisait ressaisir ce qu'elle venait
   // de choisir. Elle continue avec la session « mot de passe » ouverte ci-dessus (celle du lien est fermée) ; le proxy
-  // applique la politique de session et le second facteur comme à toute session. Le profil est lu dans le compte : un
-  // champ ajouté à l'envoi ne peut pas éviter la déconnexion d'une récupération.
+  // applique la politique de session et le second facteur comme à toute session. Le profil est lu dans le compte ; la
+  // seule autre porte est la page d'une invitation de locataire (UX-1), où elle arrive directement pour l'accepter. Un
+  // motif ou un témoin ajouté à l'envoi ne peut pas éviter la déconnexion d'une récupération.
   if (sessionParMotDePasse) redirect(suite);
 
   // RÉCUPÉRATION D'UN COMPTE EXISTANT (mot de passe oublié), choix d'origine
   // inchangé : on repart d'une connexion propre avec le nouveau mot de passe.
+  // (UX-1 ne l'a pas changé : le même mécanisme y serait sûr, mais rester connecté après une réinitialisation est un
+  // choix de produit, et l'écran de connexion confirme le changement à qui reprend la main sur son compte.)
   // C'est aussi le repli du premier choix si la connexion avec le nouveau mot de passe n'a pas abouti (adresse
   // absente, limite de fréquence, service indisponible) : le mot de passe et le profil sont enregistrés, toutes les
   // sessions se ferment, celle du lien comprise, et la personne se connecte avec ce qu'elle vient de choisir.

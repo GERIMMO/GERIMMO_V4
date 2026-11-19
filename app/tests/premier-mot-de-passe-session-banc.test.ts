@@ -158,3 +158,81 @@ describe.skipIf(!local)("PRO-5, suite — sur l'émulateur : après le premier c
     expect((await sansSession().auth.signInWithPassword({ email: adresse, password: intrus })).error).not.toBeNull();
   });
 });
+
+/**
+ * UX-1 (relevé de production du 19/11/2026), sur l'émulateur : la personne invitée comme locataire. Son compte existe déjà
+ * (adresse confirmée, aucun profil à confirmer) ; le lien de son e-mail d'invitation est un lien de récupération qui mène
+ * au choix du mot de passe avec pour suite la page de CETTE invitation. Elle devait ressaisir sur /connexion le mot de
+ * passe qu'elle venait de choisir. Elle arrive désormais sur l'invitation avec une session « mot de passe », et la session
+ * du lien est fermée côté Auth, comme après le premier choix d'une inscription.
+ */
+describe.skipIf(!local)("UX-1 — sur l'émulateur : la personne invitée comme locataire arrive sur son invitation, connectée", () => {
+  const adresse = [`invitation-locataire-${randomUUID()}`, "example.invalid"].join("@");
+  const choisi = `Choisi-${randomUUID()}`;
+  const intrus = `Intrus-${randomUUID()}`;
+  const invitation = `/invitations/${randomUUID()}`;
+  let compteId = "";
+  let copieDuLien: Map<string, Cookie>;
+  const service = () => clientIsole(api, cleService, { auth: { persistSession: false, autoRefreshToken: false } });
+
+  beforeAll(async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", api);
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", CLE_PUBLIQUE);
+    bocal.cookies = new Map();
+    const compte = await service().auth.admin.createUser({ email: adresse, password: `Provisoire-${randomUUID()}`, email_confirm: true });
+    expect(compte.error).toBeNull();
+    compteId = compte.data.user!.id;
+    // Le lien de l'e-mail d'invitation (lib/lien-mot-de-passe.ts : `generateLink` de type `recovery`), puis le clic.
+    const lien = await service().auth.admin.generateLink({ type: "recovery", email: adresse });
+    expect(lien.error).toBeNull();
+    const verification = await clientDuNavigateur(bocal.cookies).auth.verifyOtp({ type: "recovery", token_hash: lien.data.properties!.hashed_token });
+    expect(verification.error).toBeNull();
+    copieDuLien = new Map(bocal.cookies);
+  });
+  afterAll(async () => {
+    vi.unstubAllEnvs();
+    if (!compteId || !baseLocale) return;
+    const base = new Client({ connectionString: baseDuBanc });
+    await base.connect();
+    try {
+      expect((await base.query("delete from auth.users where id = $1", [compteId])).rowCount).toBe(1);
+    } finally {
+      await base.end();
+    }
+  });
+
+  it("le choix du mot de passe mène à l'invitation et laisse au navigateur une session « mot de passe »", async () => {
+    const navigateurAvant = clientDuNavigateur(bocal.cookies);
+    expect(await autorisationNouveauMotDePasse(navigateurAvant as never, compteId)).toBe("accordee");
+    const envoi = new FormData();
+    for (const [cle, valeur] of Object.entries({ mot_de_passe: choisi, confirmation: choisi, suite: invitation })) envoi.set(cle, valeur);
+    await expect(definirNouveauMotDePasse({}, envoi)).rejects.toThrow(`REDIRECT ${invitation}`);
+
+    const navigateur = clientDuNavigateur(bocal.cookies);
+    const { data: { user } } = await navigateur.auth.getUser();
+    expect(user?.id).toBe(compteId);
+    const { data } = await navigateur.auth.getClaims();
+    expect(methodesDeLaSession(data?.claims.amr)).toEqual(["password"]);
+    expect(await autorisationNouveauMotDePasse(navigateur as never, compteId)).toBe("lien_requis");
+    expect((await sansSession().auth.signInWithPassword({ email: adresse, password: choisi })).error).toBeNull();
+  });
+
+  it("une copie des cookies de la session du lien ne rouvre rien, et un second envoi est refusé", async () => {
+    expect((await clientDuNavigateur(new Map(copieDuLien)).auth.getUser()).data.user).toBeNull();
+    const navigateur = bocal.cookies;
+    try {
+      bocal.cookies = new Map(copieDuLien);
+      await expect(PageNouveauMotDePasse({ searchParams: Promise.resolve({ suite: invitation }) })).rejects.toThrow(/^REDIRECT \/connexion\?raison=lien-invalide$/);
+      bocal.cookies = new Map(copieDuLien);
+      const envoi = new FormData();
+      for (const [cle, valeur] of Object.entries({ mot_de_passe: intrus, confirmation: intrus, suite: invitation })) envoi.set(cle, valeur);
+      expect((await definirNouveauMotDePasse({}, envoi)).erreur).toBe("Session expirée ou lien invalide. Redemandez un e-mail de réinitialisation.");
+    } finally {
+      bocal.cookies = navigateur;
+    }
+    const envoi = new FormData();
+    for (const [cle, valeur] of Object.entries({ mot_de_passe: intrus, confirmation: intrus, suite: invitation })) envoi.set(cle, valeur);
+    expect((await definirNouveauMotDePasse({}, envoi)).erreur).toMatch(/^Ce formulaire est réservé au lien reçu par e-mail/);
+    expect((await sansSession().auth.signInWithPassword({ email: adresse, password: intrus })).error).not.toBeNull();
+  });
+});

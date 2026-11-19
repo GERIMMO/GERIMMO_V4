@@ -645,6 +645,8 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261119200100` (la fiche d’une nouvelle société naît sans e-mail ; les coordonnées déjà recopiées restent), puis
+`20261119200000` (refusé dès qu’une société et une personne physique partagent une adresse : corriger en avant), puis
 `20261117095320` (préserver les traces des invitations et des courriels acceptés), puis
 `20261117094310` (conserver les seuils de révocation des sessions et corriger en avant), puis
 `20261117092314` (conserver les rattachements de lots et corriger l’import en avant), puis
@@ -1059,3 +1061,12 @@ La grille du 29 octobre et ses contraintes protègent le minimum de 4,90 par bie
 | `20261112120300_conge_ajuste_dernier_terme_et_depot_au_centime.retour.sql` | `20261112120300_conge_ajuste_dernier_terme_et_depot_au_centime.sql` | Réservé à la répétition locale G-107. En production, conserver les écritures et corriger en avant. |
 
 20261112120400_cle_date_effet_et_tantiemes.retour.sql : conserve les clés historiques, restaure la RPC à trois arguments.
+
+## SCI-2 — 19 novembre 2026 (audit après publication de la PR #347)
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261119200100_coordonnees_fiche_societe.retour.sql` | `20261119200100_coordonnees_fiche_societe.sql` | À jouer en premier. Remet la création de la fiche titulaire d’une société sans e-mail dans `public.initialiser_espace_proprietaire()` et retire `public.completer_fiche_societe_depuis_profil(uuid)`. Les coordonnées déjà recopiées sur des fiches restent. Remettre le code d’avant de `app/actions/organisation.ts` (sinon le profil s’enregistre et signale seulement que la fiche n’a pas pu être complétée). |
+| `20261119200000_email_partage_societe_gerant.retour.sql` | `20261119200000_email_partage_societe_gerant.sql` | En dernier, et seulement si le retour de `20261119200100` est joué (garde). Rétablit l’index strict `persons_email_unique_par_agence`. Refusé dès que deux fiches vivantes d’un même espace partagent une adresse — c’est le cas de toute SCI ouverte depuis la migration (société et gérant) : conserver alors l’index par nature et corriger en avant. Aucune fiche n’est modifiée ni archivée. Remettre le code d’avant de `app/actions/personnes.ts` et `parc.ts`. |
+
+Essais du 19/11/2026 sur une base jetable PostgreSQL 16 (schéma réduit aux objets concernés, définitions réelles rejouées depuis les migrations) : migrations jouées deux fois (rejeu sans effet) ; retours dans l’ordre → définition de `initialiser_espace_proprietaire()` **identique** (md5) à celle d’avant les migrations, index strict rétabli ; retours rejoués → « rien à faire » ; retour de `…200000` joué avant celui de `…200100` → refus ; adresse partagée → refus ; marche avant de nouveau → état migré retrouvé. Limites : base de banc réduite ; le test `tests/fiche-societe-coordonnees-base.test.ts` est à jouer sur le banc complet.

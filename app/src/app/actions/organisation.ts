@@ -135,10 +135,26 @@ export async function modifierProfilOrganisation(
   if (error) return { erreur: sansJargon(error.message), valeurs };
   if (!data?.length) return { erreur: "Modification refusée.", valeurs };
 
+  // SCI-2 (audit du 19/11) : la fiche titulaire d'une société naissait sans coordonnées, et celles du profil n'y
+  // arrivaient jamais — le récapitulatif du bail réclamait « Adresse du propriétaire » et « Adresse e-mail des parties ».
+  // La base recopie l'adresse, le téléphone et l'e-mail du profil dans les seuls champs VIDES de cette fiche (jamais
+  // par-dessus une saisie) ; un particulier n'a pas de fiche de société et rien ne change pour lui. Le profil est déjà
+  // enregistré : un échec ici ne l'annule pas, il est dit.
+  let complementFiche = "";
+  if (role === "proprietaire_direct") {
+    const { data: fichesCompletees, error: erreurFiche } = await supabase.rpc("completer_fiche_societe_depuis_profil", { p_org: orgId });
+    if (erreurFiche) {
+      complementFiche = " La fiche de votre société n'a pas pu être complétée avec ces coordonnées : vérifiez-la dans votre annuaire.";
+    } else if (Number(fichesCompletees) > 0) {
+      complementFiche = " Les coordonnées manquantes de la fiche de votre société ont été complétées.";
+      revalidatePath(`/agence/${orgId}/personnes`);
+    }
+  }
+
   revalidatePath(`/agence/${orgId}/profil`);
   revalidatePath(`/agence/${orgId}`, "layout");
   revalidatePath(`/locataire/${orgId}`, "layout");
-  return { succes: "Profil enregistré. Les prochains documents utiliseront votre identité. Toute adresse personnalisée modifiée doit être vérifiée avant activation." };
+  return { succes: `Profil enregistré. Les prochains documents utiliseront votre identité. Toute adresse personnalisée modifiée doit être vérifiée avant activation.${complementFiche}` };
 }
 
 export type EtatInvitationAgent = {

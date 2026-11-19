@@ -8,7 +8,7 @@ import { deLEspaceDeGestion } from "@/lib/libelles";
 import { aujourdhuiParis, motifLitteral } from "@/lib/ged";
 import { verifierCodePostalPersonne, verifierDateNaissance, verifierTelephone } from "@/lib/validation-fiches";
 import { valeursDuFormulaire } from "@/lib/formulaires";
-import { QUALITES_BAILLEUR, lireSirenSociete, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
+import { QUALITES_BAILLEUR, estBailleurSociete, lireSirenSociete, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 import { baseEspace } from "@/lib/racine-espace";
 
 export type EtatPersonne = {
@@ -24,23 +24,26 @@ export type EtatPersonne = {
   valeurs?: Record<string, string>;
 };
 
-// L'email est-il déjà porté par une fiche vivante de l'agence ? (l'index
-// unique le garantit en base ; on vérifie avant pour un message clair)
+// L'email est-il déjà porté par une fiche vivante de l'agence, de même nature ? (l'index unique
+// `persons_email_unique_par_agence_et_nature` le garantit en base ; on vérifie avant pour un message clair).
+// SCI-2 (19/11/2026) : une société peut porter l'adresse de la personne physique qui la gère ; deux personnes
+// physiques, ou deux sociétés, ne partagent toujours pas une adresse.
 async function emailDejaPris(
   supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
   orgId: string,
   email: string,
+  societe: boolean,
   saufPersonId?: string
 ) {
   let requete = supabase
     .from("persons")
-    .select("id")
+    .select("id, qualite")
     .eq("organization_id", orgId)
     .ilike("email", motifLitteral(email))
     .is("archived_at", null);
   if (saufPersonId) requete = requete.neq("id", saufPersonId);
   const { data } = await requete;
-  return (data ?? []).length > 0;
+  return ((data ?? []) as { qualite?: string | null }[]).some((p) => estBailleurSociete(p.qualite) === societe);
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -180,7 +183,7 @@ export async function creerPersonne(
     }
   }
   let rejoue = cree !== null;
-  if (!cree && (await emailDejaPris(supabase, orgId, email))) {
+  if (!cree && (await emailDejaPris(supabase, orgId, email, estBailleurSociete(ligne.qualite)))) {
     return {
       erreur:
         `Cette adresse email est déjà portée par une autre fiche ${deLEspaceDeGestion(roleGerant)} — une adresse ne peut appartenir qu'à une seule personne.`,
@@ -432,7 +435,7 @@ export async function modifierPersonne(
     verifierCodePostalPersonne(codePostal) ??
     verifierDateNaissance(dateNaissance, aujourdhuiParis());
   if (refusFiche) return { erreur: refusFiche, valeurs };
-  if (await emailDejaPris(supabase, orgId, email, personId)) {
+  if (await emailDejaPris(supabase, orgId, email, estBailleurSociete(qualite), personId)) {
     return {
       erreur:
         `Cette adresse email est déjà portée par une autre fiche ${deLEspaceDeGestion(role)}.`,

@@ -22,7 +22,7 @@ import {
 } from "@/lib/parc";
 import { baseEspace } from "@/lib/racine-espace";
 import { erreurEcheanceDpe } from "@/lib/documents-bail";
-import { QUALITES_BAILLEUR, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
+import { QUALITES_BAILLEUR, estBailleurSociete, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 
 export type EtatParc = {
   erreur?: string;
@@ -439,13 +439,15 @@ export async function ajouterDetention(
     if (!email) return { erreur: "L'adresse email du propriétaire est obligatoire.", valeurs };
     if (!adresse || !codePostal || !ville) return { erreur: "L'adresse complète du propriétaire est obligatoire.", valeurs };
     if (prenom && (!dateNaissance || !communeNaissance)) return { erreur: "La date et la commune de naissance du propriétaire sont obligatoires.", valeurs };
+    // Même règle que l'annuaire et l'index de la base (SCI-2, 19/11) : une société peut porter l'adresse de la
+    // personne physique qui la gère ; deux fiches de même nature, jamais.
     const { data: memeEmail } = await supabase
       .from("persons")
-      .select("id")
+      .select("id, qualite")
       .eq("organization_id", orgId)
       .ilike("email", motifLitteral(email))
       .is("archived_at", null);
-    if ((memeEmail ?? []).length > 0) {
+    if (((memeEmail ?? []) as { qualite?: string | null }[]).some((p) => estBailleurSociete(p.qualite) === estBailleurSociete(qualiteLue))) {
       return {
         erreur:
           `Cette adresse email est déjà portée par une fiche ${deLEspaceDeGestion(role)} — choisissez la personne existante dans la liste.`,

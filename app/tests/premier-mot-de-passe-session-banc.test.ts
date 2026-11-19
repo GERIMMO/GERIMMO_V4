@@ -179,9 +179,14 @@ describe.skipIf(!local)("UX-1 — sur l'émulateur : la personne invitée comme 
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", api);
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", CLE_PUBLIQUE);
     bocal.cookies = new Map();
-    const compte = await service().auth.admin.createUser({ email: adresse, password: `Provisoire-${randomUUID()}`, email_confirm: true });
-    expect(compte.error).toBeNull();
-    compteId = compte.data.user!.id;
+    // Le compte existe déjà, adresse confirmée, sans profil à confirmer. L'émulateur ne connaît pas `auth.admin.createUser`
+    // (404) : le compte naît de la fabrique de liens (`signup`) et son adresse est confirmée dans un AUTRE navigateur, dont
+    // les cookies sont jetés.
+    const inscription = await service().auth.admin.generateLink({ type: "signup", email: adresse, password: `Provisoire-${randomUUID()}` });
+    expect(inscription.error).toBeNull();
+    compteId = inscription.data.user!.id;
+    const confirmation = await clientDuNavigateur(new Map()).auth.verifyOtp({ type: "email", token_hash: inscription.data.properties!.hashed_token });
+    expect(confirmation.error).toBeNull();
     // Le lien de l'e-mail d'invitation (lib/lien-mot-de-passe.ts : `generateLink` de type `recovery`), puis le clic.
     const lien = await service().auth.admin.generateLink({ type: "recovery", email: adresse });
     expect(lien.error).toBeNull();

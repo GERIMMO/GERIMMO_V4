@@ -32,7 +32,7 @@ Ce rapport fait suite à `livrables/audit-pr347-20261119/RAPPORT.md`. Il répond
 | **SCI-3** (P3) | La quittance d'une SCI dit « Je soussigné(e) SCI … » sans nommer qui signe. | « Je soussigné(e) *Prénom Nom*, agissant pour le compte de *Société*… », signée « *Société*, représentée par *Prénom Nom* ». Sans représentant actif, le texte ne change pas. **Formulation à valider par un juriste.** | `2346f024` |
 | **SCI-4** (P3) | Le formulaire public SCI ne demande pas le prénom. | Champ « Votre prénom » obligatoire pour une SCI, une SCI familiale ou une personne morale ; refus côté serveur sans lui, saisies conservées. Règle partagée avec l'écran de confirmation. | `75e51f6c` |
 | **UX-1** (P3) | Le locataire invité doit ressaisir son mot de passe juste après l'avoir choisi. | Il arrive directement sur son invitation, connecté. La session du lien est fermée, comme pour l'inscription d'un propriétaire. | `41b7da62`, `cbb72c7e` |
-| **OPS-1** (P2), en partie | L'alerte quotidienne a échoué 8 jours de suite ; l'e-mail était le seul signal. | Bandeau sur « Aujourd'hui » (`/admin/brief`) et sur la page Santé (`/admin/sante`) : alerte non partie, échec du jour après 5 h 30 (heure de Paris), envoi partiel, registre illisible. Lecture seule, aucune migration. | `eba3b1ee` |
+| **OPS-1** (P2), en partie | L'alerte quotidienne a échoué 8 jours de suite ; l'e-mail était le seul signal. | Bandeau sur « Aujourd'hui » (`/admin/brief`) et sur la page Santé (`/admin/sante`) : alerte non partie, échec du jour après 5 h 30 (heure de Paris), envoi partiel, registre illisible. Lecture seule, aucune migration. | `eba3b1ee`, `9c8f9a75` |
 | **TEC-1** (P3) | Next 16.4.2 a des avis de sécurité modérés. | Next et `eslint-config-next` en 16.4.6. `npm audit` : 0 vulnérabilité. | `33d32f60` |
 | **TEC-3** (P3) | `/api/sante` révèle aux anonymes l'absence de la clé de service. Le webhook Stripe nomme les variables manquantes. | Message générique pour les anonymes, détail dans les journaux du serveur. Les champs lus par le contrôle de publication et la surveillance ne changent pas. | `b90cfd2e` |
 | **TEC-4** (P3) | Le webhook Zoho Sign peut être rejoué. | Une livraison est reconnue (identifiant, opération, empreinte du corps) et acceptée une fois par heure. Le limiteur existant est réutilisé : aucune migration. | `f2ebe97c` |
@@ -83,13 +83,46 @@ partagent une adresse : il faut alors corriger en avant.
 Banc isolé fidèle à la CI : bases PostgreSQL jetables, émulateur Supabase local, application construite
 (`next start`). Données fictives uniquement.
 
+Résultats sur le dernier commit de la branche (`bba781a2`) :
+
 | Contrôle | Résultat |
 |---|---|
 | Lint, vérification des types | ✅ 0 erreur |
-| Tests en base des corrections, sur base neuve (6 fichiers : recherche par e-mail, fiche de la société, quittance, isolation API, restauration, retours arrière) | ✅ 80 réussis, 0 échec |
-| Test du locataire invité sur l'émulateur (UX-1 et parcours d'inscription) | ✅ 6 réussis |
-| Suite navigateur complète | ⏳ en cours au moment de ce commit |
-| Suite unitaire complète | ⏳ à rejouer après la suite navigateur |
+| `npm audit` (dépendances livrées) | ✅ 0 vulnérabilité |
+| **Suite navigateur complète** (bases neuves, application reconstruite) | ✅ **281 réussis, 0 échec**, 3 ignorés (comme avant), en 10,1 min. **1 instable** : la quittance publique des outils a échoué au premier essai, puis réussi au second. Rejouée seule : 3 fois sur 3. Elle n'utilise aucun fichier modifié. |
+| **Suite unitaire complète** | **12 941 réussis, 1 échec**, 37 ignorés. Détail ci-dessous. |
+| Tests en base des corrections, sur base neuve (recherche par e-mail, fiche de la société, quittance, isolation API, restauration, retours arrière) | ✅ 80 réussis, 0 échec |
+| Locataire invité sur l'émulateur (UX-1 et premier mot de passe) | ✅ 6 réussis |
+| Console dans un vrai navigateur (accueil du dirigeant, suivi) | ✅ 6 réussis |
+| Vérification ciblée, captures à 390 et 1440 px | ✅ Voir ci-dessous. |
+
+Détail de la vérification ciblée :
+- **SCI-4** : prénom exigé au formulaire public, refus serveur sans lui, saisies conservées.
+- **SCI-2** : deux fiches à la création (société et gérante), toutes deux avec l'e-mail du compte. Le profil
+  enregistré recopie l'adresse sur la fiche de la société.
+- **Bandeau** : visible sur l'accueil et sur la page Santé.
+
+Les captures à 390 px sont dans `captures/`.
+
+**Ce que la suite unitaire n'a pas vérifié ici :**
+- **L'échec unique** (« super admin : le mot de passe seul ne donne aucun accès ») vient de l'ordre des essais sur le
+  banc. La suite navigateur laisse un second facteur sur ce compte fictif. La PR #347 refuse alors sa session
+  « mot de passe seul » (428) au lieu de répondre `false`. Le test **passe sur base neuve**, et aucun fichier de la
+  branche ne touche la double authentification.
+- **Deux fichiers exigent des services absents du banc**, présents en CI : un vrai service d'authentification et
+  une base dédiée. Ils n'ont pas tourné ici.
+- **Deux fichiers exigent une version du navigateur absente du banc.** Ils ont été rejoués à part avec le Chromium
+  installé : 6 réussis.
+
+**Corrigé pendant ces essais :**
+- **Le bandeau portait le rôle `alert`.** Un test de la console attend qu'aucune alerte ne suive la préparation
+  des faits : il est devenu une région nommée par son titre. Commit `9c8f9a75`.
+- **Le test de rejeu du lot « finance-dates » rejoue désormais la migration `…200300`**, comme il rejouait déjà une
+  autre migration postérieure. Commit `bba781a2`.
+- **Le test UX-1 crée maintenant son compte par la fabrique de liens.** L'émulateur ne connaît pas
+  `createUser`. Commit `cbb72c7e`.
+- **Les trois retours arrière SCI sont sortis de la chaîne « Ordre complet ».** Ils ne citent pas le jour de
+  Paris, comme ceux de la PR #347. Commit `7ed90140`.
 
 **Test qui mord.** Le nouveau test des recherches par e-mail échoue sans la migration `…200300`. Il passe avec elle.
 

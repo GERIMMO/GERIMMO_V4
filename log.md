@@ -7439,4 +7439,11 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   - [[Compte, personne et adhésion]] ;
   - [[Audit après publication PR 347 — 8c0449c6 — 19 novembre 2026]] ;
   - `index.md`.
+- **Tests sur le banc, dernier commit `bba781a2`** :
+  - suite navigateur : 281 réussis, 0 échec ;
+  - suite unitaire : 12 941 réussis, 1 échec qui dépend de l'ordre des essais sur le banc et passe sur base neuve.
+- **Trois défauts trouvés et corrigés pendant ces essais** :
+  - rôle du bandeau ;
+  - rejeu du lot « finance-dates » ;
+  - test du locataire invité.
 - **Rapport** : `livrables/corrections-post-pr347-20261119/`.

@@ -33,6 +33,14 @@ techniques, alerte de secours.
   - anti-rejeu du webhook Zoho Sign ;
   - export comptable durci.
 
+## Vérification
+
+Sur le banc isolé, données fictives, dernier commit `bba781a2` :
+- suite navigateur complète : 281 réussis, 0 échec ;
+- suite unitaire : 12 941 réussis. Le seul échec dépend de l'ordre des essais sur le banc et passe sur base neuve.
+
+Les nouveaux tests échouent sans les corrections. Détail et limites dans le rapport.
+
 ## Règle métier modifiée sur délégation
 
 L'adresse e-mail d'une fiche devient unique **par nature** dans un espace : une société peut partager celle de son

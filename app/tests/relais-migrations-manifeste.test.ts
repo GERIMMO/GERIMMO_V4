@@ -209,9 +209,10 @@ const MISSION_OCTOBRE = [
   "20261119143935_imposer_second_facteur_actif.sql",
   "20261119143952_inscription_prenom_representant.sql",
   "20261119145246_verifier_provenance_photos_artisan.sql",
-  // Corrections SCI-2 de l'audit du 19/11 (après la PR #347).
+  // Corrections SCI-2 et SCI-3 de l'audit du 19/11 (après la PR #347).
   "20261119200000_email_partage_societe_gerant.sql",
   "20261119200100_coordonnees_fiche_societe.sql",
+  "20261119200200_quittance_representant_societe.sql",
 
 
 ];

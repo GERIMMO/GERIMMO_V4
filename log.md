@@ -7519,3 +7519,17 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   dans l'intégration continue) ; pages publiques reparcourues aux 4 largeurs sans défaut.
 - **État** : intégration continue **verte** sur `656fe141`. Rien n'est fusionné, rien n'est publié.
 - **Pages du wiki** : mise à jour [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]] ; `index.md`.
+
+## [2026-11-20] query  | Avis de l'agent sur le projet : où il en est, son objectif, son évolution
+
+- **Question du dirigeant** : « pour le projet, d'où ça en est, l'objectif, l'évolution, t'en penses quoi ? »
+- **Pages lues** : `index.md` ; [[Proposition de valeur]] ; [[Calendrier de lancement — 30 novembre 2026]] ;
+  [[Audit après publication PR 347 — 8c0449c6 — 19 novembre 2026]] ; [[Corrections après l'audit PR 347 — 19 novembre 2026]] ;
+  [[Audit de qualité commerciale V1 — a776ed43 — 16 novembre 2026]] ; [[Audit UX-UI complet — dca39641 — 18 novembre 2026]] ;
+  [[Audit d'acquisition du 3 octobre 2026]].
+- **Réponse donnée (avis, pas un fait métier)** : socle technique solide et objectif bien posé ; le risque principal
+  n'est plus dans le code mais dans l'absence d'usage réel (aucun utilisateur observé, production sans bail actif au
+  16/11) ; ce qui ferme la vente est hors du code (médiateur, premier paiement réel, relectures) ; le calendrier fixait
+  le gel des fonctionnalités au 20/11 et la décision d'ouverture au 27/11 ; recommandation : geler, faire les gestes du
+  dirigeant, mettre de vrais bailleurs devant le produit avant le 30/11.
+- **Non filé en synthèse** : proposé au dirigeant.

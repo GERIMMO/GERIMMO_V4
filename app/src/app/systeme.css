@@ -32,6 +32,7 @@ body.gerimmo-prestige,
   /* --- Marque ------------------------------------------------------------------------------------------------------ */
   --champagne-vif: #d5b777;              /* liseré et repère posés sur le bleu nuit */
   --nuit-menu: #14304f;
+  --sur-nuit-doux: #cad4e1;             /* texte d'un lien de menu au repos, sur le bleu nuit */
   --nuit-menu-survol: #1c3d62;
   --nuit-menu-actif: #234870;
   /* La photo de saison ne couvre plus le menu : elle reste en vignette, au pied, sous un voile qui part du bleu nuit
@@ -236,7 +237,9 @@ body.gerimmo-prestige :is(input, select, textarea)[aria-invalid="true"]:focus {
 body.gerimmo-prestige :is([data-ui="modale"], .recherche-dialog) { border-radius: var(--rayon-fenetre); box-shadow: var(--ombre-3); }
 
 /* --- Anneau de focus : visible partout, clair sur le bleu nuit ------------------------------------------------------ */
-body.gerimmo-prestige :is(input, select, textarea, button, a, summary, [tabindex]):focus-visible {
+/* Un conteneur que le code place sous le focus (tabindex="-1" : contenu principal, liste, titre) ne reçoit pas d'anneau :
+   il n'est pas actionnable, et l'anneau entourait toute une liste au chargement sur téléphone. */
+body.gerimmo-prestige :is(input, select, textarea, button, a, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
   outline: 3px solid var(--prestige-champagne-texte);
   outline-offset: 3px;
 }

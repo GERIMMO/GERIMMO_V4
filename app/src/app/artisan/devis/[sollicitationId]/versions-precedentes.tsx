@@ -52,7 +52,7 @@ export function VersionsPrecedentes({
         {anciennes.map((v) => {
           const etat = ETATS_VERSION[v.statut] ?? { libelle: "État à vérifier", ton: "neutre" as const };
           return (
-            <li key={v.devis_id} className="rounded-lg border-2 border-[var(--filet)] p-3.5" data-version-devis={v.version}>
+            <li key={v.devis_id} className="rounded-[var(--rayon-champ)] border border-[var(--filet)] bg-[var(--creme)] p-3.5" data-version-devis={v.version}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-base font-semibold">Version {v.version}</p>
                 <Etiquette ton={etat.ton}>{etat.libelle}</Etiquette>
@@ -73,7 +73,7 @@ export function VersionsPrecedentes({
                   {v.decision === "revision" ? "Ce que le client demandait" : "Motif du client"} : « {v.decision_motif} »
                 </p>
               )}
-              <a href={`/api/devis/${sollicitationId}/pdf?version=${v.version}`} target="_blank" rel="noreferrer" className="lien-discret">Ouvrir le PDF de la version {v.version}</a>
+              <a href={`/api/devis/${sollicitationId}/pdf?version=${v.version}`} target="_blank" rel="noreferrer" className="mt-1 inline-flex min-h-11 items-center text-[0.9375rem] font-semibold text-[var(--encre)] underline underline-offset-4">Ouvrir le PDF de la version {v.version}</a>
             </li>
           );
         })}

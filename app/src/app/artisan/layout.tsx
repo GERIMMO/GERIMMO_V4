@@ -51,7 +51,7 @@ export default async function LayoutArtisan({
   // (verifierAccesArtisan), qui renvoie à la connexion.
   if (!user) {
     return (
-      <div className="artisan-app flex min-h-svh flex-col bg-[var(--creme)]">
+      <div className={`artisan-app ${styles.porte} flex min-h-svh flex-col`}>
         <LienContenu />
         <header className="artisan-bandeau bandeau-appli">
           <div className="mx-auto flex w-full max-w-[960px] items-center justify-between gap-3 px-4 py-2.5">

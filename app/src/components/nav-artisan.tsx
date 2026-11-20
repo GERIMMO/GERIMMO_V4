@@ -141,7 +141,7 @@ export function NavArtisan({
                 {actif && (
                   <span
                     aria-hidden
-                    className="absolute inset-x-3 top-0 h-[3px] rounded-b bg-[var(--or)]"
+                    className="absolute inset-x-3 top-0 h-[3px] rounded-b bg-[var(--prestige-champagne)]"
                   />
                 )}
                 <span className="relative">
@@ -179,7 +179,7 @@ export function NavArtisan({
         ["/artisan/note", "Mes évaluations"],
         ["/artisan/regles", "Les règles à connaître"],
         ["/artisan/panne", "Aide en cas de problème"],
-      ].map(([href, libelle]) => <Link key={href} href={href} aria-current={pathname.startsWith(href) ? "page" : undefined} onClick={() => setMenuOuvert(false)} className="flex min-h-12 items-center rounded-lg px-3 text-sm font-medium hover:bg-muted">{libelle}</Link>)}
+      ].map(([href, libelle]) => <Link key={href} href={href} aria-current={pathname.startsWith(href) ? "page" : undefined} onClick={() => setMenuOuvert(false)} className="flex min-h-12 items-center rounded-[var(--rayon-bouton)] px-3 text-[0.9375rem] font-medium text-[var(--encre)] transition-colors hover:bg-[var(--survol)] aria-[current=page]:bg-[var(--filet-leger)] aria-[current=page]:font-semibold">{libelle}</Link>)}
     </nav></Tiroir>}
     </>
   );

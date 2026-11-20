@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { chargerFicheArtisan } from "../acces";
-import { Carte, TitreSection } from "../ui";
+import { Carte, EnteteSousPage, TitreSection } from "../ui";
+import styles from "../portail-artisan.module.css";
 import { FormulaireInscription } from "./formulaire-inscription";
 import { FormulaireCompteArtisan } from "./formulaire-compte";
 import { estUuid } from "@/lib/identifiants";
@@ -38,15 +39,14 @@ export default async function PageInscriptionArtisan(props: PageProps<"/artisan/
 
   return (
     <div className="space-y-6">
-      <div className="portail-hero">
-        <p className="portail-surtitre">Espace artisan</p>
-        <h1 className="mt-0.5">
-          Inscrire mon entreprise
-        </h1>
-        <p className="mt-2 text-base text-[var(--corps)]">
-          Une seule inscription vous ouvre les demandes qui vous sont confiées sur
-          la plateforme, selon votre métier et votre zone.
-        </p>
+      {/* Même en-tête que les écrans de l'espace : plus d'aplat bleu nuit pour un titre (Design System « Maison »). */}
+      <div>
+        <p className={styles.surtitre}>Espace artisan</p>
+        <EnteteSousPage
+          rubrique="entreprise"
+          titre="Inscrire mon entreprise"
+          mention="Une seule inscription vous ouvre les demandes qui vous sont confiées sur la plateforme, selon votre métier et votre zone."
+        />
       </div>
 
       <Carte>
@@ -72,7 +72,7 @@ export default async function PageInscriptionArtisan(props: PageProps<"/artisan/
 
       <FormulaireInscription invitationId={invitationId} />
 
-      <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
+      <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
         Sans document déposé dans les six mois, votre inscription est supprimée.
       </p>
     </div>
@@ -82,14 +82,13 @@ export default async function PageInscriptionArtisan(props: PageProps<"/artisan/
 function PremiereMarche({ invitationId }: { invitationId?: string }) {
   return (
     <div className="space-y-6">
-      <div className="portail-hero">
-        <p className="portail-surtitre">Espace artisan</p>
-        <h1 className="mt-0.5">Inscrire mon entreprise</h1>
-        <p className="mt-2 text-base text-[var(--corps)]">
-          Une seule inscription vous ouvre les demandes qui vous sont confiées sur
-          la plateforme, selon votre métier et votre zone. Commencez par votre compte ; votre entreprise vient
-          juste après.
-        </p>
+      <div>
+        <p className={styles.surtitre}>Espace artisan</p>
+        <EnteteSousPage
+          rubrique="entreprise"
+          titre="Inscrire mon entreprise"
+          mention="Une seule inscription vous ouvre les demandes qui vous sont confiées sur la plateforme, selon votre métier et votre zone. Commencez par votre compte ; votre entreprise vient juste après."
+        />
       </div>
 
       <Carte>
@@ -97,7 +96,7 @@ function PremiereMarche({ invitationId }: { invitationId?: string }) {
         <FormulaireCompteArtisan invitationId={invitationId} />
       </Carte>
 
-      <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
+      <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
         Ensuite : votre SIRET, vos métiers et votre mobile, puis vos
         attestations. Gerimmo valide votre inscription avant que l&apos;on
         puisse vous solliciter.

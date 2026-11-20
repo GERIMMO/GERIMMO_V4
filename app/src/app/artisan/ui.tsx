@@ -23,13 +23,22 @@ import { initialesAgence } from "./libelles";
  * MODULE 17 (marque blanche) : aucune couleur en dur ici — que des jetons
  * `var(--…)` et les classes maison de globals.css. Le jour où l'agence
  * apporte sa charte, ces écrans la prennent sans être retouchés.
+ *
+ * DESIGN SYSTEM « MAISON » (20/11/2026) : ces primitives gardent leurs noms,
+ * leurs props et leurs cibles de terrain, mais parlent la langue commune —
+ * rayons `--rayon-bouton` / `--rayon-champ` / `--rayon-carte`, bouton
+ * principal bleu nuit, contour des champs `--filet-champ` (3:1), survol
+ * `--survol`. La classe `bouton-gerimmo` leur donne la forme, la graisse et le
+ * retour au toucher des boutons des autres espaces (systeme.css) ; l'anneau de
+ * focus est celui de la feuille commune. Au bureau (≥ 1000 px), la coquille
+ * ramène les cibles à 44 px (portail-artisan.module.css).
  */
 
 export const CLASSE_BOUTON_PRINCIPAL =
-  "flex min-h-14 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--marque)] bg-[var(--marque)] px-4 text-center text-[1.0625rem] font-medium text-[var(--sur-marque)] transition-colors hover:border-[var(--marque-sombre)] hover:bg-[var(--marque-sombre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
+  "bouton-gerimmo flex min-h-14 w-full items-center justify-center gap-2 rounded-[var(--rayon-bouton)] border-2 border-[var(--marque)] bg-[var(--marque)] px-4 text-center text-[1.0625rem] font-semibold text-[var(--sur-marque)] hover:border-[var(--marque-sombre)] hover:bg-[var(--marque-sombre)] disabled:opacity-60";
 
 export const CLASSE_BOUTON_SECONDAIRE =
-  "flex min-h-14 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--marque)] bg-[var(--ivoire)] px-4 text-center text-[1.0625rem] font-medium text-[var(--marque-sombre)] transition-colors hover:bg-[var(--marque-clair)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
+  "bouton-gerimmo flex min-h-14 w-full items-center justify-center gap-2 rounded-[var(--rayon-bouton)] border-2 border-[var(--marque)] bg-[var(--ivoire)] px-4 text-center text-[1.0625rem] font-semibold text-[var(--encre)] hover:bg-[var(--survol)] disabled:opacity-60";
 
 /**
  * Le bouton secondaire posé à côté d'un champ (« Rechercher », « Choisir »),
@@ -39,22 +48,22 @@ export const CLASSE_BOUTON_SECONDAIRE =
  * largeur : un seul langage de boutons dans le portail.
  */
 export const CLASSE_BOUTON_SECONDAIRE_EN_LIGNE =
-  "flex min-h-14 w-auto shrink-0 items-center justify-center gap-2 rounded-lg border-2 border-[var(--marque)] bg-[var(--ivoire)] px-5 text-center text-[1.0625rem] font-medium text-[var(--marque-sombre)] transition-colors hover:bg-[var(--marque-clair)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
+  "bouton-gerimmo flex min-h-14 w-auto shrink-0 items-center justify-center gap-2 rounded-[var(--rayon-bouton)] border-2 border-[var(--marque)] bg-[var(--ivoire)] px-5 text-center text-[1.0625rem] font-semibold text-[var(--encre)] hover:bg-[var(--survol)] disabled:opacity-60";
 
 export const CLASSE_BOUTON_SOBRE =
-  "flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] px-4 text-center text-base font-medium text-[var(--texte-secondaire)] transition-colors hover:border-[var(--marque)] hover:text-[var(--marque-sombre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
+  "bouton-gerimmo flex min-h-12 w-full items-center justify-center gap-2 rounded-[var(--rayon-bouton)] border-2 border-[var(--filet-champ)] bg-[var(--ivoire)] px-4 text-center text-base font-semibold text-[var(--encre)] hover:border-[var(--marque)] hover:bg-[var(--survol)] disabled:opacity-60";
 
 export const CLASSE_BOUTON_REFUS =
-  "flex min-h-14 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--destructive)] bg-[var(--ivoire)] px-4 text-center text-[1.0625rem] font-medium text-[var(--destructive)] transition-colors hover:bg-[var(--destructive-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
+  "bouton-gerimmo flex min-h-14 w-full items-center justify-center gap-2 rounded-[var(--rayon-bouton)] border-2 border-[var(--destructive)] bg-[var(--ivoire)] px-4 text-center text-[1.0625rem] font-semibold text-[var(--destructive-soft-foreground)] hover:bg-[var(--destructive-soft)] disabled:opacity-60";
 
 /** 16 px minimum : en dessous, iOS zoome à la mise au point du champ. */
 export const CLASSE_CHAMP =
-  "min-h-13 w-full rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] px-3 py-2 text-base text-[var(--corps)] focus:border-[var(--encre)] focus:outline-none";
+  "min-h-13 w-full rounded-[var(--rayon-champ)] border-2 border-[var(--filet-champ)] bg-[var(--ivoire)] px-3 py-2 text-base text-[var(--corps)] focus:border-[var(--marque)]";
 
 export const CLASSE_ZONE_TEXTE =
-  "w-full rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] px-3 py-2.5 text-base leading-relaxed text-[var(--corps)] focus:border-[var(--encre)] focus:outline-none";
+  "w-full rounded-[var(--rayon-champ)] border-2 border-[var(--filet-champ)] bg-[var(--ivoire)] px-3 py-2.5 text-base leading-relaxed text-[var(--corps)] focus:border-[var(--marque)]";
 
-export const CLASSE_LIBELLE = "block text-[0.9375rem] font-medium text-[var(--encre)]";
+export const CLASSE_LIBELLE = "block text-[0.9375rem] font-semibold text-[var(--encre)] min-[1000px]:text-xs";
 
 /**
  * Une ligne d'aide sous un champ ou un bouton. 15 px, comme l'aide de
@@ -193,21 +202,31 @@ export function MarqueAgence({
  * Un état vide. Il dit ce qui manque ET, quand un geste le débloque, mène à
  * ce geste : un constat seul laissait l'artisan chercher la suite (tour du
  * 24/09). Une seule définition — trois copies à la main avaient trois hauteurs.
+ *
+ * C'est l'état vide du Design System (`.vide-guide` : titre, explication,
+ * geste). `titre` est facultatif : les appels d'origine (une phrase, une
+ * action) restent valables tels quels.
  */
 export function Vide({
   children,
   action,
+  titre,
 }: {
   children: React.ReactNode;
   action?: { href: string; libelle: string };
+  titre?: string;
 }) {
   return (
-    <div className="artisan-vide rounded-lg border border-dashed border-border px-4 py-8 text-center text-[0.9375rem] text-[var(--texte-secondaire)]">
-      <p>{children}</p>
+    <div className="vide-guide artisan-vide">
+      {titre && <p className="titre">{titre}</p>}
+      <p className="explication">{children}</p>
       {action && (
-        <Link href={action.href} className={`${CLASSE_BOUTON_SOBRE} mx-auto mt-4 sm:w-fit`}>
-          {action.libelle}
-        </Link>
+        // Un bloc et non un paragraphe : la feuille commune souligne tout lien posé dans un <p>.
+        <div className="geste">
+          <Link href={action.href} className={`${CLASSE_BOUTON_SOBRE} sm:w-fit`}>
+            {action.libelle}
+          </Link>
+        </div>
       )}
     </div>
   );
@@ -217,7 +236,7 @@ export function Erreur({ children }: { children: React.ReactNode }) {
   return (
     <p
       role="alert"
-      className="rounded-lg border-l-4 border-[var(--destructive)] bg-[var(--destructive-soft)] px-3.5 py-3 text-[0.9375rem] text-[var(--destructive-soft-foreground)]"
+      className="rounded-[var(--rayon-champ)] border-l-4 border-[var(--destructive)] bg-[var(--destructive-soft)] px-3.5 py-3 text-[0.9375rem] text-[var(--destructive-soft-foreground)]"
     >
       {children}
     </p>
@@ -228,7 +247,7 @@ export function Succes({ children }: { children: React.ReactNode }) {
   return (
     <p
       role="status"
-      className="rounded-lg border-l-4 border-[var(--success)] bg-[var(--success-soft)] px-3.5 py-3 text-[0.9375rem] text-[var(--success-soft-foreground)]"
+      className="rounded-[var(--rayon-champ)] border-l-4 border-[var(--success)] bg-[var(--success-soft)] px-3.5 py-3 text-[0.9375rem] text-[var(--success-soft-foreground)]"
     >
       {children}
     </p>
@@ -239,7 +258,7 @@ export function Avertissement({ children }: { children: React.ReactNode }) {
   return (
     <p
       role="alert"
-      className="rounded-lg border-l-4 border-[var(--warning)] bg-[var(--warning-soft)] px-3.5 py-3 text-[0.9375rem] text-[var(--warning-soft-foreground)]"
+      className="rounded-[var(--rayon-champ)] border-l-4 border-[var(--warning)] bg-[var(--warning-soft)] px-3.5 py-3 text-[0.9375rem] text-[var(--warning-soft-foreground)]"
     >
       {children}
     </p>
@@ -251,23 +270,26 @@ export function Information({ children }: { children: React.ReactNode }) {
   return (
     <p
       role="status"
-      className="rounded-lg border-l-4 border-[var(--filet)] bg-[var(--marque-clair)] px-3.5 py-3 text-[0.9375rem] text-[var(--corps)]"
+      className="rounded-[var(--rayon-champ)] border border-[var(--filet)] bg-[var(--filet-leger)] px-3.5 py-3 text-[0.9375rem] text-[var(--corps)]"
     >
       {children}
     </p>
   );
 }
 
-/** Retour explicite : sur un téléphone, le geste système ne suffit pas toujours. */
+/**
+ * Retour explicite : sur un téléphone, le geste système ne suffit pas toujours.
+ * Format du Design System : « ← Libellé de la page d'arrivée », posé AU-DESSUS
+ * du titre. La flèche est décorative (`aria-hidden`) : le nom du lien reste le
+ * libellé de la page d'arrivée.
+ */
 export function Retour({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link
       href={href}
-      className="-ml-1 inline-flex min-h-11 items-center gap-1.5 px-1 text-[0.9375rem] text-[var(--texte-secondaire)] hover:text-[var(--encre)]"
+      className="artisan-retour -ml-1 inline-flex min-h-11 w-fit items-center gap-1.5 px-1 text-[0.9375rem] font-medium text-[var(--texte-secondaire)] underline-offset-4 hover:text-[var(--encre)] hover:underline"
     >
-      <svg viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0 fill-none stroke-current stroke-2">
-        <path d="M15 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      <span aria-hidden>←</span>
       {children}
     </Link>
   );
@@ -313,5 +335,5 @@ export function DetailsInformation({
 
 /** Une lecture échouée ne prouve jamais que le dossier est absent. */
 export function LectureImpossibleArtisan({ href }: { href: string }) {
-  return <div className="space-y-4"><EnteteSousPage titre="Dossier indisponible" /><Erreur>Ce dossier n’a pas pu être chargé. Réessayez dans un instant.</Erreur><a href={href} className={CLASSE_BOUTON_SECONDAIRE}>Réessayer</a><Retour href="/artisan">Aujourd’hui</Retour></div>;
+  return <div className="space-y-4"><Retour href="/artisan">Aujourd’hui</Retour><EnteteSousPage titre="Dossier indisponible" /><Erreur>Ce dossier n’a pas pu être chargé. Réessayez dans un instant.</Erreur><a href={href} className={`${CLASSE_BOUTON_SECONDAIRE} sm:w-fit`}>Réessayer</a></div>;
 }

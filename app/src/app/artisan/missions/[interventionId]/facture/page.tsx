@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
 import { chargerAgenda, verifierAccesArtisan } from "../../../acces";
 import { euros } from "../../../libelles";
-import { Carte, EnteteSousPage, LigneInfo, MarqueAgence, Retour } from "../../../ui";
+import { Carte, EnteteSousPage, LigneInfo, MarqueAgence, Retour, TitreSection } from "../../../ui";
 import { AvertissementRendezVousAnticipe } from "../avertissement-rendez-vous";
 import { FormulaireFacture } from "./formulaire-facture";
 
@@ -43,13 +43,17 @@ export default async function PageFacture(
   return (
     <div className="space-y-5">
       <Retour href={`/artisan/missions/${interventionId}`}>La mission</Retour>
-      <MarqueAgence nom={mission.agence_nom} taille="grande" />
+      {/* Même ligne d'en-tête que la fiche de mission : la marque du client, puis le titre. */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <MarqueAgence nom={mission.agence_nom} taille="grande" />
+      </div>
       <EnteteSousPage
         titre="Déposer ma facture"
         mention={`${titreIncident(mission.categorie)} · ${mission.incident_numero}`}
       />
 
       <Carte>
+        <TitreSection>Montants de référence</TitreSection>
         <LigneInfo libelle="Devis retenu">
           {mission.montant_ttc_cents !== null ? `${euros(mission.montant_ttc_cents)} TTC` : "—"}
         </LigneInfo>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CLASSE_BOUTON_PRINCIPAL, Erreur } from "../ui";
+import { CLASSE_BOUTON_PRINCIPAL, EnteteSousPage, Erreur } from "../ui";
 
 export const metadata = { title: "Lecture impossible" };
 
@@ -17,9 +17,7 @@ export const metadata = { title: "Lecture impossible" };
 export default function PagePanneArtisan() {
   return (
     <div className="space-y-5">
-      <h1 className="text-[1.5rem] leading-tight text-[var(--encre)]">
-        Lecture momentanément impossible
-      </h1>
+      <EnteteSousPage rubrique="aide" titre="Lecture momentanément impossible" />
       <Erreur>
         Votre fiche n&apos;a pas pu être lue à l&apos;instant. Rien n&apos;est perdu — ni
         vos attestations, ni vos missions.
@@ -36,7 +34,7 @@ export default function PagePanneArtisan() {
         </Link>
         .
       </p>
-      <Link href="/artisan" className={CLASSE_BOUTON_PRINCIPAL}>
+      <Link href="/artisan" className={`${CLASSE_BOUTON_PRINCIPAL} sm:w-fit`}>
         Réessayer
       </Link>
     </div>

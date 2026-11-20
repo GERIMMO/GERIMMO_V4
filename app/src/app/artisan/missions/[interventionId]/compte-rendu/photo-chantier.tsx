@@ -79,10 +79,10 @@ export function PhotoChantier({
 
       <label
         htmlFor={idChamp}
-        className={`flex min-h-40 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${
+        className={`flex min-h-40 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-[var(--rayon-carte)] border-2 border-dashed px-4 py-6 text-center transition-colors ${
           envoyee
             ? "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success-soft-foreground)]"
-            : "border-[var(--encre)] bg-[var(--ardoise)] text-[var(--encre)]"
+            : "border-[var(--marque)] bg-[var(--filet-leger)] text-[var(--encre)]"
         }`}
       >
         <svg
@@ -142,7 +142,7 @@ export function PhotoChantier({
         <img
           src={apercu}
           alt={`Aperçu de la photo ${titre.toLowerCase()}`}
-          className="h-auto w-full rounded-lg border border-border object-cover"
+          className="h-auto w-full rounded-[var(--rayon-champ)] border border-[var(--filet)] object-cover"
         />
       )}
 

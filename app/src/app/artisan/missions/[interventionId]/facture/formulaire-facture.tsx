@@ -129,12 +129,12 @@ export function FormulaireFacture({
         <legend className={CLASSE_LIBELLE}>{mode === "sci" ? "Facture à la SCI propriétaire" : "Facture au propriétaire particulier"}</legend>
         <p className={CLASSE_AIDE}>Utilisez le prochain numéro de votre série. Vérifiez les mentions et les conditions convenues avec votre client.</p>
         {mode === "sci" && <>
-          <label className="block">SIREN de la SCI cliente<input className={CLASSE_CHAMP} name="siren_client" required inputMode="numeric" pattern="[0-9]{9}" maxLength={9}/></label>
+          <label className="block">SIREN de la SCI cliente<input className={`${CLASSE_CHAMP} mt-1.5`} name="siren_client" required inputMode="numeric" pattern="[0-9]{9}" maxLength={9}/></label>
           <p className={CLASSE_AIDE}>Le nom et le siège social proviennent du dossier du logement à la date de commande.</p>
-          <label className="block">Adresse de facturation si différente du siège<input className={CLASSE_CHAMP} name="adresse_client" maxLength={500}/></label>
-          <label className="block">Numéro du bon de commande, si établi<input className={CLASSE_CHAMP} name="commande" maxLength={80}/></label>
-          <label className="block">Conditions d’escompte pour paiement anticipé<input className={CLASSE_CHAMP} name="escompte" required maxLength={500}/></label>
-          <label className="block">Pénalités de retard et indemnité de recouvrement applicables<textarea className={CLASSE_ZONE_TEXTE} name="retard" required maxLength={1000}/></label>
+          <label className="block">Adresse de facturation si différente du siège<input className={`${CLASSE_CHAMP} mt-1.5`} name="adresse_client" maxLength={500}/></label>
+          <label className="block">Numéro du bon de commande, si établi<input className={`${CLASSE_CHAMP} mt-1.5`} name="commande" maxLength={80}/></label>
+          <label className="block">Conditions d’escompte pour paiement anticipé<input className={`${CLASSE_CHAMP} mt-1.5`} name="escompte" required maxLength={500}/></label>
+          <label className="block">Pénalités de retard et indemnité de recouvrement applicables<textarea className={`${CLASSE_ZONE_TEXTE} mt-1.5`} name="retard" required maxLength={1000}/></label>
         </>}
         {([
           ["adresse_entreprise", "Adresse de votre entreprise", "text", 500],

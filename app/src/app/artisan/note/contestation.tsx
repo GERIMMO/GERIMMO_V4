@@ -7,7 +7,7 @@ export function Contestation() {
       Demandez le réexamen de votre évaluation à la supervision Gerimmo.
       Votre demande et les réponses restent privées entre vous et la plateforme.
     </p>
-    <Link href="/assistance?type=contestation&ecran=%2Fartisan%2Fnote" className={CLASSE_BOUTON_SECONDAIRE}>
+    <Link href="/assistance?type=contestation&ecran=%2Fartisan%2Fnote&retour=%2Fartisan%2Fnote" className={CLASSE_BOUTON_SECONDAIRE}>
       Déposer une contestation
     </Link>
   </div>;

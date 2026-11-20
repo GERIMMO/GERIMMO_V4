@@ -48,7 +48,7 @@ export function DepotSignature({
           target="_blank"
           rel="noreferrer"
           aria-label={`Télécharger ${demande.titre ?? "le document"}`}
-          className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
+          className={`pointer-coarse:min-h-11 ${buttonVariants({ variant: "outline", size: "sm" })}`}
         >
           Télécharger
         </a>

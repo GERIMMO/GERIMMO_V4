@@ -14,6 +14,7 @@ import { libelleEtatLocataire, titreIncident } from "@/lib/incidents";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
 import { LectureImpossible } from "./panne-lecture";
+import { BORD_ETAT } from "./pastille-locataire";
 import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
 import {
   SuiviInterventionLocataire,
@@ -133,22 +134,18 @@ function CarteIncident({
     incident.etat !== "clos";
   const peutRouvrir = peutAgir && incident.est_declarant && incident.etat === "clos";
 
-  // Liseré gauche façon maquette pLocIncidents : vert = clos, ambre = une
-  // décision ou une action côté locataire (à sa charge, intervention
-  // terminée), encre = le dossier avance côté agence. Même épaisseur que les
-  // autres cartes à liseré de la zone (4 px).
+  // Bord gauche d'état (maquette pLocIncidents, revu le 20/11) : ambre quand
+  // une décision ou une action est attendue du locataire (à sa charge,
+  // intervention terminée, créneau à choisir). Les autres cartes n'en ont pas.
   const actionAttendue =
     (incident.etat === "qualifie" && incident.imputation !== "proprietaire") ||
     incident.etat === "termine" ||
     // Un créneau attend son choix : c'est la seule chose qu'on lui
     // demande de tout le cycle, elle mérite le liseré d'action.
     (suivi?.etape === "creneau_a_choisir" && peutAgir);
-  const liser =
-    incident.etat === "clos"
-      ? "border-l-[var(--success)]"
-      : actionAttendue
-        ? "border-l-[var(--warning)]"
-        : "border-l-[var(--encre)]";
+  // 20/11 : le bord vert (clos) et le bord encre (dossier en cours) étaient du
+  // décor — la pastille dit déjà l'étape. Seul le geste attendu garde un bord.
+  const liser = incident.etat !== "clos" && actionAttendue ? BORD_ETAT.attention : "";
   // La pastille suit le liseré (24/09) : la table d'état partagée donnait
   // l'ambre à « Pris en charge par le propriétaire », où rien n'est attendu,
   // et le bleu à la seule carte qui attendait un geste.
@@ -172,7 +169,7 @@ function CarteIncident({
   return (
     <div
       id={`demande-${incident.id}`}
-      className={`loc-carte scroll-mt-24 space-y-1.5 border-l-4 text-sm ${liser}`}
+      className={`loc-carte scroll-mt-24 space-y-1.5 text-sm ${liser}`}
     >
       <div className="entete-carte !mb-0">
         <h2 className="titre-carte text-base font-medium">{titreIncident(incident.categorie)}</h2>
@@ -181,7 +178,7 @@ function CarteIncident({
       {incident.description && (
         incident.description.length > 180 ? (
           <details className="rounded-xl bg-muted/40 p-3 text-sm">
-            <summary className="cursor-pointer py-1 font-medium focus-visible:outline-2 focus-visible:outline-offset-2">
+            <summary className="min-h-11 cursor-pointer content-center py-1 font-medium focus-visible:outline-2 focus-visible:outline-offset-2">
               Lire la description complète
             </summary>
             <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed">{incident.description}</p>
@@ -351,8 +348,8 @@ export function IncidentsLocataire({
   }
   if (incidents.length === 0) {
     return (
-      <div className="vide-guide rounded-[14px]">
-        <p className="titre">Rien en cours.</p>
+      <div className="vide-guide">
+        <p className="titre max-sm:pr-14">Rien en cours.</p>
         <p className="explication">
           Un problème dans le logement ? Signalez-le : vous saurez qui prend la
           réparation en charge avant toute intervention, et vous suivrez chaque

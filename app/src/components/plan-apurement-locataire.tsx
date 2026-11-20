@@ -54,7 +54,7 @@ function Plan({ plan }: { plan: MonPlanApurement }) {
       <p className="mt-1 text-xs text-muted-foreground">{honorees}/{tranches.length} tranches honorées</p>
     </div>}
     {prochaine && <p className={prochaine.statut === "manquee" ? "text-destructive" : ""}>{prochaine.statut === "manquee" ? "Tranche en retard" : "Prochaine tranche"} : <strong>{eur(prochaine.montant)}</strong> le {formaterDate(prochaine.echeance)}.{prochaine.statut === "manquee" && " Réglez-la au plus vite : à plusieurs tranches manquées, le plan prend fin et les relances reprennent."}</p>}
-    <details><summary className="cursor-pointer text-xs text-muted-foreground">Voir toutes les tranches</summary>
+    <details><summary className="min-h-11 cursor-pointer content-center text-xs text-muted-foreground">Voir toutes les tranches</summary>
       <ul className="mt-2 divide-y divide-border text-xs">{tranches.map((t) => <li key={t.rang} className="flex justify-between py-1"><span>{t.rang}. {formaterDate(t.echeance)}</span><span>{eur(t.montant)} · {({ a_venir: "à venir", honoree: "honorée", manquee: "en retard", annulee: "annulée" })[t.statut]}</span></li>)}</ul>
     </details>
     {plan.conditions && <p className="text-xs text-muted-foreground">Conditions convenues : {plan.conditions}</p>}

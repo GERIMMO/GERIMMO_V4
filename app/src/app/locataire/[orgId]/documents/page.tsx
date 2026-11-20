@@ -154,18 +154,18 @@ export default async function PageDocumentsLocataire(
         <PanneLecture quoi="vos documents" />
       )}
 
-      {enPreparation > 0 && <p className="rounded-xl border border-[var(--filet)] bg-[var(--warning-soft)] p-4 text-sm" role="status">
-        {enPreparation} justificatif{enPreparation > 1 ? "s" : ""} de loyer en préparation ou à vérifier. Ces justificatifs deviendront consultables dès que les informations nécessaires seront complètes. <Link href={`/locataire/${orgId}/contact`} className="underline">Contacter mon gestionnaire</Link>
+      {enPreparation > 0 && <p className="rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--warning-soft)] px-4 py-3 text-sm" role="status">
+        {enPreparation} justificatif{enPreparation > 1 ? "s" : ""} de loyer en préparation ou à vérifier. Ces justificatifs deviendront consultables dès que les informations nécessaires seront complètes. <Link href={`/locataire/${orgId}/contact`} className="font-medium underline underline-offset-2">Contacter mon gestionnaire</Link>
       </p>}
 
-      {(aSigner.length > 0 || demandes.length > 0 || (adhesionActive && !lecturePiecesKO && !etatAssurance.nonExpiree)) && <p className="rounded-xl border border-border bg-card px-4 py-3 text-sm"><b>À faire :</b> vérifiez les pièces ou signatures attendues. <a className="inline-flex min-h-11 items-center font-medium underline" href="#documents-a-transmettre">Voir les éléments à transmettre →</a></p>}
+      {(aSigner.length > 0 || demandes.length > 0 || (adhesionActive && !lecturePiecesKO && !etatAssurance.nonExpiree)) && <p className="flex flex-wrap items-center gap-x-2 rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] px-4 py-2 text-sm shadow-[var(--ombre-1)]"><span><b>À faire :</b> vérifiez les pièces ou signatures attendues.</span> <a className="inline-flex min-h-11 items-center font-medium text-[var(--bleu)] underline underline-offset-2" href="#documents-a-transmettre">Voir les éléments à transmettre →</a></p>}
       <OngletsDossier libelle="Rubriques de mes documents"
         initiale="documents-disponibles"
         rubriques={[
           { id: "documents-a-transmettre", titre: "À transmettre", contenu: <>
       {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
       {aSigner.length > 0 && adhesionActive && (
-        <div className="loc-carte border-l-4 border-l-[var(--or)]">
+        <div className="loc-carte">
           <div className="entete-carte !mb-1">
             <h2 className="titre-carte text-base font-medium">
               {aSigner.length > 1 ? "Documents à signer" : "Un document à signer"}
@@ -181,7 +181,7 @@ export default async function PageDocumentsLocataire(
       )}
 
       {demandes.length > 0 && (
-        <div className="loc-carte border-l-4 border-l-[var(--or)]">
+        <div className="loc-carte">
           <div className="entete-carte !mb-0">
             <h2 className="titre-carte text-base font-medium">
               {demandes.length > 1 ? "Des pièces vous sont demandées" : "Une pièce vous est demandée"}
@@ -204,7 +204,7 @@ export default async function PageDocumentsLocataire(
           scroll-mt : l'en-tête .loc-haut est collant (globals.css:627). */}
       <div
         id="assurance"
-        className={`loc-carte scroll-mt-24 ${lecturePiecesKO || etatAssurance.validee ? "" : "border-l-4 border-l-[var(--or)]"}`}
+        className="loc-carte scroll-mt-24"
       >
         <div className="entete-carte !mb-1">
           <h2 className="titre-carte text-base font-medium">Votre assurance habitation</h2>

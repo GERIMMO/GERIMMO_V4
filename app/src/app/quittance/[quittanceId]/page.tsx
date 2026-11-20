@@ -69,84 +69,120 @@ export default async function PageQuittance(props: {
     year: "numeric",
   });
 
-  return (
-    <main className="mx-auto w-full max-w-3xl space-y-5 p-4 sm:p-8" style={styleMarque(marque)}>
-      {/* L'en-tête de marque, toujours (25/09, D11). */}
-      <div className="max-w-[180px] print:hidden">
-        <MarqueOrganisation marque={marque} />
-      </div>
-      {/* Route racine, hors de tout espace : sans cela, le document est un
-          cul-de-sac. Masqué à l'impression. */}
-      <div className="print:hidden">
-        <BoutonRetour
-          libelle={q.vue_gestionnaire ? "Retour" : "Retour à mes paiements"}
-          className="btn-secondaire"
-        />
-      </div>
+  const titre = (
+    <>
+      {nature} — <span className="capitalize">{mois}</span>
+    </>
+  );
+  const delivre = manquants.length === 0;
+  const direct = q.organisation.type === "proprietaire_direct";
 
-      {manquants.length === 0 ? (
-        <>
+  // HABILLAGE D'ÉCRAN (Design System « Maison », 20/11), le même que celui de
+  // l'attestation de bon paiement : bandeau à la marque de l'émetteur, retour
+  // nommé au-dessus du titre, titre à la taille commune, action principale,
+  // puis le document. Rien de tout cela ne s'imprime : le document garde son
+  // cadre et sa feuille (modèle du PDF).
+  return (
+    <>
+      {/* L'en-tête de marque, toujours (25/09, D11) — dans le bandeau blanc
+          des pages servies hors d'un espace (compte, aide). */}
+      <header className="bandeau-appli print:hidden">
+        <div className="mx-auto flex w-full max-w-3xl items-center px-4 py-3 sm:px-8">
+          <div className="max-w-[180px] min-w-0 overflow-hidden">
+            <MarqueOrganisation marque={marque} />
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto w-full max-w-3xl space-y-5 p-4 sm:p-8" style={styleMarque(marque)}>
+        <div className={delivre ? "print:hidden" : undefined}>
+          {/* Route racine, hors de tout espace : sans retour, le document est
+              un cul-de-sac. Le locataire revient à « Mes paiements », d'où
+              s'ouvre chaque quittance : le lien dit où il mène, et y mène même
+              sans historique (lien reçu par e-mail). Le gestionnaire, lui,
+              arrive de plusieurs écrans : il repart d'où il vient.
+              Quand la page est ouverte depuis un espace, le bandeau commun
+              « Revenir à mon espace… » (ContinuiteEspace) ramène déjà à la
+              page d'origine : ce retour-ci s'efface pour ne pas le doubler. */}
+          <div className="print:hidden [html[data-depuis-espace]_&]:hidden">
+            {q.vue_gestionnaire ? (
+              <BoutonRetour libelle="Retour" className="lien-discret inline-flex min-h-11 items-center text-sm" />
+            ) : (
+              <Link
+                href={`/locataire/${q.organization_id}/loyers`}
+                className="lien-discret inline-flex min-h-11 items-center text-sm"
+              >
+                ← Mes paiements
+              </Link>
+            )}
+          </div>
           {/* Le titre de la page, hors du cadre : le document garde le sien,
-              mais la page doit en porter un (lecteurs d'écran, audit). */}
-          <h1 className="text-lg print:hidden">
-            {nature} — <span className="capitalize">{mois}</span>
-          </h1>
+              mais la page doit en porter un (lecteurs d'écran, audit). Le `!`
+              est requis, la taille des h1 étant posée hors couche. */}
+          <h1 className="!text-[length:var(--titre-1)]">{titre}</h1>
+        </div>
+
+        {delivre ? (
           <DocumentQuittance
             html={htmlQuittancePourEcran(document.html)}
             titre={`${nature} — ${mois}`}
             imprimerAuChargement={imprimer === "1"}
+            actionPrincipale
           />
-        </>
-      ) : (
-        <section className="space-y-3 rounded-md border border-border p-4 text-sm">
-          <h1 className="text-lg">
-            {nature} — <span className="capitalize">{mois}</span>
-          </h1>
-          <p>
-            Paiement enregistré&nbsp;: <span className="montant">{eur(Number(q.montant))}</span>.
-          </p>
-          {q.vue_gestionnaire ? (
-            <>
-              <p className="text-muted-foreground">
-                Ce document ne peut pas encore être délivré au locataire&nbsp;: une
-                quittance doit porter l&apos;identité et l&apos;adresse de son émetteur,
-                et chaque information obligatoire du modèle. Il manque&nbsp;:
-              </p>
-              <ul className="list-disc space-y-1 pl-5">
-                {manquants.map((m) => {
-                  const lien = lienPourManquant(m, q.organization_id, [{ entite: "bail", entiteId: q.bail_id }], "quittance", racineEspace(q.organisation.type === "proprietaire_direct"));
-                  return (
-                    <li key={m}>
-                      {m}
-                      {lien && (
-                        <>
-                          {" "}
-                          —{" "}
-                          <Link href={lien.href} className="lien-discret">
-                            à renseigner dans {lien.ecran}
-                          </Link>
-                        </>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-              <p className="text-muted-foreground">
-                Tant qu&apos;il manque une de ces informations, le document n&apos;est pas
-                envoyé par e-mail.
-              </p>
-            </>
-          ) : (
-            <p className="text-muted-foreground">
-              Votre {q.est_quittance ? "quittance" : "reçu"} n&apos;est pas encore
-              disponible&nbsp;: votre gestionnaire doit d&apos;abord compléter les
-              informations obligatoires du document (son identité, son adresse…).
-              Vous pouvez le lui demander depuis votre espace, rubrique «&nbsp;Mon
-              gestionnaire&nbsp;».
+        ) : q.vue_gestionnaire ? (
+          <section className="space-y-3 rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] p-5 text-sm shadow-[var(--ombre-1)]">
+            <p>
+              Paiement enregistré&nbsp;: <span className="montant">{eur(Number(q.montant))}</span>.
             </p>
-          )}
-        </section>
-      )}
-    </main>
+            <p className="text-muted-foreground">
+              Ce document ne peut pas encore être délivré au locataire&nbsp;: une
+              quittance doit porter l&apos;identité et l&apos;adresse de son émetteur,
+              et chaque information obligatoire du modèle. Il manque&nbsp;:
+            </p>
+            <ul className="list-disc space-y-1 pl-5">
+              {manquants.map((m) => {
+                const lien = lienPourManquant(m, q.organization_id, [{ entite: "bail", entiteId: q.bail_id }], "quittance", racineEspace(q.organisation.type === "proprietaire_direct"));
+                return (
+                  <li key={m}>
+                    {m}
+                    {lien && (
+                      <>
+                        {" "}
+                        —{" "}
+                        <Link href={lien.href} className="lien-discret">
+                          à renseigner dans {lien.ecran}
+                        </Link>
+                      </>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="text-muted-foreground">
+              Tant qu&apos;il manque une de ces informations, le document n&apos;est pas
+              envoyé par e-mail.
+            </p>
+          </section>
+        ) : (
+          // État vide du système : ce qu'il n'y a pas encore, pourquoi, et le
+          // geste — la rubrique était citée sans lien.
+          <div className="vide-guide">
+            <p className="titre max-sm:pr-14">
+              Votre {q.est_quittance ? "quittance" : "reçu"} n&apos;est pas encore disponible
+            </p>
+            <p className="explication">
+              Paiement enregistré&nbsp;: <span className="montant">{eur(Number(q.montant))}</span>.
+              Votre gestionnaire doit d&apos;abord compléter les informations
+              obligatoires du document (son identité, son adresse…). Vous pouvez
+              le lui demander depuis votre espace.
+            </p>
+            <div className="geste">
+              <Link href={`/locataire/${q.organization_id}/contact`} className="btn-or">
+                Écrire à {direct ? "mon bailleur" : "mon gestionnaire"}
+              </Link>
+            </div>
+          </div>
+        )}
+      </main>
+    </>
   );
 }

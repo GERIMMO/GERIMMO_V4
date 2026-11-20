@@ -124,7 +124,7 @@ export default async function PageFaqLocataire(props: PageProps<"/locataire/[org
           <p className="text-sm text-muted-foreground">Une question sans réponse ici ?</p>
           <Link
             href={`/locataire/${orgId}/contact`}
-            className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
+            className={`pointer-coarse:min-h-11 ${buttonVariants({ variant: "outline", size: "sm" })}`}
           >
             Écrire à mon gestionnaire
           </Link>

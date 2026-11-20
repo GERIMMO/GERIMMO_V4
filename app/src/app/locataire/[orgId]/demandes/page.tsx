@@ -5,6 +5,7 @@ import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { IncidentsLocataire, type IncidentLocataire } from "../incidents-locataire";
 import { aEchoue, PanneLecture } from "../panne-lecture";
+import { BORD_ETAT } from "../pastille-locataire";
 import type { CreneauPropose, SuiviIntervention } from "./suivi-intervention";
 import { signalementOuvert } from "../types";
 import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
@@ -72,6 +73,8 @@ export default async function PageDemandesLocataire(
   // si la lecture est tombée, auquel cas l'état vide (qui porte son propre
   // bouton or vers /incident) n'est pas affiché du tout (relevé 11/09).
   const boutonSignaler = peutSignaler && (incidents.length > 0 || aEchoue(eIncidents));
+  // La carte « Un rendez-vous attend votre choix » est affichée (présentation seule : même test que plus bas).
+  const creneauAttendu = aChoisir > 0 && adhesionActive && Boolean(premiereAChoisir);
 
   return (
     <div className="space-y-4">
@@ -89,8 +92,11 @@ export default async function PageDemandesLocataire(
                 {incidents.length - enCours.length > 1 ? "s" : ""}
               </span>
             )}
+            {/* Une seule action principale par écran (20/11) : tant qu'un
+                créneau attend son choix, c'est lui le geste en bleu nuit ;
+                « Signaler un problème » passe en bouton secondaire. */}
             {boutonSignaler && (
-              <Link href={`/locataire/${orgId}/incident`} className="btn-or">
+              <Link href={`/locataire/${orgId}/incident`} className={creneauAttendu ? "btn-secondaire" : "btn-or"}>
                 Signaler un problème{"\u00a0"}→
               </Link>
             )}
@@ -111,7 +117,7 @@ export default async function PageDemandesLocataire(
       {aChoisir > 0 && adhesionActive && premiereAChoisir && (
         <a
           href={`#demande-${premiereAChoisir}`}
-          className="loc-carte group block border-l-4 border-l-[var(--warning)] transition-colors hover:border-[var(--marque)] hover:border-l-[var(--warning)]"
+          className={`loc-carte block ${BORD_ETAT.attention}`}
         >
           <h2 className="titre-carte text-base font-medium">
             {aChoisir > 1

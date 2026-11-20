@@ -119,7 +119,8 @@ export function FilMessages({
             // La phrase entière, qui est celle insérée (24/09) : coupée à 42
             // caractères, elle ne se lisait qu'au survol du title, donc
             // jamais au doigt. La pastille passe à la ligne au besoin.
-            className="filtre text-left hover:!bg-[var(--ardoise)]"
+            // Au doigt, 44 px de haut (20/11) : la pastille en faisait une trentaine.
+            className="filtre text-left pointer-coarse:min-h-11 hover:!bg-[var(--ardoise)]"
             onClick={() => {
               if (champ.current) {
                 champ.current.value = s;

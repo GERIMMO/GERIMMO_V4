@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BORD_ETAT, BOUTON_URGENCE } from "./pastille-locataire";
 
 // Les réflexes d'urgence de la maquette v10. Ils ne vivaient que sur la page
 // « Mes demandes » ; depuis la revue du 11/09, l'entrée de menu et la carte
@@ -21,7 +22,7 @@ export function ReflexesUrgence({ hrefSignalement, surFormulaire = false }: { hr
   const suite =
     " — répondez « oui » à « Est-ce urgent ? » : votre gestionnaire est alors prévenu par e-mail.";
   return (
-    <div id="consignes-urgence" className="loc-carte scroll-mt-24 border-l-4 border-l-[var(--destructive)]">
+    <div id="consignes-urgence" className={`loc-carte scroll-mt-24 ${BORD_ETAT.urgence}`}>
       <h2 className="titre-carte text-base font-medium">En cas d&apos;urgence</h2>
       <p className="mt-1.5 text-sm text-muted-foreground">
         Fuite importante : fermez d&apos;abord le robinet d&apos;arrêt d&apos;eau.
@@ -33,14 +34,14 @@ export function ReflexesUrgence({ hrefSignalement, surFormulaire = false }: { hr
             coupait après le « 0 ». */}
         <a
           href="tel:0800473333"
-          className="inline-flex min-h-11 items-center rounded-md border border-destructive px-3 text-sm font-medium whitespace-nowrap text-destructive"
+          className={BOUTON_URGENCE}
           aria-label="Appeler Urgence Sécurité Gaz, 0 800 47 33 33"
         >
           Gaz&nbsp;: 0&nbsp;800&nbsp;47&nbsp;33&nbsp;33
         </a>
         <a
           href="tel:112"
-          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-destructive px-3 text-sm font-medium text-destructive"
+          className={BOUTON_URGENCE}
           aria-label="Appeler le 112, numéro d'urgence européen"
         >
           Appeler le 112

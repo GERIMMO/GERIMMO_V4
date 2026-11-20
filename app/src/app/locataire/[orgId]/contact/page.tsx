@@ -2,14 +2,22 @@ import { lireIdentiteContact } from "../identite-contact";
 import { AssistantPrive } from "@/components/assistant-prive";
 import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { Interlocuteur, type Gestionnaire } from "../cartes-laterales";
 import { aEchoue, PanneLecture } from "../panne-lecture";
 import { FilMessages, type MessageFil } from "./fil-messages";
 
 // Le layout ajoute « — <agence> » (24/09 : plus « — Gerimmo » dans un espace
-// à la marque de l'agence).
-export const metadata = { title: "Contact" };
+// à la marque de l'agence). L'onglet porte le nom de l'écran, celui du menu et
+// du titre — « Mon gestionnaire » ou « Mon bailleur » (20/11 : il disait
+// « Contact », un troisième nom). Même lecture, mise en cache, que le layout.
+export async function generateMetadata(
+  props: Pick<PageProps<"/locataire/[orgId]/contact">, "params">
+): Promise<Metadata> {
+  const { orgId } = await props.params;
+  return { title: (await lireIdentiteContact(orgId)).titre };
+}
 
 // « Mon gestionnaire » (maquette v10) : le fil de messages avec l'agence —
 // conservé, lu/non lu — et ses coordonnées à côté. Ouvrir la page marque les

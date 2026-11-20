@@ -20,9 +20,10 @@ import { ChampFichier } from "@/components/champ-fichier";
 import { Input } from "@/components/ui/input";
 import { LegendeChamps } from "@/components/titre-ecran";
 import { Label } from "@/components/ui/label";
+import { BORD_ETAT } from "../pastille-locataire";
 
 const classeSelect =
-  "h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm";
+  "h-11 w-full rounded-[var(--rayon-champ)] border border-input bg-transparent px-2 text-sm";
 
 // Encart adaptatif « Qui paiera la réparation » (maquette pLocDeclarer +
 // apercuImput) : le REPÈRE juridique de la catégorie choisie — une
@@ -53,16 +54,14 @@ function EncartQuiPaiera({ slug, plat = false }: { slug: string; plat?: boolean 
 
   const repere = categorie.repere;
   const chargeLocataire = repere?.charge === "locataire";
-  // Même liseré de 4 px et mêmes jetons que les autres cartes de la zone
-  const bordure = repere
-    ? chargeLocataire
-      ? "border-l-4 border-l-[var(--warning)]"
-      : "border-l-4 border-l-[var(--success)]"
-    : "";
+  // Bord d'état, seulement quand la réparation est plutôt à la charge du
+  // locataire : c'est le cas qui demande son attention (20/11 — le bord vert
+  // de l'autre cas était du décor, la pastille le dit déjà).
+  const bordure = repere && chargeLocataire ? BORD_ETAT.attention : "";
 
   return (
     <div
-      className={`${plat ? "rounded-[10px] bg-[var(--ardoise)] p-3.5" : "loc-carte"} ${bordure}`}
+      className={`${plat ? "rounded-[var(--rayon-champ)] bg-[var(--ardoise)] p-3.5" : "loc-carte"} ${bordure}`}
     >
       <h3 className={plat ? "text-sm font-medium" : "text-base font-medium"}>
         Qui paiera la réparation

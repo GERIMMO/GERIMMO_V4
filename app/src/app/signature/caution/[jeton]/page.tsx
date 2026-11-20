@@ -53,14 +53,14 @@ export default async function PageMobileCaution(props: PageProps<"/signature/cau
       <Card>
         <CardContent className="space-y-4 pt-6 text-sm">
           {indisponible || !lien ? (
-            <><p role="alert">Nous ne pouvons pas vérifier ce lien pour le moment.</p><Link href={`/signature/caution/${encodeURIComponent(jeton)}`} className="btn-secondaire">Réessayer</Link><AideInvitation suivi connecte={connecte}/></>
+            <><p role="alert" className="err !mb-0">Nous ne pouvons pas vérifier ce lien pour le moment.</p><Link href={`/signature/caution/${encodeURIComponent(jeton)}`} className="btn-secondaire">Réessayer</Link><AideInvitation suivi connecte={connecte}/></>
           ) : lien.etat !== "valide" ? (
             <><p role="status">{MESSAGES_LIEN_CAUTION_CLOS[lien.etat]}</p><AideInvitation connecte={connecte} suivi={lien.etat === "utilise" || lien.etat === "suspendu"}/></>
           ) : (
             <>
-              {lien.essai && <p role="status" className="rounded-xl bg-warning-soft p-3 font-medium">Essai technique sans engagement : {bail ? "le bail" : "l’acte"} et les invitations sont fictifs.</p>}
+              {lien.essai && <p role="status" className="rounded-[var(--rayon-champ)] bg-warning-soft p-3 font-medium text-warning-soft-foreground">Essai technique sans engagement : {bail ? "le bail" : "l’acte"} et les invitations sont fictifs.</p>}
               <p>Bonjour {lien.garant.prenom} {lien.garant.nom},</p>
-              <dl className="space-y-2 rounded-xl border border-border p-3">
+              <dl className="space-y-2 rounded-[var(--rayon-champ)] border border-[var(--filet)] bg-[var(--carte)] p-3">
                 <div><dt className="text-xs text-muted-foreground">Qui vous le demande</dt><dd className="font-medium">{lien.bailleur}, bailleur</dd></div>
                 {bail
                   ? <div><dt className="text-xs text-muted-foreground">Quoi</dt><dd>Signer le bail de {lien.locataires}, en qualité de garant : vous y reconnaissez avoir reçu un exemplaire du bail</dd></div>

@@ -97,7 +97,7 @@ export default async function PageAttestationLoyer(
   } else if (!bail || moisEchus.length === 0) {
     contenu = (
       <div className="vide-guide">
-        <p className="titre">Pas encore d&apos;attestation à délivrer</p>
+        <p className="titre max-sm:pr-14">Pas encore d&apos;attestation à délivrer</p>
         <p className="explication">
           L&apos;attestation de bon paiement atteste des loyers déjà réglés :
           elle pourra être établie après votre premier loyer échu.
@@ -107,7 +107,7 @@ export default async function PageAttestationLoyer(
   } else if (enSouffrance.length > 0) {
     contenu = (
       <div className="vide-guide">
-        <p className="titre">Attestation indisponible pour l&apos;instant</p>
+        <p className="titre max-sm:pr-14">Attestation indisponible pour l&apos;instant</p>
         <p className="explication">
           {enSouffrance.length} loyer{enSouffrance.length > 1 ? "s" : ""} reste
           {enSouffrance.length > 1 ? "nt" : ""} dû{enSouffrance.length > 1 ? "s" : ""} sur
@@ -126,7 +126,7 @@ export default async function PageAttestationLoyer(
     // valeur ([[Quittance conforme]]) : on ne le délivre pas à moitié.
     contenu = (
       <div className="vide-guide">
-        <p className="titre">Attestation indisponible pour l&apos;instant</p>
+        <p className="titre max-sm:pr-14">Attestation indisponible pour l&apos;instant</p>
         <p className="explication">
           Vos loyers sont à jour, mais l&apos;attestation doit porter l&apos;identité
           complète de celui qui la signe
@@ -204,22 +204,58 @@ export default async function PageAttestationLoyer(
     );
   }
 
+  // La marque du bandeau d'écran. Le locataire ne lit pas toujours la fiche de
+  // l'organisation : à défaut, le bandeau porte le nom de celui qui atteste
+  // (l'agence, ou le bailleur — jamais le nom interne du parc), comme la
+  // coquille de son espace ; jamais « Gerimmo » (25/09, D04).
+  const marqueEcran = marque ?? { name: emetteur?.nom ?? "Mon espace locataire" };
+
+  // HABILLAGE D'ÉCRAN (Design System « Maison », 20/11), le même que celui de
+  // la quittance : bandeau à la marque de l'émetteur, retour nommé au-dessus du
+  // titre, titre à la taille commune, action principale, puis le document posé
+  // sur sa feuille. CE QUI S'IMPRIME NE CHANGE PAS : la marque en tête, le
+  // titre, la date et le texte de l'attestation, sans cadre ni fond — tout
+  // l'habillage est réservé à l'écran (`print:hidden`, `[@media_screen]:`).
   return (
-    <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8" style={styleMarque(marque)}>
-      {marque && <div className="max-w-[180px]"><MarqueOrganisation marque={marque} /></div>}
-      <div className="flex items-start justify-between gap-3 print:hidden">
-        <Link href={`/locataire/${orgId}/loyers`} className="lien-discret">
-          ‹ Mes paiements
-        </Link>
-        {delivrable && <BoutonImprimer libelle="Imprimer ou enregistrer" />}
-      </div>
-      <div>
-        <h1>Attestation de bon paiement</h1>
-        {delivrable && (
-          <p className="text-sm text-muted-foreground">Établie le {formaterDate(aujourdhui)}</p>
+    <>
+      <header className="bandeau-appli print:hidden">
+        <div className="mx-auto flex w-full max-w-2xl items-center px-5 py-3 sm:px-8">
+          <div className="max-w-[180px] min-w-0 overflow-hidden">
+            <MarqueOrganisation marque={marqueEcran} />
+          </div>
+        </div>
+      </header>
+      <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8" style={styleMarque(marque)}>
+        {/* À l'impression, la marque reste l'en-tête du document. */}
+        {marque && <div className="hidden max-w-[180px] print:block"><MarqueOrganisation marque={marque} /></div>}
+        <div>
+          {/* Retour nommé vers la page d'où s'ouvre l'attestation. Quand on
+              vient de l'espace, le bandeau commun « Revenir à mon espace… »
+              (ContinuiteEspace) y ramène déjà : ce lien s'efface pour ne pas
+              le doubler. */}
+          <Link href={`/locataire/${orgId}/loyers`} className="lien-discret inline-flex min-h-11 items-center text-sm print:hidden [html[data-depuis-espace]_&]:hidden">
+            ← Mes paiements
+          </Link>
+          {/* Taille commune des titres d'écran, à l'écran seulement : le `!`
+              est requis, la taille des h1 étant posée hors couche. */}
+          <h1 className="[@media_screen]:!text-[length:var(--titre-1)]">Attestation de bon paiement</h1>
+          {delivrable && (
+            <p className="text-sm text-muted-foreground">Établie le {formaterDate(aujourdhui)}</p>
+          )}
+        </div>
+        {delivrable ? (
+          <>
+            <div className="print:hidden">
+              <BoutonImprimer libelle="Imprimer ou enregistrer en PDF" />
+            </div>
+            <div className="space-y-6 [@media_screen]:rounded-[var(--rayon-carte)] [@media_screen]:border [@media_screen]:border-[var(--filet)] [@media_screen]:bg-[var(--carte)] [@media_screen]:p-5 [@media_screen]:shadow-[var(--ombre-1)] sm:[@media_screen]:p-8">
+              {contenu}
+            </div>
+          </>
+        ) : (
+          contenu
         )}
-      </div>
-      {contenu}
-    </main>
+      </main>
+    </>
   );
 }

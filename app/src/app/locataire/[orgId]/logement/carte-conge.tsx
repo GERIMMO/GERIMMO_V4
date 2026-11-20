@@ -152,7 +152,7 @@ export function CarteConge({
             name="motif"
             defaultValue={etat.valeurs?.motif}
             placeholder="Mutation, achat, déménagement…"
-            className="mt-1 h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm"
+            className="mt-1 h-11 w-full rounded-[var(--rayon-champ)] border border-input bg-transparent px-3 text-sm"
           />
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <BoutonEnvoi enCoursTexte="Envoi…" size="sm">

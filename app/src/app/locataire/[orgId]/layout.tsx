@@ -11,6 +11,7 @@ import { MenuCompte } from "@/components/menu-compte";
 import { nomComplet } from "@/lib/roles-personnes";
 import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { aEchoue } from "./panne-lecture";
+import { BOUTON_URGENCE } from "./pastille-locataire";
 
 // L'apparence de l'organisation, lue une fois par requête : la marque de la
 // barre latérale ET le titre de l'onglet en ont besoin.
@@ -128,7 +129,7 @@ export default async function LayoutLocataire({
       <div className="min-w-0">
         <header className="loc-haut">
           <span className="ambiance-repere" aria-hidden="true" />
-          <Link href={`/locataire/${orgId}/incident#consignes-urgence`} className="inline-flex min-h-11 items-center rounded-lg border border-destructive/30 px-3 text-sm font-medium text-destructive">Urgence</Link>
+          <Link href={`/locataire/${orgId}/incident#consignes-urgence`} className={BOUTON_URGENCE}>Urgence</Link>
           <MenuCompte
             initiales={
               personne

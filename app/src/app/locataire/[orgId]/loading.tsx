@@ -4,7 +4,7 @@
 // Il est rendu DANS <main class="loc-corps">, qui pose déjà sa gouttière et sa
 // mesure : le p-4 sm:p-7 max-w-6xl qu'il portait doublait l'un et contredisait
 // l'autre. Il reprend maintenant la forme de l'accueil — héros, trois tuiles,
-// colonne de droite — et le rayon 14 px des cartes de la zone (le ! est requis,
+// colonne de droite — et le rayon des cartes du système (le ! est requis,
 // .squelette étant du CSS hors layer).
 export default function ChargementLocataire() {
   return (
@@ -14,16 +14,16 @@ export default function ChargementLocataire() {
         <div aria-hidden="true" className="squelette h-3.5 w-40" />
         <div aria-hidden="true" className="squelette mt-2.5 h-8 w-60" />
       </div>
-      <div aria-hidden="true" className="squelette h-[132px] w-full !rounded-[14px]" />
+      <div aria-hidden="true" className="squelette h-[132px] w-full !rounded-[var(--rayon-carte)]" />
       <div className="loc-grille">
         <div className="grille-kpi">
           {[0, 1, 2].map((i) => (
-            <div key={i} aria-hidden="true" className="squelette h-[150px] !rounded-[14px]" />
+            <div key={i} aria-hidden="true" className="squelette h-[150px] !rounded-[var(--rayon-carte)]" />
           ))}
         </div>
         <div className="space-y-4">
-          <div aria-hidden="true" className="squelette h-[158px] !rounded-[14px]" />
-          <div aria-hidden="true" className="squelette h-[132px] !rounded-[14px]" />
+          <div aria-hidden="true" className="squelette h-[158px] !rounded-[var(--rayon-carte)]" />
+          <div aria-hidden="true" className="squelette h-[132px] !rounded-[var(--rayon-carte)]" />
         </div>
       </div>
     </div>

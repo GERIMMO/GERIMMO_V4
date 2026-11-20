@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 import { eur, formaterDate } from "@/lib/ged";
+import { ValeurVivante } from "@/components/valeur-vivante";
 
 // Ligne du RPC ma_restitution_locataire : le suivi de la restitution du dépôt de
 // garantie du locataire sortant. Avant le décompte (« en_cours »), seuls le
@@ -47,14 +48,14 @@ export function CarteDepotGarantie({
   const solde = Number(restitution.solde ?? 0);
   const restantDu = etabli && solde < 0;
   return (
-    <div className={`${classeCarte} carte-rubrique`} data-ton="bleu">
+    <div className={classeCarte} data-ton="bleu">
       <p className="titre-rubrique text-sm font-semibold">
         <ShieldCheck size={20} aria-hidden="true" />
         Votre dépôt de garantie
       </p>
       {etabli ? (
         <>
-          <p className="v montant">{eur(Math.abs(solde))}</p>
+          <p className="v montant"><ValeurVivante valeur={Math.abs(solde)}>{eur(Math.abs(solde))}</ValeurVivante></p>
           <p className="text-xs text-muted-foreground">
             {restantDu
               ? "à régler par vos soins selon le décompte de départ"
@@ -67,7 +68,7 @@ export function CarteDepotGarantie({
         </>
       ) : (
         <>
-          <p className="v montant">{eur(Number(restitution.depot))}</p>
+          <p className="v montant"><ValeurVivante valeur={Number(restitution.depot)}>{eur(Number(restitution.depot))}</ValeurVivante></p>
           <p className="text-xs text-muted-foreground">
             dépôt versé · restitution sous {restitution.delai_mois} mois à compter de la remise
             des clés ({formaterDate(restitution.date_remise_cles)}), décompte détaillé à suivre

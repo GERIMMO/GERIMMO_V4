@@ -205,7 +205,7 @@ export default async function PageAdminOrganisation(
           <div role="alert" className="mb-6 rounded-[var(--rayon-bouton)] border border-[var(--warning)] bg-[var(--warning-soft)] p-3.5 text-sm text-[var(--warning-soft-foreground)]">
             <b>Organisation ouverte, mais l’invitation n’est pas partie</b> : {echecMail}. Le
             responsable ne peut pas encore se connecter.{" "}
-            <a href="#invitation" className="underline">Renvoyer l’invitation</a>
+            <a href="#invitation" className="btn-or mt-2">Vérifier et renvoyer l’invitation</a>
           </div>
         ) : (
           <p role="status" className="mb-6 rounded-[var(--rayon-bouton)] border border-[var(--filet)] bg-[var(--filet-leger)] p-3.5 text-sm">
@@ -369,7 +369,7 @@ export default async function PageAdminOrganisation(
 
       {/* L'invitation du responsable (audit console 27/09, majeur 7) : le geste
           que le commentaire d'ouverture promettait. */}
-      <ConsoleSection id="invitation" titre="Inviter le responsable" description="Suivi de l’invitation et nouvel envoi." icone="personnes">
+      <ConsoleSection id="invitation" ouverte={ouverte && Boolean(echecMail)} titre="Inviter le responsable" description="Suivi de l’invitation et nouvel envoi." icone="personnes">
         {adhesionsLues.error ? <LectureIndisponible sujet="Responsables et invitations" retour={`/admin/organisations/${orgId}`} /> : responsables.length === 0 ? (
           <p className="text-sm text-[var(--texte-secondaire)]">Aucun responsable rattaché : rien à renvoyer.</p>
         ) : (

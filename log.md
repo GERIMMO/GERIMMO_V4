@@ -7657,3 +7657,27 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   en cours ; libellé « Indiquer mon adresse et créer mon premier bien » ; code de vérification Google Search Console.
 - **Pages du wiki** : création de [[Premiers clients — acquisition sans budget — 20 novembre 2026]] ; mise à jour de
   [[Bail]], [[Diagnostic]], [[Compte, personne et adhésion]] et de l'index.
+
+## [2026-11-20] query  | Que se passe-t-il après l'activation d'un bail repris en cours ? (premier loyer)
+
+- **Question posée par l'agent en poursuivant le plan d'acquisition** : une fois la décision B en place, le propriétaire
+  qui a activé le bail d'un locataire déjà en place arrive-t-il à sa première quittance ?
+- **Constat (banc local, données fictives)** : non. « Générer l'échéancier » sur un bail entré le 01/11/2024 crée 25
+  termes, 18 750 € « impayés », et une alerte d'impayé ; le cycle du 1ᵉʳ du mois ferait de même. Envois automatiques au
+  locataire : désactivés par défaut (relevé des valeurs par défaut des réglages).
+- **Production (lecture seule)** : 11 baux en brouillon, aucun terme appelé ; 2 ont une entrée antérieure au mois en
+  cours. Empreinte de `generer_appels_loyer_interne` identique à celle du banc ; `activer_bail` diffère du dépôt d'une
+  ligne de commentaire.
+- **Proposition, non validée** : « date de bascule » — le premier mois suivi est celui de l'activation
+  (PR [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356), brouillon, empilée sur #355 ; migration `20261120200000` et
+  son retour arrière). Notion tirée des maquettes de reprise de portefeuille (sources du 04/09 et du 08/09).
+- **Preuves sur le banc** : parcours complet à 390 px (bail de 2024 → actif → 1 terme de 750 € → encaissement →
+  quittance) ; suite unitaire complète, 13 191 réussis, 2 échecs hors de la PR.
+- **Défaut trouvé au passage dans la PR #355 et corrigé** (`a8c37a8b`) : `tests/sprint4-bail.test.ts` datait ses baux du
+  jour de la session ; entre minuit et 1 h à Paris, la décision B s'appliquait et un test échouait.
+- **CI de la PR #355** : verte à 21 h 31 UTC (run 44816292574) ; relancée par la correction.
+- **En attente du dirigeant** : approbation de la mise en ligne de « Être rappelé » (run 44794208593) ; accord pour
+  fusionner et publier #353, #354, #355 ; décision A / B / C sur le premier mois suivi (#356).
+- **Pages du wiki** : mise à jour de [[Premiers clients — acquisition sans budget — 20 novembre 2026]], de [[Bail]] et de
+  l'index.
+

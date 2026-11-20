@@ -11,7 +11,7 @@ sources: []
 
 **En une phrase :** le 20/11/2026, le dirigeant a demandé à l'agent de mener seul la recherche des premiers clients,
 lui-même ne répondant qu'aux appels ; le relevé de production a montré que le premier frein n'était pas l'audience mais
-**l'activation** — aucun des espaces ouverts n'était allé jusqu'à un bail actif — et cinq pull requests y répondent.
+**l'activation** — aucun des espaces ouverts n'était allé jusqu'à un bail actif — et six pull requests y répondent.
 
 Cadre posé par le dirigeant : il ne connaît aucun propriétaire, il a du temps, **aucun budget** hors Claude et Codex,
 et LinkedIn, Instagram et Facebook peuvent être connectés. La règle du 23/10 reste entière : aucun particulier n'est
@@ -52,14 +52,15 @@ suivent :
 - **« Oui » — naissance du locataire.** La date et la commune de naissance deviennent facultatives sur la fiche d'un
   locataire déjà en place. Détail dans [[Compte, personne et adhésion]].
 
-## Les cinq chantiers
+## Les chantiers
 
-| # | Chantier | Pull request | État au 20/11, 21 h UTC |
+| # | Chantier | Pull request | État au 20/11, 23 h 45 UTC |
 |---|---|---|---|
 | 1 | **« Être rappelé »** : le visiteur laisse lui-même son numéro et son accord ; le dirigeant le rappelle | [#352](https://github.com/GERIMMO/GERIMMO_V4/pull/352) | Fusionnée (`3fd11ae9`), CI de `main` verte ; mise en ligne lancée, **en attente de l'approbation du dirigeant** |
 | 2 | **Google** : données structurées (éditeur, questions fréquentes, fil d'Ariane, articles) | [#353](https://github.com/GERIMMO/GERIMMO_V4/pull/353) | Ouverte, CI verte |
 | 3 | **Premier bien** : les coordonnées du bailleur se remplissent sur la page « Ajouter un bien » | [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) | Ouverte, CI verte |
-| 4 | **Bail déjà en cours** et **naissance facultative** (les deux décisions) | [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355) | Ouverte ; contient une migration |
+| 4 | **Bail déjà en cours** et **naissance facultative** (les deux décisions) | [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355) | Ouverte ; contient une migration ; CI verte à 21 h 31 UTC, relancée après la correction d'un test sensible à l'heure (`a8c37a8b`) |
+| 4 bis | **Date de bascule des loyers** : un bail repris en cours ne réclame pas les loyers d'avant son arrivée | [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356) | Brouillon, empilée sur #355 ; contient une migration ; **règle à valider par le dirigeant** |
 | 5 | Publications Instagram et LinkedIn | — | Non commencé : demande l'accès aux comptes |
 
 ### 1. « Être rappelé »
@@ -89,9 +90,36 @@ lots » vide devient « Indiquer mon adresse et créer mon premier bien » (libe
 Voir les deux décisions ci-dessus. La mise en ligne suit l'ordre habituel d'une migration : fusion, CI de `main`,
 sauvegarde, chantier protégé « Migrations Supabase », puis publication du code.
 
+### 4 bis. Le premier loyer d'un bail repris en cours
+
+Constat sur le banc, une fois la décision B en place : un propriétaire active le bail d'un locataire entré le
+01/11/2024, puis clique « Générer l'échéancier ». Gerimmo crée **25 termes** (novembre 2024 à novembre 2026), soit
+**18 750 €** affichés « impayés », et pose une alerte d'impayé le lendemain. L'échéancier part toujours de la date
+d'entrée, et le cycle du 1ᵉʳ du mois passe par la même fonction : il aurait créé ces termes tout seul. Le comportement
+n'est pas nouveau ; la décision B en fait le chemin normal d'un propriétaire qui arrive avec un locataire en place. En
+production au 20/11 : aucun terme appelé ; 2 des 11 baux en brouillon ont une entrée antérieure au mois en cours.
+
+**Règle proposée (non encore validée).** À l'activation d'un bail dont le mois d'entrée est antérieur au mois en cours,
+Gerimmo note le mois en cours comme premier mois suivi ; l'échéancier ne commence qu'à ce mois. C'est la « date de
+bascule » que prévoient déjà les maquettes de reprise de portefeuille
+([[2026-09-04-maquette-v3-prototype|Maquette v3]], [[2026-09-08-maquette-espace-agence-v6|Maquette agence v6]]),
+ramenée à un bail. La reprise complète décrite par ces maquettes (soldes d'ouverture, dettes et crédits du locataire)
+n'est pas construite : un arriéré antérieur au premier mois suivi n'existe pas dans l'outil.
+
+Rejoué sur le banc avec la règle : le même bail reçoit **un** terme (novembre 2026, 750 €) ; l'encaissement enregistré
+produit la quittance ; l'accueil affiche « 750,00 € sur 750,00 € ». Détail dans [[Bail]].
+
 ## Ce qui reste à décider
 
 > [!warning] Points à trancher
+> - **Premier mois suivi d'un bail repris en cours** (PR #356) : A, le mois de l'activation (ce que fait la PR) ; B, le
+>   propriétaire choisit le mois ; C, depuis l'entrée du locataire, comme aujourd'hui. Sans A ni B, la décision B du
+>   20/11 mène à un échéancier de plusieurs années « impayé ».
+> - **Dépôt de garantie d'un bail repris** : Gerimmo propose de l'encaisser alors qu'il a été versé à l'entrée.
+> - **Révision du loyer (IRL) d'un bail repris** : la rubrique calcule « loyer actuel × IRL nouveau / IRL de
+>   référence », l'indice de référence étant celui de la dernière révision enregistrée dans Gerimmo, à défaut celui du
+>   bail. Quel indice saisir pour un bail dont le loyer a déjà été révisé avant Gerimmo n'est dit nulle part à l'écran,
+>   et aucune source du wiki ne le tranche.
 > - **État des lieux d'entrée d'un bail déjà en cours.** À l'activation, Gerimmo pose une alerte « État des lieux
 >   d'entrée à signer », datée de l'entrée. Pour un bail signé il y a deux ans, elle n'a pas d'objet.
 > - **DPE classé G sur un bail déjà en cours** : il bloque toujours l'activation. La décision B ne portait que sur les

@@ -77,6 +77,27 @@ diagnostics absents ou expirés ne bloquent pas ce bail ; ils restent des action
 - **Options écartées** : A, ne rien changer ; C, exiger le DPE mais pas un état des risques récent.
 - **En base** : migration `20261120190000_bail_deja_en_cours.sql` (PR #355), retour arrière fourni.
 
+#### Loyers d'un bail repris en cours — date de bascule (proposition du 20/11/2026, à valider)
+
+- **Constat (banc local, 20/11).** L'échéancier d'un bail part de sa date d'entrée, que les termes soient générés à la
+  main ou par le cycle du 1ᵉʳ du mois. Pour un bail entré le 01/11/2024 et activé le 20/11/2026 : 25 termes, 18 750 €
+  affichés « impayés » ([[Premiers clients — acquisition sans budget — 20 novembre 2026]]).
+- **Règle proposée.** À l'activation d'un bail dont le mois d'entrée est antérieur au mois en cours (jour de Paris),
+  le mois en cours devient le **premier mois suivi** ; l'échéancier commence là, par un mois plein. Un bail activé le
+  mois de son entrée, ou avant, n'est pas concerné : il garde son prorata d'entrée
+  ([[Quittancement des loyers]]).
+- **D'où vient la notion.** Les maquettes de reprise de portefeuille prévoient une « date de bascule », avec soldes
+  d'ouverture et dettes ou crédits du locataire ([[2026-09-04-maquette-v3-prototype|Maquette v3]],
+  [[2026-09-08-maquette-espace-agence-v6|Maquette agence v6]]). Seule la date est reprise ici, bail par bail.
+- **Limite.** Aucune dette d'avant le premier mois suivi n'est reprise.
+- **En base** : migration `20261120200000_loyers_suivis_depuis.sql` (PR #356, brouillon), retour arrière fourni ; il se
+  refuse tant qu'un bail porte une date de bascule.
+
+> [!warning] Points à trancher / contradictions
+> - **Premier mois suivi** : mois de l'activation (proposé), mois choisi par le propriétaire, ou date d'entrée (comportement
+>   actuel). Décision du dirigeant attendue.
+> - Les maquettes décrivent une reprise avec soldes d'ouverture ; la proposition n'en reprend que la date.
+
 > [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
 
 ### Validation du bail en V0 (décision 2026-08-29)

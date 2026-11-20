@@ -7615,3 +7615,20 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   0 compte et 0 espace de recette restants. Ventes payantes toujours fermées (relu en base).
 - **Reste à décider par le dirigeant** : l'entrée « Les règles à connaître » dans le menu du propriétaire particulier.
 - **Pages du wiki** : mise à jour [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]].
+
+## [2026-11-20] query  | Acquisition : l'agent peut-il la mener seul, le dirigeant ne répondant qu'aux appels ?
+
+- **Question du dirigeant** : « Es-tu capable de développer ça seul et je réponds aux potentiels appels ? » Contexte
+  donné par lui : il ne connaît aucun propriétaire, il vend ses propres biens, il a du temps ; aucun budget hors Claude
+  et Codex ; LinkedIn, Instagram et Facebook peuvent être connectés.
+- **Relevé dans le code (branche `main`, `96c56647`)** : le formulaire de contact de la vitrine demande déjà un
+  téléphone ; une mission « marketing » tourne chaque jour à 8 h UTC ; le plan du site liste les outils gratuits et les
+  articles ; les images des publications passent par une clé OpenAI (dépense à l'usage, hors abonnements).
+- **Vérifié sur le web le 20/11** : LinkedIn permet de publier au nom d'un membre par son produit « Share on
+  LinkedIn » (permission `w_member_social`, jeton d'environ 60 jours selon des guides tiers) ; Meta permet de publier
+  sur un compte Instagram professionnel par son API. Conditions exactes à confirmer sur les portails avant de promettre.
+- **Réponse donnée (avis)** : oui pour construire et faire tourner l'entrée des demandes (rappel demandé par le
+  visiteur, référencement des outils et des réponses aux questions de bailleurs, publications automatiques) ; non pour
+  contacter des inconnus en premier ; délai de plusieurs semaines à plusieurs mois ; deux fuites à fermer avant
+  (activation du bail, paiement et médiateur).
+- **En attente** : accord du dirigeant sur le plan, et sa décision sur le bail activable sans le PDF signé.

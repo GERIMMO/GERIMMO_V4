@@ -46,19 +46,19 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 
 ## Concepts
 - [[Organisation]] — l'entité cliente, racine de l'isolation multi-tenant.
-- [[Compte, personne et adhésion]] — identité V3 : compte global, adhésions par agence ; e-mail d'une fiche unique par agence et par nature (société et gérant peuvent partager une adresse ; en production depuis le 19/11, décision à confirmer).
+- [[Compte, personne et adhésion]] — identité V3 : compte global, adhésions par agence ; e-mail d'une fiche unique par agence et par nature (société et gérant peuvent partager une adresse ; en production depuis le 19/11, décision à confirmer) ; **20/11** : naissance du locataire facultative sur sa fiche (décision du dirigeant, PR #355).
 - [[Dossier locataire]] — pièces versionnées rattachées à la personne ; purge à 5 ans.
 - [[Patrimoine et résidences]] — regroupements au-dessus du bien (code actuel).
 - [[Bien]] — l'unité physique (adresse, clé, diagnostics communs).
 - [[Lot]] — l'unité locative V3 : porte bail, loyer, détention et mandat ; qui en voit quoi (gérant, locataire, artisan).
 - [[Clé de répartition]] — répartit une dépense commune entre lots ; 100 % exact, datée.
-- [[Diagnostic]] — DPE, ERP… ; expiré = création de bail bloquée.
+- [[Diagnostic]] — DPE, ERP… ; expiré = création de bail bloquée ; **20/11** : ne bloque plus un bail déjà en cours à l'arrivée sur Gerimmo (décision B, PR #355).
 - [[Appel de charges]] — charges de copro : saisie poste à poste, ventilation récupérable.
 - [[Plan d'apurement]] — dette échue gelée, tranches mensuelles, relances suspendues tant qu'il est respecté (02/11).
 - [[Mandat de gestion]] — contrat-pivot agence↔propriétaire ; taux par lot, seuil de délégation.
 - [[Occupation d'un bien]] — le « bail » simplifié du code actuel.
 - [[Gérant]] — terme générique : agent immobilier ou propriétaire bailleur.
-- [[Bail]] — nu/meublé/colocation, contrat commun et inventaire générables ; signature Zoho Sign (18/10, circuit publié, envois clients désactivés) et contrats séparés encore à compléter.
+- [[Bail]] — nu/meublé/colocation, contrat commun et inventaire générables ; signature Zoho Sign (18/10, circuit publié, envois clients désactivés) et contrats séparés encore à compléter ; **20/11** : un bail dont l'entrée est passée s'active par son contrat signé, sans mise en location préalable (décision B, PR #355).
 - [[Types de baux]] — panorama des 10 régimes locatifs ; périmètre V3 vs hors périmètre.
 - [[Structure du modèle-type de bail]] — les 11 sections du formulaire officiel, blueprint du générateur 1.16 ; 7 champs manquants.
 - [[État des lieux]] — constat mobile pièce par pièce ; sans EDL d'entrée, pas de retenue ; **24/10** : signé dans Gerimmo avec la confirmation « établi contradictoirement, sur place » (décision du 23/10), rappel du droit de le compléter « dans les dix jours qui suivent son établissement ».
@@ -155,6 +155,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 
 ## Synthèses
 
+- [[Premiers clients — acquisition sans budget — 20 novembre 2026]] — **20/11, chantier en cours** : relevé de production (6 espaces propriétaires, 4 sans aucun bien, 11 baux tous en brouillon, 0 bail actif) et rejeu d'un propriétaire neuf sur le banc ; trois murs (profil, naissance du locataire, activation du bail) ; décisions du dirigeant (plan mené par l'agent, **décision B** : un bail déjà en cours s'active par son contrat signé, **naissance du locataire facultative**) ; cinq chantiers (« Être rappelé » #352, Google #353, premier bien #354, bail déjà en cours #355, réseaux sociaux) et points à trancher.
 - [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]] — **20/11, en production à 11 h 51 UTC (PR #350, `d315257d`)** : audit des 133 pages (559 constats), direction « Maison » (papier chaud, bleu nuit, champagne, titres Fraunces embarqués) formalisée en Design System, harmonisation de toutes les sessions (192 lignes page × session, toutes testées aux 4 largeurs et relues), bandeau de retour vers l'espace, écrans d'erreur dans la coquille ; présentation seulement, aucune logique métier touchée ; 12 952 tests unitaires et 282 parcours navigateur verts sur banc ; deux défauts attrapés par la CI et corrigés (fondu sous le contraste requis, police non préchargée qui figeait Safari) ; rapports dans `livrables/refonte-design-20261120/`.
 - [[Corrections après l'audit PR 347 — 19 novembre 2026]] — **19/11 au soir, en production à 23 h 12 UTC (PR #348, `be3bf5b0`)** : SCI-2 (fiche de la société complète, e-mail partagé avec le gérant), SCI-3 (représentant sur la quittance, à valider juridiquement), SCI-4 (prénom au formulaire public), UX-1 (locataire invité connecté), bandeau d'alerte dans la console, Next 16.4.6, TEC-3/4/5 ; quatre migrations à appliquer par le circuit protégé ; liste de ce qui reste hors du code (médiateur, paiement réel, antivirus, réglages Auth…) ; rapport dans `livrables/corrections-post-pr347-20261119/`.
 - [[Audit après publication PR 347 — 8c0449c6 — 19 novembre 2026]] — **19/11 au soir, version `8c0449c6` (PR #347)** : SEC-1 (provenance des documents et purges), double authentification et représentant SCI vérifiés corrigés, sur banc isolé et en production avec comptes fictifs purgés ; recette n° 52 réussie ; aucun P0 ni P1 ; **GO particuliers, GO SCI avec accompagnement (SCI-2), NO GO abonnements payants** ; rapport dans `livrables/audit-pr347-20261119/`.

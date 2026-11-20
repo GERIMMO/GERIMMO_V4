@@ -7632,3 +7632,28 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   contacter des inconnus en premier ; délai de plusieurs semaines à plusieurs mois ; deux fuites à fermer avant
   (activation du bail, paiement et médiateur).
 - **En attente** : accord du dirigeant sur le plan, et sa décision sur le bail activable sans le PDF signé.
+
+## [2026-11-20] query  | Premiers clients : où les inscrits décrochent, et deux décisions du dirigeant
+
+- **Accord du dirigeant** sur le plan d'acquisition mené par l'agent : « Oui, fais ce qui te semble nécessaire ».
+- **Relevé de production (lecture seule, aucune donnée personnelle)** : 6 espaces propriétaires ouverts du 24/10 au
+  19/11 ; 4 sans aucun bien, dont 2 au profil sans adresse ; 11 baux saisis, tous en brouillon, aucun état des risques,
+  aucun contrat déposé ; 0 bail actif.
+- **Rejeu sur le banc local** (compte fictif neuf, « j'ai déjà un locataire ») : trois murs — le profil complet exigé
+  avant le premier bien, la naissance du locataire exigée sur sa fiche, le dépôt du contrat signé fermé tant que le
+  logement n'est pas « mis en location » (DPE et état des risques de moins de six mois).
+- **Décisions du dirigeant** (« B et oui ») :
+  - **B** — un bail dont la date d'entrée est passée s'active par son contrat signé ; DPE et état des risques manquants
+    deviennent des alertes, sans blocage. Options écartées : A (ne rien changer), C (DPE exigé, pas l'état des risques).
+  - **Oui** — la date et la commune de naissance deviennent facultatives sur la fiche d'un locataire déjà en place.
+- **Pull requests ouvertes** : [#353](https://github.com/GERIMMO/GERIMMO_V4/pull/353) (données structurées pour
+  Google, CI verte), [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) (coordonnées du bailleur sur la page
+  « Ajouter un bien », CI verte après correction d'un marqueur de formulaire),
+  [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355) (les deux décisions ; migration `20261120190000` et son
+  retour arrière).
+- **« Être rappelé »** : PR [#352](https://github.com/GERIMMO/GERIMMO_V4/pull/352) fusionnée (`3fd11ae9`), CI de `main`
+  verte (run 44788654969) ; publication contrôlée lancée (run 44794208593), **en attente de l'approbation du dirigeant**.
+- **Points laissés ouverts** : alerte d'état des lieux d'entrée sur un bail déjà en cours ; DPE classé G sur un bail déjà
+  en cours ; libellé « Indiquer mon adresse et créer mon premier bien » ; code de vérification Google Search Console.
+- **Pages du wiki** : création de [[Premiers clients — acquisition sans budget — 20 novembre 2026]] ; mise à jour de
+  [[Bail]], [[Diagnostic]], [[Compte, personne et adhésion]] et de l'index.

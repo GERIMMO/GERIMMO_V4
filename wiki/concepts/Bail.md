@@ -3,7 +3,7 @@ type: concept
 tags: [bail, contrat, alur, signature, colocation, preavis]
 status: in-progress
 created: 2026-07-22
-updated: 2026-09-29
+updated: 2026-11-20
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
@@ -59,6 +59,23 @@ foi**, rapatrié avec horodatage (dossier de preuve Yousign —
 [[Notification et valeur probante]]). Aucune modification pendant la signature.
 Bail préexistant à l'arrivée sur Gerimmo : dépôt du PDF signé (décision 2026-07-22,
 inchangée).
+
+### Bail déjà en cours à l'arrivée sur Gerimmo (décision du dirigeant, 20/11/2026)
+
+Un bail dont **la date d'entrée est passée** (strictement, au jour de Paris) **s'active par le dépôt de son contrat
+signé**, sans « mise en location » préalable du [[Lot]] : le logement passe directement de *brouillon* à *loué*. Les
+diagnostics absents ou expirés ne bloquent pas ce bail ; ils restent des actions à mener ([[Diagnostic]]).
+
+- **Pourquoi.** Relevé de production du 20/11 : 11 baux saisis par des propriétaires, tous restés en brouillon —
+  locataires renseignés, aucun état des risques, aucun contrat déposé
+  ([[Premiers clients — acquisition sans budget — 20 novembre 2026]]). La règle RM-0.8.3 disait déjà « bloquer un bail
+  en cours n'aiderait personne », mais ne valait que pour un bail déjà actif dans Gerimmo.
+- **Ce qui ne change pas.** Le contrat signé (PDF) reste ce qui active le bail (décision du 22/07). Mentions
+  obligatoires, plafond du dépôt de garantie, mandat en cours pour une agence, un seul bail en cours par lot, détention
+  à 100 %, DPE classé G : tout cela bloque encore. Un bail qui commence aujourd'hui ou plus tard garde la mise en
+  location et les diagnostics.
+- **Options écartées** : A, ne rien changer ; C, exiger le DPE mais pas un état des risques récent.
+- **En base** : migration `20261120190000_bail_deja_en_cours.sql` (PR #355), retour arrière fourni.
 
 > [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
 
@@ -170,6 +187,14 @@ colocataires.
 - Remplace [[Occupation d'un bien]] (approximation actuelle du code).
 - Le **propriétaire en gestion directe** suit les mêmes parcours en variante — sans
   mandat, honoraires ni rapport.
+
+> [!warning] Bail déjà en cours — points laissés ouverts (20/11/2026)
+> - **État des lieux d'entrée** : l'activation pose une alerte « État des lieux d'entrée à signer », datée de l'entrée,
+>   même pour un bail signé depuis des années. Comportement antérieur à la décision, non tranché.
+> - **DPE classé G** : il bloque toujours l'activation d'un bail déjà en cours. La décision ne portait que sur les
+>   diagnostics manquants ; aucune source du wiki n'établit l'effet de l'interdiction de louer sur un bail en cours.
+> - **Date d'entrée déclarée** : un bail daté de la veille échappe au blocage des diagnostics. Conséquence directe de la
+>   décision ; les actions à mener restent affichées.
 
 > [!warning] Contradiction signature — résolue par le référentiel, à entériner
 > - **2026-07-22 (humain)** : V1 hors plateforme + dépôt PDF ; Yousign en V2.

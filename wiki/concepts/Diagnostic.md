@@ -3,7 +3,7 @@ type: concept
 tags: [diagnostic, dpe, obligation-legale, bien, lot]
 status: draft
 created: 2026-07-24
-updated: 2026-09-09
+updated: 2026-11-20
 sources: ["[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]"]
 ---
 
@@ -42,6 +42,9 @@ simple du lot, RM-0.5.7). Sur un bien à lot unique, les onglets bien/lot fusion
 - Lot **déjà loué** : alerte critique **non bloquante** + relance hebdomadaire
   (RM-0.8.3) — « bloquer un bail en cours n'aiderait personne » (**confirmé par
   l'humain le 2026-07-25**).
+- **Bail déjà en cours à l'arrivée sur Gerimmo** (décision du dirigeant du 20/11/2026) : un bail dont la date
+  d'entrée est passée s'active par son contrat signé même si le DPE ou l'état des risques manquent ou sont expirés.
+  Ils ne bloquent pas ce bail et restent des actions à mener du bail en cours. Voir [[Bail]].
 - Lot **disponible** : bloquant — aucun nouveau bail tant que le diagnostic n'est pas
   redéposé (le dépôt lève le blocage sans autre action, RM-0.8.5).
 - Destinataire : l'agent en charge du mandat, à défaut l'admin agence (RM-0.8.4).

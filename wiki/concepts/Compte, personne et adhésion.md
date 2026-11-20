@@ -3,7 +3,7 @@ type: concept
 tags: [identite, compte, adhesion, multi-tenant, socle]
 status: stable
 created: 2026-07-24
-updated: 2026-11-19
+updated: 2026-11-20
 sources: ["[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
 ---
 
@@ -124,6 +124,20 @@ création (RM-0b.1.3, désormais alignée sur RM-A1.1) ; doublon probable détec
 nom + date de naissance en alerte **non bloquante** ; une personne ne se supprime
 jamais, elle s'archive (RM-0b.1.4). Le [[Dossier locataire]] illustre RM-A1.10 : les
 pièces suivent la personne **dans** l'agence, jamais entre agences.
+
+### Naissance du locataire : facultative sur la fiche (décision du dirigeant, 20/11/2026)
+
+La fiche d'un **locataire** n'exige plus sa date ni sa commune de naissance. Un locataire déjà en place a signé son
+bail ailleurs : ces deux mentions ne servent qu'au contrat que Gerimmo rédige, et le récapitulatif du [[Bail]] les
+réclame alors avant de préparer le PDF.
+
+- Le rôle reste ce qu'il est — un choix d'écran, jamais un champ de la fiche (RM-0b.1.1) : c'est l'étape « Locataire »
+  de l'assistant de création, ou l'étape « Personnes » du bail, qui lève l'exigence.
+- **Garant** et **propriétaire mandant** gardent l'exigence à la création.
+- À la modification, une naissance jamais renseignée peut le rester, pour toute fiche ; une naissance déjà enregistrée
+  ne s'efface pas.
+- Sans date de naissance, l'alerte de doublon (nom + date de naissance) ne peut pas se déclencher pour cette fiche.
+- Origine : [[Premiers clients — acquisition sans budget — 20 novembre 2026]] (PR #355).
 
 > [!note] Modèle VALIDÉ par l'humain (2026-07-25)
 > Le modèle canonique A1 est **validé** — aucune anomalie bloquante relevée par

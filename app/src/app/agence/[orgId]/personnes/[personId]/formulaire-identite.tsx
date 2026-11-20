@@ -155,22 +155,23 @@ export function FormulaireIdentite({
           <Input id={`ident-tel-${personId}`} name="telephone" type="tel" autoComplete="tel" maxLength={40} defaultValue={etat.valeurs?.telephone ?? telephone ?? ""} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor={`ident-naissance-${personId}`}>Date de naissance{prenom ? " *" : ""}</Label>
+          {/* Décision du 20/11/2026 : facultative tant qu'elle n'a jamais été renseignée ; une fois enregistrée, elle ne s'efface pas. */}
+          <Label htmlFor={`ident-naissance-${personId}`}>Date de naissance{prenom ? (dateNaissance ? " *" : " — Facultatif") : ""}</Label>
           <Input
             id={`ident-naissance-${personId}`}
             name="date_naissance"
             type="date"
-            required={Boolean(prenom)}
+            required={Boolean(prenom) && Boolean(dateNaissance)}
             defaultValue={etat.valeurs?.date_naissance ?? dateNaissance ?? ""}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor={`ident-commune-naissance-${personId}`}>Commune de naissance{prenom ? " *" : ""}</Label>
+          <Label htmlFor={`ident-commune-naissance-${personId}`}>Commune de naissance{prenom ? (communeNaissance ? " *" : " — Facultatif") : ""}</Label>
           <Input
             id={`ident-commune-naissance-${personId}`}
             name="commune_naissance"
             maxLength={120}
-            required={Boolean(prenom)}
+            required={Boolean(prenom) && Boolean(communeNaissance)}
             defaultValue={etat.valeurs?.commune_naissance ?? communeNaissance ?? ""}
           />
         </div>

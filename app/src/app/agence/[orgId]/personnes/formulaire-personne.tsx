@@ -119,7 +119,9 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
     if (etape < 4) { event.preventDefault(); changer(etape+1); return; }
     if (envoiBloque || !role || !valider(1) || !valider(2) || !valider(3)) { event.preventDefault(); return; }
   }
-  const nomsIdentite: Champ[] = personneMorale ? ["nom"] : ["nom","prenom","date_naissance","commune_naissance"];
+  // Décision du 20/11/2026 : la naissance d'un locataire est facultative (locataire déjà en place, bail signé ailleurs).
+  const naissanceFacultative = role === "locataire";
+  const nomsIdentite: Champ[] = personneMorale ? ["nom"] : naissanceFacultative ? ["nom","prenom"] : ["nom","prenom","date_naissance","commune_naissance"];
   const emailValide = valeurs.email.trim() !== "" && emailCorrect;
   const restants = [role ? 0 : 1, nomsIdentite.filter(n => !valeurs[n].trim()).length, ["address_line1","postal_code","city"].filter(n => !valeurs[n as Champ].trim()).length + (emailValide ? 0 : 1)];
   const Icone = ETAPES[etape].icone;
@@ -175,7 +177,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
           <div className={styles.grille}>
             {personneMorale && champ("siren", "SIREN", { facultatif:true, max:16, aide:"Les neuf chiffres qui identifient la société." })}
             {champ("nom",personneMorale ? "Raison sociale" : "Nom",{autoComplete:personneMorale ? "organization" : "family-name",large:personneMorale})}
-            <fieldset hidden={personneMorale} disabled={personneMorale} className="contents">{champ("prenom","Prénom",{autoComplete:"given-name"})}{champ("date_naissance","Date de naissance",{type:"date",autoComplete:"bday"})}{champ("commune_naissance","Commune de naissance")}</fieldset>
+            <fieldset hidden={personneMorale} disabled={personneMorale} className="contents">{champ("prenom","Prénom",{autoComplete:"given-name"})}{champ("date_naissance","Date de naissance",{type:"date",autoComplete:"bday",facultatif:naissanceFacultative})}{champ("commune_naissance","Commune de naissance",{facultatif:naissanceFacultative,aide:naissanceFacultative ? "Facultatif pour un locataire déjà en place. Si vous rédigez son contrat avec Gerimmo, sa date et sa commune de naissance vous seront demandées." : undefined})}</fieldset>
           </div>
         </fieldset>
         <fieldset data-etape-personne="2" hidden={etape!==2} disabled={enCours || Boolean(etat.personneCreee)} className="min-w-0 space-y-5">
@@ -200,7 +202,7 @@ function FormulairePersonneSaisie({ orgId, lots, estBailleurDirect = false, dans
             <section><header><h3>Identité</h3><button type="button" onClick={()=>changer(1)}><Pencil size={13} aria-hidden="true" />Modifier</button></header><dl>
               <div><dt>Rôle</dt><dd>{roles.find(r=>r.cle===role)?.libelle}</dd></div><div><dt>{personneMorale ? "Raison sociale" : "Nom et prénom"}</dt><dd>{personneMorale ? valeurs.nom : [valeurs.prenom,valeurs.nom].filter(Boolean).join(" ")}</dd></div>
               {personneMorale && <div><dt>Type de société</dt><dd>{qualiteSociete}{valeurs.siren && ` · SIREN ${valeurs.siren}`}</dd></div>}
-              {!personneMorale && <div><dt>Naissance</dt><dd>{valeurs.date_naissance ? formaterDate(valeurs.date_naissance) : "À compléter"} · {valeurs.commune_naissance}</dd></div>}
+              {!personneMorale && <div><dt>Naissance</dt><dd>{naissanceFacultative && !valeurs.date_naissance && !valeurs.commune_naissance.trim() ? "Non renseignée (facultatif)" : <>{valeurs.date_naissance ? formaterDate(valeurs.date_naissance) : "À compléter"} · {valeurs.commune_naissance}</>}</dd></div>}
             </dl></section>
             <section><header><h3>Coordonnées</h3><button type="button" onClick={()=>changer(2)}><Pencil size={13} aria-hidden="true" />Modifier</button></header><dl>
               <div><dt>Email</dt><dd>{valeurs.email}</dd></div><div><dt>Téléphone</dt><dd>{valeurs.telephone || "Non renseigné · Facultatif"}</dd></div><div><dt>Adresse</dt><dd>{valeurs.address_line1}<br />{valeurs.postal_code} {valeurs.city}</dd></div>

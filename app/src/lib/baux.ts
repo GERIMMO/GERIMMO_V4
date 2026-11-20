@@ -90,6 +90,18 @@ export function mentionsObligatoiresManquantes(bail: {
   return manquantes;
 }
 
+// BAIL DÉJÀ EN COURS (décision B du dirigeant, 20/11/2026) : un bail dont la date d'entrée est strictement passée
+// s'active par le dépôt de son contrat signé, sans « mise en location » préalable du logement ; les diagnostics absents
+// ou expirés ne le bloquent plus et restent des actions à mener (lib/actions-attendues.ts).
+//
+// Comme pour les mentions : la base est seule à DÉCIDER (`bail_deja_en_cours`, lue par `controler_mise_en_location`,
+// migration 20261120190000) ; cette fonction-ci sert à ANNONCER, sur la fiche du bail, que le dépôt est ouvert.
+// tests/bail-deja-en-cours-base.test.ts compare les deux sur la veille, le jour même et le lendemain.
+// `aujourdHui` : le jour de Paris (aujourdhuiParis()), au format AAAA-MM-JJ comme les dates de la base.
+export function bailDejaEnCours(dateDebut: string | null | undefined, aujourdHui: string): boolean {
+  return typeof dateDebut === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateDebut) && dateDebut < aujourdHui;
+}
+
 // Exercice proposé par défaut pour la régularisation des charges (audit du
 // 27/09) : l'année civile précédente (RM-3.9.1), ramenée dans la période du
 // bail. Un bail de septembre 2026 ne couvre aucun jour de 2025 : proposer

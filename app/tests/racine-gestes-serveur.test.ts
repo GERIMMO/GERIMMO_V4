@@ -374,6 +374,37 @@ describe("deposerBailSigne : les liens « à corriger » d'une mise en location 
       for (const b of r.blocages ?? []) expect(b.href).not.toContain(p.interdit);
     });
 
+    // Décision B du 20/11/2026 : les blocages affichés sont ceux qui valent pour CE bail (un bail déjà en cours n'est
+    // pas bloqué par ses diagnostics manquants) ; ceux du lot ne servent que si la fonction manque encore en base.
+    it(`${p.nom} : les blocages du bail priment sur ceux du lot`, async () => {
+      const appels: string[] = [];
+      gerant(p.role, scenario((nom) => {
+        appels.push(nom);
+        if (nom === "controler_mise_en_location") return { error: { message: "Mise en location bloquée : Détention incomplète" } };
+        if (nom === "baux") return { data: [{ lot_id: "lot-1" }] };
+        if (nom === "lots") return { data: [{ id: "lot-1", bien_id: "bien-1" }] };
+        if (nom === "bail_blocages_mise_en_location") return { data: ["Surface habitable non renseignée"] };
+        if (nom === "lot_blocages_location") return { data: ["Surface habitable non renseignée", "DPE manquant"] };
+        return { data: null };
+      }));
+      const r = await deposerBailSigne(ORG, "bail-1", {}, depot());
+      expect(r.blocages?.map((b) => b.message)).toEqual(["Surface habitable non renseignée"]);
+      expect(appels).toContain("bail_blocages_mise_en_location");
+      expect(appels).not.toContain("lot_blocages_location");
+    });
+    it(`${p.nom} : fonction absente de la base (migration non appliquée) → blocages du lot, comme avant`, async () => {
+      gerant(p.role, scenario((nom) => {
+        if (nom === "controler_mise_en_location") return { error: { message: "Mise en location bloquée : surface, DPE" } };
+        if (nom === "baux") return { data: [{ lot_id: "lot-1" }] };
+        if (nom === "lots") return { data: [{ id: "lot-1", bien_id: "bien-1" }] };
+        if (nom === "bail_blocages_mise_en_location") return { data: null, error: { code: "PGRST202", message: "Could not find the function" } };
+        if (nom === "lot_blocages_location") return { data: ["Surface habitable non renseignée", "DPE manquant"] };
+        return { data: null };
+      }));
+      const r = await deposerBailSigne(ORG, "bail-1", {}, depot());
+      expect(r.blocages?.map((b) => b.message)).toEqual(["Surface habitable non renseignée", "DPE manquant"]);
+    });
+
     it(`${p.nom} : mentions obligatoires manquantes → ${p.attendu}/baux/<bail>#corriger`, async () => {
       gerant(p.role, scenario((nom) => {
         if (nom === "controler_mise_en_location") return { error: { message: "Mentions obligatoires du contrat manquantes" } };

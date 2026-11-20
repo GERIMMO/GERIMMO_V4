@@ -46,7 +46,11 @@ export async function creerPersonneBail(orgId: string, bailId: string, _etat: Et
   if (!await contexte(orgId, bailId)) return { erreur: "Ce brouillon n’est pas accessible ou a déjà été signé." };
   // Réutiliser les validations de l’annuaire, sans déclencher un rattachement
   // propriétaire hors du formulaire dédié ni quitter l’assistant.
-  form.delete("role"); form.delete("lot_id");
+  // Le formulaire de l'étape dit pour qui la fiche est créée ; seul « locataire » est repris (décision du 20/11/2026 :
+  // sa naissance est facultative sur la fiche, le contrat rédigé par Gerimmo la réclame). Ce rôle ne rattache rien.
+  const pourLocataire = form.get("usage_bail") === "locataire";
+  form.delete("role"); form.delete("lot_id"); form.delete("usage_bail");
+  if (pourLocataire) form.set("role", "locataire");
   form.set("rester_dans_parcours", "1");
   const retour = await creerPersonne(orgId, {}, form);
   if (retour.succes) actualiser(orgId, bailId);

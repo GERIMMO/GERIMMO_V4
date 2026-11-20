@@ -182,6 +182,13 @@ export async function ParcoursDemarrage({
                     {libelle?.geste ?? "Continuer"}&nbsp;→
                   </Link>
                 )}
+                {/* Décision B du 20/11/2026 : un bail déjà commencé s'active par son contrat signé, sans attendre les
+                    diagnostics. On le dit là où le guide réclame la préparation du logement. */}
+                {estProprietaire && !e.faite && e.etape === "lot_pret" && (
+                  <span className="mt-2 block text-xs text-muted-foreground" data-raccourci-locataire-en-place>
+                    Votre locataire est déjà en place ? Créez son bail depuis la fiche du logement : le contrat signé suffit à l’activer, le DPE et l’état des risques pourront suivre.
+                  </span>
+                )}
                 {courante && e.etape === "bien" && (
                   <span className="mt-2 block text-xs text-muted-foreground">
                     Un parc déjà constitué ? <Link href={`${base}/parc/import`} className="lien-discret">Reprenez-le depuis un tableur</Link>.

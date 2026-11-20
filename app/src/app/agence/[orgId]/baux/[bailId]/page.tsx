@@ -33,6 +33,7 @@ import {
   COULEURS_ETAT_EDL,
   mentionsObligatoiresManquantes,
   etatDecompteSortie,
+  bailDejaEnCours,
 } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
 import { premier } from "@/lib/postgrest";
@@ -542,7 +543,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       )}
 
 </div>);
-  const lotEnPreparation = bail.etat === "brouillon" && lot?.etat === "brouillon";
+  // Décision B du 20/11/2026 : un bail déjà en cours (date d'entrée passée) s'active par son contrat signé, même si le
+  // logement n'a jamais été « mis en location ». La base décide (controler_mise_en_location) ; la fiche l'annonce.
+  const dejaEnCours = bail.etat === "brouillon" && bailDejaEnCours(bail.date_debut, aujourdhuiParis());
+  const lotEnPreparation = bail.etat === "brouillon" && lot?.etat === "brouillon" && !dejaEnCours;
   const depotSigne = (<div>      {/* Cycle du bail */}
       {(bail.etat === "brouillon" || bail.document_signe) && (
         <Card id="bail-signe" className="scroll-mt-20">
@@ -555,6 +559,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {dejaEnCours && !bail.document_signe && lot?.etat === "brouillon" && <p className="text-sm" data-bail-deja-en-cours>
+              Ce bail a déjà commencé : le contrat signé suffit à l’activer. Le DPE et l’état des risques, s’ils manquent, ne bloquent pas ; ils restent signalés dans vos actions à mener.
+            </p>}
             {lotEnPreparation && <p className="text-sm">
               Le logement est encore en préparation. Ouvrez sa fiche et choisissez « Mettre en location » avant d’activer le bail.{" "}
               <Link className="underline" href={`${base}/parc/${lot.bien_id}/lots/${bail.lot_id}#statut-lot`}>Ouvrir la mise en location du logement</Link>
@@ -1172,6 +1179,19 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       {signeNonActif && <div className="rounded-[var(--rayon-carte)] border border-success/20 bg-success-soft p-4 text-sm"><strong>Le bail est signé. La location n’est pas encore activée.</strong><p className="mt-1">Le contrat signé est archivé ; l’activation reste une action séparée.</p><Link className="inline-flex min-h-11 items-center underline" href={`${base}/documents/${documentSigne}/fichier`}>Consulter le bail signé →</Link></div>}
       {suiviSignature.erreur && <p role="status" className="text-sm">Le suivi des signatures est indisponible. Réessayez pour connaître l’état du contrat.</p>}
       <EchecLecture quoi={echecs} />
+
+      {/* Décision B du 20/11/2026 : le raccourci d'un bail déjà commencé, dit avant les sept étapes de préparation
+          (elles servent à RÉDIGER un contrat ; ici il est déjà signé). L'ancre ouvre l'étape du dépôt. */}
+      {!traverseeLectureSeule && dejaEnCours && !bail.document_signe && !signeNonActif && (
+        <div className="rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-card p-4 text-sm" data-raccourci-bail-en-cours>
+          <strong>Ce bail a déjà commencé.</strong>
+          <p className="mt-1">
+            Le contrat est déjà signé ? Indiquez le locataire, le loyer et la date d’entrée, puis déposez le contrat signé (PDF) : il active le bail.
+            Les autres étapes servent à rédiger un nouveau contrat ; vous pouvez les laisser.
+          </p>
+          <a href="#bail-signe" className="mt-2 inline-flex min-h-11 items-center underline underline-offset-2">Déposer le contrat signé</a>
+        </div>
+      )}
 
       {/* La prochaine action évidente, dérivée de l'état du bail */}
       {!traverseeLectureSeule && bail.etat !== "brouillon" && aFaire.length > 0 && (

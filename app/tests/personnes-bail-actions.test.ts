@@ -37,6 +37,20 @@ describe("étape Personnes du bail", () => {
     expect(m.revalidate).toHaveBeenCalledWith("/agence/org/baux/bail");
     expect(m.revalidate).toHaveBeenCalledWith("/espace/org/baux/bail");
   });
+  // Décision du 20/11/2026 : la naissance d'un locataire est facultative sur sa fiche. Le formulaire de l'étape dit pour
+  // qui la fiche est créée ; seul « locataire » devient le rôle transmis à l'annuaire, qui ne rattache rien pour ce rôle.
+  it("transmet « locataire » à l’annuaire quand la fiche est créée pour un locataire, et rien d’autre", async () => {
+    m.creer.mockResolvedValue({ succes: "Fiche créée.", personneCreee: { id: "nouvelle" } });
+    const f = form({ nom: "Test", usage_bail: "locataire", role: "proprietaire_mandant", lot_id: "autre-lot" });
+    await creerPersonneBail("org", "bail", {}, f);
+    expect(f.get("role")).toBe("locataire"); expect(f.has("usage_bail")).toBe(false); expect(f.has("lot_id")).toBe(false);
+  });
+  it.each(["garant", "proprietaire", "", "LOCATAIRE"])("ne transmet aucun rôle pour l’usage « %s » : la naissance reste exigée", async usage => {
+    m.creer.mockResolvedValue({ erreur: "refus" });
+    const f = form({ nom: "Test", usage_bail: usage, role: "locataire" });
+    await creerPersonneBail("org", "bail", {}, f);
+    expect(f.has("role")).toBe(false); expect(f.has("usage_bail")).toBe(false);
+  });
   it("conserve l’erreur et la saisie renvoyées par la création", async () => {
     const retour = { erreur: "Adresse déjà utilisée.", valeurs: { nom: "Test" } }; m.creer.mockResolvedValue(retour);
     expect(await creerPersonneBail("org", "bail", {}, form())).toEqual(retour); expect(m.revalidate).not.toHaveBeenCalled();

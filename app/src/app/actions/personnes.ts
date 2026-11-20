@@ -135,7 +135,12 @@ export async function creerPersonne(
   }
   if (!morale && !prenom) return { erreur: "Le prénom est obligatoire.", valeurs };
   if (!email) return { erreur: "L'adresse email est obligatoire.", valeurs };
-  if (!morale && (!dateNaissance || !communeNaissance)) {
+  // Décision du dirigeant du 20/11/2026 : la fiche d'un LOCATAIRE n'exige plus sa date ni sa commune de naissance. Un
+  // locataire déjà en place a signé son bail ailleurs : ces deux mentions ne servent qu'au contrat que Gerimmo rédige,
+  // et le récapitulatif du bail les réclame alors (« Date de naissance du locataire », « commune de naissance »).
+  // Les autres fiches (propriétaire mandant, garant) gardent l'exigence.
+  const naissanceFacultative = role === "locataire";
+  if (!morale && !naissanceFacultative && (!dateNaissance || !communeNaissance)) {
     return { erreur: "La date et la commune de naissance sont obligatoires pour établir les contrats.", valeurs };
   }
   if (!adresse || !codePostal || !ville) {
@@ -162,8 +167,9 @@ export async function creerPersonne(
     prenom: morale ? null : prenom,
     email,
     telephone: telephone || null,
-    date_naissance: morale ? null : dateNaissance,
-    commune_naissance: morale ? null : communeNaissance,
+    // Une naissance non renseignée s'enregistre NULL : une chaîne vide n'est pas une date.
+    date_naissance: morale ? null : dateNaissance || null,
+    commune_naissance: morale ? null : communeNaissance || null,
     address_line1: adresse,
     postal_code: codePostal,
     city: ville,
@@ -416,7 +422,7 @@ export async function modifierPersonne(
   // qu'à la création ; seule une raison sociale (sans prénom) s'en passe.
   const { data: actuelle } = await supabase
     .from("persons")
-    .select("prenom, siren")
+    .select("prenom, siren, date_naissance, commune_naissance")
     .eq("id", personId)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -424,8 +430,10 @@ export async function modifierPersonne(
   if (actuelle.prenom && !prenom) return { erreur: "Le prénom est obligatoire.", valeurs };
   // L'email reste obligatoire et unique dans l'agence (recette 08/08)
   if (!email) return { erreur: "L'adresse email est obligatoire.", valeurs };
-  if (actuelle.prenom && (!dateNaissance || !communeNaissance)) {
-    return { erreur: "La date et la commune de naissance sont obligatoires pour établir les contrats.", valeurs };
+  // Décision du 20/11/2026 : une fiche créée sans naissance (locataire déjà en place) reste modifiable sans elle.
+  // Une naissance déjà enregistrée, en revanche, ne s'efface pas : un contrat rédigé par Gerimmo peut la porter.
+  if (actuelle.prenom && ((actuelle.date_naissance && !dateNaissance) || (actuelle.commune_naissance && !communeNaissance))) {
+    return { erreur: "La date et la commune de naissance déjà enregistrées ne s'effacent pas : elles servent à établir les contrats. Corrigez-les si elles sont inexactes.", valeurs };
   }
   if (!adresse || !codePostal || !ville) {
     return { erreur: "L'adresse complète (voie, code postal et ville) est obligatoire pour les documents.", valeurs };

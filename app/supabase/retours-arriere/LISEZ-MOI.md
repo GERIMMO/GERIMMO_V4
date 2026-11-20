@@ -1075,3 +1075,13 @@ PR #347. Si tout devait être défait, ces retours passent dans l’ordre du tab
 | `20261119200000_email_partage_societe_gerant.retour.sql` | `20261119200000_email_partage_societe_gerant.sql` | En dernier, et seulement si le retour de `20261119200100` est joué (garde). Rétablit l’index strict `persons_email_unique_par_agence`. Refusé dès que deux fiches vivantes d’un même espace partagent une adresse — c’est le cas de toute SCI ouverte depuis la migration (société et gérant) : conserver alors l’index par nature et corriger en avant. Aucune fiche n’est modifiée ni archivée. Remettre le code d’avant de `app/actions/personnes.ts` et `parc.ts`. |
 
 Essais du 19/11/2026 sur une base jetable PostgreSQL 16 (schéma réduit aux objets concernés, définitions réelles rejouées depuis les migrations) : migrations jouées deux fois (rejeu sans effet) ; retours dans l’ordre → définitions de `initialiser_espace_proprietaire()` et `quittance_document(uuid)` **identiques** (md5) à celles d’avant les migrations, index strict rétabli ; retours rejoués → « rien à faire » ; retour de `…200000` joué avant celui de `…200100` → refus ; adresse partagée → refus ; marche avant de nouveau → état migré retrouvé. Limites : base de banc réduite ; les tests `tests/fiche-societe-coordonnees-base.test.ts` et `tests/quittance-representant-base.test.ts` sont à jouer sur le banc complet.
+
+## Bail déjà en cours — 20 novembre 2026 (décision B du dirigeant)
+
+Hors de la chaîne « Ordre complet ». Une seule migration, un seul retour, aucune donnée modifiée dans un sens comme dans l’autre.
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261120190000_bail_deja_en_cours.retour.sql` | `20261120190000_bail_deja_en_cours.sql` | Rend à `public.controler_mise_en_location`, `public.verifier_transition_lot` et `public.parcours_demarrage` leur forme d’avant (remplacements exacts inverses, forme inattendue refusée sans rien changer), puis retire `public.bail_blocages_mise_en_location` et `public.bail_deja_en_cours`. Les baux activés entre-temps restent actifs et leurs logements « loués ». Remettre le code d’avant dans la foulée : la fiche du bail ouvrirait sinon un dépôt que la base refuse. |
+
+Essais du 20/11/2026 sur le banc local (PostgreSQL 16, base jetable reconstruite depuis les migrations, empreintes md5 des trois fonctions identiques à celles relevées en production en lecture seule) : migration jouée deux fois (rejeu sans effet) ; retour → empreintes d’origine ; retour rejoué sans effet ; migration rejouée → empreintes migrées. `tests/bail-deja-en-cours-base.test.ts` tient ces quatre passages.

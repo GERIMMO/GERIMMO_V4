@@ -354,11 +354,20 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
     await confierAuPortefeuille(lot);
     await simuler(db, agentA);
 
-    // brouillon → loué : interdit (il faut passer par disponible)
+    // brouillon → loué : toujours refusé à la main. Depuis la décision B du 20/11/2026 la transition existe (elle sert au
+    // bail déjà en cours, activé par son contrat signé — tests/bail-deja-en-cours-base.test.ts), mais un lot ne devient
+    // « loué » que si un bail actif vit dessus : sans bail, le refus tombe toujours, avec le geste à faire.
     await attendreEchec(
       db,
-      /Transition interdite/,
+      /Ce lot n'a pas de bail : créez le bail et activez-le/,
       `update public.lots set etat = 'loue' where id = $1`,
+      [lot]
+    );
+    // Les autres sauts restent des transitions interdites.
+    await attendreEchec(
+      db,
+      /Transition interdite : brouillon → preavis/,
+      `update public.lots set etat = 'preavis' where id = $1`,
       [lot]
     );
 

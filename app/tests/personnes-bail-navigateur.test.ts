@@ -118,9 +118,22 @@ describe.skipIf(!chrome)("Personnes du bail : parcours sans détour", () => {
     await page.getByRole("button",{name:"Ajouter un garant",exact:true}).click();
     expect(await page.getByLabel("Ce garant couvre",{exact:true}).inputValue()).toBe(attendu);
   });
+  // Décision du dirigeant du 20/11/2026 : la naissance d'un locataire est facultative sur sa fiche (locataire déjà en place).
+  it("un locataire se crée sans date ni commune de naissance, et le formulaire dit pour qui la fiche est créée", async () => {
+    await page.getByRole("button",{name:"Choisir un locataire",exact:true}).click();
+    // Plus d'astérisque sur la naissance d'un locataire ; les autres champs gardent le leur.
+    expect(await page.getByLabel("Date de naissance *",{exact:true}).count()).toBe(0);
+    expect(await page.getByLabel("Date de naissance",{exact:true}).getAttribute("required")).toBeNull();
+    expect(await page.getByLabel("Commune de naissance",{exact:true}).getAttribute("required")).toBeNull();
+    for(const [label,valeur] of Object.entries({"Nom *":"Test","Prénom *":"Alice","Adresse e-mail *":"alice@example.test","Adresse *":"1 rue Test","Code postal *":"69003","Ville *":"Lyon"}))await page.getByLabel(label,{exact:true}).fill(valeur);
+    await page.getByRole("button",{name:"Créer cette personne",exact:true}).click();
+    await page.waitForFunction(()=>window.__personnesBailEnvois.length===1);
+    const [envoi]=await page.evaluate(()=>window.__personnesBailEnvois);
+    expect(envoi).toMatchObject({nom:"Test",prenom:"Alice",usage_bail:"locataire",date_naissance:"",commune_naissance:""});
+  });
   it("une réponse perdue conserve la saisie et la même clé de création", async () => {
     await page.getByRole("button",{name:"Choisir un locataire",exact:true}).click();
-    for(const [label,valeur] of Object.entries({"Nom *":"Test","Prénom *":"Alice","Adresse e-mail *":"alice@example.test","Date de naissance *":"1990-01-01","Commune de naissance *":"Lyon","Adresse *":"1 rue Test","Code postal *":"69003","Ville *":"Lyon"}))await page.getByLabel(label,{exact:true}).fill(valeur);
+    for(const [label,valeur] of Object.entries({"Nom *":"Test","Prénom *":"Alice","Adresse e-mail *":"alice@example.test","Date de naissance":"1990-01-01","Commune de naissance":"Lyon","Adresse *":"1 rue Test","Code postal *":"69003","Ville *":"Lyon"}))await page.getByLabel(label,{exact:true}).fill(valeur);
     await page.evaluate(()=>{window.__personnesBailEchecCreation=1;});
     await page.getByRole("button",{name:"Créer cette personne",exact:true}).click();
     await page.getByText("Réponse interrompue. Votre saisie reste disponible.",{exact:true}).waitFor();

@@ -329,6 +329,21 @@ describe.skipIf(!DB_URL)("Bail déjà en cours : activation par le contrat sign�
     expect(await refus(`update public.lots set etat='brouillon' where id=$1`, [lot])).toMatch(/Transition interdite : loue → brouillon/);
   });
 
+  it("mauvais PDF déposé : « Corriger » remet le bail en brouillon, et le bon contrat le réactive", async () => {
+    const { lot } = await logement();
+    const bail = await brouillon(lot, -730);
+    expect(await depot(bail)).toBe("");
+    // Rien n'a encore vécu (ni loyer appelé, ni encaissement) : le retour en brouillon est permis.
+    expect(await refus(`select public.devalider_bail($1)`, [bail])).toBe("");
+    const apres = await etats(bail, lot);
+    expect(apres.bail).toBe("brouillon");
+    expect(apres.lot).not.toBe("loue");
+    await enTantQuePostgres();
+    expect((await db.query(`select document_signe from public.baux where id=$1`, [bail])).rows[0].document_signe).toBeNull();
+    expect(await depot(bail)).toBe("");
+    expect(await etats(bail, lot)).toEqual({ bail: "actif", lot: "loue" });
+  });
+
   // ── 5. Le filtre et ses libellés ────────────────────────────────────────────────────────────────────
   it("les trois libellés retirés sont ceux de lot_blocages_location, mot pour mot (sinon le blocage reviendrait)", async () => {
     const { rows: [{ def }] } = await db.query(`select pg_get_functiondef('public.lot_blocages_location(uuid)'::regprocedure) as def`);

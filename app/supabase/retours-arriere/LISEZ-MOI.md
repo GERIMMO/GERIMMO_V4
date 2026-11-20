@@ -645,6 +645,7 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261120190000` (bail déjà en cours : `bail_deja_en_cours` cite la fonction du jour ; aucune donnée modifiée, les baux activés entre-temps restent actifs), puis
 `20261117095320` (préserver les traces des invitations et des courriels acceptés), puis
 `20261117094310` (conserver les seuils de révocation des sessions et corriger en avant), puis
 `20261117092314` (conserver les rattachements de lots et corriger l’import en avant), puis
@@ -1078,7 +1079,9 @@ Essais du 19/11/2026 sur une base jetable PostgreSQL 16 (schéma réduit aux obj
 
 ## Bail déjà en cours — 20 novembre 2026 (décision B du dirigeant)
 
-Hors de la chaîne « Ordre complet ». Une seule migration, un seul retour, aucune donnée modifiée dans un sens comme dans l’autre.
+En tête de la chaîne « Ordre complet » de la section « fuseau-suite » : `public.bail_deja_en_cours(date)` cite
+`aujourdhui_paris()`, son retour doit donc précéder celui de `20261014500000`. Une seule migration, un seul retour, aucune
+donnée modifiée dans un sens comme dans l’autre.
 
 | Retour | Migration | Condition |
 | --- | --- | --- |

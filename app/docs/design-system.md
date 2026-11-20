@@ -133,7 +133,7 @@ Dans un module CSS : `font: var(--graisse-titre) 24px/1.25 var(--font-display);`
 
 | Effet | Où | Détail |
 |---|---|---|
-| Arrivée d'un écran | Contenu des quatre espaces | Fondu seul, `--duree`. Aucun déplacement : le contenu est cliquable aussitôt. |
+| Arrivée d'un écran | Contenu des quatre espaces | **Aucune animation.** Un fondu rendait le texte semi-transparent un quart de seconde : contraste insuffisant, contrôles d'accessibilité faussés. Le contenu arrive net. |
 | Retour au toucher | Tous les boutons | Enfoncement d'un pixel. |
 | Survol d'une carte-lien | Cartes cliquables | Élévation de 2 px, ombre `--ombre-2`. |
 | Entrée active du menu | Quatre menus | Fond et liseré en transition. |

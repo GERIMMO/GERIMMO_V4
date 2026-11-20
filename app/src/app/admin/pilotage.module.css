@@ -67,7 +67,8 @@
 .filters button { cursor:pointer; padding:9px 12px; font-size:13px; border:1px solid var(--filet); border-radius:var(--rayon-bouton); background:var(--carte); color:var(--texte-secondaire); min-height:44px; transition:background-color var(--duree-rapide) ease, border-color var(--duree-rapide) ease, color var(--duree-rapide) ease; }
 .filters button:hover { border-color:var(--marque); color:var(--encre); }
 .filters button[aria-pressed="true"] { color:var(--sur-marque); background:var(--marque); border-color:var(--marque); }
-.filters button span { margin-left:8px; opacity:.8; font-variant-numeric:tabular-nums; }
+/* Pas d'opacité sur le compteur : à 80 % le texte secondaire tombait à 4,37:1 sur le blanc (axe, 20/11). */
+.filters button span { margin-left:8px; font-weight:600; font-variant-numeric:tabular-nums; }
 .search { flex:1; min-width:180px; display:flex; gap:10px; align-items:center; padding-inline:12px; background:var(--carte); border:1px solid var(--filet-champ); border-radius:var(--rayon-champ); }
 .search > svg { flex-shrink:0; color:var(--texte-secondaire); }
 .search input[type="search"] { border:0; box-shadow:none; width:100%; min-width:0; min-height:42px; font-size:14px; outline:none; background:transparent; }

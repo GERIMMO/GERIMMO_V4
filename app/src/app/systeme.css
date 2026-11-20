@@ -291,9 +291,9 @@ html[data-depuis-espace] .gerimmo-prestige :is(.bandeau-public, .bandeau-appli) 
 @media print { .retour-espace { display: none; } }
 
 /* --- Mouvement ------------------------------------------------------------------------------------------------------ */
-/* Arrivée d'un écran : un fondu seul, sans déplacement. Le contenu est lisible et cliquable dès la première image ;
-   aucune transformation, donc aucun effet sur les éléments fixes ou collants de la page. */
-@keyframes ds-fondu { from { opacity: 0.001; } to { opacity: 1; } }
+/* Arrivée d'un écran : AUCUNE animation. Un fondu avait été posé le 20/11 ; pendant son quart de seconde le texte était
+   semi-transparent, donc sous le contraste requis, et les contrôles d'accessibilité qui passaient à cet instant
+   échouaient (e2e/alerte-impaye-proprietaire, e2e/a11y). Le contenu arrive net, lisible à la première image. */
 /* Valeur qui vient de changer (composant ValeurVivante) : un bref halo champagne, puis plus rien. */
 @keyframes ds-halo {
   0% { background-color: color-mix(in srgb, var(--champagne-vif) 45%, transparent); }
@@ -301,9 +301,6 @@ html[data-depuis-espace] .gerimmo-prestige :is(.bandeau-public, .bandeau-appli) 
 }
 [data-valeur-vivante] { border-radius: 6px; }
 @media (prefers-reduced-motion: no-preference) {
-  .gerimmo-prestige :is(.coquille-corps > main, .loc-corps, .artisan-corps, .admin-corps) > * {
-    animation: ds-fondu var(--duree) ease both;
-  }
   [data-valeur-vivante][data-change="1"] { animation: ds-halo 1.2s ease-out both; }
 }
 @media (prefers-reduced-motion: reduce) {

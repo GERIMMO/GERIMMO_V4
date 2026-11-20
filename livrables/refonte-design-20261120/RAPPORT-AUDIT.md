@@ -21,7 +21,7 @@
 - **Pas de compte SCI sur le banc.** L'espace SCI utilise les mêmes pages que le propriétaire particulier ; ses écrans propres (fiche de la société, quittance au nom de la SCI) sont couverts par les tests automatiques existants, pas par une relecture visuelle dédiée dans cette mission.
 - **Vingt-deux lignes de la matrice n'ont pas de mesure « avant »** : ces pages n'étaient pas atteignables dans le premier parcours, faute de donnée fictive (une version archivée des conditions, la facture d'un artisan, l'état des lieux d'un propriétaire…). Elles ont toutes été ouvertes dans le parcours « après » : treize par des adresses ajoutées au parcours, neuf grâce aux données fictives laissées par la suite de tests et à cinq lignes fictives créées sur le banc isolé (un état des lieux, un diagnostic, une invitation, une facture d'artisan, une version archivée).
 - **Pas de mesure de performance** (Lighthouse) et **pas d'essai avec un lecteur d'écran réel**.
-- **Safari** : pas d'iPhone. À défaut, les 180 écrans ont été ouverts dans le moteur WebKit du système (celui de Safari, version Linux), à 390 et 360 px : c'est un vrai moteur WebKit, pas un iPhone.
+- **Safari** : pas d'iPhone. À défaut, les 180 écrans ont été ouverts dans un moteur WebKit (celui de Safari, version Linux) à 390 et 360 px, et la suite WebKit du dépôt a tourné sur le banc : ce sont de vrais moteurs WebKit, pas un iPhone.
 
 ## 2. Méthode
 
@@ -67,7 +67,7 @@ Le détail, page par page, est dans l'**annexe A** ([inventaire-pages.md](annexe
 
 ### 3.4 Sécurité
 
-Aucune faille trouvée pendant la refonte. Un point levé puis vérifié : un commentaire du code de la supervision annonçait qu'une session ouverte sur le compte d'un artisan permettait d'écrire. **C'est faux depuis le 12/10** : la base impose la lecture seule (migration SA005, déclencheurs sur les tables et barrière sur le stockage). Seul le commentaire était périmé ; il est corrigé.
+Aucune faille de sécurité trouvée pendant la refonte. Un point levé puis vérifié : un commentaire du code de la supervision annonçait qu'une session ouverte sur le compte d'un artisan permettait d'écrire. **C'est faux depuis le 12/10** : la base impose la lecture seule (migration SA005, déclencheurs sur les tables et barrière sur le stockage). Seul le commentaire était périmé ; il est corrigé.
 
 La refonte ne touche à aucune garde d'accès, aucune requête, aucune action serveur, aucun calcul. Les protections SEC-1 (cloisonnement entre organisations), le second facteur et les règles SCI sont couvertes par les suites de tests : voir le rapport de non-régression.
 
@@ -87,7 +87,7 @@ Trois directions ont été maquettées sur plusieurs écrans et plusieurs sessio
 
 ### 4.2 Fondations (toutes les pages en héritent)
 
-- **Police de titre embarquée** (Fraunces, licence libre) : les titres ont le même dessin sur tous les appareils.
+- **Police de titre embarquée** (Fraunces, licence libre, deux fichiers préchargés) : les titres ont le même dessin sur tous les appareils.
 - **Une seule taille de titre d'écran**, dans les espaces comme hors des espaces, y compris au téléphone.
 - **Jetons** de couleur, de rayon, d'ombre et de mouvement, dans une feuille commune chargée en dernier.
 - **Action principale bleu nuit partout** ; le champagne devient un accent. La couleur d'une agence en marque blanche reste respectée.
@@ -106,7 +106,7 @@ Trois directions ont été maquettées sur plusieurs écrans et plusieurs sessio
 
 Enfoncement des boutons, élévation des cartes cliquables, transition de l'entrée active du menu, halo des champs, et **halo sur un chiffre qui change réellement** (`ValeurVivante`) — aucun compteur ne défile au chargement, un montant est exact dès la première image. Tout s'éteint si l'utilisateur a demandé moins de mouvement.
 
-**Une animation retirée.** Un fondu d'arrivée des écrans avait été posé. Pendant son quart de seconde le texte était semi-transparent, donc sous le contraste requis : les contrôles d'accessibilité de la suite navigateur échouaient, à juste titre. Il est retiré ; aucun écran ne s'anime à l'arrivée.
+**Deux leçons de la nuit.** D'abord une animation retirée. Un fondu d'arrivée des écrans avait été posé. Pendant son quart de seconde le texte était semi-transparent, donc sous le contraste requis : les contrôles d'accessibilité de la suite navigateur échouaient, à juste titre. Il est retiré ; aucun écran ne s'anime à l'arrivée. Ensuite un défaut que seul le moteur de Safari montrait : deux fichiers de police déclarés « à charger si besoin » retardaient tout l'affichage d'une page tant que ses scripts n'étaient pas arrivés. C'est le parcours WebKit du dépôt qui l'a attrapé ; il est corrigé et gardé par un test (détail : rapport de non-régression, § 2 ter).
 
 ### 4.5 Harmonisation page par page
 
@@ -153,9 +153,9 @@ Chaque lot a aussi noté ce qu'il a vu et choisi de ne pas faire : **338 remarqu
 | Inventaire | terminé (133 pages) |
 | Audit du code | terminé (133 pages) |
 | Audit dans le navigateur | terminé — 180 écrans au premier parcours (786 passages) ; 22 lignes de la matrice sans mesure « avant », toutes ouvertes au second parcours |
-| Développement | terminé pour les 133 pages — 17 commits sur la branche, 307 fichiers |
-| Tests | banc : tout est vert (0 erreur de style, 0 erreur de type, construction réussie, 12 949 tests unitaires, 282 parcours Chromium, 932 passages du second parcours) ; **intégration continue : rouge sur l'étape WebKit mobile**, cause non lisible depuis le banc |
-| Pull request | ouverte, **non fusionnée, pas encore prête** — [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350) ; intégration continue rouge sur l'étape WebKit mobile |
+| Développement | terminé pour les 133 pages — 19 commits sur la branche, 307 fichiers |
+| Tests | banc : 0 erreur de style, 0 erreur de type, construction réussie, 12 952 tests unitaires réussis, 282 parcours Chromium réussis, 72 parcours WebKit réussis, 932 passages du second parcours sans défaut ; intégration continue verte |
+| Pull request | ouverte, **prête à relire, non fusionnée** — [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350) ; intégration continue verte |
 | Mise en production | **non faite, non autorisée dans cette mission** |
 
 La matrice complète, page par page, est dans l'**annexe B** ([matrice-pages.md](annexes/matrice-pages.md)).
@@ -181,6 +181,7 @@ La matrice complète, page par page, est dans l'**annexe B** ([matrice-pages.md]
 | Feuilles communes historiques (`globals.css`, `prestige.css`) | encore 228 couleurs en dur | ce sont surtout les définitions des jetons et les palettes de saison ; les blocs « vitrine » et « outils » de `globals.css` sont à déplacer |
 | Libellés de la barre basse du téléphone (10 à 10,5 px) | exception assumée | cinq entrées doivent tenir sur 375 px |
 | Les 338 remarques des lots (annexe C) | à trier | pistes d'amélioration relevées en chemin, hors d'un chantier de présentation |
+| Polices préchargées : 126 Ko de plus par première visite (police de titre) ; la police des documents (42 Ko) est aussi préchargée sur les pages de connexion | à mesurer puis alléger | pas de mesure de performance dans cette mission |
 | Performance (Lighthouse) et lecteur d'écran réel | non mesurés | hors de ce que le banc permet de prouver |
 
 ## 7. Livrables

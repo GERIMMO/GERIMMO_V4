@@ -88,12 +88,15 @@ fiche du lot), vues par trois profils. « Terminée » veut dire : harmonisée, 
 sans débordement ni défaut grave d'accessibilité, et relue à 375 et 1440 px. Cela ne veut dire ni essayée sur un vrai
 téléphone, ni fusionnée, ni publiée.
 
-**Tests, sur banc isolé et données fictives :** style et types 0 erreur ; 12 949 tests unitaires réussis ; 282 parcours
-navigateur réussis ; second parcours des écrans : 932 passages, 0 erreur, 0 débordement, 0 défaut grave d'accessibilité
-(36 éléments avant) ; les 180 écrans ouverts aussi dans un vrai moteur WebKit (celui de Safari, version Linux) à 390 et
-360 px : un débordement trouvé, corrigé.
+**Tests, sur banc isolé et données fictives, sur le commit final :** style et types 0 erreur ; 12 952 tests unitaires
+réussis ; 282 parcours navigateur réussis sous Chromium ; 72 sur 75 sous WebKit, le moteur de Safari (les 3 autres
+échouent aussi sur `main` sur ce banc, et réussissent dans l'intégration continue) ; second parcours des écrans :
+932 passages, 0 erreur, 0 débordement, 0 défaut grave d'accessibilité (36 éléments avant) ; les 180 écrans ouverts aussi
+dans un moteur WebKit à 390 et 360 px : un débordement trouvé, corrigé.
 
-**Intégration continue de la pull request :** **rouge** sur `9a656950`, à la seule étape des parcours WebKit mobile (verte sur `main`) ; le journal de cette étape n'est pas lisible depuis l'environnement de travail (accès réseau refusé), la cause reste à lire.
+**Intégration continue de la pull request :** **verte** sur `656fe141`. Ses échecs de la nuit avaient deux causes, corrigées : un fondu
+d'arrivée qui passait sous le contraste requis, et deux fichiers de police déclarés sans être préchargés, qui figeaient
+l'affichage dans Safari tant que les scripts chargeaient.
 
 **Production : rien n'est publié** (version en ligne : `be3bf5b0`).
 <!-- avancement:fin -->

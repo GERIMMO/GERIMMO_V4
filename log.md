@@ -7499,3 +7499,23 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **Pages du wiki** : créée [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]] ; mise à jour
   [[Charte visuelle v3 bleue]] (supplantée pour les couleurs et la typographie) ; `index.md`.
 - **Livrables** : `livrables/refonte-design-20261120/`. Rien n'est fusionné, rien n'est publié.
+
+## [2026-11-20] maintenance | Refonte « Maison » : cause de l'échec WebKit de la CI trouvée et corrigée (PR #350)
+
+- **Constat** : la CI de la PR #350 échouait à l'étape « parcours essentiels sur WebKit mobile », sur
+  `e2e/bouton-envoi-hydratation` (« script retardé »). Elle réussit sur `main`.
+- **Accès** : le journal de l'étape et le WebKit de Playwright étaient hors d'atteinte (politique réseau de
+  l'environnement). Le dirigeant a autorisé l'hôte `cdn.playwright.dev` ; l'échec a alors été reproduit sur banc isolé.
+- **Cause** : la refonte déclarait deux fichiers de la police de titre sans les précharger (`preload: false`). Dans
+  WebKit, une police déclarée mais non chargée retarde le premier affichage jusqu'à la fin du chargement des scripts
+  quand l'écran ne montre que « Chargement de la page… ». Sur un réseau lent, Safari aurait montré un écran figé.
+- **Correctif** (`843cc3c1`, `656fe141`) : latin étendu préchargé ; fichier italique retiré (81 Ko pour une phrase de
+  l'accueil, mise en valeur par la couleur) ; test de garde `tests/polices-prechargees.test.ts` ; règle écrite dans
+  `app/docs/design-system.md`. Vérifié sur les 180 écrans : aucune police déclarée sans être préchargée.
+- **Autre défaut WebKit corrigé** (`9a656950`) : un libellé dépassait de 12 px sur `/admin/territoire` à 390 px.
+- **Fausse piste écartée** : le test du simulateur de prix de la vitrine (instable une fois sous Chromium sur le banc).
+- **Tests sur le commit final (banc isolé, données fictives)** : style et types 0 erreur ; 12 952 tests unitaires ;
+  282 parcours Chromium ; suite WebKit 72 sur 75 (les 3 autres échouent aussi sur `main` sur ce banc et réussissent
+  dans l'intégration continue) ; pages publiques reparcourues aux 4 largeurs sans défaut.
+- **État** : intégration continue **verte** sur `656fe141`. Rien n'est fusionné, rien n'est publié.
+- **Pages du wiki** : mise à jour [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]] ; `index.md`.

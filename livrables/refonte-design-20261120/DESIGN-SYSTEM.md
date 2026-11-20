@@ -63,9 +63,17 @@ Prototypes : [canevas « Gerimmo — directions visuelles »](https://claude.ai/
 
 Le choix est **réversible** : il tient dans les jetons. Changer une valeur dans `prestige.css` ou `systeme.css` change toute l'application.
 
+## Deux règles apprises pendant le chantier
+
+| Règle | Pourquoi |
+|---|---|
+| **Pas de fondu d'arrivée sur un écran entier.** | Pendant le fondu le texte est semi-transparent, donc sous le contraste requis (WCAG 2.2 AA). |
+| **Une police déclarée est une police préchargée.** Pas de fichier italique pour les titres : l'emphase se marque par la couleur. | Dans Safari, une police déclarée mais non chargée retarde l'affichage de toute la page tant que les scripts ne sont pas arrivés. Un test garde cette règle (`tests/polices-prechargees.test.ts`). |
+
 ## Ce qui reste hors du système
 
 - `globals.css` et `prestige.css` contiennent encore des couleurs en dur : pour l'essentiel les **définitions** des jetons et les palettes de saison. Les blocs « vitrine » et « outils » de `globals.css` sont à déplacer dans `vitrine.css`.
 - Les libellés de la barre basse du téléphone (10 à 10,5 px), les pastilles de compteur et les miniatures d'écran de la vitrine restent sous 12 px : exceptions assumées.
 - Pas encore de jeton pour le rayon des petites tuiles d'icône (8 à 12 px) ni pour celui des puces.
 - **Aucun écran ne s'anime à l'arrivée** : un fondu avait été posé puis retiré, car il faisait passer le texte sous le contraste requis pendant un quart de seconde.
+- **Pas d'italique dans les titres** : le fichier italique de la police pesait 81 Ko pour une phrase ; l'emphase d'un titre se marque par la couleur. Règle de chargement : une police déclarée est toujours préchargée (sinon Safari retarde l'affichage).

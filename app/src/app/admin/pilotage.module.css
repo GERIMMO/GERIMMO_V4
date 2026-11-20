@@ -7,7 +7,7 @@
 .head > div { min-width:0; }
 .head > svg { flex-shrink:0; }
 .head { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:19px; }
-.head h2,.panel > h2 { font:25px/1.25 Georgia,serif; letter-spacing:-.02em; }
+.head h2,.panel > h2 { font: var(--graisse-titre, 480) 25px/1.25 var(--font-display, Georgia, serif); letter-spacing:-.02em; }
 .head p { color:var(--texte-secondaire); font-size:12px; line-height:1.7; margin-top:6px; }
 .eyebrow { font-size:10px; letter-spacing:.12em; font-weight:650; color:#735f3c; margin-bottom:10px; }
 .icon { display:grid; place-items:center; width:39px; height:39px; border-radius:11px; background:#e7eef6; color:#496b8d; flex-shrink:0; }
@@ -20,7 +20,7 @@
 .empty a { margin-top:12px; }
 .section { margin-block:25px; scroll-margin-top:95px; }
 .sectionTitle { display:flex; justify-content:space-between; align-items:center; gap:14px; margin-bottom:17px; }
-.sectionTitle h2 { font:26px/1.25 Georgia,serif; letter-spacing:-.02em; }
+.sectionTitle h2 { font: var(--graisse-titre, 480) 26px/1.25 var(--font-display, Georgia, serif); letter-spacing:-.02em; }
 .sectionTitle p { margin-top:5px; font-size:12px; color:var(--texte-secondaire); }
 .columns { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
 .column { background:white; border:1px solid var(--filet); border-radius:12px; min-width:0; overflow:hidden; }
@@ -84,7 +84,7 @@
 .territory { margin-top:26px; }
 .territory :global(.section-ecran) { border:1px solid var(--filet); border-radius:13px; padding:22px; background:white; margin-bottom:20px; }
 .territory :global(.loc-carte) { box-shadow:none; }
-.territory h2 { font:23px/1.4 Georgia,serif; }
+.territory h2 { font: var(--graisse-titre, 480) 23px/1.4 var(--font-display, Georgia, serif); }
 .territory > section > :global(.loc-carte) { border:0; padding:0; background:transparent; }
 .territory :global(.kpi) { border-radius:11px; }
 .panel :global(.colonne-liste) { margin-top:13px; }

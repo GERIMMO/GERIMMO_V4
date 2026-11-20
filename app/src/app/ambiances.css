@@ -176,10 +176,10 @@ html[data-ambiance-site="noel"] {
 @media screen and (min-width: 641px) {
   html:not([data-ambiance-site]) .gerimmo-prestige :is(.coquille-late, .loc-late) { background-image: none; }
   html[data-ambiance-site] .gerimmo-prestige :is(.coquille-late, .loc-late) {
-    background-color: #14263d;
-    background-image: linear-gradient(180deg, #14263d 0%, #14263df5 22%, #14263dd6 48%, #14263dd6 82%, #14263df5 100%), var(--ambiance-image);
-    background-position: center;
-    background-size: cover;
+    background-color: var(--nuit-menu);
+    background-image: var(--vignette-menu), var(--ambiance-image);
+    background-position: center bottom, center bottom;
+    background-size: 100% var(--vignette-menu-hauteur), auto var(--vignette-menu-hauteur);
     background-repeat: no-repeat;
   }
   html[data-ambiance-site] .gerimmo-prestige :is(.coquille-late .coquille-menu, .loc-late .loc-menu) a.actif {
@@ -189,20 +189,24 @@ html[data-ambiance-site="noel"] {
 @media screen and (min-width: 901px) {
   html:not([data-ambiance-site]) .gerimmo-prestige .admin-late { background-image: none; }
   html[data-ambiance-site] .gerimmo-prestige .admin-late {
-    background-image: linear-gradient(180deg, #14263d 0%, #14263df5 22%, #14263dd6 48%, #14263dd6 82%, #14263df5 100%), var(--ambiance-image);
-    background-position: center;
-    background-size: cover;
+    background-color: var(--nuit-menu);
+    background-image: var(--vignette-menu), var(--ambiance-image);
+    background-position: center bottom, center bottom;
+    background-size: 100% var(--vignette-menu-hauteur), auto var(--vignette-menu-hauteur);
+    background-repeat: no-repeat;
   }
   html[data-ambiance-site] .gerimmo-prestige .admin-coquille .admin-nav-lien[aria-current="page"] {
     box-shadow: inset 3px 0 var(--ambiance-accent);
   }
 }
 @media screen and (min-width: 1000px) {
-  html:not([data-ambiance-site]) .gerimmo-prestige .ambiance-menu-artisan { background-color: #14263d; background-image: none; }
+  html:not([data-ambiance-site]) .gerimmo-prestige .ambiance-menu-artisan { background-color: var(--nuit-menu); background-image: none; }
   html[data-ambiance-site] .gerimmo-prestige .ambiance-menu-artisan {
-    background-image: linear-gradient(180deg, #14263d 0%, #14263df5 22%, #14263dd6 48%, #14263dd6 82%, #14263df5 100%), var(--ambiance-image);
-    background-position: center;
-    background-size: cover;
+    background-color: var(--nuit-menu);
+    background-image: var(--vignette-menu), var(--ambiance-image);
+    background-position: center bottom, center bottom;
+    background-size: 100% var(--vignette-menu-hauteur), auto var(--vignette-menu-hauteur);
+    background-repeat: no-repeat;
   }
   html[data-ambiance-site] .gerimmo-prestige .ambiance-menu-artisan a[aria-current="page"] {
     box-shadow: inset 3px 0 var(--ambiance-accent);

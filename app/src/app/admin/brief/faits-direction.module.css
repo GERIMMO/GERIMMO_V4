@@ -1,6 +1,6 @@
 .section { min-width: 0; scroll-margin-top: 100px; }
 .header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
-.header h2 { font: 24px/1.25 Georgia,serif; color: var(--encre); }
+.header h2 { font: var(--graisse-titre, 480) 24px/1.25 var(--font-display, Georgia, serif); color: var(--encre); }
 .header p { font-size: 12px; color: var(--texte-secondaire); margin-top: 5px; line-height: 1.6; }
 .updated { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; color: var(--texte-secondaire); }
 .grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; align-items: stretch; }

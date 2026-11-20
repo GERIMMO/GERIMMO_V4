@@ -2,14 +2,9 @@
    Le périmètre explicite préserve les espaces agence, locataire et artisan. */
 .espace-proprietaire {
   --largeur-late: 248px;
-  --filet: #dfe5eb;
-  --trait: #dfe5eb;
-  --texte-secondaire: #5e6c7d;
-  --muted-foreground: #5e6c7d;
-  --ombre-portee: 0 3px 16px #172b4605;
-  background: #f4f6f8;
+  background: var(--creme);
 }
-.espace-proprietaire .coquille-corps { background: #f4f6f8; }
+.espace-proprietaire .coquille-corps { background: var(--creme); }
 .espace-proprietaire .coquille-corps > main { animation: none; max-width: 1480px; margin-inline: auto; padding: 30px 32px 64px; }
 /* Les textes et champs restent immédiatement lisibles après ouverture. */
 .espace-proprietaire details[open] > :not(summary) { animation: none; }
@@ -17,44 +12,34 @@
    et conserve un fond uni autour du logo. Le tiroir mobile reprend ce décor. */
 .espace-proprietaire .coquille-late,
 body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) {
-  background-color: #14263d;
-  background-image:
-    linear-gradient(180deg, #14263d 0%, #14263df5 22%, #14263dc7 48%, #14263dd1 82%, #14263df5 100%),
-    url("/illustrations/quartier-gerimmo-2026.jpg");
-  background-position: center, 68% center;
-  background-size: cover;
-  background-repeat: no-repeat;
+  /* Fond du menu : jetons et vignette de saison définis dans systeme.css (Design System « Maison »). */
+  background-color: var(--nuit-menu);
 }
 .espace-proprietaire .coquille-marque { min-height: 100px; padding: 22px 24px; }
 .espace-proprietaire .coquille-marque > a { border-radius: 10px; }
 .espace-proprietaire .coquille-late .coquille-menu { padding: 14px 14px 24px; gap: 4px; }
 .espace-proprietaire .coquille-late .coquille-menu a { min-height: 44px; padding: 12px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #cad4e1; }
-.espace-proprietaire .coquille-late .coquille-menu a:hover { background: #223a56; color: #fff; }
-.espace-proprietaire .coquille-late .coquille-menu a.actif { background: #2b405b; color: #fff; box-shadow: inset 3px 0 #d5b777; }
+.espace-proprietaire .coquille-late .coquille-menu a:hover { background: var(--nuit-menu-survol); color: #fff; }
+.espace-proprietaire .coquille-late .coquille-menu a.actif { background: var(--nuit-menu-actif); color: #fff; box-shadow: inset 3px 0 var(--champagne-vif); }
 .espace-proprietaire .coquille-menu svg { width: 18px; height: 18px; }
 .espace-proprietaire .coquille-groupe[data-sans-filet] { display: block; margin-top: 16px; padding-top: 14px; border-top: 1px solid #ffffff20; }
 .espace-proprietaire .coquille-groupe[data-sans-filet] > div { display: flex; flex-direction: column; gap: 4px; }
 .espace-proprietaire .coquille-haut { min-height: 72px; padding: 14px 32px; background: #ffffffed; backdrop-filter: blur(16px); }
 .espace-proprietaire .coquille-haut .recherche-ouvrir { background: #f6f8fa; border-color: #e7ebf0; border-radius: 10px; }
-.espace-proprietaire .coquille-corps :is(.entete-page, .incidents-entete) { padding-bottom: 22px; margin-bottom: 24px; border-bottom: 1px solid #dfe5eb; gap: 18px; }
-.espace-proprietaire h1 { font-size: clamp(28px, 2.5vw, 38px); line-height: 1.18; letter-spacing: -.035em; }
+.espace-proprietaire .coquille-corps :is(.entete-page, .incidents-entete) { padding-bottom: 22px; margin-bottom: 24px; border-bottom: 1px solid var(--filet); gap: 18px; }
+.espace-proprietaire h1 { font-size: var(--titre-1); line-height: 1.18; letter-spacing: -.02em; }
 .espace-proprietaire h2 { line-height: 1.3; }
-.espace-proprietaire .titre-ecran-icone { width: 46px; flex-basis: 46px; height: 46px; border-radius: 13px; background: #fff; color: #263e59; border-color: #dfe5eb; box-shadow: 0 2px 4px #172b4605; }
-.espace-proprietaire :is(.loc-carte, [data-slot="card"], .dossier-panneau, .colonne-liste-split, .colonne-liste, .historique-carte) { background: #fff; border-color: #dfe5eb; border-radius: 14px; box-shadow: 0 3px 16px #172b4605; }
+.espace-proprietaire .titre-ecran-icone { width: 46px; flex-basis: 46px; height: 46px; border-radius: 13px; background: #fff; color: #263e59; border-color: var(--filet); box-shadow: 0 2px 4px #172b4605; }
+.espace-proprietaire :is(.loc-carte, [data-slot="card"], .dossier-panneau, .colonne-liste-split, .colonne-liste, .historique-carte) { background: #fff; border-color: var(--filet); border-radius: var(--rayon-carte); box-shadow: var(--ombre-1); }
 .espace-proprietaire :is(.loc-carte, .dossier-panneau) { padding: 24px; }
-.espace-proprietaire :is(.barre-filtres, .recherche-personnes) { background: #fff; border-color: #dfe5eb; border-radius: 12px; padding: 16px; }
-.espace-proprietaire :is(.btn-or, .btn-secondaire, .bouton-gerimmo, [data-slot="button"]) { border-radius: 9px; min-height: 44px; font-weight: 600; }
-.espace-proprietaire .btn-or { background: #d6bb83; color: #17283e; border-color: #c9ab6d; box-shadow: 0 2px 5px #172b4608; }
-.espace-proprietaire .btn-or:hover { background: #e2c995; }
-.espace-proprietaire .btn-secondaire { background: #fff; border-color: #d6dee7; color: #243b56; }
-.espace-proprietaire .btn-secondaire:hover { background: #edf2f7; }
-.espace-proprietaire :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]) { border-radius: 9px; }
+.espace-proprietaire :is(.barre-filtres, .recherche-personnes) { background: #fff; border-color: var(--filet); border-radius: 12px; padding: 16px; }
+/* Boutons et champs : une seule définition pour tous les espaces, dans systeme.css. */
 .espace-proprietaire .rang { gap: 14px; padding: 16px; }
-.espace-proprietaire a.rang:hover { background: #f5f8fb; }
-.espace-proprietaire .tete-liste { background: #f6f8fa; }
+.espace-proprietaire a.rang:hover { background: var(--survol); }
+.espace-proprietaire .tete-liste { background: var(--filet-leger); }
 .espace-proprietaire .loc-tag { border-radius: 6px; font-weight: 600; }
-.espace-proprietaire .vide-guide { background: #f9fafb; border-color: #dfe5eb; padding: 28px; }
-.espace-proprietaire .carte-rubrique { background: #fff; border-color: #dfe5eb; }
+.espace-proprietaire .vide-guide { background: #fff; border-color: var(--filet); padding: 28px; }
+.espace-proprietaire .carte-rubrique { background: #fff; border-color: var(--filet); }
 .espace-proprietaire .loc-grille { grid-template-columns: minmax(0, 1fr) minmax(270px, 30%); gap: 22px; }
 .espace-proprietaire :is(a, button, input, select, textarea, summary):focus-visible { outline: 3px solid #937036; outline-offset: 3px; }
 .espace-proprietaire .coquille-late :is(a, button):focus-visible { outline-color: #e4c995; }
@@ -80,7 +65,7 @@ body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) {
   .espace-proprietaire :is(.loc-carte, .dossier-panneau, .vide-guide) { padding: 18px; }
   .espace-proprietaire .loc-grille { grid-template-columns: minmax(0, 1fr); gap: 18px; }
   .espace-proprietaire .rang { padding: 14px 8px; gap: 10px; }
-  .espace-proprietaire .coquille-basse { background: #fff; border-top: 1px solid #dfe5eb; box-shadow: 0 -4px 20px #14263d08; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .espace-proprietaire .coquille-basse { background: #fff; border-top: 1px solid var(--filet); box-shadow: 0 -4px 20px #14263d08; padding-bottom: env(safe-area-inset-bottom, 0px); }
   .espace-proprietaire .coquille-basse a.actif { color: #14263d; background: #f3ebdc; border-radius: 9px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -92,18 +77,14 @@ body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) {
 
 /* Les fenêtres sont montées dans body : elles héritent du même contexte propriétaire. */
 body:has(.espace-proprietaire) :is(.tiroir, [data-ui="modale"], .recherche-dialog) {
-  --filet: #dfe5eb;
-  --trait: #dfe5eb;
-  --texte-secondaire: #4b5870;
   background: #fff;
-  border-color: #dfe5eb;
-  border-radius: 16px;
-  box-shadow: 0 20px 70px #14263d24;
+  border-color: var(--filet);
+  border-radius: var(--rayon-fenetre);
+  box-shadow: var(--ombre-3);
 }
 body:has(.espace-proprietaire) [data-ui="modale"] { overflow: hidden; }
-body:has(.espace-proprietaire) [data-ui="modale-entete"] { background: #f7f8fa; padding: 18px 22px; }
+body:has(.espace-proprietaire) [data-ui="modale-entete"] { background: var(--filet-leger); padding: 18px 22px; }
 body:has(.espace-proprietaire) :is(.tiroir, [data-ui="modale"], .recherche-dialog) :is(a, button, input, select, textarea, summary):focus-visible { outline: 3px solid #937036; outline-offset: 3px; }
-body:has(.espace-proprietaire) :is(.tiroir, [data-ui="modale"]) :is(.btn-or, .btn-secondaire, [data-slot="button"]) { border-radius: 9px; min-height: 44px; }
 body:has(.espace-proprietaire) .tiroir .coquille-menu a { min-height: 48px; border-radius: 9px; font-size: 14px; }
 body:has(.espace-proprietaire) .tiroir .coquille-menu a.actif { background: #14263d; color: #fff; }
 body:has(.espace-proprietaire) .tiroir { border-radius: 18px 18px 0 0; }
@@ -111,21 +92,21 @@ body:has(.espace-proprietaire) .tiroir-tete button { min-width: 44px; min-height
 /* Ce décor concerne le menu de navigation, pas les formulaires en tiroir. */
 body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) {
   --trait-doux: #ffffff24;
-  --survol: #223a56;
+  --survol: var(--nuit-menu-survol);
   color: #cad4e1;
   border-color: #ffffff24;
 }
 body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) .tiroir-tete :is(h2, button) { color: #fff; }
 body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) .coquille-menu a { color: #cad4e1; }
-body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) .coquille-menu a:hover { background: #223a56; color: #fff; }
-body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) .coquille-menu a.actif { background: #2b405b; color: #fff; box-shadow: inset 3px 0 #d5b777; }
+body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) .coquille-menu a:hover { background: var(--nuit-menu-survol); color: #fff; }
+body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) .coquille-menu a.actif { background: var(--nuit-menu-actif); color: #fff; box-shadow: inset 3px 0 var(--champagne-vif); }
 body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) :is(a, button, select):focus-visible { outline-color: #e4c995; }
 @media (max-width: 640px) {
   body:has(.espace-proprietaire) [data-ui="modale-entete"] { padding: 16px; }
   body:has(.espace-proprietaire) [data-ui="modale-corps"] { padding: 16px; }
 }
 /* Le patrimoine actif reste identifiable, même avec une seule structure. */
-.espace-proprietaire .patrimoine-contexte { position: relative; z-index: 20; display: flex; align-items: center; gap: 9px; min-height: 46px; padding: 6px 32px; border-bottom: 1px solid #dfe5eb; background: #f9fafb; color: #43566d; font-size: 12px; }
+.espace-proprietaire .patrimoine-contexte { position: relative; z-index: 20; display: flex; align-items: center; gap: 9px; min-height: 46px; padding: 6px 32px; border-bottom: 1px solid var(--filet); background: #f9fafb; color: #43566d; font-size: 12px; }
 .patrimoine-contexte > svg { flex-shrink: 0; }
 .patrimoine-contexte strong { font-weight: 600; overflow-wrap: anywhere; }
 .patrimoine-selecteur { min-width: 0; }
@@ -144,12 +125,12 @@ body:has(.espace-proprietaire) .tiroir:has(.coquille-menu) :is(a, button, select
 /* Cadre propriétaire compact : géométrie sobre et hiérarchie commune. */
 .espace-proprietaire .coquille-corps > main { padding-top:22px; }
 .espace-proprietaire .coquille-corps :is(.entete-page,.incidents-entete) { padding-bottom:14px; margin-bottom:18px; gap:12px; }
-.espace-proprietaire h1 { font-size:clamp(26px,2.2vw,34px); }
+.espace-proprietaire h1 { font-size: var(--titre-1); }
 .espace-proprietaire .titre-ecran-icone { width:40px; height:40px; flex-basis:40px; border-radius:8px; }
-.espace-proprietaire :is(.loc-carte,[data-slot="card"],.dossier-panneau,.colonne-liste-split,.colonne-liste,.historique-carte,.carte-rubrique) { border-radius:10px; box-shadow:none; }
+.espace-proprietaire :is(.loc-carte,[data-slot="card"],.dossier-panneau,.colonne-liste-split,.colonne-liste,.historique-carte,.carte-rubrique) { border-radius: var(--rayon-carte); box-shadow: var(--ombre-1); }
 .espace-proprietaire :is(.loc-carte,.dossier-panneau) { padding:18px; }
 .espace-proprietaire :is(.barre-filtres,.recherche-personnes) { border-radius:8px; padding:12px; }
-.espace-proprietaire .vide-guide { padding:18px; background:#fff; border-radius:10px; }
+.espace-proprietaire .vide-guide { padding:18px; background:#fff; border-radius: var(--rayon-carte); }
 .espace-proprietaire .carte-rubrique[data-ton="bleu"] { border-top:3px solid #55799c; }
 .espace-proprietaire .carte-rubrique[data-ton="vert"] { border-top:3px solid #4e8776; }
 .espace-proprietaire .carte-rubrique[data-ton="or"] { border-top:3px solid #b39458; }

@@ -3,7 +3,7 @@
 .snapshot { font-size:11px; color:var(--texte-secondaire); margin:-12px 0 20px; }
 .overview { display:grid; grid-template-columns:minmax(0,1.65fr) minmax(270px,1fr); gap:18px; margin-bottom:20px; }
 .sectionHead { display:flex; align-items:flex-start; justify-content:space-between; gap:15px; margin-bottom:20px; }
-.sectionHead h2 { font:25px/1.25 Georgia,serif; letter-spacing:-.025em; }
+.sectionHead h2 { font: var(--graisse-titre, 480) 25px/1.25 var(--font-display, Georgia, serif); letter-spacing:-.025em; }
 .sectionHead p:not(.eyebrow) { font-size:12px; line-height:1.6; margin-top:6px; color:var(--texte-secondaire); }
 .sectionHead > svg { flex-shrink:0; color:#6b877a; margin-top:4px; }
 .eyebrow { font-size:9px; letter-spacing:.13em; font-weight:650; margin-bottom:9px; color:#526a5b; }

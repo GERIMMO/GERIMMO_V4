@@ -3,7 +3,7 @@
 .date { display:flex; align-items:center; gap:10px; color:#95672f; font-size:12px; line-height:1.5; }
 .date::before { content:""; width:16px; height:1px; background:#cdb17b; }
 .date time::first-letter { text-transform:uppercase; }
-.bienvenue .texte .titre { margin:7px 0 0; color:#101a31; font-family:var(--font-display, Georgia), "Times New Roman", serif; font-size:clamp(30px,3.1vw,42px); font-weight:500; line-height:1.07; letter-spacing:-.04em; overflow-wrap:anywhere; }
+.bienvenue .texte .titre { margin:7px 0 0; color:#101a31; font-family:var(--font-display, Georgia, "Times New Roman", serif); font-size:clamp(30px,3.1vw,42px); font-weight:500; line-height:1.07; letter-spacing:-.04em; overflow-wrap:anywhere; }
 .description { margin-top:6px; color:#657185; font-size:clamp(14px,1.4vw,17px); line-height:1.4; }
 .visuel { position:absolute; z-index:0; inset:0; overflow:hidden; }
 .visuel::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg,#fcfbf8 0%,#fcfbf8f5 27%,#fcfbf8c9 40%,#fcfbf84a 57%,#fcfbf800 73%); }

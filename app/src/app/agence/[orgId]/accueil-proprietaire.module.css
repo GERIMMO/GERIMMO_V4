@@ -14,7 +14,7 @@
 .progressionLoyer > span { display:block; flex:1; height:6px; overflow:hidden; border-radius:10px; background:#eceef0; }
 .progressionLoyer i { display:block; height:100%; background:#cfad71; border-radius:inherit; }
 .progressionLoyer small { white-space:nowrap; }
-.titreLigne { display:flex; align-items:center; gap:12px; margin:0; color:#14213b; font-family:var(--font-display,Georgia),serif; font-size:25px; font-weight:500; line-height:1.2; letter-spacing:-.035em; }
+.titreLigne { display:flex; align-items:center; gap:12px; margin:0; color:#14213b; font-family:var(--font-display, Georgia, serif); font-size:25px; font-weight:500; line-height:1.2; letter-spacing:-.035em; }
 .titreLigne::after { content:""; flex:1; min-width:22px; height:1px; background:linear-gradient(90deg,#d3ae70,#e6dcc850); }
 .titreLigne svg { flex-shrink:0; }
 .actionsSection { display:grid; gap:9px; }
@@ -22,7 +22,7 @@
 .actionsRapides > :is(a,button) { display:flex; align-items:center; gap:12px; width:100%; min-width:0; min-height:76px; padding:12px; border:1px solid #dabb82; border-radius:6px; background:#fffefa; color:#162848; text-align:left; box-shadow:0 1px 3px #caaa7410; }
 .actionsRapides > :is(a,button):hover { border-color:#b68a42; background:#fff8ea; }
 .actionsRapides > :is(a,button) > span { display:grid; place-items:center; flex-shrink:0; width:44px; height:44px; border-radius:50%; background:#fcf0d7; }
-.actionsRapides b { flex:1; min-width:0; font-family:var(--font-display,Georgia),serif; font-size:15px; font-weight:500; line-height:1.15; }
+.actionsRapides b { flex:1; min-width:0; font-family:var(--font-display, Georgia, serif); font-size:15px; font-weight:500; line-height:1.15; }
 .actionsRapides > :is(a,button) > svg { flex-shrink:0; }
 .grille { display:grid; grid-template-columns:minmax(0,1.9fr) minmax(280px,1fr); align-items:start; gap:12px; }
 .principal,.secondaire { min-width:0; }
@@ -33,14 +33,14 @@
 .vignetteConseil img { width:100%; height:100%; object-fit:cover; }
 .articleVedette > div { flex:1; min-width:0; }
 .articleVedette small { display:inline-block; margin-bottom:5px; padding:2px 6px; background:#f6e4bf; color:#715127; border-radius:3px; font-size:10px; }
-.articleVedette h3 { font-family:var(--font-display,Georgia),serif; font-size:17px; font-weight:500; line-height:1.2; letter-spacing:-.02em; overflow-wrap:anywhere; }
+.articleVedette h3 { font-family:var(--font-display, Georgia, serif); font-size:17px; font-weight:500; line-height:1.2; letter-spacing:-.02em; overflow-wrap:anywhere; }
 .articleVedette > svg { flex-shrink:0; }
 .articleVedette:hover h3 { text-decoration:underline; text-underline-offset:3px; }
 .conseilsListe { list-style:none; padding:0; margin:0; }
 .conseilsListe li { border-bottom:1px solid #ece9e4; }
 .conseilsListe a { display:flex; align-items:center; gap:11px; min-height:51px; padding:6px 0; }
 .conseilsListe a > span { display:grid; place-items:center; flex-shrink:0; width:34px; height:34px; border-radius:50%; background:#fcf4e5; color:#1a2851; }
-.conseilsListe b { flex:1; min-width:0; font-family:var(--font-display,Georgia),serif; font-size:14px; line-height:1.3; font-weight:500; overflow-wrap:anywhere; }
+.conseilsListe b { flex:1; min-width:0; font-family:var(--font-display, Georgia, serif); font-size:14px; line-height:1.3; font-weight:500; overflow-wrap:anywhere; }
 .conseilsListe a:hover b { text-decoration:underline; text-underline-offset:3px; }
 .lienPied { display:inline-flex; align-items:center; gap:8px; min-height:40px; color:#9a652c; font-size:12px; }
 .lienPied:hover { text-decoration:underline; text-underline-offset:3px; }
@@ -63,7 +63,7 @@
 }
 
 .principal :global(.loc-carte) { margin:10px 0 12px; padding:12px 14px; border:1px solid #ead8b7; border-left:3px solid #d4b47c; border-radius:7px; background:linear-gradient(100deg,#fffaf0,#fff); }
-.principal :global(.loc-carte) h2 { font-family:var(--font-display,Georgia),serif; font-size:18px; }
+.principal :global(.loc-carte) h2 { font-family:var(--font-display, Georgia, serif); font-size:18px; }
 
 .page .indicateurs .indicateur:not([data-importante="true"]) { background:#fff; border-color:#e4e7ec; }
 :global(.espace-proprietaire) :global(.coquille-corps) > .page { padding:16px 18px 40px; }
@@ -83,7 +83,7 @@
 .rechercheLogement { display:grid; gap:6px; margin-bottom:12px; font-size:13px; color:#42566d; }.rechercheLogement input { min-height:44px; width:100%; padding:9px 12px; border:1px solid #dfe5eb; border-radius:7px; font-size:16px; background:#fff; }.choixLogements { max-height:360px; overflow-y:auto; }
 
 .demarrage :global(.loc-carte) { margin:0; padding:20px; border:1px solid #dac8a7; border-radius:9px; background:linear-gradient(110deg,#fffaf0,#fff); }
-.demarrage h2 { font-family:var(--font-display,Georgia),serif; font-size:24px; }
+.demarrage h2 { font-family:var(--font-display, Georgia, serif); font-size:24px; }
 .suiviPrioritaire { padding:0 16px; border:1px solid #e4e7ec; border-radius:8px; background:#fff; }
 .suiviPrioritaire > summary { padding:12px 0; min-height:44px; cursor:pointer; color:#294d72; font-size:13px; font-weight:600; }
 .suiviPrioritaire > div { padding-bottom:16px; scroll-margin-top:90px; }

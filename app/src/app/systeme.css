@@ -1,0 +1,221 @@
+/* =====================================================================================================================
+   DESIGN SYSTEM GERIMMO — « Maison » (20/11/2026)
+
+   Dernière feuille chargée par le layout racine. Elle porte ce qui est COMMUN à toutes les sessions
+   (propriétaire, agence, locataire, artisan, supervision, pages publiques et transversales).
+
+   Où vit quoi :
+   · couleurs de marque et d'état ............ prestige.css (bloc de jetons) et globals.css (états)
+   · échelles, rayons, ombres, mouvement ..... ICI
+   · règles communes des composants .......... ICI (boutons, champs, cartes, menus, listes, fenêtres)
+   · particularités d'un espace .............. proprietaire.css, experience-unifiee.css (géométrie seulement)
+   · documentation ........................... app/docs/design-system.md
+
+   Règles de conduite :
+   1. Aucune couleur en dur dans un composant : un jeton, toujours.
+   2. Le bleu nuit porte l'action principale ; le champagne est l'accent de la marque (repère, étape en cours, liseré).
+   3. Rouge, ambre et vert ne servent qu'aux états métier (retard, attention, à jour).
+   4. Un mouvement explique un changement ; il s'éteint sous `prefers-reduced-motion`.
+   ===================================================================================================================== */
+
+:root,
+body.gerimmo-prestige,
+.gerimmo-prestige {
+  /* --- Typographie ------------------------------------------------------------------------------------------------ */
+  --font-display: var(--font-affiche), var(--font-affiche-etendue), Georgia, "Times New Roman", serif;
+  --font-display-italique: var(--font-affiche-italique), var(--font-affiche), Georgia, serif;
+  --graisse-titre: 430;
+  --titre-1: clamp(26px, 2.2vw, 34px);   /* titre d'écran, dans les quatre espaces */
+  --titre-2: 22px;                       /* titre de section, de carte majeure, de fenêtre */
+  --titre-3: 16px;                       /* titre de carte */
+
+  /* --- Marque ------------------------------------------------------------------------------------------------------ */
+  --champagne-vif: #d5b777;              /* liseré et repère posés sur le bleu nuit */
+  --nuit-menu: #14304f;
+  --nuit-menu-survol: #1c3d62;
+  --nuit-menu-actif: #234870;
+  /* La photo de saison ne couvre plus le menu : elle reste en vignette, au pied, sous un voile qui part du bleu nuit
+     plein. Le voile et la photo ont la même hauteur : aucun bord visible. */
+  --vignette-menu-hauteur: 230px;
+  --vignette-menu: linear-gradient(180deg, var(--nuit-menu) 0%, color-mix(in srgb, var(--nuit-menu) 92%, transparent) 38%, color-mix(in srgb, var(--nuit-menu) 80%, transparent) 100%);
+
+  /* --- Géométrie --------------------------------------------------------------------------------------------------- */
+  --rayon-champ: 10px;
+  --rayon-bouton: 10px;
+  --rayon-carte: 14px;
+  --rayon-fenetre: 18px;
+  /* Contour des champs : 3:1 sur le blanc (WCAG 1.4.11), ce que le filet des cartes n'atteint pas. */
+  --filet-champ: #9a9387;
+
+  /* --- Élévation --------------------------------------------------------------------------------------------------- */
+  --ombre-1: 0 1px 2px rgb(22 36 58 / 0.04), 0 3px 12px rgb(22 36 58 / 0.04);     /* carte au repos */
+  --ombre-2: 0 2px 6px rgb(22 36 58 / 0.06), 0 12px 28px rgb(22 36 58 / 0.09);    /* carte survolée, menu flottant */
+  --ombre-3: 0 24px 70px rgb(20 48 79 / 0.22);                                    /* fenêtre, tiroir */
+}
+
+/* --- Titres : la même voix partout ---------------------------------------------------------------------------------- */
+.gerimmo-prestige :is(h1, h2) {
+  font-optical-sizing: auto;
+  font-variant-numeric: lining-nums;
+  text-wrap: balance;
+}
+/* L'italique des titres a son propre fichier de police : jamais d'oblique fabriquée par le navigateur. */
+.gerimmo-prestige :is(h1, h2) :is(em, i) {
+  font-family: var(--font-display-italique);
+  font-style: italic;
+}
+
+/* --- Menus des quatre espaces --------------------------------------------------------------------------------------- */
+.gerimmo-prestige :is(.coquille-late .coquille-menu, .loc-late .loc-menu) a,
+.gerimmo-prestige .admin-nav-lien,
+.gerimmo-prestige [data-espace-menu] a {
+  transition: background-color var(--duree-rapide) ease, color var(--duree-rapide) ease, box-shadow var(--duree) var(--courbe);
+}
+.gerimmo-prestige :is(.coquille-late .coquille-menu, .loc-late .loc-menu) a:hover { background: var(--nuit-menu-survol); }
+.gerimmo-prestige :is(.coquille-late .coquille-menu, .loc-late .loc-menu) a.actif {
+  background: var(--nuit-menu-actif);
+  box-shadow: inset 3px 0 var(--champagne-vif);
+  font-weight: 600;
+}
+
+/* --- Boutons : une forme, un retour au toucher ---------------------------------------------------------------------- */
+.gerimmo-prestige :is(.btn-or, .btn-secondaire, .bouton-gerimmo, [data-slot="button"]) {
+  border-radius: var(--rayon-bouton);
+  font-weight: 600;
+  transition: background-color var(--duree-rapide) ease, border-color var(--duree-rapide) ease, color var(--duree-rapide) ease, box-shadow var(--duree-rapide) ease, transform var(--duree-rapide) ease;
+}
+.gerimmo-prestige :is(.btn-or, .btn-secondaire, .bouton-gerimmo, [data-slot="button"]):active:not(:disabled, [aria-disabled="true"]) {
+  transform: translateY(1px);
+}
+.gerimmo-prestige .btn-or:hover:not(:disabled) { box-shadow: 0 4px 14px rgb(20 48 79 / 0.2); }
+.gerimmo-prestige .btn-secondaire:hover:not(:disabled) { border-color: var(--marque); background: var(--survol); transform: none; }
+.gerimmo-prestige :is(.btn-or, .btn-secondaire):disabled { box-shadow: none; }
+
+/* --- Champs --------------------------------------------------------------------------------------------------------- */
+body.gerimmo-prestige :where(input, select, textarea):not(:where([type="checkbox"], [type="radio"], [type="hidden"], [type="range"], [type="color"], [type="submit"], [type="button"], [role="combobox"], [hidden], .sr-only)) {
+  transition: border-color var(--duree-rapide) ease, box-shadow var(--duree-rapide) ease;
+}
+body.gerimmo-prestige :where(input, select, textarea):not(:where([type="checkbox"], [type="radio"], [type="hidden"], [type="range"], [type="color"], [type="submit"], [type="button"], [hidden], .sr-only)):hover:not(:disabled, :focus) {
+  border-color: var(--encre);
+}
+body.gerimmo-prestige :where(input, select, textarea):not(:where([type="checkbox"], [type="radio"], [type="hidden"], [type="range"], [type="color"], [type="submit"], [type="button"], [hidden], .sr-only)):focus {
+  border-color: var(--marque);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--champagne-vif) 38%, transparent);
+}
+body.gerimmo-prestige :is(input, select, textarea)[aria-invalid="true"]:focus {
+  border-color: var(--destructive);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--destructive) 18%, transparent);
+}
+
+/* --- Cartes --------------------------------------------------------------------------------------------------------- */
+/* Une carte qui EST un lien se soulève au survol : on voit qu'elle s'ouvre. */
+.gerimmo-prestige a:is(.loc-carte, [data-slot="card"], .tuile, .kpi, .carte-rubrique),
+.gerimmo-prestige :is(.loc-carte, [data-slot="card"]):has(> a.lien-carte) {
+  transition: transform var(--duree) var(--courbe), box-shadow var(--duree) var(--courbe), border-color var(--duree-rapide) ease;
+}
+.gerimmo-prestige a:is(.loc-carte, [data-slot="card"], .tuile, .kpi, .carte-rubrique):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ombre-2);
+  border-color: color-mix(in srgb, var(--marque) 28%, var(--filet));
+}
+/* Plus de fonds en dégradé ni de bord gauche coloré sur les cartes de rubrique : le ton vit dans l'icône. */
+.gerimmo-prestige :is(.carte-rubrique, .lot-resume-carte[data-ton], .vide-guide[data-ton]) {
+  background: #fff;
+  border: 1px solid var(--filet);
+}
+.gerimmo-prestige .carte-rubrique[data-ton] { border-top: 1px solid var(--filet); }
+.gerimmo-prestige :is(.assistant-conseil, .dossier-conseil) {
+  border: 1px solid var(--or-filet);
+  border-radius: var(--rayon-carte);
+}
+.gerimmo-prestige .assistant-bail .assistant-resume > .assistant-carte + .assistant-carte { border: 1px solid var(--or-filet); }
+
+/* --- Tableaux et listes --------------------------------------------------------------------------------------------- */
+.gerimmo-prestige .tableau th { background: var(--filet-leger); }
+.gerimmo-prestige :is(.rang, .rang-lot, .rang-alerte, .rang-echeance) { transition: background-color var(--duree-rapide) ease, border-color var(--duree-rapide) ease; }
+.gerimmo-prestige :is(.puce, .badge-statut, .loc-tag) { font-variant-numeric: tabular-nums; }
+
+/* --- Montants : chiffres alignés, jamais de retour à la ligne au milieu d'une somme ---------------------------------- */
+.gerimmo-prestige :is(.montant, .chiffre, .loc-kpi .v, [data-montant]) { font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+
+/* --- États vides : le motif du toit et de la clé, signature de la marque -------------------------------------------- */
+.gerimmo-prestige .vide-guide {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='92' viewBox='0 0 120 92' fill='none' stroke='%23d5b777' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' opacity='.55'%3E%3Cpath d='M8 48 60 8l52 40'/%3E%3Ccircle cx='40' cy='66' r='8'/%3E%3Cpath d='M48 66h44m-12 0v9m-10-9v6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 18px top 14px;
+  background-size: 76px auto;
+}
+@media (max-width: 640px) { .gerimmo-prestige .vide-guide { background-size: 52px auto; background-position: right 12px top 12px; } }
+
+/* --- Fenêtres et tiroirs -------------------------------------------------------------------------------------------- */
+body.gerimmo-prestige :is([data-ui="modale"], .recherche-dialog) { border-radius: var(--rayon-fenetre); box-shadow: var(--ombre-3); }
+
+/* --- Anneau de focus : visible partout, clair sur le bleu nuit ------------------------------------------------------ */
+body.gerimmo-prestige :is(input, select, textarea, button, a, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--prestige-champagne-texte);
+  outline-offset: 3px;
+}
+.gerimmo-prestige :is(.coquille-late, .loc-late, .admin-late, [data-espace-menu], .public-pied, .panneau-marque) :is(a, button, summary):focus-visible {
+  outline-color: var(--champagne-vif);
+}
+
+/* --- Bandeau de retour vers l'espace (pages publiques et transversales ouvertes depuis une session) ------------------ */
+.retour-espace {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 6px 20px;
+  background: var(--nuit-menu);
+  color: #dbe3ee;
+  font-size: 13px;
+}
+.retour-espace a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: var(--rayon-bouton);
+  background: #fff;
+  color: var(--encre);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform var(--duree-rapide) ease, box-shadow var(--duree-rapide) ease;
+}
+.retour-espace a:hover { box-shadow: 0 4px 14px rgb(0 0 0 / 0.25); }
+.retour-espace a:focus-visible { outline: 3px solid var(--champagne-vif); outline-offset: 2px; }
+.retour-espace span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 480px) { .retour-espace { padding-inline: 12px; } .retour-espace span { display: none; } }
+/* Une personne venue de son espace n'a ni à se connecter ni à créer un compte : ces appels s'effacent, et les
+   en-têtes collants se rangent sous le bandeau de retour. */
+html[data-depuis-espace] :is(.public-acces, [data-appel-inscription]) { display: none; }
+html[data-depuis-espace] :is(.site-public, .public-pied, .bandeau-public) a:is([href="/connexion"], [href="/inscription"]) { display: none; }
+html[data-depuis-espace] .gerimmo-prestige :is(.bandeau-public, .bandeau-appli) { top: 48px; }
+@media print { .retour-espace { display: none; } }
+
+/* --- Mouvement ------------------------------------------------------------------------------------------------------ */
+/* Arrivée d'un écran : un fondu seul, sans déplacement. Le contenu est lisible et cliquable dès la première image ;
+   aucune transformation, donc aucun effet sur les éléments fixes ou collants de la page. */
+@keyframes ds-fondu { from { opacity: 0.001; } to { opacity: 1; } }
+/* Valeur qui vient de changer (composant ValeurVivante) : un bref halo champagne, puis plus rien. */
+@keyframes ds-halo {
+  0% { background-color: color-mix(in srgb, var(--champagne-vif) 45%, transparent); }
+  100% { background-color: transparent; }
+}
+[data-valeur-vivante] { border-radius: 6px; }
+@media (prefers-reduced-motion: no-preference) {
+  .gerimmo-prestige :is(.coquille-corps > main, .loc-corps, .artisan-corps, .admin-corps) > * {
+    animation: ds-fondu var(--duree) ease both;
+  }
+  [data-valeur-vivante][data-change="1"] { animation: ds-halo 1.2s ease-out both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gerimmo-prestige :is(.btn-or, .btn-secondaire, .bouton-gerimmo, [data-slot="button"]),
+  .gerimmo-prestige a:is(.loc-carte, [data-slot="card"], .tuile, .kpi, .carte-rubrique),
+  .retour-espace a { transition: none; transform: none; }
+}

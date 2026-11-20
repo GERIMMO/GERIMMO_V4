@@ -6,17 +6,22 @@ import "./harmonie.css";
 import "./proprietaire.css";
 import "./experience-unifiee.css";
 import "./ambiances.css";
+// Design System « Maison » (20/11/2026) : dernière feuille chargée, elle porte les jetons et les règles communes.
+import "./systeme.css";
 import { AmbianceSite } from "@/components/ambiance-site";
 import { ProtectionSaisie } from "@/components/protection-saisie";
 import { RepliHorsLigne } from "@/components/repli-hors-ligne";
 import { BoutonAssistance } from "@/components/bouton-assistance";
+import { ContinuiteEspace } from "@/components/continuite-espace";
 import { OPEN_GRAPH_PAR_DEFAUT } from "@/lib/metadonnees-publiques";
 import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
 import { adresseCanonique } from "@/lib/site";
 
 // Polices locales : Figtree pour l’interface, Manrope pour les chiffres et
-// libellés. Les titres Prestige en Georgia sont définis dans prestige.css.
-// Aucun téléchargement externe n’est nécessaire pour construire le site.
+// libellés, Fraunces pour les titres (Design System « Maison », 20/11/2026).
+// Georgia, police du système, n’existe ni sur Android ni sur Linux : les titres
+// y changeaient de dessin. Fraunces est embarquée, donc identique partout ;
+// Georgia reste la police de repli. Aucun téléchargement externe à la construction.
 const titres = localFont({
   variable: "--font-titres",
   src: [
@@ -33,6 +38,31 @@ const interface_ = localFont({
     { path: "./polices/figtree-latin-ext-wght-normal.woff2", weight: "300 900", style: "normal" },
   ],
   display: "swap",
+});
+
+// Titres : seul le fichier latin (67 Ko) est préchargé. Le latin étendu (noms propres) et l'italique
+// (une phrase de la page d'accueil) ne se téléchargent que si un caractère ou un style les réclame.
+// Les plages de caractères sont écrites en toutes lettres : le chargeur de polices n'accepte que des littéraux.
+const affiche = localFont({
+  variable: "--font-affiche",
+  src: [{ path: "./polices/fraunces-latin-opsz-normal.woff2", weight: "100 900", style: "normal" }],
+  declarations: [{ prop: "unicode-range", value: "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD" }],
+  display: "swap",
+  fallback: ["Georgia", "Times New Roman", "serif"],
+});
+const afficheEtendue = localFont({
+  variable: "--font-affiche-etendue",
+  src: [{ path: "./polices/fraunces-latin-ext-opsz-normal.woff2", weight: "100 900", style: "normal" }],
+  declarations: [{ prop: "unicode-range", value: "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF" }],
+  display: "swap",
+  preload: false,
+});
+const afficheItalique = localFont({
+  variable: "--font-affiche-italique",
+  src: [{ path: "./polices/fraunces-latin-opsz-italic.woff2", weight: "100 900", style: "italic" }],
+  declarations: [{ prop: "unicode-range", value: "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD" }],
+  display: "swap",
+  preload: false,
 });
 
 const DESCRIPTION = "Gestion locative pour propriétaires bailleurs";
@@ -58,9 +88,9 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
-      className={`${titres.variable} ${interface_.variable} h-full antialiased`}
+      className={`${titres.variable} ${interface_.variable} ${affiche.variable} ${afficheEtendue.variable} ${afficheItalique.variable} h-full antialiased`}
     >
-      <body className="gerimmo-prestige min-h-full flex flex-col">{children}<AmbianceSite /><ProtectionSaisie /><RepliHorsLigne /><BoutonAssistance /></body>
+      <body className="gerimmo-prestige min-h-full flex flex-col"><ContinuiteEspace />{children}<AmbianceSite /><ProtectionSaisie /><RepliHorsLigne /><BoutonAssistance /></body>
     </html>
   );
 }

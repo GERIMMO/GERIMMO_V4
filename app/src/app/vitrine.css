@@ -70,7 +70,7 @@
 .gerimmo-prestige .public-parcours h2 { font-size: 25px; line-height: 1.25; margin-top: 9px; }
 .public-parcours ol { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
 .public-parcours li { display: flex; gap: 13px; align-items: flex-start; }
-.public-parcours li > span { color: #8a703e; font-family: Georgia, serif; font-size: 25px; line-height: 1; }
+.public-parcours li > span { color: #8a703e; font-family: var(--font-display, Georgia, serif); font-size: 25px; line-height: 1; }
 .public-parcours strong { font-size: 14px; font-weight: 600; }
 .public-parcours li p { font-size: 12px; line-height: 1.6; margin-top: 5px; color: #526077; }
 .public-espace { display: flex; flex-direction: column; padding: 26px 23px; border: 1px solid #e0e3e5; border-top: 3px solid var(--accent-public); border-radius: 10px; background: #fff; }
@@ -97,7 +97,7 @@
 .offre-publique { min-width: 0; background: white; padding: 26px 22px; border-radius: 12px; border: 1px solid #dce2e9; }
 .offre-nom { font-size: 18px; font-weight: 600; color: #14304f; }
 .offre-biens { color: #526077; font-size: 13px; margin-top: 4px; }
-.offre-prix { color: #14304f; font-size: 36px; font-family: Georgia, serif; letter-spacing: -.03em; margin: 24px 0 6px; }
+.offre-prix { color: #14304f; font-size: 36px; font-family: var(--font-display, Georgia, serif); letter-spacing: -.03em; margin: 24px 0 6px; }
 .offre-prix small { margin-left: 6px; font-family: var(--font-interface), sans-serif; font-size: 13px; letter-spacing: normal; color: #526077; }
 .offre-periode, .offres-note { font-size: 12px; line-height: 1.7; color: #526077; }
 .offre-publique ul { border-top: 1px solid #e5e7eb; margin: 22px 0; padding-top: 19px; display: grid; gap: 8px; }

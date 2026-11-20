@@ -6,7 +6,7 @@
 
 Gerimmo fonctionnait, mais il était inégal : chaque espace avait ses couleurs, ses titres et ses boutons, et certaines pages donnaient l'impression de sortir du logiciel.
 J'ai posé une identité commune, « Maison » (papier chaud, bleu nuit, trait de champagne, titres à empattements), puis je l'ai appliquée aux **133 pages**, dans **toutes les sessions**.
-Tout est vérifié : 12 952 tests unitaires, 282 parcours navigateur, 932 passages d'écran sans erreur, et l'intégration continue est verte.
+Les contrôles automatiques sont verts : 12 952 tests unitaires, 282 parcours navigateur, 932 passages d'écran sans erreur, et l'intégration continue de GitHub.
 
 ## Ce qui change pour l'utilisateur
 
@@ -124,6 +124,7 @@ L'**intégration continue** est le contrôle automatique que GitHub lance sur ch
 | Feuilles communes historiques (`globals.css`, `prestige.css`) | encore 228 couleurs en dur | ce sont surtout les définitions des jetons et les palettes de saison ; les blocs « vitrine » et « outils » de `globals.css` sont à déplacer |
 | Libellés de la barre basse du téléphone (10 à 10,5 px) | exception assumée | cinq entrées doivent tenir sur 375 px |
 | Les 338 remarques des lots (annexe C) | à trier | pistes d'amélioration relevées en chemin, hors d'un chantier de présentation |
+| Accueil public : la seconde ligne du grand titre (« l'esprit tranquille. ») n'est plus en italique | changé, **à valider par vous** | le fichier italique était l'une des deux polices qui figeaient Safari ; la ligne reste en champagne. La remettre en italique est possible, au prix de 81 Ko préchargés sur chaque page |
 | Polices préchargées : 126 Ko de plus par première visite (police de titre) ; la police des documents (42 Ko) est aussi préchargée sur les pages de connexion | à mesurer puis alléger | pas de mesure de performance dans cette mission |
 | Performance (Lighthouse) et lecteur d'écran réel | non mesurés | hors de ce que le banc permet de prouver |
 

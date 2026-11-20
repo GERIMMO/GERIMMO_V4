@@ -99,16 +99,21 @@ Dans un module CSS : `font: var(--graisse-titre) 24px/1.25 var(--font-display);`
 | Action secondaire | `<Button variant="outline">` ou `.btn-secondaire` | Un lien souligné pour une action. |
 | Action dangereuse | `<Button variant="destructive">` | Du rouge pour autre chose qu'une suppression ou une alerte. |
 | Carte | `<Card>` ou `.loc-carte` | Fond en dégradé, bord gauche coloré décoratif. |
+| Carte d'état | `data-tone="warning"`, `"destructive"` ou `"success"` sur la carte (bord gauche de 3 px) | Un bord coloré qui ne dit aucun état métier. |
+| Titre de carte | `<h2 class="titre-carte">` (Figtree 600, `--titre-3`) | Un `h3` juste sous le `h1` (saut de niveau), un `h2` de carte en police d'affichage. |
 | Titre d'écran | `TitreEcran` (icône + `h1`) dans `.entete-page` | Un `h1` nu, une taille propre à la page. |
-| Lien de retour | « ← Libellé de la page d'arrivée », au-dessus du titre | « ‹ », `router.back()` sans repli, un libellé qui ne correspond pas à la destination. |
+| Lien de retour | `.lien-retour` : « ← Libellé de la page d'arrivée », au-dessus du titre | « ‹ », `router.back()` sans repli, un libellé qui ne correspond pas à la destination. |
 | Statut | `.puce` + `.puce-loue` / `-prep` / `-rouge` / `-grise`, ou `<Statut>` | Une couleur d'état sans libellé. |
 | Liste | `.colonne-liste` + `.rang` | Un tableau à plus de 4 colonnes sur téléphone. |
+| Onglets d'un dossier | `.dossier-nav` ; l'onglet courant porte `aria-current="page"` | Une classe « actif » sans `aria-current`. |
 | Tableau | `.tableau` dans `.tableau-defilant` | Un tableau qui fait défiler toute la page. |
 | État vide | `.vide-guide` (titre, explication, geste) | Une liste vide sans explication ni action. |
 | Erreur de formulaire | `<AlerteFormulaire>` | Un paragraphe rouge maison. |
 | Fenêtre | `<Modale>` ; panneau : `<Tiroir>` | Une page hors coquille pour un détail. |
 | Chiffre de tableau de bord | `<ValeurVivante valeur={n}>…</ValeurVivante>` | Un compteur qui défile au chargement. |
 | Chargement | `loading.tsx` de l'espace (squelette), `<Spinner>` dans un bouton | Un écran blanc. |
+| Erreur d'écran | `error.tsx` de l'espace → `<EcranErreur>` (réessayer, accueil de l'espace, assistance) | Une erreur qui fait disparaître le menu. |
+| Page introuvable | `not-found.tsx` de l'espace → `<EcranIntrouvable>` | Un 404 hors coquille qui renvoie à « Mes espaces ». |
 
 ## 5. Navigation
 
@@ -118,7 +123,11 @@ Dans un module CSS : `font: var(--graisse-titre) 24px/1.25 var(--font-display);`
 - Une page servie hors d'un espace (conditions, confidentialité, aide, compte, quittance, outils, journal) affiche
   le bandeau **« Revenir à mon espace… »** dès que l'on vient d'un espace (`ContinuiteEspace`, layout racine). Les
   appels « Se connecter » et « Créer mon compte » s'effacent alors. Un bloc d'appel à l'inscription porte
-  l'attribut `data-appel-inscription` pour suivre la même règle.
+  l'attribut `data-appel-inscription` pour suivre la même règle. Le bandeau ne nomme jamais la marque : le locataire
+  d'une agence en marque blanche ne lit pas « Gerimmo ».
+- Une erreur ou une page introuvable **dans** un espace garde sa coquille (menu, en-tête, marque) et ramène à
+  l'accueil de cet espace. Une adresse inexistante sous un espace affiche la page 404 commune, dont le geste mène
+  lui aussi à l'accueil de l'espace.
 
 ## 6. Mouvement : ce qui est en place
 
@@ -138,7 +147,8 @@ Tout s'éteint sous `prefers-reduced-motion: reduce`.
 
 - Texte : 4,5:1 au moins. Contour des champs : 3:1.
 - Focus toujours visible : anneau de 3 px, champagne foncé sur clair, champagne vif sur le bleu nuit.
-- Cibles tactiles : 44 px.
+- Cibles tactiles : 44 px (boutons, liens de menu, lignes qui déplient, bouton de recherche).
+- Aucun libellé sous 12 px. Exceptions tenues : pastilles de compteur, raccourcis clavier, libellés de la barre basse du téléphone.
 - Un `h1` par écran, puis des `h2` : pas de saut de niveau.
 - Le nom accessible d'un bouton contient son libellé visible.
 - L'information ne passe jamais par la couleur seule.

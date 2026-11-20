@@ -215,9 +215,6 @@ html[data-ambiance-site="noel"] {
 @media screen and (min-width: 1024px) {
   .ambiance-marque-auth { display: none; }
 }
-@media screen and (max-width: 699px) {
-  .ambiance-haut-artisan .ambiance-repere { background: var(--ambiance-accent); }
-}
 @media screen and (max-width: 640px) {
   .ambiance-repere { width: 22px; height: 22px; flex-basis: 22px; }
   .public-logo .ambiance-repere { margin-left: 8px; width: 20px; height: 20px; flex-basis: 20px; }

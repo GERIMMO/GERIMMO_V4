@@ -116,7 +116,8 @@ body.gerimmo-prestige :is(input, select, textarea)[aria-invalid="true"]:focus {
 .gerimmo-prestige :is(.loc-carte, [data-slot="card"]):has(> a.lien-carte) {
   transition: transform var(--duree) var(--courbe), box-shadow var(--duree) var(--courbe), border-color var(--duree-rapide) ease;
 }
-.gerimmo-prestige a:is(.loc-carte, [data-slot="card"], .tuile, .kpi, .carte-rubrique):hover {
+.gerimmo-prestige a:is(.loc-carte, [data-slot="card"], .tuile, .kpi, .carte-rubrique):hover,
+.gerimmo-prestige :is(.loc-carte, [data-slot="card"]):has(> a.lien-carte):hover {
   transform: translateY(-2px);
   box-shadow: var(--ombre-2);
   border-color: color-mix(in srgb, var(--marque) 28%, var(--filet));
@@ -133,7 +134,7 @@ body.gerimmo-prestige :is(input, select, textarea)[aria-invalid="true"]:focus {
   border-radius: var(--rayon-carte);
   box-shadow: var(--ombre-1);
 }
-.gerimmo-prestige :is(.kpi.bleu, .kpi.or) { border-left: 1px solid var(--filet); }
+.gerimmo-prestige .kpi:not(.rouge, .ambre, .vert) { border-left: 1px solid var(--filet); }
 .gerimmo-prestige :is(.tuile.accent, .tuile.neutre) { background: var(--carte); border-color: var(--filet); box-shadow: var(--ombre-1); }
 .gerimmo-prestige .tuile.ok { background: var(--success-soft); }
 .gerimmo-prestige .tuile.attention { background: var(--warning-soft); }
@@ -170,6 +171,44 @@ body.gerimmo-prestige :is(input, select, textarea)[aria-invalid="true"]:focus {
 /* --- Montants : chiffres alignés, jamais de retour à la ligne au milieu d'une somme ---------------------------------- */
 .gerimmo-prestige :is(.montant, .chiffre, .loc-kpi .v, [data-montant]) { font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
 
+/* --- Cartes d'état : le bord gauche dit un état métier, jamais un décor ------------------------------------------- */
+.gerimmo-prestige :is(.loc-carte, .artisan-carte)[data-tone="warning"] { border-left: 3px solid var(--warning); }
+.gerimmo-prestige :is(.loc-carte, .artisan-carte)[data-tone="destructive"] { border-left: 3px solid var(--destructive); }
+.gerimmo-prestige :is(.loc-carte, .artisan-carte)[data-tone="success"] { border-left: 3px solid var(--success); }
+
+/* --- Lien de retour : « ← Libellé de la page d'arrivée », au-dessus du titre, le même dans tous les espaces ---------- */
+.gerimmo-prestige .lien-retour {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--cible-tactile);
+  color: var(--texte-secondaire);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color var(--duree-rapide) ease;
+}
+.gerimmo-prestige .lien-retour:hover { color: var(--encre); text-decoration: underline; text-underline-offset: 3px; }
+
+/* --- Onglets d'un dossier : l'onglet courant se reconnaît par aria-current, sans classe à part ------------------------ */
+.gerimmo-prestige .dossier-nav a[aria-current="page"] { background: var(--marque); color: var(--sur-marque); border-color: var(--marque); }
+.gerimmo-prestige .dossier-nav a { border-radius: var(--rayon-bouton); transition: background-color var(--duree-rapide) ease, border-color var(--duree-rapide) ease, color var(--duree-rapide) ease; }
+
+/* --- Lisibilité : aucun libellé sous 12 px (les pastilles de compteur et les raccourcis clavier font exception) ------ */
+.gerimmo-prestige :is(.eyebrow, .dossier-surtitre, .portail-surtitre, .outil-groupe-titre, .outil-panneau-titre, .admin-menu-titre, .etiquette-alerte, .lot-etiquette-archive, .infobulle, .recherche-pied, .agenda-nom-jour, .assistant-etape-statut),
+.gerimmo-prestige .tableau th,
+.gerimmo-prestige .coquille-groupe > p,
+.gerimmo-prestige :is(.rang, .ligne-info, .dossier-etapes, .assistant-etapes) small,
+.gerimmo-prestige .tableau-fiches .tableau td[data-libelle]::before { font-size: 12px; }
+
+/* Un bouton posé dans un paragraphe n'est pas un lien de texte : pas de soulignement. */
+.gerimmo-prestige p a:is(.btn-or, .btn-secondaire, .bouton-gerimmo, [data-slot="button"]) { text-decoration: none; }
+
+/* Dépliants : au doigt, la ligne qui ouvre fait 44 px. */
+@media (pointer: coarse) {
+  .gerimmo-prestige :is(.coquille-corps, .loc-corps, .artisan-corps, .admin-corps) details > summary { min-height: var(--cible-tactile); align-content: center; }
+}
+
 /* --- Écrans d'erreur et « page introuvable » : le même titre dans tous les espaces ---------------------------------- */
 .gerimmo-prestige .vide-guide h1.titre {
   font-family: var(--font-display);
@@ -186,6 +225,10 @@ body.gerimmo-prestige :is(input, select, textarea)[aria-invalid="true"]:focus {
   background-repeat: no-repeat;
   background-position: right 18px top 14px;
   background-size: 76px auto;
+}
+@media (max-width: 640px) {
+  .gerimmo-prestige .vide-guide { background-size: 52px auto; background-position: right 12px top 12px; }
+  .gerimmo-prestige .vide-guide .titre { padding-right: 60px; }
 }
 @media (max-width: 640px) { .gerimmo-prestige .vide-guide { background-size: 52px auto; background-position: right 12px top 12px; } }
 

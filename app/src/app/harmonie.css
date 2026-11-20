@@ -25,26 +25,24 @@
 .titre-ecran { display: flex; align-items: center; gap: 13px; min-width: 0; }
 .titre-ecran h1 { margin: 0; overflow-wrap: anywhere; }
 .titre-ecran-icone { display: grid; place-items: center; flex: 0 0 46px; height: 46px; border: 1px solid var(--rubrique-filet); border-radius: 12px; color: var(--rubrique-encre); background: var(--rubrique-fond); }
-.gerimmo-prestige .barre-filtres { padding: 14px 16px; background: #fff; border: 1px solid var(--filet); border-radius: 12px; }
+.gerimmo-prestige .barre-filtres { padding: 14px 16px; background: var(--carte); border: 1px solid var(--filet); border-radius: var(--rayon-carte); }
 .gerimmo-prestige .barre-filtres label { text-transform: none; letter-spacing: 0; font-size: 12px; }
 .gerimmo-prestige .barre-filtres select { max-width: 100%; }
-.gerimmo-prestige :is(.colonne-liste-split, .colonne-liste) { border-radius: 12px; }
-.gerimmo-prestige .lot-resume-carte[data-ton] { border-color: var(--rubrique-filet); border-left: 3px solid var(--rubrique-encre); background: linear-gradient(120deg, var(--rubrique-fin), #fff); }
+.gerimmo-prestige :is(.colonne-liste-split, .colonne-liste) { border-radius: var(--rayon-carte); }
 .gerimmo-prestige .lot-resume-carte[data-ton] h4 { color: var(--rubrique-encre); }
-.gerimmo-prestige .tete-liste { background: #f2f5f8; border-radius: 11px 11px 0 0; }
+.gerimmo-prestige .tete-liste { background: var(--filet-leger); border-radius: calc(var(--rayon-carte) - 1px) calc(var(--rayon-carte) - 1px) 0 0; }
 .gerimmo-prestige .rang { padding: 14px 16px; }
-.gerimmo-prestige .colonne-liste-split .rang:last-of-type { border-radius: 0 0 11px 11px; }
-.gerimmo-prestige .carte-rubrique { background: linear-gradient(120deg, var(--rubrique-fond), var(--rubrique-fin)); border: 1px solid var(--rubrique-filet); border-left: 3px solid var(--rubrique-encre); border-radius: 12px; }
+.gerimmo-prestige .colonne-liste-split .rang:last-of-type { border-radius: 0 0 calc(var(--rayon-carte) - 1px) calc(var(--rayon-carte) - 1px); }
+.gerimmo-prestige .carte-rubrique { background: var(--carte); border: 1px solid var(--filet); border-radius: var(--rayon-carte); }
 .titre-rubrique { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .titre-rubrique > svg { flex-shrink: 0; color: var(--rubrique-encre, var(--prestige-champagne-texte)); }
-.gerimmo-prestige .vide-guide { padding: 22px 24px; text-align: left; border-radius: 12px; }
-.gerimmo-prestige .vide-guide[data-ton] { background: linear-gradient(115deg, var(--rubrique-fond), var(--rubrique-fin)); border: 1px solid var(--rubrique-filet); }
+.gerimmo-prestige .vide-guide { padding: 22px 24px; text-align: left; border-radius: var(--rayon-carte); }
 .gerimmo-prestige .vide-guide .titre { font-size: 16px; margin-bottom: 6px; }
 .gerimmo-prestige .vide-guide .explication { max-width: 65ch; margin: 0 0 12px; font-size: 13px; line-height: 1.6; }
 .gerimmo-prestige .vide-guide .explication:last-child { margin-bottom: 0; }
 .gerimmo-prestige .vide-guide .geste { margin-top: 2px; justify-content: flex-start; }
 .vide-icone { color: var(--rubrique-encre, var(--texte-secondaire)); margin-bottom: 10px; }
-.gerimmo-prestige .historique-carte { padding: 0; border: 1px solid var(--filet); border-radius: 12px; background: #fff; overflow: hidden; }
+.gerimmo-prestige .historique-carte { padding: 0; border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--carte); overflow: hidden; }
 .historique-carte > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 14px 18px; cursor: pointer; list-style: none; font-size: 14px; font-weight: 600; }
 .historique-carte > summary::-webkit-details-marker { display: none; }
 .historique-carte > summary::after { content: "⌄"; color: var(--texte-secondaire); }
@@ -58,9 +56,9 @@
 .chiffres-finances dd { overflow-wrap: anywhere; }
 .gerimmo-prestige .recherche-personnes { padding: 12px 14px; border: 1px solid var(--ton-violet-filet); background: var(--ton-violet-fin); border-radius: 12px; }
 .gerimmo-prestige .formulaire-reperes label:has(~ :is(input,select,textarea):required:invalid)::after,
-.gerimmo-prestige .formulaire-reperes label:has(+ span input[type="file"]:required:invalid)::after { content: ""; display: inline-block; flex-shrink: 0; width: 8px; height: 8px; margin-left: 6px; vertical-align: middle; border-radius: 50%; background: #c63737; }
+.gerimmo-prestige .formulaire-reperes label:has(+ span input[type="file"]:required:invalid)::after { content: ""; display: inline-block; flex-shrink: 0; width: 8px; height: 8px; margin-left: 6px; vertical-align: middle; border-radius: 50%; background: var(--destructive); }
 .legende-champs { font-size: 12px; color: var(--texte-secondaire); line-height: 1.55; }
-.legende-champs > span { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: #c63737; }
+.legende-champs > span { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--destructive); }
 .gerimmo-prestige .message-formulaire { padding: 12px 14px; border-radius: 8px; font-size: 13px; line-height: 1.55; }
 .gerimmo-prestige .message-formulaire[role="alert"] { border: 1px solid color-mix(in srgb, var(--destructive) 30%, white); background: var(--destructive-soft); color: var(--destructive-soft-foreground); }
 .gerimmo-prestige .message-formulaire[data-succes] { border: 1px solid var(--ton-vert-filet); background: var(--ton-vert-fin); color: var(--ton-vert-encre); }
@@ -87,18 +85,13 @@
 .gerimmo-prestige .loc-accueil-grille > .space-y-4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .gerimmo-prestige .loc-accueil-grille > .space-y-4 > * { margin: 0; }
 .gerimmo-prestige .loc-accueil-grille .loc-carte { padding: 20px; }
-.gerimmo-prestige .loc-corps .loc-kpi.carte-rubrique { background: linear-gradient(125deg, var(--rubrique-fond), var(--rubrique-fin)); border-color: var(--rubrique-filet); border-top: 3px solid var(--rubrique-encre); border-left-width: 1px; }
 .gerimmo-prestige .loc-kpi .v { font-size: 30px; }
-.gerimmo-prestige .artisan-carte { padding: 22px; border-radius: 12px; }
-.gerimmo-prestige .artisan-carte h2 { font-size: 22px; }
+.gerimmo-prestige .artisan-carte { padding: 22px; border-radius: var(--rayon-carte); }
 .gerimmo-prestige .artisan-app .portail-hero-accueil { padding: 22px 26px; }
 .gerimmo-prestige .artisan-app :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select, textarea) { font-size: 16px; min-height: 52px; border-width: 2px; }
 .gerimmo-prestige .artisan-app :is(button, a).min-h-14 { min-height: 56px; font-size: 16px; }
 .gerimmo-prestige .artisan-app :is(button, a).min-h-12 { min-height: 48px; font-size: 16px; }
-.gerimmo-prestige .kpi { border-radius: 12px; padding: 18px 20px; }
-.gerimmo-prestige .kpi.bleu { border-left-color: var(--ton-bleu-encre); background: linear-gradient(125deg, var(--ton-bleu-fond), var(--ton-bleu-fin)); }
-.gerimmo-prestige .kpi.or, .gerimmo-prestige .kpi.ambre { background: linear-gradient(125deg, var(--ton-or-fond), var(--ton-or-fin)); }
-.gerimmo-prestige .kpi.vert { background: linear-gradient(125deg, var(--ton-vert-fond), var(--ton-vert-fin)); }
+.gerimmo-prestige .kpi { border-radius: var(--rayon-carte); padding: 18px 20px; }
 @media (max-width: 1100px) and (min-width: 901px) {
   .gerimmo-prestige .loc-accueil-grille > .grille-kpi { grid-template-columns: 1fr; }
 }

@@ -17,11 +17,18 @@ const ARTISAN_PUBLIC = /^\/artisan\/(inscription|panne)(\/|$)/;
 /** Les écrans d'entrée et de sortie de session : y arriver efface l'espace retenu, et aucun bandeau n'y paraît. */
 const ENTREE_SESSION = /^\/(connexion|inscription|mot-de-passe-oublie|nouveau-mot-de-passe|auth|invitations|signature)(\/|$)/;
 
+/** Les trois espaces dont l'adresse porte l'identifiant de l'organisation : le segment, puis l'identifiant. */
+const AVEC_IDENTIFIANT = new RegExp("^/(espace|agence|locataire)/" + UUID + "(?=/|$)", "i");
+const LIBELLES: Record<string, string> = {
+  espace: "mon espace propriétaire",
+  agence: "mon espace de gestion",
+  locataire: "mon espace locataire",
+};
+
 /** L'espace auquel appartient un chemin, ou null s'il est servi hors de toute coquille d'espace. */
 export function espaceDuChemin(chemin: string): string | null {
-  if (new RegExp(`^/espace/${UUID}(/|$)`, "i").test(chemin)) return "mon espace propriétaire";
-  if (new RegExp(`^/agence/${UUID}(/|$)`, "i").test(chemin)) return "mon espace de gestion";
-  if (new RegExp(`^/locataire/${UUID}(/|$)`, "i").test(chemin)) return "mon espace locataire";
+  const avecIdentifiant = AVEC_IDENTIFIANT.exec(chemin);
+  if (avecIdentifiant) return LIBELLES[avecIdentifiant[1].toLowerCase()];
   if (/^\/artisan(\/|$)/.test(chemin) && !ARTISAN_PUBLIC.test(chemin)) return "mon espace artisan";
   if (/^\/admin(\/|$)/.test(chemin)) return "la supervision";
   return null;
@@ -34,7 +41,7 @@ export function espaceDuChemin(chemin: string): string | null {
 export function accueilEspaceDuChemin(chemin: string): EspaceMemorise | null {
   const libelle = espaceDuChemin(chemin);
   if (!libelle) return null;
-  const avecIdentifiant = new RegExp(`^/(espace|agence|locataire)/${UUID}`, "i").exec(chemin);
+  const avecIdentifiant = AVEC_IDENTIFIANT.exec(chemin);
   if (avecIdentifiant) return { href: avecIdentifiant[0], libelle };
   return { href: chemin.startsWith("/admin") ? "/admin" : "/artisan", libelle };
 }

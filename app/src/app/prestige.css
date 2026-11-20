@@ -84,7 +84,7 @@ body.gerimmo-prestige,
   color: var(--encre);
   line-height: 1.2;
 }
-.gerimmo-prestige h1 { font-size: clamp(29px, 3vw, 38px); }
+.gerimmo-prestige h1 { font-size: var(--titre-1, clamp(26px, 2.2vw, 34px)); }
 .gerimmo-prestige h2 { font-size: var(--titre-2, 22px); }
 .gerimmo-prestige h3 { font-family: var(--font-interface), sans-serif; font-size: 16px; }
 /* Audit du 13/10 (DES-A-03) : les titres de carte des espaces locataire et propriétaire étaient des <h3> sous le <h1>,
@@ -124,10 +124,10 @@ body.gerimmo-prestige,
   border-bottom: 1px solid var(--filet);
 }
 .gerimmo-prestige .coquille-haut .recherche-ouvrir {
-  min-height: 42px;
+  min-height: var(--cible-tactile, 44px);
   max-width: 420px;
   border: 1px solid var(--filet);
-  border-radius: 7px;
+  border-radius: var(--rayon-champ, 10px);
   padding: 10px 12px;
   background: #fff;
 }
@@ -581,7 +581,7 @@ body.gerimmo-prestige [role="dialog"] > div:last-child :is(a, button) { min-heig
 
 /* Dossiers privés : davantage de contenu utile dans le premier écran mobile. */
 @media screen and (max-width:640px) {
-  .gerimmo-prestige :is(.coquille-corps, .loc-corps, .artisan-corps, .admin-corps) h1 { font-size:25px; line-height:1.2; overflow-wrap:anywhere; }
+  .gerimmo-prestige :is(.coquille-corps, .loc-corps, .artisan-corps, .admin-corps) h1 { font-size:var(--titre-1, 26px); line-height:1.2; overflow-wrap:anywhere; }
   .gerimmo-prestige :is(.coquille-corps, .loc-corps, .artisan-corps, .admin-corps) h2 { font-family:var(--font-interface),sans-serif; font-size:18px; line-height:1.35; font-weight:600; letter-spacing:0; }
   .gerimmo-prestige :is(.coquille-corps, .loc-corps, .artisan-corps, .admin-corps) .entete-page:not(.accueil-bandeau) { padding-bottom:12px; margin-bottom:14px; gap:12px; }
   .gerimmo-prestige :is(.coquille-corps, .loc-corps, .artisan-corps, .admin-corps) :is(.eyebrow,.dossier-surtitre) { letter-spacing:0; text-transform:none; font-size:12px; }

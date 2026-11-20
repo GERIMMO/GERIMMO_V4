@@ -45,7 +45,8 @@ export function ContinuiteEspace() {
         <ArrowLeft size={16} aria-hidden />
         Revenir à {espace.libelle}
       </a>
-      <span>Page ouverte depuis votre espace Gerimmo</span>
+      {/* Pas de nom de marque ici : le locataire d'une agence en marque blanche ne doit jamais lire « Gerimmo ». */}
+      <span>Page ouverte depuis votre espace</span>
     </nav>
   );
 }

@@ -38,7 +38,7 @@ transversales.
 ## La direction retenue
 
 Trois directions ont été maquettées. **« Maison »** est retenue : la marque existante, mieux tenue — papier chaud,
-bleu nuit `#14304f`, trait de champagne `#b7975a`, titres à empattements (police Fraunces embarquée). Les directions
+bleu nuit `#14304f`, trait de champagne `#b7975a`, titres à empattements (police Fraunces embarquée, sans italique). Les directions
 « Clarté » (très blanche, bleu vif) et « Nuit et or » (fonds sombres) sont écartées.
 
 Cinq principes : une seule voix ; l'action d'abord ; la couleur a un sens (rouge, ambre et vert ne servent qu'aux
@@ -58,8 +58,14 @@ le bandeau de retour ne nomme pas la marque.
 - **Mesuré après** : 4 couleurs en dur restantes dans les feuilles de page (un test les lit), tous les titres dans la
   police embarquée, aucun débordement à 375 px.
 
-Une leçon retenue : un **fondu d'arrivée** des écrans avait été posé, puis retiré. Pendant son quart de seconde le
-texte était semi-transparent, donc sous le contraste requis, et les contrôles d'accessibilité échouaient.
+Deux leçons retenues.
+
+- Un **fondu d'arrivée** des écrans avait été posé, puis retiré : pendant son quart de seconde le texte était
+  semi-transparent, donc sous le contraste requis, et les contrôles d'accessibilité échouaient.
+- **Une police déclarée doit être préchargée.** Deux fichiers de la police de titre étaient déclarés « à charger si
+  besoin ». Dans le moteur de Safari, cela retarde tout l'affichage d'une page tant que ses scripts ne sont pas
+  arrivés : sur un réseau lent, l'écran serait resté figé. Chromium ne le montre pas ; c'est le parcours WebKit de
+  l'intégration continue qui l'a attrapé. Corrigé, gardé par un test, écrit dans le Design System.
 
 ## Avancement
 
@@ -94,8 +100,6 @@ navigateur réussis ; second parcours des écrans : 932 passages, 0 erreur, 0 d�
 
 ## Ce qui reste
 
-- **Intégration continue de la pull request** : une étape reste en échec (parcours WebKit mobile). Cause à confirmer ;
-  piste : un test de la vitrine appuie sur le curseur du simulateur de prix avant que la page soit active.
 - Essais sur de vrais appareils (iPhone, Android) : tous les essais « téléphone » sont simulés.
 - Relecture et décision du dirigeant sur la pull request ; fusion et publication ne sont pas faites.
 - Pages très longues (bail, fiche d'un lot, fiche d'une personne) et blocs repliés empilés côté propriétaire :

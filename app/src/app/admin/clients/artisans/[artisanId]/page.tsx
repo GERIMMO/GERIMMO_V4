@@ -28,10 +28,15 @@ export const metadata = { title: "Artisan" };
  * gestes de décision, pour ne pas avoir à repasser par la file d'attente.
  *
  * ET LE BOUTON « ENTRER DANS SA SESSION » (19/09, deuxième demande : « je veux
- * pas une simple vue »). Il n'ouvre pas une copie en lecture : il pose une
- * traversée de supervision, et le portail de l'artisan répond dès lors comme
- * s'il était lui, écritures comprises. Ce que la fiche doit donc dire avant le
- * clic : ce que ça autorise, combien de temps ça dure, et où ça s'inscrit.
+ * pas une simple vue »). Il pose une traversée de supervision : le portail de
+ * l'artisan s'affiche comme il le voit. DEPUIS LE 12/10 (SA005, migration
+ * `20261012222100_diagnostic_artisan_lecture`), cette traversée est un
+ * DIAGNOSTIC EN LECTURE SEULE de trente minutes, avec motif obligatoire : la
+ * base refuse toute écriture pendant la session (déclencheurs sur les tables
+ * et seconde barrière sur le stockage). Le commentaire d'origine parlait
+ * d'« écritures comprises » ; ce n'est plus vrai (relecture du 20/11). Ce que
+ * la fiche doit dire avant le clic : ce que ça autorise, combien de temps ça
+ * dure, et où ça s'inscrit.
  */
 
 type Piece = {

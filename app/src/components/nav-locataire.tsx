@@ -68,7 +68,8 @@ export function SidebarLocataire({
       badge: badgeDemandes,
     },
     { href: `${base}/contact`, libelle: libelleContact, icone: "bulle", badge: badgeMessages },
-    { href: `/veille?public=locataire&retour=${encodeURIComponent(base)}`, libelle: "Les règles à connaître", icone: "doc" },
+    // Dans l'espace (20/11) : le menu ouvrait /veille, hors de la coquille.
+    { href: `${base}/regles`, libelle: "Les règles à connaître", icone: "doc" },
     { href: `${base}/faq`, libelle: "Questions fréquentes", icone: "quest" },
   ];
 

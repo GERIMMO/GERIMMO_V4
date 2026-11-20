@@ -148,14 +148,18 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
   });
 });
 
-it("la veille apparaît une seule fois et vise le public du profil",()=>{
+// 20/11/2026 : « Les règles à connaître » se lit DANS l'espace (`<base>/regles`). Le menu ouvrait `/veille`, une page
+// servie hors de la coquille : on perdait le menu en ouvrant une rubrique du menu. La page s'ouvre sur le public du
+// profil (« agence » pour une agence), comme le faisait `?public=agence` dans l'ancien lien.
+it("les règles à connaître apparaissent une seule fois, dans l'espace, et plus aucune entrée ne sort vers /veille",()=>{
  for(const role of ['admin_agence','agent','proprietaire_direct'] as RoleEspace[]){
-  const entrees=chemins(role).filter(p=>p.startsWith('/veille'));
+  const tous=chemins(role);
+  expect(tous.filter(p=>p.startsWith('/veille')), role).toEqual([]);
+  const entrees=tous.filter(p=>p==='/regles');
   if (role === "proprietaire_direct") { expect(entrees).toHaveLength(0); continue; }
   expect(entrees).toHaveLength(1);
-  const cible=new URL(entrees[0], 'https://gerimmo.app');
-  expect(cible.searchParams.get('public')).toBe('agence');
-  expect(cible.searchParams.get('retour')).toBe(`/agence/${ORG}`);
+  const entree=[...nav(role).principales,...nav(role).secondaires].find(e=>e.libelle==='Les règles à connaître');
+  expect(entree?.href).toBe(`/agence/${ORG}/regles`);
  }
 });
 

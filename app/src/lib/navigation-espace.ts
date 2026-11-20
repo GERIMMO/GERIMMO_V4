@@ -152,7 +152,8 @@ export function navigationEspace({
         { href: "/compte", libelle: "Mon compte", icone: "roue" },
       ],
       secondaires: [
-        {href:`/veille?public=agence&retour=${encodeURIComponent(base)}`,libelle:'Les règles à connaître',icone:'livre'},
+        // Dans l'espace (20/11) : le menu ouvrait /veille, hors de la coquille. La page s'ouvre sur le public du profil.
+        { href: `${base}/regles`, libelle: "Les règles à connaître", icone: "livre" },
         artisans,
         // La comptabilité reste hors de son menu principal : ses écritures et
         // ses rapports de gestion sont sous « Plus » (24/09). Son tableau de
@@ -189,7 +190,8 @@ export function navigationEspace({
       { ...parametres, libelle: "Profil de l'agence" },
     ],
     secondaires: [
-      {href:`/veille?public=agence&retour=${encodeURIComponent(base)}`,libelle:'Les règles à connaître',icone:'livre'},
+      // Dans l'espace (20/11) : le menu ouvrait /veille, hors de la coquille. La page s'ouvre sur le public du profil.
+      { href: `${base}/regles`, libelle: "Les règles à connaître", icone: "livre" },
       // « Mandats & versements » (audit 27/09) : deux entrées finissaient par
       // « rapports » (celle-ci et « Écritures & rapports ») ; l'écran suit
       // chaque mandat, son dernier rapport et l'état du versement.

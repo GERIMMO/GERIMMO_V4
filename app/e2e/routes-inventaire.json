@@ -666,6 +666,30 @@
     "dynamic": ""
   },
   {
+    "path": "/espace/ORG/regles",
+    "persona": "proprietaire",
+    "label": "Les règles à connaître, dans l'espace du propriétaire",
+    "dynamic": "orgId"
+  },
+  {
+    "path": "/locataire/ORG/regles",
+    "persona": "locataire",
+    "label": "Les règles à connaître, dans l'espace du locataire",
+    "dynamic": "orgId"
+  },
+  {
+    "path": "/agence/ORG/regles",
+    "persona": "admin-agence",
+    "label": "Les règles à connaître, dans l'espace de l'agence — responsable",
+    "dynamic": "orgId"
+  },
+  {
+    "path": "/agence/ORG/regles",
+    "persona": "agent",
+    "label": "Les règles à connaître, dans l'espace de l'agence — agent",
+    "dynamic": "orgId"
+  },
+  {
     "path": "/admin/autonomie",
     "persona": "superadmin",
     "label": "Développement du site",

@@ -23,7 +23,6 @@ body.gerimmo-prestige,
 .gerimmo-prestige {
   /* --- Typographie ------------------------------------------------------------------------------------------------ */
   --font-display: var(--font-affiche), var(--font-affiche-etendue), Georgia, "Times New Roman", serif;
-  --font-display-italique: var(--font-affiche-italique), var(--font-affiche), Georgia, serif;
   --graisse-titre: 430;
   --titre-1: clamp(26px, 2.2vw, 34px);   /* titre d'écran, dans les quatre espaces */
   --titre-2: 22px;                       /* titre de section, de carte majeure, de fenêtre */
@@ -61,10 +60,12 @@ body.gerimmo-prestige,
   font-variant-numeric: lining-nums;
   text-wrap: balance;
 }
-/* L'italique des titres a son propre fichier de police : jamais d'oblique fabriquée par le navigateur. */
+/* L'italique des titres a son propre fichier de police, déclaré sur la seule page qui s'en sert (l'accueil public).
+   Ailleurs la variable n'existe pas : le titre reste droit, jamais en oblique fabriquée par le navigateur. */
 .gerimmo-prestige :is(h1, h2) :is(em, i) {
-  font-family: var(--font-display-italique);
+  font-family: var(--font-affiche-italique, var(--font-affiche)), var(--font-affiche), var(--font-affiche-etendue), Georgia, serif;
   font-style: italic;
+  font-synthesis: none;
 }
 
 /* --- Menus des quatre espaces --------------------------------------------------------------------------------------- */

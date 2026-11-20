@@ -203,6 +203,10 @@ body.gerimmo-prestige :is(input, select, textarea)[aria-invalid="true"]:focus {
 .gerimmo-prestige :is(.rang, .ligne-info, .dossier-etapes, .assistant-etapes) small,
 .gerimmo-prestige .tableau-fiches .tableau td[data-libelle]::before { font-size: 12px; }
 
+/* Une mention longue en fin d'en-tête de carte revient à la ligne. La règle historique l'interdisait (`nowrap`) : à
+   12 px, « Biens localisés, quel que soit le siège de l'agence » dépassait l'écran de 12 px dans Safari à 390 px. */
+.gerimmo-prestige .entete-carte > .mono-discret:last-child:not(:first-child) { flex: 0 1 auto; min-width: 0; white-space: normal; }
+
 /* <small> vaut 80 % de son parent par défaut : sous un texte de 12 ou 14 px il tombait à 9,6 et 11,2 px. */
 @media screen { .gerimmo-prestige small { font-size: max(12px, 0.85em); } }
 

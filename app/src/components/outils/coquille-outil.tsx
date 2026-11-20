@@ -4,6 +4,7 @@ import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { OUTILS } from "@/lib/outils/catalogue";
 import { badgeEssai, dureeEssai } from "@/lib/tarifs";
 import { IconeTrait, PucesGratuit, TuileOutil, outilsPresentes } from "./icones-outils";
+import { DemandeRappel } from "@/components/demande-rappel";
 
 // LA COQUILLE DES OUTILS GRATUITS (29/09, habillée le 30/09) : en-tête et
 // pied publics, fil d'Ariane, en-tête de l'outil (tuile d'icône, « Outil
@@ -104,6 +105,8 @@ export function CoquilleOutil({
 
           <AutresOutils sauf={chemin} />
           <AppelEssai chemin={chemin} />
+          {/* « Être rappelé » (20/11) : pour qui préfère un appel à une inscription. */}
+          <DemandeRappel origine={chemin} />
         </div>
       </main>
       <div className="contents print:hidden">

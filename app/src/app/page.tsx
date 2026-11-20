@@ -6,6 +6,7 @@ import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { CartesOffresPubliques } from "@/components/cartes-offres-publiques";
 import { ImageJournal } from "@/components/image-journal";
 import { FormulaireDevisVitrine } from "./formulaire-devis-vitrine";
+import { DemandeRappel } from "@/components/demande-rappel";
 import { AncreAuChargement } from "@/components/ancre-au-chargement";
 import { ApercuTableauDeBord, ApercuQuittance } from "./apercus-produit";
 import { REGIME_TVA } from "@/lib/editeur";
@@ -148,6 +149,8 @@ export default async function PageVitrine() {
 
         {articles && articles.length > 0 && <section className="public-section public-section-blanche"><div className="public-conteneur"><div className="public-titre-section"><div><p className="eyebrow">Le journal Gerimmo</p><h2>Des repères pour<br />mieux gérer.</h2></div><Link href="/journal" className="public-lien">Tout le journal <ArrowRight size={17} aria-hidden /></Link></div><div className="public-journal-grille">{articles.map(a => <Link key={a.id} href={`/journal/${a.slug}`} className="public-article"><ImageJournal url={a.facebook_image_url} titre={a.titre} tailles="(max-width: 700px) 100vw, 360px" /><div><p className="eyebrow">{a.publie_le ? new Date(a.publie_le).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "Journal"}</p><h3>{titreSansDoublon(a.titre)}</h3>{a.chapo && <p>{a.chapo}</p>}<span className="public-lien">Lire l’article <ArrowUpRight size={16} aria-hidden /></span></div></Link>)}</div></div></section>}
 
+        {/* « Être rappelé » (20/11) : avant les questions fréquentes, pour qui préfère en parler de vive voix. */}
+        <div className="public-conteneur public-rappel"><DemandeRappel origine="/" titre="Vous préférez qu’on vous appelle ?" /></div>
         <section className="public-section public-conteneur public-faq"><div><p className="eyebrow">On vous répond</p><h2>Avant de<br />vous lancer.</h2><p className="public-description">Les réponses aux questions les plus fréquentes.</p></div><div>{faq(duree).map(([q, r]) => <details key={q}><summary>{q}<ChevronDown size={18} aria-hidden /></summary><p>{r}</p></details>)}</div></section>
         <AncreAuChargement />
         <section id="contact" className="public-conteneur scroll-mt-28 public-contact"><div className="public-contact-interieur"><div><p className="eyebrow">Une question ?</p><h2>Écrivez-nous,<br />on vous répond.</h2><p>Une question sur Gerimmo, sur vos données ou sur votre compte ? Dites-nous en quelques mots de quoi il s’agit. Notre équipe vous répond par écrit.</p><ul className="public-liste"><li><Check aria-hidden /> Une réponse d’une personne, pas d’un robot.</li><li><Check aria-hidden /> Vos informations ne servent qu’à vous répondre.</li><li><Check aria-hidden /> Pour exercer vos droits sur vos données, indiquez-le dans votre message.</li></ul></div><FormulaireDevisVitrine /></div></section>

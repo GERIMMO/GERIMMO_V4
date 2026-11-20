@@ -2,6 +2,7 @@
 
 import { clientDeService } from "@/lib/supabase/service";
 import { sansJargon } from "@/lib/erreurs";
+import { CRENEAUX_RAPPEL, creneauRappel, messageRappel, origineRappel, telephoneRappel } from "@/lib/demande-rappel";
 
 export type EtatDevis = {
   erreur?: string;
@@ -67,4 +68,48 @@ export async function demanderDevis(
   });
   if (error) return { erreur: sansJargon(error.message) };
   return succes;
+}
+
+// « ÊTRE RAPPELÉ » (20/11/2026) : la même porte que le formulaire de contact, pour un visiteur qui préfère un appel.
+// Il laisse lui-même son numéro et coche son accord : c'est sa demande (décision 8 du 23/10, aucun particulier n'est
+// contacté sans l'avoir demandé). Même table, même pot de miel, même limite de débit en base, même client de service
+// borné à cette seule insertion (voir plus haut). Le message est composé ici, jamais saisi : il commence par
+// « Demande de rappel » (lib/demande-rappel.ts), ce qui le distingue dans la console et dans le passage de 5 h.
+export async function demanderRappel(
+  _etat: EtatDevis,
+  formData: FormData
+): Promise<EtatDevis> {
+  const nom = String(formData.get("nom") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const telephone = telephoneRappel(formData.get("telephone"));
+  const creneau = creneauRappel(formData.get("creneau"));
+  const origine = origineRappel(formData.get("origine"));
+  const accord = formData.get("accord") === "oui";
+  const potDeMiel = String(formData.get("site") ?? "").trim();
+
+  const succes = (numero: string) => ({
+    succes: `Merci ! Nous vous rappelons au ${numero} sous un jour ouvré${creneau === "indifferent" ? "" : `, ${CRENEAUX_RAPPEL[creneau].toLowerCase()}`}.`,
+  });
+  if (potDeMiel) return succes(telephone ?? "numéro indiqué");
+
+  if (!nom) return { erreur: "Indiquez votre nom : nous saurons à qui nous parlons." };
+  if (!telephone) return { erreur: "Indiquez un numéro de téléphone français, par exemple 06 12 34 56 78." };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { erreur: "Indiquez une adresse e-mail valide : elle sert à vous envoyer le lien de votre espace après l'appel." };
+  }
+  if (!accord) return { erreur: "Cochez la case pour accepter d'être rappelé : sans votre accord, nous ne pouvons pas vous appeler." };
+
+  const service = clientDeService();
+  if (!service) {
+    console.error("[rappel] La clé de service est absente : la demande de rappel n’a pas pu être enregistrée.");
+    return { erreur: "Le formulaire est momentanément indisponible. Réessayez dans quelques minutes." };
+  }
+  const { error } = await service.from("demandes_devis").insert({
+    nom: nom.slice(0, 200),
+    email: email.slice(0, 320),
+    telephone,
+    message: messageRappel(telephone, creneau, origine),
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+  return succes(telephone);
 }

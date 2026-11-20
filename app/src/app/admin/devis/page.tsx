@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formaterDateHeure } from "@/lib/ged";
 import { createClient } from "@/lib/supabase/server";
 import { BoutonDevisTraite } from "./bouton-traite";
+import { estDemandeRappel, lienAppel } from "@/lib/demande-rappel";
 
 export const metadata = { title: "Demandes de contact" };
 
@@ -46,7 +47,7 @@ export default async function PageDevisAdmin() {
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page">
         <div><TitreEcran rubrique="messages">Demandes de contact</TitreEcran>
-        <p className="mt-2 text-muted-foreground">Les messages reçus depuis le formulaire de contact du site : questions, demandes de renseignements, exercice de droits sur les données. Les devis d’intervention des artisans se trouvent dans les dossiers d’incident.</p></div>
+        <p className="mt-2 text-muted-foreground">Les messages reçus depuis le formulaire de contact du site : questions, demandes de renseignements, exercice de droits sur les données, et les demandes de rappel laissées sur l’accueil, les outils et les articles. Les devis d’intervention des artisans se trouvent dans les dossiers d’incident.</p></div>
         {/* « 0 en attente / 0 » se lisait comme une fraction (24/09). */}
         <span className={`puce ${enAttente.length > 0 ? "puce-prep" : "puce-grise"}`}>
           {demandes.length === 0
@@ -78,6 +79,8 @@ export default async function PageDevisAdmin() {
               <div className="flex flex-wrap items-center gap-2">
                 <b className="text-sm">{d.nom}</b>
                 {d.agence && <span className="text-sm text-muted-foreground">— {d.agence}</span>}
+                {/* « Être rappelé » (20/11) : la personne attend un appel, pas une réponse écrite. */}
+                {estDemandeRappel(d.message) && <span className="puce puce-prep">Rappel demandé</span>}
                 {d.nb_lots && <span className="puce puce-encre">{d.nb_lots} lots</span>}
                 <span className="ml-auto text-xs text-muted-foreground">
                   {formaterDateHeure(d.created_at)}
@@ -87,7 +90,10 @@ export default async function PageDevisAdmin() {
                 <a href={`mailto:${d.email}`} className="lien-discret">
                   {d.email}
                 </a>
-                {d.telephone && <span className="text-muted-foreground"> · {d.telephone}</span>}
+                {d.telephone && (estDemandeRappel(d.message)
+                  // Sur le téléphone du dirigeant, un appui lance l'appel.
+                  ? <> · <a href={lienAppel(d.telephone)} className="lien-discret font-semibold">Appeler le <span className="whitespace-nowrap">{d.telephone}</span></a></>
+                  : <span className="text-muted-foreground"> · {d.telephone}</span>)}
               </p>
               {d.message && (
                 <p className="mt-1.5 whitespace-pre-wrap text-sm text-muted-foreground">

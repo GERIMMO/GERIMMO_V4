@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { EncartOutils } from "@/components/outils/encart-outils";
+import { DemandeRappel } from "@/components/demande-rappel";
 import { TexteMarkdown } from "@/components/texte-markdown";
 import { OPEN_GRAPH_PAR_DEFAUT, descriptionArticle } from "@/lib/metadonnees-publiques";
 import { ImageJournal, imageArticle } from "@/components/image-journal";
@@ -113,6 +114,10 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
         </aside>
         <div className="mt-6">
           <EncartOutils chapo="Révision de loyer, quittance, garantie des loyers, fiscalité du meublé, rentabilité : les calculs du bailleur, sans compte." />
+        </div>
+        {/* « Être rappelé » (20/11) : le lecteur qui préfère un appel laisse son numéro. */}
+        <div className="mt-6">
+          <DemandeRappel origine={`/journal/${slug}`} />
         </div>
       </main>
 

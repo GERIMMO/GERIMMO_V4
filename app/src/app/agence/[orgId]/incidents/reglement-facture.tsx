@@ -130,7 +130,7 @@ export function RetraitReglement({ orgId, reglementId, retrait }: { orgId: strin
     <div className="text-sm">
     {retrait ? <p>{retrait}</p> : (
     <details>
-      <summary className="cursor-pointer text-[var(--marque-sombre)] underline">Retirer ce règlement</summary>
+      <summary className="min-h-11 cursor-pointer content-center text-[var(--marque-sombre)] underline">Retirer ce règlement</summary>
       <form data-saisie-confirmee action={action} className="mt-2 space-y-2">
         <Label htmlFor={id}>Motif du retrait</Label>
         <textarea

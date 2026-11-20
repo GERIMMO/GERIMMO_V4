@@ -181,9 +181,10 @@ export default async function PageComptabilite(props: {
   if (lecturesEnEchec.length > 0) {
     return (
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
+        {/* Le retour « ← Page d'arrivée » se lit au-dessus du titre, comme sur les autres sous-pages. */}
+        {estProprietaire && <Link href={`${base}/loyers#operations`} className="lien-discret inline-flex min-h-11 items-center">← Finances</Link>}
         <div className="entete-page">
           <TitreEcran rubrique="finances">{titreComptabilite(role, estProprietaire)}</TitreEcran>
-          {estProprietaire && <Link href={`${base}/loyers#operations`} className="lien-discret">← Finances</Link>}
         </div>
         <div className="err" role="alert">
           <p className="font-medium">
@@ -354,7 +355,7 @@ export default async function PageComptabilite(props: {
         // page, était de plus une simple navigation : il devient l'affordance
         // discrète d'une carte entièrement cliquable (survol : `a:hover >
         // [data-slot=card]`).
-        <Link href={`${base}/loyers`} className="block rounded-[14px]">
+        <Link href={`${base}/loyers`} className="block rounded-[var(--rayon-carte)]">
           <Card>
             <CardHeader>
               <CardTitle>Quittancement {deElide(moisEnFrancais(moisQuittancement))}</CardTitle>
@@ -387,9 +388,9 @@ export default async function PageComptabilite(props: {
       <div>
         {/* La marge sous l'en-tête est celle de `.entete-page`, commune à
             l'espace : plus de mb-4 / mb-6 posés page par page (24/09). */}
+        {estProprietaire && <Link href={`${base}/loyers#operations`} className="lien-discret inline-flex min-h-11 items-center">← Finances</Link>}
         <div className="entete-page">
           <TitreEcran rubrique="finances">{titreComptabilite(role, estProprietaire)}</TitreEcran>
-          {estProprietaire && <Link href={`${base}/loyers#operations`} className="lien-discret">← Finances</Link>}
           <span className="mono-discret">
             {portefeuille ? "Mon portefeuille · " : ""}
             {dernierCloture ? `${moisEnFrancais(dernierCloture)} clôturé · ` : ""}
@@ -431,8 +432,8 @@ export default async function PageComptabilite(props: {
       <nav aria-label="Comptabilité" className="flex flex-wrap gap-2 border-b border-border pb-3">
         {vues.map((v) => (
           <Link key={v.id} href={hrefVue(v.id)} aria-current={vue === v.id ? "page" : undefined}
-            className={`inline-flex min-h-11 items-center rounded-lg px-4 py-2 text-sm font-medium ${vue === v.id
-              ? "bg-primary text-primary-foreground" : "bg-muted/50 text-foreground hover:bg-muted"}`}>
+            className={`inline-flex min-h-11 items-center rounded-[var(--rayon-bouton)] px-4 py-2 text-sm font-semibold transition-colors ${vue === v.id
+              ? "bg-primary text-primary-foreground" : "border border-[var(--filet)] bg-card text-foreground hover:bg-[var(--survol)]"}`}>
             {v.libelle}
           </Link>
         ))}
@@ -472,7 +473,7 @@ export default async function PageComptabilite(props: {
             estAgent={role === "agent"}
           />
           <details className="rounded-lg border border-border p-3">
-            <summary className="cursor-pointer py-2 text-sm font-medium">
+            <summary className="min-h-11 cursor-pointer content-center py-2 text-sm font-medium">
               Répartir une dépense entre plusieurs lots
             </summary>
             <FormulaireVentilation
@@ -570,7 +571,8 @@ export default async function PageComptabilite(props: {
                 : `Les ${LIGNES_JOURNAL} écritures les plus récentes, de la plus récente à la plus ancienne. Le livre en contient davantage : l'export les porte toutes.`
               : portefeuille
                 ? "Les écritures de votre portefeuille, de la plus récente à la plus ancienne."
-                : "Toutes les écritures, de la plus récente à la plus ancienne."}
+                : "Toutes les écritures, de la plus récente à la plus ancienne."}{" "}
+            La date affichée est celle où l’écriture compte (son mois comptable) ; « pièce » désigne le justificatif et sa date.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -691,7 +693,7 @@ export default async function PageComptabilite(props: {
             </>
           )}
           <details className="mt-4 text-sm text-muted-foreground">
-            <summary className="cursor-pointer py-2">Corriger une écriture</summary>
+            <summary className="min-h-11 cursor-pointer content-center py-2">Corriger une écriture</summary>
             <p>Une écriture ne se modifie pas. Son annulation crée une écriture liée et conserve l’historique.</p>
           </details>
         </CardContent>

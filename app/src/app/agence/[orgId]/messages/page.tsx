@@ -29,7 +29,7 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
   const estProprietaire = role === "proprietaire_direct";
   if(estProprietaire && (await props.searchParams).vue === "interventions") {
     const base=baseEspace(orgId,estProprietaire);
-    return <main className="mx-auto w-full max-w-6xl space-y-4 p-4 sm:p-7"><header className="entete-page"><TitreEcran rubrique="messages">Messages</TitreEcran></header><nav aria-label="Types de discussions" className="flex flex-wrap gap-2"><Link className="btn-secondaire" href={`${base}/messages`}>Locataires</Link><Link className="btn-or" aria-current="page" href={`${base}/messages?vue=interventions`}>Interventions</Link></nav><DiscussionsInterventions org={orgId} base={base}/></main>;
+    return <main className="mx-auto w-full max-w-6xl space-y-4 p-4 sm:p-7"><header className="entete-page"><TitreEcran rubrique="messages">Messages</TitreEcran></header><nav aria-label="Types de discussions" className="dossier-nav"><Link className="inline-flex items-center font-semibold" href={`${base}/messages`}>Locataires</Link><Link className="agenda-onglet-actif inline-flex items-center font-semibold" aria-current="page" href={`${base}/messages?vue=interventions`}>Interventions</Link></nav><DiscussionsInterventions org={orgId} base={base}/></main>;
   }
 
 

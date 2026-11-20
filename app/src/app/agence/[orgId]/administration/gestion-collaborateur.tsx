@@ -10,7 +10,7 @@ export function GestionCollaborateur({ orgId, membre, equipe }: { orgId: string;
   const [operation, choisir] = useState("");
   const [etat, envoyer] = useActionStateProtegee(modifierCollaborateur.bind(null, orgId, membre.account_id), {});
   return <details className="basis-full">
-    <summary className="cursor-pointer py-2 text-sm font-semibold">Gérer l’accès de {membre.email}</summary>
+    <summary className="min-h-11 cursor-pointer content-center py-2 text-sm font-semibold">Gérer l’accès de {membre.email}</summary>
     <form data-saisie-confirmee action={envoyer} className="grid max-w-md gap-3 py-3">
       <label>Action sur cet accès
         <select name="operation" required value={operation} onChange={e => choisir(e.target.value)} className="block w-full">

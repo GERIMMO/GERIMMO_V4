@@ -248,7 +248,7 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
 
       <div className="loc-carte">
         <div className="entete-carte">
-          <h3>Formule Gerimmo</h3>
+          <h2 className="titre-carte leading-[inherit]">Formule Gerimmo</h2>
           {statut && (
             <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
           )}
@@ -427,7 +427,7 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
       </div>
 
       {!ferme && enEssai && etat?.essai_fin && (
-        <div className="loc-carte border-l-4 border-l-[var(--or)]">
+        <div className="loc-carte">
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
               Votre essai gratuit court jusqu&apos;au {formaterDate(etat.essai_fin)}

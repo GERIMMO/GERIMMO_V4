@@ -51,7 +51,7 @@ export function PageEchecLecture({
       {retour && (
         <Link
           href={retour.href}
-          className="text-sm text-muted-foreground hover:underline"
+          className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
         >
           ← {retour.libelle}
         </Link>
@@ -78,7 +78,7 @@ export function PanneauEchecLecture({
   return (
     <div>
       <EchecLecture quoi={quoi} />
-      <Link href={lienFermer} className="lien-discret">
+      <Link href={lienFermer} className="lien-discret inline-flex min-h-11 items-center">
         ← {libelleFermer}
       </Link>
     </div>

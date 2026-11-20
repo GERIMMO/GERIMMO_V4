@@ -42,7 +42,7 @@ export default async function PageRetractation(props: PageProps<"/agence/[orgId]
   if (ligne === undefined) {
     return (
       <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
-        <EnteteReglages rubrique="abonnement" titre="Renoncer au contrat" />
+        <EnteteReglages rubrique="abonnement" titre="Renoncer au contrat" retour={{ href: `${base}/abonnement`, libelle: "Mon abonnement" }} />
         <EncadreLectureImpossible>Votre abonnement n&apos;a pas pu être lu. Rechargez la page dans un instant.</EncadreLectureImpossible>
       </main>
     );
@@ -61,7 +61,7 @@ export default async function PageRetractation(props: PageProps<"/agence/[orgId]
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
-      <EnteteReglages rubrique="abonnement" titre="Renoncer au contrat" mention={organisation.name}>
+      <EnteteReglages rubrique="abonnement" titre="Renoncer au contrat" mention={organisation.name} retour={{ href: `${base}/abonnement`, libelle: "Mon abonnement" }}>
         {nature === "abonnement"
           ? "Vous pouvez renoncer à votre abonnement, sans motif, pendant le délai de rétractation. Vous êtes alors remboursé intégralement."
           : "Vous pouvez renoncer au passage de votre abonnement à la formule annuelle, sans motif, pendant le délai de rétractation."}
@@ -94,7 +94,7 @@ export default async function PageRetractation(props: PageProps<"/agence/[orgId]
           <dl className="space-y-1 text-sm">
             <div className="ligne-info">
               <dt>Contrat</dt>
-              <dd className="montant">
+              <dd>
                 Abonnement Gerimmo{formule && !estAgence ? `, formule ${formule}` : ""}, espace {organisation.name}
               </dd>
             </div>
@@ -107,10 +107,14 @@ export default async function PageRetractation(props: PageProps<"/agence/[orgId]
               <dd className="montant">jusqu&apos;au {jourEnLettres(droit.dernierJour ?? dateParis(droit.conclusion))} inclus</dd>
             </div>
           </dl>
-          <p className="mesure-lecture text-sm text-muted-foreground">
-            Votre déclaration sera : « {declarationRetractation({ nature, formule: ligne?.formule ?? null, estAgence, organisation: organisation.name, reference: droit.conclusion, nom: nom || "votre nom" })} »
-          </p>
-          <p className="mesure-lecture text-sm text-muted-foreground">
+          {/* Le texte que l'accusé reprendra, présenté comme une citation. */}
+          <div className="mesure-lecture space-y-1 text-sm">
+            <p className="text-muted-foreground">Votre déclaration sera :</p>
+            <blockquote className="rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--filet-leger)] p-3">
+              « {declarationRetractation({ nature, formule: ligne?.formule ?? null, estAgence, organisation: organisation.name, reference: droit.conclusion, nom: nom || "votre nom" })} »
+            </blockquote>
+          </div>
+          <p className="mesure-lecture text-sm">
             {nature === "abonnement"
               ? "Votre abonnement prend fin aussitôt. Ce que vous avez payé vous est remboursé intégralement, sous 14 jours, sur la carte utilisée, sans frais. Si votre essai gratuit court encore, il continue jusqu'à son terme ; sinon, votre compte passe en lecture seule : vos données restent consultables et exportables, rien n'est supprimé."
               : etat.passage.effectue
@@ -119,7 +123,7 @@ export default async function PageRetractation(props: PageProps<"/agence/[orgId]
                 : "Votre abonnement reste mensuel : le passage à la formule annuelle n'aura pas lieu, et rien ne vous sera prélevé à ce titre."}
           </p>
           <FormulaireRetractation orgId={orgId} nature={nature} nom={nom} adresse={adresse} saisieSuperviseur={saisieSuperviseur} />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Vous pouvez aussi utiliser le formulaire de l&apos;article 8.10 des{" "}
             <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
               conditions générales

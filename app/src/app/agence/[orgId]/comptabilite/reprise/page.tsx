@@ -60,7 +60,7 @@ export default async function PageRepriseComptable(
           className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
         >
           {/* Le mot du menu (audit 27/09), et 44 px au doigt. */}
-          ← {organisation.type === "proprietaire_direct" ? "Livre recettes-dépenses" : "Écritures & rapports"}
+          ← {organisation.type === "proprietaire_direct" ? "Livre recettes-dépenses" : "Écritures & rapports de gestion"}
         </Link>
         <div className="entete-page">
           <TitreEcran rubrique="finances">Reprendre mes comptes</TitreEcran>
@@ -73,7 +73,7 @@ export default async function PageRepriseComptable(
             place désormais en sujet, et nomme les quatre natures de la liste. */}
         <p className="mesure-lecture text-sm text-muted-foreground">
           Votre balance d&apos;ouverture : ce que {organisation.name} détient au
-          jour de la bascule. Dépôts de garantie, soldes des locataires,
+          jour de la bascule, c&apos;est-à-dire le jour où vos comptes passent dans Gerimmo. Dépôts de garantie, soldes des locataires,
           provisions pour charges et fonds des propriétaires — une ligne par
           solde, et le compte doit tomber juste.
         </p>
@@ -84,8 +84,8 @@ export default async function PageRepriseComptable(
           <b className="font-semibold">Une balance a déjà été reprise</b> le{" "}
           {formaterDate(basculee.basculee_le ?? basculee.date_bascule ?? "")}, pour{" "}
           {eur(basculee.tresorerie_annoncee)}. Une bascule est définitive : les
-          corrections passent par des écritures rectificatives, pas par une
-          seconde reprise.
+          corrections passent par des écritures rectificatives (de nouvelles
+          écritures qui corrigent les premières), pas par une seconde reprise.
         </p>
       )}
 
@@ -157,7 +157,8 @@ export default async function PageRepriseComptable(
         <p className="mt-1 mb-4 text-sm text-muted-foreground">
           Le contrôle n&apos;écrit rien : il dit, ligne par ligne, ce qui
           passera, et affiche l&apos;écart entre ce que vous annoncez et ce que
-          le détail justifie. La bascule ne s&apos;ouvre qu&apos;à écart nul.
+          le détail justifie. La bascule ne s&apos;ouvre qu&apos;à écart nul : quand le
+          total annoncé est égal au total du détail.
         </p>
         <FormulaireReprise orgId={orgId} />
       </section>

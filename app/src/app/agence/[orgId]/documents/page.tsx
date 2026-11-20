@@ -70,12 +70,13 @@ type DocRang = {
 type ARenouveler = { id: string; titre: string | null; expire_le: string; rattachement?: string | null };
 
 // Couleurs de la barre « Par type » (maquette apercuDocs) — tokens charte
+// Répartition par type : des nuances de la marque (bleu nuit, champagne). Rouge et vert restent aux états métier.
 const COULEURS_TYPES = [
-  "var(--encre)",
-  "var(--bleu)",
-  "var(--or)",
-  "var(--success)",
-  "var(--destructive)",
+  "var(--marque)",
+  "var(--prestige-champagne)",
+  "color-mix(in srgb, var(--marque) 55%, #fff)",
+  "var(--prestige-champagne-texte)",
+  "color-mix(in srgb, var(--marque) 28%, #fff)",
   "var(--texte-secondaire)",
 ];
 
@@ -459,7 +460,7 @@ export default async function PageDocuments(
                 id="type"
                 name="type"
                 defaultValue={recherche.type ?? ""}
-                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto"
+                className="min-h-11 w-full rounded-[var(--rayon-champ)] border border-[var(--filet-champ)] bg-card px-3 text-sm sm:w-auto"
               >
                 <option value="">Tous</option>
                 {/* Le type de test (purge immédiate) est interne : il n'a rien à
@@ -483,7 +484,7 @@ export default async function PageDocuments(
                   name="du"
                   type="date"
                   defaultValue={recherche.du ?? ""}
-                  className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto"
+                  className="min-h-11 w-full rounded-[var(--rayon-champ)] border border-[var(--filet-champ)] bg-card px-3 text-sm sm:w-auto"
                 />
               </div>
               <div className="w-full sm:w-auto">
@@ -495,7 +496,7 @@ export default async function PageDocuments(
                   name="au"
                   type="date"
                   defaultValue={recherche.au ?? ""}
-                  className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto"
+                  className="min-h-11 w-full rounded-[var(--rayon-champ)] border border-[var(--filet-champ)] bg-card px-3 text-sm sm:w-auto"
                 />
               </div>
             </div>
@@ -509,13 +510,13 @@ export default async function PageDocuments(
                 type="search"
                 placeholder="Titre…"
                 defaultValue={recherche.q ?? ""}
-                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                className="min-h-11 w-full rounded-[var(--rayon-champ)] border border-[var(--filet-champ)] bg-card px-3 text-sm"
               />
             </div>
             {sel && <input type="hidden" name="sel" value={sel} />}
             <button
               type="submit"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
+              className={buttonVariants({ variant: "outline", size: "sm", className: "min-h-11" })}
             >
               Filtrer
             </button>
@@ -625,7 +626,7 @@ export default async function PageDocuments(
                       >
                         <small className="min-w-0 flex-1 italic">
                           Document purgé le {formaterDate(d.purged_at)} —{" "}
-                          {estProprietaire && d.type === "devis" ? "Devis" : TYPES_DOCUMENT[d.type] ?? d.type} (règle de conservation)
+                          {estProprietaire && d.type === "devis" ? "Devis" : TYPES_DOCUMENT[d.type] ?? d.type} (supprimé à la fin de sa durée de conservation)
                         </small>
                         <IndicateurLien className="shrink-0" />
                       </Link>
@@ -724,8 +725,8 @@ export default async function PageDocuments(
                       <CardTitle className="text-base">Déposer un document</CardTitle>
                       <CardDescription>
                         PDF, JPEG ou PNG · 10 Mo max · contenu réel vérifié · doublons
-                        refusés. Le type pilote seul les droits d&apos;accès et la durée
-                        de conservation.
+                        refusés. Le type choisi décide de qui peut voir le document et
+                        de sa durée de conservation.
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -781,7 +782,7 @@ export default async function PageDocuments(
                     ) : (
                       <>
                         <div
-                          className="mb-3 flex h-2.5 gap-1 overflow-hidden rounded-sm"
+                          className="mb-3 flex h-2.5 gap-1 overflow-hidden rounded-full"
                           aria-hidden
                         >
                           {entreesTypes.map(([t, n], i) => (
@@ -823,10 +824,10 @@ export default async function PageDocuments(
                           ))}
                         </ul>
                         <p className="mt-3 text-xs text-muted-foreground">
-                          Le type d&apos;un document pilote seul ses droits
-                          d&apos;accès et sa durée de conservation. {totalVivants}{" "}
+                          Le type d&apos;un document décide de qui peut le voir et de
+                          sa durée de conservation. {totalVivants}{" "}
                           document{totalVivants > 1 ? "s" : ""} conservé
-                          {totalVivants > 1 ? "s" : ""}, hors documents purgés.
+                          {totalVivants > 1 ? "s" : ""}, hors documents purgés (supprimés à la fin de leur durée de conservation).
                         </p>
                       </>
                     )}

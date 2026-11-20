@@ -136,7 +136,7 @@ export default async function PageNouvelIncident(
             <CardDescription>
               {estProprietaire
                 ? "Décidez ensuite qui paie la réparation et expliquez pourquoi. Le locataire reçoit votre décision avant toute sollicitation d’un artisan."
-                : "L'incident arrive « à qualifier » : vous tranchez l'imputation (qui paie) avec une justification opposable, le locataire en est informé immédiatement. Rien n'est confié à un artisan sans imputation."}
+                : "L'incident arrive « à qualifier » : vous décidez qui paie la réparation (l'imputation) et vous écrivez pourquoi. Le locataire lit cette décision aussitôt et peut la contester. Rien n'est confié à un artisan avant cette décision."}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">

@@ -35,7 +35,7 @@ export function MessagerieProprietaire({ orgId, fils, selection, conversation, a
 
     {assistant}
     {erreurContacts && <p role="alert" className="mb-3 text-sm text-destructive">Certains contacts n’ont pas pu être chargés. Vos échanges existants restent disponibles.</p>}
-    <nav aria-label="Types de discussions" className="mb-4 flex flex-wrap gap-2"><Link className="btn-or" aria-current="page" href={`${base}/messages`}>Locataires</Link><Link className="btn-secondaire" href={`${base}/messages?vue=interventions`}>Interventions</Link></nav>
+    <nav aria-label="Types de discussions" className="dossier-nav mb-4"><Link className="agenda-onglet-actif inline-flex items-center font-semibold" aria-current="page" href={`${base}/messages`}>Locataires</Link><Link className="inline-flex items-center font-semibold" href={`${base}/messages?vue=interventions`}>Interventions</Link></nav>
 
     <div className={styles.messagerie} data-selection={Boolean(ouverte)} data-vide={fils.length === 0}>
       {fils.length > 0 && <section className={styles.annuaire} aria-label="Conversations">

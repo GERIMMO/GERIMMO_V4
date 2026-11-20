@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { TitreEcran } from "@/components/titre-ecran";
 import type { ReactNode } from "react";
 
@@ -21,15 +22,23 @@ export function EnteteReglages({
   titre,
   rubrique = "profil",
   mention,
+  retour,
   children,
 }: {
   titre: string;
   rubrique?: "profil" | "abonnement" | "aide";
   mention?: string;
+  // Sous-page : le retour « ← Libellé de la page d'arrivée », au-dessus du titre (Design System « Maison »).
+  retour?: { href: string; libelle: string };
   children?: ReactNode;
 }) {
   return (
     <header className="space-y-2">
+      {retour && (
+        <Link href={retour.href} className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline">
+          ← {retour.libelle}
+        </Link>
+      )}
       <div className="entete-page">
         <TitreEcran rubrique={rubrique}>{titre}</TitreEcran>
         {mention && (

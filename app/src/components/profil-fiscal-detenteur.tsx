@@ -13,7 +13,7 @@ export function ProfilFiscalDetenteurForm({ orgId, personne, annee, profil, base
   const societe = estSociete(personne.qualite), orientation = orientationFiscale(aRevoir ? null : profil);
   const nom = [personne.prenom, personne.nom].filter(Boolean).join(" ");
   return <details className="rounded-xl border border-border bg-card p-4" open={!profil || aRevoir || undefined}>
-    <summary className="cursor-pointer text-sm font-semibold"><span>{nom}</span><span className="ml-2 font-normal text-muted-foreground">{profil && !aRevoir ? orientation.libelle : "À confirmer"}</span></summary>
+    <summary className="min-h-11 cursor-pointer content-center text-sm font-semibold"><span>{nom}</span><span className="ml-2 font-normal text-muted-foreground">{profil && !aRevoir ? orientation.libelle : "À confirmer"}</span></summary>
     <div className="mt-3 space-y-3">
       <p className="text-sm text-muted-foreground">{personne.qualite || "Qualité à compléter"} · Revenus {annee} · <Link href={`${base}/personnes/${personne.id}`} className="underline">Fiche du propriétaire</Link></p>
       {orientation.formulaires.length > 0 && <p className="text-sm"><strong>À préparer :</strong> {orientation.formulaires.join(" · ")}</p>}

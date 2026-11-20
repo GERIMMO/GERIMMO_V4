@@ -726,7 +726,7 @@ export async function VoletArtisan({
                 Six créneaux refusés, c'est le seuil où l'on cesse d'échanger. */}
             {(mission.statut === "acceptee" || mission.statut === "planifiee") && (
               <details className="border-t border-border pt-3">
-                <summary className="cursor-pointer text-sm font-medium">
+                <summary className="min-h-11 cursor-pointer content-center text-sm font-medium">
                   {creneaux.filter(
                     (c) => c.intervention_id === mission.id && c.statut === "refuse"
                   ).length >= 6
@@ -815,7 +815,7 @@ export async function VoletArtisan({
                         <img
                           src={`${base}/documents/${p.document_id}/fichier?apercu=image`}
                           alt={`Chantier — ${MOMENTS_PHOTO[p.moment] ?? p.moment}`}
-                          className="h-20 w-20 rounded-[10px] border border-border object-cover"
+                          className="h-20 w-20 rounded-[var(--rayon-bouton)] border border-border object-cover"
                         />
                       </a>
                     ))}
@@ -828,7 +828,7 @@ export async function VoletArtisan({
                 l'agent a le chantier en tête maintenant. */}
             {mission.statut === "terminee" && !noteDuGerant && (
               <details id={`notation-${mission.id}`} className="border-t border-border pt-3" open={!estProprietaire}>
-                <summary className="cursor-pointer text-sm font-medium">
+                <summary className="min-h-11 cursor-pointer content-center text-sm font-medium">
                   Noter {nom(mission.artisan_id)}
                 </summary>
                 <div className="pt-3">
@@ -860,7 +860,7 @@ export async function VoletArtisan({
 
             {STATUTS_MISSION_VIVANTE.includes(mission.statut) && (
               <details className="border-t border-border pt-3">
-                <summary className="cursor-pointer text-sm text-muted-foreground">
+                <summary className="min-h-11 cursor-pointer content-center text-sm text-muted-foreground">
                   Retirer la mission à cet artisan
                 </summary>
                 <div className="pt-3">
@@ -900,7 +900,7 @@ export async function VoletArtisan({
 
       {/* ─── Ouvrir une (nouvelle) mise en concurrence ───────────────────── */}
       {!consultationOuverte && etat === "qualifie" && (
-        <RubriqueIncident rubrique="suivi"><Card className="incident-recherche-artisan border-l-[3px] border-l-[var(--or)]">
+        <RubriqueIncident rubrique="suivi"><Card className="incident-recherche-artisan">
           <CardHeader>
             {estProprietaire ? <CardTitle className="text-base">{consultations.length > 0 ? "Choisir un autre artisan" : "Faire intervenir un artisan"}</CardTitle> : <p className="eyebrow" style={{ color: "var(--or-texte)" }}>
               {consultations.length > 0 ? "Réaffecter" : "Confier à un artisan"}
@@ -1454,7 +1454,7 @@ function CorpsDevis({ base, d }: { base: string; d: Devis; versionAncienne?: boo
 
 function DetailDevis({ lignes }: { lignes: LigneDevisCalculee[] }) {
   if (!lignes?.length) return null;
-  return <details className="my-2 text-sm"><summary className="cursor-pointer font-medium">Voir les quantités, les prix et la TVA</summary>
+  return <details className="my-2 text-sm"><summary className="min-h-11 cursor-pointer content-center font-medium">Voir les quantités, les prix et la TVA</summary>
     <div className="mt-2 overflow-x-auto"><table className="w-full text-left"><thead><tr><th>Travaux</th><th>Quantité</th><th>Prix HT</th><th>TVA</th><th>Total TTC</th></tr></thead><tbody>{lignes.map((l,i) => <tr key={i} className="border-t border-border"><td className="py-2">{l.libelle}</td><td>{libelleQuantite(l.quantite)}</td><td>{montant(l.prix_unitaire_ht_cents)}</td><td>{libelleTauxTva(l.tva_bps)}</td><td>{montant(l.montant_ttc_cents)}</td></tr>)}</tbody></table></div>
   </details>;
 }

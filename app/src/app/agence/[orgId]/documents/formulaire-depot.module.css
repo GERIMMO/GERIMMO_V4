@@ -1,29 +1,28 @@
 .formulaire { display: grid; gap: 22px; }
-.fichier { display: grid; gap: 20px; padding: 22px; border: 1px dashed var(--or, #b7a078); border-radius: 12px; background: var(--fond-page, #f7f8fa); min-width: 0; }
-.enteteFichier { display: flex; align-items: center; gap: 13px; color: var(--encre, #20334d); }
+.fichier { display: grid; gap: 20px; padding: 22px; border: 1px dashed var(--prestige-champagne); border-radius: var(--rayon-carte); background: var(--or-clair); min-width: 0; }
+.enteteFichier { display: flex; align-items: center; gap: 13px; color: var(--encre); }
 .enteteFichier label { font-size: 15px; font-weight: 600; }
-.enteteFichier p { margin-top: 5px; color: var(--texte-secondaire, #6b7280); font-size: 12px; }
+.enteteFichier p { margin-top: 5px; color: var(--texte-secondaire); font-size: 13px; }
 .champ { display: grid; gap: 8px; min-width: 0; }
-.champ select, .champ input { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--border, #dfe3e9); border-radius: 8px; background: var(--card, #fff); padding: 9px 12px; font-size: 14px; }
-.champ select:focus-visible { outline: 2px solid var(--or, #b7a078); outline-offset: 2px; }
-.aide { font-size: 12px; line-height: 1.5; color: var(--texte-secondaire, #6b7280); }
-.options { border-top: 1px solid var(--border, #dfe3e9); border-bottom: 1px solid var(--border, #dfe3e9); }
+.champ select, .champ input { width: 100%; min-width: 0; min-height: var(--cible-tactile); border: 1px solid var(--filet-champ); border-radius: var(--rayon-champ); background: var(--carte); padding: 9px 12px; font-size: 14px; }
+.aide { font-size: 12px; line-height: 1.5; color: var(--texte-secondaire); }
+.options { border-top: 1px solid var(--filet); border-bottom: 1px solid var(--filet); }
 .options summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; font-size: 13px; cursor: pointer; list-style: none; }
 .options summary::-webkit-details-marker { display: none; }
-.options summary small { margin-left: 8px; font-size: 11px; color: var(--texte-secondaire, #6b7280); }
-.options summary:focus-visible { outline: 2px solid var(--or, #b7a078); outline-offset: 4px; border-radius: 4px; }
+.options summary small { margin-left: 8px; font-size: 12px; color: var(--texte-secondaire); }
+.options summary svg { transition: transform var(--duree-rapide) ease; }
 .options[open] summary svg { transform: rotate(180deg); }
 .champsOptions { display: grid; gap: 18px; padding: 5px 0 20px; }
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; }
-.actions > * { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-.resumeLien { font-size: 13px; overflow-wrap: anywhere; color: var(--texte-secondaire, #6b7280); }
-.lienLot { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; font-size: 14px; color: var(--encre, #20334d); cursor: pointer; overflow-wrap: anywhere; }
-.lienLot input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--encre, #20334d); }
-.lienLot small { display: block; margin-top: 3px; font-size: 12px; color: var(--texte-secondaire, #6b7280); }
+.actions > * { min-height: var(--cible-tactile); display: inline-flex; align-items: center; justify-content: center; }
+.resumeLien { font-size: 13px; overflow-wrap: anywhere; color: var(--texte-secondaire); }
+.lienLot { display: flex; align-items: flex-start; gap: 10px; min-height: var(--cible-tactile); font-size: 14px; color: var(--encre); cursor: pointer; overflow-wrap: anywhere; }
+.lienLot input { flex: none; width: 18px; height: 18px; margin-top: 2px; accent-color: var(--marque); }
+.lienLot small { display: block; margin-top: 3px; font-size: 12px; color: var(--texte-secondaire); }
 .succes { display: grid; justify-items: start; gap: 20px; padding: 8px 0; }
 .succes > p[role="status"] { font-size: 18px; font-weight: 600; }
-.iconeSucces { padding: 12px; border-radius: 50%; background: var(--success-soft, #eff6f1); color: var(--success, #327750); }
-.avertissement { font-size: 13px; line-height: 1.6; color: var(--texte-secondaire, #6b7280); }
+.iconeSucces { padding: 12px; border-radius: 50%; background: var(--success-soft); color: var(--success-soft-foreground); }
+.avertissement { font-size: 13px; line-height: 1.6; color: var(--texte-secondaire); }
 @media (max-width: 640px) {
   .formulaire { gap: 18px; }
   .fichier { padding: 16px; gap: 16px; }

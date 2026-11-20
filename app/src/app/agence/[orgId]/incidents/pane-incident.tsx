@@ -429,7 +429,7 @@ export async function PaneIncident({
                       <img
                         src={`${base}/documents/${p.id}/fichier?apercu=image`}
                         alt={p.titre ?? "Photo de l'incident"}
-                        className="h-20 w-20 rounded-[10px] border border-border object-cover"
+                        className="h-20 w-20 rounded-[var(--rayon-bouton)] border border-border object-cover"
                       />
                     </a>
                   ))}
@@ -539,7 +539,7 @@ export async function PaneIncident({
                   </div>
                 )}
                 <details className="border-t border-border pt-3">
-                  <summary className="cursor-pointer text-sm font-medium">
+                  <summary className="min-h-11 cursor-pointer content-center text-sm font-medium">
                     {estProprietaire ? "Modifier ma décision" : "Requalifier"}
                   </summary>
                   <div className="pt-3">
@@ -739,7 +739,7 @@ export async function PaneIncident({
           {decisionRepliee && blocDecision}
           <RubriqueIncident rubrique="devis"><div id="factures"><FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base} /></div></RubriqueIncident>
           <RubriqueIncident rubrique="suivi">{(!estProprietaire || motifsCloture.length > 0 || incident.etat === "clos") && <details id="cloture" open={!estProprietaire || incident.etat === "termine"} className="rounded-xl border border-border bg-card p-4">
-            <summary className="cursor-pointer font-semibold">{incident.etat === "clos" ? "Incident clos · consulter" : "Clôturer l’incident"}</summary>
+            <summary className="min-h-11 cursor-pointer content-center font-semibold">{incident.etat === "clos" ? "Incident clos · consulter" : "Clôturer l’incident"}</summary>
           <Card className="mt-3 border-0 shadow-none">
             <CardHeader>
               <CardTitle className="text-base">
@@ -793,7 +793,7 @@ export async function PaneIncident({
 
         <div className="incident-photos space-y-4">
           {!estProprietaire && incident.etat !== "clos" && (
-            <details open={!estProprietaire} className="rounded-xl border border-border bg-card p-4"><summary className="flex cursor-pointer items-center gap-2 font-semibold"><Camera size={18} aria-hidden="true"/>Ajouter des photos au dossier</summary><Card className="mt-3 border-0 shadow-none">
+            <details open={!estProprietaire} className="rounded-xl border border-border bg-card p-4"><summary className="flex min-h-11 cursor-pointer items-center gap-2 font-semibold"><Camera size={18} aria-hidden="true"/>Ajouter des photos au dossier</summary><Card className="mt-3 border-0 shadow-none">
               <CardHeader>
                 <CardTitle className="text-base"><Camera size={18} aria-hidden="true" />Ajouter une photo</CardTitle>
                 <CardDescription>

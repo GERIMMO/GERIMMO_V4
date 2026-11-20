@@ -12,7 +12,7 @@ import {
 } from "@/app/actions/quittancement";
 import type { EtatLoyers } from "@/app/actions/loyers";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
-import { CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { eur, moisEnFrancais } from "@/lib/ged";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
@@ -192,11 +192,17 @@ export function QuittancementMois({
         <CardTitle role="heading" aria-level={2}>
           Quittancement {deElide(moisLabel)}
         </CardTitle>
+        {/* Le mot du métier garde sa place ; une phrase le dit en clair (refonte du 20/11). */}
+        {!proprietaire && (
+          <CardDescription className="col-start-1">
+            Quittancer, c&apos;est encaisser le loyer puis remettre au locataire sa quittance, la preuve du paiement.
+          </CardDescription>
+        )}
         {/* « réglé en entier » : la formule de la tuile Encaissé de la page.
             « 0 / 1 encaissée », au féminin et collé au bouton d'envoi,
             semblait compter des quittances (24/09). Sur téléphone, le bloc
             passe sous le titre au lieu de le comprimer. */}
-        <CardAction className="flex flex-wrap items-center justify-end gap-3 max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-2 max-sm:justify-self-start max-sm:justify-start">
+        <CardAction className={`flex flex-wrap items-center justify-end gap-3 max-sm:col-start-1 max-sm:row-span-1 ${proprietaire ? "max-sm:row-start-2" : "max-sm:row-start-3"} max-sm:justify-self-start max-sm:justify-start`}>
           {envoiGroupe && nonEnvoyes.length > 0 && (
             <form data-saisie-confirmee action={actionEnvoi}>
               <BoutonEnvoi enCoursTexte="Envoi…" size="sm" variant="outline">

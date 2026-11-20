@@ -1,5 +1,4 @@
 import Link from "next/link";
-import localFont from "next/font/local";
 import Image from "next/image";
 import { ArrowRight, ArrowUpRight, House, FileText, Wallet, Bell, KeyRound, Wrench, Check, ShieldCheck, Smartphone, ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -14,16 +13,6 @@ import { badgeEssai, dureeEssai, etiquetteTaxes, mentionTaxesPubliques } from "@
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 import { TuileOutil, outilsPresentes } from "@/components/outils/icones-outils";
-
-// L'italique des titres ne sert qu'à la phrase du héros. La police est déclarée ici, et non dans le layout racine : elle
-// n'est donc préchargée que sur cette page, et n'existe nulle part ailleurs. Une police déclarée sans être chargée retarde
-// le premier affichage dans WebKit (voir app/layout.tsx).
-const afficheItalique = localFont({
-  variable: "--font-affiche-italique",
-  src: [{ path: "./polices/fraunces-latin-opsz-italic.woff2", weight: "100 900", style: "italic" }],
-  declarations: [{ prop: "unicode-range", value: "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD" }],
-  display: "swap",
-});
 
 export const revalidate = 3600;
 export function generateMetadata() {
@@ -77,7 +66,7 @@ export default async function PageVitrine() {
     <div className="site-public">
       <EnTetePublic />
       <main>
-        <header className={`public-hero ${afficheItalique.variable}`}>
+        <header className="public-hero">
           <div className="public-conteneur public-hero-grille">
             <div className="public-hero-texte">
               <p className="eyebrow">L’immobilier en confiance</p>

@@ -60,11 +60,11 @@ body.gerimmo-prestige,
   font-variant-numeric: lining-nums;
   text-wrap: balance;
 }
-/* L'italique des titres a son propre fichier de police, déclaré sur la seule page qui s'en sert (l'accueil public).
-   Ailleurs la variable n'existe pas : le titre reste droit, jamais en oblique fabriquée par le navigateur. */
+/* Pas d'italique dans les titres : la police de titre n'embarque pas de fichier italique (81 Ko pour une phrase), et une
+   oblique fabriquée par le navigateur dénature le dessin. L'emphase d'un titre se marque par la couleur. */
 .gerimmo-prestige :is(h1, h2) :is(em, i) {
-  font-family: var(--font-affiche-italique, var(--font-affiche)), var(--font-affiche), var(--font-affiche-etendue), Georgia, serif;
-  font-style: italic;
+  font-family: inherit;
+  font-style: normal;
   font-synthesis: none;
 }
 

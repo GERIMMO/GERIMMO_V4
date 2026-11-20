@@ -71,10 +71,9 @@ Fraunces est embarquée parce que Georgia n'existe ni sur Android ni sur Linux :
 **Règle de chargement des polices : une police déclarée est une police préchargée.** Ne jamais écrire `preload: false`
 dans un appel à `localFont`. Dans WebKit (Safari), une police déclarée mais pas encore chargée fait croire au moteur que
 « du contenu arrive encore » : tant que l'écran ne montre que « Chargement de la page… », il ne dessine rien avant la fin
-du chargement des scripts, et la page reste figée sur un réseau lent. Une police qui ne sert qu'à une page se déclare
-dans cette page (elle n'est alors préchargée que là) : c'est le cas de l'italique des titres, déclarée dans
-`src/app/page.tsx` pour la seule phrase du héros de l'accueil. Ailleurs, un `<em>` dans un titre reste droit
-(`font-synthesis: none`), jamais en oblique fabriquée. Gardé par `tests/polices-prechargees.test.ts` et par le parcours
+du chargement des scripts, et la page reste figée sur un réseau lent. Il n'y a pas de fichier italique pour les titres (81 Ko pour une phrase) : un `<em>` dans un titre reste droit
+(`font-synthesis: none`), et l'emphase se marque par la couleur, comme la phrase champagne du héros de l'accueil.
+Gardé par `tests/polices-prechargees.test.ts` et par le parcours
 WebKit `e2e/bouton-envoi-hydratation`.
 
 Dans un module CSS : `font: var(--graisse-titre) 24px/1.25 var(--font-display);` — jamais `Georgia` en dur.

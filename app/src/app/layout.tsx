@@ -46,7 +46,7 @@ const interface_ = localFont({
 // montre que « Chargement de la page… », il ne dessine alors RIEN avant la fin du chargement des scripts : sur un
 // réseau lent, l'écran reste figé au lieu d'afficher le contenu dès qu'il arrive. Le parcours
 // e2e/bouton-envoi-hydratation (WebKit) le détecte, et tests/polices-prechargees.test.ts garde la règle.
-// L'italique ne sert qu'à une phrase de la page d'accueil : elle est déclarée dans app/page.tsx, donc préchargée là seulement.
+// Pas de fichier italique : il pesait 81 Ko pour une seule phrase de l'accueil. L'emphase d'un titre se marque par la couleur.
 // Les plages de caractères sont écrites en toutes lettres : le chargeur de polices n'accepte que des littéraux.
 const affiche = localFont({
   variable: "--font-affiche",

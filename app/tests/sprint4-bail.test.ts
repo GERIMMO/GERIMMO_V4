@@ -156,12 +156,15 @@ describe.skipIf(!DB_URL)("Sprint 4 — bail : activation au dépôt du bail sign
     return id;
   }
 
+  // Un bail qui commence AUJOURD'HUI, au jour de Paris — celui que lit la base (`bail_deja_en_cours`, décision B du
+  // 20/11/2026). `current_date` suit le fuseau de la session : entre minuit et 1 h à Paris (2 h l'été), il donne encore
+  // la veille, le bail compterait comme « déjà en cours » et ses diagnostics ne bloqueraient plus.
   async function creerBail(lot: string, doc: string | null): Promise<string> {
     const {
       rows: [{ id }],
     } = await db.query(
       `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe, loyer_hc, charges, jour_echeance, date_debut)
-       values ($1,$2,$3,$4,750,50,5,current_date) returning id`,
+       values ($1,$2,$3,$4,750,50,5,public.aujourdhui_paris()) returning id`,
       [orgA, lot, locataire, doc]
     );
     return id;

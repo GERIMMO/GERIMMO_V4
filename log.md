@@ -7557,3 +7557,24 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **Reste** : essai sur un vrai iPhone et un vrai Android ; validation du titre de l'accueil sans italique ; gel des
   fonctionnalités prévu ce 20/11 par le [[Calendrier de lancement — 30 novembre 2026]].
 - **Pages du wiki** : mise à jour [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]] ; `index.md`.
+
+## [2026-11-20] maintenance | « Les règles à connaître » dans l'espace de l'agence et du locataire (PR #351, non fusionnée)
+
+- **Constat du dirigeant**, après la mise en ligne de la refonte : « Pourquoi les règles à connaître emmène sur une
+  page différente ? »
+- **Cause** : la rubrique du menu ouvrait `/veille`, une page unique servie hors des espaces (plus de menu, un seul lien
+  de retour). Antérieur à la refonte, qui avait harmonisé son titre sans la déplacer. Seul l'artisan lisait ses règles
+  dans sa coquille (`/artisan/regles`, 25/09).
+- **Correction** (branche `claude/refonte-design-gerimmo` repartie de `main`, commit `6b49496f`,
+  PR [#351](https://github.com/GERIMMO/GERIMMO_V4/pull/351)) : pages `/agence/<id>/regles` (aussi sous `/espace/<id>/regles`)
+  et `/locataire/<id>/regles`, même contenu, mêmes onglets (décision D33), mêmes textes ; les menus de l'agence et du
+  locataire y pointent ; `/veille` reste servie pour les liens enregistrés.
+- **Non touché** : aucune lecture nouvelle (même vue `regulatory_watch_published`, derrière la garde de chaque espace),
+  aucune écriture, aucune migration, aucune action serveur.
+- **Tests (banc isolé, données fictives)** : style et types 0 erreur ; 12 972 tests unitaires ; 282 parcours Chromium ;
+  nouvelles pages aux 4 largeurs pour 4 profils, vides puis avec deux règles fictives : 64 passages sans défaut ; clic
+  depuis le menu vérifié à l'ordinateur et au téléphone. Un test de navigation mis à jour, un fichier de tests ajouté.
+- **Non fait** : suite WebKit complète sur ce commit (la CI la lance) ; essai sur un vrai téléphone.
+- **À trancher par le dirigeant** : le propriétaire particulier n'a pas cette entrée dans son menu.
+- **État** : PR ouverte, non fusionnée, non publiée. La production (`d315257d`) ouvre encore `/veille`.
+- **Pages du wiki** : mise à jour [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]].

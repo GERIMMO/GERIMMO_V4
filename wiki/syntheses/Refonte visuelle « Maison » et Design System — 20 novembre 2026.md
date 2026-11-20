@@ -106,9 +106,12 @@ réussie et nettoyée, 0 erreur d'exécution relevée. Aucune migration : retour
 ## Ce qui reste
 
 - Essais sur de vrais appareils (iPhone, Android) : tous les essais « téléphone » sont simulés.
-- « Les règles à connaître » ouvre encore une page hors de l'espace (`/veille`) pour le [[Propriétaire bailleur]],
-  l'agence et le [[Locataire]] : signalé par le dirigeant après la mise en ligne ; antérieur à la refonte. Seul
-  l'[[Artisan]] a cette page dans son espace. Correction proposée, non faite.
+- « Les règles à connaître » ouvre encore, en production, une page hors de l'espace (`/veille`) pour l'agence et le
+  [[Locataire]] : signalé par le dirigeant après la mise en ligne ; antérieur à la refonte. Seul l'[[Artisan]] avait
+  cette page dans son espace. **Correction prête dans la pull request #351, non fusionnée, non publiée** : la page
+  entre dans chaque espace (`/agence/<id>/regles`, `/locataire/<id>/regles`), même contenu, aucune lecture nouvelle.
+- Le [[Propriétaire bailleur]] n'a pas d'entrée « Les règles à connaître » dans son menu (un test fige cette absence) :
+  décision produit à prendre.
 - Titre de l'accueil public sans italique : à valider par le dirigeant.
 - Pages très longues (bail, fiche d'un lot, fiche d'une personne) et blocs repliés empilés côté propriétaire :
   hiérarchie améliorée, structure inchangée (elle est vérifiée par des tests).

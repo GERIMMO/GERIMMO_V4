@@ -19,7 +19,11 @@ export function fichierVide(fichiers: FileList | File[] | null | undefined): str
 // natif reste (c'est lui que le formulaire envoie et que `required` vérifie),
 // mais il est masqué : ce que l'on voit est un bouton « Choisir un fichier »
 // et le nom de ce qui a été choisi. Le focus clavier tombe toujours sur le
-// champ natif ; l'anneau s'affiche sur le bouton (`has-[:focus-visible]`).
+// champ natif ; l'anneau du Design System (3 px, champagne foncé) s'affiche
+// autour du champ entier (`has-[:focus-visible]`).
+// Dessin (20/11/2026) : rayon de champ commun. Un appelant qui encadre le champ
+// d'un filet de 2 px pour le téléphone (espace artisan, `border-2`) retrouve au
+// bureau le filet d'un pixel de ses autres champs.
 export function ChampFichier({
   id,
   name,
@@ -99,7 +103,7 @@ export function ChampFichier({
         : `${noms.length} fichiers : ${noms.slice(0, 2).join(", ")}…`;
   return (
     <span
-      className={`inline-flex min-h-11 w-full min-w-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-lg has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/60 ${className}`}
+      className={`inline-flex min-h-11 w-full min-w-0 flex-wrap items-center gap-x-3 gap-y-1 rounded-[var(--rayon-champ)] has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[color:var(--prestige-champagne-texte)] min-[1000px]:[&.border-2]:border ${className}`}
     >
       {/* Le champ natif, présent pour le formulaire et le clavier, invisible à l'œil */}
       <input

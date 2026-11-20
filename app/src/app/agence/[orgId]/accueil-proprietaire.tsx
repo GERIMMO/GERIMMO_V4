@@ -164,7 +164,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
 
     {!compteNeuf && <ActionsAccueilProprietaire base={base} lots={patrimoine?.lots ?? null} lectureSeule={lectureSeule}/>}
 
-    <SuiviEcheanciersCharges org={orgId} proprietaire base={base} rappelsSeulement />
+    <SuiviEcheanciersCharges org={orgId} proprietaire base={base} rappelsSeulement niveauTitre={2} />
 
     <div className={styles.grille}>
       <div className={styles.principal}>

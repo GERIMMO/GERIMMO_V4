@@ -1,4 +1,4 @@
-import { Banknote, Bell, Files, House, UsersRound, Wrench, CalendarDays, MessageCircle, ShieldCheck, CircleHelp, Newspaper, Settings2, ChartNoAxesCombined, Building2, HeartPulse, MapPin, ListChecks } from "lucide-react";
+import { Banknote, Bell, Files, House, UsersRound, Wrench, CalendarDays, MessageCircle, ShieldCheck, CircleHelp, Newspaper, Settings2, ChartNoAxesCombined, Building2, HeartPulse, MapPin, ListChecks, History, HardHat, ChartColumn, Gauge } from "lucide-react";
 import type { ReactNode } from "react";
 
 const RUBRIQUES = {
@@ -20,6 +20,13 @@ const RUBRIQUES = {
   alertes: { icone: Bell, ton: "or" },
   personnes: { icone: UsersRound, ton: "violet" },
   lots: { icone: House, ton: "or" },
+  // Rubriques ajoutées le 20/11/2026 : ces écrans empruntaient l'icône d'une rubrique voisine. Le ton reste celui
+  // qu'ils portaient ; l'icône est celle du menu quand il en a une (console : bouclier, historique).
+  securite: { icone: ShieldCheck, ton: "bleu" },
+  historique: { icone: History, ton: "violet" },
+  artisans: { icone: HardHat, ton: "or" },
+  statistiques: { icone: ChartColumn, ton: "bleu" },
+  releves: { icone: Gauge, ton: "or" },
 } as const;
 
 export type RubriqueEcran = keyof typeof RUBRIQUES;

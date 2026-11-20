@@ -38,7 +38,7 @@ export default async function PageDonneesAdmin({ searchParams }: { searchParams:
   const aujourdHui = new Intl.DateTimeFormat("en-CA", {timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   const adresse = (n: number) => `?etat=${terminees?"resolu":"ouvert"}&page=${n}`;
   return <main>
-    <header className="entete-page"><div><TitreEcran rubrique="supervision">Demandes sur les données</TitreEcran><p className="mt-2 text-muted-foreground">Une file privée, de la demande à la réponse. Les opérations d’effacement restent contrôlées et tracées.</p></div>
+    <header className="entete-page"><div><TitreEcran rubrique="securite">Demandes sur les données</TitreEcran><p className="mt-2 text-muted-foreground">Une file privée, de la demande à la réponse. Les opérations d’effacement restent contrôlées et tracées.</p></div>
       <div className="flex flex-wrap gap-2"><Link className="btn-secondaire" href="/admin/conservation">Régler les durées</Link><Link className="btn-secondaire" href="/admin/sante#sauvegarde">Dernière sauvegarde</Link></div></header>
     <nav aria-label="État des demandes" className="mb-5 flex flex-wrap gap-2"><Link className={`filtre${!terminees?" actif":""}`} href="?etat=ouvert" aria-current={!terminees?"page":undefined}>À traiter</Link><Link className={`filtre${terminees?" actif":""}`} href="?etat=resolu" aria-current={terminees?"page":undefined}>Terminées</Link></nav>
 

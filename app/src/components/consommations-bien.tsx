@@ -92,7 +92,7 @@ export async function ConsommationsBien({ orgId, bienId, lotId = null, bienNom, 
   const idsCompteursLot = new Set(compteursLot.map(c => c.id));
   const communs = contrats.filter(c => !c.lot_id && c.actif);
   const compteursCommuns = compteurs.filter(c => !c.lot_id && c.actif);
-  return <><section id="consommations" className={styles.panel} aria-labelledby={`conso-${lotId ?? bienId}`}>
+  return <><section id="consommations" className={styles.panel} data-titre={lotId ? undefined : "section"} aria-labelledby={`conso-${lotId ?? bienId}`}>
     <header className={styles.header}><Receipt size={20} aria-hidden="true" /><h2 id={`conso-${lotId ?? bienId}`}>{lotId ? "Suivi des loyers et dépenses" : "Dépenses et charges"}</h2></header>
     {lotId && <div className={styles.body}>
       <h3>{moisEnFrancais(mois)}</h3>

@@ -163,7 +163,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
           d'aide passe sous le filet, comme sur « Loyers & charges ». */}
       <div className="mb-6">
         <div className="entete-page">
-          <TitreEcran rubrique="incidents">Carnet d&apos;artisans</TitreEcran>
+          <TitreEcran rubrique="artisans">Carnet d&apos;artisans</TitreEcran>
           <div className="flex flex-wrap items-center gap-3">
             <span className="mono-discret">
               {erreurRelations

@@ -14,11 +14,11 @@ export async function EchangesIntervention({intervention}:{intervention:string})
  if(messages.error||etat.error)return <p role="alert" className="text-sm text-destructive">Les échanges n’ont pas pu être chargés. Réessayez.</p>;
  const terminee=!["acceptee","planifiee","en_cours"].includes(contexte.statut_intervention);
  const fermee=terminee||!!etat.data?.fermee_le;
- return <section id={`discussion-${intervention}`} className="rounded-lg border border-border bg-card p-4 space-y-3" aria-label="Discussion de l’intervention">
+ return <section id={`discussion-${intervention}`} className="space-y-3 rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] p-4 shadow-[var(--ombre-1)] sm:p-5" aria-label="Discussion de l’intervention">
   <header className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold text-base">Discussion de l’intervention</h3><span className="text-xs text-muted-foreground">{fermee?"Fermée":"Propriétaire · locataire · artisan"}</span></header>
   <p className="text-xs text-muted-foreground">Les échanges sont partagés avec les participants autorisés à cette intervention.</p>
   {(messages.count??0)>50&&<p className="text-xs text-muted-foreground">Les 50 messages les plus récents.</p>}
-  {messages.data?.length?<ol className="max-h-80 overflow-y-auto divide-y divide-border">{[...messages.data].reverse().map(m=><li key={m.id} className="py-3 space-y-1"><div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><strong>{ROLES[m.auteur_role]??"Participant"}</strong><time dateTime={m.cree_le}>{formaterDateHeure(m.cree_le)}</time></div><p className="whitespace-pre-wrap break-words text-sm">{m.texte}</p></li>)}</ol>:null}
+  {messages.data?.length?<ol className="max-h-80 overflow-y-auto divide-y divide-[var(--filet)]">{[...messages.data].reverse().map(m=><li key={m.id} className="py-3 space-y-1"><div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><strong>{ROLES[m.auteur_role]??"Participant"}</strong><time dateTime={m.cree_le}>{formaterDateHeure(m.cree_le)}</time></div><p className="whitespace-pre-wrap break-words text-sm">{m.texte}</p></li>)}</ol>:null}
   <FormulaireEchangeIntervention intervention={intervention} fermee={fermee} gestionnaire={contexte.role_participant==="gerant"&&!terminee}/>
  </section>;
 }

@@ -334,7 +334,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
           système — fond blanc, filet, ombre de repos — sans dégradé ; le h1
           prend la taille commune des titres d'écran (`--titre-1`). */}
       <div className="loc-carte">
-        <p className="text-[11px] font-semibold tracking-[0.08em] text-[var(--prestige-champagne-texte)] uppercase">{aujourdhui}</p>
+        <p className="text-xs font-semibold tracking-[0.08em] text-[var(--prestige-champagne-texte)] uppercase">{aujourdhui}</p>
         <h1 className="mt-1">
           Bonjour{personne?.prenom ? ` ${personne.prenom}` : ""},
         </h1>
@@ -350,7 +350,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
             <p className="mt-1 text-sm text-muted-foreground">Mis à disposition le {formaterDate(avis.avis_le.slice(0,10))}</p>
             <ConsultationDocument titre={`Décompte de charges ${avis.annee}`} cible={{fichier:`/locataire/${orgId}/documents/${avis.document_id}/fichier`,mime:"application/pdf"}} className="lien-discret">Voir le PDF</ConsultationDocument>
           </section>)}
-      <SuiviEcheanciersCharges org={orgId} proprietaire={false} base={`/locataire/${orgId}`} rappelsSeulement />
+      <SuiviEcheanciersCharges org={orgId} proprietaire={false} base={`/locataire/${orgId}`} rappelsSeulement niveauTitre={2} />
 
       {aEchoue(
         eBaux,

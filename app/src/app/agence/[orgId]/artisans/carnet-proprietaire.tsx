@@ -54,7 +54,7 @@ export async function CarnetProprietaire({ orgId }: { orgId: string }) {
     for (const profil of data ?? []) profils.set(profil.id, profil);
   }
   return <main data-parcours-intervention className="mx-auto w-full max-w-5xl flex-1 space-y-5 p-4 sm:p-7">
-    <div className="entete-page"><div><TitreEcran rubrique="incidents">Carnet d’artisans</TitreEcran><p className="mt-2 text-sm text-muted-foreground">Les artisans que vous avez invités, et le suivi de leurs interventions.</p></div><div className="flex flex-wrap gap-2"><Link href={`#${ANCRE_INVITER_ARTISAN}`} className="btn-or">+ Inviter un artisan</Link><Link href={`${base}/reseau`} className="btn-secondaire">Consulter le réseau</Link></div></div>
+    <div className="entete-page"><div><TitreEcran rubrique="artisans">Carnet d’artisans</TitreEcran><p className="mt-2 text-sm text-muted-foreground">Les artisans que vous avez invités, et le suivi de leurs interventions.</p></div><div className="flex flex-wrap gap-2"><Link href={`#${ANCRE_INVITER_ARTISAN}`} className="btn-or">+ Inviter un artisan</Link><Link href={`${base}/reseau`} className="btn-secondaire">Consulter le réseau</Link></div></div>
 
     <section aria-labelledby="mes-artisans" className="loc-carte space-y-4">
       <div>

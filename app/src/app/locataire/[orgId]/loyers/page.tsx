@@ -167,7 +167,7 @@ export default async function PagePaiementsLocataire(
 
       {/* Sous le titre de l'écran (20/11) : ce bloc et son titre passaient
           avant le h1 de la page. */}
-      <SuiviEcheanciersCharges org={orgId} proprietaire={false} base={`/locataire/${orgId}`} />
+      <SuiviEcheanciersCharges org={orgId} proprietaire={false} base={`/locataire/${orgId}`} niveauTitre={2} />
 
       {/* Deux colonnes égales en large. En classe (pas en style inline) pour
           que la media query 860 px de .loc-grille garde la main sur mobile ;

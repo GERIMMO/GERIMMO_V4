@@ -18,7 +18,7 @@ export default async function ConservationAdmin() {
     db.from("audit_log").select("id,created_at,details").eq("action", "conservation_regle_modifiee").order("created_at", { ascending: false }).limit(30),
   ]);
   return <main>
-    <header className="entete-page"><div><TitreEcran rubrique="supervision">Durées de conservation</TitreEcran><p className="mt-2 text-muted-foreground">Choisissez une catégorie, ajustez sa durée et indiquez la raison du changement.</p></div>
+    <header className="entete-page"><div><TitreEcran rubrique="securite">Durées de conservation</TitreEcran><p className="mt-2 text-muted-foreground">Choisissez une catégorie, ajustez sa durée et indiquez la raison du changement.</p></div>
       <div className="flex flex-wrap gap-2"><Link className="btn-secondaire" href="/admin/donnees#conservation-contacts">Simuler le nettoyage sans supprimer</Link><Link className="btn-secondaire" href="/confidentialite#durees-actuelles">Voir les durées publiques</Link></div></header>
     {regles.error ? <p role="alert" className="err">Les réglages sont indisponibles. Aucune durée n’a été modifiée.</p> : <ReglagesConservation regles={(regles.data ?? []).map(r => ({ ...r, revision: Number(r.revision) })) as RegleConservation[]} />}
     <ConsoleSection titre="Historique des durées" description="Les 30 dernières modifications enregistrées." icone="historique" statut={historique.error ? "Lecture indisponible" : undefined}>

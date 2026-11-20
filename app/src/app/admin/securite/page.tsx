@@ -19,7 +19,7 @@ const acces = [
 export default async function SecuriteSupervision({searchParams}:{searchParams:Promise<Record<string,string|undefined>>}) {
   const p=await searchParams;
   return <main className="mx-auto w-full max-w-6xl p-4 sm:p-7">
-    <div className="entete-page"><div><TitreEcran rubrique="supervision">Sécurité et conformité</TitreEcran><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Vos accès, les données confiées à Gerimmo et les obligations à suivre.</p></div></div>
+    <div className="entete-page"><div><TitreEcran rubrique="securite">Sécurité et conformité</TitreEcran><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Vos accès, les données confiées à Gerimmo et les obligations à suivre.</p></div></div>
     <ControlesSecurite p={p}/>
     <ConsoleSection titre="Données et obligations" description="Demandes des utilisateurs, conservation et informations légales." icone="documents" ton="vert" ouverte><div className="grid gap-4 md:grid-cols-2">
       {acces.map(({ titre, detail, href, action, icone: Icone }) => <Link key={titre} href={href} className="admin-acces-carte">

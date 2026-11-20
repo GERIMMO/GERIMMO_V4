@@ -53,9 +53,9 @@ export default async function PageMobileCaution(props: PageProps<"/signature/cau
       <Card>
         <CardContent className="space-y-4 pt-6 text-sm">
           {indisponible || !lien ? (
-            <><p role="alert" className="err !mb-0">Nous ne pouvons pas vérifier ce lien pour le moment.</p><Link href={`/signature/caution/${encodeURIComponent(jeton)}`} className="btn-secondaire">Réessayer</Link><AideInvitation suivi connecte={connecte}/></>
+            <><p role="alert" className="err !mb-0">Nous ne pouvons pas vérifier ce lien pour le moment.</p><Link href={`/signature/caution/${encodeURIComponent(jeton)}`} className="btn-secondaire">Réessayer</Link><AideInvitation suivi connecte={connecte} marque={null}/></>
           ) : lien.etat !== "valide" ? (
-            <><p role="status">{MESSAGES_LIEN_CAUTION_CLOS[lien.etat]}</p><AideInvitation connecte={connecte} suivi={lien.etat === "utilise" || lien.etat === "suspendu"}/></>
+            <><p role="status">{MESSAGES_LIEN_CAUTION_CLOS[lien.etat]}</p><AideInvitation connecte={connecte} suivi={lien.etat === "utilise" || lien.etat === "suspendu"} marque={null}/></>
           ) : (
             <>
               {lien.essai && <p role="status" className="rounded-[var(--rayon-champ)] bg-warning-soft p-3 font-medium text-warning-soft-foreground">Essai technique sans engagement : {bail ? "le bail" : "l’acte"} et les invitations sont fictifs.</p>}

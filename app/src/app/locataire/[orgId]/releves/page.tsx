@@ -18,7 +18,7 @@ export default async function PageReleves({ params }: { params: Promise<{ orgId:
   return <div className="space-y-4">
     <Link href={`/locataire/${orgId}`} className="lien-discret inline-flex min-h-11 items-center text-sm">← Accueil</Link>
     <div className="entete-page">
-      <TitreEcran rubrique="lots">Mes relevés</TitreEcran>
+      <TitreEcran rubrique="releves">Mes relevés</TitreEcran>
     </div>
     <p className="text-sm text-muted-foreground">Renseignez l’index. Une photo peut vous aider à le préremplir.</p>
     {demandes.echec ? <PanneLecture quoi="vos demandes de relevés" /> : <RelevesLocataire orgId={orgId} demandes={demandes.lignes.sort((a, b) => b.echeance.localeCompare(a.echeance))} aujourdHui={aujourdhuiParis()} />}

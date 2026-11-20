@@ -173,7 +173,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
   if (e1 || e2 || e3 || e4 || e5) {
     return (
       <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
-        <div className="entete-page"><TitreEcran rubrique="suivi">Historique et sauvegardes</TitreEcran></div>
+        <div className="entete-page"><TitreEcran rubrique="historique">Historique et sauvegardes</TitreEcran></div>
         <p role="alert" className="err">
           Impossible de charger la page pour l&apos;instant — rechargez dans un
           instant.
@@ -207,7 +207,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
           en premier (audit 25/09, C11) ; les règles et le nettoyage, en bas. */}
       <div className="entete-page mb-6">
         <div className="min-w-0 flex-[1_1_20rem]">
-          <TitreEcran rubrique="suivi">Historique et sauvegardes</TitreEcran>
+          <TitreEcran rubrique="historique">Historique et sauvegardes</TitreEcran>
           <p className="mt-2 text-sm text-muted-foreground">
             Retrouvez une action, un incident ou la preuve d’une sauvegarde.
           </p>

@@ -394,3 +394,26 @@ a.public-essai:hover { text-decoration: underline; text-underline-offset: 5px; }
   .gerimmo-prestige .site-public :is(a.public-article, a.vitrine-carte, a.outil-lien-carte):hover { transform: none; }
 }
 @media print { .site-public { background: var(--carte); } .site-public .public-conteneur { width: 100%; } }
+
+/* « Être rappelé » (20/11/2026) : la carte où un visiteur laisse son numéro (components/demande-rappel.tsx), sur
+   l'accueil, sous chaque outil et sous chaque article. Une carte blanche à filet, comme les autres cartes de la vitrine :
+   le texte à gauche, le formulaire à droite ; une seule colonne au téléphone. Champs, bouton et focus suivent les règles
+   communes du Design System (systeme.css) ; seules la disposition et les états de réponse sont posés ici. */
+.demande-rappel { display: grid; grid-template-columns: .85fr 1.15fr; gap: 32px; align-items: start; border: 1px solid var(--border); border-radius: var(--rayon-carte); background: var(--carte); padding: 28px; box-shadow: var(--ombre-1); color: var(--encre); }
+.demande-rappel-texte { display: flex; gap: 14px; align-items: flex-start; }
+.demande-rappel-icone { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; background: var(--or-clair); color: var(--encre); }
+.gerimmo-prestige .demande-rappel h2 { font-size: var(--titre-2); line-height: 1.2; margin: 0; }
+.demande-rappel-texte p { margin-top: 10px; font-size: 15px; line-height: 1.7; color: var(--texte-secondaire); }
+.demande-rappel-formulaire { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.gerimmo-prestige .demande-rappel-formulaire label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 600; color: var(--encre); }
+.demande-rappel-formulaire :is(input:not([type="checkbox"], [aria-hidden]), select) { width: 100%; font-size: 16px; }
+.gerimmo-prestige .demande-rappel-formulaire label.demande-rappel-accord { grid-column: 1 / -1; display: flex; gap: 10px; align-items: flex-start; margin: 0; font-weight: 500; line-height: 1.5; }
+.demande-rappel-accord input { width: 20px; height: 20px; margin-top: 2px; flex-shrink: 0; accent-color: var(--nuit-menu); }
+.demande-rappel-envoi { grid-column: 1 / -1; }
+.gerimmo-prestige .demande-rappel-envoi .btn-or { width: 100%; justify-content: center; min-height: 44px; }
+.demande-rappel-envoi p { margin-top: 10px; font-size: 13px; line-height: 1.6; color: var(--texte-secondaire); }
+.demande-rappel-erreur { grid-column: 1 / -1; border-radius: var(--rayon-bouton); background: var(--destructive-soft); padding: 9px 12px; font-size: 14px; font-weight: 500; color: var(--destructive-soft-foreground); }
+.demande-rappel-succes { border: 1px solid var(--or-filet); border-radius: var(--rayon-carte); background: var(--or-clair); padding: 16px 18px; font-size: 15px; line-height: 1.6; color: var(--encre); }
+@media (max-width: 900px) { .demande-rappel { grid-template-columns: 1fr; gap: 22px; } }
+@media (max-width: 600px) { .demande-rappel { padding: 22px 18px; } .demande-rappel-formulaire { grid-template-columns: 1fr; } }
+.public-rappel { padding-top: 24px; padding-bottom: 24px; }

@@ -7578,3 +7578,22 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **À trancher par le dirigeant** : le propriétaire particulier n'a pas cette entrée dans son menu.
 - **État** : PR ouverte, non fusionnée, non publiée. La production (`d315257d`) ouvre encore `/veille`.
 - **Pages du wiki** : mise à jour [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]].
+
+## [2026-11-20] query  | Comment trouver des clients sans autre budget que Claude et Codex
+
+- **Question du dirigeant** : « Comment tu peux m'aider à avoir des clients ? […] je ne paierai pas autre chose que
+  Claude et Codex, je peux te connecter à LinkedIn, Insta et Facebook. »
+- **Pages lues** : [[Prêt à démarcher]] ; [[Expansion territoriale autonome]] ; [[Proposition de valeur]] ;
+  [[Calendrier de lancement — 30 novembre 2026]] ; [[Audit de qualité commerciale V1 — a776ed43 — 16 novembre 2026]].
+- **Relevé en production (lecture seule, comptages sans donnée personnelle)** : 6 espaces de propriétaires, tous créés
+  depuis le 24/10, dont 3 sans aucun bien ; aucun bail à l'état actif ; 0 agence en liste d'attente ; l'agent de
+  contenus est actif (validation obligatoire, mardi et vendredi à 9 h) : 13 articles parus, 12 posts Facebook, le
+  dernier le 18/11.
+- **Connecteurs** : la recherche dans l'annuaire ne montre pas de connecteur officiel gratuit pour publier sur
+  LinkedIn ; les connecteurs multi-réseaux trouvés sont des services tiers payants au-delà d'un essai. La Page Facebook
+  est déjà reliée à Gerimmo par l'API de Meta (gratuite).
+- **Réponse donnée (avis)** : le contenu automatique tourne mais ne produit pas d'utilisateurs actifs ; priorité aux
+  relations directes du dirigeant, à l'activation des comptes déjà ouverts et aux outils gratuits du site ; respect
+  des règles de démarchage déjà décidées ; le médiateur reste la seule dépense que rien ne remplace pour vendre aux
+  particuliers.
+- **Proposé** : filer le plan en synthèse une fois tranché avec le dirigeant.

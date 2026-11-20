@@ -40,7 +40,8 @@ export function CoordonneesBailleur({
         Il manque {manquants.join(" et ")}. Ils vous désignent comme bailleur dans le bail, les quittances et les avis
         d&apos;échéance : renseignez-les ici, puis créez votre bien.
       </p>
-      <form action={action} className="mt-4 grid gap-3 sm:grid-cols-2">
+      {/* Saisie suivie : quitter la page avec une adresse à moitié écrite avertit, comme sur le profil. */}
+      <form data-saisie-confirmee action={action} className="mt-4 grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <Label htmlFor={`${id}-adresse`}>Votre adresse</Label>
           <Input id={`${id}-adresse`} name="address_line1" required maxLength={200} autoComplete="street-address" defaultValue={valeur("address_line1")} />

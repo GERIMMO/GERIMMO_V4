@@ -1,7 +1,7 @@
 ---
 type: synthesis
 tags: [design-system, charte, visuel, ux, accessibilite, refonte, audit]
-status: in-progress
+status: stable
 created: 2026-11-20
 updated: 2026-11-20
 sources: []
@@ -10,10 +10,10 @@ sources: []
 # Refonte visuelle « Maison » et Design System — 20 novembre 2026
 
 **En une phrase :** le 20/11/2026, à la demande du dirigeant, les 133 pages de Gerimmo ont été auditées puis
-harmonisées sous une identité commune, « Maison », formalisée en Design System ; le travail est dans la pull request
-#350, **non fusionnée et non publiée**.
+harmonisées sous une identité commune, « Maison », formalisée en Design System ; la pull request #350 a été fusionnée
+et **mise en production le même jour à 11 h 51 UTC** (version `d315257d`), sur demande du dirigeant.
 
-Version auditée : `be3bf5b0` (production). Livrables : dossier `livrables/refonte-design-20261120/`.
+Version auditée : `be3bf5b0` (la production avant la refonte). Livrables : dossier `livrables/refonte-design-20261120/`.
 
 ## Pourquoi
 
@@ -85,8 +85,8 @@ Deux leçons retenues.
 
 133 pages, 192 lignes page × session. Les six lignes « non améliorées » sont deux pages sans écran (elles renvoient vers la
 fiche du lot), vues par trois profils. « Terminée » veut dire : harmonisée, ouverte à 375, 768, 1024 et 1440 px sans erreur,
-sans débordement ni défaut grave d'accessibilité, et relue à 375 et 1440 px. Cela ne veut dire ni essayée sur un vrai
-téléphone, ni fusionnée, ni publiée.
+sans débordement ni défaut grave d'accessibilité, et relue à 375 et 1440 px. Cela ne veut pas dire essayée sur un vrai
+téléphone.
 
 **Tests, sur banc isolé et données fictives, sur le commit final :** style et types 0 erreur ; 12 952 tests unitaires
 réussis ; 282 parcours navigateur réussis sous Chromium ; 72 sur 75 sous WebKit, le moteur de Safari (les 3 autres
@@ -98,13 +98,18 @@ dans un moteur WebKit à 390 et 360 px : un débordement trouvé, corrigé.
 d'arrivée qui passait sous le contraste requis, et deux fichiers de police déclarés sans être préchargés, qui figeaient
 l'affichage dans Safari tant que les scripts chargeaient.
 
-**Production : rien n'est publié** (version en ligne : `be3bf5b0`).
+**Production : en ligne depuis le 20/11 à 11 h 51 UTC** (version `d315257d`). PR #350 fusionnée à 10 h 28 UTC,
+intégration continue de `main` verte, publication contrôlée approuvée par le dirigeant, recette de production n° 54
+réussie et nettoyée, 0 erreur d'exécution relevée. Aucune migration : retour arrière possible vers `be3bf5b0`.
 <!-- avancement:fin -->
 
 ## Ce qui reste
 
 - Essais sur de vrais appareils (iPhone, Android) : tous les essais « téléphone » sont simulés.
-- Relecture et décision du dirigeant sur la pull request ; fusion et publication ne sont pas faites.
+- « Les règles à connaître » ouvre encore une page hors de l'espace (`/veille`) pour le [[Propriétaire bailleur]],
+  l'agence et le [[Locataire]] : signalé par le dirigeant après la mise en ligne ; antérieur à la refonte. Seul
+  l'[[Artisan]] a cette page dans son espace. Correction proposée, non faite.
+- Titre de l'accueil public sans italique : à valider par le dirigeant.
 - Pages très longues (bail, fiche d'un lot, fiche d'une personne) et blocs repliés empilés côté propriétaire :
   hiérarchie améliorée, structure inchangée (elle est vérifiée par des tests).
 - Libellés jugés peu clairs mais vérifiés par des tests (« À faire », « à qualifier », « appelés ») : inchangés.

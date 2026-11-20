@@ -1,6 +1,6 @@
 # Gerimmo — Audit exhaustif et refonte visuelle
 
-**Date : 20 novembre 2026.** Version auditée : `be3bf5b0` (branche `main`, identique à la production). Version modifiée : branche `claude/refonte-design-gerimmo`, pull request [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350) — **non fusionnée, non publiée**.
+**Date : 20 novembre 2026.** Version auditée : `be3bf5b0` (branche `main`, identique à la production). Version modifiée : branche `claude/refonte-design-gerimmo`, pull request [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350) — **fusionnée et en production depuis le 20/11 à 11 h 51 UTC** (version `d315257d`).
 
 > La version communiquée dans la demande (`8c0449c6`) n'était plus la dernière : la PR #348 a été publiée le 19/11 à 23 h 12 UTC. L'audit porte sur la version réellement en ligne.
 
@@ -17,7 +17,7 @@
 **Ce qui n'a pas été fait, dit clairement :**
 
 - **Aucun test sur un appareil physique.** Tous les essais « téléphone » et « tablette » sont faits dans Chromium, à la largeur et avec le toucher simulés. Safari sur iPhone et un Android réel restent à essayer à la main.
-- **Aucune action en production** : pas de donnée lue ni écrite, pas de paiement, pas d'envoi, pas de migration.
+- **Aucune action en production pendant l'audit et le développement** : pas de donnée lue ni écrite, pas de paiement, pas d'envoi, pas de migration. La mise en ligne et la recette de production sont venues ensuite, sur votre demande (voir le rapport de non-régression, § 8).
 - **Pas de compte SCI sur le banc.** L'espace SCI utilise les mêmes pages que le propriétaire particulier ; ses écrans propres (fiche de la société, quittance au nom de la SCI) sont couverts par les tests automatiques existants, pas par une relecture visuelle dédiée dans cette mission.
 - **Vingt-deux lignes de la matrice n'ont pas de mesure « avant »** : ces pages n'étaient pas atteignables dans le premier parcours, faute de donnée fictive (une version archivée des conditions, la facture d'un artisan, l'état des lieux d'un propriétaire…). Elles ont toutes été ouvertes dans le parcours « après » : treize par des adresses ajoutées au parcours, neuf grâce aux données fictives laissées par la suite de tests et à cinq lignes fictives créées sur le banc isolé (un état des lieux, un diagnostic, une invitation, une facture d'artisan, une version archivée).
 - **Pas de mesure de performance** (Lighthouse) et **pas d'essai avec un lecteur d'écran réel**.
@@ -155,22 +155,23 @@ Chaque lot a aussi noté ce qu'il a vu et choisi de ne pas faire : **338 remarqu
 | Audit dans le navigateur | terminé — 180 écrans au premier parcours (786 passages) ; 22 lignes de la matrice sans mesure « avant », toutes ouvertes au second parcours |
 | Développement | terminé pour les 133 pages — 19 commits sur la branche, 307 fichiers |
 | Tests | banc : 0 erreur de style, 0 erreur de type, construction réussie, 12 952 tests unitaires réussis, 282 parcours Chromium réussis, 72 parcours WebKit réussis, 932 passages du second parcours sans défaut ; intégration continue verte |
-| Pull request | ouverte, **prête à relire, non fusionnée** — [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350) ; intégration continue verte |
-| Mise en production | **non faite, non autorisée dans cette mission** |
+| Pull request | **fusionnée** le 20/11 à 10:28 UTC — [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350) ; `main` = `d315257d` ; intégration continue de `main` verte ([run 44719461252](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44719461252)) |
+| Mise en production | **faite le 20/11 à 11 h 51 UTC**, sur votre demande et avec votre approbation dans GitHub — publication contrôlée ([run 44724507715](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44724507715)), puis recette de production n° 54 réussie ([run 44731759495](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44731759495)) |
 
 La matrice complète, page par page, est dans l'**annexe B** ([matrice-pages.md](annexes/matrice-pages.md)).
 
 ## 6. Ce qui reste
 
-**À faire avant publication**
+**À faire maintenant que c'est en ligne**
 
 1. **Essayer sur de vrais appareils** : un iPhone (Safari) et un téléphone Android. Tous les essais « téléphone » de cette mission sont simulés.
-2. **Votre relecture** de la pull request et des captures.
+2. **Votre relecture** à l'usage, écran par écran, dans vos propres espaces.
 
 **Ce qui n'est pas terminé, et pourquoi**
 
 | Sujet | État | Raison |
 |---|---|---|
+| « Les règles à connaître » (propriétaire, agence, locataire) : la page s'ouvre hors de l'espace, sans le menu | **signalé par vous après la mise en ligne** ; antérieur à la refonte, non corrigé par elle | c'est une page unique partagée par tous les profils ; seul l'artisan l'a dans son espace depuis le 25/09. À ramener dans chaque espace sur le même modèle |
 | Écrans propres à la SCI | non relus à l'œil | pas de compte SCI sur le banc ; couverts par les tests automatiques |
 | Pages très longues (bail, fiche d'un lot, fiche d'une personne) | hiérarchie améliorée, pas découpées | les découper change la structure que les tests vérifient : c'est un chantier à part |
 | Blocs repliés empilés côté propriétaire (accueil, finances) | inchangés | même raison |

@@ -7533,3 +7533,27 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   le gel des fonctionnalités au 20/11 et la décision d'ouverture au 27/11 ; recommandation : geler, faire les gestes du
   dirigeant, mettre de vrais bailleurs devant le produit avant le 30/11.
 - **Non filé en synthèse** : proposé au dirigeant.
+
+## [2026-11-20] deploy | Refonte visuelle « Maison » en production (PR #350)
+
+- Le dirigeant a demandé la publication (« Publie. »), puis a approuvé dans GitHub le passage de l'environnement
+  `gerimmo-production` (« C'est approuvé, continue »). L'agent avait recommandé un essai sur un vrai téléphone avant.
+- PR [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350) :
+  - CI verte sur la tête `656fe141` (run 44706525726) ;
+  - fusion squash au SHA exact → `main` = `d315257d` (10:28Z). CI de `main` verte (run 44719461252, 11:01Z).
+- **Aucune migration** : ni simulation, ni sauvegarde à la demande, ni application. Base inchangée, compatible avec la
+  version précédente.
+- **Publication contrôlée** (run 44724507715, `dpl_2xcydxZaMfWiAFvToPDaS3hepXuJ`) réussie à 11:51Z :
+  - `/api/sante` sert `d315257d`, base OK ;
+  - 10 pages publiques en 200, adresse inconnue en 404 ;
+  - 8 polices préchargées sur l'accueil, aucune italique ;
+  - 0 erreur d'exécution Vercel de 11:50Z à 12:40Z, recette comprise.
+- **Recette de production avec nettoyage n° 54** (run 44731759495) réussie à 12:09Z. Purge vérifiée en lecture seule :
+  0 compte et 0 espace de recette restants.
+- Ventes payantes toujours fermées (non modifié, relu en base).
+- **Signalé par le dirigeant après la mise en ligne** : « Les règles à connaître » ouvre une page hors de l'espace
+  (`/veille`) pour le propriétaire, l'agence et le locataire. Antérieur à la refonte, non corrigé par elle ; seul
+  l'artisan a cette page dans son espace depuis le 25/09. Correction proposée, non faite.
+- **Reste** : essai sur un vrai iPhone et un vrai Android ; validation du titre de l'accueil sans italique ; gel des
+  fonctionnalités prévu ce 20/11 par le [[Calendrier de lancement — 30 novembre 2026]].
+- **Pages du wiki** : mise à jour [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]] ; `index.md`.

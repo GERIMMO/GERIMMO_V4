@@ -1,6 +1,6 @@
 # Gerimmo — Refonte visuelle : synthèse pour le dirigeant
 
-**20 novembre 2026.** Tout est prêt à être relu, et l'intégration continue est verte. **Rien n'est fusionné, rien n'est en production.**
+**20 novembre 2026.** La refonte est en ligne, et les contrôles sont verts. **En production depuis le 20 novembre à 11 h 51 UTC (version `d315257d`), sur votre demande.**
 
 ## En trois phrases
 
@@ -63,7 +63,7 @@ Les 38 comparaisons et les deux captures du bandeau sont dans le dossier [captur
 | Pages transversales | 5 | 5 (100 %) | 5 (100 %) | 5 (100 %) | 5 (100 %) | 5 (100 %) | 5 (100 %) |
 | **Total (page × session)** | **192** | 192 (100 %) | 170 (89 %) | 186 (97 %) | 192 (100 %) | 192 (100 %) | **192 (100 %)** |
 
-**Avancement global : 100 % des 192 lignes page × session sont améliorées, testées dans le navigateur et relues ; 0 % en production.** « Terminé » veut dire ici : page harmonisée, ouverte aux quatre largeurs sans erreur ni débordement ni défaut grave d'accessibilité, et capture relue à 375 et 1440 px. Cela ne veut pas dire : essayé sur un vrai téléphone, fusionné, ni publié.
+**Avancement global : 100 % des 192 lignes page × session sont améliorées, testées dans le navigateur et relues ; en production depuis le 20/11 à 11 h 51 UTC.** « Terminé » veut dire ici : page harmonisée, ouverte aux quatre largeurs sans erreur ni débordement ni défaut grave d'accessibilité, et capture relue à 375 et 1440 px. Cela ne veut pas dire : essayé sur un vrai téléphone.
 
 | Étape | État |
 |---|---|
@@ -72,8 +72,8 @@ Les 38 comparaisons et les deux captures du bandeau sont dans le dossier [captur
 | Direction visuelle et Design System | terminé |
 | Développement | terminé pour les 133 pages — 19 commits sur la branche, 307 fichiers |
 | Tests | banc : 0 erreur de style, 0 erreur de type, construction réussie, 12 952 tests unitaires réussis, 282 parcours Chromium réussis, 72 parcours WebKit réussis, 932 passages du second parcours sans défaut ; intégration continue verte |
-| Pull request | ouverte, **prête à relire, non fusionnée** — [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350) ; intégration continue verte |
-| Mise en production | **non faite** — elle demande votre accord |
+| Pull request | **fusionnée** le 20/11 à 10:28 UTC — [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350) ; `main` = `d315257d` ; intégration continue de `main` verte ([run 44719461252](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44719461252)) |
+| Mise en production | **faite le 20/11 à 11 h 51 UTC**, sur votre demande et avec votre approbation dans GitHub — publication contrôlée ([run 44724507715](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44724507715)), puis recette de production n° 54 réussie ([run 44731759495](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44731759495)) |
 
 ## Résultats des tests
 
@@ -105,15 +105,16 @@ L'**intégration continue** est le contrôle automatique que GitHub lance sur ch
 
 ## Ce qui reste
 
-**À faire avant publication**
+**À faire maintenant que c'est en ligne**
 
 1. **Essayer sur de vrais appareils** : un iPhone (Safari) et un téléphone Android. Tous les essais « téléphone » de cette mission sont simulés.
-2. **Votre relecture** de la pull request et des captures.
+2. **Votre relecture** à l'usage, écran par écran, dans vos propres espaces.
 
 **Ce qui n'est pas terminé, et pourquoi**
 
 | Sujet | État | Raison |
 |---|---|---|
+| « Les règles à connaître » (propriétaire, agence, locataire) : la page s'ouvre hors de l'espace, sans le menu | **signalé par vous après la mise en ligne** ; antérieur à la refonte, non corrigé par elle | c'est une page unique partagée par tous les profils ; seul l'artisan l'a dans son espace depuis le 25/09. À ramener dans chaque espace sur le même modèle |
 | Écrans propres à la SCI | non relus à l'œil | pas de compte SCI sur le banc ; couverts par les tests automatiques |
 | Pages très longues (bail, fiche d'un lot, fiche d'une personne) | hiérarchie améliorée, pas découpées | les découper change la structure que les tests vérifient : c'est un chantier à part |
 | Blocs repliés empilés côté propriétaire (accueil, finances) | inchangés | même raison |
@@ -130,13 +131,13 @@ L'**intégration continue** est le contrôle automatique que GitHub lance sur ch
 
 ## Ce que j'attends de vous
 
-1. **Regarder** : les captures avant / après, puis la pull request [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350).
-2. **Décider** : fusionner ou non. Je ne fusionne pas sans votre accord écrit.
-3. **Essayer sur un vrai téléphone** avant publication : tous mes essais « téléphone » sont simulés dans un navigateur d'ordinateur.
+1. **Ouvrir le site sur un vrai iPhone et un vrai Android** : tous mes essais « téléphone » sont simulés dans un navigateur d'ordinateur. Dites-moi ce qui vous gêne, même un détail.
+2. **Valider ou refuser** le titre de l'accueil sans italique (voir « Ce qui reste »).
+3. **Me dire si la direction « Maison » vous plaît à l'usage** : elle tient dans quelques réglages et se corrige.
 
 ## Prochaine étape recommandée
 
-**Votre relecture, puis un essai sur un vrai iPhone et un vrai Android.** Si l'ensemble vous convient, donnez-moi l'accord de fusion : je suivrai alors la procédure habituelle (CI de `main`, publication contrôlée, recette). Cette pull request ne contient aucune migration de base.
+**Ouvrir Gerimmo sur votre iPhone et sur un Android**, maintenant que la refonte est en ligne : c'est le seul essai que je n'ai pas pu faire. Puis geler : plus de nouveauté avant le 30 novembre, seulement des corrections. La version précédente (`be3bf5b0`) reste disponible pour un retour arrière immédiat ; il n'y a aucune migration à défaire.
 
 ## Où tout se trouve
 

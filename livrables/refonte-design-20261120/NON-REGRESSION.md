@@ -1,6 +1,6 @@
 # Rapport de non-régression — refonte « Maison »
 
-**Date : 20 novembre 2026.** Branche `claude/refonte-design-gerimmo`, commit `656fe141`, pull request [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350). Base : `main` = `be3bf5b0` (production).
+**Date : 20 novembre 2026.** Branche `claude/refonte-design-gerimmo`, commit `656fe141`, pull request [#350](https://github.com/GERIMMO/GERIMMO_V4/pull/350). Base : `main` = `be3bf5b0` (la production au moment des essais).
 
 **Sur quel commit portent les chiffres.** Les suites complètes du banc (style, types, tests unitaires, parcours Chromium, suite WebKit) ont tourné sur le commit final `656fe141`, après avoir déjà tourné sur `752fcad7` et `9a656950`. Le second parcours des écrans (932 passages, 4 largeurs) a été fait sur `752fcad7`, et refait pour les pages publiques sur le commit final ; les trois commits suivants ne touchent que la feuille du Design System, le chargement des polices et la seconde ligne du héros de l'accueil.
 
@@ -8,7 +8,7 @@ Tous les essais sont faits sur un **banc isolé**, base PostgreSQL locale, **don
 
 ## 1. Résultat en une ligne
 
-**Aucune régression constatée : tous les contrôles sont verts, sur le banc et dans l'intégration continue.** Rien n'est fusionné ni publié.
+**Aucune régression constatée : tous les contrôles sont verts, sur le banc, dans l'intégration continue et après la mise en ligne.**
 
 ## 2. Ce qui a été lancé
 
@@ -114,3 +114,24 @@ Aucun test supprimé, aucun test ignoré, aucune assertion retirée. Quand un te
 - **Pas de compte SCI sur le banc** : les écrans propres à la SCI ne sont pas relus à l'œil ; ils sont couverts par les tests automatiques.
 - **Performance** : pas de mesure Lighthouse. Constat mesuré : 6 fichiers de police préchargés dans les espaces (≈ 197 Ko, contre 4 fichiers et ≈ 70 Ko sur `main`), 8 sur les pages publiques (≈ 239 Ko, contre 4 à 6 fichiers et 70 à 112 Ko). Le surcoût est la police de titre : deux fichiers, 126 Ko, téléchargés une fois puis gardés par le navigateur.
 - **Lecteur d'écran réel** : non essayé. L'analyse automatique (axe) ne remplace pas un essai avec VoiceOver ou NVDA.
+
+## 8. Publication
+
+Publication demandée par le dirigeant le 20/11 (« Publie. »), faite par le circuit habituel. **Aucune migration** : la base est restée telle quelle, compatible avec la version précédente.
+
+| Étape | Résultat |
+|---|---|
+| Intégration continue de la pull request | verte sur `656fe141` ([run 44706525726](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44706525726)) |
+| Fusion (squash, au SHA exact) | 20/11 à 10:28 UTC ; `main` = `d315257d` |
+| Intégration continue de `main` | verte ([run 44719461252](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44719461252)), 11 h 01 UTC |
+| Version construite par Vercel, sans domaine public | `dpl_2xcydxZaMfWiAFvToPDaS3hepXuJ`, prête |
+| Publication contrôlée, approuvée par le dirigeant dans GitHub | réussie à 11 h 51 UTC ([run 44724507715](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44724507715)) |
+| Production après mise en ligne (lecture seule) | `/api/sante` sert `d315257d`, base joignable ; 10 pages publiques en 200 ; une adresse inconnue répond 404 ; 8 polices préchargées sur l'accueil, aucune italique |
+| Erreurs d'exécution Vercel | **0** entre 11 h 50 et 12 h 40 UTC, recette comprise |
+| Recette de production avec nettoyage n° 54 | réussie à 12 h 09 UTC ([run 44731759495](https://github.com/GERIMMO/GERIMMO_V4/actions/runs/44731759495)) : cinq comptes fictifs créés, parcours des espaces au format téléphone, puis suppression |
+| Nettoyage vérifié en base (lecture seule) | 0 compte de recette, 0 espace de recette restant |
+| Ventes payantes | toujours fermées (non modifié par cette publication, vérifié en lecture) |
+
+**Retour arrière** : la version précédente (`be3bf5b0`) reste disponible dans Vercel ; aucune migration à défaire.
+
+**Ce que la publication ne prouve pas** : la recette tourne sous Chromium au format téléphone, pas sur un appareil. Safari sur un vrai iPhone reste à essayer.

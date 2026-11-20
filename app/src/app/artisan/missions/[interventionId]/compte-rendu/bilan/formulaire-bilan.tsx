@@ -81,7 +81,7 @@ export function FormulaireBilan({
   return (
     <div className="space-y-5">
       {montantDevisCents !== null && <Carte><TitreSection>Budget autorisé : {euros(montantDevisCents)}</TitreSection>
-        {avenants.map(a => <div key={a.id} className="mt-3 border-t border-[var(--filet)] pt-3 text-sm">
+        {avenants.map(a => <div key={a.id} className="mt-3 border-t border-[var(--filet-leger)] pt-3 text-[0.9375rem]">
           <p className="font-semibold">{a.statut === "a_decider" ? "Accord attendu" : a.statut === "accepte" ? "Dépassement accepté" : a.statut === "refuse" ? "Dépassement refusé" : "Demande annulée"} · {euros(a.nouveau_montant_cents)}</p>
           <p>{a.motif}</p>{a.decision_motif && <p className="text-[var(--texte-secondaire)]">Réponse : {a.decision_motif}</p>}
         </div>)}
@@ -153,7 +153,7 @@ export function FormulaireBilan({
         />
       </div>
 
-      <Carte className="border-l-4 border-l-[var(--or)]">
+      <Carte>
         <TitreSection>Avez-vous trouvé autre chose que prévu ?</TitreSection>
         <p className="text-[0.9375rem] text-[var(--corps)]">
           Vous êtes le seul à avoir vu la cause réelle. Si elle ne correspond pas
@@ -202,7 +202,7 @@ export function FormulaireBilan({
                   </option>
                 ))}
               </select>
-              <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
+              <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
                 Une suggestion, jamais une décision.
               </p>
             </div>

@@ -1,47 +1,40 @@
 /* Les espaces métier partagent le langage visuel propriétaire, jamais ses droits. */
 .experience-unifiee {
-  --filet: #dfe5eb; --trait: #dfe5eb; --texte-secondaire: #5e6c7d;
-  --muted-foreground: #5e6c7d; --ombre-portee: 0 3px 16px #172b4605;
-  background: #f4f6f8;
+  background: var(--creme);
 }
-.experience-unifiee :is(.loc-corps,.admin-corps,.artisan-corps) { background: #f4f6f8; min-width: 0; }
+.experience-unifiee :is(.loc-corps,.admin-corps,.artisan-corps) { background: var(--creme); min-width: 0; }
 /* Le menu sombre seulement aux largeurs où la coquille le prévoit (prestige.css, ambiances.css) : en dessous,
    l'en-tête du locataire (≤ 640 px) et le menu de la supervision (≤ 900 px) restent clairs, et leurs liens
    gris lisibles (audit #264, ED-02 : 2 à 2,9:1 sur la photo ; ED-05 : tuile du nom collée sur la photo). */
 @media(min-width:641px) {
   .experience-unifiee :is(.loc-late,[data-espace-menu]) {
-    background-color: #14263d;
-    background-image: linear-gradient(180deg,#14263d 0%,#14263df5 22%,#14263dc7 48%,#14263dd1 82%,#14263df5 100%),url('/illustrations/quartier-gerimmo-2026.jpg');
-    background-size: cover; background-position: center,68% center;
+    /* Fond du menu : jetons et vignette de saison définis dans systeme.css. */
+    background-color: var(--nuit-menu);
   }
-  .experience-unifiee :is(.loc-late,[data-espace-menu]) :is(a,button):focus-visible { outline-color: #e4c995; }
+  .experience-unifiee :is(.loc-late,[data-espace-menu]) :is(a,button):focus-visible { outline-color: var(--champagne-vif); }
 }
 @media(min-width:901px) {
   .experience-unifiee .admin-late {
-    background-color: #14263d;
-    background-image: linear-gradient(180deg,#14263d 0%,#14263df5 22%,#14263dc7 48%,#14263dd1 82%,#14263df5 100%),url('/illustrations/quartier-gerimmo-2026.jpg');
-    background-size: cover; background-position: center,68% center;
+    /* Fond du menu : jetons et vignette de saison définis dans systeme.css. */
+    background-color: var(--nuit-menu);
   }
-  .experience-unifiee .admin-late :is(a,button):focus-visible { outline-color: #e4c995; }
+  .experience-unifiee .admin-late :is(a,button):focus-visible { outline-color: var(--champagne-vif); }
 }
-.experience-unifiee :is(.loc-haut,.admin-bandeau,[data-espace-entete]) { min-height: 72px; border-color: #dfe5eb; }
-.experience-unifiee h1 { font-size: clamp(26px,2.4vw,36px); line-height: 1.2; letter-spacing: -.03em; }
+.experience-unifiee :is(.loc-haut,.admin-bandeau,[data-espace-entete]) { min-height: 72px; border-color: var(--filet); }
+.experience-unifiee h1 { font-size: var(--titre-1); line-height: 1.2; letter-spacing: -.02em; }
 .experience-unifiee :is(.entete-page,.entete-fiche) { margin-bottom: 18px; padding-bottom: 16px; gap: 14px; }
-.experience-unifiee :is(.loc-carte,[data-slot="card"],.dossier-panneau,.colonne-liste,.colonne-liste-split,.historique-carte) { background: #fff; border-color: #dfe5eb; border-radius: 14px; box-shadow: var(--ombre-portee); }
-.experience-unifiee :is(.barre-filtres,.recherche-personnes) { background: #fff; border-color: #dfe5eb; border-radius: 12px; }
-.experience-unifiee :is(.btn-or,.btn-secondaire,.bouton-gerimmo,[data-slot="button"]) { min-height: 44px; border-radius: 9px; font-weight: 600; }
-/* L'or par défaut ; la charte d'une agence (styleMarque) pose ses propres --bouton-principal (audit #264, ED-03). */
-.experience-unifiee .btn-or { background: var(--bouton-principal, #d6bb83); color: var(--sur-bouton-principal, #17283e); border-color: var(--bouton-principal, #c9ab6d); }
-.experience-unifiee .btn-or:hover { background: var(--bouton-principal-survol, #e2c995); }
-.experience-unifiee :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]) { border-radius: 9px; }
+.experience-unifiee :is(.loc-carte,[data-slot="card"],.dossier-panneau,.colonne-liste,.colonne-liste-split,.historique-carte) { background: var(--carte); border-color: var(--filet); border-radius: var(--rayon-carte); box-shadow: var(--ombre-1); }
+.experience-unifiee :is(.barre-filtres,.recherche-personnes) { background: var(--carte); border-color: var(--filet); border-radius: 12px; }
+/* Boutons et champs : une seule définition pour tous les espaces, dans systeme.css. La charte d'une agence
+   (styleMarque) y pose toujours ses propres --bouton-principal (audit #264, ED-03). */
 .experience-unifiee :is(.loc-carte,.dossier-panneau) { padding: 22px; }
 .experience-unifiee .rang { gap: 14px; padding: 14px 16px; }
-.experience-unifiee a.rang:hover { background: #f5f8fb; }
-.experience-unifiee .tete-liste { background: #f6f8fa; }
+.experience-unifiee a.rang:hover { background: var(--survol); }
+.experience-unifiee .tete-liste { background: var(--filet-leger); }
 .experience-unifiee details[open]>:not(summary) { animation: none; }
-.experience-unifiee :is(a,button,input,select,textarea,summary):focus-visible { outline: 3px solid #937036; outline-offset: 3px; }
-body:has(.experience-unifiee) :is([data-ui="modale"],.recherche-dialog) { --filet: #dfe5eb; --trait: #dfe5eb; --texte-secondaire: #4b5870; background: #fff; border-color: #dfe5eb; border-radius: 16px; }
-body:has(.experience-unifiee) [data-ui="modale-entete"] { padding: 20px 24px; background: #f8fafb; }
+.experience-unifiee :is(a,button,input,select,textarea,summary):focus-visible { outline: 3px solid var(--prestige-champagne-texte); outline-offset: 3px; }
+body:has(.experience-unifiee) :is([data-ui="modale"],.recherche-dialog) { --filet: var(--filet); --trait: var(--filet); background: var(--carte); border-color: var(--filet); border-radius: 16px; }
+body:has(.experience-unifiee) [data-ui="modale-entete"] { padding: 20px 24px; background: var(--creme); }
 body:has(.experience-unifiee) [data-ui="modale-corps"] { padding: 24px; }
 @media(min-width:1000px) { .experience-unifiee [data-aide-mobile] { display: none; } }
 @media(max-width:640px) {
@@ -61,8 +54,8 @@ body:has(.experience-unifiee) [data-ui="modale-corps"] { padding: 24px; }
   z-index: 1000;
   padding: 12px 18px;
   border-radius: 10px;
-  background: #14263d;
-  color: #fff;
+  background: var(--marque);
+  color: var(--sur-marque);
   font-weight: 650;
   transform: translateY(calc(-100% - 20px));
 }

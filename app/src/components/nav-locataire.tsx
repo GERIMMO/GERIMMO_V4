@@ -106,17 +106,25 @@ export function SidebarLocataire({
             className={cn(active && "actif")}
               aria-current={active ? "page" : undefined}
             title={e.libelle}
-            // Accessibilité (audit 09/09) : le lien s'annonce en entier, le
-            // badge est décoratif — sinon les lecteurs d'écran ne lisent
-            // que le nombre
-            aria-label={nb > 0 ? `${e.libelle}, ${nb} élément${nb > 1 ? "s" : ""} à traiter` : undefined}
           >
             <Icone nom={e.icone} />
             <span className="lib">{e.libelle}</span>
+            {/* Accessibilité (audit 09/09, repris le 20/11) : le lien s'annonce
+                en entier — « Mes documents : 1 élément à traiter » — sans
+                `aria-label`. Un nom imposé qui ne reprenait pas le texte
+                affiché (libellé puis pastille) empêchait la commande vocale
+                de viser l'entrée (WCAG 2.5.3). Le nom se lit désormais du
+                contenu : le libellé visible, puis ce complément masqué ; la
+                pastille reste décorative. */}
             {nb > 0 && (
-              <span className="loc-badge" aria-hidden="true">
-                {nb > 99 ? "99+" : nb}
-              </span>
+              <>
+                <span className="sr-only">
+                  : {nb} élément{nb > 1 ? "s" : ""} à traiter
+                </span>
+                <span className="loc-badge" aria-hidden="true">
+                  {nb > 99 ? "99+" : nb}
+                </span>
+              </>
             )}
           </Link>
         );

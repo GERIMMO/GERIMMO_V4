@@ -486,7 +486,7 @@ function FicheProfil({
 
       {!estProprietaire && (
         <div>
-          <h4 className="eyebrow">Votre marque sur Gerimmo</h4>
+          <h3 className="eyebrow sm:!text-[length:var(--pas-mention)]">Votre marque sur Gerimmo</h3>
           <dl>
             <Ligne libelle="Nom affiché">{texte(o.nom_portail)}</Ligne>
             <Ligne libelle="Logo">
@@ -521,7 +521,7 @@ function FicheProfil({
       )}
 
       <div id="relances">
-        <h4 className="eyebrow">Envois automatiques</h4>
+        <h3 className="eyebrow sm:!text-[length:var(--pas-mention)]">Envois automatiques</h3>
         <dl>
           <Ligne libelle="Avis d'échéance par e-mail">
             Envoi suspendu

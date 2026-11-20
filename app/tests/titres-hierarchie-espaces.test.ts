@@ -31,7 +31,9 @@ describe("DES-A-03 : hiérarchie des titres", () => {
   it("les <h2> convertis portent la classe qui leur rend le dessin d'un <h3>", () => {
     const avecClasse = PERIMETRE.flatMap(f => (readFileSync(f, "utf8").match(/<h2[^>]*titre-carte[^>]*>/g) ?? []));
     // 39 depuis UX 6 : l'accueil locataire distingue le bail en préparation des actions d'un bail actif.
-    expect(avecClasse.length).toBe(39);
+    // 42 depuis le 20/11/2026 : les trois titres de carte de /compte/donnees suivent la même règle (ils étaient des
+    // <h2> en police d'affichage, sans la classe).
+    expect(avecClasse.length).toBe(42);
     const accueil = readFileSync("src/app/locataire/[orgId]/page.tsx", "utf8");
     for (const titre of ["Votre bail n’est pas encore actif", "Ce qui vous attend"])
       expect(accueil).toMatch(new RegExp(`<h2[^>]*titre-carte[^>]*>${titre}</h2>`));

@@ -24,7 +24,7 @@ export function FormulaireReinitialisation() {
       <CardContent className="pt-6">
         {etat.message ? (
           <div className="space-y-4">
-            <p className="rounded-md bg-success-soft p-3 text-sm text-success-soft-foreground">
+            <p className="auth-message" data-ton="succes">
               {etat.message}
             </p>
             <Button

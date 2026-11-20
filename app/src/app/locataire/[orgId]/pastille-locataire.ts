@@ -20,6 +20,30 @@ const EQUIVALENCES: Record<string, string> = {
   "puce puce-grise": "loc-tag bleu",
 };
 
+/**
+ * Bord gauche d'ÉTAT d'une carte de l'espace (Design System « Maison », 20/11).
+ *
+ * Une carte est blanche, avec un filet : un bord gauche coloré n'y est admis
+ * que s'il porte un état métier qui demande l'attention — un retard, un geste
+ * attendu, une urgence. Les bords « de marque », « dossier en cours » ou
+ * « tout va bien » étaient du décor : ils ont été retirés.
+ *
+ * Le `!` est requis : le filet de `.loc-carte` est posé hors couche par les
+ * feuilles communes, ce qui rendait ces bords invisibles depuis leur arrivée.
+ * 3 px, comme les cartes `data-tone` de l'espace de gestion.
+ */
+export const BORD_ETAT = {
+  attention: "!border-l-[3px] !border-l-[color:var(--warning)]",
+  urgence: "!border-l-[3px] !border-l-[color:var(--destructive)]",
+} as const;
+
+/**
+ * Bouton d'urgence (en-tête de l'espace, numéros à appeler) : un seul dessin
+ * pour le même geste, 44 px de haut.
+ */
+export const BOUTON_URGENCE =
+  "inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--rayon-bouton)] border border-destructive bg-[var(--carte)] px-3 text-sm font-semibold whitespace-nowrap text-destructive transition-colors duration-[var(--duree-rapide)] hover:bg-[var(--destructive-soft)]";
+
 /** Traduit une classe .puce de lib/ en pastille de l'espace locataire. */
 export function tagLocataire(classePuce: string | undefined): string {
   return EQUIVALENCES[classePuce ?? ""] ?? "loc-tag bleu";

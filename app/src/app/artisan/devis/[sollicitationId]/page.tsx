@@ -1,7 +1,8 @@
+import type { Metadata } from "next";
 import { LectureImpossibleArtisan } from "../../ui";
 import Link from "next/link";
 import { SuiviSignatureDevisArtisan } from "@/components/suivi-signature-devis-artisan";
-import { CalendarDays, FileText, MapPin, ShieldCheck, Wrench } from "lucide-react";
+import { CalendarDays, MapPin, ShieldCheck, Wrench } from "lucide-react";
 import { chargerPreparationDevis } from "@/lib/parcours-devis-serveur";
 import { RenvoyerEmail } from "./renvoyer-email";
 import { notFound } from "next/navigation";
@@ -31,6 +32,7 @@ import {
   Avertissement,
   Carte,
   CLASSE_AIDE,
+  EnteteSousPage,
   Etiquette,
   LigneInfo,
   MarqueAgence,
@@ -43,10 +45,12 @@ import styles from "./devis.module.css";
 /** Le titre suit l'écran : un formulaire de réponse, ou le récapitulatif d'une demande close. */
 export async function generateMetadata(
   props: PageProps<"/artisan/devis/[sollicitationId]">
-) {
+): Promise<Metadata> {
   const { sollicitationId } = await props.params;
   const sollicitations = await chargerSollicitations();
-  if (sollicitations.erreur) return <LectureImpossibleArtisan href={`/artisan/devis/${sollicitationId}`} />;
+  // Lecture en échec : un titre sobre. L'écran « Dossier indisponible » est rendu par la page elle-même ;
+  // des métadonnées ne peuvent pas être un élément React.
+  if (sollicitations.erreur) return { title: "Devis" };
   const demande = sollicitations.lignes.find((l) => l.sollicitation_id === sollicitationId);
   return {
     title: demande && !demandeAChiffrer(demande.statut) ? "Demande de devis" : "Répondre à une demande",
@@ -126,21 +130,21 @@ export default async function PageRepondreDevis(
   return (
     <div className={styles.page}>
       <Retour href="/artisan/devis">Demandes de devis</Retour>
-      <header className={styles.entete}>
-        <div className={styles.titre}>
-          <span className={styles.iconeTitre}><FileText size={24} aria-hidden /></span>
-          <div><p className={styles.surtitre}>{close ? "Votre demande de devis" : enRevision ? `Préparer la version ${versionSuivante}` : "Préparer votre devis"}</p><h1>{titreIncident(demande.categorie)}</h1></div>
-        </div>
-        <div className={styles.client}>
-          <MarqueAgence nom={demande.agence_nom} />
-          <span className="flex flex-wrap items-center gap-2">
+      {/* Même en-tête que la fiche de mission : le client et l'état, puis le titre de l'écran et ce qu'on y fait. */}
+      <div className={styles.client}>
+        <MarqueAgence nom={demande.agence_nom} taille="grande" />
+        <span className="flex flex-wrap items-center gap-2">
           {demande.urgence === "urgente" && <Etiquette ton="alerte">Urgent</Etiquette>}
-            <Etiquette ton={close ? TON_STATUT[demande.statut] : enRevision ? "alerte" : "attente"}>
-              {close ? libelle(STATUTS_SOLLICITATION, demande.statut) : enRevision ? "Révision demandée" : "À chiffrer"}
-            </Etiquette>
-          </span>
-        </div>
-      </header>
+          <Etiquette ton={close ? TON_STATUT[demande.statut] : enRevision ? "alerte" : "attente"}>
+            {close ? libelle(STATUTS_SOLLICITATION, demande.statut) : enRevision ? "Révision demandée" : "À chiffrer"}
+          </Etiquette>
+        </span>
+      </div>
+      <EnteteSousPage
+        rubrique="finances"
+        titre={titreIncident(demande.categorie)}
+        mention={close ? "Votre demande de devis" : enRevision ? `Préparer la version ${versionSuivante}` : "Préparer votre devis"}
+      />
       <section className={styles.demande} aria-label="La demande du client">
         <div className={styles.description}>
           <h2>La demande du client</h2>
@@ -161,8 +165,8 @@ export default async function PageRepondreDevis(
 
       {/* D18 (livraison 2) : ce que le client demande, et jusqu'à quand répondre. Le texte est le sien, tel quel. */}
       {enRevision && (
-        <section className="rounded-xl border-2 border-[var(--destructive-soft-foreground)] bg-[var(--destructive-soft)] p-4" aria-label="Révision demandée" data-revision-demandee>
-          <h2 className="text-lg font-semibold">Le client demande une révision de votre devis</h2>
+        <section className={styles.revision} aria-label="Révision demandée" data-revision-demandee>
+          <h2>Le client demande une révision de votre devis</h2>
           <p className="mt-2 whitespace-pre-wrap break-words text-[0.9375rem]">
             Ce qui est demandé : « {demande.revision_motif ?? "aucune précision transmise"} »
           </p>
@@ -178,13 +182,13 @@ export default async function PageRepondreDevis(
       {close ? (
         <Carte>
           <TitreSection>Ma réponse</TitreSection>
-          {preparation?.statut === "envoye" && <div className="mb-4 rounded-xl border border-[var(--filet)] p-4">
+          {preparation?.statut === "envoye" && <div className={styles.constat}>
             <p className="font-semibold">Devis enregistré dans les deux espaces Gerimmo</p>
-            {preparation.email_statut === "envoye" ? <p className="mt-1 text-sm text-emerald-800">L’avis de disponibilité a été pris en charge. Le demandeur peut consulter le PDF dans son dossier.</p> : <><p className="mt-1 text-sm text-amber-900">Le devis est disponible sur Gerimmo, mais l’envoi de l’avis reste à confirmer.</p><RenvoyerEmail id={sollicitationId} revision={preparation.revision}/></>}
+            {preparation.email_statut === "envoye" ? <p className={`mt-1 text-sm ${styles.etatOk}`}>L’avis de disponibilité a été pris en charge. Le demandeur peut consulter le PDF dans son dossier.</p> : <><p className={`mt-1 text-sm ${styles.etatAttention}`}>Le devis est disponible sur Gerimmo, mais l’envoi de l’avis reste à confirmer.</p><RenvoyerEmail id={sollicitationId} revision={preparation.revision}/></>}
           </div>}
           {/* D18 (livraison 1) : le client a refusé ce devis ; son motif est transmis tel quel, il n'y a rien d'autre à faire. */}
           {demande.statut === "refusee" && (
-            <div className="mb-4 rounded-xl border border-[var(--filet)] p-4" data-devis-refuse>
+            <div className={styles.constat} data-devis-refuse>
               <p className="font-semibold">Votre devis n’a pas été retenu : le client l’a refusé.</p>
               <p className="mt-2 whitespace-pre-wrap break-words text-[0.9375rem]">
                 Motif transmis : « {demande.decision_motif ?? "aucun motif transmis"} »

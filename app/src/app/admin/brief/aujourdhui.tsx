@@ -6,6 +6,7 @@ import type { FaitsDirection } from "@/lib/faits-direction";
 import { trierDecisions } from "@/lib/tri-decisions";
 import { formaterDateHeureParis } from "@/lib/heure-paris";
 import { OuvrirAlertes } from "./ouvrir-alertes";
+import { ValeurVivante } from "@/components/valeur-vivante";
 import styles from "./aujourdhui.module.css";
 
 export type DonneesAccueil = {
@@ -58,7 +59,7 @@ export function AccueilDirigeant(props: DonneesAccueil) {
     </section>
     {(!finance || assistance === null || partiel) && <p role="alert" className={styles.lecture}>{!finance ? "Les chiffres clients sont indisponibles. " : partiel ? `Vue partielle : ${finance.organisations.length} espaces lus sur ${finance.total}. Les sous-totaux sont des minimums. ` : ""}{assistance === null && "Le nombre de demandes d’assistance est indisponible."}</p>}
     <nav className={styles.indicateurs} aria-label="Les six repères du dirigeant">{indicateurs.map(i => <Link key={i.id} href={i.href} data-indicateur={i.id} className={styles.indicateur}>
-      <span>{i.titre}</span><strong>{i.valeur}</strong><small>{i.detail}</small><ArrowUpRight size={16} aria-hidden="true" />
+      <span>{i.titre}</span><strong><ValeurVivante valeur={i.valeur}>{i.valeur}</ValeurVivante></strong><small>{i.detail}</small><ArrowUpRight size={16} aria-hidden="true" />
     </Link>)}</nav>
     <section className={styles.traiter} aria-labelledby="a-traiter-aujourdhui">
       <header><div><h2 id="a-traiter-aujourdhui">À traiter</h2><p>{inconnus ? "Liste partielle : certaines lectures sont indisponibles." : `${decisions.total} demande${decisions.total > 1 ? "s" : ""} en attente${entrees.length > 3 ? " · les trois premières ci-dessous" : ""}`}</p></div><Link href="/admin/brief?vue=decisions">Toutes les demandes →</Link></header>

@@ -284,7 +284,7 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
               aide="Celui de la clause de révision. Par défaut, le trimestre de la date."
             />
           </div>
-          <button type="button" onClick={saisirMoiMeme} className="btn-secondaire min-h-11">
+          <button type="button" onClick={saisirMoiMeme} className="btn-secondaire">
             Saisir les indices moi-même
           </button>
         </Groupe>
@@ -295,7 +295,7 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
               {MESSAGE_ZONE_SPECIFIQUE[zoneSpecifique]}
             </Alerte>
           ) : serie == null ? (
-            <p data-testid="irl-serie-indisponible" className="rounded-xl bg-[var(--creme)] px-3.5 py-2.5 text-[13px] text-[var(--texte-secondaire)]">
+            <p data-testid="irl-serie-indisponible" className="rounded-[var(--rayon-bouton)] bg-[var(--filet-leger)] px-3.5 py-2.5 text-[13px] text-[var(--texte-secondaire)]">
               Les indices de l&apos;Insee n&apos;ont pas pu être chargés : saisissez-les ci-dessous, depuis{" "}
               <a href={URL_SERIE_INSEE_IRL} target="_blank" rel="noopener noreferrer" className="lien-texte">
                 la série de l&apos;IRL publiée par l&apos;Insee
@@ -317,7 +317,7 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
               <Champ id="irl-indice-nouv" libelle="Valeur de l'indice" valeur={indiceNouv} onChange={setIndiceNouv} decimal />
             </div>
             {serie != null && !zoneSpecifique && (
-              <button type="button" onClick={() => setSaisieManuelle(false)} className="btn-secondaire min-h-11">
+              <button type="button" onClick={() => setSaisieManuelle(false)} className="btn-secondaire">
                 Reprendre les indices de l&apos;Insee
               </button>
             )}
@@ -389,7 +389,7 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
               fort
             />
           </ListeDetail>
-          <p className="montant rounded-xl bg-[var(--creme)] px-3.5 py-2.5 text-[13px] text-[var(--texte-secondaire)]">
+          <p className="rounded-[var(--rayon-bouton)] bg-[var(--filet-leger)] px-3.5 py-2.5 text-[13px] tabular-nums lining-nums text-[var(--texte-secondaire)]">
             {formaterEuros(loyerActuel ?? 0)} × {texteNouv} ÷ {texteRef} = {formaterEuros(r.nouveauLoyer)}, arrondi au centime.
           </p>
           {auto && (
@@ -404,7 +404,7 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
           )}
         </>
       ) : (
-        <p className="rounded-xl bg-[var(--creme)] px-4 py-5 text-[14px] text-[var(--texte-secondaire)]">{manque}</p>
+        <p className="rounded-[var(--rayon-bouton)] bg-[var(--filet-leger)] px-4 py-5 text-[14px] text-[var(--texte-secondaire)]">{manque}</p>
       )}
       {!gel && r.alertes.length > 0 && (
         <div className="space-y-2" data-testid="irl-alertes">
@@ -452,7 +452,7 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
               </div>
             </Groupe>
             <div className="mt-6">
-              <button type="button" onClick={() => window.print()} className="btn-or min-h-11 !px-5" disabled={!r.ok}>
+              <button type="button" onClick={() => window.print()} className="btn-or" disabled={!r.ok}>
                 <IconeImprimer />
                 Imprimer la lettre
               </button>

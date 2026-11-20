@@ -1,5 +1,6 @@
 import { resumerLoyersParcMois } from "@/lib/loyers-parc-mois";
 import { PageFinances } from "@/components/page-finances";
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
@@ -64,7 +65,7 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
         {/* La marge sous l'en-tête est celle de `.entete-page`, commune à
             l'espace : plus de mb-4 / mb-6 posés page par page (24/09). */}
         <div className="entete-page">
-          <h1>Loyers &amp; charges</h1>
+          <TitreEcran rubrique="finances">Loyers &amp; charges</TitreEcran>
           <span className="mono-discret">
             {portefeuille ? "Mon portefeuille · " : ""}
             {moisEnFrancais(mois)}
@@ -137,7 +138,7 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
               <span className="block text-xs text-muted-foreground">
                 {estProprietaire
                   ? `${lignes.length} loyer${lignes.length > 1 ? "s" : ""}`
-                  : `${lignes.length} terme${lignes.length > 1 ? "s" : ""} de loyer`}
+                  : `${lignes.length} terme${lignes.length > 1 ? "s" : ""} de loyer — ${lignes.length > 1 ? "les loyers demandés" : "le loyer demandé"} pour ce mois`}
               </span>
             </div>
             <div className={`kpi ${moisVide ? "" : "vert"}`}>
@@ -148,7 +149,7 @@ export default async function PageLoyers({ params, searchParams }: PageProps<"/a
                   ? estProprietaire
                     ? "aucun loyer ce mois-ci"
                     : "aucun terme ce mois-ci"
-                  : `${nbRegles} sur ${lignes.length} réglé${nbRegles > 1 ? "s" : ""} en entier`}
+                  : `${estProprietaire ? "" : "encaissé ou compensé · "}${nbRegles} sur ${lignes.length} réglé${nbRegles > 1 ? "s" : ""} en entier`}
               </span>
             </div>
             <div className={`kpi ${reste > 0 ? "rouge" : moisVide ? "" : "vert"}`}>

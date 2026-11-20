@@ -1,5 +1,6 @@
 "use client";
 import { useId, useState } from "react";
+import Link from "next/link";
 import { useActionStateProtegee } from "@/lib/use-action-state-protegee";
 import { transmettreReleve, type EtatConsommations } from "@/app/actions/consommations";
 import type { MonReleveConsommation } from "@/lib/consommations";
@@ -15,8 +16,12 @@ export function RelevesLocataire({ orgId, demandes, aujourdHui }: { orgId: strin
   const attendues = demandes.filter(d => d.peut_repondre);
   const passees = demandes.filter(d => !d.peut_repondre);
   return <div className={styles.list}>
-    {attendues.length ? attendues.map(d => <Releve key={d.demande_id} orgId={orgId} d={d} aujourdHui={aujourdHui} />) : <p className={styles.ok}>Aucun relevé à transmettre pour le moment.</p>}
-    {passees.length > 0 && <details><summary>Historique des relevés ({passees.length})</summary><ul className={styles.history}>{passees.map(d => <li key={d.demande_id}><strong>{d.libelle}</strong> · {d.index_releve != null ? `${Number(d.index_releve).toLocaleString("fr-FR")} ${d.unite === "m3" ? "m³" : "kWh"} au ${formaterDate(d.date_releve)}` : d.statut === "annulee" ? "Demande annulée" : `Demande du ${formaterDate(d.echeance)} · consultation seule`}</li>)}</ul></details>}
+    {attendues.length ? attendues.map(d => <Releve key={d.demande_id} orgId={orgId} d={d} aujourdHui={aujourdHui} />) : <div className="vide-guide">
+      <p className="titre max-sm:pr-14">Aucun relevé à transmettre pour le moment</p>
+      <p className="explication">Quand un relevé de compteur vous sera demandé, il apparaîtra ici, et sur votre accueil dans «&nbsp;Ce qui vous attend&nbsp;».</p>
+      <div className="geste"><Link href={`/locataire/${orgId}`} className="btn-secondaire">Revenir à l’accueil</Link></div>
+    </div>}
+    {passees.length > 0 && <details><summary className="min-h-11 cursor-pointer content-center text-sm font-medium">Historique des relevés ({passees.length})</summary><ul className={styles.history}>{passees.map(d => <li key={d.demande_id}><strong>{d.libelle}</strong> · {d.index_releve != null ? `${Number(d.index_releve).toLocaleString("fr-FR")} ${d.unite === "m3" ? "m³" : "kWh"} au ${formaterDate(d.date_releve)}` : d.statut === "annulee" ? "Demande annulée" : `Demande du ${formaterDate(d.echeance)} · consultation seule`}</li>)}</ul></details>}
   </div>;
 }
 function Releve({ orgId, d, aujourdHui }: { orgId: string; d: MonReleveConsommation; aujourdHui: string }) {

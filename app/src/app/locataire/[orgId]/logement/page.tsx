@@ -209,7 +209,7 @@ export default async function PageLogementLocataire(
             <ConsultationDocument
               titre="Mon bail signé"
               cible={{ fichier: `/locataire/${orgId}/bail/fichier`, mime: null }}
-              className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
+              className={`pointer-coarse:min-h-11 ${buttonVariants({ variant: "outline", size: "sm" })}`}
             >
               Consulter mon bail signé
             </ConsultationDocument>

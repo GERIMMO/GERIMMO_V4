@@ -20,6 +20,7 @@ import {
   type RendezVousLocataire,
 } from "@/lib/rendez-vous-locataire";
 import { CRENEAUX_MINIMUM, DEMI_JOURNEES } from "./creneaux";
+import { BORD_ETAT } from "../pastille-locataire";
 
 // ════════════════════════════════════════════════════════════════════════════
 // « JE NE PEUX PLUS ÊTRE LÀ » (décision D22 du 14/10/2026, option B)
@@ -276,12 +277,10 @@ export function GestesRendezVous({
     <div className="mt-2.5">
       {etat && (
         <div
-          className={`rounded-[10px] border-l-4 p-3 text-sm ${
-            etat.ton === "succes"
-              ? "border-l-[var(--success)] bg-[var(--filet-leger)]"
-              : etat.ton === "attention"
-                ? "border-l-[var(--warning)] bg-[var(--filet-leger)]"
-                : "border-l-[var(--marque)] bg-[var(--filet-leger)]"
+          // Bord d'état pour l'attention seule (20/11) : le vert et le bleu de
+          // marque des deux autres tons étaient du décor.
+          className={`rounded-[var(--rayon-champ)] bg-[var(--filet-leger)] p-3 text-sm ${
+            etat.ton === "attention" ? BORD_ETAT.attention : ""
           }`}
           role="status"
         >

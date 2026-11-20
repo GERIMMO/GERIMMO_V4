@@ -94,10 +94,10 @@ export async function PageFinances({ orgId, recherche }: {
         <p className="text-xs text-muted-foreground">Pour les échéances du mois choisi : versements et compensations, hors avances. Les dépenses sont présentées à part.</p>
         {incertaines.length > 0 && <div className="rounded-lg border p-3" role="status">
           <p className="font-medium">Loyers à rattacher</p>
-          <p className="text-sm">Vérifiez la détention de ces lots pour la période. Ces sommes sont exclues du total de {entite?.nom}.</p>
+          <p className="text-sm">Vérifiez la détention de ces lots pour la période, c’est-à-dire qui en était propriétaire à cette date. Ces sommes sont exclues du total de {entite?.nom}.</p>
           <ul>{incertaines.map(l => <li key={l.appel_id}>{l.lot_nom} · {eur(Number(l.montant_du))} demandé</li>)}</ul>
         </div>}
-        {lignes.length ? <details className="rounded-lg border border-border p-3"><summary className="cursor-pointer text-sm font-medium">Voir {lignes.length === 1 ? "le loyer" : `les ${lignes.length} loyers`} {deElide(moisEnFrancais(mois))}</summary>{mois === actuel.slice(0, 7) ? <Card size="sm" className="mt-3"><QuittancementMois orgId={orgId} mois={mois} moisLabel={moisEnFrancais(mois)} lignes={lignes} proprietaire envoiGroupe={!bien && !entiteId} /></Card> : <ul className="mt-3 divide-y divide-border">{lignes.map(l => <li key={l.appel_id}><Link className="flex flex-wrap justify-between gap-2 py-3 text-sm" href={`${base}/baux/${l.bail_id}#loyers`}><span>{l.locataire ?? "Locataire non renseigné"} · {l.lot_nom}</span><span>{eur(Number(l.montant_du))} demandé · {eur(Number(l.montant_couvert))} réglé →</span></Link></li>)}</ul>}</details> : <p className="text-sm text-muted-foreground">Aucun loyer demandé sur cette période.{premierBail?.data?.length === 1 && <> <Link className="underline" href={`${base}/baux/${premierBail.data[0].id}#loyers`}>Vérifier l’échéancier du bail</Link></>}</p>}
+        {lignes.length ? <details className="rounded-lg border border-border p-3"><summary className="min-h-11 cursor-pointer content-center text-sm font-medium">Voir {lignes.length === 1 ? "le loyer" : `les ${lignes.length} loyers`} {deElide(moisEnFrancais(mois))}</summary>{mois === actuel.slice(0, 7) ? <Card size="sm" className="mt-3"><QuittancementMois orgId={orgId} mois={mois} moisLabel={moisEnFrancais(mois)} lignes={lignes} proprietaire envoiGroupe={!bien && !entiteId} /></Card> : <ul className="mt-3 divide-y divide-border">{lignes.map(l => <li key={l.appel_id}><Link className="flex flex-wrap justify-between gap-2 py-3 text-sm" href={`${base}/baux/${l.bail_id}#loyers`}><span>{l.locataire ?? "Locataire non renseigné"} · {l.lot_nom}</span><span>{eur(Number(l.montant_du))} demandé · {eur(Number(l.montant_couvert))} réglé →</span></Link></li>)}</ul>}</details> : <p className="text-sm text-muted-foreground">Aucun loyer demandé sur cette période.{premierBail?.data?.length === 1 && <> <Link className="underline" href={`${base}/baux/${premierBail.data[0].id}#loyers`}>Vérifier l’échéancier du bail</Link></>}</p>}
       </>}
       <details><summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium">Historique des loyers <span aria-hidden>⌄</span></summary><nav aria-label="Mois des loyers" className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">{Array.from({length:12},(_,i) => <Link key={i} href={href(annee,i+1,"#loyers")} aria-current={i+1 === numeroMois ? "date" : undefined} className={`rounded-lg px-3 py-2 text-sm ${i+1 === numeroMois ? "bg-primary text-primary-foreground" : "bg-muted hover:underline"}`}>{moisEnFrancais(`${annee}-${String(i+1).padStart(2,"0")}`)}</Link>)}</nav></details>
     </section>
@@ -123,15 +123,15 @@ export async function PageFinances({ orgId, recherche }: {
           <h3 id="titre-a-rattacher" className="font-semibold">{aRattacher.ecritures.length} opération{aRattacher.ecritures.length > 1 ? "s" : ""} à rattacher</h3>
           <p className="text-sm text-muted-foreground">Le titulaire de ces opérations reste à vérifier à leur date comptable. Leurs montants sont exclus des totaux de {entite?.nom}.</p>
           <Chiffres valeurs={[["Recettes à rattacher", aRattacher.recettes / 100], ["Dépenses à rattacher", aRattacher.depenses / 100], ["Solde à rattacher", (aRattacher.recettes - aRattacher.depenses) / 100]]} />
-          <details><summary className="cursor-pointer text-sm font-medium">Voir les opérations à rattacher</summary>
+          <details><summary className="min-h-11 cursor-pointer content-center text-sm font-medium">Voir les opérations à rattacher</summary>
             <ListeOperations lignes={aRattacher.ecritures} />
           </details>
         </section>}
         {ventilation && ventilation.size > 0 && <details className="rounded-lg border border-border p-3">
-          <summary className="cursor-pointer font-semibold">Détail par propriétaire et SCI</summary>
-          <p className="mt-2 text-sm text-muted-foreground">Chaque opération figure une seule fois, selon la détention à sa date comptable. Les opérations partagées ou sans rattachement certain restent à vérifier.</p>
+          <summary className="min-h-11 cursor-pointer content-center font-semibold">Détail par propriétaire et SCI</summary>
+          <p className="mt-2 text-sm text-muted-foreground">Chaque opération figure une seule fois, selon la détention (le propriétaire du lot) à sa date comptable. Les opérations partagées ou sans rattachement certain restent à vérifier.</p>
           {[...ventilation].map(([id, groupe]) => <details key={id ?? "sans-titulaire"} className="border-b py-3 last:border-0">
-            <summary className="cursor-pointer text-sm font-medium">{patrimoine.entites.find(e => e.id === id)?.nom ?? "Rattachement à vérifier"} · {groupe.ecritures.length} opération{groupe.ecritures.length > 1 ? "s" : ""}</summary>
+            <summary className="min-h-11 cursor-pointer content-center text-sm font-medium">{patrimoine.entites.find(e => e.id === id)?.nom ?? "Rattachement à vérifier"} · {groupe.ecritures.length} opération{groupe.ecritures.length > 1 ? "s" : ""}</summary>
             <Chiffres valeurs={[["Recettes",groupe.recettes/100],["Dépenses",groupe.depenses/100],["Solde",(groupe.recettes-groupe.depenses)/100]]}/>
             <ListeOperations lignes={groupe.ecritures} />
           </details>)}

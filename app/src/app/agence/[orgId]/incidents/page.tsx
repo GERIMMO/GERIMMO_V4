@@ -215,7 +215,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
 
   return (
     <main className="incidents-page mx-auto w-full max-w-7xl flex-1 p-4 sm:p-7" data-parcours-intervention={estProprietaire || undefined} data-proprietaire={estProprietaire || undefined} data-selection={sel ? "active" : undefined}>
-      <header className="incidents-entete">
+      <header className="entete-page incidents-entete">
         <div>
           <TitreEcran rubrique="incidents">Incidents</TitreEcran>
           {!estProprietaire && <p>Du signalement à la résolution, gardez le fil de chaque intervention.</p>}
@@ -248,7 +248,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
           bloque rien, elle se propose. Un lien par dossier, pas une modale :
           on note en rouvrant l'intervention, avec le chantier sous les yeux. */}
       {aEvaluer.length > 0 && (!estProprietaire || !sel) && (
-        <div className="mb-4 border-l-2 border-l-[var(--or)] bg-[var(--survol)] px-3.5 py-2.5 text-sm">
+        <div className="mb-4 rounded-[var(--rayon-carte)] border border-[var(--or-filet)] bg-[var(--or-clair)] px-4 py-3 text-sm">
           <p className="font-medium">
             {aEvaluer.length} intervention{aEvaluer.length > 1 ? "s" : ""} terminée
             {aEvaluer.length > 1 ? "s" : ""} attend{aEvaluer.length > 1 ? "ent" : ""} votre
@@ -366,7 +366,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                   {!estProprietaire && <span className="incident-rang-suivi">
                     {i.responsable_account_id
                       ? `Suivi par ${emails.get(i.responsable_account_id) ?? "un gestionnaire"}`
-                      : "À attribuer"}
+                      : "À attribuer à un gestionnaire"}
                   </span>}
                 </Link>
               );

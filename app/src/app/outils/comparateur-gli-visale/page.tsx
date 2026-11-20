@@ -39,7 +39,7 @@ export default function PageComparateurGliVisale() {
       }
       bonASavoir={
         <>
-          <p className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] px-3.5 py-2.5 text-[var(--encre)]">
+          <p className="rounded-[var(--rayon-bouton)] border border-[var(--or-filet)] bg-[var(--carte)] px-3.5 py-2.5 text-[var(--encre)]">
             Règles Visale vérifiées le {DATE_VERIFICATION_VISALE} auprès d&apos;Action Logement. Les plafonds changent
             chaque année : ils sont à revérifier chaque mois de janvier, sur{" "}
             <a href="https://www.visale.fr" target="_blank" rel="noopener noreferrer" className="lien-texte">

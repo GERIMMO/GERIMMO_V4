@@ -68,8 +68,8 @@ export default async function PageReglesArtisan(props: PageProps<"/artisan/regle
             <Carte key={i.id}>
               <TitreSection>{i.titre}</TitreSection>
               <p className="whitespace-pre-line text-base text-[var(--corps)]">{i.resume}</p>
-              <div className="mt-4 rounded-lg bg-[var(--marque-clair)] p-4">
-                <p className="font-medium text-[var(--encre)]">Ce que vous pouvez prévoir</p>
+              <div className="mt-4 rounded-[var(--rayon-champ)] bg-[var(--filet-leger)] p-4">
+                <p className="font-semibold text-[var(--encre)]">Ce que vous pouvez prévoir</p>
                 <p className="mt-2 whitespace-pre-line text-[0.9375rem] text-[var(--corps)]">
                   {i.action_conseillee}
                 </p>
@@ -121,12 +121,11 @@ export default async function PageReglesArtisan(props: PageProps<"/artisan/regle
         </nav>
       )}
 
-      <Carte>
-        <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Cette sélection aide à repérer les changements. Elle ne remplace pas
-          l&apos;examen de votre situation par un professionnel compétent.
-        </p>
-      </Carte>
+      {/* Une mise en garde, pas une règle : elle n'a plus le poids d'une carte. */}
+      <p className={CLASSE_AIDE}>
+        Cette sélection aide à repérer les changements. Elle ne remplace pas
+        l&apos;examen de votre situation par un professionnel compétent.
+      </p>
     </div>
   );
 }

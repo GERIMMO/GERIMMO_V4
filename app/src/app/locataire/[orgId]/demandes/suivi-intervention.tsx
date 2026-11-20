@@ -341,7 +341,7 @@ function ChoixDuCreneau({
                       liseré. */}
                   <Label
                     htmlFor={`${idGroupe}-c${i}`}
-                    className="min-h-11 w-full cursor-pointer rounded-[10px] border border-input px-3 py-2.5 text-sm font-normal before:size-4 before:shrink-0 before:rounded-full before:border-2 before:border-input peer-checked:border-[var(--or)] peer-checked:bg-[var(--ardoise)] peer-checked:font-medium peer-checked:before:border-[var(--or)] peer-checked:before:bg-[var(--or)] peer-checked:before:shadow-[inset_0_0_0_2px_var(--ardoise)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring)]"
+                    className="min-h-11 w-full cursor-pointer rounded-[var(--rayon-champ)] border border-input px-3 py-2.5 text-sm font-normal before:size-4 before:shrink-0 before:rounded-full before:border-2 before:border-input peer-checked:border-[var(--or)] peer-checked:bg-[var(--ardoise)] peer-checked:font-medium peer-checked:before:border-[var(--or)] peer-checked:before:bg-[var(--or)] peer-checked:before:shadow-[inset_0_0_0_2px_var(--ardoise)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring)]"
                   >
                     {plage(c.debut, c.fin)}
                   </Label>
@@ -467,7 +467,7 @@ function TravailFait({
   return (
     <div className="mt-2.5 space-y-2.5">
       {suivi.travaux_realises && (
-        <div className="rounded-[10px] bg-[var(--filet-leger)] p-3 text-sm">
+        <div className="rounded-[var(--rayon-champ)] bg-[var(--filet-leger)] p-3 text-sm">
           <p className="text-xs text-muted-foreground">
             Compte rendu de {suivi.artisan ?? "l'artisan"}
           </p>

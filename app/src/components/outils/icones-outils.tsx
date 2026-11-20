@@ -113,14 +113,14 @@ export function IconeTrait({ nom, className = "size-6" }: { nom: CleIcone; class
   );
 }
 
-/** La tuile d'icône d'un outil : pastille bleu pâle, trait bleu de marque. */
+/** La tuile d'icône d'un outil : pastille or clair à filet champagne, trait bleu nuit (vitrine.css). */
 export function TuileOutil({ chemin, taille = "md" }: { chemin: string; taille?: "sm" | "md" | "lg" }) {
   const { icone } = presentationOutil(chemin);
   return <TuileIcone nom={icone} taille={taille} />;
 }
 
 export function TuileIcone({ nom, taille = "md" }: { nom: CleIcone; taille?: "sm" | "md" | "lg" }) {
-  const boite = taille === "lg" ? "size-14 rounded-2xl" : taille === "sm" ? "size-10 rounded-xl" : "size-12 rounded-[14px]";
+  const boite = taille === "lg" ? "size-14 rounded-[var(--rayon-carte)]" : taille === "sm" ? "size-10 rounded-[var(--rayon-bouton)]" : "size-12 rounded-[var(--rayon-carte)]";
   const trait = taille === "lg" ? "size-7" : taille === "sm" ? "size-5" : "size-6";
   return (
     <span className={`outil-tuile ${boite}`}>

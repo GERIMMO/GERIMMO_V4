@@ -33,7 +33,7 @@ export default async function PageResiliation(props: PageProps<"/agence/[orgId]/
   if (error || !paiement || ligne === undefined) {
     return (
       <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
-        <EnteteReglages rubrique="abonnement" titre="Résilier votre contrat" />
+        <EnteteReglages rubrique="abonnement" titre="Résilier votre contrat" retour={{ href: `${base}/abonnement`, libelle: "Mon abonnement" }} />
         <EncadreLectureImpossible>Votre abonnement n&apos;a pas pu être lu. Rechargez la page dans un instant.</EncadreLectureImpossible>
       </main>
     );
@@ -48,7 +48,7 @@ export default async function PageResiliation(props: PageProps<"/agence/[orgId]/
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
-      <EnteteReglages rubrique="abonnement" titre="Résilier votre contrat" mention={organisation.name}>
+      <EnteteReglages rubrique="abonnement" titre="Résilier votre contrat" mention={organisation.name} retour={{ href: `${base}/abonnement`, libelle: "Mon abonnement" }}>
         La résiliation prend effet à la prochaine échéance. Vérifiez le récapitulatif, puis notifiez-la.
       </EnteteReglages>
 
@@ -71,14 +71,14 @@ export default async function PageResiliation(props: PageProps<"/agence/[orgId]/
           <dl className="space-y-1 text-sm">
             <div className="ligne-info">
               <dt>Contrat</dt>
-              <dd className="montant">
+              <dd>
                 Abonnement Gerimmo{formule && organisation.type !== "agence" ? `, formule ${formule}` : ""}
                 {paiement.periodicite === "annuel" ? " (annuel)" : " (mensuel)"}
               </dd>
             </div>
             <div className="ligne-info">
               <dt>Espace</dt>
-              <dd className="montant">{organisation.name}</dd>
+              <dd>{organisation.name}</dd>
             </div>
             {ligne?.souscrit_le && (
               <div className="ligne-info">
@@ -91,13 +91,13 @@ export default async function PageResiliation(props: PageProps<"/agence/[orgId]/
               <dd className="montant">{fin ? `${fin} (prochaine échéance)` : "la prochaine échéance"}</dd>
             </div>
           </dl>
-          <p className="mesure-lecture text-sm text-muted-foreground">
+          <p className="mesure-lecture text-sm">
             Votre abonnement prendra fin le {fin ?? "jour de la prochaine échéance"}. Jusque-là, votre accès payé reste entier. Ensuite,
             votre compte passe en lecture seule : vos données restent consultables et exportables ; rien n&apos;est supprimé du seul
             fait de la résiliation. La période en cours n&apos;est pas remboursée.
           </p>
           {retractation.ouverte && retractation.dernierJour && (
-            <p className="mesure-lecture border-l-4 border-l-[var(--or)] pl-3 text-sm">
+            <p className="mesure-lecture rounded-[var(--rayon-carte)] border border-[var(--or-filet)] bg-[var(--or-clair)] p-3 text-sm">
               Vous êtes encore dans votre délai de rétractation, jusqu&apos;au {jourEnLettres(retractation.dernierJour)} inclus : vous pouvez
               aussi{" "}
               <Link href={`${base}/abonnement/retractation`} className="underline underline-offset-4">

@@ -128,7 +128,7 @@ export function GenerateurQuittance() {
           <Champ id="q-periode" type="month" libelle="Mois" valeur={periode} onChange={setPeriode} />
           <Champ id="q-date" type="date" libelle="Date du paiement" valeur={datePaiement} onChange={setDatePaiement} />
         </div>
-        <button type="button" onClick={moisSuivantClic} className="btn-secondaire min-h-11">
+        <button type="button" onClick={moisSuivantClic} className="btn-secondaire">
           Mois suivant
           <span aria-hidden>→</span>
         </button>
@@ -204,7 +204,7 @@ export function GenerateurQuittance() {
       }
     >
       <div>
-        <p data-testid="q-type" className="font-heading text-[22px] font-extrabold leading-tight tracking-[-0.015em] text-[var(--encre)]">
+        <p data-testid="q-type" className="outil-verdict text-[var(--encre)]">
           {r.titre}
         </p>
         <p className="mt-1 text-[13.5px] text-[var(--texte-secondaire)]">
@@ -236,7 +236,7 @@ export function GenerateurQuittance() {
           Le terme n&apos;est pas soldé : le document est un reçu de paiement partiel, qui ne vaut pas quittance.
         </Alerte>
       )}
-      <button type="button" onClick={() => window.print()} className="btn-or min-h-11 w-full justify-center !py-3 !text-[14.5px]">
+      <button type="button" onClick={() => window.print()} className="btn-or w-full justify-center">
         <IconeImprimer />
         Imprimer {r.estQuittance ? "la quittance" : "le reçu"}
       </button>

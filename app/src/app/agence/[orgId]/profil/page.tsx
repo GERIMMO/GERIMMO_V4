@@ -156,7 +156,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
       </div>
 
       <details className="loc-carte" open={!estProprietaire || undefined}>
-        <summary className="cursor-pointer font-semibold">Parrainage — {filleuls} filleul{filleuls > 1 ? "s" : ""}</summary>
+        <summary className="min-h-11 cursor-pointer content-center font-semibold">Parrainage — {filleuls} filleul{filleuls > 1 ? "s" : ""}</summary>
         <div className="mt-4">
         <div className="entete-carte">
           <h2 className="titre-carte leading-[inherit]">Parrainage</h2>
@@ -242,7 +242,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
       </details>
 
       <details className="loc-carte" open={!estProprietaire || undefined}>
-        <summary className="cursor-pointer font-semibold">Signature préenregistrée — facultatif</summary>
+        <summary className="min-h-11 cursor-pointer content-center font-semibold">Signature préenregistrée — facultatif</summary>
         <div className="mt-4">
         <div className="entete-carte">
           <h2 className="titre-carte leading-[inherit]">Signature préenregistrée</h2>

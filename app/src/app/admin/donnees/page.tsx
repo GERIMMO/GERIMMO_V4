@@ -1,4 +1,5 @@
 import { ConsoleSection } from "@/components/console-section";
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -10,7 +11,8 @@ import { ControleArchivesSignatures } from "./archives";
 import { BilanConservationContacts } from "./bilan-conservation";
 import { FermeturesComptes, comptesAvecFermetureProgrammee, supervisionPermanente } from "./fermetures";
 import { ProgrammerFermeture } from "./programmer-fermeture";
-export const metadata = { title: "Données personnelles et fermeture des comptes" };
+// Le nom de l'onglet de rubrique : le titre de l'écran et celui de l'onglet du navigateur le reprennent.
+export const metadata = { title: "Demandes sur les données" };
 const ETAPES = [
   ["Qualifier la demande", "Vérifier le titulaire connecté, les données concernées et le responsable de traitement. Ne demander une pièce supplémentaire qu’en cas de doute justifié. Répondre sous un mois ; expliquer toute prolongation dans ce délai."],
   ["Séparer effacement et conservation", "Recenser le compte, les dossiers, les documents, les pièces comptables et les signatures. Pour chaque conservation : motif, accès restreint et date de fin. Un litige ou une facture ne justifie pas de garder tout le compte."],
@@ -35,28 +37,29 @@ export default async function PageDonneesAdmin({ searchParams }: { searchParams:
   const titresFermeture = new Set([PREFIXE_DEMANDE_DONNEES + TYPES_DEMANDE_DONNEES.fermeture, PREFIXE_DEMANDE_DONNEES + TYPES_DEMANDE_DONNEES.effacement]);
   const aujourdHui = new Intl.DateTimeFormat("en-CA", {timeZone:"Europe/Paris",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   const adresse = (n: number) => `?etat=${terminees?"resolu":"ouvert"}&page=${n}`;
-  return <main className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-7">
-    <Link className="lien-discret" href="/admin/securite">← Sécurité et conformité</Link>
-    <header><p className="eyebrow">Confidentialité et comptes</p><h1>Demandes sur les données</h1><p className="mt-2 text-muted-foreground">Une file privée, de la demande à la réponse. Les opérations d’effacement restent contrôlées et tracées.</p></header>
-    <div className="flex flex-wrap gap-3"><Link className="btn-secondaire" href="?etat=ouvert" aria-current={!terminees?"page":undefined}>À traiter</Link><Link className="btn-secondaire" href="?etat=resolu" aria-current={terminees?"page":undefined}>Terminées</Link><Link className="lien-discret" href="/admin/conservation">Régler les durées</Link><Link className="lien-discret" href="/admin/sante#sauvegarde">Dernière sauvegarde</Link></div>
+  return <main>
+    <header className="entete-page"><div><TitreEcran rubrique="securite">Demandes sur les données</TitreEcran><p className="mt-2 text-muted-foreground">Une file privée, de la demande à la réponse. Les opérations d’effacement restent contrôlées et tracées.</p></div>
+      <div className="flex flex-wrap gap-2"><Link className="btn-secondaire" href="/admin/conservation">Régler les durées</Link><Link className="btn-secondaire" href="/admin/sante#sauvegarde">Dernière sauvegarde</Link></div></header>
+    <nav aria-label="État des demandes" className="mb-5 flex flex-wrap gap-2"><Link className={`filtre${!terminees?" actif":""}`} href="?etat=ouvert" aria-current={!terminees?"page":undefined}>À traiter</Link><Link className={`filtre${terminees?" actif":""}`} href="?etat=resolu" aria-current={terminees?"page":undefined}>Terminées</Link></nav>
 
     <section aria-label="Demandes privées" className="space-y-4">
-      {r.error?<p role="alert" className="err">Lecture indisponible : aucun total ni statut ne peut être confirmé.</p>:<p className="text-sm">{r.count ?? 0} demande{r.count===1?"":"s"} {terminees?"terminée(s)":"à traiter"}.</p>}
+      {r.error?<p role="alert" className="err">Lecture indisponible : aucun total ni statut ne peut être confirmé.</p>:<p className="text-sm text-muted-foreground" role="status">{r.count ?? 0} demande{r.count===1?"":"s"} {terminees?"terminée(s)":"à traiter"}.</p>}
+      {!r.error&&demandes.length===0&&<div className="vide-guide"><p className="titre">{terminees?"Aucune demande terminée":"Aucune demande à traiter"}</p><p className="explication">Les demandes de copie, de correction, d’effacement des données ou de fermeture de compte envoyées par les utilisateurs arrivent ici, avec leur date limite de première réponse.</p><div className="geste"><Link className="btn-secondaire" href={terminees?"?etat=ouvert":"?etat=resolu"}>{terminees?"Voir les demandes à traiter":"Voir les demandes terminées"}</Link></div></div>}
       {demandes.map(d=>{const limite=echeanceDemandeDonnees(d.cree_le);const retard=!terminees&&!d.reponse&&limite&&limite<aujourdHui;return <article key={d.id} className="loc-carte space-y-3">
-        <div className="flex flex-wrap justify-between gap-2"><h2>{d.titre.replace(PREFIXE_DEMANDE_DONNEES,"")}</h2><span className="puce">{ETATS_RETOUR[d.etat]}</span></div>
+        <div className="flex flex-wrap items-start justify-between gap-2"><h2 className="text-[length:var(--titre-2)]">{d.titre.replace(PREFIXE_DEMANDE_DONNEES,"")}</h2><span className={`puce ${d.etat==="resolu"?"puce-loue":"puce-prep"}`}>{ETATS_RETOUR[d.etat]}</span></div>
         <p className={retard?"text-sm text-destructive":"text-sm text-muted-foreground"}>Réf. {d.id.slice(0,8).toUpperCase()} · Reçue le {formaterDateParis(d.cree_le)} · Première réponse avant le {limite?formaterDateParis(limite):"date à vérifier"}{retard?" — échéance initiale dépassée":""}</p>
-        <Link className="lien-discret text-sm" href={`/admin/comptes/${d.auteur_id}`}>Ouvrir le compte demandeur →</Link>
-        <p className="whitespace-pre-wrap">{d.description}</p>{d.reponse&&<p className="rounded-lg bg-[var(--creme)] p-3 whitespace-pre-wrap"><strong>Dernière réponse</strong><br/>{d.reponse}</p>}
-        <details className="text-sm"><summary className="cursor-pointer">Historique de la demande</summary>{historique.error ? <p role="alert">Historique indisponible.</p> : <ol className="mt-2 space-y-2">{(historique.data ?? []).filter(h => h.retour_id === d.id).map(h => <li key={h.id}><time>{formaterDateParis(h.cree_le)}</time><p className="whitespace-pre-wrap">{h.message}</p></li>)}</ol>}</details>
+        <Link className="lien-discret" href={`/admin/comptes/${d.auteur_id}`}>Ouvrir le compte demandeur →</Link>
+        <p className="whitespace-pre-wrap">{d.description}</p>{d.reponse&&<p className="rounded-lg bg-[var(--filet-leger)] p-3 whitespace-pre-wrap"><strong>Dernière réponse</strong><br/>{d.reponse}</p>}
+        <details className="text-sm"><summary className="min-h-11 cursor-pointer content-center underline underline-offset-4">Historique de la demande</summary>{historique.error ? <p role="alert" className="err">Historique indisponible.</p> : <ol className="mt-2 space-y-2">{(historique.data ?? []).filter(h => h.retour_id === d.id).map(h => <li key={h.id}><time>{formaterDateParis(h.cree_le)}</time><p className="whitespace-pre-wrap">{h.message}</p></li>)}</ol>}</details>
         {!terminees && permanente && titresFermeture.has(d.titre) && !programmees.has(d.auteur_id) && <ProgrammerFermeture accountId={d.auteur_id} demandeId={d.id}/>}
         <DecisionRetour retour={d} donneesPersonnelles/>
       </article>})}
-      {(page>1||(r.count??0)>20)&&<nav aria-label="Pages des demandes de données" className="flex justify-between">{page>1?<Link href={adresse(page-1)}>Précédente</Link>:<span/>}<span>Page {page}</span>{page*20<(r.count??0)&&<Link href={adresse(page+1)}>Suivante</Link>}</nav>}
+      {(page>1||(r.count??0)>20)&&<nav aria-label="Pages des demandes de données" className="flex flex-wrap items-center justify-between gap-3 text-sm">{page>1?<Link className="btn-secondaire" href={adresse(page-1)}>← Précédente</Link>:<span/>}<span>Page {page} sur {Math.max(1,Math.ceil((r.count??0)/20))}</span>{page*20<(r.count??0)?<Link className="btn-secondaire" href={adresse(page+1)}>Suivante →</Link>:<span/>}</nav>}
     </section>
     <FermeturesComptes />
     <ConsoleSection titre="Archives des signatures" description="Contrôler les preuves et les copies chez les prestataires." icone="documents"><ControleArchivesSignatures /></ConsoleSection>
     <ConsoleSection titre="Simuler le nettoyage" description="Obtenir un bilan sans supprimer de données." icone="reglages" ton="vert"><BilanConservationContacts /></ConsoleSection>
-    <ConsoleSection titre="Comment traiter une demande" description="La procédure, de la réponse à la vérification finale." icone="documents"><p className="text-sm">Cette page enregistre les réponses et décisions, et programme les fermetures de comptes. Aucune suppression n’a lieu au clic : l’effacement s’exécute la nuit de la date d’effet, après la sauvegarde du jour, et reste annulable jusque-là.</p><ol className="space-y-4">{ETAPES.map(([titre,texte],i)=><li key={titre} className="flex gap-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--creme)] font-semibold">{i+1}</span><div><h3>{titre}</h3><p className="mt-1 text-sm text-muted-foreground">{texte}</p></div></li>)}</ol></ConsoleSection>
+    <ConsoleSection titre="Comment traiter une demande" description="La procédure, de la réponse à la vérification finale." icone="documents"><p className="text-sm">Cette page enregistre les réponses et décisions, et programme les fermetures de comptes. Aucune suppression n’a lieu au clic : l’effacement s’exécute la nuit de la date d’effet, après la sauvegarde du jour, et reste annulable jusque-là.</p><ol className="space-y-4">{ETAPES.map(([titre,texte],i)=><li key={titre} className="flex gap-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--or-clair)] text-sm font-semibold text-[var(--prestige-champagne-texte)]">{i+1}</span><div><h3 className="font-semibold">{titre}</h3><p className="mt-1 text-sm text-muted-foreground">{texte}</p></div></li>)}</ol></ConsoleSection>
     <p className="text-sm text-muted-foreground">Repère : <a className="lien-discret" href="https://www.cnil.fr/fr/passer-laction/les-droits-des-personnes-sur-leurs-donnees" target="_blank" rel="noreferrer">droits des personnes — CNIL</a>. Les durées configurées doivent être justifiées par catégorie ; elles ne remplacent pas une validation juridique.</p>
   </main>;
 }

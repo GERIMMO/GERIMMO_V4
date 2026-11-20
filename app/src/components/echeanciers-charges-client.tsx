@@ -15,11 +15,13 @@ export function ProposerPlanCharges({org,regularisation,annee,montant,aujourdhui
   <Message etat={etat}/><BoutonEnvoi enCours={pending} enCoursTexte="Préparation du PDF…">Créer le PDF et proposer l’échéancier</BoutonEnvoi>
  </form></details>;
 }
-export function PlanCharges({org,plan,proprietaire,aujourdhui,base}:{org:string;plan:EcheancierCharges;proprietaire:boolean;aujourdhui:string;base:string}){
+export function PlanCharges({org,plan,proprietaire,aujourdhui,base,niveauTitre=4}:{org:string;plan:EcheancierCharges;proprietaire:boolean;aujourdhui:string;base:string;niveauTitre?:3|4}){
  const [etat,action,pending]=useActionStateProtegee(agirEcheancierCharges.bind(null,org,plan.id,proprietaire),{} as EtatEcheancierCharges);
  const reste=resteEcheancierCharges(plan);
+ // Le titre du plan suit celui de la carte qui le contient : jamais de saut de niveau.
+ const Titre=`h${niveauTitre}` as const;
  return <article className={styles.plan}>
-  <div className={styles.entete}><h4>{proprietaire?'Charges à suivre':'Votre échéancier de charges'}</h4><strong>{eur(reste/100)} restant{reste>100?'s':''}</strong></div>
+  <div className={styles.entete}><Titre>{proprietaire?'Charges à suivre':'Votre échéancier de charges'}</Titre><strong>{eur(reste/100)} restant{reste>100?'s':''}</strong></div>
   {!plan.publie_le?<p className={styles.aide}>Brouillon conservé. Reprenez la proposition pour produire son PDF.</p>:<>
    {plan.document_id&&<ApercuDocumentEspace fichier={`${base}/documents/${plan.document_id}/fichier`} titre="Décompte et échéancier de charges"/>}
    {!plan.accepte_le?(proprietaire?<p className={styles.message}>Proposition transmise · accord du locataire attendu.</p>:<form action={action} data-saisie-confirmee className={styles.accord}><input name="action" type="hidden" value="accepter"/><label><input type="checkbox" name="accord" required/> J’ai consulté le décompte et j’accepte les montants et dates de cet échéancier.</label><BoutonEnvoi enCours={pending}>Accepter l’échéancier</BoutonEnvoi></form>):<p className={styles.aide}>Échéancier accepté le {formaterDate(plan.accepte_le.slice(0,10))}.</p>}

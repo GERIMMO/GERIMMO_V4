@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
+// La feuille de la vitrine porte aussi les portes d'entrée (titre à la taille commune, promesse, messages).
+import "@/app/vitrine.css";
 
 /**
  * Gabarit commun des quatre PORTES D'ENTRÉE : connexion, inscription, mot de
@@ -15,6 +17,9 @@ import { MarqueGerimmo } from "@/components/marque-gerimmo";
  *
  * Le panneau encre ne s'affiche qu'à partir de `lg` : sur téléphone et tablette, la marque
  * passe au-dessus du formulaire, comme avant.
+ *
+ * Design System « Maison » (20/11) : le h1 prend la taille commune des espaces (`--titre-1`, vitrine.css) et la
+ * promesse du panneau est dessinée par une seule classe (`auth-promesse`, police des titres).
  */
 export function CoquilleAuth({
   promesse,
@@ -49,9 +54,7 @@ export function CoquilleAuth({
         <div>
           {/* Le panneau porte la promesse, pas le titre de la page : deux h1
               dans un même document se disputeraient la structure. */}
-          <p className="max-w-[14ch] font-heading text-[2.25rem] font-extrabold leading-[1.1] tracking-[-0.02em] text-[var(--sur-marque)] sm:max-w-[16ch]">
-            {promesse}
-          </p>
+          <p className="auth-promesse">{promesse}</p>
           {benefices ? (
             <ul className="mt-6 max-w-[26em] space-y-4 text-[15px] leading-relaxed text-[var(--sur-marque)]/90">
               {benefices.map(benefice => <li key={benefice} className="flex gap-3"><span aria-hidden="true">✓</span><span>{benefice}</span></li>)}

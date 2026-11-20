@@ -3,7 +3,7 @@
  * layout racine (audit #264). Les règles vérifiées ici ne se voient qu'au rendu :
  *  - ED-02 : au téléphone et à la tablette, le menu de la supervision reste clair et ses liens lisibles (≥ 4,5:1) ;
  *  - ED-05 : au téléphone, l'en-tête du locataire reste blanc (la tuile du nom ne flotte pas sur la photo) ;
- *  - ED-03 : la charte d'une agence colore le bouton d'action principal de l'espace locataire ;
+ *  - ED-03 : la charte d'une agence colore le bouton d'action principal de l'espace locataire (bleu nuit sans charte) ;
  *  - TRV-12 : le repère saisonnier quitte l'en-tête du propriétaire à ≤ 420 px ;
  *  - TRV-08 : sous 500 px de haut, l'en-tête du propriétaire n'est plus collant ;
  *  - TRV-02 : la recherche ouverte (dialogue natif) bloque le défilement de la page derrière elle ;
@@ -19,7 +19,8 @@ import { contraste, styleMarque } from "../src/lib/marque-organisation";
 const racine = resolve(__dirname, "..");
 const chrome = [process.env.GERIMMO_CHROME, process.env.PLAYWRIGHT_CHROMIUM, chromium.executablePath()].find((p): p is string => Boolean(p && existsSync(p)));
 // L'ordre d'import de src/app/layout.tsx : c'est lui qui départage les règles de même spécificité.
-const FEUILLES = ["globals", "prestige", "harmonie", "proprietaire", "experience-unifiee", "ambiances"]
+// 20/11/2026 : le layout charge en dernier `systeme.css` (Design System « Maison »), qui porte les jetons du menu.
+const FEUILLES = ["globals", "prestige", "harmonie", "proprietaire", "experience-unifiee", "ambiances", "systeme"]
   .map(nom => readFileSync(resolve(racine, `src/app/${nom}.css`), "utf8"));
 const charte = Object.entries(styleMarque({ couleur_primaire: "#0a6e46", couleur_secondaire: "#3b1f5c" }) as Record<string, string>)
   .map(([cle, valeur]) => `${cle}:${valeur}`).join(";");
@@ -84,10 +85,12 @@ describe.skipIf(!chrome)("feuilles de style des espaces (audit #264)", () => {
   });
 
   for (const largeur of [390, 1440]) {
-    it(`ED-03 : à ${largeur} px, le bouton principal prend la couleur de la charte, l'or de Gerimmo sans charte`, async () => {
+    // Design System du 20/11/2026 : sans charte, l'action principale est bleu nuit dans tous les espaces (elle était or
+    // dans le seul espace locataire) ; l'or reste l'accent. La charte d'une agence la colore toujours.
+    it(`ED-03 : à ${largeur} px, le bouton principal prend la couleur de la charte, le bleu nuit de Gerimmo sans charte`, async () => {
       const page = await ouvrir(largeur, 900, true);
       expect(await style(page, "#locataire-charte .btn-or")).toMatchObject({ fond: "rgb(10, 110, 70)", couleur: "rgb(255, 255, 255)" });
-      expect(await style(page, "#locataire .btn-or")).toMatchObject({ fond: "rgb(214, 187, 131)", couleur: "rgb(23, 40, 62)" });
+      expect(await style(page, "#locataire .btn-or")).toMatchObject({ fond: "rgb(20, 48, 79)", couleur: "rgb(255, 255, 255)" });
       await page.close();
     });
   }

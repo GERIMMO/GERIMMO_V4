@@ -112,7 +112,7 @@ export function EtapesSaisie({ titre, etapes, contenus, conclusion, activer = tr
     if (panneau) { setEtape(Number(panneau.dataset.panneau)); requestAnimationFrame(() => { premier?.focus(); }); }
   }}>
     <NavigationParcours titre={titre} label={`Étapes : ${titre}`} etapes={etapes} etape={etape} changer={changer} />
-    <div data-corps-etapes className="rounded-2xl border border-[var(--filet)] bg-[var(--papier)] p-4 sm:p-6">
+    <div data-corps-etapes className={`${styles.corpsEtapes} p-4 sm:p-6`}>
       {afficherNumeroEtape && <p className="eyebrow">Étape {etape + 1} / {etapes.length}</p>}
       <h2 id={id} tabIndex={-1} className="mt-1 text-xl">{etapes[etape].titre}</h2>
       <p className="mb-5 mt-1 text-sm text-muted-foreground">{etapes[etape].detail}</p>

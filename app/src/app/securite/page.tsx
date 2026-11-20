@@ -21,7 +21,7 @@ export default async function PageSecurite({ searchParams }: PageProps<'/securit
     {/* Le titre ne prétend plus qu'un code « est requis » quand la session est
         déjà vérifiée (audit 25/09, C24) : la carte dessous dit l'état réel. */}
     <p className="eyebrow">Protection du compte</p>
-    <h1 className="mt-2 text-3xl font-semibold">Sécurité du compte</h1>
+    <h1 className="mt-2">Sécurité du compte</h1>
     <p className="mt-3 text-muted-foreground">Utilisez le code de votre application d’authentification pour accéder à votre espace.</p>
     <FormulaireMfa suite={destinationApresMfa(typeof params.suite === 'string' ? params.suite : null)} />
     <p className="mt-7 text-sm text-muted-foreground">En cas de perte de l’application, demandez au responsable technique de réinitialiser la double authentification de votre compte, après vérification de votre identité. Le mot de passe seul ne permet pas de contourner cette protection.</p>

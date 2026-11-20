@@ -34,7 +34,7 @@ export function ApercuDevis({sollicitationId, valide, onValide, bloque = false, 
     <p className="mt-2 text-sm text-muted-foreground">Après votre validation, Gerimmo génère le PDF avec les coordonnées et le logo de votre entreprise. Rien n’est envoyé à cette étape.</p>
     <label className="my-4 flex items-start gap-3 text-sm"><input key={String(valide)} type="checkbox" name="validation_artisan" value="oui" defaultChecked={valide} required className="mt-0.5 size-5 shrink-0 accent-[var(--encre)]"/>J’ai vérifié les prestations, les quantités, les prix, la TVA et les conditions de mon devis.</label>
     <button type="button" disabled={chargement||bloque} onClick={generer} className={CLASSE_BOUTON_PRINCIPAL}>{chargement?"Génération du PDF…":valide?"Régénérer le PDF validé":"Valider et générer le PDF"}</button>
-    {valide&&<p role="status" className="mt-3 text-sm text-emerald-800">PDF validé et enregistré. Passez à l’envoi pour le consulter et le transmettre.</p>}
+    {valide&&<p role="status" className={`mt-3 text-sm ${styles.etatOk}`}>PDF validé et enregistré. Passez à l’envoi pour le consulter et le transmettre.</p>}
     {erreur&&<div className="mt-3"><Erreur>{erreur}</Erreur></div>}
   </div>;
 }

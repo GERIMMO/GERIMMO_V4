@@ -195,7 +195,9 @@ export default async function PageMission(
           discrets : deux boutons de même poids laissaient croire qu'il
           fallait faire quelque chose. */}
       {mission.statut === "acceptee" && attendLocataire && (
-        <Carte className="border-l-4 border-l-[var(--warning)]">
+        // Le filet d'état ne reste que si un geste est attendu (dates à reproposer, lecture à vérifier) :
+        // quand le locataire choisit, c'est une information.
+        <Carte className={creneaux.erreur || mesDates.length === 0 ? "border-l-4 border-l-[var(--warning)]" : undefined}>
           <TitreSection>
             {creneaux.erreur ? "Disponibilité à vérifier" : mesDates.length ? "Le locataire choisit un créneau" : "Proposez de nouvelles dates"}
           </TitreSection>

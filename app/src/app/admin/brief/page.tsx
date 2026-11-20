@@ -8,6 +8,7 @@ import { chargerFaitsDirection } from "@/lib/faits-direction";
 import { ListeEquipes } from "./liste-equipes";
 import { FaitsDeDirection } from "./faits-direction";
 import { TitreEcran } from "@/components/titre-ecran";
+import { ValeurVivante } from "@/components/valeur-vivante";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { faitsManquants } from "@/lib/editeur";
@@ -82,7 +83,6 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
     <main className={styles.page} data-vue={vue}>
       <header className={styles.hero}>
         <div className={styles.heroIntro}>
-          <p className={styles.eyebrow}>Gerimmo / Direction générale</p>
           <TitreEcran rubrique="suivi">{vue === "bureau" && !estAujourdhui ? "Bureau de direction" : titre}</TitreEcran>
           <p className={styles.subtitle}>{vue === "decisions" ? "Les problèmes d’abord, puis les accords et les contenus." : vue === "equipes" ? "Les résultats de chaque équipe, les difficultés rencontrées et les décisions attendues." : "Le service, les clients et vos prochaines décisions."}</p>
         </div>
@@ -101,13 +101,13 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
       {vue === "bureau" && estAujourdhui && <AccueilDirigeant finance={snapshotFinance} assistance={!assistance.error && typeof assistance.count === "number" ? assistance.count : null} decisions={decisions} aujourd={aujourdhui} faits={faits.snapshot} erreurFaits={faits.erreur} echecsEquipes={points.reduce((n, p) => n + p.contenu.echecs.length, 0)} />}
       <DetailsAccueil actif={vue === "bureau" && estAujourdhui} ouverte={Boolean(p.jour || p.equipe)}>
       {vue === "bureau" && <nav className={styles.overview} aria-label="Repères du jour">
-        <Link href="/admin/brief?vue=decisions" className={styles.metric} data-tone="ambre"><span className={styles.icon}><ClipboardCheck size={21} aria-hidden="true" /></span><span><strong>{lecturesEnEchec ? "À vérifier" : decisions.total}</strong><small>Sujets à traiter</small></span><ArrowRight size={17} aria-hidden="true" /></Link>
+        <Link href="/admin/brief?vue=decisions" className={styles.metric} data-tone="ambre"><span className={styles.icon}><ClipboardCheck size={21} aria-hidden="true" /></span><span><strong><ValeurVivante valeur={lecturesEnEchec ? "À vérifier" : decisions.total}>{lecturesEnEchec ? "À vérifier" : decisions.total}</ValeurVivante></strong><small>Sujets à traiter</small></span><ArrowRight size={17} aria-hidden="true" /></Link>
         <Link href="/admin/brief?vue=equipes" className={styles.metric} data-tone="bleu"><span className={styles.icon}><Users size={21} aria-hidden="true" /></span><span><strong>{Object.keys(EQUIPES).length}</strong><small>Équipes à votre service</small></span><ArrowRight size={17} aria-hidden="true" /></Link>
-        <Link href="/admin/brief?vue=equipes" className={styles.metric} data-tone="vert"><span className={styles.icon}><FileText size={21} aria-hidden="true" /></span><span><strong>{duJour.erreur ? "Indisponibles" : points.length ? points.filter(pt => pt.statut === "a_lire").length : "À préparer"}</strong><small>Comptes rendus à lire{points.length > 0 ? ` · ${points.length} disponibles` : ""}</small></span><ArrowRight size={17} aria-hidden="true" /></Link>
+        <Link href="/admin/brief?vue=equipes" className={styles.metric} data-tone="vert"><span className={styles.icon}><FileText size={21} aria-hidden="true" /></span><span><strong><ValeurVivante valeur={duJour.erreur ? "Indisponibles" : points.length ? points.filter(pt => pt.statut === "a_lire").length : "À préparer"}>{duJour.erreur ? "Indisponibles" : points.length ? points.filter(pt => pt.statut === "a_lire").length : "À préparer"}</ValeurVivante></strong><small>Comptes rendus à lire{points.length > 0 ? ` · ${points.length} disponibles` : ""}</small></span><ArrowRight size={17} aria-hidden="true" /></Link>
       </nav>}
 
       <div className={styles.workspace} data-vue={vue}>
-      {vue !== "equipes" && <aside className={styles.priorities} aria-label="Priorités et consignes">
+      {vue !== "equipes" && <div className={styles.priorities}>
       {/* ── Ce qui attend une décision, en premier ─────────────────────── */}
       <section className={`${styles.section} ${styles.decisions}`} id="a-decider">
         <div className="entete-carte mb-3">
@@ -121,8 +121,7 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
       {vue === "decisions" && <details className={styles.section} open={Boolean(p.pageDecisions || p.etatDecision)}><summary className="cursor-pointer font-semibold">Historique des décisions</summary><div className="mt-4"><SuiviDecisions page={p.pageDecisions} etat={p.etatDecision}/></div></details>}
       {vue === "bureau" && <aside className={styles.directorTools} aria-label="Commandes du dirigeant">
         <div className={styles.commandPanel}>
-          <p className={styles.commandEyebrow}>VOTRE POSTE DE COMMANDE</p>
-          <h2>Gardez la main.</h2>
+          <h2>Poste de commande</h2>
           <p>Les bons accès pour orienter Gerimmo.</p>
           <nav aria-label="Actions du dirigeant">
             <Link href="/admin/consignes"><PenLine size={19} aria-hidden="true" /><span><strong>Donner une consigne</strong><small>Fixer le cap et les limites</small></span><ArrowUpRight size={16} aria-hidden="true" /></Link>
@@ -132,13 +131,12 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
         </div>
         <section className={styles.relay} aria-labelledby="relais-titre">
           <Compass size={25} aria-hidden="true" />
-          <p className={styles.relayEyebrow}>CONTINUITÉ DE GERIMMO</p>
-          <h2 id="relais-titre">Partez l’esprit<br />plus tranquille.</h2>
+          <h2 id="relais-titre">Vacances et relais</h2>
           <p>Préparez votre relais, définissez les limites et gardez les décisions importantes.</p>
           <Link href="/admin/relais">Préparer mon absence <ArrowUpRight size={17} aria-hidden="true" /></Link>
         </section>
       </aside>}
-      </aside>}
+      </div>}
 
       {/* ── Les équipes : dernier passage, résultats, à valider ─────────── */}
       {vue !== "decisions" && <section className={styles.teams} id="equipes">
@@ -169,7 +167,7 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
             passage: passage ? `Dernier passage : ${formaterDateHeureParis(passage)}` : missionsDeLEquipe(pt.equipe).length === 0 ? "Décisions uniquement · aucun passage planifié" : "Aucun passage dans les dernières 24 h",
             bilanVide: !passage && pt.contenu.realisations.length === 0 && attente === 0 && pt.contenu.echecs.length === 0 };
         })} />}
-        <div className={styles.teamsFooter}><span>{NOTE_FUSEAU}</span><Link href="/admin/equipes">Commandes des équipes <ArrowRight size={14} aria-hidden="true" /></Link></div>
+        <div className={styles.teamsFooter}><span>{NOTE_FUSEAU}</span><Link href="/admin/equipes">Tâches automatiques <ArrowRight size={14} aria-hidden="true" /></Link></div>
       </section>}
       </div>
 
@@ -185,14 +183,14 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
             {(Object.keys(EQUIPES) as Equipe[]).map((e) => <Link key={e} href={lienJour(jour, e)} className={`filtre${filtreEquipe === e ? " actif" : ""}`}>{EQUIPES[e].nom}</Link>)}
           </nav>
         ) : null}
-        {historique.erreur ? <p role="alert" className="err">L’historique est indisponible.</p> : jours.size === 0 ? <p className="text-sm text-muted-foreground">Aucun autre point sur les quatorze derniers jours{filtreEquipe ? " pour cette équipe" : ""}.</p> : (
+        {historique.erreur ? <p role="alert" className="err">L’historique est indisponible.</p> : jours.size === 0 ? <p className="text-muted-foreground">Aucun autre point sur les quatorze derniers jours{filtreEquipe ? " pour cette équipe" : ""}.</p> : (
           <div className="colonne-liste">
             {[...jours.entries()].map(([j, pts]) => pts.map((pt) => {
               const attente = pt.decisions.filter((d) => d.statut === "en_attente").length;
               return (
                 <Link key={pt.id} href={`/admin/brief/${pt.equipe}?jour=${j}`} className="rang w-full">
                   <div className="min-w-0 flex-1"><b>{dateLongue(j)} · {pt.nom}</b><br /><small>{pluriel(pt.contenu.realisations.length, "résultat")} · {pluriel(pt.contenu.echecs.length, "échec")} · {pluriel(pt.decisions.length, "décision")}{attente > 0 ? ` (${attente} en attente)` : ""} · {pt.statut === "lu" ? "lu" : "non lu"}</small></div>
-                  <span className="lien-discret text-sm">Détail →</span>
+                  <span className="lien-discret">Détail →</span>
                 </Link>
               );
             }))}

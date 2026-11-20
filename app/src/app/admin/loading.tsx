@@ -21,7 +21,7 @@ export default function ChargementAdmin() {
           <div key={i} aria-hidden="true" className="squelette h-28" />
         ))}
       </div>
-      <div className="mt-5 border border-border bg-card p-4">
+      <div className="mt-5 rounded-[var(--rayon-carte)] border border-border bg-card p-4 shadow-[var(--ombre-1)]">
         {[0, 1, 2, 3, 4].map((i) => (
           <div key={i} className="flex items-center justify-between gap-4 py-3">
             <div aria-hidden="true" className="squelette h-4 w-1/2" />

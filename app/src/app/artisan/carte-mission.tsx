@@ -54,7 +54,7 @@ export function CarteMission({
   return (
     <Link
       href={`/artisan/missions/${ligne.intervention_id}${origine ? `?de=${origine}` : ""}`}
-      className="artisan-mission block rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] p-3.5 transition-colors hover:border-[var(--encre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)]"
+      className="artisan-mission block rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] p-3.5"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <MarqueAgence nom={ligne.agence_nom} />

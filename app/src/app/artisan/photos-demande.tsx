@@ -33,7 +33,7 @@ export function PhotosDeLaDemande({ photos, erreur, base }: {
               href={`${base}/${photo.document_id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="block min-h-11 overflow-hidden rounded-xl border border-[var(--filet)]"
+              className="block min-h-11 overflow-hidden rounded-[var(--rayon-champ)] border border-[var(--filet)]"
             >
               {/* eslint-disable-next-line @next/next/no-img-element -- fichier privé servi par une URL signée de 60 secondes : pas d'optimisation d'image possible */}
               <img

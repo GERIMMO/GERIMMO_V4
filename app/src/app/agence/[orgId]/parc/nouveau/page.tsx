@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { HousePlus } from "lucide-react";
 import styles from "@/components/presentation-parcours.module.css";
+import entete from "../entete-parcours.module.css";
 import { verifierAccesEspace } from "@/lib/espace";
 import { elementsManquantsDuBailleur } from "@/lib/profil-bailleur";
 import { FormulaireAvecBrouillon } from "./formulaire-avec-brouillon";
@@ -53,18 +54,18 @@ export default async function PageNouveauBien(
         href={`${base}/parc`}
         className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
       >
-        ← {estProprietaire ? "Mes lots" : "Parc de l'agence"}
+        ← {estProprietaire ? "Biens & locations" : role === "agent" ? "Mon portefeuille" : "Parc de l'agence"}
       </Link>
-      <header className={styles.enteteCreation}>
+      <header className={entete.entete}>
         <HousePlus size={27} aria-hidden="true"/>
         <div>
-        <span className={styles.surtitre}>Nouveau logement</span>
+        <span className={entete.surtitre}>{estProprietaire ? "Nouveau bien" : "Nouveau lot"}</span>
         <h1>{estProprietaire ? "Ajouter un bien" : "Créer un lot"}</h1>
         <p className="mt-2 text-sm text-muted-foreground">Renseignez le bien et ses logements. Les informations seront reprises dans les baux.</p>
         </div>
       </header>
       {depassement && (
-        <div className="loc-carte mb-4 border-l-4 border-l-[var(--or)]">
+        <div className="loc-carte mb-4">
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
               Votre formule couvre {depassement.capacite} bien{depassement.capacite > 1 ? "s" : ""}.

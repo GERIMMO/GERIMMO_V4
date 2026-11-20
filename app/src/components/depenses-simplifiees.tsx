@@ -67,8 +67,10 @@ function Saisie({p,fermer,guide=false}:{p:Props;fermer:(id?:string)=>void;guide?
     }catch{setMessage("La lecture n’a pas abouti. Votre facture et votre saisie sont conservées ; vous pouvez compléter les informations directement.");}
     finally{setLecture(false)}
   }
+  // Sur sa page, le formulaire suit le titre de l'écran ; replié dans le panneau du bien, il suit le <h2> du panneau.
+  const TitreSaisie = guide ? "h2" : "h3";
   return <form ref={form} action={action} onReset={e=>e.preventDefault()} data-saisie-confirmee className={styles.formulaire} aria-busy={pending||lecture}>
-    <div className={styles.entete}><h4>{guide ? "Facture et informations" : "Ajouter une facture"}</h4><button type="button" disabled={pending||lecture} onClick={()=>fermer()}>Annuler</button></div>
+    <div className={styles.entete}><TitreSaisie>{guide ? "Facture et informations" : "Ajouter une facture"}</TitreSaisie><button type="button" disabled={pending||lecture} onClick={()=>fermer()}>Annuler</button></div>
     <label className={styles.depot}><Upload size={22} aria-hidden="true"/><span>Facture ou justificatif</span><input ref={fichier} name="document" type="file" accept="application/pdf,image/jpeg,image/png" required disabled={pending||lecture} onChange={()=>{setMessage("");setNatureLue("");}}/></label>
     <button type="button" onClick={lire} disabled={pending||lecture} className={styles.lire}>{lecture ? "Lecture…" : "Préremplir depuis la facture"}</button>
     {message && <p role="status" className={styles.message}>{message}</p>}

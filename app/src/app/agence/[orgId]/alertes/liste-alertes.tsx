@@ -150,7 +150,7 @@ export function ListeAlertes({
     return (
       <button
         type="button"
-        className={`filtre inline-flex items-center justify-center gap-1.5 ${filtre === cle ? "actif" : ""}`}
+        className={`filtre inline-flex min-h-11 items-center justify-center gap-1.5 ${filtre === cle ? "actif" : ""}`}
         aria-pressed={filtre === cle}
         onClick={() => setFiltre(cle)}
       >

@@ -18,7 +18,7 @@ export function ResultatInventaireStripe({ inventaire: i }: { inventaire: Invent
     {!i ? <p role="status">L’inventaire global est indisponible.</p> : !i.passage_le ?
       <p>Premier contrôle prévu au prochain passage de la tâche Abonnements.</p> : <>
       <p className="mt-2 text-sm">{i.lus} souscriptions parcourues dans le cycle courant · {i.ecarts} rattachements à vérifier.</p>
-      {i.erreur && <p role="status" className="mt-2 text-sm text-amber-800 dark:text-amber-300">Le contrôle a été interrompu. Les écarts déjà trouvés sont conservés ; la suite sera reprise.</p>}
+      {i.erreur && <p role="status" className="mt-2 text-sm text-[var(--warning-soft-foreground)]">Le contrôle a été interrompu. Les écarts déjà trouvés sont conservés ; la suite sera reprise.</p>}
       {i.incomplet && <p className="mt-2 text-sm">Inventaire en cours : le prochain passage reprendra après la dernière page vérifiée.</p>}
       <p className="mt-1 text-xs text-muted-foreground">Dernier inventaire complet : {i.complet_le ? formaterDateHeureParis(i.complet_le) : "pas encore terminé"}.</p>
       <ul className="colonne-liste mt-2">{i.dossiers.map(d => <li key={d.souscription} className="rang block">

@@ -1,34 +1,39 @@
-.accueil { display:grid;gap:22px;margin-bottom:24px; }
-.sante { display:flex;align-items:flex-start;gap:16px;padding:22px 24px;border:1px solid #d4deea;border-radius:15px;background:linear-gradient(115deg,#edf3fa,#fcfaf5);color:var(--encre); }
-.sante > svg { flex-shrink:0;color:#3f617e;margin-top:3px; }
-.sante[data-attention="true"] { border-left:4px solid #a8762d; }
-.sante h2 { font:600 19px/1.4 var(--font-interface),sans-serif; }
-.sante p { font-size:12px;line-height:1.7;margin-top:6px;color:var(--texte-secondaire); }
-.sante a { text-decoration:underline;text-underline-offset:3px; }
+/* Accueil du dirigeant : état du service, six repères, demandes à traiter. Jetons du Design System « Maison » ;
+   aucune couleur en dur, aucun fond en dégradé, aucun texte sous 12 px. */
+.accueil { display:grid;gap:20px;margin-bottom:24px; }
+.sante { display:flex;align-items:flex-start;gap:16px;padding:20px 22px;border:1px solid var(--filet);border-radius:var(--rayon-carte);background:var(--carte);box-shadow:var(--ombre-1);color:var(--encre); }
+.sante > svg { flex-shrink:0;color:var(--success);margin-top:3px; }
+/* État métier : le liseré d'attention ne paraît que si un point demande une action. */
+.sante[data-attention="true"] { border-left:4px solid var(--warning); }
+.sante[data-attention="true"] > svg { color:var(--warning); }
+.sante h2 { font:600 18px/1.4 var(--font-interface),sans-serif;letter-spacing:normal; }
+.sante p { font-size:14px;line-height:1.6;margin-top:6px;color:var(--texte-secondaire); }
+.sante a { text-decoration:underline;text-underline-offset:3px;color:var(--encre); }
 .reserve { max-width:80ch; }
-.lecture { font-size:13px;line-height:1.6;border-left:3px solid #a8762d;padding:12px 16px;background:#fcf7ec; }
+.lecture { font-size:14px;line-height:1.6;border-left:3px solid var(--warning);border-radius:0 var(--rayon-bouton) var(--rayon-bouton) 0;padding:12px 16px;background:var(--warning-soft);color:var(--warning-soft-foreground); }
 .indicateurs { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px; }
-.indicateur { position:relative;display:grid;gap:8px;padding:19px 21px;border:1px solid var(--filet);border-radius:12px;background:#fff;min-width:0; }
-.indicateur > span { font-size:13px;font-weight:600;color:var(--encre);padding-right:14px; }
-.indicateur > strong { font-size:30px;line-height:1.2;font-weight:600;font-variant-numeric:tabular-nums;color:var(--encre); }
-.indicateur > small { font-size:11px;line-height:1.5;color:var(--texte-secondaire); }
-.indicateur > svg { position:absolute;right:16px;top:19px;color:#735f3c; }
-.indicateur:hover { border-color:#b7a47c;background:#fffdf8; }
-.traiter { border:1px solid var(--filet);border-radius:15px;background:#fff;overflow:hidden; }
-.traiter > header { display:flex;gap:14px;justify-content:space-between;align-items:center;padding:21px 24px;border-bottom:1px solid var(--filet); }
-.traiter h2 { font:26px/1.3 Georgia,serif;color:var(--encre); }
-.traiter header p { font-size:12px;color:var(--texte-secondaire);margin-top:5px; }
-.traiter header a { font-size:12px;min-height:44px;display:flex;align-items:center;text-decoration:underline; }
-.traiter li { display:flex;gap:20px;align-items:center;justify-content:space-between;padding:19px 24px;border-bottom:1px solid var(--filet-leger); }
+.indicateur { position:relative;display:grid;gap:6px;padding:18px 20px;border:1px solid var(--filet);border-radius:var(--rayon-carte);background:var(--carte);box-shadow:var(--ombre-1);min-width:0;transition:transform var(--duree) var(--courbe),box-shadow var(--duree) var(--courbe),border-color var(--duree-rapide) ease; }
+.indicateur > span { font-size:14px;font-weight:600;color:var(--encre);padding-right:18px; }
+.indicateur > strong { font:600 30px/1.2 var(--font-titres),system-ui,sans-serif;font-variant-numeric:lining-nums tabular-nums;letter-spacing:-.02em;color:var(--encre); }
+.indicateur > small { font-size:13px;line-height:1.45;color:var(--texte-secondaire); }
+.indicateur > svg { position:absolute;right:16px;top:19px;color:var(--prestige-champagne-texte); }
+.indicateur:hover { border-color:color-mix(in srgb,var(--marque) 28%,var(--filet));box-shadow:var(--ombre-2);transform:translateY(-2px); }
+.traiter { border:1px solid var(--filet);border-radius:var(--rayon-carte);background:var(--carte);box-shadow:var(--ombre-1);overflow:hidden; }
+.traiter > header { display:flex;gap:14px;justify-content:space-between;align-items:center;padding:20px 22px;border-bottom:1px solid var(--filet); }
+.traiter h2 { font:var(--graisse-titre) var(--titre-2)/1.3 var(--font-display);color:var(--encre); }
+.traiter header p { font-size:14px;color:var(--texte-secondaire);margin-top:4px; }
+.traiter header a { font-size:14px;min-height:44px;display:flex;align-items:center;text-decoration:underline;text-underline-offset:3px; }
+.traiter li { display:flex;gap:20px;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--filet-leger); }
 .traiter li > div { min-width:0; }
-.traiter h3 { display:flex;gap:8px;align-items:baseline;font:600 14px/1.5 var(--font-interface),sans-serif;overflow-wrap:anywhere; }
-.traiter h3 svg { flex-shrink:0;color:#966b30; }
-.traiter li p { font-size:12px;line-height:1.6;color:var(--texte-secondaire);margin-top:5px; }
-.action { flex-shrink:0;display:inline-flex;gap:8px;align-items:center;justify-content:center;width:auto!important;max-width:100%;min-height:44px;padding:10px 14px;background:var(--encre);color:#fff;border-radius:8px;font-size:12px;font-weight:550; }
-.action:hover { background:#304e6e; }
-.calme,.autres { display:block;padding:20px 24px;font-size:13px;line-height:1.6; }
-.autres { text-decoration:underline;background:#fcf9f1; }
-.raccourcis { display:flex;gap:12px;flex-wrap:wrap; }
-.raccourcis a { display:flex;align-items:center;min-height:44px;border:1px solid var(--filet);padding:10px 15px;border-radius:8px;background:#fff;font-size:12px; }
-.accueil a:focus-visible,.accueil button:focus-visible { outline:3px solid #597da0;outline-offset:3px; }
-@media(max-width:700px) { .accueil{gap:16px}.sante{padding:17px;gap:10px}.sante h2{font-size:16px}.sante > svg{width:20px}.indicateurs{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.indicateur{padding:15px 13px}.indicateur > span{font-size:12px}.indicateur > svg{right:10px;top:15px;width:13px}.indicateur > strong{font-size:25px}.indicateur > small{font-size:10px}.traiter > header{padding:18px;align-items:flex-start;flex-wrap:wrap}.traiter li{padding:18px;align-items:flex-start;flex-direction:column;gap:12px}.traiter h3{font-size:13px}.action{align-self:flex-start}.raccourcis{gap:8px}.raccourcis a{flex-grow:1}.calme,.autres{padding:18px} }
+.traiter h3 { display:flex;gap:8px;align-items:baseline;font:600 15px/1.5 var(--font-interface),sans-serif;overflow-wrap:anywhere; }
+.traiter h3 svg { flex-shrink:0;color:var(--warning); }
+.traiter li p { font-size:14px;line-height:1.6;color:var(--texte-secondaire);margin-top:4px; }
+.action { flex-shrink:0;display:inline-flex;gap:8px;align-items:center;justify-content:center;width:auto!important;max-width:100%;min-height:44px;padding:10px 14px;background:var(--marque);color:var(--sur-marque);border-radius:var(--rayon-bouton);font-size:14px;font-weight:600;transition:background-color var(--duree-rapide) ease; }
+.action:hover { background:var(--marque-sombre); }
+.calme,.autres { display:block;padding:20px 22px;font-size:14px;line-height:1.6; }
+.autres { text-decoration:underline;text-underline-offset:3px;background:var(--or-clair); }
+.raccourcis { display:flex;gap:10px;flex-wrap:wrap; }
+.raccourcis a { display:flex;align-items:center;min-height:44px;border:1px solid var(--filet);padding:10px 15px;border-radius:var(--rayon-bouton);background:var(--carte);font-size:14px;font-weight:600;transition:border-color var(--duree-rapide) ease,background-color var(--duree-rapide) ease; }
+.raccourcis a:hover { border-color:var(--marque);background:var(--survol); }
+.accueil a:focus-visible,.accueil button:focus-visible { outline:3px solid var(--prestige-champagne-texte);outline-offset:3px; }
+@media(max-width:700px) { .accueil{gap:16px}.sante{padding:16px;gap:10px}.sante h2{font-size:16px}.sante > svg{width:20px}.indicateurs{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.indicateur{padding:14px 13px}.indicateur > span{font-size:13px}.indicateur > svg{right:10px;top:15px;width:13px}.indicateur > strong{font-size:24px}.indicateur > small{font-size:12px}.traiter > header{padding:16px;align-items:flex-start;flex-wrap:wrap}.traiter li{padding:16px;align-items:flex-start;flex-direction:column;gap:12px}.traiter h3{font-size:14px}.action{align-self:flex-start}.raccourcis{gap:8px}.raccourcis a{flex-grow:1}.calme,.autres{padding:16px} }

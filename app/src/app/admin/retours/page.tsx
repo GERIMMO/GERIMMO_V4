@@ -58,9 +58,9 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
 
   return <main className={shared.page}>
     <header className={shared.header}>
-      <div><p className={shared.eyebrow}>À L’ÉCOUTE DES UTILISATEURS</p><TitreEcran rubrique="messages">Assistance clients</TitreEcran><p className={shared.subtitle}>Comprenez la demande, apportez une réponse et gardez le fil jusqu’à sa résolution.</p></div>
-      <Link href="/admin/donnees" className="btn-secondaire">Données personnelles</Link>
-      <Link href="/admin/retours?nature=idee" className="btn-or"><Lightbulb size={16} aria-hidden="true" />Revue des idées</Link>
+      <div><TitreEcran rubrique="messages">Assistance clients</TitreEcran><p className={shared.subtitle}>Comprenez la demande, apportez une réponse et gardez le fil jusqu’à sa résolution.</p></div>
+      <div className="flex flex-wrap gap-2"><Link href="/admin/donnees" className="btn-secondaire">Demandes sur les données</Link>
+      <Link href="/admin/retours?nature=idee" className="btn-secondaire"><Lightbulb size={16} aria-hidden="true" />Revue des idées</Link></div>
     </header>
     <div className={shared.stats} data-columns="3" aria-label="Résumé des demandes">
       <a href="#demandes" className={shared.stat}><span className={shared.statIcon}><MessagesSquare size={20} aria-hidden="true" /></span><strong>{totalConnu ? total : "—"}</strong><span>Demandes{filtreActif ? " sélectionnées" : " reçues"}</span><small>{file.error ? "Lecture indisponible" : !totalConnu ? "Total indisponible sur cette page" : filtreActif ? "Selon les filtres en cours" : "Tous les états et catégories"}</small></a>
@@ -70,7 +70,7 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
     {erreur && <p role="alert" className="err mb-5">Une partie du suivi est indisponible. Rechargez avant de prendre une décision.</p>}
     {nature === "idee" && <section className={styles.review} aria-labelledby="revue-titre">
       <h2 id="revue-titre">Revue {revueLabel}</h2>
-      {revue.error ? <p>Le bilan de la revue est indisponible.</p> : revue.data ? <><p>Revue terminée le {formaterDateParis(revue.data.cree_le)}.</p><p className="whitespace-pre-wrap">{revue.data.bilan}</p></> : <><p>Examinez les idées et leurs dates de réexamen, puis consignez le bilan de ce mois.</p><CloreRevue /></>}
+      {revue.error ? <p role="alert" className="err">Le bilan de la revue est indisponible.</p> : revue.data ? <><p>Revue terminée le {formaterDateParis(revue.data.cree_le)}.</p><p className="whitespace-pre-wrap">{revue.data.bilan}</p></> : <><p>Examinez les idées et leurs dates de réexamen, puis consignez le bilan de ce mois.</p><CloreRevue /></>}
       {!reexamens.error && Number(reexamens.count) > 0 && <strong>{reexamens.count} idée{reexamens.count === 1 ? " a" : "s ont"} atteint {reexamens.count === 1 ? "sa" : "leur"} date de réexamen.</strong>}
       <p>Classement sur tout l’historique : organisations distinctes, soutiens uniques, puis ancienneté. Regrouper des idées conserve la confidentialité de leurs descriptions.</p>
     </section>}

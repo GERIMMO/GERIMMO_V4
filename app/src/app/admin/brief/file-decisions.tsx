@@ -70,7 +70,7 @@ export function FileDecisions({ decisions, signaux, cartes, vue, categorie, rese
 
   const parCle = new Map(cartes.map(c => [c.cle, c]));
   return <div className={styles.inbox}>
-    <Link href="/admin/brief" className={styles.more}>← Bureau de direction</Link>
+    <Link href="/admin/brief" className={styles.more}>← Aujourd’hui</Link>
     <div className={styles.filters} role="group" aria-label="Filtrer les demandes">
       {[{ id: "tout" as const, nom: "Tout", nombre: entrees.length }, ...groupes].map(g =>
         <button key={g.id} type="button" aria-pressed={filtre === g.id} onClick={() => { setFiltre(g.id); setPage(1); }}>{g.nom}<span>{g.nombre}</span></button>)}

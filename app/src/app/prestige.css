@@ -24,13 +24,15 @@ body.gerimmo-prestige,
   --corps: #16243a;
   --texte-secondaire: #4b5870;
   --libelle: #4b5870;
-  --survol: #f1f3f6;
-  --creme: #f7f8fa;
+  /* Fonds chauds du Design System « Maison » (20/11/2026) : le papier du site public remplace le gris froid.
+     Les jetons ajoutés par le Design System (échelles, rayons, ombres, mouvement) sont dans systeme.css. */
+  --survol: #f4f1ea;
+  --creme: #f7f5f0;
   --ivoire: #fff;
   --carte: #fff;
-  --filet: #dce2e9;
-  --filet-leger: #edf0f4;
-  --ardoise: #edf0f4;
+  --filet: #e2ddd3;
+  --filet-leger: #efebe3;
+  --ardoise: #efebe3;
   --bleu: #293a51;
   --background: var(--creme);
   --foreground: var(--corps);
@@ -67,7 +69,7 @@ body.gerimmo-prestige,
   --texte: var(--corps);
   --texte-2: var(--texte-secondaire);
   --texte-3: var(--libelle);
-  --ombre-portee: 0 8px 30px #15233b05;
+  --ombre-portee: var(--ombre-1);
   --largeur-late: 275px;
   --largeur-etape: 175px;
   --hauteur-haut: 76px;
@@ -76,14 +78,14 @@ body.gerimmo-prestige,
 }
 
 .gerimmo-prestige :is(h1, h2) {
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: 400;
-  letter-spacing: -.025em;
+  font-family: var(--font-display, Georgia, "Times New Roman", serif);
+  font-weight: var(--graisse-titre, 480);
+  letter-spacing: -.02em;
   color: var(--encre);
   line-height: 1.2;
 }
-.gerimmo-prestige h1 { font-size: clamp(29px, 3vw, 38px); }
-.gerimmo-prestige h2 { font-size: 24px; }
+.gerimmo-prestige h1 { font-size: var(--titre-1, clamp(26px, 2.2vw, 34px)); }
+.gerimmo-prestige h2 { font-size: var(--titre-2, 22px); }
 .gerimmo-prestige h3 { font-family: var(--font-interface), sans-serif; font-size: 16px; }
 /* Audit du 13/10 (DES-A-03) : les titres de carte des espaces locataire et propriétaire étaient des <h3> sous le <h1>,
    sans <h2> (WCAG 1.3.1, règle axe heading-order). Ils sont des <h2> et gardent le dessin d'un <h3> : sans cette règle,
@@ -122,10 +124,10 @@ body.gerimmo-prestige,
   border-bottom: 1px solid var(--filet);
 }
 .gerimmo-prestige .coquille-haut .recherche-ouvrir {
-  min-height: 42px;
+  min-height: var(--cible-tactile, 44px);
   max-width: 420px;
   border: 1px solid var(--filet);
-  border-radius: 7px;
+  border-radius: var(--rayon-champ, 10px);
   padding: 10px 12px;
   background: #fff;
 }
@@ -180,16 +182,16 @@ body.gerimmo-prestige,
 .gerimmo-prestige :is([data-slot="card"], .loc-carte, .artisan-carte, .assistant-carte, .dossier-panneau) {
   background: #fff;
   border: 1px solid var(--filet);
-  border-radius: 12px;
-  box-shadow: var(--ombre-portee);
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-1);
 }
 .gerimmo-prestige :is(.loc-carte, .artisan-carte, .assistant-carte, .dossier-panneau) { padding: 28px; }
 .gerimmo-prestige [data-slot="card"] { --tw-ring-shadow: 0 0 #0000; }
-.gerimmo-prestige [data-slot="card-title"] { font-family: Georgia, "Times New Roman", serif; font-size: 24px; font-weight: 400; letter-spacing: -.025em; }
+.gerimmo-prestige [data-slot="card-title"] { font-family: var(--font-display, Georgia, "Times New Roman", serif); font-size: var(--titre-2, 22px); font-weight: var(--graisse-titre, 480); letter-spacing: -.02em; }
 body.gerimmo-prestige :where(input, select, textarea):not(:where([type="checkbox"], [type="radio"], [type="hidden"], [type="range"], [type="color"], [type="submit"], [type="button"], [role="combobox"], [hidden], .sr-only)) {
   min-height: 44px;
-  border: 1px solid var(--filet);
-  border-radius: 7px;
+  border: 1px solid var(--filet-champ, var(--filet));
+  border-radius: var(--rayon-champ);
   background-color: #fff;
   padding: 10px var(--champ-marge-droite, 12px) 10px 12px;
   font-family: var(--font-interface), sans-serif;
@@ -219,7 +221,7 @@ body.gerimmo-prestige :is(input, select, textarea, button, a, summary):focus-vis
 .gerimmo-prestige :is(.btn-or, .btn-secondaire, .bouton-gerimmo, [data-slot="button"]) {
   min-height: 44px;
   height: auto;
-  border-radius: 7px;
+  border-radius: var(--rayon-bouton);
   padding: 10px 18px;
   max-width: 100%;
   white-space: normal;
@@ -228,9 +230,10 @@ body.gerimmo-prestige :is(input, select, textarea, button, a, summary):focus-vis
   font-weight: 600;
   box-shadow: none;
 }
-.gerimmo-prestige .btn-or { background: var(--marque); color: #fff; }
-.gerimmo-prestige .btn-or:hover { background: var(--marque-sombre); transform: none; box-shadow: none; }
-.gerimmo-prestige .btn-secondaire { background: #fff; border-color: var(--filet); }
+/* Action principale : bleu nuit partout (Design System « Maison »). La charte d'une agence pose --bouton-principal. */
+.gerimmo-prestige .btn-or { background: var(--bouton-principal, var(--marque)); color: var(--sur-bouton-principal, #fff); border-color: var(--bouton-principal, var(--marque)); }
+.gerimmo-prestige .btn-or:hover { background: var(--bouton-principal-survol, var(--marque-sombre)); transform: none; }
+.gerimmo-prestige .btn-secondaire { background: #fff; border-color: var(--filet-champ, var(--filet)); }
 .gerimmo-prestige :is(.bouton-gerimmo-icone, [data-slot="button"][data-size^="icon"]) { min-width: 44px; padding: 10px; }
 .gerimmo-prestige .tableau th { background: #f7f8fa; color: var(--texte-secondaire); }
 
@@ -342,14 +345,14 @@ body.gerimmo-prestige :is(input, select, textarea, button, a, summary):focus-vis
   border-left: 3px solid var(--prestige-champagne);
 }
 body.gerimmo-prestige [role="dialog"] {
-  border-radius: 12px;
+  border-radius: var(--rayon-fenetre);
   overflow: hidden;
   box-shadow: 0 24px 80px #14304f33;
 }
 body.gerimmo-prestige [role="dialog"] > div:first-child :is(h2, h3) {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 24px;
-  font-weight: 400;
+  font-family: var(--font-display, Georgia, "Times New Roman", serif);
+  font-size: var(--titre-2, 22px);
+  font-weight: var(--graisse-titre, 480);
 }
 body.gerimmo-prestige [role="dialog"] :is(.btn-or, .btn-secondaire, .bouton-gerimmo, [data-slot="button"]) {
   min-height: 44px;
@@ -396,13 +399,13 @@ body.gerimmo-prestige [role="dialog"] > div:last-child :is(a, button) { min-heig
 .gerimmo-prestige .loc-logo:has(.marque-gerimmo) { align-items: center; padding: 14px 20px; }
 .gerimmo-prestige .coquille-auth .marque-gerimmo-sur-encre { width: 180px; }
 .gerimmo-prestige .coquille-auth .panneau-marque { background-color: var(--prestige-nuit); }
-.gerimmo-prestige .coquille-auth .panneau-marque > div > p:first-child { font-family: Georgia, "Times New Roman", serif; font-weight: 400; }
+.gerimmo-prestige .coquille-auth .panneau-marque > div > p:first-child { font-family: var(--font-display, Georgia, "Times New Roman", serif); font-weight: 400; }
 .gerimmo-prestige :is(.bandeau-appli, .bandeau-public) { box-shadow: none; border-bottom: 1px solid var(--filet); }
 .gerimmo-prestige .bandeau-public .marque-gerimmo { width: 88px; }
 .gerimmo-prestige .vitrine-hero h1 { font-size: clamp(36px, 4.5vw, 56px); }
 .gerimmo-prestige :is(.accueil-bandeau, .vitrine-bandeau) :is(h1, h2) { color: var(--sur-encre); }
 .gerimmo-prestige .outil-papier .papier-titre { font-size: 26px; }
-.gerimmo-prestige .artisan-carte h2 { font-family: Georgia, "Times New Roman", serif; font-size: 24px; font-weight: 400; }
+.gerimmo-prestige .artisan-carte h2 { font-family: var(--font-display, Georgia, "Times New Roman", serif); font-size: 24px; font-weight: 400; }
 .gerimmo-prestige .artisan-navigation { background: var(--carte); border-color: var(--filet); }
 .gerimmo-prestige .artisan-navigation a[aria-current="page"] { background: var(--marque-clair); color: var(--marque); }
 .gerimmo-prestige .portail-ecrans .section-ecran > h2 { border-left-color: var(--prestige-champagne); }
@@ -483,26 +486,10 @@ body.gerimmo-prestige [role="dialog"] > div:last-child :is(a, button) { min-heig
 /* La façade reste décorative, sous un voile nuit qui protège les libellés.
  * Le haut uni accueille le fichier officiel du logo sans raccord visible. */
 @media (min-width: 641px) {
-  .gerimmo-prestige :is(.coquille-late, .loc-late) {
-    background-color: var(--prestige-nuit);
-    background-image:
-      linear-gradient(180deg, #14304f 0%, #14304ffa 22%, #14304fd1 48%, #14304fd1 82%, #14304ff2 100%),
-      url("/illustrations/quartier-gerimmo-2026.jpg");
-    background-position: center, 68% center;
-    background-size: cover;
-    background-repeat: no-repeat;
-  }
+  .gerimmo-prestige :is(.coquille-late, .loc-late) { background-color: var(--nuit-menu); }
 }
 @media (min-width: 901px) {
-  .gerimmo-prestige .admin-late {
-    background-color: var(--prestige-nuit);
-    background-image:
-      linear-gradient(180deg, #14304f 0%, #14304ffa 22%, #14304fd1 48%, #14304fd1 82%, #14304ff2 100%),
-      url("/illustrations/quartier-gerimmo-2026.jpg");
-    background-position: center, 68% center;
-    background-size: cover;
-    background-repeat: no-repeat;
-  }
+  .gerimmo-prestige .admin-late { background-color: var(--nuit-menu); }
 }
 
 /* Les biens retirés se distinguent aussi par leur motif, sans effacer le texte. */
@@ -594,7 +581,7 @@ body.gerimmo-prestige [role="dialog"] > div:last-child :is(a, button) { min-heig
 
 /* Dossiers privés : davantage de contenu utile dans le premier écran mobile. */
 @media screen and (max-width:640px) {
-  .gerimmo-prestige :is(.coquille-corps, .loc-corps, .artisan-corps, .admin-corps) h1 { font-size:25px; line-height:1.2; overflow-wrap:anywhere; }
+  .gerimmo-prestige :is(.coquille-corps, .loc-corps, .artisan-corps, .admin-corps) h1 { font-size:var(--titre-1, 26px); line-height:1.2; overflow-wrap:anywhere; }
   .gerimmo-prestige :is(.coquille-corps, .loc-corps, .artisan-corps, .admin-corps) h2 { font-family:var(--font-interface),sans-serif; font-size:18px; line-height:1.35; font-weight:600; letter-spacing:0; }
   .gerimmo-prestige :is(.coquille-corps, .loc-corps, .artisan-corps, .admin-corps) .entete-page:not(.accueil-bandeau) { padding-bottom:12px; margin-bottom:14px; gap:12px; }
   .gerimmo-prestige :is(.coquille-corps, .loc-corps, .artisan-corps, .admin-corps) :is(.eyebrow,.dossier-surtitre) { letter-spacing:0; text-transform:none; font-size:12px; }

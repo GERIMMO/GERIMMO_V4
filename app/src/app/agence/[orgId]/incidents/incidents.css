@@ -1,112 +1,127 @@
-/* Vue incidents : styles limités à la liste et au dossier de cet écran. */
-.incidents-page { --incident-bleu: #355d87; --incident-ambre: #90632c; --incident-vert: #32685b; }
-.incidents-entete { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 23px; }
+/* Vue incidents : géométrie et états propres à la liste et au dossier de cet écran.
+   Couleurs, polices, rayons et ombres viennent des jetons du Design System « Maison » (systeme.css, prestige.css,
+   globals.css) : aucune valeur en dur ici. Boutons, cartes, champs et anneau de focus sont ceux de toute l'application. */
+
+/* --- En-tête : celui de toutes les listes (.entete-page), avec ses actions à droite ---------------------------------- */
+.incidents-entete { align-items: center; }
 .incidents-entete > div:first-child { min-width: 0; }
-.incidents-entete p { margin-top: 10px; font-size: 14px; line-height: 1.6; color: var(--texte-secondaire, #626f82); }
+.incidents-entete p { margin-top: 10px; font-size: 14px; line-height: 1.6; color: var(--texte-secondaire); }
 .incidents-entete-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.gerimmo-prestige .incidents-entete-actions a { min-height: 42px; padding: 10px 14px; gap: 8px; font-size: 13px; }
+.incidents-entete-actions a { gap: 8px; }
+
+/* --- Filtres : quatre cartes-liens. Le ton dit l'état compté (à traiter : attention ; clos : terminé) ---------------- */
 .incidents-filtres { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px; }
-.incidents-filtre { --ton: #546176; --teinte: #eef1f5; display: flex; align-items: center; gap: 12px; padding: 13px 16px; border: 1px solid #dce2e9; border-radius: 12px; background: #fff; color: #506079; transition: border-color .15s, background .15s; }
-.incidents-filtre[data-vue="en-cours"] { --ton: #355d87; --teinte: #edf3fa; }
-.incidents-filtre[data-vue="a-traiter"] { --ton: #90632c; --teinte: #fcf3e5; }
-.incidents-filtre[data-vue="clos"] { --ton: #32685b; --teinte: #eaf5ef; }
-.incidents-filtre:hover, .incidents-filtre[aria-current="page"] { background: var(--teinte); border-color: var(--ton); }
-.incidents-filtre[aria-current="page"] { box-shadow: inset 0 -2px var(--ton); }
-.incidents-filtre-icone { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; flex-shrink: 0; border-radius: 10px; color: var(--ton); background: var(--teinte); }
+.incidents-filtre { --ton: var(--texte-secondaire); --teinte: var(--filet-leger); display: flex; align-items: center; gap: 12px; min-height: var(--cible-tactile); padding: 13px 16px; border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--carte); color: var(--texte-secondaire); box-shadow: var(--ombre-1); transition: border-color var(--duree-rapide) ease, background-color var(--duree-rapide) ease; }
+.incidents-filtre[data-vue="en-cours"] { --ton: var(--marque); --teinte: color-mix(in srgb, var(--marque) 8%, #fff); }
+.incidents-filtre[data-vue="a-traiter"] { --ton: var(--warning-soft-foreground); --teinte: var(--warning-soft); }
+.incidents-filtre[data-vue="clos"] { --ton: var(--success-soft-foreground); --teinte: var(--success-soft); }
+.incidents-filtre:hover { background: var(--survol); border-color: color-mix(in srgb, var(--marque) 28%, var(--filet)); }
+.incidents-filtre[aria-current="page"] { background: var(--teinte); border-color: var(--ton); box-shadow: inset 0 -2px var(--ton); color: var(--encre); }
+.incidents-filtre-icone { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; flex-shrink: 0; border-radius: var(--rayon-bouton); color: var(--ton); background: var(--teinte); }
+.incidents-filtre[aria-current="page"] .incidents-filtre-icone { background: var(--carte); }
 .incidents-filtre > span:nth-child(2) { display: flex; flex: 1; min-width: 0; justify-content: space-between; align-items: center; gap: 12px; font-size: 13px; font-weight: 600; }
-.incidents-filtre strong { color: var(--ton); font-size: 24px; font-variant-numeric: tabular-nums; }
+.incidents-filtre strong { color: var(--ton); font-family: var(--font-titres), system-ui, sans-serif; font-size: 24px; font-variant-numeric: lining-nums tabular-nums; }
+
+/* --- Liste ----------------------------------------------------------------------------------------------------------- */
 .incidents-page .split { grid-template-columns: minmax(0, 280px) minmax(0, 1fr); gap: 20px; }
 .incidents-page .split-sans-detail { grid-template-columns: minmax(0, 1fr); }
-.incidents-page .colonne-liste-split { top: 20px; max-height: calc(100vh - 120px); border-radius: 14px; box-shadow: none; }
-.incidents-liste-entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 17px 16px; border-bottom: 1px solid var(--filet); }
+.incidents-page .colonne-liste-split { top: 20px; max-height: calc(100vh - 120px); border-radius: var(--rayon-carte); box-shadow: var(--ombre-1); }
+.incidents-liste-entete { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 17px 16px; border-bottom: 1px solid var(--filet); background: var(--filet-leger); }
 .gerimmo-prestige .incidents-liste-entete h2 { font-family: var(--font-interface), sans-serif; font-size: 14px; font-weight: 650; }
-.incidents-liste-entete > span { font-size: 11px; color: #626f82; }
+.incidents-liste-entete > span { font-size: 12px; color: var(--texte-secondaire); }
 .incidents-page .rang { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 17px 15px; border-left-width: 3px; }
-.incidents-page .rang.actif { background: #f0f4f8; border-left-color: #355d87; }
-.incident-rang-reperes { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; color: #626f82; font-size: 10px; letter-spacing: .025em; }
+.incident-rang-reperes { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; color: var(--texte-secondaire); font-size: 12px; letter-spacing: .025em; font-variant-numeric: tabular-nums; }
 .incident-rang-titre { font-size: 15px; line-height: 1.4; font-weight: 650; overflow-wrap: anywhere; }
-.incident-rang-lot { color: #536176; font-size: 12px; overflow-wrap: anywhere; }
+.incident-rang-lot { color: var(--texte-secondaire); font-size: 12px; overflow-wrap: anywhere; }
 .incident-rang-etats { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.incident-rang-etats > svg:last-child { margin-left: auto; color: #536d89; }
-.incident-rang-suivi { font-size: 11px; line-height: 1.5; color: #626f82; overflow-wrap: anywhere; }
-.incident-entete { overflow: hidden; background: #fff; border: 1px solid #dce2e9; border-radius: 14px; }
+.incident-rang-etats > svg:last-child { margin-left: auto; color: var(--texte-secondaire); }
+.incident-rang-suivi { font-size: 12px; line-height: 1.5; color: var(--texte-secondaire); overflow-wrap: anywhere; }
+
+/* --- Dossier : carte d'identité de l'incident -------------------------------------------------------------------------- */
+.incident-entete { overflow: hidden; background: var(--carte); border: 1px solid var(--filet); border-radius: var(--rayon-carte); box-shadow: var(--ombre-1); }
 .incident-entete-haut { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 0; }
 .incident-entete-haut > div:first-child { min-width: 0; flex: 1 1 240px; }
-.incident-reference { color: #626f82; font-size: 11px; line-height: 1.6; letter-spacing: .02em; }
-.gerimmo-prestige .incident-entete h2 { font-size: 26px; line-height: 1.2; margin-top: 6px; overflow-wrap: anywhere; }
+.incident-reference { color: var(--texte-secondaire); font-size: 12px; line-height: 1.6; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.gerimmo-prestige .incident-entete h2 { line-height: 1.2; margin-top: 6px; overflow-wrap: anywhere; }
 .incident-badges { display: flex; flex-wrap: wrap; gap: 6px; }
 .incident-reperes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px 22px 17px; }
 .incident-reperes > div { display: flex; align-items: flex-start; gap: 9px; min-width: 0; }
-.incident-reperes svg { flex-shrink: 0; margin-top: 2px; color: #7e8b9c; }
+.incident-reperes svg { flex-shrink: 0; margin-top: 2px; color: var(--texte-secondaire); }
 .incident-reperes > div > div { display: grid; gap: 3px; min-width: 0; }
-.incident-reperes span { font-size: 11px; color: #626f82; }
+.incident-reperes span { font-size: 12px; color: var(--texte-secondaire); }
 .incident-reperes :is(a,strong) { font-size: 13px; font-weight: 550; overflow-wrap: anywhere; }
 .incident-reperes a:hover { text-decoration: underline; }
-.incident-reperes small { font-size: 12px; color: #626f82; }
-.incident-reperes .incident-telephone { font-weight: 400; color: #355d87; }
-.incident-attribution { padding: 0 22px; border-top: 1px solid #edf0f4; font-size: 12px; }
-.incident-attribution summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; cursor: pointer; list-style: none; }
+.incident-reperes small { font-size: 12px; color: var(--texte-secondaire); }
+.incident-reperes .incident-telephone { font-weight: 400; color: var(--marque-sombre); }
+.incident-attribution { padding: 0 22px; border-top: 1px solid var(--filet-leger); font-size: 12px; }
+.incident-attribution summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: var(--cible-tactile); cursor: pointer; list-style: none; }
 .incident-attribution summary::-webkit-details-marker { display: none; }
-.incident-attribution summary > span:first-child { min-width: 0; overflow-wrap: anywhere; color: #626f82; }
-.incident-attribution summary b { color: #344762; font-weight: 550; }
-.incident-attribution summary > span:last-child { color: #355d87; text-decoration: underline; text-underline-offset: 3px; }
-.incident-suivi-lecture { border-top: 1px solid #edf0f4; padding: 13px 22px; font-size: 12px; color: #626f82; }
+.incident-attribution summary > span:first-child { min-width: 0; overflow-wrap: anywhere; color: var(--texte-secondaire); }
+.incident-attribution summary b { color: var(--encre); font-weight: 550; }
+.incident-attribution summary > span:last-child { color: var(--marque-sombre); text-decoration: underline; text-underline-offset: 3px; }
+.incident-suivi-lecture { border-top: 1px solid var(--filet-leger); padding: 13px 22px; font-size: 12px; color: var(--texte-secondaire); }
 .incident-attribution > div { padding-bottom: 16px; }
-.incident-etapes { display: flex; flex-wrap: wrap; gap: 12px; padding: 13px 22px; border-top: 1px solid #e9edf2; background: #f8fafc; }
-.incident-etapes li { display: flex; flex: 1 1 auto; align-items: center; gap: 7px; color: #647184; font-size: 12px; }
-.incident-etapes li > span { display: inline-flex; align-items: center; justify-content: center; width: 21px; height: 21px; border: 1px solid #cbd4df; border-radius: 50%; font-size: 10px; }
-.incident-etapes li[data-etat="courant"] { color: #355d87; font-weight: 650; }
-.incident-etapes li[data-etat="courant"] > span { color: #fff; background: #355d87; border-color: #355d87; }
-.incident-etapes li[data-etat="fait"] { color: #32685b; }
-.incident-etapes li[data-etat="fait"] > span { background: #e1f0e7; border-color: #c0dbc9; }
-.incident-prochaine-action { --ton: #355d87; --fond: #edf3fa; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 15px 19px; border: 1px solid color-mix(in srgb, var(--ton) 25%, white); border-left: 3px solid var(--ton); border-radius: 10px; background: var(--fond); }
-.incident-prochaine-action[data-ton="attention"] { --ton: #90632c; --fond: #fff8ec; }
-.incident-prochaine-action[data-ton="termine"] { --ton: #32685b; --fond: #edf7f0; }
+
+/* Étapes du dossier : le champagne repère l'étape en cours, le vert ce qui est fait. */
+.incident-etapes { display: flex; flex-wrap: wrap; gap: 12px; padding: 13px 22px; border-top: 1px solid var(--filet-leger); background: var(--creme); }
+.incident-etapes li { display: flex; flex: 1 1 auto; align-items: center; gap: 7px; color: var(--texte-secondaire); font-size: 12px; }
+.incident-etapes li > span { display: inline-flex; align-items: center; justify-content: center; width: 21px; height: 21px; border: 1px solid var(--filet-champ); border-radius: 50%; font-size: 12px; font-variant-numeric: tabular-nums; }
+.incident-etapes li[data-etat="courant"] { color: var(--encre); font-weight: 650; }
+.incident-etapes li[data-etat="courant"] > span { color: var(--sur-marque); background: var(--marque); border-color: var(--marque); box-shadow: 0 0 0 2px var(--champagne-vif); }
+.incident-etapes li[data-etat="fait"] { color: var(--success-soft-foreground); }
+.incident-etapes li[data-etat="fait"] > span { background: var(--success-soft); border-color: color-mix(in srgb, var(--success) 35%, #fff); }
+
+/* Prochaine étape : un encart de conseil (filet champagne). Le bord gauche coloré ne reste que pour l'état « attention ». */
+.incident-prochaine-action { --ton: var(--prestige-champagne-texte); display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 15px 19px; border: 1px solid var(--or-filet); border-radius: var(--rayon-carte); background: var(--or-clair); }
+.incident-prochaine-action[data-ton="attention"] { --ton: var(--warning-soft-foreground); border-color: color-mix(in srgb, var(--warning) 35%, #fff); border-left: 3px solid var(--warning); background: var(--warning-soft); }
+.incident-prochaine-action[data-ton="termine"] { --ton: var(--success-soft-foreground); border-color: color-mix(in srgb, var(--success) 30%, #fff); background: var(--success-soft); }
 .incident-prochaine-action > div { min-width: 0; flex: 1 1 260px; }
-.incident-prochaine-action span { display: block; margin-bottom: 4px; color: var(--ton); font-size: 10px; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; }
-.incident-prochaine-action strong { font-size: 14px; color: #25374e; }
-.incident-prochaine-action p { font-size: 12px; line-height: 1.5; color: #596577; margin-top: 4px; }
-.incident-prochaine-action a { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; font-size: 12px; font-weight: 650; color: var(--ton); }
-.incident-prochaine-action a:hover { text-decoration: underline; }
+.incident-prochaine-action span { display: block; margin-bottom: 4px; color: var(--ton); font-size: 12px; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; }
+.incident-prochaine-action strong { font-size: 14px; color: var(--encre); }
+.incident-prochaine-action p { font-size: 13px; line-height: 1.5; color: var(--texte-secondaire); margin-top: 4px; }
+.incident-prochaine-action a { display: inline-flex; align-items: center; gap: 8px; min-height: var(--cible-tactile); font-size: 13px; font-weight: 650; color: var(--encre); text-decoration: underline; text-decoration-color: var(--prestige-champagne); text-underline-offset: 4px; }
+.incident-prochaine-action a:hover { text-decoration-color: currentColor; }
+
+/* --- Dossier : contenu ------------------------------------------------------------------------------------------------- */
 .incident-contenu { display: grid; gap: 16px; }
 .incident-contexte { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: start; }
 .incident-contexte .chrono { max-height: 250px; overflow-y: auto; padding-right: 10px; }
 .incident-photos:empty { display: none; }
-.gerimmo-prestige .incident-dossier [data-slot="card"] { box-shadow: none; gap: 14px; padding-block: 19px; }
+.gerimmo-prestige .incident-dossier [data-slot="card"] { gap: 14px; padding-block: 19px; }
 .gerimmo-prestige .incident-dossier :is([data-slot="card-header"],[data-slot="card-content"]) { padding-inline: 21px; }
-.gerimmo-prestige .incident-dossier [data-slot="card-title"] { display: flex; align-items: center; gap: 9px; font-family: var(--font-interface), sans-serif; font-size: 16px; font-weight: 650; }
-.incident-dossier [data-slot="card-title"] svg { color: #70839b; flex-shrink: 0; }
+.gerimmo-prestige .incident-dossier [data-slot="card-title"] { display: flex; align-items: center; gap: 9px; font-family: var(--font-interface), sans-serif; font-size: var(--titre-3); font-weight: 600; letter-spacing: 0; }
+.incident-dossier [data-slot="card-title"] svg { color: var(--prestige-champagne-texte); flex-shrink: 0; }
 .gerimmo-prestige .incident-dossier [data-slot="card-description"] { font-size: 13px; line-height: 1.6; }
-.gerimmo-prestige .incident-dossier .incident-qualification { border-color: #e4cda3; border-top: 3px solid #b7975a; }
+/* La carte qui attend une décision : filet champagne, sans bord épais. */
+.gerimmo-prestige .incident-dossier .incident-qualification { border-color: var(--or-filet); }
 .incident-formulaire-qualification fieldset { display: grid; gap: 8px; }
 .incident-formulaire-qualification legend { margin-bottom: 10px; }
-.incident-dossier .incident-choix-charge { padding: 12px 14px; border: 1px solid #dce2e9; border-radius: 9px; background: #fff; cursor: pointer; line-height: 1.4; }
-.incident-dossier .incident-choix-charge:hover { border-color: #839bb6; background: #f8fafc; }
-.incident-dossier .incident-choix-charge:has(input:checked) { border-color: #355d87; background: #edf3fa; color: #24496f; }
-.incident-dossier .incident-choix-charge:has(input:focus-visible) { outline: 2px solid #355d87; outline-offset: 2px; }
+.incident-dossier .incident-choix-charge { min-height: var(--cible-tactile); padding: 12px 14px; border: 1px solid var(--filet); border-radius: var(--rayon-champ); background: var(--carte); cursor: pointer; line-height: 1.4; transition: border-color var(--duree-rapide) ease, background-color var(--duree-rapide) ease; }
+.incident-dossier .incident-choix-charge:hover { border-color: var(--filet-champ); background: var(--survol); }
+.incident-dossier .incident-choix-charge:has(input:checked) { border-color: var(--marque); background: color-mix(in srgb, var(--marque) 7%, #fff); color: var(--encre); }
+.incident-dossier .incident-choix-charge:has(input:focus-visible) { outline: 3px solid var(--prestige-champagne-texte); outline-offset: 2px; }
 .incident-dossier :is(#qualification,#intervention,#cloture,#chronologie) { scroll-margin-top: 100px; }
 .incident-dossier .chrono { overflow-wrap: anywhere; }
-.incidents-page :is(a,summary,.chrono):focus-visible { outline: 2px solid #355d87; outline-offset: 3px; }
+
 @media (max-width: 1100px) {
   .incidents-page[data-selection] :is(.incidents-entete-actions, .incidents-filtres, .incidents-entete p) { display: none; }
   .incidents-page[data-selection] .incidents-entete { margin-bottom: 10px; }
   .incidents-page .split { grid-template-columns: minmax(0, 1fr); }
   .incidents-page .colonne-liste-split { position: static; max-height: none; }
   .incidents-page .split.detail-actif > .volet-liste { display: none; }
-  .incidents-page .retour-liste { display: inline-flex; align-items: center; min-height: 40px; }
+  .incidents-page .retour-liste { display: inline-flex; align-items: center; min-height: var(--cible-tactile); }
   .incidents-page .rang.actif.max-\[1100px\]\:bg-transparent { background: transparent; border-left-color: transparent; }
 }
 @media (max-width: 640px) {
   .incidents-entete { gap: 15px; }
   .incidents-entete-actions { width: 100%; }
-  .gerimmo-prestige .incidents-entete-actions a { flex: 1 1 auto; justify-content: center; }
+  .incidents-entete-actions a { flex: 1 1 auto; justify-content: center; }
   .incidents-filtres { grid-template-columns: 1fr 1fr; gap: 9px; }
   .incidents-filtre { padding: 10px 12px; gap: 9px; }
   .incidents-filtre-icone { width: 30px; height: 30px; }
   .incidents-filtre > span:nth-child(2) { font-size: 12px; gap: 6px; }
   .incidents-filtre strong { font-size: 21px; }
   .incident-entete-haut { padding: 17px 16px 0; }
-  .gerimmo-prestige .incident-entete h2 { font-size: 23px; }
   .incident-reperes { grid-template-columns: 1fr; gap: 12px; padding: 16px; }
   .incident-attribution { padding-inline: 16px; }
   .incident-etapes { padding-inline: 16px; gap: 10px; }
@@ -114,228 +129,175 @@
   .incident-contexte { grid-template-columns: 1fr; }
   .gerimmo-prestige .incident-dossier :is([data-slot="card-header"],[data-slot="card-content"]) { padding-inline: 16px; }
 }
-@media (prefers-reduced-motion: reduce) { .incidents-filtre { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .incidents-filtre, .incident-dossier .incident-choix-charge { transition: none; } }
 
-/* Propriétaire : le dossier et la prochaine décision portent la hiérarchie. */
-.incidents-page[data-proprietaire] .incidents-filtres { display: flex; gap: 4px; padding: 5px; margin-bottom: 20px; border: 1px solid var(--filet); border-radius: 10px; background: #fff; }
-.incidents-page[data-proprietaire] .incidents-filtre { flex: 1; min-width: 0; min-height: 44px; justify-content: center; gap: 6px; padding: 8px 10px; border: 0; border-radius: 6px; background: transparent; box-shadow: none; color: #536176; }
-.incidents-page[data-proprietaire] .incidents-filtre[aria-current="page"] { background: #173653; color: #fff; }
-.incidents-page[data-proprietaire] .incidents-filtre:hover:not([aria-current="page"]) { background: #f1f4f7; }
-.incidents-page[data-proprietaire] .incidents-filtre-libelle { display: inline-flex; justify-content: center; align-items: center; gap: 7px; font-size: 13px; }
-.incidents-page[data-proprietaire] .incidents-filtre strong { font-size: 12px; font-weight: 500; color: inherit; }
+/* =====================================================================================================================
+   Propriétaire : le dossier et la prochaine décision portent la hiérarchie.
+   Même Design System que l'agence : seule la géométrie change (filtres en onglets, dossier sur une colonne).
+   ===================================================================================================================== */
+.incidents-page[data-proprietaire] .incidents-filtres { display: flex; gap: 8px; margin-bottom: 14px; }
+.incidents-page[data-proprietaire] .incidents-filtre { flex: 1; min-width: 0; min-height: var(--cible-tactile); justify-content: center; gap: 6px; padding: 8px 10px; border-radius: var(--rayon-bouton); box-shadow: none; color: var(--texte-secondaire); }
+.incidents-page[data-proprietaire] .incidents-filtre[aria-current="page"] { background: var(--or-clair); border-color: var(--prestige-champagne); box-shadow: inset 0 -2px var(--prestige-champagne); color: var(--encre); }
+.incidents-page[data-proprietaire] .incidents-filtre:hover:not([aria-current="page"]) { background: var(--survol); }
+.incidents-page[data-proprietaire] .incidents-filtre-libelle { display: inline-flex; justify-content: center; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; }
+.incidents-page[data-proprietaire] .incidents-filtre strong { min-width: 19px; padding: 2px 5px; border-radius: calc(var(--rayon-bouton) - 4px); background: var(--filet-leger); color: var(--texte-secondaire); font-family: inherit; font-size: 12px; font-weight: 600; text-align: center; }
 .incidents-page[data-proprietaire] .rang { gap: 6px; padding: 16px; }
 .incidents-page[data-proprietaire] .incident-rang-reperes { order: 4; margin-top: 3px; }
-.incidents-page[data-proprietaire] .incident-statut { background: #eef2f6; color: #41556d; }
 .incident-dossier[data-proprietaire] .incident-contexte { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.incident-dossier[data-proprietaire] .incident-prochaine-action { background: #f4f7fa; border-color: #dfe5eb; border-left-color: #355d87; }
-.incident-dossier[data-proprietaire] .incident-prochaine-action a { color: #24496f; min-height: 44px; }
-.incident-dossier[data-proprietaire] .incident-historique { border: 1px solid var(--filet); border-radius: 10px; background: #fff; }
-.incident-historique > summary { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 12px 18px; cursor: pointer; color: #536176; font-size: 13px; }
+.incident-dossier[data-proprietaire] .incident-prochaine-action a { min-height: var(--cible-tactile); }
+.incident-dossier[data-proprietaire] .incident-historique { border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--carte); }
+.incident-historique > summary { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 12px 18px; cursor: pointer; color: var(--texte-secondaire); font-size: 13px; }
 .incident-historique > summary::after { content: "+"; margin-left: auto; font-size: 19px; }
 .incident-historique[open] > summary::after { content: "−"; }
-.incident-historique > [data-slot="card"] { border: 0; border-top: 1px solid var(--filet); border-radius: 0 0 10px 10px; }
-.incident-dossier[data-proprietaire] .incident-qualification { border-color: #dfe5eb; border-top-width: 1px; }
+.incident-historique > [data-slot="card"] { border: 0; border-top: 1px solid var(--filet); border-radius: 0 0 var(--rayon-carte) var(--rayon-carte); box-shadow: none; }
 @media (max-width: 640px) {
+  .incidents-page[data-proprietaire] .incidents-filtres { gap: 6px; }
   .incidents-page[data-proprietaire] .incidents-filtre { padding-inline: 5px; }
   .incidents-page[data-proprietaire] .incidents-filtre-libelle { flex-wrap: wrap; gap: 3px 5px; font-size: 12px; }
 }
 
 /* Parcours propriétaire : incident, déclaration, artisans et réseau.
-   Les couleurs d'urgence et les états métier gardent leur sens. */
-.espace-proprietaire .coquille-corps > main[data-parcours-intervention] { padding:16px 18px 40px; }
-.espace-proprietaire .coquille-corps:has(> [data-parcours-intervention]) { background:#fafaf8; }
-.espace-proprietaire [data-parcours-intervention] { --incident-bleu:#52667b; --incident-ambre:#8a7756; --incident-vert:#547367; }
-.espace-proprietaire [data-parcours-intervention] :is(.entete-page,.incidents-entete) { gap:12px; padding-bottom:0; margin-bottom:14px; border-bottom:0; }
-.espace-proprietaire [data-parcours-intervention] h1 { font-size:27px; line-height:1.2; font-weight:500; }
-.espace-proprietaire [data-parcours-intervention] .titre-ecran-icone { width:32px; height:32px; }
-.espace-proprietaire [data-parcours-intervention] :is(.btn-or,.btn-secondaire) { min-height:40px; padding:8px 12px; font-size:12px; border-radius:7px; box-shadow:none; }
-.espace-proprietaire [data-parcours-intervention] .btn-or { background:#e2d3b7; border-color:#d7c7aa; color:#344254; }
-.espace-proprietaire [data-parcours-intervention] .btn-or:hover { background:#d9c5a1; }
-.espace-proprietaire [data-parcours-intervention] .incidents-filtres { gap:8px; padding:0; margin-bottom:14px; border:0; background:transparent; }
-.espace-proprietaire [data-parcours-intervention] .incidents-filtre { min-height:42px; border:1px solid #e4e6e8; background:#fff; border-radius:7px; }
-.espace-proprietaire [data-parcours-intervention] .incidents-filtre[aria-current="page"] { background:#f2eee6; border-color:#d4c7ae; color:#34465a; box-shadow:none; }
-.espace-proprietaire [data-parcours-intervention] .incidents-filtre:hover:not([aria-current="page"]) { background:#f7f8f9; }
-.espace-proprietaire [data-parcours-intervention] .incidents-filtre strong { min-width:19px; padding:2px 5px; border-radius:4px; background:#f2f3f4; color:#627083; font-size:11px; text-align:center; }
-.espace-proprietaire [data-parcours-intervention] .incidents-filtre-libelle { font-size:12px; font-weight:500; }
-.espace-proprietaire [data-parcours-intervention] .split { grid-template-columns:minmax(240px,.85fr) minmax(0,2fr); gap:14px; align-items:start; }
-.espace-proprietaire [data-parcours-intervention] .split-sans-detail { grid-template-columns:minmax(0,1fr); }
-.espace-proprietaire [data-parcours-intervention] .colonne-liste-split { border-color:#e3e6e9; border-radius:8px; }
-.espace-proprietaire [data-parcours-intervention] .rang { padding:13px 14px; gap:5px; border-left-width:2px; }
-.espace-proprietaire [data-parcours-intervention] .rang.actif { background:#f6f3ed; border-left-color:#bfa780; }
-.espace-proprietaire [data-parcours-intervention] .incident-rang-titre { font-size:13px; line-height:1.4; font-weight:600; color:#35475d; }
-.espace-proprietaire [data-parcours-intervention] .incident-rang-lot { font-size:12px; color:#6b7787; }
-.espace-proprietaire [data-parcours-intervention] .incident-rang-reperes { margin-top:4px; font-size:10px; color:#59697d; }
-.espace-proprietaire [data-parcours-intervention] .incident-statut { font-size:11px; font-weight:500; }
-.espace-proprietaire [data-parcours-intervention] .incident-dossier { display:grid; gap:12px; }
-.espace-proprietaire [data-parcours-intervention] .incident-dossier > * { margin-block:0; }
-.espace-proprietaire [data-parcours-intervention] .incident-entete { border-radius:8px; border-color:#e3e6e9; box-shadow:none; }
-.espace-proprietaire [data-parcours-intervention] .incident-entete-haut { padding:14px 16px 0; gap:10px; }
-.espace-proprietaire [data-parcours-intervention] .incident-entete h2 { font-size:22px; font-weight:500; line-height:1.25; margin-top:4px; }
-.espace-proprietaire [data-parcours-intervention] .incident-reference { font-size:10px; color:#59697d; }
-.espace-proprietaire [data-parcours-intervention] .incident-description-resume { padding:10px 16px 0; margin:0; font-size:13px; line-height:1.6; color:#4c5e72; white-space:pre-wrap; overflow-wrap:anywhere; }
-.espace-proprietaire [data-parcours-intervention] .incident-reperes { padding:12px 16px 14px; gap:12px; }
-.espace-proprietaire [data-parcours-intervention] .incident-reperes :is(a,strong) { font-size:12px; font-weight:500; }
-.espace-proprietaire [data-parcours-intervention] .incident-reperes span { font-size:10px; }
-.espace-proprietaire [data-parcours-intervention] .incident-reperes svg { width:15px; height:15px; color:#8b96a3; }
-.espace-proprietaire [data-parcours-intervention] .incident-commun-lieu { display:flex; align-items:center; gap:7px; padding:12px 16px 14px; font-size:12px; color:#667488; }
-.espace-proprietaire [data-parcours-intervention] .incident-entete > .incident-description-resume:last-child { padding-bottom:14px; }
-.espace-proprietaire [data-parcours-intervention] .incident-contexte:empty { display:none; }
-.espace-proprietaire [data-parcours-intervention] .incident-prochaine-action { gap:8px; padding:10px 14px; border-color:#e5e0d6; border-left:2px solid #c8b795; border-radius:8px; background:#fcfaf5; }
-.espace-proprietaire [data-parcours-intervention] .incident-prochaine-action strong { font-size:13px; font-weight:600; }
-.espace-proprietaire [data-parcours-intervention] .incident-prochaine-action a { min-height:40px; color:#75694f; font-size:12px; }
-.espace-proprietaire [data-parcours-intervention] [data-slot="card"] { padding-block:14px; gap:10px; border-radius:8px; border-color:#e4e7eb; box-shadow:none; }
-.espace-proprietaire [data-parcours-intervention] :is([data-slot="card-header"],[data-slot="card-content"]) { padding-inline:16px; }
-.espace-proprietaire [data-parcours-intervention] [data-slot="card-title"] { font-size:14px; font-weight:600; color:#35485e; line-height:1.4; }
-.espace-proprietaire [data-parcours-intervention] [data-slot="card-description"] { font-size:12px; line-height:1.55; color:#59697d; }
-.espace-proprietaire [data-parcours-intervention] [data-slot="card-title"] svg { width:17px; height:17px; color:#8190a2; }
-.espace-proprietaire [data-parcours-intervention] .incident-qualification { border-top:1px solid #e5e0d5; border-left:2px solid #c8b795; background:#fff; }
-.espace-proprietaire [data-parcours-intervention] .incident-choix-charge { min-height:42px; padding:9px 11px; border-radius:6px; border-color:#e3e6e9; font-size:13px; }
-.espace-proprietaire [data-parcours-intervention] .incident-choix-charge:has(input:checked) { background:#f5f2eb; border-color:#c4b38f; color:#37485a; }
-.espace-proprietaire [data-parcours-intervention] .incident-formulaire-qualification fieldset { gap:6px; }
-.espace-proprietaire [data-parcours-intervention] .incident-historique { border-color:#e4e7eb; border-radius:8px; }
-.espace-proprietaire [data-parcours-intervention] .incident-historique > summary { min-height:44px; padding:10px 16px; font-size:12px; }
-.espace-proprietaire [data-parcours-intervention] :is(input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"]),select,textarea) { border-color:#dce1e7; border-radius:6px; box-shadow:none; }
-.espace-proprietaire [data-parcours-intervention] :is(button,[role="button"],select,input):focus-visible { outline-color:#8b7856; }
-.espace-proprietaire [data-parcours-intervention] .loc-carte { padding:16px 18px; border-color:#e4e7eb; border-radius:8px; box-shadow:none; }
-.espace-proprietaire [data-parcours-intervention] .loc-carte h2 { font-size:21px; }
-.espace-proprietaire .incident-creation-page .incident-creation-entete { margin-bottom:16px; }
-.espace-proprietaire .incident-creation-page .incident-creation-entete > .entete-page { margin-block:4px 10px; }
-.espace-proprietaire .incident-creation-page .incident-creation-entete > p { font-size:13px; max-width:70ch; line-height:1.6; }
-.espace-proprietaire .incident-creation-page .incident-creation-grille { gap:16px; grid-template-columns:minmax(0,1fr) minmax(240px,.48fr); align-items:start; }
-.espace-proprietaire [data-parcours-intervention] .formulaire-reperes { font-size:13px; }
-.espace-proprietaire [data-parcours-intervention] .incident-contenu .min-w-0:has(> .incident-contexte:empty) > .incident-contexte { display:none; }
-@media(max-width:1100px) {
-  .espace-proprietaire [data-parcours-intervention] .split { grid-template-columns:minmax(0,1fr); }
+   Les couleurs d'urgence et les états métier gardent leur sens ; le reste suit les jetons. */
+.espace-proprietaire [data-parcours-intervention] .split { grid-template-columns: minmax(240px,.85fr) minmax(0,2fr); gap: 14px; align-items: start; }
+.espace-proprietaire [data-parcours-intervention] .split-sans-detail { grid-template-columns: minmax(0,1fr); }
+.espace-proprietaire [data-parcours-intervention] .rang { padding: 13px 14px; gap: 5px; }
+.espace-proprietaire [data-parcours-intervention] .incident-rang-titre { font-size: 13px; line-height: 1.4; font-weight: 600; color: var(--encre); }
+.espace-proprietaire [data-parcours-intervention] .incident-rang-lot { font-size: 12px; }
+.espace-proprietaire [data-parcours-intervention] .incident-rang-reperes { margin-top: 4px; }
+.espace-proprietaire [data-parcours-intervention] .incident-statut { font-size: 12px; font-weight: 600; }
+.espace-proprietaire [data-parcours-intervention] .incident-dossier { display: grid; gap: 12px; }
+.espace-proprietaire [data-parcours-intervention] .incident-dossier > * { margin-block: 0; }
+.espace-proprietaire [data-parcours-intervention] .incident-entete-haut { padding: 14px 16px 0; gap: 10px; }
+.espace-proprietaire [data-parcours-intervention] .incident-entete h2 { line-height: 1.25; margin-top: 4px; }
+.espace-proprietaire [data-parcours-intervention] .incident-description-resume { padding: 10px 16px 0; margin: 0; font-size: 13px; line-height: 1.6; color: var(--texte-secondaire); white-space: pre-wrap; overflow-wrap: anywhere; }
+.espace-proprietaire [data-parcours-intervention] .incident-reperes { padding: 12px 16px 14px; gap: 12px; }
+.espace-proprietaire [data-parcours-intervention] .incident-reperes :is(a,strong) { font-size: 13px; font-weight: 500; }
+.espace-proprietaire [data-parcours-intervention] .incident-reperes svg { width: 15px; height: 15px; }
+.espace-proprietaire [data-parcours-intervention] .incident-commun-lieu { display: flex; align-items: center; gap: 7px; padding: 12px 16px 14px; font-size: 12px; color: var(--texte-secondaire); }
+.espace-proprietaire [data-parcours-intervention] .incident-entete > .incident-description-resume:last-child { padding-bottom: 14px; }
+.espace-proprietaire [data-parcours-intervention] .incident-contexte:empty { display: none; }
+.espace-proprietaire [data-parcours-intervention] .incident-prochaine-action { gap: 8px; padding: 10px 14px; }
+.espace-proprietaire [data-parcours-intervention] .incident-prochaine-action strong { font-size: 13px; font-weight: 600; }
+.espace-proprietaire [data-parcours-intervention] [data-slot="card"] { padding-block: 14px; gap: 10px; }
+.espace-proprietaire [data-parcours-intervention] :is([data-slot="card-header"],[data-slot="card-content"]) { padding-inline: 16px; }
+.espace-proprietaire [data-parcours-intervention] [data-slot="card-title"] { font-size: var(--titre-3); font-weight: 600; color: var(--encre); line-height: 1.4; }
+.espace-proprietaire [data-parcours-intervention] [data-slot="card-description"] { font-size: 13px; line-height: 1.55; color: var(--texte-secondaire); }
+.espace-proprietaire [data-parcours-intervention] [data-slot="card-title"] svg { width: 17px; height: 17px; }
+.espace-proprietaire [data-parcours-intervention] .incident-choix-charge { padding: 9px 11px; font-size: 13px; }
+.espace-proprietaire [data-parcours-intervention] .incident-formulaire-qualification fieldset { gap: 6px; }
+.espace-proprietaire [data-parcours-intervention] .incident-historique > summary { min-height: var(--cible-tactile); padding: 10px 16px; }
+.espace-proprietaire [data-parcours-intervention] .loc-carte h2 { font-size: var(--titre-2); }
+.espace-proprietaire .incident-creation-page .incident-creation-entete { margin-bottom: 16px; }
+.espace-proprietaire .incident-creation-page .incident-creation-entete > .entete-page { margin-block: 4px 10px; }
+.espace-proprietaire .incident-creation-page .incident-creation-entete > p { font-size: 13px; max-width: 70ch; line-height: 1.6; }
+.espace-proprietaire .incident-creation-page .incident-creation-grille { gap: 16px; grid-template-columns: minmax(0,1fr) minmax(240px,.48fr); align-items: start; }
+.espace-proprietaire [data-parcours-intervention] .formulaire-reperes { font-size: 13px; }
+.espace-proprietaire [data-parcours-intervention] .incident-contenu .min-w-0:has(> .incident-contexte:empty) > .incident-contexte { display: none; }
+@media (max-width: 1100px) {
+  .espace-proprietaire [data-parcours-intervention] .split { grid-template-columns: minmax(0,1fr); }
+  /* Liste seule (aucun dossier choisi) : le rang ouvert d'office sur ordinateur ne se marque pas. */
+  .espace-proprietaire .incidents-page:not([data-selection]) .volet-liste .rang.actif { background: var(--carte); border-left-color: transparent; }
 }
-@media(max-width:700px) {
-  .espace-proprietaire .coquille-corps > main[data-parcours-intervention] { padding:14px 12px 32px; }
-  .espace-proprietaire [data-parcours-intervention] h1 { font-size:25px; }
-  .espace-proprietaire [data-parcours-intervention] :is(.btn-or,.btn-secondaire) { min-height:44px; }
-  .espace-proprietaire [data-parcours-intervention] .incidents-entete-actions { gap:7px; }
-  .espace-proprietaire [data-parcours-intervention] .incidents-filtre { min-height:44px; padding-inline:6px; }
-  .espace-proprietaire [data-parcours-intervention] .incidents-filtre-libelle { font-size:11px; gap:4px; }
-  .espace-proprietaire [data-parcours-intervention] .rang { padding:12px; }
-  .espace-proprietaire [data-parcours-intervention] .incident-entete-haut { padding:13px 14px 0; }
-  .espace-proprietaire [data-parcours-intervention] .incident-entete h2 { font-size:21px; }
-  .espace-proprietaire [data-parcours-intervention] .incident-reperes { grid-template-columns:minmax(0,1fr); padding:12px 14px; gap:10px; }
-  .espace-proprietaire [data-parcours-intervention] :is([data-slot="card-header"],[data-slot="card-content"]) { padding-inline:14px; }
-  .espace-proprietaire [data-parcours-intervention] .incident-choix-charge { min-height:44px; }
-  .espace-proprietaire [data-parcours-intervention] :is(input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"]),select,textarea) { font-size:16px; }
-  .espace-proprietaire .incident-creation-page .incident-creation-grille { grid-template-columns:minmax(0,1fr); }
-  .espace-proprietaire [data-parcours-intervention] .loc-carte { padding:14px; }
+@media (max-width: 700px) {
+  .espace-proprietaire [data-parcours-intervention] .incidents-entete-actions { gap: 7px; }
+  .espace-proprietaire [data-parcours-intervention] .incidents-filtre-libelle { font-size: 12px; gap: 4px; }
+  .espace-proprietaire [data-parcours-intervention] .rang { padding: 12px; }
+  .espace-proprietaire [data-parcours-intervention] .incident-entete-haut { padding: 13px 14px 0; }
+  .espace-proprietaire [data-parcours-intervention] .incident-reperes { grid-template-columns: minmax(0,1fr); padding: 12px 14px; gap: 10px; }
+  .espace-proprietaire [data-parcours-intervention] :is([data-slot="card-header"],[data-slot="card-content"]) { padding-inline: 14px; }
+  .espace-proprietaire [data-parcours-intervention] :is(input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"]),select,textarea) { font-size: 16px; }
+  .espace-proprietaire .incident-creation-page .incident-creation-grille { grid-template-columns: minmax(0,1fr); }
 }
-.espace-proprietaire [data-parcours-intervention] .incident-lien-depenses { display:inline-flex; align-items:center; justify-self:start; min-height:40px; padding:2px 0; color:#71664f; font-size:12px; text-underline-offset:3px; }.espace-proprietaire [data-parcours-intervention] .incident-lien-depenses:hover { text-decoration:underline; }
-.espace-proprietaire [data-parcours-intervention] .incident-decision-communs:not([open]) { padding-block:0; }
-.espace-proprietaire [data-parcours-intervention] .incident-contenu > .min-w-0 { display:grid; gap:12px; }
-.espace-proprietaire [data-parcours-intervention] .incident-contenu > .min-w-0 > * { margin-block:0; }
-.espace-proprietaire [data-parcours-intervention] .incident-messages { border:1px solid #e4e7eb; border-radius:8px; background:#fff; }.espace-proprietaire [data-parcours-intervention] .incident-messages > summary { min-height:44px; padding:11px 16px; color:#536176; font-size:13px; cursor:pointer; }.espace-proprietaire [data-parcours-intervention] .incident-messages > section { border:0; border-top:1px solid #edf0f3; border-radius:0 0 8px 8px; }
-@media(max-width:1100px) {
-  .espace-proprietaire .incidents-page:not([data-selection]) .volet-liste .rang.actif { background:#fff; border-left-color:transparent; }
-}
-/* Une fiche qui situe le dossier et nomme la prochaine action. */
-.espace-proprietaire [data-parcours-intervention] .incident-parcours-simple { display:flex; align-items:center; gap:6px; margin:0; padding:0; list-style:none; }
-.espace-proprietaire [data-parcours-intervention] .incident-parcours-simple li { display:flex; align-items:center; gap:6px; flex:1; min-width:0; min-height:36px; padding:6px 8px; border-bottom:2px solid #e7e8e9; font-size:12px; color:#87919d; }
-.espace-proprietaire [data-parcours-intervention] .incident-parcours-simple li > span { display:grid; place-items:center; flex-shrink:0; width:20px; height:20px; border-radius:50%; background:#f0f1f2; font-size:10px; }
-.espace-proprietaire [data-parcours-intervention] .incident-parcours-simple li[aria-current="step"] { color:#34485e; border-color:#bca47c; font-weight:600; }
-.espace-proprietaire [data-parcours-intervention] .incident-parcours-simple li[aria-current="step"] > span { background:#eee7db; color:#6f614b; }
-.espace-proprietaire [data-parcours-intervention] .incident-repere-parcours { display:grid; gap:10px; }
-.espace-proprietaire [data-parcours-intervention] .incident-consigne { display:grid; gap:5px; padding:13px 15px; border:1px solid #e7e1d6; border-left:2px solid #bca47c; border-radius:8px; background:#fcfaf6; }
-.espace-proprietaire [data-parcours-intervention] .incident-consigne[data-attente="true"] { background:#f8fafb; border-color:#e3e8ec; border-left-color:#94a5b5; }
-.espace-proprietaire [data-parcours-intervention] .incident-consigne-repere { color:#746348; font-size:10px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
-.espace-proprietaire [data-parcours-intervention] .incident-consigne h3 { margin:0; font:600 15px/1.4 var(--font-interface,sans-serif); color:#35485e; }
-.espace-proprietaire [data-parcours-intervention] .incident-consigne p { font-size:12px; line-height:1.6; color:#637185; }
-.espace-proprietaire [data-parcours-intervention] .incident-consigne nav { display:flex; flex-wrap:wrap; gap:5px 18px; }
-.espace-proprietaire [data-parcours-intervention] .incident-consigne nav a { display:inline-flex; align-items:center; gap:8px; min-height:40px; font-size:12px; color:#5f5039; font-weight:600; }
-.espace-proprietaire [data-parcours-intervention] .incident-consigne nav a + a { color:#64748b; font-weight:500; }
-.espace-proprietaire [data-parcours-intervention] .incident-decision-rangee { border:1px solid #e4e7eb; border-radius:8px; background:#fff; }
-.espace-proprietaire [data-parcours-intervention] .incident-decision-rangee > summary { display:flex; align-items:center; gap:7px; min-height:44px; padding:10px 14px; font-size:12px; color:#637185; cursor:pointer; }
-.espace-proprietaire [data-parcours-intervention] .incident-decision-rangee > summary::after { content:"+"; margin-left:auto; color:#84909d; font-size:18px; }
-.espace-proprietaire [data-parcours-intervention] .incident-decision-rangee[open] > summary::after { content:"−"; }
-.espace-proprietaire [data-parcours-intervention] .incident-decision-rangee > [data-slot="card"] { border:0; border-top:1px solid #e9ecf0; border-radius:0 0 8px 8px; }
-.espace-proprietaire [data-parcours-intervention] .incident-decision-rangee > [data-slot="card"] > [data-slot="card-header"] { display:none; }
-.espace-proprietaire [data-parcours-intervention] .incident-reperes:has(> div:only-child) { grid-template-columns:minmax(0,1fr); }
-.espace-proprietaire [data-parcours-intervention] :is([id^="rdv-"],[id^="messages-"]) { scroll-margin-top:95px; }
-@media(max-width:700px) {
-  .espace-proprietaire [data-parcours-intervention] .incident-parcours-simple li { padding-inline:4px; font-size:11px; gap:5px; }
-  .espace-proprietaire [data-parcours-intervention] .incident-consigne { padding:12px 13px; }
-  .espace-proprietaire [data-parcours-intervention] .incident-consigne nav a { min-height:44px; }
+.espace-proprietaire [data-parcours-intervention] .incident-lien-depenses { display: inline-flex; align-items: center; justify-self: start; min-height: var(--cible-tactile); padding: 2px 0; color: var(--texte-secondaire); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.espace-proprietaire [data-parcours-intervention] .incident-lien-depenses:hover { color: var(--encre); }
+.espace-proprietaire [data-parcours-intervention] .incident-decision-communs:not([open]) { padding-block: 0; }
+.espace-proprietaire [data-parcours-intervention] .incident-contenu > .min-w-0 { display: grid; gap: 12px; }
+.espace-proprietaire [data-parcours-intervention] .incident-contenu > .min-w-0 > * { margin-block: 0; }
+.espace-proprietaire [data-parcours-intervention] .incident-messages { border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--carte); box-shadow: var(--ombre-1); }
+.espace-proprietaire [data-parcours-intervention] .incident-messages > summary { min-height: var(--cible-tactile); padding: 11px 16px; color: var(--texte-secondaire); font-size: 13px; cursor: pointer; }
+.espace-proprietaire [data-parcours-intervention] .incident-messages > section { border: 0; border-top: 1px solid var(--filet-leger); border-radius: 0 0 var(--rayon-carte) var(--rayon-carte); }
+
+/* Une fiche qui situe le dossier et nomme la prochaine action : encart de conseil au filet champagne.
+   En attente (rien à faire) : encart neutre. */
+.espace-proprietaire [data-parcours-intervention] .incident-consigne { display: grid; gap: 5px; padding: 13px 15px; border: 1px solid var(--or-filet); border-radius: var(--rayon-carte); background: var(--or-clair); }
+.espace-proprietaire [data-parcours-intervention] .incident-consigne[data-attente="true"] { background: var(--carte); border-color: var(--filet); }
+.espace-proprietaire [data-parcours-intervention] .incident-consigne-repere { color: var(--prestige-champagne-texte); font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.espace-proprietaire [data-parcours-intervention] .incident-consigne[data-attente="true"] .incident-consigne-repere { color: var(--texte-secondaire); }
+.espace-proprietaire [data-parcours-intervention] .incident-consigne h3 { margin: 0; font: 600 15px/1.4 var(--font-interface), sans-serif; color: var(--encre); }
+.espace-proprietaire [data-parcours-intervention] .incident-consigne p { font-size: 13px; line-height: 1.6; color: var(--texte-secondaire); }
+.espace-proprietaire [data-parcours-intervention] .incident-consigne nav { display: flex; flex-wrap: wrap; gap: 5px 18px; }
+.espace-proprietaire [data-parcours-intervention] .incident-consigne nav a { display: inline-flex; align-items: center; gap: 8px; min-height: var(--cible-tactile); font-size: 13px; color: var(--encre); font-weight: 600; }
+.espace-proprietaire [data-parcours-intervention] .incident-consigne nav a + a { color: var(--texte-secondaire); font-weight: 500; }
+/* Le premier lien de la consigne est le geste attendu : il prend la forme d'un bouton secondaire. */
+.espace-proprietaire [data-parcours-intervention] .incident-consigne nav a:first-child { border: 1px solid var(--filet-champ); border-radius: var(--rayon-bouton); background: var(--carte); padding-inline: 14px; transition: border-color var(--duree-rapide) ease, background-color var(--duree-rapide) ease; }
+.espace-proprietaire [data-parcours-intervention] .incident-consigne nav a:first-child:hover { border-color: var(--marque); background: var(--survol); }
+.espace-proprietaire [data-parcours-intervention] .incident-decision-rangee { border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--carte); box-shadow: var(--ombre-1); }
+.espace-proprietaire [data-parcours-intervention] .incident-decision-rangee > summary { display: flex; align-items: center; gap: 7px; min-height: var(--cible-tactile); padding: 10px 14px; font-size: 13px; color: var(--texte-secondaire); cursor: pointer; }
+.espace-proprietaire [data-parcours-intervention] .incident-decision-rangee > summary::after { content: "+"; margin-left: auto; color: var(--texte-secondaire); font-size: 18px; }
+.espace-proprietaire [data-parcours-intervention] .incident-decision-rangee[open] > summary::after { content: "−"; }
+.espace-proprietaire [data-parcours-intervention] .incident-decision-rangee > [data-slot="card"] { border: 0; border-top: 1px solid var(--filet-leger); border-radius: 0 0 var(--rayon-carte) var(--rayon-carte); box-shadow: none; }
+.espace-proprietaire [data-parcours-intervention] .incident-decision-rangee > [data-slot="card"] > [data-slot="card-header"] { display: none; }
+.espace-proprietaire [data-parcours-intervention] .incident-reperes:has(> div:only-child) { grid-template-columns: minmax(0,1fr); }
+.espace-proprietaire [data-parcours-intervention] :is([id^="rdv-"],[id^="messages-"]) { scroll-margin-top: 95px; }
+@media (max-width: 700px) {
+  .espace-proprietaire [data-parcours-intervention] .incident-consigne { padding: 12px 13px; }
 }
 
-/* Les faits du signalement restent visibles, indépendamment de l’étape. */
-.espace-proprietaire [data-parcours-intervention] .incident-identite-signalement { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 20px; padding:14px 16px; border:1px solid #e6e9ed; border-radius:8px; background:#f8fafb; }
-.espace-proprietaire [data-parcours-intervention] .incident-identite-signalement dt { font-size:11px; color:#59697d; margin-bottom:3px; }
-.espace-proprietaire [data-parcours-intervention] .incident-identite-signalement dd { margin:0; font-size:13px; color:#34485e; overflow-wrap:anywhere; }
-.espace-proprietaire [data-parcours-intervention] .incident-photos-signalement { padding:12px 16px; border:1px solid #e6e9ed; border-radius:8px; background:#fff; }
-.espace-proprietaire [data-parcours-intervention] .incident-photos-signalement h3 { margin:0 0 8px; font:600 13px/1.4 var(--font-interface,sans-serif); color:#34485e; }
-.espace-proprietaire [data-parcours-intervention] .incident-photos-signalement p { font-size:12px; color:#59697d; }
-.espace-proprietaire [data-parcours-intervention] .incident-photos-signalement summary { min-height:40px; align-content:center; cursor:pointer; font-size:12px; color:#6b5d45; }
-.espace-proprietaire [data-parcours-intervention] .incident-parcours-simple li { width:0; }
-@media(max-width:450px) { .espace-proprietaire [data-parcours-intervention] .incident-identite-signalement { gap:12px; padding:12px 14px; } }
+/* Les faits du signalement restent visibles, indépendamment de l'étape. */
+.espace-proprietaire [data-parcours-intervention] .incident-identite-signalement { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px 20px; padding: 14px 16px; border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--creme); }
+.espace-proprietaire [data-parcours-intervention] .incident-identite-signalement dt { font-size: 12px; color: var(--texte-secondaire); margin-bottom: 3px; }
+.espace-proprietaire [data-parcours-intervention] .incident-identite-signalement dd { margin: 0; font-size: 13px; color: var(--encre); overflow-wrap: anywhere; }
+@media (max-width: 450px) { .espace-proprietaire [data-parcours-intervention] .incident-identite-signalement { gap: 12px; padding: 12px 14px; } }
 
-/* Une fiche incident reprend les repères de la fiche bien. */
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-identite { min-width:0; border:1px solid #e4ddcb; border-radius:12px; background:linear-gradient(120deg,#faf6eb,#fffefb); padding:17px 18px 0; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-titre { display:flex; align-items:center; gap:12px; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-embleme { display:grid; place-items:center; width:48px; height:48px; flex-shrink:0; color:#897044; background:#eee6d1; border:1px solid #e3d7b8; border-radius:12px; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-titre > div:first-of-type { flex:1; min-width:0; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-titre h2 { margin:3px 0 0; font-size:23px; line-height:1.25; color:#243b55; overflow-wrap:anywhere; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-lieu { display:flex; align-items:flex-start; gap:7px; padding:12px 0; font-size:12px; line-height:1.5; color:#617184; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-lieu svg { flex-shrink:0; margin-top:2px; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-lieu small { display:block; margin-top:3px; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-lieu a:hover { text-decoration:underline; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-identite .incident-identite-signalement { margin:0; padding:13px 0 15px; border:0; border-top:1px solid #e8e2d5; border-radius:0; background:none; gap:12px 18px; }
-.espace-proprietaire [data-parcours-intervention] .incident-identite-signalement dd a:hover { text-decoration:underline; }
-.espace-proprietaire [data-parcours-intervention] .incident-contact-telephone { display:block; margin-top:3px; color:#526c86; font-size:12px; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-signalement { overflow:hidden; border:1px solid #d2deeb; border-radius:10px; background:#fff; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-signalement > h3 { display:flex; align-items:center; gap:9px; margin:0; padding:11px 16px; background:#243c59; color:#fff; font-size:14px; line-height:1.5; font-weight:600; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-signalement > h3 svg { color:#e4cc8c; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-signalement-corps { padding:0 16px; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-description { margin:0; padding:14px 0; font-size:13px; line-height:1.65; color:#455b73; white-space:pre-wrap; overflow-wrap:anywhere; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 14px; padding-block:7px; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-description + .incident-fiche-photos { border-top:1px solid #edf0f3; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos > span { display:flex; align-items:center; gap:7px; font-size:12px; color:#59697d; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos > div { order:2; flex-basis:100%; padding-block:7px; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos details { min-width:0; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos details[open] { flex-basis:100%; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos summary { align-content:center; min-height:40px; font-size:12px; color:#766343; cursor:pointer; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos form { padding-block:10px; }
-.espace-proprietaire [data-parcours-intervention] .incident-repere-parcours { padding-block:2px; }
-.espace-proprietaire [data-parcours-intervention] .incident-qualification { border-left:3px solid #c69d68; border-top:1px solid #eadbc5; background:#fffdf9; }
-.espace-proprietaire [data-parcours-intervention] .incident-qualification > [data-slot="card-header"] { padding-bottom:10px; border-bottom:1px solid #f0e8da; }
-.espace-proprietaire [data-parcours-intervention] .incident-carte-intervention { overflow:hidden; padding-top:0; border-color:#d2deeb; }
-.espace-proprietaire [data-parcours-intervention] .incident-carte-intervention > [data-slot="card-header"] { padding-block:12px; background:#edf3f8; border-bottom:1px solid #dbe5ee; }
-.espace-proprietaire [data-parcours-intervention] .incident-facture { background:#f7fbf9; border-color:#cce0d8; border-left:3px solid #6e9b8e; }
-.espace-proprietaire [data-parcours-intervention] :is(.incident-historique,.incident-messages) { overflow:hidden; }
-.espace-proprietaire [data-parcours-intervention] :is(.incident-historique,.incident-messages) > summary { background:#f3f6fa; color:#3f5872; font-size:13px; font-weight:600; }
-.espace-proprietaire [data-parcours-intervention] .incident-historique .chrono > div + div { border-top:1px solid #edf0f3; padding-top:12px; margin-top:12px; }
-.espace-proprietaire [data-parcours-intervention] .incident-dossier[data-proprietaire] :is(.incident-fiche-identite,.incident-fiche-signalement) { margin-block:0; }
-.espace-proprietaire [data-parcours-intervention] .rang.actif { background:#2d4663; border-left-color:#d1b67c; color:#fff; }
-.espace-proprietaire [data-parcours-intervention] .rang.actif :is(.incident-rang-lot,.incident-rang-reperes,.incident-rang-suivi,.incident-rang-etats > svg:last-child) { color:#dce5ef; }
-@media(max-width:1100px) { .espace-proprietaire .incidents-page:not([data-selection]) .volet-liste .rang.actif { color:inherit; } .espace-proprietaire .incidents-page:not([data-selection]) .volet-liste .rang.actif :is(.incident-rang-lot,.incident-rang-reperes,.incident-rang-suivi) { color:#667488; } }
-@media(max-width:700px) {
-  .espace-proprietaire [data-parcours-intervention] .incident-fiche-identite { padding:14px 14px 0; }
-  .espace-proprietaire [data-parcours-intervention] .incident-fiche-titre { flex-wrap:wrap; gap:9px; }
-  .espace-proprietaire [data-parcours-intervention] .incident-fiche-titre h2 { font-size:21px; }
-  .espace-proprietaire [data-parcours-intervention] .incident-fiche-embleme { width:40px; height:40px; border-radius:9px; }
-  .espace-proprietaire [data-parcours-intervention] .incident-fiche-titre .incident-badges { flex-basis:100%; }
-  .espace-proprietaire [data-parcours-intervention] .incident-fiche-signalement > h3 { padding-inline:14px; }
-  .espace-proprietaire [data-parcours-intervention] .incident-fiche-signalement-corps { padding-inline:14px; }
+/* Une fiche incident reprend les repères de la fiche bien : carte blanche, emblème champagne. */
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-identite { min-width: 0; border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--carte); box-shadow: var(--ombre-1); padding: 17px 18px 0; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-titre { display: flex; align-items: center; gap: 12px; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-embleme { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; color: var(--prestige-champagne-texte); background: var(--or-clair); border: 1px solid var(--or-filet); border-radius: var(--rayon-bouton); }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-titre > div:first-of-type { flex: 1; min-width: 0; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-titre h2 { margin: 3px 0 0; line-height: 1.25; color: var(--encre); overflow-wrap: anywhere; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-lieu { display: flex; align-items: flex-start; gap: 7px; padding: 12px 0; font-size: 13px; line-height: 1.5; color: var(--texte-secondaire); }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-lieu svg { flex-shrink: 0; margin-top: 2px; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-lieu small { display: block; margin-top: 3px; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-lieu a:hover { text-decoration: underline; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-identite .incident-identite-signalement { margin: 0; padding: 10px 0; border: 0; border-top: 1px solid var(--filet-leger); border-radius: 0; background: none; gap: 12px 18px; }
+.espace-proprietaire [data-parcours-intervention] .incident-identite-signalement dd a:hover { text-decoration: underline; }
+.espace-proprietaire [data-parcours-intervention] .incident-contact-telephone { display: block; margin-top: 3px; color: var(--marque-sombre); font-size: 12px; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-description { margin: 0; padding: 14px 0; font-size: 13px; line-height: 1.65; color: var(--encre); white-space: pre-wrap; overflow-wrap: anywhere; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-identite > .incident-fiche-description { padding: 9px 0 12px; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 14px; padding-block: 7px; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-description + .incident-fiche-photos,
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-identite > .incident-fiche-photos { border-top: 1px solid var(--filet-leger); }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos > span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--texte-secondaire); }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos > div { order: 2; flex-basis: 100%; padding-block: 7px; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos details { min-width: 0; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos details[open] { flex-basis: 100%; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos summary { align-content: center; min-height: var(--cible-tactile); font-size: 13px; color: var(--prestige-champagne-texte); cursor: pointer; }
+.espace-proprietaire [data-parcours-intervention] .incident-fiche-photos form { padding-block: 10px; }
+/* La décision attendue du propriétaire : filet champagne, en-tête séparé. */
+.espace-proprietaire [data-parcours-intervention] .incident-qualification { border-color: var(--or-filet); background: var(--carte); }
+.espace-proprietaire [data-parcours-intervention] .incident-qualification > [data-slot="card-header"] { padding-bottom: 10px; border-bottom: 1px solid var(--filet-leger); }
+.espace-proprietaire [data-parcours-intervention] .incident-carte-intervention { overflow: hidden; padding-top: 0; }
+.espace-proprietaire [data-parcours-intervention] .incident-carte-intervention > [data-slot="card-header"] { padding-block: 12px; background: var(--filet-leger); border-bottom: 1px solid var(--filet); }
+/* Facture reçue : état métier « à régler / réglé », le vert reste. */
+.espace-proprietaire [data-parcours-intervention] .incident-facture { background: var(--success-soft); border-color: color-mix(in srgb, var(--success) 30%, #fff); border-left: 3px solid var(--success); }
+.espace-proprietaire [data-parcours-intervention] :is(.incident-historique,.incident-messages) { overflow: hidden; }
+.espace-proprietaire [data-parcours-intervention] :is(.incident-historique,.incident-messages) > summary { background: var(--carte); color: var(--encre); font-size: 13px; font-weight: 500; }
+.espace-proprietaire [data-parcours-intervention] .incident-historique .chrono > div + div { border-top: 1px solid var(--filet-leger); padding-top: 12px; margin-top: 12px; }
+.espace-proprietaire [data-parcours-intervention] .incident-dossier[data-proprietaire] .incident-fiche-identite { margin-block: 0; }
+@media (max-width: 700px) {
+  .espace-proprietaire [data-parcours-intervention] .incident-fiche-identite { padding: 14px 14px 0; }
+  .espace-proprietaire [data-parcours-intervention] .incident-fiche-titre { flex-wrap: wrap; gap: 9px; }
+  .espace-proprietaire [data-parcours-intervention] .incident-fiche-embleme { width: 40px; height: 40px; }
+  .espace-proprietaire [data-parcours-intervention] .incident-fiche-titre .incident-badges { flex-basis: 100%; }
 }
-.espace-proprietaire [data-parcours-intervention] .rang.actif .incident-rang-titre { color:#fff; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-identite > .incident-fiche-photos { border-top:1px solid #e8e2d5; }
-@media(max-width:1100px) { .espace-proprietaire .incidents-page:not([data-selection]) .volet-liste .rang.actif .incident-rang-titre { color:#35475d; } }
 
-/* Vue propriétaire : un résumé et l’action courante ; le reste se consulte à la demande. */
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-identite { background:#fffdf8; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-identite .incident-identite-signalement { padding-block:10px; }
-.espace-proprietaire [data-parcours-intervention] .incident-fiche-identite > .incident-fiche-description { padding:9px 0 12px; }
-.espace-proprietaire [data-parcours-intervention] .incident-informations-complementaires > summary { min-height:36px; align-content:center; cursor:pointer; color:#59697d; font-size:12px; }
-.espace-proprietaire [data-parcours-intervention] .incident-informations-complementaires .incident-identite-signalement { border:0; padding-block:6px 12px; }
-.espace-proprietaire [data-parcours-intervention] .incident-recherche-artisan { border-left:3px solid #b9a075; }
-.espace-proprietaire [data-parcours-intervention] .incident-recherche-artisan [data-slot="card-title"] { font-size:16px; }
-.espace-proprietaire [data-parcours-intervention] .incident-options-recherche { border-top:1px solid #e9edf1; }
-.espace-proprietaire [data-parcours-intervention] .incident-options-recherche > summary { min-height:40px; align-content:center; cursor:pointer; color:#59697d; font-size:12px; }
-.espace-proprietaire [data-parcours-intervention] .incident-options-recherche > p { padding-block:4px 10px; }
-.espace-proprietaire [data-parcours-intervention] .incident-solution-alternative { margin-top:14px; padding-top:6px; border-top:1px solid #e9edf1; }
-.espace-proprietaire [data-parcours-intervention] .incident-solution-alternative a { display:inline-flex; align-items:center; min-height:40px; font-size:12px; color:#597568; }
-.espace-proprietaire [data-parcours-intervention] :is(.incident-historique,.incident-messages) > summary { background:#fff; font-weight:500; }
-.espace-proprietaire [data-parcours-intervention] .incident-consigne nav a:first-child { border:1px solid #d8c9ad; border-radius:6px; background:#f6f0e5; padding-inline:12px; }
+/* Vue propriétaire : un résumé et l'action courante ; le reste se consulte à la demande. */
+.espace-proprietaire [data-parcours-intervention] .incident-informations-complementaires > summary { min-height: var(--cible-tactile); align-content: center; cursor: pointer; color: var(--texte-secondaire); font-size: 13px; }
+.espace-proprietaire [data-parcours-intervention] .incident-informations-complementaires .incident-identite-signalement { border: 0; padding-block: 6px 12px; }
+.espace-proprietaire [data-parcours-intervention] .incident-recherche-artisan [data-slot="card-title"] { font-size: var(--titre-3); }
+.espace-proprietaire [data-parcours-intervention] .incident-options-recherche { border-top: 1px solid var(--filet-leger); }
+.espace-proprietaire [data-parcours-intervention] .incident-options-recherche > summary { min-height: var(--cible-tactile); align-content: center; cursor: pointer; color: var(--texte-secondaire); font-size: 13px; }
+.espace-proprietaire [data-parcours-intervention] .incident-options-recherche > p { padding-block: 4px 10px; }
+.espace-proprietaire [data-parcours-intervention] .incident-solution-alternative { margin-top: 14px; padding-top: 6px; border-top: 1px solid var(--filet-leger); }
+.espace-proprietaire [data-parcours-intervention] .incident-solution-alternative a { display: inline-flex; align-items: center; min-height: var(--cible-tactile); font-size: 13px; color: var(--texte-secondaire); text-decoration: underline; text-underline-offset: 3px; }
+.espace-proprietaire [data-parcours-intervention] .incident-solution-alternative a:hover { color: var(--encre); }

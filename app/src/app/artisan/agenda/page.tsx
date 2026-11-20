@@ -101,7 +101,6 @@ export default async function PageAgendaArtisan() {
   return (
     <div className="space-y-6">
       <EnteteSousPage rubrique="agenda" titre="Mon agenda" mention={jourLong(maintenant.toISOString())} />
-      <ChantiersDansAgenda />
 
       {agenda.erreur && (
         <Erreur>
@@ -132,7 +131,7 @@ export default async function PageAgendaArtisan() {
                   </span>
                   <span
                     className={`text-[0.8125rem] tabular-nums ${
-                      nombre > 0 ? "font-medium text-[var(--marque-sombre)]" : "text-[var(--libelle)]"
+                      nombre > 0 ? "font-semibold text-[var(--encre)]" : "text-[var(--texte-secondaire)]"
                     }`}
                     aria-label={
                       nombre > 0
@@ -144,7 +143,7 @@ export default async function PageAgendaArtisan() {
                   </span>
                 </>
               );
-              const cadre = `flex min-h-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-1 py-2 ${
+              const cadre = `flex min-h-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-[var(--rayon-champ)] border-2 px-1 py-2 ${
                 estAujourdhui
                   ? "border-[var(--marque)] bg-[var(--marque-clair)]"
                   : "border-[var(--filet-leger)] bg-[var(--ivoire)]"
@@ -154,7 +153,7 @@ export default async function PageAgendaArtisan() {
                   {nombre > 0 ? (
                     <Link
                       href={`#jour-${cle}`}
-                      className={`${cadre} transition-colors hover:border-[var(--encre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)]`}
+                      className={`${cadre} transition-colors hover:border-[var(--marque)] hover:bg-[var(--survol)]`}
                     >
                       {contenu}
                     </Link>
@@ -216,6 +215,9 @@ export default async function PageAgendaArtisan() {
         </section>
       )}
 
+      {/* Les chantiers des clients externes viennent après les missions : l'agenda s'ouvre sur la semaine qui vient. */}
+      <ChantiersDansAgenda />
+
       {joursPasses.length > 0 && (
         <section>
           <TitreSection>Historique des rendez-vous</TitreSection>
@@ -236,12 +238,10 @@ export default async function PageAgendaArtisan() {
         </section>
       )}
 
-      <Carte>
-        <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Cet agenda réunit toutes vos interventions. Chaque client ne
-          voit, de son côté, que les siennes.
-        </p>
-      </Carte>
+      <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
+        Cet agenda réunit toutes vos interventions. Chaque client ne
+        voit, de son côté, que les siennes.
+      </p>
     </div>
   );
 }

@@ -17,16 +17,16 @@ export function EncartOutils({
 }) {
   const outils = outilsPresentes().filter((o) => !chemins || chemins.includes(o.chemin));
   return (
-    <aside aria-labelledby="encart-outils" className="rounded-2xl border border-[var(--or-filet)] bg-[var(--ivoire)] p-5 sm:p-6">
+    <aside aria-labelledby="encart-outils" className="loc-carte">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <p className="eyebrow !text-[var(--marque-sombre)]">Sans compte · gratuit</p>
-          <p id="encart-outils" className="mt-1 font-heading text-[18px] font-bold text-[var(--encre)]">
+          <p className="eyebrow">Sans compte · gratuit</p>
+          <p id="encart-outils" className="mt-1 text-[length:var(--titre-3)] font-semibold text-[var(--encre)]">
             {titre}
           </p>
         </div>
-        <Link href="/outils" className="lien-discret text-[13.5px]">
-          Tous les outils →
+        <Link href="/outils" className="public-lien">
+          Tous les outils <span aria-hidden>→</span>
         </Link>
       </div>
       {chapo && <p className="mt-2 text-[14px] leading-relaxed text-[var(--texte-secondaire)]">{chapo}</p>}
@@ -36,7 +36,7 @@ export function EncartOutils({
             <Link href={o.chemin} className="outil-lien-carte group !items-center !py-3">
               <TuileOutil chemin={o.chemin} taille="sm" />
               <span className="min-w-0">
-                <span className="block text-[14px] font-semibold leading-snug text-[var(--encre)] group-hover:text-[var(--marque-sombre)]">
+                <span className="block text-[14px] font-semibold leading-snug text-[var(--encre)]">
                   {o.court}
                 </span>
                 <span className="block text-[12.5px] leading-snug text-[var(--texte-secondaire)]">{o.accroche}</span>

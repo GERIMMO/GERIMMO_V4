@@ -56,7 +56,7 @@ export default async function PageAutonomie({searchParams}:{searchParams:Promise
  }));
  const icones:Record<string,typeof FolderOpen>={bail:Building2,loyer:Wallet,incident:AlertTriangle,intervention:Wrench,document:FileText,rapport:FileText};
  return <main className={styles.page}>
-  <header className={styles.header}><div><p className={styles.eyebrow}>{vue==='ameliorations'?'ÉVOLUTION DE GERIMMO':'SUIVI OPÉRATIONNEL'}</p><TitreEcran rubrique="suivi">{vue==='ameliorations'?'Améliorations du produit':'Activité et dossiers'}</TitreEcran><p className={styles.subtitle}>{vue==='ameliorations'?'Les corrections proposées, leurs contrôles et les versions qui attendent votre accord.':'Identifiez les dossiers prioritaires et retrouvez la prochaine action à réaliser.'}</p></div>{vue!=='ameliorations'&&<ActualiserDossiers />}</header>
+  <header className={styles.header}><div><TitreEcran rubrique="suivi">{vue==='ameliorations'?'Améliorations du produit':'Activité et dossiers'}</TitreEcran><p className={styles.subtitle}>{vue==='ameliorations'?'Les corrections proposées, leurs contrôles et les versions qui attendent votre accord.':'Identifiez les dossiers prioritaires et retrouvez la prochaine action à réaliser.'}</p></div>{vue!=='ameliorations'&&<ActualiserDossiers />}</header>
   {vue!=='ameliorations'&&<>
   <div className={styles.stats} data-columns="3" aria-label="Résumé des dossiers">
     <div className={styles.stat}><span className={styles.statIcon}><FolderOpen size={20} aria-hidden="true" /></span><strong>{dossiers.error?'—':total}</strong><span>Dossiers en cours</span><small>{filtreActif?filtres[equipe]:'Toutes les catégories'}</small></div>
@@ -74,7 +74,7 @@ export default async function PageAutonomie({searchParams}:{searchParams:Promise
         <div className={styles.caseFooter}>{d.agir_apres&&<span><CalendarClock size={13} aria-hidden="true" />Échéance : {formaterDateParis(d.agir_apres)}</span>}<span>Ouvrir le dossier <ArrowUpRight size={15} aria-hidden="true" /></span></div>
       </Link>;})}
     </div>}
-    {(total>25||page>1)&&<nav aria-label="Pages de dossiers" className={styles.pagination}>{page>1?<Link href={adresseDossiers(equipe,page-1)}>← Précédente</Link>:<span/>}<span>{total} dossiers · page {page}</span>{page*25<total?<Link href={adresseDossiers(equipe,page+1)}>Suivante →</Link>:<span/>}</nav>}
+    {(total>25||page>1)&&<nav aria-label="Pages de dossiers" className={styles.pagination}>{page>1?<Link href={adresseDossiers(equipe,page-1)}>← Précédente</Link>:<span/>}<span>{total} dossier{total>1?'s':''} · page {page} sur {Math.max(1,Math.ceil(total/25))}</span>{page*25<total?<Link href={adresseDossiers(equipe,page+1)}>Suivante →</Link>:<span/>}</nav>}
   </section>
   <p className={styles.context}><Info size={15} aria-hidden="true" /><span>Vous restez connecté en superadmin pendant la consultation. Les propriétaires et gestionnaires réalisent les actions dans leur espace.</span></p>
   {!vide&&!dossiers.error&&<details className={styles.history}><summary><History size={17} aria-hidden="true" />Dernières étapes des dossiers affichés<ChevronDown size={16} aria-hidden="true" /></summary>{historique.error?<p role="alert" className="err px-6 pb-5">L’historique est momentanément indisponible.</p>:<ol className={styles.timeline}>{historique.data?.slice(0,30).map(h=><li key={h.id}><time dateTime={h.created_at}>{formaterDateHeureParis(h.created_at)}</time><p>{h.action}</p></li>)}{!historique.data?.length&&<li>Aucun changement enregistré depuis la mise en place de cet historique.</li>}</ol>}</details>}

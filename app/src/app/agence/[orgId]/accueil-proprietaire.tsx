@@ -22,6 +22,7 @@ import { CarteTachesProprietaire } from "@/components/carte-taches-proprietaire"
 import { construireTachesAccueil, type TacheAccueil } from "@/lib/taches-accueil-proprietaire";
 import { ActionsRapidesIncident } from "@/components/actions-rapides-incident";
 import { chargerIncidentsVerifications } from "@/lib/incidents-verifications";
+import { ValeurVivante } from "@/components/valeur-vivante";
 import styles from "./accueil-proprietaire.module.css";
 
 export async function AccueilProprietaire({ supabase, orgId, prenom = null, userId, lectureSeule = false }: {
@@ -128,18 +129,18 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
       <Link href={`${base}/loyers`} className={styles.indicateur}>
         <span><Banknote size={22} aria-hidden="true"/>Loyers du mois</span>
         <small>Échéances {deElide(nomMois)}</small>
-        <div className={styles.montantLoyer}><strong>{loyersMois ? eur(loyersMois.encaisse) : "—"}</strong>{loyersMois && loyersMois.attendu > 0 && <em>sur {eur(loyersMois.attendu)}</em>}</div>
+        <div className={styles.montantLoyer}><strong>{loyersMois ? <ValeurVivante valeur={loyersMois.encaisse}>{eur(loyersMois.encaisse)}</ValeurVivante> : "—"}</strong>{loyersMois && loyersMois.attendu > 0 && <em>sur {eur(loyersMois.attendu)}</em>}</div>
         {pourcentage !== null ? <div className={styles.progressionLoyer}><span role="progressbar" aria-label={`Part des échéances couvertes en ${nomMois}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pourcentage}><i style={{width:`${pourcentage}%`}}/></span><small>{pourcentage} %</small></div> : <small>{loyersMois ? "Aucun loyer attendu ce mois-ci" : "Montants indisponibles"}</small>}
         <small>{pilotage.encaisse === null ? "Encaissements du mois indisponibles" : `${eur(pilotage.encaisse)} reçus en ${nomMois}, toutes échéances confondues`}</small>
         <ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true"/>
       </Link>
       <Link href={`${base}/parc`} className={styles.indicateur}>
         <span><Building2 size={18} aria-hidden="true" />Patrimoine</span>
-        <strong>{patrimoine ? `${patrimoine.biens} bien${patrimoine.biens > 1 ? "s" : ""}` : "—"}</strong>
+        <strong>{patrimoine ? <ValeurVivante valeur={patrimoine.biens}>{`${patrimoine.biens} bien${patrimoine.biens > 1 ? "s" : ""}`}</ValeurVivante> : "—"}</strong>
         <small>{patrimoine ? `${patrimoine.lots.length} lot${patrimoine.lots.length > 1 ? "s" : ""}` : "Patrimoine indisponible"}</small>
         <ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true" />
       </Link>
-      <Link href={`${base}/parc`} className={styles.indicateur}><span><FileText size={18} aria-hidden="true" />Locations en cours</span><strong>{patrimoine ? patrimoine.contrats : "—"}</strong><small>{patrimoine ? `${patrimoine.lotsOccupes} lot${patrimoine.lotsOccupes > 1 ? "s" : ""} occupé${patrimoine.lotsOccupes > 1 ? "s" : ""}` : "Locations indisponibles"}</small><ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
+      <Link href={`${base}/parc`} className={styles.indicateur}><span><FileText size={18} aria-hidden="true" />Locations en cours</span><strong>{patrimoine ? <ValeurVivante valeur={patrimoine.contrats}>{patrimoine.contrats}</ValeurVivante> : "—"}</strong><small>{patrimoine ? `${patrimoine.lotsOccupes} lot${patrimoine.lotsOccupes > 1 ? "s" : ""} occupé${patrimoine.lotsOccupes > 1 ? "s" : ""}` : "Locations indisponibles"}</small><ArrowRight size={18} className={styles.flecheIndicateur} aria-hidden="true" /></Link>
     </section>}
     {(loyersMois === null || patrimoine === null) && <p className="err" role="alert">Certains chiffres n’ont pas pu être vérifiés. Rechargez la page.</p>}
 
@@ -163,7 +164,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
 
     {!compteNeuf && <ActionsAccueilProprietaire base={base} lots={patrimoine?.lots ?? null} lectureSeule={lectureSeule}/>}
 
-    <SuiviEcheanciersCharges org={orgId} proprietaire base={base} rappelsSeulement />
+    <SuiviEcheanciersCharges org={orgId} proprietaire base={base} rappelsSeulement niveauTitre={2} />
 
     <div className={styles.grille}>
       <div className={styles.principal}>

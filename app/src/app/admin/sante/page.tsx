@@ -165,16 +165,15 @@ export default async function PageSante() {
         <p>{detailPoints || "Aucun blocage remonté par ces contrôles."}{aVerifier}</p>
         {(taches === null || sante.tachesIllisibles || cycle === null) && <p role="alert">Certains résultats sont indisponibles. Actualisez avant de conclure au bon fonctionnement.</p>}
         <p>Ce suivi ne remplace pas la vérification d’un envoi ou d’un paiement auprès du prestataire.</p>
-        <div className={styles.liens}><a href="#connexions">Vérifier les services</a><a href="#taches">Voir les traitements</a><a href="#traitements-durables">Suivre les courriels et factures</a></div>
+        <nav aria-label="Accès aux contrôles" className={styles.liens}><a href="#connexions">Vérifier les services</a><a href="#taches">Voir les traitements et la sauvegarde</a><a href="#traitements-durables">Suivre les courriels et factures</a><a href="#budget-signatures">Budget des signatures</a></nav>
       </section>
       <TraitementsDurables />
 
-      <nav aria-label="Accès aux contrôles" className="mb-5 flex flex-wrap gap-3"><a className="btn-secondaire" href="#connexions">Connexions</a><a className="btn-secondaire" href="#taches">Tâches et sauvegarde</a><a className="btn-secondaire" href="#budget-signatures">Signatures</a></nav>
       {/* ── Configuration ─────────────────────────────────────────────── */}
       <ConsoleSection id="connexions" titre="Connexions des services" description="Présence des réglages nécessaires aux services." icone="sante" ton={nbManque + nbAttention ? "ambre" : "vert"} statut={nbManque+nbAttention ? `${nbManque+nbAttention} à vérifier` : "Réglages présents"}>
         <div className="entete-carte mb-3">
 
-          <span className="mono-discret">{configuration.filter((v) => v.estConnexion !== false).length}</span>
+          <span className="text-sm text-muted-foreground">{configuration.filter((v) => v.estConnexion !== false).length} connexions suivies</span>
         </div>
         {/* La liste commune de la console (nuit du 25/09) : des rangs à filet
             et coins arrondis, comme l'ancienne « Santé du service ». */}
@@ -199,7 +198,7 @@ export default async function PageSante() {
         <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
           Ce contrôle confirme la présence des réglages, sans afficher les clés.
           Il ne teste pas un paiement, un e-mail ou une signature chez le prestataire.
-          Les réglages serveur se modifient chez Vercel, puis le service est redéployé.
+          Les réglages du serveur se modifient chez l’hébergeur, puis le service est remis en ligne <code>Vercel, redéploiement</code>.
         </p>
       </ConsoleSection>
 
@@ -212,10 +211,10 @@ export default async function PageSante() {
           </Link>
         </div>
         {taches === null ? (
-          <div className="vide">
+          <p role="alert" className="err">
             L&apos;historique n&apos;a pas pu être lu : l&apos;état du travail automatique est
             inconnu. Rechargez la page.
-          </div>
+          </p>
         ) : (
           <ul className="colonne-liste">
             {taches.map((t) => (
@@ -242,9 +241,9 @@ export default async function PageSante() {
                       {t.commandable ? (
                         cronPose ? <LancerMission mission={t.nom} /> : <span className="text-sm text-[var(--encre)]">Le lancement manuel sera disponible une fois le service relié. Consultez les connexions ci-dessus.</span>
                       ) : t.nom === "sauvegarde" ? (
-                        <a href="https://github.com/GERIMMO/GERIMMO_V4/actions/workflows/sauvegarde.yml" target="_blank" rel="noreferrer" className="lien-discret text-sm">Relancer la sauvegarde depuis GitHub (Run workflow) →</a>
+                        <><a href="https://github.com/GERIMMO/GERIMMO_V4/actions/workflows/sauvegarde.yml" target="_blank" rel="noreferrer" className="lien-discret">Relancer la sauvegarde →<span className="sr-only"> (nouvel onglet)</span></a>{" "}<span className="text-xs text-muted-foreground">Chez GitHub, bouton <code>Run workflow</code>.</span></>
                       ) : (
-                        <Link href="/admin/autonomie" className="lien-discret text-sm">Actualiser les prochaines étapes dans Développement du site →</Link>
+                        <Link href="/admin/autonomie?vue=dossiers" className="lien-discret">Actualiser les prochaines étapes dans « Activité et dossiers » →</Link>
                       )}
                     </span>
                   )}
@@ -289,7 +288,7 @@ export default async function PageSante() {
                   {cycle.etat === "suspendu" && (
                     <span className="mt-2 block text-sm text-[var(--encre)]">
                       Un arrêt d’urgence couvre le cycle mensuel : il ne se lance pas tant que l’arrêt n’est pas levé.{" "}
-                      <Link href="/admin/relais" className="lien-discret">Ouvrir « Relais et arrêts » →</Link>
+                      <Link href="/admin/relais" className="lien-discret">Ouvrir « Vacances et relais » →</Link>
                     </span>
                   )}
                 </>
@@ -301,7 +300,7 @@ export default async function PageSante() {
         <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
           Une pastille verte confirme un passage récent. Une pastille rouge
           demande une vérification. L&apos;historique est conservé pendant six mois.
-          {" "}{NOTE_FUSEAU} <Link href="/admin/equipes" className="lien-discret">Pause et reprise des missions →</Link>
+          {" "}{NOTE_FUSEAU} <Link href="/admin/equipes" className="lien-discret">Mettre en pause ou relancer une tâche →</Link>
         </p>
         {/* IA-03 / D46 : dire vrai — cet écran se consulte, il n'avertit personne. D46-B (15/10) : trois envois d'alerte
             existent, et l'écran les nomme tous : le veto marketing, l'e-mail de 5 h et l'e-mail immédiat des urgences. */}
@@ -349,7 +348,7 @@ export default async function PageSante() {
         ) : (
           <div className="loc-carte text-sm">
             {identite.indisponible && (
-              <p role="alert" className="mb-2 font-semibold">
+              <p role="alert" className="err mb-2 font-semibold">
                 L’identité de l’éditeur n’a pas pu être lue : chaque fait est compté comme non fourni.
               </p>
             )}
@@ -416,7 +415,7 @@ export default async function PageSante() {
           </span>
         </div>
         {adoption === null ? (
-          <div className="vide">Les organisations n&apos;ont pas pu être lues.</div>
+          <p role="alert" className="err">Les organisations n&apos;ont pas pu être lues.</p>
         ) : (
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[

@@ -56,7 +56,7 @@ function RetenirDate({
     {}
   );
   return (
-    <li className="rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] p-3">
+    <li className="rounded-[var(--rayon-champ)] border border-[var(--filet)] bg-[var(--creme)] p-3">
       <p className="text-base font-medium text-[var(--corps)]">
         {creneauTexte(creneau.debut, creneau.fin)}
       </p>

@@ -105,7 +105,7 @@ export function ComparateurGliVisale() {
         </h3>
         <p
           data-testid="cmp-visale-verdict"
-          className={`font-heading text-[28px] font-extrabold leading-[1.1] tracking-[-0.02em] ${
+          className={`outil-verdict ${
             visale.eligible ? "text-[var(--success)]" : "text-[var(--destructive-soft-foreground)]"
           }`}
         >
@@ -150,7 +150,7 @@ export function ComparateurGliVisale() {
             </ListeDetail>
           </>
         ) : (
-          <p className="rounded-xl bg-[var(--creme)] px-4 py-4 text-[14px] text-[var(--texte-secondaire)]">
+          <p className="rounded-[var(--rayon-bouton)] bg-[var(--filet-leger)] px-4 py-4 text-[14px] text-[var(--texte-secondaire)]">
             Renseignez le loyer et le taux.
           </p>
         )}
@@ -167,8 +167,8 @@ export function ComparateurGliVisale() {
         </h2>
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">
           {COUVERTURE_VISALE.map((c) => (
-            <li key={c} className="flex gap-3 rounded-xl bg-[var(--creme)] px-4 py-3 text-[14px] leading-snug text-[var(--corps)]">
-              <svg viewBox="0 0 20 20" aria-hidden className="mt-0.5 size-4 shrink-0 fill-none stroke-[var(--success)] stroke-[2.2]">
+            <li key={c} className="flex gap-3 rounded-[var(--rayon-bouton)] bg-[var(--filet-leger)] px-4 py-3 text-[14px] leading-snug text-[var(--corps)]">
+              <svg viewBox="0 0 20 20" aria-hidden className="mt-0.5 size-4 shrink-0 fill-none stroke-[var(--prestige-champagne-texte)] stroke-[2.2]">
                 <path d="m4.5 10.5 3.5 3.5 7.5-8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span>{c}</span>

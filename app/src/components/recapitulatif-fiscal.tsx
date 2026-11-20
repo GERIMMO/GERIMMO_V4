@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { baseEspace } from "@/lib/racine-espace";
 import { lireCadreFiscal } from "@/lib/lecture-profils-fiscaux";
 import { ProfilsFiscaux } from "@/components/profil-fiscal-detenteur";
+import { TitreEcran } from "@/components/titre-ecran";
 
 
 
@@ -121,7 +122,7 @@ export async function RecapitulatifFiscal(props: {
   const retour = (
     <Link
       href={`${base}/loyers?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}#declaration`}
-      className="inline-flex min-h-9 items-center text-sm text-muted-foreground hover:underline"
+      className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
     >
       ← Finances
     </Link>
@@ -135,7 +136,7 @@ export async function RecapitulatifFiscal(props: {
         <div>
           {retour}
           <div className="entete-page">
-            <h1>{titreExercice}</h1>
+            <TitreEcran rubrique="finances">{titreExercice}</TitreEcran>
           </div>
           {navigation}
         </div>
@@ -166,7 +167,7 @@ export async function RecapitulatifFiscal(props: {
         <div>
           {retour}
           <div className="entete-page">
-            <h1>{titreExercice}</h1>
+            <TitreEcran rubrique="finances">{titreExercice}</TitreEcran>
           </div>
           {navigation}
         </div>
@@ -189,7 +190,7 @@ export async function RecapitulatifFiscal(props: {
   const preparation = <section className="loc-carte space-y-2"><h2 className="text-lg">Dossier pour votre déclaration ou votre comptable</h2><p className="text-sm text-muted-foreground">Les situations fiscales et le journal du 1er janvier au 31 décembre du périmètre sélectionné, sans calcul d’impôt ni liasse fiscale. Les montants restent à affecter au bon propriétaire et au bon régime.</p><a className="btn-secondaire inline-flex" href={`${base}/comptabilite/fiscal/preparation?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}`}>Exporter le dossier de préparation</a></section>;
   if (cadreFiscal.blocage2044) {
     if (props.compact) return <div className="space-y-2"><p className="text-sm">{cadreFiscal.blocage2044}</p><Link href={`${base}/comptabilite/fiscal?annee=${annee}${bien ? `&bien=${encodeURIComponent(bien)}` : ""}${entite ? `&entite=${encodeURIComponent(entite)}` : ""}`} className="lien-discret inline-flex min-h-11 items-center">Préparer ma déclaration en {annee + 1} (revenus {annee}) →</Link></div>;
-    return <main className="mx-auto w-full max-w-4xl space-y-5 p-4 sm:p-7"><div>{retour}<div className="entete-page"><h1>{titreExercice}</h1></div>{navigation}</div>{choixPerimetre}<p role="status" className="loc-carte text-sm">{cadreFiscal.blocage2044}</p>{profilsFiscaux}{!cadreFiscal.erreur && preparation}</main>;
+    return <main className="mx-auto w-full max-w-4xl space-y-5 p-4 sm:p-7"><div>{retour}<div className="entete-page"><TitreEcran rubrique="finances">{titreExercice}</TitreEcran></div>{navigation}</div>{choixPerimetre}<p role="status" className="loc-carte text-sm">{cadreFiscal.blocage2044}</p>{profilsFiscaux}{!cadreFiscal.erreur && preparation}</main>;
   }
 
   const qualifications=new Map<string,QualificationFiscale>();
@@ -250,7 +251,7 @@ export async function RecapitulatifFiscal(props: {
         {/* La marge sous l'en-tête est celle de `.entete-page`, commune à
             l'espace : plus de mb-4 / mb-6 posés page par page (24/09). */}
         <div className="entete-page">
-          <h1>{titreExercice}</h1>
+          <TitreEcran rubrique="finances">{titreExercice}</TitreEcran>
           {/* nbEcritures ne compte QUE les écritures rangées dans la 2044 :
               celles des lots meublés sont totalisées à part (BIC). Annoncer
               « n écritures » tout court laissait croire à l'année entière. */}
@@ -264,6 +265,11 @@ export async function RecapitulatifFiscal(props: {
           de la déclaration 2044 (revenus fonciers, location nue). C&apos;est une
           aide pour recopier, pas une déclaration : vérifiez chaque montant et
           complétez ce que le livre ne suit pas.
+        </p>
+        {/* Les mots du fisc gardent leur place dans l'écran ; cette ligne les dit en clair (refonte du 20/11). */}
+        <p className="mt-2 text-sm text-muted-foreground">
+          En clair : la « 2044 » est le formulaire des revenus fonciers ; « qualifier » une pièce, c&apos;est dire dans
+          quelle rubrique elle se range ; le « détenteur » est le propriétaire du lot à la date de la pièce.
         </p>
       </div>
       <section className="loc-carte space-y-3">

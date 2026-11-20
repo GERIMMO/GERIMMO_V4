@@ -65,7 +65,7 @@ export default async function PageConfirmerLien({ searchParams }: { searchParams
       <Card>
         <CardContent className="pt-6">
           {etape === "autre-adresse" ? (
-            <p role="status">Pour terminer le changement d’adresse, ouvrez les liens envoyés à votre adresse actuelle et à votre nouvelle adresse e-mail.</p>
+            <p role="status" className="auth-message">Pour terminer le changement d’adresse, ouvrez les liens envoyés à votre adresse actuelle et à votre nouvelle adresse e-mail.</p>
           ) : jeton && type && confirmation ? (
             <form data-saisie-libre method="post" action="/auth/confirm" className="space-y-4">
               <input type="hidden" name="token_hash" value={jeton} />
@@ -90,7 +90,7 @@ export default async function PageConfirmerLien({ searchParams }: { searchParams
             </form>
           ) : jeton && type ? (
             <div className="space-y-4">
-              <p role="alert" className="rounded-md border-l-4 border-warning bg-warning-soft p-3 text-sm text-warning-soft-foreground">
+              <p role="alert" className="auth-message" data-ton="attention">
                 Cette page a besoin d’un cookie de sécurité qui manque. Rouvrez le lien pour continuer ; si le
                 message revient, autorisez les cookies pour ce site.
               </p>
@@ -98,7 +98,7 @@ export default async function PageConfirmerLien({ searchParams }: { searchParams
             </div>
           ) : (
             <div className="space-y-4">
-              <p role="alert" className="rounded-md border-l-4 border-warning bg-warning-soft p-3 text-sm text-warning-soft-foreground">
+              <p role="alert" className="auth-message" data-ton="attention">
                 Ce lien est incomplet. Ouvrez-le directement depuis l’e-mail reçu, ou demandez-en un nouveau.
               </p>
               <Button

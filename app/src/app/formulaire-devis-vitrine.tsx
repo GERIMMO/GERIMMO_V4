@@ -14,22 +14,21 @@ import { Spinner } from "@/components/ui/spinner";
 // 24/09 : une seule convention dans les formulaires publics — « (facultatif) »
 // sur les champs optionnels, rien sur les obligatoires. Deux astérisques sans
 // légende et un seul « facultatif » sur quatre ne disaient rien de sûr.
-// Libellés à 85 % et mention à 80 % : à 70 et 55 %, le texte se perdait dans
-// le bleu foncé de fin de dégradé, sous le contraste de 4,5:1.
+// Design System « Maison » (20/11) : le formulaire est une carte blanche posée sur le panneau bleu nuit
+// (`.public-contact form`, vitrine.css). Libellés et mention s'y lisent en encre, le bouton principal est bleu nuit.
 export function FormulaireDevisVitrine() {
   const [etat, action, enCours] = useActionState<EtatDevis, FormData>(demanderDevis, {});
 
   if (etat.succes) {
     return (
-      <p className="rounded-lg bg-[var(--sur-encre)]/10 p-4 text-sm text-[var(--sur-encre)]">
+      <p className="public-contact-succes">
         ✓ {etat.succes}
       </p>
     );
   }
 
-  const libelle = "mb-1 block text-xs text-[var(--sur-encre)]/85";
-  const champ =
-    "h-10 w-full rounded-lg border border-[var(--sur-encre)]/25 bg-[var(--sur-encre)]/5 px-3 text-sm text-[var(--sur-encre)] placeholder:text-[var(--sur-encre)]/40";
+  // Champs du Design System : la règle commune des champs (44 px, filet, rayon) et `.public-contact` dans vitrine.css
+  // les habillent ; aucune classe de couleur ou de hauteur n'est recopiée ici.
 
   return (
     <form data-saisie-libre action={action} className="grid gap-3 sm:grid-cols-2">
@@ -43,25 +42,25 @@ export function FormulaireDevisVitrine() {
         className="hidden"
       />
       <div>
-        <label htmlFor="devis-nom" className={libelle}>
+        <label htmlFor="devis-nom">
           Votre nom
         </label>
-        <input id="devis-nom" name="nom" required maxLength={200} className={champ} />
+        <input id="devis-nom" name="nom" required maxLength={200} />
       </div>
       <div>
-        <label htmlFor="devis-email" className={libelle}>
+        <label htmlFor="devis-email">
           Votre e-mail
         </label>
-        <input id="devis-email" name="email" type="email" required maxLength={320} className={champ} />
+        <input id="devis-email" name="email" type="email" required maxLength={320} />
       </div>
       <div>
-        <label htmlFor="devis-telephone" className={libelle}>
+        <label htmlFor="devis-telephone">
           Téléphone (facultatif)
         </label>
-        <input id="devis-telephone" name="telephone" type="tel" maxLength={40} className={champ} />
+        <input id="devis-telephone" name="telephone" type="tel" maxLength={40} />
       </div>
       <div className="sm:col-span-2">
-        <label htmlFor="devis-message" className={libelle}>
+        <label htmlFor="devis-message">
           Votre message
         </label>
         <textarea
@@ -70,15 +69,13 @@ export function FormulaireDevisVitrine() {
           rows={4}
           required
           maxLength={4000}
-          className={`${champ} h-auto py-2`}
         />
       </div>
-      {/* Le message posé sur le bandeau bleu : une pastille blanche, sinon il
-          se confondrait avec le fond et l'erreur passerait inaperçue. */}
+      {/* L'erreur, dans la carte du formulaire : fond et texte de l'état « erreur ». */}
       {etat.erreur && (
         <p
           role="alert"
-          className="rounded-lg bg-[var(--ivoire)] px-3 py-2 text-sm font-medium text-[var(--destructive)] sm:col-span-2"
+          className="public-contact-erreur sm:col-span-2"
         >
           {etat.erreur}
         </p>
@@ -90,7 +87,7 @@ export function FormulaireDevisVitrine() {
         {/* Intégration des textes du 24/10 (finition conservation, M5) : la demande vit 24 mois (contact:devis) ; le
             suivi commercial d'un professionnel né de sa demande, trois ans après son dernier contact (contact:prospect).
             « uniquement à vous répondre » n'était donc plus exact pour un professionnel. */}
-        <p className="mt-2 text-[13px] text-[var(--sur-encre)]/80">
+        <p className="mt-3 text-[13px] leading-relaxed text-[var(--texte-secondaire)]">
           Ces informations servent à vous répondre au sujet de votre message —
           jamais cédées ni revendues. Le délai court à partir du dernier traitement de votre demande,
           ou de votre dernier contact pour le suivi commercial des professionnels.

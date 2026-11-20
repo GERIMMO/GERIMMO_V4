@@ -69,9 +69,9 @@ export default async function PageMentionsLegales() {
         <p>Après une réclamation écrite, le consommateur peut recourir gratuitement à un médiateur compétent.</p>
       </Article>
 
-      <nav aria-label="Informations juridiques complémentaires" className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
-        <Link href="/conditions" className="lien-texte">Conditions générales</Link>
-        <Link href="/confidentialite" className="lien-texte">Données personnelles et confidentialité</Link>
+      <nav aria-label="Informations juridiques complémentaires" className="flex flex-wrap gap-x-6">
+        <Link href="/conditions" className="public-lien">Conditions générales</Link>
+        <Link href="/confidentialite" className="public-lien">Données personnelles et confidentialité</Link>
       </nav>
     </CoquilleLegale>
   );

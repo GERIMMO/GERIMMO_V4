@@ -48,7 +48,7 @@ export function FormulaireCompteArtisan({ invitationId }: { invitationId?: strin
 
   if (etat.message) {
     return (
-      <p role="status" className="rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] p-4 text-base text-[var(--corps)]">
+      <p role="status" className="rounded-[var(--rayon-champ)] border border-[var(--filet)] bg-[var(--filet-leger)] p-4 text-base text-[var(--corps)]">
         {etat.message}
       </p>
     );
@@ -72,7 +72,7 @@ export function FormulaireCompteArtisan({ invitationId }: { invitationId?: strin
           defaultValue={etat.valeurs?.email ?? prerempli}
           className={CLASSE_CHAMP}
         />
-        <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
+        <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
           {invitationId
             ? "Utilisez l’adresse qui a reçu l’invitation : c’est avec elle que vous pourrez l’accepter."
             : "Si un gestionnaire a déjà créé votre fiche, utilisez l’adresse qu’il a enregistrée pour vous : c’est lui qui vous la rattache."}

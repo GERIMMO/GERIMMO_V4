@@ -21,7 +21,7 @@ export function ParcoursChantier({ etape, actions }: {
   return <div className={styles.parcours}>
     <section className={styles.etape} aria-labelledby="etape-suivante-chantier">
       <p className={styles.repere}>{active !== principale ? "Autre action" : "Étape suivante"}</p>
-      <h2 id="etape-suivante-chantier" ref={titre} tabIndex={-1} className="font-heading">
+      <h2 id="etape-suivante-chantier" ref={titre} tabIndex={-1}>
         {active && active !== principale ? actions.find(a => a.id === active)?.titre : etape.titre}
       </h2>
       {active === principale && <p>{etape.detail}</p>}

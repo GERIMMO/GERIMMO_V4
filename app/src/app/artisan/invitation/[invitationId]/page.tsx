@@ -5,7 +5,8 @@ import { estUuid } from "@/lib/identifiants";
 import { VISIBLE_APRES_ACCEPTATION, nomInvitant, valableJusquAu, type InvitationRecue } from "@/lib/invitations-artisan";
 import { chargerFicheArtisan } from "../../acces";
 import { FormulaireCompteArtisan } from "../../inscription/formulaire-compte";
-import { CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SECONDAIRE, Carte, Erreur, TitreSection } from "../../ui";
+import { CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SECONDAIRE, Carte, EnteteSousPage, Erreur, TitreSection } from "../../ui";
+import styles from "../../portail-artisan.module.css";
 import { ReponseInvitationArtisan } from "./reponse";
 
 export const metadata = { title: "Invitation d’un propriétaire" };
@@ -23,7 +24,7 @@ export const metadata = { title: "Invitation d’un propriétaire" };
 export default async function PageInvitationArtisan(props: PageProps<"/artisan/invitation/[invitationId]">) {
   const { invitationId } = await props.params;
   const { supabase, user, fiche } = await chargerFicheArtisan();
-  if (!estUuid(invitationId)) return <Carte><h1>Ce lien n’est pas valable</h1><p>Ouvrez le lien complet reçu par e-mail.</p><AideInvitation connecte={!!user}/></Carte>;
+  if (!estUuid(invitationId)) return <div className="space-y-6"><div><p className={styles.surtitre}>Espace artisan</p><EnteteSousPage rubrique="personnes" titre="Ce lien n’est pas valable" /></div><Carte><p className="text-base text-[var(--corps)]">Ouvrez le lien complet reçu par e-mail.</p><AideInvitation connecte={!!user}/></Carte></div>;
   if (!user) return <SansSession invitationId={invitationId} />;
 
   const { data, error } = await supabase.rpc("mon_invitation_artisan", { p_id: invitationId });
@@ -34,10 +35,13 @@ export default async function PageInvitationArtisan(props: PageProps<"/artisan/i
 
   return (
     <div className="space-y-6">
-      <div className="portail-hero">
-        <p className="portail-surtitre">Espace artisan</p>
-        <h1 className="mt-0.5">Invitation à rejoindre un carnet d’artisans</h1>
-        {invitation && <p className="mt-2 text-base text-[var(--corps)]">Proposée par {invitant ?? "un propriétaire qui utilise Gerimmo"}</p>}
+      <div>
+        <p className={styles.surtitre}>Espace artisan</p>
+        <EnteteSousPage
+          rubrique="personnes"
+          titre="Invitation à rejoindre un carnet d’artisans"
+          mention={invitation ? <>Proposée par {invitant ?? "un propriétaire qui utilise Gerimmo"}</> : undefined}
+        />
       </div>
 
       {error ? (
@@ -163,25 +167,26 @@ function EnAttente({ invitation, invitant }: { invitation: InvitationRecue; invi
 function SansSession({ invitationId }: { invitationId: string }) {
   return (
     <div className="space-y-6">
-      <div className="portail-hero">
-        <p className="portail-surtitre">Espace artisan</p>
-        <h1 className="mt-0.5">Vérifier votre invitation artisan</h1>
-        <p className="mt-2 text-base text-[var(--corps)]">
-          Connectez-vous avec l’adresse qui a reçu le message. Vous verrez alors qui vous invite et si le lien est encore valable.
-        </p>
+      <div>
+        <p className={styles.surtitre}>Espace artisan</p>
+        <EnteteSousPage
+          rubrique="personnes"
+          titre="Vérifier votre invitation artisan"
+          mention="Connectez-vous avec l’adresse qui a reçu le message. Vous verrez alors qui vous invite et si le lien est encore valable."
+        />
       </div>
 
       <Carte>
         <TitreSection>Ouvrir mon invitation</TitreSection>
         <Link href={`/connexion?suite=${encodeURIComponent(`/artisan/invitation/${invitationId}`)}`} className={CLASSE_BOUTON_PRINCIPAL}>Me connecter pour vérifier le lien</Link>
-        <details className="rounded-lg border border-[var(--filet)] p-3">
-          <summary className="flex min-h-11 cursor-pointer items-center font-medium">Première visite ? Créer mon compte artisan</summary>
+        <details className="rounded-[var(--rayon-champ)] border border-[var(--filet)] p-3">
+          <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-[var(--encre)]">Première visite ? Créer mon compte artisan</summary>
           <p className="my-3 text-sm">Utilisez l’adresse invitée. La confirmation de votre e-mail permettra de vérifier cette invitation ; aucun accès n’est accordé par la création du compte.</p>
           <FormulaireCompteArtisan invitationId={invitationId} />
         </details>
       </Carte>
 
-      <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
+      <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
         Ensuite : votre entreprise (SIRET, métiers, zone d’intervention), puis votre réponse à l’invitation. Gerimmo
         valide votre inscription avant toute intervention.
       </p>

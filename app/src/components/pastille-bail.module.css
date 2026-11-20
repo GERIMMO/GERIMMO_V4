@@ -1,2 +1,2 @@
-.pastille { display:inline-block; flex-shrink:0; width:9px; height:9px; margin-left:3px; border-radius:50%; background:#c63737; box-shadow:0 0 0 3px #c6373714; vertical-align:middle; }
+.pastille { display:inline-block; flex-shrink:0; width:9px; height:9px; margin-left:3px; border-radius:50%; background:var(--destructive); box-shadow:0 0 0 3px color-mix(in srgb, var(--destructive) 8%, transparent); vertical-align:middle; }
 @media (forced-colors:active) { .pastille { background:Mark; border:2px solid Mark; } }

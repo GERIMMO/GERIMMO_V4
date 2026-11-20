@@ -38,7 +38,7 @@ export default async function PageJournal() {
   return (
     // flex-col : le body est une colonne flex, et sans elle le main.flex-1 ne
     // poussait rien — le pied flottait à mi-écran, 200 px de vide dessous (24/09).
-    <div className="site-public flex min-h-full flex-1 flex-col bg-[var(--creme)]">
+    <div className="site-public flex min-h-full flex-1 flex-col">
       <EnTetePublic />
       {/* Charte v3 : le journal s'ouvre comme la vitrine, sur blanc lumineux —
           plus d'aplat marine sous le bandeau. 24/09 : plus de photo non plus.
@@ -46,18 +46,16 @@ export default async function PageJournal() {
           d'une page secondaire la plus décorée du site. */}
       <header className="public-page-intro">
         <div className="public-conteneur">
-          <p className="eyebrow text-[var(--or-texte)]">Journal</p>
-          <h1 className="mt-2 max-w-2xl text-balance font-heading text-3xl leading-tight text-[var(--encre)] sm:text-4xl">
-            Ce qu&apos;il faut savoir, au moment où ça compte
-          </h1>
-          <p className="mesure-lecture mt-4 text-[15px] leading-relaxed text-[var(--texte-secondaire)]">
+          <p className="eyebrow">Journal</p>
+          <h1>Ce qu&apos;il faut savoir, au moment où ça compte</h1>
+          <p>
             Les règles de la gestion locative, expliquées quand elles servent —
             et sourcées. Nous n&apos;écrivons rien que nous n&apos;ayons vérifié.
           </p>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-7">
+      <main className="public-conteneur flex-1 py-10 sm:py-14">
         {articles.length === 0 ? (
           <div className="vide-guide">
             <p className="titre">Le premier article arrive</p>
@@ -67,7 +65,8 @@ export default async function PageJournal() {
               Revenez bientôt — ou créez votre compte, l&apos;essentiel est déjà
               dans l&apos;application.
             </p>
-            <div className="geste">
+            {/* L'appel à créer un compte s'efface pour une personne venue de son espace (systeme.css). */}
+            <div className="geste" data-appel-inscription>
               <Link href="/inscription" className="btn-or">
                 Créer mon compte
               </Link>
@@ -86,17 +85,11 @@ export default async function PageJournal() {
                 >
                   {/* 06/10 : la vignette de l'article (son illustration Facebook,
                       ou le repli de la charte). */}
-                  <ImageJournal url={a.facebook_image_url} titre={a.titre} tailles="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw" className="mb-3" />
+                  <ImageJournal url={a.facebook_image_url} titre={a.titre} tailles="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw" />
                   <p className="mono-discret sans-majuscules">{jour(a.publie_le)}</p>
-                  <h2 className="mt-1.5 font-heading text-[19px] leading-snug text-[var(--encre)] group-hover:underline">
-                    {titreSansDoublon(a.titre)}
-                  </h2>
-                  {a.chapo && (
-                    <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">
-                      {a.chapo}
-                    </p>
-                  )}
-                  <span className="mt-2.5 inline-block text-[13px] text-[var(--bleu)]">Lire →</span>
+                  <h2>{titreSansDoublon(a.titre)}</h2>
+                  {a.chapo && <p>{a.chapo}</p>}
+                  <span>Lire l’article <span aria-hidden>→</span></span>
                 </Link>
               </article>
             ))}

@@ -361,7 +361,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
       )}
 
       {estAgence && !ferme && enEssai && !souscrit && !accesOffert && etat.essai_fin && (
-        <div className="loc-carte border-l-4 border-l-[var(--or)]">
+        <div className="loc-carte">
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
               Essai gratuit jusqu&apos;au {formaterDate(etat.essai_fin)}
@@ -386,7 +386,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
       {(retractation.abonnement.ouverte ||
         retractation.passage.ouverte ||
         (conclusionStripe === undefined && ligneRetractation?.abonnement_suivi && !ligneRetractation.souscrit_le && !ligneRetractation.retractation_abonnement_le)) && (
-        <section className="loc-carte space-y-2 border-l-4 border-l-[var(--or)]" aria-labelledby="droit-retractation">
+        <section className="loc-carte space-y-2" aria-labelledby="droit-retractation">
           <h2 id="droit-retractation" className="text-base">
             {retractation.abonnement.ouverte && retractation.abonnement.dernierJour
               ? `Droit de rétractation — jusqu'au ${jourEnLettres(retractation.abonnement.dernierJour)} inclus`
@@ -465,7 +465,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         ) : (
           <>
         <div className="entete-carte">
-          <h3>{souscrit && actuelle ? libelleOffre(actuelle) : "Aucun abonnement en cours"}</h3>
+          <h2 className="titre-carte leading-[inherit]">{souscrit && actuelle ? libelleOffre(actuelle) : "Aucun abonnement en cours"}</h2>
           <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
         </div>
         <div className="ligne-info">
@@ -581,7 +581,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
 
       {/* UNE HAUSSE : montant, date d'effet, prorata, confirmation. */}
       {souscrit && cible && actuelle && (
-        <div className="loc-carte border-l-4 border-l-[var(--or)]">
+        <div className="loc-carte">
           <div className="entete-carte">
             <h3>{enGestion > (capacite ?? 0) ? "Votre portefeuille dépasse votre abonnement" : "Changer de formule"}</h3>
           </div>

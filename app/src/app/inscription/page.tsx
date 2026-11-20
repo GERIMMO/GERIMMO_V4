@@ -39,7 +39,7 @@ export default async function PageInscription(props: PageProps<"/inscription">) 
       chapo={
         <>
           <span
-            className="mb-2 inline-flex rounded-full px-3 py-1 text-[12.5px] font-semibold border border-[var(--marque)] bg-[var(--marque-clair)] text-[var(--encre)]"
+            className="mb-2 inline-flex rounded-full border border-[var(--or-filet)] bg-[var(--or-clair)] px-3 py-1 text-[12.5px] font-semibold text-[var(--prestige-champagne-texte)]"
           >
             {badgeEssai()}
           </span>

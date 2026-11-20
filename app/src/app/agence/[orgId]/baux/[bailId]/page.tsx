@@ -111,7 +111,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       <PageEchecLecture
         titre="Bail"
         quoi={["le bail"]}
-        retour={{ href: `${base}/parc`, libelle: "Parc" }}
+        retour={{ href: `${base}/parc`, libelle: estProprietaire ? "Biens & locations" : "Parc" }}
       />
     );
   if (!bail) notFound();
@@ -987,7 +987,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const rubriqueSortie = (sectionSortie && <RubriqueDossier id="sortie-bail" titre="Départ du locataire" resume={bail.date_fin ? `Fin prévue le ${formaterDate(bail.date_fin)} · congé, comparaison des états des lieux et restitution` : "Enregistrer un congé et préparer la fin de location"} ouverte={restitutionActif || (intentions ?? []).length > 0}>
 
       {bail.etat === "actif" && (
-        <Card className={(intentions ?? []).length > 0 ? "border-l-4 border-l-[var(--or)]" : undefined}>
+        <Card className={(intentions ?? []).length > 0 ? "border-l-[3px] border-l-warning" : undefined}>
           <CardHeader>
             <CardTitle className="text-base">Congé</CardTitle>
             <CardDescription>
@@ -1148,11 +1148,11 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       </RubriqueDossier>);
   return (
     <main className={`${styles.page} dossier-bail mx-auto w-full max-w-6xl space-y-[1.125rem] p-4 sm:p-7`}>
-      <Link href={lot ? `${base}/parc/${lot.bien_id}/lots/${lot.id}` : `${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {lot?.nom ?? "Mes lots"}</Link>
+      <Link href={lot ? `${base}/parc/${lot.bien_id}/lots/${lot.id}` : `${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {lot?.nom ?? (estProprietaire ? "Biens & locations" : "Parc")}</Link>
       <header className={`${styles.entete}${assistantBailAffiche ? ` ${styles.enteteBrouillon}` : ""}`}>
         <span className={styles.icone}><FileText size={26} aria-hidden="true" /></span>
         <div className="min-w-0 flex-1">
-          <p className={styles.surtitre}>Contrat de location · {TYPES_BAIL[bail.type] ?? bail.type}</p>
+          <p className={styles.surtitre}>Bail · {TYPES_BAIL[bail.type] ?? bail.type}</p>
           <div className="flex flex-wrap items-center gap-3"><h1>{lot?.nom ?? "Fiche du bail"}</h1><span className={signeNonActif ? "puce puce-loue" : COULEURS_ETAT_BAIL[bail.etat] ?? "puce puce-grise"}>{signeNonActif ? "Bail signé" : suiviSignature.erreur && bail.etat === "brouillon" ? "Signature à vérifier" : ETATS_BAIL[bail.etat] ?? "État à vérifier"}</span>{signeNonActif && <span className="puce puce-prep">Location non activée</span>}</div>
           {(erreurLocataire || locataire || !assistantBailAffiche || signeNonActif) ? <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Users size={16} aria-hidden="true" />{erreurLocataire ? "Locataire indisponible" : locataire ? nomComplet(locataire) : "Locataire à renseigner"}{bail.chambre_id && ` · ${chambre?.nom ?? "Chambre"}`}</p> : bail.chambre_id && <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><House size={16} aria-hidden="true" />{chambre?.nom ?? "Chambre"}</p>}
         </div>
@@ -1169,7 +1169,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         <div><dt><ShieldCheck size={17} aria-hidden="true" /> Dépôt de garantie</dt><dd>{bail.depot_garantie == null ? "Montant contractuel non indiqué" : eur(Number(bail.depot_garantie))}</dd><dd className={styles.precision}>{bail.depot_garantie == null ? "À retrouver dans votre contrat" : "Montant prévu au contrat · versements dans Suivi"}</dd></div>
         <div><dt><CalendarDays size={17} aria-hidden="true" /> Échéance du loyer</dt><dd>{bail.jour_echeance == null ? "Jour de paiement à confirmer" : `Le ${bail.jour_echeance} du mois`}</dd><dd className={styles.precision}>{bail.charges_mode === "forfait" ? "Charges au forfait" : bail.charges_mode === "provision" ? "Provisions sur charges" : "Conditions du contrat"}</dd></div>
       </dl>}
-      {signeNonActif && <div className="rounded-xl border border-success/20 bg-success-soft p-4 text-sm"><strong>Le bail est signé. La location n’est pas encore activée.</strong><p className="mt-1">Le contrat signé est archivé ; l’activation reste une action séparée.</p><Link className="inline-flex min-h-11 items-center underline" href={`${base}/documents/${documentSigne}/fichier`}>Consulter le bail signé →</Link></div>}
+      {signeNonActif && <div className="rounded-[var(--rayon-carte)] border border-success/20 bg-success-soft p-4 text-sm"><strong>Le bail est signé. La location n’est pas encore activée.</strong><p className="mt-1">Le contrat signé est archivé ; l’activation reste une action séparée.</p><Link className="inline-flex min-h-11 items-center underline" href={`${base}/documents/${documentSigne}/fichier`}>Consulter le bail signé →</Link></div>}
       {suiviSignature.erreur && <p role="status" className="text-sm">Le suivi des signatures est indisponible. Réessayez pour connaître l’état du contrat.</p>}
       <EchecLecture quoi={echecs} />
 

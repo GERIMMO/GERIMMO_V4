@@ -29,9 +29,9 @@ export function FormulaireAvecReprise({ compteId, ...props }: {
       <h2 id="reprise-devis" className="text-2xl">Reprendre votre devis</h2>
       <p>Une saisie est conservée sur cet appareil depuis le {new Date(b.enregistreLe).toLocaleString("fr-FR")}.</p>
       <p className="text-sm text-muted-foreground">Elle n’a pas été confirmée sur Gerimmo. La reprise ne valide pas le devis et ne l’envoie pas.</p>
-      {conflit ? <p role="status" className="rounded-lg bg-amber-50 p-4 text-sm text-amber-950">La version Gerimmo a changé ou n’a pas pu être vérifiée. Consultez votre copie ci-dessous avant de reprendre la version enregistrée ; elle ne sera pas remplacée automatiquement.</p> : <p className="whitespace-pre-wrap break-words">{b.contenu.diagnostic || "Devis en cours de rédaction"}</p>}
-      <details className="rounded-lg border border-[var(--filet)] p-4">
-        <summary className="cursor-pointer font-medium">Consulter ma saisie conservée</summary>
+      {conflit ? <p role="status" className="rounded-[var(--rayon-champ)] bg-[var(--warning-soft)] p-4 text-sm text-[var(--warning-soft-foreground)]">La version Gerimmo a changé ou n’a pas pu être vérifiée. Consultez votre copie ci-dessous avant de reprendre la version enregistrée ; elle ne sera pas remplacée automatiquement.</p> : <p className="whitespace-pre-wrap break-words">{b.contenu.diagnostic || "Devis en cours de rédaction"}</p>}
+      <details className="rounded-[var(--rayon-champ)] border border-[var(--filet)] px-4 py-1 open:pb-4">
+        <summary className="flex min-h-11 cursor-pointer items-center font-medium">Consulter ma saisie conservée</summary>
         <dl className="mt-3 space-y-3 text-sm">
           {[["Diagnostic", b.contenu.diagnostic], ["Délai", b.contenu.delai], ["Durée", b.contenu.duree], ["Validité", b.contenu.valide_jusqu_au], ["Contraintes", b.contenu.contraintes], ["Observations", b.contenu.observations], ...(props.versionSuivante ? [["Ce qui change", b.contenu.note_revision ?? ""]] : [])].map(([titre, valeur]) => <div key={titre}><dt className="font-semibold">{titre}</dt><dd className="whitespace-pre-wrap break-words">{valeur || "Non renseigné"}</dd></div>)}
         </dl>

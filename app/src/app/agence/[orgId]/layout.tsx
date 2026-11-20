@@ -217,7 +217,7 @@ export default async function LayoutAgence({
 
   return (
     <FournisseurRacineEspace racine={racine}>
-    <div className={`coquille gerimmo-prestige${estProprietaire ? " espace-proprietaire" : ""}`} style={estProprietaire ? undefined : styleMarque(organisation)}>
+    <div className={`coquille gerimmo-prestige ${estProprietaire ? "espace-proprietaire" : "experience-unifiee"}`} style={estProprietaire ? undefined : styleMarque(organisation)}>
       {estProprietaire && <LienContenu />}
       <aside className="coquille-late">
         <BarreLaterale

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
-import { MenuPublicMobile } from "@/components/menu-public-mobile";
+import { LienNavigationPublique, MenuPublicMobile } from "@/components/menu-public-mobile";
 import "@/app/vitrine.css";
 
 const NAVIGATION = [
@@ -11,7 +11,11 @@ const NAVIGATION = [
   ["/journal", "Journal"],
 ] as const;
 
-/** Navigation commune à toute la vitrine ; toutes les destinations restent accessibles au téléphone. */
+/**
+ * Navigation commune à toute la vitrine ; toutes les destinations restent accessibles au téléphone.
+ * Même hauteur que l'en-tête des espaces (`--hauteur-haut`), mêmes libellés et même ordre sur chaque page publique ;
+ * la page en cours porte le liseré champagne (`aria-current`, posé par LienNavigationPublique).
+ */
 export function EnTetePublic() {
   return <BandeauPublic />;
 }
@@ -22,7 +26,7 @@ function BandeauPublic() {
       <div className="public-navigation-interieur">
         <Link href="/" aria-label="Gerimmo — accueil" className="public-logo"><MarqueGerimmo /><span className="ambiance-repere" aria-hidden="true" /></Link>
         <nav aria-label="Navigation principale" className="public-nav-bureau">
-          {NAVIGATION.map(([href, titre]) => <Link key={href} href={href}>{titre}</Link>)}
+          {NAVIGATION.map(([href, titre]) => <LienNavigationPublique key={href} href={href}>{titre}</LienNavigationPublique>)}
         </nav>
         <div className="public-acces">
           <Link href="/connexion" className="public-connexion">Se connecter</Link>

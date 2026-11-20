@@ -24,10 +24,10 @@ export function ConfirmationPaiement({ confirme }: { confirme: boolean }) {
   }, [confirme, router]);
 
   return (
-    <div role="status" className={`loc-carte border-l-4 ${confirme ? "border-l-[var(--success)]" : "border-l-[var(--or-texte)]"}`}>
+    <div role="status" className={`loc-carte ${confirme ? "border-l-4 border-l-[var(--success)]" : ""}`}>
       <div className="flex items-start gap-3">
         {confirme ? <CheckCircle2 size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-[var(--success)]" />
-          : <LoaderCircle size={20} aria-hidden="true" className={`mt-0.5 shrink-0 text-[var(--or-texte)] ${attenteLongue ? "" : "motion-safe:animate-spin"}`} />}
+          : <LoaderCircle size={20} aria-hidden="true" className={`mt-0.5 shrink-0 text-[var(--prestige-champagne-texte)] ${attenteLongue ? "" : "motion-safe:animate-spin"}`} />}
         <p className="mesure-lecture text-sm">
           <b className="font-semibold">{confirme ? "Votre abonnement est confirmé." : "Confirmation de votre abonnement en cours…"}</b>{" "}
           <span className="text-muted-foreground">{confirme

@@ -29,33 +29,34 @@ export default async function PageOuvrirOrganisation(
       .eq("id", idDemande)
       .maybeSingle();
     if (error) return <main className="p-4 sm:p-7"><LectureIndisponible sujet="Demande de contact" retour={`/admin/organisations/nouvelle?demande=${encodeURIComponent(idDemande)}`} /></main>;
-    if (!data || data.traitee_le) return <main className="p-4 sm:p-7"><p>Cette demande est introuvable ou déjà traitée.</p><Link className="lien-discret" href="/admin/devis">Revenir aux demandes</Link></main>;
+    if (!data || data.traitee_le) return <main><div className="entete-page"><TitreEcran rubrique="entreprise">Ouvrir une organisation</TitreEcran></div><div className="vide-guide"><p className="titre">Cette demande est introuvable ou déjà traitée.</p><p className="explication">L’organisation ne peut pas être préremplie depuis cette demande de contact.</p><div className="geste"><Link className="btn-secondaire" href="/admin/devis">Revenir aux demandes de contact</Link></div></div></main>;
     const d = data as { id: string; nom: string; email: string; agence: string | null } | null;
     if (d) prefill = { nom: d.agence ?? d.nom, email: d.email, demandeId: d.id };
   }
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-7">
-      <Link href="/admin/clients" className="lien-discret text-[13px]">
-        ← Utilisateurs
-      </Link>
-      <div className="entete-page mb-6 mt-2">
-        <TitreEcran rubrique="entreprise">Ouvrir une organisation</TitreEcran>
+      <Link href="/admin/clients" className="lien-retour">← Utilisateurs</Link>
+      <div className="entete-page">
+        <div>
+          <TitreEcran rubrique="entreprise">Ouvrir une organisation</TitreEcran>
+          <p className="mesure-lecture mt-2 text-muted-foreground">
+            Le responsable recevra une invitation pour accéder à son nouvel espace et choisir son mot de passe.
+          </p>
+        </div>
       </div>
-
-      <p className="mesure-lecture mb-5 text-sm text-muted-foreground">
-        Le responsable recevra une invitation pour accéder à son nouvel espace et choisir son mot de passe.
-      </p>
+      <div className="max-w-2xl">
 
       {prefill?.demandeId && (
-        <div className="loc-carte mb-5 border-l-4 border-l-[var(--or)]">
+        <div className="mb-5 rounded-[var(--rayon-bouton)] border border-[var(--or-filet)] bg-[var(--or-clair)] p-4">
           <p className="text-sm">
-            Ouverture depuis une demande de contact, à confirmer comme commerciale. Elle sera marquée traitée.
+            Ouverture depuis une demande de contact : vérifiez qu’il s’agit bien d’une demande commerciale. Elle sera marquée traitée.
           </p>
         </div>
       )}
 
       <FormulaireOuverture prefill={prefill} />
+      </div>
     </main>
   );
 }

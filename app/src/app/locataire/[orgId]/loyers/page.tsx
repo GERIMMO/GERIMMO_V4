@@ -10,7 +10,7 @@ import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
 import { ANCRE_DEPOT_GARANTIE } from "../carte-depot-garantie";
-import { tagLocataire } from "../pastille-locataire";
+import { BORD_ETAT, tagLocataire } from "../pastille-locataire";
 import type { BailLocataire } from "../types";
 import { BoutonCopierIban } from "./bouton-copier-iban";
 import { PlanApurementLocataire, type MonPlanApurement } from "@/components/plan-apurement-locataire";
@@ -152,7 +152,6 @@ export default async function PagePaiementsLocataire(
 
   return (
     <div className="space-y-4">
-      <SuiviEcheanciersCharges org={orgId} proprietaire={false} base={`/locataire/${orgId}`} />
       <div className="entete-page">
         <TitreEcran rubrique="finances">Mes paiements</TitreEcran>
         {bail?.jour_echeance != null && (
@@ -165,6 +164,10 @@ export default async function PagePaiementsLocataire(
       {aEchoue(eEcheancier, eBaux, eRestitution, eRetenues, eRelances) && (
         <PanneLecture quoi="vos paiements" />
       )}
+
+      {/* Sous le titre de l'écran (20/11) : ce bloc et son titre passaient
+          avant le h1 de la page. */}
+      <SuiviEcheanciersCharges org={orgId} proprietaire={false} base={`/locataire/${orgId}`} niveauTitre={2} />
 
       {/* Deux colonnes égales en large. En classe (pas en style inline) pour
           que la media query 860 px de .loc-grille garde la main sur mobile ;
@@ -212,7 +215,7 @@ export default async function PagePaiementsLocataire(
                     : ""}
                 </p>
                 {ibanBrut && (
-                  <div className="mt-2.5 rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] px-3 py-2.5">
+                  <div className="mt-2.5 rounded-[var(--rayon-champ)] border border-[var(--filet)] bg-[var(--filet-leger)] px-3 py-2.5">
                     <p className="text-xs text-muted-foreground">Virement à {nomBeneficiaire}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
                       <span className="font-mono text-sm tracking-wide text-[var(--encre)] [overflow-wrap:anywhere]">
@@ -228,7 +231,7 @@ export default async function PagePaiementsLocataire(
                   {prochaine.prorata &&
                     " Ce mois-ci est calculé au prorata de votre date d'entrée ou de sortie."}
                 </p>
-                {sommesEchues.length > 1 && <div className="mt-4 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3">
+                {sommesEchues.length > 1 && <div className="mt-4 rounded-[var(--rayon-champ)] border border-[var(--filet)] bg-[var(--filet-leger)] p-3">
                   <p className="text-sm">Total restant sur les {sommesEchues.length} échéances dues</p><p className="montant text-xl font-semibold">{eur(soldeEchu)}</p>
                 </div>}
                 {pastilles}
@@ -247,7 +250,7 @@ export default async function PagePaiementsLocataire(
                     : `en ${moisLong(moisSuivant)}`}
                   .
                 </p>
-                {sommesEchues.length > 1 && <div className="mt-4 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3">
+                {sommesEchues.length > 1 && <div className="mt-4 rounded-[var(--rayon-champ)] border border-[var(--filet)] bg-[var(--filet-leger)] p-3">
                   <p className="text-sm">Total restant sur les {sommesEchues.length} échéances dues</p><p className="montant text-xl font-semibold">{eur(soldeEchu)}</p>
                 </div>}
                 {pastilles}
@@ -342,7 +345,9 @@ export default async function PagePaiementsLocataire(
                     ) : (
                       <div className="-mx-4 flex flex-wrap items-center gap-2 border-l-[3px] border-transparent px-4 py-[13px] text-sm">
                         {contenu}
-                        {l.quittance_id && <span className="loc-tag ambre">{disponibilites[l.quittance_id] === "lecture_impossible" ? "Document à vérifier" : "Document en préparation"}</span>}
+                        {/* Sur téléphone, cette seconde pastille passe à la ligne : à
+                            375 px, les deux pastilles recouvraient le mois et le montant. */}
+                        {l.quittance_id && <span className="max-sm:basis-full"><span className="loc-tag ambre">{disponibilites[l.quittance_id] === "lecture_impossible" ? "Document à vérifier" : "Document en préparation"}</span></span>}
                       </div>
                     )}
                   </li>
@@ -366,7 +371,7 @@ export default async function PagePaiementsLocataire(
               return (
                 <Link
                   href={`/attestation-loyer/${orgId}`}
-                  className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-3 pointer-coarse:min-h-10`}
+                  className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-3 pointer-coarse:min-h-11`}
                 >
                   Attestation de bon paiement
                 </Link>
@@ -394,7 +399,7 @@ export default async function PagePaiementsLocataire(
 
       {/* Relances reçues (module 3.12) — sans les notes internes de l'agence */}
       {relances.length > 0 && (
-        <div className="loc-carte border-l-4 border-l-[var(--warning)]">
+        <div className={`loc-carte ${BORD_ETAT.attention}`}>
           <h2 className="titre-carte text-base font-medium">Relances reçues</h2>
           <ul className="mt-2 divide-y divide-border">
             {relances.map((r, ix) => (

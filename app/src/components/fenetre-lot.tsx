@@ -419,7 +419,7 @@ function Pastille({ ton, children }: { ton: "ok" | "alerte" | "neutre"; children
     neutre: "bg-[var(--filet-leger)] text-[var(--texte-secondaire)]",
   };
   return (
-    <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold ${tons[ton]}`}>
+    <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${tons[ton]}`}>
       {children}
     </span>
   );
@@ -541,7 +541,7 @@ function EchelleRelance({ echelons }: { echelons: EchelonRelance[] }) {
                 ? `Envoyée le ${formaterDate(e.envoye_le)}${e.recommande ? ` · recommandé ${e.recommande}` : ""}`
                 : "Pas encore envoyée"
             }
-            className={`rounded-full border px-2.5 py-0.5 text-[10.5px] ${
+            className={`rounded-full border px-2.5 py-0.5 text-xs ${
               franchi
                 ? "border-destructive bg-destructive text-[var(--ivoire)]"
                 : "border-border bg-background text-muted-foreground"
@@ -611,7 +611,7 @@ function GestesImpaye({
         </p>
       )}
       {prochain?.niveau === "mise_en_demeure" && (
-        <p className="max-w-xs text-[11.5px] text-muted-foreground">
+        <p className="max-w-xs text-xs text-muted-foreground">
           La mise en demeure part en recommandé, hors de la plateforme : le
           numéro et la date de première présentation se saisissent depuis le bail.
         </p>
@@ -672,7 +672,7 @@ function FormulairePartiel({
       </BoutonEnvoi>
       {/* D04 (2) : un montant très supérieur au dû n'est pas enregistré tant qu'il n'est pas confirmé. */}
       <ConfirmationEncaissement confirmation={etat.confirmation} idChampMontant={`part-${bailId}`} />
-      <p className="w-full text-[11.5px] text-muted-foreground">
+      <p className="w-full text-xs text-muted-foreground">
         Tant que le terme n’est pas soldé, le locataire reçoit un <b>reçu</b>, pas une
         quittance.
       </p>

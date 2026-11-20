@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { accepterConditionsArtisans, type EtatAcceptationConditions } from "@/app/actions/acceptation-conditions";
 import { CASE_CONDITIONS_ARTISANS } from "@/lib/conditions-acceptation";
-import { CLASSE_BOUTON_PRINCIPAL, Carte, Erreur, Succes } from "./ui";
+import { CLASSE_BOUTON_PRINCIPAL, Carte, EnteteSousPage, Erreur, Succes } from "./ui";
 
 function Valider() {
   const { pending } = useFormStatus();
@@ -24,8 +24,9 @@ function Valider() {
 export function AcceptationConditionsArtisans({ version, date }: { version: string; date: string | null }) {
   const [etat, action] = useActionState<EtatAcceptationConditions, FormData>(accepterConditionsArtisans, {});
   return (
+    <div className="space-y-5">
+    <EnteteSousPage rubrique="documents" titre="Conditions de l’espace artisan" />
     <Carte>
-      <h1 className="mb-3 text-xl font-medium text-[var(--encre)]">Conditions de l’espace artisan</h1>
       <p className="text-base text-[var(--corps)]">
         Votre espace artisan est régi par ses propres conditions{date ? `, dans leur version du ${date}` : ""}. Lisez-les,
         puis acceptez-les pour continuer.
@@ -50,5 +51,6 @@ export function AcceptationConditionsArtisans({ version, date }: { version: stri
         </form>
       )}
     </Carte>
+    </div>
   );
 }

@@ -14,7 +14,6 @@ import {
   MarqueAgence,
   Retour,
   TitreSection,
-  Vide,
 } from "../../../ui";
 import { AvertissementRendezVousAnticipe } from "../avertissement-rendez-vous";
 import { BoutonDemarrer } from "../bouton-demarrer";
@@ -117,7 +116,8 @@ export default async function PageComptePhoto(
               Continuer — le bilan
             </a>
           ) : (
-            <Vide>Une fois la photo envoyée, touchez « Continuer — le bilan ».</Vide>
+            // Une consigne d'étape, pas un état vide : une ligne d'aide, sans cadre pointillé.
+            <p className={CLASSE_AIDE}>Une fois la photo envoyée, touchez « Continuer — le bilan ».</p>
           )}
 
           <Carte>

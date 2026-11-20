@@ -1,17 +1,26 @@
-.parcours { display:grid; gap:16px; min-width:0; }
-.etape { padding:22px; border:1px solid var(--filet); border-left:4px solid var(--or); border-radius:14px; background:var(--ivoire); color:var(--encre); }
-.repere { margin:0 0 6px; font-size:12px; font-weight:650; letter-spacing:.09em; text-transform:uppercase; color:var(--texte-secondaire); }
-.etape h2 { font-family:var(--font-heading); font-size:clamp(1.2rem,3vw,1.55rem); line-height:1.3; font-weight:600; margin:0; overflow-wrap:anywhere; }
-.etape > p:last-child { margin:10px 0 0; font-size:14px; line-height:1.6; }
-.action[hidden] { display:none; }
-.action { display:grid; gap:16px; min-width:0; }
-.action > form { padding:20px; border:1px solid var(--filet); border-radius:12px; background:var(--surface,white); }
-.retour { display:inline-flex; align-items:center; gap:8px; min-height:44px; margin-top:8px; text-align:left; text-decoration:underline; }
-.secondaires, .details { border:1px solid var(--filet); border-radius:12px; background:var(--surface,white); }
-.secondaires summary, .details > summary { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:48px; padding:12px 16px; cursor:pointer; font-weight:550; list-style:none; }
-.secondaires summary::-webkit-details-marker, .details > summary::-webkit-details-marker { display:none; }
-.choix { display:flex; flex-wrap:wrap; gap:8px; padding:0 16px 16px; }
-.choix button { min-height:44px; border:1px solid var(--filet); border-radius:8px; padding:9px 13px; text-align:left; font-size:14px; color:var(--encre); background:var(--ivoire); }
-.choix button[aria-pressed=true] { border-color:var(--encre); }
-.choix button:focus-visible, .retour:focus-visible, .secondaires summary:focus-visible { outline:2px solid var(--or); outline-offset:3px; }
-@media(max-width:500px) { .etape { padding:16px; } .choix { display:grid; } }
+/* Parcours d'un chantier externe — jetons du Design System « Maison ». */
+.parcours { display: grid; gap: 16px; min-width: 0; }
+/* L'étape en cours : repère champagne (l'accent de la marque) sur tout le contour, plus de bord gauche épais. */
+.etape { padding: 22px; border: 1px solid var(--prestige-champagne); border-radius: var(--rayon-carte); background: var(--or-clair); color: var(--encre); box-shadow: var(--ombre-1); }
+.repere { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--prestige-champagne-texte); }
+.etape h2 { font-family: var(--font-display); font-size: var(--titre-2); line-height: 1.3; font-weight: var(--graisse-titre); margin: 0; overflow-wrap: anywhere; }
+.etape > p:last-child { margin: 10px 0 0; font-size: 15px; line-height: 1.6; color: var(--corps); }
+.action[hidden] { display: none; }
+.action { display: grid; gap: 16px; min-width: 0; }
+.action > form { padding: 20px; border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--carte); box-shadow: var(--ombre-1); }
+.action > p, .action > div > p { font-size: 15px; line-height: 1.6; color: var(--texte-secondaire); }
+.retour { display: inline-flex; align-items: center; gap: 8px; min-height: var(--cible-tactile); margin-top: 8px; text-align: left; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }
+.secondaires, .details { border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--carte); box-shadow: var(--ombre-1); }
+.secondaires summary, .details > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 12px 16px; cursor: pointer; font-weight: 600; list-style: none; border-radius: var(--rayon-carte); transition: background-color var(--duree-rapide) ease; }
+.secondaires summary:hover, .details > summary:hover { background: var(--survol); }
+.secondaires summary::-webkit-details-marker, .details > summary::-webkit-details-marker { display: none; }
+.secondaires summary > svg, .details > summary > svg { flex-shrink: 0; color: var(--texte-secondaire); transition: transform var(--duree) var(--courbe); }
+.secondaires[open] summary > svg, .details[open] > summary > svg { transform: rotate(180deg); }
+/* Le contenu d'un dépliant est déjà dans son cadre : la carte intérieure perd le sien. */
+.details > :global(.artisan-carte) { border: 0; border-top: 1px solid var(--filet-leger); border-radius: 0 0 var(--rayon-carte) var(--rayon-carte); box-shadow: none; }
+.choix { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 16px; }
+.choix button { min-height: var(--cible-tactile); border: 1px solid var(--filet-champ); border-radius: var(--rayon-bouton); padding: 9px 14px; text-align: left; font-size: 14px; font-weight: 600; color: var(--encre); background: var(--carte); transition: background-color var(--duree-rapide) ease, border-color var(--duree-rapide) ease; }
+.choix button:hover { border-color: var(--marque); background: var(--survol); }
+.choix button[aria-pressed=true] { border-color: var(--marque); background: var(--survol); box-shadow: inset 0 0 0 1px var(--marque); }
+@media (max-width: 500px) { .etape { padding: 16px; } .choix { display: grid; } }
+@media (prefers-reduced-motion: reduce) { .secondaires summary, .details > summary, .secondaires summary > svg, .details > summary > svg, .choix button { transition: none; } }

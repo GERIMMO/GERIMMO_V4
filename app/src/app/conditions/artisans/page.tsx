@@ -54,14 +54,14 @@ export default async function PageConditionsArtisans() {
           : undefined
       }
       apres={
-        <nav aria-label="Autres conditions" className="space-y-1 text-sm text-[var(--texte-secondaire)]">
+        <nav aria-label="Autres conditions">
           <p>
-            <Link href="/conditions/versions" className="lien-texte">
+            <Link href="/conditions/versions" className="public-lien">
               Versions archivées des conditions
             </Link>
           </p>
           <p>
-            <Link href="/conditions" className="lien-texte">
+            <Link href="/conditions" className="public-lien">
               Conditions générales d&apos;utilisation et de vente (propriétaires bailleurs)
             </Link>
           </p>

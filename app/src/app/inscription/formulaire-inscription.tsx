@@ -37,7 +37,7 @@ export function FormulaireInscription({
     return (
       <Card>
         <CardContent className="space-y-4 pt-6">
-          <p className="rounded-md bg-success-soft p-3 text-sm text-success-soft-foreground">
+          <p className="auth-message" data-ton="succes">
             {etat.message}
           </p>
           <Button
@@ -94,7 +94,7 @@ export function FormulaireInscription({
             </div>
             <p id="aide-societe" className="text-xs text-muted-foreground">La société détiendra les biens. Votre prénom et votre nom identifient la personne qui gère la société et son espace ; le pouvoir de signer sera vérifié pour chaque bail.</p>
           </div>}
-          <details key={`parrain-${etat.valeurs?.code_parrainage ?? codeParrain ?? ""}`} open={!!(etat.valeurs?.code_parrainage ?? codeParrain)} className="rounded-lg border border-border/70 px-3 text-sm">
+          <details key={`parrain-${etat.valeurs?.code_parrainage ?? codeParrain ?? ""}`} open={!!(etat.valeurs?.code_parrainage ?? codeParrain)} className="rounded-[var(--rayon-bouton)] border border-[var(--filet)] px-3 text-sm">
             <summary className="flex min-h-11 cursor-pointer items-center text-muted-foreground">Vous avez un code de parrainage ?</summary>
             <div className="space-y-2 pb-3">
               <Label htmlFor="code-parrainage">Code de parrainage (facultatif)</Label>

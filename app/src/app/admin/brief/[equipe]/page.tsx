@@ -10,7 +10,11 @@ import { MarquerLu } from "../marquer-lu";
 import { PreparerPoint } from "../preparer-point";
 import { dateLongue, heureParis, lirePoints } from "../lecture";
 
-export const metadata = { title: "Point du matin d’une équipe" };
+// L'onglet du navigateur porte le même nom que le titre de l'écran : « Équipe … ».
+export async function generateMetadata({ params }: { params: Promise<{ equipe: string }> }) {
+  const { equipe } = await params;
+  return { title: estEquipe(equipe) ? `Équipe ${EQUIPES[equipe].nom}` : "Équipe" };
+}
 
 const ETATS: Record<string, string> = { reussi: "Terminé", a_reprendre: "À vérifier", interrompu: "Interrompu", en_cours: "En cours" };
 
@@ -27,10 +31,10 @@ export default async function PageDetailPoint({ params, searchParams }: { params
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-      <p className="mb-3 text-sm"><Link href={`/admin/brief?vue=equipes${jour === jourDuPoint() ? "" : `&jour=${jour}`}`} className="lien-discret text-sm">← Équipes et comptes rendus</Link></p>
-      <div className="entete-page mb-6">
-        <TitreEcran rubrique="suivi">Équipe {EQUIPES[equipe].nom}</TitreEcran>
-        <span className="mono-discret">{dateLongue(jour)}</span>
+      <Link href={`/admin/brief?vue=equipes${jour === jourDuPoint() ? "" : `&jour=${jour}`}`} className="lien-retour">← Équipes et comptes rendus</Link>
+      <div className="entete-page">
+        <div className="min-w-0"><TitreEcran rubrique="suivi">Équipe {EQUIPES[equipe].nom}</TitreEcran><p className="mt-2 text-muted-foreground">Compte rendu du {dateLongue(jour)}.</p></div>
+        <div className="flex flex-wrap gap-2"><Link href={EQUIPES[equipe].page} className="btn-secondaire">Ouvrir l’écran de l’équipe</Link><Link href="/admin/equipes" className="btn-secondaire">Tâches automatiques</Link></div>
       </div>
       {erreur && <p role="alert" className="err mb-5">Le point est indisponible. Aucun état ne peut être confirmé.</p>}
       {!erreur && !point && (
@@ -52,7 +56,7 @@ export default async function PageDetailPoint({ params, searchParams }: { params
               : <ul className="grid gap-4">{point.decisions.map((d) => <DecisionMatin key={d.id} decision={d} compacte />)}</ul>}
           </ConsoleSection>
 
-          <ConsoleSection titre="Résultats" description="Travail terminé et passages manquants." icone="documents" ton="vert">
+          <ConsoleSection titre="Résultats" description="Travail terminé et passages manquants." icone="documents" ton="vert" ouverte>
 
             {point.contenu.realisations.length === 0
               ? <p className="text-sm text-muted-foreground">{missionsDeLEquipe(equipe).length === 0 ? "Cette équipe n’a pas de passage planifié : elle prépare des décisions à partir des files existantes." : "Aucun passage terminé dans les dernières 24 heures."}</p>
@@ -60,7 +64,7 @@ export default async function PageDetailPoint({ params, searchParams }: { params
             {point.contenu.sans_passage.length > 0 && <p className="mt-3 text-sm text-[var(--texte-secondaire)]">Sans passage dans la fenêtre : {point.contenu.sans_passage.join(", ")}.</p>}
           </ConsoleSection>
 
-          <ConsoleSection titre="Incidents à examiner" icone="sante" ton="ambre" ouverte={point.contenu.echecs.length > 0} statut={`${point.contenu.echecs.length} incidents`}>
+          <ConsoleSection titre="Incidents à examiner" icone="sante" ton="ambre" ouverte={point.contenu.echecs.length > 0} statut={`${point.contenu.echecs.length} incident${point.contenu.echecs.length > 1 ? "s" : ""}`}>
 
             {point.contenu.echecs.length === 0
               ? <p className="text-sm text-muted-foreground">Aucun échec relevé.</p>
@@ -74,13 +78,12 @@ export default async function PageDetailPoint({ params, searchParams }: { params
                 {point.contenu.passages.map((p) => (
                   <Link key={`${p.mission}-${p.debut}`} href={MISSIONS[p.mission].lien} className="rang w-full">
                     <div className="min-w-0 flex-1"><b>{p.nom}</b><br /><small>{heureParis(p.debut)}{p.fin ? ` → ${heureParis(p.fin)}` : ""} · {ETATS[p.etat] ?? p.etat} · {p.bilan}</small></div>
-                    <span className="lien-discret text-sm">Dossiers →</span>
+                    <span className="lien-discret">Dossiers →</span>
                   </Link>
                 ))}
               </div>
             </ConsoleSection>
           )}
-          <div className="mt-6 flex flex-wrap gap-3"><Link href={EQUIPES[equipe].page} className="btn-secondaire">Ouvrir l’écran de l’équipe</Link><Link href="/admin/equipes" className="btn-secondaire">Commandes des équipes</Link></div>
         </>
       )}
     </main>

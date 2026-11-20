@@ -14,6 +14,10 @@ type PropsQuittance = {
   html: string;
   titre: string;
   imprimerAuChargement: boolean;
+  /** Sur la page du document, imprimer est L'action de l'écran : bouton
+   * principal. Dans la fenêtre d'aperçu de « Mes documents », il reste
+   * secondaire, à côté des gestes de la fenêtre. */
+  actionPrincipale?: boolean;
 };
 
 export function DocumentQuittance(props: PropsQuittance) {
@@ -22,7 +26,7 @@ export function DocumentQuittance(props: PropsQuittance) {
   return <CadreQuittance key={props.html} {...props} />;
 }
 
-function CadreQuittance({ html, titre, imprimerAuChargement }: PropsQuittance) {
+function CadreQuittance({ html, titre, imprimerAuChargement, actionPrincipale = false }: PropsQuittance) {
   const cadre = useRef<HTMLIFrameElement>(null);
   const dejaImprime = useRef(false);
   const [documentPret, setDocumentPret] = useState(false);
@@ -65,7 +69,7 @@ function CadreQuittance({ html, titre, imprimerAuChargement }: PropsQuittance) {
     <div className="space-y-3">
       <div className="print:hidden">
         <Button
-          type="button" size="sm" variant="outline" onClick={imprimer}
+          type="button" size="sm" variant={actionPrincipale ? "default" : "outline"} onClick={imprimer}
           disabled={!documentPret}
           title={!documentPret ? "Le document se prépare pour l’impression." : undefined}
         >
@@ -80,7 +84,9 @@ function CadreQuittance({ html, titre, imprimerAuChargement }: PropsQuittance) {
         // origine sert à mesurer sa hauteur ; « modals » à ouvrir l'impression.
         sandbox="allow-same-origin allow-modals"
         onLoad={auChargement}
-        className="block min-h-[70vh] w-full rounded-md border border-border bg-white"
+        // Le cadre d'écran suit le système (rayon, filet, ombre de repos) ; si la
+        // PAGE est imprimée plutôt que le cadre, il garde son contour d'origine.
+        className="block min-h-[70vh] w-full rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] shadow-[var(--ombre-1)] print:rounded-md print:border-border print:bg-white print:shadow-none"
       />
     </div>
   );

@@ -48,10 +48,10 @@ export default async function PageListeAttenteAgences() {
   if (error) {
     return (
       <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-        <TitreEcran rubrique="entreprise">Liste d’attente des agences</TitreEcran>
-        <div className="vide mt-4">
+        <div className="entete-page"><TitreEcran rubrique="entreprise">Liste d’attente des agences</TitreEcran></div>
+        <p role="alert" className="err">
           Impossible de charger la page pour l&apos;instant — rechargez dans un instant.
-        </div>
+        </p>
       </main>
     );
   }
@@ -67,10 +67,15 @@ export default async function PageListeAttenteAgences() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-      <div className="entete-page mb-6">
-        <TitreEcran rubrique="entreprise">Liste d’attente des agences</TitreEcran>
+      <div className="entete-page">
+        <div><TitreEcran rubrique="entreprise">Liste d’attente des agences</TitreEcran>
+        <p className="mt-2 text-muted-foreground">
+          Les agences de gestion locative qui ont laissé leurs coordonnées sur la page « Agences » du site vitrine, en
+          attendant l’ouverture de l’offre qui leur est destinée. Rien ne leur est envoyé automatiquement, ni accusé de
+          réception ni relance : à l’ouverture, vous les recontactez vous-même, puis vous notez ici où vous en êtes.
+        </p></div>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="mono-discret">
+          <span className={`puce ${enAttente > 0 ? "puce-prep" : "puce-grise"}`}>
             {total === 0
               ? "Aucune agence inscrite"
               : `${enAttente} en attente · ${total} inscrite${total > 1 ? "s" : ""}`}
@@ -85,13 +90,10 @@ export default async function PageListeAttenteAgences() {
         </div>
       </div>
 
-      <p className="mb-5 text-sm text-muted-foreground">
-        Les agences de gestion locative qui ont laissé leurs coordonnées sur la page « Agences » du site vitrine, en
-        attendant l’ouverture de l’offre qui leur est destinée. Rien ne leur est envoyé automatiquement, ni accusé de
-        réception ni relance : à l’ouverture, vous les recontactez vous-même, puis vous notez ici où vous en êtes.
+      {total > 0 && <p className="mb-5 text-sm text-muted-foreground">
         L’export CSV exclut les agences retirées et les adresses qui se sont opposées à nos messages. Il est réservé à la
         supervision et laisse une ligne au journal d’audit.
-      </p>
+      </p>}
       {!controleDisponible && total > 0 && (
         <p role="alert" className="err mb-5">
           Le contrôle des oppositions est indisponible : n’écrivez à aucune agence avant de l’avoir vérifié. Rechargez dans un instant.
@@ -123,7 +125,7 @@ export default async function PageListeAttenteAgences() {
               <div
                 id={`agence-${i.id}`}
                 key={i.id}
-                className={`scroll-mt-24 rang flex-col items-stretch gap-0 ${clos ? "opacity-60" : ""}`}
+                className={`scroll-mt-24 rang flex-col items-stretch gap-0 ${clos ? "bg-[var(--filet-leger)]" : ""}`}
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <b className="text-sm">{i.agence}</b>
@@ -148,14 +150,14 @@ export default async function PageListeAttenteAgences() {
                 {i.message &&
                   (replie ? (
                     <details className="mt-1.5">
-                      <summary className="cursor-pointer text-sm">Lire le message</summary>
+                      <summary className="min-h-11 cursor-pointer content-center text-sm underline underline-offset-4">Lire le message</summary>
                       <p className="mt-1.5 whitespace-pre-wrap text-sm text-muted-foreground">{i.message}</p>
                     </details>
                   ) : (
                     <p className="mt-1.5 whitespace-pre-wrap text-sm text-muted-foreground">{i.message}</p>
                   ))}
                 {opposee && (
-                  <span role="note" className="mt-1.5 text-xs">Opposition enregistrée : ne lui écrivez pas.</span>
+                  <span role="note" className="mt-1.5 text-sm font-semibold text-[var(--destructive-soft-foreground)]">Opposition enregistrée : ne lui écrivez pas.</span>
                 )}
                 {i.contactee_le && (
                   <span className="mt-1.5 text-xs text-muted-foreground">

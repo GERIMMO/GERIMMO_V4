@@ -12,6 +12,7 @@ import Link from "next/link";
 import { estARenouveler, eur, formaterDate } from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
+import { ValeurVivante } from "@/components/valeur-vivante";
 import { ConsultationDocument } from "./consultation-document";
 import { CarteGestionnaire, type Gestionnaire } from "./cartes-laterales";
 import { CarteDepotGarantie, type RestitutionLocataire } from "./carte-depot-garantie";
@@ -23,10 +24,17 @@ import { NOTE_SIGNALEMENT_FERME, signalementOuvert, type BailLocataire } from ".
 // a.kpi de l'agence : seul le lien de 12 px du bas réagissait, le gros
 // chiffre et le titre restaient inertes. Le lien principal s'étire sur toute
 // la carte (::after) ; les liens secondaires passent au-dessus (z-10).
+//
+// Design System « Maison » (20/11) : la carte reste une carte — fond blanc,
+// filet, ombre de repos. Plus de fond en dégradé ni de bord haut coloré (la
+// classe `carte-rubrique` les posait) : le ton de la rubrique vit dans
+// l'icône, par `data-ton`. Au survol, la carte se soulève comme toute
+// carte-lien (ombre portée, 2 px) ; le `!` est requis, le filet et l'ombre de
+// `.loc-carte` étant posés hors couche.
 const CARTE_KPI =
-  "loc-carte loc-kpi relative transition-[translate,border-color] duration-150 hover:border-[var(--marque)] motion-safe:hover:-translate-y-0.5";
+  "loc-carte loc-kpi relative transition-[translate,box-shadow,border-color] duration-[var(--duree)] ease-[var(--courbe)] hover:!border-[color-mix(in_srgb,var(--marque)_28%,var(--filet))] hover:!shadow-[var(--ombre-2)] motion-safe:hover:-translate-y-0.5";
 const LIEN_ETIRE =
-  "lien-discret after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring";
+  "lien-discret after:absolute after:inset-0 after:rounded-[var(--rayon-carte)] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring";
 const LIEN_KPI_SECONDAIRE = "lien-discret relative z-10";
 
 // Pas de titre propre : celui de l'accueil est le titre par défaut du layout,
@@ -317,25 +325,32 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   }
 
   return (
-    <div className="space-y-4">
-      {!rendezVous.error && <RendezVousLocataireConfirme orgId={orgId} lignes={rendezVous.data ?? []}/>}
-      {avisCharges.error ? <p role="alert">Les avis de charges sont momentanément indisponibles.</p> :
-        (avisCharges.data ?? []).map((avis:{document_id:string;annee:number;avis_le:string}) =>
-          <section className="loc-carte" key={avis.document_id}><h2>Décompte de charges {avis.annee}</h2>
-            <p>Mis à disposition le {formaterDate(avis.avis_le.slice(0,10))}</p>
-            <ConsultationDocument titre={`Décompte de charges ${avis.annee}`} cible={{fichier:`/locataire/${orgId}/documents/${avis.document_id}/fichier`,mime:"application/pdf"}} className="lien-discret">Voir le PDF</ConsultationDocument>
-          </section>)}
-      <SuiviEcheanciersCharges org={orgId} proprietaire={false} base={`/locataire/${orgId}`} rappelsSeulement />
-      <div className="portail-hero portail-hero-accueil loc-bienvenue">
-        <p className="portail-surtitre">{aujourdhui}</p>
-        <h1 className="mt-0.5">
+    // `flex` + `gap` et non `space-y-4` : entre deux `.loc-carte` voisines, la règle commune pose 28 px, entre une
+    // carte et une grille 16 px. L'accueil garde un seul pas, 16 px, entre tous ses blocs.
+    <div className="flex flex-col gap-4">
+      {/* Le titre de l'écran d'abord (20/11) : le rendez-vous confirmé, les
+          décomptes de charges et les rappels passaient AVANT le h1, et leurs
+          h2 et h3 précédaient le titre de la page. La carte est une carte du
+          système — fond blanc, filet, ombre de repos — sans dégradé ; le h1
+          prend la taille commune des titres d'écran (`--titre-1`). */}
+      <div className="loc-carte">
+        <p className="text-xs font-semibold tracking-[0.08em] text-[var(--prestige-champagne-texte)] uppercase">{aujourdhui}</p>
+        <h1 className="mt-1">
           Bonjour{personne?.prenom ? ` ${personne.prenom}` : ""},
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           Vos prochaines actions, puis le suivi de votre logement et de vos paiements.
         </p>
         <div className="mt-3 flex flex-wrap gap-2"><Link href={`/locataire/${orgId}/documents`} className={buttonVariants({ variant: "outline", size: "sm" })}>Mes documents</Link><Link href={`/locataire/${orgId}/contact`} className={buttonVariants({ variant: "outline", size: "sm" })}>Écrire à {identiteContact.agence ? "mon gestionnaire" : "mon bailleur"}</Link></div>
       </div>
+      {!rendezVous.error && <RendezVousLocataireConfirme orgId={orgId} lignes={rendezVous.data ?? []}/>}
+      {avisCharges.error ? <p role="alert" className="err !mb-0">Les avis de charges sont momentanément indisponibles.</p> :
+        (avisCharges.data ?? []).map((avis:{document_id:string;annee:number;avis_le:string}) =>
+          <section className="loc-carte" key={avis.document_id}><h2>Décompte de charges {avis.annee}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Mis à disposition le {formaterDate(avis.avis_le.slice(0,10))}</p>
+            <ConsultationDocument titre={`Décompte de charges ${avis.annee}`} cible={{fichier:`/locataire/${orgId}/documents/${avis.document_id}/fichier`,mime:"application/pdf"}} className="lien-discret">Voir le PDF</ConsultationDocument>
+          </section>)}
+      <SuiviEcheanciersCharges org={orgId} proprietaire={false} base={`/locataire/${orgId}`} rappelsSeulement niveauTitre={2} />
 
       {aEchoue(
         eBaux,
@@ -348,15 +363,15 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         eSignatures
       ) && <PanneLecture quoi="l'essentiel de votre logement" />}
 
-      {!eBaux && adhesionActive && (!bail || bail.etat === "brouillon") && !signalementOuvert(baux as BailLocataire[] | null) && <section className="loc-carte border-l-4 border-l-[var(--or)]" aria-label="Situation de votre bail">
+      {!eBaux && adhesionActive && (!bail || bail.etat === "brouillon") && !signalementOuvert(baux as BailLocataire[] | null) && <section className="loc-carte" aria-label="Situation de votre bail">
         <h2 className="titre-carte text-base font-medium">Votre bail n’est pas encore actif</h2>
         <p className="mt-2 text-sm text-muted-foreground">{bail ? (bail.document_signe ? "Un contrat signé est enregistré. Votre bailleur doit encore vérifier le dossier et activer le bail." : "Le contrat signé n’est pas encore disponible dans votre espace. Votre bailleur doit finaliser le dossier, puis activer le bail.") : "Aucun bail n’est encore rattaché à votre espace. Votre bailleur doit préparer ou vérifier ce rattachement."}</p>
         <p className="mt-2 text-sm">Responsable de la prochaine étape : votre bailleur.{(nbPiecesDemandees > 0 || nbSignatures > 0) && " Des pièces ou signatures vous sont aussi demandées dans Mes documents."}</p>
-        <Link href={`/locataire/${orgId}/contact`} className="mt-2 inline-flex min-h-11 items-center font-medium underline">Écrire à mon bailleur →</Link>
+        <Link href={`/locataire/${orgId}/contact`} className="lien-discret mt-2 inline-flex min-h-11 items-center">Écrire à mon bailleur →</Link>
       </section>}
 
       {bail && (
-        <div className="loc-hero">
+        <div className="loc-carte">
           {/* 24/09 : plus de vignette à initiale (une lettre qui ne disait rien)
               ni de slogan Gerimmo sous la marque de l'agence. Le titre est
               l'ADRESSE, que le locataire connaît ; le nom du lot, saisi par
@@ -382,12 +397,12 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 déjà porté par mon_bail_locataire, aucune lecture de plus.
                 En fenêtre, comme depuis « Mes documents » (27/10, ED-04) : le
                 même bail s'ouvrait ici dans un nouvel onglet.
-                pointer-coarse:min-h-10 : les liens stylés en bouton sm (28 px)
+                pointer-coarse:min-h-11 : les liens stylés en bouton sm (28 px)
                 échappent au filet tactile du socle. */}
             <div className="mt-2.5 flex flex-wrap gap-2">
               <Link
                 href={`/locataire/${orgId}/logement`}
-                className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
+                className={`pointer-coarse:min-h-11 ${buttonVariants({ variant: "outline", size: "sm" })}`}
               >
                 Voir les détails →
               </Link>
@@ -395,7 +410,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 <ConsultationDocument
                   titre="Mon bail signé"
                   cible={{ fichier: `/locataire/${orgId}/bail/fichier`, mime: null }}
-                  className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
+                  className={`pointer-coarse:min-h-11 ${buttonVariants({ variant: "outline", size: "sm" })}`}
                 >
                   Consulter mon bail signé
                 </ConsultationDocument>
@@ -406,7 +421,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
       )}
 
       {aFaire.length > 0 && (
-        <div className="loc-carte border-l-4 border-l-[var(--or)]">
+        <div className="loc-carte">
           <div className="entete-carte !mb-1">
             <h2 className="titre-carte text-base font-medium">Ce qui vous attend</h2>
             {/* « 3 points » se lisait comme un score (24/09) */}
@@ -447,7 +462,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
 
       {/* Annonces de l'agence pour l'immeuble (backend v10) */}
       {((annonces ?? []) as { id: string; texte: string }[]).map((a) => (
-        <div key={a.id} className="loc-carte border-l-4 border-l-[var(--or)]">
+        <div key={a.id} className="loc-carte">
           <p className="text-sm">
             <b className="font-semibold">Dans votre immeuble</b> — {a.texte}
           </p>
@@ -472,7 +487,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               classeLien={LIEN_ETIRE}
             />
           ) : (
-          <div className={`${CARTE_KPI} carte-rubrique`} data-ton="bleu">
+          <div className={CARTE_KPI} data-ton="bleu">
             <p className="titre-rubrique text-sm font-semibold"><Banknote size={20} aria-hidden="true" />{enRetard ? "Loyer restant à régler" : "Prochain loyer"}</p>
             {eEcheancier ? (
               <div className="mt-2">
@@ -480,7 +495,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               </div>
             ) : bail && prochaine ? (
               <>
-                <p className="v montant">{eur(enRetard ? totalRetard : resteADevoir)}</p>
+                <p className="v montant"><ValeurVivante valeur={enRetard ? totalRetard : resteADevoir}>{eur(enRetard ? totalRetard : resteADevoir)}</ValeurVivante></p>
                 <p className="text-xs text-muted-foreground">{enRetard && retards.length > 1 ? `${retards.length} échéances à régulariser` : moisLong(prochaine.periode)}</p>
                 <span className={`loc-tag mt-2.5 ${enRetard ? "rouge" : "vert"}`}>
                   {prochaine.statut === "impaye"
@@ -505,7 +520,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
             </Link>
           </div>
           )}
-          <div className={`${CARTE_KPI} carte-rubrique`} data-ton="violet">
+          <div className={CARTE_KPI} data-ton="violet">
             <p className="titre-rubrique text-sm font-semibold"><Files size={20} aria-hidden="true" />Mes documents</p>
             {ePieces || eEcheancier || eDemandes ? (
               <div className="mt-2">
@@ -513,7 +528,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               </div>
             ) : (
               <>
-                <p className="v">{nbDocuments}</p>
+                <p className="v"><ValeurVivante valeur={nbDocuments}>{nbDocuments}</ValeurVivante></p>
                 <p className="text-xs text-muted-foreground">
                   {nbDocuments === 0
                     ? "Aucune pièce pour l'instant"
@@ -571,7 +586,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               Voir mes documents{"\u00a0"}→
             </Link>
           </div>
-          <div className={`${CARTE_KPI} carte-rubrique`} data-ton="or">
+          <div className={CARTE_KPI} data-ton="or">
             <p className="titre-rubrique text-sm font-semibold"><Wrench size={20} aria-hidden="true" />Mes demandes</p>
             {eIncidents ? (
               <div className="mt-2">
@@ -586,7 +601,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               </>
             ) : (
               <>
-                <p className="v">{incidentsEnCours.length}</p>
+                <p className="v"><ValeurVivante valeur={incidentsEnCours.length}>{incidentsEnCours.length}</ValeurVivante></p>
                 <p className="text-xs text-muted-foreground">
                   demande{incidentsEnCours.length > 1 ? "s" : ""} en cours de traitement
                 </p>

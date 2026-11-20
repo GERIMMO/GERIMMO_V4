@@ -43,7 +43,7 @@ export async function PaneParc({
   const retour = (
     // Sous 900px, le lien .retour-liste de la page fait le même travail
     <Link href={`${base}/parc`} className="lien-discret text-sm max-[900px]:hidden">
-      ‹ Vue d&apos;ensemble
+      ← Vue d&apos;ensemble
     </Link>
   );
 

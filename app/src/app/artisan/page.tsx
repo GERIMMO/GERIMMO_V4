@@ -11,7 +11,8 @@ import {
 import { CarteMission } from "./carte-mission";
 import { CarteSollicitation } from "./carte-sollicitation";
 import { degreEcheance, demandeAChiffrer, jourLong, PIECES_ARTISAN, texteEcheance, libelle } from "./libelles";
-import { Avertissement, Carte, CLASSE_BOUTON_SECONDAIRE, Erreur, TitreSection } from "./ui";
+import { Avertissement, Carte, CLASSE_BOUTON_SECONDAIRE, EnteteSousPage, Erreur, TitreSection } from "./ui";
+import { ValeurVivante } from "@/components/valeur-vivante";
 import { presenceReseau, rappelPresenceReseau } from "@/lib/reseau";
 import { exclusionLue } from "@/lib/artisan-prive-exclusion";
 
@@ -101,10 +102,8 @@ export default async function PageArtisanAccueil() {
 
   return (
     <div className="space-y-6">
-      <div className={`portail-hero portail-hero-accueil ${styles.dailyHeader}`}>
-        <p className="portail-surtitre">{jourLong(new Date().toISOString())}</p>
-        <h1 className="mt-0.5">Aujourd&apos;hui</h1>
-      </div>
+      {/* Même en-tête que les autres écrans de l'espace : repère de rubrique, titre, date du jour dessous. */}
+      <EnteteSousPage rubrique="accueil" titre="Aujourd'hui" mention={jourLong(new Date().toISOString())} />
 
       {rappelReseau?.ton === "avertissement" && (
         <Avertissement>
@@ -157,7 +156,7 @@ export default async function PageArtisanAccueil() {
           ].map((indicateur) => (
             <Link key={indicateur.libelle} href={indicateur.href} className={styles.metric} data-a-faire={indicateur.valeur > 0}>
               <span className={styles.icon} data-tone={indicateur.ton}><indicateur.icone size={20} aria-hidden /></span>
-              <span><strong>{indicateur.valeur}</strong><small>{indicateur.libelle}</small></span>
+              <span><strong><ValeurVivante valeur={indicateur.valeur}>{indicateur.valeur}</ValeurVivante></strong><small>{indicateur.libelle}</small></span>
             </Link>
           ))}
         </nav>
@@ -181,7 +180,7 @@ export default async function PageArtisanAccueil() {
         </Carte>
       ) : rienAFaire ? null : (
         <div className="space-y-6">
-          {reports.length > 0 && <section id="reports-a-traiter"><TitreSection>Reports de rendez-vous à traiter ({reports.length})</TitreSection><div className="artisan-liste">{reports.map(l => <CarteMission key={l.intervention_id} ligne={l} origine="aujourdhui" aFaire="Répondre à la demande de report" />)}</div></section>}
+          {reports.length > 0 && <section id="reports-a-traiter" className="scroll-mt-28"><TitreSection>Reports de rendez-vous à traiter ({reports.length})</TitreSection><div className="artisan-liste">{reports.map(l => <CarteMission key={l.intervention_id} ligne={l} origine="aujourdhui" aFaire="Répondre à la demande de report" />)}</div></section>}
           {aRendreCompte.length > 0 && (
             <section id="comptes-rendus" className="scroll-mt-28">
               <TitreSection>

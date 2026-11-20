@@ -101,7 +101,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
         <form data-saisie-libre action={action} onReset={() => setLongueur(0)} className="space-y-4">
           <input type="hidden" name="suite" value={suite} />
           {profilAConfirmer && (
-            <fieldset className="space-y-3 rounded-md border p-4">
+            <fieldset className="space-y-3 rounded-[var(--rayon-bouton)] border border-[var(--filet)] p-4">
               <legend className="px-1 font-medium">Vérifiez vos informations</legend>
               <p className="text-sm text-muted-foreground">{espaceAffiche === "proprietaire_direct" ? "Vérifiez votre nom et l’usage de votre compte, puis choisissez votre mot de passe." : "Ces informations ont été saisies avant la confirmation de votre adresse. Corrigez-les et confirmez votre choix pour terminer l’inscription."}</p>
               <label className="block space-y-1 text-sm">
@@ -116,7 +116,7 @@ export function FormulaireNouveauMotDePasse({ suite = "/espaces", profilAConfirm
               {espaceAffiche === "proprietaire_direct" ? <>
                 {champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => champsPrincipaux.includes(champ)))}
                 {prenomRequis && <p className="text-xs text-muted-foreground">Votre nom et votre prénom servent à créer votre fiche personnelle. Vous confirmerez votre pouvoir de signature dans chaque bail concerné.</p>}
-                <details open={!!champErreur && ![...champsPrincipaux, "cgu", "espace", "mot_de_passe", "confirmation"].includes(champErreur)} className="rounded-lg border px-3">
+                <details open={!!champErreur && ![...champsPrincipaux, "cgu", "espace", "mot_de_passe", "confirmation"].includes(champErreur)} className="rounded-[var(--rayon-bouton)] border border-[var(--filet)] px-3">
                   <summary className="flex min-h-11 cursor-pointer items-center text-sm text-muted-foreground">Coordonnées et parrainage (facultatif)</summary>
                   <p className="mb-3 text-xs text-muted-foreground">Vous pourrez compléter vos coordonnées dans votre espace avant de préparer vos documents.</p>
                   <div className="space-y-3 pb-3">{champsProfil(CHAMPS_TEXTE_PROFIL.filter(([champ]) => champ !== "raison_sociale" && !champsPrincipaux.includes(champ)))}</div>

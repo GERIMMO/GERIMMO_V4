@@ -28,6 +28,10 @@ export default async function PageVersionsConditions() {
   return (
     <CadreLegal chemin="/conditions">
       <div>
+        {/* Lien de retour au format commun : « ← Libellé de la page d'arrivée », au-dessus du titre. */}
+        <Link href="/conditions" className="public-retour">
+          ← Conditions générales d’utilisation et de vente
+        </Link>
         <h1>Versions archivées des conditions générales</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Chaque version archivée est rangée telle que la page publiée l’affichait, et ne se modifie plus. Son

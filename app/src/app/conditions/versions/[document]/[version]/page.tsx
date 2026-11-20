@@ -52,6 +52,10 @@ export default async function PageVersionArchivee({ params }: PageProps<"/condit
   const releve = archivee ? releveApresEffet(archivee) : null;
   return (
     <CadreLegal chemin="/conditions">
+      {/* Lien de retour au format commun, au-dessus du texte archivé (qui porte son propre titre). */}
+      <Link href="/conditions/versions" className="public-retour">
+        ← Versions archivées des conditions générales
+      </Link>
       <aside className="loc-carte space-y-1.5 text-sm" aria-label="Version archivée">
         {archivee === undefined ? (
           <p role="alert">Cette version ne peut pas être lue pour le moment. Réessayez plus tard.</p>

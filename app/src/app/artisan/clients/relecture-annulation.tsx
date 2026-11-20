@@ -10,10 +10,10 @@ export function RelectureAnnulation({resume}:{resume:ResumeAnnulationFacture}){
   ["Montant de l’avoir (TTC)",euros(resume.montantCents)],
   ["Motif de l’annulation",resume.motif||"—"],
  ];
- return <div className="space-y-4 rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] p-4">
-  <h3 className="text-[1.0625rem] font-medium text-[var(--encre)]">Relisez l’annulation avant de la confirmer</h3>
+ return <div className="space-y-4 rounded-[var(--rayon-carte)] border border-[var(--prestige-champagne)] bg-[var(--or-clair)] p-4">
+  <h3 className="text-[1.0625rem] font-semibold text-[var(--encre)]">Relisez l’annulation avant de la confirmer</h3>
   <p>{MESSAGE_ANNULATION_CONSEQUENCES}</p>
-  <dl className="grid gap-3 sm:grid-cols-2">{lignes.map(([libelle,valeur])=><div key={libelle} className="min-w-0 rounded-xl border border-[var(--filet)] p-3"><dt className="text-sm text-[var(--texte-secondaire)]">{libelle}</dt><dd className="mt-1 break-words font-semibold text-[var(--encre)]">{valeur}</dd></div>)}</dl>
-  {resume.alertes.length>0&&<ul role="alert" className="list-disc space-y-1 pl-5 text-[var(--destructive)]">{resume.alertes.map(a=><li key={a}>{a}</li>)}</ul>}
+  <dl className="grid gap-3 sm:grid-cols-2">{lignes.map(([libelle,valeur])=><div key={libelle} className="min-w-0 rounded-[var(--rayon-champ)] border border-[var(--filet)] bg-[var(--carte)] p-3"><dt className="text-sm text-[var(--texte-secondaire)]">{libelle}</dt><dd className="mt-1 break-words font-semibold tabular-nums text-[var(--encre)]">{valeur}</dd></div>)}</dl>
+  {resume.alertes.length>0&&<ul role="alert" className="list-disc space-y-1 pl-5 text-[var(--destructive-soft-foreground)]">{resume.alertes.map(a=><li key={a}>{a}</li>)}</ul>}
  </div>;
 }

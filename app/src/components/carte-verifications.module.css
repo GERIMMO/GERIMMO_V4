@@ -1,26 +1,30 @@
+/* Carte « à vérifier » de l'accueil du propriétaire. Design System « Maison » : carte blanche et jetons ; le rouge
+   ne sert qu'à l'alerte (loyer en retard, demande prioritaire). */
 .carte, .repos { position: relative; }
-button.carte { text-align: left; cursor: pointer; font-family: inherit; border-color: #bdcede; background: #f1f6fb; }
-button.carte:hover { border-color: #879eb8; background: #eaf2f9; }
-.lienTaches { border-color: #bdcede; background: #f1f6fb; }
-.lienTaches:hover { border-color: #879eb8; background: #eaf2f9; }
+button.carte { text-align: left; cursor: pointer; font-family: inherit; border-color: var(--filet); background: var(--carte); transition: border-color var(--duree-rapide) ease, background-color var(--duree-rapide) ease; }
+button.carte:hover { border-color: color-mix(in srgb, var(--marque) 28%, var(--filet)); background: var(--survol); }
+.lienTaches { border-color: var(--filet); background: var(--carte); }
+.lienTaches:hover { border-color: color-mix(in srgb, var(--marque) 28%, var(--filet)); background: var(--survol); }
 .carte > span, .repos > span { padding-right: 22px; }
-.fleche { position: absolute; top: 22px; right: 18px; color: #425d79; }
+.fleche { position: absolute; top: 22px; right: 18px; color: var(--texte-secondaire); }
 .carte small.apercu { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; line-height: 1.5; overflow-wrap: anywhere; }
 .contenu { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
-/* Une même alerte pour toutes les actions importantes, avec un texte toujours lisible. */
+/* Une même alerte pour toutes les actions importantes, avec un texte toujours lisible.
+   Les deux rouges du repos sont écrits en clair ici et aux extrémités de la pulsation : tests/carte-verifications.test.ts
+   les lit dans cette feuille pour vérifier que la pulsation part de la teinte fixe et y revient. Tout le reste est en jetons. */
 button.carte[data-importante='true'] { background: #9d343b; border-color: #8b2930; gap: 8px; }
-button.carte[data-importante='true']:hover { background: #892a31; border-color: #7a2229; }
+button.carte[data-importante='true']:hover { background: color-mix(in srgb, var(--destructive-soft-foreground) 90%, var(--encre)); border-color: color-mix(in srgb, var(--destructive-soft-foreground) 78%, var(--encre)); }
 button.carte[data-importante='true'] > span,
 button.carte[data-importante='true'] > strong,
 button.carte[data-importante='true'] > small,
-button.carte[data-importante='true'] > svg { color: #fff; }
+button.carte[data-importante='true'] > svg { color: var(--sur-encre); }
 button.carte > strong.question { font-size: clamp(20px, 1.8vw, 25px); line-height: 1.25; letter-spacing: -.02em; text-wrap: balance; }
 /* Une pulsation lente : rouge clair puis soutenu, texte stable et contraste blanc supérieur à 4,5:1. Deux cycles, moins
    de cinq secondes au total, puis la carte reste fixe (WCAG 2.2.2, audit du 27/10, TRV-10) ; aucune avec « réduire les
    animations ». Elle part du rouge fixe de la carte et y revient : aucun saut de teinte au début ni à la fin. */
 @keyframes respirationAlerte {
-  0%, 100% { background-color: #9d343b; border-color: #8b2930; box-shadow: 0 0 0 0 #c2465200, 0 0 0 #9d343b00; }
-  50% { background-color: #c24652; border-color: #a73540; box-shadow: 0 0 0 7px #c2465238, 0 8px 24px #9d343b20; }
+  0%, 100% { background-color: #9d343b; border-color: #8b2930; box-shadow: 0 0 0 0 transparent, 0 0 0 transparent; }
+  50% { background-color: color-mix(in srgb, var(--destructive) 80%, var(--destructive-soft-foreground)); border-color: var(--destructive-soft-foreground); box-shadow: 0 0 0 7px color-mix(in srgb, var(--destructive) 22%, transparent), 0 8px 24px color-mix(in srgb, var(--destructive-soft-foreground) 13%, transparent); }
 }
 @media screen and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
   button.carte[data-importante='true'] { animation: respirationAlerte 2.4s ease-in-out 2; }

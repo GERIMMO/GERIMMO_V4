@@ -173,11 +173,11 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
   if (e1 || e2 || e3 || e4 || e5) {
     return (
       <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
-        <TitreEcran rubrique="suivi">Historique et sauvegardes</TitreEcran>
-        <div className="vide mt-4">
+        <div className="entete-page"><TitreEcran rubrique="historique">Historique et sauvegardes</TitreEcran></div>
+        <p role="alert" className="err">
           Impossible de charger la page pour l&apos;instant — rechargez dans un
           instant.
-        </div>
+        </p>
       </main>
     );
   }
@@ -207,12 +207,12 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
           en premier (audit 25/09, C11) ; les règles et le nettoyage, en bas. */}
       <div className="entete-page mb-6">
         <div className="min-w-0 flex-[1_1_20rem]">
-          <TitreEcran rubrique="suivi">Historique et sauvegardes</TitreEcran>
+          <TitreEcran rubrique="historique">Historique et sauvegardes</TitreEcran>
           <p className="mt-2 text-sm text-muted-foreground">
             Retrouvez une action, un incident ou la preuve d’une sauvegarde.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3"><Link href="/admin/sante#sauvegarde" className="btn-secondaire">Vérifier la sauvegarde</Link><a href="#conservation" className="lien-discret text-sm">Règles de conservation ↓</a></div>
+        <div className="flex flex-wrap gap-3"><Link href="/admin/sante#sauvegarde" className="btn-secondaire">Vérifier la sauvegarde</Link><a href="#conservation" className="btn-secondaire">Règles de conservation ↓</a></div>
       </div>
 
       <PreuvesSupervision p={p}/>
@@ -223,7 +223,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
       />
 
       <div className="space-y-4">
-        <ConsoleSection id="audit" titre="Actions sur les comptes et dossiers" description="Actions sensibles réalisées par les superviseurs et les agences." icone="personnes" ouverte={filtreActif || Boolean(p.p_audit)}>
+        <ConsoleSection id="audit" titre="Actions sur les comptes et dossiers" description="Actions sensibles réalisées par les superviseurs et les agences." icone="personnes" ouverte>
 
           <div className="space-y-4">
             {audit.length === 0 ? (

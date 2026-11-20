@@ -74,7 +74,7 @@ export default async function PageStatistiques(
     return (
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
         <div className="entete-page">
-          <TitreEcran rubrique="supervision">Statistiques</TitreEcran>
+          <TitreEcran rubrique="statistiques">Statistiques</TitreEcran>
         </div>
         <div className="err" role="alert">
           <p className="font-medium">
@@ -211,7 +211,7 @@ export default async function PageStatistiques(
       {/* Le titre reprend le menu, comme les pages sœurs : la mention « Mon
           portefeuille » dit déjà le périmètre de l'agent (24/09). */}
       <div className="entete-page">
-        <TitreEcran rubrique="supervision">Statistiques</TitreEcran>
+        <TitreEcran rubrique="statistiques">Statistiques</TitreEcran>
         <span className="mono-discret">
           {perimetre ? "Mon portefeuille · " : ""}
           {incidents.length} incident{incidents.length > 1 ? "s" : ""} au total
@@ -322,6 +322,10 @@ export default async function PageStatistiques(
               <h2 className="font-heading text-base leading-snug font-medium">
                 Qui paie — répartition des imputations
               </h2>
+              {/* Le mot du métier garde sa place ; une phrase le dit en clair (refonte du 20/11). */}
+              <p className="text-sm text-muted-foreground">
+                L&apos;imputation dit qui paie la réparation. « Pas encore qualifié » : la décision n&apos;est pas prise.
+              </p>
             </CardHeader>
             <CardContent>
               {imputationsTriees.map(([imp, n]) => (
@@ -337,7 +341,7 @@ export default async function PageStatistiques(
                     <i
                       style={{
                         width: `${Math.round((n / incidents.length) * 100)}%`,
-                        background: "var(--encre)",
+                        background: "var(--marque)",
                       }}
                     />
                   </span>
@@ -410,7 +414,7 @@ export default async function PageStatistiques(
                     )}
                     <span className="block text-xs text-muted-foreground">
                       {idsCompares.length
-                        ? `sur ${idsCompares.length} intervention${idsCompares.length > 1 ? "s" : ""} terminée${idsCompares.length > 1 ? "s" : ""} et chiffrée${idsCompares.length > 1 ? "s" : ""}`
+                        ? `montant final moins devis retenu, sur ${idsCompares.length} intervention${idsCompares.length > 1 ? "s" : ""} terminée${idsCompares.length > 1 ? "s" : ""} et chiffrée${idsCompares.length > 1 ? "s" : ""}`
                         : "aucune intervention n'a encore de montant final"}
                     </span>
                   </div>
@@ -430,7 +434,7 @@ export default async function PageStatistiques(
                             <i
                               style={{
                                 width: `${totalConstateCents ? Math.round((cents / totalConstateCents) * 100) : 0}%`,
-                                background: "var(--encre)",
+                                background: "var(--marque)",
                               }}
                             />
                           </span>

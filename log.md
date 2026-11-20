@@ -7597,3 +7597,21 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   des règles de démarchage déjà décidées ; le médiateur reste la seule dépense que rien ne remplace pour vendre aux
   particuliers.
 - **Proposé** : filer le plan en synthèse une fois tranché avec le dirigeant.
+
+## [2026-11-20] deploy | « Les règles à connaître » dans l'espace, en production (PR #351)
+
+- Le dirigeant a demandé la publication (« Publie »), puis a approuvé dans GitHub le passage de l'environnement
+  `gerimmo-production`.
+- PR [#351](https://github.com/GERIMMO/GERIMMO_V4/pull/351) :
+  - CI verte sur la tête `6b49496f` (run 44743388346), WebKit compris ;
+  - fusion squash au SHA exact → `main` = `96c56647` (13:53Z). CI de `main` verte (run 44748236962, 14:25Z).
+- **Aucune migration** : base inchangée, compatible avec la version précédente.
+- **Publication contrôlée** (run 44754175430, `dpl_B4dzvXx8zDUQpqZXFdtyHUr8f2Tv`) réussie à 14:40Z :
+  - `/api/sante` sert `96c56647`, base OK ;
+  - pages publiques en 200 ; `/agence/<id>/regles`, `/locataire/<id>/regles` et `/espace/<id>/regles` demandent une
+    connexion (307 vers `/connexion`), comme `/veille` ;
+  - 0 erreur d'exécution Vercel de 14:39Z à 15:05Z, recette comprise.
+- **Recette de production avec nettoyage n° 55** (run 44756823595) réussie à 14:59Z. Purge vérifiée en lecture seule :
+  0 compte et 0 espace de recette restants. Ventes payantes toujours fermées (relu en base).
+- **Reste à décider par le dirigeant** : l'entrée « Les règles à connaître » dans le menu du propriétaire particulier.
+- **Pages du wiki** : mise à jour [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]].

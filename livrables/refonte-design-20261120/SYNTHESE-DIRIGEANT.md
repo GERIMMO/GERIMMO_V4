@@ -114,7 +114,7 @@ L'**intégration continue** est le contrôle automatique que GitHub lance sur ch
 
 | Sujet | État | Raison |
 |---|---|---|
-| « Les règles à connaître » (agence, locataire) : la page s'ouvrait hors de l'espace, sans le menu | **signalé par vous après la mise en ligne** ; correction prête, **pull request [#351](https://github.com/GERIMMO/GERIMMO_V4/pull/351) non fusionnée, non publiée** | défaut antérieur à la refonte, qu'elle n'avait pas corrigé : une page unique partagée par tous les profils. La correction la place dans chaque espace, comme chez l'artisan ; même contenu, aucune lecture nouvelle |
+| « Les règles à connaître » (agence, locataire) : la page s'ouvrait hors de l'espace, sans le menu | **corrigé, en production depuis le 20/11 à 14 h 40 UTC** (pull request [#351](https://github.com/GERIMMO/GERIMMO_V4/pull/351), version `96c56647`, recette n° 55 réussie) | défaut antérieur à la refonte, signalé par vous après sa mise en ligne. La page vit maintenant dans chaque espace, comme chez l'artisan ; même contenu, aucune lecture nouvelle. Reste à décider : l'entrée dans le menu du propriétaire particulier |
 | Écrans propres à la SCI | non relus à l'œil | pas de compte SCI sur le banc ; couverts par les tests automatiques |
 | Pages très longues (bail, fiche d'un lot, fiche d'une personne) | hiérarchie améliorée, pas découpées | les découper change la structure que les tests vérifient : c'est un chantier à part |
 | Blocs repliés empilés côté propriétaire (accueil, finances) | inchangés | même raison |

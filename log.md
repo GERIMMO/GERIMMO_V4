@@ -7479,3 +7479,23 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   l'envoi de l'alerte du 20/11 restent à constater.
 - Pause demandée par le dirigeant après la publication.
 
+## [2026-11-20] maintenance | Refonte visuelle « Maison » et Design System (PR #350, non fusionnée)
+
+- **Demande du dirigeant** : audit exhaustif, identité commune et même finition pour toutes les sessions, en autonomie.
+- **Version auditée** : `be3bf5b0` (production ; la version communiquée, `8c0449c6`, n'était plus la dernière).
+- **Fait** : cartographie des 133 pages ; audit (559 constats, parcours « avant » de 180 écrans à 4 largeurs) ; trois
+  directions maquettées, « Maison » retenue ; Design System (`app/src/app/systeme.css`, `app/docs/design-system.md`) ;
+  fondations (police de titre embarquée, taille unique des titres, jetons, action principale bleu nuit, rien sous 12 px) ;
+  bandeau de retour vers l'espace ; écrans d'erreur et « introuvable » dans la coquille ; harmonisation en sept lots.
+- **Non touché** : migrations, actions serveur, routes d'API, gardes d'accès, calculs, tarifs, textes juridiques.
+- **Tests (banc isolé, données fictives)** : style et types 0 erreur ; 12 949 tests unitaires ; 282 parcours navigateur ;
+  second parcours 932 passages sans défaut ; 180 écrans dans un moteur WebKit réel à 390 et 360 px (un débordement trouvé
+  sur `/admin/territoire`, corrigé).
+- **Intégration continue** : **rouge** sur `9a656950`, à la seule étape des parcours WebKit mobile (verte sur `main`) ; le journal de cette étape n'est pas lisible depuis l'environnement de travail (accès réseau refusé), la cause reste à lire. Deux causes d'échec trouvées et corrigées en route (fondu d'arrivée sous le contraste
+  requis ; libellé trop long dans WebKit).
+- **Suivi** : 192 lignes page × session, toutes améliorées ou vérifiées, testées aux 4 largeurs et relues.
+- **Reste** : essai sur de vrais téléphones ; relecture et décision de fusion du dirigeant ; marque blanche de l'assistant
+  et de deux écrans d'entrée ; libellés figés par des tests ; 338 remarques des lots à trier.
+- **Pages du wiki** : créée [[Refonte visuelle « Maison » et Design System — 20 novembre 2026]] ; mise à jour
+  [[Charte visuelle v3 bleue]] (supplantée pour les couleurs et la typographie) ; `index.md`.
+- **Livrables** : `livrables/refonte-design-20261120/`. Rien n'est fusionné, rien n'est publié.

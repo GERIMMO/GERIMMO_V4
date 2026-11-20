@@ -1,23 +1,30 @@
+/* Menu de la console (groupes repliables), résumé de « Santé et connexions » et lignes des tâches automatiques.
+   Jetons du Design System « Maison » : aucune couleur en dur. */
 .groupe { width:100%; border-bottom:1px solid var(--filet); padding:5px 0; min-width:0; }
-.groupe > summary { cursor:pointer; min-height:48px; padding:12px 9px; color:var(--encre); font-size:13px; font-weight:600; line-height:1.5; }
+.groupe > summary { cursor:pointer; min-height:48px; padding:12px 9px; color:var(--encre); font-size:14px; font-weight:600; line-height:1.5; }
 .groupe > summary span { margin-left:6px; }
 .groupe > a { margin:2px 0; }
-.groupe > summary:focus-visible { outline:2px solid #bd9856; outline-offset:2px; border-radius:5px; }
-@media(min-width:901px) { .groupe { border-color:#ffffff24; } .groupe > summary { color:#f0d9a6; } }
-.resume { padding:22px; border:1px solid #d7e0e8; border-left:3px solid #bd9856; border-radius:12px; background:linear-gradient(110deg,#fff,#f5f7fa); margin-bottom:20px; }
-.resume h2 { color:var(--encre); font-size:21px; line-height:1.4; margin:0 0 8px; }
+.groupe > summary:focus-visible { outline:3px solid var(--prestige-champagne-texte); outline-offset:2px; border-radius:6px; }
+@media(min-width:901px) {
+  .groupe { border-color:color-mix(in srgb, var(--sur-encre) 14%, transparent); }
+  .groupe > summary { color:var(--champagne-vif); font-size:13px; }
+  .groupe > summary:focus-visible { outline-color:var(--champagne-vif); }
+}
+/* Résumé d'état : une carte comme les autres. */
+.resume { padding:22px; border:1px solid var(--filet); border-radius:var(--rayon-carte); background:var(--carte); box-shadow:var(--ombre-1); margin-bottom:20px; }
+.resume h2 { color:var(--encre); font:var(--graisse-titre) var(--titre-2)/1.3 var(--font-display); margin:0 0 8px; }
 .resume p { font-size:14px; line-height:1.65; color:var(--texte-secondaire); }
-.liens { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; }
-.liens a { min-height:44px; display:inline-flex; align-items:center; font-size:13px; color:var(--encre); text-decoration:underline; text-underline-offset:4px; }
-.detail { margin-top:12px; border-top:1px solid var(--filet); padding-top:5px; font-size:13px; overflow-wrap:anywhere; }
-.detail > summary { cursor:pointer; min-height:44px; display:flex; align-items:center; color:#496b8d; font-weight:500; }
+.liens { display:flex; flex-wrap:wrap; gap:4px 16px; margin-top:12px; }
+.liens a { min-height:44px; display:inline-flex; align-items:center; font-size:14px; color:var(--encre); text-decoration:underline; text-underline-offset:4px; }
+.detail { margin-top:12px; border-top:1px solid var(--filet); padding-top:5px; font-size:14px; overflow-wrap:anywhere; }
+.detail > summary { cursor:pointer; min-height:44px; display:flex; align-items:center; color:var(--marque); font-weight:500; }
 .detail > summary::before { content:'＋'; margin-right:8px; }
 .detail[open] > summary::before { content:'−'; }
 .file { border-top:1px solid var(--filet); padding:12px 0; font-size:14px; line-height:1.6; }
 .file strong { color:var(--encre); }
 .file p { color:var(--texte-secondaire); }
 .ligneMission { display:grid; grid-template-columns:minmax(180px,1.2fr) minmax(190px,1fr) minmax(200px,1fr); align-items:start; gap:10px 20px; padding:20px; }
-.ligneMission h2 { font-size:17px; font-weight:600; margin-bottom:7px; }
+.ligneMission h2 { font:600 var(--titre-3)/1.4 var(--font-interface), system-ui, sans-serif; letter-spacing:normal; margin-bottom:7px; }
 .ligneMission form { margin-top:0; }
 .listeMissions { display:flex; flex-direction:column; gap:12px; }
 .consignes { margin:12px 0; font-size:14px; line-height:1.6; color:var(--texte-secondaire); }

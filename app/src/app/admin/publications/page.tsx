@@ -99,7 +99,7 @@ function Section({
           <span className="font-normal text-[var(--texte-secondaire)]"> · {publications.length} sur cette page</span>
         </h2>
       </div>
-      <p className="mb-3 text-[13px] text-[var(--texte-secondaire)]">{explication}</p>
+      {explication && <p className="mb-3 text-sm text-[var(--texte-secondaire)]">{explication}</p>}
       {publications.length === 0 ? (
         vide
       ) : (
@@ -128,12 +128,11 @@ export default async function PageJournalAdmin({ searchParams }: { searchParams:
   const tout = (lecture.data ?? []) as Publication[];
   const adresse = (page: number) => `/admin/publications?${new URLSearchParams({ ...(statut ? { statut } : {}), page: String(page) })}`;
   return <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-    <div className="entete-page mb-4"><TitreEcran rubrique="journal">Articles du site</TitreEcran><Link href="/admin/publications/nouvelle" className="btn-or text-sm">Nouvel article</Link></div>
-    <p className="mb-4 text-sm text-muted-foreground">Retrouvez tous les articles, y compris ceux programmés ou reportés. Le rythme des préparations et des diffusions se consulte dans <Link href="/admin/marketing" className="underline">Marketing et contenus</Link>.</p>
+    <div className="entete-page"><div><TitreEcran rubrique="journal">Articles du site</TitreEcran><p className="mt-2 text-muted-foreground">Retrouvez tous les articles, y compris ceux programmés ou reportés. Le rythme des préparations et des diffusions se consulte dans <Link href="/admin/marketing" className="underline">Marketing et contenus</Link>.</p></div><Link href="/admin/publications/nouvelle" className="btn-or">Créer un article</Link></div>
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3"><form method="get" action="/admin/publications" className="flex flex-wrap items-end gap-3"><label className="text-sm">État de l’article<select name="statut" className="champ mt-1 block" defaultValue={statut}><option value="">Tous les états</option>{Object.entries(STATUTS).map(([s,l]) => <option key={s} value={s}>{l}</option>)}</select></label><button className="btn-secondaire">Filtrer</button></form><BoutonChercherSujets /></div>
     {lecture.error ? <LectureIndisponible sujet="Articles" retour={adresse(lecture.page)} /> : <>
       <p role="status" className="mb-4 text-sm text-muted-foreground">{tout.length} affiché{tout.length > 1 ? "s" : ""} sur {lecture.count ?? "—"} article{lecture.count !== 1 ? "s" : ""}{statut ? ` · ${STATUTS[statut]}` : " · Tous les états"}</p>
-      {!tout.length && <div className="vide-guide"><p className="titre">{statut ? "Aucun article dans cet état" : "Aucun article enregistré"}</p><p className="explication">{statut ? "Choisissez un autre état ou consultez tous les articles." : "Créez un article ou demandez des propositions de sujets."}</p>{statut && <Link href="/admin/publications" className="btn-secondaire">Tous les articles</Link>}</div>}
+      {!tout.length && <div className="vide-guide"><p className="titre">{statut ? "Aucun article dans cet état" : "Aucun article enregistré"}</p><p className="explication">{statut ? "Choisissez un autre état ou consultez tous les articles." : "Créez un article ou demandez des propositions de sujets."}</p><div className="geste">{statut ? <Link href="/admin/publications" className="btn-secondaire">Tous les articles</Link> : <Link href="/admin/publications/nouvelle" className="btn-secondaire">Créer un article</Link>}</div></div>}
       {Object.entries(STATUTS).map(([s,l]) => <Section key={s} titre={l} explication="" publications={tout.filter(p => p.statut === s)} />)}
       {lecture.count !== null && <Pagination page={lecture.page} total={lecture.count} adresse={adresse} libelle="Articles" />}
     </>}

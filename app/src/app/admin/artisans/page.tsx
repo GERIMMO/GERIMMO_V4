@@ -27,7 +27,7 @@ export default async function InscriptionsArtisan({ searchParams }: {
 }) {
   const supabase = await createClient();
   const { data: autorise, error: erreurAcces } = await supabase.rpc("is_super_admin");
-  if (erreurAcces || autorise !== true) return <main className="mx-auto max-w-4xl p-7"><TitreEcran rubrique="incidents">Accès réservé à la supervision</TitreEcran></main>;
+  if (erreurAcces || autorise !== true) return <main><div className="entete-page"><TitreEcran rubrique="incidents">Accès réservé à la supervision</TitreEcran></div></main>;
   const recherche = await searchParams;
   const pageDemandee = typeof recherche.page === "string" && /^[1-9]\d*$/.test(recherche.page)
     && Number.isSafeInteger(Number(recherche.page)) ? Number(recherche.page) : 1;
@@ -63,8 +63,8 @@ export default async function InscriptionsArtisan({ searchParams }: {
   const siretsAVerifier = inscriptions.filter(a => a.siret_etat !== "verifie").length;
   return <RetourDecisionsArtisan><main className={shared.page}>
     <header className={shared.header}>
-      <div><p className={shared.eyebrow}>PARTENAIRES DE GERIMMO</p><TitreEcran rubrique="incidents">Réseau d’artisans</TitreEcran><p className={shared.subtitle}>Examinez les nouvelles entreprises et retrouvez vos décisions, au même endroit.</p></div>
-      <Link href="/admin/couverture" className="btn-or"><MapPinned size={16} aria-hidden="true" />Couverture du réseau</Link>
+      <div><TitreEcran rubrique="incidents">Réseau d’artisans</TitreEcran><p className={shared.subtitle}>Examinez les nouvelles entreprises et retrouvez vos décisions, au même endroit.</p></div>
+      <Link href="/admin/couverture" className="btn-secondaire"><MapPinned size={16} aria-hidden="true" />Couverture du réseau</Link>
     </header>
     <div className={shared.stats} data-columns="3" aria-label="Suivi des inscriptions artisan">
       <a href="#inscriptions" className={shared.stat} data-tone="ambre"><span className={shared.statIcon}><ClipboardCheck size={20} aria-hidden="true" /></span><strong>{file.error ? "—" : inscriptions.length}</strong><span>Inscriptions à examiner</span><small>{file.error ? "Lecture indisponible" : "Dans la file de validation"}</small></a>
@@ -106,7 +106,7 @@ export default async function InscriptionsArtisan({ searchParams }: {
         </section>
         <section id="decisions" className={styles.panel} aria-labelledby="decisions-titre">
           <div className={styles.panelHeading}><div><h2 id="decisions-titre">Vos décisions récentes</h2><p>De la plus récente à la plus ancienne. Une inscription refusée peut être réexaminée.</p></div><History size={20} aria-hidden="true" /></div>
-          {decisions.error ? <p role="alert" className={styles.notice}>Historique indisponible. <Link href="/admin/artisans?page=1#decisions" className="underline">Réessayer</Link></p> : <>
+          {decisions.error ? <p role="alert" className={styles.notice}>Historique indisponible. <Link href="/admin/artisans?page=1#decisions" className="font-semibold underline">Réessayer</Link></p> : <>
             {totalDecisions === 0 ? <p className={styles.pastEmpty}>Aucune inscription validée ou refusée pour le moment. Vos prochaines décisions seront conservées ici.</p> : <ul className={styles.pastDecisions}>{((decisions.data ?? []) as Decision[]).map(a => <li key={a.id}><div className={styles.pastDecisionHeading}><strong>{a.raison_sociale}{a.statut_decide_le && <time dateTime={a.statut_decide_le}>{date(a.statut_decide_le)}</time>}</strong><span className={shared.badge} data-tone={a.statut_plateforme === "valide" ? "vert" : "rouge"}>{a.statut_plateforme === "valide" ? "Validée" : "Refusée"}</span></div>{a.statut_motif && <p>{a.statut_motif}</p>}{a.statut_plateforme === "refuse" && <div><DecisionArtisan artisanId={a.id} operation="remise_en_attente" /></div>}</li>)}</ul>}
             {nombrePages > 1 && <nav aria-label="Pagination des décisions" className={shared.pagination}>
               {pageDecisions > 1 ? <Link href={`/admin/artisans?page=${pageDecisions - 1}#decisions`} rel="prev">Précédent</Link> : <span />}
@@ -117,7 +117,7 @@ export default async function InscriptionsArtisan({ searchParams }: {
         </section>
       </div>
       <aside className={styles.sidebar} aria-label="Développement du réseau">
-        <section className={styles.networkCard}><MapPinned size={29} aria-hidden="true" /><p className={styles.eyebrow}>LE RÉSEAU SUR LE TERRAIN</p><h2>Chaque artisan<br />choisit sa zone.</h2><p>Il déclare ses métiers et sa zone ; validé et public, il y est proposé. Suivez la couverture qui en résulte.</p><Link href="/admin/couverture">Voir la couverture <ArrowUpRight size={16} aria-hidden="true" /></Link></section>
+        <section className={styles.networkCard}><MapPinned size={29} aria-hidden="true" /><p className={styles.eyebrow}>LE RÉSEAU SUR LE TERRAIN</p><h2>Chaque artisan choisit sa zone</h2><p>Il déclare ses métiers et sa zone ; validé et public, il y est proposé. Suivez la couverture qui en résulte.</p><Link href="/admin/couverture">Voir la couverture <ArrowUpRight size={16} aria-hidden="true" /></Link></section>
         <section className={styles.guide}><p className={styles.eyebrow}>VOTRE EXAMEN</p><h2>Trois points de contrôle</h2><ol><li><div><strong>L’identité de l’entreprise</strong><span>Vérifier le SIRET et les coordonnées.</span></div></li><li><div><strong>Les justificatifs</strong><span>Relire les pièces et leurs dates.</span></div></li><li><div><strong>Une décision tracée</strong><span>Valider ou préciser le motif du refus.</span></div></li></ol><Link href="/admin/clients"><Users size={15} aria-hidden="true" />Consulter l’annuaire<ArrowUpRight size={15} aria-hidden="true" /></Link></section>
       </aside>
     </div>

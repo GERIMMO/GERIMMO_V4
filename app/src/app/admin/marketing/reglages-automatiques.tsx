@@ -13,7 +13,7 @@ const JOURS = [[1,"Lundi"],[2,"Mardi"],[3,"Mercredi"],[4,"Jeudi"],[5,"Vendredi"]
 const champ = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
 // Le même cadre, avec l'unité « € » en suffixe à l'intérieur.
 const champAvecUnite = "flex w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--marque)]";
-const caseACocher = "flex items-start gap-2 rounded-xl border border-[var(--filet)] bg-white p-3";
+const caseACocher = "flex items-start gap-2 rounded-[var(--rayon-bouton)] border border-[var(--filet)] bg-[var(--carte)] p-3";
 
 // `pageReliee` (audit 25/09, C21) : sans Page Facebook reliée, « Publier
 // automatiquement » est décoché et désactivé — l'agent tenterait de publier sur

@@ -21,10 +21,10 @@ export default async function SecuriteSupervision({searchParams}:{searchParams:P
   return <main className="mx-auto w-full max-w-6xl p-4 sm:p-7">
     <div className="entete-page"><div><TitreEcran rubrique="supervision">Sécurité et conformité</TitreEcran><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Vos accès, les données confiées à Gerimmo et les obligations à suivre.</p></div></div>
     <ControlesSecurite p={p}/>
-    <ConsoleSection titre="Données et obligations" description="Demandes des utilisateurs, conservation et informations légales." icone="documents" ton="vert"><div className="grid gap-4 md:grid-cols-2">
+    <ConsoleSection titre="Données et obligations" description="Demandes des utilisateurs, conservation et informations légales." icone="documents" ton="vert" ouverte><div className="grid gap-4 md:grid-cols-2">
       {acces.map(({ titre, detail, href, action, icone: Icone }) => <Link key={titre} href={href} className="admin-acces-carte">
         <span className="admin-acces-icone"><Icone size={21} aria-hidden="true" /></span>
-        <div><h2>{titre}</h2><p>{detail}</p><span className="admin-acces-action">{action}<ArrowRight size={15} aria-hidden="true" /></span></div>
+        <div><h3>{titre}</h3><p>{detail}</p><span className="admin-acces-action">{action}<ArrowRight size={15} aria-hidden="true" /></span></div>
       </Link>)}
     </div></ConsoleSection>
   </main>;

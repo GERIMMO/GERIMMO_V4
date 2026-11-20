@@ -245,7 +245,7 @@ export function EditeurPublication(p: Props) {
       <aside className="order-first space-y-4 lg:sticky lg:top-24 lg:order-none lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">
         {/* Ce qui reste à fournir : le vrai travail de l'article */}
         <div
-          className={`rounded-xl border p-3.5 shadow-[var(--ombre-portee)] ${
+          className={`rounded-[var(--rayon-bouton)] border p-3.5 shadow-[var(--ombre-1)] ${
             !pret
               ? "border-[var(--warning)] bg-[var(--warning-soft)]"
               : "border-[var(--filet)] bg-[var(--ivoire)]"
@@ -270,7 +270,7 @@ export function EditeurPublication(p: Props) {
                   </li>
                 ))}
               </ul>
-              <p className="mt-2.5 text-[11.5px] leading-snug text-[var(--warning-soft-foreground)]">
+              <p className="mt-2.5 text-xs leading-snug text-[var(--warning-soft-foreground)]">
                 Remplacez chaque passage par le fait vérifié, source à l&apos;appui.
                 Tant qu&apos;il en reste un, la parution est refusée — le journal
                 n&apos;affirme rien qu&apos;on n&apos;ait vérifié.
@@ -358,7 +358,7 @@ export function EditeurPublication(p: Props) {
                   <label>Éléments vérifiés en cas d’absence<Input name="constat" maxLength={300} /></label>
                 </>}
                 <Soumettre classe="btn-secondaire">{p.tentativeFacebook ? "Vérifier et consigner le résultat" : "Publier sur Facebook"}</Soumettre>
-                <p className="text-[11.5px] text-[var(--texte-secondaire)]">Enregistrez d’abord le texte et le visuel si vous les modifiez.</p>
+                <p className="text-xs text-[var(--texte-secondaire)]">Enregistrez d’abord le texte et le visuel si vous les modifiez.</p>
               </form>
             )}
             {(etatFacebook.succes || etatFacebook.erreur || p.facebookErreur) && (

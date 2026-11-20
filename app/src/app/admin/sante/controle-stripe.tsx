@@ -20,7 +20,7 @@ export function SuiviStripe({ controle }: { controle: ControleStripe | null }) {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[
         [controle.en_attente, "réceptions en attente"], [controle.a_reprendre, "réceptions à examiner"],
         [controle.a_controler, "dossiers à contrôler aujourd’hui"], [controle.ecarts, "dossiers avec écarts"],
-      ].map(([n, libelle]) => <div key={libelle} className="rounded-xl border p-3"><strong className="block text-2xl text-[var(--encre)]">{n}</strong><span className="text-sm text-muted-foreground">{libelle}</span></div>)}</div>
+      ].map(([n, libelle]) => <div key={libelle} className="rounded-[var(--rayon-bouton)] border border-[var(--filet)] p-3"><strong className="block text-2xl text-[var(--encre)]">{n}</strong><span className="text-sm text-muted-foreground">{libelle}</span></div>)}</div>
       <p className="my-3 text-sm text-muted-foreground">La tâche Abonnements reprend les réceptions interrompues et contrôle jusqu’à 20 dossiers par passage, en priorité les plus anciens. Les écarts sont signalés pour examen : aucun remboursement ni nouveau prélèvement n’est déclenché par ce contrôle.</p>
       {controle.dossiers.length > 0 && <ul className="colonne-liste">{controle.dossiers.map(d => <li key={d.organization_id} className="rang block">
         <strong className="block break-words">{d.name}</strong><p className="text-sm">{d.stripe_controle_ecarts.map(c => LIBELLES[c] ?? "Contrôle nécessaire").join(" · ")}</p>

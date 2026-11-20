@@ -21,11 +21,11 @@ export default async function PageDevisAdmin() {
   if (error) {
     return (
       <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-        <TitreEcran rubrique="finances">Demandes de contact</TitreEcran>
-        <div className="vide mt-4">
+        <div className="entete-page"><TitreEcran rubrique="messages">Demandes de contact</TitreEcran></div>
+        <p role="alert" className="err">
           Impossible de charger la page pour l&apos;instant — rechargez dans un
           instant.
-        </div>
+        </p>
       </main>
     );
   }
@@ -44,17 +44,17 @@ export default async function PageDevisAdmin() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-      <div className="entete-page mb-6">
-        <TitreEcran rubrique="finances">Demandes de contact</TitreEcran>
+      <div className="entete-page">
+        <div><TitreEcran rubrique="messages">Demandes de contact</TitreEcran>
+        <p className="mt-2 text-muted-foreground">Les messages reçus depuis le formulaire de contact du site : questions, demandes de renseignements, exercice de droits sur les données. Les devis d’intervention des artisans se trouvent dans les dossiers d’incident.</p></div>
         {/* « 0 en attente / 0 » se lisait comme une fraction (24/09). */}
-        <span className="mono-discret">
+        <span className={`puce ${enAttente.length > 0 ? "puce-prep" : "puce-grise"}`}>
           {demandes.length === 0
             ? "Aucune demande reçue"
             : `${enAttente.length} en attente · ${demandes.length} reçue${demandes.length > 1 ? "s" : ""}`}
         </span>
       </div>
 
-      <p className="mb-5 text-sm text-muted-foreground">Les messages reçus depuis le formulaire de contact du site : questions, demandes de renseignements, exercice de droits sur les données. Les devis d’intervention des artisans se trouvent dans les dossiers d’incident.</p>
       {/* Un état vide qui guide, comme les autres de la console (24/09), et
           des rangs communs : sans `.rang`, aucun filet ne séparait deux
           demandes. */}
@@ -74,7 +74,7 @@ export default async function PageDevisAdmin() {
       ) : (
         <div className="colonne-liste">
           {demandes.map((d) => (
-            <div id={`demande-${d.id}`} key={d.id} className={`scroll-mt-24 rang flex-col items-stretch gap-0 ${d.traitee_le ? "opacity-60" : ""}`}>
+            <div id={`demande-${d.id}`} key={d.id} className={`scroll-mt-24 rang flex-col items-stretch gap-0 ${d.traitee_le ? "bg-[var(--filet-leger)]" : ""}`}>
               <div className="flex flex-wrap items-center gap-2">
                 <b className="text-sm">{d.nom}</b>
                 {d.agence && <span className="text-sm text-muted-foreground">— {d.agence}</span>}
@@ -96,7 +96,7 @@ export default async function PageDevisAdmin() {
               )}
               <div className="mt-2">
                 {d.traitee_le ? (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="puce puce-loue">
                     Traitée le {formaterDateHeure(d.traitee_le)}
                   </span>
                 ) : (

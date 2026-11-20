@@ -42,15 +42,13 @@ export default async function PagePublication({ params }: PageProps<"/admin/publ
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
-      <Link
-        href="/admin/publications"
-        className="lien-discret inline-flex items-center gap-1.5 text-[13px] text-[var(--bleu)]"
-      >
-        ← Tous les articles
-      </Link>
-      <div className="entete-page mt-2 mb-6">
-        <TitreEcran rubrique="journal">Modifier l’article</TitreEcran>
-        <span className="mono-discret">
+      <Link href="/admin/publications" className="lien-retour">← Articles du site</Link>
+      <div className="entete-page">
+        <div className="min-w-0">
+          <TitreEcran rubrique="journal">Modifier l’article</TitreEcran>
+          <p className="mt-2 break-words text-muted-foreground">{p.titre}</p>
+        </div>
+        <span className="puce puce-grise">
           {etat}
           {periode ? ` · ${periode}` : ""}
         </span>

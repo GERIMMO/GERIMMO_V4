@@ -36,20 +36,20 @@ export default async function PageParametres() {
         <div className="min-w-0 flex-[1_1_20rem]">
           <TitreEcran rubrique="profil">Paramètres généraux</TitreEcran>
           <p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">
-            Coordonnées publiques, abonnements et conservation des données.
+            Coordonnées publiques de Gerimmo et ouverture des abonnements.
           </p>
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3" aria-label="État des paramètres">
-        <a className="loc-carte" href="#identite"><strong className="block">Identité de Gerimmo</strong><span className="text-sm text-muted-foreground">{indisponible ? 'Lecture indisponible' : `${fournis} / ${exiges.length} fournis`}</span></a>
-        <a className="loc-carte" href="#souscriptions"><strong className="block">Abonnements</strong><span className="text-sm text-muted-foreground">Vérifier la règle d’ouverture</span></a>
+        <a className="loc-carte" href="#identite"><strong className="block">Identité de Gerimmo ↓</strong><span className="text-sm text-muted-foreground">{indisponible ? 'Lecture indisponible' : `${fournis} / ${exiges.length} fournis`}</span></a>
+        <a className="loc-carte" href="#souscriptions"><strong className="block">Abonnements ↓</strong><span className="text-sm text-muted-foreground">Vérifier la règle d’ouverture</span></a>
         <Link className="loc-carte" href="/admin/conservation"><strong className="block">Conservation</strong><span className="text-sm text-muted-foreground">Régler les durées par catégorie →</span></Link>
       </div>
 
       <section id="identite" className="scroll-mt-24">
         {indisponible||config.error||!config.data ? <p role="alert" className="err">Paramètres indisponibles. Rechargez avant de modifier.</p> : <IdentiteEditeur valeurs={editeur} revision={config.data.revision}/>}
-        <Link className="lien-discret mt-4 inline-block" href="/admin/journaux?registre=supervision_identite">Historique des modifications →</Link>
+        <Link className="lien-discret mt-4 inline-flex" href="/admin/journaux?registre=supervision_identite">Historique des modifications →</Link>
       </section>
 
       <ConsoleSection id="souscriptions" titre="Ouverture des abonnements" description="Règle de blocage si l’identité de Gerimmo est incomplète." icone="securite" ton="ambre" statut={indisponible || regle.revision === null ? "Lecture indisponible" : manquants.size ? `${manquants.size} à fournir` : 'Identité requise complète'}>

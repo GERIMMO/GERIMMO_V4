@@ -128,9 +128,9 @@ export default async function PageCompte({ params }: { params: Promise<{ account
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-      <Link href="/admin/clients" className="lien-discret text-sm">← Utilisateurs</Link>
+      <Link href="/admin/clients" className="lien-retour">← Utilisateurs</Link>
 
-      <div className="entete-page mt-2 mb-6">
+      <div className="entete-page">
         <div className="min-w-0">
           <TitreEcran rubrique="personnes">{dossier.email}</TitreEcran>
           <p className="mono-discret sans-majuscules">
@@ -222,7 +222,7 @@ export default async function PageCompte({ params }: { params: Promise<{ account
                     {fiche && <span className="text-[var(--texte-secondaire)]"> · fiche {fiche.prenom ? `${fiche.prenom} ` : ""}{fiche.nom}</span>}
                   </span>
                   <span className="flex flex-wrap gap-2">
-                    {org && <Link href={`/admin/organisations/${org.id}`} className="lien-discret">Fiche console →</Link>}
+                    {org && <Link href={`/admin/organisations/${org.id}`} className="lien-discret">Fiche de l’organisation →</Link>}
                     {href && <Link href={href} className="btn-secondaire min-h-9">{locataire ? "Ouvrir son dossier locataire" : "Entrer dans son espace"}</Link>}
                   </span>
                 </li>

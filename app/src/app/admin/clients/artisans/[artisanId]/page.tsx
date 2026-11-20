@@ -125,11 +125,9 @@ export default async function PageFicheArtisan(
   return (
     <RetourDecisionsArtisan>
       <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-        <Link href="/admin/clients" className="lien-discret text-sm">
-          ← Tous les clients
-        </Link>
+        <Link href="/admin/clients" className="lien-retour">← Utilisateurs</Link>
 
-        <div className="entete-page mt-2 mb-6">
+        <div className="entete-page">
           <div className="flex min-w-0 items-center gap-3">
             <span
               aria-hidden

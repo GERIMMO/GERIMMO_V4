@@ -151,11 +151,9 @@ export default async function PageAdminOrganisation(
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-      <Link href="/admin/clients" className="lien-discret text-sm">
-        ← Tous les clients
-      </Link>
+      <Link href="/admin/clients" className="lien-retour">← Utilisateurs</Link>
 
-      <div className="entete-page mt-2 mb-6">
+      <div className="entete-page">
         <div className="flex min-w-0 items-center gap-3">
           <span
             aria-hidden
@@ -204,13 +202,13 @@ export default async function PageAdminOrganisation(
 
       {ouverte && (
         echecMail ? (
-          <div role="alert" className="mb-6 border border-[var(--warning)] bg-[var(--warning-soft)] p-3.5 text-[13px] text-[var(--warning-soft-foreground)]">
+          <div role="alert" className="mb-6 rounded-[var(--rayon-bouton)] border border-[var(--warning)] bg-[var(--warning-soft)] p-3.5 text-sm text-[var(--warning-soft-foreground)]">
             <b>Organisation ouverte, mais l’invitation n’est pas partie</b> : {echecMail}. Le
             responsable ne peut pas encore se connecter.{" "}
             <a href="#invitation" className="underline">Renvoyer l’invitation</a>
           </div>
         ) : (
-          <p role="status" className="mb-6 border border-[var(--filet)] bg-[var(--filet-leger)] p-3.5 text-[13px]">
+          <p role="status" className="mb-6 rounded-[var(--rayon-bouton)] border border-[var(--filet)] bg-[var(--filet-leger)] p-3.5 text-sm">
             Organisation ouverte. L’invitation est partie : le responsable définit son mot de passe par le lien reçu.
           </p>
         )
@@ -252,7 +250,7 @@ export default async function PageAdminOrganisation(
           {abo && (
             <>
               <Info libelle="Grille tarifaire">
-                {abo.grille === "historique" ? "Historique (1ᵉʳ bien offert, barème du 12/09) — à migrer" : "28/09/2026"}
+                {abo.grille === "historique" ? "Ancienne grille (1ᵉʳ bien offert, barème du 12/09) : à faire passer sur la nouvelle grille" : "Grille du 28/09/2026"}
               </Info>
               <Info libelle={abo.public_tarif === "agence" ? "Lots sous mandat" : "Biens en gestion"}>
                 {abo.unites_a_couvrir}
@@ -265,7 +263,8 @@ export default async function PageAdminOrganisation(
                   {abo.montant_periode_cents !== null
                     ? `${euros(abo.montant_periode_cents)}${mentionTaxe ? ` ${mentionTaxe}` : ""} ${parPeriode(abo.periodicite ?? "mensuel")}`
                     : "montant non reçu de Stripe"}{" "}
-                  ({abo.stripe_statut})
+                  {/* L'identifiant d'état de Stripe reste lisible pour l'exploitant, en retrait de la phrase. */}
+                  <code>{abo.stripe_statut}</code>
                 </Info>
               )}
               {abo.periode_fin && (

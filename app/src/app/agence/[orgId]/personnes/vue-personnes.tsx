@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 import { UserRoundPlus, ArrowLeft } from "lucide-react";
-import parcours from "@/components/presentation-parcours.module.css";
+import entete from "../parc/entete-parcours.module.css";
 import styles from "./creation-personne.module.css";
 import { TitreEcran } from "@/components/titre-ecran";
 import annuaire from "./annuaire-personnes.module.css";
@@ -36,7 +36,7 @@ export function VuePersonnes({ titre, nombre, liste, creation, estProprietaire =
     </section>
     <section id="creer-fiche" hidden={!ouverte} aria-label="Créer une fiche">
       <button type="button" className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground" onClick={() => afficher(false)}><ArrowLeft size={15} aria-hidden="true" />Retour à mes fiches</button>
-      <header className={parcours.enteteCreation}><UserRoundPlus size={27} aria-hidden="true" /><div><span className={parcours.surtitre}>Nouvelle personne</span><h1 id="creation-personne-titre" tabIndex={-1}>Créer une fiche</h1><p>Une seule fiche, réutilisable dans vos baux. Renseignez-la étape par étape.</p></div></header>
+      <header className={entete.entete}><UserRoundPlus size={27} aria-hidden="true" /><div><span className={entete.surtitre}>Nouvelle personne</span><h1 id="creation-personne-titre" tabIndex={-1}>Créer une fiche</h1><p>Une seule fiche, réutilisable dans vos baux. Renseignez-la étape par étape.</p></div></header>
       {creation}
     </section>
   </div>;

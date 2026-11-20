@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, Mail, Phone, MapPin, UserRound } from "lucide-react";
+import { Mail, Phone, MapPin, UserRound } from "lucide-react";
 import { initiales, nomComplet, type RolePersonne } from "@/lib/roles-personnes";
 import { estPersonnePhysique, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 import { formaterDate } from "@/lib/ged";
@@ -21,7 +21,7 @@ export function PresentationPersonne({ personne, roles, sansRole, retour, editio
   const adresse = [personne.address_line1, [personne.postal_code, personne.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   const adresseComplete = Boolean(personne.address_line1 && personne.postal_code && personne.city);
   return <>
-    <Link className={styles.retour} href={retour.href}><ArrowLeft size={16} aria-hidden="true"/>{retour.libelle}</Link>
+    <Link className={styles.retour} href={retour.href}>← {retour.libelle}</Link>
     <section className={styles.profil} aria-labelledby="nom-personne">
       <header className={styles.entete}>
         <span className={styles.avatar} aria-hidden="true">{initiales(personne.nom, personne.prenom)}</span>
@@ -30,8 +30,8 @@ export function PresentationPersonne({ personne, roles, sansRole, retour, editio
         </div>
       </header>
       <dl className={styles.coordonnees}>
-        <div><dt><Mail size={15} aria-hidden="true"/>Email</dt><dd>{personne.email ? <a href={`mailto:${personne.email.replace(/[\r\n]/g, "")}`} aria-label={`Écrire par email à ${nom}`}>{personne.email}</a> : <a href={lienModifier} className={styles.manquant}>Ajouter un email</a>}</dd></div>
-        <div><dt><Phone size={15} aria-hidden="true"/>Téléphone</dt><dd>{personne.telephone ? <a href={`tel:${personne.telephone.replace(/[^\d+]/g, "")}`} aria-label={`Appeler ${nom}`}>{personne.telephone}</a> : <span className={styles.nonRenseigne}>Non renseigné</span>}</dd></div>
+        <div><dt><Mail size={15} aria-hidden="true"/>Email</dt><dd>{personne.email ? <a href={`mailto:${personne.email.replace(/[\r\n]/g, "")}`} aria-label={`${personne.email} : écrire à ${nom}`}>{personne.email}</a> : <a href={lienModifier} className={styles.manquant}>Ajouter un email</a>}</dd></div>
+        <div><dt><Phone size={15} aria-hidden="true"/>Téléphone</dt><dd>{personne.telephone ? <a href={`tel:${personne.telephone.replace(/[^\d+]/g, "")}`} aria-label={`${personne.telephone} : appeler ${nom}`}>{personne.telephone}</a> : <span className={styles.nonRenseigne}>Non renseigné</span>}</dd></div>
         <div><dt><MapPin size={15} aria-hidden="true"/>Adresse</dt><dd>{adresse || <a href={lienModifier} className={styles.manquant}>Ajouter une adresse</a>}{adresse && !adresseComplete && <a className={styles.completer} href={lienModifier}>Compléter l’adresse</a>}</dd></div>
         {physique && <div><dt><UserRound size={15} aria-hidden="true"/>État civil</dt><dd>{personne.date_naissance || personne.commune_naissance ? <>
           {personne.date_naissance ? `Né(e) le ${formaterDate(personne.date_naissance)}` : "Date de naissance non renseignée"}

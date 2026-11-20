@@ -130,17 +130,17 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
       </div>
       {/* Une seule explication, en tête (24/09) : le pied la répétait, avec
           une date de décision interne et un « le mandant reçoit » sans objet. */}
-      <p className="mb-6 text-sm text-muted-foreground">
-        Chaque mandat, son dernier rapport de gestion et l&apos;état du versement.
-        Le rapport se génère, s&apos;envoie et se verse depuis la fiche du
-        mandant ; le mandant le reçoit{" "}
-        <span className="whitespace-nowrap">par e-mail</span> — il n&apos;a pas
-        d&apos;accès à l&apos;application.
+      <p className="mb-6 max-w-3xl text-sm text-muted-foreground">
+        Un rang par propriétaire qui vous confie ses lots : son dernier rapport de
+        gestion et l&apos;état du versement. Pour générer un rapport, l&apos;envoyer
+        ou enregistrer un versement, ouvrez sa fiche. Le propriétaire reçoit son
+        rapport <span className="whitespace-nowrap">par e-mail</span> : il n&apos;a
+        pas d&apos;accès à l&apos;application.
       </p>
 
       {enAttenteVersement > 0 && (
         <div
-          className="mb-4 border-l-[3px] border-l-[var(--or)] bg-[var(--or-clair)] p-3 text-sm"
+          className="mb-4 border-l-[3px] border-l-warning bg-warning-soft p-3 text-sm text-warning-soft-foreground"
           role="status"
         >
           {/* Le compte porte sur le DERNIER rapport de chaque mandat — c'est
@@ -151,8 +151,8 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
             {enAttenteVersement} mandat{enAttenteVersement > 1 ? "s" : ""} dont le dernier
             rapport est envoyé sans versement émis.
           </b>{" "}
-          <span className="text-muted-foreground">
-            Le mandant reçoit son compte rendu, puis attend son argent — c&apos;est le
+          <span>
+            Le propriétaire a reçu son compte rendu et attend son argent : c&apos;est le
             versement qui clôt le mois.
           </span>
         </div>
@@ -163,8 +163,9 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
           <p className="titre">Aucun mandat en cours</p>
           <p className="explication">
             Un mandat de gestion lie l&apos;agence à un propriétaire bailleur : c&apos;est
-            lui qui ouvre les rapports de gestion et les versements. Il se crée
-            depuis la fiche du propriétaire mandant, dans Personnes.
+            lui qui ouvre les rapports de gestion et les versements. Pour en créer
+            un, ouvrez la fiche du propriétaire dans Personnes, puis la carte
+            « Mandats de gestion ».
           </p>
           {/* L'état vide mène là où le mandat se crée (24/09). */}
           <span className="geste">

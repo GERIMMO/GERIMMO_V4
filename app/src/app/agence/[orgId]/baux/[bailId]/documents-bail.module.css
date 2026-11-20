@@ -12,14 +12,14 @@
 .identite small { display:block; margin-top:4px; color:var(--texte-secondaire); font-size:11px; line-height:1.6; }
 .classe { padding:2px 6px; background:var(--marque-clair); border-radius:4px; font-size:10px; }
 .etat { display:inline-flex; align-items:center; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600; color:var(--texte-secondaire); background:var(--creme); }
-.etat[data-ton="ok"] { background:#edf6f1; color:#28604a; }
-.etat[data-ton="attention"] { background:#fbf3e3; color:#806536; }
+.etat[data-ton="ok"] { background:var(--success-soft); color:var(--success-soft-foreground); }
+.etat[data-ton="attention"] { background:var(--warning-soft); color:var(--warning-soft-foreground); }
 .actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; }
 .actions a, .actions button { display:inline-flex; align-items:center; gap:5px; min-height:36px; font-size:12px; color:var(--encre); }
 .actions a:hover, .actions button:hover { text-decoration:underline; text-underline-offset:3px; }
 .editionClasse { flex-basis:100%; }
 .editionClasse[hidden], .depot[hidden] { display:none; }
-.depot { margin-top:14px; padding:16px; border:1px solid var(--filet); border-radius:10px; background:var(--creme); }
+.depot { margin-top:14px; padding:16px; border:1px solid var(--filet); border-radius:var(--rayon-bouton); background:var(--creme); }
 .depot > form { border-top:0; padding-top:12px; }
 .annexes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
 .annexes .actions { margin-top:14px; }
@@ -27,9 +27,9 @@
 .aide { margin-top:14px; }
 .page :global([data-slot="card-header"]) { padding-top:0; }
 .introduction { margin:0; max-width:80ch; }
-.carte { min-width:0; border:1px solid var(--filet); border-radius:12px; padding:18px; background:var(--ivoire); display:flex; flex-direction:column; gap:9px; }
-.carte[data-ton="attention"] { border-color:#e6d4ad; background:#fffcf5; }
-.carte[data-ton="ok"] { border-color:#cfe2d6; background:#f5faf7; }
+.carte { min-width:0; border:1px solid var(--filet); border-radius:var(--rayon-carte); padding:18px; background:var(--ivoire); display:flex; flex-direction:column; gap:9px; }
+.carte[data-ton="attention"] { border-color:color-mix(in srgb, var(--warning) 28%, var(--carte)); background:var(--carte); }
+.carte[data-ton="ok"] { border-color:color-mix(in srgb, var(--success) 28%, var(--carte)); background:var(--carte); }
 .carteEntete { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:8px; }
 .carte h4, .conditions h4 { font-size:14px; font-weight:600; color:var(--encre); }
 .carte p { margin:0; }
@@ -48,10 +48,10 @@
 .conditions { display:grid; gap:20px; }
 .annexesContrat:not(:empty) { margin-top:20px; }
 .annexesContrat :global([data-slot="card-header"]) { padding-top:20px; }
-.select { width:100%; min-width:0; padding:10px; border:1px solid var(--filet); border-radius:7px; background:var(--ivoire); font-size:14px; }
-.choixSource { display:flex; gap:4px; padding:4px; border-radius:8px; background:var(--creme); }
+.select { width:100%; min-width:0; padding:10px; border:1px solid var(--filet); border-radius:var(--rayon-champ); background:var(--ivoire); font-size:14px; }
+.choixSource { display:flex; gap:4px; padding:4px; border-radius:var(--rayon-bouton); background:var(--creme); }
 .choixSource button { flex:1; padding:10px 8px; border-radius:6px; font-size:13px; }
-.choixSource button[aria-pressed="true"] { background:var(--ivoire); box-shadow:0 1px 4px #0001; font-weight:600; }
-.avertissement { padding:12px 16px; border:1px solid #e6d4ad; border-radius:8px; background:#fffcf5; }
+.choixSource button[aria-pressed="true"] { background:var(--ivoire); box-shadow:var(--ombre-1); font-weight:600; }
+.avertissement { padding:12px 16px; border:1px solid color-mix(in srgb, var(--warning) 28%, var(--carte)); border-radius:var(--rayon-bouton); background:var(--warning-soft); color:var(--warning-soft-foreground); }
 @media(max-width:700px) { .carte { padding:15px; } .carteEntete { flex-direction:column; } .boutonDiscret, .lien { min-height:44px; } }
 @media(max-width:700px) { .annexes { grid-template-columns:1fr; gap:22px; } .liste > li { gap:8px; } .actions { flex-basis:100%; } .depot { padding:12px; } }

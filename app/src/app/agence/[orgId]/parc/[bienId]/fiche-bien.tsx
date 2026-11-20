@@ -286,14 +286,14 @@ export async function FicheBien({ orgId, bienId, decompte, lotFacture, integree 
         <div className="bien-visuel-identite">
           <span className="bien-visuel-embleme"><IconeTrait nom={estImmeuble ? "parc" : "maison"} /></span>
           <div className="min-w-0 flex-1">
-            <div className="mb-2 flex flex-wrap items-center gap-2"><span className="eyebrow">{TYPES_BIEN[bien.type] ?? bien.type}</span><BadgeStatut ton={bien.archived_at ? "neutre" : "ok"}>{bien.archived_at ? "Retiré du parc" : "Au parc"}</BadgeStatut></div>
+            <div className="mb-2 flex flex-wrap items-center gap-2"><span className="eyebrow">{TYPES_BIEN[bien.type] ?? bien.type}</span><BadgeStatut ton={bien.archived_at ? "neutre" : "ok"}>{bien.archived_at ? "Bien retiré" : "Bien actif"}</BadgeStatut></div>
             <Titre>{bien.nom}</Titre>
             <p className="mt-2 text-sm text-muted-foreground">{bien.address_line1}{bien.address_line2 ? `, ${bien.address_line2}` : ""} · {bien.postal_code} {bien.city}</p>
           </div>
         </div>
         <nav aria-label="Rubriques du bien" className="mt-4 flex flex-wrap gap-2">
           <Link href={`${base}/documents?bien=${bienId}`} className={buttonVariants({variant:"outline",size:"sm"})}>Documents du bien</Link>
-          <Link href={estProprietaire?`${base}/loyers?bien=${bienId}`:`${base}/loyers`} className={buttonVariants({variant:"outline",size:"sm"})}>Finances du bien</Link>
+          <Link href={estProprietaire?`${base}/loyers?bien=${bienId}`:`${base}/loyers`} className={buttonVariants({variant:"outline",size:"sm"})}>{estProprietaire ? "Finances du bien" : "Loyers & charges"}</Link>
         </nav>
         <ChiffresBien chiffres={[
             {icone:"cle",label:"Lots actifs",valeur:erreurLots ? "Indisponible" : String(lotsActifs.length)},
@@ -369,7 +369,7 @@ export async function FicheBien({ orgId, bienId, decompte, lotFacture, integree 
                     href={`${base}/parc/${bienId}/lots/${lot.id}`}
                     className="-mx-2 flex w-[calc(100%+1rem)] flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-[var(--survol)]"
                   >
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700" title={typeLot}><IconeLot size={22} aria-label={typeLot} /></span>
+                    <span className="flex size-10 shrink-0 items-center justify-center rounded-[var(--rayon-bouton)] bg-[var(--filet-leger)] text-[var(--marque)]" title={typeLot}><IconeLot size={22} aria-label={typeLot} /></span>
                     <span
                       className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}
                     >
@@ -397,7 +397,7 @@ export async function FicheBien({ orgId, bienId, decompte, lotFacture, integree 
                   {locationsCourantes.data.filter(b=>b.lot_id===lot.id).map(b=>{const personne=Array.isArray(b.locataire)?b.locataire[0]:b.locataire;const edl=b.etats_des_lieux?.find(e=>e.type==="entree");return <div key={b.id} className={styles.locationResume}><div><strong>{personne?nomComplet(personne):"Locataire à renseigner"}</strong><span>{TYPES_BAIL[b.type]??b.type}{b.loyer_hc!=null&&b.charges!=null?` · ${eur(Number(b.loyer_hc)+Number(b.charges))} / mois, charges comprises`:" · Loyer à compléter"}</span></div><div className={styles.accesLocation}><Link href={`${base}/baux/${b.id}`}>Bail →</Link>{edl&&<Link href={`${base}/baux/${b.id}/edl/${edl.id}`}>État des lieux →</Link>}</div></div>})}
                   {propres.length > 0 && (
                     <details className="group">
-                      <summary className="cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">
+                      <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center text-[13px] text-muted-foreground hover:text-foreground">
                         <span className="group-open:hidden">
                           Voir ce qui bloque ce lot ({propres.length})
                         </span>

@@ -8,11 +8,11 @@
 
 .conseils {
   /* Dans une grille ou une colonne flexible, un enfant garde sa largeur de
-     contenu par défaut : sans ceci, un mot long fait déborder la page à 390 px. */
+     contenu par défaut: sans ceci, un mot long fait déborder la page à 390 px. */
   min-width: 0;
   max-width: 100%;
   border: 1px solid var(--filet);
-  border-radius: 12px;
+  border-radius: var(--rayon-carte);
   background: var(--ivoire);
   color: var(--corps);
 }
@@ -28,7 +28,7 @@
   padding: 8px 14px;
   list-style: none;
   cursor: pointer;
-  border-radius: 12px;
+  border-radius: var(--rayon-carte);
 }
 .conseils > .entete::-webkit-details-marker { display: none; }
 .conseils > .entete:hover { background: var(--survol); }
@@ -38,7 +38,7 @@
 }
 .conseils[open] > .entete {
   border-bottom: 1px solid var(--filet);
-  border-radius: 12px 12px 0 0;
+  border-radius: var(--rayon-carte) var(--rayon-carte) 0 0;
   background: var(--survol);
 }
 
@@ -48,7 +48,7 @@
   flex-shrink: 0;
   width: 34px;
   height: 34px;
-  border-radius: 9px;
+  border-radius: var(--rayon-bouton);
   background: var(--marque-clair);
   color: var(--marque-sombre);
 }
@@ -142,7 +142,7 @@
   margin: 0;
   padding: 12px 14px;
   border-left: 3px solid var(--marque);
-  border-radius: 0 10px 10px 0;
+  border-radius: 0 var(--rayon-bouton) var(--rayon-bouton) 0;
   background: var(--survol);
   color: var(--corps);
   font-size: 13px;

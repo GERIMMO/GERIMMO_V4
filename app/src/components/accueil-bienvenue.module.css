@@ -1,19 +1,21 @@
-.bienvenue { position:relative; isolation:isolate; display:flex; align-items:center; min-height:138px; overflow:hidden; border:1px solid #e7e3da; border-radius:9px; background:#f7f5ee; color:#111e36; box-shadow:none; }
+/* Bandeau d'accueil du propriétaire — Design System « Maison » (20/11/2026).
+   Une carte au filet commun ; le titre est le h1 de l'écran, à la taille commune. Le voile posé sur la photo reste :
+   il garde le texte lisible. */
+.bienvenue { position:relative; isolation:isolate; display:flex; align-items:center; min-height:138px; overflow:hidden; border:1px solid var(--filet); border-radius:var(--rayon-carte); background:var(--carte); color:var(--encre); box-shadow:var(--ombre-1); }
 .texte { position:relative; z-index:2; min-width:0; max-width:68%; padding:18px 24px; }
-.date { display:flex; align-items:center; gap:10px; color:#95672f; font-size:12px; line-height:1.5; }
-.date::before { content:""; width:16px; height:1px; background:#cdb17b; }
+.date { display:flex; align-items:center; gap:10px; color:var(--prestige-champagne-texte); font-size:13px; line-height:1.5; }
+.date::before { content:""; width:16px; height:1px; background:var(--prestige-champagne); }
 .date time::first-letter { text-transform:uppercase; }
-.bienvenue .texte .titre { margin:7px 0 0; color:#101a31; font-family:var(--font-display, Georgia, "Times New Roman", serif); font-size:clamp(30px,3.1vw,42px); font-weight:500; line-height:1.07; letter-spacing:-.04em; overflow-wrap:anywhere; }
-.description { margin-top:6px; color:#657185; font-size:clamp(14px,1.4vw,17px); line-height:1.4; }
+.bienvenue .texte .titre { margin:7px 0 0; color:var(--encre); font:var(--graisse-titre) var(--titre-1)/1.1 var(--font-display); overflow-wrap:anywhere; }
+.description { margin-top:6px; color:var(--texte-secondaire); font-size:clamp(14px,1.4vw,16px); line-height:1.4; }
 .visuel { position:absolute; z-index:0; inset:0; overflow:hidden; }
-.visuel::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg,#fcfbf8 0%,#fcfbf8f5 27%,#fcfbf8c9 40%,#fcfbf84a 57%,#fcfbf800 73%); }
+.visuel::after { content:""; position:absolute; inset:0; background:linear-gradient(90deg,var(--carte) 0%,color-mix(in srgb, var(--carte) 96%, transparent) 27%,color-mix(in srgb, var(--carte) 79%, transparent) 40%,color-mix(in srgb, var(--carte) 29%, transparent) 57%,transparent 73%); }
 .image { object-fit:cover; object-position:center 43%; filter:saturate(.78); opacity:.82; }
 @media(max-width:700px) {
   .bienvenue { min-height:132px; }
   .texte { padding:17px 17px; max-width:90%; }
-  .bienvenue .texte .titre { font-size:clamp(28px,6.8vw,34px); }
   .description { max-width:240px; font-size:14px; }
-  .visuel::after { background:linear-gradient(90deg,#fcfbf8fa 0%,#fcfbf8e6 35%,#fcfbf899 62%,#fcfbf820 100%); }
+  .visuel::after { background:linear-gradient(90deg,color-mix(in srgb, var(--carte) 98%, transparent) 0%,color-mix(in srgb, var(--carte) 90%, transparent) 35%,color-mix(in srgb, var(--carte) 60%, transparent) 62%,color-mix(in srgb, var(--carte) 13%, transparent) 100%); }
   .image { object-position:65% center; }
-  .date { font-size:11px; }
+  .date { font-size:12px; }
 }

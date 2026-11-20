@@ -14,6 +14,7 @@ import { dureeBailNuAnnees, normaliserQualiteBailleur } from "@/lib/qualite-bail
 import { AvertissementsLoyer } from "@/components/avertissements-loyer";
 import styles from "./fiche-lot.module.css";
 import parcoursStyles from "@/components/presentation-parcours.module.css";
+import enteteParcours from "../../../entete-parcours.module.css";
 import { SupprimerBailBrouillon } from "@/components/supprimer-bail-brouillon";
 import Link from "next/link";
 import { ParcoursLot } from "@/components/parcours-location";
@@ -702,9 +703,10 @@ export default async function PageLot(
     <section className={styles.panneau} data-ton="vert" aria-labelledby="etat-documents">
       <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><FileText size={18} aria-hidden="true" /></span><h2 id="etat-documents">Diagnostics</h2></header>
       {erreurDiagnostics || erreurDiagnosticsBien ? <p>Documents indisponibles. Réessayez pour connaître leur état.</p> : <dl className={styles.etatDocuments}>
-        <div data-ton="vert"><dt>Valides</dt><dd>{bilan.aJour}</dd></div>
-        <div data-ton="ambre"><dt>Manquants</dt><dd>{bilan.aAjouter}</dd></div>
-        <div data-ton="ambre"><dt>Expirés</dt><dd>{bilan.aRenouveler}</dd></div>
+        {/* La teinte dit un état : un compteur à zéro reste neutre. */}
+        <div data-ton={bilan.aJour > 0 ? "vert" : undefined}><dt>Valides</dt><dd>{bilan.aJour}</dd></div>
+        <div data-ton={bilan.aAjouter > 0 ? "ambre" : undefined}><dt>Manquants</dt><dd>{bilan.aAjouter}</dd></div>
+        <div data-ton={bilan.aRenouveler > 0 ? "ambre" : undefined}><dt>Expirés</dt><dd>{bilan.aRenouveler}</dd></div>
         <div><dt>À vérifier</dt><dd>{bilan.aVerifier}</dd></div>
       </dl>}
       <a href="#documents-lot" className="inline-flex min-h-11 items-center gap-2 text-sm underline">Voir chaque document <ArrowRight size={14} aria-hidden="true" /></a>
@@ -772,7 +774,7 @@ export default async function PageLot(
   const ficheHref = `${base}/parc/${bienId}/lots/${lotId}`;
   if (parcours === "1") return <main className={`mx-auto w-full p-4 sm:p-7 ${parcoursStyles.pageCreation}`}>
     <Link href={retourContrat ?? ficheHref} className="inline-flex min-h-11 items-center text-sm">← {retourContrat ? "Revenir au bail" : "Retour au logement"}</Link>
-    <header className={parcoursStyles.enteteCreation}><House size={27} aria-hidden="true"/><div><span className={parcoursStyles.surtitre}>Votre logement</span><h1>Compléter le lot</h1><p>Les informations permanentes de {lot.nom}. Elles seront reprises dans chaque bail.</p></div></header>
+    <header className={enteteParcours.entete}><House size={27} aria-hidden="true"/><div><span className={enteteParcours.surtitre}>Votre logement</span><h1>Compléter le lot</h1><p>Les informations permanentes de {lot.nom}. Elles seront reprises dans chaque bail.</p></div></header>
     <EchecLecture quoi={echecs} />
     <ParcoursLot completes={[Boolean(bien.address_line1 && bien.postal_code && bien.city), caracteristiquesAFaire.length === 0, !erreurDetentions && Math.abs(totalQuoteParts - 100) < 0.005]} retourBail={retourContrat} initiale={etape ?? "lot"} resume={<div className="space-y-2"><strong>{lot.nom}</strong><p>{bien.address_line1}<br />{bien.postal_code} {bien.city}</p><p>{lot.surface_m2 == null ? "Surface à compléter" : formaterSurface(lot.surface_m2)}</p></div>} contenus={[
       <FormulaireBien key="bien" orgId={orgId} bien={bien} />,
@@ -783,14 +785,14 @@ export default async function PageLot(
           {detentionsActives.length ? <ul className="grid gap-3">{detentionsActives.map(d => {
             const personne = d.person as unknown as { nom: string; prenom: string | null; account_id: string | null } | null;
             const vous = personne?.account_id === user.id;
-            return <li key={d.id} className="rounded-xl border border-[var(--or-filet)] border-l-4 border-l-[var(--or)] bg-[var(--or-clair)] p-4 sm:p-5">
+            return <li key={d.id} className="rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] p-4 sm:p-5">
               <div className="flex flex-wrap items-center gap-3">
                 <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--marque)] text-sm font-semibold text-[var(--sur-marque)]">{personne ? [personne.prenom?.[0], personne.nom[0]].filter(Boolean).join("").toUpperCase() : "—"}</span>
                 <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><strong className="break-words text-base">{nomPersonne(personne)}</strong>{vous && <span className="puce puce-encre">Vous</span>}</div><p className="mt-1 text-xs text-muted-foreground">Propriétaire depuis le {formaterDate(d.date_debut)}{d.date_fin && ` · jusqu’au ${formaterDate(d.date_fin)} inclus`}</p></div>
                 <div className="ml-auto text-right"><strong className="block text-2xl text-[var(--encre)]">{Number(d.quote_part)} %</strong><span className="text-xs text-muted-foreground">du lot</span></div>
               </div>
               {vous && <p className="mt-3 text-sm text-muted-foreground">Vous êtes déjà rattaché à ce lot en tant que propriétaire.</p>}
-              <details className="mt-3 border-t border-[var(--or-filet)] pt-2"><summary className="cursor-pointer py-1 text-xs text-muted-foreground">Gérer cette détention</summary><div className="mt-2 flex flex-wrap gap-2">{d.date_fin ? <BoutonRouvrirDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} /> : <BoutonCloreDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} proprietaire={nomPersonne(personne)} quotePart={Number(d.quote_part)} />}{!d.date_fin && (baux ?? []).length === 0 && <BoutonSupprimerDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} proprietaire={nomPersonne(personne)} quotePart={Number(d.quote_part)} />}</div></details>
+              <details className="mt-3 border-t border-[var(--filet)] pt-2"><summary className="cursor-pointer py-1 text-xs text-muted-foreground">Gérer cette détention</summary><div className="mt-2 flex flex-wrap gap-2">{d.date_fin ? <BoutonRouvrirDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} /> : <BoutonCloreDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} proprietaire={nomPersonne(personne)} quotePart={Number(d.quote_part)} />}{!d.date_fin && (baux ?? []).length === 0 && <BoutonSupprimerDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} proprietaire={nomPersonne(personne)} quotePart={Number(d.quote_part)} />}</div></details>
             </li>;
           })}</ul> : <p className="rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm text-warning-soft-foreground">Aucun propriétaire n’est encore rattaché. Ajoutez-le ci-dessous pour compléter le lot.</p>}
           {autresDetentions.length > 0 && <details className="rounded-xl border border-border p-4"><summary className="cursor-pointer text-sm">Détentions passées et à venir</summary><ul className="mt-3 space-y-3">{autresDetentions.map(d => <li key={d.id} className="flex flex-wrap items-center gap-3 text-sm"><span className="min-w-0 flex-1">{nomPersonne(d.person as unknown as { nom: string; prenom: string | null })} · {Number(d.quote_part)} %<small className="block text-muted-foreground">À compter du {formaterDate(d.date_debut)}{d.date_fin && ` · jusqu’au ${formaterDate(d.date_fin)} inclus`}</small></span>{d.date_fin && <BoutonRouvrirDetention orgId={orgId} bienId={bienId} lotId={lotId} detentionId={d.id} />}</li>)}</ul></details>}
@@ -891,7 +893,7 @@ export default async function PageLot(
   const suiviLot = (lectureHistorique.error || lectureHistorique.data?.length > 0) ? <div className={styles.outilsLot}><SuiviLotProprietaire orgId={orgId} lotId={lotId} rubrique="historique" affichage="direct" /></div> : null;
   return (
     <main data-proprietaire={estProprietaire} className={`${styles.fiche} dossier-location mx-auto w-full max-w-7xl space-y-[1.125rem] p-4 sm:p-7`}>
-      <Link href={`${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {estProprietaire ? "Biens & locations" : "Mon portefeuille"}</Link>
+      <Link href={`${base}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {estProprietaire ? "Biens & locations" : role === "agent" ? "Mon portefeuille" : "Parc de l'agence"}</Link>
       <header className={styles.entete}>
         <div className={styles.identite}><span className={styles.icone}><House size={28} aria-hidden="true" /></span><div className="min-w-0"><p className={styles.surtitre}>{estProprietaire ? <Link href={`${base}/parc/${bienId}`}>{bien.nom !== lot.nom ? bien.nom : "Gérer le bien"}</Link> : <>Fiche du lot{bien.nom !== lot.nom ? ` · ${bien.nom}` : ""}</>}</p><div className="flex flex-wrap items-center gap-3"><h1>{lot.nom}</h1><span className={COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}>{ETATS_LOT[lot.etat] ?? lot.etat}</span></div><p className={styles.adresse}><MapPin size={15} aria-hidden="true" />{[bien.address_line1, bien.address_line2, [bien.postal_code, bien.city].filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "Adresse à compléter"}</p></div></div>
         {!traverseeLectureSeule && <div className={`${styles.actions} ${estProprietaire ? styles.actionsEntete : ""}`}><LienModifierLot lotId={lotId} href={`${base}/parc/${bienId}/lots/${lotId}?modifier=1#caracteristiques`} />

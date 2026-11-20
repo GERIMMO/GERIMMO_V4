@@ -1,0 +1,11 @@
+/* En-tête des parcours de création de cet espace (nouveau bien, compléter le lot, nouvelle fiche) — Design System « Maison ».
+   Il remplace, pour ces trois écrans, la règle `.enteteCreation` du module partagé `presentation-parcours.module.css`
+   (dégradé, bord gauche champagne, titre à 30 px), que d'autres espaces importent encore.
+   Carte blanche, filet, rayon et ombre communs ; le titre est le h1 de l'écran, à la taille commune. */
+.entete { display:flex; align-items:center; gap:14px; margin:6px 0 18px; padding:18px 22px; border:1px solid var(--filet); border-radius:var(--rayon-carte); background:var(--carte); box-shadow:var(--ombre-1); }
+.entete h1 { margin:3px 0; font-size:var(--titre-1); overflow-wrap:anywhere; }
+.entete p { color:var(--texte-secondaire); font-size:13px; line-height:1.6; }
+.entete > svg { flex-shrink:0; color:var(--prestige-champagne-texte); }
+.entete > div { min-width:0; }
+.surtitre { color:var(--prestige-champagne-texte); font-size:11px; font-weight:650; letter-spacing:.13em; text-transform:uppercase; }
+@media (max-width:639px) { .entete { padding:14px 16px; } }

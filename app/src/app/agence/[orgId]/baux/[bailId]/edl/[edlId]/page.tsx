@@ -202,7 +202,7 @@ export default async function PageEdl(
           </h1>
           <span className="flex items-center gap-3">
             <span className={COULEURS_ETAT_EDL[edl.etat] ?? "puce puce-grise"}>
-              {signe ? "Signé — figé" : "En cours de saisie"}
+              {signe ? "Signé, non modifiable" : "En cours de saisie"}
             </span>
             {/* Documents-0 : le PDF (14/15) depuis la grille réelle */}
             {signe && !traverseeLectureSeule && <BoutonGenererDocument
@@ -218,7 +218,7 @@ export default async function PageEdl(
         {suiteRestitution && !traverseeLectureSeule && (
           <Link
             href={`${base}/baux/${bailId}#restitution`}
-            className="mt-2 inline-block text-sm underline underline-offset-2"
+            className="btn-secondaire mt-3"
           >
             Démarrer la restitution du dépôt de garantie →
           </Link>

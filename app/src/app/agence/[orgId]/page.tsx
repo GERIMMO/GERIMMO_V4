@@ -24,6 +24,7 @@ import { envoisEteints as listerEnvoisEteints } from "@/lib/envois-automatiques"
 import { IconeTrait } from "@/components/icone-trait";
 import { PhotoDecor } from "@/components/photo-decor";
 import { PHOTOS_ACCUEIL } from "@/lib/photos-decor";
+import { ValeurVivante } from "@/components/valeur-vivante";
 
 export const metadata = { title: "Tableau de bord — Gerimmo" };
 
@@ -383,7 +384,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         <PhotoDecor sources={PHOTOS_ACCUEIL} sizes="(max-width: 640px) 100vw, 60vw" priority className="accueil-photo" />
         <div>
           <p className="text-[12.5px] text-[var(--texte-3)]">
-            {portefeuille ? "Mon portefeuille · " : ""}
+            {portefeuille ? "Mon portefeuille · " : "Tableau de bord · "}
             {new Date().toLocaleDateString("fr-FR", {
               weekday: "long",
               day: "numeric",
@@ -438,7 +439,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           <span className="ico"><IconeTrait nom="cle" /></span>
           <span className="lib">Lots loués</span>
           <span className="val">
-            {erreurLots ? "—" : `${nbLoues}`}
+            {erreurLots ? "—" : <ValeurVivante valeur={nbLoues}>{nbLoues}</ValeurVivante>}
             {!erreurLots && lotsActifs.length > 0 && (
               <span className="text-[0.62em] font-medium text-[var(--texte-3)]"> / {lotsActifs.length}</span>
             )}
@@ -467,7 +468,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           <span className="ico"><IconeTrait nom="euro" /></span>
           <span className="lib">Loyers {deElide(nomMois)}</span>
           <span className="val montant whitespace-nowrap">
-            {loyers ? eur(loyers.encaisse) : "—"}
+            {loyers ? <ValeurVivante valeur={loyers.encaisse}>{eur(loyers.encaisse)}</ValeurVivante> : "—"}
           </span>
           <span className="sous">
             {!loyers
@@ -484,7 +485,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         >
           <span className="ico"><IconeTrait nom="outil" /></span>
           <span className="lib">Incidents en cours</span>
-          <span className="val">{erreurIncidents ? "—" : dossiersIncidents.length}</span>
+          <span className="val">
+            {erreurIncidents ? "—" : <ValeurVivante valeur={dossiersIncidents.length}>{dossiersIncidents.length}</ValeurVivante>}
+          </span>
           <span className="sous">
             {erreurIncidents
               ? "Lecture impossible"
@@ -502,7 +505,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         >
           <span className="ico"><IconeTrait nom="eclair" /></span>
           <span className="lib">À faire</span>
-          <span className="val">{planIllisible ? "—" : nbActions}</span>
+          <span className="val">
+            {planIllisible ? "—" : <ValeurVivante valeur={nbActions}>{nbActions}</ValeurVivante>}
+          </span>
           <span className="sous">
             {/* Les blocages sur les baux comptent en retard (plan.retards) :
                 « Rien en retard » ne peut plus coiffer un impayé. */}
@@ -707,10 +712,10 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                         <span className="puce puce-grise shrink-0">{l.nom}</span>
                         <span className="min-w-0 flex-1 truncate text-sm">
                           {erreurBlocages
-                            ? "Blocages illisibles — ouvrir la fiche du lot"
+                            ? "Lecture impossible : ouvrez la fiche du lot"
                             : motif
                               ? resumerBlocage(motif)
-                              : "Prêt à publier"}
+                              : "Prêt à mettre en location"}
                         </span>
                         <IndicateurLien />
                       </Link>

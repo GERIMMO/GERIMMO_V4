@@ -76,14 +76,13 @@ export function AnnuaireProprietaire({ orgId, personnes, listeIllisible }: {
     </div>
     <div id={idListe}>
       {listeIllisible ? <EchecLecture quoi={["vos fiches"]} /> : visibles.length === 0 ? (
-        <div className={styles.vide}>
-          <span className={styles.iconeVide}><UsersRound size={25} aria-hidden="true" /></span>
-          <h3>{personnes.length === 0 ? "Votre première fiche commence ici" : "Aucune fiche dans cette sélection"}</h3>
-          <p>{personnes.length === 0
+        <div className="vide-guide">
+          <p className="titre">{personnes.length === 0 ? "Votre première fiche commence ici" : "Aucune fiche dans cette sélection"}</p>
+          <p className="explication">{personnes.length === 0
             ? "Créez une fiche pour un locataire ou un garant. Vous pourrez la retrouver lors de la préparation de vos baux."
             : "Essayez un autre nom ou affichez toutes vos fiches."}</p>
-          {personnes.length === 0 ? <a href="#creer-fiche" className="btn-or">Créer une fiche</a>
-            : <button type="button" onClick={reinitialiser} className="btn-secondaire">Afficher toutes les fiches</button>}
+          <span className="geste">{personnes.length === 0 ? <a href="#creer-fiche" className="btn-or">Créer une fiche</a>
+            : <button type="button" onClick={reinitialiser} className="btn-secondaire">Afficher toutes les fiches</button>}</span>
         </div>
       ) : <ul className={styles.liste}>
         {visibles.map((personne) => {

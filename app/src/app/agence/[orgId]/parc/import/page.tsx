@@ -27,9 +27,9 @@ export default async function PageImportParc(
   if (!role || !ROLES_RESPONSABLES.includes(role)) notFound();
   // UN NOM PAR ÉCRAN, CELUI DU MENU (24/09). Le lien d'entrée disait
   // « Reprendre un parc », la page « Reprendre mon parc », le retour « ← Mon
-  // parc » — alors que le propriétaire arrive de « Mes lots ». Le retour porte
-  // le nom de l'entrée du menu ; l'écran et son lien d'entrée, le même titre.
-  const libelleParc = estProprietaire ? "Mes lots" : "Parc de l'agence";
+  // parc » — alors que le propriétaire arrive de « Biens & locations ». Le retour
+  // porte le nom de l'entrée du menu ; l'écran et son lien d'entrée, le même titre.
+  const libelleParc = estProprietaire ? "Biens & locations" : "Parc de l'agence";
   const titre = estProprietaire ? "Importer mes lots" : "Reprendre le parc";
   // Ce qui décide si le fichier passera se lit sans ouvrir le dépliage.
   const obligatoires = COLONNES.filter(([, , requise]) => requise).map(([, libelle]) =>

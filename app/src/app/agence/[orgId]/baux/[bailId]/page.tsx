@@ -33,8 +33,9 @@ import {
   COULEURS_ETAT_EDL,
   mentionsObligatoiresManquantes,
   etatDecompteSortie,
-  bailDejaEnCours,
+  bailDejaEnCours, moisEnClair, premierMoisSuivi,
 } from "@/lib/baux";
+import { deElide } from "@/lib/elision";
 import { nomComplet } from "@/lib/roles-personnes";
 import { premier } from "@/lib/postgrest";
 import { actionsAttendues } from "@/lib/actions-attendues";
@@ -116,6 +117,11 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       />
     );
   if (!bail) notFound();
+  // Date de bascule (20/11/2026) : premier mois dont Gerimmo suit le loyer d'un bail repris en cours. Lecture À PART et
+  // tolérante : tant que la migration 20261120200000 n'est pas appliquée, la colonne n'existe pas ; la fiche s'affiche
+  // alors comme avant et n'annonce rien que la base ne ferait pas.
+  const { data: bascule, error: basculeIndisponible } = await supabase.from("baux").select("loyers_suivis_depuis").eq("id", bailId).eq("organization_id", orgId).maybeSingle();
+  const loyersSuivisDepuis = basculeIndisponible ? null : ((bascule as { loyers_suivis_depuis?: string | null } | null)?.loyers_suivis_depuis ?? null);
   const suiviSignature = await lirePresentationSignatures(orgId, { baux: [bailId] });
   const documentSigne = bail.document_signe ?? archiveSignee(signatureDuBail(suiviSignature.circuits, bailId));
   const signeNonActif = bail.etat === "brouillon" && Boolean(documentSigne);
@@ -547,6 +553,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // logement n'a jamais été « mis en location ». La base décide (controler_mise_en_location) ; la fiche l'annonce.
   const dejaEnCours = bail.etat === "brouillon" && bailDejaEnCours(bail.date_debut, aujourdhuiParis());
   const lotEnPreparation = bail.etat === "brouillon" && lot?.etat === "brouillon" && !dejaEnCours;
+  // Date de bascule : ce que la base posera à l'activation (premier_mois_suivi), annoncé avant le dépôt. Rien si la
+  // base ne connaît pas encore la règle.
+  const moisBasculeAnnonce = bail.etat === "brouillon" && !basculeIndisponible ? moisEnClair(premierMoisSuivi(bail.date_debut, aujourdhuiParis())) : null;
   const depotSigne = (<div>      {/* Cycle du bail */}
       {(bail.etat === "brouillon" || bail.document_signe) && (
         <Card id="bail-signe" className="scroll-mt-20">
@@ -561,6 +570,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           <CardContent className="space-y-4">
             {dejaEnCours && !bail.document_signe && lot?.etat === "brouillon" && <p className="text-sm" data-bail-deja-en-cours>
               Ce bail a déjà commencé : le contrat signé suffit à l’activer. Le DPE et l’état des risques, s’ils manquent, ne bloquent pas ; ils restent signalés dans vos actions à mener.
+            </p>}
+            {moisBasculeAnnonce && !bail.document_signe && <p className="text-sm" data-loyers-suivis-a-partir>
+              Gerimmo suivra les loyers à partir {deElide(moisBasculeAnnonce)} : ceux d’avant ne seront pas réclamés.
             </p>}
             {lotEnPreparation && <p className="text-sm">
               Le logement est encore en préparation. Ouvrez sa fiche et choisissez « Mettre en location » avant d’activer le bail.{" "}
@@ -946,6 +958,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               chargesForfait={bail.charges_mode === "forfait"}
               dateDebut={bail.date_debut}
               dateFin={bail.date_fin}
+              loyersSuivisDepuis={moisEnClair(loyersSuivisDepuis)}
               copropriete={Boolean(premier(lot?.bien ?? null)?.copropriete)}
               aujourdhui={aujourdhuiParis()}
               decompteSortie={etatDecompteSortie(restitution, erreurRestitution)}

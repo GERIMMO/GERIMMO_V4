@@ -216,6 +216,8 @@ const MISSION_OCTOBRE = [
   "20261119200300_recherche_email_par_nature.sql",
   // Décision B du dirigeant du 20/11 : un bail déjà en cours s'active par son contrat signé.
   "20261120190000_bail_deja_en_cours.sql",
+  // Date de bascule (20/11) : un bail repris en cours ne réclame pas les loyers d'avant son arrivée sur Gerimmo.
+  "20261120200000_loyers_suivis_depuis.sql",
 
 
 ];

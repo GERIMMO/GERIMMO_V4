@@ -207,6 +207,9 @@ export const FICHIERS_EN_SERIE = [
   // Décision B du 20/11 : rejeu de 20261120190000 et de son retour (create or replace de controler_mise_en_location,
   // verifier_transition_lot et parcours_demarrage, que d'autres fichiers rejouent aussi) dans la transaction du test.
   "tests/bail-deja-en-cours-base.test.ts",
+  // Date de bascule du 20/11 : rejeu de 20261120200000 et de son retour (colonne de baux retirée puis reposée,
+  // create or replace de generer_appels_loyer_interne) dans la transaction du test.
+  "tests/loyers-suivis-depuis-base.test.ts",
 ];
 
 export default defineConfig({

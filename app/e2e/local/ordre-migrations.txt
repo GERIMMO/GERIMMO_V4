@@ -521,3 +521,4 @@
 20261119200200_quittance_representant_societe.sql
 20261119200300_recherche_email_par_nature.sql
 20261120190000_bail_deja_en_cours.sql
+20261120200000_loyers_suivis_depuis.sql

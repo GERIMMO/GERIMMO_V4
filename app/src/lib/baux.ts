@@ -102,6 +102,29 @@ export function bailDejaEnCours(dateDebut: string | null | undefined, aujourdHui
   return typeof dateDebut === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateDebut) && dateDebut < aujourdHui;
 }
 
+// DATE DE BASCULE (20/11/2026) : un bail repris en cours ne réclame pas les loyers d'avant son arrivée sur Gerimmo.
+// Activé un mois postérieur à celui de l'entrée, il n'est suivi qu'à partir du mois de son activation
+// (`baux.loyers_suivis_depuis`, migration 20261120200000) : l'échéancier commence là, pas deux ans plus tôt.
+//
+// La base est seule à DÉCIDER (`premier_mois_suivi`, posée par le déclencheur à l'activation) ; cette fonction-ci sert à
+// ANNONCER, avant le dépôt du contrat signé, à partir de quel mois les loyers seront suivis.
+// tests/loyers-suivis-depuis-base.test.ts compare les deux. Rend le 1er du mois (AAAA-MM-01), ou null quand
+// l'échéancier partira de l'entrée (bail activé le mois de son entrée, ou avant).
+export function premierMoisSuivi(dateDebut: string | null | undefined, aujourdHui: string): string | null {
+  const jour = /^\d{4}-\d{2}-\d{2}$/;
+  if (typeof dateDebut !== "string" || !jour.test(dateDebut) || !jour.test(aujourdHui)) return null;
+  return dateDebut.slice(0, 7) < aujourdHui.slice(0, 7) ? `${aujourdHui.slice(0, 7)}-01` : null;
+}
+
+const MOIS_EN_CLAIR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+
+/** « novembre 2026 » pour « 2026-11-01 ». Rien pour une date mal formée : l'écran se tait plutôt que d'inventer. */
+export function moisEnClair(date: string | null | undefined): string | null {
+  const lu = typeof date === "string" ? /^(\d{4})-(\d{2})-\d{2}$/.exec(date) : null;
+  const mois = lu ? MOIS_EN_CLAIR[Number(lu[2]) - 1] : undefined;
+  return lu && mois ? `${mois} ${lu[1]}` : null;
+}
+
 // Exercice proposé par défaut pour la régularisation des charges (audit du
 // 27/09) : l'année civile précédente (RM-3.9.1), ramenée dans la période du
 // bail. Un bail de septembre 2026 ne couvre aucun jour de 2025 : proposer

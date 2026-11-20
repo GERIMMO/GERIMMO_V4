@@ -239,6 +239,7 @@ export function FormulaireLoyers({
   chargesForfait,
   dateDebut = null,
   dateFin = null,
+  loyersSuivisDepuis = null,
   copropriete = false,
   aujourdhui = aujourdhuiParis(),
   decompteSortie = "non_finalise",
@@ -258,6 +259,8 @@ export function FormulaireLoyers({
   chargesForfait: boolean;
   dateDebut?: string | null;
   dateFin?: string | null;
+  /** Date de bascule (20/11/2026) : premier mois suivi d'un bail repris en cours, déjà en clair (« novembre 2026 »). */
+  loyersSuivisDepuis?: string | null;
   /** Copropriété : les charges réelles se lisent sur les appels du syndic. */
   copropriete?: boolean;
   /** Jour de Paris (AAAA-MM-JJ), fourni par la page serveur. */
@@ -356,11 +359,22 @@ export function FormulaireLoyers({
           Les deux boutons gardent leur propre retour : une erreur avalée ici
           a déjà caché un vrai blocage (« Le bail n'a pas de date de début »)
           pendant la recette. */}
+      {/* Date de bascule (20/11/2026) : un bail repris en cours n'est suivi qu'à partir du mois de son activation.
+          Dit ici, sous les trois chiffres, pour que « Dû » et « Reste dû » se lisent sans se demander où sont passés
+          les loyers d'avant — et pour mener au premier geste utile : enregistrer le loyer du mois, déjà payé. */}
+      {loyersSuivisDepuis && (
+        <p className="text-sm" data-loyers-suivis-depuis>
+          Gerimmo suit les loyers de ce bail depuis {loyersSuivisDepuis}. Ceux d&apos;avant n&apos;y figurent pas : ils ne sont pas réclamés.
+        </p>
+      )}
+
       {echeancier.length === 0 && (
         <div className="space-y-2">
           <BoutonEcheancier orgId={orgId} bailId={bailId} />
           <p className="text-sm text-muted-foreground">
-            Aucun appel pour l&apos;instant : générez l&apos;échéancier du bail.
+            {loyersSuivisDepuis
+              ? `Aucun appel pour l’instant : générez l’échéancier, il commencera en ${loyersSuivisDepuis}. Si ce loyer est déjà payé, enregistrez-le ensuite pour obtenir la quittance.`
+              : "Aucun appel pour l’instant : générez l’échéancier du bail."}
           </p>
         </div>
       )}

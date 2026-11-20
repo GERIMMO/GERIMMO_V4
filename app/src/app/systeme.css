@@ -240,7 +240,7 @@ body.gerimmo-prestige :is(input, select, textarea, button, a, summary, [tabindex
   outline: 3px solid var(--prestige-champagne-texte);
   outline-offset: 3px;
 }
-.gerimmo-prestige :is(.coquille-late, .loc-late, .admin-late, [data-espace-menu], .public-pied, .panneau-marque) :is(a, button, summary):focus-visible {
+.gerimmo-prestige :is(.coquille-late, .loc-late, .admin-late, [data-espace-menu], .public-pied, .panneau-marque, .public-contact-interieur, .vitrine-bandeau, .public-suivi-etiquette, .accueil-bandeau, .portail-hero:not(.portail-hero-accueil)) :is(a, button, summary):focus-visible {
   outline-color: var(--champagne-vif);
 }
 

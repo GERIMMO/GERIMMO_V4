@@ -66,24 +66,21 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
 
   return (
     // flex-col : sans elle, le main.flex-1 ne poussait pas le pied en bas (24/09).
-    <div className="site-public flex min-h-full flex-1 flex-col bg-[var(--creme)]">
+    <div className="site-public flex min-h-full flex-1 flex-col">
       <EnTetePublic />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-7 sm:py-14">
-        <Link href="/journal" className="lien-discret text-[13px]">
-          ← Journal
+      <main className="public-lecture flex-1">
+        {/* Lien de retour au format commun : « ← Libellé de la page d'arrivée », au-dessus du titre. */}
+        <Link href="/journal" className="public-retour">
+          ← Le journal
         </Link>
 
-        <h1 className="mt-3 font-heading text-3xl leading-tight text-[var(--encre)] sm:text-4xl">
-          {titreSansDoublon(a.titre)}
-        </h1>
+        <h1 className="mt-1">{titreSansDoublon(a.titre)}</h1>
         {paruLe && <p className="mono-discret mt-2.5">Paru le {paruLe}</p>}
         {/* 06/10 : l'illustration de l'article en tête, format large. */}
         <ImageJournal url={a.facebook_image_url} titre={titreSansDoublon(a.titre)} priorite className="mt-6" />
         {a.chapo && (
-          <p className="mt-5 border-l-2 border-[var(--or)] pl-4 text-[16px] leading-relaxed text-[var(--texte-secondaire)]">
-            {a.chapo}
-          </p>
+          <p className="public-article-chapo mt-5">{a.chapo}</p>
         )}
 
         <div className="mt-8 text-[15px]">
@@ -95,7 +92,7 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
             c'est-à-dire né d'une veine éditoriale (publication_veines :
             révision, régularisation, restitution…). Sous un relais de veille
             ou un article sur le produit, la phrase ne voulait rien dire. */}
-        <aside className="mt-12 border border-[var(--filet)] bg-[var(--ivoire)] p-5">
+        <aside className="loc-carte mt-12" data-appel-inscription>
           <p className="eyebrow">Dans Gerimmo</p>
           <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--texte-secondaire)]">
             {a.veine ? (

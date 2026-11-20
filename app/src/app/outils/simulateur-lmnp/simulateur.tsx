@@ -201,7 +201,7 @@ export function SimulateurLmnp() {
             <LigneDetail libelle="Impôt et prélèvements sociaux" valeur={formaterEuros(reel.impot)} fort />
           </ListeDetail>
           {reel.amortissementReporte > 0 && (
-            <p data-testid="lmnp-reporte" className="rounded-xl bg-[var(--creme)] px-3.5 py-3 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">
+            <p data-testid="lmnp-reporte" className="rounded-[var(--rayon-bouton)] bg-[var(--filet-leger)] px-3.5 py-3 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">
               Amortissement reporté : <b className="montant text-[var(--encre)]">{formaterEuros(reel.amortissementReporte)}</b>.
               L&apos;amortissement ne peut pas créer de déficit (article 39 C du CGI) : la part non déduite se reporte sur
               les années suivantes, sans limite de durée.

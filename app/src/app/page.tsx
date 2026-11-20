@@ -101,11 +101,11 @@ export default async function PageVitrine() {
             <div className="public-titre-section"><div><p className="eyebrow">Votre gestion, au même endroit</p><h2>Moins de recherches.<br />Plus de clarté.</h2></div><p>Chaque information reste liée au bon logement. Vous savez où en est votre location et quelle est la prochaine action.</p></div>
             <div className="public-fonctions">
               {[
-                { Icone: House, titre: "Vos biens, en un regard", texte: "Adresse, caractéristiques, diagnostics : une fiche claire par lot, avec l’historique de sa location.", couleur: "bleu" },
-                { Icone: FileText, titre: "Un bail, étape par étape", texte: "Retrouvez vos personnes et les informations du logement. Complétez le contrat, puis générez son PDF.", couleur: "or" },
-                { Icone: Wallet, titre: "Des loyers bien suivis", texte: "Enregistrez les encaissements, retrouvez les quittances et consultez votre livre de recettes et dépenses.", couleur: "vert" },
-                { Icone: Bell, titre: "Les bons rappels", texte: "Assurance, diagnostics, échéances : identifiez les éléments à compléter et accédez au dossier concerné.", couleur: "rose" },
-              ].map(({ Icone, titre, texte, couleur }) => <article key={titre} className={`public-fonction public-ton-${couleur}`}><span className="public-icone"><Icone aria-hidden size={23} /></span><h3>{titre}</h3><p>{texte}</p></article>)}
+                { Icone: House, titre: "Vos biens, en un regard", texte: "Adresse, caractéristiques, diagnostics : une fiche claire par lot, avec l’historique de sa location." },
+                { Icone: FileText, titre: "Un bail, étape par étape", texte: "Retrouvez vos personnes et les informations du logement. Complétez le contrat, puis générez son PDF." },
+                { Icone: Wallet, titre: "Des loyers bien suivis", texte: "Enregistrez les encaissements, retrouvez les quittances et consultez votre livre de recettes et dépenses." },
+                { Icone: Bell, titre: "Les bons rappels", texte: "Assurance, diagnostics, échéances : identifiez les éléments à compléter et accédez au dossier concerné." },
+              ].map(({ Icone, titre, texte }) => <article key={titre} className="public-fonction"><span className="public-icone"><Icone aria-hidden size={23} /></span><h3>{titre}</h3><p>{texte}</p></article>)}
             </div>
             <div className="public-parcours">
               <div><p className="eyebrow">Simple dès le départ</p><h3>Votre première location en trois temps</h3></div>
@@ -118,10 +118,10 @@ export default async function PageVitrine() {
           <div className="public-titre-section"><div><p className="eyebrow">À chacun son espace</p><h2>Les bonnes informations.<br />Pour la bonne personne.</h2></div><p>Propriétaires, locataires et artisans : chacun retrouve les éléments utiles à son rôle.</p></div>
           <div className="public-espaces">
             {[
-              { Icone: KeyRound, titre: "Propriétaires bailleurs", texte: "Pilotez vos locations en direct, seul ou en indivision. Vos documents et vos loyers restent reliés à chaque bien.", lien: "/inscription", action: "Créer mon compte", couleur: "bleu" },
-              { Icone: House, titre: "Locataires", texte: "Consultez vos quittances et votre bail signé, déposez votre assurance et suivez vos demandes depuis votre téléphone.", lien: "/connexion", action: "Accéder à mon espace", couleur: "vert" },
-              { Icone: Wrench, titre: "Artisans", texte: "Retrouvez les demandes qui vous sont confiées, préparez vos devis et suivez vos rendez-vous et interventions.", lien: "/artisan/inscription", action: "Rejoindre le réseau", couleur: "rose" },
-            ].map(({ Icone, titre, texte, lien, action, couleur }) => <article key={titre} className={`public-espace public-ton-${couleur}`}><span className="public-icone"><Icone size={24} aria-hidden /></span><h3>{titre}</h3><p>{texte}</p><Link href={lien} className="public-lien">{action}<ArrowUpRight size={16} aria-hidden /></Link></article>)}
+              { Icone: KeyRound, titre: "Propriétaires bailleurs", texte: "Pilotez vos locations en direct, seul ou en indivision. Vos documents et vos loyers restent reliés à chaque bien.", lien: "/inscription", action: "Créer mon compte" },
+              { Icone: House, titre: "Locataires", texte: "Consultez vos quittances et votre bail signé, déposez votre assurance et suivez vos demandes depuis votre téléphone.", lien: "/connexion", action: "Accéder à mon espace" },
+              { Icone: Wrench, titre: "Artisans", texte: "Retrouvez les demandes qui vous sont confiées, préparez vos devis et suivez vos rendez-vous et interventions.", lien: "/artisan/inscription", action: "Rejoindre le réseau" },
+            ].map(({ Icone, titre, texte, lien, action }) => <article key={titre} className="public-espace"><span className="public-icone"><Icone size={24} aria-hidden /></span><h3>{titre}</h3><p>{texte}</p><Link href={lien} className="public-lien">{action}<ArrowUpRight size={16} aria-hidden /></Link></article>)}
           </div>
           <p className="public-note public-reseau-note">Le réseau d’artisans grandit avec ses inscrits : chaque artisan choisit sa zone et ses métiers, puis Gerimmo vérifie son inscription. La gestion locative reste accessible partout en France, indépendamment de ce réseau.</p>
           {/* La liste d'attente des agences (20/10/2026) : les agences sont hors du site public depuis le 13/10 ; celles qui

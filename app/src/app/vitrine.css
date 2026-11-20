@@ -1,160 +1,307 @@
-/* Identité du site public. Tous les sélecteurs restent limités à la vitrine. */
-.site-public { flex: 1; min-height: 100%; background: #f8f7f4; }
+/* =====================================================================================================================
+   VITRINE GERIMMO — pages publiques : accueil, tarifs, agences, outils, journal, pages légales, portes d'entrée.
+
+   Feuille chargée par chrome-public.tsx et coquille-auth.tsx. Tous les sélecteurs restent limités à la vitrine
+   (.site-public, .public-*, .offre*, .coquille-auth). Elle parle la langue du Design System « Maison »
+   (app/docs/design-system.md) : papier var(--creme), cartes blanches à filet, titres en var(--font-display), action
+   principale bleu nuit, champagne en accent. Aucune couleur, aucun rayon, aucune ombre en dur : un jeton, ou un
+   color-mix de jetons.
+
+   Échelle des titres :
+   · h1 de toute page publique ............. var(--titre-1), comme dans les espaces
+   · h1 du héros de l'accueil .............. --vitrine-affiche (la seule taille propre à la vitrine)
+   · h2 des sections de l'accueil .......... var(--titre-1)
+   · h2 de lecture (outils, pages légales) . var(--titre-2), règle commune
+   · titres de carte ....................... var(--titre-3)
+   ===================================================================================================================== */
+
+.site-public {
+  --vitrine-affiche: clamp(38px, 4.6vw, 62px);
+  flex: 1;
+  min-height: 100%;
+  background: var(--creme);
+}
 .public-conteneur { width: min(100% - 64px, 1200px); margin-inline: auto; }
-.site-public section[id] { scroll-margin-top: 112px; }
-.gerimmo-prestige .site-public h1 { font-size: clamp(42px, 4.8vw, 68px); line-height: 1.06; letter-spacing: -.045em; }
-.gerimmo-prestige .site-public h2 { font-size: clamp(30px, 3.1vw, 43px); line-height: 1.15; letter-spacing: -.03em; }
-.gerimmo-prestige .site-public h3 { font-size: 19px; line-height: 1.35; font-weight: 600; }
-.site-public a:focus-visible, .public-navigation a:focus-visible, .public-pied a:focus-visible, .site-public summary:focus-visible, .public-menu-mobile summary:focus-visible, .offres-choix button:focus-visible { outline: 3px solid #98773c; outline-offset: 5px; }
-.gerimmo-prestige .site-public .btn-or, .gerimmo-prestige .site-public .btn-secondaire { min-height: 48px; gap: 12px; padding: 12px 20px; font-size: 14px; border-radius: 8px; }
-.public-navigation { position: sticky; top: 0; z-index: 40; background: #fffdfaf2; backdrop-filter: blur(16px); }
-.public-navigation-interieur { width: min(100% - 64px, 1200px); margin: auto; min-height: 92px; display: flex; align-items: center; gap: 32px; }
-.public-logo { display: flex; align-items: center; flex-shrink: 0; }
-.gerimmo-prestige .public-navigation .marque-gerimmo { width: 96px; }
-/* Renforcer la lisibilité du doré sur le fond clair de l’en-tête. */
+.site-public section[id] { scroll-margin-top: calc(var(--hauteur-haut) + 20px); }
+
+/* --- Titres ---------------------------------------------------------------------------------------------------------- */
+body.gerimmo-prestige :is(.site-public, .coquille-auth) h1 { font-size: var(--titre-1); line-height: 1.15; letter-spacing: -.02em; }
+body.gerimmo-prestige .site-public .public-hero h1 { font-size: var(--vitrine-affiche); line-height: 1.06; letter-spacing: -.035em; }
+body.gerimmo-prestige .site-public :is(.public-titre-section, .public-suivi, .public-faq, .public-contact-interieur) h2 { font-size: var(--titre-1); line-height: 1.15; }
+.gerimmo-prestige .site-public h3 { font-size: var(--titre-3); line-height: 1.35; font-weight: 600; }
+
+/* --- Boutons, liens, anneau de focus sur le bleu nuit ----------------------------------------------------------------- */
+.gerimmo-prestige .site-public :is(.btn-or, .btn-secondaire) { gap: 8px; }
+.gerimmo-prestige .site-public :is(.public-contact-interieur > div, .public-contact-succes, .vitrine-bandeau, .public-suivi-etiquette) :is(a, button, summary):focus-visible { outline-color: var(--champagne-vif); }
+.public-lien { display: inline-flex; align-items: center; gap: 10px; min-height: var(--cible-tactile); font-size: 14px; font-weight: 600; color: var(--encre); }
+.public-lien:hover { text-decoration: underline; text-underline-offset: 5px; }
+/* Lien de retour : « ← Libellé de la page d'arrivée », au-dessus du titre. */
+.public-retour { display: inline-flex; align-items: center; gap: 6px; min-height: var(--cible-tactile); font-size: 13px; font-weight: 600; color: var(--texte-secondaire); }
+.public-retour:hover { color: var(--encre); text-decoration: underline; text-underline-offset: 4px; }
+
+/* --- En-tête public : la hauteur de l'en-tête des espaces -------------------------------------------------------------- */
+.public-navigation { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--carte) 94%, transparent); backdrop-filter: blur(16px); }
+.public-navigation-interieur { width: min(100% - 64px, 1200px); margin: auto; min-height: var(--hauteur-haut); display: flex; align-items: center; gap: 32px; }
+.public-logo { display: flex; align-items: center; flex-shrink: 0; min-height: var(--cible-tactile); }
+.gerimmo-prestige .public-navigation .marque-gerimmo { width: 76px; }
+/* Le doré du logo est assombri sur le fond clair de l'en-tête (décision antérieure, tests/marque-tuile.test.ts). */
 .public-navigation .marque-gerimmo img { filter: brightness(.67) saturate(1.25); }
 .public-nav-bureau { display: flex; align-items: center; gap: 26px; margin-inline: auto; }
-.public-nav-bureau a, .public-connexion { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 500; color: #344762; }
-.public-nav-bureau a:hover, .public-connexion:hover { color: #826838; text-decoration: underline; text-underline-offset: 6px; }
+.public-nav-bureau a, .public-connexion { display: inline-flex; align-items: center; min-height: var(--cible-tactile); font-size: 14px; font-weight: 500; color: var(--encre); transition: color var(--duree-rapide) ease, box-shadow var(--duree-rapide) ease; }
+.public-nav-bureau a:hover, .public-connexion:hover { text-decoration: underline; text-decoration-color: var(--prestige-champagne); text-underline-offset: 6px; }
+/* L'entrée active porte le liseré champagne, comme dans le menu des espaces. */
+.public-nav-bureau a[aria-current] { font-weight: 600; box-shadow: inset 0 -2px var(--prestige-champagne); }
 .public-acces { display: flex; align-items: center; gap: 23px; }
-.gerimmo-prestige .public-inscription { min-height: 44px; border-radius: 7px; font-size: 13px; gap: 8px; }
+.gerimmo-prestige .public-inscription { white-space: nowrap; }
 .public-menu-mobile { display: none; }
-.public-hero { background: linear-gradient(110deg, #fbf9f4 0%, #faf9f6 53%, #ebf0f0 100%); border-bottom: 1px solid #e6e3dc; }
-.public-hero-grille { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 64px; padding-block: 64px 72px; }
+
+/* --- Héros de l'accueil ------------------------------------------------------------------------------------------------ */
+.public-hero { background: var(--creme); border-bottom: 1px solid var(--filet); }
+/* Le décor de saison teintait le héros d'un dégradé (ambiances.css) : le papier reste uni. */
+html[data-ambiance-site] body.gerimmo-prestige .site-public .public-hero { background: var(--creme); }
+.public-hero-grille { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 64px; padding-block: 56px 64px; }
 .public-hero-texte { padding-block: 20px; }
 .public-hero h1 { margin: 22px 0 26px; }
-.public-hero h1 em { color: #826838; font-weight: 400; }
-.public-chapo { max-width: 480px; font-size: 18px; line-height: 1.7; color: #4b5870; }
+.public-hero h1 em { color: var(--prestige-champagne-texte); font-weight: var(--graisse-titre); }
+.public-chapo { max-width: 480px; font-size: 18px; line-height: 1.7; color: var(--texte-secondaire); }
 .public-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-block: 30px 23px; }
-.public-essai { display: inline-flex; align-items: center; gap: 9px; min-height: 32px; font-size: 13px; font-weight: 600; color: #31584f; }
-.public-point { width: 7px; height: 7px; background: #437467; border-radius: 50%; }
-.public-note { font-size: 12px; line-height: 1.7; color: #526077; margin-top: 8px; }
+.public-essai { display: inline-flex; align-items: center; gap: 9px; min-height: 32px; font-size: 13px; font-weight: 600; color: var(--encre); }
+a.public-essai { min-height: var(--cible-tactile); }
+a.public-essai:hover { text-decoration: underline; text-underline-offset: 5px; }
+.public-point { width: 7px; height: 7px; background: var(--prestige-champagne); border-radius: 50%; }
+.public-note { font-size: 12px; line-height: 1.7; color: var(--texte-secondaire); margin-top: 8px; }
 .public-hero-visuel { min-width: 0; position: relative; padding-bottom: 145px; }
-.public-hero-photo { width: 100%; height: 355px; object-fit: cover; border-radius: 140px 14px 14px 14px; }
-.public-photo-legende { position: absolute; top: 24px; right: 20px; background: #fffc; backdrop-filter: blur(14px); border: 1px solid #fff; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 9px; font-size: 12px; color: #14304f; line-height: 1.6; }
+.public-hero-photo { width: 100%; height: 355px; object-fit: cover; border-radius: 140px var(--rayon-carte) var(--rayon-carte) var(--rayon-carte); }
+.public-photo-legende { position: absolute; top: 24px; right: 20px; background: color-mix(in srgb, var(--carte) 86%, transparent); backdrop-filter: blur(14px); border: 1px solid var(--carte); display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--rayon-bouton); font-size: 12px; color: var(--encre); line-height: 1.6; }
 .public-hero-apercu { position: absolute; bottom: 0; left: -25px; width: 92%; max-width: 480px; }
-.public-hero-apercu > div { box-shadow: 0 22px 55px #14304f22; }
+.public-hero-apercu > div { box-shadow: var(--ombre-3); }
 .public-hero-apercu .rang-alerte:last-of-type { display: none; }
-.public-reperes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; padding-block: 24px; border-top: 1px solid #dcdedb; }
-.public-reperes span { display: flex; align-items: center; gap: 11px; color: #45566d; font-size: 13px; }
-.public-reperes svg { width: 19px; flex-shrink: 0; color: #826838; stroke-width: 1.6; }
-.public-lien { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 600; color: #14304f; }
-.public-lien:hover { text-decoration: underline; text-underline-offset: 5px; }
+.public-reperes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; padding-block: 24px; border-top: 1px solid var(--filet); }
+.public-reperes span { display: flex; align-items: center; gap: 11px; color: var(--texte-secondaire); font-size: 13px; }
+.public-reperes svg { width: 19px; flex-shrink: 0; color: var(--prestige-champagne-texte); stroke-width: 1.6; }
+
+/* --- Bande des outils, sous le héros ---------------------------------------------------------------------------------- */
 .public-outils-rapides { padding-block: 34px; display: grid; grid-template-columns: 280px 1fr; gap: 25px; align-items: center; }
-.gerimmo-prestige .public-outils-rapides h2 { font-size: 25px; margin-top: 7px; }
-.public-outils-rapides .public-lien { font-size: 12px; }
+.public-outils-rapides h2 { margin-top: 7px; }
+.public-outils-rapides .public-lien { font-size: 13px; }
 .public-outils-rapides ul { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
 .public-outils-rapides li { min-width: 0; }
-.public-outils-rapides li a { display: flex; height: 100%; flex-direction: column; align-items: flex-start; gap: 9px; border-left: 1px solid #dddcd5; padding: 4px 12px; font-size: 12px; color: #344762; font-weight: 600; }
-.public-outils-rapides li a > svg { margin-top: auto; }
-.public-outils-rapides li a:hover { background: #efeae0; border-radius: 7px; }
-.public-section { padding-block: 76px; }
-.public-section-blanche { background: #fff; border-block: 1px solid #e7e8e8; }
+.public-outils-rapides li a { display: flex; height: 100%; flex-direction: column; align-items: flex-start; gap: 9px; border-left: 1px solid var(--filet); padding: 6px 12px; font-size: 13px; color: var(--encre); font-weight: 600; border-radius: 0 var(--rayon-bouton) var(--rayon-bouton) 0; transition: background-color var(--duree-rapide) ease; }
+.public-outils-rapides li a > svg { margin-top: auto; color: var(--texte-secondaire); }
+.public-outils-rapides li a:hover { background: var(--survol); }
+
+/* --- Sections ----------------------------------------------------------------------------------------------------------- */
+.public-section { padding-block: 72px; }
+.public-section-blanche { background: var(--carte); border-block: 1px solid var(--filet); }
 .public-titre-section { display: flex; justify-content: space-between; gap: 35px; align-items: flex-end; margin-bottom: 34px; }
 .public-titre-section h2 { margin-top: 13px; }
-.public-titre-section > p { max-width: 365px; line-height: 1.7; color: #4b5870; font-size: 15px; }
+.public-titre-section > p { max-width: 365px; line-height: 1.7; color: var(--texte-secondaire); font-size: 15px; }
+
+/* Cartes de la vitrine : fond blanc, filet, rayon et ombre du Design System. Ni dégradé ni bord coloré. */
 .public-fonctions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
 /* Trois espaces (propriétaires, locataires, artisans) : les colonnes vides se replient. */
 .public-espaces { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
-.public-ton-bleu { --accent-public: #355d87; --fond-public: #eaf0f7; }
-.public-ton-or { --accent-public: #846329; --fond-public: #f4eedf; }
-.public-ton-vert { --accent-public: #32685b; --fond-public: #e7f2ee; }
-.public-ton-rose { --accent-public: #8c5363; --fond-public: #f7ecef; }
-.public-icone { display: inline-flex; width: 48px; height: 48px; border-radius: 13px; align-items: center; justify-content: center; background: var(--fond-public); color: var(--accent-public); }
-.public-fonction { border: 1px solid #e3e6e8; border-radius: 14px; padding: 26px 23px; background: linear-gradient(160deg, white 60%, var(--fond-public)); }
-.public-fonction h3, .public-espace h3 { margin: 22px 0 12px; }
-.public-fonction p, .public-espace p { color: #4b5870; line-height: 1.75; font-size: 14px; }
-.public-parcours { margin-top: 35px; padding: 28px 0 0; border-top: 1px solid #e3e6e8; display: grid; grid-template-columns: 230px 1fr; gap: 32px; }
-.gerimmo-prestige .public-parcours h3 { font-size: 17px; margin-top: 9px; }
-/* Le bloc « Agences de gestion » de l'accueil (20/10) reprend cette grille avec un h2 : à la taille des h2 de section, il déborderait de sa colonne de 230 px. */
-.gerimmo-prestige .public-parcours h2 { font-size: 25px; line-height: 1.25; margin-top: 9px; }
+.public-icone, .gerimmo-prestige .site-public .outil-tuile { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; background: var(--or-clair); color: var(--marque); box-shadow: inset 0 0 0 1px var(--or-filet); }
+.public-icone { width: 48px; height: 48px; border-radius: var(--rayon-carte); }
+.public-fonction, .public-espace, .offre-publique, .public-article { background: var(--carte); border: 1px solid var(--filet); border-radius: var(--rayon-carte); box-shadow: var(--ombre-1); }
+.public-fonction { padding: 26px 23px; }
+.public-fonction h3, .public-espace h3 { margin: 20px 0 10px; }
+.public-fonction p, .public-espace p { color: var(--texte-secondaire); line-height: 1.7; font-size: 14px; }
+.public-parcours { margin-top: 35px; padding: 28px 0 0; border-top: 1px solid var(--filet); display: grid; grid-template-columns: 230px 1fr; gap: 32px; }
+.public-parcours :is(h2, h3) { margin-top: 9px; }
 .public-parcours ol { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
 .public-parcours li { display: flex; gap: 13px; align-items: flex-start; }
-.public-parcours li > span { color: #8a703e; font-family: var(--font-display, Georgia, serif); font-size: 25px; line-height: 1; }
+.public-parcours li > span { color: var(--prestige-champagne-texte); font-family: var(--font-display); font-weight: var(--graisse-titre); font-size: 25px; line-height: 1; }
 .public-parcours strong { font-size: 14px; font-weight: 600; }
-.public-parcours li p { font-size: 12px; line-height: 1.6; margin-top: 5px; color: #526077; }
-.public-espace { display: flex; flex-direction: column; padding: 26px 23px; border: 1px solid #e0e3e5; border-top: 3px solid var(--accent-public); border-radius: 10px; background: #fff; }
-.public-espace .public-lien { margin-top: auto; padding-top: 20px; font-size: 13px; }
+.public-parcours li p { font-size: 13px; line-height: 1.6; margin-top: 5px; color: var(--texte-secondaire); }
+.public-espace { display: flex; flex-direction: column; padding: 26px 23px; }
+.public-espace .public-lien { margin-top: auto; padding-top: 14px; font-size: 13px; }
 .public-reseau-note { margin-top: 22px; max-width: 900px; }
+
+/* --- Suivi des imprévus : une photo, son étiquette bleu nuit ----------------------------------------------------------- */
 .public-suivi { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 70px; }
 .public-suivi-visuel { position: relative; padding-bottom: 26px; }
-.public-suivi-visuel > img { height: 420px; width: 100%; object-fit: cover; border-radius: 12px; }
-.public-suivi-etiquette { position: absolute; bottom: 0; left: 25px; right: 25px; background: #14304f; color: white; border-radius: 9px; padding: 20px 24px; display: flex; gap: 16px; align-items: center; box-shadow: 0 12px 25px #14304f18; }
-.public-suivi-etiquette svg { color: #e8d39b; }
-.public-suivi-etiquette span { display: block; font-size: 12px; color: #d4dfeb; margin-top: 4px; }
+.public-suivi-visuel > img { height: 420px; width: 100%; object-fit: cover; border-radius: var(--rayon-carte); }
+.public-suivi-etiquette { position: absolute; bottom: 0; left: 25px; right: 25px; background: var(--marque); color: var(--sur-marque); border-radius: var(--rayon-bouton); padding: 20px 24px; display: flex; gap: 16px; align-items: center; box-shadow: var(--ombre-2); }
+.public-suivi-etiquette svg { color: var(--champagne-vif); }
+.public-suivi-etiquette span { display: block; font-size: 12px; color: color-mix(in srgb, var(--sur-marque) 84%, transparent); margin-top: 4px; }
 .public-suivi h2 { margin-top: 14px; }
-.public-description { margin-top: 20px; line-height: 1.75; font-size: 15px; color: #4b5870; }
+.public-description { margin-top: 20px; line-height: 1.75; font-size: 15px; color: var(--texte-secondaire); }
 .public-liste { display: grid; gap: 12px; margin-top: 23px; font-size: 14px; line-height: 1.6; }
 .public-liste li { display: flex; gap: 11px; align-items: flex-start; }
-.public-liste svg { width: 17px; height: 19px; flex-shrink: 0; color: #327363; margin-top: 2px; }
+.public-liste svg { width: 17px; height: 19px; flex-shrink: 0; color: var(--prestige-champagne-texte); margin-top: 2px; }
 .public-exemple { margin-top: 22px; }
-.public-exemple summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px; border-top: 1px solid #dce2e9; font-size: 14px; font-weight: 600; cursor: pointer; }
-.offres-choix { display: flex; width: fit-content; max-width: 100%; padding: 4px; background: #eaece9; border-radius: 10px; margin: 0 0 25px; gap: 4px; }
-.offres-choix button { min-height: 44px; padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 7px; color: #435168; cursor: pointer; }
-.offres-choix button[aria-pressed="true"] { background: #14304f; color: white; box-shadow: 0 2px 6px #14304f20; }
-.offres-choix span { display: inline-block; margin-left: 7px; background: #e6dbc2; color: #5c4825; border-radius: 4px; padding: 2px 6px; font-size: 11px; }
+.public-exemple summary { min-height: var(--cible-tactile); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px; border-top: 1px solid var(--filet); font-size: 14px; font-weight: 600; cursor: pointer; }
+.public-exemple summary svg, .public-faq summary svg { flex-shrink: 0; color: var(--texte-secondaire); transition: transform var(--duree) var(--courbe); }
+
+/* --- Tarif : le simulateur ------------------------------------------------------------------------------------------- */
+.offres-choix { display: flex; width: fit-content; max-width: 100%; padding: 4px; background: var(--filet-leger); border: 1px solid var(--filet); border-radius: var(--rayon-bouton); margin: 0 0 25px; gap: 4px; }
+.offres-choix button { min-height: var(--cible-tactile); padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: calc(var(--rayon-bouton) - 3px); color: var(--texte-secondaire); cursor: pointer; transition: background-color var(--duree-rapide) ease, color var(--duree-rapide) ease; }
+.offres-choix button:hover:not(:disabled, [aria-pressed="true"]) { color: var(--encre); background: var(--survol); }
+.offres-choix button[aria-pressed="true"] { background: var(--marque); color: var(--sur-marque); }
+.offres-choix button:disabled { cursor: default; }
 .offres-grille { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-.offre-publique { min-width: 0; background: white; padding: 26px 22px; border-radius: 12px; border: 1px solid #dce2e9; }
-.offre-nom { font-size: 18px; font-weight: 600; color: #14304f; }
-.offre-biens { color: #526077; font-size: 13px; margin-top: 4px; }
-.offre-prix { color: #14304f; font-size: 36px; font-family: var(--font-display, Georgia, serif); letter-spacing: -.03em; margin: 24px 0 6px; }
-.offre-prix small { margin-left: 6px; font-family: var(--font-interface), sans-serif; font-size: 13px; letter-spacing: normal; color: #526077; }
-.offre-periode, .offres-note { font-size: 12px; line-height: 1.7; color: #526077; }
-.offre-publique ul { border-top: 1px solid #e5e7eb; margin: 22px 0; padding-top: 19px; display: grid; gap: 8px; }
+.offre-publique { min-width: 0; padding: 28px; }
+.offre-publique input[type="range"] { accent-color: var(--marque); min-height: var(--cible-tactile); }
+.site-public .offre-nom { font-size: 14px; font-weight: 600; color: var(--encre); }
+.offre-nom strong { margin-left: 6px; font-family: var(--font-titres), system-ui, sans-serif; font-size: 18px; font-variant-numeric: lining-nums tabular-nums; }
+.offre-biens { color: var(--texte-secondaire); font-size: 13px; margin-top: 4px; }
+.offre-prix { color: var(--encre); font-size: 36px; font-family: var(--font-display); font-weight: var(--graisse-titre); font-variant-numeric: lining-nums; letter-spacing: -.03em; margin: 24px 0 6px; }
+.offre-prix small { margin-left: 6px; font-family: var(--font-interface), sans-serif; font-size: 13px; letter-spacing: normal; color: var(--texte-secondaire); }
+.offre-publique p:not(.offre-prix) { font-size: 14px; line-height: 1.65; color: var(--texte-secondaire); }
+.offre-periode, .offres-note { font-size: 12px; line-height: 1.7; color: var(--texte-secondaire); }
+.offre-publique ul { border-top: 1px solid var(--filet); margin: 22px 0; padding-top: 19px; display: grid; gap: 8px; }
 .offre-publique li { display: flex; align-items: flex-start; gap: 7px; font-size: 12px; line-height: 1.6; }
-.offre-publique li svg { flex-shrink: 0; margin-top: 2px; color: #32685b; }
-.gerimmo-prestige .site-public .offre-publique .btn-secondaire { width: 100%; justify-content: space-between; font-size: 12px; padding: 10px 12px; }
+.offre-publique li svg { flex-shrink: 0; margin-top: 2px; color: var(--prestige-champagne-texte); }
+.gerimmo-prestige .site-public .offre-publique .btn-secondaire { width: 100%; justify-content: center; }
 .offres-note { margin-top: 16px; }
+.public-tarifs-details { max-width: 900px; margin: 40px auto 0; display: grid; gap: 20px; }
+
+/* --- Journal : cartes d'article ---------------------------------------------------------------------------------------- */
 .public-journal-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
-.public-article { display: flex; flex-direction: column; background: white; border: 1px solid #dce2e9; border-radius: 12px; overflow: hidden; transition: box-shadow .2s, transform .2s; }
-.public-article:hover { transform: translateY(-3px); box-shadow: 0 15px 35px #14304f10; }
+.public-journal-grille:has(> :only-child) { grid-template-columns: minmax(0, 580px); }
+.public-article { display: flex; flex-direction: column; overflow: hidden; }
 .public-article > span { border: 0; border-radius: 0; }
 .public-article > div { padding: 24px; display: flex; flex: 1; flex-direction: column; }
 .public-article h3 { margin: 12px 0; }
-.public-article > div > p:not(.eyebrow) { font-size: 14px; line-height: 1.7; color: #4b5870; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.public-article .public-lien { margin-top: auto; padding-top: 20px; }
+.public-article > div > p:not(.eyebrow) { font-size: 14px; line-height: 1.7; color: var(--texte-secondaire); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.public-article .public-lien { margin-top: auto; padding-top: 14px; }
+.site-public .journal-carte { padding: 0 22px 20px; height: 100%; }
+.site-public .journal-carte > span:first-child { margin: 0 -22px 18px; }
+.site-public .journal-carte h2 { margin-top: 6px; line-height: 1.3; }
+.site-public .journal-carte > p:not(.mono-discret) { margin-top: 8px; font-size: 14px; line-height: 1.65; color: var(--texte-secondaire); }
+.site-public .journal-carte > span:last-child { margin-top: auto; padding-top: 16px; font-size: 13px; font-weight: 600; color: var(--encre); }
+/* Une carte qui est un lien se soulève au survol, comme dans les espaces (systeme.css). */
+.gerimmo-prestige .site-public :is(a.public-article, a.vitrine-carte, a.outil-lien-carte) { transition: transform var(--duree) var(--courbe), box-shadow var(--duree) var(--courbe), border-color var(--duree-rapide) ease; }
+.gerimmo-prestige .site-public :is(a.public-article, a.vitrine-carte, a.outil-lien-carte):hover { transform: translateY(-2px); box-shadow: var(--ombre-2); border-color: color-mix(in srgb, var(--marque) 28%, var(--filet)); }
+/* Lecture d'un article : colonne étroite, chapo au liseré champagne. */
+.public-article-chapo { border-left: 2px solid var(--prestige-champagne); padding-left: 16px; font-size: 16px; line-height: 1.7; color: var(--texte-secondaire); }
+
+/* --- Questions fréquentes ---------------------------------------------------------------------------------------------- */
 .public-faq { display: grid; grid-template-columns: .7fr 1.3fr; gap: 80px; }
 .public-faq h2 { margin-top: 14px; }
-.public-faq details { border-top: 1px solid #d8dde0; }
-.public-faq details:last-child { border-bottom: 1px solid #d8dde0; }
-.public-faq summary { min-height: 70px; padding: 22px 0; display: flex; justify-content: space-between; gap: 25px; align-items: center; font-size: 16px; font-weight: 500; cursor: pointer; }
-.public-faq summary svg { flex-shrink: 0; }
+.public-faq details { border-top: 1px solid var(--filet); }
+.public-faq details:last-child { border-bottom: 1px solid var(--filet); }
+.public-faq summary { min-height: 64px; padding: 20px 0; display: flex; justify-content: space-between; gap: 25px; align-items: center; font-size: 16px; font-weight: 500; cursor: pointer; }
 .public-faq summary::-webkit-details-marker, .public-exemple summary::-webkit-details-marker, .public-menu-mobile summary::-webkit-details-marker { display: none; }
-.public-faq details[open] svg, .public-exemple[open] summary svg { transform: rotate(180deg); }
-.public-faq details p { font-size: 14px; line-height: 1.8; color: #4b5870; padding-bottom: 22px; }
+.public-faq details[open] summary svg, .public-exemple[open] summary svg { transform: rotate(180deg); }
+.public-faq details p { font-size: 14px; line-height: 1.8; color: var(--texte-secondaire); padding-bottom: 22px; max-width: 70ch; }
+
+/* --- Contact : un panneau bleu nuit, le formulaire dans une carte blanche ---------------------------------------------- */
 .public-contact { padding-bottom: 80px; }
-.public-contact-interieur { display: grid; grid-template-columns: .9fr 1.1fr; gap: 65px; background: linear-gradient(120deg,#183653,#234c6c); padding: 48px; border-radius: 18px; color: white; }
-.gerimmo-prestige .public-contact h2 { color: white; margin: 16px 0 24px; }
-.gerimmo-prestige .public-contact .eyebrow { color: #ead69e; }
-.public-contact-interieur > div > p:not(.eyebrow) { color: #e1e8f1; font-size: 15px; line-height: 1.8; }
-.public-contact .public-liste { color: #e1e8f1; font-size: 13px; }
-.public-contact .public-liste svg { color: #e8d39b; }
-.public-contact :is(input:not([aria-hidden]),select,textarea) { background: #fff; color: #14304f; border-color: #dce2e9; min-height: 46px; font-size: 16px; }
-.public-contact form { align-content: start; }
-.gerimmo-prestige .public-contact .btn-or { background: #e8d39b; color: #14304f; width: 100%; justify-content: center; }
-.public-pied { background: #14304f; color: #d5dfeb; }
+.public-contact-interieur { display: grid; grid-template-columns: .9fr 1.1fr; gap: 65px; align-items: start; background: var(--nuit-menu); padding: 48px; border-radius: var(--rayon-fenetre); color: var(--sur-marque); }
+.gerimmo-prestige .public-contact h2 { color: var(--sur-marque); margin: 16px 0 24px; }
+.gerimmo-prestige .public-contact .eyebrow { color: var(--champagne-vif); }
+.public-contact-interieur > div > p:not(.eyebrow) { color: color-mix(in srgb, var(--sur-marque) 88%, transparent); font-size: 15px; line-height: 1.8; }
+.public-contact-interieur > div > .public-liste + p { margin-top: 20px; }
+.public-contact .public-liste { color: color-mix(in srgb, var(--sur-marque) 88%, transparent); font-size: 13px; }
+.public-contact .public-liste svg { color: var(--champagne-vif); }
+/* Le formulaire est une carte du Design System : champs de la règle commune, action principale bleu nuit. */
+.public-contact form { align-content: start; background: var(--carte); border-radius: var(--rayon-carte); padding: 24px; color: var(--encre); }
+.gerimmo-prestige .public-contact form label { display: block; margin-bottom: 6px; }
+/* 16 px dans les champs : sous cette taille, iOS zoome au focus. Le reste vient de la règle commune des champs. */
+.public-contact :is(input:not([aria-hidden]), select, textarea) { width: 100%; font-size: 16px; }
+.gerimmo-prestige .public-contact form .btn-or { width: 100%; justify-content: center; }
+.public-contact-erreur { border-radius: var(--rayon-bouton); background: var(--destructive-soft); padding: 9px 12px; font-size: 14px; font-weight: 500; color: var(--destructive-soft-foreground); }
+/* Le message de succès remplace le formulaire : il se pose à même le bleu nuit. */
+.public-contact-succes { border: 1px solid color-mix(in srgb, var(--sur-marque) 24%, transparent); border-radius: var(--rayon-carte); background: color-mix(in srgb, var(--sur-marque) 10%, transparent); padding: 16px 18px; font-size: 14px; line-height: 1.6; color: var(--sur-marque); }
+
+/* --- Pied public -------------------------------------------------------------------------------------------------------- */
+.public-pied { background: var(--nuit-menu); color: color-mix(in srgb, var(--sur-marque) 84%, transparent); }
 .public-pied-grille { display: grid; grid-template-columns: 1.5fr repeat(3, 1fr); gap: 50px; padding-block: 55px 40px; }
 .gerimmo-prestige .public-pied .marque-gerimmo { width: 140px; }
+.public-pied-marque > a { display: inline-flex; min-height: var(--cible-tactile); }
 .public-pied-marque p { font-size: 13px; line-height: 1.8; margin-top: 18px; }
-.public-pied nav p { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .12em; color: #ead69e; margin-bottom: 13px; }
-.public-pied nav a { display: flex; align-items: center; min-height: 44px; font-size: 13px; line-height: 1.4; }
-.public-pied nav a:hover { text-decoration: underline; text-underline-offset: 5px; color: white; }
-.public-pied-bas { border-top: 1px solid #ffffff26; padding-block: 20px; display: flex; justify-content: space-between; font-size: 12px; color: #c3cedb; }
-.public-page-intro { background: linear-gradient(110deg,#f6f2e9,#edf1f3); padding: 55px 0; border-bottom: 1px solid #e0e3e5; }
-.public-page-intro h1 { margin-block: 14px 20px; }
-.public-page-intro p:not(.eyebrow) { max-width: 650px; line-height: 1.7; color: #4b5870; }
-.site-public .public-page-intro h1 { font-size: clamp(36px,4vw,54px); }
-.site-public .vitrine-hero { background: linear-gradient(110deg,#f6f2e9,#edf1f3); }
-.site-public .vitrine-carte { background: white; border-radius: 14px; }
-.public-tarifs-details { max-width: 900px; margin: 40px auto 0; display: grid; gap: 20px; }
-.gerimmo-prestige .public-tarifs-details h2 { font-size: 25px; }
+.public-pied nav p { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .12em; color: var(--champagne-vif); margin-bottom: 13px; }
+.public-pied nav a { display: flex; align-items: center; min-height: var(--cible-tactile); font-size: 13px; line-height: 1.4; }
+.public-pied nav a:hover { text-decoration: underline; text-underline-offset: 5px; color: var(--sur-marque); }
+.public-pied nav a[aria-current="page"] { color: var(--sur-marque); font-weight: 600; text-decoration: underline; text-decoration-color: var(--champagne-vif); text-underline-offset: 5px; }
+.public-pied-bas { border-top: 1px solid color-mix(in srgb, var(--sur-marque) 15%, transparent); padding-block: 20px; display: flex; justify-content: space-between; font-size: 12px; color: color-mix(in srgb, var(--sur-marque) 78%, transparent); }
+
+/* --- En-tête des pages secondaires (tarifs, agences, journal, outils) : même gabarit ----------------------------------- */
+/* Comme le titre d'un écran dans les espaces : posé sur le papier, un filet dessous. Ni aplat ni dégradé. */
+.public-page-intro { background: var(--creme); padding-block: 36px 40px; border-bottom: 1px solid var(--filet); }
+.public-page-intro h1 { margin-block: 10px 14px; max-width: 26ch; }
+.public-page-intro .public-retour + :is(.eyebrow, h1, .public-page-titre) { margin-top: 6px; }
+.public-page-intro p:not(.eyebrow, .public-essai) { max-width: 650px; font-size: 15px; line-height: 1.7; color: var(--texte-secondaire); }
+/* Avec une tuile d'icône (pages d'outils) : la tuile à gauche, le texte à droite. */
+.public-page-titre { display: flex; align-items: flex-start; gap: 18px; }
+.public-page-titre > div { min-width: 0; flex: 1; }
+.public-page-titre h1 { margin-top: 6px; }
+.public-page-reperes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 16px; }
+.public-page-intro .public-page-reperes > p { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+/* La colonne de lecture (articles, pages légales). */
+.public-lecture { width: 100%; max-width: 48rem; margin-inline: auto; padding: 24px 16px; }
+
+/* --- Outils gratuits : les classes outil-* de globals.css, ramenées aux jetons du Design System ------------------------ */
+.gerimmo-prestige .site-public :is(.vitrine-carte, .outil-saisie, .outil-resultat, .outil-lien-carte, .outil-repli, .outil-bon-a-savoir) { background: var(--carte); border: 1px solid var(--filet); border-radius: var(--rayon-carte); box-shadow: var(--ombre-1); }
+.gerimmo-prestige .site-public .outil-repli > summary { border-radius: var(--rayon-carte); min-height: 60px; }
+/* Plus de bord haut coloré sur le panneau de résultat : le chiffre porte l'accent. */
+.gerimmo-prestige .site-public .outil-resultat::before { content: none; }
+.gerimmo-prestige .site-public .outil-carte-titre { font-family: var(--font-display); font-size: var(--titre-2) !important; font-weight: var(--graisse-titre); letter-spacing: -.02em; }
+.gerimmo-prestige .site-public h2.outil-panneau-titre { font-family: var(--font-interface), sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .13em; line-height: 1.4; text-transform: uppercase; color: var(--prestige-champagne-texte); }
+.gerimmo-prestige .site-public .outil-groupe-titre { color: var(--prestige-champagne-texte); font-weight: 600; letter-spacing: .13em; }
+/* « Gratuit », « Sans compte » : une réassurance, pas un état métier. Le vert reste aux états. */
+.gerimmo-prestige .site-public .outil-puce { background: var(--or-clair); color: var(--prestige-champagne-texte); box-shadow: inset 0 0 0 1px var(--or-filet); }
+.gerimmo-prestige .site-public .outil-puce::before { background: var(--prestige-champagne); }
+.gerimmo-prestige .site-public .vitrine-bandeau .outil-puce { background: color-mix(in srgb, var(--sur-marque) 14%, transparent); color: var(--sur-marque); box-shadow: none; }
+/* Contrôle segmenté : le choix retenu en bleu nuit, comme le rythme de paiement du simulateur. */
+.gerimmo-prestige .site-public .outil-segments { border-radius: var(--rayon-bouton); }
+.gerimmo-prestige .site-public .outil-segment { border-radius: calc(var(--rayon-bouton) - 3px); }
+.gerimmo-prestige .site-public .outil-segment:hover { background: var(--survol); }
+.gerimmo-prestige .site-public .outil-segment:has(input:checked) { background: var(--marque); color: var(--sur-marque); box-shadow: none; }
+.gerimmo-prestige .site-public .outil-segment:has(input:focus-visible) { outline: 3px solid var(--prestige-champagne-texte); outline-offset: 2px; }
+.gerimmo-prestige .site-public .outil-suffixe { border-radius: calc(var(--rayon-champ) - 3px); }
+/* Le libellé d'un interrupteur est une phrase : il se lit à la taille du texte, pas à celle d'un libellé de champ. */
+.gerimmo-prestige .site-public label:has(> .outil-interrupteur) { font-size: 14px; font-weight: 500; line-height: 1.4; }
+/* Le champ d'adresse (liste de suggestions) échappe à la règle commune des champs : mêmes filet, rayon et halo. */
+.gerimmo-prestige .site-public .outil-champ { border-color: var(--filet-champ); border-radius: var(--rayon-champ); }
+.gerimmo-prestige .site-public .outil-champ:hover:not(:focus) { border-color: var(--encre); }
+.gerimmo-prestige .site-public .outil-champ:focus { border-color: var(--marque); box-shadow: 0 0 0 3px color-mix(in srgb, var(--champagne-vif) 38%, transparent); }
+.gerimmo-prestige .site-public .outil-barre-marque { background: var(--marque); }
+/* Le chiffre héros garde le droit de se couper s'il déborde d'un petit écran (la règle commune des montants l'interdit). */
+.gerimmo-prestige .site-public .outil-hero { white-space: normal; }
+/* Le verdict en toutes lettres d'un panneau de résultat (« Quittance de loyer », « Visale est possible »). */
+.outil-verdict { font-family: var(--font-display); font-size: var(--titre-2); font-weight: var(--graisse-titre); line-height: 1.2; letter-spacing: -.02em; }
+.gerimmo-prestige .site-public :is(.outil-chiffre, .outil-formule, .outil-alerte) { border-radius: var(--rayon-bouton); }
+.gerimmo-prestige .site-public .outil-chiffre { background: var(--filet-leger); }
+.gerimmo-prestige .site-public .outil-formule { background: var(--filet-leger); border-color: var(--filet); }
+/* L'information prend le ton du conseil (fond or clair) ; succès, attention et erreur gardent leurs couleurs d'état. */
+.gerimmo-prestige .site-public .outil-alerte-info { background: var(--or-clair); border-color: var(--or-filet); color: var(--encre); }
+.gerimmo-prestige .site-public .outil-pastille-info { background: var(--filet-leger); color: var(--texte-secondaire); }
+.gerimmo-prestige .site-public .outil-bon-a-savoir { background: var(--or-clair); border-color: var(--or-filet); box-shadow: none; padding: 20px 22px 22px; }
+.gerimmo-prestige .site-public .outil-prose li::before { background: var(--prestige-champagne); }
+.gerimmo-prestige .site-public .outil-bureau { background: var(--filet-leger); border-color: var(--filet); border-radius: var(--rayon-carte); }
+/* La colonne du résultat suit le défilement, sous l'en-tête (et sous le bandeau de retour vers l'espace). */
+@media (min-width: 1024px) {
+  .outil-colonne-resultat { position: sticky; top: calc(var(--hauteur-haut) + 12px); }
+  html[data-depuis-espace] .outil-colonne-resultat { top: calc(var(--hauteur-haut) + 60px); }
+}
+/* L'invitation à créer un compte : un panneau bleu nuit uni, sans dégradé ni halo. */
+.gerimmo-prestige .site-public .vitrine-bandeau { background: var(--nuit-menu); border-radius: var(--rayon-fenetre); }
+.gerimmo-prestige .site-public .vitrine-bandeau .eyebrow { color: var(--champagne-vif); }
+.gerimmo-prestige .site-public .outil-appel::after { content: none; }
+.gerimmo-prestige .site-public .outil-appel h2 { font-size: var(--titre-1); line-height: 1.18; }
+.public-appel-liste { border: 1px solid color-mix(in srgb, var(--sur-marque) 20%, transparent); border-radius: var(--rayon-carte); background: color-mix(in srgb, var(--sur-marque) 8%, transparent); }
+.public-appel-bouton { display: inline-flex; align-items: center; gap: 8px; min-height: var(--cible-tactile); padding: 10px 18px; border-radius: var(--rayon-bouton); background: var(--carte); color: var(--encre); font-size: 14px; font-weight: 600; transition: background-color var(--duree-rapide) ease, box-shadow var(--duree-rapide) ease; }
+.public-appel-bouton:hover { background: var(--or-clair); box-shadow: var(--ombre-2); }
+
+/* --- Portes d'entrée (connexion, inscription, mots de passe, liens reçus par e-mail) ----------------------------------- */
+.gerimmo-prestige .coquille-auth .panneau-marque .auth-promesse { max-width: 16ch; font-family: var(--font-display); font-weight: var(--graisse-titre); font-size: var(--titre-1); line-height: 1.12; letter-spacing: -.02em; color: var(--sur-marque); text-wrap: balance; }
+/* Sans chapo (lien reçu par e-mail incomplet), la carte ne colle pas au titre. */
+.coquille-auth h1 + [data-slot="card"] { margin-top: 20px; }
+/* Messages d'arrivée et de confirmation : un seul dessin, le ton vient de l'état. */
+.auth-message { border: 1px solid var(--filet); border-radius: var(--rayon-bouton); background: var(--filet-leger); padding: 12px 14px; font-size: 14px; line-height: 1.55; color: var(--encre); }
+.auth-message[data-ton="succes"] { border-color: color-mix(in srgb, var(--success) 25%, transparent); background: var(--success-soft); color: var(--success-soft-foreground); }
+.auth-message[data-ton="attention"] { border-color: color-mix(in srgb, var(--warning) 30%, transparent); background: var(--warning-soft); color: var(--warning-soft-foreground); }
+
 @media (max-width: 1100px) {
   .public-navigation-interieur { gap: 20px; }
   .public-nav-bureau { gap: 15px; }
   .public-acces { gap: 13px; }
   .public-hero-grille { gap: 35px; }
   .public-hero-apercu { left: -10px; width: 100%; }
-  .public-fonctions, .offres-grille { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .public-fonctions, .offres-grille { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .public-outils-rapides { grid-template-columns: 230px 1fr; }
   .public-outils-rapides ul { gap: 5px; }
   .public-suivi { gap: 35px; }
@@ -165,10 +312,12 @@
   .public-nav-bureau { display: none; }
   .public-acces { margin-left: auto; }
   .public-menu-mobile { display: block; }
-  .public-menu-mobile summary { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 44px; min-height: 44px; border: 1px solid #dce2e9; border-radius: 7px; cursor: pointer; font-size: 12px; }
+  .public-menu-mobile summary { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: var(--cible-tactile); min-height: var(--cible-tactile); border: 1px solid var(--filet-champ); border-radius: var(--rayon-bouton); background: var(--carte); color: var(--encre); cursor: pointer; font-size: 12px; }
   .public-menu-mobile summary span { display: none; }
-  .public-menu-mobile nav { position: absolute; top: 100%; right: 0; left: 0; background: #fffdfa; border-bottom: 1px solid #dce2e9; box-shadow: 0 12px 22px #14304f10; padding: 14px 32px 22px; display: grid; grid-template-columns: 1fr 1fr; }
-  .public-menu-mobile nav a { padding: 14px 10px; min-height: 48px; font-size: 14px; }
+  .public-menu-mobile nav { position: absolute; top: 100%; right: 0; left: 0; background: var(--carte); border-bottom: 1px solid var(--filet); box-shadow: var(--ombre-2); padding: 10px 32px 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  .public-menu-mobile nav a { display: flex; align-items: center; min-height: 48px; padding: 12px 10px; border-radius: var(--rayon-bouton); font-size: 14px; font-weight: 500; color: var(--encre); }
+  .public-menu-mobile nav a:hover { background: var(--survol); }
+  .public-menu-mobile nav a[aria-current] { font-weight: 600; box-shadow: inset 3px 0 var(--prestige-champagne); }
   .public-hero-grille { grid-template-columns: 1fr; padding-block: 30px 45px; gap: 35px; }
   .public-hero-texte { max-width: 650px; }
   .public-chapo { max-width: 600px; }
@@ -182,29 +331,33 @@
   .public-titre-section > p { max-width: 310px; }
   .public-contact-interieur { grid-template-columns: 1fr; }
   .public-pied-grille { grid-template-columns: 1fr 1fr; gap: 30px; }
-  .public-journal-grille { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .public-journal-grille { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
   .public-conteneur, .public-navigation-interieur { width: calc(100% - 36px); }
-  .public-navigation-interieur { min-height: 76px; gap: 12px; }
-  .gerimmo-prestige .public-navigation .marque-gerimmo { width: 60px; }
-  .public-acces .public-connexion { display: inline-flex; padding-inline: 12px; border: 1px solid #dce2e9; border-radius: 7px; white-space: nowrap; }
+  .public-navigation-interieur { min-height: 64px; gap: 12px; }
+  .gerimmo-prestige .public-navigation .marque-gerimmo { width: 56px; }
+  .public-acces .public-connexion { display: inline-flex; padding-inline: 12px; border: 1px solid var(--filet-champ); border-radius: var(--rayon-bouton); background: var(--carte); white-space: nowrap; }
   .gerimmo-prestige .public-inscription { display: none; }
   .public-menu-mobile nav { padding-inline: 18px; }
   .public-hero-grille { padding-top: 22px; gap: 22px; }
   .public-hero h1 { margin-block: 19px 22px; }
   .public-chapo { font-size: 16px; }
-  .public-actions { margin-top: 25px; gap: 10px; }
-  .gerimmo-prestige .site-public .public-actions .btn-or, .gerimmo-prestige .site-public .public-actions .btn-secondaire { padding: 12px 15px; font-size: 13px; }
+  .public-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 25px; gap: 10px; }
+  .gerimmo-prestige .site-public .public-actions :is(.btn-or, .btn-secondaire) { justify-content: center; padding-inline: 10px; gap: 6px; }
   .public-hero-visuel { padding-bottom: 175px; }
   .public-hero-photo { height: 265px; border-top-left-radius: 75px; }
-  .public-photo-legende { top: 15px; right: 12px; padding: 9px 12px; font-size: 10px; }
+  .public-photo-legende { top: 15px; right: 12px; padding: 9px 12px; font-size: 11px; }
   .public-hero-apercu { left: 10px; width: calc(100% - 20px); }
-  .public-hero-apercu .kpi .chiffre { font-size: 25px; }
+  .public-hero-apercu .grid.grid-cols-2 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .public-hero-apercu .kpi.rouge { grid-column: auto; }
+  .public-hero-apercu .kpi .chiffre { font-size: 20px; }
+  .public-hero-apercu .kpi .libelle-champ { font-size: 9px; letter-spacing: .03em; }
+  .public-hero-apercu .kpi { padding: 8px !important; }
   .public-reperes { gap: 14px 8px; padding-block: 22px; }
-  .public-reperes span { font-size: 11px; gap: 7px; }
+  .public-reperes span { font-size: 12px; gap: 7px; }
   .public-outils-rapides ul { grid-template-columns: 1fr; gap: 0; }
-  .public-outils-rapides li a { flex-direction: row; align-items: center; border-left: 0; border-top: 1px solid #e2e1dc; padding: 12px 0; font-size: 13px; gap: 12px; }
+  .public-outils-rapides li a { flex-direction: row; align-items: center; border-left: 0; border-top: 1px solid var(--filet); border-radius: 0; padding: 12px 0; min-height: 60px; gap: 12px; }
   .public-outils-rapides li a > svg { margin: 0 0 0 auto; }
   .public-section { padding-block: 48px; }
   .public-titre-section { flex-direction: column; gap: 18px; margin-bottom: 25px; }
@@ -218,7 +371,7 @@
   .public-suivi-visuel > img { height: 280px; }
   .public-suivi-etiquette { left: 12px; right: 12px; padding: 18px; }
   .offres-grille { grid-template-columns: 1fr; gap: 14px; }
-  .offre-publique { padding: 24px; }
+  .offre-publique { padding: 22px 18px; }
   .offre-prix { margin-top: 18px; }
   .offres-choix button { padding-inline: 13px; }
   .public-journal-grille { grid-template-columns: 1fr; }
@@ -229,23 +382,15 @@
   .public-pied-grille { grid-template-columns: 1fr 1fr; padding-block: 35px; gap: 25px 18px; }
   .public-pied-marque { grid-column: 1 / -1; }
   .public-pied-grille nav:last-child { grid-column: 1 / -1; }
-  .public-pied-bas { gap: 15px; font-size: 11px; }
-  .public-page-intro { padding-block: 35px; }
-}
-@media (prefers-reduced-motion: reduce) { .public-article { transition: none; } .public-article:hover { transform: none; } }
-@media print { .site-public { background: white; } }
-.site-public .journal-carte { padding: 0 22px 20px; height: 100%; }
-.site-public .journal-carte > span:first-child { margin: 0 -22px 20px; }
-.gerimmo-prestige .site-public .journal-carte h2 { font-family: var(--font-interface), sans-serif; font-size: 21px; font-weight: 600; }
-.site-public .journal-carte > span:last-child { margin-top: auto; padding-top: 18px; }
-@media (max-width: 600px) {
-  .public-actions { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); }
-  .gerimmo-prestige .site-public .public-actions :is(.btn-or,.btn-secondaire) { padding-inline: 10px; gap: 6px; font-size: 12px; }
-  .public-hero-apercu .grid.grid-cols-2 { grid-template-columns: repeat(3,minmax(0,1fr)); }
-  .public-hero-apercu .kpi.rouge { grid-column: auto; }
-  .public-hero-apercu .kpi .chiffre { font-size: 20px; }
-  .public-hero-apercu .kpi .libelle-champ { font-size: 9px; letter-spacing: .03em; }
-  .public-hero-apercu .kpi { padding: 8px !important; }
+  .public-pied-bas { gap: 15px; }
+  .public-page-intro { padding-block: 22px 28px; }
+  .public-page-titre { gap: 12px; }
 }
 @media (max-width: 350px) { .public-actions { grid-template-columns: 1fr; } }
-.public-journal-grille:has(> :only-child) { grid-template-columns: minmax(0,580px); }
+@media (min-width: 640px) { .public-lecture { padding: 40px 28px; } }
+@media (prefers-reduced-motion: reduce) {
+  .gerimmo-prestige .site-public :is(a.public-article, a.vitrine-carte, a.outil-lien-carte),
+  .public-exemple summary svg, .public-faq summary svg, .public-appel-bouton, .offres-choix button { transition: none; }
+  .gerimmo-prestige .site-public :is(a.public-article, a.vitrine-carte, a.outil-lien-carte):hover { transform: none; }
+}
+@media print { .site-public { background: var(--carte); } .site-public .public-conteneur { width: 100%; } }

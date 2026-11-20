@@ -125,8 +125,8 @@ export default async function PageConditions() {
       // par l'élément marqué, hors du texte : l'archive refuse une page dégradée ou rendue avec une autre identité.
       texteContractuel={{ document: "conditions_clients", version: CONDITIONS_VERSION, identite: indisponible ? null : EDITEUR }}
       apres={
-        <nav aria-label="Versions des conditions" className="text-sm text-[var(--texte-secondaire)]">
-          <Link href="/conditions/versions" className="lien-texte">
+        <nav aria-label="Versions des conditions">
+          <Link href="/conditions/versions" className="public-lien">
             Versions archivées des conditions générales
           </Link>
         </nav>

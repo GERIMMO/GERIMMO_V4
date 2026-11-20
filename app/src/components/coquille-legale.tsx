@@ -164,10 +164,11 @@ export function CadreLegal({
   children: ReactNode;
 }) {
   return (
-    <div className="site-public flex min-h-full flex-1 flex-col bg-[var(--creme)]">
+    <div className="site-public flex min-h-full flex-1 flex-col">
       <EnTetePublic />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 py-6 sm:px-7 sm:py-10">{children}</main>
+      {/* La colonne de lecture commune aux pages légales et aux articles du journal (vitrine.css). */}
+      <main className="public-lecture flex-1 space-y-4">{children}</main>
 
       <PiedPublic courant={chemin} />
     </div>

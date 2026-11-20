@@ -12,6 +12,11 @@ import { IconeTrait, PucesGratuit, TuileOutil, outilsPresentes } from "./icones-
 // Tout ce qui l'entoure est masqué à l'impression : seul le document produit
 // par l'outil (lettre, quittance) part sur papier.
 //
+// Design System « Maison » (20/11) : l'en-tête d'un outil est le gabarit commun des pages secondaires de la vitrine
+// (`public-page-intro` : lien de retour, sur-titre, h1 à la taille commune, chapo), dans le conteneur de 1 200 px
+// de l'en-tête. L'invitation à créer un compte porte `data-appel-inscription` : elle s'efface pour une personne
+// venue de son espace (systeme.css).
+//
 // Les enveloppes `contents` ne créent pas de boîte : l'en-tête reste collé en
 // haut de page, et `print:hidden` les retire du papier.
 
@@ -35,32 +40,28 @@ export function CoquilleOutil({
   children: ReactNode;
 }) {
   return (
-    <div className="site-public flex min-h-full flex-1 flex-col bg-[var(--creme)] print:bg-white">
+    <div className="site-public flex min-h-full flex-1 flex-col">
       <div className="contents print:hidden">
         <EnTetePublic />
       </div>
       <main className="flex-1 print:p-0">
-        <header className="outil-entete print:hidden">
-          <div className="mx-auto w-full max-w-6xl px-4 pt-5 pb-8 sm:px-7 sm:pt-7 sm:pb-10">
-            <nav aria-label="Fil d'Ariane" className="text-[13px] text-[var(--texte-secondaire)]">
-              <Link href="/outils" className="lien-discret">
-                ← Outils gratuits
+        <header className="public-page-intro print:hidden">
+          <div className="public-conteneur">
+            <nav aria-label="Fil d'Ariane">
+              <Link href="/outils" className="public-retour">
+                ← Tous les outils
               </Link>
             </nav>
-            <div className="mt-3 flex items-start gap-4 sm:gap-5">
+            <div className="public-page-titre">
               <TuileOutil chemin={chemin} taille="lg" />
-              <div className="min-w-0 flex-1">
-                <p className="eyebrow !text-[var(--marque-sombre)]">Outil gratuit</p>
-                <h1 className="outil-titre mt-1.5 text-balance font-heading font-extrabold leading-[1.12] tracking-[-0.02em] text-[var(--encre)]">
-                  {titre}
-                </h1>
-                <p className="mt-2.5 max-w-2xl text-[15.5px] leading-relaxed text-[var(--texte-secondaire)] sm:text-[16.5px]">
-                  {promesse}
-                </p>
-                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div>
+                <p className="eyebrow">Outil gratuit</p>
+                <h1>{titre}</h1>
+                <p>{promesse}</p>
+                <div className="public-page-reperes">
                   <PucesGratuit />
-                  <p className="flex items-center gap-1.5 text-[12.5px] text-[var(--texte-secondaire)]">
-                    <svg viewBox="0 0 24 24" aria-hidden className="size-4 fill-none stroke-current" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                  <p>
+                    <svg viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0 fill-none stroke-current" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                       <rect x="5" y="10.5" width="14" height="10" rx="2" />
                       <path d="M8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3" />
                     </svg>
@@ -72,17 +73,17 @@ export function CoquilleOutil({
           </div>
         </header>
 
-        <div className="mx-auto w-full max-w-6xl space-y-10 px-4 py-7 sm:px-7 sm:py-10 print:max-w-none print:space-y-0 print:p-0">
+        <div className="public-conteneur space-y-10 py-7 sm:py-10 print:space-y-0 print:p-0">
           {children}
 
           <div className="grid gap-5 lg:grid-cols-2 lg:items-start print:hidden">
             <details className="outil-repli group">
               <summary>
                 <span className="flex items-center gap-3">
-                  <span className="outil-tuile size-9 rounded-[10px]">
+                  <span className="outil-tuile size-9 rounded-[var(--rayon-bouton)]">
                     <IconeTrait nom="outils" className="size-[18px]" />
                   </span>
-                  <span className="font-heading text-[16px] font-bold text-[var(--encre)]">Comment c&apos;est calculé</span>
+                  <span className="text-[length:var(--titre-3)] font-semibold text-[var(--encre)]">Comment c&apos;est calculé</span>
                 </span>
                 <svg viewBox="0 0 24 24" aria-hidden className="outil-repli-chevron size-5 fill-none stroke-current" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="m6 9 6 6 6-6" />
@@ -91,8 +92,8 @@ export function CoquilleOutil({
               <div className="outil-repli-corps">{calcul}</div>
             </details>
             <aside className="outil-bon-a-savoir" aria-labelledby="bon-a-savoir">
-              <h2 id="bon-a-savoir" className="outil-h3 flex items-center gap-2.5 font-heading font-bold text-[var(--encre)]">
-                <svg viewBox="0 0 24 24" aria-hidden className="size-5 fill-none stroke-[var(--turquoise-texte)]" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <h2 id="bon-a-savoir" className="titre-carte flex items-center gap-2.5 font-semibold">
+                <svg viewBox="0 0 24 24" aria-hidden className="size-5 fill-none stroke-[var(--prestige-champagne-texte)]" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.4 1 1.1 1 1.9V16h5v-.2c0-.8.4-1.5 1-1.9A6 6 0 0 0 12 3Z" />
                 </svg>
                 Bon à savoir
@@ -117,11 +118,9 @@ export function AutresOutils({ sauf }: { sauf?: string }) {
   return (
     <section aria-labelledby="autres-outils" className="print:hidden">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="autres-outils" className="outil-h2 font-heading font-bold text-[var(--encre)]">
-          Les autres outils gratuits
-        </h2>
-        <Link href="/outils" className="lien-discret text-[13.5px]">
-          Tous les outils →
+        <h2 id="autres-outils">Les autres outils gratuits</h2>
+        <Link href="/outils" className="public-lien">
+          Tous les outils <span aria-hidden>→</span>
         </Link>
       </div>
       <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -130,7 +129,7 @@ export function AutresOutils({ sauf }: { sauf?: string }) {
             <Link href={o.chemin} className="outil-lien-carte group">
               <TuileOutil chemin={o.chemin} taille="sm" />
               <span className="min-w-0">
-                <span className="block font-heading text-[14.5px] font-bold leading-snug text-[var(--encre)] group-hover:text-[var(--marque-sombre)]">
+                <span className="block text-[14px] font-semibold leading-snug text-[var(--encre)]">
                   {o.court}
                 </span>
                 <span className="mt-0.5 block text-[12.5px] leading-snug text-[var(--texte-secondaire)]">{o.accroche}</span>
@@ -156,16 +155,16 @@ export function AppelEssai({ chemin }: { chemin?: string }) {
   const outil = OUTILS.find((o) => o.chemin === chemin);
   const duree = dureeEssai();
   return (
-    <section className="vitrine-bandeau outil-appel print:hidden" aria-labelledby="appel-essai">
+    <section data-appel-inscription className="vitrine-bandeau outil-appel print:hidden" aria-labelledby="appel-essai">
       <div className="relative grid gap-8 lg:grid-cols-[1.25fr_1fr] lg:items-center">
         <div>
-          <p className="eyebrow !text-[var(--sur-marque)]">Votre espace propriétaire</p>
+          <p className="eyebrow">Votre espace propriétaire</p>
           <p
             className="mt-3 inline-flex rounded-full px-3 py-1 text-[12.5px] font-semibold bg-[var(--ivoire)] text-[var(--encre)]"
           >
             {badgeEssai()}
           </p>
-          <h2 id="appel-essai" className="mt-2 max-w-[26ch] text-balance font-heading font-bold leading-[1.18] text-[var(--sur-marque)]">
+          <h2 id="appel-essai" className="mt-3 max-w-[26ch]">
             Retrouvez vos locations et vos justificatifs
           </h2>
           <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--sur-marque)]/85">
@@ -173,13 +172,13 @@ export function AppelEssai({ chemin }: { chemin?: string }) {
           </p>
           <Link
             href="/inscription"
-            className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-[11px] bg-[var(--ivoire)] px-5 py-2.5 text-[14.5px] font-semibold text-[var(--encre)] shadow-[0_6px_20px_rgb(0_0_0/0.14)] transition-colors hover:bg-[var(--marque-clair)]"
+            className="public-appel-bouton mt-6"
           >
             Créer mon compte — {duree} d&apos;essai
             <span aria-hidden>→</span>
           </Link>
         </div>
-        <ul className="space-y-3 rounded-2xl border border-white/20 bg-white/10 p-5 text-[14px] leading-snug text-[var(--sur-marque)] sm:p-6">
+        <ul className="public-appel-liste space-y-3 p-5 text-[14px] leading-snug text-[var(--sur-marque)] sm:p-6">
           {[
             "Quittances et reçus selon les montants encaissés",
             "Échéances visibles dans le tableau de bord",

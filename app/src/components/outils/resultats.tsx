@@ -14,7 +14,7 @@ export function DispositionOutil({ saisie, resultat }: { saisie: ReactNode; resu
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1.18fr)_minmax(0,1fr)] lg:items-start lg:gap-7 print:hidden">
       {saisie}
-      <div className="min-w-0 lg:sticky lg:top-[88px]">{resultat}</div>
+      <div className="outil-colonne-resultat min-w-0">{resultat}</div>
     </div>
   );
 }

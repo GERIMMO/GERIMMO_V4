@@ -130,13 +130,8 @@ export function FormulaireConnexion() {
         {message && (
           <p
             role={message.ton === "attention" ? "alert" : undefined}
-            className={`mb-4 rounded-md p-3 text-sm ${
-              message.ton === "succes"
-                ? "bg-success-soft text-success-soft-foreground"
-                : message.ton === "attention"
-                  ? "border-l-4 border-warning bg-warning-soft text-warning-soft-foreground"
-                  : "bg-accent text-accent-foreground"
-            }`}
+            data-ton={message.ton}
+            className="auth-message mb-4"
           >
             {message.texte}
             {message.lien && (

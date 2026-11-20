@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
+import { LienRetourIntrouvable } from "@/components/ecran-introuvable";
 
 // La page « introuvable » de toute l'application (audit du 27/09). Il n'y en
 // avait aucune : une URL inconnue, ou l'ancien lien d'une quittance reçue par
@@ -29,9 +30,8 @@ export default function PageIntrouvable() {
           et vos démarches depuis votre espace.
         </p>
         <div className="geste">
-          <Link href="/espaces" className="btn-or inline-flex min-h-11 items-center">
-            Retour à mon espace
-          </Link>
+          {/* Dans l'adresse d'un espace, le geste ramène à l'accueil de CET espace (20/11) ; sinon à « Mes espaces ». */}
+          <LienRetourIntrouvable />
         </div>
         <p className="mt-4 text-sm text-[var(--texte-secondaire)]">
           Pas encore de compte&nbsp;?{" "}

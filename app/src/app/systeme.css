@@ -91,6 +91,9 @@ body.gerimmo-prestige,
 .gerimmo-prestige .btn-secondaire:hover:not(:disabled) { border-color: var(--marque); background: var(--survol); transform: none; }
 .gerimmo-prestige :is(.btn-or, .btn-secondaire):disabled { box-shadow: none; }
 
+/* Le bouton de recherche des en-têtes faisait 42 à 43 px : une cible tactile fait 44 px (audit du 20/11). */
+.gerimmo-prestige .recherche-ouvrir { min-height: var(--cible-tactile); }
+
 /* --- Champs --------------------------------------------------------------------------------------------------------- */
 body.gerimmo-prestige :where(input, select, textarea):not(:where([type="checkbox"], [type="radio"], [type="hidden"], [type="range"], [type="color"], [type="submit"], [type="button"], [role="combobox"], [hidden], .sr-only)) {
   transition: border-color var(--duree-rapide) ease, box-shadow var(--duree-rapide) ease;
@@ -124,6 +127,35 @@ body.gerimmo-prestige :is(input, select, textarea)[aria-invalid="true"]:focus {
   border: 1px solid var(--filet);
 }
 .gerimmo-prestige .carte-rubrique[data-ton] { border-top: 1px solid var(--filet); }
+/* Chiffres clés et tuiles : un aplat. Le liseré gauche ne reste que s'il dit un ÉTAT (rouge, ambre, vert). */
+.gerimmo-prestige :is(.kpi, .kpi.bleu, .kpi.or, .kpi.ambre, .kpi.vert, .kpi.rouge) {
+  background: var(--carte);
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-1);
+}
+.gerimmo-prestige :is(.kpi.bleu, .kpi.or) { border-left: 1px solid var(--filet); }
+.gerimmo-prestige :is(.tuile.accent, .tuile.neutre) { background: var(--carte); border-color: var(--filet); box-shadow: var(--ombre-1); }
+.gerimmo-prestige .tuile.ok { background: var(--success-soft); }
+.gerimmo-prestige .tuile.attention { background: var(--warning-soft); }
+.gerimmo-prestige .tuile.probleme { background: var(--destructive-soft); }
+.gerimmo-prestige .tuile { border-radius: var(--rayon-carte); }
+/* Espace locataire et accueils : carte blanche, plus de bord haut coloré ni de fond dégradé. */
+.gerimmo-prestige .loc-corps :is(.loc-carte.loc-kpi, .loc-kpi.carte-rubrique) {
+  background: var(--carte);
+  border: 1px solid var(--filet);
+}
+.gerimmo-prestige :is(.loc-hero, .portail-hero.portail-hero-accueil) {
+  background: var(--carte);
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon-carte);
+  box-shadow: var(--ombre-1);
+}
+.gerimmo-prestige .portail-hero:not(.portail-hero-accueil) { background: var(--marque); border-radius: var(--rayon-carte); }
+.gerimmo-prestige :is(.assistant-logement, .bien-visuel-entete) { background: var(--carte); border-color: var(--filet); border-radius: var(--rayon-carte); }
+/* Outils publics : papier et cartes blanches, comme partout. */
+.gerimmo-prestige :is(.outil-entete, .outil-bureau, .vitrine-hero) { background: var(--creme); }
+.gerimmo-prestige :is(.outil-tuile, .vitrine-cadre) { background: var(--carte); }
+.gerimmo-prestige .vitrine-bandeau { background: var(--marque); }
 .gerimmo-prestige :is(.assistant-conseil, .dossier-conseil) {
   border: 1px solid var(--or-filet);
   border-radius: var(--rayon-carte);
@@ -137,6 +169,16 @@ body.gerimmo-prestige :is(input, select, textarea)[aria-invalid="true"]:focus {
 
 /* --- Montants : chiffres alignés, jamais de retour à la ligne au milieu d'une somme ---------------------------------- */
 .gerimmo-prestige :is(.montant, .chiffre, .loc-kpi .v, [data-montant]) { font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+
+/* --- Écrans d'erreur et « page introuvable » : le même titre dans tous les espaces ---------------------------------- */
+.gerimmo-prestige .vide-guide h1.titre {
+  font-family: var(--font-display);
+  font-weight: var(--graisse-titre);
+  font-size: var(--titre-2);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 4px 0 8px;
+}
 
 /* --- États vides : le motif du toit et de la clé, signature de la marque -------------------------------------------- */
 .gerimmo-prestige .vide-guide {

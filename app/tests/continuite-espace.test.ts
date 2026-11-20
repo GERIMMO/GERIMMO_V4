@@ -4,7 +4,7 @@
  * `src/lib/continuite-espace.ts` : quels chemins appartiennent à un espace, ce qui est retenu, ce qui est refusé.
  */
 import { describe, expect, it } from "vitest";
-import { cheminEntreeSession, espaceAMemoriser, espaceDuChemin, lireEspaceMemorise } from "../src/lib/continuite-espace";
+import { accueilEspaceDuChemin, cheminEntreeSession, espaceAMemoriser, espaceDuChemin, lireEspaceMemorise } from "../src/lib/continuite-espace";
 
 const ID = "c14c3187-1258-4e58-8822-368c6007e3fa";
 
@@ -59,5 +59,16 @@ describe("continuité entre un espace et les pages hors coquille", () => {
   it("le libellé affiché vient du chemin, jamais du stockage", () => {
     const valeur = lireEspaceMemorise(JSON.stringify({ href: "/admin/sante", libelle: "<b>piège</b>" }));
     expect(valeur?.libelle).toBe("la supervision");
+  });
+  it("ramène à l'accueil de l'espace depuis un écran d'erreur ou une page introuvable", () => {
+    expect(accueilEspaceDuChemin(`/agence/${ID}/baux/inconnu`)).toEqual({ href: `/agence/${ID}`, libelle: "mon espace de gestion" });
+    expect(accueilEspaceDuChemin(`/espace/${ID}/parc`)).toEqual({ href: `/espace/${ID}`, libelle: "mon espace propriétaire" });
+    expect(accueilEspaceDuChemin(`/locataire/${ID}/loyers`)).toEqual({ href: `/locataire/${ID}`, libelle: "mon espace locataire" });
+    expect(accueilEspaceDuChemin("/artisan/missions/abc")).toEqual({ href: "/artisan", libelle: "mon espace artisan" });
+    expect(accueilEspaceDuChemin("/admin/clients")).toEqual({ href: "/admin", libelle: "la supervision" });
+    // Hors d'un espace, et sur les pages publiques rangées sous /artisan : aucun accueil à proposer.
+    expect(accueilEspaceDuChemin("/compte")).toBeNull();
+    expect(accueilEspaceDuChemin("/artisan/inscription")).toBeNull();
+    expect(accueilEspaceDuChemin("/")).toBeNull();
   });
 });

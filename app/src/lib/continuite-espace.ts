@@ -27,6 +27,18 @@ export function espaceDuChemin(chemin: string): string | null {
   return null;
 }
 
+/**
+ * L'accueil de l'espace auquel appartient un chemin : là où ramener quelqu'un depuis un écran d'erreur ou une page
+ * introuvable, sans le faire sortir de son espace. Null hors d'un espace.
+ */
+export function accueilEspaceDuChemin(chemin: string): EspaceMemorise | null {
+  const libelle = espaceDuChemin(chemin);
+  if (!libelle) return null;
+  const avecIdentifiant = new RegExp(`^/(espace|agence|locataire)/${UUID}`, "i").exec(chemin);
+  if (avecIdentifiant) return { href: avecIdentifiant[0], libelle };
+  return { href: chemin.startsWith("/admin") ? "/admin" : "/artisan", libelle };
+}
+
 /** Ce chemin ouvre ou ferme une session : la mémoire de l'espace n'y survit pas. */
 export function cheminEntreeSession(chemin: string): boolean {
   return ENTREE_SESSION.test(chemin);

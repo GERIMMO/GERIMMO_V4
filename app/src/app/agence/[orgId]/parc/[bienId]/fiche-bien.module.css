@@ -3,7 +3,7 @@
    L'ordre de lecture fait la hiérarchie : logements, incidents, dépenses, puis le dossier du bâtiment replié. */
 .fiche { min-width:0; }
 .locations { overflow:hidden; }
-.locations :global(.puce) { font-size:11px; }
+.locations :global(.puce) { font-size:12px; }
 
 /* Location en cours d'un lot : qui, quel loyer, et les deux accès utiles. */
 .locationResume { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 16px;padding:4px 0 4px 8px; }

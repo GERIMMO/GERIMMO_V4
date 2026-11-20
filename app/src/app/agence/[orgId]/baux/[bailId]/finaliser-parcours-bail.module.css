@@ -7,7 +7,7 @@
 .carte > header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .carte > header > svg { flex-shrink: 0; color: var(--texte-secondaire); }
 .carte h4 { flex: 1 1 155px; margin: 0; font-size: .94rem; font-weight: 650; }
-.statut { width: fit-content; padding: 4px 8px; border-radius: var(--rayon-bouton); background: var(--muted); color: var(--muted-foreground); font-size: .72rem; font-weight: 600; }
+.statut { width: fit-content; padding: 4px 8px; border-radius: var(--rayon-bouton); background: var(--muted); color: var(--muted-foreground); font-size: .75rem; font-weight: 600; }
 .statut[data-attention] { background: var(--warning-soft); color: var(--warning-soft-foreground); }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .carte button { min-height: 42px; max-width: 100%; height: auto; padding-block: 10px; white-space: normal; line-height: 1.35; }

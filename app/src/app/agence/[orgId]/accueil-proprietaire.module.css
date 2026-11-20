@@ -46,7 +46,7 @@
 .vignetteConseil { display:block; flex-shrink:0; width:88px; height:66px; overflow:hidden; border:0; border-radius:6px; background:var(--or-clair); }
 .vignetteConseil img { width:100%; height:100%; object-fit:cover; }
 .articleVedette > div { flex:1; min-width:0; }
-.articleVedette small { display:inline-block; margin-bottom:5px; padding:2px 7px; background:var(--or-clair); color:var(--prestige-champagne-texte); border-radius:4px; font-size:11px; font-weight:600; }
+.articleVedette small { display:inline-block; margin-bottom:5px; padding:2px 7px; background:var(--or-clair); color:var(--prestige-champagne-texte); border-radius:4px; font-size:12px; font-weight:600; }
 .articleVedette h3 { font-size:15px; font-weight:600; line-height:1.3; overflow-wrap:anywhere; }
 .articleVedette > svg { flex-shrink:0; }
 .articleVedette:hover h3 { text-decoration:underline; text-underline-offset:3px; }

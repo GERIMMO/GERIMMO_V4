@@ -30,7 +30,7 @@
 .gerimmo-prestige .incidents-liste-entete h2 { font-family: var(--font-interface), sans-serif; font-size: 14px; font-weight: 650; }
 .incidents-liste-entete > span { font-size: 12px; color: var(--texte-secondaire); }
 .incidents-page .rang { display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 17px 15px; border-left-width: 3px; }
-.incident-rang-reperes { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; color: var(--texte-secondaire); font-size: 11px; letter-spacing: .025em; font-variant-numeric: tabular-nums; }
+.incident-rang-reperes { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px; color: var(--texte-secondaire); font-size: 12px; letter-spacing: .025em; font-variant-numeric: tabular-nums; }
 .incident-rang-titre { font-size: 15px; line-height: 1.4; font-weight: 650; overflow-wrap: anywhere; }
 .incident-rang-lot { color: var(--texte-secondaire); font-size: 12px; overflow-wrap: anywhere; }
 .incident-rang-etats { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -41,14 +41,14 @@
 .incident-entete { overflow: hidden; background: var(--carte); border: 1px solid var(--filet); border-radius: var(--rayon-carte); box-shadow: var(--ombre-1); }
 .incident-entete-haut { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 0; }
 .incident-entete-haut > div:first-child { min-width: 0; flex: 1 1 240px; }
-.incident-reference { color: var(--texte-secondaire); font-size: 11px; line-height: 1.6; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.incident-reference { color: var(--texte-secondaire); font-size: 12px; line-height: 1.6; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
 .gerimmo-prestige .incident-entete h2 { line-height: 1.2; margin-top: 6px; overflow-wrap: anywhere; }
 .incident-badges { display: flex; flex-wrap: wrap; gap: 6px; }
 .incident-reperes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px 22px 17px; }
 .incident-reperes > div { display: flex; align-items: flex-start; gap: 9px; min-width: 0; }
 .incident-reperes svg { flex-shrink: 0; margin-top: 2px; color: var(--texte-secondaire); }
 .incident-reperes > div > div { display: grid; gap: 3px; min-width: 0; }
-.incident-reperes span { font-size: 11px; color: var(--texte-secondaire); }
+.incident-reperes span { font-size: 12px; color: var(--texte-secondaire); }
 .incident-reperes :is(a,strong) { font-size: 13px; font-weight: 550; overflow-wrap: anywhere; }
 .incident-reperes a:hover { text-decoration: underline; }
 .incident-reperes small { font-size: 12px; color: var(--texte-secondaire); }
@@ -65,7 +65,7 @@
 /* Étapes du dossier : le champagne repère l'étape en cours, le vert ce qui est fait. */
 .incident-etapes { display: flex; flex-wrap: wrap; gap: 12px; padding: 13px 22px; border-top: 1px solid var(--filet-leger); background: var(--creme); }
 .incident-etapes li { display: flex; flex: 1 1 auto; align-items: center; gap: 7px; color: var(--texte-secondaire); font-size: 12px; }
-.incident-etapes li > span { display: inline-flex; align-items: center; justify-content: center; width: 21px; height: 21px; border: 1px solid var(--filet-champ); border-radius: 50%; font-size: 10px; font-variant-numeric: tabular-nums; }
+.incident-etapes li > span { display: inline-flex; align-items: center; justify-content: center; width: 21px; height: 21px; border: 1px solid var(--filet-champ); border-radius: 50%; font-size: 12px; font-variant-numeric: tabular-nums; }
 .incident-etapes li[data-etat="courant"] { color: var(--encre); font-weight: 650; }
 .incident-etapes li[data-etat="courant"] > span { color: var(--sur-marque); background: var(--marque); border-color: var(--marque); box-shadow: 0 0 0 2px var(--champagne-vif); }
 .incident-etapes li[data-etat="fait"] { color: var(--success-soft-foreground); }
@@ -76,7 +76,7 @@
 .incident-prochaine-action[data-ton="attention"] { --ton: var(--warning-soft-foreground); border-color: color-mix(in srgb, var(--warning) 35%, #fff); border-left: 3px solid var(--warning); background: var(--warning-soft); }
 .incident-prochaine-action[data-ton="termine"] { --ton: var(--success-soft-foreground); border-color: color-mix(in srgb, var(--success) 30%, #fff); background: var(--success-soft); }
 .incident-prochaine-action > div { min-width: 0; flex: 1 1 260px; }
-.incident-prochaine-action span { display: block; margin-bottom: 4px; color: var(--ton); font-size: 11px; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; }
+.incident-prochaine-action span { display: block; margin-bottom: 4px; color: var(--ton); font-size: 12px; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; }
 .incident-prochaine-action strong { font-size: 14px; color: var(--encre); }
 .incident-prochaine-action p { font-size: 13px; line-height: 1.5; color: var(--texte-secondaire); margin-top: 4px; }
 .incident-prochaine-action a { display: inline-flex; align-items: center; gap: 8px; min-height: var(--cible-tactile); font-size: 13px; font-weight: 650; color: var(--encre); text-decoration: underline; text-decoration-color: var(--prestige-champagne); text-underline-offset: 4px; }
@@ -164,7 +164,7 @@
 .espace-proprietaire [data-parcours-intervention] .incident-rang-titre { font-size: 13px; line-height: 1.4; font-weight: 600; color: var(--encre); }
 .espace-proprietaire [data-parcours-intervention] .incident-rang-lot { font-size: 12px; }
 .espace-proprietaire [data-parcours-intervention] .incident-rang-reperes { margin-top: 4px; }
-.espace-proprietaire [data-parcours-intervention] .incident-statut { font-size: 11px; font-weight: 600; }
+.espace-proprietaire [data-parcours-intervention] .incident-statut { font-size: 12px; font-weight: 600; }
 .espace-proprietaire [data-parcours-intervention] .incident-dossier { display: grid; gap: 12px; }
 .espace-proprietaire [data-parcours-intervention] .incident-dossier > * { margin-block: 0; }
 .espace-proprietaire [data-parcours-intervention] .incident-entete-haut { padding: 14px 16px 0; gap: 10px; }
@@ -221,7 +221,7 @@
    En attente (rien à faire) : encart neutre. */
 .espace-proprietaire [data-parcours-intervention] .incident-consigne { display: grid; gap: 5px; padding: 13px 15px; border: 1px solid var(--or-filet); border-radius: var(--rayon-carte); background: var(--or-clair); }
 .espace-proprietaire [data-parcours-intervention] .incident-consigne[data-attente="true"] { background: var(--carte); border-color: var(--filet); }
-.espace-proprietaire [data-parcours-intervention] .incident-consigne-repere { color: var(--prestige-champagne-texte); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.espace-proprietaire [data-parcours-intervention] .incident-consigne-repere { color: var(--prestige-champagne-texte); font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .espace-proprietaire [data-parcours-intervention] .incident-consigne[data-attente="true"] .incident-consigne-repere { color: var(--texte-secondaire); }
 .espace-proprietaire [data-parcours-intervention] .incident-consigne h3 { margin: 0; font: 600 15px/1.4 var(--font-interface), sans-serif; color: var(--encre); }
 .espace-proprietaire [data-parcours-intervention] .incident-consigne p { font-size: 13px; line-height: 1.6; color: var(--texte-secondaire); }

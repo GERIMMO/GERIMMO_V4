@@ -32,6 +32,7 @@ body.gerimmo-prestige,
   /* --- Marque ------------------------------------------------------------------------------------------------------ */
   --champagne-vif: #d5b777;              /* liseré et repère posés sur le bleu nuit */
   --nuit-menu: #14304f;
+  --pas-mention: 0.75rem;               /* 12 px : la mention la plus discrète (elle valait 11 px) */
   --sur-nuit-doux: #cad4e1;             /* texte d'un lien de menu au repos, sur le bleu nuit */
   --nuit-menu-survol: #1c3d62;
   --nuit-menu-actif: #234870;
@@ -196,11 +197,14 @@ body.gerimmo-prestige :is(input, select, textarea)[aria-invalid="true"]:focus {
 .gerimmo-prestige .dossier-nav a { border-radius: var(--rayon-bouton); transition: background-color var(--duree-rapide) ease, border-color var(--duree-rapide) ease, color var(--duree-rapide) ease; }
 
 /* --- Lisibilité : aucun libellé sous 12 px (les pastilles de compteur et les raccourcis clavier font exception) ------ */
-.gerimmo-prestige :is(.eyebrow, .dossier-surtitre, .portail-surtitre, .outil-groupe-titre, .outil-panneau-titre, .admin-menu-titre, .etiquette-alerte, .lot-etiquette-archive, .infobulle, .recherche-pied, .agenda-nom-jour, .assistant-etape-statut),
+.gerimmo-prestige :is(.eyebrow, .mono-discret, .libelle-champ, .puce, .badge-statut, .dossier-surtitre, .portail-surtitre, .outil-groupe-titre, .outil-panneau-titre, .admin-menu-titre, .etiquette-alerte, .lot-etiquette-archive, .infobulle, .recherche-pied, .agenda-nom-jour, .assistant-etape-statut),
 .gerimmo-prestige .tableau th,
 .gerimmo-prestige .coquille-groupe > p,
 .gerimmo-prestige :is(.rang, .ligne-info, .dossier-etapes, .assistant-etapes) small,
 .gerimmo-prestige .tableau-fiches .tableau td[data-libelle]::before { font-size: 12px; }
+
+/* <small> vaut 80 % de son parent par défaut : sous un texte de 12 ou 14 px il tombait à 9,6 et 11,2 px. */
+@media screen { .gerimmo-prestige small { font-size: max(12px, 0.85em); } }
 
 /* Un bouton posé dans un paragraphe n'est pas un lien de texte : pas de soulignement. */
 .gerimmo-prestige p a:is(.btn-or, .btn-secondaire, .bouton-gerimmo, [data-slot="button"]) { text-decoration: none; }

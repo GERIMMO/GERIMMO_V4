@@ -44,7 +44,7 @@
 .compact .identite { grid-column:1/-1; gap:6px; font-size:13px; }
 .compact .identite strong { min-width:0; }
 .compact .identite :global(.badge-statut) { font-size:11px; padding:3px 6px; }
-.compact .date { margin:0; align-self:center; font-size:11px; }
+.compact .date { margin:0; align-self:center; font-size:12px; }
 .compact .ligne > .actions { grid-column:2; align-items:start; justify-content:flex-end; }
 .compact .ligne > .details { grid-column:1/-1; margin:0; }
 .compact .details summary { min-height:32px; }

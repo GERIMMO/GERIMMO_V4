@@ -8,7 +8,7 @@
 /* La note : un fond doux champagne, sans dégradé. */
 .note { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 28px; background: var(--or-clair); border-right: 1px solid var(--or-filet); }
 .etoile { display: grid; place-items: center; width: 52px; height: 52px; border: 1px solid var(--or-filet); border-radius: 16px; background: var(--carte); color: var(--prestige-champagne-texte); margin-bottom: 16px; }
-.surtitre { color: var(--prestige-champagne-texte); font-size: 11px; text-transform: uppercase; letter-spacing: .13em; font-weight: 600; }
+.surtitre { color: var(--prestige-champagne-texte); font-size: 12px; text-transform: uppercase; letter-spacing: .13em; font-weight: 600; }
 .note h2 { font-size: var(--titre-2); line-height: 1.25; max-width: 240px; margin: 9px 0 15px; }
 .note > p { color: var(--texte-secondaire); font-size: 13px; margin-top: 12px; }
 .moyenne { font-family: var(--font-titres), system-ui, sans-serif; font-size: 64px; line-height: 1.3; color: var(--encre); margin: 6px 0; font-variant-numeric: lining-nums tabular-nums; }

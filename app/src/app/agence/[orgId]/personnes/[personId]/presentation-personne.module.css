@@ -5,7 +5,7 @@
 .entete { display: flex; align-items: center; gap: 18px; }
 .avatar { display: grid; place-items: center; width: 72px; height: 72px; flex: 0 0 72px; border: 1px solid var(--or-filet); border-radius: var(--rayon-carte); color: var(--prestige-champagne-texte); background: var(--or-clair); font-size: 1.65rem; font-weight: 650; }
 .identite { min-width: 0; }
-.qualite { margin: 0 0 5px; color: var(--texte-secondaire); font-size: .72rem; letter-spacing: .09em; text-transform: uppercase; }
+.qualite { margin: 0 0 5px; color: var(--texte-secondaire); font-size: .75rem; letter-spacing: .09em; text-transform: uppercase; }
 .identite h1 { margin: 0; font-size: var(--titre-1); line-height: 1.2; overflow-wrap: anywhere; }
 .roles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .role { display: inline-flex; padding: 4px 9px; border-radius: 999px; background: var(--filet-leger); color: var(--encre); font-size: .75rem; font-weight: 600; }

@@ -14,7 +14,7 @@
 .contacts svg { flex-shrink:0; }
 .precision, .vide { font-size:12px; line-height:1.6; color:var(--texte-secondaire); overflow-wrap:anywhere; }
 .garants { display:grid; gap:7px; }
-.garants h3 { font-family:var(--font-interface),sans-serif; font-size:11px; font-weight:650; color:var(--texte-secondaire); }
+.garants h3 { font-family:var(--font-interface),sans-serif; font-size:12px; font-weight:650; color:var(--texte-secondaire); }
 .lienAction { display:inline-flex; align-items:center; gap:6px; min-height:32px; justify-self:start; font-size:12px; color:var(--encre); font-weight:600; }
 .nom:hover, .contacts a:hover, .lienAction:hover { text-decoration:underline; text-underline-offset:3px; }
 .serein { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--success-soft-foreground); line-height:1.5; }
@@ -25,7 +25,7 @@
 .incidentEntete { display:flex; justify-content:space-between; gap:8px; font-size:13px; line-height:1.5; }
 .incidentEntete > svg { flex-shrink:0; color:var(--texte-secondaire); }
 .description { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; font-size:12px; line-height:1.55; color:var(--texte-secondaire); }
-.precisionsIncident { display:flex; flex-wrap:wrap; gap:4px 10px; font-size:11px; line-height:1.5; color:var(--texte-secondaire); }
+.precisionsIncident { display:flex; flex-wrap:wrap; gap:4px 10px; font-size:12px; line-height:1.5; color:var(--texte-secondaire); }
 .etats { display:flex; align-items:center; flex-wrap:wrap; gap:6px; }
 .historique { border-top:1px solid var(--filet-leger); padding-top:8px; min-width:0; }
 .historique > summary { cursor:pointer; padding:8px 0; font-size:12px; font-weight:600; color:var(--texte-secondaire); }

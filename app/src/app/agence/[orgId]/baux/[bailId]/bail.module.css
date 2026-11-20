@@ -1,7 +1,7 @@
 .entete { display:flex; align-items:center; flex-wrap:wrap; gap:16px; padding:22px; background:var(--surface); border:1px solid var(--trait); border-radius:var(--rayon-carte); box-shadow:var(--ombre-1); }
 .entete h1 { font-size:var(--titre-1); overflow-wrap:anywhere; }
 .icone { display:grid; place-items:center; width:54px; height:54px; flex-shrink:0; border-radius:var(--rayon-carte); background:var(--marque-clair); color:var(--marque); }
-.surtitre { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--texte-secondaire); margin-bottom:6px; }
+.surtitre { font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--texte-secondaire); margin-bottom:6px; }
 .chiffres { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
 .chiffres > div { padding:15px; border:1px solid var(--trait); border-radius:var(--rayon-carte); background:var(--surface); box-shadow:var(--ombre-1); }
 .chiffres dt { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--texte-secondaire); }
@@ -17,7 +17,7 @@
 .page :global([data-slot=card]) { --card-spacing:18px; box-shadow:none; }
 .page :global([data-slot=card-description]) { max-width:75ch; font-size:12px; line-height:1.6; }
 @media(max-width:850px) { .chiffres { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media(max-width:500px) { .entete { padding:16px; gap:12px; } .entete > a { width:100%; justify-content:center; } .chiffres > div { padding:12px; } .chiffres dd { font-size:16px; } .chiffres dt { align-items:start; font-size:11px; } }
+@media(max-width:500px) { .entete { padding:16px; gap:12px; } .entete > a { width:100%; justify-content:center; } .chiffres > div { padding:12px; } .chiffres dd { font-size:16px; } .chiffres dt { align-items:start; font-size:12px; } }
 
 .guide { border:1px solid var(--trait); border-radius:var(--rayon-carte); padding:18px; background:var(--surface); box-shadow:var(--ombre-1); }
 .guide h2 { font-size:var(--titre-2); }
@@ -32,7 +32,7 @@
 .resumeBrouillon { display:flex; flex-wrap:wrap; flex-basis:100%; gap:10px 28px; margin-top:0; padding-top:10px; border-top:1px solid var(--filet-leger); }
 .resumeBrouillon > div { display:flex; flex-wrap:wrap; align-items:baseline; gap:3px 10px; min-width:0; }
 .resumeBrouillon svg { color:var(--prestige-champagne-texte); flex-shrink:0; }
-.resumeBrouillon dt { display:flex; align-items:center; gap:7px; color:var(--texte-secondaire); font-size:11px; line-height:1.5; }
+.resumeBrouillon dt { display:flex; align-items:center; gap:7px; color:var(--texte-secondaire); font-size:12px; line-height:1.5; }
 .resumeBrouillon dd { margin:0; color:var(--encre); font-size:15px; font-weight:600; overflow-wrap:anywhere; }
 
 /* En-tête compact pour la préparation du bail. */

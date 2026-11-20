@@ -39,7 +39,7 @@
 @media (max-width: 640px) { :global(.gerimmo-prestige) :is(.shell, .porte) :global(.artisan-carte) h2 { font-size: 18px; } }
 /* Porte d'entrée sans session (inscription, invitation) : même papier, même largeur de lecture. */
 .porte { background: var(--creme); }
-.surtitre { margin-bottom: 6px; color: var(--prestige-champagne-texte); font-size: 11px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; }
+.surtitre { margin-bottom: 6px; color: var(--prestige-champagne-texte); font-size: 12px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; }
 /* État vide (`.vide-guide`) : le dessin commun ; le corps reste à 15 px (lecture en plein soleil) et le motif de
    la marque garde sa place à droite. */
 :global(.gerimmo-prestige) :is(.shell, .porte) :global(.artisan-vide) { border-radius: var(--rayon-carte); padding-right: 104px; }
@@ -78,9 +78,9 @@
   .sidebar { display: flex; flex-direction: column; position: sticky; top: 0; height: 100svh; overflow-y: auto; color: color-mix(in srgb, var(--sur-marque) 90%, transparent); background: linear-gradient(180deg, var(--nuit-menu) 0%, color-mix(in srgb, var(--nuit-menu) 98%, transparent) 22%, color-mix(in srgb, var(--nuit-menu) 82%, transparent) 48%, color-mix(in srgb, var(--nuit-menu) 82%, transparent) 82%, color-mix(in srgb, var(--nuit-menu) 95%, transparent) 100%), url('/illustrations/quartier-gerimmo-2026.jpg') 68% center / cover var(--nuit-menu); }
   .brand { display: flex; flex-direction: column; align-items: center; padding: 19px 24px 18px; margin-inline: 18px; border-bottom: 1px solid color-mix(in srgb, var(--sur-marque) 15%, transparent); }
   :global(.gerimmo-prestige) .brand :global(.marque-gerimmo) { width: 158px; }
-  .brand > span:last-child { margin-top: 13px; color: var(--champagne-vif); font-size: 11px; text-transform: uppercase; letter-spacing: .16em; }
+  .brand > span:last-child { margin-top: 13px; color: var(--champagne-vif); font-size: 12px; text-transform: uppercase; letter-spacing: .16em; }
   .desktopNav { padding: 18px 12px; display: grid; gap: 22px; }
-  .desktopNav p { padding: 0 12px 8px; color: color-mix(in srgb, var(--sur-marque) 70%, transparent); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; }
+  .desktopNav p { padding: 0 12px 8px; color: color-mix(in srgb, var(--sur-marque) 70%, transparent); font-size: 12px; letter-spacing: .13em; text-transform: uppercase; font-weight: 600; }
   .desktopNav ul { display: grid; gap: 4px; }
   .desktopNav a { display: flex; align-items: center; gap: 10px; min-height: var(--cible-tactile); padding: 10px 12px; border-radius: 8px; color: color-mix(in srgb, var(--sur-marque) 88%, transparent); font-size: 13px; }
   .desktopNav a > svg { flex-shrink: 0; opacity: .85; }
@@ -91,7 +91,7 @@
   .navPoint { margin-left: auto; flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--champagne-vif); }
   .sidebarFoot { margin-top: auto; padding: 16px 24px 22px; display: grid; gap: 18px; border-top: 1px solid color-mix(in srgb, var(--sur-marque) 13%, transparent); }
   .sidebarFoot a { display: flex; align-items: center; gap: 10px; min-height: var(--cible-tactile); color: color-mix(in srgb, var(--sur-marque) 88%, transparent); font-size: 13px; }
-  .sidebarFoot > span { color: color-mix(in srgb, var(--sur-marque) 70%, transparent); font-size: 11px; }
+  .sidebarFoot > span { color: color-mix(in srgb, var(--sur-marque) 70%, transparent); font-size: 12px; }
   .mobileNav, .mobileBrand { display: none; }
   .topbar { min-height: 72px; padding: 10px 32px; }
   .spaceLabel { display: flex; align-items: center; gap: 9px; color: var(--texte-secondaire); font-size: 14px; }
@@ -132,7 +132,7 @@
 @media (max-width: 699px) {
   .content :global(.artisan-semaine) { gap: 4px; }
   .content :global(.artisan-semaine) > li > :is(a, div) { padding-inline: 0; }
-  .content :global(.artisan-semaine) span:last-child { font-size: 11px; white-space: nowrap; }
+  .content :global(.artisan-semaine) span:last-child { font-size: 12px; white-space: nowrap; }
 }
 
 /* Le rappel de présence dans le réseau, replié sous la file du jour. */

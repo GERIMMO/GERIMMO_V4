@@ -9,9 +9,9 @@
 .liste > li > svg { color:var(--texte-secondaire); flex-shrink:0; }
 .identite { min-width:180px; flex:1; }
 .identite strong { display:flex; flex-wrap:wrap; align-items:center; gap:8px; color:var(--encre); font-size:13px; font-weight:600; }
-.identite small { display:block; margin-top:4px; color:var(--texte-secondaire); font-size:11px; line-height:1.6; }
-.classe { padding:2px 6px; background:var(--marque-clair); border-radius:4px; font-size:10px; }
-.etat { display:inline-flex; align-items:center; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600; color:var(--texte-secondaire); background:var(--creme); }
+.identite small { display:block; margin-top:4px; color:var(--texte-secondaire); font-size:12px; line-height:1.6; }
+.classe { padding:2px 6px; background:var(--marque-clair); border-radius:4px; font-size:12px; }
+.etat { display:inline-flex; align-items:center; padding:4px 8px; border-radius:6px; font-size:12px; font-weight:600; color:var(--texte-secondaire); background:var(--creme); }
 .etat[data-ton="ok"] { background:var(--success-soft); color:var(--success-soft-foreground); }
 .etat[data-ton="attention"] { background:var(--warning-soft); color:var(--warning-soft-foreground); }
 .actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; }
@@ -33,13 +33,13 @@
 .carteEntete { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:8px; }
 .carte h4, .conditions h4 { font-size:14px; font-weight:600; color:var(--encre); }
 .carte p { margin:0; }
-.carte .obligation { font-size:11px; font-weight:600; color:var(--encre); }
+.carte .obligation { font-size:12px; font-weight:600; color:var(--encre); }
 .carte .actions { margin-top:auto; padding-top:8px; }
 .boutonDiscret, .lien { display:inline-flex; align-items:center; gap:6px; padding:7px 0; min-height:38px; font-size:12px; font-weight:600; color:var(--encre); text-align:left; }
 .boutonDiscret:disabled { opacity:.5; cursor:not-allowed; }
 .boutonDiscret:hover, .lien:hover { text-decoration:underline; text-underline-offset:3px; }
 .documentRepris { display:grid; gap:4px; font-size:12px; overflow-wrap:anywhere; }
-.documentRepris span { font-size:11px; color:var(--texte-secondaire); }
+.documentRepris span { font-size:12px; color:var(--texte-secondaire); }
 .details { border-top:1px solid var(--filet); padding-top:12px; min-width:0; }
 .details > summary { cursor:pointer; padding:8px 0; font-size:13px; font-weight:600; color:var(--encre); }
 .details > summary > svg { display:inline; vertical-align:middle; margin-right:8px; }

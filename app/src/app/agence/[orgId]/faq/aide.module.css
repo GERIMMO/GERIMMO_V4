@@ -27,7 +27,7 @@
 .question summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 77px; padding: 13px 15px; color: var(--encre); }
 .question summary::-webkit-details-marker { display: none; }
 .question summary > span { display: grid; gap: 5px; }
-.question summary small { color: var(--prestige-champagne-texte); font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.question summary small { color: var(--prestige-champagne-texte); font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 .question summary strong { font-size: 14px; font-weight: 600; line-height: 1.5; }
 .question summary > svg { flex-shrink: 0; color: var(--texte-secondaire); transition: transform var(--duree-rapide) ease; }
 .question summary:hover { background: var(--survol); }

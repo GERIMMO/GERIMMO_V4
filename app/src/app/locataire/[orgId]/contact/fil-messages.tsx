@@ -81,7 +81,7 @@ export function FilMessages({
               }`}
             >
               <p
-                className={`mb-0.5 text-[11px] ${
+                className={`mb-0.5 text-xs ${
                   m.auteur === "locataire"
                     ? "text-[var(--sur-encre)]/60"
                     : "text-muted-foreground"

@@ -30,6 +30,9 @@ export function ContinuiteEspace() {
     } catch {
       // Stockage indisponible (navigation privée stricte) : pas de bandeau, la page reste utilisable.
     }
+    // Une page rangée hors des espaces peut tout de même s'afficher dans une coquille (la page « panne » de l'artisan
+    // connecté) : le menu est là, le bandeau ferait doublon.
+    if (retenu && document.querySelector("[data-espace-menu], .coquille-late, .loc-late, .admin-late")) retenu = null;
     if (retenu) racine.setAttribute("data-depuis-espace", "1");
     else racine.removeAttribute("data-depuis-espace");
     // Lecture d'un stockage du navigateur après l'hydratation : le rendu serveur ne peut pas la connaître.

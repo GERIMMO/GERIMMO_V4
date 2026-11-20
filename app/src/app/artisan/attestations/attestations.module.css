@@ -13,7 +13,7 @@
 .icone[data-ton="violet"] { background: var(--ton-violet-fond); color: var(--ton-violet-encre); border-color: var(--ton-violet-filet); }
 .indicateurs strong { display: block; font-family: var(--font-titres), system-ui, sans-serif; font-size: 28px; color: var(--encre); font-weight: 600; line-height: 1.2; font-variant-numeric: lining-nums tabular-nums; }
 .indicateurs span > span { display: block; font-size: 13px; color: var(--texte-secondaire); margin-top: 5px; }
-.indicateurs small { display: block; font-size: 11px; margin-top: 2px; }
+.indicateurs small { display: block; font-size: 12px; margin-top: 2px; }
 .grille { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 22px; align-items: start; }
 .dossier { border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--carte); box-shadow: var(--ombre-1); overflow: hidden; min-width: 0; }
 .enteteDossier { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px; border-bottom: 1px solid var(--filet-leger); }
@@ -33,7 +33,7 @@
 .aide { display: grid; gap: 18px; }
 /* Le conseil : fond doux et filet champagne, sans dégradé. */
 .prochaineAction { padding: 22px; border: 1px solid var(--or-filet); border-radius: var(--rayon-carte); background: var(--or-clair); }
-.surtitre { font-size: 11px; color: var(--prestige-champagne-texte); text-transform: uppercase; font-weight: 600; letter-spacing: .12em; }
+.surtitre { font-size: 12px; color: var(--prestige-champagne-texte); text-transform: uppercase; font-weight: 600; letter-spacing: .12em; }
 .prochaineAction h2 { font-size: var(--titre-2); margin: 7px 0 12px; line-height: 1.25; }
 .prochaineAction p { font-size: 14px; line-height: 1.7; color: var(--texte-secondaire); }
 .prochaineAction > svg { color: var(--success); margin-top: 12px; }

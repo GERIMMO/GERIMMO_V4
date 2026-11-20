@@ -23,7 +23,7 @@
 .navigationMois .aujourdhuiLien { width: auto; padding: 0 12px; background: var(--carte); }
 .navigationMois a:hover { background: var(--survol); border-color: var(--marque); }
 .grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 12px; gap: 4px; }
-.nomJour { padding: 10px 0; text-align: center; font-size: 11px; font-weight: 500; color: var(--texte-secondaire); }
+.nomJour { padding: 10px 0; text-align: center; font-size: 12px; font-weight: 500; color: var(--texte-secondaire); }
 .jour, .horsMois { min-width: 0; min-height: 66px; padding: 7px; border-radius: var(--rayon-bouton); font-variant-numeric: tabular-nums; }
 .jour { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; border: 1px solid transparent; background: var(--carte); color: var(--encre); transition: background-color var(--duree-rapide) ease, border-color var(--duree-rapide) ease; }
 .jour[data-weekend="true"] { background: color-mix(in srgb, var(--creme) 70%, var(--carte)); }
@@ -32,7 +32,7 @@
 .jour:hover { background: var(--survol); border-color: var(--filet); }
 .jour[aria-current="date"] { background: var(--or-clair); border-color: var(--prestige-champagne); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--prestige-champagne) 20%, transparent); }
 .horsMois { padding: 13px 14px; color: var(--texte-secondaire); font-size: 13px; }
-.evenement { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; color: var(--success-soft-foreground); font-size: 11px; white-space: nowrap; }
+.evenement { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; color: var(--success-soft-foreground); font-size: 12px; white-space: nowrap; }
 .pointEvenement { flex: 0 0 5px; height: 5px; border-radius: 50%; background: var(--success); }
 .nombreEvenements { margin-left: auto; font-size: 9px; }
 .legende { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; border-top: 1px solid var(--filet-leger); padding: 15px 20px; font-size: 12px; color: var(--texte-secondaire); }
@@ -47,7 +47,7 @@
 .dateBadge { display: grid; justify-items: center; align-content: center; flex: 0 0 52px; height: 60px; border: 1px solid var(--or-filet); border-radius: var(--rayon-bouton); background: var(--or-clair); }
 .dateBadge strong { color: var(--encre); font-family: var(--font-titres), system-ui, sans-serif; font-size: 24px; font-weight: 600; line-height: 1.2; font-variant-numeric: lining-nums tabular-nums; }
 .dateBadge > span { color: var(--prestige-champagne-texte); font-size: 11px; text-transform: uppercase; }
-.surtitre { display: block; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--prestige-champagne-texte); margin-bottom: 5px; }
+.surtitre { display: block; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--prestige-champagne-texte); margin-bottom: 5px; }
 .enteteJournee h2 { font-family: var(--font-interface), sans-serif; font-size: var(--titre-3); font-weight: 600; line-height: 1.5; }
 .enteteJournee h2::first-letter { text-transform: uppercase; }
 .enteteJournee p { color: var(--texte-secondaire); font-size: 12px; margin-top: 4px; }
@@ -68,7 +68,7 @@
 .horaire { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--encre); font-variant-numeric: tabular-nums; }
 .horaire svg, .detailRendezVous svg { flex-shrink: 0; }
 .titreRendezVous { font-size: 14px; font-weight: 650; line-height: 1.5; color: var(--encre); overflow-wrap: anywhere; }
-.statut { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: calc(var(--rayon-bouton) - 4px); background: var(--filet-leger); color: var(--encre); font-size: 11px; font-weight: 600; }
+.statut { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: calc(var(--rayon-bouton) - 4px); background: var(--filet-leger); color: var(--encre); font-size: 12px; font-weight: 600; }
 .rendezVous[data-termine="true"] .statut { color: var(--success-soft-foreground); background: var(--success-soft); }
 .detailRendezVous { display: inline-flex; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 1.6; color: var(--texte-secondaire); overflow-wrap: anywhere; }
 .detailRendezVous svg { margin-top: 2px; }
@@ -88,7 +88,7 @@
   .entete p { font-size: 12px; }
   .vues { gap: 7px; margin-bottom: 18px; }
   .vues > a { position: relative; flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 84px; padding: 10px 9px; }
-  .vues strong { font-size: 11px; }
+  .vues strong { font-size: 12px; }
   .iconeVue { width: 30px; height: 30px; }
   .iconeVue svg { width: 18px; height: 18px; }
   .compteur { position: absolute; right: 8px; top: 14px; font-size: 11px; min-width: 20px; height: 22px; }
@@ -96,14 +96,14 @@
   .enteteMois > div { width: 100%; }
   .navigationMois { width: 100%; justify-content: space-between; }
   .grille { padding: 6px; gap: 2px; }
-  .nomJour { font-size: 10px; }
+  .nomJour { font-size: 12px; }
   .jour, .horsMois { min-height: 52px; padding: 3px; }
   .horsMois { padding: 8px 7px; }
   .numero { width: 25px; height: 25px; font-size: 12px; }
   .evenement { gap: 3px; }
   .heureEvenement { display: none; }
   .nombreEvenements { font-size: 8px; }
-  .legende { padding: 12px; gap: 9px 12px; font-size: 11px; }
+  .legende { padding: 12px; gap: 9px 12px; font-size: 12px; }
   .fuseau { flex-basis: 100%; }
   .enteteJournee { padding: 18px; }
   .rendezVousDuJour, .listeSuivi { grid-template-columns: minmax(0, 1fr); }

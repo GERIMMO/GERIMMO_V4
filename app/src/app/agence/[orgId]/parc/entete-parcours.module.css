@@ -7,5 +7,5 @@
 .entete p { color:var(--texte-secondaire); font-size:13px; line-height:1.6; }
 .entete > svg { flex-shrink:0; color:var(--prestige-champagne-texte); }
 .entete > div { min-width:0; }
-.surtitre { color:var(--prestige-champagne-texte); font-size:11px; font-weight:650; letter-spacing:.13em; text-transform:uppercase; }
+.surtitre { color:var(--prestige-champagne-texte); font-size:12px; font-weight:650; letter-spacing:.13em; text-transform:uppercase; }
 @media (max-width:639px) { .entete { padding:14px 16px; } }

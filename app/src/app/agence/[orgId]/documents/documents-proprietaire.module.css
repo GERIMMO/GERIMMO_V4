@@ -16,7 +16,7 @@
 .periode > summary::-webkit-details-marker { display: none; }
 .periode > summary::after { content: '+'; font-size: 16px; }
 .periode[open] > summary::after { content: '−'; }
-.filtreActif { color: var(--prestige-champagne-texte); font-size: 11px; font-weight: 600; }
+.filtreActif { color: var(--prestige-champagne-texte); font-size: 12px; font-weight: 600; }
 .champsDates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-width: 300px; padding-top: 8px; }
 .champsDates label { display: grid; gap: 4px; min-width: 0; color: var(--texte-secondaire); font-size: 12px; }
 .appliquer { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 14px; border: 1px solid var(--filet-champ); border-radius: var(--rayon-bouton); background: var(--carte); color: var(--encre); font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color var(--duree-rapide) ease, border-color var(--duree-rapide) ease; }
@@ -50,7 +50,7 @@
 .espaceDocuments:global(.detail-actif) .iconeFichier { grid-column: 1; grid-row: 1 / 3; width: 30px; height: 36px; align-self: start; }
 .espaceDocuments:global(.detail-actif) .identiteDocument { grid-column: 2 / 4; }
 .espaceDocuments:global(.detail-actif) .dateDocument { display: none; }
-.espaceDocuments:global(.detail-actif) .statutDocument { grid-column: 2; grid-row: 2; padding: 2px 8px; font-size: 11px; }
+.espaceDocuments:global(.detail-actif) .statutDocument { grid-column: 2; grid-row: 2; padding: 2px 8px; font-size: 12px; }
 .espaceDocuments:global(.detail-actif) .ouvrirDocument { grid-column: 3; grid-row: 2; }
 .renouvellements { border: 1px solid color-mix(in srgb, var(--warning) 35%, #fff); border-radius: var(--rayon-carte); margin-bottom: 12px; background: var(--warning-soft); color: var(--warning-soft-foreground); }
 .renouvellements > summary { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 10px 14px; font-size: 13px; font-weight: 550; cursor: pointer; list-style: none; }
@@ -148,10 +148,10 @@
   .documentLigne { grid-template-columns: 32px minmax(0, 1fr) auto 16px; gap: 6px 9px; padding: 14px 12px; }
   .iconeFichier { grid-column: 1; grid-row: 1 / 3; width: 30px; height: 36px; align-self: start; }
   .identiteDocument { grid-column: 2 / -1; }
-  .dateDocument { grid-column: 2; grid-row: 2; font-size: 11px; }
-  .statutDocument { grid-column: 3; grid-row: 2; font-size: 11px; padding-inline: 7px; }
+  .dateDocument { grid-column: 2; grid-row: 2; font-size: 12px; }
+  .statutDocument { grid-column: 3; grid-row: 2; font-size: 12px; padding-inline: 7px; }
   .ouvrirDocument { grid-column: 4; grid-row: 2; }
-  .ordreListe { font-size: 11px; }
+  .ordreListe { font-size: 12px; }
   .voirRenouvellements { display: none; }
   .renouvellements > summary::after { margin-left: auto; }
 }

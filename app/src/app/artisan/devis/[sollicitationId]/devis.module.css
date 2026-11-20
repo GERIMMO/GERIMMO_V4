@@ -4,7 +4,7 @@
 .page > a:first-child { justify-self: start; }
 .page :global(.entete-page) { padding-bottom: 0; }
 .client { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
-.surtitre { color: var(--prestige-champagne-texte); font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
+.surtitre { color: var(--prestige-champagne-texte); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; }
 .demande { min-width: 0; border: 1px solid var(--filet); border-radius: var(--rayon-carte); background: var(--carte); box-shadow: var(--ombre-1); overflow: hidden; }
 .description { padding: 17px 20px; }
 .page .description h2 { font-family: var(--font-interface), sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0; margin: 0 0 6px; color: var(--texte-secondaire); }

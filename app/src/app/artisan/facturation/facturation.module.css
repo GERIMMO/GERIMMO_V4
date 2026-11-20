@@ -36,7 +36,7 @@
 .aucuneFacture[role="alert"] { background: var(--destructive-soft); color: var(--destructive-soft-foreground); }
 /* Les repères : fond doux et filet champagne, sans dégradé. */
 .guide { padding: 23px; border: 1px solid var(--or-filet); border-radius: var(--rayon-carte); background: var(--or-clair); }
-.surtitre { color: var(--prestige-champagne-texte); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; }
+.surtitre { color: var(--prestige-champagne-texte); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; }
 .guide h2 { margin-top: 5px; font-size: var(--titre-2); }
 .guide ol { display: grid; gap: 22px; margin-block: 24px; }
 .guide li { display: flex; align-items: flex-start; gap: 12px; }

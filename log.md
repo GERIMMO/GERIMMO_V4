@@ -7685,3 +7685,18 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   l'état du banc.
 - **Pages du wiki** : mise à jour de [[Premiers clients — acquisition sans budget — 20 novembre 2026]], de [[Bail]] et de
   l'index.
+
+## [2026-11-21] query  | Décision du dirigeant : premier mois suivi d'un bail repris, et accord de publication
+
+- **Réponse du dirigeant** au point du 21/11 : « Choix A, oui publie ».
+- **Décision A** : pour un bail déjà en cours, Gerimmo suit les loyers à partir du mois de l'activation. Options
+  écartées : B (mois choisi par le propriétaire), C (depuis l'entrée du locataire).
+- **Accord de fusion et de publication** des pull requests #353, #354, #355 et #356.
+- **Fusions faites** : [#353](https://github.com/GERIMMO/GERIMMO_V4/pull/353) (`b9bfd7d2`),
+  [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) (`0dfc53f8`, après mise à jour avec `main` : le dépôt exige
+  une branche à jour et sa CI verte, run 44903502168). La PR #356 a rejoint la branche de la PR #355, qui porte donc
+  les trois décisions et les deux migrations ; sa CI à jour avec `main` est en cours.
+- **Reste à faire** : fusion de #355, CI de `main`, sauvegarde, « Migrations Supabase » (simulation puis application de
+  `20261120190000` et `20261120200000`), publication contrôlée, vérifications de production.
+- **Pages du wiki** : [[Bail]] (la règle n'est plus une proposition), [[Premiers clients — acquisition sans budget — 20 novembre 2026]].
+

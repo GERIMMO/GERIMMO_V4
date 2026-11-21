@@ -77,12 +77,12 @@ diagnostics absents ou expirés ne bloquent pas ce bail ; ils restent des action
 - **Options écartées** : A, ne rien changer ; C, exiger le DPE mais pas un état des risques récent.
 - **En base** : migration `20261120190000_bail_deja_en_cours.sql` (PR #355), retour arrière fourni.
 
-#### Loyers d'un bail repris en cours — date de bascule (proposition du 20/11/2026, à valider)
+#### Loyers d'un bail repris en cours — date de bascule (décision A du dirigeant, 21/11/2026)
 
 - **Constat (banc local, 20/11).** L'échéancier d'un bail part de sa date d'entrée, que les termes soient générés à la
   main ou par le cycle du 1ᵉʳ du mois. Pour un bail entré le 01/11/2024 et activé le 20/11/2026 : 25 termes, 18 750 €
   affichés « impayés » ([[Premiers clients — acquisition sans budget — 20 novembre 2026]]).
-- **Règle proposée.** À l'activation d'un bail dont le mois d'entrée est antérieur au mois en cours (jour de Paris),
+- **Règle (décision A du 21/11/2026, « Choix A, oui publie »).** À l'activation d'un bail dont le mois d'entrée est antérieur au mois en cours (jour de Paris),
   le mois en cours devient le **premier mois suivi** ; l'échéancier commence là, par un mois plein. Un bail activé le
   mois de son entrée, ou avant, n'est pas concerné : il garde son prorata d'entrée
   ([[Quittancement des loyers]]).
@@ -93,16 +93,18 @@ diagnostics absents ou expirés ne bloquent pas ce bail ; ils restent des action
 - **Contrepartie : la régularisation des charges.** Elle compare les charges réelles de l'exercice, au prorata des
   jours d'occupation, aux provisions *appelées dans Gerimmo*. Pour un exercice commencé avant le premier mois suivi,
   les provisions versées avant n'y figurent pas : sur le banc, l'exercice 2026 d'un bail suivi depuis novembre donnait
-  100 € de provisions contre 600 € de charges, soit 500 € réclamés à tort au locataire. La proposition refuse donc la
-  régularisation d'un tel exercice ; le premier exercice régularisable est celui de la bascule si elle tombe en
+  100 € de provisions contre 600 € de charges, soit 500 € réclamés à tort au locataire. La régularisation d'un tel
+  exercice est donc refusée ; le premier exercice régularisable est celui de la bascule si elle tombe en
   janvier, le suivant sinon ([[Régularisation des charges]]).
-- **En base** : migration `20261120200000_loyers_suivis_depuis.sql` (PR #356, brouillon), retour arrière fourni ; il se
-  refuse tant qu'un bail porte une date de bascule.
+- **Options écartées** : B, le propriétaire choisit le mois (elle aurait permis de faire entrer toute l'année en
+  cours) ; C, depuis l'entrée du locataire (comportement d'avant).
+- **En base** : migration `20261120200000_loyers_suivis_depuis.sql` (PR #356, fusionnée dans la branche de la PR #355),
+  retour arrière fourni ; il se refuse tant qu'un bail porte une date de bascule.
 
 > [!warning] Points à trancher / contradictions
-> - **Premier mois suivi** : mois de l'activation (proposé), mois choisi par le propriétaire, ou date d'entrée (comportement
->   actuel). Décision du dirigeant attendue.
-> - Les maquettes décrivent une reprise avec soldes d'ouverture ; la proposition n'en reprend que la date.
+> - Les maquettes décrivent une reprise avec soldes d'ouverture ; la règle n'en reprend que la date. Une dette de loyer
+>   d'avant l'arrivée, le dépôt de garantie déjà versé et l'indice de référence d'un loyer déjà révisé restent sans
+>   réponse dans l'outil.
 
 > [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
 

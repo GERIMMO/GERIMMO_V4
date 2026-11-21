@@ -51,6 +51,9 @@ suivent :
   changer) et C (exiger le DPE mais pas un état des risques récent). Détail dans [[Bail]] et [[Diagnostic]].
 - **« Oui » — naissance du locataire.** La date et la commune de naissance deviennent facultatives sur la fiche d'un
   locataire déjà en place. Détail dans [[Compte, personne et adhésion]].
+- **21/11/2026 — « Choix A, oui publie ».** Décision A sur le premier loyer d'un bail repris en cours : Gerimmo suit
+  les loyers à partir du mois de l'activation (options B, mois choisi par le propriétaire, et C, depuis l'entrée du
+  locataire, écartées). Et accord pour fusionner et publier les pull requests #353 à #356. Détail dans [[Bail]].
 
 ## Les chantiers
 
@@ -99,7 +102,7 @@ d'entrée, et le cycle du 1ᵉʳ du mois passe par la même fonction : il aurait
 n'est pas nouveau ; la décision B en fait le chemin normal d'un propriétaire qui arrive avec un locataire en place. En
 production au 20/11 : aucun terme appelé ; 2 des 11 baux en brouillon ont une entrée antérieure au mois en cours.
 
-**Règle proposée (non encore validée).** À l'activation d'un bail dont le mois d'entrée est antérieur au mois en cours,
+**Règle retenue (décision A du 21/11).** À l'activation d'un bail dont le mois d'entrée est antérieur au mois en cours,
 Gerimmo note le mois en cours comme premier mois suivi ; l'échéancier ne commence qu'à ce mois. C'est la « date de
 bascule » que prévoient déjà les maquettes de reprise de portefeuille
 ([[2026-09-04-maquette-v3-prototype|Maquette v3]], [[2026-09-08-maquette-espace-agence-v6|Maquette agence v6]]),
@@ -117,10 +120,6 @@ d'un exercice commencé avant le premier mois suivi ; ces exercices se régulari
 ## Ce qui reste à décider
 
 > [!warning] Points à trancher
-> - **Premier mois suivi d'un bail repris en cours** (PR #356) : A, le mois de l'activation (ce que fait la PR) ; B, le
->   propriétaire choisit le mois, ce qui permet de faire entrer toute l'année en cours (déclaration de revenus,
->   régularisation des charges de l'année) ; C, depuis l'entrée du locataire, comme aujourd'hui. Sans A ni B, la
->   décision B du 20/11 mène à un échéancier de plusieurs années « impayé ».
 > - **Dépôt de garantie d'un bail repris** : Gerimmo propose de l'encaisser alors qu'il a été versé à l'entrée.
 > - **Révision du loyer (IRL) d'un bail repris** : la rubrique calcule « loyer actuel × IRL nouveau / IRL de
 >   référence », l'indice de référence étant celui de la dernière révision enregistrée dans Gerimmo, à défaut celui du

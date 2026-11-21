@@ -645,6 +645,8 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261120200000` (date de bascule : `premier_mois_suivi` cite la fonction du jour ; le retour se refuse tant qu'un bail porte une date de bascule), puis
+`20261120190000` (bail déjà en cours : `bail_deja_en_cours` cite la fonction du jour ; aucune donnée modifiée, les baux activés entre-temps restent actifs), puis
 `20261117095320` (préserver les traces des invitations et des courriels acceptés), puis
 `20261117094310` (conserver les seuils de révocation des sessions et corriger en avant), puis
 `20261117092314` (conserver les rattachements de lots et corriger l’import en avant), puis
@@ -1075,3 +1077,26 @@ PR #347. Si tout devait être défait, ces retours passent dans l’ordre du tab
 | `20261119200000_email_partage_societe_gerant.retour.sql` | `20261119200000_email_partage_societe_gerant.sql` | En dernier, et seulement si le retour de `20261119200100` est joué (garde). Rétablit l’index strict `persons_email_unique_par_agence`. Refusé dès que deux fiches vivantes d’un même espace partagent une adresse — c’est le cas de toute SCI ouverte depuis la migration (société et gérant) : conserver alors l’index par nature et corriger en avant. Aucune fiche n’est modifiée ni archivée. Remettre le code d’avant de `app/actions/personnes.ts` et `parc.ts`. |
 
 Essais du 19/11/2026 sur une base jetable PostgreSQL 16 (schéma réduit aux objets concernés, définitions réelles rejouées depuis les migrations) : migrations jouées deux fois (rejeu sans effet) ; retours dans l’ordre → définitions de `initialiser_espace_proprietaire()` et `quittance_document(uuid)` **identiques** (md5) à celles d’avant les migrations, index strict rétabli ; retours rejoués → « rien à faire » ; retour de `…200000` joué avant celui de `…200100` → refus ; adresse partagée → refus ; marche avant de nouveau → état migré retrouvé. Limites : base de banc réduite ; les tests `tests/fiche-societe-coordonnees-base.test.ts` et `tests/quittance-representant-base.test.ts` sont à jouer sur le banc complet.
+
+## Bail déjà en cours — 20 novembre 2026 (décision B du dirigeant)
+
+En tête de la chaîne « Ordre complet » de la section « fuseau-suite » : `public.bail_deja_en_cours(date)` cite
+`aujourdhui_paris()`, son retour doit donc précéder celui de `20261014500000`. Une seule migration, un seul retour, aucune
+donnée modifiée dans un sens comme dans l’autre.
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261120190000_bail_deja_en_cours.retour.sql` | `20261120190000_bail_deja_en_cours.sql` | Rend à `public.controler_mise_en_location`, `public.verifier_transition_lot` et `public.parcours_demarrage` leur forme d’avant (remplacements exacts inverses, forme inattendue refusée sans rien changer), puis retire `public.bail_blocages_mise_en_location` et `public.bail_deja_en_cours`. Les baux activés entre-temps restent actifs et leurs logements « loués ». Remettre le code d’avant dans la foulée : la fiche du bail ouvrirait sinon un dépôt que la base refuse. |
+
+Essais du 20/11/2026 sur le banc local (PostgreSQL 16, base jetable reconstruite depuis les migrations, empreintes md5 des trois fonctions identiques à celles relevées en production en lecture seule) : migration jouée deux fois (rejeu sans effet) ; retour → empreintes d’origine ; retour rejoué sans effet ; migration rejouée → empreintes migrées. `tests/bail-deja-en-cours-base.test.ts` tient ces quatre passages.
+
+## Date de bascule des loyers — 20 novembre 2026 (suite de la décision B)
+
+En tête de la chaîne « Ordre complet » de la section « fuseau-suite », avant `20261120190000` : `public.premier_mois_suivi(date)`
+cite `aujourdhui_paris()`. Une migration, un retour.
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261120200000_loyers_suivis_depuis.retour.sql` | `20261120200000_loyers_suivis_depuis.sql` | **Se refuse tant qu’un bail porte une date de bascule** (`baux.loyers_suivis_depuis` renseignée) : sans elle, le générateur rétabli appellerait d’un coup tous les loyers depuis l’entrée du locataire. Sinon : rend à `public.generer_appels_loyer_interne` sa forme d’avant (remplacement exact inverse, forme inattendue refusée sans rien changer), retire les déclencheurs `baux_loyers_suivis_depuis` et `regularisations_avant_bascule`, `public.poser_loyers_suivis_depuis()`, `public.refuser_regularisation_avant_bascule()`, `public.premier_mois_suivi(date)`, puis la colonne. La fiche du bail lit la colonne par une lecture tolérante : le code peut être remis avant ou après. |
+
+Essais du 20/11/2026 sur le banc local (PostgreSQL 16, base reconstruite depuis les migrations, empreinte md5 de `generer_appels_loyer_interne` identique à celle relevée en production en lecture seule) : migration jouée deux fois (rejeu sans effet) ; retour → empreinte d’origine, colonne et déclencheurs retirés ; retour rejoué sans effet ; retour refusé quand un bail porte une date de bascule ; migration rejouée → empreinte migrée. `tests/loyers-suivis-depuis-base.test.ts` tient ces passages.

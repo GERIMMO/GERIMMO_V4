@@ -41,6 +41,9 @@ describe.skipIf(!url)("facture fournisseur : paiement et journal atomiques", () 
     const personne=await id("insert into public.persons(organization_id,nom,account_id) values($1,'Locataire TEST',$2) returning id",[org,locataire]);
     bail=await id("insert into public.baux(organization_id,lot_id,type,locataire_principal,date_debut,loyer_hc,charges,depot_garantie,charges_mode) values($1,$2,'meuble',$3,'2026-09-01',500,10,500,'provision') returning id",[org,lot,personne]);
     await db.query("update public.baux set etat='actif' where id=$1",[bail]);
+    // Ce bail est suivi depuis son entrée, comme un bail activé à sa date. Activé « aujourd'hui » avec une entrée passée,
+    // il compterait sinon comme repris en cours (date de bascule, 20/11/2026) et son exercice ne se régulariserait pas ici.
+    await db.query("update public.baux set loyers_suivis_depuis=null where id=$1",[bail]);
     await db.query("insert into public.appels_loyer(organization_id,bail_id,periode,date_echeance,loyer_hc,charges,montant_du) values($1,$2,'2026-09-01','2026-09-05',500,10,510)",[org,bail]);
   });
   afterAll(async()=>{await db?.query("rollback");await db?.end();});

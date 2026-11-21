@@ -204,6 +204,12 @@ export const FICHIERS_EN_SERIE = [
   "tests/incident-gerant-colocation-base.test.ts",
   // Audit de la PR #264, ED-01 (27/10) : rejeu de 20261027100300 (déclencheur recréé sur baux) dans la transaction du test.
   "tests/assurance-locataire-activation-base.test.ts",
+  // Décision B du 20/11 : rejeu de 20261120190000 et de son retour (create or replace de controler_mise_en_location,
+  // verifier_transition_lot et parcours_demarrage, que d'autres fichiers rejouent aussi) dans la transaction du test.
+  "tests/bail-deja-en-cours-base.test.ts",
+  // Date de bascule du 20/11 : rejeu de 20261120200000 et de son retour (colonne de baux retirée puis reposée,
+  // create or replace de generer_appels_loyer_interne) dans la transaction du test.
+  "tests/loyers-suivis-depuis-base.test.ts",
 ];
 
 export default defineConfig({

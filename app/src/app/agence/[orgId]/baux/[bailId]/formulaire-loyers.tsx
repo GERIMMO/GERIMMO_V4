@@ -239,6 +239,8 @@ export function FormulaireLoyers({
   chargesForfait,
   dateDebut = null,
   dateFin = null,
+  loyersSuivisDepuis = null,
+  premierExerciceRegularisable = null,
   copropriete = false,
   aujourdhui = aujourdhuiParis(),
   decompteSortie = "non_finalise",
@@ -258,6 +260,10 @@ export function FormulaireLoyers({
   chargesForfait: boolean;
   dateDebut?: string | null;
   dateFin?: string | null;
+  /** Date de bascule (20/11/2026) : premier mois suivi d'un bail repris en cours, déjà en clair (« novembre 2026 »). */
+  loyersSuivisDepuis?: string | null;
+  /** Premier exercice de charges régularisable dans Gerimmo pour un bail repris en cours ; rien sinon. */
+  premierExerciceRegularisable?: number | null;
   /** Copropriété : les charges réelles se lisent sur les appels du syndic. */
   copropriete?: boolean;
   /** Jour de Paris (AAAA-MM-JJ), fourni par la page serveur. */
@@ -288,7 +294,12 @@ export function FormulaireLoyers({
   const recouvrementOuvert = decompteSortie === "non_finalise";
   const impaye = recouvrementOuvert && echeancier.some((l) => l.statut === "impaye");
   // Audit du 27/09 : l'exercice proposé est couvert par le bail.
-  const anneeDefaut = exerciceRegularisationParDefaut(dateDebut, dateFin, aujourdhui);
+  // Date de bascule (20/11/2026) : pour un bail repris en cours, on ne propose pas un exercice que la base refusera
+  // (commencé avant le premier mois suivi) dès lors qu'un exercice régularisable a commencé.
+  const exerciceParDefaut = exerciceRegularisationParDefaut(dateDebut, dateFin, aujourdhui);
+  const anneeDefaut = premierExerciceRegularisable !== null && premierExerciceRegularisable <= Number(aujourdhui.slice(0, 4))
+    ? Math.max(exerciceParDefaut, premierExerciceRegularisable)
+    : exerciceParDefaut;
   // D38 : l'année choisie pilote l'avertissement « exercice non terminé » et la case de confirmation (le serveur revérifie).
   const [anneeReg, setAnneeReg] = useState(String(anneeDefaut));
   const exerciceReg = Number(anneeReg);
@@ -356,11 +367,22 @@ export function FormulaireLoyers({
           Les deux boutons gardent leur propre retour : une erreur avalée ici
           a déjà caché un vrai blocage (« Le bail n'a pas de date de début »)
           pendant la recette. */}
+      {/* Date de bascule (20/11/2026) : un bail repris en cours n'est suivi qu'à partir du mois de son activation.
+          Dit ici, sous les trois chiffres, pour que « Dû » et « Reste dû » se lisent sans se demander où sont passés
+          les loyers d'avant — et pour mener au premier geste utile : enregistrer le loyer du mois, déjà payé. */}
+      {loyersSuivisDepuis && (
+        <p className="text-sm" data-loyers-suivis-depuis>
+          Gerimmo suit les loyers de ce bail depuis {loyersSuivisDepuis}. Ceux d&apos;avant n&apos;y figurent pas : ils ne sont pas réclamés.
+        </p>
+      )}
+
       {echeancier.length === 0 && (
         <div className="space-y-2">
           <BoutonEcheancier orgId={orgId} bailId={bailId} />
           <p className="text-sm text-muted-foreground">
-            Aucun appel pour l&apos;instant : générez l&apos;échéancier du bail.
+            {loyersSuivisDepuis
+              ? `Aucun appel pour l’instant : générez l’échéancier, il commencera en ${loyersSuivisDepuis}. Si ce loyer est déjà payé, enregistrez-le ensuite pour obtenir la quittance.`
+              : "Aucun appel pour l’instant : générez l’échéancier du bail."}
           </p>
         </div>
       )}
@@ -722,6 +744,14 @@ export function FormulaireLoyers({
       {/* Régularisation des charges — impossible au forfait (RM-3.9.8) */}
       <div className="space-y-2 border-t border-border pt-4">
         <p className="text-sm font-medium">Régularisation annuelle des charges</p>
+        {/* Date de bascule (20/11/2026) : la régularisation compare aux provisions appelées ICI. Les exercices
+            commencés avant le premier mois suivi sont refusés par la base ; on le dit avant la saisie. */}
+        {!chargesForfait && loyersSuivisDepuis && premierExerciceRegularisable !== null && (
+          <p className="text-sm text-muted-foreground" data-regularisation-apres-bascule>
+            Les loyers de ce bail sont suivis ici depuis {loyersSuivisDepuis} : le premier exercice de charges régularisable dans Gerimmo est {premierExerciceRegularisable}.
+            Les exercices commencés avant se régularisent en dehors de Gerimmo, qui ne connaît pas les provisions versées jusque-là.
+          </p>
+        )}
         {chargesForfait && (
           <p className="text-sm text-muted-foreground">
             Charges au forfait : aucune régularisation n&apos;est possible, le forfait est

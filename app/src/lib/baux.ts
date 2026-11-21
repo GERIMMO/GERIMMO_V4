@@ -90,6 +90,51 @@ export function mentionsObligatoiresManquantes(bail: {
   return manquantes;
 }
 
+// BAIL DÉJÀ EN COURS (décision B du dirigeant, 20/11/2026) : un bail dont la date d'entrée est strictement passée
+// s'active par le dépôt de son contrat signé, sans « mise en location » préalable du logement ; les diagnostics absents
+// ou expirés ne le bloquent plus et restent des actions à mener (lib/actions-attendues.ts).
+//
+// Comme pour les mentions : la base est seule à DÉCIDER (`bail_deja_en_cours`, lue par `controler_mise_en_location`,
+// migration 20261120190000) ; cette fonction-ci sert à ANNONCER, sur la fiche du bail, que le dépôt est ouvert.
+// tests/bail-deja-en-cours-base.test.ts compare les deux sur la veille, le jour même et le lendemain.
+// `aujourdHui` : le jour de Paris (aujourdhuiParis()), au format AAAA-MM-JJ comme les dates de la base.
+export function bailDejaEnCours(dateDebut: string | null | undefined, aujourdHui: string): boolean {
+  return typeof dateDebut === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateDebut) && dateDebut < aujourdHui;
+}
+
+// DATE DE BASCULE (20/11/2026) : un bail repris en cours ne réclame pas les loyers d'avant son arrivée sur Gerimmo.
+// Activé un mois postérieur à celui de l'entrée, il n'est suivi qu'à partir du mois de son activation
+// (`baux.loyers_suivis_depuis`, migration 20261120200000) : l'échéancier commence là, pas deux ans plus tôt.
+//
+// La base est seule à DÉCIDER (`premier_mois_suivi`, posée par le déclencheur à l'activation) ; cette fonction-ci sert à
+// ANNONCER, avant le dépôt du contrat signé, à partir de quel mois les loyers seront suivis.
+// tests/loyers-suivis-depuis-base.test.ts compare les deux. Rend le 1er du mois (AAAA-MM-01), ou null quand
+// l'échéancier partira de l'entrée (bail activé le mois de son entrée, ou avant).
+export function premierMoisSuivi(dateDebut: string | null | undefined, aujourdHui: string): string | null {
+  const jour = /^\d{4}-\d{2}-\d{2}$/;
+  if (typeof dateDebut !== "string" || !jour.test(dateDebut) || !jour.test(aujourdHui)) return null;
+  return dateDebut.slice(0, 7) < aujourdHui.slice(0, 7) ? `${aujourdHui.slice(0, 7)}-01` : null;
+}
+
+// La contrepartie de la date de bascule : la régularisation des charges compare les charges réelles de l'exercice aux
+// provisions APPELÉES dans Gerimmo. Un exercice commencé avant le premier mois suivi ne s'y régularise donc pas (la base
+// le refuse : déclencheur `regularisations_avant_bascule`). Le premier exercice régularisable est celui de la bascule
+// si elle tombe en janvier, le suivant sinon. Rien pour un bail sans date de bascule.
+export function premierExerciceRegularisable(loyersSuivisDepuis: string | null | undefined): number | null {
+  const lu = typeof loyersSuivisDepuis === "string" ? /^(\d{4})-(\d{2})-\d{2}$/.exec(loyersSuivisDepuis) : null;
+  if (!lu) return null;
+  return Number(lu[1]) + (lu[2] === "01" ? 0 : 1);
+}
+
+const MOIS_EN_CLAIR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+
+/** « novembre 2026 » pour « 2026-11-01 ». Rien pour une date mal formée : l'écran se tait plutôt que d'inventer. */
+export function moisEnClair(date: string | null | undefined): string | null {
+  const lu = typeof date === "string" ? /^(\d{4})-(\d{2})-\d{2}$/.exec(date) : null;
+  const mois = lu ? MOIS_EN_CLAIR[Number(lu[2]) - 1] : undefined;
+  return lu && mois ? `${mois} ${lu[1]}` : null;
+}
+
 // Exercice proposé par défaut pour la régularisation des charges (audit du
 // 27/09) : l'année civile précédente (RM-3.9.1), ramenée dans la période du
 // bail. Un bail de septembre 2026 ne couvre aucun jour de 2025 : proposer

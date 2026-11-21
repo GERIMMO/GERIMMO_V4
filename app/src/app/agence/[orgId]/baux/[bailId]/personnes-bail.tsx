@@ -58,6 +58,7 @@ function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false,
       .map(champ => [champ, personne?.[champ as keyof PersonneBail] ?? (champ === "email" ? emailInitial : "")]),
   ));
   const [adresseReprise, setAdresseReprise] = useState(false);
+  const naissanceFacultative = !proprietaire && !garant;
   const personnesConnues = !personne && valeurs.email.trim() ? existantes.filter(p => !p.archived_at && p.email?.trim().toLowerCase() === valeurs.email.trim().toLowerCase()) : [];
   const peutReprendreAdresse = !personne && adresseSource?.address_line1?.trim() && adresseSource.postal_code?.trim() && adresseSource.city?.trim();
   const { etat, enCours, soumettre } = useActionFormulaire<EtatPersonnesBail>(async (precedent, donnees) => {
@@ -76,7 +77,12 @@ function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false,
     ...(!morale ? [{ name: "prenom", label: "Prénom", required: true, max: 120 }] : []),
     { name: "email", label: "Adresse e-mail", required: true, type: "email", max: 200 },
     { name: "telephone", label: "Téléphone — Facultatif", type: "tel", max: 40 },
-    ...(!morale ? [{ name: "date_naissance", label: "Date de naissance", required: true, type: "date" }, { name: "commune_naissance", label: "Commune de naissance", required: true, max: 120 }] : []),
+    // Décision du 20/11/2026 : la naissance d'un LOCATAIRE est facultative sur sa fiche (locataire déjà en place) ; la
+    // pastille du champ dit toujours ce que le contrat rédigé par Gerimmo attend. Une valeur déjà enregistrée ne s'efface pas.
+    ...(!morale ? [
+      { name: "date_naissance", label: "Date de naissance", required: !naissanceFacultative || Boolean(personne?.date_naissance), type: "date" },
+      { name: "commune_naissance", label: "Commune de naissance", required: !naissanceFacultative || Boolean(personne?.commune_naissance), max: 120 },
+    ] : []),
     { name: "address_line1", label: "Adresse", required: true, max: 200 },
     { name: "postal_code", label: "Code postal", required: true, max: 12 },
     { name: "city", label: "Ville", required: true, max: 120 },
@@ -84,6 +90,7 @@ function EditerPersonne({ orgId, bailId, personne, proprietaire, garant = false,
   return <form data-saisie-confirmee onSubmit={soumettre} className="bail-personne-formulaire space-y-4">
     <p className="font-semibold">{personne ? `Compléter la fiche de ${nom(personne)}` : "Créer une personne"}</p>
     {!personne && <input type="hidden" name="creation_id" value={creationId} />}
+    {!personne && <input type="hidden" name="usage_bail" value={proprietaire ? "proprietaire" : garant ? "garant" : "locataire"} />}
     {!personne && emailInitial && <p className="text-sm text-muted-foreground">Adresse e-mail reprise de votre recherche.</p>}
     {personnesConnues.length > 0 && reutiliser && <div className="space-y-3 rounded-lg border border-border bg-muted/30 p-3">
       <p className="text-sm font-medium">Cette adresse e-mail figure déjà dans votre annuaire.</p>

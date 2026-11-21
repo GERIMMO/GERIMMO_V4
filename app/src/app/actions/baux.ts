@@ -406,10 +406,16 @@ async function blocagesActionables(
     .eq("id", bailId)
     .maybeSingle();
   if (!bail) return [];
-  const [{ data: lot }, { data: causes }] = await Promise.all([
+  // Décision B du 20/11/2026 : les blocages qui valent pour CE bail (un bail déjà en cours n'est pas bloqué par ses
+  // diagnostics manquants). Tant que la migration 20261120190000 n'est pas appliquée, la fonction manque : on lit
+  // alors les blocages du lot, comme avant.
+  const [{ data: lot }, duBail] = await Promise.all([
     supabase.from("lots").select("id, bien_id").eq("id", bail.lot_id).maybeSingle(),
-    supabase.rpc("lot_blocages_location", { p_lot: bail.lot_id }),
+    supabase.rpc("bail_blocages_mise_en_location", { p_bail: bailId }),
   ]);
+  const causes = !duBail.error && Array.isArray(duBail.data)
+    ? duBail.data
+    : (await supabase.rpc("lot_blocages_location", { p_lot: bail.lot_id })).data;
   if (!lot || !Array.isArray(causes)) return [];
   return (causes as string[]).map((m) => ({
     message: m,

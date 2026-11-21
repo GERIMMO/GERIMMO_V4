@@ -5,6 +5,9 @@ import { OUTILS } from "@/lib/outils/catalogue";
 import { badgeEssai, dureeEssai } from "@/lib/tarifs";
 import { IconeTrait, PucesGratuit, TuileOutil, outilsPresentes } from "./icones-outils";
 import { DemandeRappel } from "@/components/demande-rappel";
+import { DonneesStructurees } from "@/components/donnees-structurees";
+import { filAriane } from "@/lib/donnees-structurees";
+import { adresseCanonique } from "@/lib/site";
 
 // LA COQUILLE DES OUTILS GRATUITS (29/09, habillée le 30/09) : en-tête et
 // pied publics, fil d'Ariane, en-tête de l'outil (tuile d'icône, « Outil
@@ -42,6 +45,14 @@ export function CoquilleOutil({
 }) {
   return (
     <div className="site-public flex min-h-full flex-1 flex-col">
+      {/* Pour les moteurs de recherche (20/11/2026) : le fil d'Ariane affiché en tête, Accueil › Outils › cet outil. */}
+      <DonneesStructurees
+        donnees={filAriane(adresseCanonique(), [
+          { nom: "Accueil", chemin: "/" },
+          { nom: "Outils gratuits", chemin: "/outils" },
+          { nom: titre, chemin },
+        ])}
+      />
       <div className="contents print:hidden">
         <EnTetePublic />
       </div>

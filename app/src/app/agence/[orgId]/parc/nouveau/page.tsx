@@ -6,6 +6,7 @@ import entete from "../entete-parcours.module.css";
 import { verifierAccesEspace } from "@/lib/espace";
 import { elementsManquantsDuBailleur } from "@/lib/profil-bailleur";
 import { FormulaireAvecBrouillon } from "./formulaire-avec-brouillon";
+import { CoordonneesBailleur } from "./coordonnees-bailleur";
 import { euros, offreAbonnementUnique, offreParticulier, parPeriode, type Periodicite } from "@/lib/tarifs";
 import { baseEspace } from "@/lib/racine-espace";
 
@@ -24,6 +25,7 @@ export default async function PageNouveauBien(
   // l'e-mail du propriétaire manquent, parce qu'ils le désignent dans les
   // documents. On le dit ici, avant le formulaire, et non après l'envoi.
   let manquants: string[] = [];
+  let coordonnees = { address_line1: "", postal_code: "", city: "", email_contact: "" };
   // Grille du 28/09/2026 : au-delà de la capacité payée, le prix du bien
   // suivant se montre AVANT le formulaire, et se confirme sur « Mon abonnement ».
   let depassement: { capacite: number; apres: number; offre: ReturnType<typeof offreParticulier>; periodicite: Periodicite } | null = null;
@@ -44,6 +46,13 @@ export default async function PageNouveauBien(
       .eq("id", orgId).maybeSingle();
     // La même règle que le bouton de « Mes lots » vide (D29 B) : lib/profil-bailleur.ts.
     manquants = elementsManquantsDuBailleur(profil);
+    // Les valeurs déjà connues sont reprises dans les champs ; à défaut d'e-mail de contact, celui du compte est proposé.
+    coordonnees = {
+      address_line1: profil?.address_line1 ?? "",
+      postal_code: profil?.postal_code ?? "",
+      city: profil?.city ?? "",
+      email_contact: profil?.email_contact?.trim() || user.email || "",
+    };
   }
 
   return (
@@ -84,19 +93,8 @@ export default async function PageNouveauBien(
         </div>
       )}
       {manquants.length > 0 ? (
-        <div className="vide-guide">
-          <p className="titre">Complétez d&apos;abord votre profil</p>
-          <p className="explication">
-            Il manque {manquants.join(" et ")}. Ils vous désignent comme
-            bailleur dans le bail, les quittances et les avis d&apos;échéance :
-            sans eux, le bien ne peut pas être créé.
-          </p>
-          <div className="geste">
-            <Link href={`${base}/profil?retour=nouveau-lot`} className="btn-or">
-              Compléter mon profil
-            </Link>
-          </div>
-        </div>
+        // 20/11/2026 : les coordonnées qui manquent se remplissent ici, au lieu d'un détour par le profil complet.
+        <CoordonneesBailleur orgId={orgId} manquants={manquants} initiales={coordonnees} lienProfil={`${base}/profil?retour=nouveau-lot`} />
       ) : (
       <FormulaireAvecBrouillon key={`${user.id}:${orgId}`} orgId={orgId} compteId={user.id} cleCreation={randomUUID()} proprietaireAutomatique={role === "proprietaire_direct"} />
       )}

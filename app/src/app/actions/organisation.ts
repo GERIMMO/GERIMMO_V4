@@ -157,6 +157,51 @@ export async function modifierProfilOrganisation(
   return { succes: `Profil enregistré. Les prochains documents utiliseront votre identité. Toute adresse personnalisée modifiée doit être vérifiée avant activation.${complementFiche}` };
 }
 
+// LES COORDONNÉES DU BAILLEUR, SUR LA PAGE « AJOUTER UN BIEN » (20/11/2026).
+// D29 B : l'adresse reste facultative à l'inscription et se demande à la création du premier bien. Jusqu'ici, la page
+// « Ajouter un bien » renvoyait vers le profil complet (nom de l'espace, téléphone, relances, trois étapes) : en
+// production, deux des quatre espaces sans aucun bien se sont arrêtés devant ce détour. Les quatre champs qui manquent
+// se remplissent désormais sur place. La règle ne change pas : sans adresse complète ni e-mail de contact, aucun bien.
+// Ce geste n'écrit QUE ces quatre colonnes : le reste du profil (nom, relances, envois) n'est pas touché.
+export async function completerCoordonneesBailleur(
+  orgId: string,
+  _etat: EtatProfilOrganisation,
+  formData: FormData
+): Promise<EtatProfilOrganisation> {
+  const { supabase, user, role } = await verifierGerant(orgId);
+  if (!user || role !== "proprietaire_direct") {
+    return { erreur: "Réservé au propriétaire de cet espace." };
+  }
+  const valeurs = valeursDuFormulaire(formData);
+  const champ = (n: string) => String(formData.get(n) ?? "").trim();
+  const adresse = champ("address_line1");
+  const codePostal = champ("postal_code");
+  const ville = champ("city");
+  const emailContact = champ("email_contact");
+  if (!adresse || !codePostal || !ville) {
+    return { erreur: "Indiquez votre adresse complète : rue, code postal et ville. Elle figure sur le bail et les quittances.", valeurs };
+  }
+  if (!emailValide(emailContact)) return { erreur: "Renseignez un e-mail de contact valide pour vos courriers.", valeurs };
+  if (adresse.length > 200 || codePostal.length > 20 || ville.length > 100 || emailContact.length > 320) {
+    return { erreur: "Une des valeurs est trop longue : vérifiez votre saisie.", valeurs };
+  }
+
+  const { error, data } = await supabase
+    .from("organizations")
+    .update({ address_line1: adresse, postal_code: codePostal, city: ville, email_contact: emailContact })
+    .eq("id", orgId)
+    .select("id");
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+  if (!data?.length) return { erreur: "Modification refusée.", valeurs };
+
+  // Comme le profil (SCI-2) : la fiche de la société reçoit ces coordonnées dans ses seuls champs vides. Un échec ici
+  // n'annule pas l'enregistrement : la création du bien reste ouverte, et la fiche se vérifie dans l'annuaire.
+  await supabase.rpc("completer_fiche_societe_depuis_profil", { p_org: orgId });
+
+  revalidatePath(`/agence/${orgId}`, "layout");
+  return { succes: "Vos coordonnées sont enregistrées : vous pouvez créer votre bien." };
+}
+
 export type EtatInvitationAgent = {
   erreur?: string;
   succes?: string;

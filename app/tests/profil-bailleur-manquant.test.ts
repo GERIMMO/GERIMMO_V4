@@ -1,7 +1,8 @@
 /**
  * Décision D29 B (fiche DES-A-11 du 13/10/2026) : l'adresse du propriétaire reste FACULTATIVE à l'inscription, mais sur
- * « Mes lots » vide, quand il manque de quoi le désigner comme bailleur, le bouton annonce le détour au lieu de
- * promettre « Créer mon premier bien ». Le bouton reprend la même règle que la porte de « Créer un lot ».
+ * « Mes lots » vide, quand il manque de quoi le désigner comme bailleur, le bouton annonce l'adresse à indiquer au lieu de
+ * promettre seulement « Créer mon premier bien ». Le bouton reprend la même règle que la porte de « Créer un lot », où ces
+ * coordonnées se remplissent sur place depuis le 20/11/2026 (coordonnees-bailleur-sur-place.test.ts).
  */
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -75,8 +76,8 @@ describe("le bouton de « Mes lots » vide : toute la table de vérité", () => 
 
   it("annonce le détour quand la lecture a réussi et qu'il manque quelque chose", () => {
     expect(boutonPremierBien({ base: BASE, manquants: manque, erreurLecture: false })).toEqual({
-      libelle: "Compléter mon profil pour créer un bien",
-      href: "/agence/org-1/profil?retour=nouveau-lot",
+      libelle: "Indiquer mon adresse et créer mon premier bien",
+      href: "/agence/org-1/parc/nouveau",
       detourParProfil: true,
     });
     expect(boutonPremierBien({ base: BASE, manquants: ["votre adresse", "votre e-mail de contact"], erreurLecture: false }).detourParProfil).toBe(true);
@@ -97,7 +98,7 @@ describe("le bouton de « Mes lots » vide : toute la table de vérité", () => 
   });
 
   it("compose ses deux liens à partir de l'adresse de l'espace qu'on lui donne (D27 : /espace pour un propriétaire direct)", () => {
-    expect(boutonPremierBien({ base: "/espace/org-1", manquants: manque, erreurLecture: false }).href).toBe("/espace/org-1/profil?retour=nouveau-lot");
+    expect(boutonPremierBien({ base: "/espace/org-1", manquants: manque, erreurLecture: false }).href).toBe("/espace/org-1/parc/nouveau");
     expect(boutonPremierBien({ base: "/espace/org-1", manquants: [], erreurLecture: false }).href).toBe("/espace/org-1/parc/nouveau");
   });
 });
@@ -172,31 +173,31 @@ const liens = (html: string) => [...html.matchAll(/<a [^>]*href="([^"]*)"[^>]*>(
 beforeEach(() => banc.acces.mockReset());
 
 describe("« Mes lots » vide (D29 B) : le bouton que voit le propriétaire", () => {
-  it("annonce le détour par le profil quand l'adresse manque, et le lien y mène", async () => {
+  it("annonce l'adresse à indiquer quand elle manque, et le lien mène à « Ajouter un bien », où elle se remplit", async () => {
     acces("proprietaire_direct", { biens: OK([]), organizations: OK({ ...COMPLET, address_line1: null }) });
     const html = await rendreParc();
     expect(html).toContain("Votre parc est vide");
-    expect(liens(html)).toContainEqual({ href: "/agence/org-1/profil?retour=nouveau-lot", texte: "Compléter mon profil pour créer un bien" });
-    expect(html).not.toContain("Créer mon premier bien");
+    expect(liens(html)).toContainEqual({ href: "/agence/org-1/parc/nouveau", texte: "Indiquer mon adresse et créer mon premier bien" });
+    expect(html).not.toContain(">Créer mon premier bien<");
   });
 
   it("annonce le détour aussi quand seul l'e-mail de contact manque", async () => {
     acces("proprietaire_direct", { biens: OK([]), organizations: OK({ ...COMPLET, email_contact: "" }) });
-    expect(liens(await rendreParc())).toContainEqual({ href: "/agence/org-1/profil?retour=nouveau-lot", texte: "Compléter mon profil pour créer un bien" });
+    expect(liens(await rendreParc())).toContainEqual({ href: "/agence/org-1/parc/nouveau", texte: "Indiquer mon adresse et créer mon premier bien" });
   });
 
   it("garde « Créer mon premier bien » quand le profil est complet", async () => {
     acces("proprietaire_direct", { biens: OK([]), organizations: OK(COMPLET) });
     const html = await rendreParc();
     expect(liens(html)).toContainEqual({ href: "/agence/org-1/parc/nouveau", texte: "Créer mon premier bien" });
-    expect(html).not.toContain("Compléter mon profil");
+    expect(html).not.toContain("Indiquer mon adresse");
   });
 
   it("garde « Créer mon premier bien » quand le profil est illisible : la porte de « Créer un lot » décidera", async () => {
     acces("proprietaire_direct", { biens: OK([]), organizations: PANNE });
     const html = await rendreParc();
     expect(liens(html)).toContainEqual({ href: "/agence/org-1/parc/nouveau", texte: "Créer mon premier bien" });
-    expect(html).not.toContain("Compléter mon profil");
+    expect(html).not.toContain("Indiquer mon adresse");
   });
 
   it("ne lit le profil que pour un propriétaire direct : l'agence et son agent gardent leur écran", async () => {
@@ -204,7 +205,7 @@ describe("« Mes lots » vide (D29 B) : le bouton que voit le propriétaire", ()
       const faux = acces(role, { biens: OK([]), organizations: OK({}) });
       const html = await rendreParc();
       expect(faux.tablesLues, role).not.toContain("organizations");
-      expect(html, role).not.toContain("Compléter mon profil");
+      expect(html, role).not.toContain("Indiquer mon adresse");
     }
     // L'admin d'agence voit bien « Créer mon premier bien » ; l'agent, devant un portefeuille vide, « Ajouter un bien ».
     acces("admin_agence", { biens: OK([]) });
@@ -215,7 +216,7 @@ describe("« Mes lots » vide (D29 B) : le bouton que voit le propriétaire", ()
     const faux = acces("proprietaire_direct", { biens: OK([bien()]), lots: OK([lot()]), organizations: OK({}) });
     const html = await rendreParc();
     expect(faux.tablesLues).not.toContain("organizations");
-    expect(html).not.toContain("Compléter mon profil");
+    expect(html).not.toContain("Indiquer mon adresse");
     expect(html).not.toContain("Votre parc est vide");
   });
 
@@ -223,7 +224,7 @@ describe("« Mes lots » vide (D29 B) : le bouton que voit le propriétaire", ()
     const faux = acces("proprietaire_direct", { biens: OK([bien({ archived_at: "2026-10-01T08:00:00Z" })]), organizations: OK({}) });
     const html = await rendreParc();
     expect(faux.tablesLues).not.toContain("organizations");
-    expect(html).not.toContain("Compléter mon profil");
+    expect(html).not.toContain("Indiquer mon adresse");
     expect(html).not.toContain("Votre parc est vide");
   });
 
@@ -231,19 +232,27 @@ describe("« Mes lots » vide (D29 B) : le bouton que voit le propriétaire", ()
     const faux = acces("proprietaire_direct", { biens: PANNE, organizations: OK({}) });
     const html = await rendreParc();
     expect(faux.tablesLues).not.toContain("organizations");
-    expect(html).not.toContain("Compléter mon profil");
+    expect(html).not.toContain("Indiquer mon adresse");
     expect(html).not.toContain("Créer mon premier bien");
   });
 });
 
 describe("« Créer un lot » (D29 B) : la porte devant le formulaire", () => {
-  it("profil incomplet : l'écran d'attente nomme ce qui manque, mène au profil, et le formulaire n'est pas affiché", async () => {
+  it("profil incomplet : les coordonnées manquantes se demandent sur place, le profil complet reste proposé, et le formulaire du bien n'est pas affiché", async () => {
     acces("proprietaire_direct", { organizations: OK({ ...COMPLET, address_line1: null, email_contact: null }) });
     const html = await rendreNouveau();
-    expect(html).toContain("Complétez d&#x27;abord votre profil");
+    expect(html).toContain("D&#x27;abord, vos coordonnées de bailleur");
     expect(html).toContain("Il manque votre adresse et votre e-mail de contact.");
-    expect(liens(html)).toContainEqual({ href: "/agence/org-1/profil?retour=nouveau-lot", texte: "Compléter mon profil" });
+    for (const nom of ["address_line1", "postal_code", "city", "email_contact"]) expect(html, nom).toMatch(new RegExp(`<input[^>]*name="${nom}"`));
+    expect(liens(html)).toContainEqual({ href: "/agence/org-1/profil?retour=nouveau-lot", texte: "Compléter tout mon profil" });
     expect(html).not.toContain("formulaire-de-creation");
+  });
+
+  it("profil incomplet : les valeurs déjà connues sont reprises dans les champs", async () => {
+    acces("proprietaire_direct", { organizations: OK({ ...COMPLET, address_line1: null }) });
+    const html = await rendreNouveau();
+    expect(html).toMatch(/<input[^>]*name="city"[^>]*value="Paris"|<input[^>]*value="Paris"[^>]*name="city"/);
+    expect(html).toMatch(/<input[^>]*name="email_contact"[^>]*value="a@exemple.fr"|<input[^>]*value="a@exemple.fr"[^>]*name="email_contact"/);
   });
 
   it("n'annonce que le premier manque quand un seul manque", async () => {
@@ -259,8 +268,8 @@ describe("« Créer un lot » (D29 B) : la porte devant le formulaire", () => {
     acces("proprietaire_direct", { organizations: OK(COMPLET) });
     const html = await rendreNouveau();
     expect(html).toContain("formulaire-de-creation");
-    expect(html).not.toContain("Complétez d&#x27;abord votre profil");
-    expect(html).not.toContain("Compléter mon profil");
+    expect(html).not.toContain("vos coordonnées de bailleur");
+    expect(html).not.toContain("Compléter tout mon profil");
   });
 
   it("la porte ne concerne que le propriétaire direct : l'agence crée un lot sans lire ce profil", async () => {
@@ -268,13 +277,13 @@ describe("« Créer un lot » (D29 B) : la porte devant le formulaire", () => {
     const html = await rendreNouveau();
     expect(faux.tablesLues).not.toContain("organizations");
     expect(html).toContain("formulaire-de-creation");
-    expect(html).not.toContain("Complétez d&#x27;abord votre profil");
+    expect(html).not.toContain("vos coordonnées de bailleur");
   });
 
   it("« Mes lots » vide et « Créer un lot » ne se contredisent pas : même profil, même verdict", async () => {
     for (const profil of [COMPLET, { ...COMPLET, city: null }, { ...COMPLET, email_contact: null }, {}]) {
       acces("proprietaire_direct", { biens: OK([]), organizations: OK(profil) });
-      const annonceLeDetour = liens(await rendreParc()).some((l) => l.texte === "Compléter mon profil pour créer un bien");
+      const annonceLeDetour = liens(await rendreParc()).some((l) => l.texte === "Indiquer mon adresse et créer mon premier bien");
       const portePosee = !(await rendreNouveau()).includes("formulaire-de-creation");
       expect(annonceLeDetour, JSON.stringify(profil)).toBe(portePosee);
     }
@@ -295,7 +304,7 @@ describe("l'inscription du propriétaire (D29 B)", () => {
     expect(inscription).not.toMatch(/name="(?:adresse|code_postal|ville|telephone)"/);
     acces("proprietaire_direct", { organizations: OK({ ...COMPLET, address_line1: null }) });
     const avantPremierBien = await rendreNouveau();
-    expect(avantPremierBien).toContain("Compléter mon profil");
+    expect(avantPremierBien).toContain("vos coordonnées de bailleur");
     expect(avantPremierBien).not.toContain("formulaire-de-creation");
   });
 });

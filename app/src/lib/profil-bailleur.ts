@@ -3,9 +3,9 @@
  *
  * L'adresse reste facultative à l'inscription (inscription courte), mais le bail, les quittances et les avis
  * d'échéance désignent le bailleur et son domicile : tant que l'adresse (rue, code postal, ville) et l'e-mail de
- * contact manquent, « Créer un lot » est remplacé par « Complétez d'abord votre profil ». « Mes lots » vide annonce
- * ce détour dans son bouton au lieu de promettre « Créer mon premier bien ». Les deux écrans partagent cette règle :
- * ils ne peuvent pas se contredire.
+ * contact manquent, « Créer un lot » demande d'abord ces coordonnées, sur place (20/11/2026 : auparavant, un détour par
+ * le profil complet). « Mes lots » vide l'annonce dans son bouton au lieu de promettre seulement « Créer mon premier
+ * bien ». Les deux écrans partagent cette règle : ils ne peuvent pas se contredire.
  */
 export type ProfilBailleur = {
   address_line1?: string | null;
@@ -50,7 +50,8 @@ export type BoutonPremierBien = { libelle: string; href: string; detourParProfil
  */
 export function boutonPremierBien({ base, manquants, erreurLecture }: { base: string; manquants: string[]; erreurLecture: boolean }): BoutonPremierBien {
   if (!erreurLecture && manquants.length > 0) {
-    return { libelle: "Compléter mon profil pour créer un bien", href: `${base}/profil?retour=nouveau-lot`, detourParProfil: true };
+    // 20/11/2026 : les coordonnées manquantes se remplissent sur la page « Ajouter un bien » elle-même ; le bouton le dit.
+    return { libelle: "Indiquer mon adresse et créer mon premier bien", href: `${base}/parc/nouveau`, detourParProfil: true };
   }
   return { libelle: "Créer mon premier bien", href: `${base}/parc/nouveau`, detourParProfil: false };
 }

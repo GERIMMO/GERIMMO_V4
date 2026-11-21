@@ -116,6 +116,16 @@ export function premierMoisSuivi(dateDebut: string | null | undefined, aujourdHu
   return dateDebut.slice(0, 7) < aujourdHui.slice(0, 7) ? `${aujourdHui.slice(0, 7)}-01` : null;
 }
 
+// La contrepartie de la date de bascule : la régularisation des charges compare les charges réelles de l'exercice aux
+// provisions APPELÉES dans Gerimmo. Un exercice commencé avant le premier mois suivi ne s'y régularise donc pas (la base
+// le refuse : déclencheur `regularisations_avant_bascule`). Le premier exercice régularisable est celui de la bascule
+// si elle tombe en janvier, le suivant sinon. Rien pour un bail sans date de bascule.
+export function premierExerciceRegularisable(loyersSuivisDepuis: string | null | undefined): number | null {
+  const lu = typeof loyersSuivisDepuis === "string" ? /^(\d{4})-(\d{2})-\d{2}$/.exec(loyersSuivisDepuis) : null;
+  if (!lu) return null;
+  return Number(lu[1]) + (lu[2] === "01" ? 0 : 1);
+}
+
 const MOIS_EN_CLAIR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
 /** « novembre 2026 » pour « 2026-11-01 ». Rien pour une date mal formée : l'écran se tait plutôt que d'inventer. */

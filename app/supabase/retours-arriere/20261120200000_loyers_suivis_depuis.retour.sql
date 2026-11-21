@@ -1,8 +1,9 @@
 -- RETOUR ARRIÈRE de 20261120200000 (date de bascule : un bail repris en cours ne réclame pas les loyers d'avant son
 -- arrivée sur Gerimmo).
 --
--- Rend à `generer_appels_loyer_interne` sa forme d'avant (remplacement exact inverse), retire le déclencheur
--- `baux_loyers_suivis_depuis`, sa fonction, `premier_mois_suivi`, puis la colonne `baux.loyers_suivis_depuis`.
+-- Rend à `generer_appels_loyer_interne` sa forme d'avant (remplacement exact inverse), retire les déclencheurs
+-- `baux_loyers_suivis_depuis` et `regularisations_avant_bascule`, leurs fonctions, `premier_mois_suivi`, puis la
+-- colonne `baux.loyers_suivis_depuis`.
 --
 -- LE RETOUR SE REFUSE tant qu'un bail porte une date de bascule. Sans elle, le générateur rétabli repartirait de la
 -- date d'entrée : au prochain « Générer l'échéancier » ou au cycle du 1er du mois, ce bail recevrait d'un coup tous
@@ -56,7 +57,9 @@ $sql$;
   revoke all on function public.generer_appels_loyer_interne(uuid) from public, anon, authenticated;
   grant execute on function public.generer_appels_loyer_interne(uuid) to service_role;
 
-  -- 2. Le déclencheur, sa fonction, la règle, puis la colonne (vide, vérifié plus haut).
+  -- 2. Les deux déclencheurs, leurs fonctions, la règle, puis la colonne (vide, vérifié plus haut).
+  drop trigger if exists regularisations_avant_bascule on public.regularisations_charges;
+  drop function if exists public.refuser_regularisation_avant_bascule();
   drop trigger if exists baux_loyers_suivis_depuis on public.baux;
   drop function if exists public.poser_loyers_suivis_depuis();
   drop function if exists public.premier_mois_suivi(date);

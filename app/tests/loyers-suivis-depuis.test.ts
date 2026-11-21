@@ -10,7 +10,7 @@
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { moisEnClair, premierMoisSuivi } from "../src/lib/baux";
+import { moisEnClair, premierExerciceRegularisable, premierMoisSuivi } from "../src/lib/baux";
 
 describe("premierMoisSuivi : le mois de l'activation, pour un bail dont le mois d'entrée est passé", () => {
   it.each([
@@ -53,6 +53,18 @@ describe("moisEnClair", () => {
   });
 });
 
+describe("premierExerciceRegularisable : l'exercice de la bascule si elle tombe en janvier, le suivant sinon", () => {
+  it.each([
+    ["2026-11-01", 2027], ["2026-02-01", 2027], ["2026-12-01", 2027], ["2027-01-01", 2027], ["2026-01-01", 2026],
+  ])("suivi depuis %s → %i", (depuis, attendu) => {
+    expect(premierExerciceRegularisable(depuis)).toBe(attendu);
+  });
+
+  it.each([null, undefined, "", "novembre 2026", "2026-11"])("rien pour un bail sans date de bascule (%s)", (depuis) => {
+    expect(premierExerciceRegularisable(depuis as string | null | undefined)).toBeNull();
+  });
+});
+
 describe("la fiche du bail", () => {
   const page = readFileSync("src/app/agence/[orgId]/baux/[bailId]/page.tsx", "utf8");
 
@@ -70,8 +82,9 @@ describe("la fiche du bail", () => {
     expect(page).toContain("Gerimmo suivra les loyers à partir {deElide(moisBasculeAnnonce)} : ceux d’avant ne seront pas réclamés.");
   });
 
-  it("transmet à la rubrique des loyers la date posée par la base, en clair", () => {
+  it("transmet à la rubrique des loyers la date posée par la base, en clair, et le premier exercice régularisable", () => {
     expect(page).toContain("loyersSuivisDepuis={moisEnClair(loyersSuivisDepuis)}");
+    expect(page).toContain("premierExerciceRegularisable={premierExerciceRegularisable(loyersSuivisDepuis)}");
   });
 });
 
@@ -90,8 +103,19 @@ describe("la rubrique « Loyers & paiements »", () => {
     expect(loyers).toContain('"Aucun appel pour l’instant : générez l’échéancier du bail."');
   });
 
+  it("régularisation des charges : dit quel est le premier exercice régularisable, et ne propose pas un exercice que la base refusera", () => {
+    expect(loyers).toContain("{!chargesForfait && loyersSuivisDepuis && premierExerciceRegularisable !== null && (");
+    expect(loyers).toContain("data-regularisation-apres-bascule");
+    expect(loyers).toContain("le premier exercice de charges régularisable dans Gerimmo est {premierExerciceRegularisable}.");
+    expect(loyers).toContain("qui ne connaît pas les provisions versées jusque-là.");
+    expect(loyers).toContain("? Math.max(exerciceParDefaut, premierExerciceRegularisable)");
+    expect(loyers).toContain("premierExerciceRegularisable !== null && premierExerciceRegularisable <= Number(aujourdhui.slice(0, 4))");
+  });
+
   it("sans date de bascule, rien n'est affiché de plus (prop facultative, vide par défaut)", () => {
     expect(loyers).toContain("  loyersSuivisDepuis = null,");
     expect(loyers).toContain("  loyersSuivisDepuis?: string | null;");
+    expect(loyers).toContain("  premierExerciceRegularisable = null,");
+    expect(loyers).toContain("  premierExerciceRegularisable?: number | null;");
   });
 });

@@ -22,11 +22,18 @@
 -- CE QUE LA RÈGLE NE FAIT PAS. Elle ne reprend aucune dette d'avant Gerimmo : un arriéré antérieur au premier mois
 -- suivi n'existe pas dans l'outil (les soldes d'ouverture relèvent du chantier « reprise de portefeuille »).
 --
--- QUATRE GESTES, rejouables :
+-- SA CONTREPARTIE : LA RÉGULARISATION DES CHARGES. Elle compare les charges réelles de l'exercice, au prorata des jours
+-- d'occupation, aux provisions APPELÉES dans Gerimmo (`provisions_charges_annee`). Pour un exercice commencé avant le
+-- premier mois suivi, les provisions versées avant n'y sont pas : le calcul mettrait à la charge du locataire des
+-- sommes qu'il a déjà payées. Un tel exercice ne se régularise donc pas ici (geste 5) ; le premier exercice
+-- régularisable est celui de la bascule si elle tombe en janvier, le suivant sinon.
+--
+-- CINQ GESTES, rejouables :
 --   1. `baux.loyers_suivis_depuis` : le premier mois suivi, toujours un 1er du mois.
 --   2. `premier_mois_suivi(date)` : la règle, en un seul endroit.
 --   3. Le déclencheur `baux_loyers_suivis_depuis` : pose la valeur au passage « brouillon → actif », d'où qu'il vienne.
 --   4. `generer_appels_loyer_interne` : part du premier mois suivi quand il existe.
+--   5. Le déclencheur `regularisations_avant_bascule` : refuse la régularisation d'un exercice commencé avant.
 --
 -- RETOUR ARRIÈRE : supabase/retours-arriere/20261120200000_loyers_suivis_depuis.retour.sql
 
@@ -123,6 +130,43 @@ end $correctif$;
 -- `generer_appels_loyer`, qui contrôle l'accès, l'appellent. On les redit pour qu'un rejeu ne les élargisse jamais.
 revoke all on function public.generer_appels_loyer_interne(uuid) from public, anon, authenticated;
 grant execute on function public.generer_appels_loyer_interne(uuid) to service_role;
+
+-- 5. Un exercice commencé avant le premier mois suivi ne se régularise pas dans Gerimmo. Le refus est posé sur la
+--    TABLE, pas dans une fonction : deux chemins y écrivent (`regulariser_charges`, et la régularisation tirée des
+--    factures de fourniture, `consommations_interne.emettre_regularisation`) ; le déclencheur les couvre tous les deux,
+--    et tout chemin à venir. Il lit le bail sous les droits de son propriétaire : aucun réglage d'accès ne le contourne.
+create or replace function public.refuser_regularisation_avant_bascule()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_debut date;
+  v_depuis date;
+begin
+  select b.date_debut, b.loyers_suivis_depuis into v_debut, v_depuis from public.baux b where b.id = new.bail_id;
+  if v_depuis is not null
+     and greatest(coalesce(v_debut, make_date(new.annee, 1, 1)), make_date(new.annee, 1, 1)) < v_depuis then
+    raise exception 'Exercice % : Gerimmo ne suit les loyers de ce bail que depuis % %. Les provisions versées avant ne lui sont pas connues ; régularisez cet exercice en dehors de Gerimmo. Premier exercice régularisable ici : %',
+      new.annee,
+      (array['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'])[extract(month from v_depuis)::int],
+      extract(year from v_depuis)::int,
+      extract(year from v_depuis)::int + case when extract(month from v_depuis)::int = 1 then 0 else 1 end;
+  end if;
+  return new;
+end;
+$$;
+
+comment on function public.refuser_regularisation_avant_bascule() is
+  'Date de bascule (20/11/2026) : refuse la régularisation des charges d''un exercice commencé avant le premier mois suivi du bail (les provisions versées avant Gerimmo ne sont pas connues).';
+
+revoke all on function public.refuser_regularisation_avant_bascule() from public, anon, authenticated;
+
+drop trigger if exists regularisations_avant_bascule on public.regularisations_charges;
+create trigger regularisations_avant_bascule
+  before insert on public.regularisations_charges
+  for each row execute function public.refuser_regularisation_avant_bascule();
 
 select public.fermer_fonctions_a_anon();
 notify pgrst, 'reload schema';

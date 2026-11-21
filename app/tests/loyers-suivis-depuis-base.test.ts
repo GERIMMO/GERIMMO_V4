@@ -13,7 +13,9 @@
  *  5. le mois suivant, le cycle du 1er ajoute le terme suivant, sans jamais revenir en arrière ;
  *  6. terme échu : l'échéance du premier terme suivi tombe le mois d'après ;
  *  7. la valeur ne s'écrit pas à la main sur un bail signé, et se recalcule à chaque activation (« Corriger ») ;
- *  8. droits ; rejeu de la migration ; retour arrière exact, refusé tant qu'un bail porte une date de bascule.
+ *  8. la régularisation des charges d'un exercice commencé avant le premier mois suivi est refusée, par les deux
+ *     chemins qui écrivent une régularisation ; l'exercice suivant, et les baux sans date de bascule, passent ;
+ *  9. droits ; rejeu de la migration ; retour arrière exact, refusé tant qu'un bail porte une date de bascule.
  *
  * Nécessite SUPABASE_DB_URL (base de test locale). Transaction annulée après chaque test.
  */
@@ -22,7 +24,7 @@ import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
-import { moisEnClair, premierMoisSuivi } from "../src/lib/baux";
+import { moisEnClair, premierExerciceRegularisable, premierMoisSuivi } from "../src/lib/baux";
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
@@ -49,11 +51,11 @@ describe("la migration et son retour, à la lecture", () => {
     expect(chaine.indexOf("`20261120200000`")).toBeLessThan(chaine.indexOf("`20261120190000`"));
   });
 
-  it("aucune ligne n'est écrite, modifiée ni effacée ; activer_bail et le cycle mensuel ne sont pas redéfinis", () => {
+  it("aucune ligne n'est écrite, modifiée ni effacée ; activer_bail, le cycle mensuel et regulariser_charges ne sont pas redéfinis", () => {
     for (const sql of [MIGRATION, RETOUR]) {
       expect(sql).not.toMatch(/\bupdate\s+public\.\w+\s+set\b/i);
       expect(sql).not.toMatch(/\b(?:insert\s+into|truncate|drop\s+table)\b/i);
-      expect(sql).not.toMatch(/create\s+or\s+replace\s+function\s+public\.(?:activer_bail|cycle_mensuel_interne|generer_appels_loyer)\s*\(/i);
+      expect(sql).not.toMatch(/create\s+or\s+replace\s+function\s+public\.(?:activer_bail|cycle_mensuel_interne|generer_appels_loyer|regulariser_charges)\s*\(/i);
     }
     expect(MIGRATION).not.toMatch(/\bdelete\s+from\b/i);
     // Le seul effacement du retour : sa propre ligne dans l'historique des migrations.
@@ -328,7 +330,76 @@ describe.skipIf(!DB_URL)("Date de bascule : les loyers d'un bail repris en cours
     expect(await refus(`update public.baux set loyers_suivis_depuis = '2026-11-01' where id=$1`, [bail])).toBe("");
   });
 
-  // ── 8. Droits, rejeu, retour ────────────────────────────────────────────────────────────────────────
+  // ── 8. La régularisation des charges ────────────────────────────────────────────────────────────────
+  /** « Régulariser », par le propriétaire, avec son justificatif. Rend le refus, ou « » si la régularisation est émise. */
+  async function regulariser(bail: string, annee: number, chargesReelles = 600): Promise<string> {
+    await enTantQuePostgres();
+    const { rows: [{ id: justificatif }] } = await db.query(
+      `insert into public.documents (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte, deposited_by)
+       values ($1,'bail','Décompte de charges', $1::uuid::text||'/'||gen_random_uuid()||'.pdf','application/pdf',1000,'e-'||gen_random_uuid(),$2)
+       returning id`, [org, compte]);
+    await simuler(compte);
+    const r = await refus(`select public.regulariser_charges($1,$2,$3,$4,null,false)`, [bail, annee, chargesReelles, justificatif]);
+    await enTantQuePostgres();
+    return r;
+  }
+  const regularisations = async (bail: string) => (await db.query(
+    `select annee, provisions::float8 as provisions, charges_reelles::float8 as reel, ecart::float8 as ecart
+       from public.regularisations_charges where bail_id=$1 order by annee`, [bail])).rows as { annee: number; provisions: number; reel: number; ecart: number }[];
+
+  it("un exercice commencé avant le premier mois suivi ne se régularise pas : les provisions d'avant ne sont pas connues", async () => {
+    const bail = await brouillon("2024-11-01");
+    expect(await deposerContrat(bail)).toBe("");
+    await nousSommesLe("2027-02-10");
+    await db.query(`select public.cycle_mensuel_interne()`);
+    expect((await termes(bail)).map((t) => t.periode)).toEqual(["2026-11-01", "2026-12-01", "2027-01-01", "2027-02-01"]);
+
+    // Sans le refus, 2026 donnerait : 100 € de provisions appelées (novembre, décembre) contre 600 € de charges de
+    // l'année entière — 500 € réclamés au locataire, qui a versé ses provisions de janvier à octobre hors de Gerimmo.
+    for (const annee of [2025, 2026]) {
+      expect(await regulariser(bail, annee), String(annee)).toMatch(
+        new RegExp(`Exercice ${annee} : Gerimmo ne suit les loyers de ce bail que depuis novembre 2026\\..*Premier exercice régularisable ici : 2027`));
+    }
+    expect(await regularisations(bail)).toEqual([]);
+    expect(premierExerciceRegularisable(CE_MOIS)).toBe(2027);
+
+    // Le premier exercice entièrement suivi se régularise comme pour tout bail (ici en cours d'année : deux provisions).
+    expect(await regulariser(bail, 2027)).toBe("");
+    expect(await regularisations(bail)).toEqual([{ annee: 2027, provisions: 100, reel: 600, ecart: -500 }]);
+  });
+
+  it("le refus tient aussi pour une régularisation écrite sans passer par regulariser_charges (factures de fourniture)", async () => {
+    const bail = await brouillon("2024-11-01");
+    expect(await deposerContrat(bail)).toBe("");
+    const ecrire = (annee: number) => refus(
+      `insert into public.regularisations_charges (organization_id, bail_id, annee, provisions, charges_reelles, ecart, tardive)
+       values ($1,$2,$3,100,600,-500,false)`, [org, bail, annee]);
+    expect(await ecrire(2026)).toMatch(/Exercice 2026 : Gerimmo ne suit les loyers de ce bail que depuis novembre 2026/);
+    expect(await ecrire(2027)).toBe("");
+  });
+
+  it("bascule en janvier : l'exercice de la bascule est entièrement suivi, il se régularise ; le précédent, non", async () => {
+    const bail = await brouillon("2024-11-01");
+    await nousSommesLe("2027-01-15");
+    expect(await deposerContrat(bail)).toBe("");
+    expect((await bascule(bail)).depuis).toBe("2027-01-01");
+    expect(premierExerciceRegularisable("2027-01-01")).toBe(2027);
+    expect(await genererEcheancier(bail)).toBe(1);
+    expect(await regulariser(bail, 2026)).toMatch(/depuis janvier 2027\..*Premier exercice régularisable ici : 2027/);
+    expect(await regulariser(bail, 2027)).toBe("");
+    expect((await regularisations(bail)).map((r) => [r.annee, r.provisions])).toEqual([[2027, 50]]);
+  });
+
+  it("un bail sans date de bascule se régularise comme avant, y compris sur l'exercice de son entrée", async () => {
+    const bail = await brouillon("2026-11-03");
+    expect(await deposerContrat(bail)).toBe("");
+    expect(await genererEcheancier(bail)).toBe(1);
+    expect(await regulariser(bail, 2026)).toBe("");
+    // 59 jours d'occupation sur 365 : 600 € × 59 / 365 = 96,99 € ; provision appelée : 46,67 €.
+    expect(await regularisations(bail)).toEqual([{ annee: 2026, provisions: 46.67, reel: 96.99, ecart: -50.32 }]);
+  });
+
+  // ── 9. Droits, rejeu, retour ────────────────────────────────────────────────────────────────────────
   it("droits : la règle se lit connecté, jamais en visiteur ; le générateur interne et le déclencheur restent fermés", async () => {
     const droit = async (role: string, fonction: string) =>
       (await db.query(`select has_function_privilege($1, $2, 'execute') as ok`, [role, fonction])).rows[0].ok as boolean;
@@ -337,6 +408,7 @@ describe.skipIf(!DB_URL)("Date de bascule : les loyers d'un bail repris en cours
     for (const role of ["anon", "authenticated"]) {
       expect(await droit(role, "public.generer_appels_loyer_interne(uuid)"), role).toBe(false);
       expect(await droit(role, "public.poser_loyers_suivis_depuis()"), role).toBe(false);
+      expect(await droit(role, "public.refuser_regularisation_avant_bascule()"), role).toBe(false);
     }
     expect(await droit("service_role", "public.generer_appels_loyer_interne(uuid)")).toBe(true);
   });
@@ -344,12 +416,19 @@ describe.skipIf(!DB_URL)("Date de bascule : les loyers d'un bail repris en cours
   const empreintes = async () => (await db.query(
     `select p.proname, md5(pg_get_functiondef(p.oid)) as empreinte, p.proacl::text as droits
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-      where n.nspname = 'public' and p.proname in ('generer_appels_loyer_interne','generer_appels_loyer','cycle_mensuel_interne','activer_bail','premier_mois_suivi','poser_loyers_suivis_depuis')
+      where n.nspname = 'public' and p.proname in ('generer_appels_loyer_interne','generer_appels_loyer','cycle_mensuel_interne','activer_bail','regulariser_charges','premier_mois_suivi','poser_loyers_suivis_depuis','refuser_regularisation_avant_bascule')
       order by 1`)).rows as { proname: string; empreinte: string; droits: string | null }[];
   const colonnePresente = async () => (await db.query(
     `select count(*)::int as n from information_schema.columns where table_schema='public' and table_name='baux' and column_name='loyers_suivis_depuis'`)).rows[0].n === 1;
-  const declencheurPresent = async () => (await db.query(
-    `select count(*)::int as n from pg_trigger where tgrelid='public.baux'::regclass and tgname='baux_loyers_suivis_depuis'`)).rows[0].n === 1;
+  /** Les deux déclencheurs de la migration : celui des baux et celui des régularisations. Vrai si les deux y sont, faux si aucun. */
+  const declencheurPresent = async () => {
+    const { rows: [{ n }] } = await db.query(
+      `select count(*)::int as n from pg_trigger
+        where (tgrelid='public.baux'::regclass and tgname='baux_loyers_suivis_depuis')
+           or (tgrelid='public.regularisations_charges'::regclass and tgname='regularisations_avant_bascule')`);
+    expect([0, 2]).toContain(n);
+    return n === 2;
+  };
   /** Le banc peut porter des baux repris par d'autres essais : on les met de côté, sans réveiller leurs déclencheurs. */
   async function aucunBailRepris() {
     await enTantQuePostgres();
@@ -383,7 +462,7 @@ describe.skipIf(!DB_URL)("Date de bascule : les loyers d'un bail repris en cours
     const migre = await empreintes();
     await db.query(RETOUR);
     const revenu = await empreintes();
-    expect(revenu.map((f) => f.proname)).toEqual(["activer_bail", "cycle_mensuel_interne", "generer_appels_loyer", "generer_appels_loyer_interne"]);
+    expect(revenu.map((f) => f.proname)).toEqual(["activer_bail", "cycle_mensuel_interne", "generer_appels_loyer", "generer_appels_loyer_interne", "regulariser_charges"]);
     const { rows: [{ def }] } = await db.query(`select pg_get_functiondef('public.generer_appels_loyer_interne(uuid)'::regprocedure) as def`);
     expect(def).not.toContain("Date de bascule");
     expect(def).not.toContain("loyers_suivis_depuis");
@@ -391,7 +470,7 @@ describe.skipIf(!DB_URL)("Date de bascule : les loyers d'un bail repris en cours
     expect(await colonnePresente()).toBe(false);
     expect(await declencheurPresent()).toBe(false);
     // Fonctions inchangées par l'aller comme par le retour, droits compris.
-    for (const nom of ["activer_bail", "cycle_mensuel_interne", "generer_appels_loyer"]) {
+    for (const nom of ["activer_bail", "cycle_mensuel_interne", "generer_appels_loyer", "regulariser_charges"]) {
       expect(revenu.find((f) => f.proname === nom), nom).toEqual(migre.find((f) => f.proname === nom));
     }
     expect(revenu.find((f) => f.proname === "generer_appels_loyer_interne")!.droits).toBe(migre.find((f) => f.proname === "generer_appels_loyer_interne")!.droits);

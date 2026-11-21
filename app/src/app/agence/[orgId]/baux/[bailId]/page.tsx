@@ -33,7 +33,7 @@ import {
   COULEURS_ETAT_EDL,
   mentionsObligatoiresManquantes,
   etatDecompteSortie,
-  bailDejaEnCours, moisEnClair, premierMoisSuivi,
+  bailDejaEnCours, moisEnClair, premierExerciceRegularisable, premierMoisSuivi,
 } from "@/lib/baux";
 import { deElide } from "@/lib/elision";
 import { nomComplet } from "@/lib/roles-personnes";
@@ -959,6 +959,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               dateDebut={bail.date_debut}
               dateFin={bail.date_fin}
               loyersSuivisDepuis={moisEnClair(loyersSuivisDepuis)}
+              premierExerciceRegularisable={premierExerciceRegularisable(loyersSuivisDepuis)}
               copropriete={Boolean(premier(lot?.bien ?? null)?.copropriete)}
               aujourdhui={aujourdhuiParis()}
               decompteSortie={etatDecompteSortie(restitution, erreurRestitution)}

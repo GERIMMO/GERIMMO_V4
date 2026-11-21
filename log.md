@@ -7678,6 +7678,10 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **CI de la PR #355** : verte à 21 h 31 UTC (run 44816292574) ; relancée par la correction.
 - **En attente du dirigeant** : approbation de la mise en ligne de « Être rappelé » (run 44794208593) ; accord pour
   fusionner et publier #353, #354, #355 ; décision A / B / C sur le premier mois suivi (#356).
+- **Contrepartie trouvée en construisant la proposition** : la régularisation des charges compare aux provisions
+  appelées dans Gerimmo ; pour l'exercice de la bascule, 500 € auraient été réclamés à tort au locataire dans l'exemple
+  du banc. La PR #356 refuse la régularisation d'un exercice commencé avant le premier mois suivi (déclencheur sur
+  `regularisations_charges`, qui couvre les deux chemins). Suite complète rejouée : 13 206 réussis, 2 échecs propres à
+  l'état du banc.
 - **Pages du wiki** : mise à jour de [[Premiers clients — acquisition sans budget — 20 novembre 2026]], de [[Bail]] et de
   l'index.
-

@@ -109,12 +109,18 @@ n'est pas construite : un arriéré antérieur au premier mois suivi n'existe pa
 Rejoué sur le banc avec la règle : le même bail reçoit **un** terme (novembre 2026, 750 €) ; l'encaissement enregistré
 produit la quittance ; l'accueil affiche « 750,00 € sur 750,00 € ». Détail dans [[Bail]].
 
+**Contrepartie relevée en la construisant.** La régularisation annuelle des charges compare les charges de l'exercice
+aux provisions appelées dans Gerimmo. Pour l'exercice de la bascule, les provisions versées avant n'y sont pas : sans
+garde-fou, 500 € auraient été réclamés à tort au locataire dans l'exemple du banc. La PR refuse donc la régularisation
+d'un exercice commencé avant le premier mois suivi ; ces exercices se régularisent hors de Gerimmo.
+
 ## Ce qui reste à décider
 
 > [!warning] Points à trancher
 > - **Premier mois suivi d'un bail repris en cours** (PR #356) : A, le mois de l'activation (ce que fait la PR) ; B, le
->   propriétaire choisit le mois ; C, depuis l'entrée du locataire, comme aujourd'hui. Sans A ni B, la décision B du
->   20/11 mène à un échéancier de plusieurs années « impayé ».
+>   propriétaire choisit le mois, ce qui permet de faire entrer toute l'année en cours (déclaration de revenus,
+>   régularisation des charges de l'année) ; C, depuis l'entrée du locataire, comme aujourd'hui. Sans A ni B, la
+>   décision B du 20/11 mène à un échéancier de plusieurs années « impayé ».
 > - **Dépôt de garantie d'un bail repris** : Gerimmo propose de l'encaisser alors qu'il a été versé à l'entrée.
 > - **Révision du loyer (IRL) d'un bail repris** : la rubrique calcule « loyer actuel × IRL nouveau / IRL de
 >   référence », l'indice de référence étant celui de la dernière révision enregistrée dans Gerimmo, à défaut celui du

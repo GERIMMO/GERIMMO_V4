@@ -90,6 +90,12 @@ diagnostics absents ou expirés ne bloquent pas ce bail ; ils restent des action
   d'ouverture et dettes ou crédits du locataire ([[2026-09-04-maquette-v3-prototype|Maquette v3]],
   [[2026-09-08-maquette-espace-agence-v6|Maquette agence v6]]). Seule la date est reprise ici, bail par bail.
 - **Limite.** Aucune dette d'avant le premier mois suivi n'est reprise.
+- **Contrepartie : la régularisation des charges.** Elle compare les charges réelles de l'exercice, au prorata des
+  jours d'occupation, aux provisions *appelées dans Gerimmo*. Pour un exercice commencé avant le premier mois suivi,
+  les provisions versées avant n'y figurent pas : sur le banc, l'exercice 2026 d'un bail suivi depuis novembre donnait
+  100 € de provisions contre 600 € de charges, soit 500 € réclamés à tort au locataire. La proposition refuse donc la
+  régularisation d'un tel exercice ; le premier exercice régularisable est celui de la bascule si elle tombe en
+  janvier, le suivant sinon ([[Régularisation des charges]]).
 - **En base** : migration `20261120200000_loyers_suivis_depuis.sql` (PR #356, brouillon), retour arrière fourni ; il se
   refuse tant qu'un bail porte une date de bascule.
 

@@ -9,6 +9,10 @@ import { OPEN_GRAPH_PAR_DEFAUT, descriptionArticle } from "@/lib/metadonnees-pub
 import { ImageJournal, imageArticle } from "@/components/image-journal";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 import { dureeEssai } from "@/lib/tarifs";
+import { DonneesStructurees } from "@/components/donnees-structurees";
+import { articleJournal, filAriane } from "@/lib/donnees-structurees";
+import { adresseCanonique } from "@/lib/site";
+import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
 
 export const revalidate = 3600;
 
@@ -18,7 +22,7 @@ async function charger(slug: string) {
   // mais on garde le filtre par sécurité si la politique changeait un jour.
   const { data } = await supabase
     .from("publications")
-    .select("titre, chapo, corps, publie_le, seo_description, sources, veine, facebook_image_url")
+    .select("titre, chapo, corps, publie_le, updated_at, seo_description, sources, veine, facebook_image_url")
     .eq("slug", slug)
     .eq("statut", "publiee")
     .maybeSingle();
@@ -65,9 +69,33 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
       })
     : null;
 
+  const site = adresseCanonique();
+  const chemin = `/journal/${slug}`;
+  const titre = titreSansDoublon(a.titre);
+  // L'illustration de repli est un SVG, que Google ne retient pas pour un article : le logo la remplace ici.
+  const illustration = imageArticle(a.facebook_image_url);
   return (
     // flex-col : sans elle, le main.flex-1 ne poussait pas le pied en bas (24/09).
     <div className="site-public flex min-h-full flex-1 flex-col">
+      {/* Pour les moteurs de recherche (20/11/2026) : l'article (titre, image, dates, éditeur) et son fil d'Ariane. */}
+      <DonneesStructurees
+        donnees={[
+          articleJournal(site, {
+            chemin,
+            titre,
+            description: descriptionArticle(a),
+            image: illustration.repli ? CHARTE_GERIMMO.logo : illustration.src,
+            logo: CHARTE_GERIMMO.logo,
+            publieLe: a.publie_le,
+            modifieLe: a.updated_at,
+          }),
+          filAriane(site, [
+            { nom: "Accueil", chemin: "/" },
+            { nom: "Le journal", chemin: "/journal" },
+            { nom: titre, chemin },
+          ]),
+        ]}
+      />
       <EnTetePublic />
 
       <main className="public-lecture flex-1">

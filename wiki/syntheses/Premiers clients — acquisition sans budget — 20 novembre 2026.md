@@ -3,7 +3,7 @@ type: synthesis
 tags: [acquisition, activation, onboarding, bail, diagnostic, referencement, prospection]
 status: in-progress
 created: 2026-11-20
-updated: 2026-11-20
+updated: 2026-11-21
 sources: []
 ---
 
@@ -57,14 +57,16 @@ suivent :
 
 ## Les chantiers
 
-| # | Chantier | Pull request | État au 21/11, 17 h 30 UTC |
+| # | Chantier | Pull request | État au 21/11, 18 h 15 UTC |
 |---|---|---|---|
-| 1 | **« Être rappelé »** : le visiteur laisse lui-même son numéro et son accord ; le dirigeant le rappelle | [#352](https://github.com/GERIMMO/GERIMMO_V4/pull/352) | **En production** depuis le 21/11, 12:19Z (`3fd11ae9`) ; recette n° 56 réussie |
-| 2 | **Google** : données structurées (éditeur, questions fréquentes, fil d'Ariane, articles) | [#353](https://github.com/GERIMMO/GERIMMO_V4/pull/353) | Fusionnée (`b9bfd7d2`) ; mise en ligne avec les suivantes |
-| 3 | **Premier bien** : les coordonnées du bailleur se remplissent sur la page « Ajouter un bien » | [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) | Fusionnée (`0dfc53f8`) ; mise en ligne avec les suivantes |
-| 4 | **Bail déjà en cours** et **naissance facultative** (décisions du 20/11) | [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355) | Fusionnée (`81740dec`) ; migration à appliquer avant la mise en ligne |
-| 4 bis | **Date de bascule des loyers** (décision A du 21/11) | [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356) | Fusionnée avec #355 (`81740dec`) ; migration à appliquer avant la mise en ligne |
+| 1 | **« Être rappelé »** : le visiteur laisse lui-même son numéro et son accord ; le dirigeant le rappelle | [#352](https://github.com/GERIMMO/GERIMMO_V4/pull/352) | **En production** depuis le 21/11, 12:19Z |
+| 2 | **Google** : données structurées (éditeur, questions fréquentes, fil d'Ariane, articles) | [#353](https://github.com/GERIMMO/GERIMMO_V4/pull/353) | **En production** depuis le 21/11, 18:03Z (`81740dec`) |
+| 3 | **Premier bien** : les coordonnées du bailleur se remplissent sur la page « Ajouter un bien » | [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) | **En production** depuis le 21/11, 18:03Z |
+| 4 | **Bail déjà en cours** et **naissance facultative** (décisions du 20/11) | [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355) | **En production** depuis le 21/11, 18:03Z ; migration appliquée à 18:02Z |
+| 4 bis | **Date de bascule des loyers** (décision A du 21/11) | [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356) | **En production** depuis le 21/11, 18:03Z ; migration appliquée à 18:02Z |
 | 5 | Publications Instagram et LinkedIn | — | Non commencé : demande l'accès aux comptes |
+
+Recette de production n° 57 réussie sur la version publiée (21/11, 18:12Z).
 
 ### 1. « Être rappelé »
 

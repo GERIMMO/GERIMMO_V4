@@ -75,7 +75,8 @@ diagnostics absents ou expirés ne bloquent pas ce bail ; ils restent des action
   à 100 %, DPE classé G : tout cela bloque encore. Un bail qui commence aujourd'hui ou plus tard garde la mise en
   location et les diagnostics.
 - **Options écartées** : A, ne rien changer ; C, exiger le DPE mais pas un état des risques récent.
-- **En base** : migration `20261120190000_bail_deja_en_cours.sql` (PR #355), retour arrière fourni.
+- **En base** : migration `20261120190000_bail_deja_en_cours.sql` (PR #355), retour arrière fourni. **En production
+  depuis le 21/11/2026.**
 
 #### Loyers d'un bail repris en cours — date de bascule (décision A du dirigeant, 21/11/2026)
 
@@ -99,7 +100,8 @@ diagnostics absents ou expirés ne bloquent pas ce bail ; ils restent des action
 - **Options écartées** : B, le propriétaire choisit le mois (elle aurait permis de faire entrer toute l'année en
   cours) ; C, depuis l'entrée du locataire (comportement d'avant).
 - **En base** : migration `20261120200000_loyers_suivis_depuis.sql` (PR #356, fusionnée dans la branche de la PR #355),
-  retour arrière fourni ; il se refuse tant qu'un bail porte une date de bascule.
+  retour arrière fourni ; il se refuse tant qu'un bail porte une date de bascule. **En production depuis le
+  21/11/2026.**
 
 > [!warning] Points à trancher / contradictions
 > - Les maquettes décrivent une reprise avec soldes d'ouverture ; la règle n'en reprend que la date. Une dette de loyer

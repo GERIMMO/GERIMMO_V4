@@ -7722,3 +7722,35 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   simulation des deux migrations lancée (run 44910249679), **en attente de l'approbation du dirigeant**. Rien d'autre
   n'est en ligne tant que les migrations ne sont pas appliquées.
 
+## [2026-11-21] deploy | Google, premier bien, bail déjà en cours et date de bascule en production (PR #353 à #356)
+
+- Le dirigeant a demandé la publication (« Choix A, oui publie »), puis a approuvé dans GitHub les trois passages de
+  l'environnement `gerimmo-production` : simulation des migrations, application, publication.
+- **Fusions** (squash au SHA exact, chaque branche à jour avec `main` et sa CI verte, comme le dépôt l'exige) :
+  - PR [#353](https://github.com/GERIMMO/GERIMMO_V4/pull/353) → `b9bfd7d2` (12:19Z) ;
+  - PR [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) → `0dfc53f8` (12:55Z, CI 44903502168) ;
+  - PR [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355), qui porte aussi la PR
+    [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356) fusionnée dans sa branche → `main` = `81740dec` (13:42Z,
+    CI 44906332443). CI de `main` verte (run 44910220705, 14:15Z).
+- **Migrations**, par le chantier « Migrations Supabase » sur `81740dec` :
+  - simulation (run 44910249679) réussie à 17:34Z ;
+  - sauvegarde à la demande (run 44930804957) réussie à 17:41Z ;
+  - application de `20261120190000_bail_deja_en_cours.sql` puis de `20261120200000_loyers_suivis_depuis.sql`
+    (run 44931598508) réussie à 18:02Z, gardes « CI verte » et « sauvegarde récente » passées.
+- **Publication contrôlée** (run 44931906214, `dpl_AV9825DKz3JzKQhDXd699x8yhfvu`) réussie à 18:03Z, après l'application des
+  migrations :
+  - `/api/sante` sert `81740dec`, base OK, pas de maintenance ;
+  - accueil, `/outils`, `/outils/calcul-irl`, `/tarifs`, `/journal`, un article, `/connexion`, `/inscription` en 200 ;
+    adresse inconnue en 404 ;
+  - données structurées relues en JSON valide : accueil (`Organization`, `WebSite`, `FAQPage` à 6 questions), outil
+    (`BreadcrumbList`), article (`BlogPosting`, `BreadcrumbList`) ; aucune offre ni prix ;
+  - la carte « Être rappelé » toujours présente sur l'accueil, sous l'outil et sous l'article, absente de `/tarifs` ;
+  - 0 erreur d'exécution Vercel dans l'heure qui suit, recette comprise.
+- **Recette de production avec nettoyage n° 57** (run 44933397659) réussie à 18:12Z sur la version publiée.
+- **Non fait** : la relecture directe de la base (empreintes des fonctions migrées, colonne et déclencheurs, purge des
+  comptes de recette). L'outil de lecture a demandé deux fois une approbation restée sans réponse. Les preuves
+  disponibles sont l'étape « Appliquer » réussie du chantier des migrations et la recette réussie.
+- **À suivre** : en production, 11 baux en brouillon au relevé du 20/11, dont 2 avec une entrée antérieure au mois en
+  cours ; ils peuvent désormais s'activer par leur contrat signé, et leurs loyers seront suivis depuis le mois de
+  l'activation.
+

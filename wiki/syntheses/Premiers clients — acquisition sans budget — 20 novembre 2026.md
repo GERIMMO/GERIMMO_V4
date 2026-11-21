@@ -57,13 +57,13 @@ suivent :
 
 ## Les chantiers
 
-| # | Chantier | Pull request | État au 20/11, 23 h 45 UTC |
+| # | Chantier | Pull request | État au 21/11, 17 h 30 UTC |
 |---|---|---|---|
-| 1 | **« Être rappelé »** : le visiteur laisse lui-même son numéro et son accord ; le dirigeant le rappelle | [#352](https://github.com/GERIMMO/GERIMMO_V4/pull/352) | Fusionnée (`3fd11ae9`), CI de `main` verte ; mise en ligne lancée, **en attente de l'approbation du dirigeant** |
-| 2 | **Google** : données structurées (éditeur, questions fréquentes, fil d'Ariane, articles) | [#353](https://github.com/GERIMMO/GERIMMO_V4/pull/353) | Ouverte, CI verte |
-| 3 | **Premier bien** : les coordonnées du bailleur se remplissent sur la page « Ajouter un bien » | [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) | Ouverte, CI verte |
-| 4 | **Bail déjà en cours** et **naissance facultative** (les deux décisions) | [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355) | Ouverte ; contient une migration ; CI verte à 21 h 31 UTC, relancée après la correction d'un test sensible à l'heure (`a8c37a8b`) |
-| 4 bis | **Date de bascule des loyers** : un bail repris en cours ne réclame pas les loyers d'avant son arrivée | [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356) | Brouillon, empilée sur #355 ; contient une migration ; **règle à valider par le dirigeant** |
+| 1 | **« Être rappelé »** : le visiteur laisse lui-même son numéro et son accord ; le dirigeant le rappelle | [#352](https://github.com/GERIMMO/GERIMMO_V4/pull/352) | **En production** depuis le 21/11, 12:19Z (`3fd11ae9`) ; recette n° 56 réussie |
+| 2 | **Google** : données structurées (éditeur, questions fréquentes, fil d'Ariane, articles) | [#353](https://github.com/GERIMMO/GERIMMO_V4/pull/353) | Fusionnée (`b9bfd7d2`) ; mise en ligne avec les suivantes |
+| 3 | **Premier bien** : les coordonnées du bailleur se remplissent sur la page « Ajouter un bien » | [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) | Fusionnée (`0dfc53f8`) ; mise en ligne avec les suivantes |
+| 4 | **Bail déjà en cours** et **naissance facultative** (décisions du 20/11) | [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355) | Fusionnée (`81740dec`) ; migration à appliquer avant la mise en ligne |
+| 4 bis | **Date de bascule des loyers** (décision A du 21/11) | [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356) | Fusionnée avec #355 (`81740dec`) ; migration à appliquer avant la mise en ligne |
 | 5 | Publications Instagram et LinkedIn | — | Non commencé : demande l'accès aux comptes |
 
 ### 1. « Être rappelé »

@@ -7700,3 +7700,25 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   `20261120190000` et `20261120200000`), publication contrôlée, vérifications de production.
 - **Pages du wiki** : [[Bail]] (la règle n'est plus une proposition), [[Premiers clients — acquisition sans budget — 20 novembre 2026]].
 
+## [2026-11-21] deploy | « Être rappelé » en production (PR #352)
+
+- Le dirigeant a approuvé dans GitHub le passage de l'environnement `gerimmo-production`, au moment de sa réponse
+  « Choix A, oui publie ».
+- PR [#352](https://github.com/GERIMMO/GERIMMO_V4/pull/352) : fusion squash → `main` = `3fd11ae9` (20/11, 18:00Z) ;
+  CI de `main` verte (run 44788654969, 18:34Z).
+- **Aucune migration** : base inchangée, compatible avec la version précédente.
+- **Publication contrôlée** (run 44794208593, `dpl_iZ6Crrnhwcan9zoDBfwB7cYT8oE2`), lancée le 20/11 à 18:35Z, approuvée et
+  réussie le 21/11 à 12:19Z :
+  - `/api/sante` sert `3fd11ae9`, base OK, pas de maintenance ;
+  - accueil, `/outils`, `/tarifs`, `/journal`, `/connexion`, `/inscription` en 200 ;
+  - la carte « Être rappelé » est présente sur l'accueil, sous un outil (`/outils/calcul-irl`) et sous un article du
+    journal ; absente de `/tarifs`, comme prévu ;
+  - 0 erreur d'exécution Vercel sur les trois heures autour de la publication.
+- **Recette de production avec nettoyage n° 56** (run 44927650523) réussie à 17:12Z, étape « Supprimer les comptes
+  éphémères, dossiers et supervision » comprise. La relecture de la purge en base n'a pas été faite : l'outil de
+  lecture a demandé une approbation restée sans réponse ; à refaire au prochain passage.
+- **Suite, le même jour** : PR #353 (`b9bfd7d2`), #354 (`0dfc53f8`) et #355 avec #356 (`81740dec`) fusionnées ; CI de
+  `main` verte sur `81740dec` (run 44910220705, 14:15Z) ; construction Vercel prête (`dpl_AV9825DKz3JzKQhDXd699x8yhfvu`) ;
+  simulation des deux migrations lancée (run 44910249679), **en attente de l'approbation du dirigeant**. Rien d'autre
+  n'est en ligne tant que les migrations ne sont pas appliquées.
+

@@ -14,6 +14,10 @@ import { badgeEssai, dureeEssai, etiquetteTaxes, mentionTaxesPubliques } from "@
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 import { TuileOutil, outilsPresentes } from "@/components/outils/icones-outils";
+import { DonneesStructurees } from "@/components/donnees-structurees";
+import { organisation, questionsFrequentes, siteWeb } from "@/lib/donnees-structurees";
+import { adresseCanonique } from "@/lib/site";
+import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
 
 export const revalidate = 3600;
 export function generateMetadata() {
@@ -63,8 +67,17 @@ export default async function PageVitrine() {
     .select("id, titre, slug, chapo, publie_le, facebook_image_url")
     .eq("statut", "publiee").order("publie_le", { ascending: false }).limit(3);
   const duree = dureeEssai();
+  const site = adresseCanonique();
   return (
     <div className="site-public">
+      {/* Pour les moteurs de recherche (20/11/2026) : l'éditeur, le site et les questions fréquentes affichées plus bas. */}
+      <DonneesStructurees
+        donnees={[
+          organisation(site, CHARTE_GERIMMO.logo),
+          siteWeb(site, "La gestion locative pour propriétaires bailleurs et SCI, avec un espace locataire."),
+          questionsFrequentes(faq(duree)),
+        ]}
+      />
       <EnTetePublic />
       <main>
         <header className="public-hero">

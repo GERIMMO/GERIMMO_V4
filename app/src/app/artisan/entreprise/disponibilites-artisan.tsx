@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
-import { useFormStatus } from "react-dom";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { CalendarClock, CalendarOff } from "lucide-react";
 import styles from "./entreprise.module.css";
 import {
@@ -32,9 +32,10 @@ import {
 //  · sa SEMAINE TYPE : une plage par jour travaillé, qui ne sert qu'à préremplir les trois créneaux qu'il propose pour
 //    une intervention. Elle ne réserve rien et personne d'autre ne la lit.
 
+// Le bouton d'envoi commun (décision D30 B) : inerte tant que la page n'est pas prête, puis « Enregistrement… »
+// pendant l'envoi. Un bouton écrit à la main, lui, laissait cliquer avant la fin du chargement sans rien faire.
 function Enregistrer({ libelle, classe = CLASSE_BOUTON_SECONDAIRE }: { libelle: string; classe?: string }) {
-  const { pending } = useFormStatus();
-  return <button type="submit" className={classe} disabled={pending}>{pending ? "Enregistrement…" : libelle}</button>;
+  return <BoutonEnvoi className={classe} enCoursTexte="Enregistrement…">{libelle}</BoutonEnvoi>;
 }
 
 function RetraitAbsence({ absence }: { absence: AbsenceArtisan }) {

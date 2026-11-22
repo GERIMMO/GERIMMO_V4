@@ -15,7 +15,7 @@ declare
 begin
   drop trigger if exists signaler_message_intervention on public.intervention_messages;
   drop function if exists public.signaler_message_intervention();
-  drop function if exists public.marquer_echange_intervention_lu(uuid, timestamptz);
+  drop function if exists public.marquer_echange_intervention_lu(uuid, uuid);
   drop function if exists public.echanges_intervention_non_lus(uuid);
   drop table if exists public.intervention_echanges_lectures;
 

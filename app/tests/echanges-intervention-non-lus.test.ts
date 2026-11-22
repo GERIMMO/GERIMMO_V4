@@ -4,8 +4,9 @@
  * Sans base (les règles de la base ont leur test : echanges-intervention-non-lus-base.test.ts). Tient :
  *  1. la lecture des non-lus : avec un espace pour le gestionnaire et le locataire, sans pour l'artisan ; une lecture
  *     en échec se distingue de « rien à lire » ;
- *  2. « marquer lu » : geste silencieux, qui renvoie à la base l'instant du dernier message TEL QUEL (à la
- *     microseconde), ne rafraîchit les écrans que si le marqueur a avancé, et n'appelle rien sur une entrée invalide ;
+ *  2. « marquer lu » : geste silencieux, qui désigne à la base le dernier message affiché par son IDENTIFIANT (jamais
+ *     par une heure, qu'un intermédiaire arrondirait), ne rafraîchit les écrans que si le marqueur a avancé, et
+ *     n'appelle rien sur une entrée invalide ;
  *  3. la discussion pose son repère de lecture après le dernier message, dans la liste qui défile — et rien quand il
  *     n'y a aucun message ; le repère ne marque qu'une fois entré à l'écran ;
  *  4. l'étiquette « Nouveau message » sur la carte d'une mission, et son câblage dans les trois espaces.
@@ -20,7 +21,7 @@ vi.mock("next/cache", () => ({ revalidatePath: banc.revalidatePath }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => banc.supabase }));
 vi.mock("@/components/formulaire-echange-intervention", () => ({ FormulaireEchangeIntervention: () => null }));
 
-import { etiquetteNouveauxMessages, INSTANT_MESSAGE, lireEchangesNonLus, nonLusPar, type EchangeNonLu } from "@/lib/echanges-intervention";
+import { etiquetteNouveauxMessages, lireEchangesNonLus, nonLusPar, type EchangeNonLu } from "@/lib/echanges-intervention";
 import { marquerEchangeLu } from "@/app/actions/echanges-intervention";
 import { EchangesIntervention } from "@/components/echanges-intervention";
 import { MarqueurLectureEchange } from "@/components/marqueur-lecture-echange";
@@ -28,6 +29,7 @@ import { CarteMission } from "@/app/artisan/carte-mission";
 import type { LigneAgenda } from "@/app/artisan/acces";
 
 const INTERVENTION = "3c1d2f4a-0000-4000-8000-0000000000a1";
+const MESSAGE = "3c1d2f4a-0000-4000-8000-0000000000b2";
 const INSTANT = "2026-11-22T10:15:30.123456+00:00";
 const ligne = (intervention: string, incident: string, non_lus: number): EchangeNonLu =>
   ({ intervention_id: intervention, incident_id: incident, organization_id: "org", non_lus, dernier_le: INSTANT });
@@ -55,22 +57,17 @@ describe("lire ce qui attend d'être lu", () => {
     expect([...nonLusPar(lignes, "incident_id")]).toEqual([["i1", 3], ["i2", 4]]);
     expect([...nonLusPar(lignes, "intervention_id")]).toEqual([["m1", 2], ["m2", 1], ["m3", 4]]);
   });
-
-  it("l'instant d'un message : la forme que rend la base, et rien d'autre", () => {
-    for (const bon of [INSTANT, "2026-11-22T10:15:30+00:00", "2026-11-22T10:15:30.5Z", "2026-11-22T10:15:30.123456+02"]) expect(INSTANT_MESSAGE.test(bon), bon).toBe(true);
-    for (const faux of ["", "hier", "2026-11-22", "2026-11-22 10:15:30", "2026-11-22T10:15:30", "2026-11-22T10:15:30.1234567Z", `${INSTANT}; drop table`]) expect(INSTANT_MESSAGE.test(faux), faux).toBe(false);
-  });
 });
 
 describe("marquer la discussion comme lue", () => {
   const rpc = vi.fn();
   beforeEach(() => { rpc.mockReset(); banc.supabase = { rpc }; });
 
-  it("le marqueur a avancé : l'instant est renvoyé tel quel, et les écrans des trois espaces se rafraîchissent", async () => {
+  it("le marqueur a avancé : le message est désigné par son identifiant, et les écrans des trois espaces se rafraîchissent", async () => {
     rpc.mockResolvedValue({ data: true, error: null });
-    await marquerEchangeLu(INTERVENTION, INSTANT);
+    await marquerEchangeLu(INTERVENTION, MESSAGE);
     expect(rpc).toHaveBeenCalledTimes(1);
-    expect(rpc).toHaveBeenCalledWith("marquer_echange_intervention_lu", { p_intervention: INTERVENTION, p_jusqua: INSTANT });
+    expect(rpc).toHaveBeenCalledWith("marquer_echange_intervention_lu", { p_intervention: INTERVENTION, p_message: MESSAGE });
     expect(banc.revalidatePath.mock.calls).toEqual([["/espace", "layout"], ["/agence", "layout"], ["/locataire", "layout"], ["/artisan", "layout"]]);
   });
 
@@ -79,16 +76,16 @@ describe("marquer la discussion comme lue", () => {
     ["la base refuse", { data: null, error: { message: "panne" } }],
   ])("%s : aucun rafraîchissement, aucune erreur montrée", async (_libelle, reponse) => {
     rpc.mockResolvedValue(reponse);
-    await expect(marquerEchangeLu(INTERVENTION, INSTANT)).resolves.toBeUndefined();
+    await expect(marquerEchangeLu(INTERVENTION, MESSAGE)).resolves.toBeUndefined();
     expect(banc.revalidatePath).not.toHaveBeenCalled();
   });
 
   it.each([
-    ["un identifiant qui n'en est pas un", "pas-un-uuid", INSTANT],
-    ["un instant qui n'en est pas un", INTERVENTION, "tout de suite"],
-    ["un instant arrondi à la main", INTERVENTION, "2026-11-22 10:15"],
-  ])("%s : la base n'est pas appelée", async (_libelle, intervention, jusqua) => {
-    await marquerEchangeLu(intervention, jusqua);
+    ["une intervention qui n'est pas un identifiant", "pas-un-uuid", MESSAGE],
+    ["un message qui n'est pas un identifiant", INTERVENTION, "le dernier"],
+    ["une heure à la place du message", INTERVENTION, INSTANT],
+  ])("%s : la base n'est pas appelée", async (_libelle, intervention, dernierMessage) => {
+    await marquerEchangeLu(intervention, dernierMessage);
     expect(rpc).not.toHaveBeenCalled();
     expect(banc.revalidatePath).not.toHaveBeenCalled();
   });
@@ -113,7 +110,7 @@ describe("la discussion pose son repère de lecture", () => {
   }
   const rendre = async () => renderToStaticMarkup((await EchangesIntervention({ intervention: INTERVENTION })) as never);
 
-  it("des messages : le repère suit le DERNIER message, dans la liste qui défile, avec son instant exact", async () => {
+  it("des messages : le repère suit le DERNIER message, dans la liste qui défile, et le désigne par son identifiant", async () => {
     client([
       { id: "b", auteur_role: "artisan", texte: "Second message", cree_le: INSTANT },
       { id: "a", auteur_role: "locataire", texte: "Premier message", cree_le: "2026-11-22T09:00:00.000001+00:00" },
@@ -127,7 +124,7 @@ describe("la discussion pose son repère de lecture", () => {
     expect(liste.indexOf("Second message")).toBeLessThan(liste.indexOf("data-marqueur-lecture"));
     expect(liste.match(/data-marqueur-lecture/g)).toHaveLength(1);
     const page = readFileSync("src/components/echanges-intervention.tsx", "utf8");
-    expect(page).toContain("<MarqueurLectureEchange intervention={intervention} jusqua={messages.data[0].cree_le}/>");
+    expect(page).toContain("<MarqueurLectureEchange intervention={intervention} dernierMessage={messages.data[0].id}/>");
     expect(page).toContain('.order("cree_le",{ascending:false})');
   });
 
@@ -140,7 +137,7 @@ describe("la discussion pose son repère de lecture", () => {
   });
 
   it("le repère est invisible pour les lecteurs d'écran, et ne marque qu'une fois entré à l'écran", () => {
-    const html = renderToStaticMarkup(createElement(MarqueurLectureEchange, { intervention: INTERVENTION, jusqua: INSTANT }));
+    const html = renderToStaticMarkup(createElement(MarqueurLectureEchange, { intervention: INTERVENTION, dernierMessage: MESSAGE }));
     expect(html).toMatch(/<span[^>]*data-marqueur-lecture[^>]*aria-hidden="true"/);
     const source = readFileSync("src/components/marqueur-lecture-echange.tsx", "utf8");
     expect(source).toContain("new IntersectionObserver(");

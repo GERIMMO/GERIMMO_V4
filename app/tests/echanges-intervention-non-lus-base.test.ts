@@ -7,8 +7,8 @@
  * Ces tests tiennent, sous les vrais rôles et par les vraies fonctions (`envoyer_message_intervention`) :
  *  1. chacun compte les messages DES AUTRES qu'il n'a pas lus — jamais les siens, jamais ceux d'une discussion qu'il
  *     n'a pas le droit de lire (autre espace, autre artisan, mission terminée pour l'artisan, visiteur) ;
- *  2. « marquer lu » n'avance que le marqueur de l'appelant, jusqu'à ce qu'il a eu sous les yeux — jamais en arrière,
- *     jamais au-delà de maintenant ;
+ *  2. « marquer lu » n'avance que le marqueur de l'appelant, jusqu'au message qu'il désigne (le dernier qu'il a eu
+ *     sous les yeux, par son identifiant) — jamais en arrière, jamais sur un message d'une autre discussion ;
  *  3. le gestionnaire reçoit UNE alerte par intervention, sans le texte du message ; elle se met à jour au message
  *     suivant et se ferme quand un gestionnaire a tout lu ; son propre message n'en ouvre pas ;
  *  4. l'alerte ne bloque jamais un message, et une alerte qui ne se ferme pas ne défait pas la lecture ;
@@ -103,9 +103,10 @@ describe.skipIf(!url)("signalement des messages d'intervention (avec base)", () 
     await agir(parCompte);
     return (await db.query("select intervention_id, incident_id, organization_id, non_lus from public.echanges_intervention_non_lus($1)", [espace])).rows;
   };
-  const marquer = async (parCompte: string, jusqua: string, cible = intervention) => {
+  /** L'appelant désigne le dernier message qu'il a eu sous les yeux, par son identifiant. */
+  const marquer = async (parCompte: string, dernierMessage: string, cible = intervention) => {
     await agir(parCompte);
-    return (await db.query("select public.marquer_echange_intervention_lu($1,$2::timestamptz) as ok", [cible, jusqua])).rows[0].ok as boolean;
+    return (await db.query("select public.marquer_echange_intervention_lu($1,$2) as ok", [cible, dernierMessage])).rows[0].ok as boolean;
   };
   const alertes = async () => {
     await base();
@@ -191,11 +192,11 @@ describe.skipIf(!url)("signalement des messages d'intervention (avec base)", () 
     expect(await nonLus(cptLoc, orgA)).toEqual([{ ...ATTENDU()[0], non_lus: 1 }]);
 
     // Le gestionnaire n'a eu sous les yeux que le premier message : il lui en reste un, l'alerte reste ouverte.
-    expect(await marquer(gerantA, premier.le)).toBe(true);
+    expect(await marquer(gerantA, premier.id)).toBe(true);
     expect(await nonLus(gerantA, orgA)).toEqual([{ ...ATTENDU()[0], non_lus: 1 }]);
     expect((await alertes())[0].statut).toBe("ouverte");
     // Il lit tout : plus rien à lire, l'alerte se ferme avec sa raison.
-    expect(await marquer(gerantA, second.le)).toBe(true);
+    expect(await marquer(gerantA, second.id)).toBe(true);
     expect(await nonLus(gerantA, orgA)).toEqual([]);
     expect(await alertes()).toMatchObject([{ statut: "fermee", closed_action: "Discussion lue", closed_by: gerantA }]);
     // Sa lecture n'est que la sienne : son collègue, le locataire et l'artisan gardent leurs messages à lire.
@@ -217,37 +218,54 @@ describe.skipIf(!url)("signalement des messages d'intervention (avec base)", () 
     expect(await nonLus(cptLoc, orgA)).toEqual([{ ...ATTENDU()[0], non_lus: 1 }]);
     expect(await nonLus(cptArtisan, null)).toEqual([{ ...ATTENDU()[0], non_lus: 1 }]);
     // Le locataire lit : cela ne concerne que lui.
-    expect(await marquer(cptLoc, m.le)).toBe(true);
+    expect(await marquer(cptLoc, m.id)).toBe(true);
     expect(await nonLus(cptLoc, orgA)).toEqual([]);
     expect(await nonLus(cptArtisan, null)).toEqual([{ ...ATTENDU()[0], non_lus: 1 }]);
   });
 
-  it("marquer lu : jamais en arrière, jamais au-delà de maintenant, et seulement pour qui peut lire la discussion", async () => {
+  it("marquer lu : jusqu'au message désigné, à l'instant exact ; jamais en arrière ; seulement pour qui peut lire la discussion", async () => {
     const ancien = await ecrire(cptArtisan, "Premier message.", 60);
     const recent = await ecrire(cptArtisan, "Second message.", 10);
-    expect(await marquer(gerantA, recent.le)).toBe(true);
+    expect(await marquer(gerantA, recent.id)).toBe(true);
+    // Le marqueur porte l'heure du message, à la microseconde : c'est ce qui éteint le signal. (Une heure repassée
+    // par un navigateur, arrondie à la milliseconde, tomberait juste avant le message et le laisserait « non lu ».)
+    await base();
+    expect((await db.query(`select l.lue_le = m.cree_le as exact, l.lue_le::text as marque from public.intervention_echanges_lectures l
+      join public.intervention_messages m on m.id=$3 where l.intervention_id=$1 and l.account_id=$2`, [intervention, gerantA, recent.id])).rows[0].exact).toBe(true);
     const pose = await marqueur(gerantA);
-    expect(new Date(pose!).getTime()).toBe(new Date(recent.le).getTime());
-    // Relire un écran plus ancien ne « dé-lit » rien.
-    expect(await marquer(gerantA, ancien.le)).toBe(false);
+    expect(await nonLus(gerantA, orgA)).toEqual([]);
+    // Relire un écran plus ancien ne « dé-lit » rien ; le redire non plus.
+    expect(await marquer(gerantA, ancien.id)).toBe(false);
+    expect(await marquer(gerantA, recent.id)).toBe(false);
     expect(await marqueur(gerantA)).toBe(pose);
     expect(await nonLus(gerantA, orgA)).toEqual([]);
-    // Une date future est ramenée à maintenant : rien de ce qui viendra n'est lu d'avance.
-    expect(await marquer(gerantA, "2999-01-01T00:00:00Z")).toBe(true);
+
+    // Un message qui n'est pas de CETTE discussion, ou qui n'existe pas : aucun effet.
     await base();
-    expect((await db.query("select lue_le <= now() ok from public.intervention_echanges_lectures where intervention_id=$1 and account_id=$2", [intervention, gerantA])).rows[0].ok).toBe(true);
+    const artisanB = await id("select id from public.artisans where account_id=$1", [cptAutreArtisan]);
+    const incidentB = await id(`insert into public.incidents(organization_id,numero,lot_id,canal,categorie,description,etat,imputation,imputation_justification)
+      select organization_id,'INC-'||substr(gen_random_uuid()::text,1,8),lot_id,'agence','plomberie_canalisation','Autre dossier','affecte','proprietaire','Autre dossier fictif'
+        from public.incidents where id=$1 returning id`, [incident]);
+    const autreMission = await id(`insert into public.incident_interventions(organization_id,incident_id,artisan_id,nature_travaux,statut,acceptee_le)
+      values($1,$2,$3,'entretien_courant','acceptee',now()) returning id`, [orgA, incidentB, artisanB]);
+    await agir(cptAutreArtisan);
+    const ailleurs = await id("select public.envoyer_message_intervention($1,$2,$3) as id", [autreMission, "Message d'un autre dossier.", randomUUID()]);
+    expect(await marquer(gerantA2, ailleurs)).toBe(false);
+    expect(await marquer(gerantA2, randomUUID())).toBe(false);
+    expect(await marqueur(gerantA2)).toBeUndefined();
 
     // Sans droit sur la discussion : aucun effet, aucun marqueur.
     for (const tiers of [gerantB, cptAutreArtisan]) {
-      expect(await marquer(tiers, recent.le), tiers).toBe(false);
+      expect(await marquer(tiers, recent.id), tiers).toBe(false);
       expect(await marqueur(tiers), tiers).toBeUndefined();
     }
-    expect(await marquer(gerantA, recent.le, randomUUID())).toBe(false);
+    expect(await marquer(gerantA, recent.id, randomUUID())).toBe(false);
     await agir(null, "anon");
-    expect(await refus("select public.marquer_echange_intervention_lu($1, now())", [intervention])).toMatch(/permission denied/);
+    expect(await refus("select public.marquer_echange_intervention_lu($1, $2)", [intervention, recent.id])).toMatch(/permission denied/);
     // Valeurs absentes : rien.
     await agir(gerantA2);
     expect((await db.query("select public.marquer_echange_intervention_lu($1, null) ok", [intervention])).rows[0].ok).toBe(false);
+    expect((await db.query("select public.marquer_echange_intervention_lu(null, $1) ok", [recent.id])).rows[0].ok).toBe(false);
     expect(await marqueur(gerantA2)).toBeUndefined();
   });
 
@@ -279,8 +297,8 @@ describe.skipIf(!url)("signalement des messages d'intervention (avec base)", () 
 
   it("personne n'écrit un marqueur à la main, et chacun ne lit que les siens", async () => {
     const m = await ecrire(cptArtisan, "Un message.", 10);
-    expect(await marquer(gerantA, m.le)).toBe(true);
-    expect(await marquer(cptLoc, m.le)).toBe(true);
+    expect(await marquer(gerantA, m.id)).toBe(true);
+    expect(await marquer(cptLoc, m.id)).toBe(true);
     for (const qui of [gerantA, cptLoc, cptArtisan]) {
       await agir(qui);
       expect(await refus("insert into public.intervention_echanges_lectures(intervention_id,account_id,lue_le) values($1,$2,now())", [intervention, qui]), qui).toMatch(/permission denied/);
@@ -317,7 +335,7 @@ describe.skipIf(!url)("signalement des messages d'intervention (avec base)", () 
     await db.query(`create function public.essai_refus_fermeture() returns trigger language plpgsql as $f$
       begin if new.type = 'message_intervention' and new.statut = 'fermee' then raise exception 'fermeture refusée (essai)'; end if; return new; end $f$`);
     await db.query("create trigger essai_refus_fermeture before update on public.alerts for each row execute function public.essai_refus_fermeture()");
-    expect(await marquer(gerantA, n.le)).toBe(true);
+    expect(await marquer(gerantA, n.id)).toBe(true);
     expect(await nonLus(gerantA, orgA)).toEqual([]);
     expect((await alertes()).map((a) => a.statut)).toEqual(["ouverte"]);
   });
@@ -328,12 +346,12 @@ describe.skipIf(!url)("signalement des messages d'intervention (avec base)", () 
     const objets = async () => (await db.query(`select
         to_regclass('public.intervention_echanges_lectures') is not null as marqueurs,
         to_regprocedure('public.echanges_intervention_non_lus(uuid)') is not null as non_lus,
-        to_regprocedure('public.marquer_echange_intervention_lu(uuid,timestamptz)') is not null as marquer,
+        to_regprocedure('public.marquer_echange_intervention_lu(uuid,uuid)') is not null as marquer,
         exists(select 1 from pg_trigger where tgname='signaler_message_intervention' and tgrelid='public.intervention_messages'::regclass) as declencheur`)).rows[0];
     const TOUT = { marqueurs: true, non_lus: true, marquer: true, declencheur: true };
 
     const m = await ecrire(cptArtisan, "Message conservé quoi qu'il arrive.", 10);
-    expect(await marquer(cptLoc, m.le)).toBe(true);
+    expect(await marquer(cptLoc, m.id)).toBe(true);
     await base();
     expect(await objets()).toEqual(TOUT);
     await db.query(migration);
@@ -342,7 +360,7 @@ describe.skipIf(!url)("signalement des messages d'intervention (avec base)", () 
     expect(await marqueur(cptLoc)).toBeDefined();
     expect((await db.query("select count(*)::int n from pg_trigger where tgname='signaler_message_intervention'")).rows[0].n).toBe(1);
     expect((await db.query(`select has_function_privilege('anon','public.echanges_intervention_non_lus(uuid)','execute') a,
-      has_function_privilege('anon','public.marquer_echange_intervention_lu(uuid,timestamptz)','execute') b,
+      has_function_privilege('anon','public.marquer_echange_intervention_lu(uuid,uuid)','execute') b,
       has_function_privilege('authenticated','public.signaler_message_intervention()','execute') c`)).rows[0]).toEqual({ a: false, b: false, c: false });
 
     await db.query("insert into supabase_migrations.schema_migrations(version,name) values('20261122180000','echanges_intervention_non_lus') on conflict do nothing");

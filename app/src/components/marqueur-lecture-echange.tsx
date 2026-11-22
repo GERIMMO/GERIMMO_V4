@@ -8,10 +8,10 @@ import { marquerEchangeLu } from "@/app/actions/echanges-intervention";
  * YEUX : ce repère, posé après le dernier message, le dit au serveur dès qu'il entre à l'écran — pas au chargement de
  * la page, où la discussion peut être plus bas, dans un onglet fermé ou dans une liste à faire défiler.
  *
- * À l'arrivée, la liste des messages est amenée sur le plus récent (elle seule défile, pas la page). `jusqua` est
- * l'instant du dernier message affiché, tel que la base l'a rendu : un message arrivé depuis reste « à lire ».
+ * À l'arrivée, la liste des messages est amenée sur le plus récent (elle seule défile, pas la page).
+ * `dernierMessage` est l'identifiant du dernier message affiché : un message arrivé depuis reste « à lire ».
  */
-export function MarqueurLectureEchange({ intervention, jusqua }: { intervention: string; jusqua: string }) {
+export function MarqueurLectureEchange({ intervention, dernierMessage }: { intervention: string; dernierMessage: string }) {
   const repere = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     const element = repere.current;
@@ -22,7 +22,7 @@ export function MarqueurLectureEchange({ intervention, jusqua }: { intervention:
     const marquer = () => {
       if (fait) return;
       fait = true;
-      void marquerEchangeLu(intervention, jusqua);
+      void marquerEchangeLu(intervention, dernierMessage);
     };
     if (typeof IntersectionObserver === "undefined") { marquer(); return; }
     const observateur = new IntersectionObserver((entrees) => {
@@ -30,6 +30,6 @@ export function MarqueurLectureEchange({ intervention, jusqua }: { intervention:
     });
     observateur.observe(element);
     return () => observateur.disconnect();
-  }, [intervention, jusqua]);
+  }, [intervention, dernierMessage]);
   return <span ref={repere} data-marqueur-lecture aria-hidden="true" className="block h-px" />;
 }

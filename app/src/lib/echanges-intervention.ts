@@ -23,9 +23,6 @@ export async function lireEchangesNonLus(supabase: Pick<SupabaseClient, "rpc">, 
   return { lignes: (data ?? []) as EchangeNonLu[], erreur: Boolean(error) };
 }
 
-/** L'instant d'un message tel que la base le rend (à la microseconde) : il lui est renvoyé tel quel, jamais arrondi. */
-export const INSTANT_MESSAGE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}(:?\d{2})?)$/;
-
 /** « Nouveau message » ou « 3 nouveaux messages » : l'étiquette posée sur un dossier, une demande, une mission. */
 export function etiquetteNouveauxMessages(nombre: number) {
   return nombre > 1 ? `${nombre} nouveaux messages` : "Nouveau message";

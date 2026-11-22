@@ -11,8 +11,8 @@
 --      (gestionnaire, locataire). Sans espace : les missions de l'artisan. Le droit de lire reste celui de la
 --      discussion (`role_echange_intervention`) : qui ne peut pas la lire n'y compte rien.
 --      Seule compte la dernière mission de chaque incident : c'est la seule discussion que les écrans affichent.
---   3. `marquer_echange_intervention_lu(p_intervention, p_jusqua)` : avance le marqueur de l'appelant jusqu'au dernier
---      message qu'il a eu sous les yeux — jamais au-delà de maintenant, jamais en arrière.
+--   3. `marquer_echange_intervention_lu(p_intervention, p_message)` : avance le marqueur de l'appelant jusqu'au
+--      dernier message qu'il a eu sous les yeux, désigné par son identifiant — jamais en arrière.
 --   4. Pour le gestionnaire, une alerte « Nouveau message sur l'intervention » : UNE alerte ouverte par intervention
 --      (un second message la met à jour), née du message d'un locataire ou d'un artisan, fermée d'elle-même quand un
 --      gestionnaire a lu la discussion. Elle ne porte que des identifiants : jamais le texte du message.
@@ -75,17 +75,24 @@ comment on function public.echanges_intervention_non_lus(uuid) is
   'Discussions d''intervention portant des messages non lus par l''appelant (P1-05). Avec un espace : ses interventions dans cet espace ; sans : les missions de l''artisan.';
 
 -- ── 3. Marquer lu ────────────────────────────────────────────────────────────────────────────────────────────────
-create or replace function public.marquer_echange_intervention_lu(p_intervention uuid, p_jusqua timestamptz)
+-- L'appelant désigne le DERNIER MESSAGE qu'il a eu sous les yeux, par son identifiant. Jamais par une heure : une
+-- heure repassée par un navigateur ou un service intermédiaire peut être arrondie à la milliseconde, et tomberait
+-- alors juste AVANT le message — qui resterait « non lu » pour toujours. L'heure retenue est celle du message, lue ici.
+create or replace function public.marquer_echange_intervention_lu(p_intervention uuid, p_message uuid)
 returns boolean language plpgsql security definer set search_path = '' as $$
 declare
   v_role text;
   v_org uuid;
-  v_jusqua timestamptz := least(p_jusqua, now());
+  v_jusqua timestamptz;
   v_avant timestamptz;
 begin
-  if auth.uid() is null or p_intervention is null or p_jusqua is null then return false; end if;
+  if auth.uid() is null or p_intervention is null or p_message is null then return false; end if;
   v_role := public.role_echange_intervention(p_intervention);
   if v_role is null then return false; end if;
+  -- Le message doit être de CETTE discussion.
+  select m.cree_le into v_jusqua from public.intervention_messages m
+   where m.id = p_message and m.intervention_id = p_intervention;
+  if not found then return false; end if;
 
   select l.lue_le into v_avant from public.intervention_echanges_lectures l
    where l.intervention_id = p_intervention and l.account_id = auth.uid();
@@ -114,10 +121,10 @@ begin
   return true;
 end;
 $$;
-revoke all on function public.marquer_echange_intervention_lu(uuid, timestamptz) from public, anon;
-grant execute on function public.marquer_echange_intervention_lu(uuid, timestamptz) to authenticated;
-comment on function public.marquer_echange_intervention_lu(uuid, timestamptz) is
-  'Avance le marqueur de lecture de l''appelant sur la discussion d''une intervention (P1-05) ; ferme l''alerte du gestionnaire quand il a tout lu.';
+revoke all on function public.marquer_echange_intervention_lu(uuid, uuid) from public, anon;
+grant execute on function public.marquer_echange_intervention_lu(uuid, uuid) to authenticated;
+comment on function public.marquer_echange_intervention_lu(uuid, uuid) is
+  'Avance le marqueur de lecture de l''appelant jusqu''au message désigné de la discussion d''une intervention (P1-05) ; ferme l''alerte du gestionnaire quand il a tout lu.';
 
 -- ── 4. L'alerte du gestionnaire ──────────────────────────────────────────────────────────────────────────────────
 create or replace function public.signaler_message_intervention()

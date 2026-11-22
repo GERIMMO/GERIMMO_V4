@@ -39,14 +39,9 @@ test("restitution du dépôt : durées de vie dites indicatives, pas de décompt
     await page.goto(`/espace/${ORG}/baux/${bail}#restitution`);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const carte = page.locator("#restitution");
-    // La restitution vit dans la rubrique du départ : on l'ouvre si l'ancre ne l'a pas fait.
-    await expect(async () => {
-      if (!(await carte.isVisible())) {
-        const depart = page.locator("#sortie-bail").getByRole("button").first();
-        if (await depart.count()) await depart.click({ timeout: 2_000 });
-      }
-      await expect(carte).toBeVisible({ timeout: 1_000 });
-    }).toPass({ timeout: 20_000 });
+    // La restitution vit dans la rubrique du départ : c'est l'ancre de l'adresse qui l'ouvre, une fois la page prête. Le
+    // parcours n'appuie sur rien pour l'ouvrir (un appui donné trop tôt est rejoué plus tard et referme la rubrique).
+    await expect(carte).toBeVisible({ timeout: 30_000 });
     await expect(carte).toContainText("Restitution du dépôt de garantie");
 
     // ── 1. Les durées de vie proposées sont dites pour ce qu'elles sont.

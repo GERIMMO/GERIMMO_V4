@@ -41,16 +41,15 @@ test("appel de charges : chaque poste naît « à qualifier », la suggestion se
 
     await sansSyntheseAlertes(page);
     await page.goto(`/espace/${ORG}/parc/${bien}/lots/${lot}#charges`);
-    const onglet = page.getByRole("tab", { name: "Argent", exact: true });
-    if (await onglet.count()) await onglet.click();
     const rubrique = page.locator("#charges");
     await expect(rubrique).toBeVisible();
-    // La section est repliée par défaut : l'ancre de l'adresse l'ouvre ; sinon on l'ouvre.
+    // La section est repliée par défaut : c'est l'ancre de l'adresse qui choisit l'onglet et l'ouvre, une fois la page
+    // prête. Le parcours n'appuie pas lui-même sur la rangée : un appui donné avant que la page soit prête est rejoué
+    // plus tard par le navigateur et REFERME la section en pleine saisie (échec intermittent vu le 22/11, puis sondé :
+    // sur une page prête, la section reste ouverte après chaque ajout).
+    await expect(rubrique.getByRole("button").first()).toHaveAttribute("aria-expanded", "true", { timeout: 30_000 });
     const neuf = rubrique.locator(`[data-appel-exercice="${annee}"]`);
-    await expect(async () => {
-      if (!(await neuf.isVisible())) await rubrique.getByRole("button").first().click({ timeout: 2_000 });
-      await expect(neuf).toBeVisible({ timeout: 1_000 });
-    }).toPass({ timeout: 20_000 });
+    await expect(neuf).toBeVisible();
     await expect(rubrique).toContainText("Chacun naît « à qualifier »");
 
     // ── 1. Un poste au mot connu : « à qualifier », la suggestion à côté.

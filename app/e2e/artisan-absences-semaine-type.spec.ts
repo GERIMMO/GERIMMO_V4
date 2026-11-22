@@ -151,6 +151,18 @@ test("artisan : semaine type et absence ; ses créneaux se préremplissent ; le 
         }
         return null;
       })).toBeNull();
+      // Audit palier 1, P2-07 : au-dessus des artisans proposables, le repère de prix du métier (ici la plomberie),
+      // avec sa source et ce qu'il n'est pas. Il tient dans l'écran du téléphone.
+      const repere = p.locator("[data-repere-prix]");
+      await expect(repere).toHaveCount(1);
+      await expect(repere).toContainText("Main-d’œuvre de plomberie : 40 à 90 € HT par heure");
+      await expect(repere).toContainText("Ce n’est ni un tarif, ni un prix maximum, ni un engagement de Gerimmo ou de l’artisan : seul le devis de l’artisan fixe le prix.");
+      await expect(repere.getByRole("link", { name: "source", exact: true })).toHaveAttribute("href", /^https:\/\/www\.travaux\.com\//);
+      await repere.scrollIntoViewIfNeeded();
+      const boiteRepere = (await repere.boundingBox())!;
+      expect(boiteRepere.x).toBeGreaterThanOrEqual(0);
+      expect(boiteRepere.x + boiteRepere.width).toBeLessThanOrEqual(p.viewportSize()!.width + 1);
+      expect(await debordementHorizontal(p)).toBeLessThanOrEqual(1);
       await p.screenshot({ path: info.outputPath("proprietaire-artisan-absent.png"), fullPage: true });
 
       // ── 4. L'artisan retire son absence : le bouton revient chez le propriétaire.

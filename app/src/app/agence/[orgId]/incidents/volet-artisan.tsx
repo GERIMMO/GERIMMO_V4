@@ -62,6 +62,7 @@ import {
   FormulaireRevisionImputation,
 } from "./formulaires-artisan";
 import { baseEspace } from "@/lib/racine-espace";
+import { REFERENCES_VERIFIEES_LE, reperesDuMetier } from "@/lib/references-prix-travaux";
 
 // LE VOLET ARTISAN DE LA FICHE D'INCIDENT — missionner, comparer, suivre.
 //
@@ -120,6 +121,33 @@ function GarantieAnnoncee({ texte }: { texte?: string | null }) {
         <small className="block text-muted-foreground">Engagement de l’artisan, pas de Gerimmo.</small>
       </span>
     </div>
+  );
+}
+
+// Audit palier 1 du 22/11/2026, P2-07 : un repère de prix AVANT de solliciter un artisan. Ce sont les repères
+// sourcés qui aident déjà l'artisan à préparer son devis ; rien d'autre. Un métier sans repère n'affiche rien. Le
+// texte dit ce que le repère n'est pas : ni un tarif, ni un plafond, ni un engagement (formulation à faire relire :
+// JURISTE.md, partie 4).
+function ReperePrix({ metier }: { metier: string }) {
+  const reperes = reperesDuMetier(metier);
+  if (reperes.length === 0) return null;
+  return (
+    <aside className="rounded-lg border border-border p-3 text-sm" aria-label="Repère de prix" data-repere-prix>
+      <p className="libelle-champ">Repère de prix</p>
+      <ul className="mt-1 space-y-1">
+        {reperes.map((r) => (
+          <li key={r.code} className="min-w-0 break-words">
+            {r.libelle} : <b className="font-semibold">{r.fourchette}</b>{" "}
+            <a href={r.url} target="_blank" rel="noopener noreferrer" className="lien-texte whitespace-nowrap">source</a>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Ordre de grandeur relevé le {formaterDate(REFERENCES_VERIFIEES_LE)}, hors déplacement, fournitures et
+        majorations. Ce n’est ni un tarif, ni un prix maximum, ni un engagement de Gerimmo ou de l’artisan : seul le
+        devis de l’artisan fixe le prix.
+      </p>
+    </aside>
   );
 }
 
@@ -1373,6 +1401,7 @@ export function ConsultationOuverte({
           </p>
         ) : (
           <div className="border-t border-border pt-3">
+            {estProprietaire && <div className="mb-3"><ReperePrix metier={consultation.metier} /></div>}
             <div className="entete-carte">
               <p className="libelle-champ">
                 Artisans proposables{commune ? ` à ${commune}` : ""}

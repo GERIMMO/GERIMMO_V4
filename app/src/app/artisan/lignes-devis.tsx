@@ -1,9 +1,26 @@
 "use client";
-import { useId, useState } from "react";
+import { useId, useState, useTransition } from "react";
 import { calculerDevis, erreurPrixSaisi, erreurQuantiteSaisie, lireQuantite, montantEnCentimes, type LigneDevis } from "@/lib/devis-structure";
 import type { LigneDevisSaisie } from "@/lib/brouillon-devis-local";
+import { avecLigneGardee, detailLigneGardee, reprendreLigne, type LigneGardee } from "@/lib/lignes-devis-gardees";
 import { euros } from "./libelles";
-import { CLASSE_BOUTON_SOBRE, CLASSE_CHAMP, CLASSE_LIBELLE, TitreSection } from "./ui";
+import { CLASSE_AIDE, CLASSE_BOUTON_SOBRE, CLASSE_CHAMP, CLASSE_LIBELLE, TitreSection } from "./ui";
+
+/**
+ * P2-04 (audit palier 1) : les lignes que l'artisan a gardées, et les deux gestes pour en garder une de plus ou en
+ * retirer une. `lignes` vaut `null` quand leur lecture a échoué : l'écran le dit et n'offre alors aucun geste.
+ * Sans cette propriété, le bloc reste exactement celui d'avant (facture, bilan, chantier privé).
+ */
+export type MesLignesGardees = {
+  lignes: LigneGardee[] | null;
+  /**
+   * La liste vit chez le parent, qui la reçoit ici après chaque geste : elle survit ainsi au remontage de ce bloc
+   * (« Repartir d'un devis vierge » le remonte ; une ligne gardée l'instant d'avant doit rester proposée).
+   */
+  definir: (lignes: LigneGardee[]) => void;
+  garder: (saisie: { libelle: string; prix: string; tva: string }) => Promise<{ erreur?: string; ligne?: LigneGardee }>;
+  retirer: (ligneId: string) => Promise<{ erreur?: string; retiree?: string }>;
+};
 
 /** Cellule de la grille : le champ se cale en bas, même si un libellé passe sur deux lignes. */
 const CLASSE_CELLULE = "flex flex-col justify-end gap-1.5";
@@ -18,7 +35,7 @@ type Saisie = LigneDevisSaisie;
 // quel dans un devis que l'artisan n'avait pas relu ; le taux dépend de son
 // régime et des travaux, et lui seul le sait. Le choix est obligatoire.
 const vide = (): Saisie => ({ code: "", libelle: "", quantite: "1", prix: "", tva: "" });
-export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail des travaux", afficherHtIncomplet = false }: { afficherHtIncomplet?: boolean; saisieInitiale?: LigneDevisSaisie[]; initiales?: (Omit<LigneDevis, "tva_bps" | "prix_unitaire_ht_cents"> & {code?: string; tva_bps: number | null; prix_unitaire_ht_cents: number | null})[]; titre?: string }) {
+export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail des travaux", afficherHtIncomplet = false, mesLignes }: { mesLignes?: MesLignesGardees; afficherHtIncomplet?: boolean; saisieInitiale?: LigneDevisSaisie[]; initiales?: (Omit<LigneDevis, "tva_bps" | "prix_unitaire_ht_cents"> & {code?: string; tva_bps: number | null; prix_unitaire_ht_cents: number | null})[]; titre?: string }) {
   const id = useId();
   const [lignes, setLignes] = useState<Saisie[]>(() => saisieInitiale ?? (initiales.length ? initiales.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: String(l.quantite).replace(".", ","), prix: l.prix_unitaire_ht_cents === null ? "" : (l.prix_unitaire_ht_cents/100).toFixed(2).replace(".", ","), tva: l.tva_bps === null ? "" : String(l.tva_bps) })) : [vide()]));
   const donnees = lignes.map(l => ({ code: l.code ?? "", libelle: l.libelle, quantite: lireQuantite(l.quantite) ?? Number.NaN, prix_unitaire_ht_cents: montantEnCentimes(l.prix), tva_bps: l.tva === "" ? Number.NaN : Number(l.tva) }));
@@ -36,6 +53,23 @@ export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail d
   const erreurs = lignes.map(l => ({ quantite: erreurQuantiteSaisie(l.quantite), prix: erreurPrixSaisi(l.prix) }));
   const aDesErreurs = erreurs.some(e => e.quantite || e.prix);
   const modifier = (index: number, cle: keyof Saisie, valeur: string) => setLignes(ls => ls.map((l, i) => i===index ? {...l, [cle]: valeur, ...(cle === "libelle" ? { code: "" } : {})} : l));
+  // P2-04 : les lignes gardées. Garder ou retirer une ligne n'envoie pas le devis et ne modifie pas sa saisie ;
+  // reprendre une ligne la recopie dans la saisie, que l'artisan relit.
+  const gardees = mesLignes?.lignes ?? [];
+  const [avis, setAvis] = useState<{ ton: "succes" | "erreur"; texte: string } | null>(null);
+  const [enCours, lancer] = useTransition();
+  const garder = (index: number) => lancer(async () => {
+    const l = lignes[index];
+    const r = await mesLignes!.garder({ libelle: l.libelle, prix: l.prix, tva: l.tva });
+    if (r.ligne) { const gardee = r.ligne; mesLignes!.definir(avecLigneGardee(gardees, gardee)); setAvis({ ton: "succes", texte: `« ${gardee.libelle} » est gardée : vous la retrouverez dans vos prochains devis.` }); }
+    else setAvis({ ton: "erreur", texte: r.erreur ?? "La ligne n’a pas pu être gardée. Réessayez dans un instant." });
+  });
+  const retirer = (g: LigneGardee) => lancer(async () => {
+    const r = await mesLignes!.retirer(g.id);
+    if (r.retiree) { mesLignes!.definir(gardees.filter(x => x.id !== g.id)); setAvis({ ton: "succes", texte: `« ${g.libelle} » est retirée de vos lignes gardées. Les devis déjà préparés ne changent pas.` }); }
+    else setAvis({ ton: "erreur", texte: r.erreur ?? "La ligne n’a pas pu être retirée. Réessayez dans un instant." });
+  });
+  const offertes = Boolean(mesLignes) && mesLignes!.lignes !== null;
   // 24/09 : le bloc prend l'habillage des autres cartes de l'espace (fond,
   // ombre, titre de section, libellés du formulaire) au lieu d'un cadre fin à
   // légende flottante. Posé dans une carte déjà ouverte (le dépassement du
@@ -46,6 +80,19 @@ export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail d
     <input type="hidden" name="lignes_devis_saisie" value={JSON.stringify(lignes)} />
     <input type="hidden" name="lignes_devis" value={JSON.stringify(donnees)} />
     <p className="clear-both text-[0.9375rem] text-[var(--texte-secondaire)]">Précisez chaque prestation ou fourniture. Choisissez le taux de TVA adapté à votre situation et aux travaux.</p>
+    {mesLignes && <details data-mes-lignes className="rounded-[var(--rayon-champ)] border border-[var(--filet)] px-3.5 open:pb-3">
+      <summary className="flex min-h-12 cursor-pointer items-center text-base font-semibold text-[var(--encre)]">Mes lignes gardées{offertes && gardees.length ? ` (${gardees.length})` : ""}</summary>
+      {!offertes ? <p role="alert" className={CLASSE_ERREUR_CHAMP}>Vos lignes gardées n’ont pas pu être lues : rechargez la page avant d’en reprendre une.</p>
+        : gardees.length === 0 ? <p className={CLASSE_AIDE}>Aucune ligne gardée pour l’instant. Sous une ligne de ce devis, « Garder cette ligne » la met de côté, avec son prix et sa TVA, pour vos prochains devis.</p>
+        : <ul className="space-y-3">{gardees.map(g => <li key={g.id} data-ligne-gardee className="space-y-2 border-t border-[var(--filet-leger)] pt-3 first:border-t-0 first:pt-0">
+          <p className="text-base text-[var(--encre)] [overflow-wrap:anywhere]"><strong>{g.libelle}</strong><span className="block text-[0.9375rem] font-normal text-[var(--texte-secondaire)]">{detailLigneGardee(g)}</span></p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" data-reprendre-ligne className={`${CLASSE_BOUTON_SOBRE} sm:w-auto`} aria-label={`Ajouter au devis : ${g.libelle}`} disabled={lignes.length >= 100 && !lignes.some(l => !l.libelle.trim() && !l.prix.trim())} onClick={() => setLignes(ls => reprendreLigne(ls, g))}>Ajouter au devis</button>
+            <button type="button" data-retirer-ligne-gardee className="lien-discret inline-flex min-h-11 items-center px-2 text-[0.9375rem]" aria-label={`Retirer de ma liste : ${g.libelle}`} disabled={enCours} onClick={() => retirer(g)}>Retirer de ma liste</button>
+          </div>
+        </li>)}</ul>}
+    </details>}
+    {mesLignes && <p role="status" aria-live="polite" data-avis-lignes-gardees className={avis ? (avis.ton === "erreur" ? CLASSE_ERREUR_CHAMP : "text-[0.9375rem] text-[var(--success-soft-foreground)]") : "sr-only"}>{avis?.texte ?? ""}</p>}
     {/* 24/09 : plus de fond teinté par ligne — un filet sépare les lignes, rien pour une ligne seule. */}
     {lignes.map((ligne, index) => { const idQuantite = `${id}-${index}-quantite`, idPrix = `${id}-${index}-prix`, erreur = erreurs[index]; return <div data-ligne-devis key={`${id}-${index}`} className={`space-y-3 ${index > 0 ? "border-t border-[var(--filet-leger)] pt-4" : ""}`}>
       <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Prestation ou fourniture</span>
@@ -63,6 +110,7 @@ export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail d
         {erreur.quantite && <p id={idQuantite} className={CLASSE_ERREUR_CHAMP}>{erreur.quantite}</p>}
         {erreur.prix && <p id={idPrix} className={CLASSE_ERREUR_CHAMP}>{erreur.prix}</p>}
       </div>}
+      {offertes && <button data-garder-ligne type="button" className="lien-discret inline-flex min-h-11 items-center text-[0.9375rem]" disabled={enCours || !ligne.libelle.trim()} onClick={() => garder(index)}>Garder cette ligne pour mes prochains devis</button>}
       {lignes.length>1 && <button data-retirer-ligne type="button" className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => ls.filter((_,i) => i!==index))}>Retirer cette ligne</button>}
     </div>; })}
     <button data-ajouter-ligne type="button" disabled={lignes.length>=100} className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => [...ls,vide()])}>Ajouter une prestation ou fourniture</button>

@@ -6,6 +6,7 @@ import { estUuid } from "@/lib/identifiants";
 import type { FactureVueParArtisan } from "@/lib/reglement-facture";
 import type { DemandeRdvArtisan } from "@/lib/rendez-vous-locataire";
 import { lireEchangesNonLus, type EchangeNonLu } from "@/lib/echanges-intervention";
+import type { LigneGardee } from "@/lib/lignes-devis-gardees";
 
 /**
  * LE MODÈLE D'ACCÈS DU PORTAIL ARTISAN — pourquoi il est sûr.
@@ -321,6 +322,19 @@ export const chargerFacturesRefusees = cache(async function chargerFacturesRefus
     .eq("artisan_id", fiche.artisan_id).not("refusee_le", "is", null).order("refusee_le", { ascending: false });
   return { lignes: (data ?? []) as FactureRefusee[], erreur: Boolean(error) };
 });
+
+/**
+ * Audit palier 1 (P2-04) : SES lignes de devis gardées (`mes_lignes_devis`). `lignes` vaut `null` quand la lecture
+ * échoue : le formulaire le dit et n'offre alors aucun geste, plutôt que de montrer une liste vide.
+ */
+export async function chargerMesLignesDevis(): Promise<LigneGardee[] | null> {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return null;
+  const { data, error } = await supabase.rpc("mes_lignes_devis");
+  if (error || !Array.isArray(data)) return null;
+  return (data as { id: string; libelle: string; prix_unitaire_ht_cents: number | string | null; tva_bps: number | null }[])
+    .map((l) => ({ id: l.id, libelle: l.libelle, prix_unitaire_ht_cents: l.prix_unitaire_ht_cents === null ? null : Number(l.prix_unitaire_ht_cents), tva_bps: l.tva_bps }));
+}
 
 /** P2-04 : où en est la relance d'une de ses factures en vigueur, pas réglée en totalité. */
 export type RelanceFacture = {

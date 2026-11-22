@@ -72,6 +72,7 @@ export const FICHIERS_EN_SERIE = [
   // Audit palier 1, P2-03 : rejoue la migration et le retour des absences et de la semaine type de l'artisan.
   "tests/artisan-absences-semaine-type-base.test.ts",
   "tests/artisan-relance-rdv-manque-base.test.ts",
+  "tests/artisan-lignes-devis-base.test.ts",
   "tests/artisan-activation-securite.test.ts",
   "tests/retours-atomicite.test.ts",
   // Rejeu transactionnel des droits Stripe et de la lecture de session (DDL).

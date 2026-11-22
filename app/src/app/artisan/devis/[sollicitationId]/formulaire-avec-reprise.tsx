@@ -5,12 +5,15 @@ import { FilePenLine } from "lucide-react";
 import { cleDevisLocal, lireDevisLocal, effacerDevisLocal, type BrouillonDevisLocal } from "@/lib/brouillon-devis-local";
 import type { PreparationDevis } from "@/lib/parcours-devis-artisan";
 import { FormulaireDevis } from "./formulaire-devis";
+import type { LigneGardee } from "@/lib/lignes-devis-gardees";
 import { CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SOBRE } from "../../ui";
 
 export function FormulaireAvecReprise({ compteId, ...props }: {
   compteId: string; sollicitationId: string; echeanceParDefaut: string; initiale?: PreparationDevis | null; erreurPreparation?: string;
   /** D18 (livraison 2) : défini quand le client a demandé une révision ; le formulaire prépare cette version. */
   versionSuivante?: number;
+  /** P2-04 : les lignes de devis gardées par l'artisan (`null` = lecture en échec). */
+  lignesGardees?: LigneGardee[] | null;
 }) {
   const cle = cleDevisLocal(compteId, props.sollicitationId);
   const [lecture, setLecture] = useState<{ pret: boolean; copie: BrouillonDevisLocal | null }>({ pret: false, copie: null });

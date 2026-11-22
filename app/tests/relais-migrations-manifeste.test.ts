@@ -256,6 +256,8 @@ const MISSION_OCTOBRE = [
   "20261122235500_artisan_absences_semaine_type.sql",
   // 22/11, audit palier 1 (P2-04) : relance d'une facture par l'artisan, rendez-vous manqué consigné.
   "20261122235800_artisan_relance_facture_rdv_manque.sql",
+  // 22/11, audit palier 1 (P2-04) : les lignes de devis que l'artisan garde pour les reprendre.
+  "20261122235900_artisan_lignes_devis.sql",
 
 
 ];

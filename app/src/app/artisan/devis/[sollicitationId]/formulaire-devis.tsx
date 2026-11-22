@@ -10,6 +10,8 @@ import { GARANTIE_ANNONCEE_MAX, type PreparationDevis } from "@/lib/parcours-dev
 import { declinerMaSollicitation } from "@/app/actions/artisan";
 import { preparerPropositionDevis, enregistrerBrouillonDevis, envoyerDevisValide } from "../actions-preparation";
 import { LignesDevis } from "../../lignes-devis";
+import { garderMaLigneDevis, retirerMaLigneDevis } from "@/app/actions/lignes-devis-artisan";
+import type { LigneGardee } from "@/lib/lignes-devis-gardees";
 import { euros } from "../../libelles";
 import { ApercuDevis } from "./apercu-devis";
 import styles from "./devis.module.css";
@@ -22,10 +24,14 @@ function estSaisieDevis(cible: EventTarget) {
   if (!(cible instanceof HTMLInputElement || cible instanceof HTMLSelectElement || cible instanceof HTMLTextAreaElement)) return false;
   return ["diagnostic", "delai", "duree", "contraintes", "observations", "valide_jusqu_au", "note_revision", "garantie"].includes(cible.name) || Boolean(cible.closest("[data-lignes-devis]"));
 }
-export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erreurPreparation,cleLocale,copieInitiale,versionSuivante}: {sollicitationId:string;echeanceParDefaut:string;initiale?:PreparationDevis|null;erreurPreparation?:string;cleLocale:string;copieInitiale?:BrouillonDevisLocal;versionSuivante?:number}) {
+export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erreurPreparation,cleLocale,copieInitiale,versionSuivante,lignesGardees}: {sollicitationId:string;echeanceParDefaut:string;initiale?:PreparationDevis|null;erreurPreparation?:string;cleLocale:string;copieInitiale?:BrouillonDevisLocal;versionSuivante?:number;
+  /** P2-04 : les lignes que l'artisan a gardées (`null` = lecture en échec) ; non fournies, le bloc ne les propose pas. */
+  lignesGardees?:LigneGardee[]|null}) {
   const [etat,action]=useActionState(envoyerDevisValide.bind(null,sollicitationId),{});
   const [refus,actionRefus]=useActionState(declinerMaSollicitation.bind(null,sollicitationId),{});
   const [refusOuvert,setRefusOuvert]=useState(false);
+  // P2-04 : la liste des lignes gardées vit ici, pas dans le bloc des lignes, que « Repartir d'un devis vierge » remonte.
+  const [gardees,setGardees]=useState(lignesGardees);
   const [preparation,setPreparation]=useState(initiale??null);
   const [revision,setRevision]=useState(initiale?.revision??0);
   const [valide,setValide]=useState(!copieInitiale && initiale?.statut==="valide");
@@ -122,7 +128,7 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
   const texteSauvegarde = sauvegarde || (valide ? "PDF validé et enregistré" : initiale ? "Brouillon enregistré" : "Enregistrez pour reprendre plus tard");
   const nonEnregistre = sauvegarde === "Modifications non enregistrées" || sauvegarde === "Modifications à valider";
   return <div className={styles.editeur}>
-    <form data-protection-saisie="locale" ref={form} action={action} onReset={e=>e.preventDefault()} onChange={e=>{if(estSaisieDevis(e.target))modification();}} onClick={e=>{const button=(e.target as HTMLElement).closest("button");if(button&&/Ajouter une prestation|Retirer cette ligne/.test(button.textContent??""))modification();}}>
+    <form data-protection-saisie="locale" ref={form} action={action} onReset={e=>e.preventDefault()} onChange={e=>{if(estSaisieDevis(e.target))modification();}} onClick={e=>{const button=(e.target as HTMLElement).closest("button");if(button&&/Ajouter une prestation|Retirer cette ligne|Ajouter au devis/.test(button.textContent??""))modification();}}>
       <input type="hidden" name="revision" value={revision}/>
       <EtapesSaisie titre={versionSuivante?`Préparer la version ${versionSuivante}`:"Préparer mon devis"} etapes={[
         {titre:"Proposition",statut:valide?"complet":undefined,statutLibelle:valide?"Validée":"À relire",detail:versionSuivante?"Votre version précédente est reprise ici. Ajustez-la et dites ce qui change.":"Gerimmo prépare une base de devis. Ajustez les prestations, les quantités et les prix."},
@@ -140,7 +146,7 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
             {proposition&&!vierge&&<details className="mt-1 text-sm"><summary className="cursor-pointer font-semibold">Origine des prix et points à vérifier</summary><ul className="mt-2 list-disc space-y-1 pl-5">{proposition.a_verifier.map((p,i)=><li key={i}>{p}</li>)}</ul>{proposition.sources.map((s,i)=><p key={i} className="mt-3"><strong>{s.origine==="gerimmo"?"Moyenne Gerimmo":"Référence de marché"} · {s.libelle}</strong><br/>{s.detail} {s.url&&<a href={s.url} target="_blank" rel="noreferrer" className="underline">Source consultée le 12/10/2026</a>}</p>)}</details>}
           </div>
           <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Votre diagnostic</span><textarea name="diagnostic" required maxLength={4000} rows={2} defaultValue={saisie?.diagnostic} placeholder="Décrivez le problème constaté et les travaux que vous proposez." className={CLASSE_ZONE_TEXTE}/></label>
-          <LignesDevis afficherHtIncomplet initiales={saisie?.lignes} saisieInitiale={vierge?undefined:copieInitiale?.contenu.lignes}/>
+          <LignesDevis afficherHtIncomplet initiales={saisie?.lignes} saisieInitiale={vierge?undefined:copieInitiale?.contenu.lignes} mesLignes={gardees===undefined?undefined:{lignes:gardees,definir:setGardees,garder:garderMaLigneDevis,retirer:retirerMaLigneDevis}}/>
         </div>,
         <div key={`conditions-${cle}`} className="space-y-5">
           <ResumeDevis compact/>

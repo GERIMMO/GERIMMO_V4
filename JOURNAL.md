@@ -41,3 +41,11 @@ Cinq lignes par lot, en français simple : ce qui a été fait, ce qui a été v
 - **Décision respectée** : le menu du propriétaire n'a pas été modifié (vos décisions du 24/09 et du 20/11 le tiennent court). Statistiques et Journal restent hors menu (Q18).
 - **Non fait** : vérifier l'absence des comptes de démonstration en production (il faut une lecture de la base de production, que l'outil me fait approuver par vous) ; planifier l'exercice de restauration (à décider avec vous).
 - **Reste** : ces deux points de P1-17.
+
+## 22/11/2026 — Lot 5 : le lien de confirmation part au garant (P1-01)
+
+- **Fait** : pour signer électroniquement un bail qui a un garant (ou un acte de cautionnement), Gerimmo envoie au garant un lien où il confirme lui-même son numéro de mobile. Cet e-mail était bloqué par la « liste fermée » des e-mails : la signature ne pouvait pas avancer. Il part maintenant, sous conditions strictes revérifiées en base juste avant l'envoi (lien encore valable, même garant, même adresse, aucun arrêt d'urgence). Rien d'autre n'est rouvert.
+- **Vérifié** : 32 tests nouveaux, dont la vraie chaîne d'envoi avec un fournisseur d'e-mail simulé (l'e-mail part une seule fois, au garant ; un lien remplacé, utilisé ou annulé ne repart jamais) ; base du banc remise à neuf, migrations rejouées depuis zéro, compilation, 13 338 tests réussis sans échec, 283 parcours navigateur réussis sur 286 (3 ignorés comme d'habitude).
+- **Non vérifié** : aucun e-mail réel n'a été envoyé, et la signature de bout en bout chez le prestataire (Zoho Sign) n'a pas été jouée : c'est un service payant, hors de mon banc. Mêmes deux fichiers de tests non exécutés sur mon banc qu'au lot 2.
+- **Retour en arrière** : script écrit et testé (les e-mails de ce type encore en attente sont mis de côté, rien n'est perdu).
+- **Reste** : votre avis sur Q19 (garder ou non ce lien admis). À la recette finale : un essai réel de signature avec garant, si vous le souhaitez.

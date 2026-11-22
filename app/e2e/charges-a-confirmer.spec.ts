@@ -110,8 +110,14 @@ test("appel de charges : chaque poste naît « à qualifier », la suggestion se
     await ancien.getByRole("button", { name: "Valider la ventilation", exact: true }).click();
     await expect(ancien).toContainText("Ventilé");
     expect(await statut(appelAncien)).toBe("ventile");
-    // Seul ce que le gestionnaire a confirmé « récupérable » est compté pour le locataire.
-    expect((await db.query("select public.charges_recuperables_exercice($1,$2)::float8 r1, public.charges_recuperables_exercice($1,$3)::float8 r0", [lot, annee, annee - 1])).rows[0]).toEqual({ r1: 300, r0: 0 });
+    // Seul ce que le gestionnaire a confirmé « récupérable » est compté pour le locataire. La somme est relue dans les
+    // tables, avec la règle de `charges_recuperables_exercice` (appel ventilé ou figé, poste récupérable) : cette
+    // fonction ne répond qu'à un membre de l'espace, pas à la connexion de service du parcours.
+    const recuperable = async (exercice: number) => (await db.query(
+      `select coalesce(sum(p.montant), 0)::float8 r from appel_charges_postes p join appels_charges a on a.id = p.appel_id
+        where a.lot_id = $1 and a.exercice = $2 and a.statut in ('ventile','fige') and p.nature = 'recuperable'`, [lot, exercice])).rows[0].r as number;
+    expect(await recuperable(annee)).toBe(300);
+    expect(await recuperable(annee - 1)).toBe(0);
   } finally {
     try {
       await db.query("rollback");

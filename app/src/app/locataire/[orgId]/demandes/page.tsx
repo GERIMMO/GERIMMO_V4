@@ -8,10 +8,9 @@ import { aEchoue, PanneLecture } from "../panne-lecture";
 import { BORD_ETAT } from "../pastille-locataire";
 import type { CreneauPropose, SuiviIntervention } from "./suivi-intervention";
 import { signalementOuvert } from "../types";
-import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
+import { instantRdv, type RendezVousLocataire } from "@/lib/rendez-vous-locataire";
 import { etiquetteNouveauxMessages, lireEchangesNonLus } from "@/lib/echanges-intervention";
 import { phraseRendezVousManque, rendezVousManquesAffiches, type RendezVousManqueLocataire } from "@/lib/rendez-vous-manque";
-import { formaterDateHeureParis } from "@/lib/heure-paris";
 
 export const metadata = { title: "Mes demandes" };
 
@@ -162,7 +161,7 @@ export default async function PageDemandesLocataire(
 
       {rdvManques.map((m) => (
         <a key={m.intervention_id} href={`#demande-${m.incident_id}`} data-rdv-manque={m.absent} className={`loc-carte block ${BORD_ETAT.attention}`}>
-          <h2 className="titre-carte text-base font-medium">Rendez-vous du {formaterDateHeureParis(m.rdv_debut)} manqué</h2>
+          <h2 className="titre-carte text-base font-medium">Rendez-vous manqué {instantRdv(m.rdv_debut)}</h2>
           <p className="mt-1.5 text-sm text-muted-foreground">{phraseRendezVousManque(m)}</p>
         </a>
       ))}

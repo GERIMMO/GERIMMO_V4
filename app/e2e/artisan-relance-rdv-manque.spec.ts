@@ -44,6 +44,18 @@ async function dansLOnglet(p: Page, onglet: string, cible: Locator) {
   }).toPass({ timeout: 30_000 });
 }
 
+/**
+ * Ouvre la chronologie du dossier chez le propriétaire : l'onglet « Historique », puis le bloc replié « Historique et
+ * commentaires » (un <details> natif, fermé par défaut chez le propriétaire).
+ */
+async function ouvrirChronologie(p: Page) {
+  const chronologie = p.locator("#chronologie");
+  await dansLOnglet(p, "Historique", chronologie);
+  if (!(await chronologie.evaluate((d) => (d as HTMLDetailsElement).open))) await chronologie.locator("summary").click();
+  await expect(chronologie).toHaveAttribute("open", "");
+  return chronologie;
+}
+
 test("artisan : rendez-vous manqué consigné des deux côtés, puis relance d'une facture ; le propriétaire et le locataire lisent ce qui les concerne", async ({ page, context, browser }, info) => {
   test.setTimeout(360_000);
   const cible = process.env.SUPALOCAL_DB;
@@ -160,9 +172,9 @@ test("artisan : rendez-vous manqué consigné des deux côtés, puis relance d'u
       const p = await proprietaire.newPage();
       await sansSyntheseAlertes(p);
       await connecterVers(p, email, motDePasse, `/espace/${org}/incidents?sel=${incidentRdv}`);
-      const ligne = p.getByText("Rendez-vous manqué", { exact: true });
-      await dansLOnglet(p, "Historique", ligne);
-      const chronologie = p.locator(".incident-dossier");
+      const chronologie = await ouvrirChronologie(p);
+      const ligne = chronologie.getByText("Rendez-vous manqué", { exact: true });
+      await expect(ligne).toBeVisible();
       await expect(chronologie).toContainText("le locataire était absent · indiqué par l’artisan");
       await expect(chronologie).toContainText(`« ${note} »`);
       await tientDansLEcran(p, ligne.first());
@@ -255,9 +267,9 @@ test("artisan : rendez-vous manqué consigné des deux côtés, puis relance d'u
       await expect(surFacture).toHaveText(`L’artisan vous a relancé le ${d.j0} pour cette facture, déposée le ${d.depot}.`);
       await tientDansLEcran(p, surFacture);
       await p.screenshot({ path: info.outputPath("proprietaire-facture-relancee.png"), fullPage: true });
-      const ligneRelance = p.getByText("Facture relancée par l'artisan", { exact: true });
-      await dansLOnglet(p, "Historique", ligneRelance);
-      await expect(p.locator(".incident-dossier")).toContainText(`n° ${numeroFacture} · relance n° 1 · déposée depuis 31 jours · pas encore contrôlée`);
+      const chronologieFacture = await ouvrirChronologie(p);
+      await expect(chronologieFacture.getByText("Facture relancée par l'artisan", { exact: true })).toBeVisible();
+      await expect(chronologieFacture).toContainText(`n° ${numeroFacture} · relance n° 1 · déposée depuis 31 jours · pas encore contrôlée`);
     } finally { await proprietaire.close(); await chezLocataire.close(); }
   } finally {
     // L'artisan du banc retrouve son état d'avant : ni mission, ni facture, ni rendez-vous manqué de l'essai. L'espace

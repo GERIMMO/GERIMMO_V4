@@ -73,6 +73,8 @@ describe("ce que lit le locataire", () => {
     const page = lire("src/app/locataire/[orgId]/demandes/page.tsx");
     expect(page).toContain('supabase.rpc("mes_rdv_manques_locataire", { p_org: orgId })');
     expect(page).toContain("data-rdv-manque={m.absent}");
+    // La date est dite en toutes lettres, à l'heure de Paris, comme les autres rendez-vous du locataire.
+    expect(page).toContain("Rendez-vous manqué {instantRdv(m.rdv_debut)}");
     expect(page).toContain("href={`#demande-${m.incident_id}`}");
     expect(lire("src/lib/rendez-vous-manque.ts")).not.toMatch(/\bnote\b\s*[:?]/);
   });

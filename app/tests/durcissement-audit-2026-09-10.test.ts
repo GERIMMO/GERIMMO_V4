@@ -275,18 +275,22 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
       )
     ).rejects.toThrow(/depot_encaissements/i);
     await db.query("rollback to savepoint s");
-    // 2. Le décompte arrêté ne se déverrouille pas : ni suppression, ni retour
-    //    « en cours » (aucune policy d'écriture sur restitutions) — sans quoi la
-    //    seconde borne se dissoudrait d'un UPDATE (RM-2.7.3).
-    const efface = await db.query(`delete from public.restitutions where bail_id = $1`, [
-      sortant.id,
-    ]);
-    expect(efface.rowCount).toBe(0);
-    const rouvre = await db.query(
+    // 2. Le décompte arrêté ne se déverrouille pas : ni suppression, ni retour « en cours » — sans quoi la seconde
+    //    borne se dissoudrait d'un UPDATE (RM-2.7.3). Jusqu'au 22/11, aucune politique d'écriture n'existait sur
+    //    `restitutions` et la tentative ne touchait simplement aucune ligne. Depuis le ménage P2-08 (migration
+    //    20261122235959), le droit d'écriture lui-même est retiré aux comptes connectés : la tentative est refusée
+    //    net. La règle tenue ici est la même, en plus strict ; on vérifie en plus que le décompte n'a pas bougé.
+    const avant = (await db.query(`select id, statut from public.restitutions where bail_id = $1`, [sortant.id])).rows;
+    expect(avant).toHaveLength(1);
+    for (const tentative of [
+      `delete from public.restitutions where bail_id = $1`,
       `update public.restitutions set statut = 'en_cours' where bail_id = $1`,
-      [sortant.id]
-    );
-    expect(rouvre.rowCount).toBe(0);
+    ]) {
+      await db.query("savepoint s");
+      await expect(db.query(tentative, [sortant.id])).rejects.toThrow(/permission denied for table restitutions/);
+      await db.query("rollback to savepoint s");
+    }
+    expect((await db.query(`select id, statut from public.restitutions where bail_id = $1`, [sortant.id])).rows).toEqual(avant);
   });
 
   it("une fonction déclencheur ne s'accroche plus à une table forgée (advisor 2026-09-10)", async () => {

@@ -40,7 +40,11 @@ describe("évaluation contestée — manifeste, retour et libellés (sans base)"
 
   it("le journal sait nommer les deux gestes, et l'alerte mène au dossier sans se dire automatique", () => {
     expect(libelleActionAudit("consultation_evaluations_contestation")).toBe("Consultation des évaluations d’un artisan (contestation)");
-    expect(libelleActionAudit("evaluation_retiree")).toBe("Retrait d’une évaluation d’artisan après contestation");
+    expect(libelleActionAudit("support_evaluation_retiree")).toBe("Retrait d’une évaluation d’artisan après contestation");
+    // Les deux actions du journal suivent la règle des trois ans (accès et gestes de la supervision chez un client).
+    const migration = readFileSync(`supabase/migrations/${NOM}.sql`, "utf8");
+    expect([...migration.matchAll(/log_sa_access\(\s*[^,()]+,\s*'([a-z_]+)'/g)].map((m) => m[1]).sort())
+      .toEqual(["consultation_evaluations_contestation", "support_evaluation_retiree"]);
     expect(gesteAlerte({ type: "evaluation_retiree", details: { incident_id: "i-1" } }, "org-1"))
       .toEqual({ href: "/agence/org-1/incidents?sel=i-1", libelle: "Ouvrir le dossier de l’intervention", seFermeSeule: false });
     expect(gesteAlerte({ type: "evaluation_retiree", details: { incident_id: "i-1" } }, "org-1", "/espace")?.href).toBe("/espace/org-1/incidents?sel=i-1");
@@ -181,7 +185,7 @@ describe.skipIf(!url)("évaluation contestée (avec base)", () => {
     expect((await db.query("select count(*)::int n from public.artisan_evaluations")).rows[0].n).toBe(0);
 
     // Le journal de la supervision garde le geste, rattaché à l'organisation ; aucun permis ne reste.
-    const trace = await journal("evaluation_retiree");
+    const trace = await journal("support_evaluation_retiree");
     expect(trace).toEqual([{ organization_id: org, details: { retour_id: contestation, evaluation_id: evalLocataire, artisan_id: artisan, source: "locataire" } }]);
     expect((await db.query("select count(*)::int n from support_interne.maintenance_lignes")).rows[0].n).toBe(0);
 

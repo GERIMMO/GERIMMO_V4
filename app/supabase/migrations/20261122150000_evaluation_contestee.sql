@@ -127,7 +127,9 @@ begin
   values (p_retour, auth.uid(), 'evaluation_retiree',
           'Après examen de votre contestation, une évaluation a été retirée. Elle ne compte plus dans votre moyenne, qui est recalculée.');
 
-  perform public.log_sa_access(e.organization_id, 'evaluation_retiree', jsonb_build_object(
+  -- « support_ » : un geste de la supervision dans les données d'une organisation, gardé trois ans au journal
+  -- (action_audit_controle_interne, 20261024140000), comme les autres gestes de support motivés.
+  perform public.log_sa_access(e.organization_id, 'support_evaluation_retiree', jsonb_build_object(
     'retour_id', p_retour, 'evaluation_id', e.id, 'artisan_id', v_artisan, 'source', e.source));
 end;
 $$;

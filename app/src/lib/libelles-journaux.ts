@@ -34,7 +34,7 @@ const ACTIONS: Record<string, string> = {
   decision_retour: "Décision sur un retour d’utilisateur",
   // Audit palier 1 (P1-07, migration 20261122150000) : contestation d'une évaluation par un artisan (RM-11.4.6).
   consultation_evaluations_contestation: "Consultation des évaluations d’un artisan (contestation)",
-  evaluation_retiree: "Retrait d’une évaluation d’artisan après contestation",
+  support_evaluation_retiree: "Retrait d’une évaluation d’artisan après contestation",
   bien_retabli: "Bien rétabli après son retrait",
   bien_retire: "Bien retiré du parc",
   invitation_locataire: "Invitation d’un locataire envoyée",

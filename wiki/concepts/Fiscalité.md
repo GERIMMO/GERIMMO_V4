@@ -3,7 +3,7 @@ type: concept
 tags: [fiscalite, revenus-fonciers, proprietaire]
 status: draft
 created: 2026-07-22
-updated: 2026-10-14
+updated: 2026-11-23
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite]]"]
 ---
 
@@ -125,3 +125,23 @@ LMP et SCI restent en V2. Voir [[Propriétaire bailleur]].
 > Le récapitulatif comptait jusqu'ici les provisions de charges en recette (ligne 212
 > « charges récupérées ») et la TEOM en charge déductible (ligne 227) : revenu foncier
 > surévalué d'un côté, charges gonflées de l'autre. Source : [[Audit complet du 29 septembre 2026]].
+
+## État dans l'application au 23/11/2026 — le plafond et l'abattement du micro-foncier sont un réglage (mission palier 1, lot 32)
+En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 2026]], point P2-09 ; détail dans
+`JOURNAL.md`).
+- **Ce qui existait.** L'aide du récapitulatif fiscal du [[Propriétaire bailleur]] citait, écrits dans le code, un
+  plafond de recettes brutes de 15 000 € et un abattement de 30 % pour le régime micro-foncier.
+- **Ce qui change.** Ces deux valeurs se lisent dans un réglage du [[Super Admin]] (Paramètres généraux, « Repères
+  fiscaux »), avec la **date de leur dernière vérification**. Le réglage est daté du jour et journalisé avec les
+  valeurs d'avant ; la console signale « À revérifier » quand l'année civile a changé.
+- **Ce que lit le propriétaire.** La phrase d'aide avec les valeurs du réglage, puis « vérifiés par Gerimmo le … ».
+  Sans date enregistrée, la phrase le dit et renvoie à la notice officielle ; si le réglage est illisible, aucun
+  chiffre n'est affiché.
+- **Aucun calcul.** Le récapitulatif ne calcule ni impôt ni droit au micro-foncier : ces valeurs ne servent qu'à la
+  phrase d'aide.
+
+> [!warning] Valeurs non vérifiées à la source (23/11/2026)
+> Les valeurs livrées (15 000 €, 30 %) sont celles que l'écran affichait déjà. L'agent n'a pas pu les contrôler sur
+> le site officiel des impôts depuis son environnement : elles sont livrées **sans date de vérification** et ne sont
+> présentées nulle part comme vérifiées. Le dirigeant les confirme dans la console (`QUESTIONS.md`, Q38). Cette page
+> ne les affirme donc pas comme règle fiscale en vigueur.

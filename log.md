@@ -8014,3 +8014,13 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **Leçon** : chercher un fait par ce qu'il fait (ici : toute fonction qui écrit dans `artisan_evaluations`), pas par
   le nom qu'on lui suppose.
 
+## [2026-11-23] ingest | Mission palier 1, lot 32 : repères fiscaux du micro-foncier (préproduction)
+
+- **Source** : le code de la branche de préproduction (lot 32, point P2-09 du plan) et son passage de vérification ;
+  aucune source déposée dans `raw/`.
+- **Pages mises à jour** : [[Fiscalité]] (section « État dans l'application au 23/11/2026 » et avertissement),
+  [[Mission palier 1 — audit du 22 novembre 2026]] (ligne 32 du tableau, règle « Repères fiscaux »), `index.md`.
+- **Ce que le wiki n'affirme pas** : que 15 000 € et 30 % sont les valeurs en vigueur. L'agent n'a pas pu les
+  contrôler à la source (sites officiels inaccessibles) ; la page le dit dans un avertissement, et la question est
+  posée au dirigeant (`QUESTIONS.md`, Q38). Le tableau des régimes de la page, plus ancien, portait déjà
+  l'avertissement « Sources non officielles — à reconfirmer ».

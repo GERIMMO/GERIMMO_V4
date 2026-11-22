@@ -3,7 +3,7 @@ type: synthesis
 tags: [audit, palier-1, conformite, securite, ia, plan-de-correction]
 status: in-progress
 created: 2026-11-22
-updated: 2026-11-22
+updated: 2026-11-23
 sources: []
 ---
 
@@ -52,7 +52,7 @@ production est gelée jusqu'à sa validation écrite ; l'audit complet est dans 
 >   du wiki en tiennent lieu, dans le périmètre donné par le dirigeant.
 > - Les pages [[Planification d'intervention]] et [[Intervention et clôture]] sont en retard sur le code.
 
-## Phase 2 — corrections en autonomie (état au 22/11/2026, lot 31)
+## Phase 2 — corrections en autonomie (état au 23/11/2026, lot 32)
 
 Le détail, lot par lot (ce qui est fait, vérifié, non vérifié, retour arrière), est dans `JOURNAL.md` à la racine.
 Chaque lot est vérifié sur une base d'essai remise à neuf (migrations rejouées, tests, parcours navigateur) avant
@@ -91,6 +91,7 @@ d'être poussé sur la branche de préproduction ; rien n'est publié en product
 | 29 | P2-06 | L'agenda du [[Propriétaire bailleur]] montre aussi ses échéances : loyers appelés et leur état, états des lieux, départ annoncé par un congé, date de fin inscrite au bail ; lecture seule ([[Agenda et échéances]]) |
 | 30 | P2-07 | Avant de solliciter un [[Artisan]], le [[Propriétaire bailleur]] lit un repère de prix sourcé pour le métier (trois métiers), avec « ni un tarif, ni un prix maximum, ni un engagement » ([[Devis]]) |
 | 31 | P2-08 (base) | Rien de visible : 46 droits d'écriture sans règle retirés sur 21 tables ; aucune table, fonction ni donnée supprimée |
+| 32 | P2-09 | Le plafond et l'abattement du micro-foncier cités par l'aide du récapitulatif fiscal ([[Fiscalité]]) ne sont plus écrits dans le code : le [[Super Admin]] les règle et date leur vérification ; le [[Propriétaire bailleur]] lit la date, ou qu'il n'y en a pas |
 
 **Règle métier posée au lot 11** (source : cahier Gerimmo V3, module 9, variante V5 — « l'agent la refuse, l'artisan
 la corrige ou la justifie ») : une intervention ne porte qu'**une facture en vigueur** ; une facture refusée reste au
@@ -102,7 +103,7 @@ Q24) : aucun e-mail automatique ne part tant que le Super Admin n'a pas ouvert l
 d'échéance et la relance d'un loyer, chaque espace doit en plus donner son accord ; même ouvert, un e-mail ne part que
 si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a été envoyé pendant la vérification.
 
-**Règles posées aux lots 17 à 31** (prudences de l'agent ; aucune n'affirme une conformité) :
+**Règles posées aux lots 17 à 32** (prudences de l'agent ; aucune n'affirme une conformité) :
 
 - *Charges de copropriété (lot 19)* : Gerimmo ne classe plus aucun poste de lui-même. La suggestion tirée de
   l'intitulé s'affiche, le gestionnaire choisit, poste par poste ; un intitulé de travaux, de gardien ou de
@@ -139,6 +140,10 @@ si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a
 - *Ménage de la base (lot 31)* : on ne retire que des droits déjà sans effet, et la modification le revérifie au
   moment de s'appliquer ; rien n'est supprimé (ni table abandonnée, ni fonction sans appelant, ni code inatteignable) :
   ces suppressions sont laissées au dirigeant (`QUESTIONS.md`, Q36).
+- *Repères fiscaux (lot 32)* : une valeur fiscale affichée porte la date de sa dernière vérification, ou dit qu'il
+  n'y en a pas ; une valeur illisible n'est pas affichée ; seul le Super Admin en double vérification la règle, et
+  chaque réglage est journalisé avec la valeur d'avant. Les deux valeurs livrées n'ont **pas** été contrôlées à la
+  source par l'agent : elles sont livrées sans date de vérification (`QUESTIONS.md`, Q38). Aucun calcul ne s'en sert.
 - *Un audit se réexécute* : l'audit du 22/11 est une lecture du code. Trois de ses points se sont révélés faux ou
   trop optimistes à l'exécution (le diagnostic remplacé, le réglage de la tâche de nuit des fermetures de compte, la
   relance d'un report de rendez-vous) ; ils sont rectifiés dans la section « Errata » de `AUDIT.md`, pas réécrits en

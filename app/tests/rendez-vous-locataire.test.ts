@@ -96,9 +96,14 @@ describe.skipIf(!url)("D22 — report ou annulation d'un rendez-vous par le loca
     await postgres();
     return (await db.query("select * from public.intervention_demandes_rdv where intervention_id=$1 order by demandee_le", [m])).rows;
   }
+  // Tout ce fichier tient dans UNE transaction : `created_at` (now()) y est le même pour tous les événements, et un tri
+  // sur une valeur identique ne garantit aucun ordre (échec constaté une fois le 22/11/2026, sous charge : deux
+  // événements rendus dans l'autre sens). On départage par le rang de la commande qui a écrit la ligne (`cmin`), qui
+  // croît à chaque instruction de la transaction : c'est l'ordre réel d'écriture. En production, ces événements
+  // naissent dans des transactions distinctes et `created_at` les ordonne.
   async function evenements(m = mission) {
     await postgres();
-    return (await db.query("select type,details from public.incident_evenements where details->>'intervention_id'=$1 order by created_at", [m])).rows;
+    return (await db.query("select type,details from public.incident_evenements where details->>'intervention_id'=$1 order by created_at, cmin::text::bigint", [m])).rows;
   }
   async function alertes(m = mission) {
     await postgres();

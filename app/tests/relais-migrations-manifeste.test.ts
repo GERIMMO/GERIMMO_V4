@@ -252,6 +252,7 @@ const MISSION_OCTOBRE = [
   "20261122233000_disponibilites_locataire_incident.sql",
   // 22/11, audit palier 1 (P2-01) : la photo d'un élément d'état des lieux est un document du même espace.
   "20261122234000_edl_photos_par_element.sql",
+  "20261122235000_devis_garantie_annoncee.sql",
 
 
 ];

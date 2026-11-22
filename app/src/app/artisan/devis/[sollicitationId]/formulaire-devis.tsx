@@ -6,7 +6,7 @@ import { Sparkles, CheckCircle2, Save, CircleDashed, Send, FileDown } from "luci
 import { EtapesSaisie } from "@/components/etapes-saisie";
 import { contenuDevisLocal, sauverDevisLocal, effacerDevisLocal, type BrouillonDevisLocal } from "@/lib/brouillon-devis-local";
 import { calculerDevis, libelleQuantite, libelleTauxTva } from "@/lib/devis-structure";
-import type { PreparationDevis } from "@/lib/parcours-devis-artisan";
+import { GARANTIE_ANNONCEE_MAX, type PreparationDevis } from "@/lib/parcours-devis-artisan";
 import { declinerMaSollicitation } from "@/app/actions/artisan";
 import { preparerPropositionDevis, enregistrerBrouillonDevis, envoyerDevisValide } from "../actions-preparation";
 import { LignesDevis } from "../../lignes-devis";
@@ -20,7 +20,7 @@ function Envoyer({valide, versionSuivante}: {valide:boolean; versionSuivante?: n
 // Le sélecteur d’étape mobile n’est pas une modification du devis.
 function estSaisieDevis(cible: EventTarget) {
   if (!(cible instanceof HTMLInputElement || cible instanceof HTMLSelectElement || cible instanceof HTMLTextAreaElement)) return false;
-  return ["diagnostic", "delai", "duree", "contraintes", "observations", "valide_jusqu_au", "note_revision"].includes(cible.name) || Boolean(cible.closest("[data-lignes-devis]"));
+  return ["diagnostic", "delai", "duree", "contraintes", "observations", "valide_jusqu_au", "note_revision", "garantie"].includes(cible.name) || Boolean(cible.closest("[data-lignes-devis]"));
 }
 export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erreurPreparation,cleLocale,copieInitiale,versionSuivante}: {sollicitationId:string;echeanceParDefaut:string;initiale?:PreparationDevis|null;erreurPreparation?:string;cleLocale:string;copieInitiale?:BrouillonDevisLocal;versionSuivante?:number}) {
   const [etat,action]=useActionState(envoyerDevisValide.bind(null,sollicitationId),{});
@@ -153,6 +153,13 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
             <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Contraintes et accès <span className={styles.facultatif}>Facultatif</span></span><textarea name="contraintes" rows={3} maxLength={3000} defaultValue={saisie?.contraintes} placeholder="Accès au logement, matériel à prévoir…" className={CLASSE_ZONE_TEXTE}/></label>
             <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Observations et conditions <span className={styles.facultatif}>Facultatif</span></span><textarea name="observations" rows={3} maxLength={3000} defaultValue={saisie?.observations} placeholder="Précisions sur la prestation, les fournitures…" className={CLASSE_ZONE_TEXTE}/></label>
           </div>
+          {/* Audit palier 1, P2-02 : la garantie que l'artisan annonce. Facultative ; reprise telle quelle sur son devis et
+              montrée au demandeur. C'est son engagement : Gerimmo ne la vérifie pas et ne garantit rien. */}
+          <div className="space-y-1.5">
+            <label htmlFor="garantie-annoncee" className={CLASSE_LIBELLE}>Garantie que vous annoncez <span className={styles.facultatif}>Facultatif</span></label>
+            <input id="garantie-annoncee" name="garantie" maxLength={GARANTIE_ANNONCEE_MAX} defaultValue={saisie?.garantie ?? ""} aria-describedby="garantie-annoncee-aide" placeholder="Ex. : un an, pièces et main-d’œuvre" className={CLASSE_CHAMP}/>
+            <p id="garantie-annoncee-aide" className={CLASSE_AIDE}>Reprise telle quelle sur votre devis et montrée au demandeur. C’est votre engagement : Gerimmo ne garantit rien à votre place.</p>
+          </div>
         </div>,
         <div key="validation" className={styles.validation}><ResumeDevis/><div className={styles.validationAction}><ApercuDevis sollicitationId={sollicitationId} valide={valide} bloque={enregistrement||chargement} onGeneration={actif=>{occupation.current=actif;setEnregistrement(actif);if(actif)conserver();}} onValide={r=>{revisionRecue(Math.abs(r),r>0);setValide(r>0);setSauvegarde(r>0?"PDF validé et enregistré":"Modifications à valider");}}/><p className={CLASSE_AIDE}>Vos coordonnées et votre logo proviennent de <Link href="/artisan/entreprise#entreprise-devis" target="_blank" className="underline">Ma fiche entreprise</Link>.</p></div></div>,
         <div key="envoi" className={`${styles.envoi} space-y-4`}>
@@ -171,7 +178,7 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
 
 function ResumeDevis({compact = false}: {compact?: boolean}) {
   const bloc = useRef<HTMLDivElement>(null);
-  const [resume, setResume] = useState({ diagnostic:"", delai:"", duree:"", validite:"", contraintes:"", observations:"", total:null as number | null, prestations:[] as string[] });
+  const [resume, setResume] = useState({ diagnostic:"", delai:"", duree:"", validite:"", contraintes:"", observations:"", garantie:"", total:null as number | null, prestations:[] as string[] });
   useEffect(() => {
     const form = bloc.current?.closest("form");
     if (!form) return;
@@ -186,7 +193,7 @@ function ResumeDevis({compact = false}: {compact?: boolean}) {
           total = calculerDevis(lignes).montant_ttc_cents;
           prestations = lignes.map((l: {libelle:string;quantite:number;prix_unitaire_ht_cents:number;tva_bps:number}) => `${libelleQuantite(l.quantite)} × ${l.libelle} · ${euros(l.prix_unitaire_ht_cents)} HT · TVA ${libelleTauxTva(l.tva_bps)}`);
         } catch { /* Les validations des lignes restent applicables avant l’envoi. */ }
-        setResume({diagnostic:String(data.get("diagnostic") || ""), delai:String(data.get("delai") || ""), duree:String(data.get("duree") || ""), validite:String(data.get("valide_jusqu_au") || ""), contraintes:String(data.get("contraintes")||""), observations:String(data.get("observations")||""), total, prestations});
+        setResume({diagnostic:String(data.get("diagnostic") || ""), delai:String(data.get("delai") || ""), duree:String(data.get("duree") || ""), validite:String(data.get("valide_jusqu_au") || ""), contraintes:String(data.get("contraintes")||""), observations:String(data.get("observations")||""), garantie:String(data.get("garantie")||"").trim(), total, prestations});
       });
     }
     lire(); form.addEventListener("input", lire); form.addEventListener("change", lire); form.addEventListener("click", lire);
@@ -202,6 +209,7 @@ function ResumeDevis({compact = false}: {compact?: boolean}) {
       <dl><div><dt>Intervention</dt><dd>{resume.delai || "À compléter"}</dd></div><div><dt>Durée estimée</dt><dd>{resume.duree || "À compléter"}</dd></div><div><dt>Valable jusqu’au</dt><dd>{resume.validite ? new Date(`${resume.validite}T12:00:00`).toLocaleDateString("fr-FR") : "Non précisée"}</dd></div></dl>
       {resume.contraintes&&<p className="mt-4 whitespace-pre-wrap"><strong>Contraintes et accès :</strong> {resume.contraintes}</p>}
       {resume.observations&&<p className="mt-4 whitespace-pre-wrap"><strong>Observations et conditions :</strong> {resume.observations}</p>}
+      {resume.garantie&&<p className="mt-4 whitespace-pre-wrap" data-garantie-annoncee><strong>Garantie annoncée :</strong> {resume.garantie}</p>}
     </div>
     <div className={styles.resumeTotal}><span>Total TTC</span><strong>{resume.total === null ? "À compléter" : euros(resume.total)}</strong></div>
   </div>;

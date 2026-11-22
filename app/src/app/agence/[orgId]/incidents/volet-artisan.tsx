@@ -105,6 +105,23 @@ type Sollicitation = {
   revision_avant?: string | null;
 };
 
+// Audit palier 1 du 22/11/2026, P2-02 : la garantie que l'artisan a annoncée sur son devis, recopiée telle quelle.
+// Le gestionnaire la lit avant de choisir, puis au dossier quand un problème revient. C'est l'engagement de l'artisan :
+// l'écran le dit, pour que personne ne la prenne pour une garantie de Gerimmo.
+function GarantieAnnoncee({ texte }: { texte?: string | null }) {
+  const garantie = texte?.trim();
+  if (!garantie) return null;
+  return (
+    <div className="ligne-info" data-garantie-annoncee>
+      <span>Garantie annoncée par l’artisan</span>
+      <span>
+        {garantie}
+        <small className="block text-muted-foreground">Engagement de l’artisan, pas de Gerimmo.</small>
+      </span>
+    </div>
+  );
+}
+
 type Devis = {
   id: string;
   sollicitation_id: string;
@@ -124,6 +141,8 @@ type Devis = {
   version?: number | null;
   devis_precedent_id?: string | null;
   note_revision?: string | null;
+  /** Audit palier 1, P2-02 : ce que l'artisan a annoncé comme garantie sur son devis. */
+  garantie_annoncee?: string | null;
 };
 
 type Intervention = {
@@ -299,7 +318,7 @@ export async function VoletArtisan({
     supabase
       .from("incident_devis")
       .select(
-        "id, sollicitation_id, artisan_id, montant_ttc_cents, description, lignes, valide_jusqu_au, document_id, statut, depose_le, decision, decision_motif, decide_le, version, devis_precedent_id, note_revision"
+        "id, sollicitation_id, artisan_id, montant_ttc_cents, description, lignes, valide_jusqu_au, document_id, statut, depose_le, decision, decision_motif, decide_le, version, devis_precedent_id, note_revision, garantie_annoncee"
       )
       .eq("organization_id", orgId)
       .eq("incident_id", incidentId)
@@ -634,6 +653,7 @@ export async function VoletArtisan({
                   <span className="montant">{montant(devisRetenu.montant_ttc_cents)}</span>
                 </div>
               )}
+              <GarantieAnnoncee texte={devisRetenu?.garantie_annoncee} />
               <div className="ligne-info">
                 {/* shrink-0 / text-right : la valeur, plus longue depuis le
                     24/09, coupait le libellé en « Rendez- / vous ». */}
@@ -875,7 +895,7 @@ export async function VoletArtisan({
       {mission && estProprietaire && <RubriqueIncident rubrique="echanges"><details open id={`messages-${mission.id}`} className="incident-messages"><summary>Échanges avec les participants</summary><EchangesIntervention intervention={mission.id}/></details></RubriqueIncident>}
 
       {/* ─── La mise en concurrence ouverte ──────────────────────────────── */}
-      {estProprietaire && devisRetenu && <RubriqueIncident rubrique="devis"><section className="rounded-xl border border-border bg-card p-4 space-y-2"><h3 className="font-semibold">Devis retenu — {montant(devisRetenu.montant_ttc_cents)}</h3><p className="text-sm">{nom(devisRetenu.artisan_id)}</p>{devisRetenu.document_id && <Link className="inline-flex min-h-11 items-center text-sm underline" href={`${base}/documents/${devisRetenu.document_id}/fichier`}>Consulter le devis retenu</Link>}</section></RubriqueIncident>}
+      {estProprietaire && devisRetenu && <RubriqueIncident rubrique="devis"><section className="rounded-xl border border-border bg-card p-4 space-y-2"><h3 className="font-semibold">Devis retenu — {montant(devisRetenu.montant_ttc_cents)}</h3><p className="text-sm">{nom(devisRetenu.artisan_id)}</p><GarantieAnnoncee texte={devisRetenu.garantie_annoncee} />{devisRetenu.document_id && <Link className="inline-flex min-h-11 items-center text-sm underline" href={`${base}/documents/${devisRetenu.document_id}/fichier`}>Consulter le devis retenu</Link>}</section></RubriqueIncident>}
       {consultationOuverte && (
         <RubriqueIncident rubrique="devis"><div id="devis-incident" className="space-y-3">
         {bienId && disponibiliteOuverte && <><MessageReseau orgId={orgId} bienId={bienId} disponibilite={disponibiliteOuverte} /><InteretReseau key={`${bienId}-${disponibiliteOuverte.metier}-${disponibiliteOuverte.nature}`} orgId={orgId} bienId={bienId} disponibilite={disponibiliteOuverte} /></>}
@@ -1134,6 +1154,7 @@ export function ConsultationOuverte({
                         <span>Valable jusqu&apos;au</span>
                         <span>{formaterDate(d.valide_jusqu_au)}</span>
                       </div>
+                      <GarantieAnnoncee texte={d.garantie_annoncee} />
                       {moinsDisant && (
                         <div className="ligne-info">
                           <span>Prix</span>
@@ -1304,6 +1325,7 @@ export function ConsultationOuverte({
                     <span>Valable jusqu&apos;au</span>
                     <span>{formaterDate(d.valide_jusqu_au)}</span>
                   </div>
+                  <GarantieAnnoncee texte={d.garantie_annoncee} />
                   <CorpsDevis base={base} d={d} />
                   <p className="text-sm text-destructive">
                     Expiré le {formaterDate(d.valide_jusqu_au)} — caduc. Demandez une proposition à jour.

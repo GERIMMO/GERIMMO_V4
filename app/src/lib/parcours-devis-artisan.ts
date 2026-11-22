@@ -4,7 +4,11 @@ export type BrouillonDevis = {
   valideJusquAu: string; lignes: LigneProposee[]; prestations?: string;
   /** D18 (livraison 2) : « ce qui change » dans la version suivante ; la base l'exige dès la version 2. */
   noteRevision?: string;
+  /** Audit palier 1, P2-02 : la garantie que l'artisan annonce sur son devis (facultatif, 300 caractères au plus). */
+  garantie?: string;
 };
+/** La même borne que la base (contrainte incident_devis_garantie_annoncee_bornee). */
+export const GARANTIE_ANNONCEE_MAX = 300;
 export type ProfilDocumentArtisan = { adresse: string; mentions: string; logo_data: string | null };
 export type PreparationDevis = {
   sollicitation_id: string; artisan_id: string; reference_id: string; revision: number;
@@ -23,5 +27,5 @@ export function brouillonDepuisFormulaire(form: FormData): BrouillonDevis {
   }
   return { diagnostic:t("diagnostic",4000), delai:t("delai",240), duree:t("duree",240),
     contraintes:t("contraintes",3000), observations:t("observations",3000),
-    valideJusquAu:t("valide_jusqu_au",10), lignes, noteRevision:t("note_revision",4000) };
+    valideJusquAu:t("valide_jusqu_au",10), lignes, noteRevision:t("note_revision",4000), garantie:t("garantie",GARANTIE_ANNONCEE_MAX) };
 }

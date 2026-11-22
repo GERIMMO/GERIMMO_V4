@@ -41,6 +41,7 @@ export async function POST(request: Request, context: { params: Promise<{sollici
   const doc=assemblerDevisArtisan({
     id,...saisie.calcul,...entreprise,description:saisie.prestations,diagnostic:saisie.diagnostic,
     delai_intervention:saisie.delai,duree_estimee:saisie.duree,contraintes:saisie.contraintes||null,observations:saisie.observations||null,
+    garantie_annoncee:saisie.garantie||null,
     statut:"valide",depose_le:instant,valide_jusqu_au:saisie.valideJusquAu,agence_nom:demande.agence_nom,
     incident_numero:demande.incident_numero,commune:demande.ville,code_postal:demande.code_postal,
   });
@@ -58,7 +59,9 @@ export async function POST(request: Request, context: { params: Promise<{sollici
       saisie:{diagnostic:saisie.diagnostic,delai:saisie.delai,duree:saisie.duree,contraintes:saisie.contraintes,observations:saisie.observations,
         valideJusquAu:saisie.valideJusquAu,prestations:saisie.prestations,lignes,
         // D18 (livraison 2) : « ce qui change », lu par la base au dépôt d'une version suivante.
-        noteRevision:saisie.noteRevision},entreprise,statut:"valide",valide_le:instant,
+        noteRevision:saisie.noteRevision,
+        // Audit palier 1, P2-02 : la garantie annoncée, recopiée par la base sur le devis à l'envoi.
+        garantie:saisie.garantie},entreprise,statut:"valide",valide_le:instant,
       pdf_bucket:"devis-preparations",pdf_path:chemin,pdf_sha:createHash("sha256").update(pdf).digest("hex"),pdf_taille:pdf.length,updated_at:instant};
     const q=preparation?service.from("artisan_devis_preparations").update(enregistrement).eq("sollicitation_id",sollicitationId).eq("artisan_id",fiche.artisan_id).eq("revision",revision).neq("statut","envoye")
       :service.from("artisan_devis_preparations").insert(enregistrement);

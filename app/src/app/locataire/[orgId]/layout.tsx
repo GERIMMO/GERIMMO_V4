@@ -14,6 +14,7 @@ import { aEchoue } from "./panne-lecture";
 import { BOUTON_URGENCE } from "./pastille-locataire";
 import { FournisseurEtatIA } from "@/components/etat-ia";
 import { etatIA } from "@/lib/etat-ia";
+import { lireEchangesNonLus } from "@/lib/echanges-intervention";
 
 // L'apparence de l'organisation, lue une fois par requête : la marque de la
 // barre latérale ET le titre de l'onglet en ont besoin.
@@ -64,6 +65,7 @@ export default async function LayoutLocataire({
     { data: demandes, error: eDemandes },
     { data: baux, error: eBaux },
     { data: signatures, error: eSignatures },
+    echangesNonLus,
   ] =
     await Promise.all([
       supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
@@ -72,6 +74,8 @@ export default async function LayoutLocataire({
       supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
       supabase.rpc("mon_bail_locataire", { p_org: orgId }),
       supabase.rpc("mes_demandes_signature", { p_org: orgId }),
+      // Audit palier 1 (P1-05) : les discussions d'intervention qui portent un message qu'il n'a pas lu.
+      lireEchangesNonLus(supabase, orgId),
     ]);
   const attestations = ((pieces ?? []) as {
     type: string;
@@ -103,7 +107,9 @@ export default async function LayoutLocataire({
     eNonLus,
     eDemandes,
     eBaux,
-    eSignatures
+    eSignatures,
+    // (aEchoue attend une erreur ou rien : « false » y passerait pour une panne.)
+    echangesNonLus.erreur ? true : null
   );
 
   return (
@@ -126,7 +132,8 @@ export default async function LayoutLocataire({
             ((demandes ?? []) as unknown[]).length +
             ((signatures ?? []) as unknown[]).length
           }
-          badgeDemandes={demandesEnCours}
+          // Audit palier 1 (P1-05) : une discussion d'intervention à lire s'ajoute aux demandes en cours.
+          badgeDemandes={demandesEnCours + echangesNonLus.lignes.length}
           badgeMessages={Number(nonLus ?? 0)}
         />
       </aside>

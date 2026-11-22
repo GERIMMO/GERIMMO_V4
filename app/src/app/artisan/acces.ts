@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { estUuid } from "@/lib/identifiants";
 import type { FactureVueParArtisan } from "@/lib/reglement-facture";
 import type { DemandeRdvArtisan } from "@/lib/rendez-vous-locataire";
+import { lireEchangesNonLus, type EchangeNonLu } from "@/lib/echanges-intervention";
 
 /**
  * LE MODÈLE D'ACCÈS DU PORTAIL ARTISAN — pourquoi il est sûr.
@@ -319,6 +320,17 @@ export const chargerFacturesRefusees = cache(async function chargerFacturesRefus
     .select("id, intervention_id, numero, montant_ttc_cents, refusee_le, refus_motif")
     .eq("artisan_id", fiche.artisan_id).not("refusee_le", "is", null).order("refusee_le", { ascending: false });
   return { lignes: (data ?? []) as FactureRefusee[], erreur: Boolean(error) };
+});
+
+/**
+ * Audit palier 1 (P1-05) : les discussions de SES missions qui portent un message qu'il n'a pas lu (la base ne rend
+ * que ses missions encore vivantes : `echanges_intervention_non_lus`). Mémorisée à la requête : le gabarit en tire
+ * la pastille, les pages l'étiquette de chaque mission. Un échec de lecture se distingue de « rien à lire ».
+ */
+export const chargerEchangesNonLus = cache(async function chargerEchangesNonLus() {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as EchangeNonLu[], erreur: false };
+  return lireEchangesNonLus(supabase, null);
 });
 
 /**

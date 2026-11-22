@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { formaterDateHeure } from "@/lib/ged";
 import { FormulaireEchangeIntervention } from "./formulaire-echange-intervention";
+import { MarqueurLectureEchange } from "./marqueur-lecture-echange";
 const ROLES:Record<string,string>={gerant:"Propriétaire / gestionnaire",locataire:"Locataire",artisan:"Artisan"};
 export async function EchangesIntervention({intervention}:{intervention:string}){
  const db=await createClient();const role=await db.rpc("contexte_echange_intervention",{p_intervention:intervention});
@@ -18,7 +19,7 @@ export async function EchangesIntervention({intervention}:{intervention:string})
   <header className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold text-base">Discussion de l’intervention</h3><span className="text-xs text-muted-foreground">{fermee?"Fermée":"Propriétaire · locataire · artisan"}</span></header>
   <p className="text-xs text-muted-foreground">Les échanges sont partagés avec les participants autorisés à cette intervention.</p>
   {(messages.count??0)>50&&<p className="text-xs text-muted-foreground">Les 50 messages les plus récents.</p>}
-  {messages.data?.length?<ol className="max-h-80 overflow-y-auto divide-y divide-[var(--filet)]">{[...messages.data].reverse().map(m=><li key={m.id} className="py-3 space-y-1"><div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><strong>{ROLES[m.auteur_role]??"Participant"}</strong><time dateTime={m.cree_le}>{formaterDateHeure(m.cree_le)}</time></div><p className="whitespace-pre-wrap break-words text-sm">{m.texte}</p></li>)}</ol>:null}
+  {messages.data?.length?<ol data-messages-intervention className="max-h-80 overflow-y-auto divide-y divide-[var(--filet)]">{[...messages.data].reverse().map(m=><li key={m.id} className="py-3 space-y-1"><div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground"><strong>{ROLES[m.auteur_role]??"Participant"}</strong><time dateTime={m.cree_le}>{formaterDateHeure(m.cree_le)}</time></div><p className="whitespace-pre-wrap break-words text-sm">{m.texte}</p></li>)}{/* Audit palier 1 (P1-05) : le repère de lecture suit le dernier message (messages.data[0], le plus récent). */}<li aria-hidden="true" className="!border-0 !p-0"><MarqueurLectureEchange intervention={intervention} jusqua={messages.data[0].cree_le}/></li></ol>:null}
   <FormulaireEchangeIntervention intervention={intervention} fermee={fermee} gestionnaire={contexte.role_participant==="gerant"&&!terminee}/>
  </section>;
 }

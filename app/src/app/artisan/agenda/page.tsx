@@ -1,7 +1,8 @@
 import { badgeDemandeRdv } from "@/lib/rendez-vous-locataire";
 import { ChantiersDansAgenda } from "../clients/resumes";
 import Link from "next/link";
-import { chargerAgenda, chargerDemandesRdv, verifierAccesArtisan, type LigneAgenda } from "../acces";
+import { chargerAgenda, chargerDemandesRdv, chargerEchangesNonLus, verifierAccesArtisan, type LigneAgenda } from "../acces";
+import { nonLusPar } from "@/lib/echanges-intervention";
 import { CarteMission } from "../carte-mission";
 import { jourCivil, jourLong } from "../libelles";
 import { Carte, EnteteSousPage, Erreur, TitreSection, Vide } from "../ui";
@@ -72,7 +73,9 @@ function semaineAVenir(aujourdhui: string): Date[] {
 
 export default async function PageAgendaArtisan() {
   const { fiche } = await verifierAccesArtisan();
-  const [agenda, demandesRdv] = await Promise.all([chargerAgenda(), chargerDemandesRdv()]);
+  const [agenda, demandesRdv, echanges] = await Promise.all([chargerAgenda(), chargerDemandesRdv(), chargerEchangesNonLus()]);
+  // Audit palier 1 (P1-05) : la mission dont la discussion porte un message à lire le dit sur sa carte.
+  const aLire = nonLusPar(echanges.lignes, "intervention_id");
   const badge = (l: LigneAgenda) => badgeDemandeRdv(demandesRdv.lignes.find(d => d.intervention_id === l.intervention_id), l.statut);
 
   const sansDate = agenda.lignes.filter(
@@ -176,7 +179,7 @@ export default async function PageAgendaArtisan() {
             </TitreSection>
             <div className="artisan-liste">
               {lignes.map((l) => (
-                <CarteMission key={l.intervention_id} ligne={l} badgeRdv={badge(l)} />
+                <CarteMission key={l.intervention_id} ligne={l} badgeRdv={badge(l)} nouveauxMessages={aLire.get(l.intervention_id)} />
               ))}
             </div>
           </section>
@@ -208,6 +211,7 @@ export default async function PageAgendaArtisan() {
                 key={l.intervention_id}
                 ligne={l}
                 badgeRdv={badge(l)}
+                nouveauxMessages={aLire.get(l.intervention_id)}
                 aFaire={consigne(l)}
               />
             ))}
@@ -229,7 +233,7 @@ export default async function PageAgendaArtisan() {
                 </p>
                 <div className="artisan-liste">
                   {lignes.map((l) => (
-                    <CarteMission key={l.intervention_id} ligne={l} badgeRdv={badge(l)} />
+                    <CarteMission key={l.intervention_id} ligne={l} badgeRdv={badge(l)} nouveauxMessages={aLire.get(l.intervention_id)} />
                   ))}
                 </div>
               </div>

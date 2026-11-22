@@ -25,6 +25,8 @@ vi.mock('@/app/artisan/acces', () => ({
  chargerReglementsFactures: async () => b.reglements,
  // Audit P1-03 : les factures refusées par le client (aucune dans ces scénarios).
  chargerFacturesRefusees: async () => ({ lignes: [], erreur: false }),
+ // Audit P1-05 : les discussions de mission portant un message à lire (aucune dans ces scénarios).
+ chargerEchangesNonLus: async () => ({ lignes: [], erreur: false }),
  chargerDemandesRdv: () => { b.lireDemandes(); return Promise.resolve(b.demandes); },
  chargerCreneauxMission: async () => ({ lignes: [], erreur: false }),
  chargerPhotosDemande: async () => ({ photos: [], erreur: false }),

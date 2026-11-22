@@ -30,6 +30,8 @@ vi.mock("@/app/actions/artisan", () => ({ declinerMaSollicitation: vi.fn() }));
 vi.mock("@/app/artisan/acces", () => ({
   verifierAccesArtisan: async () => ({ user: { id: "u1" } }),
   verifierArtisanAction: vi.fn(),
+  // Audit P1-05 : les discussions de mission portant un message à lire (aucune dans ces scénarios).
+  chargerEchangesNonLus: async () => ({ lignes: [], erreur: false }),
   chargerFicheArtisan: async () => ({
     user: { id: "u1" },
     fiche: { artisan_id: "a1", raison_sociale: "Plomberie Durand", statut_plateforme: "valide", decennale_valide: true },

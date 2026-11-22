@@ -11,6 +11,7 @@ import {
   chargerFicheArtisan,
   chargerPieces,
   chargerAgenda,
+  chargerEchangesNonLus,
   chargerSollicitations,
 } from "./acces";
 import { degreEcheance, demandeAChiffrer } from "./libelles";
@@ -83,10 +84,10 @@ export default async function LayoutArtisan({
   // (CONDITIONS_ARTISANS_VERSION), le compte qui ne les a pas acceptées voit leur case à la place de la page demandée.
   // D'ici là, rien n'est exigé ni lu. La garde est de parcours : les données restent protégées en base. Elle se tait
   // pendant un diagnostic du super-administrateur (lecture seule), comme la coquille agence en traversée.
-  const [[agenda, sollicitations, pieces], autresEspaces, conditionsAAccepter] = await Promise.all([
+  const [[agenda, sollicitations, pieces, echanges], autresEspaces, conditionsAAccepter] = await Promise.all([
     fiche
-      ? Promise.all([chargerAgenda(), chargerSollicitations(), chargerPieces()])
-      : Promise.resolve([null, null, null] as const),
+      ? Promise.all([chargerAgenda(), chargerSollicitations(), chargerPieces(), chargerEchangesNonLus()])
+      : Promise.resolve([null, null, null, null] as const),
     lireAutresEspaces(user.id),
     conditionsArtisansAAccepter(supabase, user.id),
   ]);
@@ -113,10 +114,13 @@ export default async function LayoutArtisan({
   // Un seul compte pour l'onglet d'arrivée : ce qui attend un geste. Une
   // mission à accepter et un compte rendu non déposé sont deux urgences de
   // nature différente, mais la question de l'artisan est la même.
+  // Audit palier 1 (P1-05) : une mission dont la discussion porte un message à lire attend aussi un geste — elle
+  // compte une fois, même si elle est déjà à accepter ou à clore.
+  const discussionsALire = new Set((echanges?.lignes ?? []).map((e) => e.intervention_id));
   const aFaireMaintenant =
     agenda?.lignes.filter(
       (l) =>
-        l.statut === "proposee" || (l.statut === "en_cours" && !l.compte_rendu_depose)
+        l.statut === "proposee" || (l.statut === "en_cours" && !l.compte_rendu_depose) || discussionsALire.has(l.intervention_id)
     ).length ?? 0;
   // D18 (livraison 2) : une révision demandée compte comme un devis à chiffrer.
   const devisAChiffrer =

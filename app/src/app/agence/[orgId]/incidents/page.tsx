@@ -20,6 +20,7 @@ import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { EchecLecture } from "../documents/echec-lecture";
 import { PaneIncident, type MembreGerant } from "./pane-incident";
 import { baseEspace } from "@/lib/racine-espace";
+import { etiquetteNouveauxMessages, lireEchangesNonLus, nonLusPar } from "@/lib/echanges-intervention";
 
 export const metadata = { title: "Incidents — Gerimmo" };
 
@@ -115,6 +116,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
     { data: donneesMembres, error: erreurMembres },
     { data: aEvaluerBrut },
     { data: devisADeciderBruts, error: erreurDevisADecider },
+    echangesNonLus,
   ] = await Promise.all([
       vivantsQuery,
       closQuery,
@@ -130,7 +132,12 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
       supabase.from("incident_devis").select("incident_id")
         .eq("organization_id", orgId).eq("statut", "depose")
         .gte("valide_jusqu_au", aujourdhuiParis()),
+      // Audit palier 1 (P1-05) : les discussions d'intervention qui portent un message que CE compte n'a pas lu.
+      // L'alerte « Nouveau message sur l'intervention » est le signal principal ; l'étiquette de la liste le double.
+      // Si cette lecture échoue, l'étiquette manque — l'alerte, elle, reste.
+      lireEchangesNonLus(supabase, orgId),
     ]);
+  const messagesALire = nonLusPar(echangesNonLus.lignes, "incident_id");
 
   const incidents = [
     ...((vivantsBruts ?? []) as unknown as Rang[]),
@@ -356,6 +363,9 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                     {i.urgence === "urgente" && <span className="puce puce-rouge">Urgent</span>}
                     {i.etat !== "clos" && idsAvecDevisADecider.has(i.id) && (
                       <span className={`puce ${estProprietaire ? "puce-ambre" : "puce-rouge"}`}>Devis à décider</span>
+                    )}
+                    {messagesALire.has(i.id) && (
+                      <span className="puce puce-ambre" data-nouveaux-messages>{etiquetteNouveauxMessages(messagesALire.get(i.id) ?? 1)}</span>
                     )}
                     <span className={`incident-statut ${COULEURS_ETAT_INCIDENT[i.etat] ?? "puce puce-grise"}`}>
                       {estProprietaire ? libelleEtatIncidentProprietaire(i.etat) : ETATS_INCIDENT[i.etat] ?? "État à vérifier"}

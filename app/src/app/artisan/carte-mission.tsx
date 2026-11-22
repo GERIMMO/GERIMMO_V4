@@ -3,6 +3,7 @@ import { titreIncident } from "@/lib/incidents";
 import type { LigneAgenda } from "./acces";
 import { creneauTexte, STATUTS_MISSION, libelle } from "./libelles";
 import { Etiquette, MarqueAgence } from "./ui";
+import { etiquetteNouveauxMessages } from "@/lib/echanges-intervention";
 
 /**
  * Une intervention, telle qu'elle se lit d'un coup d'œil sur un chantier.
@@ -20,11 +21,14 @@ export function CarteMission({
   aFaire,
   origine,
   badgeRdv,
+  nouveauxMessages = 0,
 }: {
   ligne: LigneAgenda;
   /** Ce que la mission attend de lui, en toutes lettres. Rien si elle n'attend rien. */
   aFaire?: string;
   badgeRdv?: string | null;
+  /** Audit palier 1 (P1-05) : messages de la discussion de cette mission qu'il n'a pas encore lus. */
+  nouveauxMessages?: number;
   /**
    * L'écran d'où la carte s'ouvre, quand ce n'est pas l'agenda : la fiche de
    * mission y renvoie par son lien retour au lieu de l'agenda (tour du 24/09).
@@ -68,6 +72,7 @@ export function CarteMission({
       </div>
 
       {badgeRdv && <div className="mt-3"><Etiquette ton="attente">{badgeRdv}</Etiquette></div>}
+      {nouveauxMessages > 0 && <div className="mt-3" data-nouveaux-messages><Etiquette ton="alerte">{etiquetteNouveauxMessages(nouveauxMessages)}</Etiquette></div>}
 
       {/* 25/09 (A2) : quand les dates sont chez le locataire, l'étiquette le
           dit déjà — la carte ne le répète plus en titre, elle s'ouvre sur les

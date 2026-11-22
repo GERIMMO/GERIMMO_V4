@@ -9,6 +9,7 @@ import { BORD_ETAT } from "../pastille-locataire";
 import type { CreneauPropose, SuiviIntervention } from "./suivi-intervention";
 import { signalementOuvert } from "../types";
 import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
+import { etiquetteNouveauxMessages, lireEchangesNonLus } from "@/lib/echanges-intervention";
 
 export const metadata = { title: "Mes demandes" };
 
@@ -37,6 +38,7 @@ export default async function PageDemandesLocataire(
     { data: creneauxBruts, error: eCreneaux },
     { data: baux },
     { data: rendezVousBruts, error: eRendezVous },
+    echangesNonLus,
   ] = await Promise.all([
     supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
     supabase.rpc("mon_suivi_intervention", { p_org: orgId }),
@@ -52,6 +54,8 @@ export default async function PageDemandesLocataire(
     adhesionActive
       ? supabase.rpc("mes_rendez_vous_locataire", { p_org: orgId })
       : Promise.resolve({ data: [], error: null }),
+    // Audit palier 1 (P1-05) : les discussions d'intervention qui portent un message qu'il n'a pas lu.
+    lireEchangesNonLus(supabase, orgId),
   ]);
   const peutSignaler = adhesionActive && signalementOuvert(baux as { etat: string }[] | null);
 
@@ -75,6 +79,11 @@ export default async function PageDemandesLocataire(
   const boutonSignaler = peutSignaler && (incidents.length > 0 || aEchoue(eIncidents));
   // La carte « Un rendez-vous attend votre choix » est affichée (présentation seule : même test que plus bas).
   const creneauAttendu = aChoisir > 0 && adhesionActive && Boolean(premiereAChoisir);
+  // Audit palier 1 (P1-05) : un message l'attend dans la discussion d'une intervention — dit en haut de page, avec
+  // un lien qui mène à la discussion (elle est plus bas, sous les demandes). Seulement pour une discussion affichée ici.
+  const discussionsAffichees = new Set(suivis.flatMap((s) => (s.intervention_id ? [s.intervention_id] : [])));
+  const messagesALire = echangesNonLus.lignes.filter((e) => discussionsAffichees.has(e.intervention_id));
+  const nombreALire = messagesALire.reduce((total, e) => total + Number(e.non_lus), 0);
 
   return (
     <div className="space-y-4">
@@ -129,6 +138,16 @@ export default async function PageDemandesLocataire(
             arrange. Tant que personne n&apos;a choisi, la réparation attend.
           </p>
           <span className="btn-or mt-3">Choisir mon créneau{"\u00a0"}→</span>
+        </a>
+      )}
+
+      {messagesALire.length > 0 && (
+        <a href={`#discussion-${messagesALire[0].intervention_id}`} data-nouveaux-messages className={`loc-carte block ${BORD_ETAT.attention}`}>
+          <h2 className="titre-carte text-base font-medium">{etiquetteNouveauxMessages(nombreALire)} sur votre intervention</h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Votre propriétaire ou l&apos;artisan vous a écrit dans la discussion de l&apos;intervention.
+          </p>
+          <span className="btn-secondaire mt-3">Lire la discussion{"\u00a0"}→</span>
         </a>
       )}
 

@@ -83,6 +83,8 @@ const ANCRES_BAIL = new Map<string, string>([
  * qui la ferme dès que le devis est retenu, écarté, annulé ou expiré.
  */
 const SE_FERMENT_SEULES = new Set([
+  // Audit palier 1 (P1-05) : fermée par `marquer_echange_intervention_lu` dès qu'un gestionnaire a lu la discussion.
+  "message_intervention",
   // Décision D22 (migration 20261014620000) : les trois alertes nées d'un geste du locataire sur son rendez-vous se
   // ferment dès que la mission avance (nouveau rendez-vous fixé, intervention démarrée ou terminée, mission annulée)
   // — déclencheur `demandes_rdv_suivre_mission` — ou par l'arbitrage du rendez-vous.
@@ -141,6 +143,10 @@ const LIBELLES = new Map<string, string>([
   // (retirer_evaluation_contestee, 20261122150000 : {incident_id, lot_id, intervention_id, source, libelle}).
   // Une information : rien à faire, sinon lire le dossier ; l'alerte se ferme à la main.
   ["evaluation_retiree", "Ouvrir le dossier de l’intervention"],
+  // Audit palier 1 (P1-05) : le locataire ou l'artisan a écrit dans la discussion de l'intervention
+  // (signaler_message_intervention, 20261122180000 : {incident_id, lot_id, intervention_id, messages, dernier_role,
+  // dernier_le, libelle} — jamais le texte). L'alerte se ferme d'elle-même quand un gestionnaire a lu la discussion.
+  ["message_intervention", "Lire le message de l’intervention"],
   // Décision D22 : le locataire a annulé (l'artisan repropose des dates ; le gérant peut fixer le rendez-vous), ou
   // l'artisan n'a pas répondu à sa demande de report (le rendez-vous est maintenu ; rappeler le locataire).
   ["rdv_annule_locataire", "Suivre le nouveau rendez-vous"],
@@ -234,6 +240,7 @@ export function cheminFicheAlerte(a: Alerte, orgId: string, racine: string = RAC
     type === "facture_artisan_a_valider" ||
     type === "creneaux_arbitrage" ||
     type === "evaluation_retiree" ||
+    type === "message_intervention" ||
     type === "rdv_annule_locataire" ||
     type === "rdv_annule_tardif" ||
     type === "rdv_demande_sans_reponse"

@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { estUuid } from "@/lib/identifiants";
 import { sansJargon } from "@/lib/erreurs";
+import { INSTANT_MESSAGE } from "@/lib/echanges-intervention";
 export type EtatEchangeIntervention={erreur?:string;succes?:string};
 export async function agirEchangeIntervention(intervention:string,_:EtatEchangeIntervention,f:FormData):Promise<EtatEchangeIntervention>{
  if(!estUuid(intervention))return{erreur:"Cette discussion n’est pas accessible."};
@@ -16,4 +17,18 @@ export async function agirEchangeIntervention(intervention:string,_:EtatEchangeI
  if(resultat.error)return{erreur:sansJargon(resultat.error.message)};
  revalidatePath("/espace","layout");revalidatePath("/agence","layout");revalidatePath("/locataire","layout");revalidatePath("/artisan","layout");
  return{succes:action==="envoyer"?"Message ajouté à la discussion.":action==="fermer"?"Discussion fermée. L’historique est conservé.":"Discussion rouverte."};
+}
+
+/**
+ * Audit palier 1 (P1-05) : la discussion vient de passer sous les yeux de l'appelant, jusqu'au message daté `jusqua`.
+ * La base n'avance que SON marqueur, et seulement s'il a le droit de lire cette discussion. Quand le marqueur a
+ * avancé, les pastilles et les étiquettes « nouveau message » se recalculent ; sinon rien n'est rafraîchi.
+ * Aucun retour : c'est un geste silencieux, qui ne doit jamais gêner la lecture.
+ */
+export async function marquerEchangeLu(intervention:string,jusqua:string):Promise<void>{
+ if(!estUuid(intervention)||typeof jusqua!=="string"||!INSTANT_MESSAGE.test(jusqua))return;
+ const db=await createClient();
+ const {data,error}=await db.rpc("marquer_echange_intervention_lu",{p_intervention:intervention,p_jusqua:jusqua});
+ if(error||data!==true)return;
+ revalidatePath("/espace","layout");revalidatePath("/agence","layout");revalidatePath("/locataire","layout");revalidatePath("/artisan","layout");
 }

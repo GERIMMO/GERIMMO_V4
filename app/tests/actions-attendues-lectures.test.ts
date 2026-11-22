@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { actionsAttendues, lireActionsAttendues } from "@/lib/actions-attendues";
@@ -104,6 +105,60 @@ describe("Actions attendues : ne rien déduire d'une lecture défaillante", () =
     const tables = base(); tables.encaissements[0].montant = montant;
     const resultat = await lireActionsAttendues(client(tables).db, "org");
     expect(resultat.erreurs.encaissements).toBe(true); expect(cles(resultat)).not.toContain("impaye-bail");
+  });
+});
+
+describe("Actions attendues : bail repris en cours (décisions 2B et 3A du 22/11/2026)", () => {
+  it("un bail repris en cours — date de bascule renseignée — ne se voit pas réclamer l'état des lieux d'entrée", async () => {
+    const tables = base(); tables.etats_des_lieux = [];
+    expect(cles(await lireActionsAttendues(client(tables).db, "org"))).toEqual(["edl-bail"]);
+    tables.baux[0].loyers_suivis_depuis = "2026-10-01";
+    expect(cles(await lireActionsAttendues(client(tables).db, "org"))).toEqual([]);
+  });
+
+  it("deux baux, un seul repris : seul l'autre garde son rappel d'état des lieux", async () => {
+    const tables = base(); tables.etats_des_lieux = [];
+    tables.baux[0].loyers_suivis_depuis = "2026-10-01";
+    tables.baux.push({ ...tables.baux[0], id: "second", loyers_suivis_depuis: null });
+    expect(cles(await lireActionsAttendues(client(tables).db, "org"))).toEqual(["edl-second"]);
+  });
+
+  it("un DPE classé G se signale, sans être critique, et dit ce qu'il empêche dans Gerimmo", async () => {
+    const tables = base();
+    tables.diagnostics[0].classe_dpe = "G";
+    const resultat = await lireActionsAttendues(client(tables).db, "org", { racine: "/espace" });
+    expect(cles(resultat)).toEqual(["dpe-g-lot"]);
+    expect(resultat.actions[0]).toMatchObject({
+      titre: "DPE classé G — Logement",
+      detail: "Un nouveau bail ne pourra pas être activé sur ce logement tant que son DPE reste classé G",
+      href: "/espace/org/parc/bien/lots/lot#diagnostics",
+      critique: false,
+    });
+  });
+
+  it.each(["A", "F", null, undefined, "g"])("une autre classe (%s) ne signale rien", async classe => {
+    const tables = base();
+    tables.diagnostics[0].classe_dpe = classe as never;
+    expect(cles(await lireActionsAttendues(client(tables).db, "org"))).toEqual([]);
+  });
+
+  it("un DPE classé G et expiré donne les deux rappels, chacun avec sa clé", async () => {
+    const tables = base();
+    tables.diagnostics[0].classe_dpe = "G"; tables.diagnostics[0].date_expiration = "2026-01-01";
+    expect(cles(await lireActionsAttendues(client(tables).db, "org"))).toEqual(["dpe-lot", "dpe-g-lot"]);
+  });
+
+  it("sur la fiche d'un bail, le rappel ne répète pas le nom du lot", async () => {
+    const tables = base();
+    tables.diagnostics[0].classe_dpe = "G";
+    const resultat = await lireActionsAttendues(client(tables).db, "org", { bailId: "bail" });
+    expect(resultat.actions.map(a => a.titre)).toEqual(["DPE classé G"]);
+  });
+
+  it("la lecture des baux demande la date de bascule, celle des diagnostics la classe du DPE", () => {
+    const source = readFileSync("src/lib/actions-attendues.ts", "utf8");
+    expect(source).toContain('"id, etat, lot_id, chambre_id, loyers_suivis_depuis, lot:lots(');
+    expect(source).toContain('.select("id,type,lot_id,bien_id,date_realisation,date_expiration,classe_dpe", { count: "exact" })');
   });
 });
 

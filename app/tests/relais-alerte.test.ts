@@ -24,6 +24,7 @@ import {
   estHeureDuRelais,
   htmlAlerteRelais,
   ligneContactsEnAttente,
+  lignesInscriptions,
   lireAdressesRelais,
   masquerAdresse,
   pointsDuRelais,
@@ -202,6 +203,28 @@ describe("le contenu de l'alerte", () => {
     expect(sans).toContain("0 point à vérifier");
   });
 
+  // 22/11/2026 : les inscriptions, en trois lignes de nombres.
+  it("les trois lignes des inscriptions ; le bloc ne s'écrit que s'il y a une inscription en 24 h", () => {
+    expect(lignesInscriptions({ depuis_24h: 1, depuis_7j: 1, espaces: 1, sans_bien: 1, bail_en_cours: 0 })).toEqual([
+      "Espaces de propriétaires ouverts en 24 h : 1",
+      "Sur 7 jours : 1 — au total : 1",
+      "Tous espaces confondus : 1 sans aucun bien, 0 avec un bail en cours",
+    ]);
+    expect(lignesInscriptions({ depuis_24h: 2, depuis_7j: 5, espaces: 12, sans_bien: 7, bail_en_cours: 3 })[2])
+      .toBe("Tous espaces confondus : 7 sans aucun bien, 3 avec un bail en cours");
+
+    const avec = { ...RIEN, inscriptions: { depuis_24h: 2, depuis_7j: 5, espaces: 12, sans_bien: 7, bail_en_cours: 3 } };
+    expect(pointsDuRelais(avec)).toBe(1);
+    const html = htmlAlerteRelais(avec, new Date("2026-11-22T04:00:00Z"), "https://gerimmo.test/admin");
+    expect(html).toContain("1 point à vérifier");
+    expect(html).toContain("Nouvelles inscriptions");
+    expect(html).toContain("<li>Espaces de propriétaires ouverts en 24 h : 2</li>");
+
+    const sans = { ...RIEN, inscriptions: { depuis_24h: 0, depuis_7j: 5, espaces: 12, sans_bien: 7, bail_en_cours: 3 } };
+    expect(pointsDuRelais(sans)).toBe(0);
+    expect(htmlAlerteRelais(sans, new Date("2026-11-22T04:00:00Z"), "https://gerimmo.test/admin")).not.toContain("Nouvelles inscriptions");
+  });
+
   // Relecture du 19/10 : « (dont 0 depuis plus de 48 h) » n'apprend rien ; la parenthèse n'est écrite que si M > 0.
   it("la parenthèse « dont M depuis plus de 48 h » n'est écrite que si M > 0 : « En attente de réponse : 1 » quand M = 0", () => {
     expect(ligneContactsEnAttente({ en_attente: 1, depuis_plus_de_48h: 0 })).toBe("En attente de réponse : 1");
@@ -240,6 +263,8 @@ type Options = {
   /** Les demandes de contact du site vitrine non traitées (`demandes_contact_en_attente`, M16). */
   contacts?: Reponse;
   agences?: Reponse;
+  /** Les espaces de propriétaires (`inscriptions_relais`, 22/11). */
+  inscriptions?: Reponse;
 };
 const MATIN = new Date("2026-10-15T03:05:00Z"); // 5 h 05 à Paris
 const JOUR = "2026-10-15";
@@ -276,6 +301,8 @@ function base(o: Options = {}) {
     urgences_relais_recentes: o.recentes ?? { data: { urgences: [], total: 0 }, error: null },
     // M16 : aucune demande de contact en attente (une demande traitée n'est pas comptée par la base).
     agences_en_attente_relais: o.agences ?? { data: { en_attente: 0 }, error: null },
+    // 22/11 : aucun espace de propriétaire ouvert.
+    inscriptions_relais: o.inscriptions ?? { data: { depuis_24h: 0, depuis_7j: 0, espaces: 0, sans_bien: 0, bail_en_cours: 0 }, error: null },
     demandes_contact_en_attente: o.contacts ?? { data: { en_attente: 0, depuis_plus_de_48h: 0 }, error: null },
   };
   const tables: Record<string, unknown[]> = {
@@ -331,8 +358,89 @@ describe("le passage du relais", () => {
     // Le relais du mode vacances est actualisé avant la lecture, comme à chaque passage de mission.
     // Puis la file des urgences est vidée (e-mail immédiat, décision du 15/10), les urgences des dernières 24 h sont lues,
     // et les demandes de contact du site vitrine comptées (M16).
-    expect(b.appels.map(([n]) => n)).toEqual(["reserver_alerte_relais", "traiter_vacances", "prendre_urgences_relais", "sentinelle_relais", "urgences_relais_recentes", "demandes_contact_en_attente", "agences_en_attente_relais", "terminer_alerte_relais"]);
-    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ demandes_contact_en_attente: 0, demandes_contact_48h: 0 });
+    expect(b.appels.map(([n]) => n)).toEqual(["reserver_alerte_relais", "traiter_vacances", "prendre_urgences_relais", "sentinelle_relais", "urgences_relais_recentes", "demandes_contact_en_attente", "agences_en_attente_relais", "inscriptions_relais", "terminer_alerte_relais"]);
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ demandes_contact_en_attente: 0, demandes_contact_48h: 0, inscriptions_24h: 0, espaces_proprietaires: 0 });
+  });
+
+  // 22/11/2026 : les espaces de propriétaires ouverts dans les dernières 24 h font partir l'e-mail (un point au total).
+  it("un espace de propriétaire ouvert en 24 h : un seul point, cinq nombres dans le corps et dans les compteurs, aucune donnée personnelle", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    const corps: string[] = [];
+    vi.stubGlobal("fetch", async (url: unknown, init: RequestInit = {}) => {
+      corps.push(String(init.body ?? ""));
+      return fournisseur.fetch(url, init);
+    });
+    const b = base({ inscriptions: { data: { depuis_24h: 2, depuis_7j: 3, espaces: 9, sans_bien: 5, bail_en_cours: 1, email: "prive@example.com", name: "Durand" }, error: null } });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "envoye", points: 1 });
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({
+      inscriptions_24h: 2, inscriptions_7j: 3, espaces_proprietaires: 9, espaces_sans_bien: 5, espaces_bail_en_cours: 1, lectures_impossibles: 0,
+    });
+    for (const v of Object.values(terminaison(b.appels)?.p_compteurs as Record<string, unknown>)) expect(typeof v).toBe("number");
+    const html = JSON.parse(corps[0]).html as string;
+    expect(JSON.parse(corps[0]).subject).toBe("Gerimmo — relais de 5 h : 1 point à vérifier");
+    expect(html).toContain("Nouvelles inscriptions");
+    expect(html).toContain("Espaces de propriétaires ouverts en 24 h : 2");
+    expect(html).toContain("Sur 7 jours : 3 — au total : 9");
+    expect(html).toContain("Tous espaces confondus : 5 sans aucun bien, 1 avec un bail en cours");
+    expect(html).not.toContain("prive@example.com");
+    expect(html).not.toContain("Durand");
+  });
+
+  it("des espaces existent mais aucun n'a été ouvert en 24 h : aucun point, aucun e-mail, les nombres restent consignés", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    vi.stubGlobal("fetch", fournisseur.fetch);
+    const b = base({ inscriptions: { data: { depuis_24h: 0, depuis_7j: 4, espaces: 9, sans_bien: 5, bail_en_cours: 1 }, error: null } });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "rien_a_signaler", points: 0, envoyes: 0 });
+    expect(fournisseur.appels).toEqual([]);
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ inscriptions_24h: 0, inscriptions_7j: 4, espaces_proprietaires: 9 });
+  });
+
+  it("le bloc des inscriptions ne s'affiche pas dans un e-mail parti pour une autre raison, sans inscription en 24 h", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    const corps: string[] = [];
+    vi.stubGlobal("fetch", async (url: unknown, init: RequestInit = {}) => {
+      corps.push(String(init.body ?? ""));
+      return fournisseur.fetch(url, init);
+    });
+    const b = base({
+      agences: { data: { en_attente: 1 }, error: null },
+      inscriptions: { data: { depuis_24h: 0, depuis_7j: 4, espaces: 9, sans_bien: 5, bail_en_cours: 1 }, error: null },
+    });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "envoye", points: 1 });
+    expect(JSON.parse(corps[0]).html).not.toContain("Nouvelles inscriptions");
+  });
+
+  it.each([
+    null, "5", [], {},
+    { depuis_24h: "1", depuis_7j: 1, espaces: 1, sans_bien: 1, bail_en_cours: 0 },
+    { depuis_24h: -1, depuis_7j: 1, espaces: 1, sans_bien: 1, bail_en_cours: 0 },
+    { depuis_24h: 1.5, depuis_7j: 2, espaces: 2, sans_bien: 1, bail_en_cours: 0 },
+    { depuis_24h: 1, depuis_7j: 1, espaces: 1, sans_bien: 1 },
+  ])("un comptage d'inscriptions illisible reste un contrôle impossible, jamais un zéro supposé (%j)", async (data) => {
+    const fournisseur = fauxFournisseurEmail();
+    const corps: string[] = [];
+    vi.stubGlobal("fetch", async (url: unknown, init: RequestInit = {}) => {
+      corps.push(String(init.body ?? ""));
+      return fournisseur.fetch(url, init);
+    });
+    const b = base({ inscriptions: { data, error: null } });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ points: 1 });
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ inscriptions_24h: 0, espaces_proprietaires: 0, lectures_impossibles: 1 });
+    expect(JSON.parse(corps[0]).html).toContain("Les inscriptions n’ont pas pu être comptées.");
+    expect(JSON.parse(corps[0]).html).not.toContain("Nouvelles inscriptions");
+  });
+
+  it("la fonction de comptage en erreur (absente, refusée) : un contrôle impossible, le reste du passage se poursuit", async () => {
+    const fournisseur = fauxFournisseurEmail();
+    vi.stubGlobal("fetch", fournisseur.fetch);
+    const b = base({ inscriptions: { data: null, error: { message: "function public.inscriptions_relais() does not exist" } } });
+    const r = await passerAlerteRelais({ db: b.db, maintenant: MATIN, adresses: ADRESSES, site: "https://gerimmo.test" });
+    expect(r).toMatchObject({ statut: "envoye", points: 1 });
+    expect(terminaison(b.appels)?.p_compteurs).toMatchObject({ lectures_impossibles: 1 });
   });
 
   it("les agences en attente ajoutent un seul point, sans exposer leurs coordonnées", async () => {

@@ -38,9 +38,10 @@ export function AlerteEmailRelais({ adresses, passages }: { adresses: AdressesRe
       <p className="text-sm">
         L’e-mail de 5 h signale, en nombres seulement : les alertes du mode vacances non accusées, les tâches planifiées en
         échec ou absentes sur les dernières 24 h (dont le passage automatique des urgences, s’il n’atteint plus le serveur),
-        l’arrêt d’urgence s’il est actif, et les demandes de contact du site vitrine en attente de réponse (leur nombre,
-        jamais leur contenu). Sans rien à signaler, aucun e-mail ne
-        part. Ni l’un ni l’autre ne contient de nom ni de montant, et l’arrêt d’urgence ne les coupe pas : ce sont des
+        l’arrêt d’urgence s’il est actif, les demandes de contact du site vitrine en attente de réponse (leur nombre,
+        jamais leur contenu), les agences en attente et les espaces de propriétaires ouverts dans les dernières 24 h
+        (avec le nombre d’espaces sur 7 jours, au total, sans aucun bien et avec un bail en cours). Sans rien à signaler,
+        aucun e-mail ne part. Ni l’un ni l’autre ne contient de nom ni de montant, et l’arrêt d’urgence ne les coupe pas : ce sont des
         alertes au dirigeant, sans effet sur les utilisateurs, et l’arrêt fait partie de ce qu’elles signalent.
       </p>
       {passages === null ? (

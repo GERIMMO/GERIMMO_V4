@@ -218,6 +218,10 @@ const MISSION_OCTOBRE = [
   "20261120190000_bail_deja_en_cours.sql",
   // Date de bascule (20/11) : un bail repris en cours ne réclame pas les loyers d'avant son arrivée sur Gerimmo.
   "20261120200000_loyers_suivis_depuis.sql",
+  // Décisions 2B et 3A du 22/11 : DPE classé G en alerte, plus d'alerte d'état des lieux d'entrée pour un bail repris.
+  "20261122090000_bail_repris_dpe_g_et_edl_entree.sql",
+  // 22/11 : les inscriptions (espaces de propriétaires) dans l'e-mail de 5 h du relais.
+  "20261122100000_relais_point_inscriptions.sql",
 
 
 ];

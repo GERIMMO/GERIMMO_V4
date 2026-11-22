@@ -160,7 +160,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
         {suiviIncomplet && <p className={styles.note}>Le palier de certains loyers n’a pas pu être vérifié. <Link href={`${base}/loyers`}>Voir les finances</Link></p>}
         {lectureIncidents.indisponible && <p className={styles.note}>Certaines actions rapides sont indisponibles. Vous pouvez ouvrir la fiche de l’incident.</p>}
         {listeDemandes(critiques, "Prioritaires", "priorites-titre")}
-        <RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} relanceAutomatiqueOuverte={envoisOuverts.relance_loyer} />
+        <RappelsLoyers supabase={supabase} orgId={orgId} lectureSeule={lectureSeule} rappelsLus={rappels} />
         {(critiques.length > 0 || (actions.length > 0 && !loyersAConfirmer)) && <Link className={styles.toutesDemandes} href={`${base}/alertes`}>Voir toutes les demandes<ArrowRight size={15} aria-hidden="true" /></Link>}
       </div>
     </details>}

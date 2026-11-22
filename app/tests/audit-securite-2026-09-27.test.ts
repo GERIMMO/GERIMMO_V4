@@ -156,6 +156,12 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
       // manuelle. Definer parce que la table du réglage reste fermée aux comptes ordinaires ; anon ne l'exécute pas
       // (tests/interrupteur-ia-base.test.ts).
       "ia_disponible()",
+      // Envois automatiques (22/11/2026, P1-08) : quatre booléens globaux (« le superviseur a-t-il ouvert l'avis
+      // d'échéance, la relance, le rappel de rendez-vous, la relance d'invitation ? »), sans donnée d'un compte ni
+      // d'une organisation, que les écrans de chaque espace lisent pour savoir s'ils proposent l'accord ou affichent
+      // « envoi suspendu ». Definer parce que la table du réglage reste fermée à tous les comptes ; anon ne l'exécute
+      // pas ; elle ne cite ni la table ni une autre colonne (tests/envois-suspendus-base.test.ts).
+      "envois_automatiques_proposes()",
     ]);
     const sansGarde = rows.map((r) => r.f).filter((f) => !motivees.has(f) && !f.startsWith("montant_abonnement_cents("));
     expect(sansGarde, `Fonctions definer sans garde apparente :\n${sansGarde.join("\n")}`).toEqual([]);

@@ -73,7 +73,7 @@ d'être poussé sur la branche de préproduction ; rien n'est publié en product
 | 11 | P1-03 | Une facture d'[[Artisan]] erronée se refuse avec un motif ; l'artisan en dépose une autre ([[Intervention et clôture]]) |
 | 12 | P1-05 | Un nouveau message dans la discussion d'une intervention est signalé à chacun ([[Intervention et clôture]]) |
 | 13 | P1-14 | L'avenant signé s'enregistre et modifie le loyer et la provision à sa date d'effet ([[Bail]]) |
-| 14 | P1-13 | La révision annuelle du loyer est rappelée à la date anniversaire ; l'indice se cherche chez l'Insee, ou se saisit ([[Révision IRL]]) |
+| 14 | P1-13 | La révision annuelle du loyer est rappelée à la date anniversaire ; l'indice se cherche chez l'Insee, ou se saisit ([[Révision annuelle IRL]]) |
 | 15 | P1-08 | Avis d'échéance, relance amiable, rappel de rendez-vous, relance d'invitation : quatre e-mails prêts, **fermés**, que le [[Super Admin]] ouvre un par un |
 | 16 | P1-16 | L'[[Artisan]] refusé ou suspendu reçoit les motifs par e-mail ; la fiche dit si l'e-mail est parti et permet de le renvoyer |
 

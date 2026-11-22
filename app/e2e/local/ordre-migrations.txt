@@ -523,3 +523,4 @@
 20261120190000_bail_deja_en_cours.sql
 20261120200000_loyers_suivis_depuis.sql
 20261122090000_bail_repris_dpe_g_et_edl_entree.sql
+20261122100000_relais_point_inscriptions.sql

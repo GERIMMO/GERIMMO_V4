@@ -532,6 +532,8 @@ describe("l'e-mail de 5 h et le rappel des urgences", () => {
       // M16 : aucune demande de contact du site vitrine en attente.
       demandes_contact_en_attente: [{ data: { en_attente: 0, depuis_plus_de_48h: 0 }, error: null }],
       agences_en_attente_relais: [{ data: { en_attente: 0 }, error: null }],
+      // 22/11 : aucun espace de propriétaire ouvert.
+      inscriptions_relais: [{ data: { depuis_24h: 0, depuis_7j: 0, espaces: 0, sans_bien: 0, bail_en_cours: 0 }, error: null }],
     });
     // Les tâches de l'écran Santé, toutes passées à l'heure (rien d'autre à signaler).
     const le = new Date(MATIN.getTime() - 2 * 3_600_000).toISOString();

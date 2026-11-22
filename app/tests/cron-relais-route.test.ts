@@ -38,6 +38,8 @@ function brancherBase(arret = true) {
     }
     // M16 : aucune demande de contact du site vitrine en attente.
     if (nom === "demandes_contact_en_attente") return { data: { en_attente: 0, depuis_plus_de_48h: 0 }, error: null };
+    // 22/11 : aucun espace de propriétaire ouvert.
+    if (nom === "inscriptions_relais") return { data: { depuis_24h: 0, depuis_7j: 0, espaces: 0, sans_bien: 0, bail_en_cours: 0 }, error: null };
     return { data: null, error: null };
   });
   const from = () => {

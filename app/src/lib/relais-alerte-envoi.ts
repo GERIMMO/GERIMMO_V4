@@ -8,8 +8,10 @@
 //     lit la sentinelle (`sentinelle_relais` : alertes non accusées, arrêts actifs, tâches pg_cron), l'état des tâches
 //     de l'écran Santé — missions, suivi des dossiers, sauvegarde quotidienne (la même lecture, `chargerEtatTaches`) —
 //     les urgences des dernières 24 h (`urgences_relais_recentes`), rappelées même si leur e-mail immédiat est parti,
-//     et les demandes de contact du site vitrine non traitées (`demandes_contact_en_attente`, M16 du 19/10 : deux
-//     nombres, un seul point au total, jamais une donnée de la demande) ;
+//     les demandes de contact du site vitrine non traitées (`demandes_contact_en_attente`, M16 du 19/10 : deux
+//     nombres, un seul point au total, jamais une donnée de la demande), les agences en attente
+//     (`agences_en_attente_relais`) et les espaces de propriétaires (`inscriptions_relais`, 22/11 : cinq nombres, un
+//     seul point dès qu'un espace a été ouvert dans les dernières 24 h) ;
 //  4. rien à signaler ni à rappeler : aucun e-mail ; sinon un e-mail par adresse du réglage, en parallèle, chacun avec
 //     une clé d'envoi stable pour le jour (une reprise après échec ne fait pas partir un second message chez le
 //     fournisseur), et chaque appel borné pour que le passage finisse avant la coupure de la route (voir plus bas) ;
@@ -54,6 +56,7 @@ import {
   type AdressesRelais,
   type ConstatRelais,
   type ContactsEnAttente,
+  type InscriptionsRelais,
   type EtatTacheSignalee,
 } from "./relais-alerte";
 
@@ -97,6 +100,19 @@ function agencesLues(v: unknown): { en_attente: number } | null {
   return typeof n === "number" && Number.isSafeInteger(n) && n >= 0 ? { en_attente: n } : null;
 }
 
+/**
+ * Les espaces de propriétaires, tels que `inscriptions_relais` les rend (22/11/2026) ; null si illisibles. Cinq entiers
+ * positifs ou nuls, des nombres JSON seulement : tout le reste est un comptage illisible, jamais un zéro supposé.
+ */
+function inscriptionsLues(v: unknown): InscriptionsRelais | null {
+  if (!v || typeof v !== "object") return null;
+  const r = v as Record<string, unknown>;
+  const lu = (cle: string) => { const n = r[cle]; return typeof n === "number" && Number.isSafeInteger(n) && n >= 0 ? n : null; };
+  const depuis_24h = lu("depuis_24h"), depuis_7j = lu("depuis_7j"), espaces = lu("espaces"), sans_bien = lu("sans_bien"), bail_en_cours = lu("bail_en_cours");
+  if (depuis_24h === null || depuis_7j === null || espaces === null || sans_bien === null || bail_en_cours === null) return null;
+  return { depuis_24h, depuis_7j, espaces, sans_bien, bail_en_cours };
+}
+
 /** Le constat, à partir de la sentinelle de la base et de l'état des missions. Pur, vérifiable. */
 export function constaterRelais(
   sentinelle: Sentinelle | null,
@@ -106,7 +122,9 @@ export function constaterRelais(
   urgences?: { liste: UrgenceRecente[]; total: number } | null,
   /** Les demandes de contact du site vitrine non traitées (M16) ; null : comptage impossible ; absent : non demandé. */
   contacts?: ContactsEnAttente | null,
-  agences?: { en_attente: number } | null
+  agences?: { en_attente: number } | null,
+  /** Les espaces de propriétaires (22/11/2026) ; null : comptage impossible ; absent : non demandé. */
+  inscriptions?: InscriptionsRelais | null
 ): ConstatRelais {
   const lecturesImpossibles: string[] = [];
   const arrets = sentinelle
@@ -153,11 +171,13 @@ export function constaterRelais(
   if (urgences === null) lecturesImpossibles.push("Les urgences des dernières 24 h n’ont pas pu être lues.");
   if (agences === null) lecturesImpossibles.push("Les agences en attente n’ont pas pu être comptées.");
   if (contacts === null) lecturesImpossibles.push("Les demandes de contact du site vitrine n’ont pas pu être comptées.");
+  if (inscriptions === null) lecturesImpossibles.push("Les inscriptions n’ont pas pu être comptées.");
   return {
     arrets, alertes, taches, lecturesImpossibles, relaisNonActualise,
     ...(urgences !== undefined ? { urgences } : {}),
     ...(contacts !== undefined ? { contacts } : {}),
     ...(agences !== undefined ? { agences } : {}),
+    ...(inscriptions !== undefined ? { inscriptions } : {}),
   };
 }
 
@@ -255,13 +275,16 @@ export async function passerAlerteRelais(options: {
     // M16 : les demandes de contact du site vitrine non traitées, en nombre (fonction « traitement seulement »).
     const contacts = await appeler("demandes_contact_en_attente");
     const agences = await appeler("agences_en_attente_relais");
+    // 22/11/2026 : les espaces de propriétaires, en nombres (fonction « traitement seulement »).
+    const inscriptions = await appeler("inscriptions_relais");
     const constat = constaterRelais(
       sentinelle.error || !sentinelle.data || typeof sentinelle.data !== "object" ? null : (sentinelle.data as Sentinelle),
       missions,
       Boolean(vacances.error),
       recentes.error ? null : urgencesRecentesLues(recentes.data),
       contacts.error ? null : contactsLus(contacts.data),
-      agences.error ? null : agencesLues(agences.data)
+      agences.error ? null : agencesLues(agences.data),
+      inscriptions.error ? null : inscriptionsLues(inscriptions.data)
     );
     const points = pointsDuRelais(constat);
     const urgences = urgencesDuRelais(constat);

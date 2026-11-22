@@ -119,7 +119,15 @@ export type ConstatRelais = {
   contacts?: ContactsEnAttente | null;
   /** Agences non contactées ; null : lecture impossible, absent : non demandé. */
   agences?: { en_attente: number } | null;
+  /**
+   * Les espaces de propriétaires (22/11/2026 ; `inscriptions_relais`) : des nombres seulement. Un point dès qu'un
+   * espace a été ouvert dans les dernières 24 h. Absent : non demandé ; null : comptage impossible (alors compté dans
+   * `lecturesImpossibles`).
+   */
+  inscriptions?: InscriptionsRelais | null;
 };
+
+export type InscriptionsRelais = { depuis_24h: number; depuis_7j: number; espaces: number; sans_bien: number; bail_en_cours: number };
 
 export type ContactsEnAttente = { en_attente: number; depuis_plus_de_48h: number };
 
@@ -132,9 +140,28 @@ function pointDesContacts(c: ConstatRelais): number {
   return c.contacts && c.contacts.en_attente > 0 ? 1 : 0;
 }
 
+/** 22/11/2026 : UN point au total dès qu'un espace de propriétaire a été ouvert dans les dernières 24 h. */
+function pointDesInscriptions(c: ConstatRelais): number {
+  return c.inscriptions && c.inscriptions.depuis_24h > 0 ? 1 : 0;
+}
+
 /** Le nombre de points à vérifier. Zéro : aucun e-mail ne part. */
 export function pointsDuRelais(c: ConstatRelais): number {
-  return c.arrets.length + totalAlertes(c) + c.taches.length + c.lecturesImpossibles.length + (c.relaisNonActualise ? 1 : 0) + pointDesContacts(c) + (c.agences && c.agences.en_attente > 0 ? 1 : 0);
+  return c.arrets.length + totalAlertes(c) + c.taches.length + c.lecturesImpossibles.length + (c.relaisNonActualise ? 1 : 0) + pointDesContacts(c) + (c.agences && c.agences.en_attente > 0 ? 1 : 0) + pointDesInscriptions(c);
+}
+
+/**
+ * Le bloc des inscriptions, tel que l'e-mail l'écrit (22/11/2026) : son titre, puis trois lignes. Des nombres seulement.
+ * La dernière ligne situe les nouveaux venus dans l'ensemble : combien d'espaces n'ont encore aucun bien, combien ont
+ * un bail en cours.
+ */
+export const TITRE_INSCRIPTIONS = "Nouvelles inscriptions";
+export function lignesInscriptions(i: InscriptionsRelais): string[] {
+  return [
+    `Espaces de propriétaires ouverts en 24 h : ${i.depuis_24h}`,
+    `Sur 7 jours : ${i.depuis_7j} — au total : ${i.espaces}`,
+    `Tous espaces confondus : ${i.sans_bien} sans aucun bien, ${i.bail_en_cours} avec un bail en cours`,
+  ];
 }
 
 /**
@@ -168,6 +195,11 @@ export function compteursDuRelais(c: ConstatRelais, adressesIgnorees = 0): Recor
     demandes_contact_en_attente: c.contacts?.en_attente ?? 0,
     demandes_contact_48h: c.contacts?.depuis_plus_de_48h ?? 0,
     agences_en_attente: c.agences?.en_attente ?? 0,
+    inscriptions_24h: c.inscriptions?.depuis_24h ?? 0,
+    inscriptions_7j: c.inscriptions?.depuis_7j ?? 0,
+    espaces_proprietaires: c.inscriptions?.espaces ?? 0,
+    espaces_sans_bien: c.inscriptions?.sans_bien ?? 0,
+    espaces_bail_en_cours: c.inscriptions?.bail_en_cours ?? 0,
   };
 }
 
@@ -216,6 +248,10 @@ export function htmlAlerteRelais(c: ConstatRelais, maintenant: Date, lienConsole
   }
   if (c.contacts && c.contacts.en_attente > 0) {
     blocs.push(`<p style="${titre}">${TITRE_CONTACTS_EN_ATTENTE}</p>` + liste([ligneContactsEnAttente(c.contacts)]));
+  }
+  // 22/11/2026 : les espaces de propriétaires ouverts dans les dernières 24 h ; des nombres, jamais un nom.
+  if (c.inscriptions && c.inscriptions.depuis_24h > 0) {
+    blocs.push(`<p style="${titre}">${TITRE_INSCRIPTIONS}</p>` + liste(lignesInscriptions(c.inscriptions)));
   }
   const rappel = c.urgences && c.urgences.total > 0 ? c.urgences : null;
   if (rappel) {

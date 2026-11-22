@@ -7875,3 +7875,16 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] créée ; `index.md` mis à jour.
 - **Suite** : demande d'ouverture des sites officiels (QUESTIONS Q5), seconde lecture, puis phase 2.
 
+
+## [2026-11-22] lint   | Mission palier 1, phase 2 : onze lots de corrections vérifiés (préproduction)
+
+- **Fait** : lots 1 à 11 du plan fermé (P0-02, interrupteur IA, P0-10, P1-17, P1-19, P1-01, P1-04, P1-07, P1-18,
+  P1-02, P1-06, P1-03), chacun vérifié sur une base d'essai remise à neuf puis poussé sur la branche de
+  préproduction. Rien n'est publié en production (gel maintenu).
+- **Règle métier consignée** : une intervention ne porte qu'une facture d'artisan « en vigueur » ; une facture
+  refusée reste au dossier avec son motif (cahier V3, module 9, variante V5). Avoir et numérotation : question posée
+  à l'expert-comptable, non tranchée.
+- **Limites dites** : aucun texte officiel n'a pu être ouvert (Q5 sans réponse) ; aucun service payant n'a été joué
+  (signature électronique, recommandé) ; deux fichiers de tests ne tournent que dans le contrôle automatique de GitHub.
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (tableau de la phase 2) ; `index.md` mis à jour.
+- **Suite** : lot 12 (messagerie d'intervention, P1-05) en vérification ; puis P1-08, P1-14, P1-16.

@@ -52,6 +52,35 @@ production est gelée jusqu'à sa validation écrite ; l'audit complet est dans 
 >   du wiki en tiennent lieu, dans le périmètre donné par le dirigeant.
 > - Les pages [[Planification d'intervention]] et [[Intervention et clôture]] sont en retard sur le code.
 
+## Phase 2 — corrections en autonomie (état au 22/11/2026, lot 11)
+
+Le détail, lot par lot (ce qui est fait, vérifié, non vérifié, retour arrière), est dans `JOURNAL.md` à la racine.
+Chaque lot est vérifié sur une base d'essai remise à neuf (migrations rejouées, tests, parcours navigateur) avant
+d'être poussé sur la branche de préproduction ; rien n'est publié en production.
+
+| Lot | Point du plan | Ce qui change pour l'utilisateur |
+|---|---|---|
+| 1 | P0-02 | Un complément de charges réglé par échéancier n'est plus compté impayé au décompte de sortie ([[Régularisation des charges]], [[Dépôt de garantie]]) |
+| 2 | Interrupteur IA | Le [[Super Admin]] coupe toute l'IA d'un réglage ; chaque fonction garde son équivalent manuel |
+| 3 | P0-10 | Les envois à OpenAI sont déclarés (confidentialité, liste des prestataires) — voir [[RGPD]] |
+| 4 | P1-17, P1-19 | Route planifiée refusée sans jeton avant toute lecture ; « Les règles à connaître » liée depuis l'aide |
+| 5 | P1-01 | Signature électronique d'un [[Bail]] avec garant : le lien de confirmation part au garant |
+| 6 | P1-04 | Le bailleur corrige l'urgence d'un incident après la déclaration ([[Déclaration d'incident]]) |
+| 7 | P1-07 | Le [[Super Admin]] examine et retire une évaluation d'[[Artisan]] contestée |
+| 8 | P1-18 | Le recommandé électronique est masqué tant qu'aucun service n'est relié |
+| 9 | P1-02 | La reprise comptable se retrouve après un rechargement et peut être abandonnée |
+| 10 | P1-06 | Le [[Locataire]] voit l'état de la signature électronique qui le concerne |
+| 11 | P1-03 | Une facture d'[[Artisan]] erronée se refuse avec un motif ; l'artisan en dépose une autre ([[Intervention et clôture]]) |
+
+**Règle métier posée au lot 11** (source : cahier Gerimmo V3, module 9, variante V5 — « l'agent la refuse, l'artisan
+la corrige ou la justifie ») : une intervention ne porte qu'**une facture en vigueur** ; une facture refusée reste au
+dossier, intacte, avec son motif ; refus et validation s'excluent. La question de l'avoir et de la numérotation est
+posée à l'expert-comptable (`JURISTE.md`, partie 4) : elle n'est pas tranchée.
+
+**En attente du dirigeant** : « ok pour la copie de base » (Q1) et « ok pour les sites officiels » (Q5). Sans le
+second, les corrections qui touchent une règle de droit (P0-03 à P0-09, P0-11, P1-09 à P1-12, P1-15) restent en
+attente ou partent dans `JURISTE.md`.
+
 ## Liens
 
 [[État du projet et décisions ouvertes]] · [[Audit indépendant complet avant lancement — 341b770f — 19 novembre 2026]] ·

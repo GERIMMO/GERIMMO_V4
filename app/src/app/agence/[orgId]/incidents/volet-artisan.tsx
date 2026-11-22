@@ -471,6 +471,14 @@ export async function VoletArtisan({
     if (error) erreurCarnetBien = true;
     else carnetBien = (data ?? []) as ArtisanCarnetBien[];
   }
+  // Audit palier 1 du 22/11/2026, P2-03 : parmi les artisans proposables, ceux qui ont déclaré être absents aujourd'hui,
+  // et jusqu'à quand. Si cette lecture échoue, la liste reste proposée telle quelle : la base refuse de toute façon
+  // une demande envoyée pendant une absence, en donnant la date de retour.
+  const absentsJusquAu = new Map<string, string>();
+  if (affectables.length > 0) {
+    const { data } = await supabase.rpc("absences_artisans_en_cours", { p_org: orgId, p_artisans: affectables.map((a) => a.artisan_id) });
+    for (const absent of (data ?? []) as { artisan_id: string; au: string }[]) absentsJusquAu.set(absent.artisan_id, absent.au);
+  }
 
   const lecturesManquees = [
     erreurConsultations && "les mises en concurrence",
@@ -914,6 +922,7 @@ export async function VoletArtisan({
           commune={disponibiliteOuverte?.commune_nom ?? null}
           carnetBien={carnetBien}
           estProprietaire={estProprietaire}
+          absentsJusquAu={absentsJusquAu}
         />
         </div></RubriqueIncident>
       )}
@@ -967,6 +976,8 @@ export async function VoletArtisan({
 
 // La mise en concurrence ouverte : qui a été sollicité, ce qu'ils ont répondu,
 // et les devis côte à côte.
+const AUCUN_ABSENT: ReadonlyMap<string, string> = new Map();
+
 export function ConsultationOuverte({
   orgId,
   base = baseEspace(orgId, false),
@@ -980,6 +991,7 @@ export function ConsultationOuverte({
   commune,
   carnetBien = null,
   estProprietaire = false,
+  absentsJusquAu = AUCUN_ABSENT,
 }: {
   orgId: string;
   /** « /espace/<id> » chez le propriétaire direct, « /agence/<id> » chez une agence (décision D27). */
@@ -996,6 +1008,8 @@ export function ConsultationOuverte({
   carnetBien?: ArtisanCarnetBien[] | null;
   /** Un propriétaire direct n'enregistre pas d'entreprise (réservé aux agences) : il invite un artisan. */
   estProprietaire?: boolean;
+  /** Audit palier 1, P2-03 : les artisans proposables qui ont déclaré être absents aujourd'hui, et jusqu'à quand. */
+  absentsJusquAu?: ReadonlyMap<string, string>;
 }) {
   // RM-9.1.1 : deux au maximum EN PARALLÈLE — ce sont les sollicitations
   // vivantes qui comptent, pas celles qu'un artisan a déclinées. D18 (livraison 2) : une demande en révision
@@ -1416,12 +1430,19 @@ export function ConsultationOuverte({
                     <span className={COULEURS_SCOPE[scopeArtisan(a.rattache)]}>
                       {LIBELLES_SCOPE[scopeArtisan(a.rattache)]}
                     </span>
-                    <BoutonSolliciter
-                      orgId={orgId}
-                      consultationId={consultation.id}
-                      artisanId={a.artisan_id}
-                      raisonSociale={a.raison_sociale}
-                    />
+                    {absentsJusquAu.has(a.artisan_id) ? (
+                      // L'artisan a déclaré une absence : pas de bouton, et la date à laquelle il redevient joignable.
+                      <span className="text-xs text-muted-foreground" data-artisan-absent>
+                        Absent jusqu’au {formaterDate(absentsJusquAu.get(a.artisan_id)!)} — aucune demande ne peut lui être envoyée d’ici là
+                      </span>
+                    ) : (
+                      <BoutonSolliciter
+                        orgId={orgId}
+                        consultationId={consultation.id}
+                        artisanId={a.artisan_id}
+                        raisonSociale={a.raison_sociale}
+                      />
+                    )}
                   </span>
                 </div>
               ))

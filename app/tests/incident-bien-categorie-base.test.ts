@@ -38,8 +38,14 @@ describe("incident déclaré depuis la fiche du bien — manifeste, retour et é
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     const lisezMoi = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
     expect(lisezMoi).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
-    // La fonction cite le jour de Paris : son retour précède tous les autres dans l'ordre complet.
-    expect(lisezMoi).toMatch(/Ordre complet si tout doit être défait :\n`20261122220000` \(/);
+    // La fonction cite le jour de Paris : son retour est dans l'ordre complet, AVANT tous les retours plus anciens
+    // (le suivant est celui des envois automatiques). Seuls des retours plus récents que lui peuvent le précéder :
+    // celui des absences de l'artisan (lot 25) est passé devant le 22/11.
+    const ordre = lisezMoi.split("Ordre complet si tout doit être défait :")[1] ?? "";
+    const codes = [...ordre.slice(0, ordre.indexOf("puis `500000`")).matchAll(/`(\d{14})`/g)].map((m) => m[1]);
+    expect(codes.indexOf("20261122220000")).toBeGreaterThanOrEqual(0);
+    expect(codes.slice(0, codes.indexOf("20261122220000")).every((c) => c > "20261122220000")).toBe(true);
+    expect(codes[codes.indexOf("20261122220000") + 1]).toBe("20261122200000");
     expect(readFileSync("tests/relais-migrations-manifeste.test.ts", "utf8")).toContain(`"${NOM}.sql",`);
     expect(readFileSync("vitest.config.ts", "utf8")).toContain('"tests/incident-bien-categorie-base.test.ts"');
   });

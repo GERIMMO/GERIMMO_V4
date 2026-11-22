@@ -14,6 +14,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sansJargon } from "@/lib/erreurs";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { estUuid } from "@/lib/identifiants";
+import { libelleAbsence, lireSemaineType } from "@/lib/semaine-type-artisan";
 import { cheminInvitationArtisan } from "@/lib/invitations-artisan";
 import {
   detecterMimeReel,
@@ -280,6 +281,64 @@ export async function definirMaVisibilite(
       visibilite === "publique"
         ? "Votre profil est public : une fois votre inscription validée, le réseau Gerimmo vous propose aux propriétaires de votre zone, pour vos métiers. Ils voient le nom de votre entreprise, vos métiers et votre note ; vos coordonnées leur sont transmises avec une demande de devis."
         : "Votre profil est privé : le réseau Gerimmo ne vous propose plus ; seuls les clients qui vous ont ajouté à leur carnet peuvent vous solliciter.",
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// 1 bis. Absences et semaine type (audit palier 1 du 22/11/2026, P2-03)
+// ══════════════════════════════════════════════════════════════════════════
+// L'artisan seul les déclare : aucune de ces fonctions n'accepte d'artisan en paramètre. Pendant une absence, la base
+// refuse toute nouvelle demande (`solliciter_artisan_interne`) ; ce qui est en cours ne change pas.
+
+const JOUR_SAISI = /^\d{4}-\d{2}-\d{2}$/;
+
+export async function declarerMonAbsence(
+  _etat: EtatArtisanAction,
+  formData: FormData
+): Promise<EtatArtisanAction> {
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+  const du = String(formData.get("du") ?? "").trim();
+  const au = String(formData.get("au") ?? "").trim() || du;
+  if (!JOUR_SAISI.test(du) || !JOUR_SAISI.test(au)) {
+    return { erreur: "Indiquez le premier et le dernier jour de votre absence." };
+  }
+  const { error } = await supabase.rpc("declarer_mon_absence", { p_du: du, p_au: au });
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath("/artisan/entreprise");
+  return { succes: `Absence enregistrée ${libelleAbsence({ du, au })}. Aucune nouvelle demande ne vous sera envoyée pendant cette période ; vos demandes et interventions en cours ne changent pas.` };
+}
+
+export async function retirerMonAbsence(
+  absenceId: string,
+  _etat: EtatArtisanAction,
+  _formData: FormData
+): Promise<EtatArtisanAction> {
+  void _formData;
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+  if (!estUuid(absenceId)) return { erreur: "Absence introuvable." };
+  const { error } = await supabase.rpc("retirer_mon_absence", { p_absence: absenceId });
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath("/artisan/entreprise");
+  return { succes: "Absence retirée." };
+}
+
+export async function enregistrerMaSemaineType(
+  _etat: EtatArtisanAction,
+  formData: FormData
+): Promise<EtatArtisanAction> {
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+  const lue = lireSemaineType(formData);
+  if ("erreur" in lue) return { erreur: lue.erreur };
+  const { error } = await supabase.rpc("enregistrer_ma_semaine_type", { p_jours: lue.jours });
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath("/artisan/entreprise");
+  return {
+    succes: lue.jours.length
+      ? "Semaine type enregistrée. Elle vous sert à préremplir vos créneaux ; elle ne réserve rien."
+      : "Semaine type effacée.",
   };
 }
 

@@ -11,6 +11,7 @@ import {
   Retour,
 } from "../../../ui";
 import { FormulaireCreneaux } from "./formulaire-creneaux";
+import type { AbsenceArtisan, PlageJour } from "@/lib/semaine-type-artisan";
 
 /**
  * Le titre reprend le mot du bouton qui mène ici (tour du 24/09) : depuis une
@@ -53,7 +54,7 @@ export async function generateMetadata(
 export default async function PageCreneaux(
   props: PageProps<"/artisan/missions/[interventionId]/creneaux">
 ) {
-  await verifierAccesArtisan();
+  const { supabase } = await verifierAccesArtisan();
   const { interventionId } = await props.params;
 
   const agenda = await chargerAgenda();
@@ -63,6 +64,12 @@ export default async function PageCreneaux(
   if (mission.statut === "acceptee" && mission.dates_locataire_en_attente > 0) {
     redirect(`/artisan/missions/${interventionId}`);
   }
+
+  // Audit palier 1, P2-03 : la semaine type et les absences de l'artisan préremplissent ses créneaux. Illisibles, le
+  // formulaire reste entièrement utilisable à la main (le bouton de préremplissage n'est simplement pas proposé).
+  const [semaineLue, absencesLues] = await Promise.all([supabase.rpc("ma_semaine_type"), supabase.rpc("mes_absences_artisan")]);
+  const semaineType = semaineLue.error ? null : ((semaineLue.data ?? []) as PlageJour[]).map((p) => ({ jour: Number(p.jour), debut: p.debut, fin: p.fin }));
+  const absences = absencesLues.error ? [] : ((absencesLues.data ?? []) as AbsenceArtisan[]).map((a) => ({ du: a.du, au: a.au }));
 
   const planifiee = mission.statut === "planifiee";
   const enAttente = mission.statut === "acceptee" && mission.creneaux_en_attente > 0;
@@ -98,7 +105,7 @@ export default async function PageCreneaux(
         </Avertissement>
       )}
 
-      <FormulaireCreneaux interventionId={interventionId} />
+      <FormulaireCreneaux interventionId={interventionId} semaineType={semaineType} absences={absences} />
 
       <DetailsInformation titre="Et si aucun créneau ne convient ?">
         <p className="mb-3 text-[0.9375rem] text-[var(--corps)]">

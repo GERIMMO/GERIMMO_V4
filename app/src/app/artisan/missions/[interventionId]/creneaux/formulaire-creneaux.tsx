@@ -14,6 +14,8 @@ import {
   Erreur,
   Succes,
 } from "../../../ui";
+import Link from "next/link";
+import { prochainsCreneaux, type AbsenceArtisan, type PlageJour } from "@/lib/semaine-type-artisan";
 
 /**
  * Proposer des créneaux (10.1) — RM-10.1.1 : l'artisan propose EN PREMIER,
@@ -66,12 +68,19 @@ function Envoyer({ nombre }: { nombre: number }) {
   );
 }
 
-export function FormulaireCreneaux({ interventionId }: { interventionId: string }) {
+export function FormulaireCreneaux({ interventionId, semaineType = null, absences = [] }: {
+  interventionId: string;
+  /** Audit palier 1, P2-03 : la semaine type de l'artisan (vide s'il n'en a pas réglé, `null` si elle est illisible). */
+  semaineType?: PlageJour[] | null;
+  absences?: Pick<AbsenceArtisan, "du" | "au">[];
+}) {
   const [etat, action] = useActionState<EtatArtisanAction, FormData>(
     proposerMesCreneaux.bind(null, interventionId),
     {}
   );
   const [creneaux, setCreneaux] = useState<Creneau[]>([VIDE, VIDE, VIDE]);
+  // Nombre de créneaux que la semaine type a pu poser au dernier préremplissage (null : pas encore demandé).
+  const [preremplis, setPreremplis] = useState<number | null>(null);
   const base = useId();
 
   // Demain : on ne propose pas un rendez-vous pour le jour même, et surtout
@@ -93,6 +102,13 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
     );
   }
 
+  // Préremplir à partir de la semaine type, en sautant les absences. Rien n'est envoyé : l'artisan relit, corrige, envoie.
+  function preremplir() {
+    const proposes = prochainsCreneaux({ semaine: semaineType ?? [], absences, aPartirDe: minimum });
+    setPreremplis(proposes.length);
+    setCreneaux([...proposes, VIDE, VIDE, VIDE].slice(0, 3));
+  }
+
   const prets = creneaux.filter(c => c.jour >= minimum && c.fin > c.debut)
     .map((c) => ({ debut: enInstant(c.jour, c.debut), fin: enInstant(c.jour, c.fin) }))
     .filter((c): c is { debut: string; fin: string } => Boolean(c.debut && c.fin))
@@ -107,6 +123,24 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
         <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">Choisissez trois dates et horaires possibles. Rien n’est confirmé avant l’accord du locataire.</p>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--filet-leger)]" aria-hidden="true"><div className="h-full rounded-full bg-[var(--prestige-champagne)] transition-[width] duration-[var(--duree-lente)] ease-[var(--courbe)] motion-reduce:transition-none" style={{width:`${Math.min(prets.length/3,1)*100}%`}} /></div>
       </div>
+      {semaineType && (semaineType.length > 0 ? (
+        <div className="space-y-2" data-preremplissage>
+          <button type="button" className={CLASSE_BOUTON_SOBRE} onClick={preremplir}>Préremplir avec ma semaine type</button>
+          {preremplis !== null && (
+            <p role="status" className="text-[0.9375rem] text-[var(--texte-secondaire)]">
+              {preremplis >= 3
+                ? "Trois créneaux préremplis d’après votre semaine type. Relisez-les : ils ne tiennent pas compte de vos autres rendez-vous."
+                : preremplis === 0
+                  ? "Votre semaine type et vos absences ne laissent aucun créneau dans les deux mois qui viennent : remplissez-les à la main."
+                  : `Votre semaine type et vos absences ne laissent que ${preremplis} créneau${preremplis > 1 ? "x" : ""} dans les deux mois qui viennent : complétez à la main.`}
+            </p>
+          )}
+        </div>
+      ) : (
+        <p className="text-[0.9375rem] text-[var(--texte-secondaire)]" data-preremplissage="a-regler">
+          Pour préremplir ces créneaux, <Link href="/artisan/entreprise#entreprise-disponibilites" className="underline underline-offset-4">réglez votre semaine type</Link>.
+        </p>
+      ))}
       <div className="grid gap-3 lg:grid-cols-3">
       {creneaux.map((c, i) => (
         // Le même habillage que les autres cartes de l'espace (24/09). La

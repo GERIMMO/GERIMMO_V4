@@ -9,6 +9,9 @@ import { degreEcheance, formaterSiret, formaterTelephone, METIERS } from "../lib
 import { Carte, EnteteSousPage, Etiquette, Erreur } from "../ui";
 import { FormulaireMetiersZones, ReglageVisibilite } from "./reglages-entreprise";
 import { PresenceReseau } from "./presence-reseau";
+import { AbsencesArtisan, SemaineTypeArtisan } from "./disponibilites-artisan";
+import { aujourdhuiParis } from "@/lib/ged";
+import type { AbsenceArtisan, PlageJour } from "@/lib/semaine-type-artisan";
 import { exclusionLue } from "@/lib/artisan-prive-exclusion";
 import styles from "./entreprise.module.css";
 
@@ -24,6 +27,11 @@ export default async function PageEntreprise() {
   const exclu = exclusionLue(exclusion) === "liste_noire";
   const documents = service ? await service.from("artisan_profils_documents").select("adresse,mentions,logo_data").eq("artisan_id", fiche.artisan_id).maybeSingle() : null;
   const [pieces, note] = await Promise.all([chargerPieces(), chargerNote()]);
+  // Audit palier 1, P2-03 : les absences et la semaine type, lues sous les droits de l'artisan (fonctions réservées).
+  const [absencesLues, semaineLue] = await Promise.all([supabase.rpc("mes_absences_artisan"), supabase.rpc("ma_semaine_type")]);
+  const disponibilitesIllisibles = Boolean(absencesLues.error || semaineLue.error);
+  const absences = (absencesLues.data ?? []) as AbsenceArtisan[];
+  const semaineType = ((semaineLue.data ?? []) as PlageJour[]).map((p) => ({ jour: Number(p.jour), debut: p.debut, fin: p.fin }));
   const piecesTendues = pieces.lignes.filter(p => ["expiree", "critique", "proche"].includes(degreEcheance(p.jours_avant_echeance, p.expiree))).length;
   const aucunePiece = !pieces.erreur && pieces.lignes.length === 0;
   const profilDocuments = documents && !documents.error ? documents.data : null;
@@ -60,6 +68,12 @@ export default async function PageEntreprise() {
       { id: "entreprise-reseau", titre: "Zone et métiers", contenu: <>
         <PresenceReseau fiche={fiche} exclu={exclu}/>
         <ReglageVisibilite visibilite={fiche.visibilite} siretVerifie={fiche.siret_etat === "verifie"}/>        <FormulaireMetiersZones metiers={(fiche.metiers ?? []).filter(m => m in METIERS)} codesPostaux={fiche.codes_postaux ?? []} complement={<div className={styles.noteZone}><p>Votre zone et vos métiers déterminent les demandes reçues. Le réseau vous propose dès que votre inscription est validée et votre profil public.</p><Link href="/artisan/regles">Les règles à connaître pour mon activité <ArrowUpRight size={14} aria-hidden/></Link></div>}/>
+</> },
+      { id: "entreprise-disponibilites", titre: "Disponibilités", contenu: <>
+        {disponibilitesIllisibles ? <Erreur>Vos disponibilités ne sont pas disponibles pour le moment. Rechargez la page.</Erreur> : <>
+          <AbsencesArtisan absences={absences} aujourdhui={aujourdhuiParis()} />
+          <SemaineTypeArtisan semaine={semaineType} />
+        </>}
 </> },
       { id: "entreprise-devis", titre: "Mes devis", contenu: <>
         {documents && !documents.error ? <DocumentsEntreprise profil={documents.data ?? { adresse: "", mentions: "", logo_data: null }}/>: <Erreur>Les informations de vos documents ne sont pas disponibles pour le moment. Réessayez avant de valider un devis.</Erreur>}</> },

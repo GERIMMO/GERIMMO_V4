@@ -617,6 +617,12 @@ function ChampsRetenue({
         Retenue = coût × (durée de vie − âge) / durée de vie. Laisser durée de vie
         vide pour retenir le coût intégral (dégradation, non-vétusté).
       </p>
+      {/* Audit palier 1 du 22/11/2026, P1-12 (relevé B2) : les durées proposées sont une aide à la saisie, pas une
+          grille de vétusté convenue avec le locataire — Gerimmo n'en annexe aucune au bail. */}
+      <p className="text-sm text-muted-foreground" data-bareme-indicatif>
+        Les durées de vie proposées dans la liste sont indicatives : c&apos;est vous qui les retenez. Elles ne viennent
+        d&apos;aucune grille de vétusté convenue avec le locataire.
+      </p>
     </div>
   );
 }
@@ -746,8 +752,8 @@ function FormDecompteEnvoye({
   );
 }
 
-// Finaliser FIGE le décompte : plus aucune retenue ne s'ajoute ni ne se retire,
-// et toute correction ultérieure passe par un décompte rectificatif (RM-2.7.3).
+// Finaliser FIGE le décompte : plus aucune retenue ne s'ajoute ni ne se retire.
+// Le cahier prévoit un décompte rectificatif (RM-2.7.3) ; il n'existe pas dans l'application, et la modale le dit.
 // Un geste irréversible se confirme — même patron que la signature d'un EDL de
 // sortie ou la suppression d'une détention : le bouton ouvre une modale qui
 // annonce ce qui va être figé, puis déclenche l'envoi réel.
@@ -834,10 +840,13 @@ function BoutonFinaliser({
               <p>Choisissez « Annuler » pour joindre une pièce ou corriger les retenues avant de figer le solde.</p>
             </div>
           )}
-          <p className="text-sm">
+          {/* Audit palier 1 du 22/11/2026, P1-09 : l'écran promettait « un décompte rectificatif envoyé au
+              locataire ». Aucun geste de Gerimmo n'en produit (une seule restitution par bail). On dit ce qui est. */}
+          <p className="text-sm" data-decompte-fige>
             Une fois finalisé, le décompte est figé : aucune retenue ne peut plus
-            être ajoutée ni retirée, et toute correction passera par un décompte
-            rectificatif envoyé au locataire.
+            être ajoutée ni retirée. Gerimmo ne produit pas de décompte rectificatif :
+            relisez les montants avant de finaliser. Une correction ultérieure se
+            ferait par un écrit au locataire, hors de Gerimmo.
           </p>
         </Modale>
       )}

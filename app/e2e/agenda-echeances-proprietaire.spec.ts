@@ -59,7 +59,8 @@ test("l'agenda du propriétaire montre loyers, états des lieux, congé et fin d
     await db.query("insert into memberships(organization_id,account_id,role) values($1,$2,'proprietaire_direct')", [ORG, compte]);
     await db.query("insert into persons(id,organization_id,nom,prenom,address_line1,postal_code,city) values($1,$2,'Exemple','Jo','2 rue de recette','75001','Paris')", [bailleur, ORG]);
     await db.query("insert into biens(id,organization_id,nom,type,address_line1,postal_code,city) values($1,$2,$3,'appartement','1 rue de recette','75001','Paris')", [bien, ORG, `TEST Agenda ${suffixe}`]);
-    await db.query("insert into lots(id,organization_id,bien_id,nom,etat) values($1,$3,$4,$5,'loue'),($2,$3,$4,$6,'loue')", [lotA, lotB, ORG, bien, nomA, nomB]);
+    // Le logement de Zoé est « en préavis » : en base, l'état d'un lot suit celui de son bail.
+    await db.query("insert into lots(id,organization_id,bien_id,nom,etat) values($1,$3,$4,$5,'loue'),($2,$3,$4,$6,'preavis')", [lotA, lotB, ORG, bien, nomA, nomB]);
     await db.query("insert into persons(id,organization_id,nom,prenom,email) values($1,$3,'Fictif','Camille','camille@example.invalid'),($2,$3,'Lambert','Zoé','zoe@example.invalid')", [camille, zoe, ORG]);
     await db.query("insert into detentions(organization_id,lot_id,person_id,quote_part) values($1,$2,$4,100),($1,$3,$4,100)", [ORG, lotA, lotB, bailleur]);
     await db.query(`insert into baux(id,organization_id,lot_id,locataire_principal,type,etat,date_debut,date_fin,loyer_hc,charges,jour_echeance) values

@@ -177,6 +177,8 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   intervention_demarree: "Intervention démarrée",
   compte_rendu: "Compte rendu de l'artisan",
   revision_imputation: "Imputation révisée après diagnostic",
+  // Audit palier 1 du 22/11/2026, P1-04 (migration 20261122140000) : la correction de l'urgence se lit au fil.
+  urgence_corrigee: "Urgence corrigée par le gestionnaire",
   evaluation: "Artisan évalué",
   // Audit du 27/09 (migrations 20260927122000 et 20260927123000).
   creneaux_refuses: "Dates du locataire refusées par l'artisan",
@@ -334,3 +336,8 @@ export function titreIncidentProprietaire(incident: { titre?: string | null; cat
   if (incident.categorie === "autre" && description) return description.length > 90 ? `${description.slice(0, 87).trimEnd()}…` : description;
   return titreIncident(incident.categorie);
 }
+
+// Audit palier 1 du 22/11/2026, P1-04 : la correction de l'urgence par le gestionnaire. Bornes du motif : celles de
+// la base (corriger_urgence_incident). Le motif reste au fil du dossier.
+export const URGENCES_INCIDENT: Record<string, string> = { normale: "Normale", urgente: "Urgente" };
+export const MOTIF_CORRECTION_URGENCE = { min: 5, max: 500 } as const;

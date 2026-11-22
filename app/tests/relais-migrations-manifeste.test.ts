@@ -228,6 +228,8 @@ const MISSION_OCTOBRE = [
   "20261122120000_interrupteur_ia.sql",
   // 22/11, audit palier 1 (P1-01) : le lien de confirmation du mobile envoyé au garant est admis parmi les e-mails.
   "20261122130000_lien_garant_admis.sql",
+  // 22/11, audit palier 1 (P1-04) : le gestionnaire corrige l'urgence d'un incident, motif tracé au fil du dossier.
+  "20261122140000_incident_urgence_corrigee.sql",
 
 
 ];

@@ -5,6 +5,7 @@ import { useActionStateProtegee as useActionState } from "@/lib/use-action-state
 import {
   attribuerIncident,
   cloturerIncident,
+  corrigerUrgenceIncident,
   joindrePhotoIncident,
   qualifierIncident,
   rouvrirIncident,
@@ -12,7 +13,7 @@ import {
 } from "@/app/actions/incidents";
 import { compresserChampFichiers } from "@/lib/compresser-image";
 import { RepereJuridique } from "../nouveau/formulaire-incident";
-import { IMPUTATIONS_INCIDENT, MOTIFS_CLOTURE } from "@/lib/incidents";
+import { IMPUTATIONS_INCIDENT, MOTIF_CORRECTION_URGENCE, MOTIFS_CLOTURE } from "@/lib/incidents";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { ChampFichier } from "@/components/champ-fichier";
@@ -295,6 +296,48 @@ export function FormulaireAttribution({
       </div>
       <Retour etat={etat} />
     </div>
+  );
+}
+
+/**
+ * Audit palier 1 du 22/11/2026, P1-04 : le gestionnaire corrige l'urgence d'un incident non clos. Replié par défaut :
+ * c'est une correction, pas une étape du dossier. Le motif est obligatoire et reste à l'historique.
+ */
+export function FormulaireUrgence({
+  orgId,
+  incidentId,
+  urgente,
+}: {
+  orgId: string;
+  incidentId: string;
+  urgente: boolean;
+}) {
+  const actionLiee = corrigerUrgenceIncident.bind(null, orgId, incidentId);
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const idMotif = useId();
+  return (
+    <details className="incident-urgence-correction rounded-lg border border-[var(--filet)] bg-[var(--carte)] p-3 text-sm" data-correction-urgence={urgente ? "urgente" : "normale"}>
+      <summary className="min-h-11 cursor-pointer content-center font-medium">Corriger l’urgence</summary>
+      <form data-saisie-confirmee action={action} className="mt-2 space-y-3">
+        <p className="text-[var(--texte-secondaire)]">
+          {urgente
+            ? "Ce dossier est classé urgent. S’il ne l’est pas, repassez-le en urgence normale."
+            : "Ce dossier est classé en urgence normale. S’il ne peut pas attendre, marquez-le urgent."}
+        </p>
+        <input type="hidden" name="urgence" value={urgente ? "normale" : "urgente"} />
+        <div className="space-y-1.5">
+          <Label htmlFor={idMotif}>Motif de la correction</Label>
+          <textarea id={idMotif} name="motif" required minLength={MOTIF_CORRECTION_URGENCE.min} maxLength={MOTIF_CORRECTION_URGENCE.max} rows={2}
+            defaultValue={etat.valeurs?.motif}
+            placeholder={urgente ? "Ex. : la fuite est arrêtée, le logement reste utilisable." : "Ex. : plus d’eau chaude depuis deux jours."}
+            className="w-full rounded-md border border-input bg-transparent p-2 text-sm" />
+          <p className="text-xs text-[var(--texte-secondaire)]">Le motif reste dans l’historique du dossier, avec votre nom. Le locataire n’est pas prévenu de cette correction.</p>
+        </div>
+        <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Enregistrement…">{urgente ? "Repasser en urgence normale" : "Marquer urgent"}</BoutonEnvoi>
+        {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
+        {etat.succes && <p role="status" className="text-sm">{etat.succes}</p>}
+      </form>
+    </details>
   );
 }
 

@@ -8,7 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { detecterMimeReel, EXTENSIONS } from "@/lib/file-type";
-import { categorieIncident, MOTIF_DECISION_DEVIS, MOTIFS_CLOTURE, PIECES_INCIDENT } from "@/lib/incidents";
+import { categorieIncident, MOTIF_CORRECTION_URGENCE, MOTIF_DECISION_DEVIS, MOTIFS_CLOTURE, PIECES_INCIDENT } from "@/lib/incidents";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { joindrePhotosAvecReprise } from "@/lib/photos-incident-reprise";
 // 25/09 : les e-mails qui préviennent l'artisan et l'agence. Aucun ne fait
@@ -483,6 +483,46 @@ export async function qualifierIncident(
   revalidatePath(`/espace/${orgId}/alertes`);
   revalidatePath(`/espace/${orgId}`);
   return { succes: "Incident qualifié — le locataire voit l'imputation dès maintenant." };
+}
+
+/**
+ * Audit palier 1 du 22/11/2026, P1-04 : le gestionnaire corrige l'urgence d'un incident non clos (un locataire a pu
+ * déclarer « urgent » à tort, ou « normal » une fuite active). La base refait tous les contrôles et trace le motif au
+ * fil du dossier ; aucun e-mail ne part.
+ */
+export async function corrigerUrgenceIncident(
+  orgId: string,
+  incidentId: string,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const valeurs = valeursDuFormulaire(formData);
+  const urgence = String(formData.get("urgence") ?? "");
+  const motif = String(formData.get("motif") ?? "").trim();
+  if (!["normale", "urgente"].includes(urgence)) {
+    return { erreur: "Rechargez la page avant de corriger l’urgence.", valeurs };
+  }
+  if (motif.length < MOTIF_CORRECTION_URGENCE.min || motif.length > MOTIF_CORRECTION_URGENCE.max) {
+    return { erreur: `Indiquez le motif de la correction, en ${MOTIF_CORRECTION_URGENCE.min} à ${MOTIF_CORRECTION_URGENCE.max} caractères : il reste dans l’historique du dossier.`, valeurs };
+  }
+
+  const { error } = await supabase.rpc("corriger_urgence_incident", {
+    p_org: orgId,
+    p_incident: incidentId,
+    p_urgence: urgence,
+    p_motif: motif,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  // Le dossier est rendu dans la liste (?sel=) ; l'urgence trie aussi le tableau de bord et les alertes.
+  revalidatePath(`/agence/${orgId}/incidents`);
+  revalidatePath(`/agence/${orgId}`);
+  revalidatePath(`/espace/${orgId}/incidents`);
+  revalidatePath(`/espace/${orgId}`);
+  return { succes: urgence === "urgente" ? "Dossier marqué urgent. La correction est inscrite à l’historique." : "Dossier repassé en urgence normale. La correction est inscrite à l’historique." };
 }
 
 export async function cloturerIncident(

@@ -23,6 +23,7 @@ import {
   MOTIFS_CLOTURE,
   MOTIFS_CLOTURE_PAR_ETAT,
   TYPES_EVENEMENT_INCIDENT,
+  URGENCES_INCIDENT,
   type EtatIncident,
   categorieIncident,
   titreIncident,
@@ -49,6 +50,7 @@ import {
   FormulairePhotoIncident,
   FormulaireQualification,
   FormulaireReouverture,
+  FormulaireUrgence,
 } from "./[incidentId]/actions-incident";
 import { baseEspace } from "@/lib/racine-espace";
 
@@ -324,6 +326,9 @@ export async function PaneIncident({
         ].filter(Boolean).join(" · ") || null;
       case "revision_imputation":
         return `${IMPUTATIONS_INCIDENT[String(d.imputation)] ?? d.imputation} — « ${d.justification} »`;
+      // Audit palier 1 du 22/11/2026, P1-04 : l'ancien et le nouveau niveau, puis le motif.
+      case "urgence_corrigee":
+        return `${URGENCES_INCIDENT[String(d.urgence_precedente)] ?? d.urgence_precedente} → ${URGENCES_INCIDENT[String(d.urgence)] ?? d.urgence}${d.motif ? ` — « ${d.motif} »` : ""}`;
       // Décision D22 : le report ou l'annulation du rendez-vous par le locataire. Le motif est dit en mots (liste
       // fermée), la précision libre entre guillemets ; les dates à l'heure de Paris.
       case "rdv_report_demande":
@@ -365,6 +370,8 @@ export async function PaneIncident({
 
   const peutModifierSuivi = etatIncident !== "clos" &&
     (estResponsable || !incident.responsable_account_id || incident.responsable_account_id === monCompte);
+  // Audit palier 1 du 22/11/2026, P1-04 : la correction de l'urgence, pour qui peut agir sur le suivi du dossier.
+  const correctionUrgence = peutModifierSuivi && <FormulaireUrgence orgId={orgId} incidentId={incidentId} urgente={incident.urgence === "urgente"} />;
   const responsableAffiche = incident.responsable_account_id === monCompte ? "vous" : incident.responsable_account_id ? emails.get(incident.responsable_account_id) ?? "un gestionnaire" : "non attribué";
 
   const prochaineAction = aQualifier && decisionRequise
@@ -615,6 +622,7 @@ export async function PaneIncident({
       </section>
       )}
       <EchecLecture quoi={lecturesManquees}/>
+      {correctionUrgence}
       <NavigationIncident/>
       {estProprietaire && <RubriqueIncident rubrique="devis"><p className="text-sm text-muted-foreground">Les devis et factures reçus pour cet incident apparaissent ici. Le dépôt d’une facture ne vaut pas règlement.</p></RubriqueIncident>}
       {estProprietaire && <RubriqueIncident rubrique="echanges"><p className="text-sm text-muted-foreground">Les échanges avec les participants de l’intervention restent rattachés à ce dossier.</p>{declarant && <Link className="inline-flex min-h-11 items-center text-sm underline" href={`${base}/personnes/${declarant.id}#messages`}>Écrire au locataire</Link>}</RubriqueIncident>}
@@ -670,6 +678,7 @@ export async function PaneIncident({
         </ol>}
       </section>
       )}
+      {correctionUrgence}
       <NavigationIncident/>
       {estProprietaire && <RubriqueIncident rubrique="devis"><p className="text-sm text-muted-foreground">Les devis et factures reçus pour cet incident apparaissent ici. Le dépôt d’une facture ne vaut pas règlement.</p></RubriqueIncident>}
       {estProprietaire && <RubriqueIncident rubrique="echanges"><p className="text-sm text-muted-foreground">Les échanges avec les participants de l’intervention restent rattachés à ce dossier.</p>{declarant && <Link className="inline-flex min-h-11 items-center text-sm underline" href={`${base}/personnes/${declarant.id}#messages`}>Écrire au locataire</Link>}</RubriqueIncident>}

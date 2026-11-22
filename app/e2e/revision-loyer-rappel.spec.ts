@@ -48,9 +48,14 @@ test("révision annuelle : rappelée à la date anniversaire, indice cherché ch
     await expect(rappel).toHaveCount(1);
     await expect(rappel).toContainText("Révision annuelle du loyer possible");
     await expect(rappel).toContainText(`Date anniversaire du ${fr(d.anniversaire)}`);
-    // Selon ce que le bail a d'autre à faire, le rappel est dans les trois premières actions ou juste derrière.
-    if (!(await rappel.isVisible())) await page.locator("details").filter({ has: rappel }).locator("summary").first().click();
-    await expect(rappel).toBeVisible();
+    // Selon ce que le bail a d'autre à faire, le rappel est dans les trois premières actions ou juste derrière (replié).
+    // La liste arrive en flux : tant qu'elle n'est pas posée dans la page, le lien existe mais n'est pas encore
+    // affiché. On attend donc qu'il soit visible, en dépliant « autres ensuite » seulement s'il s'y trouve.
+    await expect(async () => {
+      const replie = page.locator("details:not([open])").filter({ has: rappel }).locator("summary").first();
+      if (!(await rappel.isVisible()) && (await replie.count()) > 0) await replie.click({ timeout: 2_000 });
+      await expect(rappel).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
 
     // ── Le rappel mène au formulaire de révision, quelle que soit la rubrique ouverte.

@@ -52,7 +52,7 @@ production est gelée jusqu'à sa validation écrite ; l'audit complet est dans 
 >   du wiki en tiennent lieu, dans le périmètre donné par le dirigeant.
 > - Les pages [[Planification d'intervention]] et [[Intervention et clôture]] sont en retard sur le code.
 
-## Phase 2 — corrections en autonomie (état au 22/11/2026, lot 28)
+## Phase 2 — corrections en autonomie (état au 22/11/2026, lot 31)
 
 Le détail, lot par lot (ce qui est fait, vérifié, non vérifié, retour arrière), est dans `JOURNAL.md` à la racine.
 Chaque lot est vérifié sur une base d'essai remise à neuf (migrations rejouées, tests, parcours navigateur) avant
@@ -88,6 +88,9 @@ d'être poussé sur la branche de préproduction ; rien n'est publié en product
 | 26 | P2-04 (deux parties) | Un rendez-vous manqué se consigne (qui était absent, qui le dit) ; l'[[Artisan]] relance son client pour une facture déposée depuis 30 jours, sans e-mail ([[Intervention et clôture]]) |
 | 27 | P2-04 (fin) | L'[[Artisan]] garde ses lignes de [[Devis]] (libellé, prix, TVA) et les reprend d'un geste dans ses devis suivants ; lui seul les lit |
 | 28 | P2-05 | Le [[Propriétaire bailleur]] pointe ses loyers à partir du relevé exporté par sa banque : lu sur son appareil, rapproché des loyers à recevoir, enregistré seulement après confirmation ([[Quittancement des loyers]], [[Comptabilité]]) |
+| 29 | P2-06 | L'agenda du [[Propriétaire bailleur]] montre aussi ses échéances : loyers appelés et leur état, états des lieux, départ annoncé par un congé, date de fin inscrite au bail ; lecture seule ([[Agenda et échéances]]) |
+| 30 | P2-07 | Avant de solliciter un [[Artisan]], le [[Propriétaire bailleur]] lit un repère de prix sourcé pour le métier (trois métiers), avec « ni un tarif, ni un prix maximum, ni un engagement » ([[Devis]]) |
+| 31 | P2-08 (base) | Rien de visible : 46 droits d'écriture sans règle retirés sur 21 tables ; aucune table, fonction ni donnée supprimée |
 
 **Règle métier posée au lot 11** (source : cahier Gerimmo V3, module 9, variante V5 — « l'agent la refuse, l'artisan
 la corrige ou la justifie ») : une intervention ne porte qu'**une facture en vigueur** ; une facture refusée reste au
@@ -99,7 +102,7 @@ Q24) : aucun e-mail automatique ne part tant que le Super Admin n'a pas ouvert l
 d'échéance et la relance d'un loyer, chaque espace doit en plus donner son accord ; même ouvert, un e-mail ne part que
 si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a été envoyé pendant la vérification.
 
-**Règles posées aux lots 17 à 28** (prudences de l'agent ; aucune n'affirme une conformité) :
+**Règles posées aux lots 17 à 31** (prudences de l'agent ; aucune n'affirme une conformité) :
 
 - *Charges de copropriété (lot 19)* : Gerimmo ne classe plus aucun poste de lui-même. La suggestion tirée de
   l'intitulé s'affiche, le gestionnaire choisit, poste par poste ; un intitulé de travaux, de gardien ou de
@@ -127,8 +130,23 @@ si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a
   se pointent du plus ancien au plus récent ; une même ligne de relevé ne s'enregistre qu'une fois ; aucun e-mail ne
   part. L'enregistrement passe par la réception déclarée (mêmes garanties) et garde le libellé de la ligne dans la
   note du règlement (`QUESTIONS.md`, Q33 ; `JURISTE.md`, partie 3, A19quater). Aucune connexion bancaire.
-- *Un audit se réexécute* : l'audit du 22/11 est une lecture du code. Un de ses points s'est révélé faux à
-  l'exécution ; il est rectifié dans la section « Errata » de `AUDIT.md`, pas réécrit en silence.
+- *Échéances de l'agenda (lot 29)* : l'agenda lit, il ne crée rien et n'envoie rien ; un loyer dont l'état ne peut
+  pas être lu s'affiche sans état, jamais « reçu » ; « date de fin inscrite au bail » est la date du contrat, sans
+  rien dire de la reconduction ni du préavis (`QUESTIONS.md`, Q34).
+- *Repère de prix (lot 30)* : aucun chiffre nouveau (ce sont les repères d'octobre, datés du 12/10/2026) ; trois
+  métiers seulement ; montré au propriétaire, jamais comparé au devis reçu ; la formulation est soumise au juriste et
+  n'est pas présentée comme validée (`QUESTIONS.md`, Q35 ; `JURISTE.md`, partie 4, point 9).
+- *Ménage de la base (lot 31)* : on ne retire que des droits déjà sans effet, et la modification le revérifie au
+  moment de s'appliquer ; rien n'est supprimé (ni table abandonnée, ni fonction sans appelant, ni code inatteignable) :
+  ces suppressions sont laissées au dirigeant (`QUESTIONS.md`, Q36).
+- *Un audit se réexécute* : l'audit du 22/11 est une lecture du code. Trois de ses points se sont révélés faux ou
+  trop optimistes à l'exécution (le diagnostic remplacé, le réglage de la tâche de nuit des fermetures de compte, la
+  relance d'un report de rendez-vous) ; ils sont rectifiés dans la section « Errata » de `AUDIT.md`, pas réécrits en
+  silence.
+- *Un cinquième e-mail retenu, hors plan* : la relance de l'[[Artisan]] avant l'échéance d'une demande de report
+  ([[Planification d'intervention]]) est retenue par la liste fermée des e-mails, comme les quatre envois du lot 15.
+  Trouvé le 22/11 en mettant le wiki à jour ; non corrigé (le plan est fermé), signalé au dirigeant (`QUESTIONS.md`,
+  Q37) ; tous les e-mails seront repris un par un en phase 3.
 
 **En attente du dirigeant** : « ok pour la copie de base » (Q1) et « ok pour les sites officiels » (Q5). Sans le
 second, les corrections qui touchent une règle de droit (P0-03 à P0-09, P0-11, P1-09 à P1-12, P1-15) restent en

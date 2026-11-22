@@ -212,3 +212,14 @@ Une question fermée (oui ou non) par point.
    (c) le délai de règlement d'une facture d'artisan par un bailleur particulier, ou par une société civile
    immobilière, est-il encadré, et la relance doit-elle porter une mention particulière (pénalités, indemnité) ?
    Gerimmo n'en écrit aucune. En attendant : les deux gestes sont de simples traces, sans conséquence automatique.
+9. **Repère de prix montré au propriétaire avant une demande de devis (ajouté le 22/11, lot 30, P2-07).** Gerimmo
+   affiche, pour trois métiers, une fourchette de prix horaire ou au mètre carré tirée d'un guide de prix public, avec
+   un lien vers la source, la date du relevé et la phrase : « Ordre de grandeur relevé le …, hors déplacement,
+   fournitures et majorations. Ce n'est ni un tarif, ni un prix maximum, ni un engagement de Gerimmo ou de l'artisan :
+   seul le devis de l'artisan fixe le prix. » Questions : (a) cette formulation suffit-elle pour que le repère ne
+   vaille ni engagement de prix ni information trompeuse, y compris si le devis reçu sort de la fourchette ?
+   (b) afficher une fourchette de prix à un donneur d'ordre, sur une plateforme qui met en relation avec des artisans,
+   pose-t-il une question de droit de la concurrence ou de pratique commerciale (prix « recommandé ») ? (c) faut-il
+   une durée de validité ou une mention d'actualisation ? (d) citer et lier le guide de prix d'un tiers appelle-t-il
+   une autorisation ? En attendant : le repère n'est montré qu'au propriétaire, jamais comparé au devis reçu, et
+   rien n'est présenté comme validé.

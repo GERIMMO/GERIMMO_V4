@@ -3,8 +3,8 @@ type: process
 tags: [planification, creneaux, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-16
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]"]
+updated: 2026-11-22
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Planification d'intervention
@@ -100,6 +100,14 @@ Trois partis pris :
   d'argent ; un rappel ne fait que répéter ce que les deux parties ont déjà
   convenu. Le refuser laisserait locataires et artisans se manquer.
 
+> [!warning] Le rappel de rendez-vous ne part plus (constat du 22/11/2026)
+> Depuis la liste fermée des e-mails (10/11/2026), tout e-mail sans « contexte métier » admis est retenu avant
+> l'envoi : le rappel de rendez-vous en faisait partie. La tâche quotidienne tourne toujours, mais **aucun rappel
+> n'est envoyé**. La mission palier 1 (lot 15, en préproduction) en fait l'un des quatre envois automatiques
+> « prêts, fermés », que le [[Super Admin]] ouvre un par un ; tant qu'il ne l'a pas ouvert, rien ne part
+> ([[Mission palier 1 — audit du 22 novembre 2026]]). La phrase « est **en place** » ci-dessus décrit l'état du
+> 18/09, pas celui d'aujourd'hui.
+
 Les deux messages sont **différents** : au locataire l'heure, la durée et quoi
 faire s'il ne peut pas ; à l'artisan l'adresse, le désordre et la référence du
 dossier. L'écran du locataire promet de nouveau le rappel — la phrase, retirée
@@ -130,15 +138,48 @@ artisan, l'annulation que côté gérant.
   (24 h, 2 demandes, 48 h) vivent à un seul endroit en base (`parametres_rdv_locataire()`).
   Un rappel tracé pour l'ancienne date ne prive pas le rendez-vous reporté de son rappel.
 
-> [!warning] Ce qui n'est pas livré ou pas vérifié (D22-B)
-> - **Non vérifié** : le parcours complet dans un navigateur (report demandé par le
->   locataire puis accepté par l'artisan) n'a pas été joué ; la recette de production ne le
->   couvre pas (journal `log.md`, entrées du 15/10).
-> - **Écarts avec la proposition C** (sections C.4 et C.8 de
->   [[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]), relevés
->   dans le code : pas de relance de l'artisan avant l'échéance des 48 h (la tâche
->   « rappels » ne fait qu'expirer les demandes, `expirer_demandes_rdv` ; seule l'alerte au
->   gérant à l'échéance existe, migration `20261014620000`) ; pas de geste « J'en prends
->   acte » sur une annulation ; la demande n'apparaît pas dans l'agenda de l'artisan
->   (`app/src/app/artisan/agenda/page.tsx`), seulement sur la fiche de la mission. À livrer,
->   ou à faire sortir de D22-B par le dirigeant.
+> [!warning] Ce qui n'est pas vérifié ou pas en service (D22-B, relu le 22/11/2026)
+> - **Non vérifié** : aucun parcours en navigateur ne joue le report ni l'annulation par le locataire (relecture de
+>   `app/e2e/` le 22/11/2026 : aucun fichier ne les couvre ; les règles sont tenues par des tests de base et de
+>   code). La recette de production ne les couvre pas non plus. Inscrit à la vérification finale de la mission
+>   palier 1.
+> - **Relance de l'artisan avant l'échéance des 48 h : écrite, mais son e-mail ne part pas.** Le code existe depuis le
+>   16/10/2026 (`reports_rdv_a_relancer`, `app/src/lib/relances-reports-rdv.ts`, migration
+>   `20261016110100_rdv_relance_accuse_agenda.sql`), mais cet e-mail n'a pas de « contexte métier » admis par la liste
+>   fermée des e-mails (`app/src/lib/perimetre-pilote.ts`) : il est retenu à chaque passe. L'artisan reçoit bien
+>   l'avis de la demande (événement `rdv_report_demande`, admis) ; il n'est pas relancé ensuite. À l'échéance, la
+>   demande expire, le rendez-vous est maintenu et le gérant est alerté. **Constat du 22/11/2026, que l'audit de la
+>   mission palier 1 n'avait pas relevé** (`QUESTIONS.md`, Q37) : ni corrigé, ni ajouté au plan, qui est fermé.
+
+## Ce qui a été complété le 16/10/2026 (relu dans le code le 22/11/2026)
+Les deux autres écarts que cette page relevait jusqu'ici avec la proposition C sont comblés par la migration
+`20261016110100_rdv_relance_accuse_agenda.sql`, présente dans la version publiée le 21/11/2026 :
+- **« J'en prends acte »** : sur une annulation par le locataire, l'artisan a ce geste dans sa mission
+  (`app/src/app/artisan/missions/[interventionId]/accuse-annulation.tsx`, fonction `accuser_annulation_rdv`). Il ne
+  change ni le statut de la mission ni une alerte : le rendez-vous était déjà annulé ; il note seulement que
+  l'artisan en a pris connaissance.
+- **L'agenda de l'artisan** signale les demandes de report et les annulations sur les rendez-vous concernés
+  (`app/src/app/artisan/agenda/page.tsx`, lecture `mes_demandes_rdv_artisan`) ; si cette lecture échoue, l'écran le
+  dit et renvoie à la mission avant tout déplacement.
+
+## État dans l'application au 22/11/2026 — mission palier 1 (préproduction, non publié)
+Quatre lots de la mission touchent la prise de rendez-vous. Ils sont sur la branche de préproduction, vérifiés sur une
+base d'essai ; **rien n'est en production** tant que le dirigeant n'a pas validé la publication. Détail lot par lot :
+`JOURNAL.md` et [[Mission palier 1 — audit du 22 novembre 2026]].
+- **Disponibilités dès le signalement (lot 22).** Le [[Locataire]] peut écrire ses disponibilités (champ facultatif,
+  300 caractères au plus) en signalant l'incident ; le gestionnaire les lit au dossier avant de proposer un créneau.
+  Seul le titulaire du signalement les écrit, tant que le dossier n'est pas clos.
+- **Absences et semaine type de l'artisan (lot 25).** L'[[Artisan]] déclare ses absences : pendant une absence,
+  aucune **nouvelle** demande ne peut lui être envoyée (l'écran du gestionnaire dit « Absent jusqu'au … ») ; ce qui est
+  en cours continue. Sa semaine type préremplit ses créneaux, en sautant ses absences ; rien ne part sans qu'il relise
+  et envoie, et le préremplissage ne tient pas compte de ses autres rendez-vous. Ce n'est donc **toujours pas un moteur
+  de disponibilités** (parti pris du module 10, plus haut). Le refus de la demande pendant l'absence est un choix de
+  prudence de l'agent, à confirmer par le dirigeant (`QUESTIONS.md`, Q30).
+- **Rendez-vous manqué consigné (lot 26).** Une fois l'heure passée, l'artisan peut consigner que le locataire était
+  absent ; le gestionnaire peut consigner l'absence du locataire **ou** de l'artisan. Le rendez-vous tombe, un nouveau
+  est à convenir, le fait s'écrit à la chronologie. Le locataire lit la date manquée et qui est dit absent. Le nombre
+  d'absences imputées à l'artisan sur douze mois s'affiche dans ses évaluations, mais **n'entre pas dans sa note**
+  (`QUESTIONS.md`, Q32) : la règle du module 10 (« celles de l'artisan pèsent sur son score de fiabilité ») n'est donc
+  appliquée qu'à moitié.
+- **Rappel de rendez-vous (lot 15).** Voir l'encadré de la section « Le rappel de rendez-vous » : prêt, fermé, ouvert
+  par le Super Admin.

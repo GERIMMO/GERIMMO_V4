@@ -3,8 +3,8 @@ type: concept
 tags: [agenda, echeances, rdv, alertes, produit-v0]
 status: draft
 created: 2026-07-21
-updated: 2026-09-29
-sources: ["[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes]]"]
+updated: 2026-11-22
+sources: ["[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Agenda et échéances
@@ -178,3 +178,26 @@ deux écrans).
   « Mes espaces » et la console SA gardent un lien texte « Alertes (n) » qui
   la rouvre. La vue « Fermées récemment » montre criticité, type, origine et
   motif (30 dernières). Voir [[Bail]], [[Restitution du dépôt de garantie]].
+
+## État dans l'application au 22/11/2026 — l'agenda du propriétaire montre ses échéances (mission palier 1, lot 29)
+En préproduction, **non publié** ([[Mission palier 1 — audit du 22 novembre 2026]], point P2-06 ; détail dans
+`JOURNAL.md`). Jusque-là, l'agenda du [[Propriétaire bailleur]] ne montrait que les rendez-vous d'intervention.
+- **Ce qui s'affiche**, dans le calendrier du mois, au jour où l'échéance tombe : les **loyers appelés** à leur jour
+  d'échéance, avec leur état (« Reçu », « Reçu en partie », « À recevoir », « Pas encore reçu — échéance passée ») ;
+  les **états des lieux** datés (signé ou non) ; le **départ annoncé par un congé** enregistré ; la **date de fin
+  inscrite au bail**. Chaque ligne mène à l'écran concerné.
+- **Lecture seule.** L'agenda ne crée ni ne modifie rien et n'envoie rien. L'état d'un loyer vient de la même source
+  que l'écran des loyers ; s'il ne peut pas être lu, le loyer s'affiche sans état, jamais « reçu ». Si les échéances
+  ne peuvent pas être lues, l'écran le dit au lieu d'afficher « aucune échéance ».
+- **Aucune règle de droit n'est affirmée.** « Date de fin inscrite au bail » est la date écrite au contrat : l'écran
+  ne dit rien de la reconduction, du préavis ni du délai pour donner congé (voir [[Bail]] et [[Congé]]).
+- **Limites.** Réservé au propriétaire en gestion directe : l'agenda des agences est inchangé (palier 2). Pas de
+  rappel par e-mail, pas d'export vers un agenda externe. Au-delà de 500 échéances d'une même nature dans le mois,
+  l'écran dit que la lecture est incomplète plutôt que d'en montrer une partie.
+
+> [!warning] Écart avec le module 14 (relevé le 22/11/2026)
+> Le module 14 décrit un agenda **partagé par tous les personas**, alimenté par des seuils et des alertes (sections
+> plus haut). Ce lot n'en livre qu'une partie : quatre natures de dates, pour un seul persona, sans seuil ni alerte
+> nouvelle. Les autres dates du module (révision du loyer, fin de validité d'un diagnostic, assurances) existent
+> ailleurs dans l'application sous forme d'alertes et ne sont **pas** dans ce calendrier : le plan de la mission ne les
+> nommait pas (`QUESTIONS.md`, Q34).

@@ -3,8 +3,8 @@ type: process
 tags: [devis, incident, artisan]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-23
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]"]
+updated: 2026-11-22
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Demande et sélection de devis
@@ -91,3 +91,14 @@ La sélection n'est plus le seul geste sur un devis reçu (décision D18, PR #18
   n'est plus sélectionnable ; sans réponse, la demande expire et le gérant est alerté.
 Détail et limites : [[Devis]], section « Ce que fait le code aujourd'hui ». Parcours complet
 non joué dans un navigateur à ce jour.
+
+## État dans l'application au 22/11/2026 — mission palier 1 (préproduction, non publié)
+Deux lots de la mission changent la demande de devis ([[Mission palier 1 — audit du 22 novembre 2026]]) ; ce qui
+touche le contenu du devis (garantie, lignes gardées) est décrit dans [[Devis]].
+- **Artisan absent (lot 25).** Un [[Artisan]] qui a déclaré une absence ne peut plus recevoir de **nouvelle** demande
+  pendant cette période : à la place du bouton de demande, le gestionnaire lit « Absent jusqu'au … ». Ses devis déjà
+  déposés peuvent être retenus et ses interventions continuent. Le gestionnaire ne lit que cette date, et seulement
+  pour un artisan qu'on peut lui proposer. Refuser la demande plutôt que seulement prévenir est un choix de prudence
+  de l'agent, à confirmer par le dirigeant (`QUESTIONS.md`, Q30).
+- **Repère de prix (lot 30).** Avant de solliciter, le [[Propriétaire bailleur]] lit un ordre de grandeur sourcé pour
+  trois métiers ; voir [[Devis]].

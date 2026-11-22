@@ -3,8 +3,8 @@ type: process
 tags: [intervention, cloture, rapport, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-10-16
-sources: ["[[Dépôt Gerimmo-V3]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]"]
+updated: 2026-11-22
+sources: ["[[Dépôt Gerimmo-V3]]", "[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Propositions de fonctions majeures — version candidate du 13 octobre 2026]]", "[[Mission palier 1 — audit du 22 novembre 2026]]"]
 ---
 
 # Intervention et clôture
@@ -19,6 +19,11 @@ l'[[Incident]] et évaluer l'[[Artisan]].
 - [[Artisan]] (exécute), gestionnaire (valide/clôture), [[Locataire]].
 
 ## Étapes
+> [!warning] Ces cinq étapes décrivent l'ancien dépôt (Gerimmo V3), pas l'application d'aujourd'hui
+> Relu le 22/11/2026 dans le code et la base d'essai : les transitions, le rapport PDF, les matériaux et les cinq
+> critères de note ci-dessous **n'existent pas sous cette forme** dans l'application. Ce qui existe est décrit plus
+> bas, section « État dans l'application au 22/11/2026 ». Les étapes sont gardées comme trace du cahier d'origine.
+
 1. **Transitions** : `planifiee → confirmee → en_cours → terminee` (+ `suspendue`/`a_reprogrammer`/`annulee`).
    Par bot, l'artisan applique `confirmer`/`demarrer`/`terminer`.
 2. **Matériaux** (`addInterventionMaterial`) + photos avant/pendant/après.
@@ -72,3 +77,44 @@ facture ni à l'incident, et l'artisan ne voyait rien.
 > - **Non vérifié** : le parcours complet dans un navigateur (règlement noté par le gérant)
 >   n'a pas été joué ; la recette de production ne le couvre pas (journal `log.md`, entrées
 >   du 15/10).
+
+## État dans l'application au 22/11/2026 (relu dans le code et la base d'essai)
+Ce que fait réellement l'application, vérifié le 22/11/2026 sur la branche de préproduction de la mission palier 1
+([[Mission palier 1 — audit du 22 novembre 2026]]). Les quatre premiers points sont déjà en production ; les lots de
+la mission, eux, ne sont **pas publiés**.
+- **États d'une intervention** : `proposee → acceptee → planifiee → en_cours → terminee`, plus `refusee` et
+  `annulee`. Il n'y a ni « confirmée », ni « suspendue », ni « à reprogrammer » : un rendez-vous qui tombe ramène la
+  mission à « acceptée — rendez-vous à fixer » ([[Planification d'intervention]]).
+- **Compte rendu de l'artisan** (`deposer_compte_rendu`) : les travaux réalisés, la cause constatée, l'imputation
+  qu'il suggère (locataire, propriétaire ou dégradation fautive), le montant final, et s'il faut une nouvelle
+  intervention. **Aucun rapport PDF officiel** n'est produit et il n'y a pas de saisie de matériaux.
+- **Clôture de l'incident** (`cloturer_incident`) : trois motifs — résolu, sans suite, transmis au syndic — avec un
+  commentaire ; un incident clos peut être rouvert avec un motif (`rouvrir_incident`).
+- **Évaluation de l'artisan** : par le gestionnaire seulement (`evaluer_artisan_gerant`), sur **trois critères**
+  notés de 1 à 5 — qualité, délai, prix — et un commentaire. Le type prévoit une évaluation par le locataire, mais
+  aucune fonction ne l'écrit : la notation à trois évaluateurs de l'encadré ci-dessus reste une intention.
+
+### Ce que la mission palier 1 ajoute (préproduction, non publié)
+- **Facture refusée puis corrigée (lot 11).** Une facture d'artisan erronée se refuse avec un motif ; l'artisan en
+  dépose une autre. Une intervention ne porte qu'**une facture en vigueur** ; la facture refusée reste au dossier,
+  intacte ; refus et validation s'excluent (source : cahier Gerimmo V3, module 9, variante V5). L'avoir et la
+  numérotation sont une question posée à l'expert-comptable (`JURISTE.md`, partie 4) : non tranchée.
+- **Messages de l'intervention signalés (lot 12).** Un nouveau message dans la discussion d'une intervention est
+  signalé à chacun de ses participants.
+- **Relance d'une facture par l'artisan (lot 26).** Pour une facture déposée depuis 30 jours au moins et pas réglée
+  en totalité, l'artisan peut relancer son client, puis une fois tous les 15 jours. La relance se lit sur la
+  facture, à la chronologie et dans une alerte qui se ferme quand la facture est réglée en totalité ou refusée.
+  **Aucun e-mail ne part.** Les deux délais sont des choix de l'agent, pas une règle de droit (`QUESTIONS.md`, Q31).
+- **Rendez-vous manqué consigné (lot 26).** Voir [[Planification d'intervention]].
+- **Garantie annoncée par l'artisan (lot 24).** L'artisan écrit sur son [[Devis]] la garantie qu'il annonce ; le
+  gestionnaire la lit au dossier et sur le PDF, avec la mention « Engagement de l'artisan, pas de Gerimmo »
+  (`QUESTIONS.md`, Q29).
+- **Évaluation contestée (lot 7).** Le [[Super Admin]] examine une évaluation contestée par l'artisan et peut la
+  retirer, avec un motif ; l'évaluation retirée reste en base, marquée comme telle (`QUESTIONS.md`, Q20).
+
+> [!warning] Points à trancher / contradictions (relus le 22/11/2026)
+> - **Cahier V3 ≠ application** sur le rapport d'intervention : le cahier prévoit un rapport PDF officiel avec cycle
+>   de validation ; l'application n'a qu'un compte rendu saisi par l'artisan. Aucune décision du dirigeant ne dit si
+>   le rapport PDF est attendu pour le palier 1 : il ne figure pas au plan fermé de la mission.
+> - **Score de recommandation** : cette page dit que la note « alimente le score de recommandation des futurs
+>   devis ». Le nombre de rendez-vous manqués imputés à l'artisan (lot 26) n'entre pas dans sa note (Q32).

@@ -562,3 +562,20 @@ contredit la lecture, le point est rectifié ici plutôt que réécrit en silenc
   diagnostic ENREGISTRÉ qui décide, pas le plus récent par sa date — décision laissée au dirigeant (QUESTIONS.md, Q28).
   Les deux autres défauts du relevé 14 (bail signé après le 01/01/2025, échéance de 2028) ne sont pas concernés par
   cet erratum : ils restent « à faire vérifier », faute de texte officiel ouvert.
+- **22/11/2026 — ligne « Fonction sans `search_path` » (volet sécurité) et P2-08.** L'audit recommandait de fixer le
+  chemin de recherche de `public.fermetures_comptes_nuit()` (`set search_path = ''`), comme le signale l'outil de
+  contrôle de Supabase. **La recommandation est fausse pour cette procédure.** Elle valide son travail étape par étape
+  (instruction `COMMIT`), et PostgreSQL interdit ces validations dans une procédure qui porte un réglage : essayé le
+  22/11 sur une procédure jetable, l'appel échoue avec « invalid transaction termination ». Appliquer la
+  recommandation aurait arrêté la tâche de nuit des fermetures de compte. La procédure est donc laissée telle quelle.
+  Sa sûreté tient à son écriture : chaque table et chaque fonction y est nommée avec son schéma, et aucun compte
+  (connecté ou visiteur) ne peut l'exécuter ; un test tient ces trois faits
+  (`tests/menage-droits-sans-politique-base.test.ts`). L'avis de Supabase restera affiché : c'est une exception voulue.
+- **22/11/2026 — ligne « Planification et rendez-vous » (relevé des fonctions) et P1-08.** L'audit classait la
+  planification « FONCTIONNE » en citant le test `relances-reports-rdv.test.ts`. **C'est trop optimiste sur un point.**
+  La relance envoyée à l'artisan avant l'échéance d'une demande de report (`lib/relances-reports-rdv.ts`) n'a pas de
+  « contexte métier » admis par la liste fermée des e-mails (`lib/perimetre-pilote.ts`) : elle est retenue à chaque
+  passe, exactement comme les quatre envois que P1-08 énumère. Le test simule l'envoi et ne voit donc pas la retenue.
+  L'avis initial de la demande (`rdv_report_demande`) part, lui. P1-08 ne nomme que quatre envois : cette relance n'a
+  pas été ajoutée au plan (liste fermée) ; elle est signalée au dirigeant (`QUESTIONS.md`, Q37) et tous les sites
+  d'envoi d'e-mail sont repris un par un en Phase 3.

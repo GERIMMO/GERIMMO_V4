@@ -7964,3 +7964,41 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 27 et 28, règle du pointage) ;
   `index.md`.
 - **Suite** : lots 29 (agenda du propriétaire) et 30 (repère de prix) écrits, en vérification.
+
+## [2026-11-22] lint   | Mission palier 1, phase 2 : lots 29 à 31 vérifiés (préproduction)
+
+- **Fait** : l'agenda du [[Propriétaire bailleur]] montre ses échéances (lot 29, P2-06) ; repère de prix avant de
+  solliciter un [[Artisan]] (lot 30, P2-07) ; ménage de la base, sans rien supprimer (lot 31, première partie de
+  P2-08). Détail dans `JOURNAL.md`.
+- **Vérifié** : passage complet sur base d'essai remise à neuf — 14 140 tests réussis ; 306 parcours navigateur
+  réussis du premier coup, 3 mis de côté par conception, aucun échec, aucun second essai. Branche de préproduction
+  poussée. Rien n'est publié en production (gel maintenu).
+- **Trouvé par la vérification et corrigé avant de pousser** : un test du lot 26 qui dépendait de l'heure (changement
+  d'heure près de minuit) ; un ancien test qui attendait un refus silencieux, devenu un refus explicite.
+- **Erratum de l'audit** : la recommandation de fixer le chemin de recherche de la tâche de nuit des fermetures de
+  compte était fausse (essayée, elle l'aurait arrêtée) ; non appliquée (`AUDIT.md`, « Errata »).
+- **Décisions laissées au dirigeant** : `QUESTIONS.md`, Q34 (échéances retenues), Q35 (trois métiers seulement), Q36
+  (ce qui n'a pas été supprimé). **Question au juriste** : `JURISTE.md`, partie 4, point 9 (repère de prix).
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 29 à 31, règles) ; `index.md`.
+- **Suite** : lot 32 (P2-09, repères fiscaux réglables) écrit, en vérification.
+
+## [2026-11-22] lint   | Wiki : cinq pages en retard remises à jour (fin de P2-08)
+
+- **Pourquoi** : l'audit de la mission palier 1 relevait des pages qui décrivaient l'ancien dépôt ou l'état d'octobre.
+  Chaque fait ajouté a été relu dans le code ou la base d'essai le 22/11/2026 ; les sections sont datées.
+- **[[Planification d'intervention]]** : le rappel de rendez-vous **ne part plus** depuis la liste fermée des e-mails
+  (la page le disait « en place ») ; « J'en prends acte » et l'affichage dans l'agenda de l'artisan existent depuis le
+  16/10 (la page les disait manquants) ; aucun parcours navigateur ne joue le report ni l'annulation par le locataire
+  (toujours vrai) ; lots 22, 25 et 26 de la mission.
+- **[[Intervention et clôture]]** : les cinq étapes décrivaient l'ancien dépôt (rapport PDF, matériaux, cinq critères) ;
+  encadré d'avertissement et section « État dans l'application » : sept états, compte rendu sans PDF, clôture à
+  trois motifs, évaluation par le gestionnaire sur trois critères ; lots 7, 11, 12, 24 et 26.
+- **[[Agenda et échéances]]** : échéances du propriétaire (lot 29) et écart avec le module 14.
+- **[[Devis]]**, **[[Demande et sélection de devis]]** : garantie annoncée, lignes gardées, repère de prix, artisan
+  absent (lots 24, 25, 27, 30).
+- **Constat nouveau, hors plan** : la relance de l'artisan avant l'échéance d'une demande de report est écrite mais
+  son e-mail est retenu par la liste fermée — l'audit ne l'avait pas vu. Non corrigé (plan fermé) ; erratum dans
+  `AUDIT.md`, `QUESTIONS.md` Q37 ; tous les sites d'envoi d'e-mail seront repris un par un en phase 3.
+- **Contradictions signalées** dans les pages : cahier V3 ≠ application sur le rapport d'intervention ; absences de
+  l'artisan comptées mais hors de sa note (Q32) ; agenda livré pour un seul persona.
+- **Lacunes** : pas de page [[Congé]] (lien posé depuis [[Agenda et échéances]]).

@@ -14,6 +14,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { CRENEAUX_MINIMUM, DEMI_JOURNEES } from "./creneaux";
 import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
+import { phraseRappel } from "@/lib/rendez-vous-locataire";
 import { GestesRendezVous } from "./gestes-rendez-vous";
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -119,7 +120,7 @@ export function etapeCourte(etape: string): string | null {
 }
 
 /** L'étape réelle, dans les mots du locataire — jamais le vocabulaire interne. */
-function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detail: string } {
+function enMots(s: SuiviIntervention, peutAgir: boolean, rappelPromis: boolean): { titre: string; detail: string } {
   const artisan = s.artisan ?? "L'artisan";
   // RM-10.4.1 : passé six créneaux refusés, « le problème n'est plus
   // logistique mais relationnel » — le gérant règle par téléphone et l'artisan
@@ -204,13 +205,14 @@ function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detai
       };
     case "planifiee":
       // La promesse de rappel est revenue le 18/09 : elle avait été retirée le
-      // 11/09 parce que rien ne l'honorait (RM-10.5 n'existait pas). La tâche
-      // `/api/cron/equipes?mission=rappels` l'envoie désormais la veille, et sept jours avant
-      // quand le rendez-vous est posé assez tôt. On peut la promettre parce
-      // qu'on la tient.
+      // 11/09 parce que rien ne l'honorait (RM-10.5 n'existait pas). Depuis la
+      // liste fermée des e-mails (10/11), le rappel ne part de nouveau plus ;
+      // c'est l'un des quatre envois que le superviseur ouvre un par un (P1-08).
+      // On ne le promet donc que s'il est ouvert (`rappelPromis`, lu par la page) ;
+      // fermé, on dit de noter la date — une promesse non tenue fait manquer le rendez-vous.
       return {
         titre: s.rdv_debut && s.rdv_fin ? `Rendez-vous ${plage(s.rdv_debut, s.rdv_fin)}` : "Rendez-vous fixé",
-        detail: `${artisan} intervient chez vous. Prévoyez d'être présent, ou de faire ouvrir — nous vous le rappellerons la veille.`,
+        detail: `${artisan} intervient chez vous. Prévoyez d'être présent, ou de faire ouvrir. ${phraseRappel(rappelPromis)}`,
       };
     case "en_cours":
       return {
@@ -579,6 +581,7 @@ export function SuiviInterventionLocataire({
   creneaux,
   peutAgir,
   rendezVous,
+  rappelPromis = false,
 }: {
   orgId: string;
   suivi: SuiviIntervention;
@@ -588,9 +591,11 @@ export function SuiviInterventionLocataire({
   peutAgir: boolean;
   /** Décision D22 : le rendez-vous de CETTE intervention et la dernière demande du locataire (report, annulation). */
   rendezVous?: RendezVousLocataire;
+  /** P1-08 : vrai seulement si le superviseur a ouvert le rappel de rendez-vous ; sinon l'écran ne le promet pas. */
+  rappelPromis?: boolean;
 }) {
   const rail = RAIL_DE_L_ETAPE[suivi.etape] ?? 0;
-  const { titre, detail } = enMots({ ...suivi, creneaux_a_choisir: creneaux.length }, peutAgir);
+  const { titre, detail } = enMots({ ...suivi, creneaux_a_choisir: creneaux.length }, peutAgir, rappelPromis);
 
   return (
     <div className="mt-1 border-t border-[var(--filet-leger)] pt-2.5">
@@ -607,6 +612,7 @@ export function SuiviInterventionLocataire({
           rendezVous={rendezVous}
           rdvTexte={suivi.etape === "planifiee" && suivi.rdv_debut && suivi.rdv_fin ? plage(suivi.rdv_debut, suivi.rdv_fin) : null}
           peutAgir={peutAgir}
+          rappelPromis={rappelPromis}
         />
       )}
 

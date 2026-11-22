@@ -130,7 +130,21 @@ export function instantRdv(iso: string): string {
  * Ce que le locataire lit de sa dernière demande, dans ses mots (fiche C.8). `null` quand il n'y a rien à dire (aucune
  * demande, ou une demande close qui n'a plus d'intérêt pour lui : retirée par lui-même).
  */
-export function etatDemandeLocataire(rv: RendezVousLocataire): { titre: string; detail: string; ton: "info" | "attention" | "succes" } | null {
+/**
+ * Audit palier 1 (P1-08, complément du 23/11/2026). Le rappel de la veille est l'un des quatre envois automatiques
+ * fermés par défaut : l'écran ne le promet que si le superviseur l'a ouvert. Fermé, il dit de noter la date.
+ */
+export const PHRASES_RAPPEL = {
+  /** Sous un rendez-vous confirmé. */
+  rendez_vous: { promis: "Nous vous le rappellerons la veille.", sans: "Notez bien cette date : aucun rappel ne vous sera envoyé." },
+  /** Après un report accepté par l'artisan. */
+  report: { promis: "Nous vous rappellerons le nouveau la veille.", sans: "Notez bien la nouvelle date : aucun rappel ne vous sera envoyé." },
+} as const;
+export function phraseRappel(rappelPromis: boolean, contexte: keyof typeof PHRASES_RAPPEL = "rendez_vous"): string {
+  return PHRASES_RAPPEL[contexte][rappelPromis ? "promis" : "sans"];
+}
+
+export function etatDemandeLocataire(rv: RendezVousLocataire, options: { rappelPromis?: boolean } = {}): { titre: string; detail: string; ton: "info" | "attention" | "succes" } | null {
   if (!rv.demande_id || !rv.demande_statut) return null;
   if (rv.demande_type === "annulation") {
     // Annulation : effet immédiat. Elle n'a plus rien à dire dès qu'un nouveau rendez-vous est fixé.
@@ -158,7 +172,7 @@ export function etatDemandeLocataire(rv: RendezVousLocataire): { titre: string; 
         titre: rv.nouveau_debut
           ? `L'artisan a accepté : nouveau rendez-vous le ${plageRdv(rv.nouveau_debut, rv.nouvelle_fin)}`
           : "L'artisan a accepté votre report",
-        detail: "Votre ancien rendez-vous est annulé. Nous vous rappellerons le nouveau la veille.",
+        detail: `Votre ancien rendez-vous est annulé. ${phraseRappel(options.rappelPromis === true, "report")}`,
         ton: "succes",
       };
     case "refusee":

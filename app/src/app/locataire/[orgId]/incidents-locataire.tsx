@@ -99,6 +99,7 @@ function CarteIncident({
   creneaux,
   peutAgir,
   rendezVous,
+  rappelPromis = false,
 }: {
   orgId: string;
   incident: IncidentLocataire;
@@ -110,6 +111,8 @@ function CarteIncident({
   peutAgir: boolean;
   /** Décision D22 : le rendez-vous de l'intervention et la dernière demande du locataire. */
   rendezVous?: RendezVousLocataire;
+  /** P1-08 : le rappel de la veille n'est promis que si le superviseur a ouvert cet envoi. */
+  rappelPromis?: boolean;
 }) {
   const [ouvert, setOuvert] = useState<"contester" | "persiste" | null>(null);
   const [etatContestation, actionContestation] = useActionState<
@@ -225,7 +228,7 @@ function CarteIncident({
       )}
       {suiviHistorique && suivi && (
         <details className="border-t pt-2"><summary className="cursor-pointer">Consulter l’intervention précédente</summary>
-          <SuiviInterventionLocataire orgId={orgId} suivi={suivi} creneaux={[]} peutAgir={false} />
+          <SuiviInterventionLocataire orgId={orgId} suivi={suivi} creneaux={[]} peutAgir={false} rappelPromis={rappelPromis} />
         </details>
       )}
       {suivi && !suiviHistorique && incident.etat !== "rouvert" && (
@@ -235,6 +238,7 @@ function CarteIncident({
           creneaux={creneaux}
           peutAgir={peutAgir}
           rendezVous={rendezVous}
+          rappelPromis={rappelPromis}
         />
       )}
 
@@ -323,6 +327,7 @@ export function IncidentsLocataire({
   peutAgir = true,
   peutSignaler = true,
   lectureEnEchec = false,
+  rappelPromis = false,
 }: {
   orgId: string;
   incidents: IncidentLocataire[];
@@ -338,6 +343,8 @@ export function IncidentsLocataire({
   peutSignaler?: boolean;
   // La lecture a échoué : « Rien en cours » serait un mensonge rassurant
   lectureEnEchec?: boolean;
+  /** P1-08 : vrai seulement si le superviseur a ouvert le rappel de rendez-vous. */
+  rappelPromis?: boolean;
 }) {
   if (lectureEnEchec) {
     return (
@@ -387,6 +394,7 @@ export function IncidentsLocataire({
             creneaux={creneaux.filter((c) => c.intervention_id === suivi?.intervention_id)}
             rendezVous={rendezVous.find((r) => r.intervention_id === suivi?.intervention_id)}
             peutAgir={peutAgir}
+            rappelPromis={rappelPromis}
           />
         );
       })}

@@ -257,15 +257,18 @@ export function GestesRendezVous({
   rendezVous,
   rdvTexte,
   peutAgir,
+  rappelPromis = false,
 }: {
   orgId: string;
   rendezVous: RendezVousLocataire;
   /** Le rendez-vous en toutes lettres (« jeudi 24 septembre, 8 h – 12 h »). */
   rdvTexte: string | null;
   peutAgir: boolean;
+  /** P1-08 : le rappel de la veille n'est promis que si le superviseur a ouvert cet envoi. */
+  rappelPromis?: boolean;
 }) {
   const [ouvert, setOuvert] = useState<"choix" | "report" | "annulation" | null>(null);
-  const etat = etatDemandeLocataire(rendezVous);
+  const etat = etatDemandeLocataire(rendezVous, { rappelPromis });
   const enAttente = rendezVous.demande_statut === "en_attente" && rendezVous.demande_type === "report";
   const raison = peutAgir ? raisonSansReport(rendezVous) : null;
   const gestes = peutAgir && rdvTexte && rendezVous.annulation_possible && !enAttente;

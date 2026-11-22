@@ -8,6 +8,7 @@ import { aEchoue, PanneLecture } from "../panne-lecture";
 import { BORD_ETAT } from "../pastille-locataire";
 import type { CreneauPropose, SuiviIntervention } from "./suivi-intervention";
 import { signalementOuvert } from "../types";
+import { lireEnvoisProposes } from "@/lib/envois-suspendus";
 import { instantRdv, type RendezVousLocataire } from "@/lib/rendez-vous-locataire";
 import { etiquetteNouveauxMessages, lireEchangesNonLus } from "@/lib/echanges-intervention";
 import { phraseRendezVousManque, rendezVousManquesAffiches, type RendezVousManqueLocataire } from "@/lib/rendez-vous-manque";
@@ -63,6 +64,9 @@ export default async function PageDemandesLocataire(
     supabase.rpc("mes_rdv_manques_locataire", { p_org: orgId }),
   ]);
   const peutSignaler = adhesionActive && signalementOuvert(baux as { etat: string }[] | null);
+  // Audit palier 1 (P1-08) : le rappel de la veille est un envoi que le superviseur ouvre. Fermé (le défaut) ou
+  // illisible, l'écran ne le promet pas et dit de noter la date.
+  const rappelPromis = (await lireEnvoisProposes(supabase)).rappel_rendez_vous;
 
   const incidents = (incidentsBruts ?? []) as IncidentLocataire[];
   const suivis = (suivisBruts ?? []) as SuiviIntervention[];
@@ -177,6 +181,7 @@ export default async function PageDemandesLocataire(
         peutAgir={adhesionActive}
         peutSignaler={peutSignaler}
         lectureEnEchec={aEchoue(eIncidents)}
+        rappelPromis={rappelPromis}
       />
       {!eSuivis && [...new Set(suivis.flatMap(s=>s.intervention_id?[s.intervention_id]:[]))].map(id=><EchangesIntervention key={id} intervention={id} />)}
     </div>

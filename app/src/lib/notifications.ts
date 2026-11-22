@@ -54,7 +54,8 @@ import { moyenEnToutesLettres } from "./reglement-facture";
 import { echapperMarque, emailValide, nomMarque } from "./marque-organisation";
 import { chargerMarque } from "./marque-organisation-serveur";
 import { creneauEnToutesLettres, heureDuRendezVous, jourDuRendezVous } from "./rappel-email";
-import { libelleMotifRdv } from "./rendez-vous-locataire";
+import { libelleMotifRdv, phraseRappel } from "./rendez-vous-locataire";
+import { lireEnvoisProposes } from "./envois-suspendus";
 import { adresseDuSite } from "./site";
 import { clientDeService } from "./supabase/service";
 import { baseDeLOrganisation } from "@/lib/racine-espace-serveur";
@@ -432,6 +433,8 @@ export function messageReponseReportRdv(p: {
   rdvDebut: string;
   rdvFin: string | null;
   lien: string | null;
+  /** P1-08 : le rappel de la veille n'est promis que si le superviseur a ouvert cet envoi (fermé par défaut). */
+  rappelPromis?: boolean;
 }): Message {
   const cat = categorieLisible(p.categorie);
   if (p.reponse.type === "acceptee") {
@@ -444,7 +447,7 @@ export function messageReponseReportRdv(p: {
         emetteur: p.emetteur,
         lignes: [
           `L'artisan a retenu l'une de vos disponibilités : le rendez-vous pour « ${cat} » est maintenant le ${quand}.`,
-          "L'ancien rendez-vous est annulé. Nous vous rappellerons le nouveau la veille.",
+          `L'ancien rendez-vous est annulé. ${phraseRappel(p.rappelPromis === true, "report")}`,
         ],
         action: { libelle: "Voir le rendez-vous", lien: p.lien },
       }),
@@ -1607,6 +1610,7 @@ export async function notifierReponseReportRdv(db: SupabaseClient, orgId: string
       message: messageReponseReportRdv({
         emetteur: nom, prenom: locataire?.prenom, categorie: inc.categorie, reponse, rdvDebut: d.rdv_debut, rdvFin: d.rdv_fin,
         lien: lien(`/locataire/${orgId}/demandes`),
+        rappelPromis: d.statut === "acceptee" ? (await lireEnvoisProposes(db)).rappel_rendez_vous : false,
       }),
     });
   } catch (e) {

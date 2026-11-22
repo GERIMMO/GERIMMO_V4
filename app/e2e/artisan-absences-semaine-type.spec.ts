@@ -139,6 +139,18 @@ test("artisan : semaine type et absence ; ses créneaux se préremplissent ; le 
       await expect(p.getByRole("button", { name: `Demander un devis à ${ARTISAN}` })).toHaveCount(0);
       expect(await debordementHorizontal(p)).toBeLessThanOrEqual(1);
       await absent.scrollIntoViewIfNeeded();
+      // La phrase tient DANS l'écran et dans sa carte. Le contrôle du document ne suffit pas : une carte qui coupe ce
+      // qui dépasse (`overflow` autre que visible) cache le défaut sans le corriger (capture du 22/11 : phrase sur
+      // une seule ligne, sortie de la carte sur téléphone).
+      const boite = (await absent.boundingBox())!;
+      expect(boite.x).toBeGreaterThanOrEqual(0);
+      expect(boite.x + boite.width).toBeLessThanOrEqual(p.viewportSize()!.width + 1);
+      expect(await absent.evaluate((el) => {
+        for (let n = el.parentElement; n && n.tagName !== "BODY"; n = n.parentElement) {
+          if (getComputedStyle(n).overflowX !== "visible" && (n.scrollWidth > n.clientWidth + 1 || n.scrollLeft > 0)) return `${n.tagName}.${n.className}`;
+        }
+        return null;
+      })).toBeNull();
       await p.screenshot({ path: info.outputPath("proprietaire-artisan-absent.png"), fullPage: true });
 
       // ── 4. L'artisan retire son absence : le bouton revient chez le propriétaire.

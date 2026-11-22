@@ -155,6 +155,10 @@ describe("l'écran du gestionnaire : artisan proposable mais absent", () => {
     expect(texte).toContain("Plomberie Martin");
     expect(texte).toContain("Absent jusqu’au 04/12/2026 — aucune demande ne peut lui être envoyée d’ici là");
     expect(html.match(/data-artisan-absent/g)).toHaveLength(1);
+    // Sur téléphone, la phrase doit pouvoir passer à la ligne : elle vit sous le nom (bloc, colonne qui se replie),
+    // jamais dans le groupe de droite qui ne se replie pas (elle sortait alors de la carte).
+    expect(html).toMatch(/<span class="mt-1 block[^"]*"[^>]*data-artisan-absent/);
+    expect(html).not.toMatch(/shrink-0[^"]*">(?:(?!<\/div>).)*data-artisan-absent/);
     expect(texte.match(/Demander un devis/g)).toHaveLength(1);
     expect(texte).toContain("Demander un devis à Plomberie Durand");
     expect(texte).not.toContain("Demander un devis à Plomberie Martin");

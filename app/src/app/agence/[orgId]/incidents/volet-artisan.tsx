@@ -1422,6 +1422,14 @@ export function ConsultationOuverte({
                         <span>coordonnées transmises avec votre demande</span>
                       )}
                     </span>
+                    {/* L'artisan a déclaré une absence : pas de bouton, et la date à laquelle il redevient joignable.
+                        Sous le nom, dans la colonne qui se replie : dans le groupe de droite (`shrink-0`), cette
+                        phrase ne passait pas à la ligne et sortait de la carte sur téléphone (capture du 22/11). */}
+                    {absentsJusquAu.has(a.artisan_id) && (
+                      <span className="mt-1 block text-xs break-words text-muted-foreground" data-artisan-absent>
+                        Absent jusqu’au {formaterDate(absentsJusquAu.get(a.artisan_id)!)} — aucune demande ne peut lui être envoyée d’ici là
+                      </span>
+                    )}
                   </span>
                   <span className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                     {/* D'où il vient : de votre carnet, ou de l'annuaire de la
@@ -1430,12 +1438,7 @@ export function ConsultationOuverte({
                     <span className={COULEURS_SCOPE[scopeArtisan(a.rattache)]}>
                       {LIBELLES_SCOPE[scopeArtisan(a.rattache)]}
                     </span>
-                    {absentsJusquAu.has(a.artisan_id) ? (
-                      // L'artisan a déclaré une absence : pas de bouton, et la date à laquelle il redevient joignable.
-                      <span className="text-xs text-muted-foreground" data-artisan-absent>
-                        Absent jusqu’au {formaterDate(absentsJusquAu.get(a.artisan_id)!)} — aucune demande ne peut lui être envoyée d’ici là
-                      </span>
-                    ) : (
+                    {!absentsJusquAu.has(a.artisan_id) && (
                       <BoutonSolliciter
                         orgId={orgId}
                         consultationId={consultation.id}

@@ -56,7 +56,7 @@ test("avenant au bail : enregistré avec sa pièce, appliqué au loyer du mois v
     await expect(formulaire.getByLabel("S’applique à partir du")).toHaveValue(d.suivant);
     await expect(formulaire.getByLabel("Loyer hors charges après l’avenant (€)")).toHaveValue("700");
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
-    await page.screenshot({ path: info.outputPath("avenant-formulaire.png"), fullPage: true });
+    await rubrique.screenshot({ path: info.outputPath("avenant-formulaire.png") });
 
     // ── Sans la pièce signée, rien ne s'enregistre.
     await formulaire.getByLabel("Objet de l’avenant").fill("Baisse du loyer convenue avec le locataire");
@@ -79,12 +79,16 @@ test("avenant au bail : enregistré avec sa pièce, appliqué au loyer du mois v
     expect(await avenants()).toMatchObject([{ date_effet: d.suivant, loyer: 650, charges: 60, applique: false, annule: false }]);
     expect(await leBail()).toEqual({ loyer: 700, charges: 50 });
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
-    await page.screenshot({ path: info.outputPath("avenant-en-attente.png"), fullPage: true });
+    await rubrique.screenshot({ path: info.outputPath("avenant-en-attente.png") });
     // La pièce signée s'ouvre depuis le dossier.
     const lienPiece = attente.getByRole("link", { name: "Consulter l’avenant signé" });
-    const piece = await page.request.get(String(await lienPiece.getAttribute("href")));
-    expect(piece.status()).toBe(200);
-    expect(piece.headers()["content-type"]).toContain("application/pdf");
+    const manifeste = await page.request.get(`${await lienPiece.getAttribute("href")}?apercu=integre`);
+    expect(manifeste.status()).toBe(200);
+    const lecture = await manifeste.json() as { url: string; mime: string };
+    expect(lecture.mime).toBe("application/pdf");
+    const octets = await page.request.get(lecture.url);
+    expect(octets.status()).toBe(200);
+    expect((await octets.body()).subarray(0, 5).toString()).toBe("%PDF-");
 
     // ── Le mois suivant arrive : le loyer est appelé (comme le fera la tâche automatique, qui a lu l'ancien montant).
     await db.query(`insert into appels_loyer(organization_id,bail_id,periode,loyer_hc,charges,montant_du,date_echeance,prorata)
@@ -119,7 +123,7 @@ test("avenant au bail : enregistré avec sa pièce, appliqué au loyer du mois v
     await expect(rubrique.locator("[data-avenant-en-attente]")).toHaveCount(0);
     await expect(rubrique.locator("[data-enregistrer-avenant]")).toBeVisible();
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
-    await page.screenshot({ path: info.outputPath("avenant-historique.png"), fullPage: true });
+    await rubrique.screenshot({ path: info.outputPath("avenant-historique.png") });
 
     expect(await avenants()).toMatchObject([
       { objet: "Baisse du loyer convenue avec le locataire", applique: true, annule: false },

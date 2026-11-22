@@ -67,6 +67,9 @@ describe("dates d'effet proposées", () => {
     // Bail qui commence plus tard : pas avant son entrée.
     expect(premiereDateEffetPossible({ dernierAppel: null, dateDebut: "2027-02-15", aujourdhui })).toBe("2027-02-01");
     expect(premiereDateEffetPossible({ dernierAppel: null, dateDebut: null, aujourdhui })).toBe("2026-11-01");
+    // Bail repris en cours, entré en 2024 : pas avant le mois où Gerimmo commence à appeler ses loyers.
+    expect(premiereDateEffetPossible({ dernierAppel: null, dateDebut: "2024-03-15", suivisDepuis: "2026-11-01", aujourdhui })).toBe("2026-11-01");
+    expect(premiereDateEffetPossible({ dernierAppel: "2026-11-01", dateDebut: "2024-03-15", suivisDepuis: "2026-11-01", aujourdhui })).toBe("2026-12-01");
   });
 
   it("douze mois proposés, bornés par la fin du bail et par la limite de deux ans", () => {
@@ -181,9 +184,9 @@ describe("action enregistrerAvenantBail", () => {
   });
 
   it("la base refuse : son motif est rendu en clair, la pièce déjà montée est abandonnée, rien n'est rafraîchi", async () => {
-    banc.rpc.mockResolvedValue({ data: null, error: { message: "Le loyer de 11/2026 est déjà appelé : un avenant ne modifie pas un loyer déjà appelé. Sa date d'effet est au plus tôt le 01/12/2026" } });
+    banc.rpc.mockResolvedValue({ data: null, error: { message: "Des loyers sont déjà appelés jusqu'à 11/2026 : un avenant ne modifie pas un loyer déjà appelé. Sa date d'effet est au plus tôt le 01/12/2026" } });
     const r = await enregistrer({ date_effet: "2026-11-01" });
-    expect(r.erreur).toBe("Le loyer de 11/2026 est déjà appelé : un avenant ne modifie pas un loyer déjà appelé. Sa date d'effet est au plus tôt le 01/12/2026");
+    expect(r.erreur).toBe("Des loyers sont déjà appelés jusqu'à 11/2026 : un avenant ne modifie pas un loyer déjà appelé. Sa date d'effet est au plus tôt le 01/12/2026");
     expect(r.valeurs?.objet).toBe("Baisse du loyer convenue avec le locataire");
     expect(banc.abandonner).toHaveBeenCalledTimes(1);
     expect(banc.abandonner).toHaveBeenCalledWith({ rpc: banc.rpc }, PIECE);
@@ -267,6 +270,12 @@ describe("rubrique « Avenant au bail » de la fiche du bail", () => {
     expect(html).not.toContain("data-avenants-enregistres");
     // Rubrique repliée tant que rien n'attend.
     expect(html).not.toMatch(/<details id="avenant"[^>]* open/);
+  });
+
+  it("bail repris en cours sans loyer encore appelé : la première date proposée est le mois de la reprise, pas 2024", async () => {
+    const html = await rendre({ appels: [], bail: { date_debut: "2024-03-15", loyers_suivis_depuis: "2026-11-01" } });
+    expect(html).toMatch(/<select[^>]*name="date_effet"[^>]*>\s*<option value="2026-11-01"/);
+    expect(html).not.toContain('value="2024-');
   });
 
   it("forfait de charges : le champ le dit", async () => {

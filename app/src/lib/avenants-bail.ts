@@ -56,22 +56,32 @@ export function libelleMois(premier: string): string {
   return `${MOIS[m - 1]} ${a}`;
 }
 
+type ReperesBail = {
+  dernierAppel: string | null;
+  dateDebut: string | null;
+  /** Bail repris en cours : le mois à partir duquel Gerimmo appelle ses loyers (baux.loyers_suivis_depuis). */
+  suivisDepuis?: string | null;
+  aujourdhui: string;
+};
+
 /**
  * La première date d'effet que la base acceptera : le 1er du mois qui suit le dernier loyer appelé — un avenant ne
- * réécrit jamais un loyer déjà appelé — et jamais avant le mois d'entrée du bail.
+ * réécrit jamais un loyer déjà appelé — et jamais avant le premier loyer que Gerimmo appelle pour ce bail (son mois
+ * d'entrée, ou le mois de sa reprise).
  */
-export function premiereDateEffetPossible(o: { dernierAppel: string | null; dateDebut: string | null; aujourdhui: string }): string {
-  const entree = premierDuMois(o.dateDebut ?? o.aujourdhui);
-  if (!o.dernierAppel) return entree;
-  const apresAppel = decalerMois(premierDuMois(o.dernierAppel), 1);
-  return apresAppel > entree ? apresAppel : entree;
+export function premiereDateEffetPossible(o: ReperesBail): string {
+  let premiere = premierDuMois(o.dateDebut ?? o.aujourdhui);
+  for (const borne of [o.suivisDepuis ? premierDuMois(o.suivisDepuis) : null, o.dernierAppel ? decalerMois(premierDuMois(o.dernierAppel), 1) : null]) {
+    if (borne && borne > premiere) premiere = borne;
+  }
+  return premiere;
 }
 
 /**
  * Les dates d'effet proposées : douze mois à partir de la première possible, sans dépasser ni la fin du bail ni la
  * limite de deux ans que pose la base. Liste vide : aucun avenant ne peut plus prendre effet (bail qui se termine).
  */
-export function datesEffetProposees(o: { dernierAppel: string | null; dateDebut: string | null; dateFin: string | null; aujourdhui: string }, combien = 12): { valeur: string; libelle: string }[] {
+export function datesEffetProposees(o: ReperesBail & { dateFin: string | null }, combien = 12): { valeur: string; libelle: string }[] {
   const premiere = premiereDateEffetPossible(o);
   const limite = decalerMois(premierDuMois(o.aujourdhui), 24);
   const dates: { valeur: string; libelle: string }[] = [];

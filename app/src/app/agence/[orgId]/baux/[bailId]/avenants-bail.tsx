@@ -24,6 +24,8 @@ type BailPourAvenant = {
   charges_mode?: string | null;
   date_debut: string | null;
   date_fin: string | null;
+  /** Bail repris en cours : le mois à partir duquel Gerimmo appelle ses loyers. */
+  loyers_suivis_depuis?: string | null;
 };
 
 function CarteAvenant({ a, base, libelleCharges }: { a: AvenantBail; base: string; libelleCharges: string }) {
@@ -93,7 +95,7 @@ export async function RubriqueAvenantsBail({
   const gestes = enCours && !lectureSeule;
   const lecturesCompletes = !erreurAvenants && !erreurAppel;
   const dates = lecturesCompletes
-    ? datesEffetProposees({ dernierAppel: (dernier as { periode?: string } | null)?.periode ?? null, dateDebut: bail.date_debut, dateFin: bail.date_fin, aujourdhui })
+    ? datesEffetProposees({ dernierAppel: (dernier as { periode?: string } | null)?.periode ?? null, dateDebut: bail.date_debut, dateFin: bail.date_fin, suivisDepuis: bail.loyers_suivis_depuis ?? null, aujourdhui })
     : [];
   const resume = attente
     ? `Un avenant s’appliquera au loyer ${deElide(libelleMois(attente.date_effet))}`

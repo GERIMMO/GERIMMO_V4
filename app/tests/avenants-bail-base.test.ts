@@ -109,7 +109,7 @@ describe.skipIf(!url)("avenant au bail : enregistrement, application, annulation
   };
 
   /** Un logement et son bail en cours (700 € + 50 € de charges par défaut). `appels` : les loyers sont déjà appelés. */
-  async function bail(o: { debut: string; loyer?: number; charges?: number; etat?: string; fin?: string | null; appels?: boolean; dans?: string; irl?: boolean }) {
+  async function bail(o: { debut: string; loyer?: number; charges?: number; etat?: string; fin?: string | null; appels?: boolean; dans?: string; irl?: boolean; suivisDepuis?: string }) {
     await base();
     const dans = o.dans ?? org;
     const b = o.dans ? (await db.query("insert into biens(organization_id,nom,type,address_line1,postal_code,city,zone_tendue) values($1,'TEST Bien','appartement','2 rue fictive','75001','Paris',false) returning id", [dans])).rows[0].id : bien;
@@ -119,6 +119,8 @@ describe.skipIf(!url)("avenant au bail : enregistrement, application, annulation
     const id = (await db.query(`insert into baux(organization_id,lot_id,locataire_principal,type,etat,date_debut,date_fin,loyer_hc,charges,depot_garantie,jour_echeance,zone_tendue,revision_irl,irl_trimestre,irl_valeur)
       values($1,$2,$3,'nu',$4,$5,$6,$7,$8,$7,1,false,$9,$10,$11) returning id`,
       [dans, lot, qui, o.etat ?? "actif", o.debut, o.fin ?? null, o.loyer ?? 700, o.charges ?? 50, o.irl === true, o.irl ? `T1 ${an - 2}` : null, o.irl ? 140 : null])).rows[0].id as string;
+    // Bail repris en cours : Gerimmo n'appelle ses loyers qu'à partir de ce mois.
+    if (o.suivisDepuis) await db.query("update baux set loyers_suivis_depuis=$2 where id=$1", [id, o.suivisDepuis]);
     if (o.appels) await db.query("select public.generer_appels_loyer_interne($1)", [id]);
     return { id, lot };
   }
@@ -279,6 +281,48 @@ describe.skipIf(!url)("avenant au bail : enregistrement, application, annulation
     expect(m0).toMatchObject({ periode: mois(0), prorata: true, base_loyer: 650, base_charges: 60 });
   });
 
+  it("le calcul du déclencheur reste celui du générateur : entrée et sortie en cours de mois donnent la même ligne qu'un bail né aux nouveaux montants", async () => {
+    const ligne = async (b: string, periode: string) => {
+      await base();
+      return (await db.query(`select periode::text, loyer_hc::text, charges::text, montant_du::text, prorata, base_loyer_hc::float8 base_loyer,
+        base_charges::float8 base_charges, date_echeance::text from appels_loyer where bail_id=$1 and periode=$2`, [b, periode])).rows[0];
+    };
+    const jour = (premier: string, j: number) => `${premier.slice(0, 8)}${String(j).padStart(2, "0")}`;
+    // Sortie le 15 du mois d'effet ; entrée le 10 du mois d'effet ; entrée le 10 et sortie le 20 du même mois.
+    const cas: { nom: string; debut: string; fin: string | null; effet: string }[] = [
+      { nom: "sortie en cours de mois", debut: mois(-1), fin: jour(mois(0), 15), effet: mois(0) },
+      { nom: "entrée en cours de mois", debut: jour(mois(-1), 10), fin: null, effet: mois(-1) },
+      { nom: "entrée et sortie le même mois", debut: jour(mois(-1), 10), fin: jour(mois(-1), 20), effet: mois(-1) },
+    ];
+    for (const c of cas) {
+      const avecAvenant = await bail({ debut: c.debut, fin: c.fin, etat: c.fin ? "preavis" : "actif" });
+      await enregistrer(proprietaire, avecAvenant.id, { effet: c.effet, loyer: 633.33, charges: 47.5 });
+      const natif = await bail({ debut: c.debut, fin: c.fin, etat: c.fin ? "preavis" : "actif", loyer: 633.33, charges: 47.5, appels: true });
+      const attendu = await ligne(natif.id, c.effet);
+      expect(attendu, c.nom).toBeDefined();
+      expect(attendu.prorata, c.nom).toBe(true);
+      expect(await ligne(avecAvenant.id, c.effet), c.nom).toEqual(attendu);
+    }
+  });
+
+  it("bail repris en cours, ou qui n'a pas encore commencé : jamais d'effet avant le premier loyer que Gerimmo appelle", async () => {
+    // Bail entré il y a vingt mois, repris ce mois-ci : Gerimmo n'appelle ses loyers que depuis ce mois.
+    const repris = await bail({ debut: mois(-20), suivisDepuis: mois(0) });
+    expect(await refuse(proprietaire, repris.id, { effet: mois(-2) })).toBe(`La date d'effet ne peut pas précéder le premier loyer de ce bail suivi dans Gerimmo : au plus tôt le ${fr(mois(0))}`);
+    await enregistrer(proprietaire, repris.id, { effet: mois(0) });
+    // Aucun loyer d'avant la reprise n'est créé au passage.
+    expect(await appels(repris.id)).toEqual([mensuel(mois(0), 650, 60)]);
+    expect(await leBail(repris.id)).toEqual({ loyer: 650, charges: 60 });
+
+    // Bail signé qui commence dans deux mois : l'avenant ne peut pas prendre effet avant l'entrée ; il attend.
+    const aVenir = await bail({ debut: mois(2) });
+    expect(await refuse(proprietaire, aVenir.id, { effet: mois(1) })).toBe(`La date d'effet ne peut pas précéder le premier loyer de ce bail suivi dans Gerimmo : au plus tôt le ${fr(mois(2))}`);
+    await enregistrer(proprietaire, aVenir.id, { effet: mois(2) });
+    expect((await avenants(aVenir.id))[0]).toMatchObject({ date_effet: mois(2), applique: false });
+    expect(await appels(aVenir.id)).toEqual([]);
+    expect(await leBail(aVenir.id)).toEqual({ loyer: 700, charges: 50 });
+  });
+
   it("le déclencheur n'agit que là où un avenant s'applique : jamais sur un bail sans avenant, ni après coup, ni pour un avenant annulé", async () => {
     // 1. Bail sans avenant : la ligne créée reste celle écrite.
     const sans = await bail({ debut: mois(0) });
@@ -352,8 +396,8 @@ describe.skipIf(!url)("avenant au bail : enregistrement, application, annulation
       [{ effet: null }, "La date d'effet d'un avenant est le 1er d'un mois"],
       [{ effet: `${mois(1).slice(0, 8)}15` }, "La date d'effet d'un avenant est le 1er d'un mois"],
       // Le loyer du mois courant est déjà appelé : l'avenant ne le réécrit pas.
-      [{ effet: mois(0) }, `Le loyer de ${fr(mois(0)).slice(3)} est déjà appelé : un avenant ne modifie pas un loyer déjà appelé. Sa date d'effet est au plus tôt le ${fr(mois(1))}`],
-      [{ effet: mois(-3) }, /est déjà appelé : un avenant ne modifie pas un loyer déjà appelé/],
+      [{ effet: mois(0) }, `Des loyers sont déjà appelés jusqu'à ${fr(mois(0)).slice(3)} : un avenant ne modifie pas un loyer déjà appelé. Sa date d'effet est au plus tôt le ${fr(mois(1))}`],
+      [{ effet: mois(-3) }, `Des loyers sont déjà appelés jusqu'à ${fr(mois(0)).slice(3)} : un avenant ne modifie pas un loyer déjà appelé. Sa date d'effet est au plus tôt le ${fr(mois(1))}`],
       [{ effet: mois(25) }, "Date d'effet trop lointaine (plus de deux ans) : vérifiez-la"],
       [{ chemin: null }, "L'avenant signé est obligatoire : déposez la pièce"],
       [{ chemin: "   " }, "L'avenant signé est obligatoire : déposez la pièce"],

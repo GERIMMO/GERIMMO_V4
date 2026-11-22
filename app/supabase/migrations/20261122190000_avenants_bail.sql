@@ -136,6 +136,7 @@ declare
   v_objet text := btrim(coalesce(p_objet, ''));
   v_aujourdhui date := public.aujourdhui_paris();
   v_dernier_appel date;
+  v_premier_suivi date;
   v_plus_tot date;
   v_dpe text;
   v_attente date;
@@ -182,13 +183,19 @@ begin
   if p_date_effet is null or p_date_effet <> date_trunc('month', p_date_effet)::date then
     raise exception 'La date d''effet d''un avenant est le 1er d''un mois';
   end if;
+  -- Jamais avant le premier loyer que Gerimmo appelle pour ce bail : son mois d'entrée, ou le mois à partir duquel
+  -- ses loyers sont suivis ici quand le bail a été repris en cours (baux.loyers_suivis_depuis). GREATEST ignore un NULL.
+  v_premier_suivi := greatest(date_trunc('month', coalesce(b.date_debut, v_aujourdhui))::date,
+                              date_trunc('month', b.loyers_suivis_depuis)::date);
   select max(ap.periode) into v_dernier_appel from public.appels_loyer ap where ap.bail_id = p_bail;
-  v_plus_tot := greatest(
-    coalesce((v_dernier_appel + interval '1 month')::date, date_trunc('month', coalesce(b.date_debut, v_aujourdhui))::date),
-    date_trunc('month', coalesce(b.date_debut, v_aujourdhui))::date);
+  v_plus_tot := greatest((v_dernier_appel + interval '1 month')::date, v_premier_suivi);
+  if v_dernier_appel is not null and p_date_effet <= v_dernier_appel then
+    raise exception 'Des loyers sont déjà appelés jusqu''à % : un avenant ne modifie pas un loyer déjà appelé. Sa date d''effet est au plus tôt le %',
+      to_char(v_dernier_appel, 'MM/YYYY'), to_char(v_plus_tot, 'DD/MM/YYYY');
+  end if;
   if p_date_effet < v_plus_tot then
-    raise exception 'Le loyer de % est déjà appelé : un avenant ne modifie pas un loyer déjà appelé. Sa date d''effet est au plus tôt le %',
-      to_char(p_date_effet, 'MM/YYYY'), to_char(v_plus_tot, 'DD/MM/YYYY');
+    raise exception 'La date d''effet ne peut pas précéder le premier loyer de ce bail suivi dans Gerimmo : au plus tôt le %',
+      to_char(v_plus_tot, 'DD/MM/YYYY');
   end if;
   if p_date_effet > (date_trunc('month', v_aujourdhui) + interval '24 months')::date then
     raise exception 'Date d''effet trop lointaine (plus de deux ans) : vérifiez-la';

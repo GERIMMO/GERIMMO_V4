@@ -138,7 +138,8 @@ test("devis : l'artisan annonce sa garantie ; elle est sur le PDF et le proprié
       const octets = await (await p.request.get(lecture.url)).body();
       expect(octets.subarray(0, 5).toString()).toBe("%PDF-");
       const texte = await texteDuPdf(octets);
-      expect(texte).toContain("Devis de travaux");
+      // Le titre est imprimé en capitales espacées : on le compare sans les espaces.
+      expect(texte.replace(/\s+/g, "").toUpperCase()).toContain("DEVISDETRAVAUX");
       expect(texte).toContain(`Garantie annoncée par l’entreprise : ${GARANTIE}`);
       expect(texte).not.toMatch(/Gerimmo garantit|garantie? par Gerimmo/i);
     } finally { await proprietaire.close(); }

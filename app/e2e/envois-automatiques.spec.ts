@@ -1,6 +1,7 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { Client } from "pg";
-import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
+import { randomUUID } from "node:crypto";
+import { connecterVers, debordementHorizontal, sansSyntheseAlertes } from "./aides";
 
 // LES QUATRE ENVOIS AUTOMATIQUES, OUVERTS UN PAR UN PAR LE SUPERVISEUR (audit palier 1 du 22/11/2026, P1-08).
 //
@@ -15,7 +16,7 @@ import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
 //
 // Il modifie un réglage commun à toute la base du banc : il le remet « tout fermé » quoi qu'il arrive. Il n'ouvre
 // JAMAIS la relance amiable : un autre parcours (reception-loyer-proprietaire) lit au même moment la phrase « l'envoi
-// de relances par e-mail est suspendu ». Les deux tests de ce fichier se suivent, jamais en même temps.
+// de relances par e-mail est suspendu ». Les tests de ce fichier se suivent, jamais en même temps.
 
 test.use({ storageState: "e2e/.auth/superadmin.json", actionTimeout: 10_000 });
 test.describe.configure({ mode: "serial" });
@@ -215,5 +216,96 @@ test("envois automatiques : l'accord du propriétaire pour l'avis d'échéance n
     await db.end();
     await admin.context().close();
     await proprietaire.context().close();
+  }
+});
+
+// P1-08, complément du 23/11/2026 : trois textes promettaient au locataire « nous vous le rappellerons la veille »,
+// alors que le rappel de rendez-vous est fermé par défaut. Ce test tient l'écran du locataire dans les deux états. Il vit
+// dans ce fichier parce qu'il lit le même réglage que les deux tests ci-dessus : ils se suivent, jamais en même temps.
+test("envois automatiques : le locataire ne lit la promesse du rappel de la veille que si cet envoi est ouvert", async ({ browser }, info) => {
+  test.setTimeout(180_000);
+  const cible = process.env.SUPALOCAL_DB;
+  test.skip(
+    process.env.E2E_CI !== "1" || !cible || !/^postgres(?:ql)?:\/\/[^@]*@(?:127\.0\.0\.1|localhost):\d{1,5}\/gerimmo_ci_[a-z_]+_api$/.test(cible),
+    "Banc local isolé uniquement",
+  );
+  const db = new Client({ connectionString: cible });
+  await db.connect();
+  const fermerTout = () => db.query("update public.envois_automatiques_reglage set avis_echeance = false, relance_loyer = false, rappel_rendez_vous = false, relance_invitation = false");
+  const [org, compte, bailleur, bien, lot, cptLocataire, locataire, bail, incident, mission] = Array.from({ length: 10 }, () => randomUUID());
+  const marque = org.slice(0, 8), nom = `ESSAI Rappel ${marque}`;
+  const email = `rappel-${org}@example.invalid`, emailLocataire = `rappel-loc-${org}@example.invalid`, motDePasse = randomUUID();
+  let artisanId = "";
+  const systeme = async (travail: () => Promise<void>) => {
+    await db.query("begin");
+    try { await db.query("select public.tache_systeme()"); await travail(); await db.query("commit"); }
+    catch (e) { await db.query("rollback").catch(() => {}); throw e; }
+  };
+  const chezLocataire = await browser.newContext({ ...info.project.use, storageState: { cookies: [], origins: [] } });
+  const l = await chezLocataire.newPage();
+  await sansSyntheseAlertes(l);
+
+  try {
+    await fermerTout();
+    artisanId = (await db.query("select a.id from artisans a join auth.users u on u.id=a.account_id where u.email='artisan.alpha@example.com'")).rows[0].id;
+    await systeme(async () => {
+      for (const [id, adresse, meta] of [[compte, email, '{"prenom":"Propriétaire","nom":"Essai rappel"}'], [cptLocataire, emailLocataire, '{"prenom":"Camille","nom":"Essai rappel"}']] as const) {
+        await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current)
+          values('00000000-0000-0000-0000-000000000000',$1,'authenticated','authenticated',$2,extensions.crypt($3,extensions.gen_salt('bf')),now(),'{"provider":"email","providers":["email"]}',$4::jsonb,now(),now(),'','','','','')`, [id, adresse, motDePasse, meta]);
+      }
+      await db.query("insert into organizations(id,name,type,status,address_line1,postal_code,city,email_contact) values($1,$2,'proprietaire_direct','active','1 rue des Essais','75012','Paris',$3)", [org, nom, email]);
+      await db.query("insert into memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct'),($3,$2,'locataire')", [compte, org, cptLocataire]);
+      await db.query("insert into persons(id,organization_id,account_id,nom,prenom,email,qualite,address_line1,postal_code,city) values($1,$2,$3,'Essai rappel','Propriétaire',$4,'Personne physique','1 rue des Essais','75012','Paris')", [bailleur, org, compte, email]);
+      await db.query("insert into persons(id,organization_id,account_id,nom,prenom,email) values($1,$2,$3,'Essai rappel','Camille',$4)", [locataire, org, cptLocataire, emailLocataire]);
+      await db.query("insert into biens(id,organization_id,nom,type,address_line1,postal_code,city) values($1,$2,$3,'appartement','1 rue des Essais','75012','Paris')", [bien, org, nom]);
+      await db.query("insert into lots(id,organization_id,bien_id,nom,etat,surface_m2) values($1,$2,$3,$4,'loue',40)", [lot, org, bien, `${nom} A`]);
+      await db.query("insert into detentions(lot_id,organization_id,person_id,quote_part,date_debut) values($1,$2,$3,100,current_date-300)", [lot, org, bailleur]);
+      await db.query("insert into baux(id,organization_id,lot_id,locataire_principal,type,etat,date_debut,loyer_hc,charges,jour_echeance) values($1,$2,$3,$4,'nu','actif',public.aujourdhui_paris()-200,750,50,5)", [bail, org, lot, locataire]);
+      await db.query("insert into artisan_agences(organization_id,artisan_id,statut) values($1,$2,'actif')", [org, artisanId]);
+      await db.query(`insert into incidents(id,organization_id,lot_id,bail_id,declarant_person_id,numero,canal,categorie,description,etat,imputation,imputation_justification)
+        values($1,$2,$3,$4,$5,$6,'espace_locataire','plomberie_canalisation',$7,'affecte','proprietaire','Essai fictif')`, [incident, org, lot, bail, locataire, `ESSAI-${marque}-R`, `ESSAI rappel : fuite fictive ${marque}`]);
+      // Un rendez-vous confirmé dans trois jours, à midi (heure de Paris).
+      await db.query(`insert into incident_interventions(id,organization_id,incident_id,artisan_id,nature_travaux,statut,acceptee_le,debut_prevu,fin_prevue)
+        values($1,$2,$3,$4,'entretien_courant','planifiee',now()-interval '1 day',
+          ((public.aujourdhui_paris() + 3) + time '12:00') at time zone 'Europe/Paris', ((public.aujourdhui_paris() + 3) + time '14:00') at time zone 'Europe/Paris')`, [mission, org, incident, artisanId]);
+      await db.query("insert into intervention_creneaux(organization_id,intervention_id,propose_par,tour,debut,fin,statut) select organization_id,id,'artisan',1,debut_prevu,fin_prevue,'retenu' from incident_interventions where id=$1", [mission]);
+    });
+
+    // ── 1. Envoi fermé (la livraison) : l'écran ne promet rien et dit de noter la date.
+    await connecterVers(l, emailLocataire, motDePasse, `/locataire/${org}/demandes`);
+    const carte = l.locator("main:visible").first();
+    await expect(carte).toContainText("Rendez-vous", { timeout: 30_000 });
+    await expect(carte).toContainText("Prévoyez d'être présent, ou de faire ouvrir. Notez bien cette date : aucun rappel ne vous sera envoyé.");
+    await expect(carte).not.toContainText("rappellerons");
+    expect(await debordementHorizontal(l)).toBeLessThanOrEqual(1);
+    await l.screenshot({ path: info.outputPath("locataire-rappel-ferme.png"), fullPage: true });
+
+    // ── 2. Le superviseur a ouvert le rappel de rendez-vous : la promesse revient.
+    await db.query("update public.envois_automatiques_reglage set rappel_rendez_vous = true");
+    await l.reload();
+    await expect(carte).toContainText("Prévoyez d'être présent, ou de faire ouvrir. Nous vous le rappellerons la veille.", { timeout: 30_000 });
+    await expect(carte).not.toContainText("aucun rappel ne vous sera envoyé");
+    await l.screenshot({ path: info.outputPath("locataire-rappel-ouvert.png"), fullPage: true });
+
+    // ── 3. Refermé : la promesse disparaît de nouveau.
+    await fermerTout();
+    await l.reload();
+    await expect(carte).toContainText("Notez bien cette date : aucun rappel ne vous sera envoyé.", { timeout: 30_000 });
+    await expect(carte).not.toContainText("rappellerons");
+  } finally {
+    await fermerTout().catch((e) => console.warn("Remise à « tout fermé » impossible :", (e as Error).message));
+    await db.query("rollback").catch(() => {});
+    await chezLocataire.close();
+    // L'artisan du banc retrouve son état d'avant ; l'espace de l'essai (comptes, logement, incident) reste dans la base du banc.
+    try {
+      await systeme(async () => {
+        await db.query("delete from alerts where organization_id=$1", [org]);
+        await db.query("delete from notification_intentions where organization_id=$1", [org]);
+        await db.query("delete from intervention_creneaux where intervention_id=$1", [mission]);
+        await db.query("delete from incident_evenements where organization_id=$1", [org]);
+        await db.query("delete from incident_interventions where id=$1", [mission]);
+        await db.query("delete from artisan_agences where organization_id=$1 and artisan_id=$2", [org, artisanId]);
+      });
+    } finally { await db.end(); }
   }
 });

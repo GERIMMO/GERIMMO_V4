@@ -7821,7 +7821,9 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   - Banc local : suite complète passée (13 242 tests), hors les quatre fichiers propres au banc partagé ; la fonction,
     appelée à travers l'API locale, rend ses cinq nombres au serveur et un refus à un visiteur ; l'e-mail rendu et
     relu.
-  - CI de la demande relancée sur `35da40f1` (run 45007278133).
+  - Un passage complet du relais, rejoué sur la base fictive du banc avec un faux envoi : la fonction est appelée dans
+    la chaîne réelle et l'e-mail porte le bloc « Nouvelles inscriptions » avec ses trois lignes.
+  - CI de la demande verte sur `35da40f1` (run 45007278133, terminée à 09:56Z), branche à jour avec `main`.
   - **Ni fusionnée ni publiée** : attend l'accord explicite du dirigeant.
 - **Limite** : les nombres ne distinguent pas un compte de test d'un vrai inscrit.
 - **Pages mises à jour** : [[Relais du dirigeant]], [[Premiers clients — acquisition sans budget — 20 novembre 2026]],

@@ -302,7 +302,7 @@ d'information pour les baux conclus depuis le 18/10/2026 : il est absent du code
 | 4. Mentions obligatoires du bail (art. 3) | Parties (`bail-nu.ts:95-137`), consistance, surface, destination (`:139-172`), date d'effet et durée (`:174-188`), loyer, encadrement, précédent loyer (`mentions-location.ts:67-85`), révision (`bail-nu.ts:195-205`), charges, paiement, travaux (`:210-228`),… | À faire vérifier — concordant avec l'extrait. | Dresser la table « mention de l'article 3 → champ du PDF » une fois l'article ouvert. | P1 |
 | 6. Bail nu à durée réduite | Un seul champ texte `duree_reduite_evenement`, sans durée ni date de fin. Le PDF imprime quand même « Durée du contrat : trois ans » puis « Un contrat d'une durée réduite (au moins un an) n'est possible que si un événement précis justifie la reprise du… | Non conforme — fonction incomplète : le contrat se contredit. | Ajouter la durée convenue (au moins un an), les raisons, le contrôle du type de bailleur ; retirer le paragraphe du meublé ; sinon retirer l'option. | P1 |
 | 10. Restitution : majoration, copropriété, nouvelle adresse | La majoration est imprimée (`decompte-restitution.ts:232-235`) mais jamais calculée (hors périmètre V1 selon le wiki). L'alerte dit « délai légal dépassé depuis le … (intérêts de retard dus) » (fonction `generer_alertes_restitution`) : ce ne sont pas des… | À faire vérifier — fonction incomplète. | Calculer la majoration due ; corriger le libellé de l'alerte ; ajouter le champ « nouvelle adresse du locataire » ; proposer la provision plafonnée à 20 % en copropriété. | P1 |
-| 14. Interdiction de louer selon la classe DPE | (a) `lot_blocages_location` (`supabase/migrations/20261027100200_diagnostics_validite_dpe_et_rapports.sql:75-80`) bloque « DPE classe G : logement interdit à la location (loi Climat) » dès qu'un DPE non archivé est classé G, même si un DPE plus récent ne… | À faire vérifier — trois défauts : un ancien DPE bloque à tort ; un bail signé après le 01/01/2025 sur un logement G… | Retenir le DPE valide le plus récent ; pour un bail en cours, comparer la date de conclusion ou de dernière reconduction au 01/01/2025 et dire le risque en clair ; préparer l'échéance F de 2028 ; traiter l'outre-mer par le code… | P1 |
+| 14. Interdiction de louer selon la classe DPE | **Erratum du 22/11 : le point (a) est faux, voir « Errata » en fin de document.** (a) `lot_blocages_location` (`supabase/migrations/20261027100200_diagnostics_validite_dpe_et_rapports.sql:75-80`) bloque « DPE classe G : logement interdit à la location (loi Climat) » dès qu'un DPE non archivé est classé G, même si un DPE plus récent ne… | À faire vérifier — trois défauts : un ancien DPE bloque à tort ; un bail signé après le 01/01/2025 sur un logement G… | Retenir le DPE valide le plus récent ; pour un bail en cours, comparer la date de conclusion ou de dernière reconduction au 01/01/2025 et dire le risque en clair ; préparer l'échéance F de 2028 ; traiter l'outre-mer par le code… | P1 |
 | 15. Dossier de diagnostic technique (art. 3-3) | Nouveau bail : DPE valide et ERP valide exigés à l'activation (`lot_blocages_location`). Signature électronique : ERP exigé, tout diagnostic enregistré doit avoir un PDF non expiré (`src/lib/signature-bail.ts:65-73`). Plomb, électricité et gaz sont «… | À faire vérifier. | Lister au bail les diagnostics réellement joints, avec leur date ; avertir avant la signature si plomb, électricité ou gaz attendus manquent ; ajouter le diagnostic « bruit ». | P1 |
 | 16. Préavis du locataire (logement nu) | `enregistrer_conge` (`supabase/migrations/20261112120300_conge_ajuste_dernier_terme_et_depot_au_centime.sql:644-663`) : en zone tendue, un mois imposé, même si le locataire n'a rien invoqué. Écran : « En zone tendue, le préavis d'un mois s'applique de plein… | Non conforme (sur extrait) pour la zone tendue : le bailleur ne peut pas enregistrer trois mois quand le locataire n'a… | Demander si la lettre invoque la zone tendue : oui, un mois ; non, trois mois. Corriger le texte d'aide. Compléter la liste des motifs. | P1 |
 | 19. Congé du bailleur : délai avant le terme | `enregistrer_conge` : six ou trois mois, motif obligatoire, effet au terme calculé (début + durée − un jour, `terme_bail_calcule`), refus si « réception + préavis » dépasse « terme + un jour » (`:679`). Exemple : bail meublé du 21/09/2025, terme calculé le… | À faire vérifier — écart possible d'un jour, au détriment du bailleur (congé nul, bail reconduit). | Exiger « réception + préavis ≤ terme », sans le jour de plus, ou afficher la date limite avec un jour de marge. | P1 |
@@ -512,7 +512,7 @@ JURISTE.md.
 | P1-08 | Envois prévus et suspendus : avis d'échéance, relances amiables, rappels de rendez-vous, relance d'invitation — prêts, testés en préproduction, activables par réglage | Activation = votre décision (QUESTIONS) |
 | P1-09 | Restitution du dépôt : majoration de retard calculée ; nouvelle adresse du locataire ; délai d'un mois quand la sortie est conforme ; « décompte rectificatif » promis par l'écran | Source à ouvrir (art. 22) |
 | P1-10 | Régularisation des charges : suite donnée au solde (appel ou avoir) ; décompte par nature ; référence d'article fausse à l'écran | Source à ouvrir (art. 23) |
-| P1-11 | Bail : durée réduite cohérente dans le contrat ; rédaction de la clause résolutoire ; préavis du locataire en zone tendue ; date limite du congé du bailleur ; reprise refusée à une société non familiale ; DPE : retenir le diagnostic valide le plus récent | Source à ouvrir |
+| P1-11 | Bail : durée réduite cohérente dans le contrat ; rédaction de la clause résolutoire ; préavis du locataire en zone tendue ; date limite du congé du bailleur ; reprise refusée à une société non familiale ; DPE : retenir le diagnostic valide le plus récent (**erratum du 22/11 : sans objet, voir « Errata »**) | Source à ouvrir |
 | P1-12 | État des lieux : pas de signature d'une grille sans pièce ; observation obligatoire pour « mauvais » ou « absent » ; complément des dix jours ; état des lieux d'entrée établi hors Gerimmo ; barème de vétusté présenté pour ce qu'il est | Source à ouvrir |
 | P1-13 | Révision du loyer : indice proposé (table tenue à jour, source et date affichées) ; alerte à la date anniversaire | — |
 | P1-14 | Avenant : enregistrer l'avenant signé et appliquer ses effets sur le loyer et la provision | — |
@@ -544,3 +544,21 @@ JURISTE.md.
 - **À ne pas faire** : voir la fin du volet c).
 - **Hors de ma portée** : médiateur, accords de traitement signés avec les prestataires, copie de la clé des
   sauvegardes, choix d'un antivirus et d'un prestataire de signature : QUESTIONS.md.
+
+---
+
+## Errata
+
+L'audit est une lecture du code. Chaque point est réexécuté avant d'être corrigé (phase 2) ; quand l'exécution
+contredit la lecture, le point est rectifié ici plutôt que réécrit en silence.
+
+- **22/11/2026 — relevé 14, point (a), et ligne P1-11 du plan (« DPE : retenir le diagnostic valide le plus
+  récent »).** L'audit affirmait qu'un ancien diagnostic classé G continuait de bloquer la location après
+  l'enregistrement d'un diagnostic plus récent. **C'est faux.** Exécuté sur une base d'essai : enregistrer un nouveau
+  diagnostic archive le précédent (déclencheur `diagnostics_remplacement`), et un diagnostic archivé ne bloque plus
+  rien. La lecture du code n'avait pas vu ce déclencheur. Aucune correction n'est donc livrée sur ce point ; la
+  correction commencée a été retirée entièrement, et un test tient le comportement réel
+  (`tests/dpe-remplace-ne-bloque-plus-base.test.ts`). Ce que l'exécution a montré à la place : c'est le dernier
+  diagnostic ENREGISTRÉ qui décide, pas le plus récent par sa date — décision laissée au dirigeant (QUESTIONS.md, Q28).
+  Les deux autres défauts du relevé 14 (bail signé après le 01/01/2025, échéance de 2028) ne sont pas concernés par
+  cet erratum : ils restent « à faire vérifier », faute de texte officiel ouvert.

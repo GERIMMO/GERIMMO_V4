@@ -100,6 +100,8 @@ pas des règles de droit vérifiées. Ce parcours n'est pas présenté comme con
 13. **Pièces reçues en trop.** Un bailleur particulier qui reçoit spontanément une pièce hors liste doit-il la supprimer ? Gerimmo doit-il l'y obliger ?
 14. **Bail repris.** Pour un bail entré avant Gerimmo, quelle preuve de l'état des lieux d'entrée papier faut-il garder pour fonder une retenue à la sortie ?
 15. **Mode agence.** Le domicile du bailleur doit-il figurer sur l'état des lieux quand un mandataire le réalise ?
+16. **Date de l'état des lieux d'entrée sur celui de sortie (ajouté le 22/11, lot 18, P0-06).** Gerimmo imprime maintenant « État des lieux d'entrée établi le … » sur le document de sortie quand l'entrée est signée dans Gerimmo ; sinon la même mention avec un blanc à compléter à la main. (a) Cette rédaction suffit-elle ? (b) Quand l'entrée a été établie hors Gerimmo, le blanc à compléter à la main est-il acceptable, ou faut-il refuser le document tant que la date n'est pas saisie ?
+17. **Charges de copropriété (mise à jour du 22/11, lot 19, P0-03).** Gerimmo ne classe plus aucun poste « récupérable » de lui-même : chaque poste naît « à qualifier », une suggestion s'affiche, le gestionnaire choisit. Pour des travaux, un gardien ou une désinsectisation, aucune suggestion n'est faite. Restent ouvertes les questions 9 et 10 ci-dessus : un poste est toujours « tout ou rien », sans part en pourcentage. En attendant la réponse, le gestionnaire ne peut partager un poste qu'en le saisissant en deux lignes ; Gerimmo ne lui dit pas quelle part retenir.
 
 ---
 

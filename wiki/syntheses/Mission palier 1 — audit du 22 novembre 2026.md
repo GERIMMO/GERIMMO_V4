@@ -52,7 +52,7 @@ production est gelée jusqu'à sa validation écrite ; l'audit complet est dans 
 >   du wiki en tiennent lieu, dans le périmètre donné par le dirigeant.
 > - Les pages [[Planification d'intervention]] et [[Intervention et clôture]] sont en retard sur le code.
 
-## Phase 2 — corrections en autonomie (état au 22/11/2026, lot 16)
+## Phase 2 — corrections en autonomie (état au 22/11/2026, lot 23)
 
 Le détail, lot par lot (ce qui est fait, vérifié, non vérifié, retour arrière), est dans `JOURNAL.md` à la racine.
 Chaque lot est vérifié sur une base d'essai remise à neuf (migrations rejouées, tests, parcours navigateur) avant
@@ -76,6 +76,13 @@ d'être poussé sur la branche de préproduction ; rien n'est publié en product
 | 14 | P1-13 | La révision annuelle du loyer est rappelée à la date anniversaire ; l'indice se cherche chez l'Insee, ou se saisit ([[Révision annuelle IRL]]) |
 | 15 | P1-08 | Avis d'échéance, relance amiable, rappel de rendez-vous, relance d'invitation : quatre e-mails prêts, **fermés**, que le [[Super Admin]] ouvre un par un |
 | 16 | P1-16 | L'[[Artisan]] refusé ou suspendu reçoit les motifs par e-mail ; la fiche dit si l'e-mail est parti et permet de le renvoyer |
+| 17 | P1-19 (fin) | Un [[Incident]] déclaré depuis la fiche du bien a sa catégorie et son urgence, comme depuis l'écran « Incidents » ([[Déclaration d'incident]]) |
+| 18 | P0-06 | L'[[État des lieux]] de sortie imprime la date de celui d'entrée ; à défaut, un blanc à compléter à la main |
+| 19 | P0-03 | Un poste d'[[Appel de charges]] naît « à qualifier » : plus rien n'est « récupérable » sans la confirmation du gestionnaire ([[Régularisation des charges]]) |
+| 20 | P1-09, P1-12 | L'écran de [[Restitution du dépôt de garantie]] dit que le décompte finalisé est figé, sans rectificatif, et que les durées de vie proposées sont indicatives |
+| 21 | P1-10, P1-11 | Un numéro d'article non vérifiable est retiré de l'écran des loyers ; le point de l'audit sur le [[Diagnostic]] remplacé est écarté (erratum) |
+| 22 | P2-02 | Le [[Locataire]] indique ses disponibilités dès qu'il signale un incident ; le gestionnaire les lit au dossier |
+| 23 | P2-01 | Une photo par élément de l'[[État des lieux]], imprimée et numérotée dans le document ; figée à la signature |
 
 **Règle métier posée au lot 11** (source : cahier Gerimmo V3, module 9, variante V5 — « l'agent la refuse, l'artisan
 la corrige ou la justifie ») : une intervention ne porte qu'**une facture en vigueur** ; une facture refusée reste au
@@ -86,6 +93,21 @@ posée à l'expert-comptable (`JURISTE.md`, partie 4) : elle n'est pas tranchée
 Q24) : aucun e-mail automatique ne part tant que le Super Admin n'a pas ouvert l'envoi correspondant ; pour l'avis
 d'échéance et la relance d'un loyer, chaque espace doit en plus donner son accord ; même ouvert, un e-mail ne part que
 si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a été envoyé pendant la vérification.
+
+**Règles posées aux lots 17 à 23** (prudences de l'agent ; aucune n'affirme une conformité) :
+
+- *Charges de copropriété (lot 19)* : Gerimmo ne classe plus aucun poste de lui-même. La suggestion tirée de
+  l'intitulé s'affiche, le gestionnaire choisit, poste par poste ; un intitulé de travaux, de gardien ou de
+  désinsectisation ne reçoit aucune suggestion. La part récupérable en pourcentage reste une question au juriste
+  (`JURISTE.md`, partie 2, points 9, 10 et 17).
+- *Diagnostic de performance énergétique (lot 21)* : enregistrer un nouveau diagnostic archive le précédent, qui ne
+  bloque plus la location. C'est le dernier diagnostic **enregistré** qui décide, pas le plus récent par sa date
+  (constaté par exécution ; décision laissée au dirigeant, `QUESTIONS.md`, Q28).
+- *Photos de l'état des lieux (lot 23)* : la photo est un document de l'espace, rangé dans les documents du bail ;
+  elle se modifie tant que l'état des lieux n'est pas signé ni envoyé en signature, puis se consulte seulement.
+  Aucune valeur juridique particulière n'est affirmée.
+- *Un audit se réexécute* : l'audit du 22/11 est une lecture du code. Un de ses points s'est révélé faux à
+  l'exécution ; il est rectifié dans la section « Errata » de `AUDIT.md`, pas réécrit en silence.
 
 **En attente du dirigeant** : « ok pour la copie de base » (Q1) et « ok pour les sites officiels » (Q5). Sans le
 second, les corrections qui touchent une règle de droit (P0-03 à P0-09, P0-11, P1-09 à P1-12, P1-15) restent en

@@ -7906,3 +7906,23 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **Suite** : lots 17 à 19 écrits, en vérification (déclaration d'incident depuis la fiche du bien, date de l'entrée
   sur l'état des lieux de sortie, charges de copropriété à confirmer poste par poste).
 
+## [2026-11-22] lint   | Mission palier 1, phase 2 : lots 17 à 23 vérifiés (préproduction)
+
+- **Fait** : lots 17 à 23 du plan fermé (P1-19 incident depuis la fiche du bien avec catégorie et urgence, P0-06 date
+  de l'entrée sur l'état des lieux de sortie, P0-03 charges de copropriété à confirmer poste par poste, P1-09 et P1-12
+  écran de restitution du dépôt, P1-10 référence d'article retirée, P2-02 disponibilités du locataire, P2-01 photos à
+  l'état des lieux), vérifiés ensemble sur une base d'essai remise à neuf puis poussés sur la branche de
+  préproduction. Passage complet : 13 951 tests réussis ; 299 parcours navigateur réussis du premier coup, 1 au
+  second essai (cause trouvée dans le parcours lui-même, corrigée), 3 mis de côté par conception, aucun échec. Rien
+  n'est publié en production (gel maintenu).
+- **Erratum de l'audit** : le relevé 14 (a) — « un ancien DPE classé G bloque encore après un nouveau diagnostic » —
+  est faux à l'exécution ; `AUDIT.md` porte une section « Errata ». Constat à la place : le dernier diagnostic
+  enregistré décide (`QUESTIONS.md`, Q28).
+- **Défauts trouvés par la vérification et corrigés avant de pousser** : les disponibilités du locataire n'étaient
+  pas affichées au propriétaire en gestion directe (lot 22) ; un fichier de photo pouvait être déposé avant que la
+  base refuse l'ajout (lot 23).
+- **Limites dites** : aucun texte officiel ouvert (Q5 sans réponse) : les lots 18 à 21 corrigent ce qui ne dépend
+  d'aucun texte et laissent le reste au juriste ; pas de copie de base hébergée (Q1 sans réponse) ; la prise de photo
+  sur un vrai téléphone n'a pas été essayée.
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 17 à 23, règles posées).
+- **Suite** : lot 24 écrit, en vérification (garantie annoncée par l'artisan sur son devis).

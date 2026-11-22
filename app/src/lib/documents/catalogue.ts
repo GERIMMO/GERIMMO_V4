@@ -44,7 +44,7 @@ export const CATALOGUE_DOCUMENTS: EntreeCatalogue[] = [
     "nom": "Notice d’information",
     "famille": "Entrée et contrat",
     "cible": "bail",
-    "description": "Droits et obligations à remettre avec le bail.",
+    "description": "Résumé des droits et obligations. La notice officielle complète reste à remettre avec le bail.",
     "priorite": "P1",
     "code": "notice"
   },

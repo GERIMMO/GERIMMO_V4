@@ -28,6 +28,12 @@ export function CarteCautionnement({
         signer. La forme solidaire permet de poursuivre la caution sans
         discuter d&apos;abord le locataire.
       </p>
+      {/* Audit palier 1 (P0-09, 23/11/2026) : rappel, pas blocage — le texte officiel n'a pas pu être relu. */}
+      <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm" data-rappel-caution-societe>
+        <strong>Bailleur en société (SCI, autre personne morale) :</strong> demander une caution n’est pas permis
+        dans tous les cas. Vérifiez votre situation (ADIL, juriste) avant de faire signer cet acte ; Gerimmo ne
+        contrôle pas ce point.
+      </p>
       <div className="divide-y divide-border">
         {garants.map((g) => (
           <LigneGarant key={g.id} orgId={orgId} bailId={bailId} garant={g} />

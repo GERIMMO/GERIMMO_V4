@@ -158,6 +158,9 @@ export async function assemblerCongeBailleur(
       : null;
   const conditions = options?.conditions_vente?.trim();
 
+  // Audit palier 1 (P0-08, 23/11/2026) : l'adresse du bénéficiaire et les raisons de la reprise ont leur place dans
+  // la lettre. Non saisies, elles s'impriment en blanc à compléter à la main et remontent dans les « à compléter » :
+  // rien n'est bloqué (le texte officiel n'a pas pu être relu ; règle du plan : avertir plutôt que bloquer sans base).
   let blocMotif: string;
   if (motif === "vente") {
     blocMotif = meuble
@@ -184,7 +187,9 @@ export async function assemblerCongeBailleur(
     blocMotif = `<p>Le présent congé vous est délivré au motif de la <b>reprise</b> du logement
       pour l'habiter à titre de résidence principale, au bénéfice de
       ${f.champ(options?.beneficiaire_nom, "nom du bénéficiaire de la reprise")},
-      ${f.champ(options?.beneficiaire_lien, "lien avec le bailleur")}.</p>
+      ${f.champ(options?.beneficiaire_lien, "lien avec le bailleur")},
+      demeurant ${f.champ(options?.beneficiaire_adresse, "adresse du bénéficiaire de la reprise")}.</p>
+      <p>Raisons de la reprise : ${f.champ(options?.raisons_reprise, "raisons de la reprise")}.</p>
       <p class="mentions">Le bénéficiaire de la reprise ne peut être que le bailleur, son conjoint,
       le partenaire auquel il est lié par un pacte civil de solidarité, son concubin notoire depuis
       au moins un an, ses ascendants ou descendants, ou ceux de son conjoint, partenaire ou

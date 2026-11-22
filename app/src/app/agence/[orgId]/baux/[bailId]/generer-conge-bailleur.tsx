@@ -32,6 +32,8 @@ export function GenererCongeBailleur({
   const [motif, setMotif] = useState<"vente" | "reprise" | "motif_legitime">("vente");
   const [beneficiaireNom, setBeneficiaireNom] = useState("");
   const [beneficiaireLien, setBeneficiaireLien] = useState("");
+  const [beneficiaireAdresse, setBeneficiaireAdresse] = useState("");
+  const [raisonsReprise, setRaisonsReprise] = useState("");
   const [motifDetail, setMotifDetail] = useState("");
   const [datePresentation, setDatePresentation] = useState("");
   const [prixVente, setPrixVente] = useState("");
@@ -136,6 +138,30 @@ export function GenererCongeBailleur({
                 onChange={(e) => setBeneficiaireLien(e.target.value)}
               />
             </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="conge-b-adresse" className="text-xs">
+                Adresse du bénéficiaire
+              </Label>
+              <Input
+                id="conge-b-adresse"
+                maxLength={200}
+                placeholder="ex. 12 rue des Lilas, 69003 Lyon"
+                value={beneficiaireAdresse}
+                onChange={(e) => setBeneficiaireAdresse(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="conge-b-raisons" className="text-xs">
+                Raisons de la reprise
+              </Label>
+              <Input
+                id="conge-b-raisons"
+                maxLength={500}
+                placeholder="ex. le bénéficiaire quitte son logement actuel pour s’installer ici à titre de résidence principale"
+                value={raisonsReprise}
+                onChange={(e) => setRaisonsReprise(e.target.value)}
+              />
+            </div>
           </>
         )}
         {motif === "motif_legitime" && (
@@ -152,6 +178,15 @@ export function GenererCongeBailleur({
           </div>
         )}
       </div>
+      {motif !== "motif_legitime" && (
+        <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm" data-conge-a-faire-relire={motif}>
+          <strong>À faire relire avant de notifier.</strong> Un congé pour {motif === "vente" ? "vente" : "reprise"} doit
+          comporter des mentions précises et reproduire certains textes ; un congé incomplet peut être annulé. Gerimmo
+          n’a pas pu comparer ce modèle au texte officiel : il ne garantit pas qu’il soit complet. Faites-le relire
+          (ADIL, avocat, commissaire de justice) avant de l’envoyer.
+          {motif === "reprise" && " L’adresse du bénéficiaire et les raisons de la reprise, laissées vides, s’impriment en blanc à compléter à la main."}
+        </p>
+      )}
       {prixManquant && (
         <p className="text-xs text-muted-foreground">
           En location nue, le congé pour vendre vaut offre de vente au locataire : le prix
@@ -171,6 +206,12 @@ export function GenererCongeBailleur({
             : {}),
           ...(motif === "reprise" && beneficiaireLien.trim()
             ? { beneficiaire_lien: beneficiaireLien.trim() }
+            : {}),
+          ...(motif === "reprise" && beneficiaireAdresse.trim()
+            ? { beneficiaire_adresse: beneficiaireAdresse.trim() }
+            : {}),
+          ...(motif === "reprise" && raisonsReprise.trim()
+            ? { raisons_reprise: raisonsReprise.trim() }
             : {}),
           ...(motif === "motif_legitime" && motifDetail.trim()
             ? { motif_detail: motifDetail.trim() }

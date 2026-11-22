@@ -620,12 +620,14 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
 </div>);
   const piecesAdministratives = (<div className="space-y-4">      {/* Documents-0 : la notice d'information (05), annexe obligatoire */}
-      <Card>
+      <Card id="notice-information">
         <CardHeader>
           <CardTitle className="text-base">Notice d&apos;information</CardTitle>
-          <CardDescription>
-            Annexe obligatoire au contrat (arrêté du 29 mai 2015) — générée et
-            rangée dans Documents, à remettre avec le bail.
+          <CardDescription data-notice-resume>
+            Annexe obligatoire au contrat. Gerimmo en prépare un résumé, rangé dans
+            Documents : il ne remplace pas la notice officielle, dont le texte complet
+            est à remettre au locataire avec le bail (site officiel de
+            l&apos;administration, service-public.fr).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -634,7 +636,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             code="notice"
             cibleId={bailId}
             cheminRetour={`${base}/baux/${bailId}`}
-            libelle="Générer la notice (PDF)"
+            libelle="Générer le résumé de la notice (PDF)"
           />
         </CardContent>
       </Card>

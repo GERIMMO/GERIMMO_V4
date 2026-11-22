@@ -714,7 +714,7 @@ export default async function PagePersonne(
             <summary className="min-h-10 cursor-pointer py-2 text-sm font-medium">Ajouter ou demander un justificatif{demandesEnAttente > 0 ? ` · ${demandesEnAttente} en attente` : ""}</summary>
           <GestionJustificatifsPersonne
             depot={<FormulairePiece orgId={orgId} personId={personId} />}
-            demandes={!estSaFiche && (personne.account_id || estLocataire || locataireEnPreparation || (roles.length === 0 && (detentions ?? []).length === 0) || demandesPieces.length > 0) ? <CartePiecesDemandees orgId={orgId} personId={personId} demandes={demandesPieces} tronquees={demandesTronquees} aUnAcces={Boolean(personne.account_id)} /> : undefined}
+            demandes={!estSaFiche && (personne.account_id || estLocataire || locataireEnPreparation || (roles.length === 0 && (detentions ?? []).length === 0) || demandesPieces.length > 0) ? <CartePiecesDemandees orgId={orgId} personId={personId} demandes={demandesPieces} tronquees={demandesTronquees} aUnAcces={Boolean(personne.account_id)} avantBail={!estLocataire} /> : undefined}
             enAttente={demandesPieces.filter(d=>!d.satisfaite_le).length}
           />
           </details>

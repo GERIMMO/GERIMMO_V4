@@ -2,6 +2,13 @@
 // (arrêté du 29 mai 2015). Cible : le bail. Les rubriques reprennent le
 // contenu de la notice officielle sous forme condensée et fidèle — le texte
 // intégral officiel pourra remplacer chaque rubrique sans toucher au gabarit.
+//
+// Audit palier 1 (P0-07, 23/11/2026). Ce document est un RÉSUMÉ, pas la notice
+// officielle : le texte complet de l'arrêté n'a pas pu être relu ni recopié
+// (sites officiels fermés à l'environnement de l'agent). Tant qu'il ne l'est
+// pas, le document dit lui-même ce qu'il est, en tête, et l'écran du bail
+// demande au bailleur de remettre aussi le texte officiel. Rien d'autre n'est
+// modifié : rubriques, références et mise en page restent celles d'avant.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, assemblerPage, cartouches, echapper, enTete, faitA, section, titre } from "../gabarit";
@@ -15,6 +22,10 @@ import {
   liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
+
+/** Dit en tête du document, et repris par l'écran du bail : ce PDF ne remplace pas le texte officiel. */
+export const AVERTISSEMENT_RESUME_NOTICE =
+  "Ce document est un résumé établi par Gerimmo. Il ne remplace pas la notice d'information officielle, dont le texte complet est fixé par arrêté : le bailleur la remet au locataire avec le bail.";
 
 // Rubriques de la notice (arrêté du 29 mai 2015, résumé fidèle rubrique par
 // rubrique). Servies telles quelles : zéro donnée à demander.
@@ -78,7 +89,7 @@ export async function assemblerNotice(
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const corps = `
     ${enTete(f, exp, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
-    ${titre("Notice d'information", "Annexe obligatoire au contrat de location", [
+    ${titre("Notice d'information", "Résumé établi par Gerimmo — annexe au contrat de location", [
       "Relative aux droits et obligations des locataires et des bailleurs",
       "Arrêté du 29 mai 2015 pris en application de l'article 3 de la loi n° 89-462 du 6 juillet 1989",
     ])}
@@ -88,6 +99,7 @@ export async function assemblerNotice(
       ["Bailleur", `<div>${nomsBailleurs(f, ctx.bailleurs)}</div>`],
       ["Locataire", `<div>${nomsLocataires(f, ctx.locataires)}</div>`],
     ])}
+    <p class="mentions"><b>${echapper(AVERTISSEMENT_RESUME_NOTICE)}</b></p>
     <p>La présente notice est remise au locataire et annexée au contrat de location dont elle fait
     partie intégrante. Elle rappelle les droits et obligations respectifs des parties ainsi que les
     voies de recours et d'indemnisation ouvertes en cas de litige.</p>

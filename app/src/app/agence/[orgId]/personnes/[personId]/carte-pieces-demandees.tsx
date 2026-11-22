@@ -25,9 +25,11 @@ export type PieceDemandee = {
   satisfaite_le: string | null;
 };
 
-// Libellés proposés d'un clic — les demandes qui reviennent tout le temps
+// Libellés proposés d'un clic — les demandes qui reviennent tout le temps.
+// Audit palier 1 (P0-04, 23/11/2026) : le « RIB » n'est plus proposé. Les pièces qu'un bailleur peut demander à un
+// candidat sont encadrées, et le texte officiel n'a pas pu être relu : Gerimmo ne suggère plus une pièce dont il ne
+// peut pas dire qu'elle est permise avant la signature du bail. Le libellé reste libre : rien n'est bloqué.
 const LIBELLES_COURANTS: [string, string][] = [
-  ["RIB", "justificatif"],
   ["Avis d'imposition", "justificatif"],
   ["Justificatif de domicile", "justificatif"],
   ["Pièce d'identité", "piece_identite"],
@@ -83,12 +85,16 @@ export function CartePiecesDemandees({
   // plutôt que de laisser croire à un historique complet.
   tronquees = false,
   aUnAcces = true,
+  // Vrai tant que la personne n'a aucun bail signé (candidat, ou bail encore en préparation) : la carte rappelle
+  // alors que la liste des pièces est encadrée. Elle ne contrôle rien : c'est un rappel, pas un blocage.
+  avantBail = false,
 }: {
   orgId: string;
   personId: string;
   demandes: PieceDemandee[];
   tronquees?: boolean;
   aUnAcces?: boolean;
+  avantBail?: boolean;
 }) {
   const [etat, action] = useActionState<EtatPieceDemandee, FormData>(
     demanderPieceLocataire.bind(null, orgId, personId),
@@ -147,9 +153,16 @@ export function CartePiecesDemandees({
         </p>
       )}
       <form data-saisie-confirmee action={action} className="space-y-2 border-t border-border pt-3">
-        {/* Des BOUTONS « + RIB »… sous un libellé : en pastilles grises, ils
+        {/* Des BOUTONS « + Avis d'imposition »… sous un libellé : en pastilles grises, ils
             avaient l'apparence exacte des états « en attente » / « reçue »,
             rien ne disait qu'on pouvait cliquer (24/09). `.puce` = un état. */}
+        {avantBail && (
+          <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm" data-rappel-pieces-avant-bail>
+            Avant la signature du bail, les pièces qu’un bailleur peut demander à un candidat locataire ou à sa
+            caution sont encadrées par la réglementation. Vérifiez la liste sur le site officiel de l’administration
+            (service-public.fr) avant d’envoyer une demande : Gerimmo ne contrôle pas ce que vous demandez.
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-muted-foreground">Demandes fréquentes :</span>
           {LIBELLES_COURANTS.map(([libelle]) => (
@@ -179,7 +192,7 @@ export function CartePiecesDemandees({
             id={idLibelle}
             name="libelle"
             maxLength={120}
-            placeholder="Pièce à demander (ex. : RIB)"
+            placeholder="Pièce à demander (ex. : avis d’imposition)"
             defaultValue={etat.valeurs?.libelle}
             // h-8 rounded-lg : la boîte de <Input>, comme le reste de la fiche
             className="h-8 min-w-44 flex-1 rounded-lg border border-input bg-transparent px-2.5 text-sm"

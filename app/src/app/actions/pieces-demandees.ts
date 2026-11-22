@@ -41,7 +41,7 @@ export async function demanderPieceLocataire(
   const libelle = String(formData.get("libelle") ?? "").trim();
   const type = String(formData.get("type") ?? "justificatif");
   const note = String(formData.get("note") ?? "").trim();
-  if (!libelle) return { erreur: "Nommez la pièce demandée (ex. : RIB, avis d'imposition).", valeurs };
+  if (!libelle) return { erreur: "Nommez la pièce demandée (ex. : avis d'imposition, justificatif de domicile).", valeurs };
   if (libelle.length > 120) return { erreur: "Le nom de la pièce doit tenir sur 120 caractères.", valeurs };
   if (!["piece_identite", "justificatif", "attestation_assurance"].includes(type))
     return { erreur: "Type de pièce invalide.", valeurs };

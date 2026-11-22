@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight, CalendarDays, CheckCheck, ChevronDown, FilePenLine, Megaphone, PenLine, Settings2, Wallet } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { etatIA } from "@/lib/etat-ia";
 import { campagnesFacebook, depenseFacebookDuMois, santeFacebook } from "@/lib/marketing-meta";
 import { sansJargon } from "@/lib/erreurs";
 import { formaterDateHeureLongueParis } from "@/lib/heure-paris";
@@ -81,11 +82,14 @@ export default async function PageAgentMarketing() {
   // Le seuil est une alerte, pas une autorisation de dépense.
   const depassement = depenseMois != null && depenseMois > reglages.budget_mensuel_cents;
 
-  const iaConfiguree = Boolean(process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim());
+  // Interrupteur IA (22/11/2026) : trois états — activée et reliée, désactivée par le superviseur, ou clé manquante.
+  const etatDeLIA = await etatIA(supabase);
+  const iaDesactivee = etatDeLIA === "desactivee";
+  const iaConfiguree = etatDeLIA === "active";
   const fileIndisponible = Boolean(publicationsResultat.error);
   const filePleine = fileResultat.count != null && fileResultat.count >= LIMITE_ARTICLES;
-  const preparation = reglagesResultat.error ? "État indisponible" : !reglages.actif ? "Préparation en pause" : !iaConfiguree ? "Connexion IA à terminer" : fileResultat.error ? "File à vérifier" : filePleine ? "File pleine" : "Préparation activée";
-  const prochainsVides = reglagesResultat.error ? "Les réglages ne sont pas disponibles. Actualisez avant de vérifier la programmation." : !reglages.actif ? "La préparation automatique est en pause. Vous pouvez créer un article ou reprendre la préparation dans les réglages." : !iaConfiguree ? "La préparation attend la connexion du service d’IA. Les contenus déjà créés restent accessibles." : `La préparation est prévue la veille des jours choisis (${jours}), à ${reglages.heure_preparation_paris} h, sous réserve des limites et des contrôles du service.`;
+  const preparation = reglagesResultat.error ? "État indisponible" : !reglages.actif ? "Préparation en pause" : iaDesactivee ? "IA désactivée" : !iaConfiguree ? "Connexion IA à terminer" : fileResultat.error ? "File à vérifier" : filePleine ? "File pleine" : "Préparation activée";
+  const prochainsVides = reglagesResultat.error ? "Les réglages ne sont pas disponibles. Actualisez avant de vérifier la programmation." : !reglages.actif ? "La préparation automatique est en pause. Vous pouvez créer un article ou reprendre la préparation dans les réglages." : iaDesactivee ? "La préparation automatique des posts est suspendue : l’IA est désactivée dans les paramètres. Vous pouvez créer un article et le publier à la main." : !iaConfiguree ? "La préparation attend la connexion du service d’IA. Les contenus déjà créés restent accessibles." : `La préparation est prévue la veille des jours choisis (${jours}), à ${reglages.heure_preparation_paris} h, sous réserve des limites et des contrôles du service.`;
   const counts = (n:number) => fileIndisponible ? "—" : n;
   const columns = [
     {title:"À relire",rows:aRelire,tone:"ambre",empty:"Aucun article à relire dans les derniers contenus.",icon:FilePenLine},

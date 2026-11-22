@@ -2,7 +2,7 @@ import {exigerOperationsPayantesAutorisees} from "./verrou-pilote";
 import "server-only";
 import { prixPropose, REFERENCES_TRAVAUX, type RepereHistorique } from "./references-prix-travaux";
 import { ArretSupervision } from "./controle-effets";
-import { PlafondIAAtteint, type AvantAppelIA } from "./plafond-ia";
+import { IADesactivee, PlafondIAAtteint, type AvantAppelIA } from "./plafond-ia";
 
 export type LigneProposee = { code?: string; libelle: string; quantite: number; prix_unitaire_ht_cents: number | null; tva_bps: number | null };
 export type PropositionDevis = {
@@ -20,6 +20,8 @@ export function contexteTechnique(categorie: string, description: string | null)
 
 /** Ce que l'artisan lit quand la proposition n'a pas pu venir de l'IA (X19 : limite du jour ou arrêt décidé par Gerimmo). */
 function motifSansIA(e: unknown): string {
+  // Interrupteur IA (22/11/2026) : IA coupée par le superviseur — ni panne ni limite, une base sans IA.
+  if (e instanceof IADesactivee) return "Proposition issue du catalogue de références, sans IA : vérifiez chaque ligne.";
   if (e instanceof PlafondIAAtteint) return "La proposition assistée par l’IA a atteint sa limite du jour. Proposition issue du catalogue de références : vérifiez chaque ligne.";
   if (e instanceof ArretSupervision && e.raison === "arret") return "La proposition assistée par l’IA est suspendue pour le moment. Proposition issue du catalogue de références : vérifiez chaque ligne.";
   return "L’IA est momentanément indisponible. Les repères sourcés restent utilisables.";

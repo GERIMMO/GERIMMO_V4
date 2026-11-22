@@ -16,6 +16,8 @@ import {
 import { degreEcheance, demandeAChiffrer } from "./libelles";
 import { AcceptationConditionsArtisans } from "./acceptation-conditions-artisans";
 import { conditionsArtisansAAccepter } from "@/lib/conditions-acceptation-serveur";
+import { FournisseurEtatIA } from "@/components/etat-ia";
+import { etatIA } from "@/lib/etat-ia";
 
 // Un seul suffixe pour tout l'espace (audit du 13/10, DES-B-07) : les pages ne
 // donnent que le nom de l'écran, le gabarit y ajoute « — Gerimmo ». Il ne
@@ -73,6 +75,9 @@ export default async function LayoutArtisan({
       </div>
     );
   }
+
+  // Interrupteur IA (22/11/2026) : lu une fois ici, offert aux composants de l'espace.
+  const etatDeLIA = await etatIA(supabase);
 
   // Plan de conformité du 23/10 (R10) : dès que les conditions de l'espace artisan sont publiées
   // (CONDITIONS_ARTISANS_VERSION), le compte qui ne les a pas acceptées voit leur case à la place de la page demandée.
@@ -194,7 +199,9 @@ export default async function LayoutArtisan({
             </p>
           )}
           <main id="contenu-espace" tabIndex={-1} className={`artisan-corps ${styles.content}`}>
+            <FournisseurEtatIA etat={etatDeLIA}>
             {conditionsAAccepter ? <AcceptationConditionsArtisans version={conditionsAAccepter.version} date={conditionsAAccepter.date} /> : children}
+            </FournisseurEtatIA>
           </main>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { nomArret } from '@/lib/nom-arret-supervision';
 import { formaterDateHeureParis } from '@/lib/heure-paris';
 import { FormulaireLimiteIA } from './limite-ia-formulaire';
 
-export type ReglageLimiteIA = { plafond_jour: number; modifie_le: string; modifie_par: string | null };
+export type ReglageLimiteIA = { plafond_jour: number; modifie_le: string; modifie_par: string | null; ia_active?: boolean };
 
 const appels = (n: number) => `${n} appel${n > 1 ? 's' : ''}`;
 const majuscule = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
@@ -35,6 +35,13 @@ export function LimiteAppelsIA({ reglage, jour, lisible, auteur }: {
         n’a pas lieu et l’écran ou la tâche concernée le dit. Un appel parti compte, même s’il échoue ; un appel arrêté
         ou refusé ne compte pas.
       </p>
+      {/* Interrupteur IA (22/11/2026) : l'IA désactivée prime sur la limite — aucun appel ne part. */}
+      {lisible && reglage?.ia_active === false && (
+        <p role="status" data-ia-desactivee>
+          <strong>L’IA est désactivée.</strong> Aucun appel ne part et rien n’est compté, quelle que soit la limite.
+          Elle se réactive dans les <a className="lien-discret" href="/admin/parametres#ia">paramètres généraux</a>.
+        </p>
+      )}
       {plafond === null ? (
         <p role="alert" className="err">{sansChiffre}</p>
       ) : (

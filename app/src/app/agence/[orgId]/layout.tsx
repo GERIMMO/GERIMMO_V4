@@ -25,6 +25,8 @@ import { FournisseurRacineEspace } from "@/components/racine-espace-contexte";
 import { joursJusquaParis } from "@/lib/heure-paris-calcul";
 import { NouvelleVersionConditions } from "@/components/nouvelle-version-conditions";
 import { LienContenu } from "@/components/lien-contenu";
+import { FournisseurEtatIA } from "@/components/etat-ia";
+import { etatIA } from "@/lib/etat-ia";
 
 // Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée.
 //
@@ -60,6 +62,8 @@ export default async function LayoutAgence({
   const { orgId } = await params;
   const { supabase, user, organisation, role, estProprietaire, traverseeLectureSeule } =
     await verifierAccesEspace(orgId);
+  // Interrupteur IA (22/11/2026) : lu une fois ici, offert aux composants de l'espace.
+  const etatDeLIA = await etatIA(supabase);
 
   // « Mon portefeuille » (RM-18.1.3) d'abord : la pastille Incidents et le
   // plan du jour se lisent à travers lui — null : je vois tout.
@@ -310,7 +314,7 @@ export default async function LayoutAgence({
         )}
         {estProprietaire && <span id="contenu-espace" tabIndex={-1} className="sr-only" />}
         {!estProprietaire && piloteLimite()&&<p role="status" className="mx-4 my-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">Vos relances de loyer se préparent en PDF. Les relances locatives et les avis d’échéance par courriel restent suspendus.</p>}
-        {children}
+        <FournisseurEtatIA etat={etatDeLIA}>{children}</FournisseurEtatIA>
         <BarreBasse espace={espace} navigation={navigation} orgId={orgId} racine={racine} organisations={estProprietaire ? [] : organisations} />
       </div>
       <Toasteur />

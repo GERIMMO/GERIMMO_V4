@@ -6,7 +6,8 @@ import {lireSourceEtude,etudierVeille,type SourceEtude} from '@/lib/analyse-veil
 import {FLUX_VEILLE,lireFluxVeille,chargerFluxVeille} from '@/lib/veille-reglementaire';
 import {porteurDuSecret,consignerTache} from '@/lib/tache';
 import {clientDeService} from '@/lib/supabase/service';
-import {reserverAppelIA} from '@/lib/plafond-ia';
+import {IADesactivee,reserverAppelIA} from '@/lib/plafond-ia';
+import {iaDesactiveeParLeSuperviseur} from '@/lib/etat-ia';
 export async function traiterVeille(request:Request){
  if(!porteurDuSecret(request,process.env.CRON_SECRET))return Response.json({erreur:'Non autorisé.'},{status:401});
  const db=clientDeService();if(!db)return Response.json({erreur:'Connexion indisponible.'},{status:503});
@@ -38,7 +39,11 @@ export async function traiterVeille(request:Request){
  // Les cinq premières places seulement : une ancienne file trop longue ne
  // provoque pas d'appels IA pour les sujets en réserve ou hors périmètre.
  const attente=pertinentes.slice(0,LIMITE_VEILLES).filter(i=>!i.analyse_le&&(!i.analyse_tentee_le||Date.parse(i.analyse_tentee_le)<Date.now()-86400000)).slice(0,3);
- if(attente.length){
+ // Interrupteur IA (22/11/2026) : IA désactivée par le superviseur, l'étude est suspendue — ni lecture de source, ni
+ // appel, ni échec. Les sujets restent « à étudier » : ils le seront au premier passage après la réactivation, et
+ // la console permet de les présenter à la main d'ici là.
+ const iaDesactivee=attente.length>0&&await iaDesactiveeParLeSuperviseur(db);
+ if(attente.length&&!iaDesactivee){
   const sources:SourceEtude[]=[];
   await Promise.all(attente.map(async info=>{try{sources.push({id:info.id,titre:info.titre,url:info.source_url,texte:await lireSourceEtude(info.source_url)});}catch{echecs.push('Lecture d’une source officielle');await db.from('regulatory_watch').update({analyse_erreur:'La source officielle doit être relue avant de préparer une étude.',analyse_tentee_le:new Date().toISOString()}).eq('id',info.id);}}));
   if(sources.length)try{await verifierAvantEffet(db,'veille');const {analyses,rejets}=await etudierVeille(sources,()=>reserverAppelIA(db,'veille'));
@@ -49,12 +54,14 @@ export async function traiterVeille(request:Request){
     const {error:erreurTrace}=await db.from('tech_log').insert({evenement:'veille_analyse_rejetee',details:{motif:rejet.motif.slice(0,200),sources:1}});
     const {error:erreurReprise}=await db.from('regulatory_watch').update({analyse_erreur:'Étude non retenue par le contrôle des sources. Elle sera reprise au prochain passage.',analyse_tentee_le:new Date().toISOString()}).eq('id',rejet.id);
     if(erreurTrace||erreurReprise)echecs.push('Enregistrement du contrôle d’une étude');else rejetees++;}}
-  catch(e){if(e instanceof ArretSupervision)throw e;echecs.push('Analyse des conséquences à reprendre');
+  catch(e){if(e instanceof ArretSupervision)throw e;
+   // L'IA a été désactivée entre la lecture de l'état et l'appel : même état neutre, rien à reprendre.
+   if(!(e instanceof IADesactivee)){echecs.push('Analyse des conséquences à reprendre');
    // Le motif exact, sans aucun contenu de source ni de réponse : c'est ce qui
    // manquait le 25/09 pour comprendre un échec depuis la console.
    await db.from('tech_log').insert({evenement:'veille_analyse_echec',details:{motif:e instanceof Error?e.message.slice(0,200):'inconnu',sources:sources.length}});
-   for(const source of sources)await db.from('regulatory_watch').update({analyse_erreur:messageEtudeIA(e),analyse_tentee_le:new Date().toISOString()}).eq('id',source.id);}
+   for(const source of sources)await db.from('regulatory_watch').update({analyse_erreur:messageEtudeIA(e),analyse_tentee_le:new Date().toISOString()}).eq('id',source.id);}}
  }
- await consignerTache(db,'veille',{preparees,etudiees,rejetees,echecs,sources:FLUX_VEILLE.length,places, hors_perimetre:file.length-(file.filter(i=>sujetDansPerimetre(i.titre)).length)});
+ await consignerTache(db,'veille',{preparees,etudiees,rejetees,echecs,...(iaDesactivee?{etude_suspendue:'IA désactivée'}:{}),sources:FLUX_VEILLE.length,places, hors_perimetre:file.length-(file.filter(i=>sujetDansPerimetre(i.titre)).length)});
  return Response.json({preparees,etudiees,rejetees,echecs},{status:echecs.length?503:200});
 }

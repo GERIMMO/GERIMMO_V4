@@ -224,6 +224,8 @@ const MISSION_OCTOBRE = [
   "20261122100000_relais_point_inscriptions.sql",
   // 22/11, audit palier 1 (P0-02) : le décompte de sortie retranche ce qui a été reçu par un échéancier de charges.
   "20261122110000_decompte_sortie_echeancier_charges.sql",
+  // 22/11, mission palier 1 : l'interrupteur « IA activée / désactivée » (les deux gardes rendent « desactive »).
+  "20261122120000_interrupteur_ia.sql",
 
 
 ];

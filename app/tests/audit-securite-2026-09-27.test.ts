@@ -151,6 +151,11 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
       // Prédicat booléen (l'artisan a-t-il une assurance à jour ?) posé le 27/09
       // par la console de contrôle ; ne rend aucune donnée — à confirmer par son auteur.
       "artisan_assurance_deposee(uuid)",
+      // Interrupteur IA (22/11/2026) : un seul booléen global (« le superviseur laisse-t-il l'IA activée ? »), sans
+      // donnée d'un compte ni d'une organisation, que les écrans de chaque espace lisent pour proposer la saisie
+      // manuelle. Definer parce que la table du réglage reste fermée aux comptes ordinaires ; anon ne l'exécute pas
+      // (tests/interrupteur-ia-base.test.ts).
+      "ia_disponible()",
     ]);
     const sansGarde = rows.map((r) => r.f).filter((f) => !motivees.has(f) && !f.startsWith("montant_abonnement_cents("));
     expect(sansGarde, `Fonctions definer sans garde apparente :\n${sansGarde.join("\n")}`).toEqual([]);

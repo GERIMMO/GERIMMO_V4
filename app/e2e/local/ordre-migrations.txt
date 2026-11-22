@@ -525,3 +525,4 @@
 20261122090000_bail_repris_dpe_g_et_edl_entree.sql
 20261122100000_relais_point_inscriptions.sql
 20261122110000_decompte_sortie_echeancier_charges.sql
+20261122120000_interrupteur_ia.sql

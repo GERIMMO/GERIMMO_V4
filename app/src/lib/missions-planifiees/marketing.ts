@@ -12,7 +12,11 @@ import {creerVisuelMarketing} from '@/lib/visuel-marketing';
 import {envoyerSurFacebook,RefusFacebookCertain,retrouverPostFacebook} from '@/lib/facebook';
 import {alerterSuperviseurDuPost} from '@/lib/alerte-veto-marketing';
 import {composantesParis,dateParis} from '@/lib/heure-paris-calcul';
-import {PlafondIAAtteint,reserverAppelIA} from '@/lib/plafond-ia';
+import {IADesactivee,PlafondIAAtteint,reserverAppelIA} from '@/lib/plafond-ia';
+import {iaDesactiveeParLeSuperviseur} from '@/lib/etat-ia';
+
+/** Interrupteur IA (22/11/2026) : ce que la mission consigne quand la préparation est suspendue faute d'IA. */
+export const RAISON_IA_DESACTIVEE='L’IA est désactivée : la préparation automatique des posts est suspendue. Un article se crée et se publie à la main.';
 
 // LA MISSION MARKETING EN DEUX TEMPS (06/10/2026).
 //
@@ -165,7 +169,8 @@ async function choisirSujet(db:Db,r:Reglages,cible:Cible):Promise<{sujet:SujetMa
    return {sujet,source:info.id,motifs};
   }catch(e){if(e instanceof ArretSupervision)throw e;motifs.push(`${info.titre.slice(0,60)} : ${e instanceof Error?e.message:'rédaction impossible'}`);
    // X19 (SA-10) : limite du jour atteinte, aucune autre actualité ne sera rédigée aujourd'hui : sujet éditorial.
-   if(e instanceof PlafondIAAtteint)break;}
+   // Interrupteur IA (22/11/2026) : IA désactivée, aucune autre actualité ne sera rédigée non plus.
+   if(e instanceof PlafondIAAtteint||e instanceof IADesactivee)break;}
  }
  return {sujet:editorial,source:null,motifs};
 }
@@ -175,6 +180,10 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
  if(existant.error)return {erreur:'Impossible de vérifier les publications existantes.'};
  let article=existant.data as Article|null;const motifs:string[]=[];
  if(article&&!['brouillon','planifiee'].includes(article.statut))return {agi:false,raison:'Le créneau est déjà tenu.',article:article.id};
+ // Interrupteur IA (22/11/2026) : un post exige une image nouvelle, que seule l'IA produit ici. IA désactivée et pas
+ // d'image déjà prête : rien n'est créé (ni brouillon, ni réservation de visuel), rien n'est compté en échec. Un
+ // article déjà illustré, lui, se programme normalement.
+ if(!article?.image_empreinte&&await iaDesactiveeParLeSuperviseur(db))return {agi:false,ia_desactivee:true,raison:RAISON_IA_DESACTIVEE,...(article?{article:article.id}:{})};
  if(!article){
   // Avant toute rédaction ou image payante ; tous les brouillons comptent,
   // même ceux hors périmètre, pour arrêter réellement l'accumulation.
@@ -226,11 +235,14 @@ export async function preparerPostDu(db:Db,r:Reglages,cible:Cible){
    const message=e instanceof Error?e.message:'Le visuel doit être repris.';
    // Un refus avant l'appel payant n'est pas un essai d'image. Le témoin de réservation
    // et le compteur empêchent d'annuler une autre tentative démarrée entre-temps.
-   const sansEssai=!appelIAEngage&&(e instanceof PlafondIAAtteint||e instanceof ArretSupervision);
+   const sansEssai=!appelIAEngage&&(e instanceof PlafondIAAtteint||e instanceof ArretSupervision||e instanceof IADesactivee);
    const essais=sansEssai?Math.max(0,article.image_essais-1):article.image_essais;
-   const miseAJour=db.from('publications').update({image_en_cours_le:null,facebook_erreur:message,...(sansEssai?{image_essais:essais}:{})}).eq('id',article.id);
+   // IA désactivée entre la lecture de l'état et l'appel : ce n'est pas une erreur du post.
+   const iaCoupee=e instanceof IADesactivee;
+   const miseAJour=db.from('publications').update({image_en_cours_le:null,facebook_erreur:iaCoupee?null:message,...(sansEssai?{image_essais:essais}:{})}).eq('id',article.id);
    if(article.image_en_cours_le)await miseAJour.eq('image_en_cours_le',article.image_en_cours_le).eq('image_essais',article.image_essais);
    if(e instanceof ArretSupervision)throw e;
+   if(iaCoupee)return {agi:false,ia_desactivee:true,raison:RAISON_IA_DESACTIVEE,article:article.id};
    return {erreur:message,article:article.id,essais,reprise};
   }
  }

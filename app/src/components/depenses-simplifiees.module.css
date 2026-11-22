@@ -15,6 +15,7 @@
 .champs label { display:grid;gap:6px;font-size:12px;color:var(--texte-secondaire);min-width:0; }
 .champs :is(input,select) { width:100%;min-width:0;min-height:44px;border:1px solid var(--filet-champ);border-radius:var(--rayon-champ);padding:9px 11px;background:var(--carte);color:var(--encre);font-size:14px; }
 .lire { justify-self:start;min-height:44px;color:var(--encre);text-decoration:underline;text-underline-offset:3px;font-size:12px; }
+.noteLecture { color:var(--texte-secondaire);font-size:12px;line-height:1.6; }
 .message { padding:12px;border-radius:var(--rayon-champ);background:var(--filet-leger);color:var(--encre);font-size:12px;line-height:1.6; }
 .erreur { color:var(--destructive-soft-foreground);font-size:13px;line-height:1.6; }
 .factures { display:grid;gap:14px;list-style:none;padding:0;margin:0; }

@@ -11,6 +11,7 @@ import { TitreEcran } from "@/components/titre-ecran";
 import { ValeurVivante } from "@/components/valeur-vivante";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { etatIA, iaUtilisable } from "@/lib/etat-ia";
 import { faitsManquants } from "@/lib/editeur";
 import { chargerDecisionsAttendues } from "@/lib/decisions-attendues";
 import { lirePassagesRelais, suivreAlerteQuotidienne } from "@/lib/relais-alerte-suivi";
@@ -47,6 +48,9 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
   const jour = p.jour && /^\d{4}-\d{2}-\d{2}$/.test(p.jour) ? p.jour : aujourdhui;
   const filtreEquipe: Equipe | undefined = p.equipe && estEquipe(p.equipe) ? p.equipe : undefined;
   const supabase = await createClient();
+  // Interrupteur IA (22/11/2026) : l'analyse n'est proposée que si l'IA est activée ET reliée. Le mode pilote ne
+  // retient pas cet appel (il ne transmet que huit compteurs) : l'état se lit hors verrou pilote, comme l'action.
+  const analyseIAProposee = vue === "bureau" && iaUtilisable(await etatIA(supabase, process.env, { verrouPilote: false }));
   const depuis = new Date(`${aujourdhui}T12:00:00Z`); depuis.setDate(depuis.getDate() - 14);
   const identite=await lireEditeur();
   const [duJour, historique, decisions, faits, finance, assistance, passagesRelais] = await Promise.all([
@@ -199,9 +203,9 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
         </div>
       </details>}
 
-      {/* L'analyse IA n'apparaît que si le service est relié (audit C31) :
-          annoncer une fonction inactive n'aide aucune décision. */}
-      {vue === "bureau" && Boolean(process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim()) && (
+      {/* L'analyse IA n'apparaît que si le service est relié (audit C31) et activé (interrupteur IA, 22/11) :
+          annoncer une fonction inactive n'aide aucune décision. Le point du matin, lui, se calcule sans IA. */}
+      {analyseIAProposee && (
         <section className="section-ecran"><BoutonBriefIA disponible /></section>
       )}
       </DetailsAccueil>

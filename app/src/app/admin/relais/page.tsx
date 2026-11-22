@@ -24,7 +24,7 @@ export default async function PageRelais(){
   db.from('supervision_presence').select('derniere_presence').order('derniere_presence',{ascending:false}).limit(1),
   db.rpc('etat_continuite'),
   // X19 (SA-10) : la limite quotidienne des appels payants à l'IA et le compteur du jour de Paris.
-  db.from('ia_plafond_reglage').select('plafond_jour,modifie_le,modifie_par').limit(1),
+  db.from('ia_plafond_reglage').select('plafond_jour,modifie_le,modifie_par,ia_active').limit(1),
   db.from('ia_appels_jour').select('appels,refus').eq('jour',aujourdhuiParis()).limit(1),
  ]);
  const emails=new Map((comptes.data??[]).map(c=>[c.id,c.email]));

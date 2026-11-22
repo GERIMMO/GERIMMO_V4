@@ -12,6 +12,8 @@ import { nomComplet } from "@/lib/roles-personnes";
 import { etatAssuranceLocataire } from "@/lib/assurance-locataire";
 import { aEchoue } from "./panne-lecture";
 import { BOUTON_URGENCE } from "./pastille-locataire";
+import { FournisseurEtatIA } from "@/components/etat-ia";
+import { etatIA } from "@/lib/etat-ia";
 
 // L'apparence de l'organisation, lue une fois par requête : la marque de la
 // barre latérale ET le titre de l'onglet en ont besoin.
@@ -49,6 +51,8 @@ export default async function LayoutLocataire({
 }: LayoutProps<"/locataire/[orgId]">) {
   const { orgId } = await params;
   const { supabase, user, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  // Interrupteur IA (22/11/2026) : lu une fois ici, offert aux composants de l'espace.
+  const etatDeLIA = await etatIA(supabase);
   const apparence = await lireApparence(orgId);
   const identite = await lireIdentiteContact(orgId);
   const nomPublic = identite.nom ?? "Mon espace locataire";
@@ -166,7 +170,7 @@ export default async function LayoutLocataire({
         )}
         {/* Plus de marge basse réservée au rond flottant (25/09, D40) : l'aide
             vit dans la barre latérale, le rond n'existe plus chez le locataire. */}
-        <main id="contenu-espace" tabIndex={-1} className="loc-corps mx-auto">{children}</main>
+        <main id="contenu-espace" tabIndex={-1} className="loc-corps mx-auto"><FournisseurEtatIA etat={etatDeLIA}>{children}</FournisseurEtatIA></main>
       </div>
     </div>
   );

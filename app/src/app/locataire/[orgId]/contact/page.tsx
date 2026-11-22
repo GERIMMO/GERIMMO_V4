@@ -113,7 +113,8 @@ export default async function PageContactLocataire(
 
         </div>
       </div>
-      <AssistantPrive key={`${orgId}:${user.id}`} orgId={orgId} compteId={user.id} lectureSeule={!adhesionActive} />
+      <AssistantPrive key={`${orgId}:${user.id}`} orgId={orgId} compteId={user.id} lectureSeule={!adhesionActive}
+        aides={[{ href: `/locataire/${orgId}/faq`, libelle: "Aide et questions fréquentes" }, { href: `/locataire/${orgId}/regles`, libelle: "Les règles à connaître" }]} />
     </div>
   );
 }

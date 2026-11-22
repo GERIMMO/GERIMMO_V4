@@ -1,3 +1,4 @@
+import { iaDesactiveeParLeSuperviseur } from "./etat-ia";
 import { fermetureModeleSignature } from "./signature-interrupteurs";
 import { signatureEnEssai } from "./signature-essai";
 import { REGIME_TVA } from "@/lib/editeur";
@@ -796,6 +797,21 @@ export function verificationCreditIA(lignes: LigneJournal[], clePosee = true): V
   };
 }
 
+// ── L'interrupteur IA (mission palier 1, 22/11/2026) ─────────────────────────
+// Quand le superviseur a désactivé l'IA, sa clé et son crédit ne sont plus des points à traiter : les deux lignes
+// restent visibles, marquées « Désactivé », et ne comptent plus parmi les points bloquants. Seul un « non » explicite
+// de la base désactive l'alerte : une lecture impossible la laisse en place (lib/etat-ia.ts).
+
+/** Les lignes de l'IA (clé, crédit) neutralisées quand elle est désactivée ; les autres lignes ne bougent pas. */
+export function sansAlerteIA(configuration: Verification[], iaDesactivee: boolean): Verification[] {
+  if (!iaDesactivee) return configuration;
+  return configuration.map((v) =>
+    v.cle === "OPENAI_API_KEY"
+      ? { ...v, etat: "ok" as const, information: "Désactivé" as const, commande: undefined, detail: "L’IA est désactivée dans les paramètres généraux : cette ligne n’est pas à traiter. Gerimmo fonctionne en saisie manuelle." }
+      : v
+  );
+}
+
 async function lireEvenementsIA(db: ClientQuiLitLeJournal, maintenant: Date): Promise<LigneJournal[] | null> {
   const depuis = new Date(maintenant.getTime() - 7 * 24 * HEURE).toISOString();
   const { data, error } = await (db.from("tech_log") as ChaineJournal)
@@ -841,9 +857,9 @@ export async function chargerSante(
   maintenant: Date = new Date(),
   regimeTva: RegimeTva | null = REGIME_TVA
 ): Promise<Sante> {
-  const [taches, evenementsIA, cycleMensuel] = await Promise.all([chargerEtatTaches(db, maintenant), lireEvenementsIA(db, maintenant), chargerCycleMensuel(db, maintenant)]);
+  const [taches, evenementsIA, cycleMensuel, iaDesactivee] = await Promise.all([chargerEtatTaches(db, maintenant), lireEvenementsIA(db, maintenant), chargerCycleMensuel(db, maintenant), iaDesactiveeParLeSuperviseur(db)]);
   const clePosee = Boolean(valeur(env, "OPENAI_API_KEY") || valeur(env, "OPEN_AI_KEY"));
-  const configuration = [...etatConfiguration(env, regimeTva), ...(evenementsIA ? [verificationCreditIA(evenementsIA, clePosee)] : [])];
+  const configuration = sansAlerteIA([...etatConfiguration(env, regimeTva), ...(evenementsIA ? [verificationCreditIA(evenementsIA, clePosee)] : [])], iaDesactivee);
   return {
     configuration,
     taches,

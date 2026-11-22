@@ -7,6 +7,8 @@ import Link from "next/link";
 import { faitsACompleter, faitsManquants } from "@/lib/editeur";
 import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
 import { BlocageSouscription, OuvertureVentes } from "./blocage-souscription";
+import { InterrupteurIA } from "./interrupteur-ia";
+import { etatIA, motifIANonConnectee } from "@/lib/etat-ia";
 
 export const metadata = { title: "Paramètres généraux" };
 
@@ -22,6 +24,11 @@ export default async function PageParametres() {
   const regle=await lireReglageSouscription();
   const db=await createClient();
   const config=await db.from("supervision_identite").select("revision").eq("singleton",true).maybeSingle();
+  // Interrupteur IA (22/11/2026) : le réglage n'est lisible que par le superviseur permanent ; l'état constaté par
+  // les écrans (`ia_disponible`), lui, l'est par tout compte connecté.
+  const reglageIA = await db.from("ia_plafond_reglage").select("ia_active").eq("singleton", true).maybeSingle();
+  const iaActive = reglageIA.error || !reglageIA.data ? null : reglageIA.data.ia_active === true;
+  const etatDeLIA = await etatIA(db);
   const requis = faitsManquants({});
   const manquants = new Set(faitsManquants(editeur));
   // 23/10 : le médiateur se complète plus tard, sans fermer le paiement (lib/editeur.ts, A_COMPLETER).
@@ -36,14 +43,15 @@ export default async function PageParametres() {
         <div className="min-w-0 flex-[1_1_20rem]">
           <TitreEcran rubrique="profil">Paramètres généraux</TitreEcran>
           <p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">
-            Coordonnées publiques de Gerimmo et ouverture des abonnements.
+            Coordonnées publiques de Gerimmo, ouverture des abonnements et fonctions assistées par l’IA.
           </p>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3" aria-label="État des paramètres">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="État des paramètres">
         <a className="loc-carte" href="#identite"><strong className="block">Identité de Gerimmo ↓</strong><span className="text-sm text-muted-foreground">{indisponible ? 'Lecture indisponible' : `${fournis} / ${exiges.length} fournis`}</span></a>
         <a className="loc-carte" href="#souscriptions"><strong className="block">Abonnements ↓</strong><span className="text-sm text-muted-foreground">Vérifier la règle d’ouverture</span></a>
+        <a className="loc-carte" href="#ia"><strong className="block">Fonctions assistées par l’IA ↓</strong><span className="text-sm text-muted-foreground">{iaActive === null ? 'État indisponible' : iaActive ? 'Activée' : 'Désactivée'}</span></a>
         <Link className="loc-carte" href="/admin/conservation"><strong className="block">Conservation</strong><span className="text-sm text-muted-foreground">Régler les durées par catégorie →</span></Link>
       </div>
 
@@ -56,6 +64,10 @@ export default async function PageParametres() {
         <OuvertureVentes ouvertes={regle.ventesOuvertes} revision={regle.revision} />
         <BlocageSouscription actif={regle.blocageIdentiteActif} revision={regle.revision} manquants={[...manquants]} aCompleter={[...aCompleter]} />
       </ConsoleSection>
+
+      <section id="ia" className="scroll-mt-24">
+        <InterrupteurIA active={iaActive} etat={etatDeLIA} motif={motifIANonConnectee()} />
+      </section>
 
       <div className="grid gap-6 md:grid-cols-2">
         <section className="loc-carte">

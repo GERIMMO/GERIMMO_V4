@@ -17,6 +17,8 @@ import { BandeauArretSupervision } from "@/components/bandeau-arret-supervision"
 import { ShieldCheck } from "lucide-react";
 import styles from "./supervision.module.css";
 import { Suspense } from "react";
+import { FournisseurEtatIA } from "@/components/etat-ia";
+import { etatIA } from "@/lib/etat-ia";
 
 // Un seul suffixe d'onglet pour toute la supervision (audit du 13/10, DES-B-07) :
 // les pages ne donnent que le nom de l'écran, le gabarit y ajoute « — Gerimmo »
@@ -38,6 +40,8 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
   if (!estSuperAdmin) redirect("/espaces");
 
   const identite=await lireEditeur();
+  // Interrupteur IA (22/11/2026) : lu une fois ici, offert aux composants de la console.
+  const etatDeLIA = await etatIA(supabase);
   const [alertes, decisions, { data: utilisateur }, arrets, relais] = await Promise.all([
     chargerSyntheseAlertes(supabase, { supervision: true }),
     chargerDecisionsAttendues(supabase, process.env, faitsManquants(identite.indisponible?{}:identite.editeur).length),
@@ -106,7 +110,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
               dessous. */}
           <div id="contenu-espace" tabIndex={-1} className="portail-ecrans min-w-0 flex-1 pb-[calc(72px+env(safe-area-inset-bottom,0px))]">
             <BandeauArretSupervision arrets={arrets.error ? [] : (arrets.data ?? [])} relais={relais.error ? [] : (relais.data ?? [])} />
-            {children}
+            <FournisseurEtatIA etat={etatDeLIA}>{children}</FournisseurEtatIA>
           </div>
         </div>
       </div>

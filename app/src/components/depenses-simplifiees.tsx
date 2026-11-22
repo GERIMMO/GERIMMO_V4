@@ -15,6 +15,7 @@ import { contexteDepenseSimple, naturePourFacture, valeursLectureFacture } from 
 import { FormulairesConsommations, FicheFactureFourniture, type Props } from "./consommations-formulaires";
 import { BoutonEnvoi } from "./ui/bouton-envoi";
 import styles from "./depenses-simplifiees.module.css";
+import { useIAUtilisable } from "./etat-ia";
 
 export function DepensesSimplifiees(p: Props & { masquerVide?: boolean }) {
   const [ouvert,setOuvert] = useState(false);
@@ -38,6 +39,8 @@ function Saisie({p,fermer,guide=false}:{p:Props;fermer:(id?:string)=>void;guide?
   const form=useRef<HTMLFormElement>(null);
   const fichier=useRef<HTMLInputElement>(null);
   const [lecture,setLecture]=useState(false);
+  // Interrupteur IA (22/11/2026) : IA coupée ou non connectée, le préremplissage n'est pas proposé ; la saisie reste entière.
+  const iaUtilisable=useIAUtilisable();
   const [message,setMessage]=useState("");
   const listeFournisseurs=useId();
   const lots=p.lots.filter(l=>l.etat!=="archive");
@@ -72,7 +75,8 @@ function Saisie({p,fermer,guide=false}:{p:Props;fermer:(id?:string)=>void;guide?
   return <form ref={form} action={action} onReset={e=>e.preventDefault()} data-saisie-confirmee className={styles.formulaire} aria-busy={pending||lecture}>
     <div className={styles.entete}><TitreSaisie>{guide ? "Facture et informations" : "Ajouter une facture"}</TitreSaisie><button type="button" disabled={pending||lecture} onClick={()=>fermer()}>Annuler</button></div>
     <label className={styles.depot}><Upload size={22} aria-hidden="true"/><span>Facture ou justificatif</span><input ref={fichier} name="document" type="file" accept="application/pdf,image/jpeg,image/png" required disabled={pending||lecture} onChange={()=>{setMessage("");setNatureLue("");}}/></label>
-    <button type="button" onClick={lire} disabled={pending||lecture} className={styles.lire}>{lecture ? "Lecture…" : "Préremplir depuis la facture"}</button>
+    {iaUtilisable && <><button type="button" onClick={lire} disabled={pending||lecture} className={styles.lire}>{lecture ? "Lecture…" : "Préremplir depuis la facture"}</button>
+    <p className={styles.noteLecture}>Si vous utilisez ce bouton, la facture sera transmise à OpenAI, le prestataire d’IA de Gerimmo, établi aux États-Unis, pour y être lue. Sinon, renseignez les informations ci-dessous.</p></>}
     {message && <p role="status" className={styles.message}>{message}</p>}
     <div className={styles.champs}>
       <label>Fournisseur<input list={listeFournisseurs} name="fournisseur" required maxLength={150} value={fournisseur} placeholder="Nom indiqué sur la facture" onChange={e=>{setMessage("");setFournisseur(e.target.value);}} autoComplete="off"/><datalist id={listeFournisseurs}>{contexte.fournisseurs.map(n=><option key={n} value={n}/>)}</datalist></label>

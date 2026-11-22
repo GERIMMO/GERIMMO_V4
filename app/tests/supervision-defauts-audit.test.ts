@@ -47,7 +47,8 @@ const html = renderToStaticMarkup;
 beforeEach(() => {
   vi.clearAllMocks(); mock.resultats = {};
   mock.from.mockImplementation(requete);
-  mock.rpc.mockImplementation(async (nom: string) => nom === 'is_super_admin' ? ok(true) : mock.resultats[nom] ?? ok([]));
+  // Interrupteur IA (22/11/2026) : activée par défaut, comme en base ; un test la coupe par `mock.resultats.ia_disponible`.
+  mock.rpc.mockImplementation(async (nom: string) => nom === 'is_super_admin' ? ok(true) : mock.resultats[nom] ?? (nom === 'ia_disponible' ? ok(true) : ok([])));
   mock.user.mockResolvedValue({ data: { user: { id: 'moi' } }, error: null });
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); });
@@ -158,6 +159,15 @@ describe('SA-08 : aucune promesse automatique sans configuration', () => {
     mock.resultats.marketing_reglages = ok({ actif, jours_semaine: [2,5], heure_paris: 9, heure_preparation_paris: 17, budget_mensuel_cents: 0, veille_mots_inclus: [], veille_mots_exclus: [] });
     const rendu=html(await Marketing());
     expect(rendu).toContain(actif ? 'Connexion IA à terminer' : 'Préparation en pause'); expect(rendu).not.toContain('La préparation est prévue la veille');
+  });
+  // Interrupteur IA (22/11/2026) : l'IA coupée par le superviseur se dit, sans la confondre avec une connexion à finir.
+  it('préparation active, IA désactivée par le superviseur : annoncée suspendue, avec la voie manuelle', async () => {
+    vi.stubEnv('OPENAI_API_KEY','fictif-test-jamais-envoye');
+    mock.resultats.ia_disponible = ok(false);
+    mock.resultats.marketing_reglages = ok({ actif: true, jours_semaine: [2,5], heure_paris: 9, heure_preparation_paris: 17, budget_mensuel_cents: 0, veille_mots_inclus: [], veille_mots_exclus: [] });
+    const rendu=html(await Marketing());
+    expect(rendu).toContain('IA désactivée'); expect(rendu).not.toContain('Connexion IA à terminer'); expect(rendu).not.toContain('Préparation activée');
+    expect(rendu).toContain('créer un article et le publier à la main'); expect(rendu).not.toContain('La préparation est prévue la veille');
   });
 });
 

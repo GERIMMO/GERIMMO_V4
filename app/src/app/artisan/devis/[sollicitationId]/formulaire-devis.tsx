@@ -34,6 +34,8 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
   const [sauvegarde,setSauvegarde]=useState(copieInitiale ? "Modifications non enregistrées" : "");
   const [enregistrement,setEnregistrement]=useState(false);
   const [cle,setCle]=useState(0);
+  // Interrupteur IA (22/11/2026) : l'équivalent manuel de la proposition — repartir d'un devis vide, à tout moment.
+  const [vierge,setVierge]=useState(false);
   const form=useRef<HTMLFormElement>(null);const modifie=useRef(Boolean(copieInitiale));const demarre=useRef(false);
   const revisionCourante = useRef(copieInitiale?.revision ?? initiale?.revision ?? 0);
   const versionSaisie = useRef(0);
@@ -108,7 +110,14 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
     } catch { setErreur("La réponse n’est pas arrivée. Votre saisie reste conservée sur cet appareil si la copie locale est disponible. Rouvrez le devis pour vérifier la version Gerimmo."); }
     finally {occupation.current=false;setEnregistrement(false);}
   }
-  const saisie=copieInitiale ? {...copieInitiale.contenu, valideJusquAu:copieInitiale.contenu.valide_jusqu_au, lignes:undefined} : preparation?.saisie;
+  function repartirVierge() {
+    // Seule l'étape « Proposition » est remontée (sa clé change) : les conditions déjà saisies ne bougent pas. Les
+    // champs sont vidés au prochain rendu ; la copie locale et l'état « non enregistré » suivent, comme pour toute saisie.
+    setVierge(true);
+    modification();
+  }
+  const saisieConnue=copieInitiale ? {...copieInitiale.contenu, valideJusquAu:copieInitiale.contenu.valide_jusqu_au, lignes:undefined} : preparation?.saisie;
+  const saisie=vierge&&saisieConnue ? {...saisieConnue, diagnostic:"", lignes:undefined} : saisieConnue;
   const proposition=preparation?.proposition;
   const texteSauvegarde = sauvegarde || (valide ? "PDF validé et enregistré" : initiale ? "Brouillon enregistré" : "Enregistrez pour reprendre plus tard");
   const nonEnregistre = sauvegarde === "Modifications non enregistrées" || sauvegarde === "Modifications à valider";
@@ -121,16 +130,17 @@ export function FormulaireDevis({sollicitationId,echeanceParDefaut,initiale,erre
         {titre:"Validation",statut:valide?"complet":undefined,statutLibelle:valide?"PDF enregistré":"Votre accord",detail:"Relisez puis validez le devis pour générer votre PDF."},
         {titre:"Envoi",statutLibelle:valide?"Prêt à envoyer":"Après validation",detail:"Transmettez le PDF à la personne qui vous a sollicité."},
       ]} conclusion={<Envoyer valide={valide&&!enregistrement&&!chargement} versionSuivante={versionSuivante}/>} contenus={[
-        <div key={`prestations-${cle}`} className="space-y-5">
+        <div key={`prestations-${cle}-${vierge?"vierge":"base"}`} className="space-y-5">
           {/* D18 (livraison 2) : « ce qui change » est obligatoire pour une version suivante ; la base le lit dans la préparation envoyée. */}
           {versionSuivante&&<label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Ce qui change dans la version {versionSuivante}</span><textarea name="note_revision" required maxLength={4000} rows={3} defaultValue={copieInitiale ? copieInitiale.contenu.note_revision : preparation?.saisie?.noteRevision} placeholder="Ex. : main-d’œuvre détaillée par heure, prix du joint ramené au tarif fournisseur." className={CLASSE_ZONE_TEXTE}/><span className={CLASSE_AIDE}>Transmis au client avec la nouvelle version : il lit ce qui a été revu.</span></label>}
           <div className={styles.aideProposition}>
-            <h3><Sparkles size={19} aria-hidden/>{chargement?"Gerimmo prépare votre proposition…":proposition?.moteur==="ia"?"Proposition préparée avec l’IA":"Proposition Gerimmo"}</h3>
-            <p>Ajustez cette base selon votre diagnostic. Vous décidez des prestations et de vos prix.</p>
-            {proposition&&<details className="mt-1 text-sm"><summary className="cursor-pointer font-semibold">Origine des prix et points à vérifier</summary><ul className="mt-2 list-disc space-y-1 pl-5">{proposition.a_verifier.map((p,i)=><li key={i}>{p}</li>)}</ul>{proposition.sources.map((s,i)=><p key={i} className="mt-3"><strong>{s.origine==="gerimmo"?"Moyenne Gerimmo":"Référence de marché"} · {s.libelle}</strong><br/>{s.detail} {s.url&&<a href={s.url} target="_blank" rel="noreferrer" className="underline">Source consultée le 12/10/2026</a>}</p>)}</details>}
+            <h3><Sparkles size={19} aria-hidden/>{chargement?"Gerimmo prépare votre proposition…":vierge?"Devis vierge":proposition?.moteur==="ia"?"Proposition préparée avec l’IA":"Proposition Gerimmo"}</h3>
+            <p>{vierge?"Vous partez d’un devis vide : décrivez votre diagnostic, puis ajoutez vos prestations et vos prix.":"Ajustez cette base selon votre diagnostic. Vous décidez des prestations et de vos prix."}</p>
+            {!chargement&&!vierge&&!versionSuivante&&<button type="button" className="lien-discret inline-flex min-h-11 items-center text-sm" onClick={repartirVierge}>Repartir d’un devis vierge</button>}
+            {proposition&&!vierge&&<details className="mt-1 text-sm"><summary className="cursor-pointer font-semibold">Origine des prix et points à vérifier</summary><ul className="mt-2 list-disc space-y-1 pl-5">{proposition.a_verifier.map((p,i)=><li key={i}>{p}</li>)}</ul>{proposition.sources.map((s,i)=><p key={i} className="mt-3"><strong>{s.origine==="gerimmo"?"Moyenne Gerimmo":"Référence de marché"} · {s.libelle}</strong><br/>{s.detail} {s.url&&<a href={s.url} target="_blank" rel="noreferrer" className="underline">Source consultée le 12/10/2026</a>}</p>)}</details>}
           </div>
           <label className="block space-y-1.5"><span className={CLASSE_LIBELLE}>Votre diagnostic</span><textarea name="diagnostic" required maxLength={4000} rows={2} defaultValue={saisie?.diagnostic} placeholder="Décrivez le problème constaté et les travaux que vous proposez." className={CLASSE_ZONE_TEXTE}/></label>
-          <LignesDevis afficherHtIncomplet initiales={saisie?.lignes} saisieInitiale={copieInitiale?.contenu.lignes}/>
+          <LignesDevis afficherHtIncomplet initiales={saisie?.lignes} saisieInitiale={vierge?undefined:copieInitiale?.contenu.lignes}/>
         </div>,
         <div key={`conditions-${cle}`} className="space-y-5">
           <ResumeDevis compact/>

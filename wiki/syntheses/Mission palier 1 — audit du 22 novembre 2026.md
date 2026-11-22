@@ -84,7 +84,7 @@ d'être poussé sur la branche de préproduction ; rien n'est publié en product
 | 22 | P2-02 | Le [[Locataire]] indique ses disponibilités dès qu'il signale un incident ; le gestionnaire les lit au dossier |
 | 23 | P2-01 | Une photo par élément de l'[[État des lieux]], imprimée et numérotée dans le document ; figée à la signature |
 | 24 | P2-02 (fin) | L'[[Artisan]] écrit la garantie qu'il annonce sur son [[Devis]] ; le gestionnaire la lit au dossier et sur le PDF, avec « Engagement de l'artisan, pas de Gerimmo » |
-| 25 | P2-03 | L'[[Artisan]] déclare ses absences (aucune nouvelle demande ne lui est envoyée pendant) et sa semaine type (elle préremplit ses créneaux) ([[Sollicitation d'artisans]]) |
+| 25 | P2-03 | L'[[Artisan]] déclare ses absences (aucune nouvelle demande ne lui est envoyée pendant) et sa semaine type (elle préremplit ses créneaux) ([[Demande et sélection de devis]]) |
 | 26 | P2-04 (deux parties) | Un rendez-vous manqué se consigne (qui était absent, qui le dit) ; l'[[Artisan]] relance son client pour une facture déposée depuis 30 jours, sans e-mail ([[Intervention et clôture]]) |
 
 **Règle métier posée au lot 11** (source : cahier Gerimmo V3, module 9, variante V5 — « l'agent la refuse, l'artisan

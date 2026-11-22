@@ -246,6 +246,8 @@ const MISSION_OCTOBRE = [
   "20261122210000_decision_artisan_notifiee.sql",
   // 22/11, audit palier 1 (P1-19) : la déclaration d'incident depuis la fiche du bien reçoit la catégorie et l'urgence.
   "20261122220000_incident_bien_categorie_urgence.sql",
+  // 22/11, audit palier 1 (P0-03) : un poste de charges « récupérable » par proposition doit être confirmé avant la validation.
+  "20261122230000_charges_proposees_a_confirmer.sql",
 
 
 ];

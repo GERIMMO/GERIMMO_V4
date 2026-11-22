@@ -61,6 +61,8 @@ export const FICHIERS_EN_SERIE = [
   "tests/decision-artisan-base.test.ts",
   // Audit palier 1, P1-19 : rejoue la migration et le retour de la déclaration d'incident depuis la fiche du bien.
   "tests/incident-bien-categorie-base.test.ts",
+  // Audit palier 1, P0-03 : rejoue la migration et le retour de la validation des appels de charges.
+  "tests/charges-proposees-a-confirmer-base.test.ts",
   "tests/artisan-activation-securite.test.ts",
   "tests/retours-atomicite.test.ts",
   // Rejeu transactionnel des droits Stripe et de la lecture de session (DDL).

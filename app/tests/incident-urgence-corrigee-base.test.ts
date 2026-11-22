@@ -183,8 +183,10 @@ describe.skipIf(!url)("correction de l'urgence d'un incident (avec base)", () =>
     await db.query(retour);
     expect(await contrainte()).toBe(sans);
 
+    // Rejouée, la migration rend le type. Sa place dans la liste est sans portée (il se remet en fin de liste, après
+    // les types qu'une migration ultérieure a pu ajouter) : on compare les types admis, pas leur ordre d'écriture.
     await db.query(migration);
-    expect(await contrainte()).toBe(avec);
+    expect(types(await contrainte()).sort()).toEqual([...types(avec)].sort());
     expect(await fonction()).toBe(true);
     expect((await db.query("select has_function_privilege('anon','public.corriger_urgence_incident(uuid,uuid,public.incident_urgence,text)','execute') a, has_function_privilege('authenticated','public.corriger_urgence_incident(uuid,uuid,public.incident_urgence,text)','execute') c")).rows[0]).toEqual({ a: false, c: true });
   });

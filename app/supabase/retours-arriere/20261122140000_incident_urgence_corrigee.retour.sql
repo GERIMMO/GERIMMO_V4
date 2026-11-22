@@ -16,8 +16,9 @@ begin
     select pg_get_constraintdef(c.oid) into v_def
       from pg_constraint c
      where c.conrelid = 'public.incident_evenements'::regclass and c.conname = 'incident_evenements_type_check';
-    if v_def is not null and position(', ''urgence_corrigee''::text])))' in v_def) > 0 then
-      v_nouvelle := replace(v_def, ', ''urgence_corrigee''::text])))', '])))');
+    -- Où qu'il soit dans la liste : une migration ultérieure a pu ajouter un type après lui.
+    if v_def is not null and position(', ''urgence_corrigee''::text' in v_def) > 0 then
+      v_nouvelle := replace(v_def, ', ''urgence_corrigee''::text', '');
       alter table public.incident_evenements drop constraint incident_evenements_type_check;
       execute 'alter table public.incident_evenements add constraint incident_evenements_type_check ' || v_nouvelle;
     end if;

@@ -7775,5 +7775,9 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   - Banc local : 936 fichiers de tests passés, 13 230 tests ; 4 fichiers en échec, tous propres au banc partagé
     (`exercice-restauration`, `api-isolation`, `lot2-auth-reel`, `lot3-notifications-base`). Types et lint : 0 erreur.
   - **Ni fusionnée ni publiée** : attend la CI de la demande, puis l'accord explicite du dirigeant.
+- **Message de service (1A)** : brouillon rédigé dans
+  [[Premiers clients — acquisition sans budget — 20 novembre 2026]] (section 4 quater). Moyen proposé : envoi par le
+  dirigeant depuis sa propre boîte, après la publication de la PR #357 ; Gerimmo n'a pas d'outil d'envoi aux inscrits
+  et il n'en est pas construit pour six destinataires. **Aucun envoi fait.**
 - **Pages mises à jour** : [[Bail]], [[Diagnostic]], [[État des lieux]],
   [[Premiers clients — acquisition sans budget — 20 novembre 2026]], `index.md`.

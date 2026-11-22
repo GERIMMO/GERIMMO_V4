@@ -130,6 +130,52 @@ aux provisions appelées dans Gerimmo. Pour l'exercice de la bascule, les provis
 garde-fou, 500 € auraient été réclamés à tort au locataire dans l'exemple du banc. La PR refuse donc la régularisation
 d'un exercice commencé avant le premier mois suivi ; ces exercices se régularisent hors de Gerimmo.
 
+### 4 ter. DPE classé G et état des lieux d'entrée d'un bail déjà en cours (décisions 2B et 3A du 22/11)
+
+Un seul lot, une seule demande de fusion ([#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357)) : le DPE classé G
+devient une alerte pour un bail dont l'entrée est passée, et un bail repris en cours ne reçoit plus l'alerte « État des
+lieux d'entrée à signer ». Détail et réserve sur l'absence de source dans [[Bail]] et [[Diagnostic]].
+
+### 4 quater. Message de service aux inscrits (décision 1A du 22/11) — brouillon, non envoyé
+
+**Moyen proposé.** Gerimmo n'a aucun outil pour écrire aux propriétaires inscrits depuis la console (les « annonces »
+existantes vont d'une agence aux locataires d'un immeuble). Pour six destinataires, en construire un n'est pas
+justifié : le dirigeant envoie le message lui-même, depuis sa boîte professionnelle, en copie cachée ou un par un.
+Les adresses se lisent dans la console, rubrique « Utilisateurs », vue « Personnes ». L'agent n'envoie rien.
+
+**Destinataires.** Au relevé du 20/11 : 6 espaces de propriétaires, dont 4 sans aucun bien ; les 11 baux en brouillon
+se trouvent donc dans 2 espaces au plus. Le texte couvre les deux situations (bail bloqué, premier bien jamais créé).
+Au dirigeant d'écarter les espaces qui seraient les siens ou ceux de proches.
+
+**Moment.** Après la publication de la PR #357 : sinon, un propriétaire dont le logement est classé G lirait que son
+bail s'active et resterait bloqué.
+
+**Brouillon proposé le 22/11/2026**
+
+> **Objet :** Gerimmo — votre bail en cours peut maintenant être activé
+>
+> Bonjour,
+>
+> Vous avez ouvert un espace sur Gerimmo. Jusqu'ici, un bail déjà en cours ne pouvait pas y être activé tant que le
+> DPE et l'état des risques du logement n'étaient pas déposés. Ce n'est plus le cas.
+>
+> Ce qui a changé :
+>
+> - **Votre locataire est déjà en place ?** Déposez le contrat signé (PDF) sur la fiche du bail : le bail s'active.
+>   Les diagnostics manquants sont simplement signalés dans vos actions à mener.
+> - **Les loyers sont suivis à partir du mois de l'activation.** Ceux d'avant ne sont ni réclamés ni affichés en
+>   impayés.
+> - **La date et la commune de naissance du locataire** ne sont plus exigées pour un locataire déjà en place.
+> - **Pour créer votre premier bien**, votre adresse se renseigne désormais sur la même page.
+>
+> Si quelque chose vous bloque encore, répondez simplement à ce message : je vous réponds personnellement.
+>
+> [Prénom Nom]
+> Gerimmo
+>
+> *Vous recevez ce message une seule fois, parce que vous avez un espace Gerimmo. Si vous préférez ne plus être
+> contacté, dites-le-moi en réponse.*
+
 ## Ce qui reste à décider
 
 > [!warning] Points à trancher

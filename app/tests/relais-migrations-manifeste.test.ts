@@ -239,6 +239,9 @@ const MISSION_OCTOBRE = [
   // 22/11, audit palier 1 (P1-05) : un nouveau message de la discussion d'une intervention est signalé (marqueur de
   // lecture par compte, alerte du gestionnaire). Aucun e-mail.
   "20261122180000_echanges_intervention_non_lus.sql",
+  // 22/11, audit palier 1 (P1-14) : l'avenant signé s'enregistre et modifie le loyer et les charges du bail, à partir
+  // du premier loyer non encore appelé.
+  "20261122190000_avenants_bail.sql",
 
 
 ];

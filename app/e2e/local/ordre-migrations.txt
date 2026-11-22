@@ -532,3 +532,4 @@
 20261122160000_signatures_electroniques_locataire.sql
 20261122170000_facture_artisan_refus.sql
 20261122180000_echanges_intervention_non_lus.sql
+20261122190000_avenants_bail.sql

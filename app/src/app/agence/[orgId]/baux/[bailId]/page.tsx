@@ -54,7 +54,7 @@ import {
 import { FormulaireEditionBail } from "./formulaire-edition-bail";
 import { FormulaireComplementsBail } from "./formulaire-complements-bail";
 import { GenererCongeBailleur } from "./generer-conge-bailleur";
-import { GenererAvenant } from "./generer-avenant";
+import { RubriqueAvenantsBail } from "./avenants-bail";
 import { CarteCautionnement } from "./carte-cautionnement";
 import { ConseilsChoixLocataire } from "@/components/conseils-choix-locataire";
 import { CONSEILS_LOCATAIRE_VALIDES } from "@/lib/conseils-locataire";
@@ -995,18 +995,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </RubriqueDossier>
       )}
 
-      {/* Avenant au bail : modification du contrat en cours, actée par les parties */}
-      {(bail.etat === "actif" || bail.etat === "preavis") && (
-        <RubriqueDossier id="avenant" titre="Avenant au bail" resume="Préparer une modification à faire signer aux parties">
-          <div>
-            <GenererAvenant
-              orgId={orgId}
-              bailId={bailId}
-              cheminRetour={`${base}/baux/${bailId}`}
-            />
-          </div>
-        </RubriqueDossier>
-      )}
+      {/* Avenant au bail : préparer le texte à faire signer, puis enregistrer l'avenant signé — ses nouveaux montants
+          s'appliquent d'eux-mêmes aux loyers appelés à partir de sa date d'effet (audit palier 1, P1-14). */}
+      <RubriqueAvenantsBail supabase={supabase} orgId={orgId} bailId={bailId} base={base} bail={bail} lectureSeule={traverseeLectureSeule} />
 
       </section>);
   // Conservation des pièces (plan de conformité du 23/10) : lue seulement pour un bail en préavis ou terminé.

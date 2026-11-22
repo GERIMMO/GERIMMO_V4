@@ -232,6 +232,18 @@ export const SCHEMA_CONNU = {
     ],
     integrees: [],
   },
+  // Audit palier 1, P1-14 : la rubrique « Avenant au bail » lit les avenants du bail et son dernier loyer appelé.
+  avenants_bail: {
+    colonnes: [
+      "id", "organization_id", "bail_id", "objet", "signe_le", "date_effet", "ancien_loyer_hc", "nouveau_loyer_hc",
+      "anciennes_charges", "nouvelles_charges", "document_id", "enregistre_le", "applique_le", "annule_le", "annulation_motif",
+    ],
+    integrees: [],
+  },
+  appels_loyer: {
+    colonnes: ["id", "organization_id", "bail_id", "periode"],
+    integrees: [],
+  },
 } as const satisfies Record<string, { colonnes: readonly string[]; integrees: readonly string[] }>;
 
 /** Une table du banc : ses colonnes viennent du catalogue, et une ligne qui en porte une autre est refusée. */

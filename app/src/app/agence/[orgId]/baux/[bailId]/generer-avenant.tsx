@@ -11,7 +11,9 @@ const classeTextarea =
 
 // Avenant au bail : l'objet et les modifications sont saisis au moment du
 // geste et partent en options du modèle « avenant » — rien n'est stocké en
-// base, le PDF généré est l'acte à faire signer par les parties.
+// base ICI, le PDF généré est l'acte à faire signer par les parties. Une fois
+// signé, il s'enregistre juste en dessous (gestes-avenant-signe.tsx, audit
+// palier 1, P1-14) : c'est cet enregistrement qui modifie le loyer appelé.
 export function GenererAvenant({
   orgId,
   bailId,

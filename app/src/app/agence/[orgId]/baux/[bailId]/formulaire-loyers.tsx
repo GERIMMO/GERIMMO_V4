@@ -771,10 +771,13 @@ export function FormulaireLoyers({
             Les exercices commencés avant se régularisent en dehors de Gerimmo, qui ne connaît pas les provisions versées jusque-là.
           </p>
         )}
+        {/* Audit palier 1 du 22/11/2026, P1-10 (relevé C14) : l'écran citait « loi 89-462, art. 23-1 », référence
+            relevée comme fausse et que je n'ai pas pu vérifier à la source. Aucun numéro d'article n'est affiché tant
+            que le texte n'a pas été relu (JURISTE.md) ; la règle, elle, vient du cahier (RM-3.9.8). */}
         {chargesForfait && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground" data-charges-forfait>
             Charges au forfait : aucune régularisation n&apos;est possible, le forfait est
-            définitif (loi 89-462, art. 23-1).
+            définitif.
           </p>
         )}
         {regularisations.length > 0 && (

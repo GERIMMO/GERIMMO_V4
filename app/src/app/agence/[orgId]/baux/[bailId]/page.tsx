@@ -54,7 +54,7 @@ import {
 import { FormulaireEditionBail } from "./formulaire-edition-bail";
 import { FormulaireComplementsBail } from "./formulaire-complements-bail";
 import { GenererCongeBailleur } from "./generer-conge-bailleur";
-import { RubriqueAvenantsBail } from "./avenants-bail";
+import { RubriqueAvenantsBail, chargerAvenantsBail } from "./avenants-bail";
 import { CarteCautionnement } from "./carte-cautionnement";
 import { ConseilsChoixLocataire } from "@/components/conseils-choix-locataire";
 import { CONSEILS_LOCATAIRE_VALIDES } from "@/lib/conseils-locataire";
@@ -891,6 +891,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       {depotSigne}
       {piecesAdministratives}
       </RubriqueBail>);
+  // Avenants du bail (audit palier 1, P1-14) : lus ici, avant le rendu — la rubrique n'attend rien elle-même.
+  const lectureAvenants = await chargerAvenantsBail(supabase, orgId, bailId, bail.etat);
   const rubriqueSuivi = (<section id="suivi-bail" className="space-y-4">
 
       {/* États des lieux */}
@@ -997,7 +999,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
       {/* Avenant au bail : préparer le texte à faire signer, puis enregistrer l'avenant signé — ses nouveaux montants
           s'appliquent d'eux-mêmes aux loyers appelés à partir de sa date d'effet (audit palier 1, P1-14). */}
-      <RubriqueAvenantsBail supabase={supabase} orgId={orgId} bailId={bailId} base={base} bail={{ ...bail, loyers_suivis_depuis: loyersSuivisDepuis }} lectureSeule={traverseeLectureSeule} />
+      <RubriqueAvenantsBail lecture={lectureAvenants} orgId={orgId} bailId={bailId} base={base} bail={{ ...bail, loyers_suivis_depuis: loyersSuivisDepuis }} lectureSeule={traverseeLectureSeule} />
 
       </section>);
   // Conservation des pièces (plan de conformité du 23/10) : lue seulement pour un bail en préavis ou terminé.

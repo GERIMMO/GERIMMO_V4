@@ -58,18 +58,43 @@ function CarteAvenant({ a, base, libelleCharges }: { a: AvenantBail; base: strin
  * loyer appelé restait celui d'avant. La rubrique porte maintenant les deux temps : préparer le texte à faire signer,
  * puis enregistrer l'avenant signé, dont les nouveaux montants s'appliquent d'eux-mêmes à partir de sa date d'effet.
  *
- * Elle lit seule ce dont elle a besoin (les avenants du bail, le dernier loyer appelé) : une lecture en panne se dit,
- * et retire le formulaire plutôt que de proposer une date que la base refuserait.
+ * Ce dont elle a besoin (les avenants du bail, le dernier loyer appelé) est lu par `chargerAvenantsBail`, que la page
+ * attend avant de rendre : la rubrique elle-même est un composant ordinaire, sans attente. Une lecture en panne se
+ * dit, et retire le formulaire plutôt que de proposer une date que la base refuserait.
  */
-export async function RubriqueAvenantsBail({
-  supabase,
+export type LectureAvenantsBail = {
+  avenants: AvenantBail[];
+  /** La période (1er du mois) du dernier loyer appelé ; null s'il n'y en a aucun. */
+  dernierAppel: string | null;
+  erreurAvenants: boolean;
+  erreurAppel: boolean;
+};
+
+/** Lit les avenants d'un bail et son dernier loyer appelé. Rien pour un brouillon : il n'a pas d'avenant. */
+export async function chargerAvenantsBail(supabase: SupabaseClient, orgId: string, bailId: string, etatBail: string): Promise<LectureAvenantsBail | null> {
+  if (!["actif", "preavis", "termine"].includes(etatBail)) return null;
+  const [{ data: lignes, error: erreurAvenants }, { data: dernier, error: erreurAppel }] = await Promise.all([
+    supabase.from("avenants_bail").select(COLONNES).eq("organization_id", orgId).eq("bail_id", bailId).order("enregistre_le", { ascending: false }),
+    supabase.from("appels_loyer").select("periode").eq("organization_id", orgId).eq("bail_id", bailId).order("periode", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  return {
+    avenants: (Array.isArray(lignes) ? lignes : []) as AvenantBail[],
+    dernierAppel: (dernier as { periode?: string } | null)?.periode ?? null,
+    erreurAvenants: Boolean(erreurAvenants),
+    erreurAppel: Boolean(erreurAppel),
+  };
+}
+
+export function RubriqueAvenantsBail({
+  lecture,
   orgId,
   bailId,
   base,
   bail,
   lectureSeule = false,
 }: {
-  supabase: SupabaseClient;
+  /** Le résultat de `chargerAvenantsBail` ; null : rien à montrer (bail en préparation). */
+  lecture: LectureAvenantsBail | null;
   orgId: string;
   bailId: string;
   base: string;
@@ -78,13 +103,8 @@ export async function RubriqueAvenantsBail({
   lectureSeule?: boolean;
 }) {
   const enCours = bail.etat === "actif" || bail.etat === "preavis";
-  if (!enCours && bail.etat !== "termine") return null;
-
-  const [{ data: lignes, error: erreurAvenants }, { data: dernier, error: erreurAppel }] = await Promise.all([
-    supabase.from("avenants_bail").select(COLONNES).eq("organization_id", orgId).eq("bail_id", bailId).order("enregistre_le", { ascending: false }),
-    supabase.from("appels_loyer").select("periode").eq("organization_id", orgId).eq("bail_id", bailId).order("periode", { ascending: false }).limit(1).maybeSingle(),
-  ]);
-  const avenants = (lignes ?? []) as AvenantBail[];
+  if (!lecture || (!enCours && bail.etat !== "termine")) return null;
+  const { avenants, erreurAvenants, erreurAppel } = lecture;
   // Un bail terminé sans avenant n'a rien à montrer ici.
   if (!enCours && !erreurAvenants && avenants.length === 0) return null;
 
@@ -95,7 +115,7 @@ export async function RubriqueAvenantsBail({
   const gestes = enCours && !lectureSeule;
   const lecturesCompletes = !erreurAvenants && !erreurAppel;
   const dates = lecturesCompletes
-    ? datesEffetProposees({ dernierAppel: (dernier as { periode?: string } | null)?.periode ?? null, dateDebut: bail.date_debut, dateFin: bail.date_fin, suivisDepuis: bail.loyers_suivis_depuis ?? null, aujourdhui })
+    ? datesEffetProposees({ dernierAppel: lecture.dernierAppel, dateDebut: bail.date_debut, dateFin: bail.date_fin, suivisDepuis: bail.loyers_suivis_depuis ?? null, aujourdhui })
     : [];
   const resume = attente
     ? `Un avenant s’appliquera au loyer ${deElide(libelleMois(attente.date_effet))}`

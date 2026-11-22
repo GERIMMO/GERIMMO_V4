@@ -35,7 +35,7 @@ vi.mock("@/lib/ged", async () => ({ ...await vi.importActual<typeof import("@/li
 vi.mock("@/components/bouton-generer-document", () => ({ BoutonGenererDocument: () => null }));
 
 import { annulerAvenantBail, enregistrerAvenantBail } from "@/app/actions/avenant-bail";
-import { RubriqueAvenantsBail } from "@/app/agence/[orgId]/baux/[bailId]/avenants-bail";
+import { RubriqueAvenantsBail, chargerAvenantsBail } from "@/app/agence/[orgId]/baux/[bailId]/avenants-bail";
 import {
   changementsAvenant, datesEffetProposees, decalerMois, etatAvenantBail, libelleMois, libellePremierDuMois, premiereDateEffetPossible,
 } from "@/lib/avenants-bail";
@@ -239,10 +239,10 @@ describe("rubrique « Avenant au bail » de la fiche du bail", () => {
       avenants_bail: table("avenants_bail", o.avenants ?? [], o.erreurAvenants),
       appels_loyer: table("appels_loyer", o.appels ?? [{ id: "a1", organization_id: ORG, bail_id: BAIL, periode: "2026-10-01" }, { id: "a2", organization_id: ORG, bail_id: BAIL, periode: "2026-11-01" }], o.erreurAppels),
     });
-    const element = await RubriqueAvenantsBail({
-      supabase: supabase as never, orgId: ORG, bailId: BAIL, base: `/agence/${ORG}`,
-      bail: { ...BAIL_EN_COURS, ...(o.bail ?? {}) } as never, lectureSeule: o.lectureSeule,
-    });
+    const bail = { ...BAIL_EN_COURS, ...(o.bail ?? {}) };
+    // Comme la page : la lecture d'abord, puis la rubrique, qui est un composant ordinaire (aucune attente au rendu).
+    const lecture = await chargerAvenantsBail(supabase as never, ORG, BAIL, String(bail.etat));
+    const element = RubriqueAvenantsBail({ lecture, orgId: ORG, bailId: BAIL, base: `/agence/${ORG}`, bail: bail as never, lectureSeule: o.lectureSeule });
     return element ? renderToStaticMarkup(element) : "";
   }
 
@@ -285,6 +285,18 @@ describe("rubrique « Avenant au bail » de la fiche du bail", () => {
       expect(html).toContain(`<p id="${id}"`);
       expect(html).toContain(`aria-labelledby="${id}"`);
     }
+  });
+
+  it("la rubrique n'attend rien au rendu : la page lit d'abord, un brouillon ne lit rien du tout", async () => {
+    // Un composant asynchrone posé dans la page ne se rend pas dans les tests qui rendent la fiche entière.
+    expect(RubriqueAvenantsBail.constructor.name).toBe("Function");
+    const lectures: string[] = [];
+    const espion = { from: (table: string) => { lectures.push(table); throw new Error("ne doit pas lire"); } };
+    expect(await chargerAvenantsBail(espion as never, ORG, BAIL, "brouillon")).toBeNull();
+    expect(lectures).toEqual([]);
+    const page = readFileSync("src/app/agence/[orgId]/baux/[bailId]/page.tsx", "utf8");
+    expect(page).toContain("const lectureAvenants = await chargerAvenantsBail(supabase, orgId, bailId, bail.etat);");
+    expect(page).toContain("<RubriqueAvenantsBail lecture={lectureAvenants}");
   });
 
   it("forfait de charges : le champ le dit", async () => {

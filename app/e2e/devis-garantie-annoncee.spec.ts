@@ -64,7 +64,8 @@ test("devis : l'artisan annonce sa garantie ; elle est sur le PDF et le proprié
     await db.query("insert into biens(id,organization_id,nom,type,address_line1,postal_code,city) values($1,$2,$3,'appartement','1 rue des Essais','75001','Paris')", [bien, org, nom]);
     await db.query("insert into lots(id,organization_id,bien_id,nom,etat,surface_m2) values($1,$2,$3,$4,'disponible',40)", [lot, org, bien, `${nom} A`]);
     await db.query("insert into detentions(lot_id,organization_id,person_id,quote_part,date_debut) values($1,$2,$3,100,current_date-30)", [lot, org, bailleur]);
-    await db.query("insert into incidents(id,organization_id,lot_id,numero,canal,categorie,description,etat) values($1,$2,$3,$4,'agence','plomberie_canalisation',$5,'declare')", [incident, org, lot, `ESSAI-${marque}`, `ESSAI garantie : fuite fictive ${marque}`]);
+    // Incident déjà pris en charge par le propriétaire : c'est à ce stade qu'un artisan est consulté et que ses devis s'affichent.
+    await db.query("insert into incidents(id,organization_id,lot_id,numero,canal,categorie,description,etat,imputation,imputation_justification) values($1,$2,$3,$4,'agence','plomberie_canalisation',$5,'qualifie','proprietaire','Essai fictif')", [incident, org, lot, `ESSAI-${marque}`, `ESSAI garantie : fuite fictive ${marque}`]);
     await db.query("insert into incident_consultations(id,organization_id,incident_id,metier,nature_travaux) values($1,$2,$3,'plomberie','entretien_courant')", [consultation, org, incident]);
     await db.query("insert into incident_sollicitations(id,organization_id,consultation_id,incident_id,artisan_id,statut) values($1,$2,$3,$4,$5,'envoyee')", [demande, org, consultation, incident, artisanId]);
     await db.query("insert into artisan_devis_preparations(sollicitation_id,artisan_id,saisie,revision) values($1,$2,$3,1)", [demande, artisanId, {

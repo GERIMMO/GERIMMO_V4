@@ -1,0 +1,12 @@
+# QUESTIONS — mission palier 1
+
+Ce fichier recueille les points où un choix vous appartient, ou où deux décisions se contredisent.
+Pour chacun : l'option prise en attendant (la plus prudente et réversible), et ce que votre réponse changerait.
+Rien ici ne bloque le travail : je continue avec l'option indiquée.
+
+| # | Date | Question | Option prise en attendant | Ce que votre réponse changerait |
+|---|---|---|---|---|
+| Q1 | 22/11/2026 | **Copie de base pour la préproduction.** Une copie hébergée (branche Supabase) coûte environ 10 $ par mois, facturés à l'heure (0,01344 $/h, soit environ 0,32 $ par jour ; source : documentation Supabase lue le 22/11). Le lien d'aperçu Vercel et la branche Git sont gratuits. Êtes-vous d'accord pour ce coût ? | Je ne crée rien de payant. Je travaille sur la base d'essai locale (gratuite), qui ne vous est pas accessible par un lien. | Avec votre accord (« ok pour la copie de base »), je crée la copie et le lien de préproduction devient utilisable par vous. Sans elle, je ne peux pas vous donner un lien cliquable à la phase 4. |
+| Q2 | 22/11/2026 | **« Référentiel du palier 1 ».** Aucun document de ce nom n'existe dans le dépôt. | J'ai pris pour référentiel le cahier « Gerimmo V3 » (modules 0 à 20 et annexes, dossier `raw/assets/`) et les décisions déjà consignées dans le wiki, limités au périmètre que vous avez donné : propriétaire bailleur, locataires, artisans, incidents, gestion administrative, super admin. Les agences sont laissées de côté. | Si vous avez un autre document, déposez-le dans `raw/` : je le lirai et j'alignerai le plan. |
+| Q3 | 22/11/2026 | **Étiquette Git de départ.** La création d'étiquettes (tags) est refusée depuis ma session. | J'ai créé deux branches repères qui rendent le même service : `claude/depart-palier-1` (code au départ, `e1e442dc`) et `claude/production-2026-11-22` (version servie en production, `81740dec`). | Si vous tenez à de vraies étiquettes, vous pouvez les créer dans GitHub sur ces deux révisions ; cela ne change rien au travail. |
+| Q4 | 22/11/2026 | **Lot #357 (décisions du 22/11 et inscriptions dans l'e-mail du matin).** Vous aviez écrit « Oui publie », puis demandé le gel de la production. | Publication arrêtée : la simulation en attente d'approbation est annulée, la production sert toujours la version du 21/11. Le lot reste dans le code et partira avec la publication unique de fin de mission. | Rien, sauf si vous vouliez qu'il parte avant : dites-le. |

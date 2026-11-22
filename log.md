@@ -7828,3 +7828,29 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **Limite** : les nombres ne distinguent pas un compte de test d'un vrai inscrit.
 - **Pages mises à jour** : [[Relais du dirigeant]], [[Premiers clients — acquisition sans budget — 20 novembre 2026]],
   `index.md`.
+
+## [2026-11-22] query  | Mission « palier 1 » : audit, corrections en autonomie, publication unique
+
+- **Demande du dirigeant (22/11/2026)** : terminer Gerimmo pour le palier 1 (propriétaire bailleur, locataires,
+  artisans, incidents, gestion administrative, super admin), sans validation intermédiaire ; une seule validation,
+  à la fin. Quatre phases : audit (`AUDIT.md`), corrections par lots (`JOURNAL.md`), vérification finale, livraison.
+  Le palier 2 (agences) vient après. Aucun vrai utilisateur en production, seulement des données de test.
+- **Règles posées** : production gelée (aucun déploiement, aucune migration ni suppression) jusqu'à « je valide la
+  publication » ; préproduction (branche, aperçu Vercel, copie de base) ; aucun test, aucune règle de sécurité ni
+  l'isolation RLS désactivés ; aucune référence légale inventée ; rien copié des plateformes de référence ; les
+  points incertains dans `QUESTIONS.md` et `JURISTE.md` ; interrupteur super admin « IA activée / désactivée ».
+- **Conséquence immédiate** : la publication du lot #357, lancée sur « Oui publie », est arrêtée. La simulation des
+  migrations (run 45013346518) est annulée avant toute approbation. La production sert toujours `81740dec`
+  (`/api/sante` relu à 11:07Z). Le lot reste dans `main` (`e1e442dc`) et partira avec la publication unique.
+- **Point de départ** : la création d'étiquettes Git est refusée depuis la session (403) ; deux branches repères les
+  remplacent — `claude/depart-palier-1` (`e1e442dc`) et `claude/production-2026-11-22` (`81740dec`). Branche de
+  travail : `claude/palier-1-preproduction`.
+- **Coût annoncé** : une copie de base hébergée (branche Supabase) coûte environ 10 $ par mois, à l'heure
+  (documentation Supabase lue le 22/11). Rien de payant n'est créé sans l'accord du dirigeant ; en attendant, base
+  d'essai locale.
+- **« Référentiel du palier 1 »** : aucun document de ce nom dans le dépôt ; le cahier Gerimmo V3 (`raw/assets/`) et
+  les décisions du wiki sont pris pour référentiel, dans le périmètre donné. Consigné dans `QUESTIONS.md` (Q2).
+- **Constat relevé au passage** : les aperçus Vercel (environnement « Preview ») reçoivent aujourd'hui l'adresse et
+  la clé publique de la base de **production**. La préproduction devra avoir ses propres réglages avant tout usage.
+- **Phase 1 lancée** : huit volets d'audit en lecture seule (textes officiels, plateformes de référence, dépendance
+  à l'IA, état des modules, sécurité).

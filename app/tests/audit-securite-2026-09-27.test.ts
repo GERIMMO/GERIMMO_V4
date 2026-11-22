@@ -162,6 +162,12 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
       // « envoi suspendu ». Definer parce que la table du réglage reste fermée à tous les comptes ; anon ne l'exécute
       // pas ; elle ne cite ni la table ni une autre colonne (tests/envois-suspendus-base.test.ts).
       "envois_automatiques_proposes()",
+      // Repères fiscaux (23/11/2026, P2-09) : le plafond et l'abattement du micro-foncier cités par l'aide du
+      // récapitulatif fiscal, et la date de leur dernière vérification. Trois valeurs sans rapport avec un compte ni
+      // une organisation (le plafond et le taux sont dans la loi), que l'écran du propriétaire lit. Definer parce que
+      // la table du réglage reste fermée à tous les comptes ; anon ne l'exécute pas ; elle ne rend aucune autre
+      // colonne (tests/reperes-fiscaux-base.test.ts).
+      "reperes_fiscaux()",
     ]);
     const sansGarde = rows.map((r) => r.f).filter((f) => !motivees.has(f) && !f.startsWith("montant_abonnement_cents("));
     expect(sansGarde, `Fonctions definer sans garde apparente :\n${sansGarde.join("\n")}`).toEqual([]);

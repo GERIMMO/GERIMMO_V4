@@ -262,6 +262,8 @@ const MISSION_OCTOBRE = [
   "20261122235950_pointage_loyer_releve.sql",
   // 22/11, audit palier 1 (P2-08) : droits de table sans politique retirés, exception de la vue du portail consignée.
   "20261122235959_menage_droits_sans_politique.sql",
+  // 23/11, audit palier 1 (P2-09) : plafond et abattement du micro-foncier sortis du code (réglage du superviseur).
+  "20261123090000_reperes_fiscaux_reglage.sql",
 
 
 ];

@@ -11,6 +11,9 @@ import { InterrupteurIA } from "./interrupteur-ia";
 import { etatIA, motifIANonConnectee } from "@/lib/etat-ia";
 import { EnvoisAutomatiques } from "./envois-automatiques";
 import { envoisOuverts, FLUX_ENVOIS_AUTOMATIQUES, type AccordsEspaces, type EtatEnvoisAutomatiques } from "@/lib/envois-suspendus";
+import { ReperesFiscauxReglage } from "./reperes-fiscaux";
+import { chargerReperesFiscaux, libelleVerification } from "@/lib/reperes-fiscaux";
+import { aujourdhuiParis } from "@/lib/ged";
 
 export const metadata = { title: "Paramètres généraux" };
 
@@ -41,6 +44,10 @@ export default async function PageParametres() {
   const nbEnvoisOuverts = envoisOuverts(etatEnvois);
   const compte = (v: unknown) => typeof v === "number" && Number.isSafeInteger(v) && v >= 0 ? v : null;
   const accordsEspaces: AccordsEspaces = { avis_echeance: compte(lu?.espaces_avis_echeance), relance_loyer: compte(lu?.espaces_relance_loyer) };
+  // Repères fiscaux (audit palier 1, P2-09) : plafond et abattement du micro-foncier cités par l'aide du récapitulatif
+  // fiscal. Illisible = aucun formulaire, et l'aide des propriétaires ne cite alors aucune valeur.
+  const reperesFiscaux = await chargerReperesFiscaux(db);
+  const jourDeParis = aujourdhuiParis();
   const requis = faitsManquants({});
   const manquants = new Set(faitsManquants(editeur));
   // 23/10 : le médiateur se complète plus tard, sans fermer le paiement (lib/editeur.ts, A_COMPLETER).
@@ -55,8 +62,8 @@ export default async function PageParametres() {
         <div className="min-w-0 flex-[1_1_20rem]">
           <TitreEcran rubrique="profil">Paramètres généraux</TitreEcran>
           <p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">
-            Coordonnées publiques de Gerimmo, ouverture des abonnements, fonctions assistées par l’IA et envois
-            automatiques d’e-mails.
+            Coordonnées publiques de Gerimmo, ouverture des abonnements, fonctions assistées par l’IA, envois
+            automatiques d’e-mails et repères fiscaux affichés aux propriétaires.
           </p>
         </div>
       </div>
@@ -66,6 +73,7 @@ export default async function PageParametres() {
         <a className="loc-carte" href="#souscriptions"><strong className="block">Abonnements ↓</strong><span className="text-sm text-muted-foreground">Vérifier la règle d’ouverture</span></a>
         <a className="loc-carte" href="#ia"><strong className="block">Fonctions assistées par l’IA ↓</strong><span className="text-sm text-muted-foreground">{iaActive === null ? 'État indisponible' : iaActive ? 'Activée' : 'Désactivée'}</span></a>
         <a className="loc-carte" href="#envois-automatiques"><strong className="block">Envois automatiques ↓</strong><span className="text-sm text-muted-foreground">{nbEnvoisOuverts === null ? 'État indisponible' : nbEnvoisOuverts === 0 ? 'Tous fermés' : `${nbEnvoisOuverts} ouvert${nbEnvoisOuverts > 1 ? 's' : ''} sur ${FLUX_ENVOIS_AUTOMATIQUES.length}`}</span></a>
+        <a className="loc-carte" href="#reperes-fiscaux"><strong className="block">Repères fiscaux ↓</strong><span className="text-sm text-muted-foreground">{libelleVerification(reperesFiscaux, jourDeParis)}</span></a>
         <Link className="loc-carte" href="/admin/conservation"><strong className="block">Conservation</strong><span className="text-sm text-muted-foreground">Régler les durées par catégorie →</span></Link>
       </div>
 
@@ -85,6 +93,10 @@ export default async function PageParametres() {
 
       <section id="envois-automatiques" className="scroll-mt-24">
         <EnvoisAutomatiques etat={etatEnvois} accords={accordsEspaces} />
+      </section>
+
+      <section id="reperes-fiscaux" className="scroll-mt-24">
+        <ReperesFiscauxReglage reperes={reperesFiscaux} aujourdHui={jourDeParis} />
       </section>
 
       <div className="grid gap-6 md:grid-cols-2">

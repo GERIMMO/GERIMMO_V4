@@ -57,6 +57,11 @@ export function circuitAdmisPilote(p:ChargeCourriel):boolean {
   if(c.type==='rappel_rendez_vous') return !!p.organisationId && ['veille','j7'].includes(c.echeance) && ['locataire','artisan'].includes(c.role);
   return ['1','2'].includes(c.rang);
  }
+ // Audit palier 1 du 22/11/2026 (P1-16) : les motifs d'un refus ou d'une suspension, que les conditions de l'espace
+ // artisan promettent par courriel. Admis ICI par sa seule forme (une décision, aucun espace, aucune pièce) ; c'est
+ // la base qui décide, juste avant l'envoi : décision la plus récente de cet artisan, motivée, pas encore notifiée,
+ // adresse de sa fiche (migration 20261122210000).
+ if(c?.type==='decision_artisan') return !p.organisationId && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(c.id) && !p.piecesJointes?.length;
  if(c?.type==='notification')return ['incident_urgent','mission_confiee','mission_refusee','mission_acceptee','devis_demande','reponse_gestionnaire','piece_demandee','signature_demandee','rendez_vous_fixe','creneaux_proposes'].includes(c.evenement);
  return !!c&&['quittance','bail_signe'].includes(c.type)&&((c.type==='quittance'&&c.automatique===true)||!!c.acteur);
 }

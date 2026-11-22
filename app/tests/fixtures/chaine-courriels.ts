@@ -13,6 +13,7 @@ import type { Client } from "pg";
 export const MAILLONS_CHAINE_COURRIELS = [
   "20261122130000_lien_garant_admis",
   "20261122200000_envois_automatiques_reglage",
+  "20261122210000_decision_artisan_notifiee",
 ] as const;
 
 export type MaillonChaineCourriels = (typeof MAILLONS_CHAINE_COURRIELS)[number];

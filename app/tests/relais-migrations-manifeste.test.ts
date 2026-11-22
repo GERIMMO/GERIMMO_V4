@@ -243,6 +243,7 @@ const MISSION_OCTOBRE = [
   // du premier loyer non encore appelé.
   "20261122190000_avenants_bail.sql",
   "20261122200000_envois_automatiques_reglage.sql",
+  "20261122210000_decision_artisan_notifiee.sql",
 
 
 ];

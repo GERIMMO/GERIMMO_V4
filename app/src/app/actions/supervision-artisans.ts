@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
+import { envoyerMotifsDecisionArtisan, phraseEnvoiMotifs } from "@/lib/decision-artisan-email";
 
 export type EtatDecisionArtisan = { erreur?: string; succes?: string };
 
@@ -61,5 +62,27 @@ export async function traiterInscriptionArtisan(
     remise_en_attente: "Inscription remise en attente pour un nouvel examen.",
     suspension: "Validation suspendue : l’inscription est de nouveau à examiner et n’est plus proposée aux agences.",
   };
+  // Audit palier 1 (P1-16) : les conditions de l'espace artisan promettent les motifs par courriel, au plus tard
+  // quand la mesure prend effet. La décision est déjà enregistrée : un e-mail qui ne part pas ne l'annule pas, l'écran
+  // le dit et la fiche de l'artisan permet de le renvoyer.
+  if (operation === "refus" || operation === "suspension") {
+    const envoi = await envoyerMotifsDecisionArtisan(supabase, artisanId);
+    return { succes: `${messages[operation]} ${phraseEnvoiMotifs(envoi)}` };
+  }
   return { succes: messages[operation] };
+}
+
+/**
+ * Audit palier 1 (P1-16) : renvoyer à l'artisan l'e-mail des motifs de sa dernière décision (refus ou suspension),
+ * quand il n'est pas parti. La base refait la preuve avant l'envoi : une décision déjà notifiée, ou remplacée par une
+ * plus récente, ne repart pas.
+ */
+export async function renvoyerMotifsDecisionArtisan(artisanId: string, _etat: EtatDecisionArtisan, _formData: FormData): Promise<EtatDecisionArtisan> {
+  const supabase = await createClient();
+  const { data: autorise, error: erreurAcces } = await supabase.rpc("is_super_admin");
+  if (erreurAcces || autorise !== true) return { erreur: "Accès réservé à la supervision Gerimmo." };
+  const envoi = await envoyerMotifsDecisionArtisan(supabase, artisanId);
+  revalidatePath(`/admin/clients/artisans/${artisanId}`);
+  const phrase = phraseEnvoiMotifs(envoi);
+  return envoi.envoye || envoi.raison === "deja_notifiee" ? { succes: phrase } : { erreur: phrase };
 }

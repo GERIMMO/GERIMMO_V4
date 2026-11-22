@@ -106,6 +106,14 @@ describe("les phrases de l'aide", () => {
     expect(p.verification).toContain("notice officielle");
   });
 
+  it("les deux-points ne partent pas seuls en début de ligne (espace insécable)", () => {
+    for (const r of [VERIFIES, LIVRAISON, null]) {
+      const p = phrasesMicroFoncier(r);
+      expect(`${p.regle} ${p.verification}`).not.toMatch(/ :/);
+      expect(p.regle).toContain("micro-foncier\u00A0:");
+    }
+  });
+
   it("le « € » et le « % » ne partent pas seuls à la ligne", () => {
     expect(eurosEntiers(15000)).toMatch(/^15[  ]000 €$/);
     expect(eurosEntiers(1000000)).toMatch(/^1[  ]000[  ]000 €$/);

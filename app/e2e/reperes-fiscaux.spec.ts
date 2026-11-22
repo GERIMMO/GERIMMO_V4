@@ -90,7 +90,7 @@ test("repères fiscaux : livrés sans date, réglés et datés par le superviseu
     await proprietaire.getByText("Références fiscales et limites de cette aide", { exact: true }).click();
     const aide = proprietaire.locator("[data-micro-foncier]:visible");
     await expect(aide).toHaveAttribute("data-micro-foncier", "non_date");
-    await expect(aide).toContainText(/Régime micro-foncier : si vos recettes brutes n’excèdent pas 15\s000\s€/);
+    await expect(aide).toContainText(/Régime micro-foncier\s: si vos recettes brutes n’excèdent pas 15\s000\s€/);
     await expect(aide).toContainText(/abattement automatique de 30\s%/);
     await expect(aide).toContainText("Aucune date de vérification n’est enregistrée pour ce plafond et cet abattement");
     await expect(aide).not.toContainText("vérifiés par Gerimmo");

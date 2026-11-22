@@ -75,20 +75,21 @@ function jourEnFrancais(iso: string): string {
  *  - `regle` : ce que dit le régime, avec les valeurs enregistrées — ou sans aucun chiffre si le réglage est illisible ;
  *  - `verification` : d'où viennent ces valeurs et ce qui fait foi. Sans date enregistrée, la phrase le dit : elle ne
  *    présente jamais une valeur comme vérifiée.
+ * Les deux-points portent une espace insécable : sur téléphone, « : » partait seul en début de ligne.
  */
 export function phrasesMicroFoncier(reperes: ReperesFiscaux | null): { regle: string; verification: string } {
   if (!reperes) {
     return {
-      regle: "Régime micro-foncier : sous un plafond de recettes brutes fixé par la loi, seule la ligne des recettes vous sert (abattement forfaitaire).",
-      verification: "Le plafond et le taux en vigueur ne peuvent pas être affichés pour le moment : ils figurent dans la notice officielle.",
+      regle: "Régime micro-foncier\u00A0: sous un plafond de recettes brutes fixé par la loi, seule la ligne des recettes vous sert (abattement forfaitaire).",
+      verification: "Le plafond et le taux en vigueur ne peuvent pas être affichés pour le moment\u00A0: ils figurent dans la notice officielle.",
     };
   }
-  const regle = `Régime micro-foncier : si vos recettes brutes n’excèdent pas ${eurosEntiers(reperes.plafondEuros)}, seule la ligne des recettes vous sert (abattement automatique de ${reperes.abattementPourcent} %).`;
+  const regle = `Régime micro-foncier\u00A0: si vos recettes brutes n’excèdent pas ${eurosEntiers(reperes.plafondEuros)}, seule la ligne des recettes vous sert (abattement automatique de ${reperes.abattementPourcent} %).`;
   return {
     regle,
     verification: reperes.verifieLe
-      ? `Plafond et abattement vérifiés par Gerimmo le ${jourEnFrancais(reperes.verifieLe)}. Une loi de finances peut les modifier : la notice officielle fait foi.`
-      : "Aucune date de vérification n’est enregistrée pour ce plafond et cet abattement : contrôlez-les dans la notice officielle avant de vous en servir.",
+      ? `Plafond et abattement vérifiés par Gerimmo le ${jourEnFrancais(reperes.verifieLe)}. Une loi de finances peut les modifier\u00A0: la notice officielle fait foi.`
+      : "Aucune date de vérification n’est enregistrée pour ce plafond et cet abattement\u00A0: contrôlez-les dans la notice officielle avant de vous en servir.",
   };
 }
 

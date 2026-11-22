@@ -250,6 +250,8 @@ const MISSION_OCTOBRE = [
   "20261122230000_charges_proposees_a_confirmer.sql",
   // 22/11, audit palier 1 (P2-02) : le locataire indique ses disponibilités dès le signalement d'un incident.
   "20261122233000_disponibilites_locataire_incident.sql",
+  // 22/11, audit palier 1 (P2-01) : la photo d'un élément d'état des lieux est un document du même espace.
+  "20261122234000_edl_photos_par_element.sql",
 
 
 ];

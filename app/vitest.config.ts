@@ -65,6 +65,8 @@ export const FICHIERS_EN_SERIE = [
   "tests/charges-proposees-a-confirmer-base.test.ts",
   // Audit palier 1, P2-02 : rejoue la migration et le retour des disponibilités du locataire.
   "tests/disponibilites-locataire-incident-base.test.ts",
+  // Audit palier 1, P2-01 : rejoue la migration et le retour des photos d'état des lieux.
+  "tests/edl-photos-base.test.ts",
   "tests/artisan-activation-securite.test.ts",
   "tests/retours-atomicite.test.ts",
   // Rejeu transactionnel des droits Stripe et de la lecture de session (DDL).

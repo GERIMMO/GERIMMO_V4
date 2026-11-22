@@ -75,7 +75,7 @@ export default async function PageEdl(
   ] = await Promise.all([
     supabase
       .from("edl_lignes")
-      .select("id, categorie, piece, libelle, etat, commentaire")
+      .select("id, categorie, piece, libelle, etat, commentaire, photo_document_id")
       .eq("edl_id", edlId)
       .eq("organization_id", orgId)
       .order("ordre"),

@@ -38,7 +38,16 @@ export type LigneEdl = {
   libelle: string;
   etat: string | null;
   commentaire: string | null;
+  /** Audit palier 1, P2-01 : la photo de l'élément (identifiant du document), quand il y en a une. */
+  photo_document_id?: string | null;
 };
+
+/**
+ * Les photos de la grille, par identifiant de document : l'image prête à s'imprimer (data-URI), ou `null` quand elle
+ * n'a pas pu être lue au moment de l'édition — la légende s'imprime alors seule, pour qu'une photo ne disparaisse
+ * jamais du document sans que cela se voie.
+ */
+export type PhotosEdl = Record<string, string | null>;
 
 export type DonneesEdl = {
   type: "entree" | "sortie";
@@ -57,6 +66,8 @@ export type DonneesEdl = {
   adresseRestitutionDepot: string | null;
   observations: string | null;
   lignes: LigneEdl[];
+  /** Audit palier 1, P2-01 : photos des éléments, imprimées numérotées en fin de document. */
+  photos?: PhotosEdl;
   compteurs: { type: string; numero: string | null; releve: number | string | null }[];
   cles: { libelle: string; nombre: number | null; reference: string | null }[];
   comparatif: { libelle: string; etat_entree: string | null; etat_sortie: string | null; ecart: boolean }[];
@@ -91,10 +102,40 @@ function mentionEdlEntree(f: Fusion, date: string | null | undefined): string {
   return `<p ${ATTRIBUT_DATE_EDL_ENTREE}="a-completer">État des lieux d'entrée établi le <span class="fusion">date à porter à la main</span> — aucun état des lieux d'entrée signé n'est enregistré dans Gerimmo pour ce bail.</p>`;
 }
 
+// Audit palier 1 du 22/11/2026, P2-01 : les photos des éléments. Chaque photo reçoit un numéro, dans l'ordre de la
+// grille ; la ligne de l'élément renvoie à ce numéro, et les images sont imprimées en fin de document, avant les
+// observations et les signatures. Seules les images JPEG ou PNG déjà encodées par l'assemblage sont imprimées.
+const IMAGE_IMPRIMABLE = /^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/=]+$/;
+function numerosDesPhotos(d: DonneesEdl): Map<LigneEdl, number> {
+  const numeros = new Map<LigneEdl, number>();
+  if (!d.photos) return numeros;
+  for (const [, lignes] of groupesDeLignes(d.lignes)) {
+    for (const l of lignes) {
+      if (l.photo_document_id && Object.hasOwn(d.photos, l.photo_document_id)) numeros.set(l, numeros.size + 1);
+    }
+  }
+  return numeros;
+}
+function sectionPhotos(d: DonneesEdl, numeros: Map<LigneEdl, number>): string {
+  if (!numeros.size) return "";
+  const vignettes = [...numeros.entries()].map(([l, n]) => {
+    const piece = l.piece ?? (l.categorie === "equipement" ? "Équipements" : "Général");
+    const legende = `Photo n° ${n} — ${echapper(piece)} — ${echapper(l.libelle)}`;
+    const image = d.photos![l.photo_document_id!];
+    return image && IMAGE_IMPRIMABLE.test(image)
+      ? `<figure data-photo-edl="${n}" style="margin:0;break-inside:avoid-page;page-break-inside:avoid"><img src="${image}" alt="" style="display:block;width:100%;max-height:210pt;object-fit:contain;border:0.5pt solid #c9c9c9"/><figcaption class="mentions">${legende}</figcaption></figure>`
+      : `<figure data-photo-edl="${n}" data-photo-indisponible style="margin:0;break-inside:avoid-page;page-break-inside:avoid"><figcaption class="mentions">${legende} — image indisponible au moment de l'édition ; elle reste consultable dans les documents du bail.</figcaption></figure>`;
+  });
+  return `${section("Photos")}
+    <p class="mentions">${numeros.size === 1 ? "Une photo est jointe" : `${numeros.size} photos sont jointes`} au présent état des lieux ; chaque numéro renvoie à l'élément de la grille qui le cite.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10pt">${vignettes.join("")}</div>`;
+}
+
 export function construireEdl(d: DonneesEdl) {
   const f = d.f;
   const entree = d.type === "entree";
   const titreDoc = entree ? "État des lieux d'entrée" : "État des lieux de sortie";
+  const numeros = numerosDesPhotos(d);
 
   const grilles = [...groupesDeLignes(d.lignes).entries()]
     .map(
@@ -105,7 +146,7 @@ export function construireEdl(d: DonneesEdl) {
         lignes.map((l) => [
           echapper(l.libelle),
           l.etat ? echapper(ETATS[l.etat] ?? l.etat) : f.champ(null, `État de ${l.libelle} — ${piece}`),
-          l.commentaire ? echapper(l.commentaire) : "—",
+          `${l.commentaire ? echapper(l.commentaire) : "—"}${numeros.has(l) ? ` <span data-renvoi-photo>(photo n° ${numeros.get(l)})</span>` : ""}`,
         ])
       )}`
     )
@@ -221,6 +262,8 @@ export function construireEdl(d: DonneesEdl) {
            <p>Adresse de restitution du dépôt de garantie : ${f.champ(d.adresseRestitutionDepot, "adresse de restitution du dépôt")}.</p>`
     }
 
+    ${sectionPhotos(d, numeros)}
+
     ${section("Observations des parties")}
     <p>${f.champ(d.observations, "observations des parties")}</p>
     <p class="mentions">${
@@ -244,6 +287,41 @@ export function construireEdl(d: DonneesEdl) {
     reference: d.reference,
     corps,
   });
+}
+
+// Au-delà de ce poids cumulé, les photos suivantes ne sont plus imprimées (leur légende le dit) : le document doit
+// rester éditable. Une photo réduite sur l'appareil pèse quelques centaines de kilo-octets.
+const POIDS_MAX_PHOTOS_IMPRIMEES = 20 * 1024 * 1024;
+
+/** Lit les photos de la grille dans le stockage de l'espace et les rend prêtes à s'imprimer. */
+export async function chargerPhotosEdl(
+  supabase: SupabaseClient,
+  orgId: string,
+  identifiants: (string | null | undefined)[]
+): Promise<PhotosEdl> {
+  const ids = [...new Set(identifiants.filter((i): i is string => Boolean(i)))];
+  const photos: PhotosEdl = {};
+  if (!ids.length) return photos;
+  for (const id of ids) photos[id] = null;
+  const { data: documents } = await supabase
+    .from("documents")
+    .select("id, storage_path, mime_type, purged_at")
+    .eq("organization_id", orgId)
+    .in("id", ids);
+  let poids = 0;
+  // Dans l'ordre de la grille : si le plafond est atteint, ce sont les dernières photos qui restent en légende seule.
+  for (const id of ids) {
+    const doc = ((documents ?? []) as { id: string; storage_path: string | null; mime_type: string | null; purged_at: string | null }[]).find((x) => x.id === id);
+    if (!doc || doc.purged_at || !doc.storage_path) continue;
+    if (doc.mime_type !== "image/jpeg" && doc.mime_type !== "image/png") continue;
+    const { data: fichier } = await supabase.storage.from("documents").download(doc.storage_path);
+    if (!fichier) continue;
+    const octets = Buffer.from(await fichier.arrayBuffer());
+    if (poids + octets.length > POIDS_MAX_PHOTOS_IMPRIMEES) continue;
+    poids += octets.length;
+    photos[id] = `data:${doc.mime_type};base64,${octets.toString("base64")}`;
+  }
+  return photos;
 }
 
 async function chargerEdl(
@@ -277,7 +355,7 @@ export async function assemblerEdl(
     await Promise.all([
       supabase
         .from("edl_lignes")
-        .select("categorie, piece, libelle, etat, commentaire")
+        .select("categorie, piece, libelle, etat, commentaire, photo_document_id")
         .eq("edl_id", edlId)
         .order("ordre"),
       supabase.from("edl_compteurs").select("type, numero, releve").eq("edl_id", edlId).order("created_at"),
@@ -306,9 +384,12 @@ export async function assemblerEdl(
     ]);
   const entreeSignee = entreeRes.data as { date_edl: string | null; signe_le: string | null } | null;
 
+  const photos = await chargerPhotosEdl(supabase, orgId, ((lignes ?? []) as LigneEdl[]).map((l) => l.photo_document_id));
+
   const f = new Fusion();
   const document = construireEdl({
     type: edl.type,
+    photos,
     reference: referenceCourte("EDL", edl.id),
     dateEdl: edl.date_edl,
     dateEdlEntree: entreeSignee ? entreeSignee.date_edl ?? entreeSignee.signe_le : null,

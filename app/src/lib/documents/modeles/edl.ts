@@ -44,6 +44,11 @@ export type DonneesEdl = {
   type: "entree" | "sortie";
   reference: string;
   dateEdl: string | null;
+  /**
+   * Sortie seulement : date de l'état des lieux d'entrée signé du même bail (audit palier 1 du 22/11/2026, P0-06).
+   * Absente quand aucune entrée signée n'est enregistrée dans Gerimmo : la mention reste, à compléter à la main.
+   */
+  dateEdlEntree?: string | null;
   signeLe: string | null;
   personnesPresentes: string | null;
   detecteurFumeePresent: boolean | null;
@@ -74,6 +79,16 @@ function groupesDeLignes(lignes: LigneEdl[]): Map<string, LigneEdl[]> {
     groupes.get(cle)!.push(l);
   }
   return groupes;
+}
+
+// Audit palier 1 du 22/11/2026, P0-06 : l'état des lieux de sortie rappelle la date de celui d'entrée. La date vient de
+// l'entrée signée du même bail. Sans entrée signée dans Gerimmo (état des lieux établi ailleurs, bail repris en cours),
+// la mention reste imprimée avec un blanc à compléter à la main : ce blanc n'est PAS compté parmi les informations
+// manquantes, puisqu'aucun écran de Gerimmo ne permet de le remplir.
+const ATTRIBUT_DATE_EDL_ENTREE = "data-edl-entree";
+function mentionEdlEntree(f: Fusion, date: string | null | undefined): string {
+  if (date) return `<p ${ATTRIBUT_DATE_EDL_ENTREE}="connue">État des lieux d'entrée établi le ${f.date(date)}.</p>`;
+  return `<p ${ATTRIBUT_DATE_EDL_ENTREE}="a-completer">État des lieux d'entrée établi le <span class="fusion">date à porter à la main</span> — aucun état des lieux d'entrée signé n'est enregistré dans Gerimmo pour ce bail.</p>`;
 }
 
 export function construireEdl(d: DonneesEdl) {
@@ -114,6 +129,7 @@ export function construireEdl(d: DonneesEdl) {
     lors de la ${entree ? "remise" : "restitution"} des clés. Il est joint au contrat de location et
     en fait partie intégrante. Il décrit le logement et constate l'état des revêtements, équipements
     et éléments qui le composent.</p>
+    ${entree ? "" : mentionEdlEntree(f, d.dateEdlEntree)}
     ${grilles || `<p class="mentions">La grille est vide — déclarez les pièces du lot puis régénérez la grille.</p>`}
 
     ${section("Relevés de compteurs")}
@@ -257,7 +273,7 @@ export async function assemblerEdl(
   const { edl, ctx } = charge;
   const sortie = edl.type === "sortie";
 
-  const [{ data: lignes }, { data: compteurs }, { data: cles }, comparatifRes, restitutionRes] =
+  const [{ data: lignes }, { data: compteurs }, { data: cles }, comparatifRes, restitutionRes, entreeRes] =
     await Promise.all([
       supabase
         .from("edl_lignes")
@@ -274,13 +290,28 @@ export async function assemblerEdl(
             .eq("bail_id", edl.bail_id)
             .maybeSingle()
         : Promise.resolve({ data: null }),
+      // P0-06 : l'entrée signée du même bail, la même que celle que l'écran de saisie met en regard de la sortie.
+      sortie
+        ? supabase
+            .from("etats_des_lieux")
+            .select("date_edl, signe_le")
+            .eq("bail_id", edl.bail_id)
+            .eq("organization_id", orgId)
+            .eq("type", "entree")
+            .eq("etat", "signe")
+            .order("date_edl", { ascending: false, nullsFirst: false })
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
     ]);
+  const entreeSignee = entreeRes.data as { date_edl: string | null; signe_le: string | null } | null;
 
   const f = new Fusion();
   const document = construireEdl({
     type: edl.type,
     reference: referenceCourte("EDL", edl.id),
     dateEdl: edl.date_edl,
+    dateEdlEntree: entreeSignee ? entreeSignee.date_edl ?? entreeSignee.signe_le : null,
     signeLe: edl.signe_le,
     personnesPresentes: edl.personnes_presentes,
     detecteurFumeePresent: edl.detecteur_fumee_present,

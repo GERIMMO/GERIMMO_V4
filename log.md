@@ -7946,3 +7946,21 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 24 à 26, règles posées) ; `index.md`.
 - **Suite** : lot 27 (lignes de devis réutilisables) écrit, en vérification ; lot 28 (pointage des loyers sur relevé
   de banque) en cours d'écriture.
+
+## [2026-11-22] lint   | Mission palier 1, phase 2 : lots 27 et 28 vérifiés (préproduction)
+
+- **Fait** : lignes de devis réutilisables de l'[[Artisan]] (lot 27, fin de P2-04) ; pointage des loyers à partir du
+  relevé exporté par la banque (lot 28, P2-05). Détail dans `JOURNAL.md`.
+- **Vérifié** : passage complet sur base d'essai remise à neuf — 14 110 tests réussis ; 305 parcours navigateur
+  réussis du premier coup, 3 mis de côté par conception, aucun échec, aucun second essai. Branche de préproduction
+  poussée. Rien n'est publié en production (gel maintenu).
+- **Défauts trouvés par la vérification et corrigés avant de pousser** : deux gestes de l'artisan illisibles comme
+  boutons sur téléphone (lot 27) ; la fonction de base du pointage sans garde d'accès propre, et trois autres règles
+  du projet non respectées (lot 28).
+- **Limites dites** : aucun vrai relevé de banque essayé (formats courants seulement) ; pas de PDF ; pas de connexion
+  bancaire.
+- **Décisions laissées au dirigeant** : `QUESTIONS.md`, Q33. **Question au juriste** : `JURISTE.md`, partie 3,
+  A19quater (libellé bancaire conservé).
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 27 et 28, règle du pointage) ;
+  `index.md`.
+- **Suite** : lots 29 (agenda du propriétaire) et 30 (repère de prix) écrits, en vérification.

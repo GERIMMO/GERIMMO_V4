@@ -162,6 +162,15 @@ Une question fermée (oui ou non) par point.
 - **B10ter (ajoutée le 22/11, lot 15, P1-08).** Quatre e-mails automatiques sont prêts mais **fermés** : avis d'échéance, relance amiable d'un loyer impayé (avec information de la caution à la seconde relance), rappel d'un rendez-vous d'intervention au locataire et à l'artisan, relance d'une invitation de locataire. Rien ne part tant que le dirigeant n'a pas ouvert l'envoi. Avant toute ouverture : (a) l'avis d'échéance et la relance par e-mail demandent-ils l'accord préalable du **locataire**, comme Gerimmo le demande déjà pour la quittance, ou l'accord du bailleur suffit-il ? (b) la caution peut-elle être informée d'un impayé par simple e-mail, et à quel moment doit-elle l'être ? (c) la relance d'une invitation (trois puis dix jours après, deux au plus) adressée à une personne qui n'a pas encore de compte est-elle un message de service ou une sollicitation qui demande son consentement ? En attendant : les quatre envois sont fermés et ne sont pas présentés comme conformes.
 - **A19bis (ajoutée le 22/11, lot 3).** OpenAI figure déjà parmi les sous-traitants déclarés aux clients, pour les seules propositions de devis. L'étendre à deux usages faits à la demande de l'utilisateur (ses messages à l'assistant ; le fichier d'une facture ou d'une photo de compteur) est-il un simple changement à porter à la connaissance du client, ou une modification du contrat qui demande son accord exprès ? Autrement dit : la nouvelle version des conditions doit-elle être classée « technique » ou « substantielle » ?
 - **A19ter (ajoutée le 22/11, lot 3).** La page de confidentialité dit que Gerimmo envoie ces demandes « avec l'option qui demande à OpenAI de ne pas conserver l'échange » et renvoie, pour les durées, aux informations d'OpenAI. Cette formulation suffit-elle, ou faut-il indiquer une durée de conservation chez le prestataire ? L'accord de traitement des données avec OpenAI est-il signé et conservé (je ne peux pas le vérifier) ?
+- **A19quater (ajoutée le 22/11, lot 28, P2-05) — libellé bancaire conservé lors d'un pointage.** Quand le propriétaire pointe un
+  loyer à partir de son relevé de banque, Gerimmo lit le fichier sur son appareil (il n'est ni transmis ni conservé)
+  et n'enregistre, pour chaque ligne confirmée, que la date, le montant et le libellé du virement (200 caractères au
+  plus), dans la note du règlement. Ce libellé peut contenir le nom du payeur (parfois un tiers : parent, garant) et
+  une référence. Questions : (a) cette donnée doit-elle être mentionnée dans la politique de confidentialité et dans
+  le registre des traitements, et à quel titre ? (b) sa durée de conservation peut-elle suivre celle des écritures de
+  loyer, ou faut-il l'effacer plus tôt ? (c) doit-elle être communiquée au locataire qui exerce son droit d'accès ?
+  En attendant : le libellé n'est lu que par le propriétaire de l'espace (vérifié : aucun écran ni aucune fonction de
+  l'espace locataire ne rend la note d'un règlement) ; rien n'est présenté comme conforme.
 
 ---
 

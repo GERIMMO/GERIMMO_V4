@@ -254,6 +254,8 @@ const MISSION_OCTOBRE = [
   "20261122234000_edl_photos_par_element.sql",
   "20261122235000_devis_garantie_annoncee.sql",
   "20261122235500_artisan_absences_semaine_type.sql",
+  // 22/11, audit palier 1 (P2-04) : relance d'une facture par l'artisan, rendez-vous manqué consigné.
+  "20261122235800_artisan_relance_facture_rdv_manque.sql",
 
 
 ];

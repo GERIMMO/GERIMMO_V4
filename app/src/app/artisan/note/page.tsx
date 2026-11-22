@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, CalendarClock, Check, CircleHelp, Clock3, LockKeyhole, MessageSquareText, Scale, ShieldCheck, Star, XCircle } from "lucide-react";
-import { chargerNote, verifierAccesArtisan } from "../acces";
+import { chargerMesAbsencesAuxRendezVous, chargerNote, verifierAccesArtisan } from "../acces";
 import { EnteteSousPage, Erreur, Etiquette } from "../ui";
 import { Contestation } from "./contestation";
 import styles from "./evaluations.module.css";
@@ -12,6 +12,8 @@ export const metadata = { title: "Mes évaluations" };
 export default async function PageNote() {
   await verifierAccesArtisan();
   const { note, erreur } = await chargerNote();
+  // P2-04 (audit palier 1) : les rendez-vous où ses clients l'ont dit absent, sur douze mois. `null` = non lu.
+  const absencesAuxRendezVous = await chargerMesAbsencesAuxRendezVous();
   const moyenne = note?.note_publiee !== null && note?.note_publiee !== undefined ? Number(note.note_publiee) : null;
   const publiee = Boolean(note?.publiable && moyenne !== null);
   const evaluations = note?.nb_evaluations ?? 0;
@@ -35,7 +37,15 @@ export default async function PageNote() {
           <div className={styles.indicateur}><span className={styles.icone} data-ton="or"><XCircle size={21} aria-hidden/></span><h3>Taux de refus</h3><strong>{note.taux_refus !== null && note.taux_refus !== undefined ? `${Math.round(Number(note.taux_refus) * 100)} %` : "Pas encore mesuré"}</strong><p>Part des missions refusées.</p></div>
           <div className={styles.indicateur} data-attention={note.pieces_expirees > 0}><span className={styles.icone} data-ton="vert"><ShieldCheck size={21} aria-hidden/></span><h3>Attestations expirées</h3><strong>{note.pieces_expirees ?? 0}</strong><Link href="/artisan/attestations">{note.pieces_expirees > 0 ? "Renouveler mes documents" : "Voir mes attestations"}<ArrowRight size={14} aria-hidden/></Link></div>
         </div>
-        <p className={styles.noteMesure}>Les rendez-vous manqués ne sont pas encore mesurés. Ces indicateurs n’entrent pas dans le calcul de votre note.</p>
+        <p className={styles.noteMesure} data-rdv-manques-artisan={absencesAuxRendezVous ?? "non-lu"}>
+          {absencesAuxRendezVous === null
+            ? "Vos rendez-vous manqués n’ont pas pu être lus à l’instant."
+            : absencesAuxRendezVous === 0
+              ? "Rendez-vous manqués sur douze mois : aucun."
+              : `Rendez-vous manqués sur douze mois : ${absencesAuxRendezVous}.`}{" "}
+          Un rendez-vous est compté quand votre client consigne que vous ne vous êtes pas présenté ; vous le lisez alors
+          dans la mission concernée. Ces indicateurs n’entrent pas dans le calcul de votre note.
+        </p>
       </section>
     </>}
     <div className={styles.informations}>

@@ -91,6 +91,11 @@ const SE_FERMENT_SEULES = new Set([
   "rdv_annule_locataire",
   "rdv_annule_tardif",
   "rdv_demande_sans_reponse",
+  // Audit palier 1 (P2-04, migration 20261122235800) : fermée par `fermer_alerte_rdv_manque` dès que la mission avance
+  // (nouveau rendez-vous, démarrage, fin, refus, annulation) ; et la relance d'une facture par
+  // `fermer_alerte_relance_facture`, dès que la facture est réglée en totalité ou refusée.
+  "rdv_manque",
+  "facture_artisan_relancee",
   "assurance_expiration",
   "attestation_a_verifier",
   "decompte",
@@ -152,6 +157,11 @@ const LIBELLES = new Map<string, string>([
   ["rdv_annule_locataire", "Suivre le nouveau rendez-vous"],
   ["rdv_annule_tardif", "Suivre le nouveau rendez-vous"],
   ["rdv_demande_sans_reponse", "Voir le rendez-vous maintenu"],
+  // Audit palier 1 (P2-04) : l'artisan a consigné l'absence du locataire à un rendez-vous confirmé
+  // ({incident_id, lot_id, intervention_id, rdv_debut, absent, libelle}) ; ou il relance une facture restée sans
+  // règlement ({incident_id, lot_id, intervention_id, facture_id, numero, relance, libelle}).
+  ["rdv_manque", "Convenir d’un nouveau rendez-vous"],
+  ["facture_artisan_relancee", "Voir la facture relancée par l’artisan"],
   ["loyer_impaye", "Ouvrir les loyers du bail"],
   ["zone_tendue_a_verifier", "Vérifier la zone tendue du bail"],
   ["regularisation_non_appelee", "Ouvrir les loyers et régularisations du bail"],
@@ -243,7 +253,9 @@ export function cheminFicheAlerte(a: Alerte, orgId: string, racine: string = RAC
     type === "message_intervention" ||
     type === "rdv_annule_locataire" ||
     type === "rdv_annule_tardif" ||
-    type === "rdv_demande_sans_reponse"
+    type === "rdv_demande_sans_reponse" ||
+    type === "rdv_manque" ||
+    type === "facture_artisan_relancee"
   ) {
     const incident = texte(a.details, "incident_id");
     if (incident) return `${base}/incidents?sel=${incident}`;

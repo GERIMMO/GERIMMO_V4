@@ -204,6 +204,9 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   rdv_report_retire: "Demande de report retirée",
   rdv_report_expire: "Demande de report sans réponse de l'artisan",
   rdv_annule_par_locataire: "Rendez-vous annulé par le locataire",
+  // Audit palier 1 (P2-04, migration 20261122235800) : un rendez-vous confirmé manqué, et la relance d'une facture.
+  rdv_manque: "Rendez-vous manqué",
+  facture_relancee: "Facture relancée par l'artisan",
 };
 
 export const PIECES_INCIDENT = [

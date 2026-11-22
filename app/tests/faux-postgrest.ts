@@ -221,6 +221,8 @@ export const SCHEMA_CONNU = {
       // Audit palier 1, P1-03 : le refus motivé d'une facture, et la date de dépôt qui range la facture en vigueur
       // avant celles qu'elle remplace.
       "refusee_le", "refus_motif", "deposee_le",
+      // Audit palier 1, P2-04 : la dernière relance de l'artisan et leur nombre.
+      "relancee_le", "relances",
     ],
     integrees: [],
   },

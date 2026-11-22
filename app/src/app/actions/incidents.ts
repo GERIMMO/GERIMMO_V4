@@ -981,6 +981,39 @@ export async function fixerRendezVous(
   };
 }
 
+// P2-04 (audit palier 1, 22/11/2026 ; référentiel RM-10.5.3) : un rendez-vous confirmé n'a pas eu lieu. Le
+// gestionnaire consigne QUI était absent ; le rendez-vous tombe et un nouveau est à convenir. La base tient les
+// règles (rendez-vous confirmé, heure passée) et répond par une phrase affichable.
+export async function consignerRendezVousManque(
+  orgId: string,
+  interventionId: string,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
+  const absent = String(formData.get("absent") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+  if (absent !== "locataire" && absent !== "artisan") {
+    return { erreur: "Indiquez qui était absent : le locataire ou l’artisan.", valeurs };
+  }
+  if (note.length > 500) return { erreur: "Raccourcissez votre précision (500 caractères au plus).", valeurs };
+  const { error } = await supabase.rpc("consigner_rdv_manque", {
+    p_org: orgId,
+    p_intervention: interventionId,
+    p_absent: absent,
+    p_note: note || null,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+  revaliderIncident(orgId);
+  return {
+    succes: absent === "artisan"
+      ? "Rendez-vous manqué consigné : l’artisan est dit absent, il le lit dans sa mission. Un nouveau rendez-vous est à convenir."
+      : "Rendez-vous manqué consigné : le locataire est dit absent, il le lit dans sa demande. Un nouveau rendez-vous est à convenir.",
+  };
+}
+
 // RM-7.5.3 — l'artisan a signalé une cause différente, l'agent révise AVANT
 // facturation. La base refuse le geste s'il n'existe aucun signalement, et
 // hors des états « en cours » et « terminé » : c'est ce qui distingue cette

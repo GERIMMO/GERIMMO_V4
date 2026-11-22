@@ -56,7 +56,7 @@ export async function FacturesIncident({orgId,incidentId,imputation,base=baseEsp
   if(em) return <FacturesIndisponibles quoi="les factures de cette intervention"/>;
   if(!missions?.length) return null;
   const missionDe = new Map((missions as MissionFacturee[]).map(m=>[m.id,m]));
-  const {data: factures,error} = await supabase.from("intervention_factures").select("id,intervention_id,numero,montant_ttc_cents,montant_reference_cents,ecart_justification,document_id,validee_le,decision_motif,imputation_validee,reglee_le,refusee_le,refus_motif,deposee_le").eq("organization_id",orgId).in("intervention_id",missions.map(m=>m.id)).order("deposee_le",{ascending:false});
+  const {data: factures,error} = await supabase.from("intervention_factures").select("id,intervention_id,numero,montant_ttc_cents,montant_reference_cents,ecart_justification,document_id,validee_le,decision_motif,imputation_validee,reglee_le,refusee_le,refus_motif,deposee_le,relancee_le,relances").eq("organization_id",orgId).in("intervention_id",missions.map(m=>m.id)).order("deposee_le",{ascending:false});
   if(error) return <FacturesIndisponibles quoi="les factures de cette intervention"/>;
   if(!factures?.length) return null;
   // D23 : les règlements déclarés (lus par la politique de l'organisation ; l'écriture ne passe que par fonction).
@@ -84,6 +84,10 @@ export async function FacturesIncident({orgId,incidentId,imputation,base=baseEsp
     </p>}
     {termineAvant && <p role="note" className="rounded-lg border-l-4 border-[var(--warning)] bg-[var(--warning-soft)] px-3.5 py-3 text-sm text-[var(--warning-soft-foreground)]">
       L’artisan a déclaré l’intervention terminée avant le rendez-vous confirmé avec le locataire : contrôlez le travail avant de valider.
+    </p>}
+    {/* P2-04 : l'artisan a relancé pour cette facture (la relance vit tant que la facture n'est ni réglée ni refusée). */}
+    {f.relancee_le && etat !== "reglee" && etat !== "refusee" && <p role="note" data-facture-relancee className="rounded-lg border-l-4 border-[var(--warning)] bg-[var(--warning-soft)] px-3.5 py-3 text-sm text-[var(--warning-soft-foreground)]">
+      L’artisan vous a relancé le {formaterDate(f.relancee_le)} pour cette facture{Number(f.relances) > 1 ? ` (${f.relances} relances)` : ""}, déposée le {formaterDate(f.deposee_le)}.
     </p>}
     <Link className="text-[var(--marque-sombre)] underline" href={`${base}/documents/${f.document_id}/fichier`}>{f.refusee_le ? "Consulter la facture refusée" : "Consulter la facture avant de décider"}</Link>
     {f.montant_reference_cents != null && f.montant_ttc_cents !== f.montant_reference_cents && <p>Écart avec le montant autorisé de {eur(f.montant_reference_cents / 100)} : {f.ecart_justification}</p>}

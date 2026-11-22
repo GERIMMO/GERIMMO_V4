@@ -58,6 +58,7 @@ import {
   FormulaireDecisionAvenant,
   FormulaireEvaluation,
   FormulaireRendezVous,
+  FormulaireRendezVousManque,
   FormulaireRevisionImputation,
 } from "./formulaires-artisan";
 import { baseEspace } from "@/lib/racine-espace";
@@ -294,6 +295,8 @@ export async function VoletArtisan({
 
   const supabase = await createClient();
   const aujourdhui = aujourdhuiParis();
+  // P2-04 : l'instant du rendu, pour ne proposer « rendez-vous manqué » qu'une fois l'heure du rendez-vous passée.
+  const maintenant = new Date().getTime();
 
   const [
     { data: consultationsBrutes, error: erreurConsultations },
@@ -767,6 +770,18 @@ export async function VoletArtisan({
                 </summary>
                 <div className="pt-3" id={`rdv-${mission.id}`}>
                   <FormulaireRendezVous orgId={orgId} interventionId={mission.id} />
+                </div>
+              </details>
+            )}
+
+            {/* P2-04 (RM-10.5.3) : l'heure du rendez-vous confirmé est passée et la mission n'a pas démarré. */}
+            {mission.statut === "planifiee" && mission.debut_prevu && new Date(mission.debut_prevu).getTime() <= maintenant && (
+              <details className="border-t border-border pt-3" data-rdv-passe>
+                <summary className="min-h-11 cursor-pointer content-center text-sm font-medium">
+                  Le rendez-vous n’a pas eu lieu ? Consigner qui était absent
+                </summary>
+                <div className="pt-3">
+                  <FormulaireRendezVousManque orgId={orgId} interventionId={mission.id} />
                 </div>
               </details>
             )}

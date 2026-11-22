@@ -29,6 +29,9 @@ vi.mock('@/app/artisan/acces', () => ({
  chargerEchangesNonLus: async () => ({ lignes: [], erreur: false }),
  chargerDemandesRdv: () => { b.lireDemandes(); return Promise.resolve(b.demandes); },
  chargerCreneauxMission: async () => ({ lignes: [], erreur: false }),
+ // Audit P2-04 : les rendez-vous manqués de la mission et l'état de relance de ses factures (aucun dans ces scénarios).
+ chargerRendezVousManques: async () => ({ lignes: [], erreur: false }),
+ chargerRelancesFactures: async () => ({ lignes: [], erreur: false }),
  chargerPhotosDemande: async () => ({ photos: [], erreur: false }),
  chargerSollicitations: async () => ({ lignes: [], erreur: false }),
  chargerPieces: async () => ({ lignes: [], erreur: false }),

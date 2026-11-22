@@ -48,6 +48,9 @@ vi.mock("@/app/artisan/acces", () => ({
   chargerFacturesRefusees: async () => ({ lignes: [], erreur: false }),
   // Décision D22 : la fiche de la mission lit aussi la dernière demande du locataire (report, annulation).
   chargerDemandesRdv: async () => ({ lignes: [], erreur: false }),
+  // Audit P2-04 : la fiche de la mission lit aussi ses rendez-vous manqués et l'état de relance de ses factures.
+  chargerRendezVousManques: async () => ({ lignes: [], erreur: false }),
+  chargerRelancesFactures: async () => ({ lignes: [], erreur: false }),
 }));
 async function bouton(libelle: string) {
   const { createElement: creer } = await import("react");

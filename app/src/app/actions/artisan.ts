@@ -592,6 +592,51 @@ export async function demarrerMonIntervention(
   return { succes: "Intervention démarrée." };
 }
 
+// ── P2-04 (audit palier 1, 22/11/2026) : rendez-vous manqué et relance d'une facture ─────────────────────────────
+// Deux gestes de l'artisan sur SA mission ; la base tient les règles (heure du rendez-vous passée, délais de relance)
+// et répond par une phrase que l'écran affiche telle quelle.
+
+/** « Le locataire était absent » : le rendez-vous tombe, un nouveau est à convenir, le gestionnaire est prévenu. */
+export async function consignerMonRendezVousManque(
+  interventionId: string,
+  _etat: EtatArtisanAction,
+  formData: FormData
+): Promise<EtatArtisanAction> {
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+  if (!estUuid(interventionId)) return { erreur: "Mission introuvable." };
+  if (formData.get("confirmation") !== "oui") {
+    return { erreur: "Cochez la case pour confirmer que vous étiez sur place et que le locataire était absent." };
+  }
+  const note = String(formData.get("note") ?? "").trim();
+  if (note.length > 500) return { erreur: "Raccourcissez votre précision (500 caractères au plus)." };
+  const { error } = await supabase.rpc("consigner_rdv_manque_artisan", {
+    p_intervention: interventionId,
+    p_note: note || null,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+  rafraichirMission(interventionId);
+  return { succes: "Rendez-vous manqué consigné : votre client est prévenu. Proposez de nouvelles dates quand vous le pouvez." };
+}
+
+/** Relance d'une facture déposée et pas réglée : une alerte chez le client, une ligne au dossier, aucun e-mail. */
+export async function relancerMaFacture(
+  factureId: string,
+  interventionId: string,
+  _etat: EtatArtisanAction,
+  _formData: FormData
+): Promise<EtatArtisanAction> {
+  void _formData;
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+  if (!estUuid(factureId) || !estUuid(interventionId)) return { erreur: "Facture introuvable." };
+  const { error } = await supabase.rpc("relancer_ma_facture", { p_facture: factureId });
+  if (error) return { erreur: sansJargon(error.message) };
+  rafraichirMission(interventionId);
+  revalidatePath("/artisan/facturation");
+  return { succes: "Relance enregistrée : votre client la voit dans son espace, sur le dossier de l’intervention. Aucun e-mail n’est envoyé." };
+}
+
 /**
  * La contre-proposition du locataire (audit du 27/09).
  *

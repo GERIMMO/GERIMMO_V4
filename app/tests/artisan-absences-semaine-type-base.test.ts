@@ -48,7 +48,13 @@ describe("absences et semaine type — manifeste, retour, chaîne (sans base)", 
     expect(sql).not.toMatch(/current_date|poser_gardes_abonnement|poser_gardes_diagnostic_artisan/i);
     expect(sql).not.toMatch(/grant[^;]*\bto\b[^;]*\b(anon|public)\b/i);
     const chaine = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8").split("Ordre complet si tout doit être défait :")[1] ?? "";
-    expect(chaine.trimStart().startsWith("`20261122235500` (")).toBe(true);
+    // En tête à sa livraison ; depuis, seules des migrations PLUS RÉCENTES peuvent le précéder, et il reste devant
+    // celle qui le suivait.
+    const codes = [...chaine.split("puis `500000`")[0].matchAll(/`(\d{14})`/g)].map((m) => m[1]);
+    const rang = codes.indexOf("20261122235500");
+    expect(rang).toBeGreaterThanOrEqual(0);
+    expect(codes.slice(0, rang).every((c) => c > "20261122235500")).toBe(true);
+    expect(codes[rang + 1]).toBe("20261122220000");
   });
 
   it("le retour ne supprime ni table ni ligne", () => {

@@ -10,6 +10,8 @@ import type { CreneauPropose, SuiviIntervention } from "./suivi-intervention";
 import { signalementOuvert } from "../types";
 import type { RendezVousLocataire } from "@/lib/rendez-vous-locataire";
 import { etiquetteNouveauxMessages, lireEchangesNonLus } from "@/lib/echanges-intervention";
+import { phraseRendezVousManque, rendezVousManquesAffiches, type RendezVousManqueLocataire } from "@/lib/rendez-vous-manque";
+import { formaterDateHeureParis } from "@/lib/heure-paris";
 
 export const metadata = { title: "Mes demandes" };
 
@@ -39,6 +41,7 @@ export default async function PageDemandesLocataire(
     { data: baux },
     { data: rendezVousBruts, error: eRendezVous },
     echangesNonLus,
+    { data: rdvManquesBruts },
   ] = await Promise.all([
     supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
     supabase.rpc("mon_suivi_intervention", { p_org: orgId }),
@@ -56,6 +59,9 @@ export default async function PageDemandesLocataire(
       : Promise.resolve({ data: [], error: null }),
     // Audit palier 1 (P1-05) : les discussions d'intervention qui portent un message qu'il n'a pas lu.
     lireEchangesNonLus(supabase, orgId),
+    // Audit palier 1 (P2-04) : un rendez-vous confirmé manqué, et qui est dit absent. Lecture d'appoint : en échec,
+    // rien n'est affiché (l'absence reste consignée au dossier, chez le propriétaire).
+    supabase.rpc("mes_rdv_manques_locataire", { p_org: orgId }),
   ]);
   const peutSignaler = adhesionActive && signalementOuvert(baux as { etat: string }[] | null);
 
@@ -84,6 +90,9 @@ export default async function PageDemandesLocataire(
   const discussionsAffichees = new Set(suivis.flatMap((s) => (s.intervention_id ? [s.intervention_id] : [])));
   const messagesALire = echangesNonLus.lignes.filter((e) => discussionsAffichees.has(e.intervention_id));
   const nombreALire = messagesALire.reduce((total, e) => total + Number(e.non_lus), 0);
+  // P2-04 : le dernier rendez-vous manqué de chaque demande, tant qu'aucun nouveau rendez-vous n'est fixé et que
+  // l'intervention n'est pas terminée. Le locataire lit qui est dit absent ; jamais la précision libre.
+  const rdvManques = rendezVousManquesAffiches((rdvManquesBruts ?? []) as RendezVousManqueLocataire[], suivis);
 
   return (
     <div className="space-y-4">
@@ -150,6 +159,13 @@ export default async function PageDemandesLocataire(
           <span className="btn-secondaire mt-3">Lire la discussion{"\u00a0"}→</span>
         </a>
       )}
+
+      {rdvManques.map((m) => (
+        <a key={m.intervention_id} href={`#demande-${m.incident_id}`} data-rdv-manque={m.absent} className={`loc-carte block ${BORD_ETAT.attention}`}>
+          <h2 className="titre-carte text-base font-medium">Rendez-vous du {formaterDateHeureParis(m.rdv_debut)} manqué</h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">{phraseRendezVousManque(m)}</p>
+        </a>
+      ))}
 
       {/* L’accès Urgence reste visible dans l’en-tête commun. */}
       {/* Chaque signalement porte sa propre carte, avec son fil d'étapes */}

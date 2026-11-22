@@ -5,7 +5,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
 import { ligneReglementPourArtisan, phraseEtatPourArtisan } from "@/lib/reglement-facture";
-import { chargerAgenda, chargerCreneauxMission, chargerDemandesRdv, chargerFacturesRefusees, chargerPhotosDemande, chargerReglementsFactures, verifierAccesArtisan } from "../../acces";
+import { chargerAgenda, chargerCreneauxMission, chargerDemandesRdv, chargerFacturesRefusees, chargerPhotosDemande, chargerReglementsFactures, chargerRelancesFactures, chargerRendezVousManques, verifierAccesArtisan } from "../../acces";
+import { formaterDateParis } from "@/lib/heure-paris";
+import { FormulaireRendezVousManque } from "./rendez-vous-manque";
+import { RelanceFacture } from "./relance-facture";
 import { AvisFactureRefusee } from "../facture-refusee";
 import { libelleMotifRdv, instantRdv } from "@/lib/rendez-vous-locataire";
 import { PhotosDeLaDemande } from "../../photos-demande";
@@ -65,12 +68,15 @@ export default async function PageMission(
   // D16 (14/10) : les photos jointes par le locataire, que la base ne rend que pour une mission encore vivante.
   // D23 : le règlement que le client déclare sur la facture de cette mission (date et moyen seulement).
   // D22 : la dernière demande du locataire sur ce rendez-vous (report ou annulation).
-  const [agenda, photos, reglements, demandesRdv, refusees] = await Promise.all([
+  // P2-04 : les rendez-vous manqués de cette mission, et l'état de relance de ses factures.
+  const [agenda, photos, reglements, demandesRdv, refusees, rdvManques, relances] = await Promise.all([
     chargerAgenda(),
     chargerPhotosDemande(null, interventionId),
     chargerReglementsFactures(),
     chargerDemandesRdv(),
     chargerFacturesRefusees(),
+    chargerRendezVousManques(interventionId),
+    chargerRelancesFactures(),
   ]);
   if (agenda.erreur) return <LectureImpossibleArtisan href={`/artisan/missions/${interventionId}`} />;
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
@@ -82,6 +88,9 @@ export default async function PageMission(
   // Décision D22 : un report en attente se traite ici (retenir une de ses dates, ou refuser) ; une annulation s'affiche
   // pour information tant qu'aucun nouveau rendez-vous n'est fixé.
   const demandeRdv = demandesRdv.lignes.find((d) => d.intervention_id === interventionId) ?? null;
+  // P2-04 : l'heure du rendez-vous confirmé est passée sans que la mission ait démarré.
+  const rendezVousPasse = mission.statut === "planifiee" && Boolean(mission.debut_prevu) && new Date(mission.debut_prevu!).getTime() <= new Date().getTime();
+  const relance = factureReglement ? relances.lignes.find((r) => r.facture_id === factureReglement.facture_id) : undefined;
   const reportEnAttente =
     mission.statut === "planifiee" && demandeRdv?.type === "report" && demandeRdv.statut === "en_attente" ? demandeRdv : null;
   const annulationLocataire =
@@ -329,7 +338,45 @@ export default async function PageMission(
               Déplacer le rendez-vous
             </Link>
           )}
+          {/* P2-04 (RM-10.5.3) : l'heure est passée ; si le locataire n'était pas là, on le consigne. */}
+          {rendezVousPasse && !reportEnAttente && (
+            <details className="artisan-carte" data-rdv-passe>
+              <summary className="min-h-11 cursor-pointer content-center text-base font-semibold text-[var(--encre)]">
+                Le locataire était absent au rendez-vous ?
+              </summary>
+              <div className="pt-3">
+                <FormulaireRendezVousManque interventionId={mission.intervention_id} />
+              </div>
+            </details>
+          )}
         </div>
+      )}
+
+      {/* P2-04 : ce qui a été consigné sur les rendez-vous de cette mission, pour l'un comme pour l'autre. */}
+      {rdvManques.erreur && <Erreur>Les rendez-vous manqués de cette mission n’ont pas pu être lus : rechargez la page.</Erreur>}
+      {rdvManques.lignes.length > 0 && (
+        <Carte>
+          <TitreSection>Rendez-vous manqués</TitreSection>
+          <ul className="space-y-2" data-rdv-manques>
+            {rdvManques.lignes.map((r) => (
+              <li key={r.rdv_debut} className="text-base text-[var(--corps)]" data-absent={r.absent}>
+                {creneauTexte(r.rdv_debut, null)} —{" "}
+                {r.absent === "locataire"
+                  ? r.consigne_role === "artisan"
+                    ? "vous avez indiqué que le locataire était absent."
+                    : "votre client a indiqué que le locataire était absent."
+                  : "votre client a indiqué que vous ne vous êtes pas présenté."}
+                {r.note ? ` « ${r.note} »` : ""}
+              </li>
+            ))}
+          </ul>
+          {rdvManques.lignes.some((r) => r.absent === "artisan") && (
+            <p className={`mt-2 ${CLASSE_AIDE}`}>
+              Une absence qui vous est attribuée est comptée dans vos rendez-vous manqués, un repère visible de vous
+              seul (« Mes évaluations »). Si elle est inexacte, écrivez à votre client dans la discussion de la mission.
+            </p>
+          )}
+        </Carte>
       )}
 
       {mission.statut === "en_cours" && (
@@ -462,6 +509,25 @@ export default async function PageMission(
             <p className={`mt-1 ${CLASSE_AIDE}`}>
               Déclaration de votre client, sans virement de Gerimmo : vérifiez la réception sur votre compte.
             </p>
+          )}
+          {/* P2-04 : la relance d'une facture déposée et pas réglée en totalité. */}
+          {mission.facture_deposee && factureReglement && relances.erreur && <p className={`mt-2 ${CLASSE_AIDE}`}>L’état de relance de cette facture n’a pas pu être lu : rechargez la page.</p>}
+          {mission.facture_deposee && factureReglement && relance && (
+            <div className="mt-3 space-y-2" data-etat-relance>
+              {relance.relancee_le && (
+                <p className={CLASSE_AIDE}>
+                  Relancée le {formaterDateParis(relance.relancee_le)}{relance.relances > 1 ? ` (${relance.relances} relances)` : ""}.
+                </p>
+              )}
+              {relance.relancable ? (
+                <RelanceFacture factureId={factureReglement.facture_id} interventionId={mission.intervention_id} numero={factureReglement.numero} />
+              ) : (
+                <p className={CLASSE_AIDE}>
+                  {relance.relancee_le ? "Prochaine relance possible" : "Relance possible"} à partir du {formaterDateParis(relance.relance_possible_le)}
+                  {relance.relancee_le ? "." : " (30 jours après le dépôt)."}
+                </p>
+              )}
+            </div>
           )}
           {factureRefusee && <div className="mt-3"><AvisFactureRefusee facture={factureRefusee} /></div>}
           {!mission.facture_deposee && refusees.erreur && <p className={`mt-2 ${CLASSE_AIDE}`}>Les refus éventuels de votre client n’ont pas pu être lus : rechargez la page.</p>}

@@ -21,6 +21,7 @@ export const refuserDevis = decision("refus");
 export const demanderRevisionDevis = decision("revision");
 const neutre = async (): Promise<EtatIncidentAction> => ({});
 export const annulerMission = neutre;
+export const consignerRendezVousManque = neutre;
 export const deciderAvenant = neutre;
 export const evaluerArtisan = neutre;
 export const fixerRendezVous = neutre;

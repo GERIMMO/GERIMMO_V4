@@ -361,6 +361,22 @@ export async function PaneIncident({
           d.motif ? `« ${d.motif} »` : null,
           d.tardive ? "annulation à moins de 24 h" : null,
         ].filter(Boolean).join(" · ");
+      // Audit palier 1 (P2-04) : qui était absent, qui le dit, et la précision de celui qui l'a consigné.
+      case "rdv_manque":
+        return [
+          d.rdv_debut ? `rendez-vous du ${formaterDateHeure(String(d.rdv_debut))}` : null,
+          d.absent === "artisan" ? "l’artisan était absent" : d.absent === "locataire" ? "le locataire était absent" : null,
+          d.par === "artisan" ? "indiqué par l’artisan" : d.par === "gestionnaire" ? "consigné par le gestionnaire" : null,
+          d.note ? `« ${d.note} »` : null,
+        ].filter(Boolean).join(" · ") || null;
+      case "facture_relancee":
+        return [
+          d.numero ? `n° ${d.numero}` : null,
+          d.relance != null ? `relance n° ${d.relance}` : null,
+          d.jours_depuis_depot != null ? `déposée depuis ${d.jours_depuis_depot} jours` : null,
+          d.etat === "deposee" ? "pas encore contrôlée"
+            : d.reste_cents != null ? `reste à régler : ${eur(centsEnEuros(Number(d.reste_cents)))}` : null,
+        ].filter(Boolean).join(" · ") || null;
       default:
         return null;
     }

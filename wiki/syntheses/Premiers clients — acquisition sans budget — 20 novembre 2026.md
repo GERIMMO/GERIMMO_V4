@@ -83,6 +83,7 @@ suivent :
 | 4 bis | **Date de bascule des loyers** (décision A du 21/11) | [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356) | **En production** depuis le 21/11, 18:03Z ; migration appliquée à 18:02Z |
 | 4 ter | **DPE classé G en alerte** et **plus d'alerte d'état des lieux d'entrée** pour un bail déjà en cours (décisions 2B et 3A du 22/11) | [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357) | **Prête au 22/11**, ni fusionnée ni publiée : attend l'accord du dirigeant (une migration, donc trois approbations) |
 | 4 quater | **Message de service aux inscrits** (décision 1A du 22/11) | — | **Sans objet** (22/11) : les inscrits sont des comptes de test ; rien n'a été envoyé |
+| 4 quinquies | **Inscriptions dans l'e-mail du matin** : un espace de propriétaire ouvert en 24 h devient un point du relais de 5 h | [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357) (même lot) | **Prête au 22/11**, ni fusionnée ni publiée |
 | 5 | Publications Instagram et LinkedIn | — | Non commencé : demande l'accès aux comptes |
 
 Recette de production n° 57 réussie sur la version publiée (21/11, 18:12Z).
@@ -150,6 +151,19 @@ Un brouillon avait été rédigé le 22/11 pour dire aux propriétaires inscrits
 dirigeant a précisé le même jour que ces inscrits sont des comptes de test, supprimés sous dix jours : le message n'a
 plus de destinataire. **Rien n'a été envoyé**, et aucun outil d'envoi n'a été construit. Le brouillon reste lisible
 dans l'historique du dépôt (commit `b013656b`).
+
+### 4 quinquies. Les inscriptions dans l'e-mail du matin (22/11)
+
+Le dirigeant ne répond qu'aux appels et n'ouvre pas la console chaque jour : rien ne lui disait qu'un propriétaire
+venait d'ouvrir un espace. Les comptes présents étant des comptes de test, le premier vrai inscrit doit se remarquer.
+L'e-mail du matin ([[Relais du dirigeant]]) reçoit un bloc « Nouvelles inscriptions », affiché dès qu'un espace de
+propriétaire a été ouvert dans les dernières 24 h : ouverts en 24 h, sur 7 jours, au total ; puis, tous espaces
+confondus, combien n'ont aucun bien et combien ont un bail en cours. Des nombres seulement ; sans inscription en 24 h,
+aucun e-mail de plus. Les demandes de rappel (« Être rappelé ») y figuraient déjà, comptées avec les demandes de
+contact du site. Même lot que 4 ter (PR #357).
+
+Limite connue : ces nombres ne distinguent pas un compte de test d'un vrai inscrit. Un espace ouvert par le dirigeant
+pour un essai sera signalé comme les autres.
 
 ## Ce qui reste à décider
 

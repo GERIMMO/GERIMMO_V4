@@ -3,7 +3,7 @@ type: process
 tags: [supervision, relais, alerte, e-mail, arret-urgence, automatisation]
 status: draft
 created: 2026-10-16
-updated: 2026-10-19
+updated: 2026-11-22
 sources: ["[[Décisions groupées — version candidate du 13 octobre 2026]]", "[[Complément à la page « Décisions groupées » — fiches de la vague 6]]", "[[Équipes IA et automatismes — inventaire et propositions (14 octobre 2026)]]"]
 ---
 
@@ -100,6 +100,8 @@ chose à signaler, et un e-mail immédiat pour chaque urgence du mode vacances.
 | Les arrêts d'urgence actifs (clé et date) | Le motif d'un arrêt (texte libre) |
 | Le rappel des urgences des dernières 24 h (nature, heure, sort de leur e-mail immédiat), même déjà envoyées | Une donnée de locataire |
 | Les demandes de contact du site vitrine en attente de réponse : leur nombre, dont celles reçues il y a plus de 48 h (M16, 19/10 ; préparé, non déployé tant que la PR n'est pas fusionnée) | Le contenu d'une demande (nom, e-mail, téléphone, message) |
+| Les agences en attente sur la liste (21/10) : leur nombre | Les coordonnées d'une agence |
+| **Les inscriptions** (22/11 ; PR #357, pas encore publiée) : les espaces de propriétaires ouverts dans les dernières 24 h, avec le nombre d'espaces sur 7 jours, au total, sans aucun bien et avec un bail en cours. **Un seul point**, et seulement s'il y a eu une inscription en 24 h | Le nom ou l'adresse d'un inscrit |
 | Un lien vers la console | — |
 
 Le message ne porte que des compteurs, des libellés de tâche (constantes de

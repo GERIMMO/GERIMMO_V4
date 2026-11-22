@@ -7805,3 +7805,24 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **Lot du 22/11** (PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357)) : inchangé, prêt, en attente d'accord.
   Aucun utilisateur réel n'étant bloqué, sa publication n'a rien d'urgent.
 - **Pages mises à jour** : [[Premiers clients — acquisition sans budget — 20 novembre 2026]], [[Bail]], `index.md`.
+
+## [2026-11-22] query  | Acquisition : comment le dirigeant saura-t-il qu'un vrai propriétaire s'est inscrit ?
+
+- **Constat.** Les espaces présents en production sont des comptes de test (précision du dirigeant du même jour) ;
+  rien ne signale au dirigeant l'ouverture d'un nouvel espace, sauf à ouvrir la console.
+- **Réponse construite** (étape 3 du plan d'acquisition, accord du 20/11 « fais ce qui te semble nécessaire ») :
+  l'e-mail du matin ([[Relais du dirigeant]]) signale, par un seul point, les espaces de propriétaires ouverts dans
+  les dernières 24 h, avec cinq nombres (24 h, 7 jours, total, sans aucun bien, avec un bail en cours). Sans
+  inscription en 24 h : aucun point, aucun e-mail de plus. Aucune donnée personnelle.
+- **En base** : migration `20261122100000_relais_point_inscriptions.sql` (une fonction de comptage réservée au
+  traitement), retour arrière fourni.
+- **Regroupé avec le lot du 22/11** : même demande de fusion,
+  PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357) (`35da40f1`), pour une seule publication.
+  - Banc local : suite complète passée (13 242 tests), hors les quatre fichiers propres au banc partagé ; la fonction,
+    appelée à travers l'API locale, rend ses cinq nombres au serveur et un refus à un visiteur ; l'e-mail rendu et
+    relu.
+  - CI de la demande relancée sur `35da40f1` (run 45007278133).
+  - **Ni fusionnée ni publiée** : attend l'accord explicite du dirigeant.
+- **Limite** : les nombres ne distinguent pas un compte de test d'un vrai inscrit.
+- **Pages mises à jour** : [[Relais du dirigeant]], [[Premiers clients — acquisition sans budget — 20 novembre 2026]],
+  `index.md`.

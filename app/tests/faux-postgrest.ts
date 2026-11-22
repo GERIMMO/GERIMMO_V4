@@ -244,6 +244,15 @@ export const SCHEMA_CONNU = {
     colonnes: ["id", "organization_id", "bail_id", "periode"],
     integrees: [],
   },
+  // Audit palier 1, P1-13 : la recherche de l'indice de révision relit le bail et ses révisions passées.
+  baux: {
+    colonnes: ["id", "organization_id", "revision_irl", "irl_trimestre", "irl_valeur"],
+    integrees: [],
+  },
+  revisions_loyer: {
+    colonnes: ["id", "organization_id", "bail_id", "date_effet", "irl_trimestre", "irl_nouveau"],
+    integrees: [],
+  },
 } as const satisfies Record<string, { colonnes: readonly string[]; integrees: readonly string[] }>;
 
 /** Une table du banc : ses colonnes viennent du catalogue, et une ligne qui en porte une autre est refusée. */

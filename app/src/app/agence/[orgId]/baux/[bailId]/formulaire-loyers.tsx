@@ -2,7 +2,7 @@
 import { InputDateJour } from "@/components/input-date-jour";
 
 import Link from "next/link";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import {
   genererAppels,
@@ -38,6 +38,7 @@ import { ChampFichier } from "@/components/champ-fichier";
 import { RACINE_AGENCE, baseDepuisRacine } from "@/lib/racine-espace";
 import { CleEnvoi } from "@/components/cle-envoi";
 import { ConfirmationEncaissement } from "@/components/confirmation-encaissement";
+import { IndicePropose } from "./indice-propose";
 import { RegularisationFournitures } from "@/components/regularisation-fournitures";
 
 // Les modes de règlement qu'une agence rencontre vraiment. « autre » évite de
@@ -308,6 +309,21 @@ export function FormulaireLoyers({
   // à défaut celui figé au bail (RM-3.8.7). Audit 29/09 : l'effet vaut
   // max(anniversaire, date de la demande) — jamais rétroactif (art. 17-1 I).
   const derniereRevision = [...revisions].sort((a, b) => b.date_effet.localeCompare(a.date_effet))[0];
+  // Audit palier 1, P1-13 : l'indice cherché chez l'Insee est reporté dans ces trois champs, où il reste modifiable.
+  // L'événement « input » prévient la protection de saisie qu'un champ a changé, comme une frappe au clavier.
+  const champIndice = useRef<HTMLInputElement>(null);
+  const champTrimestre = useRef<HTMLSelectElement>(null);
+  const champAnnee = useRef<HTMLInputElement>(null);
+  const reporterIndice = (p: { valeur: number; trimestre: number; annee: number }) => {
+    const poser = (champ: HTMLInputElement | HTMLSelectElement | null, valeur: string) => {
+      if (!champ) return;
+      champ.value = valeur;
+      champ.dispatchEvent(new Event("input", { bubbles: true }));
+    };
+    poser(champIndice.current, String(p.valeur).replace(".", ","));
+    poser(champTrimestre.current, String(p.trimestre));
+    poser(champAnnee.current, String(p.annee));
+  };
   const irlReferenceCourante = derniereRevision ? Number(derniereRevision.irl_nouveau) : irlReference;
   const datesDuJour = aujourdhui ? datesRevisionIrl(dateDebut, aujourdhui) : null;
   const trimestreReference =
@@ -574,7 +590,7 @@ export function FormulaireLoyers({
 
       {/* Révision IRL */}
       {revisionIrl && (
-        <div className="space-y-2 border-t border-border pt-4">
+        <div id="revision-loyer" className="scroll-mt-24 space-y-2 border-t border-border pt-4">
           <p className="text-sm font-medium">Révision annuelle du loyer (IRL)</p>
           {revisions.length > 0 && (
             <ul className="text-xs text-muted-foreground">
@@ -601,6 +617,7 @@ export function FormulaireLoyers({
           )}
           {/* En erreur, la saisie est reposée via etatRev.valeurs (recette 22/08) */}
           <form data-saisie-confirmee action={formRev} className="flex flex-wrap items-end gap-2">
+            <IndicePropose orgId={orgId} bailId={bailId} surProposition={reporterIndice} />
             <div className="space-y-1">
               <p className="text-xs">
                 {derniereRevision ? "IRL de référence (dernière révision)" : "IRL de référence (figé au bail)"}
@@ -616,13 +633,14 @@ export function FormulaireLoyers({
             </div>
             <div className="space-y-1">
               <Label htmlFor="irl-nouv" className="text-sm">IRL nouveau</Label>
-              <Input id="irl-nouv" name="irl_nouveau" type="text" inputMode="decimal" placeholder="ex. 145,17" defaultValue={etatRev.valeurs?.irl_nouveau} className="h-9 w-28" />
+              <Input ref={champIndice} id="irl-nouv" name="irl_nouveau" type="text" inputMode="decimal" placeholder="ex. 145,17" defaultValue={etatRev.valeurs?.irl_nouveau} className="h-9 w-28" />
             </div>
             {/* Constat 21 : l'indice nouveau est celui du MÊME trimestre que
                 l'indice de référence du bail, publié pour l'année suivante. */}
             <div className="space-y-1">
               <Label htmlFor="irl-trim" className="text-sm">Trimestre</Label>
               <select
+                ref={champTrimestre}
                 id="irl-trim"
                 name="irl_trimestre_numero"
                 defaultValue={etatRev.valeurs?.irl_trimestre_numero ?? (trimestreReference ? String(trimestreReference) : "")}
@@ -641,6 +659,7 @@ export function FormulaireLoyers({
             <div className="space-y-1">
               <Label htmlFor="irl-annee" className="text-sm">Année de l&apos;indice</Label>
               <Input
+                ref={champAnnee}
                 id="irl-annee"
                 name="irl_trimestre_annee"
                 type="number"

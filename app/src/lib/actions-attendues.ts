@@ -6,6 +6,7 @@ import { statutDiagnostic } from "@/lib/parc";
 import { avecEcheanceReglementaire } from "@/lib/documents-bail";
 import { RACINE_AGENCE } from "@/lib/racine-espace";
 import { lireToutesLesPages, type PageLue } from "@/lib/lecture-complete";
+import { derniereDateAnniversaire } from "@/lib/baux";
 
 // Actions attendues sur les baux en cours — LA source commune (audit 09/09,
 // P2). L'accueil du propriétaire disait « tout est en ordre » pendant que la
@@ -18,8 +19,18 @@ import { lireToutesLesPages, type PageLue } from "@/lib/lecture-complete";
 //   - état des lieux d'entrée non signé sur un bail en cours ;
 //   - diagnostics obligatoires absents ou expirés (DPE au lot en habitation,
 //     ERP au bien — même critère que lot_blocages_location côté SQL) ;
-//   - pièces de la GED expirées (documents_a_renouveler).
+//   - pièces de la GED expirées (documents_a_renouveler) ;
+//   - révision annuelle du loyer possible, à la date anniversaire d'un bail qui la prévoit (audit palier 1, P1-13).
 // Calcul à la volée, sans nouvelle table ni tâche asynchrone.
+
+/**
+ * Le rappel de la révision annuelle paraît à la date anniversaire du bail et reste affiché ce nombre de jours, puis
+ * s'efface de lui-même (la révision reste possible depuis la fiche du bail). Sans cette borne, un bailleur qui choisit
+ * de ne pas réviser garderait le rappel toute l'année. Réglage de produit, noté dans QUESTIONS.md.
+ */
+export const JOURS_RAPPEL_REVISION = 60;
+const joursDepuis = (depuis: string, jusqua: string) =>
+  Math.round((Date.parse(`${jusqua}T00:00:00Z`) - Date.parse(`${depuis}T00:00:00Z`)) / 86_400_000);
 
 export type ActionAttendue = {
   cle: string;
@@ -42,6 +53,9 @@ type BailEnCours = {
   chambre_id?: string | null;
   /** Date de bascule (20/11/2026) : renseignée pour un bail repris en cours, dont l'entrée a eu lieu avant Gerimmo. */
   loyers_suivis_depuis?: string | null;
+  /** Audit palier 1, P1-13 : l'entrée et la clause de révision, pour rappeler la révision annuelle à sa date. */
+  date_debut?: string | null;
+  revision_irl?: boolean | null;
   lot: UnOuPlusieurs<{
     id: string;
     nom: string;
@@ -67,7 +81,7 @@ function centimesFiables(brut: unknown, zeroPermis: boolean): number | null {
 
 export type LectureActionsAttendues = {
   actions: ActionAttendue[];
-  erreurs: { baux: boolean; edls: boolean; appels: boolean; encaissements: boolean; diagnostics: boolean; pieces: boolean };
+  erreurs: { baux: boolean; edls: boolean; appels: boolean; encaissements: boolean; diagnostics: boolean; pieces: boolean; revisions: boolean };
 };
 type OptionsActionsAttendues = {
   bailId?: string;
@@ -109,7 +123,7 @@ export async function lireActionsAttendues(
 
   const { data: bauxBruts, error: erreurBaux } = await lectureCompleteSecurisee<BailEnCours>((debut, fin) => {
     let requeteBaux = supabase.from("baux").select(
-      "id, etat, lot_id, chambre_id, loyers_suivis_depuis, lot:lots(id, nom, bien_id, bien:biens!lots_bien_id_fkey(id, nom, type, annee_construction))", { count: "exact" },
+      "id, etat, lot_id, chambre_id, loyers_suivis_depuis, date_debut, revision_irl, lot:lots(id, nom, bien_id, bien:biens!lots_bien_id_fkey(id, nom, type, annee_construction))", { count: "exact" },
     ).eq("organization_id", orgId).in("etat", ["actif", "preavis"]);
     if (bailId) requeteBaux = requeteBaux.eq("id", bailId);
     return requeteBaux.order("id").range(debut, fin);
@@ -120,6 +134,14 @@ export async function lireActionsAttendues(
     (b) => !portefeuille || portefeuille.has(b.lot_id)
   );
   const bailIds = baux.map((b) => b.id);
+  // Rappel de la révision annuelle (audit palier 1, P1-13) : seuls les baux en cours qui prévoient la révision et
+  // dont la date anniversaire vient de passer sont relus.
+  const echeanceRevision = new Map<string, string>();
+  for (const b of baux) {
+    if (b.etat !== "actif" || b.revision_irl !== true) continue;
+    const echeance = derniereDateAnniversaire(b.date_debut, aujourdhui);
+    if (echeance && joursDepuis(echeance, aujourdhui) <= JOURS_RAPPEL_REVISION) echeanceRevision.set(b.id, echeance);
+  }
   const chambreIds = [...new Set(baux.flatMap((b) => b.chambre_id ? [b.chambre_id] : []))];
 
   const vide = { data: [] as never[], error: false };
@@ -131,6 +153,7 @@ export async function lireActionsAttendues(
     { data: piecesARenouveler, error: erreurPieces },
     { data: chambres },
     { data: decompte, error: erreurDecompte },
+    { data: revisionsLues, error: erreurRevisions },
   ] = await Promise.all([
     lirePourLesBaux<{ id: string; bail_id: string }>(bailIds, (ids, debut, fin) => supabase
           .from("etats_des_lieux")
@@ -176,6 +199,10 @@ export async function lireActionsAttendues(
       .from("restitutions").select("id,bail_id", { count: "exact" })
       .eq("organization_id", orgId).eq("statut", "finalise")
       .in("bail_id", ids).order("id").range(debut, fin)),
+    lirePourLesBaux<{ id: string; bail_id: string; date_effet: string }>([...echeanceRevision.keys()], (ids, debut, fin) => supabase
+      .from("revisions_loyer").select("id,bail_id,date_effet", { count: "exact" })
+      .eq("organization_id", orgId)
+      .in("bail_id", ids).order("id").range(debut, fin)),
   ]);
 
   const erreurs: LectureActionsAttendues["erreurs"] = {
@@ -185,6 +212,7 @@ export async function lireActionsAttendues(
     encaissements: Boolean(erreurEncaissements) || !Array.isArray(encaissements),
     diagnostics: Boolean(erreurDiagnostics) || !Array.isArray(diagnostics),
     pieces: Boolean(erreurPieces) || !Array.isArray(piecesARenouveler),
+    revisions: Boolean(erreurRevisions) || !Array.isArray(revisionsLues),
   };
 
   const bauxAuDecompte = new Set((decompte ?? []).map(r => r.bail_id));
@@ -230,6 +258,12 @@ export async function lireActionsAttendues(
   const impayes: ActionAttendue[] = [];
   const edls: ActionAttendue[] = [];
   const diags: ActionAttendue[] = [];
+  const revisionsPossibles: ActionAttendue[] = [];
+  // Un bail déjà révisé depuis sa dernière date anniversaire n'a plus rien à rappeler cette année.
+  const derniereRevisionParBail = new Map<string, string>();
+  for (const r of (revisionsLues ?? []) as { bail_id: string; date_effet: string }[]) {
+    if ((derniereRevisionParBail.get(r.bail_id) ?? "") < r.date_effet) derniereRevisionParBail.set(r.bail_id, r.date_effet);
+  }
   const biensSignales = new Set<string>();
 
   for (const bail of baux) {
@@ -259,6 +293,27 @@ export async function lireActionsAttendues(
         href: `${base}/baux/${bail.id}#loyers`,
         critique: true,
       });
+    }
+
+    // Révision annuelle du loyer (audit palier 1, P1-13) : rien ne la rappelait, et une révision demandée en retard ne
+    // prend effet qu'à la date de la demande (c'est ce que dit déjà le formulaire). Le rappel paraît à la date
+    // anniversaire et reste soixante jours ; il s'efface dès que la révision est enregistrée. Il se tait quand la base
+    // refuserait la révision (dernier DPE du logement classé F ou G), et quand une lecture manque : jamais de rappel
+    // fondé sur une supposition.
+    const echeance = echeanceRevision.get(bail.id);
+    if (echeance && !erreurs.revisions && !erreurs.diagnostics && (derniereRevisionParBail.get(bail.id) ?? "") < echeance) {
+      const dernierDpe = lignesDiagnostics
+        .filter((d) => d.type === "dpe" && d.lot_id === bail.lot_id)
+        .sort((a, b) => (b.date_realisation ?? "").localeCompare(a.date_realisation ?? ""))[0];
+      if (!["F", "G"].includes(dernierDpe?.classe_dpe ?? "")) {
+        revisionsPossibles.push({
+          cle: `revision-${bail.id}`,
+          titre: `Révision annuelle du loyer possible${surLeBail}`,
+          detail: `Date anniversaire du ${formaterDate(echeance)} : demandée plus tard, la révision ne prend effet qu’à la date de la demande`,
+          href: `${base}/baux/${bail.id}#revision-loyer`,
+          critique: false,
+        });
+      }
     }
 
     // État des lieux d'entrée : référence pour la comparaison à la sortie.
@@ -339,8 +394,8 @@ export async function lireActionsAttendues(
     }));
 
   // Les impayés d'abord (argent en jeu), puis ce qui fragilise le bail, puis
-  // la conformité et l'intendance documentaire.
-  return { actions: [...impayes, ...edls, ...diags, ...pieces], erreurs };
+  // la conformité, la révision annuelle à ne pas laisser passer, et l'intendance documentaire.
+  return { actions: [...impayes, ...edls, ...diags, ...revisionsPossibles, ...pieces], erreurs };
 }
 
 // Une alerte ouverte peut porter la même nouvelle qu'un item calculé : on ne

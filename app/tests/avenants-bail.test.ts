@@ -278,6 +278,15 @@ describe("rubrique « Avenant au bail » de la fiche du bail", () => {
     expect(html).not.toContain('value="2024-');
   });
 
+  it("aucun titre de niveau 4 ne saute par-dessus le titre de la page : les intertitres sont des paragraphes reliés à leur section", async () => {
+    const html = await rendre({ avenants: [ligne({ applique_le: "2026-06-01T04:00:00Z" })] });
+    expect(html).not.toMatch(/<h[1-6][\s>]/);
+    for (const id of ["avenant-preparer", "avenant-enregistrer", "avenant-historique"]) {
+      expect(html).toContain(`<p id="${id}"`);
+      expect(html).toContain(`aria-labelledby="${id}"`);
+    }
+  });
+
   it("forfait de charges : le champ le dit", async () => {
     expect(texte(await rendre({ bail: { charges_mode: "forfait" } }))).toContain("Forfait de charges après l’avenant");
   });

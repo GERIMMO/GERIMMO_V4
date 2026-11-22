@@ -103,20 +103,22 @@ export async function RubriqueAvenantsBail({
       ? "Préparer une modification, puis enregistrer l’avenant signé"
       : "Avenants enregistrés pendant la location";
 
+  // Les intertitres sont des paragraphes en gras, pas des titres : le titre d'une rubrique repliable n'en est pas un
+  // non plus, et un <h4> posé là sauterait deux niveaux sous le <h1> de la page (ordre des titres).
   return (
     // Jamais ouverte d'office : une rubrique qui s'ouvre parce qu'un avenant attend se REFERMERAIT d'elle-même dès qu'il
     // est annulé ou appliqué, en emportant le message de confirmation. Son résumé, toujours visible, dit ce qui attend.
     <RubriqueDossier id="avenant" titre="Avenant au bail" resume={resume}>
       {enCours && (
         <section className="space-y-3" aria-labelledby="avenant-preparer">
-          <h4 id="avenant-preparer" className="font-semibold">1. Préparer l’avenant à faire signer</h4>
+          <p id="avenant-preparer" className="font-semibold">1. Préparer l’avenant à faire signer</p>
           <GenererAvenant orgId={orgId} bailId={bailId} cheminRetour={`${base}/baux/${bailId}`} />
         </section>
       )}
 
       {enCours && (
         <section className="space-y-3 border-t border-border pt-4" aria-labelledby="avenant-enregistrer">
-          <h4 id="avenant-enregistrer" className="font-semibold">2. Enregistrer l’avenant signé</h4>
+          <p id="avenant-enregistrer" className="font-semibold">2. Enregistrer l’avenant signé</p>
           {!lecturesCompletes ? (
             <p role="alert" className="text-sm text-destructive">
               Les avenants de ce bail ne peuvent pas être lus pour le moment : rechargez la page avant d’en enregistrer un.
@@ -174,7 +176,7 @@ export async function RubriqueAvenantsBail({
       )}
       {autres.length > 0 && (
         <section className={enCours ? "space-y-3 border-t border-border pt-4" : "space-y-3"} aria-labelledby="avenant-historique">
-          <h4 id="avenant-historique" className="font-semibold">Avenants enregistrés</h4>
+          <p id="avenant-historique" className="font-semibold">Avenants enregistrés</p>
           <ul className="space-y-2" data-avenants-enregistres>
             {autres.map((a) => <CarteAvenant key={a.id} a={a} base={base} libelleCharges={libelleCharges} />)}
           </ul>

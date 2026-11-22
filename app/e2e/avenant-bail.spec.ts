@@ -49,7 +49,7 @@ test("avenant au bail : enregistré avec sa pièce, appliqué au loyer du mois v
     await sansSyntheseAlertes(page);
     await page.goto(`/espace/${ORG}/baux/${bail}#avenant`);
     const rubrique = page.locator("#avenant");
-    await expect(rubrique.getByRole("heading", { name: "2. Enregistrer l’avenant signé" })).toBeVisible();
+    await expect(rubrique.getByText("2. Enregistrer l’avenant signé", { exact: true })).toBeVisible();
     const formulaire = rubrique.locator("[data-enregistrer-avenant]");
     await expect(formulaire).toBeVisible();
     // La première date proposée est le 1er du mois prochain : le loyer de ce mois est déjà appelé.
@@ -99,7 +99,8 @@ test("avenant au bail : enregistré avec sa pièce, appliqué au loyer du mois v
     // Les loyers déjà appelés n'ont pas bougé.
     expect((await db.query("select count(*)::int n from appels_loyer where bail_id=$1 and periode < $2 and (loyer_hc <> 700 or charges <> 50)", [bail, d.suivant])).rows[0].n).toBe(0);
 
-    await page.goto(`/espace/${ORG}/baux/${bail}#avenant`);
+    // Rechargement complet : rouvrir la même adresse avec le même « #avenant » ne relirait rien (navigation dans la page).
+    await page.reload();
     const historique = rubrique.locator("[data-avenants-enregistres]");
     await expect(historique.locator('[data-etat-avenant="applique"]')).toContainText("Appliqué au bail");
     await expect(rubrique.locator("[data-avenant-en-attente]")).toHaveCount(0);

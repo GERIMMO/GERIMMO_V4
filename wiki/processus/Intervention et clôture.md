@@ -90,9 +90,13 @@ la mission, eux, ne sont **pas publiés**.
   intervention. **Aucun rapport PDF officiel** n'est produit et il n'y a pas de saisie de matériaux.
 - **Clôture de l'incident** (`cloturer_incident`) : trois motifs — résolu, sans suite, transmis au syndic — avec un
   commentaire ; un incident clos peut être rouvert avec un motif (`rouvrir_incident`).
-- **Évaluation de l'artisan** : par le gestionnaire seulement (`evaluer_artisan_gerant`), sur **trois critères**
-  notés de 1 à 5 — qualité, délai, prix — et un commentaire. Le type prévoit une évaluation par le locataire, mais
-  aucune fonction ne l'écrit : la notation à trois évaluateurs de l'encadré ci-dessus reste une intention.
+- **Évaluation de l'artisan, par deux personnes** : le gestionnaire (`evaluer_artisan_gerant`) note **trois critères**
+  de 1 à 5 — qualité, délai, prix — avec un commentaire ; le [[Locataire]] (`noter_artisan_locataire`, depuis le socle
+  artisans du 11/09/2026) donne **une note globale** de 1 à 5 et un commentaire, facultatifs et jamais bloquants, sans
+  critère de prix ni de technique. Deux des trois évaluateurs de l'encadré ci-dessus existent donc ; un « taux de
+  réponse » calculé automatiquement n'a pas été trouvé dans le code de l'application (recherche du 23/11/2026).
+  *Correction du 23/11/2026 : la première rédaction de cette section, la veille, disait à tort que seul le
+  gestionnaire évaluait.*
 
 ### Ce que la mission palier 1 ajoute (préproduction, non publié)
 - **Facture refusée puis corrigée (lot 11).** Une facture d'artisan erronée se refuse avec un motif ; l'artisan en

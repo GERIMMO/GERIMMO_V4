@@ -8002,3 +8002,15 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
 - **Contradictions signalées** dans les pages : cahier V3 ≠ application sur le rapport d'intervention ; absences de
   l'artisan comptées mais hors de sa note (Q32) ; agenda livré pour un seul persona.
 - **Lacunes** : pas de page [[Congé]] (lien posé depuis [[Agenda et échéances]]).
+
+## [2026-11-23] lint   | Wiki : une erreur de la veille corrigée (évaluation de l'artisan par le locataire)
+
+- **Erreur** : en remettant à jour [[Intervention et clôture]] le 22/11, l'agent a écrit que seul le gestionnaire
+  évaluait l'artisan et qu'aucune fonction n'écrivait l'évaluation du locataire. **C'est faux** : la fonction
+  `noter_artisan_locataire` existe depuis le socle artisans du 11/09/2026 (note globale de 1 à 5 et commentaire,
+  facultatifs). La recherche de la veille ne portait que sur les fonctions nommées « evaluer_artisan… ».
+- **Corrigé** : la section « État dans l'application » de la page, la ligne de `index.md`. La correction est signalée
+  dans la page elle-même. Le journal du 22/11 (ci-dessus) reste tel quel : il est en ajout seul.
+- **Leçon** : chercher un fait par ce qu'il fait (ici : toute fonction qui écrit dans `artisan_evaluations`), pas par
+  le nom qu'on lui suppose.
+

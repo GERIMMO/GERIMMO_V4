@@ -544,3 +544,4 @@
 20261122235800_artisan_relance_facture_rdv_manque.sql
 20261122235900_artisan_lignes_devis.sql
 20261122235950_pointage_loyer_releve.sql
+20261122235959_menage_droits_sans_politique.sql

@@ -25,7 +25,8 @@ describe("pointage d'un loyer sur relevé — manifeste et retour (sans base)", 
   it("la migration est au manifeste une seule fois, avec son retour listé", () => {
     const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${NOM}.sql`)).toHaveLength(1);
-    expect(manifeste.at(-1)).toBe(`${NOM}.sql`);
+    // Elle vient après toutes les migrations plus anciennes qu'elle (d'autres lots peuvent la suivre).
+    expect(manifeste.slice(0, manifeste.indexOf(`${NOM}.sql`)).every((l) => l < `${NOM}.sql`)).toBe(true);
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     expect(readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8")).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
     expect(readFileSync("tests/relais-migrations-manifeste.test.ts", "utf8")).toContain(`"${NOM}.sql",`);

@@ -71,7 +71,7 @@ export async function FacturesIncident({orgId,incidentId,imputation,base=baseEsp
     const termineAvant = termineLe !== null && avantRendezVous(mission?.debut_prevu, new Date(termineLe));
     const lignes = reglementsDe(f.id);
     const { etat, resteCents } = etatReglementFacture(f, lignes);
-    return <section id={`facture-${f.id}`} key={f.id} className="incident-facture rounded-xl border border-[var(--filet)] bg-[var(--carte)] p-4 space-y-3">
+    return <section id={`facture-${f.id}`} key={f.id} className={`incident-facture${f.refusee_le ? " incident-facture-refusee" : ""} rounded-xl border border-[var(--filet)] bg-[var(--carte)] p-4 space-y-3`}>
     {etat !== "reglee" && etat !== "refusee" && <PrioriteIncident id={`facture-${f.id}`} action={{ titre: etat === "deposee" ? "Vérifier la facture avant règlement" : "Déclarer un règlement déjà effectué", cible: `facture-${f.id}`, responsable: "Vous", priorite: etat === "deposee" ? 80 : 70, etat: "Facture à traiter" }}/>}
     <div className="flex flex-wrap items-center justify-between gap-2">
       <h3 className="font-semibold">Facture {f.numero} — {eur(f.montant_ttc_cents / 100)} TTC</h3>

@@ -635,7 +635,7 @@ export async function PaneIncident({
       <RubriqueIncident rubrique="suivi">{(!estProprietaire || decisionRequise) && decisionCommuns}</RubriqueIncident>
       <div id="intervention"><VoletArtisan orgId={orgId} incidentId={incidentId} etat={incident.etat} categorie={incident.categorie} imputation={incident.imputation} lotId={null} estProprietaire={estProprietaire}/></div>
       <RubriqueIncident rubrique="suivi">{estProprietaire && !decisionRequise && decisionCommuns}</RubriqueIncident>
-      <RubriqueIncident rubrique="devis"><div id="factures"><FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base}/></div></RubriqueIncident>
+      <RubriqueIncident rubrique="devis"><div id="factures" className="space-y-4"><FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base}/></div></RubriqueIncident>
       <Link href={`${base}/parc?sel=bien:${incident.bien_id}#consommations`} className={estProprietaire ? "incident-lien-depenses" : "btn-or"}>Dépenses et charges du bien →</Link>
       <RubriqueIncident rubrique="suivi">{incident.etat==="clos"?<p id="cloture" className="text-sm">Incident clos{incident.clos_le?` le ${formaterDate(incident.clos_le)}`:""}.</p>:motifsCloture.length>0&&<details id="cloture"><summary className="cursor-pointer py-3 font-medium">Clôturer l’incident</summary><FormulaireCloture orgId={orgId} incidentId={incidentId} motifs={motifsCloture}/></details>}</RubriqueIncident>
       {chronologie}
@@ -752,7 +752,7 @@ export async function PaneIncident({
           </div>
 
           {decisionRepliee && blocDecision}
-          <RubriqueIncident rubrique="devis"><div id="factures"><FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base} /></div></RubriqueIncident>
+          <RubriqueIncident rubrique="devis"><div id="factures" className="space-y-4"><FacturesIncident orgId={orgId} incidentId={incidentId} imputation={incident.imputation} base={base} /></div></RubriqueIncident>
           <RubriqueIncident rubrique="suivi">{(!estProprietaire || motifsCloture.length > 0 || incident.etat === "clos") && <details id="cloture" open={!estProprietaire || incident.etat === "termine"} className="rounded-xl border border-border bg-card p-4">
             <summary className="min-h-11 cursor-pointer content-center font-semibold">{incident.etat === "clos" ? "Incident clos · consulter" : "Clôturer l’incident"}</summary>
           <Card className="mt-3 border-0 shadow-none">

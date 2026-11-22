@@ -85,6 +85,7 @@ test("facture d'artisan erronée : le gestionnaire la refuse avec un motif, l'ar
     // Rien de la facture n'a changé : même numéro, même montant, même pièce.
     expect(refusee).toMatchObject({ id: deposee.id, numero: premiere, montant: 10000, document_id: deposee.document_id, refus_motif: MOTIF, validee: false });
     const marqueRefus = gerant.locator("[data-facture-refusee]");
+    await expect(marqueRefus).toBeVisible();
     await expect(marqueRefus).toContainText(`« ${MOTIF} »`);
     await expect(marqueRefus).toContainText("Elle reste au dossier, sans être modifiée ; l’artisan peut déposer une autre facture.");
     await expect(gerant.getByRole("button", { name: "Valider cette facture" })).toHaveCount(0);
@@ -101,9 +102,12 @@ test("facture d'artisan erronée : le gestionnaire la refuse avec un motif, l'ar
     // ── L'artisan lit le motif : sur sa mission, dans sa facturation, puis au moment de corriger.
     await page.goto(`/artisan/missions/${mission}`);
     const avis = page.locator("[data-facture-refusee]");
+    // Visible, pas seulement présent : la page arrive en flux, son contenu d'abord caché derrière « Chargement… ».
+    await expect(avis).toBeVisible();
     await expect(avis).toContainText(`Votre facture n° ${premiere}`);
     await expect(avis).toContainText(`Ce qu’il vous demande de corriger : « ${MOTIF} »`);
-    await expect(page.locator("body")).toContainText("Refusée : à corriger");
+    await expect(page.getByText("Refusée : à corriger", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Déposer une facture corrigée", exact: true })).toBeVisible();
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
     await page.screenshot({ path: info.outputPath("artisan-facture-refusee.png"), fullPage: true });
     await page.goto("/artisan/facturation");
@@ -111,6 +115,7 @@ test("facture d'artisan erronée : le gestionnaire la refuse avec un motif, l'ar
     await page.goto(`/artisan/missions/${mission}`);
     await page.getByRole("link", { name: "Déposer une facture corrigée", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Déposer une facture corrigée", exact: true })).toBeVisible();
+    await expect(page.locator("[data-facture-refusee]")).toBeVisible();
     await expect(page.locator("[data-facture-refusee]")).toContainText(`« ${MOTIF} »`);
 
     // ── Facture corrigée : un autre numéro, un autre montant, une autre pièce.

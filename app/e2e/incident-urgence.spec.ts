@@ -21,7 +21,7 @@ test("incident : le propriétaire marque urgent puis repasse en normal, motif à
   const incident = randomUUID();
   const numero = `TEST-URG-${incident.slice(0, 8)}`;
   try {
-    const { rows: [lot] } = await db.query("select id from lots where organization_id=$1 and archived_at is null order by created_at limit 1", [ORG]);
+    const { rows: [lot] } = await db.query("select id from lots where organization_id=$1 order by created_at limit 1", [ORG]);
     await db.query("insert into incidents(id,organization_id,lot_id,numero,canal,categorie,description,etat,urgence) values($1,$2,$3,$4,'agence','plomberie_canalisation','TEST urgence : robinet qui goutte','declare','normale')", [incident, ORG, lot.id, numero]);
     const urgenceEnBase = async () => (await db.query("select urgence::text u from incidents where id=$1", [incident])).rows[0].u as string;
 

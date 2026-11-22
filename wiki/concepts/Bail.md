@@ -66,9 +66,10 @@ Un bail dont **la date d'entrée est passée** (strictement, au jour de Paris) *
 signé**, sans « mise en location » préalable du [[Lot]] : le logement passe directement de *brouillon* à *loué*. Les
 diagnostics absents ou expirés ne bloquent pas ce bail ; ils restent des actions à mener ([[Diagnostic]]).
 
-- **Pourquoi.** Relevé de production du 20/11 : 11 baux saisis par des propriétaires, tous restés en brouillon —
-  locataires renseignés, aucun état des risques, aucun contrat déposé
-  ([[Premiers clients — acquisition sans budget — 20 novembre 2026]]). La règle RM-0.8.3 disait déjà « bloquer un bail
+- **Pourquoi.** Relevé de production du 20/11 : 11 baux saisis, tous restés en brouillon — locataires renseignés,
+  aucun état des risques, aucun contrat déposé
+  ([[Premiers clients — acquisition sans budget — 20 novembre 2026]]). Le dirigeant a précisé le 22/11 que ces
+  espaces sont des comptes de test : le blocage reste établi par le rejeu sur le banc, pas par de vrais inscrits. La règle RM-0.8.3 disait déjà « bloquer un bail
   en cours n'aiderait personne », mais ne valait que pour un bail déjà actif dans Gerimmo.
 - **Ce qui ne change pas.** Le contrat signé (PDF) reste ce qui active le bail (décision du 22/07). Mentions
   obligatoires, plafond du dépôt de garantie, mandat en cours pour une agence, un seul bail en cours par lot, détention

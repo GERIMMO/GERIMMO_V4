@@ -10,8 +10,15 @@ sources: []
 # Premiers clients — acquisition sans budget — 20 novembre 2026
 
 **En une phrase :** le 20/11/2026, le dirigeant a demandé à l'agent de mener seul la recherche des premiers clients,
-lui-même ne répondant qu'aux appels ; le relevé de production a montré que le premier frein n'était pas l'audience mais
-**l'activation** — aucun des espaces ouverts n'était allé jusqu'à un bail actif — et six pull requests y répondent.
+lui-même ne répondant qu'aux appels ; l'agent a levé trois freins d'**activation** rencontrés en rejouant le parcours
+d'un propriétaire neuf, et six pull requests y répondent.
+
+> [!warning] Correction du 22/11/2026 — les inscrits relevés en production sont des comptes de test
+> Le dirigeant l'a précisé le 22/11 : les personnes déjà inscrites sont des tests, et ces comptes seront supprimés
+> sous dix jours. Le relevé ci-dessous ne décrit donc **pas** le comportement de vrais inscrits, et la lecture qu'en
+> faisait cette page le 20/11 (« le premier frein n'est pas l'audience mais l'activation ») ne tient plus : d'après le
+> dirigeant, **aucun propriétaire réel n'a encore ouvert d'espace**. Les trois murs décrits plus bas restent établis,
+> mais par le rejeu sur le banc, pas par la production. Le premier frein est en amont : faire venir des visiteurs.
 
 Cadre posé par le dirigeant : il ne connaît aucun propriétaire, il a du temps, **aucun budget** hors Claude et Codex,
 et LinkedIn, Instagram et Facebook peuvent être connectés. La règle du 23/10 reste entière : aucun particulier n'est
@@ -19,7 +26,8 @@ contacté sans l'avoir demandé ([[Prospection commerciale]]).
 
 ## Ce que montre la production (lecture seule, aucune donnée personnelle)
 
-Relevés du 20/11/2026, sur les espaces de [[Propriétaire bailleur]] en gestion directe :
+Relevés du 20/11/2026, sur les espaces de [[Propriétaire bailleur]] en gestion directe — **des comptes de test,
+selon la précision du dirigeant du 22/11** (voir l'encadré ci-dessus) :
 
 | Mesure | Valeur |
 |---|---|
@@ -55,9 +63,9 @@ suivent :
   les loyers à partir du mois de l'activation (options B, mois choisi par le propriétaire, et C, depuis l'entrée du
   locataire, écartées). Et accord pour fusionner et publier les pull requests #353 à #356. Détail dans [[Bail]].
 - **22/11/2026 — « 1A - 2B - 3A - 4 ok ».** Quatre réponses aux points laissés ouverts :
-  - **1A — prévenir les inscrits.** Un court message de service leur dira que le blocage du bail est levé. L'agent le
-    rédige ; **le dirigeant valide le texte et les destinataires avant tout envoi**. Option écartée : B, ne rien
-    envoyer.
+  - **1A — prévenir les inscrits.** Un court message de service devait leur dire que le blocage du bail est levé.
+    **Sans objet depuis le 22/11** : le dirigeant a précisé le même jour que les inscrits sont des comptes de test,
+    bientôt supprimés. Rien n'a été envoyé.
   - **2B — DPE classé G sur un bail déjà en cours** : simple alerte, plus de blocage. Option écartée : A, garder le
     blocage, que l'agent recommandait faute de source. Détail dans [[Bail]] et [[Diagnostic]].
   - **3A — état des lieux d'entrée d'un bail repris** : l'alerte « État des lieux d'entrée à signer » n'est plus
@@ -74,7 +82,7 @@ suivent :
 | 4 | **Bail déjà en cours** et **naissance facultative** (décisions du 20/11) | [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355) | **En production** depuis le 21/11, 18:03Z ; migration appliquée à 18:02Z |
 | 4 bis | **Date de bascule des loyers** (décision A du 21/11) | [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356) | **En production** depuis le 21/11, 18:03Z ; migration appliquée à 18:02Z |
 | 4 ter | **DPE classé G en alerte** et **plus d'alerte d'état des lieux d'entrée** pour un bail déjà en cours (décisions 2B et 3A du 22/11) | [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357) | **Prête au 22/11**, ni fusionnée ni publiée : attend l'accord du dirigeant (une migration, donc trois approbations) |
-| 4 quater | **Message de service aux inscrits** (décision 1A du 22/11) | — | Brouillon à faire valider ; **aucun envoi sans accord** sur le texte et les destinataires |
+| 4 quater | **Message de service aux inscrits** (décision 1A du 22/11) | — | **Sans objet** (22/11) : les inscrits sont des comptes de test ; rien n'a été envoyé |
 | 5 | Publications Instagram et LinkedIn | — | Non commencé : demande l'accès aux comptes |
 
 Recette de production n° 57 réussie sur la version publiée (21/11, 18:12Z).
@@ -136,45 +144,12 @@ Un seul lot, une seule demande de fusion ([#357](https://github.com/GERIMMO/GERI
 devient une alerte pour un bail dont l'entrée est passée, et un bail repris en cours ne reçoit plus l'alerte « État des
 lieux d'entrée à signer ». Détail et réserve sur l'absence de source dans [[Bail]] et [[Diagnostic]].
 
-### 4 quater. Message de service aux inscrits (décision 1A du 22/11) — brouillon, non envoyé
+### 4 quater. Message de service aux inscrits (décision 1A du 22/11) — sans objet
 
-**Moyen proposé.** Gerimmo n'a aucun outil pour écrire aux propriétaires inscrits depuis la console (les « annonces »
-existantes vont d'une agence aux locataires d'un immeuble). Pour six destinataires, en construire un n'est pas
-justifié : le dirigeant envoie le message lui-même, depuis sa boîte professionnelle, en copie cachée ou un par un.
-Les adresses se lisent dans la console, rubrique « Utilisateurs », vue « Personnes ». L'agent n'envoie rien.
-
-**Destinataires.** Au relevé du 20/11 : 6 espaces de propriétaires, dont 4 sans aucun bien ; les 11 baux en brouillon
-se trouvent donc dans 2 espaces au plus. Le texte couvre les deux situations (bail bloqué, premier bien jamais créé).
-Au dirigeant d'écarter les espaces qui seraient les siens ou ceux de proches.
-
-**Moment.** Après la publication de la PR #357 : sinon, un propriétaire dont le logement est classé G lirait que son
-bail s'active et resterait bloqué.
-
-**Brouillon proposé le 22/11/2026**
-
-> **Objet :** Gerimmo — votre bail en cours peut maintenant être activé
->
-> Bonjour,
->
-> Vous avez ouvert un espace sur Gerimmo. Jusqu'ici, un bail déjà en cours ne pouvait pas y être activé tant que le
-> DPE et l'état des risques du logement n'étaient pas déposés. Ce n'est plus le cas.
->
-> Ce qui a changé :
->
-> - **Votre locataire est déjà en place ?** Déposez le contrat signé (PDF) sur la fiche du bail : le bail s'active.
->   Les diagnostics manquants sont simplement signalés dans vos actions à mener.
-> - **Les loyers sont suivis à partir du mois de l'activation.** Ceux d'avant ne sont ni réclamés ni affichés en
->   impayés.
-> - **La date et la commune de naissance du locataire** ne sont plus exigées pour un locataire déjà en place.
-> - **Pour créer votre premier bien**, votre adresse se renseigne désormais sur la même page.
->
-> Si quelque chose vous bloque encore, répondez simplement à ce message : je vous réponds personnellement.
->
-> [Prénom Nom]
-> Gerimmo
->
-> *Vous recevez ce message une seule fois, parce que vous avez un espace Gerimmo. Si vous préférez ne plus être
-> contacté, dites-le-moi en réponse.*
+Un brouillon avait été rédigé le 22/11 pour dire aux propriétaires inscrits que le blocage du bail était levé. Le
+dirigeant a précisé le même jour que ces inscrits sont des comptes de test, supprimés sous dix jours : le message n'a
+plus de destinataire. **Rien n'a été envoyé**, et aucun outil d'envoi n'a été construit. Le brouillon reste lisible
+dans l'historique du dépôt (commit `b013656b`).
 
 ## Ce qui reste à décider
 
@@ -187,9 +162,8 @@ bail s'active et resterait bloqué.
 > - **DPE classé G sur un bail déjà en cours** : tranché le 22/11 (décision 2B, simple alerte). L'effet de
 >   l'interdiction de louer sur un bail en cours n'est établi par aucune source du wiki : à faire confirmer par un
 >   professionnel.
-> - **Message de service aux inscrits** (décision 1A) : texte et destinataires à valider par le dirigeant avant tout
->   envoi. La règle du 23/10 (ne contacter personne qui ne l'a pas demandé) vise la prospection ; le dirigeant a
->   choisi d'écrire à des personnes déjà inscrites, pour un message de service.
+> - **Aucun inscrit réel à ce jour** (précision du dirigeant du 22/11). Les chiffres d'acquisition à venir devront
+>   distinguer les comptes de test des vrais inscrits, faute de quoi ils ne diront rien.
 > - **Vente** : toujours fermée (médiateur de la consommation, paiement), indépendamment de ce chantier.
 
 ## Liens

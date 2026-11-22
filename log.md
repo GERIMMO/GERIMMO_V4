@@ -7787,3 +7787,21 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   et il n'en est pas construit pour six destinataires. **Aucun envoi fait.**
 - **Pages mises à jour** : [[Bail]], [[Diagnostic]], [[État des lieux]],
   [[Premiers clients — acquisition sans budget — 20 novembre 2026]], `index.md`.
+
+## [2026-11-22] query  | Les inscrits relevés en production sont des comptes de test — message de service sans objet
+
+- **Précision du dirigeant, 22/11/2026**, en réponse au brouillon du message de service : les personnes déjà
+  inscrites sont des tests, donc inutile de s'en occuper ; elles seront supprimées dans moins de dix jours.
+- **Conséquences** :
+  - **Décision 1A sans objet.** Aucun message n'est envoyé ; aucun outil d'envoi n'est construit. Le brouillon est
+    retiré de la page de synthèse (il reste dans l'historique, commit `b013656b`).
+  - **Lecture du 20/11 corrigée.** Le relevé de production (6 espaces, 11 baux en brouillon, 0 bail actif) portait
+    sur des comptes de test. La conclusion « le premier frein est l'activation, pas l'audience » ne tient plus :
+    d'après le dirigeant, aucun propriétaire réel n'a encore ouvert d'espace. Les trois freins levés (premier bien,
+    naissance du locataire, bail déjà en cours) restent établis par le rejeu sur le banc.
+  - **Entrées antérieures de ce journal** (20/11 et 21/11) : elles parlent d'« inscrits » et de baux « saisis par des
+    propriétaires » ; à lire avec cette précision. Le journal n'est pas réécrit.
+  - **Comptes de test** : l'agent n'y touche pas ; leur suppression relève du dirigeant.
+- **Lot du 22/11** (PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357)) : inchangé, prêt, en attente d'accord.
+  Aucun utilisateur réel n'étant bloqué, sa publication n'a rien d'urgent.
+- **Pages mises à jour** : [[Premiers clients — acquisition sans budget — 20 novembre 2026]], [[Bail]], `index.md`.

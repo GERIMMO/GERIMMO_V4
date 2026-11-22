@@ -3,7 +3,7 @@ type: concept
 tags: [edl, etat-des-lieux, bail, depot-de-garantie, mobile]
 status: draft
 created: 2026-07-24
-updated: 2026-10-24
+updated: 2026-11-22
 sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[Notification et valeur probante]]", "log.md — entrées « decision » du 23/10/2026 (« Cautionnement et état des lieux signés dans Gerimmo ») et du 24/10/2026 (choix délégué n° 8), « deploy » du 24/10/2026 (PR #246)", "app/docs/signature-electronique-bail.md", "app/src/lib/textes-signature-actes.ts"]
 ---
 
@@ -94,6 +94,11 @@ n'est modifiée par le mobile (RM-19.1.5).
 
 Locataire absent → EDL par huissier, déposé et rattaché · refus de signature →
 constat du refus, portée affaiblie · colocation → un seul EDL, signé par les présents.
+
+**Bail repris en cours** (décision 3A du dirigeant, 22/11/2026) : un bail activé alors que son mois d'entrée est déjà
+passé ne reçoit pas l'alerte « État des lieux d'entrée à signer » — l'entrée a eu lieu avant Gerimmo. L'état des lieux
+de sortie n'est pas concerné. Prête dans la PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357), pas encore
+publiée au 22/11. Voir [[Bail]].
 
 ## Relations
 

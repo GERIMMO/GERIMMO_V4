@@ -3,7 +3,7 @@ type: synthesis
 tags: [acquisition, activation, onboarding, bail, diagnostic, referencement, prospection]
 status: in-progress
 created: 2026-11-20
-updated: 2026-11-21
+updated: 2026-11-22
 sources: []
 ---
 
@@ -54,6 +54,15 @@ suivent :
 - **21/11/2026 — « Choix A, oui publie ».** Décision A sur le premier loyer d'un bail repris en cours : Gerimmo suit
   les loyers à partir du mois de l'activation (options B, mois choisi par le propriétaire, et C, depuis l'entrée du
   locataire, écartées). Et accord pour fusionner et publier les pull requests #353 à #356. Détail dans [[Bail]].
+- **22/11/2026 — « 1A - 2B - 3A - 4 ok ».** Quatre réponses aux points laissés ouverts :
+  - **1A — prévenir les inscrits.** Un court message de service leur dira que le blocage du bail est levé. L'agent le
+    rédige ; **le dirigeant valide le texte et les destinataires avant tout envoi**. Option écartée : B, ne rien
+    envoyer.
+  - **2B — DPE classé G sur un bail déjà en cours** : simple alerte, plus de blocage. Option écartée : A, garder le
+    blocage, que l'agent recommandait faute de source. Détail dans [[Bail]] et [[Diagnostic]].
+  - **3A — état des lieux d'entrée d'un bail repris** : l'alerte « État des lieux d'entrée à signer » n'est plus
+    posée. Option écartée : B, la laisser. Détail dans [[Bail]] et [[État des lieux]].
+  - **4 — libellé** « Indiquer mon adresse et créer mon premier bien » : validé tel qu'il est en ligne.
 
 ## Les chantiers
 
@@ -64,6 +73,8 @@ suivent :
 | 3 | **Premier bien** : les coordonnées du bailleur se remplissent sur la page « Ajouter un bien » | [#354](https://github.com/GERIMMO/GERIMMO_V4/pull/354) | **En production** depuis le 21/11, 18:03Z |
 | 4 | **Bail déjà en cours** et **naissance facultative** (décisions du 20/11) | [#355](https://github.com/GERIMMO/GERIMMO_V4/pull/355) | **En production** depuis le 21/11, 18:03Z ; migration appliquée à 18:02Z |
 | 4 bis | **Date de bascule des loyers** (décision A du 21/11) | [#356](https://github.com/GERIMMO/GERIMMO_V4/pull/356) | **En production** depuis le 21/11, 18:03Z ; migration appliquée à 18:02Z |
+| 4 ter | **DPE classé G en alerte** et **plus d'alerte d'état des lieux d'entrée** pour un bail déjà en cours (décisions 2B et 3A du 22/11) | [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357) | **Prête au 22/11**, ni fusionnée ni publiée : attend l'accord du dirigeant (une migration, donc trois approbations) |
+| 4 quater | **Message de service aux inscrits** (décision 1A du 22/11) | — | Brouillon à faire valider ; **aucun envoi sans accord** sur le texte et les destinataires |
 | 5 | Publications Instagram et LinkedIn | — | Non commencé : demande l'accès aux comptes |
 
 Recette de production n° 57 réussie sur la version publiée (21/11, 18:12Z).
@@ -127,13 +138,12 @@ d'un exercice commencé avant le premier mois suivi ; ces exercices se régulari
 >   référence », l'indice de référence étant celui de la dernière révision enregistrée dans Gerimmo, à défaut celui du
 >   bail. Quel indice saisir pour un bail dont le loyer a déjà été révisé avant Gerimmo n'est dit nulle part à l'écran,
 >   et aucune source du wiki ne le tranche.
-> - **État des lieux d'entrée d'un bail déjà en cours.** À l'activation, Gerimmo pose une alerte « État des lieux
->   d'entrée à signer », datée de l'entrée. Pour un bail signé il y a deux ans, elle n'a pas d'objet.
-> - **DPE classé G sur un bail déjà en cours** : il bloque toujours l'activation. La décision B ne portait que sur les
->   diagnostics manquants ; l'effet de l'interdiction de louer sur un bail en cours n'est établi par aucune source du
->   wiki.
-> - **Libellé** « Indiquer mon adresse et créer mon premier bien », qui remplace celui choisi avec D29 B.
-> - **Message d'aide aux inscrits restés sans bien** : à concilier avec la règle du 23/10.
+> - **DPE classé G sur un bail déjà en cours** : tranché le 22/11 (décision 2B, simple alerte). L'effet de
+>   l'interdiction de louer sur un bail en cours n'est établi par aucune source du wiki : à faire confirmer par un
+>   professionnel.
+> - **Message de service aux inscrits** (décision 1A) : texte et destinataires à valider par le dirigeant avant tout
+>   envoi. La règle du 23/10 (ne contacter personne qui ne l'a pas demandé) vise la prospection ; le dirigeant a
+>   choisi d'écrire à des personnes déjà inscrites, pour un message de service.
 > - **Vente** : toujours fermée (médiateur de la consommation, paiement), indépendamment de ce chantier.
 
 ## Liens

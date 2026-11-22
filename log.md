@@ -7754,3 +7754,26 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   cours ; ils peuvent désormais s'activer par leur contrat signé, et leurs loyers seront suivis depuis le mois de
   l'activation.
 
+## [2026-11-22] query  | Quelles décisions restent à prendre ? — réponse du dirigeant « 1A - 2B - 3A - 4 ok »
+
+- **Question** (« Quelle décision je dois prendre ? ») : quatre points laissés ouverts après la publication du 21/11,
+  présentés avec leurs options et la recommandation de l'agent.
+- **Réponse du dirigeant, 22/11/2026 : « 1A - 2B - 3A - 4 ok ».**
+  - **1A** — envoyer aux propriétaires inscrits un court message de service : le blocage du bail est levé, le contrat
+    signé suffit à activer un bail déjà en cours. L'agent rédige ; **le dirigeant valide le texte et les destinataires
+    avant tout envoi**. Rien n'est envoyé à ce stade.
+  - **2B** — un DPE classé G ne bloque plus l'activation d'un bail déjà en cours ; il devient une alerte. Choix fait
+    **contre la recommandation de l'agent** (A, garder le blocage) : aucune source du wiki n'établit l'effet de
+    l'interdiction de louer un logement classé G sur un bail en cours. Point signalé dans [[Bail]] et [[Diagnostic]].
+  - **3A** — un bail repris en cours ne reçoit plus l'alerte « État des lieux d'entrée à signer ».
+  - **4** — le libellé « Indiquer mon adresse et créer mon premier bien », déjà en ligne, est validé.
+- **Engagement pris le 22/11** (question du dirigeant sur le nombre de contrôles pour de petits changements) :
+  regrouper les petits changements en un seul lot — une seule demande de fusion, un seul contrôle. Un lot qui modifie
+  la base demande toutefois trois approbations dans GitHub : simulation, application, publication.
+- **Lot préparé** : PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357) (`272dcc18`), une migration
+  `20261122090000_bail_repris_dpe_g_et_edl_entree.sql` avec son retour arrière.
+  - Banc local : 936 fichiers de tests passés, 13 230 tests ; 4 fichiers en échec, tous propres au banc partagé
+    (`exercice-restauration`, `api-isolation`, `lot2-auth-reel`, `lot3-notifications-base`). Types et lint : 0 erreur.
+  - **Ni fusionnée ni publiée** : attend la CI de la demande, puis l'accord explicite du dirigeant.
+- **Pages mises à jour** : [[Bail]], [[Diagnostic]], [[État des lieux]],
+  [[Premiers clients — acquisition sans budget — 20 novembre 2026]], `index.md`.

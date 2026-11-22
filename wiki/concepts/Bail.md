@@ -3,7 +3,7 @@ type: concept
 tags: [bail, contrat, alur, signature, colocation, preavis]
 status: in-progress
 created: 2026-07-22
-updated: 2026-11-20
+updated: 2026-11-22
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
@@ -72,8 +72,9 @@ diagnostics absents ou expirés ne bloquent pas ce bail ; ils restent des action
   en cours n'aiderait personne », mais ne valait que pour un bail déjà actif dans Gerimmo.
 - **Ce qui ne change pas.** Le contrat signé (PDF) reste ce qui active le bail (décision du 22/07). Mentions
   obligatoires, plafond du dépôt de garantie, mandat en cours pour une agence, un seul bail en cours par lot, détention
-  à 100 %, DPE classé G : tout cela bloque encore. Un bail qui commence aujourd'hui ou plus tard garde la mise en
-  location et les diagnostics.
+  à 100 % : tout cela bloque encore. Le DPE classé G bloquait aussi ; la décision 2B du 22/11/2026 en fait une alerte
+  pour un bail déjà en cours (ci-dessous). Un bail qui commence aujourd'hui ou plus tard garde la mise en location et
+  les diagnostics, DPE classé G compris.
 - **Options écartées** : A, ne rien changer ; C, exiger le DPE mais pas un état des risques récent.
 - **En base** : migration `20261120190000_bail_deja_en_cours.sql` (PR #355), retour arrière fourni. **En production
   depuis le 21/11/2026.**
@@ -103,7 +104,31 @@ diagnostics absents ou expirés ne bloquent pas ce bail ; ils restent des action
   retour arrière fourni ; il se refuse tant qu'un bail porte une date de bascule. **En production depuis le
   21/11/2026.**
 
+#### DPE classé G et état des lieux d'entrée d'un bail déjà en cours (décisions 2B et 3A du dirigeant, 22/11/2026)
+
+Réponse du dirigeant du 22/11/2026 : « 1A - 2B - 3A - 4 ok »
+([[Premiers clients — acquisition sans budget — 20 novembre 2026]]).
+
+- **Décision 2B — DPE classé G.** Pour un bail dont la date d'entrée est passée, un DPE classé G **ne bloque plus
+  l'activation** : il devient une action à mener « DPE classé G » sur le logement, non critique, qui rappelle qu'aucun
+  nouveau bail ne pourra y être activé tant que le DPE reste classé G. Pour un **nouveau** bail, le blocage est
+  inchangé ([[Diagnostic]]). Option écartée : A, garder le blocage — c'était la recommandation de l'agent, faute de
+  source ; le dirigeant a tranché pour B.
+- **Décision 3A — état des lieux d'entrée.** Un bail **repris en cours** (mois d'entrée antérieur au mois de son
+  activation, donc porteur d'une date de bascule) ne reçoit plus l'alerte « État des lieux d'entrée à signer », ni les
+  étapes « déclarer les pièces » et « réaliser l'état des lieux d'entrée » sur sa fiche : l'entrée a eu lieu avant
+  Gerimmo. Un bail activé le mois de son entrée garde l'alerte ([[État des lieux]]). Option écartée : B, la laisser.
+- **Frontière des deux règles.** 2B vaut dès que la date d'entrée est passée (même critère que la décision B du
+  20/11) ; 3A vaut quand le *mois* d'entrée est passé (même critère que la date de bascule). Un bail entré le 3 du
+  mois et activé le 20 active donc malgré un DPE classé G, mais garde son alerte d'état des lieux d'entrée.
+- **En base** : migration `20261122090000_bail_repris_dpe_g_et_edl_entree.sql`
+  (PR [#357](https://github.com/GERIMMO/GERIMMO_V4/pull/357)), retour arrière fourni. **Au 22/11/2026 : prête, ni
+  fusionnée ni publiée** — la publication attend l'accord du dirigeant.
+
 > [!warning] Points à trancher / contradictions
+> - **DPE classé G (décision 2B)** : aucune source du wiki n'établit ce que l'interdiction de louer un logement classé
+>   G implique pour un bail déjà en cours. La règle retenue est une décision de produit du dirigeant, pas une lecture
+>   de la loi ; un avis de professionnel la confirmerait ou la corrigerait.
 > - Les maquettes décrivent une reprise avec soldes d'ouverture ; la règle n'en reprend que la date. Une dette de loyer
 >   d'avant l'arrivée, le dépôt de garantie déjà versé et l'indice de référence d'un loyer déjà révisé restent sans
 >   réponse dans l'outil.
@@ -219,11 +244,12 @@ colocataires.
 - Le **propriétaire en gestion directe** suit les mêmes parcours en variante — sans
   mandat, honoraires ni rapport.
 
-> [!warning] Bail déjà en cours — points laissés ouverts (20/11/2026)
-> - **État des lieux d'entrée** : l'activation pose une alerte « État des lieux d'entrée à signer », datée de l'entrée,
->   même pour un bail signé depuis des années. Comportement antérieur à la décision, non tranché.
-> - **DPE classé G** : il bloque toujours l'activation d'un bail déjà en cours. La décision ne portait que sur les
->   diagnostics manquants ; aucune source du wiki n'établit l'effet de l'interdiction de louer sur un bail en cours.
+> [!warning] Bail déjà en cours — points laissés ouverts (20/11/2026, mis à jour le 22/11)
+> - **État des lieux d'entrée** : tranché le 22/11/2026 (décision 3A) — plus d'alerte pour un bail repris en cours.
+>   En attente de publication (PR #357) ; d'ici là, l'activation pose encore l'alerte, datée de l'entrée.
+> - **DPE classé G** : tranché le 22/11/2026 (décision 2B) — simple alerte pour un bail déjà en cours. En attente de
+>   publication (PR #357) ; d'ici là, il bloque encore. Aucune source du wiki n'établit l'effet de l'interdiction de
+>   louer sur un bail en cours : la décision reste à faire confirmer par un professionnel.
 > - **Date d'entrée déclarée** : un bail daté de la veille échappe au blocage des diagnostics. Conséquence directe de la
 >   décision ; les actions à mener restent affichées.
 

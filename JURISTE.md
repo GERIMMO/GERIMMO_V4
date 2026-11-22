@@ -43,6 +43,44 @@ Une question fermée par point incertain ; le numéro renvoie à la ligne du tab
 24. (29) Une SCI non familiale peut-elle demander la caution d'une personne physique pour un locataire non étudiant ?
 25. (10) La provision de 20 % en copropriété peut-elle être retenue par un bailleur particulier sans clause au bail ?
 
+### Avenant au bail qui modifie le loyer ou les charges (lot 13, P1-14)
+
+Gerimmo enregistre désormais l'avenant signé et applique ses montants aux loyers appelés à partir de sa date d'effet.
+Aucun texte officiel n'était ouvert au moment de l'écrire : les règles ci-dessous sont des **prudences de Gerimmo**,
+pas des règles de droit vérifiées. Ce parcours n'est pas présenté comme conforme.
+
+26. **Hausse du loyer par avenant.** En cours de bail, hors révision annuelle, à quelles conditions un avenant peut-il
+    augmenter le loyer (accord des parties seul, travaux d'amélioration, autre) ? Aujourd'hui Gerimmo l'enregistre sans
+    contrôle, sauf le cas du point 27.
+27. **Logement classé F ou G.** Gerimmo refuse toute hausse du loyer par avenant quand le dernier diagnostic classe le
+    logement F ou G (même refus que pour sa révision annuelle). Ce refus doit-il bien couvrir l'avenant ? Existe-t-il
+    des exceptions à ouvrir (travaux, autre) ?
+28. **Encadrement des loyers et zone tendue.** Un avenant signé en cours de bail doit-il respecter un plafond (loyer de
+    référence majoré, autre) ? Gerimmo ne contrôle rien ici et l'écrit à l'écran. Faut-il bloquer, ou seulement alerter ?
+29. **Date d'effet.** Gerimmo n'accepte qu'un effet au 1er d'un mois dont le loyer n'est pas encore appelé : ni effet en
+    cours de mois, ni effet rétroactif. Faut-il permettre l'un ou l'autre, et comment corriger alors un loyer déjà
+    appelé ou déjà quittancé ?
+30. **Dépôt de garantie.** Gerimmo ne modifie pas le dépôt après un avenant. Est-ce correct quand le loyer baisse et
+    que le dépôt dépasse alors le plafond calculé sur le nouveau loyer ? Et quand il augmente ?
+31. **Révision annuelle après un avenant.** Gerimmo applique l'indice au loyer en vigueur (avenant compris) en gardant
+    l'indice de référence d'origine. Après un avenant qui modifie le loyer, quel loyer et quel indice de référence la
+    révision suivante doit-elle retenir ?
+32. **Caution.** Un avenant qui augmente le loyer engage-t-il la personne qui s'est portée caution sans un nouvel accord
+    écrit de sa part ? Gerimmo ne la prévient pas et ne lui fait rien signer.
+33. **Charges.** Un avenant peut-il modifier librement la provision pour charges en cours de bail ? Pour un forfait de
+    charges, à quelles conditions peut-il changer avant le renouvellement ?
+34. **Signataires.** En colocation ou à plusieurs titulaires, l'avenant doit-il être signé par tous ? Gerimmo conserve la
+    pièce déposée mais ne vérifie pas qui l'a signée.
+
+### Indice proposé pour la révision annuelle (lot 14, P1-13)
+
+35. **Révision demandée en retard : quel indice ?** Gerimmo propose, dans la série officielle de l'Insee, le dernier
+    indice publié du trimestre de référence du bail (même choix que son outil public de calcul). Quand la révision est
+    demandée plusieurs mois après la date anniversaire et qu'un indice plus récent du même trimestre est paru
+    entre-temps, lequel faut-il retenir : celui qui était publié à la date anniversaire, ou le dernier publié au jour de
+    la demande ? En attendant : l'indice est seulement proposé, avec sa source et sa date de lecture ; le bailleur le
+    vérifie et peut le remplacer avant de valider.
+
 ---
 
 ## 2. États des lieux, vétusté, charges, pièces justificatives (annexe `audit-palier-1/b2-edl-charges-pieces.md`)

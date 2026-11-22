@@ -8,7 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { detecterMimeReel, EXTENSIONS } from "@/lib/file-type";
-import { categorieIncident, MOTIF_CORRECTION_URGENCE, MOTIF_DECISION_DEVIS, MOTIFS_CLOTURE, PIECES_INCIDENT } from "@/lib/incidents";
+import { categorieIncident, MOTIF_CORRECTION_URGENCE, MOTIF_DECISION_DEVIS, MOTIFS_CLOTURE, PIECES_INCIDENT, DISPONIBILITES_LOCATAIRE_MAX } from "@/lib/incidents";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { joindrePhotosAvecReprise } from "@/lib/photos-incident-reprise";
 // 25/09 : les e-mails qui préviennent l'artisan et l'agence. Aucun ne fait
@@ -238,6 +238,10 @@ export async function declarerMonIncident(
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(commande)) {
     return { erreur: "La tentative n’a pas pu être identifiée. Rechargez le formulaire avant l’envoi.", valeurs };
   }
+  const disponibilites = String(formData.get("disponibilites") ?? "").trim();
+  if (disponibilites.length > DISPONIBILITES_LOCATAIRE_MAX) {
+    return { erreur: `Indiquez vos disponibilités en ${DISPONIBILITES_LOCATAIRE_MAX} caractères au plus.`, valeurs };
+  }
   const { data: declaration, error } = await supabase.rpc("declarer_mon_incident_reprise", {
     p_commande: commande,
     p_org: orgId,
@@ -251,7 +255,21 @@ export async function declarerMonIncident(
 
   if (!declaration?.incident_id) return { erreur: "Résultat de l’envoi indisponible. Réessayez cette même tentative.", valeurs };
   const incidentId = String(declaration.incident_id);
-  const avertissement = await joindrePhotosAvecReprise(supabase, orgId, incidentId, fichiersDistincts);
+  const avertissementPhotos = await joindrePhotosAvecReprise(supabase, orgId, incidentId, fichiersDistincts);
+  // Audit palier 1 du 22/11/2026, P2-02 : les disponibilités du locataire suivent le signalement. Elles ne le
+  // conditionnent pas : si leur enregistrement échoue, le signalement reste envoyé et l'écran le dit.
+  let avertissementDisponibilites: string | undefined;
+  if (disponibilites) {
+    const { error: erreurDisponibilites } = await supabase.rpc("indiquer_mes_disponibilites_incident", {
+      p_incident: incidentId,
+      p_disponibilites: disponibilites,
+    });
+    if (erreurDisponibilites) {
+      console.error("[incidents] Les disponibilités du locataire n’ont pas pu être enregistrées.");
+      avertissementDisponibilites = "Vos disponibilités n’ont pas pu être enregistrées : indiquez-les à votre gestionnaire par message.";
+    }
+  }
+  const avertissement = [avertissementPhotos, avertissementDisponibilites].filter(Boolean).join(" ") || undefined;
 
   // 25/09 : « votre gérant est prévenu immédiatement » n'était vrai qu'à sa
   // prochaine connexion. Pour une urgence, l'agence reçoit l'e-mail maintenant.

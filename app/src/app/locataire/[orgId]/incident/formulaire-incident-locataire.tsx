@@ -364,6 +364,23 @@ function SaisieIncident({ orgId, cleLocale, copie }: { orgId: string; cleLocale:
             />
           </div>
 
+          {/* Audit palier 1 du 22/11/2026, P2-02 : demandées dès le signalement, pour éviter un aller-retour avant le
+              rendez-vous. Une indication pour le gestionnaire : aucun créneau n'est réservé. */}
+          <div className="space-y-1.5">
+            <Label htmlFor="disponibilites">Vos disponibilités pour une intervention (facultatif)</Label>
+            <Input
+              id="disponibilites"
+              name="disponibilites"
+              maxLength={300}
+              placeholder="« En semaine après 18 h, samedi matin »"
+              aria-describedby="disponibilites-aide"
+              value={saisie.disponibilites ?? ""} onChange={e => setSaisie(s => ({ ...s, disponibilites: e.target.value }))}
+            />
+            <p id="disponibilites-aide" className="text-xs text-muted-foreground">
+              Transmises à votre gestionnaire pour préparer le rendez-vous. Cela ne réserve aucun créneau.
+            </p>
+          </div>
+
           <div className="space-y-1.5">
             <Label htmlFor="urgence">Est-ce urgent ?</Label>
             <select

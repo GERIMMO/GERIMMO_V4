@@ -663,6 +663,7 @@ export async function PaneIncident({
             {lot ? <Link href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <strong>Lot non disponible</strong>}
             {incident.piece && <small>{incident.piece}</small>}
             {estProprietaire && incident.anciennete && <small>Depuis : {incident.anciennete}</small>}
+            {estProprietaire && incident.disponibilites_locataire && <small data-disponibilites-locataire>Disponibilités du locataire : {incident.disponibilites_locataire}</small>}
           </div></div>
           {(!estProprietaire || declarant || declarantIllisible) && <div><UserRound size={17} aria-hidden="true" /><div><span>{incident.canal === "espace_locataire" ? "Déclaré par" : "Contact du logement"}</span>
             {declarant ? <>
@@ -722,6 +723,13 @@ export async function PaneIncident({
                 <div className="ligne-info">
                   <span>Ancienneté</span>
                   <span>{incident.anciennete}</span>
+                </div>
+              )}
+              {/* Audit palier 1, P2-02 : ce que le locataire a dit de ses disponibilités en signalant. */}
+              {incident.disponibilites_locataire && (
+                <div className="ligne-info" data-disponibilites-locataire>
+                  <span>Disponibilités du locataire</span>
+                  <span>{incident.disponibilites_locataire}</span>
                 </div>
               )}
             </CardContent>

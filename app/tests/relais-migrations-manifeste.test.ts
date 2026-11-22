@@ -248,6 +248,8 @@ const MISSION_OCTOBRE = [
   "20261122220000_incident_bien_categorie_urgence.sql",
   // 22/11, audit palier 1 (P0-03) : un poste de charges « récupérable » par proposition doit être confirmé avant la validation.
   "20261122230000_charges_proposees_a_confirmer.sql",
+  // 22/11, audit palier 1 (P2-02) : le locataire indique ses disponibilités dès le signalement d'un incident.
+  "20261122233000_disponibilites_locataire_incident.sql",
 
 
 ];

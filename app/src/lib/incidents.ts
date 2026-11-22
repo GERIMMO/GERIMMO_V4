@@ -343,3 +343,7 @@ export function titreIncidentProprietaire(incident: { titre?: string | null; cat
 // la base (corriger_urgence_incident). Le motif reste au fil du dossier.
 export const URGENCES_INCIDENT: Record<string, string> = { normale: "Normale", urgente: "Urgente" };
 export const MOTIF_CORRECTION_URGENCE = { min: 5, max: 500 } as const;
+
+// Audit palier 1 du 22/11/2026, P2-02 : disponibilités du locataire données au signalement. Borne de la base
+// (contrainte incidents_disponibilites_locataire_bornees).
+export const DISPONIBILITES_LOCATAIRE_MAX = 300;

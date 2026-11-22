@@ -56,6 +56,18 @@ describe("avenant au bail — manifeste, retour et prudences (sans base)", () =>
     expect(sql).toContain("select public.fermer_fonctions_a_anon();");
   });
 
+  it("elle ne pose de garde que sur SA table : jamais le passage général, qui en poserait sur les tables des autres", () => {
+    // Constaté au banc : `poser_gardes_abonnement()` repasse sur toutes les tables d'un espace et avait posé ses gardes
+    // sur cinq tables qui n'en portent volontairement pas (courriels durables, preuves de commande…), cassant deux
+    // parcours d'abonnement. La garde de la table des avenants est posée par son nom.
+    expect(sql).not.toContain("poser_gardes_abonnement");
+    expect(sql).toMatch(/create trigger abonnement_avenants_bail before insert or update or delete on public\.avenants_bail\s+for each row execute function public\.refuser_ecriture_si_fermee\(\)/);
+    const declencheurs = [...sql.matchAll(/create trigger \S+ [^;]*? on public\.(\w+)/g)].map((m) => m[1]);
+    expect([...new Set(declencheurs)].sort()).toEqual(["appels_loyer", "avenants_bail"]);
+    // Son retour est inscrit dans l'ordre complet des retours (la migration cite la fonction du jour de Paris).
+    expect(readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8")).toMatch(/Ordre complet si tout doit être défait :\s*\n`20261122190000` \(avenant au bail/);
+  });
+
   it("elle ne cite aucun article de loi : ses prudences sont dites comme des prudences, et renvoyées au juriste", () => {
     // Règle de la mission : aucune référence légale inventée. Les sites officiels n'étaient pas ouverts à l'écriture.
     expect(migration).not.toMatch(/\b(art\.|article|loi n°|décret)\s*\d/i);
@@ -541,8 +553,17 @@ describe.skipIf(!url)("avenant au bail : enregistrement, application, annulation
     await enregistrer(proprietaire, attente.id, { effet: mois(1) });
 
     expect(await objets()).toEqual(TOUT);
+    // Tous les déclencheurs des AUTRES tables, avant et après : la migration ne doit en poser ni en retirer aucun.
+    const ailleurs = async () => (await db.query(`select c.relname||'.'||t.tgname||':'||t.tgenabled::text nom from pg_trigger t
+      join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace
+      where not t.tgisinternal and n.nspname in ('public','support_interne') and c.relname <> 'avenants_bail' order by 1`)).rows.map((r) => r.nom as string);
+    const avant = await ailleurs();
+    expect(avant).toContain("appels_loyer.a_avenant_du_bail:O");
     await db.query(migration);
     expect(await objets()).toEqual(TOUT);
+    expect(await ailleurs()).toEqual(avant);
+    expect((await db.query(`select t.tgname from pg_trigger t where t.tgrelid='public.avenants_bail'::regclass and not t.tgisinternal order by 1`)).rows.map((r) => r.tgname))
+      .toEqual(["abonnement_avenants_bail", "diagnostic_artisan_lecture", "traversee_lecture_seule"]);
     // Le rejeu ne vide rien et ne rouvre rien.
     expect((await db.query("select count(*)::int n from avenants_bail where organization_id=$1", [org])).rows[0].n).toBe(2);
     expect((await db.query(`select has_table_privilege('anon','public.avenants_bail','select') a, has_table_privilege('authenticated','public.avenants_bail','insert') b,

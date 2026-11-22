@@ -645,6 +645,7 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261122190000` (avenant au bail : `enregistrer_avenant_bail` cite la fonction du jour ; la table et les avenants enregistrés restent, un avenant déjà appliqué reste appliqué), puis
 `20261122090000` (DPE classé G et état des lieux d'entrée d'un bail repris : `activer_bail` cite la fonction du jour ; à jouer avant le retour de la décision B du 20/11, qui retire `bail_blocages_mise_en_location`), puis
 `20261120200000` (date de bascule : `premier_mois_suivi` cite la fonction du jour ; le retour se refuse tant qu'un bail porte une date de bascule), puis
 `20261120190000` (bail déjà en cours : `bail_deja_en_cours` cite la fonction du jour ; aucune donnée modifiée, les baux activés entre-temps restent actifs), puis

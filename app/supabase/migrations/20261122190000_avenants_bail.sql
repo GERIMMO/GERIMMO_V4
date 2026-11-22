@@ -97,7 +97,13 @@ create trigger traversee_lecture_seule before insert or update or delete on publ
 drop policy if exists avenants_bail_lecture on public.avenants_bail;
 create policy avenants_bail_lecture on public.avenants_bail for select to authenticated
   using ((select public.is_super_admin()) or public.verifier_gerant_avenant_bail(organization_id, bail_id));
-select public.poser_gardes_abonnement();
+-- La garde d'abonnement (un espace fermé n'écrit plus), posée sur CETTE table seulement. Ne jamais appeler ici
+-- `poser_gardes_abonnement()` : elle repasse sur toutes les tables d'un espace, et poserait ses gardes sur des tables
+-- créées depuis son dernier passage qui n'en portent volontairement pas (courriels durables, preuves de commande,
+-- avantages fondateurs…) — ce que le banc a relevé à la première vérification de ce lot.
+drop trigger if exists abonnement_avenants_bail on public.avenants_bail;
+create trigger abonnement_avenants_bail before insert or update or delete on public.avenants_bail
+  for each row execute function public.refuser_ecriture_si_fermee();
 
 -- ── 2. L'application au bail (interne) ───────────────────────────────────────────────────────────────────────────
 create or replace function public.appliquer_avenant_bail_interne(p_avenant uuid)

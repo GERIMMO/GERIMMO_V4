@@ -18,6 +18,7 @@ import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { ConsultationDocument } from "../consultation-document";
 import { FormulaireAttestation } from "../formulaire-attestation";
 import { DepotSignature } from "./depot-signature";
+import { SignaturesElectroniques, type SignatureLocataire } from "./signatures-electroniques";
 import { DepotPiece, type DemandePiece } from "./depot-piece";
 import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
 import { recommandeElectroniqueConfigure } from "@/lib/recommande-disponible";
@@ -91,13 +92,17 @@ export default async function PageDocumentsLocataire(
     { data: demandesBrutes, error: eDemandes },
     { data: signaturesBrutes, error: eSignatures },
     rectifications,
+    { data: circuitsBruts, error: eCircuits },
   ] = await Promise.all([
     supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
     supabase.rpc("mes_demandes_signature", { p_org: orgId }),
     supabase.rpc("mes_rectifications_quittances", { p_org: orgId }),
+    // Audit palier 1 (P1-06) : l'état des signatures électroniques où le locataire est signataire.
+    supabase.rpc("mes_signatures_electroniques", { p_org: orgId }),
   ]);
+  const signaturesElectroniques = (circuitsBruts ?? []) as SignatureLocataire[];
   const aSigner = ((signaturesBrutes ?? []) as {
     id: string;
     document_id: string;
@@ -151,13 +156,15 @@ export default async function PageDocumentsLocataire(
         )}
       </div>
 
-      {aEchoue(ePieces, eEcheancier, eDemandes, eSignatures) && (
+      {aEchoue(ePieces, eEcheancier, eDemandes, eSignatures, eCircuits) && (
         <PanneLecture quoi="vos documents" />
       )}
 
       {enPreparation > 0 && <p className="rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--warning-soft)] px-4 py-3 text-sm" role="status">
         {enPreparation} justificatif{enPreparation > 1 ? "s" : ""} de loyer en préparation ou à vérifier. Ces justificatifs deviendront consultables dès que les informations nécessaires seront complètes. <Link href={`/locataire/${orgId}/contact`} className="font-medium underline underline-offset-2">Contacter mon gestionnaire</Link>
       </p>}
+
+      <SignaturesElectroniques signatures={signaturesElectroniques} />
 
       {(aSigner.length > 0 || demandes.length > 0 || (adhesionActive && !lecturePiecesKO && !etatAssurance.nonExpiree)) && <p className="flex flex-wrap items-center gap-x-2 rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--carte)] px-4 py-2 text-sm shadow-[var(--ombre-1)]"><span><b>À faire :</b> vérifiez les pièces ou signatures attendues.</span> <a className="inline-flex min-h-11 items-center font-medium text-[var(--bleu)] underline underline-offset-2" href="#documents-a-transmettre">Voir les éléments à transmettre →</a></p>}
       <OngletsDossier libelle="Rubriques de mes documents"

@@ -232,6 +232,8 @@ const MISSION_OCTOBRE = [
   "20261122140000_incident_urgence_corrigee.sql",
   // 22/11, audit palier 1 (P1-07) : la supervision examine (accès tracé) et retire une évaluation d'artisan contestée.
   "20261122150000_evaluation_contestee.sql",
+  // 22/11, audit palier 1 (P1-06) : le locataire lit l'état des signatures électroniques où il est signataire (lecture seule).
+  "20261122160000_signatures_electroniques_locataire.sql",
 
 
 ];

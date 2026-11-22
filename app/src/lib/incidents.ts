@@ -184,6 +184,8 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   creneaux_refuses: "Dates du locataire refusées par l'artisan",
   facture_deposee: "Facture de l'artisan déposée",
   facture_validee: "Facture contrôlée et validée",
+  // Audit palier 1 (P1-03, migration 20261122170000) : refus motivé, l'artisan en dépose une autre.
+  facture_refusee: "Facture refusée, à corriger par l'artisan",
   // Audit du 13/10 (migration 20261013120000) : l'annulation se lit au fil.
   mission_annulee: "Mission annulée",
   // Décision D18 du 14/10 (migration 20261014600000, livraison 1) : le refus motivé d'un devis.

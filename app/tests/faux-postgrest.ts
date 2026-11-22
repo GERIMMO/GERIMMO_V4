@@ -218,6 +218,9 @@ export const SCHEMA_CONNU = {
     colonnes: [
       "id", "organization_id", "intervention_id", "numero", "montant_ttc_cents", "montant_reference_cents",
       "ecart_justification", "document_id", "validee_le", "decision_motif", "imputation_validee", "reglee_le",
+      // Audit palier 1, P1-03 : le refus motivé d'une facture, et la date de dépôt qui range la facture en vigueur
+      // avant celles qu'elle remplace.
+      "refusee_le", "refus_motif", "deposee_le",
     ],
     integrees: [],
   },

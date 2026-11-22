@@ -296,6 +296,12 @@ export async function PaneIncident({
             : null,
           mentionEcartChronologie(d, formaterDateHeure),
         ].filter(Boolean).join(" · ") || null;
+      // Audit palier 1 (P1-03) : la facture refusée, avec ce que l'artisan doit corriger.
+      case "facture_refusee":
+        return [
+          d.numero ? `n° ${d.numero}` : null,
+          d.motif ? `« ${d.motif} »` : null,
+        ].filter(Boolean).join(" — ") || null;
       // D23 : le règlement déclaré (jamais exécuté par Gerimmo) et son retrait, dans les mots du gérant.
       case "facture_reglee":
         return [

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowRight, CalendarDays, Check, CheckCircle2, ClipboardList, FileCheck2, FileUp, Info, ReceiptText } from "lucide-react";
 import { titreIncident } from "@/lib/incidents";
 import { ligneReglementPourArtisan, phraseEtatPourArtisan, type FactureVueParArtisan } from "@/lib/reglement-facture";
-import { chargerAgenda, chargerReglementsFactures, verifierAccesArtisan, type LigneAgenda } from "../acces";
+import { chargerAgenda, chargerFacturesRefusees, chargerReglementsFactures, verifierAccesArtisan, type FactureRefusee, type LigneAgenda } from "../acces";
 import { euros, jourCourt } from "../libelles";
 import { EnteteSousPage, Erreur, Etiquette, MarqueAgence, Succes } from "../ui";
 import { classerFacturation, montantEngage } from "./suivi-facturation";
@@ -19,8 +19,11 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
   const { facture } = await props.searchParams;
   // D23 : l'état de règlement déclaré par le client, par intervention. Une lecture en échec se dit, elle ne se déguise
   // pas en « aucun règlement ».
-  const [agenda, reglements, activite] = await Promise.all([chargerAgenda(), chargerReglementsFactures(), chargerActivitePrivee()]);
-  const reglementDe = new Map(reglements.lignes.map((r) => [r.intervention_id, r]));
+  const [agenda, reglements, activite, refusees] = await Promise.all([chargerAgenda(), chargerReglementsFactures(), chargerActivitePrivee(), chargerFacturesRefusees()]);
+  // Audit palier 1 (P1-03) : par intervention, la facture EN VIGUEUR ; une facture refusée ne masque pas sa remplaçante
+  // et se signale à part tant qu'elle n'est pas remplacée.
+  const reglementDe = new Map(reglements.lignes.filter((r) => r.etat !== "refusee").map((r) => [r.intervention_id, r]));
+  const refuseeDe = new Map([...refusees.lignes].reverse().map((r) => [r.intervention_id, r]));
   const { aFacturer, aCompleter, deposees } = classerFacturation(agenda.lignes);
   const montantAFacturer = aFacturer.reduce((total, ligne) => total + (montantEngage(ligne) ?? 0), 0);
   const montantsIncomplets = aFacturer.some(l => montantEngage(l) === null);
@@ -47,7 +50,7 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
           <section id="a-facturer" className={styles.section}>
             <div className={styles.titreSection}><div><h2>À facturer <span>{aFacturer.length}</span></h2><p>Vos interventions terminées avec un dossier complet.</p></div><ReceiptText size={21} aria-hidden/></div>
             {aFacturer.length > 0 ? <>
-              <ul className={styles.liste}>{aFacturer.map(l => <LigneFacturation key={l.intervention_id} ligne={l}/>)}</ul>
+              <ul className={styles.liste}>{aFacturer.map(l => <LigneFacturation key={l.intervention_id} ligne={l} refusee={refuseeDe.get(l.intervention_id)}/>)}</ul>
               <div className={styles.total}><span>{montantsIncomplets ? "Montant engagé connu" : "Montant engagé à facturer"}<small>Devis et avenants acceptés{montantsIncomplets ? " · certains montants restent à préciser" : ""}</small></span><strong>{aFacturer.every(l => montantEngage(l) === null) ? "À préciser" : <>{euros(montantAFacturer)} <small>TTC</small></>}</strong></div>
             </> : <div className={styles.vide}><span className={styles.iconeVide}><ReceiptText size={28} aria-hidden/></span><h3>Aucune facture à déposer pour l’instant</h3><p>Terminez votre intervention et ajoutez le compte rendu ainsi qu’une photo. Vous pourrez ensuite déposer votre facture ici.</p><Link href="/artisan/agenda" className={styles.boutonPrincipal}>Voir mes interventions <ArrowRight size={16} aria-hidden/></Link></div>}
           </section>
@@ -74,25 +77,25 @@ export default async function PageFacturation(props: PageProps<"/artisan/factura
     </>}
         </details>
       </> },
-      { id: "mon-registre", titre: "Mon registre", contenu: await ReglementsDansFacturation({ lecture: activite }) },
+      { id: "mon-registre", titre: "Mon registre", contenu: await ReglementsDansFacturation({ lecture: activite, refusees: new Set(refusees.lignes.map((r) => r.id)) }) },
     ]} />
   </div>;
 }
 
 /** L'étiquette d'une facture déposée : l'état que son client déclare (D23), sinon « Facture déposée ». */
-function etiquetteFacture(deposee: boolean, reglement: FactureVueParArtisan | undefined): { ton: "ok" | "encre" | "attente"; texte: string } {
-  if (!deposee) return { ton: "encre", texte: "Prête à facturer" };
+function etiquetteFacture(deposee: boolean, reglement: FactureVueParArtisan | undefined, refusee = false): { ton: "ok" | "encre" | "attente"; texte: string } {
+  if (!deposee) return refusee ? { ton: "attente", texte: "Facture refusée : à corriger" } : { ton: "encre", texte: "Prête à facturer" };
   if (reglement?.etat === "reglee") return { ton: "ok", texte: "Réglée (déclaré par votre client)" };
   if (reglement?.etat === "partiellement_reglee") return { ton: "attente", texte: "Partiellement réglée" };
   if (reglement?.etat === "validee") return { ton: "attente", texte: "Validée, règlement à venir" };
   return { ton: "ok", texte: "Facture déposée" };
 }
 
-function LigneFacturation({ ligne, reglement }: { ligne: LigneAgenda; reglement?: FactureVueParArtisan }) {
+function LigneFacturation({ ligne, reglement, refusee }: { ligne: LigneAgenda; reglement?: FactureVueParArtisan; refusee?: FactureRefusee }) {
   const deposee = ligne.facture_deposee;
   const engagement = montantEngage(ligne);
   const montant = deposee ? reglement?.montant_ttc_cents ?? null : engagement;
-  const etiquette = etiquetteFacture(deposee, reglement);
+  const etiquette = etiquetteFacture(deposee, reglement, Boolean(refusee));
   return <li className={styles.facture}>
     <div className={styles.client}><MarqueAgence nom={ligne.agence_nom}/><Etiquette ton={etiquette.ton}>{etiquette.texte}</Etiquette></div>
     <div className={styles.detailFacture}>
@@ -101,10 +104,11 @@ function LigneFacturation({ ligne, reglement }: { ligne: LigneAgenda; reglement?
         <p>{[ligne.incident_numero, reglement ? `facture n° ${reglement.numero}` : null, ligne.debut_prevu ? jourCourt(ligne.debut_prevu) : null, ligne.ville].filter(Boolean).join(" · ")}</p>
         {deposee && engagement !== null && <p>Devis et avenants acceptés : {euros(engagement)} TTC{montant !== null && montant !== engagement ? ` · Écart : ${euros(montant - engagement)}` : ""}</p>}
         {deposee && reglement && <p>{phraseEtatPourArtisan(reglement)}</p>}
+        {!deposee && refusee && <p>Facture n° {refusee.numero} refusée par votre client : « {refusee.refus_motif} »</p>}
         {deposee && reglement && reglement.reglements.length > 0 && <ul>{reglement.reglements.map((r, i) => <li key={`${r.date_reglement}-${i}`}>{ligneReglementPourArtisan(r)}</li>)}</ul>}
       </div>
       <div className={styles.montant}><strong>{montant !== null ? euros(montant) : deposee ? "Montant indisponible" : "À préciser"}{montant !== null && <small> TTC</small>}</strong><span>{deposee ? "Montant facturé" : ligne.montant_plafond_cents !== null && ligne.montant_plafond_cents !== ligne.montant_ttc_cents ? "Avenant accepté" : "Devis retenu"}</span></div>
     </div>
-    <Link href={`/artisan/missions/${ligne.intervention_id}${deposee ? "" : "/facture"}`} className={deposee ? styles.boutonSecondaire : styles.boutonPrincipal}>{deposee ? <FileCheck2 size={16} aria-hidden/> : <FileUp size={16} aria-hidden/>}{deposee ? "Voir la mission" : "Déposer ma facture"}<ArrowRight size={15} aria-hidden/></Link>
+    <Link href={`/artisan/missions/${ligne.intervention_id}${deposee ? "" : "/facture"}`} className={deposee ? styles.boutonSecondaire : styles.boutonPrincipal}>{deposee ? <FileCheck2 size={16} aria-hidden/> : <FileUp size={16} aria-hidden/>}{deposee ? "Voir la mission" : refusee ? "Déposer une facture corrigée" : "Déposer ma facture"}<ArrowRight size={15} aria-hidden/></Link>
   </li>;
 }

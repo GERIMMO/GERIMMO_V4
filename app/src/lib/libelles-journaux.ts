@@ -58,6 +58,7 @@ const ACTIONS: Record<string, string> = {
   contre_ecriture: "Écriture comptable annulée par une contre-écriture",
   // D23 (14/10, PRO2-21 et CHN-02) : la validation d'une facture d'artisan et son règlement déclaré laissent une trace.
   facture_validee: "Facture d’artisan contrôlée et validée",
+  facture_refusee: "Facture d’artisan refusée, à corriger",
   reglement_facture_enregistre: "Règlement d’une facture d’artisan déclaré (écriture de dépense liée)",
   reglement_facture_retire: "Règlement d’une facture d’artisan retiré (contre-écriture passée)",
   mois_abonnement_offerts: "Mois d’abonnement offerts",

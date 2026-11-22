@@ -25,6 +25,7 @@ import {
 import { lireCleEnvoi } from "@/lib/cle-envoi";
 import { baseEspace } from "@/lib/racine-espace";
 import { estUuid } from "@/lib/identifiants";
+import { MOTIF_REFUS_FACTURE } from "@/lib/reglement-facture";
 
 export type EtatIncidentAction = {
   erreur?: string;
@@ -1108,4 +1109,21 @@ export async function validerFactureArtisan(orgId: string, factureId: string, _e
   if (error) return { erreur: sansJargon(error.message) };
   revaliderIncident(orgId);
   return { succes: "Facture validée. Aucun paiement bancaire n’a été effectué." };
+}
+
+/**
+ * Audit palier 1 (P1-03) : le gestionnaire refuse une facture d'artisan non validée, avec un motif (référentiel,
+ * module 9, variante V5). La facture reste au dossier ; l'artisan lit le motif et peut en déposer une autre.
+ */
+export async function refuserFactureArtisan(orgId: string, factureId: string, _etat: EtatIncidentAction, formData: FormData): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const motif = String(formData.get("motif_refus") ?? "").trim();
+  if (motif.length < MOTIF_REFUS_FACTURE.min || motif.length > MOTIF_REFUS_FACTURE.max) {
+    return { erreur: `Indiquez à l’artisan ce qui est à corriger (${MOTIF_REFUS_FACTURE.min} à ${MOTIF_REFUS_FACTURE.max.toLocaleString("fr-FR")} caractères).` };
+  }
+  const { error } = await supabase.rpc("refuser_facture_artisan", { p_org: orgId, p_facture: factureId, p_motif: motif });
+  if (error) return { erreur: sansJargon(error.message) };
+  revaliderIncident(orgId);
+  return { succes: "Facture refusée. L’artisan lit votre motif dans son espace et peut déposer une facture corrigée." };
 }

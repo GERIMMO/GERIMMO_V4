@@ -5,7 +5,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
 import { ligneReglementPourArtisan, phraseEtatPourArtisan } from "@/lib/reglement-facture";
-import { chargerAgenda, chargerCreneauxMission, chargerDemandesRdv, chargerPhotosDemande, chargerReglementsFactures, verifierAccesArtisan } from "../../acces";
+import { chargerAgenda, chargerCreneauxMission, chargerDemandesRdv, chargerFacturesRefusees, chargerPhotosDemande, chargerReglementsFactures, verifierAccesArtisan } from "../../acces";
+import { AvisFactureRefusee } from "../facture-refusee";
 import { libelleMotifRdv, instantRdv } from "@/lib/rendez-vous-locataire";
 import { PhotosDeLaDemande } from "../../photos-demande";
 import {
@@ -64,16 +65,20 @@ export default async function PageMission(
   // D16 (14/10) : les photos jointes par le locataire, que la base ne rend que pour une mission encore vivante.
   // D23 : le règlement que le client déclare sur la facture de cette mission (date et moyen seulement).
   // D22 : la dernière demande du locataire sur ce rendez-vous (report ou annulation).
-  const [agenda, photos, reglements, demandesRdv] = await Promise.all([
+  const [agenda, photos, reglements, demandesRdv, refusees] = await Promise.all([
     chargerAgenda(),
     chargerPhotosDemande(null, interventionId),
     chargerReglementsFactures(),
     chargerDemandesRdv(),
+    chargerFacturesRefusees(),
   ]);
   if (agenda.erreur) return <LectureImpossibleArtisan href={`/artisan/missions/${interventionId}`} />;
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
-  const factureReglement = reglements.lignes.find((r) => r.intervention_id === interventionId);
+  // Audit palier 1 (P1-03) : la facture EN VIGUEUR de la mission ; une facture refusée se lit à part, tant qu'aucune
+  // autre ne l'a remplacée (la plus récente d'abord).
+  const factureReglement = reglements.lignes.find((r) => r.intervention_id === interventionId && r.etat !== "refusee");
+  const factureRefusee = mission.facture_deposee ? undefined : refusees.lignes.find((r) => r.intervention_id === interventionId);
   // Décision D22 : un report en attente se traite ici (retenir une de ses dates, ou refuser) ; une annulation s'affiche
   // pour information tant qu'aucun nouveau rendez-vous n'est fixé.
   const demandeRdv = demandesRdv.lignes.find((d) => d.intervention_id === interventionId) ?? null;
@@ -433,7 +438,7 @@ export default async function PageMission(
               {mission.photo_apres_deposee ? "Déposée" : "Manquante"}
             </LigneInfo>
             <LigneInfo libelle="Facture">
-              {mission.facture_deposee ? "Déposée" : "À déposer"}
+              {mission.facture_deposee ? "Déposée" : factureRefusee ? "Refusée : à corriger" : "À déposer"}
             </LigneInfo>
             {mission.facture_deposee && factureReglement && <LigneInfo libelle={`Facture n° ${factureReglement.numero}`}>{euros(factureReglement.montant_ttc_cents)} TTC</LigneInfo>}
             {mission.facture_deposee && (
@@ -458,12 +463,14 @@ export default async function PageMission(
               Déclaration de votre client, sans virement de Gerimmo : vérifiez la réception sur votre compte.
             </p>
           )}
+          {factureRefusee && <div className="mt-3"><AvisFactureRefusee facture={factureRefusee} /></div>}
+          {!mission.facture_deposee && refusees.erreur && <p className={`mt-2 ${CLASSE_AIDE}`}>Les refus éventuels de votre client n’ont pas pu être lus : rechargez la page.</p>}
           {!mission.facture_deposee && mission.compte_rendu_depose && mission.photo_apres_deposee ? (
             <Link
               href={`/artisan/missions/${mission.intervention_id}/facture`}
               className={`${CLASSE_BOUTON_PRINCIPAL} mt-3`}
             >
-              Déposer ma facture
+              {factureRefusee ? "Déposer une facture corrigée" : "Déposer ma facture"}
             </Link>
           ) : (
             <Link

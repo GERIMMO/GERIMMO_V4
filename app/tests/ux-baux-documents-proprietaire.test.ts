@@ -47,6 +47,10 @@ describe("Documents : action attendue et disponibilité ne sont pas une validit�
     expect(presentationDocumentProprietaire({}, null, false, facture).libelle).toBe("À valider");
     expect(presentationDocumentProprietaire({}, null, false, { ...facture, validee_le: "2026-11-18" }).libelle).toBe("Disponible");
     expect(presentationDocumentProprietaire({}, null, false, { ...facture, decision_motif: "Montant contesté" }).libelle).toBe("Disponible");
+    // Audit palier 1 (P1-03) : une facture refusée n'attend plus de décision.
+    const refusee = presentationDocumentProprietaire({}, null, false, { ...facture, refusee_le: "2026-11-22T10:00:00Z" });
+    expect(refusee.libelle).toBe("Refusée");
+    expect(refusee.detail).toBe("Cette facture a été refusée. Elle reste au dossier ; l’artisan peut en déposer une autre.");
   });
   it("conserve les alertes réelles, les signatures et les preuves", () => {
     expect(presentationDocumentProprietaire({ expire_le: "invalide" }).libelle).toBe("À vérifier");

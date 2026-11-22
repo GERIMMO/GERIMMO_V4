@@ -21,7 +21,8 @@ const etat = vi.hoisted(() => ({ supabase: null as unknown, agenda: [] as Record
 // Un client qui honore select, eq et in (voir faux-postgrest.ts) : une colonne retirée du select ou un filtre retiré
 // de la requête change ce que l'écran affiche, et fait donc tomber un test.
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => etat.supabase }));
-vi.mock("../src/app/agence/[orgId]/incidents/validation-facture", () => ({ ValidationFacture: () => null }));
+// Audit P1-03 : le formulaire de refus est, comme celui de validation, un composant client que le test remplace.
+vi.mock("../src/app/agence/[orgId]/incidents/validation-facture", () => ({ ValidationFacture: () => null, RefusFacture: () => null }));
 // D23 : les formulaires du règlement sont des composants clients ; l'écran de la facture les pose, le test les remplace.
 vi.mock("../src/app/agence/[orgId]/incidents/reglement-facture", () => ({ FormulaireReglement: () => null, RetraitReglement: () => null }));
 
@@ -43,6 +44,8 @@ vi.mock("@/app/artisan/acces", () => ({
   chargerPhotosDemande: async () => ({ photos: [], erreur: false }),
   // D23 : l'état de règlement déclaré par le client (aucun ici : la mission est jugée sur son rendez-vous).
   chargerReglementsFactures: async () => ({ lignes: [], erreur: false }),
+  // Audit P1-03 : la fiche de la mission lit aussi les factures que le client a refusées (aucune ici).
+  chargerFacturesRefusees: async () => ({ lignes: [], erreur: false }),
   // Décision D22 : la fiche de la mission lit aussi la dernière demande du locataire (report, annulation).
   chargerDemandesRdv: async () => ({ lignes: [], erreur: false }),
 }));

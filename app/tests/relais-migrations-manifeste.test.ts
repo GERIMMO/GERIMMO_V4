@@ -234,6 +234,8 @@ const MISSION_OCTOBRE = [
   "20261122150000_evaluation_contestee.sql",
   // 22/11, audit palier 1 (P1-06) : le locataire lit l'état des signatures électroniques où il est signataire (lecture seule).
   "20261122160000_signatures_electroniques_locataire.sql",
+  // 22/11, audit palier 1 (P1-03) : le gestionnaire refuse une facture d'artisan avec un motif, l'artisan en dépose une autre.
+  "20261122170000_facture_artisan_refus.sql",
 
 
 ];

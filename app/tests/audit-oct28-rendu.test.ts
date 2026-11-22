@@ -23,6 +23,8 @@ vi.mock('@/app/artisan/acces', () => ({
  verifierAccesArtisan: async () => ({ fiche: { statut_plateforme: 'valide', visibilite: 'public' }, supabase: { rpc: async () => ({data:null,error:null}) } }),
  chargerAgenda: async () => b.agenda,
  chargerReglementsFactures: async () => b.reglements,
+ // Audit P1-03 : les factures refusées par le client (aucune dans ces scénarios).
+ chargerFacturesRefusees: async () => ({ lignes: [], erreur: false }),
  chargerDemandesRdv: () => { b.lireDemandes(); return Promise.resolve(b.demandes); },
  chargerCreneauxMission: async () => ({ lignes: [], erreur: false }),
  chargerPhotosDemande: async () => ({ photos: [], erreur: false }),

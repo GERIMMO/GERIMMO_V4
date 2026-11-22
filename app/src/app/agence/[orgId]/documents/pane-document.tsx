@@ -342,7 +342,7 @@ export async function PaneDocument({
   if (suiviSignature.erreur) lecturesManquees.push("le suivi des signatures");
   const lectureFacture = estProprietaire && doc.type === "facture_artisan"
     ? await supabase.from("intervention_factures")
-        .select("montant_ttc_cents,validee_le,decision_motif")
+        .select("montant_ttc_cents,validee_le,decision_motif,refusee_le")
         .eq("organization_id", orgId).eq("document_id", doc.id).maybeSingle()
     : { data: null, error: null };
   if (lectureFacture.error) lecturesManquees.push("les informations de la facture");

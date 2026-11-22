@@ -31,6 +31,10 @@ import type { DemandeRdvArtisan } from "@/lib/rendez-vous-locataire";
  *    recevrait zéro ligne. Il n'y a pas de porte à mal fermer : il n'y a pas
  *    de porte. Les RPC SECURITY DEFINER sont la seule, et elles déduisent son
  *    identité de `auth.uid()` (`mon_artisan_id()`), jamais d'un paramètre.
+ *    Exception datée du 22/11/2026 (audit palier 1, P1-03) : `chargerFacturesRefusees`
+ *    lit la table `intervention_factures`. Sa politique de lecture admet l'artisan
+ *    pour les factures de SES interventions seulement (`artisan_possede_intervention`,
+ *    vérifié sous son rôle dans tests/facture-artisan-refus-base.test.ts).
  *
  * 3. LA GARDE CI-DESSOUS NE PROTÈGE QUE LA NAVIGATION. Elle vérifie qu'une
  *    fiche artisan existe pour ce compte, afin d'envoyer un visiteur sans
@@ -291,8 +295,30 @@ export const chargerCreneauxMission = cache(async function chargerCreneauxMissio
 export const chargerReglementsFactures = cache(async function chargerReglementsFactures() {
   const { supabase, fiche } = await chargerFicheArtisan();
   if (!fiche) return { lignes: [] as FactureVueParArtisan[], erreur: false };
-  const { data, error } = await supabase.rpc("mes_reglements_factures_artisan");
-  return { lignes: (data ?? []) as FactureVueParArtisan[], erreur: Boolean(error) };
+  // Audit palier 1 (P1-03) : une facture refusée par le client porte l'état « refusee ». La fonction de base ne le
+  // connaît pas (elle rendrait « déposée, en attente de contrôle ») : le refus se lit sur la facture elle-même. Si
+  // cette lecture échoue, l'ensemble est dit en échec — on n'affiche pas une facture refusée comme encore attendue.
+  const [{ data, error }, refusees] = await Promise.all([supabase.rpc("mes_reglements_factures_artisan"), chargerFacturesRefusees()]);
+  const refus = new Set(refusees.lignes.map((r) => r.id));
+  const lignes = ((data ?? []) as FactureVueParArtisan[]).map((l) => (refus.has(l.facture_id) ? { ...l, etat: "refusee" as const } : l));
+  return { lignes, erreur: Boolean(error) || refusees.erreur };
+});
+
+/** Une facture refusée par le client, telle que l'artisan la lit : ce qui a été refusé, quand, et pourquoi. */
+export type FactureRefusee = { id: string; intervention_id: string; numero: string; montant_ttc_cents: number; refusee_le: string; refus_motif: string };
+
+/**
+ * Audit palier 1 (P1-03) : SES factures refusées, avec le motif écrit par son client. Lues par la politique de la
+ * table (l'artisan ne lit que les factures de ses interventions) ; la plus récente d'abord. Un échec de lecture se
+ * distingue d'« aucun refus ».
+ */
+export const chargerFacturesRefusees = cache(async function chargerFacturesRefusees() {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as FactureRefusee[], erreur: false };
+  const { data, error } = await supabase.from("intervention_factures")
+    .select("id, intervention_id, numero, montant_ttc_cents, refusee_le, refus_motif")
+    .eq("artisan_id", fiche.artisan_id).not("refusee_le", "is", null).order("refusee_le", { ascending: false });
+  return { lignes: (data ?? []) as FactureRefusee[], erreur: Boolean(error) };
 });
 
 /**

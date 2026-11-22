@@ -2,7 +2,8 @@ import { clientDeService } from "@/lib/supabase/service";
 import { LectureImpossibleArtisan } from "../../../ui";
 import { notFound, redirect } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
-import { chargerAgenda, verifierAccesArtisan } from "../../../acces";
+import { chargerAgenda, chargerFacturesRefusees, verifierAccesArtisan } from "../../../acces";
+import { AvisFactureRefusee } from "../../facture-refusee";
 import { euros } from "../../../libelles";
 import { Carte, EnteteSousPage, LigneInfo, MarqueAgence, Retour, TitreSection } from "../../../ui";
 import { AvertissementRendezVousAnticipe } from "../avertissement-rendez-vous";
@@ -37,6 +38,9 @@ export default async function PageFacture(
     redirect(`/artisan/missions/${interventionId}`);
   }
 
+  // Audit palier 1 (P1-03) : si la facture précédente a été refusée, son motif se relit au moment de la corriger.
+  const factureRefusee = (await chargerFacturesRefusees()).lignes.find((r) => r.intervention_id === interventionId);
+
   const profil = await clientDeService()?.from("artisan_profils_documents")
     .select("adresse,mentions").eq("artisan_id", fiche.artisan_id).maybeSingle();
 
@@ -48,9 +52,10 @@ export default async function PageFacture(
         <MarqueAgence nom={mission.agence_nom} taille="grande" />
       </div>
       <EnteteSousPage
-        titre="Déposer ma facture"
+        titre={factureRefusee ? "Déposer une facture corrigée" : "Déposer ma facture"}
         mention={`${titreIncident(mission.categorie)} · ${mission.incident_numero}`}
       />
+      {factureRefusee && <AvisFactureRefusee facture={factureRefusee} />}
 
       <Carte>
         <TitreSection>Montants de référence</TitreSection>

@@ -244,6 +244,8 @@ const MISSION_OCTOBRE = [
   "20261122190000_avenants_bail.sql",
   "20261122200000_envois_automatiques_reglage.sql",
   "20261122210000_decision_artisan_notifiee.sql",
+  // 22/11, audit palier 1 (P1-19) : la déclaration d'incident depuis la fiche du bien reçoit la catégorie et l'urgence.
+  "20261122220000_incident_bien_categorie_urgence.sql",
 
 
 ];

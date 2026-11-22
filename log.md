@@ -7926,3 +7926,23 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   sur un vrai téléphone n'a pas été essayée.
 - **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 17 à 23, règles posées).
 - **Suite** : lot 24 écrit, en vérification (garantie annoncée par l'artisan sur son devis).
+
+## [2026-11-22] lint   | Mission palier 1, phase 2 : lots 24 à 26 vérifiés (préproduction)
+
+- **Fait** : trois lots du plan P2, côté [[Artisan]] — garantie annoncée sur le devis (lot 24, P2-02), absences et
+  semaine type (lot 25, P2-03), rendez-vous manqué consigné et relance d'une facture (lot 26, P2-04, deux parties sur
+  trois). Détail dans `JOURNAL.md`.
+- **Vérifié** : passage complet sur base d'essai remise à neuf — 14 032 tests réussis ; 303 parcours navigateur
+  réussis du premier coup, 3 mis de côté par conception, aucun échec, aucun second essai. Branche de préproduction
+  poussée. Rien n'est publié en production (gel maintenu).
+- **Défauts trouvés par la vérification et corrigés avant de pousser** : sur téléphone, le libellé d'une rangée
+  d'information ne passait jamais à la ligne (corrigé à la source, pour toute l'application) ; un bouton écrit à la
+  main à la place du bouton commun ; une table neuve sans deux de ses trois gardes ; une fonction qui en appelait une
+  plus ancienne et aurait empêché de défaire celle-ci.
+- **Deux parcours « réussis au second essai » expliqués** (abonnement, interrupteur IA) : la cause était dans les
+  parcours, pas dans les écrans ; aucun contrôle allégé.
+- **Décisions laissées au dirigeant** : `QUESTIONS.md`, Q29 à Q32. **Questions au juriste** : `JURISTE.md`, partie 4,
+  points 7 et 8. Aucun texte de loi cité, rien présenté comme conforme.
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 24 à 26, règles posées) ; `index.md`.
+- **Suite** : lot 27 (lignes de devis réutilisables) écrit, en vérification ; lot 28 (pointage des loyers sur relevé
+  de banque) en cours d'écriture.

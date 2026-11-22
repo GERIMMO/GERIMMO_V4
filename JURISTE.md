@@ -186,3 +186,20 @@ Une question fermée (oui ou non) par point.
    admissible, ou faut-il imposer un numéro différent dans tous les cas ? En attendant : Gerimmo n'efface rien, ne
    présente pas ce parcours comme conforme, et l'écran de l'artisan lui dit seulement que la facture refusée garde
    son numéro.
+7. **Garantie annoncée par l'artisan (ajouté le 22/11, lot 24, P2-02).** L'artisan peut écrire, en texte libre, la
+   garantie qu'il annonce sur son devis (« un an, pièces et main-d'œuvre »). Gerimmo l'imprime sur le devis et
+   l'affiche au gestionnaire avec la mention « Engagement de l'artisan, pas de Gerimmo ». Gerimmo ne vérifie pas ce
+   texte et ne cite aucune garantie légale. Questions : (a) cette mention suffit-elle pour que la plateforme ne soit
+   pas tenue pour garante de ce que l'artisan annonce ? (b) faut-il rappeler quelque part les garanties que la loi
+   impose à l'artisan indépendamment de ce qu'il écrit, et avec quelle formule ? (c) un texte libre peut-il laisser
+   croire à une garantie plus courte que celle que la loi impose, et faut-il alors l'encadrer ? En attendant : le
+   champ est facultatif, rien n'est présenté comme conforme, et aucun texte de loi n'est cité.
+8. **Rendez-vous manqué et relance d'une facture (ajouté le 22/11, lot 26, P2-04).** Gerimmo consigne qui est dit
+   absent à un rendez-vous confirmé (par l'artisan ou par le gestionnaire) et laisse l'artisan relancer son client
+   pour une facture déposée depuis 30 jours. Aucun texte n'est cité à l'écran, et rien n'est présenté comme une
+   preuve. Questions : (a) cette consignation peut-elle être opposée au locataire ou à l'artisan, et faut-il une
+   formule pour dire qu'elle rapporte une déclaration et non un constat ? (b) l'artisan peut-il facturer un
+   déplacement quand le locataire était absent, et à qui (bailleur ou locataire) ? Gerimmo ne le propose pas ;
+   (c) le délai de règlement d'une facture d'artisan par un bailleur particulier, ou par une société civile
+   immobilière, est-il encadré, et la relance doit-elle porter une mention particulière (pénalités, indemnité) ?
+   Gerimmo n'en écrit aucune. En attendant : les deux gestes sont de simples traces, sans conséquence automatique.

@@ -52,7 +52,7 @@ production est gelée jusqu'à sa validation écrite ; l'audit complet est dans 
 >   du wiki en tiennent lieu, dans le périmètre donné par le dirigeant.
 > - Les pages [[Planification d'intervention]] et [[Intervention et clôture]] sont en retard sur le code.
 
-## Phase 2 — corrections en autonomie (état au 22/11/2026, lot 23)
+## Phase 2 — corrections en autonomie (état au 22/11/2026, lot 26)
 
 Le détail, lot par lot (ce qui est fait, vérifié, non vérifié, retour arrière), est dans `JOURNAL.md` à la racine.
 Chaque lot est vérifié sur une base d'essai remise à neuf (migrations rejouées, tests, parcours navigateur) avant
@@ -83,6 +83,9 @@ d'être poussé sur la branche de préproduction ; rien n'est publié en product
 | 21 | P1-10, P1-11 | Un numéro d'article non vérifiable est retiré de l'écran des loyers ; le point de l'audit sur le [[Diagnostic]] remplacé est écarté (erratum) |
 | 22 | P2-02 | Le [[Locataire]] indique ses disponibilités dès qu'il signale un incident ; le gestionnaire les lit au dossier |
 | 23 | P2-01 | Une photo par élément de l'[[État des lieux]], imprimée et numérotée dans le document ; figée à la signature |
+| 24 | P2-02 (fin) | L'[[Artisan]] écrit la garantie qu'il annonce sur son [[Devis]] ; le gestionnaire la lit au dossier et sur le PDF, avec « Engagement de l'artisan, pas de Gerimmo » |
+| 25 | P2-03 | L'[[Artisan]] déclare ses absences (aucune nouvelle demande ne lui est envoyée pendant) et sa semaine type (elle préremplit ses créneaux) ([[Sollicitation d'artisans]]) |
+| 26 | P2-04 (deux parties) | Un rendez-vous manqué se consigne (qui était absent, qui le dit) ; l'[[Artisan]] relance son client pour une facture déposée depuis 30 jours, sans e-mail ([[Intervention et clôture]]) |
 
 **Règle métier posée au lot 11** (source : cahier Gerimmo V3, module 9, variante V5 — « l'agent la refuse, l'artisan
 la corrige ou la justifie ») : une intervention ne porte qu'**une facture en vigueur** ; une facture refusée reste au
@@ -94,7 +97,7 @@ Q24) : aucun e-mail automatique ne part tant que le Super Admin n'a pas ouvert l
 d'échéance et la relance d'un loyer, chaque espace doit en plus donner son accord ; même ouvert, un e-mail ne part que
 si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a été envoyé pendant la vérification.
 
-**Règles posées aux lots 17 à 23** (prudences de l'agent ; aucune n'affirme une conformité) :
+**Règles posées aux lots 17 à 26** (prudences de l'agent ; aucune n'affirme une conformité) :
 
 - *Charges de copropriété (lot 19)* : Gerimmo ne classe plus aucun poste de lui-même. La suggestion tirée de
   l'intitulé s'affiche, le gestionnaire choisit, poste par poste ; un intitulé de travaux, de gardien ou de
@@ -106,6 +109,17 @@ si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a
 - *Photos de l'état des lieux (lot 23)* : la photo est un document de l'espace, rangé dans les documents du bail ;
   elle se modifie tant que l'état des lieux n'est pas signé ni envoyé en signature, puis se consulte seulement.
   Aucune valeur juridique particulière n'est affirmée.
+- *Garantie annoncée (lot 24)* : texte libre de l'artisan, facultatif, jamais vérifié ni complété par Gerimmo ;
+  aucune garantie légale n'est citée ; le [[Locataire]] ne la lit pas, parce qu'il ne lit aucun devis (`QUESTIONS.md`,
+  Q29 ; `JURISTE.md`, partie 4, point 7).
+- *Absences de l'artisan (lot 25)* : pendant une absence déclarée, la demande est **refusée** (écran et base), pas
+  seulement signalée ; ce qui est en cours continue. Le gestionnaire ne lit que « absent jusqu'au … » (Q30).
+- *Rendez-vous manqué (lot 26)* : il se consigne seulement une fois l'heure passée ; l'artisan ne peut dire que
+  l'absence du locataire, le gestionnaire celle de l'un ou de l'autre ; le locataire lit ce qui est dit de lui. Le
+  compte des absences de l'artisan est affiché, il **n'entre pas** dans sa note (Q32 ; écart avec le cahier V3,
+  modules 10 et 11, laissé au dirigeant).
+- *Relance d'une facture (lot 26)* : possible 30 jours après le dépôt, puis tous les 15 jours ; ce sont des choix de
+  produit, pas une règle de droit (Q31 ; `JURISTE.md`, partie 4, point 8). Aucun e-mail ne part.
 - *Un audit se réexécute* : l'audit du 22/11 est une lecture du code. Un de ses points s'est révélé faux à
   l'exécution ; il est rectifié dans la section « Errata » de `AUDIT.md`, pas réécrit en silence.
 

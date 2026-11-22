@@ -7888,3 +7888,21 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   (signature électronique, recommandé) ; deux fichiers de tests ne tournent que dans le contrôle automatique de GitHub.
 - **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (tableau de la phase 2) ; `index.md` mis à jour.
 - **Suite** : lot 12 (messagerie d'intervention, P1-05) en vérification ; puis P1-08, P1-14, P1-16.
+
+## [2026-11-22] lint   | Mission palier 1, phase 2 : lots 12 à 16 vérifiés (préproduction)
+
+- **Fait** : lots 12 à 16 du plan fermé (P1-05 messages d'intervention signalés, P1-14 avenant signé, P1-13 rappel de
+  révision et indice Insee, P1-08 quatre e-mails automatiques prêts et fermés, P1-16 motifs envoyés à l'artisan
+  refusé), chacun vérifié sur une base d'essai remise à neuf puis poussé sur la branche de préproduction. Dernier
+  passage complet : 13 765 tests réussis, 294 parcours navigateur réussis, aucun échec. Rien n'est publié en
+  production (gel maintenu).
+- **Règle consignée** : un e-mail automatique ne part que si le Super Admin a ouvert l'envoi, si l'espace a donné son
+  accord quand il est demandé, et si la base confirme juste avant qu'il est toujours dû (prudence de l'agent, à
+  confirmer : `QUESTIONS.md`, Q6 et Q24).
+- **Limites dites** : aucun e-mail réel n'a été envoyé (service d'envoi simulé) ; l'Insee n'a pas pu être joint depuis
+  l'environnement de travail ; aucun texte officiel n'a pu être ouvert (Q5 sans réponse) ; pas de copie de base
+  hébergée (Q1 sans réponse) : la préproduction reste la base d'essai locale.
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] complétée (lots 12 à 16).
+- **Suite** : lots 17 à 19 écrits, en vérification (déclaration d'incident depuis la fiche du bien, date de l'entrée
+  sur l'état des lieux de sortie, charges de copropriété à confirmer poste par poste).
+

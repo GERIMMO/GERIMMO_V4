@@ -52,7 +52,7 @@ production est gelée jusqu'à sa validation écrite ; l'audit complet est dans 
 >   du wiki en tiennent lieu, dans le périmètre donné par le dirigeant.
 > - Les pages [[Planification d'intervention]] et [[Intervention et clôture]] sont en retard sur le code.
 
-## Phase 2 — corrections en autonomie (état au 22/11/2026, lot 11)
+## Phase 2 — corrections en autonomie (état au 22/11/2026, lot 16)
 
 Le détail, lot par lot (ce qui est fait, vérifié, non vérifié, retour arrière), est dans `JOURNAL.md` à la racine.
 Chaque lot est vérifié sur une base d'essai remise à neuf (migrations rejouées, tests, parcours navigateur) avant
@@ -71,11 +71,21 @@ d'être poussé sur la branche de préproduction ; rien n'est publié en product
 | 9 | P1-02 | La reprise comptable se retrouve après un rechargement et peut être abandonnée |
 | 10 | P1-06 | Le [[Locataire]] voit l'état de la signature électronique qui le concerne |
 | 11 | P1-03 | Une facture d'[[Artisan]] erronée se refuse avec un motif ; l'artisan en dépose une autre ([[Intervention et clôture]]) |
+| 12 | P1-05 | Un nouveau message dans la discussion d'une intervention est signalé à chacun ([[Intervention et clôture]]) |
+| 13 | P1-14 | L'avenant signé s'enregistre et modifie le loyer et la provision à sa date d'effet ([[Bail]]) |
+| 14 | P1-13 | La révision annuelle du loyer est rappelée à la date anniversaire ; l'indice se cherche chez l'Insee, ou se saisit ([[Révision IRL]]) |
+| 15 | P1-08 | Avis d'échéance, relance amiable, rappel de rendez-vous, relance d'invitation : quatre e-mails prêts, **fermés**, que le [[Super Admin]] ouvre un par un |
+| 16 | P1-16 | L'[[Artisan]] refusé ou suspendu reçoit les motifs par e-mail ; la fiche dit si l'e-mail est parti et permet de le renvoyer |
 
 **Règle métier posée au lot 11** (source : cahier Gerimmo V3, module 9, variante V5 — « l'agent la refuse, l'artisan
 la corrige ou la justifie ») : une intervention ne porte qu'**une facture en vigueur** ; une facture refusée reste au
 dossier, intacte, avec son motif ; refus et validation s'excluent. La question de l'avoir et de la numérotation est
 posée à l'expert-comptable (`JURISTE.md`, partie 4) : elle n'est pas tranchée.
+
+**Règle posée au lot 15** (décision de prudence de l'agent, à confirmer par le dirigeant : `QUESTIONS.md`, Q6 et
+Q24) : aucun e-mail automatique ne part tant que le Super Admin n'a pas ouvert l'envoi correspondant ; pour l'avis
+d'échéance et la relance d'un loyer, chaque espace doit en plus donner son accord ; même ouvert, un e-mail ne part que
+si la base confirme, juste avant, qu'il est toujours dû. Aucun e-mail réel n'a été envoyé pendant la vérification.
 
 **En attente du dirigeant** : « ok pour la copie de base » (Q1) et « ok pour les sites officiels » (Q5). Sans le
 second, les corrections qui touchent une règle de droit (P0-03 à P0-09, P0-11, P1-09 à P1-12, P1-15) restent en

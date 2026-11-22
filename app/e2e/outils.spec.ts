@@ -23,6 +23,16 @@ function surveillerConsole(page: Page): string[] {
   return erreurs;
 }
 
+/**
+ * La page de la quittance est prête à recevoir une saisie quand elle a posé la date du jour (elle le fait à son
+ * montage, dans le navigateur). Saisir avant, c'est écrire dans un champ que la page remet aussitôt à sa valeur
+ * de départ : le parcours échouait alors environ une fois sur cinq, avec « 850 » revenu à la place de la saisie
+ * (constat du 22/11/2026, reproduit à l'identique sur la version précédente).
+ */
+async function quittancePrete(page: Page) {
+  await expect(page.getByLabel("Mois", { exact: true })).not.toHaveValue("");
+}
+
 async function verifierPage(page: Page, erreurs: string[]) {
   expect(await debordementHorizontal(page), "débordement horizontal").toBeLessThanOrEqual(0);
   // Cibles tactiles : les champs, listes et boutons de la page font 44 px.
@@ -103,6 +113,7 @@ test("calcul IRL : 850 € × 148,37 ÷ 146,68 = 859,79 €, alerte au-delà d'u
 test("quittance : 850 + 120, reçu 500 → reçu de paiement partiel, reste dû 470,00 €", async ({ page }) => {
   const erreurs = surveillerConsole(page);
   await page.goto("/outils/quittance-de-loyer");
+  await quittancePrete(page);
   await expect(page.getByTestId("q-total")).toHaveText(/970,00\s€/);
   await expect(page.getByTestId("q-type")).toHaveText("Quittance de loyer");
   await expect(page.getByLabel("Montant reçu")).toHaveValue("970");
@@ -170,6 +181,7 @@ test("rentabilité : brute 5,29 %, nette 4,08 %, cash-flow −350,44 €", async
 
 test("quittance publique : aucun document sans paiement valide, excédent hors du terme", async ({ page }) => {
   await page.goto("/outils/quittance-de-loyer");
+  await quittancePrete(page);
   const recu = page.getByLabel("Montant reçu");
   const loyer = page.getByLabel("Loyer hors charges");
   const document = page.locator("#quittance");

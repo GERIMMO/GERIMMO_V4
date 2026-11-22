@@ -88,7 +88,7 @@ export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail d
           <p className="text-base text-[var(--encre)] [overflow-wrap:anywhere]"><strong>{g.libelle}</strong><span className="block text-[0.9375rem] font-normal text-[var(--texte-secondaire)]">{detailLigneGardee(g)}</span></p>
           <div className="flex flex-wrap gap-2">
             <button type="button" data-reprendre-ligne className={`${CLASSE_BOUTON_SOBRE} sm:w-auto`} aria-label={`Ajouter au devis : ${g.libelle}`} disabled={lignes.length >= 100 && !lignes.some(l => !l.libelle.trim() && !l.prix.trim())} onClick={() => setLignes(ls => reprendreLigne(ls, g))}>Ajouter au devis</button>
-            <button type="button" data-retirer-ligne-gardee className="lien-discret inline-flex min-h-11 items-center px-2 text-[0.9375rem]" aria-label={`Retirer de ma liste : ${g.libelle}`} disabled={enCours} onClick={() => retirer(g)}>Retirer de ma liste</button>
+            <button type="button" data-retirer-ligne-gardee className="lien-discret inline-flex min-h-11 items-center px-2 text-[0.9375rem] underline underline-offset-2" aria-label={`Retirer de ma liste : ${g.libelle}`} disabled={enCours} onClick={() => retirer(g)}>Retirer de ma liste</button>
           </div>
         </li>)}</ul>}
     </details>}
@@ -110,7 +110,7 @@ export function LignesDevis({ initiales = [], saisieInitiale, titre = "Détail d
         {erreur.quantite && <p id={idQuantite} className={CLASSE_ERREUR_CHAMP}>{erreur.quantite}</p>}
         {erreur.prix && <p id={idPrix} className={CLASSE_ERREUR_CHAMP}>{erreur.prix}</p>}
       </div>}
-      {offertes && <button data-garder-ligne type="button" className="lien-discret inline-flex min-h-11 items-center text-[0.9375rem]" disabled={enCours || !ligne.libelle.trim()} onClick={() => garder(index)}>Garder cette ligne pour mes prochains devis</button>}
+      {offertes && <button data-garder-ligne type="button" className="lien-discret inline-flex min-h-11 items-center text-left text-[0.9375rem] underline underline-offset-2" disabled={enCours || !ligne.libelle.trim()} onClick={() => garder(index)}>Garder cette ligne pour mes prochains devis</button>}
       {lignes.length>1 && <button data-retirer-ligne type="button" className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => ls.filter((_,i) => i!==index))}>Retirer cette ligne</button>}
     </div>; })}
     <button data-ajouter-ligne type="button" disabled={lignes.length>=100} className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => [...ls,vide()])}>Ajouter une prestation ou fourniture</button>

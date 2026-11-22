@@ -118,6 +118,8 @@ Une question fermée (oui ou non) par point.
 - **B12.** Les mentions légales d'un entrepreneur individuel doivent-elles porter son adresse personnelle si elle est son adresse d'entreprise ?
 - **B13.** Les articles 8.7, 8.10, 14 bis et 15 des conditions sont-ils à jour de la réforme de la rétractation du 19 juin 2026 ?
 - **B14.** Le carnet de devis et de factures de l'artisan est-il un logiciel de facturation soumis à certification ou à la facturation électronique ?
+- **A19bis (ajoutée le 22/11, lot 3).** OpenAI figure déjà parmi les sous-traitants déclarés aux clients, pour les seules propositions de devis. L'étendre à deux usages faits à la demande de l'utilisateur (ses messages à l'assistant ; le fichier d'une facture ou d'une photo de compteur) est-il un simple changement à porter à la connaissance du client, ou une modification du contrat qui demande son accord exprès ? Autrement dit : la nouvelle version des conditions doit-elle être classée « technique » ou « substantielle » ?
+- **A19ter (ajoutée le 22/11, lot 3).** La page de confidentialité dit que Gerimmo envoie ces demandes « avec l'option qui demande à OpenAI de ne pas conserver l'échange » et renvoie, pour les durées, aux informations d'OpenAI. Cette formulation suffit-elle, ou faut-il indiquer une durée de conservation chez le prestataire ? L'accord de traitement des données avec OpenAI est-il signé et conservé (je ne peux pas le vérifier) ?
 
 ---
 

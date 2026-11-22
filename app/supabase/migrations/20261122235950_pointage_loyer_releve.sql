@@ -5,7 +5,8 @@
 -- relevé exporté par la banque.
 --
 -- CE QUE FAIT CETTE MIGRATION.
---   Une seule fonction, `pointer_loyer_releve`. Elle n'ajoute AUCUNE règle d'encaissement : elle appelle
+--   Une seule fonction, `pointer_loyer_releve`. Elle porte sa propre garde d'accès (propriétaire bailleur de l'espace)
+--   et n'ajoute AUCUNE règle d'encaissement : elle appelle
 --   `declarer_reception_loyer`, qui porte déjà toutes les garanties (propriétaire de l'espace seulement, espace ouvert
 --   en écriture, échéance arrivée, le loyer le plus ancien d'abord, le reste dû relu au moment d'écrire, une demande ne
 --   compte qu'une fois), puis remplace la note du règlement créé (« Réception déclarée depuis le tableau de bord », qui
@@ -38,11 +39,18 @@ declare
   v_libelle text;
   r jsonb;
 begin
+  -- Garde propre à cette fonction : elle écrit sous ses propres droits, elle ne s'en remet donc pas à la seule
+  -- vérification de la fonction qu'elle appelle. Seul un propriétaire bailleur de CET espace passe.
+  if auth.uid() is null or p_org is null
+     or p_org not in (select public.org_ids_avec_roles(array['proprietaire_direct']::public.membership_role[])) then
+    raise exception 'Accès refusé.';
+  end if;
+
   -- Le libellé du relevé tient sur une ligne : ni retour, ni tabulation, ni caractère de contrôle ; 200 caractères au plus.
   v_libelle := left(btrim(regexp_replace(coalesce(p_libelle, ''), '[[:cntrl:][:space:]]+', ' ', 'g'), ' '), 200);
 
-  -- Toutes les vérifications (droits, échéance, loyer le plus ancien, reste dû, montant, date, mode, rejeu) sont celles
-  -- de la réception déclarée : elles ne sont pas recopiées ici.
+  -- Les autres vérifications (espace ouvert en écriture, échéance, loyer le plus ancien, reste dû, montant, date,
+  -- mode, rejeu) sont celles de la réception déclarée, qui revérifie aussi les droits : elles ne sont pas recopiées ici.
   r := public.declarer_reception_loyer(
     p_org, p_appel,
     case when p_montant is not distinct from p_reste_attendu then 'recu' else 'partiel' end,

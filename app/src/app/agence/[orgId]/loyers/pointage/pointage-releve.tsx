@@ -6,6 +6,7 @@ import { ChampFichier } from "@/components/champ-fichier";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { eur, formaterDate, moisEnFrancais } from "@/lib/ged";
 import { useHydrate } from "@/lib/use-hydrate";
+import { deElide } from "@/lib/elision";
 import { decoderReleve, lireReleve, TAILLE_MAX_RELEVE, type ReleveLu } from "@/lib/releve-bancaire";
 import {
   avecCles, LIBELLES_MODE, modeDepuisLibelle, rapprocher, verifierSelection,
@@ -31,12 +32,8 @@ const ETIQUETTES: Record<string, string> = {
   aucun: "Sans loyer correspondant",
 };
 
-const loyerDe = (a: AppelOuvert) => `Loyer ${moisAvecDe(a.periode)} — ${a.locataire ?? "Locataire non renseigné"} · ${a.lotNom}`;
-/** « de novembre 2026 », « d'avril 2026 ». */
-function moisAvecDe(periode: string): string {
-  const mois = moisEnFrancais(periode.slice(0, 7));
-  return /^[aeiouyéèê]/i.test(mois) ? `d’${mois}` : `de ${mois}`;
-}
+/** « Loyer de novembre 2026 », « Loyer d’avril 2026 » : l'élision passe par la règle commune. */
+const loyerDe = (a: AppelOuvert) => `Loyer ${deElide(moisEnFrancais(a.periode.slice(0, 7)))} — ${a.locataire ?? "Locataire non renseigné"} · ${a.lotNom}`;
 
 export function PointageReleve({
   orgId, base, appels, encaissements, aujourdHui,
@@ -232,7 +229,9 @@ export function PointageReleve({
       </section>
 
       {releve && (
-        <form onSubmit={envoyer} className="space-y-5" data-rapprochement>
+        // `data-saisie-libre` : rien n'est tapé ici. Les cases se retrouvent en redonnant le relevé, et une ligne déjà
+        // enregistrée ne peut pas l'être deux fois : quitter la page ne fait rien perdre.
+        <form onSubmit={envoyer} className="space-y-5" data-rapprochement data-saisie-libre>
           <section className="loc-carte">
             <div className="entete-carte">
               <h2 className="titre-carte leading-[inherit]">2. Ce que dit le relevé</h2>

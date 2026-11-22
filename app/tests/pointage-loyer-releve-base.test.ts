@@ -39,6 +39,12 @@ describe("pointage d'un loyer sur relevé — manifeste et retour (sans base)", 
     expect(sql.match(/update\s+public\.\w+/gi)).toEqual(["update public.encaissements"]);
     expect(sql).toMatch(/if r ->> 'statut' = 'enregistre' then/);
     expect(sql).toContain("public.declarer_reception_loyer(");
+    // Elle écrit sous ses propres droits : sa garde d'accès est la sienne, AVANT tout appel et toute écriture.
+    const garde = sql.indexOf("if auth.uid() is null or p_org is null");
+    expect(garde).toBeGreaterThan(0);
+    expect(sql).toContain("p_org not in (select public.org_ids_avec_roles(array['proprietaire_direct']::public.membership_role[]))");
+    expect(garde).toBeLessThan(sql.indexOf("public.declarer_reception_loyer("));
+    expect(garde).toBeLessThan(sql.indexOf("update public.encaissements"));
     expect(sql).toMatch(/security definer\s+set search_path = ''/);
     expect(sql).toContain("select public.fermer_fonctions_a_anon();");
   });

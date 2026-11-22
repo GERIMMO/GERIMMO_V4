@@ -894,6 +894,12 @@
     "dynamic": ""
   },
   {
+    "path": "/espace/ORG/loyers/pointage",
+    "persona": "proprietaire",
+    "label": "Pointer mes loyers avec un relevé de banque",
+    "dynamic": ""
+  },
+  {
     "path": "/espace/ORG/comptabilite",
     "persona": "proprietaire",
     "label": "Livre recettes-dépenses",

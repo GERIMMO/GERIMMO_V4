@@ -306,7 +306,7 @@ describe("l'écran", () => {
     // Le seul appel au serveur est l'action, avec les seules lignes retenues.
     expect(ecran.match(/enregistrerPointage\(/g)).toHaveLength(1);
     expect(ecran).not.toMatch(/\bfetch\(|new FormData|action=\{/);
-    expect(ecran).toContain('<form onSubmit={envoyer}');
+    expect(ecran).toContain('<form onSubmit={envoyer} className="space-y-5" data-rapprochement data-saisie-libre>');
   });
 
   it("seules les correspondances sûres sont cochées d'avance ; le bouton commun porte l'envoi", () => {

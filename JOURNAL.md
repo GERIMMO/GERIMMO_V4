@@ -49,3 +49,43 @@ Cinq lignes par lot, en français simple : ce qui a été fait, ce qui a été v
 - **Non vérifié** : aucun e-mail réel n'a été envoyé, et la signature de bout en bout chez le prestataire (Zoho Sign) n'a pas été jouée : c'est un service payant, hors de mon banc. Mêmes deux fichiers de tests non exécutés sur mon banc qu'au lot 2.
 - **Retour en arrière** : script écrit et testé (les e-mails de ce type encore en attente sont mis de côté, rien n'est perdu).
 - **Reste** : votre avis sur Q19 (garder ou non ce lien admis). À la recette finale : un essai réel de signature avec garant, si vous le souhaitez.
+
+## 22/11/2026 — Lot 6 : le bailleur corrige l'urgence d'un incident (P1-04)
+
+- **Fait** : sur la fiche d'un incident ouvert, le gestionnaire peut repasser un dossier « urgent » en « normal », ou l'inverse, en écrivant pourquoi (5 à 500 caractères). Avant, l'urgence choisie à la déclaration ne se corrigeait plus. La correction s'écrit au fil du dossier : « ancien niveau → nouveau niveau — motif ». Un dossier clos ne se corrige pas.
+- **Vérifié** : 20 tests nouveaux (base sous les vrais rôles : locataire, artisan, autre espace et visiteur sont refusés ; action et formulaire) et un parcours navigateur. Passage complet commun aux lots 6 à 10 : base du banc remise à neuf, migrations rejouées depuis zéro, compilation, 13 443 tests réussis, 287 parcours navigateur réussis sur 290 (3 ignorés comme d'habitude), aucun échec ni parcours instable.
+- **Ce que l'écran dit franchement** : le locataire n'est pas prévenu de cette correction (aucun e-mail n'est ajouté).
+- **Retour en arrière** : script écrit et testé. Le passage complet a relevé un défaut de ce script (il ne retirait le nouveau type d'événement que s'il était le dernier de la liste) : corrigé et retesté.
+- **Reste** : rien sur ce point.
+
+## 22/11/2026 — Lot 7 : le super admin examine et retire une évaluation d'artisan contestée (P1-07)
+
+- **Fait** : quand un artisan conteste sa note, le super admin ouvre depuis la demande les évaluations de cet artisan (consultation enregistrée au journal), et peut en retirer une avec un motif et une case de confirmation. L'ancien bouton ne pouvait pas fonctionner : la console n'a qu'un droit de lecture dans les espaces des clients. Le retrait passe maintenant par le mécanisme de maintenance prévu pour cela, ligne par ligne. L'espace qui avait noté reçoit une information dans ses alertes, sans le motif ; l'artisan ne voit pas le motif non plus.
+- **Vérifié** : 24 tests nouveaux (seul le super admin lit et retire ; une évaluation d'un autre artisan, déjà retirée ou sans contestation est refusée ; rien d'autre n'est modifié dans l'espace du client) et un parcours navigateur dans un espace fictif, supprimé à la fin. Même passage complet que le lot 6.
+- **Limites, dites franchement** : la photo du travail jointe à une évaluation n'est pas montrée au super admin ; le motif du retrait est enregistré avec l'évaluation et n'est affiché nulle part à l'espace du client (question Q20).
+- **Retour en arrière** : script écrit et testé.
+- **Reste** : votre avis sur Q20.
+
+## 22/11/2026 — Lot 8 : le recommandé électronique est masqué tant qu'aucun service n'est relié (P1-18)
+
+- **Fait** : l'envoi d'une mise en demeure par recommandé électronique (AR24) n'est plus proposé au bailleur tant qu'aucun compte AR24 n'est relié à son espace ; le courrier en PDF reste disponible. Côté locataire, l'accord « recevoir des recommandés électroniques » n'est plus demandé dans ce cas ; un accord déjà donné reste visible et peut toujours être retiré. Le serveur refuse lui aussi un nouvel accord.
+- **Vérifié** : 20 tests nouveaux et le parcours navigateur des accords du locataire adapté. Même passage complet que le lot 6.
+- **Non vérifié** : aucun envoi réel par AR24 (service payant, aucun compte relié).
+- **Retour en arrière** : aucun changement en base ; revenir à la version précédente du code suffit.
+- **Reste** : votre décision Q10 (ouvrir ou non un compte AR24).
+
+## 22/11/2026 — Lot 9 : la reprise des comptes ne se bloque plus après un rechargement (P1-02)
+
+- **Fait** : en reprenant ses comptes depuis un autre logiciel, recharger la page après un premier contrôle bloquait l'écran (« une reprise est déjà en cours »), sans issue. L'écran retrouve maintenant la reprise ouverte, l'annonce avec sa date et sa trésorerie, la poursuit si les valeurs sont les mêmes, en ouvre une neuve si elles ont changé, et offre un bouton « Abandonner cette reprise ». La bascule est refusée si les valeurs ont changé depuis le dernier contrôle.
+- **Vérifié** : 19 tests nouveaux et un parcours navigateur (contrôle, rechargement, poursuite, changement de trésorerie, abandon). Ce parcours a d'abord été instable une fois : il attendait un texte déjà affiché ; il attend maintenant le fait lui-même en base, et il est passé trois fois de suite puis dans le passage complet. Même passage complet que le lot 6.
+- **Non vérifié** : aucune bascule réelle n'est jouée dans ce parcours (un contrôle n'écrit rien dans les comptes) ; la bascule garde ses propres tests, inchangés.
+- **Retour en arrière** : aucun changement en base ; revenir à la version précédente du code suffit.
+- **Reste** : rien sur ce point.
+
+## 22/11/2026 — Lot 10 : le locataire voit où en est la signature électronique (P1-06)
+
+- **Fait** : dans « Mes documents », le locataire lit l'état d'une signature électronique qui le concerne : « à signer », « vous avez signé », « signé par tous », « refusé » ou « expiré », avec le nombre de signatures reçues. Il ne voit ni le nom, ni l'adresse, ni le téléphone des autres signataires. Rien n'est à déposer : la signature se fait par le lien reçu par e-mail.
+- **Vérifié** : 22 tests nouveaux (la lecture ne rend que les signatures où ce locataire est signataire ; un autre locataire, un autre espace, un visiteur ne lisent rien) et un parcours navigateur avec un locataire fictif. Même passage complet que le lot 6 ; il a relevé un compteur de titres à mettre à jour (43 au lieu de 42), corrigé et retesté.
+- **Non vérifié** : la signature de bout en bout chez le prestataire (Zoho Sign, service payant) ; les états sont posés à la main dans le test.
+- **Décision respectée** : l'ancien parcours « télécharger, signer, redéposer » est conservé pour les demandes déjà en cours (une décision antérieure, tenue par un test, a seulement fermé les nouveaux envois) : question Q21.
+- **Retour en arrière** : script écrit et testé (une fonction de lecture seule à retirer).

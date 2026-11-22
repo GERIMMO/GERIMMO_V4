@@ -526,3 +526,4 @@
 20261122100000_relais_point_inscriptions.sql
 20261122110000_decompte_sortie_echeancier_charges.sql
 20261122120000_interrupteur_ia.sql
+20261122130000_lien_garant_admis.sql

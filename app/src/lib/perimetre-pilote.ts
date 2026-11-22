@@ -36,6 +36,13 @@ export function circuitAdmisPilote(p:ChargeCourriel):boolean {
  if(c?.type==='reconduction')return !!p.organisationId && Number.isSafeInteger(c.montant) && c.montant>=0 && !p.piecesJointes?.length;
  if(c?.type==='acces')return ['signup','recovery'].includes(c.usage)&&!!c.jeton_empreinte;
  if(c?.type==='invitation_artisan')return !!c.acteur;
+ // Audit palier 1 du 22/11/2026 (P1-01) : le lien de confirmation du mobile envoyé au garant. Sans lui, la signature
+ // électronique d'un bail avec garant était bloquée. La base refait la preuve avant l'envoi (lien toujours ouvert,
+ // même garant, même circuit, même adresse : migration 20261122130000).
+ if(c?.type==='confirmation_mobile_garant') {
+  const uuid=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+  return !!p.organisationId && uuid.test(c.id) && uuid.test(c.acteur??'') && !!c.garant && /^[0-9a-f]{64}$/.test(c.jeton_empreinte) && !p.piecesJointes?.length;
+ }
  if(c?.type==='notification')return ['incident_urgent','mission_confiee','mission_refusee','mission_acceptee','devis_demande','reponse_gestionnaire','piece_demandee','signature_demandee','rendez_vous_fixe','creneaux_proposes'].includes(c.evenement);
  return !!c&&['quittance','bail_signe'].includes(c.type)&&((c.type==='quittance'&&c.automatique===true)||!!c.acteur);
 }

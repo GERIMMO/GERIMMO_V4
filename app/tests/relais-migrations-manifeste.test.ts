@@ -226,6 +226,8 @@ const MISSION_OCTOBRE = [
   "20261122110000_decompte_sortie_echeancier_charges.sql",
   // 22/11, mission palier 1 : l'interrupteur « IA activée / désactivée » (les deux gardes rendent « desactive »).
   "20261122120000_interrupteur_ia.sql",
+  // 22/11, audit palier 1 (P1-01) : le lien de confirmation du mobile envoyé au garant est admis parmi les e-mails.
+  "20261122130000_lien_garant_admis.sql",
 
 
 ];

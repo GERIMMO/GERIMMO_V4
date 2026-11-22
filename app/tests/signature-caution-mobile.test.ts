@@ -158,6 +158,13 @@ describe("le bailleur lance la signature d'un acte de cautionnement", () => {
     expect(courriel.subject).toBe("Acte de cautionnement : confirmez votre numéro de mobile");
     const jeton = /https:\/\/site\.example\/signature\/caution\/([A-Za-z0-9_-]{43})/.exec(courriel.html)?.[1];
     expect(jeton && sha(jeton)).toBe(demande.p_jeton_empreinte);
+    // Audit palier 1 du 22/11/2026 (P1-01) : l'e-mail porte son contexte métier — sans lui, la liste fermée le
+    // suspendait et la signature restait bloquée. Le contexte désigne le lien par son empreinte, jamais par le jeton.
+    const envoi = m.email.mock.calls[0][0] as { contexteMetier?: Record<string, string>; cleIdempotence?: string; circuit?: string };
+    expect(envoi.circuit).toBe("lib/confirmation-mobile-caution");
+    expect(envoi.contexteMetier).toEqual({ type: "confirmation_mobile_garant", id: "circuit", garant: GARANT, jeton_empreinte: demande.p_jeton_empreinte, acteur: "owner" });
+    expect(envoi.cleIdempotence).toBe(`caution-mobile-${demande.p_jeton_empreinte}`);
+    expect(JSON.stringify(envoi.contexteMetier)).not.toContain(jeton!);
     // Qui demande quoi : bailleur, logement, montant de l'engagement.
     expect(courriel.html).toContain("Paule Proprio vous demande de signer électroniquement un acte de cautionnement");
     expect(courriel.html).toContain("12 rue des Lilas");
@@ -530,6 +537,8 @@ describe("garant qui signe aussi le bail", () => {
     const courriel = m.email.mock.calls[0][0] as { to: string; subject: string; html: string };
     expect(courriel.to).toBe("gaston@example.invalid");
     expect(courriel.subject).toBe("Bail : confirmez votre numéro de mobile");
+    // P1-01 : même contexte pour le garant d'un bail (c'est ce cas que la liste fermée bloquait).
+    expect((m.email.mock.calls[0][0] as { contexteMetier?: Record<string, string> }).contexteMetier).toMatchObject({ type: "confirmation_mobile_garant", id: "circuit", garant: GARANT, acteur: "owner" });
     expect(courriel.html).toContain("Paule Proprio vous demande de signer électroniquement le bail");
     expect(courriel.html).toContain("en qualité de garant");
     expect(courriel.html).toContain("12 rue des Lilas");

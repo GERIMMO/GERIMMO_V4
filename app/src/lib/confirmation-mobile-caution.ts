@@ -26,7 +26,9 @@ import { telephoneZoho } from "@/lib/zoho-sign";
 // son numéro, puis la demande de signature est créée avec ce numéro. La mention reste saisie par la caution elle-même,
 // dans sa session de signature.
 //
-// Le jeton (32 octets aléatoires) ne vit que dans l'e-mail : la base n'en garde que l'empreinte SHA-256. Les règles
+// Le jeton (32 octets aléatoires) ne vit que dans l'e-mail : la base n'en garde que l'empreinte SHA-256 — et, le temps
+// de l'envoi (quinze minutes au plus), le message conservé pour une reprise, chiffré par une clé que la base ne détient
+// pas (lib/reprise-courriels.ts ; même traitement que les liens d'accès). Les règles
 // (propriétaire actif, acte prêt, cinq liens par jour, par garant et par bail, un seul lien ouvert par garant, usage
 // unique, échéance) sont en base (migration 20261024120000) ; ici : la limite par organisation, l'e-mail, et les textes.
 //
@@ -195,7 +197,13 @@ export async function demanderConfirmationMobileCaution(p: { service: SupabaseCl
   if (demande.error || typeof demande.data !== "string") throw new Error(sansJargon(demande.error?.message ?? "Le lien n’a pas pu être préparé."));
   const expireLe = demande.data;
   const message = messageConfirmationMobileCaution({ ...infos, lien: `${origine}${cheminConfirmationCaution(jeton)}`, expireLe, confidentialite: lienConfidentialite() });
-  const envoi = await envoyerEmail({ circuit:"lib/confirmation-mobile-caution", to: cible.email, subject: message.sujet, html: message.html, organisation: { db: service, id: org } });
+  // Audit palier 1 du 22/11/2026 (P1-01) : sans contexte métier, cet e-mail était suspendu par la liste fermée et la
+  // signature d'un bail avec garant restait bloquée. Le contexte désigne le lien par l'empreinte de son jeton : la base
+  // refait la preuve juste avant l'envoi et à chaque reprise (migration 20261122130000). Un lien, un e-mail : la clé
+  // d'idempotence est l'empreinte du jeton.
+  const envoi = await envoyerEmail({ circuit:"lib/confirmation-mobile-caution", to: cible.email, subject: message.sujet, html: message.html, organisation: { db: service, id: org },
+    contexteMetier: { type: "confirmation_mobile_garant", id: circuit.id, garant: cible.personId, jeton_empreinte: empreinte, acteur },
+    cleIdempotence: `caution-mobile-${empreinte}` });
   if (envoi.erreur) throw new Error(`Le lien est prêt, mais l’e-mail n’est pas parti : ${envoi.erreur} Vous pouvez renvoyer le lien.`);
   return { expireLe, email: cible.email };
 }

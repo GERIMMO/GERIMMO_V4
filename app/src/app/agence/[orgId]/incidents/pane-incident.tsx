@@ -456,7 +456,7 @@ export async function PaneIncident({
   const presentationSignalement = estProprietaire && <PresentationSignalementIncident
     compact numero={incident.numero} titre={titreAffiche}
     statut={<>{incident.urgence === "urgente" && <span className="puce puce-rouge">Urgent</span>}<span className={`incident-statut ${COULEURS_ETAT_INCIDENT[incident.etat] ?? "puce puce-grise"}`}>{libelleEtatIncidentProprietaire(incident.etat)}</span></>}
-    lieu={<div>{lot ? <Link href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <Link href={`${base}/parc?sel=bien:${incident.bien_id}`}>{bienConcerne?.nom ?? "Bien"} · Parties communes</Link>}{(chambre || incident.piece) && <span> · {[...new Set([chambre, incident.piece].filter(Boolean))].join(" · ")}</span>}{incident.anciennete && <small>Depuis : {incident.anciennete}</small>}</div>}
+    lieu={<div>{lot ? <Link href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <Link href={`${base}/parc?sel=bien:${incident.bien_id}`}>{bienConcerne?.nom ?? "Bien"} · Parties communes</Link>}{(chambre || incident.piece) && <span> · {[...new Set([chambre, incident.piece].filter(Boolean))].join(" · ")}</span>}{incident.anciennete && <small>Depuis : {incident.anciennete}</small>}{/* Audit palier 1, P2-02 : lu sans déplier, avant de proposer un créneau. */}{incident.disponibilites_locataire && <small data-disponibilites-locataire>Disponibilités du locataire : {incident.disponibilites_locataire}</small>}</div>}
     informations={informationsSignalement} description={descriptionSansTitre || null}
     photos={galeriePhotos} nombrePhotos={photos.length} photosIndisponibles={Boolean(erreurLiens)}
     ajoutPhoto={incident.etat !== "clos" ? <FormulairePhotoIncident orgId={orgId} incidentId={incidentId}/> : null}
@@ -663,7 +663,6 @@ export async function PaneIncident({
             {lot ? <Link href={`${base}/parc/${lot.bien_id}/lots/${lot.id}`}>{lot.nom}</Link> : <strong>Lot non disponible</strong>}
             {incident.piece && <small>{incident.piece}</small>}
             {estProprietaire && incident.anciennete && <small>Depuis : {incident.anciennete}</small>}
-            {estProprietaire && incident.disponibilites_locataire && <small data-disponibilites-locataire>Disponibilités du locataire : {incident.disponibilites_locataire}</small>}
           </div></div>
           {(!estProprietaire || declarant || declarantIllisible) && <div><UserRound size={17} aria-hidden="true" /><div><span>{incident.canal === "espace_locataire" ? "Déclaré par" : "Contact du logement"}</span>
             {declarant ? <>

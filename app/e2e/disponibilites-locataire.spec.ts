@@ -78,6 +78,8 @@ test("signalement du locataire avec ses disponibilités : enregistrées, lues pa
     try {
       await db.query("rollback");
       await db.query("begin"); await db.query("select public.tache_systeme()");
+      await db.query("delete from depots_photos_incident where incident_id in (select id from incidents where organization_id=$1 and description=$2)", [ORG, DESCRIPTION]);
+      await db.query("delete from commandes_incidents_locataire where incident_id in (select id from incidents where organization_id=$1 and description=$2)", [ORG, DESCRIPTION]);
       await db.query("delete from incident_evenements where incident_id in (select id from incidents where organization_id=$1 and description=$2)", [ORG, DESCRIPTION]);
       await db.query("delete from alerts where organization_id=$1 and details->>'incident_id' in (select id::text from incidents where organization_id=$1 and description=$2)", [ORG, DESCRIPTION]);
       await db.query("delete from incidents where organization_id=$1 and description=$2", [ORG, DESCRIPTION]);

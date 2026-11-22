@@ -11,6 +11,7 @@
  * La base est tenue par tests/disponibilites-locataire-incident-base.test.ts, les écrans par
  * e2e/disponibilites-locataire.spec.ts.
  */
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const banc = vi.hoisted(() => ({ rpc: vi.fn(), documents: vi.fn() }));
@@ -109,5 +110,22 @@ describe("copie locale du formulaire de signalement", () => {
     expect(validerBrouillonIncident(ancienne)).toMatchObject({ categorie: "plomberie_joint" });
     expect(validerBrouillonIncident({ ...ancienne, disponibilites: "Samedi matin" })).toMatchObject({ disponibilites: "Samedi matin" });
     expect(validerBrouillonIncident({ ...ancienne, disponibilites: "x".repeat(301) })).toBeNull();
+  });
+});
+
+// Défaut trouvé par le parcours navigateur le 22/11 : les disponibilités n'étaient affichées que dans la vue de
+// l'agence ; le propriétaire en gestion directe ne les voyait pas. Ce test tient les deux vues du dossier.
+describe("dossier d'incident : les disponibilités du locataire sont affichées dans les deux vues", () => {
+  const ecran = readFileSync("src/app/agence/[orgId]/incidents/pane-incident.tsx", "utf8");
+  it("vue du propriétaire : dans l'en-tête, sans avoir à déplier « Signalement, contacts et pièces jointes »", () => {
+    const presentation = ecran.slice(ecran.indexOf("const presentationSignalement ="), ecran.indexOf("const blocDecision ="));
+    const lieu = presentation.slice(presentation.indexOf("lieu={"), presentation.indexOf("informations={"));
+    expect(lieu).toContain("{incident.disponibilites_locataire && <small data-disponibilites-locataire>Disponibilités du locataire : {incident.disponibilites_locataire}</small>}");
+  });
+  it("vue de l'agence : dans la carte du signalement ; aucune ligne conditionnée au propriétaire dans la vue de l'agence", () => {
+    const carte = ecran.slice(ecran.indexOf('<Card className="incident-signalement">'));
+    expect(carte).toContain('<div className="ligne-info" data-disponibilites-locataire>');
+    expect(ecran).not.toContain("estProprietaire && incident.disponibilites_locataire");
+    expect(ecran.match(/data-disponibilites-locataire/g)).toHaveLength(2);
   });
 });

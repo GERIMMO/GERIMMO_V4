@@ -117,7 +117,8 @@ test("état des lieux : photo ajoutée à un élément, imprimée et numérotée
     const { rows: [piece] } = await db.query("select type, titre, mime_type, organization_id from documents where id=$1", [premiere]);
     expect(piece).toMatchObject({ type: "autre", titre: "Photo d’état des lieux — Séjour — Sols", organization_id: org });
     expect(piece.mime_type).toMatch(/^image\/(?:jpeg|png)$/);
-    expect((await db.query("select entite, entite_id from document_liens where document_id=$1", [premiere])).rows).toEqual([{ entite: "bail", entite_id: bail }]);
+    // Rangée dans les documents du bail (le dépôt la rattache aussi à l'espace, comme toute pièce).
+    expect((await db.query("select entite, entite_id from document_liens where document_id=$1", [premiere])).rows).toContainEqual({ entite: "bail", entite_id: bail });
     expect(await debordementHorizontal(page)).toBeLessThanOrEqual(1);
     await blocs.first().scrollIntoViewIfNeeded();
     await page.screenshot({ path: info.outputPath("edl-photo-ajoutee.png"), fullPage: true });

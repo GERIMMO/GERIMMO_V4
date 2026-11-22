@@ -12,6 +12,8 @@
  *  - congé du bailleur (P0-08) : « à faire relire » pour la vente et la reprise ; l'adresse du bénéficiaire et les
  *    raisons de la reprise ont leur place dans la lettre, en blanc à compléter si elles ne sont pas saisies ;
  *  - cautionnement (P0-09) : rappel pour le bailleur en société.
+ *  - facture créée depuis Gerimmo par l'artisan (P0-11) : l'écran dit que Gerimmo ne numérote pas et ne contrôle pas
+ *    les mentions.
  * Aucun de ces textes ne cite un article que Gerimmo n'a pas pu relire.
  */
 import { readFileSync } from "node:fs";
@@ -185,6 +187,16 @@ describe("P0-08 — congé du bailleur pour vente ou pour reprise", () => {
     expect(ecran).toContain('id="conge-b-raisons"');
     expect(ecran).toContain("beneficiaire_adresse: beneficiaireAdresse.trim()");
     expect(ecran).toContain("raisons_reprise: raisonsReprise.trim()");
+  });
+});
+
+describe("P0-11 — facture établie depuis Gerimmo par l'artisan", () => {
+  it("le formulaire dit que Gerimmo ne numérote pas et ne contrôle pas les mentions — seulement quand la facture est créée ici", () => {
+    const ecran = source("src/app/artisan/missions/[interventionId]/facture/formulaire-facture.tsx");
+    const aide = /\{creation && \(\s*<p className=\{CLASSE_AIDE\} data-aide-numero-facture>([\s\S]*?)<\/p>/.exec(ecran)?.[1] ?? "";
+    expect(texteDe(aide)).toContain("Gerimmo ne numérote pas à votre place : il vérifie seulement que ce numéro n'est pas déjà utilisé ici.");
+    expect(texteDe(aide)).toContain("vous en restez responsable");
+    expect(texteDe(aide)).not.toMatch(SANS_REFERENCE);
   });
 });
 

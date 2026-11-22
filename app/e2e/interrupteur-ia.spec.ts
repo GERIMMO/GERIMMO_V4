@@ -36,7 +36,10 @@ test("interrupteur IA : coupée par le superviseur, chaque espace garde son équ
   await db.connect();
   const incident = randomUUID(), consultation = randomUUID(), demande = randomUUID();
   const admin = await ouvrir(browser, "superadmin");
-  const panneau = admin.locator("[data-interrupteur-ia]");
+  // Le panneau AFFICHÉ, sous le contenu de l'espace. Pendant le chargement progressif, la page peut contenir un court
+  // instant une seconde copie, cachée (le segment du serveur, `div#S:… hidden`, que le navigateur retire ensuite) :
+  // un sélecteur nu en comptait alors deux, et la réactivation par l'écran échouait une fois sur quelques-unes.
+  const panneau = admin.locator("#contenu-espace [data-interrupteur-ia]");
 
   /** Met l'interrupteur dans l'état voulu depuis l'écran du superviseur, quel que soit l'état trouvé. */
   async function regler(active: boolean) {

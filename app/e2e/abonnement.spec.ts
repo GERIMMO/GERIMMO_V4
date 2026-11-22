@@ -62,8 +62,11 @@ test.describe("Côté propriétaire bailleur", () => {
     await expect(details.getByRole("link", { name: /Conditions générales/ })).toHaveAttribute("href", "/conditions");
     await expect(page.getByRole("button", { name: /paiement sécurisé/ })).toHaveCount(0);
     await page.getByRole("link", { name: "Contacter Gerimmo", exact: true }).click();
-    await expect(page).toHaveURL(/\/assistance\?/);
-    await expect(page.locator("main")).toBeVisible();
+    // D27 : le lien pointe /assistance, qui renvoie aussitôt le propriétaire direct vers l'aide intégrée à son espace,
+    // au formulaire de contact. On attend cette destination : l'adresse de passage n'est pas toujours observable
+    // (22/11/2026 : le parcours n'aboutissait alors qu'au second essai).
+    await expect(page).toHaveURL(new RegExp(`/espace/${ORG}/faq\\?ecran=[^#]*&retour=[^#]*#nouvelle$`));
+    await expect(page.getByRole("heading", { name: "Contacter Gerimmo", exact: true })).toBeVisible();
   });
 
   test("sans paiement en ligne ouvert, le refus est une phrase, pas une erreur d'API", async ({

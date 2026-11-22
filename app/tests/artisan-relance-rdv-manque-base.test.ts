@@ -118,7 +118,9 @@ describe.skipIf(!url)("relance de facture et rendez-vous manqué (avec base)", (
     await db.query("insert into storage.objects (bucket_id, name, owner) values ('documents', $1, $2)", [chemin, cptArtisan]);
     const f = String((await un("select public.deposer_facture_artisan($1,$2,$3,null,$4,'application/pdf',10,$5) f", [intervention, numero, montant, chemin, `emp-${unique()}`])).f);
     await base();
-    if (ilYA) await db.query("update public.intervention_factures set deposee_le = now() - make_interval(days => $2) where id=$1", [f, ilYA]);
+    // À midi, heure de Paris, il y a N jours CIVILS : « now() - N jours » tombe un jour plus tard à Paris entre 23 h et
+    // minuit quand un changement d'heure sépare les deux dates (relevé le 22/11 à 23 h 14 : 31 jours en devenaient 30).
+    if (ilYA) await db.query("update public.intervention_factures set deposee_le = ((public.aujourdhui_paris() - $2::int) + time '12:00') at time zone 'Europe/Paris' where id=$1", [f, ilYA]);
     return f;
   }
   const relancer = async (facture: string, parCompte = cptArtisan) => {
@@ -244,10 +246,10 @@ describe.skipIf(!url)("relance de facture et rendez-vous manqué (avec base)", (
     expect(await relancer(f)).toBe(`Vous avez relancé cette facture le ${await jour()} : la relance suivante sera possible le ${await jour(15)}`);
     expect((await mesRelances())[0]).toMatchObject({ relancable: false, possible: await jour(15) });
     await base();
-    await db.query("update public.intervention_factures set relancee_le = now() - interval '14 days' where id=$1", [f]);
+    await db.query("update public.intervention_factures set relancee_le = ((public.aujourdhui_paris() - 14) + time '12:00') at time zone 'Europe/Paris' where id=$1", [f]);
     expect(await relancer(f)).toMatch(/la relance suivante sera possible le/);
     await base();
-    await db.query("update public.intervention_factures set relancee_le = now() - interval '15 days' where id=$1", [f]);
+    await db.query("update public.intervention_factures set relancee_le = ((public.aujourdhui_paris() - 15) + time '12:00') at time zone 'Europe/Paris' where id=$1", [f]);
     expect(await relancer(f)).toBe("");
     expect(await etatRelance(f)).toEqual({ relances: 2, relancee: true });
     const alertes = await alertesRelance(f);
@@ -277,7 +279,7 @@ describe.skipIf(!url)("relance de facture et rendez-vous manqué (avec base)", (
     expect(await alertesRelance(f)).toMatchObject([{ statut: "fermee", closed_action: "Facture réglée en totalité" }]);
 
     await base();
-    await db.query("update public.intervention_factures set relancee_le = now() - interval '20 days' where id=$1", [f]);
+    await db.query("update public.intervention_factures set relancee_le = ((public.aujourdhui_paris() - 20) + time '12:00') at time zone 'Europe/Paris' where id=$1", [f]);
     expect(await relancer(f)).toBe("Votre client a déclaré cette facture réglée en totalité : il n'y a rien à relancer");
     expect(await mesRelances()).toEqual([]);
   });
@@ -290,7 +292,7 @@ describe.skipIf(!url)("relance de facture et rendez-vous manqué (avec base)", (
     await db.query("select public.refuser_facture_artisan($1,$2,'Le montant ne correspond pas au devis accepté')", [orgA, f]);
     expect(await alertesRelance(f)).toMatchObject([{ statut: "fermee", closed_action: "Facture refusée, à corriger par l'artisan" }]);
     await base();
-    await db.query("update public.intervention_factures set relancee_le = now() - interval '20 days' where id=$1", [f]);
+    await db.query("update public.intervention_factures set relancee_le = ((public.aujourdhui_paris() - 20) + time '12:00') at time zone 'Europe/Paris' where id=$1", [f]);
     expect(await relancer(f)).toBe("Cette facture a été refusée par votre client : déposez la facture corrigée, il n'y a rien à relancer");
     expect(await mesRelances()).toEqual([]);
   });

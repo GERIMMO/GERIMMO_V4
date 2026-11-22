@@ -130,7 +130,9 @@ test("artisan : rendez-vous manqué consigné des deux côtés, puis relance d'u
       await db.query("reset role");
       await db.query("commit");
     } catch (e) { await db.query("rollback").catch(() => {}); throw e; }
-    await systeme(async () => { await db.query("update intervention_factures set deposee_le = now() - interval '31 days' where id=$1", [facture]); });
+    await systeme(async () => { // À midi, heure de Paris, il y a 31 jours civils : « now() - 31 jours » tomberait un jour plus tard à Paris entre
+      // 23 h et minuit quand un changement d'heure sépare les deux dates, et la date attendue plus bas serait fausse.
+      await db.query("update intervention_factures set deposee_le = ((public.aujourdhui_paris() - 31) + time '12:00') at time zone 'Europe/Paris' where id=$1", [facture]); });
     const { rows: [d] } = await db.query(`select to_char(public.aujourdhui_paris(),'DD/MM/YYYY') j0, to_char(public.aujourdhui_paris()+15,'DD/MM/YYYY') j15,
       to_char(public.aujourdhui_paris()-31,'DD/MM/YYYY') depot`);
     const absencesAvant = Number((await db.query(`select count(*)::int n from intervention_rdv_manques m join incident_interventions i on i.id=m.intervention_id

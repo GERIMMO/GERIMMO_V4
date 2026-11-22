@@ -12,6 +12,8 @@ import { construireEcheances, type CongeLu, type EcheanceAgenda, type EdlLu, typ
 type Personne = { nom: string | null; prenom: string | null };
 type BailLie = { id: string; etat?: string; locataire: UnOuPlusieurs<Personne> | null; lot: UnOuPlusieurs<{ id: string; nom: string | null }> | null };
 const BAIL = "id, etat, locataire:persons!baux_locataire_meme_org_fk(nom, prenom), lot:lots!baux_lot_meme_org_fk(id, nom)";
+// Écrite en entier (et non « BAIL + … ») : le contrôle des jointures du projet lit les sélections telles quelles.
+const BAIL_ET_SA_FIN = "id, etat, date_fin, locataire:persons!baux_locataire_meme_org_fk(nom, prenom), lot:lots!baux_lot_meme_org_fk(id, nom)";
 /** Au-delà, le mois n'est pas affiché à moitié : l'écran dit que la lecture est incomplète. */
 const PLAFOND = 500;
 
@@ -41,7 +43,7 @@ export async function chargerEcheancesAgenda(
     borne(supabase.from("etats_des_lieux")
       .select(`id, bail_id, type, etat, date_edl, bail:baux!edl_bail_meme_org_fk!inner(${BAIL})`)
       .eq("organization_id", orgId), "date_edl").order("date_edl").order("id").limit(PLAFOND),
-    borne(supabase.from("baux").select(BAIL + ", date_fin")
+    borne(supabase.from("baux").select(BAIL_ET_SA_FIN)
       .eq("organization_id", orgId).in("etat", ["actif", "preavis"]), "date_fin").order("date_fin").order("id").limit(PLAFOND),
     borne(supabase.from("conges")
       .select(`id, bail_id, par, date_effet, bail:baux!conges_bail_meme_org_fk!inner(${BAIL})`)

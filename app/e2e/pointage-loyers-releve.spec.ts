@@ -97,14 +97,15 @@ test("le propriétaire pointe ses loyers à partir d'un relevé de banque, sans 
     await connecterVers(page, email, motDePasse, `/espace/${ORG}/loyers`);
 
     // 1. Depuis les finances.
-    const lien = page.locator("#contenu-espace [data-lien-pointage]");
+    // « :visible » : pendant le chargement progressif, la page porte un court instant une copie cachée de son contenu.
+    const lien = page.locator("[data-lien-pointage]:visible");
     await expect(lien).toBeVisible({ timeout: 30_000 });
     await expect(lien).toHaveText("Pointer mes loyers avec un relevé de banque");
     await tientDansLEcran(page, lien);
     await lien.click();
     await page.waitForURL(`**/espace/${ORG}/loyers/pointage`, { timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 1, name: "Pointer mes loyers" })).toBeVisible();
-    const ecran = page.locator('#contenu-espace [data-pointage-releve][data-pret="oui"]');
+    const ecran = page.locator('[data-pointage-releve][data-pret="oui"]:visible');
     await expect(ecran).toBeVisible({ timeout: 30_000 });
     await expect(ecran).toContainText("Il est lu sur votre appareil : il n’est ni envoyé à Gerimmo ni conservé.");
     await expect(ecran.locator("[data-rapprochement]")).toHaveCount(0);

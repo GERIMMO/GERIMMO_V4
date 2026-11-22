@@ -11,8 +11,22 @@
 -- Les e-mails de ce type encore en file ne peuvent plus être prouvés par l'ancienne chaîne : ils sont marqués « à
 -- vérifier », sans reprise automatique, et leur contenu chiffré est effacé. Aucun lien déjà reçu n'est annulé.
 -- Rejouable : sur un schéma déjà revenu, aucune action.
+--
+-- ORDRE : ce retour ne défait que le maillon de tête de la chaîne des e-mails. Tant qu'une migration plus récente
+-- prolonge cette chaîne, il se refuse sans rien modifier : son retour à elle se joue d'abord.
 do $retour$
 begin
+  -- Ce retour ne défait que le maillon de TÊTE. Si une migration plus récente a prolongé la chaîne, la tête ne délègue
+  -- plus aux fonctions « …_avant_lien_garant » : la retirer ici déferait le maillon d'un autre. On refuse, sans rien
+  -- modifier — les retours se jouent du plus récent au plus ancien.
+  if (to_regprocedure('public.empreinte_avant_lien_garant(uuid,jsonb)') is not null
+      and position('public.empreinte_avant_lien_garant(' in coalesce((select p.prosrc from pg_catalog.pg_proc p
+            where p.oid = to_regprocedure('public.empreinte_metier_courriel(uuid,jsonb)')), '')) = 0)
+     or (to_regprocedure('public.finaliser_avant_lien_garant(text)') is not null
+      and position('public.finaliser_avant_lien_garant(' in coalesce((select p.prosrc from pg_catalog.pg_proc p
+            where p.oid = to_regprocedure('public.finaliser_courriel_metier(text)')), '')) = 0) then
+    raise exception 'Retour refusé : une migration plus récente prolonge la chaîne des e-mails au-dessus de ce maillon. Jouer d''abord son retour (ordre inverse du manifeste).';
+  end if;
   if to_regprocedure('public.empreinte_avant_lien_garant(uuid,jsonb)') is not null then
     update public.courriels_durables
        set reprise_autonome = false, finalisation_etat = 'a_verifier', charge_chiffree = null,

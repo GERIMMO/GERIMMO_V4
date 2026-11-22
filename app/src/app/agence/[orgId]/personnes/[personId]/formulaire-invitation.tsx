@@ -7,8 +7,10 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { etatInvitation, LIBELLES_INVITATION, phrasesRelances, type InvitationLocataire, type RelanceInvitation } from "@/lib/invitations-locataire";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
 
-export function FormulaireInvitation({ orgId, personId, email, dejaInvite, accesSuspendu = false, historique = [], relances = [], erreurLecture = false }: {
+export function FormulaireInvitation({ orgId, personId, email, dejaInvite, accesSuspendu = false, historique = [], relances = [], erreurLecture = false, rappelsAutomatiquesOuverts = false }: {
   orgId: string; personId: string; email: string | null; dejaInvite: boolean; accesSuspendu?: boolean;
+  /** Audit palier 1 (P1-08) : le superviseur a ouvert la relance automatique des invitations. */
+  rappelsAutomatiquesOuverts?: boolean;
   historique?: InvitationLocataire[];
   /** Les relances automatiques de la dernière invitation (décision X16). */
   relances?: RelanceInvitation[];
@@ -26,7 +28,7 @@ export function FormulaireInvitation({ orgId, personId, email, dejaInvite, acces
       <p className="text-sm text-muted-foreground">Ajoutez un email à cette fiche pour pouvoir l’inviter comme locataire.</p>
       <Link href={`${base}/personnes/${personId}?modifier=1#identite`} className="lien-discret text-sm">Ajouter un email</Link>
     </div> : <>
-      <p className="text-sm text-muted-foreground">{email} recevra une invitation valable 30 jours. La personne choisira de l’accepter ou de la refuser avant d’accéder à son espace. Suivez sa réponse et l’état de l’envoi ici. Les rappels automatiques restent suspendus dans le pilote.</p>
+      <p className="text-sm text-muted-foreground">{email} recevra une invitation valable 30 jours. La personne choisira de l’accepter ou de la refuser avant d’accéder à son espace. Suivez sa réponse et l’état de l’envoi ici. {rappelsAutomatiquesOuverts ? "Sans réponse, un rappel automatique lui est envoyé trois jours puis dix jours après l’invitation." : "Les rappels automatiques restent suspendus dans le pilote."}</p>
       {derniere && <div className="rounded-xl border border-border bg-muted/40 p-3 text-sm">
         <strong>{LIBELLES_INVITATION[statut!] ?? statut}</strong>
         <p className="mt-1 text-muted-foreground">{statut === "en_attente" ? "Valable jusqu’au" : "Échéance :"} {new Date(derniere.expire_le).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}</p>

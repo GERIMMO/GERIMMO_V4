@@ -6,7 +6,16 @@ export type ContexteAlerteDirection =
 export type AvisCommercial =
  | {type: "fin_essai_choisi"; id: string; client: string; fin: string; montant: number; organisation: string}
  | {type: "avertissement_inactivite"; id: string; etape: "j60" | "j15"; activite: string; suppression: string; version: string; nature: string; organisation: string | null; titulaire: boolean | null};
-export type ContexteCourriel = (AvisCommercial | ContexteAlerteDirection | ContexteIncidentAbonnement |{type:'confirmation_abonnement';id:string;montant:number;version:string|null;acceptee:string|null;formule:string|null;unites:number|null;periodicite:string;souscrit:string;organisation:string;document:boolean}|{type:'accuse_resiliation';id:string;fin:string;rang:number;chemin:'action'|'webhook';notification:string;organisation:string;formule:string|null}|{type:'reconduction';id:string;organisation:string;montant:number;formule:string|null;unites:number|null;suivante:string|null}|{type:'quittance';id:string;montant:number;est_quittance:boolean;automatique?:boolean}|{type:'bail_signe';id:string;document:string}|{type:'acces';id:string;usage:'signup'|'recovery';jeton_empreinte:string;invitation?:string}|{type:'invitation_artisan';id:string}|{type:'confirmation_mobile_garant';id:string;garant:string;jeton_empreinte:string}|{type:'notification';id:string;evenement:string;role:'agence'|'locataire'|'artisan'}) & {destinataire?:string;acteur?:string;source?:string};
+/**
+ * Les quatre envois automatiques ouverts un par un par le superviseur (audit palier 1, P1-08 ; migration 20261122200000).
+ * Les montants voyagent en texte (« 750 », « 750.5 ») : la base les compare à ce qu'elle recalcule, au centime.
+ */
+export type ContexteEnvoiAutomatique =
+ | {type:'avis_echeance';id:string}
+ | {type:'relance_loyer';id:string;niveau:'relance_1'|'relance_2';echeance:string;reste:string;total:string|null;cible:'locataire'|'caution'}
+ | {type:'rappel_rendez_vous';id:string;echeance:'veille'|'j7';role:'locataire'|'artisan'}
+ | {type:'relance_invitation';id:string;rang:'1'|'2'};
+export type ContexteCourriel = (AvisCommercial | ContexteAlerteDirection | ContexteIncidentAbonnement |{type:'confirmation_abonnement';id:string;montant:number;version:string|null;acceptee:string|null;formule:string|null;unites:number|null;periodicite:string;souscrit:string;organisation:string;document:boolean}|{type:'accuse_resiliation';id:string;fin:string;rang:number;chemin:'action'|'webhook';notification:string;organisation:string;formule:string|null}|{type:'reconduction';id:string;organisation:string;montant:number;formule:string|null;unites:number|null;suivante:string|null}|{type:'quittance';id:string;montant:number;est_quittance:boolean;automatique?:boolean}|{type:'bail_signe';id:string;document:string}|{type:'acces';id:string;usage:'signup'|'recovery';jeton_empreinte:string;invitation?:string}|{type:'invitation_artisan';id:string}|{type:'confirmation_mobile_garant';id:string;garant:string;jeton_empreinte:string}|ContexteEnvoiAutomatique|{type:'notification';id:string;evenement:string;role:'agence'|'locataire'|'artisan'}) & {destinataire?:string;acteur?:string;source?:string};
 export async function verifierContexteCourriel(db:SupabaseClient,id:string) {
  const r=await db.rpc('verifier_contexte_courriel',{p_id:id});
  if(r.error) return {erreur:'Contrôle métier indisponible',recuperable:true};

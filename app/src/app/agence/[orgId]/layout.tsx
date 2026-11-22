@@ -1,4 +1,5 @@
 import { piloteLimite } from "@/lib/perimetre-pilote";
+import { lireEnvoisProposes } from "@/lib/envois-suspendus";
 import { lireToutesLesPages } from "@/lib/lecture-complete";
 import { SelecteurPatrimoine } from "@/components/selecteur-patrimoine";
 import Link from "next/link";
@@ -64,6 +65,14 @@ export default async function LayoutAgence({
     await verifierAccesEspace(orgId);
   // Interrupteur IA (22/11/2026) : lu une fois ici, offert aux composants de l'espace.
   const etatDeLIA = await etatIA(supabase);
+  // Audit palier 1 (P1-08) : le bandeau de l'agence ne dit « suspendu » que pour ce qui l'est encore. Les deux envois
+  // ouverts par le superviseur : plus de bandeau. (Lu pour l'agence seulement : le propriétaire a sa propre information.)
+  const envoisOuverts = estProprietaire ? null : await lireEnvoisProposes(supabase);
+  const bandeauEnvoisSuspendus = !envoisOuverts ? null
+    : envoisOuverts.avis_echeance && envoisOuverts.relance_loyer ? null
+    : envoisOuverts.avis_echeance ? "Vos relances de loyer se préparent en PDF. Les relances locatives par courriel restent suspendues."
+    : envoisOuverts.relance_loyer ? "Vos relances de loyer se préparent en PDF. Les avis d’échéance par courriel restent suspendus."
+    : "Vos relances de loyer se préparent en PDF. Les relances locatives et les avis d’échéance par courriel restent suspendus.";
 
   // « Mon portefeuille » (RM-18.1.3) d'abord : la pastille Incidents et le
   // plan du jour se lisent à travers lui — null : je vois tout.
@@ -313,7 +322,7 @@ export default async function LayoutAgence({
           </p>
         )}
         {estProprietaire && <span id="contenu-espace" tabIndex={-1} className="sr-only" />}
-        {!estProprietaire && piloteLimite()&&<p role="status" className="mx-4 my-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">Vos relances de loyer se préparent en PDF. Les relances locatives et les avis d’échéance par courriel restent suspendus.</p>}
+        {!estProprietaire && piloteLimite() && bandeauEnvoisSuspendus && <p role="status" className="mx-4 my-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">{bandeauEnvoisSuspendus}</p>}
         <FournisseurEtatIA etat={etatDeLIA}>{children}</FournisseurEtatIA>
         <BarreBasse espace={espace} navigation={navigation} orgId={orgId} racine={racine} organisations={estProprietaire ? [] : organisations} />
       </div>

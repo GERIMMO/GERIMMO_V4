@@ -242,6 +242,7 @@ const MISSION_OCTOBRE = [
   // 22/11, audit palier 1 (P1-14) : l'avenant signé s'enregistre et modifie le loyer et les charges du bail, à partir
   // du premier loyer non encore appelé.
   "20261122190000_avenants_bail.sql",
+  "20261122200000_envois_automatiques_reglage.sql",
 
 
 ];

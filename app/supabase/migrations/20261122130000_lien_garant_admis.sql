@@ -18,21 +18,15 @@
 --      d'autre à consigner (l'usage du lien est suivi dans `confirmations_mobile_caution`).
 --
 -- Même construction que les types précédents (20261116201423) : la tête de chaîne est renommée et la nouvelle tête lui
--- délègue tout autre type, à l'identique. Rejouable : un second passage ne renomme rien et recrée la même tête.
+-- délègue tout autre type, à l'identique. Rejouable : chaque maillon se crée d'abord sous son propre nom
+-- (« …_maillon_lien_garant ») et ne prend la tête que s'il n'est pas déjà posé ; un second passage ne touche donc pas à
+-- la chaîne, même si une migration plus récente l'a prolongée au-dessus de ce maillon.
 -- Aucune donnée lue ni réécrite.
 --
 -- RETOUR ARRIÈRE : supabase/retours-arriere/20261122130000_lien_garant_admis.retour.sql
 
 -- 1. La preuve.
-do $chaine$
-begin
-  if to_regprocedure('public.empreinte_avant_lien_garant(uuid,jsonb)') is null then
-    alter function public.empreinte_metier_courriel(uuid,jsonb) rename to empreinte_avant_lien_garant;
-  end if;
-end $chaine$;
-revoke all on function public.empreinte_avant_lien_garant(uuid,jsonb) from public, anon, authenticated, service_role;
-
-create or replace function public.empreinte_metier_courriel(p_org uuid, p_contexte jsonb) returns text
+create or replace function public.empreinte_maillon_lien_garant(p_org uuid, p_contexte jsonb) returns text
 language plpgsql security definer set search_path = '' as $$
 declare
   c public.confirmations_mobile_caution;
@@ -88,21 +82,26 @@ begin
   return encode(sha256(convert_to(jsonb_build_array(
     c.id, c.jeton_empreinte, c.circuit_id, c.garant_id, c.acte, c.demande_par, c.expire_le, dest)::text, 'UTF8')), 'hex');
 end $$;
-comment on function public.empreinte_metier_courriel(uuid, jsonb) is
+comment on function public.empreinte_maillon_lien_garant(uuid, jsonb) is
   'Preuve métier d''un e-mail conservé, recalculée avant l''envoi. Tête de chaîne du 22/11/2026 : traite « confirmation_mobile_garant » (lien du garant), délègue tout autre type à empreinte_avant_lien_garant.';
-revoke all on function public.empreinte_metier_courriel(uuid, jsonb) from public, anon, authenticated;
-grant execute on function public.empreinte_metier_courriel(uuid, jsonb) to service_role;
-
--- 2. La clôture après l'envoi.
+revoke all on function public.empreinte_maillon_lien_garant(uuid, jsonb) from public, anon, authenticated;
+grant execute on function public.empreinte_maillon_lien_garant(uuid, jsonb) to service_role;
 do $chaine$
 begin
-  if to_regprocedure('public.finaliser_avant_lien_garant(text)') is null then
-    alter function public.finaliser_courriel_metier(text) rename to finaliser_avant_lien_garant;
+  if to_regprocedure('public.empreinte_avant_lien_garant(uuid,jsonb)') is null then
+    -- Première pose : l'ancienne tête devient le maillon d'avant, le nouveau maillon prend la tête.
+    alter function public.empreinte_metier_courriel(uuid,jsonb) rename to empreinte_avant_lien_garant;
+    alter function public.empreinte_maillon_lien_garant(uuid,jsonb) rename to empreinte_metier_courriel;
+  else
+    -- Déjà posé : on ne touche pas à la chaîne. Une migration plus récente a pu la prolonger au-dessus de ce
+    -- maillon — recréer la tête ici écraserait le sien.
+    drop function public.empreinte_maillon_lien_garant(uuid,jsonb);
   end if;
 end $chaine$;
-revoke all on function public.finaliser_avant_lien_garant(text) from public, anon, authenticated, service_role;
+revoke all on function public.empreinte_avant_lien_garant(uuid,jsonb) from public, anon, authenticated, service_role;
 
-create or replace function public.finaliser_courriel_metier(p_id text) returns boolean
+-- 2. La clôture après l'envoi.
+create or replace function public.finaliser_maillon_lien_garant(p_id text) returns boolean
 language plpgsql security definer set search_path = '' as $$
 declare
   m public.courriels_durables;
@@ -118,10 +117,23 @@ begin
   insert into public.courriels_evenements (courrier_id, etat) values (p_id, 'finalisation_terminee');
   return true;
 end $$;
-comment on function public.finaliser_courriel_metier(text) is
+comment on function public.finaliser_maillon_lien_garant(text) is
   'Clôture d''un e-mail conservé après son envoi. Tête de chaîne du 22/11/2026 : traite « confirmation_mobile_garant », délègue tout autre type à finaliser_avant_lien_garant.';
-revoke all on function public.finaliser_courriel_metier(text) from public, anon, authenticated;
-grant execute on function public.finaliser_courriel_metier(text) to service_role;
+revoke all on function public.finaliser_maillon_lien_garant(text) from public, anon, authenticated;
+grant execute on function public.finaliser_maillon_lien_garant(text) to service_role;
+do $chaine$
+begin
+  if to_regprocedure('public.finaliser_avant_lien_garant(text)') is null then
+    -- Première pose : l'ancienne tête devient le maillon d'avant, le nouveau maillon prend la tête.
+    alter function public.finaliser_courriel_metier(text) rename to finaliser_avant_lien_garant;
+    alter function public.finaliser_maillon_lien_garant(text) rename to finaliser_courriel_metier;
+  else
+    -- Déjà posé : on ne touche pas à la chaîne. Une migration plus récente a pu la prolonger au-dessus de ce
+    -- maillon — recréer la tête ici écraserait le sien.
+    drop function public.finaliser_maillon_lien_garant(text);
+  end if;
+end $chaine$;
+revoke all on function public.finaliser_avant_lien_garant(text) from public, anon, authenticated, service_role;
 
 select public.fermer_fonctions_a_anon();
 notify pgrst, 'reload schema';

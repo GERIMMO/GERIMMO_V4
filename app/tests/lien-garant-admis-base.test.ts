@@ -25,6 +25,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { verifierBaseDeTest } from "./garde-base";
 import { clientSurPg } from "./fixtures/supabase-sur-pg";
+import { defaireMaillonsPlusRecents, maillonsEnAttente, maillonsPlusRecents, REFUS_RETOUR_HORS_ORDRE, reposerMaillonsPlusRecents } from "./fixtures/chaine-courriels";
 
 const partage = vi.hoisted(() => ({ service: null as unknown }));
 vi.mock("@/lib/supabase/service", () => ({ clientDeService: () => partage.service }));
@@ -344,11 +345,25 @@ describe.skipIf(!url)("lien du garant (avec base)", () => {
     expect(avec).toHaveLength(4);
     await db.query(migration);
     expect(await etat()).toEqual(avec);
+    expect(await maillonsEnAttente(db)).toEqual([]);
 
     // Un e-mail de ce type attend une reprise au moment du retour.
     const l = await demander();
     const p = charge(l);
     await conserverCourriel(service, p);
+
+    // Tant qu'un maillon plus récent s'appuie sur celui-ci, son retour se refuse sans rien modifier : retirer la tête
+    // déferait le maillon d'un autre. Les retours se jouent du plus récent au plus ancien.
+    if (maillonsPlusRecents(NOM).length > 0) {
+      await db.query("savepoint hors_ordre");
+      await expect(db.query(retour)).rejects.toThrow(REFUS_RETOUR_HORS_ORDRE);
+      await db.query("rollback to savepoint hors_ordre");
+      expect(await etat()).toEqual(avec);
+      expect(await preuve(contexte(l.empreinte))).toMatch(/^[0-9a-f]{64}$/);
+      await defaireMaillonsPlusRecents(db, NOM);
+      // Redevenu la tête, ce maillon prouve toujours son type.
+      expect(await preuve(contexte(l.empreinte))).toMatch(/^[0-9a-f]{64}$/);
+    }
     const ancienneEmpreinte = await corps("empreinte_avant_lien_garant");
     const ancienneFinalisation = await corps("finaliser_avant_lien_garant");
 
@@ -368,6 +383,8 @@ describe.skipIf(!url)("lien du garant (avec base)", () => {
     expect(await etat()).toEqual(sans);
 
     await db.query(migration);
+    await reposerMaillonsPlusRecents(db, NOM);
+    expect(await maillonsEnAttente(db)).toEqual([]);
     const denouveau = await etat();
     expect(denouveau.map((f) => [f.f, f.e, f.d])).toEqual(avec.map((f) => [f.f, f.e, f.d]));
     expect(await preuve(contexte(l.empreinte))).toMatch(/^[0-9a-f]{64}$/);

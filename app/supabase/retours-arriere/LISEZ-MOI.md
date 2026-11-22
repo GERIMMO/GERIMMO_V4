@@ -645,6 +645,7 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261122200000` (envois automatiques : la preuve de la relance d'invitation cite la fonction du jour ; les quatre envois redeviennent suspendus, aucune trace métier effacée), puis
 `20261122190000` (avenant au bail : `enregistrer_avenant_bail` cite la fonction du jour ; la table et les avenants enregistrés restent, un avenant déjà appliqué reste appliqué), puis
 `20261122090000` (DPE classé G et état des lieux d'entrée d'un bail repris : `activer_bail` cite la fonction du jour ; à jouer avant le retour de la décision B du 20/11, qui retire `bail_blocages_mise_en_location`), puis
 `20261120200000` (date de bascule : `premier_mois_suivi` cite la fonction du jour ; le retour se refuse tant qu'un bail porte une date de bascule), puis
@@ -1120,6 +1121,26 @@ migration, cite `aujourdhui_paris()`. Une migration, un retour, aucune donnée m
 | `20261122160000_signatures_electroniques_locataire.retour.sql` | `20261122160000_signatures_electroniques_locataire.sql` (22/11, audit palier 1, P1-06 : le locataire lit l'état des signatures électroniques où il est signataire) | **Préparé et vérifié localement le 22/11, non exécuté en production.** Supprime la fonction de lecture `mes_signatures_electroniques`. Elle ne faisait que lire : aucune donnée n'est touchée. À jouer APRÈS le retour du code de l'application (sinon « Mes documents » du locataire signalerait une lecture en panne). |
 | `20261122170000_facture_artisan_refus.retour.sql` | `20261122170000_facture_artisan_refus.sql` (22/11, audit palier 1, P1-03 : refus motivé d'une facture d'artisan, puis dépôt d'une facture corrigée) | **Préparé et vérifié localement le 22/11, non exécuté en production.** Supprime la fonction de refus et rend aux cinq fonctions retouchées leur forme d'avant (remplacement exact inverse ; forme inattendue = arrêt sans rien changer). Rien n'est effacé : les factures refusées restent refusées (colonnes et contraintes conservées), donc non validables. Si une intervention porte déjà deux factures, l'unicité « une facture en vigueur » est gardée ; le type d'événement ne quitte la liste fermée que si aucun dossier ne le porte. **Après ce retour, une intervention dont la seule facture est refusée ne peut plus en recevoir d'autre** (état d'avant, sans issue). À jouer APRÈS le retour du code de l'application. |
 | `20261122180000_echanges_intervention_non_lus.retour.sql` | `20261122180000_echanges_intervention_non_lus.sql` (22/11, audit palier 1, P1-05 : un nouveau message de la discussion d'une intervention est signalé) | **Préparé et vérifié localement le 22/11, non exécuté en production.** Retire le déclencheur d'alerte, les deux fonctions (non-lus, marquer lu) et la table des marqueurs de lecture ; ferme les alertes « Nouveau message sur l'intervention » encore ouvertes. Seuls les marqueurs de lecture sont perdus : aucun message n'est touché. À jouer **après** le retour du code. |
+| `20261122200000_envois_automatiques_reglage.retour.sql` | `20261122200000_envois_automatiques_reglage.sql` (22/11, audit palier 1, P1-08 : quatre envois automatiques prêts, fermés par défaut, ouverts un par un par le superviseur) | **Préparé et vérifié localement le 22/11, non exécuté en production.** Rend aux chaînes `empreinte_metier_courriel` et `finaliser_courriel_metier` leur tête d'avant ; retire la table des interrupteurs et ses 4 fonctions ; les e-mails de ces types encore en file sont marqués « à vérifier » (contenu chiffré effacé). Aucune trace métier effacée (appels marqués, relances consignées, rappels, relances d'invitation). À jouer après le retour du code. Rejouable. |
 | `20261122190000_avenants_bail.retour.sql` | `20261122190000_avenants_bail.sql` (22/11, audit palier 1, P1-14 : l'avenant signé s'enregistre et modifie le loyer et les charges du bail) | **Préparé et vérifié localement le 22/11, non exécuté en production.** Retire le déclencheur posé sur les appels de loyer et les quatre fonctions de l'avenant. Rien n'est effacé : la table des avenants et leurs pièces restent ; un avenant déjà appliqué reste appliqué (le bail garde son loyer d'après l'avenant) ; un avenant en attente ne s'applique plus tout seul, et le retour le compte. À jouer **après** le retour du code. |
 
 Essais du 22/11/2026 sur le banc local (PostgreSQL 16) : migration jouée deux fois (rejeu sans effet) ; retour → empreintes md5 de `activer_bail` et de `bail_blocages_mise_en_location` identiques à celles d’avant ; retour rejoué sans effet ; migration rejouée → empreintes migrées. `tests/bail-repris-dpe-g-edl-base.test.ts` tient ces passages. Limite : en production, `activer_bail` diffère du dépôt d’une ligne de commentaire (relevé du 20/11) ; l’ancre ne porte pas sur cette ligne, et la simulation du chantier « Migrations Supabase » le confirmera avant toute application.
+
+## Chaîne de preuve des e-mails : les retours se jouent du plus récent au plus ancien (22/11/2026)
+
+`empreinte_metier_courriel` et `finaliser_courriel_metier` sont des têtes de chaîne : chaque migration qui admet un
+nouveau type d'e-mail renomme la tête (`…_avant_<maillon>`) et pose la sienne, qui lui délègue tout autre type.
+Maillons rejouables, dans l'ordre du manifeste :
+
+1. `20261122130000_lien_garant_admis` (`…_avant_lien_garant`) ;
+2. `20261122200000_envois_automatiques_reglage` (`…_avant_envois_automatiques`).
+
+- **Retour.** Un maillon ne se défait que s'il est en tête. Son retour vérifie que la tête délègue bien à SES fonctions
+  `…_avant_…` ; sinon il s'arrête sur « Retour refusé : une migration plus récente prolonge la chaîne des e-mails »,
+  sans rien modifier. Ordre : `20261122200000` d'abord, `20261122130000` ensuite.
+- **Rejeu.** Chaque maillon se crée d'abord sous son propre nom (`…_maillon_<maillon>`) et ne prend la tête que s'il
+  n'est pas déjà posé : rejouer une migration ancienne n'écrase jamais le maillon d'une migration plus récente, et il
+  ne reste aucune fonction `…_maillon_…` après coup.
+- **Un maillon de plus** s'ajoute à `tests/fixtures/chaine-courriels.ts` : les tests de chaque maillon défont alors
+  d'eux-mêmes les plus récents avant de défaire le leur (`tests/lien-garant-admis-base.test.ts`,
+  `tests/envois-suspendus-base.test.ts`).

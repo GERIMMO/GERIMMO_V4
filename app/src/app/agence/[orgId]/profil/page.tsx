@@ -2,6 +2,7 @@ import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { ROLES_GERANTS, ROLES_RESPONSABLES } from "@/lib/ged";
 import { FormulaireProfilOrganisation } from "./formulaire-profil";
+import { lireEnvoisProposes } from "@/lib/envois-suspendus";
 import { FormulaireSignature } from "./formulaire-signature";
 import { EncadreLectureImpossible, EnteteReglages } from "./famille-reglages";
 import { BoutonsLienParrainage } from "./bouton-copier-lien";
@@ -60,6 +61,10 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
       </main>
     );
   }
+
+  // Audit palier 1 (P1-08) : l'accord pour l'avis d'échéance et la relance automatique n'est demandé que si le
+  // superviseur a ouvert l'envoi. Illisible ou fermé : « envoi suspendu », comme avant.
+  const envoisOuverts = await lireEnvoisProposes(supabase);
 
   // La signature préenregistrée, prête à prévisualiser (chantier documentaire)
   const { data: roleMetier } = await supabase.rpc("has_org_role", { org: orgId, roles: ROLES_GERANTS });
@@ -152,6 +157,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
           organisation={profil}
           lectureSeule={!responsable}
           estProprietaire={estProprietaire}
+          envoisProposes={{ avis: envoisOuverts.avis_echeance, relances: envoisOuverts.relance_loyer }}
         />
       </div>
 

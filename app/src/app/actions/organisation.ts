@@ -10,6 +10,7 @@ import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { envoyerEmail } from "@/lib/email";
 import { adresseDuSite, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
 import { erreurDuChamp, lireMontantFacultatif } from "@/lib/saisie-montant";
+import { AUCUN_ENVOI_PROPOSE, lireEnvoisProposes } from "@/lib/envois-suspendus";
 
 export type EtatProfilOrganisation = {
   erreur?: string;
@@ -96,6 +97,12 @@ export async function modifierProfilOrganisation(
   if (seuil > 1000) {
     return { erreur: "Le seuil de relance doit être un montant entre 0 et 1 000 €.", valeurs };
   }
+  // Audit palier 1 (P1-08) : l'accord pour l'avis d'échéance et la relance automatique. Le formulaire ne propose ces
+  // deux cases que si le superviseur a ouvert l'envoi ; il le signale par un repère. Le repère seul n'accorde rien :
+  // l'ouverture est relue ici. Sans repère (envoi fermé), rien n'est lu et ces deux préférences ne sont pas touchées.
+  const avisPropose = formData.get("avis_echeance_propose") === "1";
+  const relancePropose = formData.get("relance_loyer_propose") === "1";
+  const envoisOuverts = avisPropose || relancePropose ? await lireEnvoisProposes(supabase) : AUCUN_ENVOI_PROPOSE;
   const { error, data } = await supabase
     .from("organizations")
     .update({
@@ -117,7 +124,10 @@ export async function modifierProfilOrganisation(
       // Accord permanent d'envoi des quittances : une case décochée n'apparaît
       // pas dans le formulaire, d'où la lecture par présence et non par valeur.
       quittances_envoi_auto: formData.get("quittances_envoi_auto") !== null,
-      // Les préférences historiques des deux circuits suspendus restent en base.
+      // Les deux accords ci-dessous ne s'enregistrent que proposés ET ouverts (voir plus haut). Fermé : les
+      // préférences d'avant la suspension restent en base, telles quelles.
+      ...(avisPropose && envoisOuverts.avis_echeance ? { appels_envoi_auto: formData.get("appels_envoi_auto") !== null } : {}),
+      ...(relancePropose && envoisOuverts.relance_loyer ? { relances_envoi_auto: formData.get("relances_envoi_auto") !== null } : {}),
       relance_1_jours: relance1,
       relance_2_jours: relance2,
       relance_seuil_montant: Math.round(seuil * 100) / 100,

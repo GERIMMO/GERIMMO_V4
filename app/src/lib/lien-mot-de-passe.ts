@@ -2,6 +2,7 @@ import {adresseIpFiable} from "./ip-fiable";
 import { empreinteCourriel } from "./courriels-durables";
 import type { ContexteCourriel } from "./finalisation-courriels";
 import { piloteLimite, MESSAGE_PILOTE } from "./perimetre-pilote";
+import { envoiAutomatiqueOuvert } from "./envois-suspendus";
 // LES LIENS « CRÉER / CHOISIR MON MOT DE PASSE » — une seule fabrique.
 //
 // POURQUOI CE FICHIER EXISTE (30/09/2026, incident de production). Toutes les
@@ -267,12 +268,13 @@ export type ResultatRappelInvitation = { envoye: true } | { envoye: false; erreu
 export async function envoyerRappelInvitationLocataire(params: {
   email: string;
   invitationId: string;
+  /** Le rang de la relance (1 : trois jours après l'invitation, 2 : dix jours) : il entre dans la preuve refaite en base. */
+  rang: number;
   expireLe: string;
   avantEnvoi?: () => Promise<void>;
   echeanceMs?: number;
   horloge?: () => number;
 }): Promise<ResultatRappelInvitation> {
-  if(piloteLimite())return {envoye:false,erreur:MESSAGE_PILOTE,incertain:false};
   const maintenant = params.horloge ?? Date.now;
   const reste = () => params.echeanceMs === undefined ? Infinity : params.echeanceMs - maintenant();
   const delaiEcoule = (): ResultatRappelInvitation => ({ envoye: false, erreur: "Le délai de cette relance est écoulé.", incertain: false });
@@ -281,6 +283,11 @@ export async function envoyerRappelInvitationLocataire(params: {
   if (!email) return { envoye: false, erreur: "Adresse e-mail manquante.", incertain: false };
   const origine = adresseDuSite();
   const service = clientDeService();
+  // Audit palier 1 (P1-08) : cette relance était arrêtée ici, en dur. Elle ne part que si le superviseur a ouvert
+  // l'interrupteur « relance d'invitation » (fermé par défaut ; migration 20261122200000). Fermé, illisible ou sans
+  // service pour le lire : même réponse qu'avant, et AUCUN lien de connexion n'est fabriqué.
+  if (piloteLimite() && !(service && [1, 2].includes(params.rang) && await envoiAutomatiqueOuvert(service, "relance_invitation")))
+    return { envoye: false, erreur: MESSAGE_PILOTE, incertain: false };
   if (!origine || !service) return { envoye: false, erreur: NON_CONFIGURE, incertain: false };
 
   await params.avantEnvoi?.();
@@ -298,6 +305,9 @@ export async function envoyerRappelInvitationLocataire(params: {
     to: email,
     subject: SUJET_RAPPEL_INVITATION_LOCATAIRE,
     html: corpsRappelInvitationLocataire(lien, origine, params.expireLe),
+    // La base refait la preuve avant l'envoi : relance réservée aujourd'hui pour ce rang, invitation toujours en
+    // attente, même adresse, interrupteur toujours ouvert, aucun arrêt d'urgence.
+    contexteMetier: { type: "relance_invitation", id: params.invitationId, rang: String(params.rang) as "1" | "2" },
     get delaiMaxMs() { return Math.max(1, Math.floor(Math.min(15_000, reste()))); },
     avantEnvoi: async () => {
       await params.avantEnvoi?.();

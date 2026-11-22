@@ -6,6 +6,7 @@ import { courrierDisponible } from "@/lib/paliers-reception-loyer";
 import { preparerMoteurPdfLocal } from "@/lib/documents/rendu";
 import { recommandeElectroniqueDisponible } from "@/lib/recommande-disponible";
 import { RappelsLoyersInteractifs } from "./rappels-loyers-interactifs";
+import { lireEnvoisProposes } from "@/lib/envois-suspendus";
 
 export async function RappelsLoyers({ supabase, orgId, lectureSeule = false, dansFenetre = true, rappelsLus }: {
   supabase: SupabaseClient; orgId: string; lectureSeule?: boolean; dansFenetre?: boolean; rappelsLus?: ReturnType<typeof organiserRappelsLoyers>;
@@ -18,5 +19,7 @@ export async function RappelsLoyers({ supabase, orgId, lectureSeule = false, dan
   if (!lectureSeule && dus.some(ligne => courrierDisponible(ligne, aujourdHui))) preparerMoteurPdfLocal();
   // Audit palier 1 (P1-18) : le recommandé électronique n'est proposé que s'il est réellement relié pour cet espace.
   const recommandeElectronique = !lectureSeule && await recommandeElectroniqueDisponible(supabase, orgId);
-  return <RappelsLoyersInteractifs envoiRelanceDisponible={!piloteLimite()} recommandeElectroniqueDisponible={recommandeElectronique} key={orgId} orgId={orgId} aujourdHui={aujourdHui} lectureSeule={lectureSeule} {...rappels} dus={dus} dansFenetre={dansFenetre} />;
+  // Audit palier 1 (P1-08) : la relance automatique n'est annoncée que si le superviseur l'a ouverte.
+  const relanceAutomatiqueOuverte = (await lireEnvoisProposes(supabase)).relance_loyer;
+  return <RappelsLoyersInteractifs envoiRelanceDisponible={!piloteLimite()} relanceAutomatiqueOuverte={relanceAutomatiqueOuverte} recommandeElectroniqueDisponible={recommandeElectronique} key={orgId} orgId={orgId} aujourdHui={aujourdHui} lectureSeule={lectureSeule} {...rappels} dus={dus} dansFenetre={dansFenetre} />;
 }

@@ -29,6 +29,7 @@ import { cleAvisEcheance } from "@/lib/cles-idempotence-courriels";
 import { envoyerEmail } from "@/lib/email";
 import { corpsAvisEcheance, sujetAvisEcheance } from "@/lib/appel-email";
 import { clientDeService } from "@/lib/supabase/service";
+import { envoiAutomatiqueOuvert } from "@/lib/envois-suspendus";
 import { consignerTache } from "@/lib/tache";
 import { adresseDuSite } from "@/lib/site";
 import { timingSafeEqual } from "node:crypto";
@@ -109,10 +110,15 @@ export async function traiterAppels(request: Request) {
     return Response.json({ envoyes: 0, echecs: 0 });
   }
 
+  // Audit palier 1 (P1-08) : l'interrupteur du superviseur, lu une fois par passe. Fermé (le défaut) : aucun contexte
+  // n'est joint, l'envoi reste suspendu par la liste fermée, exactement comme avant. Ouvert : le contexte désigne
+  // l'appel, et la base refait la preuve avant chaque envoi (migration 20261122200000).
+  const ouvert = await envoiAutomatiqueOuvert(supabase, "avis_echeance");
   let envoyes = 0;
   const echecs: EchecConsigne[] = [];
   const marquageEchecs: EchecConsigne[] = [];
   for (const l of lignes) {
+    const contexte = ouvert ? { contexteMetier: { type: "avis_echeance" as const, id: l.appel_id } } : {};
     const avis = (prenom: string | null) => ({
       subject: sujetAvisEcheance({ periode: l.periode }),
       html: corpsAvisEcheance({
@@ -140,6 +146,7 @@ export async function traiterAppels(request: Request) {
       organisation: { db: supabase, id: l.organization_id },
       to: l.destinataire,
       cleIdempotence: cle(l.destinataire),
+      ...contexte,
       ...avis(l.prenom),
     });
     if (envoi.erreur) {
@@ -156,6 +163,7 @@ export async function traiterAppels(request: Request) {
         organisation: { db: supabase, id: l.organization_id },
         to: autre,
         cleIdempotence: cle(autre),
+        ...contexte,
         ...avis(null),
       });
       if (copie.erreur) {

@@ -37,6 +37,7 @@ import {
   BoutonRetirerLigne,
 } from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
+import { lireEnvoisProposes } from "@/lib/envois-suspendus";
 import { CarteMessages } from "./carte-messages";
 import { buttonVariants } from "@/components/ui/button";
 import { ConversationProprietaire } from "../../messages/conversation-proprietaire";
@@ -970,6 +971,7 @@ export default async function PagePersonne(
             historique={invitations ?? []}
             relances={relancesInvitation ?? []}
             erreurLecture={Boolean(erreurInvitations || erreurAccesLocataire || erreurRelances)}
+            rappelsAutomatiquesOuverts={(await lireEnvoisProposes(supabase)).relance_invitation}
           />
         </CardContent>
       </Card>

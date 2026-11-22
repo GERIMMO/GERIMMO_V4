@@ -9,6 +9,8 @@ import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
 import { BlocageSouscription, OuvertureVentes } from "./blocage-souscription";
 import { InterrupteurIA } from "./interrupteur-ia";
 import { etatIA, motifIANonConnectee } from "@/lib/etat-ia";
+import { EnvoisAutomatiques, envoisOuverts, type AccordsEspaces, type EtatEnvoisAutomatiques } from "./envois-automatiques";
+import { FLUX_ENVOIS_AUTOMATIQUES } from "@/lib/envois-suspendus";
 
 export const metadata = { title: "Paramètres généraux" };
 
@@ -29,6 +31,16 @@ export default async function PageParametres() {
   const reglageIA = await db.from("ia_plafond_reglage").select("ia_active").eq("singleton", true).maybeSingle();
   const iaActive = reglageIA.error || !reglageIA.data ? null : reglageIA.data.ia_active === true;
   const etatDeLIA = await etatIA(db);
+  // Envois automatiques (audit palier 1, P1-08) : quatre interrupteurs, fermés à la livraison. Illisible = on n'affiche
+  // aucun bouton plutôt qu'un état supposé.
+  const reglageEnvois = await db.rpc("lire_envois_automatiques");
+  const lu = reglageEnvois.error || !reglageEnvois.data || typeof reglageEnvois.data !== "object" ? null : reglageEnvois.data as Record<string, unknown>;
+  const etatEnvois: EtatEnvoisAutomatiques | null = lu && FLUX_ENVOIS_AUTOMATIQUES.every((f) => typeof lu[f] === "boolean")
+    ? Object.fromEntries(FLUX_ENVOIS_AUTOMATIQUES.map((f) => [f, lu[f] === true])) as EtatEnvoisAutomatiques
+    : null;
+  const nbEnvoisOuverts = envoisOuverts(etatEnvois);
+  const compte = (v: unknown) => typeof v === "number" && Number.isSafeInteger(v) && v >= 0 ? v : null;
+  const accordsEspaces: AccordsEspaces = { avis_echeance: compte(lu?.espaces_avis_echeance), relance_loyer: compte(lu?.espaces_relance_loyer) };
   const requis = faitsManquants({});
   const manquants = new Set(faitsManquants(editeur));
   // 23/10 : le médiateur se complète plus tard, sans fermer le paiement (lib/editeur.ts, A_COMPLETER).
@@ -43,15 +55,17 @@ export default async function PageParametres() {
         <div className="min-w-0 flex-[1_1_20rem]">
           <TitreEcran rubrique="profil">Paramètres généraux</TitreEcran>
           <p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">
-            Coordonnées publiques de Gerimmo, ouverture des abonnements et fonctions assistées par l’IA.
+            Coordonnées publiques de Gerimmo, ouverture des abonnements, fonctions assistées par l’IA et envois
+            automatiques d’e-mails.
           </p>
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="État des paramètres">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="État des paramètres">
         <a className="loc-carte" href="#identite"><strong className="block">Identité de Gerimmo ↓</strong><span className="text-sm text-muted-foreground">{indisponible ? 'Lecture indisponible' : `${fournis} / ${exiges.length} fournis`}</span></a>
         <a className="loc-carte" href="#souscriptions"><strong className="block">Abonnements ↓</strong><span className="text-sm text-muted-foreground">Vérifier la règle d’ouverture</span></a>
         <a className="loc-carte" href="#ia"><strong className="block">Fonctions assistées par l’IA ↓</strong><span className="text-sm text-muted-foreground">{iaActive === null ? 'État indisponible' : iaActive ? 'Activée' : 'Désactivée'}</span></a>
+        <a className="loc-carte" href="#envois-automatiques"><strong className="block">Envois automatiques ↓</strong><span className="text-sm text-muted-foreground">{nbEnvoisOuverts === null ? 'État indisponible' : nbEnvoisOuverts === 0 ? 'Tous fermés' : `${nbEnvoisOuverts} ouvert${nbEnvoisOuverts > 1 ? 's' : ''} sur ${FLUX_ENVOIS_AUTOMATIQUES.length}`}</span></a>
         <Link className="loc-carte" href="/admin/conservation"><strong className="block">Conservation</strong><span className="text-sm text-muted-foreground">Régler les durées par catégorie →</span></Link>
       </div>
 
@@ -67,6 +81,10 @@ export default async function PageParametres() {
 
       <section id="ia" className="scroll-mt-24">
         <InterrupteurIA active={iaActive} etat={etatDeLIA} motif={motifIANonConnectee()} />
+      </section>
+
+      <section id="envois-automatiques" className="scroll-mt-24">
+        <EnvoisAutomatiques etat={etatEnvois} accords={accordsEspaces} />
       </section>
 
       <div className="grid gap-6 md:grid-cols-2">

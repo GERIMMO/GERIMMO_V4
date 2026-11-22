@@ -17,6 +17,7 @@ import { resumerLoyersParcMois } from "@/lib/loyers-parc-mois";
 import { AccueilBienvenue } from "@/components/accueil-bienvenue";
 import { pointReception } from "@/lib/paliers-reception-loyer";
 import { InformationEnvoisProprietaire } from "@/components/information-envois-proprietaire";
+import { lireEnvoisProposes } from "@/lib/envois-suspendus";
 import { piloteLimite } from "@/lib/perimetre-pilote";
 import { CarteTachesProprietaire } from "@/components/carte-taches-proprietaire";
 import { construireTachesAccueil, type TacheAccueil } from "@/lib/taches-accueil-proprietaire";
@@ -51,6 +52,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
     : a.source === "rapport" ? "Valider"
     : a.href?.startsWith(`${base}/incidents?`) ? "Ouvrir l’incident" : "Traiter";
   const { patrimoine, reglages, diagnostics } = pilotage;
+  const envoisOuverts = await lireEnvoisProposes(supabase);
   const idsLots = new Set(patrimoine?.lots.map(l => l.id) ?? []);
   const loyersMois = patrimoine && !echeances.error && Array.isArray(echeances.data)
     ? resumerLoyersParcMois((echeances.data as { lot_id: string; montant_du: number | string; montant_couvert: number | string }[]).filter(l => idsLots.has(l.lot_id))) : null;
@@ -109,9 +111,10 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   });
   const tachesAccueil = [...tachesPrioritaires, ...taches];
   const automatisations = [
-    { nom: "Avis d’échéance", suspendu: true },
+    // Audit palier 1 (P1-08) : « suspendu » tant que le superviseur n'a pas ouvert l'envoi ; ensuite, l'accord de l'espace.
+    { nom: "Avis d’échéance", suspendu: !envoisOuverts.avis_echeance, active: reglages?.appels_envoi_auto },
     { nom: "Envoi des quittances", active: reglages?.quittances_envoi_auto },
-    { nom: "Relances d’impayés", suspendu: true },
+    { nom: "Relances d’impayés", suspendu: !envoisOuverts.relance_loyer, active: reglages?.relances_envoi_auto },
   ];
 
   return <main className={styles.page}>
@@ -168,7 +171,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
 
     <div className={styles.grille}>
       <div className={styles.principal}>
-        {piloteLimite() && <InformationEnvoisProprietaire base={base} compte={userId} />}
+        {piloteLimite() && <InformationEnvoisProprietaire base={base} compte={userId} avisProposes={envoisOuverts.avis_echeance} relancesProposees={envoisOuverts.relance_loyer} />}
       </div>
       <aside className={styles.secondaire} aria-label="Articles et outils du propriétaire">
         <ConseilsAccueilProprietaire db={supabase} base={base}/>

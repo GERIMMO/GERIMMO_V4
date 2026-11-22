@@ -39,7 +39,11 @@ describe("avenant au bail — manifeste, retour et prudences (sans base)", () =>
   it("la migration est au manifeste une seule fois, avec son retour listé", () => {
     const manifeste = readFileSync("e2e/local/ordre-migrations.txt", "utf8").trim().split(/\r?\n/);
     expect(manifeste.filter((l) => l === `${NOM}.sql`)).toHaveLength(1);
-    expect(manifeste.at(-1)).toBe(`${NOM}.sql`);
+    // Après la migration dont elle lit la règle (le premier mois suivi, décision du 21/11) — sa place relative, pas
+    // « la dernière ligne » : d'autres migrations viennent après elle.
+    const bascule = manifeste.findIndex((l) => l.startsWith("20261120200000_"));
+    expect(bascule).toBeGreaterThan(-1);
+    expect(manifeste.indexOf(`${NOM}.sql`)).toBeGreaterThan(bascule);
     expect(existsSync(`supabase/retours-arriere/${NOM}.retour.sql`)).toBe(true);
     expect(readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8")).toContain(`| \`${NOM}.retour.sql\` | \`${NOM}.sql\``);
     expect(readFileSync("tests/relais-migrations-manifeste.test.ts", "utf8")).toContain(`"${NOM}.sql",`);
@@ -65,7 +69,13 @@ describe("avenant au bail — manifeste, retour et prudences (sans base)", () =>
     const declencheurs = [...sql.matchAll(/create trigger \S+ [^;]*? on public\.(\w+)/g)].map((m) => m[1]);
     expect([...new Set(declencheurs)].sort()).toEqual(["appels_loyer", "avenants_bail"]);
     // Son retour est inscrit dans l'ordre complet des retours (la migration cite la fonction du jour de Paris).
-    expect(readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8")).toMatch(/Ordre complet si tout doit être défait :\s*\n`20261122190000` \(avenant au bail/);
+    // Sa place : avant le retour de la migration du 22/11 qui la précède au manifeste (ordre inverse), où qu'elle
+    // soit dans la liste — des migrations plus récentes s'inscrivent au-dessus d'elle.
+    const ordre = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8").split("Ordre complet si tout doit être défait :")[1] ?? "";
+    const rang = (version: string) => ordre.search(new RegExp(`^\`${version}\` \\(`, "m"));
+    expect(ordre).toMatch(/^`20261122190000` \(avenant au bail/m);
+    expect(rang("20261122190000")).toBeGreaterThan(-1);
+    expect(rang("20261122090000")).toBeGreaterThan(rang("20261122190000"));
   });
 
   it("elle ne cite aucun article de loi : ses prudences sont dites comme des prudences, et renvoyées au juriste", () => {

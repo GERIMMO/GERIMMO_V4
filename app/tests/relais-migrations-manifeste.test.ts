@@ -258,6 +258,8 @@ const MISSION_OCTOBRE = [
   "20261122235800_artisan_relance_facture_rdv_manque.sql",
   // 22/11, audit palier 1 (P2-04) : les lignes de devis que l'artisan garde pour les reprendre.
   "20261122235900_artisan_lignes_devis.sql",
+  // 22/11, audit palier 1 (P2-05) : un loyer pointé à partir d'une ligne de relevé de banque.
+  "20261122235950_pointage_loyer_releve.sql",
 
 
 ];

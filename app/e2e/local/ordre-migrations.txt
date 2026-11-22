@@ -543,3 +543,4 @@
 20261122235500_artisan_absences_semaine_type.sql
 20261122235800_artisan_relance_facture_rdv_manque.sql
 20261122235900_artisan_lignes_devis.sql
+20261122235950_pointage_loyer_releve.sql

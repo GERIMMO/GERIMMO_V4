@@ -18,8 +18,8 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: m.createClient }));
 vi.mock("next/cache", () => ({ revalidatePath: m.revalidate }));
 
 import { reglerEnvoiAutomatique } from "@/app/actions/envois-automatiques-reglage";
-import { EnvoisAutomatiques, envoisOuverts, phraseAccords, type EtatEnvoisAutomatiques } from "@/app/admin/parametres/envois-automatiques";
-import { FLUX_ENVOIS_AUTOMATIQUES, LIBELLES_ENVOIS_AUTOMATIQUES } from "@/lib/envois-suspendus";
+import { EnvoisAutomatiques } from "@/app/admin/parametres/envois-automatiques";
+import { envoisOuverts, FLUX_ENVOIS_AUTOMATIQUES, LIBELLES_ENVOIS_AUTOMATIQUES, phraseAccords, type EtatEnvoisAutomatiques } from "@/lib/envois-suspendus";
 
 const FERMES: EtatEnvoisAutomatiques = { avis_echeance: false, relance_loyer: false, rappel_rendez_vous: false, relance_invitation: false };
 const rendre = (etat: EtatEnvoisAutomatiques | null) => renderToStaticMarkup(createElement(EnvoisAutomatiques, { etat }));

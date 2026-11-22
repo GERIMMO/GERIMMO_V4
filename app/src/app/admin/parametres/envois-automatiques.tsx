@@ -3,26 +3,10 @@
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
 import { reglerEnvoiAutomatique } from "@/app/actions/envois-automatiques-reglage";
-import { FLUX_ENVOIS_AUTOMATIQUES, LIBELLES_ENVOIS_AUTOMATIQUES, type FluxEnvoiAutomatique } from "@/lib/envois-suspendus";
-
-export type EtatEnvoisAutomatiques = Record<FluxEnvoiAutomatique, boolean>;
-/** Combien d'espaces ont déjà donné leur accord permanent (avis d'échéance, relance) : null = non lu. */
-export type AccordsEspaces = { avis_echeance: number | null; relance_loyer: number | null };
-
-/** Ce que l'ouverture déclenche tout de suite, dit avant de cocher. Rien à dire pour les envois sans accord d'espace. */
-export function phraseAccords(flux: FluxEnvoiAutomatique, ouvert: boolean, accords: AccordsEspaces | undefined): string | null {
-  if (flux !== "avis_echeance" && flux !== "relance_loyer") return null;
-  const n = accords?.[flux];
-  if (n === null || n === undefined) return null;
-  if (n === 0) return ouvert ? "Aucun espace n’a encore donné son accord : rien ne part pour le moment." : "Aucun espace n’a donné son accord : ouvert, rien ne partira tant qu’un espace ne l’aura pas demandé dans son profil.";
-  const espaces = `${n} espace${n > 1 ? "s ont" : " a"}`;
-  return ouvert ? `${espaces} donné ${n > 1 ? "leur" : "son"} accord.` : `${espaces} déjà donné ${n > 1 ? "leur" : "son"} accord : ${n > 1 ? "leurs" : "ses"} e-mails partiront dès l’ouverture.`;
-}
-
-/** Combien d'envois sont ouverts — pour la carte de résumé de la page. */
-export function envoisOuverts(etat: EtatEnvoisAutomatiques | null): number | null {
-  return etat ? FLUX_ENVOIS_AUTOMATIQUES.filter((f) => etat[f] === true).length : null;
-}
+import {
+  envoisOuverts, FLUX_ENVOIS_AUTOMATIQUES, LIBELLES_ENVOIS_AUTOMATIQUES, phraseAccords,
+  type AccordsEspaces, type EtatEnvoisAutomatiques, type FluxEnvoiAutomatique,
+} from "@/lib/envois-suspendus";
 
 /**
  * Les quatre envois automatiques prévus et suspendus (audit palier 1, P1-08), chacun avec son interrupteur.

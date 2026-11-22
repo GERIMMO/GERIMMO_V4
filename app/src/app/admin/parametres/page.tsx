@@ -9,8 +9,8 @@ import { lireReglageSouscription } from "@/lib/reglage-souscription-serveur";
 import { BlocageSouscription, OuvertureVentes } from "./blocage-souscription";
 import { InterrupteurIA } from "./interrupteur-ia";
 import { etatIA, motifIANonConnectee } from "@/lib/etat-ia";
-import { EnvoisAutomatiques, envoisOuverts, type AccordsEspaces, type EtatEnvoisAutomatiques } from "./envois-automatiques";
-import { FLUX_ENVOIS_AUTOMATIQUES } from "@/lib/envois-suspendus";
+import { EnvoisAutomatiques } from "./envois-automatiques";
+import { envoisOuverts, FLUX_ENVOIS_AUTOMATIQUES, type AccordsEspaces, type EtatEnvoisAutomatiques } from "@/lib/envois-suspendus";
 
 export const metadata = { title: "Paramètres généraux" };
 

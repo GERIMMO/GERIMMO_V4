@@ -346,6 +346,24 @@ export default async function PageConfidentialite() {
           Les traitements décrits ici ne prennent pas seuls de décision
           d’attribution d’un logement ou d’engagement contractuel.
         </p>
+        {/* Audit palier 1 du 22/11/2026 (P0-10) : deux envois à OpenAI, faits à la demande de l'utilisateur, n'étaient
+            dits nulle part. Ce que la page affirme se lit dans le code : lib/conversation-privee-ia.ts et
+            lib/lecture-document-ia.ts (option `store: false`), et les mentions posées sur les boutons. */}
+        <p>
+          Deux aides facultatives font appel à l’intelligence artificielle
+          d’OpenAI, et seulement quand vous les utilisez. L’assistant
+          « Demander à Gerimmo » transmet le sujet choisi et les messages que
+          vous écrivez ; aucun dossier, document ni compte n’y est joint. Le
+          préremplissage d’une facture, ou la lecture de l’index sur une photo
+          de compteur, transmet le fichier que vous avez choisi, avec ce qu’il
+          contient (par exemple un nom, une adresse ou un numéro de contrat).
+          L’écran le rappelle avant l’envoi. Gerimmo envoie ces demandes avec
+          l’option qui demande à OpenAI de ne pas conserver l’échange ; les
+          durées propres à OpenAI figurent dans ses informations officielles,
+          liées dans le tableau ci-dessous. La réponse est une aide à
+          vérifier : vous pouvez toujours tout saisir vous-même, et ces aides
+          peuvent être désactivées sans que le reste du service change.
+        </p>
         <p>
           Les interactions sur la page Facebook de Gerimmo relèvent aussi de
           la politique de Meta, notamment pour les statistiques de page.

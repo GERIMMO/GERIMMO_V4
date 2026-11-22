@@ -233,9 +233,14 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     cle: "openai",
     sousTraitantClient: true,
     nom: "OpenAI",
-    role: "Assistance rédactionnelle de la supervision (veille, brouillons et illustrations du Journal) et propositions de devis artisans : textes éditoriaux publics, catalogue tarifaire et symptômes techniques sélectionnés ; les propositions de devis excluent les noms, adresses et descriptions libres des occupants",
-    // Pour le Client, seules les propositions de devis le concernent : la supervision éditoriale n'est pas un
-    // traitement pour son compte.
+    // Audit palier 1 du 22/11/2026 (P0-10) : le rôle public taisait deux envois faits à la demande de l'utilisateur —
+    // l'assistant « Demander à Gerimmo » (lib/conversation-privee-ia.ts) et la lecture assistée d'une facture ou d'une
+    // photo de compteur (lib/lecture-document-ia.ts), qui transmet le fichier entier. Il les nomme désormais.
+    role: "Aides par intelligence artificielle, déclenchées à la demande : assistant « Demander à Gerimmo » (le sujet choisi et les messages écrits par l’utilisateur, sans dossier joint) ; lecture assistée d’une facture ou d’une photo de compteur (le fichier choisi par l’utilisateur, avec ce qu’il contient) ; propositions de devis artisans (catalogue tarifaire et symptômes techniques sélectionnés, sans nom, adresse ni description libre des occupants). Assistance rédactionnelle de la supervision (veille, brouillons et illustrations du Journal) : textes éditoriaux publics",
+    // Pour le Client, la supervision éditoriale n'est pas un traitement pour son compte.
+    // À FAIRE AVEC LA PROCHAINE VERSION DES CONDITIONS (décision du dirigeant, QUESTIONS.md) : `roleClient` alimente
+    // l'annexe 1 des conditions, dont le texte est figé par version (tests/conditions-empreinte.test.ts). Il doit
+    // nommer lui aussi l'assistant et la lecture assistée ; le changer exige une nouvelle version des conditions.
     roleClient: "Propositions de devis artisans : catalogue tarifaire et symptômes techniques sélectionnés, à l'exclusion des noms, adresses et descriptions libres des occupants",
     localisation: "États-Unis (transfert hors UE)",
     documentation: "https://openai.com/policies/data-processing-addendum/",

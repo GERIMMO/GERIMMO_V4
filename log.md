@@ -7774,7 +7774,13 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   `20261122090000_bail_repris_dpe_g_et_edl_entree.sql` avec son retour arrière.
   - Banc local : 936 fichiers de tests passés, 13 230 tests ; 4 fichiers en échec, tous propres au banc partagé
     (`exercice-restauration`, `api-isolation`, `lot2-auth-reel`, `lot3-notifications-base`). Types et lint : 0 erreur.
-  - **Ni fusionnée ni publiée** : attend la CI de la demande, puis l'accord explicite du dirigeant.
+  - CI de la demande verte sur `272dcc18` (run 45002641134, terminée à 08:58Z), branche à jour avec `main`.
+  - Rejoué dans l'application réelle sur le banc (compte et données fictifs, téléphone) : un propriétaire neuf, un
+    logement dont le DPE est classé G, un bail entré le 01/11/2024. Le dépôt du contrat signé active le bail ; la
+    base ne porte aucune alerte `edl_entree` ; la fiche du bail ne propose ni « déclarer les pièces » ni « réaliser
+    l'état des lieux d'entrée » ; l'accueil affiche « DPE classé G — … Un nouveau bail ne pourra pas être activé sur
+    ce logement tant que son DPE reste classé G » et aucune tâche d'état des lieux d'entrée, tâches repliées comprises.
+  - **Ni fusionnée ni publiée** : attend l'accord explicite du dirigeant.
 - **Message de service (1A)** : brouillon rédigé dans
   [[Premiers clients — acquisition sans budget — 20 novembre 2026]] (section 4 quater). Moyen proposé : envoi par le
   dirigeant depuis sa propre boîte, après la publication de la PR #357 ; Gerimmo n'a pas d'outil d'envoi aux inscrits

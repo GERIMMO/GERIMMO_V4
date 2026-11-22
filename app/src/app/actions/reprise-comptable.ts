@@ -121,7 +121,48 @@ export async function reprendreSoldes(
 
   // La reprise s'ouvre au premier contrôle, et se réutilise ensuite : sans
   // cela, chaque passe en créerait une, et la base refuserait la deuxième.
-  if (!repriseId) {
+  //
+  // Audit palier 1 (P1-02). La reprise ouverte se lit EN BASE, plus seulement dans le formulaire : après un
+  // rechargement, l'identifiant porté par l'écran est perdu, et `ouvrir_reprise` refuse d'en ouvrir une seconde —
+  // l'écran restait bloqué. Elle porte aussi SA date et SA trésorerie, fixées à l'ouverture et seules lues par la
+  // base au contrôle comme à la bascule : si l'écran en annonce d'autres, on ne contrôle pas sous d'anciennes
+  // valeurs. Un nouveau contrôle repart alors d'une reprise neuve (l'ancienne est abandonnée : un contrôle n'a
+  // rien écrit dans les comptes) ; une bascule, elle, est refusée tant qu'on n'a pas recontrôlé.
+  const saisie = { contenu, fichier, dateBascule, tresorerieAnnoncee, tresorerieFichier };
+  const { data: ouvertes, error: lectureOuverte } = await supabase
+    .from("reprises_portefeuille")
+    .select("id, date_bascule, tresorerie_annoncee")
+    .eq("organization_id", orgId)
+    .in("statut", ["en_cours", "controle"])
+    .order("cree_le", { ascending: false })
+    .limit(1);
+  if (lectureOuverte) {
+    return { ...saisie, erreur: "La reprise en cours n’a pas pu être vérifiée. Réessayez dans un instant." };
+  }
+  const ouverte = ((ouvertes ?? []) as { id: string; date_bascule: string | null; tresorerie_annoncee: number | string | null }[])[0] ?? null;
+  const memeReprise = ouverte !== null
+    && String(ouverte.date_bascule ?? "").slice(0, 10) === dateBascule
+    && Math.round(Number(ouverte.tresorerie_annoncee ?? 0) * 100) === Math.round(tresorerieAnnoncee * 100);
+
+  if (bascule) {
+    // On ne bascule que la reprise qu'on vient de contrôler, sous les valeurs contrôlées.
+    if (!ouverte || !memeReprise || (repriseId && repriseId !== ouverte.id)) {
+      return {
+        ...saisie,
+        reprise: memeReprise && ouverte ? ouverte.id : undefined,
+        erreur: ouverte && !memeReprise
+          ? "La date de bascule ou la trésorerie ont changé depuis le dernier contrôle. Contrôlez de nouveau la balance avant de basculer."
+          : "Cette reprise n’est plus celle que vous avez contrôlée. Contrôlez de nouveau la balance avant de basculer.",
+      };
+    }
+    repriseId = ouverte.id;
+  } else if (ouverte && memeReprise) {
+    repriseId = ouverte.id;
+  } else {
+    if (ouverte) {
+      const { error: abandon } = await supabase.rpc("abandonner_reprise", { p_org: orgId, p_reprise: ouverte.id });
+      if (abandon) return { ...saisie, erreur: sansJargon(abandon.message) };
+    }
     const { data, error } = await supabase.rpc("ouvrir_reprise", {
       p_org: orgId,
       p_date_bascule: dateBascule,
@@ -176,8 +217,11 @@ export async function abandonnerReprise(orgId: string, repriseId: string): Promi
   if (!user || !role || !ROLES_RESPONSABLES.includes(role)) {
     return { erreur: "Réservé au responsable de l'organisation." };
   }
-  const { error } = await supabase.rpc("abandonner_reprise", { p_org: orgId, p_reprise: repriseId });
+  const { data, error } = await supabase.rpc("abandonner_reprise", { p_org: orgId, p_reprise: repriseId });
   if (error) return { erreur: sansJargon(error.message) };
+  // La base rend « faux » quand rien n'a été abandonné : reprise déjà basculée, déjà abandonnée, ou d'un autre espace.
+  if (data !== true) return { erreur: "Cette reprise n’est plus en cours. Rechargez la page pour voir son état." };
   revalidatePath(`/agence/${orgId}/comptabilite/reprise`);
+  revalidatePath(`/espace/${orgId}/comptabilite/reprise`);
   return {};
 }

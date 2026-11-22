@@ -1,22 +1,30 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useActionStateProtegee as useActionState } from "@/lib/use-action-state-protegee";
-import { reprendreSoldes, type EtatReprise } from "@/app/actions/reprise-comptable";
+import { abandonnerReprise, reprendreSoldes, type EtatReprise } from "@/app/actions/reprise-comptable";
+import { Button } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { aujourdhuiParis, eur } from "@/lib/ged";
+import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
 import { ChampFichier } from "@/components/champ-fichier";
 
 // Le jour de Paris, pas le jour UTC : entre minuit et 2 h à Paris (heure d'été), `toISOString()` donne la
 // veille et la date de bascule proposée par défaut serait celle d'hier (VFL-05).
-export function FormulaireReprise({ orgId }: { orgId: string }) {
+/** La reprise déjà ouverte pour cet espace, lue par la page (audit palier 1, P1-02). */
+export type RepriseOuverte = { id: string; dateBascule: string | null; tresorerie: number | null };
+
+export function FormulaireReprise({ orgId, ouverte = null }: { orgId: string; ouverte?: RepriseOuverte | null }) {
   const [etat, action] = useActionState<EtatReprise, FormData>(
     reprendreSoldes.bind(null, orgId),
     {}
   );
   const base = useId();
+  // L'abandon se confirme ICI : la page, relue aussitôt, ne transmet plus de reprise ouverte, et le message
+  // disparaîtrait avec le bandeau qui le portait.
+  const [abandonnee, setAbandonnee] = useState(false);
 
   const resultats = etat.resultats ?? [];
   const erreurs = resultats.filter((r) => r.statut === "erreur");
@@ -32,6 +40,10 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
 
   return (
     <div className="space-y-5">
+      {/* Tant que rien n'est basculé, la reprise en cours se dit et s'abandonne (P1-02). */}
+      {abandonnee && !etat.reprise
+        ? <p role="status" className="rounded-lg bg-[var(--filet-leger)] p-3 text-sm">Reprise abandonnée. Vous pouvez repartir d’un nouveau contrôle.</p>
+        : ouverte && !abandonnee && !etat.basculee && <RepriseEnCours orgId={orgId} ouverte={ouverte} onAbandon={() => setAbandonnee(true)} />}
       <form data-saisie-confirmee action={action} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -41,7 +53,7 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
               name="date_bascule"
               type="date"
               required
-              defaultValue={etat.dateBascule ?? aujourdhuiParis()}
+              defaultValue={etat.dateBascule ?? ouverte?.dateBascule ?? aujourdhuiParis()}
             />
             <p className="text-sm text-muted-foreground">
               Le jour où les comptes passent chez vous. Les dépôts et les
@@ -55,7 +67,7 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
               name="tresorerie"
               inputMode="decimal"
               required
-              defaultValue={etat.tresorerieAnnoncee ?? ""}
+              defaultValue={etat.tresorerieAnnoncee ?? ouverte?.tresorerie ?? ""}
               // Un exemple se dit exemple : « 42000 » seul passait pour une
               // valeur déjà saisie (24/09).
               placeholder="ex. 42000"
@@ -218,6 +230,47 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+
+/**
+ * Audit palier 1 (P1-02). Un contrôle déjà lancé laisse une reprise ouverte : après un rechargement, l'écran ne la
+ * retrouvait plus et refusait d'en ouvrir une autre. Elle est maintenant annoncée, avec la date et la trésorerie
+ * qu'elle porte, et peut être abandonnée. Un contrôle n'écrit rien dans les comptes : abandonner ne défait donc rien.
+ */
+function RepriseEnCours({ orgId, ouverte, onAbandon }: { orgId: string; ouverte: RepriseOuverte; onAbandon: () => void }) {
+  const router = useRouter();
+  const [enCours, lancer] = useTransition();
+  const [erreur, setErreur] = useState<string | null>(null);
+  return (
+    <div data-reprise-en-cours className="rounded-lg border border-border bg-[var(--filet-leger)] p-3 text-sm">
+      <p>
+        <b className="font-semibold">Une reprise est en cours</b>
+        {ouverte.dateBascule && <> : date de bascule du {formaterDate(ouverte.dateBascule)}</>}
+        {ouverte.tresorerie !== null && <>, trésorerie annoncée {eur(ouverte.tresorerie)}</>}. Rien n’est encore écrit
+        dans vos comptes. Pour la poursuivre, déposez de nouveau votre fichier et contrôlez la balance. Si vous changez
+        la date ou la trésorerie, le contrôle repart d’une reprise neuve.
+      </p>
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={enCours}
+          onClick={() => lancer(async () => {
+            setErreur(null);
+            const resultat = await abandonnerReprise(orgId, ouverte.id);
+            if (resultat.erreur) { setErreur(resultat.erreur); return; }
+            onAbandon();
+            router.refresh();
+          })}
+        >
+          {enCours ? "Abandon…" : "Abandonner cette reprise"}
+        </Button>
+        {erreur && <p role="alert" className="text-sm text-destructive">{erreur}</p>}
+      </div>
     </div>
   );
 }

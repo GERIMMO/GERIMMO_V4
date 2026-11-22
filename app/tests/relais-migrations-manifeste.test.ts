@@ -222,6 +222,8 @@ const MISSION_OCTOBRE = [
   "20261122090000_bail_repris_dpe_g_et_edl_entree.sql",
   // 22/11 : les inscriptions (espaces de propriétaires) dans l'e-mail de 5 h du relais.
   "20261122100000_relais_point_inscriptions.sql",
+  // 22/11, audit palier 1 (P0-02) : le décompte de sortie retranche ce qui a été reçu par un échéancier de charges.
+  "20261122110000_decompte_sortie_echeancier_charges.sql",
 
 
 ];

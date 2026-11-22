@@ -1,0 +1,134 @@
+# JURISTE — points que je ne peux pas trancher
+
+**Règle suivie** : aucun des points ci-dessous n'est présenté comme conforme. Pour chacun, la question est fermée
+(oui ou non, ou un choix) pour qu'un juriste, un expert-comptable ou la CNIL puisse y répondre vite.
+
+**État au 22 novembre 2026** : première version. Les textes officiels n'ont pas pu être **ouverts** depuis mon
+environnement (sites refusés par la règle réseau) ; les questions s'appuient sur des extraits de recherche et sur la
+lecture du code. Quand les textes seront ouverts, les questions qu'ils règlent seules seront retirées de cette liste
+et traitées dans le plan. Le numéro entre parenthèses renvoie à la ligne du tableau de l'annexe citée.
+
+Tant qu'une question reste ouverte, Gerimmo garde le comportement le plus prudent : il avertit au lieu d'affirmer,
+et ne présente pas un document comme valable s'il manque une mention.
+
+---
+
+## 1. Bail, congés, dépôt de garantie, cautionnement (annexe `audit-palier-1/b1-bail-loi-1989.md`)
+
+Une question fermée par point incertain ; le numéro renvoie à la ligne du tableau.
+
+1. (1) Les PDF nu et meublé de Gerimmo reprennent-ils toutes les rubriques des annexes 1 et 2 du décret n° 2015-587 en vigueur depuis le 1er octobre 2026 ?
+2. (2) Une clause résolutoire au sens identique mais rédigée autrement que le contrat type est-elle acceptable, oui ou non ?
+3. (2) Les clauses « défaut d'assurance » et « troubles de voisinage » peuvent-elles être imprimées par défaut sans choix exprès des parties ?
+4. (3) Un résumé de la notice suffit-il, ou le texte intégral de l'annexe de l'arrêté est-il exigé ?
+5. (3) Un bail signé entre le 18 octobre 2026 et aujourd'hui avec l'ancienne notice ou le résumé doit-il être régularisé auprès du locataire ?
+6. (6) Le bail à durée réduite de l'article 11 est-il ouvert à une SCI familiale et à une indivision, et est-il exclu en meublé ?
+7. (13) Le gel du loyer s'applique-t-il à un bail de six ans conclu avant le 24 août 2022 et pas encore reconduit ?
+8. (13) En l'absence de DPE valide, le bailleur peut-il réviser le loyer ?
+9. (14) Pour un bail conclu avant le 1er janvier 2025 sur un logement classé G, la non-décence joue-t-elle dès la première reconduction tacite postérieure à cette date ?
+10. (14) Gerimmo peut-il laisser activer, avec une simple alerte, un bail signé après le 1er janvier 2025 sur un logement classé G ?
+11. (15) Le plomb, l'électricité et le gaz doivent-ils être exigés avant la signature au même titre que le DPE et l'état des risques ?
+12. (16) En zone tendue, le locataire qui n'invoque pas la zone tendue dans sa lettre doit-il trois mois de préavis ?
+13. (17) Pour le préavis réduit, la zone tendue s'apprécie-t-elle à la signature du bail, à sa dernière reconduction ou à la date du congé ?
+14. (19) Pour un bail dont le dernier jour est le 20 septembre, un congé du bailleur reçu le 21 juin (meublé) ou le 21 mars (nu) est-il tardif ?
+15. (20) Une lettre recommandée présentée mais non retirée fait-elle courir le délai du congé du bailleur ?
+16. (21) Quels alinéas exacts de l'article 15 II doivent être reproduits dans le congé pour vente, dans la version en vigueur ?
+17. (22) L'absence de l'adresse du bénéficiaire rend-elle nul le congé pour reprise ?
+18. (23) L'absence de la notice de l'arrêté du 13 décembre 2017 rend-elle le congé nul ou seulement contestable ?
+19. (24) Une SCI non familiale peut-elle donner congé pour reprise ?
+20. (25) La clause de solidarité avec extinction à six mois peut-elle figurer dans un bail consenti à deux époux ou partenaires de PACS ?
+21. (25) Quand le remplaçant entre au bail après la date d'effet du congé, la solidarité cesse-t-elle à son entrée ?
+22. (28) La mention de caution imprimée par Gerimmo satisfait-elle l'article 2297 du code civil, pour une caution solidaire comme pour une caution simple ?
+23. (28) Le texte reproduit dans l'acte est-il mot pour mot l'avant-dernier alinéa de l'article 22-1 en vigueur ?
+24. (29) Une SCI non familiale peut-elle demander la caution d'une personne physique pour un locataire non étudiant ?
+25. (10) La provision de 20 % en copropriété peut-elle être retenue par un bailleur particulier sans clause au bail ?
+
+---
+
+## 2. États des lieux, vétusté, charges, pièces justificatives (annexe `audit-palier-1/b2-edl-charges-pieces.md`)
+
+1. **Signature de l'état des lieux par code SMS.** Un état des lieux signé à distance après la visite, avec la seule confirmation du bailleur « établi sur place le … », satisfait-il l'article 3-2 (« établi contradictoirement ») et l'article 3 du décret de 2016 (« remis à chaque partie au moment de sa signature ») ?
+2. **Description précise.** Une note sur cinq niveaux (neuf, bon, usagé, mauvais, absent) avec observation facultative suffit-elle à la « description précise » de l'article 2 du décret, ou faut-il une observation écrite par élément ?
+3. **Adresse à la sortie.** L'« adresse de restitution du dépôt » vaut-elle « adresse du nouveau domicile ou du lieu d'hébergement » ? Sinon, quelle formule imprimer ?
+4. **Conformité de la sortie.** Un simple passage de « bon » à « usagé » (usure normale) rend-il l'état des lieux de sortie « non conforme » au sens de l'article 22, donc deux mois au lieu d'un ?
+5. **Grille de vétusté.** À défaut de grille convenue à la signature du bail, le bailleur peut-il appliquer seul une durée de vie de son choix ? Peut-il retenir un coût à 100 % sans abattement pour une dégradation ? Quelle mention porter au décompte ?
+6. **Prescription des charges.** Point de départ des trois ans pour un complément de charges : fin de l'exercice, date où le bailleur a connu les dépenses (approbation des comptes de copropriété), ou date de la régularisation ? Gerimmo doit-il refuser ou seulement avertir ?
+7. **Délai d'un mois.** Une régularisation validée le jour même de l'envoi du décompte est-elle inopposable au locataire ? Quelle preuve d'envoi garder ?
+8. **Décompte par nature.** Un décompte par facture (fournisseur, période, part du logement) vaut-il « décompte par nature de charges » ?
+9. **Gaz, chauffage, désinsectisation, ascenseur.** Pour une maison ou un petit immeuble en gestion directe : le gaz d'une chaudière individuelle payé par le bailleur est-il récupérable ? La main-d'œuvre d'une désinsectisation ? Quelle part d'un contrat d'ascenseur « complet » ?
+10. **Gardien.** Faut-il lire le contrat de travail pour choisir entre 75 % et 40 % ? Que retenir quand une entreprise extérieure partage les tâches ?
+11. **RIB.** Peut-on demander un RIB entre l'accord sur le logement et la signature du bail ? Après la signature, à quelles conditions (le prélèvement ne peut pas être imposé) ?
+12. **Attestation d'assurance.** Peut-elle être demandée avant la signature, ou seulement à la remise des clés ?
+13. **Pièces reçues en trop.** Un bailleur particulier qui reçoit spontanément une pièce hors liste doit-il la supprimer ? Gerimmo doit-il l'y obliger ?
+14. **Bail repris.** Pour un bail entré avant Gerimmo, quelle preuve de l'état des lieux d'entrée papier faut-il garder pour fonder une retenue à la sortie ?
+15. **Mode agence.** Le domicile du bailleur doit-il figurer sur l'état des lieux quand un mandataire le réalise ?
+
+---
+
+## 3. RGPD, décisions automatisées, flux financiers, activités réglementées (annexe `audit-palier-1/b3-rgpd-flux-financiers.md`)
+
+Une question fermée (oui ou non) par point.
+
+**RGPD**
+
+- **A1.** Un outil public qui affiche « Visale possible » ou « Visale exclue » à partir de valeurs tapées par le bailleur, sans rien enregistrer, échappe-t-il à l'article 22 ?
+- **A2.** Le tri des artisans par note moyenne, le choix restant au propriétaire, est-il une décision relevant de l'article 22 ? Impose-t-il une analyse d'impact avant l'ouverture du réseau ?
+- **A3.** Le motif d'un refus ou d'une suspension, visible seulement dans l'espace de l'artisan, vaut-il notification « sur un support durable » au sens du règlement 2019/1150 ?
+- **A4.** L'absence de toute attribution automatique suffit-elle à écarter l'article 22 pour les interventions ?
+- **A5.** Une relance de loyer envoyée par le système après confirmation du bailleur est-elle hors du champ de l'article 22 ?
+- **A6.** La mise en demeure par recommandé électronique, confirmée et authentifiée par le bailleur, appelle-t-elle une autre garantie ?
+- **A7.** Le passage automatique en lecture seule quinze jours après un impayé relève-t-il de l'exception « exécution du contrat » de l'article 22 § 2 a) ? Les conditions doivent-elles alors décrire une voie de réexamen par une personne ?
+- **A8.** La suppression d'un compte après 24 mois d'inactivité et deux avertissements est-elle une durée défendable pour un bailleur particulier ?
+- **A9.** Un bailleur peut-il demander un RIB à un candidat avant la signature du bail ? L'éditeur qui propose ce bouton engage-t-il sa responsabilité ?
+- **A9bis.** L'urgence déclarée par le locataire, sans tri par le système, appelle-t-elle une information particulière ?
+- **A10.** La date et le lieu de naissance d'une caution sont-ils nécessaires à l'acte de cautionnement ?
+- **A10bis.** Un brouillon de devis proposé par une IA et validé par l'artisan échappe-t-il à l'article 22 ?
+- **A11.** L'affichage de l'IBAN du bailleur à son locataire appelle-t-il une mention particulière ?
+- **A12.** Faut-il interdire par écrit la saisie de données de santé dans la description d'un incident ?
+- **A13.** Un bailleur particulier doit-il supprimer sous trois mois le dossier d'un candidat non retenu, comme le recommande le référentiel pour les professionnels ?
+- **A14.** Les 36 mois après la fin du bail imposent-ils un accès restreint (archivage intermédiaire) dans l'outil ?
+- **A15.** Conserver la fiche nominative d'un ancien locataire tant que le compte du bailleur existe est-il acceptable jusqu'à la livraison du retrait prévu avant 2028 ?
+- **A16.** La loi n° 2026-534 du 25 juin 2026 porte-t-elle bien à dix ans la conservation des factures d'un entrepreneur individuel non commerçant en franchise de TVA ?
+- **A17.** Une mesure d'exclusion dont le motif n'est pas purgé à l'échéance annoncée reste-t-elle opposable à l'artisan ?
+- **A18.** Trente-six mois de journal pour les accès de la supervision sont-ils justifiables sans analyse écrite ?
+- **A18bis.** Les réclamations doivent-elles avoir une durée de conservation propre, distincte du support ?
+- **A19.** Le client bailleur peut-il autoriser, par la seule annexe 1, l'envoi à OpenAI de factures nominatives et de questions libres de son locataire ? Qui est responsable de traitement quand le locataire interroge l'assistant ?
+- **A20.** Si le propriétaire dispose de son propre compte AR24, AR24 est-il un sous-traitant ultérieur de Gerimmo ?
+- **A21.** Les clauses contractuelles types intégrées aux accords d'OpenAI et de GitHub suffisent-elles sans évaluation complémentaire du transfert ?
+- **A22.** Le passage en clair de la base sur des machines américaines, le temps du chiffrement, est-il un transfert à encadrer et à mentionner comme tel ?
+- **A23.** Une invitation à signer adressée à une caution sans compte doit-elle porter l'information complète de l'article 14 ?
+- **A24.** L'« intérêt légitime » est-il la bonne base pour le compte de connexion d'un locataire invité ?
+- **A25.** Le renvoi du locataire vers son bailleur pour exercer ses droits est-il suffisant quand Gerimmo héberge les données ?
+- **A26.** Gerimmo doit-il désigner un délégué à la protection des données dès le palier 1 ?
+- **A27.** L'engagement « dans les meilleurs délais », sans délai chiffré, est-il suffisant dans l'annexe de sous-traitance ?
+- **A28.** Les trois témoins décrits sont-ils tous dispensés de consentement, y compris le témoin de mesure d'inactivité ?
+
+**Flux financiers et activités réglementées**
+
+- **B1.** L'encaissement par Stripe du seul abonnement dû à l'éditeur est-il hors du champ des services de paiement ?
+- **B3.** L'affichage de l'IBAN du bailleur et l'enregistrement déclaratif des loyers reçus sont-ils hors du champ de la loi Hoguet et des services de paiement ?
+- **B4.** Le suivi déclaratif d'un dépôt de garantie, sans détention, est-il hors de tout régime de maniement de fonds ?
+- **B5.** L'enregistrement déclaratif du règlement d'un artisan est-il hors du champ des services de paiement ?
+- **B6.** La refacturation au propriétaire du coût d'un recommandé électronique est-elle une simple vente de service ?
+- **B7.** Gerimmo est-il une « place de marché en ligne » dès lors qu'un devis d'artisan peut y être accepté par signature électronique ? Le règlement 2019/1150 s'applique-t-il à un espace artisan gratuit ?
+- **B8.** Un outil public nommé « comparateur », sans assureur nommé ni souscription possible, relève-t-il de la distribution d'assurances ou du régime des comparateurs en ligne ?
+- **B10.** L'envoi par le logiciel, au nom du bailleur, de quittances, d'avis d'échéance et de relances constitue-t-il un concours à la gestion immobilière au sens de la loi Hoguet ?
+- **B10bis.** Ces relances constituent-elles un recouvrement amiable pour le compte d'autrui ?
+- **B11.** L'obligation de désigner un médiateur s'applique-t-elle dès l'essai gratuit, avant toute vente ?
+- **B12.** Les mentions légales d'un entrepreneur individuel doivent-elles porter son adresse personnelle si elle est son adresse d'entreprise ?
+- **B13.** Les articles 8.7, 8.10, 14 bis et 15 des conditions sont-ils à jour de la réforme de la rétractation du 19 juin 2026 ?
+- **B14.** Le carnet de devis et de factures de l'artisan est-il un logiciel de facturation soumis à certification ou à la facturation électronique ?
+
+---
+
+## 4. Devis et factures des artisans (annexe `audit-palier-1/a2-modules-locataire-incidents-artisan.md`) — expert-comptable
+
+1. Un devis produit par Gerimmo au nom de l'artisan, référencé « DEV- » suivi de huit caractères sans série, porte-t-il
+   une référence suffisante ? Quelles mentions un devis de dépannage doit-il porter au minimum ?
+2. Une facture dont le numéro est saisi à la main par l'artisan, Gerimmo garantissant seulement qu'il n'est pas déjà
+   utilisé, respecte-t-elle l'exigence d'une numérotation continue ? Gerimmo doit-il numéroter lui-même ?
+3. Quand l'artisan est en franchise de TVA, la mention correspondante doit-elle être imprimée d'office dès que le taux
+   est à 0 % ?
+4. Gerimmo peut-il continuer à produire des factures au nom d'un artisan avant d'avoir tranché la facturation
+   électronique, ou doit-il se limiter au dépôt de la facture émise par l'outil de l'artisan ?
+5. L'acompte au devis doit-il être prévu, et avec quelles mentions ?

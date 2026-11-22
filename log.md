@@ -7854,3 +7854,24 @@ locataire invité, correctifs techniques, alerte de secours. Pour l'adresse e-ma
   la clé publique de la base de **production**. La préproduction devra avoir ses propres réglages avant tout usage.
 - **Phase 1 lancée** : huit volets d'audit en lecture seule (textes officiels, plateformes de référence, dépendance
   à l'IA, état des modules, sécurité).
+
+## [2026-11-22] lint   | Mission palier 1, phase 1 : audit en huit volets (première version)
+
+- **Version auditée** : `e1e442dc`, CI de `main` verte (run 45013333857, 11:12Z). Aucune modification de code, de base
+  ni de production pendant l'audit.
+- **Huit relevés en lecture seule**, copiés dans `audit-palier-1/` : modules du bailleur, modules locataire /
+  incidents / artisan, super admin et sécurité, bail et loi de 1989, états des lieux / charges / pièces, RGPD et flux
+  financiers, écart avec les plateformes de référence, dépendance à l'IA. Plus les avis de sécurité de la base de
+  production (5 types, 453 constats, tous lus).
+- **Constats principaux** : aucun module en maquette ; cloisonnement des 227 tables prouvé par requête ; un risque de
+  double comptage entre régularisation des charges et dépôt de garantie, à confirmer en exécution ; signature
+  électronique d'un bail avec garant cassée ; envois suspendus par la liste fermée du pilote ; deux envois à OpenAI
+  non déclarés ; aucun réglage ne coupe l'IA proprement.
+- **Limite majeure** : la règle réseau de l'environnement refuse les sites officiels (403 du proxy) et ceux des
+  plateformes de référence. Tout le volet juridique repose sur des extraits de recherche ; **aucun point n'est noté
+  conforme**. Deux textes signalés par les extraits et absents du wiki : décret n° 2026-596 du 6 juillet 2026 et
+  arrêté du 9 octobre 2026 — à lire à la source avant toute affirmation.
+- **Fichiers créés à la racine** : `AUDIT.md`, `QUESTIONS.md` (14 points), `JURISTE.md`, `JOURNAL.md`.
+- **Pages** : [[Mission palier 1 — audit du 22 novembre 2026]] créée ; `index.md` mis à jour.
+- **Suite** : demande d'ouverture des sites officiels (QUESTIONS Q5), seconde lecture, puis phase 2.
+

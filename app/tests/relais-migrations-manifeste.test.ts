@@ -230,6 +230,8 @@ const MISSION_OCTOBRE = [
   "20261122130000_lien_garant_admis.sql",
   // 22/11, audit palier 1 (P1-04) : le gestionnaire corrige l'urgence d'un incident, motif tracé au fil du dossier.
   "20261122140000_incident_urgence_corrigee.sql",
+  // 22/11, audit palier 1 (P1-07) : la supervision examine (accès tracé) et retire une évaluation d'artisan contestée.
+  "20261122150000_evaluation_contestee.sql",
 
 
 ];

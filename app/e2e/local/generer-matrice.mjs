@@ -49,6 +49,9 @@ const ids = {
   // Un compte de client (jamais la supervision) pour la fiche de débogage.
   ACCOUNT: (await un("select m.account_id as id from memberships m where m.role in ('agent','admin_agence') and m.status='active' order by m.created_at limit 1"))?.id,
 };
+// Audit palier 1 (P1-07) : la contestation de note déposée par l'artisan du seed (seed-parcours.mjs, 9.c bis) ouvre
+// l'écran « Évaluations contestées » de la console. Sans contestation dans la base, l'écran est écarté (et dit pourquoi).
+ids.CONTESTATION = (await un("select id from retours_utilisateurs where nature = 'contestation' order by cree_le limit 1"))?.id;
 const lot = await un(
   "select l.id, l.bien_id from lots l join biens b on b.id = l.bien_id where l.organization_id = $1 order by (b.nom like 'E2E%') desc, l.created_at limit 1",
   [ORG]
@@ -90,7 +93,7 @@ for (const route of inventaire) {
   // /agence/<id> redirige à vie vers /espace/<id> pour lui, un modèle encore écrit « /agence/ORG » est donc ramené à /espace).
   if (route.persona === "proprietaire") chemin = chemin.replace(/^\/(?:agence|espace)\/ORG(?![A-Z_])/, `/espace/${ids.ORG_PD}`);
   let manquant = null;
-  chemin = chemin.replace(/\b(LOT_PD|BIEN_PD|BAIL_PD|PROSPECT|INVITATION_ARTISAN|INVITATION|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT|CLIENT_EXTERNE|CHANTIER_EXTERNE|FACTURE_EXTERNE|DOCUMENT|VERSION|JETON_CAUTION)\b/g, (m) => {
+  chemin = chemin.replace(/\b(CONTESTATION|LOT_PD|BIEN_PD|BAIL_PD|PROSPECT|INVITATION_ARTISAN|INVITATION|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT|CLIENT_EXTERNE|CHANTIER_EXTERNE|FACTURE_EXTERNE|DOCUMENT|VERSION|JETON_CAUTION)\b/g, (m) => {
     if (!ids[m]) manquant = m;
     return ids[m] ?? m;
   });

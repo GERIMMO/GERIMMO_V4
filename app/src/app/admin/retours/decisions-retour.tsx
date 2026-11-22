@@ -16,7 +16,7 @@ export function DecisionRetour({retour,donneesPersonnelles=false}:{retour:Retour
    {donneesPersonnelles?<input type="hidden" name="gravite" value={retour.gravite}/>:<label className="space-y-1 text-sm"><span>Gravité</span><select name="gravite" className={champ} defaultValue={retour.gravite}>{Object.entries(GRAVITES_RETOUR).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select></label>}</div>
   <label className="block space-y-1 text-sm"><span>Réponse visible dans le suivi</span><textarea name="reponse" className={champ} rows={3} required minLength={5} maxLength={6000}/></label>
   {decision==='non_retenue'&&<label className="block space-y-1 text-sm"><span>Date de réexamen</span><input name="reexaminer_le" type="date" required className={champ}/></label>}
-  {retour.nature==='contestation'&&<p className="text-xs text-muted-foreground">Cette réponse reste entre l’artisan et la supervision. La décision de support ne retire pas automatiquement une évaluation.</p>}
+  {retour.nature==='contestation'&&<p className="text-xs text-muted-foreground">Cette réponse reste entre l’artisan et la supervision. Elle ne retire aucune évaluation : le retrait se fait depuis « Examiner les évaluations de cet artisan », plus haut.</p>}
   {etat.erreur&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}{etat.succes&&<p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}
   <BoutonEnvoi size="sm" enCours={enCours} enCoursTexte="Enregistrement…">Enregistrer la décision</BoutonEnvoi>
  </form>;

@@ -137,6 +137,10 @@ const LIBELLES = new Map<string, string>([
   // dossier d'incident, où se lisent la facture et les créneaux.
   ["facture_artisan_a_valider", "Contrôler la facture de l’artisan"],
   ["creneaux_arbitrage", "Fixer le rendez-vous"],
+  // Audit palier 1 (P1-07) : Gerimmo a retiré une évaluation après la contestation de l'artisan
+  // (retirer_evaluation_contestee, 20261122150000 : {incident_id, lot_id, intervention_id, source, libelle}).
+  // Une information : rien à faire, sinon lire le dossier ; l'alerte se ferme à la main.
+  ["evaluation_retiree", "Ouvrir le dossier de l’intervention"],
   // Décision D22 : le locataire a annulé (l'artisan repropose des dates ; le gérant peut fixer le rendez-vous), ou
   // l'artisan n'a pas répondu à sa demande de report (le rendez-vous est maintenu ; rappeler le locataire).
   ["rdv_annule_locataire", "Suivre le nouveau rendez-vous"],
@@ -229,6 +233,7 @@ export function cheminFicheAlerte(a: Alerte, orgId: string, racine: string = RAC
     type === "devis_revision_expiree" ||
     type === "facture_artisan_a_valider" ||
     type === "creneaux_arbitrage" ||
+    type === "evaluation_retiree" ||
     type === "rdv_annule_locataire" ||
     type === "rdv_annule_tardif" ||
     type === "rdv_demande_sans_reponse"

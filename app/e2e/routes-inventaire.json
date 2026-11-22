@@ -108,6 +108,12 @@
     "dynamic": ""
   },
   {
+    "path": "/admin/retours/CONTESTATION/evaluations",
+    "persona": "superadmin",
+    "label": "Évaluations contestées d’un artisan",
+    "dynamic": "retourId"
+  },
+  {
     "path": "/admin/sante",
     "persona": "superadmin",
     "label": "Santé et connexions",

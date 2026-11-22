@@ -63,6 +63,26 @@ export async function regrouperRetours(id:string,_etat:EtatRetour,fd:FormData):P
  revalidatePath('/admin/retours');return{succes:"Idées regroupées. Leurs textes restent dans leurs espaces d’origine."};
 }
 
+/** Bornes du motif de retrait, telles que la base les contrôle (`retirer_evaluation_contestee`). */
+const MOTIF_RETRAIT={min:10,max:1000};
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * Audit palier 1 (P1-07) : la supervision retire une évaluation d'artisan dans le cadre d'une contestation
+ * (RM-11.4.4). La base tient les gardes, le journal, le suivi de l'artisan et l'alerte à l'organisation.
+ */
+export async function retirerEvaluationContestee(retourId:string,evaluationId:string,_etat:EtatRetour,fd:FormData):Promise<EtatRetour>{
+ const c=await createClient();const{data:sa,error:acces}=await c.rpc('is_super_admin');
+ if(acces||sa!==true)return{erreur:"Accès réservé à la supervision Gerimmo."};
+ if(!UUID.test(retourId)||!UUID.test(evaluationId))return{erreur:"Cette évaluation n’a pas pu être retrouvée. Rechargez la page."};
+ const motif=String(fd.get('motif')??'').trim();
+ if(motif.length<MOTIF_RETRAIT.min||motif.length>MOTIF_RETRAIT.max)return{erreur:`Précisez le motif du retrait (${MOTIF_RETRAIT.min} à ${MOTIF_RETRAIT.max.toLocaleString('fr-FR')} caractères).`};
+ if(fd.get('confirmation')!=='on')return{erreur:"Confirmez le retrait : il est définitif et l’organisation en est informée."};
+ const{error}=await c.rpc('retirer_evaluation_contestee',{p_retour:retourId,p_evaluation:evaluationId,p_motif:motif});
+ if(error)return{erreur:sansJargon(error.message)};
+ revalidatePath(`/admin/retours/${retourId}/evaluations`);revalidatePath('/admin/retours');revalidatePath('/assistance');revalidatePath('/artisan/note');
+ return{succes:"Évaluation retirée. La moyenne de l’artisan est recalculée ; l’artisan le lit dans le suivi de sa contestation et l’organisation reçoit une alerte."};
+}
+
 export async function cloreRevue(_etat:EtatRetour,fd:FormData):Promise<EtatRetour>{
  const c=await createClient();const{data:sa,error:acces}=await c.rpc('is_super_admin');
  if(acces||sa!==true)return{erreur:"Accès réservé à la supervision Gerimmo."};

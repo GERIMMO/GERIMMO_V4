@@ -65,9 +65,11 @@ test("reprise des comptes : après un rechargement, la reprise en cours se retro
 
     // ── Trésorerie changée : le contrôle repart d'une reprise neuve, l'ancienne est abandonnée.
     await page.getByLabel("Trésorerie reprise (€)", { exact: true }).fill("800");
-    await controler(page);
+    await page.getByRole("button", { name: "Contrôler la balance", exact: true }).click();
+    // « Fichier lu » est déjà à l'écran depuis le contrôle précédent : on attend le fait lui-même, en base.
+    await expect.poll(async () => (await reprises()).length, { timeout: 15_000 }).toBe(2);
+    await expect.poll(async () => (await reprises())[0].statut, { timeout: 15_000 }).toBe("abandonnee");
     const apresChangement = await reprises();
-    expect(apresChangement).toHaveLength(2);
     expect(apresChangement[0]).toMatchObject({ id: premieres[0].id, statut: "abandonnee" });
     expect(apresChangement[1].t).toBe(800);
     expect(await ouvertesDeLEspace()).toBe(1);

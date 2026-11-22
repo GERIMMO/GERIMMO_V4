@@ -55,6 +55,8 @@ export function visuelReprenable(a:{image_empreinte:string|null;image_essais:num
 
 /** L'appel vient du cron Vercel (CRON_SECRET) ou de pg_cron (jeton généré en base). */
 export async function appelAutorise(request:Request,db:Db){
+ // Audit palier 1 du 22/11/2026 (P1-17) : sans jeton présenté, rien à comparer — la base n'est pas lue.
+ if(!(request.headers.get('authorization')??'').startsWith('Bearer '))return false;
  if(porteurDuSecret(request,process.env.CRON_SECRET))return true;
  const {data}=await db.rpc('jeton_declencheur_marketing');
  return typeof data==='string'&&data.length===64&&porteurDuSecret(request,data);

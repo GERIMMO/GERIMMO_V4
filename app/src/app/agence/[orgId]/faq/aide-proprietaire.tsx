@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BookOpen, ChevronDown, Inbox, Lightbulb, MessageCircle, Search, X } from "lucide-react";
+import { ArrowRight, BookOpen, ChevronDown, Inbox, Lightbulb, MessageCircle, Scale, Search, X } from "lucide-react";
 import { correspond } from "@/lib/roles-personnes";
 import { EnteteReglages } from "../profil/famille-reglages";
 import { LIBELLES_LIEN_AIDE, QUESTIONS, THEMES_AIDE as THEMES } from "./questions";
@@ -24,6 +24,9 @@ export function AideProprietaire({ orgId, assistance }: { orgId: string; assista
       <Link href={assistance}><MessageCircle size={17} aria-hidden="true" />Contacter Gerimmo</Link>
       <Link href="#mes-demandes"><Inbox size={17} aria-hidden="true" />Mes demandes</Link>
       <Link href="#idees"><Lightbulb size={17} aria-hidden="true" />Les idées</Link>
+      {/* Audit palier 1 du 22/11/2026 (P1-19) : la page des règles existe pour le bailleur depuis le 20/11, mais aucun
+          lien n'y menait dans son espace. Son menu reste inchangé (décision du 24/09) : le lien vit dans l'aide. */}
+      <Link href={`${base}/regles`}><Scale size={17} aria-hidden="true" />Les règles à connaître</Link>
     </nav>
     <section className={styles.faq} aria-labelledby="questions-titre">
       <div className={styles.enteteQuestions}>

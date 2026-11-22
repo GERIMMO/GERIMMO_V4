@@ -135,9 +135,13 @@ describe("accès : le secret d'abord, le reste ensuite", () => {
 });
 
 describe("le jeton généré en base ne vaut que pour la mission marketing", () => {
+  // Audit palier 1 du 22/11/2026 (P1-17) : un appel sans jeton est refusé avant toute lecture. Le déclencheur de la
+  // base présente toujours le sien : ces cas le présentent donc, comme lui (ce n'est pas le secret des tâches).
+  const JETON_DE_LA_BASE = "f".repeat(64);
+
   it("marketing : sans secret mais avec le jeton de la base, la mission s'exécute", async () => {
     m.appelAutorise.mockResolvedValue(true);
-    const requete = appel("marketing", null);
+    const requete = appel("marketing", JETON_DE_LA_BASE);
     const r = await GET(requete);
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({ mission: "marketing" });
@@ -150,13 +154,18 @@ describe("le jeton généré en base ne vaut que pour la mission marketing", () 
   it("marketing : sans secret et sans jeton valide, 401", async () => {
     const r = await GET(appel("marketing", null));
     expect(r.status).toBe(401);
+    // Sans jeton présenté, le jeton de la base n'est même pas consulté.
+    expect(m.appelAutorise).not.toHaveBeenCalled();
+    m.appelAutorise.mockResolvedValue(false);
+    expect((await GET(appel("marketing", "jeton-faux"))).status).toBe(401);
+    expect(m.appelAutorise).toHaveBeenCalledTimes(1);
     expect(traitementsAppeles()).toEqual([]);
     expect(m.rpc).not.toHaveBeenCalled();
   });
 
   it.each(NOMS.filter((nom) => nom !== "marketing"))("%s : le jeton de la base ne suffit pas, 401", async (nom) => {
     m.appelAutorise.mockResolvedValue(true);
-    const r = await GET(appel(nom, null));
+    const r = await GET(appel(nom, JETON_DE_LA_BASE));
     expect(r.status).toBe(401);
     expect(traitementsAppeles()).toEqual([]);
     expect(m.rpc).not.toHaveBeenCalled();

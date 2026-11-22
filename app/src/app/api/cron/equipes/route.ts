@@ -25,6 +25,9 @@ import {executerMission} from '@/lib/execution-mission';
 export const dynamic='force-dynamic';export const maxDuration=180;
 const traitements={veille,appels,quittances,relances,rappels,abonnements,signatures,marketing,territoire,purge};
 export async function GET(request:Request){
+ // Audit palier 1 du 22/11/2026 (P1-17) : sans jeton, refus immédiat — la base n'est même pas lue (comme
+ // /api/cron/relais). Avant, un appel anonyme à « mission=marketing » faisait lire le jeton du déclencheur en base.
+ if(!(request.headers.get('authorization')??'').startsWith('Bearer '))return Response.json({erreur:'Non autorisé.'},{status:401});
  const cle=new URL(request.url).searchParams.get('mission')??'';
  const db=clientDeService();
  // 06/10 : la mission marketing est aussi déclenchée à la minute par pg_cron,

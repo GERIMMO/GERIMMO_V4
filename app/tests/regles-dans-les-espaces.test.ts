@@ -59,6 +59,17 @@ describe("les menus ouvrent la rubrique dans l'espace", () => {
     expect(entree?.href).toBe(`/agence/${ORG}/regles`);
   });
 
+  // Audit palier 1 du 22/11/2026 (P1-19) : le bailleur avait la page, mais aucun lien dans son espace. Son menu ne
+  // change pas (navigation-espace.test.ts) : le lien vit dans son aide.
+  it("le propriétaire atteint ses règles depuis l'aide de son espace, sans entrée de menu en plus", () => {
+    const nav = navigationEspace({ orgId: ORG, role: "proprietaire_direct", badges: {} });
+    expect([...nav.principales, ...nav.secondaires].map((e) => e.libelle)).not.toContain("Les règles à connaître");
+    const aide = sansCommentaires(lire("src/app/agence/[orgId]/faq/aide-proprietaire.tsx"));
+    expect(aide).toContain("<Link href={`${base}/regles`}>");
+    expect(aide).toContain("Les règles à connaître</Link>");
+    expect(aide).toContain("const base = useBaseEspace(orgId);");
+  });
+
   it("le menu du locataire pointe vers /locataire/<id>/regles", () => {
     const source = sansCommentaires(lire("src/components/nav-locataire.tsx"));
     expect(source).toContain('{ href: `${base}/regles`, libelle: "Les règles à connaître", icone: "doc" }');

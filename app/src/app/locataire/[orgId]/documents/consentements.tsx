@@ -3,10 +3,14 @@ import { useId, useState } from "react";
 import { modifierConsentementDocument, type EtatConsentement } from "@/app/actions/consentements-documents";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
-export function ConsentementsDocuments({ orgId, quittances, recommandes, email, retraitSeulement = false }: { retraitSeulement?: boolean; orgId: string; quittances: boolean; recommandes: boolean; email: string }) {
+// Audit palier 1 (P1-18) : l'accord pour les recommandés électroniques n'est demandé que si le service est relié
+// (`recommandesProposes`). Un accord déjà donné reste visible pour être retiré ; le bloc ne disparaît pas sous les
+// yeux du locataire après un retrait (choix figé à l'ouverture de la page).
+export function ConsentementsDocuments({ orgId, quittances, recommandes, email, retraitSeulement = false, recommandesProposes = false }: { retraitSeulement?: boolean; recommandesProposes?: boolean; orgId: string; quittances: boolean; recommandes: boolean; email: string }) {
+  const [afficherRecommandes] = useState(recommandesProposes || recommandes);
   return <details className="loc-carte"><summary className="cursor-pointer font-medium">Réception de mes documents</summary><div className="mt-4 space-y-5">
     <Choix retraitSeulement={retraitSeulement} orgId={orgId} email={email} nature="quittances" accepte={quittances} titre="Quittances et reçus de paiement" texte="J’accepte de recevoir mes quittances et reçus par voie électronique, à l’adresse e-mail indiquée ci-dessous. Sans cet accord, je peux demander un exemplaire papier à mon gestionnaire." />
-    <Choix retraitSeulement={retraitSeulement} orgId={orgId} email={email} nature="recommandes" accepte={recommandes} titre="Recommandés électroniques" texte="J’accepte que mon bailleur m’adresse ses lettres recommandées par voie électronique à l’adresse e-mail indiquée ci-dessous. Cet accord est distinct de celui des quittances. Je peux le retirer pour les futurs envois." />
+    {afficherRecommandes && <Choix retraitSeulement={retraitSeulement || !recommandesProposes} orgId={orgId} email={email} nature="recommandes" accepte={recommandes} titre="Recommandés électroniques" texte="J’accepte que mon bailleur m’adresse ses lettres recommandées par voie électronique à l’adresse e-mail indiquée ci-dessous. Cet accord est distinct de celui des quittances. Je peux le retirer pour les futurs envois." />}
   </div></details>;
 }
 function Choix({ orgId, nature, accepte, titre, texte, email, retraitSeulement }: { retraitSeulement: boolean; orgId: string; nature: "quittances" | "recommandes"; accepte: boolean; titre: string; texte: string; email: string }) {

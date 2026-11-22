@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
+import { recommandeElectroniqueConfigure } from "@/lib/recommande-disponible";
 export type EtatConsentement = { erreur?: string; succes?: string; accepte?: boolean };
 export async function modifierConsentementDocument(orgId: string, nature: "quittances" | "recommandes", _etat: EtatConsentement, form: FormData): Promise<EtatConsentement> {
   const db = await createClient();
@@ -9,6 +10,8 @@ export async function modifierConsentementDocument(orgId: string, nature: "quitt
   if (!user) return { erreur: "Connectez-vous pour modifier votre choix." };
   if (!["quittances", "recommandes"].includes(nature) || !["oui", "non"].includes(String(form.get("accepte")))) return { erreur: "Choisissez si vous acceptez ce mode de transmission." };
   const accepte = form.get("accepte") === "oui";
+  // Audit palier 1 (P1-18) : on ne recueille pas d'accord pour un mode d'envoi qui n'est pas relié. Le retrait reste libre.
+  if (nature === "recommandes" && accepte && !recommandeElectroniqueConfigure()) return { erreur: "Les recommandés électroniques ne sont pas proposés pour le moment. Votre bailleur vous écrit par courrier." };
   const { data, error } = await db.rpc("modifier_consentement_document", { p_org: orgId, p_nature: nature, p_accepte: accepte, p_email: String(form.get("email") ?? "") });
   if (error) return { erreur: sansJargon(error.message) };
   if (data !== accepte) return { erreur: "Votre choix n’a pas pu être confirmé. Actualisez la page." };

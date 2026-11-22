@@ -4,6 +4,7 @@ import { enrichirRappelsLoyers, lireRappelsLoyers, organiserRappelsLoyers } from
 import { piloteLimite } from "@/lib/perimetre-pilote";
 import { courrierDisponible } from "@/lib/paliers-reception-loyer";
 import { preparerMoteurPdfLocal } from "@/lib/documents/rendu";
+import { recommandeElectroniqueDisponible } from "@/lib/recommande-disponible";
 import { RappelsLoyersInteractifs } from "./rappels-loyers-interactifs";
 
 export async function RappelsLoyers({ supabase, orgId, lectureSeule = false, dansFenetre = true, rappelsLus }: {
@@ -15,5 +16,7 @@ export async function RappelsLoyers({ supabase, orgId, lectureSeule = false, dan
   const rappels = rappelsLus ?? organiserRappelsLoyers(lignes, aujourdHui);
   const dus = rappelsLus ? rappelsLus.dus : await enrichirRappelsLoyers(supabase, orgId, rappels.dus, aujourdHui);
   if (!lectureSeule && dus.some(ligne => courrierDisponible(ligne, aujourdHui))) preparerMoteurPdfLocal();
-  return <RappelsLoyersInteractifs envoiRelanceDisponible={!piloteLimite()} key={orgId} orgId={orgId} aujourdHui={aujourdHui} lectureSeule={lectureSeule} {...rappels} dus={dus} dansFenetre={dansFenetre} />;
+  // Audit palier 1 (P1-18) : le recommandé électronique n'est proposé que s'il est réellement relié pour cet espace.
+  const recommandeElectronique = !lectureSeule && await recommandeElectroniqueDisponible(supabase, orgId);
+  return <RappelsLoyersInteractifs envoiRelanceDisponible={!piloteLimite()} recommandeElectroniqueDisponible={recommandeElectronique} key={orgId} orgId={orgId} aujourdHui={aujourdHui} lectureSeule={lectureSeule} {...rappels} dus={dus} dansFenetre={dansFenetre} />;
 }

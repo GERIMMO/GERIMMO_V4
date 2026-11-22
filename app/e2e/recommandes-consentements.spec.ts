@@ -52,8 +52,14 @@ for(const largeur of [390,1440]) test.describe(`${largeur}px`,()=>{
   await page.getByText('Réception de mes documents',{exact:true}).click();
   const quittances=page.getByRole('form',{name:'Quittances et reçus de paiement'}),recommandes=page.getByRole('form',{name:'Recommandés électroniques'});
   await quittances.getByRole('button',{name:'J’accepte la réception électronique'}).click();await expect(quittances.getByText('Accord électronique enregistré',{exact:true})).toBeVisible();
-  await recommandes.getByRole('button',{name:'J’accepte la réception électronique'}).click();await expect(recommandes.getByText('Accord électronique enregistré',{exact:true})).toBeVisible();
+  // Audit palier 1 (P1-18) : le banc n'a aucun service de recommandé électronique relié — l'accord n'est pas demandé.
+  await expect(recommandes).toHaveCount(0);
+  // Un accord donné auparavant (fixture explicite) reste visible, pour être retiré seulement.
+  await pageLocataire.waitForLoadState('networkidle');
+  await db.query("update consentements_documents_locataire set recommandes_electroniques=true,recommandes_modifie_le=now() where organization_id=$1 and person_id=$2",[ORG,personne]);
   await rechargerApresFixture(page);await page.getByText('Réception de mes documents',{exact:true}).click();await expect(quittances.getByRole('button',{name:'Retirer mon accord'})).toBeVisible();
+  await expect(recommandes.getByText('Accord électronique enregistré',{exact:true})).toBeVisible();await expect(recommandes.getByRole('button',{name:'Retirer mon accord'})).toBeVisible();
+  await expect(recommandes.getByRole('button',{name:'J’accepte la réception électronique'})).toHaveCount(0);
   await quittances.getByRole('button',{name:'Retirer mon accord'}).click();await expect(quittances.getByText('Aucun accord électronique enregistré',{exact:true})).toBeVisible();
   expect((await db.query('select quittances_electroniques,recommandes_electroniques from consentements_documents_locataire where person_id=$1',[personne])).rows[0]).toEqual({quittances_electroniques:false,recommandes_electroniques:true});
   await pageLocataire.waitForLoadState('networkidle');
@@ -75,8 +81,10 @@ for(const largeur of [390,1440]) test.describe(`${largeur}px`,()=>{
   await expect(ligne.getByRole('button',{name:'Préparer l’envoi du recommandé AR24',exact:true})).toHaveCount(0);
   await ligne.getByRole('button',{name:'Pas encore reçu',exact:true}).click();
   await ligne.getByRole('button',{name:'Confirmer : pas encore reçu',exact:true}).click();
-  await ligne.getByRole('button',{name:'Préparer l’envoi du recommandé AR24',exact:true}).click();
-  await expect(ligne.getByRole('alert')).toContainText('L’envoi AR24 n’est pas encore activé');
+  // Audit palier 1 (P1-18) : service non relié — seul le courrier en PDF est proposé, plus aucun bouton AR24.
+  await expect(ligne.getByRole('button',{name:'Générer le recommandé en PDF',exact:true})).toBeVisible();
+  await expect(ligne.getByRole('button',{name:'Préparer l’envoi du recommandé AR24',exact:true})).toHaveCount(0);
+  await expect(ligne).not.toContainText('Recommandé AR24 disponible');
   await expect(ligne.getByRole('button',{name:/Confirmer l’envoi/})).toHaveCount(0);
   expect((await db.query('select 1 from recommandes_ar24 where bail_id=$1',[bail])).rowCount).toBe(0);
   expect(await debordementHorizontal(page)).toBe(0);expect((await new AxeBuilder({page}).include('[aria-labelledby="reception-loyers-titre"]').analyze()).violations).toEqual([]);

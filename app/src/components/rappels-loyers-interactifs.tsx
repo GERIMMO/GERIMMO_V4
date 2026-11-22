@@ -28,9 +28,9 @@ const dateLongue = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris",
 });
 
-export function RappelsLoyersInteractifs({ orgId, aujourdHui, dus, totalEcheancesDues, lectureSeule, envoiRelanceDisponible = false, dansFenetre = false }: {
+export function RappelsLoyersInteractifs({ orgId, aujourdHui, dus, totalEcheancesDues, lectureSeule, envoiRelanceDisponible = false, recommandeElectroniqueDisponible = false, dansFenetre = false }: {
   orgId: string; aujourdHui: string; dus: RappelLoyer[]; prochaine: RappelLoyer | null; totalEcheancesDues: number; lectureSeule: boolean;
-  envoiRelanceDisponible?: boolean; dansFenetre?: boolean;
+  envoiRelanceDisponible?: boolean; recommandeElectroniqueDisponible?: boolean; dansFenetre?: boolean;
 }) {
   const session = useContext(SessionVerifications);
   const [retours, setRetours] = useState<Record<string, { session: number; ligne: RappelLoyer; bilan: BilanReception }>>({});
@@ -77,6 +77,7 @@ export function RappelsLoyersInteractifs({ orgId, aujourdHui, dus, totalEcheance
         <ul className={styles.liste}>{lignes.map(ligne => (
           <ReceptionLoyer key={`${ligne.appel_id}:${ligne.montant_couvert}`} orgId={orgId} ligne={ligne}
             aujourdHui={aujourdHui} lectureSeule={lectureSeule} envoiRelanceDisponible={envoiRelanceDisponible}
+            recommandeElectroniqueDisponible={recommandeElectroniqueDisponible}
             bilan={retours[ligne.appel_id]?.session === session ? retours[ligne.appel_id].bilan : undefined}
             solde={!attentes.has(ligne.appel_id)} onSucces={memoriser} />
         ))}</ul>
@@ -106,9 +107,9 @@ function JustificatifReception({ bilan, hrefBail }: { bilan: BilanReception; hre
   </div>;
 }
 
-function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDisponible, bilan, solde, onSucces }: {
+function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDisponible, recommandeElectroniqueDisponible, bilan, solde, onSucces }: {
   orgId: string; ligne: RappelLoyer; aujourdHui: string; lectureSeule: boolean;
-  envoiRelanceDisponible: boolean; bilan?: BilanReception; solde: boolean; onSucces: (ligne: RappelLoyer, resultat: EtatReceptionLoyer) => void;
+  envoiRelanceDisponible: boolean; recommandeElectroniqueDisponible: boolean; bilan?: BilanReception; solde: boolean; onSucces: (ligne: RappelLoyer, resultat: EtatReceptionLoyer) => void;
 }) {
   const [choix, setChoix] = useState<"recu" | "partiel" | "non_recu" | null>(null);
   const [cle, setCle] = useState("");
@@ -212,7 +213,7 @@ function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDi
         <div className={styles.choix}><BoutonGenererDocument key={courrier} orgId={orgId} code={courrier === "relance_1" ? "relance_simple" : "seconde_relance"} cibleId={ligne.bail_id}
           cheminRetour={`/espace/${orgId}`} libelle={courrier === "relance_1" ? "Préparer la première relance en PDF" : "Préparer la deuxième relance en PDF"} /></div></details>
       </>}
-      {courrier === "recommande" && <PreparationRecommande orgId={orgId} ligne={ligne} />}
+      {courrier === "recommande" && <PreparationRecommande orgId={orgId} ligne={ligne} electronique={recommandeElectroniqueDisponible} />}
       </>}<Link className={styles.lienSuivi} href={`/espace/${orgId}/baux/${ligne.bail_id}#relances`}>Suivre les relances dans le bail</Link></div>
     </div>}
     {etat.erreur && <p className="err mt-3" role="alert">{etat.erreur}</p>}
@@ -240,13 +241,17 @@ function EnvoiRelance({ orgId, ligne, niveau }: { orgId: string; ligne: RappelLo
   </form>;
 }
 
-function PreparationRecommande({ orgId, ligne }: { orgId: string; ligne: RappelLoyer }) {
+// Audit palier 1 (P1-18) : l'envoi électronique (AR24) n'apparaît que s'il est relié pour cet espace (`electronique`).
+// Sinon, seul le courrier en PDF est proposé : un bouton qui répondait « pas encore activé » n'aidait personne.
+function PreparationRecommande({ orgId, ligne, electronique }: { orgId: string; ligne: RappelLoyer; electronique: boolean }) {
   const [delai, setDelai] = useState("15");
   const uid = useId();
   const valide = /^\d+$/.test(delai) && Number(delai) >= 1 && Number(delai) <= 90;
   return <div className={styles.recommande}>
-    <div className={styles.disponible}><Info size={17} aria-hidden="true" /><strong>Recommandé AR24 disponible</strong></div>
-    <RecommandeElectronique orgId={orgId} bailId={ligne.bail_id} delai={Number(delai)} libelle="Préparer l’envoi du recommandé AR24" />
+    {electronique && <>
+      <div className={styles.disponible}><Info size={17} aria-hidden="true" /><strong>Recommandé AR24 disponible</strong></div>
+      <RecommandeElectronique orgId={orgId} bailId={ligne.bail_id} delai={Number(delai)} libelle="Préparer l’envoi du recommandé AR24" />
+    </>}
     <div className={styles.choix}>{valide ? <BoutonGenererDocument key={delai} orgId={orgId} code="mise_en_demeure" cibleId={ligne.bail_id} cheminRetour={`/espace/${orgId}`} libelle="Générer le recommandé en PDF" options={{ delai }} /> : <p role="alert">Indiquez un nombre entier de 1 à 90 jours.</p>}</div>
     <details><summary>Délai de règlement · {delai} jours</summary>
     <label htmlFor={`${uid}-delai`}>Délai de règlement (jours)<input id={`${uid}-delai`} type="number" min="1" max="90" step="1" value={delai} onChange={event => setDelai(event.target.value)} aria-describedby={`${uid}-aide`} /></label>

@@ -20,6 +20,7 @@ import { FormulaireAttestation } from "../formulaire-attestation";
 import { DepotSignature } from "./depot-signature";
 import { DepotPiece, type DemandePiece } from "./depot-piece";
 import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
+import { recommandeElectroniqueConfigure } from "@/lib/recommande-disponible";
 
 export const metadata = { title: "Mes documents" };
 
@@ -322,7 +323,7 @@ export default async function PageDocumentsLocataire(
         </p>
       </div></> },
         ].sort((a, b) => Number(b.id === "documents-disponibles") - Number(a.id === "documents-disponibles"))} />
-      {personne && ((accord?.error || destinataire?.error) ? <p role="alert" className="err">Vos préférences de réception ne peuvent pas être chargées. Réessayez avant de les modifier.</p> : <ConsentementsDocuments key={adresseReception || "sans-email"} orgId={orgId} retraitSeulement={!adhesionActive} email={adresseReception} quittances={adresseAccordValide && accord?.data?.quittances_electroniques === true} recommandes={adresseAccordValide && accord?.data?.recommandes_electroniques === true} />)}
+      {personne && ((accord?.error || destinataire?.error) ? <p role="alert" className="err">Vos préférences de réception ne peuvent pas être chargées. Réessayez avant de les modifier.</p> : <ConsentementsDocuments key={adresseReception || "sans-email"} orgId={orgId} retraitSeulement={!adhesionActive} recommandesProposes={recommandeElectroniqueConfigure()} email={adresseReception} quittances={adresseAccordValide && accord?.data?.quittances_electroniques === true} recommandes={adresseAccordValide && accord?.data?.recommandes_electroniques === true} />)}
 
     </div>
   );

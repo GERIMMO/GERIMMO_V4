@@ -97,7 +97,7 @@ test("devis : l'artisan annonce sa garantie ; elle est sur le PDF et le proprié
     await expect(page.locator("[data-garantie-annoncee]")).toContainText(`Garantie annoncée : ${GARANTIE}`);
     await page.locator('[name="validation_artisan"]').check();
     await page.getByRole("button", { name: "Valider et générer le PDF", exact: true }).click();
-    await expect(page.getByRole("status").filter({ hasText: "PDF validé et enregistré" })).toBeVisible({ timeout: 120_000 });
+    await expect(page.getByText("PDF validé et enregistré. Passez à l’envoi", { exact: false })).toBeVisible({ timeout: 120_000 });
     // La saisie validée, celle que la base recopie à l'envoi, porte la garantie.
     const { rows: [prepare] } = await db.query("select statut, saisie->>'garantie' garantie from artisan_devis_preparations where sollicitation_id=$1", [demande]);
     expect(prepare).toEqual({ statut: "valide", garantie: GARANTIE });

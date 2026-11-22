@@ -10,7 +10,8 @@
  *  - notice d'information (P0-07) : le document et l'écran disent que c'est un résumé, qui ne remplace pas la notice
  *    officielle ;
  *  - congé du bailleur (P0-08) : « à faire relire » pour la vente et la reprise ; l'adresse du bénéficiaire et les
- *    raisons de la reprise ont leur place dans la lettre, en blanc à compléter si elles ne sont pas saisies ;
+ *    raisons de la reprise ont leur place dans la lettre ; non saisies, la lettre n'est pas générée (comme pour le nom
+ *    et le lien, déjà exigés) et l'écran le dit, sans renvoyer vers la fiche du locataire ;
  *  - cautionnement (P0-09) : rappel pour le bailleur en société.
  *  - facture créée depuis Gerimmo par l'artisan (P0-11) : l'écran dit que Gerimmo ne numérote pas et ne contrôle pas
  *    les mentions.
@@ -39,6 +40,8 @@ import { AVERTISSEMENT_RESUME_NOTICE, assemblerNotice } from "@/lib/documents/mo
 import { chargerContexteBail } from "@/lib/documents/modeles/communs";
 import { OPTIONS_CATALOGUE } from "@/lib/documents/catalogue-options";
 import { CATALOGUE_DOCUMENTS } from "@/lib/documents/catalogue";
+import { refusDocumentIncomplet } from "@/lib/documents/completude";
+import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 
 const texteDe = (html: string) =>
   html.replace(/<[^>]+>/g, " ").replace(/&#x27;|&#39;|&apos;|’/g, "'").replace(/&amp;/g, "&").replace(/[  ]/g, " ").replace(/\s+/g, " ");
@@ -144,11 +147,34 @@ describe("P0-08 — congé du bailleur pour vente ou pour reprise", () => {
     expect(manquants).not.toContain("raisons de la reprise");
   });
 
-  it("reprise : non saisies, elles s'impriment en blanc à compléter et remontent dans les « à compléter » — rien n'est bloqué", async () => {
+  it("reprise : non saisies, elles sont comptées manquantes et la lettre n'est PAS générée — pas de lettre avec des blancs", async () => {
     const { texte, manquants } = await assembler({ motif: "reprise", beneficiaire_nom: "Marie Dupont", beneficiaire_lien: "fille du bailleur" });
     expect(texte).toContain("demeurant adresse du bénéficiaire de la reprise .");
     expect(texte).toContain("Raisons de la reprise : raisons de la reprise .");
     expect(manquants).toEqual(expect.arrayContaining(["adresse du bénéficiaire de la reprise", "raisons de la reprise"]));
+    // Ce que fait l'action de génération de cette liste : elle refuse le PDF et nomme ce qui manque.
+    const refus = refusDocumentIncomplet({ manquants });
+    expect(refus?.erreur).toMatch(/^PDF non généré : 2 informations sont encore obligatoires\./);
+    expect(refus?.manquants).toEqual(["adresse du bénéficiaire de la reprise", "raisons de la reprise"]);
+  });
+
+  it("reprise complète : plus rien ne manque, la lettre peut être générée", async () => {
+    const { manquants } = await assembler({
+      motif: "reprise", beneficiaire_nom: "Marie Dupont", beneficiaire_lien: "fille du bailleur",
+      beneficiaire_adresse: "12 rue des Lilas, 69003 Lyon", raisons_reprise: "Elle s'installe à Lyon pour son travail",
+    });
+    expect(refusDocumentIncomplet({ manquants })).toBeNull();
+  });
+
+  it("ce qui manque au congé se saisit dans le formulaire du congé : aucun renvoi vers la fiche du locataire", () => {
+    const liens = [{ entite: "bail" as const, entiteId: "b1" }, { entite: "personne" as const, entiteId: "locataire-1" }];
+    for (const manquant of ["nom du bénéficiaire de la reprise", "lien avec le bailleur", "adresse du bénéficiaire de la reprise", "raisons de la reprise", "motif invoqué"]) {
+      expect(lienPourManquant(manquant, "org", liens, "conge_bailleur"), manquant).toBeNull();
+      expect(lienPourManquant(manquant, "org", liens, "conge_bailleur", "/espace"), manquant).toBeNull();
+    }
+    // Les autres manquants du congé gardent leur renvoi, et les autres modèles ne changent pas.
+    expect(lienPourManquant("adresse complète, étage, porte", "org", [{ entite: "bail", entiteId: "b1" }, { entite: "lot", entiteId: "l1" }], "conge_bailleur")?.ecran).toBe("fiche du bien");
+    expect(lienPourManquant("lien avec le bailleur", "org", liens, "cautionnement")?.ecran).toBe("fiche de la personne");
   });
 
   it("ce qui est saisi est échappé : une adresse ne peut pas injecter de balise dans la lettre", async () => {
@@ -187,6 +213,9 @@ describe("P0-08 — congé du bailleur pour vente ou pour reprise", () => {
     expect(ecran).toContain('id="conge-b-raisons"');
     expect(ecran).toContain("beneficiaire_adresse: beneficiaireAdresse.trim()");
     expect(ecran).toContain("raisons_reprise: raisonsReprise.trim()");
+    // L'écran dit ce qui se passe vraiment (la première rédaction annonçait des blancs « à compléter à la main » : faux).
+    expect(ecran).toContain("Gerimmo ne génère pas la lettre tant que le nom du bénéficiaire, son lien avec vous, son adresse et les raisons de la reprise ne sont pas renseignés.");
+    expect(ecran).not.toContain("en blanc");
   });
 });
 

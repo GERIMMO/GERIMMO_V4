@@ -152,6 +152,10 @@ export function lienPourManquant(
   // D39 : le détail des dépenses d'une régularisation se saisit dans le formulaire de génération lui-même. Aucun écran du dossier ne le porte :
   // l'envoyer à la fiche du bail (repli ci-dessous) ferait chercher un champ qui n'y existe pas.
   if (l.includes("détail des dépenses par nature")) return null;
+  // Congé du bailleur (audit palier 1, P0-08) : le bénéficiaire d'une reprise, son lien, son adresse, les raisons et le
+  // motif invoqué se saisissent dans le formulaire du congé lui-même. Le repli « fiche de la personne » enverrait
+  // chercher l'adresse du bénéficiaire sur la fiche du LOCATAIRE.
+  if (modele === "conge_bailleur" && ["bénéficiaire de la reprise", "lien avec le bailleur", "raisons de la reprise", "motif invoqué"].some((m) => l.includes(m))) return null;
 
   // « nombre » (pièces principales du bail type) est un libellé d'un seul mot :
   // en fragment il matcherait trop large, on le prend en égalité stricte

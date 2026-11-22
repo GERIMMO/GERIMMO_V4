@@ -159,8 +159,9 @@ export async function assemblerCongeBailleur(
   const conditions = options?.conditions_vente?.trim();
 
   // Audit palier 1 (P0-08, 23/11/2026) : l'adresse du bénéficiaire et les raisons de la reprise ont leur place dans
-  // la lettre. Non saisies, elles s'impriment en blanc à compléter à la main et remontent dans les « à compléter » :
-  // rien n'est bloqué (le texte officiel n'a pas pu être relu ; règle du plan : avertir plutôt que bloquer sans base).
+  // la lettre. Non saisies, elles sont comptées manquantes, comme le nom et le lien du bénéficiaire l'étaient déjà :
+  // le PDF n'est pas généré tant qu'elles ne sont pas renseignées (une lettre de reprise ne sort pas avec des blancs).
+  // Le texte officiel n'a pas pu être relu : la liste des mentions reste une question au juriste (JURISTE.md, 38).
   let blocMotif: string;
   if (motif === "vente") {
     blocMotif = meuble

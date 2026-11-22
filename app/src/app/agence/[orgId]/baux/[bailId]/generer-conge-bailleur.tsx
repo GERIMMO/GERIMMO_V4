@@ -184,7 +184,7 @@ export function GenererCongeBailleur({
           comporter des mentions précises et reproduire certains textes ; un congé incomplet peut être annulé. Gerimmo
           n’a pas pu comparer ce modèle au texte officiel : il ne garantit pas qu’il soit complet. Faites-le relire
           (ADIL, avocat, commissaire de justice) avant de l’envoyer.
-          {motif === "reprise" && " L’adresse du bénéficiaire et les raisons de la reprise, laissées vides, s’impriment en blanc à compléter à la main."}
+          {motif === "reprise" && " Gerimmo ne génère pas la lettre tant que le nom du bénéficiaire, son lien avec vous, son adresse et les raisons de la reprise ne sont pas renseignés."}
         </p>
       )}
       {prixManquant && (

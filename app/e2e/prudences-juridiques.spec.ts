@@ -129,9 +129,22 @@ test("pièces demandées, notice, cautionnement et congé : Gerimmo avertit et d
     await motif.selectOption("reprise");
     await expect(aRelire).toHaveAttribute("data-conge-a-faire-relire", "reprise");
     await expect(aRelire).toContainText("Un congé pour reprise doit comporter des mentions précises");
-    await expect(aRelire).toContainText("L’adresse du bénéficiaire et les raisons de la reprise, laissées vides, s’impriment en blanc à compléter à la main.");
+    await expect(aRelire).toContainText("Gerimmo ne génère pas la lettre tant que le nom du bénéficiaire, son lien avec vous, son adresse et les raisons de la reprise ne sont pas renseignés.");
     const adresse = page.locator("#conge-b-adresse:visible");
     const raisons = page.locator("#conge-b-raisons:visible");
+    // Par exécution : nom et lien saisis, adresse et raisons vides → la lettre est refusée. L'écran nomme ce qui manque,
+    // sans envoyer chercher l'adresse du bénéficiaire sur la fiche du locataire. Un refus ne crée rien.
+    await page.locator("#conge-b-beneficiaire:visible").fill("Marie Dupont");
+    await page.locator("#conge-b-lien:visible").fill("fille du bailleur");
+    await page.locator("button:visible", { hasText: "Générer le congé (PDF)" }).click();
+    const aRenseigner = page.locator("span:visible", { hasText: "À renseigner avant de générer le PDF" }).last();
+    await expect(aRenseigner).toContainText("adresse du bénéficiaire de la reprise", { timeout: 30_000 });
+    await expect(aRenseigner).toContainText("raisons de la reprise");
+    await expect(aRenseigner).not.toContainText("nom du bénéficiaire de la reprise");
+    await expect(aRenseigner.locator("a", { hasText: "fiche de la personne" })).toHaveCount(0);
+    await expect(page.locator("span.text-destructive:visible", { hasText: "PDF non généré" })).toBeVisible();
+    await tientDansLEcran(page, aRenseigner);
+    await page.screenshot({ path: info.outputPath("prudences-conge-reprise-refus.png"), fullPage: true });
     await adresse.fill("12 rue des Lilas, 69003 Lyon");
     await raisons.fill("Elle s’installe à Lyon pour son travail");
     await expect(adresse).toHaveValue("12 rue des Lilas, 69003 Lyon");

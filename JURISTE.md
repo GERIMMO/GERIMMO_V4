@@ -134,3 +134,13 @@ Une question fermée (oui ou non) par point.
 4. Gerimmo peut-il continuer à produire des factures au nom d'un artisan avant d'avoir tranché la facturation
    électronique, ou doit-il se limiter au dépôt de la facture émise par l'outil de l'artisan ?
 5. L'acompte au devis doit-il être prévu, et avec quelles mentions ?
+6. **Facture refusée par le client, puis corrigée (lot 11, P1-03).** Quand le gestionnaire refuse une facture, Gerimmo
+   la garde au dossier telle quelle (pièce, numéro, montant, motif du refus) et laisse l'artisan en déposer une autre.
+   Si la facture refusée avait été **établie depuis Gerimmo**, son numéro reste réservé : la facture corrigée doit
+   porter un autre numéro. Si elle avait été **déposée** depuis l'outil de l'artisan, Gerimmo accepte que la nouvelle
+   pièce porte le même numéro. Questions : (a) une facture refusée par le client doit-elle être annulée par un avoir
+   (ou une facture rectificative) avant d'en émettre une autre, et Gerimmo doit-il l'exiger ou seulement le rappeler à
+   l'artisan ? (b) accepter une seconde pièce portant le même numéro qu'une facture déposée puis refusée est-il
+   admissible, ou faut-il imposer un numéro différent dans tous les cas ? En attendant : Gerimmo n'efface rien, ne
+   présente pas ce parcours comme conforme, et l'écran de l'artisan lui dit seulement que la facture refusée garde
+   son numéro.

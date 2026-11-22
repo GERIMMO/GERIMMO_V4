@@ -121,6 +121,15 @@ test("envois automatiques : l'accord du propriétaire pour l'avis d'échéance n
   const fermerTout = () => db.query("update public.envois_automatiques_reglage set avis_echeance = false, relance_loyer = false, rappel_rendez_vous = false, relance_invitation = false");
   const accord = async () => (await db.query("select appels_envoi_auto a from public.organizations where id = $1", [ORG_PROPRIETAIRE])).rows[0].a as boolean;
   const accordInitial = await accord();
+  // Le profil du propriétaire du banc n'a ni adresse ni e-mail de contact : le formulaire refuserait de s'enregistrer.
+  // On les complète le temps du parcours (comme parcours-locataire), puis on rend les valeurs d'origine.
+  const profilInitial = (await db.query("select address_line1, postal_code, city, email_contact from public.organizations where id = $1", [ORG_PROPRIETAIRE])).rows[0];
+  const poserProfil = async (p: { address_line1: string | null; postal_code: string | null; city: string | null; email_contact: string | null }) => {
+    await db.query("begin"); await db.query("select public.tache_systeme()");
+    await db.query("update public.organizations set address_line1 = $2, postal_code = $3, city = $4, email_contact = $5 where id = $1",
+      [ORG_PROPRIETAIRE, p.address_line1, p.postal_code, p.city, p.email_contact]);
+    await db.query("commit");
+  };
   const poserAccord = async (valeur: boolean) => {
     await db.query("begin"); await db.query("select public.tache_systeme()");
     await db.query("update public.organizations set appels_envoi_auto = $2 where id = $1", [ORG_PROPRIETAIRE, valeur]);
@@ -135,6 +144,10 @@ test("envois automatiques : l'accord du propriétaire pour l'avis d'échéance n
   try {
     await fermerTout();
     await poserAccord(false);
+    await poserProfil({
+      address_line1: profilInitial.address_line1 ?? "3 place de la Mairie", postal_code: profilInitial.postal_code ?? "75004",
+      city: profilInitial.city ?? "Paris", email_contact: profilInitial.email_contact ?? "contact.essai@example.invalid",
+    });
 
     // ── 1. Envoi fermé : le profil du propriétaire dit « suspendu » et ne demande aucun accord.
     await proprietaire.goto(profil);
@@ -198,6 +211,7 @@ test("envois automatiques : l'accord du propriétaire pour l'avis d'échéance n
     await fermerTout().catch((e) => console.warn("Remise à « tout fermé » impossible :", (e as Error).message));
     await db.query("rollback").catch(() => {});
     await poserAccord(accordInitial).catch(async (e) => { await db.query("rollback").catch(() => {}); console.warn("Accord initial non rétabli :", (e as Error).message); });
+    await poserProfil(profilInitial).catch(async (e) => { await db.query("rollback").catch(() => {}); console.warn("Profil initial non rétabli :", (e as Error).message); });
     await db.end();
     await admin.context().close();
     await proprietaire.context().close();

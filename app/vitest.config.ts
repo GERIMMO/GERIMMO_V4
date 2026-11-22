@@ -210,6 +210,9 @@ export const FICHIERS_EN_SERIE = [
   // Date de bascule du 20/11 : rejeu de 20261120200000 et de son retour (colonne de baux retirée puis reposée,
   // create or replace de generer_appels_loyer_interne) dans la transaction du test.
   "tests/loyers-suivis-depuis-base.test.ts",
+  // Décisions 2B et 3A du 22/11 : rejeu de 20261122090000 et de son retour (create or replace de
+  // bail_blocages_mise_en_location et de activer_bail, que les deux fichiers ci-dessus rejouent aussi).
+  "tests/bail-repris-dpe-g-edl-base.test.ts",
 ];
 
 export default defineConfig({

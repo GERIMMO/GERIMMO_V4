@@ -394,6 +394,12 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // l'affiche en tête, chaque étape pointant vers sa carte. 3 étapes maximum :
   // au-delà, la liste redevient du bruit.
   const edlEntreeSigne = (edls ?? []).some((e) => e.type === "entree" && e.etat === "signe");
+  // Décision 3A du 22/11/2026 : un bail repris en cours — mois d'entrée antérieur à celui de son activation — n'attend
+  // pas d'état des lieux d'entrée, l'entrée ayant eu lieu avant Gerimmo. Activé : la date de bascule posée par la base
+  // le dit ; encore en brouillon : ce qu'elle posera au dépôt du contrat (premierMoisSuivi).
+  const edlEntreeAttendu = bail.etat === "brouillon"
+    ? basculeIndisponible || premierMoisSuivi(bail.date_debut, aujourdhuiParis()) === null
+    : !loyersSuivisDepuis;
   const edlSortieSigne = (edls ?? []).some((e) => e.type === "sortie" && e.etat === "signe");
   const depotEncaisse = ((depotEncaissements ?? []) as { montant: number }[]).reduce(
     (s, e) => s + Number(e.montant),
@@ -416,13 +422,13 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         texte: `Compléter les mentions obligatoires du contrat (${mentions.join(", ").toLowerCase()})`,
         href: "#corriger",
       });
-    if (!edlEntreeSigne && piecesDuLot === 0 && !bail.chambre_id)
+    if (edlEntreeAttendu && !edlEntreeSigne && piecesDuLot === 0 && !bail.chambre_id)
       aFaire.push({
         texte:
           "Déclarer les pièces du lot — sans elles, l'état des lieux ne distingue pas la cuisine de la chambre",
         href: `${base}/parc/${lot?.bien_id}/lots/${bail.lot_id}#pieces`,
       });
-    if (!edlEntreeSigne)
+    if (edlEntreeAttendu && !edlEntreeSigne)
       aFaire.push({ texte: "Réaliser et signer l'état des lieux d'entrée (à la remise des clés)", href: "#edl" });
     if (mentions.length === 0)
       aFaire.push({
@@ -432,7 +438,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   } else {
     // Déclarer les pièces vient AVANT l'état des lieux : une fois signé, il est
     // figé, et une grille sans pièces ne rattache aucune dégradation à un endroit.
-    if (!edlEntreeSigne && piecesDuLot === 0 && !bail.chambre_id)
+    if (edlEntreeAttendu && !edlEntreeSigne && piecesDuLot === 0 && !bail.chambre_id)
       aFaire.push({
         texte:
           "Déclarer les pièces du lot — sans elles, l'état des lieux ne distingue pas la cuisine de la chambre",
@@ -569,7 +575,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           </CardHeader>
           <CardContent className="space-y-4">
             {dejaEnCours && !bail.document_signe && lot?.etat === "brouillon" && <p className="text-sm" data-bail-deja-en-cours>
-              Ce bail a déjà commencé : le contrat signé suffit à l’activer. Le DPE et l’état des risques, s’ils manquent, ne bloquent pas ; ils restent signalés dans vos actions à mener.
+              Ce bail a déjà commencé : le contrat signé suffit à l’activer. Un DPE ou un état des risques manquant, ou un DPE classé G, ne bloquent pas ; ils restent signalés dans vos actions à mener.
             </p>}
             {moisBasculeAnnonce && !bail.document_signe && <p className="text-sm" data-loyers-suivis-a-partir>
               Gerimmo suivra les loyers à partir {deElide(moisBasculeAnnonce)} : ceux d’avant ne seront pas réclamés.

@@ -60,6 +60,19 @@ describe("la fiche du bail", () => {
     expect(indexEtapeBail("#bail-signe")).toBe(6);
   });
 
+  it("décision 2B du 22/11 : la fiche dit qu'un DPE classé G ne bloque pas un bail déjà commencé", () => {
+    expect(page).toContain("Un DPE ou un état des risques manquant, ou un DPE classé G, ne bloquent pas ; ils restent signalés dans vos actions à mener.");
+  });
+
+  it("décision 3A du 22/11 : un bail repris en cours ne se voit pas réclamer l'état des lieux d'entrée", () => {
+    expect(page).toContain('const edlEntreeAttendu = bail.etat === "brouillon"');
+    expect(page).toContain("? basculeIndisponible || premierMoisSuivi(bail.date_debut, aujourdhuiParis()) === null");
+    expect(page).toContain(": !loyersSuivisDepuis;");
+    // Les trois rappels liés à l'état des lieux d'entrée (pièces du lot avant et après l'activation, état des lieux
+    // avant l'activation) lisent ce drapeau ; le rappel d'après l'activation vient de lib/actions-attendues.ts.
+    expect(page.match(/edlEntreeAttendu && !edlEntreeSigne/g)).toHaveLength(3);
+  });
+
   it("les mentions obligatoires ferment toujours le dépôt : locataire, date d'entrée, loyer", () => {
     expect(page).toContain("Le dépôt reste fermé : ce bail n&apos;a pas encore toutes ses");
   });

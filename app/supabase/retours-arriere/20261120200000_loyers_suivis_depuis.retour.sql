@@ -11,7 +11,8 @@
 -- leur bascule suppose de garder cette migration).
 --
 -- LE CODE. La fiche du bail lit `loyers_suivis_depuis` par une lecture à part, tolérante : elle s'affiche sans la
--- colonne. Ce retour peut donc se jouer avant ou après la remise du code d'avant.
+-- colonne. Depuis le lot du 22/11/2026, lib/actions-attendues.ts la lit aussi dans sa lecture principale des baux :
+-- remettre le code d'AVANT le 22/11 avant de jouer ce retour, sinon l'accueil ne saurait plus lire les baux en cours.
 --
 -- Atomique et rejouable : une définition déjà rétablie est laissée ; une forme inattendue arrête tout sans rien changer.
 do $retour$

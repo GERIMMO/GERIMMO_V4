@@ -9,7 +9,8 @@
  * Ce que ces tests tiennent, en base :
  *  1. la définition (« date d'entrée strictement passée », jour de Paris), identique à l'écran (lib/baux.ts) ;
  *  2. un bail déjà en cours s'active depuis un logement jamais mis en location, sans DPE ni état des risques ;
- *  3. tout le reste bloque encore : entrée aujourd'hui ou future, mentions, contrat signé, détention, DPE classé G,
+ *  3. tout le reste bloque encore : entrée aujourd'hui ou future, mentions, contrat signé, détention,
+ *     (le DPE classé G ne bloque plus un bail déjà en cours depuis la décision 2B du 22/11/2026, migration 20261122090000)
  *     bail déjà en cours sur le lot, mandat d'une agence ;
  *  4. le logement ne devient « loué » que par un bail actif, et « brouillon → disponible » garde son contrôle complet ;
  *  5. les libellés que le filtre retire sont bien ceux de `lot_blocages_location` (sinon le blocage reviendrait) ;
@@ -35,10 +36,14 @@ const NOM = "20261120190000_bail_deja_en_cours";
 const MIGRATION = readFileSync(`supabase/migrations/${NOM}.sql`, "utf8");
 const RETOUR = readFileSync(`supabase/retours-arriere/${NOM}.retour.sql`, "utf8");
 const LISEZ_MOI = readFileSync("supabase/retours-arriere/LISEZ-MOI.md", "utf8");
+// La migration du 22/11 redéfinit `bail_blocages_mise_en_location` (un libellé de plus retiré). Rejouer celle du 20/11
+// la ramène à son corps d'origine : la chaîne se rejoue donc dans l'ordre, celle du 22/11 après celle du 20/11.
+const SUITE = readFileSync("supabase/migrations/20261122090000_bail_repris_dpe_g_et_edl_entree.sql", "utf8");
 
 const DPE_MANQUANT = "DPE absent ou expiré (obligatoire en habitation)";
 const ERP_MANQUANT = "ERP absent ou expiré (état des risques, validité 6 mois)";
 const DIAGNOSTIC_EXPIRE = "Un diagnostic déposé est expiré";
+const DPE_G = "DPE classe G : logement interdit à la location (loi Climat)";
 
 describe("la migration et son retour, à la lecture", () => {
   it("la migration nomme son retour, et le LISEZ-MOI des retours le recense", () => {
@@ -280,14 +285,34 @@ describe.skipIf(!DB_URL)("Bail déjà en cours : activation par le contrat sign�
     expect(await etats(bail, lot)).toEqual({ bail: "brouillon", lot: "brouillon" });
   });
 
-  it("un DPE classé G bloque toujours : la décision ne porte que sur les diagnostics manquants", async () => {
-    const { lot } = await logement();
-    await db.query(
-      `insert into public.diagnostics (organization_id, lot_id, type, date_realisation, date_expiration, classe_dpe)
-       values ($1,$2,'dpe', current_date - 30, current_date + 3000, 'G')`, [org, lot]);
-    const bail = await brouillon(lot, -730);
-    expect(await depot(bail)).toMatch(/Mise en location bloquée : DPE classe G/);
-    expect(await etats(bail, lot)).toEqual({ bail: "brouillon", lot: "brouillon" });
+  it("un DPE classé G bloque toujours un bail qui commence aujourd'hui ; plus un bail déjà en cours (décision 2B du 22/11/2026)", async () => {
+    /** Un logement dont le seul défaut est son DPE classé G (état des risques à jour). */
+    const logementClasseG = async () => {
+      const { lot, bien } = await logement();
+      await db.query(
+        `insert into public.diagnostics (organization_id, lot_id, type, date_realisation, date_expiration, classe_dpe)
+         values ($1,$2,'dpe', current_date - 30, current_date + 3000, 'G')`, [org, lot]);
+      await db.query(
+        `insert into public.diagnostics (organization_id, bien_id, type, date_realisation, date_expiration)
+         values ($1,$2,'erp', current_date - 10, current_date + 150)`, [org, bien]);
+      // Le logement, lui, ne se « met pas en location » : la règle du lot est intacte.
+      expect((await db.query(`select public.lot_blocages_location($1) as b`, [lot])).rows[0].b).toEqual([DPE_G]);
+      return lot;
+    };
+
+    const lotDuJour = await logementClasseG();
+    const duJour = await brouillon(lotDuJour, 0);
+    expect((await db.query(`select public.bail_blocages_mise_en_location($1) as b`, [duJour])).rows[0].b).toEqual([DPE_G]);
+    expect(await depot(duJour)).not.toBe("");
+    expect(await etats(duJour, lotDuJour)).toEqual({ bail: "brouillon", lot: "brouillon" });
+    // La mise en location elle-même est refusée pour ce motif.
+    expect(await refus(`update public.lots set etat='disponible' where id=$1`, [lotDuJour])).toMatch(/DPE classe G/);
+
+    const lotEnCours = await logementClasseG();
+    const enCours = await brouillon(lotEnCours, -730);
+    expect((await db.query(`select public.bail_blocages_mise_en_location($1) as b`, [enCours])).rows[0].b).toEqual([]);
+    expect(await depot(enCours)).toBe("");
+    expect(await etats(enCours, lotEnCours)).toEqual({ bail: "actif", lot: "loue" });
   });
 
   it("un seul bail en cours par logement, y compris pour deux baux déjà commencés", async () => {
@@ -345,13 +370,14 @@ describe.skipIf(!DB_URL)("Bail déjà en cours : activation par le contrat sign�
   });
 
   // ── 5. Le filtre et ses libellés ────────────────────────────────────────────────────────────────────
-  it("les trois libellés retirés sont ceux de lot_blocages_location, mot pour mot (sinon le blocage reviendrait)", async () => {
+  it("les quatre libellés retirés sont ceux de lot_blocages_location, mot pour mot (sinon le blocage reviendrait)", async () => {
     const { rows: [{ def }] } = await db.query(`select pg_get_functiondef('public.lot_blocages_location(uuid)'::regprocedure) as def`);
-    for (const libelle of [DPE_MANQUANT, ERP_MANQUANT, DIAGNOSTIC_EXPIRE]) expect(def, libelle).toContain(`'${libelle}'`);
+    for (const libelle of [DPE_MANQUANT, ERP_MANQUANT, DIAGNOSTIC_EXPIRE, DPE_G]) expect(def, libelle).toContain(`'${libelle}'`);
     const { rows: [{ filtre }] } = await db.query(`select pg_get_functiondef('public.bail_blocages_mise_en_location(uuid)'::regprocedure) as filtre`);
     expect(filtre).toContain(`not like 'DPE absent ou expiré%'`);
     expect(filtre).toContain(`not like 'ERP absent ou expiré%'`);
     expect(filtre).toContain(`<> '${DIAGNOSTIC_EXPIRE}'`);
+    expect(filtre).toContain(`not like 'DPE classe G%'`);
   });
 
   // ── 6. Le guide de démarrage ────────────────────────────────────────────────────────────────────────
@@ -410,11 +436,12 @@ describe.skipIf(!DB_URL)("Bail déjà en cours : activation par le contrat sign�
       where n.nspname = 'public' and p.proname in ('controler_mise_en_location','verifier_transition_lot','parcours_demarrage','bail_blocages_mise_en_location','bail_deja_en_cours','lot_blocages_location','activer_bail')
       order by 1`)).rows;
 
-  it("la migration se rejoue sans effet", async () => {
+  it("la migration se rejoue sans effet, suivie de celle du 22/11 qui redéfinit le filtre", async () => {
     await enTantQuePostgres();
     const avant = await empreintes();
     await db.query(MIGRATION);
     await db.query(MIGRATION);
+    await db.query(SUITE);
     expect(await empreintes()).toEqual(avant);
   });
 
@@ -444,6 +471,7 @@ describe.skipIf(!DB_URL)("Bail déjà en cours : activation par le contrat sign�
 
     await enTantQuePostgres();
     await db.query(MIGRATION);
+    await db.query(SUITE);
     expect(await empreintes()).toEqual(migre);
   });
 

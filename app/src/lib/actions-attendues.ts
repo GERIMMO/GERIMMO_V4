@@ -40,6 +40,8 @@ type BailEnCours = {
   etat: string;
   lot_id: string;
   chambre_id?: string | null;
+  /** Date de bascule (20/11/2026) : renseignée pour un bail repris en cours, dont l'entrée a eu lieu avant Gerimmo. */
+  loyers_suivis_depuis?: string | null;
   lot: UnOuPlusieurs<{
     id: string;
     nom: string;
@@ -107,7 +109,7 @@ export async function lireActionsAttendues(
 
   const { data: bauxBruts, error: erreurBaux } = await lectureCompleteSecurisee<BailEnCours>((debut, fin) => {
     let requeteBaux = supabase.from("baux").select(
-      "id, etat, lot_id, chambre_id, lot:lots(id, nom, bien_id, bien:biens!lots_bien_id_fkey(id, nom, type, annee_construction))", { count: "exact" },
+      "id, etat, lot_id, chambre_id, loyers_suivis_depuis, lot:lots(id, nom, bien_id, bien:biens!lots_bien_id_fkey(id, nom, type, annee_construction))", { count: "exact" },
     ).eq("organization_id", orgId).in("etat", ["actif", "preavis"]);
     if (bailId) requeteBaux = requeteBaux.eq("id", bailId);
     return requeteBaux.order("id").range(debut, fin);
@@ -148,9 +150,9 @@ export async function lireActionsAttendues(
           .eq("organization_id", orgId)
           .in("bail_id", ids).order("id").range(debut, fin)),
     bailIds.length
-      ? lectureCompleteSecurisee<{ id: string; type: string; lot_id: string | null; bien_id: string | null; date_realisation: string | null; date_expiration: string | null }>((debut, fin) => supabase
+      ? lectureCompleteSecurisee<{ id: string; type: string; lot_id: string | null; bien_id: string | null; date_realisation: string | null; date_expiration: string | null; classe_dpe: string | null }>((debut, fin) => supabase
           .from("diagnostics")
-          .select("id,type,lot_id,bien_id,date_realisation,date_expiration", { count: "exact" })
+          .select("id,type,lot_id,bien_id,date_realisation,date_expiration,classe_dpe", { count: "exact" })
           .eq("organization_id", orgId)
           .in("type", ["dpe", "erp"])
           .is("archived_at", null).order("id").range(debut, fin))
@@ -216,6 +218,7 @@ export async function lireActionsAttendues(
     bien_id: string | null;
     date_realisation: string | null;
     date_expiration: string | null;
+    classe_dpe?: string | null;
   }[]);
   // Les diagnostics d'un type déjà expirés parmi ceux déposés : ce sont eux
   // que la tâche de nuit a signalés par une alerte.
@@ -259,7 +262,9 @@ export async function lireActionsAttendues(
     }
 
     // État des lieux d'entrée : référence pour la comparaison à la sortie.
-    if (!erreurs.edls && !bailsAvecEdl.has(bail.id)) {
+    // Décision 3A du 22/11/2026 : pas pour un bail repris en cours (date de bascule renseignée) — l'entrée a eu lieu
+    // avant Gerimmo, et la base ne pose plus l'alerte correspondante à l'activation (20261122090000).
+    if (!erreurs.edls && !bailsAvecEdl.has(bail.id) && !bail.loyers_suivis_depuis) {
       edls.push({
         cle: `edl-${bail.id}`,
         titre: `État des lieux d'entrée à signer${surLeBail}`,
@@ -285,6 +290,20 @@ export async function lireActionsAttendues(
           href: `${base}/parc/${lot.bien_id}/lots/${lot.id}#diagnostics`,
           critique: false,
           diagnosticIds: expires("dpe", deposesLot),
+        });
+      }
+      // Décision 2B du 22/11/2026 : le DPE classé G ne bloque plus l'activation d'un bail déjà en cours ; il se
+      // signale ici. Même lecture que `lot_blocages_location` : un DPE non archivé du lot, classé G, en habitation.
+      if (
+        exigiblesLot.some((e) => e.type === "dpe") &&
+        deposesLot.some((d) => d.type === "dpe" && d.classe_dpe === "G")
+      ) {
+        diags.push({
+          cle: `dpe-g-${lot.id}`,
+          titre: `DPE classé G${surLeLot}`,
+          detail: "Un nouveau bail ne pourra pas être activé sur ce logement tant que son DPE reste classé G",
+          href: `${base}/parc/${lot.bien_id}/lots/${lot.id}#diagnostics`,
+          critique: false,
         });
       }
       if (!biensSignales.has(bien.id)) {

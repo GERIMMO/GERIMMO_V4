@@ -645,6 +645,7 @@ du dépôt (`finaliser_decompte`, `marquer_decompte_envoye`) est au jour de Pari
 
 **Ordre des retours.** Les deux retours sont indépendants entre eux (aucune fonction commune) ; ordre recommandé : `…821000` puis `…820000`. Ils se jouent
 **AVANT** le retour de `20261014500000`, qui refuse tant qu'un objet cite `aujourdhui_paris()` et nomme ces fonctions. Ordre complet si tout doit être défait :
+`20261122090000` (DPE classé G et état des lieux d'entrée d'un bail repris : `activer_bail` cite la fonction du jour ; à jouer avant le retour de la décision B du 20/11, qui retire `bail_blocages_mise_en_location`), puis
 `20261120200000` (date de bascule : `premier_mois_suivi` cite la fonction du jour ; le retour se refuse tant qu'un bail porte une date de bascule), puis
 `20261120190000` (bail déjà en cours : `bail_deja_en_cours` cite la fonction du jour ; aucune donnée modifiée, les baux activés entre-temps restent actifs), puis
 `20261117095320` (préserver les traces des invitations et des courriels acceptés), puis
@@ -1097,6 +1098,17 @@ cite `aujourdhui_paris()`. Une migration, un retour.
 
 | Retour | Migration | Condition |
 | --- | --- | --- |
-| `20261120200000_loyers_suivis_depuis.retour.sql` | `20261120200000_loyers_suivis_depuis.sql` | **Se refuse tant qu’un bail porte une date de bascule** (`baux.loyers_suivis_depuis` renseignée) : sans elle, le générateur rétabli appellerait d’un coup tous les loyers depuis l’entrée du locataire. Sinon : rend à `public.generer_appels_loyer_interne` sa forme d’avant (remplacement exact inverse, forme inattendue refusée sans rien changer), retire les déclencheurs `baux_loyers_suivis_depuis` et `regularisations_avant_bascule`, `public.poser_loyers_suivis_depuis()`, `public.refuser_regularisation_avant_bascule()`, `public.premier_mois_suivi(date)`, puis la colonne. La fiche du bail lit la colonne par une lecture tolérante : le code peut être remis avant ou après. |
+| `20261120200000_loyers_suivis_depuis.retour.sql` | `20261120200000_loyers_suivis_depuis.sql` | **Se refuse tant qu’un bail porte une date de bascule** (`baux.loyers_suivis_depuis` renseignée) : sans elle, le générateur rétabli appellerait d’un coup tous les loyers depuis l’entrée du locataire. Sinon : rend à `public.generer_appels_loyer_interne` sa forme d’avant (remplacement exact inverse, forme inattendue refusée sans rien changer), retire les déclencheurs `baux_loyers_suivis_depuis` et `regularisations_avant_bascule`, `public.poser_loyers_suivis_depuis()`, `public.refuser_regularisation_avant_bascule()`, `public.premier_mois_suivi(date)`, puis la colonne. La fiche du bail lit la colonne par une lecture tolérante. **Depuis le lot du 22/11**, `lib/actions-attendues.ts` la lit aussi dans sa lecture principale des baux : remettre le code d’avant le 22/11 **avant** ce retour, sinon l’accueil ne saurait plus lire les baux en cours. |
 
 Essais du 20/11/2026 sur le banc local (PostgreSQL 16, base reconstruite depuis les migrations, empreinte md5 de `generer_appels_loyer_interne` identique à celle relevée en production en lecture seule) : migration jouée deux fois (rejeu sans effet) ; retour → empreinte d’origine, colonne et déclencheurs retirés ; retour rejoué sans effet ; retour refusé quand un bail porte une date de bascule ; migration rejouée → empreinte migrée. `tests/loyers-suivis-depuis-base.test.ts` tient ces passages.
+
+## DPE classé G et état des lieux d’entrée d’un bail repris — 22 novembre 2026 (décisions 2B et 3A du dirigeant)
+
+En tête de la chaîne « Ordre complet » de la section « fuseau-suite » : `public.activer_bail(uuid)`, corrigée par cette
+migration, cite `aujourdhui_paris()`. Une migration, un retour, aucune donnée modifiée.
+
+| Retour | Migration | Condition |
+| --- | --- | --- |
+| `20261122090000_bail_repris_dpe_g_et_edl_entree.retour.sql` | `20261122090000_bail_repris_dpe_g_et_edl_entree.sql` | Rend à `public.activer_bail` sa forme d’avant (remplacement exact inverse, forme inattendue refusée sans rien changer) et à `public.bail_blocages_mise_en_location` son corps de `20261120190000`. À jouer **avant** le retour de `20261120190000` ; joué après, il ne recrée pas la fonction que celui-ci a retirée. Indépendant du retour de `20261120200000`. Les baux activés entre-temps restent actifs, y compris sur un logement classé G ; les alertes d’état des lieux non posées ne sont pas créées après coup. Remettre le code d’avant dans la foulée. |
+
+Essais du 22/11/2026 sur le banc local (PostgreSQL 16) : migration jouée deux fois (rejeu sans effet) ; retour → empreintes md5 de `activer_bail` et de `bail_blocages_mise_en_location` identiques à celles d’avant ; retour rejoué sans effet ; migration rejouée → empreintes migrées. `tests/bail-repris-dpe-g-edl-base.test.ts` tient ces passages. Limite : en production, `activer_bail` diffère du dépôt d’une ligne de commentaire (relevé du 20/11) ; l’ancre ne porte pas sur cette ligne, et la simulation du chantier « Migrations Supabase » le confirmera avant toute application.

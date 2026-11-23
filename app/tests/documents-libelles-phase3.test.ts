@@ -209,7 +209,9 @@ describe("C81 — documents d'incident : les libellés des écrans, pas les code
     const texte = texteDe(r.document.html);
     expect(texte).toContain("Non retenu");
     expect(texte).toContain("Retenu");
-    expect(texte).not.toMatch(/non_retenu|\bretenu\b/);
+    // Phase 3, lot 42 (C86) : la phrase finale dit désormais, en français, que le devis « a été retenu » ; le code de la base
+    // (« retenu », « non_retenu ») ne doit toujours pas apparaître ailleurs.
+    expect(texte.replace("a été retenu", "")).not.toMatch(/non_retenu|\bretenu\b/);
     expect(texte).toContain("1 × 45,00 € HT — TVA 10,00 % — 49,50 € TTC");
     expect(texte).toContain("1,5 × 60,00 € HT");
     expect(texte).not.toMatch(/\d\.\d{4,}/);

@@ -18,6 +18,7 @@ import Link from "next/link";
 import { chargerQuittancementDuMois } from "@/lib/quittancement-du-mois";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { baseEspace } from "@/lib/racine-espace";
+import { libelleCategorieEcriture } from "@/lib/categories-ecriture";
 
 // Un seul libellé pour l'onglet, le h1 et le h1 de la branche d'erreur.
 // 25/09 : le MÊME titre pour l'agent et l'admin d'agence — la même url
@@ -42,29 +43,9 @@ export async function generateMetadata(props: { params: Promise<{ orgId: string 
 // TOUT le journal. L'écran doit dire lequel des deux il montre.
 const LIGNES_JOURNAL = 200;
 
-// Les catégories posées par le système sont des codes (« depot_garantie ») :
-// affichés bruts, ils parlaient la langue de la base. Une catégorie saisie à
-// la main passe telle quelle, capitale en tête.
-const LIBELLES_CATEGORIE: Record<string, string> = {
-  loyer: "Loyer",
-  honoraires: "Honoraires",
-  depot_garantie: "Dépôt de garantie",
-  charges: "Charges",
-  travaux: "Travaux",
-  assurance: "Assurance",
-  taxe_fonciere: "Taxe foncière",
-  regularisation_charges: "Régularisation des charges",
-  // Solde de tout compte (audit métier du 27/09) : avance restituée au locataire
-  trop_percu_restitue: "Trop-perçu restitué",
-  reversement: "Reversement",
-};
-
-function libelleCategorie(categorie: string): string {
-  const connu = LIBELLES_CATEGORIE[categorie];
-  if (connu) return connu;
-  const texte = categorie.replace(/_/g, " ").trim();
-  return texte ? texte.charAt(0).toUpperCase() + texte.slice(1) : "Sans catégorie";
-}
+// Les catégories posées par le système sont des codes (« depot_garantie ») : la table des libellés vit dans
+// lib/categories-ecriture.ts, partagée avec les documents imprimés (phase 3, lot 42).
+const libelleCategorie = libelleCategorieEcriture;
 
 type Ecriture = {
   id: string;

@@ -330,7 +330,9 @@ describe("C82 — incident des parties communes (sans lot)", () => {
     t.incidents = [{ ...incident, lot_id: "l1" }];
     t.lots = [{ id: "l1", organization_id: "org", nom: "T2", bien_id: "bien" }];
     const html = succes(await assemblerComplementGestion("recap_incident", baseFiltrante(t).db, "org", "inc")).document.html;
-    expect(html).toContain('<div class="etiquette">Logement</div><div>T2 · 8 avenue des Essais · 69003 · Lyon</div>');
+    // Phase 3, lot 42 (C88) : le logement s'écrit comme dans les documents du bail (adresseLogement), étage et porte compris
+    // quand ils sont enregistrés ; il n'en donnait que le nom et l'adresse de l'immeuble, séparés par des points.
+    expect(html).toContain('<div class="etiquette">Logement</div><div>8 avenue des Essais, 69003 Lyon, T2</div>');
     expect(texteDe(html)).not.toContain("Parties communes");
   });
 });

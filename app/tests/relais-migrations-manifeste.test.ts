@@ -264,6 +264,9 @@ const MISSION_OCTOBRE = [
   "20261122235959_menage_droits_sans_politique.sql",
   // 23/11, audit palier 1 (P2-09) : plafond et abattement du micro-foncier sortis du code (réglage du superviseur).
   "20261123090000_reperes_fiscaux_reglage.sql",
+  // 23/11, phase 3 de la mission palier 1 (lot 42, C77) : la première mensualité d'une régularisation étalée tombe au moins un
+  // mois après l'émission.
+  "20261123150000_regularisation_premiere_mensualite.sql",
 
 
 ];

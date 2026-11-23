@@ -385,10 +385,13 @@ describe.skipIf(!DB_URL).each(TEMPS)("jour de Paris, la suite — $nom", (temps)
          from public.regularisations_charges where bail_id = $1 and annee = $2`,
       [m.bailC, annee - 2]
     );
+    // Phase 3, lot 42 (C77, migration 20261123150000) : la première mensualité n'est plus le 1er du mois qui suit le jour de
+    // Paris (parfois le lendemain), mais le premier 1er du mois au moins un mois après lui, la borne de l'échéancier de charges.
+    // Ce qui est tenu ici ne change pas : le calcul part du jour de PARIS.
     expect(reg).toEqual({
       emission: m.jour,
       tardive: true,
-      premiere: await date("date_trunc('month', $1::date) + interval '1 month'", [m.jour]),
+      premiere: await date("date_trunc('month', (($1::date + interval '1 month')::date - 1)::timestamp) + interval '1 month'", [m.jour]),
     });
   });
 

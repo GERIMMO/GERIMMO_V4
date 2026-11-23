@@ -1,7 +1,8 @@
 import { detailRapportGestion } from "./detail-rapport-gestion";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, titre, eur, facultatif, nombreFr, pointFinal, moisEnToutesLettres } from "../gabarit";
-import { ETATS_INCIDENT, IMPUTATIONS_INCIDENT, categorieIncident } from "@/lib/incidents";
+import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, tableau, titre, eur, facultatif, nombreFr, pointFinal, moisEnToutesLettres, formaterDateFr } from "../gabarit";
+import { ETATS_INCIDENT, IMPUTATIONS_INCIDENT, URGENCES_INCIDENT, categorieIncident } from "@/lib/incidents";
+import { libelleCategorieEcriture } from "@/lib/categories-ecriture";
 import { ETATS_MANDAT } from "@/lib/baux";
 import { NATURES_TRAVAUX, STATUTS_DEVIS, STATUTS_INTERVENTION } from "@/app/agence/[orgId]/artisans/referentiel";
 import { descriptionDevisLisible } from "@/lib/devis-structure";
@@ -31,6 +32,51 @@ export function libelleSoldeRegularisation(ecart: number): string {
 
 // « septembre 2026 » : l'utilitaire vit dans le gabarit (phase 3, lot 36) ; il reste exporté ici pour ses lecteurs existants.
 export { moisEnToutesLettres };
+
+// Phase 3, lot 42 (C77) : le jour qui tombe un mois après `jour` (AAAA-MM-JJ), à la manière de la base
+// (`jour + interval '1 month'`) : le 31/01 donne le 28/02 (ou le 29), jamais le 03/03.
+export function unMoisApres(jour: string): string {
+  const [a, m, j] = jour.slice(0, 10).split("-").map(Number);
+  const dernier = new Date(Date.UTC(a, m + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(a, m, Math.min(j, dernier))).toISOString().slice(0, 10);
+}
+
+// Phase 3, lot 42 (C77) : le courrier de régularisation annonçait le décompte « communiqué un mois avant la régularisation »
+// alors que la première mensualité d'un étalement tombait le 1er du mois suivant, parfois huit jours après. La phrase n'est
+// plus imprimée que si les dates du dossier la permettent : sans étalement, ou première mensualité au moins un mois après
+// l'envoi du document (la borne de `preparer_echeancier_charges`, que `regulariser_charges` applique aussi depuis la migration
+// 20261123150000). Une régularisation enregistrée avant garde ses mensualités (émise, elle ne se modifie pas) : son courrier
+// ne prétend plus au délai.
+export function delaiDecompteRespecte(etalement: unknown, envoi: string): boolean {
+  if (!Array.isArray(etalement) || !etalement.length) return true;
+  const premiere = texte((etalement[0] as Record<string, unknown> | null)?.echeance).slice(0, 10);
+  return premiere !== "" && premiere >= unMoisApres(envoi);
+}
+
+// Phase 3, lot 42 (C79) : un rendez-vous est un INSTANT. Il s'imprime au jour et à l'heure de Paris, comme sur les écrans
+// (« le 26/11/2026 de 9 h à 11 h ») ; `f.date` n'en gardait que le jour (« 26/11/2026 au 26/11/2026 »). Un jour seul
+// (AAAA-MM-JJ, sans heure) s'imprime sans heure. Espaces insécables dans l'heure : « 11 h » ne se coupe pas en fin de ligne.
+const HEURE_PARIS = new Intl.DateTimeFormat("fr-FR", { hour: "numeric", minute: "2-digit", hourCycle: "h23", timeZone: "Europe/Paris" });
+function heureParis(instant: string): string {
+  const parties = HEURE_PARIS.formatToParts(new Date(instant));
+  const h = Number(parties.find(p => p.type === "hour")?.value), m = parties.find(p => p.type === "minute")?.value ?? "00";
+  return m === "00" ? `${h}\u00a0h` : `${h}\u00a0h\u00a0${m}`;
+}
+export function creneauParis(debut: string, fin?: string | null): string {
+  if (debut.length <= 10) return fin && fin.slice(0, 10) !== debut ? `du ${formaterDateFr(debut)} au ${formaterDateFr(fin.slice(0, 10))}` : `le ${formaterDateFr(debut)}`;
+  if (!fin) return `le ${formaterDateFr(debut)} à ${heureParis(debut)}`;
+  return formaterDateFr(debut) === formaterDateFr(fin)
+    ? `le ${formaterDateFr(debut)} de ${heureParis(debut)} à ${heureParis(fin)}`
+    : `du ${formaterDateFr(debut)} à ${heureParis(debut)} au ${formaterDateFr(fin)} à ${heureParis(fin)}`;
+}
+
+// Phase 3, lot 42 (C95) : un récapitulatif d'une année qui n'est pas terminée (au jour de Paris) le dit, comme le journal d'un
+// mois ouvert (« Mois ouvert — document provisoire »). Il portait « Exercice 2026 », établi en novembre sur onze mois.
+export function mentionExerciceProvisoire(annee: number, aujourdhui: string): string {
+  const anneeEnCours = Number(aujourdhui.slice(0, 4));
+  if (annee > anneeEnCours) return "<p>Exercice non commencé — document provisoire.</p>";
+  return annee === anneeEnCours ? "<p>Exercice en cours — document provisoire.</p>" : "";
+}
 
 // Phase 3 (C81, C92) : les documents de gestion impriment les libellés que les écrans affichent, jamais les valeurs de la base
 // (« chauffage_panne », « planifiee », « proprietaire », « non_retenu », « depense »). Les tables viennent des écrans ; un code
@@ -145,9 +191,11 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     const champ = (cle:string,libelle:string) => f.champ(options[cle]?.trim()||null,libelle);
     const liens: LienDocument[] = [];
     let contenu = "", destinataire = "", logement = "", libelleLieu = "Logement", signatures = false;
+    // Phase 3, lot 42 (C88) : le logement s'écrit comme dans les documents du bail (adresseLogement), étage et porte compris ;
+    // l'ordre envoyé à l'artisan n'en donnait que le nom et l'adresse de l'immeuble.
     const lotConcerne = async (id:string) => {
       const lot = await unique("lots",id), bien = await unique("biens",texte(lot.bien_id));
-      logement = [lot.nom,bien.address_line1,bien.postal_code,bien.city].filter(Boolean).join(" · ");
+      logement = adresseLogement({ nom: texte(lot.nom), etage: texte(lot.etage) || null }, { address_line1: texte(bien.address_line1) || null, postal_code: texte(bien.postal_code) || null, city: texte(bien.city) || null });
       liens.push({entite:"lot",entiteId:id});
       return lot;
     };
@@ -189,11 +237,13 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       // La régularisation émise ne se modifie pas (RM-3.9.7) : rien n'est écrit. Un détail déjà porté par la régularisation sert de repli.
       const detailSaisi = (options.detail_depenses ?? "").trim();
       if (detailSaisi.length > 6000) throw new RefusDocument("Le détail des dépenses est trop long : 6 000 caractères au plus.");
+      // Phase 3, lot 42 (C97) : le justificatif du syndic est une pièce séparée, enregistrée dans le dossier ; il n'est pas dans ce
+      // PDF. « Justificatif annexé : …, à joindre » disait les deux à la fois.
       if (code !== "consultation_charges") contenu += `${section("Décompte et répartition")}
         <p>${f.champ(detailSaisi||texte(r.note)||null,"détail des dépenses par nature et clé de répartition")}</p>
-        <p>Justificatif annexé : ${r.justificatif_document ? "pièce enregistrée dans le dossier, à joindre" : f.champ(null,"décompte justificatif à déposer et joindre")}.</p>`;
+        <p>Justificatif : ${r.justificatif_document ? "pièce enregistrée dans le dossier, à joindre au courrier" : f.champ(null,"décompte justificatif à déposer et joindre")}.</p>`;
       contenu += `${section("Consultation des justificatifs")}<p>Modalités : ${champ("consultation","lieu ou accès, horaires et contact pour consulter les justificatifs")}${pointFinal(options.consultation)}</p>
-        <p>Le décompte par nature de charges et le mode de répartition sont communiqués un mois avant la régularisation. Les justificatifs restent à disposition pendant six mois à compter de l’envoi du décompte.</p>
+        <p>${delaiDecompteRespecte(r.etalement_12_mois, dateDocument) ? "Le décompte par nature de charges et le mode de répartition sont communiqués un mois avant la régularisation. " : ""}Les justificatifs restent à disposition pendant six mois à compter de l’envoi du décompte.</p>
         <p>Date du dossier : ${f.date(texte(r.date_emission))}. Ce PDF ne déclenche aucun prélèvement ni envoi.</p>`;
     } else if (code === "restitution_cles") {
       const edl = await unique("etats_des_lieux",cibleId);
@@ -214,7 +264,11 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const incident = await unique("incidents",intervention ? texte(intervention.incident_id) : cibleId);
       await lieuIncident(incident);
       // Les comptes rendus sont rattachés au lot. Leur visibilité suit la GED du lot.
+      // Phase 3, lot 42 (C89) : le récapitulatif dit quand l'incident a été signalé et son urgence (la date du constat, sinon celle
+      // de l'enregistrement, comme l'historique des incidents du bien).
+      const signaleLe = texte(incident.date_signalement) || texte(incident.created_at);
       contenu = `${section(`Incident ${texte(incident.numero)}`)}<p>Signalement : ${f.champ(texte(incident.description),"description du signalement")}${pointFinal(texte(incident.description))}</p>
+        ${code === "recap_incident" ? `<p>Signalé le ${f.date(signaleLe || null,"date du signalement")} ; urgence : ${facultatif(libelleDe(URGENCES_INCIDENT,incident.urgence))}.</p>` : ""}
         <p>Pièce : ${facultatif(texte(incident.piece))} ; catégorie : ${facultatif(libelleCategorie(incident.categorie))} ; état : ${f.champ(libelleDe(ETATS_INCIDENT,incident.etat),"état du dossier")}.</p>`;
       if (intervention) {
         const artisans = await lireLignes(db.from("artisans").select("raison_sociale,siret,telephone,email").eq("id",intervention.artisan_id).limit(1));
@@ -236,8 +290,19 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
           <p>État de la mission : ${f.champ(libelleDe(STATUTS_INTERVENTION,intervention.statut),"statut de la mission")} ; confiée le ${f.date(texte(intervention.confiee_le))}.</p>`;
         if (code === "ordre_intervention") {
           if (["annulee","refusee"].includes(texte(intervention.statut))) throw new RefusDocument("Cette mission a été annulée ou refusée. Préparez une nouvelle mission pour émettre un ordre d’intervention.");
-          contenu += `<p>Créneau prévu : ${f.date(texte(intervention.debut_prevu)||null,"début prévu")} au ${f.date(texte(intervention.fin_prevue)||null,"fin prévue")}.</p>
-            <p>Accès et personne à contacter : ${champ("acces","modalités d’accès et contact sur place")}${pointFinal(options.acces)}</p><p>Aucun travail supplémentaire n’est autorisé par ce document sans accord préalable du donneur d’ordre.</p>`;
+          // C79 : le créneau garde ses heures (heure de Paris). Début ou fin manquant : le document reste à compléter, comme avant.
+          const debut = texte(intervention.debut_prevu), fin = texte(intervention.fin_prevue);
+          // C80 : l'ordre dit quels travaux il commande, ceux du devis auquel la mission est rattachée (référence du PDF du devis,
+          // travaux en clair, montant TTC). « Aucun travail supplémentaire » n'avait sinon aucun périmètre.
+          const devisId = texte(intervention.devis_id);
+          const devis = devisId ? await unique("incident_devis", devisId) : null;
+          const travaux = devis
+            ? `<p>${devis.statut === "retenu" ? "Devis retenu" : `Devis rattaché (${facultatif(libelleDe(STATUTS_DEVIS,devis.statut))})`} ${referenceCourte("DEV",devisId)}, déposé le ${f.date(texte(devis.depose_le))}${devis.retenu_le ? ` et retenu le ${f.date(texte(devis.retenu_le))}` : ""} ; montant TTC : ${eur(montant(devis.montant_ttc_cents)/100)}.</p>
+              <p>${f.champ(descriptionDevisLisible(texte(devis.description)).trim()||null,"travaux du devis retenu").replace(/\r?\n/g,"<br>")}</p>`
+            : "<p>Aucun devis n’est rattaché à cette mission.</p>";
+          contenu += `<p>Créneau prévu : ${debut && fin ? creneauParis(debut, fin) : `${f.date(debut||null,"début prévu")} au ${f.date(fin||null,"fin prévue")}`}.</p>
+            <p>Accès et personne à contacter : ${champ("acces","modalités d’accès et contact sur place")}${pointFinal(options.acces)}</p>
+            ${section("Travaux commandés")}${travaux}<p>Aucun travail supplémentaire n’est autorisé par ce document sans accord préalable du donneur d’ordre.</p>`;
         } else {
           const crs = await lireLignes(lire("intervention_comptes_rendus").eq("intervention_id",cibleId).order("created_at",{ascending:false}));
           if (!crs.length) throw new RefusDocument("L’artisan doit déposer son compte rendu avant la génération du document.");
@@ -253,8 +318,39 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         const noms = new Map(artisans.map(a=>[a.id,a.raison_sociale]));
         // C78 : la description composée en SQL se lit en français (descriptionDevisLisible, comme l'écran), lignes conservées.
         contenu += lignesTableau(f,devis.map(d=>({...d,entreprise:noms.get(d.artisan_id),description:descriptionDevisLisible(texte(d.description)),montant:montant(d.montant_ttc_cents)/100,statut:libelleDe(STATUTS_DEVIS,d.statut)})),[["Entreprise","entreprise","texte"],["Prestation","description","lignes"],["TTC","montant","montant"],["Validité","valide_jusqu_au","date"],["Décision","statut","texte"]]);
-        contenu += "<p>Comparaison des offres déposées. Le choix reste soumis à la validation prévue dans le dossier ; ce document ne commande aucune prestation.</p>";
+        // C86 : la phrase suit l'état du dossier. Elle disait le choix « soumis à la validation » quand un devis était déjà retenu.
+        const retenu = devis.find(d=>d.statut==="retenu");
+        contenu += `<p>Comparaison des offres déposées. ${retenu
+          ? `Le devis de ${facultatif(texte(noms.get(retenu.artisan_id)))} (${eur(montant(retenu.montant_ttc_cents)/100)} TTC) a été retenu${retenu.retenu_le ? ` le ${f.date(texte(retenu.retenu_le))}` : ""}`
+          : "Le choix reste à faire"} ; ce document ne commande aucune prestation.</p>`;
       } else {
+        // C89 : le récapitulatif dit aussi le suivi tel que le dossier l'enregistre : devis, missions (entreprise, dates, état) et
+        // montant déclaré au compte rendu. Il n'en donnait que le signalement et la clôture.
+        const [devis, missions] = await Promise.all([
+          lireLignes(lire("incident_devis").eq("incident_id",cibleId).order("depose_le")),
+          lireLignes(lire("incident_interventions").eq("incident_id",cibleId).order("confiee_le")),
+        ]);
+        const idsArtisans = [...new Set([...devis,...missions].map(l=>texte(l.artisan_id)).filter(Boolean))], idsMissions = missions.map(m=>texte(m.id));
+        const [artisans, comptesRendus] = await Promise.all([
+          idsArtisans.length ? lireLignes(db.from("artisans").select("id,raison_sociale").in("id",idsArtisans)) : Promise.resolve([] as LigneDocument[]),
+          idsMissions.length ? lireLignes(lire("intervention_comptes_rendus").in("intervention_id",idsMissions)) : Promise.resolve([] as LigneDocument[]),
+        ]);
+        const nomArtisan = (id: unknown) => facultatif(texte(artisans.find(a=>texte(a.id)===texte(id))?.raison_sociale));
+        const retenu = devis.find(d=>d.statut==="retenu");
+        const phraseDevis = !devis.length ? "Aucun devis déposé." : `Devis déposés : ${devis.length} ; ${retenu
+          ? `devis retenu : ${nomArtisan(retenu.artisan_id)}, ${eur(montant(retenu.montant_ttc_cents)/100)} TTC${retenu.retenu_le ? `, le ${f.date(texte(retenu.retenu_le))}` : ""}`
+          : "aucun n’est retenu"}.`;
+        const lignesMissions = missions.map(m => {
+          const cr = comptesRendus.find(c=>texte(c.intervention_id)===texte(m.id));
+          return [nomArtisan(m.artisan_id), f.date(texte(m.confiee_le),"date de la mission"),
+            texte(m.debut_prevu) ? creneauParis(texte(m.debut_prevu), texte(m.fin_prevue)||null).replace(/^le /,"") : "à fixer",
+            texte(m.terminee_le) ? formaterDateFr(texte(m.terminee_le)) : "—",
+            facultatif(libelleDe(STATUTS_INTERVENTION,m.statut)),
+            !cr ? "pas encore déposé" : cr.montant_final_cents == null ? "non déclaré" : eur(montant(cr.montant_final_cents)/100)];
+        });
+        contenu += `${section("Suivi des travaux")}<p>${phraseDevis}</p>${lignesMissions.length
+          ? tableau([{libelle:"Entreprise"},{libelle:"Confiée le"},{libelle:"Rendez-vous"},{libelle:"Terminée le"},{libelle:"État"},{libelle:"Compte rendu",droite:true}],lignesMissions)
+          : "<p>Aucune mission confiée pour cet incident.</p>"}`;
         const imputation = incident.imputation ? libelleDe(IMPUTATIONS_INCIDENT, incident.imputation) : "";
         contenu += `${section("Décision et clôture")}<p>Imputation enregistrée : ${facultatif(imputation)}${pointFinal(imputation)}</p>
           <p>Justification : ${facultatif(texte(incident.imputation_justification))}${pointFinal(texte(incident.imputation_justification))}</p>
@@ -279,28 +375,38 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         else if (qualifie !== null) interetsEmprunt = qualifie;
         else throw new RefusDocument("Indiquez les intérêts d’emprunt de l’année, ou 0 si le logement n’a aucun emprunt.");
       } else {
+        // C96 : le récapitulatif meublé ne ventile rien (un total des recettes, un total des dépenses) ; la lecture des baux qui
+        // nourrissait une « ventilation » jamais calculée est retirée, et le texte ne l'annonce plus.
         const ecritures = await lireLignes(lire("ecritures").eq("lot_id",cibleId).gte("date_piece",debutAnnee).lt("date_piece",debutSuivante).order("date_piece"));
-        const baux = await lireLignes(lire("baux").eq("lot_id",cibleId));
-        fiscal = recapitulatifFiscal(ecritures as unknown as EcritureFiscale[],annee,{lotsMeubles:lot.meuble?new Set([cibleId]):new Set(),ventilationLoyers:new Map(baux.map(b=>[texte(b.id),{loyerHc:montant(b.loyer_hc),charges:montant(b.charges)}]))});
+        fiscal = recapitulatifFiscal(ecritures as unknown as EcritureFiscale[],annee,{lotsMeubles:lot.meuble?new Set([cibleId]):new Set()});
       }
-      contenu = `${section(`Exercice ${annee}`)}<p>Récapitulatif du lot à 100 %, avant ventilation entre propriétaires. Les dépôts de garantie sont exclus et les contre-écritures déduites. ${phrasePerimetreFiscal(fiscal,{tableau:code==="recap_fiscal_nu"})}</p>`;
+      contenu = `${section(`Exercice ${annee}`)}${mentionExerciceProvisoire(annee,aujourdhui)}<p>Récapitulatif du lot à 100 %, avant ventilation entre propriétaires. Les dépôts de garantie sont exclus et les contre-écritures déduites. ${phrasePerimetreFiscal(fiscal,{tableau:code==="recap_fiscal_nu"})}</p>`;
       if (lot.meuble) contenu += `<p>Recettes enregistrées : ${eur(fiscal.meuble.recettes)} ; dépenses enregistrées : ${eur(fiscal.meuble.depenses)}.</p><p>Les amortissements, emprunts et retraitements BIC sont à établir avec le comptable ; aucun résultat fiscal n’est certifié ici.</p>`;
-      else contenu += lignesTableau(f,fiscal.rubriques.map(r=>({...r,montant:r.code==="250"?interetsEmprunt:r.montant})),[["Rubrique","code","texte"],["Libellé","libelle","texte"],["Montant enregistré","montant","montant"]])+ecartInterets(interetsEmprunt,qualifie)+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p><p>Hors déclaration : ${eur(fiscal.chargesRecuperees)} de ${LIBELLE_RECETTES_EXCLUES}${fiscal.teomExclue ? `, ${eur(fiscal.teomExclue)} de ${LIBELLE_DEPENSES_EXCLUES}` : ""} — ni revenus, ni charges déductibles.</p>`;
-      contenu += `<p>Aide à la préparation de la déclaration. Vérifiez les pièces, la quote-part, les intérêts d’emprunt et les dépenses externes avant déclaration. ${code==="recap_fiscal_nu"?"Les loyers et provisions sont ventilés selon la capture faite à chaque encaissement ou la ventilation historique que vous avez justifiée.":"Les loyers et provisions sont ventilés selon les montants du bail enregistrés lors de la génération."}</p>`;
+      // C94 : une rubrique que le livre laisse « à compléter » (222 sans montant) s'imprime « à compléter », jamais 0,00 € : un zéro
+      // se recopie tel quel. La ligne 250 porte toujours le montant retenu pour le document (saisi ou qualifié).
+      else contenu += tableau([{libelle:"Rubrique"},{libelle:"Libellé"},{libelle:"Montant enregistré",droite:true}],fiscal.rubriques.map(r=>[f.champ(r.code,"rubrique"),f.champ(r.libelle,"libellé"),r.code==="250"?f.montant(interetsEmprunt,"Montant enregistré"):r.aCompleter?'<span class="fusion">à compléter</span>':f.montant(r.montant,"Montant enregistré")]))+ecartInterets(interetsEmprunt,qualifie)+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p><p>Hors déclaration : ${eur(fiscal.chargesRecuperees)} de ${LIBELLE_RECETTES_EXCLUES}${fiscal.teomExclue ? `, ${eur(fiscal.teomExclue)} de ${LIBELLE_DEPENSES_EXCLUES}` : ""} — ni revenus, ni charges déductibles.</p>`;
+      contenu += `<p>Aide à la préparation de la déclaration. Vérifiez les pièces, la quote-part, les intérêts d’emprunt et les dépenses externes avant déclaration. ${code==="recap_fiscal_nu"?"Les loyers et provisions sont ventilés selon la capture faite à chaque encaissement ou la ventilation historique que vous avez justifiée.":"Les recettes sont reprises en total, sans ventilation entre loyer et charges."}</p>`;
     } else if (code === "ecriture_rectificative" || code === "cloture_mensuelle") {
       if (code === "ecriture_rectificative") {
         const e = await unique("ecritures",cibleId);
         if (!e.contre_ecriture_de) throw new RefusDocument("Ce justificatif concerne une contre-écriture enregistrée.");
         const origine = await unique("ecritures",texte(e.contre_ecriture_de));
         if (e.lot_id) await lotConcerne(texte(e.lot_id));
-        contenu = `${section("Pièce d’origine et rectification")}${lignesTableau(f,avecSensLisible([{...origine,role:"Origine"},{...e,role:"Rectification"}]),[["Pièce","role","texte"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"],["Date","date_piece","date"]])}<p>Motif : ${f.champ(texte(e.motif)||null,"motif de la rectification")}${pointFinal(texte(e.motif))}</p>`;
+        // C93 : la contre-écriture reprend la date de la pièce d'origine ; sa date d'imputation (le jour de la correction) est
+        // imprimée à côté. Le justificatif ne disait nulle part quand la rectification avait été passée.
+        contenu = `${section("Pièce d’origine et rectification")}${lignesTableau(f,avecSensLisible([{...origine,role:"Origine"},{...e,role:"Rectification"}]),[["Pièce","role","texte"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"],["Date de la pièce","date_piece","date"],["Imputée le","date_imputation","date"]])}<p>Motif : ${f.champ(texte(e.motif)||null,"motif de la rectification")}${pointFinal(texte(e.motif))}</p>`;
       } else {
         if (cibleId !== orgId || !/^\d{4}-(0[1-9]|1[0-2])$/.test(options.mois ?? "")) throw new RefusDocument("Choisissez le mois du journal à exporter.");
         const debut = `${options.mois}-01`, finDate = new Date(`${debut}T12:00:00Z`); finDate.setUTCMonth(finDate.getUTCMonth()+1);
         const ecritures = await lireLignes(lire("ecritures").gte("date_imputation",debut).lt("date_imputation",finDate.toISOString().slice(0,10)).order("date_imputation"));
         const clotures = await lireLignes(lire("clotures_comptables").eq("mois",debut).limit(1));
+        // C91 : chaque écriture porte son logement et sa catégorie (le libellé des écrans du livre) : deux « Taxe foncière de
+        // l'année » (taxe foncière et TEOM) ou deux « Encaissement de loyer » de deux baux ne se distinguaient pas.
+        const idsLots = [...new Set(ecritures.map(e=>texte(e.lot_id)).filter(Boolean))];
+        const lots = idsLots.length ? await lireLignes(lire("lots").in("id",idsLots)) : [];
+        const lignes = avecSensLisible(ecritures.map(e=>({...e,logement:texte(lots.find(l=>texte(l.id)===texte(e.lot_id))?.nom),categorie:libelleCategorieEcriture(texte(e.categorie))})));
         contenu = `${section(`Journal — ${moisEnToutesLettres(options.mois)}`)}<p>${clotures.length ? `Mois clôturé le ${f.date(texte(clotures[0].cloture_at))}` : "Mois ouvert — document provisoire"}.</p>
-          ${lignesTableau(f,avecSensLisible(ecritures),[["Date","date_imputation","date"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]])}
+          ${lignesTableau(f,lignes,[["Date","date_imputation","date"],["Logement","logement","facultatif"],["Catégorie","categorie","facultatif"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]])}
           <p>Total recettes : ${eur(ecritures.filter(e=>e.sens==="recette").reduce((s,e)=>s+montant(e.montant),0))} ; dépenses : ${eur(ecritures.filter(e=>e.sens==="depense").reduce((s,e)=>s+montant(e.montant),0))}.</p>`;
       }
     } else {
@@ -337,7 +443,9 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         const ids = [...new Set(lignes.map(l=>texte(l.lot_id)))];
         const brutes = ids.length ? await lireLignes(lire("ecritures").in("lot_id",ids).gte("date_piece",`${annee}-01-01`).lt("date_piece",`${annee+1}-01-01`).order("date_piece")) : [];
         const mouvements = brutes.filter(e=>lignes.some(l=>l.lot_id===e.lot_id && texte(l.date_debut)<=texte(e.date_piece) && (!l.date_fin||texte(l.date_fin)>=texte(e.date_piece))));
-        contenu += `${section(`Mouvements de gestion ${annee}`)}${lignesTableau(f,avecSensLisible(mouvements),[["Date","date_piece","date"],["Nature","categorie","texte"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]])}
+        // Phase 3, lot 42 (C95, C91) : même mention d'une année non terminée que les récapitulatifs du lot ; la nature d'une écriture
+        // s'imprime avec le libellé du livre (« Dépôt de garantie »), plus le code de la base (« depot_garantie »).
+        contenu += `${section(`Mouvements de gestion ${annee}`)}${mentionExerciceProvisoire(annee,aujourdhui)}${lignesTableau(f,avecSensLisible(mouvements.map(e=>({...e,categorie:libelleCategorieEcriture(texte(e.categorie))}))),[["Date","date_piece","date"],["Nature","categorie","texte"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]])}
           <p>Relevé annuel du mandat, à rapprocher des pièces et à transmettre au comptable. Les transferts de fonds et dépôts ne constituent pas automatiquement des recettes fiscales. Ce relevé ne calcule pas un revenu imposable.</p>`;
       } else if (code === "resiliation_mandat") {
         contenu += `${section("Résiliation proposée")}<p>Date d’effet : ${f.date(options.date_effet||null,"date d’effet de la résiliation")} ; motif : ${champ("motif","motif et fondement de la résiliation")}${pointFinal(options.motif)}</p><p>Remise des fonds, pièces et dossiers : ${champ("remise","modalités de remise du dossier et du solde")}${pointFinal(options.remise)}</p>

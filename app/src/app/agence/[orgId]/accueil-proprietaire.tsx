@@ -94,6 +94,9 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   taches.push(...lectureConsommations.taches);
   const points = rappels.dus.map(ligne => ligne.point === undefined ? pointReception(ligne, aujourdHui) : ligne.point);
   const loyersAConfirmer = rappels.dus.reduce((n, ligne, i) => n + (points[i]?.aConfirmer ? ligne.dette_bail.echeances : 0), 0);
+  // Phase 3, lot 44 (reste du lot 39) : une nouvelle mensualité due d'un bail sous plan d'apurement reste à confirmer, mais
+  // aucune relance ne suivra pendant le plan. « avant toute relance » ne se dit que si aucun bail compté n'est sous plan.
+  const confirmationSousPlan = rappels.dus.some((ligne, i) => points[i]?.aConfirmer && ligne.plan_apurement_en_cours);
   const totalPrioritaire = critiques.length + loyersAConfirmer;
   const compteNeuf = patrimoine !== null && patrimoine.biens === 0 && pilotage.encaisse === 0
     && loyersMois !== null && loyersMois.attendu === 0 && !incertain;
@@ -106,7 +109,7 @@ export async function AccueilProprietaire({ supabase, orgId, prenom = null, user
   }));
   if (loyersAConfirmer > 0) tachesPrioritaires.push({
     cle: "loyers-a-confirmer", type: "loyers", titre: "Confirmer les loyers reçus",
-    detail: `${loyersAConfirmer} échéance${loyersAConfirmer > 1 ? "s" : ""} à vérifier avant toute relance`,
+    detail: `${loyersAConfirmer} échéance${loyersAConfirmer > 1 ? "s" : ""} à vérifier${confirmationSousPlan ? "" : " avant toute relance"}`,
     contexte: null, lieu: null, echeance: null, href: `${base}/loyers`, geste: "Vérifier les loyers", nature: "demande",
   });
   const tachesAccueil = [...tachesPrioritaires, ...taches];

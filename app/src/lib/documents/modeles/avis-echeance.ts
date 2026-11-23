@@ -47,6 +47,8 @@ export type DonneesAvisEcheance = {
   chargesMode?: string | null;
   /** Ce qui restait dû sur les termes antérieurs (0 si à jour). */
   arriere?: number;
+  /** Ce qui reste dû sur les termes SUIVANTS déjà échus à la date de l'avis (0 si aucun) : un avis établi en rappel. */
+  suivantsEchus?: number;
   /** Ce qui est déjà réglé sur CE terme (paiement partiel ; 0 ou absent : rien reçu). */
   dejaRegle?: number;
   lieuPaiement?: string | null;
@@ -76,6 +78,8 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
   const du = formaterDateFr(bornes.du);
   const au = formaterDateFr(bornes.au);
   const arriere = Math.max(0, Number(d.arriere ?? 0));
+  const suivantsEchus = Math.max(0, Number(d.suivantsEchus ?? 0));
+  const autresEchus = Math.round((arriere + suivantsEchus) * 100) / 100;
   // Reprise du lot 38 (C49) : un terme réglé en partie reste à régler, mais l'avis ne réclame que ce qui en reste. Il annonçait
   // le terme entier (« Total du terme 760,00 € ») sans dire les 400 € déjà reçus, alors que l'avis du mois suivant les comptait.
   const dejaRegle = Math.min(Math.max(0, Number(d.dejaRegle ?? 0)), Number(d.montantDu));
@@ -121,9 +125,19 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
       // Même règle que l'avis par e-mail (wiki « Quittancement des loyers »,
       // 18/09) : taire une dette en cours laisserait croire au locataire qu'il
       // sera à jour une fois le terme réglé.
-      arriere > 0
-        ? `<p><b>Solde antérieur restant dû : ${eur(arriere)}.</b> Total à régler pour solder votre compte :
-           <b>${eur(arriere + resteCeTerme)}</b>.</p>`
+      // Phase 3, lot 44 (C49) : le total doit être vrai à la date de l'avis. Un avis établi en rappel d'un terme passé ne
+      // comptait que les termes antérieurs : celui d'octobre, établi le 23/11, annonçait 1 120 € « pour solder votre compte »
+      // alors que le terme de novembre, échu et impayé, le portait à 1 890,50 €. Les termes suivants déjà échus sont comptés et
+      // dits ; un avis sans terme suivant échu garde sa phrase.
+      autresEchus > 0
+        ? `<p><b>${
+            suivantsEchus > 0
+              ? `Solde des autres termes échus restant dû : ${eur(autresEchus)}</b> (${
+                  arriere > 0 ? `termes antérieurs : ${eur(arriere)} ; termes suivants déjà échus : ${eur(suivantsEchus)}` : "termes suivants déjà échus"
+                }).`
+              : `Solde antérieur restant dû : ${eur(arriere)}.</b>`
+          } Total à régler pour solder votre compte${echu ? " à la date du présent avis" : ""} :
+           <b>${eur(autresEchus + resteCeTerme)}</b>.</p>`
         : ""
     }
     ${section("Modalités de règlement")}
@@ -172,13 +186,20 @@ export async function assemblerAvisEcheance(
   // sans elle, l'avis ne peut ni dire l'arriéré ni écarter un terme déjà payé.
   const { data: etat, error: erreurEtat } = await supabase.rpc("etat_loyers_bail", { p_bail: appel.bail_id });
   if (erreurEtat) return { erreur: "La situation des paiements du bail n’a pas pu être lue. Réessayez avant de générer cet avis." };
-  const termes = (etat ?? []) as { appel_id?: string; periode: string; montant_du: number; montant_couvert: number; statut?: string }[];
+  const termes = (etat ?? []) as { appel_id?: string; periode: string; date_echeance?: string | null; montant_du: number; montant_couvert: number; statut?: string }[];
   const ceTerme = termes.find((t) => t.appel_id === appel.id);
   if (ceTerme?.statut === "non_du") return { erreur: REFUS_TERME_NON_DU };
   if (ceTerme && Number(ceTerme.montant_couvert) >= Number(ceTerme.montant_du)) return { erreur: REFUS_TERME_SOLDE };
+  const resteDu = (t: (typeof termes)[number]) => Math.max(0, Number(t.montant_du) - Number(t.montant_couvert));
   const arriere = termes
-    .filter((t) => t.periode < appel.periode && Number(t.montant_couvert) < Number(t.montant_du))
-    .reduce((s, t) => s + Number(t.montant_du) - Number(t.montant_couvert), 0);
+    .filter((t) => t.periode < appel.periode)
+    .reduce((s, t) => s + resteDu(t), 0);
+  // Phase 3, lot 44 (C49) : les termes SUIVANTS déjà échus à la date de l'avis (échéance passée, comme « impayé » en base),
+  // pour que le total « pour solder votre compte » d'un avis établi en rappel soit celui du compte à cette date.
+  const jour = aujourdhuiParis();
+  const suivantsEchus = termes
+    .filter((t) => t.periode > appel.periode && t.statut !== "non_du" && Boolean(t.date_echeance) && String(t.date_echeance).slice(0, 10) < jour)
+    .reduce((s, t) => s + resteDu(t), 0);
 
   const f = new Fusion();
   const document = construireAvisEcheance({
@@ -192,6 +213,7 @@ export async function assemblerAvisEcheance(
     dateFinBail: ctx.bail.date_fin,
     chargesMode: ctx.bail.charges_mode,
     arriere: Math.round(arriere * 100) / 100,
+    suivantsEchus: Math.round(suivantsEchus * 100) / 100,
     dejaRegle: ceTerme ? Number(ceTerme.montant_couvert) : 0,
     lieuPaiement: ctx.bail.lieu_paiement,
     iban: ctx.organisation.iban ?? null,
@@ -203,6 +225,8 @@ export async function assemblerAvisEcheance(
     exp: expediteur(ctx),
     typeOrganisation: ctx.organisation.type,
     signatureImg: await signatureOrganisation(supabase, orgId),
+    // Le même jour pour dire l'échéance passée et pour compter les termes échus.
+    jour,
     f,
   });
 

@@ -54,7 +54,10 @@ export async function activerPlanApurement(orgId: string, bailId: string, planId
   const { error } = await supabase.rpc("activer_plan_apurement", { p_org: orgId, p_plan: planId, p_date_acceptation: date });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalider(orgId, bailId);
-  return { succes: "Plan activé : les relances automatiques sont suspendues tant qu’il est respecté." };
+  // Phase 3, lot 44 (C65) : « tant qu'il est respecté » annonçait une reprise des relances dès la première tranche manquée, alors
+  // que la base les suspend aussi pour un plan en défaut (plan_apurement_suspend_relances : actif, en_defaut) et que la
+  // préparation des courriers les refuse de même. Même fin que le protocole et que le refus au clic.
+  return { succes: "Plan activé : les relances de loyer sont suspendues jusqu’à sa fin (dette soldée, plan devenu caduc ou annulé)." };
 }
 
 export async function annulerPlanApurement(orgId: string, bailId: string, planId: string, _etat: EtatPlanApurement, f: FormData): Promise<EtatPlanApurement> {

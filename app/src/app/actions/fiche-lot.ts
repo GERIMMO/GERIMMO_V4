@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
 import { remettreRapportMensuel } from "@/lib/rapports-mensuels";
 import { verifierGerant } from "@/lib/ged-acces";
+import { lirePlansApurementEnCours } from "@/lib/rappels-loyers";
 import { revalidatePath } from "next/cache";
 
 // Ce que la fenêtre du lot va chercher, et QUAND.
@@ -228,6 +229,21 @@ export async function chargerRelancesDuLot(
   const { data, error } = await supabase.rpc("relances_du_lot", { p_lot: lotId });
   if (error) return { erreur: sansJargon(error.message) };
   return { donnees: (data ?? []) as EchelonRelance[] };
+}
+
+/**
+ * Phase 3, lot 44 (C65) : le bail du lot est-il sous un plan d'apurement en cours (actif, ou en défaut avant sa caducité) ?
+ * Les relances y sont suspendues — en base, au clic sur un courrier, à l'enregistrement d'une relance — : la fenêtre ne
+ * propose donc plus de monter d'un cran. Même lecture que le suivi des loyers (lirePlansApurementEnCours), sous la RLS.
+ */
+export async function chargerPlanApurementEnCours(
+  orgId: string,
+  bailId: string
+): Promise<Chargement<boolean>> {
+  const supabase = await createClient();
+  const { enCours, error } = await lirePlansApurementEnCours(supabase, orgId, [bailId]);
+  if (error) return { erreur: "Impossible de vérifier le plan d’apurement de ce bail." };
+  return { donnees: enCours.has(bailId) };
 }
 
 export async function chargerHistoriqueDuLot(

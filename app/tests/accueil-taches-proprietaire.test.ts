@@ -79,6 +79,20 @@ describe("accueil propriétaire : priorités et tâches à leur place", () => {
     expect(html).toContain("Montants indisponibles");
     expect(html).not.toContain('aria-label="Loyers encaissés');
   });
+  // Phase 3, lot 44 (reste du lot 39) : la tâche comptait une nouvelle mensualité due d'un bail sous plan d'apurement et
+  // annonçait « avant toute relance », alors qu'aucune relance ne suit pendant le plan.
+  it("lot 44 : une mensualité due d'un bail sous plan reste à vérifier, sans annoncer de relance", async () => {
+    m.verifications.mockResolvedValue(lecture([], true));
+    expect(await rendre()).toContain("1 échéance à vérifier avant toute relance");
+    const sousPlan = lecture([], true);
+    sousPlan.verifications.rappels.dus = sousPlan.verifications.rappels.dus.map((l) => ({ ...l, plan_apurement_en_cours: true,
+      point: { etape: "echeance" as const, date: "2026-11-05", aConfirmer: true } }));
+    m.verifications.mockResolvedValue(sousPlan);
+    const html = await rendre();
+    expect(html).toContain("Confirmer les loyers reçus");
+    expect(html).toContain("1 échéance à vérifier");
+    expect(html).not.toContain("avant toute relance");
+  });
   it("compte toutes les demandes du même espace et affiche les urgences en premier", async () => {
     m.verifications.mockResolvedValue(lecture([action("Urgence TEST", true), action("Demande courante TEST")], true));
     const html = await rendre();

@@ -9,6 +9,13 @@ export const LIBELLES_PALIERS = {
   inconnu: "Suivi à vérifier",
 } as const;
 
+/**
+ * Phase 3, lot 39 (reprise, C65) puis lot 44 : ce que l'écran dit d'un bail sous plan d'apurement en cours, à la place de la
+ * relance suivante (suivi des loyers, fenêtre du lot). Même fin que le protocole et que le refus au clic.
+ */
+export const RELANCES_SUSPENDUES_SOUS_PLAN =
+  "Plan d’apurement en cours : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé).";
+
 export type TermeSuivi = Omit<RappelLoyer, "lot_nom" | "locataire" | "periode">;
 type Etape = keyof typeof LIBELLES_PALIERS;
 export type PointReception = { etape: Etape; date: string; aConfirmer: boolean; confirmationExpiree?: boolean };

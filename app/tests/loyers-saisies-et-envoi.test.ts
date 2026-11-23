@@ -14,6 +14,10 @@ const banc = vi.hoisted(() => ({
   erreurLectureQuittance: null as { message: string } | null,
   quittanceVisible: true,
   envoyeLe: null as string | null,
+  // Phase 3, lot 44 : les plans d'apurement en cours du bail (ajouterRelance les lit avant d'enregistrer).
+  plans: [] as { bail_id: string }[],
+  erreurPlans: null as { message: string } | null,
+  filtresPlans: [] as unknown[][],
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -37,6 +41,14 @@ vi.mock("@/lib/ged-acces", () => ({
     supabase: {
       rpc: banc.rpc,
       from: (table: string) => {
+        if (table === "plans_apurement") {
+          const chaine: Record<string, unknown> = {
+            then: (ok: (x: unknown) => unknown) =>
+              Promise.resolve({ data: banc.erreurPlans ? null : banc.plans, error: banc.erreurPlans }).then(ok),
+          };
+          for (const op of ["select", "eq", "in"]) chaine[op] = (...a: unknown[]) => { banc.filtresPlans.push([op, ...a]); return chaine; };
+          return chaine;
+        }
         const filtres: Record<string, string> = {};
         const requete = {
           select: () => requete,
@@ -81,7 +93,11 @@ vi.mock("@/lib/ged-acces", () => ({
   }),
 }));
 
+vi.mock("@/app/actions/documents-generes", () => ({ genererDocument: vi.fn() }));
+
 import { ajouterRelance, envoyerQuittance, regulariserCharges } from "@/app/actions/loyers";
+import { activerPlanApurement } from "@/app/actions/plan-apurement";
+import { PLAN_APUREMENT_EN_COURS } from "@/lib/rappels-loyers";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -93,6 +109,9 @@ beforeEach(() => {
   banc.erreurLectureQuittance = null;
   banc.quittanceVisible = true;
   banc.envoyeLe = null;
+  banc.plans = [];
+  banc.erreurPlans = null;
+  banc.filtresPlans = [];
   banc.rpc.mockResolvedValue({ data: 250, error: null });
   banc.insert.mockResolvedValue({ error: null });
   banc.depot.mockResolvedValue({
@@ -191,6 +210,54 @@ describe("Relance : seules les dates effectivement fournies sont enregistrées",
       date_premiere_presentation: "2026-09-12",
       numero_recommande: "suivi-recette",
     }));
+  });
+});
+
+// Phase 3, lot 44 (C65) : la fenêtre du lot proposait le cran de relance suivant pendant un plan d'apurement, et ajouterRelance
+// l'enregistrait sans contrôle — la relance faisait ensuite avancer le palier du suivi à la fin du plan. Même lecture et même
+// refus que la préparation des courriers (verifierCourrierDuBail, lot 39).
+describe("Relance : refusée pendant un plan d'apurement en cours (lot 44)", () => {
+  const saisie = (niveau = "relance_2") => {
+    const f = new FormData();
+    f.set("niveau", niveau);
+    f.set("date_envoi", "2026-11-20");
+    return f;
+  };
+  it("un plan actif ou en défaut du bail : refus avec le message du suivi, rien n'est enregistré", async () => {
+    banc.plans = [{ bail_id: "bail-test" }];
+    for (const niveau of ["relance_1", "relance_2", "mise_en_demeure"]) {
+      const resultat = await ajouterRelance("org-test", "bail-test", {}, saisie(niveau));
+      expect(resultat.erreur).toBe(PLAN_APUREMENT_EN_COURS);
+      expect(resultat.valeurs?.niveau).toBe(niveau);
+    }
+    expect(banc.insert).not.toHaveBeenCalled();
+    // La lecture porte sur CE bail, dans cet espace, et sur les états qui suspendent les relances en base.
+    expect(banc.filtresPlans).toEqual(expect.arrayContaining([
+      ["eq", "organization_id", "org-test"], ["in", "bail_id", ["bail-test"]], ["in", "etat", ["actif", "en_defaut"]],
+    ]));
+  });
+  it("une lecture du plan impossible : rien n'est enregistré", async () => {
+    banc.erreurPlans = { message: "indisponible" };
+    const resultat = await ajouterRelance("org-test", "bail-test", {}, saisie());
+    expect(resultat.erreur).toBe("Impossible de vérifier le plan d’apurement de ce bail. Réessayez avant d’enregistrer cette relance.");
+    expect(banc.insert).not.toHaveBeenCalled();
+  });
+  it("sans plan en cours, la relance s'enregistre comme avant", async () => {
+    expect((await ajouterRelance("org-test", "bail-test", {}, saisie())).succes).toBe("Relance enregistrée.");
+    expect(banc.insert).toHaveBeenCalledOnce();
+  });
+});
+
+// Phase 3, lot 44 (C65) : « suspendues tant qu'il est respecté » annonçait la reprise des relances dès la première tranche
+// manquée ; la base les suspend aussi pour un plan en défaut. Le message dit la même fin que le protocole.
+describe("Plan d'apurement : le message d'activation dit quand la suspension prend fin (lot 44)", () => {
+  it("jusqu'à sa fin : dette soldée, plan devenu caduc ou annulé", async () => {
+    const f = new FormData();
+    f.set("date_acceptation", "2026-11-20");
+    f.set("accepte", "on");
+    const resultat = await activerPlanApurement("org-test", "6b8bcdc5-533a-4eea-8ea3-5856222e4707", "0f0e0d0c-0b0a-4909-8807-060504030201", {}, f);
+    expect(resultat.succes).toBe("Plan activé : les relances de loyer sont suspendues jusqu’à sa fin (dette soldée, plan devenu caduc ou annulé).");
+    expect(resultat.succes).not.toContain("respecté");
   });
 });
 

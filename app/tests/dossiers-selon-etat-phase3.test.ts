@@ -382,11 +382,65 @@ describe("reprise du lot 38 — C49 : l'avis dit ce qui reste à régler, et si 
     expect(t).toContain("il n’est réglé qu’en partie : le détail ci-dessous indique la somme déjà reçue et ce qui reste à régler.");
   });
   it("le total pour solder le compte additionne l'arriéré et le reste du terme (pas le terme entier)", () => {
-    expect(avis({ dejaRegle: 400, arriere: 100 })).toMatch(/Solde antérieur restant dû : 100,00 €\. Total à régler pour solder votre compte : 460,00\s€/);
+    // Lot 44 (C49, second tour) : ces avis sont établis après l'échéance (23/11) ; le total y est daté (« à la date du présent
+    // avis »), puisqu'un avis en rappel compte désormais tout ce qui est échu à sa date.
+    expect(avis({ dejaRegle: 400, arriere: 100 })).toMatch(/Solde antérieur restant dû : 100,00 €\. Total à régler pour solder votre compte à la date du présent avis : 460,00\s€/);
     // Le terme suivant d'un terme réglé en partie : l'arriéré (360 €) s'ajoute au terme entier, rien n'est reçu sur ce terme.
     const octobre = avis({ periode: "2026-10-01", dateEcheance: "2026-10-05", arriere: 360 });
-    expect(octobre).toMatch(/Total à régler pour solder votre compte : 1\s120,00\s€/);
+    expect(octobre).toMatch(/Total à régler pour solder votre compte à la date du présent avis : 1\s120,00\s€/);
     expect(octobre).not.toContain("Déjà reçu");
+  });
+  // Phase 3, lot 44 (C49, second tour, majeur) : les trois avis du jeu « loyers », tous établis le 23/11, annonçaient trois
+  // soldes différents — 1 890,50 € (novembre), 1 120,00 € (octobre, sans le terme de novembre échu et impayé) et aucun
+  // (septembre, sans octobre ni novembre). Le total doit être celui du compte à la date de l'avis.
+  it("lot 44 : un avis en rappel compte aussi les termes suivants déjà échus ; les trois avis du jeu disent le même solde", () => {
+    const novembre = avis({ periode: "2026-11-01", dateEcheance: "2026-11-05", loyerHc: 710.5, montantDu: 770.5, arriere: 1120 });
+    const octobre = avis({ periode: "2026-10-01", dateEcheance: "2026-10-05", arriere: 360, suivantsEchus: 770.5 });
+    const septembre = avis({ dejaRegle: 400, suivantsEchus: 1530.5 });
+    for (const t of [novembre, octobre, septembre])
+      expect(t).toMatch(/Total à régler pour solder votre compte à la date du présent avis : 1\s890,50\s€\./);
+    expect(novembre).toMatch(/Solde antérieur restant dû : 1\s120,00\s€\./);
+    expect(octobre).toMatch(/Solde des autres termes échus restant dû : 1\s130,50\s€ \(termes antérieurs : 360,00\s€ ; termes suivants déjà échus : 770,50\s€\)\./);
+    expect(octobre).not.toContain("Solde antérieur restant dû");
+    expect(septembre).toMatch(/Solde des autres termes échus restant dû : 1\s530,50\s€ \(termes suivants déjà échus\)\./);
+  });
+  it("lot 44 : l'avis d'un terme à venir garde sa phrase, sans date ajoutée au total", () => {
+    const decembre = avis({ periode: "2026-12-01", dateEcheance: "2026-12-05", arriere: 1890.5 });
+    expect(decembre).toMatch(/Solde antérieur restant dû : 1\s890,50\s€\. Total à régler pour solder votre compte : 2\s650,50\s€\./);
+    expect(avis({ periode: "2026-12-01", dateEcheance: "2026-12-05" })).not.toContain("solder votre compte");
+  });
+  it("lot 44 : l'assembleur compte les termes suivants échus à la date de l'avis, ni ceux à venir ni ceux qui suivent la fin du bail", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-23T10:00:00Z"));
+    try {
+      vi.mocked(chargerContexteBail).mockResolvedValue(Object.assign(contexte(), { bail: { ...contexte().bail, etat: "actif" } }));
+      const appel = (id: string, periode: string, montant_du: number): Ligne =>
+        ({ id, organization_id: "org", bail_id: "b", periode, date_echeance: periode.slice(0, 8) + "05", montant_du, loyer_hc: montant_du - 60, charges: 60, prorata: false });
+      const terme = (appel_id: string, periode: string, montant_du: number, montant_couvert: number, statut: string) =>
+        ({ appel_id, periode, date_echeance: periode.slice(0, 8) + "05", montant_du, montant_couvert, statut });
+      const { db } = baseFiltrante(
+        { appels_loyer: [appel("a-sep", "2026-09-01", 760), appel("a-oct", "2026-10-01", 760), appel("a-nov", "2026-11-01", 770.5)] },
+        { etat_loyers_bail: { data: [
+          terme("a-aou", "2026-08-01", 760, 760, "paye"),
+          terme("a-sep", "2026-09-01", 760, 400, "partiel"),
+          terme("a-oct", "2026-10-01", 760, 0, "impaye"),
+          terme("a-nov", "2026-11-01", 770.5, 0, "impaye"),
+          terme("a-dec", "2026-12-01", 760, 0, "attendu"),
+          terme("a-jan", "2027-01-01", 0, 0, "non_du"),
+        ], error: null } },
+      );
+      const texte = async (id: string) => texteDe(succes(await assemblerAvisEcheance(db, "org", id)).document.html);
+      const [septembre, octobre, novembre] = await Promise.all([texte("a-sep"), texte("a-oct"), texte("a-nov")]);
+      for (const t of [septembre, octobre, novembre]) {
+        expect(t).toContain("Établi le 23/11/2026");
+        expect(t).toMatch(/Total à régler pour solder votre compte à la date du présent avis : 1\s890,50\s€\./);
+      }
+      expect(octobre).toMatch(/termes antérieurs : 360,00\s€ ; termes suivants déjà échus : 770,50\s€/);
+      expect(septembre).toMatch(/Solde des autres termes échus restant dû : 1\s530,50\s€ \(termes suivants déjà échus\)/);
+      expect(novembre).toMatch(/Solde antérieur restant dû : 1\s120,00\s€\./);
+    } finally {
+      vi.useRealTimers();
+    }
   });
   it("échéance passée : dite au passé, avis présenté comme un rappel", () => {
     const t = avis({ dateEcheance: "2026-10-05" });
@@ -493,6 +547,10 @@ describe("reprise du lot 38 — la liste ne propose plus ce que l'assembleur ref
     expect(source).not.toMatch(/code="(avis_echeance|revision_irl)"/);
     expect(source).not.toMatch(/cibleId=\{fiche\.bail_id\}/);
     expect(source).toContain("href={`${base}/baux/${fiche.bail_id}#loyers`}");
+    // Phase 3, lot 44 : le lien s'affichait « Préparer un avis ou une révision » même sans terme à régler ni clause de révision
+    // IRL (ce que la fenêtre ne lit pas) ; il dit désormais où il mène.
+    expect(source).not.toMatch(/>\s*Préparer un avis ou une révision\s*</);
+    expect(source).toMatch(/#loyers`\}\s*className=\{buttonVariants\(\{ variant: "outline", size: "sm" \}\)\}\s*>\s*Loyers du bail\s*<\/Link>/);
     expect(readFileSync("src/app/agence/[orgId]/baux/[bailId]/page.tsx", "utf8")).toContain('<RubriqueDossier id="loyers"');
   });
 });

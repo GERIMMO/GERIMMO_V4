@@ -31,6 +31,7 @@ import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
 import { compteRenduEncaissement, type EtatAppel } from "@/lib/imputation";
 import { adresseDeRetour, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
 import { estRejeuCleEnvoi, lireCleEnvoi, messageDejaEnregistre } from "@/lib/cle-envoi";
+import { lirePlansApurementEnCours, PLAN_APUREMENT_EN_COURS } from "@/lib/rappels-loyers";
 import {
   CHAMP_CONFIRMATION_MONTANT,
   confirmationDonnee,
@@ -196,6 +197,12 @@ export async function ajouterRelance(
   const niveau = String(formData.get("niveau") ?? "");
   if (!["relance_1", "relance_2", "mise_en_demeure"].includes(niveau))
     return { erreur: "Niveau de relance invalide.", valeurs };
+  // Phase 3, lot 44 (C65) : sous un plan d'apurement en cours (actif, ou en défaut avant sa caducité), les relances sont
+  // suspendues — en base pour les automatiques, au clic pour les courriers (verifierCourrierDuBail, lot 39). Une relance
+  // enregistrée ici pendant le plan faisait ensuite avancer le palier du suivi : même lecture, même refus.
+  const plans = await lirePlansApurementEnCours(supabase, orgId, [bailId]);
+  if (plans.error) return { erreur: "Impossible de vérifier le plan d’apurement de ce bail. Réessayez avant d’enregistrer cette relance.", valeurs };
+  if (plans.enCours.has(bailId)) return { erreur: PLAN_APUREMENT_EN_COURS, valeurs };
   const { error } = await supabase.from("relances").insert({
     organization_id: orgId,
     bail_id: bailId,

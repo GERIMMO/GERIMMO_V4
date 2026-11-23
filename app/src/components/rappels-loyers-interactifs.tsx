@@ -12,7 +12,7 @@ import { nouvelleCleEnvoi } from "@/lib/cle-envoi";
 import { deElide } from "@/lib/elision";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { eur, formaterDate, formaterDateHeure, moisEnFrancais } from "@/lib/ged";
-import { LIBELLES_PALIERS, pointReception, courrierDisponible } from "@/lib/paliers-reception-loyer";
+import { LIBELLES_PALIERS, pointReception, courrierDisponible, RELANCES_SUSPENDUES_SOUS_PLAN } from "@/lib/paliers-reception-loyer";
 import type { RappelLoyer } from "@/lib/rappels-loyers";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { afficherToast } from "@/components/ui/toast";
@@ -198,7 +198,7 @@ function ReceptionLoyer({ orgId, ligne, aujourdHui, lectureSeule, envoiRelanceDi
         relances automatiques et refuse les courriers ; l'écran le dit au lieu d'annoncer la relance suivante. */}
     {!solde && dateEcheance < aujourdHui && ligne.plan_apurement_en_cours && <div className={styles.suivi}>
       <div><h4><Mail size={17}/> Suivi des relances</h4>
-        <p className={styles.point}>Plan d’apurement en cours : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé).</p></div>
+        <p className={styles.point}>{RELANCES_SUSPENDUES_SOUS_PLAN}</p></div>
       <div className={styles.suite}><Link className={styles.lienSuivi} href={`/espace/${orgId}/baux/${ligne.bail_id}#plan-apurement`}>Suivre le plan d’apurement dans le bail</Link></div>
     </div>}
     {!solde && dateEcheance < aujourdHui && !ligne.plan_apurement_en_cours && <div className={styles.suivi}>

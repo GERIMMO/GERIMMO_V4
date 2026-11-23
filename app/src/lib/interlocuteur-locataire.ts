@@ -26,3 +26,13 @@ export function interlocuteurMajuscule(interlocuteur: InterlocuteurLocataire): s
 export function messageDeLaBasePourLocataire(message: string, interlocuteur: InterlocuteurLocataire): string {
   return interlocuteur === "gestionnaire" ? message : message.replace(/\b([Vv])otre gestionnaire\b/g, "$1otre bailleur");
 }
+
+/**
+ * Lot 47 (second tour) : les refus de la réponse à une invitation (repondre_invitation_locataire) disent eux aussi
+ * « Contactez votre gestionnaire ». La personne invitée n'est pas encore membre de l'espace : elle n'en lit pas le type,
+ * et l'on ne sait pas s'il s'agit d'une agence. Le renvoi prend la tournure de l'écran des espaces, vraie dans les deux
+ * cas : « votre bailleur ou son gestionnaire ».
+ */
+export function messageDeLaBasePourInvite(message: string): string {
+  return message.replace(/\b([Vv])otre gestionnaire\b/g, "$1otre bailleur ou son gestionnaire");
+}

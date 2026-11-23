@@ -361,6 +361,11 @@ describe("garde-fou sur les textes de l'espace locataire", () => {
     "src/app/actions/signature-locataire.ts",
     "src/app/actions/pieces-demandees.ts",
     "src/app/actions/plan-apurement.ts",
+    // Second tour : écrans du locataire servis hors de src/app/locataire, que la première liste ne couvrait pas.
+    "src/app/attestation-loyer/[orgId]/page.tsx",
+    "src/app/quittance/[quittanceId]/page.tsx",
+    "src/app/quittance/[quittanceId]/document/route.ts",
+    "src/app/actions/invitations.ts",
   ];
   it.each(sources)("%s", (fichier) => {
     const lignes = sansCommentaires(readFileSync(fichier, "utf8"))

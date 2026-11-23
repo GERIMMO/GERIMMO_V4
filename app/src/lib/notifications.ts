@@ -876,20 +876,45 @@ function lien(chemin: string): string | null {
   return site ? `${site}${chemin}` : null;
 }
 
-async function emetteur(db: SupabaseClient, orgId: string): Promise<string> {
+/** Le nom de marque de l'espace, ou `null` quand sa fiche ne se lit pas. */
+async function nomDeLEspace(db: SupabaseClient, orgId: string): Promise<string | null> {
   const marque = await chargerMarque(db, orgId);
-  return marque ? nomMarque(marque) : "Votre gestionnaire";
+  return marque ? nomMarque(marque) : null;
+}
+
+/** Qui signe un courrier à l'artisan : la marque de l'espace, à défaut « Votre gestionnaire » (hors du lot 47). */
+async function emetteur(db: SupabaseClient, orgId: string): Promise<string> {
+  return (await nomDeLEspace(db, orgId)) ?? "Votre gestionnaire";
+}
+
+/**
+ * Lot 47 (second tour) : qui signe un courrier au LOCATAIRE. Sans marque lisible, la signature de repli disait
+ * « Votre gestionnaire » à tous, y compris au locataire d'un propriétaire qui gère lui-même ; elle suit maintenant le
+ * type de l'espace, comme le corps du courrier : « Votre gestionnaire » dans un espace d'agence, « Votre bailleur »
+ * ailleurs, ou quand le type ne se lit pas non plus (règle `interlocuteurLocataire`).
+ */
+function signatureLocataire(nom: string | null, interlocuteur: InterlocuteurLocataire): string {
+  return nom ?? `Votre ${interlocuteur}`;
+}
+
+async function emetteurPourLocataire(db: SupabaseClient, orgId: string): Promise<string> {
+  const nom = await nomDeLEspace(db, orgId);
+  return nom ?? signatureLocataire(null, await interlocuteurDuLocataire(db, orgId));
 }
 
 /**
  * Lot 47 : l'interlocuteur que le courrier nomme au locataire, selon le type de l'espace (« votre gestionnaire »
  * seulement dans un espace d'agence, « votre bailleur » ailleurs). Lu avec le client fourni (gérant ou service), comme
  * le nom de l'émetteur ; une lecture en échec donne « bailleur » (règle `interlocuteurLocataire`) — un courrier ne
- * s'arrête pas pour cela.
+ * s'arrête pas pour cela, même quand la lecture lève.
  */
 async function interlocuteurDuLocataire(db: SupabaseClient, orgId: string): Promise<InterlocuteurLocataire> {
-  const { data, error } = await db.from("organizations").select("type").eq("id", orgId).maybeSingle();
-  return interlocuteurLocataire(error ? null : (data as { type?: string | null } | null)?.type);
+  try {
+    const { data, error } = await db.from("organizations").select("type").eq("id", orgId).maybeSingle();
+    return interlocuteurLocataire(error ? null : (data as { type?: string | null } | null)?.type);
+  } catch {
+    return interlocuteurLocataire(null);
+  }
 }
 
 /**
@@ -1193,18 +1218,18 @@ export async function notifierRendezVousFixe(db: SupabaseClient, orgId: string, 
   try {
     const iv = await lireIntervention(db, orgId, interventionId);
     if (!iv?.debut_prevu) return rien;
-    const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), lireArtisan(db, iv.artisan_id), emetteur(db, orgId)]);
+    const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), lireArtisan(db, iv.artisan_id), nomDeLEspace(db, orgId)]);
     if (!inc || !artisan) return rien;
     const [lieu, locataire, interlocuteur] = await Promise.all([lireLieu(db, inc.lot_id), lireLocataire(db, orgId, inc), interlocuteurDuLocataire(db, orgId)]);
-    const base = { emetteur: nom, categorie: inc.categorie, debut: iv.debut_prevu, fin: iv.fin_prevue, adresse: lieu.adresse, artisan: artisan.raison_sociale, interlocuteur };
+    const base = { categorie: inc.categorie, debut: iv.debut_prevu, fin: iv.fin_prevue, adresse: lieu.adresse, artisan: artisan.raison_sociale, interlocuteur };
     const [a, l] = await Promise.all([
       expedier(db, {
         orgId, to: artisan.email, role: "artisan", evenement: "rendez_vous_fixe", objet: iv.id,
-        message: messageRendezVousFixe({ ...base, destinataire: "artisan", lien: lien(`/artisan/missions/${iv.id}`) }),
+        message: messageRendezVousFixe({ ...base, emetteur: nom ?? "Votre gestionnaire", destinataire: "artisan", lien: lien(`/artisan/missions/${iv.id}`) }),
       }),
       expedier(db, {
         orgId, to: locataire?.email, role: "locataire", evenement: "rendez_vous_fixe", objet: iv.id,
-        message: messageRendezVousFixe({ ...base, destinataire: "locataire", prenom: locataire?.prenom, lien: lien(`/locataire/${orgId}/demandes`) }),
+        message: messageRendezVousFixe({ ...base, emetteur: signatureLocataire(nom, interlocuteur), destinataire: "locataire", prenom: locataire?.prenom, lien: lien(`/locataire/${orgId}/demandes`) }),
       }),
     ]);
     return { artisan: a, locataire: l };
@@ -1243,7 +1268,7 @@ export async function notifierCreneauxAChoisir(db: SupabaseClient, orgId: string
     const [inc, artisan, nom, { count }] = await Promise.all([
       lireIncident(db, orgId, iv.incident_id),
       lireArtisan(db, iv.artisan_id),
-      emetteur(db, orgId),
+      emetteurPourLocataire(db, orgId),
       db.from("intervention_creneaux").select("id", { count: "exact", head: true }).eq("intervention_id", iv.id).eq("statut", "propose"),
     ]);
     if (!inc || !artisan) return { envoyee: false, motif: "introuvable" };
@@ -1261,8 +1286,9 @@ export async function notifierCreneauxAChoisir(db: SupabaseClient, orgId: string
 /** Réponse du gestionnaire (`repondre_message_personne`) → le locataire. */
 export async function notifierReponseGestionnaire(db: SupabaseClient, orgId: string, personId: string): Promise<ResultatNotification> {
   try {
-    const [personne, nom, interlocuteur] = await Promise.all([lirePersonne(db, orgId, personId), emetteur(db, orgId), interlocuteurDuLocataire(db, orgId)]);
+    const [personne, marque, interlocuteur] = await Promise.all([lirePersonne(db, orgId, personId), nomDeLEspace(db, orgId), interlocuteurDuLocataire(db, orgId)]);
     if (!personne) return { envoyee: false, motif: "introuvable" };
+    const nom = signatureLocataire(marque, interlocuteur);
     const {data: dernier} = await db.from("messages").select("id").eq("organization_id",orgId).eq("person_id",personId).eq("auteur","gerant").is("lu_le",null).order("created_at",{ascending:false}).limit(1).maybeSingle();
     if (!dernier) return {envoyee:false,motif:"introuvable"};
     return expedier(db, {
@@ -1284,7 +1310,7 @@ export async function notifierPieceDemandee(
   relance: boolean
 ): Promise<ResultatNotification> {
   try {
-    const [personne, nom] = await Promise.all([lirePersonne(db, orgId, personId), emetteur(db, orgId)]);
+    const [personne, nom] = await Promise.all([lirePersonne(db, orgId, personId), emetteurPourLocataire(db, orgId)]);
     if (!personne) return { envoyee: false, motif: "introuvable" };
     return expedier(db, {
       orgId, to: personne.email, role: "locataire", evenement: relance ? "piece_relancee" : "piece_demandee", objet: piece.id,
@@ -1301,7 +1327,7 @@ export async function notifierSignatureDemandee(db: SupabaseClient, orgId: strin
   try {
     const [personne, nom, { data: doc }] = await Promise.all([
       lirePersonne(db, orgId, personId),
-      emetteur(db, orgId),
+      emetteurPourLocataire(db, orgId),
       db.from("documents").select("titre").eq("id", documentId).eq("organization_id", orgId).maybeSingle(),
     ]);
     if (!personne) return { envoyee: false, motif: "introuvable" };
@@ -1611,8 +1637,9 @@ export async function notifierReponseReportRdv(db: SupabaseClient, orgId: string
     if (!d || d.type !== "report" || (d.statut !== "acceptee" && d.statut !== "refusee")) return { envoyee: false, motif: "introuvable" };
     const iv = await lireIntervention(db, orgId, d.intervention_id);
     if (!iv) return { envoyee: false, motif: "introuvable" };
-    const [inc, nom, interlocuteur] = await Promise.all([lireIncident(db, orgId, iv.incident_id), emetteur(db, orgId), interlocuteurDuLocataire(db, orgId)]);
+    const [inc, marque, interlocuteur] = await Promise.all([lireIncident(db, orgId, iv.incident_id), nomDeLEspace(db, orgId), interlocuteurDuLocataire(db, orgId)]);
     if (!inc) return { envoyee: false, motif: "introuvable" };
+    const nom = signatureLocataire(marque, interlocuteur);
     const locataire = await lireLocataire(db, orgId, inc);
     let reponse: { type: "acceptee"; debut: string; fin: string | null } | { type: "refusee"; motif: string | null };
     if (d.statut === "acceptee") {
@@ -1811,17 +1838,22 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
 
   // 3. Envoi, organisation par organisation (écriture ouverte vérifiée une fois).
   const ecritureOuverte = new Map<string, boolean>();
-  const noms = new Map<string, string>();
+  const noms = new Map<string, string | null>();
   for (const [n, c] of dus.entries()) {
     if (horloge() >= echeanceMs) { bilan.restants = dus.length - n; break; }
     if (!ecritureOuverte.has(c.orgId)) {
       const { data } = await service.rpc("org_ecriture_ouverte", { p_org: c.orgId });
       ecritureOuverte.set(c.orgId, data === true);
-      noms.set(c.orgId, await emetteur(service, c.orgId));
+      noms.set(c.orgId, await nomDeLEspace(service, c.orgId));
     }
     if (!ecritureOuverte.get(c.orgId)) continue;
 
-    const resultat = await envoyerUnRappel(service, c, noms.get(c.orgId) ?? "Votre gestionnaire", avantEffet, { echeanceMs, horloge });
+    // Lot 47 : sans marque lisible, le rappel au locataire signe selon le type de l'espace ; celui de l'artisan garde
+    // son repli.
+    const nom = noms.get(c.orgId) ?? (ROLE_RAPPEL[c.type] === "locataire"
+      ? signatureLocataire(null, await interlocuteurDuLocataire(service, c.orgId))
+      : "Votre gestionnaire");
+    const resultat = await envoyerUnRappel(service, c, nom, avantEffet, { echeanceMs, horloge });
     if (resultat.motif === "delai_depasse") { bilan.restants = dus.length - n; break; }
     if (!resultat.envoyee) {
       if (resultat.motif === "sans_adresse") bilan.sans_adresse += 1;

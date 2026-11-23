@@ -5,6 +5,7 @@ import {
   manquantsQuittance,
 } from "@/lib/quittance-conforme";
 import { htmlQuittancePourEcran } from "../ecran";
+import { interlocuteurLocataire } from "@/lib/interlocuteur-locataire";
 
 // Le document conforme d'une quittance, pour l'aperçu en fenêtre de « Mes
 // documents » (décision du 27/10 : un seul geste de consultation pour toutes
@@ -25,7 +26,8 @@ export async function GET(_request: Request, ctx: RouteContext<"/quittance/[quit
   const document = assemblerQuittanceDelivree(q);
   if (manquantsQuittance(document).length) {
     return Response.json(
-      { erreur: `Votre ${q.est_quittance ? "quittance" : "reçu"} n'est pas encore disponible : votre gestionnaire doit d'abord compléter les informations obligatoires du document.` },
+      // Lot 47 : « votre gestionnaire » seulement dans un espace d'agence ; chez un propriétaire, « votre bailleur ».
+      { erreur: `Votre ${q.est_quittance ? "quittance" : "reçu"} n'est pas encore disponible : votre ${interlocuteurLocataire(q.organisation.type)} doit d'abord compléter les informations obligatoires du document.` },
       { status: 409, headers: ENTETES }
     );
   }

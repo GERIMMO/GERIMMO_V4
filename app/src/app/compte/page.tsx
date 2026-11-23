@@ -13,6 +13,11 @@ import { formaterDateHeure } from "@/lib/ged";
 import { FormulaireMotDePasse } from "./formulaire-mot-de-passe";
 import { SecondFacteur } from "./second-facteur";
 import { ConditionsAcceptees } from "./conditions-acceptees";
+import {
+  identiteContactLocataire,
+  interlocuteurDeLIdentite,
+  type IdentiteContactLocataire,
+} from "@/lib/identite-contact-locataire";
 
 // LA MARQUE DU LOCATAIRE (25/09, D04). Cet écran est hors de tout espace, et
 // il affichait le logo GERIMMO — au locataire d'une agence en marque blanche,
@@ -54,6 +59,34 @@ const lireEspaceLocataire = cache(async function lireEspaceLocataire(): Promise<
   const adhesions = (data ?? []) as { role: string; organization_id: string }[];
   if (error || adhesions.length !== 1 || adhesions[0].role !== "locataire") return null;
   return adhesions[0].organization_id;
+});
+
+// Lot 47 : à qui un compte de LOCATAIRE s'adresse depuis cet écran, hors de tout espace. « Votre gestionnaire » était
+// faux pour le locataire d'un propriétaire qui gère lui-même. Un seul espace : son interlocuteur, lu comme le titre
+// « Mon gestionnaire » / « Mon bailleur » de l'espace (attestation_emetteur_locataire, lecture déjà ouverte au
+// locataire ; illisible, « bailleur ») — « gestionnaire » seulement dans un espace d'agence. Plusieurs espaces : on ne
+// choisit pas, `identite` est nulle. Un compte qui n'est pas que locataire (propriétaire, agence), ou dont les adhésions
+// ne se lisent pas : `null`, il garde le texte d'avant.
+const lireContactCompteLocataire = cache(async function lireContactCompteLocataire(): Promise<{
+  identite: IdentiteContactLocataire | null;
+} | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("memberships")
+    .select("role, organization_id")
+    .eq("account_id", user.id)
+    .eq("status", "active");
+  const adhesions = (data ?? []) as { role: string; organization_id: string }[];
+  if (error || adhesions.length === 0 || adhesions.some((a) => a.role !== "locataire")) return null;
+  if (adhesions.length > 1) return { identite: null };
+  const { data: brut, error: eIdentite } = await supabase.rpc("attestation_emetteur_locataire", {
+    p_org: adhesions[0].organization_id,
+  });
+  return { identite: identiteContactLocataire(eIdentite ? null : brut) };
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -99,6 +132,16 @@ export default async function PageCompte() {
   const { data: ficheArtisan } = await supabase.rpc("mon_artisan");
   const estArtisan = ((ficheArtisan ?? []) as unknown[]).length > 0;
   const espaceLocataire = await lireEspaceLocataire();
+  const contactLocataire = await lireContactCompteLocataire();
+  // « votre gestionnaire » / « votre bailleur » pour un seul espace ; pour plusieurs, la tournure de l'écran des espaces
+  // (« votre bailleur ou son gestionnaire »), vraie dans les deux cas.
+  const quiLocataire = contactLocataire
+    ? contactLocataire.identite
+      ? `votre ${interlocuteurDeLIdentite(contactLocataire.identite)}`
+      : "votre bailleur ou à son gestionnaire"
+    : null;
+  // L'espace unique du locataire : son titre et son interlocuteur viennent de la même identité (illisible : « bailleur »).
+  const identiteEspace = contactLocataire?.identite ?? identiteContactLocataire(null);
 
   return (
     <div className="flex min-h-full flex-1 flex-col" style={styleMarque(marque)}>
@@ -156,7 +199,7 @@ export default async function PageCompte() {
           <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
             {estArtisan
               ? "L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte auprès de tous vos clients. Pour la modifier, écrivez-nous depuis Aide et retours."
-              : "L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte dans toutes vos organisations. Demandez-la à votre gestionnaire, ou à l’assistance pour un compte propriétaire."}
+              : `L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte dans toutes vos organisations. Demandez-la à ${quiLocataire ?? "votre gestionnaire"}, ou à l’assistance pour un compte propriétaire.`}
           </p>
         </div>
 
@@ -183,9 +226,9 @@ export default async function PageCompte() {
         {/* Mes données personnelles (audit du 27/09) : aucun chemin vers la
             politique de confidentialité ni vers l'exercice des droits depuis
             les espaces. [[RGPD]] : pour les données de gestion locative,
-            c'est le gestionnaire qui répond aux demandes et décide de
-            l'effacement (Gerimmo est son sous-traitant) ; pour le compte
-            lui-même, l'assistance. */}
+            c'est le gestionnaire (ou le bailleur qui gère lui-même) qui
+            répond aux demandes et décide de l'effacement (Gerimmo est son
+            sous-traitant) ; pour le compte lui-même, l'assistance. */}
         <div className="loc-carte" id="donnees-personnelles">
           <div className="entete-carte">
             <h2 className="titre-carte leading-[inherit]">Mes données personnelles</h2>
@@ -195,16 +238,17 @@ export default async function PageCompte() {
             corriger ou à faire effacer les pièces de votre dossier.{" "}
             {espaceLocataire ? (
               <>
-                Pour tout ce qui concerne votre location, écrivez à votre gestionnaire
-                depuis{" "}
+                Pour tout ce qui concerne votre location, écrivez à votre{" "}
+                {interlocuteurDeLIdentite(identiteEspace)} depuis{" "}
                 <Link href={`/locataire/${espaceLocataire}/contact`} className="lien-discret">
-                  Mon gestionnaire
+                  {identiteEspace.titre}
                 </Link>{" "}
                 : c&apos;est lui qui y répond, sous un mois.
               </>
             ) : (
               <>
-                Pour les données d&apos;une location, adressez-vous à son gestionnaire ;
+                Pour les données d&apos;une location, adressez-vous à son bailleur ou à
+                son gestionnaire ;
                 pour votre compte, écrivez-nous depuis{" "}
                 <Link href="/assistance" className="lien-discret">
                   Aide et retours

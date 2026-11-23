@@ -67,6 +67,10 @@ export default async function PageAttestationLoyer(
   // l'agence pour le compte du bailleur — avec l'adresse de l'un ou l'autre
   // (27/09). Sans identité complète, pas d'attestation.
   const emetteur = emetteurBrut ? emetteurAttestation(emetteurBrut as EmetteurAttestationBrut) : null;
+  // Lot 47 : « gestionnaire » seulement dans un espace d'agence, lu dans la même identité que l'émetteur (et que le
+  // titre « Mon gestionnaire » / « Mon bailleur » de l'espace). La panne le suivait déjà ; les deux refus disaient
+  // « mon gestionnaire » dans tous les espaces.
+  const interlocuteur = interlocuteurDeLIdentite(identiteContactLocataire(eEmetteur ? null : emetteurBrut));
 
   const aujourdhui = aujourdhuiParis();
   // « de juillet 2026 à septembre 2026 » — avec l'élision devant voyelle
@@ -94,8 +98,7 @@ export default async function PageAttestationLoyer(
   if (lectureKO) {
     // Ni attestation ni explication de refus : les deux seraient un mensonge
     // tant qu'on n'a pas pu lire l'échéancier.
-    // Lot 47 : « gestionnaire » seulement dans un espace d'agence, lu dans la même identité que l'émetteur.
-    contenu = <PanneLecture quoi="votre attestation de bon paiement" interlocuteur={interlocuteurDeLIdentite(identiteContactLocataire(eEmetteur ? null : emetteurBrut))} />;
+    contenu = <PanneLecture quoi="votre attestation de bon paiement" interlocuteur={interlocuteur} />;
   } else if (!bail || moisEchus.length === 0) {
     contenu = (
       <div className="vide-guide">
@@ -118,7 +121,7 @@ export default async function PageAttestationLoyer(
         </p>
         <div className="geste">
           <Link href={`/locataire/${orgId}/contact`} className="btn-or">
-            Une difficulté ? Écrire à mon gestionnaire
+            Une difficulté ? Écrire à mon {interlocuteur}
           </Link>
         </div>
       </div>
@@ -133,11 +136,11 @@ export default async function PageAttestationLoyer(
           Vos loyers sont à jour, mais l&apos;attestation doit porter l&apos;identité
           complète de celui qui la signe
           {emetteur ? ` (il manque ${emetteur.manquants.join(", ")})` : ""}. Demandez à
-          votre gestionnaire de la compléter.
+          votre {interlocuteur} de la compléter.
         </p>
         <div className="geste">
           <Link href={`/locataire/${orgId}/contact`} className="btn-or">
-            Écrire à mon gestionnaire
+            Écrire à mon {interlocuteur}
           </Link>
         </div>
       </div>

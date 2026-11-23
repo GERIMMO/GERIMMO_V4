@@ -207,10 +207,16 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       const rs = await lireLignes(supabase.from("restitutions").select("id,statut").eq("bail_id",bailId).eq("organization_id",orgId).limit(1));
       if (!rs.length) return { erreur: "Préparez d’abord la restitution du dépôt de ce contrat." };
       const retenues = await lireLignes(supabase.from("retenues").select("libelle,cout,duree_vie_ans,age_ans,montant_retenu,justificatif_document").eq("restitution_id",rs[0].id).eq("organization_id",orgId));
-      contenu = `${section("Retenues enregistrées")}${lignesTableau(f,retenues,[["Motif","libelle","texte"],["Coût","cout","montant"],["Âge (ans)","age_ans","texte"],["Durée de vie (ans)","duree_vie_ans","texte"],["Retenue","montant_retenu","montant"]])}
+      // Phase 3 (C37) : l'écran de restitution laisse l'âge et la durée de vie facultatifs (vides : coût retenu en intégralité, la
+      // base ne calcule alors aucune décote). Vides, ils s'impriment « — », comme dans le décompte de restitution, sans bloquer le PDF.
+      const sansDecote = retenues.some(l=>l.duree_vie_ans==null || l.age_ans==null);
+      const lignesRetenues = retenues.map(l=>({...l,age_ans:l.age_ans==null?null:nombreFr(l.age_ans as number|string),duree_vie_ans:l.duree_vie_ans==null?null:nombreFr(l.duree_vie_ans as number|string)}));
+      // Phase 3 (C35) : comme le décompte de restitution, les justificatifs sont tenus à disposition (aucune pièce n'est jointe au PDF).
+      contenu = `${section("Retenues enregistrées")}${lignesTableau(f,lignesRetenues,[["Motif","libelle","texte"],["Coût","cout","montant"],["Âge (ans)","age_ans","facultatif"],["Durée de vie (ans)","duree_vie_ans","facultatif"],["Retenue","montant_retenu","montant"]])}
+        ${sansDecote ? "<p>« — » : âge ou durée de vie non renseigné ; aucune décote de vétusté n’est appliquée, le coût est retenu en intégralité.</p>" : ""}
         <p>Total : ${eur(retenues.reduce((s,l)=>s+montant(l.montant_retenu),0))}. État du dossier : ${rs[0].statut === "finalise" ? "finalisé" : "en préparation"}.</p>
-        <p>Les justificatifs des retenues sont joints au décompte de restitution. Les sommes ci-dessus sont propres à ce contrat.</p>`;
-      if (retenues.some(l=>!l.justificatif_document)) f.champ(null,"justificatifs de retenues à joindre");
+        <p>Les justificatifs déposés (devis, facture, constat comparé des états des lieux) sont tenus à la disposition du locataire sur demande. Les sommes ci-dessus sont propres à ce contrat.</p>`;
+      if (retenues.some(l=>!l.justificatif_document)) f.champ(null,"justificatifs de retenues à déposer");
     } else if (code === "liste_dossier") {
       if (!ctx.bail.locataire_principal) return { erreur: "Choisissez d’abord la personne du dossier." };
       const pieces = await lireLignes(supabase.from("pieces_demandees").select("*").eq("organization_id",orgId).eq("person_id",ctx.bail.locataire_principal).order("demandee_le"));

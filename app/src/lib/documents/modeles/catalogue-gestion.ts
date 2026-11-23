@@ -139,6 +139,9 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     let exp = expediteur({ organisation });
     // Le jour à Paris, pas en UTC : entre 0 h et 2 h, toISOString donnait la veille.
     const aujourdhui = aujourdhuiParis();
+    // La date du document (« Établi le » et « Fait à …, le ») : le jour de génération, sauf pour un acte daté de l'événement qu'il
+    // constate (bordereau des clés : le jour de la remise).
+    let dateDocument = aujourdhui;
     const champ = (cle:string,libelle:string) => f.champ(options[cle]?.trim()||null,libelle);
     const liens: LienDocument[] = [];
     let contenu = "", destinataire = "", logement = "", libelleLieu = "Logement", signatures = false;
@@ -197,9 +200,14 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       await bailConcerne(texte(edl.bail_id));
       const cles = await lireLignes(lire("edl_cles").eq("edl_id",cibleId).order("libelle"));
       if (!cles.length) throw new RefusDocument("Renseignez les clés dans l’état des lieux avant de préparer le bordereau.");
+      // Phase 3 (C42) : le bordereau est daté de la remise des clés, c'est-à-dire de l'état des lieux, pas du jour de génération
+      // (une remise du 01/09/2023 portait « Fait à Lyon, le 23/11/2026 », après le départ du locataire).
+      dateDocument = texte(edl.date_edl) || aujourdhui;
+      // Phase 3 (S20) : la référence d'une clé est facultative à la saisie, et l'état des lieux l'imprime « — » quand elle manque ;
+      // le bordereau fait de même (elle ne peut plus être complétée une fois l'état des lieux signé).
       contenu = `${section(edl.type === "sortie" ? "Clés restituées au bailleur" : "Clés remises au locataire")}
         <p>Date du constat : ${f.date(texte(edl.date_edl))}. État des lieux ${edl.etat === "signe" ? "signé" : "en préparation : remise à confirmer contradictoirement"}.</p>
-        ${lignesTableau(f,cles,[["Clé / accès","libelle","texte"],["Nombre","nombre","texte"],["Référence","reference","texte"]])}`;
+        ${lignesTableau(f,cles,[["Clé / accès","libelle","texte"],["Nombre","nombre","texte"],["Référence","reference","facultatif"]])}`;
       signatures = true;
     } else if (["ordre_intervention","comparatif_devis","compte_rendu_intervention","recap_incident"].includes(code)) {
       const intervention = ["ordre_intervention","compte_rendu_intervention"].includes(code) ? await unique("incident_interventions",cibleId) : null;
@@ -341,8 +349,8 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     const reference = referenceCourte(code.toUpperCase().replaceAll("_","-"),cibleId);
     // C83 : un document interne sans destinataire (comparatif, récapitulatif, journal, récapitulatif fiscal) n'imprime plus la case
     // « Destinataire » : le mot de repli « Organisation » ne désignait personne.
-    const corps = `${enTete(f,exp,{libelle:"Dossier",reference,etabliLe:aujourdhui})}${titre(meta.nom,"Document de gestion",[])}
-      ${cartouches([["Dossier",reference],...(destinataire ? [["Destinataire",destinataire] as [string,string]] : []),...(logement ? [[libelleLieu,logement] as [string,string]] : [])])}${contenu}${faitA(f,exp.ville,aujourdhui)}
+    const corps = `${enTete(f,exp,{libelle:"Dossier",reference,etabliLe:dateDocument})}${titre(meta.nom,"Document de gestion",[])}
+      ${cartouches([["Dossier",reference],...(destinataire ? [["Destinataire",destinataire] as [string,string]] : []),...(logement ? [[libelleLieu,logement] as [string,string]] : [])])}${contenu}${faitA(f,exp.ville,dateDocument)}
       ${signatures?`<div class="signatures">${cadreSignature(code === "restitution_cles" ? libelleSignataireBailleur(organisation.type) : "Le mandataire",f.champ(exp.nom,"nom et prénom(s), ou dénomination"))}${cadreSignature("Partie concernée",destinataire)}</div>`:""}`;
     return {document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${cibleId.slice(0,8)}`,liens};
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }

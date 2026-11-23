@@ -265,17 +265,19 @@ describe("courriers avec signature et lignes de total (C45, C51, C53)", () => {
     expect(html).toContain('<table class="ligne-total"><tbody><tr class="total"><td><b>Total dû pour la période</b>');
   });
 
-  it("état des lieux de sortie : le total des retenues reste sous son tableau", () => {
+  // Phase 3 (C34) : l'état des lieux de sortie n'imprime plus de « Total des retenues après vétusté » (les retenues, arrêtées après la
+  // signature, sont dans le décompte de restitution) ; ce test vérifiait que ce total restait sous son tableau. Reste l'adresse.
+  it("état des lieux de sortie : plus de total des retenues, et un seul point après l'adresse de restitution", () => {
     const f = new Fusion();
     const html = construireEdl({
       type: "sortie", reference: "EDL-1", dateEdl: "2026-10-07", dateEdlEntree: "2025-10-01", signeLe: null, personnesPresentes: "Les parties",
       lignes: [], compteurs: [], cles: [], comparatif: [], observations: null, detecteurFumeePresent: null, detecteurFumeeEtat: null,
       attestationAssuranceFournie: null, adresseRestitutionDepot: "5 rue des Essais, 38000 Grenoble.",
-      retenues: [{ libelle: "Plan de travail", cout: 260, duree_vie_ans: 10, age_ans: 8, montant_retenu: 52 }],
       bailleurNom: f.champ("Claire Moreau", "bailleur"), locatairesNoms: f.champ("Julie Leblanc", "locataire"), logementAdresse: "1 rue",
       referenceBail: "BAIL-1", exp, typeOrganisation: "proprietaire_direct", f,
     }).html;
-    expect(html).toContain('<table class="ligne-total"><tbody><tr class="total"><td><b>Total des retenues après vétusté</b>');
+    expect(html).not.toContain("Total des retenues");
+    expect(html).not.toContain('class="ligne-total"');
     expect(texteDe(html)).toContain("5 rue des Essais, 38000 Grenoble.");
     expect(texteDe(html)).not.toContain("Grenoble..");
   });

@@ -168,7 +168,6 @@ describe("Modèles 14/15 — états des lieux", () => {
       compteurs: [{ type: "Électricité", numero: "E-778", releve: "45210" }],
       cles: [{ libelle: "Clé porte d'entrée", nombre: 2, reference: null }],
       comparatif: [],
-      retenues: [],
       bailleurNom: f.champ("Claire Moreau", "nom et prénom(s), ou dénomination"),
       locatairesNoms: f.champ("Julie Leblanc", "nom et prénom(s) du ou des locataires"),
       logementAdresse: "12 rue des Lilas, 69003 Lyon",
@@ -254,24 +253,34 @@ describe("Modèles 14/15 — états des lieux", () => {
     expect(doc.manquants).not.toContain("nombre rendu");
   });
 
-  it("la sortie affiche le comparatif, les retenues avec vétusté et leur total", () => {
+  // Phase 3 (C33) : la synthèse des écarts nomme la pièce de chaque élément (six lignes « Murs » ne se distinguaient pas).
+  // Phase 3 (C34) : les retenues chiffrées ne s'impriment plus dans l'état des lieux — acte contradictoire signé le jour du constat,
+  // alors que les retenues sont arrêtées plus tard, à la restitution. L'ancienne version de ce test exigeait ce « comparatif chiffré »
+  // au-dessus des signatures : il est désormais porté par le décompte de restitution et le décompte des retenues.
+  it("la sortie affiche la synthèse des écarts pièce par pièce, sans retenues chiffrées", () => {
     const doc = construireEdl(
       donnees({
         type: "sortie",
         comparatif: [
-          { libelle: "Murs — Séjour", etat_entree: "neuf", etat_sortie: "mauvais", ecart: true },
-          { libelle: "Sols — Séjour", etat_entree: "bon", etat_sortie: "bon", ecart: false },
+          { piece: "Chambre", categorie: "piece", libelle: "Murs", etat_entree: "neuf", etat_sortie: "usage", ecart: true },
+          { piece: "Séjour", categorie: "piece", libelle: "Murs", etat_entree: "neuf", etat_sortie: "mauvais", ecart: true },
+          { piece: "Séjour", categorie: "piece", libelle: "Sols", etat_entree: "bon", etat_sortie: "bon", ecart: false },
+          { piece: null, categorie: "equipement", libelle: "Réfrigérateur", etat_entree: "bon", etat_sortie: null, ecart: true },
         ],
-        retenues: [{ libelle: "Peinture séjour", cout: 400, duree_vie_ans: 10, age_ans: 4, montant_retenu: 240 }],
       })
     );
     expect(doc.html).toContain("État des lieux de sortie");
-    expect(doc.html).toContain("Synthèse");
-    expect(doc.html).toContain("Murs — Séjour");
-    expect(doc.html).not.toContain("Sols — Séjour</td>"); // pas d'écart → pas listé
-    expect(doc.html).toContain("Comparatif chiffré et vétusté");
-    expect(doc.html).toMatch(/240,00\s€/);
-    expect(doc.html).toContain("Total des retenues après vétusté");
+    const synthese = doc.html.slice(doc.html.indexOf("Synthèse"), doc.html.indexOf("Adresse de restitution du dépôt"));
+    const lignes = [...synthese.matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map((m) => m[1].replace(/<[^>]+>/g, "|").replace(/\|+/g, "|").replace(/^\||\|$/g, ""));
+    expect(lignes).toEqual([
+      "Pièce|Élément|État à l'entrée|État à la sortie",
+      "Chambre|Murs|Neuf|Usage",
+      "Séjour|Murs|Neuf|Mauvais",
+      "Équipements|Réfrigérateur|Bon|—",
+    ]);
+    // Pas d'écart → pas listé
+    expect(synthese).not.toContain("Sols");
+    for (const absent of ["Comparatif chiffré", "vétusté", "Montant retenu", "Total des retenues"]) expect(doc.html).not.toContain(absent);
   });
 });
 
@@ -310,8 +319,7 @@ describe.skipIf(!CHROME_LOCAL)("Rendu PDF des modèles (Chrome local)", () => {
       ],
       compteurs: [{ type: "Électricité", numero: "E-778", releve: "48114" }],
       cles: [{ libelle: "Clé porte d'entrée", nombre: 2, reference: null }],
-      comparatif: [{ libelle: "Murs — Séjour", etat_entree: "neuf", etat_sortie: "mauvais", ecart: true }],
-      retenues: [{ libelle: "Peinture séjour", cout: 400, duree_vie_ans: 10, age_ans: 4, montant_retenu: 240 }],
+      comparatif: [{ piece: "Séjour", categorie: "piece", libelle: "Murs", etat_entree: "neuf", etat_sortie: "mauvais", ecart: true }],
       bailleurNom: "Claire Moreau",
       locatairesNoms: "Julie Leblanc",
       logementAdresse: "12 rue des Lilas, 69003 Lyon",

@@ -1,7 +1,11 @@
 // 14 — État des lieux d'entrée · 15 — État des lieux de sortie.
 // Généré depuis la grille réelle (pièces, états, commentaires), les relevés
-// de compteurs et les clés ; en sortie : comparatif avec l'entrée et
-// retenues chiffrées (vétusté) si une restitution existe. Cible : l'EDL.
+// de compteurs et les clés ; en sortie : la synthèse des écarts avec l'entrée,
+// pièce par pièce. Cible : l'EDL.
+// Phase 3 (C34) : les retenues chiffrées (coût, vétusté, montant retenu) ne s'impriment plus ici. L'état des lieux est l'acte
+// contradictoire signé le jour du constat ; les retenues sont arrêtées plus tard, à la restitution du dépôt, et les imprimer
+// au-dessus des signatures les faisait paraître acceptées par le locataire ce jour-là. Elles figurent dans le décompte de
+// restitution et dans le décompte des retenues, datés de leur propre émission.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -11,14 +15,12 @@ import {
   cartouches,
   echapper,
   enTete,
-  eur,
   faitA,
   section,
   tableau,
   titre,
   nombreFr,
   pointFinal,
-  ligneTotal,
 } from "../gabarit";
 import {
   chargerContexteBail,
@@ -74,8 +76,8 @@ export type DonneesEdl = {
   photos?: PhotosEdl;
   compteurs: { type: string; numero: string | null; releve: number | string | null }[];
   cles: { libelle: string; nombre: number | null; reference: string | null }[];
-  comparatif: { libelle: string; etat_entree: string | null; etat_sortie: string | null; ecart: boolean }[];
-  retenues: { libelle: string; cout: number | null; duree_vie_ans: number | null; age_ans: number | null; montant_retenu: number }[];
+  /** Tel que `comparatif_edl` le rend : la pièce et la catégorie distinguent les « Murs » du séjour de ceux de la chambre (C33). */
+  comparatif: { piece: string | null; categorie?: string | null; libelle: string; etat_entree: string | null; etat_sortie: string | null; ecart: boolean }[];
   bailleurNom: string;
   locatairesNoms: string;
   logementAdresse: string;
@@ -86,12 +88,17 @@ export type DonneesEdl = {
   f: Fusion;
 };
 
+// Le nom de la pièce d'un élément, tel que la grille l'imprime ; sans pièce, sa catégorie.
+function nomPiece(l: { piece: string | null; categorie?: string | null }): string {
+  return l.piece ?? (l.categorie === "equipement" ? "Équipements" : "Général");
+}
+
 // Les pièces de la grille : un h3 par pièce, au rythme du gabarit (une marge
 // en ligne refaisait à la main ce que la feuille du document dit déjà).
 function groupesDeLignes(lignes: LigneEdl[]): Map<string, LigneEdl[]> {
   const groupes = new Map<string, LigneEdl[]>();
   for (const l of lignes) {
-    const cle = l.piece ?? (l.categorie === "equipement" ? "Équipements" : "Général");
+    const cle = nomPiece(l);
     if (!groupes.has(cle)) groupes.set(cle, []);
     groupes.get(cle)!.push(l);
   }
@@ -125,7 +132,7 @@ function numerosDesPhotos(d: DonneesEdl): Map<LigneEdl, number> {
 function sectionPhotos(d: DonneesEdl, numeros: Map<LigneEdl, number>): string {
   if (!numeros.size) return "";
   const vignettes = [...numeros.entries()].map(([l, n]) => {
-    const piece = l.piece ?? (l.categorie === "equipement" ? "Équipements" : "Général");
+    const piece = nomPiece(l);
     const legende = `Photo n° ${n} — ${echapper(piece)} — ${echapper(l.libelle)}`;
     const image = d.photos![l.photo_document_id!];
     return image && IMAGE_IMPRIMABLE.test(image)
@@ -159,7 +166,6 @@ export function construireEdl(d: DonneesEdl) {
     .join("");
 
   const ecarts = d.comparatif.filter((c) => c.ecart);
-  const totalRetenues = d.retenues.reduce((s, r) => s + Number(r.montant_retenu), 0);
 
   const corps = `
     ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: d.dateEdl ?? new Date().toISOString() })}
@@ -235,34 +241,16 @@ export function construireEdl(d: DonneesEdl) {
            ${
              ecarts.length
                ? tableau(
-                   [{ libelle: "Élément" }, { libelle: "État à l'entrée" }, { libelle: "État à la sortie" }],
+                   // Phase 3 (C33) : la pièce de chaque élément — six lignes « Murs » ne se distinguaient pas.
+                   [{ libelle: "Pièce" }, { libelle: "Élément" }, { libelle: "État à l'entrée" }, { libelle: "État à la sortie" }],
                    ecarts.map((c) => [
+                     echapper(nomPiece(c)),
                      echapper(c.libelle),
                      echapper(c.etat_entree ? ETATS[c.etat_entree] ?? c.etat_entree : "—"),
                      echapper(c.etat_sortie ? ETATS[c.etat_sortie] ?? c.etat_sortie : "—"),
                    ])
                  )
                : "<p>Aucun écart avec l'état des lieux d'entrée : le logement est restitué dans l'état où il a été remis.</p>"
-           }
-           ${
-             d.retenues.length
-               ? `${section("Comparatif chiffré et vétusté")}
-                  ${tableau(
-                    [
-                      { libelle: "Désignation" },
-                      { libelle: "Coût", droite: true },
-                      { libelle: "Durée de vie / âge" },
-                      { libelle: "Montant retenu", droite: true },
-                    ],
-                    d.retenues.map((r) => [
-                      echapper(r.libelle),
-                      r.cout !== null ? eur(Number(r.cout)) : "—",
-                      r.duree_vie_ans ? `${r.duree_vie_ans} ans / ${r.age_ans ?? "—"} ans` : "—",
-                      eur(Number(r.montant_retenu)),
-                    ])
-                  )}
-                  ${ligneTotal("Total des retenues après vétusté", eur(totalRetenues))}`
-               : ""
            }
            <p>Adresse de restitution du dépôt de garantie : ${f.champ(d.adresseRestitutionDepot, "adresse de restitution du dépôt")}${pointFinal(d.adresseRestitutionDepot)}</p>`
     }
@@ -278,7 +266,11 @@ export function construireEdl(d: DonneesEdl) {
           `Rappel au locataire : ${RAPPEL_COMPLEMENT_EDL_ENTREE_DOCUMENT}`
         : "Le dépôt de garantie est restitué dans un délai maximal d'un mois si le présent état est conforme à l'entrée, de deux mois dans le cas contraire, déduction faite des sommes justifiées restant dues."
     }</p>
-    ${faitA(f, d.exp.ville, d.signeLe ?? d.dateEdl ?? new Date().toISOString(), ", en autant d'exemplaires que de parties.")}
+    ${
+      // Phase 3 (S21) : l'état des lieux est daté du jour du constat, même enregistré ou signé dans Gerimmo plus tard
+      // (saisie après coup d'un état des lieux papier) ; la date de signature ne sert que si la date du constat manque.
+      faitA(f, d.exp.ville, d.dateEdl ?? d.signeLe ?? new Date().toISOString(), ", en autant d'exemplaires que de parties.")
+    }
     <div class="signatures">
       ${cadreSignature(libelleSignataireBailleur(d.typeOrganisation), d.bailleurNom)}
       ${cadreSignature("Le locataire", d.locatairesNoms)}
@@ -356,7 +348,7 @@ export async function assemblerEdl(
   const { edl, ctx } = charge;
   const sortie = edl.type === "sortie";
 
-  const [{ data: lignes }, { data: compteurs }, { data: cles }, comparatifRes, restitutionRes, entreeRes] =
+  const [{ data: lignes }, { data: compteurs }, { data: cles }, comparatifRes, entreeRes] =
     await Promise.all([
       supabase
         .from("edl_lignes")
@@ -366,13 +358,6 @@ export async function assemblerEdl(
       supabase.from("edl_compteurs").select("type, numero, releve").eq("edl_id", edlId).order("created_at"),
       supabase.from("edl_cles").select("libelle, nombre, reference").eq("edl_id", edlId).order("created_at"),
       sortie ? supabase.rpc("comparatif_edl", { p_bail: edl.bail_id }) : Promise.resolve({ data: [] }),
-      sortie
-        ? supabase
-            .from("restitutions")
-            .select("id, retenues(libelle, cout, duree_vie_ans, age_ans, montant_retenu)")
-            .eq("bail_id", edl.bail_id)
-            .maybeSingle()
-        : Promise.resolve({ data: null }),
       // P0-06 : l'entrée signée du même bail, la même que celle que l'écran de saisie met en regard de la sortie.
       sortie
         ? supabase
@@ -409,7 +394,6 @@ export async function assemblerEdl(
     compteurs: (compteurs ?? []) as DonneesEdl["compteurs"],
     cles: (cles ?? []) as DonneesEdl["cles"],
     comparatif: ((comparatifRes.data ?? []) as DonneesEdl["comparatif"]),
-    retenues: ((restitutionRes.data as { retenues?: DonneesEdl["retenues"] } | null)?.retenues ?? []),
     bailleurNom: nomsBailleurs(f, ctx.bailleurs),
     locatairesNoms: nomsLocataires(f, ctx.locataires),
     logementAdresse: adresseLogement(ctx.lot, ctx.bien),

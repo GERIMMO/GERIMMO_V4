@@ -162,7 +162,6 @@ describe.each(INSTANTS)("documents de contrat produits à %s : « Établi le » 
       compteurs: [],
       cles: [],
       comparatif: [],
-      retenues: [],
       bailleurNom: "Moreau Claire",
       locatairesNoms: "Leblanc Julie",
       logementAdresse: "1 rue A",

@@ -240,7 +240,7 @@ describe("C16, C24 — cadre de signature : « Le bailleur » hors agence, « Le
     const donnees = (typeOrganisation: string): DonneesEdl => ({
       type: "entree", reference: "EDL-1", dateEdl: "2026-09-01", signeLe: null, personnesPresentes: "Les parties",
       detecteurFumeePresent: true, detecteurFumeeEtat: "Fonctionnel", attestationAssuranceFournie: true, adresseRestitutionDepot: null,
-      observations: "Néant", lignes: [], compteurs: [], cles: [], comparatif: [], retenues: [], bailleurNom: "Moreau Claire",
+      observations: "Néant", lignes: [], compteurs: [], cles: [], comparatif: [], bailleurNom: "Moreau Claire",
       locatairesNoms: "Leblanc Julie", logementAdresse: "12 rue des Lilas, 69003 Lyon", referenceBail: "BAIL-1",
       exp: { nom: "Moreau Claire", adresse: null, email: "claire@exemple.fr", ville: "Lyon" }, typeOrganisation, f: new Fusion(),
     });

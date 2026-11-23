@@ -65,7 +65,8 @@ describe("Modèle 01 — bail nu", () => {
     expect(doc.html).toContain("Individuel — électricité"); // chauffage
     expect(doc.html).toContain("Hall, ascenseur, local vélos"); // parties communes
     expect(doc.html).toContain("Fibre optique"); // accès TIC
-    expect(doc.html).toContain("Sans objet — le contrat est conclu pour la durée de droit commun.");
+    // Phase 3 (C12) : la mention « sans objet » dit à quelle rubrique elle se rapporte (elle était seule sur sa ligne).
+    expect(doc.html).toContain("Durée réduite pour un événement précis justifiant la reprise du logement : sans objet — le contrat est conclu pour la durée de droit commun.");
     expect(doc.html).toContain("à échoir");
     expect(doc.html).toContain("Virement bancaire");
     expect(doc.html).toContain("FR76 3000 4000 0500 0012 3456 789"); // IBAN facultatif imprimé

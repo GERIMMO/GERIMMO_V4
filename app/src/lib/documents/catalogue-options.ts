@@ -18,7 +18,8 @@ export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
   conge_bailleur:[{cle:"motif",libelle:"Motif du congé",choix:[{valeur:"reprise",libelle:"Reprise"},{valeur:"vente",libelle:"Vente"},{valeur:"motif_legitime",libelle:"Motif légitime et sérieux"}]},effet,{cle:"beneficiaire_nom",libelle:"Bénéficiaire de la reprise"},{cle:"beneficiaire_lien",libelle:"Lien avec le bailleur"},{cle:"beneficiaire_adresse",libelle:"Adresse du bénéficiaire de la reprise"},{cle:"raisons_reprise",libelle:"Raisons de la reprise",type:"textarea"},{cle:"motif_detail",libelle:"Motivation et justificatifs",type:"textarea"}],
   inventaire_entree:[{cle:"date_constat",libelle:"Date du constat",type:"date"}],
   inventaire_sortie:[{cle:"date_constat",libelle:"Date du constat",type:"date"},{cle:"constat",libelle:"Constat du mobilier à la sortie",type:"textarea"}],
-  avenant_remplacement:[{cle:"sortant",libelle:"Colocataire sortant"},{cle:"entrant",libelle:"Identité et adresse de l’entrant",type:"textarea"},effet,{cle:"depot",libelle:"Accord relatif au dépôt",type:"textarea"}],
+  // Phase 3 (C22) : le sortant se choisit parmi les titulaires du contrat commun (liste de l'écran ; l'assembleur refuse toute autre personne).
+  avenant_remplacement:[{cle:"sortant",libelle:"Colocataire sortant",aide:"Choisissez l’un des titulaires du contrat commun."},{cle:"entrant",libelle:"Identité et adresse de l’entrant",type:"textarea"},effet,{cle:"depot",libelle:"Accord relatif au dépôt",type:"textarea"}],
   attestation_loyer:[{cle:"destinataire",libelle:"Destinataire"}],
   attestation_caf:[{cle:"destinataire",libelle:"Caisse destinataire"},{cle:"allocataire",libelle:"Numéro allocataire"}],
   regularisation_charges:[detailDepenses,consultation],decompte_charges:[detailDepenses,consultation],consultation_charges:[consultation],

@@ -99,12 +99,17 @@ describe("P0-07 — notice d'information", () => {
     const doc = await assemblerNotice({} as unknown as SupabaseClient, "org", "b1");
     if (!("document" in doc)) throw new Error("notice non assemblée");
     const texte = texteDe(doc.document.html);
-    expect(texte).toContain("Résumé établi par Gerimmo — annexe au contrat de location");
+    // Phase 3 (C01) : le résumé ne se dit plus « annexe au contrat de location » (c'est la notice officielle que le bail
+    // déclare annexée) ; son titre et son sous-titre disent ce qu'il est.
+    expect(texte).toContain("Résumé de la notice d'information");
+    expect(texte).toContain("Établi par Gerimmo — ne remplace pas la notice officielle");
+    expect(texte).not.toMatch(/annexe au contrat de location|annexée au contrat|fait partie intégrante|reconnaît avoir reçu/);
     expect(texte).toContain(AVERTISSEMENT_RESUME_NOTICE);
     // L'avertissement précède les rubriques : on ne le découvre pas en bas de page.
     expect(texte.indexOf(AVERTISSEMENT_RESUME_NOTICE)).toBeLessThan(texte.indexOf("1 — Le contrat de location"));
-    // Le titre sous lequel la signature électronique retrouve la pièce est inchangé.
-    expect(doc.titreGed).toBe("Notice d'information (annexe au bail)");
+    // Phase 3 (C01) : le titre de classement dit « résumé » ; la fiche du bail et la signature électronique retrouvent
+    // la pièce sous ce titre comme sous l'ancien (TITRES_GED_RESUME_NOTICE, testé dans documents-baux-phase3).
+    expect(doc.titreGed).toBe("Résumé de la notice d'information");
   });
 
   it("l'avertissement ne promet rien et ne cite aucun texte que Gerimmo n'a pas relu", () => {

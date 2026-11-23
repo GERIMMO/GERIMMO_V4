@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, section, tableau, titre, eur, nombreFr, pointFinal, facultatif, ouNeant } from "../gabarit";
+import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, faitALaSignature, section, tableau, titre, eur, nombreFr, pointFinal, facultatif, ouNeant, echapper, formaterDateFr } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
-import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte, libellePeriodeTerme, interlocuteurLocataire, libelleSignataireBailleur, coordonneesBancaires, demandeVirement } from "./communs";
+import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, nomPersonne, liensLocataires, referenceCourte, referenceAvenant, libellePeriodeTerme, interlocuteurLocataire, libelleSignataireBailleur, coordonneesBancaires, demandeVirement } from "./communs";
 import { TYPES_DIAGNOSTIC } from "@/lib/parc";
 import { LIBELLE_ETAT_INVENTAIRE } from "@/lib/inventaire-meuble";
 import { modeSignatureDocument } from "@/lib/politique-signature";
@@ -27,8 +27,10 @@ export async function lireLignes(requete: PromiseLike<{ data: unknown; error: un
   return (Array.isArray(r.data) ? r.data : r.data ? [r.data] : []) as LigneDocument[];
 }
 // « lignes » : un texte de plusieurs lignes (description d'un devis) garde ses sauts de ligne, posés APRÈS l'échappement (phase 3, C78).
-export function lignesTableau(f: Fusion, lignes: LigneDocument[], colonnes: [string, string, "texte" | "lignes" | "date" | "montant"][]): string {
-  return tableau(colonnes.map(([libelle,, type]) => ({ libelle, droite: type === "montant" })), lignes.map(l => colonnes.map(([libelle, cle, type]) => type === "montant" ? f.montant(l[cle] as string | number | null, libelle) : type === "date" ? f.date(texte(l[cle]) || null, libelle) : type === "lignes" ? f.champ(texte(l[cle]).trim() || null, libelle).replace(/\r?\n/g, "<br>") : f.champ(texte(l[cle]) || null, libelle))));
+// « facultatif » : une cellule que l'écran de saisie dit facultative s'imprime « — » quand elle est vide, sans bloquer le PDF
+// (phase 3, C04 : une ligne d'inventaire sans observation refusait tout l'inventaire).
+export function lignesTableau(f: Fusion, lignes: LigneDocument[], colonnes: [string, string, "texte" | "lignes" | "date" | "montant" | "facultatif"][]): string {
+  return tableau(colonnes.map(([libelle,, type]) => ({ libelle, droite: type === "montant" })), lignes.map(l => colonnes.map(([libelle, cle, type]) => type === "montant" ? f.montant(l[cle] as string | number | null, libelle) : type === "date" ? f.date(texte(l[cle]) || null, libelle) : type === "lignes" ? f.champ(texte(l[cle]).trim() || null, libelle).replace(/\r?\n/g, "<br>") : type === "facultatif" ? facultatif(texte(l[cle]).trim() || null) : f.champ(texte(l[cle]) || null, libelle))));
 }
 // L'année par défaut d'un document est celle du jour de PARIS : l'année du serveur (UTC) est encore la précédente le
 // 1er janvier entre minuit et 1 h (audit du 23/10, TST-5).
@@ -49,6 +51,9 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     // Phase 3 (C41, C70, C71) : « votre gestionnaire » seulement dans un espace d'agence ; ailleurs, le bailleur.
     const interlocuteur = interlocuteurLocataire(ctx.organisation.type);
     let contenu = "", signatures = false;
+    // Phase 3 (C21 à C25) : l'avenant de remplacement a sa propre référence (en-tête et pied), le contrat qu'il modifie avec sa
+    // date de prise d'effet, une date laissée à compléter à la signature et un cadre par partie.
+    let avenant: { reference: string; contrat: string; signatures: string } | null = null;
     // S39 : l'adresse postale du destinataire d'un courrier de recouvrement (`undefined` : pas un courrier ; `null` : inconnue).
     let adresseDestinataire: string | null | undefined;
     const opt = (cle: string, libelle: string) => f.champ(options[cle]?.trim() || null, libelle);
@@ -59,8 +64,15 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       // DOC-01 : la validité d'un DPE d'avant le 01/07/2021 est plafonnée (décret n° 2020-1610).
       const lignes = (await lireLignes(supabase.from("diagnostics").select("type, date_realisation, date_expiration, diagnostiqueur, document_id, classe_dpe").eq("organization_id", orgId).or(`lot_id.eq.${ctx.lot.id},bien_id.eq.${ctx.bien.id}`).is("archived_at", null).order("type")))
         // C02 : le libellé de l'écran (TYPES_DIAGNOSTIC), pas le code de la base ; un type inconnu s'imprime tel quel.
-        .map((l): LigneDocument => ({ ...l, libelle_type: TYPES_DIAGNOSTIC[String(l.type)]?.libelle ?? texte(l.type), date_expiration: echeanceReglementaire(String(l.type), l.date_realisation as string | null, l.date_expiration as string | null) }));
-      contenu = `${section("Diagnostics recensés")}${lignesTableau(f,lignes,[["Diagnostic","libelle_type","texte"],["Réalisé le","date_realisation","date"],["Validité","date_expiration","date"],["Diagnostiqueur","diagnostiqueur","texte"]])}
+        // C05 : une échéance vide (amiante sans trace : validité illimitée, selon l'aide de la saisie) ou un diagnostiqueur non
+        // saisi ne bloquent plus le bordereau : ils s'impriment tels quels, sans date ni nom inventés.
+        .map((l): LigneDocument => {
+          const echeance = echeanceReglementaire(String(l.type), l.date_realisation as string | null, l.date_expiration as string | null);
+          return { ...l, libelle_type: TYPES_DIAGNOSTIC[String(l.type)]?.libelle ?? texte(l.type), date_expiration: echeance,
+            validite: echeance ? formaterDateFr(echeance) : "sans date de fin indiquée au rapport",
+            diagnostiqueur: texte(l.diagnostiqueur).trim() || "non renseigné" };
+        });
+      contenu = `${section("Diagnostics recensés")}${lignesTableau(f,lignes,[["Diagnostic","libelle_type","texte"],["Réalisé le","date_realisation","date"],["Validité","validite","texte"],["Diagnostiqueur","diagnostiqueur","texte"]])}
       <p>Pièces disponibles : ${lignes.filter(l=>l.document_id).length} sur ${lignes.length} diagnostics recensés.</p>
       ${lignes.some(l=>!l.document_id) ? `<p>${f.champ(null,"rapports de diagnostic à déposer avant remise du dossier")}</p>` : ""}
       <p>Ce bordereau décrit les pièces du dossier. Les rapports établis par les diagnostiqueurs doivent être joints ; il ne constitue pas un diagnostic du logement.</p>`;
@@ -72,9 +84,12 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         .map((l): LigneDocument => ({ ...l, etat: l.etat == null ? null : LIBELLE_ETAT_INVENTAIRE[String(l.etat)] ?? texte(l.etat) }));
       const sortie = code === "inventaire_sortie";
       if (sortie && !["preavis","termine"].includes(ctx.bail.etat)) return { erreur: "Préparez l’inventaire de sortie après l’enregistrement du congé." };
-      contenu = `${section(sortie ? "Mobilier de référence et constat de sortie" : "Mobilier mis à disposition")}
-        ${lignesTableau(f,lignes,[["Pièce","piece","texte"],["Désignation","designation","texte"],["Quantité","quantite","texte"],[sortie ? "État de référence" : "État","etat","texte"],["Observation","observation","texte"]])}
-        ${sortie ? `<p>Constat contradictoire de sortie : ${opt("constat","état et quantité du mobilier à la sortie")}</p>` : ""}
+      // C04 : la pièce et l'observation sont facultatives à la saisie de l'inventaire : vides, elles s'impriment « — ».
+      // C07 : à la sortie, le tableau est celui de l'entrée et le dit (colonnes « à l'entrée ») ; le constat de sortie suit,
+      // sous son propre titre, tel qu'il a été saisi (aucun état par élément n'est inventé).
+      contenu = `${section(sortie ? "Mobilier inventorié à l’entrée" : "Mobilier mis à disposition")}
+        ${lignesTableau(f,lignes,[["Pièce","piece","facultatif"],["Désignation","designation","texte"],["Quantité","quantite","texte"],[sortie ? "État à l’entrée" : "État","etat","texte"],[sortie ? "Observation à l’entrée" : "Observation","observation","facultatif"]])}
+        ${sortie ? `${section("Constat de sortie")}<p>Constat contradictoire du mobilier à la sortie : ${opt("constat","état et quantité du mobilier à la sortie")}${pointFinal(options.constat)}</p>` : ""}
         <p>Inventaire annexé au contrat, établi contradictoirement à la remise des clés. Date du constat : ${f.date(options.date_constat || null,"date du constat mobilier")}.</p>`;
       if (!lignes.length) f.champ(null,"mobilier du contrat à inventorier");
       signatures = true;
@@ -200,9 +215,9 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       if (!ctx.bail.locataire_principal) return { erreur: "Choisissez d’abord la personne du dossier." };
       const pieces = await lireLignes(supabase.from("pieces_demandees").select("*").eq("organization_id",orgId).eq("person_id",ctx.bail.locataire_principal).order("demandee_le"));
       for (const p of pieces) p.statut = p.satisfaite_le ? "Reçue" : p.document_id ? "Déposée, à vérifier" : "À fournir";
-      contenu = `${section("Pièces demandées dans le dossier")}${lignesTableau(f,pieces,[["Pièce","libelle","texte"],["Statut","statut","texte"]])}
+      // C17 : sans demande, plus de tableau vide (en-têtes sans ligne) : la phrase qui le dit vient sous le titre.
+      contenu = `${section("Pièces demandées dans le dossier")}${pieces.length ? lignesTableau(f,pieces,[["Pièce","libelle","texte"],["Statut","statut","texte"]]) : "<p>Aucune demande de pièce enregistrée à cette date.</p>"}
         <p>Les pièces déjà fournies restent consultables dans le dossier de la personne. Demandez uniquement les justificatifs nécessaires au dossier du locataire retenu et de son garant éventuel.</p>`;
-      if (!pieces.length) contenu += "<p>Aucune demande de pièce enregistrée à cette date.</p>";
     } else if (code === "avenant_remplacement") {
       if (ctx.bail.type !== "colocation" || ctx.bail.chambre_id) return { erreur: "L’avenant de remplacement concerne un contrat commun. En contrat individuel, clôturez le sortant et créez le contrat du nouvel occupant." };
       // Phase 3 (C19) : l'avenant remplace un colocataire dans un contrat commun signé et en cours ; sur un brouillon, le contrat
@@ -210,8 +225,25 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       if (ctx.bail.etat === "brouillon") return { erreur: "Le contrat commun est encore en préparation : modifiez les colocataires directement dans le brouillon avant sa signature, ou activez d’abord la location s’il est déjà signé." };
       if (ctx.bail.etat === "termine") return { erreur: "Ce contrat commun est terminé : aucun remplacement de colocataire n’est possible." };
       if (ctx.bail.etat !== "actif") return { erreur: "Un congé est enregistré pour ce contrat commun (préavis en cours) : le remplacement d’un colocataire se prépare tant que la location est en cours." };
+      // C22 : le sortant est l'un des titulaires du contrat commun, choisi dans la liste de l'écran (son identifiant) ; une
+      // personne étrangère au contrat est refusée. Un colocataire dont le départ est déjà enregistré ne signe pas comme
+      // « restant ».
+      const sortantId = options.sortant?.trim() ?? "";
+      const sortant = sortantId ? ctx.locataires.find(p => p.id === sortantId) : undefined;
+      if (sortantId && !sortant) return { erreur: "Le colocataire sortant doit être l’un des titulaires du contrat commun : choisissez-le dans la liste." };
+      const partis = new Set((await lireLignes(supabase.from("bail_personnes").select("person_id,date_depart").eq("organization_id",orgId).eq("bail_id",bailId))).filter(p => p.date_depart).map(p => texte(p.person_id)));
+      const restants = ctx.locataires.filter(p => p.id !== sortant?.id && !partis.has(p.id));
+      const nomSortant = f.champ(nomPersonne(sortant), "identité du colocataire sortant");
+      const entrant = opt("entrant","identité, adresse et état civil de l’entrant");
+      // C21 : un cadre par partie — le bailleur, le sortant, l'entrant (qui devient partie au contrat) et les colocataires
+      // qui restent ; C23 : la date est portée à la signature ; C25 : le contrat modifié, avec sa date de prise d'effet.
+      avenant = {
+        reference: referenceAvenant(bailId),
+        contrat: `Réf. ${referenceCourte("BAIL",bailId)} — prise d’effet le ${f.date(ctx.bail.date_debut, "date de prise d’effet du contrat")}`,
+        signatures: `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature("Le colocataire sortant",nomSortant)}${cadreSignature("Le colocataire entrant",entrant.replace(/\r?\n/g,"<br/>"))}${restants.length ? cadreSignature(restants.length > 1 ? "Les colocataires restants" : "Le colocataire restant",restants.map(p=>echapper(nomPersonne(p) ?? "")).join("<br/>")) : ""}</div>`,
+      };
       contenu = `${section("Parties et remplacement convenu")}
-        <p>Colocataire sortant : ${opt("sortant","identité du colocataire sortant")} ; colocataire entrant : ${opt("entrant","identité, adresse et état civil de l’entrant")}${pointFinal(options.entrant)}</p>
+        <p>Colocataire sortant : ${nomSortant} ; colocataire entrant : ${entrant}${pointFinal(options.entrant)}</p>
         <p>Date d’effet convenue : ${f.date(options.date_effet || null,"date d’effet du remplacement")}.</p>
         <p>Les parties conviennent de remplacer le colocataire sortant par l’entrant désigné, sous réserve de la signature de cet avenant par les parties concernées. Les autres clauses du contrat commun restent inchangées.</p>
         <p>La solidarité du sortant et de sa caution cesse à la date prévue par l’article 8-1 VI de la loi du 6 juillet 1989 : à la date d’effet du congé régulièrement délivré lorsqu’un nouveau colocataire figure au bail, ou au plus tard six mois après cette date à défaut de remplacement.</p>
@@ -228,10 +260,13 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       signatures = true;
     }
     const signatureEmetteur = modeSignatureDocument(code)==="enregistree" ? blocSignatureEmetteur(exp.nom, await signatureOrganisation(supabase,orgId)) : null;
-    const reference = referenceCourte(code.toUpperCase().replaceAll("_","-"), bailId);
-    const corps = `${enTete(f,exp,{libelle:"Dossier",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,"Dossier de location",[])}
-      ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],adresseDestinataire === undefined ? ["Locataire",nomsLocataires(f,ctx.locataires)] : ["Locataire (destinataire)",`${nomsLocataires(f,ctx.locataires)}${adresseDestinataire ? `<div>${facultatif(adresseDestinataire)}</div>` : ""}`],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",referenceCourte("BAIL",bailId)]])}
-      ${contenu}${faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature("Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`;
+    const reference = avenant?.reference ?? referenceCourte(code.toUpperCase().replaceAll("_","-"), bailId);
+    // C24 : plusieurs locataires au bail → « Locataires », « Les locataires » (le singulier valait pour deux colocataires).
+    const plusieurs = ctx.locataires.length > 1;
+    const caseLocataires = plusieurs ? "Locataires" : "Locataire";
+    const corps = `${enTete(f,exp,avenant ? {libelle:"Avenant",reference:avenant.reference,etabliLe:aujourdhui} : {libelle:"Dossier",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,avenant ? "Modification du contrat commun de location" : "Dossier de location",[])}
+      ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],adresseDestinataire === undefined ? [caseLocataires,nomsLocataires(f,ctx.locataires)] : [`${caseLocataires} (${plusieurs ? "destinataires" : "destinataire"})`,`${nomsLocataires(f,ctx.locataires)}${adresseDestinataire ? `<div>${facultatif(adresseDestinataire)}</div>` : ""}`],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",avenant?.contrat ?? referenceCourte("BAIL",bailId)]])}
+      ${contenu}${avenant ? `${faitALaSignature(f,exp.ville)}${avenant.signatures}` : `${faitA(f,exp.ville,aujourdhui)}${signatureEmetteur ?? (signatures ? `<div class="signatures">${cadreSignature(libelleSignataireBailleur(ctx.organisation.type),nomsBailleurs(f,ctx.bailleurs))}${cadreSignature(plusieurs ? "Les locataires" : "Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : "")}`}`;
     return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)] };
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }
 }

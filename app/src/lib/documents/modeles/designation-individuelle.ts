@@ -16,6 +16,9 @@ export function designationIndividuelle(ctx: ContexteBail, f: Fusion, t: Typogra
     Chaque locataire répond des sommes et obligations prévues par son propre contrat. Les éventuelles cautions garantissent uniquement le locataire désigné dans leur acte.</p>
     <p>Le congé et l’état des lieux de sortie de ce locataire concernent sa partie privative et les espaces partagés mis à sa disposition ; ils ne mettent pas fin aux contrats des autres occupants.
     Le dépôt de ce contrat est restitué individuellement dans les conditions et délais légaux après la remise des clés, déduction faite des seules sommes justifiées à la charge de ce locataire.</p>
-    <p>Loyer de référence du logement entier, hors charges : ${f.montant(ctx.plafondColocation, "loyer maximum du logement entier")} par mois.
+    <p>${/* Phase 3 (C30) : ce montant est le plafond retenu pour le logement entier (lots.colocation_loyer_reference : « loyer
+      HC maximum applicable au logement entier »), pas le « loyer de référence » de l'encadrement, que le contrat déclare plus
+      loin. Un bail déjà préparé pour la signature garde l'ancien libellé (typographie archivée). */
+      t.archivee ? "Loyer de référence du logement entier" : "Loyer maximal applicable au logement entier"}, hors charges : ${f.montant(ctx.plafondColocation, "loyer maximum du logement entier")} par mois.
     La somme des loyers des contrats individuels ne peut excéder le montant applicable au logement entier. Les provisions sur charges font l’objet d’une régularisation propre à ce contrat ; un forfait ne donne pas lieu à régularisation.</p>`;
 }

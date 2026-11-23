@@ -237,6 +237,9 @@ export function FormulaireComplementsBail({
             defaultValue={d("travaux_recents", defauts.travaux_recents)}
             className={classeTextarea}
           />
+          {/* Phase 3 (C08) : pour une première location, le contrat n'imprime pas ces travaux (il n'y a pas de dernier
+              contrat) : l'écran le dit, plutôt que de perdre la saisie sans prévenir. */}
+          {situation === "premiere" && <p data-travaux-premiere-location className="text-xs text-muted-foreground">Vous avez indiqué une première location : le contrat imprime « Sans objet — première location » pour cette rubrique, qui porte sur les travaux faits depuis la fin du dernier contrat. Ce que vous saisissez ici n’y figure pas.</p>}
         </div>
         <div hidden={etape !== "tous" && etape !== "travaux"} data-complement="travaux" className="space-y-1.5">
           <Label htmlFor="comp-travaux-montant">Montant des travaux récents (€) — Obligatoire si travaux renseignés</Label>

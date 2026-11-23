@@ -224,7 +224,8 @@ describe("C16, C24 — cadre de signature : « Le bailleur » hors agence, « Le
     organizations: [espace(type)],
     inventaire_lignes: [{ piece: "Séjour", designation: "Table", quantite: 1, etat: "bon", observation: "RAS" }],
   });
-  const options = { date_constat: "2026-09-01", sortant: "Leblanc Julie", entrant: "Martin Paul, 1 rue Neuve", date_effet: "2026-12-01", depot: "Conservé" };
+  // Phase 3 (C22) : le sortant est désigné par l'identifiant d'un titulaire du bail (« p1 », Leblanc Julie), plus par un nom saisi.
+  const options = { date_constat: "2026-09-01", sortant: "p1", entrant: "Martin Paul, 1 rue Neuve", date_effet: "2026-12-01", depot: "Conservé" };
   it.each(["inventaire_entree", "avenant_remplacement"] as const)("%s", async (code) => {
     ctx.lot.meuble = true;
     if (code === "avenant_remplacement") ctx.bail.type = "colocation";

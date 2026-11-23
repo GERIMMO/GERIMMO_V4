@@ -83,10 +83,15 @@ export function statutPieceDiagnostic(d: DiagnosticBail, aujourd: string) {
   return { libelle: "Disponible", ton: "ok" };
 }
 
+// Phase 3 (C01) : le PDF de la notice est un RÉSUMÉ établi par Gerimmo ; son titre de classement le dit. Les résumés déjà
+// rangés sous l'ancien titre (« … (annexe au bail) ») restent reconnus : fiche du bail, récapitulatif, signature électronique.
+export const TITRE_GED_RESUME_NOTICE = "Résumé de la notice d'information";
+export const TITRES_GED_RESUME_NOTICE = [TITRE_GED_RESUME_NOTICE, "Notice d'information (annexe au bail)"];
+
 export type PieceBail = { id: string; titre: string | null; type: string; purged_at: string | null };
 export function classerPiecesBail(pieces: PieceBail[], diagnosticIds: string[], reglementId: string | null) {
   const uniques = [...new Map(pieces.filter(p => !p.purged_at).map(p => [p.id, p])).values()];
-  const notices = uniques.filter(p => p.type === "courrier" && p.titre === "Notice d'information (annexe au bail)");
+  const notices = uniques.filter(p => p.type === "courrier" && TITRES_GED_RESUME_NOTICE.includes(p.titre ?? ""));
   const exclus = new Set([...diagnosticIds, ...notices.map(p => p.id), reglementId]);
   const autres = uniques.filter(p => !exclus.has(p.id) && !["bail", "etat_des_lieux", "diagnostic", "reglement_copropriete"].includes(p.type));
   return { notices, autres };

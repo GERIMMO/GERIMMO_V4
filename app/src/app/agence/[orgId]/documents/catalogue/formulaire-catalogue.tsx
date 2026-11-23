@@ -12,7 +12,8 @@ import { OPTIONS_CATALOGUE } from "@/lib/documents/catalogue-options";
 import type { ChoixDossier } from "@/lib/documents/catalogue-cibles";
 import { RACINE_AGENCE, baseDepuisRacine } from "@/lib/racine-espace";
 // `racine` : « /espace » chez le propriétaire direct, « /agence » sinon (décision D27) ; la page la transmet.
-export function FormulaireCatalogue({orgId,modeleId,choix,garants=[],racine=RACINE_AGENCE}:{orgId:string;modeleId:string;choix:ChoixDossier[];garants?:{id:string;libelle:string;bailId:string}[];racine?:string}) {
+// `titulaires` : les titulaires de chaque contrat commun, parmi lesquels se choisit le colocataire sortant (phase 3, C22).
+export function FormulaireCatalogue({orgId,modeleId,choix,garants=[],titulaires=[],racine=RACINE_AGENCE}:{orgId:string;modeleId:string;choix:ChoixDossier[];garants?:{id:string;libelle:string;bailId:string}[];titulaires?:{id:string;libelle:string;bailId:string}[];racine?:string}) {
   const base=baseDepuisRacine(orgId,racine);
   const [cible,setCible]=useState(choix.length===1?choix[0].id:"");
   const [annee,setAnnee]=useState(String(new Date().getFullYear()));
@@ -53,6 +54,7 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[],racine=RACI
     <label className="block space-y-2 text-sm font-medium"><span>Dossier concerné</span><select name="cible" required className={style} value={cible} onChange={e=>setCible(e.target.value)}><option value="">Choisir un dossier</option>{choix.map(c=><option key={c.id} value={c.id}>{c.libelle}</option>)}</select></label>
     <div className="grid gap-4 sm:grid-cols-2">{champs.map(c=>c.type==="case"?<label key={c.cle} className="flex items-start gap-2 text-sm sm:col-span-2"><input name={c.cle} type="checkbox" value="oui" required className="mt-1 size-4 shrink-0 accent-primary"/><span>{c.libelle}</span></label>:<label key={c.cle} className={`block space-y-2 text-sm font-medium ${c.type==="textarea"?"sm:col-span-2":""}`}><span>{c.libelle}</span>
       {c.cle==="garant"?<select key={cible} name={c.cle} className={style} required defaultValue=""><option value="" disabled>Choisir un garant rattaché au dossier</option>{garants.filter(g=>g.bailId===cible).map(g=><option key={g.id} value={g.id}>{g.libelle}</option>)}</select>:
+      c.cle==="sortant"&&modeleId==="avenant_remplacement"?<select key={cible} name={c.cle} className={style} required defaultValue=""><option value="" disabled>{cible?"Choisir un titulaire du contrat":"Choisissez d’abord le dossier"}</option>{titulaires.filter(t=>t.bailId===cible).map(t=><option key={t.id} value={t.id}>{t.libelle}</option>)}</select>:
       c.choix?<select name={c.cle} className={style} required>{c.choix.map(v=><option value={v.valeur} key={v.valeur}>{v.libelle}</option>)}</select>:
       c.type==="textarea"?<textarea name={c.cle} rows={3} maxLength={6000} className={style} required={!(c.repli==="detail_enregistre"&&choixCourant?.detailEnregistre)}/>:
       c.type==="montant"?<input name={c.cle} type="text" inputMode="decimal" maxLength={20} className={style} required value={interets} onChange={e=>setInterets(e.target.value)}/>:

@@ -33,6 +33,7 @@ export default async function PageCatalogue({params,searchParams}:{params:Promis
   const lien=(mod:string,num=0)=>`${base}?${new URLSearchParams({modele:mod,...(bail?{bail}:{}),...(situation?{situation}:{}),...(num?{page:String(num)}:{})})}`;
   let cibles:Awaited<ReturnType<typeof chargerCiblesCatalogue>>={choix:[],suite:false},erreur="";
   let garants:{id:string;libelle:string;bailId:string}[]=[];
+  let titulaires:{id:string;libelle:string;bailId:string}[]=[];
   if(choisi&&Object.hasOwn(MODELES,choisi.code)) {
     try {
       cibles=await chargerCiblesCatalogue(supabase,orgId,choisi,page,bail||undefined);
@@ -41,6 +42,20 @@ export default async function PageCatalogue({params,searchParams}:{params:Promis
         const ids=[...new Set(roles.map(r=>texte(r.person_id)))];
         const personnes=ids.length?await lireLignes(supabase.from("persons").select("id,nom,prenom").eq("organization_id",orgId).in("id",ids)):[];
         garants=roles.flatMap(r=>{const p=personnes.find(p=>p.id===r.person_id);return p?[{id:texte(p.id),libelle:[p.nom,p.prenom].filter(Boolean).join(" "),bailId:texte(r.bail_id)}]:[];});
+      }
+      // Phase 3 (C22) : le colocataire sortant se choisit parmi les titulaires du contrat commun (locataire principal et
+      // colocataires), comme les titulaires que l'avenant lit lui-même.
+      if(choisi.id==="avenant_remplacement"&&cibles.choix.length) {
+        const ids=cibles.choix.map(c=>c.id);
+        const [baux,roles]=await Promise.all([
+          lireLignes(supabase.from("baux").select("id,locataire_principal").eq("organization_id",orgId).in("id",ids)),
+          lireLignes(supabase.from("bail_personnes").select("person_id,bail_id").eq("organization_id",orgId).eq("role","colocataire").in("bail_id",ids)),
+        ]);
+        const liens=[...baux.filter(b=>b.locataire_principal).map(b=>({person_id:texte(b.locataire_principal),bail_id:texte(b.id)})),...roles.map(r=>({person_id:texte(r.person_id),bail_id:texte(r.bail_id)}))];
+        const personnesIds=[...new Set(liens.map(l=>l.person_id))];
+        const personnes=personnesIds.length?await lireLignes(supabase.from("persons").select("id,nom,prenom").eq("organization_id",orgId).in("id",personnesIds)):[];
+        const vus=new Set<string>();
+        titulaires=liens.flatMap(l=>{const p=personnes.find(p=>p.id===l.person_id);const cle=`${l.bail_id}|${l.person_id}`;if(!p||vus.has(cle))return [];vus.add(cle);return [{id:texte(p.id),libelle:[p.nom,p.prenom].filter(Boolean).join(" "),bailId:l.bail_id}];});
       }
     } catch {erreur="Les dossiers n’ont pas pu être chargés. Actualisez la page pour réessayer.";}
   }
@@ -51,7 +66,7 @@ export default async function PageCatalogue({params,searchParams}:{params:Promis
     <header className="entete-page"><div><TitreEcran rubrique="documents">Préparer un document</TitreEcran><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Choisissez une situation ou recherchez un document.</p></div></header></div>
     {choisi?<><Link href={`${base}?${new URLSearchParams({... (situation?{situation}:{}),...(bail?{bail}:{})})}`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline">← Choisir un autre document</Link><section className="rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-card p-5 shadow-[var(--ombre-1)] sm:p-7"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{choisi.famille}</p><h2 className="mt-2">{choisi.nom}</h2><p className="mb-6 mt-2 text-sm text-muted-foreground">{choisi.description}</p>
       {!Object.hasOwn(MODELES,choisi.code)?<p role="status" className="rounded-[var(--rayon-carte)] border border-[var(--filet)] bg-[var(--filet-leger)] p-4 text-sm">Ce modèle est en préparation : Gerimmo ne présentera pas un document provisoire à la place de la pièce attendue.</p>:
-      erreur?<p role="alert" className="err">{erreur}</p>:cibles.choix.length?<FormulaireCatalogue key={`${choisi.id}-${page}-${bail}`} orgId={orgId} modeleId={choisi.id} choix={cibles.choix} garants={garants} racine={racineEspace(estProprietaire)}/>:<p className="rounded-[var(--rayon-carte)] bg-[var(--filet-leger)] p-4 text-sm">Aucun dossier compatible sur cette page. Vérifiez les informations et l’avancement du dossier concerné.{bail&&<> <Link href={lien(choisi.id).replace(`&bail=${bail}`,"")} className="underline">Afficher tous les dossiers</Link></>}</p>}
+      erreur?<p role="alert" className="err">{erreur}</p>:cibles.choix.length?<FormulaireCatalogue key={`${choisi.id}-${page}-${bail}`} orgId={orgId} modeleId={choisi.id} choix={cibles.choix} garants={garants} titulaires={titulaires} racine={racineEspace(estProprietaire)}/>:<p className="rounded-[var(--rayon-carte)] bg-[var(--filet-leger)] p-4 text-sm">Aucun dossier compatible sur cette page. Vérifiez les informations et l’avancement du dossier concerné.{bail&&<> <Link href={lien(choisi.id).replace(`&bail=${bail}`,"")} className="underline">Afficher tous les dossiers</Link></>}</p>}
       {(page>0||cibles.suite)&&<nav aria-label="Pages des dossiers" className="mt-5 flex items-center gap-4 text-sm">{page>0&&<Link href={lien(choisi.id,page-1)} className="underline">Dossiers précédents</Link>}<span>Page {page+1} · 50 dossiers au maximum</span>{cibles.suite&&<Link href={lien(choisi.id,page+1)} className="underline">Dossiers suivants</Link>}</nav>}
     </section></>:<>
       {/* Tour du 24/09. Les situations sont les titres de section de la page :

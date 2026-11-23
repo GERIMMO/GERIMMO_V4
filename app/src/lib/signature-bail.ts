@@ -8,7 +8,7 @@ import { refusDocumentIncomplet } from "@/lib/documents/completude";
 import { configurationZohoSign } from "@/lib/zoho-sign";
 import { prestataireSignature, type ConfigurationSignature, type PrestataireSignature } from "@/lib/signature-prestataire";
 import { aujourdhuiParis } from "@/lib/ged";
-import { echeanceReglementaire } from "@/lib/documents-bail";
+import { echeanceReglementaire, TITRES_GED_RESUME_NOTICE } from "@/lib/documents-bail";
 import { marquerDocumentEssai, signatureEnEssai } from "@/lib/signature-essai";
 import type { ModeleSignature } from "./politique-signature";
 import { MENTION_PAGE_SIGNATURE_GARANT, mentionCadreCautionBail } from "./textes-signature-actes";
@@ -52,12 +52,14 @@ export async function annexesSignatureBail(db:SupabaseClient,org:string,bail:str
   ]);
   if (contrat.error || diagnostics.error || liens.error) throw new Error("Les annexes du bail ne peuvent pas être vérifiées.");
   const idsLies = [...new Set((liens.data??[]).map(l=>l.document_id))];
+  // Phase 3 (C01) : la pièce jointe ici est le RÉSUMÉ de la notice établi par Gerimmo (nouveau titre « Résumé de la notice
+  // d'information », ou l'ancien pour un résumé déjà rangé). Le libellé le dit ; le texte officiel n'est pas joint (JURISTE).
   const notices = idsLies.length ? await db.from("documents").select(champs).eq("organization_id",org)
-    .eq("type","courrier").eq("titre","Notice d'information (annexe au bail)").in("id",idsLies).is("purged_at",null).order("created_at",{ascending:false}).limit(1) : {data:[],error:null};
-  if(notices.error)throw new Error("La notice jointe au bail ne peut pas être vérifiée.");
+    .eq("type","courrier").in("titre",TITRES_GED_RESUME_NOTICE).in("id",idsLies).is("purged_at",null).order("created_at",{ascending:false}).limit(1) : {data:[],error:null};
+  if(notices.error)throw new Error("Le résumé de la notice joint au bail ne peut pas être vérifié.");
   const notice = notices.data?.[0];
   const manquants:string[]=[];
-  if (!notice) manquants.push("Générez la notice d’information à l’étape Documents.");
+  if (!notice) manquants.push("Générez le résumé de la notice d’information à l’étape Documents. Il ne remplace pas la notice officielle, à remettre aussi au locataire.");
   if (ctx.bien.copropriete && !contrat.data?.reglement_copropriete) manquants.push("Joignez les extraits du règlement de copropriété à l’étape Documents.");
   const ids=new Set<string>(); if(notice)ids.add(notice.id); if(contrat.data?.reglement_copropriete)ids.add(contrat.data.reglement_copropriete);
   const types=new Set<string>();

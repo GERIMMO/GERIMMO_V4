@@ -409,6 +409,19 @@ export function referenceCourte(prefixe: string, id: string): string {
   return `${prefixe}-${id.slice(0, 8).toUpperCase()}`;
 }
 
+// Phase 3 (C18, C24) : la référence d'un avenant le distingue des autres avenants du même bail — « AVT », l'identifiant
+// court du bail, puis la date et l'heure (Paris) de sa génération : « AVT-2DFB98CB-20261123-1432 ». Tirée du seul bail,
+// elle était la même pour tous ses avenants. L'empreinte de la signature électronique ne la lit pas : le pied de page
+// n'est pas dans le corps du document.
+export function referenceAvenant(bailId: string, instant: Date = new Date()): string {
+  const parties = Object.fromEntries(
+    new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(instant)
+      .map((p) => [p.type, p.value])
+  );
+  return `${referenceCourte("AVT", bailId)}-${parties.year}${parties.month}${parties.day}-${parties.hour}${parties.minute}`;
+}
+
 // La signature préenregistrée de l'organisation, en data-URI prête à
 // s'imprimer — null si aucune n'est déposée (profil de l'organisation).
 export async function signatureOrganisation(

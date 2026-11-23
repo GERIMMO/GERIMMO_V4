@@ -1,5 +1,5 @@
-// 05 — Notice d'information, annexe obligatoire au contrat de location
-// (arrêté du 29 mai 2015). Cible : le bail. Les rubriques reprennent le
+// 05 — Résumé de la notice d'information (la notice officielle, fixée par
+// l'arrêté du 29 mai 2015, est l'annexe du bail). Cible : le bail. Les rubriques reprennent le
 // contenu de la notice officielle sous forme condensée et fidèle — le texte
 // intégral officiel pourra remplacer chaque rubrique sans toucher au gabarit.
 //
@@ -7,11 +7,17 @@
 // officielle : le texte complet de l'arrêté n'a pas pu être relu ni recopié
 // (sites officiels fermés à l'environnement de l'agent). Tant qu'il ne l'est
 // pas, le document dit lui-même ce qu'il est, en tête, et l'écran du bail
-// demande au bailleur de remettre aussi le texte officiel. Rien d'autre n'est
-// modifié : rubriques, références et mise en page restent celles d'avant.
+// demande au bailleur de remettre aussi le texte officiel.
+//
+// Phase 3 (C01, C14, C15). Le résumé ne se dit plus « annexé au contrat » ni
+// « partie intégrante » du bail, et ne fait plus « reconnaître » sa réception au
+// locataire (aucune signature, date de génération) : c'est la notice officielle
+// que le bail déclare annexée. Titre, pied et titre de classement disent
+// « résumé » ; le cartouche donne la date de prise d'effet du contrat comme
+// telle (ce n'est pas la date du contrat). Les rubriques sont inchangées.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cartouches, echapper, enTete, faitA, section, titre } from "../gabarit";
+import { Fusion, assemblerPage, cartouches, echapper, enTete, section, titre } from "../gabarit";
 import {
   chargerContexteBail,
   expediteur,
@@ -22,6 +28,7 @@ import {
   liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
+import { TITRE_GED_RESUME_NOTICE } from "@/lib/documents-bail";
 
 /** Dit en tête du document, et repris par l'écran du bail : ce PDF ne remplace pas le texte officiel. */
 export const AVERTISSEMENT_RESUME_NOTICE =
@@ -89,38 +96,35 @@ export async function assemblerNotice(
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const corps = `
     ${enTete(f, exp, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
-    ${titre("Notice d'information", "Résumé établi par Gerimmo — annexe au contrat de location", [
-      "Relative aux droits et obligations des locataires et des bailleurs",
+    ${titre("Résumé de la notice d'information", "Établi par Gerimmo — ne remplace pas la notice officielle", [
+      "Notice relative aux droits et obligations des locataires et des bailleurs",
       "Arrêté du 29 mai 2015 pris en application de l'article 3 de la loi n° 89-462 du 6 juillet 1989",
     ])}
     ${cartouches([
-      ["Annexée au contrat", `Réf. ${f.champ(referenceBail, "référence du bail")} du ${f.date(ctx.bail.date_debut)}`],
+      ["Contrat", `Réf. ${f.champ(referenceBail, "référence du bail")} — prise d'effet le ${f.date(ctx.bail.date_debut)}`],
       ["Logement", `<div>${f.champ(adresseLogement(ctx.lot, ctx.bien), "adresse complète, étage, porte")}</div>`],
       ["Bailleur", `<div>${nomsBailleurs(f, ctx.bailleurs)}</div>`],
-      ["Locataire", `<div>${nomsLocataires(f, ctx.locataires)}</div>`],
+      [ctx.locataires.length > 1 ? "Locataires" : "Locataire", `<div>${nomsLocataires(f, ctx.locataires)}</div>`],
     ])}
     <p class="mentions"><b>${echapper(AVERTISSEMENT_RESUME_NOTICE)}</b></p>
-    <p>La présente notice est remise au locataire et annexée au contrat de location dont elle fait
-    partie intégrante. Elle rappelle les droits et obligations respectifs des parties ainsi que les
-    voies de recours et d'indemnisation ouvertes en cas de litige.</p>
+    <p>Ce résumé rappelle les droits et obligations respectifs des parties ainsi que les voies de
+    recours et d'indemnisation ouvertes en cas de litige.</p>
     ${RUBRIQUES.map(([t, texte]) => `${section(t)}<p>${echapper(texte)}</p>`).join("")}
-    ${section("Remise de la notice")}
-    <p>Le locataire reconnaît avoir reçu la présente notice avec son exemplaire du contrat de
-    location. Pour toute question : la commission départementale de conciliation et l'ADIL de votre
-    département (coordonnées sur service-public.fr et anil.org).</p>
-    ${faitA(f, exp.ville, new Date().toISOString())}
+    ${section("Pour toute question")}
+    <p>La commission départementale de conciliation et l'ADIL de votre département (coordonnées sur
+    service-public.fr et anil.org).</p>
   `;
 
   return {
     document: assemblerPage({
       f,
-      titreDocument: "Notice d'information",
-      nomPied: "Notice d'information",
+      titreDocument: "Résumé de la notice d'information",
+      nomPied: "Résumé de la notice d'information",
       reference: referenceCourte("NOTICE", ctx.bail.id),
       corps,
     }),
-    titreGed: "Notice d'information (annexe au bail)",
-    nomFichier: "notice-information",
+    titreGed: TITRE_GED_RESUME_NOTICE,
+    nomFichier: "resume-notice-information",
     liens: [
       { entite: "bail", entiteId: ctx.bail.id },
       ...liensLocataires(ctx),

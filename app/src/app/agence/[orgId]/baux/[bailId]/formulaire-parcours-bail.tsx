@@ -272,6 +272,8 @@ export function FormulaireParcoursBail({orgId,bailId,defauts,bailPrecedent,sorti
       {c.nom==="chambre_id"&&lienChambres&&<Link href={lienChambres} className="text-xs underline">{chambres.length?"Modifier les chambres du lot":"Ajouter une chambre au lot"}</Link>}
       {c.nom === "clauses_particulieres" && <AvertissementClauses id={`${id}-aide`} />}
       {c.aide&&<p id={`${id}-aide`} className="text-xs text-muted-foreground">{c.aide}</p>}
+      {/* Phase 3 (C08) : une première location n'a pas de « dernier contrat » : le bail n'imprime pas ces travaux, l'écran le dit. */}
+      {c.nom==="travaux_recents"&&valeurs.precedente_location==="premiere"&&<p data-travaux-premiere-location className="text-xs text-muted-foreground">Vous avez indiqué une première location : le contrat imprime « Sans objet — première location » pour cette rubrique, qui porte sur les travaux faits depuis la fin du dernier contrat. Ce que vous saisissez ici n’y figure pas.</p>}
      </div>;
     })}</div>
     {g.titre==="Loyer et charges"&&totalMensuel!=null&&<div className={styles.total} role="status"><span>Loyer + charges, par mois</span><strong>{eur(totalMensuel)}</strong></div>}

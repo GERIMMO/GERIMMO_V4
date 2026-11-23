@@ -34,7 +34,7 @@ import {
   type PersonneDocument,
   liensLocataires,
 } from "./communs";
-import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion } from "./mentions-location";
+import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion, dureeReduiteSansObjet, travauxDepuisDernierContrat } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
 import { dureeBailNuAnnees } from "@/lib/qualite-bailleur";
@@ -186,7 +186,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
       ctx.bail.duree_reduite_evenement
         ? `<p class="mentions">Un contrat d'une durée réduite (au moins un an) n'est possible que si un événement
            précis justifie la reprise du logement par le bailleur : ${f.champ(ctx.bail.duree_reduite_evenement, "événement précis justifiant la durée réduite")}${t.point(ctx.bail.duree_reduite_evenement)}</p>`
-        : `<p class="mentions">Sans objet — le contrat est conclu pour la durée de droit commun.</p>`
+        : dureeReduiteSansObjet(null, t)
     }
 
     ${section("IV — Conditions financières")}
@@ -224,9 +224,9 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
 
     ${section("V — Travaux")}
     <p>Travaux d'amélioration ou de mise en conformité effectués depuis la fin du dernier contrat :
-    ${ouNeant(ctx.bail.travaux_recents)} — montant : ${
+    ${t.archivee ? `${ouNeant(ctx.bail.travaux_recents)} — montant : ${
       ctx.bail.travaux_recents ? f.montant(ctx.bail.travaux_recents_montant, "montant") : "—"
-    }.<br/>
+    }.` : travauxDepuisDernierContrat(ctx, f)}<br/>
     Travaux que le locataire est autorisé à réaliser et contreparties : ${ouNeant(ctx.bail.travaux_locataire)}</p>
 
     ${section("VI — Garanties")}

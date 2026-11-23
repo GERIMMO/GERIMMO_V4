@@ -1,7 +1,7 @@
 // Sources vérifiées le 14/09/2026 : décret 2015-587, annexes 1 et 2 ;
 // décret 2026-596 (contrats conclus/renouvelés à partir du 01/10/2026) ;
 // arrêté du 13/11/2025 (honoraires 2026). Données absentes = manquants.
-import { Fusion, sousSection, TYPOGRAPHIE, type Typographie } from '../gabarit';
+import { Fusion, ouNeant, sousSection, TYPOGRAPHIE, type Typographie } from '../gabarit';
 import { plafondsHonoraires } from '@/lib/mentions-contrat';
 import type { ContexteBail } from './communs';
 
@@ -82,6 +82,25 @@ export function encadrementLocation(ctx: ContexteBail, f: Fusion, t: Typographie
       ${revise === false ? 'Ce loyer n’a pas été révisé.' : revise === true ? `Dernière révision le ${f.date(b.dernier_loyer_revision, 'date de dernière révision si applicable')}.` : f.champ(null, 'révision du précédent loyer à confirmer')}</p>`;
   } else historique = `<p>${f.champ(null, 'situation de la précédente location à confirmer')}</p>`;
   return `<div class="encadre"><p>Zone soumise au plafonnement de l’évolution du loyer à la relocation : ${(b.zone_tendue ?? ctx.bien.zone_tendue) ? 'oui' : 'non'}.</p>${reference}</div>${historique}`;
+}
+
+// Phase 3 (C12, C20) : la mention qui remplace la clause de durée réduite dit à quelle rubrique elle se rapporte, et ne parle
+// de « durée de droit commun » que pour un contrat qui l'a : `autreDuree` décrit une durée qui ne l'est pas (bail étudiant de
+// neuf mois). Un bail déjà préparé pour la signature se relit à l'identique (typographie archivée) : l'ancienne phrase.
+export function dureeReduiteSansObjet(autreDuree: string | null, t: Typographie = TYPOGRAPHIE): string {
+  if (t.archivee) return '<p class="mentions">Sans objet — le contrat est conclu pour la durée de droit commun.</p>';
+  return `<p class="mentions">Durée réduite pour un événement précis justifiant la reprise du logement : sans objet — ${autreDuree ?? 'le contrat est conclu pour la durée de droit commun'}.</p>`;
+}
+
+// Phase 3 (C08, C13, C29) : la fin de la rubrique « travaux … effectués depuis la fin du dernier contrat », ponctuation comprise.
+// Première location : sans objet (il n'y a pas de dernier contrat ; des travaux saisis ne s'impriment pas, l'écran du bail le
+// dit). Sans travaux : « Néant. » seul, plus de « montant » suivi d'un tiret. Les baux déjà préparés pour la signature gardent
+// leur ancienne phrase (voir bail-nu.ts et bail-meuble.ts).
+export function travauxDepuisDernierContrat(ctx: ContexteBail, f: Fusion): string {
+  const b = ctx.bail;
+  if (b.precedente_location === 'premiere') return 'Sans objet — première location.';
+  if (!b.travaux_recents?.trim()) return 'Néant.';
+  return `${ouNeant(b.travaux_recents)} — montant : ${f.montant(b.travaux_recents_montant, 'montant')}.`;
 }
 
 export function fixationLoyer(valeur: string | null): string | null {

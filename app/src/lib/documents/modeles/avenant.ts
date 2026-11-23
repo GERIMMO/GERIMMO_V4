@@ -10,7 +10,7 @@ import {
   cartouches,
   echapper,
   enTete,
-  faitA,
+  faitALaSignature,
   section,
   titre,
 } from "../gabarit";
@@ -22,6 +22,7 @@ import {
   nomsLocataires,
   adresseLogement,
   referenceCourte,
+  referenceAvenant,
   liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
@@ -90,7 +91,8 @@ export async function assemblerAvenant(
 
     <div class="bloc-signataires">
     ${section("Date et signatures")}
-    ${faitA(f, exp.ville, new Date().toISOString(), ", en autant d'exemplaires originaux que de parties.")}
+    ${/* Phase 3 (C23) : l'avenant est daté par les parties en le signant, comme le bail — plus du jour de sa génération. */
+      faitALaSignature(f, exp.ville, ", en autant d'exemplaires originaux que de parties.")}
     <div class="signatures">
       ${cadreSignature("Le bailleur", f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination"))}
       ${cadreSignature(
@@ -110,7 +112,8 @@ export async function assemblerAvenant(
       f,
       titreDocument: "Avenant au bail",
       nomPied: "Avenant au bail",
-      reference: referenceCourte("AVT", ctx.bail.id),
+      // Phase 3 (C18) : une référence propre à cet avenant (date et heure de génération), plus celle du seul bail.
+      reference: referenceAvenant(ctx.bail.id),
       corps,
     }),
     titreGed: objetTronque ? `Avenant — ${objetTronque}` : "Avenant au bail",

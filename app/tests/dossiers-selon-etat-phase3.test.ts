@@ -213,7 +213,8 @@ describe("les assembleurs refusent un bail dans un état que le document contred
 
   it("C19 avenant de remplacement : seulement sur un contrat commun actif", async () => {
     ctx.bail.type = "colocation";
-    const options = { sortant: "Leblanc Julie", entrant: "Martin Paul, 1 rue Neuve", date_effet: "2026-12-01", depot: "Conservé" };
+    // Phase 3 (C22) : le sortant est désigné par l'identifiant d'un titulaire du bail (« p1 », Leblanc Julie), plus par un nom saisi.
+    const options = { sortant: "p1", entrant: "Martin Paul, 1 rue Neuve", date_effet: "2026-12-01", depot: "Conservé" };
     const refus = {
       brouillon: "Le contrat commun est encore en préparation : modifiez les colocataires directement dans le brouillon avant sa signature, ou activez d’abord la location s’il est déjà signé.",
       preavis: "Un congé est enregistré pour ce contrat commun (préavis en cours) : le remplacement d’un colocataire se prépare tant que la location est en cours.",

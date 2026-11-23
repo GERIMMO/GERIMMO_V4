@@ -121,7 +121,8 @@ export async function lireRecapitulatifPiecesBail(
     .sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id));
   const notice = classerPiecesBail(documentsBail, [], bail.reglement_copropriete).notices[0];
   const liensIncomplets = liens.erreur || fichiers.erreur || liens.lignes.some(l => !parId.has(l.document_id));
-  ajouter("notice", "Notice d’information", "signature", liensIncomplets ? INDISPONIBLE : fichier(notice?.id ?? null, true), `${baseBail}#annexes-attendues`);
+  // Phase 3 (C01) : la pièce que Gerimmo prépare est un résumé ; la notice officielle reste à remettre à part.
+  ajouter("notice", "Résumé de la notice d’information", "signature", liensIncomplets ? INDISPONIBLE : fichier(notice?.id ?? null, true), `${baseBail}#annexes-attendues`);
   ajouter("reglement", "Règlement de copropriété", "signature", bienIndisponible ? INDISPONIBLE
     : bien!.copropriete === false ? { statut: "non_concerne", detail: "Le bâtiment est déclaré hors copropriété." }
       : bien!.copropriete === null ? { statut: "a_verifier", detail: "Précisez si le bâtiment est en copropriété." }

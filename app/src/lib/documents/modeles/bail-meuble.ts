@@ -37,7 +37,7 @@ import {
   type PersonneDocument,
   liensLocataires,
 } from "./communs";
-import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion } from "./mentions-location";
+import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion, dureeReduiteSansObjet, travauxDepuisDernierContrat } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
 import { mentionCadreCautionBail } from "@/lib/textes-signature-actes";
@@ -228,7 +228,7 @@ export function construireBailMeuble(
              ctx.bail.duree_reduite_evenement,
              "événement précis justifiant la durée réduite"
            )}.</p>`
-        : `<p class="mentions">Sans objet — le contrat est conclu pour la durée de droit commun.</p>`
+        : dureeReduiteSansObjet(ctx.bail.meuble_etudiant ? "le contrat est un bail étudiant de neuf mois" : null, t)
     }
 
     ${section("IV — Conditions financières")}
@@ -263,8 +263,8 @@ export function construireBailMeuble(
 
     ${section("V — Travaux")}
     <p>Travaux d'amélioration ou de mise en conformité effectués depuis la fin du dernier contrat :
-    ${ouNeant(ctx.bail.travaux_recents)} — montant :
-    ${ctx.bail.travaux_recents ? f.montant(ctx.bail.travaux_recents_montant, "montant") : "—"}.<br/>
+    ${t.archivee ? `${ouNeant(ctx.bail.travaux_recents)} — montant :
+    ${ctx.bail.travaux_recents ? f.montant(ctx.bail.travaux_recents_montant, "montant") : "—"}.` : travauxDepuisDernierContrat(ctx, f)}<br/>
     Travaux que le locataire est autorisé à réaliser et contreparties : ${ouNeant(
       ctx.bail.travaux_locataire
     )}</p>

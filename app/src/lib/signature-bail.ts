@@ -1,4 +1,4 @@
-import { presentationArchivee } from "./documents/modeles/communs";
+import { presentationArchivee, typographieArchivee, type OptionsContrat } from "./documents/modeles/communs";
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { chargerContexteBail, type ContexteBail, type PersonneDocument } from "@/lib/documents/modeles/communs";
@@ -169,7 +169,13 @@ export function empreinteSignatureBail(html: string, signataires: SignataireBail
   return createHash("sha256").update(JSON.stringify({ html: stable, signataires })).digest("hex");
 }
 
-export async function assemblerSignatureBail(db: SupabaseClient, org: string, bail: string, options: { telephoneGarantDuDossier?: boolean; presentationAncienne?: boolean } = {}) {
+/**
+ * Le contrat à signer et son empreinte. Options réservées au recalcul de l'empreinte d'un circuit déjà préparé
+ * (`activerBailApresSignature`) : `presentationAncienne` (bail d'avant #331, mise en forme d'alors comprise),
+ * `typographieArchivee` (présentation d'aujourd'hui, mise en forme d'avant la version g8), `telephoneGarantDuDossier`
+ * (bail d'avant le 24/10).
+ */
+export async function assemblerSignatureBail(db: SupabaseClient, org: string, bail: string, options: { telephoneGarantDuDossier?: boolean; presentationAncienne?: boolean; typographieArchivee?: boolean } = {}) {
   const ctx = await chargerContexteBail(db, org, bail);
   if ("erreur" in ctx) throw new Error(ctx.erreur);
   if (ctx.bail.etat !== "brouillon") throw new Error("Seul un bail brouillon peut être envoyé pour signature.");
@@ -192,7 +198,10 @@ export async function assemblerSignatureBail(db: SupabaseClient, org: string, ba
   const pieces = await annexesSignatureBail(db,org,bail,ctx);
   manquants.push(...pieces.manquants);
   const code = ctx.bail.chambre_id ? "bail_individuel" : ctx.bail.type === "colocation" ? "bail_colocation" : ctx.bail.type === "meuble" ? "bail_meuble" : "bail_nu";
-  const modele = await MODELES[code].assembler(db, org, bail, options.presentationAncienne ? { [presentationArchivee]: true } : undefined);
+  const archive: OptionsContrat = {};
+  if (options.presentationAncienne) archive[presentationArchivee] = true;
+  if (options.typographieArchivee) archive[typographieArchivee] = true;
+  const modele = await MODELES[code].assembler(db, org, bail, options.presentationAncienne || options.typographieArchivee ? archive : undefined);
   if ("erreur" in modele) throw new Error(modele.erreur);
   const incomplet = refusDocumentIncomplet(modele.document);
   if (incomplet) manquants.push(...incomplet.manquants);

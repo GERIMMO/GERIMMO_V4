@@ -1,4 +1,4 @@
-import { presentationArchivee, type OptionsContrat } from "./communs";
+import { presentationArchivee, typographieArchivee, type OptionsContrat } from "./communs";
 // 02 — Contrat de location, logement meublé, résidence principale.
 // Fidèle à l'épreuve (sections I → XII, contrat type de l'annexe 2 du décret
 // 2015-587 ; régime du titre Ier bis de la loi de 1989, art. 25-3 à 25-11).
@@ -83,10 +83,11 @@ function montantPremiereEcheance(f: Fusion, bail: ContexteBail["bail"]): string 
 
 export function construireBailMeuble(
   ctx: ContexteBail,
-  options: { dpeClasse: string | null; inventaire: LigneInventaire[]; f: Fusion; presentationAncienne?: boolean }
+  // `presentationAncienne`, `typographieArchivee` : recalcul de l'empreinte d'un circuit déjà préparé (voir bail-nu.ts).
+  options: { dpeClasse: string | null; inventaire: LigneInventaire[]; f: Fusion; presentationAncienne?: boolean; typographieArchivee?: boolean }
 ) {
   const f = options.f;
-  const t = typographie(options.presentationAncienne);
+  const t = typographie(options.presentationAncienne || options.typographieArchivee);
   const exp = expediteur(options.presentationAncienne ? { organisation: ctx.organisation } : ctx);
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
@@ -380,6 +381,7 @@ export async function assemblerBailMeuble(
   const f = new Fusion();
   const document = construireBailMeuble(ctx, {
     presentationAncienne: format[presentationArchivee],
+    typographieArchivee: format[typographieArchivee],
     dpeClasse: dpe?.classe_dpe ?? null,
     inventaire: (lignesInventaire ?? []) as LigneInventaire[],
     f,

@@ -1,4 +1,4 @@
-import { presentationArchivee, type OptionsContrat } from "./communs";
+import { presentationArchivee, typographieArchivee, type OptionsContrat } from "./communs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion } from "../gabarit";
 import { chargerContexteBail, liensLocataires, referenceCourte } from "./communs";
@@ -20,7 +20,7 @@ export async function assemblerBailIndividuel(supabase: SupabaseClient, orgId: s
     if (error) return { erreur: "L’inventaire de ce contrat ne peut pas être chargé." };
     inventaire = data ?? [];
   }
-  const options = { presentationAncienne: format[presentationArchivee], f: new Fusion(), dpeClasse: dpe?.classe_dpe ?? null, inventaire };
+  const options = { presentationAncienne: format[presentationArchivee], typographieArchivee: format[typographieArchivee], f: new Fusion(), dpeClasse: dpe?.classe_dpe ?? null, inventaire };
   return {
     document: ctx.lot.meuble ? construireBailMeuble(ctx, options) : construireBailNu(ctx, options),
     titreGed: `Contrat individuel ${ctx.lot.meuble ? "meublé" : "nu"} — ${ctx.chambre.nom} (à faire signer)`,

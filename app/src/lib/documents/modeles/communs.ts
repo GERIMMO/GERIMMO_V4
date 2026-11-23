@@ -5,11 +5,17 @@
 import type { MentionsContrat } from "@/lib/mentions-contrat";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
+import { mentionEtage } from "@/lib/etage";
 import { Fusion, facultatif, formaterDateFr, moisEnToutesLettres, type EnTeteExpediteur } from "../gabarit";
 
-// Réservé au recalcul de l’empreinte d’un circuit de signature déjà enregistré.
+// Réservés au recalcul de l’empreinte d’un circuit de signature déjà enregistré. Deux époques distinctes :
+// - `presentationArchivee` : la présentation d’avant #331 (expéditeur = l’espace, ni SIREN ni signatures d’indivision),
+//   avec la mise en forme d’alors (feuille g7, typographie archivée) ;
+// - `typographieArchivee` : la présentation d’aujourd’hui avec la seule mise en forme d’avant la version g8 (feuille g7,
+//   typographie archivée) — un bail préparé entre la mise en ligne de #331 et celle de la version g8 (reprise du lot 35).
 export const presentationArchivee = Symbol("presentationArchivee");
-export type OptionsContrat = Record<string, string> & { [presentationArchivee]?: true };
+export const typographieArchivee = Symbol("typographieArchivee");
+export type OptionsContrat = Record<string, string> & { [presentationArchivee]?: true; [typographieArchivee]?: true };
 
 export type PersonneDocument = {
   id: string;
@@ -268,15 +274,8 @@ export function adresseOrganisation(o: {
     .join(", ");
 }
 
-// L'étage du lot tel qu'il s'imprime dans une adresse. Le champ est libre (« Étage — Facultatif ») : on y lit « 2 »
-// comme « 2e étage, porte gauche » ou « RDC ». Le mot « étage » ne s'ajoute que s'il n'y est pas déjà (casse et accents
-// ignorés), ni « rez-de-chaussée » ou « RDC » : sinon l'adresse imprimait « étage 2e étage » (phase 3 : C09, C26, C63, C84).
-export function mentionEtage(etage: string | null | undefined): string | null {
-  const saisie = etage?.trim();
-  if (!saisie) return null;
-  const lue = saisie.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  return /etage|\brdc\b|rez[\s-]*de[\s-]*chaussee/.test(lue) ? saisie : `étage ${saisie}`;
-}
+// L'étage du lot tel qu'il s'imprime dans une adresse : la règle vit dans lib/etage.ts, partagée avec les écrans.
+export { mentionEtage } from "@/lib/etage";
 
 // `archivee` : l'adresse telle que l'imprimait un bail préparé pour la signature avant la version g8 (recalcul de
 // l'empreinte de son circuit, voir `typographie` dans gabarit.ts) : « étage » toujours ajouté.
@@ -287,8 +286,9 @@ export function adresseLogement(
   bien: Pick<ContexteBail["bien"], "address_line1" | "postal_code" | "city">,
   archivee = false
 ): string {
-  const etage = archivee ? (lot.etage ? `étage ${lot.etage}` : null) : mentionEtage(lot.etage);
-  const complement = [lot.nom !== "Lot unique" ? lot.nom : null, etage]
+  const nom = lot.nom !== "Lot unique" ? lot.nom : null;
+  const etage = archivee ? (lot.etage ? `étage ${lot.etage}` : null) : mentionEtage(lot.etage, nom);
+  const complement = [nom, etage]
     .filter(Boolean)
     .join(", ");
   return [bien.address_line1, `${bien.postal_code ?? ""} ${bien.city ?? ""}`.trim(), complement]

@@ -309,6 +309,11 @@ export async function activerBailApresSignature(org:string,bail:string,id:string
     let empreinte = actuel.empreinte;
     // Les anciennes présentations restent vérifiables uniquement par correspondance
     // exacte avec l’empreinte conservée au moment de la signature.
+    // Phase 3 (reprise du lot 35) : un bail préparé avec la présentation d’aujourd’hui avant la version g8 des documents
+    // (feuille g7, typographie d’alors). La présentation d’avant #331 vient ensuite, avec la même mise en forme.
+    if (empreinte !== circuit.empreinte) {
+      empreinte = (await assemblerSignatureBail(supabase, org, circuit.bail_id ?? bail, { typographieArchivee: true })).empreinte;
+    }
     if (empreinte !== circuit.empreinte) {
       empreinte = (await assemblerSignatureBail(supabase, org, circuit.bail_id ?? bail, { presentationAncienne: true })).empreinte;
     }

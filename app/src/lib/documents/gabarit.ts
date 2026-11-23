@@ -151,8 +151,9 @@ export function jourDuMois(jour: number | string | null | undefined): string | n
 }
 
 // La typographie d'un contrat. Un bail préparé pour la signature avant la version g8 se relit, pour recalculer
-// l'empreinte de son circuit (`presentationArchivee`), avec la typographie d'alors : `TYPOGRAPHIE_ARCHIVEE` reproduit
-// octet pour octet ce qu'il imprimait, défauts compris. Elle ne sert jamais à un document remis.
+// l'empreinte de son circuit (`typographieArchivee`, ou `presentationArchivee` pour un bail d'avant #331 ; voir
+// communs.ts), avec la typographie d'alors : `TYPOGRAPHIE_ARCHIVEE` reproduit octet pour octet ce qu'il imprimait,
+// défauts compris. Elle ne sert jamais à un document remis.
 export type Typographie = {
   archivee: boolean;
   nombre: (valeur: number | string) => string;

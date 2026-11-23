@@ -139,8 +139,9 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
   const logement = [
     adresse(d.logement.adresse, d.logement.code_postal, d.logement.ville),
     d.logement.lot_nom && d.logement.lot_nom !== "Lot unique" ? d.logement.lot_nom : null,
-    // Même règle que le PDF : « étage » ne s'ajoute pas à une saisie qui le contient déjà (phase 3, C63).
-    mentionEtage(d.logement.etage),
+    // Même règle que le PDF : « étage » ne complète qu'un numéro, et l'étage déjà dit par le nom du lot n'est pas redit
+    // (phase 3, C63 et reprise du lot 35).
+    mentionEtage(d.logement.etage, d.logement.lot_nom && d.logement.lot_nom !== "Lot unique" ? d.logement.lot_nom : null),
   ]
     .filter(Boolean)
     .join(", ");

@@ -4,9 +4,12 @@
  * Défauts relevés sur les PDF des dossiers fictifs (C09, C10, C11, C26, C27, C28, C38, C39, C43, C44, C45, C51, C53,
  * C55, C62, C63, C69, C75, C84, C85, C87, S10). Chaque cas ci-dessous échouait avant le correctif.
  * Les correctifs de la feuille (g8) ne touchent pas la relecture « archivée » d'un bail déjà préparé pour la signature :
- * son empreinte doit rester celle d'alors (voir tests/signature-empreinte-avant-24-octobre.test.ts).
+ * son empreinte doit rester celle d'alors (voir tests/signature-empreinte-avant-24-octobre.test.ts pour un bail d'avant #331,
+ * tests/signature-empreinte-avant-g8.test.ts pour un bail préparé avec la présentation d'aujourd'hui avant la version g8).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { contexte } from "./fixtures/contexte-document";
 import { quittanceDocumentComplete } from "./fixtures/quittance-document";
@@ -50,7 +53,21 @@ describe("étage du logement (C09, C26, C63, C84)", () => {
     ["Rez-de-chaussée sur cour", "Rez-de-chaussée sur cour"],
     ["rez de chaussee", "rez de chaussee"],
     ["2", "étage 2"],
-    ["3e, porte droite", "étage 3e, porte droite"],
+    // Reprise du lot 35 : un ordinal reçoit « étage » après lui (« étage 3e » se lisait à l'envers, et doublait le mot quand le
+    // nom du lot disait déjà « 1er étage »). Attente précédente : « étage 3e, porte droite ».
+    ["3e, porte droite", "3e étage, porte droite"],
+    ["1er, porte droite", "1er étage, porte droite"],
+    ["1ère, porte 2", "1ère, porte 2"],
+    ["4ème porte face", "4ème étage porte face"],
+    ["premier", "premier étage"],
+    ["3, porte gauche", "étage 3, porte gauche"],
+    // Reprise du lot 35 : un niveau nommé ne reçoit pas « étage » (« étage sous-sol », « étage Rez-de-jardin »).
+    ["Rez-de-jardin", "Rez-de-jardin"],
+    ["RDJ", "RDJ"],
+    ["sous-sol", "sous-sol"],
+    ["combles", "combles"],
+    ["Entresol, porte 2", "Entresol, porte 2"],
+    ["R+1", "R+1"],
   ])("« %s » s'imprime « %s »", (saisie, attendu) => {
     expect(mentionEtage(saisie)).toBe(attendu);
   });
@@ -73,6 +90,35 @@ describe("étage du logement (C09, C26, C63, C84)", () => {
     const html = assemblerQuittanceDelivree({ ...d, logement: { ...d.logement, etage: "2e étage, porte gauche" } }).html;
     expect(html).not.toContain("étage 2e étage");
     expect(html).toContain("2e étage, porte gauche");
+    const nomme = assemblerQuittanceDelivree({ ...d, logement: { ...d.logement, lot_nom: "T3 — 4e étage", etage: "4e, porte face" } }).html;
+    expect(texteDe(nomme)).toContain("T3 — 4e étage, porte face");
+    expect(nomme).not.toContain("étage 4e");
+  });
+
+  // Reprise du lot 35 (dossiers impayés) : le nom du lot dit déjà l'étage, le champ Étage le redit sans le mot. L'adresse
+  // imprimait « Studio meublé — 1er étage, étage 1er, porte droite » et « T3 — 4e étage, étage 4e, porte face ».
+  it("l'étage déjà dit par le nom du lot n'est pas redit", () => {
+    const ctx = contexte();
+    const studio = { ...ctx.lot, nom: "Studio meublé — 1er étage", etage: "1er, porte droite" };
+    expect(adresseLogement(studio, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Studio meublé — 1er étage, porte droite");
+    expect(adresseLogement({ ...studio, nom: "T3 — 4e étage", etage: "4e, porte face" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, T3 — 4e étage, porte face");
+    expect(adresseLogement({ ...studio, etage: "1er étage, porte droite" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Studio meublé — 1er étage, porte droite");
+    expect(adresseLogement({ ...studio, etage: "1er" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Studio meublé — 1er étage");
+    expect(adresseLogement({ ...studio, nom: "Studio — RDC", etage: "RDC, porte B" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Studio — RDC, porte B");
+    // Un autre niveau que celui du nom reste imprimé : la saisie contradictoire se voit, elle n'est pas corrigée en silence.
+    expect(adresseLogement({ ...studio, etage: "2e, porte droite" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Studio meublé — 1er étage, 2e étage, porte droite");
+    // Un nom sans étage ne retire rien.
+    expect(adresseLogement({ ...studio, nom: "Studio meublé n° 12", etage: "3, porte 12" }, ctx.bien)).toBe("12 rue des Lilas, 69003 Lyon, Studio meublé n° 12, étage 3, porte 12");
+  });
+
+  // Reprise du lot 35 : les écrans recopiaient l'ancienne règle (« étage 2e étage, porte gauche » à l'écran, « 2e étage,
+  // porte gauche » dans la quittance). Ils appliquent la même fonction que les documents.
+  it("les écrans du locataire et la fenêtre du lot suivent la même règle", () => {
+    for (const fichier of ["src/app/locataire/[orgId]/page.tsx", "src/app/locataire/[orgId]/logement/page.tsx", "src/components/fenetre-lot.tsx"]) {
+      const source = readFileSync(join(process.cwd(), fichier), "utf8");
+      expect(source, fichier).not.toMatch(/`étage \$\{/);
+      expect(source, fichier).toContain("mentionEtage(");
+    }
   });
 });
 

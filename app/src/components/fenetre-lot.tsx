@@ -49,6 +49,7 @@ import { TYPES_DOCUMENT, eur, formaterDate, moisEnFrancais } from "@/lib/ged";
 import { regrouperDocumentsLot } from "@/lib/documents-lot";
 import { CATEGORIES_INCIDENT } from "@/lib/incidents";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
+import { mentionEtage } from "@/lib/etage";
 
 // LA FENÊTRE DU LOT — sur le gabarit remis par l'humain le 12/09.
 //
@@ -377,7 +378,7 @@ function EnteteLot({
               {[
                 fiche.surface_m2 !== null ? formaterSurface(fiche.surface_m2) : null,
                 fiche.pieces !== null ? `${fiche.pieces} pièce${fiche.pieces > 1 ? "s" : ""}` : null,
-                fiche.etage ? `étage ${fiche.etage}` : null,
+                mentionEtage(fiche.etage, identite?.titre),
                 fiche.meuble ? "meublé" : null,
               ]
                 .filter(Boolean)

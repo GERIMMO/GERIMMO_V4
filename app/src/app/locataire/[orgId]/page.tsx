@@ -19,6 +19,7 @@ import { CarteDepotGarantie, type RestitutionLocataire } from "./carte-depot-gar
 import { aEchoue, LectureImpossible, PanneLecture } from "./panne-lecture";
 import type { IncidentLocataire } from "./incidents-locataire";
 import { NOTE_SIGNALEMENT_FERME, signalementOuvert, type BailLocataire } from "./types";
+import { mentionEtage } from "@/lib/etage";
 
 // Les cartes indicateurs se cliquent EN ENTIER (24/09), comme les tuiles
 // a.kpi de l'agence : seul le lien de 12 px du bas réagissait, le gros
@@ -383,7 +384,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 bail.adresse ? bail.lot_nom : null,
                 bail.surface_m2 != null ? `${Number(bail.surface_m2).toLocaleString("fr-FR")}\u00a0m²` : null,
                 bail.pieces != null ? `${bail.pieces} pièce${bail.pieces > 1 ? "s" : ""}` : null,
-                bail.etage ? `étage ${bail.etage}` : null,
+                mentionEtage(bail.etage, bail.lot_nom),
                 bail.meuble ? "meublé" : null,
               ]
                 .filter(Boolean)

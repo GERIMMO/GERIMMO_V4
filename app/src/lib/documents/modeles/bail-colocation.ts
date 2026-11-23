@@ -1,4 +1,4 @@
-import { presentationArchivee, type OptionsContrat } from "./communs";
+import { presentationArchivee, typographieArchivee, type OptionsContrat } from "./communs";
 // Contrat commun : le régime dépend du logement, jamais d'une option du navigateur.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion } from "../gabarit";
@@ -29,7 +29,7 @@ export async function assemblerBailColocation(supabase: SupabaseClient, orgId: s
     if (error) return { erreur: "L'inventaire ne peut pas être lu. Réessayez avant de générer le contrat." };
     inventaire = data ?? [];
   }
-  const options = { presentationAncienne: format[presentationArchivee], dpeClasse: dpe?.classe_dpe ?? null, f: new Fusion(), inventaire };
+  const options = { presentationAncienne: format[presentationArchivee], typographieArchivee: format[typographieArchivee], dpeClasse: dpe?.classe_dpe ?? null, f: new Fusion(), inventaire };
   const document = ctx.lot.meuble ? construireBailMeuble(ctx, options) : construireBailNu(ctx, options);
   const regime = ctx.lot.meuble ? "meublé" : "nu";
   return {

@@ -1,4 +1,4 @@
-import { presentationArchivee, type OptionsContrat } from "./communs";
+import { presentationArchivee, typographieArchivee, type OptionsContrat } from "./communs";
 // 01 — Contrat de location, logement nu, résidence principale.
 // Fidèle à l'épreuve (sections I → XII, contrat type du décret 2015-587).
 // Blocs conditionnels pilotés par les données réelles (indivision, zone
@@ -67,9 +67,12 @@ function blocLocataire(f: Fusion, p: PersonneDocument): string {
   ${facultatif(p.telephone)}.</p>`;
 }
 
-export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string | null; f: Fusion; presentationAncienne?: boolean }) {
+// `presentationAncienne` : la présentation d'avant #331, toujours avec la mise en forme d'alors. `typographieArchivee` : la
+// présentation d'aujourd'hui avec la mise en forme d'avant la version g8. Les deux ne servent qu'à recalculer l'empreinte
+// d'un circuit de signature déjà préparé (voir communs.ts).
+export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string | null; f: Fusion; presentationAncienne?: boolean; typographieArchivee?: boolean }) {
   const f = options.f;
-  const t = typographie(options.presentationAncienne);
+  const t = typographie(options.presentationAncienne || options.typographieArchivee);
   const exp = expediteur(options.presentationAncienne ? { organisation: ctx.organisation } : ctx);
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
@@ -317,7 +320,7 @@ export async function assemblerBailNu(
 
   if (erreurDpe) return { erreur: "Le diagnostic du logement n’a pas pu être chargé. Réessayez avant de générer le contrat." };
   const f = new Fusion();
-  const document = construireBailNu(ctx, { presentationAncienne: format[presentationArchivee], dpeClasse: dpe?.classe_dpe ?? null, f });
+  const document = construireBailNu(ctx, { presentationAncienne: format[presentationArchivee], typographieArchivee: format[typographieArchivee], dpeClasse: dpe?.classe_dpe ?? null, f });
 
   return {
     document,

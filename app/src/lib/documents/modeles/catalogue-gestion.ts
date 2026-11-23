@@ -321,7 +321,11 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
         }
       } else if (code === "comparatif_devis") {
         const devis = await lireLignes(lire("incident_devis").eq("incident_id",cibleId).order("depose_le"));
-        if (!devis.length) throw new RefusDocument("Aucun devis n’a encore été déposé pour cet incident.");
+        // Reprise du lot 38 : « encore » laissait attendre un devis sur un incident clos (transmis au syndic, par exemple) ; la liste
+        // du catalogue ne propose plus que les incidents qui ont un devis (catalogue-cibles).
+        if (!devis.length) throw new RefusDocument(texte(incident.etat) === "clos"
+          ? "Aucun devis n’a été déposé pour cet incident, qui est clos : il n’y a pas de devis à comparer."
+          : "Aucun devis n’a encore été déposé pour cet incident.");
         const artisans = await lireLignes(db.from("artisans").select("id,raison_sociale").in("id",[...new Set(devis.map(d=>texte(d.artisan_id)))]));
         const noms = new Map(artisans.map(a=>[a.id,a.raison_sociale]));
         // C78 : la description composée en SQL se lit en français (descriptionDevisLisible, comme l'écran), lignes conservées.

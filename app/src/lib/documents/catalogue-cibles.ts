@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EntreeCatalogue } from "./catalogue";
-import { lireLignes, texte, RefusDocument, type LigneDocument } from "./modeles/catalogue-bail";
-import { REFUS_TERME_SOLDE } from "./modeles/avis-echeance";
+import { lireLignes, texte, RefusDocument, REFUS_ACCUSE_APRES_SORTIE, REFUS_INVENTAIRE_NON_MEUBLE, type LigneDocument } from "./modeles/catalogue-bail";
+import { REFUS_TERME_NON_DU, REFUS_TERME_SOLDE } from "./modeles/avis-echeance";
 import { formaterDateFr } from "./gabarit";
 import { ETATS_BAIL, ETATS_EDL, ETATS_MANDAT } from "@/lib/baux";
 import { ETATS_LOT } from "@/lib/parc";
@@ -15,20 +15,28 @@ export type ChoixDossier = {id:string;libelle:string;bailId?:string;detailEnregi
 const LIBELLES_ETAT: Partial<Record<EntreeCatalogue["cible"], Record<string, string>>> = { bail: ETATS_BAIL, lot: ETATS_LOT, edl: ETATS_EDL, incident: ETATS_INCIDENT, intervention: STATUTS_INTERVENTION, mandat: ETATS_MANDAT };
 export const TABLES_CATALOGUE = {bail:"baux",lot:"lots",appel:"appels_loyer",quittance:"quittances",depot:"depot_encaissements",revision:"revisions_loyer",attestation:"documents",edl:"etats_des_lieux",regularisation:"regularisations_charges",incident:"incidents",intervention:"incident_interventions",ecriture:"ecritures",mandat:"mandats",rapport:"rapports_gestion"} as const;
 // Phase 3 (C40, S09) : un filtre sur une table liée exige qu'elle figure dans la sélection ; « !inner » écarte le dossier qui
-// n'a aucune ligne liée retenue (accusé : un congé du locataire non annulé ; inventaires : un logement meublé). La contrainte
-// est nommée : d'autres tables relient aussi le bail aux congés (intentions_conge) et aux lots (écritures).
+// n'a aucune ligne liée retenue (accusé : un congé du locataire non annulé). La contrainte est nommée : d'autres tables relient
+// aussi le bail aux congés (intentions_conge), aux lots (écritures) et aux restitutions.
+// Reprise du lot 38 : les décomptes du dépôt demandent une restitution préparée, le comparatif un devis déposé, le compte rendu
+// celui de l'artisan (ils étaient proposés puis refusés). Inventaires : le lot est lu pour la règle « logement meublé » de
+// l'assembleur, appliquée après lecture (motifsDeRefus) parce qu'elle porte aussi sur le type du bail.
 const LIAISONS_CIBLES: Record<string, string> = {
   accuse_conge: "conges!conges_bail_meme_org_fk!inner(par)",
   inventaire_entree: "lots!baux_lot_meme_org_fk!inner(meuble)",
   inventaire_sortie: "lots!baux_lot_meme_org_fk!inner(meuble)",
+  decompte_restitution: "restitutions!restitutions_bail_meme_org_fk!inner(id)",
+  decompte_retenues: "restitutions!restitutions_bail_meme_org_fk!inner(id)",
+  comparatif_devis: "incident_devis!incident_devis_incident_meme_org_fk!inner(id)",
+  compte_rendu_intervention: "intervention_comptes_rendus!intervention_comptes_rendus_intervention_meme_org_fk!inner(id)",
 };
+// Les colonnes que motifsDeRefus relit pour un dossier forcé (la liste, elle, lit toutes les colonnes).
+const COLONNES_CONTROLE: Record<string, string> = { avis_echeance: "bail_id,periode", inventaire_entree: "type", inventaire_sortie: "type" };
 export function colonnesCibles(modele:EntreeCatalogue, colonnes:string):string {
-  const liaison=LIAISONS_CIBLES[modele.id];
-  return liaison?`${colonnes},${liaison}`:colonnes;
+  return [colonnes, colonnes==="*" ? "" : COLONNES_CONTROLE[modele.id], LIAISONS_CIBLES[modele.id]].filter(Boolean).join(",");
 }
 export function filtrerCibles<T>(q:T, modele:EntreeCatalogue):T {
   // Les filtres sont appliqués avant la pagination, dans la requête SQL.
-  type Filtre = {eq(k:string,v:unknown):Filtre;is(k:string,v:null):Filtre;not(k:string,op:string,v:null):Filtre;in(k:string,v:string[]):Filtre};
+  type Filtre = {eq(k:string,v:unknown):Filtre;is(k:string,v:null):Filtre;not(k:string,op:string,v:null|string):Filtre;in(k:string,v:string[]):Filtre};
   let r=q as unknown as Filtre;
   const id=modele.id;
   if(id==="quittance" || id==="recu_partiel") r=r.eq("est_quittance",id==="quittance");
@@ -47,9 +55,11 @@ export function filtrerCibles<T>(q:T, modele:EntreeCatalogue):T {
   if(id==="accuse_conge") r=r.eq("etat","preavis").eq("conges.par","locataire").is("conges.annule_le",null);
   // Acte de cautionnement : à la signature du bail ou pendant la location, jamais pendant le préavis ni après la fin.
   if(id==="cautionnement") r=r.in("etat",["brouillon","actif"]);
-  // Inventaires du mobilier : un logement meublé ; celui de sortie, une fois le congé enregistré.
-  if(id==="inventaire_entree" || id==="inventaire_sortie") r=r.eq("lots.meuble",true);
+  // Inventaires du mobilier : celui de sortie, une fois le congé enregistré. Le logement meublé (case du lot OU bail de type
+  // meublé, comme l'assembleur) se contrôle après lecture : un seul filtre ne peut pas porter sur le bail et sur son lot.
   if(id==="inventaire_sortie") r=r.in("etat",["preavis","termine"]);
+  // Ordre d'intervention : pas pour une mission annulée ou refusée (l'assembleur la refuse).
+  if(id==="ordre_intervention") r=r.not("statut","in","(annulee,refusee)");
   if(id==="prorata") r=r.eq("prorata",true);
   if(id==="rappel_assurance") r=r.eq("type","attestation_assurance").is("purged_at",null);
   if(["attestation_loyer","attestation_caf"].includes(id)) r=r.in("etat",["actif","preavis"]);
@@ -64,8 +74,11 @@ export async function chargerCiblesCatalogue(db:SupabaseClient,orgId:string,mode
   q=filtrerCibles(q,modele);
   if(bailId && ["bail","appel","quittance","depot","revision","edl","regularisation"].includes(modele.cible)) q=q.eq(modele.cible==="bail"?"id":"bail_id",bailId);
   const lus=await lireLignes(q.order("id").range(page*50,page*50+50));
-  // C49 : la suite se juge sur la page lue ; les termes soldés en sont retirés ensuite (la page peut alors en montrer moins).
-  const rows=await termesARegler(db,orgId,modele,lus.slice(0,50));
+  // C49 : la suite se juge sur la page lue ; les dossiers que l'assembleur refuserait en sont retirés ensuite (motifsDeRefus : la
+  // page peut alors en montrer moins).
+  const lue=lus.slice(0,50);
+  const motifs=await motifsDeRefus(db,orgId,modele,lue);
+  const rows=lue.filter(r=>!motifs.has(texte(r.id)));
   // Phase 3 (S46) : une intervention se présente avec le logement et le numéro de son incident (deux missions d'un même incident
   // ne se distinguaient que par leur référence).
   const incidentsIds=modele.cible==="intervention"?[...new Set(rows.map(r=>texte(r.incident_id)).filter(Boolean))]:[];
@@ -96,13 +109,42 @@ export async function verifierCibleCatalogue(db:SupabaseClient,orgId:string,mode
   if (modele.cible==="organisation") {if(cibleId!==orgId) throw new RefusDocument("Organisation incorrecte.");return;}
   const rows=await lireLignes(filtrerCibles(db.from(TABLES_CATALOGUE[modele.cible]).select(colonnesCibles(modele,"id")).eq("organization_id",orgId).eq("id",cibleId),modele).limit(1));
   if(!rows.length) throw new RefusDocument("Ce dossier ne correspond pas au modèle choisi ou n’est plus accessible. Actualisez la sélection.");
-  if(!(await termesARegler(db,orgId,modele,rows)).length) throw new RefusDocument(REFUS_TERME_SOLDE);
+  const motif=(await motifsDeRefus(db,orgId,modele,rows)).get(cibleId);
+  if(motif) throw new RefusDocument(motif);
 }
-// C49 : l'avis d'échéance ne se propose que pour un terme restant à régler. Un terme soldé porte sa quittance (la base la tient à
-// jour à chaque encaissement : quittance au solde, reçu sur un paiement partiel). Les termes lus sont écartés ici, sur la page
-// lue, faute de pouvoir exclure dans la même requête un dossier qui a une ligne liée ; l'assembleur refuse aussi un terme soldé.
-async function termesARegler(db:SupabaseClient,orgId:string,modele:EntreeCatalogue,lignes:LigneDocument[]):Promise<LigneDocument[]> {
-  if(modele.id!=="avis_echeance" || !lignes.length) return lignes;
-  const soldes=new Set((await lireLignes(db.from("quittances").select("appel_id").eq("organization_id",orgId).eq("est_quittance",true).in("appel_id",lignes.map(l=>texte(l.id))))).map(q=>texte(q.appel_id)));
-  return lignes.filter(l=>!soldes.has(texte(l.id)));
+// Les dossiers lus que l'assembleur refuserait, avec son motif, quand la règle ne s'écrit pas en un filtre de la requête (une
+// ligne liée à exclure, ou une condition sur le dossier OU sur sa table liée). Ils sont écartés de la page lue ; un identifiant
+// forcé est refusé avec le motif de l'assembleur.
+// - C49, avis d'échéance : un terme soldé porte sa quittance (la base la tient à jour à chaque encaissement : quittance au solde,
+//   reçu sur un paiement partiel) ; un terme qui suit le mois de fin du bail n'est pas dû (etat_loyers_bail : « non_du »).
+// - C40, accusé de réception : l'état des lieux de sortie signé fait la sortie (le bail reste en préavis jusqu'à la clôture).
+// - S09, inventaires : un logement meublé, c'est-à-dire le lot coché « meublé » OU un bail de type meublé.
+async function motifsDeRefus(db:SupabaseClient,orgId:string,modele:EntreeCatalogue,lignes:LigneDocument[]):Promise<Map<string,string>> {
+  const motifs=new Map<string,string>();
+  if(!lignes.length) return motifs;
+  const ids=lignes.map(l=>texte(l.id));
+  if(modele.id==="avis_echeance") {
+    const bauxIds=[...new Set(lignes.map(l=>texte(l.bail_id)).filter(Boolean))];
+    const [soldes,baux]=await Promise.all([
+      lireLignes(db.from("quittances").select("appel_id").eq("organization_id",orgId).eq("est_quittance",true).in("appel_id",ids)),
+      bauxIds.length?lireLignes(db.from("baux").select("id,date_fin").eq("organization_id",orgId).in("id",bauxIds)):Promise.resolve([] as LigneDocument[]),
+    ]);
+    for(const q of soldes) motifs.set(texte(q.appel_id),REFUS_TERME_SOLDE);
+    const moisFin=new Map(baux.filter(b=>texte(b.date_fin)).map(b=>[texte(b.id),`${texte(b.date_fin).slice(0,7)}-01`]));
+    for(const l of lignes) {
+      const fin=moisFin.get(texte(l.bail_id));
+      if(fin && texte(l.periode).slice(0,10)>fin) motifs.set(texte(l.id),REFUS_TERME_NON_DU);
+    }
+  }
+  if(modele.id==="accuse_conge") {
+    const sorties=await lireLignes(db.from("etats_des_lieux").select("bail_id").eq("organization_id",orgId).eq("type","sortie").eq("etat","signe").in("bail_id",ids));
+    for(const e of sorties) motifs.set(texte(e.bail_id),REFUS_ACCUSE_APRES_SORTIE);
+  }
+  if(modele.id==="inventaire_entree" || modele.id==="inventaire_sortie") {
+    for(const l of lignes) {
+      const lot=l.lots as {meuble?:unknown}|null|undefined;
+      if(l.type!=="meuble" && lot?.meuble!==true) motifs.set(texte(l.id),REFUS_INVENTAIRE_NON_MEUBLE);
+    }
+  }
+  return motifs;
 }

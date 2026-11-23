@@ -10,6 +10,10 @@ import { verifierCourrierDuBail } from "@/lib/rappels-loyers";
 import { aujourdhuiParis } from "@/lib/ged";
 import { echeanceReglementaire } from "@/lib/documents-bail";
 
+// Reprise du lot 38 (S09, C40) : la liste des dossiers du catalogue (catalogue-cibles) écarte les mêmes cas, avec le même motif.
+// Inventaires : un logement meublé (case « meublé » du lot) ou un bail de type meublé.
+export const REFUS_INVENTAIRE_NON_MEUBLE = "L’inventaire du mobilier concerne un logement meublé.";
+export const REFUS_ACCUSE_APRES_SORTIE = "L’état des lieux de sortie est signé : la sortie du locataire est faite, l’accusé de réception du congé n’a plus lieu d’être.";
 export const CODES_COMPLEMENTS_BAIL = ["bordereau_ddt", "inventaire_entree", "inventaire_sortie", "avenant_remplacement", "liste_dossier", "attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "situation_dette", "protocole_apurement", "accuse_conge", "decompte_retenues", "attestation_fin_bail", "autorisation_travaux"] as const;
 export type LigneDocument = Record<string, unknown>;
 export class RefusDocument extends Error {}
@@ -79,7 +83,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       <p>Ce bordereau décrit les pièces du dossier. Les rapports établis par les diagnostiqueurs doivent être joints ; il ne constitue pas un diagnostic du logement.</p>`;
       if (!lignes.length) f.champ(null,"diagnostics du logement et de l’immeuble");
     } else if (code === "inventaire_entree" || code === "inventaire_sortie") {
-      if (!ctx.lot.meuble && ctx.bail.type !== "meuble") return { erreur: "L’inventaire du mobilier concerne un logement meublé." };
+      if (!ctx.lot.meuble && ctx.bail.type !== "meuble") return { erreur: REFUS_INVENTAIRE_NON_MEUBLE };
       // C03 : l'état s'imprime comme dans l'annexe d'inventaire du bail meublé (LIBELLE_ETAT_INVENTAIRE : « Usagé », pas « usage »).
       const lignes = (await lireLignes(supabase.from("inventaire_lignes").select("piece, designation, quantite, etat, observation").eq("bail_id",bailId).eq("organization_id",orgId).order("ordre")))
         .map((l): LigneDocument => ({ ...l, etat: l.etat == null ? null : LIBELLE_ETAT_INVENTAIRE[String(l.etat)] ?? texte(l.etat) }));
@@ -200,7 +204,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       if (code === "accuse_conge") {
         if (c.par !== "locataire") return { erreur: "Le congé enregistré a été donné par le bailleur : l’accusé de réception concerne un congé reçu du locataire." };
         const edlSortie = await lireLignes(supabase.from("etats_des_lieux").select("id").eq("organization_id",orgId).eq("bail_id",bailId).eq("type","sortie").eq("etat","signe").limit(1));
-        if (edlSortie.length) return { erreur: "L’état des lieux de sortie est signé : la sortie du locataire est faite, l’accusé de réception du congé n’a plus lieu d’être." };
+        if (edlSortie.length) return { erreur: REFUS_ACCUSE_APRES_SORTIE };
       }
       contenu = `${section(code === "accuse_conge" ? "Congé reçu" : "Fin du contrat")}
         <p>Congé donné par ${c.par === "locataire" ? "le locataire" : "le bailleur"}, reçu le ${f.date(texte(c.date_premiere_presentation))}.

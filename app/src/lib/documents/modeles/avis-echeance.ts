@@ -47,6 +47,8 @@ export type DonneesAvisEcheance = {
   chargesMode?: string | null;
   /** Ce qui restait dû sur les termes antérieurs (0 si à jour). */
   arriere?: number;
+  /** Ce qui est déjà réglé sur CE terme (paiement partiel ; 0 ou absent : rien reçu). */
+  dejaRegle?: number;
   lieuPaiement?: string | null;
   iban?: string | null;
   bailleurNom: string;
@@ -74,11 +76,24 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
   const du = formaterDateFr(bornes.du);
   const au = formaterDateFr(bornes.au);
   const arriere = Math.max(0, Number(d.arriere ?? 0));
+  // Reprise du lot 38 (C49) : un terme réglé en partie reste à régler, mais l'avis ne réclame que ce qui en reste. Il annonçait
+  // le terme entier (« Total du terme 760,00 € ») sans dire les 400 € déjà reçus, alors que l'avis du mois suivant les comptait.
+  const dejaRegle = Math.min(Math.max(0, Number(d.dejaRegle ?? 0)), Number(d.montantDu));
+  const resteCeTerme = Math.round((Number(d.montantDu) - dejaRegle) * 100) / 100;
+  // Reprise du lot 38 (C49) : une échéance passée ne s'annonce plus au présent (« arrive à échéance le 05/09/2026. Le règlement
+  // est attendu à cette date », sur un avis établi le 23/11/2026) ; l'avis dit qu'il est établi après l'échéance, en rappel.
+  const echu = Boolean(d.dateEcheance) && String(d.dateEcheance).slice(0, 10) < jour;
+  const annonce = echu
+    ? `<p>Le terme désigné ci-dessous est arrivé à échéance le ${f.date(d.dateEcheance)}. À la date du présent avis,
+    ${dejaRegle > 0 ? "il n’est réglé qu’en partie : le détail ci-dessous indique la somme déjà reçue et ce qui reste à régler." : "il n’est pas réglé."}</p>`
+    : `<p>Nous vous informons que le terme désigné ci-dessous arrive à échéance
+    le ${f.date(d.dateEcheance)}. ${dejaRegle > 0 ? "Le règlement de ce qui en reste est attendu à cette date." : "Le règlement est attendu à cette date."}</p>`;
 
   const corps = `
     ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: jour })}
     ${titre("Avis d'échéance", `Période du ${du} au ${au}`, [
       "Le présent avis ne constitue ni une quittance ni un reçu.",
+      ...(echu ? ["Avis établi après la date d'échéance : il rappelle un terme restant à régler."] : []),
     ])}
     ${cartouches([
       ["Bailleur", `<div>${d.bailleurNom}</div>`],
@@ -86,8 +101,7 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
       ["Logement loué", `<div>${f.champ(d.logementAdresse, "adresse complète, étage, porte")}</div>`],
       ["Bail", `Réf. ${f.champ(d.referenceBail, "référence du bail")} prenant effet le ${f.date(d.dateBail)}`],
     ])}
-    <p>Nous vous informons que le terme désigné ci-dessous arrive à échéance
-    le ${f.date(d.dateEcheance)}. Le règlement est attendu à cette date.</p>
+    ${annonce}
     ${section("Détail du terme")}
     ${tableau(
       [{ libelle: "Nature" }, { libelle: "Montant", droite: true }],
@@ -98,12 +112,18 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
     )}
     ${ligneTotal("Total du terme", f.montant(d.montantDu, "total à régler"))}
     ${
+      dejaRegle > 0
+        ? `<table class="ligne-total"><tbody><tr><td>Déjà reçu sur ce terme</td><td class="d">${eur(dejaRegle)}</td></tr></tbody></table>
+           ${ligneTotal("Reste à régler sur ce terme", eur(resteCeTerme))}`
+        : ""
+    }
+    ${
       // Même règle que l'avis par e-mail (wiki « Quittancement des loyers »,
       // 18/09) : taire une dette en cours laisserait croire au locataire qu'il
       // sera à jour une fois le terme réglé.
       arriere > 0
         ? `<p><b>Solde antérieur restant dû : ${eur(arriere)}.</b> Total à régler pour solder votre compte :
-           <b>${eur(arriere + Number(d.montantDu))}</b>.</p>`
+           <b>${eur(arriere + resteCeTerme)}</b>.</p>`
         : ""
     }
     ${section("Modalités de règlement")}
@@ -172,6 +192,7 @@ export async function assemblerAvisEcheance(
     dateFinBail: ctx.bail.date_fin,
     chargesMode: ctx.bail.charges_mode,
     arriere: Math.round(arriere * 100) / 100,
+    dejaRegle: ceTerme ? Number(ceTerme.montant_couvert) : 0,
     lieuPaiement: ctx.bail.lieu_paiement,
     iban: ctx.organisation.iban ?? null,
     bailleurNom: nomsBailleurs(f, ctx.bailleurs),

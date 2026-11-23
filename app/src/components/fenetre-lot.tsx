@@ -31,7 +31,6 @@ import { Modale } from "@/components/ui/modale";
 import { LecteurDocument } from "@/components/lecteur-document";
 import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
-import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CleEnvoi } from "@/components/cle-envoi";
@@ -880,7 +879,6 @@ function ActionsRapides({
   // Décision D27 : chez le propriétaire direct, les liens de cet espace vivent sous /espace/<id>.
   const base = useBaseEspace(orgId);
   const locataire = fiche.portee === "locataire";
-  const retour = locataire ? `/locataire/${orgId}/logement` : `${base}/parc`;
   return (
     <div>
       <p className="eyebrow mb-2">Actions rapides</p>
@@ -899,24 +897,18 @@ function ActionsRapides({
           </>
         ) : (
           <>
-            {/* Ces deux-là GÉNÈRENT vraiment leur document : le gabarit les
-                dessinait, les modèles existaient déjà. */}
+            {/* Reprise du lot 38 : l'avis d'échéance se prépare pour UN terme (appel de loyer), la lettre de révision pour UNE
+                révision enregistrée. Ces deux boutons leur passaient l'identifiant du bail et échouaient toujours (« Appel de loyer
+                introuvable. », « Révision introuvable. ») : ils mènent désormais à la rubrique des loyers du bail, où chaque terme
+                restant à régler et chaque révision ont leur bouton. */}
             {fiche.bail_id && (
               <>
-                <BoutonGenererDocument
-                  orgId={orgId}
-                  code="avis_echeance"
-                  cibleId={fiche.bail_id}
-                  cheminRetour={retour}
-                  libelle="Avis d’échéance"
-                />
-                <BoutonGenererDocument
-                  orgId={orgId}
-                  code="revision_irl"
-                  cibleId={fiche.bail_id}
-                  cheminRetour={retour}
-                  libelle="Révision IRL"
-                />
+                <Link
+                  href={`${base}/baux/${fiche.bail_id}#loyers`}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  Préparer un avis ou une révision
+                </Link>
                 <Link
                   href={`${base}/baux/${fiche.bail_id}#edl`}
                   className={buttonVariants({ variant: "outline", size: "sm" })}

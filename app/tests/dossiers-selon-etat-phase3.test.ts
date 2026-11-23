@@ -21,11 +21,12 @@ vi.mock("@/lib/documents/modeles/communs", async (importOriginal) => ({
 import { chargerContexteBail, type ContexteBail } from "@/lib/documents/modeles/communs";
 import { CATALOGUE_DOCUMENTS } from "@/lib/documents/catalogue";
 import { chargerCiblesCatalogue, colonnesCibles, verifierCibleCatalogue } from "@/lib/documents/catalogue-cibles";
-import { assemblerComplementBail, RefusDocument } from "@/lib/documents/modeles/catalogue-bail";
+import { assemblerComplementBail, RefusDocument, REFUS_ACCUSE_APRES_SORTIE, REFUS_INVENTAIRE_NON_MEUBLE } from "@/lib/documents/modeles/catalogue-bail";
 import { assemblerComplementGestion } from "@/lib/documents/modeles/catalogue-gestion";
 import { assemblerAvenant } from "@/lib/documents/modeles/avenant";
 import { assemblerCautionnement } from "@/lib/documents/modeles/cautionnement";
-import { assemblerAvisEcheance, REFUS_TERME_NON_DU, REFUS_TERME_SOLDE } from "@/lib/documents/modeles/avis-echeance";
+import { assemblerAvisEcheance, construireAvisEcheance, REFUS_TERME_NON_DU, REFUS_TERME_SOLDE, type DonneesAvisEcheance } from "@/lib/documents/modeles/avis-echeance";
+import { Fusion } from "@/lib/documents/gabarit";
 import type { Assemblage } from "@/lib/documents/modeles";
 
 type Ligne = Record<string, unknown>;
@@ -38,9 +39,10 @@ function succes(r: Assemblage) {
 }
 
 /**
- * Une base qui APPLIQUE les filtres (eq, in, is, not is null), y compris ceux d'une table liée (« conges.par ») : la ligne est
- * gardée quand l'objet lié, ou l'une des lignes liées, satisfait tous les filtres de cette table (« !inner »). Chaque requête
- * est consignée (table, opérations).
+ * Une base qui APPLIQUE les filtres (eq, in, is, not is null, not in), y compris ceux d'une table liée (« conges.par ») : la ligne
+ * est gardée quand l'objet lié, ou l'une des lignes liées, satisfait tous les filtres de cette table (« !inner »). Reprise du
+ * lot 38 : une table liée déclarée « !inner » dans la sélection écarte aussi, sans filtre, le dossier qui n'a aucune ligne liée
+ * (comme PostgREST). Chaque requête est consignée (table, opérations).
  */
 function baseFiltrante(tables: Record<string, Ligne[]>, rpcs: Record<string, { data: unknown; error: unknown }> = {}) {
   const appels: Appel[] = [];
@@ -56,8 +58,13 @@ function baseFiltrante(tables: Record<string, Ligne[]>, rpcs: Record<string, { d
       else lies.set(lien, [...(lies.get(lien) ?? []), (l) => test(valeur(l, col))]);
     };
     let page: [number, number] | null = null;
+    const internes: string[] = [];
     const resultat = () => {
       let lignes = (tables[table] ?? []).filter((l) => filtres.every((f) => f(l)));
+      for (const lien of internes) lignes = lignes.filter((l) => {
+        const v = l[lien];
+        return Array.isArray(v) ? v.length > 0 : v !== null && typeof v === "object";
+      });
       for (const [lien, tests] of lies) lignes = lignes.filter((l) => {
         const v = l[lien];
         const ok = (x: unknown) => x !== null && typeof x === "object" && tests.every((t) => t(x as Ligne));
@@ -70,11 +77,12 @@ function baseFiltrante(tables: Record<string, Ligne[]>, rpcs: Record<string, { d
       maybeSingle: async () => ({ data: resultat()[0] ?? null, error: null }),
     };
     const op = (nom: string, f?: (...a: unknown[]) => void) => (q[nom] = (...a: unknown[]) => { appel.ops.push([nom, ...a]); f?.(...a); return q; });
-    op("select"); op("order"); op("limit"); op("gte"); op("lt"); op("lte"); op("or");
+    op("select", (s) => { for (const m of String(s).matchAll(/(\w+)(?:![\w]+)*!inner\(/g)) internes.push(m[1]); });
+    op("order"); op("limit"); op("gte"); op("lt"); op("lte"); op("or");
     op("eq", (k, v) => ajouter(String(k), (x) => x === v));
     op("in", (k, v) => ajouter(String(k), (x) => (v as unknown[]).includes(x)));
     op("is", (k, v) => ajouter(String(k), (x) => (x ?? null) === v));
-    op("not", (k, o, v) => ajouter(String(k), (x) => (x ?? null) !== v));
+    op("not", (k, o, v) => ajouter(String(k), o === "in" ? (x) => !String(v).slice(1, -1).split(",").includes(String(x)) : (x) => (x ?? null) !== v));
     op("range", (de, a) => { page = [Number(de), Number(a)]; });
     return q;
   };
@@ -130,7 +138,9 @@ describe("la liste de choix ne propose que les baux que le modèle accepte", () 
     ];
     expect(await ids("inventaire_entree", { baux })).toEqual(["meuble-brouillon", "meuble-preavis", "meuble-termine", "coloc-meublee"]);
     expect(await ids("inventaire_sortie", { baux })).toEqual(["meuble-preavis", "meuble-termine"]);
-    expect(colonnesCibles(modele("inventaire_sortie"), "id")).toBe("id,lots!baux_lot_meme_org_fk!inner(meuble)");
+    // Reprise du lot 38 : le contrôle d'un dossier forcé relit aussi le type du bail (un bail meublé sur un lot non coché
+    // « meublé » est accepté par l'assembleur).
+    expect(colonnesCibles(modele("inventaire_sortie"), "id")).toBe("id,type,lots!baux_lot_meme_org_fk!inner(meuble)");
   });
   it("un identifiant forcé hors de la liste est refusé à la vérification, avec le même filtre", async () => {
     const { db, appels } = baseFiltrante({ baux: quatreEtats });
@@ -178,8 +188,14 @@ describe("C49 — avis d'échéance : seulement les termes restant à régler", 
     expect(REFUS_TERME_SOLDE).toContain("préparez la quittance de ce terme");
   });
   it("l'assembleur produit l'avis d'un terme impayé ou partiellement payé", async () => {
-    expect(texteDe(succes(await avis({ montant_du: 760, montant_couvert: 0, statut: "impaye" })).document.html)).toContain("Le règlement est attendu à cette date.");
-    expect("document" in (await avis({ montant_du: 760, montant_couvert: 400, statut: "partiel" }))).toBe(true);
+    // Reprise du lot 38 : l'échéance d'essai (05/03/2026) est passée ; l'avis ne l'annonce plus au présent (« Le règlement est
+    // attendu à cette date », affirmé ici avant la reprise, était faux sur un avis établi après l'échéance).
+    const impaye = texteDe(succes(await avis({ montant_du: 760, montant_couvert: 0, statut: "impaye" })).document.html);
+    expect(impaye).toContain("est arrivé à échéance le 05/03/2026. À la date du présent avis, il n’est pas réglé.");
+    expect(impaye).not.toContain("attendu à cette date");
+    const partiel = texteDe(succes(await avis({ montant_du: 760, montant_couvert: 400, statut: "partiel" })).document.html);
+    expect(partiel).toMatch(/Déjà reçu sur ce terme\s*400,00\s€/);
+    expect(partiel).toMatch(/Reste à régler sur ce terme\s*360,00\s€/);
   });
   it("sans la situation des paiements, l'avis n'est pas produit (il ne pourrait ni dire l'arriéré ni écarter un terme payé)", async () => {
     expect(await avis(null, { message: "indisponible" })).toEqual({ erreur: "La situation des paiements du bail n’a pas pu être lue. Réessayez avant de générer cet avis." });
@@ -340,5 +356,138 @@ describe("C82 — incident des parties communes (sans lot)", () => {
     // quand ils sont enregistrés ; il n'en donnait que le nom et l'adresse de l'immeuble, séparés par des points.
     expect(html).toContain('<div class="etiquette">Logement</div><div>8 avenue des Essais, 69003 Lyon, T2</div>');
     expect(texteDe(html)).not.toContain("Parties communes");
+  });
+});
+
+/**
+ * Reprise du lot 38 (relecture contradictoire du commit 64f56645). Chaque cas ci-dessous échouait avant la reprise.
+ */
+describe("reprise du lot 38 — C49 : l'avis dit ce qui reste à régler, et si l'échéance est passée", () => {
+  const donnees = (sur: Partial<DonneesAvisEcheance>): DonneesAvisEcheance => ({
+    reference: "AVIS-1", periode: "2026-09-01", dateEcheance: "2026-09-05", loyerHc: 700, charges: 60, montantDu: 760, prorata: false,
+    bailleurNom: "Fictive Jeanne", locatairesNoms: "Fictive Nadia", logementAdresse: "8 avenue des Essais, 69003 Lyon", referenceBail: "BAIL-1",
+    dateBail: "2025-10-15", exp: { nom: "Fictive Jeanne", adresse: null, email: null, ville: "Lyon" }, typeOrganisation: "proprietaire_direct",
+    jour: "2026-11-23", f: new Fusion(), ...sur,
+  });
+  const avis = (sur: Partial<DonneesAvisEcheance>) => texteDe(construireAvisEcheance(donnees(sur)).html);
+
+  it("terme réglé en partie : la somme déjà reçue et le reste à régler, plus le terme entier comme seul montant réclamé", () => {
+    const t = avis({ dejaRegle: 400 });
+    expect(t).toMatch(/Total du terme\s*760,00\s€/);
+    expect(t).toMatch(/Déjà reçu sur ce terme\s*400,00\s€/);
+    expect(t).toMatch(/Reste à régler sur ce terme\s*360,00\s€/);
+    expect(t).toContain("il n’est réglé qu’en partie : le détail ci-dessous indique la somme déjà reçue et ce qui reste à régler.");
+  });
+  it("le total pour solder le compte additionne l'arriéré et le reste du terme (pas le terme entier)", () => {
+    expect(avis({ dejaRegle: 400, arriere: 100 })).toMatch(/Solde antérieur restant dû : 100,00 €\. Total à régler pour solder votre compte : 460,00\s€/);
+    // Le terme suivant d'un terme réglé en partie : l'arriéré (360 €) s'ajoute au terme entier, rien n'est reçu sur ce terme.
+    const octobre = avis({ periode: "2026-10-01", dateEcheance: "2026-10-05", arriere: 360 });
+    expect(octobre).toMatch(/Total à régler pour solder votre compte : 1\s120,00\s€/);
+    expect(octobre).not.toContain("Déjà reçu");
+  });
+  it("échéance passée : dite au passé, avis présenté comme un rappel", () => {
+    const t = avis({ dateEcheance: "2026-10-05" });
+    expect(t).toContain("Le terme désigné ci-dessous est arrivé à échéance le 05/10/2026. À la date du présent avis, il n’est pas réglé.");
+    expect(t).toContain("Avis établi après la date d'échéance : il rappelle un terme restant à régler.");
+    expect(t).not.toContain("arrive à échéance");
+    expect(t).not.toContain("attendu à cette date");
+  });
+  it("échéance à venir ou du jour : l'annonce reste au présent, sans mention de rappel", () => {
+    for (const dateEcheance of ["2026-12-05", "2026-11-23"]) {
+      const t = avis({ periode: "2026-12-01", dateEcheance });
+      expect(t).toContain("arrive à échéance le");
+      expect(t).toContain("Le règlement est attendu à cette date.");
+      expect(t).not.toContain("rappelle un terme");
+    }
+    expect(avis({ periode: "2026-12-01", dateEcheance: "2026-12-05", dejaRegle: 200 })).toContain("Le règlement de ce qui en reste est attendu à cette date.");
+  });
+  it("l'assembleur passe ce qui est couvert sur ce terme (etat_loyers_bail)", async () => {
+    vi.mocked(chargerContexteBail).mockResolvedValue(Object.assign(contexte(), { bail: { ...contexte().bail, etat: "actif" } }));
+    const { db } = baseFiltrante(
+      { appels_loyer: [{ id: "a9", organization_id: "org", bail_id: "b", periode: "2026-09-01", date_echeance: "2026-09-05", montant_du: 760, loyer_hc: 700, charges: 60, prorata: false }] },
+      { etat_loyers_bail: { data: [{ appel_id: "a9", periode: "2026-09-01", montant_du: 760, montant_couvert: 400, statut: "partiel" }], error: null } },
+    );
+    const t = texteDe(succes(await assemblerAvisEcheance(db, "org", "a9")).document.html);
+    expect(t).toMatch(/Déjà reçu sur ce terme\s*400,00\s€/);
+    expect(t).toMatch(/Reste à régler sur ce terme\s*360,00\s€/);
+  });
+  it("C49 : un terme qui suit le mois de fin du bail (non dû) n'est plus proposé, et refusé avec le motif s'il est forcé", async () => {
+    const appel = (id: string, periode: string): Ligne => ({ id, organization_id: "org", bail_id: "b", periode, date_echeance: periode, montant_du: 600 });
+    const tables = {
+      appels_loyer: [appel("a-novembre", "2026-11-01"), appel("a-decembre", "2026-12-01")], quittances: [],
+      baux: [{ id: "b", organization_id: "org", lot_id: "lot", locataire_principal: "p", date_fin: "2026-11-26" }], lots: [{ id: "lot", nom: "T2" }], persons: [],
+    };
+    const { choix } = await chargerCiblesCatalogue(baseFiltrante(tables).db, "org", modele("avis_echeance"));
+    expect(choix.map((c) => c.id)).toEqual(["a-novembre"]);
+    await expect(verifierCibleCatalogue(baseFiltrante(tables).db, "org", modele("avis_echeance"), "a-decembre")).rejects.toThrow(REFUS_TERME_NON_DU);
+    await expect(verifierCibleCatalogue(baseFiltrante(tables).db, "org", modele("avis_echeance"), "a-novembre")).resolves.toBeUndefined();
+    expect(colonnesCibles(modele("avis_echeance"), "id")).toBe("id,bail_id,periode");
+  });
+});
+
+describe("reprise du lot 38 — la liste ne propose plus ce que l'assembleur refuse", () => {
+  it("S09 : un bail de type meublé sur un lot non coché « meublé » est proposé pour les inventaires, comme l'assembleur l'accepte", async () => {
+    const baux = [
+      bail("meuble-lot-nu", "preavis", { type: "meuble", lots: { meuble: false } }),
+      bail("nu-lot-nu", "preavis", { type: "nu", lots: { meuble: false } }),
+      bail("nu-lot-meuble", "preavis", { type: "nu", lots: { meuble: true } }),
+      bail("coloc-lot-nu", "preavis", { type: "colocation", lots: { meuble: false } }),
+    ];
+    expect(await ids("inventaire_entree", { baux })).toEqual(["meuble-lot-nu", "nu-lot-meuble"]);
+    expect(await ids("inventaire_sortie", { baux })).toEqual(["meuble-lot-nu", "nu-lot-meuble"]);
+    const { db } = baseFiltrante({ baux });
+    await expect(verifierCibleCatalogue(db, "org", modele("inventaire_entree"), "meuble-lot-nu")).resolves.toBeUndefined();
+    await expect(verifierCibleCatalogue(db, "org", modele("inventaire_entree"), "nu-lot-nu")).rejects.toThrow(REFUS_INVENTAIRE_NON_MEUBLE);
+    // L'assembleur, inchangé, produit l'inventaire de ce bail.
+    vi.mocked(chargerContexteBail).mockResolvedValue(Object.assign(contexte(), { bail: { ...contexte().bail, type: "meuble", etat: "actif" }, lot: { ...contexte().lot, meuble: false } }));
+    expect("document" in (await assemblerComplementBail("inventaire_entree", baseFiltrante({}).db, "org", "b1", { date_constat: "2026-09-01" }))).toBe(true);
+  });
+  it("C40 : l'accusé de réception n'est plus proposé une fois l'état des lieux de sortie signé (bail encore en préavis)", async () => {
+    const locataire = { conges: [{ par: "locataire", annule_le: null }] };
+    const tables = {
+      baux: [bail("sortie-signee", "preavis", locataire), bail("sortie-en-cours", "preavis", locataire), bail("sans-sortie", "preavis", locataire)],
+      etats_des_lieux: [
+        { organization_id: "org", bail_id: "sortie-signee", type: "sortie", etat: "signe" },
+        { organization_id: "org", bail_id: "sortie-en-cours", type: "sortie", etat: "brouillon" },
+        { organization_id: "org", bail_id: "sans-sortie", type: "entree", etat: "signe" },
+      ],
+    };
+    expect(await ids("accuse_conge", tables)).toEqual(["sortie-en-cours", "sans-sortie"]);
+    await expect(verifierCibleCatalogue(baseFiltrante(tables).db, "org", modele("accuse_conge"), "sortie-signee")).rejects.toThrow(REFUS_ACCUSE_APRES_SORTIE);
+  });
+  it("décomptes du dépôt : seulement un bail dont la restitution est préparée", async () => {
+    const baux = [bail("avec", "termine", { restitutions: { id: "r1" } }), bail("sans-actif", "actif", { restitutions: null }), bail("sans-preavis", "preavis", { restitutions: null })];
+    for (const id of ["decompte_restitution", "decompte_retenues"]) {
+      expect(await ids(id, { baux })).toEqual(["avec"]);
+      expect(colonnesCibles(modele(id), "id")).toBe("id,restitutions!restitutions_bail_meme_org_fk!inner(id)");
+      await expect(verifierCibleCatalogue(baseFiltrante({ baux }).db, "org", modele(id), "sans-actif")).rejects.toBeInstanceOf(RefusDocument);
+    }
+  });
+  it("incidents : le comparatif demande un devis, le compte rendu celui de l'artisan, l'ordre une mission ni annulée ni refusée", async () => {
+    const incidents = [{ id: "avec-devis", organization_id: "org", incident_devis: [{ id: "d1" }] }, { id: "sans-devis", organization_id: "org", incident_devis: [] }];
+    expect(await ids("comparatif_devis", { incidents })).toEqual(["avec-devis"]);
+    expect(colonnesCibles(modele("comparatif_devis"), "id")).toBe("id,incident_devis!incident_devis_incident_meme_org_fk!inner(id)");
+    const mission = (id: string, statut: string, crs: unknown[]) => ({ id, organization_id: "org", statut, intervention_comptes_rendus: crs });
+    const missions = [mission("terminee-cr", "terminee", [{ id: "cr" }]), mission("planifiee", "planifiee", []), mission("annulee", "annulee", []), mission("refusee", "refusee", [])];
+    expect(await ids("compte_rendu_intervention", { incident_interventions: missions })).toEqual(["terminee-cr"]);
+    expect(await ids("ordre_intervention", { incident_interventions: missions })).toEqual(["terminee-cr", "planifiee"]);
+  });
+  it("un incident clos sans devis : le refus ne laisse plus attendre un devis (« encore »)", async () => {
+    const incident = { id: "inc", organization_id: "org", numero: "INC-2026-0003", lot_id: null, bien_id: "bien", description: "Infiltration", etat: "clos", cloture_motif: "transmis_syndic" };
+    const tables = {
+      organizations: [{ id: "org", type: "proprietaire_direct", name: "Parc", city: "Lyon" }], incidents: [incident],
+      biens: [{ id: "bien", organization_id: "org", nom: "Résidence", address_line1: "8 avenue des Essais", postal_code: "69003", city: "Lyon" }],
+    };
+    expect(await assemblerComplementGestion("comparatif_devis", baseFiltrante(tables).db, "org", "inc"))
+      .toEqual({ erreur: "Aucun devis n’a été déposé pour cet incident, qui est clos : il n’y a pas de devis à comparer." });
+    const ouvert = { ...tables, incidents: [{ ...incident, etat: "en_cours" }] };
+    expect(await assemblerComplementGestion("comparatif_devis", baseFiltrante(ouvert).db, "org", "inc")).toEqual({ erreur: "Aucun devis n’a encore été déposé pour cet incident." });
+  });
+  it("fenêtre du lot : plus de bouton d'avis ni de révision qui passe l'identifiant du bail, un lien vers les loyers du bail", () => {
+    const source = readFileSync("src/components/fenetre-lot.tsx", "utf8");
+    expect(source).not.toMatch(/code="(avis_echeance|revision_irl)"/);
+    expect(source).not.toMatch(/cibleId=\{fiche\.bail_id\}/);
+    expect(source).toContain("href={`${base}/baux/${fiche.bail_id}#loyers`}");
+    expect(readFileSync("src/app/agence/[orgId]/baux/[bailId]/page.tsx", "utf8")).toContain('<RubriqueDossier id="loyers"');
   });
 });

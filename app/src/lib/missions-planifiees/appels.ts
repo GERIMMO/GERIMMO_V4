@@ -27,7 +27,8 @@ import { verifierAvantEffet } from "@/lib/controle-effets";
 
 import { cleAvisEcheance } from "@/lib/cles-idempotence-courriels";
 import { envoyerEmail } from "@/lib/email";
-import { corpsAvisEcheance, sujetAvisEcheance } from "@/lib/appel-email";
+import { corpsAvisEcheance, resteTermesSuivantsEchus, sujetAvisEcheance, type TermeEcheancier } from "@/lib/appel-email";
+import { aujourdhuiParis } from "@/lib/ged";
 import { clientDeService } from "@/lib/supabase/service";
 import { envoiAutomatiqueOuvert } from "@/lib/envois-suspendus";
 import { consignerTache } from "@/lib/tache";
@@ -114,10 +115,37 @@ export async function traiterAppels(request: Request) {
   // n'est joint, l'envoi reste suspendu par la liste fermée, exactement comme avant. Ouvert : le contexte désigne
   // l'appel, et la base refait la preuve avant chaque envoi (migration 20261122200000).
   const ouvert = await envoiAutomatiqueOuvert(supabase, "avis_echeance");
+  // Phase 3, lot 44 (reprise, C49) : `arriere` (appels_a_envoyer) ne compte que les termes ANTÉRIEURS. Un avis qui part après
+  // son échéance — mois créés d'un coup par le rattrapage après un arrêt, ou bail saisi avec une date d'entrée passée — peut
+  // avoir des termes SUIVANTS déjà échus : l'e-mail annonçait alors « vous solderez votre compte » avec un total trop bas.
+  // Pour ces avis seulement, l'échéancier du bail est relu (une fois par bail et par passe) et les termes suivants déjà
+  // échus sont comptés, avec la même règle que l'avis en PDF. Un avis dont l'échéance est à venir n'en a pas : rien n'est relu.
+  const jour = aujourdhuiParis();
+  const echeanciers = new Map<string, Promise<TermeEcheancier[] | null>>();
+  const echeancierDuBail = (bail: string) => {
+    let lecture = echeanciers.get(bail);
+    if (!lecture) {
+      lecture = Promise.resolve(supabase.rpc("etat_loyers_bail_brut", { p_bail: bail }))
+        .then(({ data, error }) => (error ? null : ((data ?? []) as TermeEcheancier[])))
+        .catch(() => null);
+      echeanciers.set(bail, lecture);
+    }
+    return lecture;
+  };
   let envoyes = 0;
   const echecs: EchecConsigne[] = [];
   const marquageEchecs: EchecConsigne[] = [];
   for (const l of lignes) {
+    let suivantsEchus = 0;
+    if (String(l.date_echeance ?? "").slice(0, 10) < jour) {
+      const termes = await echeancierDuBail(l.bail_id);
+      if (!termes) {
+        // Mieux vaut ne rien envoyer qu'un total faux : l'avis reste « à envoyer » pour la passe suivante.
+        echecs.push({ appel_id: l.appel_id, organization_id: l.organization_id, motif: "Échéancier du bail illisible : avis non envoyé, repris à la prochaine passe." });
+        continue;
+      }
+      suivantsEchus = resteTermesSuivantsEchus(termes, l.periode, jour);
+    }
     const contexte = ouvert ? { contexteMetier: { type: "avis_echeance" as const, id: l.appel_id } } : {};
     const avis = (prenom: string | null) => ({
       subject: sujetAvisEcheance({ periode: l.periode }),
@@ -129,6 +157,7 @@ export async function traiterAppels(request: Request) {
         dateEcheance: l.date_echeance,
         prorata: l.prorata,
         arriere: Number(l.arriere),
+        suivantsEchus,
         emetteur: l.emetteur,
         prenom,
         // Le locataire arrive sur SES loyers, dans son espace : un avis
@@ -139,7 +168,7 @@ export async function traiterAppels(request: Request) {
     });
     // Une clé par destinataire, qui suit les montants que l'avis annonce.
     const cle = (destinataire: string) =>
-      cleAvisEcheance({ appelId: l.appel_id, destinataire, resteDu: l.reste_du, arriere: l.arriere });
+      cleAvisEcheance({ appelId: l.appel_id, destinataire, resteDu: l.reste_du, arriere: l.arriere, suivantsEchus });
     await verifierAvantEffet(supabase, "appels");
     const envoi = await envoyerEmail({ circuit:"lib/missions-planifiees/appels",
       avantEnvoi: () => verifierAvantEffet(supabase, "appels"),

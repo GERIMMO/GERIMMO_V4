@@ -3,6 +3,7 @@ import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { courrierDisponible, pointReception, type PointReception, type TermeSuivi } from "./paliers-reception-loyer";
+import { dateParis } from "./heure-paris-calcul";
 
 export type RappelLoyer = {
   point?: PointReception | null;
@@ -164,6 +165,23 @@ export async function lirePlansApurementEnCours(supabase: SupabaseClient, orgId:
     for (const plan of (data ?? []) as { bail_id: string }[]) enCours.add(plan.bail_id);
   }
   return { enCours, error: null };
+}
+
+/**
+ * Phase 3, lot 44 (reprise, C65) : le plan d'apurement en cours d'UN bail (mêmes états que lirePlansApurementEnCours) et le
+ * jour de Paris de son activation. Les relances sont suspendues « dès l'activation du plan » (protocole) : une relance
+ * envoyée avant ce jour reste un fait à consigner, une relance datée de ce jour ou après ne l'est pas (ajouterRelance).
+ * `depuis` est null si l'instant d'activation manque (la base l'impose pour un plan actif ou en défaut).
+ */
+export async function lirePlanApurementDuBail(supabase: SupabaseClient, orgId: string, bailId: string):
+  Promise<{ enCours: boolean; depuis: string | null; error: unknown }> {
+  const { data, error } = await supabase.from("plans_apurement").select("activated_at")
+    .eq("organization_id", orgId).eq("bail_id", bailId).in("etat", ETATS_PLAN_SUSPENDANT_RELANCES).limit(1);
+  if (error) return { enCours: false, depuis: null, error };
+  const plan = ((data ?? []) as { activated_at: string | null }[])[0];
+  if (!plan) return { enCours: false, depuis: null, error: null };
+  const instant = plan.activated_at ? new Date(plan.activated_at) : null;
+  return { enCours: true, depuis: instant && Number.isFinite(instant.getTime()) ? dateParis(instant) : null, error: null };
 }
 
 /**

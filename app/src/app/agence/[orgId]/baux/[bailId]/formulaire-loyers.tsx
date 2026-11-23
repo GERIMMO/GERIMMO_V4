@@ -35,6 +35,7 @@ import {
   type EtatDecompteSortie,
 } from "@/lib/baux";
 import { ChampFichier } from "@/components/champ-fichier";
+import { relancesSuspenduesDepuis } from "@/lib/paliers-reception-loyer";
 import { RACINE_AGENCE, baseDepuisRacine } from "@/lib/racine-espace";
 import { CleEnvoi } from "@/components/cle-envoi";
 import { ConfirmationEncaissement } from "@/components/confirmation-encaissement";
@@ -245,6 +246,7 @@ export function FormulaireLoyers({
   copropriete = false,
   aujourdhui = aujourdhuiParis(),
   decompteSortie = "non_finalise",
+  planApurement = null,
 }: {
   orgId: string;
   bailId: string;
@@ -271,6 +273,11 @@ export function FormulaireLoyers({
   aujourdhui?: string;
   /** État du décompte de sortie du bail (D40) : « repris au décompte de sortie » ne se dit que s'il n'est pas finalisé. */
   decompteSortie?: EtatDecompteSortie;
+  /**
+   * Phase 3, lot 44 (reprise, C65) : le plan d'apurement en cours du bail (actif ou en défaut), `depuis` étant le jour de son
+   * activation ; null s'il n'y en a pas (ou s'il n'a pas pu être lu : l'action le relit et refuse alors d'enregistrer).
+   */
+  planApurement?: { depuis: string | null } | null;
   /** « /espace » chez le propriétaire direct, « /agence » sinon (décision D27) ; la page du bail la transmet. */
   racine?: string;
 }) {
@@ -727,6 +734,15 @@ export function FormulaireLoyers({
             ))}
           </ul>
         )}
+        {/* Phase 3, lot 44 (reprise, C65) : sous plan d'apurement, le formulaire proposait toujours d'enregistrer une relance ou
+            une mise en demeure, que le serveur refusait ensuite à chaque fois — même envoyée avant le plan. Il reste, pour
+            consigner un envoi ANTÉRIEUR à l'activation (seul moyen de saisir le numéro et la date de première présentation
+            d'une mise en demeure), et dit ce que le serveur accepte. */}
+        {recouvrementOuvert && planApurement && (
+          <p className="text-sm text-muted-foreground" data-relances-sous-plan>
+            {relancesSuspenduesDepuis(planApurement.depuis)}
+          </p>
+        )}
         {/* En erreur, la saisie est reposée via etatRel.valeurs (recette 22/08) */}
         {recouvrementOuvert && <form data-saisie-confirmee action={formRel} className="flex flex-wrap items-end gap-2">
           <select name="niveau" aria-label="Niveau de relance" defaultValue={etatRel.valeurs?.niveau ?? "relance_1"} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
@@ -752,7 +768,7 @@ export function FormulaireLoyers({
             <Input id={idNumeroRecommande} name="numero_recommande" placeholder="N° recommandé" defaultValue={etatRel.valeurs?.numero_recommande} className="h-9 w-full sm:w-32" />
           </div>
           <BoutonEnvoi size="sm" variant="outline">
-            Enregistrer la relance
+            {planApurement ? "Enregistrer une relance antérieure au plan" : "Enregistrer la relance"}
           </BoutonEnvoi>
           {etatRel.erreur && <p className="w-full text-sm text-destructive">{etatRel.erreur}</p>}
           {etatRel.succes && <p className="w-full text-sm text-success-soft-foreground" role="status">{etatRel.succes}</p>}

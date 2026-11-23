@@ -107,8 +107,11 @@ export function cleAvisEcheance(p: {
   destinataire: string;
   resteDu: number | string;
   arriere: number | string;
+  /** Phase 3, lot 44 (reprise) : les termes suivants déjà échus que l'avis annonce aussi. Zéro ou absent : clé inchangée. */
+  suivantsEchus?: number | string;
 }): string {
-  return borner(`avis-echeance/${p.appelId}/${centimes(p.resteDu)}/${centimes(p.arriere)}/${empreinteAdresse(p.destinataire)}`);
+  const suivants = p.suivantsEchus === undefined || Number(p.suivantsEchus) <= 0 ? "" : `s${centimes(p.suivantsEchus)}/`;
+  return borner(`avis-echeance/${p.appelId}/${centimes(p.resteDu)}/${centimes(p.arriere)}/${suivants}${empreinteAdresse(p.destinataire)}`);
 }
 
 /**

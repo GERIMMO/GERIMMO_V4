@@ -3,6 +3,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { aujourdhuiParis } from "@/lib/ged";
+import { resteTermesSuivantsEchus } from "@/lib/appel-email";
 import {
   Fusion,
   assemblerPage,
@@ -196,10 +197,9 @@ export async function assemblerAvisEcheance(
     .reduce((s, t) => s + resteDu(t), 0);
   // Phase 3, lot 44 (C49) : les termes SUIVANTS déjà échus à la date de l'avis (échéance passée, comme « impayé » en base),
   // pour que le total « pour solder votre compte » d'un avis établi en rappel soit celui du compte à cette date.
+  // Reprise du lot 44 : la règle est partagée avec l'avis par e-mail (resteTermesSuivantsEchus, lib/appel-email).
   const jour = aujourdhuiParis();
-  const suivantsEchus = termes
-    .filter((t) => t.periode > appel.periode && t.statut !== "non_du" && Boolean(t.date_echeance) && String(t.date_echeance).slice(0, 10) < jour)
-    .reduce((s, t) => s + resteDu(t), 0);
+  const suivantsEchus = resteTermesSuivantsEchus(termes, appel.periode, jour);
 
   const f = new Fusion();
   const document = construireAvisEcheance({

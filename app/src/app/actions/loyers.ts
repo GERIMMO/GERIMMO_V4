@@ -31,7 +31,8 @@ import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
 import { compteRenduEncaissement, type EtatAppel } from "@/lib/imputation";
 import { adresseDeRetour, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
 import { estRejeuCleEnvoi, lireCleEnvoi, messageDejaEnregistre } from "@/lib/cle-envoi";
-import { lirePlansApurementEnCours, PLAN_APUREMENT_EN_COURS } from "@/lib/rappels-loyers";
+import { lirePlanApurementDuBail } from "@/lib/rappels-loyers";
+import { relanceRefuseeSousPlan } from "@/lib/paliers-reception-loyer";
 import {
   CHAMP_CONFIRMATION_MONTANT,
   confirmationDonnee,
@@ -199,10 +200,19 @@ export async function ajouterRelance(
     return { erreur: "Niveau de relance invalide.", valeurs };
   // Phase 3, lot 44 (C65) : sous un plan d'apurement en cours (actif, ou en défaut avant sa caducité), les relances sont
   // suspendues — en base pour les automatiques, au clic pour les courriers (verifierCourrierDuBail, lot 39). Une relance
-  // enregistrée ici pendant le plan faisait ensuite avancer le palier du suivi : même lecture, même refus.
-  const plans = await lirePlansApurementEnCours(supabase, orgId, [bailId]);
-  if (plans.error) return { erreur: "Impossible de vérifier le plan d’apurement de ce bail. Réessayez avant d’enregistrer cette relance.", valeurs };
-  if (plans.enCours.has(bailId)) return { erreur: PLAN_APUREMENT_EN_COURS, valeurs };
+  // enregistrée ici pendant le plan faisait ensuite avancer le palier du suivi.
+  // Reprise du lot 44 : le refus portait sur TOUTE relance, quelle que soit sa date. Or cette action CONSIGNE un envoi, parfois
+  // après coup, et c'est le seul moyen de saisir le numéro et la date de première présentation d'une mise en demeure (aucune
+  // action ne modifie une relance) : une mise en demeure partie le 02/11, avant un plan activé le 20/11, ne pouvait plus être
+  // consignée tant que le plan courait. Le protocole suspend les relances « dès l'activation du plan » : seule une relance
+  // datée du jour de l'activation ou après est refusée. Sans date saisie, la relance est du jour (défaut de la base).
+  const plan = await lirePlanApurementDuBail(supabase, orgId, bailId);
+  if (plan.error) return { erreur: "Impossible de vérifier le plan d’apurement de ce bail. Réessayez avant d’enregistrer cette relance.", valeurs };
+  if (plan.enCours) {
+    const dateEnvoi = String(formData.get("date_envoi") ?? "").trim() || aujourdhuiParis();
+    if (!plan.depuis || !/^\d{4}-\d{2}-\d{2}$/.test(dateEnvoi) || dateEnvoi >= plan.depuis)
+      return { erreur: relanceRefuseeSousPlan(plan.depuis), valeurs };
+  }
   const { error } = await supabase.from("relances").insert({
     organization_id: orgId,
     bail_id: bailId,

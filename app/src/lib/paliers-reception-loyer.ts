@@ -16,6 +16,28 @@ export const LIBELLES_PALIERS = {
 export const RELANCES_SUSPENDUES_SOUS_PLAN =
   "Plan d’apurement en cours : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé).";
 
+/** « 2026-11-20 » → « 20/11/2026 », sans fuseau : c'est déjà un jour de Paris. */
+function jourEnClair(jour: string) {
+  const [a, m, j] = jour.slice(0, 10).split("-");
+  return `${j}/${m}/${a}`;
+}
+
+/**
+ * Phase 3, lot 44 (reprise, C65) : la rubrique « Relances » du bail sous plan d'apurement en cours. Les relances sont
+ * suspendues « dès l'activation du plan » (protocole) ; une relance envoyée AVANT reste un fait à consigner — une mise en
+ * demeure et sa date de première présentation, par exemple. `depuis` : jour (Paris) de l'activation, null s'il est inconnu.
+ */
+export function relancesSuspenduesDepuis(depuis: string | null): string {
+  if (!depuis) return RELANCES_SUSPENDUES_SOUS_PLAN;
+  return `Plan d’apurement en cours depuis le ${jourEnClair(depuis)} : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé). Seule une relance envoyée avant cette date (une mise en demeure et sa date de première présentation, par exemple) peut encore être enregistrée.`;
+}
+
+/** Le refus serveur d'une relance datée du jour de l'activation du plan ou après (ajouterRelance). */
+export function relanceRefuseeSousPlan(depuis: string | null): string {
+  if (!depuis) return "Un plan d’apurement est en cours sur ce bail : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé).";
+  return `Un plan d’apurement est en cours sur ce bail depuis le ${jourEnClair(depuis)} : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé). Seule une relance envoyée avant le ${jourEnClair(depuis)} peut encore être enregistrée.`;
+}
+
 export type TermeSuivi = Omit<RappelLoyer, "lot_nom" | "locataire" | "periode">;
 type Etape = keyof typeof LIBELLES_PALIERS;
 export type PointReception = { etape: Etape; date: string; aConfirmer: boolean; confirmationExpiree?: boolean };

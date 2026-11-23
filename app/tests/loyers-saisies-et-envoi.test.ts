@@ -14,8 +14,9 @@ const banc = vi.hoisted(() => ({
   erreurLectureQuittance: null as { message: string } | null,
   quittanceVisible: true,
   envoyeLe: null as string | null,
-  // Phase 3, lot 44 : les plans d'apurement en cours du bail (ajouterRelance les lit avant d'enregistrer).
-  plans: [] as { bail_id: string }[],
+  // Phase 3, lot 44 : les plans d'apurement en cours du bail (ajouterRelance les lit avant d'enregistrer). Reprise du lot 44 :
+  // avec l'instant de leur activation.
+  plans: [] as { activated_at: string | null }[],
   erreurPlans: null as { message: string } | null,
   filtresPlans: [] as unknown[][],
 }));
@@ -46,7 +47,7 @@ vi.mock("@/lib/ged-acces", () => ({
             then: (ok: (x: unknown) => unknown) =>
               Promise.resolve({ data: banc.erreurPlans ? null : banc.plans, error: banc.erreurPlans }).then(ok),
           };
-          for (const op of ["select", "eq", "in"]) chaine[op] = (...a: unknown[]) => { banc.filtresPlans.push([op, ...a]); return chaine; };
+          for (const op of ["select", "eq", "in", "limit"]) chaine[op] = (...a: unknown[]) => { banc.filtresPlans.push([op, ...a]); return chaine; };
           return chaine;
         }
         const filtres: Record<string, string> = {};
@@ -97,7 +98,7 @@ vi.mock("@/app/actions/documents-generes", () => ({ genererDocument: vi.fn() }))
 
 import { ajouterRelance, envoyerQuittance, regulariserCharges } from "@/app/actions/loyers";
 import { activerPlanApurement } from "@/app/actions/plan-apurement";
-import { PLAN_APUREMENT_EN_COURS } from "@/lib/rappels-loyers";
+import { relanceRefuseeSousPlan } from "@/lib/paliers-reception-loyer";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -216,25 +217,60 @@ describe("Relance : seules les dates effectivement fournies sont enregistrées",
 // Phase 3, lot 44 (C65) : la fenêtre du lot proposait le cran de relance suivant pendant un plan d'apurement, et ajouterRelance
 // l'enregistrait sans contrôle — la relance faisait ensuite avancer le palier du suivi à la fin du plan. Même lecture et même
 // refus que la préparation des courriers (verifierCourrierDuBail, lot 39).
-describe("Relance : refusée pendant un plan d'apurement en cours (lot 44)", () => {
-  const saisie = (niveau = "relance_2") => {
+// Reprise du lot 44 : ce test affirmait le refus de TOUTE relance sous plan, quelle que soit sa date. C'était faux : l'action
+// consigne un envoi, parfois après coup (seul moyen de saisir le numéro et la date de première présentation d'une mise en
+// demeure), et le protocole ne suspend les relances que « dès l'activation du plan ». Le refus porte désormais sur une relance
+// datée du jour de l'activation ou après ; une relance envoyée avant s'enregistre.
+describe("Relance : refusée pendant un plan d'apurement en cours, si elle est datée de son activation ou après (lot 44)", () => {
+  const saisie = (niveau = "relance_2", date: string | null = "2026-11-20") => {
     const f = new FormData();
     f.set("niveau", niveau);
-    f.set("date_envoi", "2026-11-20");
+    if (date !== null) f.set("date_envoi", date);
     return f;
   };
-  it("un plan actif ou en défaut du bail : refus avec le message du suivi, rien n'est enregistré", async () => {
-    banc.plans = [{ bail_id: "bail-test" }];
-    for (const niveau of ["relance_1", "relance_2", "mise_en_demeure"]) {
-      const resultat = await ajouterRelance("org-test", "bail-test", {}, saisie(niveau));
-      expect(resultat.erreur).toBe(PLAN_APUREMENT_EN_COURS);
+  // Plan activé le 20/11/2026 à 10 h, heure de Paris.
+  const ACTIVE_LE_20 = { activated_at: "2026-11-20T09:00:00+00:00" };
+  it("une relance datée du jour de l'activation ou après : refus qui dit la date, rien n'est enregistré", async () => {
+    banc.plans = [ACTIVE_LE_20];
+    for (const [niveau, date] of [["relance_1", "2026-11-20"], ["relance_2", "2026-11-21"], ["mise_en_demeure", "2026-12-02"]]) {
+      const resultat = await ajouterRelance("org-test", "bail-test", {}, saisie(niveau, date));
+      expect(resultat.erreur).toBe(relanceRefuseeSousPlan("2026-11-20"));
+      expect(resultat.erreur).toBe("Un plan d’apurement est en cours sur ce bail depuis le 20/11/2026 : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé). Seule une relance envoyée avant le 20/11/2026 peut encore être enregistrée.");
       expect(resultat.valeurs?.niveau).toBe(niveau);
     }
+    // Sans date saisie, la relance serait du jour (défaut de la base) : après l'activation, refusée.
+    expect((await ajouterRelance("org-test", "bail-test", {}, saisie("relance_1", null))).erreur).toBe(relanceRefuseeSousPlan("2026-11-20"));
+    // Une date illisible n'est pas une date antérieure.
+    expect((await ajouterRelance("org-test", "bail-test", {}, saisie("relance_1", "02/11/2026"))).erreur).toBe(relanceRefuseeSousPlan("2026-11-20"));
     expect(banc.insert).not.toHaveBeenCalled();
     // La lecture porte sur CE bail, dans cet espace, et sur les états qui suspendent les relances en base.
     expect(banc.filtresPlans).toEqual(expect.arrayContaining([
-      ["eq", "organization_id", "org-test"], ["in", "bail_id", ["bail-test"]], ["in", "etat", ["actif", "en_defaut"]],
+      ["select", "activated_at"], ["eq", "organization_id", "org-test"], ["eq", "bail_id", "bail-test"], ["in", "etat", ["actif", "en_defaut"]],
     ]));
+  });
+  it("une mise en demeure envoyée AVANT l'activation se consigne, avec sa première présentation et son numéro (constat du relecteur)", async () => {
+    banc.plans = [ACTIVE_LE_20];
+    const f = saisie("mise_en_demeure", "2026-11-02");
+    f.set("date_premiere_presentation", "2026-11-04");
+    f.set("numero_recommande", "1A2B3C");
+    expect((await ajouterRelance("org-test", "bail-test", {}, f)).succes).toBe("Relance enregistrée.");
+    expect(banc.insert).toHaveBeenCalledWith(expect.objectContaining({
+      niveau: "mise_en_demeure", date_envoi: "2026-11-02", date_premiere_presentation: "2026-11-04", numero_recommande: "1A2B3C",
+    }));
+    // La veille de l'activation aussi.
+    expect((await ajouterRelance("org-test", "bail-test", {}, saisie("relance_2", "2026-11-19"))).succes).toBe("Relance enregistrée.");
+  });
+  it("le jour de l'activation est celui de Paris : activé le 20/11 à 0 h 30 (23 h 30 UTC la veille), le 19/11 reste antérieur", async () => {
+    banc.plans = [{ activated_at: "2026-11-19T23:30:00+00:00" }];
+    expect((await ajouterRelance("org-test", "bail-test", {}, saisie("relance_1", "2026-11-19"))).succes).toBe("Relance enregistrée.");
+    expect((await ajouterRelance("org-test", "bail-test", {}, saisie("relance_1", "2026-11-20"))).erreur).toBe(relanceRefuseeSousPlan("2026-11-20"));
+  });
+  it("un plan en cours sans instant d'activation lisible : refus prudent, sans date", async () => {
+    banc.plans = [{ activated_at: null }];
+    const resultat = await ajouterRelance("org-test", "bail-test", {}, saisie("mise_en_demeure", "2026-11-02"));
+    expect(resultat.erreur).toBe(relanceRefuseeSousPlan(null));
+    expect(resultat.erreur).toBe("Un plan d’apurement est en cours sur ce bail : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé).");
+    expect(banc.insert).not.toHaveBeenCalled();
   });
   it("une lecture du plan impossible : rien n'est enregistré", async () => {
     banc.erreurPlans = { message: "indisponible" };

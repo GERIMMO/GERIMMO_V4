@@ -1,6 +1,7 @@
 import { RubriqueBail, situationDatesBail } from "./presentation-fiche-bail";
 import { HistoriqueRecommandes } from "@/components/historique-recommandes";
 import { PlanApurementBail } from "@/components/plan-apurement-bail";
+import { lirePlanApurementDuBail } from "@/lib/rappels-loyers";
 import { SuiviBailLecture, HistoriqueBailLecture } from "./suivi-bail-lecture";
 import { OngletsDossier } from "@/components/onglets-dossier";
 import { avertissementsCoherenceLoyer } from "@/lib/coherence-loyer";
@@ -282,6 +283,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     // l'écran puisse dire si elle a bougé depuis — il n'en change rien tout
     // seul : la date d'arrêté appartient au gérant.
     { data: montantsAJour, error: erreurMontants },
+    // Phase 3, lot 44 (reprise, C65) : le plan d'apurement en cours du bail et le jour de son activation, pour que la rubrique
+    // « Relances » dise ce qu'elle peut encore enregistrer (une relance antérieure au plan) au lieu de tout proposer.
+    planApurement,
   ] = await Promise.all([
     loyersActif
       ? actionsAttendues(supabase, orgId, { bailId, racine: racineEspace(estProprietaire) })
@@ -335,6 +339,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     restitutionActif
       ? supabase.rpc("montants_restitution_a_jour", { p_bail: bailId })
       : Promise.resolve({ data: null, error: null }),
+    loyersActif
+      ? lirePlanApurementDuBail(supabase, orgId, bailId)
+      : Promise.resolve({ enCours: false, depuis: null, error: null }),
   ]);
   const ecarts = ((comparatif ?? []) as {
     piece: string | null;
@@ -371,6 +378,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const noter = (libelle: string, erreur: unknown) => {
     if (erreur) echecs.push(libelle);
   };
+  noter("le plan d’apurement", planApurement.error);
   noter("le lot", erreurLot);
   noter("le locataire", erreurLocataire);
   noter("les états des lieux", erreurEdls);
@@ -975,6 +983,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               copropriete={Boolean(premier(lot?.bien ?? null)?.copropriete)}
               aujourdhui={aujourdhuiParis()}
               decompteSortie={etatDecompteSortie(restitution, erreurRestitution)}
+              planApurement={planApurement.enCours ? { depuis: planApurement.depuis } : null}
             />
             <HistoriqueRecommandes orgId={orgId} bailId={bailId} />
             <PlanApurementBail orgId={orgId} bailId={bailId} base={base} decompte={etatDecompteSortie(restitution, erreurRestitution)} />

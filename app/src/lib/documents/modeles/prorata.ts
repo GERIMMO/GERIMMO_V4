@@ -128,7 +128,7 @@ export async function assemblerProrata(
 ): Promise<Assemblage> {
   const { data: appel } = await supabase
     .from("appels_loyer")
-    .select("id, bail_id, periode, loyer_hc, charges, montant_du, prorata")
+    .select("id, bail_id, periode, loyer_hc, charges, montant_du, prorata, base_loyer_hc, base_charges")
     .eq("id", appelId)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -138,18 +138,23 @@ export async function assemblerProrata(
   const ctx = await chargerContexteBail(supabase, orgId, appel.bail_id);
   if ("erreur" in ctx) return ctx;
 
-  const memePeriode = (iso: string | null) => iso && iso.slice(0, 7) === appel.periode.slice(0, 7);
+  const memePeriode = (iso: string | null) => Boolean(iso && iso.slice(0, 7) === appel.periode.slice(0, 7));
   const motif = memePeriode(ctx.bail.date_debut) ? "entrée" : "sortie";
+  // Phase 3 (C47) : la base imprimée est celle qui a ÉMIS l'appel (appels_loyer.base_loyer_hc et base_charges, mémorisées à
+  // l'émission et gardées par les recalculs), pas le loyer actuel du bail : après une révision ou un avenant, le décompte
+  // d'une entrée d'octobre 2025 imprimait 710,50 € × 17 / 31 pour un montant calculé sur 700,00 €. Les bornes sont celles
+  // du calcul de la base (montants_appel_loyer) : entrée ET sortie quand le bail commence et finit dans le même mois.
+  const base = (v: number | string | null | undefined) => (v === null || v === undefined ? null : Number(v));
 
   const f = new Fusion();
   const document = construireProrata({
     reference: referenceCourte("PRO", appel.id),
     motif,
     periode: appel.periode,
-    dateDebutOccupation: motif === "entrée" ? ctx.bail.date_debut : appel.periode,
-    dateFinOccupation: motif === "sortie" ? ctx.bail.date_fin : null,
-    loyerHcPlein: ctx.bail.loyer_hc === null ? null : Number(ctx.bail.loyer_hc),
-    chargesPleines: ctx.bail.charges === null ? null : Number(ctx.bail.charges),
+    dateDebutOccupation: memePeriode(ctx.bail.date_debut) ? ctx.bail.date_debut : appel.periode,
+    dateFinOccupation: memePeriode(ctx.bail.date_fin) ? ctx.bail.date_fin : null,
+    loyerHcPlein: base(appel.base_loyer_hc),
+    chargesPleines: base(appel.base_charges),
     loyerHcProrate: appel.loyer_hc === null ? null : Number(appel.loyer_hc),
     chargesProratees: appel.charges === null ? null : Number(appel.charges),
     montantDu: Number(appel.montant_du),

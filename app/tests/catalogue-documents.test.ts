@@ -113,8 +113,15 @@ describe("Catalogue — documents issus des dossiers",()=>{
     const {db}=mockDb(fixture(),"diagnostics");expect(await assemblerComplementBail("bordereau_ddt",db,"org","bail")).toHaveProperty("erreur");
     await expect(lireLignes(Promise.resolve({data:Array(1000).fill({}),error:null}))).rejects.toThrow("trop de lignes");
   });
-  it("exclut les termes futurs de la dette et répartit les centimes sans perte",async()=>{
-    const r=succes(await assemblerComplementBail("protocole_apurement",mockDb(fixtureCourrier("protocole_apurement")).db,"org","bail",options));
+  // Phase 3 (C65, C66, C74) : le protocole ne calcule plus son échéancier à partir d'un nombre de mensualités saisi à l'écran ;
+  // il reprend les tranches du plan d'apurement ENREGISTRÉ (réparties au centime par la base, proposer_plan_apurement). Le
+  // test garde son objet : les termes futurs restent hors de la dette, et les centimes du plan s'impriment sans perte.
+  it("exclut les termes futurs de la dette et imprime les tranches du plan au centime",async()=>{
+    const t=fixtureCourrier("protocole_apurement");
+    t.plans_apurement=[{id:"plan",bail_id:"bail",etat:"propose",date_arrete:"2026-01-10",dette_initiale:100.01,acompte:0,tolerance_jours:5,seuil_caducite:2,conditions:null}];
+    t.plan_apurement_tranches=[{rang:1,echeance:"2026-01-31",montant:33.34},{rang:2,echeance:"2026-02-28",montant:33.34},{rang:3,echeance:"2026-03-31",montant:33.33}];
+    const r=succes(await assemblerComplementBail("protocole_apurement",mockDb(t).db,"org","bail",options));
+    expect(r.document.manquants).toEqual([]);
     expect(r.document.html).toContain("100,01");expect(r.document.html).toContain("33,33");expect(r.document.html.match(/33,34/g)).toHaveLength(2);
     expect(r.document.html).toContain("28/02/2026");expect(r.document.html).toContain("31/03/2026");expect(r.document.html).not.toContain("2099");
   });

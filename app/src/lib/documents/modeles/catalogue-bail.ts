@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, section, tableau, titre, eur, nombreFr, pointFinal, facultatif } from "../gabarit";
+import { Fusion, assemblerPage, cadreSignature, blocSignatureEmetteur, cartouches, enTete, faitA, section, tableau, titre, eur, nombreFr, pointFinal, facultatif, ouNeant } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
-import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte, libellePeriodeTerme, interlocuteurLocataire, libelleSignataireBailleur } from "./communs";
+import { signatureOrganisation, chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte, libellePeriodeTerme, interlocuteurLocataire, libelleSignataireBailleur, coordonneesBancaires, demandeVirement } from "./communs";
 import { TYPES_DIAGNOSTIC } from "@/lib/parc";
 import { LIBELLE_ETAT_INVENTAIRE } from "@/lib/inventaire-meuble";
 import { modeSignatureDocument } from "@/lib/politique-signature";
@@ -13,6 +13,10 @@ import { echeanceReglementaire } from "@/lib/documents-bail";
 export const CODES_COMPLEMENTS_BAIL = ["bordereau_ddt", "inventaire_entree", "inventaire_sortie", "avenant_remplacement", "liste_dossier", "attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "situation_dette", "protocole_apurement", "accuse_conge", "decompte_retenues", "attestation_fin_bail", "autorisation_travaux"] as const;
 export type LigneDocument = Record<string, unknown>;
 export class RefusDocument extends Error {}
+/** Le plan d'apurement enregistré dont un protocole reprend les termes (C65, C66). */
+type PlanProtocole = { date_arrete: string; dette_initiale: number; acompte: number; conditions: string | null; tolerance_jours: number; seuil_caducite: number; tranches: { date: string; montant: number }[] };
+/** « À renseigner » d'un protocole sans plan enregistré : ou-renseigner.ts mène à la section du plan sur la fiche du bail. */
+export const LIBELLE_PLAN_A_ENREGISTRER = "plan d’apurement à enregistrer sur la fiche du bail";
 export const texte = (v: unknown) => v == null ? "" : String(v);
 export const montant = (v: unknown) => Number(v ?? 0);
 export const MESSAGE_CHARGEMENT_IMPOSSIBLE = "Les données du dossier n’ont pas pu être chargées. Réessayez avant de générer ce document.";
@@ -34,7 +38,6 @@ export function anneeDocument(options?: Record<string,string>): number {
   if (!Number.isInteger(n) || n < 1970 || n > anneeParis + 1) throw new RefusDocument("Choisissez une année valide.");
   return n;
 }
-function dateValide(v: string | undefined): boolean { return Boolean(v && /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().slice(0,10) === v); }
 
 export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAIL[number], supabase: SupabaseClient, orgId: string, bailId: string, options: Record<string,string> = {}): Promise<Assemblage> {
   try {
@@ -78,6 +81,8 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     } else if (code === "attestation_loyer" || code === "attestation_caf") {
       contenu = `${section("Situation locative")}
         <p>Le bailleur atteste que le locataire désigné est titulaire du contrat relatif aux locaux désignés, prenant effet le ${f.date(ctx.bail.date_debut)}.
+        ${/* Phase 3 (C60, C61) : un bail en préavis a une fin connue ; l'attestation la dit (elle ne disait que la date d'effet). */
+          ctx.bail.etat === "preavis" ? `Un congé est enregistré : le contrat prend fin le ${f.date(ctx.bail.date_fin, "date de fin du contrat (congé enregistré)")}.` : ""}
         Loyer mensuel hors charges : ${f.montant(ctx.bail.loyer_hc)} ; charges mensuelles : ${f.montant(ctx.bail.charges)} (${ctx.bail.charges_mode === "forfait" ? "forfait" : "provisions"}).
         ${ctx.chambre ? "Les montants concernent exclusivement la chambre et le droit d’usage des espaces partagés de ce contrat individuel." : ""}</p>
         <p>Destinataire : ${opt("destinataire","organisme ou destinataire")}${pointFinal(options.destinataire)}</p>
@@ -93,27 +98,41 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       if (restitutions.length) return { erreur: "Le solde de ce bail figure dans le décompte de départ. Consultez ce document avant toute demande de règlement." };
       const termes = await lireLignes(supabase.rpc("etat_loyers_bail", { p_bail: bailId }));
       const echus = termes.filter(l => texte(l.date_echeance).slice(0,10) < aujourdhui && montant(l.montant_du) > montant(l.montant_couvert));
-      let detteCentimes = echus.reduce((s,l)=>s+Math.round((montant(l.montant_du)-montant(l.montant_couvert))*100),0);
-      // Un protocole peut s'appuyer sur un plan d'apurement enregistré : la dette est celle arrêtée en base à la
-      // proposition, les tranches sont celles du plan (jamais recalculées depuis l'écran).
-      let plan: { date_arrete: string; dette_initiale: number; acompte: number; conditions: string | null; tranches: { date: string; montant: number }[] } | null = null;
-      if (code === "protocole_apurement" && options.plan_id) {
-        const [lu] = await lireLignes(supabase.from("plans_apurement").select("id,bail_id,date_arrete,dette_initiale,acompte,conditions,etat").eq("id", options.plan_id).eq("organization_id", orgId));
-        if (!lu || texte(lu.bail_id) !== bailId) return { erreur: "Ce plan d’apurement n’appartient pas à ce bail." };
-        if (texte(lu.etat) === "annule") return { erreur: "Ce plan d’apurement est annulé." };
-        const tranches = await lireLignes(supabase.from("plan_apurement_tranches").select("rang,echeance,montant").eq("plan_id", options.plan_id).order("rang"));
-        plan = { date_arrete: texte(lu.date_arrete), dette_initiale: montant(lu.dette_initiale), acompte: montant(lu.acompte), conditions: lu.conditions ? texte(lu.conditions) : null,
-          tranches: tranches.map(t => ({ date: texte(t.echeance), montant: montant(t.montant) })) };
-        detteCentimes = Math.round(plan.dette_initiale * 100);
+      // Phase 3 (C73) : le reste dû de chaque échéance, au centime, et le solde échu qui en est la somme.
+      const resteCentimes = (l: LigneDocument) => Math.max(0, Math.round(montant(l.montant_du)*100) - Math.round(montant(l.montant_couvert)*100));
+      const soldeEchuCentimes = echus.reduce((s,l)=>s+resteCentimes(l),0);
+      // Phase 3 (C65, C66, C74) : le protocole s'appuie sur un plan d'apurement ENREGISTRÉ — celui désigné (plan_id, depuis
+      // l'écran du plan), à défaut le plan en cours du bail. Ses tranches, sa tolérance et son seuil de caducité sont ceux que
+      // suit Gerimmo (migration 20261102224000) : le document n'annonce que ce que fait l'application. Sans plan, plus
+      // d'échéancier calculé à l'écran ni de suspension promise : le PDF n'est pas produit, « À renseigner » mène au plan.
+      let plan: PlanProtocole | null = null;
+      if (code === "protocole_apurement") {
+        const champsPlan = "id,bail_id,etat,date_arrete,dette_initiale,acompte,tolerance_jours,seuil_caducite,conditions";
+        const [lu] = options.plan_id
+          ? await lireLignes(supabase.from("plans_apurement").select(champsPlan).eq("id", options.plan_id).eq("organization_id", orgId))
+          : await lireLignes(supabase.from("plans_apurement").select(champsPlan).eq("organization_id", orgId).eq("bail_id", bailId).in("etat", ["propose","actif","en_defaut"]).order("created_at", { ascending: false }).limit(1));
+        if (options.plan_id && (!lu || texte(lu.bail_id) !== bailId)) return { erreur: "Ce plan d’apurement n’appartient pas à ce bail." };
+        if (lu) {
+          if (texte(lu.etat) === "annule") return { erreur: "Ce plan d’apurement est annulé." };
+          const tranches = await lireLignes(supabase.from("plan_apurement_tranches").select("rang,echeance,montant").eq("organization_id", orgId).eq("plan_id", texte(lu.id)).order("rang"));
+          plan = { date_arrete: texte(lu.date_arrete), dette_initiale: montant(lu.dette_initiale), acompte: montant(lu.acompte), conditions: lu.conditions ? texte(lu.conditions) : null,
+            tolerance_jours: montant(lu.tolerance_jours), seuil_caducite: montant(lu.seuil_caducite),
+            tranches: tranches.map(t => ({ date: texte(t.echeance), montant: montant(t.montant) })) };
+        }
       }
+      const detteCentimes = plan ? Math.round(plan.dette_initiale * 100) : soldeEchuCentimes;
       if (code !== "situation_dette" && detteCentimes <= 0) return { erreur: "Aucune dette échue n’est constatée : ce courrier n’a pas lieu d’être généré." };
       // C67, C68 : la colonne « Période » écrit le mois (« novembre 2026 ») et signale un terme au prorata avec ses bornes réelles.
       // L'indicateur vient de l'appel lui-même (appels_loyer.prorata), le calcul des termes ne le rendant pas.
       const appelsAuProrata = new Set((await lireLignes(supabase.from("appels_loyer").select("id").eq("organization_id",orgId).eq("bail_id",bailId).eq("prorata",true))).map(a => texte(a.id)));
-      const avecPeriodeLisible = (lignes: LigneDocument[]) => lignes.map((l): LigneDocument => ({ ...l, periode: libellePeriodeTerme(texte(l.periode), appelsAuProrata.has(texte(l.appel_id)), ctx.bail.date_debut, ctx.bail.date_fin) }));
+      const avecPeriodeLisible = (lignes: LigneDocument[]) => lignes.map((l): LigneDocument => ({ ...l, periode: libellePeriodeTerme(texte(l.periode), appelsAuProrata.has(texte(l.appel_id)), ctx.bail.date_debut, ctx.bail.date_fin), reste: resteCentimes(l) / 100 }));
+      const lignesSituation = code === "situation_dette" ? termes : echus;
+      // C73 : ce qui reste dû sur les échéances du tableau qui ne sont pas encore échues (relevé de situation seulement) : la somme
+      // de la colonne « Reste dû » est le solde échu, plus ce montant.
+      const aVenirCentimes = lignesSituation.filter(l => !echus.includes(l)).reduce((s,l)=>s+resteCentimes(l),0);
       contenu = `${section(code === "situation_dette" ? "Situation des échéances" : "Échéances restant dues")}
-        ${lignesTableau(f,avecPeriodeLisible(code === "situation_dette" ? termes : echus),[["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"]])}
-        <p><strong>${plan ? `Dette arrêtée au ${f.date(plan.date_arrete)} : ${eur(plan.dette_initiale)}.` : `Solde échu au ${f.date(aujourdhui)} : ${eur(detteCentimes/100)}.`}</strong> Les échéances à venir sont exclues de ce solde.</p>`;
+        ${lignesTableau(f,avecPeriodeLisible(lignesSituation),[["Période","periode","texte"],["Échéance","date_echeance","date"],["Appelé","montant_du","montant"],["Couvert","montant_couvert","montant"],["Reste dû","reste","montant"]])}
+        <p><strong>Solde échu au ${f.date(aujourdhui)} : ${eur(soldeEchuCentimes/100)}.</strong> Les échéances à venir sont exclues de ce solde${aVenirCentimes > 0 ? ` : il reste ${eur(aVenirCentimes/100)} sur les échéances du tableau qui ne sont pas encore échues` : ""}.</p>`;
       if (code === "relance_simple") contenu += `<p>Sauf règlement intervenu depuis l’établissement de ce décompte, nous vous invitons à régulariser les sommes échues. En cas de difficulté ou de désaccord, contactez votre ${interlocuteur} afin d’examiner votre situation.</p>`;
       if (code === "mise_en_demeure" && (!/^\d+$/.test(options.delai ?? "") || Number(options.delai) < 1 || Number(options.delai) > 90)) return { erreur: "Indiquez un délai de règlement de 1 à 90 jours." };
       if (code === "relance_simple" || code === "seconde_relance" || code === "mise_en_demeure") {
@@ -129,29 +148,25 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         if (code === "seconde_relance") contenu += `<p>Notre précédent courrier du ${f.date(suivi.precedente)} reste sans régularisation complète à ce jour. Merci de régler ce solde ou de prendre contact avec votre ${interlocuteur}.</p>`;
       }
       if (code === "mise_en_demeure") contenu += `<p>Par le présent courrier, nous vous mettons en demeure de régler les sommes échues détaillées ci-dessus dans un délai de ${opt("delai","délai de règlement à compter de la réception")} jours à compter de sa réception, sous réserve des règlements intervenus depuis son établissement.</p><p>Ce courrier est à notifier avec preuve de réception. Il ne constitue ni un commandement de payer ni une décision de résiliation du bail.</p>`;
-      if (code !== "situation_dette") contenu += `<p>Modalités de règlement : ${f.champ(ctx.bail.lieu_paiement,"modalités de règlement")} ; référence à rappeler : ${referenceCourte("BAIL",bailId)}.</p>`;
+      // C72 : un règlement demandé par virement donne le compte où verser, comme l'avis d'échéance (même source, même règle).
+      if (code !== "situation_dette") contenu += `<p>Modalités de règlement : ${f.champ(ctx.bail.lieu_paiement,"modalités de règlement")}${demandeVirement(ctx.bail.lieu_paiement) ? ` ; coordonnées bancaires : ${coordonneesBancaires(f, ctx.bail.lieu_paiement, ctx.organisation.iban)}` : ""} ; référence à rappeler : ${referenceCourte("BAIL",bailId)}.</p>`;
       if (code === "protocole_apurement") {
-        let lignes: { date: string; montant: number }[];
-        if (plan) {
-          lignes = plan.tranches;
-          if (!lignes.length) return { erreur: "Ce plan d’apurement n’a aucune tranche." };
+        if (!plan) {
+          contenu += `${section("Échéancier convenu")}<p>Échéancier : ${f.champ(null, LIBELLE_PLAN_A_ENREGISTRER)}.</p>`;
         } else {
-          const n = Number(options.mensualites);
-          if (!Number.isInteger(n) || n < 1 || n > 60 || !dateValide(options.premiere_echeance)) return { erreur: "Précisez 1 à 60 mensualités et la date de première échéance de l’accord." };
-          const premiere = new Date(options.premiere_echeance+"T12:00:00Z");
-          const base = Math.floor(detteCentimes/n), reste = detteCentimes % n;
-          lignes = Array.from({length:n},(_,i)=>{
-            const date = new Date(Date.UTC(premiere.getUTCFullYear(),premiere.getUTCMonth()+i,1));
-            const max = new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth()+1,0)).getUTCDate();
-            date.setUTCDate(Math.min(premiere.getUTCDate(),max));
-            return { date:date.toISOString().slice(0,10), montant:(base+(i<reste?1:0))/100 };
-          });
+          if (!plan.tranches.length) return { erreur: "Ce plan d’apurement n’a aucune tranche." };
+          const n = plan.tranches.length, tolerance = plan.tolerance_jours, seuil = plan.seuil_caducite;
+          const pluriel = (k: number, mot: string) => `${k} ${mot}${k > 1 ? "s" : ""}`;
+          const conditions = (plan.conditions ?? options.conditions)?.trim() || null;
+          contenu += `${section("Échéancier convenu")}
+            <p>Dette arrêtée au ${f.date(plan.date_arrete)} : ${eur(plan.dette_initiale)}.${plan.acompte > 0 ? ` Acompte versé ou à verser à la signature : ${eur(plan.acompte)}.` : ""}
+            Reste à étaler : ${eur(plan.dette_initiale - plan.acompte)}, en ${pluriel(n, "mensualité")}.</p>
+            ${lignesTableau(f,plan.tranches,[["Date","date","date"],["Montant","montant","montant"]])}
+            <p>Les mensualités d’apurement s’ajoutent au loyer et aux charges courants. Une mensualité est tenue pour réglée dès que la dette échue du bail, loyers courants compris, ne dépasse plus ce qui reste à étaler après elle : les règlements reçus depuis le ${f.date(plan.date_arrete)} sont pris en compte. Toute adaptation de l’accord est convenue par écrit entre les parties.</p>
+            <p>Une mensualité qui n’est pas réglée ${tolerance > 0 ? `${pluriel(tolerance, "jour")} après son échéance` : "à son échéance"} est constatée comme manquée. À ${pluriel(seuil, "mensualité")} manquée${seuil > 1 ? "s" : ""} et non rattrapée${seuil > 1 ? "s" : ""}, l’accord devient caduc et les sommes restantes sont immédiatement exigibles.</p>
+            <p>Les relances de loyer sont suspendues dès l’activation du plan, après l’accord du locataire, tant qu’il n’est ni caduc ni annulé. Le bailleur ne renonce à aucun droit, ni à la clause résolutoire du bail.</p>
+            <p>Conditions particulières de suivi : ${ouNeant(conditions)}${conditions ? pointFinal(conditions) : ""}</p>`;
         }
-        const conditions = plan?.conditions ?? options.conditions;
-        contenu += `${section("Échéancier convenu")}${plan && plan.acompte > 0 ? `<p>Acompte versé ou à verser à la signature : ${eur(plan.acompte)}.</p>` : ""}${lignesTableau(f,lignes,[["Date","date","date"],["Montant","montant","montant"]])}
-          <p>Les mensualités d’apurement s’ajoutent au loyer et aux charges courants. Les règlements déjà intervenus sont à déduire avant signature de cet accord. Toute adaptation de l’accord est convenue par écrit entre les parties.</p>
-          <p>Le bailleur suspend ses relances tant que l’accord est respecté ; il ne renonce à aucun droit, ni à la clause résolutoire du bail. Une mensualité non réglée à son échéance rend l’accord caduc et les sommes restantes immédiatement exigibles.</p>
-          <p>Conditions particulières de suivi : ${f.champ(conditions?.trim() || null, "conditions convenues pour le suivi de l’accord")}${pointFinal(conditions)}</p>`;
         signatures = true;
       }
     } else if (code === "accuse_conge" || code === "attestation_fin_bail") {

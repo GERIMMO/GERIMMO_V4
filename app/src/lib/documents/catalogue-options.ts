@@ -23,7 +23,8 @@ export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
   attestation_caf:[{cle:"destinataire",libelle:"Caisse destinataire"},{cle:"allocataire",libelle:"Numéro allocataire"}],
   regularisation_charges:[detailDepenses,consultation],decompte_charges:[detailDepenses,consultation],consultation_charges:[consultation],
   mise_en_demeure:[{cle:"delai",libelle:"Délai de règlement (jours)",type:"number"}],
-  protocole_apurement:[{cle:"mensualites",libelle:"Nombre de mensualités",type:"number"},{cle:"premiere_echeance",libelle:"Première échéance",type:"date"},conditions],
+  // Phase 3 (C65, C66, C74) : plus de nombre de mensualités ni de première échéance saisis ici. Le protocole reprend le plan
+  // d'apurement enregistré sur le bail (tranches, tolérance, seuil de caducité, conditions) ; sans plan, il n'est pas produit.
   autorisation_travaux:[{cle:"travaux",libelle:"Travaux autorisés",type:"textarea"},{cle:"intervenant",libelle:"Intervenant"},{cle:"periode",libelle:"Période convenue"},{cle:"prise_en_charge",libelle:"Prise en charge et plafond",type:"textarea"},conditions],
   ordre_intervention:[{cle:"acces",libelle:"Accès et contact sur place",type:"textarea"}],
   cloture_mensuelle:[{cle:"mois",libelle:"Mois",type:"month"}],

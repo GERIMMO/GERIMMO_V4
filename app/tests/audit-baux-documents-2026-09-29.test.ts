@@ -69,7 +69,11 @@ describe("révision IRL : effet = max(anniversaire, demande)", () => {
     });
     expect(doc.html).toContain("Échéance annuelle du <span class=\"v\">01/03/2026</span>");
     expect(doc.html).toMatch(/prend effet à la date de la\s+demande, soit le <b><span class="v">15\/09\/2026/);
-    expect(doc.html).toContain("à compter du <span class=\"v\">15/09/2026</span>");
+    // Phase 3 (C54) : la ligne du loyer révisé ne dit plus « à compter du » la date d'effet. Gerimmo n'appelle le loyer révisé
+    // qu'à partir du terme émis après l'enregistrement de la révision ; la date d'effet reste dite dans la phrase ci-dessus,
+    // et le premier terme appelé au loyer révisé l'est quand les appels du bail sont lus (tests/loyers-impayes-phase3.test.ts).
+    expect(doc.html).toContain("<b>Loyer hors charges révisé</b>");
+    expect(doc.html).not.toContain("à compter du <span class=\"v\">15/09/2026</span>");
     expect(doc.html).not.toContain("à compter du <span class=\"v\">01/03/2026</span>");
     expect(doc.html).toContain("sans rétroactivité");
     expect(doc.html).toContain("T2 2026");

@@ -11,10 +11,12 @@ import {
   faitA,
   blocSignatureEmetteur,
   formaterDateFr,
+  moisEnToutesLettres,
   section,
   tableau,
   titre,
 } from "../gabarit";
+import { deElide } from "@/lib/elision";
 import {
   chargerContexteBail,
   expediteur,
@@ -37,6 +39,8 @@ export type DonneesRevisionIrl = {
   dateDemande?: string | null;
   /** Trimestre de l'indice nouveau (« T2 2026 »). */
   trimestreNouveau?: string | null;
+  /** Fin du bail enregistrée (congé), pour dire qu'aucun terme ne suit. */
+  dateFinBail?: string | null;
   ancienLoyer: number;
   nouveauLoyer: number;
   irlReference: number | null;
@@ -50,10 +54,111 @@ export type DonneesRevisionIrl = {
   logementAdresse: string;
   referenceBail: string;
   exp: ReturnType<typeof expediteur>;
+  /** Ce que les appels du bail font de la révision (C54) ; null : ils ne permettent pas de le dire ; absent : non lu. */
+  application?: ApplicationRevision | null;
   // Signature préenregistrée de l'émetteur (data-URI) — null : zone vierge
   signatureImg?: string | null;
   f: Fusion;
 };
+
+// Phase 3 (C54) : la notification disait « loyer révisé à compter du 15/10/2026 » alors que le terme d'octobre, émis le 1er
+// au loyer d'avant, n'était ni modifié ni complété : `reviser_loyer` ne change que le loyer du bail, et seuls les termes émis
+// ENSUITE le portent, chacun pour le mois entier (generer_appels_loyer_interne ne coupe pas un mois). Le document dit donc ce
+// que font les appels : à partir de quel terme le loyer révisé est appelé, et le sort de la période entre la date d'effet et ce
+// terme. Ce n'est pas un choix de calcul tranché ici (rendu au dirigeant) : la notification décrit l'existant.
+export type AppelRevision = { periode: string; loyer_hc: number | string | null; base_loyer_hc?: number | string | null };
+export type ApplicationRevision = {
+  /** Premier terme (« AAAA-MM-01 ») appelé au loyer révisé ; null : aucun, le bail prenant fin avant. */
+  premierTerme: string | null;
+  /** Termes émis au loyer d'avant depuis le mois de la date d'effet : la période non complétée et leur loyer. */
+  nonComplete: { du: string; au: string; loyer: number; termes: string[] } | null;
+  /** Le premier terme révisé commence avant la date d'effet : jours facturés au loyer révisé avant l'effet. */
+  avantEffet: { du: string; au: string } | null;
+};
+
+const centimes = (v: number | string | null | undefined) => Math.round(Number(v ?? NaN) * 100);
+const jourIso = (d: Date) => d.toISOString().slice(0, 10);
+function moisSuivant(periode: string): string {
+  const [a, m] = periode.slice(0, 7).split("-").map(Number);
+  return jourIso(new Date(Date.UTC(a, m, 1)));
+}
+function finDuMois(periode: string): string {
+  const [a, m] = periode.slice(0, 7).split("-").map(Number);
+  return jourIso(new Date(Date.UTC(a, m, 0)));
+}
+function veille(jour: string): string {
+  const d = new Date(`${jour.slice(0, 10)}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return jourIso(d);
+}
+
+/**
+ * Lit sur les appels du bail ce qu'il advient de la révision. Le loyer d'un appel est sa base mensuelle (base_loyer_hc, à
+ * défaut loyer_hc). Rien n'est déduit si le terme du mois de l'effet n'existe pas, ou si un terme porte un autre loyer que
+ * l'ancien et le nouveau (avenant, correction) : `null`, et le document s'en tient à la règle générale.
+ */
+export function applicationRevision(
+  dateEffet: string,
+  ancienLoyer: number,
+  nouveauLoyer: number,
+  appels: AppelRevision[],
+  dateFinBail?: string | null
+): ApplicationRevision | null {
+  const moisEffet = `${dateEffet.slice(0, 7)}-01`;
+  const suivants = appels
+    .filter((a) => a.periode.slice(0, 10) >= moisEffet)
+    .sort((a, b) => a.periode.localeCompare(b.periode));
+  if (suivants[0]?.periode.slice(0, 10) !== moisEffet) return null;
+  const anciens: string[] = [];
+  let premierTerme: string | null = null;
+  for (const a of suivants) {
+    const loyer = centimes(a.base_loyer_hc ?? a.loyer_hc);
+    if (loyer === centimes(nouveauLoyer)) { premierTerme = a.periode.slice(0, 10); break; }
+    if (loyer !== centimes(ancienLoyer)) return null;
+    anciens.push(a.periode.slice(0, 10));
+  }
+  if (!premierTerme) {
+    // Le terme suivant n'est pas encore émis : il le sera au loyer du bail, révisé — sauf si le bail finit avant.
+    const prochain = moisSuivant(anciens[anciens.length - 1]);
+    premierTerme = dateFinBail && dateFinBail.slice(0, 10) < prochain ? null : prochain;
+  }
+  const dernier = anciens[anciens.length - 1];
+  return {
+    premierTerme,
+    nonComplete: anciens.length
+      ? { du: dateEffet.slice(0, 10), au: dateFinBail && dateFinBail.slice(0, 10) < finDuMois(dernier) ? dateFinBail.slice(0, 10) : finDuMois(dernier), loyer: ancienLoyer, termes: anciens }
+      : null,
+    avantEffet: premierTerme === moisEffet && dateEffet.slice(0, 10) > moisEffet ? { du: moisEffet, au: veille(dateEffet) } : null,
+  };
+}
+
+/** La phrase qui dit ce que font les appels du bail (C54) ; vide si l'application n'a pas été lue. */
+function phraseApplication(application: ApplicationRevision | null | undefined, dateFinBail: string | null | undefined): string {
+  if (application === undefined) return "";
+  if (application === null) {
+    return `<p>Le loyer révisé s'applique aux termes appelés après l'enregistrement de la révision ; un terme déjà appelé
+      n'est pas modifié.</p>`;
+  }
+  const phrases: string[] = [];
+  const { premierTerme, nonComplete, avantEffet } = application;
+  if (premierTerme) {
+    phrases.push(`Le loyer révisé est appelé à compter du terme ${deElide(moisEnToutesLettres(premierTerme))}${
+      avantEffet ? `, pour le mois entier, y compris du ${formaterDateFr(avantEffet.du)} au ${formaterDateFr(avantEffet.au)}, avant la date d'effet` : ""
+    }.`);
+  } else {
+    phrases.push(`Aucun terme n'est appelé au loyer révisé : le bail prend fin le ${dateFinBail ? formaterDateFr(dateFinBail) : "—"}.`);
+  }
+  if (nonComplete) {
+    const premier = moisEnToutesLettres(nonComplete.termes[0]);
+    const dernier = moisEnToutesLettres(nonComplete.termes[nonComplete.termes.length - 1]);
+    const termes = nonComplete.termes.length === 1
+      ? `Le terme ${deElide(premier)}, appelé avant l'enregistrement de cette révision, reste`
+      : `Les termes ${deElide(premier)} à ${dernier}, appelés avant l'enregistrement de cette révision, restent`;
+    phrases.push(`${termes} au loyer de ${eur(nonComplete.loyer)} : aucun complément n'est appelé pour la période du
+      ${formaterDateFr(nonComplete.du)} au ${formaterDateFr(nonComplete.au)}.`);
+  }
+  return `<p>${phrases.join(" ")}</p>`;
+}
 
 // « (inchangé) » s'accorde avec le libellé des charges : une provision est inchangée, un forfait inchangé ; sans mode
 // connu (« Provision ou forfait de charges »), le montant l'est (phase 3, C55).
@@ -102,12 +207,13 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
     <p>Conformément à la clause de révision du bail, le loyer est révisé chaque année selon la
     variation de l'indice de référence des loyers publié par l'INSEE.</p>
     ${phraseEffet}
+    ${phraseApplication(d.application, d.dateFinBail)}
     ${section("Nouveau montant")}
     ${tableau(
       [{ libelle: "Nature" }, { libelle: "Montant", droite: true }],
       [
         ["Loyer hors charges avant révision", f.montant(d.ancienLoyer)],
-        [`<b>Loyer hors charges révisé, à compter du ${f.date(d.dateEffet)}</b>`, `<b>${f.montant(d.nouveauLoyer)}</b>`],
+        [`<b>Loyer hors charges révisé${d.application?.premierTerme ? `, appelé à compter du terme ${deElide(moisEnToutesLettres(d.application.premierTerme))}` : ""}</b>`, `<b>${f.montant(d.nouveauLoyer)}</b>`],
         [`${libelleCharges(d.chargesMode)} (${chargesInchangees(d.chargesMode)})`, f.montant(d.charges, "montant inchangé")],
       ]
     )}
@@ -165,6 +271,17 @@ export async function assemblerRevisionIrl(
   const ctx = await chargerContexteBail(supabase, orgId, r.bail_id);
   if ("erreur" in ctx) return ctx;
 
+  // C54 : les termes émis depuis le mois de la date d'effet disent à partir de quand le loyer révisé est appelé.
+  const { data: appels, error: erreurAppels } = await supabase
+    .from("appels_loyer")
+    .select("periode, loyer_hc, base_loyer_hc")
+    .eq("bail_id", r.bail_id)
+    .eq("organization_id", orgId)
+    .gte("periode", `${String(r.date_effet).slice(0, 7)}-01`)
+    .order("periode")
+    .limit(36);
+  if (erreurAppels) return { erreur: "Les appels de loyer du bail n’ont pas pu être lus. Réessayez avant de générer ce document." };
+
   const f = new Fusion();
   const document = construireRevisionIrl({
     reference: referenceCourte("IRL", r.id),
@@ -172,6 +289,8 @@ export async function assemblerRevisionIrl(
     dateEcheance: r.date_echeance,
     dateDemande: r.date_demande,
     trimestreNouveau: r.irl_trimestre,
+    dateFinBail: ctx.bail.date_fin,
+    application: applicationRevision(r.date_effet, Number(r.ancien_loyer), Number(r.nouveau_loyer), (appels ?? []) as AppelRevision[], ctx.bail.date_fin),
     ancienLoyer: Number(r.ancien_loyer),
     nouveauLoyer: Number(r.nouveau_loyer),
     irlReference: r.irl_reference === null ? null : Number(r.irl_reference),

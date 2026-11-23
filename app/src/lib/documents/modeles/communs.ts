@@ -5,7 +5,7 @@
 import type { MentionsContrat } from "@/lib/mentions-contrat";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
-import { Fusion, formaterDateFr, moisEnToutesLettres, type EnTeteExpediteur } from "../gabarit";
+import { Fusion, facultatif, formaterDateFr, moisEnToutesLettres, type EnTeteExpediteur } from "../gabarit";
 
 // Réservé au recalcul de l’empreinte d’un circuit de signature déjà enregistré.
 export const presentationArchivee = Symbol("presentationArchivee");
@@ -280,7 +280,13 @@ export function mentionEtage(etage: string | null | undefined): string | null {
 
 // `archivee` : l'adresse telle que l'imprimait un bail préparé pour la signature avant la version g8 (recalcul de
 // l'empreinte de son circuit, voir `typographie` dans gabarit.ts) : « étage » toujours ajouté.
-export function adresseLogement(lot: ContexteBail["lot"], bien: ContexteBail["bien"], archivee = false): string {
+// Phase 3 (C59) : seules les colonnes imprimées sont exigées, pour qu'un modèle qui lit le lot sans passer par
+// `chargerContexteBail` (rappel d'assurance) imprime le logement complet comme les autres documents du bail.
+export function adresseLogement(
+  lot: Pick<ContexteBail["lot"], "nom" | "etage">,
+  bien: Pick<ContexteBail["bien"], "address_line1" | "postal_code" | "city">,
+  archivee = false
+): string {
   const etage = archivee ? (lot.etage ? `étage ${lot.etage}` : null) : mentionEtage(lot.etage);
   const complement = [lot.nom !== "Lot unique" ? lot.nom : null, etage]
     .filter(Boolean)
@@ -432,6 +438,18 @@ export function libelleCharges(mode: string | null | undefined): string {
   if (mode === "forfait") return "Forfait de charges";
   if (mode === "provision") return "Provision sur charges";
   return "Provision ou forfait de charges";
+}
+
+// Phase 3 (C50, C72) : un document qui demande un règlement par virement donne le compte où verser. La source est celle de
+// l'avis d'échéance : l'IBAN du profil de l'espace (organizations.iban). Connu, il s'imprime ; inconnu, l'information est à
+// renseigner (le PDF n'est pas produit, la liste « À renseigner » mène au profil — ou-renseigner.ts). Il s'imprimait « — »,
+// et le locataire recevait une demande de virement sans compte. Un autre mode de paiement ne l'exige pas (« — » s'il manque).
+export const LIBELLE_COORDONNEES_BANCAIRES = "coordonnées bancaires (IBAN) du compte qui reçoit les loyers";
+export function demandeVirement(lieuPaiement: string | null | undefined): boolean {
+  return /virement/i.test(lieuPaiement ?? "");
+}
+export function coordonneesBancaires(f: Fusion, lieuPaiement: string | null | undefined, iban: string | null | undefined): string {
+  return demandeVirement(lieuPaiement) ? f.champ(iban, LIBELLE_COORDONNEES_BANCAIRES) : facultatif(iban);
 }
 
 // Bornes d'un terme de loyer (audit du 27/09) : du 1er au dernier jour du

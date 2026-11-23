@@ -296,7 +296,7 @@ export const CATALOGUE_DOCUMENTS: EntreeCatalogue[] = [
     "nom": "Protocole d’apurement",
     "famille": "Loyers et paiements",
     "cible": "bail",
-    "description": "Projet d’accord et échéancier calculé sur la dette constatée.",
+    "description": "Projet d’accord reprenant le plan d’apurement enregistré sur le bail.",
     "priorite": "P1",
     "code": "protocole_apurement"
   },

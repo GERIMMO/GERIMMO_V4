@@ -12,7 +12,7 @@ import { RACINE_AGENCE } from "@/lib/racine-espace";
 
 export type LienManquant = { href: string; ecran: string };
 type Liens = { entite: "bail" | "personne" | "lot" | "mandat"; entiteId: string }[];
-type Cible = "organisation" | "personne" | "lot" | "bail" | "complements";
+type Cible = "organisation" | "personne" | "lot" | "bail" | "complements" | "plan";
 
 // Pour un lot : la section de sa fiche (`vers`) et, pour les caractéristiques
 // saisies dans « Modifier le lot », l'ouverture directe du formulaire.
@@ -32,6 +32,11 @@ const REGLES: Regle[] = [
   // ce libellé ne peut venir que du bloc bailleur — les détenteurs se
   // renseignent sur la fiche du lot (détentions du bien)
   { motifs: ["ou dénomination", "personne physique, sci"], cible: "lot", section: "detention" },
+  // Phase 3 (C50, C72) : le compte qui reçoit les loyers est l'IBAN du profil de l'espace (celui des avis d'échéance) —
+  // avant la règle des conditions financières du bail, dont le motif « iban » enverrait à la fiche du bail.
+  { motifs: ["coordonnées bancaires"], cible: "organisation" },
+  // Phase 3 (C65) : un protocole d'apurement reprend un plan enregistré dans la section « Plan d'apurement » du bail.
+  { motifs: ["plan d’apurement"], cible: "plan" },
   // Les conditions financières et clauses du contrat
   {
     motifs: [
@@ -93,7 +98,8 @@ const REGLES: Regle[] = [
     cible: "organisation",
   },
   // Les annexes et échéances du bail (meublé, congé)
-  { motifs: ["inventaire du mobilier", "date d'échéance du bail"], cible: "bail" },
+  // La fin d'un bail en préavis vient du congé, enregistré sur la fiche du bail (phase 3, C60 et C61).
+  { motifs: ["inventaire du mobilier", "date d'échéance du bail", "date de fin du contrat"], cible: "bail" },
   // L'en-tête de l'émetteur — sur un bail, « adresse électronique » désigne
   // surtout les parties. Le téléphone, lui, ne remonte plus : expressément
   // facultatif au contrat type, il s'imprime « — » (brique `facultatif`) au
@@ -141,6 +147,9 @@ export function lienPourManquant(
         break;
       case "complements":
         if (bail) return { href: `${base}/baux/${bail.entiteId}#complements`, ecran: "compléments du contrat" };
+        break;
+      case "plan":
+        if (bail) return { href: `${base}/baux/${bail.entiteId}#plan-apurement`, ecran: "plan d’apurement du bail" };
         break;
       case "bail":
         break;

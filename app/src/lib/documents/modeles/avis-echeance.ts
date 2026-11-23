@@ -9,7 +9,6 @@ import {
   cartouches,
   enTete,
   eur,
-  facultatif,
   faitA,
   blocSignatureEmetteur,
   formaterDateFr,
@@ -31,6 +30,7 @@ import {
   libelleCharges,
   bornesTerme,
   interlocuteurLocataire,
+  coordonneesBancaires,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -108,7 +108,7 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
     }
     ${section("Modalités de règlement")}
     <p>Lieu de paiement prévu au bail : ${f.champ(d.lieuPaiement ?? null, "domicile du bailleur, virement…")}${pointFinal(d.lieuPaiement)}</p>
-    <p>Coordonnées bancaires : ${facultatif(d.iban ?? null)}.</p>
+    <p>Coordonnées bancaires : ${coordonneesBancaires(f, d.lieuPaiement, d.iban)}.</p>
     <div class="mentions">
       <p>En cas de difficulté de paiement, rapprochez-vous sans attendre de votre ${interlocuteurLocataire(d.typeOrganisation)} :
       des solutions amiables existent (délais, aides au logement).</p>

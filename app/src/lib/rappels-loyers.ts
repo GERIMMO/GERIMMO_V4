@@ -163,12 +163,22 @@ export async function enrichirRappelsLoyers<T extends TermeSuivi>(supabase: Supa
   });
 }
 
+export const PLAN_APUREMENT_EN_COURS =
+  "Un plan d’apurement est en cours sur ce bail : les relances sont suspendues tant qu’il n’est ni caduc ni annulé. Consultez-le dans les loyers du bail.";
+
 /** Relit les envois et les délais pour le terme qui ouvre réellement la procédure du bail. */
 export async function verifierCourrierDuBail(db: SupabaseClient, orgId: string, bailId: string,
   termes: Record<string, unknown>[], jour: string, niveau: "relance_1" | "relance_2" | "recommande") {
   const terme = termes.filter(t => typeof t.date_echeance === "string" && t.date_echeance < jour && Number(t.montant_du) > Number(t.montant_couvert))
     .sort((a,b) => String(a.periode).localeCompare(String(b.periode)) || String(a.appel_id).localeCompare(String(b.appel_id)))[0];
   if (!terme || typeof terme.appel_id !== "string") return { erreur: "Aucune échéance impayée vérifiable pour ce courrier." };
+  // Phase 3 (C65) : pendant un plan d'apurement en cours (actif, ou en défaut avant sa caducité), les relances se taisent — les
+  // automatiques en base (plan_apurement_suspend_relances, migration 20261102224000 : mêmes états) comme les courriers préparés
+  // ici, que le protocole signé annonce suspendus. Le suivi les proposait encore. Lecture impossible : on ne prépare rien.
+  const plans = await db.from("plans_apurement").select("id").eq("organization_id", orgId).eq("bail_id", bailId)
+    .in("etat", ["actif", "en_defaut"]).limit(1);
+  if (plans.error) return { erreur: "Impossible de vérifier le plan d’apurement de ce bail. Réessayez avant de préparer ce courrier." };
+  if ((plans.data ?? []).length) return { erreur: PLAN_APUREMENT_EN_COURS };
   const [ligne] = await enrichirRappelsLoyers(db, orgId, [{ appel_id: terme.appel_id, bail_id: bailId,
     date_echeance: String(terme.date_echeance), montant_du: Number(terme.montant_du), montant_couvert: Number(terme.montant_couvert),
     non_recu_signale_le: null }], jour);

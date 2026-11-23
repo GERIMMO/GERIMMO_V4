@@ -5,7 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { aujourdhuiParis } from "@/lib/ged";
 import { Fusion, assemblerPage, blocSignatureEmetteur, cartouches, enTete, faitA, formaterDateFr, titre } from "../gabarit";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
-import { chargerDetenteursLot, expediteur, nomPersonne, referenceCourte, signatureOrganisation } from "./communs";
+import { adresseLogement, chargerDetenteursLot, expediteur, nomPersonne, referenceCourte, signatureOrganisation } from "./communs";
 import type { Assemblage } from "./index";
 
 export type DonneesRappelAssurance = {
@@ -27,7 +27,9 @@ export function construireRappelAssurance(d: DonneesRappelAssurance) {
   const f = d.f;
   const corps = `
     ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: new Date().toISOString() })}
-    ${titre("Attestation d'assurance", `Rappel · échéance du ${f.date(d.echeance)}`, [
+    ${/* Phase 3 (C57) : le titre dit ce qu'est le document — une demande adressée au locataire, comme le pied de page et le
+       classement — et non « Attestation d'assurance », qu'un tiers pouvait prendre pour le justificatif lui-même. */
+      titre("Demande d'attestation d'assurance", `Rappel · échéance du ${f.date(d.echeance)}`, [
       "Article 7 g de la loi n° 89-462 du 6 juillet 1989",
     ])}
     ${cartouches([
@@ -106,7 +108,7 @@ export async function assemblerRappelAssurance(
   const { data: bail } = await supabase
     .from("baux")
     .select(
-      "id, locataire_principal, lot:lots!baux_lot_meme_org_fk(id, nom, etage, bien:biens!lots_bien_id_fkey(address_line1, postal_code, city))"
+      "id, locataire_principal, chambre:lot_chambres!baux_chambre_meme_lot_fk(nom), lot:lots!baux_lot_meme_org_fk(id, nom, etage, bien:biens!lots_bien_id_fkey(address_line1, postal_code, city))"
     )
     .eq("organization_id", orgId)
     .eq("locataire_principal", personne.id)
@@ -115,6 +117,9 @@ export async function assemblerRappelAssurance(
     .maybeSingle();
   const lot = bail ? premier(bail.lot as UnOuPlusieurs<{ id: string; nom: string; etage: string | null; bien: UnOuPlusieurs<{ address_line1: string; postal_code: string; city: string }> }>) : null;
   const bien = lot ? premier(lot.bien) : null;
+  // C59 : le logement loué s'imprime comme dans les autres documents du bail (adresseLogement : immeuble, lot, étage) ; un
+  // contrat individuel de colocation y ajoute sa chambre, comme chargerContexteBail.
+  const chambre = bail ? premier((bail as { chambre?: UnOuPlusieurs<{ nom: string }> }).chambre ?? null) : null;
 
   // C56 : le rappel est émis et signé comme les autres documents du bail, par ses détenteurs hors espace d'agence (expediteur).
   // Il l'était au nom de l'espace de travail, avec son téléphone. Sans bail en cours (aucun lot connu), l'organisation émet.
@@ -137,9 +142,7 @@ export async function assemblerRappelAssurance(
     echeance: doc.expire_le,
     expiree: Boolean(doc.expire_le && doc.expire_le < aujourdHui),
     locataireNom: f.champ(nomPersonne(personne), "nom et prénom(s) du ou des locataires"),
-    logementAdresse: bien
-      ? [bien.address_line1, `${bien.postal_code} ${bien.city}`].filter(Boolean).join(", ")
-      : null,
+    logementAdresse: lot && bien ? adresseLogement({ nom: chambre ? `${lot.nom} · ${chambre.nom}` : lot.nom, etage: lot.etage }, bien) : null,
     referenceBail: bail ? referenceCourte("BAIL", bail.id) : null,
     canalReponse: organisation.email_contact,
     espaceLocataire,

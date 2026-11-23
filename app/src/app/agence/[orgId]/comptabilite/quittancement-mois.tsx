@@ -16,6 +16,7 @@ import { CardAction, CardContent, CardDescription, CardHeader, CardTitle } from 
 import { eur, moisEnFrancais } from "@/lib/ged";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { useBaseEspace } from "@/components/racine-espace-contexte";
+import { gesteImpayeSelonPlan, type PlanApurementLigne } from "@/lib/paliers-reception-loyer";
 
 // Carte « Quittancement du mois » (maquette v3) : le mois d'un coup d'œil,
 // l'encaissement en un clic, l'envoi groupé des quittances.
@@ -41,6 +42,9 @@ export type LigneQuittancement = {
   // Nulle quand ce terme est bien le plus ancien encore dû.
   dette_anterieure_periode: string | null;
   dette_anterieure_reste: number | null;
+  // Phase 3, lot 44 (reprise, C65) : l'état du plan d'apurement du bail, posé sur les termes non couverts par
+  // marquerPlansApurement (lib/quittancement-du-mois). Sous plan en cours, aucune relance n'est proposée (gesteImpayeSelonPlan).
+  plan_apurement?: PlanApurementLigne;
 };
 
 // Statut et actions d'une ligne (encaisser, relancer, quittance) — partagés
@@ -128,15 +132,23 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
           )}
           {/* Même geste, même cible et même libellé que la carte « Impayés à
               relancer » de la page : la relance se consigne dans la section
-              des loyers du bail (24/09). */}
-          {l.statut === "impaye" && (
-            <Link
-              href={`${base}/baux/${l.bail_id}#loyers`}
-              className="lien-discret relative z-10"
-            >
-              Relancer sur le bail →
-            </Link>
-          )}
+              des loyers du bail (24/09). Phase 3, lot 44 (reprise, C65) : sous
+              plan d'apurement en cours, les relances sont suspendues — le lien
+              mène au plan au lieu d'inviter à relancer. */}
+          {l.statut === "impaye" && (() => {
+            const geste = gesteImpayeSelonPlan(l.plan_apurement);
+            return (
+              <>
+                {geste.detail && <span className="text-xs text-muted-foreground">{geste.detail}</span>}
+                <Link
+                  href={`${base}/baux/${l.bail_id}${geste.ancre}`}
+                  className="lien-discret relative z-10"
+                >
+                  {geste.libelle}
+                </Link>
+              </>
+            );
+          })()}
         </>
       )}
       {erreur && <span className="block w-full text-left text-xs text-destructive">{erreur}</span>}

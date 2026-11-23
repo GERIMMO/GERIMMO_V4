@@ -1,6 +1,30 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { aujourdhuiParis } from "@/lib/ged";
+import { lirePlansApurementEnCours } from "@/lib/rappels-loyers";
 import type { LigneQuittancement } from "@/app/agence/[orgId]/comptabilite/quittancement-mois";
+
+/**
+ * Phase 3, lot 44 (reprise, C65) : « Loyers & charges » (agence) et les Finances du propriétaire invitaient à « Relancer
+ * sur le bail » chaque terme non couvert, même d'un bail sous plan d'apurement en cours, où les relances sont suspendues et
+ * où le bail refuse d'enregistrer une relance datée de l'activation ou après. Chaque terme non couvert porte donc l'état du
+ * plan de son bail, lu comme le suivi des loyers (lirePlansApurementEnCours, sous la RLS de l'appelant). Les termes couverts
+ * ne sont pas touchés ; lecture impossible : « illisible » pour tous les termes non couverts.
+ */
+export async function marquerPlansApurement(
+  supabase: SupabaseClient,
+  orgId: string,
+  lignes: LigneQuittancement[]
+): Promise<LigneQuittancement[]> {
+  const nonCouvert = (l: LigneQuittancement) => Number(l.montant_couvert) < Number(l.montant_du);
+  const baux = lignes.filter(nonCouvert).map((l) => l.bail_id);
+  if (!baux.length) return lignes;
+  const { enCours, error } = await lirePlansApurementEnCours(supabase, orgId, baux);
+  return lignes.map((l) =>
+    nonCouvert(l)
+      ? { ...l, plan_apurement: error ? "illisible" : enCours.has(l.bail_id) ? "en_cours" : "aucun" }
+      : l
+  );
+}
 
 /**
  * Le quittancement du mois : les appels de loyer du mois courant, et à défaut

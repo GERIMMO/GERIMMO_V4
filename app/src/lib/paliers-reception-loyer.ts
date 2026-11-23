@@ -38,6 +38,25 @@ export function relanceRefuseeSousPlan(depuis: string | null): string {
   return `Un plan d’apurement est en cours sur ce bail depuis le ${jourEnClair(depuis)} : les relances sont suspendues jusqu’à sa fin (dette soldée, plan caduc ou annulé). Seule une relance envoyée avant le ${jourEnClair(depuis)} peut encore être enregistrée.`;
 }
 
+/**
+ * L'état du plan d'apurement du bail d'un terme impayé, tel que le lit marquerPlansApurement (lib/quittancement-du-mois) :
+ * « en_cours » (actif, ou en défaut avant sa caducité), « aucun », ou « illisible » (lecture impossible).
+ */
+export type PlanApurementLigne = "en_cours" | "aucun" | "illisible";
+
+/**
+ * Phase 3, lot 44 (reprise, C65) : le geste qu'une liste de loyers (« Loyers & charges » d'une agence, Finances du
+ * propriétaire) propose pour un terme impayé. Elle invitait à « Relancer sur le bail » même sous plan d'apurement en cours,
+ * où les relances sont suspendues et où le bail refuse d'enregistrer une relance datée de l'activation ou après : la liste
+ * mène alors au plan, comme la fenêtre du lot et le suivi des loyers. Plan illisible : aucune relance n'est proposée (même
+ * prudence que la fenêtre du lot). Aucun plan, ou plan non lu par l'appelant : la relance, comme avant.
+ */
+export function gesteImpayeSelonPlan(plan: PlanApurementLigne | undefined): { ancre: string; libelle: string; detail: string | null } {
+  if (plan === "en_cours") return { ancre: "#plan-apurement", libelle: "Suivre le plan d’apurement dans le bail →", detail: "plan d’apurement en cours : relances suspendues" };
+  if (plan === "illisible") return { ancre: "#loyers", libelle: "Voir sur le bail →", detail: "plan d’apurement non vérifié : aucune relance proposée ici" };
+  return { ancre: "#loyers", libelle: "Relancer sur le bail →", detail: null };
+}
+
 export type TermeSuivi = Omit<RappelLoyer, "lot_nom" | "locataire" | "periode">;
 type Etape = keyof typeof LIBELLES_PALIERS;
 export type PointReception = { etape: Etape; date: string; aConfirmer: boolean; confirmationExpiree?: boolean };

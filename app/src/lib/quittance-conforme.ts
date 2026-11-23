@@ -197,6 +197,10 @@ export function assemblerQuittanceDelivree(d: DonneesQuittanceDocument): Documen
       email: d.organisation.email,
       telephone: d.organisation.telephone,
       ville: d.organisation.ville,
+      // Phase 3, lot 46 (second passage, T19) : l'adresse et la commune imprimées viennent du profil de l'espace
+      // (quittance_document : organisation), même quand les bailleurs émettent. La liste « à renseigner » de la page y mène ;
+      // elle envoyait, par déduction du lien au bail, vers la fiche du propriétaire, que cette quittance ne lit pas.
+      emetteur: "espace",
     },
     // La signature préenregistrée vit dans le stockage privé de
     // l'organisation, que le locataire ne lit pas : la zone reste à signer.

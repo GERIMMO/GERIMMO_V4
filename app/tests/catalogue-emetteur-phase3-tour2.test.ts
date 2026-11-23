@@ -33,6 +33,10 @@ import { assemblerRappelAssurance } from "@/lib/documents/modeles/rappel-assuran
 import { assemblerComplementGestion } from "@/lib/documents/modeles/catalogue-gestion";
 import { expediteur } from "@/lib/documents/modeles/communs";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
+import { construireBailNu } from "@/lib/documents/modeles/bail-nu";
+import { Fusion } from "@/lib/documents/gabarit";
+import { assemblerQuittanceDelivree, manquantsQuittance } from "@/lib/quittance-conforme";
+import { quittanceDocumentComplete } from "./fixtures/quittance-document";
 import type { Assemblage } from "@/lib/documents/modeles";
 
 type Ligne = Record<string, unknown>;
@@ -178,6 +182,50 @@ describe("T19 — « À renseigner » suit l'en-tête effectivement imprimé", (
     expect(r.document.emetteur).toBe("espace");
     expect(liensDe(r, "ordre_intervention")).toEqual(["/espace/org/profil", "/espace/org/profil"]);
   });
+  // Second passage du lot 46 : le contrat d'un lot sans détenteur prend l'en-tête de l'espace (complet ici) ; « domicile ou siège
+  // social » manque dans la DÉSIGNATION DU BAILLEUR, au corps. Le lien suivait l'en-tête et menait au profil de l'espace, déjà
+  // complet : le PDF restait bloqué. Le bailleur se désigne en ajoutant un détenteur au lot (son en-tête remplace alors celui
+  // de l'espace), comme « nom et prénom(s), ou dénomination ».
+  it("contrat d'un lot sans détenteur : le bailleur manque au corps → la détention, sur la fiche du lot", () => {
+    const doc = construireBailNu(contexte({ bailleurs: [] }), { dpeClasse: "D", f: new Fusion() });
+    const liens = [{ entite: "bail" as const, entiteId: "b1" }, { entite: "lot" as const, entiteId: "l1" }];
+    expect(doc.emetteur).toBe("espace");
+    expect(enTeteDe(doc.html)).not.toContain("domicile ou siège social");
+    expect(doc.manquants).toEqual(expect.arrayContaining(["nom et prénom(s), ou dénomination", "domicile ou siège social"]));
+    const detention = { href: "/espace/org/lots/l1?vers=detention", ecran: "fiche du lot" };
+    expect(lienPourManquant("domicile ou siège social", "org", liens, "bail_nu", "/espace", doc.emetteur)).toEqual(detention);
+    expect(lienPourManquant("nom et prénom(s), ou dénomination", "org", liens, "bail_nu", "/espace", doc.emetteur)).toEqual(detention);
+    for (const modele of ["bail_meuble", "bail_colocation", "bail_individuel"]) {
+      expect(lienPourManquant("domicile ou siège social", "org", liens, modele, "/espace", "espace")).toEqual(detention);
+    }
+    // L'acte de cautionnement n'a pas de lien vers le lot : repli sur la fiche du bail, comme « ou dénomination ».
+    expect(lienPourManquant("domicile ou siège social", "org", [liens[0]], "cautionnement", "/espace", "espace")?.href).toBe("/espace/org/baux/b1");
+    // Inchangé : avec des détenteurs, leur fiche ; un document qui n'imprime l'adresse qu'en en-tête, le profil de l'espace ;
+    // la commune (« Fait à ») suit toujours l'en-tête ; en agence, le profil.
+    expect(lienPourManquant("domicile ou siège social", "org", liens, "bail_nu", "/espace", "detenteurs")?.href).toBe("/espace/org/personnes");
+    expect(lienPourManquant("domicile ou siège social", "org", liens, "quittance", "/espace", "espace")?.href).toBe("/espace/org/profil");
+    expect(lienPourManquant("commune", "org", liens, "bail_nu", "/espace", "espace")?.href).toBe("/espace/org/profil");
+    expect(lienPourManquant("domicile ou siège social", "org", liens, "bail_nu", "/agence", "espace")?.href).toBe("/agence/org/profil");
+  });
+  // Second passage du lot 46 : la quittance délivrée (page /quittance, celle que lit le locataire) imprime les bailleurs avec
+  // l'adresse et la commune du PROFIL DE L'ESPACE (quittance_document). Sa liste « à renseigner » envoyait, faute d'origine
+  // transmise, vers la fiche du propriétaire : la compléter ne débloquait pas la quittance.
+  it("quittance délivrée, propriétaire direct, espace sans adresse : l'adresse et la commune mènent au profil de l'espace", () => {
+    const base0 = quittanceDocumentComplete();
+    const q = quittanceDocumentComplete({
+      organisation: { ...base0.organisation, type: "proprietaire_direct", nom: "Parc de Claire Moreau", siret: null, carte_pro: null, adresse: null, code_postal: null, ville: null },
+      bailleurs: [{ nom: "Moreau", prenom: "Claire" }],
+    });
+    const doc = assemblerQuittanceDelivree(q);
+    expect(enTeteDe(doc.html)).toContain("Moreau Claire");
+    expect(doc.emetteur).toBe("espace");
+    const manquants = manquantsQuittance(doc);
+    expect(manquants).toEqual(expect.arrayContaining(["domicile ou siège social", "commune"]));
+    for (const m of ["domicile ou siège social", "commune"]) {
+      expect(lienPourManquant(m, q.organization_id, [{ entite: "bail", entiteId: q.bail_id }], "quittance", "/espace", doc.emetteur)?.href).toBe("/espace/org-1/profil");
+    }
+    expect(readFileSync("src/app/quittance/[quittanceId]/page.tsx", "utf8")).toContain('"quittance", racineEspace(q.organisation.type === "proprietaire_direct"), document.emetteur)');
+  });
   it("expediteur dit d'où vient l'en-tête ; sans origine transmise, la déduction d'avant reste le repli", () => {
     const organisation = { name: "Parc", type: "proprietaire_direct", address_line1: null, postal_code: null, city: null, telephone: null, email_contact: null };
     expect(expediteur({ organisation, bailleurs: [personne()] }).emetteur).toBe("detenteurs");
@@ -306,6 +354,22 @@ describe("T21 — le catalogue ne propose plus ce que l'assembleur refuse pour l
     await expect(verifierCibleCatalogue(db, "org", modele("cautionnement"), "personne")).rejects.toBeInstanceOf(RefusDocument);
     expect(appels.at(-1)!.ops).toContainEqual(["select", "id,bail_personnes!bail_personnes_bail_meme_org_fk!inner(role)"]);
     expect(appels.at(-1)!.ops).toContainEqual(["eq", "bail_personnes.role", "garant"]);
+  });
+  // Second passage du lot 46 : revue des refus des assembleurs, modèle par modèle. Deux restaient proposés puis refusés pour
+  // l'état du dossier : le bordereau de remise des clés d'un état des lieux sans clé (« Aucune clé n'a été enregistrée… ») et le
+  // bordereau de versement d'un rapport dont le versement n'est pas enregistré (« Enregistrez le versement du rapport… »).
+  it("bordereau de remise des clés : un état des lieux qui a des clés ; bordereau de versement : un versement enregistré", async () => {
+    const edl = (id: string, cles: Ligne[]) => ({ id, organization_id: "org", bail_id: "b", type: "sortie", etat: "signe", date_edl: "2026-11-02", edl_cles: cles });
+    const tables = { baux: [bail("b", "termine")], etats_des_lieux: [edl("avec-cles", [{ id: "k1" }]), edl("sans-cle", [])] };
+    expect(await ids("restitution_cles", tables)).toEqual(["avec-cles"]);
+    const { db, appels } = base({ ...commun, ...tables });
+    await expect(verifierCibleCatalogue(db, "org", modele("restitution_cles"), "sans-cle")).rejects.toBeInstanceOf(RefusDocument);
+    expect(appels.at(-1)!.ops).toContainEqual(["select", "id,edl_cles!edl_cles_edl_id_fkey!inner(id)"]);
+    const rapport = (id: string, versement_montant: number | null, versement_date: string | null) => ({ id, organization_id: "org", mandat_id: "m", mois: "2026-10-01", statut: "envoye", versement_montant, versement_date });
+    const rapports_gestion = [rapport("verse", 1250, "2026-11-05"), rapport("sans-date", 1250, null), rapport("non-verse", null, null)];
+    expect(await ids("bordereau_versement", { rapports_gestion })).toEqual(["verse"]);
+    // Le rapport de gestion lui-même se prépare avant le versement : inchangé.
+    expect(await ids("rapport_gestion", { rapports_gestion })).toEqual(["verse", "sans-date", "non-verse"]);
   });
   it("les motifs de la liste sont ceux de l'assembleur (mêmes constantes, mêmes calculs)", () => {
     const source = readFileSync("src/lib/documents/modeles/catalogue-bail.ts", "utf8");

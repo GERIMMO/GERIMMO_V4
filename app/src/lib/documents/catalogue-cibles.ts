@@ -33,6 +33,9 @@ const LIAISONS_CIBLES: Record<string, string> = {
   // Lot 46 (T21) : l'acte de cautionnement engage un garant rattaché au bail (l'assembleur refuse sinon, et le formulaire n'a
   // aucun garant à proposer).
   cautionnement: "bail_personnes!bail_personnes_bail_meme_org_fk!inner(role)",
+  // Lot 46, second passage (T21) : le bordereau de remise des clés reprend les clés de l'état des lieux, tout son contenu ;
+  // l'assembleur refuse un état des lieux qui n'en a aucune (signé, il ne se modifie plus). Il était proposé puis refusé.
+  restitution_cles: "edl_cles!edl_cles_edl_id_fkey!inner(id)",
 };
 // Les colonnes que motifsDeRefus relit pour un dossier forcé (la liste, elle, lit toutes les colonnes).
 const COLONNES_CONTROLE: Record<string, string> = { avis_echeance: "bail_id,periode", inventaire_entree: "type", inventaire_sortie: "type" };
@@ -74,6 +77,9 @@ export function filtrerCibles<T>(q:T, modele:EntreeCatalogue):T {
   if(["attestation_loyer","attestation_caf"].includes(id)) r=r.in("etat",["actif","preavis"]);
   if(id==="attestation_fin_bail") r=r.eq("etat","termine");
   if(id==="ecriture_rectificative") r=r.not("contre_ecriture_de","is",null);
+  // Lot 46, second passage (T21) : le bordereau de versement au mandant suppose le versement enregistré sur le rapport (montant
+  // et date) ; l'assembleur refuse sinon (« Enregistrez le versement du rapport avant d'émettre son bordereau »).
+  if(id==="bordereau_versement") r=r.not("versement_montant","is",null).not("versement_date","is",null);
   if(id==="recap_fiscal_nu" || id==="recap_fiscal_meuble") r=r.eq("meuble",id==="recap_fiscal_meuble");
   return r as unknown as T;
 }

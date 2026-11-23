@@ -115,6 +115,13 @@ const REGLES: Regle[] = [
 // Les documents d'un dossier (lot, incident) dont l'en-tête reste celui de l'espace, même chez un propriétaire qui gère
 // lui-même (catalogue-gestion) : documents internes et comptables. Repli quand l'origine de l'en-tête n'est pas transmise.
 const MODELES_EN_TETE_ESPACE = new Set(["comparatif_devis", "recap_incident", "recap_fiscal_nu", "recap_fiscal_meuble", "ecriture_rectificative", "cloture_mensuelle"]);
+// Phase 3, lot 46 (second passage, T19) : les contrats et l'acte de cautionnement désignent AUSSI le bailleur dans leur corps,
+// sous le même libellé que l'en-tête (« Domicile ou siège social : … »). Chez un propriétaire qui gère lui-même, leur en-tête
+// n'est celui de l'espace que si le lot n'a aucun détenteur (expediteur) : le corps n'a alors aucun bailleur à désigner, et
+// compléter le profil de l'espace ne débloque pas le PDF. Le détenteur s'ajoute sur la fiche du lot (détention, comme
+// « ou dénomination ») ; l'en-tête devient alors le sien.
+const MODELES_BAILLEUR_AU_CORPS = new Set(["bail_nu", "bail_meuble", "bail_colocation", "bail_individuel", "cautionnement"]);
+const DETENTION: Regle = { motifs: [], cible: "lot", section: "detention" };
 
 export function lienPourManquant(
   libelle: string,
@@ -183,6 +190,9 @@ export function lienPourManquant(
   // émis par les détenteurs des logements de l'immeuble et renvoyaient au profil de l'espace ; un document d'un lot sans
   // détenteur garde l'en-tête de l'espace et renvoyait à la fiche du propriétaire.
   const enTeteDesDetenteurs = emetteur ? emetteur === "detenteurs" : Boolean(bail || lot) && !MODELES_EN_TETE_ESPACE.has(modele ?? "");
+  if (racine === RACINE_PROPRIETAIRE && emetteur === "espace" && MODELES_BAILLEUR_AU_CORPS.has(modele ?? "") && l === "domicile ou siège social") {
+    return vers("lot", DETENTION);
+  }
   if (racine === RACINE_PROPRIETAIRE && enTeteDesDetenteurs && (l === "domicile ou siège social" || l === "commune")) {
     return { href: `${base}/personnes`, ecran: "fiche du propriétaire, dans Personnes" };
   }

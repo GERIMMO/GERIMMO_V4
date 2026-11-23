@@ -140,7 +140,7 @@ export default async function PageQuittance(props: {
             </p>
             <ul className="list-disc space-y-1 pl-5">
               {manquants.map((m) => {
-                const lien = lienPourManquant(m, q.organization_id, [{ entite: "bail", entiteId: q.bail_id }], "quittance", racineEspace(q.organisation.type === "proprietaire_direct"));
+                const lien = lienPourManquant(m, q.organization_id, [{ entite: "bail", entiteId: q.bail_id }], "quittance", racineEspace(q.organisation.type === "proprietaire_direct"), document.emetteur);
                 return (
                   <li key={m}>
                     {m}
